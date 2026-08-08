@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Frontline perimeter straight provider review</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        background: #0d0a09;
+        color: #e8d9c5;
+      }
+      * { box-sizing: border-box; }
+      body { margin: 0; overflow: hidden; }
+      canvas { display: block; width: 1600px; height: 1000px; }
+      .title {
+        position: fixed;
+        top: 22px;
+        left: 28px;
+        z-index: 2;
+        font: 700 18px/1.2 system-ui, sans-serif;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+      }
+      .subtitle {
+        position: fixed;
+        top: 51px;
+        left: 28px;
+        z-index: 2;
+        color: #9f8d7a;
+        font-size: 12px;
+      }
+      .label {
+        position: fixed;
+        left: 26px;
+        z-index: 2;
+        color: #bda88d;
+        font-size: 11px;
+        letter-spacing: .12em;
+        text-transform: uppercase;
+      }
+      .front { top: 112px; }
+      .side { top: 346px; }
+      .rear { top: 580px; }
+      .top { top: 814px; }
+      .game {
+        position: fixed;
+        top: 24px;
+        left: 630px;
+        z-index: 2;
+        color: #e8d9c5;
+        font: 700 13px/1.2 system-ui, sans-serif;
+        letter-spacing: .11em;
+        text-transform: uppercase;
+      }
+      .gate {
+        position: fixed;
+        right: 24px;
+        bottom: 20px;
+        z-index: 2;
+        max-width: 520px;
+        padding: 10px 12px;
+        border: 1px solid #5b4430;
+        background: rgba(13, 10, 9, .86);
+        color: #bda88d;
+        font-size: 11px;
+        line-height: 1.5;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="title">Meshy perimeter straight · raw master</div>
+    <div class="subtitle">source +Y-up · width 0.995 tile · height 0.72 tile · source textures unchanged</div>
+    <div class="label front">Front</div>
+    <div class="label side">Right</div>
+    <div class="label rear">Rear</div>
+    <div class="label top">Top</div>
+    <div class="game">Exact 58° gameplay pitch · seven repeated instances</div>
+    <div class="gate">
+      Presentation proof only. The continuous topology-derived substrate remains
+      collision truth; this shell must pass silhouette, repetition, seam, and
+      material gates before any runtime promotion.
+    </div>
+    <canvas id="stage" width="1600" height="1000"></canvas>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "/web/node_modules/three/build/three.module.js",
+          "three/addons/": "/web/node_modules/three/examples/jsm/"
+        }
+      }
+    </script>
+    <script type="module">
+      import * as THREE from '/web/node_modules/three/build/three.module.js';
+      import { GLTFLoader } from '/web/node_modules/three/examples/jsm/loaders/GLTFLoader.js';
+
+      const TASK =
+        '019fb015-f431-7462-9ed2-36ba06a0e2c2';
+      const DEFAULT_MODEL =
+        `/art/frontline-map-models/provider-runs/meshy/perimeter-straight/${TASK}/raw-model.glb`;
+      const query = new URLSearchParams(location.search);
+      const modelUrl = query.get('model') || DEFAULT_MODEL;
+      const canvas = document.querySelector('#stage');
+      const renderer = new THREE.WebGLRenderer({
+        canvas,
+        antialias: true,
+        preserveDrawingBuffer: true,
+        powerPreference: 'high-performance',
+      });
+      renderer.setPixelRatio(1);
+      renderer.setSize(1600, 1000, false);
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFShadowMap;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.05;
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
+      renderer.setScissorTest(true);
+
+      const source = (await new GLTFLoader().loadAsync(modelUrl)).scene;
+      source.traverse((node) => {
+        if (!node.isMesh) return;
+        node.castShadow = true;
+        node.receiveShadow = true;
+      });
+
+      // Unlike the earlier skimmer task, this wall was inferred upright and
+      // arrives +Y-up. Keep the inner group explicit so an axis correction can
+      // be pinned here if a later provider task differs.
+      const axisFixed = new THREE.Group();
+      axisFixed.add(source);
+      const normalized = new THREE.Group();
+      normalized.add(axisFixed);
+      normalized.updateMatrixWorld(true);
+
+      let bounds = new THREE.Box3().setFromObject(normalized);
+      const initialSize = bounds.getSize(new THREE.Vector3());
+      normalized.scale.setScalar(0.995 / initialSize.x);
+      normalized.updateMatrixWorld(true);
+      bounds = new THREE.Box3().setFromObject(normalized);
+      const uniformSize = bounds.getSize(new THREE.Vector3());
+      // Height is the only non-uniform technical-art correction. The raw
+      // result drifted low after fitting its authoritative one-cell width.
+      normalized.scale.y *= 0.72 / uniformSize.y;
+      normalized.updateMatrixWorld(true);
+      bounds = new THREE.Box3().setFromObject(normalized);
+      const centre = bounds.getCenter(new THREE.Vector3());
+      normalized.position.set(-centre.x, -bounds.min.y, -centre.z);
+      normalized.updateMatrixWorld(true);
+
+      function lights(scene, scale = 8) {
+        const key = new THREE.DirectionalLight(0xe8f1ff, 4.4);
+        key.position.set(scale * .55, scale * .85, scale * .75);
+        key.castShadow = true;
+        key.shadow.mapSize.set(2048, 2048);
+        key.shadow.camera.left = -8;
+        key.shadow.camera.right = 8;
+        key.shadow.camera.top = 8;
+        key.shadow.camera.bottom = -8;
+        key.shadow.camera.far = 32;
+        key.shadow.bias = -.0015;
+        key.shadow.normalBias = .02;
+        const ambient = new THREE.AmbientLight(0x6f8bb0, 2.4);
+        const fill = new THREE.DirectionalLight(0x4d7099, 1.5);
+        fill.position.set(-scale * .6, scale * .4, -scale * .5);
+        scene.add(key, key.target, ambient, fill);
+      }
+
+      const neutralScene = new THREE.Scene();
+      neutralScene.background = new THREE.Color('#181310');
+      lights(neutralScene, 3);
+      neutralScene.add(normalized);
+
+      const gameplayScene = new THREE.Scene();
+      gameplayScene.background = new THREE.Color('#120e0c');
+      gameplayScene.fog = new THREE.Fog('#120e0c', 7, 16);
+      lights(gameplayScene, 8);
+      for (let x = -3; x <= 3; x++) {
+        const instance = normalized.clone(true);
+        instance.position.x += x;
+        gameplayScene.add(instance);
+      }
+      const floorTexture = await new THREE.TextureLoader().loadAsync(
+        '/art/themes/ember-forge/floor/source.png',
+      );
+      floorTexture.colorSpace = THREE.SRGBColorSpace;
+      const floorGeometry = new THREE.PlaneGeometry(9, 7);
+      floorGeometry.rotateX(-Math.PI / 2);
+      const floorMaterial = new THREE.MeshStandardMaterial({
+        map: floorTexture,
+        bumpMap: floorTexture,
+        bumpScale: 1.6,
+        color: '#5b514b',
+        roughness: .86,
+        metalness: .12,
+      });
+      const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+      floor.receiveShadow = true;
+      floor.position.z = .6;
+      gameplayScene.add(floor);
+
+      const ortho = (position, up = new THREE.Vector3(0, 1, 0)) => {
+        const camera = new THREE.OrthographicCamera(-1.25, 1.25, .5, -.5, .01, 20);
+        camera.position.copy(position);
+        camera.up.copy(up);
+        camera.lookAt(0, .36, 0);
+        camera.updateProjectionMatrix();
+        return camera;
+      };
+      const front = ortho(new THREE.Vector3(0, .36, 4));
+      const side = ortho(new THREE.Vector3(4, .36, 0));
+      const rear = ortho(new THREE.Vector3(0, .36, -4));
+      const top = ortho(
+        new THREE.Vector3(0, 4, 0),
+        new THREE.Vector3(0, 0, -1),
+      );
+      const gameplay = new THREE.PerspectiveCamera(42, 1, .1, 100);
+      const pitch = 58 * Math.PI / 180;
+      const span = 8;
+      const distance = (span / 2) / Math.tan(gameplay.fov * Math.PI / 360);
+      gameplay.position.set(
+        0,
+        Math.sin(pitch) * distance * 1.02,
+        Math.cos(pitch) * distance * 1.02 + .65,
+      );
+      gameplay.lookAt(0, .08, .65);
+
+      function draw(scene, camera, x, y, width, height, clear) {
+        renderer.setViewport(x, y, width, height);
+        renderer.setScissor(x, y, width, height);
+        renderer.setClearColor(clear);
+        renderer.clear(true, true, true);
+        renderer.render(scene, camera);
+      }
+
+      // WebGL's viewport origin is bottom-left.
+      draw(neutralScene, front, 0, 750, 600, 250, '#181310');
+      draw(neutralScene, side, 0, 500, 600, 250, '#181310');
+      draw(neutralScene, rear, 0, 250, 600, 250, '#181310');
+      draw(neutralScene, top, 0, 0, 600, 250, '#181310');
+      draw(gameplayScene, gameplay, 600, 0, 1000, 1000, '#120e0c');
+
+      document.documentElement.dataset.ready = 'true';
+    </script>
+  </body>
+</html>

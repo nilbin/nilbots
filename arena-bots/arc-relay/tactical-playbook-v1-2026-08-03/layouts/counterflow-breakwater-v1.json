@@ -1,0 +1,199 @@
+{
+  "schema": "arc-relay-tactical-layout-v1",
+  "layoutId": "counterflow-breakwater-v1",
+  "mapId": "arc-relay-threefold-depth-counterflow-01",
+  "bindings": [
+    {
+      "matchContractFingerprint": "43f067af5dd5563dce8ff3d896972d19f7c74e5aa7c675927aeb7c206065edae",
+      "ownReactorSide": "west",
+      "transform": "identity",
+      "routeAliases": {},
+      "formationAliases": {}
+    },
+    {
+      "matchContractFingerprint": "0cda3913811aa7bcc5ec7d1327eac88f99b377edf5de1b2283c784f40b2fa1be",
+      "ownReactorSide": "west",
+      "transform": "identity",
+      "routeAliases": {},
+      "formationAliases": {}
+    },
+    {
+      "matchContractFingerprint": "9b74e780a5c117a31143d6aeba41410a64f2f928b6f60d492c44408b8ed96c9b",
+      "ownReactorSide": "east",
+      "transform": "rotate-180",
+      "routeAliases": {
+        "north-out": "south-out",
+        "south-out": "north-out"
+      },
+      "formationAliases": {}
+    },
+    {
+      "matchContractFingerprint": "50010900f8c696a493c95be6dd1e9c5ee0e017804c02815faf5811133b1f6276",
+      "ownReactorSide": "east",
+      "transform": "rotate-180",
+      "routeAliases": {
+        "north-out": "south-out",
+        "south-out": "north-out"
+      },
+      "formationAliases": {}
+    },
+    {
+      "matchContractFingerprint": "any-composition",
+      "ownReactorSide": "west",
+      "transform": "identity",
+      "routeAliases": {},
+      "formationAliases": {}
+    },
+    {
+      "matchContractFingerprint": "any-composition",
+      "ownReactorSide": "east",
+      "transform": "rotate-180",
+      "routeAliases": {
+        "north-out": "south-out",
+        "south-out": "north-out"
+      },
+      "formationAliases": {}
+    }
+  ],
+  "zones": [
+    {
+      "zoneId": "own-home",
+      "rect": [
+        1,
+        7,
+        7,
+        15
+      ]
+    },
+    {
+      "zoneId": "own-choke",
+      "rect": [
+        3,
+        6,
+        7,
+        16
+      ]
+    },
+    {
+      "zoneId": "own-approach",
+      "rect": [
+        4,
+        4,
+        11,
+        18
+      ]
+    },
+    {
+      "zoneId": "north-farm",
+      "rect": [
+        12,
+        2,
+        18,
+        8
+      ]
+    },
+    {
+      "zoneId": "south-farm",
+      "rect": [
+        12,
+        14,
+        18,
+        20
+      ]
+    },
+    {
+      "zoneId": "well-line",
+      "rect": [
+        12,
+        2,
+        18,
+        20
+      ]
+    }
+  ],
+  "routes": [
+    {
+      "routeId": "north-out",
+      "corridorWidth": 2,
+      "waypoints": [
+        [
+          4,
+          8
+        ],
+        [
+          7,
+          6
+        ],
+        [
+          10,
+          5
+        ],
+        [
+          13,
+          4
+        ],
+        [
+          15,
+          4
+        ]
+      ]
+    },
+    {
+      "routeId": "south-out",
+      "corridorWidth": 2,
+      "waypoints": [
+        [
+          4,
+          14
+        ],
+        [
+          7,
+          16
+        ],
+        [
+          10,
+          17
+        ],
+        [
+          13,
+          18
+        ],
+        [
+          15,
+          18
+        ]
+      ]
+    },
+    {
+      "routeId": "centre-probe",
+      "corridorWidth": 2,
+      "waypoints": [
+        [
+          5,
+          11
+        ],
+        [
+          9,
+          11
+        ],
+        [
+          12,
+          11
+        ],
+        [
+          15,
+          11
+        ]
+      ]
+    }
+  ],
+  "anchors": [
+    {
+      "anchorId": "home-gate",
+      "position": [
+        5,
+        11
+      ]
+    }
+  ]
+}

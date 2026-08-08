@@ -1,0 +1,552 @@
+using System.Text.Json;
+using BotArena.Engine;
+using BotArena.Runtime;
+
+namespace BotArena.Cli;
+
+/// <summary>
+/// Runs versioned, local-only capability probes against one generic actor
+/// artifact. Probe results never mutate competition state and do not infer a
+/// tier from ordinary match standings.
+/// </summary>
+public static class FrontlineLabsQualificationCommand
+{
+    private sealed record AssignmentEvidence(
+        int BotTeamId,
+        bool ContractValid,
+        bool BotEligible,
+        int SentinelAttackCount,
+        int? FirstObjectiveTick,
+        int? FirstLifeObjectiveTick,
+        int? InitialFirstLifeHealth,
+        int? HealthAtFirstLifeObjectiveTick,
+        int? MinimumFirstLifeHealth,
+        int? DamageTakenBeforeEntry,
+        int FirstLifeObjectiveObservationCount,
+        int MaxInitialObjectiveCaptureProgress,
+        IReadOnlyDictionary<string, int> BotActionCounts,
+        string ReplayHash,
+        string ReplayPath,
+        bool Passed);
+
+    private sealed record QualificationReport(
+        string SuiteId,
+        string ProbeId,
+        string ArtifactName,
+        string ArtifactHash,
+        string RuntimeKind,
+        ulong Seed,
+        string RulesFingerprint,
+        string MapFingerprint,
+        string MatchFingerprint,
+        bool Passed,
+        string? TierAwarded,
+        IReadOnlyList<AssignmentEvidence> Assignments);
+
+    public static int Run(IReadOnlyList<string> args)
+    {
+        Dictionary<string, string> options = CliSupport.ParseOptions(args);
+        CliSupport.RejectUnknownOptions(
+            options,
+            "bot",
+            "runtime",
+            "seed",
+            "suite",
+            "out",
+            "profile",
+            "viewer");
+        string botSpec = RequiredOption(options, "bot");
+        string runtimeKind = options
+            .GetValueOrDefault("runtime", "wasm")
+            .ToLowerInvariant();
+        if (runtimeKind is not ("wasm" or "in-process"))
+        {
+            throw new InvalidOperationException(
+                $"Unknown runtime '{runtimeKind}' " +
+                "(use wasm or in-process).");
+        }
+
+        // Selecting a mind SUITE and passing --profile mind are the same
+        // request said two ways, so either alone is enough and the two must
+        // not be able to disagree: a mind suite on the per-life profile would
+        // record a mind profile ID over per-life evidence, which is exactly
+        // the confusion parallel IDs exist to prevent.
+        bool mindProfile = CliSupport.ParseLabsProfile(
+            options.GetValueOrDefault("profile"));
+        string suiteId = options.GetValueOrDefault(
+            "suite",
+            mindProfile
+                ? FrontlineLabsQualificationDefinition
+                    .MindFundamentalsSuiteId
+                : FrontlineLabsQualificationDefinition.SuiteId);
+        bool mindSuite = suiteId
+            is FrontlineLabsQualificationDefinition.MindFundamentalsSuiteId
+            or FrontlineLabsQualificationDefinition.MindTacticalSuiteId
+            or FrontlineLabsQualificationDefinition.MindPositionalSuiteId;
+        if (mindSuite && options.ContainsKey("profile") && !mindProfile)
+        {
+            throw new InvalidOperationException(
+                $"Suite '{suiteId}' is a mind suite; it cannot run on the "
+                + "per-life profile.");
+        }
+        mindProfile |= mindSuite;
+        if (suiteId
+            is not (
+                FrontlineLabsQualificationDefinition.SuiteId
+                or FrontlineLabsQualificationDefinition.FoundationSuiteId
+                or FrontlineLabsQualificationDefinition
+                    .FundamentalsSuiteId
+                or FrontlineLabsQualificationDefinition.TacticalSuiteId
+                or FrontlineLabsQualificationDefinition.PositionalSuiteId
+                or FrontlineLabsQualificationDefinition
+                    .MindFundamentalsSuiteId
+                or FrontlineLabsQualificationDefinition.MindTacticalSuiteId
+                or FrontlineLabsQualificationDefinition
+                    .MindPositionalSuiteId))
+        {
+            throw new InvalidOperationException(
+                $"Unknown qualification suite '{suiteId}'.");
+        }
+        if (mindProfile && !mindSuite)
+        {
+            throw new InvalidOperationException(
+                $"Suite '{suiteId}' has no mind counterpart. The mind suites "
+                + "are frontline-mind-qualification-3/4/5.");
+        }
+        // Viewers are OPT-IN. A cumulative T4 run writes 38 replays, and
+        // embedding each one into a multi-megabyte theme template turned a
+        // 21 MB evidence directory into 214 MB of files nobody opened.
+        bool withViewer = options.ContainsKey("viewer");
+        ulong seed = ParseSeed(
+            options.GetValueOrDefault("seed", "104729"));
+        string outputDirectory = Path.GetFullPath(
+            options.GetValueOrDefault(
+                "out",
+                Path.Combine("out", suiteId)));
+        Directory.CreateDirectory(outputDirectory);
+        if (suiteId
+            == FrontlineLabsQualificationDefinition.FoundationSuiteId)
+        {
+            return FrontlineLabsFoundationQualificationCommand.Run(
+                botSpec,
+                runtimeKind,
+                seed,
+                outputDirectory,
+                withViewer);
+        }
+        if (suiteId
+            == FrontlineLabsQualificationDefinition.FundamentalsSuiteId
+            || suiteId
+                == FrontlineLabsQualificationDefinition.MindFundamentalsSuiteId)
+        {
+            return FrontlineLabsFundamentalsQualificationCommand.Run(
+                botSpec,
+                runtimeKind,
+                seed,
+                outputDirectory,
+                printSummary: true,
+                mindProfile,
+                withViewer);
+        }
+        if (suiteId
+            == FrontlineLabsQualificationDefinition.TacticalSuiteId
+            || suiteId
+                == FrontlineLabsQualificationDefinition.MindTacticalSuiteId)
+        {
+            return FrontlineLabsTacticalQualificationCommand.Run(
+                botSpec,
+                runtimeKind,
+                seed,
+                outputDirectory,
+                printSummary: true,
+                mindProfile,
+                withViewer);
+        }
+        if (suiteId
+            == FrontlineLabsQualificationDefinition.PositionalSuiteId
+            || suiteId
+                == FrontlineLabsQualificationDefinition
+                    .MindPositionalSuiteId)
+        {
+            return FrontlineLabsPositionalQualificationCommand.Run(
+                botSpec,
+                runtimeKind,
+                seed,
+                outputDirectory,
+                mindProfile,
+                withViewer);
+        }
+
+        ActorResolvedMatchDefinition definition =
+            FrontlineLabsQualificationDefinition.CreateEntryProbe();
+        string rulesFingerprint =
+            ActorContractFingerprint.ComputeRules(definition.Rules);
+        string mapFingerprint =
+            ActorContractFingerprint.ComputeMap(definition.Map);
+        string matchFingerprint =
+            ActorContractFingerprint.ComputeMatch(definition);
+
+        var evidence = new List<AssignmentEvidence>();
+        string? artifactName = null;
+        string? artifactHash = null;
+        string? actualRuntimeKind = null;
+        foreach (int botTeamId in new[] { 0, 1 })
+        {
+            using ResolvedLabsEntrant bot =
+                ResolvedLabsEntrant.Resolve(
+                    botSpec,
+                    runtimeKind,
+                    quiet: botTeamId != 0);
+            artifactName ??= bot.Name;
+            artifactHash ??= bot.ArtifactHash;
+            actualRuntimeKind ??= bot.RuntimeKind;
+            if (artifactName != bot.Name
+                || artifactHash != bot.ArtifactHash
+                || actualRuntimeKind != bot.RuntimeKind)
+            {
+                throw new InvalidOperationException(
+                    "Qualification artifact identity changed between " +
+                    "mirrored assignments.");
+            }
+            using var sentinelFactory =
+                new InProcessGenericActorRuntimeFactory(
+                    () => new FrontlineLabsQualificationSentinel());
+            int sentinelTeamId = 1 - botTeamId;
+            GenericActorParticipantConfiguration[] participants =
+                botTeamId == 0
+                    ?
+                    [
+                        bot.ToParticipant(participantId: 0, teamId: 0),
+                        SentinelParticipant(
+                            sentinelFactory,
+                            participantId: 1,
+                            teamId: 1),
+                    ]
+                    :
+                    [
+                        SentinelParticipant(
+                            sentinelFactory,
+                            participantId: 0,
+                            teamId: 0),
+                        bot.ToParticipant(participantId: 1, teamId: 1),
+                    ];
+            // One abort boundary, shared with every other command: a probe
+            // that stops mid-run names its cell, writes nothing, exits
+            // non-zero.
+            (GenericActorMatchResult result,
+                GenericActorReplayDocument replay) = MatchRun.Guard(
+                MatchRun.Probe(
+                    suiteId,
+                    FrontlineLabsQualificationDefinition.EntryProbeId,
+                    seed),
+                () =>
+                {
+                    using var session = new GenericActorMatchSession(
+                        definition,
+                        participants,
+                        seed);
+                    GenericActorMatchResult ran = session.Run();
+                    return (
+                        ran,
+                        GenericActorReplayDocument.Create(
+                            session,
+                            FrontlineLabsReplayPresentation.Create(
+                                definition)));
+                });
+            bool contractValid = GenericActorReplayDocument.VerifyHash(
+                replay.CanonicalJson,
+                out string? verificationFailure);
+            if (!contractValid)
+            {
+                throw new InvalidOperationException(
+                    "Qualification replay verification failed: " +
+                    verificationFailure);
+            }
+
+            string assignmentDirectory = Path.Combine(
+                outputDirectory,
+                FrontlineLabsQualificationDefinition.EntryProbeId,
+                $"bot-team-{botTeamId}");
+            WrittenReplay written = ReplayOutput.WriteJson(
+                replay.CanonicalJson,
+                assignmentDirectory,
+                themeId: null,
+                withViewer);
+            evidence.Add(
+                Analyze(
+                    replay.CanonicalJson,
+                    botTeamId,
+                    sentinelTeamId,
+                    result.EligibleTeamIds.Contains(botTeamId),
+                    replay.ReplayHash,
+                    Path.GetRelativePath(
+                        outputDirectory,
+                        written.ReplayPath),
+                    contractValid));
+        }
+
+        bool passed = evidence.All(item => item.Passed);
+        string resolvedArtifactName = artifactName
+            ?? throw new InvalidOperationException(
+                "Qualification produced no artifact identity.");
+        string resolvedArtifactHash = artifactHash
+            ?? throw new InvalidOperationException(
+                "Qualification produced no artifact hash.");
+        string resolvedRuntimeKind = actualRuntimeKind
+            ?? throw new InvalidOperationException(
+                "Qualification produced no runtime identity.");
+        var report = new QualificationReport(
+            suiteId,
+            FrontlineLabsQualificationDefinition.EntryProbeId,
+            resolvedArtifactName,
+            resolvedArtifactHash,
+            resolvedRuntimeKind,
+            seed,
+            rulesFingerprint,
+            mapFingerprint,
+            matchFingerprint,
+            passed,
+            TierAwarded: null,
+            evidence);
+        string reportPath = Path.Combine(
+            outputDirectory,
+            "qualification.json");
+        File.WriteAllText(
+            reportPath,
+            JsonSerializer.Serialize(
+                report,
+                new JsonSerializerOptions
+                {
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                    WriteIndented = true,
+                })
+            + Environment.NewLine);
+
+        Console.WriteLine(
+            $"Qualification suite: {suiteId}");
+        Console.WriteLine(
+            $"Probe:               " +
+            $"{FrontlineLabsQualificationDefinition.EntryProbeId}");
+        Console.WriteLine(
+            $"Artifact:            {resolvedArtifactName} " +
+            $"[{resolvedArtifactHash[..12]}…]");
+        foreach (AssignmentEvidence item in evidence)
+        {
+            Console.WriteLine(
+                $"bot team {item.BotTeamId}:        " +
+                $"{(item.Passed ? "PASS" : "FAIL")} " +
+                $"first-life-entry=" +
+                $"{item.FirstLifeObjectiveTick?.ToString() ?? "never"} " +
+                $"damage-before-entry=" +
+                $"{item.DamageTakenBeforeEntry?.ToString() ?? "n/a"} " +
+                $"initial-progress=" +
+                $"{item.MaxInitialObjectiveCaptureProgress} " +
+                $"sentinel-shots={item.SentinelAttackCount}");
+        }
+        Console.WriteLine($"Report:              {reportPath}");
+        Console.WriteLine(
+            "Tier awarded:        none " +
+            "(this is one T4 component, not a cumulative suite)");
+
+        if (evidence.Any(item =>
+                !item.ContractValid || !item.BotEligible))
+        {
+            return 2;
+        }
+        return passed ? 0 : 3;
+    }
+
+    private static GenericActorParticipantConfiguration
+        SentinelParticipant(
+            IGenericActorRuntimeFactory runtimeFactory,
+            int participantId,
+            int teamId) =>
+        new()
+        {
+            ParticipantId = participantId,
+            TeamId = teamId,
+            Name = "Entry Sentinel",
+            RuntimeFactory = runtimeFactory,
+            RuntimeKind = "in-process-qualification-controller",
+            ArtifactHash =
+                "frontline-qualification-1-entry-sentinel",
+            Accent = "#f97316",
+            LookId = "bastion",
+            ProjectileLookId = "ember-lance",
+        };
+
+    private static AssignmentEvidence Analyze(
+        string replayJson,
+        int botTeamId,
+        int sentinelTeamId,
+        bool botEligible,
+        string replayHash,
+        string replayPath,
+        bool contractValid)
+    {
+        using JsonDocument document = JsonDocument.Parse(replayJson);
+        JsonElement root = document.RootElement;
+        JsonElement contract = root
+            .GetProperty("header")
+            .GetProperty("contract");
+        HashSet<(int X, int Y)> objectiveTiles = contract
+            .GetProperty("map")
+            .GetProperty("regions")
+            .EnumerateArray()
+            .Single(region =>
+                region.GetProperty("regionId").GetString()
+                    == "frontline-position-2")
+            .GetProperty("tiles")
+            .EnumerateArray()
+            .Select(tile =>
+                (
+                    tile[0].GetInt32(),
+                    tile[1].GetInt32()
+                ))
+            .ToHashSet();
+        int botParticipantId = botTeamId;
+        int sentinelParticipantId = sentinelTeamId;
+        int? firstObjectiveTick = null;
+        int? firstLifeObjectiveTick = null;
+        int? initialFirstLifeHealth = null;
+        int? healthAtFirstLifeObjectiveTick = null;
+        int? minimumFirstLifeHealth = null;
+        int firstLifeObjectiveObservationCount = 0;
+        int maxInitialObjectiveCaptureProgress = 0;
+        int sentinelAttackCount = 0;
+        var actionCounts = new Dictionary<string, int>(
+            StringComparer.Ordinal);
+        foreach (JsonElement tick in root
+                     .GetProperty("ticks")
+                     .EnumerateArray())
+        {
+            // Profile-neutral: a per-life document yields one entry per body
+            // turn, a mind document yields one per body RESOLUTION inside the
+            // participant's single turn. The probe measures behaviour, and
+            // behaviour is the same question on both.
+            foreach (ProbeTurn turn in ProbeReplay.Turns(tick))
+            {
+                int participantId = turn.ParticipantId;
+                JsonElement submitted =
+                    turn.SubmittedDecision;
+                string? actionId = submitted.ValueKind
+                        == JsonValueKind.Object
+                    ? submitted
+                        .GetProperty("actionId")
+                        .GetString()
+                    : null;
+                if (participantId == sentinelParticipantId
+                    && actionId == "shoot")
+                {
+                    sentinelAttackCount++;
+                }
+                if (participantId != botParticipantId)
+                    continue;
+
+                if (actionId is not null)
+                {
+                    actionCounts[actionId] =
+                        actionCounts.GetValueOrDefault(actionId) + 1;
+                }
+                JsonElement self = turn.Self;
+                JsonElement actorId = self.GetProperty("actorId");
+                if (actorId.GetProperty("unitId").GetInt32() != 0)
+                    continue;
+                int lifeId = actorId.GetProperty("lifeId").GetInt32();
+                int health = self.GetProperty("health").GetInt32();
+                if (lifeId == 0)
+                {
+                    initialFirstLifeHealth ??= health;
+                    minimumFirstLifeHealth = Math.Min(
+                        minimumFirstLifeHealth ?? health,
+                        health);
+                }
+                JsonElement position = self.GetProperty("position");
+                if (!objectiveTiles.Contains(
+                        (
+                            position.GetProperty("x").GetInt32(),
+                            position.GetProperty("y").GetInt32()
+                        )))
+                {
+                    continue;
+                }
+
+                int tickNumber = turn.Tick;
+                firstObjectiveTick ??= tickNumber;
+                if (lifeId == 0)
+                {
+                    firstLifeObjectiveTick ??= tickNumber;
+                    healthAtFirstLifeObjectiveTick ??= health;
+                    firstLifeObjectiveObservationCount++;
+                }
+
+                JsonElement mode = turn.Observation
+                    .GetProperty("mode");
+                if (mode.GetProperty("activePositionIndex").GetInt32() == 2
+                    && mode.GetProperty("claimingTeamId").ValueKind
+                        == JsonValueKind.Number
+                    && mode.GetProperty("claimingTeamId").GetInt32()
+                        == botTeamId)
+                {
+                    maxInitialObjectiveCaptureProgress = Math.Max(
+                        maxInitialObjectiveCaptureProgress,
+                        mode.GetProperty("captureProgress").GetInt32());
+                }
+            }
+        }
+
+        int? damageTakenBeforeEntry =
+            initialFirstLifeHealth is int initialHealth
+            && healthAtFirstLifeObjectiveTick is int entryHealth
+                ? initialHealth - entryHealth
+                : null;
+        bool passed = contractValid
+            && botEligible
+            && sentinelAttackCount > 0
+            && firstLifeObjectiveTick is not null
+            && damageTakenBeforeEntry is >= 0 and <= 1
+            && maxInitialObjectiveCaptureProgress >= 5;
+        return new AssignmentEvidence(
+            botTeamId,
+            contractValid,
+            botEligible,
+            sentinelAttackCount,
+            firstObjectiveTick,
+            firstLifeObjectiveTick,
+            initialFirstLifeHealth,
+            healthAtFirstLifeObjectiveTick,
+            minimumFirstLifeHealth,
+            damageTakenBeforeEntry,
+            firstLifeObjectiveObservationCount,
+            maxInitialObjectiveCaptureProgress,
+            actionCounts,
+            replayHash,
+            replayPath,
+            passed);
+    }
+
+    private static string RequiredOption(
+        IReadOnlyDictionary<string, string> options,
+        string name)
+    {
+        if (!options.TryGetValue(name, out string? value)
+            || string.IsNullOrWhiteSpace(value)
+            || value.Equals("true", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException(
+                $"nilbots experiment frontline-labs qualify requires " +
+                $"--{name} <value>.");
+        }
+        return value;
+    }
+
+    private static ulong ParseSeed(string value)
+    {
+        if (!ulong.TryParse(value, out ulong seed))
+        {
+            throw new InvalidOperationException(
+                $"Invalid qualification seed '{value}'.");
+        }
+        return seed;
+    }
+}

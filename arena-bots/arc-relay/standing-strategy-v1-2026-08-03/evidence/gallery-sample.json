@@ -1,0 +1,20 @@
+{
+  "sampleVersion": 2,
+  "selection": "outcome-visible Home Siege Stage 1 mirrored proof",
+  "outcomeBlind": false,
+  "identitiesBlind": false,
+  "replays": [
+    {
+      "operationId": "home-siege-blue",
+      "map": "arc-relay-threefold-depth-counterflow-01",
+      "rules": "arc-relay-forward-combat-01",
+      "source": "arena-bots/arc-relay/standing-strategy-v1-2026-08-03/evidence/replays/home-siege-blue.broadcast.json.gz"
+    },
+    {
+      "operationId": "home-siege-orange",
+      "map": "arc-relay-threefold-depth-counterflow-01",
+      "rules": "arc-relay-forward-combat-01",
+      "source": "arena-bots/arc-relay/standing-strategy-v1-2026-08-03/evidence/replays/home-siege-orange.broadcast.json.gz"
+    }
+  ]
+}

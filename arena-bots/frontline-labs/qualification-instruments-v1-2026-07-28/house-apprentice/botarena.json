@@ -1,0 +1,11 @@
+{
+  "name": "HouseApprentice",
+  "entryType": "HouseApprentice",
+  "sdkVersion": "0.10.3",
+  "appearance": {
+    "accent": "#60a5fa",
+    "look": "vanguard",
+    "projectile": "pulse-bolt"
+  }
+}
+

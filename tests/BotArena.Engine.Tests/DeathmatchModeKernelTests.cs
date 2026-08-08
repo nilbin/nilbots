@@ -5,6 +5,58 @@ namespace BotArena.Engine.Tests;
 public sealed class DeathmatchModeKernelTests
 {
     [Fact]
+    public void ClassedTopologyIsPreservedInsideTheKernel()
+    {
+        PublicMatchTopology topology = Topology(7, 2) with
+        {
+            Teams =
+            [
+                new PublicScoringTeam(7, "striker"),
+                new PublicScoringTeam(2, "bulwark"),
+            ],
+        };
+        var kernel = new DeathmatchModeKernel(
+            topology,
+            new DeathmatchGameModeDefinition(
+                new DeathmatchVictoryDefinition(
+                    killsToWin: null,
+                    [
+                        Ranking(
+                            ScoreChannelDefinition.ChannelKind.Kills,
+                            ScoreRankingDefinition.SortDirection.HigherWins),
+                        Ranking(
+                            ScoreChannelDefinition.ChannelKind.Deaths,
+                            ScoreRankingDefinition.SortDirection.LowerWins),
+                    ]),
+                [
+                    new ScoreChannelDefinition(
+                        ScoreChannelDefinition.ChannelKind.Kills),
+                    new ScoreChannelDefinition(
+                        ScoreChannelDefinition.ChannelKind.Deaths),
+                    new ScoreChannelDefinition(
+                        ScoreChannelDefinition.ChannelKind.DamageDealt),
+                    new ScoreChannelDefinition(
+                        ScoreChannelDefinition.ChannelKind.ActiveHealth),
+                ],
+                DeathmatchScoringDefinition.RawHostileKillV1));
+
+        System.Reflection.FieldInfo topologyField =
+            typeof(DeathmatchModeKernel).GetField(
+                "_topology",
+                System.Reflection.BindingFlags.Instance
+                    | System.Reflection.BindingFlags.NonPublic)
+            ?? throw new InvalidOperationException(
+                "DeathmatchModeKernel topology field is missing.");
+        PublicMatchTopology captured =
+            Assert.IsType<PublicMatchTopology>(
+                topologyField.GetValue(kernel));
+        Assert.Equal(
+            [(2, "bulwark"), (7, "striker")],
+            captured.Teams.Select(team =>
+                (team.TeamId, team.ClassId)).ToArray());
+    }
+
+    [Fact]
     public void HostileLethalDamageCreditsExactSourceAndTargetTeams()
     {
         DeathmatchModeKernel kernel = Kernel(killsToWin: null, 7, 2);

@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Veil">
+  <defs>
+    <linearGradient id="veil-chassis" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#4d5655"/><stop offset=".42" stop-color="#17201f"/><stop offset="1" stop-color="#000000"/>
+    </linearGradient>
+    <linearGradient id="veil-plate" x1="0" y1="0" x2=".85" y2="1">
+      <stop stop-color="#85988d"/><stop offset=".38" stop-color="#53665b"/><stop offset="1" stop-color="#192c21"/>
+    </linearGradient>
+    <linearGradient id="veil-hardware" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#d5d6c0"/><stop offset=".46" stop-color="#9b9c86"/><stop offset="1" stop-color="#61624c"/>
+    </linearGradient>
+    <linearGradient id="veil-deep" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#232c2b"/><stop offset="1" stop-color="#000000"/>
+    </linearGradient>
+    <linearGradient id="veil-side" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#07100f"/><stop offset=".44" stop-color="#000000"/><stop offset="1" stop-color="#000000"/>
+    </linearGradient>
+    <radialGradient id="veil-emissive">
+      <stop stop-color="#fffdf0"/><stop offset=".25" stop-color="#fffc9e"/><stop offset=".64" stop-color="#e4b85a"/><stop offset="1" stop-color="#8c6002"/>
+    </radialGradient>
+    <pattern id="veil-brush" width="18" height="18" patternUnits="userSpaceOnUse" patternTransform="rotate(-18)">
+      <path d="M0 2h18M0 11h18" stroke="#ffffff" stroke-opacity=".16" stroke-width="1"/>
+      <path d="M0 7h18M0 16h18" stroke="#02050a" stroke-opacity=".24" stroke-width="1"/>
+    </pattern>
+    <clipPath id="veil-clip"><path d="M68 256 148 188 224 174 260 102 346 122 388 190 458 216 486 256 458 296 388 322 346 390 260 410 224 338 148 324Z"/></clipPath>
+    <filter id="veil-bevel" x="-12%" y="-14%" width="128%" height="138%" color-interpolation-filters="sRGB">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="2.2" result="edge-blur"/>
+      <feSpecularLighting in="edge-blur" surfaceScale="4.5" specularConstant=".42" specularExponent="16" lighting-color="#f7fbff" result="specular">
+        <feDistantLight azimuth="225" elevation="52"/>
+      </feSpecularLighting>
+      <feComposite in="specular" in2="SourceAlpha" operator="in" result="specular-cut"/>
+      <feMerge><feMergeNode in="SourceGraphic"/><feMergeNode in="specular-cut"/></feMerge>
+    </filter>
+    <filter id="veil-team-glow" x="-55%" y="-55%" width="210%" height="210%" color-interpolation-filters="sRGB">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="7" result="glow"/>
+      <feComponentTransfer in="glow" result="soft-glow"><feFuncA type="linear" slope=".58"/></feComponentTransfer>
+      <feMerge><feMergeNode in="soft-glow"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <g stroke-linejoin="round" stroke-linecap="round">
+    <g id="underbody-locomotion">
+      <ellipse fill="#06090d" fill-opacity="0.72" cx="256" cy="324" rx="142" ry="46"/>
+      <path fill="#e4b85a" fill-opacity="0.38" d="M142 304h72l-22 48h-64Zm156 0h72l14 48h-64Z"/>
+    </g>
+    <g id="chassis-depth">
+      <path d="M68 256 148 188 224 174 260 102 346 122 388 190 458 216 486 256 458 296 388 322 346 390 260 410 224 338 148 324Z" transform="translate(0 22)" fill="url(#veil-side)" stroke="#05080d" stroke-width="18"/>
+      <path d="M68 256 148 188 224 174 260 102 346 122 388 190 458 216 486 256 458 296 388 322 346 390 260 410 224 338 148 324Z" transform="translate(0 16)" fill="none" stroke="#293231" stroke-opacity=".46" stroke-width="5"/>
+    </g>
+    <g id="chassis" filter="url(#veil-bevel)">
+      <path fill="url(#veil-chassis)" stroke="#0b1118" stroke-width="18" d="M68 256 148 188 224 174 260 102 346 122 388 190 458 216 486 256 458 296 388 322 346 390 260 410 224 338 148 324Z"/>
+      <path fill="url(#veil-plate)" stroke="#0b1118" stroke-width="7" d="M122 256 176 216 242 210 276 152 330 166 360 216 424 232 448 256 424 280 360 296 330 346 276 360 242 302 176 296Z"/>
+      <g id="material-finish" clip-path="url(#veil-clip)" opacity="0.22">
+        <rect x="36" y="70" width="448" height="370" fill="url(#veil-brush)"/>
+      </g>
+      <g id="armor-plates" fill="url(#veil-plate)" stroke="#697c71" stroke-width="4">
+        <path d="m116 242 66-42 58-8-16 58-92 18Z"/><path fill="#112419" stroke="#35483d" d="m132 284 92 18 16 58-58-8-66-42Z"/><path fill="url(#veil-hardware)" stroke="#b3b49e" d="m276 160 54 14 42 46-56 22-58-20Z"/><path fill="#6d6e58" stroke="#898a74" d="m316 270 56 22-42 46-54 14-18-62Z"/>
+      </g>
+      <g id="surface-panels" fill="none" stroke="#91a499" stroke-opacity=".58" stroke-width="5">
+        <path d="m132 242 54-34 54-6 32-48 50 12 30 48 60 18M132 270l54 34 54 6 32 48 50-12 30-48 60-18"/>
+      </g>
+      <g id="panel-shadows" fill="none" stroke="#000000" stroke-opacity=".78" stroke-width="4" transform="translate(0 5)">
+        <path d="m132 242 54-34 54-6 32-48 50 12 30 48 60 18M132 270l54 34 54 6 32 48 50-12 30-48 60-18"/>
+      </g>
+      <g id="fasteners" fill="#c5c6b0" stroke="#090d12" stroke-width="3">
+        <circle cx="174" cy="214" r="6"/><circle cx="174" cy="298" r="6"/><circle cx="350" cy="202" r="6"/><circle cx="350" cy="310" r="6"/>
+      </g>
+    </g>
+    <g id="hardware-depth">
+      <path fill="#000000" stroke="#070a0f" stroke-width="6" d="m202 256 66-70 92 22 38 48-38 48-92 22Z" transform="translate(0 9)"/>
+      <ellipse fill="#000000" stroke="#070a0f" stroke-width="5" cx="292" cy="216" rx="42" ry="28" transform="translate(0 9)"/>
+      <ellipse fill="#000000" stroke="#070a0f" stroke-width="5" cx="292" cy="296" rx="42" ry="28" transform="translate(0 9)"/>
+    </g>
+    <g id="weapon-hardware">
+      <path fill="url(#veil-hardware)" stroke="#0b1118" stroke-width="6" d="m202 256 66-70 92 22 38 48-38 48-92 22Z"/>
+      <ellipse fill="url(#veil-deep)" stroke="#0b1118" stroke-width="5" cx="292" cy="216" rx="42" ry="28"/>
+      <ellipse fill="url(#veil-deep)" stroke="#0b1118" stroke-width="5" cx="292" cy="296" rx="42" ry="28"/>
+      <g id="signature-machinery" fill="none" stroke="#d1d2bc" stroke-width="6" stroke-opacity=".88">
+        <ellipse cx="292" cy="216" rx="54" ry="38"/><ellipse cx="292" cy="296" rx="54" ry="38"/><path d="M262 216h60m-60 80h60M350 224l50 22m-50 42 50-22"/>
+      </g>
+    </g>
+    <g id="team-accents" filter="url(#veil-team-glow)">
+      <path data-team-accent="true" fill="#38bdf8" d="m136 206 64-48 18 32-62 48Z"/>
+      <path data-team-accent="true" fill="#38bdf8" d="m136 306 64 48 18-32-62-48Z"/>
+      <path data-team-accent="true" fill="#38bdf8" d="m392 226 62 30-62 30 18-30Z"/>
+    </g>
+    <g id="emissives">
+      <ellipse fill="url(#veil-emissive)" cx="292" cy="216" rx="16" ry="10"/>
+      <ellipse fill="url(#veil-emissive)" cx="292" cy="296" rx="16" ry="10"/>
+      <circle fill="#fff9dc" fill-opacity="0.78" cx="292" cy="216" r="4"/>
+    </g>
+  </g>
+</svg>

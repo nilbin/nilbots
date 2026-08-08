@@ -16,5 +16,6 @@ public abstract record ActorModeMapBindingDefinition
     {
         Deathmatch = 0,
         Frontline = 1,
+        ArcRelay = 2,
     }
 }

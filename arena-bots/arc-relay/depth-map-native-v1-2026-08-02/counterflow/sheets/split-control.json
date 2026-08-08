@@ -1,0 +1,15 @@
+{
+  "composition": [
+    "kestrel",
+    "palisade",
+    "relay",
+    "minesmith",
+    "towline",
+    "hush",
+    "lantern",
+    "veil"
+  ],
+  "mapId": "arc-relay-threefold-depth-counterflow-01",
+  "schema": "arc-relay-evaluation-sheet-v0",
+  "sheetId": "split-control-v1"
+}

@@ -1,0 +1,372 @@
+{
+  "schemaVersion": 1,
+  "registryId": "frontline-ablation-debt-v1",
+  "items": [
+    {
+      "id": "automatic-progression-bundle",
+      "status": "open",
+      "currentInterpretation": "The automatic-activation arm jointly changes initial child activation, child return policy, Prime action availability, replication availability, lifecycle assignments, and child spawn assignments.",
+      "requiredIsolation": "Allocate non-conflicting replica capacity and compare automatic initial activation, automatic return, and action-catalog removal as separately fingerprinted arms before attributing the bundle effect to one mechanism.",
+      "requiredBefore": "public-unranked"
+    },
+    {
+      "id": "manual-fabrication-transport",
+      "status": "open",
+      "currentInterpretation": "Manual fabrication currently couples a Prime decision cost, source-position requirement, output-pad placement, and rebuild policy.",
+      "requiredIsolation": "Compare local versus remote source legality with identical fabrication decision cost, output placement, lifecycle policy, and qualified union-contract bots.",
+      "requiredBefore": "public-unranked"
+    },
+    {
+      "id": "turret-standoff-counterplay",
+      "status": "open",
+      "currentInterpretation": "Mobilize exists as a local arm, while the production-shaped turret transition remains contextual and can create symmetric non-progress play.",
+      "requiredIsolation": "Run symmetric self-play and permanent-Anchor sentinels, then isolate Mobilize availability from turret numeric strength and map placement.",
+      "requiredBefore": "internal-pilot"
+    },
+    {
+      "id": "split-capacity-and-value",
+      "status": "open",
+      "currentInterpretation": "The automatic progression bundle removes Split because both mechanics currently compete for stable child capacity.",
+      "requiredIsolation": "Provide explicitly reserved replica capacity, then compare Split available versus unavailable under identical population progression and topology.",
+      "requiredBefore": "public-unranked"
+    },
+    {
+      "id": "map-topology-components",
+      "status": "open",
+      "currentInterpretation": "Thin fronts and outer shoulders are coherent map variants rather than single-tile causal changes.",
+      "requiredIsolation": "Use static route/exposure reports and targeted map variants before attributing an observed effect to choke width, objective capacity, or bypass availability individually.",
+      "requiredBefore": "ranked"
+    },
+    {
+      "id": "classes-composite-chassis",
+      "status": "open",
+      "currentInterpretation": "Each class arm (DECISIONS #154) jointly changes several stat axes plus one exclusive verb family: Striker couples one-bend programs with the longest range and fastest cadence; Bulwark couples durability, short omni vision, slow cadence, and class-wide reversible Anchor with a longer prime windup; Fabricator couples a fragile prime with exclusive explicit forward fabrication at earlier, faster companion economics while other classes receive companions automatically. Split is absent from every class arm and reserved for a future swarm class.",
+      "requiredIsolation": "Before attributing a class-pair effect to one axis, compare single-axis variants (verb-only, stats-only, economics-only) under identical qualified populations, and test Split's reintroduction as its own class identity rather than a shared verb.",
+      "requiredBefore": "public-unranked"
+    },
+    {
+      "id": "movement-facing-coupling",
+      "status": "open",
+      "currentInterpretation": "Schema-3 movement is facing-decoupled (any cardinal step without turning) by architectural declaration, with no DECISIONS entry and no measurement — while the duel-game record convicted exactly this mechanic: DECISIONS #49 held strafe for oscillation-dodging and +80% game length, and the 0.5 record calls it the dodge-everything regression. The wave-1 factorial's dominant standoff-kiting doctrine and 500-tick draws are consistent with that verdict. Every exact-analysis and qualification layer currently assumes free lateral movement.",
+      "requiredIsolation": "Pre-register facing-coupled movement arms (first candidate: move sets facing to the movement direction, rotate remains for free aim) as typed engine additions, run the same-population A/B against the current model, and recompute the exact duel analysis and evade probes under the winning model before any promotion.",
+      "requiredBefore": "internal-pilot"
+    },
+    {
+      "id": "striker-volley-composite",
+      "status": "open",
+      "currentInterpretation": "The volley arm bundles four factors in one flag: a reversible immobile stance route, a three-lane simultaneous fan, a slower stance cadence, and — since adoption — the threshold-triggered automatic return that makes one entry buy exactly one fan. A measured effect cannot be attributed to width, to the commitment window, to the tempo trade, or to the enforced single cast on its own.",
+      "requiredIsolation": "Compare the stance with an ordinary single-bolt gun at the same cadence against the same stance with the fan, then vary cooldown alone, then run the fan WITHOUT the automatic return (etiquette-driven exits) as a separately fingerprinted arm — the prototype's own behaviour — so the cast rule's contribution is measured rather than assumed.",
+      "requiredBefore": "internal-pilot"
+    },
+    {
+      "id": "aegis-shell-composite",
+      "status": "open",
+      "currentInterpretation": "The shell arm bundles the facing-arc projectile guard, the deflected return bolt, the form's price (immobile, gunless, arc locked on entry, objective weight retained), the reversible two-windup cycle, and — since adoption — the three-deflection shield break. A blunted striker edge could come from the guard, from the ownership flip, from the retained scoring presence, from the cycle's readability, or from the budget that ends it.",
+      "requiredIsolation": "Run the same stance without the guard, and the guard on a stance that forfeits objective weight, as separate arms; vary entry/exit windups independently; and vary the shield-break threshold (including an unbounded shell) as its own level, since the budget is what converts the stance from an off-switch into a tempo tax. Flank-approach share must be reported per arm since the guard's value is entirely positional.",
+      "requiredBefore": "internal-pilot"
+    },
+    {
+      "id": "five-slots-composite",
+      "status": "open",
+      "currentInterpretation": "The five-slot arm bundles slot COUNT (three to five) with an unlock schedule (300/420, continuing the class cadence) and a slower rebuild clock (30 rather than 15) for the extra slots. It also changes topology, so it is not fingerprint-comparable to any three-slot arm on topology alone.",
+      "requiredIsolation": "Vary the extra slots' unlock ticks and rebuild delay separately at a fixed count of five, and compare against a four-slot arm, to separate arithmetic out-bodying from schedule. The treadmill metrics that convicted SURGE are the pass/fail gate for the rebuild factor.",
+      "requiredBefore": "internal-pilot"
+    },
+    {
+      "id": "automatic-return-primitive",
+      "status": "open",
+      "currentInterpretation": "One threshold-triggered automatic return serves both stances (volley fires-count 1, shell deflections-count 3), which is deliberate mechanism economy but makes the two skills share a factor. An effect attributed to 'the cast rule' and one attributed to 'the shield break' are the same primitive at two thresholds on two counters, so a result on one arm is weak evidence about the other.",
+      "requiredIsolation": "Report the counter and threshold per arm, and vary threshold as its own registered level on at least one stance before generalising any finding about automatic returns. The prototype arms (fan/parry, no automatic return) are the control level and remain reachable only by re-authoring, so schedule that comparison rather than assuming it.",
+      "requiredBefore": "internal-pilot"
+    },
+    {
+      "id": "bend-envelope-universality",
+      "status": "open",
+      "currentInterpretation": "The universal-bend arm changes two things at once for a class that gains the grammar: it acquires curved shots AT ALL, and its mobile gun moves from the parameterless shoot-straight action to the payload-bearing shoot action. A change in that class's win rate could be the trajectory option or the action-catalog change a contract-driven bot has to notice.",
+      "requiredIsolation": "Depth is already separable — the striker keeps 1-4 and the gaining classes get 1-2 — so run a third level that grants the shoot action with an envelope of exactly one legal bend distance, isolating grammar from catalog. Report the share of shots that actually carry a non-zero bend count per class, since the skill-shot forensics measured most bends as too short to read.",
+      "requiredBefore": "phase-2-verdict"
+    },
+    {
+      "id": "muster-site-placement",
+      "status": "open",
+      "currentInterpretation": "The MUSTER arm's site placement is one bundled map factor: two 2-tile sites on the centre column, the alcove-shoulder widening at (10,3)/(12,3) and their mirrors that gives each site tile at least two approach headings, and the errand distance that widening also shortens (roughly six steps from the centre objective instead of eleven around the outer lane). It also mints a whole new map generation (frontline-labs-02-muster), so it is not fingerprint-comparable to any frontline-labs-01 arm on topology alone.",
+      "requiredIsolation": "Vary site distance, site tile count, and the shoulder widening as separately fingerprinted map variants at a fixed latch duration and rally scope, and report errand round-trip cost and flank-approach share per variant, before attributing any measured muster effect to 'the flag' rather than to how far away it is or how flankable it is.",
+      "requiredBefore": "internal-pilot"
+    },
+    {
+      "id": "muster-latch-duration",
+      "status": "open",
+      "currentInterpretation": "The 12-tick latch bundles three levers in one number: the sole-presence threshold itself, the reset-on-interruption rule (any empty or contested tick puts a running claim back to zero, which is what makes one body walking in a real denial), and latched-until-recaptured ownership (an owner keeps the site while it is empty AND while the enemy stands on it). A snowball read cannot be attributed to the threshold without separating the reset rule and the latch from it.",
+      "requiredIsolation": "Vary the threshold alone at a fixed site and scope; then run a hold-while-present ownership level and a decays-to-neutral level as separately fingerprinted arms; then run a stall-instead-of-reset claim clock. Report time-to-first-capture, ownership turnover count, and the share of match ticks each team held the flag, since a flag that never changes hands and a flag nobody bothers with produce the same win rate for opposite reasons.",
+      "requiredBefore": "internal-pilot"
+    },
+    {
+      "id": "muster-rally-scope",
+      "status": "open",
+      "currentInterpretation": "MUSTER moves only the Prime's automatic return, and it simultaneously REMOVES the unconditional forward-rally placement the keel hands both teams. So the arm is a scope choice and a baseline change at once: against a keel control it subtracts a free rally and re-sells it, while against a control-pendulum baseline it adds a rally that did not exist. Prime-only scoping is also the deliberate L5 mitigation (a fabricator's fourth body does not use the 18-tick clock), so scope and class-tilt are confounded by construction.",
+      "requiredIsolation": "Run the scope as its own registered level (Prime-only versus every automatic arrival, including companion activations) at a fixed site and latch; and run muster against BOTH baselines - keel-with-unconditional-rally and pendulum-control-without-rally - since the arm's sign flips between them. Read the class edges, not only the pacing gates: a side objective that improves cap share while pushing bulwark-vs-striker further above the band is a failure with good-looking numbers.",
+      "requiredBefore": "internal-pilot"
+    },
+    {
+      "id": "side-objective-family-control-arm",
+      "status": "open",
+      "currentInterpretation": "MUSTER is the first effect of the shared FrontlineSecondaryControlDefinition capability, whose other registered effects (RELAY, BATTERY, KILN, ...) differ only in what owning the site does. Any improvement measured on MUSTER is therefore ambiguous between the EFFECT and the family's shared parts: a contested site existing at all, the map opening that puts it there, and one body's attendance being priced.",
+      "requiredIsolation": "Carry RELAY - the same site, the same latch, the same map, paying a trickle of TerritorialProgress instead - as the designated control arm, and measure it rather than asserting its failure mode. RELAY is the family's L2 hypothesis made falsifiable: because Frontline ranks timeouts on territorial progress alone, a team that takes the relay and refuses to fight should win by clock. If it does, the family's other effects are the reason anything improved; if it does not, the L2 argument that shaped every effect in the memo is wrong and the slate needs rereading.",
+      "requiredBefore": "internal-pilot"
+    },
+    {
+      "id": "channel-speed",
+      "status": "open",
+      "currentInterpretation": "The capture channel ships threshold 8 with gain 1 as ONE paired claim about how much a risky tick must pay: threshold and gain are not separable claims about the same thing, and 8 was derived from the 18-tick Prime automatic return rather than measured. A channel result therefore cannot distinguish 'stillness-gated gain works' from 'captures at this speed work'.",
+      "requiredIsolation": "Vary threshold alone at fixed gain (6, 8, 10, 12, and the unchanged 15) inside the channel arm, and report time-from-first-kill-to-capture against the 18-tick respawn window, screened-versus-unscreened completion share, and captures per match. Territorial progress scales with threshold, so every cross-threshold comparison applies the scale factor before it compares anything.",
+      "requiredBefore": "internal-pilot"
+    },
+    {
+      "id": "channel-interrupt-setting",
+      "status": "open",
+      "currentInterpretation": "Revert-equals-damage bundles three things in one rule: that an interrupt exists at all, its magnitude, and its per-weapon scaling (a salvo fan bolt reverts 2, a turret bolt 1). It also bundles the scope that makes screening work — damage OFF the objective reverts nothing — with the revert itself. Full reset and pause-for-M were rejected on arithmetic (one poker with a clear heading denies the objective for the whole match), not measured.",
+      "requiredIsolation": "Run a flat revert-1-per-hit level and a pause-1-tick level as separately fingerprinted arms at a fixed threshold, plus an interrupt-free channel level so the interrupt's existence is falsifiable. Report progress reverted per match and per weapon, progress-reverted against progress-gained (failure mode 8, poke-lock, is that ratio exceeding 1), and screen-adjacency share. Whole-run versus per-body granularity is the separate `channel-stack-interrupt` level.",
+      "requiredBefore": "internal-pilot"
+    },
+    {
+      "id": "channel-stack-cap",
+      "status": "open",
+      "currentInterpretation": "Capping the stationary gain multiplier at 2 simultaneously honours 'more bots capturing at once capture faster' and denies a body-count class a stacking payoff for its third, fourth, and fifth channeler. The cap is also what makes whole-run revert non-degenerate, so the cap and the interrupt granularity are entangled: under the cap, per-body reverting makes a three-body stack immune to interruption outright.",
+      "requiredIsolation": "Run an uncapped level and a cap-1 level at a fixed threshold and interrupt. Report captures per match, mean channelers per capture, mean screens per capture, and the bulwark-versus-fabricator edge — the leg the cap exists to protect.",
+      "requiredBefore": "internal-pilot"
+    },
+    {
+      "id": "recapture-cost",
+      "status": "open",
+      "currentInterpretation": "One integer - the opposing erosion multiplier - sets the whole recapture price. SHIPPED AT 8 since the owner's post-wave-8 ruling ('recapture needs to be faster'); it was 4 for the wave-8 read, whose identities (siege/sap/mantlet, bastion/redoubt/smithy) still name those bytes. At threshold 8 a maximal standing claim now falls to ONE controlling tick, so a full flip costs 1 erode tick plus 8 build ticks against a fresh capture's 8, i.e. 1.125x, sliding toward 1.0x as the standing claim shrinks. The owner's acceptance criterion is the 1.0-1.25x band, and the whole range now sits in its lower half. The derivation is arithmetic, not measured, and it assumes the documented 'erosion reaches neutral without starting a claim on the same tick' invariant stays in place - which is now the ONLY thing keeping a flip from costing exactly one capture.",
+      "requiredIsolation": "Run N in {1, 2, 4, 8} plus the overshoot-carry variant (which overturns that invariant and makes a flip cost 8). Report flip cost as a multiple of fresh capture cost MEASURED FROM REPLAY rather than derived, lead changes per match, and time at each position index. Acceptance is the 1.0-1.25x band. At N=8 also report whether recapture has become the DEFAULT answer to losing a point, which is the failure mode a cheap flip creates.",
+      "requiredBefore": "internal-pilot"
+    },
+    {
+      "id": "channel-ratchet-retune",
+      "status": "open",
+      "currentInterpretation": "The 40-tick ratchet hold was calibrated against the measured advance-reversal latency (respawn 18 plus transit 12), not against the capture clock, and neither respawn nor transit moves under the channel. But the channel makes captures follow kills, so holds now fire in bursts and more completed enemy captures land inside a live hold and are spent. Forty may be absorbing more offence than it was priced to absorb. It was deliberately NOT re-tuned.",
+      "requiredIsolation": "Do not pull this lever pre-emptively. The diagnostic is SPENT CAPTURES PER MATCH (captures denied by a live hold): if it exceeds roughly one per hold on average, try 25-30 as its own fingerprinted level; if it stays near the keel baseline, 40 is still correct and the swingier pendulum arrived without the hold moving.",
+      "requiredBefore": "internal-pilot"
+    },
+    {
+      "id": "objective-keystone",
+      "status": "open",
+      "currentInterpretation": "The registered ALTERNATIVE mechanism for the same 2-versus-3 problem the channel was adopted to solve: one derived tile per objective region granting +1 objective weight to whoever stands on it (the region tile with the most adjacent walls, ties broken by smallest Chebyshev distance to the map centre, then lowest y, then lowest x). It fixes the arithmetic — two defenders holding the keystone stall three attackers — without changing what the front IS, produces a one-tile scramble rather than a formation, and hands a guarding form a weight-2 fortress tile. It is declared in the rules rather than the map, so the map fingerprint does not move. NOT BUILT.",
+      "requiredIsolation": "It is the fallback if the channel's wave read shows stalls (failure mode 8, poke-lock, or failure mode 9, rush over-nerfed). Run it alone against the channel arm and against the unmodified front, at a fixed threshold, and report captures per match, stall share, and flank-approach share. Building it is one field on the capture definition and one branch in the objective-weight sum, with zero new observation facts.",
+      "requiredBefore": "internal-pilot"
+    },
+    {
+      "id": "channel-stillness-rule",
+      "status": "open",
+      "currentInterpretation": "The channel gates gain on positional stillness (moved-this-tick contributes nothing); reduced-gain-while-moving variants were analyzed (memo P2.4) but only the binary rule ships.",
+      "requiredIsolation": "A factorial leg comparing binary stillness vs fractional gain-while-moving on the siege arm, same cohort."
+    },
+    {
+      "id": "channel-shell-interaction",
+      "status": "open",
+      "currentInterpretation": "A shelled bulwark channeling blanks frontal pokes but breaks on its third deflection ~2 ticks short of an 8-tick channel — depth-not-dominance is an analytical claim, unmeasured.",
+      "requiredIsolation": "Siege cells with shell-carrying bulwarks vs two-heading pokers; measure completed channels by shelled vs unshelled channelers."
+    },
+    {
+      "id": "channel-salvo-interrupt",
+      "status": "open",
+      "currentInterpretation": "The fan reverts up to 6 against a threshold-8 channel — the salvo doubles as the premier interrupt; bundled with the channel adoption.",
+      "requiredIsolation": "Siege x volley cast/salvo 2x2 (the byte-pinned cast alternative separates chassis from fan at zero engineering cost)."
+    },
+    {
+      "id": "channel-turret-denial",
+      "status": "open",
+      "currentInterpretation": "The turret (cooldown 1) denies a solo channel outright (-1/tick vs +1); predicted to give the turret its first real job, unmeasured against a 0.13% usage baseline.",
+      "requiredIsolation": "Turret-usage and channel-denial counts in the wave-8 siege read vs the swell baseline."
+    },
+    {
+      "id": "channel-stack-interrupt",
+      "status": "open",
+      "currentInterpretation": "Whole-run revert under the stack cap was chosen over per-body revert (degenerate: a hit on one of three stacked drops weight 3->2, still capped at 2, doing nothing).",
+      "requiredIsolation": "A per-body-revert enum level built and run as a factorial leg if stacking dominates the wave-8 read."
+    },
+    {
+      "id": "channel-striker-role",
+      "status": "open",
+      "currentInterpretation": "The channel arm alone is an implicit striker buff (range 8 + cadence 2 + off-heading bends + fan interrupts). Pre-registered siege predictions: bvs +0.05..+0.20, fvs -0.20..-0.35, bvf +0.10..+0.25; tripwire: any pair below +0.15.",
+      "requiredIsolation": "The wave-8 2x2 (swell/siege/forge/bastion) attribution cells; compare siege-only deltas against these bands before reading bastion."
+    },
+    {
+      "id": "scrap-vein-schedule",
+      "status": "open",
+      "currentInterpretation": "The deposit factor is a bundle: the site addresses (11,1)/(11,13), first tick 60, cadence 70, last tick 620, amount 8, and the choice to spawn BOTH sites on every event are registered as one lever. v1.1 moved four of those numbers at once on the owner's 'stronger and earlier' ruling (v1 was 120/80/360/6), so a v1.1 economy effect is attributable to the bundle and to nothing inside it.",
+      "requiredIsolation": "Vary cadence and amount separately at fixed sites; run a one-site-alternating level; run the v1 numbers as their own level against v1.1; report banked-scrap-per-team, errand round-trip cost, and time-to-first-tier per variant."
+    },
+    {
+      "id": "scrap-carry-model",
+      "status": "open",
+      "currentInterpretation": "Carried-with-assay is four levers in one rule: assay 1, carry cap 6, home-pad banking, and drop-on-death. Pure-instant and pure-carry are the unbuilt ends of the same axis.",
+      "requiredIsolation": "Run pure-instant and pure-carry as separately fingerprinted levels; vary the assay at fixed capacity; report interception rate and scrap-lost-to-decay."
+    },
+    {
+      "id": "scrap-wreckage-yield",
+      "status": "open",
+      "currentInterpretation": "Wreck = 2 (v1 was 1) simultaneously prices kills, feeds the ignore-the-veins path, and dampens the fabricator (the class that supplies the most corpses to its opponent). Doubling it was the half of the v1.1 'stronger' ruling that pays a team which never leaves the front, and it scales with the LEGION roster, where there are twice as many bodies to leave wrecks.",
+      "requiredIsolation": "Run wreck = 0 as a level; report the share of each team's bank arriving through wreck vs deposit, and capture completions per match."
+    },
+    {
+      "id": "scrap-upgrade-ladder",
+      "status": "open",
+      "currentInterpretation": "Three tracks, a FLAT 10 per tier and a 2-per-track cap are one bundle. The 3-TOTAL cap was REMOVED by owner ruling ('ideally scraps should weigh in and decide the game / enable overpowering the opponent'), so the board is now six tiers at 60 scrap against a pot of 112 inside 500 ticks and 144 inside 750. That is a philosophy change, not a tuning: the economy is now allowed to decide a match. Flat pricing is still its own claim - deep and broad cost the same at every point in the match - and the overpower is bought in breadth, so the class-gap admission rule holds tier for tier.",
+      "requiredIsolation": "Vary cost at a fixed board; run each track alone as its own level; run the 3-total cap as its own level against the full board. Report tier-vector distributions, time-to-first-purchase, time-to-full-board, and - the gate for the removal - the win rate of the team that reaches the board first, which is the number that says whether 'decides the game' has become 'decided by tick 300'."
+    },
+    {
+      "id": "scrap-upgrade-scope",
+      "status": "open",
+      "currentInterpretation": "Promoted to a three-level axis on the owner's interest: prime-only (v1, amplification 1.00x by construction), all-bodies (needs class-aware pricing - the fabricator gets 1.27x more upgraded body-tick per scrap under wane and 1.45x under full at the same price), and per-track (the design favourite for v2: plate all-bodies, edge and optic prime-only, ~1.1x without any price table).",
+      "requiredIsolation": "Run all three levels at a fixed ladder; report upgraded-body-ticks per scrap by class, tier-vector distributions, and - the gate - all three class edges, since this axis is a fabricator lever whichever way it is set."
+    },
+    {
+      "id": "scrap-pile-decay",
+      "status": "open",
+      "currentInterpretation": "Pile lifetime 80 simultaneously bounds the published collection, damps stockpiling, and sets the recovery window for ground briefly lost. Under v1.1 it is TEN TICKS LONGER than the cadence rather than exactly one cadence, which added an unmeasured behaviour: an untaken deposit merges with the next one on the same tile and carries the later expiry, so a neglected lane accumulates without bound while the extraction rate (assay plus a carry of 6 per visit) stays fixed.",
+      "requiredIsolation": "Vary decay alone, including lifetime = cadence (70), which removes the roll-over entirely; report scrap-evaporated per match, live-pile counts, peak pile amount, and the share of each team's bank that arrived from a rolled-over site."
+    },
+    {
+      "id": "scrap-observation-completeness",
+      "status": "open",
+      "currentInterpretation": "Publishing EVERY pile leaks enemy deaths the perception union would otherwise have hidden. It is symmetric and small (a pile says a body died here within 80 ticks, not which one), and the alternative is a race you cannot see.",
+      "requiredIsolation": "Build the fog-limited level (pile amounts on ObservedTile beside SpawnReservation) and compare interception rate and doctrine sensitivity to observed enemies."
+    },
+    {
+      "id": "scrap-invest-caster-scope",
+      "status": "open",
+      "currentInterpretation": "Any live body, any tile, no positional requirement is one permissive bundle. Prime-only would add a denial vector (freeze their economy by killing one body) and a forge tile would double-tax an errand that already costs a round trip; neither is measured.",
+      "requiredIsolation": "Run Prime-only and at-a-forge-tile levels separately; report casts per match and time-from-affordable-to-bought."
+    },
+    {
+      "id": "scrap-flat-control-arm",
+      "status": "open",
+      "currentInterpretation": "THE DESIGNATED CONTROL for the invest action, built and shipped as --economy scrap-flat: same deposits, same carrying, same wreckage, same ladder, same prices, but the bank auto-buys greedily in declared track order with no verb and no action cost.",
+      "requiredIsolation": "If scrap-flat measures the same as scrap on both the balance edges and the pacing gates, the allocation decision is inert and the entire new action family is unjustified. Run it beside scrap in the wave-8 read; report invest casts per match, time-to-first-tier, and the three class edges."
+    },
+    {
+      "id": "scrap-fabricator-amplification",
+      "status": "open",
+      "currentInterpretation": "The economy lands three dampers on the fabricator at once - a fixed deposit pot that one harvester already services, prime-only upgrade scope, and wreckage flowing to its opponent - so its net position is unattributable to any one of them.",
+      "requiredIsolation": "Report bank composition, harvester body-tick share, and the bvf/fvs edges per five-slot variant; a Prime-only-EARNING level is the registered fallback if the read disagrees."
+    },
+    {
+      "id": "scrap-optic-vision-shape-interaction",
+      "status": "open",
+      "currentInterpretation": "OPTIC is gap-preserving on the acquisition reading (every class reaches see-as-far-as-you-shoot at tier 2) but not on an AREA reading: an omnidirectional disc at 4->6 grows observed area 16->36 (+125%) against a quadrant's 36->64 (+78%), so it tilts toward the bulwark.",
+      "requiredIsolation": "Report observed-area and target-acquisition deltas per class per tier; it is the one place v1 knowingly takes a risk."
+    },
+    {
+      "id": "scrap-tempo-track",
+      "status": "open",
+      "currentInterpretation": "Fire cadence is CUT from v1 rather than abandoned: an additive -1 to everyone widens the class gap by ratio (striker/bulwark rate 1.5 -> 2.0) and would erase the entire bulwark-versus-striker duel asymmetry the bvs leg is priced on - and would do so because BOTH teams bought it.",
+      "requiredIsolation": "If it ships later it needs class-aware PRICING (the general law: effects are never class-aware, prices may be exactly where the effect is ratio-asymmetric). Measure it on its own arm, never inside the v1 ladder."
+    },
+    {
+      "id": "scrap-drone-tier-3",
+      "status": "open",
+      "currentInterpretation": "The purchasable ally is deferred to v2 with a build-ready spec, not dropped: one extra ALWAYS-predeclared dormant slot per team, unlocked by a tier-3 purchase costing 20 outside the 3-tier cap, 1 HP, no attack profile, objective weight 0, movement only, omnidirectional vision 5, cannot carry scrap, arriving on the home pad 10 ticks after purchase, one per match.",
+      "requiredIsolation": "Two prerequisites first: a typed form capability making enemy projectiles PASS THROUGH the form (otherwise a bullet-absorbing body is a free screen and body count stops being the fabricator's monopoly), and five registered topology profiles with the drone slot always declared so topology is constant whether or not it is bought."
+    },
+    {
+      "id": "legion-opening-roster",
+      "status": "open",
+      "currentInterpretation": "Three live bodies at tick zero for a class that receives companions is a bundle: the count itself, the fact that they are FREE for those classes, and their reserved pad anchors. It re-prices every mechanism measured to date, because the channel's stack cap, the escort pattern and the economy's errand cost were all derived against prime-plus-two.",
+      "requiredIsolation": "Run opening rosters of 1 (the measured baseline), 2 and 3 at a fixed tranche schedule; report captures per match, time-to-first-contact, harvester share of body-ticks, and all three class edges.",
+      "requiredBefore": "internal-pilot"
+    },
+    {
+      "id": "legion-fabricator-opening",
+      "status": "open",
+      "currentInterpretation": "The fabricator opens with FOUR slots against everyone else's three bodies, and its three companions are fabricable-at-zero rather than free. That is a class-identity ruling (DECISIONS #154's explicit forward fabrication) applied to a count decision, so it bundles the extra slot with the action cost and with forward placement. Whether one extra fabricable slot is worth three prime actions before contact is unmeasured.",
+      "requiredIsolation": "Run the fabricator opening at 3 free / 3 fabricable / 4 fabricable; report ticks-to-full opening roster, prime actions spent before first contact, and the fabricator's two edges.",
+      "requiredBefore": "internal-pilot"
+    },
+    {
+      "id": "legion-tranche-schedule",
+      "status": "open",
+      "currentInterpretation": "Two slots at 150 and three at 300 is one bundled lever: both ticks and both widths. 150 lands after the first front is contested and after the first two deposits; 300 leaves 200 ticks at the standard horizon and 450 at the long one. Neither was measured.",
+      "requiredIsolation": "Vary the two ticks together and the two widths together, separately; report bodies-alive over time, captures per match by phase, and whether the late tranche changes any decided match's outcome.",
+      "requiredBefore": "internal-pilot"
+    },
+    {
+      "id": "legion-pad-geometry",
+      "status": "open",
+      "currentInterpretation": "The legion map's extra anchors, the pad widened from six tiles to ten, and (under the economy arm) the correspondingly larger banking region are one bundled map factor. A wider protected pad is also a larger opposing-entry exclusion and a shorter effective bank walk.",
+      "requiredIsolation": "Run the legion roster on a pad-sized-as-measured variant with anchors outside the protection, and on a variant whose banking region stays the six measured tiles; report banking latency, pad-adjacent kills, and mirror-fairness probes.",
+      "requiredBefore": "internal-pilot"
+    },
+    {
+      "id": "no-forward-rally",
+      "status": "open",
+      "currentInterpretation": "The hull pendulum level removes the keel's unconditional forward rally on the owner's ruling ('the respawn at capture point may be a bit too strong and it also means Fab's signature skill is almost useless'). It is exactly one lever - every other counterweight is byte-identical - but it interacts with three others: it lengthens every reinforcement walk (which the 40-tick ratchet hold was calibrated against), it makes the fabricator's field placement the only forward delivery in the game, and it makes the harvest errand more expensive because a dead harvester restarts from home.",
+      "requiredIsolation": "Run keel and hull as the only difference at a fixed stack; report advance-reversal latency, captures per match, the fabricator's two edges (the ruling's stated target), and harvester round trips completed.",
+      "requiredBefore": "internal-pilot"
+    },
+    {
+      "id": "match-horizon",
+      "status": "open",
+      "currentInterpretation": "Match length was a fixed 500 ticks for the whole campaign and every pacing number was chosen against it. The owner opened it to 750 ('longer games at this point is ok'), which re-prices the 18-tick prime return, the 40-tick ratchet hold, the vein cadence and the roster tranches simultaneously - and changes what a TIMEOUT means, since the objective-only max-tick score is the tiebreak.",
+      "requiredIsolation": "Run 500 and 750 as the only difference on the same stack; report share of matches decided by breach vs horn, captures per match normalised by length, lead changes after tick 500, and whether any class edge is a function of the tail alone.",
+      "requiredBefore": "internal-pilot"
+    },
+    {
+      "id": "chassis-unified-statline",
+      "status": "open",
+      "currentInterpretation": "Prime dissolution unifies each class at its CHILD statline (bulwark 5/4 -> 4, fabricator 2/3 -> 3, striker unchanged) and at the child anchor windup (bulwark 3/1 -> 1). Unifying at the PRIME values instead is the pre-registered alternative arm, and the measured effect of `--chassis unified` bundles the statline choice with the lifecycle, fabrication-origin and upgrade-scope changes.",
+      "requiredIsolation": "Run the prime-value arm (unify at 5/2/3 with the prime anchor windup) against the child-value arm on the same cells and seeds, holding the lifecycle, fabrication and upgrade-scope halves of the arm fixed.",
+      "requiredBefore": "public-unranked"
+    },
+    {
+      "id": "chassis-unified-lifecycle",
+      "status": "open",
+      "currentInterpretation": "The unified lifecycle moves the slot-0 return from the 18-tick Prime clock to the class's child rebuild clock (30 for the striker and bulwark) AND makes every fabricator body explicit-fabrication-only. Two pacing changes in one flag: a slower return for the body that used to be the avatar, and a fabricator whose slot 0 is no longer a free respawn.",
+      "requiredIsolation": "Compare the unified arm against a variant that keeps the 18-tick clock on every unified slot, on the same cells and seeds.",
+      "requiredBefore": "public-unranked"
+    },
+    {
+      "id": "headless-fabrication-network",
+      "status": "open",
+      "currentInterpretation": "Unifying the fabricator's form puts the fabricate verb on every body, so any live body is a fabrication origin and killing one never kills the factory. It is not separable from the form unification by flag: the verb is form-scoped.",
+      "requiredIsolation": "Declare a unified fabricator whose fabricate action is restricted to slot 0's lives by a source-slot constraint, and compare it against the network arm on the same cells and seeds.",
+      "requiredBefore": "public-unranked"
+    },
+    {
+      "id": "root-factory-bootstrap",
+      "status": "open",
+      "currentInterpretation": "At total body loss the home base seeds one body at the home spawn after the class's own respawn delay, at no cost. The owner ruled it against total-loss-as-elimination; the delay, the body count (one) and the home placement are one bundled factor, and the arm it replaces (elimination) is registered but unimplemented.",
+      "requiredIsolation": "Sweep the seed delay against the class's rebuild clock and the seed count, and run the registered total-loss-as-elimination arm, before attributing a comeback effect to any one of them.",
+      "requiredBefore": "public-unranked"
+    },
+    {
+      "id": "chassis-unified-upgrade-scope",
+      "status": "open",
+      "currentInterpretation": "With no prime slot the upgrade ladder necessarily moves from prime-slot-lives-only to all-slot-lives. The scope change is forced by prime dissolution and therefore cannot be measured inside the arm; it is bundled with the tier price that answers it.",
+      "requiredIsolation": "Not separable from `--chassis unified`. Measure it indirectly through `chassis-unified-tier-price`, whose arms bracket the scope's value at 10 (free), 20 (shipped) and 30 (a whole extra board).",
+      "requiredBefore": "public-unranked"
+    },
+    {
+      "id": "chassis-unified-tier-price",
+      "status": "open",
+      "currentInterpretation": "The flat tier price doubles to 20 under the unified chassis to absorb the widened upgrade scope. Doubling is a conservative guess: a legion team fields eight or nine bodies, so the true scope multiplier is far above two, and pricing at 2x deliberately leaves the economy stronger under the arm.",
+      "requiredIsolation": "Run --tier-cost 10 and --tier-cost 30 against the shipped 20 on the same cells and seeds. Note that the fabricator mirror plus facing-locked overflows the 64-character ruleset budget with a price token, so that cell needs a registered composite before it can be swept.",
+      "requiredBefore": "public-unranked"
+    },
+    {
+      "id": "composition-slot-chassis",
+      "status": "open",
+      "currentInterpretation": "A mixed composition changes three things at once: which chassis stand on which slots, whether the team's tranches are fabricated (a warden fields a fabricator and therefore builds its army), and the rules catalog, which gains the third chassis's forms and profiles. The registered pair set is closed at spearhead and warden; free composition is unmeasured and unimplemented.",
+      "requiredIsolation": "Compare each mixed composition against both of its constituent monos on the same cells and seeds, and separately against a mono whose tranche fabricability is forced to match, before attributing an effect to the mix rather than to the build economy it implies.",
+      "requiredBefore": "public-unranked"
+    },
+    {
+      "id": "composition-companion-cycle",
+      "status": "open",
+      "currentInterpretation": "A composition's companion chassis alternate in slot order (slots 1,3,5,7 take the first entry; 2,4,6,8 the second). Which chassis lands on which tranche is therefore a consequence of the cycle rather than a designed schedule, and the mid/late tranches inherit whatever the cycle hands them.",
+      "requiredIsolation": "Run the reversed cycle for each mixed composition on the same cells and seeds.",
+      "requiredBefore": "public-unranked"
+    }
+  ]
+}

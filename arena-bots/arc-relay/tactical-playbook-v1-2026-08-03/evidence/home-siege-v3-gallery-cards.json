@@ -1,0 +1,45 @@
+{
+  "title": "Arc Relay — Home Siege v3 strict 9–2 proof",
+  "intro": "Outcome-visible review of both mirrored v3 assignments from the fresh 24/24 canonical WASM cohort, followed by the retained v2 visual reference. V3 faces the unchanged stock-v4 coordination-parity opponent. The historical v2 card is explicitly labelled because its retained replay faces the older static baseline. Eligibility bars were frozen; no detector was weakened to admit the siege.",
+  "cards": [
+    {
+      "id": "sample-02",
+      "title": "Home Siege v3 — Blue",
+      "subtitle": "Blue v3 vs coordination-parity stock-v4 · Blue wins 9–1 at t560 with 3 integrity",
+      "win": true,
+      "opponent": "Orange is the unchanged stock-v4 coordination-parity control: ordinary coordinated focus fire and movement, but no Home Siege recognition or bespoke counter-plan.",
+      "score": "Blue 9–1 Orange Core deliveries; Blue destroys the reactor at t560 and retains all 3 integrity segments. All twelve fresh Blue-assignment cells reproduce this score and tick.",
+      "trigger": "The standing strategy assaults immediately, occupies after a stable foothold, regroups when the living blockade collapses, and rebreaches after five bodies restabilize at the forward rally. Carrier sight arms one bounded interceptor; a conversion window leases one courier and one escort.",
+      "tactic": "Maintain a five-body living blockade while one interceptor cuts the predicted return lane and the courier/escort pair converts safe Cores. Replacements independently catch up and only then rejoin formation.",
+      "counterplay": "Break the five-body seal, isolate the Patchbays, force repeated regroup cycles, screen the return lane, or exploit the temporarily concentrated north approach. This opponent is a parity control, not the intended Stage-2 recognizer.",
+      "fallback": "A lost foothold releases occupation into regroup/rebreach. Carrier completion retargets or releases its exact lease immediately; an unwinnable cutoff becomes direct pressure; replacement lives remain outside formation cohesion until reintegrated.",
+      "watch": "Occupy t33; regroup t112; breach t123; later cycles at t198/t274, t307/t318, and occupy again t346. At t77 the trace shows the exact 5+1+1+1 allocation; carrier retargets occur at t147 and later. All 22 observable replacement lives rejoin strategy."
+    },
+    {
+      "id": "sample-03",
+      "title": "Home Siege v3 — Orange",
+      "subtitle": "Orange v3 vs coordination-parity stock-v4 · Orange wins 9–2 at t524 with 3 integrity",
+      "win": true,
+      "opponent": "Blue is the same unchanged stock-v4 coordination-parity control, mirrored without weakening its artifact, sheet, classes, or coordination privileges.",
+      "score": "Orange 9–2 Blue Core deliveries; Orange destroys the reactor at t524 and retains all 3 integrity segments. All twelve fresh Orange-assignment cells reproduce this score and tick.",
+      "trigger": "The same authored strategy is layout-bound for Counterflow's mirrored geometry. It starts assault, claims occupation on a stable foothold, and cycles through regroup and breach rather than parking broken remnants.",
+      "tactic": "Hold the enemy bank mouth with five live blockade bodies, use one causal return-lane interceptor, and keep conversion work bounded to a courier/escort pair. Repairs, focus, casualty replacement, and rebreach stay active throughout.",
+      "counterplay": "Collapse the foothold before five bodies settle, attack the reinforcement stream, deny the courier's return, or deliberately recognize and counter the concentration. No rules or map reaction is inferred from this control matchup.",
+      "fallback": "Carrier leases retarget on the exact life ending; replacements advance independently; the interceptor releases on terminal conditions. A Core at (2,12) lies inside Blue's protected pad, so Orange applies brief bank-mouth pressure and returns to combat rather than holding an impossible pickup lease.",
+      "watch": "Occupy t32; regroup/breach at t117/t128, t156/t183, t201/t212, then occupy t228. At t410 the courier/escort lease retargets exactly; t415/t417 show the bounded protected-pad fallback. Zero completed-trip own-home hold ticks are recorded."
+    },
+    {
+      "id": "sample-01",
+      "title": "Home Siege v2 — retained visual reference",
+      "subtitle": "Historical Orange v2 vs older static baseline · Orange wins 9–8 at t557",
+      "win": true,
+      "opponent": "This retained replay predates the coordination-parity control and faces the older static stock sheet. It is included for visual comparison only; the immutable v2 canonical parity read remains 24/24 verified at 9–4 and 9–3 by assignment.",
+      "score": "Orange v2 wins 9–8 Core deliveries at t557 with 1 integrity in this historical replay. The frozen v2 parity cohort's accepted aggregate is 9–4 and 9–3, not this card's older-opponent score.",
+      "trigger": "V2 uses the same broad assault, occupation, regroup, and rebreach idea, but lacks v3's corrected emergency response, exact carrier lifecycle, independent replacement catch-up proof, and reachable cutoff selection.",
+      "tactic": "Compare the older loose reinforcement and conversion behavior against the two v3 representatives rather than treating this different-opponent replay as a direct score benchmark.",
+      "counterplay": "The historical static opponent does not coordinate at stock-v4 parity and does not recognize the siege. Its close score exposed the defects that motivated the v3 correction pass.",
+      "fallback": "V2 regroups after occupation loss and later rebreaches, but its lifecycle semantics are the frozen control—not retroactively repaired.",
+      "watch": "Orange occupies at t44, regroups at t68, breaches at t140, and regroups again at t531. The match reaches 9–8; compare its leakage and tempo with v3's 9–1 and 9–2 mirrors."
+    }
+  ]
+}

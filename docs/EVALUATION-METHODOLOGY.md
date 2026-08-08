@@ -3,6 +3,8 @@
 This is the shared product-evaluation policy for Claude Code and Codex. The
 executable workflows are `.claude/skills/balance-harness/SKILL.md` and
 `.claude/skills/agent-arena/SKILL.md`.
+Multi-factor experiments use the mode-independent spec and runner in
+[`NILBOTS-BALANCE-LAB.md`](NILBOTS-BALANCE-LAB.md).
 
 The goal is not the shortest match or the highest count of one result label.
 The goal is a deterministic programming game whose matches are strategically
@@ -10,7 +12,11 @@ varied, visibly active, understandable, and worth watching.
 
 ## Separate the three questions
 
-Every rules experiment should label its evidence as one of these:
+Every experiment first identifies its immutable candidate as:
+
+`mode + ruleset + map + match format`
+
+It then separates evidence into study blocks with one of these roles:
 
 1. **Regression/compatibility.** Frozen historical artifacts run under the
    candidate to catch faults, determinism changes, degenerate exploits, and
@@ -21,6 +27,12 @@ Every rules experiment should label its evidence as one of these:
 3. **Product quality.** Bots authored or substantially adapted for a ruleset
    fight one another under that ruleset. This is the primary balance and
    entertainment evidence.
+4. **Infrastructure smoke.** Unqualified retained artifacts exercise candidate
+   enumeration, provenance, runtime, verification, metrics, and report
+   generation. This proves the evidence pipeline, never the game balance.
+5. **Adversarial sentinel.** A deliberately hostile policy attacks one metric,
+   mechanic, or suspected degeneracy. It diagnoses counterplay and metric
+   validity but does not substitute for a diverse native population.
 
 The first two are valuable, but old rules-unaware bots do not veto a
 substantial redesign. They cannot reveal a strategy space they were never
@@ -32,6 +44,13 @@ A change is substantial when it changes available actions, observations,
 objective economics, projectile/combat timing, survival rules, or ranked map
 geometry. A narrow number tune whose strategies remain valid may use a
 same-cohort A/B as primary evidence.
+
+Every causal block must share a declared random-stream profile across arms;
+equal numeric seeds with different seed profiles are not paired randomness.
+Every voting block pins a versioned decision profile, frozen published
+toolchain, exact qualification profile, and population coverage. Compatibility
+or smoke failures remain visible without silently invalidating a complete
+native-product block.
 
 ## Native cohort requirements
 
@@ -49,6 +68,14 @@ For a substantial rules verdict:
 - freeze artifact hashes, maps, seed blocks, runtime, and evaluation criteria
   before the final/holdout run;
 - use canonical WASM with zero faults for the final evidence.
+
+The minimum four doctrines must also be independent authoring lineages.
+Variants from one source lineage are useful ablations, not four independent
+samples. Statistical summaries over repeated pair/seed rows are conditional
+on the exact frozen population. Generalization comes primarily from policy
+lineages, so retain lineage identifiers and inspect leave-one-lineage-out
+sensitivity; do not present a pair-seed bootstrap as a population confidence
+interval.
 
 The generational product comparison is:
 
@@ -94,6 +121,18 @@ dimensions without combining them into an arbitrary “fun score.”
 No single action is inherently bad. A deliberate Wait or repeated pursuit can
 be correct. The metrics locate replays to inspect; exact loops, low entropy,
 and long inactivity together are the warning.
+
+Arc Relay additionally runs every retained WASM match through the versioned
+felt-degeneracy registration used by `scripts/arc-relay-scorecard.py`. Treat
+those bars as cohort and gallery eligibility, not descriptive warnings. Event
+cycles must correlate both tick-start and post-decision columns: a world-only
+detector can miss a body that automatically picks up and voluntarily drops the
+same Core every tick because every post-state truthfully shows the Core loose.
+The current registration rejects three rapid same-Core, same-life, same-tile
+pickup/drop cycles, alongside the existing handoff, passivity, formation,
+stationary-carrier, and home-progress bars. Exclude either-side failures before
+aggregate reads or gallery construction and disclose them; an explicit
+diagnostic gallery may retain a failure only when labelled as such.
 
 ### Objective interaction
 
@@ -206,6 +245,48 @@ promoted it as an explicit override (DECISIONS #74–#75). The original 35%
 failure remains in the record. Future threshold changes should normally be
 documented and frozen before their holdout.
 
+Holdouts are commit/reveal artifacts: publish only a cryptographic commitment
+before the run, keep the nonce and seed list outside the repository, verify
+the reveal, and atomically mark it consumed. A checked-in “holdout seed” is
+already disclosed and must be treated as an ordinary development seed.
+
+## Frontline pilot scope
+
+For the first Frontline pilot, cumulative T1–T4 and four independent T4+
+lineages are the minimum voting floor. Include T5-capable policies where
+available, but do not block the pilot on T7 adaptive exploitation, T8
+equilibrium-grade evaluation, empirical equilibrium estimation, automated
+best-response training, or candidate search. Those are explicitly deferred
+until the population can feed them.
+
+Population size is measured in effective doctrines, not artifact files. At
+T1/T2 and most of T3, keep a small canonical set of exact-boundary instruments:
+each passes Tn, fails T(n+1), and represents a genuinely different elementary
+archetype. Retain lower-tier and intermediate revisions instead of replacing
+them with a champion; they calibrate the fun floor, adjacent-tier gradient,
+and where a mechanic begins to matter.
+
+At the T5/T6 verdict band, target at least six independently authored effective
+doctrines spanning predeclared strategy cells. Continue authoring when payoff
+rows, dynamics/action signatures, and restricted-play response show missing
+coverage; stop counting new artifacts when those signals show redundancy and
+leave-one-doctrine-out conclusions are stable. Run full within-tier and
+adjacent-tier cross-play; only expand to distant-tier or all-candidate products
+when a registered hypothesis needs them.
+
+Balance Lab currently reports a diagnostic
+`payoff-action-form-objective-redundancy-v1` estimate per candidate cell. It
+uses normalized payoff-row, accepted-action, form-occupancy, and
+objective-residence distances and retains all pairwise evidence. Its fixed
+thresholds are not a promotion gate until calibrated on known redundant and
+known distinct boundary instruments; until then, use the estimate to request
+more doctrines, never to prune archived bots.
+
+Duel results establish duel behavior only. They may guide 2v2/3v3 hypotheses,
+but map and rule promotion for team formats requires team-native coordination
+qualification and evidence. FFA uses a separate general-sum evaluation
+profile, playlist, and ladder.
+
 ## After a holdout
 
 Apply every frozen gate literally. One failure is a HOLD even when every other
@@ -254,6 +335,11 @@ Numbers cannot certify entertainment. Before reading aggregate outcomes:
    metrics. Diagnose every stalled/looped game and all low-rated samples.
 6. Publish a separately labeled 3–5 replay highlight gallery. Highlights
    demonstrate the ceiling; they never replace the outcome-blind sample.
+
+For complete Arc Relay broadcast-v1 inputs, `scripts/build-review-gallery.py`
+enforces the current felt-degeneracy registration before writing the gallery.
+Do not bypass it to obtain a convenient sample. Its explicit skip exists only
+to publish a labelled failure/diagnostic gallery.
 
 The review notes, sample manifest, artifact hashes, metrics table, and explicit
 ship/hold rationale are part of the decision record.

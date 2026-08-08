@@ -1,0 +1,123 @@
+{
+  "version": 1,
+  "method": "deterministic-offline-team-accent-face-partition",
+  "lookId": "trident-wasp",
+  "taskId": "019fb00c-9e8d-723b-9485-49706e307cb9",
+  "imageEnhancement": false,
+  "reportFilename": "team-accent-report.json",
+  "inputs": {
+    "model": {
+      "file": "sandbox/meshy-runtime/v2-off-lean-runtime-correct-112.glb",
+      "bytes": 2813112,
+      "sha256": "ee53bb8676bbf59dd53ae0c0bddd2e9853a91547b5741cf1b97e41239f0d5471"
+    },
+    "baseColor": {
+      "file": "art/class-models/provider-runs/meshy/trident-wasp/019fb00c-9e8d-723b-9485-49706e307cb9/texture-0-base-color.png",
+      "bytes": 29705295,
+      "sha256": "b8d688934a29ba78f4680f7de04792c1bb85a816328203513437a2093b3912ab",
+      "width": 4096,
+      "height": 4096
+    },
+    "emission": {
+      "file": "art/class-models/provider-runs/meshy/trident-wasp/019fb00c-9e8d-723b-9485-49706e307cb9/texture-0-emission.png",
+      "bytes": 942277,
+      "sha256": "83c8df2ace78f396093c31aa263cb1e0794a56ce8f7b49e07626ce9241b08751",
+      "width": 2048,
+      "height": 2048
+    }
+  },
+  "outputs": {
+    "model": {
+      "fileName": "striker-team-accent-review.glb",
+      "bytes": 4588820,
+      "sha256": "17c1998906729ebe70d8653c8b18b588ac3acfbeb521698737a266279147c07e"
+    },
+    "losslessMask": {
+      "fileName": "team-accent-mask.png",
+      "bytes": 91776,
+      "sha256": "3760615b877d2bbf17858f08295953ec62cd502071a307aad68787e786e0aada",
+      "width": 4096,
+      "height": 4096
+    },
+    "neutralHullBase": {
+      "fileName": "hull-base-neutral.png",
+      "bytes": 1791485,
+      "sha256": "3c0d38dd801bdc716dad5a9c101c5e933b77ecab966c847a3f9fa432eee93a8b",
+      "width": 1024,
+      "height": 1024
+    },
+    "neutralHullEmission": {
+      "fileName": "hull-emission-neutral.png",
+      "bytes": 254511,
+      "sha256": "5a72f8fe45414fee35629d3bd58411829e87ff75ccebcce9adb0edc94ddb873f",
+      "width": 1024,
+      "height": 1024
+    }
+  },
+  "thresholds": {
+    "workingGrid": "emission-resolution exact 2x2 base-color box average",
+    "baseLoose": {
+      "greenMin": 35,
+      "blueMin": 45,
+      "greenMinusRedMin": 12,
+      "blueMinusRedMin": 18
+    },
+    "baseStrong": {
+      "greenMin": 80,
+      "blueMin": 100,
+      "greenMinusRedMin": 40,
+      "blueMinusRedMin": 55
+    },
+    "emissionLoose": {
+      "greenMin": 8,
+      "blueMin": 10,
+      "greenMinusRedMin": 3,
+      "blueMinusRedMin": 5
+    },
+    "emissionStrong": {
+      "greenMin": 28,
+      "blueMin": 34,
+      "greenMinusRedMin": 14,
+      "blueMinusRedMin": 18
+    },
+    "balancedCyan": "2*g >= b && 2*b >= g",
+    "connectivity": 8,
+    "guidedGrowthIterations": 2,
+    "close": "one radius-1 square dilate/erode",
+    "minimumFinalComponentPixelsAtWorkingResolution": 32,
+    "triangleSamples": 7,
+    "triangleVoteThreshold": 5
+  },
+  "coordinateContract": {
+    "facing": "+X",
+    "up": "+Y",
+    "floorY": 0,
+    "boundsMin": [
+      -0.56,
+      0,
+      -0.335671150040827
+    ],
+    "boundsMax": [
+      0.56,
+      0.43198354690204854,
+      0.335671150040827
+    ],
+    "maxPlanformSpan": 1.12,
+    "tolerance": 1e-9
+  },
+  "validation": {
+    "runtimeBudgetBytes": 5000000,
+    "generatedTangentSpaceWarnings": [
+      {
+        "code": "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE",
+        "mesh": 0,
+        "primitive": 0
+      },
+      {
+        "code": "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE",
+        "mesh": 0,
+        "primitive": 1
+      }
+    ]
+  }
+}

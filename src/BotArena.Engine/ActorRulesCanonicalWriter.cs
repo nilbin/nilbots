@@ -160,6 +160,30 @@ internal static class ActorRulesCanonicalWriter
                     frontline.FrontlinePositionCount);
                 writer.WritePropertyName("capture");
                 WriteFrontlineCapture(writer, frontline.Capture);
+                // Trailing inert-default omission, exactly like the capture
+                // ratchet's hold and a form's projectile guard: a mode with
+                // no side objective writes no bytes for one, so every
+                // contract authored before the secondary-control capability
+                // existed — the immutable hosted frontline-labs-1 included —
+                // keeps its exact rules, match, and aggregate fingerprints.
+                if (frontline.SecondaryControl is { } secondaryControl)
+                {
+                    writer.WritePropertyName("secondaryControl");
+                    WriteFrontlineSecondaryControl(writer, secondaryControl);
+                }
+                // The battlefield economy follows the same trailing
+                // inert-default omission: a mode that declares none writes no
+                // bytes for one, so every contract authored before this
+                // capability existed keeps its exact rules, match, and
+                // aggregate fingerprints.
+                if (frontline.ScrapEconomy is { } scrapEconomy)
+                {
+                    writer.WritePropertyName("scrapEconomy");
+                    WriteFrontlineScrapEconomy(writer, scrapEconomy);
+                }
+                break;
+            case ArcRelayGameModeDefinition arcRelay:
+                WriteArcRelay(writer, arcRelay);
                 break;
             default:
                 throw Unsupported(mode);
@@ -201,10 +225,269 @@ internal static class ActorRulesCanonicalWriter
                     "pushesToBreach",
                     frontline.PushesToBreach);
                 break;
+            case ArcRelayVictoryDefinition arcRelay:
+                writer.WriteNumber(
+                    "pulsesToDestroyReactor",
+                    arcRelay.PulsesToDestroyReactor);
+                break;
             default:
                 throw Unsupported(victory);
         }
 
+        writer.WriteEndObject();
+    }
+
+    private static void WriteArcRelay(
+        Utf8JsonWriter writer,
+        ArcRelayGameModeDefinition mode)
+    {
+        writer.WriteNumber("pendingRearmTicks", mode.PendingRearmTicks);
+        writer.WriteNumber(
+            "coreRelocationIntervalTicks",
+            mode.CoreRelocationIntervalTicks);
+        writer.WriteNumber("coresPerPulse", mode.CoresPerPulse);
+        writer.WriteNumber("fieldedSlotsPerTeam", mode.FieldedSlotsPerTeam);
+        writer.WriteNumber("maxCopiesPerClass", mode.MaxCopiesPerClass);
+        writer.WriteNumber("respawnDelayTicks", mode.RespawnDelayTicks);
+        // Written only when not 1 so historical grammar-1 rules bytes are
+        // untouched by this field's existence.
+        if (mode.SignatureGrammarVersion != 1)
+        {
+            writer.WriteNumber(
+                "signatureGrammarVersion",
+                mode.SignatureGrammarVersion);
+        }
+        // Written only when non-zero so historical rules bytes are untouched.
+        if (mode.WellBirthJitterTicks != 0)
+        {
+            writer.WriteNumber(
+                "wellBirthJitterTicks",
+                mode.WellBirthJitterTicks);
+        }
+        // Written only when true so historical rules bytes are untouched.
+        if (mode.AlternatingResolutionOrder)
+        {
+            writer.WriteBoolean(
+                "alternatingResolutionOrder",
+                mode.AlternatingResolutionOrder);
+        }
+        // Written only when true so historical rules bytes are untouched.
+        if (mode.ThreefoldSockets)
+        {
+            writer.WriteBoolean("threefoldSockets", mode.ThreefoldSockets);
+        }
+        // Written only when not 1 so historical rules bytes are untouched.
+        if (mode.CoreBaseValue != 1)
+            writer.WriteNumber("coreBaseValue", mode.CoreBaseValue);
+        // Written only when ripening is active.
+        if (mode.RipenIntervalTicks != 0)
+        {
+            writer.WriteNumber("ripenIntervalTicks", mode.RipenIntervalTicks);
+            writer.WriteNumber("ripenMaxValue", mode.RipenMaxValue);
+            writer.WriteNumber("ripenResumeTicks", mode.RipenResumeTicks);
+        }
+        if (mode.RearArcDamageMultiplier != 1)
+        {
+            writer.WriteNumber(
+                "rearArcDamageMultiplier", mode.RearArcDamageMultiplier);
+        }
+        // Written only when veterancy is active.
+        if (mode.VeterancyXpPerLevel != 0)
+        {
+            writer.WriteNumber(
+                "veterancyXpPerLevel", mode.VeterancyXpPerLevel);
+            writer.WriteNumber("veterancyMaxLevel", mode.VeterancyMaxLevel);
+        }
+        if (mode.SeedPhasedResolutionOrder)
+        {
+            writer.WriteBoolean(
+                "seedPhasedResolutionOrder",
+                mode.SeedPhasedResolutionOrder);
+        }
+        if (mode.SeedPhasedWellLead)
+        {
+            writer.WriteBoolean(
+                "seedPhasedWellLead",
+                mode.SeedPhasedWellLead);
+        }
+        if (mode.HealZoneTicksPerHp != 0)
+        {
+            writer.WriteNumber(
+                "healZoneTicksPerHp", mode.HealZoneTicksPerHp);
+        }
+        writer.WritePropertyName("wells");
+        writer.WriteStartArray();
+        foreach (ArcRelayWellScheduleDefinition well in mode.Wells)
+        {
+            writer.WriteStartObject();
+            writer.WriteString("wellId", well.WellId);
+            writer.WriteNumber("firstBirthTick", well.FirstBirthTick);
+            writer.WriteNumber("cadenceTicks", well.CadenceTicks);
+            writer.WriteNumber("finalBirthTick", well.FinalBirthTick);
+            writer.WriteEndObject();
+        }
+        writer.WriteEndArray();
+        writer.WritePropertyName("signatures");
+        writer.WriteStartArray();
+        foreach (ArcRelaySignatureDefinition signature in mode.Signatures)
+            WriteArcRelaySignature(
+                writer,
+                signature,
+                includeMetadata: mode.SignatureGrammarVersion >= 2);
+        writer.WriteEndArray();
+    }
+
+    private static void WriteArcRelaySignature(
+        Utf8JsonWriter writer,
+        ArcRelaySignatureDefinition signature,
+        bool includeMetadata)
+    {
+        writer.WriteStartObject();
+        writer.WriteString("kind", Id(signature.Kind));
+        writer.WriteString("signatureId", signature.SignatureId);
+        writer.WriteString("classId", signature.ClassId);
+        writer.WriteString("actionId", signature.ActionId);
+        writer.WriteNumber("cooldownTicks", signature.CooldownTicks);
+        switch (signature)
+        {
+            case ArcRelaySignatureDefinition.VectorDash value:
+                writer.WriteNumber("tellTicks", value.TellTicks);
+                writer.WriteNumber("maxTiles", value.MaxTiles);
+                break;
+            case ArcRelaySignatureDefinition.PrismWall value:
+                writer.WriteNumber("segmentCount", value.SegmentCount);
+                writer.WriteNumber("durationTicks", value.DurationTicks);
+                writer.WriteNumber("contactCapacity", value.ContactCapacity);
+                break;
+            case ArcRelaySignatureDefinition.TractorHook value:
+                writer.WriteNumber("range", value.Range);
+                writer.WriteNumber("maxPullTiles", value.MaxPullTiles);
+                break;
+            case ArcRelaySignatureDefinition.RepairBeam value:
+                writer.WriteNumber("range", value.Range);
+                writer.WriteNumber("ticksPerRepair", value.TicksPerRepair);
+                writer.WriteNumber("hullPerRepair", value.HullPerRepair);
+                writer.WriteNumber(
+                    "maxHullPerActivation",
+                    value.MaxHullPerActivation);
+                break;
+            case ArcRelaySignatureDefinition.SurveyFlare value:
+                writer.WriteNumber("range", value.Range);
+                writer.WriteNumber(
+                    "travelTilesPerTick",
+                    value.TravelTilesPerTick);
+                writer.WriteNumber("revealRadius", value.RevealRadius);
+                writer.WriteNumber("durationTicks", value.DurationTicks);
+                break;
+            case ArcRelaySignatureDefinition.FallingStar value:
+                writer.WriteNumber("range", value.Range);
+                writer.WriteNumber("tellTicks", value.TellTicks);
+                writer.WriteNumber("damage", value.Damage);
+                break;
+            case ArcRelaySignatureDefinition.TripNode value:
+                writer.WriteNumber("hull", value.Hull);
+                writer.WriteNumber("triggerDamage", value.TriggerDamage);
+                writer.WriteNumber("revealRange", value.RevealRange);
+                break;
+            case ArcRelaySignatureDefinition.NullField value:
+                writer.WriteNumber("radius", value.Radius);
+                writer.WriteNumber("durationTicks", value.DurationTicks);
+                break;
+            case ArcRelaySignatureDefinition.ArcToss value:
+                writer.WriteNumber("range", value.Range);
+                writer.WriteNumber("tellTicks", value.TellTicks);
+                writer.WriteNumber(
+                    "travelTilesPerTick",
+                    value.TravelTilesPerTick);
+                break;
+            case ArcRelaySignatureDefinition.Exchange value:
+                writer.WriteNumber("range", value.Range);
+                writer.WriteNumber("tellTicks", value.TellTicks);
+                break;
+            case ArcRelaySignatureDefinition.RailLine value:
+                // Rail's telegraph has always been on the wire as `tellTicks`
+                // and keeps that name; the ruling renamed the CONCEPT, not
+                // the contract, and every existing ruleset keeps its
+                // fingerprint.
+                writer.WriteNumber("tellTicks", value.WindupTicks);
+                writer.WriteNumber("range", value.Range);
+                writer.WriteNumber("damage", value.Damage);
+                writer.WriteNumber(
+                    "cancelCooldownTicks",
+                    value.CancelCooldownTicks);
+                break;
+            case ArcRelaySignatureDefinition.HardlightBlock value:
+                writer.WriteNumber("hull", value.Hull);
+                writer.WriteNumber("durationTicks", value.DurationTicks);
+                break;
+            case ArcRelaySignatureDefinition.TargetPaint value:
+                writer.WriteNumber("range", value.Range);
+                writer.WriteNumber("durationTicks", value.DurationTicks);
+                writer.WriteNumber(
+                    "enhancedHitCount",
+                    value.EnhancedHitCount);
+                writer.WriteNumber("bonusDamage", value.BonusDamage);
+                break;
+            case ArcRelaySignatureDefinition.KineticBurst value:
+                writer.WriteNumber("tellTicks", value.TellTicks);
+                writer.WriteNumber("pushTiles", value.PushTiles);
+                break;
+            case ArcRelaySignatureDefinition.SmokeCanister value:
+                writer.WriteNumber("range", value.Range);
+                writer.WriteNumber("radius", value.Radius);
+                writer.WriteNumber("durationTicks", value.DurationTicks);
+                break;
+            case ArcRelaySignatureDefinition.SentinelSeed value:
+                writer.WriteNumber("hull", value.Hull);
+                writer.WriteNumber("range", value.Range);
+                writer.WriteNumber("damage", value.Damage);
+                writer.WriteNumber(
+                    "fireCooldownTicks",
+                    value.FireCooldownTicks);
+                writer.WriteNumber("durationTicks", value.DurationTicks);
+                break;
+            case ArcRelaySignatureDefinition.SentinelSeed2 value:
+                // The bolt-class windup is presence-driven, exactly like the
+                // grammar-2 bolt fields beside it: a ruleset that authors no
+                // windup writes no key and keeps its fingerprint.
+                if (value.WindupTicks > 0)
+                    writer.WriteNumber("windupTicks", value.WindupTicks);
+                writer.WriteNumber("hull", value.Hull);
+                writer.WriteNumber("range", value.Range);
+                writer.WriteNumber("damage", value.Damage);
+                writer.WriteNumber(
+                    "fireCooldownTicks",
+                    value.FireCooldownTicks);
+                writer.WriteNumber("durationTicks", value.DurationTicks);
+                writer.WriteNumber(
+                    "boltTilesPerAdvance",
+                    value.BoltTilesPerAdvance);
+                break;
+            case ArcRelaySignatureDefinition.TractorHook2 value:
+                if (value.WindupTicks > 0)
+                    writer.WriteNumber("windupTicks", value.WindupTicks);
+                writer.WriteNumber("range", value.Range);
+                writer.WriteNumber("maxPullTiles", value.MaxPullTiles);
+                writer.WriteNumber(
+                    "boltTilesPerAdvance",
+                    value.BoltTilesPerAdvance);
+                break;
+            case ArcRelaySignatureDefinition.NullField2 value:
+                writer.WriteNumber("radius", value.Radius);
+                writer.WriteNumber("durationTicks", value.DurationTicks);
+                writer.WriteNumber("tellTicks", value.TellTicks);
+                break;
+            default:
+                throw Unsupported(signature);
+        }
+        if (includeMetadata)
+        {
+            ArcRelaySignatureDefinition.SignatureMetadata metadata =
+                ArcRelaySignatureDefinition.MetadataFor(signature.Kind);
+            writer.WriteString("category", metadata.Category);
+            writer.WriteString("argumentKind", metadata.ArgumentKind);
+            writer.WriteNumber("engagementRange", metadata.EngagementRange);
+        }
         writer.WriteEndObject();
     }
 
@@ -234,6 +517,88 @@ internal static class ActorRulesCanonicalWriter
         writer.WriteString(
             "earlyKillLimitResolution",
             Id(scoring.EarlyKillLimitResolution));
+        writer.WriteEndObject();
+    }
+
+    private static void WriteFrontlineSecondaryControl(
+        Utf8JsonWriter writer,
+        FrontlineSecondaryControlDefinition secondaryControl)
+    {
+        writer.WriteStartObject();
+        writer.WritePropertyName("regionIds");
+        writer.WriteStartArray();
+        // Declared order, not sorted: the site regions are a sequence the
+        // contract hands to bots, exactly like the objective chain.
+        foreach (string regionId in secondaryControl.RegionIds)
+            writer.WriteStringValue(regionId);
+        writer.WriteEndArray();
+        writer.WriteNumber(
+            "captureThresholdTicks",
+            secondaryControl.CaptureThresholdTicks);
+        writer.WriteString("ownership", Id(secondaryControl.Ownership));
+        writer.WriteString("effect", Id(secondaryControl.Effect));
+        writer.WriteString("rallyScope", Id(secondaryControl.RallyScope));
+        writer.WriteEndObject();
+    }
+
+    private static void WriteFrontlineScrapEconomy(
+        Utf8JsonWriter writer,
+        FrontlineScrapEconomyDefinition economy)
+    {
+        writer.WriteStartObject();
+        writer.WritePropertyName("veinSites");
+        writer.WriteStartArray();
+        // Declared order, not sorted: a bot reads the sites positionally out
+        // of the contract, exactly like the objective chain.
+        foreach (Position site in economy.VeinSites)
+        {
+            writer.WriteStartObject();
+            writer.WriteNumber("x", site.X);
+            writer.WriteNumber("y", site.Y);
+            writer.WriteEndObject();
+        }
+        writer.WriteEndArray();
+        writer.WriteNumber(
+            "veinFirstSpawnTick",
+            economy.VeinFirstSpawnTick);
+        writer.WriteNumber(
+            "veinSpawnIntervalTicks",
+            economy.VeinSpawnIntervalTicks);
+        writer.WriteNumber("veinLastSpawnTick", economy.VeinLastSpawnTick);
+        writer.WriteNumber("veinAmount", economy.VeinAmount);
+        writer.WriteNumber("wreckAmount", economy.WreckAmount);
+        writer.WriteNumber("assayAmount", economy.AssayAmount);
+        writer.WriteNumber("carryCapacity", economy.CarryCapacity);
+        writer.WriteNumber("pileLifetimeTicks", economy.PileLifetimeTicks);
+        writer.WriteNumber(
+            "maxSimultaneousPiles",
+            economy.MaxSimultaneousPiles);
+        writer.WritePropertyName("bankRegionIds");
+        writer.WriteStartArray();
+        // Declared order is team order: index is the scoring team ID.
+        foreach (string regionId in economy.BankRegionIds)
+            writer.WriteStringValue(regionId);
+        writer.WriteEndArray();
+        writer.WriteString("upgradeScope", Id(economy.UpgradeScope));
+        writer.WriteNumber("maxTotalTiers", economy.MaxTotalTiers);
+        writer.WriteString("purchaseMode", Id(economy.PurchaseMode));
+        writer.WritePropertyName("tracks");
+        writer.WriteStartArray();
+        foreach (FrontlineScrapTrackDefinition track in economy.Tracks)
+        {
+            writer.WriteStartObject();
+            writer.WriteString("trackId", track.TrackId);
+            writer.WriteString("effect", Id(track.Effect));
+            writer.WriteNumber("perTierMagnitude", track.PerTierMagnitude);
+            writer.WriteNumber("maxTier", track.MaxTier);
+            writer.WritePropertyName("tierCosts");
+            writer.WriteStartArray();
+            foreach (int cost in track.TierCosts)
+                writer.WriteNumberValue(cost);
+            writer.WriteEndArray();
+            writer.WriteEndObject();
+        }
+        writer.WriteEndArray();
         writer.WriteEndObject();
     }
 
@@ -295,9 +660,53 @@ internal static class ActorRulesCanonicalWriter
         writer.WriteString(
             "redeployPolicy",
             Id(capture.RedeployPolicy));
+        // Inert-default omission, exactly like the optional capture-gain
+        // schedule and the movement profile's facing coupling: a hold
+        // duration exists only for the high-water-mark redeploy policy, so
+        // every contract authored before the territory ratchet existed —
+        // including the immutable hosted frontline-labs-1 — writes no bytes
+        // for it and keeps its exact fingerprint.
+        if (capture.RatchetHoldTicks != 0)
+        {
+            writer.WriteNumber(
+                "ratchetHoldTicks",
+                capture.RatchetHoldTicks);
+        }
         writer.WriteString(
             "redeployTickArithmetic",
             Id(capture.RedeployTickArithmetic));
+        // The capture channel's three settings, trailing and inert-omitted
+        // together, exactly like the ratchet's hold and the mode's side
+        // objective: a ruleset that does not channel writes no bytes for any
+        // of them, so every historical contract — the immutable hosted
+        // frontline-labs-1 included — keeps its exact rules, match, and
+        // aggregate fingerprints.
+        if (capture.StationaryGainMultiplierCap != 0)
+        {
+            writer.WriteNumber(
+                "stationaryGainMultiplierCap",
+                capture.StationaryGainMultiplierCap);
+        }
+        if (capture.OpposingErosionMultiplier != 0)
+        {
+            writer.WriteNumber(
+                "opposingErosionMultiplier",
+                capture.OpposingErosionMultiplier);
+        }
+        if (capture.ClaimInterrupt is { } claimInterrupt)
+        {
+            writer.WritePropertyName("claimInterrupt");
+            writer.WriteStartObject();
+            writer.WriteString("kind", Id(claimInterrupt.Kind));
+            writer.WriteNumber(
+                "revertPerDamagePoint",
+                claimInterrupt.RevertPerDamagePoint);
+            writer.WriteString("scope", Id(claimInterrupt.Scope));
+            writer.WriteString(
+                "granularity",
+                Id(claimInterrupt.Granularity));
+            writer.WriteEndObject();
+        }
         writer.WriteEndObject();
     }
 
@@ -321,6 +730,18 @@ internal static class ActorRulesCanonicalWriter
                 writer,
                 "automaticReturnFormId",
                 profile.AutomaticReturnFormId);
+            // Additive trailing field under the #156 canonical discipline,
+            // exactly like the form's projectile guard: emitted only when the
+            // profile declares a root-factory bootstrap, so every profile
+            // shipped before prime dissolution writes the bytes it always
+            // wrote and an absent property means "no bootstrap — total body
+            // loss is permanent for this slot".
+            if (profile.RootFactorySeedFormId is not null)
+            {
+                writer.WriteString(
+                    "rootFactorySeedFormId",
+                    profile.RootFactorySeedFormId);
+            }
             writer.WriteEndObject();
         }
         writer.WriteEndArray();
@@ -371,6 +792,17 @@ internal static class ActorRulesCanonicalWriter
                 "attackProfileId",
                 form.AttackProfileId);
             writer.WriteNumber("objectiveWeight", form.ObjectiveWeight);
+            // Inert-default omission, exactly like the movement profile's
+            // facing coupling and the capture ratchet's hold: a form without a
+            // defensive guard writes no bytes, so every contract authored
+            // before guards existed — the immutable hosted frontline-labs-1
+            // included — keeps its exact fingerprint.
+            if (form.ProjectileGuard != ActorFormProjectileGuardKind.None)
+            {
+                writer.WriteString(
+                    "projectileGuard",
+                    Id(form.ProjectileGuard));
+            }
             writer.WritePropertyName("allowedActionIds");
             writer.WriteStartArray();
             foreach (string actionId in form.AllowedActionIds)
@@ -394,6 +826,18 @@ internal static class ActorRulesCanonicalWriter
             writer.WriteString(
                 "movementLayer",
                 Id(profile.MovementLayer));
+            // Inert-default omission, exactly like the optional capture-gain
+            // schedule above: PreserveFacing writes no bytes, so every
+            // contract authored before facing coupling existed — including
+            // the immutable hosted frontline-labs-1 — keeps its exact
+            // fingerprint.
+            if (profile.FacingCoupling
+                != ActorMovementFacingCoupling.PreserveFacing)
+            {
+                writer.WriteString(
+                    "facingCoupling",
+                    Id(profile.FacingCoupling));
+            }
             writer.WriteEndObject();
         }
         writer.WriteEndArray();
@@ -467,6 +911,12 @@ internal static class ActorRulesCanonicalWriter
             writer.WriteString(
                 "aimInterpretation",
                 Id(profile.AimInterpretation));
+            if (profile.FacingAimHalfWidthSectors > 0)
+            {
+                writer.WriteNumber(
+                    "facingAimHalfWidthSectors",
+                    profile.FacingAimHalfWidthSectors);
+            }
             writer.WritePropertyName("projectile");
             WriteProjectile(writer, profile.Projectile);
             writer.WriteNumber("cooldownTicks", profile.CooldownTicks);
@@ -497,9 +947,28 @@ internal static class ActorRulesCanonicalWriter
                 Id(profile.CooldownUpdate));
             writer.WritePropertyName("shotProgram");
             WriteShotProgram(writer, profile.ShotProgram);
+            // Inert-default omission: a one-bolt attack carries no volley
+            // object at all, so every pre-volley contract keeps its exact
+            // fingerprint (DECISIONS #156's additive pattern).
+            if (profile.Volley is { } volley)
+            {
+                writer.WritePropertyName("volley");
+                WriteVolley(writer, volley);
+            }
             writer.WriteEndObject();
         }
         writer.WriteEndArray();
+    }
+
+    private static void WriteVolley(
+        Utf8JsonWriter writer,
+        ActorAttackVolleyDefinition volley)
+    {
+        writer.WriteStartObject();
+        writer.WriteNumber("projectileCount", volley.ProjectileCount);
+        writer.WriteString("spread", Id(volley.Spread));
+        writer.WriteString("identityOrder", Id(volley.IdentityOrder));
+        writer.WriteEndObject();
     }
 
     private static void WriteProjectile(
@@ -508,6 +977,17 @@ internal static class ActorRulesCanonicalWriter
     {
         writer.WriteStartObject();
         writer.WriteString("mode", Id(projectile.Mode));
+        // Declared strikes (DECISIONS #212) emit only when authored, exactly
+        // like the projectile guard: historical rulesets keep byte-identical
+        // fingerprints.
+        if (projectile.StrikeWindupTicks > 0)
+        {
+            writer.WriteNumber(
+                "strikeWindupTicks",
+                projectile.StrikeWindupTicks);
+        }
+        if (projectile.StrikeSweep)
+            writer.WriteBoolean("strikeSweep", true);
         writer.WriteNumber("damagePerHit", projectile.DamagePerHit);
         writer.WriteNumber(
             "maxTravelTiles",
@@ -640,6 +1120,12 @@ internal static class ActorRulesCanonicalWriter
                 writer.WriteStringValue(Id(parameter));
             }
             writer.WriteEndArray();
+            if (action.MovementFacingOverride is { } facingOverride)
+            {
+                writer.WriteString(
+                    "movementFacingOverride",
+                    Id(facingOverride));
+            }
             writer.WriteEndObject();
         }
         writer.WriteEndArray();
@@ -756,6 +1242,15 @@ internal static class ActorRulesCanonicalWriter
         foreach (ActorTickResolutionPhase phase in tick.Phases)
             writer.WriteStringValue(Id(phase));
         writer.WriteEndArray();
+        // Trailing additive optional field (#156): the historical clock
+        // writes nothing, so every pre-existing contract keeps its exact
+        // bytes, and pre-0.10.7 readers reject the property by design —
+        // the accepted frozen-artifact consequence.
+        if (tick.CooldownClock != ActorTickResolutionDefinition
+                .CooldownClockKind.AdvancesOnlyWithAnArmedForm)
+        {
+            writer.WriteString("cooldownClock", Id(tick.CooldownClock));
+        }
         writer.WriteEndObject();
     }
 

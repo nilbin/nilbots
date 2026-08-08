@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "provider": "Meshy",
+  "endpoint": "image-to-3d",
+  "lookId": "arc-sunder",
+  "taskId": "019fc39c-aa25-792a-bd75-3791ddd95373",
+  "submittedAt": "2026-08-02T17:54:11.359Z",
+  "balanceBefore": 355,
+  "input": {
+    "file": "web/src/assets/class-looks/arc-sunder/sprite.png",
+    "bytes": 43097,
+    "sha256": "f5442fa708cc567a4d3ba432094a2065ae0eea59b2a818daa03ed9772f65bda4",
+    "mimeType": "image/png"
+  },
+  "settings": {
+    "model_type": "smart-topology",
+    "ai_model": "meshy-t2",
+    "target_polycount": 15000,
+    "should_texture": true,
+    "enable_pbr": true,
+    "texture_resolution": "4k",
+    "target_formats": [
+      "glb"
+    ],
+    "auto_size": true,
+    "origin_at": "bottom",
+    "alpha_thumbnail": true,
+    "multi_view_thumbnails": true
+  }
+}

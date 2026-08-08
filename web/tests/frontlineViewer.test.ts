@@ -83,9 +83,157 @@ test('generic Frontline replay-v3 presents contract tuning and the derived breac
     captureProgress: 0,
     captureThreshold: 3,
     controlResumesAtTick: 0,
+    captureTeamId: null,
+    captureContested: false,
+    capturePaused: false,
+    holdOwnerTeamId: null,
+    holdEndsAtTick: null,
+    holdRemainingTicks: null,
+    holdDurationTicks: null,
     winnerTeamId: 0,
     phase: 'participant-10 BREACHES',
+    // A ruleset that declares neither the channel nor an economy reads
+    // exactly as it did before either existed: every added fact is off, and
+    // the renderers that key off them draw nothing.
+    channel: false,
+    channelGainCap: null,
+    channelGain: null,
+    channelingUnitCount: 0,
+    screeningUnitCount: 0,
+    captureRevert: null,
   });
+  assert.equal(final.economy, null);
+  assert.deepEqual(
+    final.units.map((unit) => [unit.carriedScrap, unit.channelRole]),
+    final.units.map(() => [0, null]),
+  );
+});
+
+test('Frontline presentation carries the exact ratchet clocks and derives its countdown', () => {
+  const source = JSON.parse(
+    readFileSync(
+      new URL(
+        '../../tests/BotArena.Engine.Tests/Fixtures/generic-replay-v3.json',
+        import.meta.url,
+      ),
+      'utf8',
+    ),
+  ) as ReplayV3Document;
+  const held = loadReplayObject(
+    adaptReplayV3ToFrontline(source),
+  ).replay;
+  if (held.contract.kind !== 'v3-generic') {
+    assert.fail('expected a generic replay-v3 contract');
+  }
+  const mode = held.contract.rawContract.rules.gameMode;
+  if (mode.kind !== 'frontline') {
+    assert.fail('expected a Frontline mode contract');
+  }
+  mode.capture.redeployPolicy =
+    'advance-immediately-then-deny-enemy-regression-past-the-high-water-mark-through-configured-hold-ticks';
+  mode.capture.ratchetHoldTicks = 40;
+
+  const control = held.ticks[0]!.after.objective;
+  if (control.kind !== 'frontline') {
+    assert.fail('expected Frontline objective state');
+  }
+  control.activePositionIndex = 2;
+  control.controlResumesAtTick = 6;
+  control.holdOwnerTeamId = 0;
+  control.holdEndsAtTick = control.nextTick + 40;
+
+  const objective = createPresenter(held).at(0).objective;
+  assert.equal(objective?.kind, 'frontline');
+  if (objective?.kind !== 'frontline') return;
+  assert.deepEqual(
+    {
+      activePositionIndex: objective.activePositionIndex,
+      holdOwnerTeamId: objective.holdOwnerTeamId,
+      holdEndsAtTick: objective.holdEndsAtTick,
+      holdRemainingTicks: objective.holdRemainingTicks,
+      holdDurationTicks: objective.holdDurationTicks,
+      phase: objective.phase,
+    },
+    {
+      activePositionIndex: 2,
+      holdOwnerTeamId: 0,
+      holdEndsAtTick: control.nextTick + 40,
+      holdRemainingTicks: 40,
+      holdDurationTicks: 40,
+      phase: 'participant-10 RATCHET · 40 TICKS · REDEPLOY T6',
+    },
+  );
+});
+
+test('Frontline presentation resolves net objective weight instead of treating every two-team presence as frozen', () => {
+  const source = JSON.parse(
+    readFileSync(
+      new URL(
+        '../../tests/BotArena.Engine.Tests/Fixtures/generic-replay-v3.json',
+        import.meta.url,
+      ),
+      'utf8',
+    ),
+  ) as ReplayV3Document;
+  const weighted = loadReplayObject(
+    adaptReplayV3ToFrontline(source),
+  ).replay;
+  if (weighted.contract.kind !== 'v3-generic') {
+    assert.fail('expected a generic replay-v3 contract');
+  }
+  const mode = weighted.contract.rawContract.rules.gameMode;
+  if (mode.kind !== 'frontline') {
+    assert.fail('expected a Frontline mode contract');
+  }
+  mode.capture.controlPolicy =
+    'net-positive-objective-weight-difference-scales-gain-non-positive-applies-configured-decay-opposition-erodes-to-neutral';
+
+  const baseForm = weighted.forms.find(
+    (form) => form.formId === 'mobile',
+  );
+  assert.ok(baseForm);
+  baseForm.objectiveWeight = 1;
+  weighted.forms.push({
+    ...baseForm,
+    formId: 'heavy-mobile',
+    objectiveWeight: 2,
+  });
+
+  const active = weighted.map.frontline?.positions.find(
+    (position) => position.positionIndex === 1,
+  );
+  assert.ok(active);
+  active.tiles = [
+    { x: 4, y: 3 },
+    { x: 5, y: 3 },
+  ];
+  const actors = weighted.ticks[0]!.after.actors;
+  const teamZero = actors.find(
+    (actor) => actor.identity.teamId === 0,
+  );
+  const teamOne = actors.find(
+    (actor) => actor.identity.teamId === 1,
+  );
+  assert.ok(teamZero);
+  assert.ok(teamOne);
+  teamZero.formId = 'heavy-mobile';
+  teamZero.position = { x: 4, y: 3 };
+  teamOne.formId = 'mobile';
+  teamOne.position = { x: 5, y: 3 };
+
+  const net = createPresenter(weighted).at(0).objective;
+  assert.equal(net?.kind, 'frontline');
+  if (net?.kind !== 'frontline') return;
+  assert.equal(net.captureTeamId, 0);
+  assert.equal(net.captureContested, false);
+
+  mode.capture.controlPolicy =
+    'binary-positive-weight-per-team-no-stacking-non-sole-applies-configured-decay-opposition-erodes-to-neutral';
+  const binary = createPresenter(weighted).at(0).objective;
+  assert.equal(binary?.kind, 'frontline');
+  if (binary?.kind !== 'frontline') return;
+  assert.equal(binary.captureTeamId, null);
+  assert.equal(binary.captureContested, true);
 });
 
 test('generic replay-v3 derives form mobility from allowed actions, not ground occupancy', () => {
@@ -138,6 +286,150 @@ test('actor-life interpolation adds fabricated lives without morphing primes', (
       'frontline:1:unit:1:life:0',
     ],
   );
+});
+
+test('interpolated poses expose replay-owned motion independently of facing', () => {
+  const tickIndex = replay.ticks.findIndex((tick) =>
+    tick.before.actors.some((before) => {
+      const after = tick.after.actors.find(
+        (candidate) => candidate.actorKey === before.actorKey,
+      );
+      return after !== undefined &&
+        (after.position.x !== before.position.x ||
+          after.position.y !== before.position.y);
+    }),
+  );
+  assert.ok(tickIndex >= 0, 'fixture contains an authoritative move');
+  const tick = replay.ticks[tickIndex]!;
+  const before = tick.before.actors.find((candidate) => {
+    const after = tick.after.actors.find(
+      (other) => other.actorKey === candidate.actorKey,
+    );
+    return after !== undefined &&
+      (after.position.x !== candidate.position.x ||
+        after.position.y !== candidate.position.y);
+  })!;
+  const after = tick.after.actors.find(
+    (candidate) => candidate.actorKey === before.actorKey,
+  )!;
+  const pose = posesAt(replay, tickIndex + 0.5).find(
+    (candidate) => candidate.actorKey === before.actorKey,
+  )!;
+
+  assert.equal(pose.motionX, after.position.x - before.position.x);
+  assert.equal(pose.motionY, after.position.y - before.position.y);
+  assert.ok(
+    pose.x >= Math.min(before.position.x, after.position.x) &&
+      pose.x <= Math.max(before.position.x, after.position.x),
+    'smoothed x stays inside the authoritative segment',
+  );
+  assert.ok(
+    pose.y >= Math.min(before.position.y, after.position.y) &&
+      pose.y <= Math.max(before.position.y, after.position.y),
+    'smoothed y stays inside the authoritative segment',
+  );
+});
+
+test('movement eases out of rest, glides through a run, and never anticipates a later step', () => {
+  const cadence = structuredClone(replay) as ReplayModel;
+  const actorKey = cadence.ticks[0]!.before.actors[0]!.actorKey;
+  const place = (tick: number, side: 'before' | 'after', x: number) => {
+    const actor = cadence.ticks[tick]![side].actors.find(
+      (candidate) => candidate.actorKey === actorKey,
+    );
+    assert.ok(actor);
+    actor.position.x = x;
+    actor.position.y = 4;
+  };
+
+  // Two consecutive moves, a deliberate hold, then another move. The hold is the slow
+  // carrier cadence that must feel alive without leaking the following action early.
+  place(0, 'before', 1);
+  place(0, 'after', 2);
+  place(1, 'before', 2);
+  place(1, 'after', 3);
+  place(2, 'before', 3);
+  place(2, 'after', 3);
+  place(3, 'before', 3);
+  place(3, 'after', 4);
+
+  const x = (time: number) =>
+    posesAt(cadence, time).find((pose) => pose.actorKey === actorKey)!.x;
+  assert.equal(x(0), 1, 'starts on the authoritative tile');
+  assert.equal(x(0.5), 1.375, 'accelerates from a revealed rest');
+  assert.equal(x(1), 2, 'lands exactly on the tick boundary');
+  assert.equal(x(1.5), 2.5, 'same-direction continuation carries constant speed');
+  assert.equal(x(2), 3, 'the run lands on its recorded destination');
+  assert.equal(x(2.5), 3, 'the hold is still despite the following move');
+  assert.equal(x(3), 3, 'the next move does not begin a frame early');
+
+  const epsilon = 0.001;
+  assert.ok(
+    Math.abs((2 - x(1 - epsilon)) - (x(1 + epsilon) - 2)) < 1e-6,
+    'velocity is continuous between same-direction moves',
+  );
+});
+
+test('an already-revealed right-angle path carries speed through the tile centre', () => {
+  const corner = structuredClone(replay) as ReplayModel;
+  const actorKey = corner.ticks[0]!.before.actors[0]!.actorKey;
+  const place = (
+    tick: number,
+    side: 'before' | 'after',
+    x: number,
+    y: number,
+  ) => {
+    const actor = corner.ticks[tick]![side].actors.find(
+      (candidate) => candidate.actorKey === actorKey,
+    );
+    assert.ok(actor);
+    actor.position = { x, y };
+  };
+  place(0, 'before', 1, 4);
+  place(0, 'after', 2, 4);
+  place(1, 'before', 2, 4);
+  place(1, 'after', 2, 5);
+
+  const pose = (time: number) =>
+    posesAt(corner, time).find((candidate) => candidate.actorKey === actorKey)!;
+  const epsilon = 0.001;
+  const before = pose(1 - epsilon);
+  const boundary = pose(1);
+  const after = pose(1 + epsilon);
+  const incoming = Math.hypot(boundary.x - before.x, boundary.y - before.y);
+  const outgoing = Math.hypot(after.x - boundary.x, after.y - boundary.y);
+
+  assert.ok(Math.abs(incoming - outgoing) < 1e-6, 'the corner has no dead frame');
+  assert.equal(before.y, 4, 'incoming pose stays on the revealed horizontal segment');
+  assert.equal(after.x, 2, 'outgoing pose stays on the revealed vertical segment');
+});
+
+test('consecutive same-direction turns keep angular velocity at the tick boundary', () => {
+  const turning = structuredClone(replay) as ReplayModel;
+  const actorKey = turning.ticks[0]!.before.actors[0]!.actorKey;
+  const face = (
+    tick: number,
+    side: 'before' | 'after',
+    facing: 'east' | 'south' | 'west',
+  ) => {
+    const actor = turning.ticks[tick]![side].actors.find(
+      (candidate) => candidate.actorKey === actorKey,
+    );
+    assert.ok(actor);
+    actor.facing = facing;
+  };
+  face(0, 'before', 'east');
+  face(0, 'after', 'south');
+  face(1, 'before', 'south');
+  face(1, 'after', 'west');
+
+  const angle = (time: number) =>
+    posesAt(turning, time).find((pose) => pose.actorKey === actorKey)!.angle;
+  const epsilon = 0.0001;
+  const incoming = angle(1) - angle(1 - epsilon);
+  const outgoing = angle(1 + epsilon) - angle(1);
+  assert.ok(Math.abs(incoming - outgoing) < 1e-7, 'rotation does not settle between turns');
+  assert.ok(angle(1.5) > Math.PI / 2 && angle(1.5) < Math.PI);
 });
 
 test('Frontline presentation follows stable units through fabrication and anchoring', () => {
@@ -253,6 +545,96 @@ test('Frontline, stationary 360 forms, and attributed projectiles render', () =>
   );
 });
 
+test('Canvas Frontline fields render neutral, build, erosion, contest, and ratchet as distinct states', () => {
+  const base = captureFrameReplay();
+  const neutral = captureFrameState(base, {
+    weights: [0, 0],
+  });
+  const building = captureFrameState(base, {
+    claimingTeamId: 0,
+    captureProgress: 2,
+    weights: [2, 1],
+    controlPolicy: 'net',
+  });
+  const eroding = captureFrameState(base, {
+    claimingTeamId: 0,
+    captureProgress: 2,
+    weights: [1, 2],
+    controlPolicy: 'net',
+  });
+  const contested = captureFrameState(base, {
+    claimingTeamId: 0,
+    captureProgress: 2,
+    weights: [1, 1],
+    controlPolicy: 'binary',
+  });
+  const earlyHold = captureFrameState(base, {
+    weights: [0, 0],
+    holdOwnerTeamId: 1,
+    holdRemainingTicks: 40,
+  });
+  const lateHold = structuredClone(earlyHold);
+  const lateObjective = lateHold.ticks[0]!.after.objective;
+  assert.equal(lateObjective.kind, 'frontline');
+  if (lateObjective.kind !== 'frontline') return;
+  lateObjective.holdEndsAtTick = lateObjective.nextTick + 5;
+
+  const hashes = [
+    neutral,
+    building,
+    eroding,
+    contested,
+    earlyHold,
+    lateHold,
+  ].map((candidate) => frameHash(candidate, 0.5));
+  assert.equal(
+    new Set(hashes).size,
+    hashes.length,
+    'identical bot bodies and one footprint get a distinct Canvas treatment for every exact capture state',
+  );
+});
+
+test('Canvas draws the channel, its two reverts, and loose scrap as distinct pictures', () => {
+  const base = captureFrameReplay();
+  // The same claim, on the same footprint, with the same two bodies standing
+  // on it — everything that differs between these frames is one of the two new
+  // mechanics. If any pair collides, the arena is not saying which happened.
+  const channelling = channelState(base, { captureProgress: 4 });
+  const interrupted = channelState(base, {
+    captureProgress: 1,
+    previousProgress: 4,
+    damageAt: { x: 3, y: 3 },
+  });
+  const eroded = channelState(base, {
+    captureProgress: 1,
+    previousProgress: 4,
+  });
+  const carrying = channelState(base, {
+    captureProgress: 4,
+    carried: 4,
+  });
+  const piled = channelState(base, {
+    captureProgress: 4,
+    piles: [
+      { position: { x: 6, y: 2 }, amount: 6, expiresAtTick: 80 },
+      { position: { x: 2, y: 5 }, amount: 1, expiresAtTick: 3 },
+    ],
+  });
+
+  const hashes = [
+    channelling,
+    interrupted,
+    eroded,
+    carrying,
+    piled,
+  ].map((candidate) => frameHash(candidate, 0.5));
+  assert.equal(
+    new Set(hashes).size,
+    hashes.length,
+    'a channel, an interrupt, an erosion, a loaded courier and loose scrap each get their own Canvas treatment',
+  );
+});
+
 test('same-tick anchoring telegraphs before the body becomes a turret', () => {
   const anchored = structuredClone(replay);
   const tick = anchored.ticks[2]!;
@@ -335,4 +717,262 @@ function frameHash(source: ReplayModel, time: number): string {
   return createHash('sha256')
     .update(canvas.toBuffer('image/png'))
     .digest('hex');
+}
+
+function captureFrameReplay(): ReplayModel {
+  const source = JSON.parse(
+    readFileSync(
+      new URL(
+        '../../tests/BotArena.Engine.Tests/Fixtures/generic-replay-v3.json',
+        import.meta.url,
+      ),
+      'utf8',
+    ),
+  ) as ReplayV3Document;
+  const candidate = loadReplayObject(
+    adaptReplayV3ToFrontline(source),
+  ).replay;
+  if (candidate.contract.kind !== 'v3-generic') {
+    assert.fail('expected a generic replay-v3 contract');
+  }
+  const mode = candidate.contract.rawContract.rules.gameMode;
+  if (mode.kind !== 'frontline') {
+    assert.fail('expected a Frontline mode contract');
+  }
+  mode.capture.redeployPolicy =
+    'advance-immediately-then-deny-enemy-regression-past-the-high-water-mark-through-configured-hold-ticks';
+  mode.capture.ratchetHoldTicks = 40;
+
+  const baseForm = candidate.forms.find(
+    (form) => form.formId === 'mobile',
+  );
+  assert.ok(baseForm);
+  candidate.forms.push(
+    {
+      ...baseForm,
+      formId: 'canvas-team-zero',
+      objectiveWeight: 1,
+    },
+    {
+      ...baseForm,
+      formId: 'canvas-team-one',
+      objectiveWeight: 1,
+    },
+  );
+
+  const definition = candidate.map.frontline;
+  assert.ok(definition);
+  const activePositionIndex = 1;
+  const tiles = [
+    { x: 3, y: 3 },
+    { x: 4, y: 3 },
+  ];
+  const position = definition.positions.find(
+    (entry) => entry.positionIndex === activePositionIndex,
+  );
+  assert.ok(position);
+  position.tiles = tiles;
+  for (const world of [
+    candidate.ticks[0]!.before,
+    candidate.ticks[0]!.after,
+  ]) {
+    for (const actor of world.actors) {
+      const teamId = actor.identity.teamId;
+      actor.position = { ...tiles[teamId]! };
+      actor.formId =
+        teamId === 0 ? 'canvas-team-zero' : 'canvas-team-one';
+    }
+  }
+  const objective = candidate.ticks[0]!.after.objective;
+  assert.equal(objective.kind, 'frontline');
+  if (objective.kind !== 'frontline') return candidate;
+  objective.activePositionIndex = activePositionIndex;
+  objective.claimingTeamId = null;
+  objective.captureProgress = 0;
+  objective.controlResumesAtTick = objective.nextTick;
+  objective.holdOwnerTeamId = null;
+  objective.holdEndsAtTick = null;
+  return candidate;
+}
+
+/**
+ * The same one-tick capture fixture, under the channel and the scrap economy.
+ *
+ * Both mechanics are read from the normalized model, so the states are built
+ * there: the previous claim comes from the initial world (which is what tick
+ * zero's revert compares against), the interrupt comes from a damage event
+ * landing on a claimant standing in the region, and the economy comes from the
+ * declared contract block plus the tick's own mode state.
+ */
+function channelState(
+  base: ReplayModel,
+  {
+    captureProgress,
+    previousProgress = captureProgress,
+    damageAt = null,
+    carried = 0,
+    piles = [],
+  }: {
+    captureProgress: number;
+    previousProgress?: number;
+    damageAt?: { x: number; y: number } | null;
+    carried?: number;
+    piles?: {
+      position: { x: number; y: number };
+      amount: number;
+      expiresAtTick: number;
+    }[];
+  },
+): ReplayModel {
+  const candidate = captureFrameState(base, {
+    claimingTeamId: 0,
+    captureProgress,
+    weights: [1, 1],
+  });
+  if (candidate.contract.kind !== 'v3-generic')
+    assert.fail('expected a generic replay-v3 contract');
+  const mode = candidate.contract.rawContract.rules.gameMode;
+  if (mode.kind !== 'frontline')
+    assert.fail('expected a Frontline mode contract');
+  mode.capture.controlPolicy =
+    'stationary-claim-weight-versus-total-denial-weight-scales-gain-capped-opposition-erodes-at-multiple-then-builds';
+  mode.capture.stationaryGainMultiplierCap = 2;
+  mode.capture.threshold = 8;
+  mode.scrapEconomy = {
+    veinSites: [{ x: 6, y: 2 }],
+    veinFirstSpawnTick: 40,
+    veinSpawnIntervalTicks: 40,
+    veinLastSpawnTick: 120,
+    veinAmount: 6,
+    wreckAmount: 1,
+    assayAmount: 1,
+    carryCapacity: 6,
+    pileLifetimeTicks: 80,
+    maxSimultaneousPiles: 16,
+    bankRegionIds: [],
+    upgradeScope: 'prime-slot-lives-only',
+    maxTotalTiers: 3,
+    purchaseMode: 'invest-action',
+    tracks: [
+      {
+        trackId: 'edge',
+        effect: 'mobile-attack-travel-tiles-delta',
+        perTierMagnitude: 1,
+        maxTier: 2,
+        tierCosts: [10, 10],
+      },
+    ],
+  };
+
+  const initial = candidate.initialWorld?.objective;
+  if (initial?.kind === 'frontline') {
+    initial.claimingTeamId = 0;
+    initial.captureProgress = previousProgress;
+    initial.activePositionIndex =
+      candidate.ticks[0]!.after.objective.kind === 'frontline'
+        ? candidate.ticks[0]!.after.objective.activePositionIndex
+        : initial.activePositionIndex;
+  }
+
+  const tick = candidate.ticks[0]!;
+  const claimant = tick.after.actors.find(
+    (actor) => actor.identity.teamId === 0,
+  )!;
+  if (damageAt !== null) {
+    const template = tick.events[0]!;
+    tick.events = [
+      {
+        ...template,
+        eventId: 'channel:damage',
+        type: 'damage',
+        teamId: 1,
+        sourceActor: null,
+        targetActor: claimant.identity,
+        from: null,
+        to: { ...damageAt },
+        amount: previousProgress - captureProgress,
+      },
+    ];
+  } else {
+    tick.events = [];
+  }
+
+  const modeState = tick.after.mode;
+  if (modeState?.kind === 'frontline') {
+    modeState.scrapTeams = [
+      { teamId: 0, bank: 4, tierLevels: [0] },
+      { teamId: 1, bank: 1, tierLevels: [0] },
+    ];
+    modeState.scrapPiles = piles.map((pile) => ({
+      position: { ...pile.position },
+      amount: pile.amount,
+      expiresAtTick: pile.expiresAtTick,
+    }));
+  }
+
+  // A load is published by the observation of the tick that *follows* the
+  // pickup, so every tick carries it here rather than only the one being
+  // drawn.
+  for (const each of candidate.ticks)
+    for (const turn of each.actorTurns) {
+      if (turn.observation.self?.actor.kind === 'exact')
+        turn.observation.self.carriedScrap =
+          turn.observation.self.actor.identity.teamId === 0 ? carried : 0;
+    }
+
+  return candidate;
+}
+
+function captureFrameState(
+  base: ReplayModel,
+  {
+    claimingTeamId = null,
+    captureProgress = 0,
+    weights,
+    controlPolicy = 'binary',
+    holdOwnerTeamId = null,
+    holdRemainingTicks = null,
+  }: {
+    claimingTeamId?: number | null;
+    captureProgress?: number;
+    weights: [number, number];
+    controlPolicy?: 'binary' | 'net';
+    holdOwnerTeamId?: number | null;
+    holdRemainingTicks?: number | null;
+  },
+): ReplayModel {
+  const candidate = structuredClone(base);
+  if (candidate.contract.kind !== 'v3-generic') {
+    assert.fail('expected a generic replay-v3 contract');
+  }
+  const mode = candidate.contract.rawContract.rules.gameMode;
+  if (mode.kind !== 'frontline') {
+    assert.fail('expected a Frontline mode contract');
+  }
+  mode.capture.controlPolicy =
+    controlPolicy === 'net'
+      ? 'net-positive-objective-weight-difference-scales-gain-non-positive-applies-configured-decay-opposition-erodes-to-neutral'
+      : 'binary-positive-weight-per-team-no-stacking-non-sole-applies-configured-decay-opposition-erodes-to-neutral';
+  const teamZeroForm = candidate.forms.find(
+    (form) => form.formId === 'canvas-team-zero',
+  );
+  const teamOneForm = candidate.forms.find(
+    (form) => form.formId === 'canvas-team-one',
+  );
+  assert.ok(teamZeroForm);
+  assert.ok(teamOneForm);
+  teamZeroForm.objectiveWeight = weights[0];
+  teamOneForm.objectiveWeight = weights[1];
+
+  const objective = candidate.ticks[0]!.after.objective;
+  assert.equal(objective.kind, 'frontline');
+  if (objective.kind !== 'frontline') return candidate;
+  objective.claimingTeamId = claimingTeamId;
+  objective.captureProgress = captureProgress;
+  objective.holdOwnerTeamId = holdOwnerTeamId;
+  objective.holdEndsAtTick =
+    holdRemainingTicks === null
+      ? null
+      : objective.nextTick + holdRemainingTicks;
+  return candidate;
 }

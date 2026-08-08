@@ -173,6 +173,45 @@ test('bridge-v2 publishes stable units, teams, and team results', () => {
   );
 });
 
+test('bridge-v2 keeps its Frontline objective shape while bridge-v3 carries new capture facts', () => {
+  const presentation: TickPresentation = {
+    ...legacyPresentation(),
+    objective: {
+      kind: 'frontline',
+      activePositionIndex: 2,
+      positionCount: 5,
+      claimingTeamId: 0,
+      captureProgress: 7,
+      captureThreshold: 15,
+      controlResumesAtTick: 0,
+      captureTeamId: 0,
+      captureContested: false,
+      capturePaused: false,
+      holdOwnerTeamId: 0,
+      holdEndsAtTick: 48,
+      holdRemainingTicks: 17,
+      holdDurationTicks: 40,
+      winnerTeamId: null,
+      phase: 'third PUSHING · 7/15',
+    },
+  };
+
+  assert.deepEqual(tickBridgeMessage(2, presentation).objective, {
+    kind: 'frontline',
+    activePositionIndex: 2,
+    positionCount: 5,
+    claimingTeamId: 0,
+    captureProgress: 7,
+    captureThreshold: 15,
+    controlResumesAtTick: 0,
+    winnerTeamId: null,
+    phase: 'third PUSHING · 7/15',
+  });
+  assert.deepEqual(tickBridgeMessage(3, presentation).objective, {
+    ...presentation.objective,
+  });
+});
+
 test('bridge-v1 rejects replay-v2 with only the stable error envelope', () => {
   assert.equal(bridgeSupportsReplay(1, replayV2), false);
   assert.deepEqual(replayBridgeMessage(1, replayV2, 4, 5), {
@@ -246,6 +285,10 @@ test('bridge-v3 carries typed Frontline terminal control and signed scores', () 
       captureProgress: 0,
       decayTicksElapsed: 0,
       controlResumesAtTick: 0,
+      holdOwnerTeamId: null,
+      holdEndsAtTick: null,
+      secondaryOwnerTeamId: null,
+      secondaryClaimProgress: 0,
     },
     scores: [
       {
@@ -272,6 +315,10 @@ test('bridge-v3 carries typed Frontline terminal control and signed scores', () 
     captureProgress: 0,
     decayTicksElapsed: 0,
     controlResumesAtTick: 0,
+    holdOwnerTeamId: null,
+    holdEndsAtTick: null,
+    secondaryOwnerTeamId: null,
+    secondaryClaimProgress: 0,
   });
   assert.deepEqual(tick.scoreboard?.teams[1]?.scores, [
     { channel: 'territorial-progress', value: '-3' },

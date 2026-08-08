@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
@@ -23,6 +24,13 @@ internal static class ReplayV3Serializer
         "replayHash",
         "partial",
     ];
+
+    /// <summary>
+    /// The one redeploy policy that carries a territory-ratchet hold, and
+    /// therefore the only one whose observations may publish hold clocks.
+    /// </summary>
+    private const string RatchetRedeployPolicy =
+        "advance-immediately-then-deny-enemy-regression-past-the-high-water-mark-through-configured-hold-ticks";
 
     private static readonly JsonSerializerOptions ReadOptions =
         CreateReadOptions();
@@ -80,6 +88,69 @@ internal static class ReplayV3Serializer
             SHA256.HashData(ToCanonicalUtf8(replay)));
     }
 
+    /// <summary>
+    /// Creates the completed canonical envelope and its payload hash from one
+    /// payload serialization. The payload is the first four envelope fields;
+    /// the hash and partial marker are an exact ASCII suffix, so writing the
+    /// entire 50–100 MiB graph a second time is unnecessary.
+    /// </summary>
+    internal static (byte[] CanonicalUtf8, string ReplayHash)
+        CreateCanonicalDocument(ReplayV3 replay)
+    {
+        ArgumentNullException.ThrowIfNull(replay);
+        bool perfDiagnostics = string.Equals(
+            Environment.GetEnvironmentVariable("BOTARENA_PERF_DIAGNOSTICS"),
+            "1",
+            StringComparison.Ordinal);
+        long validationStart = perfDiagnostics ? Stopwatch.GetTimestamp() : 0;
+        long validationAllocationStart = perfDiagnostics
+            ? GC.GetTotalAllocatedBytes(precise: false)
+            : 0;
+        ValidateEnvelope(replay);
+        if (perfDiagnostics)
+        {
+            Console.Error.WriteLine(
+                $"PERF replay.validate: wall={Stopwatch.GetElapsedTime(validationStart).TotalMilliseconds:F1}ms "
+                + $"allocated={(GC.GetTotalAllocatedBytes(precise: false) - validationAllocationStart) / 1_048_576.0:F1}MiB");
+        }
+        if (replay.Partial)
+        {
+            throw new ArgumentException(
+                "Partial replay-v3 documents are intentionally unhashed.",
+                nameof(replay));
+        }
+
+        int estimatedBytes = Math.Max(
+            1024,
+            checked(replay.Ticks.Length * 192_000));
+        using var stream = new MemoryStream(estimatedBytes);
+        using (var writer = new Utf8JsonWriter(
+                   stream,
+                   new JsonWriterOptions
+                   {
+                       Indented = false,
+                       SkipValidation = false,
+                   }))
+        {
+            writer.WriteStartObject();
+            WritePayloadProperties(writer, replay);
+            writer.WriteEndObject();
+        }
+
+        int payloadLength = checked((int)stream.Length);
+        ReadOnlySpan<byte> payload = stream.GetBuffer()
+            .AsSpan(0, payloadLength);
+        string replayHash = Convert.ToHexStringLower(
+            SHA256.HashData(payload));
+        byte[] suffix = Encoding.UTF8.GetBytes(
+            $",\"replayHash\":\"{replayHash}\",\"partial\":false}}");
+        byte[] envelope = GC.AllocateUninitializedArray<byte>(
+            checked(payloadLength - 1 + suffix.Length));
+        payload[..^1].CopyTo(envelope);
+        suffix.CopyTo(envelope, payloadLength - 1);
+        return (envelope, replayHash);
+    }
+
     public static string ToJson(ReplayV3 replay)
     {
         ArgumentNullException.ThrowIfNull(replay);
@@ -97,7 +168,11 @@ internal static class ReplayV3Serializer
                 nameof(replay));
         }
 
-        return Encoding.UTF8.GetString(Write(writer =>
+        return WriteEnvelope(replay, hash);
+    }
+
+    private static string WriteEnvelope(ReplayV3 replay, string? hash) =>
+        Encoding.UTF8.GetString(Write(writer =>
         {
             writer.WriteStartObject();
             WritePayloadProperties(writer, replay);
@@ -105,7 +180,6 @@ internal static class ReplayV3Serializer
             writer.WriteBoolean("partial", replay.Partial);
             writer.WriteEndObject();
         }));
-    }
 
     public static bool VerifyHash(string json) =>
         VerifyHash(json, out _);
@@ -260,7 +334,12 @@ internal static class ReplayV3Serializer
         WriteHeader(writer, replay.Header);
         writer.WritePropertyName("initialFrame");
         WriteInitialFrame(writer, replay.InitialFrame);
-        WriteArray(writer, "ticks", replay.Ticks, WriteTick);
+        bool mindProfile = IsMindProfile(replay.Header);
+        WriteArray(
+            writer,
+            "ticks",
+            replay.Ticks,
+            (value, tick) => WriteTick(value, tick, mindProfile));
         writer.WritePropertyName("result");
         if (replay.Result is null)
             writer.WriteNullValue();
@@ -268,7 +347,7 @@ internal static class ReplayV3Serializer
             WriteResult(writer, replay.Result);
     }
 
-    private static void WriteHeader(
+    internal static void WriteHeader(
         Utf8JsonWriter writer,
         ReplayV3.ReplayHeader header)
     {
@@ -445,6 +524,14 @@ internal static class ReplayV3Serializer
                     json,
                     "artifactHash",
                     participant.ArtifactHash);
+                // Added after replay-v3 shipped. Absence, rather than null,
+                // preserves every historical canonical byte and golden hash.
+                if (participant.MindDataHash is not null)
+                {
+                    json.WriteString(
+                        "mindDataHash",
+                        participant.MindDataHash);
+                }
                 json.WriteString("accent", participant.Accent);
                 WriteNullableString(
                     json,
@@ -476,19 +563,38 @@ internal static class ReplayV3Serializer
         writer.WriteEndObject();
     }
 
+    /// <summary>
+    /// A tick carries EXACTLY ONE of <c>actorTurns</c> / <c>mindTurns</c>,
+    /// decided by the header's contract profile — never by inspecting the
+    /// payload (<c>docs/DESIGN-MIND-ARCHITECTURE-2026-07-31.md</c> §5.1). A
+    /// document that carried both would round-trip to a different canonical
+    /// text and is therefore refused before its hash is ever compared.
+    /// </summary>
     private static void WriteTick(
         Utf8JsonWriter writer,
-        ReplayV3.TickFrame tick)
+        ReplayV3.TickFrame tick,
+        bool mindProfile)
     {
         writer.WriteStartObject();
         writer.WriteNumber("tick", tick.Tick);
         writer.WritePropertyName("tickStart");
         WriteTickStart(writer, tick.TickStart);
-        WriteArray(
-            writer,
-            "actorTurns",
-            tick.ActorTurns,
-            WriteActorTurn);
+        if (mindProfile)
+        {
+            WriteArray(
+                writer,
+                "mindTurns",
+                tick.MindTurns,
+                WriteMindTurn);
+        }
+        else
+        {
+            WriteArray(
+                writer,
+                "actorTurns",
+                tick.ActorTurns,
+                WriteActorTurn);
+        }
         WriteArray(writer, "events", tick.Events, WriteEvent);
         WriteArray(
             writer,
@@ -552,6 +658,271 @@ internal static class ReplayV3Serializer
         writer.WriteEndObject();
     }
 
+    private static bool IsMindProfile(ReplayV3.ReplayHeader header) =>
+        header.Runtime is not null
+        && string.Equals(
+            header.Runtime.ContractProfileId,
+            BotArenaVersions.GenericMindContractProfileId,
+            StringComparison.Ordinal);
+
+    private static void WriteMindTurn(
+        Utf8JsonWriter writer,
+        ReplayV3.MindTurn turn)
+    {
+        ArgumentNullException.ThrowIfNull(turn);
+        writer.WriteStartObject();
+        writer.WriteNumber("tick", turn.Tick);
+        writer.WriteNumber("participantId", turn.ParticipantId);
+        writer.WriteNumber("teamId", turn.TeamId);
+        writer.WriteString("fuelBudget", turn.FuelBudget);
+        writer.WriteNumber("liveBodyCount", turn.LiveBodyCount);
+        writer.WritePropertyName("observation");
+        WriteMindObservation(writer, turn.Observation);
+        WriteArray(writer, "commands", turn.Commands, WriteMindCommand);
+        WriteArray(
+            writer,
+            "resolutions",
+            turn.Resolutions,
+            WriteMindBodyResolution);
+        WriteArray(writer, "intents", turn.Intents, WriteMindIntent);
+        writer.WritePropertyName("runtimeFault");
+        if (turn.RuntimeFault is null)
+            writer.WriteNullValue();
+        else
+            WriteMindRuntimeFault(writer, turn.RuntimeFault);
+        // The MIND's diagnostics home, OMITTED when inert (#156) rather than
+        // written as an explicit null: a mind that said nothing this tick
+        // should cost no bytes, and most ticks say nothing. A mind reasons once
+        // per tick over the whole army, so the sentence is not any one body's —
+        // and on a tick with no live bodies there is no command to carry it.
+        if (turn.DebugMessage is not null)
+            writer.WriteString("debugMessage", turn.DebugMessage);
+        writer.WriteEndObject();
+    }
+
+    private static void WriteMindCommand(
+        Utf8JsonWriter writer,
+        ReplayV3.MindCommand command)
+    {
+        writer.WriteStartObject();
+        writer.WriteNumber("unitId", command.UnitId);
+        writer.WriteNumber("lifeId", command.LifeId);
+        writer.WriteString("actionId", command.ActionId);
+        writer.WriteNumber("actionCode", command.ActionCode);
+        WriteNullableRawActionArguments(writer, command.Arguments);
+        writer.WriteString("outcome", command.Outcome);
+        // Omit-when-inert (#156): an absent tag means "leave it unchanged" and
+        // the empty string means "clear it", so the two must stay distinct on
+        // the wire.
+        WriteRoleTag(writer, command.RoleTag);
+        WriteNullableString(
+            writer,
+            "debugMessage",
+            command.DebugMessage);
+        writer.WriteEndObject();
+    }
+
+    private static void WriteMindBodyResolution(
+        Utf8JsonWriter writer,
+        ReplayV3.MindBodyResolution resolution)
+    {
+        writer.WriteStartObject();
+        writer.WriteNumber("unitId", resolution.UnitId);
+        writer.WriteNumber("lifeId", resolution.LifeId);
+        writer.WritePropertyName("submittedDecision");
+        if (resolution.SubmittedDecision is null)
+            writer.WriteNullValue();
+        else
+            WriteSubmittedDecision(writer, resolution.SubmittedDecision);
+        writer.WritePropertyName("actionResolution");
+        WriteActionResolution(writer, resolution.ActionResolution);
+        writer.WriteEndObject();
+    }
+
+    private static void WriteMindIntent(
+        Utf8JsonWriter writer,
+        ReplayV3.MindIntent intent)
+    {
+        writer.WriteStartObject();
+        writer.WriteString("tagId", intent.TagId);
+        writer.WriteString("value", intent.Value);
+        writer.WriteEndObject();
+    }
+
+    private static void WriteMindAlliedIntent(
+        Utf8JsonWriter writer,
+        ReplayV3.MindAlliedIntent intent)
+    {
+        writer.WriteStartObject();
+        writer.WriteNumber("participantId", intent.ParticipantId);
+        writer.WriteString("tagId", intent.TagId);
+        writer.WriteString("value", intent.Value);
+        writer.WriteEndObject();
+    }
+
+    private static void WriteMindRuntimeFault(
+        Utf8JsonWriter writer,
+        ReplayV3.MindRuntimeFault value)
+    {
+        writer.WriteStartObject();
+        writer.WriteNumber("participantId", value.ParticipantId);
+        writer.WriteNumber("teamId", value.TeamId);
+        writer.WritePropertyName("actorId");
+        WriteNullableActorId(writer, value.ActorId);
+        writer.WriteString("stage", value.Stage);
+        writer.WriteString("faultCode", value.FaultCode);
+        WriteInt64String(
+            writer,
+            "cumulativeFaultCount",
+            value.CumulativeFaultCount,
+            nonNegative: true);
+        writer.WriteBoolean(
+            "disqualificationTriggered",
+            value.DisqualificationTriggered);
+        writer.WriteEndObject();
+    }
+
+    private static void WriteMindObservation(
+        Utf8JsonWriter writer,
+        ReplayV3.MindObservation observation)
+    {
+        ArgumentNullException.ThrowIfNull(observation);
+        writer.WriteStartObject();
+        writer.WriteNumber("schemaVersion", observation.SchemaVersion);
+        writer.WriteNumber("tick", observation.Tick);
+        writer.WriteString(
+            "matchContractFingerprint",
+            observation.MatchContractFingerprint);
+        writer.WriteNumber("participantId", observation.ParticipantId);
+        writer.WriteNumber("teamId", observation.TeamId);
+        WriteArray(writer, "bodies", observation.Bodies, WriteMindBody);
+        WriteArray(writer, "slots", observation.Slots, WriteMindSlot);
+        WriteArray(
+            writer,
+            "teamUnits",
+            observation.TeamUnits,
+            WriteObservedUnitSlot);
+        WriteArray(
+            writer,
+            "participants",
+            observation.Participants,
+            WriteParticipantStatus);
+        WriteArray(
+            writer,
+            "allies",
+            observation.Allies,
+            WriteObservedAlly);
+        WriteArray(
+            writer,
+            "enemies",
+            observation.Enemies,
+            WriteObservedEnemy);
+        WriteArray(
+            writer,
+            "visibleTiles",
+            observation.VisibleTiles,
+            WriteObservedTile);
+        WriteNullableArray(
+            writer,
+            "visibleProjectiles",
+            observation.VisibleProjectiles,
+            WriteObservedProjectile);
+        WriteArray(
+            writer,
+            "visibleEvents",
+            observation.VisibleEvents,
+            WriteObservedEvent);
+        WriteNullableArray(
+            writer,
+            "heardSounds",
+            observation.HeardSounds,
+            WriteObservedSound);
+        writer.WritePropertyName("scoreboard");
+        WriteScoreboard(writer, observation.Scoreboard);
+        writer.WritePropertyName("mode");
+        WriteModeState(writer, observation.Mode);
+        WriteArray(
+            writer,
+            "alliedIntents",
+            observation.AlliedIntents,
+            WriteMindAlliedIntent);
+        writer.WriteEndObject();
+    }
+
+    private static void WriteMindBody(
+        Utf8JsonWriter writer,
+        ReplayV3.MindBody body)
+    {
+        writer.WriteStartObject();
+        writer.WritePropertyName("actorId");
+        WriteActorId(writer, body.ActorId);
+        writer.WriteNumber("generation", body.Generation);
+        writer.WriteString("formId", body.FormId);
+        writer.WritePropertyName("position");
+        WritePosition(writer, body.Position);
+        writer.WriteString("facing", body.Facing);
+        writer.WriteNumber("health", body.Health);
+        writer.WriteNumber("cooldown", body.Cooldown);
+        WriteNullableNumber(writer, "energy", body.Energy);
+        writer.WritePropertyName("previousActionResolution");
+        WriteNullableActionResolution(
+            writer,
+            body.PreviousActionResolution);
+        writer.WritePropertyName("pendingSameLifeTransition");
+        WritePendingTransition(
+            writer,
+            body.PendingSameLifeTransition);
+        WriteNullableString(writer, "classId", body.ClassId);
+        writer.WritePropertyName("previousPosition");
+        if (body.PreviousPosition is null)
+            writer.WriteNullValue();
+        else
+            WritePosition(writer, body.PreviousPosition);
+        writer.WriteBoolean("movedLastTick", body.MovedLastTick);
+        writer.WriteNumber("lifeStartedTick", body.LifeStartedTick);
+        writer.WritePropertyName("origin");
+        WriteLifeOrigin(writer, body.Origin);
+        WriteUInt64String(
+            writer,
+            "bodyRandomSeed",
+            body.BodyRandomSeed);
+        WriteRouteCooldowns(writer, body.RouteCooldowns);
+        WriteCarriedScrap(writer, body.CarriedScrap);
+        WriteRoleTag(writer, body.RoleTag);
+        WriteArray(
+            writer,
+            "actionLegalities",
+            body.ActionLegalities,
+            WriteActionLegality);
+        writer.WriteEndObject();
+    }
+
+    private static void WriteMindSlot(
+        Utf8JsonWriter writer,
+        ReplayV3.MindSlot slot)
+    {
+        writer.WriteStartObject();
+        writer.WriteNumber("teamId", slot.TeamId);
+        writer.WriteNumber("unitId", slot.UnitId);
+        writer.WritePropertyName("state");
+        WriteUnitSlotState(writer, slot.State);
+        // Reserved composition facts, emitted only when a ruleset declares
+        // them (§9.2/§10.2): absence has ONE encoding and a classless contract
+        // never carries the keys.
+        if (slot.ClassId is not null)
+            writer.WriteString("classId", slot.ClassId);
+        if (!slot.CandidateClassIds.IsDefaultOrEmpty)
+        {
+            WriteStringArray(
+                writer,
+                "candidateClassIds",
+                slot.CandidateClassIds);
+        }
+        if (slot.SelectedClassId is not null)
+            writer.WriteString("selectedClassId", slot.SelectedClassId);
+        writer.WriteEndObject();
+    }
+
     private static void WriteLifeStart(
         Utf8JsonWriter writer,
         ReplayV3.LifeStart start)
@@ -573,6 +944,12 @@ internal static class ReplayV3Serializer
         writer.WriteString(
             "matchContractFingerprint",
             start.MatchContractFingerprint);
+        // Trailing additive key: written whenever the recording engine knows
+        // the team seed, omitted only for a history that predates it.
+        if (start.TeamRandomSeed is { } teamRandomSeed)
+        {
+            WriteUInt64String(writer, "teamRandomSeed", teamRandomSeed);
+        }
         writer.WriteEndObject();
     }
 
@@ -685,6 +1062,9 @@ internal static class ReplayV3Serializer
         WritePendingTransition(
             writer,
             value.PendingSameLifeTransition);
+        WriteNullableString(writer, "classId", value.ClassId);
+        WriteRouteCooldowns(writer, value.RouteCooldowns);
+        WriteCarriedScrap(writer, value.CarriedScrap);
         writer.WriteEndObject();
     }
 
@@ -711,7 +1091,25 @@ internal static class ReplayV3Serializer
         WritePendingTransition(
             writer,
             value.PendingSameLifeTransition);
+        WriteNullableString(writer, "classId", value.ClassId);
+        WriteRouteCooldowns(writer, value.RouteCooldowns);
+        WriteCarriedScrap(writer, value.CarriedScrap);
+        WriteRoleTag(writer, value.RoleTag);
         writer.WriteEndObject();
+    }
+
+    /// <summary>
+    /// Canonical form for a published role tag (§12): the key exists only when
+    /// a mind has labelled the body, so every per-life replay and every
+    /// document written before tags existed serializes byte-exactly as before.
+    /// </summary>
+    private static void WriteRoleTag(
+        Utf8JsonWriter writer,
+        string? value)
+    {
+        if (value is null)
+            return;
+        writer.WriteString("roleTag", value);
     }
 
     private static void WriteObservedEnemy(
@@ -735,7 +1133,94 @@ internal static class ReplayV3Serializer
             "observedBy",
             value.ObservedBy,
             WriteActorId);
+        WriteNullableString(writer, "classId", value.ClassId);
+        WriteCarriedScrap(writer, value.CarriedScrap);
+        WriteRoleTag(writer, value.RoleTag);
         writer.WriteEndObject();
+    }
+
+    /// <summary>
+    /// Canonical form for a body's carried scrap: the key exists only while
+    /// the body is actually carrying, so every replay from a contract that
+    /// declares no economy serializes byte-exactly as before.
+    /// </summary>
+    private static void WriteCarriedScrap(
+        Utf8JsonWriter writer,
+        int value)
+    {
+        if (value == 0)
+            return;
+        writer.WriteNumber("carriedScrap", value);
+    }
+
+    /// <summary>
+    /// Canonical form for observed route cooldowns (#182): the key exists
+    /// only while at least one clock is live, so every pre-#181 replay and
+    /// every contract declaring no route cooldown serializes byte-exactly
+    /// as before.
+    /// </summary>
+    private static void WriteRouteCooldowns(
+        Utf8JsonWriter writer,
+        ImmutableArray<ReplayV3.RouteCooldown> value)
+    {
+        if (value.IsDefaultOrEmpty)
+            return;
+        writer.WritePropertyName("routeCooldowns");
+        writer.WriteStartArray();
+        foreach (ReplayV3.RouteCooldown cooldown in value)
+        {
+            writer.WriteStartObject();
+            writer.WriteString("transitionId", cooldown.TransitionId);
+            writer.WriteNumber("readyAtTick", cooldown.ReadyAtTick);
+            writer.WriteEndObject();
+        }
+
+        writer.WriteEndArray();
+    }
+
+    private static void WriteScrapTeams(
+        Utf8JsonWriter writer,
+        ImmutableArray<ReplayV3.ScrapTeam> value)
+    {
+        if (value.IsDefaultOrEmpty)
+            return;
+        writer.WritePropertyName("scrapTeams");
+        writer.WriteStartArray();
+        foreach (ReplayV3.ScrapTeam team in value)
+        {
+            writer.WriteStartObject();
+            writer.WriteNumber("teamId", team.TeamId);
+            writer.WriteNumber("bank", team.Bank);
+            writer.WritePropertyName("tierLevels");
+            writer.WriteStartArray();
+            foreach (int tier in team.TierLevels)
+                writer.WriteNumberValue(tier);
+            writer.WriteEndArray();
+            writer.WriteEndObject();
+        }
+
+        writer.WriteEndArray();
+    }
+
+    private static void WriteScrapPiles(
+        Utf8JsonWriter writer,
+        ImmutableArray<ReplayV3.ScrapPile> value)
+    {
+        if (value.IsDefaultOrEmpty)
+            return;
+        writer.WritePropertyName("scrapPiles");
+        writer.WriteStartArray();
+        foreach (ReplayV3.ScrapPile pile in value)
+        {
+            writer.WriteStartObject();
+            writer.WritePropertyName("position");
+            WritePosition(writer, pile.Position);
+            writer.WriteNumber("amount", pile.Amount);
+            writer.WriteNumber("expiresAtTick", pile.ExpiresAtTick);
+            writer.WriteEndObject();
+        }
+
+        writer.WriteEndArray();
     }
 
     private static void WritePendingTransition(
@@ -769,7 +1254,7 @@ internal static class ReplayV3Serializer
         writer.WriteEndObject();
     }
 
-    private static void WriteUnitSlotState(
+    internal static void WriteUnitSlotState(
         Utf8JsonWriter writer,
         ReplayV3.UnitSlotState value)
     {
@@ -852,6 +1337,7 @@ internal static class ReplayV3Serializer
             value.RuntimeFaultCount,
             nonNegative: true);
         writer.WriteBoolean("disqualified", value.Disqualified);
+        WriteNullableString(writer, "classId", value.ClassId);
         writer.WriteEndObject();
     }
 
@@ -868,6 +1354,23 @@ internal static class ReplayV3Serializer
             "observedBy",
             value.ObservedBy,
             WriteActorId);
+        writer.WritePropertyName("spawnReservation");
+        if (value.SpawnReservation is { } reservation)
+            WriteSpawnReservation(writer, reservation);
+        else
+            writer.WriteNullValue();
+        writer.WriteEndObject();
+    }
+
+    private static void WriteSpawnReservation(
+        Utf8JsonWriter writer,
+        ReplayV3.SpawnReservation value)
+    {
+        writer.WriteStartObject();
+        writer.WriteNumber("teamId", value.TeamId);
+        writer.WriteNumber("unitId", value.UnitId);
+        writer.WriteString("kind", value.Kind);
+        WriteNullableNumber(writer, "dueTick", value.DueTick);
         writer.WriteEndObject();
     }
 
@@ -899,6 +1402,8 @@ internal static class ReplayV3Serializer
             "observedBy",
             value.ObservedBy,
             WriteActorId);
+        writer.WriteNumber("ticksPerAdvance", value.TicksPerAdvance);
+        writer.WriteNumber("damagePerHit", value.DamagePerHit);
         writer.WriteEndObject();
     }
 
@@ -1014,6 +1519,16 @@ internal static class ReplayV3Serializer
             case ReplayV3.RawActionArgument.ProjectileHeading argument:
                 writer.WriteNumber("value", argument.Value);
                 break;
+            case ReplayV3.RawActionArgument.UpgradeTrack argument:
+                WriteNullableString(
+                    writer,
+                    "trackId",
+                    argument.TrackId);
+                break;
+            case ReplayV3.RawActionArgument.PositionTarget argument:
+                writer.WritePropertyName("value");
+                WritePosition(writer, argument.Value);
+                break;
             default:
                 throw new NotSupportedException(
                     $"Unsupported replay-v3 raw action argument '{value.GetType().Name}'.");
@@ -1031,7 +1546,7 @@ internal static class ReplayV3Serializer
             WriteActionResolution(writer, value);
     }
 
-    private static void WriteActionResolution(
+    internal static void WriteActionResolution(
         Utf8JsonWriter writer,
         ReplayV3.ActionResolution value)
     {
@@ -1054,7 +1569,7 @@ internal static class ReplayV3Serializer
         writer.WriteEndObject();
     }
 
-    private static void WriteResolvedAction(
+    internal static void WriteResolvedAction(
         Utf8JsonWriter writer,
         ReplayV3.ResolvedAction value)
     {
@@ -1069,7 +1584,7 @@ internal static class ReplayV3Serializer
         writer.WriteEndObject();
     }
 
-    private static void WriteActionArgument(
+    internal static void WriteActionArgument(
         Utf8JsonWriter writer,
         ReplayV3.ActionArgument value)
     {
@@ -1097,6 +1612,13 @@ internal static class ReplayV3Serializer
                 break;
             case ReplayV3.ActionArgument.ProjectileHeading argument:
                 writer.WriteString("value", argument.Value);
+                break;
+            case ReplayV3.ActionArgument.UpgradeTrack argument:
+                writer.WriteString("trackId", argument.TrackId);
+                break;
+            case ReplayV3.ActionArgument.PositionTarget argument:
+                writer.WritePropertyName("value");
+                WritePosition(writer, argument.Value);
                 break;
             default:
                 throw new NotSupportedException(
@@ -1186,6 +1708,19 @@ internal static class ReplayV3Serializer
                     "allowedValues",
                     constraint.AllowedValues);
                 break;
+            case ReplayV3.ActionConstraint.UpgradeTrack constraint:
+                WriteStringArray(
+                    writer,
+                    "allowedTrackIds",
+                    constraint.AllowedTrackIds);
+                break;
+            case ReplayV3.ActionConstraint.PositionTarget constraint:
+                WriteArray(
+                    writer,
+                    "allowedValues",
+                    constraint.AllowedValues,
+                    WritePosition);
+                break;
             default:
                 throw new NotSupportedException(
                     $"Unsupported replay-v3 action constraint '{value.GetType().Name}'.");
@@ -1193,7 +1728,7 @@ internal static class ReplayV3Serializer
         writer.WriteEndObject();
     }
 
-    private static void WriteEvent(
+    internal static void WriteEvent(
         Utf8JsonWriter writer,
         ReplayV3.AuthoritativeEvent value)
     {
@@ -1273,6 +1808,28 @@ internal static class ReplayV3Serializer
                 writer.WritePropertyName("position");
                 WritePosition(writer, payload.Position);
                 break;
+            case ReplayV3.EventPayload.ProjectileDeflected payload:
+                writer.WriteNumber("sourceTeamId", payload.SourceTeamId);
+                writer.WritePropertyName("sourceActorId");
+                WriteNullableActorId(writer, payload.SourceActorId);
+                writer.WritePropertyName("targetActorId");
+                WriteActorId(writer, payload.TargetActorId);
+                WriteInt64String(
+                    writer,
+                    "projectileId",
+                    payload.ProjectileId,
+                    nonNegative: true);
+                WriteInt64String(
+                    writer,
+                    "deflectedProjectileId",
+                    payload.DeflectedProjectileId,
+                    nonNegative: true);
+                writer.WriteString("targetFormId", payload.TargetFormId);
+                writer.WriteString("targetFacing", payload.TargetFacing);
+                writer.WriteString("heading", payload.Heading);
+                writer.WritePropertyName("position");
+                WritePosition(writer, payload.Position);
+                break;
             case ReplayV3.EventPayload.Destruction payload:
                 writer.WritePropertyName("actorId");
                 WriteActorId(writer, payload.ActorId);
@@ -1336,6 +1893,10 @@ internal static class ReplayV3Serializer
                 writer.WritePropertyName("fault");
                 WriteRuntimeFault(writer, payload.Fault);
                 break;
+            case ReplayV3.EventPayload.MindRuntimeFaultValue payload:
+                writer.WritePropertyName("fault");
+                WriteMindRuntimeFault(writer, payload.Fault);
+                break;
             case ReplayV3.EventPayload.Participant payload:
                 writer.WriteNumber(
                     "participantId",
@@ -1379,6 +1940,11 @@ internal static class ReplayV3Serializer
                     "startedTick",
                     payload.StartedTick);
                 writer.WriteNumber("dueTick", payload.DueTick);
+                // Inert-default omission: a requested transition writes no
+                // reason at all, so replays authored before automatic returns
+                // existed stay byte-identical (DECISIONS #156).
+                if (payload.Reason is string transitionReason)
+                    writer.WriteString("reason", transitionReason);
                 break;
             case ReplayV3.EventPayload.ScoreChanged payload:
                 writer.WriteNumber("teamId", payload.TeamId);
@@ -1406,10 +1972,194 @@ internal static class ReplayV3Serializer
                     "cancellationReason",
                     payload.CancellationReason);
                 break;
+            case ReplayV3.EventPayload.ArcRelay payload:
+                writer.WritePropertyName("fact");
+                WriteArcRelayFact(writer, payload.Fact);
+                break;
             default:
                 throw new NotSupportedException(
                     $"Unsupported replay-v3 event payload '{value.GetType().Name}'.");
         }
+        writer.WriteEndObject();
+    }
+
+    private static void WriteArcRelayFact(
+        Utf8JsonWriter writer,
+        ReplayV3.ArcRelayFact value)
+    {
+        writer.WriteStartObject();
+        writer.WriteString("kind", value.Kind);
+        switch (value)
+        {
+            case ReplayV3.ArcRelayFact.CoreBorn fact:
+                WriteArcCoreId(writer, "coreId", fact.CoreId);
+                writer.WritePropertyName("position");
+                WritePosition(writer, fact.Position);
+                if (fact.ChargeValue != 1)
+                    writer.WriteNumber("chargeValue", fact.ChargeValue);
+                break;
+            case ReplayV3.ArcRelayFact.CoreRipened fact:
+                WriteArcCoreId(writer, "coreId", fact.CoreId);
+                writer.WritePropertyName("position");
+                WritePosition(writer, fact.Position);
+                writer.WriteNumber("value", fact.Value);
+                break;
+            case ReplayV3.ArcRelayFact.LeveledUp fact:
+                writer.WritePropertyName("actorId");
+                WriteActorId(writer, fact.ActorId);
+                writer.WriteNumber("level", fact.Level);
+                writer.WritePropertyName("position");
+                WritePosition(writer, fact.Position);
+                break;
+            case ReplayV3.ArcRelayFact.ZoneHealed fact:
+                writer.WritePropertyName("actorId");
+                WriteActorId(writer, fact.ActorId);
+                writer.WriteNumber("amount", fact.Amount);
+                writer.WriteNumber("newHealth", fact.NewHealth);
+                writer.WritePropertyName("position");
+                WritePosition(writer, fact.Position);
+                break;
+            case ReplayV3.ArcRelayFact.CorePickedUp fact:
+                WriteArcCoreId(writer, "coreId", fact.CoreId);
+                writer.WritePropertyName("carrierActorId");
+                WriteActorId(writer, fact.CarrierActorId);
+                writer.WritePropertyName("position");
+                WritePosition(writer, fact.Position);
+                writer.WriteNumber("nextRelocationTick", fact.NextRelocationTick);
+                break;
+            case ReplayV3.ArcRelayFact.CoreRelocated fact:
+                WriteArcCoreId(writer, "coreId", fact.CoreId);
+                writer.WritePropertyName("carrierActorId");
+                if (fact.CarrierActorId is null) writer.WriteNullValue();
+                else WriteActorId(writer, fact.CarrierActorId);
+                writer.WritePropertyName("from");
+                WritePosition(writer, fact.From);
+                writer.WritePropertyName("to");
+                WritePosition(writer, fact.To);
+                writer.WriteNumber("nextRelocationTick", fact.NextRelocationTick);
+                writer.WriteString("relocationKind", fact.RelocationKind);
+                break;
+            case ReplayV3.ArcRelayFact.CoreHandedOff fact:
+                WriteArcCoreId(writer, "coreId", fact.CoreId);
+                writer.WritePropertyName("sourceActorId");
+                WriteActorId(writer, fact.SourceActorId);
+                writer.WritePropertyName("targetActorId");
+                WriteActorId(writer, fact.TargetActorId);
+                writer.WritePropertyName("position");
+                WritePosition(writer, fact.Position);
+                writer.WriteNumber("nextRelocationTick", fact.NextRelocationTick);
+                break;
+            case ReplayV3.ArcRelayFact.CoreDropped fact:
+                WriteArcCoreId(writer, "coreId", fact.CoreId);
+                writer.WritePropertyName("sourceActorId");
+                WriteActorId(writer, fact.SourceActorId);
+                writer.WritePropertyName("position");
+                WritePosition(writer, fact.Position);
+                writer.WriteNumber("nextRelocationTick", fact.NextRelocationTick);
+                writer.WriteString("dropKind", fact.DropKind);
+                break;
+            case ReplayV3.ArcRelayFact.CoreBanked fact:
+                WriteArcCoreId(writer, "coreId", fact.CoreId);
+                writer.WritePropertyName("carrierActorId");
+                WriteActorId(writer, fact.CarrierActorId);
+                writer.WriteNumber("teamId", fact.TeamId);
+                writer.WritePropertyName("position");
+                WritePosition(writer, fact.Position);
+                writer.WriteNumber("chargePips", fact.ChargePips);
+                break;
+            case ReplayV3.ArcRelayFact.WellChanged fact:
+                writer.WriteString("wellId", fact.WellId);
+                writer.WriteBoolean("pendingCharge", fact.PendingCharge);
+                WriteNullableNumber(
+                    writer,
+                    "rearmCompletesAtTick",
+                    fact.RearmCompletesAtTick);
+                writer.WritePropertyName("outstandingCoreId");
+                if (fact.OutstandingCoreId is null) writer.WriteNullValue();
+                else WriteArcCoreId(writer, fact.OutstandingCoreId);
+                break;
+            case ReplayV3.ArcRelayFact.Pulse fact:
+                writer.WriteNumber("teamId", fact.TeamId);
+                writer.WriteNumber("pulseOrdinal", fact.PulseOrdinal);
+                writer.WriteNumber(
+                    "opposingReactorIntegrity",
+                    fact.OpposingReactorIntegrity);
+                break;
+            case ReplayV3.ArcRelayFact.SignatureChanged fact:
+                writer.WriteString("operationId", fact.OperationId);
+                writer.WriteString("signatureId", fact.SignatureId);
+                writer.WritePropertyName("ownerActorId");
+                WriteActorId(writer, fact.OwnerActorId);
+                WriteNullableString(writer, "phase", fact.Phase);
+                writer.WriteString("reason", fact.Reason);
+                break;
+            case ReplayV3.ArcRelayFact.BodyRelocated fact:
+                writer.WriteString("operationId", fact.OperationId);
+                writer.WriteString("signatureId", fact.SignatureId);
+                writer.WritePropertyName("ownerActorId");
+                WriteActorId(writer, fact.OwnerActorId);
+                writer.WritePropertyName("targetActorId");
+                WriteActorId(writer, fact.TargetActorId);
+                writer.WritePropertyName("from");
+                WritePosition(writer, fact.From);
+                writer.WritePropertyName("to");
+                WritePosition(writer, fact.To);
+                break;
+            case ReplayV3.ArcRelayFact.SignatureDamage fact:
+                WriteArcSignatureHealthFact(writer, fact.OperationId,
+                    fact.SignatureId, fact.OwnerActorId, fact.TargetActorId,
+                    fact.Amount, fact.NewHealth, fact.Position);
+                break;
+            case ReplayV3.ArcRelayFact.SignatureRepair fact:
+                WriteArcSignatureHealthFact(writer, fact.OperationId,
+                    fact.SignatureId, fact.OwnerActorId, fact.TargetActorId,
+                    fact.Amount, fact.NewHealth, fact.Position);
+                break;
+            default:
+                throw new NotSupportedException(
+                    $"Unsupported Arc Relay fact '{value.GetType().Name}'.");
+        }
+        writer.WriteEndObject();
+    }
+
+    private static void WriteArcSignatureHealthFact(
+        Utf8JsonWriter writer,
+        string operationId,
+        string signatureId,
+        ReplayV3.ActorId owner,
+        ReplayV3.ActorId target,
+        int amount,
+        int newHealth,
+        ReplayV3.PositionValue position)
+    {
+        writer.WriteString("operationId", operationId);
+        writer.WriteString("signatureId", signatureId);
+        writer.WritePropertyName("ownerActorId");
+        WriteActorId(writer, owner);
+        writer.WritePropertyName("targetActorId");
+        WriteActorId(writer, target);
+        writer.WriteNumber("amount", amount);
+        writer.WriteNumber("newHealth", newHealth);
+        writer.WritePropertyName("position");
+        WritePosition(writer, position);
+    }
+
+    private static void WriteArcCoreId(
+        Utf8JsonWriter writer,
+        string propertyName,
+        ReplayV3.ArcCoreId value)
+    {
+        writer.WritePropertyName(propertyName);
+        WriteArcCoreId(writer, value);
+    }
+
+    private static void WriteArcCoreId(
+        Utf8JsonWriter writer,
+        ReplayV3.ArcCoreId value)
+    {
+        writer.WriteStartObject();
+        writer.WriteString("sourceWellId", value.SourceWellId);
+        writer.WriteNumber("sourceOrdinal", value.SourceOrdinal);
         writer.WriteEndObject();
     }
 
@@ -1449,7 +2199,7 @@ internal static class ReplayV3Serializer
         writer.WriteEndObject();
     }
 
-    private static void WriteTraversal(
+    internal static void WriteTraversal(
         Utf8JsonWriter writer,
         ReplayV3.ProjectileTraversal value)
     {
@@ -1533,7 +2283,7 @@ internal static class ReplayV3Serializer
         writer.WriteEndObject();
     }
 
-    private static void WriteWorldState(
+    internal static void WriteWorldState(
         Utf8JsonWriter writer,
         ReplayV3.WorldState state)
     {
@@ -1716,7 +2466,7 @@ internal static class ReplayV3Serializer
         writer.WriteEndObject();
     }
 
-    private static void WriteScoreboard(
+    internal static void WriteScoreboard(
         Utf8JsonWriter writer,
         ReplayV3.Scoreboard value)
     {
@@ -1754,7 +2504,7 @@ internal static class ReplayV3Serializer
         writer.WriteEndObject();
     }
 
-    private static void WriteModeState(
+    internal static void WriteModeState(
         Utf8JsonWriter writer,
         ReplayV3.ModeState value)
     {
@@ -1783,6 +2533,73 @@ internal static class ReplayV3Serializer
                 writer.WriteNumber(
                     "controlResumesAtTick",
                     frontline.ControlResumesAtTick);
+                // Trailing additive pair, both nullable and always present:
+                // the same discipline claimingTeamId already follows, where
+                // null is a fact about this tick rather than an omitted
+                // field. Null means no live territory-ratchet hold, which
+                // includes every ruleset whose redeploy policy has none.
+                WriteNullableNumber(
+                    writer,
+                    "holdOwnerTeamId",
+                    frontline.HoldOwnerTeamId);
+                WriteNullableNumber(
+                    writer,
+                    "holdEndsAtTick",
+                    frontline.HoldEndsAtTick);
+                // The side objective's two facts, on the same discipline:
+                // an owner that is null this tick (including on every
+                // ruleset that declares no side objective) and a signed
+                // running claim whose sign names the claiming team.
+                WriteNullableNumber(
+                    writer,
+                    "secondaryOwnerTeamId",
+                    frontline.SecondaryOwnerTeamId);
+                writer.WriteNumber(
+                    "secondaryClaimProgress",
+                    frontline.SecondaryClaimProgress);
+                // The economy's two collections, on the same discipline: the
+                // keys exist only on a ruleset that declares an economy, so
+                // every replay produced before the capability existed
+                // serializes byte-exactly as before.
+                WriteScrapTeams(writer, frontline.ScrapTeams);
+                WriteScrapPiles(writer, frontline.ScrapPiles);
+                break;
+            case ReplayV3.ModeState.ArcRelay arcRelay:
+                WriteArray(writer, "wells", arcRelay.Wells, WriteArcWell);
+                WriteArray(
+                    writer,
+                    "reactors",
+                    arcRelay.Reactors,
+                    WriteArcReactor);
+                WriteArray(
+                    writer,
+                    "visibleCores",
+                    arcRelay.VisibleCores,
+                    WriteArcCore);
+                WriteArray(
+                    writer,
+                    "visibleSignatures",
+                    arcRelay.VisibleSignatures,
+                    WriteArcSignature);
+                WriteNullableNumber(
+                    writer,
+                    "latestPulseTeamId",
+                    arcRelay.LatestPulseTeamId);
+                WriteNullableNumber(
+                    writer,
+                    "latestPulseTick",
+                    arcRelay.LatestPulseTick);
+                // Declared strikes serialize only where they exist
+                // (DECISIONS #212): every replay from a ruleset without
+                // strike windups stays byte-exact.
+                if (!arcRelay.PendingStrikes.IsEmpty)
+                {
+                    WriteArray(
+                        writer,
+                        "pendingStrikes",
+                        arcRelay.PendingStrikes,
+                        WriteArcPendingStrike);
+                }
                 break;
             default:
                 throw new NotSupportedException(
@@ -1791,7 +2608,128 @@ internal static class ReplayV3Serializer
         writer.WriteEndObject();
     }
 
-    private static void WriteResult(
+    private static void WriteArcPendingStrike(
+        Utf8JsonWriter writer,
+        ReplayV3.ArcPendingStrike value)
+    {
+        writer.WriteStartObject();
+        writer.WritePropertyName("shooter");
+        WriteActorId(writer, value.Shooter);
+        writer.WriteNumber("resolveAtTick", value.ResolveAtTick);
+        if (value.Origin is not null)
+        {
+            writer.WritePropertyName("origin");
+            WritePosition(writer, value.Origin);
+        }
+        if (value.CentralHeading is not null)
+            writer.WriteString("centralHeading", value.CentralHeading);
+        if (value.Target is not null)
+        {
+            writer.WritePropertyName("target");
+            WriteActorId(writer, value.Target);
+        }
+        WriteArray(writer, "tiles", value.Tiles, WritePosition);
+        writer.WriteEndObject();
+    }
+
+    private static void WriteArcWell(
+        Utf8JsonWriter writer,
+        ReplayV3.ArcWell value)
+    {
+        writer.WriteStartObject();
+        writer.WriteString("wellId", value.WellId);
+        writer.WritePropertyName("position");
+        WritePosition(writer, value.Position);
+        WriteNullableNumber(
+            writer,
+            "nextScheduledBirthTick",
+            value.NextScheduledBirthTick);
+        writer.WritePropertyName("outstandingCoreId");
+        if (value.OutstandingCoreId is null) writer.WriteNullValue();
+        else WriteArcCoreId(writer, value.OutstandingCoreId);
+        writer.WriteBoolean("pendingCharge", value.PendingCharge);
+        WriteNullableNumber(
+            writer,
+            "rearmCompletesAtTick",
+            value.RearmCompletesAtTick);
+        writer.WriteEndObject();
+    }
+
+    private static void WriteArcReactor(
+        Utf8JsonWriter writer,
+        ReplayV3.ArcReactor value)
+    {
+        writer.WriteStartObject();
+        writer.WriteNumber("teamId", value.TeamId);
+        writer.WritePropertyName("position");
+        WritePosition(writer, value.Position);
+        writer.WriteNumber("chargePips", value.ChargePips);
+        writer.WriteNumber("integritySegments", value.IntegritySegments);
+        // Written only for threefold rulesets so historical replay bytes
+        // are untouched.
+        if (!value.FilledSocketWellIds.IsEmpty)
+        {
+            writer.WritePropertyName("filledSocketWellIds");
+            writer.WriteStartArray();
+            foreach (string wellId in value.FilledSocketWellIds)
+                writer.WriteStringValue(wellId);
+            writer.WriteEndArray();
+        }
+        writer.WriteEndObject();
+    }
+
+    private static void WriteArcCore(
+        Utf8JsonWriter writer,
+        ReplayV3.ArcCore value)
+    {
+        writer.WriteStartObject();
+        WriteArcCoreId(writer, "coreId", value.CoreId);
+        writer.WritePropertyName("position");
+        WritePosition(writer, value.Position);
+        writer.WriteString("disposition", value.Disposition);
+        writer.WritePropertyName("carrierActorId");
+        if (value.CarrierActorId is null) writer.WriteNullValue();
+        else WriteActorId(writer, value.CarrierActorId);
+        writer.WriteNumber("nextRelocationTick", value.NextRelocationTick);
+        writer.WritePropertyName("flightTarget");
+        if (value.FlightTarget is null) writer.WriteNullValue();
+        else WritePosition(writer, value.FlightTarget);
+        WriteNullableNumber(
+            writer,
+            "flightCompletesAtTick",
+            value.FlightCompletesAtTick);
+        // Written only under charge-value rulesets so historical replay
+        // bytes are untouched.
+        if (value.ChargeValue != 1)
+            writer.WriteNumber("chargeValue", value.ChargeValue);
+        writer.WriteEndObject();
+    }
+
+    private static void WriteArcSignature(
+        Utf8JsonWriter writer,
+        ReplayV3.ArcSignature value)
+    {
+        writer.WriteStartObject();
+        writer.WriteString("operationId", value.OperationId);
+        writer.WriteString("signatureId", value.SignatureId);
+        writer.WriteString("signatureKind", value.SignatureKind);
+        writer.WritePropertyName("ownerActorId");
+        WriteActorId(writer, value.OwnerActorId);
+        writer.WriteNumber("ownerTeamId", value.OwnerTeamId);
+        writer.WriteString("phase", value.Phase);
+        writer.WriteNumber("startedTick", value.StartedTick);
+        WriteNullableNumber(writer, "completesAtTick", value.CompletesAtTick);
+        WriteNullableNumber(writer, "endsAtTick", value.EndsAtTick);
+        WriteArray(writer, "positions", value.Positions, WritePosition);
+        writer.WritePropertyName("targetActorId");
+        if (value.TargetActorId is null) writer.WriteNullValue();
+        else WriteActorId(writer, value.TargetActorId);
+        writer.WriteNumber("remainingCapacity", value.RemainingCapacity);
+        writer.WriteBoolean("suppressed", value.Suppressed);
+        writer.WriteEndObject();
+    }
+
+    internal static void WriteResult(
         Utf8JsonWriter writer,
         ReplayV3.MatchResult result)
     {
@@ -1913,6 +2851,11 @@ internal static class ReplayV3Serializer
                         json.WriteEndObject();
                     });
                 break;
+            case ReplayV3.ModeResult.ArcRelay arcRelay:
+                writer.WriteString("reason", arcRelay.Reason);
+                writer.WritePropertyName("state");
+                WriteModeState(writer, arcRelay.State);
+                break;
             default:
                 throw new NotSupportedException(
                     $"Unsupported replay-v3 mode result '{value.GetType().Name}'.");
@@ -1920,7 +2863,7 @@ internal static class ReplayV3Serializer
         writer.WriteEndObject();
     }
 
-    private static void WriteActorId(
+    internal static void WriteActorId(
         Utf8JsonWriter writer,
         ReplayV3.ActorId value)
     {
@@ -1941,7 +2884,7 @@ internal static class ReplayV3Serializer
             WriteActorId(writer, value);
     }
 
-    private static void WritePosition(
+    internal static void WritePosition(
         Utf8JsonWriter writer,
         ReplayV3.PositionValue value)
     {
@@ -1972,7 +2915,7 @@ internal static class ReplayV3Serializer
         writer.WriteEndObject();
     }
 
-    private static void WriteNullableShotProgram(
+    internal static void WriteNullableShotProgram(
         Utf8JsonWriter writer,
         ReplayV3.ShotProgramValue? value)
     {
@@ -2299,6 +3242,8 @@ internal static class ReplayV3Serializer
 
         ImmutableArray<ContractAction> actions =
             ReadContractActions(rules);
+        ImmutableArray<ContractAttackProfile> attackProfiles =
+            ReadContractAttackProfiles(rules);
         ImmutableArray<ContractReplication> replications =
             ReadContractReplications(rules);
         ImmutableArray<string> scoreChannels =
@@ -2312,15 +3257,23 @@ internal static class ReplayV3Serializer
             rules,
             RequiredObject(root, "modeMapBinding"),
             teamIds);
+        ImmutableArray<ContractPermanentReservation>
+            permanentReservations =
+                ReadPermanentSpawnReservations(root);
 
         return new CanonicalContractIndex(
             fingerprint,
+            RequiredString(
+                RequiredObject(rules, "seedMechanics"),
+                "seedProfileId"),
             teamIds,
             participants,
             unitSlots,
             scoreChannels,
             actions,
+            attackProfiles,
             replications,
+            permanentReservations,
             mode);
     }
 
@@ -2433,16 +3386,37 @@ internal static class ReplayV3Serializer
             values.GetArrayLength());
         foreach (JsonElement value in values.EnumerateArray())
         {
+            bool hasMovementFacingOverride = value.TryGetProperty(
+                "movementFacingOverride",
+                out JsonElement movementFacingOverride);
             RequireExactObject(
                 value,
                 "embedded action",
-                "id",
-                "code",
-                "kind",
-                "parameterKinds");
+                hasMovementFacingOverride
+                    ? ["id", "code", "kind", "parameterKinds",
+                        "movementFacingOverride"]
+                    : ["id", "code", "kind", "parameterKinds"]);
             string id = RequiredString(value, "id");
             int code = RequiredInt32(value, "code");
             string kind = RequiredString(value, "kind");
+            if (hasMovementFacingOverride)
+            {
+                string facing = movementFacingOverride.ValueKind
+                    == JsonValueKind.String
+                    ? movementFacingOverride.GetString()!
+                    : throw new ArgumentException(
+                        "Embedded movement-facing override must be a string.");
+                if (!string.Equals(kind, "movement", StringComparison.Ordinal)
+                    || facing is not ("preserve-facing"
+                        or "face-movement-direction"
+                        or "facing-locked"
+                        or "face-movement-heading-projected"
+                        or "combat-strafe"))
+                {
+                    throw new ArgumentException(
+                        "Embedded movement-facing override is invalid.");
+                }
+            }
             JsonElement parameterValues = RequiredArray(
                 value,
                 "parameterKinds");
@@ -2479,6 +3453,113 @@ internal static class ReplayV3Serializer
                 left.Code.CompareTo(right.Code),
             "embedded actions by action code");
         return actions;
+    }
+
+    private static ImmutableArray<ContractAttackProfile>
+        ReadContractAttackProfiles(JsonElement rules)
+    {
+        ImmutableArray<ContractAttackProfile> profiles =
+            RequiredArray(rules, "attackProfiles")
+                .EnumerateArray()
+                .Select(value =>
+                {
+                    JsonElement projectile =
+                        RequiredObject(value, "projectile");
+                    return new ContractAttackProfile(
+                        RequiredString(value, "id"),
+                        RequiredInt32(
+                            projectile,
+                            "tilesPerAdvance"),
+                        RequiredInt32(
+                            projectile,
+                            "ticksPerAdvance"),
+                        RequiredInt32(
+                            projectile,
+                            "damagePerHit"));
+                })
+                .ToImmutableArray();
+        RequireCanonicalOrder(
+            profiles,
+            static (left, right) =>
+                StringComparer.Ordinal.Compare(left.Id, right.Id),
+            "embedded attack profiles");
+        return profiles;
+    }
+
+    private static ImmutableArray<ContractPermanentReservation>
+        ReadPermanentSpawnReservations(JsonElement root)
+    {
+        JsonElement rules = RequiredObject(root, "rules");
+        JsonElement lifecycle = RequiredObject(rules, "lifecycle");
+        HashSet<string> automaticProfileIds =
+            RequiredArray(lifecycle, "profiles")
+                .EnumerateArray()
+                .Where(profile => string.Equals(
+                    RequiredString(profile, "destructionPolicy"),
+                    "automatic-respawn",
+                    StringComparison.Ordinal))
+                .Select(profile =>
+                    RequiredString(profile, "profileId"))
+                .ToHashSet(StringComparer.Ordinal);
+        JsonElement map = RequiredObject(
+            root,
+            "map");
+        Dictionary<string, ReplayV3.PositionValue> positions =
+            RequiredArray(map, "spawnAnchors")
+                .EnumerateArray()
+                .ToDictionary(
+                    value => RequiredString(value, "spawnId"),
+                    value => ContractPosition(
+                        value.GetProperty("position")),
+                    StringComparer.Ordinal);
+        var reservations =
+            ImmutableArray.CreateBuilder<ContractPermanentReservation>();
+        foreach (JsonElement value in RequiredArray(
+                     root,
+                     "lifecycleAssignments").EnumerateArray())
+        {
+            if (!automaticProfileIds.Contains(
+                    RequiredString(value, "lifecycleProfileId")))
+            {
+                continue;
+            }
+            JsonElement assigned =
+                value.GetProperty("assignedRespawnSpawnId");
+            if (assigned.ValueKind == JsonValueKind.Null)
+                continue;
+            if (assigned.ValueKind != JsonValueKind.String
+                || assigned.GetString() is not { } spawnId
+                || !positions.TryGetValue(
+                    spawnId,
+                    out ReplayV3.PositionValue? position))
+            {
+                throw new ArgumentException(
+                    "Replay-v3 lifecycle reservation references an unknown spawn.");
+            }
+            reservations.Add(
+                new ContractPermanentReservation(
+                    RequiredInt32(value, "teamId"),
+                    RequiredInt32(value, "unitId"),
+                    position));
+        }
+        return reservations
+            .OrderBy(value => value.TeamId)
+            .ThenBy(value => value.UnitId)
+            .ToImmutableArray();
+    }
+
+    private static ReplayV3.PositionValue ContractPosition(
+        JsonElement value)
+    {
+        if (value.ValueKind != JsonValueKind.Array
+            || value.GetArrayLength() != 2
+            || !value[0].TryGetInt32(out int x)
+            || !value[1].TryGetInt32(out int y))
+        {
+            throw new ArgumentException(
+                "Replay-v3 embedded contract position is invalid.");
+        }
+        return new ReplayV3.PositionValue(x, y);
     }
 
     private static HashSet<string> ReadOptionalAttackActionIds(
@@ -2603,6 +3684,43 @@ internal static class ReplayV3Serializer
             int redeployPauseTicks = RequiredInt32(
                 capture,
                 "redeployPauseTicks");
+            // The hold duration is inert-omitted, and it is carried by
+            // exactly the high-water-mark redeploy policy (DECISIONS #160).
+            // The observed hold clocks are validated against both, so the
+            // index has to carry both.
+            bool ratchet = string.Equals(
+                RequiredString(capture, "redeployPolicy"),
+                RatchetRedeployPolicy,
+                StringComparison.Ordinal);
+            int ratchetHoldTicks =
+                capture.TryGetProperty(
+                    "ratchetHoldTicks",
+                    out JsonElement holdTicks)
+                    ? holdTicks.ValueKind == JsonValueKind.Number
+                        && holdTicks.TryGetInt32(out int holdValue)
+                        ? holdValue
+                        : throw new ArgumentException(
+                            "Embedded Frontline ratchetHoldTicks must be an Int32.")
+                    : 0;
+            if (ratchet != ratchetHoldTicks > 0)
+            {
+                throw new ArgumentException(
+                    "Embedded Frontline hold duration is carried by exactly the high-water-mark redeploy policy.");
+            }
+            // The side objective is inert-omitted too, so its presence is
+            // itself a contract fact: a published owner or claim on a mode
+            // that declares no secondary control is a forged observation.
+            bool secondaryControl = gameMode.TryGetProperty(
+                "secondaryControl",
+                out JsonElement secondary);
+            int secondaryThresholdTicks = secondaryControl
+                ? RequiredInt32(secondary, "captureThresholdTicks")
+                : 0;
+            if (secondaryControl && secondaryThresholdTicks <= 0)
+            {
+                throw new ArgumentException(
+                    "Embedded Frontline secondary-control threshold must be positive.");
+            }
             ImmutableArray<ContractTeamAdvance> teamAdvances =
                 RequiredArray(modeMapBinding, "teamAdvances")
                     .EnumerateArray()
@@ -2679,7 +3797,84 @@ internal static class ReplayV3Serializer
                     decayAmount,
                     decayIntervalTicks,
                     redeployPauseTicks,
-                    teamAdvances));
+                    teamAdvances,
+                    ratchet,
+                    ratchetHoldTicks,
+                    secondaryControl,
+                    secondaryThresholdTicks),
+                ArcRelay: null);
+        }
+        if (string.Equals(kind, "arc-relay", StringComparison.Ordinal))
+        {
+            RequireExactObject(
+                modeMapBinding,
+                "embedded Arc Relay mode-map binding",
+                "kind",
+                "orderedWellRegionIds",
+                "reactorRegionRoleId",
+                "homePadRegionRoleId");
+            if (!string.Equals(
+                    RequiredString(modeMapBinding, "kind"),
+                    "arc-relay",
+                    StringComparison.Ordinal))
+            {
+                throw new ArgumentException(
+                    "Embedded Arc Relay mode-map binding kind is invalid.");
+            }
+            JsonElement arcVictory = RequiredObject(gameMode, "victory");
+            int pulsesToDestroy = RequiredInt32(
+                arcVictory,
+                "pulsesToDestroyReactor");
+            int coresPerPulse = RequiredInt32(gameMode, "coresPerPulse");
+            int relocationTicks = RequiredInt32(
+                gameMode,
+                "coreRelocationIntervalTicks");
+            JsonElement tripNode = RequiredArray(gameMode, "signatures")
+                .EnumerateArray()
+                .Single(value => string.Equals(
+                    RequiredString(value, "kind"),
+                    "trip-node",
+                    StringComparison.Ordinal));
+            int tripNodeRevealRange = RequiredInt32(
+                tripNode,
+                "revealRange");
+            JsonElement wells = RequiredArray(gameMode, "wells");
+            JsonElement wellRegions = RequiredArray(
+                modeMapBinding,
+                "orderedWellRegionIds");
+            if (pulsesToDestroy <= 0
+                || coresPerPulse <= 0
+                || relocationTicks <= 0
+                || tripNodeRevealRange < 0
+                || wells.GetArrayLength() == 0
+                || wells.GetArrayLength() != wellRegions.GetArrayLength())
+            {
+                throw new ArgumentException(
+                    "Embedded Arc Relay mode configuration is invalid.");
+            }
+            ImmutableArray<ContractRanking> arcRankings = RequiredArray(
+                    arcVictory,
+                    "timeoutRanking")
+                .EnumerateArray()
+                .Select(value => new ContractRanking(
+                    RequiredString(value, "channel"),
+                    RequiredString(value, "direction")))
+                .ToImmutableArray();
+            return new ContractMode(
+                kind,
+                modeId,
+                maxTicks,
+                KillsToWin: null,
+                arcRankings,
+                Frontline: null,
+                new ContractArcRelay(
+                    pulsesToDestroy,
+                    coresPerPulse,
+                    relocationTicks,
+                    tripNodeRevealRange,
+                    wells.EnumerateArray()
+                        .Select(value => RequiredString(value, "wellId"))
+                        .ToImmutableArray()));
         }
         if (!string.Equals(kind, "deathmatch", StringComparison.Ordinal))
         {
@@ -2739,7 +3934,8 @@ internal static class ReplayV3Serializer
             maxTicks,
             killsToWin,
             rankings,
-            Frontline: null);
+            Frontline: null,
+            ArcRelay: null);
     }
 
     private static ImmutableArray<ContractReplication>
@@ -2822,22 +4018,34 @@ internal static class ReplayV3Serializer
         ImmutableArray<ContractUnitSlot> UnitSlots)
         ReadContractTopology(JsonElement topology)
     {
-        ImmutableArray<int> teamIds = RequiredArray(
+        ImmutableArray<ContractTeam> teams = RequiredArray(
                 topology,
                 "teams")
             .EnumerateArray()
             .Select(value =>
             {
+                bool hasClassId = value.TryGetProperty(
+                    "classId",
+                    out _);
                 RequireExactObject(
                     value,
                     "embedded topology team",
-                    "teamId");
-                return RequiredInt32(value, "teamId");
+                    hasClassId
+                        ? ["teamId", "classId"]
+                        : ["teamId"]);
+                return new ContractTeam(
+                    RequiredInt32(value, "teamId"),
+                    hasClassId
+                        ? RequiredString(value, "classId")
+                        : null);
             })
             .ToImmutableArray();
+        ImmutableArray<int> teamIds =
+            teams.Select(team => team.TeamId).ToImmutableArray();
         RequireCanonicalOrder(
-            teamIds,
-            static (left, right) => left.CompareTo(right),
+            teams,
+            static (left, right) =>
+                left.TeamId.CompareTo(right.TeamId),
             "embedded topology teams");
 
         ImmutableArray<ContractParticipant> participants =
@@ -2845,14 +4053,21 @@ internal static class ReplayV3Serializer
                 .EnumerateArray()
                 .Select(value =>
                 {
+                    bool hasClassId = value.TryGetProperty(
+                        "classId",
+                        out _);
                     RequireExactObject(
                         value,
                         "embedded topology participant",
-                        "participantId",
-                        "teamId");
+                        hasClassId
+                            ? ["participantId", "teamId", "classId"]
+                            : ["participantId", "teamId"]);
                     return new ContractParticipant(
                         RequiredInt32(value, "participantId"),
-                        RequiredInt32(value, "teamId"));
+                        RequiredInt32(value, "teamId"),
+                        hasClassId
+                            ? RequiredString(value, "classId")
+                            : null);
                 })
                 .ToImmutableArray();
         RequireCanonicalOrder(
@@ -2860,24 +4075,59 @@ internal static class ReplayV3Serializer
             static (left, right) =>
                 left.ParticipantId.CompareTo(right.ParticipantId),
             "embedded topology participants");
+        Dictionary<int, string?> teamClasses =
+            teams.ToDictionary(team => team.TeamId, team => team.ClassId);
+        if (participants.Any(participant =>
+                !teamClasses.TryGetValue(
+                    participant.TeamId,
+                    out string? classId)
+                || !string.Equals(
+                    participant.ClassId,
+                    classId,
+                    StringComparison.Ordinal)))
+        {
+            throw new ArgumentException(
+                "Replay-v3 participant class IDs must exactly match their scoring teams.");
+        }
 
         ImmutableArray<ContractUnitSlot> unitSlots =
             RequiredArray(topology, "unitSlots")
                 .EnumerateArray()
                 .Select(value =>
                 {
+                    // Per-slot chassis, the same additive-canonical shape the
+                    // team and participant above already carry: present only
+                    // where a ruleset declares COMPOSITIONS, so a
+                    // composition-free document keeps its exact bytes.
+                    bool hasSlotClassId = value.TryGetProperty(
+                        "classId",
+                        out _);
                     RequireExactObject(
                         value,
                         "embedded topology unit slot",
-                        "teamId",
-                        "unitId",
-                        "controllerParticipantId");
+                        hasSlotClassId
+                            ?
+                            [
+                                "teamId",
+                                "unitId",
+                                "controllerParticipantId",
+                                "classId",
+                            ]
+                            :
+                            [
+                                "teamId",
+                                "unitId",
+                                "controllerParticipantId",
+                            ]);
                     return new ContractUnitSlot(
                         RequiredInt32(value, "teamId"),
                         RequiredInt32(value, "unitId"),
                         RequiredInt32(
                             value,
-                            "controllerParticipantId"));
+                            "controllerParticipantId"),
+                        hasSlotClassId
+                            ? RequiredString(value, "classId")
+                            : null);
                 })
                 .ToImmutableArray();
         RequireCanonicalOrder(
@@ -2916,6 +4166,18 @@ internal static class ReplayV3Serializer
             eventSourceOrdinals,
             "initial frame");
 
+        bool mindProfile = IsMindProfile(replay.Header);
+        // Every life's seed, accumulated as the document declares it, so a
+        // mind body publishing a seed the engine never derived is refused
+        // without the validator having to re-run the derivation itself.
+        var seedsByActor = new Dictionary<ReplayV3.ActorId, string>();
+        // The last tag each mind actually set, re-derived from the accepted
+        // commands, so a doctored document cannot narrate a strategy that
+        // never happened (§5.3).
+        var roleTags = new Dictionary<ReplayV3.ActorId, string>();
+        foreach (ReplayV3.LifeStart start in replay.InitialFrame.LifeStarts)
+            seedsByActor[start.ActorId] = start.ActorRandomSeed;
+
         ReplayV3.WorldState previousState = replay.InitialFrame.State;
         for (int index = 0; index < replay.Ticks.Length; index++)
         {
@@ -2952,6 +4214,7 @@ internal static class ReplayV3Serializer
             ValidateLifeStarts(
                 tick.TickStart.LifeStarts,
                 replay.Header,
+                contract,
                 $"tick {tick.Tick} life starts");
             ValidateEvents(
                 tick.TickStart.Events,
@@ -2967,22 +4230,53 @@ internal static class ReplayV3Serializer
                 factOrdinals,
                 eventSourceOrdinals,
                 $"tick {tick.Tick} start");
+            ValidateArcRelayChronologyPhase(
+                previousState,
+                tick.TickStart.State,
+                tick.TickStart.Events,
+                tick.Tick,
+                "tick start");
 
-            RequireCanonicalOrder(
-                tick.ActorTurns,
-                static (left, right) =>
-                    CompareActorId(left.ActorId, right.ActorId),
-                $"tick {tick.Tick} actor turns");
-            if (!tick.ActorTurns.Select(turn => turn.ActorId)
-                    .SequenceEqual(tick.TickStart.ActiveActorIds))
+            foreach (ReplayV3.LifeStart start in tick.TickStart.LifeStarts)
+                seedsByActor[start.ActorId] = start.ActorRandomSeed;
+
+            // The profile decides the turn kind, and a document may never
+            // carry both (§5.1).
+            if (mindProfile != tick.ActorTurns.IsDefault
+                || mindProfile == tick.MindTurns.IsDefault)
             {
                 throw new ArgumentException(
-                    $"Replay-v3 tick {tick.Tick} turns must exactly cover active actors.");
+                    $"Replay-v3 tick {tick.Tick} must carry exactly the turn kind its contract profile selects.");
+            }
+            if (!mindProfile)
+            {
+                RequireCanonicalOrder(
+                    tick.ActorTurns,
+                    static (left, right) =>
+                        CompareActorId(left.ActorId, right.ActorId),
+                    $"tick {tick.Tick} actor turns");
+                if (!tick.ActorTurns.Select(turn => turn.ActorId)
+                    .SequenceEqual(tick.TickStart.ActiveActorIds))
+                {
+                    throw new ArgumentException(
+                        $"Replay-v3 tick {tick.Tick} turns must exactly cover active actors.");
+                }
             }
             Dictionary<ReplayV3.ActorId, ReplayV3.LifeState> lives =
                 tick.TickStart.State.ActiveLives.ToDictionary(
                     life => life.ActorId);
-            foreach (ReplayV3.ActorTurn turn in tick.ActorTurns)
+            if (mindProfile)
+            {
+                ValidateMindTurns(
+                    tick,
+                    replay.Header,
+                    contract,
+                    lives,
+                    seedsByActor,
+                    roleTags);
+            }
+            foreach (ReplayV3.ActorTurn turn in
+                     tick.ActorTurns.IsDefault ? [] : tick.ActorTurns)
             {
                 ArgumentNullException.ThrowIfNull(turn);
                 ArgumentNullException.ThrowIfNull(turn.Observation);
@@ -3019,6 +4313,11 @@ internal static class ReplayV3Serializer
                     replay.Header,
                     contract,
                     $"tick {tick.Tick} actor {turn.ActorId}");
+                ValidateObservationAgainstState(
+                    turn.Observation,
+                    tick.TickStart.State,
+                    contract,
+                    $"tick {tick.Tick} actor {turn.ActorId}");
                 ValidateActionResolution(
                     turn.ActionResolution,
                     contract,
@@ -3039,6 +4338,12 @@ internal static class ReplayV3Serializer
                 factOrdinals,
                 eventSourceOrdinals,
                 $"tick {tick.Tick} resolution");
+            ValidateArcRelayChronologyPhase(
+                tick.TickStart.State,
+                tick.PostState,
+                tick.Events,
+                tick.Tick,
+                "resolution");
             previousState = tick.PostState;
         }
 
@@ -3065,6 +4370,897 @@ internal static class ReplayV3Serializer
         ValidateResult(replay.Result, replay.Ticks, previousState, contract);
     }
 
+    /// <summary>
+    /// Replays the Core-owned part of one Arc Relay phase from its closed fact
+    /// ledger. This is intentionally a replay validation, not merely a state
+    /// shape check: a forged handoff, pickup, drop, bank, Well transition, or
+    /// signature transition must fail even after the payload hash is rebuilt.
+    /// </summary>
+    private static void ValidateArcRelayChronologyPhase(
+        ReplayV3.WorldState beforeWorld,
+        ReplayV3.WorldState afterWorld,
+        ImmutableArray<ReplayV3.AuthoritativeEvent> events,
+        int tick,
+        string phase)
+    {
+        if (beforeWorld.Mode is not ReplayV3.ModeState.ArcRelay before
+            || afterWorld.Mode is not ReplayV3.ModeState.ArcRelay after)
+        {
+            return;
+        }
+        ReplayV3.ArcRelayFact[] facts = events
+            .Select(value => value.Payload)
+            .OfType<ReplayV3.EventPayload.ArcRelay>()
+            .Select(value => value.Fact)
+            .ToArray();
+        string context = $"Replay-v3 tick {tick} {phase} Arc Relay";
+
+        var cores = before.VisibleCores.ToDictionary(value => value.CoreId);
+        var opaqueFlights = new HashSet<ReplayV3.ArcCoreId>();
+        foreach (ReplayV3.ArcRelayFact fact in facts)
+        {
+            switch (fact)
+            {
+                case ReplayV3.ArcRelayFact.CoreBorn value:
+                    if (!cores.TryAdd(
+                            value.CoreId,
+                            new ReplayV3.ArcCore(
+                                value.CoreId,
+                                value.Position,
+                                "loose",
+                                null,
+                                0,
+                                null,
+                                null)
+                            {
+                                ChargeValue = value.ChargeValue,
+                            }))
+                    {
+                        throw new ArgumentException(
+                            $"{context} births an already-live Core.");
+                    }
+                    break;
+                case ReplayV3.ArcRelayFact.CoreRipened value:
+                    ReplayV3.ArcCore ripened = RequireCore(
+                        cores,
+                        value.CoreId,
+                        context);
+                    if (ripened.CarrierActorId is not null
+                        || !string.Equals(
+                            ripened.Disposition,
+                            "loose",
+                            StringComparison.Ordinal)
+                        || ripened.Position != value.Position
+                        || value.Value != ripened.ChargeValue + 1)
+                    {
+                        throw new ArgumentException(
+                            $"{context} ripens a Core outside the loose +1 progression.");
+                    }
+                    cores[value.CoreId] = ripened with
+                    {
+                        ChargeValue = value.Value,
+                    };
+                    break;
+                case ReplayV3.ArcRelayFact.CorePickedUp value:
+                    ReplayV3.ArcCore pickedUp = RequireCore(
+                        cores,
+                        value.CoreId,
+                        context);
+                    cores[value.CoreId] = pickedUp with
+                    {
+                        Position = value.Position,
+                        Disposition = "carried",
+                        CarrierActorId = value.CarrierActorId,
+                        NextRelocationTick = value.NextRelocationTick,
+                        FlightTarget = null,
+                        FlightCompletesAtTick = null,
+                    };
+                    opaqueFlights.Remove(value.CoreId);
+                    break;
+                case ReplayV3.ArcRelayFact.CoreRelocated value:
+                    RequireCore(cores, value.CoreId, context);
+                    ReplayV3.ArcCore prior = cores[value.CoreId];
+                    if (prior.Position != value.From)
+                    {
+                        throw new ArgumentException(
+                            $"{context} relocates a Core from a forged position.");
+                    }
+                    cores[value.CoreId] = prior with
+                    {
+                        Position = value.To,
+                        Disposition =
+                            value.CarrierActorId is null ? "loose" : "carried",
+                        CarrierActorId = value.CarrierActorId,
+                        NextRelocationTick = value.NextRelocationTick,
+                        FlightTarget = null,
+                        FlightCompletesAtTick = null,
+                    };
+                    opaqueFlights.Remove(value.CoreId);
+                    break;
+                case ReplayV3.ArcRelayFact.CoreHandedOff value:
+                    ReplayV3.ArcCore handed = RequireCore(
+                        cores,
+                        value.CoreId,
+                        context);
+                    if (handed.CarrierActorId != value.SourceActorId)
+                    {
+                        throw new ArgumentException(
+                            $"{context} hands off a Core from a non-carrier.");
+                    }
+                    cores[value.CoreId] = handed with
+                    {
+                        Position = value.Position,
+                        Disposition = "carried",
+                        CarrierActorId = value.TargetActorId,
+                        NextRelocationTick = value.NextRelocationTick,
+                        FlightTarget = null,
+                        FlightCompletesAtTick = null,
+                    };
+                    break;
+                case ReplayV3.ArcRelayFact.CoreDropped value:
+                    ReplayV3.ArcCore dropped = RequireCore(
+                        cores,
+                        value.CoreId,
+                        context);
+                    if (!string.Equals(
+                            value.DropKind,
+                            "arc-toss-landing",
+                            StringComparison.Ordinal)
+                        && dropped.CarrierActorId != value.SourceActorId)
+                    {
+                        throw new ArgumentException(
+                            $"{context} drops a Core from a non-carrier.");
+                    }
+                    if (string.Equals(
+                            value.DropKind,
+                            "signature-departure",
+                            StringComparison.Ordinal)
+                        && facts.OfType<ReplayV3.ArcRelayFact
+                                .SignatureChanged>()
+                            .Any(changed => string.Equals(
+                                    changed.SignatureId,
+                                    "arc-toss",
+                                    StringComparison.Ordinal)
+                                && string.Equals(
+                                    changed.Reason,
+                                    "launched",
+                                    StringComparison.Ordinal)
+                                && changed.OwnerActorId
+                                    == value.SourceActorId))
+                    {
+                        // The public drop fact deliberately does not duplicate
+                        // the Arc Toss target/arrival clock. The paired
+                        // signature fact carries those; final state must still
+                        // prove the Core entered flight.
+                        opaqueFlights.Add(value.CoreId);
+                    }
+                    else
+                    {
+                        cores[value.CoreId] = dropped with
+                        {
+                            Position = value.Position,
+                            Disposition = "loose",
+                            CarrierActorId = null,
+                            NextRelocationTick = value.NextRelocationTick,
+                            FlightTarget = null,
+                            FlightCompletesAtTick = null,
+                        };
+                    }
+                    break;
+                case ReplayV3.ArcRelayFact.CoreBanked value:
+                    ReplayV3.ArcCore banked = RequireCore(
+                        cores,
+                        value.CoreId,
+                        context);
+                    if (banked.CarrierActorId != value.CarrierActorId
+                        || banked.Position != value.Position
+                        || !cores.Remove(value.CoreId))
+                    {
+                        throw new ArgumentException(
+                            $"{context} banks a Core from a forged carrier or position.");
+                    }
+                    opaqueFlights.Remove(value.CoreId);
+                    break;
+            }
+        }
+
+        Dictionary<ReplayV3.ArcCoreId, ReplayV3.ArcCore> finalCores =
+            after.VisibleCores.ToDictionary(value => value.CoreId);
+        if (!cores.Keys.ToHashSet().SetEquals(finalCores.Keys))
+        {
+            throw new ArgumentException(
+                $"{context} Core births and banks do not produce the final live-Core set.");
+        }
+        foreach ((ReplayV3.ArcCoreId id, ReplayV3.ArcCore expected) in cores)
+        {
+            ReplayV3.ArcCore actual = finalCores[id];
+            if (opaqueFlights.Contains(id))
+            {
+                if (!string.Equals(
+                        actual.Disposition,
+                        "in-flight",
+                        StringComparison.Ordinal)
+                    || actual.CarrierActorId is not null
+                    || actual.FlightTarget is null
+                    || actual.FlightCompletesAtTick is null
+                    || !facts.OfType<ReplayV3.ArcRelayFact.SignatureChanged>()
+                        .Any(value => string.Equals(
+                                value.SignatureId,
+                                "arc-toss",
+                                StringComparison.Ordinal)
+                            && string.Equals(
+                                value.Reason,
+                                "launched",
+                                StringComparison.Ordinal)))
+                {
+                    throw new ArgumentException(
+                        $"{context} Arc Toss departure lacks matching in-flight state and launch fact.");
+                }
+            }
+            else if (actual != expected)
+            {
+                throw new ArgumentException(
+                    $"{context} Core facts do not produce the final Core state.");
+            }
+        }
+
+        Dictionary<string, ReplayV3.ArcRelayFact.WellChanged> wellFacts = facts
+            .OfType<ReplayV3.ArcRelayFact.WellChanged>()
+            .GroupBy(value => value.WellId, StringComparer.Ordinal)
+            .ToDictionary(
+                value => value.Key,
+                value => value.Last(),
+                StringComparer.Ordinal);
+        foreach ((ReplayV3.ArcWell oldWell, ReplayV3.ArcWell newWell) in
+                 before.Wells.Zip(after.Wells))
+        {
+            bool ledgerChanged = oldWell.PendingCharge != newWell.PendingCharge
+                || oldWell.RearmCompletesAtTick
+                    != newWell.RearmCompletesAtTick
+                || oldWell.OutstandingCoreId != newWell.OutstandingCoreId;
+            if (ledgerChanged
+                && (!wellFacts.TryGetValue(
+                        newWell.WellId,
+                        out ReplayV3.ArcRelayFact.WellChanged? changed)
+                    || changed.PendingCharge != newWell.PendingCharge
+                    || changed.RearmCompletesAtTick
+                        != newWell.RearmCompletesAtTick
+                    || changed.OutstandingCoreId
+                        != newWell.OutstandingCoreId))
+            {
+                throw new ArgumentException(
+                    $"{context} Well ledger changed without an exact WellChanged fact.");
+            }
+        }
+
+        bool reactorsChanged = !before.Reactors.SequenceEqual(after.Reactors);
+        if (reactorsChanged
+            && !facts.Any(value => value is
+                ReplayV3.ArcRelayFact.CoreBanked
+                or ReplayV3.ArcRelayFact.Pulse))
+        {
+            throw new ArgumentException(
+                $"{context} reactor state changed without a bank or Pulse fact.");
+        }
+        if (before.LatestPulseTeamId != after.LatestPulseTeamId
+            || before.LatestPulseTick != after.LatestPulseTick)
+        {
+            ReplayV3.ArcRelayFact.Pulse? pulse = facts
+                .OfType<ReplayV3.ArcRelayFact.Pulse>()
+                .LastOrDefault();
+            if (pulse is null
+                || after.LatestPulseTeamId != pulse.TeamId
+                || after.LatestPulseTick != tick)
+            {
+                throw new ArgumentException(
+                    $"{context} latest Pulse state lacks its exact Pulse fact.");
+            }
+        }
+
+        var beforeSignatures = before.VisibleSignatures.ToDictionary(
+            value => value.OperationId,
+            StringComparer.Ordinal);
+        var afterSignatures = after.VisibleSignatures.ToDictionary(
+            value => value.OperationId,
+            StringComparer.Ordinal);
+        HashSet<string> changedOperations = beforeSignatures.Keys
+            .Concat(afterSignatures.Keys)
+            .Where(id => !beforeSignatures.TryGetValue(id, out var oldValue)
+                || !afterSignatures.TryGetValue(id, out var newValue)
+                || oldValue != newValue)
+            .ToHashSet(StringComparer.Ordinal);
+        HashSet<string> evidencedOperations = facts
+            .OfType<ReplayV3.ArcRelayFact.SignatureChanged>()
+            .Select(value => value.OperationId)
+            .ToHashSet(StringComparer.Ordinal);
+        bool nullFieldChanged = facts
+            .OfType<ReplayV3.ArcRelayFact.SignatureChanged>()
+            .Any(value => string.Equals(
+                value.SignatureId,
+                "null-field",
+                StringComparison.Ordinal));
+        changedOperations.RemoveWhere(id =>
+            nullFieldChanged
+            && beforeSignatures.TryGetValue(id, out var oldValue)
+            && afterSignatures.TryGetValue(id, out var newValue)
+            && oldValue with { Suppressed = newValue.Suppressed } == newValue);
+        if (!changedOperations.IsSubsetOf(evidencedOperations))
+        {
+            throw new ArgumentException(
+                $"{context} signature state changed without SignatureChanged evidence.");
+        }
+    }
+
+    private static ReplayV3.ArcCore RequireCore(
+        IReadOnlyDictionary<ReplayV3.ArcCoreId, ReplayV3.ArcCore> cores,
+        ReplayV3.ArcCoreId coreId,
+        string context)
+    {
+        if (!cores.TryGetValue(coreId, out ReplayV3.ArcCore? core))
+        {
+            throw new ArgumentException(
+                $"{context} references a Core that is not live.");
+        }
+        return core;
+    }
+
+    /// <summary>
+    /// The mind-era document rules
+    /// (<c>docs/DESIGN-MIND-ARCHITECTURE-2026-07-31.md</c> §5.3). It is
+    /// strictly LESS work than the per-life pass and a STRONGER check: one
+    /// union is re-derived per participant per tick instead of N
+    /// specializations of it, and the facts the per-life format only implied —
+    /// which bodies a mind owned, what budget it was handed, which label each
+    /// body was actually given — become explicit and checkable.
+    /// <para>
+    /// The refusals added here, each forgeable and each forged in the tests:
+    /// a turn for a non-ticking or unowned participant; a decision claimed
+    /// accepted on a body that is not an own live body; two commands for one
+    /// body on a healthy turn; a fuel budget off the live-body formula; a
+    /// resolution set that is not exactly the participant's own live bodies;
+    /// an observation that disagrees with the re-derived pre-state; a role tag
+    /// over the 24-byte cap, off the canonical charset, or on a body its mind
+    /// never tagged; and a body random seed that is not the one the document
+    /// itself declared at that life's start.
+    /// </para>
+    /// </summary>
+    private static void ValidateMindTurns(
+        ReplayV3.TickFrame tick,
+        ReplayV3.ReplayHeader header,
+        CanonicalContractIndex contract,
+        IReadOnlyDictionary<ReplayV3.ActorId, ReplayV3.LifeState> lives,
+        IReadOnlyDictionary<ReplayV3.ActorId, string> seedsByActor,
+        Dictionary<ReplayV3.ActorId, string> roleTags)
+    {
+        RequireCanonicalOrder(
+            tick.MindTurns,
+            static (left, right) =>
+                left.ParticipantId.CompareTo(right.ParticipantId),
+            $"tick {tick.Tick} mind turns");
+        if (tick.MindTurns.Select(turn => turn.ParticipantId)
+                .Distinct()
+                .Count() != tick.MindTurns.Length)
+        {
+            throw new ArgumentException(
+                $"Replay-v3 tick {tick.Tick} mind turns must be participant-unique.");
+        }
+
+        var covered = new List<ReplayV3.ActorId>();
+        foreach (ReplayV3.MindTurn turn in tick.MindTurns)
+        {
+            ArgumentNullException.ThrowIfNull(turn);
+            ArgumentNullException.ThrowIfNull(turn.Observation);
+            string context =
+                $"tick {tick.Tick} mind {turn.ParticipantId}";
+            ContractParticipant? participant =
+                contract.Participants.FirstOrDefault(value =>
+                    value.ParticipantId == turn.ParticipantId);
+            if (participant is null || participant.TeamId != turn.TeamId)
+            {
+                throw new ArgumentException(
+                    $"Replay-v3 {context} names a participant the contract does not place on that team.");
+            }
+            if (turn.Tick != tick.Tick
+                || turn.Observation.Tick != tick.Tick
+                || turn.Observation.ParticipantId != turn.ParticipantId
+                || turn.Observation.TeamId != turn.TeamId)
+            {
+                throw new ArgumentException(
+                    $"Replay-v3 {context} does not identify its own tick and participant.");
+            }
+            if (turn.LiveBodyCount < 0
+                || !IsCanonicalInt64(turn.FuelBudget, nonNegative: true)
+                || long.Parse(
+                        turn.FuelBudget,
+                        NumberStyles.None,
+                        CultureInfo.InvariantCulture)
+                    != checked(
+                        GenericMindTickBudget.BaseTickFuel
+                        + (GenericMindTickBudget.PerBodyTickFuel
+                            * turn.LiveBodyCount)))
+            {
+                throw new ArgumentException(
+                    $"Replay-v3 {context} fuel budget must be exactly the live-body formula.");
+            }
+
+            ReplayV3.ActorId[] expectedBodies =
+            [
+                .. tick.TickStart.State.ActiveLives
+                    .Where(life =>
+                        life.ParticipantId == turn.ParticipantId)
+                    .Select(life => life.ActorId),
+            ];
+            RequireInitialized(turn.Resolutions, $"{context} resolutions");
+            RequireInitialized(turn.Commands, $"{context} commands");
+            RequireInitialized(turn.Intents, $"{context} intents");
+            if (turn.Resolutions.Length != expectedBodies.Length
+                || turn.LiveBodyCount != expectedBodies.Length
+                || turn.Observation.Bodies.Length != expectedBodies.Length)
+            {
+                throw new ArgumentException(
+                    $"Replay-v3 {context} resolutions must cover exactly its own live bodies.");
+            }
+            for (int index = 0; index < expectedBodies.Length; index++)
+            {
+                ReplayV3.MindBodyResolution resolution =
+                    turn.Resolutions[index];
+                ArgumentNullException.ThrowIfNull(resolution);
+                ReplayV3.ActorId expected = expectedBodies[index];
+                if (resolution.UnitId != expected.UnitId
+                    || resolution.LifeId != expected.LifeId)
+                {
+                    throw new ArgumentException(
+                        $"Replay-v3 {context} resolutions must be its own live bodies in canonical order.");
+                }
+                ValidateActionResolution(
+                    resolution.ActionResolution,
+                    contract,
+                    $"{context} body {expected.UnitId}:{expected.LifeId} resolution");
+            }
+            covered.AddRange(expectedBodies);
+
+            ValidateMindRuntimeFault(turn, context);
+            ValidateMindCommands(turn, expectedBodies, context);
+            ValidateMindObservation(
+                turn,
+                tick,
+                header,
+                contract,
+                lives,
+                seedsByActor,
+                roleTags,
+                context);
+        }
+
+        if (!covered.Order(ActorIdOrder.Instance)
+            .SequenceEqual(tick.TickStart.ActiveActorIds))
+        {
+            throw new ArgumentException(
+                $"Replay-v3 tick {tick.Tick} mind turns must resolve exactly the active actor set exactly once.");
+        }
+
+        // Tags set this tick are what the NEXT tick publishes: the observation
+        // the mind just answered was frozen before any of them were written.
+        foreach (ReplayV3.MindTurn turn in tick.MindTurns)
+        {
+            if (turn.RuntimeFault is not null)
+                continue;
+            foreach (ReplayV3.MindCommand command in turn.Commands)
+            {
+                if (!string.Equals(
+                        command.Outcome,
+                        "accepted",
+                        StringComparison.Ordinal)
+                    || command.RoleTag is null)
+                {
+                    continue;
+                }
+                var actorId = new ReplayV3.ActorId(
+                    turn.TeamId,
+                    command.UnitId,
+                    command.LifeId);
+                if (command.RoleTag.Length == 0)
+                    roleTags.Remove(actorId);
+                else
+                    roleTags[actorId] = command.RoleTag;
+            }
+        }
+        HashSet<ReplayV3.ActorId> live = tick.PostState.ActiveLives
+            .Select(life => life.ActorId)
+            .ToHashSet();
+        foreach (ReplayV3.ActorId dead in
+                 roleTags.Keys.Where(actor => !live.Contains(actor))
+                     .ToArray())
+        {
+            roleTags.Remove(dead);
+        }
+    }
+
+    private static void ValidateMindRuntimeFault(
+        ReplayV3.MindTurn turn,
+        string context)
+    {
+        ReplayV3.MindRuntimeFault? fault = turn.RuntimeFault;
+        if (fault is null)
+            return;
+        if (fault.ParticipantId != turn.ParticipantId
+            || fault.TeamId != turn.TeamId
+            || (fault.ActorId is not null
+                && fault.ActorId.TeamId != turn.TeamId)
+            || !IsFaultStage(fault.Stage)
+            || string.IsNullOrWhiteSpace(fault.FaultCode)
+            || !IsCanonicalInt64(
+                fault.CumulativeFaultCount,
+                nonNegative: true)
+            || long.Parse(
+                    fault.CumulativeFaultCount,
+                    NumberStyles.None,
+                    CultureInfo.InvariantCulture) <= 0)
+        {
+            throw new ArgumentException(
+                $"Replay-v3 {context} runtime fault evidence does not match its turn.");
+        }
+    }
+
+    private static void ValidateMindCommands(
+        ReplayV3.MindTurn turn,
+        IReadOnlyCollection<ReplayV3.ActorId> ownLiveBodies,
+        string context)
+    {
+        bool faulted = turn.RuntimeFault is not null;
+        var keys = new HashSet<(int UnitId, int LifeId)>();
+        var live = ownLiveBodies
+            .Select(body => (body.UnitId, body.LifeId))
+            .ToHashSet();
+        foreach (ReplayV3.MindCommand command in turn.Commands)
+        {
+            ArgumentNullException.ThrowIfNull(command);
+            bool accepted = command.Outcome switch
+            {
+                "accepted" => true,
+                "rejected" => false,
+                _ => throw new ArgumentException(
+                    $"Replay-v3 {context} contains an invalid mind command outcome."),
+            };
+            // A duplicate is only ever legitimate on the faulted turn the
+            // duplicate itself caused, where nothing was routed and the raw
+            // submission is preserved verbatim as evidence.
+            if (!keys.Add((command.UnitId, command.LifeId)) && !faulted)
+            {
+                throw new ArgumentException(
+                    $"Replay-v3 {context} cannot command the same body twice.");
+            }
+            if (command.UnitId < 0
+                || command.LifeId < 0
+                || string.IsNullOrWhiteSpace(command.ActionId)
+                || command.ActionCode < 0
+                || command.Arguments.IsDefault)
+            {
+                throw new ArgumentException(
+                    $"Replay-v3 {context} contains a malformed mind command.");
+            }
+            if (command.RoleTag is not null
+                && !GenericMindRoleTag.IsValid(command.RoleTag))
+            {
+                throw new ArgumentException(
+                    $"Replay-v3 {context} contains a role tag outside the canonical charset or the 24-byte cap.");
+            }
+            if (faulted && accepted)
+            {
+                throw new ArgumentException(
+                    $"Replay-v3 {context} cannot record an accepted command on a faulted turn.");
+            }
+            if (!faulted
+                && accepted != live.Contains(
+                    (command.UnitId, command.LifeId)))
+            {
+                throw new ArgumentException(
+                    accepted
+                        ? $"Replay-v3 {context} accepted a command on a body that is not an own live body."
+                        : $"Replay-v3 {context} rejected a command on one of its own live bodies.");
+            }
+        }
+    }
+
+    private static void ValidateMindObservation(
+        ReplayV3.MindTurn turn,
+        ReplayV3.TickFrame tick,
+        ReplayV3.ReplayHeader header,
+        CanonicalContractIndex contract,
+        IReadOnlyDictionary<ReplayV3.ActorId, ReplayV3.LifeState> lives,
+        IReadOnlyDictionary<ReplayV3.ActorId, string> seedsByActor,
+        IReadOnlyDictionary<ReplayV3.ActorId, string> roleTags,
+        string context)
+    {
+        ReplayV3.MindObservation observation = turn.Observation;
+        if (observation.SchemaVersion
+                != header.Runtime.ObservationSchemaVersion
+            || !string.Equals(
+                observation.MatchContractFingerprint,
+                contract.Fingerprint,
+                StringComparison.Ordinal))
+        {
+            throw new ArgumentException(
+                $"Replay-v3 {context} observation does not reference the document's exact contract generation.");
+        }
+        if (!observation.AlliedIntents.IsDefaultOrEmpty)
+        {
+            throw new ArgumentException(
+                $"Replay-v3 {context} allied intents are reserved and must be empty.");
+        }
+        if (turn.Intents.Length
+            > GenericMindContractReservations.MaxDeclaredIntentsPerTick)
+        {
+            throw new ArgumentException(
+                $"Replay-v3 {context} declared more intents than the reserved bound.");
+        }
+        foreach (ReplayV3.MindIntent intent in turn.Intents)
+        {
+            if (intent is null
+                || string.IsNullOrEmpty(intent.TagId)
+                || Encoding.UTF8.GetByteCount(intent.TagId)
+                    > GenericMindContractReservations.MaxIntentTagUtf8Bytes
+                || !IsCanonicalInt64(intent.Value, nonNegative: false))
+            {
+                throw new ArgumentException(
+                    $"Replay-v3 {context} contains a malformed declared intent.");
+            }
+        }
+
+        // BODIES: the participant's own live lives, in canonical order, each
+        // publishing the exact authoritative pre-tick state.
+        RequireCanonicalOrder(
+            observation.Bodies,
+            static (left, right) =>
+                CompareActorId(left.ActorId, right.ActorId),
+            $"{context} bodies");
+        foreach (ReplayV3.MindBody body in observation.Bodies)
+        {
+            ArgumentNullException.ThrowIfNull(body);
+            if (!lives.TryGetValue(
+                    body.ActorId,
+                    out ReplayV3.LifeState? life)
+                || life.ParticipantId != turn.ParticipantId
+                || body.Generation != life.Generation
+                || !string.Equals(
+                    body.FormId,
+                    life.FormId,
+                    StringComparison.Ordinal)
+                || body.Position != life.Position
+                || !string.Equals(
+                    body.Facing,
+                    life.Facing,
+                    StringComparison.Ordinal)
+                || body.Health != life.Health
+                || body.Cooldown != life.Cooldown
+                || body.Energy != life.Energy
+                || body.LifeStartedTick != life.SpawnedAtTick)
+            {
+                throw new ArgumentException(
+                    $"Replay-v3 {context} body does not match its authoritative pre-state.");
+            }
+            if (!seedsByActor.TryGetValue(
+                    body.ActorId,
+                    out string? seed)
+                || !string.Equals(
+                    body.BodyRandomSeed,
+                    seed,
+                    StringComparison.Ordinal))
+            {
+                throw new ArgumentException(
+                    $"Replay-v3 {context} body random seed is not the seed the document declared at that life's start.");
+            }
+            RequirePublishedRoleTag(
+                body.RoleTag,
+                body.ActorId,
+                roleTags,
+                context);
+            ValidateActionLegalities(
+                body.ActionLegalities,
+                contract,
+                $"{context} body {body.ActorId.UnitId}");
+        }
+
+        // SLOTS: exactly the participant's own slots, in canonical order,
+        // published every tick rather than only at start (§13.2).
+        int[] ownSlots =
+        [
+            .. contract.UnitSlots
+                .Where(slot => slot.ParticipantId == turn.ParticipantId)
+                .Select(slot => slot.UnitId)
+                .Order(),
+        ];
+        if (!observation.Slots
+            .Select(slot => slot.UnitId)
+            .SequenceEqual(ownSlots)
+            || observation.Slots.Any(slot => slot.TeamId != turn.TeamId))
+        {
+            throw new ArgumentException(
+                $"Replay-v3 {context} slot table must be exactly its own slots in canonical order.");
+        }
+        foreach (ReplayV3.MindSlot slot in observation.Slots)
+        {
+            ValidateUnitSlotState(
+                slot.State,
+                $"{context} slot {slot.UnitId}");
+            ReplayV3.SlotState authoritative =
+                tick.TickStart.State.Slots.Single(value =>
+                    value.TeamId == slot.TeamId
+                    && value.UnitId == slot.UnitId);
+            if (slot.State != authoritative.State)
+            {
+                throw new ArgumentException(
+                    $"Replay-v3 {context} slot {slot.UnitId} does not match its authoritative pre-state.");
+            }
+            if (!slot.CandidateClassIds.IsDefaultOrEmpty
+                || slot.SelectedClassId is not null)
+            {
+                throw new ArgumentException(
+                    $"Replay-v3 {context} slot {slot.UnitId} carries a reserved chassis selection that v1 never writes.");
+            }
+        }
+
+        // ALLIES are allied MINDS' bodies: on this team, never this mind's own.
+        foreach (ReplayV3.ObservedAlly ally in observation.Allies)
+        {
+            if (ally.ActorId.TeamId != turn.TeamId
+                || lives.TryGetValue(
+                        ally.ActorId,
+                        out ReplayV3.LifeState? allyLife)
+                    && allyLife.ParticipantId == turn.ParticipantId)
+            {
+                throw new ArgumentException(
+                    $"Replay-v3 {context} allies must be allied minds' bodies, never its own.");
+            }
+            RequirePublishedRoleTag(
+                ally.RoleTag,
+                ally.ActorId,
+                roleTags,
+                context);
+        }
+        foreach (ReplayV3.ObservedEnemy enemy in observation.Enemies)
+        {
+            RequirePublishedRoleTag(
+                enemy.RoleTag,
+                enemy.ActorId,
+                roleTags,
+                context);
+        }
+
+        ValidateMindObservationAgainstState(
+            observation,
+            tick.TickStart.State,
+            contract,
+            context);
+    }
+
+    private static void RequirePublishedRoleTag(
+        string? published,
+        ReplayV3.ActorId actorId,
+        IReadOnlyDictionary<ReplayV3.ActorId, string> roleTags,
+        string context)
+    {
+        if (published is not null && !GenericMindRoleTag.IsValid(published))
+        {
+            throw new ArgumentException(
+                $"Replay-v3 {context} publishes a role tag outside the canonical charset or the 24-byte cap.");
+        }
+        roleTags.TryGetValue(actorId, out string? expected);
+        if (!string.Equals(published, expected, StringComparison.Ordinal))
+        {
+            throw new ArgumentException(
+                $"Replay-v3 {context} publishes a role tag its mind never set on that body.");
+        }
+    }
+
+    /// <summary>
+    /// The union half, re-derived against the authoritative pre-state. It is
+    /// the per-life check with the per-life specialization removed: the union
+    /// was always the interesting invariant, and now there is one of it per
+    /// team per tick instead of N byte-identical copies (§5.3).
+    /// </summary>
+    private static void ValidateMindObservationAgainstState(
+        ReplayV3.MindObservation observation,
+        ReplayV3.WorldState state,
+        CanonicalContractIndex contract,
+        string context)
+    {
+        if (!ModeObservationMatches(
+                observation.Mode,
+                state.Mode,
+                observation.TeamId,
+                observation.VisibleTiles.Select(value => value.Position),
+                state.ActiveLives
+                    .Where(value => value.ActorId.TeamId == observation.TeamId)
+                    .Select(value => value.Position),
+                contract))
+        {
+            throw new ArgumentException(
+                $"Replay-v3 {context} observed mode must exactly match the authoritative pre-state.");
+        }
+        // Shape only, exactly as the per-life pass does. The scoreboard a mind
+        // observes is the MODE's projection of the score catalog, which is a
+        // different object from the world snapshot's ledger even when the two
+        // agree; asserting identity here would be asserting an implementation
+        // detail rather than a fact about the match.
+        ValidateScoreboard(
+            observation.Scoreboard,
+            contract,
+            $"{context} scoreboard");
+        if (!observation.Participants.SequenceEqual(state.Participants))
+        {
+            throw new ArgumentException(
+                $"Replay-v3 {context} observed participant statuses must exactly match the authoritative pre-state.");
+        }
+        foreach (ReplayV3.ObservedTile tile in observation.VisibleTiles)
+        {
+            ReplayV3.SpawnReservation? expected = SpawnReservationAt(
+                tile.Position,
+                state,
+                contract);
+            if (tile.SpawnReservation != expected)
+            {
+                throw new ArgumentException(
+                    $"Replay-v3 {context} visible spawn reservation does not match the authoritative pre-state.");
+            }
+        }
+        if (observation.VisibleProjectiles is not { } projectiles)
+            return;
+        HashSet<ReplayV3.ActorId> visibleEnemies = observation.Enemies
+            .Select(enemy => enemy.ActorId)
+            .ToHashSet();
+        foreach (ReplayV3.ObservedProjectile observed in projectiles)
+        {
+            ReplayV3.ProjectileState? authoritative =
+                state.Projectiles.FirstOrDefault(value =>
+                    string.Equals(
+                        value.ProjectileId,
+                        observed.ProjectileId,
+                        StringComparison.Ordinal));
+            ContractAttackProfile? profile = authoritative is null
+                ? null
+                : contract.AttackProfiles.FirstOrDefault(value =>
+                    string.Equals(
+                        value.Id,
+                        authoritative.AttackProfileId,
+                        StringComparison.Ordinal));
+            ReplayV3.ActorId? expectedOwnerActorId =
+                authoritative is not null
+                    && (authoritative.OwnerTeamId == observation.TeamId
+                        || visibleEnemies.Contains(
+                            authoritative.OwnerActorId))
+                    ? authoritative.OwnerActorId
+                    : null;
+            if (authoritative is null
+                || profile is null
+                || observed.OwnerTeamId != authoritative.OwnerTeamId
+                || observed.OwnerActorId != expectedOwnerActorId
+                || observed.Position != authoritative.Position
+                || !string.Equals(
+                    observed.Heading,
+                    authoritative.Heading,
+                    StringComparison.Ordinal)
+                || observed.TilesPerAdvance != profile.TilesPerAdvance
+                || observed.TicksPerAdvance != profile.TicksPerAdvance
+                || observed.TicksUntilAdvance
+                    != authoritative.TicksUntilAdvance
+                || observed.RemainingTiles != authoritative.RemainingTiles
+                || observed.DamagePerHit != profile.DamagePerHit)
+            {
+                throw new ArgumentException(
+                    $"Replay-v3 {context} visible projectile does not match the authoritative pre-state and attack profile.");
+            }
+        }
+    }
+
+    private sealed class ActorIdOrder : IComparer<ReplayV3.ActorId>
+    {
+        public static ActorIdOrder Instance { get; } = new();
+
+        public int Compare(ReplayV3.ActorId? x, ReplayV3.ActorId? y) =>
+            x is null || y is null ? 0 : CompareActorId(x, y);
+    }
+
     private static void ValidateProvenance(
         ReplayV3.ProvenanceMetadata? provenance,
         CanonicalContractIndex contract)
@@ -3077,11 +5273,9 @@ internal static class ReplayV3Serializer
                 left.ParticipantId.CompareTo(right.ParticipantId),
             "provenance participants");
         if (!provenance.Participants
-                .Select(value =>
-                    new ContractParticipant(
-                        value.ParticipantId,
-                        value.TeamId))
-                .SequenceEqual(contract.Participants))
+                .Select(value => (value.ParticipantId, value.TeamId))
+                .SequenceEqual(contract.Participants.Select(
+                    value => (value.ParticipantId, value.TeamId))))
         {
             throw new ArgumentException(
                 "Replay-v3 provenance participants must exactly match match topology.");
@@ -3093,6 +5287,12 @@ internal static class ReplayV3Serializer
             ArgumentException.ThrowIfNullOrWhiteSpace(
                 participant.RuntimeKind);
             ArgumentException.ThrowIfNullOrWhiteSpace(participant.Accent);
+            if (participant.MindDataHash is { } mindDataHash
+                && !IsLowercaseSha256(mindDataHash))
+            {
+                throw new ArgumentException(
+                    "Replay-v3 mind-data hashes must be lowercase SHA-256 values.");
+            }
         }
     }
 
@@ -3111,6 +5311,7 @@ internal static class ReplayV3Serializer
         ValidateLifeStarts(
             frame.LifeStarts,
             header,
+            contract,
             "initial life starts");
         ValidateEvents(frame.Events, 0, "initial events");
     }
@@ -3147,7 +5348,8 @@ internal static class ReplayV3Serializer
                 .Select(value =>
                     new ContractParticipant(
                         value.ParticipantId,
-                        value.TeamId))
+                        value.TeamId,
+                        value.ClassId))
                 .SequenceEqual(contract.Participants))
         {
             throw new ArgumentException(
@@ -3163,13 +5365,16 @@ internal static class ReplayV3Serializer
                     right.TeamId,
                     right.UnitId),
             $"{context} slots");
+        // The world state carries a slot's IDENTITY, never its chassis: a
+        // slot's declared chassis is a contract fact, published once in the
+        // topology, so comparing the identity triple is what "matches
+        // topology" means under compositions.
         if (!state.Slots
                 .Select(value =>
-                    new ContractUnitSlot(
-                        value.TeamId,
-                        value.UnitId,
-                        value.ParticipantId))
-                .SequenceEqual(contract.UnitSlots))
+                    (value.TeamId, value.UnitId, value.ParticipantId))
+                .SequenceEqual(
+                    contract.UnitSlots.Select(value =>
+                        (value.TeamId, value.UnitId, value.ParticipantId))))
         {
             throw new ArgumentException(
                 $"Replay-v3 {context} slots must exactly match topology.");
@@ -3584,6 +5789,7 @@ internal static class ReplayV3Serializer
     private static void ValidateLifeStarts(
         ImmutableArray<ReplayV3.LifeStart> starts,
         ReplayV3.ReplayHeader header,
+        CanonicalContractIndex contract,
         string context)
     {
         RequireCanonicalOrder(
@@ -3607,6 +5813,31 @@ internal static class ReplayV3Serializer
             {
                 throw new ArgumentException(
                     $"Replay-v3 {context} metadata does not match the header contract.");
+            }
+            if (start.TeamRandomSeed is { } teamRandomSeed)
+            {
+                // Re-derived rather than merely bounds-checked: the team
+                // stream's whole value is that teammates provably share it,
+                // so a forged or team-swapped seed is refused here.
+                if (!IsCanonicalUInt64(teamRandomSeed)
+                    || !ulong.TryParse(
+                        teamRandomSeed,
+                        NumberStyles.None,
+                        CultureInfo.InvariantCulture,
+                        out ulong recordedTeamSeed)
+                    || !ulong.TryParse(
+                        header.Seed,
+                        NumberStyles.None,
+                        CultureInfo.InvariantCulture,
+                        out ulong matchSeed)
+                    || recordedTeamSeed != SeedDerivation.DeriveTeamSeed(
+                        matchSeed,
+                        start.ActorId.TeamId,
+                        contract.SeedProfileId))
+                {
+                    throw new ArgumentException(
+                        $"Replay-v3 {context} team seed does not match deterministic derivation.");
+                }
             }
             if (!IsSpawnReason(start.Origin.Reason))
             {
@@ -3633,10 +5864,14 @@ internal static class ReplayV3Serializer
                 $"Replay-v3 {context} observation metadata does not match the header contract.");
         }
         ArgumentNullException.ThrowIfNull(observation.Self);
-        if (!IsDirection(observation.Self.Facing))
+        if (!IsDirection(observation.Self.Facing)
+            || !ObservationClassMatches(
+                observation.Self.ActorId,
+                observation.Self.ClassId,
+                contract))
         {
             throw new ArgumentException(
-                $"Replay-v3 {context} self facing is invalid.");
+                $"Replay-v3 {context} self facing or class is invalid.");
         }
         if (observation.Self.PreviousActionResolution is { } previous)
         {
@@ -3645,6 +5880,11 @@ internal static class ReplayV3Serializer
                 contract,
                 $"{context} previous action resolution");
         }
+
+        ValidateRouteCooldowns(
+            observation.Self.RouteCooldowns,
+            observation.Tick,
+            $"{context} self route cooldowns");
 
         RequireCanonicalOrder(
             observation.TeamUnits,
@@ -3673,7 +5913,8 @@ internal static class ReplayV3Serializer
                 .Select(value =>
                     new ContractParticipant(
                         value.ParticipantId,
-                        value.TeamId))
+                        value.TeamId,
+                        value.ClassId))
                 .SequenceEqual(contract.Participants))
         {
             throw new ArgumentException(
@@ -3688,10 +5929,14 @@ internal static class ReplayV3Serializer
         foreach (ReplayV3.ObservedAlly ally in observation.Allies)
         {
             ArgumentNullException.ThrowIfNull(ally);
-            if (!IsDirection(ally.Facing))
+            if (!IsDirection(ally.Facing)
+                || !ObservationClassMatches(
+                    ally.ActorId,
+                    ally.ClassId,
+                    contract))
             {
                 throw new ArgumentException(
-                    $"Replay-v3 {context} ally facing is invalid.");
+                    $"Replay-v3 {context} ally facing or class is invalid.");
             }
             if (ally.PreviousActionResolution is { } allyPrevious)
             {
@@ -3700,6 +5945,11 @@ internal static class ReplayV3Serializer
                     contract,
                     $"{context} ally previous action resolution");
             }
+
+            ValidateRouteCooldowns(
+                ally.RouteCooldowns,
+                observation.Tick,
+                $"{context} ally route cooldowns");
         }
 
         RequireCanonicalOrder(
@@ -3710,10 +5960,14 @@ internal static class ReplayV3Serializer
         foreach (ReplayV3.ObservedEnemy enemy in observation.Enemies)
         {
             ArgumentNullException.ThrowIfNull(enemy);
-            if (!IsDirection(enemy.Facing))
+            if (!IsDirection(enemy.Facing)
+                || !ObservationClassMatches(
+                    enemy.ActorId,
+                    enemy.ClassId,
+                    contract))
             {
                 throw new ArgumentException(
-                    $"Replay-v3 {context} enemy facing is invalid.");
+                    $"Replay-v3 {context} enemy facing or class is invalid.");
             }
             ValidateActorIds(
                 enemy.ObservedBy,
@@ -3731,6 +5985,27 @@ internal static class ReplayV3Serializer
             ValidateActorIds(
                 tile.ObservedBy,
                 $"{context} visible tile observedBy");
+            if (tile.SpawnReservation is { } reservation)
+            {
+                bool automatic = string.Equals(
+                    reservation.Kind,
+                    "automatic-return",
+                    StringComparison.Ordinal);
+                bool dynamic = reservation.Kind is
+                    "fabrication" or "replication";
+                if (!contract.UnitSlots.Any(slot =>
+                        slot.TeamId == reservation.TeamId
+                        && slot.UnitId == reservation.UnitId)
+                    || !automatic && !dynamic
+                    || automatic && reservation.DueTick is not null
+                    || dynamic
+                        && (reservation.DueTick is not int dueTick
+                            || dueTick < observation.Tick))
+                {
+                    throw new ArgumentException(
+                        $"Replay-v3 {context} visible spawn reservation is invalid.");
+                }
+            }
         }
 
         if (observation.VisibleProjectiles is { } projectiles)
@@ -3746,13 +6021,26 @@ internal static class ReplayV3Serializer
             foreach (ReplayV3.ObservedProjectile projectile in projectiles)
             {
                 ArgumentNullException.ThrowIfNull(projectile);
+                bool invalidLedger =
+                    projectile.TicksPerAdvance <= 0
+                    || projectile.TicksUntilAdvance
+                        > projectile.TicksPerAdvance
+                    || projectile.DamagePerHit <= 0;
                 if (!IsCanonicalInt64(
                         projectile.ProjectileId,
                         nonNegative: true)
-                    || !IsProjectileHeading(projectile.Heading))
+                    || !IsProjectileHeading(projectile.Heading)
+                    || !contract.TeamIds.Contains(
+                        projectile.OwnerTeamId)
+                    || projectile.OwnerActorId is { } owner
+                        && owner.TeamId != projectile.OwnerTeamId
+                    || projectile.TilesPerAdvance <= 0
+                    || projectile.TicksUntilAdvance <= 0
+                    || projectile.RemainingTiles < 0
+                    || invalidLedger)
                 {
                     throw new ArgumentException(
-                        $"Replay-v3 {context} projectile id is invalid.");
+                        $"Replay-v3 {context} projectile state is invalid.");
                 }
                 ValidateActorIds(
                     projectile.ObservedBy,
@@ -3819,6 +6107,248 @@ internal static class ReplayV3Serializer
             observation.ActionLegalities,
             contract,
             context);
+    }
+
+    /// <summary>
+    /// A published route-cooldown list is canonical only while every clock
+    /// is live: a lapsed entry (ready at or before the observed tick) is an
+    /// impossible history, and the canonical writer never emits an empty
+    /// list, so presence implies at least one element.
+    /// </summary>
+    private static void ValidateRouteCooldowns(
+        ImmutableArray<ReplayV3.RouteCooldown> value,
+        int observedTick,
+        string context)
+    {
+        if (value.IsDefaultOrEmpty)
+            return;
+        RequireCanonicalOrder(
+            value,
+            static (left, right) => string.CompareOrdinal(
+                left.TransitionId,
+                right.TransitionId),
+            context);
+        foreach (ReplayV3.RouteCooldown cooldown in value)
+        {
+            ArgumentNullException.ThrowIfNull(cooldown);
+            if (string.IsNullOrEmpty(cooldown.TransitionId)
+                || cooldown.ReadyAtTick <= observedTick)
+            {
+                throw new ArgumentException(
+                    $"Replay-v3 {context} contains a lapsed or unnamed route cooldown.");
+            }
+        }
+    }
+
+    private static bool ObservationClassMatches(
+        ReplayV3.ActorId actorId,
+        string? classId,
+        CanonicalContractIndex contract)
+    {
+        ContractUnitSlot? slot = contract.UnitSlots.FirstOrDefault(
+            value => value.TeamId == actorId.TeamId
+                && value.UnitId == actorId.UnitId);
+        ContractParticipant? participant = slot is null
+            ? null
+            : contract.Participants.FirstOrDefault(
+                value => value.ParticipantId == slot.ParticipantId);
+        // A BODY's published chassis is its SLOT's where the slot declares
+        // one, and its participant's otherwise (DECISIONS #191 §9.2 as shipped
+        // by #194's compositions). Under a mixed army the participant's ID is
+        // a composition token, not a chassis, so a body must not be checked
+        // against it.
+        return participant is not null
+            && string.Equals(
+                classId,
+                slot?.ClassId ?? participant.ClassId,
+                StringComparison.Ordinal);
+    }
+
+    private static void ValidateObservationAgainstState(
+        ReplayV3.Observation observation,
+        ReplayV3.WorldState state,
+        CanonicalContractIndex contract,
+        string context)
+    {
+        if (!ModeObservationMatches(
+                observation.Mode,
+                state.Mode,
+                observation.Self.ActorId.TeamId,
+                observation.VisibleTiles.Select(value => value.Position),
+                state.ActiveLives
+                    .Where(value => value.ActorId.TeamId
+                        == observation.Self.ActorId.TeamId)
+                    .Select(value => value.Position),
+                contract))
+        {
+            throw new ArgumentException(
+                $"Replay-v3 {context} observed mode must exactly match the authoritative pre-state.");
+        }
+
+        foreach (ReplayV3.ObservedTile tile in observation.VisibleTiles)
+        {
+            ReplayV3.SpawnReservation? expected =
+                SpawnReservationAt(
+                    tile.Position,
+                    state,
+                    contract);
+            if (tile.SpawnReservation != expected)
+            {
+                throw new ArgumentException(
+                    $"Replay-v3 {context} visible spawn reservation does not match the authoritative pre-state.");
+            }
+        }
+
+        if (observation.VisibleProjectiles is not { } projectiles)
+            return;
+        foreach (ReplayV3.ObservedProjectile observed in projectiles)
+        {
+            ReplayV3.ProjectileState? authoritative =
+                state.Projectiles.FirstOrDefault(value =>
+                    string.Equals(
+                        value.ProjectileId,
+                        observed.ProjectileId,
+                        StringComparison.Ordinal));
+            ContractAttackProfile? profile = authoritative is null
+                ? null
+                : contract.AttackProfiles.FirstOrDefault(value =>
+                    string.Equals(
+                        value.Id,
+                        authoritative.AttackProfileId,
+                        StringComparison.Ordinal));
+            ReplayV3.ActorId? expectedOwnerActorId =
+                authoritative is not null
+                    && (authoritative.OwnerTeamId
+                            == observation.Self.ActorId.TeamId
+                        || observation.Enemies.Any(enemy =>
+                            enemy.ActorId
+                                == authoritative.OwnerActorId))
+                    ? authoritative.OwnerActorId
+                    : null;
+            if (authoritative is null
+                || profile is null
+                || observed.OwnerTeamId
+                    != authoritative.OwnerTeamId
+                || observed.OwnerActorId
+                    != expectedOwnerActorId
+                || observed.Position != authoritative.Position
+                || !string.Equals(
+                    observed.Heading,
+                    authoritative.Heading,
+                    StringComparison.Ordinal)
+                || observed.TilesPerAdvance
+                    != profile.TilesPerAdvance
+                || observed.TicksPerAdvance
+                    != profile.TicksPerAdvance
+                || observed.TicksUntilAdvance
+                    != authoritative.TicksUntilAdvance
+                || observed.RemainingTiles
+                    != authoritative.RemainingTiles
+                || observed.DamagePerHit != profile.DamagePerHit)
+            {
+                throw new ArgumentException(
+                    $"Replay-v3 {context} visible projectile does not match the authoritative pre-state and attack profile.");
+            }
+        }
+    }
+
+    private static bool ModeObservationMatches(
+        ReplayV3.ModeState observed,
+        ReplayV3.ModeState authoritative,
+        int observingTeamId,
+        IEnumerable<ReplayV3.PositionValue> visiblePositions,
+        IEnumerable<ReplayV3.PositionValue> ownBodyPositions,
+        CanonicalContractIndex contract)
+    {
+        if (observed is not ReplayV3.ModeState.ArcRelay arcObserved
+            || authoritative is not ReplayV3.ModeState.ArcRelay arcAuthoritative)
+        {
+            return observed == authoritative;
+        }
+
+        HashSet<ReplayV3.PositionValue> visible = visiblePositions.ToHashSet();
+        ReplayV3.PositionValue[] ownBodies = ownBodyPositions.ToArray();
+        int tripNodeRevealRange = contract.Mode.ArcRelay!
+            .TripNodeRevealRange;
+        ImmutableArray<ReplayV3.ArcCore> expectedCores = arcAuthoritative
+            .VisibleCores.Where(core =>
+                core.CarrierActorId?.TeamId == observingTeamId
+                || visible.Contains(core.Position))
+            .ToImmutableArray();
+        ImmutableArray<ReplayV3.ArcSignature> expectedSignatures =
+            arcAuthoritative.VisibleSignatures.Where(signature =>
+                    signature.OwnerTeamId == observingTeamId
+                    || string.Equals(
+                        signature.Phase,
+                        "tell",
+                        StringComparison.Ordinal)
+                    || string.Equals(
+                        signature.SignatureKind,
+                        "trip-node",
+                        StringComparison.Ordinal)
+                        && signature.Positions.Any(position =>
+                            ownBodies.Any(body => Math.Max(
+                                Math.Abs(body.X - position.X),
+                                Math.Abs(body.Y - position.Y))
+                                    <= tripNodeRevealRange))
+                    || signature.Positions.Any(visible.Contains))
+                .ToImmutableArray();
+        return string.Equals(
+                arcObserved.Id,
+                arcAuthoritative.Id,
+                StringComparison.Ordinal)
+            && arcObserved.Wells.SequenceEqual(arcAuthoritative.Wells)
+            && arcObserved.Reactors.SequenceEqual(arcAuthoritative.Reactors)
+            && arcObserved.VisibleCores.SequenceEqual(expectedCores)
+            && arcObserved.VisibleSignatures.SequenceEqual(expectedSignatures)
+            && arcObserved.LatestPulseTeamId
+                == arcAuthoritative.LatestPulseTeamId
+            && arcObserved.LatestPulseTick == arcAuthoritative.LatestPulseTick;
+    }
+
+    private static ReplayV3.SpawnReservation? SpawnReservationAt(
+        ReplayV3.PositionValue position,
+        ReplayV3.WorldState state,
+        CanonicalContractIndex contract)
+    {
+        foreach (ReplayV3.PendingReplication replication in
+                 state.PendingReplications)
+        {
+            ReplayV3.ReservedDescendant? descendant =
+                replication.Descendants.FirstOrDefault(value =>
+                    value.Position == position);
+            if (descendant is not null)
+            {
+                return new ReplayV3.SpawnReservation(
+                    descendant.TeamId,
+                    descendant.UnitId,
+                    "replication",
+                    replication.DueTick);
+            }
+        }
+        foreach (ReplayV3.SlotState slot in state.Slots)
+        {
+            switch (slot.State)
+            {
+                case ReplayV3.UnitSlotState.FabricationPending pending
+                    when pending.ReservedPosition == position:
+                    return new ReplayV3.SpawnReservation(
+                        slot.TeamId,
+                        slot.UnitId,
+                        "fabrication",
+                        pending.DueTick);
+            }
+        }
+        ContractPermanentReservation? permanent =
+            contract.PermanentReservations.FirstOrDefault(value =>
+                value.Position == position);
+        return permanent is null
+            ? null
+            : new ReplayV3.SpawnReservation(
+                permanent.TeamId,
+                permanent.UnitId,
+                "automatic-return",
+                null);
     }
 
     private static void ValidateActionLegalities(
@@ -3912,6 +6442,15 @@ internal static class ReplayV3Serializer
                             throw new ArgumentException(
                                 $"Replay-v3 {context} contains invalid allowed projectile headings.");
                         }
+                        break;
+                    case ReplayV3.ActionConstraint.UpgradeTrack tracks:
+                        RequireCanonicalOrder(
+                            tracks.AllowedTrackIds,
+                            static (left, right) =>
+                                StringComparer.Ordinal.Compare(
+                                    left,
+                                    right),
+                            $"{context} allowed upgrade tracks");
                         break;
                 }
             }
@@ -4206,13 +6745,16 @@ internal static class ReplayV3Serializer
                     right.Slot.TeamId,
                     right.Slot.UnitId),
             "result units");
+        // Identity, not chassis: a slot's declared chassis lives in the
+        // topology and nowhere else, so a result unit matches on its triple.
         if (!result.Units
                 .Select(value =>
-                    new ContractUnitSlot(
-                        value.Slot.TeamId,
+                    (value.Slot.TeamId,
                         value.Slot.UnitId,
                         value.Slot.ParticipantId))
-                .SequenceEqual(contract.UnitSlots))
+                .SequenceEqual(
+                    contract.UnitSlots.Select(value =>
+                        (value.TeamId, value.UnitId, value.ParticipantId))))
         {
             throw new ArgumentException(
                 "Replay-v3 result units must exactly match topology slots.");
@@ -4311,12 +6853,158 @@ internal static class ReplayV3Serializer
                 finalState,
                 contract);
         }
+        else if (result.Mode is ReplayV3.ModeResult.ArcRelay arcRelay)
+        {
+            ValidateArcRelayResult(
+                result,
+                arcRelay,
+                finalState,
+                contract);
+        }
         else
         {
             throw new ArgumentException(
                 "Replay-v3 result contains an unsupported terminal mode arm.");
         }
         ValidateCompetitionRanks(result.Standings);
+    }
+
+    private static void ValidateArcRelayResult(
+        ReplayV3.MatchResult result,
+        ReplayV3.ModeResult.ArcRelay arcRelay,
+        ReplayV3.WorldState finalState,
+        CanonicalContractIndex contract)
+    {
+        if (!string.Equals(
+                contract.Mode.Kind,
+                "arc-relay",
+                StringComparison.Ordinal)
+            || contract.Mode.ArcRelay is not { } configuration)
+        {
+            throw new ArgumentException(
+                "Replay-v3 Arc Relay result does not match the embedded game mode.");
+        }
+        if (!IsArcRelayEndReason(arcRelay.Reason)
+            || !string.Equals(
+                result.CompletionReason,
+                arcRelay.Reason,
+                StringComparison.Ordinal))
+        {
+            throw new ArgumentException(
+                "Replay-v3 Arc Relay completion reason is invalid or inconsistent.");
+        }
+        // Terminal facts are DRIVER state; a strike still winding up at the
+        // final horn is session ephemera that dies with the match
+        // (DECISIONS #212) - the same ownership split the live chronology
+        // validator makes.
+        if (finalState.Mode is not ReplayV3.ModeState.ArcRelay finalArc
+            || !Equals(arcRelay.State, finalArc with { PendingStrikes = [] }))
+        {
+            throw new ArgumentException(
+                "Replay-v3 Arc Relay terminal state must exactly equal the final mode state.");
+        }
+
+        HashSet<int> eligible = result.EligibleTeamIds.ToHashSet();
+        bool legalReason = arcRelay.Reason switch
+        {
+            "fault-eligibility" =>
+                eligible.Count <= 1
+                && result.EndTick < contract.Mode.MaxTicks,
+            "reactor-destroyed" =>
+                eligible.Count > 1
+                && result.EndTick < contract.Mode.MaxTicks
+                && finalArc.Reactors.Any(value =>
+                    value.IntegritySegments == 0),
+            "max-ticks" =>
+                eligible.Count > 1
+                && result.EndTick == contract.Mode.MaxTicks - 1
+                && finalArc.Reactors.All(value =>
+                    value.IntegritySegments > 0),
+            _ => false,
+        };
+        if (!legalReason)
+        {
+            throw new ArgumentException(
+                "Replay-v3 Arc Relay completion reason is not legal for the final state.");
+        }
+
+        Dictionary<int, (long Pulses, long Charge)> scores = [];
+        foreach (int teamId in contract.TeamIds)
+        {
+            ReplayV3.ArcReactor own = finalArc.Reactors.Single(value =>
+                value.TeamId == teamId);
+            ReplayV3.ArcReactor opposing = finalArc.Reactors.Single(value =>
+                value.TeamId != teamId);
+            long pulses = configuration.PulsesToDestroyReactor
+                - opposing.IntegritySegments;
+            ReplayV3.TeamScore finalScore = finalState.Scoreboard.Teams.Single(
+                value => value.TeamId == teamId);
+            if (!ScoreEquals(
+                    finalScore,
+                    "pulses",
+                    pulses.ToString(CultureInfo.InvariantCulture))
+                || !ScoreEquals(
+                    finalScore,
+                    "reactor-charge",
+                    own.ChargePips.ToString(CultureInfo.InvariantCulture)))
+            {
+                throw new ArgumentException(
+                    "Replay-v3 Arc Relay reactor facts and scoreboard disagree.");
+            }
+            scores.Add(teamId, (pulses, own.ChargePips));
+        }
+
+        int Compare(int left, int right)
+        {
+            int pulses = scores[right].Pulses.CompareTo(scores[left].Pulses);
+            return pulses != 0
+                ? pulses
+                : scores[right].Charge.CompareTo(scores[left].Charge);
+        }
+        int[] rankedEligible = [.. eligible];
+        Array.Sort(rankedEligible, (left, right) =>
+        {
+            int comparison = Compare(left, right);
+            return comparison != 0 ? comparison : left.CompareTo(right);
+        });
+        var ranks = new Dictionary<int, int>();
+        for (int index = 0; index < rankedEligible.Length; index++)
+        {
+            ranks[rankedEligible[index]] = index == 0
+                ? 1
+                : Compare(rankedEligible[index - 1], rankedEligible[index]) == 0
+                    ? ranks[rankedEligible[index - 1]]
+                    : index + 1;
+        }
+        int ineligibleRank = rankedEligible.Length + 1;
+        foreach (int teamId in contract.TeamIds)
+        {
+            if (!eligible.Contains(teamId))
+                ranks.Add(teamId, ineligibleRank);
+        }
+        int topCount = ranks.Count(value => value.Value == 1);
+        ReplayV3.TeamStanding[] expected = contract.TeamIds.Select(teamId =>
+                new ReplayV3.TeamStanding(
+                    teamId,
+                    ranks[teamId],
+                    ranks[teamId] == 1
+                        ? topCount == 1 ? "win" : "draw"
+                        : "loss",
+                    []))
+            .OrderBy(value => value.Rank)
+            .ThenBy(value => value.TeamId)
+            .ToArray();
+        if (!result.Standings.Teams.Zip(expected).All(pair =>
+                pair.First.TeamId == pair.Second.TeamId
+                && pair.First.Rank == pair.Second.Rank
+                && string.Equals(
+                    pair.First.Outcome,
+                    pair.Second.Outcome,
+                    StringComparison.Ordinal)))
+        {
+            throw new ArgumentException(
+                "Replay-v3 Arc Relay standings do not follow the embedded victory policy.");
+        }
     }
 
     private static void ValidateFrontlineResult(
@@ -4835,6 +7523,15 @@ internal static class ReplayV3Serializer
                 $"Replay-v3 {context} mode state does not match the embedded game mode.");
         }
 
+        if (mode is ReplayV3.ModeState.ArcRelay arcRelay)
+        {
+            ValidateArcRelayModeState(
+                arcRelay,
+                nextTick,
+                contract,
+                context);
+            return;
+        }
         if (mode is not ReplayV3.ModeState.Frontline frontline)
             return;
         if (contract.Mode.Frontline is not { } configuration)
@@ -4872,13 +7569,164 @@ internal static class ReplayV3Serializer
                     || frontline.CaptureProgress != 0
                     || frontline.DecayTicksElapsed != 0)
             || (long)frontline.ControlResumesAtTick - nextTick
-                > configuration.RedeployPauseTicks;
+                > configuration.RedeployPauseTicks
+            // The hold clocks travel as a pair, only a ratchet ruleset may
+            // carry them at all, an owner must be a real scoring team, and a
+            // published hold is by definition still live and cannot outlast
+            // the declared duration measured from this tick.
+            || (frontline.HoldOwnerTeamId is null)
+                != (frontline.HoldEndsAtTick is null)
+            || frontline.HoldOwnerTeamId is not null && !configuration.Ratchet
+            || frontline.HoldOwnerTeamId is int holdOwner
+                && !contract.TeamIds.Contains(holdOwner)
+            // A hold is created on the advance tick T with expiry T+hold+1,
+            // and the earliest boundary that can publish it has nextTick T+1,
+            // so the widest honest gap is exactly the declared duration.
+            || frontline.HoldEndsAtTick is int holdEnds
+                && (holdEnds <= nextTick
+                    || (long)holdEnds - nextTick
+                        > configuration.RatchetHoldTicks)
+            // Only a mode that declares a side objective may publish one:
+            // its owner and its claimant must be real scoring teams, they
+            // cannot be the same team (the owner has nothing left to claim),
+            // and a standing claim is strictly below the declared threshold
+            // because reaching it latches ownership on that very tick.
+            || (frontline.SecondaryOwnerTeamId is not null
+                    || frontline.SecondaryClaimProgress != 0)
+                && !configuration.SecondaryControl
+            || frontline.SecondaryOwnerTeamId is int secondaryOwner
+                && !contract.TeamIds.Contains(secondaryOwner)
+            || Math.Abs((long)frontline.SecondaryClaimProgress)
+                >= Math.Max(
+                    configuration.SecondaryCaptureThresholdTicks,
+                    1)
+            || SecondaryClaimant(frontline.SecondaryClaimProgress)
+                is int secondaryClaimant
+                && (!contract.TeamIds.Contains(secondaryClaimant)
+                    || secondaryClaimant == frontline.SecondaryOwnerTeamId);
         if (invalid)
         {
             throw new ArgumentException(
                 $"Replay-v3 {context} Frontline control violates the embedded capture bounds.");
         }
     }
+
+    private static void ValidateArcRelayModeState(
+        ReplayV3.ModeState.ArcRelay state,
+        int nextTick,
+        CanonicalContractIndex contract,
+        string context)
+    {
+        if (contract.Mode.ArcRelay is not { } configuration)
+        {
+            throw new ArgumentException(
+                $"Replay-v3 {context} Arc Relay state does not match the embedded game mode.");
+        }
+        RequireInitialized(state.Wells, $"{context} Arc Relay Wells");
+        RequireInitialized(state.Reactors, $"{context} Arc Relay reactors");
+        RequireInitialized(state.VisibleCores, $"{context} Arc Relay Cores");
+        RequireInitialized(
+            state.VisibleSignatures,
+            $"{context} Arc Relay signatures");
+        if (!state.Wells.Select(value => value.WellId)
+                .SequenceEqual(configuration.WellIds)
+            || !state.Reactors.Select(value => value.TeamId)
+                .SequenceEqual(contract.TeamIds)
+            || (state.LatestPulseTeamId is null)
+                != (state.LatestPulseTick is null)
+            || state.LatestPulseTeamId is int pulseTeam
+                && !contract.TeamIds.Contains(pulseTeam)
+            || state.LatestPulseTick is int pulseTick
+                && (pulseTick < 0 || pulseTick >= nextTick))
+        {
+            throw new ArgumentException(
+                $"Replay-v3 {context} Arc Relay public ledger is invalid.");
+        }
+
+        foreach (ReplayV3.ArcWell well in state.Wells)
+        {
+            if ((well.PendingCharge || well.OutstandingCoreId is not null)
+                    && well.NextScheduledBirthTick is int scheduled
+                    && scheduled < 0
+                || (well.RearmCompletesAtTick is not null)
+                    != (well.PendingCharge
+                        && well.OutstandingCoreId is null)
+                || well.RearmCompletesAtTick is int rearm && rearm < nextTick
+                || well.OutstandingCoreId is { } outstanding
+                    && (!string.Equals(
+                        outstanding.SourceWellId,
+                        well.WellId,
+                        StringComparison.Ordinal)
+                        || outstanding.SourceOrdinal < 0))
+            {
+                throw new ArgumentException(
+                    $"Replay-v3 {context} Arc Relay Well state is invalid.");
+            }
+        }
+        if (state.VisibleCores.Select(value => value.CoreId).Distinct().Count()
+                != state.VisibleCores.Length
+            || state.VisibleCores.Any(core =>
+                !configuration.WellIds.Contains(
+                    core.CoreId.SourceWellId,
+                    StringComparer.Ordinal)
+                || core.CoreId.SourceOrdinal < 0
+                || core.NextRelocationTick < 0
+                || core.Disposition is not ("loose" or "carried" or "in-flight")
+                || (core.Disposition == "carried") != (core.CarrierActorId is not null)
+                || (core.Disposition == "in-flight")
+                    != (core.FlightTarget is not null
+                        && core.FlightCompletesAtTick is not null)
+                || core.FlightCompletesAtTick < nextTick))
+        {
+            throw new ArgumentException(
+                $"Replay-v3 {context} Arc Relay Core state is invalid.");
+        }
+        foreach (ReplayV3.ArcReactor reactor in state.Reactors)
+        {
+            if (reactor.ChargePips < 0
+                || reactor.ChargePips >= configuration.CoresPerPulse
+                || reactor.IntegritySegments < 0
+                || reactor.IntegritySegments
+                    > configuration.PulsesToDestroyReactor)
+            {
+                throw new ArgumentException(
+                    $"Replay-v3 {context} Arc Relay reactor state is invalid.");
+            }
+        }
+        if (state.VisibleSignatures.Select(value => value.OperationId)
+                .Distinct(StringComparer.Ordinal).Count()
+                != state.VisibleSignatures.Length
+            || state.VisibleSignatures.Any(value =>
+                string.IsNullOrWhiteSpace(value.OperationId)
+                || string.IsNullOrWhiteSpace(value.SignatureId)
+                || value.OwnerActorId.TeamId != value.OwnerTeamId
+                || !contract.TeamIds.Contains(value.OwnerTeamId)
+                || value.Phase is not ("tell" or "active" or "channel" or "in-flight")
+                || value.StartedTick < 0
+                || value.StartedTick >= nextTick
+                || value.CompletesAtTick < nextTick
+                || value.EndsAtTick < nextTick
+                || value.Positions.IsDefaultOrEmpty
+                || value.Positions.Distinct().Count() != value.Positions.Length
+                || value.RemainingCapacity < 0))
+        {
+            throw new ArgumentException(
+                $"Replay-v3 {context} Arc Relay signature state is invalid.");
+        }
+    }
+
+    /// <summary>
+    /// The team a signed side-objective claim belongs to: positive counts for
+    /// team 0 and negative for team 1, the direction the public team-advance
+    /// ordering uses. Zero is no claim at all.
+    /// </summary>
+    private static int? SecondaryClaimant(int claimProgress) =>
+        claimProgress switch
+        {
+            0 => null,
+            > 0 => 0,
+            _ => 1,
+        };
 
     private static void ValidateEventKindAndPayload(
         string kind,
@@ -4896,6 +7744,7 @@ internal static class ReplayV3Serializer
             "life-spawned" => "life-spawned",
             "life-retired" => "life-retired",
             "runtime-fault" => "runtime-fault",
+            "mind-runtime-fault" => "mind-runtime-fault",
             "participant-disqualified" => "participant",
             "lifecycle-queued"
                 or "lifecycle-cancelled"
@@ -4907,6 +7756,8 @@ internal static class ReplayV3Serializer
             "mode-changed" => "mode-changed",
             "lifecycle-clock-cancelled" =>
                 "lifecycle-clock-cancelled",
+            "projectile-deflected" => "projectile-deflected",
+            "arc-relay" => "arc-relay",
             _ => throw new ArgumentException(
                 $"Replay-v3 {context} event kind '{kind}' is invalid."),
         };
@@ -4950,6 +7801,26 @@ internal static class ReplayV3Serializer
                         $"Replay-v3 {context} attack heading is invalid.");
                 }
                 break;
+            case ReplayV3.EventPayload.ProjectileDeflected deflected:
+                if (!IsProjectileHeading(deflected.Heading)
+                    || !IsDirection(deflected.TargetFacing))
+                {
+                    throw new ArgumentException(
+                        $"Replay-v3 {context} deflected-projectile heading or facing is invalid.");
+                }
+                break;
+            case ReplayV3.EventPayload.FormTransition transition:
+                // Absent means requested. An explicit "requested" would be a
+                // second encoding of the same history, so it is refused here
+                // exactly as the contract mirrors refuse an inert guard.
+                if (transition.Reason is string reason
+                    && !IsFormTransitionReason(reason))
+                {
+                    throw new ArgumentException(
+                        $"Replay-v3 {context} form-transition reason is invalid; " +
+                        "a requested transition omits the property.");
+                }
+                break;
             case ReplayV3.EventPayload.LifeSpawned spawned:
                 if (!IsSpawnReason(spawned.Reason))
                 {
@@ -4971,8 +7842,120 @@ internal static class ReplayV3Serializer
                         $"Replay-v3 {context} runtime-fault stage is invalid.");
                 }
                 break;
+            case ReplayV3.EventPayload.MindRuntimeFaultValue mindFault:
+                if (!IsFaultStage(mindFault.Fault.Stage)
+                    || !IsCanonicalInt64(
+                        mindFault.Fault.CumulativeFaultCount,
+                        nonNegative: true))
+                {
+                    throw new ArgumentException(
+                        $"Replay-v3 {context} mind-runtime-fault evidence is invalid.");
+                }
+                if (mindFault.Fault.ActorId is not null)
+                {
+                    // The mind-scoped event exists ONLY for the fault with no
+                    // body to attribute it to; a fault that HAS a body keeps
+                    // publishing one per-body event, so a document carrying
+                    // both encodings for the same fault is malformed.
+                    throw new ArgumentException(
+                        $"Replay-v3 {context} mind-runtime-fault must carry no actor identity.");
+                }
+                break;
+            case ReplayV3.EventPayload.ArcRelay arcRelay:
+                ValidateArcRelayFact(arcRelay.Fact, context);
+                break;
         }
     }
+
+    private static void ValidateArcRelayFact(
+        ReplayV3.ArcRelayFact fact,
+        string context)
+    {
+        ArgumentNullException.ThrowIfNull(fact);
+        static bool InvalidCoreId(ReplayV3.ArcCoreId value) =>
+            string.IsNullOrWhiteSpace(value.SourceWellId)
+            || value.SourceOrdinal < 0;
+        bool invalid = fact switch
+        {
+            ReplayV3.ArcRelayFact.CoreBorn value =>
+                InvalidCoreId(value.CoreId)
+                || value.ChargeValue < 1,
+            ReplayV3.ArcRelayFact.CoreRipened value =>
+                InvalidCoreId(value.CoreId)
+                || value.Value < 2,
+            ReplayV3.ArcRelayFact.LeveledUp value =>
+                value.Level < 2,
+            ReplayV3.ArcRelayFact.ZoneHealed value =>
+                value.Amount < 1 || value.NewHealth < 1,
+            ReplayV3.ArcRelayFact.CorePickedUp value =>
+                InvalidCoreId(value.CoreId)
+                || value.NextRelocationTick < 0,
+            ReplayV3.ArcRelayFact.CoreRelocated value =>
+                InvalidCoreId(value.CoreId)
+                || value.From == value.To
+                || value.NextRelocationTick < 0
+                || value.RelocationKind is not (
+                    "carried-movement" or "forced-displacement"
+                    or "arc-toss-landing"),
+            ReplayV3.ArcRelayFact.CoreHandedOff value =>
+                InvalidCoreId(value.CoreId)
+                || value.SourceActorId.TeamId != value.TargetActorId.TeamId
+                || value.SourceActorId == value.TargetActorId
+                || value.NextRelocationTick < 0,
+            ReplayV3.ArcRelayFact.CoreDropped value =>
+                InvalidCoreId(value.CoreId)
+                || value.NextRelocationTick < 0
+                || value.DropKind is not (
+                    "voluntary" or "destruction" or "signature-departure"
+                    or "arc-toss-landing"),
+            ReplayV3.ArcRelayFact.CoreBanked value =>
+                InvalidCoreId(value.CoreId)
+                || value.CarrierActorId.TeamId != value.TeamId
+                || value.ChargePips < 0,
+            ReplayV3.ArcRelayFact.WellChanged value =>
+                string.IsNullOrWhiteSpace(value.WellId)
+                || value.RearmCompletesAtTick < 0
+                || value.OutstandingCoreId is { } coreId
+                    && InvalidCoreId(coreId),
+            ReplayV3.ArcRelayFact.Pulse value =>
+                value.TeamId < 0
+                || value.PulseOrdinal <= 0
+                || value.OpposingReactorIntegrity < 0,
+            ReplayV3.ArcRelayFact.SignatureChanged value =>
+                string.IsNullOrWhiteSpace(value.OperationId)
+                || string.IsNullOrWhiteSpace(value.SignatureId)
+                || value.Phase is not null
+                    && value.Phase is not (
+                        "tell" or "active" or "channel" or "in-flight")
+                || string.IsNullOrWhiteSpace(value.Reason),
+            ReplayV3.ArcRelayFact.BodyRelocated value =>
+                string.IsNullOrWhiteSpace(value.OperationId)
+                || string.IsNullOrWhiteSpace(value.SignatureId)
+                || value.From == value.To,
+            ReplayV3.ArcRelayFact.SignatureDamage value =>
+                InvalidArcSignatureHealthFact(value.OperationId,
+                    value.SignatureId, value.Amount, value.NewHealth),
+            ReplayV3.ArcRelayFact.SignatureRepair value =>
+                InvalidArcSignatureHealthFact(value.OperationId,
+                    value.SignatureId, value.Amount, value.NewHealth),
+            _ => true,
+        };
+        if (invalid)
+        {
+            throw new ArgumentException(
+                $"Replay-v3 {context} Arc Relay fact is invalid.");
+        }
+    }
+
+    private static bool InvalidArcSignatureHealthFact(
+        string operationId,
+        string signatureId,
+        int amount,
+        int newHealth) =>
+        string.IsNullOrWhiteSpace(operationId)
+        || string.IsNullOrWhiteSpace(signatureId)
+        || amount <= 0
+        || newHealth < 0;
 
     private static void ValidateClosedVocabulary(ReplayV3 replay)
     {
@@ -4982,7 +7965,15 @@ internal static class ReplayV3Serializer
             .. replay.Ticks.Select(frame => frame.TickStart.State.Mode),
             .. replay.Ticks.Select(frame => frame.PostState.Mode),
             .. replay.Ticks.SelectMany(frame =>
-                frame.ActorTurns.Select(turn => turn.Observation.Mode)),
+                frame.ActorTurns.IsDefaultOrEmpty
+                    ? []
+                    : frame.ActorTurns.Select(
+                        turn => turn.Observation.Mode)),
+            .. replay.Ticks.SelectMany(frame =>
+                frame.MindTurns.IsDefaultOrEmpty
+                    ? []
+                    : frame.MindTurns.Select(
+                        turn => turn.Observation.Mode)),
         ];
         foreach (ReplayV3.ModeState mode in modes)
         {
@@ -5009,6 +8000,16 @@ internal static class ReplayV3Serializer
         {
             throw new ArgumentException(
                 "Replay-v3 Frontline result reason is invalid.");
+        }
+        if (replay.Result is
+            {
+                Mode:
+                ReplayV3.ModeResult.ArcRelay arcRelay
+            }
+            && !IsArcRelayEndReason(arcRelay.Reason))
+        {
+            throw new ArgumentException(
+                "Replay-v3 Arc Relay result reason is invalid.");
         }
     }
 
@@ -5176,7 +8177,16 @@ internal static class ReplayV3Serializer
         value is "initial"
             or "automatic-return"
             or "fabrication"
-            or "replication";
+            or "replication"
+            or "automatic-activation"
+            or "root-factory-seed";
+
+    /// <summary>
+    /// "requested" is deliberately absent: the inert cause is encoded by
+    /// omitting the property, so naming it explicitly is refused.
+    /// </summary>
+    private static bool IsFormTransitionReason(string value) =>
+        value is "automatic-threshold-return";
 
     private static bool IsRetirementReason(string value) =>
         value is "replication" or "participant-disqualified";
@@ -5201,6 +8211,7 @@ internal static class ReplayV3Serializer
             or "movement-contact"
             or "scheduled-advance"
             or "attack-launch"
+            or "guard-deflection"
             or "participant-disqualification";
 
     private static bool IsStandingOutcome(string value) =>
@@ -5212,30 +8223,54 @@ internal static class ReplayV3Serializer
     private static bool IsFrontlineEndReason(string value) =>
         value is "fault-eligibility" or "base-breach" or "max-ticks";
 
+    private static bool IsArcRelayEndReason(string value) =>
+        value is "fault-eligibility" or "reactor-destroyed" or "max-ticks";
+
     private sealed record CanonicalContractIndex(
         string Fingerprint,
+        string SeedProfileId,
         ImmutableArray<int> TeamIds,
         ImmutableArray<ContractParticipant> Participants,
         ImmutableArray<ContractUnitSlot> UnitSlots,
         ImmutableArray<string> ScoreChannels,
         ImmutableArray<ContractAction> Actions,
+        ImmutableArray<ContractAttackProfile> AttackProfiles,
         ImmutableArray<ContractReplication> Replications,
+        ImmutableArray<ContractPermanentReservation>
+            PermanentReservations,
         ContractMode Mode);
 
     private sealed record ContractParticipant(
         int ParticipantId,
-        int TeamId);
+        int TeamId,
+        string? ClassId);
+
+    private sealed record ContractTeam(
+        int TeamId,
+        string? ClassId);
 
     private sealed record ContractUnitSlot(
         int TeamId,
         int UnitId,
-        int ParticipantId);
+        int ParticipantId,
+        string? ClassId = null);
 
     private sealed record ContractAction(
         string Id,
         int Code,
         ImmutableArray<string> ParameterKinds,
         bool AllowsOmittedArguments);
+
+    private sealed record ContractAttackProfile(
+        string Id,
+        int TilesPerAdvance,
+        int TicksPerAdvance,
+        int DamagePerHit);
+
+    private sealed record ContractPermanentReservation(
+        int TeamId,
+        int UnitId,
+        ReplayV3.PositionValue Position);
 
     private sealed record ContractReplication(
         string TransitionId,
@@ -5254,7 +8289,8 @@ internal static class ReplayV3Serializer
         int MaxTicks,
         int? KillsToWin,
         ImmutableArray<ContractRanking> TimeoutRanking,
-        ContractFrontline? Frontline);
+        ContractFrontline? Frontline,
+        ContractArcRelay? ArcRelay);
 
     private sealed record ContractRanking(
         string Channel,
@@ -5266,11 +8302,22 @@ internal static class ReplayV3Serializer
         int DecayAmount,
         int DecayIntervalTicks,
         int RedeployPauseTicks,
-        ImmutableArray<ContractTeamAdvance> TeamAdvances);
+        ImmutableArray<ContractTeamAdvance> TeamAdvances,
+        bool Ratchet,
+        int RatchetHoldTicks,
+        bool SecondaryControl,
+        int SecondaryCaptureThresholdTicks);
 
     private sealed record ContractTeamAdvance(
         int TeamId,
         int ObjectiveIndexDelta);
+
+    private sealed record ContractArcRelay(
+        int PulsesToDestroyReactor,
+        int CoresPerPulse,
+        int CoreRelocationIntervalTicks,
+        int TripNodeRevealRange,
+        ImmutableArray<string> WellIds);
 
     private static void ValidatePresentation(
         ReplayV3.PresentationMetadata? presentation)
@@ -5408,6 +8455,12 @@ internal static class ReplayV3Serializer
                     bool scoreObject = element.TryGetProperty(
                         "channel",
                         out _);
+                    // A reserved inter-mind intent carries an int64 in the
+                    // same "value" key a score does; both must stay
+                    // decimal-safe strings rather than widen to a float.
+                    bool intentObject = element.TryGetProperty(
+                        "tagId",
+                        out _);
                     foreach (JsonProperty property in
                              element.EnumerateObject())
                     {
@@ -5419,13 +8472,17 @@ internal static class ReplayV3Serializer
 
                         bool valid = property.Name switch
                         {
-                            "seed" or "actorRandomSeed" =>
+                            "seed"
+                                or "actorRandomSeed"
+                                or "teamRandomSeed"
+                                or "bodyRandomSeed" =>
                                 property.Value.ValueKind
                                     == JsonValueKind.String
                                 && IsCanonicalUInt64(
                                     property.Value.GetString()),
                             "runtimeFaultCount"
                                 or "cumulativeFaultCount"
+                                or "fuelBudget"
                                 or "globalOrdinal"
                                 or "projectileId"
                                 or "nextProjectileId"
@@ -5450,7 +8507,7 @@ internal static class ReplayV3Serializer
                                 && IsCanonicalInt64(
                                     property.Value.GetString(),
                                     nonNegative: false),
-                            "value" when scoreObject =>
+                            "value" when scoreObject || intentObject =>
                                 property.Value.ValueKind
                                     == JsonValueKind.String
                                 && IsCanonicalInt64(
@@ -5572,6 +8629,10 @@ internal static class ReplayV3Serializer
                     ["projectile-heading"] =
                         typeof(
                             ReplayV3.ActionConstraint.ProjectileHeading),
+                    ["upgrade-track"] =
+                        typeof(ReplayV3.ActionConstraint.UpgradeTrack),
+                    ["position-target"] =
+                        typeof(ReplayV3.ActionConstraint.PositionTarget),
                 }));
         options.Converters.Add(
             new TaggedUnionJsonConverter<ReplayV3.EventPayload>(
@@ -5595,6 +8656,9 @@ internal static class ReplayV3Serializer
                         typeof(ReplayV3.EventPayload.LifeRetired),
                     ["runtime-fault"] =
                         typeof(ReplayV3.EventPayload.RuntimeFaultValue),
+                    ["mind-runtime-fault"] =
+                        typeof(
+                            ReplayV3.EventPayload.MindRuntimeFaultValue),
                     ["participant"] =
                         typeof(ReplayV3.EventPayload.Participant),
                     ["lifecycle"] =
@@ -5609,6 +8673,45 @@ internal static class ReplayV3Serializer
                         typeof(
                             ReplayV3.EventPayload
                                 .LifecycleClockCancelled),
+                    ["projectile-deflected"] =
+                        typeof(ReplayV3.EventPayload.ProjectileDeflected),
+                    ["arc-relay"] =
+                        typeof(ReplayV3.EventPayload.ArcRelay),
+                }));
+        options.Converters.Add(
+            new TaggedUnionJsonConverter<ReplayV3.ArcRelayFact>(
+                new Dictionary<string, Type>(StringComparer.Ordinal)
+                {
+                    ["core-born"] =
+                        typeof(ReplayV3.ArcRelayFact.CoreBorn),
+                    ["core-ripened"] =
+                        typeof(ReplayV3.ArcRelayFact.CoreRipened),
+                    ["leveled-up"] =
+                        typeof(ReplayV3.ArcRelayFact.LeveledUp),
+                    ["zone-healed"] =
+                        typeof(ReplayV3.ArcRelayFact.ZoneHealed),
+                    ["core-picked-up"] =
+                        typeof(ReplayV3.ArcRelayFact.CorePickedUp),
+                    ["core-relocated"] =
+                        typeof(ReplayV3.ArcRelayFact.CoreRelocated),
+                    ["core-handed-off"] =
+                        typeof(ReplayV3.ArcRelayFact.CoreHandedOff),
+                    ["core-dropped"] =
+                        typeof(ReplayV3.ArcRelayFact.CoreDropped),
+                    ["core-banked"] =
+                        typeof(ReplayV3.ArcRelayFact.CoreBanked),
+                    ["well-changed"] =
+                        typeof(ReplayV3.ArcRelayFact.WellChanged),
+                    ["pulse"] =
+                        typeof(ReplayV3.ArcRelayFact.Pulse),
+                    ["signature-changed"] =
+                        typeof(ReplayV3.ArcRelayFact.SignatureChanged),
+                    ["body-relocated"] =
+                        typeof(ReplayV3.ArcRelayFact.BodyRelocated),
+                    ["signature-damage"] =
+                        typeof(ReplayV3.ArcRelayFact.SignatureDamage),
+                    ["signature-repair"] =
+                        typeof(ReplayV3.ArcRelayFact.SignatureRepair),
                 }));
         options.Converters.Add(
             new TaggedUnionJsonConverter<ReplayV3.EventAudience>(
@@ -5651,6 +8754,68 @@ internal static class ReplayV3Serializer
                 }));
         options.Converters.Add(new ModeResultJsonConverter());
         return options;
+    }
+
+    /// <summary>
+    /// One live economy ledger, read from the document. Amounts and expiries
+    /// are re-derived by the chronology validator, so this reader's job is
+    /// exactly shape.
+    /// </summary>
+    private static ImmutableArray<ReplayV3.ScrapTeam> ReadScrapTeams(
+        JsonElement value)
+    {
+        if (value.ValueKind != JsonValueKind.Array)
+        {
+            throw new JsonException(
+                "Replay-v3 'scrapTeams' must be an array.");
+        }
+        var teams = ImmutableArray.CreateBuilder<ReplayV3.ScrapTeam>();
+        foreach (JsonElement item in value.EnumerateArray())
+        {
+            RequireProperties(item, "teamId", "bank", "tierLevels");
+            JsonElement tiers = item.GetProperty("tierLevels");
+            if (tiers.ValueKind != JsonValueKind.Array)
+            {
+                throw new JsonException(
+                    "Replay-v3 'tierLevels' must be an array.");
+            }
+            teams.Add(new ReplayV3.ScrapTeam(
+                RequiredInt32(item, "teamId"),
+                RequiredInt32(item, "bank"),
+                [
+                    .. tiers.EnumerateArray().Select(tier =>
+                        tier.ValueKind == JsonValueKind.Number
+                        && tier.TryGetInt32(out int level)
+                            ? level
+                            : throw new JsonException(
+                                "Replay-v3 tier level must be an int32.")),
+                ]));
+        }
+        return teams.ToImmutable();
+    }
+
+    private static ImmutableArray<ReplayV3.ScrapPile> ReadScrapPiles(
+        JsonElement value)
+    {
+        if (value.ValueKind != JsonValueKind.Array)
+        {
+            throw new JsonException(
+                "Replay-v3 'scrapPiles' must be an array.");
+        }
+        var piles = ImmutableArray.CreateBuilder<ReplayV3.ScrapPile>();
+        foreach (JsonElement item in value.EnumerateArray())
+        {
+            RequireProperties(item, "position", "amount", "expiresAtTick");
+            JsonElement position = item.GetProperty("position");
+            RequireProperties(position, "x", "y");
+            piles.Add(new ReplayV3.ScrapPile(
+                new ReplayV3.PositionValue(
+                    RequiredInt32(position, "x"),
+                    RequiredInt32(position, "y")),
+                RequiredInt32(item, "amount"),
+                RequiredInt32(item, "expiresAtTick")));
+        }
+        return piles.ToImmutable();
     }
 
     private static void RequireProperties(
@@ -5701,6 +8866,27 @@ internal static class ReplayV3Serializer
                 ? result
                 : throw new JsonException(
                     $"Replay-v3 '{propertyName}' must be an Int32.");
+    }
+
+    /// <summary>
+    /// Reads a nullable Int32 whose PROPERTY is mandatory: an explicit null
+    /// is the value, an absent property is a malformed document. This is the
+    /// shape every nullable mode fact uses (<c>claimingTeamId</c> and, since
+    /// DECISIONS #169, the two ratchet-hold clocks).
+    /// </summary>
+    private static int? NullableInt32(
+        JsonElement value,
+        string propertyName)
+    {
+        JsonElement property = value.GetProperty(propertyName);
+        return property.ValueKind switch
+        {
+            JsonValueKind.Null => null,
+            JsonValueKind.Number when property.TryGetInt32(out int result) =>
+                result,
+            _ => throw new JsonException(
+                $"Replay-v3 '{propertyName}' must be Int32 or null."),
+        };
     }
 
     private static T RequiredValue<T>(
@@ -5798,6 +8984,17 @@ internal static class ReplayV3Serializer
                     return new ReplayV3.RawActionArgument
                         .ProjectileHeading(
                             RequiredInt32(root, "value"));
+                case "upgrade-track":
+                    RequireProperties(root, "kind", "trackId");
+                    return new ReplayV3.RawActionArgument.UpgradeTrack(
+                        NullableString(root, "trackId"));
+                case "position-target":
+                    RequireProperties(root, "kind", "value");
+                    return new ReplayV3.RawActionArgument.PositionTarget(
+                        RequiredValue<ReplayV3.PositionValue>(
+                            root,
+                            "value",
+                            options));
                 default:
                     throw new JsonException(
                         $"Unknown raw replay-v3 action argument kind '{kind}'.");
@@ -5866,6 +9063,17 @@ internal static class ReplayV3Serializer
                     return new ReplayV3.ActionArgument
                         .ProjectileHeading(
                             RequiredString(root, "value"));
+                case "upgrade-track":
+                    RequireProperties(root, "kind", "trackId");
+                    return new ReplayV3.ActionArgument.UpgradeTrack(
+                        RequiredString(root, "trackId"));
+                case "position-target":
+                    RequireProperties(root, "kind", "value");
+                    return new ReplayV3.ActionArgument.PositionTarget(
+                        RequiredValue<ReplayV3.PositionValue>(
+                            root,
+                            "value",
+                            options));
                 default:
                     throw new JsonException(
                         $"Unknown resolved replay-v3 action argument kind '{kind}'.");
@@ -5903,35 +9111,98 @@ internal static class ReplayV3Serializer
                     return new ReplayV3.ModeState.Deathmatch(modeId);
                 case "frontline":
                     {
+                        // The economy's two collections are TRAILING and
+                        // optional: they appear only on a ruleset that
+                        // declares an economy, in that exact order, so a
+                        // document from before the capability existed reads
+                        // byte-identically.
+                        bool scrapTeams = root.TryGetProperty(
+                            "scrapTeams",
+                            out JsonElement teams);
+                        bool scrapPiles = root.TryGetProperty(
+                            "scrapPiles",
+                            out JsonElement piles);
                         RequireProperties(
                             root,
-                            "kind",
-                            "modeId",
-                            "activePositionIndex",
-                            "claimingTeamId",
-                            "captureProgress",
-                            "decayTicksElapsed",
-                            "controlResumesAtTick");
-                        JsonElement claiming =
-                            root.GetProperty("claimingTeamId");
-                        int? claimingTeamId =
-                            claiming.ValueKind == JsonValueKind.Null
-                                ? null
-                                : claiming.TryGetInt32(out int teamId)
-                                    ? teamId
-                                    : throw new JsonException(
-                                        "Replay-v3 claimingTeamId must be Int32 or null.");
+                            [
+                                "kind",
+                                "modeId",
+                                "activePositionIndex",
+                                "claimingTeamId",
+                                "captureProgress",
+                                "decayTicksElapsed",
+                                "controlResumesAtTick",
+                                "holdOwnerTeamId",
+                                "holdEndsAtTick",
+                                "secondaryOwnerTeamId",
+                                "secondaryClaimProgress",
+                                .. scrapTeams
+                                    ? new[] { "scrapTeams" }
+                                    : [],
+                                .. scrapPiles
+                                    ? new[] { "scrapPiles" }
+                                    : [],
+                            ]);
                         return new ReplayV3.ModeState.Frontline(
                             modeId,
                             RequiredInt32(
                                 root,
                                 "activePositionIndex"),
-                            claimingTeamId,
+                            NullableInt32(root, "claimingTeamId"),
                             RequiredInt32(root, "captureProgress"),
                             RequiredInt32(root, "decayTicksElapsed"),
                             RequiredInt32(
                                 root,
-                                "controlResumesAtTick"));
+                                "controlResumesAtTick"),
+                            NullableInt32(root, "holdOwnerTeamId"),
+                            NullableInt32(root, "holdEndsAtTick"),
+                            NullableInt32(root, "secondaryOwnerTeamId"),
+                            RequiredInt32(
+                                root,
+                                "secondaryClaimProgress"),
+                            scrapTeams ? ReadScrapTeams(teams) : [],
+                            scrapPiles ? ReadScrapPiles(piles) : []);
+                    }
+                case "arc-relay":
+                    {
+                        // Declared strikes exist only on strike-windup
+                        // rulesets (DECISIONS #212); their absence is the
+                        // historical document shape.
+                        bool pendingStrikes = root.TryGetProperty(
+                            "pendingStrikes", out _);
+                        RequireProperties(
+                            root,
+                            [
+                                "kind",
+                                "modeId",
+                                "wells",
+                                "reactors",
+                                "visibleCores",
+                                "visibleSignatures",
+                                "latestPulseTeamId",
+                                "latestPulseTick",
+                                .. pendingStrikes
+                                    ? new[] { "pendingStrikes" }
+                                    : System.Array.Empty<string>(),
+                            ]);
+                        return new ReplayV3.ModeState.ArcRelay(
+                            modeId,
+                            RequiredArrayValue<ReplayV3.ArcWell>(
+                                root, "wells", options),
+                            RequiredArrayValue<ReplayV3.ArcReactor>(
+                                root, "reactors", options),
+                            RequiredArrayValue<ReplayV3.ArcCore>(
+                                root, "visibleCores", options),
+                            RequiredArrayValue<ReplayV3.ArcSignature>(
+                                root, "visibleSignatures", options),
+                            NullableInt32(root, "latestPulseTeamId"),
+                            NullableInt32(root, "latestPulseTick"))
+                        {
+                            PendingStrikes = pendingStrikes
+                                ? RequiredArrayValue<ReplayV3.ArcPendingStrike>(
+                                    root, "pendingStrikes", options)
+                                : [],
+                        };
                     }
                 default:
                     throw new JsonException(
@@ -5945,6 +9216,21 @@ internal static class ReplayV3Serializer
             JsonSerializerOptions options) =>
             throw new NotSupportedException(
                 "Replay-v3 uses its explicit canonical writer.");
+
+        private static ImmutableArray<T> RequiredArrayValue<T>(
+            JsonElement value,
+            string propertyName,
+            JsonSerializerOptions options)
+        {
+            JsonElement property = value.GetProperty(propertyName);
+            if (property.ValueKind != JsonValueKind.Array)
+                throw new JsonException($"Replay-v3 '{propertyName}' must be an array.");
+            ImmutableArray<T> result =
+                property.Deserialize<ImmutableArray<T>>(options);
+            if (result.IsDefault)
+                throw new JsonException($"Replay-v3 '{propertyName}' must be initialized.");
+            return result;
+        }
     }
 
     private sealed class ModeResultJsonConverter
@@ -6007,7 +9293,23 @@ internal static class ReplayV3Serializer
                                 ReplayV3.FrontlineTeamScore>(
                                     root,
                                     "scores",
-                                    options));
+                            options));
+                    }
+                case "arc-relay":
+                    {
+                        RequireProperties(root, "kind", "reason", "state");
+                        ReplayV3.ModeState state = root.GetProperty("state")
+                            .Deserialize<ReplayV3.ModeState>(options)
+                            ?? throw new JsonException(
+                                "Replay-v3 Arc Relay terminal state cannot be null.");
+                        if (state is not ReplayV3.ModeState.ArcRelay arcRelay)
+                        {
+                            throw new JsonException(
+                                "Replay-v3 Arc Relay terminal state must use the Arc Relay state arm.");
+                        }
+                        return new ReplayV3.ModeResult.ArcRelay(
+                            RequiredString(root, "reason"),
+                            arcRelay);
                     }
                 default:
                     throw new JsonException(

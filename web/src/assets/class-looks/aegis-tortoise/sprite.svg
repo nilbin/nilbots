@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Aegis Tortoise bulwark chassis facing east">
+  <defs>
+    <linearGradient id="at-navy" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#36456b"/>
+      <stop offset=".45" stop-color="#1d2948"/>
+      <stop offset="1" stop-color="#0c1428"/>
+    </linearGradient>
+    <linearGradient id="at-bronze" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#d4b27b"/>
+      <stop offset=".42" stop-color="#9b7443"/>
+      <stop offset="1" stop-color="#4e351d"/>
+    </linearGradient>
+    <radialGradient id="at-core">
+      <stop stop-color="#f8fbff"/>
+      <stop offset=".27" stop-color="#9bd7ff"/>
+      <stop offset=".64" stop-color="#2c82c9"/>
+      <stop offset="1" stop-color="#102746"/>
+    </radialGradient>
+  </defs>
+
+  <path d="M57 151 112 88 195 72 291 92 376 139 456 192 500 230 500 282 456 320 376 373 291 420 195 440 112 424 57 361 80 300 59 256 80 212Z"
+    fill="#070b13" stroke="#050810" stroke-width="15" stroke-linejoin="round"/>
+
+  <g stroke-linejoin="round">
+    <path d="m73 157 48-55 72-14 91 19 72 42 52 63-50 45-93-8-82-35-70 19Z"
+      fill="url(#at-navy)" stroke="#56668d" stroke-width="6"/>
+    <path d="m73 355 48 55 72 14 91-19 72-42 52-63-50-45-93 8-82 35-70-19Z"
+      fill="#16213d" stroke="#344669" stroke-width="6"/>
+
+    <path d="m112 185 74-61 93 13 74 43-47 52-85-10-65-29-58 29Z"
+      fill="#243357" stroke="#6c7b9c" stroke-width="5"/>
+    <path d="m112 327 74 61 93-13 74-43-47-52-85 10-65 29-58-29Z"
+      fill="#121d37" stroke="#3e4f73" stroke-width="5"/>
+    <path d="m102 224 95-30 99 62-99 62-95-30-22-32Z"
+      fill="url(#at-navy)" stroke="#617194" stroke-width="6"/>
+
+    <path d="m278 119 89 40 83 56 35 30-26 11-92-14-86-44-53-36Z"
+      fill="url(#at-bronze)" stroke="#b18b57" stroke-width="7"/>
+    <path d="m278 393 89-40 83-56 35-30-26-11-92 14-86 44-53 36Z"
+      fill="#80603a" stroke="#594027" stroke-width="7"/>
+    <path d="m351 179 89 56 26 21-26 21-89 56 36-77Z"
+      fill="#18223a" stroke="#8c714b" stroke-width="5"/>
+    <path d="m395 237 75 9 24 10-24 10-75 9-19-19Z"
+      fill="#111a2d" stroke="#a98552" stroke-width="4"/>
+
+    <path data-team-accent="true" d="m121 114 48-16 34 14-19 26-48 13-31-13Z"
+      fill="#38bdf8" stroke="#dbeafe" stroke-width="3"/>
+    <path data-team-accent="true" d="m121 398 48 16 34-14-19-26-48-13-31 13Z"
+      fill="#38bdf8" stroke="#dbeafe" stroke-width="3"/>
+    <path data-team-accent="true" d="m76 236 43-11 25 31-25 31-43-11-11-20Z"
+      fill="#38bdf8" stroke="#dbeafe" stroke-width="3"/>
+
+    <circle cx="248" cy="256" r="91" fill="#0b1120" stroke="#725a37" stroke-width="9"/>
+    <path d="M248 170 309 195 334 256 309 317 248 342 187 317 162 256 187 195Z"
+      fill="url(#at-navy)" stroke="#7180a0" stroke-width="6"/>
+    <circle cx="248" cy="256" r="57" fill="#121c32" stroke="#9b7443" stroke-width="8"/>
+    <circle cx="248" cy="256" r="31" fill="#0b1427" stroke="#4ba3e2" stroke-width="6"/>
+    <circle cx="248" cy="256" r="19" fill="url(#at-core)" stroke="#d9f2ff" stroke-width="3"/>
+  </g>
+
+  <g fill="none" stroke="#9fabc1" stroke-linecap="round" opacity=".62">
+    <path d="m146 174 53-28M146 338l53 28M310 170l38 21M310 342l38-21" stroke-width="3"/>
+    <path d="M119 247h40M119 265h40" stroke-width="2"/>
+  </g>
+</svg>

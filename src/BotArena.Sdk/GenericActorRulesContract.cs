@@ -200,6 +200,12 @@ public sealed class GenericActorRulesContract
         int PushesToBreach)
         : Victory(VictoryKind.Frontline, TimeoutRanking);
 
+    /// <summary>Arc Relay Pulse threshold and timeout policy.</summary>
+    public sealed record ArcRelayVictory(
+        ImmutableArray<ScoreRanking> TimeoutRanking,
+        int PulsesToDestroyReactor)
+        : Victory(VictoryKind.ArcRelay, TimeoutRanking);
+
     /// <summary>Closed union of objective, score-catalog, and victory rules.</summary>
     /// <param name="Kind">Mode discriminator.</param>
     /// <param name="ModeId">Stable authored game-mode identifier.</param>
@@ -243,7 +249,318 @@ public sealed class GenericActorRulesContract
             GameModeKind.Frontline,
             ModeId,
             FrontlineVictory,
-            ScoreCatalog);
+            ScoreCatalog)
+    {
+        /// <summary>
+        /// The declared side objective, or null when this ruleset has none.
+        /// Read it before assuming the map has one: the site regions, the
+        /// latch threshold, and what owning the site does are all contract
+        /// facts, and a ruleset without the block publishes a permanently
+        /// neutral owner.
+        /// </summary>
+        public FrontlineSecondaryControl? SecondaryControl { get; init; }
+
+        /// <summary>
+        /// The declared BATTLEFIELD ECONOMY, or <see langword="null"/> when
+        /// this mode has none — which is every ruleset authored before the
+        /// capability existed and every one that does not select it. Read it
+        /// before assuming there is loose scrap on the map: the deposit
+        /// addresses, the schedule, what a pile is worth, how much a body may
+        /// carry, where a load banks, and the whole upgrade ladder with its
+        /// prices are all static contract facts you can plan against before
+        /// tick zero. What is NOT here is what is happening right now — the
+        /// banks, the tiers, and the live piles are observation state.
+        /// </summary>
+        public FrontlineScrapEconomy? ScrapEconomy { get; init; }
+    }
+
+    /// <summary>Immutable Arc Relay Core, Pulse, composition, and signature rules.</summary>
+    public sealed record ArcRelayGameMode(
+        string ModeId,
+        ArcRelayVictory ArcRelayVictory,
+        ImmutableArray<ScoreChannel> ScoreCatalog,
+        int PendingRearmTicks,
+        int CoreRelocationIntervalTicks,
+        int CoresPerPulse,
+        int FieldedSlotsPerTeam,
+        int MaxCopiesPerClass,
+        int RespawnDelayTicks,
+        ImmutableArray<ArcRelayWellSchedule> Wells,
+        ImmutableArray<ArcRelaySignature> Signatures)
+        : GameModeDefinition(
+            GameModeKind.ArcRelay,
+            ModeId,
+            ArcRelayVictory,
+            ScoreCatalog)
+    {
+        /// <summary>
+        /// 1 for historical rulesets. 2 selects the dodgeable signature
+        /// physics (bolt-firing sentinel and hook, telegraphed null-field)
+        /// and projects designed-role metadata onto every signature.
+        /// </summary>
+        public int SignatureGrammarVersion { get; init; } = 1;
+
+        /// <summary>
+        /// Half-width of the seed-derived window each scheduled well birth
+        /// may shift within. Zero (and absent from canonical rules) for
+        /// historical rulesets.
+        /// </summary>
+        public int WellBirthJitterTicks { get; init; }
+
+        /// <summary>
+        /// True when the order-dependent slice of movement resolution
+        /// alternates direction by tick parity (foundations -03 fairness).
+        /// </summary>
+        public bool AlternatingResolutionOrder { get; init; }
+
+        /// <summary>
+        /// True when a Pulse requires one banked Core from each Well origin
+        /// (Threefold Pulse prototype); duplicate-origin Cores cannot be
+        /// consumed while their socket is filled.
+        /// </summary>
+        public bool ThreefoldSockets { get; init; }
+
+        /// <summary>Charge a freshly born Core is worth (1 historically).</summary>
+        public int CoreBaseValue { get; init; } = 1;
+
+        /// <summary>
+        /// Ripening: +1 Core value per this many uninterrupted loose ticks
+        /// (0 disables), capped at <see cref="RipenMaxValue"/>; pickup
+        /// freezes the value; drops resume after
+        /// <see cref="RipenResumeTicks"/> loose ticks.
+        /// </summary>
+        public int RipenIntervalTicks { get; init; }
+        public int RipenMaxValue { get; init; }
+        public int RipenResumeTicks { get; init; }
+
+        /// <summary>
+        /// Projectile damage multiplier for shots whose heading lies inside
+        /// the victim's rear quadrant (1 historically).
+        /// </summary>
+        public int RearArcDamageMultiplier { get; init; } = 1;
+
+        /// <summary>
+        /// Veterancy: XP per level (0 disables), kill XP is 1 plus the
+        /// victim's level above 1, levels cap at
+        /// <see cref="VeterancyMaxLevel"/>, each level past 1 grants a
+        /// skill point spent via the invest action, and death resets all
+        /// of it.
+        /// </summary>
+        public int VeterancyXpPerLevel { get; init; }
+        public int VeterancyMaxLevel { get; init; }
+
+        /// <summary>
+        /// Heal zones: Waiting on a heal-region tile recovers 1 health per
+        /// this many consecutive ticks (0 disables).
+        /// </summary>
+        public int HealZoneTicksPerHp { get; init; }
+
+        /// <summary>
+        /// Seed-phases the alternating resolution parity so symmetric
+        /// contests at a fixed tick split evenly across seeds.
+        /// </summary>
+        public bool SeedPhasedResolutionOrder { get; init; }
+
+        /// <summary>
+        /// Seed-swaps the birth schedules of rotationally paired wells, so
+        /// a staggered flank cadence favors neither side across seeds.
+        /// The observed per-well schedules already reflect the swap.
+        /// </summary>
+        public bool SeedPhasedWellLead { get; init; }
+    }
+
+    /// <summary>One stable Well's complete production cadence.</summary>
+    public sealed record ArcRelayWellSchedule(
+        string WellId,
+        int FirstBirthTick,
+        int CadenceTicks,
+        int FinalBirthTick);
+
+    /// <summary>
+    /// One class-bound signature envelope. Fields irrelevant to
+    /// <see cref="Kind"/> are null; every relevant value was present in the
+    /// canonical rules document.
+    /// </summary>
+    public sealed record ArcRelaySignature(
+        string Kind,
+        string SignatureId,
+        string ClassId,
+        string ActionId,
+        int CooldownTicks)
+    {
+        public int? TellTicks { get; init; }
+        /// <summary>Ticks a bolt-class signature (rail, hook, sentinel)
+        /// telegraphs before it resolves. Null or zero is an instant,
+        /// untelegraphed cast — every utility signature.
+        /// <para>
+        /// Where the action ALSO publishes a UnitTarget beside its heading,
+        /// the line attack declares a LOCK: name the enemy you are shooting
+        /// at, and the declare freezes the ninety-degree wedge of its
+        /// heading and follows that body inside it, exactly as a windup gun
+        /// does. Naming nobody is a legal suppressive declare that locks
+        /// nothing.
+        /// </para></summary>
+        public int? WindupTicks { get; init; }
+        public int? Range { get; init; }
+        public int? MaxTiles { get; init; }
+        public int? SegmentCount { get; init; }
+        public int? DurationTicks { get; init; }
+        public int? ContactCapacity { get; init; }
+        public int? MaxPullTiles { get; init; }
+        public int? TicksPerRepair { get; init; }
+        public int? HullPerRepair { get; init; }
+        public int? MaxHullPerActivation { get; init; }
+        public int? TravelTilesPerTick { get; init; }
+        public int? RevealRadius { get; init; }
+        public int? Damage { get; init; }
+        public int? Hull { get; init; }
+        public int? TriggerDamage { get; init; }
+        public int? RevealRange { get; init; }
+        public int? Radius { get; init; }
+        public int? CancelCooldownTicks { get; init; }
+        public int? EnhancedHitCount { get; init; }
+        public int? BonusDamage { get; init; }
+        public int? PushTiles { get; init; }
+        public int? FireCooldownTicks { get; init; }
+        public int? BoltTilesPerAdvance { get; init; }
+
+        /// <summary>
+        /// Designed-role metadata, present only on grammar-2 contracts:
+        /// executors dispatch by these instead of hand tables. Null on
+        /// historical rulesets.
+        /// </summary>
+        public string? Category { get; init; }
+        public string? ArgumentKind { get; init; }
+        public int? EngagementRange { get; init; }
+    }
+
+    /// <summary>
+    /// A battlefield economy: scheduled deposits, wreckage at death tiles, a
+    /// carried resource banked at home, and a team store that converts the
+    /// bank into typed modifiers on the bodies you already field.
+    /// <para>A tier is resolved at the point of use against the form
+    /// catalog's declared number, so nothing here replaces a form: effective
+    /// gun travel is the profile's declared travel plus the tier's step, and
+    /// both operands are published.</para>
+    /// </summary>
+    /// <param name="VeinSites">
+    /// Deposit tile addresses, in declared order. They live in the rules
+    /// rather than the map, so the map is unchanged by the arm.
+    /// </param>
+    /// <param name="VeinFirstSpawnTick">First scheduled deposit tick.</param>
+    /// <param name="VeinSpawnIntervalTicks">Ticks between deposits.</param>
+    /// <param name="VeinLastSpawnTick">Last scheduled deposit tick.</param>
+    /// <param name="VeinAmount">Scrap in one deposit.</param>
+    /// <param name="WreckAmount">
+    /// Scrap a destroyed body leaves at its death tile, merged with whatever
+    /// it was carrying — so a killed carrier is one pile worth wreck + load.
+    /// </param>
+    /// <param name="AssayAmount">
+    /// Scrap banked instantly on stepping onto a pile, before the remainder
+    /// is loaded. It is the floor under every trip.
+    /// </param>
+    /// <param name="CarryCapacity">Most scrap one body may carry.</param>
+    /// <param name="PileLifetimeTicks">
+    /// Ticks a pile survives; it is gone the first tick
+    /// <c>tick &gt;= expiresAtTick</c>.
+    /// </param>
+    /// <param name="MaxSimultaneousPiles">Hard bound on live piles.</param>
+    /// <param name="BankRegionIds">
+    /// Each team's banking region, indexed by team ID. A body of that team
+    /// standing on one of its tiles banks its whole load automatically, with
+    /// no action and no cost.
+    /// </param>
+    /// <param name="UpgradeScope">
+    /// Exact scope policy ID. <c>prime-slot-lives-only</c> applies every tier
+    /// to every life of the team's Prime slot and to nothing else.
+    /// </param>
+    /// <param name="MaxTotalTiers">
+    /// Hard cap on the tiers one team may hold across all tracks.
+    /// </param>
+    /// <param name="PurchaseMode">
+    /// Exact purchase policy ID. <c>invest-action</c> means a live body
+    /// spends its action on the <c>invest</c> verb;
+    /// <c>automatic-greedy-declared-order</c> means the bank buys by itself
+    /// and no verb exists.
+    /// </param>
+    /// <param name="Tracks">The ladder, in declared order.</param>
+    public sealed record FrontlineScrapEconomy(
+        ImmutableArray<ScrapVeinSite> VeinSites,
+        int VeinFirstSpawnTick,
+        int VeinSpawnIntervalTicks,
+        int VeinLastSpawnTick,
+        int VeinAmount,
+        int WreckAmount,
+        int AssayAmount,
+        int CarryCapacity,
+        int PileLifetimeTicks,
+        int MaxSimultaneousPiles,
+        ImmutableArray<string> BankRegionIds,
+        string UpgradeScope,
+        int MaxTotalTiers,
+        string PurchaseMode,
+        ImmutableArray<ScrapUpgradeTrack> Tracks);
+
+    /// <summary>One declared deposit address.</summary>
+    /// <param name="X">Column.</param>
+    /// <param name="Y">Row.</param>
+    public sealed record ScrapVeinSite(int X, int Y);
+
+    /// <summary>
+    /// One purchasable track. Its position in the declared track list is the
+    /// position its tier occupies in every published tier vector.
+    /// </summary>
+    /// <param name="TrackId">Stable identifier; the <c>invest</c> argument.</param>
+    /// <param name="Effect">
+    /// Exact effect policy ID: <c>mobile-attack-travel-tiles-delta</c>,
+    /// <c>spawn-max-health-delta</c>, or <c>vision-range-delta</c>.
+    /// </param>
+    /// <param name="PerTierMagnitude">Integer step one tier adds.</param>
+    /// <param name="MaxTier">Deepest reachable tier on this track.</param>
+    /// <param name="TierCosts">
+    /// Price of tier 1, tier 2, … in order. Its length is
+    /// <paramref name="MaxTier"/>.
+    /// </param>
+    public sealed record ScrapUpgradeTrack(
+        string TrackId,
+        string Effect,
+        int PerTierMagnitude,
+        int MaxTier,
+        ImmutableArray<int> TierCosts);
+
+    /// <summary>
+    /// A capturable SIDE objective that is not part of the frontline chain.
+    /// Presence is measured in objective weight, exactly like the front, so a
+    /// zero-weight turret cannot hold it. It never pays the score channel.
+    /// </summary>
+    /// <param name="RegionIds">
+    /// The site's map regions, in declared order. More than one region is one
+    /// site with more than one place to stand: presence sums across the union
+    /// and a body on each site from opposing teams is a contest.
+    /// </param>
+    /// <param name="CaptureThresholdTicks">
+    /// Consecutive SOLE-presence ticks one claim needs. Any empty or
+    /// contested tick resets the running claim to zero.
+    /// </param>
+    /// <param name="Ownership">
+    /// Exact latch policy ID. Today's single value latches ownership until
+    /// the other team completes a claim of its own.
+    /// </param>
+    /// <param name="Effect">
+    /// Exact effect policy ID. <c>muster</c> moves the owning team's
+    /// automatic arrivals inside <paramref name="RallyScope"/> to the forward
+    /// rally placement.
+    /// </param>
+    /// <param name="RallyScope">
+    /// Exact rally-scope policy ID. <c>prime-automatic-return-only</c> moves
+    /// the Prime's automatic return and nothing else.
+    /// </param>
+    public sealed record FrontlineSecondaryControl(
+        ImmutableArray<string> RegionIds,
+        int CaptureThresholdTicks,
+        string Ownership,
+        string Effect,
+        string RallyScope);
 
     /// <summary>
     /// Frozen Deathmatch score accounting. Values are exact policy IDs that
@@ -314,6 +631,39 @@ public sealed class GenericActorRulesContract
         } = [];
 
         /// <summary>
+        /// How long a completed advance is protected against being pushed
+        /// back, when <see cref="RedeployPolicy"/> holds a high-water mark.
+        /// Zero means the field is inert and absent from the contract: the
+        /// frontline can be pushed back the moment the enemy completes its
+        /// own capture.
+        /// </summary>
+        public int RatchetHoldTicks { get; init; }
+
+        /// <summary>
+        /// The largest gain multiplier stationary surplus can buy, when
+        /// <see cref="ControlPolicy"/> channels a capture. Zero means the
+        /// field is inert and absent from the contract: extra bodies on the
+        /// point scale gain without any ceiling.
+        /// </summary>
+        public int StationaryGainMultiplierCap { get; init; }
+
+        /// <summary>
+        /// How many times faster an opposing claim erodes than a fresh claim
+        /// builds, when <see cref="ControlPolicy"/> channels a capture. Zero
+        /// means the field is inert and absent from the contract: erosion
+        /// runs at plain gain, so flipping a standing claim costs the claim
+        /// plus a full fresh capture.
+        /// </summary>
+        public int OpposingErosionMultiplier { get; init; }
+
+        /// <summary>
+        /// How hostile damage interrupts the team currently taking ground,
+        /// or null when the ruleset declares no interrupt at all — in which
+        /// case nothing a body takes on the point costs its team progress.
+        /// </summary>
+        public FrontlineClaimInterrupt? ClaimInterrupt { get; init; }
+
+        /// <summary>
         /// Resolves the active phase from the authoritative observation tick.
         /// Static rulesets return a synthetic <c>default</c> phase.
         /// </summary>
@@ -339,6 +689,31 @@ public sealed class GenericActorRulesContract
             return active;
         }
     }
+
+    /// <summary>
+    /// How hostile damage taken by the team currently taking ground reverts
+    /// what it has taken. Present only on a ruleset that declares an
+    /// interrupt; absent means damage on the point costs nothing.
+    /// </summary>
+    /// <param name="Kind">Exact interrupt-mechanism ID.</param>
+    /// <param name="RevertPerDamagePoint">
+    /// Progress reverted per point of health actually removed, so the
+    /// interrupt scales with the weapon that landed it.
+    /// </param>
+    /// <param name="Scope">
+    /// Which bodies' damage reverts anything. Under the shipped channel only
+    /// controlling-team bodies standing on the active objective region count,
+    /// which is why a screening body absorbs bolts for free.
+    /// </param>
+    /// <param name="Granularity">
+    /// Whether one hit reverts the controller's whole run or only the hit
+    /// body's contribution.
+    /// </param>
+    public sealed record FrontlineClaimInterrupt(
+        string Kind,
+        int RevertPerDamagePoint,
+        string Scope,
+        string Granularity);
 
     /// <summary>
     /// One deterministic capture-gain phase, ordered by
@@ -390,7 +765,26 @@ public sealed class GenericActorRulesContract
         string ProfileId,
         string DestructionPolicy,
         int DelayTicks,
-        string? AutomaticReturnFormId);
+        string? AutomaticReturnFormId)
+    {
+        /// <summary>
+        /// THE ROOT FACTORY. A slot on a <c>ready-for-explicit-fabrication</c>
+        /// profile is normally placed only by a live body's fabricate action —
+        /// so when your last body dies, nothing can place one again. When this
+        /// form ID is present, your HOME BASE seeds exactly one body of it,
+        /// once, at your own home spawn, after this profile's
+        /// <see cref="DelayTicks"/>. It costs nothing, spends no action, and
+        /// needs no body: a structure, not a body, does the seeding.
+        /// <para>
+        /// <see langword="null"/> — which is every ruleset that does not
+        /// declare the bootstrap — means a total wipe of the slots on this
+        /// profile is permanent, so read it rather than assuming a comeback.
+        /// When it is present, plan around the tempo rather than the loss: the
+        /// seed arrives alone, at home, with the whole map to walk.
+        /// </para>
+        /// </summary>
+        public string? RootFactorySeedFormId { get; init; }
+    }
 
     /// <summary>
     /// One playable body form and its referenced movement, perception, attack,
@@ -413,14 +807,110 @@ public sealed class GenericActorRulesContract
         string VisionProfileId,
         string? AttackProfileId,
         int ObjectiveWeight,
-        ImmutableArray<string> AllowedActionIds);
+        ImmutableArray<string> AllowedActionIds)
+    {
+        /// <summary>
+        /// Optional defensive projectile-contact capability. Contracts that do
+        /// not publish the field use
+        /// <see cref="FormProjectileGuard.None"/>.
+        /// </summary>
+        public FormProjectileGuard ProjectileGuard { get; init; }
+            = FormProjectileGuard.None;
+    }
+
+    /// <summary>
+    /// What a form does with an incoming hostile projectile contact.
+    /// </summary>
+    public enum FormProjectileGuard
+    {
+        /// <summary>
+        /// Contacts resolve by the collision contract alone. This is the inert
+        /// default, and canonical contract bytes omit the field entirely for
+        /// it — an absent field always means this value.
+        /// </summary>
+        None = 0,
+
+        /// <summary>
+        /// A hostile projectile approaching from inside the life's facing
+        /// quadrant dies on the arc without damage, and a replacement bolt is
+        /// launched from the guard's own tile along the exactly reversed
+        /// heading under the guard's team's ownership — so it can kill the
+        /// bot that fired it. The exchange is published as a
+        /// <c>ProjectileDeflected</c> event naming both bolts. Flank and rear
+        /// contacts damage normally, and allied fire is never deflected.
+        /// </summary>
+        FacingQuadrantContactsDeflected = 1,
+    }
+
+    /// <summary>
+    /// Multi-projectile launch shape for one successful attack action.
+    /// </summary>
+    /// <param name="ProjectileCount">Projectiles issued by one attack.</param>
+    /// <param name="Spread">Heading-layout policy ID.</param>
+    /// <param name="IdentityOrder">Projectile-ID assignment policy ID.</param>
+    public sealed record AttackVolley(
+        int ProjectileCount,
+        string Spread,
+        string IdentityOrder);
+
+    /// <summary>
+    /// How a movement profile couples body facing to a movement action.
+    /// Facing drives vision cones and straight-shot aim, so this decides
+    /// whether a step is a free strafe or a committed turn.
+    /// </summary>
+    public enum MovementFacingCoupling
+    {
+        /// <summary>
+        /// Movement never changes facing; rotation is the only way to turn.
+        /// This is the inert default, and canonical contract bytes omit the
+        /// field entirely for it — an absent field always means this value.
+        /// </summary>
+        PreserveFacing = 0,
+
+        /// <summary>
+        /// A successful move sets facing to the direction moved, and the
+        /// Movement event's facing carries the new value. A blocked move
+        /// changes neither position nor facing. Every cardinal stays legal.
+        /// </summary>
+        FaceMovementDirection = 1,
+
+        /// <summary>
+        /// A life may only move where it faces: the Direction constraint on
+        /// movement actions offers exactly the current facing (rotation keeps
+        /// all four), and any other movement direction resolves as blocked.
+        /// Movement itself does not change facing.
+        /// </summary>
+        FacingLocked = 2,
+
+        /// <summary>
+        /// Successful eight-way travel is projected to a cardinal facing:
+        /// cardinal travel faces its heading; diagonal travel preserves a
+        /// component-facing and otherwise flips to its opposite.
+        /// </summary>
+        FaceMovementHeadingProjected = 3,
+
+        /// <summary>
+        /// Forward and lateral movement preserve facing; successful rear or
+        /// rear-diagonal movement flips facing by 180 degrees.
+        /// </summary>
+        CombatStrafe = 4,
+    }
 
     /// <summary>Named movement-layer capability.</summary>
     /// <param name="Id">Stable movement-profile identifier.</param>
     /// <param name="MovementLayer">Map collision/traversal layer.</param>
     public sealed record MovementProfile(
         string Id,
-        GenericActorMapContract.MovementLayer MovementLayer);
+        GenericActorMapContract.MovementLayer MovementLayer)
+    {
+        /// <summary>
+        /// Optional facing coupling for this profile. Contracts that do not
+        /// publish the field use
+        /// <see cref="MovementFacingCoupling.PreserveFacing"/>.
+        /// </summary>
+        public MovementFacingCoupling FacingCoupling { get; init; }
+            = MovementFacingCoupling.PreserveFacing;
+    }
 
     /// <summary>
     /// Named sight and hearing sensor model. Ranges and distance-band bounds
@@ -490,7 +980,24 @@ public sealed class GenericActorRulesContract
         string EnergyArithmetic,
         string AttackAvailability,
         string CooldownUpdate,
-        ShotProgramDefinition ShotProgram);
+        ShotProgramDefinition ShotProgram)
+    {
+        /// <summary>
+        /// Optional facing-relative half-width in eight-way sectors. Zero is
+        /// the historical behavior; one means straight plus both adjacent
+        /// diagonal headings.
+        /// </summary>
+        public int FacingAimHalfWidthSectors { get; init; }
+
+        /// <summary>
+        /// Optional multi-projectile launch shape. Contracts that do not
+        /// publish the field launch exactly one projectile per attack.
+        /// </summary>
+        public AttackVolley? Volley { get; init; }
+
+        /// <summary>Projectiles issued by one successful attack.</summary>
+        public int ProjectilesPerAttack => Volley?.ProjectileCount ?? 1;
+    }
 
     /// <summary>Projectile traversal, range, timing, collision, and damage rules.</summary>
     /// <param name="Mode">Instant-ray or discrete-projectile model.</param>
@@ -511,7 +1018,15 @@ public sealed class GenericActorRulesContract
         int LaunchTiles,
         bool AdvancesOnLaunchTick,
         bool DamageAppliedSimultaneously,
-        bool DiagonalCornersMustBeClear);
+        bool DiagonalCornersMustBeClear)
+    {
+        /// <summary>
+        /// Ticks between a strike's public declaration and its resolution
+        /// (DECISIONS #212). Zero on every ruleset that predates declared
+        /// strikes: the historical immediate instant ray.
+        /// </summary>
+        public int StrikeWindupTicks { get; init; }
+    }
 
     /// <summary>
     /// Bounds and fallback semantics for programmable projectile heading and
@@ -594,7 +1109,14 @@ public sealed class GenericActorRulesContract
         string Id,
         int Code,
         ActionKind Kind,
-        ImmutableArray<ActionParameterKind> ParameterKinds);
+        ImmutableArray<ActionParameterKind> ParameterKinds)
+    {
+        /// <summary>
+        /// Optional action-specific movement/facing behavior. Null selects
+        /// the form's movement profile. Only Movement actions may publish it.
+        /// </summary>
+        public MovementFacingCoupling? MovementFacingOverride { get; init; }
+    }
 
     /// <summary>Closed union of transitions that create child lives in other slots.</summary>
     /// <param name="Kind">Fabrication transition discriminator.</param>
@@ -716,6 +1238,16 @@ public sealed class GenericActorRulesContract
     /// <param name="CombatState">Cooldown and energy continuity.</param>
     /// <param name="Placement">Completion placement and tile legality.</param>
     /// <param name="IrreversibleForLife">Whether the life can later reverse this change.</param>
+    /// <param name="AutomaticReturn">
+    /// When present, the engine also starts this route with no action the tick
+    /// a counter scoped to <paramref name="SourceFormId"/> reaches its
+    /// threshold — the stance budget as a rule rather than a convention. Null
+    /// on every route the engine never fires by itself; canonical contracts
+    /// omit the property entirely rather than encoding the inert case.
+    /// </param>
+    /// <param name="CooldownTicks">Optional route cooldown (#181): after this
+    /// route completes it is refused for this many ticks, held per unit slot
+    /// and surviving the body; 0 means none.</param>
     public sealed record FormTransition(
         string TransitionId,
         string ActionId,
@@ -726,11 +1258,32 @@ public sealed class GenericActorRulesContract
         SameLifeHealth Health,
         SameLifeCombatState CombatState,
         SameLifePlacement Placement,
-        bool IrreversibleForLife)
+        bool IrreversibleForLife,
+        AutomaticReturnTrigger? AutomaticReturn = null,
+        int CooldownTicks = 0)
         : SameLifeTransition(
             SameLifeTransitionKind.FormTransition,
             TransitionId,
             ActionId);
+
+    /// <summary>
+    /// The actionless cause of a same-life return: when the counter reaches
+    /// the threshold the engine begins the route itself, and the matching
+    /// form-transition events carry the reason
+    /// <c>automatic-threshold-return</c>. Leaving before the threshold stays
+    /// the author's choice through the route's ordinary action; staying past
+    /// it is not possible.
+    /// </summary>
+    /// <param name="Counter">
+    /// Semantic ID of the counted fact —
+    /// <c>attacks-issued-since-entering-source-form</c> or
+    /// <c>projectiles-deflected-since-entering-source-form</c>. Every counter
+    /// restarts when the life enters the source form and never survives it.
+    /// </param>
+    /// <param name="Threshold">Count at which the return begins; at least one.</param>
+    public sealed record AutomaticReturnTrigger(
+        string Counter,
+        int Threshold);
 
     /// <summary>Windup timing, visibility, cancellation, and placement semantics.</summary>
     /// <param name="DurationTicks">Ticks from acceptance to scheduled completion.</param>
@@ -950,6 +1503,8 @@ public sealed class GenericActorRulesContract
     /// <param name="MatchCompletionPrecedence">Terminal-condition phase policy ID.</param>
     /// <param name="DamageResolution">Damage and attribution ordering.</param>
     /// <param name="Phases">Authoritative phase IDs in execution order.</param>
+    /// <param name="CooldownClock">Optional cooldown-clock policy ID;
+    /// null means the historical armed-form clock.</param>
     public sealed record TickResolutionDefinition(
         bool ObservationsUsePreTickState,
         bool DecisionsResolveAsJointStep,
@@ -959,7 +1514,8 @@ public sealed class GenericActorRulesContract
         string ActionFaultCounting,
         string MatchCompletionPrecedence,
         DamageResolution DamageResolution,
-        ImmutableArray<string> Phases);
+        ImmutableArray<string> Phases,
+        string? CooldownClock = null);
 
     /// <summary>Damage batching, identity, health, attribution, and event ordering.</summary>
     /// <param name="ContactBatch">Contact batching policy ID.</param>
@@ -985,6 +1541,8 @@ public sealed class GenericActorRulesContract
         Deathmatch = 0,
         /// <summary>Advance through ordered territorial objectives.</summary>
         Frontline = 1,
+        /// <summary>Carry stable Cores to charge reactor Pulses.</summary>
+        ArcRelay = 2,
     }
 
     /// <summary>Discriminator for terminal and timeout victory policies.</summary>
@@ -994,6 +1552,8 @@ public sealed class GenericActorRulesContract
         Deathmatch = 0,
         /// <summary>Frontline breach and territorial ranking.</summary>
         Frontline = 1,
+        /// <summary>Destroy the opposing reactor through banked Pulses.</summary>
+        ArcRelay = 2,
     }
 
     /// <summary>Engine semantic kind represented by an action catalog entry.</summary>
@@ -1013,6 +1573,16 @@ public sealed class GenericActorRulesContract
         SameLifeTransition = 5,
         /// <summary>Replace the source life with descendant lives.</summary>
         Replication = 6,
+        /// <summary>
+        /// Spend mode-owned resources. It moves the mode's own state and
+        /// nothing on the board, but it still costs the casting body its
+        /// action for the tick.
+        /// </summary>
+        ModeInvestment = 7,
+        /// <summary>Shared mode-objective verb such as handoff or drop.</summary>
+        Objective = 8,
+        /// <summary>One class-bound Arc Relay signature.</summary>
+        Signature = 9,
     }
 
     /// <summary>Closed discriminator for typed action arguments and constraints.</summary>
@@ -1028,6 +1598,10 @@ public sealed class GenericActorRulesContract
         FormTarget = 3,
         /// <summary>Absolute projectile heading sector.</summary>
         ProjectileHeading = 4,
+        /// <summary>One declared upgrade track of a mode's store.</summary>
+        UpgradeTrack = 5,
+        /// <summary>Ordinal 6 remains reserved for class-target.</summary>
+        PositionTarget = 7,
     }
 
     /// <summary>Projectile traversal representation.</summary>

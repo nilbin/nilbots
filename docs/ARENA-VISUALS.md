@@ -40,10 +40,19 @@ Each `maps/*.json` document names its standalone presentation package:
 }
 ```
 
-The engine copies the theme and presentation object to replay header `themeId`
-and `presentation`. The viewer resolves those IDs against theme manifests; it
-never switches on `mapId`. Legacy maps and replays without the optional fields
-fall back to the Control Room defaults.
+The engine copies the theme and presentation object into replay presentation
+metadata. Generation-3 generic-actor contracts deliberately keep
+`ActorMapDefinition` gameplay-only, so their replay writers receive a separate
+presentation descriptor containing theme, wall families, and per-form
+chassis/projectile IDs. That descriptor changes the replay hash but never the
+rules, map, or match fingerprints. Hosted execution and every Frontline
+CLI/sandbox writer must supply it explicitly.
+
+The viewer resolves those IDs against theme manifests; it never switches on
+`mapId`. Legacy maps and replays without the optional fields fall back to the
+Control Room defaults. That fallback is compatibility only: a native
+Frontline review with null presentation has failed its handoff and cannot
+approve a theme.
 
 ## File layout
 
@@ -61,6 +70,13 @@ art/themes/<theme-id>/
 
 art/bot-looks/<look-id>/
   raster-reference.png
+
+art/class-models/
+  README.md                       # 3D trial status and budget record
+  concept-targets/
+    README.md
+    striker-oblique-target-v1.png
+    striker-model-sheet-v1.png
 
 web/src/assets/themes/control-room/
   theme.json
@@ -81,6 +97,9 @@ web/src/assets/themes/<theme-id>/
   theme.json
   floor-*.png | floor-*.webp
   wall-*.webp
+  pbr/                              # optional lazy WebGL-only material maps
+    wall-*-normal.webp
+    wall-*-roughness.webp
 
 art/themes/<staged-theme-id>/runtime/
   theme.json
@@ -90,15 +109,37 @@ art/themes/<staged-theme-id>/runtime/
 web/src/assets/bot-looks/<look-id>/
   look.json
   sprite.png | sprite.svg
+  model3d.json                     # optional WebGL companion
+  model.glb
 
 web/src/assets/projectile-looks/<look-id>/
   look.json
   sprite.svg
+  model3d.json                     # optional WebGL companion
+  model.glb
+
+web/src/assets/class-looks/<form-look-id>/
+  look.json
+  sprite.svg
+  model3d.json                     # optional WebGL companion
+  model.glb
+
+web/src/assets/class-projectile-looks/<form-projectile-id>/
+  look.json
+  sprite.svg
+  model3d.json                     # optional WebGL companion
+  model.glb
 
 web/src/render/
   arenaThemes.ts     data loader and legacy fallbacks
   drawArena.ts       layered replay-driven rendering and effects
   interpolate.ts     authoritative state interpolation
+
+web/src/render3d/
+  lookModel.ts       renderer-only GLB discovery, loading, and fallback
+  arenaScene.ts      topology-derived environment geometry/materials
+  wallDetails.ts     deterministic profile-contained service detail
+  themeMaterialAssets.ts  lazy environment-only PBR discovery
 ```
 
 `art/themes` holds production sources and derived PBR maps; it is not bundled
@@ -251,8 +292,8 @@ that override and move the package under `web/src/assets/themes` only when a
 map intentionally ships the theme.
 Do not raise that budget merely to make a build pass: inspect the output and
 compare the relevant theme-scoped CLI viewer size first. Keep the generated
-source prompt with the change/PR. If a future 3D renderer is adopted, feed
-the checked-in albedo/normal/height/roughness/AO maps to the DCC; do not
+source prompt with the change/PR. A 3D environment companion feeds the
+checked-in albedo/normal/height/roughness/AO maps to the DCC; it does not
 regenerate the material merely to change camera or lighting.
 
 Check the theme on the smallest and largest shipped maps, plus a synthetic
@@ -299,6 +340,19 @@ presentation constant.
   weapon direction must remain readable around 48 px.
 - Record a stable ID, label, suggested accent, sprite filename, and render scale
   in the look's standalone `look.json`.
+- A class-oriented look may declare presentation-only `classId` metadata.
+  Current vocabulary includes Frontline's `striker`, `bulwark`, and
+  `fabricator`, plus Arc Relay's sixteen launch IDs. It lets the frontend
+  describe intent without parsing the look ID; it does not yet enforce account
+  equip policy.
+  Manifest discovery validates the value and exposes it as `BotLook.classId`
+  (`null` for ordinary looks). Consumers must not infer a class by parsing a
+  look ID.
+- A genuine SVG may mark a restrained set of direct, filled shape elements
+  `data-team-accent="true"`. Canvas2D and WebGL substitute the replay-resolved
+  team accent on those paths only. Keep them around 5–10% of the visible
+  chassis, retain a valid fallback fill/stroke, and never tag a parent group:
+  authored armor, material, and class silhouette must survive the tint.
 - A look may declare `defaultProjectile` as a recommended companion. The
   appearance UI selects that projectile with the chassis when both are owned,
   but projectile choice remains independently editable.
@@ -324,7 +378,11 @@ presentation constant.
 
 Current looks are Vanguard, Bulwark, Needle, Orbiter, Lancer, Aureate Warden,
 Rift Runner, Mossback, Helio Kite, Scrap Jackal, Glass Manta, and Mantis. All
-twelve are genuine path-based SVGs. The earlier generated PNGs remain under
+are genuine path-based SVGs. Six locked Frontline class packs add Vector
+Kestrel and Arc Viper for Striker, Gatehouse and Mirror Bastion for Bulwark,
+and Copyforge and Rivet Mantis for Fabricator; each carries `classId`, semantic
+team-accent surfaces, and a paired projectile in one purchase pack. The
+earlier generated PNGs remain under
 `art/bot-looks` as unbundled visual references; they are not disguised as
 vector sources. Slot-based Vanguard / Bulwark selection exists only as a
 compatibility fallback for old replays that predate `lookId`.
@@ -337,6 +395,47 @@ and Glass Manta are manifest-discovered but entitlement-locked for future
 achievement, challenge, and competition sources respectively. Mantis unlocks
 the first time any of the account's bots reaches 1300 rating on an official
 ladder.
+
+Frontline's selected base bodies are renderer-owned form presentation rather
+than account cosmetics. Trident Wasp supplies Striker mobile and three-barrel
+Volley bodies; Aegis Tortoise supplies Bulwark mobile, omnidirectional turret,
+and exact-facing-quadrant Shell bodies; Lattice Loom is the one identical
+mobile chassis used by every Fabricator life. They live under
+`assets/class-looks`, never enter appearance options, and pair respectively
+with internal Trident Spark, Rebound Diamond, and Lattice Rivet masks. An
+authored replay form look/projectile still wins; this internal mapping exists
+for Labs replays whose presentation metadata predates the art.
+
+Arc Relay follows the same internal-default route with one genuine SVG package
+for each launch class: Kestrel, Palisade, Towline, Patchbay, Lantern, Mortar,
+Minesmith, Hush, Relay, Switchback, Longshot, Mason, Sunder, Repulsor, Veil,
+and Nest. Their IDs are `arc-<class-id>` and their common basic projectile is
+the renderer-tinted `arc-pulse` class-projectile mask. The canonical sources
+are regenerated by `scripts/build-arc-relay-class-art.mjs`; each uses
+restrained semantic team-accent surfaces and `low-hover`. These defaults never
+enter account appearance options. Later alternate skins remain independent
+entitlement/store packages. The SVG remains the site, Canvas2D, loading, and
+failure representation. The hosted WebGL path additionally lazy-loads the
+owner-approved sixteen-model Meshy T2 fleet pinned by
+`art/class-models/provider-runs/meshy/arc-fleet-review/fleet-audit.json`.
+
+The frontend keeps the two routes deliberately separate:
+
+- `botLook()` and `botLookOptions()` resolve account cosmetics only. Alternate
+  class skins remain normal entitlement-backed cosmetics and expose their
+  intended family through `BotLook.classId`.
+- `presentationBotLook()` can additionally resolve the internal
+  `assets/class-looks` packages, but those packages never enter appearance
+  options. `presentationProjectileLook()` does the same for
+  `assets/class-projectile-looks`.
+- `unitLook()` resolves authored per-form presentation, then the internal
+  class-form compatibility mapping, then the participant's snapshotted
+  cosmetic, then the legacy slot fallback. `unitProjectileLook()` uses the
+  corresponding authored form, internal class pair, participant projectile,
+  and Pulse Bolt order.
+- Canvas2D and WebGL both consume these shared unit resolvers and the same
+  replay-resolved team accent. `classId` describes a cosmetic; it does not
+  override the replay's authoritative form or team.
 
 To create another look:
 
@@ -353,6 +452,147 @@ To create another look:
 5. Verify the sprite never obscures neighbouring cells or appears smaller than
    health and projectile indicators. Inspect at actual gameplay size and at
    device pixel ratios 1 and 2; a large standalone preview is insufficient.
+
+### WebGL model companion
+
+The sprite is still the canonical look. It serves site cards, Canvas2D,
+mobile, the self-contained CLI viewer, loading, and WebGL failure. A genuine
+3D companion is an additional representation for the hosted WebGL renderer.
+The approved Striker mobile look, Trident Wasp, and all sixteen Arc Relay class
+looks now lazy-load genuine GLBs. Other looks and non-mobile forms use the
+sprite-derived WebGL fallback:
+
+- Author the SVG first and approve its class identity, silhouette, team-accent
+  surfaces, and rule-bearing hardware. Then translate that design into actual
+  hull, armor, recess, joint, vent, and weapon geometry. Extruding the SVG is
+  the compatibility fallback, not the authored-model workflow.
+- Check in an editable `.blend` source plus a deterministic generator/export
+  recipe under `art/`. Runtime packages contain only `model3d.json` and a
+  self-contained `model.glb` beside the look.
+- Models face `+X`, use `+Y` as up, sit on `Y=0`, and are scaled relative to a
+  gameplay tile. They contain no camera, light, floor, trail, or rules data.
+  The manifest declares whether the asset is a whole bot/projectile or a
+  renderer-owned part such as one turret arm.
+- An approved provider model may be monolithic when real-replay evidence clears
+  it. In that case the manifest keeps root-level motion tuning but omits invented
+  node names; only per-node hardware/emissive animation is disabled. The Arc
+  fleet's exact candidate geometry, orientations, hashes, and counts come from its
+  `fleet-audit.json`. Shipping textures come from the separately audited
+  `arc-relay-ktx2-selective-v1` tier and are promoted/checked by
+  `scripts/class-models/promote-meshy-arc-fleet.mjs`.
+- Arc Relay's selective mipmapped texture contract is 512 ETC1S base color,
+  256 UASTC tangent normal, 256 UASTC metallic/roughness, and 128 ETC1S emissive.
+  The tier builder must prove byte-semantic accessor equality with the approved
+  candidate; texture optimization is never permission to alter geometry, facing,
+  topology, or normalization.
+- Measure three costs independently: network transfer, compressed-target GPU
+  residency, and RGBA8 fallback residency on devices without a supported target.
+  The fleet audit hard-limits these values and the fixed decoder payload. A small
+  `.glb` is not evidence of a small decoded texture footprint.
+- The Three KTX2 transcoder is initialized only inside the lazy WebGL renderer,
+  before any actor can request a model. Canvas2D and self-contained CLI output must
+  not include the decoder or GLB package.
+- Presentation motion such as Striker's shallow `low-hover` belongs in the
+  canonical `look.json`, not `model3d.json`. The SVG fallback and any future
+  approved GLB must receive the same cue without duplicating metadata.
+- The renderer discovers model manifests only from `render3d`. It caches the
+  downloaded source by URL, shares immutable geometry, and clones nodes and
+  materials per actor because team paint, fog, selection, and hits mutate
+  presentation state. A missing, malformed, or failed model returns to the
+  sprite-derived fallback.
+- `NB_TEAM_ACCENT` (or any future equivalent) carries
+  `extras.nilbotsRole = "team-accent"`. It remains a restrained separate
+  material, so the replay-resolved color and glow can change without tinting
+  authored hull maps. Projectile tint surfaces use
+  `extras.nilbotsRole = "projectile-mask"`.
+- The approved Arc Meshy fleet is an explicit exception to model-owned team
+  paint: its textured monolithic meshes stay untouched. Do not infer semantic
+  surfaces, hue-key, split, or repaint them merely to satisfy this optional
+  material convention; team ownership stays in renderer-owned cues and effects.
+- Persistent signature props use the same exception and a separate
+  `kind: "signature"` manifest. Trip Node and Sentinel Seed load only in the
+  hosted WebGL signature layer; their existing procedural marker remains the
+  telegraph, load-failure, and Canvas fallback. A finished prop never appears
+  during its authoritative tell. The mine keeps its audited lay-flat floor
+  transform, ownership is a restrained renderer-owned ground ring, and the
+  monolithic sentry may yaw only from an observed authoritative shot at or
+  before the playhead—never from a future target or inferred firing arc.
+- Broad flat colors are not a sufficient translation when the sprite depends
+  on layered values, panel lines, material contrast, or surface wear. In that
+  case use compact embedded base-color, normal, metallic/roughness, and
+  emissive maps. Judge them under arena lighting at the moving gameplay
+  camera; a close turntable cannot prove that texture or micro-geometry
+  survives play.
+- Model packages load on first use and emit as separate hosted assets, so the
+  decision is per-look rather than one catalog-wide bundle. Compare a lean and
+  a richer tier with exact bytes, triangles, material count, atlas dimensions,
+  first-use transfer, and decoded residency. A larger tier earns its cost only
+  through visible gameplay-scale improvement. Compare under the real director and
+  player camera—browser zoom or an enlarged crop is not camera evidence. The
+  theme-scoped CLI outputs must remain byte-identical because they cannot render
+  GLBs.
+
+#### Multiview-AI to human handoff pilot
+
+The next Striker attempt may use a multiview generation service to produce a
+base mesh from the canonical SVG and approved pinned model sheet. This is an
+unproven vertical slice, not a validated replacement for authored modeling:
+
+- Preserve input images, hashes, service/model version, settings, raw outputs,
+  and usage/license terms under `art/`. A provider preview is review evidence,
+  not runtime art.
+- A human modeler or technical artist must correct silhouette and proportions,
+  retopologize, separate functional pieces, repair geometry, build UVs/PBR
+  materials, isolate semantic team paint, and set scale, axes, pivots, and
+  floor/hover placement. The corrected editable source is the candidate.
+- Re-run the same canonical overlay, gameplay-camera, team-color, rule-cue,
+  performance, on-demand transfer, and fallback gates. Multiview consistency
+  does not waive any gate.
+- Finish and assess one Striker end to end before generalizing this route to
+  Bulwark, Fabricator, projectiles, or maps. Until then, describe the route as
+  a trial and the compact procedural-proof record as rejected evidence, not a
+  proven production method. The rejected generated binaries and sources are
+  intentionally not retained.
+
+### Sustained replay power budgets
+
+A replay is a minutes-long workload, so power acceptance is based on sustained
+renderer work rather than first-frame speed. Browser code cannot make a portable
+temperature claim; it can own and bound the work most directly tied to heat:
+presentation frequency, drawing-buffer pixels, live shadow-map pixels, draw
+submissions, and Canvas2D operations.
+
+- Select the profile from input and viewport capabilities, never from a user-agent
+  string. A coarse pointer or a touch phone-sized viewport receives mobile;
+  other viewers receive desktop. `?render-profile=full`, `desktop`, and `mobile`
+  are evidence overrides for same-build A/B only, not a player-facing graphics
+  menu. Full is the unrestricted historical reference, not the automatic desktop
+  setting.
+- Desktop retains DPR 2, 2048² shadows, antialiasing, and every scene feature.
+  It caps active presentation and React clock updates at 60 fps, drops paused
+  micro-life to 12 fps, and uses the browser's default GPU selection instead of
+  forcing the high-performance adapter. This removes duplicate work on 120/144 Hz
+  displays and avoids needlessly waking a discrete GPU on dual-adapter laptops.
+- While a replay or live broadcast advances, mobile WebGL and Canvas2D present
+  at 30 fps. Paused WebGL/Canvas2D presentation runs at 12 fps so selection,
+  camera settling, emissive breathing, and other micro-life remain alive.
+  Replay interpolation remains wall-clock-based; authoritative telegraphs and
+  discrete facts do not move earlier or later.
+- Mobile drawing buffers cap at DPR 1.5. WebGL retains antialiasing, all actors,
+  effects, fog, and shadows, but uses a 1024² rather than 2048² shadow map and
+  requests the browser's low-power GPU.
+- At the fixed 844×390 CSS / DPR-3 phone viewport, active WebGL must remain at
+  or below 54 million weighted pixels per second, charging one full color pass
+  plus one complete shadow-map pass per presented frame. The exact arithmetic is
+  regression-tested. Canvas2D is charged by its actual backing-buffer area.
+- Validate both the hosted WebGL path and the Canvas2D host/fallback. Use
+  `scripts/profile-mobile-replay.mjs` on a real replay, confirm its renderer
+  profile data in both phone and desktop emulations, inspect fixed-camera
+  profile pairs at actual game scale, smoke
+  representative replays in WebKit and Chromium, and finish mobile changes with
+  a real phone watch. Test desktop cadence against 60, 120, and 144 Hz timelines.
+  Software WebGL is useful as a stress path, not as a proxy for an iPhone GPU's
+  achievable frame rate.
 
 ## Projectile-look contract
 
@@ -377,15 +617,24 @@ To create another look:
 
 Current projectile looks are Pulse Bolt, Ion Orb, Razor Shard, Arc Spark,
 Regent Lance, Phase Needle, Cinder Disc, Helix Dart, Gravity Knot, Prism Fan,
-and Talon. All eleven are genuine SVG masks. Pulse Bolt, Ion Orb, Razor Shard,
+and Talon, plus the six paired class-pack masks Vector Fork, Arc Cutter, Gate
+Slug, Mirror Wedge, Copy Bit, and Rivet Punch. All are genuine SVG masks. Pulse
+Bolt, Ion Orb, Razor Shard,
 Phase Needle, and Cinder Disc are starter-accessible; Arc Spark unlocks after
 the account completes its first unranked challenge match on the official
 service. Regent Lance unlocks with Aureate Warden after 100 completed ranked
 matches. Helix Dart, Gravity Knot, and Prism Fan are independently
 entitlement-locked for future achievement, challenge, and competition sources.
 Talon unlocks with Mantis at 1300 rating; the two share an unlock source
-without the chassis manifest recommending the projectile, which per
-DECISIONS #106 stays an Aureate Warden exception.
+without the chassis manifest recommending the projectile. The six Frontline
+store packs do declare their projectile companions: each pack grants one
+complete visual pair, while ownership still leaves chassis and projectile
+independently equipable.
+
+Trident Spark, Rebound Diamond, and Lattice Rivet are separate internal
+class-form projectile masks. They are resolved after an authored per-form
+`projectileLookId` and before a participant cosmetic only for class forms, so
+historical Duel playback keeps the snapshotted participant projectile.
 
 To create another projectile look:
 
@@ -400,14 +649,20 @@ To create another projectile look:
    eventually requires per-replay asset packaging rather than bundling every
    cosmetic into every viewer.
 
+A projectile can use the same optional WebGL companion contract after its SVG
+mask is approved. Its model is one readable head volume, not a baked trail,
+glow pool, speed, range, or hitbox. Renderer tint remains authoritative; PBR
+detail may shape grooves and reflections but cannot replace the semantic
+projectile-mask material.
+
 ## Animation contract
 
 Animations describe recorded events; they do not create events.
 
 | Presentation | Authoritative source | Current treatment |
 | --- | --- | --- |
-| Movement | Consecutive replay states | Eased tile-to-tile interpolation |
-| Turning | Recorded facings | Shortest-angle rotation |
+| Movement | Consecutive replay states plus a declared Arc carrier relocation cadence | Monotone, causal tile-to-tile glide with boundary-speed continuity; carriers cross the tile edge on the resolved move boundary and keep travelling through relocation-locked ticks |
+| Turning | Recorded facings | Shortest-angle rotation with causal angular-velocity continuity |
 | Idle | Active status | Subtle hover and separate soft shadow |
 | Firing | `Shot` event | Brief chassis recoil and layered beam/muzzle glow |
 | Projectile travel | Recorded traversal path | Substep interpolation, glow core, and trail |
@@ -418,11 +673,44 @@ Animations describe recorded events; they do not create events.
 | Fabrication/lifecycle | Stable unit and explicit lifecycle events | Unit-qualified spawn/rebuild status without inventing an active body |
 | Anchor | Recorded pending transition plus start/change/cancel events | Source-body windup ring/status, then body swap only on `FormChanged` |
 | Turret | Recorded current form/capabilities and absolute shot heading | Stationary/360 cue and heading-true muzzle/projectile treatment |
-| Fog/vision | Recorded visible tiles/enemies | Existing truthful visibility masks |
+| Fog/vision | Recorded visible tiles/enemies/projectiles from every active teammate | Selecting a bot chooses its team perspective: both renderers union that team's published observations for one truthful shared-vision mask |
+| Arc Relay Core | Recorded spawn/flight/possession plus the carrier's interpolated pose | One luminous sphere: neutral white/lilac (never a team hue) over its well, dropped tile, or flight arc; only possession adds the carrier team's colour, fixed above the carrier with subtle hover and a faint tether |
+
+Arc Relay's compact spectator transport carries that visible-tile union once per
+team per tick. The renderer may reconstruct the corresponding visible actors
+from that tick's authoritative public world, but it must never recompute vision
+geometry or substitute the spectator's omniscient state. Archived compact
+broadcasts that predate the column disable perspective fog instead of presenting
+an empty black board as if it were real vision.
 
 Animation timing is expressed inside the current replay tick window. Do not
 change tick duration, delay result disclosure, or extrapolate beyond received
 live ticks to make an effect look better.
+
+Ordinary position curves land exactly on every recorded tick boundary, remain
+inside the current axis-aligned movement segment, and use only current plus
+previously revealed displacement. A revealed right-angle turn carries scalar
+speed into the new segment while taking its direction only from that segment; a
+true reversal brakes rather than overshooting the path. A hold therefore stays
+still even when a later tick moves. When an Arc contract declares a multi-tick
+carrier relocation cadence, the renderer may spread the already-resolved move
+across that cadence: the body remains on the origin side until the authoritative
+move boundary, crosses the tile edge on that boundary, then keeps the same
+visual speed through relocation-locked ticks. It never reads the next action or
+direction. Rotation follows the same causal rule for consecutive same-direction
+turns. Renderer-only hull lag may settle inside the chassis root after a move,
+but it cannot start a future action early. Movement wakes and thrust remain on
+through an active segment rather than pulsing at integer tick boundaries. Tread
+and wheel scroll accumulates distance along this rendered path, including a
+carrier's relocation-locked glide, rather than the underlying one-tile action.
+Arc Relay's automatic director has a shared fifteen-tile closest shot in
+Canvas2D and WebGL. It clusters sustained combat, treats a carrier as a camera
+subject only while threatened, and holds an ordinary shot for seven replay
+ticks before another theater may win. The manual overview fits the published
+Wells, retaining all three theaters while allowing deep home aprons to leave the
+frame. A compact causal HUD call beside the standing score identifies Core
+birth, pickup/steal, drop, bank, and Pulse events; it does not replace their
+diegetic world effects or reveal facts after the playhead.
 
 ## Art-generation brief
 
@@ -445,8 +733,9 @@ production candidates, then normalized locally:
   deliberately near-square where the other looks are longer along their facing,
   and Talon repeats its recurved claw in the projectile mask. They share the
   1300-rating unlock, but the chassis manifest does not name Talon as a
-  companion: per DECISIONS #106 that recommendation stays unique to Aureate
-  Warden.
+  companion. The six Frontline class packs are the later, owner-approved
+  exception: each intentionally recommends the projectile sold in the same
+  pack, while equipped chassis and projectile choices remain independent.
 - Aureate Warden and Regent Lance were authored as genuine SVG from separate
   generated concept references. Eclipse Bloom + Null Seed and Redshift Crucible
   + Crucible Splitter are retained under `art/` as reserved, unavailable
@@ -476,6 +765,57 @@ Large generated atlases tend to drift in perspective and create mismatched
 edges. Normalize, validate, and pack assets only after each source passes at
 gameplay scale.
 
+## 3D arena environment companions
+
+Environment geometry follows the same two-stage rule: approve the 2D
+theme/map package first, then add an optional WebGL representation. Frontline
+ships the first topology-derived procedural environment: continuous family
+solids, inset upper profiles, profile-contained deterministic service detail,
+and lazy wall normal/roughness maps. No authored modular environment GLB
+package or whole-map mesh ships. It is the first pilot because its camera,
+cover, objective strip, class silhouettes, and projectile grammar exercise
+the contract before it is generalized to other arenas.
+
+- Start from `WallLayout`: trace continuous family solids, then layer
+  manifest-owned upper-profile and material settings. Place optional panels,
+  vents, and clamps from a stable family/coordinate/mask/side hash and keep
+  them inside the narrowest reviewed profile. A future authored module kit may
+  replace individual layers only after it preserves the same data authority.
+- Walls may gain chamfers, recesses, profiles, damage, and less rectangular
+  silhouettes, but the occupied tile and cover edge must remain immediately
+  legible. Decorative overhangs cannot imply an opening, changed collision,
+  sight line, spawn pad, or traversal route.
+- Resolve open-floor relief from the largest approved live model's transformed
+  vertices, not its nominal width. Compose GLB node transforms and runtime look
+  scale, take the maximum XZ radius for arbitrary yaw/diagonal facing, add the
+  review safety margin, and subtract the half-tile centreline clearance. If an
+  extrusion bevel expands outward, add that reach to the source-outline inset
+  and assert the final generated-vertex bounds.
+- Solid geometry belongs on blocked tiles. Walkable cells retain only
+  rule-honest flat or clearly non-blocking detail. Objective treatment cannot
+  obscure capture ownership or pressure.
+- The whole-arena concept approves material hierarchy, profile language, and
+  lighting direction only. It is never cropped into runtime, sampled as a
+  floor, or treated as layout authority. Record transferred and still-missing
+  properties instead of claiming an exact match.
+- Keep environment-only PBR maps under the lazy WebGL import tree. Canvas2D,
+  site, mobile, loading, and the single-file CLI continue to use the canonical
+  theme assets. An albedo reused as bump requires a shallow reviewed scale so
+  baked highlights and wear do not become false geometry.
+- Measure the environment's first-load transfer and GPU cost independently
+  from on-demand bot looks. Prefer instancing and a small shared atlas over
+  unique wall meshes or textures per cell; add LOD only after the actual
+  Frontline camera demonstrates a benefit.
+- Review every wall topology with both teams, all three default class bodies,
+  projectiles, fog, health, objective effects, camera motion, and the Canvas
+  fallback. “Less square” succeeds only when it also preserves or improves
+  gameplay reading.
+- Final evidence uses one fresh hash-verified native replay for the
+  same-frame legacy/new A/B. Pin tick, viewport, camera, auto-fit, supported
+  minimum span, and renderer; include a whole-arena overlay check and forced
+  Canvas fallback. A harness-injected theme or fallback-theme board is useful
+  diagnosis, not approval.
+
 ## Release checklist
 
 1. `npm run build` produces the hashed hosted `dist/` build and one
@@ -488,5 +828,9 @@ gameplay scale.
 4. Replay theme, bot-look, and projectile-look IDs round-trip and are included
    in replay hashes for new matches; map presentation round-trips; legacy null
    fields remain omitted.
-5. Generate local review viewers first. Publish through the private
+5. Every GLB passes header, coordinate-bound, semantic-material, source-hash,
+   and size-budget validation. Review it in a real replay at gameplay scale.
+   Verify the hosted build emits models separately and compare every
+   theme-scoped CLI viewer against the pre-change size.
+6. Generate local review viewers first. Publish through the private
    replay-highlights workflow only when the visual iteration is approved.

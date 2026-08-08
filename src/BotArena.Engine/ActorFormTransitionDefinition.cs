@@ -17,7 +17,9 @@ public sealed record ActorFormTransitionDefinition
         ActorSameLifeHealthDefinition health,
         ActorSameLifeCombatStateDefinition combatState,
         ActorSameLifePlacementDefinition placement,
-        bool irreversibleForLife)
+        bool irreversibleForLife,
+        ActorAutomaticReturnTriggerDefinition? automaticReturn = null,
+        int cooldownTicks = 0)
         : base(
             transitionId,
             actionId,
@@ -28,10 +30,19 @@ public sealed record ActorFormTransitionDefinition
             health,
             combatState,
             placement,
-            irreversibleForLife)
+            irreversibleForLife,
+            cooldownTicks)
     {
+        AutomaticReturn = automaticReturn;
     }
 
     public override SameLifeTransitionKind Kind =>
         SameLifeTransitionKind.FormTransition;
+
+    /// <summary>
+    /// When declared, the engine also fires this route with no action the tick
+    /// a typed source-form counter reaches the threshold. Null is the inert
+    /// default and writes no canonical bytes.
+    /// </summary>
+    public ActorAutomaticReturnTriggerDefinition? AutomaticReturn { get; }
 }

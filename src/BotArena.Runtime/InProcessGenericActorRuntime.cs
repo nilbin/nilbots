@@ -12,6 +12,7 @@ public sealed class InProcessGenericActorRuntime(
 
     private Sdk.IGenericActorBot? _bot;
     private DeterministicRandom? _random;
+    private TeamTickRandom? _teamRandom;
     private bool _started;
 
     public void StartLife(GenericActorRuntimeStart start)
@@ -28,23 +29,29 @@ public sealed class InProcessGenericActorRuntime(
             ?? throw new InvalidOperationException(
                 "Generic actor bot factory returned null.");
         _random = new DeterministicRandom(start.ActorRandomSeed);
+        _teamRandom = new TeamTickRandom(start.TeamRandomSeed);
         _bot.StartLife(GenericActorSdkModelMapper.ToSdk(start));
     }
 
     public GenericActorRuntimeDecision ExecuteTick(
         GenericActorRuntimeObservation observation)
     {
-        if (_bot is null || _random is null)
+        if (_bot is null || _random is null || _teamRandom is null)
         {
             throw new InvalidOperationException(
                 "StartLife must be called before ExecuteTick.");
         }
 
+        // Re-derive the team stream for this exact tick before the bot runs,
+        // so its first team draw is the team's first draw of the tick no
+        // matter what this life drew on earlier ticks.
+        _teamRandom.BeginTick(observation.Tick);
         var debug = new DebugCollector();
         Sdk.GenericActorContext context =
             GenericActorSdkModelMapper.ToSdk(observation) with
             {
                 Random = new SdkRandom(_random),
+                TeamRandom = new SdkTeamRandom(_teamRandom),
                 Debug = debug,
             };
         Sdk.GenericActorDecision sdkDecision = _bot.Tick(context)
@@ -85,6 +92,19 @@ public sealed class InProcessGenericActorRuntime(
 
     private sealed class SdkRandom(
         DeterministicRandom inner) : Sdk.IBotRandom
+    {
+        public int NextInt(
+            int minimumInclusive,
+            int maximumExclusive) =>
+            inner.NextInt(minimumInclusive, maximumExclusive);
+
+        public bool NextBool() => inner.NextBool();
+
+        public double NextDouble() => inner.NextDouble();
+    }
+
+    private sealed class SdkTeamRandom(
+        TeamTickRandom inner) : Sdk.IBotRandom
     {
         public int NextInt(
             int minimumInclusive,

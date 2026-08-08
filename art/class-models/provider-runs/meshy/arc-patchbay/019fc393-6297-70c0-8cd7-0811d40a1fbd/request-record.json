@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "provider": "Meshy",
+  "endpoint": "image-to-3d",
+  "lookId": "arc-patchbay",
+  "taskId": "019fc393-6297-70c0-8cd7-0811d40a1fbd",
+  "submittedAt": "2026-08-02T17:44:03.180Z",
+  "balanceBefore": 400,
+  "input": {
+    "file": "web/src/assets/class-looks/arc-patchbay/sprite.png",
+    "bytes": 42043,
+    "sha256": "0095b31158dfec1056d6dfc58a194c3859184dcdad2c716672486e2e20b1d106",
+    "mimeType": "image/png"
+  },
+  "settings": {
+    "model_type": "smart-topology",
+    "ai_model": "meshy-t2",
+    "target_polycount": 15000,
+    "should_texture": true,
+    "enable_pbr": true,
+    "texture_resolution": "4k",
+    "target_formats": [
+      "glb"
+    ],
+    "auto_size": true,
+    "origin_at": "bottom",
+    "alpha_thumbnail": true,
+    "multi_view_thumbnails": true
+  }
+}

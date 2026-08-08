@@ -150,6 +150,9 @@ public sealed record GenericActorAuthoritativeEvent
             GenericActorRuntimeObservation.EventKind.RuntimeFault =>
                 payload is GenericActorRuntimeObservation.EventPayload
                     .RuntimeFault,
+            GenericActorRuntimeObservation.EventKind.MindRuntimeFault =>
+                payload is GenericActorRuntimeObservation.EventPayload
+                    .MindRuntimeFault,
             GenericActorRuntimeObservation.EventKind
                     .ParticipantDisqualified =>
                 payload is GenericActorRuntimeObservation.EventPayload
@@ -179,6 +182,12 @@ public sealed record GenericActorAuthoritativeEvent
                     .LifecycleClockCancelled =>
                 payload is GenericActorRuntimeObservation.EventPayload
                     .LifecycleClockCancelled,
+            GenericActorRuntimeObservation.EventKind.ProjectileDeflected =>
+                payload is GenericActorRuntimeObservation.EventPayload
+                    .ProjectileDeflected,
+            GenericActorRuntimeObservation.EventKind.ArcRelay =>
+                payload is GenericActorRuntimeObservation.EventPayload
+                    .ArcRelay,
             _ => false,
         };
 
@@ -199,6 +208,18 @@ public sealed record GenericActorAuthoritativeEvent
                 RequireNonnegative(
                     damage.ProjectileId,
                     nameof(damage.ProjectileId));
+                break;
+            case GenericActorRuntimeObservation.EventPayload
+                .ProjectileDeflected deflected:
+                RequireNonnegative(
+                    deflected.SourceTeamId,
+                    nameof(deflected.SourceTeamId));
+                RequireNonnegative(
+                    deflected.ProjectileId,
+                    nameof(deflected.ProjectileId));
+                RequireNonnegative(
+                    deflected.DeflectedProjectileId,
+                    nameof(deflected.DeflectedProjectileId));
                 break;
             case GenericActorRuntimeObservation.EventPayload.Destruction
                 destruction:
@@ -251,6 +272,18 @@ public sealed record GenericActorAuthoritativeEvent
                 RequireNonnegative(
                     frontline.ClaimingTeamId,
                     nameof(frontline.ClaimingTeamId));
+                break;
+            case GenericActorRuntimeObservation.EventPayload.ArcRelay
+                {
+                    Fact: ArcRelayEvent.CoreBanked banked,
+                }:
+                RequireNonnegative(banked.TeamId, nameof(banked.TeamId));
+                break;
+            case GenericActorRuntimeObservation.EventPayload.ArcRelay
+                {
+                    Fact: ArcRelayEvent.Pulse pulse,
+                }:
+                RequireNonnegative(pulse.TeamId, nameof(pulse.TeamId));
                 break;
         }
     }

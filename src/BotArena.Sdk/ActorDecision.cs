@@ -13,6 +13,7 @@ public static class ActorActionIds
     public const string Fabricate = "fabricate";
     public const string Transform = "transform";
     public const string ShootDirection = "shoot-direction";
+    public const string Invest = "invest";
 }
 
 /// <summary>Stable numeric codes for entity actions outside the legacy enum.</summary>
@@ -21,6 +22,12 @@ public static class ActorActionCodes
     public const int Fabricate = 100;
     public const int Transform = 101;
     public const int ShootDirection = 102;
+
+    /// <summary>
+    /// The mode store's verb: spend the team bank on one declared upgrade
+    /// track. 103-105 are taken by experimental catalogs.
+    /// </summary>
+    public const int Invest = 106;
 }
 
 /// <summary>
@@ -34,6 +41,12 @@ public sealed record ActorActionPayload
     public ObservedUnitTarget? UnitTarget { get; init; }
     public string? FormTargetId { get; init; }
     public ProjectileHeading? LaunchHeading { get; init; }
+
+    /// <summary>
+    /// The declared upgrade track a mode-investment names. Null on every
+    /// other action and on every contract that declares no store.
+    /// </summary>
+    public string? UpgradeTrackId { get; init; }
 }
 
 /// <summary>

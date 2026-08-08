@@ -34,7 +34,7 @@ public class Match
     /// <summary>Presentation timeline start (plan §28.1): the simulation completes first,
     /// then events are presented from this instant at PresentationTicksPerSecond.</summary>
     public DateTime? BroadcastStartedAt { get; set; }
-    public int PresentationTicksPerSecond { get; set; } = 5;
+    public double PresentationTicksPerSecond { get; set; } = 5;
     public Guid? MatchSetId { get; set; }
     /// <summary>
     /// Exact immutable playlist revision pinned for this match. Null only for
@@ -45,6 +45,8 @@ public class Match
     /// with this value are unranked challenge product events; worker-internal matches
     /// and historical rows may leave it null.</summary>
     public Guid? InitiatedByUserId { get; set; }
+    /// <summary>Arc Relay product lane; null for legacy and other modes.</summary>
+    public string? ArcRelayLane { get; set; }
     /// <summary>1-based game number inside a ranked set.</summary>
     public int? SetGame { get; set; }
     public List<MatchParticipant> Participants { get; set; } = [];
@@ -89,6 +91,24 @@ public class MatchParticipant
     public string LookIdSnapshot { get; set; } = "vanguard";
     public string ProjectileLookIdSnapshot { get; set; } = "pulse-bolt";
     public string ArtifactHashSnapshot { get; set; } = "";
+    /// <summary>
+    /// Immutable player-sheet identity and data. These are snapshots, not a
+    /// foreign key: editing or deleting a saved sheet cannot rewrite history.
+    /// </summary>
+    public Guid? SheetIdSnapshot { get; set; }
+    public int? SheetRevisionSnapshot { get; set; }
+    public string? SheetNameSnapshot { get; set; }
+    public string? SheetHashSnapshot { get; set; }
+    public string? SheetCanonicalJsonSnapshot { get; set; }
+    public string? SheetLayoutJsonSnapshot { get; set; }
+    public byte[]? MindDataSnapshot { get; set; }
+    /// <summary>Immutable entrant identity and presentation at admission.</summary>
+    public Guid? EntrantIdSnapshot { get; set; }
+    public string? EntrantKindSnapshot { get; set; }
+    public int? EntrantRevisionSnapshot { get; set; }
+    public string? CrestSnapshot { get; set; }
+    public string? CompositionSnapshot { get; set; }
+    public string? CompositionHashSnapshot { get; set; }
     public string? Outcome { get; set; }
     public int? FinalHealth { get; set; }
     public int? DamageDealt { get; set; }

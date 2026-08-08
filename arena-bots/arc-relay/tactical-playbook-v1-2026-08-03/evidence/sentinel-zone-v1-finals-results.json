@@ -1,0 +1,1433 @@
+{
+  "freezeCommit": "52e8a4a1",
+  "runtime": "wasm",
+  "verdict": "PASS - all champion cells at bar, mortar-line blind holdout shut out 3-0 both ways on first contact, cohort 60/64 (93.75%, bar 75%) with zero 0-2 sweeps, false positives 0 fortify ticks, zero faults in 75 games",
+  "galleryUrl": "https://trucks-therapist-bloomberg-elephant.trycloudflare.com",
+  "games": [
+    {
+      "cell": "bw0",
+      "seed": "424242",
+      "matchContractFingerprint": "c356dca6fab5b15423493630605b4d3290858dd20b9e29e842424272f66d23e8",
+      "result": {
+        "WinnerTeamId": 0,
+        "Reason": "reactor-destroyed",
+        "EndTick": 370,
+        "EligibleTeamIds": [
+          0,
+          1
+        ]
+      },
+      "pulses": {
+        "0": 3,
+        "1": 1
+      },
+      "replaySha256": "5e4836990692d03434b742ed6e20ad7fb245f621bb07991a04a25fcd6c1fbf97"
+    },
+    {
+      "cell": "bw1",
+      "seed": "424242",
+      "matchContractFingerprint": "935c61951e55401ccda3d7301f33e660e0df284bef6e7de16f5b5b50c4f37966",
+      "result": {
+        "WinnerTeamId": 1,
+        "Reason": "reactor-destroyed",
+        "EndTick": 380,
+        "EligibleTeamIds": [
+          0,
+          1
+        ]
+      },
+      "pulses": {
+        "0": 1,
+        "1": 3
+      },
+      "replaySha256": "c9ffe5b06361594baf7df64b54af1e216afdd9fc45ccc37b3587fece4c52efee"
+    },
+    {
+      "cell": "co-balanced-e",
+      "seed": "424242",
+      "matchContractFingerprint": "8df6b75fd0d78138705551d6defe2f7bdf5352cbdc26556db1247830ebe0df6c",
+      "result": {
+        "WinnerTeamId": 1,
+        "Reason": "reactor-destroyed",
+        "EndTick": 354,
+        "EligibleTeamIds": [
+          0,
+          1
+        ]
+      },
+      "pulses": {
+        "0": 1,
+        "1": 3
+      },
+      "replaySha256": "9c4ddc539f143576232c2dd25e8bbeaa27b66604a6c3786601cd405c0f67526b"
+    },
+    {
+      "cell": "co-balanced-w",
+      "seed": "424242",
+      "matchContractFingerprint": "2a1b4d1767d4f8fff4ffb87d6d6c6f585953e4a8e6e1d7d1f8573ec2d47f6412",
+      "result": {
+        "WinnerTeamId": 0,
+        "Reason": "reactor-destroyed",
+        "EndTick": 398,
+        "EligibleTeamIds": [
+          0,
+          1
+        ]
+      },
+      "pulses": {
+        "0": 3,
+        "1": 1
+      },
+      "replaySha256": "4d4302f228fdd08cf80fcad27dbbf3c36971f644f491a5e0b005675f94d9db04"
+    },
+    {
+      "cell": "co-beacon-hunt-e",
+      "seed": "424242",
+      "matchContractFingerprint": "4058cae377eab4b0a39e99df46806b094a4cbee8f8780d440e7469f7bc37f31e",
+      "result": {
+        "WinnerTeamId": 1,
+        "Reason": "reactor-destroyed",
+        "EndTick": 428,
+        "EligibleTeamIds": [
+          0,
+          1
+        ]
+      },
+      "pulses": {
+        "0": 2,
+        "1": 3
+      },
+      "replaySha256": "60500fab2cb7de176f51780107797868022b0e46a24c6a88176d6bb93512d852"
+    },
+    {
+      "cell": "co-beacon-hunt-w",
+      "seed": "424242",
+      "matchContractFingerprint": "bf98be6dfa24accb025e27f35bb78c4425803bb54d0c5b54a363f9e8bd9b881b",
+      "result": {
+        "WinnerTeamId": 0,
+        "Reason": "reactor-destroyed",
+        "EndTick": 394,
+        "EligibleTeamIds": [
+          0,
+          1
+        ]
+      },
+      "pulses": {
+        "0": 3,
+        "1": 1
+      },
+      "replaySha256": "fe609adde106063b643dc0302ddcfdb97b08a5b922c31d791ffebd3aac13843c"
+    },
+    {
+      "cell": "co-breach-column-e",
+      "seed": "424242",
+      "matchContractFingerprint": "42d32bf915642209d7bd135f0f0fd652c42b85f55ae5859971d742fabb55d18a",
+      "result": {
+        "WinnerTeamId": 1,
+        "Reason": "reactor-destroyed",
+        "EndTick": 436,
+        "EligibleTeamIds": [
+          0,
+          1
+        ]
+      },
+      "pulses": {
+        "0": 2,
+        "1": 3
+      },
+      "replaySha256": "d3245af11e24c312fc889bd7255ccb4ee2d9fa6fd2f93d4b80d84840b7f2e985"
+    },
+    {
+      "cell": "co-breach-column-w",
+      "seed": "424242",
+      "matchContractFingerprint": "622403073ee89eb35930d7ba7dd1e7128184a276c06c9df1e6ffb328fd42aa5b",
+      "result": {
+        "WinnerTeamId": 0,
+        "Reason": "reactor-destroyed",
+        "EndTick": 392,
+        "EligibleTeamIds": [
+          0,
+          1
+        ]
+      },
+      "pulses": {
+        "0": 3,
+        "1": 1
+      },
+      "replaySha256": "13d0727f7c901d03c8fcf8a2ce6970e6750a53f4ce340e9898c2f7ec6e7a21cf"
+    },
+    {
+      "cell": "co-centre-phalanx-e",
+      "seed": "424242",
+      "matchContractFingerprint": "f937758d983f11363a025b997c2984e5fe1e0705318e9c5bbaeb6b25b2d8aab3",
+      "result": {
+        "WinnerTeamId": 1,
+        "Reason": "reactor-destroyed",
+        "EndTick": 315,
+        "EligibleTeamIds": [
+          0,
+          1
+        ]
+      },
+      "pulses": {
+        "0": 0,
+        "1": 3
+      },
+      "replaySha256": "da8e32c42d8c374456998d2051c517e295ee20fa2927ff1f6a490f4316587295"
+    },
+    {
+      "cell": "co-centre-phalanx-w",
+      "seed": "424242",
+      "matchContractFingerprint": "bdca132eaccdb2a22a3f13e429e2e2e40d082424076618a6589016b243615acd",
+      "result": {
+        "WinnerTeamId": 0,
+        "Reason": "reactor-destroyed",
+        "EndTick": 376,
+        "EligibleTeamIds": [
+          0,
+          1
+        ]
+      },
+      "pulses": {
+        "0": 3,
+        "1": 1
+      },
+      "replaySha256": "d30da743a57594f8d990103e575202702fe24db42e7bbe96a8eb364d6dfc0c88"
+    },
+    {
+      "cell": "co-control-grid-e",
+      "seed": "424242",
+      "matchContractFingerprint": "3aefd00e0b5ebe695462f2d2998ab1af0427f158a799d0ff11e52ddc413e437f",
+      "result": {
+        "WinnerTeamId": 0,
+        "Reason": "reactor-destroyed",
+        "EndTick": 488,
+        "EligibleTeamIds": [
+          0,
+          1
+        ]
+      },
+      "pulses": {
+        "0": 3,
+        "1": 2
+      },
+      "replaySha256": "d6f9a1eccc7a83eab164a5b8651408efe4a29e140867c4aade429e7af974615b"
+    },
+    {
+      "cell": "co-control-grid-w",
+      "seed": "424242",
+      "matchContractFingerprint": "85ba7b39ae6bcd636be51a78e1bf3372d543949a03bb8616de6e0cedc5a70514",
+      "result": {
+        "WinnerTeamId": 0,
+        "Reason": "reactor-destroyed",
+        "EndTick": 451,
+        "EligibleTeamIds": [
+          0,
+          1
+        ]
+      },
+      "pulses": {
+        "0": 3,
+        "1": 2
+      },
+      "replaySha256": "527449ab1b97b20b987126319f4d7c7b5ede471b2b5dde6c54966237eb5b3fd0"
+    },
+    {
+      "cell": "co-convoy-e",
+      "seed": "424242",
+      "matchContractFingerprint": "9162646f24a8033796b2acbbafcda798793f9b0e4329430f5a0d8dd60378299f",
+      "result": {
+        "WinnerTeamId": 1,
+        "Reason": "reactor-destroyed",
+        "EndTick": 382,
+        "EligibleTeamIds": [
+          0,
+          1
+        ]
+      },
+      "pulses": {
+        "0": 1,
+        "1": 3
+      },
+      "replaySha256": "ca377781a4b62ce9a968923d10abd2eeb8ccbf347bfa7d77fbb892424b22439c"
+    },
+    {
+      "cell": "co-convoy-w",
+      "seed": "424242",
+      "matchContractFingerprint": "0b7c5f025405040fe43b97d8a3917ab0c03807d7440aa95e2ca7c1a3a5bb0150",
+      "result": {
+        "WinnerTeamId": 0,
+        "Reason": "reactor-destroyed",
+        "EndTick": 429,
+        "EligibleTeamIds": [
+          0,
+          1
+        ]
+      },
+      "pulses": {
+        "0": 3,
+        "1": 2
+      },
+      "replaySha256": "2fb5fdca219ab5b7ae4e71d40c59c3043fad5d587690f662b4ae876a9739077c"
+    },
+    {
+      "cell": "co-counter-courier-e",
+      "seed": "424242",
+      "matchContractFingerprint": "1752170ae61d3885f02ade13c6c58812ea23678eadca58ea652c7bbc9adc9cd0",
+      "result": {
+        "WinnerTeamId": null,
+        "Reason": "max-ticks",
+        "EndTick": 599,
+        "EligibleTeamIds": [
+          0,
+          1
+        ]
+      },
+      "pulses": {
+        "0": 2,
+        "1": 2
+      },
+      "replaySha256": "d449998768d3f00776a99ff18acc5218ca3ab53f48396d6751b574875aae67c6"
+    },
+    {
+      "cell": "co-counter-courier-w",
+      "seed": "424242",
+      "matchContractFingerprint": "81a59ab8a21fb1045884eae9c10c1b499f9a3deb91ff1d57dd8bfc456e829f9e",
+      "result": {
+        "WinnerTeamId": 0,
+        "Reason": "reactor-destroyed",
+        "EndTick": 378,
+        "EligibleTeamIds": [
+          0,
+          1
+        ]
+      },
+      "pulses": {
+        "0": 3,
+        "1": 1
+      },
+      "replaySha256": "54f3315810c2b22ae29c30302efed542f63fc289de52a2dc6681f738a1739a24"
+    },
+    {
+      "cell": "co-courier-sprint-e",
+      "seed": "424242",
+      "matchContractFingerprint": "1853e2ad80276fdf8387d7edb6db7d663398a392389936e1551dfde88f9b112a",
+      "result": {
+        "WinnerTeamId": 1,
+        "Reason": "reactor-destroyed",
+        "EndTick": 378,
+        "EligibleTeamIds": [
+          0,
+          1
+        ]
+      },
+      "pulses": {
+        "0": 1,
+        "1": 3
+      },
+      "replaySha256": "2c66030d305891799d58059f79b1d0cedf4db8ad8a55b990b882b6d65a805c0a"
+    },
+    {
+      "cell": "co-courier-sprint-w",
+      "seed": "424242",
+      "matchContractFingerprint": "fd8a5a648a6b2a833730178bed9f237936871e2df83a42ac097fd464936b4385",
+      "result": {
+        "WinnerTeamId": 0,
+        "Reason": "reactor-destroyed",
+        "EndTick": 400,
+        "EligibleTeamIds": [
+          0,
+          1
+        ]
+      },
+      "pulses": {
+        "0": 3,
+        "1": 1
+      },
+      "replaySha256": "5f5ff0c76f82373fd82bcec67ff384431d96eab5d5bdbbb2ef400a7cea7ebddb"
+    },
+    {
+      "cell": "co-displacement-control-e",
+      "seed": "424242",
+      "matchContractFingerprint": "706d781d19d7dab677b66be44f8556292fb697407e705b80033d30f3ccc62153",
+      "result": {
+        "WinnerTeamId": 1,
+        "Reason": "reactor-destroyed",
+        "EndTick": 353,
+        "EligibleTeamIds": [
+          0,
+          1
+        ]
+      },
+      "pulses": {
+        "0": 1,
+        "1": 3
+      },
+      "replaySha256": "07245a3bffb8adf32ff06cc85ad9b38d94e9a126006ef339820c57dd74cdb2db"
+    },
+    {
+      "cell": "co-displacement-control-w",
+      "seed": "424242",
+      "matchContractFingerprint": "c3a0285161ffaee30fb36227b594652ad33ab3dfcbbb969c8c975734e93aee60",
+      "result": {
+        "WinnerTeamId": 0,
+        "Reason": "reactor-destroyed",
+        "EndTick": 441,
+        "EligibleTeamIds": [
+          0,
+          1
+        ]
+      },
+      "pulses": {
+        "0": 3,
+        "1": 2
+      },
+      "replaySha256": "a7ad3d975301015b137837bc9c914302d5e82e043c8627ba3255e46974d2ba34"
+    },
+    {
+      "cell": "co-elastic-reserve-e",
+      "seed": "424242",
+      "matchContractFingerprint": "c27e33da85f1ac645f5ffe8c6136acd826566f650a9227ae636670edb2b134c5",
+      "result": {
+        "WinnerTeamId": 1,
+        "Reason": "reactor-destroyed",
+        "EndTick": 328,
+        "EligibleTeamIds": [
+          0,
+          1
+        ]
+      },
+      "pulses": {
+        "0": 0,
+        "1": 3
+      },
+      "replaySha256": "98f539a0b47359f18145884da72b47e7006b3b71c0504a5a8f2be329b0e825e8"
+    },
+    {
+      "cell": "co-elastic-reserve-w",
+      "seed": "424242",
+      "matchContractFingerprint": "a1b5bf02ccfa5732f58a01576aae9aff52fa158d2641e9e195ef4dd88c347ed8",
+      "result": {
+        "WinnerTeamId": 0,
+        "Reason": "reactor-destroyed",
+        "EndTick": 385,
+        "EligibleTeamIds": [
+          0,
+          1
+        ]
+      },
+      "pulses": {
+        "0": 3,
+        "1": 1
+      },
+      "replaySha256": "e3629db3f83810f96e8358bb332bfd646fe7076f954dcb88f2c9f01c4b735ba6"
+    },
+    {
+      "cell": "co-feint-switch-e",
+      "seed": "424242",
+      "matchContractFingerprint": "c4cda5a7eef7e887c8b2d26d5227ceb203c443810f7b57d65ed365f3c00edab0",
+      "result": {
+        "WinnerTeamId": 1,
+        "Reason": "reactor-destroyed",
+        "EndTick": 317,
+        "EligibleTeamIds": [
+          0,
+          1
+        ]
+      },
+      "pulses": {
+        "0": 0,
+        "1": 3
+      },
+      "replaySha256": "be14206ff9e85f7571ba8291ac580e2a4f2095772f716a24728be91a9d8ab060"
+    },
+    {
+      "cell": "co-feint-switch-w",
+      "seed": "424242",
+      "matchContractFingerprint": "6346cab3b37bb48a021d1b3c1330fb1e898c1a326debc17cc48eca741bad91fd",
+      "result": {
+        "WinnerTeamId": 0,
+        "Reason": "reactor-destroyed",
+        "EndTick": 376,
+        "EligibleTeamIds": [
+          0,
+          1
+        ]
+      },
+      "pulses": {
+        "0": 3,
+        "1": 1
+      },
+      "replaySha256": "6e9e83de8e29c98c158ca488cca0fd98244f22804925cf8a937f50040fd92223"
+    },
+    {
+      "cell": "co-fireline-picks-e",
+      "seed": "424242",
+      "matchContractFingerprint": "8720fc3b302da718129092bc6f83dbd077cdb04f4f80468e7e99e9b096f8e0a6",
+      "result": {
+        "WinnerTeamId": 1,
+        "Reason": "reactor-destroyed",
+        "EndTick": 281,
+        "EligibleTeamIds": [
+          0,
+          1
+        ]
+      },
+      "pulses": {
+        "0": 0,
+        "1": 3
+      },
+      "replaySha256": "026de5d4d081ce08033414761251bc15db31a7f6f43c9dc01977600e7f8c5b0e"
+    },
+    {
+      "cell": "co-fireline-picks-w",
+      "seed": "424242",
+      "matchContractFingerprint": "be631170e40752c92be5967f9b2457baac4173aa7fc8907d043bb1a197e7ce38",
+      "result": {
+        "WinnerTeamId": 0,
+        "Reason": "reactor-destroyed",
+        "EndTick": 351,
+        "EligibleTeamIds": [
+          0,
+          1
+        ]
+      },
+      "pulses": {
+        "0": 3,
+        "1": 1
+      },
+      "replaySha256": "89c54a132ec293eea9dde372e052e22354d44762626de41674c4b59a1d68eb95"
+    },
+    {
+      "cell": "co-fortress-counterattack-e",
+      "seed": "424242",
+      "matchContractFingerprint": "a189a8f23159468c6320df684b5d190862b39b87fb36abf6bb7bde24b419b5b9",
+      "result": {
+        "WinnerTeamId": 1,
+        "Reason": "reactor-destroyed",
+        "EndTick": 351,
+        "EligibleTeamIds": [
+          0,
+          1
+        ]
+      },
+      "pulses": {
+        "0": 1,
+        "1": 3
+      },
+      "replaySha256": "f4be30a9243ce5e27af0609d72d5b987c517ac259162a77da4ce72d8aa7d3bbd"
+    },
+    {
+      "cell": "co-fortress-counterattack-w",
+      "seed": "424242",
+      "matchContractFingerprint": "ee3459459a034843fa3e4e224d277e32b69c6e10e379f6678b011408f6aa93b7",
+      "result": {
+        "WinnerTeamId": 0,
+        "Reason": "reactor-destroyed",
+        "EndTick": 444,
+        "EligibleTeamIds": [
+          0,
+          1
+        ]
+      },
+      "pulses": {
+        "0": 3,
+        "1": 2
+      },
+      "replaySha256": "43ef5f3f872703b60ecb91504f98c75bfc4fb3bc79c99cb1f2997bcdb00c67d9"
+    },
+    {
+      "cell": "co-home-counterpunch-e",
+      "seed": "424242",
+      "matchContractFingerprint": "1277f2d23973dac7e87ee6254632880a0d683dcfb0024279787036c4f5fb6ccc",
+      "result": {
+        "WinnerTeamId": 1,
+        "Reason": "reactor-destroyed",
+        "EndTick": 351,
+        "EligibleTeamIds": [
+          0,
+          1
+        ]
+      },
+      "pulses": {
+        "0": 1,
+        "1": 3
+      },
+      "replaySha256": "fb986e4537355365515ca1b31974c1cb66e2b165abdaac41270692c56cfcfa8a"
+    },
+    {
+      "cell": "co-home-counterpunch-w",
+      "seed": "424242",
+      "matchContractFingerprint": "a378d52631bdcb369ceab36f8491440d260e73f87582bd2c397763a6fd39ccd9",
+      "result": {
+        "WinnerTeamId": 0,
+        "Reason": "reactor-destroyed",
+        "EndTick": 369,
+        "EligibleTeamIds": [
+          0,
+          1
+        ]
+      },
+      "pulses": {
+        "0": 3,
+        "1": 1
+      },
+      "replaySha256": "9a62af91ba4ebbcc63feb543253c7b51adb382b41fa9a9a30a00bce9d50ff58e"
+    },
+    {
+      "cell": "co-hook-burst-e",
+      "seed": "424242",
+      "matchContractFingerprint": "5e32f1c24b832218a430e39b8788fa0e43af79630d9c32da90a619e8105d4451",
+      "result": {
+        "WinnerTeamId": 1,
+        "Reason": "reactor-destroyed",
+        "EndTick": 420,
+        "EligibleTeamIds": [
+          0,
+          1
+        ]
+      },
+      "pulses": {
+        "0": 2,
+        "1": 3
+      },
+      "replaySha256": "32751dc5ce270a1b4e88698eca1f8127b22346e0a6ebf88c832a373df24d993a"
+    },
+    {
+      "cell": "co-hook-burst-w",
+      "seed": "424242",
+      "matchContractFingerprint": "7a6b78c5d825b04b32e54312415c982ed17c676a94a8c2107668e9ae65653f9a",
+      "result": {
+        "WinnerTeamId": 0,
+        "Reason": "reactor-destroyed",
+        "EndTick": 440,
+        "EligibleTeamIds": [
+          0,
+          1
+        ]
+      },
+      "pulses": {
+        "0": 3,
+        "1": 2
+      },
+      "replaySha256": "9c63b7329808617812b50fcf55192900deb86cec94debc16217502f2e1b5c59b"
+    },
+    {
+      "cell": "co-interception-e",
+      "seed": "424242",
+      "matchContractFingerprint": "8a815916ea02ee2b1efb73515bc833a79f8dfc9ac68840612e792e6395db16d3",
+      "result": {
+        "WinnerTeamId": 1,
+        "Reason": "reactor-destroyed",
+        "EndTick": 386,
+        "EligibleTeamIds": [
+          0,
+          1
+        ]
+      },
+      "pulses": {
+        "0": 1,
+        "1": 3
+      },
+      "replaySha256": "a348a5b5e0ee7e254b111970b791d65545f6df922537179c79204d3405b4fbb5"
+    },
+    {
+      "cell": "co-interception-w",
+      "seed": "424242",
+      "matchContractFingerprint": "b731de8c82478c1f669fcec8a1c7c2a992a857d80190f75ca9b3836c7ae5d4c4",
+      "result": {
+        "WinnerTeamId": 0,
+        "Reason": "reactor-destroyed",
+        "EndTick": 451,
+        "EligibleTeamIds": [
+          0,
+          1
+        ]
+      },
+      "pulses": {
+        "0": 3,
+        "1": 2
+      },
+      "replaySha256": "f54acf1b54800788de247cf42c9c734a4ad1de5850f5e115dcd7593ba8c0a15f"
+    },
+    {
+      "cell": "co-mine-crescent-e",
+      "seed": "424242",
+      "matchContractFingerprint": "a6e982a93eb3ddc043185afd219bd0f4aa763cd5c1677b9a940637cca8b50783",
+      "result": {
+        "WinnerTeamId": 1,
+        "Reason": "reactor-destroyed",
+        "EndTick": 397,
+        "EligibleTeamIds": [
+          0,
+          1
+        ]
+      },
+      "pulses": {
+        "0": 1,
+        "1": 3
+      },
+      "replaySha256": "7773c38055a59705587870ba6c491c20d76f4d976c1c26e4a4437851d2e84d4c"
+    },
+    {
+      "cell": "co-mine-crescent-w",
+      "seed": "424242",
+      "matchContractFingerprint": "3b574ffc585a0b59cc36385ab860ac222b28a9565f5a8724ea6170cf62d9cbbe",
+      "result": {
+        "WinnerTeamId": 0,
+        "Reason": "reactor-destroyed",
+        "EndTick": 363,
+        "EligibleTeamIds": [
+          0,
+          1
+        ]
+      },
+      "pulses": {
+        "0": 3,
+        "1": 1
+      },
+      "replaySha256": "42bc27cb120cda35b6f19c2b13937a449951c0ce1babaebb2e844848de1cdd60"
+    },
+    {
+      "cell": "co-mortar-wheel-e",
+      "seed": "424242",
+      "matchContractFingerprint": "5d4c1091b08fe99f704db11cfc28db0d8f8d981ca596ceffc59c1049a00a0670",
+      "result": {
+        "WinnerTeamId": 1,
+        "Reason": "reactor-destroyed",
+        "EndTick": 382,
+        "EligibleTeamIds": [
+          0,
+          1
+        ]
+      },
+      "pulses": {
+        "0": 1,
+        "1": 3
+      },
+      "replaySha256": "02f9f5cfa992f086db03db4653b907cfaefef22f47123970a547ffc84e676c9f"
+    },
+    {
+      "cell": "co-mortar-wheel-w",
+      "seed": "424242",
+      "matchContractFingerprint": "250fa348e42c36464ada1cc360a08b5b9372d757a485d0f11b6e3514dedd8923",
+      "result": {
+        "WinnerTeamId": 0,
+        "Reason": "reactor-destroyed",
+        "EndTick": 431,
+        "EligibleTeamIds": [
+          0,
+          1
+        ]
+      },
+      "pulses": {
+        "0": 3,
+        "1": 2
+      },
+      "replaySha256": "68b1d6fc7e80bceec5a67a2dcd2cd5c34521f8024845e1ec8205cfef07e7c695"
+    },
+    {
+      "cell": "co-null-veil-e",
+      "seed": "424242",
+      "matchContractFingerprint": "0eef7827efa7e4689bfe8c4233f55b236a99339be0e0e066b6c62465a3574649",
+      "result": {
+        "WinnerTeamId": 1,
+        "Reason": "reactor-destroyed",
+        "EndTick": 354,
+        "EligibleTeamIds": [
+          0,
+          1
+        ]
+      },
+      "pulses": {
+        "0": 1,
+        "1": 3
+      },
+      "replaySha256": "6c1c3f66ac597aad835018fde9650129a913efa650ba81dd9aca354939692064"
+    },
+    {
+      "cell": "co-null-veil-w",
+      "seed": "424242",
+      "matchContractFingerprint": "a1d17cdb3fdf05700a7cc202fece5f443945f28b7baef841a101ac668ad5021b",
+      "result": {
+        "WinnerTeamId": 0,
+        "Reason": "reactor-destroyed",
+        "EndTick": 375,
+        "EligibleTeamIds": [
+          0,
+          1
+        ]
+      },
+      "pulses": {
+        "0": 3,
+        "1": 1
+      },
+      "replaySha256": "e4bf9d2dbf48c50bfd02dda2faea651aee6f89fd3a431920e60cd5c82118c0b7"
+    },
+    {
+      "cell": "co-outer-pincers-e",
+      "seed": "424242",
+      "matchContractFingerprint": "f2fe95269316c78880db1106fa116a6e85d2cb14cc35b440680757c8ee0c5f78",
+      "result": {
+        "WinnerTeamId": 1,
+        "Reason": "reactor-destroyed",
+        "EndTick": 301,
+        "EligibleTeamIds": [
+          0,
+          1
+        ]
+      },
+      "pulses": {
+        "0": 0,
+        "1": 3
+      },
+      "replaySha256": "e75d4290de2fe817defb2b464b03bdd2a1e8ec0b3b9a45fba7e0fe868f865281"
+    },
+    {
+      "cell": "co-outer-pincers-w",
+      "seed": "424242",
+      "matchContractFingerprint": "53981d3df8195de2d6699fdeef16659aa37d6cbc5ae7c1bc8aecff319b22b30b",
+      "result": {
+        "WinnerTeamId": 0,
+        "Reason": "reactor-destroyed",
+        "EndTick": 451,
+        "EligibleTeamIds": [
+          0,
+          1
+        ]
+      },
+      "pulses": {
+        "0": 3,
+        "1": 2
+      },
+      "replaySha256": "dea0386838215b628a9235460c0d1273104088bac4c9ffbc59a9993496ba99e0"
+    },
+    {
+      "cell": "co-pod-lattice-e",
+      "seed": "424242",
+      "matchContractFingerprint": "68469118cbf339e3b10a562cfaea89c7727a81a9987711f0cbac04d1902cbbee",
+      "result": {
+        "WinnerTeamId": 1,
+        "Reason": "reactor-destroyed",
+        "EndTick": 279,
+        "EligibleTeamIds": [
+          0,
+          1
+        ]
+      },
+      "pulses": {
+        "0": 0,
+        "1": 3
+      },
+      "replaySha256": "ce9a0d2b7b817dcd70ceb039c43fc93b322d549addef0f18d663e6d7289a3913"
+    },
+    {
+      "cell": "co-pod-lattice-w",
+      "seed": "424242",
+      "matchContractFingerprint": "0789a6ea13660e2fd44c3c8ccaaa814b98b43ba798583347fa4b87fcbbcaaf72",
+      "result": {
+        "WinnerTeamId": 0,
+        "Reason": "reactor-destroyed",
+        "EndTick": 381,
+        "EligibleTeamIds": [
+          0,
+          1
+        ]
+      },
+      "pulses": {
+        "0": 3,
+        "1": 1
+      },
+      "replaySha256": "84ef925b1155d7f5a15bbc6ff35cab8d65d48f9062ce3270ac1d167b81835e22"
+    },
+    {
+      "cell": "co-rail-screen-e",
+      "seed": "424242",
+      "matchContractFingerprint": "7cfb481b89971d9ecb7e0931ac9c7ce3ca03d9878abd0e2cf8db9a17efe62316",
+      "result": {
+        "WinnerTeamId": 1,
+        "Reason": "reactor-destroyed",
+        "EndTick": 351,
+        "EligibleTeamIds": [
+          0,
+          1
+        ]
+      },
+      "pulses": {
+        "0": 1,
+        "1": 3
+      },
+      "replaySha256": "fabd3c2bb068792d1a5eee9faddbda7ea219f1ceeeee77469249fbd765c2439f"
+    },
+    {
+      "cell": "co-rail-screen-w",
+      "seed": "424242",
+      "matchContractFingerprint": "3736137c9f83f2f42e963d21388fc3a593a4b3dcd66472e3212897fe8d1f78ae",
+      "result": {
+        "WinnerTeamId": 0,
+        "Reason": "reactor-destroyed",
+        "EndTick": 379,
+        "EligibleTeamIds": [
+          0,
+          1
+        ]
+      },
+      "pulses": {
+        "0": 3,
+        "1": 1
+      },
+      "replaySha256": "5a8027324b9862b306f8d4e051a01d5227dff8ff8a4795bc7ad3681e1e8883ed"
+    },
+    {
+      "cell": "co-relay-chain-e",
+      "seed": "424242",
+      "matchContractFingerprint": "a0c789b3710db5425f91f8d2dd1fdd6ca104d49d0cf04f3ac32dc8d40979df90",
+      "result": {
+        "WinnerTeamId": 1,
+        "Reason": "reactor-destroyed",
+        "EndTick": 392,
+        "EligibleTeamIds": [
+          0,
+          1
+        ]
+      },
+      "pulses": {
+        "0": 1,
+        "1": 3
+      },
+      "replaySha256": "2e535982cf217ed86876cb477b2883250940f31fcf9c7f1e2078b4cd788ef2cb"
+    },
+    {
+      "cell": "co-relay-chain-w",
+      "seed": "424242",
+      "matchContractFingerprint": "82295b5ebf37ad39df075c5330ec2aaef8ac709637e9c601df24f44d2e4de5da",
+      "result": {
+        "WinnerTeamId": 0,
+        "Reason": "reactor-destroyed",
+        "EndTick": 351,
+        "EligibleTeamIds": [
+          0,
+          1
+        ]
+      },
+      "pulses": {
+        "0": 3,
+        "1": 1
+      },
+      "replaySha256": "c8797cae49a20978d7fd5564a3384836280087b57b4845015cae448121cd78f4"
+    },
+    {
+      "cell": "co-repair-web-e",
+      "seed": "424242",
+      "matchContractFingerprint": "ec0a36dc07af28769696d3336521c3cd2ab9e361a039fe5acba8bedb24d09a0c",
+      "result": {
+        "WinnerTeamId": 1,
+        "Reason": "reactor-destroyed",
+        "EndTick": 306,
+        "EligibleTeamIds": [
+          0,
+          1
+        ]
+      },
+      "pulses": {
+        "0": 0,
+        "1": 3
+      },
+      "replaySha256": "75ae50c9256aff5a9944f4570baa5518f0b096c9995ac3e90a18204bfbb69814"
+    },
+    {
+      "cell": "co-repair-web-w",
+      "seed": "424242",
+      "matchContractFingerprint": "76d1854c1a0ab390b1e61797ee4ea0d33b82a9657e80347dc6f5f6cc19dec06c",
+      "result": {
+        "WinnerTeamId": 0,
+        "Reason": "reactor-destroyed",
+        "EndTick": 377,
+        "EligibleTeamIds": [
+          0,
+          1
+        ]
+      },
+      "pulses": {
+        "0": 3,
+        "1": 1
+      },
+      "replaySha256": "4af1d62a2e7d7a9890faa7d7017808e1f3ac29a225085aa3a22691309b2c3c39"
+    },
+    {
+      "cell": "co-rotating-bastions-e",
+      "seed": "424242",
+      "matchContractFingerprint": "20b42e83b18181e15b254486610a4219c97b1234de92d7509ceca78105cdc864",
+      "result": {
+        "WinnerTeamId": 1,
+        "Reason": "reactor-destroyed",
+        "EndTick": 301,
+        "EligibleTeamIds": [
+          0,
+          1
+        ]
+      },
+      "pulses": {
+        "0": 0,
+        "1": 3
+      },
+      "replaySha256": "f3694e60e9259ebb811dff81777e14e04eae0ada20fc99c139492ed2fceb8956"
+    },
+    {
+      "cell": "co-rotating-bastions-w",
+      "seed": "424242",
+      "matchContractFingerprint": "9a076a689e6ad0626a9508eb0167d2a48f51f98945f8d4eae9cd551c52d678a2",
+      "result": {
+        "WinnerTeamId": 0,
+        "Reason": "reactor-destroyed",
+        "EndTick": 360,
+        "EligibleTeamIds": [
+          0,
+          1
+        ]
+      },
+      "pulses": {
+        "0": 3,
+        "1": 1
+      },
+      "replaySha256": "3fb175cb087cabaab18f0c53e914e196a072270e6202a816cadb70f7335f65e1"
+    },
+    {
+      "cell": "co-sensor-grid-e",
+      "seed": "424242",
+      "matchContractFingerprint": "499f9d1b2d52a8aa35b68565ec3984ca01a11960c417db1075fbd7bd37022cd8",
+      "result": {
+        "WinnerTeamId": 0,
+        "Reason": "reactor-destroyed",
+        "EndTick": 404,
+        "EligibleTeamIds": [
+          0,
+          1
+        ]
+      },
+      "pulses": {
+        "0": 3,
+        "1": 2
+      },
+      "replaySha256": "918665963bfc90557a91eadabcf92d529cb1d6514301d149aa58d4d84852c0db"
+    },
+    {
+      "cell": "co-sensor-grid-w",
+      "seed": "424242",
+      "matchContractFingerprint": "ba05bbac2f5ab426d1324795cb054cc050894787703dde6102818e5081a133bd",
+      "result": {
+        "WinnerTeamId": 0,
+        "Reason": "reactor-destroyed",
+        "EndTick": 361,
+        "EligibleTeamIds": [
+          0,
+          1
+        ]
+      },
+      "pulses": {
+        "0": 3,
+        "1": 1
+      },
+      "replaySha256": "e29582660dedf53cfe0b08e89943372976a62635639c3ea1e2507f073f570720"
+    },
+    {
+      "cell": "co-smoke-and-mines-e",
+      "seed": "424242",
+      "matchContractFingerprint": "13ebb5c3b6775dddbc2abc136d710d5ae0f1388eb86bf7c59661032ba1ea7866",
+      "result": {
+        "WinnerTeamId": 1,
+        "Reason": "reactor-destroyed",
+        "EndTick": 382,
+        "EligibleTeamIds": [
+          0,
+          1
+        ]
+      },
+      "pulses": {
+        "0": 1,
+        "1": 3
+      },
+      "replaySha256": "9c4a994dc9963d24227e96263909f5e4611f80864bf61580299c93ee67a318ab"
+    },
+    {
+      "cell": "co-smoke-and-mines-w",
+      "seed": "424242",
+      "matchContractFingerprint": "304ac7bb0b71e30c8fc22f7b50c715737fb75c73629f0e8cb9668f5662ac26f7",
+      "result": {
+        "WinnerTeamId": 0,
+        "Reason": "reactor-destroyed",
+        "EndTick": 359,
+        "EligibleTeamIds": [
+          0,
+          1
+        ]
+      },
+      "pulses": {
+        "0": 3,
+        "1": 1
+      },
+      "replaySha256": "ec53467d1838e15d19db83d5738c93adece1700f2a52945434ae665527d0d7c9"
+    },
+    {
+      "cell": "co-smoke-convoy-e",
+      "seed": "424242",
+      "matchContractFingerprint": "d2e2f2f5d52bfce3bd8319b7d2e40d68715a9b27e090f29b77b8caada10d0d54",
+      "result": {
+        "WinnerTeamId": 1,
+        "Reason": "reactor-destroyed",
+        "EndTick": 351,
+        "EligibleTeamIds": [
+          0,
+          1
+        ]
+      },
+      "pulses": {
+        "0": 1,
+        "1": 3
+      },
+      "replaySha256": "4a248bab1e9de8da548f94a2f005425d589fa34eec19bb6d9f930d69ae437daa"
+    },
+    {
+      "cell": "co-smoke-convoy-w",
+      "seed": "424242",
+      "matchContractFingerprint": "1c0fba4c32cb1c98339a4f4171fcbc22be2fee58aca79fb286b0c9a56a3400df",
+      "result": {
+        "WinnerTeamId": 0,
+        "Reason": "reactor-destroyed",
+        "EndTick": 364,
+        "EligibleTeamIds": [
+          0,
+          1
+        ]
+      },
+      "pulses": {
+        "0": 3,
+        "1": 1
+      },
+      "replaySha256": "2d302c8b421e0c7d1d80e3187d1b152c23e6ca05904b64a8972bc69153e1e710"
+    },
+    {
+      "cell": "co-split-e",
+      "seed": "424242",
+      "matchContractFingerprint": "ec8dad0ed53a237cff0280fee4ef698f2ba28e44246c4b3b7cc072acdef694c1",
+      "result": {
+        "WinnerTeamId": 1,
+        "Reason": "reactor-destroyed",
+        "EndTick": 426,
+        "EligibleTeamIds": [
+          0,
+          1
+        ]
+      },
+      "pulses": {
+        "0": 2,
+        "1": 3
+      },
+      "replaySha256": "feafcb8194713d6ebc8016e30052f7ec7cb930e5e1f5b0e38c80a59124144546"
+    },
+    {
+      "cell": "co-split-w",
+      "seed": "424242",
+      "matchContractFingerprint": "37ea692619f2db9f01ac9ada909ef2db36196242adc7d5a4f818903aeff2d25c",
+      "result": {
+        "WinnerTeamId": 0,
+        "Reason": "reactor-destroyed",
+        "EndTick": 400,
+        "EligibleTeamIds": [
+          0,
+          1
+        ]
+      },
+      "pulses": {
+        "0": 3,
+        "1": 1
+      },
+      "replaySha256": "5d43941efcf7d0d5f4ef3ef44c91654443125566c4b26afaf16ab5f547d81467"
+    },
+    {
+      "cell": "co-sustain-attrition-e",
+      "seed": "424242",
+      "matchContractFingerprint": "0c556ffba5bbd787b32f5baa58da0675b34ebf79ded10ba62b82cd10b08950c6",
+      "result": {
+        "WinnerTeamId": 1,
+        "Reason": "reactor-destroyed",
+        "EndTick": 301,
+        "EligibleTeamIds": [
+          0,
+          1
+        ]
+      },
+      "pulses": {
+        "0": 0,
+        "1": 3
+      },
+      "replaySha256": "bb0a4740abff7fef222966533be5d0d71585cd98df1a037815ec13bcbaf8ff6b"
+    },
+    {
+      "cell": "co-sustain-attrition-w",
+      "seed": "424242",
+      "matchContractFingerprint": "4b3c39970dcd2a2074152b4416e6c98c077626c399a7726e8570a28828cee445",
+      "result": {
+        "WinnerTeamId": 1,
+        "Reason": "reactor-destroyed",
+        "EndTick": 401,
+        "EligibleTeamIds": [
+          0,
+          1
+        ]
+      },
+      "pulses": {
+        "0": 2,
+        "1": 3
+      },
+      "replaySha256": "2ef6af8b4937b0aa7d3467a61513db0c685dbaff663ea25fcad32ad90cf045d1"
+    },
+    {
+      "cell": "co-three-well-race-e",
+      "seed": "424242",
+      "matchContractFingerprint": "7ae3e797440b5138cd993fb6ef5b82be34b8a483d286a59c0668c29b53c9c5d2",
+      "result": {
+        "WinnerTeamId": 1,
+        "Reason": "reactor-destroyed",
+        "EndTick": 454,
+        "EligibleTeamIds": [
+          0,
+          1
+        ]
+      },
+      "pulses": {
+        "0": 2,
+        "1": 3
+      },
+      "replaySha256": "753733ce428ee3dfc3d92689579195e686f0e9452b7e357f00c004b32ce792d9"
+    },
+    {
+      "cell": "co-three-well-race-w",
+      "seed": "424242",
+      "matchContractFingerprint": "5009853cd3dea2d2dc24ba9b65865cd73dc93a854d909aea7b01b7857abafed6",
+      "result": {
+        "WinnerTeamId": 0,
+        "Reason": "reactor-destroyed",
+        "EndTick": 376,
+        "EligibleTeamIds": [
+          0,
+          1
+        ]
+      },
+      "pulses": {
+        "0": 3,
+        "1": 1
+      },
+      "replaySha256": "225aa1600cd696e66e32c6139d9abd44266e4653bba077d5a7a0021d7d13c7af"
+    },
+    {
+      "cell": "co-trap-punish-e",
+      "seed": "424242",
+      "matchContractFingerprint": "5f82a13aa58fbc37e5ba62b1cd7cc83b4ad0674d2e817ab5dabb35307a04eeb1",
+      "result": {
+        "WinnerTeamId": 1,
+        "Reason": "reactor-destroyed",
+        "EndTick": 330,
+        "EligibleTeamIds": [
+          0,
+          1
+        ]
+      },
+      "pulses": {
+        "0": 1,
+        "1": 3
+      },
+      "replaySha256": "012890192c3a7b2282a5b8b9b3e2f08fafadae9b7435263e015019ef3b5d3301"
+    },
+    {
+      "cell": "co-trap-punish-w",
+      "seed": "424242",
+      "matchContractFingerprint": "3e103494ee8152b0394075f2e1a9ab653da95b954b4724fd9b7ffabb624f8d2b",
+      "result": {
+        "WinnerTeamId": 0,
+        "Reason": "reactor-destroyed",
+        "EndTick": 362,
+        "EligibleTeamIds": [
+          0,
+          1
+        ]
+      },
+      "pulses": {
+        "0": 3,
+        "1": 1
+      },
+      "replaySha256": "08eb9366453c5c14e433389824818286d8a7ba6a32679e1a940b102fb9b441ad"
+    },
+    {
+      "cell": "fp-balanced",
+      "seed": "424242",
+      "matchContractFingerprint": "2a1b4d1767d4f8fff4ffb87d6d6c6f585953e4a8e6e1d7d1f8573ec2d47f6412",
+      "result": {
+        "WinnerTeamId": 0,
+        "Reason": "reactor-destroyed",
+        "EndTick": 398,
+        "EligibleTeamIds": [
+          0,
+          1
+        ]
+      },
+      "pulses": {
+        "0": 3,
+        "1": 1
+      },
+      "replaySha256": "4d4302f228fdd08cf80fcad27dbbf3c36971f644f491a5e0b005675f94d9db04"
+    },
+    {
+      "cell": "fp-courier-sprint",
+      "seed": "424242",
+      "matchContractFingerprint": "1853e2ad80276fdf8387d7edb6db7d663398a392389936e1551dfde88f9b112a",
+      "result": {
+        "WinnerTeamId": 1,
+        "Reason": "reactor-destroyed",
+        "EndTick": 378,
+        "EligibleTeamIds": [
+          0,
+          1
+        ]
+      },
+      "pulses": {
+        "0": 1,
+        "1": 3
+      },
+      "replaySha256": "2c66030d305891799d58059f79b1d0cedf4db8ad8a55b990b882b6d65a805c0a"
+    },
+    {
+      "cell": "fp-three-well-race",
+      "seed": "424242",
+      "matchContractFingerprint": "5009853cd3dea2d2dc24ba9b65865cd73dc93a854d909aea7b01b7857abafed6",
+      "result": {
+        "WinnerTeamId": 0,
+        "Reason": "reactor-destroyed",
+        "EndTick": 376,
+        "EligibleTeamIds": [
+          0,
+          1
+        ]
+      },
+      "pulses": {
+        "0": 3,
+        "1": 1
+      },
+      "replaySha256": "225aa1600cd696e66e32c6139d9abd44266e4653bba077d5a7a0021d7d13c7af"
+    },
+    {
+      "cell": "ml0",
+      "seed": "424242",
+      "matchContractFingerprint": "3c996bfa6c34b879799ad23b4034afb87a4ba4d927b1a5f46cbb10c5fc4b7610",
+      "result": {
+        "WinnerTeamId": 0,
+        "Reason": "reactor-destroyed",
+        "EndTick": 365,
+        "EligibleTeamIds": [
+          0,
+          1
+        ]
+      },
+      "pulses": {
+        "0": 3,
+        "1": 0
+      },
+      "replaySha256": "feea7f784f504b207c63bb5e3278c95f7a3398517d6bd8ef63087cdca724bb31"
+    },
+    {
+      "cell": "ml1",
+      "seed": "424242",
+      "matchContractFingerprint": "4b5710ef63d2e9aba5b2c9c5da5bb4d260494f551f082b5e73b07241a219f0e9",
+      "result": {
+        "WinnerTeamId": 1,
+        "Reason": "reactor-destroyed",
+        "EndTick": 378,
+        "EligibleTeamIds": [
+          0,
+          1
+        ]
+      },
+      "pulses": {
+        "0": 0,
+        "1": 3
+      },
+      "replaySha256": "e3531ff402de9f87783eeb70b667a6f9125e35659e2e0246b83bc29965b277dc"
+    },
+    {
+      "cell": "p0",
+      "seed": "424242",
+      "matchContractFingerprint": "4eb07edbe610630bf807fdf4f0b6b162d7ff716732b60087d8d638049bc036e3",
+      "result": {
+        "WinnerTeamId": 0,
+        "Reason": "reactor-destroyed",
+        "EndTick": 376,
+        "EligibleTeamIds": [
+          0,
+          1
+        ]
+      },
+      "pulses": {
+        "0": 3,
+        "1": 1
+      },
+      "replaySha256": "9eac3874ce88bd3441c302492f73f037743ce53b56585847a0962915e5890aa6"
+    },
+    {
+      "cell": "p1",
+      "seed": "424242",
+      "matchContractFingerprint": "9100cacc8c70206e6feb041e9e2384e715ac4d13e6dfedee85db83ca08925470",
+      "result": {
+        "WinnerTeamId": 1,
+        "Reason": "reactor-destroyed",
+        "EndTick": 351,
+        "EligibleTeamIds": [
+          0,
+          1
+        ]
+      },
+      "pulses": {
+        "0": 1,
+        "1": 3
+      },
+      "replaySha256": "6594f0a2d188504919125e04c6cad37c4d554cb03588ae2b2c592076bca536ec"
+    },
+    {
+      "cell": "s0",
+      "seed": "424242",
+      "matchContractFingerprint": "98e2ecf3b7f98396ca39394dac72730a3506e0379afc7d92dd84cc35f08f620b",
+      "result": {
+        "WinnerTeamId": 0,
+        "Reason": "reactor-destroyed",
+        "EndTick": 314,
+        "EligibleTeamIds": [
+          0,
+          1
+        ]
+      },
+      "pulses": {
+        "0": 3,
+        "1": 0
+      },
+      "replaySha256": "1ec12339113b3a5987ddcaf5a1cd25ebb80aad11f8ea81031003926eb4b46c11"
+    },
+    {
+      "cell": "s1",
+      "seed": "424242",
+      "matchContractFingerprint": "561f9e7815ff82f52f38a53f86f77aa8b8b7284a548ddb4a21fda5653c1c3f48",
+      "result": {
+        "WinnerTeamId": 1,
+        "Reason": "reactor-destroyed",
+        "EndTick": 455,
+        "EligibleTeamIds": [
+          0,
+          1
+        ]
+      },
+      "pulses": {
+        "0": 1,
+        "1": 3
+      },
+      "replaySha256": "ab65622893627b9454e0a99ebadad085f266da3c19946ef917a7867b9e13e1a6"
+    }
+  ]
+}

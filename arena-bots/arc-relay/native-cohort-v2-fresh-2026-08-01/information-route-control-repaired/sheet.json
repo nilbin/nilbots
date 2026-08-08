@@ -1,0 +1,15 @@
+{
+  "schema": "arc-relay-evaluation-sheet-v0",
+  "sheetId": "information-route-control-v1",
+  "mapId": "arc-relay-threefold-01",
+  "composition": [
+    "lantern",
+    "lantern",
+    "veil",
+    "veil",
+    "minesmith",
+    "hush",
+    "mason",
+    "relay"
+  ]
+}

@@ -1,0 +1,78 @@
+{
+  "schema": "arc-relay-native-cohort-v1",
+  "cohortId": "arc-relay-native-cohort-v1-2026-08-01",
+  "seeds": [
+    "104729"
+  ],
+  "reviewOrderSeed": 20260801,
+  "entrants": [
+    {
+      "entrantId": "split-control",
+      "doctrineCell": "split-control",
+      "artifact": "split-control/bot.wasm",
+      "artifactSha256": "223bc7c557c6ae5e3b6a7e7fb493032b3a5d0a9de788214de58d0f4ea7ccb8d2",
+      "sheet": "split-control/sheet.json",
+      "sheetSha256": "4f4eb72ff253218cf9e1a5bdf69f6a4002f96bb1b7a19f909d30bd06be7a4374",
+      "sourceFiles": [
+        "split-control/ArcNavigation.cs",
+        "split-control/SplitControlMind.cs",
+        "split-control/SplitControlMind.csproj",
+        "split-control/botarena.json"
+      ],
+      "manifest": "split-control/manifest.json",
+      "manifestSha256": "b23eb4a75a6e5f70baeeed203c5f1afc889e9c363f9227d91b0df6292b15cf8b"
+    },
+    {
+      "entrantId": "convoy",
+      "doctrineCell": "convoy",
+      "artifact": "convoy/bot.wasm",
+      "artifactSha256": "b88f6e913cea6320955885a003ff48774e8ad75f1c39add08d4073ef66b8a857",
+      "sheet": "convoy/sheet.json",
+      "sheetSha256": "065ca2325afaafa1a129ccba23e9bae4daa29a426271be7d1351608cffa79c17",
+      "sourceFiles": [
+        "convoy/ArcConvoy.cs",
+        "convoy/ArcConvoy.csproj",
+        "convoy/ArenaBasics.cs",
+        "convoy/Recall.cs",
+        "convoy/Roles.cs",
+        "convoy/botarena.json"
+      ],
+      "manifest": "convoy/manifest.json",
+      "manifestSha256": "86d2e989b356d00b71594f7446954602e24bb0b0373888815651fa72d2335223"
+    },
+    {
+      "entrantId": "interception",
+      "doctrineCell": "interception",
+      "artifact": "interception/bot.wasm",
+      "artifactSha256": "96fbeb0747ae7af35c398dc8d0a497668f78a7a72da343d208bcaa48acd7099c",
+      "sheet": "interception/sheet.json",
+      "sheetSha256": "b44610cab33e13639d833915f5d7d7bc3e00b4fbfc2d596db64f1c0fb7964a51",
+      "sourceFiles": [
+        "interception/ArenaBasics.cs",
+        "interception/CutlineMind.cs",
+        "interception/CutlineMind.csproj",
+        "interception/Recall.cs",
+        "interception/Roles.cs",
+        "interception/botarena.json"
+      ],
+      "manifest": "interception/manifest.json",
+      "manifestSha256": "dc321d71a3d570bcc1bdd41be39fea4014a3bcd7d62f449cdf3655b06945f447"
+    },
+    {
+      "entrantId": "information-route-control",
+      "doctrineCell": "information-route-control",
+      "artifact": "information-route-control/bot.wasm",
+      "artifactSha256": "8c89636b0ba971429be7c4a33516191bf49f2c6caeaf3f1c664c76bf00b0384f",
+      "sheet": "information-route-control/sheet.json",
+      "sheetSha256": "58edbc6c6285831ac8da58557fb888d11706143d6d6a7cdc9df1472e71d6bea7",
+      "sourceFiles": [
+        "information-route-control/InformationRouteControl.cs",
+        "information-route-control/InformationRouteControl.csproj",
+        "information-route-control/Navigation.cs",
+        "information-route-control/botarena.json"
+      ],
+      "manifest": "information-route-control/manifest.json",
+      "manifestSha256": "3bac2c40597232d75e6d99901b5c93808aeadd6750ca449689d94da477b1ce3c"
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "baseUrl": "http://127.0.0.1:8948/index.html",
+  "cards": [
+    {
+      "href": "sample-01.html",
+      "title": "Home Siege — Orange standing strategy",
+      "subtitle": "Orange Home Siege vs static baseline · Orange wins by reactor destroyed at t557 · occupy t44 → regroup t68 → breach t140 → regroup t531",
+      "score": "Blue 8–9 Orange Core deliveries (Blue Pulses 2, charge 2, integrity 0; Orange Pulses 3, charge 0, integrity 1). Home Siege won this match and the strategy's recovery cycle executed."
+    },
+    {
+      "href": "sample-02.html",
+      "title": "Home Siege — Blue standing strategy",
+      "subtitle": "Blue Home Siege vs static baseline · Blue wins by reactor destroyed at t578 · sustained assault with living reinforcement",
+      "score": "Blue 9–8 Orange Core deliveries (Blue Pulses 3, charge 0, integrity 1; Orange Pulses 2, charge 2, integrity 0). Home Siege won this match, while its assault threshold never claimed a stable six-body occupation."
+    }
+  ],
+  "samples": [
+    {
+      "href": "sample-01.html",
+      "renderer": "webgl",
+      "scoreBug": true,
+      "tickBefore": 0,
+      "tickAfter": 2.2083749999999998,
+      "screenshotSha256": "c523f4009f937883687a2da431a233c57aef279ada658f0bc7c715986109f410"
+    },
+    {
+      "href": "sample-02.html",
+      "renderer": "webgl",
+      "scoreBug": true,
+      "tickBefore": 0,
+      "tickAfter": 2.0936250000000007,
+      "screenshotSha256": "498d23cf82d0bd9452a43487a5b9b28b0a8aaee8fdb71448579de25c20ecc47e"
+    }
+  ],
+  "indexScreenshotSha256": "4eba9c5c0bd9070575025f04fd477875f6e556d68ed57d72c83d3cd208b59976",
+  "errors": []
+}

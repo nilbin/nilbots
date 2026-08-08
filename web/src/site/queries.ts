@@ -10,6 +10,11 @@ import {
   type MatchLive,
   type MatchSetDetail,
   type MatchSummary,
+  type AssignBotClassRequest,
+  type CreateArcRelayMindRequest,
+  type ReviseArcRelayMindRequest,
+  type SaveTacticalSheetRequest,
+  type TrialTacticalSheetRequest,
   type SubmitVersionRequest,
   type UpdateBotAppearanceRequest,
 } from './api';
@@ -47,6 +52,11 @@ const keys = {
   me: ['me'] as const,
   myBots: ['my-bots'] as const,
   notifications: ['notifications'] as const,
+  tacticalSheetCatalog: ['sheets', 'catalog'] as const,
+  tacticalSheets: ['sheets'] as const,
+  tacticalSheet: (id: string) => ['sheets', id] as const,
+  arcRelayEntrants: ['arc-relay', 'entrants'] as const,
+  arcRelayLadder: ['arc-relay', 'ladder'] as const,
 };
 
 /**
@@ -152,6 +162,47 @@ export function useLabsCatalog(enabled = true) {
     enabled,
     staleTime: 5 * 60_000,
   });
+}
+
+/** Current tactical vocabulary, exact hosted map and portable starter sources. */
+export function useTacticalSheetCatalog(enabled = true) {
+  return useQuery({
+    queryKey: keys.tacticalSheetCatalog,
+    queryFn: endpoints.tacticalSheetCatalog,
+    enabled,
+    staleTime: 5 * 60_000,
+  });
+}
+
+/** Saved tactical sheets are private, revisioned account data. */
+export function useTacticalSheets(enabled: boolean) {
+  return useQuery({
+    queryKey: keys.tacticalSheets,
+    queryFn: endpoints.tacticalSheets,
+    enabled,
+  });
+}
+
+export function useTacticalSheet(sheetId: string | null) {
+  return useQuery({
+    queryKey: keys.tacticalSheet(sheetId ?? ''),
+    queryFn: () => endpoints.tacticalSheet(sheetId!),
+    enabled: sheetId !== null,
+  });
+}
+
+export function useArcRelayEntrants(enabled: boolean) {
+  return useQuery({
+    queryKey: keys.arcRelayEntrants,
+    queryFn: endpoints.arcRelayEntrants,
+    enabled,
+    refetchInterval: (query) => query.state.data?.some((entry) =>
+      entry.status === 'pending' || entry.status === 'building') ? 2_500 : false,
+  });
+}
+
+export function useArcRelayLadder() {
+  return useQuery({ queryKey: keys.arcRelayLadder, queryFn: endpoints.arcRelayLadder, refetchInterval: 10_000 });
 }
 
 /**
@@ -372,6 +423,24 @@ export function useCreateBot() {
   });
 }
 
+/** Class identity is immutable, but its first assignment changes every bot roster view. */
+export function useAssignBotClass(botKey: string, botId: string) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (body: AssignBotClassRequest) =>
+      endpoints.assignBotClass(botId, body),
+    // A 409 can mean another tab won the one-time assignment, so failures refresh too.
+    onSettled: () => {
+      void client.invalidateQueries({ queryKey: keys.bot(botKey) });
+      void client.invalidateQueries({ queryKey: keys.bot(botId) });
+      void client.invalidateQueries({ queryKey: keys.myBots });
+      void client.invalidateQueries({ queryKey: keys.bots });
+      void client.invalidateQueries({ queryKey: keys.arena });
+      void client.invalidateQueries({ queryKey: keys.labs });
+    },
+  });
+}
+
 /**
  * Submitting a version starts a build, and `useBot` polls while one is running — so the
  * refetch here is what *starts* that polling rather than merely refreshing a list.
@@ -439,6 +508,112 @@ export function useCreateLabsMatch() {
     },
     onError: () =>
       client.invalidateQueries({ queryKey: keys.arena }),
+  });
+}
+
+export function useSaveTacticalSheet() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({ sheetId, body }: {
+      sheetId?: string;
+      body: SaveTacticalSheetRequest;
+    }) => sheetId
+      ? endpoints.updateTacticalSheet(sheetId, body)
+      : endpoints.createTacticalSheet(body),
+    onSuccess: (saved) => {
+      client.setQueryData(keys.tacticalSheet(saved.id), saved);
+      void client.invalidateQueries({ queryKey: keys.tacticalSheets });
+      void client.invalidateQueries({ queryKey: keys.arcRelayEntrants });
+      void client.invalidateQueries({ queryKey: keys.arcRelayLadder });
+    },
+  });
+}
+
+export function useDeleteTacticalSheet() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (sheetId: string) => endpoints.deleteTacticalSheet(sheetId),
+    onSuccess: ({ id }) => {
+      client.removeQueries({ queryKey: keys.tacticalSheet(id) });
+      void client.invalidateQueries({ queryKey: keys.tacticalSheets });
+      void client.invalidateQueries({ queryKey: keys.arcRelayEntrants });
+      void client.invalidateQueries({ queryKey: keys.arcRelayLadder });
+    },
+  });
+}
+
+export function useTrialTacticalSheet() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({ sheetId, body }: {
+      sheetId: string;
+      body: TrialTacticalSheetRequest;
+    }) => endpoints.trialTacticalSheet(sheetId, body),
+    onSuccess: () => {
+      void client.invalidateQueries({ queryKey: ['matches'] });
+    },
+  });
+}
+
+export function useCreateArcRelayMind() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (body: CreateArcRelayMindRequest) => endpoints.createArcRelayMind(body),
+    onSuccess: () => void client.invalidateQueries({ queryKey: keys.arcRelayEntrants }),
+  });
+}
+
+export function useLoadArcRelayMind() {
+  return useMutation({ mutationFn: (entrantId: string) => endpoints.arcRelayMind(entrantId) });
+}
+
+export function useReviseArcRelayMind() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({ entrantId, body }: { entrantId: string; body: ReviseArcRelayMindRequest }) =>
+      endpoints.reviseArcRelayMind(entrantId, body),
+    onSuccess: () => {
+      void client.invalidateQueries({ queryKey: keys.arcRelayEntrants });
+      void client.invalidateQueries({ queryKey: keys.arcRelayLadder });
+    },
+  });
+}
+
+export function useArcRelayPreflight() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (entrantId: string) => endpoints.preflightArcRelayMind(entrantId),
+    onSuccess: () => void client.invalidateQueries({ queryKey: keys.arcRelayEntrants }),
+  });
+}
+
+export function useArcRelayCrestOptions() {
+  return useMutation({
+    mutationFn: (entrantId: string) => endpoints.arcRelayCrestOptions(entrantId),
+  });
+}
+
+export function useSetArcRelayCrest() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({ entrantId, variant }: { entrantId: string; variant: number }) =>
+      endpoints.setArcRelayCrest(entrantId, { variant }),
+    onSuccess: () => {
+      void client.invalidateQueries({ queryKey: keys.arcRelayEntrants });
+      void client.invalidateQueries({ queryKey: keys.arcRelayLadder });
+    },
+  });
+}
+
+export function useArcRelayLadderOptIn() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({ entrantId, optedIn }: { entrantId: string; optedIn: boolean }) =>
+      endpoints.setArcRelayLadder(entrantId, { optedIn }),
+    onSuccess: () => {
+      void client.invalidateQueries({ queryKey: keys.arcRelayEntrants });
+      void client.invalidateQueries({ queryKey: keys.arcRelayLadder });
+    },
   });
 }
 

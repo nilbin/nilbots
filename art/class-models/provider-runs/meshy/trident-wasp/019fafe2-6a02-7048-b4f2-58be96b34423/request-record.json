@@ -1,0 +1,98 @@
+{
+  "provider": "Meshy",
+  "endpoint": "POST /openapi/v1/multi-image-to-3d",
+  "taskId": "019fafe2-6a02-7048-b4f2-58be96b34423",
+  "lookId": "trident-wasp",
+  "purpose": "Same-input Meshy image-enhancement A/B",
+  "submittedAt": "2026-07-29T21:57:58.636Z",
+  "finishedAt": "2026-07-29T22:02:31.805Z",
+  "balanceBefore": 1070,
+  "balanceAfter": 1040,
+  "consumedCredits": 30,
+  "inputs": [
+    {
+      "file": "01-top.png",
+      "bytes": 601297,
+      "sha256": "932a4bff1cb9b9c74f346190eec9da2465af80b55fb8c8c48eb9f4dce4ebcef4"
+    },
+    {
+      "file": "02-side.png",
+      "bytes": 260863,
+      "sha256": "2e01604ddccea5dad605a1469769fde4b70a22b8f80d753138757b6c602e01e0"
+    },
+    {
+      "file": "03-front.png",
+      "bytes": 252161,
+      "sha256": "fc911b2bd416edbf20ca40b11ec9f4284bf2c9ac146f47ea5aa05e82a425eb26"
+    },
+    {
+      "file": "04-three-quarter.png",
+      "bytes": 363683,
+      "sha256": "e4fbe0e2dfc8835af4c379bba5b8e886842abe0be4543b254fef21d417449410"
+    }
+  ],
+  "settings": {
+    "ai_model": "meshy-6",
+    "should_texture": true,
+    "enable_pbr": true,
+    "texture_resolution": "4k",
+    "texture_prompt": "Graphite-black hard-surface armor with weathered bronze panels, crisp panel seams and recessed vents, cyan emissive team-accent inlays, and warm amber engine/core emission. Controlled PBR metallic/roughness. Keep cyan confined to sharply bounded inlay surfaces with no cyan spill elsewhere. No text, logos, labels, decals, or baked lighting.",
+    "should_remesh": false,
+    "pose_mode": "",
+    "image_enhancement": true,
+    "remove_lighting": true,
+    "target_formats": [
+      "glb"
+    ]
+  },
+  "credentialStore": {
+    "platform": "macOS Keychain",
+    "service": "nilbots.meshy.api",
+    "valueRecorded": false
+  },
+  "assetRetentionNote": "Meshy non-Enterprise API output was downloaded immediately; provider URLs are not storage.",
+  "artifacts": [
+    {
+      "file": "raw-model.glb",
+      "bytes": 43529728,
+      "sha256": "1ffa4868b74cff369b52ae2ad00c7ed4b7577092efa677c4b3d17858365819c9",
+      "contentType": "application/octet-stream"
+    },
+    {
+      "file": "provider-preview.png",
+      "bytes": 144841,
+      "sha256": "f6146d69b7e582cf436ca5a676a4be0fd5e9dd945bddd48a80bece2674b8b796",
+      "contentType": "image/png"
+    },
+    {
+      "file": "texture-0-base-color.png",
+      "bytes": 29379471,
+      "sha256": "4233e59dc85a80508e1f68783c062943ee22a41ceba81f815dd0e7c1869481d7",
+      "contentType": "image/png"
+    },
+    {
+      "file": "texture-0-metallic.png",
+      "bytes": 1453651,
+      "sha256": "e8a1e1eed89748b71ae45e51e2db81f00555bef1d7b1bc41863e95453070fb5d",
+      "contentType": "image/png"
+    },
+    {
+      "file": "texture-0-roughness.png",
+      "bytes": 1476841,
+      "sha256": "6211ae8d3af5ee46b20e27918c05a6c985ec24d4dc5acefca28ee56daff9cb80",
+      "contentType": "image/png"
+    },
+    {
+      "file": "texture-0-normal.png",
+      "bytes": 33098305,
+      "sha256": "c1f489a8fc0c358469c645d74776cebf0965a78cea2d892b3b8c53101bfdbc20",
+      "contentType": "image/png"
+    },
+    {
+      "file": "texture-0-emission.png",
+      "bytes": 772930,
+      "sha256": "0cd0fc35ddc814796a6bedb559d5962d597c306c216278c4bbf108f5b85cbf86",
+      "contentType": "image/png"
+    }
+  ]
+}

@@ -1,0 +1,98 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Nest">
+  <defs>
+    <linearGradient id="nest-chassis" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#5b5e55"/><stop offset=".42" stop-color="#25281f"/><stop offset="1" stop-color="#030600"/>
+    </linearGradient>
+    <linearGradient id="nest-plate" x1="0" y1="0" x2=".85" y2="1">
+      <stop stop-color="#9ba284"/><stop offset=".38" stop-color="#697052"/><stop offset="1" stop-color="#2f3618"/>
+    </linearGradient>
+    <linearGradient id="nest-hardware" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#e2b287"/><stop offset=".46" stop-color="#a8784d"/><stop offset="1" stop-color="#6e3e13"/>
+    </linearGradient>
+    <linearGradient id="nest-deep" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#31342b"/><stop offset="1" stop-color="#000000"/>
+    </linearGradient>
+    <linearGradient id="nest-side" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#15180f"/><stop offset=".44" stop-color="#000200"/><stop offset="1" stop-color="#000000"/>
+    </linearGradient>
+    <radialGradient id="nest-emissive">
+      <stop stop-color="#fffdf0"/><stop offset=".25" stop-color="#fffb8a"/><stop offset=".64" stop-color="#f2b746"/><stop offset="1" stop-color="#9a5f00"/>
+    </radialGradient>
+    <pattern id="nest-brush" width="18" height="18" patternUnits="userSpaceOnUse" patternTransform="rotate(-18)">
+      <path d="M0 2h18M0 11h18" stroke="#ffffff" stroke-opacity=".16" stroke-width="1"/>
+      <path d="M0 7h18M0 16h18" stroke="#02050a" stroke-opacity=".24" stroke-width="1"/>
+    </pattern>
+    <clipPath id="nest-clip"><path d="M72 198 154 126 278 116 382 154 446 214 446 298 382 358 278 396 154 386 72 314Z"/></clipPath>
+    <filter id="nest-bevel" x="-12%" y="-14%" width="128%" height="138%" color-interpolation-filters="sRGB">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="2.2" result="edge-blur"/>
+      <feSpecularLighting in="edge-blur" surfaceScale="4.5" specularConstant=".42" specularExponent="16" lighting-color="#f7fbff" result="specular">
+        <feDistantLight azimuth="225" elevation="52"/>
+      </feSpecularLighting>
+      <feComposite in="specular" in2="SourceAlpha" operator="in" result="specular-cut"/>
+      <feMerge><feMergeNode in="SourceGraphic"/><feMergeNode in="specular-cut"/></feMerge>
+    </filter>
+    <filter id="nest-team-glow" x="-55%" y="-55%" width="210%" height="210%" color-interpolation-filters="sRGB">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="7" result="glow"/>
+      <feComponentTransfer in="glow" result="soft-glow"><feFuncA type="linear" slope=".58"/></feComponentTransfer>
+      <feMerge><feMergeNode in="soft-glow"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <g stroke-linejoin="round" stroke-linecap="round">
+    <g id="underbody-locomotion">
+      <g fill="#080b0f" stroke="#0b1118" stroke-width="12">
+        <ellipse cx="164" cy="154" rx="46" ry="34"/><ellipse cx="346" cy="154" rx="46" ry="34"/>
+        <ellipse cx="164" cy="358" rx="46" ry="34"/><ellipse cx="346" cy="358" rx="46" ry="34"/>
+      </g>
+      <g fill="#6d7479"><circle cx="164" cy="154" r="14"/><circle cx="346" cy="154" r="14"/><circle cx="164" cy="358" r="14"/><circle cx="346" cy="358" r="14"/></g>
+    </g>
+    <g id="chassis-depth">
+      <path d="M72 198 154 126 278 116 382 154 446 214 446 298 382 358 278 396 154 386 72 314Z" transform="translate(0 22)" fill="url(#nest-side)" stroke="#05080d" stroke-width="18"/>
+      <path d="M72 198 154 126 278 116 382 154 446 214 446 298 382 358 278 396 154 386 72 314Z" transform="translate(0 16)" fill="none" stroke="#373a31" stroke-opacity=".46" stroke-width="5"/>
+    </g>
+    <g id="chassis" filter="url(#nest-bevel)">
+      <path fill="url(#nest-chassis)" stroke="#0b1118" stroke-width="18" d="M72 198 154 126 278 116 382 154 446 214 446 298 382 358 278 396 154 386 72 314Z"/>
+      <path fill="url(#nest-plate)" stroke="#0b1118" stroke-width="7" d="M118 216 176 166 272 156 354 186 400 230v52l-46 44-82 30-96-10-58-50Z"/>
+      <g id="material-finish" clip-path="url(#nest-clip)" opacity="0.22">
+        <rect x="36" y="70" width="448" height="370" fill="url(#nest-brush)"/>
+      </g>
+      <g id="armor-plates" fill="url(#nest-plate)" stroke="#7f8668" stroke-width="4">
+        <path d="M114 222 178 168l86-10-30 70-102 26Z"/><path fill="#272e10" stroke="#4b5234" d="m132 274 102 26 30 70-86-10-64-54Z"/><path fill="url(#nest-hardware)" stroke="#c09065" d="m288 164 62 24 42 40-66 20-56-26Z"/><path fill="#7a4a1f" stroke="#96663b" d="m326 272 66 20-42 40-62 24-18-66Z"/>
+      </g>
+      <g id="surface-panels" fill="none" stroke="#a7ae90" stroke-opacity=".58" stroke-width="5">
+        <path d="M128 216 182 170l88-10 76 28 44 40M128 296l54 46 88 10 76-28 44-40M154 242h58m-58 28h58"/>
+      </g>
+      <g id="panel-shadows" fill="none" stroke="#000000" stroke-opacity=".78" stroke-width="4" transform="translate(0 5)">
+        <path d="M128 216 182 170l88-10 76 28 44 40M128 296l54 46 88 10 76-28 44-40M154 242h58m-58 28h58"/>
+      </g>
+      <g id="fasteners" fill="#d2a277" stroke="#090d12" stroke-width="3">
+        <circle cx="158" cy="204" r="6"/><circle cx="158" cy="308" r="6"/><circle cx="362" cy="208" r="6"/><circle cx="362" cy="304" r="6"/>
+      </g>
+    </g>
+    <g id="hardware-depth">
+      <path fill="#000000" stroke="#070a0f" stroke-width="6" d="M174 212 250 172 330 206 348 276 292 336 208 328 160 270Z" transform="translate(0 9)"/>
+      <circle fill="#000000" stroke="#070a0f" stroke-width="5" cx="230" cy="232" r="30" transform="translate(0 9)"/>
+      <circle fill="#000000" stroke="#070a0f" stroke-width="5" cx="298" cy="260" r="30" transform="translate(0 9)"/>
+      <circle fill="#000000" stroke="#070a0f" stroke-width="5" cx="236" cy="302" r="30" transform="translate(0 9)"/>
+      <path fill="none" stroke="#070a0f" stroke-width="20" stroke-linecap="round" d="M342 218 424 178M350 256h88M342 294l82 40" transform="translate(0 9)"/>
+    </g>
+    <g id="weapon-hardware">
+      <path fill="url(#nest-hardware)" stroke="#0b1118" stroke-width="6" d="M174 212 250 172 330 206 348 276 292 336 208 328 160 270Z"/>
+      <circle fill="url(#nest-deep)" stroke="#0b1118" stroke-width="5" cx="230" cy="232" r="30"/>
+      <circle fill="url(#nest-deep)" stroke="#0b1118" stroke-width="5" cx="298" cy="260" r="30"/>
+      <circle fill="url(#nest-deep)" stroke="#0b1118" stroke-width="5" cx="236" cy="302" r="30"/>
+      <path fill="none" stroke="url(#nest-hardware)" stroke-width="20" stroke-linecap="round" d="M342 218 424 178M350 256h88M342 294l82 40"/>
+      <g id="signature-machinery" fill="none" stroke="#deae83" stroke-width="6" stroke-opacity=".88">
+        <circle cx="230" cy="232" r="38"/><circle cx="298" cy="260" r="38"/><circle cx="236" cy="302" r="38"/><path d="M342 218 424 178M350 256h88M342 294l82 40"/>
+      </g>
+    </g>
+    <g id="team-accents" filter="url(#nest-team-glow)">
+      <rect data-team-accent="true" fill="#38bdf8" x="98" y="214" width="36" height="84" rx="14"/>
+      <circle data-team-accent="true" fill="#38bdf8" cx="230" cy="232" r="13"/>
+      <circle data-team-accent="true" fill="#38bdf8" cx="236" cy="302" r="13"/>
+    </g>
+    <g id="emissives">
+      <circle fill="url(#nest-emissive)" cx="298" cy="260" r="13"/>
+      <circle fill="#fff9dc" fill-opacity="0.78" cx="298" cy="260" r="4"/>
+    </g>
+  </g>
+</svg>

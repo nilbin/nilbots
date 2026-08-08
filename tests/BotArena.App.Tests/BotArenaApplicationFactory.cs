@@ -13,6 +13,7 @@ public sealed class BotArenaApplicationFactory : WebApplicationFactory<Program>
 {
     private readonly string connectionString;
     private readonly bool frontlineLabsEnabled;
+    private readonly bool legacyDuelEnabled;
     private readonly string? previousRole;
     private readonly string? previousDatabase;
     private readonly string? previousNetworkHashKey;
@@ -23,10 +24,12 @@ public sealed class BotArenaApplicationFactory : WebApplicationFactory<Program>
     public BotArenaApplicationFactory(
         string connectionString,
         string? webDist = null,
-        bool frontlineLabsEnabled = false)
+        bool frontlineLabsEnabled = false,
+        bool legacyDuelEnabled = true)
     {
         this.connectionString = connectionString;
         this.frontlineLabsEnabled = frontlineLabsEnabled;
+        this.legacyDuelEnabled = legacyDuelEnabled;
         previousRole = Environment.GetEnvironmentVariable("BOTARENA_ROLE");
         previousDatabase = Environment.GetEnvironmentVariable("BOTARENA_DB");
         previousNetworkHashKey =
@@ -63,6 +66,8 @@ public sealed class BotArenaApplicationFactory : WebApplicationFactory<Program>
             services.RemoveAll<FrontlineLabsSettings>();
             services.AddSingleton(
                 new FrontlineLabsSettings(frontlineLabsEnabled));
+            services.RemoveAll<LegacyDuelSettings>();
+            services.AddSingleton(new LegacyDuelSettings(legacyDuelEnabled));
         });
     }
 

@@ -119,6 +119,9 @@ public static class GenericMatchResultPersistence
                 "active-health",
             ScoreChannelDefinition.ChannelKind.TerritorialProgress =>
                 "territorial-progress",
+            ScoreChannelDefinition.ChannelKind.Pulses => "pulses",
+            ScoreChannelDefinition.ChannelKind.ReactorCharge =>
+                "reactor-charge",
             _ => throw new ArgumentOutOfRangeException(nameof(channel)),
         };
 }

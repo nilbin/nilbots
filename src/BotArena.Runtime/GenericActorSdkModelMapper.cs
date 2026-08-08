@@ -22,12 +22,8 @@ internal static class GenericActorSdkModelMapper
             ActorId = ToSdk(start.ActorId),
             ParticipantId = start.ParticipantId,
             ActorRandomSeed = start.ActorRandomSeed,
-            Origin = new Sdk.GenericActorMatchStart.LifeOrigin(
-                ToSdk(start.Origin.Reason),
-                start.Origin.Generation,
-                ToSdkOptional(start.Origin.ParentActorId),
-                start.Origin.SourceTransitionId,
-                start.Origin.SourceOperationId),
+            TeamRandomSeed = start.TeamRandomSeed,
+            Origin = ToSdk(start.Origin),
             Contract = Sdk.ActorCanonicalContractReader.Parse(
                 ActorContractManifestSerializer.ToCanonicalJson(
                     start.Contract)),
@@ -44,12 +40,18 @@ internal static class GenericActorSdkModelMapper
             observation.MatchContractFingerprint,
             ToSdk(observation.Self),
             observation.TeamUnits.Select(ToSdk),
-            observation.Participants.Select(ToSdk),
-            observation.Allies.Select(ToSdk),
-            observation.Enemies.Select(ToSdk),
-            observation.VisibleTiles.Select(ToSdk),
-            observation.VisibleProjectiles?.Select(ToSdk),
-            observation.VisibleEvents.Select(ToSdk),
+            observation.Participants.Select(value =>
+                ToSdk(value)),
+            observation.Allies.Select(value =>
+                ToSdk(value)),
+            observation.Enemies.Select(value =>
+                ToSdk(value)),
+            observation.VisibleTiles.Select(value =>
+                ToSdk(value)),
+            observation.VisibleProjectiles?.Select(value =>
+                ToSdk(value)),
+            observation.VisibleEvents.Select(value =>
+                ToSdk(value)),
             observation.HeardSounds?.Select(ToSdk),
             ToSdk(observation.Scoreboard),
             ToSdk(observation.Mode),
@@ -70,7 +72,16 @@ internal static class GenericActorSdkModelMapper
             debugMessage);
     }
 
-    private static Sdk.GenericActorContext.ObservedSelfState ToSdk(
+    internal static Sdk.GenericActorMatchStart.LifeOrigin ToSdk(
+        GenericActorRuntimeStart.LifeOrigin value) =>
+        new(
+            ToSdk(value.Reason),
+            value.Generation,
+            ToSdkOptional(value.ParentActorId),
+            value.SourceTransitionId,
+            value.SourceOperationId);
+
+    internal static Sdk.GenericActorContext.ObservedSelfState ToSdk(
         GenericActorRuntimeObservation.ObservedSelfState value) =>
         new(
             ToSdk(value.ActorId),
@@ -82,9 +93,12 @@ internal static class GenericActorSdkModelMapper
             value.Cooldown,
             value.Energy,
             ToSdk(value.PreviousActionResolution),
-            ToSdk(value.PendingSameLifeTransition));
+            ToSdk(value.PendingSameLifeTransition),
+            value.ClassId,
+            ToSdk(value.RouteCooldowns),
+            value.CarriedScrap);
 
-    private static Sdk.GenericActorContext.ObservedAllyState ToSdk(
+    internal static Sdk.GenericActorContext.ObservedAllyState ToSdk(
         GenericActorRuntimeObservation.ObservedAllyState value) =>
         new(
             ToSdk(value.ActorId),
@@ -96,9 +110,23 @@ internal static class GenericActorSdkModelMapper
             value.Cooldown,
             value.Energy,
             ToSdk(value.PreviousActionResolution),
-            ToSdk(value.PendingSameLifeTransition));
+            ToSdk(value.PendingSameLifeTransition),
+            value.ClassId,
+            ToSdk(value.RouteCooldowns),
+            value.CarriedScrap);
 
-    private static Sdk.GenericActorContext.PendingSameLifeTransition? ToSdk(
+    internal static ImmutableArray<
+        Sdk.GenericActorContext.ObservedRouteCooldown> ToSdk(
+        ImmutableArray<GenericActorRuntimeObservation.ObservedRouteCooldown>
+            value) =>
+        [
+            .. value.Select(cooldown =>
+                new Sdk.GenericActorContext.ObservedRouteCooldown(
+                    cooldown.TransitionId,
+                    cooldown.ReadyAtTick)),
+        ];
+
+    internal static Sdk.GenericActorContext.PendingSameLifeTransition? ToSdk(
         GenericActorRuntimeObservation.PendingSameLifeTransition? value) =>
         value is null
             ? null
@@ -109,14 +137,14 @@ internal static class GenericActorSdkModelMapper
                 value.StartedTick,
                 value.DueTick);
 
-    private static Sdk.GenericActorContext.ObservedUnitSlot ToSdk(
+    internal static Sdk.GenericActorContext.ObservedUnitSlot ToSdk(
         GenericActorRuntimeObservation.ObservedUnitSlot value) =>
         new(
             value.TeamId,
             value.UnitId,
             ToSdk(value.State));
 
-    private static Sdk.GenericActorContext.UnitSlotState ToSdk(
+    internal static Sdk.GenericActorContext.UnitSlotState ToSdk(
         GenericActorRuntimeObservation.UnitSlotState value) =>
         value switch
         {
@@ -159,15 +187,16 @@ internal static class GenericActorSdkModelMapper
             _ => throw UnknownUnion(value),
         };
 
-    private static Sdk.GenericActorContext.ObservedParticipantStatus ToSdk(
+    internal static Sdk.GenericActorContext.ObservedParticipantStatus ToSdk(
         GenericActorRuntimeObservation.ObservedParticipantStatus value) =>
         new(
             value.ParticipantId,
             value.TeamId,
             value.RuntimeFaultCount,
-            value.Disqualified);
+            value.Disqualified,
+            value.ClassId);
 
-    private static Sdk.GenericActorContext.ObservedEnemyState ToSdk(
+    internal static Sdk.GenericActorContext.ObservedEnemyState ToSdk(
         GenericActorRuntimeObservation.ObservedEnemyState value) =>
         new(
             ToSdk(value.ActorId),
@@ -176,16 +205,30 @@ internal static class GenericActorSdkModelMapper
             ToSdk(value.Facing),
             value.Health,
             ToSdk(value.PendingSameLifeTransition),
-            value.ObservedBy.Select(ToSdk));
+            value.ObservedBy.Select(ToSdk),
+            value.ClassId,
+            value.CarriedScrap,
+            value.RoleTag);
 
-    private static Sdk.GenericActorContext.ObservedTile ToSdk(
+    internal static Sdk.GenericActorContext.ObservedTile ToSdk(
         GenericActorRuntimeObservation.ObservedTile value) =>
         new(
             ToSdk(value.Position),
             value.IsWall,
-            value.ObservedBy.Select(ToSdk));
+            value.ObservedBy.Select(ToSdk),
+            ToSdk(value.SpawnReservation));
 
-    private static Sdk.GenericActorContext.ObservedProjectile ToSdk(
+    internal static Sdk.GenericActorContext.SpawnReservation? ToSdk(
+        GenericActorRuntimeObservation.SpawnReservation? value) =>
+        value is null
+            ? null
+            : new(
+                value.TeamId,
+                value.UnitId,
+                ToSdk(value.Kind),
+                value.DueTick);
+
+    internal static Sdk.GenericActorContext.ObservedProjectile ToSdk(
         GenericActorRuntimeObservation.ObservedProjectile value) =>
         new(
             value.ProjectileId,
@@ -196,9 +239,11 @@ internal static class GenericActorSdkModelMapper
             value.TilesPerAdvance,
             value.TicksUntilAdvance,
             value.RemainingTiles,
-            value.ObservedBy.Select(ToSdk));
+            value.ObservedBy.Select(ToSdk),
+            value.TicksPerAdvance,
+            value.DamagePerHit);
 
-    private static Sdk.GenericActorContext.ObservedSound ToSdk(
+    internal static Sdk.GenericActorContext.ObservedSound ToSdk(
         GenericActorRuntimeObservation.ObservedSound value) =>
         new(
             value.EventHandle,
@@ -209,7 +254,7 @@ internal static class GenericActorSdkModelMapper
             value.Bearing,
             value.Distance);
 
-    private static Sdk.GenericActorContext.ObservedEvent ToSdk(
+    internal static Sdk.GenericActorContext.ObservedEvent ToSdk(
         GenericActorRuntimeObservation.ObservedEvent value) =>
         new(
             value.EventHandle,
@@ -219,7 +264,7 @@ internal static class GenericActorSdkModelMapper
             ToSdk(value.Payload),
             value.ObservedBy.Select(ToSdk));
 
-    private static Sdk.GenericActorContext.EventPayload ToSdk(
+    internal static Sdk.GenericActorContext.EventPayload ToSdk(
         GenericActorRuntimeObservation.EventPayload value) =>
         value switch
         {
@@ -293,6 +338,16 @@ internal static class GenericActorSdkModelMapper
             GenericActorRuntimeObservation.EventPayload.RuntimeFault payload =>
                 new Sdk.GenericActorContext.EventPayload.RuntimeFault(
                     ToSdkRequired(payload.Fault)),
+            GenericActorRuntimeObservation.EventPayload.MindRuntimeFault
+                payload =>
+                new Sdk.GenericActorContext.EventPayload.MindRuntimeFault(
+                    payload.Fault.ParticipantId,
+                    payload.Fault.TeamId,
+                    (Sdk.GenericActorRuntimeFaultContext.FaultStage)
+                        payload.Fault.Stage,
+                    payload.Fault.FaultCode,
+                    payload.Fault.CumulativeFaultCount,
+                    payload.Fault.DisqualificationTriggered),
             GenericActorRuntimeObservation.EventPayload.Participant payload =>
                 new Sdk.GenericActorContext.EventPayload.Participant(
                     payload.ParticipantId,
@@ -314,7 +369,10 @@ internal static class GenericActorSdkModelMapper
                     payload.FromFormId,
                     payload.ToFormId,
                     payload.StartedTick,
-                    payload.DueTick),
+                    payload.DueTick,
+                    payload.Reason
+                        == GenericActorRuntimeObservation
+                            .FormTransitionReason.AutomaticThresholdReturn),
             GenericActorRuntimeObservation.EventPayload.ScoreChanged payload =>
                 new Sdk.GenericActorContext.EventPayload.ScoreChanged(
                     payload.TeamId,
@@ -323,6 +381,9 @@ internal static class GenericActorSdkModelMapper
             GenericActorRuntimeObservation.EventPayload.ModeChanged payload =>
                 new Sdk.GenericActorContext.EventPayload.ModeChanged(
                     ToSdk(payload.State)),
+            GenericActorRuntimeObservation.EventPayload.ArcRelay payload =>
+                new Sdk.GenericActorContext.EventPayload.ArcRelay(
+                    ToSdk(payload.Fact)),
             GenericActorRuntimeObservation.EventPayload
                 .LifecycleClockCancelled payload =>
                 new Sdk.GenericActorContext.EventPayload
@@ -331,25 +392,39 @@ internal static class GenericActorSdkModelMapper
                         payload.TargetUnitId,
                         ToSdk(payload.CancelledState),
                         payload.CancellationReason),
+            GenericActorRuntimeObservation.EventPayload
+                .ProjectileDeflected payload =>
+                new Sdk.GenericActorContext.EventPayload.ProjectileDeflected(
+                    payload.SourceTeamId,
+                    payload.SourceActorId is null
+                        ? null
+                        : ToSdk(payload.SourceActorId),
+                    ToSdk(payload.TargetActorId),
+                    payload.ProjectileId,
+                    payload.DeflectedProjectileId,
+                    payload.TargetFormId,
+                    ToSdk(payload.TargetFacing),
+                    ToSdk(payload.Heading),
+                    ToSdk(payload.Position)),
             _ => throw UnknownUnion(value),
         };
 
-    private static Sdk.GenericActorContext.ScoreboardState ToSdk(
+    internal static Sdk.GenericActorContext.ScoreboardState ToSdk(
         GenericActorRuntimeObservation.ScoreboardState value) =>
         new(value.Teams.Select(ToSdk));
 
-    private static Sdk.GenericActorContext.TeamScoreState ToSdk(
+    internal static Sdk.GenericActorContext.TeamScoreState ToSdk(
         GenericActorRuntimeObservation.TeamScoreState value) =>
         new(
             value.TeamId,
             value.Eligible,
             value.Scores.Select(ToSdk));
 
-    private static Sdk.GenericActorContext.ScoreValue ToSdk(
+    internal static Sdk.GenericActorContext.ScoreValue ToSdk(
         GenericActorRuntimeObservation.ScoreValue value) =>
         new(value.Channel, value.Value);
 
-    private static Sdk.GenericActorContext.ModeObservationState ToSdk(
+    internal static Sdk.GenericActorContext.ModeObservationState ToSdk(
         GenericActorRuntimeObservation.ModeObservationState value) =>
         value switch
         {
@@ -363,11 +438,306 @@ internal static class GenericActorSdkModelMapper
                     mode.ClaimingTeamId,
                     mode.CaptureProgress,
                     mode.DecayTicksElapsed,
-                    mode.ControlResumesAtTick),
+                    mode.ControlResumesAtTick,
+                    mode.HoldOwnerTeamId,
+                    mode.HoldEndsAtTick,
+                    mode.SecondaryOwnerTeamId,
+                    mode.SecondaryClaimProgress,
+                    [.. mode.ScrapTeams.Select(ToSdk)],
+                    [.. mode.ScrapPiles.Select(ToSdk)]),
+            GenericActorRuntimeObservation.ModeObservationState.ArcRelay mode =>
+                new Sdk.GenericActorContext.ModeObservationState.ArcRelay(
+                    mode.ModeId,
+                    [.. mode.Wells.Select(ToSdk)],
+                    [.. mode.Reactors.Select(ToSdk)],
+                    [.. mode.VisibleCores.Select(ToSdk)],
+                    [.. mode.VisibleSignatures.Select(ToSdk)],
+                    mode.LatestPulseTeamId,
+                    mode.LatestPulseTick)
+                {
+                    PendingStrikes = [.. mode.PendingStrikes.Select(strike =>
+                        new Sdk.GenericActorContext.ArcRelayPendingStrike(
+                            ToSdk(strike.Shooter),
+                            strike.ResolveAtTick,
+                            ToSdk(strike.Origin),
+                            ToSdk(strike.CentralHeading),
+                            strike.Target is { } target
+                                ? ToSdk(target)
+                                : null,
+                            [.. strike.Tiles.Select(ToSdk)]))],
+                },
             _ => throw UnknownUnion(value),
         };
 
-    private static Sdk.GenericActorActionLegality ToSdk(
+    internal static Sdk.GenericActorContext.ScrapTeamState ToSdk(
+        GenericActorRuntimeObservation.ScrapTeamState value) =>
+        new(value.TeamId, value.Bank, value.TierLevels);
+
+    internal static Sdk.GenericActorContext.ScrapPile ToSdk(
+        GenericActorRuntimeObservation.ScrapPile value) =>
+        new(ToSdk(value.Position), value.Amount, value.ExpiresAtTick);
+
+    internal static Sdk.GenericActorContext.ArcRelayCoreId ToSdk(
+        ArcRelayCoreId value) =>
+        new(value.SourceWellId, value.SourceOrdinal);
+
+    internal static Sdk.GenericActorContext.ArcRelayWellState ToSdk(
+        ArcRelayWellState value) =>
+        new(
+            value.WellId,
+            ToSdk(value.Position),
+            value.NextScheduledBirthTick,
+            value.OutstandingCoreId is { } coreId ? ToSdk(coreId) : null,
+            value.PendingCharge,
+            value.RearmCompletesAtTick);
+
+    internal static Sdk.GenericActorContext.ArcRelayReactorState ToSdk(
+        ArcRelayReactorState value) =>
+        new(
+            value.TeamId,
+            ToSdk(value.Position),
+            value.ChargePips,
+            value.IntegritySegments)
+        {
+            FilledSocketWellIds = value.FilledSocketWellIds,
+        };
+
+    internal static Sdk.GenericActorContext.ArcRelayCoreState ToSdk(
+        ArcRelayCoreState value) =>
+        new(
+            ToSdk(value.CoreId),
+            ToSdk(value.Position),
+            value.Disposition switch
+            {
+                ArcRelayCoreState.CoreDisposition.Loose =>
+                    Sdk.GenericActorContext.ArcRelayCoreDisposition.Loose,
+                ArcRelayCoreState.CoreDisposition.Carried =>
+                    Sdk.GenericActorContext.ArcRelayCoreDisposition.Carried,
+                ArcRelayCoreState.CoreDisposition.InFlight =>
+                    Sdk.GenericActorContext.ArcRelayCoreDisposition.InFlight,
+                _ => throw UnknownEnum(value.Disposition),
+            },
+            ToSdkOptional(value.CarrierActorId),
+            value.NextRelocationTick,
+            value.FlightTarget is { } target ? ToSdk(target) : null,
+            value.FlightCompletesAtTick)
+        {
+            ChargeValue = value.ChargeValue,
+        };
+
+    internal static Sdk.GenericActorContext.ArcRelaySignatureState ToSdk(
+        ArcRelaySignatureState value) =>
+        new(
+            value.OperationId,
+            value.SignatureId,
+            ArcRelaySignatureKindId(value.Kind),
+            ToSdk(value.OwnerActorId),
+            value.OwnerTeamId,
+            value.Phase switch
+            {
+                ArcRelaySignatureState.SignaturePhase.Tell =>
+                    Sdk.GenericActorContext.ArcRelaySignaturePhase.Tell,
+                ArcRelaySignatureState.SignaturePhase.Active =>
+                    Sdk.GenericActorContext.ArcRelaySignaturePhase.Active,
+                ArcRelaySignatureState.SignaturePhase.Channel =>
+                    Sdk.GenericActorContext.ArcRelaySignaturePhase.Channel,
+                ArcRelaySignatureState.SignaturePhase.InFlight =>
+                    Sdk.GenericActorContext.ArcRelaySignaturePhase.InFlight,
+                _ => throw UnknownEnum(value.Phase),
+            },
+            value.StartedTick,
+            value.CompletesAtTick,
+            value.EndsAtTick,
+            [.. value.Positions.Select(ToSdk)],
+            ToSdkOptional(value.TargetActorId),
+            value.RemainingCapacity,
+            value.Suppressed);
+
+    internal static Sdk.GenericActorContext.ArcRelayEvent ToSdk(
+        ArcRelayEvent value) => value switch
+        {
+            ArcRelayEvent.CoreBorn fact =>
+                new Sdk.GenericActorContext.ArcRelayEvent.CoreBorn(
+                    ToSdk(fact.CoreId),
+                    ToSdk(fact.Position))
+                {
+                    ChargeValue = fact.ChargeValue,
+                },
+            ArcRelayEvent.CoreRipened fact =>
+                new Sdk.GenericActorContext.ArcRelayEvent.CoreRipened(
+                    ToSdk(fact.CoreId),
+                    ToSdk(fact.Position),
+                    fact.Value),
+            ArcRelayEvent.LeveledUp fact =>
+                new Sdk.GenericActorContext.ArcRelayEvent.LeveledUp(
+                    ToSdk(fact.ActorId),
+                    fact.Level,
+                    ToSdk(fact.Position)),
+            ArcRelayEvent.ZoneHealed fact =>
+                new Sdk.GenericActorContext.ArcRelayEvent.ZoneHealed(
+                    ToSdk(fact.ActorId),
+                    fact.Amount,
+                    fact.NewHealth,
+                    ToSdk(fact.Position)),
+            ArcRelayEvent.CorePickedUp fact =>
+                new Sdk.GenericActorContext.ArcRelayEvent.CorePickedUp(
+                    ToSdk(fact.CoreId),
+                    ToSdk(fact.CarrierActorId),
+                    ToSdk(fact.Position),
+                    fact.NextRelocationTick),
+            ArcRelayEvent.CoreRelocated fact =>
+                new Sdk.GenericActorContext.ArcRelayEvent.CoreRelocated(
+                    ToSdk(fact.CoreId),
+                    ToSdkOptional(fact.CarrierActorId),
+                    ToSdk(fact.From),
+                    ToSdk(fact.To),
+                    fact.NextRelocationTick,
+                    fact.Kind switch
+                    {
+                        ArcRelayEvent.CoreRelocationKind.CarriedMovement =>
+                            "carried-movement",
+                        ArcRelayEvent.CoreRelocationKind.ForcedDisplacement =>
+                            "forced-displacement",
+                        ArcRelayEvent.CoreRelocationKind.ArcTossLanding =>
+                            "arc-toss-landing",
+                        _ => throw UnknownEnum(fact.Kind),
+                    }),
+            ArcRelayEvent.CoreHandedOff fact =>
+                new Sdk.GenericActorContext.ArcRelayEvent.CoreHandedOff(
+                    ToSdk(fact.CoreId),
+                    ToSdk(fact.SourceActorId),
+                    ToSdk(fact.TargetActorId),
+                    ToSdk(fact.Position),
+                    fact.NextRelocationTick),
+            ArcRelayEvent.CoreDropped fact =>
+                new Sdk.GenericActorContext.ArcRelayEvent.CoreDropped(
+                    ToSdk(fact.CoreId),
+                    ToSdk(fact.SourceActorId),
+                    ToSdk(fact.Position),
+                    fact.NextRelocationTick,
+                    fact.Kind switch
+                    {
+                        ArcRelayEvent.CoreDropKind.Voluntary => "voluntary",
+                        ArcRelayEvent.CoreDropKind.Destruction => "destruction",
+                        ArcRelayEvent.CoreDropKind.SignatureDeparture =>
+                            "signature-departure",
+                        ArcRelayEvent.CoreDropKind.ArcTossLanding =>
+                            "arc-toss-landing",
+                        _ => throw UnknownEnum(fact.Kind),
+                    }),
+            ArcRelayEvent.CoreBanked fact =>
+                new Sdk.GenericActorContext.ArcRelayEvent.CoreBanked(
+                    ToSdk(fact.CoreId),
+                    ToSdk(fact.CarrierActorId),
+                    fact.TeamId,
+                    ToSdk(fact.Position),
+                    fact.ChargePips),
+            ArcRelayEvent.WellChanged fact =>
+                new Sdk.GenericActorContext.ArcRelayEvent.WellChanged(
+                    fact.WellId,
+                    fact.PendingCharge,
+                    fact.RearmCompletesAtTick,
+                    fact.OutstandingCoreId is { } coreId
+                        ? ToSdk(coreId)
+                        : null),
+            ArcRelayEvent.Pulse fact =>
+                new Sdk.GenericActorContext.ArcRelayEvent.Pulse(
+                    fact.TeamId,
+                    fact.PulseOrdinal,
+                    fact.OpposingReactorIntegrity),
+            ArcRelayEvent.SignatureChanged fact =>
+                new Sdk.GenericActorContext.ArcRelayEvent.SignatureChanged(
+                    fact.OperationId,
+                    fact.SignatureId,
+                    ToSdk(fact.OwnerActorId),
+                    fact.Phase is { } phase
+                        ? phase switch
+                        {
+                            ArcRelaySignatureState.SignaturePhase.Tell =>
+                                Sdk.GenericActorContext
+                                    .ArcRelaySignaturePhase.Tell,
+                            ArcRelaySignatureState.SignaturePhase.Active =>
+                                Sdk.GenericActorContext
+                                    .ArcRelaySignaturePhase.Active,
+                            ArcRelaySignatureState.SignaturePhase.Channel =>
+                                Sdk.GenericActorContext
+                                    .ArcRelaySignaturePhase.Channel,
+                            ArcRelaySignatureState.SignaturePhase.InFlight =>
+                                Sdk.GenericActorContext
+                                    .ArcRelaySignaturePhase.InFlight,
+                            _ => throw UnknownEnum(phase),
+                        }
+                        : null,
+                    fact.Reason),
+            ArcRelayEvent.BodyRelocated fact =>
+                new Sdk.GenericActorContext.ArcRelayEvent.BodyRelocated(
+                    fact.OperationId,
+                    fact.SignatureId,
+                    ToSdk(fact.OwnerActorId),
+                    ToSdk(fact.TargetActorId),
+                    ToSdk(fact.From),
+                    ToSdk(fact.To)),
+            ArcRelayEvent.SignatureDamage fact =>
+                new Sdk.GenericActorContext.ArcRelayEvent.SignatureDamage(
+                    fact.OperationId,
+                    fact.SignatureId,
+                    ToSdk(fact.OwnerActorId),
+                    ToSdk(fact.TargetActorId),
+                    fact.Amount,
+                    fact.NewHealth,
+                    ToSdk(fact.Position)),
+            ArcRelayEvent.SignatureRepair fact =>
+                new Sdk.GenericActorContext.ArcRelayEvent.SignatureRepair(
+                    fact.OperationId,
+                    fact.SignatureId,
+                    ToSdk(fact.OwnerActorId),
+                    ToSdk(fact.TargetActorId),
+                    fact.Amount,
+                    fact.NewHealth,
+                    ToSdk(fact.Position)),
+            _ => throw UnknownUnion(value),
+        };
+
+    private static string ArcRelaySignatureKindId(
+        ArcRelaySignatureDefinition.SignatureKind value) => value switch
+        {
+            ArcRelaySignatureDefinition.SignatureKind.VectorDash =>
+                "vector-dash",
+            ArcRelaySignatureDefinition.SignatureKind.PrismWall =>
+                "prism-wall",
+            ArcRelaySignatureDefinition.SignatureKind.TractorHook =>
+                "tractor-hook",
+            ArcRelaySignatureDefinition.SignatureKind.RepairBeam =>
+                "repair-beam",
+            ArcRelaySignatureDefinition.SignatureKind.SurveyFlare =>
+                "survey-flare",
+            ArcRelaySignatureDefinition.SignatureKind.FallingStar =>
+                "falling-star",
+            ArcRelaySignatureDefinition.SignatureKind.TripNode => "trip-node",
+            ArcRelaySignatureDefinition.SignatureKind.NullField => "null-field",
+            ArcRelaySignatureDefinition.SignatureKind.ArcToss => "arc-toss",
+            ArcRelaySignatureDefinition.SignatureKind.Exchange => "exchange",
+            ArcRelaySignatureDefinition.SignatureKind.RailLine => "rail-line",
+            ArcRelaySignatureDefinition.SignatureKind.HardlightBlock =>
+                "hardlight-block",
+            ArcRelaySignatureDefinition.SignatureKind.TargetPaint =>
+                "target-paint",
+            ArcRelaySignatureDefinition.SignatureKind.KineticBurst =>
+                "kinetic-burst",
+            ArcRelaySignatureDefinition.SignatureKind.SmokeCanister =>
+                "smoke-canister",
+            ArcRelaySignatureDefinition.SignatureKind.SentinelSeed =>
+                "sentinel-seed",
+            ArcRelaySignatureDefinition.SignatureKind.SentinelSeed2 =>
+                "sentinel-seed",
+            ArcRelaySignatureDefinition.SignatureKind.TractorHook2 =>
+                "tractor-hook",
+            ArcRelaySignatureDefinition.SignatureKind.NullField2 =>
+                "null-field",
+            _ => throw UnknownEnum(value),
+        };
+
+    internal static Sdk.GenericActorActionLegality ToSdk(
         GenericActorRuntimeActionLegality value) =>
         new(
             value.ActionId,
@@ -376,7 +746,7 @@ internal static class GenericActorSdkModelMapper
             value.Available,
             value.Constraints.Select(ToSdk));
 
-    private static Sdk.GenericActorActionLegality.ArgumentConstraint ToSdk(
+    internal static Sdk.GenericActorActionLegality.ArgumentConstraint ToSdk(
         GenericActorRuntimeActionLegality.ArgumentConstraint value) =>
         value switch
         {
@@ -403,10 +773,19 @@ internal static class GenericActorSdkModelMapper
                 new Sdk.GenericActorActionLegality.ArgumentConstraint
                     .ProjectileHeadingConstraint(
                         constraint.AllowedValues.Select(ToSdk)),
+            GenericActorRuntimeActionLegality.ArgumentConstraint
+                .UpgradeTrackConstraint constraint =>
+                new Sdk.GenericActorActionLegality.ArgumentConstraint
+                    .UpgradeTrackConstraint(constraint.AllowedTrackIds),
+            GenericActorRuntimeActionLegality.ArgumentConstraint
+                .PositionTargetConstraint constraint =>
+                new Sdk.GenericActorActionLegality.ArgumentConstraint
+                    .PositionTargetConstraint(
+                        constraint.AllowedValues.Select(ToSdk)),
             _ => throw UnknownUnion(value),
         };
 
-    private static Sdk.GenericActorActionResolution? ToSdk(
+    internal static Sdk.GenericActorActionResolution? ToSdk(
         GenericActorRuntimeActionResolution? value) =>
         value is null
             ? null
@@ -417,14 +796,14 @@ internal static class GenericActorSdkModelMapper
                 ToSdk(value.Outcome),
                 ToSdkOptional(value.RuntimeFault));
 
-    private static Sdk.GenericActorActionResolution.ResolvedAction?
+    internal static Sdk.GenericActorActionResolution.ResolvedAction?
         ToSdkOptional(
         GenericActorRuntimeActionResolution.ResolvedAction? value) =>
         value is null
             ? null
             : ToSdkRequired(value);
 
-    private static Sdk.GenericActorActionResolution.ResolvedAction
+    internal static Sdk.GenericActorActionResolution.ResolvedAction
         ToSdkRequired(
             GenericActorRuntimeActionResolution.ResolvedAction value) =>
         new(
@@ -432,13 +811,13 @@ internal static class GenericActorSdkModelMapper
             value.ActionCode,
             value.Arguments.Select(ToSdk));
 
-    private static Sdk.GenericActorRuntimeFaultContext? ToSdkOptional(
+    internal static Sdk.GenericActorRuntimeFaultContext? ToSdkOptional(
         GenericActorRuntimeFault? value) =>
         value is null
             ? null
             : ToSdkRequired(value);
 
-    private static Sdk.GenericActorRuntimeFaultContext ToSdkRequired(
+    internal static Sdk.GenericActorRuntimeFaultContext ToSdkRequired(
         GenericActorRuntimeFault value) =>
         new(
             value.ParticipantId,
@@ -448,7 +827,7 @@ internal static class GenericActorSdkModelMapper
             value.CumulativeFaultCount,
             value.DisqualificationTriggered);
 
-    private static Sdk.GenericActorActionArgument ToSdk(
+    internal static Sdk.GenericActorActionArgument ToSdk(
         GenericActorRuntimeActionArgument value) =>
         value switch
         {
@@ -467,10 +846,16 @@ internal static class GenericActorSdkModelMapper
             GenericActorRuntimeActionArgument.ProjectileHeadingArgument argument =>
                 new Sdk.GenericActorActionArgument.ProjectileHeadingArgument(
                     ToSdk(argument.Value)),
+            GenericActorRuntimeActionArgument.UpgradeTrackArgument argument =>
+                new Sdk.GenericActorActionArgument.UpgradeTrackArgument(
+                    argument.TrackId),
+            GenericActorRuntimeActionArgument.PositionTargetArgument argument =>
+                new Sdk.GenericActorActionArgument.PositionTargetArgument(
+                    ToSdk(argument.Value)),
             _ => throw UnknownUnion(value),
         };
 
-    private static GenericActorRuntimeActionArgument ToEngine(
+    internal static GenericActorRuntimeActionArgument ToEngine(
         Sdk.GenericActorActionArgument value) =>
         value switch
         {
@@ -491,19 +876,28 @@ internal static class GenericActorSdkModelMapper
             Sdk.GenericActorActionArgument.ProjectileHeadingArgument argument =>
                 new GenericActorRuntimeActionArgument.ProjectileHeadingArgument(
                     ToEngine(argument.Value)),
+            Sdk.GenericActorActionArgument.UpgradeTrackArgument argument =>
+                new GenericActorRuntimeActionArgument.UpgradeTrackArgument(
+                    argument.TrackId),
+            Sdk.GenericActorActionArgument.PositionTargetArgument argument =>
+                new GenericActorRuntimeActionArgument.PositionTargetArgument(
+                    ToEngine(argument.Value)),
             _ => throw UnknownUnion(value),
         };
 
-    private static Sdk.ActorIdentity ToSdk(ActorIdentity value) =>
+    internal static Sdk.ActorIdentity ToSdk(ActorIdentity value) =>
         new(value.TeamId, value.UnitId, value.LifeId);
 
-    private static Sdk.ActorIdentity? ToSdkOptional(ActorIdentity? value) =>
+    internal static Sdk.ActorIdentity? ToSdkOptional(ActorIdentity? value) =>
         value is null ? null : ToSdk(value);
 
-    private static Sdk.Position ToSdk(Position value) =>
+    internal static Sdk.Position ToSdk(Position value) =>
         new(value.X, value.Y);
 
-    private static Sdk.ShotProgram ToSdk(ShotProgram value) =>
+    internal static Position ToEngine(Sdk.Position value) =>
+        new(value.X, value.Y);
+
+    internal static Sdk.ShotProgram ToSdk(ShotProgram value) =>
         new(
             value.InitialAimOffset,
             value.BendDirection,
@@ -511,7 +905,7 @@ internal static class GenericActorSdkModelMapper
             value.BendEveryTiles,
             value.BendCount);
 
-    private static ShotProgram ToEngine(Sdk.ShotProgram value) =>
+    internal static ShotProgram ToEngine(Sdk.ShotProgram value) =>
         new(
             value.InitialAimOffset,
             value.BendDirection,
@@ -519,11 +913,11 @@ internal static class GenericActorSdkModelMapper
             value.BendEveryTiles,
             value.BendCount);
 
-    private static Sdk.GenericActorActionArgument.UnitTarget ToSdk(
+    internal static Sdk.GenericActorActionArgument.UnitTarget ToSdk(
         GenericActorRuntimeActionArgument.UnitTarget value) =>
         new(value.TeamId, value.UnitId);
 
-    private static Sdk.Direction ToSdk(Direction value) =>
+    internal static Sdk.Direction ToSdk(Direction value) =>
         value switch
         {
             Direction.North => Sdk.Direction.North,
@@ -533,7 +927,7 @@ internal static class GenericActorSdkModelMapper
             _ => throw UnknownEnum(value),
         };
 
-    private static Direction ToEngine(Sdk.Direction value) =>
+    internal static Direction ToEngine(Sdk.Direction value) =>
         value switch
         {
             Sdk.Direction.North => Direction.North,
@@ -543,7 +937,7 @@ internal static class GenericActorSdkModelMapper
             _ => throw UnknownEnum(value),
         };
 
-    private static Sdk.ProjectileHeading ToSdk(ProjectileHeading value) =>
+    internal static Sdk.ProjectileHeading ToSdk(ProjectileHeading value) =>
         value switch
         {
             ProjectileHeading.North => Sdk.ProjectileHeading.North,
@@ -557,7 +951,7 @@ internal static class GenericActorSdkModelMapper
             _ => throw UnknownEnum(value),
         };
 
-    private static ProjectileHeading ToEngine(Sdk.ProjectileHeading value) =>
+    internal static ProjectileHeading ToEngine(Sdk.ProjectileHeading value) =>
         value switch
         {
             Sdk.ProjectileHeading.North => ProjectileHeading.North,
@@ -571,7 +965,7 @@ internal static class GenericActorSdkModelMapper
             _ => throw UnknownEnum(value),
         };
 
-    private static Sdk.GenericActorMatchStart.SpawnReason ToSdk(
+    internal static Sdk.GenericActorMatchStart.SpawnReason ToSdk(
         GenericActorRuntimeStart.SpawnReason value) =>
         value switch
         {
@@ -583,10 +977,15 @@ internal static class GenericActorSdkModelMapper
                 Sdk.GenericActorMatchStart.SpawnReason.Fabrication,
             GenericActorRuntimeStart.SpawnReason.Replication =>
                 Sdk.GenericActorMatchStart.SpawnReason.Replication,
+            GenericActorRuntimeStart.SpawnReason.AutomaticActivation =>
+                Sdk.GenericActorMatchStart.SpawnReason
+                    .AutomaticActivation,
+            GenericActorRuntimeStart.SpawnReason.RootFactorySeed =>
+                Sdk.GenericActorMatchStart.SpawnReason.RootFactorySeed,
             _ => throw UnknownEnum(value),
         };
 
-    private static Sdk.GenericActorContext.AvailabilityReason ToSdk(
+    internal static Sdk.GenericActorContext.AvailabilityReason ToSdk(
         GenericActorRuntimeObservation.AvailabilityReason value) =>
         value switch
         {
@@ -598,7 +997,21 @@ internal static class GenericActorSdkModelMapper
             _ => throw UnknownEnum(value),
         };
 
-    private static Sdk.GenericActorContext.EventKind ToSdk(
+    internal static Sdk.GenericActorContext.SpawnReservationKind ToSdk(
+        GenericActorRuntimeObservation.SpawnReservationKind value) =>
+        value switch
+        {
+            GenericActorRuntimeObservation.SpawnReservationKind
+                .AutomaticReturn =>
+                Sdk.GenericActorContext.SpawnReservationKind.AutomaticReturn,
+            GenericActorRuntimeObservation.SpawnReservationKind.Fabrication =>
+                Sdk.GenericActorContext.SpawnReservationKind.Fabrication,
+            GenericActorRuntimeObservation.SpawnReservationKind.Replication =>
+                Sdk.GenericActorContext.SpawnReservationKind.Replication,
+            _ => throw UnknownEnum(value),
+        };
+
+    internal static Sdk.GenericActorContext.EventKind ToSdk(
         GenericActorRuntimeObservation.EventKind value) =>
         value switch
         {
@@ -640,10 +1053,16 @@ internal static class GenericActorSdkModelMapper
                 Sdk.GenericActorContext.EventKind.ModeChanged,
             GenericActorRuntimeObservation.EventKind.LifecycleClockCancelled =>
                 Sdk.GenericActorContext.EventKind.LifecycleClockCancelled,
+            GenericActorRuntimeObservation.EventKind.ProjectileDeflected =>
+                Sdk.GenericActorContext.EventKind.ProjectileDeflected,
+            GenericActorRuntimeObservation.EventKind.MindRuntimeFault =>
+                Sdk.GenericActorContext.EventKind.MindRuntimeFault,
+            GenericActorRuntimeObservation.EventKind.ArcRelay =>
+                Sdk.GenericActorContext.EventKind.ArcRelay,
             _ => throw UnknownEnum(value),
         };
 
-    private static Sdk.GenericActorActionResolution.ActionOutcome ToSdk(
+    internal static Sdk.GenericActorActionResolution.ActionOutcome ToSdk(
         GenericActorRuntimeActionResolution.ActionOutcome value) =>
         value switch
         {
@@ -658,7 +1077,7 @@ internal static class GenericActorSdkModelMapper
             _ => throw UnknownEnum(value),
         };
 
-    private static Sdk.GenericActorRuntimeFaultContext.FaultStage ToSdk(
+    internal static Sdk.GenericActorRuntimeFaultContext.FaultStage ToSdk(
         GenericActorRuntimeFault.FaultStage value) =>
         value switch
         {
@@ -674,11 +1093,11 @@ internal static class GenericActorSdkModelMapper
             _ => throw UnknownEnum(value),
         };
 
-    private static ArgumentOutOfRangeException UnknownEnum<T>(T value)
+    internal static ArgumentOutOfRangeException UnknownEnum<T>(T value)
         where T : struct, Enum =>
         new(nameof(value), value, "Unknown generic actor enum value.");
 
-    private static ArgumentException UnknownUnion(object value) =>
+    internal static ArgumentException UnknownUnion(object value) =>
         new(
             $"Unknown generic actor union case '{value.GetType().FullName}'.",
             nameof(value));

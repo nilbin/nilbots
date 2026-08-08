@@ -8,13 +8,25 @@ namespace BotArena.Guest;
 /// </summary>
 internal sealed class ActorGuestDispatcher(
     Func<string, IActorBot>? actorFactory,
-    Func<string, IGenericActorBot>? genericActorFactory)
+    Func<string, IGenericActorBot>? genericActorFactory,
+    Func<string, IGenericMindBot>? mindFactory = null)
 {
     private readonly Func<string, IActorBot>? _actorFactory = actorFactory;
     private readonly Func<string, IGenericActorBot>? _genericActorFactory =
         genericActorFactory;
+    // An artifact that implements only IGenericActorBot still gets a mind
+    // factory: WrappedPerLifeMind hosts it, which is what makes the whole
+    // migration a rebuild rather than a rewrite.
+    private readonly Func<string, IGenericMindBot>? _mindFactory =
+        mindFactory
+        ?? (genericActorFactory is null
+            ? null
+            : botName => new WrappedPerLifeMind(
+                genericActorFactory,
+                botName));
     private ActorGuestSession? _actorSession;
     private GenericActorGuestSession? _genericActorSession;
+    private GenericMindGuestSession? _mindSession;
     private ActorGuestContractGeneration _generation =
         ActorGuestContractGeneration.None;
     private bool _helloReceived;
@@ -26,7 +38,9 @@ internal sealed class ActorGuestDispatcher(
         _generation != ActorGuestContractGeneration.None;
 
     public bool HasSession =>
-        _actorSession is not null || _genericActorSession is not null;
+        _actorSession is not null
+        || _genericActorSession is not null
+        || _mindSession is not null;
 
     /// <summary>
     /// Handles one complete actor host frame. Null means MatchEnd completed
@@ -58,7 +72,11 @@ internal sealed class ActorGuestDispatcher(
                         throw new FormatException(
                             "Actor MatchEnd received before MatchStart.");
                     }
-                    _ = ActorWireProtocol.DecodeMatchEnd(frame.Bytes);
+                    string reason =
+                        ActorGuestProtocol.ParseMatchEndReason(frame);
+                    // A mind's EndMatch runs here, after the terminal tick.
+                    // A per-life bot has no such call and never had one.
+                    _mindSession?.EndMatch(reason);
                     _ended = true;
                     return null;
 
@@ -119,6 +137,12 @@ internal sealed class ActorGuestDispatcher(
                     _genericActorFactory!);
                 break;
 
+            case ActorGuestContractGeneration.GenericMindV1:
+                _mindSession = GenericMindGuestSession.Start(
+                    ActorGuestProtocol.ParseMindStart(frame),
+                    _mindFactory!);
+                break;
+
             default:
                 throw new FormatException(
                     "Actor MatchStart contract generation is invalid.");
@@ -140,6 +164,13 @@ internal sealed class ActorGuestDispatcher(
                 ActorGuestProtocol.FormatGenericDecision(
                     _genericActorSession.HandleTick(
                         ActorGuestProtocol.ParseGenericObservation(frame))),
+            ActorGuestContractGeneration.GenericMindV1
+                when _mindSession is not null =>
+                ActorGuestProtocol.FormatMindDecisions(
+                    _mindSession.HandleTick(
+                        ActorGuestProtocol.ParseMindObservation(
+                            frame,
+                            _mindSession.WaitAction))),
             _ => throw new FormatException(
                 "Actor observation received before MatchStart."),
         };
@@ -161,6 +192,14 @@ internal sealed class ActorGuestDispatcher(
                 "actor-contract-profile",
                 $"This artifact does not contain a bot for profile " +
                 $"'{GenericActorContractVersions.ContractProfileId}'.");
+        }
+        if (generation is ActorGuestContractGeneration.GenericMindV1
+            && _mindFactory is null)
+        {
+            throw new ActorCapabilityNotSupportedException(
+                "actor-contract-profile",
+                $"This artifact does not contain a bot for profile " +
+                $"'{GenericMindContractVersions.ContractProfileId}'.");
         }
     }
 }

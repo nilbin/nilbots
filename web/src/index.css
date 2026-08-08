@@ -766,4 +766,19 @@ html[data-arena-mode='viewer'] #root {
     -webkit-mask-repeat: no-repeat;
     -webkit-mask-size: contain;
   }
+  /* The arena's half of the camera-gesture contract (render/cameraGestures.ts).
+     Without this the browser owns two-finger gestures: it zooms the PAGE and
+     fires pointercancel, so the camera pinch never runs on a phone. `pan-x
+     pan-y` hands pinches to the arena while a single finger can still scroll
+     the page; in immersive mode (coarse pointer, landscape — the same rule
+     useImmersive applies) there is no page left to scroll, so the arena takes
+     every touch. */
+  .arena-touch {
+    touch-action: pan-x pan-y;
+  }
+  @media (pointer: coarse) and (orientation: landscape) {
+    .arena-touch {
+      touch-action: none;
+    }
+  }
 }

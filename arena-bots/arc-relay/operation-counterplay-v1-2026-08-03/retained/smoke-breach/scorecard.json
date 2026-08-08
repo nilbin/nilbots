@@ -1,0 +1,802 @@
+{
+  "coreCadence": {
+    "actualBirths": 17,
+    "actualBirthsBySource": {
+      "centre": 6,
+      "north": 6,
+      "south": 5
+    },
+    "birthAccessProximityProxyBySource": {
+      "centre": {
+        "contested": 3,
+        "uncontested": 3
+      },
+      "north": {
+        "contested": 4,
+        "uncontested": 2
+      },
+      "south": {
+        "contested": 2,
+        "uncontested": 3
+      }
+    },
+    "liveCoreCountHistogram": {
+      "0": 25,
+      "1": 247,
+      "2": 154,
+      "3": 1
+    },
+    "pendingTicksBySource": {},
+    "rearmTicksBySource": {},
+    "scheduledBirthsThroughEnd": 17,
+    "unresolvedCoreAgeTicks": {
+      "count": 1,
+      "max": 1,
+      "mean": 1,
+      "median": 1,
+      "min": 1,
+      "p90": 1.0
+    }
+  },
+  "feltDegeneracy": {
+    "cohortEligibilityByTeam": {
+      "0": true,
+      "1": true
+    },
+    "formationFreeze": {
+      "bar": {
+        "highWaitTicks": 60,
+        "operator": ">=",
+        "windowTicks": 75
+      },
+      "barTrippedByTeam": {
+        "0": false,
+        "1": false
+      },
+      "definition": "from the first scheduled Core birth, a high-wait tick has at least 75% of commanded bodies waiting; Core proximity and possession do not excuse a frozen formation",
+      "maxHighWaitTicksInWindowByTeam": {
+        "0": 1,
+        "1": 2
+      },
+      "trippingWindowRunsByTeam": {
+        "0": [],
+        "1": []
+      }
+    },
+    "handoffPingPong": {
+      "bar": {
+        "operator": ">=",
+        "reversalsInOneEpisode": 3
+      },
+      "barTrippedByTeam": {
+        "0": false,
+        "1": false
+      },
+      "definition": "consecutive A->B, B->A handoff reversals for one Core and life pair, each no more than 4 ticks apart",
+      "episodes": [],
+      "maxEpisodeReversalsByTeam": {
+        "0": 0,
+        "1": 0
+      },
+      "totalReversalsByTeam": {
+        "0": 0,
+        "1": 0
+      }
+    },
+    "homeCarrierNonProgress": {
+      "bar": {
+        "enemyContestChebyshevDistance": 2,
+        "homeRadiusShortestPathTiles": 6,
+        "operator": ">=",
+        "uncontestedTicksWithoutNewBestDistance": 30
+      },
+      "barTrippedByTeam": {
+        "0": false,
+        "1": false
+      },
+      "definition": "during same-team carried possession, count uncontested worlds within 6 static walkable tiles of that team's reactor since the Core last reached a strictly lower distance; allied handoffs and equal-distance movement do not reset the run",
+      "enabled": true,
+      "maxUncontestedTicksWithoutProgressByTeam": {
+        "0": 6,
+        "1": 3
+      },
+      "trippingRuns": []
+    },
+    "matchEligibleForCohortRead": true,
+    "stuckCarrier": {
+      "bar": {
+        "consecutiveTicks": 30,
+        "operator": ">="
+      },
+      "barTrippedByTeam": {
+        "0": false,
+        "1": false
+      },
+      "definition": "one Core remains carried by the same life on the same tile for consecutive spectator worlds",
+      "maxConsecutiveTicksByTeam": {
+        "0": 4,
+        "1": 3
+      },
+      "trippingRuns": []
+    },
+    "sustainedPassivity": {
+      "bar": {
+        "operator": ">=",
+        "quietTicks": 60,
+        "windowTicks": 75
+      },
+      "barTrippedByTeam": {
+        "0": false,
+        "1": false
+      },
+      "definition": "from the first scheduled Core birth, a quiet tick has at least 75% of commanded bodies waiting while the team carries no Core and has no body within Chebyshev 4 of a live Core",
+      "highWaitTicksByTeam": {
+        "0": 2,
+        "1": 3
+      },
+      "maxQuietTicksInWindowByTeam": {
+        "0": 1,
+        "1": 0
+      },
+      "noTheaterPresenceTicksByTeam": {
+        "0": 87,
+        "1": 128
+      },
+      "quietTicksByTeam": {
+        "0": 1,
+        "1": 0
+      },
+      "trippingWindowRunsByTeam": {
+        "0": [],
+        "1": []
+      }
+    }
+  },
+  "fieldShape": {
+    "campKillsByTeam": {
+      "0": 2,
+      "1": 0
+    },
+    "convoyEscortCountWithinTwoTiles": {
+      "0": {
+        "max": 4,
+        "mean": 0.9127272727272727,
+        "samples": 275
+      },
+      "1": {
+        "max": 2,
+        "mean": 0.49261083743842365,
+        "samples": 203
+      }
+    },
+    "damageBySourceTeamAndTheater": {
+      "0": {
+        "centre": 55,
+        "north": 47,
+        "south": 50
+      },
+      "1": {
+        "centre": 56,
+        "north": 44,
+        "south": 40
+      }
+    },
+    "destructionsBySourceTeamAndTheater": {
+      "0": {
+        "centre": 18,
+        "north": 12,
+        "south": 11
+      },
+      "1": {
+        "centre": 11,
+        "north": 13,
+        "south": 12
+      }
+    },
+    "dropsWithinSixTilesOfReactorByReactorTeam": {
+      "0": 0,
+      "1": 3
+    },
+    "homeCampBodyTicksByTeam": {
+      "0": 69,
+      "1": 0
+    },
+    "publishedRoleDeathsByTeamAndRole": {
+      "0": {
+        "a-sus-car-c": 8,
+        "a-sus-car-n": 8,
+        "a-sus-car-s": 8,
+        "a-sus-int-n": 5,
+        "a-sus-int-s": 5,
+        "a-sus-scr-c": 2
+      },
+      "1": {
+        "a-amb-car-n": 3,
+        "a-amb-car-s": 5,
+        "a-amb-int-n": 4,
+        "a-amb-int-s": 5,
+        "a-amb-res-c": 13,
+        "a-amb-scr-n": 5,
+        "a-amb-scr-s": 2,
+        "g-op-p-task": 4
+      }
+    },
+    "publishedRoleTicksByTeamAndRole": {
+      "0": {
+        "a-sus-car-c": 1110,
+        "a-sus-car-n": 258,
+        "a-sus-car-s": 274,
+        "a-sus-int-n": 321,
+        "a-sus-int-s": 341,
+        "a-sus-scr-c": 384
+      },
+      "1": {
+        "a-amb-car-n": 363,
+        "a-amb-car-s": 321,
+        "a-amb-int-n": 233,
+        "a-amb-int-s": 321,
+        "a-amb-res-c": 439,
+        "a-amb-scr-n": 321,
+        "a-amb-scr-s": 384,
+        "g-op-c-task": 40,
+        "g-op-p-task": 106,
+        "g-op-r-ext": 30
+      }
+    },
+    "theatersByTeam": {
+      "0": {
+        "activeTheaterCountHistogram": {
+          "0": 0,
+          "1": 52,
+          "2": 177,
+          "3": 198
+        },
+        "bodyTicks": {
+          "centre": 1954,
+          "north": 394,
+          "south": 346
+        },
+        "crossTheaterTransitions": 69,
+        "normalizedAllocationEntropy": 0.7078759115945968
+      },
+      "1": {
+        "activeTheaterCountHistogram": {
+          "0": 0,
+          "1": 0,
+          "2": 90,
+          "3": 337
+        },
+        "bodyTicks": {
+          "centre": 1112,
+          "north": 794,
+          "south": 659
+        },
+        "crossTheaterTransitions": 60,
+        "normalizedAllocationEntropy": 0.9780372164759639
+      }
+    }
+  },
+  "identity": {
+    "analysisLayout": {
+      "eastHomeCampMinimumX": 21,
+      "theaterNorthMaximumY": 7,
+      "theaterSouthMinimumY": 15,
+      "wellY": {
+        "centre": 11,
+        "north": 4,
+        "south": 18
+      },
+      "westHomeCampMaximumX": 9
+    },
+    "compositionsByTeam": {
+      "0": [
+        "hush",
+        "hush",
+        "veil",
+        "veil",
+        "patchbay",
+        "relay",
+        "switchback",
+        "palisade"
+      ],
+      "1": [
+        "kestrel",
+        "relay",
+        "lantern",
+        "palisade",
+        "towline",
+        "towline",
+        "veil",
+        "switchback"
+      ]
+    },
+    "entrantsByTeam": {
+      "0": "pop-null-veil",
+      "1": "op-smoke-breach"
+    },
+    "mapFingerprint": "5ca7d1a1826791d736465d352c1558793846fc2e3df343d730f1df4c79f47e0c",
+    "mapId": "arc-relay-threefold-depth-counterflow-01",
+    "rulesFingerprint": "f6d3ee9b1bb17d7bd8d0981941fd00a6a96f0e7ef834497d11924c06087174eb",
+    "rulesetId": "arc-relay-h0-01",
+    "seed": "67867967"
+  },
+  "method": {
+    "authority": "durable spectator broadcast; no mind observations or legality masks",
+    "birthAccess": "proxy only: number of teams within Chebyshev distance 3 at the birth post-state",
+    "contestedPickup": "proxy only: enemy body within Chebyshev distance 2 immediately before pickup",
+    "convoy": "allied non-carrier bodies at Chebyshev distance <=2",
+    "feltDegeneracyBars": "/Users/sebastian.lind/hobby-projects/nilbots-wt/game-redesign/balance/arc-relay-felt-degeneracy-bars-v3.json",
+    "feltDegeneracyBarsSchema": "arc-relay-felt-degeneracy-bars-v3",
+    "feltDegeneracyEligibility": "the frozen registration in balance/arc-relay-felt-degeneracy-bars-v3.json excludes a team for three rapid same-pair handoff reversals, 60-of-75 off-theater quiet ticks, 60-of-75 high-wait formation ticks, or a carried Core held by one life on one tile for 30 ticks; v3 also excludes same-team carried Core possession that spends 30 uncontested home-radius ticks without reaching a closer static path distance",
+    "homeCamp": "derived from each home-region edge plus one fifth of map width; exact thresholds are recorded in identity.analysisLayout",
+    "routeBaseline": "shortest traversable eight-way tile distance from source Well to scoring reactor",
+    "routeDistance": "sum of authoritative Core relocation Chebyshev distances",
+    "signatureUsefulEffects": "counted effect facts/transitions; not a causal value judgment",
+    "theaters": "derived from midpoints between the three named Well y coordinates; exact bands are recorded in identity.analysisLayout"
+  },
+  "outcome": {
+    "completionReason": "reactor-destroyed",
+    "durationSecondsAtFiveTicksPerSecond": 85.4,
+    "eligibleTeamIds": [
+      0,
+      1
+    ],
+    "endTick": 426,
+    "runtimeByParticipant": {
+      "0": {
+        "disqualified": false,
+        "runtimeFaultCount": 0,
+        "teamId": 0
+      },
+      "1": {
+        "disqualified": false,
+        "runtimeFaultCount": 0,
+        "teamId": 1
+      }
+    },
+    "scoresByTeam": {
+      "0": {
+        "pulses": 3,
+        "reactor-charge": 0
+      },
+      "1": {
+        "pulses": 2,
+        "reactor-charge": 1
+      }
+    },
+    "winnerTeamId": 0
+  },
+  "possession": {
+    "arcTossLandingsByTeam": {
+      "0": 0,
+      "1": 2
+    },
+    "carrierChangesByTeam": {
+      "0": 11,
+      "1": 15
+    },
+    "dropsByTeamAndKind": {
+      "0": {
+        "destruction": 1,
+        "signature-departure": 1
+      },
+      "1": {
+        "arc-toss-landing": 2,
+        "destruction": 3,
+        "signature-departure": 4
+      }
+    },
+    "forcedCarrierDisplacementsByCarrierTeam": {
+      "0": 0,
+      "1": 0
+    },
+    "handoffsByTeam": {
+      "0": 0,
+      "1": 0
+    },
+    "pickupEnemyWithinTwoTilesProxy": {
+      "0": {
+        "clear": 6,
+        "contested": 5
+      },
+      "1": {
+        "clear": 5,
+        "contested": 10
+      }
+    },
+    "pickupsByTeamSourceClass": {
+      "0": {
+        "centre": {
+          "hush": 1,
+          "palisade": 2,
+          "relay": 2
+        },
+        "north": {
+          "switchback": 1,
+          "veil": 3
+        },
+        "south": {
+          "switchback": 1,
+          "veil": 1
+        }
+      },
+      "1": {
+        "centre": {
+          "switchback": 2
+        },
+        "north": {
+          "kestrel": 4,
+          "lantern": 1,
+          "switchback": 1
+        },
+        "south": {
+          "kestrel": 1,
+          "relay": 4,
+          "switchback": 1,
+          "towline": 1
+        }
+      }
+    },
+    "stealsByTeam": {
+      "0": 2,
+      "1": 0
+    },
+    "ticksByTeam": {
+      "0": 275,
+      "1": 203
+    },
+    "ticksByTeamAndClass": {
+      "0": {
+        "hush": 26,
+        "palisade": 72,
+        "relay": 54,
+        "switchback": 37,
+        "veil": 86
+      },
+      "1": {
+        "kestrel": 71,
+        "lantern": 11,
+        "relay": 60,
+        "switchback": 61
+      }
+    }
+  },
+  "routes": {
+    "deliveredRouteStretch": {
+      "count": 16,
+      "max": 1.7692307692307692,
+      "mean": 1.1057692307692308,
+      "median": 1.0,
+      "min": 1.0,
+      "p90": 1.3076923076923077
+    },
+    "deliveries": [
+      {
+        "ageTicks": 28,
+        "pathTiles": 13,
+        "routeStretch": 1.0,
+        "shortestEightWayTiles": 13,
+        "teamId": 0,
+        "tick": 53
+      },
+      {
+        "ageTicks": 30,
+        "pathTiles": 13,
+        "routeStretch": 1.0,
+        "shortestEightWayTiles": 13,
+        "teamId": 0,
+        "tick": 80
+      },
+      {
+        "ageTicks": 53,
+        "pathTiles": 13,
+        "routeStretch": 1.0,
+        "shortestEightWayTiles": 13,
+        "teamId": 1,
+        "tick": 128
+      },
+      {
+        "ageTicks": 26,
+        "pathTiles": 13,
+        "routeStretch": 1.0,
+        "shortestEightWayTiles": 13,
+        "teamId": 0,
+        "tick": 126
+      },
+      {
+        "ageTicks": 26,
+        "pathTiles": 13,
+        "routeStretch": 1.0,
+        "shortestEightWayTiles": 13,
+        "teamId": 1,
+        "tick": 151
+      },
+      {
+        "ageTicks": 27,
+        "pathTiles": 13,
+        "routeStretch": 1.0,
+        "shortestEightWayTiles": 13,
+        "teamId": 1,
+        "tick": 177
+      },
+      {
+        "ageTicks": 41,
+        "pathTiles": 17,
+        "routeStretch": 1.3076923076923077,
+        "shortestEightWayTiles": 13,
+        "teamId": 0,
+        "tick": 216
+      },
+      {
+        "ageTicks": 37,
+        "pathTiles": 15,
+        "routeStretch": 1.1538461538461537,
+        "shortestEightWayTiles": 13,
+        "teamId": 1,
+        "tick": 237
+      },
+      {
+        "ageTicks": 46,
+        "pathTiles": 23,
+        "routeStretch": 1.7692307692307692,
+        "shortestEightWayTiles": 13,
+        "teamId": 0,
+        "tick": 271
+      },
+      {
+        "ageTicks": 37,
+        "pathTiles": 17,
+        "routeStretch": 1.3076923076923077,
+        "shortestEightWayTiles": 13,
+        "teamId": 0,
+        "tick": 287
+      },
+      {
+        "ageTicks": 48,
+        "pathTiles": 14,
+        "routeStretch": 1.0769230769230769,
+        "shortestEightWayTiles": 13,
+        "teamId": 0,
+        "tick": 323
+      },
+      {
+        "ageTicks": 38,
+        "pathTiles": 13,
+        "routeStretch": 1.0,
+        "shortestEightWayTiles": 13,
+        "teamId": 0,
+        "tick": 338
+      },
+      {
+        "ageTicks": 26,
+        "pathTiles": 13,
+        "routeStretch": 1.0,
+        "shortestEightWayTiles": 13,
+        "teamId": 1,
+        "tick": 351
+      },
+      {
+        "ageTicks": 29,
+        "pathTiles": 14,
+        "routeStretch": 1.0769230769230769,
+        "shortestEightWayTiles": 13,
+        "teamId": 1,
+        "tick": 379
+      },
+      {
+        "ageTicks": 38,
+        "pathTiles": 13,
+        "routeStretch": 1.0,
+        "shortestEightWayTiles": 13,
+        "teamId": 1,
+        "tick": 413
+      },
+      {
+        "ageTicks": 26,
+        "pathTiles": 13,
+        "routeStretch": 1.0,
+        "shortestEightWayTiles": 13,
+        "teamId": 0,
+        "tick": 426
+      }
+    ],
+    "deliveryIntervalTicks": {
+      "count": 14,
+      "max": 114,
+      "mean": 47,
+      "median": 35.0,
+      "min": 15,
+      "p90": 90.0
+    },
+    "impossibleRelocationIntervals": [],
+    "relocationIntervalTicks": {
+      "count": 208,
+      "max": 11,
+      "mean": 2.1971153846153846,
+      "median": 2.0,
+      "min": 2,
+      "p90": 2.0
+    },
+    "relocationsByKind": {
+      "arc-toss-landing": 2,
+      "carried-movement": 222
+    }
+  },
+  "schema": "arc-relay-scorecard-v2",
+  "scoring": {
+    "behindToAheadPulseReversals": 0,
+    "deliveriesByTeam": {
+      "0": 9,
+      "1": 7
+    },
+    "deliveriesByTeamAndSource": {
+      "0": {
+        "centre": 5,
+        "north": 2,
+        "south": 2
+      },
+      "1": {
+        "centre": 1,
+        "north": 3,
+        "south": 3
+      }
+    },
+    "firstPulseConvertedToMatchWinner": true,
+    "firstPulseTeamId": 0,
+    "pulseLeadChanges": 0,
+    "pulseSequence": [
+      {
+        "teamId": 0,
+        "tick": 126
+      },
+      {
+        "teamId": 1,
+        "tick": 177
+      },
+      {
+        "teamId": 0,
+        "tick": 287
+      },
+      {
+        "teamId": 1,
+        "tick": 379
+      },
+      {
+        "teamId": 0,
+        "tick": 426
+      }
+    ],
+    "pulsesByTeam": {
+      "0": 3,
+      "1": 2
+    }
+  },
+  "signatures": {
+    "byTeamAndSignature": {
+      "0": {
+        "exchange": {
+          "attempts": 1,
+          "counteredOrReplaced": 0,
+          "maxVisibleStack": 1,
+          "stackedBodyTicks": 0,
+          "terminalTransitions": 1,
+          "usefulEffectFacts": 2
+        },
+        "null-field": {
+          "attempts": 29,
+          "counteredOrReplaced": 0,
+          "maxVisibleStack": 2,
+          "stackedBodyTicks": 20,
+          "terminalTransitions": 29,
+          "usefulEffectFacts": 0
+        },
+        "repair-beam": {
+          "attempts": 14,
+          "counteredOrReplaced": 13,
+          "maxVisibleStack": 2,
+          "stackedBodyTicks": 6,
+          "terminalTransitions": 14,
+          "usefulEffectFacts": 12
+        }
+      },
+      "1": {
+        "arc-toss": {
+          "attempts": 2,
+          "counteredOrReplaced": 0,
+          "maxVisibleStack": 1,
+          "stackedBodyTicks": 0,
+          "terminalTransitions": 2,
+          "usefulEffectFacts": 0
+        },
+        "exchange": {
+          "attempts": 2,
+          "counteredOrReplaced": 0,
+          "maxVisibleStack": 1,
+          "stackedBodyTicks": 0,
+          "terminalTransitions": 2,
+          "usefulEffectFacts": 4
+        },
+        "prism-wall": {
+          "attempts": 5,
+          "counteredOrReplaced": 0,
+          "maxVisibleStack": 1,
+          "stackedBodyTicks": 0,
+          "terminalTransitions": 4,
+          "usefulEffectFacts": 4
+        },
+        "smoke-canister": {
+          "attempts": 9,
+          "counteredOrReplaced": 0,
+          "maxVisibleStack": 1,
+          "stackedBodyTicks": 0,
+          "terminalTransitions": 9,
+          "usefulEffectFacts": 0
+        },
+        "survey-flare": {
+          "attempts": 3,
+          "counteredOrReplaced": 0,
+          "maxVisibleStack": 1,
+          "stackedBodyTicks": 0,
+          "terminalTransitions": 3,
+          "usefulEffectFacts": 0
+        },
+        "tractor-hook": {
+          "attempts": 34,
+          "counteredOrReplaced": 0,
+          "maxVisibleStack": 0,
+          "stackedBodyTicks": 0,
+          "terminalTransitions": 34,
+          "usefulEffectFacts": 12
+        },
+        "vector-dash": {
+          "attempts": 1,
+          "counteredOrReplaced": 0,
+          "maxVisibleStack": 1,
+          "stackedBodyTicks": 0,
+          "terminalTransitions": 1,
+          "usefulEffectFacts": 1
+        }
+      }
+    },
+    "operationsStillVisibleAtEnd": 1,
+    "terminalReasonsBySignature": {
+      "arc-toss": {
+        "landed": 2
+      },
+      "exchange": {
+        "completed": 3
+      },
+      "null-field": {
+        "expired": 29
+      },
+      "prism-wall": {
+        "expired": 4
+      },
+      "repair-beam": {
+        "channel-ended": 1,
+        "interrupted-damage": 2,
+        "interrupted-movement": 11
+      },
+      "smoke-canister": {
+        "expired": 9
+      },
+      "survey-flare": {
+        "expired": 3
+      },
+      "tractor-hook": {
+        "completed": 34
+      },
+      "vector-dash": {
+        "completed": 1
+      }
+    }
+  },
+  "source": {
+    "broadcast": "/private/tmp/nilbots-operation-counterplay-confirmation/attempt-01/cells/confirm--smoke-breach--null-veil--s67867967--op1/attempt-01/broadcast.json.gz",
+    "broadcastGzipBytes": 138535,
+    "broadcastSha256": "3b200c853101ef7791806701f6c28965706b4854b5e0d79956684ed22fd9dc1a",
+    "canonicalReplayHash": "87322bc3bee438de649e3a9475b27efb286297ed14f04b0f3f851d4add4b97dd",
+    "matchId": "confirm--smoke-breach--null-veil--s67867967--op1",
+    "recordSha256": "5efb7a8287504de7fb8b025f20dcf9f114a349cf0c0fc3da14c020f550c6eb5f"
+  }
+}

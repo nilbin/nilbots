@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 1,
+  "name": "TerritoryHolder",
+  "doctrine": "Hold the active objective through one survivable threat, but yield to lethal, multiple, or already-covered threats.",
+  "authoringPassCount": 1,
+  "mechanicalRepairCount": 0
+}

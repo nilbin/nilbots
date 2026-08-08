@@ -1,0 +1,11 @@
+{
+  "name": "GateStone",
+  "entryType": "GateStone",
+  "sdkVersion": "0.10.6",
+  "appearance": {
+    "accent": "#8fa3b0",
+    "look": "bulwark-gatehouse",
+    "projectile": "bulwark-gate-slug"
+  },
+  "class": "bulwark"
+}

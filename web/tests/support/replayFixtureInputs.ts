@@ -927,6 +927,10 @@ export function adaptReplayV3ToFrontline(
     captureProgress: 0,
     decayTicksElapsed: 0,
     controlResumesAtTick: 0,
+    holdOwnerTeamId: null,
+    holdEndsAtTick: null,
+    secondaryOwnerTeamId: null,
+    secondaryClaimProgress: 0,
   });
   const setWorld = (
     world: ReplayV3WorldState,

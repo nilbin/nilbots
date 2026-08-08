@@ -58,6 +58,25 @@ wrong; it changes which document is the current entry point.
   pre-registered seeds, mirrored matrix, outcome/dynamics gates, replay review,
   artifact retention, and one-mechanism tuning rule for the exploratory Labs
   v1 balance pass.
+- [`BOT-CAPABILITY-AND-SOLVABILITY.md`](BOT-CAPABILITY-AND-SOLVABILITY.md) —
+  eight cumulative individual tiers, a separate six-grade coordination axis,
+  practical 1v1/2v2/3v3 solvability targets, and the static gates that precede
+  balance matches.
+- [`BOT-QUALIFICATION-SUITE.md`](BOT-QUALIFICATION-SUITE.md) — replay-native
+  T/C probe contract and scenario families. Its immutable suite-1 T4 entry
+  component and suite-2 WASM determinism/automatic-life T1 component are
+  retained; suite 3 completes cumulative T2 and suite 4 completes cumulative
+  T3; suite 5 completes cumulative T4 and the first balance-eligible entrant
+  boundary. Independent T4+ population breadth is now the pilot critical path,
+  while T7/T8 are explicitly deferred.
+- [`FRONTLINE-DUEL-THEORY.md`](FRONTLINE-DUEL-THEORY.md) — executable
+  projectile chronology, local payoff matrices, and map-wide one-bend
+  last-mile classification for the current duel-depth experiment.
+- [`NILBOTS-BALANCE-LAB.md`](NILBOTS-BALANCE-LAB.md) — mode-independent
+  candidate plus topology identity, study blocks, evaluation/qualification
+  profiles, frozen executable/holdout protocols, tiered full-cross-play
+  population model, vector metrics, ablation debt, and the implemented
+  factorial orchestration slices.
 - [`REPLAY-NATIVE-ML-PLAN.md`](REPLAY-NATIVE-ML-PLAN.md) — shared proposal for
   canonical actor observations, generic replay 3, datasets, and bounded model
   assets. Replay 2 remains the frozen Frontline-alpha proof; generic actor
@@ -66,6 +85,10 @@ wrong; it changes which document is the current entry point.
   remain planned.
 - [`EVALUATION-METHODOLOGY.md`](EVALUATION-METHODOLOGY.md) — required evidence
   policy before any rules experiment is promoted.
+- [`FRONTLINE-BALANCE-POPULATION-AUTHOR-PACKET.md`](FRONTLINE-BALANCE-POPULATION-AUTHOR-PACKET.md)
+  — current player-facing constraints, qualification sequence, immutable
+  source/WASM archive contract, and tier-specific authoring roles for future
+  calibration and verdict populations.
 
 Frontline remains unshipped despite having an experimental contract and
 viewer.

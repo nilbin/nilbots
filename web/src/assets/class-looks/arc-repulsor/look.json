@@ -1,0 +1,10 @@
+{
+  "id": "arc-repulsor",
+  "label": "Repulsor",
+  "sprite": "sprite.png",
+  "suggestedAccent": "#38bdf8",
+  "defaultProjectile": "arc-pulse",
+  "classId": "repulsor",
+  "locomotionCue": "treads",
+  "scale": 1.08
+}

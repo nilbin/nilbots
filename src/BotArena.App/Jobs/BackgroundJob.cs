@@ -30,6 +30,7 @@ public class BackgroundJob
     public const string AnnounceMatchResultType = "AnnounceMatchResult";
     public const string AnnounceSetResultType = "AnnounceSetResult";
     public const string DeliverPushType = "DeliverPush";
+    public const string SettleArcRelayRatingType = "SettleArcRelayRating";
 
     /// <summary>
     /// Announce a finished match, due when its broadcast ends.
@@ -73,6 +74,13 @@ public class BackgroundJob
     {
         Type = DeliverPushType,
         PayloadJson = JsonSerializer.Serialize(new { notificationId }),
+        AvailableAt = availableAt,
+    };
+
+    public static BackgroundJob SettleArcRelayRating(Guid matchId, DateTime availableAt) => new()
+    {
+        Type = SettleArcRelayRatingType,
+        PayloadJson = JsonSerializer.Serialize(new { matchId }),
         AvailableAt = availableAt,
     };
 

@@ -70,6 +70,9 @@ These names have one meaning in code, APIs, documentation, and UI:
   perception, scoring, and victory definitions.
 - **Match format** — the policy that maps submitted participants onto scoring
   teams and stable unit capacity, such as head-to-head, FFA-4, or 2v2.
+- **Topology profile** — a descriptive, versioned name for the exact
+  participant/controller, scoring-team, stable-slot, and initial-life shape.
+  The topology fingerprint, not the profile name, is authoritative.
 - **Map** — immutable geometry plus named spawn/objective/placement regions.
   A map declares capabilities; it does not contain imperative game scripts.
 - **Playlist version** — one immutable curated combination of ruleset, allowed
@@ -84,6 +87,21 @@ These names have one meaning in code, APIs, documentation, and UI:
 - **Match contract** — the complete resolved ruleset, map, format, exact
   topology, and capability versions delivered before tick zero and stored in
   the replay.
+- **Evaluation profile** — Balance Lab policy for lineup construction,
+  participant/team assignment, payoff interpretation, and compatible metrics.
+- **Qualification profile** — the semantic capability distribution on which a
+  bot earned its cumulative T/C result. It is separate from playlist admission
+  and is fingerprinted in balance evidence. A tier earned on the mind profile
+  and the same tier earned per-life are different evidence and carry different
+  profile IDs; balance evidence must never have to guess which it holds.
+- **Mind** — one submitted artifact driving every body ITS PARTICIPANT owns, for
+  a whole match, from one runtime with persistent memory. The word is
+  deliberately not "controller", which this section already spends on the
+  submitted participant, and deliberately has no in-world referent, so it cannot
+  be mistaken for a body. **The mind is the participant, not the team**: a 2v2
+  team is two ALLIED MINDS sharing one scoring team, which is why a mind's
+  observation splits its own bodies from allied bodies it cannot command, and
+  why "move my ally's body" is unspellable rather than merely refused.
 
 FFA Deathmatch is therefore Deathmatch mode plus an FFA match format. It is
 not a second engine mode and it does not need an `IsFfa` switch.
@@ -101,6 +119,7 @@ The architecture begins by preserving, not widening, existing contracts:
 | Official duel | historical | historical | 1 | frozen and shipped |
 | `frontline-alpha-1` | 2 | 1 | 2 | frozen local experiment |
 | generic actor match | 3 | 2 | 3 | experimental Engine plus off-by-default hosted Labs path |
+| generic mind match | 3 | 2 | 3 | experimental, local-only; one runtime per participant |
 
 Official `MatchEngine`, `MatchSession`, `Replay`, `ReplaySerializer`, runtime
 protocol/configuration 0.1, replay hashes, and public rules remain untouched.
@@ -111,6 +130,20 @@ The generic generation receives new schema numbers. Old serializers branch on
 the stored schema and remain byte-exact; a new field is never smuggled into an
 old fingerprint or replay. A future generic Frontline ruleset is a new named
 arm, not a reinterpretation of `frontline-alpha-1`.
+
+The **mind generation is the exception that proves the rule, and it sits BESIDE
+the actor generation rather than after it.** Its runtime contract, MatchStart,
+observation and decision schemas are freshly minted in their own namespace, so
+their numbers can never collide with the actor line's. But its rules contract,
+resolved match contract and replay format are all CARRIED, because the rules,
+map, forms, actions, transitions, lifecycle, mode and economy are identical:
+only who is driving them changed. A ruleset therefore keeps its exact rules and
+map fingerprints across both profiles, and only the aggregate match fingerprint
+moves — which is what makes a cross-profile comparison a statement about the
+driver rather than about the game. Replay 3 grows a `mindTurns` alternative to
+`actorTurns`, keyed by the contract profile recorded in the document header;
+a document carries exactly one of the two per tick, never both, and never
+inferred from the payload.
 
 ## 3. Resolved model
 
@@ -471,6 +504,18 @@ The common actor host owns:
 - exact active-actor preparation;
 - runtime budgets, failure handling, and disposal;
 - replay chronology.
+
+Under the mind profile the runtime-owning unit is the PARTICIPANT rather than
+the life: one Store, Instance, thread and mind object for the whole match, with
+bodies as data inside it. A body's destruction disposes nothing. The 16 canonical
+tick phases, `PrepareTick()` -> `Step()`, the re-entrancy guard and the
+invocation ordering are all unchanged; what changes is that the host invokes one
+runtime per participant and fans its command set across that participant's
+bodies, and that the observable union is projected once per team per tick
+instead of once per life. Fault scoping below is unchanged in policy and merely
+applies to a coarser unit — with one genuinely new consequence, stated rather
+than smoothed over: a fault discards the mind's entire match-long memory,
+because there is no snapshot to restore and a trap can leave a torn heap.
 
 Runtime faults are participant-scoped across every controlled slot, life, and
 runtime stage. Fault events are ordered by participant, actor identity, then

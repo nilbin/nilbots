@@ -1,0 +1,82 @@
+{
+  "schema": "arc-relay-tactical-layout-v1",
+  "layoutId": "warren5-hunter-v1",
+  "mapId": "arc-relay-ambush-warren-05",
+  "bindings": [
+    {
+      "matchContractFingerprint": "any-composition",
+      "ownReactorSide": "east",
+      "transform": "rotate-180",
+      "routeAliases": {
+        "north-out": "south-out",
+        "south-out": "north-out",
+        "shadow-north-long": "shadow-south-long",
+        "shadow-south-long": "shadow-north-long"
+      },
+      "formationAliases": {}
+    },
+    {
+      "matchContractFingerprint": "any-composition",
+      "ownReactorSide": "west",
+      "transform": "identity",
+      "routeAliases": {},
+      "formationAliases": {}
+    }
+  ],
+  "zones": [
+    { "zoneId": "own-home", "rect": [1, 7, 4, 15] },
+    { "zoneId": "own-approach", "rect": [4, 4, 11, 18] },
+    { "zoneId": "well-line", "rect": [12, 2, 18, 20] },
+    { "zoneId": "north-farm", "rect": [12, 2, 18, 8] },
+    { "zoneId": "centre-farm", "rect": [12, 9, 18, 13] },
+    { "zoneId": "south-farm", "rect": [12, 14, 18, 20] },
+    { "zoneId": "north-run", "rect": [1, 1, 29, 2] },
+    { "zoneId": "south-run", "rect": [1, 20, 29, 21] },
+    { "zoneId": "enemy-backfield", "rect": [22, 4, 29, 18] },
+    { "zoneId": "north-perch", "rect": [23, 3, 28, 7] },
+    { "zoneId": "south-perch", "rect": [23, 15, 28, 19] }
+  ],
+  "routes": [
+    {
+      "routeId": "shadow-north-long",
+      "corridorWidth": 2,
+      "waypoints": [
+        [2, 5], [2, 2], [6, 1], [11, 1], [12, 2], [18, 2],
+        [19, 1], [25, 1], [28, 2], [27, 4], [26, 6]
+      ]
+    },
+    {
+      "routeId": "shadow-south-long",
+      "corridorWidth": 2,
+      "waypoints": [
+        [2, 17], [2, 20], [8, 20], [11, 20], [18, 20],
+        [19, 21], [21, 21], [22, 20], [27, 20], [27, 18], [26, 16]
+      ]
+    },
+    {
+      "routeId": "strike-line",
+      "corridorWidth": 2,
+      "waypoints": [[26, 6], [27, 8], [27, 10]]
+    },
+    {
+      "routeId": "north-out",
+      "corridorWidth": 2,
+      "waypoints": [[4, 6], [8, 6], [11, 6], [13, 5], [14, 4]]
+    },
+    {
+      "routeId": "south-out",
+      "corridorWidth": 2,
+      "waypoints": [[4, 16], [8, 16], [13, 16], [14, 17], [14, 18]]
+    },
+    {
+      "routeId": "centre-probe",
+      "corridorWidth": 2,
+      "waypoints": [[4, 9], [8, 9], [11, 9], [14, 9], [15, 10]]
+    }
+  ],
+  "anchors": [
+    { "anchorId": "home-gate", "position": [4, 11] },
+    { "anchorId": "perch-north", "position": [26, 6] },
+    { "anchorId": "perch-south", "position": [26, 16] }
+  ]
+}

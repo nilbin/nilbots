@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" data-runtime-art="raster-exception" aria-label="Mason facing East in a shallow oblique projection">
+  <defs>
+    <mask id="team-light-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="512" height="512">
+      <image href="__TEAM_MASK_URL__" x="0" y="0" width="512" height="512" preserveAspectRatio="none"/>
+    </mask>
+    <filter id="team-light-glow" x="-30%" y="-30%" width="160%" height="160%" color-interpolation-filters="sRGB">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="7" result="blur"/>
+      <feComponentTransfer in="blur" result="soft"><feFuncA type="linear" slope=".62"/></feComponentTransfer>
+      <feMerge><feMergeNode in="soft"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <g id="underbody-locomotion">
+    <ellipse cx="256" cy="357" rx="142" ry="29" fill="#020509" fill-opacity=".5"/>
+  </g>
+  <g id="chassis">
+    <image href="__BASE_IMAGE_URL__" x="0" y="0" width="512" height="512" preserveAspectRatio="none"/>
+  </g>
+  <g id="weapon-hardware">
+    <desc>Signature hardware is integrated in the approved chassis illustration.</desc>
+  </g>
+  <g id="team-accents">
+    <g mask="url(#team-light-mask)" filter="url(#team-light-glow)">
+      <rect data-team-accent="true" fill="#38bdf8" x="0" y="0" width="512" height="256"/>
+      <rect data-team-accent="true" fill="#38bdf8" x="0" y="256" width="512" height="256"/>
+    </g>
+  </g>
+  <g id="emissives">
+    <desc>Authored neutral emissives are integrated in the chassis illustration.</desc>
+  </g>
+</svg>

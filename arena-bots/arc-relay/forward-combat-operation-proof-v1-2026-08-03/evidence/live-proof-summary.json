@@ -1,0 +1,1158 @@
+{
+  "artifact": "arena-bots/arc-relay/stock-mind-v4/bot.wasm",
+  "artifactSha256": "fdd61b1f4c24895926d3bdde7e8b70c0c6eb957d107dda99b04719614d499368",
+  "budgets": {
+    "actualGalleryBroadcastGzipBytes": 1214036,
+    "broadcastGzipBytesPerMatch": 307200,
+    "galleryBroadcastGzipBytes": 8388608
+  },
+  "campaigns": [
+    {
+      "operations": [
+        {
+          "baselineRoleTagsAfterRelease": {
+            "4": "a-amb-int-n",
+            "5": "a-amb-int-s"
+          },
+          "branch": "carrier-strike",
+          "broadcast": {
+            "file": "arena-bots/arc-relay/forward-combat-operation-proof-v1-2026-08-03/evidence/replays/rear-hook.broadcast.json.gz",
+            "gzipBytes": 114124,
+            "sha256": "c5944d6a62e2db0bc1854900b83efef9713039e6d4c0d73618ab7beafc392b4e"
+          },
+          "broadcastBytes": 114124,
+          "cohortEligibilityByTeam": {
+            "0": true,
+            "1": true
+          },
+          "commitTick": 203,
+          "feltDegeneracyBarsSchema": "arc-relay-felt-degeneracy-bars-v4",
+          "id": "rear-hook",
+          "matchEligibleForCohortRead": true,
+          "opponentArtifactHash": "fdd61b1f4c24895926d3bdde7e8b70c0c6eb957d107dda99b04719614d499368",
+          "opponentSheetHash": "78ddb0b6909b1648a7ffa3c04a1c67a35be62935d3231dd9aa3ba2a296290137",
+          "prepareTick": 186,
+          "releaseTick": 231,
+          "replayHash": "0d91615e14a01f02a0240d330ae7f19fcddec4252ff8676f15da73f0e5db5e24",
+          "requiredActions": {
+            "tractor-hook": [
+              203,
+              209
+            ]
+          },
+          "result": {
+            "endTick": 376,
+            "reason": "reactor-destroyed",
+            "winnerTeamId": 1
+          },
+          "scorecardHash": "5fea3662b8c2c259e580602e42a95bd316b658a12c458cea2fc534ff339d6382",
+          "seed": "67867967",
+          "sheetHash": "dffe24943f2dcade1cffa1a6c8c1cba800b0cd32b51aa2aedb7af40a1ca1ee5e",
+          "successTick": 219
+        },
+        {
+          "baselineRoleTagsAfterRelease": {
+            "0": "a-bal-car-n",
+            "7": "a-bal-res-c"
+          },
+          "branch": "alternate-return",
+          "broadcast": {
+            "file": "arena-bots/arc-relay/forward-combat-operation-proof-v1-2026-08-03/evidence/replays/lantern-sweep.broadcast.json.gz",
+            "gzipBytes": 124705,
+            "sha256": "e9986f1ed6c2c68a2a7789a2c7536dd36a4b03b2285aaa11c70fc146577b7ea6"
+          },
+          "broadcastBytes": 124705,
+          "cohortEligibilityByTeam": {
+            "0": true,
+            "1": true
+          },
+          "commitTick": 59,
+          "feltDegeneracyBarsSchema": "arc-relay-felt-degeneracy-bars-v4",
+          "id": "lantern-sweep",
+          "matchEligibleForCohortRead": true,
+          "opponentArtifactHash": "fdd61b1f4c24895926d3bdde7e8b70c0c6eb957d107dda99b04719614d499368",
+          "opponentSheetHash": "c8a33184b90a7d017d74d365e6f598a7b0c82047551136d66559d38849984c26",
+          "prepareTick": 53,
+          "releaseTick": 61,
+          "replayHash": "07ca242b0846bd80ba3a3f941ff5bbabb9b7ad9565fd45ace75a17aadcad280a",
+          "requiredActions": {},
+          "result": {
+            "endTick": 402,
+            "reason": "reactor-destroyed",
+            "winnerTeamId": 1
+          },
+          "scorecardHash": "b917eedc4b7e1607e249d113bbe8b9b478b5fcab87ccb1fd04c507e92ab8c9d2",
+          "seed": "86080201",
+          "sheetHash": "0e14fdfb9578f125e7e3232c4dca516488b91aea21b3bae669bcab9e96ee8be3",
+          "successTick": 60
+        },
+        {
+          "baselineRoleTagsAfterRelease": {
+            "4": "a-amb-int-n",
+            "5": "a-amb-int-s"
+          },
+          "branch": "north-cutoff",
+          "broadcast": {
+            "file": "arena-bots/arc-relay/forward-combat-operation-proof-v1-2026-08-03/evidence/replays/fork-shadow.broadcast.json.gz",
+            "gzipBytes": 134662,
+            "sha256": "7e245faaea80e20af89d4b9abe1a1914076074091731a7be334c159eca48db43"
+          },
+          "broadcastBytes": 134662,
+          "cohortEligibilityByTeam": {
+            "0": true,
+            "1": true
+          },
+          "commitTick": 103,
+          "feltDegeneracyBarsSchema": "arc-relay-felt-degeneracy-bars-v4",
+          "id": "fork-shadow",
+          "matchEligibleForCohortRead": true,
+          "opponentArtifactHash": "fdd61b1f4c24895926d3bdde7e8b70c0c6eb957d107dda99b04719614d499368",
+          "opponentSheetHash": "c8a33184b90a7d017d74d365e6f598a7b0c82047551136d66559d38849984c26",
+          "prepareTick": 93,
+          "releaseTick": 136,
+          "replayHash": "d22e53ce0a7f9c7394bd929c26b1ee9ac89dcfca7081a1d7a943f494e556ac10",
+          "requiredActions": {
+            "tractor-hook": [
+              104,
+              105,
+              116,
+              118
+            ]
+          },
+          "result": {
+            "endTick": 465,
+            "reason": "reactor-destroyed",
+            "winnerTeamId": 0
+          },
+          "scorecardHash": "c8bb515e606c10b7711742973b1772cf570093029c0db2d25e725b35c1571a08",
+          "seed": "86080201",
+          "sheetHash": "33b5e0d400bed3cd0ded13777f956200ecef2260cc69e3c8cc46e7977a8394ac",
+          "successTick": 124
+        },
+        {
+          "baselineRoleTagsAfterRelease": {
+            "2": "a-spl-scr-n",
+            "6": "a-spl-res-c"
+          },
+          "branch": "release-to-next-well",
+          "broadcast": {
+            "file": "arena-bots/arc-relay/forward-combat-operation-proof-v1-2026-08-03/evidence/replays/birth-rotation.broadcast.json.gz",
+            "gzipBytes": 126027,
+            "sha256": "6fbe44e45477c3f31f008a0ce357ab0970d1191bce563ded862dc1f873e7d2ea"
+          },
+          "broadcastBytes": 126027,
+          "cohortEligibilityByTeam": {
+            "0": true,
+            "1": true
+          },
+          "commitTick": 379,
+          "feltDegeneracyBarsSchema": "arc-relay-felt-degeneracy-bars-v4",
+          "id": "birth-rotation",
+          "matchEligibleForCohortRead": true,
+          "opponentArtifactHash": "fdd61b1f4c24895926d3bdde7e8b70c0c6eb957d107dda99b04719614d499368",
+          "opponentSheetHash": "c8a33184b90a7d017d74d365e6f598a7b0c82047551136d66559d38849984c26",
+          "prepareTick": 373,
+          "releaseTick": 388,
+          "replayHash": "3642203975cda76863dcc6e1514d25c295016e14a4e84265d62ca55f6f0cc032",
+          "requiredActions": {},
+          "result": {
+            "endTick": 412,
+            "reason": "reactor-destroyed",
+            "winnerTeamId": 1
+          },
+          "scorecardHash": "8571b8210c6303845ab7e925c8db5c0750c47ae323f209d92ae20f5c19948dbb",
+          "seed": "86080201",
+          "sheetHash": "848f17f00a075bfc18ffdd49d038756f3317a92114cfb491e82efdee7429684e",
+          "successTick": 386
+        },
+        {
+          "baselineRoleTagsAfterRelease": {
+            "0": "a-int-car-n",
+            "4": "a-int-int-n"
+          },
+          "branch": "direct-return",
+          "broadcast": {
+            "file": "arena-bots/arc-relay/forward-combat-operation-proof-v1-2026-08-03/evidence/replays/escort-counterpunch.broadcast.json.gz",
+            "gzipBytes": 111489,
+            "sha256": "693676ac2ecfb5af85a52259a443f8c2db647c9f5c0a11b9226c9b12942314de"
+          },
+          "broadcastBytes": 111489,
+          "cohortEligibilityByTeam": {
+            "0": true,
+            "1": true
+          },
+          "commitTick": 59,
+          "feltDegeneracyBarsSchema": "arc-relay-felt-degeneracy-bars-v4",
+          "id": "escort-counterpunch",
+          "matchEligibleForCohortRead": true,
+          "opponentArtifactHash": "fdd61b1f4c24895926d3bdde7e8b70c0c6eb957d107dda99b04719614d499368",
+          "opponentSheetHash": "c8a33184b90a7d017d74d365e6f598a7b0c82047551136d66559d38849984c26",
+          "prepareTick": 53,
+          "releaseTick": 61,
+          "replayHash": "81f12a16deae9643eea60c90b104b92e78cfecdbaf54368f033ab05a31609e9b",
+          "requiredActions": {},
+          "result": {
+            "endTick": 356,
+            "reason": "reactor-destroyed",
+            "winnerTeamId": 0
+          },
+          "scorecardHash": "fe778aca84f184618adc3815902de7257e99e51eee2f8ce61d6c6febad98f338",
+          "seed": "86080201",
+          "sheetHash": "4ef8e5ed02e69abd5f748e7885f9d8a882ab7f04682f50a839ed740a89a4b7f6",
+          "successTick": 60
+        },
+        {
+          "baselineRoleTagsAfterRelease": {
+            "4": "a-amb-int-n",
+            "6": "a-amb-res-c"
+          },
+          "branch": "cross-centre",
+          "broadcast": {
+            "file": "arena-bots/arc-relay/forward-combat-operation-proof-v1-2026-08-03/evidence/replays/smoke-breach.broadcast.json.gz",
+            "gzipBytes": 107915,
+            "sha256": "f0ae80052e2d8542e123cd9b8218f8cb3280831f69ca17532c7f964eb5b8848c"
+          },
+          "broadcastBytes": 107915,
+          "cohortEligibilityByTeam": {
+            "0": true,
+            "1": true
+          },
+          "commitTick": 264,
+          "feltDegeneracyBarsSchema": "arc-relay-felt-degeneracy-bars-v4",
+          "id": "smoke-breach",
+          "matchEligibleForCohortRead": true,
+          "opponentArtifactHash": "fdd61b1f4c24895926d3bdde7e8b70c0c6eb957d107dda99b04719614d499368",
+          "opponentSheetHash": "c8a33184b90a7d017d74d365e6f598a7b0c82047551136d66559d38849984c26",
+          "prepareTick": 255,
+          "releaseTick": 277,
+          "replayHash": "28af35cb49bf03ae9db31da91f2957557e2453be318cbcb090861524d461cd6a",
+          "requiredActions": {
+            "smoke-canister": [
+              255
+            ]
+          },
+          "result": {
+            "endTick": 355,
+            "reason": "reactor-destroyed",
+            "winnerTeamId": 1
+          },
+          "scorecardHash": "4771de8630e0599bbc9d03ea2579db7729eda582744a16b0f3eedaaeecaceb37",
+          "seed": "86080201",
+          "sheetHash": "4794f770f9f72b89164a402d3d1b410dd78b40fa330807c5c60b35691363780d",
+          "successTick": 273
+        },
+        {
+          "baselineRoleTagsAfterRelease": {
+            "2": "a-for-scr-n",
+            "3": "a-for-scr-s"
+          },
+          "branch": "hold-gate",
+          "broadcast": {
+            "file": "arena-bots/arc-relay/forward-combat-operation-proof-v1-2026-08-03/evidence/replays/hardlight-gate.broadcast.json.gz",
+            "gzipBytes": 113621,
+            "sha256": "1232c7e66cb24aa4024989d8ddb7c731e6b9ff96220778e8eafd058f57a021ca"
+          },
+          "broadcastBytes": 113621,
+          "cohortEligibilityByTeam": {
+            "0": true,
+            "1": true
+          },
+          "commitTick": 69,
+          "feltDegeneracyBarsSchema": "arc-relay-felt-degeneracy-bars-v4",
+          "id": "hardlight-gate",
+          "matchEligibleForCohortRead": true,
+          "opponentArtifactHash": "fdd61b1f4c24895926d3bdde7e8b70c0c6eb957d107dda99b04719614d499368",
+          "opponentSheetHash": "c8a33184b90a7d017d74d365e6f598a7b0c82047551136d66559d38849984c26",
+          "prepareTick": 57,
+          "releaseTick": 71,
+          "replayHash": "07720d58caa12090db78bd27f705cca5d29587ea9960f2b6580212f351f47c6d",
+          "requiredActions": {
+            "hardlight-block": [
+              57
+            ]
+          },
+          "result": {
+            "endTick": 376,
+            "reason": "reactor-destroyed",
+            "winnerTeamId": 1
+          },
+          "scorecardHash": "355004109d399ffc261efdd8f31d7222f2dfa45eb5fcbcb28c684bc828f65e83",
+          "seed": "86080201",
+          "sheetHash": "a8e1322fa1597c904646ee366f4716746c6a7dfd758a154f10a2816861095997",
+          "successTick": 70
+        },
+        {
+          "baselineRoleTagsAfterRelease": {
+            "0": "a-rly-scr-s",
+            "1": "a-rly-car-s"
+          },
+          "branch": "throw-home",
+          "broadcast": {
+            "file": "arena-bots/arc-relay/forward-combat-operation-proof-v1-2026-08-03/evidence/replays/relay-catch.broadcast.json.gz",
+            "gzipBytes": 121553,
+            "sha256": "2bde5a60c7bc9c1ac4ecfcb2e5aacabd470a4001d2890e84b01fd58092bd5f07"
+          },
+          "broadcastBytes": 121553,
+          "cohortEligibilityByTeam": {
+            "0": true,
+            "1": true
+          },
+          "commitTick": 77,
+          "feltDegeneracyBarsSchema": "arc-relay-felt-degeneracy-bars-v4",
+          "id": "relay-catch",
+          "matchEligibleForCohortRead": true,
+          "opponentArtifactHash": "fdd61b1f4c24895926d3bdde7e8b70c0c6eb957d107dda99b04719614d499368",
+          "opponentSheetHash": "df62fc97edc1bdb59ddcef7fbff16b0fe37298262f07cf73456c2c97c56f7f97",
+          "prepareTick": 76,
+          "releaseTick": 84,
+          "replayHash": "9c5c8d1ca5ea072f1f9585f7289b9af069cfc3337c2441ffabb455257a056ff4",
+          "requiredActions": {
+            "arc-toss": [
+              78
+            ]
+          },
+          "result": {
+            "endTick": 380,
+            "reason": "reactor-destroyed",
+            "winnerTeamId": 1
+          },
+          "scorecardHash": "ae80078f3a111d001fa89de0386df8fb82e50e0ccfa58b5326df5534fa12874f",
+          "seed": "67867967",
+          "sheetHash": "c52f45bc3c1ad0d00d986526e06683e2dbfaf32952a6c6bb1cdd3ca4d590234c",
+          "successTick": 80
+        },
+        {
+          "baselineRoleTagsAfterRelease": {
+            "6": "a-fnt-res-c",
+            "7": "a-fnt-res-c"
+          },
+          "branch": "south-pincer",
+          "broadcast": {
+            "file": "arena-bots/arc-relay/forward-combat-operation-proof-v1-2026-08-03/evidence/replays/decoy-switch.broadcast.json.gz",
+            "gzipBytes": 121843,
+            "sha256": "0b260d9941fc6c555dd484566c5fb8dff807ff71780cd1b9cef22f5f00571880"
+          },
+          "broadcastBytes": 121843,
+          "cohortEligibilityByTeam": {
+            "0": true,
+            "1": true
+          },
+          "commitTick": 15,
+          "feltDegeneracyBarsSchema": "arc-relay-felt-degeneracy-bars-v4",
+          "id": "decoy-switch",
+          "matchEligibleForCohortRead": true,
+          "opponentArtifactHash": "fdd61b1f4c24895926d3bdde7e8b70c0c6eb957d107dda99b04719614d499368",
+          "opponentSheetHash": "c8a33184b90a7d017d74d365e6f598a7b0c82047551136d66559d38849984c26",
+          "prepareTick": 9,
+          "releaseTick": 29,
+          "replayHash": "ee6daab5d044f1202f3705fe353354afc0c8c0bf171b3266b8faa9c2137c63c2",
+          "requiredActions": {},
+          "result": {
+            "endTick": 402,
+            "reason": "reactor-destroyed",
+            "winnerTeamId": 1
+          },
+          "scorecardHash": "71f777cd9b16923a8325368f37411b80a63bfc724e9a048250ccf70819d6638a",
+          "seed": "86080201",
+          "sheetHash": "fdffda26b4cb1029169663f52b630e95cd3e4821e4438baa8d0202821ce1ad57",
+          "successTick": 25
+        },
+        {
+          "baselineRoleTagsAfterRelease": {
+            "6": "a-int-res-c",
+            "7": "a-int-res-c"
+          },
+          "branch": "exchange-and-return",
+          "broadcast": {
+            "file": "arena-bots/arc-relay/forward-combat-operation-proof-v1-2026-08-03/evidence/replays/emergency-exchange.broadcast.json.gz",
+            "gzipBytes": 138097,
+            "sha256": "440cf9b146329786a3b0a8dc77c65df3af1368f611a7868b54e2595b79416686"
+          },
+          "broadcastBytes": 138097,
+          "cohortEligibilityByTeam": {
+            "0": true,
+            "1": true
+          },
+          "commitTick": 102,
+          "feltDegeneracyBarsSchema": "arc-relay-felt-degeneracy-bars-v4",
+          "id": "emergency-exchange",
+          "matchEligibleForCohortRead": true,
+          "opponentArtifactHash": "fdd61b1f4c24895926d3bdde7e8b70c0c6eb957d107dda99b04719614d499368",
+          "opponentSheetHash": "c8a33184b90a7d017d74d365e6f598a7b0c82047551136d66559d38849984c26",
+          "prepareTick": 101,
+          "releaseTick": 114,
+          "replayHash": "cf397b10783cd775bec0c2dabfc6c2435ab1a5d63feb471a6f43d6fdd436e6b8",
+          "requiredActions": {
+            "exchange": [
+              112
+            ]
+          },
+          "result": {
+            "endTick": 436,
+            "reason": "reactor-destroyed",
+            "winnerTeamId": 0
+          },
+          "scorecardHash": "fc8e268dc7da1659148f8890c5de76f3b6a89224fb2704496e2e3cb5a0352ada",
+          "seed": "86080201",
+          "sheetHash": "ad3c61126877492fb8b7251bfc319194220656a492be9b1266bb080409a1590e",
+          "successTick": 113
+        }
+      ],
+      "passed": true,
+      "passedCount": 10,
+      "proofSha256": "5b53117d1172fedf368c8df62933192e0f2b1988a9a8b22ff2d58521f4a6f5e9",
+      "requiredCount": 10,
+      "seeds": [
+        "67867967",
+        "86080201"
+      ]
+    },
+    {
+      "operations": [
+        {
+          "baselineRoleTagsAfterRelease": {
+            "4": "a-amb-int-n",
+            "5": "a-amb-int-s"
+          },
+          "branch": "carrier-strike",
+          "broadcastBytes": 114124,
+          "cohortEligibilityByTeam": {
+            "0": true,
+            "1": true
+          },
+          "commitTick": 203,
+          "feltDegeneracyBarsSchema": "arc-relay-felt-degeneracy-bars-v4",
+          "id": "rear-hook",
+          "matchEligibleForCohortRead": true,
+          "opponentArtifactHash": "fdd61b1f4c24895926d3bdde7e8b70c0c6eb957d107dda99b04719614d499368",
+          "opponentSheetHash": "78ddb0b6909b1648a7ffa3c04a1c67a35be62935d3231dd9aa3ba2a296290137",
+          "prepareTick": 186,
+          "releaseTick": 231,
+          "replayHash": "63dd702f9da1927e1ef7e6bd2e5f9ed51cf63f59491ef91a5693ac99680751a3",
+          "requiredActions": {
+            "tractor-hook": [
+              203,
+              209
+            ]
+          },
+          "result": {
+            "endTick": 376,
+            "reason": "reactor-destroyed",
+            "winnerTeamId": 1
+          },
+          "scorecardHash": "d451be37b6dd10af3bca8ae921c7fd05f5e535f639c3e63d1d9bee08bcdf1743",
+          "seed": "86080202",
+          "sheetHash": "dffe24943f2dcade1cffa1a6c8c1cba800b0cd32b51aa2aedb7af40a1ca1ee5e",
+          "successTick": 219
+        },
+        {
+          "baselineRoleTagsAfterRelease": {
+            "0": "a-bal-car-n",
+            "7": "a-bal-res-c"
+          },
+          "branch": "alternate-return",
+          "broadcastBytes": 124705,
+          "cohortEligibilityByTeam": {
+            "0": true,
+            "1": true
+          },
+          "commitTick": 59,
+          "feltDegeneracyBarsSchema": "arc-relay-felt-degeneracy-bars-v4",
+          "id": "lantern-sweep",
+          "matchEligibleForCohortRead": true,
+          "opponentArtifactHash": "fdd61b1f4c24895926d3bdde7e8b70c0c6eb957d107dda99b04719614d499368",
+          "opponentSheetHash": "c8a33184b90a7d017d74d365e6f598a7b0c82047551136d66559d38849984c26",
+          "prepareTick": 53,
+          "releaseTick": 61,
+          "replayHash": "3bc00668b8851dc199f1b016d5b289b240243f5f5a3b0cd27edc40e542526bc8",
+          "requiredActions": {},
+          "result": {
+            "endTick": 402,
+            "reason": "reactor-destroyed",
+            "winnerTeamId": 1
+          },
+          "scorecardHash": "4b85c544621af1046ba10714ee5b1a5ab682d6c2295d8bb8dbfb2722a2530e20",
+          "seed": "86080202",
+          "sheetHash": "0e14fdfb9578f125e7e3232c4dca516488b91aea21b3bae669bcab9e96ee8be3",
+          "successTick": 60
+        },
+        {
+          "baselineRoleTagsAfterRelease": {
+            "4": "a-amb-int-n",
+            "5": "a-amb-int-s"
+          },
+          "branch": "north-cutoff",
+          "broadcastBytes": 134664,
+          "cohortEligibilityByTeam": {
+            "0": true,
+            "1": true
+          },
+          "commitTick": 103,
+          "feltDegeneracyBarsSchema": "arc-relay-felt-degeneracy-bars-v4",
+          "id": "fork-shadow",
+          "matchEligibleForCohortRead": true,
+          "opponentArtifactHash": "fdd61b1f4c24895926d3bdde7e8b70c0c6eb957d107dda99b04719614d499368",
+          "opponentSheetHash": "c8a33184b90a7d017d74d365e6f598a7b0c82047551136d66559d38849984c26",
+          "prepareTick": 93,
+          "releaseTick": 136,
+          "replayHash": "d4b8ec8ff346c85735a28a612f29d3b18945adc70f87288c8adae62d78cf007c",
+          "requiredActions": {
+            "tractor-hook": [
+              104,
+              105,
+              116,
+              118
+            ]
+          },
+          "result": {
+            "endTick": 465,
+            "reason": "reactor-destroyed",
+            "winnerTeamId": 0
+          },
+          "scorecardHash": "ed49595fb7938f8b884d386970639b07c4bf83a4b61853ea140ba7e7b4effa3c",
+          "seed": "86080202",
+          "sheetHash": "33b5e0d400bed3cd0ded13777f956200ecef2260cc69e3c8cc46e7977a8394ac",
+          "successTick": 124
+        },
+        {
+          "baselineRoleTagsAfterRelease": {
+            "2": "a-spl-scr-n",
+            "6": "a-spl-res-c"
+          },
+          "branch": "release-to-next-well",
+          "broadcastBytes": 126028,
+          "cohortEligibilityByTeam": {
+            "0": true,
+            "1": true
+          },
+          "commitTick": 379,
+          "feltDegeneracyBarsSchema": "arc-relay-felt-degeneracy-bars-v4",
+          "id": "birth-rotation",
+          "matchEligibleForCohortRead": true,
+          "opponentArtifactHash": "fdd61b1f4c24895926d3bdde7e8b70c0c6eb957d107dda99b04719614d499368",
+          "opponentSheetHash": "c8a33184b90a7d017d74d365e6f598a7b0c82047551136d66559d38849984c26",
+          "prepareTick": 373,
+          "releaseTick": 388,
+          "replayHash": "cc021016be4a42960c97071501c94ef6f67b1217865586b61854b642dcea6857",
+          "requiredActions": {},
+          "result": {
+            "endTick": 412,
+            "reason": "reactor-destroyed",
+            "winnerTeamId": 1
+          },
+          "scorecardHash": "887ae1941fc48293a1b86f51999b86129e0649b2e2cba7225169f4032e4df6cf",
+          "seed": "86080202",
+          "sheetHash": "848f17f00a075bfc18ffdd49d038756f3317a92114cfb491e82efdee7429684e",
+          "successTick": 386
+        },
+        {
+          "baselineRoleTagsAfterRelease": {
+            "0": "a-int-car-n",
+            "4": "a-int-int-n"
+          },
+          "branch": "direct-return",
+          "broadcastBytes": 111490,
+          "cohortEligibilityByTeam": {
+            "0": true,
+            "1": true
+          },
+          "commitTick": 59,
+          "feltDegeneracyBarsSchema": "arc-relay-felt-degeneracy-bars-v4",
+          "id": "escort-counterpunch",
+          "matchEligibleForCohortRead": true,
+          "opponentArtifactHash": "fdd61b1f4c24895926d3bdde7e8b70c0c6eb957d107dda99b04719614d499368",
+          "opponentSheetHash": "c8a33184b90a7d017d74d365e6f598a7b0c82047551136d66559d38849984c26",
+          "prepareTick": 53,
+          "releaseTick": 61,
+          "replayHash": "090f84938de7f55bfc5422b3aa75cd4134a70182d29071c31de525e3682f53c7",
+          "requiredActions": {},
+          "result": {
+            "endTick": 356,
+            "reason": "reactor-destroyed",
+            "winnerTeamId": 0
+          },
+          "scorecardHash": "a6908f6fb2ef218d22fccd3d1b241fbf23013d9a6f69e8412590d09b3d83d108",
+          "seed": "86080202",
+          "sheetHash": "4ef8e5ed02e69abd5f748e7885f9d8a882ab7f04682f50a839ed740a89a4b7f6",
+          "successTick": 60
+        },
+        {
+          "baselineRoleTagsAfterRelease": {
+            "4": "a-amb-int-n",
+            "6": "a-amb-res-c"
+          },
+          "branch": "cross-centre",
+          "broadcastBytes": 107917,
+          "cohortEligibilityByTeam": {
+            "0": true,
+            "1": true
+          },
+          "commitTick": 264,
+          "feltDegeneracyBarsSchema": "arc-relay-felt-degeneracy-bars-v4",
+          "id": "smoke-breach",
+          "matchEligibleForCohortRead": true,
+          "opponentArtifactHash": "fdd61b1f4c24895926d3bdde7e8b70c0c6eb957d107dda99b04719614d499368",
+          "opponentSheetHash": "c8a33184b90a7d017d74d365e6f598a7b0c82047551136d66559d38849984c26",
+          "prepareTick": 255,
+          "releaseTick": 277,
+          "replayHash": "f0c24f665a0c4d6ac8db6a78625da85cc3bd1afb6263c714c442eff216ead55d",
+          "requiredActions": {
+            "smoke-canister": [
+              255
+            ]
+          },
+          "result": {
+            "endTick": 355,
+            "reason": "reactor-destroyed",
+            "winnerTeamId": 1
+          },
+          "scorecardHash": "8b1ad7053caec988eb24d5678ec5cd23e214df61c25c65d116542568c85d1eb3",
+          "seed": "86080202",
+          "sheetHash": "4794f770f9f72b89164a402d3d1b410dd78b40fa330807c5c60b35691363780d",
+          "successTick": 273
+        },
+        {
+          "baselineRoleTagsAfterRelease": {
+            "2": "a-for-scr-n",
+            "3": "a-for-scr-s"
+          },
+          "branch": "hold-gate",
+          "broadcastBytes": 113623,
+          "cohortEligibilityByTeam": {
+            "0": true,
+            "1": true
+          },
+          "commitTick": 69,
+          "feltDegeneracyBarsSchema": "arc-relay-felt-degeneracy-bars-v4",
+          "id": "hardlight-gate",
+          "matchEligibleForCohortRead": true,
+          "opponentArtifactHash": "fdd61b1f4c24895926d3bdde7e8b70c0c6eb957d107dda99b04719614d499368",
+          "opponentSheetHash": "c8a33184b90a7d017d74d365e6f598a7b0c82047551136d66559d38849984c26",
+          "prepareTick": 57,
+          "releaseTick": 71,
+          "replayHash": "dbaf5155b77fe8be954ed5bcf0cc96c123de20cbf85d6742fe3a8cab4fcbf782",
+          "requiredActions": {
+            "hardlight-block": [
+              57
+            ]
+          },
+          "result": {
+            "endTick": 376,
+            "reason": "reactor-destroyed",
+            "winnerTeamId": 1
+          },
+          "scorecardHash": "109bcbf47e70314fa22542baab2f26dc173eabb1e5b2e7a1cfef7bea69ceac9e",
+          "seed": "86080202",
+          "sheetHash": "a8e1322fa1597c904646ee366f4716746c6a7dfd758a154f10a2816861095997",
+          "successTick": 70
+        },
+        {
+          "baselineRoleTagsAfterRelease": {
+            "0": "a-rly-scr-s",
+            "1": "a-rly-car-s"
+          },
+          "branch": "throw-home",
+          "broadcastBytes": 121551,
+          "cohortEligibilityByTeam": {
+            "0": true,
+            "1": true
+          },
+          "commitTick": 77,
+          "feltDegeneracyBarsSchema": "arc-relay-felt-degeneracy-bars-v4",
+          "id": "relay-catch",
+          "matchEligibleForCohortRead": true,
+          "opponentArtifactHash": "fdd61b1f4c24895926d3bdde7e8b70c0c6eb957d107dda99b04719614d499368",
+          "opponentSheetHash": "df62fc97edc1bdb59ddcef7fbff16b0fe37298262f07cf73456c2c97c56f7f97",
+          "prepareTick": 76,
+          "releaseTick": 84,
+          "replayHash": "9ff1895a235725989ab6a9c7ef54905c12e21d85c154e96f27f03cacb3ce1ce4",
+          "requiredActions": {
+            "arc-toss": [
+              78
+            ]
+          },
+          "result": {
+            "endTick": 380,
+            "reason": "reactor-destroyed",
+            "winnerTeamId": 1
+          },
+          "scorecardHash": "a38e1323bce8172ed80e6f9863952803e83a443b3f7b6d7b71faf80986be35bf",
+          "seed": "86080202",
+          "sheetHash": "c52f45bc3c1ad0d00d986526e06683e2dbfaf32952a6c6bb1cdd3ca4d590234c",
+          "successTick": 80
+        },
+        {
+          "baselineRoleTagsAfterRelease": {
+            "6": "a-fnt-res-c",
+            "7": "a-fnt-res-c"
+          },
+          "branch": "south-pincer",
+          "broadcastBytes": 121844,
+          "cohortEligibilityByTeam": {
+            "0": true,
+            "1": true
+          },
+          "commitTick": 15,
+          "feltDegeneracyBarsSchema": "arc-relay-felt-degeneracy-bars-v4",
+          "id": "decoy-switch",
+          "matchEligibleForCohortRead": true,
+          "opponentArtifactHash": "fdd61b1f4c24895926d3bdde7e8b70c0c6eb957d107dda99b04719614d499368",
+          "opponentSheetHash": "c8a33184b90a7d017d74d365e6f598a7b0c82047551136d66559d38849984c26",
+          "prepareTick": 9,
+          "releaseTick": 29,
+          "replayHash": "3f3f76694bede2c9489ebe15747a4e12cc3e0a214e421e5bb9f89420524aac40",
+          "requiredActions": {},
+          "result": {
+            "endTick": 402,
+            "reason": "reactor-destroyed",
+            "winnerTeamId": 1
+          },
+          "scorecardHash": "afb6dbe5591622c8144b5d7b99cef01a5f58678a92866a1f3d5262b525550f65",
+          "seed": "86080202",
+          "sheetHash": "fdffda26b4cb1029169663f52b630e95cd3e4821e4438baa8d0202821ce1ad57",
+          "successTick": 25
+        },
+        {
+          "baselineRoleTagsAfterRelease": {
+            "6": "a-int-res-c",
+            "7": "a-int-res-c"
+          },
+          "branch": "exchange-and-return",
+          "broadcastBytes": 138098,
+          "cohortEligibilityByTeam": {
+            "0": true,
+            "1": true
+          },
+          "commitTick": 102,
+          "feltDegeneracyBarsSchema": "arc-relay-felt-degeneracy-bars-v4",
+          "id": "emergency-exchange",
+          "matchEligibleForCohortRead": true,
+          "opponentArtifactHash": "fdd61b1f4c24895926d3bdde7e8b70c0c6eb957d107dda99b04719614d499368",
+          "opponentSheetHash": "c8a33184b90a7d017d74d365e6f598a7b0c82047551136d66559d38849984c26",
+          "prepareTick": 101,
+          "releaseTick": 114,
+          "replayHash": "a0133b4841728bb187a4aca04baacc79b5887301f6f5a714bf3ed44f75e9ca8e",
+          "requiredActions": {
+            "exchange": [
+              112
+            ]
+          },
+          "result": {
+            "endTick": 436,
+            "reason": "reactor-destroyed",
+            "winnerTeamId": 0
+          },
+          "scorecardHash": "b8c16913354834a2aa40f6a3db5276474d19eeae6d59883cc09a071302537c05",
+          "seed": "86080202",
+          "sheetHash": "ad3c61126877492fb8b7251bfc319194220656a492be9b1266bb080409a1590e",
+          "successTick": 113
+        }
+      ],
+      "passed": true,
+      "passedCount": 10,
+      "proofSha256": "58624ee7e1a1aecd1508b98530cf18c090034ba20bdd5cf88bb97365515477cc",
+      "requiredCount": 10,
+      "seeds": [
+        "86080202"
+      ]
+    }
+  ],
+  "catalog": "arena-bots/arc-relay/forward-combat-operation-proof-v1-2026-08-03/catalog.json",
+  "catalogSha256": "504654558490967cc20af097eaf1d27922386018971b1e9934ed50541282edb8",
+  "feltDegeneracyBarsSchema": "arc-relay-felt-degeneracy-bars-v4",
+  "passed": true,
+  "passedCount": 20,
+  "requiredCount": 20,
+  "reviewOperations": [
+    {
+      "baselineRoleTagsAfterRelease": {
+        "4": "a-amb-int-n",
+        "5": "a-amb-int-s"
+      },
+      "branch": "carrier-strike",
+      "broadcast": {
+        "file": "arena-bots/arc-relay/forward-combat-operation-proof-v1-2026-08-03/evidence/replays/rear-hook.broadcast.json.gz",
+        "gzipBytes": 114124,
+        "sha256": "c5944d6a62e2db0bc1854900b83efef9713039e6d4c0d73618ab7beafc392b4e"
+      },
+      "broadcastBytes": 114124,
+      "cohortEligibilityByTeam": {
+        "0": true,
+        "1": true
+      },
+      "commitTick": 203,
+      "feltDegeneracyBarsSchema": "arc-relay-felt-degeneracy-bars-v4",
+      "id": "rear-hook",
+      "matchEligibleForCohortRead": true,
+      "opponentArtifactHash": "fdd61b1f4c24895926d3bdde7e8b70c0c6eb957d107dda99b04719614d499368",
+      "opponentSheetHash": "78ddb0b6909b1648a7ffa3c04a1c67a35be62935d3231dd9aa3ba2a296290137",
+      "prepareTick": 186,
+      "releaseTick": 231,
+      "replayHash": "0d91615e14a01f02a0240d330ae7f19fcddec4252ff8676f15da73f0e5db5e24",
+      "requiredActions": {
+        "tractor-hook": [
+          203,
+          209
+        ]
+      },
+      "result": {
+        "endTick": 376,
+        "reason": "reactor-destroyed",
+        "winnerTeamId": 1
+      },
+      "scorecardHash": "5fea3662b8c2c259e580602e42a95bd316b658a12c458cea2fc534ff339d6382",
+      "seed": "67867967",
+      "sheetHash": "dffe24943f2dcade1cffa1a6c8c1cba800b0cd32b51aa2aedb7af40a1ca1ee5e",
+      "successTick": 219
+    },
+    {
+      "baselineRoleTagsAfterRelease": {
+        "0": "a-bal-car-n",
+        "7": "a-bal-res-c"
+      },
+      "branch": "alternate-return",
+      "broadcast": {
+        "file": "arena-bots/arc-relay/forward-combat-operation-proof-v1-2026-08-03/evidence/replays/lantern-sweep.broadcast.json.gz",
+        "gzipBytes": 124705,
+        "sha256": "e9986f1ed6c2c68a2a7789a2c7536dd36a4b03b2285aaa11c70fc146577b7ea6"
+      },
+      "broadcastBytes": 124705,
+      "cohortEligibilityByTeam": {
+        "0": true,
+        "1": true
+      },
+      "commitTick": 59,
+      "feltDegeneracyBarsSchema": "arc-relay-felt-degeneracy-bars-v4",
+      "id": "lantern-sweep",
+      "matchEligibleForCohortRead": true,
+      "opponentArtifactHash": "fdd61b1f4c24895926d3bdde7e8b70c0c6eb957d107dda99b04719614d499368",
+      "opponentSheetHash": "c8a33184b90a7d017d74d365e6f598a7b0c82047551136d66559d38849984c26",
+      "prepareTick": 53,
+      "releaseTick": 61,
+      "replayHash": "07ca242b0846bd80ba3a3f941ff5bbabb9b7ad9565fd45ace75a17aadcad280a",
+      "requiredActions": {},
+      "result": {
+        "endTick": 402,
+        "reason": "reactor-destroyed",
+        "winnerTeamId": 1
+      },
+      "scorecardHash": "b917eedc4b7e1607e249d113bbe8b9b478b5fcab87ccb1fd04c507e92ab8c9d2",
+      "seed": "86080201",
+      "sheetHash": "0e14fdfb9578f125e7e3232c4dca516488b91aea21b3bae669bcab9e96ee8be3",
+      "successTick": 60
+    },
+    {
+      "baselineRoleTagsAfterRelease": {
+        "4": "a-amb-int-n",
+        "5": "a-amb-int-s"
+      },
+      "branch": "north-cutoff",
+      "broadcast": {
+        "file": "arena-bots/arc-relay/forward-combat-operation-proof-v1-2026-08-03/evidence/replays/fork-shadow.broadcast.json.gz",
+        "gzipBytes": 134662,
+        "sha256": "7e245faaea80e20af89d4b9abe1a1914076074091731a7be334c159eca48db43"
+      },
+      "broadcastBytes": 134662,
+      "cohortEligibilityByTeam": {
+        "0": true,
+        "1": true
+      },
+      "commitTick": 103,
+      "feltDegeneracyBarsSchema": "arc-relay-felt-degeneracy-bars-v4",
+      "id": "fork-shadow",
+      "matchEligibleForCohortRead": true,
+      "opponentArtifactHash": "fdd61b1f4c24895926d3bdde7e8b70c0c6eb957d107dda99b04719614d499368",
+      "opponentSheetHash": "c8a33184b90a7d017d74d365e6f598a7b0c82047551136d66559d38849984c26",
+      "prepareTick": 93,
+      "releaseTick": 136,
+      "replayHash": "d22e53ce0a7f9c7394bd929c26b1ee9ac89dcfca7081a1d7a943f494e556ac10",
+      "requiredActions": {
+        "tractor-hook": [
+          104,
+          105,
+          116,
+          118
+        ]
+      },
+      "result": {
+        "endTick": 465,
+        "reason": "reactor-destroyed",
+        "winnerTeamId": 0
+      },
+      "scorecardHash": "c8bb515e606c10b7711742973b1772cf570093029c0db2d25e725b35c1571a08",
+      "seed": "86080201",
+      "sheetHash": "33b5e0d400bed3cd0ded13777f956200ecef2260cc69e3c8cc46e7977a8394ac",
+      "successTick": 124
+    },
+    {
+      "baselineRoleTagsAfterRelease": {
+        "2": "a-spl-scr-n",
+        "6": "a-spl-res-c"
+      },
+      "branch": "release-to-next-well",
+      "broadcast": {
+        "file": "arena-bots/arc-relay/forward-combat-operation-proof-v1-2026-08-03/evidence/replays/birth-rotation.broadcast.json.gz",
+        "gzipBytes": 126027,
+        "sha256": "6fbe44e45477c3f31f008a0ce357ab0970d1191bce563ded862dc1f873e7d2ea"
+      },
+      "broadcastBytes": 126027,
+      "cohortEligibilityByTeam": {
+        "0": true,
+        "1": true
+      },
+      "commitTick": 379,
+      "feltDegeneracyBarsSchema": "arc-relay-felt-degeneracy-bars-v4",
+      "id": "birth-rotation",
+      "matchEligibleForCohortRead": true,
+      "opponentArtifactHash": "fdd61b1f4c24895926d3bdde7e8b70c0c6eb957d107dda99b04719614d499368",
+      "opponentSheetHash": "c8a33184b90a7d017d74d365e6f598a7b0c82047551136d66559d38849984c26",
+      "prepareTick": 373,
+      "releaseTick": 388,
+      "replayHash": "3642203975cda76863dcc6e1514d25c295016e14a4e84265d62ca55f6f0cc032",
+      "requiredActions": {},
+      "result": {
+        "endTick": 412,
+        "reason": "reactor-destroyed",
+        "winnerTeamId": 1
+      },
+      "scorecardHash": "8571b8210c6303845ab7e925c8db5c0750c47ae323f209d92ae20f5c19948dbb",
+      "seed": "86080201",
+      "sheetHash": "848f17f00a075bfc18ffdd49d038756f3317a92114cfb491e82efdee7429684e",
+      "successTick": 386
+    },
+    {
+      "baselineRoleTagsAfterRelease": {
+        "0": "a-int-car-n",
+        "4": "a-int-int-n"
+      },
+      "branch": "direct-return",
+      "broadcast": {
+        "file": "arena-bots/arc-relay/forward-combat-operation-proof-v1-2026-08-03/evidence/replays/escort-counterpunch.broadcast.json.gz",
+        "gzipBytes": 111489,
+        "sha256": "693676ac2ecfb5af85a52259a443f8c2db647c9f5c0a11b9226c9b12942314de"
+      },
+      "broadcastBytes": 111489,
+      "cohortEligibilityByTeam": {
+        "0": true,
+        "1": true
+      },
+      "commitTick": 59,
+      "feltDegeneracyBarsSchema": "arc-relay-felt-degeneracy-bars-v4",
+      "id": "escort-counterpunch",
+      "matchEligibleForCohortRead": true,
+      "opponentArtifactHash": "fdd61b1f4c24895926d3bdde7e8b70c0c6eb957d107dda99b04719614d499368",
+      "opponentSheetHash": "c8a33184b90a7d017d74d365e6f598a7b0c82047551136d66559d38849984c26",
+      "prepareTick": 53,
+      "releaseTick": 61,
+      "replayHash": "81f12a16deae9643eea60c90b104b92e78cfecdbaf54368f033ab05a31609e9b",
+      "requiredActions": {},
+      "result": {
+        "endTick": 356,
+        "reason": "reactor-destroyed",
+        "winnerTeamId": 0
+      },
+      "scorecardHash": "fe778aca84f184618adc3815902de7257e99e51eee2f8ce61d6c6febad98f338",
+      "seed": "86080201",
+      "sheetHash": "4ef8e5ed02e69abd5f748e7885f9d8a882ab7f04682f50a839ed740a89a4b7f6",
+      "successTick": 60
+    },
+    {
+      "baselineRoleTagsAfterRelease": {
+        "4": "a-amb-int-n",
+        "6": "a-amb-res-c"
+      },
+      "branch": "cross-centre",
+      "broadcast": {
+        "file": "arena-bots/arc-relay/forward-combat-operation-proof-v1-2026-08-03/evidence/replays/smoke-breach.broadcast.json.gz",
+        "gzipBytes": 107915,
+        "sha256": "f0ae80052e2d8542e123cd9b8218f8cb3280831f69ca17532c7f964eb5b8848c"
+      },
+      "broadcastBytes": 107915,
+      "cohortEligibilityByTeam": {
+        "0": true,
+        "1": true
+      },
+      "commitTick": 264,
+      "feltDegeneracyBarsSchema": "arc-relay-felt-degeneracy-bars-v4",
+      "id": "smoke-breach",
+      "matchEligibleForCohortRead": true,
+      "opponentArtifactHash": "fdd61b1f4c24895926d3bdde7e8b70c0c6eb957d107dda99b04719614d499368",
+      "opponentSheetHash": "c8a33184b90a7d017d74d365e6f598a7b0c82047551136d66559d38849984c26",
+      "prepareTick": 255,
+      "releaseTick": 277,
+      "replayHash": "28af35cb49bf03ae9db31da91f2957557e2453be318cbcb090861524d461cd6a",
+      "requiredActions": {
+        "smoke-canister": [
+          255
+        ]
+      },
+      "result": {
+        "endTick": 355,
+        "reason": "reactor-destroyed",
+        "winnerTeamId": 1
+      },
+      "scorecardHash": "4771de8630e0599bbc9d03ea2579db7729eda582744a16b0f3eedaaeecaceb37",
+      "seed": "86080201",
+      "sheetHash": "4794f770f9f72b89164a402d3d1b410dd78b40fa330807c5c60b35691363780d",
+      "successTick": 273
+    },
+    {
+      "baselineRoleTagsAfterRelease": {
+        "2": "a-for-scr-n",
+        "3": "a-for-scr-s"
+      },
+      "branch": "hold-gate",
+      "broadcast": {
+        "file": "arena-bots/arc-relay/forward-combat-operation-proof-v1-2026-08-03/evidence/replays/hardlight-gate.broadcast.json.gz",
+        "gzipBytes": 113621,
+        "sha256": "1232c7e66cb24aa4024989d8ddb7c731e6b9ff96220778e8eafd058f57a021ca"
+      },
+      "broadcastBytes": 113621,
+      "cohortEligibilityByTeam": {
+        "0": true,
+        "1": true
+      },
+      "commitTick": 69,
+      "feltDegeneracyBarsSchema": "arc-relay-felt-degeneracy-bars-v4",
+      "id": "hardlight-gate",
+      "matchEligibleForCohortRead": true,
+      "opponentArtifactHash": "fdd61b1f4c24895926d3bdde7e8b70c0c6eb957d107dda99b04719614d499368",
+      "opponentSheetHash": "c8a33184b90a7d017d74d365e6f598a7b0c82047551136d66559d38849984c26",
+      "prepareTick": 57,
+      "releaseTick": 71,
+      "replayHash": "07720d58caa12090db78bd27f705cca5d29587ea9960f2b6580212f351f47c6d",
+      "requiredActions": {
+        "hardlight-block": [
+          57
+        ]
+      },
+      "result": {
+        "endTick": 376,
+        "reason": "reactor-destroyed",
+        "winnerTeamId": 1
+      },
+      "scorecardHash": "355004109d399ffc261efdd8f31d7222f2dfa45eb5fcbcb28c684bc828f65e83",
+      "seed": "86080201",
+      "sheetHash": "a8e1322fa1597c904646ee366f4716746c6a7dfd758a154f10a2816861095997",
+      "successTick": 70
+    },
+    {
+      "baselineRoleTagsAfterRelease": {
+        "0": "a-rly-scr-s",
+        "1": "a-rly-car-s"
+      },
+      "branch": "throw-home",
+      "broadcast": {
+        "file": "arena-bots/arc-relay/forward-combat-operation-proof-v1-2026-08-03/evidence/replays/relay-catch.broadcast.json.gz",
+        "gzipBytes": 121553,
+        "sha256": "2bde5a60c7bc9c1ac4ecfcb2e5aacabd470a4001d2890e84b01fd58092bd5f07"
+      },
+      "broadcastBytes": 121553,
+      "cohortEligibilityByTeam": {
+        "0": true,
+        "1": true
+      },
+      "commitTick": 77,
+      "feltDegeneracyBarsSchema": "arc-relay-felt-degeneracy-bars-v4",
+      "id": "relay-catch",
+      "matchEligibleForCohortRead": true,
+      "opponentArtifactHash": "fdd61b1f4c24895926d3bdde7e8b70c0c6eb957d107dda99b04719614d499368",
+      "opponentSheetHash": "df62fc97edc1bdb59ddcef7fbff16b0fe37298262f07cf73456c2c97c56f7f97",
+      "prepareTick": 76,
+      "releaseTick": 84,
+      "replayHash": "9c5c8d1ca5ea072f1f9585f7289b9af069cfc3337c2441ffabb455257a056ff4",
+      "requiredActions": {
+        "arc-toss": [
+          78
+        ]
+      },
+      "result": {
+        "endTick": 380,
+        "reason": "reactor-destroyed",
+        "winnerTeamId": 1
+      },
+      "scorecardHash": "ae80078f3a111d001fa89de0386df8fb82e50e0ccfa58b5326df5534fa12874f",
+      "seed": "67867967",
+      "sheetHash": "c52f45bc3c1ad0d00d986526e06683e2dbfaf32952a6c6bb1cdd3ca4d590234c",
+      "successTick": 80
+    },
+    {
+      "baselineRoleTagsAfterRelease": {
+        "6": "a-fnt-res-c",
+        "7": "a-fnt-res-c"
+      },
+      "branch": "south-pincer",
+      "broadcast": {
+        "file": "arena-bots/arc-relay/forward-combat-operation-proof-v1-2026-08-03/evidence/replays/decoy-switch.broadcast.json.gz",
+        "gzipBytes": 121843,
+        "sha256": "0b260d9941fc6c555dd484566c5fb8dff807ff71780cd1b9cef22f5f00571880"
+      },
+      "broadcastBytes": 121843,
+      "cohortEligibilityByTeam": {
+        "0": true,
+        "1": true
+      },
+      "commitTick": 15,
+      "feltDegeneracyBarsSchema": "arc-relay-felt-degeneracy-bars-v4",
+      "id": "decoy-switch",
+      "matchEligibleForCohortRead": true,
+      "opponentArtifactHash": "fdd61b1f4c24895926d3bdde7e8b70c0c6eb957d107dda99b04719614d499368",
+      "opponentSheetHash": "c8a33184b90a7d017d74d365e6f598a7b0c82047551136d66559d38849984c26",
+      "prepareTick": 9,
+      "releaseTick": 29,
+      "replayHash": "ee6daab5d044f1202f3705fe353354afc0c8c0bf171b3266b8faa9c2137c63c2",
+      "requiredActions": {},
+      "result": {
+        "endTick": 402,
+        "reason": "reactor-destroyed",
+        "winnerTeamId": 1
+      },
+      "scorecardHash": "71f777cd9b16923a8325368f37411b80a63bfc724e9a048250ccf70819d6638a",
+      "seed": "86080201",
+      "sheetHash": "fdffda26b4cb1029169663f52b630e95cd3e4821e4438baa8d0202821ce1ad57",
+      "successTick": 25
+    },
+    {
+      "baselineRoleTagsAfterRelease": {
+        "6": "a-int-res-c",
+        "7": "a-int-res-c"
+      },
+      "branch": "exchange-and-return",
+      "broadcast": {
+        "file": "arena-bots/arc-relay/forward-combat-operation-proof-v1-2026-08-03/evidence/replays/emergency-exchange.broadcast.json.gz",
+        "gzipBytes": 138097,
+        "sha256": "440cf9b146329786a3b0a8dc77c65df3af1368f611a7868b54e2595b79416686"
+      },
+      "broadcastBytes": 138097,
+      "cohortEligibilityByTeam": {
+        "0": true,
+        "1": true
+      },
+      "commitTick": 102,
+      "feltDegeneracyBarsSchema": "arc-relay-felt-degeneracy-bars-v4",
+      "id": "emergency-exchange",
+      "matchEligibleForCohortRead": true,
+      "opponentArtifactHash": "fdd61b1f4c24895926d3bdde7e8b70c0c6eb957d107dda99b04719614d499368",
+      "opponentSheetHash": "c8a33184b90a7d017d74d365e6f598a7b0c82047551136d66559d38849984c26",
+      "prepareTick": 101,
+      "releaseTick": 114,
+      "replayHash": "cf397b10783cd775bec0c2dabfc6c2435ab1a5d63feb471a6f43d6fdd436e6b8",
+      "requiredActions": {
+        "exchange": [
+          112
+        ]
+      },
+      "result": {
+        "endTick": 436,
+        "reason": "reactor-destroyed",
+        "winnerTeamId": 0
+      },
+      "scorecardHash": "fc8e268dc7da1659148f8890c5de76f3b6a89224fb2704496e2e3cb5a0352ada",
+      "seed": "86080201",
+      "sheetHash": "ad3c61126877492fb8b7251bfc319194220656a492be9b1266bb080409a1590e",
+      "successTick": 113
+    }
+  ],
+  "runtime": "wasm",
+  "schema": "arc-relay-intelligent-operation-live-proof-summary-v2"
+}

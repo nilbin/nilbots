@@ -1,0 +1,285 @@
+{
+  "$schema": "./balance-lab-spec.schema.json",
+  "schemaVersion": 3,
+  "experimentId": "frontline-duel-progression-v1",
+  "status": "experimental",
+  "hypothesis": "Declared automatic companion activation removes the population-progression failure independently of map topology; this two-bot run validates the factorial pipeline and effect direction, not game balance.",
+  "ablationRegistry": {
+    "path": "frontline-ablation-debt-v1.json",
+    "sha256": "1758a472c56c41478401c3cbb3efe2069519570b1dd77c8fc9c436d00cf568fa"
+  },
+  "studyBlocks": [
+    {
+      "id": "factorial-infrastructure-smoke",
+      "role": "infrastructure-smoke",
+      "hypothesis": "The complete map-topology by companion-policy product executes with shared private random streams, immutable identities, verified mirrors, and an explicitly non-voting population.",
+      "qualificationProfileId": "unqualified-infrastructure-1",
+      "candidateIds": [
+        "current-automatic",
+        "current-manual",
+        "outer-shoulder-automatic",
+        "outer-shoulder-manual",
+        "thin-fronts-automatic",
+        "thin-fronts-manual"
+      ],
+      "populationIds": [
+        "unqualified-infrastructure"
+      ],
+      "includeSelfPlay": false,
+      "commonRandomness": {
+        "protocol": "shared-seed-profile-v1",
+        "seedProfileId": "frontline-labs-duel-depth-1"
+      }
+    }
+  ],
+  "factors": {
+    "map-topology": [
+      "current",
+      "thin-fronts",
+      "outer-shoulder-bypass"
+    ],
+    "companion-policy": [
+      "manual-fabrication",
+      "automatic-activation"
+    ]
+  },
+  "pairedSeeds": [
+    104729
+  ],
+  "holdout": {
+    "protocol": "none",
+    "reason": "Infrastructure smoke only. The previously visible values were not a sealed holdout and have been retired."
+  },
+  "studyDesign": {
+    "decisionProfileId": "frontline-internal-pilot-v1",
+    "analysisUnit": "mirrored-entrant-pair-seed-v1",
+    "confidenceLevel": 0.95,
+    "bootstrapResamples": 2000,
+    "minimumMirroredUnitsPerCell": 1,
+    "minimumEntrantPairsPerCell": 1,
+    "minimumSeedsPerEntrantPair": 1,
+    "minimumIndependentLineagesPerPopulation": 2,
+    "minimumVotingLineagesPerPopulation": 4,
+    "minimumVotingTier": "T4",
+    "multiplicityPolicy": "diagnostic-no-selection",
+    "requiredEvidenceLayers": [
+      "contract-validity",
+      "static-map-analysis",
+      "exact-tactical-analysis",
+      "qualification",
+      "population-cross-play",
+      "restricted-play",
+      "adversarial-sentinels",
+      "statistical-sufficiency",
+      "holdout",
+      "blind-replay-review",
+      "author-dx"
+    ]
+  },
+  "toolchain": {
+    "protocol": "frozen-build-output-v1",
+    "buildCommand": "dotnet publish src/BotArena.Cli/BotArena.Cli.csproj --configuration Release --no-restore --output {out}",
+    "entrypoint": "botarena"
+  },
+  "verifyCommand": "{toolchain} verify {replay}",
+  "evaluationProfileId": "two-team-zero-sum-v1",
+  "dynamicsAdapter": "generic-frontline-replay-v3",
+  "candidates": [
+    {
+      "id": "current-automatic",
+      "factors": {
+        "map-topology": "current",
+        "companion-policy": "automatic-activation"
+      },
+      "runnerCommand": "{toolchain} experiment frontline-labs --bot {bot} --opponent {opponent} --seed {seed} --runtime wasm --out {out} --auto-companions --duel-map current",
+      "contract": {
+        "modeId": "frontline",
+        "rulesetId": "frontline-labs-1-experiment-one-bend-auto-companions",
+        "rulesFingerprint": "81a8e70cac79c8680eb617b06f03edf29b2f5236165742111f97b72f105d5e83",
+        "seedProfileId": "frontline-labs-duel-depth-1",
+        "mapId": "frontline-labs-01-auto-companions",
+        "mapVersion": 1,
+        "mapFingerprint": "9e871738116293975e3e780bd7249276832094c29c30a744d66a609713a13d1b",
+        "formatId": "head-to-head",
+        "formatFingerprint": "dc81a4f285ada9baceba99751e2de2ede8247cd943ad5c2164368c2f55129463",
+        "topologyProfileId": "two-team-one-controller-three-slots-v1",
+        "topologyFingerprint": "b86eef4d71bc1b171e4a9f930914a95333fc2c62547e0604b589099bc5ff768c",
+        "contractProfileId": "generic-actor-match-2",
+        "matchContractFingerprint": "d126193cd6c73dce577042532010aede82f0e1a68c758caa9f8ad4167688eb8b"
+      }
+    },
+    {
+      "id": "current-manual",
+      "factors": {
+        "map-topology": "current",
+        "companion-policy": "manual-fabrication"
+      },
+      "runnerCommand": "{toolchain} experiment frontline-labs --bot {bot} --opponent {opponent} --seed {seed} --runtime wasm --out {out} --duel-map current",
+      "contract": {
+        "modeId": "frontline",
+        "rulesetId": "frontline-labs-1-experiment-one-bend-shots",
+        "rulesFingerprint": "efb379348531cee1075503df84418595fec6b375bda03d093aacb1ca08032eac",
+        "seedProfileId": "frontline-labs-duel-depth-1",
+        "mapId": "frontline-labs-01",
+        "mapVersion": 1,
+        "mapFingerprint": "e9e75c1366111c857c3af9b32828185ea7b937d7f176bf4e8843f4b550ed2d91",
+        "formatId": "head-to-head",
+        "formatFingerprint": "dc81a4f285ada9baceba99751e2de2ede8247cd943ad5c2164368c2f55129463",
+        "topologyProfileId": "two-team-one-controller-three-slots-v1",
+        "topologyFingerprint": "b86eef4d71bc1b171e4a9f930914a95333fc2c62547e0604b589099bc5ff768c",
+        "contractProfileId": "generic-actor-match-2",
+        "matchContractFingerprint": "49f035014f554d13c23eb1247b6d55a40ac89088f2933035511d55067188d246"
+      }
+    },
+    {
+      "id": "outer-shoulder-automatic",
+      "factors": {
+        "map-topology": "outer-shoulder-bypass",
+        "companion-policy": "automatic-activation"
+      },
+      "runnerCommand": "{toolchain} experiment frontline-labs --bot {bot} --opponent {opponent} --seed {seed} --runtime wasm --out {out} --auto-companions --duel-map outer-shoulder-bypass",
+      "contract": {
+        "modeId": "frontline",
+        "rulesetId": "frontline-labs-1-experiment-one-bend-auto-companions",
+        "rulesFingerprint": "81a8e70cac79c8680eb617b06f03edf29b2f5236165742111f97b72f105d5e83",
+        "seedProfileId": "frontline-labs-duel-depth-1",
+        "mapId": "frontline-labs-01-outer-shoulder-auto-companions",
+        "mapVersion": 1,
+        "mapFingerprint": "edfc15e75f2d5f99070cccd40d07531ea34d3461978936d503bc55f58035f1f9",
+        "formatId": "head-to-head",
+        "formatFingerprint": "dc81a4f285ada9baceba99751e2de2ede8247cd943ad5c2164368c2f55129463",
+        "topologyProfileId": "two-team-one-controller-three-slots-v1",
+        "topologyFingerprint": "b86eef4d71bc1b171e4a9f930914a95333fc2c62547e0604b589099bc5ff768c",
+        "contractProfileId": "generic-actor-match-2",
+        "matchContractFingerprint": "565efdc7ed3628eaae919878dbcb1aae176811b6103d4451c3c07941f14b662e"
+      }
+    },
+    {
+      "id": "outer-shoulder-manual",
+      "factors": {
+        "map-topology": "outer-shoulder-bypass",
+        "companion-policy": "manual-fabrication"
+      },
+      "runnerCommand": "{toolchain} experiment frontline-labs --bot {bot} --opponent {opponent} --seed {seed} --runtime wasm --out {out} --duel-map outer-shoulder-bypass",
+      "contract": {
+        "modeId": "frontline",
+        "rulesetId": "frontline-labs-1-experiment-one-bend-shots",
+        "rulesFingerprint": "efb379348531cee1075503df84418595fec6b375bda03d093aacb1ca08032eac",
+        "seedProfileId": "frontline-labs-duel-depth-1",
+        "mapId": "frontline-labs-01-outer-shoulder-bypass-experiment",
+        "mapVersion": 1,
+        "mapFingerprint": "e8006455fc36cd72301db08e920d781f12205e82d3379e9b2428024d7ab3f7ad",
+        "formatId": "head-to-head",
+        "formatFingerprint": "dc81a4f285ada9baceba99751e2de2ede8247cd943ad5c2164368c2f55129463",
+        "topologyProfileId": "two-team-one-controller-three-slots-v1",
+        "topologyFingerprint": "b86eef4d71bc1b171e4a9f930914a95333fc2c62547e0604b589099bc5ff768c",
+        "contractProfileId": "generic-actor-match-2",
+        "matchContractFingerprint": "36a8374a5f2b2e17baa58153a716070e4f6b4d2fa765b12ec12246900db2ac3d"
+      }
+    },
+    {
+      "id": "thin-fronts-automatic",
+      "factors": {
+        "map-topology": "thin-fronts",
+        "companion-policy": "automatic-activation"
+      },
+      "runnerCommand": "{toolchain} experiment frontline-labs --bot {bot} --opponent {opponent} --seed {seed} --runtime wasm --out {out} --auto-companions --duel-map thin-fronts",
+      "contract": {
+        "modeId": "frontline",
+        "rulesetId": "frontline-labs-1-experiment-one-bend-auto-companions",
+        "rulesFingerprint": "81a8e70cac79c8680eb617b06f03edf29b2f5236165742111f97b72f105d5e83",
+        "seedProfileId": "frontline-labs-duel-depth-1",
+        "mapId": "frontline-labs-01-thin-fronts-auto-companions",
+        "mapVersion": 1,
+        "mapFingerprint": "da6d51ea17459b35b4de9e5303778ebbc2eb57c7c149e69fe09ff7439a91e172",
+        "formatId": "head-to-head",
+        "formatFingerprint": "dc81a4f285ada9baceba99751e2de2ede8247cd943ad5c2164368c2f55129463",
+        "topologyProfileId": "two-team-one-controller-three-slots-v1",
+        "topologyFingerprint": "b86eef4d71bc1b171e4a9f930914a95333fc2c62547e0604b589099bc5ff768c",
+        "contractProfileId": "generic-actor-match-2",
+        "matchContractFingerprint": "b65f05a2e548e64fd5fc2acaf02dc120b35133302d249030fd189bd94feca5e7"
+      }
+    },
+    {
+      "id": "thin-fronts-manual",
+      "factors": {
+        "map-topology": "thin-fronts",
+        "companion-policy": "manual-fabrication"
+      },
+      "runnerCommand": "{toolchain} experiment frontline-labs --bot {bot} --opponent {opponent} --seed {seed} --runtime wasm --out {out} --duel-map thin-fronts",
+      "contract": {
+        "modeId": "frontline",
+        "rulesetId": "frontline-labs-1-experiment-one-bend-shots",
+        "rulesFingerprint": "efb379348531cee1075503df84418595fec6b375bda03d093aacb1ca08032eac",
+        "seedProfileId": "frontline-labs-duel-depth-1",
+        "mapId": "frontline-labs-01-thin-fronts-experiment",
+        "mapVersion": 1,
+        "mapFingerprint": "72afa8969c812de5f1438c275b99ee44398ca593f52a541bf3cadb767c9e7785",
+        "formatId": "head-to-head",
+        "formatFingerprint": "dc81a4f285ada9baceba99751e2de2ede8247cd943ad5c2164368c2f55129463",
+        "topologyProfileId": "two-team-one-controller-three-slots-v1",
+        "topologyFingerprint": "b86eef4d71bc1b171e4a9f930914a95333fc2c62547e0604b589099bc5ff768c",
+        "contractProfileId": "generic-actor-match-2",
+        "matchContractFingerprint": "96f3ccb49f6e85c9dca9721a0eff18b429d386ada998e734b6a871fe9e8063fa"
+      }
+    }
+  ],
+  "populations": [
+    {
+      "id": "unqualified-infrastructure",
+      "tier": "unqualified",
+      "coordinationGrade": "unqualified",
+      "qualificationProfileId": "unqualified-infrastructure-1",
+      "qualificationContractFingerprint": null,
+      "balanceEvidenceEligible": false,
+      "entrants": [
+        {
+          "id": "geometric-dodger",
+          "name": "GeometricDodger",
+          "authoringLineageId": "geometric-dodger-v1",
+          "doctrineId": "geometric-dodger",
+          "authoringBudgetId": "legacy-duel-depth-one-pass",
+          "authorPacketSha256": null,
+          "root": "../arena-bots/frontline-labs/duel-depth-v1-2026-07-28/geometric-dodger",
+          "artifact": "../arena-bots/frontline-labs/duel-depth-v1-2026-07-28/geometric-dodger/bot-balance-lab-v1.wasm",
+          "artifactSha256": "7deb5e727c58174afe3ba53c68777592da7b8a5b3116775a7c7beaa32b957ff5",
+          "sourceTreeSha256": "sha256:ddd680d2b1c97c55cabc0b37edd7cbe11a5746d1413e018532d978228133386d",
+          "qualification": {
+            "suiteId": "frontline-qualification-1",
+            "suiteVersion": 1,
+            "qualificationProfileId": "unqualified-infrastructure-1",
+            "qualificationContractFingerprint": null,
+            "evidence": null,
+            "evidenceSha256": null,
+            "tierAwarded": null,
+            "coordinationGradeAwarded": null,
+            "balanceEvidenceEligible": false
+          }
+        },
+        {
+          "id": "initiative-planner",
+          "name": "InitiativePlanner",
+          "authoringLineageId": "initiative-planner-v1",
+          "doctrineId": "initiative-planner",
+          "authoringBudgetId": "legacy-duel-depth-one-pass",
+          "authorPacketSha256": null,
+          "root": "../arena-bots/frontline-labs/duel-depth-v1-2026-07-28/initiative-planner",
+          "artifact": "../arena-bots/frontline-labs/duel-depth-v1-2026-07-28/initiative-planner/bot-balance-lab-v1.wasm",
+          "artifactSha256": "6e8b74928d4119b725740fe3b4f2f85c3f40605e5d5ca44806d482350543577b",
+          "sourceTreeSha256": "sha256:b118a13f00d76d511106e7b30a6afe9ad683afcdb6560e6cd3698a4337576cb2",
+          "qualification": {
+            "suiteId": "frontline-qualification-1",
+            "suiteVersion": 1,
+            "qualificationProfileId": "unqualified-infrastructure-1",
+            "qualificationContractFingerprint": null,
+            "evidence": null,
+            "evidenceSha256": null,
+            "tierAwarded": null,
+            "coordinationGradeAwarded": null,
+            "balanceEvidenceEligible": false
+          }
+        }
+      ]
+    }
+  ]
+}

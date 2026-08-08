@@ -14,6 +14,10 @@ import type { ImageSourcePropType } from 'react-native';
 const LOOKS = {
   'aureate-warden': require('../../../web/src/assets/bot-looks/aureate-warden/sprite.svg'),
   bulwark: require('../../../web/src/assets/bot-looks/bulwark/sprite.svg'),
+  'bulwark-gatehouse': require('../../../web/src/assets/bot-looks/bulwark-gatehouse/sprite.svg'),
+  'bulwark-mirror-bastion': require('../../../web/src/assets/bot-looks/bulwark-mirror-bastion/sprite.svg'),
+  'fabricator-copyforge': require('../../../web/src/assets/bot-looks/fabricator-copyforge/sprite.svg'),
+  'fabricator-rivet-mantis': require('../../../web/src/assets/bot-looks/fabricator-rivet-mantis/sprite.svg'),
   'glass-manta': require('../../../web/src/assets/bot-looks/glass-manta/sprite.svg'),
   'helio-kite': require('../../../web/src/assets/bot-looks/helio-kite/sprite.svg'),
   lancer: require('../../../web/src/assets/bot-looks/lancer/sprite.svg'),
@@ -23,6 +27,8 @@ const LOOKS = {
   orbiter: require('../../../web/src/assets/bot-looks/orbiter/sprite.svg'),
   'rift-runner': require('../../../web/src/assets/bot-looks/rift-runner/sprite.svg'),
   'scrap-jackal': require('../../../web/src/assets/bot-looks/scrap-jackal/sprite.svg'),
+  'striker-arc-viper': require('../../../web/src/assets/bot-looks/striker-arc-viper/sprite.svg'),
+  'striker-vector-kestrel': require('../../../web/src/assets/bot-looks/striker-vector-kestrel/sprite.svg'),
   vanguard: require('../../../web/src/assets/bot-looks/vanguard/sprite.svg'),
 } as const satisfies Record<string, ImageSourcePropType>;
 

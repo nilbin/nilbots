@@ -24,6 +24,9 @@ public static class ApplicationErrorCodes
     public const string BotOwnershipRequired = "bots.ownership_required";
     public const string BotNameInvalid = "bots.name_invalid";
     public const string BotNameConflict = "bots.name_conflict";
+    public const string BotClassIdInvalid = "bots.class_id_invalid";
+    public const string BotClassUnknown = "bots.class_unknown";
+    public const string BotClassAlreadyAssigned = "bots.class_already_assigned";
     public const string AccentInvalid = "appearance.accent_invalid";
     public const string BotLookIdInvalid = "appearance.bot_look_id_invalid";
     public const string ProjectileLookIdInvalid = "appearance.projectile_look_id_invalid";

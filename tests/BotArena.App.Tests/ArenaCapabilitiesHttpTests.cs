@@ -32,8 +32,12 @@ public sealed class ArenaCapabilitiesHttpTests
             Assert.Empty(migration.ChangeTracker.Entries());
         }
 
-        var now =
-            new DateTimeOffset(2026, 7, 28, 12, 0, 0, TimeSpan.Zero);
+        // Anchored to real time, not a literal date: the dev signing cert's
+        // NotBefore is stamped at first app start, so a frozen calendar date
+        // eventually falls behind it on fresh checkouts. One hour ahead keeps
+        // the fixed clock inside the cert's validity even when the cert is
+        // minted during this very test's startup.
+        DateTimeOffset now = DateTimeOffset.UtcNow.AddHours(1);
         using var baseFactory =
             new BotArenaApplicationFactory(database.ConnectionString);
         using WebApplicationFactory<Program> factory =

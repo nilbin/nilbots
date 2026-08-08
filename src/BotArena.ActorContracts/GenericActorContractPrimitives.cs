@@ -10,14 +10,20 @@ internal enum Direction
     West = 3,
 }
 
-internal sealed record PublicScoringTeam(int TeamId);
+internal sealed record PublicScoringTeam(
+    int TeamId,
+    string? ClassId = null);
 
-internal sealed record PublicParticipant(int ParticipantId, int TeamId);
+internal sealed record PublicParticipant(
+    int ParticipantId,
+    int TeamId,
+    string? ClassId = null);
 
 internal sealed record PublicUnitSlot(
     int TeamId,
     int UnitId,
-    int ControllerParticipantId);
+    int ControllerParticipantId,
+    string? ClassId = null);
 
 internal sealed record PublicInitialLife(
     int TeamId,

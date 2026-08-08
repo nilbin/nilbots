@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using BotArena.App.Accounts;
+using BotArena.App.ArcRelay;
 using BotArena.App.Bots;
 using BotArena.App.Competition;
 using BotArena.App.Cosmetics;
@@ -7,6 +8,7 @@ using BotArena.App.Jobs;
 using BotArena.App.Matches;
 using BotArena.App.Notifications;
 using BotArena.App.Shared;
+using BotArena.App.Sheets;
 using BotArena.App.Storage;
 using BotArena.App.Store;
 using BotArena.Engine;
@@ -36,6 +38,7 @@ bool trustForwardedHeaders =
 builder.Services.AddSingleton(mode);
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton(MatchExecutionSettings.FromEnvironment());
+builder.Services.AddSingleton(LegacyDuelSettings.FromConfiguration(builder.Configuration));
 builder.Services.AddSingleton(
     FrontlineLabsSettings.FromConfiguration(builder.Configuration));
 builder.Services.AddObjectStore(builder.Configuration);
@@ -71,6 +74,16 @@ builder.Services.AddDbContext<AppDbContext>(options =>
         Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
 });
 builder.Services.AddSingleton(CosmeticCatalog.LoadDefault());
+builder.Services.AddSingleton(ArcRelayClassCatalog.Default);
+builder.Services.AddSingleton<ArcRelayLegacySnapshotCodec>();
+builder.Services.AddSingleton<TacticalSheetCompiler>();
+builder.Services.AddSingleton<TacticalSheetTemplateCatalog>();
+builder.Services.AddScoped<ArcRelayClassEntitlementService>();
+builder.Services.AddScoped<ArcRelayEntrantProjector>();
+builder.Services.AddScoped<ArcRelayMatchAdmissionService>();
+builder.Services.AddScoped<ArcRelayLadderPairingService>();
+builder.Services.AddScoped<ArcRelayRatingSettlementJobHandler>();
+builder.Services.AddSingleton<BotClassPolicy>();
 builder.Services.AddScoped<CosmeticEntitlementService>();
 builder.Services.AddScoped<CosmeticAchievementService>();
 builder.Services.AddScoped<BotAppearancePolicy>();
@@ -110,8 +123,22 @@ builder.Services.AddScoped<RankedMatchSetFinalizer>();
 builder.Services.AddScoped<LegacyCompetitionIdentityResolver>();
 builder.Services.AddScoped<LegacyCompetitionIdentityBackfiller>();
 builder.Services.AddScoped<FrontlineLabsPlaylistSeeder>();
+builder.Services.AddScoped<ArcRelayPlaylistSeeder>();
+builder.Services.AddScoped<ArcRelayEntrantPlaylistSeeder>();
 builder.Services.AddSingleton<IHostedGenericMatchDefinition>(
     _ => FrontlineLabsPlaylistDefinition.Create());
+builder.Services.AddSingleton<IHostedGenericMatchDefinition>(
+    _ => ArcRelayPlaylistDefinition.Create());
+builder.Services.AddSingleton<IHostedGenericMatchDefinition>(
+    _ => ArcRelayEntrantPlaylistDefinition.CreateHistoricalV2());
+builder.Services.AddSingleton<IHostedGenericMatchDefinition>(
+    _ => ArcRelayEntrantPlaylistDefinition.CreateHistoricalV3());
+builder.Services.AddSingleton<IHostedGenericMatchDefinition>(
+    _ => ArcRelayEntrantPlaylistDefinition.CreateHistoricalV4());
+builder.Services.AddSingleton<IHostedGenericMatchDefinition>(
+    _ => ArcRelayEntrantPlaylistDefinition.CreateHistoricalV5());
+builder.Services.AddSingleton<IHostedGenericMatchDefinition>(
+    _ => ArcRelayEntrantPlaylistDefinition.Create());
 builder.Services.AddSingleton<HostedGenericMatchDefinitionRegistry>();
 
 if (mode.RunsWeb)
@@ -192,6 +219,7 @@ if (mode.RunsWeb)
     // docs/MONETIZATION-OPTIONS.md for why it must be a merchant of record.
     builder.Services.AddSingleton<IStorePaymentProvider, ClosedStore>();
     builder.Services.AddScoped<CreateBotUseCase>();
+    builder.Services.AddScoped<AssignBotClassUseCase>();
     builder.Services.AddScoped<UpdateBotAppearanceUseCase>();
     builder.Services.AddScoped<BotStatisticsQuery>();
     builder.Services.AddScoped<CompilerSubmissionService>();
@@ -232,6 +260,8 @@ builder.Services.AddHealthChecks()
 
 if (mode.RunsAnyWorker)
     builder.Services.AddHostedService<JobWorker>();
+if (mode.RunsMatchWorker)
+    builder.Services.AddHostedService<ArcRelayLadderPairingWorker>();
 if (mode.RunsCompilerRunner)
     builder.Services.AddHostedService<CompilerRunnerWorker>();
 
@@ -278,6 +308,8 @@ if (mode.RunsWeb)
     app.MapMatches();
     app.MapArenaCapabilities();
     app.MapFrontlineLabs();
+    app.MapArcRelay();
+    app.MapSheets();
     app.MapRanked();
     app.MapUserNotifications();
     app.MapExternalAuth();
@@ -309,55 +341,52 @@ if (mode.RunsWeb)
             // the upgrade advice can be exact instead of "try updating".
             ToolchainInfo.BuildPipelineVersion,
             ToolchainInfo.CliVersion,
-            maps));
+            maps,
+            FrontlineLabsClassDefinition.All
+                .Select(definition => new MetaBotClassResponse(definition.Id))
+                .ToArray()));
     }).Produces<MetaResponse>();
 
     // Text mirrors for readers without a browser. The site is a JavaScript SPA, so
-    // `curl /docs` yields a shell and scripted clients get nothing — and most of this
-    // game's players are agents. Both routes stream the SAME markdown the repo ships,
-    // so there is no second copy to drift (player-test round 2, top open finding).
+    // `curl /docs` yields a shell and scripted clients get nothing. Keep this product
+    // surface centered on Arc Relay; the legacy Duel guide remains in the archive.
     app.MapGet("/llms.txt", () =>
     {
         string origin = "https://nilbots.com";
         return Results.Text($"""
             # nilbots
 
-            A programming game: you write a C# bot, it compiles to WebAssembly, and it
-            fights other bots in a deterministic tile arena. Same engine locally and on
-            the server; every match produces a verifiable replay.
+            A deterministic programming strategy game. Build an eight-body sheet around
+            the frozen stock mind or submit a C# custom mind through the controlled WASM
+            toolchain. Both are entrants on the same Arc Relay ladder, with a stable name,
+            crest, composition and rating. Every match produces a verifiable replay.
 
             ## Start here (no browser required)
-            dotnet tool install --global Nilbots
-            nilbots register --email <you@example.com> --password <pw> --name <display>
-            nilbots new MyBot
-            cd MyBot
-            nilbots play --bot . --opponent hunter --seeds 7,42,1337
-            nilbots submit .
-            nilbots leaderboard
+            {origin}/relay          create and revise sheet or custom-mind entrants
+            {origin}/watch          watch causal live broadcasts and completed matches
+            {origin}/docs           composition, admission and ranked-lane guide
 
-            ## Full rules and API
-            {origin}/llms-full.txt   the complete player guide for the current ruleset
+            ## Full entrant model
+            {origin}/llms-full.txt   Arc Relay entrant, admission and pairing reference
 
-            ## Reference
-            nilbots --help        every command
-            nilbots doctor        versions, toolchain, limits, sign-in state
-            nilbots bots          training opponents and what each one does
-            nilbots replay <file> --summary   per-tick state, vision, bolts, your debug lines
+            ## Entrants
+            Sheet: a saved tactical playbook plus plotted map layout, compiled by the
+            same shared compiler used by the CLI and executed by the registered tactical mind.
+            Custom mind: submitted source compiled to WASM and admitted after hosted preflight.
+            Both declare eight unlocked classes with at most two copies of any class.
 
-            ## What a bot may know
-            Your own position, facing, health, cooldown; the tiles you can currently see;
-            enemies inside that vision as (slot, position, facing, health); events you saw,
-            and — under rules with hearing — coarse bearings for sounds you did not see.
-            You do NOT learn who your opponent is, its cooldown, or anything outside your
-            vision. Hidden information is the game: play the board, not the player.
+            ## Legacy archive
+            Duel creation, submission and admission are retired. Historical matches and
+            pages remain read-only at {origin}/archive/bots. The nilbots CLI and replay
+            verifier keep their established names for compatibility.
             """, "text/plain; charset=utf-8");
     }).AllowAnonymous();
 
     app.MapGet("/llms-full.txt", () =>
     {
-        string? guide = RepoPaths.FindUpward(Path.Combine("docs", "PLAYER-GUIDE.md"));
+        string? guide = RepoPaths.FindUpward(Path.Combine("docs", "ARC-RELAY-ENTRANTS.md"));
         return guide is null
-            ? Results.NotFound("Player guide not found on this deployment.")
+            ? Results.NotFound("Arc Relay entrant guide not found on this deployment.")
             : Results.Text(File.ReadAllText(guide), "text/plain; charset=utf-8");
     }).AllowAnonymous();
 

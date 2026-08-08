@@ -35,9 +35,156 @@ production URL and project ID; never create a second site for another batch.
    return the production URL only after success.
 
 On a fresh machine, obtain a source-repository credential and clone the site
-source into the ignored worktree before step 4. If the Sites integration is
-unavailable, prepare and validate the gallery but report the publishing
-blocker; do not silently switch to a public host.
+source into the ignored worktree before step 4.
+
+## Outcome-blind review galleries
+
+For a methodology blind-review sample (the manifest from
+`scripts/replay-review-sample.py`), do not hand-assemble pages — use:
+
+```bash
+python3 scripts/build-review-gallery.py \
+  --sample <blind-review-sample.json> --output <dir> \
+  --title "<experiment> — blind review" --review-panel
+```
+
+It builds each replay's page from the built viewer, hides outcomes, and
+embeds the rating panel (methodology dimensions, tick notes, localStorage
+autosave, JSON export). Default `--viewer hosted` uses the full WebGL bundle
+and must be served; `--viewer self-contained` inlines the replay at the CLI's
+marker (`ReplayOutput.WriteViewer` semantics) for portable Canvas2D pages.
+Rebuild `web/` first when the viewer changed; rerunning the script is the
+canonical way to refresh a gallery after viewer fixes. Note
+`nilbots replay --out` cannot export replay-v3 viewers (v1 only) — the
+script's injection is the v3 path.
+
+**A hosted page does not carry its replay.** It is a few kB that fetches
+`replays/<sample>.json`, assigns `window.__BOTARENA_REPLAY__` and only then
+appends the bundle's module script, because `main.tsx` reads that global at
+module-evaluation time. Inlining a 4-19 MB replay into every page — which is
+what this used to do — re-shipped the whole bundle per match to a phone on
+mobile data. Serve it with the companion script, which sends the `.gz`
+siblings the builder writes:
+
+```bash
+(cd <gallery-dir> && python3 scripts/serve-gallery.py 8931 --directory .)
+cloudflared tunnel --url http://127.0.0.1:8931
+```
+
+Plain `python3 -m http.server` still works but sends everything
+uncompressed, and replay JSON compresses ~30x.
+
+For a targeted Arc Relay gallery that reuses `web/dist-review`, project every
+canonical replay through `scripts/arc-relay-broadcast.py` and give
+`scripts/class-models/install-local-replay-gallery.mjs` the resulting
+`transport`. The installer deliberately rejects canonical entries without a
+compact transport. Preserve the canonical replay only for hash verification
+and team-vision backfill; never serve it directly. Browser-smoke the exact
+public URL at phone size and verify the replay UI appears without console or
+page errors before sharing it.
+
+A hosted gallery carries the whole of `web/dist`, and **the soundtrack is a
+directory, not a bundled asset**: the score is fetched at runtime from
+`soundtracks/index.json`, alongside `/assets`, both by absolute path. So serve
+the gallery directory *as the server root*, and if the viewer's music control
+reads `SCORE ERROR` while the sound effects still fire, the catalog 404'd —
+the pages are fine, the tree beside them is not.
+
+A gallery that is **not** blind (an unblinded highlight reel) keeps the same
+builder: `--index-cards <json>` supplies curated card order, titles,
+subtitles, optional explanatory fields, and a `win` flag; `--intro` replaces
+the blind-protocol lede, and `--review-protocol` names the record. The index
+still emits its own progress markers and export button, so curated copy never
+costs the rating flow. The sample ids come from the builder's hash shuffle,
+not the manifest order — build once, read the mapping out of the output, then
+write the cards.
+
+## Arc Relay owner-gallery baseline
+
+For broad Arc Relay renderer, awareness, or tactics review, default to the
+latest compatible retained operation corpus instead of incidental smoke or
+balance matches. Run the current felt-degeneracy scorecard first; the gallery
+builder does this automatically for complete Arc Relay broadcast-v1 inputs.
+
+The current ten-match pin is:
+
+```text
+arena-bots/arc-relay/forward-combat-operation-proof-v1-2026-08-03/
+  evidence/gallery-sample.json
+  evidence/gallery-cards.json
+  evidence/replays/*.broadcast.json.gz
+```
+
+It contains ten canonical-verified, operation-rich matches across Rear Hook,
+Lantern Sweep, Fork Shadow, Birth Rotation, Escort Counterpunch, Smoke Breach,
+Hardlight Gate, Relay Catch, Decoy Switch, and Emergency Exchange. The repaired
+stock artifact passed all ten whole matches under the v4 felt-degeneracy bars
+in two campaigns (20/20 cells); both teams are eligible in every retained
+match. Rear Hook and Relay Catch keep their distinct opponent sheets but use
+the current stock artifact on both sides. The compact receipt is
+`evidence/live-proof-summary.json` and pins hashes, seeds, results, phase ticks,
+scorecards, and broadcast budgets. Regenerate through the commands in the
+corpus README when rules, map, artifact, or bars move; do not silently fall
+back to bland matches merely because they are newer.
+
+Use `--skip-arc-relay-eligibility` only when the gallery is explicitly about a
+known failure. The default builder refusal is part of the methodology.
+
+Owner galleries are outcome-visible by default. Use outcome blindness only
+when the requested evaluation methodology requires it.
+
+### Explanatory card contract
+
+Every tactical or Arc Relay curated card must contain:
+
+```json
+{
+  "id": "sample-01",
+  "title": "Operation — side",
+  "subtitle": "opponent, outcome, and verified phase ticks",
+  "opponent": "The actual opposing sheet or mind, its allocation, and doctrine.",
+  "score": "Final scoreline, with operation success separate from match outcome.",
+  "trigger": "The causal, observable condition that arms the play.",
+  "tactic": "The intended coordinated sequence and participant roles.",
+  "counterplay": "Concrete legal answers available to the opponent.",
+  "fallback": "Abort, loss, deadline, and baseline-resumption behavior.",
+  "watch": "The actual causal beats and ticks this replay proves."
+}
+```
+
+Write `counterplay` from the real rules and visible tactical opportunities.
+Do not imply that the opponent took an answer unless the replay contains it.
+Write `opponent` from the actual entrant data and say when it is general live
+opposition rather than a counter authored specifically for this operation.
+Write `score` from the authoritative terminal state. For Arc Relay, report
+Core deliveries (Pulses × 3 + stored charge), Pulse count, charge, and reactor
+integrity with a stable Blue-then-Orange ordering. Say separately whether the
+operation succeeded and whether its side won. A single final score is one
+match, never a win-rate or balance claim.
+Write `watch` from authoritative replay evidence, not the intended sheet. A
+successful operation in a lost match must say both things plainly. Keep these
+fields optional only for a gallery whose sole purpose is a narrow visual or
+audio asset comparison with no tactical claim.
+
+## Without the Sites integration
+
+The hosted deploy above needs the Sites integration, which only some agent
+environments carry (Codex sessions normally do; Claude Code sessions normally
+do not). When it is absent, do not silently switch to another public host —
+serve the already-built tree directly instead:
+
+```bash
+(cd out/replay-highlights-site/.open-next/assets && python3 -m http.server 8917)
+cloudflared tunnel --url http://127.0.0.1:8917   # optional public HTTPS URL
+```
+
+The LAN URL (`http://<machine-ip>:8917/index.html`) covers same-network
+review; the cloudflared quick tunnel adds an off-network HTTPS link. A quick
+tunnel is **public and unauthenticated** — say so when handing over the link,
+and stop both processes when the review is done. Keep the assembled gallery
+(viewers plus `gallery.json`) in an ignored scratch directory that no build
+clears — `web/dist-review` and other build outputs are wiped on rebuild and
+will eat manually placed files.
 
 ## Latency rules
 

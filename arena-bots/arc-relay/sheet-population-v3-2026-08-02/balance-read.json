@@ -1,0 +1,558 @@
+{
+  "balance": {
+    "allRegisteredGuardrailsPass": true,
+    "decidedMatches": 157,
+    "drawRate": 0.01875,
+    "draws": 3,
+    "guardrails": {
+      "atLeast12WinningSheets": true,
+      "drawRateAtMost10Percent": true,
+      "leaderShareOfDecidedWinsAtMost15Percent": true,
+      "noZeroWinSheet": true
+    },
+    "leaderShareOfDecidedWins": 0.06369426751592357,
+    "leaderWins": 10,
+    "leaders": [
+      "sensor-grid"
+    ],
+    "records": {
+      "balanced": {
+        "draws": 0,
+        "losses": 5,
+        "wins": 5
+      },
+      "beacon-hunt": {
+        "draws": 0,
+        "losses": 2,
+        "wins": 8
+      },
+      "breach-column": {
+        "draws": 0,
+        "losses": 4,
+        "wins": 6
+      },
+      "centre-phalanx": {
+        "draws": 0,
+        "losses": 9,
+        "wins": 1
+      },
+      "control-grid": {
+        "draws": 0,
+        "losses": 5,
+        "wins": 5
+      },
+      "convoy": {
+        "draws": 0,
+        "losses": 5,
+        "wins": 5
+      },
+      "counter-courier": {
+        "draws": 0,
+        "losses": 1,
+        "wins": 9
+      },
+      "courier-sprint": {
+        "draws": 0,
+        "losses": 4,
+        "wins": 6
+      },
+      "displacement-control": {
+        "draws": 0,
+        "losses": 3,
+        "wins": 7
+      },
+      "elastic-reserve": {
+        "draws": 0,
+        "losses": 5,
+        "wins": 5
+      },
+      "feint-switch": {
+        "draws": 0,
+        "losses": 6,
+        "wins": 4
+      },
+      "fireline-picks": {
+        "draws": 1,
+        "losses": 6,
+        "wins": 3
+      },
+      "fortress-counterattack": {
+        "draws": 0,
+        "losses": 7,
+        "wins": 3
+      },
+      "home-counterpunch": {
+        "draws": 0,
+        "losses": 4,
+        "wins": 6
+      },
+      "hook-burst": {
+        "draws": 0,
+        "losses": 4,
+        "wins": 6
+      },
+      "interception": {
+        "draws": 0,
+        "losses": 5,
+        "wins": 5
+      },
+      "mine-crescent": {
+        "draws": 0,
+        "losses": 2,
+        "wins": 8
+      },
+      "mortar-wheel": {
+        "draws": 1,
+        "losses": 7,
+        "wins": 2
+      },
+      "null-veil": {
+        "draws": 0,
+        "losses": 4,
+        "wins": 6
+      },
+      "outer-pincers": {
+        "draws": 0,
+        "losses": 5,
+        "wins": 5
+      },
+      "pod-lattice": {
+        "draws": 1,
+        "losses": 6,
+        "wins": 3
+      },
+      "rail-screen": {
+        "draws": 0,
+        "losses": 8,
+        "wins": 2
+      },
+      "relay-chain": {
+        "draws": 1,
+        "losses": 6,
+        "wins": 3
+      },
+      "repair-web": {
+        "draws": 0,
+        "losses": 5,
+        "wins": 5
+      },
+      "rotating-bastions": {
+        "draws": 1,
+        "losses": 6,
+        "wins": 3
+      },
+      "sensor-grid": {
+        "draws": 0,
+        "losses": 0,
+        "wins": 10
+      },
+      "smoke-and-mines": {
+        "draws": 0,
+        "losses": 6,
+        "wins": 4
+      },
+      "smoke-convoy": {
+        "draws": 1,
+        "losses": 8,
+        "wins": 1
+      },
+      "split": {
+        "draws": 0,
+        "losses": 5,
+        "wins": 5
+      },
+      "sustain-attrition": {
+        "draws": 0,
+        "losses": 6,
+        "wins": 4
+      },
+      "three-well-race": {
+        "draws": 0,
+        "losses": 3,
+        "wins": 7
+      },
+      "trap-punish": {
+        "draws": 0,
+        "losses": 5,
+        "wins": 5
+      }
+    },
+    "winningSheets": 32,
+    "zeroWinSheets": []
+  },
+  "classification": "provisional shared-mind evaluation-sheet screen; not product balance or human-fun authority",
+  "counterWeb": {
+    "entrantsWithBothSweepWinAndLoss": 20,
+    "entrantsWithSweepLoss": 27,
+    "entrantsWithSweepWin": 24,
+    "mirroredSplitPairs": 28,
+    "mirroredSplits": [
+      [
+        "balanced",
+        "displacement-control"
+      ],
+      [
+        "balanced",
+        "hook-burst"
+      ],
+      [
+        "balanced",
+        "mine-crescent"
+      ],
+      [
+        "beacon-hunt",
+        "home-counterpunch"
+      ],
+      [
+        "beacon-hunt",
+        "split"
+      ],
+      [
+        "breach-column",
+        "outer-pincers"
+      ],
+      [
+        "breach-column",
+        "trap-punish"
+      ],
+      [
+        "centre-phalanx",
+        "rail-screen"
+      ],
+      [
+        "control-grid",
+        "split"
+      ],
+      [
+        "convoy",
+        "interception"
+      ],
+      [
+        "counter-courier",
+        "trap-punish"
+      ],
+      [
+        "courier-sprint",
+        "repair-web"
+      ],
+      [
+        "courier-sprint",
+        "split"
+      ],
+      [
+        "elastic-reserve",
+        "mine-crescent"
+      ],
+      [
+        "elastic-reserve",
+        "outer-pincers"
+      ],
+      [
+        "elastic-reserve",
+        "trap-punish"
+      ],
+      [
+        "feint-switch",
+        "mortar-wheel"
+      ],
+      [
+        "feint-switch",
+        "trap-punish"
+      ],
+      [
+        "fireline-picks",
+        "pod-lattice"
+      ],
+      [
+        "fireline-picks",
+        "rotating-bastions"
+      ],
+      [
+        "fortress-counterattack",
+        "sustain-attrition"
+      ],
+      [
+        "home-counterpunch",
+        "null-veil"
+      ],
+      [
+        "hook-burst",
+        "sustain-attrition"
+      ],
+      [
+        "null-veil",
+        "relay-chain"
+      ],
+      [
+        "outer-pincers",
+        "three-well-race"
+      ],
+      [
+        "pod-lattice",
+        "smoke-convoy"
+      ],
+      [
+        "pod-lattice",
+        "trap-punish"
+      ],
+      [
+        "rail-screen",
+        "rotating-bastions"
+      ]
+    ],
+    "pairs": 80,
+    "sweeps": [
+      {
+        "loser": "balanced",
+        "winner": "counter-courier"
+      },
+      {
+        "loser": "pod-lattice",
+        "winner": "balanced"
+      },
+      {
+        "loser": "breach-column",
+        "winner": "beacon-hunt"
+      },
+      {
+        "loser": "repair-web",
+        "winner": "beacon-hunt"
+      },
+      {
+        "loser": "three-well-race",
+        "winner": "beacon-hunt"
+      },
+      {
+        "loser": "control-grid",
+        "winner": "breach-column"
+      },
+      {
+        "loser": "smoke-convoy",
+        "winner": "breach-column"
+      },
+      {
+        "loser": "centre-phalanx",
+        "winner": "convoy"
+      },
+      {
+        "loser": "centre-phalanx",
+        "winner": "null-veil"
+      },
+      {
+        "loser": "centre-phalanx",
+        "winner": "split"
+      },
+      {
+        "loser": "centre-phalanx",
+        "winner": "three-well-race"
+      },
+      {
+        "loser": "control-grid",
+        "winner": "counter-courier"
+      },
+      {
+        "loser": "displacement-control",
+        "winner": "control-grid"
+      },
+      {
+        "loser": "rail-screen",
+        "winner": "control-grid"
+      },
+      {
+        "loser": "convoy",
+        "winner": "fortress-counterattack"
+      },
+      {
+        "loser": "relay-chain",
+        "winner": "convoy"
+      },
+      {
+        "loser": "convoy",
+        "winner": "sensor-grid"
+      },
+      {
+        "loser": "interception",
+        "winner": "counter-courier"
+      },
+      {
+        "loser": "rotating-bastions",
+        "winner": "counter-courier"
+      },
+      {
+        "loser": "courier-sprint",
+        "winner": "displacement-control"
+      },
+      {
+        "loser": "outer-pincers",
+        "winner": "courier-sprint"
+      },
+      {
+        "loser": "smoke-and-mines",
+        "winner": "courier-sprint"
+      },
+      {
+        "loser": "elastic-reserve",
+        "winner": "displacement-control"
+      },
+      {
+        "loser": "smoke-convoy",
+        "winner": "displacement-control"
+      },
+      {
+        "loser": "rotating-bastions",
+        "winner": "elastic-reserve"
+      },
+      {
+        "loser": "fortress-counterattack",
+        "winner": "feint-switch"
+      },
+      {
+        "loser": "feint-switch",
+        "winner": "interception"
+      },
+      {
+        "loser": "feint-switch",
+        "winner": "mine-crescent"
+      },
+      {
+        "loser": "fireline-picks",
+        "winner": "interception"
+      },
+      {
+        "loser": "fireline-picks",
+        "winner": "mine-crescent"
+      },
+      {
+        "loser": "fortress-counterattack",
+        "winner": "home-counterpunch"
+      },
+      {
+        "loser": "fortress-counterattack",
+        "winner": "three-well-race"
+      },
+      {
+        "loser": "mortar-wheel",
+        "winner": "home-counterpunch"
+      },
+      {
+        "loser": "home-counterpunch",
+        "winner": "sensor-grid"
+      },
+      {
+        "loser": "interception",
+        "winner": "hook-burst"
+      },
+      {
+        "loser": "mortar-wheel",
+        "winner": "hook-burst"
+      },
+      {
+        "loser": "hook-burst",
+        "winner": "sensor-grid"
+      },
+      {
+        "loser": "sustain-attrition",
+        "winner": "mine-crescent"
+      },
+      {
+        "loser": "mortar-wheel",
+        "winner": "relay-chain"
+      },
+      {
+        "loser": "repair-web",
+        "winner": "null-veil"
+      },
+      {
+        "loser": "null-veil",
+        "winner": "smoke-and-mines"
+      },
+      {
+        "loser": "rail-screen",
+        "winner": "outer-pincers"
+      },
+      {
+        "loser": "rail-screen",
+        "winner": "repair-web"
+      },
+      {
+        "loser": "relay-chain",
+        "winner": "sustain-attrition"
+      },
+      {
+        "loser": "smoke-convoy",
+        "winner": "repair-web"
+      },
+      {
+        "loser": "smoke-and-mines",
+        "winner": "sensor-grid"
+      },
+      {
+        "loser": "split",
+        "winner": "sensor-grid"
+      },
+      {
+        "loser": "sustain-attrition",
+        "winner": "smoke-and-mines"
+      },
+      {
+        "loser": "smoke-and-mines",
+        "winner": "three-well-race"
+      }
+    ],
+    "twoGameSweeps": 49
+  },
+  "eligibility": {
+    "eligibleMatches": 160,
+    "ineligibleEntrants": {}
+  },
+  "entrants": 32,
+  "firstPulse": {
+    "alertThreshold": 0.7,
+    "alertTripped": true,
+    "conversionRate": 0.75625,
+    "convertedToWinner": 121,
+    "matchesWithPulse": 160
+  },
+  "matches": 160,
+  "pacing": {
+    "endTickMax": 599,
+    "endTickMean": 432.8125,
+    "endTickMedian": 430.0,
+    "endTickMin": 279,
+    "maxTicksMatches": 10,
+    "maxTicksRate": 0.0625
+  },
+  "replacement": {
+    "entrantId": "sustain-attrition",
+    "supersededCells": [
+      "fortress-counterattack--sustain-attrition--s32452843--a0",
+      "fortress-counterattack--sustain-attrition--s32452843--a1",
+      "hook-burst--sustain-attrition--s32452843--a0",
+      "hook-burst--sustain-attrition--s32452843--a1",
+      "mine-crescent--sustain-attrition--s32452843--a0",
+      "mine-crescent--sustain-attrition--s32452843--a1",
+      "relay-chain--sustain-attrition--s32452843--a0",
+      "relay-chain--sustain-attrition--s32452843--a1",
+      "smoke-and-mines--sustain-attrition--s32452843--a0",
+      "smoke-and-mines--sustain-attrition--s32452843--a1"
+    ]
+  },
+  "runtime": "wasm",
+  "schema": "arc-relay-sheet-population-final-read-v1",
+  "sourceSweeps": {
+    "base": {
+      "cells": 160,
+      "planSha256": "fe5c0d39861f28b6c5a285dcc2073059a9d8ca5e4859d02aa2d808236f2ee713",
+      "resultsSha256": "c4de94aebb0f4f3b1da8e58d03fa9b92e2073111375c7884665db4e318a8d278",
+      "runtime": "wasm",
+      "sweepId": "arc-relay-sheet-population-cross-screen-v9"
+    },
+    "registeredRepair": {
+      "cells": 10,
+      "planSha256": "719d88222db141dedc06af7bf3e63d1fe172716db3bef09d3fece810069339c2",
+      "resultsSha256": "85145eec8af7d752389b394a71caaa1c2e2116c1eadf725b53abbe900d664481",
+      "runtime": "wasm",
+      "sweepId": "arc-relay-sheet-population-sustain-repair-v10"
+    }
+  }
+}

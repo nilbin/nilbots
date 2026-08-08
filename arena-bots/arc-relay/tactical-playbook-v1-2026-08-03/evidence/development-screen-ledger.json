@@ -1,0 +1,1630 @@
+{
+  "schema": "arc-relay-tactical-playbook-development-ledger-v1",
+  "status": "in-process-discovery-only",
+  "subject": "home-siege-v2",
+  "ruleset": "arc-relay-forward-combat-01",
+  "seed": "324161",
+  "controls": [
+    "frozen-static-baseline",
+    "coordination-parity-baseline-v1"
+  ],
+  "notes": [
+    "These screens select or reject development directions; none is final cohort evidence.",
+    "The frozen static baseline remains for historical continuity. The coordination-parity control has the same shared target allocation, expected-damage budgeting, overkill prevention, attacker caps, and target-lock capability as the tactical playbook mind.",
+    "Early exploratory rows were performed before this tracked ledger existed. Their exact per-cell receipts were ephemeral, so they are disclosed as qualitative summaries rather than reconstructed precision."
+  ],
+  "attempts": [
+    {
+      "attemptId": "composition-longshot",
+      "change": "Replace part of the promoted composition with Longshot hardware.",
+      "resultSummary": "Lost all four assignment/control screens.",
+      "verdict": "rejected"
+    },
+    {
+      "attemptId": "close-perimeter-runner-slot",
+      "change": "Tighten the living perimeter vertically and move the runner slot closer.",
+      "resultSummary": "Mixed and worse than the retained sheet.",
+      "verdict": "rejected"
+    },
+    {
+      "attemptId": "line-holds-during-harvest",
+      "change": "Keep the entire five-body line group at enemy home while runner and medics harvest.",
+      "resultSummary": "Mixed and worse; the three-body collection party could not convert control reliably.",
+      "verdict": "rejected"
+    },
+    {
+      "attemptId": "harvest-all-three-wells",
+      "change": "Require all three Wells to be outstanding before the main harvest transition.",
+      "resultSummary": "Lost every screened cell.",
+      "verdict": "rejected"
+    },
+    {
+      "attemptId": "pressure-harvest-condition",
+      "change": "Enter harvest from a pressure-state condition rather than the retained causal trigger.",
+      "resultSummary": "Mixed and worse than the retained sheet.",
+      "verdict": "rejected"
+    },
+    {
+      "attemptId": "runner-only-shuttle",
+      "change": "Keep seven bodies camped while the runner shuttles from the Well line.",
+      "resultSummary": "Lost every screened cell; one runner could not secure the objective economy.",
+      "verdict": "rejected"
+    },
+    {
+      "attemptId": "assault-harvest-threshold-one",
+      "change": "Lower the assault-to-harvest outstanding-Well threshold to one.",
+      "resultSummary": "Mixed with no material improvement.",
+      "verdict": "rejected"
+    },
+    {
+      "attemptId": "control-first-siege-signatures",
+      "change": "Use control-first signature coordination during siege, with one deterministic controller per target and signature.",
+      "resultSummary": "Worse than damage-first coordination.",
+      "verdict": "rejected"
+    },
+    {
+      "attemptId": "escape-lane-coverage",
+      "change": "Cover at least two one-tick escape options instead of firing only at the current target position.",
+      "cells": [
+        { "opponent": "frozen-static-baseline", "siegeTeam": 0, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 518 },
+        { "opponent": "frozen-static-baseline", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 523 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 0, "reason": "max-ticks", "endTick": 599 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 436 }
+      ],
+      "verdict": "rejected"
+    },
+    {
+      "attemptId": "three-guard-two-sweep",
+      "playbookSourceSha256": "aac70e4d761c94d840dfd5657f207b3c53fbdc62487add4f4f382d8fef9a0e83",
+      "change": "Split the five combat bodies into a three-body enemy-home guard and a two-body sweep/escort group; runner, medics, and sweep collected while guard held.",
+      "cells": [
+        { "opponent": "frozen-static-baseline", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 479 },
+        { "opponent": "frozen-static-baseline", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 433 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 502 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 453 }
+      ],
+      "verdict": "rejected"
+    },
+    {
+      "attemptId": "towline-control-line",
+      "playbookSourceSha256": "cbc1edaea6c665a50f7fb0658b020cea7bdd6a6ac973092c0f92961b21c50fbd",
+      "layoutSourceSha256": "0a05897c55c9c4af64b148dffffdb3644ceedce675113853bd5a60c565148291",
+      "change": "Replace both Sunder slots with Towlines and bind the resulting two exact match-contract fingerprints, retaining the same phases and damage-first focus policy.",
+      "cells": [
+        { "opponent": "frozen-static-baseline", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 581 },
+        { "opponent": "frozen-static-baseline", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 391 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 400 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 375 }
+      ],
+      "verdict": "rejected"
+    },
+    {
+      "attemptId": "enemy-relative-combat-leash",
+      "change": "Interpret chaseLeash as enemy distance from the assigned formation slot rather than shooter adherence to that slot, then retune rush/siege/regroup radii to 4/6/3.",
+      "resultSummary": "Correctly bounded enemy geography but lost or drew every historical/parity assignment; firing itself does not move the shooter, so this interpretation discarded useful formation-owned fire without preventing a chase.",
+      "verdict": "rejected"
+    },
+    {
+      "attemptId": "focus-release-runtime",
+      "playbookSourceSha256": "1fe36dc70f20cab85f93d98acddf6a633d2cbb8f131682d52c29a07c4d1a7bd9",
+      "change": "Execute declared hidden, destroyed, outside-formation, and unreachable focus-release causes. Home Siege uses one-tick hidden release so the framework change does not retain a stale target through a fog flicker.",
+      "cells": [
+        { "opponent": "frozen-static-baseline", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 509 },
+        { "opponent": "frozen-static-baseline", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 471 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 582 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 518 }
+      ],
+      "resultSummary": "Retained as generic semantics, not promoted as a dominance result: both coordinated-control assignments win, both historical-control assignments currently fail.",
+      "verdict": "retained-framework-change"
+    },
+    {
+      "attemptId": "formation-vacancy-and-blocked-slot-runtime",
+      "playbookSourceSha256": "1fe36dc70f20cab85f93d98acddf6a633d2cbb8f131682d52c29a07c4d1a7bd9",
+      "change": "Execute authored vacancy policy when assigning repeated role placements and immediately reflow a blocked slot through legal tiles in canonical ring order. Preserve keeps a dead stable slot open; compress and rebalance-role close the gap.",
+      "cells": [
+        { "opponent": "frozen-static-baseline", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 509 },
+        { "opponent": "frozen-static-baseline", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 471 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 582 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 518 }
+      ],
+      "resultSummary": "The retained Home Siege playbook uses compress/rebalance-role and has no initially blocked authored slots, so the four isolation outcomes remain byte-for-byte at the result level. Dedicated fixtures exercise preserve, compress, legal reflow, and hold.",
+      "verdict": "retained-framework-change"
+    },
+    {
+      "attemptId": "implicit-custody-escort-override",
+      "change": "Treat every group named by escortGroups as automatically following any carrier using the same custody policy, overriding the group's authored movement order.",
+      "cells": [
+        { "opponent": "frozen-static-baseline", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 510 },
+        { "opponent": "frozen-static-baseline", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 451 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 398 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 513 }
+      ],
+      "resultSummary": "Rejected as both strategically harmful and the wrong authoring granularity: escort eligibility silently replaced explicit orders and turned two parity wins into two losses.",
+      "verdict": "rejected"
+    },
+    {
+      "attemptId": "explicit-custody-transfer-recovery-escort-runtime",
+      "playbookSourceSha256": "1fe36dc70f20cab85f93d98acddf6a633d2cbb8f131682d52c29a07c4d1a7bd9",
+      "change": "Execute bounded transfer seeking, stagnant delivery timeout, causal friendly-drop recovery, and explicitly ordered carrier escort. A carrier movement order must name a custody policy that authorizes its group; escortGroups alone never overrides another order.",
+      "cells": [
+        { "opponent": "frozen-static-baseline", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 509 },
+        { "opponent": "frozen-static-baseline", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 471 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 582 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 518 }
+      ],
+      "resultSummary": "Retained generic semantics. The existing playbook does not issue a carrier escort order, so all four isolation outcomes remain unchanged while fixtures cover the new policy decisions.",
+      "verdict": "retained-framework-change"
+    },
+    {
+      "attemptId": "support-separation-and-survival-runtime",
+      "playbookSourceSha256": "1fe36dc70f20cab85f93d98acddf6a633d2cbb8f131682d52c29a07c4d1a7bd9",
+      "change": "Enforce minimum provider separation when multiple repairs target one body and execute evade/regroup/hold/self-defense survival fallbacks instead of treating every value as evade.",
+      "cells": [
+        { "opponent": "frozen-static-baseline", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 509 },
+        { "opponent": "frozen-static-baseline", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 471 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 582 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 518 }
+      ],
+      "resultSummary": "Retained generic semantics. Home Siege caps repair at one provider per target and uses evade, so its four isolation outcomes remain unchanged; fixtures isolate the new branches.",
+      "verdict": "retained-framework-change"
+    },
+    {
+      "attemptId": "accidental-core-transfer-carrier-seeks-runner",
+      "change": "Change secured-conversion accidental pickup from deliver to transfer and make the accidental carrier seek the dedicated runner for eight ticks before delivering.",
+      "cells": [
+        { "opponent": "frozen-static-baseline", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 403 },
+        { "opponent": "frozen-static-baseline", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 380 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 460 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 488 }
+      ],
+      "resultSummary": "Rejected. It still removed the fighter from its formation and lost every isolation cell faster.",
+      "verdict": "rejected"
+    },
+    {
+      "attemptId": "accidental-core-transfer-runner-seeks-carrier",
+      "change": "Keep the accidental carrier at the perimeter while the authorized runner owns the bounded rendezvous; deliver on timeout. The generic executor retains this semantically correct transfer ownership, but Home Siege restores deliver after the tactic screen.",
+      "cells": [
+        { "opponent": "frozen-static-baseline", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 562 },
+        { "opponent": "frozen-static-baseline", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 512 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 0, "reason": "max-ticks", "endTick": 599 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 377 }
+      ],
+      "resultSummary": "Rejected for Home Siege: one parity assignment improved to a max-tick win but the opposite assignment collapsed, and neither historical assignment won. Retained only as generic transfer semantics with an explicit fixture.",
+      "verdict": "rejected-strategy-retained-framework"
+    },
+    {
+      "attemptId": "enemy-perimeter-anchor-x26",
+      "layoutSourceSha256": "bdbc20c9269b493019616dbd93962c6cee3aa997318d76893124c572080e281b",
+      "change": "Move the same living-ring anchor two tiles deeper, from team-relative x=24 to x=26, to acquire returning north/south couriers closer to the reactor.",
+      "cells": [
+        { "opponent": "frozen-static-baseline", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 354 },
+        { "opponent": "frozen-static-baseline", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 407 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 444 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 484 }
+      ],
+      "resultSummary": "Rejected. The deeper anchor lost all four cells, consistent with compressed home geometry and worse firing lanes.",
+      "verdict": "rejected"
+    },
+    {
+      "attemptId": "enemy-perimeter-anchor-x25",
+      "layoutSourceSha256": "249404ebbcb8ff8e6a762c8bf4c63a9993abdc35f7fa6533301039776babeb62",
+      "change": "Move the same living-ring anchor one tile deeper, from team-relative x=24 to x=25.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 331 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 403 }
+      ],
+      "resultSummary": "Rejected after the primary fair control lost both assignments substantially faster; historical cells were not spent after that decisive screen.",
+      "verdict": "rejected"
+    },
+    {
+      "attemptId": "wide-north-south-living-ring",
+      "change": "Keep the proven x=24 anchor but widen the five line placements from y offsets -3..3 to -5,-3,0,3,5 and separate the medics to -1,+1, targeting both return gates.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 361 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 376 }
+      ],
+      "resultSummary": "Rejected after both fair-control assignments collapsed; spreading the shared damage group traded away the central concentration that produced the camp kills.",
+      "verdict": "rejected"
+    },
+    {
+      "attemptId": "early-four-unavailable-harvest-trigger",
+      "change": "Lower the assault, occupy, and breach transition into harvest from five known unavailable enemies to four while leaving safe-conversion custody at five.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 511, "scorecard": "9-7" },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 521, "scorecard": "9-8" }
+      ],
+      "resultSummary": "Rejected. Harvest began materially earlier (ticks 126 and 86), but the fair-control margin remained far below the 9-4 hard gate and the tactic no longer expressed the owner's explicit five-unavailable conversion trigger.",
+      "verdict": "rejected"
+    },
+    {
+      "attemptId": "explicit-delivery-carrier-escort",
+      "change": "During delivery, order the runner, both medics, and the line group to escort the current carrier through the explicit custody-aware carrier movement primitive.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 579 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 452 }
+      ],
+      "resultSummary": "Rejected. Pulling the whole formation behind whichever body held a Core dissolved enemy-home control and lost both assignments.",
+      "verdict": "rejected"
+    },
+    {
+      "attemptId": "coordinated-delivery-home-sweep",
+      "change": "During delivery, sweep all groups toward their own reactor as a coordinated return rather than using the authored short breach and route orders.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 401 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 426 }
+      ],
+      "resultSummary": "Rejected. A common homeward sweep abandoned the pressure advantage and let the coordinated stock control reverse the match in both assignments.",
+      "verdict": "rejected"
+    },
+    {
+      "attemptId": "six-combat-one-medic-wave",
+      "playbookSourceSha256": "4987897678b1bf45b7338e6dcb93c1b12a0e722ea29a4aacaa82c4bacb641712",
+      "layoutSourceSha256": "3f8c0a1036424c5a95f43e6a5dc6c9e4d25a0d773a83fe0124c0832cb33573c9",
+      "change": "Replace the second Patchbay with a second Kestrel, expand line roles and every formation to six combat bodies, and retain one medic so the wave can synchronize the fifth enemy kill more often.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 478 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 480 }
+      ],
+      "resultSummary": "Rejected after both fair-control assignments lost. The second medic is not redundant: sustain matters more than a sixth attacker in the retained ring.",
+      "verdict": "rejected"
+    },
+    {
+      "attemptId": "single-carrier-harvest-exit",
+      "playbookSourceSha256": "1c67e59196d8d223c9c0b06ae5a5bbb61473c41ed86b2b429b75aaf07e277e6e",
+      "change": "End harvest as soon as one friendly carrier exists instead of waiting for three carriers or the bounded 28-tick single-carrier fallback.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 553 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 473 }
+      ],
+      "resultSummary": "Rejected. Immediate departure prevented the collection phase from stabilizing and failed the mirrored assignment.",
+      "verdict": "rejected"
+    },
+    {
+      "attemptId": "two-carrier-harvest-exit",
+      "playbookSourceSha256": "3bcdacaf45d97e2c31abdc8610ae1059b4774cc096f658f67a84f052df994ae8",
+      "change": "End harvest once two friendly carriers exist, the only integer midpoint between immediate single-carrier departure and the retained three-carrier wave.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 416 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 437 }
+      ],
+      "resultSummary": "Rejected. It lost both assignments faster than the one-carrier variant; the retained three-carrier wave is materially more coherent.",
+      "verdict": "rejected"
+    },
+    {
+      "attemptId": "whole-line-enemy-carrier-intercept-radius-six",
+      "playbookSourceSha256": "f06e25eb612dc4bdfc090bf383a688db8ca341bbad6f860bcf6cb04f463b5481",
+      "change": "Give all five line bodies a generic observed-enemy-carrier movement order bounded to six tiles around the enemy-perimeter fallback anchor.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 379 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 438 }
+      ],
+      "resultSummary": "Rejected for Home Siege. The generic primitive selected legal current observations deterministically, but moving the entire line dissolved the living ring.",
+      "verdict": "rejected-strategy-retained-framework"
+    },
+    {
+      "attemptId": "whole-line-enemy-carrier-intercept-radius-two",
+      "playbookSourceSha256": "373c66b341b4999fe2376b9c7346c5a59ab725374f6a0c4f30c1bcd2c1b69a59",
+      "change": "Bound the same whole-line carrier interception order to two tiles around the enemy-perimeter anchor.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 511 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 461 }
+      ],
+      "resultSummary": "Rejected for Home Siege after the mirrored assignment lost. A moving denial screen needs a dedicated subgroup; whole-line pursuit is the wrong authoring granularity even under a tight leash.",
+      "verdict": "rejected-strategy-retained-framework"
+    },
+    {
+      "attemptId": "dedicated-kestrel-interceptor-radius-six",
+      "playbookSourceSha256": "6b1120d73105c2c47474d056cc96bef5131348b0020c77ca707fe19929a06153",
+      "change": "Split the Kestrel into a stable one-body interceptor role/group, retain four line bodies and two medics on the ring, and pursue observed enemy carriers within six tiles of the enemy-perimeter anchor.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 533 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 530 }
+      ],
+      "resultSummary": "Rejected. Dedicated membership avoided the catastrophic whole-line chase but still lost both assignments; one attacker leaving the concentrated ring cost more than its pursuit denied.",
+      "verdict": "rejected"
+    },
+    {
+      "attemptId": "dedicated-kestrel-interceptor-radius-two",
+      "playbookSourceSha256": "3e5f77e287c5a3e239d31619a9ae63df3673abb2fac4135c022c2b340199a37f",
+      "change": "Keep the dedicated Kestrel interceptor but reduce its pursuit radius from six to two tiles around the enemy-perimeter anchor.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 588 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 377 }
+      ],
+      "resultSummary": "Rejected. The tight sentry recovered one assignment but badly failed its mirror; the retained five-body shared line remains the robust force shape.",
+      "verdict": "rejected"
+    },
+    {
+      "attemptId": "siege-focus-zero-lock",
+      "change": "Set the authored siege-focus lock tenure to zero so every tick may immediately re-rank a newly visible enemy carrier; the byte-frozen parity control retains its declared three-tick lock.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 528 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 531 }
+      ],
+      "resultSummary": "Rejected. Immediate reprioritization improved one assignment but introduced enough target churn to lose the mirror.",
+      "verdict": "rejected"
+    },
+    {
+      "attemptId": "siege-focus-four-tick-lock",
+      "playbookSourceSha256": "29babb2f468f271c992c0afa8b95f862e9545955dd882f94cc248c9e429d0699",
+      "change": "Reduce the authored siege-focus lock tenure from six ticks to the four-tick midpoint.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 529 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 525 }
+      ],
+      "resultSummary": "Rejected. It reproduced the same asymmetric failure as zero lock; the original six-tick tenure is retained.",
+      "verdict": "rejected"
+    },
+    {
+      "attemptId": "bounded-focus-pursuit-all-orders",
+      "change": "After a focus shot and signature are unavailable, take one step toward the assigned visible target if the resulting tile remains within the engagement leash of the formation slot.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 559 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 438 }
+      ],
+      "resultSummary": "Rejected. Allowing route and formation orders to pursue destabilized one mirrored assignment.",
+      "verdict": "rejected"
+    },
+    {
+      "attemptId": "bounded-focus-pursuit-continuous-orders",
+      "change": "Restrict bounded focus pursuit to continuous orders and use the movement-order leash, leaving routes, completion-bound orders, and the zero-leash runner fixed.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 543 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 565 }
+      ],
+      "resultSummary": "Rejected. The failure flipped assignments rather than disappearing; disciplined fixed slots remain more robust than local pursuit for Home Siege.",
+      "verdict": "rejected"
+    },
+    {
+      "attemptId": "siege-focus-one-damage-redundancy",
+      "change": "Keep the five-attacker siege cap but allow one point of expected overkill so the fifth shot can insure a four-hull carrier against movement misses.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 583 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": null, "reason": "max-ticks", "endTick": 599 }
+      ],
+      "resultSummary": "Rejected. It improved the losing mirror to a draw but did not satisfy even the two-cell win screen.",
+      "verdict": "rejected"
+    },
+    {
+      "attemptId": "siege-focus-six-attackers-two-damage-redundancy",
+      "playbookSourceSha256": "f790d1558bba41b240ca53c6ac93bd556acf566b408a62dc84c950e97bfc6f7c",
+      "change": "Raise the siege cap to six attackers and budget two points of expected overkill.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 402 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 1, "reason": "fault-eligibility", "endTick": 178, "valid": false }
+      ],
+      "resultSummary": "Rejected. The clean assignment lost quickly and the mirror was invalid because the control faulted; an invalid opponent result is never counted as a tactical win.",
+      "verdict": "rejected"
+    },
+    {
+      "attemptId": "secured-core-guard-all-wells",
+      "playbookSourceSha256": "b8ef23478e01069f35c3dc310d17fd42398d619998e27af772f78482aaa0e31f",
+      "change": "Give the runner a causal secured-core guard order for drops from all three Wells, holding adjacent until the unchanged five-unavailable safe-conversion gate allows pickup.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 400 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 440 }
+      ],
+      "resultSummary": "Rejected for Home Siege. The causal guard materially accelerated one assignment but lost the mirror; the generic order remains as framework capability.",
+      "verdict": "rejected-strategy-retained-framework"
+    },
+    {
+      "attemptId": "well-name-rotation-alias",
+      "playbookSourceSha256": "8d586c823cc8794b31f3afbaf70da1b16c0158df2f672401d6cf2d49c5301a3b",
+      "change": "Experimentally map authored north to world south under rotate-180, first with the all-Well guard and then with the original fixed-ring runner order.",
+      "cells": [
+        { "variant": "all-Well guard", "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 400 },
+        { "variant": "all-Well guard", "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 440 },
+        { "variant": "original fixed ring", "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 582 },
+        { "variant": "original fixed ring", "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 439 }
+      ],
+      "resultSummary": "Rejected. Public Well IDs are absolute contract identities in the current grammar; rotating their names silently changed the authored doctrine and destroyed the previously winning mirror.",
+      "verdict": "rejected"
+    },
+    {
+      "attemptId": "secured-core-guard-authored-north-midfield-side",
+      "change": "Restrict the secured-core guard to the authored north Well and hold the runner one tile toward midfield from the observed drop.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 582 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 444 }
+      ],
+      "resultSummary": "Rejected. It preserved only the already favorable assignment and lost the mirror.",
+      "verdict": "rejected"
+    },
+    {
+      "attemptId": "secured-core-guard-authored-north-reactor-side",
+      "change": "Flip the same north-Well guard to the reactor side of the observed drop, between the Core and the enemy bank.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 582 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 438 }
+      ],
+      "resultSummary": "Rejected. Changing the side of the drop did not rescue the mirrored assignment.",
+      "verdict": "rejected"
+    },
+    {
+      "attemptId": "forbid-carrier-loose-core-route-blocking",
+      "playbookSourceSha256": "1fe36dc70f20cab85f93d98acddf6a633d2cbb8f131682d52c29a07c4d1a7bd9",
+      "change": "Make carrierPreference forbid executable during ordinary formation movement by treating every currently visible loose-Core tile as blocked terrain for that role.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 375 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 402 }
+      ],
+      "resultSummary": "Rejected. Blocking all visible loose-Core tiles made the ring route around contested objectives and lost both assignments; objective custody needs a coordinated ownership policy rather than terrain-like avoidance.",
+      "verdict": "rejected"
+    },
+    {
+      "attemptId": "occupy-regroup-at-four",
+      "playbookSourceSha256": "74ff138c5f8d05d80e838dd620b75d6de5051c7911bf36fa408f87999c2b50d2",
+      "change": "Keep five bodies in enemy-home occupation and trigger the regroup transition only after the sixth occupant is lost.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 358 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 423 }
+      ],
+      "resultSummary": "Rejected. Five occupants could not maintain the living perimeter; delaying regroup lost both assignments faster than the retained six-occupant threshold.",
+      "verdict": "rejected"
+    },
+    {
+      "attemptId": "two-towline-control-line",
+      "playbookSourceSha256": "fe5d41956fd0789514f481e4e0dc75ff15227fbdbaf05b3543b734cca09e619d",
+      "layoutSha256": "86193c590bf02cf8f88218c986e28b44f9aea6cbc780d76bdf02be38f26321c0",
+      "change": "Replace the two Repulsors with two Towlines and bind the unchanged geometry to the resulting exact composition contracts so hooks can pull returning carriers off the bank approach.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 416 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 332 }
+      ],
+      "resultSummary": "Rejected. Control signatures did not replace the retained Repulsors' durability and close pressure; both exact-bound assignments lost.",
+      "verdict": "rejected"
+    },
+    {
+      "attemptId": "executable-formation-facing",
+      "playbookSourceSha256": "1fe36dc70f20cab85f93d98acddf6a633d2cbb8f131682d52c29a07c4d1a7bd9",
+      "retainedPlaybookSourceSha256": "7c296b46820fc84c3f1a191b07756d52380df43c8a451f0a6d4ba455c282fed6",
+      "change": "Execute formation orientation as a low-priority facing fallback, first directly, then behind current shared-focus facing, then only in a genuinely enemy-free observation.",
+      "cells": [
+        { "variant": "direct enemy-reactor", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 328 },
+        { "variant": "direct enemy-reactor", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 421 },
+        { "variant": "focus-first enemy-reactor", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 512 },
+        { "variant": "focus-first enemy-reactor", "siegeTeam": 1, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 529 },
+        { "variant": "enemy-free enemy-reactor", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 428 },
+        { "variant": "enemy-free enemy-reactor", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 403 },
+        { "variant": "focus-target ring", "siegeTeam": 0, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 563 },
+        { "variant": "focus-target ring", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 404 },
+        { "variant": "fixed ring", "siegeTeam": 0, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 587 },
+        { "variant": "fixed ring", "siegeTeam": 1, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 566 }
+      ],
+      "resultSummary": "Retained the generic focus-first orientation fallback and authored Home Siege's crossfire ring as fixed. Reactor-facing and focus-facing ring variants were assignment-sensitive; fixed preserves both two-cell wins but does not approach the dominance gate.",
+      "verdict": "retained-framework-change"
+    },
+    {
+      "attemptId": "dedicated-reactor-watcher",
+      "playbookSourceSha256": "32f6cd26d6d050b81d5b15c5bbea357c7ec4212f56af56699b93df99e636e217",
+      "change": "Put the runner alone in a reactor-facing observer formation with no combat participation while the five-body line retains fixed crossfire, using immediate team-union vision to expose bank-bound carriers.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 514 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 403 }
+      ],
+      "resultSummary": "Rejected. The dedicated watcher supplied vision but removing the runner's gun from shared pressure cost both assignments; awareness was not the sole denial bottleneck.",
+      "verdict": "rejected"
+    },
+    {
+      "attemptId": "carrier-bank-lane-coverage",
+      "playbookSourceSha256": "d54a1b309bacc3dc3a37bef6ebded2fd860e090b5fcba4b074f30bbc811f5c5e",
+      "change": "After budgeting lethal current-tile damage, use spare siege shooters on legal one-tick carrier moves that strictly reduce public static-map distance to the carrier's bank.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 486 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 434 }
+      ],
+      "resultSummary": "Rejected. The public inference was causal, but spending scarce shots on likely bank lanes lost both assignments. It was removed rather than entering a claim unavailable to the parity control.",
+      "verdict": "rejected"
+    },
+    {
+      "attemptId": "reactor-goalkeeper-offsets",
+      "change": "Move one durable-line slot from the retained ring to a dedicated goalkeeper position between returning carriers and the enemy reactor, testing offsets [3,0] and [1,0].",
+      "cells": [
+        { "variant": "offset-[3,0]", "playbookSourceSha256": "07627b6e81bbaec2f36a825ddb272fa3d8af39e1acc59ee95aeccde2fb154e2c", "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 478 },
+        { "variant": "offset-[3,0]", "playbookSourceSha256": "07627b6e81bbaec2f36a825ddb272fa3d8af39e1acc59ee95aeccde2fb154e2c", "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 380 },
+        { "variant": "offset-[1,0]", "playbookSourceSha256": "18440c4df84946c73d17018cc178d5e671715a663762ab8bf032e1d80d8b088f", "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 476 },
+        { "variant": "offset-[1,0]", "playbookSourceSha256": "18440c4df84946c73d17018cc178d5e671715a663762ab8bf032e1d80d8b088f", "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 426 }
+      ],
+      "resultSummary": "Rejected. Both goalkeeper depths lost both mirrors: concentrating one body at the bank weakened the surrounding crossfire and sustain more than it improved return denial.",
+      "verdict": "rejected"
+    },
+    {
+      "attemptId": "blanket-repair-channel-maintenance",
+      "playbookSourceSha256": "9de78d03e140e9422a5671b2e2b157a579eff48ee1809464e34b42ca4daac775",
+      "change": "Insert a generic arbitration channel after self-preservation that holds both endpoints of every visible friendly Repair Beam channel until it completes or a higher-priority emergency breaks it.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 416 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 471 }
+      ],
+      "resultSummary": "Rejected. Repair channels were being interrupted, but blindly pinning wounded targets lost both mirrors. Maintenance must be an authored risk-aware support policy rather than a universal lock, so the implementation was fully removed.",
+      "verdict": "rejected"
+    },
+    {
+      "attemptId": "activate-formation-pace-and-movement-completion",
+      "playbookSourceSha256": "7c296b46820fc84c3f1a191b07756d52380df43c8a451f0a6d4ba455c282fed6",
+      "change": "Make the already-authored slowest pace, completion modes, and formation break/reform windows executable instead of validation-only fields.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 351 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 376 }
+      ],
+      "resultSummary": "Rejected as implemented. Enforcing slowest pace during the initial scattered deployment serialized the rush and lost both mirrors; authored lifecycle semantics must distinguish formation establishment from recovery.",
+      "verdict": "rejected-framework-implementation"
+    },
+    {
+      "attemptId": "semantic-ablation-free-pace-authored-completion",
+      "change": "Ablate the pace gate by changing every formation/order pace to free while leaving authored completion modes active. This changed the sheet hash and therefore entrant random stream, so it is diagnostic only rather than a clean causal match comparison.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 508 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 459 }
+      ],
+      "resultSummary": "Rejected. Free pace alone did not restore the two-mirror screen; because the source hash moved, this result is retained only as implementation diagnostics.",
+      "verdict": "rejected-diagnostic"
+    },
+    {
+      "attemptId": "semantic-ablation-free-pace-continuous-completion",
+      "change": "Set every pace to free and every movement completion to continuous. This also changed the sheet hash and entrant random stream, so it is diagnostic only.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 451 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 434 }
+      ],
+      "resultSummary": "Rejected. Removing both controls in the source still lost both mirrors and cannot isolate behavior because the source hash moved.",
+      "verdict": "rejected-diagnostic"
+    },
+    {
+      "attemptId": "armed-formation-lifecycle-recovery-pace",
+      "playbookSourceSha256": "7c296b46820fc84c3f1a191b07756d52380df43c8a451f0a6d4ba455c282fed6",
+      "change": "Arm break/reform behavior only after the formation first satisfies its arrival window, then apply the authored slowest pace only while that established formation is broken. Movement completion remains an executable transition fact rather than an implicit hold.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 451 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 360 }
+      ],
+      "resultSummary": "Retain the generic lifecycle semantics but reject this Home Siege candidate. The sheet source stayed byte-identical and still lost both mirrors, proving the newly executable recovery pace materially changes later play and must be accounted for in the v2 rewrite.",
+      "verdict": "retained-framework-change-rejected-strategy"
+    },
+    {
+      "attemptId": "executable-carrier-preference-and-consistent-surge-custody",
+      "playbookSourceSha256": "b79896340cb321f36b092ddd6cd2c58c4a7fc98bb49ced529ab8c9e8b426e74b",
+      "change": "Execute role carrier preference before pickup distance and resolve Home Siege's contradiction by marking medic and line roles allow, matching the authored all-group surge custody policy.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 404 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 371 }
+      ],
+      "resultSummary": "Retain the generic custody semantics and corrected authoring, but reject the strategy candidate: explicit permission for the safe sweep did not produce the required pressure or denial.",
+      "verdict": "retained-framework-change-rejected-strategy"
+    },
+    {
+      "attemptId": "executable-role-death-respawn-membership",
+      "playbookSourceSha256": "b79896340cb321f36b092ddd6cd2c58c4a7fc98bb49ced529ab8c9e8b426e74b",
+      "change": "Execute stable-slot/best-fit allocation, hold/promote/rebalance casualty policy, bounded pre-emption, overflow, and resume/rejoin/rally/replace cohort behavior with strict role-to-group ownership.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 448 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 371 }
+      ],
+      "resultSummary": "Retain the generic membership semantics and reject the current Home Siege strategy. Both matches remained valid, but neither assignment beat the fully coordinated parity stock mind.",
+      "verdict": "retained-framework-change-rejected-strategy"
+    },
+    {
+      "attemptId": "executable-spacing-vacancy-and-reflow",
+      "playbookSourceSha256": "b79896340cb321f36b092ddd6cd2c58c4a7fc98bb49ced529ab8c9e8b426e74b",
+      "change": "Execute distinct preserve/compress/rebalance-role vacancy layouts, minimum/preferred/maximum target spacing, medic separation, and clockwise rotate-shape reflow; reject overlapping or undersupplied formation slots.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 510 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 332 }
+      ],
+      "resultSummary": "Retain the generic placement semantics and reject the current strategy candidate. Making authored separation real changed pathing and sustain but did not win either mirror.",
+      "verdict": "retained-framework-change-rejected-strategy"
+    },
+    {
+      "attemptId": "explicit-phase-fallbacks-and-stuck-recovery",
+      "playbookSourceSha256": "21776814ce824cf8ed73f4de68fa8b1a976241b2e226304b80c0f98840cd51b5",
+      "change": "Bind regroup/fallback-phase actions to an explicit validated phaseId; execute understrength, invalid-target, no-path, yield, repath, reflow, hold, and regroup recovery without hardcoded phase names.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 586 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 304 }
+      ],
+      "resultSummary": "Retain the generic fallback semantics. The candidate recovered one assignment but still lost the mirror decisively, so it remains rejected for Home Siege dominance.",
+      "verdict": "retained-framework-change-rejected-strategy"
+    },
+    {
+      "attemptId": "bounded-memory-repair-priority-and-dodge-fallback",
+      "playbookSourceSha256": "21776814ce824cf8ed73f4de68fa8b1a976241b2e226304b80c0f98840cd51b5",
+      "change": "Bound formation/objective memory by the authored horizons, make custody-state-ticks measure custody rather than objective stagnation, execute focus-participant repair priority without mutating focus locks twice, and distinguish current-position from best-coverage dodge fallback.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 586 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 304 }
+      ],
+      "resultSummary": "Retain the generic memory, repair-priority, and dodge-fallback semantics. The unchanged mirrored result proves this slice did not cure assignment asymmetry; the current Home Siege strategy remains rejected.",
+      "verdict": "retained-framework-change-rejected-strategy"
+    },
+    {
+      "attemptId": "bounded-self-defense-return-excursion",
+      "playbookSourceSha256": "21776814ce824cf8ed73f4de68fa8b1a976241b2e226304b80c0f98840cd51b5",
+      "change": "Execute selfDefense.returnToFormation as a one-response excursion: after an off-leash defensive attack, withhold the same life from coordinated fire until it returns to the active order's arrival radius.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 416 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 357 }
+      ],
+      "resultSummary": "Retain the generic authored return semantic but reject the current Siege strategy. Both mirrors losing shows the old candidate depended materially on repeated off-plan defensive fire and must be rewritten rather than silently preserving that loophole.",
+      "verdict": "retained-framework-change-rejected-strategy"
+    },
+    {
+      "attemptId": "executable-group-cardinality-bands",
+      "playbookSourceSha256": "21776814ce824cf8ed73f4de68fa8b1a976241b2e226304b80c0f98840cd51b5",
+      "change": "Execute group preferred and maximum cardinalities across stable retention, role-minimum/preferred filling, pre-emption, and overflow; reject contradictory role/group capacity at compile time.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 416 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 357 }
+      ],
+      "resultSummary": "Retain the generic group-cardinality semantics. Home Siege already authored exact role/group bands, so the mirrors were intentionally unchanged and the current strategy remains rejected.",
+      "verdict": "retained-framework-change-rejected-strategy"
+    },
+    {
+      "attemptId": "executable-layout-route-corridors",
+      "playbookSourceSha256": "21776814ce824cf8ed73f4de68fa8b1a976241b2e226304b80c0f98840cd51b5",
+      "change": "Bound intermediate route-spine reflow by the separately hashed layout corridorWidth while preserving relative formation offsets at the final waypoint.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 404 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 399 }
+      ],
+      "resultSummary": "Retain the generic layout-corridor semantic and reject the current Siege strategy. The old candidate materially relied on a three-tile formation reflow inside routes authored at width two.",
+      "verdict": "retained-framework-change-rejected-strategy"
+    },
+    {
+      "attemptId": "exact-global-phase-local-state-coverage",
+      "playbookSourceSha256": "fb7805fd25076c124ab0b54bff5b76d432ecddc467a9a502da4956bbc6e16692",
+      "change": "Require every global phase to name exactly one order for every group/local-state pair; remove runtime cross-state fallback and explicitly include line recovery during harvest and delivery.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 406 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 380 }
+      ],
+      "resultSummary": "Retain the generic exact-coverage contract and reject the strategy candidate. The source hash changed because previously implicit harvest/delivery recovery is now explicit; both diagnostic mirrors still lost.",
+      "verdict": "retained-framework-change-rejected-strategy"
+    },
+    {
+      "attemptId": "linked-movement-targets-and-executable-leashes",
+      "playbookSourceSha256": "fb7805fd25076c124ab0b54bff5b76d432ecddc467a9a502da4956bbc6e16692",
+      "change": "Link every movement/condition target against the bound layout and execute movement chaseLeash as the maximum target-relative reflow, with route-corridor and formation-search bounds composed deterministically.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 334 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 382 }
+      ],
+      "resultSummary": "Retain the generic linker and movement-leash semantics and reject the current Siege strategy. Runner zero-leash and bounded group reflow now mean what the source says; the old candidate still loses both mirrors.",
+      "verdict": "retained-framework-change-rejected-strategy"
+    },
+    {
+      "attemptId": "whole-team-return-escort-before-harvest-rewrite",
+      "playbookSourceSha256": "ed56f65321065d6721d3c48d5cdbe7d56544a7626f8d97430e4e8f8385ec0779",
+      "change": "Add an own-bank-oriented return escort and make all three groups follow a committed carrier during delivery, while leaving the earlier harvest trigger and collection formation unchanged.",
+      "cells": [
+        {
+          "opponent": "coordination-parity-baseline-v1",
+          "siegeTeam": 0,
+          "winnerTeam": 1,
+          "reason": "reactor-destroyed",
+          "endTick": 334
+        },
+        {
+          "opponent": "coordination-parity-baseline-v1",
+          "siegeTeam": 1,
+          "winnerTeam": 0,
+          "reason": "reactor-destroyed",
+          "endTick": 382
+        }
+      ],
+      "resultSummary": "The new delivery orders never executed in this mirror pair: the team oscillated among occupy, regroup, and breach without entering harvest. Retain the generic carrier-relative movement and reject this strategy attempt as behaviorally inert.",
+      "verdict": "retained-framework-change-rejected-strategy"
+    },
+    {
+      "attemptId": "five-unavailable-harvest-sweep-and-return-escort",
+      "playbookSourceSha256": "f338681dbaefc578c3a2d4431f89033678c569f5890aee8bef0b5d9c723afcda",
+      "change": "Require five causally known unavailable enemies, sweep all three Wells in a wide whole-team formation, let every authorized carrier return immediately, and send the remaining groups home in a carrier-relative escort.",
+      "cells": [
+        {
+          "opponent": "coordination-parity-baseline-v1",
+          "siegeTeam": 0,
+          "winnerTeam": 1,
+          "reason": "reactor-destroyed",
+          "endTick": 354
+        },
+        {
+          "opponent": "coordination-parity-baseline-v1",
+          "siegeTeam": 1,
+          "winnerTeam": 0,
+          "reason": "reactor-destroyed",
+          "endTick": 435
+        }
+      ],
+      "resultSummary": "The rewrite did execute: the longer mirror entered harvest at tick 110, entered delivery at tick 118, and banked one Pulse. It then spent about 66 ticks withdrawing the whole force, ceded enemy-home pressure, and lost 3-1. Retain the executable sweep/escort vocabulary, reject five-plus-full-return as the selected strategy, and sweep the attrition threshold and return force instead of treating either number as fixed.",
+      "verdict": "retained-framework-change-rejected-strategy"
+    },
+    {
+      "attemptId": "parameterized-attrition-return-policy-matrix",
+      "change": "Sweep the centrally authored conversion enemy-unavailable threshold across 3/4/5 and compare full escort, medic escort with line pressure, carrier-only forward pressure, and carrier-only rebreach in both assignments.",
+      "variants": [
+        {
+          "variantId": "t3-full-escort",
+          "threshold": 3,
+          "policy": "full-escort",
+          "playbookSourceSha256": "1790f772bfa065fea203981200226a0383068473eb22d8bf1c2dc9970e42ca5a",
+          "cells": [
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 0,
+              "winnerTeam": 1,
+              "reason": "reactor-destroyed",
+              "endTick": 330
+            },
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 1,
+              "winnerTeam": 0,
+              "reason": "reactor-destroyed",
+              "endTick": 478
+            }
+          ]
+        },
+        {
+          "variantId": "t3-medic-escort-line-pressure",
+          "threshold": 3,
+          "policy": "medic-escort-line-pressure",
+          "playbookSourceSha256": "84dfe750f3ddab0b825d4854b1b0158e4ab3525cb143d3498b85796451a70952",
+          "cells": [
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 0,
+              "winnerTeam": 1,
+              "reason": "reactor-destroyed",
+              "endTick": 353
+            },
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 1,
+              "winnerTeam": 0,
+              "reason": "reactor-destroyed",
+              "endTick": 357
+            }
+          ]
+        },
+        {
+          "variantId": "t3-carrier-only-forward-pressure",
+          "threshold": 3,
+          "policy": "carrier-only-forward-pressure",
+          "playbookSourceSha256": "46eeb897d70a5b64f6dabc92e59b65838978ce8566f852216d6accc50541ea9c",
+          "cells": [
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 0,
+              "winnerTeam": 1,
+              "reason": "reactor-destroyed",
+              "endTick": 468
+            },
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 1,
+              "winnerTeam": 0,
+              "reason": "reactor-destroyed",
+              "endTick": 326
+            }
+          ]
+        },
+        {
+          "variantId": "t3-carrier-only-rebreach",
+          "threshold": 3,
+          "policy": "carrier-only-rebreach",
+          "playbookSourceSha256": "f1fb23b6e295553093dfcfc1b1b7fdb3baa0d3f86981831713afbd92c0b75e00",
+          "cells": [
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 0,
+              "winnerTeam": 0,
+              "reason": "reactor-destroyed",
+              "endTick": 479
+            },
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 1,
+              "winnerTeam": 0,
+              "reason": "reactor-destroyed",
+              "endTick": 353
+            }
+          ]
+        },
+        {
+          "variantId": "t4-full-escort",
+          "threshold": 4,
+          "policy": "full-escort",
+          "playbookSourceSha256": "e43d137890f25b06f0d1e9b5cd0de56ebe0120775766b8bd073cb60b9eb6a903",
+          "cells": [
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 0,
+              "winnerTeam": 1,
+              "reason": "reactor-destroyed",
+              "endTick": 404
+            },
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 1,
+              "winnerTeam": 0,
+              "reason": "reactor-destroyed",
+              "endTick": 427
+            }
+          ]
+        },
+        {
+          "variantId": "t4-medic-escort-line-pressure",
+          "threshold": 4,
+          "policy": "medic-escort-line-pressure",
+          "playbookSourceSha256": "0f6c6e3e7a40da2daaca161f89c29b56762fed8a49735f329af7b2ff557b6e2d",
+          "cells": [
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 0,
+              "winnerTeam": 1,
+              "reason": "reactor-destroyed",
+              "endTick": 401
+            },
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 1,
+              "winnerTeam": 0,
+              "reason": "reactor-destroyed",
+              "endTick": 458
+            }
+          ]
+        },
+        {
+          "variantId": "t4-carrier-only-forward-pressure",
+          "threshold": 4,
+          "policy": "carrier-only-forward-pressure",
+          "playbookSourceSha256": "fee341e71381609c52175606644dac20dd127061675502fde115aeeb515b4a62",
+          "cells": [
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 0,
+              "winnerTeam": 1,
+              "reason": "reactor-destroyed",
+              "endTick": 356
+            },
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 1,
+              "winnerTeam": 0,
+              "reason": "reactor-destroyed",
+              "endTick": 438
+            }
+          ]
+        },
+        {
+          "variantId": "t4-carrier-only-rebreach",
+          "threshold": 4,
+          "policy": "carrier-only-rebreach",
+          "playbookSourceSha256": "a6db4c4fdf213c994537000c08f3aecb1412e3a323282041cef5a604cf1f2422",
+          "cells": [
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 0,
+              "winnerTeam": 1,
+              "reason": "reactor-destroyed",
+              "endTick": 403
+            },
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 1,
+              "winnerTeam": 0,
+              "reason": "reactor-destroyed",
+              "endTick": 417
+            }
+          ]
+        },
+        {
+          "variantId": "t5-full-escort",
+          "threshold": 5,
+          "policy": "full-escort",
+          "playbookSourceSha256": "0a1047a65117f0af17cafdc16829e0579c813e5dd79ef3930896bd3e3d1b5f9c",
+          "cells": [
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 0,
+              "winnerTeam": 1,
+              "reason": "reactor-destroyed",
+              "endTick": 354
+            },
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 1,
+              "winnerTeam": 0,
+              "reason": "reactor-destroyed",
+              "endTick": 435
+            }
+          ]
+        },
+        {
+          "variantId": "t5-medic-escort-line-pressure",
+          "threshold": 5,
+          "policy": "medic-escort-line-pressure",
+          "playbookSourceSha256": "1972520cde7e5b38c0bb532eb70817415333bca3bb2b06aa13d8da3824d12f8a",
+          "cells": [
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 0,
+              "winnerTeam": 1,
+              "reason": "reactor-destroyed",
+              "endTick": 433
+            },
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 1,
+              "winnerTeam": 0,
+              "reason": "reactor-destroyed",
+              "endTick": 435
+            }
+          ]
+        },
+        {
+          "variantId": "t5-carrier-only-forward-pressure",
+          "threshold": 5,
+          "policy": "carrier-only-forward-pressure",
+          "playbookSourceSha256": "6dff695420210702e6dfafa441bcd8f55a8c7992e80a27572b59f91668345200",
+          "cells": [
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 0,
+              "winnerTeam": 1,
+              "reason": "reactor-destroyed",
+              "endTick": 401
+            },
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 1,
+              "winnerTeam": 1,
+              "reason": "max-ticks",
+              "endTick": 599
+            }
+          ]
+        },
+        {
+          "variantId": "t5-carrier-only-rebreach",
+          "threshold": 5,
+          "policy": "carrier-only-rebreach",
+          "playbookSourceSha256": "e23a6060749695af93b8a2753963cfa87b3415b5ef7e41b8f23f3400147dba52",
+          "cells": [
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 0,
+              "winnerTeam": 1,
+              "reason": "reactor-destroyed",
+              "endTick": 416
+            },
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 1,
+              "winnerTeam": 0,
+              "reason": "reactor-destroyed",
+              "endTick": 483
+            }
+          ]
+        }
+      ],
+      "resultSummary": "No one of the twelve variants won both mirrors. Three-plus-rebreach won only team 0; five-plus-forward-pressure won only team 1 by horizon. Threshold and return shape interact with assignment, so neither is retained as a selected strategy.",
+      "verdict": "rejected-development-matrix"
+    },
+    {
+      "attemptId": "conversion-continuation-hysteresis-matrix",
+      "change": "Hold initial conversion entry at five unavailable enemies, then sweep a separate 0..4 unavailable-enemy continuation threshold for forward-pressure and rebreach delivery policies.",
+      "variants": [
+        {
+          "variantId": "c0-pressure",
+          "continuation": 0,
+          "policy": "pressure",
+          "playbookSourceSha256": "1de4c12b283ab3628e0b771aa3fb0bf0fa00d648657e9bfc2e8724b599f24ac0",
+          "cells": [
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 0,
+              "winnerTeam": 1,
+              "reason": "reactor-destroyed",
+              "endTick": 378
+            },
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 1,
+              "winnerTeam": 0,
+              "reason": "reactor-destroyed",
+              "endTick": 465
+            }
+          ]
+        },
+        {
+          "variantId": "c1-pressure",
+          "continuation": 1,
+          "policy": "pressure",
+          "playbookSourceSha256": "016362cfd4d6c8a729521d190ea948e88e3cb392ad1fc4a914b747d5047c6fec",
+          "cells": [
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 0,
+              "winnerTeam": 1,
+              "reason": "reactor-destroyed",
+              "endTick": 401
+            },
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 1,
+              "winnerTeam": 1,
+              "reason": "reactor-destroyed",
+              "endTick": 507
+            }
+          ]
+        },
+        {
+          "variantId": "c2-pressure",
+          "continuation": 2,
+          "policy": "pressure",
+          "playbookSourceSha256": "3ef3990fea13a0aa85d69b0584d0c1c8b34f79b2948cbe2a87fd6775595e6ccc",
+          "cells": [
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 0,
+              "winnerTeam": 1,
+              "reason": "reactor-destroyed",
+              "endTick": 401
+            },
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 1,
+              "winnerTeam": 1,
+              "reason": "max-ticks",
+              "endTick": 599
+            }
+          ]
+        },
+        {
+          "variantId": "c3-pressure",
+          "continuation": 3,
+          "policy": "pressure",
+          "playbookSourceSha256": "6d5d3cb6f26b2b717891ec141a5acdf257df5495af7a5da625ef0378d3c83afc",
+          "cells": [
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 0,
+              "winnerTeam": 1,
+              "reason": "reactor-destroyed",
+              "endTick": 401
+            },
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 1,
+              "winnerTeam": 1,
+              "reason": "max-ticks",
+              "endTick": 599
+            }
+          ]
+        },
+        {
+          "variantId": "c4-pressure",
+          "continuation": 4,
+          "policy": "pressure",
+          "playbookSourceSha256": "b602e43e83c8fc2f7388f9f44b18928dc73d6c01f0b6d6614239d526bb7c0cfa",
+          "cells": [
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 0,
+              "winnerTeam": 1,
+              "reason": "reactor-destroyed",
+              "endTick": 401
+            },
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 1,
+              "winnerTeam": 1,
+              "reason": "max-ticks",
+              "endTick": 599
+            }
+          ]
+        },
+        {
+          "variantId": "c0-rebreach",
+          "continuation": 0,
+          "policy": "rebreach",
+          "playbookSourceSha256": "4c97936840576108991696201e4c7ec6247ae54ec764d999b088f0e1d5c825ec",
+          "cells": [
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 0,
+              "winnerTeam": 1,
+              "reason": "reactor-destroyed",
+              "endTick": 351
+            },
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 1,
+              "winnerTeam": 0,
+              "reason": "reactor-destroyed",
+              "endTick": 457
+            }
+          ]
+        },
+        {
+          "variantId": "c1-rebreach",
+          "continuation": 1,
+          "policy": "rebreach",
+          "playbookSourceSha256": "6dba3cbc3282de4afe9c88d12fcc61f58f984a4dd62716689bd7d9a4b2f980e6",
+          "cells": [
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 0,
+              "winnerTeam": 1,
+              "reason": "reactor-destroyed",
+              "endTick": 416
+            },
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 1,
+              "winnerTeam": 0,
+              "reason": "reactor-destroyed",
+              "endTick": 457
+            }
+          ]
+        },
+        {
+          "variantId": "c2-rebreach",
+          "continuation": 2,
+          "policy": "rebreach",
+          "playbookSourceSha256": "c6f1271c8740fc7da251f644a8c425dcbcc8d527b38459776e3efcbaa764dcea",
+          "cells": [
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 0,
+              "winnerTeam": 1,
+              "reason": "reactor-destroyed",
+              "endTick": 416
+            },
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 1,
+              "winnerTeam": 0,
+              "reason": "reactor-destroyed",
+              "endTick": 483
+            }
+          ]
+        },
+        {
+          "variantId": "c3-rebreach",
+          "continuation": 3,
+          "policy": "rebreach",
+          "playbookSourceSha256": "b989c291760234f3f9de603c1f0ac51cc04a90b3903572414818ea9903452eb6",
+          "cells": [
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 0,
+              "winnerTeam": 1,
+              "reason": "reactor-destroyed",
+              "endTick": 416
+            },
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 1,
+              "winnerTeam": 0,
+              "reason": "reactor-destroyed",
+              "endTick": 483
+            }
+          ]
+        },
+        {
+          "variantId": "c4-rebreach",
+          "continuation": 4,
+          "policy": "rebreach",
+          "playbookSourceSha256": "08465a047c1f344aa3e5e460f07cf59c71535ccf25e5ef5dfc8e5f01a4b92fab",
+          "cells": [
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 0,
+              "winnerTeam": 1,
+              "reason": "reactor-destroyed",
+              "endTick": 416
+            },
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 1,
+              "winnerTeam": 0,
+              "reason": "reactor-destroyed",
+              "endTick": 483
+            }
+          ]
+        }
+      ],
+      "resultSummary": "No one of the ten variants won both mirrors. Zero caused premature repeated whole-team harvest; one improved team 1 to a reactor win under forward pressure but team 0 remained a 3-1 loss. Simple threshold hysteresis does not solve the conversion campaign.",
+      "verdict": "rejected-development-matrix"
+    },
+    {
+      "attemptId": "post-surge-resupply-track-matrix",
+      "change": "After the first full-team surge, add a concurrent resupply phase that sends either the runner or runner-plus-medics back to the Wells while the remaining groups maintain enemy-home pressure; compare one- and two-carrier batches.",
+      "variants": [
+        {
+          "variantId": "runner-batch1",
+          "collectors": "runner",
+          "batch": 1,
+          "playbookSourceSha256": "4c10d066292517f7084f2f2d9d85b5509c9b87635a073f93d1380aaa442d040a",
+          "cells": [
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 0,
+              "winnerTeam": 1,
+              "reason": "reactor-destroyed",
+              "endTick": 523
+            },
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 1,
+              "winnerTeam": 0,
+              "reason": "reactor-destroyed",
+              "endTick": 415
+            }
+          ]
+        },
+        {
+          "variantId": "runner-batch2",
+          "collectors": "runner",
+          "batch": 2,
+          "playbookSourceSha256": "3e4e8a17c0d69ae2ef5ec84d216e94c68d389303a3a6f7297d9b50fb3d9991b3",
+          "cells": [
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 0,
+              "winnerTeam": 1,
+              "reason": "reactor-destroyed",
+              "endTick": 453
+            },
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 1,
+              "winnerTeam": 0,
+              "reason": "reactor-destroyed",
+              "endTick": 415
+            }
+          ]
+        },
+        {
+          "variantId": "runner-medics-batch1",
+          "collectors": "runner-medics",
+          "batch": 1,
+          "playbookSourceSha256": "585e830664449c8155de84e59ac3a8e0dfcfe6549b665eeb9cac108170349e56",
+          "cells": [
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 0,
+              "winnerTeam": 0,
+              "reason": "reactor-destroyed",
+              "endTick": 498
+            },
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 1,
+              "winnerTeam": 0,
+              "reason": "reactor-destroyed",
+              "endTick": 536
+            }
+          ]
+        },
+        {
+          "variantId": "runner-medics-batch2",
+          "collectors": "runner-medics",
+          "batch": 2,
+          "playbookSourceSha256": "38fc8c929e47e9b240aae8878ba5f77b1ca4624c05b220ac07d525babdc9c093",
+          "cells": [
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 0,
+              "winnerTeam": 1,
+              "reason": "reactor-destroyed",
+              "endTick": 478
+            },
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 1,
+              "winnerTeam": 0,
+              "reason": "reactor-destroyed",
+              "endTick": 504
+            }
+          ]
+        }
+      ],
+      "resultSummary": "No one of the four variants won both mirrors. Runner-plus-medics with a one-carrier batch won team 0 at tick 498 but lost team 1 at tick 536. The concurrent-track grammar works, but this resupply allocation is not retained as a dominance strategy.",
+      "verdict": "rejected-development-matrix"
+    },
+    {
+      "attemptId": "deterministic-maneuver-catalog-authoring",
+      "playbookSourceSha256": "0db68350dae728d39dcb553ee7342d203fd354d330407d61576a78f9067427e9",
+      "change": "Replace repetitive expanded authoring orders and copied transition conditions with bounded parameters, named fallbacks, named condition sets, standing orders, and multi-track maneuvers that deterministically compile to the exhaustive runtime IR.",
+      "cells": [
+        {
+          "opponent": "coordination-parity-baseline-v1",
+          "siegeTeam": 0,
+          "winnerTeam": 1,
+          "reason": "reactor-destroyed",
+          "endTick": 354
+        },
+        {
+          "opponent": "coordination-parity-baseline-v1",
+          "siegeTeam": 1,
+          "winnerTeam": 0,
+          "reason": "reactor-destroyed",
+          "endTick": 435
+        }
+      ],
+      "resultSummary": "Retain the generic authoring compiler. The mirrored ticks are byte-for-behavior identical to the preceding expanded source, demonstrating that the compact catalog changes authoring ergonomics without smuggling in a strategy result. The current strategy remains rejected.",
+      "verdict": "retained-framework-change-rejected-strategy"
+    },
+    {
+      "attemptId": "context-specific-occupied-attrition-matrix",
+      "change": "Keep the approach, breach, regroup, and custody attrition requirement at five causally known unavailable enemies, but sweep a separate 2..5 requirement used only after stable siege occupation.",
+      "variants": [
+        {
+          "variantId": "occupied-2",
+          "occupiedThreshold": 2,
+          "playbookSourceSha256": "a9a91d8d47f2661d16b91601dbbd43f4d2d3312ae8c22b0118d6f6526f0a2403",
+          "cells": [
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 0,
+              "winnerTeam": 1,
+              "reason": "reactor-destroyed",
+              "endTick": 351
+            },
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 1,
+              "winnerTeam": 0,
+              "reason": "reactor-destroyed",
+              "endTick": 461
+            }
+          ]
+        },
+        {
+          "variantId": "occupied-3",
+          "occupiedThreshold": 3,
+          "playbookSourceSha256": "170f140c046ba15205e7373260918fb4cc47cec3cfe2648a822ed3deef35cbc6",
+          "cells": [
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 0,
+              "winnerTeam": 0,
+              "reason": "reactor-destroyed",
+              "endTick": 472
+            },
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 1,
+              "winnerTeam": 1,
+              "reason": "reactor-destroyed",
+              "endTick": 462
+            }
+          ]
+        },
+        {
+          "variantId": "occupied-4",
+          "occupiedThreshold": 4,
+          "playbookSourceSha256": "660ed43dc635f3a21f6168fbb5bdfe15cd8e3ba6ba8240804b6529c184cb08b4",
+          "cells": [
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 0,
+              "winnerTeam": 1,
+              "reason": "reactor-destroyed",
+              "endTick": 435
+            },
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 1,
+              "winnerTeam": 0,
+              "reason": "reactor-destroyed",
+              "endTick": 438
+            }
+          ]
+        },
+        {
+          "variantId": "occupied-5",
+          "occupiedThreshold": 5,
+          "playbookSourceSha256": "3997a63d35e77f2f24b4293ea555963ae9eed669bdda811f9e62812829003fd9",
+          "cells": [
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 0,
+              "winnerTeam": 1,
+              "reason": "reactor-destroyed",
+              "endTick": 401
+            },
+            {
+              "opponent": "coordination-parity-baseline-v1",
+              "siegeTeam": 1,
+              "winnerTeam": 1,
+              "reason": "max-ticks",
+              "endTick": 599
+            }
+          ]
+        }
+      ],
+      "resultSummary": "Three unavailable enemies after established occupation is the first development candidate to win both mirrored assignments. It remains below the hard gate: the canonical representatives finish at 10-7 and 9-6 bank-equivalent scores, retain only one reactor segment, and allow far more than one baseline bank after occupation. Two, four, and five lose at least one mirror. Retain the context split and value three only as the next development candidate, not a frozen or final threshold.",
+      "verdict": "retained-development-candidate-gate-failed"
+    },
+    {
+      "attemptId": "keyed-semantic-authoring-catalog",
+      "playbookSourceSha256": "adb241746b36f826ce826f78c0386162f7d45bbc13c068e75a8146d9242fcc39",
+      "change": "Replace repeated IDs, copied fact objects, per-slot formation objects, and repeated group-order fields with keyed catalogs, named predicates and condition sets, bounded context parameters, assignment profiles, and ordered formation placement bands. Compile them deterministically to exhaustive runtime IR.",
+      "cells": [
+        {
+          "opponent": "coordination-parity-baseline-v1",
+          "siegeTeam": 0,
+          "winnerTeam": 0,
+          "reason": "reactor-destroyed",
+          "endTick": 472
+        },
+        {
+          "opponent": "coordination-parity-baseline-v1",
+          "siegeTeam": 1,
+          "winnerTeam": 1,
+          "reason": "reactor-destroyed",
+          "endTick": 462
+        }
+      ],
+      "resultSummary": "Retain the authoring framework. The keyed source reproduces the occupied-3 development candidate exactly in both assignments while keeping approach-five and occupied-three as separate explicit hypotheses. The strategy still fails the dominance margin, reactor-integrity, and post-occupation suppression gates.",
+      "verdict": "retained-framework-change-development-candidate-gate-failed"
+    },
+    {
+      "attemptId": "deterministic-detachment-and-capability-selection",
+      "change": "Permit a phase to split a stable group through ordered take selections plus one exhaustive remainder. A take declares eligible roles, ordered class preferences, and count; assignment is deterministic by priority, authored class order, then unit ID, and promotes the next eligible survivor after a casualty.",
+      "resultSummary": "Retained as generic framework capability. Fixtures prove whole-group compatibility, deterministic class-aware selection, casualty promotion, and rejection of an unassigned remainder. Strategy experiments using it are recorded separately and do not count as proof of dominance.",
+      "verdict": "retained-framework-change"
+    },
+    {
+      "attemptId": "explicit-order-custody-no-silent-fallback",
+      "playbookSourceSha256": "b196df25081ab8b48711eb25f387e17fc17e693a92271a9a180f10e761d68bd5",
+      "change": "Require every order to name its Core-custody policy. Add an explicit incidental-delivery policy for orders that may deliver an accidental pickup but must never deliberately collect; remove runtime fallback to the first policy.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 472 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 462 }
+      ],
+      "resultSummary": "Retained. Both representative outcomes are unchanged from the keyed occupied-three candidate, proving the change removes an implicit default without changing current behavior.",
+      "verdict": "retained-framework-change-development-candidate-gate-failed"
+    },
+    {
+      "attemptId": "steal-before-collect-timeout-matrix",
+      "change": "Require the siege to steal an enemy-carried Core before beginning ordinary collection, sweeping secure-state timeouts 36, 48, and 60 ticks.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 477 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 525 }
+      ],
+      "resultSummary": "All timeout values reproduced the same two losses. Full replay inspection confirmed a legal carrier kill, north-Core steal, and bank, but the siege banked only five while baseline banked nine. The mechanic works; global force-allocation phases do not preserve pressure while converting it.",
+      "verdict": "rejected"
+    },
+    {
+      "attemptId": "dynamic-carrier-denial-detachment",
+      "change": "When a visible enemy carrier entered the home approach, split two interceptors from the line while the remainder maintained pressure.",
+      "cells": [
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 404 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 516 }
+      ],
+      "resultSummary": "Rejected. The local-state split repeatedly destabilized the formation and committed too much force. It motivated task-scoped lifecycle and reintegration instead of more local-state tuning.",
+      "verdict": "rejected"
+    },
+    {
+      "attemptId": "blockade-shuttle-and-composition-screen",
+      "change": "Keep occupation while a runner retrieves dropped Cores at thresholds three, four, or five; separately screen artillery, rail-designator, hook-rail, shell-burst, and paint-shell compositions in both assignments.",
+      "resultSummary": "Every shuttle threshold and all ten composition cells lost. One shuttle did bank a stolen Core but too slowly. The retained Relay/Kestrel/two-Patchbay/two-Sunder/two-Repulsor composition is materially better for this tactic; composition churn does not solve the orchestration limit.",
+      "verdict": "rejected-diagnostic"
+    },
+    {
+      "attemptId": "class-aware-scorer-matrix",
+      "change": "Use the generic class-aware selector to detach a Kestrel for secure-Core collection and delivery while seven bodies maintain pressure; sweep conversion thresholds two through five. Also test Kestrel plus Relay as a two-body courier unit.",
+      "resultSummary": "Every one-courier mirror lost; the inspected threshold-three cell reached eight Siege banks against nine baseline banks and lost at tick 478. Two couriers weakened the blockade further: only threshold-two/team-zero reached a horizon draw and all opposite assignments lost. Reordering the stable runner role to prefer Kestrel also lost both mirrors. Capability selection works, but a phase-owned detachment cannot complete and reintegrate without disrupting the persistent campaign.",
+      "verdict": "rejected-strategy-retained-framework"
+    },
+    {
+      "attemptId": "concurrent-task-lifecycle-v1-single-courier",
+      "playbookSourceSha256": "3c857efff6c98175c545a9a76f56592d9646aa9fcbd79fc43e080f658789f5d6",
+      "change": "Replace the global harvest and delivery phases with a persistent occupy order plus one bounded Kestrel secured-Core conversion task. The task uses stable triggering, an exact-life lease, explicit participant-loss policy, timeout, cooldown, and primary-order reintegration.",
+      "cells": [
+        { "opponent": "historical-baseline-v2-diagnostic", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 326 },
+        { "opponent": "historical-baseline-v2-diagnostic", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 413 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 330 },
+        { "opponent": "coordination-parity-baseline-v1", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 406 }
+      ],
+      "resultSummary": "Retain the generic task lifecycle, reject this strategy candidate. Against the fair parity control both assignments lost. Trace inspection showed no activation in team-zero because observed attrition and secured-Core facts never overlapped; team-one activated twice, but one lease was incorrectly released when the primary line entered recovery. That lifecycle bug is fixed and pinned: activation selectors choose an exact life once, while carrier and primary local-state changes do not re-elect it. The single secure-Core trigger remains too sparse to create dominant scoring pressure.",
+      "verdict": "rejected-strategy-retained-framework"
+    },
+    {
+      "attemptId": "concurrent-carrier-denial-and-runner-conversion-v2",
+      "change": "Run disjoint tasks during occupation: the stable Relay runner converts secured Cores at observed attrition two while one nearest Repulsor/Sunder pursues a visible carrier inside a six-tile enemy-bank leash. The remainder stays on the blockade order.",
+      "cells": [
+        { "variant": "leases-counted-in-primary-formation", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 371 },
+        { "variant": "leases-counted-in-primary-formation", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 458 },
+        { "variant": "leases-scoped-out-of-primary-formation", "playbookSourceSha256": "de9fb7be5682862976656499bca4469022336b1f83a5120c7735880c4be94529", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 482 },
+        { "variant": "leases-scoped-out-of-primary-formation", "playbookSourceSha256": "de9fb7be5682862976656499bca4469022336b1f83a5120c7735880c4be94529", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 422 }
+      ],
+      "resultSummary": "Reject the strategy candidate and retain the runtime correction. Denial and conversion activate concurrently on disjoint bodies, but both assignments still lose. Trace inspection exposed that task-owned bodies were still counted in primary formation cohesion and pace, causing false line recovery. Exact-life task leases are now scoped out of primary cohesion, stuck, membership-rejoin, and pace cohorts until release. This materially extended the team-zero cell but is not sufficient: one long-return courier cannot generate or suppress enough banks.",
+      "verdict": "rejected-strategy-retained-framework"
+    },
+    {
+      "attemptId": "harvest-sweep-with-primary-force-reserve-v3",
+      "playbookSourceSha256": "846e8366f16d46d44afafa4708ede2237fefcc85c9772db6a481221c091bf016",
+      "change": "Replace secure-Core-only conversion with a courier plus one-or-two raider harvest task over any outstanding Core. Add an explicit minimumPrimaryBodies task constraint: assignment minimums are selected before preferred extras, at least five bodies remain on the primary order across concurrent leases, and optional task bodies release after casualties before the reserve is breached.",
+      "cells": [
+        { "variant": "unbounded-three-body-harvest", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 402 },
+        { "variant": "unbounded-three-body-harvest", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 376 },
+        { "variant": "five-body-primary-reserve", "siegeTeam": 0, "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 505 },
+        { "variant": "five-body-primary-reserve", "siegeTeam": 1, "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 415 }
+      ],
+      "resultSummary": "Retain the generic primary-force reserve; reject this strategy candidate. The scheduler proves deterministic minimum-before-preferred allocation and casualty-driven optional release, and both representative matches last materially longer, but neither assignment wins. Force preservation is necessary but ordinary centre-line harvesting remains too slow to dictate the match.",
+      "verdict": "rejected-strategy-retained-framework"
+    },
+    {
+      "attemptId": "review-custody-lock-and-near-bank-regroup",
+      "change": "Correct two replay-observed lifecycle defects: a carrying body now remains exclusively committed to delivery on movement-cooldown ticks and may take only non-increasing-distance homeward steps; collapse regroups beside the enemy bank instead of withdrawing to the old northwest rally. A wider layered blockade was screened separately and rejected.",
+      "variants": [
+        { "variantId": "layered-approach-shoulders", "siegeTeam": 0, "scorecard": "5-9", "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 410 },
+        { "variantId": "layered-approach-shoulders", "siegeTeam": 1, "scorecard": "7-8", "winnerTeam": 0, "reason": "max-ticks", "endTick": 599 },
+        { "variantId": "tight-ring-near-regroup", "siegeTeam": 0, "scorecard": "9-6", "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 463 },
+        { "variantId": "tight-ring-near-regroup", "siegeTeam": 1, "scorecard": "2-3", "winnerTeam": 0, "reason": "max-ticks", "endTick": 599 }
+      ],
+      "resultSummary": "Retain the custody and near-regroup corrections; reject the wider ring. The retained review replay contains zero primary-formation commands while carrying and replaces a 118-tick northwest withdrawal with bounded 11-14 tick recovery beside the enemy bank. The strategy still fails its mirror and margin gate.",
+      "verdict": "retained-runtime-and-strategy-correction-gate-failed"
+    },
+    {
+      "attemptId": "remembered-carrier-denial-persistence-matrix",
+      "change": "Make enemy-carrier memory a causal typed fact. Visible pickup/handoff marks the exact carrier life, bank/drop/death clears it, and an enemy-carrier task may follow the last confirmed position. Denial completes only when the carrier is causally resolved; otherwise it searches until its authored timeout. Screen one versus two interceptors and 12 versus 24 ticks.",
+      "variants": [
+        {
+          "variantId": "one-interceptor-24",
+          "playbookSourceSha256": "159bfd2e89ec4683fad3e59067305e5763e6be159686c97c7d1eb86a716495a0",
+          "cells": [
+            { "siegeTeam": 0, "scorecard": "7-7", "winnerTeam": null, "reason": "max-ticks", "endTick": 599 },
+            { "siegeTeam": 1, "scorecard": "9-7", "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 552 }
+          ]
+        },
+        {
+          "variantId": "two-interceptors-24",
+          "playbookSourceSha256": "dd802a0c0885556f709b2318e407ea7f391f0cb139eabf1561e937b09c084016",
+          "cells": [
+            { "siegeTeam": 0, "scorecard": "7-9", "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 483 },
+            { "siegeTeam": 1, "scorecard": "3-9", "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 340 }
+          ]
+        },
+        {
+          "variantId": "one-interceptor-12",
+          "playbookSourceSha256": "4ba03c0a2658791b9d18a97a92c68cb340405b393631ae39fc89a97b0f65a944",
+          "cells": [
+            { "siegeTeam": 0, "scorecard": "9-8", "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 592 },
+            { "siegeTeam": 1, "scorecard": "8-9", "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 573 }
+          ]
+        }
+      ],
+      "resultSummary": "Retain causal remembered-carrier semantics and one 24-tick interceptor. Two bodies dissolve too much blockade fire; twelve ticks abandons the mirror carrier too early. The retained lifecycle improves the former losing mirror to 9-7, but its paired 7-7 draw still fails the screen gate.",
+      "verdict": "retained-framework-and-denial-lifecycle-strategy-gate-failed"
+    },
+    {
+      "attemptId": "paired-courier-escort-primary-reserve-screen",
+      "change": "Give the conversion task an explicit line escort order that follows the friendly carrier inside a 16-tile bank leash. Compare a six-body reserve, which forbids conversion while denial owns one body, with a five-body reserve that permits one interceptor plus courier plus escort while the remainder keeps the living blockade.",
+      "variants": [
+        {
+          "variantId": "six-body-primary-reserve",
+          "playbookSourceSha256": "4e1ff11c1882096ab12a9d8a43933b98cd84dede40fe8f77cfab4c8b39c3d513",
+          "cells": [
+            { "siegeTeam": 0, "scorecard": "9-6", "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 570 },
+            { "siegeTeam": 1, "scorecard": "5-9", "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 497 }
+          ]
+        },
+        {
+          "variantId": "five-body-primary-reserve",
+          "playbookSourceSha256": "1812b16d03ff9a70c3f9e66e6a4f0b0a9293b9543925281e9df2657ed25e5fdb",
+          "cells": [
+            { "siegeTeam": 0, "scorecard": "9-4", "winnerTeam": 0, "reason": "reactor-destroyed", "endTick": 448, "siegeIntegrity": 2 },
+            { "siegeTeam": 1, "scorecard": "9-3", "winnerTeam": 1, "reason": "reactor-destroyed", "endTick": 488, "siegeIntegrity": 2 }
+          ]
+        }
+      ],
+      "resultSummary": "Retain the five-body reserve as the first candidate to clear both representative assignments at the exact hard margins. The mirrored cell proves twelve ticks of concurrent denial and courier-plus-escort leases while five primary bodies remain. This is only the two-speed screen gate: artifacts and the 24-cell WASM cohort are not yet frozen or run.",
+      "verdict": "retained-development-candidate-screen-gate-cleared"
+    }
+  ]
+}

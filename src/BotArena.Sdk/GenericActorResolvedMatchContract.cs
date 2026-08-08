@@ -175,10 +175,13 @@ public sealed class GenericActorResolvedMatchContract
     /// <param name="UnitId">Stable unit-slot identifier.</param>
     /// <param name="LifecycleProfileId">Assigned lifecycle catalog entry.</param>
     /// <param name="InitialGeneration">
-    /// Initial generation, or <see langword="null"/> until first activation.
+    /// Declared generation for a tick-zero or scheduled automatic first life;
+    /// <see langword="null"/> when a source transition must create it.
     /// </param>
     /// <param name="AllowedFormIds">Complete set of forms this slot may host.</param>
-    /// <param name="InitialAvailability">Tick-zero availability policy.</param>
+    /// <param name="InitialAvailability">
+    /// Initial and scheduled first-life availability policy.
+    /// </param>
     /// <param name="UnlockTick">
     /// Scheduled unlock tick for delayed slots; otherwise <see langword="null"/>.
     /// </param>
@@ -193,7 +196,21 @@ public sealed class GenericActorResolvedMatchContract
         ImmutableArray<string> AllowedFormIds,
         InitialAvailability InitialAvailability,
         int? UnlockTick,
-        string? AssignedRespawnSpawnId);
+        string? AssignedRespawnSpawnId)
+    {
+        /// <summary>
+        /// The form a fabrication INTO this slot produces, overriding the
+        /// fabrication transition's declared output — "fabricate produces the
+        /// target slot's chassis". It is present only under a MIXED
+        /// composition, where a fabricating body builds the ARMY its topology
+        /// declares rather than copies of itself.
+        /// <para><see langword="null"/> means this slot takes the transition's
+        /// own output, which is every mono cell. Read it beside the slot's
+        /// <c>classId</c> in the topology when you want to know what a
+        /// <c>fabricate</c> into slot N will actually put on the board.</para>
+        /// </summary>
+        public string? FabricationOutputFormId { get; init; }
+    }
 
     /// <summary>Binds one participant role to a named map region.</summary>
     /// <param name="ParticipantId">Submitted-program identifier.</param>
@@ -224,6 +241,13 @@ public sealed class GenericActorResolvedMatchContract
         ImmutableArray<FrontlineTeamAdvance> TeamAdvances)
         : ModeMapBindingDefinition(ModeMapBindingKind.Frontline);
 
+    /// <summary>Binds ordered Wells and participant-relative home roles.</summary>
+    public sealed record ArcRelayModeMapBinding(
+        ImmutableArray<string> OrderedWellRegionIds,
+        string ReactorRegionRoleId,
+        string HomePadRegionRoleId)
+        : ModeMapBindingDefinition(ModeMapBindingKind.ArcRelay);
+
     /// <summary>One team's advance direction through ordered objectives.</summary>
     /// <param name="TeamId">Stable scoring-team identifier.</param>
     /// <param name="Direction">Semantic direction through objective indices.</param>
@@ -244,13 +268,18 @@ public sealed class GenericActorResolvedMatchContract
         Teams = 2,
     }
 
-    /// <summary>Tick-zero availability of a stable unit slot.</summary>
+    /// <summary>Initial and scheduled availability of a stable unit slot.</summary>
     public enum InitialAvailability
     {
         /// <summary>The slot contains an active life at tick zero.</summary>
         ActiveAtTickZero = 0,
         /// <summary>The slot is dormant until its declared unlock tick.</summary>
         DormantUnlockAtTick = 1,
+        /// <summary>
+        /// The slot is dormant until the engine creates its first life at the
+        /// declared tick and assigned spawn.
+        /// </summary>
+        DormantAutomaticActivationAtTick = 2,
     }
 
     /// <summary>Discriminator for mode-to-map binding records.</summary>
@@ -260,6 +289,8 @@ public sealed class GenericActorResolvedMatchContract
         Deathmatch = 0,
         /// <summary>Frontline uses ordered objective regions.</summary>
         Frontline = 1,
+        /// <summary>Arc Relay binds three Wells plus home/reactor roles.</summary>
+        ArcRelay = 2,
     }
 
     /// <summary>Semantic team advance through ordered objective indices.</summary>

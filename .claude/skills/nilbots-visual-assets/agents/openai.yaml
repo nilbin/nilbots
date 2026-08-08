@@ -1,4 +1,4 @@
 interface:
   display_name: "Nilbots Visual Assets"
-  short_description: "Build and validate nilbots themes and bot looks"
-  default_prompt: "Use $nilbots-visual-assets to create or revise a nilbots arena theme or bot look."
+  short_description: "Create validated Nilbots 2D and 3D game art"
+  default_prompt: "Use $nilbots-visual-assets to create or revise a validated 2D/3D bot, projectile, or arena asset."

@@ -13,7 +13,8 @@ public sealed record GenericActorLifeStart
         int participantId,
         ulong actorRandomSeed,
         GenericActorRuntimeStart.LifeOrigin origin,
-        string matchContractFingerprint)
+        string matchContractFingerprint,
+        ulong teamRandomSeed)
     {
         if (schemaVersion <= 0)
             throw new ArgumentOutOfRangeException(nameof(schemaVersion));
@@ -40,6 +41,7 @@ public sealed record GenericActorLifeStart
         ActorId = actorId;
         ParticipantId = participantId;
         ActorRandomSeed = actorRandomSeed;
+        TeamRandomSeed = teamRandomSeed;
         Origin = origin;
         MatchContractFingerprint = matchContractFingerprint;
     }
@@ -49,6 +51,13 @@ public sealed record GenericActorLifeStart
     public ActorIdentity ActorId { get; }
     public int ParticipantId { get; }
     public ulong ActorRandomSeed { get; }
+
+    /// <summary>
+    /// Root seed of the scoring team's shared per-tick stream. Every life on
+    /// the team carries the identical value, which is what makes a randomized
+    /// team plan common knowledge and byte-identical on replay.
+    /// </summary>
+    public ulong TeamRandomSeed { get; }
     public GenericActorRuntimeStart.LifeOrigin Origin { get; }
     public string MatchContractFingerprint { get; }
 
@@ -102,6 +111,26 @@ public sealed record GenericActorLifeStart
                 "An initial life start must identify one exact topology initial life.",
                 nameof(descriptor));
         }
+        if (Origin.Reason
+                == GenericActorRuntimeStart.SpawnReason.AutomaticActivation)
+        {
+            ActorUnitSlotLifecycleAssignmentDefinition? assignment =
+                definition.LifecycleAssignments.SingleOrDefault(candidate =>
+                    candidate.TeamId == ActorId.TeamId
+                    && candidate.UnitId == ActorId.UnitId);
+            if (ActorId.LifeId != 0
+                || assignment is null
+                || assignment.InitialAvailability
+                    != ActorUnitSlotLifecycleAssignmentDefinition
+                        .InitialAvailabilityKind
+                        .DormantAutomaticActivationAtTick
+                || Origin.Generation != assignment.InitialGeneration)
+            {
+                throw new ArgumentException(
+                    "An automatic activation must identify the declared first life of its dormant slot.",
+                    nameof(descriptor));
+            }
+        }
 
         ulong expectedSeed = SeedDerivation.DeriveActorSeed(
             descriptor.MatchSeed,
@@ -113,17 +142,33 @@ public sealed record GenericActorLifeStart
                 "Life-start actor seed does not match deterministic derivation.",
                 nameof(descriptor));
         }
+
+        ulong expectedTeamSeed = SeedDerivation.DeriveTeamSeed(
+            descriptor.MatchSeed,
+            ActorId.TeamId,
+            definition.Rules.SeedMechanics.SeedProfileId);
+        if (TeamRandomSeed != expectedTeamSeed)
+        {
+            throw new ArgumentException(
+                "Life-start team seed does not match deterministic derivation.",
+                nameof(descriptor));
+        }
     }
 
     internal void ValidateDynamicLineage(
         GenericActorLifeStart? issuedParent)
     {
-        if (Origin.Reason == GenericActorRuntimeStart.SpawnReason.Initial)
+        if (Origin.Reason is GenericActorRuntimeStart.SpawnReason.Initial
+            or GenericActorRuntimeStart.SpawnReason.AutomaticActivation
+            // A ROOT-FACTORY seed is parentless in exactly the same way an
+            // initial deployment is: the base placed it, so there is no
+            // issued life for it to descend from.
+            or GenericActorRuntimeStart.SpawnReason.RootFactorySeed)
         {
             if (issuedParent is not null)
             {
                 throw new ArgumentException(
-                    "An initial life cannot have issued parent metadata.",
+                    "A parentless lifecycle origin cannot have issued parent metadata.",
                     nameof(issuedParent));
             }
             return;
@@ -172,7 +217,8 @@ public sealed record GenericActorLifeStart
             start.ParticipantId,
             start.ActorRandomSeed,
             start.Origin,
-            ActorContractFingerprint.ComputeMatch(start.Contract));
+            ActorContractFingerprint.ComputeMatch(start.Contract),
+            start.TeamRandomSeed);
     }
 
     private static bool IsValidLineage(
@@ -196,6 +242,12 @@ public sealed record GenericActorLifeStart
         return origin.Reason switch
         {
             GenericActorRuntimeStart.SpawnReason.Initial =>
+                origin.ParentActorId is null && !hasTransition,
+            GenericActorRuntimeStart.SpawnReason.AutomaticActivation
+                // A ROOT-FACTORY seed has no parent by construction: a
+                // structure placed it, so there is no source life whose
+                // lineage it continues.
+                or GenericActorRuntimeStart.SpawnReason.RootFactorySeed =>
                 origin.ParentActorId is null && !hasTransition,
             GenericActorRuntimeStart.SpawnReason.AutomaticReturn =>
                 origin.ParentActorId is ActorIdentity parent

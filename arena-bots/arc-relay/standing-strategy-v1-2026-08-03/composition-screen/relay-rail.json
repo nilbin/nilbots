@@ -1,0 +1,989 @@
+{
+  "auditStatus": {
+    "playerFacingProductSchema": false,
+    "provisionalEvaluationOnly": true
+  },
+  "composition": [
+    "relay",
+    "relay",
+    "patchbay",
+    "patchbay",
+    "sunder",
+    "sunder",
+    "longshot",
+    "longshot"
+  ],
+  "formations": {
+    "enemy-perimeter.north": [
+      [
+        24,
+        8
+      ],
+      [
+        24,
+        9
+      ],
+      [
+        24,
+        10
+      ],
+      [
+        24,
+        11
+      ],
+      [
+        24,
+        12
+      ],
+      [
+        24,
+        13
+      ],
+      [
+        24,
+        14
+      ],
+      [
+        23,
+        7
+      ]
+    ],
+    "enemy-perimeter.south": [
+      [
+        24,
+        14
+      ],
+      [
+        24,
+        13
+      ],
+      [
+        24,
+        12
+      ],
+      [
+        24,
+        11
+      ],
+      [
+        24,
+        10
+      ],
+      [
+        24,
+        9
+      ],
+      [
+        24,
+        8
+      ],
+      [
+        23,
+        15
+      ]
+    ],
+    "rally.north": [
+      [
+        21,
+        6
+      ],
+      [
+        22,
+        6
+      ],
+      [
+        23,
+        7
+      ],
+      [
+        24,
+        8
+      ],
+      [
+        21,
+        8
+      ],
+      [
+        22,
+        9
+      ],
+      [
+        23,
+        9
+      ],
+      [
+        24,
+        9
+      ]
+    ],
+    "rally.south": [
+      [
+        21,
+        16
+      ],
+      [
+        22,
+        16
+      ],
+      [
+        23,
+        15
+      ],
+      [
+        24,
+        14
+      ],
+      [
+        21,
+        14
+      ],
+      [
+        22,
+        13
+      ],
+      [
+        23,
+        13
+      ],
+      [
+        24,
+        13
+      ]
+    ]
+  },
+  "mapId": "arc-relay-threefold-depth-counterflow-01",
+  "paths": {
+    "assault.north": [
+      [
+        4,
+        8
+      ],
+      [
+        7,
+        6
+      ],
+      [
+        10,
+        6
+      ],
+      [
+        13,
+        5
+      ],
+      [
+        16,
+        5
+      ],
+      [
+        19,
+        6
+      ],
+      [
+        22,
+        6
+      ],
+      [
+        24,
+        8
+      ],
+      [
+        24,
+        10
+      ]
+    ],
+    "assault.south": [
+      [
+        4,
+        14
+      ],
+      [
+        7,
+        16
+      ],
+      [
+        10,
+        16
+      ],
+      [
+        13,
+        17
+      ],
+      [
+        16,
+        17
+      ],
+      [
+        19,
+        16
+      ],
+      [
+        22,
+        16
+      ],
+      [
+        24,
+        14
+      ],
+      [
+        24,
+        12
+      ]
+    ],
+    "breach.north": [
+      [
+        22,
+        7
+      ],
+      [
+        23,
+        8
+      ],
+      [
+        24,
+        10
+      ]
+    ],
+    "breach.south": [
+      [
+        22,
+        15
+      ],
+      [
+        23,
+        14
+      ],
+      [
+        24,
+        12
+      ]
+    ],
+    "return.north": [
+      [
+        25,
+        8
+      ],
+      [
+        22,
+        6
+      ],
+      [
+        19,
+        6
+      ],
+      [
+        16,
+        5
+      ],
+      [
+        13,
+        5
+      ],
+      [
+        10,
+        6
+      ],
+      [
+        7,
+        6
+      ],
+      [
+        4,
+        8
+      ],
+      [
+        2,
+        11
+      ]
+    ],
+    "return.south": [
+      [
+        25,
+        14
+      ],
+      [
+        22,
+        16
+      ],
+      [
+        19,
+        16
+      ],
+      [
+        16,
+        17
+      ],
+      [
+        13,
+        17
+      ],
+      [
+        10,
+        16
+      ],
+      [
+        7,
+        16
+      ],
+      [
+        4,
+        14
+      ],
+      [
+        2,
+        11
+      ]
+    ]
+  },
+  "schema": "arc-relay-evaluation-sheet-v3",
+  "sheetId": "home-siege-relay-rail-screen-v1",
+  "standingStrategy": {
+    "focusPolicy": "carrier-first",
+    "initialPhase": "assault",
+    "memory": {
+      "enemyUnavailableTicks": 21,
+      "lastSeenEnemyTicks": 30,
+      "objectiveProgressMemoryTicks": 90,
+      "securedCoreMemoryTicks": 40,
+      "stableControlTicks": 3
+    },
+    "parameters": {
+      "lane": "north",
+      "lanePerspective": "team-relative",
+      "scoreWell": "north"
+    },
+    "phases": [
+      {
+        "assignments": [
+          {
+            "behavior": "score",
+            "candidateClasses": [
+              "relay",
+              "kestrel"
+            ],
+            "corePolicy": "deliver",
+            "coreSource": "$scoreWell",
+            "count": 1,
+            "engagement": "evade",
+            "id": "assault-scorer",
+            "position": {
+              "kind": "path",
+              "target": "assault"
+            },
+            "priority": 0,
+            "resilience": "essential",
+            "respawn": "replace",
+            "signature": "advance",
+            "when": [
+              {
+                "all": [
+                  {
+                    "fact": "friendly-carriers",
+                    "operator": "at-least",
+                    "value": 1
+                  }
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "fact": "secured-cores",
+                    "operator": "at-least",
+                    "value": 1
+                  },
+                  {
+                    "fact": "friendlies-in-zone",
+                    "operator": "at-least",
+                    "value": 5,
+                    "zone": "enemy-home"
+                  }
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "fact": "ticks-without-objective-progress",
+                    "operator": "at-least",
+                    "value": 60
+                  },
+                  {
+                    "fact": "friendlies-in-zone",
+                    "operator": "at-least",
+                    "value": 5,
+                    "zone": "enemy-home"
+                  },
+                  {
+                    "fact": "well-has-outstanding",
+                    "operator": "at-least",
+                    "subject": "$scoreWell",
+                    "value": 1
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "behavior": "escort",
+            "candidateClasses": [
+              "patchbay"
+            ],
+            "corePolicy": "deliver",
+            "count": 1,
+            "engagement": "focus",
+            "id": "carrier-escort",
+            "position": {
+              "kind": "path",
+              "target": "assault"
+            },
+            "priority": 5,
+            "resilience": "essential",
+            "respawn": "rejoin",
+            "signature": "support",
+            "when": [
+              {
+                "all": [
+                  {
+                    "fact": "friendly-carriers",
+                    "operator": "at-least",
+                    "value": 1
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "behavior": "support",
+            "candidateClasses": [
+              "patchbay"
+            ],
+            "corePolicy": "deliver",
+            "count": 2,
+            "engagement": "focus",
+            "formation": "enemy-perimeter",
+            "id": "assault-support",
+            "position": {
+              "kind": "path",
+              "target": "assault"
+            },
+            "priority": 10,
+            "resilience": "essential",
+            "respawn": "rejoin",
+            "signature": "support"
+          },
+          {
+            "behavior": "advance",
+            "corePolicy": "deliver",
+            "count": -1,
+            "engagement": "advance-under-fire",
+            "formation": "enemy-perimeter",
+            "id": "lane-rush",
+            "position": {
+              "kind": "path",
+              "target": "assault"
+            },
+            "priority": 20,
+            "resilience": "replaceable",
+            "respawn": "rejoin",
+            "signature": "advance"
+          }
+        ],
+        "id": "assault",
+        "minimumTicks": 20,
+        "transitions": [
+          {
+            "cause": "success",
+            "priority": 10,
+            "stableTicks": 1,
+            "to": "occupy",
+            "when": [
+              {
+                "all": [
+                  {
+                    "fact": "friendlies-in-zone",
+                    "operator": "at-least",
+                    "value": 6,
+                    "zone": "enemy-home"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "cause": "failure",
+            "priority": 20,
+            "stableTicks": 3,
+            "to": "regroup",
+            "when": [
+              {
+                "all": [
+                  {
+                    "fact": "live-friendlies",
+                    "operator": "at-most",
+                    "value": 4
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "assignments": [
+          {
+            "behavior": "score",
+            "candidateClasses": [
+              "relay",
+              "kestrel"
+            ],
+            "corePolicy": "deliver",
+            "coreSource": "$scoreWell",
+            "count": 1,
+            "engagement": "evade",
+            "formation": "enemy-perimeter",
+            "id": "active-scorer",
+            "position": {
+              "kind": "zone",
+              "target": "enemy-home"
+            },
+            "priority": 0,
+            "resilience": "essential",
+            "respawn": "replace",
+            "signature": "advance",
+            "when": [
+              {
+                "all": [
+                  {
+                    "fact": "friendly-carriers",
+                    "operator": "at-least",
+                    "value": 1
+                  }
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "fact": "known-enemies-unavailable",
+                    "operator": "at-least",
+                    "value": 5
+                  },
+                  {
+                    "fact": "friendlies-in-zone",
+                    "operator": "at-least",
+                    "value": 6,
+                    "zone": "enemy-home"
+                  },
+                  {
+                    "fact": "secured-cores",
+                    "operator": "at-least",
+                    "value": 1
+                  }
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "fact": "ticks-without-objective-progress",
+                    "operator": "at-least",
+                    "value": 60
+                  },
+                  {
+                    "fact": "friendlies-in-zone",
+                    "operator": "at-least",
+                    "value": 6,
+                    "zone": "enemy-home"
+                  },
+                  {
+                    "fact": "well-has-outstanding",
+                    "operator": "at-least",
+                    "subject": "$scoreWell",
+                    "value": 1
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "behavior": "escort",
+            "candidateClasses": [
+              "patchbay"
+            ],
+            "corePolicy": "deliver",
+            "count": 1,
+            "engagement": "focus",
+            "formation": "enemy-perimeter",
+            "id": "carrier-escort",
+            "position": {
+              "kind": "zone",
+              "target": "enemy-home"
+            },
+            "priority": 5,
+            "resilience": "essential",
+            "respawn": "rejoin",
+            "signature": "support",
+            "when": [
+              {
+                "all": [
+                  {
+                    "fact": "friendly-carriers",
+                    "operator": "at-least",
+                    "value": 1
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "behavior": "support",
+            "candidateClasses": [
+              "patchbay"
+            ],
+            "corePolicy": "deliver",
+            "count": 2,
+            "engagement": "focus",
+            "formation": "enemy-perimeter",
+            "id": "cross-support",
+            "position": {
+              "kind": "zone",
+              "target": "enemy-home"
+            },
+            "priority": 10,
+            "resilience": "essential",
+            "respawn": "rejoin",
+            "signature": "support"
+          },
+          {
+            "behavior": "occupy",
+            "corePolicy": "deliver",
+            "count": -1,
+            "engagement": "focus",
+            "formation": "enemy-perimeter",
+            "id": "living-perimeter",
+            "position": {
+              "kind": "zone",
+              "target": "enemy-home"
+            },
+            "priority": 20,
+            "resilience": "replaceable",
+            "respawn": "rejoin",
+            "signature": "control"
+          }
+        ],
+        "id": "occupy",
+        "minimumTicks": 8,
+        "transitions": [
+          {
+            "cause": "failure",
+            "priority": 10,
+            "stableTicks": 3,
+            "to": "regroup",
+            "when": [
+              {
+                "all": [
+                  {
+                    "fact": "friendlies-in-zone",
+                    "operator": "at-most",
+                    "value": 5,
+                    "zone": "enemy-home"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "assignments": [
+          {
+            "behavior": "score",
+            "candidateClasses": [
+              "relay",
+              "kestrel"
+            ],
+            "corePolicy": "deliver",
+            "count": 1,
+            "engagement": "evade",
+            "formation": "rally",
+            "id": "regroup-scorer",
+            "position": {
+              "kind": "zone",
+              "target": "forward-rally"
+            },
+            "priority": 0,
+            "resilience": "essential",
+            "respawn": "replace",
+            "signature": "advance",
+            "when": [
+              {
+                "all": [
+                  {
+                    "fact": "friendly-carriers",
+                    "operator": "at-least",
+                    "value": 1
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "behavior": "escort",
+            "candidateClasses": [
+              "patchbay"
+            ],
+            "corePolicy": "deliver",
+            "count": 1,
+            "engagement": "focus",
+            "formation": "rally",
+            "id": "carrier-escort",
+            "position": {
+              "kind": "zone",
+              "target": "forward-rally"
+            },
+            "priority": 5,
+            "resilience": "essential",
+            "respawn": "rally",
+            "signature": "support",
+            "when": [
+              {
+                "all": [
+                  {
+                    "fact": "friendly-carriers",
+                    "operator": "at-least",
+                    "value": 1
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "behavior": "support",
+            "candidateClasses": [
+              "patchbay"
+            ],
+            "corePolicy": "deliver",
+            "count": 2,
+            "engagement": "focus",
+            "formation": "rally",
+            "id": "rally-support",
+            "position": {
+              "kind": "zone",
+              "target": "forward-rally"
+            },
+            "priority": 10,
+            "resilience": "essential",
+            "respawn": "rally",
+            "signature": "support"
+          },
+          {
+            "behavior": "regroup",
+            "corePolicy": "deliver",
+            "count": -1,
+            "engagement": "focus",
+            "formation": "rally",
+            "id": "rally-body",
+            "position": {
+              "kind": "zone",
+              "target": "forward-rally"
+            },
+            "priority": 20,
+            "resilience": "replaceable",
+            "respawn": "rally",
+            "signature": "conserve"
+          }
+        ],
+        "id": "regroup",
+        "minimumTicks": 8,
+        "transitions": [
+          {
+            "cause": "success",
+            "priority": 10,
+            "stableTicks": 4,
+            "to": "breach",
+            "when": [
+              {
+                "all": [
+                  {
+                    "fact": "friendlies-in-zone",
+                    "operator": "at-least",
+                    "value": 5,
+                    "zone": "forward-rally"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "assignments": [
+          {
+            "behavior": "score",
+            "candidateClasses": [
+              "relay",
+              "kestrel"
+            ],
+            "corePolicy": "deliver",
+            "count": 1,
+            "engagement": "evade",
+            "id": "breach-scorer",
+            "position": {
+              "kind": "path",
+              "target": "breach"
+            },
+            "priority": 0,
+            "resilience": "essential",
+            "respawn": "replace",
+            "signature": "advance",
+            "when": [
+              {
+                "all": [
+                  {
+                    "fact": "friendly-carriers",
+                    "operator": "at-least",
+                    "value": 1
+                  }
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "fact": "secured-cores",
+                    "operator": "at-least",
+                    "value": 1
+                  },
+                  {
+                    "fact": "friendlies-in-zone",
+                    "operator": "at-least",
+                    "value": 5,
+                    "zone": "enemy-home"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "behavior": "escort",
+            "candidateClasses": [
+              "patchbay"
+            ],
+            "corePolicy": "deliver",
+            "count": 1,
+            "engagement": "focus",
+            "id": "carrier-escort",
+            "position": {
+              "kind": "path",
+              "target": "breach"
+            },
+            "priority": 5,
+            "resilience": "essential",
+            "respawn": "rally",
+            "signature": "support",
+            "when": [
+              {
+                "all": [
+                  {
+                    "fact": "friendly-carriers",
+                    "operator": "at-least",
+                    "value": 1
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "behavior": "support",
+            "candidateClasses": [
+              "patchbay"
+            ],
+            "corePolicy": "deliver",
+            "count": 2,
+            "engagement": "focus",
+            "formation": "enemy-perimeter",
+            "id": "breach-support",
+            "position": {
+              "kind": "path",
+              "target": "breach"
+            },
+            "priority": 10,
+            "resilience": "essential",
+            "respawn": "rally",
+            "signature": "support"
+          },
+          {
+            "behavior": "advance",
+            "corePolicy": "deliver",
+            "count": -1,
+            "engagement": "advance-under-fire",
+            "formation": "enemy-perimeter",
+            "id": "coordinated-breach",
+            "position": {
+              "kind": "path",
+              "target": "breach"
+            },
+            "priority": 20,
+            "resilience": "replaceable",
+            "respawn": "rally",
+            "signature": "advance"
+          }
+        ],
+        "id": "breach",
+        "minimumTicks": 6,
+        "transitions": [
+          {
+            "cause": "success",
+            "priority": 10,
+            "stableTicks": 1,
+            "to": "occupy",
+            "when": [
+              {
+                "all": [
+                  {
+                    "fact": "friendlies-in-zone",
+                    "operator": "at-least",
+                    "value": 6,
+                    "zone": "enemy-home"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "cause": "failure",
+            "priority": 20,
+            "stableTicks": 3,
+            "to": "regroup",
+            "when": [
+              {
+                "all": [
+                  {
+                    "fact": "live-friendlies",
+                    "operator": "at-most",
+                    "value": 4
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "zones": {
+    "enemy-home": [
+      24,
+      7,
+      29,
+      15
+    ],
+    "forward-rally.north": [
+      20,
+      5,
+      24,
+      9
+    ],
+    "forward-rally.south": [
+      20,
+      13,
+      24,
+      17
+    ]
+  }
+}

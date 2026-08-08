@@ -1,0 +1,156 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "breach-apprentice-t4-v1",
+  "entrantSourceTreeSha256": "sha256:904e5159b641569e744cceca33ebc48aea66a94ca2c3f953c691df949269cf46",
+  "suiteId": "frontline-qualification-5",
+  "qualificationReport": "breach-apprentice/qualification-frontline-5.json",
+  "qualificationReportSha256": "7b06fa3ccd852293d8082df13c3ed939df97374402b7a8ab2c025fba99ca2738",
+  "localEvidenceRoot": "evidence/breach-apprentice-t4-v1",
+  "durableArtifactStatus": "pending-upload",
+  "replays": [
+    {
+      "path": "entry-initiative/current-map-pressure-entry/bot-team-0/replay.json",
+      "sha256": "31291a02cac9b3449151cd7368ac37c9565733b8884b21391cce82b23fe5f6bc"
+    },
+    {
+      "path": "entry-initiative/current-map-pressure-entry/bot-team-1/replay.json",
+      "sha256": "d888ed78d4e806e8739faa08aeb0c047edc11872b321db40e17d6497d9e2d29b"
+    },
+    {
+      "path": "front-rotation/advance-after-capture/bot-team-0/replay.json",
+      "sha256": "ba2bc4b891c3bb6430e24060116f98e1a1d9412b4582da81b824b74f5f96a256"
+    },
+    {
+      "path": "front-rotation/advance-after-capture/bot-team-1/replay.json",
+      "sha256": "5969097f3f760f1f786f8d6fcb8bde200dc0c14b74f4deb11810313f0262fcbd"
+    },
+    {
+      "path": "map-holdout/thin-fronts-pressure-entry/bot-team-0/replay.json",
+      "sha256": "d9a1c75e96008928c45b17c2c5e8bab3019324f48767caada6f69a4d9442392a"
+    },
+    {
+      "path": "map-holdout/thin-fronts-pressure-entry/bot-team-1/replay.json",
+      "sha256": "9339c90242393b2991c44aa56d5c3e5f1e499d521d0e2384e55e238cc211df92"
+    },
+    {
+      "path": "prediction-chamber/objective-preserving-response/bot-team-0/replay.json",
+      "sha256": "877259eac8d98a2f1b0b88f3a5b0f7d4c566a503689641ece2bf63bc1874b6da"
+    },
+    {
+      "path": "prediction-chamber/objective-preserving-response/bot-team-1/replay.json",
+      "sha256": "a0b738710c6691d0b0ec7e9590b0128560c9162e94af8e4beab3110ea3c1558b"
+    },
+    {
+      "path": "prerequisite-t3/cadence-parity/range-3-harmless/bot-team-0/replay.json",
+      "sha256": "29c3a21b88cb699c2120771c78aab8a5980ac083726471842fc21c851707e117"
+    },
+    {
+      "path": "prerequisite-t3/cadence-parity/range-3-harmless/bot-team-1/replay.json",
+      "sha256": "c5e2419620e21d0a70e9be38050b0c6531f98447be966996153e705d95cc3c81"
+    },
+    {
+      "path": "prerequisite-t3/cadence-parity/range-4-threatening/bot-team-0/replay.json",
+      "sha256": "7f009d9a9d0a9bfd583104b49bb341a6398841fb875618cc04f74367b1fd4645"
+    },
+    {
+      "path": "prerequisite-t3/cadence-parity/range-4-threatening/bot-team-1/replay.json",
+      "sha256": "e5c2803a02a5f501179b5065bef88693763acfdb7b86a76fcd9d062f1c693a34"
+    },
+    {
+      "path": "prerequisite-t3/cooldown-window/declared-mobile-cooldown/bot-team-0/replay.json",
+      "sha256": "6c9df57e4cddd7ff47e7c5bfbd0ceb1387a9015797888a886feb3cf8c004884b"
+    },
+    {
+      "path": "prerequisite-t3/cooldown-window/declared-mobile-cooldown/bot-team-1/replay.json",
+      "sha256": "b0b62dbfc2f6968b44726959ab98b1cbc2ed86b827105526ee80bf239ec8fb03"
+    },
+    {
+      "path": "prerequisite-t3/local-form-safety/objective-weight-zero-transform/bot-team-0/replay.json",
+      "sha256": "ff1f52d850a3abf71ccee512d1cf0a735e46306965ec648d00776fa7ef3d4cf7"
+    },
+    {
+      "path": "prerequisite-t3/local-form-safety/objective-weight-zero-transform/bot-team-1/replay.json",
+      "sha256": "ab73da1c76e27e3e6be2ae570649a7ae97ed0bcfbefed518d6818815bb642521"
+    },
+    {
+      "path": "prerequisite-t3/prerequisite-t2/automatic-life-cycle/bot-team-0/primary/replay.json",
+      "sha256": "3c969d86dfb16fbfda1f335c45e95577b73aa3b0dc0dc4ff7ffd33bc32cb509a"
+    },
+    {
+      "path": "prerequisite-t3/prerequisite-t2/automatic-life-cycle/bot-team-1/primary/replay.json",
+      "sha256": "4869b17160ea475c77917483b9b2668953ed427010afda5ae7a757e06891922d"
+    },
+    {
+      "path": "prerequisite-t3/prerequisite-t2/contract-matrix/bot-team-0/determinism-repeat/replay.json",
+      "sha256": "3c969d86dfb16fbfda1f335c45e95577b73aa3b0dc0dc4ff7ffd33bc32cb509a"
+    },
+    {
+      "path": "prerequisite-t3/prerequisite-t2/contract-matrix/bot-team-0/primary/replay.json",
+      "sha256": "3c969d86dfb16fbfda1f335c45e95577b73aa3b0dc0dc4ff7ffd33bc32cb509a"
+    },
+    {
+      "path": "prerequisite-t3/prerequisite-t2/contract-matrix/bot-team-1/determinism-repeat/replay.json",
+      "sha256": "4869b17160ea475c77917483b9b2668953ed427010afda5ae7a757e06891922d"
+    },
+    {
+      "path": "prerequisite-t3/prerequisite-t2/contract-matrix/bot-team-1/primary/replay.json",
+      "sha256": "4869b17160ea475c77917483b9b2668953ed427010afda5ae7a757e06891922d"
+    },
+    {
+      "path": "prerequisite-t3/prerequisite-t2/direct-fire/bot-team-0/primary/replay.json",
+      "sha256": "bff6a9eacb5cc2849bcab56993c59c2ed0a7935305eaeb7446ca01b302aaac65"
+    },
+    {
+      "path": "prerequisite-t3/prerequisite-t2/direct-fire/bot-team-1/primary/replay.json",
+      "sha256": "f17da7a417204b4561ff3e48e477e0149f4637923d4c0dc8a4f659b239b28e0a"
+    },
+    {
+      "path": "prerequisite-t3/prerequisite-t2/manual-fabrication/bot-team-0/primary/replay.json",
+      "sha256": "67a1fdf8f7ad9f5ede069452c9dede53272bf58883fcffa0f2a5b1431035d5b9"
+    },
+    {
+      "path": "prerequisite-t3/prerequisite-t2/manual-fabrication/bot-team-1/primary/replay.json",
+      "sha256": "8564d60f44d880c59b3754938d68860b770301425cb949be4437fc7cd8e824de"
+    },
+    {
+      "path": "prerequisite-t3/prerequisite-t2/objective-path/bot-team-0/primary/replay.json",
+      "sha256": "f153a3129fdc70ef0e4232e051a05f57d23546573be6744a393ac7e6a0b3f7ba"
+    },
+    {
+      "path": "prerequisite-t3/prerequisite-t2/objective-path/bot-team-1/primary/replay.json",
+      "sha256": "77faae05a4b740fd225b4d9905e3133002b6405d566b81ef91211fad3a56a0d4"
+    },
+    {
+      "path": "prerequisite-t3/prerequisite-t2/straight-evade/bot-team-0/primary/replay.json",
+      "sha256": "8482c3a94283fc4829b0b869dde2583635fa345f5fa2633397f85125d40081fb"
+    },
+    {
+      "path": "prerequisite-t3/prerequisite-t2/straight-evade/bot-team-1/primary/replay.json",
+      "sha256": "08b937b4073ec16f4f246e55d2e3030358224bb936ba366539557801008d3e7c"
+    },
+    {
+      "path": "prerequisite-t3/strict-corner/strict-corner-invalid-intercept/bot-team-0/replay.json",
+      "sha256": "1cbe10c63434640f9a721b6b2aa59a34c780248452b35edd870f399d1ac15e8e"
+    },
+    {
+      "path": "prerequisite-t3/strict-corner/strict-corner-invalid-intercept/bot-team-1/replay.json",
+      "sha256": "a7edc6d154dede4ac0eec2d005394dac51d858050efcfacfcaee87bc98b58d54"
+    },
+    {
+      "path": "prerequisite-t3/wall-terminated-bend/off-axis-visible-target/bot-team-0/replay.json",
+      "sha256": "dafb943235878c8fa0237e7a46a1c37752ab24d7b2cababd08926d8d6076a69b"
+    },
+    {
+      "path": "prerequisite-t3/wall-terminated-bend/off-axis-visible-target/bot-team-1/replay.json",
+      "sha256": "5c022f9f25830ac2dcf8906bcb6ce8ad06fbad9bd90c4fbd8ac6215f59aa232b"
+    },
+    {
+      "path": "suppression-choke/objective-hold-straight-pressure/bot-team-0/replay.json",
+      "sha256": "e2e6f08450b9573770debfb7fcb6fc1176000ee4655b10ea15a06fde03620345"
+    },
+    {
+      "path": "suppression-choke/objective-hold-straight-pressure/bot-team-1/replay.json",
+      "sha256": "7a8148222ea073aff977ccf475caf8f1d8e6d89a88ffd5b0525c7e0e1b669f8f"
+    }
+  ]
+}

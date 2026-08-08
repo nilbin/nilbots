@@ -3,6 +3,8 @@ import type { ReplayModel } from '../replayModel';
 import { arenaTheme, type ArenaTheme } from '../render/arenaThemes';
 import { WallLayout } from '../render/wallTopology';
 import { wallShapes } from './wallSolids';
+import { buildWallDetails } from './wallDetails';
+import { themeMaterialImage } from './themeMaterialAssets';
 
 /**
  * The arena as actual geometry.
@@ -33,16 +35,30 @@ import { wallShapes } from './wallSolids';
  */
 export const CAMERA_PITCH = (58 * Math.PI) / 180;
 
-/** Wall height, in tiles. Tall enough to read as a room, low enough to see over. */
-const WALL_HEIGHT = 0.62;
-
 /** The chamfer along a wall's top edge, in tiles. */
 const WALL_CHAMFER = 0.055;
+
+/**
+ * Static visual room around the largest approved live chassis.
+ *
+ * Trident Wasp's approved GLB spans 1.12 tiles and the actor renderer applies
+ * `max(0.82, 1.18 * 0.9) = 1.062`, for a live span of 1.18944. Its farthest
+ * measured planform vertex has a rotation-safe live radius of 0.62462; adding
+ * 0.02 tile safety and subtracting the authoritative half-tile corridor gives
+ * 0.14462. Width / 2 is insufficient for diagonal headings.
+ * Cosmetic idle/recoil motion remains actor-owned and is deliberately not paid for by
+ * hollowing every wall out further.
+ */
+export const WALL_OPEN_EDGE_INSET = 0.14462;
 
 export interface ArenaScene {
   scene: THREE.Scene;
   camera: THREE.PerspectiveCamera;
   dispose: () => void;
+}
+
+export interface ArenaSceneQuality {
+  shadowMapSize: number;
 }
 
 /**
@@ -51,7 +67,10 @@ export interface ArenaScene {
  * Static for the life of a replay — the map does not change — so this runs once and the
  * per-frame work is only moving bots and projectiles.
  */
-export function buildArena(replay: ReplayModel): ArenaScene {
+export function buildArena(
+  replay: ReplayModel,
+  quality: ArenaSceneQuality = { shadowMapSize: 2048 },
+): ArenaScene {
   const theme = arenaTheme(replay.map.presentation?.themeId ?? undefined);
   const mapWidth = replay.map.width;
   const mapHeight = replay.map.height;
@@ -64,9 +83,19 @@ export function buildArena(replay: ReplayModel): ArenaScene {
 
   const disposables: { dispose: () => void }[] = [];
 
-  scene.add(...lights(mapWidth, mapHeight, disposables));
+  scene.add(...lights(theme, mapWidth, mapHeight, quality.shadowMapSize, disposables));
   scene.add(floor(theme, mapWidth, mapHeight, disposables));
-  for (const mesh of walls(replay, theme, disposables)) scene.add(mesh);
+  const layout = wallLayout(replay, theme);
+  for (const mesh of walls(replay, theme, layout, disposables))
+    scene.add(mesh);
+  scene.add(
+    buildWallDetails(
+      layout,
+      theme,
+      WALL_OPEN_EDGE_INSET,
+      disposables,
+    ),
+  );
 
   const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 200);
 
@@ -88,14 +117,20 @@ export function buildArena(replay: ReplayModel): ArenaScene {
  * real geometry.
  */
 function lights(
+  theme: ArenaTheme,
   mapWidth: number,
   mapHeight: number,
+  shadowMapSize: number,
   disposables: { dispose: () => void }[],
 ): THREE.Object3D[] {
-  const key = new THREE.DirectionalLight(0xe8f1ff, 4.4);
+  const lighting = theme.environment3d.lighting;
+  const key = new THREE.DirectionalLight(
+    lighting.keyColor,
+    lighting.keyIntensity,
+  );
   key.position.set(mapWidth * 0.55, mapWidth * 0.85, mapHeight * 0.75);
   key.castShadow = true;
-  key.shadow.mapSize.set(2048, 2048);
+  key.shadow.mapSize.set(shadowMapSize, shadowMapSize);
   // The shadow camera has to contain the whole map or walls at the edge stop casting.
   const extent = Math.max(mapWidth, mapHeight) * 0.8;
   key.shadow.camera.left = -extent;
@@ -108,10 +143,16 @@ function lights(
   key.shadow.bias = -0.0015;
   key.shadow.normalBias = 0.02;
 
-  const ambient = new THREE.AmbientLight(0x6f8bb0, 2.4);
+  const ambient = new THREE.AmbientLight(
+    lighting.ambientColor,
+    lighting.ambientIntensity,
+  );
   // A dim fill from the opposite side so wall faces turned away from the key are readable
   // rather than silhouettes.
-  const fill = new THREE.DirectionalLight(0x4d7099, 1.5);
+  const fill = new THREE.DirectionalLight(
+    lighting.fillColor,
+    lighting.fillIntensity,
+  );
   fill.position.set(-mapWidth * 0.6, mapWidth * 0.4, -mapHeight * 0.5);
 
   disposables.push(key, ambient, fill);
@@ -143,6 +184,7 @@ function floor(
   // not look like the flat viewer: same texture, completely different texel density and no
   // continuity from one tile to the next.
   const texture = fromImage(theme.floorTexture);
+  const floorMaterial = theme.environment3d.floor;
   const material = new THREE.MeshStandardMaterial({
     map: texture,
     // The albedo doubles as relief. Every one of these textures is a photographed or baked
@@ -150,10 +192,10 @@ function floor(
     // so reading its luminance as height gives the real thing back a shape that responds to
     // the key light, instead of a photograph of shading lying flat under a different one.
     bumpMap: texture,
-    bumpScale: 1.6,
+    bumpScale: floorMaterial.bumpScale,
     color: tintMultiplier(theme.palette.floorTint),
-    roughness: 0.86,
-    metalness: 0.12,
+    roughness: floorMaterial.roughness,
+    metalness: floorMaterial.metalness,
   });
 
   const mesh = new THREE.Mesh(geometry, material);
@@ -177,46 +219,72 @@ function floor(
 function walls(
   replay: ReplayModel,
   theme: ArenaTheme,
+  layout: WallLayout,
   disposables: { dispose: () => void }[],
 ): THREE.Mesh[] {
-  const layout = new WallLayout(
-    replay,
-    validFamily(
-      replay.map.presentation?.boundaryWall ?? undefined,
-      theme,
-      theme.walls.defaults.boundary,
-    ),
-    validFamily(
-      replay.map.presentation?.interiorWall ?? undefined,
-      theme,
-      theme.walls.defaults.interior,
-    ),
-    (family) =>
-      validFamily(
-        family,
-        theme,
-        theme.walls.defaults.interior,
-      ),
-  );
-
   const byFamily = new Map<string, { x: number; y: number }[]>();
   const capsByFamily = new Map<string, THREE.BufferGeometry[]>();
   for (const wall of layout.walls()) {
     (byFamily.get(wall.family) ?? byFamily.set(wall.family, []).get(wall.family)!)
       .push({ x: wall.x, y: wall.y });
 
-    // The overlay quad. Wider than its tile by the manifest's gutter, which is what lets a
-    // wall's edge trim sit over its neighbour — the same reason the 2D renderer draws it
-    // oversized — and then pulled back in by the chamfer, because the surface it is lying on
-    // is no longer the full tile. Without that second term the cap keeps its square corners
-    // out past the rounded ones beneath it, and a wall reads as a block with a lid resting
-    // askew on top of it.
-    const gutter = theme.walls.atlas.gutterPixels / theme.walls.atlas.contentPixels;
-    const span = 1 + gutter * 2 - WALL_CHAMFER * 2;
-    const cap = new THREE.PlaneGeometry(span, span);
+    const family = theme.walls.families.get(wall.family)!;
+    const upper = family.geometry3d.upperProfile;
+
+    // Preserve atlas gutter only across same-family joins. A different wall family meets
+    // on the grid boundary; open floor receives the universal live-bot clearance.
+    const { contentPixels, gutterPixels } = theme.walls.atlas;
+    const gutter = gutterPixels / contentPixels;
+    const cellGutter = gutterPixels / (contentPixels + gutterPixels * 2);
+    const capChamfer = upper?.chamfer ?? WALL_CHAMFER;
+    const connectedHalf = 0.5 + gutter - capChamfer;
+    const openHalf =
+      0.5 -
+      WALL_OPEN_EDGE_INSET -
+      (upper?.inset ?? 0) -
+      capChamfer;
+    const edge = (
+      dx: number,
+      dy: number,
+      lowUv: boolean,
+    ): { extent: number; uv: number } => {
+      const neighbour = layout.familyAt(wall.x + dx, wall.y + dy);
+      if (neighbour === wall.family)
+        return { extent: connectedHalf, uv: lowUv ? 0 : 1 };
+      return {
+        extent: neighbour === null ? openHalf : 0.5,
+        // The atlas cell's outer gutter lies beyond the authored wall rim. Move that rim
+        // to a newly inset edge instead of cropping progressively deeper into the art.
+        uv: lowUv ? cellGutter : 1 - cellGutter,
+      };
+    };
+    const west = edge(-1, 0, true);
+    const east = edge(1, 0, false);
+    // Plane V runs from south to north after it is laid onto XZ.
+    const southEdge = edge(0, 1, true);
+    const northEdge = edge(0, -1, false);
+    const left = -west.extent;
+    const right = east.extent;
+    const north = -northEdge.extent;
+    const south = southEdge.extent;
+    const cap = new THREE.PlaneGeometry(right - left, south - north);
     cap.rotateX(-Math.PI / 2);
-    applyAtlasUvs(cap, wall.mask, theme.walls.atlas.columns);
-    cap.translate(wall.x + 0.5, WALL_HEIGHT + 0.004, wall.y + 0.5);
+    applyAtlasUvs(
+      cap,
+      wall.mask,
+      theme.walls.atlas.columns,
+      {
+        uMin: west.uv,
+        uMax: east.uv,
+        vMin: southEdge.uv,
+        vMax: northEdge.uv,
+      },
+    );
+    cap.translate(
+      wall.x + 0.5 + (left + right) / 2,
+      family.geometry3d.height + 0.004,
+      wall.y + 0.5 + (north + south) / 2,
+    );
     (capsByFamily.get(wall.family) ?? capsByFamily.set(wall.family, []).get(wall.family)!)
       .push(cap);
   }
@@ -224,14 +292,26 @@ function walls(
   const meshes: THREE.Mesh[] = [];
   for (const [familyId, tiles] of byFamily) {
     const family = theme.walls.families.get(familyId);
-    const shapes = wallShapes(tiles);
+    if (!family) continue;
+    const height = family.geometry3d.height;
+    const upper = family.geometry3d.upperProfile;
+    const bodyHeight = upper === null
+      ? height
+      : height - upper.height;
+    const shapes = wallShapes(tiles, {
+      cornerRadius: family.geometry3d.cornerRadius,
+      // ExtrudeGeometry's bevel reaches outside its source outline. Compensate here so the
+      // widest generated vertex, not merely the nominal outline, honours the contract.
+      openEdgeInset: WALL_OPEN_EDGE_INSET + WALL_CHAMFER,
+      isWall: (x, y) => layout.familyAt(x, y) !== null,
+    });
     if (shapes.length === 0) continue;
 
     // Extruded from the traced outline rather than assembled from cubes, with a chamfer
     // along the top edge. `curveSegments` is what the corner arcs are drawn with; three is
     // enough to round a corner at this scale and cheap enough to spend on every wall.
     const geometry = new THREE.ExtrudeGeometry(shapes, {
-      depth: WALL_HEIGHT - WALL_CHAMFER,
+      depth: bodyHeight - WALL_CHAMFER,
       bevelEnabled: true,
       bevelThickness: WALL_CHAMFER,
       bevelSize: WALL_CHAMFER,
@@ -244,6 +324,16 @@ function walls(
     projectWorldUvs(geometry, replay.map.width, replay.map.height);
 
     const texture = sprite(family?.materialTexture ?? null, THREE.RepeatWrapping);
+    const normalMap = sprite(
+      themeMaterialImage(theme.id, family.material3d.normalMap),
+      THREE.RepeatWrapping,
+      THREE.NoColorSpace,
+    );
+    const roughnessMap = sprite(
+      themeMaterialImage(theme.id, family.material3d.roughnessMap),
+      THREE.RepeatWrapping,
+      THREE.NoColorSpace,
+    );
     // Albedo on every face, including the top. The topology atlas is *not* a standalone
     // texture — the 2D renderer fills with the material and then draws the atlas over it as
     // a transparent overlay — so using it alone here produced dark outlines floating on
@@ -252,18 +342,63 @@ function walls(
       map: texture,
       // Same trick as the floor: the wall material's own plates and seams become relief,
       // so the surface has form under the light instead of a picture of form.
-      bumpMap: texture,
-      bumpScale: 2.2,
+      normalMap,
+      normalScale: new THREE.Vector2(
+        family.material3d.normalScale,
+        family.material3d.normalScale,
+      ),
       color: tintMultiplier(theme.palette.wallTint),
-      roughness: 0.88,
-      metalness: 0.2,
+      roughnessMap,
+      roughness: family.material3d.roughness,
+      metalness: family.material3d.metalness,
     });
 
     const mesh = new THREE.Mesh(geometry, body);
+    mesh.userData.kind = 'arena-wall-body';
+    mesh.userData.family = familyId;
+    mesh.userData.height = height;
+    mesh.userData.cornerRadius = family.geometry3d.cornerRadius;
+    mesh.userData.openEdgeInset = WALL_OPEN_EDGE_INSET;
     mesh.castShadow = true;
     mesh.receiveShadow = true;
     meshes.push(mesh);
     disposables.push(geometry, body);
+    if (normalMap) disposables.push(normalMap);
+    if (roughnessMap) disposables.push(roughnessMap);
+
+    if (upper !== null) {
+      const upperShapes = wallShapes(tiles, {
+        cornerRadius: family.geometry3d.cornerRadius,
+        openEdgeInset:
+          WALL_OPEN_EDGE_INSET + upper.inset + upper.chamfer,
+        isWall: (x, y) => layout.familyAt(x, y) !== null,
+      });
+      const upperGeometry = new THREE.ExtrudeGeometry(upperShapes, {
+        depth: upper.height - upper.chamfer,
+        bevelEnabled: true,
+        bevelThickness: upper.chamfer,
+        bevelSize: upper.chamfer,
+        bevelSegments: 2,
+        curveSegments: 4,
+      });
+      upperGeometry.rotateX(-Math.PI / 2);
+      upperGeometry.translate(0, bodyHeight, 0);
+      projectWorldUvs(
+        upperGeometry,
+        replay.map.width,
+        replay.map.height,
+      );
+      const upperMesh = new THREE.Mesh(upperGeometry, body);
+      upperMesh.userData.kind = 'arena-wall-upper-profile';
+      upperMesh.userData.family = familyId;
+      upperMesh.userData.height = upper.height;
+      upperMesh.userData.inset = upper.inset;
+      upperMesh.userData.chamfer = upper.chamfer;
+      upperMesh.castShadow = true;
+      upperMesh.receiveShadow = true;
+      meshes.push(upperMesh);
+      disposables.push(upperGeometry);
+    }
 
     const caps = capsByFamily.get(familyId) ?? [];
     if (caps.length > 0 && family?.edgeAtlasTexture) {
@@ -279,6 +414,10 @@ function walls(
         metalness: 0.25,
       });
       const capMesh = new THREE.Mesh(capGeometry, capMaterial);
+      capMesh.userData.kind = 'arena-wall-caps';
+      capMesh.userData.family = familyId;
+      capMesh.userData.height = height;
+      capMesh.userData.openEdgeInset = WALL_OPEN_EDGE_INSET;
       capMesh.receiveShadow = true;
       meshes.push(capMesh);
       disposables.push(capGeometry, capMaterial);
@@ -336,15 +475,22 @@ function tintMultiplier(tint: string): THREE.Color {
 }
 
 /** Point a quad's UVs at one cell of the 16-column topology atlas. */
-function applyAtlasUvs(geometry: THREE.BufferGeometry, mask: number, columns: number): void {
+function applyAtlasUvs(
+  geometry: THREE.BufferGeometry,
+  mask: number,
+  columns: number,
+  crop = { uMin: 0, uMax: 1, vMin: 0, vMax: 1 },
+): void {
   const uv = geometry.attributes.uv as THREE.BufferAttribute;
   const cell = 1 / columns;
   const column = mask % columns;
   const row = Math.floor(mask / columns);
 
   for (let vertex = 0; vertex < uv.count; vertex++) {
-    const u = uv.getX(vertex);
-    const v = uv.getY(vertex);
+    const u =
+      crop.uMin + uv.getX(vertex) * (crop.uMax - crop.uMin);
+    const v =
+      crop.vMin + uv.getY(vertex) * (crop.vMax - crop.vMin);
     uv.setXY(vertex, (column + u) * cell, 1 - (row + 1 - v) * cell);
   }
   uv.needsUpdate = true;
@@ -385,8 +531,9 @@ function mergeGeometries(parts: readonly THREE.BufferGeometry[]): THREE.BufferGe
 function sprite(
   image: HTMLImageElement | null,
   wrap: THREE.Wrapping = THREE.ClampToEdgeWrapping,
+  colorSpace: THREE.ColorSpace = THREE.SRGBColorSpace,
 ): THREE.Texture | null {
-  const texture = fromImage(image);
+  const texture = fromImage(image, colorSpace);
   if (!texture) return null;
   texture.wrapS = wrap;
   texture.wrapT = wrap;
@@ -404,10 +551,13 @@ function sprite(
  *
  * One listener per texture makes the timing irrelevant.
  */
-function fromImage(image: HTMLImageElement | null): THREE.Texture | null {
+function fromImage(
+  image: HTMLImageElement | null,
+  colorSpace: THREE.ColorSpace = THREE.SRGBColorSpace,
+): THREE.Texture | null {
   if (!image) return null;
   const texture = new THREE.Texture(image);
-  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.colorSpace = colorSpace;
   texture.anisotropy = 8;
   if (image.complete && image.naturalWidth > 0) {
     texture.needsUpdate = true;
@@ -419,4 +569,26 @@ function fromImage(image: HTMLImageElement | null): THREE.Texture | null {
 
 function validFamily(candidate: string | undefined, theme: ArenaTheme, fallback: string): string {
   return candidate && theme.walls.families.has(candidate) ? candidate : fallback;
+}
+
+function wallLayout(replay: ReplayModel, theme: ArenaTheme): WallLayout {
+  return new WallLayout(
+    replay,
+    validFamily(
+      replay.map.presentation?.boundaryWall ?? undefined,
+      theme,
+      theme.walls.defaults.boundary,
+    ),
+    validFamily(
+      replay.map.presentation?.interiorWall ?? undefined,
+      theme,
+      theme.walls.defaults.interior,
+    ),
+    (family) =>
+      validFamily(
+        family,
+        theme,
+        theme.walls.defaults.interior,
+      ),
+  );
 }

@@ -1,5 +1,9 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import type { ReplayModel } from './replayModel';
+import {
+  createArenaFramePacer,
+  takeArenaFrame,
+} from './render/arenaRenderProfile';
 
 export interface PlaybackState {
   /** Continuous playhead: floor(t) is the tick being animated, frac(t) its progress. */
@@ -22,28 +26,54 @@ export interface PlaybackState {
   setSpeed: (speed: number) => void;
 }
 
-/** Presentation timeline (plan §28.1): ~5 ticks/second at 1x, decoupled from simulation. */
-const BASE_TICKS_PER_SECOND = 5;
+/**
+ * Presentation timeline, decoupled from simulation.
+ *
+ * The former five-tick cadence made a sixteen-body Arc Relay match legible to a probe
+ * but not to a person. 1x is now deliberately cinematic: every authoritative tick gets
+ * 400ms of screen time, while the speed control still offers faster review.
+ */
+export const PRESENTATION_TICKS_PER_SECOND = 2.5;
 
 /**
- * @param ready Hold at tick 0 until the arena's images have decoded. Without this the
+ * Every mode starts at 1x (owner ruling — the half-speed Arc Relay first watch read as
+ * sluggish); the speed control still offers 0.5x for a slow read.
+ */
+export function defaultPlaybackSpeed(replay: ReplayModel): number {
+  void replay;
+  return 1;
+}
+
+/**
+ * @param ready Hold at tick 0 until the arena's assets have arrived. Without this the
  * clock runs behind a loading screen, and the match is already underway when it lifts.
  * @param active False while the server's live clock owns presentation time.
+ * @param autoStart Whether the clock runs as soon as it is allowed to.
+ * @param framesPerSecond Optional React update cap. Elapsed wall time remains authoritative.
+ *
+ * `autoStart` is false wherever a person is watching and a play button is offered: waiting
+ * for assets and then starting anyway is the same missed opening as not waiting at all,
+ * and only a real press can carry the audio activation a browser demands. It stays true
+ * for an embedding host, which draws its own transport and asks for playback over the
+ * bridge — a host that never sent `play` would otherwise sit on a still frame forever.
  */
 export function usePlayback(
   replay: ReplayModel,
   ready = true,
   active = true,
+  autoStart = true,
+  framesPerSecond?: number,
 ): PlaybackState {
   const tickCount = replay.ticks.length;
   const [time, setTime] = useState(0);
-  const [playing, setPlaying] = useState(active);
+  const [playing, setPlaying] = useState(active && autoStart);
   const [endedNaturally, setEndedNaturally] = useState(false);
   const [transportRevision, setTransportRevision] = useState(0);
-  const [speed, setSpeed] = useState(1);
+  const [speed, setSpeed] = useState(() => defaultPlaybackSpeed(replay));
   const timeRef = useRef(0);
   const frame = useRef<number>(0);
   const lastStamp = useRef<number | null>(null);
+  const framePacer = useRef(createArenaFramePacer());
   const wasActive = useRef(active);
 
   useEffect(() => {
@@ -72,13 +102,21 @@ export function usePlayback(
   useEffect(() => {
     if (!active || !playing || !ready) {
       lastStamp.current = null;
+      framePacer.current = createArenaFramePacer();
       return;
     }
     const advance = (stamp: number) => {
+      if (
+        framesPerSecond !== undefined &&
+        !takeArenaFrame(framePacer.current, stamp, framesPerSecond)
+      ) {
+        frame.current = requestAnimationFrame(advance);
+        return;
+      }
       const dt = lastStamp.current === null ? 0 : (stamp - lastStamp.current) / 1000;
       lastStamp.current = stamp;
       setTime((current) => {
-        const next = current + dt * BASE_TICKS_PER_SECOND * speed;
+        const next = current + dt * PRESENTATION_TICKS_PER_SECOND * speed;
         if (next >= tickCount) {
           setPlaying(false);
           setEndedNaturally(true);
@@ -92,7 +130,7 @@ export function usePlayback(
     };
     frame.current = requestAnimationFrame(advance);
     return () => cancelAnimationFrame(frame.current);
-  }, [active, playing, ready, speed, tickCount]);
+  }, [active, playing, ready, speed, tickCount, framesPerSecond]);
 
   const pause = useCallback(() => setPlaying(false), []);
   const play = useCallback(() => {
@@ -167,23 +205,35 @@ export interface LiveFollow {
 
 /// Follows the server's presentation clock: re-anchors on every update from the
 /// server and advances smoothly between polls, never running past received ticks.
-export function useLiveFollower(replay: ReplayModel, live?: LiveFollow): number {
+export function useLiveFollower(
+  replay: ReplayModel,
+  live?: LiveFollow,
+  framesPerSecond?: number,
+): number {
   const [time, setTime] = useState(0);
   const anchor = useRef<{ tick: number; at: number } | null>(null);
 
   useEffect(() => {
     if (!live) return;
     anchor.current = { tick: Math.max(0, live.tick), at: performance.now() };
+    const framePacer = createArenaFramePacer();
     let frame = 0;
-    const advance = () => {
+    const advance = (stamp: number) => {
+      if (
+        framesPerSecond !== undefined &&
+        !takeArenaFrame(framePacer, stamp, framesPerSecond)
+      ) {
+        frame = requestAnimationFrame(advance);
+        return;
+      }
       const a = anchor.current!;
-      const elapsed = (performance.now() - a.at) / 1000;
+      const elapsed = (stamp - a.at) / 1000;
       setTime(Math.min(a.tick + elapsed * live.ticksPerSecond, replay.ticks.length));
       frame = requestAnimationFrame(advance);
     };
     frame = requestAnimationFrame(advance);
     return () => cancelAnimationFrame(frame);
-  }, [live?.tick, live?.ticksPerSecond, live, replay.ticks.length]);
+  }, [live?.tick, live?.ticksPerSecond, live, replay.ticks.length, framesPerSecond]);
 
   return time;
 }

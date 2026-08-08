@@ -46,6 +46,14 @@ internal static class GenericActorWireActionCodec
                         .ProjectileHeading =>
                     new GenericActorActionArgument.ProjectileHeadingArgument(
                         ActorWireValue.Enum<ProjectileHeading>(value)),
+                GenericActorRulesContract.ActionParameterKind.UpgradeTrack =>
+                    new GenericActorActionArgument.UpgradeTrackArgument(
+                        GenericActorWireCodecValues.SemanticId(value)),
+                GenericActorRulesContract.ActionParameterKind.PositionTarget =>
+                    new GenericActorActionArgument.PositionTargetArgument(
+                        GenericActorWireCodecValues.DecodePosition(
+                            value,
+                            depth + 1)),
                 _ => throw new FormatException(
                     "Unknown generic actor argument discriminator."),
             },
@@ -225,6 +233,10 @@ internal static class GenericActorWireActionCodec
                 GenericActorWireCodecValues.SemanticId(form.FormId),
             GenericActorActionArgument.ProjectileHeadingArgument heading =>
                 ActorWireValue.Enum(heading.Value),
+            GenericActorActionArgument.UpgradeTrackArgument track =>
+                GenericActorWireCodecValues.SemanticId(track.TrackId),
+            GenericActorActionArgument.PositionTargetArgument target =>
+                GenericActorWireCodecValues.EncodePosition(target.Value),
             _ => throw new InvalidOperationException(
                 "Unknown generic actor argument variant."),
         };
@@ -306,6 +318,23 @@ internal static class GenericActorWireActionCodec
                                 payload,
                                 1,
                                 ActorWireValue.Enum<ProjectileHeading>)),
+                GenericActorRulesContract.ActionParameterKind.UpgradeTrack =>
+                    new GenericActorActionLegality.ArgumentConstraint
+                        .UpgradeTrackConstraint(
+                            GenericActorWireCodecValues.Array(
+                                payload,
+                                1,
+                                GenericActorWireCodecValues.SemanticId)),
+                GenericActorRulesContract.ActionParameterKind.PositionTarget =>
+                    new GenericActorActionLegality.ArgumentConstraint
+                        .PositionTargetConstraint(
+                            GenericActorWireCodecValues.Array(
+                                payload,
+                                1,
+                                item =>
+                                    GenericActorWireCodecValues.DecodePosition(
+                                        item,
+                                        depth + 2))),
                 _ => throw new FormatException(
                     "Unknown generic actor constraint discriminator."),
             },
@@ -353,6 +382,22 @@ internal static class GenericActorWireActionCodec
                     GenericActorWireCodecValues.Array(
                         headings.AllowedValues,
                         ActorWireValue.Enum));
+                break;
+            case GenericActorActionLegality.ArgumentConstraint
+                    .UpgradeTrackConstraint tracks:
+                writer.Field(
+                    1,
+                    GenericActorWireCodecValues.Array(
+                        tracks.AllowedTrackIds,
+                        GenericActorWireCodecValues.SemanticId));
+                break;
+            case GenericActorActionLegality.ArgumentConstraint
+                    .PositionTargetConstraint targets:
+                writer.Field(
+                    1,
+                    GenericActorWireCodecValues.Array(
+                        targets.AllowedValues,
+                        GenericActorWireCodecValues.EncodePosition));
                 break;
             default:
                 throw new InvalidOperationException(

@@ -1,0 +1,56 @@
+{
+ "schema": "arc-relay-felt-degeneracy-bars-v6",
+ "status": "frozen-after-owner-observed-slot-dancers-2026-08-07",
+ "authority": "owner watched the wedge-shake successor: 4+ bodies milling near base, oscillating between a shake step and the same contended formation slot - displacement without progress, invisible to the statue bar",
+ "purpose": "Cohort, ladder, and gallery eligibility, not an outcome or fun score",
+ "supersedes": "balance/arc-relay-felt-degeneracy-bars-v5.json",
+ "handoffPingPong": {
+  "maximumGapCoreRelocationIntervals": 2,
+  "tripAtReversalsInOneSamePairEpisode": 3
+ },
+ "pickupDropCycle": {
+  "maximumPickupToVoluntaryDropTicks": 1,
+  "maximumGapTicksBetweenCycles": 2,
+  "tripAtCyclesInOneSameCoreActorPositionEpisode": 3,
+  "episodeIdentity": "same Core, same carrier life, and same tile",
+  "resetEvents": "bank, handoff, relocation, birth, a different carrier or tile, or a gap above the configured maximum"
+ },
+ "sustainedPassivity": {
+  "startAtFirstScheduledCoreBirth": true,
+  "windowTicks": 75,
+  "tripAtQuietTicksInWindow": 60,
+  "quietTickMinimumWaitShare": 0.75,
+  "liveCoreTheaterChebyshevDistance": 4
+ },
+ "formationFreeze": {
+  "startAtFirstScheduledCoreBirth": true,
+  "windowTicks": 75,
+  "tripAtHighWaitTicksInWindow": 60,
+  "highWaitMinimumShare": 0.75
+ },
+ "stuckCarrier": {
+  "tripAtConsecutiveSameCarrierPositionTicks": 30
+ },
+ "homeCarrierNonProgress": {
+  "homeRadiusShortestPathTiles": 6,
+  "enemyContestChebyshevDistance": 2,
+  "tripAtUncontestedTicksWithoutNewBestDistance": 30,
+  "ownershipScope": "same-team continuous carried possession; an allied handoff does not reset the run",
+  "progressDefinition": "strictly lower static eight-way walkable distance to the owning team's reactor",
+  "contestDisposition": "ticks with an enemy within the configured distance pause but do not reset the run"
+ },
+ "eligibility": "A doctrine or sheet side that trips pickup-drop cycling, ping-pong, off-theater passivity, formation freeze, stuck-carrier, or uncontested home-carrier non-progress bars is excluded from cohort reads, ladders, and galleries until fixed; exclusions are disclosed.",
+ "teamStatue": {
+  "windowTicks": 150,
+  "minimumFrozenBodies": 3,
+  "tripAtFrozenShareOfLiveBodies": 0.5,
+  "frozenDefinition": "a live body whose position is unchanged for the whole window, regardless of the actions it issues; the team trips when at least minimumFrozenBodies and at least the configured share of its live bodies are simultaneously frozen"
+ },
+ "teamDance": {
+  "windowTicks": 150,
+  "confinementRadius": 2,
+  "minimumConfinedBodies": 3,
+  "tripAtConfinedShareOfLiveBodies": 0.5,
+  "confinedDefinition": "a live body that never leaves the Chebyshev radius around its reference tile for the whole window (the reference resets whenever it steps outside); statues are radius-0 dancers, so this subsumes teamStatue, which remains for continuity"
+ }
+}

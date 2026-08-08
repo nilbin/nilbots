@@ -124,5 +124,7 @@ public sealed class GenericActorMapContract
         TransitionPlacementForbidden = 0,
         /// <summary>Tile receives the ruleset's spawn-protection semantics.</summary>
         SpawnProtected = 1,
+        /// <summary>Placed signatures cannot occupy this required tile.</summary>
+        SignaturePlacementForbidden = 2,
     }
 }

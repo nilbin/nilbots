@@ -1,0 +1,154 @@
+{
+  "schemaVersion": 1,
+  "builtAt": "2026-08-02T21:53:52.389Z",
+  "purpose": "Unapproved Meshy Arc Relay fleet review build",
+  "runtimeAssetsPromoted": false,
+  "receipt": "art/class-models/provider-runs/meshy/arc-fleet-rest-15-2026-08-02.json",
+  "output": "web/dist-review",
+  "staged": [
+    {
+      "lookId": "arc-mason",
+      "candidate": "art/class-models/provider-runs/meshy/arc-mason/019fc335-af21-735b-ac08-6215f3031b69/mason-normalized-large-review.glb",
+      "orientation": "lay-flat-x",
+      "runtimeSha256Before": "21c65993078e31ecc7c6aaade60d9dc30a23efeb28706a2ecc1b6f853d23ee86",
+      "candidateSha256": "2653efe1f297c2e5115fbd046bbb4fd6da658d294b454ad6c308fc705c13721c",
+      "candidateBytes": 678556,
+      "runtimeSha256After": "21c65993078e31ecc7c6aaade60d9dc30a23efeb28706a2ecc1b6f853d23ee86"
+    },
+    {
+      "lookId": "arc-hush",
+      "candidate": "art/class-models/provider-runs/meshy/arc-hush/019fc377-da97-748f-8455-0f31d5e85c0b/model-normalized-review.glb",
+      "orientation": "lay-flat-x",
+      "runtimeSha256Before": "cc3f60bf8582e85e925ea85c0737dbc100e1208f0fabfe108051b1e0263364c1",
+      "candidateSha256": "9da702d12c91f1580b3c420907927e910b31ff64b5629ef3a86bf7d05430edc8",
+      "candidateBytes": 741832,
+      "runtimeSha256After": "cc3f60bf8582e85e925ea85c0737dbc100e1208f0fabfe108051b1e0263364c1"
+    },
+    {
+      "lookId": "arc-kestrel",
+      "candidate": "art/class-models/provider-runs/meshy/arc-kestrel/019fc37b-3531-713a-b811-b9180a9dc880/model-normalized-review.glb",
+      "orientation": "lay-flat-x",
+      "runtimeSha256Before": "d9578996824073b03633e541bfd78ee04874f76290d0c3a1e883287d92f082d0",
+      "candidateSha256": "40cd78ceb4cbffc21a08b408405ed57bee10772ccba02b4820a1435bd310bfe6",
+      "candidateBytes": 688944,
+      "runtimeSha256After": "d9578996824073b03633e541bfd78ee04874f76290d0c3a1e883287d92f082d0"
+    },
+    {
+      "lookId": "arc-lantern",
+      "candidate": "art/class-models/provider-runs/meshy/arc-lantern/019fc37e-1510-7c24-8d4b-079bcbdd48c1/model-normalized-review.glb",
+      "orientation": "lay-flat-x",
+      "runtimeSha256Before": "8f88faf65cbfac6c9dff806ee30fb837c35794d69967525ae75ce5d4efe77753",
+      "candidateSha256": "ede21d6d372c35f71c719f2b130cf13219ec67b304f0c6cfa0b1d9e59a9c6100",
+      "candidateBytes": 623264,
+      "runtimeSha256After": "8f88faf65cbfac6c9dff806ee30fb837c35794d69967525ae75ce5d4efe77753"
+    },
+    {
+      "lookId": "arc-longshot",
+      "candidate": "art/class-models/provider-runs/meshy/arc-longshot/019fc381-a1d0-729b-be0f-149a70a90b1a/model-normalized-review.glb",
+      "orientation": "lay-flat-x",
+      "runtimeSha256Before": "e2ce116e52d778b6c91a6f429979897fe263782c87de9a0979e4c20515c35c66",
+      "candidateSha256": "aa376fd65ac4c80968fdf55a6ac2a89d2f5966e58c45e8c22d70fc6b5c5f0640",
+      "candidateBytes": 648924,
+      "runtimeSha256After": "e2ce116e52d778b6c91a6f429979897fe263782c87de9a0979e4c20515c35c66"
+    },
+    {
+      "lookId": "arc-minesmith",
+      "candidate": "art/class-models/provider-runs/meshy/arc-minesmith/019fc384-be6a-7480-a333-5cb8f37c1c46/model-normalized-review.glb",
+      "orientation": "lay-flat-x",
+      "runtimeSha256Before": "40b8669c305a735ccedd4e717ea849453250ced327a6b7a260f498a9e5e45a3d",
+      "candidateSha256": "c566ab7363aac9090c463c683db6dd70941d09059d04b82ad6c87e29c1159a2c",
+      "candidateBytes": 700916,
+      "runtimeSha256After": "40b8669c305a735ccedd4e717ea849453250ced327a6b7a260f498a9e5e45a3d"
+    },
+    {
+      "lookId": "arc-mortar",
+      "candidate": "art/class-models/provider-runs/meshy/arc-mortar/019fc388-c331-7537-b3de-9f75125c5981/model-normalized-review.glb",
+      "orientation": "lay-flat-x",
+      "runtimeSha256Before": "07302d146e74fcc8aadf9197b69549363e7067188a3f3b03bf148c92907391f3",
+      "candidateSha256": "1a6b9c00d7d5d49c038a8342c601038a531924d4e6ded8e1a384d7259aa8c555",
+      "candidateBytes": 677500,
+      "runtimeSha256After": "07302d146e74fcc8aadf9197b69549363e7067188a3f3b03bf148c92907391f3"
+    },
+    {
+      "lookId": "arc-nest",
+      "candidate": "art/class-models/provider-runs/meshy/arc-nest/019fc38c-5dfd-7f2c-bafc-29c7adee94fe/model-normalized-review.glb",
+      "orientation": "lay-flat-x",
+      "runtimeSha256Before": "a8992c81217049155c254bb3c9d8740134e679d9da85a400fd4be514c76bc854",
+      "candidateSha256": "3ca03a3594c10e160c9a26904fd065bace1e056c5ab142a516aaa449c09569c1",
+      "candidateBytes": 612864,
+      "runtimeSha256After": "a8992c81217049155c254bb3c9d8740134e679d9da85a400fd4be514c76bc854"
+    },
+    {
+      "lookId": "arc-palisade",
+      "candidate": "art/class-models/provider-runs/meshy/arc-palisade/019fc38f-b5a7-7fce-8910-e708b93ecaac/model-normalized-review.glb",
+      "orientation": "lay-flat-x",
+      "runtimeSha256Before": "3f3faaf04a2e82a971682e29461df0c90002d11f838dc7766dabca1d89eb1684",
+      "candidateSha256": "38bb47b8b2abf0b59e8336bf090f3a241a33d30c7b875ab269df62469ad92dfe",
+      "candidateBytes": 641408,
+      "runtimeSha256After": "3f3faaf04a2e82a971682e29461df0c90002d11f838dc7766dabca1d89eb1684"
+    },
+    {
+      "lookId": "arc-patchbay",
+      "candidate": "art/class-models/provider-runs/meshy/arc-patchbay/019fc393-6297-70c0-8cd7-0811d40a1fbd/model-normalized-review.glb",
+      "orientation": "lay-flat-x",
+      "runtimeSha256Before": "8c6743c32430927ffa6df0b0b3194fb45e30c847ddd3fb3eb6f0f2b878088ec2",
+      "candidateSha256": "c8d5661948c55701d7dedccab38f070d0f60b8a84c5ad004d96a6d0d1eda7061",
+      "candidateBytes": 672520,
+      "runtimeSha256After": "8c6743c32430927ffa6df0b0b3194fb45e30c847ddd3fb3eb6f0f2b878088ec2"
+    },
+    {
+      "lookId": "arc-relay",
+      "candidate": "art/class-models/provider-runs/meshy/arc-relay/019fc396-a4ea-7171-a329-7aeb2e9c42b8/model-normalized-review.glb",
+      "orientation": "lay-flat-x",
+      "runtimeSha256Before": "6cb4ee1d96dda1b992f2b0e4f16cc04b59b754ad7b8d46ccb4e5bf51952b2b29",
+      "candidateSha256": "8ef9bbd92aef26f23e765498532ccfcd1b8407db00893bdbfd0234dbb1511782",
+      "candidateBytes": 626756,
+      "runtimeSha256After": "6cb4ee1d96dda1b992f2b0e4f16cc04b59b754ad7b8d46ccb4e5bf51952b2b29"
+    },
+    {
+      "lookId": "arc-repulsor",
+      "candidate": "art/class-models/provider-runs/meshy/arc-repulsor/019fc399-7a64-78a8-b9df-bc7f765eeddf/model-normalized-review.glb",
+      "orientation": "lay-flat-x",
+      "runtimeSha256Before": "f4de14c2a6c7acca7ba281d9c5a8fe6fbe4c6272d9feea8fc7197ae41ecc7bee",
+      "candidateSha256": "c1424f1424bc4b6620742d03cc90370394ac46ea459fce89c5588a937cacd07d",
+      "candidateBytes": 600348,
+      "runtimeSha256After": "f4de14c2a6c7acca7ba281d9c5a8fe6fbe4c6272d9feea8fc7197ae41ecc7bee"
+    },
+    {
+      "lookId": "arc-sunder",
+      "candidate": "art/class-models/provider-runs/meshy/arc-sunder/019fc39c-aa25-792a-bd75-3791ddd95373/model-normalized-review.glb",
+      "orientation": "lay-flat-x",
+      "runtimeSha256Before": "ef5a38804c0d59f79956b1b4fd5022603855172298204829480b3aee504d9b0f",
+      "candidateSha256": "b1b8ec42d1533bf4ab20d79c34b94a34caceb71d1388e6de99c62a36e2621e48",
+      "candidateBytes": 673812,
+      "runtimeSha256After": "ef5a38804c0d59f79956b1b4fd5022603855172298204829480b3aee504d9b0f"
+    },
+    {
+      "lookId": "arc-switchback",
+      "candidate": "art/class-models/provider-runs/meshy/arc-switchback/019fc39f-6f51-73b5-8d52-4fcb3461262f/model-normalized-review.glb",
+      "orientation": "lay-flat-x",
+      "runtimeSha256Before": "0b054745280b624b1fb8109432e8b4bbf9d322c9360a00bab2883f04d6e686ab",
+      "candidateSha256": "54c2b495013b698e0775a09638afb0550dedf12c105bf5921c8b49c34483e97d",
+      "candidateBytes": 591668,
+      "runtimeSha256After": "0b054745280b624b1fb8109432e8b4bbf9d322c9360a00bab2883f04d6e686ab"
+    },
+    {
+      "lookId": "arc-towline",
+      "candidate": "art/class-models/provider-runs/meshy/arc-towline/019fc3a2-7382-78a9-8950-3d67759a5e5d/model-normalized-review.glb",
+      "orientation": "lay-flat-x",
+      "runtimeSha256Before": "357514db4878f9cfded572687d6e9fd2a782602aa5811b85db871e563832e28c",
+      "candidateSha256": "5a84cb1f9b8354cc985620437662c4bafc9f228d60a1459454a44b668c6af6b3",
+      "candidateBytes": 644856,
+      "runtimeSha256After": "357514db4878f9cfded572687d6e9fd2a782602aa5811b85db871e563832e28c"
+    },
+    {
+      "lookId": "arc-veil",
+      "candidate": "art/class-models/provider-runs/meshy/arc-veil/019fc3a5-b087-7b50-9f62-a1f27d372881/model-normalized-review.glb",
+      "orientation": "lay-flat-x",
+      "runtimeSha256Before": "8a2a064de24d51c6e8cdef8f6ebf236b6c6cdfd94a4d5935ffe74d747b8d39ff",
+      "candidateSha256": "70acf4779fe1ffcde3bd6ed3235c6952f3554215bf9df7a71335010b2f70254a",
+      "candidateBytes": 814688,
+      "runtimeSha256After": "8a2a064de24d51c6e8cdef8f6ebf236b6c6cdfd94a4d5935ffe74d747b8d39ff"
+    }
+  ]
+}

@@ -81,9 +81,9 @@ public class CosmeticCatalogTests
         Assert.Equal(CosmeticUnlockEvents.Achievement, mantis.Unlock.SourceKind);
         Assert.Equal(mantis.Unlock, talon.Unlock);
 
-        // Six earned by playing, six sold as appearance packs, two sold as capacity.
+        // Six earned by playing, eighteen sold as appearance packs, two sold as capacity.
         Assert.Equal(
-            14,
+            26,
             catalog.Items.Count(item =>
                 item.Availability == CosmeticCatalog.EntitlementAvailability));
         Assert.Equal(
@@ -91,6 +91,43 @@ public class CosmeticCatalogTests
             catalog.Items.Count(item =>
                 item.Unlock?.SourceKind is CosmeticUnlockEvents.Achievement
                     or CosmeticUnlockEvents.Challenge));
+    }
+
+    [Fact]
+    public void DefaultCatalog_PinsTheClassAppearancePacks()
+    {
+        CosmeticCatalog catalog = CosmeticCatalog.LoadDefault();
+        Dictionary<string, string[]> expected = new(StringComparer.Ordinal)
+        {
+            ["striker-vector-kestrel"] =
+                ["bot-look:striker-vector-kestrel", "projectile-look:striker-vector-fork"],
+            ["striker-arc-viper"] =
+                ["bot-look:striker-arc-viper", "projectile-look:striker-arc-cutter"],
+            ["bulwark-gatehouse"] =
+                ["bot-look:bulwark-gatehouse", "projectile-look:bulwark-gate-slug"],
+            ["bulwark-mirror-bastion"] =
+                ["bot-look:bulwark-mirror-bastion", "projectile-look:bulwark-mirror-wedge"],
+            ["fabricator-copyforge"] =
+                ["bot-look:fabricator-copyforge", "projectile-look:fabricator-copy-bit"],
+            ["fabricator-rivet-mantis"] =
+                ["bot-look:fabricator-rivet-mantis", "projectile-look:fabricator-rivet-punch"],
+        };
+
+        foreach ((string packId, string[] items) in expected)
+        {
+            CosmeticPack pack = Assert.IsType<CosmeticPack>(catalog.FindPack(packId));
+            Assert.Equal(CosmeticCatalog.AppearanceCategory, pack.Category);
+            Assert.Equal(items, pack.Items);
+            Assert.All(
+                items,
+                key =>
+                {
+                    CosmeticCatalogItem item =
+                        Assert.Single(catalog.Items, candidate => candidate.Key == key);
+                    Assert.Equal(CosmeticCatalog.PurchaseSource, item.Unlock!.SourceKind);
+                    Assert.Equal(packId, item.Unlock.SourceId);
+                });
+        }
     }
 
     private static void ReadManifests(

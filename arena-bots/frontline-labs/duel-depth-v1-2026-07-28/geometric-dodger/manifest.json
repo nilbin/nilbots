@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 1,
+  "name": "GeometricDodger",
+  "doctrine": "Use the strongest simple dodge available from public projectile position and current heading, without modeling private bends.",
+  "authoringPassCount": 1,
+  "mechanicalRepairCount": 0
+}

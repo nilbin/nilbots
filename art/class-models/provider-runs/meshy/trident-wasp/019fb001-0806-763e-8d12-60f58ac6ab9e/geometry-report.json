@@ -1,0 +1,58 @@
+{
+  "source": {
+    "file": "raw-model.glb",
+    "bytes": 47634564,
+    "sha256": "1ed650a12ae891722130dfa525867d07f160c297841872b57544dd29ec5cae85"
+  },
+  "geometry": {
+    "meshes": 1,
+    "primitives": 1,
+    "vertices": 321514,
+    "triangles": 613170,
+    "boundsMin": [
+      -0.95056,
+      -0.35848,
+      -0.34727
+    ],
+    "boundsMax": [
+      0.94856,
+      0.35657,
+      0.34553
+    ],
+    "sourceFacing": "-x",
+    "sourceUp": "+z"
+  },
+  "materials": {
+    "count": 1,
+    "doubleSided": true,
+    "semanticTeamMaterial": false,
+    "embeddedTextures": [
+      "baseColor",
+      "metallicRoughness",
+      "normal",
+      "emission"
+    ]
+  },
+  "silhouette": {
+    "canonicalTopIoUAfterRigidFacingCorrection": 0.62381,
+    "verdict": "failed-planform"
+  },
+  "reviewDerivatives": {
+    "lean": {
+      "bytes": 3065788,
+      "sha256": "eef4c87ae8e170f55cfee8d69200f3aa2c33e946b3acdd85ea96cd0b6041a9c4",
+      "vertices": 59846,
+      "triangles": 98107,
+      "textureResolution": 1024,
+      "approvedForRuntime": false
+    },
+    "rich": {
+      "bytes": 7695624,
+      "sha256": "5d18ca35152f6108968f2943295b0743abb642f434f547c9dff33952bd17185c",
+      "vertices": 111004,
+      "triangles": 196211,
+      "textureResolution": 2048,
+      "approvedForRuntime": false
+    }
+  }
+}

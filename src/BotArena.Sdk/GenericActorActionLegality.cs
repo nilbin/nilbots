@@ -243,5 +243,76 @@ public sealed record GenericActorActionLegality
             /// <summary>Complete canonical set of legal headings.</summary>
             public ImmutableArray<ProjectileHeading> AllowedValues { get; }
         }
+
+        /// <summary>
+        /// Enumerates the upgrade tracks this body's team may buy the next
+        /// tier of RIGHT NOW: affordable out of the standing bank, below their
+        /// own maximum tier, and inside the team's total-tier cap. Empty means
+        /// no purchase is currently legal — which is also every contract that
+        /// declares no store at all.
+        /// </summary>
+        public sealed record UpgradeTrackConstraint : ArgumentConstraint
+        {
+            /// <summary>Creates an upgrade-track constraint.</summary>
+            /// <param name="allowedTrackIds">
+            /// Complete set of legal track IDs; empty means none.
+            /// </param>
+            public UpgradeTrackConstraint(
+                IEnumerable<string> allowedTrackIds)
+            {
+                ArgumentNullException.ThrowIfNull(allowedTrackIds);
+                string[] snapshot = allowedTrackIds
+                    .Select(trackId =>
+                        GenericActorDynamicValueRules.SemanticId(
+                            trackId,
+                            nameof(allowedTrackIds)))
+                    .ToArray();
+                if (snapshot.Length > ActorWireProtocol.MaxCollectionCount)
+                {
+                    throw new ArgumentException(
+                        "Collection exceeds the actor wire item limit.",
+                        nameof(allowedTrackIds));
+                }
+                GenericActorDynamicValueRules.EnsureUnique(
+                    snapshot,
+                    nameof(allowedTrackIds));
+                AllowedTrackIds = snapshot
+                    .Order(StringComparer.Ordinal)
+                    .ToImmutableArray();
+            }
+
+            /// <inheritdoc />
+            public override GenericActorRulesContract.ActionParameterKind Kind =>
+                GenericActorRulesContract.ActionParameterKind.UpgradeTrack;
+            /// <summary>Complete ordinal-sorted set of legal track IDs.</summary>
+            public ImmutableArray<string> AllowedTrackIds { get; }
+        }
+
+        /// <summary>Frozen legal absolute map tiles for one action.</summary>
+        public sealed record PositionTargetConstraint : ArgumentConstraint
+        {
+            /// <summary>Creates a canonical position-target constraint.</summary>
+            public PositionTargetConstraint(
+                IEnumerable<Position> allowedValues)
+            {
+                ArgumentNullException.ThrowIfNull(allowedValues);
+                Position[] values = [.. allowedValues];
+                if (values.Any(value => value.X < 0 || value.Y < 0)
+                    || values.Distinct().Count() != values.Length)
+                {
+                    throw new ArgumentException(
+                        "Position targets must be unique non-negative tiles.",
+                        nameof(allowedValues));
+                }
+                AllowedValues = values.OrderBy(value => value.Y)
+                    .ThenBy(value => value.X).ToImmutableArray();
+            }
+
+            /// <inheritdoc />
+            public override GenericActorRulesContract.ActionParameterKind Kind =>
+                GenericActorRulesContract.ActionParameterKind.PositionTarget;
+            /// <summary>Canonical legal targets.</summary>
+            public ImmutableArray<Position> AllowedValues { get; }
+        }
     }
 }

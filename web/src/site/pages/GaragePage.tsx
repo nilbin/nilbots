@@ -17,6 +17,7 @@ import { ErrorState, LoadingState } from '../components/StateView';
 import { useAuth } from '../auth';
 import {
   useCreateBot,
+  useMeta,
   useMyBots,
 } from '../queries';
 import { errorMessage } from '../errorMessage';
@@ -30,6 +31,7 @@ import CosmeticUnlocks from '../components/CosmeticUnlocks';
 import type { MyBot } from '../api';
 import { playerAccent } from '../../presentation/playerAccent';
 import { styleVariables } from '../../presentation/styleVariables';
+import { botClassPresentation, orderBotClassIds } from '../botClasses';
 
 /// The player dashboard: my bots + create a new one.
 function CliAccess() {
@@ -66,6 +68,8 @@ export default function GaragePage() {
   const [accent, setAccent] = useState('#22d3ee');
   const [lookId, setLookId] = useState('');
   const [projectileLookId, setProjectileLookId] = useState('');
+  const [classId, setClassId] = useState('');
+  const { data: meta, error: metaError } = useMeta();
   const { catalog, error: catalogError } = useCosmeticCatalog();
   const navigate = useNavigate();
   const creation = useCreateBot();
@@ -112,13 +116,22 @@ export default function GaragePage() {
 
   const create = async (event: React.FormEvent) => {
     event.preventDefault();
-    const bot = await creation.mutateAsync({ name, accent, lookId, projectileLookId });
+    const bot = await creation.mutateAsync({
+      name,
+      accent,
+      lookId,
+      projectileLookId,
+      classId,
+    });
     navigate(`/bots/${bot.id}`);
   };
   const selectionOwned = appearanceSelectionOwned(
     catalog,
     lookId,
     projectileLookId,
+  );
+  const classIds = orderBotClassIds(
+    meta?.botClasses.map((entry) => entry.id) ?? [],
   );
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-7">
@@ -193,7 +206,7 @@ export default function GaragePage() {
               Create another bot
             </span>
             <span className="t-meta block">
-              Name it and choose its first chassis and projectile.
+              Name it and choose its permanent class, first chassis, and projectile.
             </span>
           </span>
           <span
@@ -219,6 +232,28 @@ export default function GaragePage() {
               className="field"
             />
           </label>
+          <label className="t-meta flex flex-col gap-1">
+            Class
+            <select
+              value={classId}
+              onChange={(event) => setClassId(event.target.value)}
+              required
+              className="field"
+            >
+              <option value="">Choose a class…</option>
+              {classIds.map((id) => (
+                <option key={id} value={id}>
+                  {botClassPresentation(id).label}
+                </option>
+              ))}
+            </select>
+          </label>
+          {classId && (
+            <p className="t-micro">
+              {botClassPresentation(classId).description} Class is permanent for
+              this bot.
+            </p>
+          )}
           <AppearanceFields
             catalog={catalog}
             accent={accent}
@@ -255,11 +290,18 @@ export default function GaragePage() {
             </p>
           )}
           {catalogError && <p className="t-body text-arena-hot">{catalogError}</p>}
+          {metaError && (
+            <p className="t-body text-arena-hot">
+              {errorMessage(metaError, 'Failed to load bot classes.')}
+            </p>
+          )}
           <button
             type="submit"
             disabled={
               creation.isPending ||
               !catalog ||
+              !meta ||
+              !classId ||
               !selectionOwned
             }
             className="btn btn-strong mt-1 min-h-11 self-start disabled:opacity-40"
@@ -278,6 +320,9 @@ function OwnedBotCard({ bot }: { bot: MyBot }) {
   const look = botLook(bot.lookId);
   const projectile = projectileLook(bot.projectileLookId);
   const cardAccent = playerAccent(bot.accent, 'panel');
+  const classLabel = bot.classId
+    ? botClassPresentation(bot.classId).label
+    : 'Class unassigned';
 
   return (
     <li
@@ -297,6 +342,7 @@ function OwnedBotCard({ bot }: { bot: MyBot }) {
             size="lg"
             emphasized
           />
+          <span className="pill mt-2 inline-flex">{classLabel}</span>
         </Link>
         <span className="pill shrink-0">{generationStatus(bot)}</span>
       </div>

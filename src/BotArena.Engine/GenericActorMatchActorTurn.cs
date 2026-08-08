@@ -333,6 +333,19 @@ public sealed record GenericActorMatchActorTurn
         ActorActionDefinition action,
         ActorActionParameterKind kind)
     {
+        // The declared LOCK is optional wherever it exists, exactly as
+        // GenericActorDecisionAdmission admits it: a declarer with nobody
+        // worth naming still fires down the lane. Evidence validation has to
+        // agree with admission or a legal nameless declare aborts the match
+        // on the way into the chronology.
+        if (kind == ActorActionParameterKind.UnitTarget
+            && (action.Kind == ActorActionKind.Attack
+                || action.ParameterKinds.Contains(
+                    ActorActionParameterKind.ProjectileHeading)))
+        {
+            return true;
+        }
+
         if (kind != ActorActionParameterKind.ShotProgram
             || action.Kind != ActorActionKind.Attack)
         {
@@ -374,6 +387,16 @@ public sealed record GenericActorMatchActorTurn
             GenericActorRuntimeActionArgument.ProjectileHeadingArgument
                 value =>
                 Enum.IsDefined(value.Value),
+            // The declared tracks live on the mode rather than on the rules
+            // catalog, so structural representability is exactly a non-blank
+            // ID; whether it is legal THIS tick is the legality mask's job.
+            GenericActorRuntimeActionArgument.UpgradeTrackArgument value =>
+                !string.IsNullOrWhiteSpace(value.TrackId),
+            GenericActorRuntimeActionArgument.PositionTargetArgument value =>
+                value.Value.X >= 0
+                && value.Value.Y >= 0
+                && value.Value.X < definition.Map.Width
+                && value.Value.Y < definition.Map.Height,
             _ => false,
         };
 
@@ -458,6 +481,17 @@ public sealed record GenericActorMatchActorTurn
                     .ProjectileHeadingArgument a,
                 GenericActorRuntimeActionArgument
                     .ProjectileHeadingArgument b) =>
+                a.Value == b.Value,
+            (
+                GenericActorRuntimeActionArgument.UpgradeTrackArgument a,
+                GenericActorRuntimeActionArgument.UpgradeTrackArgument b) =>
+                string.Equals(
+                    a.TrackId,
+                    b.TrackId,
+                    StringComparison.Ordinal),
+            (
+                GenericActorRuntimeActionArgument.PositionTargetArgument a,
+                GenericActorRuntimeActionArgument.PositionTargetArgument b) =>
                 a.Value == b.Value,
             _ => false,
         };

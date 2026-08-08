@@ -1,0 +1,772 @@
+{
+  "schemaVersion": 1,
+  "auditedAt": "2026-08-03T14:45:54.310Z",
+  "authorization": "art/class-models/provider-runs/meshy/arc-fleet-rest-15-2026-08-02.json",
+  "provider": "Meshy",
+  "endpoint": "image-to-3d",
+  "model": "meshy-t2",
+  "modelType": "smart-topology",
+  "batch": {
+    "requestedCalls": 16,
+    "succeededCalls": 16,
+    "failedCalls": 0,
+    "rerolls": 1,
+    "expectedCredits": 240,
+    "consumedCredits": 240,
+    "balanceBefore": 520,
+    "balanceAfter": 280,
+    "submittedAt": "2026-08-02T17:13:58.907Z",
+    "finishedAt": "2026-08-03T14:37:01.393Z",
+    "elapsedSeconds": 76982.486,
+    "providerStageSeconds": 3433.7153413739998,
+    "averageProviderStageSeconds": 214.60720883587499,
+    "candidateBytes": {
+      "total": 10047496,
+      "minimum": 591668,
+      "maximum": 814688,
+      "average": 669833.0666666667
+    }
+  },
+  "reviewContract": {
+    "targetPlanformSpan": 0.99,
+    "modelOwnedTeamGlow": false,
+    "meshContract": "monolithic",
+    "cameraPitchDegrees": 58,
+    "realReplayScale": true,
+    "orientationOverrides": {
+      "arc-lantern": "identity",
+      "arc-mortar": "identity"
+    },
+    "facingYawDegrees": {
+      "arc-kestrel": 180,
+      "arc-mortar": 180
+    },
+    "rerollTaskIds": {
+      "arc-mortar": "019fc80a-8b00-783e-af88-a60d3dd45773"
+    },
+    "runtimeAssetsPromoted": false,
+    "runtimeModelsRestored": true
+  },
+  "pilot": {
+    "lookId": "arc-mason",
+    "taskId": "019fc335-af21-735b-ac08-6215f3031b69",
+    "submittedAt": "2026-08-02T16:01:42.456Z",
+    "finishedAt": "2026-08-02T16:05:36.756Z",
+    "providerStageSeconds": 234.298527583,
+    "consumedCredits": 15,
+    "balanceBefore": 535,
+    "balanceAfter": 520,
+    "input": {
+      "file": "web/src/assets/class-looks/arc-mason/sprite.png",
+      "bytes": 41791,
+      "sha256": "8adbc038d3aa203074b5105cea0e878722707deaac555b94a80f31b17d77c3df",
+      "mimeType": "image/png"
+    },
+    "orientation": "lay-flat-x",
+    "facingYawDegrees": 0,
+    "candidate": {
+      "file": "art/class-models/provider-runs/meshy/arc-mason/019fc335-af21-735b-ac08-6215f3031b69/mason-normalized-large-review.glb",
+      "bytes": 678556,
+      "sha256": "2653efe1f297c2e5115fbd046bbb4fd6da658d294b454ad6c308fc705c13721c",
+      "triangles": 14278,
+      "materials": 1,
+      "textures": 4,
+      "sourceBounds": {
+        "min": [
+          -0.0423140712082386,
+          -1.862645149230957e-9,
+          -0.013388426043093204
+        ],
+        "max": [
+          0.0423140712082386,
+          0.059999994933605194,
+          0.013553704135119915
+        ]
+      }
+    },
+    "validation": {
+      "performed": true,
+      "errors": 0,
+      "warnings": [
+        "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE"
+      ]
+    }
+  },
+  "generated": [
+    {
+      "lookId": "arc-hush",
+      "taskId": "019fc377-da97-748f-8455-0f31d5e85c0b",
+      "submittedAt": "2026-08-02T17:13:58.907Z",
+      "finishedAt": "2026-08-02T17:17:36.971Z",
+      "providerStageSeconds": 218.062480292,
+      "consumedCredits": 15,
+      "balanceBefore": 520,
+      "balanceAfter": 505,
+      "input": {
+        "file": "web/src/assets/class-looks/arc-hush/sprite.png",
+        "bytes": 39647,
+        "sha256": "85be80599ea71f4ece0f3613fbe73c696130b6e9253aab7e316077231edd4c43",
+        "mimeType": "image/png"
+      },
+      "orientation": "lay-flat-x",
+      "facingYawDegrees": 0,
+      "candidate": {
+        "file": "art/class-models/provider-runs/meshy/arc-hush/019fc377-da97-748f-8455-0f31d5e85c0b/model-normalized-review.glb",
+        "bytes": 741832,
+        "sha256": "9da702d12c91f1580b3c420907927e910b31ff64b5629ef3a86bf7d05430edc8",
+        "triangles": 13595,
+        "materials": 1,
+        "textures": 4,
+        "sourceBounds": {
+          "min": [
+            -2.1166677474975586,
+            -1.1920928955078125e-7,
+            -0.6291669607162476
+          ],
+          "max": [
+            2.133333444595337,
+            3,
+            0.633335530757904
+          ]
+        }
+      },
+      "validation": {
+        "performed": true,
+        "errors": 0,
+        "warnings": [
+          "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE"
+        ]
+      }
+    },
+    {
+      "lookId": "arc-kestrel",
+      "taskId": "019fc37b-3531-713a-b811-b9180a9dc880",
+      "submittedAt": "2026-08-02T17:17:38.743Z",
+      "finishedAt": "2026-08-02T17:20:45.343Z",
+      "providerStageSeconds": 186.599524125,
+      "consumedCredits": 15,
+      "balanceBefore": 505,
+      "balanceAfter": 490,
+      "input": {
+        "file": "web/src/assets/class-looks/arc-kestrel/sprite.png",
+        "bytes": 41444,
+        "sha256": "8526f942f94486a744d823d31dc607f7cbd018b90ddf5b58e67796a18df20cc6",
+        "mimeType": "image/png"
+      },
+      "orientation": "lay-flat-x",
+      "facingYawDegrees": 180,
+      "candidate": {
+        "file": "art/class-models/provider-runs/meshy/arc-kestrel/019fc37b-3531-713a-b811-b9180a9dc880/model-normalized-facing-review.glb",
+        "bytes": 688996,
+        "sha256": "08a59ea57608acedb2c61aaf8a7e019e02b4cfecc310cc66cc59d73bc3e07ad8",
+        "triangles": 13362,
+        "materials": 1,
+        "textures": 4,
+        "sourceBounds": {
+          "min": [
+            -1.3913036584854126,
+            -1.1920928955078125e-7,
+            -0.5896734595298767
+          ],
+          "max": [
+            1.3913036584854126,
+            2.5,
+            0.5896734595298767
+          ]
+        }
+      },
+      "validation": {
+        "performed": true,
+        "errors": 0,
+        "warnings": [
+          "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE"
+        ]
+      }
+    },
+    {
+      "lookId": "arc-lantern",
+      "taskId": "019fc37e-1510-7c24-8d4b-079bcbdd48c1",
+      "submittedAt": "2026-08-02T17:20:47.073Z",
+      "finishedAt": "2026-08-02T17:24:38.260Z",
+      "providerStageSeconds": 231.185872625,
+      "consumedCredits": 15,
+      "balanceBefore": 490,
+      "balanceAfter": 475,
+      "input": {
+        "file": "web/src/assets/class-looks/arc-lantern/sprite.png",
+        "bytes": 40848,
+        "sha256": "81b9575a86c0d820dd60ef2278a2115f57c108b8f8b58f67e0f51149a0effa6a",
+        "mimeType": "image/png"
+      },
+      "orientation": "identity",
+      "facingYawDegrees": 0,
+      "candidate": {
+        "file": "art/class-models/provider-runs/meshy/arc-lantern/019fc37e-1510-7c24-8d4b-079bcbdd48c1/model-normalized-identity-review.glb",
+        "bytes": 623192,
+        "sha256": "cede9b588c27adfde450fd44816d83b8025fefe682e21b1b3753a14c2e0bcfdb",
+        "triangles": 15301,
+        "materials": 1,
+        "textures": 4,
+        "sourceBounds": {
+          "min": [
+            -1.0870592594146729,
+            0,
+            -1.200000524520874
+          ],
+          "max": [
+            1.0917649269104004,
+            2,
+            1.1952948570251465
+          ]
+        }
+      },
+      "validation": {
+        "performed": true,
+        "errors": 0,
+        "warnings": [
+          "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE"
+        ]
+      }
+    },
+    {
+      "lookId": "arc-longshot",
+      "taskId": "019fc381-a1d0-729b-be0f-149a70a90b1a",
+      "submittedAt": "2026-08-02T17:24:39.752Z",
+      "finishedAt": "2026-08-02T17:28:01.928Z",
+      "providerStageSeconds": 202.175375541,
+      "consumedCredits": 15,
+      "balanceBefore": 475,
+      "balanceAfter": 460,
+      "input": {
+        "file": "web/src/assets/class-looks/arc-longshot/sprite.png",
+        "bytes": 29636,
+        "sha256": "a7ac1a9af984d00d46a8dfcbea8347e358c003c97406ec2b32dba7f90df75ea3",
+        "mimeType": "image/png"
+      },
+      "orientation": "lay-flat-x",
+      "facingYawDegrees": 0,
+      "candidate": {
+        "file": "art/class-models/provider-runs/meshy/arc-longshot/019fc381-a1d0-729b-be0f-149a70a90b1a/model-normalized-review.glb",
+        "bytes": 648924,
+        "sha256": "aa376fd65ac4c80968fdf55a6ac2a89d2f5966e58c45e8c22d70fc6b5c5f0640",
+        "triangles": 11525,
+        "materials": 1,
+        "textures": 4,
+        "sourceBounds": {
+          "min": [
+            -0.11254797875881195,
+            0,
+            -0.030549414455890656
+          ],
+          "max": [
+            0.11252749711275101,
+            0.11999999731779099,
+            0.030769294127821922
+          ]
+        }
+      },
+      "validation": {
+        "performed": true,
+        "errors": 0,
+        "warnings": [
+          "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE"
+        ]
+      }
+    },
+    {
+      "lookId": "arc-minesmith",
+      "taskId": "019fc384-be6a-7480-a333-5cb8f37c1c46",
+      "submittedAt": "2026-08-02T17:28:03.700Z",
+      "finishedAt": "2026-08-02T17:32:25.722Z",
+      "providerStageSeconds": 262.021890167,
+      "consumedCredits": 15,
+      "balanceBefore": 460,
+      "balanceAfter": 445,
+      "input": {
+        "file": "web/src/assets/class-looks/arc-minesmith/sprite.png",
+        "bytes": 48293,
+        "sha256": "60f70b6220ad2f43d221ab284c22a681756b93698bddcd6ce25d4f8eeee9eff8",
+        "mimeType": "image/png"
+      },
+      "orientation": "lay-flat-x",
+      "facingYawDegrees": 0,
+      "candidate": {
+        "file": "art/class-models/provider-runs/meshy/arc-minesmith/019fc384-be6a-7480-a333-5cb8f37c1c46/model-normalized-review.glb",
+        "bytes": 700916,
+        "sha256": "c566ab7363aac9090c463c683db6dd70941d09059d04b82ad6c87e29c1159a2c",
+        "triangles": 12945,
+        "materials": 1,
+        "textures": 4,
+        "sourceBounds": {
+          "min": [
+            -0.1233009621500969,
+            0,
+            -0.05679617449641228
+          ],
+          "max": [
+            0.12378636747598648,
+            0.20000001788139343,
+            0.05679617449641228
+          ]
+        }
+      },
+      "validation": {
+        "performed": true,
+        "errors": 0,
+        "warnings": [
+          "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE"
+        ]
+      }
+    },
+    {
+      "lookId": "arc-mortar",
+      "taskId": "019fc80a-8b00-783e-af88-a60d3dd45773",
+      "submittedAt": "2026-08-03T14:32:39.187Z",
+      "finishedAt": "2026-08-03T14:37:01.393Z",
+      "providerStageSeconds": 260.199506041,
+      "consumedCredits": 15,
+      "balanceBefore": 295,
+      "balanceAfter": 280,
+      "input": {
+        "file": "art/class-models/concept-targets/arc-mortar-meshy-reroll-v1/meshy-input.png",
+        "bytes": 2396590,
+        "sha256": "dbaa4ccfb184b3850da14a5e8b7176c2dbe4b297c77b41b9ea9f15a2a96a3fa1",
+        "mimeType": "image/png"
+      },
+      "orientation": "identity",
+      "facingYawDegrees": 180,
+      "candidate": {
+        "file": "art/class-models/provider-runs/meshy/arc-mortar/019fc80a-8b00-783e-af88-a60d3dd45773/model-normalized-identity-facing-review.glb",
+        "bytes": 764716,
+        "sha256": "818cb92ed6b4cc39a38a8bed6cbe530798e82c9246f5d97b483817b18931bb8c",
+        "triangles": 13736,
+        "materials": 1,
+        "textures": 4,
+        "sourceBounds": {
+          "min": [
+            -1.3806736469268799,
+            0,
+            -1.2997745275497437
+          ],
+          "max": [
+            1.3806736469268799,
+            2.4000000953674316,
+            1.2943814992904663
+          ]
+        }
+      },
+      "validation": {
+        "performed": true,
+        "errors": 0,
+        "warnings": [
+          "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE"
+        ]
+      }
+    },
+    {
+      "lookId": "arc-nest",
+      "taskId": "019fc38c-5dfd-7f2c-bafc-29c7adee94fe",
+      "submittedAt": "2026-08-02T17:36:23.294Z",
+      "finishedAt": "2026-08-02T17:40:00.954Z",
+      "providerStageSeconds": 217.659519,
+      "consumedCredits": 15,
+      "balanceBefore": 430,
+      "balanceAfter": 415,
+      "input": {
+        "file": "web/src/assets/class-looks/arc-nest/sprite.png",
+        "bytes": 46440,
+        "sha256": "6bf8954d9791584b4c5ad762de3006ff8a5766c293041abb55ec424ddff5dc4b",
+        "mimeType": "image/png"
+      },
+      "orientation": "lay-flat-x",
+      "facingYawDegrees": 0,
+      "candidate": {
+        "file": "art/class-models/provider-runs/meshy/arc-nest/019fc38c-5dfd-7f2c-bafc-29c7adee94fe/model-normalized-review.glb",
+        "bytes": 612864,
+        "sha256": "3ca03a3594c10e160c9a26904fd065bace1e056c5ab142a516aaa449c09569c1",
+        "triangles": 13893,
+        "materials": 1,
+        "textures": 4,
+        "sourceBounds": {
+          "min": [
+            -0.1684209406375885,
+            0,
+            -0.06644745171070099
+          ],
+          "max": [
+            0.1684209406375885,
+            0.25,
+            0.06611835956573486
+          ]
+        }
+      },
+      "validation": {
+        "performed": true,
+        "errors": 0,
+        "warnings": [
+          "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE"
+        ]
+      }
+    },
+    {
+      "lookId": "arc-palisade",
+      "taskId": "019fc38f-b5a7-7fce-8910-e708b93ecaac",
+      "submittedAt": "2026-08-02T17:40:02.345Z",
+      "finishedAt": "2026-08-02T17:44:01.675Z",
+      "providerStageSeconds": 239.329627667,
+      "consumedCredits": 15,
+      "balanceBefore": 415,
+      "balanceAfter": 400,
+      "input": {
+        "file": "web/src/assets/class-looks/arc-palisade/sprite.png",
+        "bytes": 55548,
+        "sha256": "24be8a685296db3b1a5b1aa3645c63bb64ef5c183f658e39f432b9bf8cf37dcf",
+        "mimeType": "image/png"
+      },
+      "orientation": "lay-flat-x",
+      "facingYawDegrees": 0,
+      "candidate": {
+        "file": "art/class-models/provider-runs/meshy/arc-palisade/019fc38f-b5a7-7fce-8910-e708b93ecaac/model-normalized-review.glb",
+        "bytes": 641408,
+        "sha256": "38bb47b8b2abf0b59e8336bf090f3a241a33d30c7b875ab269df62469ad92dfe",
+        "triangles": 13542,
+        "materials": 1,
+        "textures": 4,
+        "sourceBounds": {
+          "min": [
+            -0.46230217814445496,
+            0,
+            -0.15530487895011902
+          ],
+          "max": [
+            0.46230217814445496,
+            0.8000000715255737,
+            0.15530487895011902
+          ]
+        }
+      },
+      "validation": {
+        "performed": true,
+        "errors": 0,
+        "warnings": [
+          "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE"
+        ]
+      }
+    },
+    {
+      "lookId": "arc-patchbay",
+      "taskId": "019fc393-6297-70c0-8cd7-0811d40a1fbd",
+      "submittedAt": "2026-08-02T17:44:03.180Z",
+      "finishedAt": "2026-08-02T17:47:34.855Z",
+      "providerStageSeconds": 211.684807417,
+      "consumedCredits": 15,
+      "balanceBefore": 400,
+      "balanceAfter": 385,
+      "input": {
+        "file": "web/src/assets/class-looks/arc-patchbay/sprite.png",
+        "bytes": 42043,
+        "sha256": "0095b31158dfec1056d6dfc58a194c3859184dcdad2c716672486e2e20b1d106",
+        "mimeType": "image/png"
+      },
+      "orientation": "lay-flat-x",
+      "facingYawDegrees": 0,
+      "candidate": {
+        "file": "art/class-models/provider-runs/meshy/arc-patchbay/019fc393-6297-70c0-8cd7-0811d40a1fbd/model-normalized-review.glb",
+        "bytes": 672520,
+        "sha256": "c8d5661948c55701d7dedccab38f070d0f60b8a84c5ad004d96a6d0d1eda7061",
+        "triangles": 13808,
+        "materials": 1,
+        "textures": 4,
+        "sourceBounds": {
+          "min": [
+            -0.08727272599935532,
+            0,
+            -0.03715915605425835
+          ],
+          "max": [
+            0.08727272599935532,
+            0.11999999731779099,
+            0.03715915605425835
+          ]
+        }
+      },
+      "validation": {
+        "performed": true,
+        "errors": 0,
+        "warnings": [
+          "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE"
+        ]
+      }
+    },
+    {
+      "lookId": "arc-relay",
+      "taskId": "019fc396-a4ea-7171-a329-7aeb2e9c42b8",
+      "submittedAt": "2026-08-02T17:47:36.743Z",
+      "finishedAt": "2026-08-02T17:50:40.644Z",
+      "providerStageSeconds": 183.900873583,
+      "consumedCredits": 15,
+      "balanceBefore": 385,
+      "balanceAfter": 370,
+      "input": {
+        "file": "web/src/assets/class-looks/arc-relay/sprite.png",
+        "bytes": 41895,
+        "sha256": "d6d93511288d27d3db9155c9c447326bb1f7382a6ca8cb9356fb9a4d02f62fd7",
+        "mimeType": "image/png"
+      },
+      "orientation": "lay-flat-x",
+      "facingYawDegrees": 0,
+      "candidate": {
+        "file": "art/class-models/provider-runs/meshy/arc-relay/019fc396-a4ea-7171-a329-7aeb2e9c42b8/model-normalized-review.glb",
+        "bytes": 626756,
+        "sha256": "8ef9bbd92aef26f23e765498532ccfcd1b8407db00893bdbfd0234dbb1511782",
+        "triangles": 12043,
+        "materials": 1,
+        "textures": 4,
+        "sourceBounds": {
+          "min": [
+            -0.1081690713763237,
+            0,
+            -0.02471836283802986
+          ],
+          "max": [
+            0.1081690713763237,
+            0.15000000596046448,
+            0.02471836283802986
+          ]
+        }
+      },
+      "validation": {
+        "performed": true,
+        "errors": 0,
+        "warnings": [
+          "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE"
+        ]
+      }
+    },
+    {
+      "lookId": "arc-repulsor",
+      "taskId": "019fc399-7a64-78a8-b9df-bc7f765eeddf",
+      "submittedAt": "2026-08-02T17:50:42.525Z",
+      "finishedAt": "2026-08-02T17:54:09.743Z",
+      "providerStageSeconds": 207.217177125,
+      "consumedCredits": 15,
+      "balanceBefore": 370,
+      "balanceAfter": 355,
+      "input": {
+        "file": "web/src/assets/class-looks/arc-repulsor/sprite.png",
+        "bytes": 49207,
+        "sha256": "b38a30d924b1980cbe477ef8230451d1993c4bb4aa109aba61a1a7e2a7afbe65",
+        "mimeType": "image/png"
+      },
+      "orientation": "lay-flat-x",
+      "facingYawDegrees": 0,
+      "candidate": {
+        "file": "art/class-models/provider-runs/meshy/arc-repulsor/019fc399-7a64-78a8-b9df-bc7f765eeddf/model-normalized-review.glb",
+        "bytes": 600348,
+        "sha256": "c1424f1424bc4b6620742d03cc90370394ac46ea459fce89c5588a937cacd07d",
+        "triangles": 15079,
+        "materials": 1,
+        "textures": 4,
+        "sourceBounds": {
+          "min": [
+            -0.0941176488995552,
+            7.450580596923828e-9,
+            -0.029963294044137
+          ],
+          "max": [
+            0.0941176488995552,
+            0.15000000596046448,
+            0.02904414013028145
+          ]
+        }
+      },
+      "validation": {
+        "performed": true,
+        "errors": 0,
+        "warnings": [
+          "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE"
+        ]
+      }
+    },
+    {
+      "lookId": "arc-sunder",
+      "taskId": "019fc39c-aa25-792a-bd75-3791ddd95373",
+      "submittedAt": "2026-08-02T17:54:11.359Z",
+      "finishedAt": "2026-08-02T17:57:11.157Z",
+      "providerStageSeconds": 179.798093708,
+      "consumedCredits": 15,
+      "balanceBefore": 355,
+      "balanceAfter": 340,
+      "input": {
+        "file": "web/src/assets/class-looks/arc-sunder/sprite.png",
+        "bytes": 43097,
+        "sha256": "f5442fa708cc567a4d3ba432094a2065ae0eea59b2a818daa03ed9772f65bda4",
+        "mimeType": "image/png"
+      },
+      "orientation": "lay-flat-x",
+      "facingYawDegrees": 0,
+      "candidate": {
+        "file": "art/class-models/provider-runs/meshy/arc-sunder/019fc39c-aa25-792a-bd75-3791ddd95373/model-normalized-review.glb",
+        "bytes": 673812,
+        "sha256": "b1b8ec42d1533bf4ab20d79c34b94a34caceb71d1388e6de99c62a36e2621e48",
+        "triangles": 12267,
+        "materials": 1,
+        "textures": 4,
+        "sourceBounds": {
+          "min": [
+            -1.7574383020401,
+            0,
+            -0.5766576528549194
+          ],
+          "max": [
+            1.7574383020401,
+            3,
+            0.5732271671295166
+          ]
+        }
+      },
+      "validation": {
+        "performed": true,
+        "errors": 0,
+        "warnings": [
+          "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE"
+        ]
+      }
+    },
+    {
+      "lookId": "arc-switchback",
+      "taskId": "019fc39f-6f51-73b5-8d52-4fcb3461262f",
+      "submittedAt": "2026-08-02T17:57:12.822Z",
+      "finishedAt": "2026-08-02T18:00:29.292Z",
+      "providerStageSeconds": 196.470124042,
+      "consumedCredits": 15,
+      "balanceBefore": 340,
+      "balanceAfter": 325,
+      "input": {
+        "file": "web/src/assets/class-looks/arc-switchback/sprite.png",
+        "bytes": 39138,
+        "sha256": "5d7ffd11d4ad5f6b1f64bc19ee482386dda63c3428ba9e291b52bb1d8e412c55",
+        "mimeType": "image/png"
+      },
+      "orientation": "lay-flat-x",
+      "facingYawDegrees": 0,
+      "candidate": {
+        "file": "art/class-models/provider-runs/meshy/arc-switchback/019fc39f-6f51-73b5-8d52-4fcb3461262f/model-normalized-review.glb",
+        "bytes": 591668,
+        "sha256": "54c2b495013b698e0775a09638afb0550dedf12c105bf5921c8b49c34483e97d",
+        "triangles": 15939,
+        "materials": 1,
+        "textures": 4,
+        "sourceBounds": {
+          "min": [
+            -3.405409812927246,
+            0,
+            -1.094594120979309
+          ],
+          "max": [
+            3.459460496902466,
+            5,
+            1.1081067323684692
+          ]
+        }
+      },
+      "validation": {
+        "performed": true,
+        "errors": 0,
+        "warnings": [
+          "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE"
+        ]
+      }
+    },
+    {
+      "lookId": "arc-towline",
+      "taskId": "019fc3a2-7382-78a9-8950-3d67759a5e5d",
+      "submittedAt": "2026-08-02T18:00:30.717Z",
+      "finishedAt": "2026-08-02T18:04:00.941Z",
+      "providerStageSeconds": 210.224789333,
+      "consumedCredits": 15,
+      "balanceBefore": 325,
+      "balanceAfter": 310,
+      "input": {
+        "file": "web/src/assets/class-looks/arc-towline/sprite.png",
+        "bytes": 48073,
+        "sha256": "63fb27f126b629768bbb4a889607a22a4bdfd5fdd3d401935c183bfbc047fd6f",
+        "mimeType": "image/png"
+      },
+      "orientation": "lay-flat-x",
+      "facingYawDegrees": 0,
+      "candidate": {
+        "file": "art/class-models/provider-runs/meshy/arc-towline/019fc3a2-7382-78a9-8950-3d67759a5e5d/model-normalized-review.glb",
+        "bytes": 644856,
+        "sha256": "5a84cb1f9b8354cc985620437662c4bafc9f228d60a1459454a44b668c6af6b3",
+        "triangles": 15375,
+        "materials": 1,
+        "textures": 4,
+        "sourceBounds": {
+          "min": [
+            -0.09745869785547256,
+            0,
+            -0.04814917594194412
+          ],
+          "max": [
+            0.0990055575966835,
+            0.13999998569488525,
+            0.04853589087724686
+          ]
+        }
+      },
+      "validation": {
+        "performed": true,
+        "errors": 0,
+        "warnings": [
+          "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE"
+        ]
+      }
+    },
+    {
+      "lookId": "arc-veil",
+      "taskId": "019fc3a5-b087-7b50-9f62-a1f27d372881",
+      "submittedAt": "2026-08-02T18:04:02.765Z",
+      "finishedAt": "2026-08-02T18:07:15.284Z",
+      "providerStageSeconds": 192.518571708,
+      "consumedCredits": 15,
+      "balanceBefore": 310,
+      "balanceAfter": 295,
+      "input": {
+        "file": "web/src/assets/class-looks/arc-veil/sprite.png",
+        "bytes": 39883,
+        "sha256": "9d3ee0ee7cd4085b745b995f9024cd823a841d240c492295fd05d219cc0985b3",
+        "mimeType": "image/png"
+      },
+      "orientation": "lay-flat-x",
+      "facingYawDegrees": 0,
+      "candidate": {
+        "file": "art/class-models/provider-runs/meshy/arc-veil/019fc3a5-b087-7b50-9f62-a1f27d372881/model-normalized-review.glb",
+        "bytes": 814688,
+        "sha256": "70acf4779fe1ffcde3bd6ed3235c6952f3554215bf9df7a71335010b2f70254a",
+        "triangles": 12542,
+        "materials": 1,
+        "textures": 4,
+        "sourceBounds": {
+          "min": [
+            -2.2005720138549805,
+            0,
+            -1.0744997262954712
+          ],
+          "max": [
+            2.2005720138549805,
+            3.000000238418579,
+            1.0744997262954712
+          ]
+        }
+      },
+      "validation": {
+        "performed": true,
+        "errors": 0,
+        "warnings": [
+          "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE"
+        ]
+      }
+    }
+  ]
+}

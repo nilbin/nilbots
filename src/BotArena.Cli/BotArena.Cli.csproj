@@ -7,7 +7,7 @@
     <ToolCommandName>nilbots</ToolCommandName>
     <PackageId>Nilbots</PackageId>
     <!-- Lockstep with ToolchainInfo.CliVersion (PackagedCliVersionTests). -->
-    <Version>0.9.5</Version>
+    <Version>0.9.34</Version>
     <Authors>nilbin</Authors>
     <Description>Build, test, replay, and submit C# bots for the nilbots programming game.</Description>
     <PackageProjectUrl>https://nilbots.com</PackageProjectUrl>
@@ -17,8 +17,16 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <!-- A match is an allocation-heavy batch job, not an interactive app: the
+         Arc Relay evaluation cell allocates ~1 GiB in one 400-tick run. Server
+         GC (DATAS-sized, so a laptop running a sweep in parallel does not get
+         one heap per core) collects that at ~5% less wall clock than
+         workstation GC both serially and at six concurrent cells. Gameplay is
+         unaffected — the GC never observes simulation state. -->
+    <ServerGarbageCollection>true</ServerGarbageCollection>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="../BotArena.TacticalPlaybooks/BotArena.TacticalPlaybooks.csproj" />
     <ProjectReference Include="../BotArena.Engine/BotArena.Engine.csproj" />
     <ProjectReference Include="../BotArena.Runtime/BotArena.Runtime.csproj" />
     <ProjectReference Include="../BotArena.Toolchain/BotArena.Toolchain.csproj" />
@@ -70,6 +78,9 @@
     <None Include="../../templates/botarena-generic-actor/*"
           Pack="true"
           PackagePath="tools/net10.0/any/templates/botarena-generic-actor/" />
+    <None Include="../../templates/botarena-generic-mind/*"
+          Pack="true"
+          PackagePath="tools/net10.0/any/templates/botarena-generic-mind/" />
     <!-- One self-contained viewer per map theme; the CLI picks by the replay's
          ThemeId. See ReplayOutput and web/vite.cli.config.ts. -->
     <None Include="../../web/dist-cli/**/index.html"

@@ -1,0 +1,97 @@
+{
+  "schema": "arc-relay-golden-sweep-v1",
+  "goldenId": "arc-relay-gate3-phase-d-engine-1.0.5",
+  "purpose": "Byte-identical determinism gate for Gate 3 Phase C/D loop optimizations",
+  "sourceEvidence": "docs/reports/GATE-3-FIRST-PLAY-REPORT.md",
+  "runtime": "wasm",
+  "engineVersion": "1.0.5",
+  "rulesetId": "arc-relay-h0-01",
+  "rulesFingerprint": "f6d3ee9b1bb17d7bd8d0981941fd00a6a96f0e7ef834497d11924c06087174eb",
+  "mapId": "arc-relay-threefold-01",
+  "mapFingerprint": "f4649d6d17e80c02cd4b09fec849de5729435855cf411592a5e2c73cd889bbbe",
+  "cohortId": "arc-relay-native-cohort-v1-2026-08-01",
+  "eligibilityBars": "balance/arc-relay-felt-degeneracy-bars-v1.json",
+  "eligibilityBarsSha256": "1d024636805e42c8ee05ebdee8144db8cd65439e9e4f271664289718b5e7ffc5",
+  "entrants": {
+    "convoy": {
+      "artifact": "arena-bots/arc-relay/native-cohort-v1-2026-08-01/convoy/bot.wasm",
+      "artifactSha256": "b88f6e913cea6320955885a003ff48774e8ad75f1c39add08d4073ef66b8a857",
+      "sheet": "arena-bots/arc-relay/native-cohort-v1-2026-08-01/convoy/sheet.json",
+      "sheetSha256": "065ca2325afaafa1a129ccba23e9bae4daa29a426271be7d1351608cffa79c17"
+    },
+    "information-route-control": {
+      "artifact": "arena-bots/arc-relay/native-cohort-v1-2026-08-01/information-route-control/bot.wasm",
+      "artifactSha256": "8c89636b0ba971429be7c4a33516191bf49f2c6caeaf3f1c664c76bf00b0384f",
+      "sheet": "arena-bots/arc-relay/native-cohort-v1-2026-08-01/information-route-control/sheet.json",
+      "sheetSha256": "58edbc6c6285831ac8da58557fb888d11706143d6d6a7cdc9df1472e71d6bea7"
+    },
+    "interception": {
+      "artifact": "arena-bots/arc-relay/native-cohort-v1-2026-08-01/interception/bot.wasm",
+      "artifactSha256": "96fbeb0747ae7af35c398dc8d0a497668f78a7a72da343d208bcaa48acd7099c",
+      "sheet": "arena-bots/arc-relay/native-cohort-v1-2026-08-01/interception/sheet.json",
+      "sheetSha256": "b44610cab33e13639d833915f5d7d7bc3e00b4fbfc2d596db64f1c0fb7964a51"
+    },
+    "split-control": {
+      "artifact": "arena-bots/arc-relay/native-cohort-v1-2026-08-01/split-control/bot.wasm",
+      "artifactSha256": "223bc7c557c6ae5e3b6a7e7fb493032b3a5d0a9de788214de58d0f4ea7ccb8d2",
+      "sheet": "arena-bots/arc-relay/native-cohort-v1-2026-08-01/split-control/sheet.json",
+      "sheetSha256": "4f4eb72ff253218cf9e1a5bdf69f6a4002f96bb1b7a19f909d30bd06be7a4374"
+    }
+  },
+  "cells": [
+    {
+      "cellId": "convoy--information-route-control--s104729--a0",
+      "seed": "104729",
+      "team0": "convoy",
+      "team1": "information-route-control",
+      "topologyFingerprint": "0f171224e50e72a82d7db228c96c4ff4649a5ac232a8e00eac214180cd36967a",
+      "matchContractFingerprint": "d8a68615e8a5a1ebe08e3c9627b78da514d29298953134d0cf5904c458fa6854",
+      "canonicalReplaySha256": "1661522b6eb3af8f05834f74c6665c69618ca142c5bba4dee26c7b190edd2f0e"
+    },
+    {
+      "cellId": "convoy--interception--s104729--a1",
+      "seed": "104729",
+      "team0": "interception",
+      "team1": "convoy",
+      "topologyFingerprint": "03f0fbede58a7490ba5fce441e80de94e828e7a6464939e46d769287ec73a677",
+      "matchContractFingerprint": "cf52f4c522fab98efee293e8148e095e32912cc28aa502618c451ced2aa11b93",
+      "canonicalReplaySha256": "b0433312f8f2188435b086bce139eabb9d5618411d12cde53b40584a4a9eafbb"
+    },
+    {
+      "cellId": "convoy--split-control--s104729--a0",
+      "seed": "104729",
+      "team0": "split-control",
+      "team1": "convoy",
+      "topologyFingerprint": "26078fdf62ccf19662a098caae02489d73feec97816a7ee3b440269a6e9ec5bf",
+      "matchContractFingerprint": "01d449fef04f2b461a8bd5667eadf8cd162fc649dc60f79d036abac873edd54d",
+      "canonicalReplaySha256": "37d7f726b992b606745246a493e93f93d6a0608608f993fde2421645c4dfa27c"
+    },
+    {
+      "cellId": "information-route-control--interception--s104729--a1",
+      "seed": "104729",
+      "team0": "information-route-control",
+      "team1": "interception",
+      "topologyFingerprint": "cd772eac4f7db2bce128e0fcb254c825b8758f7e903534556ab855c287d41712",
+      "matchContractFingerprint": "94b5a3c1e6b4bef5787390a4e319e2372f8a1105482901f54266306d6f4f32a6",
+      "canonicalReplaySha256": "28acb15cadb60ecdf2fd0988e794af0c44d69893e5d1374a580031b39d399966"
+    },
+    {
+      "cellId": "information-route-control--split-control--s104729--a1",
+      "seed": "104729",
+      "team0": "information-route-control",
+      "team1": "split-control",
+      "topologyFingerprint": "7529628861fcc8ef9f4a77f8880828da7edbdea613b409cf9666e1ec40188325",
+      "matchContractFingerprint": "0a6943fe713199dbb968313a56e14650cc4e1353c426445e6d5db1629cc81b52",
+      "canonicalReplaySha256": "1680c38dea521c2b2951f63bc025c0b28f61836d39625b5b644368ab27987605"
+    },
+    {
+      "cellId": "interception--split-control--s104729--a0",
+      "seed": "104729",
+      "team0": "split-control",
+      "team1": "interception",
+      "topologyFingerprint": "90055e229215f85fdabceb1ab135d4ea5208a83a4c1969bbb43ad38129012d37",
+      "matchContractFingerprint": "0e68149e131f62336634c0742d8e4b14b192464b86d042da7e5e24d8cf2fc0fb",
+      "canonicalReplaySha256": "cda2fdb628ef71e5a523cd196031c490d2dc4b2d696b8e4f0376af2be50e2b20"
+    }
+  ]
+}

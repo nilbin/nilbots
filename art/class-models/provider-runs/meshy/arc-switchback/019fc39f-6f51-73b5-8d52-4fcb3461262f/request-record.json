@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "provider": "Meshy",
+  "endpoint": "image-to-3d",
+  "lookId": "arc-switchback",
+  "taskId": "019fc39f-6f51-73b5-8d52-4fcb3461262f",
+  "submittedAt": "2026-08-02T17:57:12.822Z",
+  "balanceBefore": 340,
+  "input": {
+    "file": "web/src/assets/class-looks/arc-switchback/sprite.png",
+    "bytes": 39138,
+    "sha256": "5d7ffd11d4ad5f6b1f64bc19ee482386dda63c3428ba9e291b52bb1d8e412c55",
+    "mimeType": "image/png"
+  },
+  "settings": {
+    "model_type": "smart-topology",
+    "ai_model": "meshy-t2",
+    "target_polycount": 15000,
+    "should_texture": true,
+    "enable_pbr": true,
+    "texture_resolution": "4k",
+    "target_formats": [
+      "glb"
+    ],
+    "auto_size": true,
+    "origin_at": "bottom",
+    "alpha_thumbnail": true,
+    "multi_view_thumbnails": true
+  }
+}

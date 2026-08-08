@@ -1,4 +1,8 @@
 using BotArena.App.Matches;
+using BotArena.App.ArcRelay;
+using BotArena.App.Competition;
+using BotArena.Runtime;
+using System.Collections.Immutable;
 using BotArena.Engine;
 using BotArena.Runtime.Wasm;
 using BotArena.Toolchain;
@@ -22,6 +26,11 @@ public sealed class SubmissionContractProfileProbe(
         TryProbe(
             BotArenaVersions.GenericActorContractProfileId,
             () => ProbeGenericActor(wasmPath),
+            supported,
+            failures);
+        TryProbe(
+            BotArenaVersions.GenericMindContractProfileId,
+            () => ProbeGenericMind(wasmPath),
             supported,
             failures);
 
@@ -114,6 +123,7 @@ public sealed class SubmissionContractProfileProbe(
                 initialLife.LifeId),
             ParticipantId = unitSlot.ControllerParticipantId,
             ActorRandomSeed = 1,
+            TeamRandomSeed = 1,
             Origin = new GenericActorRuntimeStart.LifeOrigin(
                 GenericActorRuntimeStart.SpawnReason.Initial,
                 Generation: initialGeneration,
@@ -122,6 +132,53 @@ public sealed class SubmissionContractProfileProbe(
                 SourceOperationId: null),
             Contract = definition,
         });
+    }
+
+    private static void ProbeGenericMind(string wasmPath)
+    {
+        string[] classes = ArcRelayLegacySnapshotCodec.NewSheetTemplate().Slots
+            .OrderBy(value => value.UnitId)
+            .Select(value => value.ClassId)
+            .ToArray();
+        ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create(
+            classes,
+            classes,
+            loopProfile: ArcRelayLoopProfile.Current);
+        var candidate = new WasmGenericMindRuntimeFactory(
+            new WasmMindRuntimeOptions { ModulePath = wasmPath, BotName = "candidate" });
+        var stock = new InProcessGenericMindRuntimeFactory(
+            static () => new global::ArcRelayStrategyMind(),
+            trustedArcRelayStockProjection: true);
+        using var session = new GenericActorMatchSession(
+            definition,
+            [
+                new GenericActorParticipantConfiguration
+                {
+                    ParticipantId = 0,
+                    TeamId = 0,
+                    Name = "candidate",
+                    MindRuntimeFactory = candidate,
+                    RuntimeKind = "wasm-preflight-probe",
+                    ArtifactHash = candidate.ArtifactHash,
+                },
+                new GenericActorParticipantConfiguration
+                {
+                    ParticipantId = 1,
+                    TeamId = 1,
+                    Name = "stock",
+                    MindRuntimeFactory = stock,
+                    RuntimeKind = "trusted-stock-preflight-probe",
+                    ArtifactHash = ArcRelayPlaylistDefinition.ForwardStockArtifactHash,
+                },
+            ],
+            matchSeed: 1,
+            recordChronology: true);
+        session.Step();
+        GenericActorMatchMindTurn turn = session.Chronology.Ticks
+            .SelectMany(value => value.MindTurns)
+            .Single(value => value.ParticipantId == 0);
+        if (turn.RuntimeFault is { } fault)
+            throw new InvalidOperationException(fault.FaultCode);
     }
 
     private static void TryProbe(

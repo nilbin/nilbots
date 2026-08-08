@@ -1,0 +1,23 @@
+{
+  "schema": "arc-relay-cohort-v1",
+  "cohortId": "home-siege-stage-1-final-2026-08-03",
+  "purpose": "Predeclared Stage 1 Home Siege grammar proof against the unchanged forward-combat static baseline",
+  "baseCommit": "2ff34f16005da75ddff4e6289c817fa37d57d303",
+  "eligibilityBars": "../../../balance/arc-relay-felt-degeneracy-bars-v4.json",
+  "entrants": [
+    {
+      "entrantId": "home-siege",
+      "artifact": "../stock-mind-v5/bot.wasm",
+      "artifactSha256": "9064aca98347f675a11c11315f9e733701fda326b3cd54988071dae48deb3d39",
+      "sheet": "sheets/home-siege-north.json",
+      "sheetSha256": "128b2ea9ab45cd6658d3823835faa76d84ecd39134efabdd51c0058641a1a9d7"
+    },
+    {
+      "entrantId": "static-baseline",
+      "artifact": "../stock-mind-v4/bot.wasm",
+      "artifactSha256": "fdd61b1f4c24895926d3bdde7e8b70c0c6eb957d107dda99b04719614d499368",
+      "sheet": "../forward-combat-operation-proof-v1-2026-08-03/sheets/baseline.json",
+      "sheetSha256": "c8a33184b90a7d017d74d365e6f598a7b0c82047551136d66559d38849984c26"
+    }
+  ]
+}

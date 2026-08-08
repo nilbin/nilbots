@@ -1,0 +1,82 @@
+{
+  "cohortId": "arc-relay-dynamic-strategy-v4",
+  "eligibilityBars": "../../../balance/arc-relay-felt-degeneracy-bars-v3.json",
+  "entrants": [
+    {
+      "artifact": "../stock-mind-v1/out/bot.wasm",
+      "artifactSha256": "a99634cd42ad8bbf1762b27a32eabc4fb8558ab1bbd45658a9bb684bd8186774",
+      "entrantId": "rear-ambush-static",
+      "family": "rear-ambush",
+      "sheet": "sheets/rear-ambush-static.json",
+      "sheetSha256": "eee4e4ed01d6672410c1fc73a1841dad77dc49a55efcdab7df3caa6e2c764c6d",
+      "strategyKind": "static"
+    },
+    {
+      "artifact": "../stock-mind-v1/out/bot.wasm",
+      "artifactSha256": "a99634cd42ad8bbf1762b27a32eabc4fb8558ab1bbd45658a9bb684bd8186774",
+      "entrantId": "rear-ambush-dynamic",
+      "family": "rear-ambush",
+      "sheet": "sheets/rear-ambush-dynamic.json",
+      "sheetSha256": "c36ae1171fea2e5944eff3a822b1325d339cbc1b80150fb04affae0db9b9e900",
+      "strategyKind": "dynamic"
+    },
+    {
+      "artifact": "../stock-mind-v1/out/bot.wasm",
+      "artifactSha256": "a99634cd42ad8bbf1762b27a32eabc4fb8558ab1bbd45658a9bb684bd8186774",
+      "entrantId": "well-rotation-static",
+      "family": "well-rotation",
+      "sheet": "sheets/well-rotation-static.json",
+      "sheetSha256": "7bd1aa353d82713a490066ab60c30ae239516296bedff1d5b10d234a3f82b5d9",
+      "strategyKind": "static"
+    },
+    {
+      "artifact": "../stock-mind-v1/out/bot.wasm",
+      "artifactSha256": "a99634cd42ad8bbf1762b27a32eabc4fb8558ab1bbd45658a9bb684bd8186774",
+      "entrantId": "well-rotation-dynamic",
+      "family": "well-rotation",
+      "sheet": "sheets/well-rotation-dynamic.json",
+      "sheetSha256": "0130511955c32053dd195c5d06326e8f278d9b6e27fc6575f03c2eded30a85a5",
+      "strategyKind": "dynamic"
+    },
+    {
+      "artifact": "../stock-mind-v1/out/bot.wasm",
+      "artifactSha256": "a99634cd42ad8bbf1762b27a32eabc4fb8558ab1bbd45658a9bb684bd8186774",
+      "entrantId": "feint-pincer-static",
+      "family": "feint-pincer",
+      "sheet": "sheets/feint-pincer-static.json",
+      "sheetSha256": "7f338e5c66e6eec67a4ffe9c30a980ccf7ca18346d7ac314179ced3aca6cdba5",
+      "strategyKind": "static"
+    },
+    {
+      "artifact": "../stock-mind-v1/out/bot.wasm",
+      "artifactSha256": "a99634cd42ad8bbf1762b27a32eabc4fb8558ab1bbd45658a9bb684bd8186774",
+      "entrantId": "feint-pincer-dynamic",
+      "family": "feint-pincer",
+      "sheet": "sheets/feint-pincer-dynamic.json",
+      "sheetSha256": "8e80ae381d9644b3e43fc9af1d4c72ce67aead12edcbff609915c577e44292e6",
+      "strategyKind": "dynamic"
+    },
+    {
+      "artifact": "../stock-mind-v1/out/bot.wasm",
+      "artifactSha256": "a99634cd42ad8bbf1762b27a32eabc4fb8558ab1bbd45658a9bb684bd8186774",
+      "entrantId": "escort-counterpunch-static",
+      "family": "escort-counterpunch",
+      "sheet": "sheets/escort-counterpunch-static.json",
+      "sheetSha256": "6391493c5d483d2cf2e92fec1dec2133a8ec9f2b5fcc7c30ca1b4a8f11467261",
+      "strategyKind": "static"
+    },
+    {
+      "artifact": "../stock-mind-v1/out/bot.wasm",
+      "artifactSha256": "a99634cd42ad8bbf1762b27a32eabc4fb8558ab1bbd45658a9bb684bd8186774",
+      "entrantId": "escort-counterpunch-dynamic",
+      "family": "escort-counterpunch",
+      "sheet": "sheets/escort-counterpunch-dynamic.json",
+      "sheetSha256": "b7db8ead41addd572eefe49b4fa36e692975e7a3e3e7bf924e07aa2b3182fa59",
+      "strategyKind": "dynamic"
+    }
+  ],
+  "mapProfile": "depth-counterflow",
+  "provisionalEvaluationOnly": true,
+  "schema": "arc-relay-dynamic-strategy-cohort-v1",
+  "study": "../../../balance/arc-relay-dynamic-strategy-v1.json"
+}

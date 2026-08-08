@@ -1,0 +1,5 @@
+# Provider masters are retained locally or in the project artifact store, not as
+# ordinary Git blobs. Commit their hashes, measurements, previews, and review
+# evidence; promote only an approved optimized derivative into a runtime look.
+**/raw-model.glb
+**/texture-*.png

@@ -8,12 +8,22 @@ description: Evaluate a game-rules candidate with causal A/B diagnostics, rules-
 Canonical methodology: `docs/EVALUATION-METHODOLOGY.md`. Instruments:
 `scripts/balance-eval.py`, `scripts/replay-dynamics-eval.py`,
 `scripts/frontline-replay-eval.py`, `scripts/labs-replay-eval.py`,
+`scripts/balance-lab-drive.py`,
 `scripts/replay-review-sample.py`, the CLI's historical `--rules` flag, the
 frozen replay-v2 `nilbots experiment frontline` path, and the generic
 replay-v3 `nilbots experiment frontline-labs` path. Labs capture-threshold
 arms use its local-only `--capture-threshold <positive-n>` option; phased
 capture-gain arms use `--capture-gain-phase <start-tick>:<gain>`; the isolated
 turret-exit arm uses `--mobilize-turrets`.
+
+For a multi-factor generic candidate, use the mode-independent Balance Lab
+contract in `docs/NILBOTS-BALANCE-LAB.md` and a checked-in spec under
+`balance/`. Its candidate identity is always
+`mode + ruleset + map + match format`, resolved with an exact topology
+profile/fingerprint. Never collapse those axes or the body/participant shape
+into a nickname or silently promote an experimental arm. Use the declared
+evaluation profile for lineup/payoff semantics; the implemented
+`two-team-zero-sum-v1` profile is not an FFA evaluator.
 
 ## 1. Classify and pre-register the experiment
 
@@ -26,12 +36,17 @@ Before running the final data, write down:
 - the mechanics-only diagnostics, native-generation product comparison,
   dynamics scorecard, and replay-review sample size.
 
-Keep three evidence classes separate:
+Keep study roles separate:
 
 1. frozen historical bots under the candidate = compatibility/regression;
 2. the same cohort under paired arms = mechanic causality for those policies;
 3. bots authored/adapted for each ruleset under their native rules = primary
-   product balance and entertainment.
+   product balance and entertainment;
+4. unqualified artifacts = infrastructure smoke only;
+5. hostile targeted policies = adversarial sentinels, not population evidence.
+
+Causal arms must share the same declared seed profile. Equal numeric seeds
+with different private-stream derivations are not paired randomness.
 
 For a substantial change, **old rules-unaware bots cannot veto the candidate**.
 They remain safety sentinels. Comparing different generations does not prove
@@ -47,11 +62,16 @@ behavior must stay bit-identical: run the full test suite.
 
 ## 3. Build the right population
 
-A substantial-rules verdict requires at least four independently authored or
-substantially adapted, candidate-aware doctrines using the agent-arena
+A substantial-rules verdict requires at least four independent authoring
+lineages and candidate-aware doctrines using the agent-arena
 docs/SDK/CLI-only boundary and equal iteration budgets. Their native
 round-robin is the primary verdict. Historical champions may join as named
 sentinels, but report their rows separately.
+
+The first internal Frontline pilot may vote at cumulative T4 with four
+independent lineages; include T5-capable policies when available. T7/T8,
+automated best responses, equilibrium estimation, and candidate search are
+deferred until a credible population exists.
 
 The generational reference is:
 
@@ -60,6 +80,71 @@ The generational reference is:
 
 Freeze final WASM hashes before the holdout. Source iteration may use
 in-process execution; final evidence is all-WASM with zero faults.
+
+For Arc Relay population work, bulk candidate screening may use the persistent
+`nilbots experiment arc-relay-screen-batch` command. This path runs the frozen
+algorithm in-process and deliberately emits `screen.json` receipts instead of
+canonical replays. It may reject obviously unpromising candidates and choose
+which cells deserve the expensive audit path, but it is never cohort evidence:
+every retained cell still needs WASM execution, byte-identical canonical replay
+verification, and the registered felt-degeneracy scorecard before it enters a
+balance read or gallery. Keep both runtime labels in the report and prove a
+same-cell result-parity sample for every screening sweep.
+
+Between the screen and the WASM audit sits a third lane for doctrine
+debugging: run `nilbots experiment arc-relay` with `--runtime in-process`
+and WITHOUT `--screen` (same `--bot/--opponent/--sheet0/--sheet1/--seed/
+--loop-profile/--out` flags the batch uses) to get a FULL canonical replay
+in ~8 s/game, including per-tick `mindTurns` (observation, commands,
+resolutions, intents) for phase/role tracing. Its canonical hash differs
+from WASM by runtime provenance — it is analysis material, never evidence.
+Summarize any replay or sweep cell with
+`python3 scripts/arc-relay-replay-analyze.py <replay.json[.gz] | cell-dir>`.
+
+Compile a tactical playbook to its deterministic runtime package with
+`nilbots experiment arc-relay-playbook --playbook <json> --out <dir>` — it
+emits `playbook.atp` (the hashed runtime artifact), normalized
+playbook/layout JSON, and `explain.json`, and prints the playbook, layout,
+and package SHA-256 values that manifests must bind. Control artifacts are
+bound by SHA-256 via `balance/arc-relay-baseline-registry.json` — never by
+path or the "stock-v4" nickname, which has named two different byte sets.
+
+Results field map (saves the scavenger hunt):
+- sweep summary: `attempt-01/results.json` — `allExpectedCanonicalHashesMatched`,
+  `eligibleCells`, `verifiedCanonicalReplays`;
+- per-cell scorecard: `scoring.deliveriesByTeam`, `outcome.completionReason`,
+  `outcome.endTick`, `feltDegeneracy.*.tripped`;
+- screen receipt (`screen.json`): PascalCase — `WinnerTeamId`, `EndTick`,
+  `ScreenOnly`, rules/map fingerprints;
+- canonical replay: `result.standings.winnerTeamId`, per-tick
+  `ticks[].events[].kind` (`score-changed` fires for deliveries AND Pulses;
+  Core detail is under kind `arc-relay`), `ticks[].mindTurns[]`.
+
+Use a deliberate two-speed loop for Arc Relay sheet/doctrine iteration:
+
+1. **Discovery loop:** run in-process batch screening, targeted tests, current
+   bars, and one or two deliberately chosen replay cards. Reuse the existing
+   production viewer build and replace only replay payloads/cards. This loop is
+   for diagnosis and selection; label every result `in-process` and provisional.
+2. **Promotion gate:** only after freezing a candidate, run the declared paired
+   sandboxed-WASM cohort, canonical verification, golden hashes, full registered
+   eligibility audit, production build/tests, browser smoke, permanent evidence,
+   and public review gallery. This is the only lane that supports a balance or
+   strategy-proof claim.
+
+Do not pay the promotion-gate cost for every sheet edit. Conversely, never
+promote a discovery-loop result because its quick replay looked convincing.
+Record the discovery ledger so the final report discloses the search rather
+than presenting the promoted candidate as a first try.
+
+Score Arc Relay events across both `startEvents` and `events`; post-state worlds
+alone are insufficient. In particular, reject repeated same-Core, same-life,
+same-tile automatic-pickup/voluntary-drop cycles even though each post-state
+shows a loose Core and would reset an ordinary stuck-carrier counter. Use the
+current default registration (`arc-relay-felt-degeneracy-bars-v4`) for new
+studies. Preserve an older frozen registration only when reproducing its named
+historical cohort, and never describe that older result as passing the current
+bars.
 
 ## 4. Run outcomes, dynamics, and replay review
 
@@ -87,6 +172,17 @@ python3 scripts/labs-replay-eval.py \
   --group current=arena-bots/frontline-labs/<cohort>/evidence/baseline-wasm/matches \
   --json arena-bots/frontline-labs/<cohort>/evidence/baseline-wasm/dynamics.json
 
+# Pendulum/dullness family + the pre-registered S1-S5 / N1 gates of
+# docs/DESIGN-FORENSICS-DYNAMICS-2026-07-29.md, one --group per study cell.
+python3 scripts/labs-replay-eval.py --dynamics \
+  --group <cell>=<run>/studies/<study>/candidates/<cell> \
+  --json /tmp/<run>/pendulum.json
+
+# Reconcile the implementation against the published forensics corpus.
+python3 scripts/labs-replay-eval.py \
+  --group <cell>=... \
+  --verify-against balance/frontline-pendulum-dynamics-baseline-v1.json
+
 nilbots experiment frontline-labs \
   --bot <bot.wasm> --opponent <opponent.wasm> \
   --capture-threshold 12 --seed 104729
@@ -98,6 +194,23 @@ nilbots experiment frontline-labs \
 nilbots experiment frontline-labs \
   --bot <candidate-bot.wasm> --opponent <opponent.wasm> \
   --mobilize-turrets --seed 104729
+
+nilbots experiment frontline-labs \
+  --bot <candidate-bot.wasm> --opponent <opponent.wasm> \
+  --auto-companions --duel-map thin-fronts --seed 104729
+
+python3 scripts/balance-lab-drive.py \
+  --spec balance/frontline-duel-progression-v1.json \
+  --output /tmp/nilbots-balance/frontline-duel-progression-v1
+
+python3 scripts/frontline-balance-candidates.py \
+  --spec balance/frontline-duel-progression-v1.json \
+  --cli src/BotArena.Cli/bin/Release/net10.0/botarena
+
+nilbots experiment frontline-labs qualify \
+  --bot <candidate-bot.wasm> \
+  --suite frontline-qualification-5 \
+  --out /tmp/qualification/<bot>
 
 python3 scripts/replay-review-sample.py /tmp/run/block*/<candidate> \
   --count 12 --seed 20260724 --output /tmp/review-sample.json
@@ -116,6 +229,59 @@ canonical contract data, and candidate-aware bots resolve it with
 It also applies to the Mobilize arm: that flag exposes a new action under
 `frontline-labs-1-experiment-mobilize`; rules-unaware bots are compatibility
 sentinels, not product-balance evidence.
+
+The automatic-companion arm uses
+`frontline-labs-1-experiment-one-bend-auto-companions` and separately
+identified map contracts. Children create fresh lives at declared ticks with
+`automatic-activation` origin and return automatically after destruction.
+The first isolated arm omits Prime Fabricate and Split, so label its factor a
+progression-policy bundle rather than claiming a one-boolean lifecycle
+ablation. Keep that and every promised follow-up isolation in
+`balance/frontline-ablation-debt-v1.json`.
+
+Balance Lab specs must declare study blocks, exact fingerprints, artifact and
+source hashes, topology and evaluation profiles, decision profile, exact
+profile-scoped qualification evidence, coverage, and common-randomness
+profiles. Voting holdouts use an external nonce-backed commitment/reveal;
+checked-in seed values are disclosed development seeds. The driver freezes
+the executable toolchain and hashes a balance-eligible entrant's actual
+qualification report and requires its artifact/profile/T/C fields to match.
+`infrastructure-smoke` with unqualified bots validates plumbing and effect
+direction only. It cannot select or promote a candidate or satisfy the
+independently competent tier-population requirement.
+
+Entrants must carry independent lineage, doctrine, equal authoring-budget
+packet, and packet hash. Pair/seed bootstrap intervals are conditional on the
+frozen finite population; inspect lineage diversity and leave-one-lineage-out
+sensitivity before making population claims.
+
+Frozen `frontline-qualification-1` is only the historical T4
+`entry-initiative` component. WASM-only suite 2 retains the incomplete
+`contract-auto-determinism` foundation. Suite 3 is the complete
+`frontline-duel-depth-union-t2-v1` profile: contract/count handling, useful
+automatic lives, objective path/hold, direct fire, straight evasion, and
+explicit Fabricate in both assignments. A suite-3 pass awards T2 but remains
+fun-floor evidence rather than a numeric balance vote.
+
+Current suite 4 automatically reruns and hash-links that exact prerequisite,
+then tests cumulative T3 legal curves, strict corners, remaining-range
+cadence, cooldown tempo, and local transform safety from both assignments.
+It returns the retained prerequisite tier on a clean capability failure. A
+suite-4 pass awards T3 but also remains below the cumulative T4 directional
+pilot voting floor.
+
+Current suite 5 reruns and hash-links exact T3, then tests suppression,
+proactive pressure entry, objective-preserving response, front rotation, and
+the thin-fronts holdout from both assignments. A suite-5 pass awards T4 and
+entrant-level balance eligibility. It does not make a same-lineage revision
+an independent doctrine or satisfy the four-doctrine pilot floor.
+
+Read the cell's `strategicDiversity.doctrineRedundancy` block before claiming
+population breadth. It reports artifacts, declared doctrines, effective
+doctrine estimate, signatures, pairwise distances, and redundancy components.
+The current v1 thresholds are diagnostic until calibrated; use them to request
+missing doctrine briefs, never to delete archived entrants or promote a
+candidate automatically.
 
 The four framework-owned Frontline reference bots are calibration fixtures
 from one author. They verify that rush, replication, Anchor/turret, and
@@ -183,10 +349,72 @@ override decision with the rationale and new future threshold, and update all
 policy/docs surfaces. Safety, faults, deterministic verification, and replay
 integrity remain hard gates and cannot be waived this way.
 
-## 6. Pinning a version
+## 6. Reporting to the owner (owner ruling, 2026-07-30)
+
+Every result presented to the owner uses this structure, in this order,
+with the labels literally present. No exceptions for "obvious" cases —
+the owner asked for this after a report that buried the ask.
+
+1. **`DECISION NEEDED:`** — first, or the explicit line
+   `DECISION NEEDED: none`. One sentence per decision, phrased as the
+   choice itself (not the analysis), with the default named if there is
+   one. Never mix a decision into a findings paragraph.
+2. **`RESULT:`** — what happened, in plain words, before any numbers:
+   which arm won/lost/was adopted and what it means for the game. One
+   short paragraph.
+3. **`EVIDENCE:`** — the numbers table or gate list, compressed.
+   Spell out codenames on first use in every report (the owner does not
+   carry arm tokens like `wane` between sessions); prefer "4 slots +
+   slower rebuild (`wane`)" over the bare token.
+4. **`NEXT:`** — what runs next without input, if anything.
+
+Additional standing rules: entertainment/depth rulings from the owner
+outrank measured product gates (record the override per §5, don't
+re-litigate); anything ambiguous in an owner message gets one clarifying
+question BEFORE hours of work, not after.
+
+**Phase ruling (owner, 2026-07-30): fast-iteration mode.** Until the
+game is balanced and fun and we are building ON TOP of that base, do
+not verify every small change standalone: batch related changes, run
+mains-level checks without per-change holdout ceremonies or per-knob
+owner reviews, and record results as provisional in DECISIONS. Safety,
+determinism, faults, and replay integrity remain hard gates. The full
+pre-registration discipline (sealed holdouts, per-arm verdicts,
+standalone galleries) returns when the owner declares the base stable.
+
+## 7. Pinning a version
 
 Winner: add `GameRules.V0_X`, point `GameRules.Current` + 
 `BotArenaVersions.GameRulesVersion` at it, update the site rules card +
 template README, add the DECISIONS entry with the numbers table, and paste the
 outcomes/dynamics/replay-review evidence into GAME-DESIGN. Loser: DECISIONS
 entry with the evidence, exact failure mode, and population needed to re-test.
+
+## 8. Executor edits are strategy edits
+
+The tactical-playbook executor (`arena-bots/arc-relay/tactical-playbook-mind-v1/`)
+is part of every sheet's behavior. After ANY executor change:
+
+- Re-baseline every frozen champion vs its parity control, BOTH orientations
+  (a change can help west and lose east — observed: forward-pass, 2026-08).
+- A/B against the archived executor when numbers move:
+  `git archive <old-sha> arena-bots/arc-relay/tactical-playbook-mind-v1 | tar -x
+  --strip-components=3 -C sandbox/ab/old-mind`, fix the csproj's relative SDK
+  path depth, and pass `--bot sandbox/ab/old-mind`. First command-divergence
+  tick (compare `mindTurns` per team) names the culprit feature.
+- New executor behaviors ship SHEET-GATED (opt-in field, e.g. custody
+  `forwardPass`), so frozen sheets replay byte-faithfully by default.
+- Instant utility signatures (walls, flares, hooks, paint) emit NO facts in
+  replays — count accepted `mindTurns` commands, never tell-phase facts, or
+  the casts are invisible and you will chase a phantom bug.
+- Owner review galleries for Arc Relay: raw canonical replays only render in
+  the self-contained (Canvas2D) viewer; the hosted (lightweight, phone-
+  friendly) viewer needs the spectator projection. Flow: raw v3 →
+  `scripts/arc-relay-broadcast.py` (writes gzip bytes — name the output
+  `.json.gz`) → `scripts/replay-review-sample.py` →
+  `scripts/build-review-gallery.py` (curated `--index-cards` galleries keep
+  manifest sample ids; hosted mode refuses raw arc-relay docs) →
+  `scripts/serve-gallery.py` behind cloudflared. The builder's independent
+  eligibility read can disagree with the engine's `EligibleTeamIds`
+  attestation; for evidence galleries pass `--skip-arc-relay-eligibility`
+  and cite the engine attestation.

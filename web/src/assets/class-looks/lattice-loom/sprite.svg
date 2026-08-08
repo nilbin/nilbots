@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Lattice Loom fabricator chassis facing east">
+  <defs>
+    <linearGradient id="ll-frame" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#596068"/>
+      <stop offset=".45" stop-color="#2b3238"/>
+      <stop offset="1" stop-color="#11171d"/>
+    </linearGradient>
+    <linearGradient id="ll-ceramic" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#f0eadb"/>
+      <stop offset=".42" stop-color="#c7bdab"/>
+      <stop offset="1" stop-color="#6f675d"/>
+    </linearGradient>
+    <linearGradient id="ll-copper" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#efb277"/>
+      <stop offset=".48" stop-color="#a95f2d"/>
+      <stop offset="1" stop-color="#4d2918"/>
+    </linearGradient>
+    <radialGradient id="ll-core">
+      <stop stop-color="#fffdf0"/>
+      <stop offset=".25" stop-color="#ffe36b"/>
+      <stop offset=".62" stop-color="#e39a16"/>
+      <stop offset="1" stop-color="#4a2808"/>
+    </radialGradient>
+  </defs>
+
+  <path d="M58 205 131 123 223 88 310 126 369 182 448 193 494 229 494 283 448 319 369 330 310 386 223 424 131 389 58 307 83 271 65 256 83 241Z"
+    fill="#070b0f" stroke="#05080b" stroke-width="14" stroke-linejoin="round"/>
+
+  <g stroke-linejoin="round">
+    <!-- Open lattice rails: structural parts of this one chassis, never stored children. -->
+    <g fill="none" stroke="#505961" stroke-width="16">
+      <path d="M91 210 143 143 218 111 290 143 345 203"/>
+      <path d="M91 302 143 369 218 401 290 369 345 309"/>
+      <path d="M121 188 184 158 253 174 319 211"/>
+      <path d="M121 324 184 354 253 338 319 301"/>
+    </g>
+    <g fill="none" stroke="#151b21" stroke-width="7">
+      <path d="M91 210 143 143 218 111 290 143 345 203"/>
+      <path d="M91 302 143 369 218 401 290 369 345 309"/>
+      <path d="M121 188 184 158 253 174 319 211"/>
+      <path d="M121 324 184 354 253 338 319 301"/>
+    </g>
+
+    <path d="m79 222 72-59 81 4 78 47-34 42-90-13-72 26Z"
+      fill="url(#ll-frame)" stroke="#68727a" stroke-width="5"/>
+    <path d="m79 290 72 59 81-4 78-47-34-42-90 13-72-26Z"
+      fill="#20272d" stroke="#454f57" stroke-width="5"/>
+    <path d="m125 211 78-39 90 45 32 39-32 39-90 45-78-39 42-45Z"
+      fill="url(#ll-ceramic)" stroke="#7e756a" stroke-width="6"/>
+    <path d="m163 224 63-31 58 31 27 32-27 32-58 31-63-31 31-32Z"
+      fill="#262c30" stroke="#9d8a6c" stroke-width="5"/>
+
+    <!-- Paired outward printing forks. They build beside the chassis; nothing is carried. -->
+    <path d="m287 208 74-39 98 13 30 21-107 5-63 38-43-5Z"
+      fill="url(#ll-ceramic)" stroke="#8e8375" stroke-width="5"/>
+    <path d="m287 304 74 39 98-13 30-21-107-5-63-38-43 5Z"
+      fill="#91887a" stroke="#635d55" stroke-width="5"/>
+    <path d="m351 195 97-5 36 16-99 13-50 29-24-12Z"
+      fill="url(#ll-frame)" stroke="#707980" stroke-width="4"/>
+    <path d="m351 317 97 5 36-16-99-13-50-29-24 12Z"
+      fill="#1a2127" stroke="#485159" stroke-width="4"/>
+    <path d="m386 247 79 3 25 6-25 6-79 3-26-9Z"
+      fill="url(#ll-copper)" stroke="#66391e" stroke-width="3"/>
+
+    <path data-team-accent="true" d="m100 210 47-38 39 9-30 24-44 22Z"
+      fill="#38bdf8" stroke="#e0f2fe" stroke-width="3"/>
+    <path data-team-accent="true" d="m100 302 47 38 39-9-30-24-44-22Z"
+      fill="#38bdf8" stroke="#e0f2fe" stroke-width="3"/>
+    <path data-team-accent="true" d="m308 198 47-25 36 9-40 24-33 21-26-8Z"
+      fill="#38bdf8" stroke="#e0f2fe" stroke-width="3"/>
+    <path data-team-accent="true" d="m308 314 47 25 36-9-40-24-33-21-26 8Z"
+      fill="#38bdf8" stroke="#e0f2fe" stroke-width="3"/>
+
+    <path d="M232 182 284 204 306 256 284 308 232 330 180 308 158 256 180 204Z"
+      fill="#11171c" stroke="#a26736" stroke-width="8"/>
+    <path d="M232 202 270 218 286 256 270 294 232 310 194 294 178 256 194 218Z"
+      fill="url(#ll-ceramic)" stroke="#6f675d" stroke-width="5"/>
+    <circle cx="232" cy="256" r="42" fill="#1d1a11" stroke="#be7929" stroke-width="7"/>
+    <path d="m232 224 28 16v32l-28 16-28-16v-32Z"
+      fill="url(#ll-core)" stroke="#fff0a1" stroke-width="4"/>
+    <path d="m232 237 16 9v20l-16 9-16-9v-20Z"
+      fill="#fff8c7" opacity=".7"/>
+
+    <g fill="url(#ll-copper)" stroke="#4e2a18" stroke-width="3">
+      <path d="m147 152 29-13 24 10-30 14Z"/>
+      <path d="m147 360 29 13 24-10-30-14Z"/>
+      <path d="m268 163 28-12 25 15-29 9Z"/>
+      <path d="m268 349 28 12 25-15-29-9Z"/>
+    </g>
+  </g>
+</svg>

@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "replayVersion": 3,
+  "mapId": "arc-relay-threefold-01",
+  "seed": "42",
+  "canonicalReplayHash": "507ed83e13f4ec9a99271a532167471e542eaa11b8507afef219a2291b45fb1c",
+  "transport": {
+    "kind": "arc-relay-broadcast-v1",
+    "gzipBytes": 66855,
+    "gzipSha256": "79defbd28e5d73c7f5a3bda3011bd468920a7c429e6c9350778d68252ff4d1a9"
+  },
+  "ticks": 253,
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "cameraPitchDegrees": 58,
+  "team0": [
+    "kestrel",
+    "palisade",
+    "towline",
+    "patchbay",
+    "lantern",
+    "mortar",
+    "minesmith",
+    "hush"
+  ],
+  "team1": [
+    "relay",
+    "switchback",
+    "longshot",
+    "mason",
+    "sunder",
+    "repulsor",
+    "veil",
+    "nest"
+  ],
+  "comparisonTicks": {
+    "opening": 0,
+    "story": {
+      "birth": 25,
+      "steal": null,
+      "bank": 60,
+      "pulse": 101
+    },
+    "signatures": {
+      "vector-dash": 0,
+      "trip-node": 0,
+      "prism-wall": 1,
+      "survey-flare": 1,
+      "null-field": 1,
+      "falling-star": 2,
+      "target-paint": 13,
+      "rail-line": 14,
+      "hardlight-block": 15,
+      "sentinel-seed": 18,
+      "kinetic-burst": 50
+    }
+  }
+}

@@ -28,6 +28,20 @@ import * as THREE from 'three';
  */
 const CORNER_RADIUS = 0.1;
 
+export interface WallShapeOptions {
+  /** Requested radius in tile units; tight local edges clamp individual corners. */
+  cornerRadius?: number;
+  /**
+   * Move only faces bordering open floor into their authored wall cell.
+   *
+   * This is the source-outline inset. Callers using an outward bevel must add that
+   * bevel's reach to the desired final visual clearance.
+   */
+  openEdgeInset?: number;
+  /** Any wall family counts as connected; open floor returns false. */
+  isWall?: (x: number, y: number) => boolean;
+}
+
 interface Loop {
   /** Shape-space points (SVG-style y-up), already simplified to corners. */
   points: THREE.Vector2[];
@@ -42,13 +56,27 @@ interface Loop {
  * world up and Y to −Z — so pre-negating here is what makes a wall land on the tile it was
  * traced from instead of mirrored across the map.
  */
-export function wallShapes(tiles: Iterable<{ x: number; y: number }>): THREE.Shape[] {
+export function wallShapes(
+  tiles: Iterable<{ x: number; y: number }>,
+  options: WallShapeOptions = {},
+): THREE.Shape[] {
+  const cells = [...tiles];
   const filled = new Set<string>();
-  for (const tile of tiles) filled.add(`${tile.x},${tile.y}`);
+  for (const tile of cells) filled.add(`${tile.x},${tile.y}`);
   if (filled.size === 0) return [];
 
-  const loops = trace(filled).map(toLoop);
+  const inset = Math.max(0, Math.min(options.openEdgeInset ?? 0, 0.499));
+  const loops =
+    inset <= 1e-9
+      ? trace(filled).map(toLoop)
+      : insetLoops(
+          cells,
+          inset,
+          options.isWall ??
+            ((x, y) => filled.has(`${x},${y}`)),
+        );
   if (loops.length === 0) return [];
+  const cornerRadius = Math.max(0, options.cornerRadius ?? CORNER_RADIUS);
 
   // A loop inside an odd number of other loops is a hole; inside an even number (including
   // none) it is solid. That handles a courtyard inside a ring, and a pillar inside the
@@ -62,16 +90,69 @@ export function wallShapes(tiles: Iterable<{ x: number; y: number }>): THREE.Sha
     (depth % 2 === 0 ? outers : holes).push(loop);
   }
 
-  const shapes = outers.map((outer) => ({ outer, shape: rounded(outer.points, new THREE.Shape()) }));
+  const shapes = outers.map((outer) => ({
+    outer,
+    shape: rounded(outer.points, new THREE.Shape(), cornerRadius),
+  }));
   for (const hole of holes) {
     // Into the *smallest* container, so a pillar inside a courtyard inside a ring is
     // subtracted from the courtyard rather than from the ring around it.
     const owner = shapes
       .filter(({ outer }) => contains(outer.points, hole.points[0]))
       .sort((a, b) => a.outer.area - b.outer.area)[0];
-    if (owner) owner.shape.holes.push(rounded(hole.points, new THREE.Path()));
+    if (owner)
+      owner.shape.holes.push(
+        rounded(hole.points, new THREE.Path(), cornerRadius),
+      );
   }
   return shapes.map(({ shape }) => shape);
+}
+
+/**
+ * Union per-tile rectangles whose open faces have moved inward.
+ *
+ * A plain polygon offset would also move connectors between wall families. Instead every
+ * tile keeps its exact grid boundary on a connected side and moves only the sides whose
+ * neighbour is open. Coordinate compression turns those rectangles into a small exact
+ * occupancy grid, so the existing loop tracer can merge same-family tiles without hidden
+ * internal faces.
+ */
+function insetLoops(
+  cells: readonly { x: number; y: number }[],
+  inset: number,
+  isWall: (x: number, y: number) => boolean,
+): Loop[] {
+  const rectangles = cells.map(({ x, y }) => ({
+    left: x + (isWall(x - 1, y) ? 0 : inset),
+    right: x + 1 - (isWall(x + 1, y) ? 0 : inset),
+    top: y + (isWall(x, y - 1) ? 0 : inset),
+    bottom: y + 1 - (isWall(x, y + 1) ? 0 : inset),
+  }));
+  const xs = [...new Set(rectangles.flatMap(({ left, right }) => [left, right]))]
+    .sort((left, right) => left - right);
+  const ys = [...new Set(rectangles.flatMap(({ top, bottom }) => [top, bottom]))]
+    .sort((top, bottom) => top - bottom);
+  const xIndex = new Map(xs.map((value, index) => [value, index]));
+  const yIndex = new Map(ys.map((value, index) => [value, index]));
+  const compressed = new Set<string>();
+
+  for (const rectangle of rectangles) {
+    const left = xIndex.get(rectangle.left)!;
+    const right = xIndex.get(rectangle.right)!;
+    const top = yIndex.get(rectangle.top)!;
+    const bottom = yIndex.get(rectangle.bottom)!;
+    for (let y = top; y < bottom; y++) {
+      for (let x = left; x < right; x++) compressed.add(`${x},${y}`);
+    }
+  }
+
+  return trace(compressed)
+    .map((points) =>
+      points.map(
+        ({ x, y }) => new THREE.Vector2(xs[x], ys[y]),
+      ),
+    )
+    .map(toLoop);
 }
 
 /**
@@ -150,28 +231,40 @@ function toLoop(points: THREE.Vector2[]): Loop {
 }
 
 /** Write a loop into a path, cutting each corner with an arc instead of a right angle. */
-function rounded<T extends THREE.Path>(points: THREE.Vector2[], path: T): T {
+function rounded<T extends THREE.Path>(
+  points: THREE.Vector2[],
+  path: T,
+  requestedRadius: number,
+): T {
   const count = points.length;
-  // A radius bigger than half the shortest edge would overshoot into the next corner and
-  // fold the outline inside out, so the whole loop uses what its tightest edge allows.
-  let radius = CORNER_RADIUS;
-  for (let index = 0; index < count; index++)
-    radius = Math.min(radius, points[index].distanceTo(points[(index + 1) % count]) / 2);
-  if (radius <= 1e-6) {
+  if (requestedRadius <= 1e-6) {
     path.setFromPoints(points);
     path.closePath();
     return path;
   }
 
-  const approach = (corner: THREE.Vector2, towards: THREE.Vector2) =>
-    corner.clone().addScaledVector(towards.clone().sub(corner).normalize(), radius);
+  const approach = (
+    corner: THREE.Vector2,
+    towards: THREE.Vector2,
+    radius: number,
+  ) =>
+    corner
+      .clone()
+      .addScaledVector(towards.clone().sub(corner).normalize(), radius);
 
   for (let index = 0; index < count; index++) {
     const previous = points[(index - 1 + count) % count];
     const corner = points[index];
     const next = points[(index + 1) % count];
-    const entry = approach(corner, previous);
-    const exit = approach(corner, next);
+    // A short connector shoulder should not flatten every broad arena corner. Clamp each
+    // corner by its own two edges instead of imposing the loop's shortest edge globally.
+    const radius = Math.min(
+      requestedRadius,
+      corner.distanceTo(previous) / 2,
+      corner.distanceTo(next) / 2,
+    );
+    const entry = approach(corner, previous, radius);
+    const exit = approach(corner, next, radius);
     if (index === 0) path.moveTo(entry.x, entry.y);
     else path.lineTo(entry.x, entry.y);
     // The corner itself is the control point, so the arc leans into it the way a cast or

@@ -1,0 +1,138 @@
+{
+  "acceptance": {
+    "depthSignals": {
+      "allocationEntropy": "mean theater-allocation entropy must not fall more than 0.05 below the same-cell baseline",
+      "counterplay": "the 32-cell block must contain at least two behind-to-ahead Pulse reversals; the observed 160-cell shared-stock baseline contains zero",
+      "firstPulse": "first-Pulse conversion must be below 70% and no worse than the same-cell baseline",
+      "openingDiversity": "coarse opening archetype diversity at ticks 25, 75, and 125 must not contract relative to the same-cell baseline",
+      "theaterUse": "each Well supplies at least 20% of deliveries and delivery-source normalized entropy remains at least 0.95"
+    },
+    "fairness": {
+      "mirrors": "side-locked mirrored splits must not exceed the same-cell baseline and entrant sweeps remain disclosed",
+      "sideShare": "each side receives 40-60% of decided wins in the 32-cell block; exact 180-degree map symmetry is necessary but not sufficient"
+    },
+    "hardGates": {
+      "cohortEligibility": "every retained side passes felt-degeneracy v3",
+      "determinism": "every retained replay verifies byte-identically and the six historical golden hashes remain unchanged",
+      "faults": "zero runtime faults or disqualifications",
+      "maxTicks": "at most 10% MaxTicks completions"
+    },
+    "pacingAndContact": {
+      "contest": "contested-pickup proxy share remains at least 80% of the same-cell baseline",
+      "duration": "median end tick may grow at most 15% over the same-cell baseline and p90 remains below tick 560",
+      "routes": "delivered-route-stretch p90 remains at most 2.0"
+    },
+    "productLimits": [
+      "passing numeric gates is not a fun claim",
+      "the shared stock algorithm establishes same-policy geometry causality, not a rules-native product verdict",
+      "the recommended arm still needs a twelve-match outcome-blind owner watch and independent/adversarial doctrine evidence"
+    ]
+  },
+  "arms": [
+    {
+      "cohort": "arena-bots/arc-relay/flow-intent-v1-2026-08-02/cohort.json",
+      "cohortSha256": "007066ca5fef26c9b3906809de7861d740bed5c9568ad57c2fdfce8edb600142",
+      "dimensions": [31, 23],
+      "mapFingerprint": "06bebb1f24c1d797569c2e7446fa78d61ea25cefe7a68305d799114fb5dbc1c2",
+      "mapId": "arc-relay-threefold-home-gates-wide-01",
+      "openTiles": 537,
+      "profile": "home-gates-wide",
+      "role": "frozen reference"
+    },
+    {
+      "cohort": "arena-bots/arc-relay/depth-map-v1-2026-08-02/larger/cohort.json",
+      "cohortSha256": "8ffd3469bb7c400967976fe8da658b4c8c14498daff07c52f4fc4d2868550a73",
+      "dimensions": [31, 29],
+      "isolation": "vertical theater separation; equal Well-to-reactor shortest paths; map-native y-remapped evaluation sheets; rules and cadence unchanged",
+      "mapFingerprint": "84873e9a4696e147e0bff467fa2e27da48a0d233781b70030200ae98910cab4e",
+      "mapId": "arc-relay-threefold-depth-larger-01",
+      "openTiles": 687,
+      "profile": "depth-larger",
+      "role": "candidate"
+    },
+    {
+      "cohort": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/cohort.json",
+      "cohortSha256": "116bbea0eabe13a33314e52c941c3b60e1015f9bcabc901ca97f70fd311fa085",
+      "dimensions": [31, 23],
+      "isolation": "chiral north/south cover exchange with exact 180-degree fairness; dimensions, open count, Well positions, authored coordinates, rules, and cadence unchanged",
+      "mapFingerprint": "5ca7d1a1826791d736465d352c1558793846fc2e3df343d730f1df4c79f47e0c",
+      "mapId": "arc-relay-threefold-depth-counterflow-01",
+      "openTiles": 537,
+      "profile": "depth-counterflow",
+      "role": "candidate"
+    }
+  ],
+  "artifact": {
+    "kind": "frozen first-party stock mind",
+    "path": "arena-bots/arc-relay/flow-intent-v1-2026-08-02/out/bot.wasm",
+    "sha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42"
+  },
+  "classification": "substantial ranked-map geometry study in fast-iteration mode; provisional until native and owner-view evidence",
+  "eligibilityBars": {
+    "path": "balance/arc-relay-felt-degeneracy-bars-v3.json",
+    "sha256": "7a32179220246997c37a40bcf9a5731f8ccc1c5f6cd50076439023274fe22ce4"
+  },
+  "evidenceStages": [
+    "same-cell in-process screen for gross outcome/pacing rejection with registered WASM parity sample",
+    "all 32 registered cells for every retained arm under canonical WASM, exact verification, broadcast, and v3 scorecard",
+    "four-lineage independent native round-robin on the recommended arm, labelled map-compatibility evidence unless doctrines are adapted",
+    "targeted adversarial counter-web and passive/convoy sentinels",
+    "fresh twelve-match outcome-blind gallery from the recommended arm"
+  ],
+  "hypotheses": {
+    "counterflow": "fair rotational asymmetry can make route reading, lane ownership, and counters more varied without granting either spawn a globally superior map; it may instead create one dominant route or expose executor-side bias",
+    "larger": "greater distance between north, centre, and south can make allocation and rotations consequential and reduce centre-only damage and first-Pulse lock; it may instead create empty travel, lower contest, and longer repetitive matches",
+    "null": "neither geometry change improves meaningful counterplay enough to justify displacing the compact symmetric baseline"
+  },
+  "knownBaselineReadBeforeRegistration": {
+    "firstPulseConversion": 0.7125,
+    "matches": 160,
+    "meanEndTick": 422.575,
+    "medianEndTick": 426,
+    "pulseBehindToAheadReversals": 0,
+    "teamZeroWins": 89,
+    "teamOneWins": 68,
+    "warning": "these opened baseline aggregates motivated the study; no candidate outcomes existed at registration"
+  },
+  "pairBlock": {
+    "assignmentsPerPair": 2,
+    "pairs": [
+      ["balanced", "convoy"],
+      ["convoy", "interception"],
+      ["convoy", "counter-courier"],
+      ["three-well-race", "centre-phalanx"],
+      ["outer-pincers", "fortress-counterattack"],
+      ["courier-sprint", "displacement-control"],
+      ["relay-chain", "hook-burst"],
+      ["mortar-wheel", "control-grid"],
+      ["smoke-convoy", "sensor-grid"],
+      ["mine-crescent", "sustain-attrition"],
+      ["repair-web", "fireline-picks"],
+      ["rail-screen", "breach-column"],
+      ["null-veil", "beacon-hunt"],
+      ["rotating-bastions", "elastic-reserve"],
+      ["pod-lattice", "smoke-and-mines"],
+      ["feint-switch", "trap-punish"]
+    ],
+    "seed": "104729",
+    "selection": "registered style-spanning pairs, not selected from candidate outcomes"
+  },
+  "preparedBeforeCandidateOutcomes": true,
+  "prohibitions": [
+    "no economy or score-to-power",
+    "no comeback mechanic",
+    "no class, composition, cadence, combat, or objective-economy change in these arms",
+    "no map-size-cap change",
+    "no threshold movement after candidate outcomes are opened",
+    "no recommendation by aggregate win rate alone",
+    "no fun claim without human replay review"
+  ],
+  "rules": {
+    "rulesFingerprint": "f6d3ee9b1bb17d7bd8d0981941fd00a6a96f0e7ef834497d11924c06087174eb",
+    "rulesetId": "arc-relay-h0-01",
+    "seedProfile": "arc-relay-h0-seed-01"
+  },
+  "schema": "arc-relay-depth-map-design-study-v1",
+  "status": "registered-before-candidate-outcomes",
+  "studyId": "arc-relay-depth-map-design-v1"
+}

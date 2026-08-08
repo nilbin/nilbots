@@ -28,7 +28,7 @@ the plan left choices open (cite/extend it when making new ones).
 
 Fresh environments are scripted. Linux x64 uses NativeAOT-LLVM natively when
 wasi-sdk is installed; macOS and Linux arm64 automatically use the focused
-cached Docker builder matched to the host CPU (DECISIONS #147):
+cached Docker builder matched to the host CPU (DECISIONS #151):
 
 ```bash
 bash scripts/setup.sh          # platform-aware .NET/WASM/web bootstrap
@@ -74,6 +74,8 @@ bash scripts/build-wasm-guest.sh           # cross-platform, input-stamped guest
 bash scripts/generate-api-clients.sh       # OpenAPI document + web/mobile/CLI clients
 bash scripts/e2e.sh                        # full pipeline incl. player-bot build + cache assert
 dotnet run --project src/BotArena.Cli -- play --bot hunter --opponent coward --seed 7
+dotnet run --project src/BotArena.Cli -- arc-relay --bot <mind> --opponent <mind> \
+  --loop-profile ambush-warren-11                      # the current Arc Relay line
 dotnet run --project src/BotArena.Cli -- doctor        # toolchain status
 ```
 
@@ -126,11 +128,16 @@ Project boundaries that must not be violated:
   actor SDK/Guest adapters, actor protocol/configuration 1.0, and canonical
   isolated WASM life instances exist. Web/mobile can present v2 through their
   version-neutral replay model; the web viewer's lazy WebGL 3D renderer and the
-  Canvas2D renderer share those derivations. **3D is the web viewer**, with no
-  mode to choose: Canvas2D is retained only as the floor for the self-contained
-  CLI viewer, which excludes Three.js, and for a device that gives no WebGL
-  context. The mobile WebView is still Canvas2D. Manual GPU/mobile QA remains
-  required. Package 8 now exposes this only through the explicit local
+  Canvas2D renderer share those derivations. **3D is the shipped Frontline web
+  viewer**, with no mode to choose: Canvas2D is retained as the floor for the
+  self-contained CLI viewer, which excludes Three.js, and for a device that
+  gives no WebGL context. Arc Relay H0 proved its renderer grammar in
+  Canvas2D (Wells, Cores, reactors, Pulse, signatures, cooldown reads, class
+  sprites); since 2026-08 the 3D renderer is the active focus (owner ruling)
+  — hosted/site Arc Relay review happens in WebGL, so presentation work
+  lands there first, with Canvas2D kept in step as the CLI viewer floor. The mobile WebView is still Canvas2D. Manual
+  GPU/mobile QA remains required. Package 8 now exposes Frontline only through
+  the explicit local
   `nilbots experiment frontline` command, which emits replay v2 and has a
   separate descriptive evaluation tool. Historical `play`, replay-v1
   summary/verification, and ladders still do not select this frozen alpha;
@@ -162,12 +169,46 @@ Project boundaries that must not be violated:
   verifiable replay v3 without App admission or quotas. `nilbots new
   --profile generic-actor` is its authoring scaffold. This local path remains
   unranked and does not enable the hosted feature.
+  A fourth, local-only compatibility generation coexists BESIDE the per-life
+  one: the participant-scoped MIND profile `generic-mind-match-1`
+  (DECISIONS #190/#191). One submitted artifact owns one runtime, one Store and
+  one persistent bot object per PARTICIPANT for the whole match and commands
+  every body that participant owns; bodies are data inside it and a body's
+  destruction disposes nothing. Rules, map, format, topology, mode and the
+  resolved match-contract schema are all CARRIED unchanged — the mind plays the
+  same game, only the driver moved — while the runtime contract, MatchStart,
+  observation and decision schemas mint 1 in a fresh namespace and runtime
+  configuration mints 2.0 (128 MiB linear memory; per-tick fuel
+  `250M + 200M x live own bodies`). Replay 3 carries `mindTurns` instead of
+  `actorTurns` on such a document, keyed by the header's contract profile.
+  `nilbots new --profile generic-mind`, `experiment frontline-labs
+  --profile mind` and `qualify --profile mind`
+  (`frontline-mind-qualification-3/4/5`) are the whole player surface; nothing
+  hosted selects it. Every artifact built by the current toolchain attests both
+  profiles — `GuestHost.RunDetected` gives any `IGenericActorBot` a
+  `WrappedPerLifeMind` facade with per-life memory semantics reproduced exactly
+  — so a per-life bot plays a mind match with zero source edits and a MIXED
+  match is ordinary. Profile is a match-level choice, never per entrant.
   Older workers leave unknown playlist-version work pending; retain historical
   definitions and capabilities until their queued work drains or is migrated.
   It creates no season, ladder, rating, series settlement, broad matchmaking,
   FFA, or team-play product.
   The compatibility generations and dependency order are frozen in
   `docs/GAME-MODE-ARCHITECTURE.md`.
+- **Arc Relay is a first-class command, not an experiment** (DECISIONS #247).
+  `nilbots arc-relay` is top-level; `nilbots experiment arc-relay` is a
+  permanent alias, so existing scripts and briefs keep their spelling. Two
+  things the promotion did NOT do, and both are load-bearing: `--loop-profile`
+  still defaults to the frozen `h0` rather than the current
+  `ambush-warren-11` line, and the **hosted ladder still runs entrant playlist
+  v6 on forward-combat rules over the Counterflow map — not ambush-11**. The
+  hosted lane accepting `arc-relay-tactical-playbook-v1` sheets is the sheet
+  format advancing, not the game line. Sheets compile through
+  `BotArena.TacticalPlaybooks`, the one shared compiler: the CLI's
+  `experiment arc-relay-playbook` and the App's `/api/sheets` saves both call
+  it, and **the App must never reach into BotArena.Cli** for it. The remaining
+  `experiment arc-relay-h0-smoke`, `-screen-batch` and `-playbook` commands
+  stay under `experiment` as engineering and authoring tools.
 - **BotArena.Sdk** (developer-facing API) must not reference the Engine; the
   two have deliberately duplicated legacy and actor types, mapped by adapters
   in BotArena.Runtime (in-process, diagnostic only), BotArena.Runtime.Wasm,
@@ -253,6 +294,15 @@ Web (`web/`) is one Vite/React build with two modes chosen at runtime in
   exactly those keys (empty when no lives are active); missing, extra, or stale
   lives fail atomically. A destruction on tick `D` respawns at
   `D + 1 + PrimeRespawnTicks`, and the new life may act immediately.
+- Under the MIND profile the runtime-owning unit is the participant, not the
+  life: one Store, Instance, thread, linear memory and bot object for the whole
+  match, persistent memory in its fields, `Think` invoked exactly once per tick
+  including with zero live bodies, every own live body pre-filled `Wait` so a
+  forgotten body costs a tick rather than the match, commands naming non-owned
+  or dead bodies `Rejected`, duplicate commands `Faulted`, and the observable
+  union projected once per team per tick. A fault is participant-scoped and
+  discards the mind's whole match-long memory. All 16 tick phases,
+  `PrepareTick()` -> `Step()`, and the invocation ordering are unchanged.
 - Each active Frontline life owns an independent runtime instance of its
   submitted participant's artifact. Form changes preserve that exact life,
   runtime, and private memory; destruction disposes it, and respawn or
@@ -316,6 +366,19 @@ Web (`web/`) is one Vite/React build with two modes chosen at runtime in
 
 ## Conventions
 
+- **A task is not done with a dirty tree.** Commit as you go on your
+  assigned branch. Before reporting any goal, task, or pass as complete:
+  `git status` must be clean, all work committed, and the report cites the
+  final commit SHA. An uncommitted delivery is an incomplete delivery,
+  whatever the report says. (Owner rule — this has been forgotten more than
+  once; it is a completion criterion, not a courtesy.)
+- **Owner reviews are delivered as public tunnel URLs.** The owner reviews
+  galleries and report evidence from his phone. Serving on localhost is not
+  delivery: serve the review directory (scripts/serve-gallery.py), expose the
+  port through a cloudflared quick tunnel (`cloudflared tunnel --url
+  http://127.0.0.1:<port>`, reuse a running one when its port matches), and
+  put the https://*.trycloudflare.com URL in the report. A review without a
+  working public URL is not ready for the gate.
 - **One top-level class per file**, named for it — tests included (one test
   class per file). Small records/DTOs tightly coupled to a main type may
   colocate (the `Replay.cs` pattern). Legacy grouped CLI files

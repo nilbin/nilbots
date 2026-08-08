@@ -30,4 +30,33 @@ public class PackagedCliVersionTests
     {
         Assert.NotEqual("0.4.0", ToolchainInfo.CliVersion);
     }
+
+    /// <summary>
+    /// A scaffold the package does not carry is a command that fails on every
+    /// machine except the source checkout, where `nilbots new` finds the
+    /// template by walking up the tree instead. Every profile the CLI offers
+    /// must ship its template inside the tool package.
+    /// </summary>
+    [Fact]
+    public void EveryScaffoldProfileShipsItsTemplateInThePackage()
+    {
+        string csproj = File.ReadAllText(Path.Combine(
+            RepoPaths.ToolchainRoot(), "src", "BotArena.Cli", "BotArena.Cli.csproj"));
+        foreach (string template in new[]
+                 {
+                     "botarena-bot",
+                     "botarena-generic-actor",
+                     "botarena-generic-mind",
+                 })
+        {
+            Assert.Contains(
+                $"tools/net10.0/any/templates/{template}/",
+                csproj,
+                StringComparison.Ordinal);
+            Assert.True(
+                Directory.Exists(Path.Combine(
+                    RepoPaths.ToolchainRoot(), "templates", template)),
+                $"templates/{template} does not exist.");
+        }
+    }
 }

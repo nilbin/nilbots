@@ -5,68 +5,287 @@ import type {
 } from '../replayModel';
 import { drawArena } from '../render/drawArena';
 import { posesAt } from '../render/interpolate';
+import {
+  ArenaCamera,
+  arenaViewport,
+  directorMinSpan,
+  directorShotHoldTicks,
+  focusFrame,
+  focusPointsAt,
+  selectedUnitPointAt,
+  selectionFollowFrame,
+  strategicOverviewFrame,
+  type ArenaFraming,
+} from '../render/arenaCamera';
+import { attachCameraGestures } from '../render/cameraGestures';
+import {
+  createArenaFramePacer,
+  takeArenaFrame,
+  type ArenaRenderProfile,
+} from '../render/arenaRenderProfile';
+import {
+  logicalArenaHeight,
+  unprojectCanvasY,
+} from '../render/arenaProjection';
+import type { ViewerEntrantPresentation } from './Viewer';
 
 interface ArenaCanvasProps {
   replay: ReplayModel;
   time: number;
   selectedUnitKey: ReplayStableUnitKey | null;
+  highlightedUnitKeys?: readonly ReplayStableUnitKey[];
   showVisibility: boolean;
   onSelectUnit: (unitKey: ReplayStableUnitKey | null) => void;
+  /** Follow the action. On by default; a gesture or the chrome's toggle turns it off. */
+  autoFit?: boolean;
+  /** Fired when a gesture takes the camera, so the chrome can show auto-fit as off. */
+  onManualCamera?: () => void;
+  /**
+   * Whether this surface offers pan and zoom at all.
+   *
+   * Off in the mobile app's WebView. There the host draws the transport natively and the
+   * page has no chrome of its own, so a gesture that dropped auto-fit would have nothing to
+   * turn it back on — the camera would silently stop following for the rest of the match.
+   * Auto-fit still runs there; only the override is withheld, because a bridge that carries
+   * no gesture also carries no way to undo one.
+   */
+  cameraGestures?: boolean;
+  entrants?: readonly ViewerEntrantPresentation[];
+  /** Whether replay time is advancing. Idle frames retain camera/selection response. */
+  active: boolean;
+  renderProfile: ArenaRenderProfile;
 }
 
 export default function ArenaCanvas({
   replay,
   time,
   selectedUnitKey,
+  highlightedUnitKeys = [],
   showVisibility,
   onSelectUnit,
+  autoFit = true,
+  onManualCamera,
+  cameraGestures = true,
+  entrants,
+  active,
+  renderProfile,
 }: ArenaCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const stateRef = useRef({ time, selectedUnitKey, showVisibility });
-  stateRef.current = { time, selectedUnitKey, showVisibility };
+  const stateRef = useRef({
+    time,
+    selectedUnitKey,
+    highlightedUnitKeys,
+    showVisibility,
+    autoFit,
+    active,
+  });
+  stateRef.current = {
+    time,
+    selectedUnitKey,
+    highlightedUnitKeys,
+    showVisibility,
+    autoFit,
+    active,
+  };
+  const overrideRef = useRef(onManualCamera);
+  overrideRef.current = onManualCamera;
+  // Survives re-renders and belongs to the replay, not the frame: the spring's whole job
+  // is to remember where it was going.
+  const cameraRef = useRef<ArenaCamera | null>(null);
+  const framingRef = useRef<ArenaFraming>({
+    mapWidth: replay.map.width,
+    mapHeight: replay.map.height,
+    aspect: 1,
+    minSpan: directorMinSpan(replay),
+  });
+
+  const gesturesRef = useRef<{ panned: () => boolean } | null>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current!;
     const ctx = canvas.getContext('2d')!;
     let frame = 0;
-    const render = () => {
+    let last: number | null = null;
+    const framePacer = createArenaFramePacer();
+    let aspect = 0;
+    let lastFit = stateRef.current.autoFit;
+    let lastSelected = stateRef.current.selectedUnitKey;
+    // A new replay is a new match: the camera must not open framed on the last one's fight.
+    cameraRef.current = null;
+
+    const framing = () => framingRef.current;
+    const scale = () =>
+      arenaViewport(
+        cameraRef.current?.frame ?? null,
+        replay.map.width,
+        replay.map.height,
+        canvas.clientWidth || 1,
+        logicalArenaHeight(canvas.clientHeight || 1),
+      ).tile;
+
+    const gestures = cameraGestures
+      ? attachCameraGestures({
+          element: canvas,
+          // Created below on the first frame, which is the first moment the viewport has a
+          // size — so the gesture host reads it lazily rather than capturing it.
+          get camera() {
+            return cameraRef.current!;
+          },
+          framing,
+          scale,
+          onOverride: () => overrideRef.current?.(),
+        })
+      : null;
+    gesturesRef.current = gestures;
+
+    const render = (stamp: number) => {
+      const framesPerSecond = stateRef.current.active
+        ? renderProfile.activeFramesPerSecond
+        : renderProfile.idleFramesPerSecond;
+      const frameDue = !renderProfile.presentationRateLimited ||
+        takeArenaFrame(framePacer, stamp, framesPerSecond);
+      if (document.hidden || !frameDue) {
+        frame = requestAnimationFrame(render);
+        return;
+      }
       const parent = canvas.parentElement!;
-      const ratio = window.devicePixelRatio || 1;
+      const ratio = Math.min(
+        window.devicePixelRatio || 1,
+        renderProfile.canvasMaxPixelRatio,
+      );
       const width = parent.clientWidth;
       const height = parent.clientHeight;
-      if (canvas.width !== width * ratio || canvas.height !== height * ratio) {
-        canvas.width = width * ratio;
-        canvas.height = height * ratio;
+      const backingWidth = Math.round(width * ratio);
+      const backingHeight = Math.round(height * ratio);
+      if (canvas.width !== backingWidth || canvas.height !== backingHeight) {
+        canvas.width = backingWidth;
+        canvas.height = backingHeight;
         canvas.style.width = `${width}px`;
         canvas.style.height = `${height}px`;
       }
       ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
-      drawArena(ctx, replay, stateRef.current, width, height);
+
+      const {
+        time: now,
+        selectedUnitKey: followed,
+        highlightedUnitKeys: highlighted,
+        showVisibility: fov,
+        autoFit: fit,
+      } =
+        stateRef.current;
+      if (width > 0 && height > 0) {
+        framingRef.current = {
+          mapWidth: replay.map.width,
+          mapHeight: replay.map.height,
+          aspect: width / logicalArenaHeight(height),
+          minSpan: directorMinSpan(replay),
+        };
+        let camera = cameraRef.current;
+        if (camera === null) {
+          camera = cameraRef.current = new ArenaCamera(framingRef.current);
+          // Born in the state the chrome already claims — see ArenaCamera.hold. The two
+          // renderers must open on the same frame or a device that loses its WebGL
+          // context swaps between two different opening shots.
+          if (!fit) camera.hold(strategicOverviewFrame(replay, framingRef.current));
+        }
+        // A resized or rotated viewport re-shapes the frame rather than re-deciding it.
+        if (aspect !== 0 && Math.abs(aspect - framingRef.current.aspect) > 1e-6)
+          camera.reframe(framingRef.current);
+        aspect = framingRef.current.aspect;
+
+        // On the toggle *changing*, never on a mismatch. A gesture drops auto-fit inside
+        // the camera immediately and reports it upward, and React delivers that state a
+        // frame or two later — so a camera that reacted to the mismatch would spend those
+        // frames re-engaging the fit and undoing the gesture that had just been made.
+        if (fit !== lastFit) {
+          lastFit = fit;
+          if (fit) camera.engage();
+          // A gesture reports itself upward as auto-fit turning *off*, and the camera has
+          // already released and is sitting where the hand left it — so answering that
+          // report with the overview would undo the gesture one frame after it was made.
+          else if (camera.auto || camera.followingSelection)
+            camera.showFrame(strategicOverviewFrame(replay, framingRef.current));
+        }
+        // Selection follow, decided in `arenaCamera` and mirrored here exactly as the 3D
+        // renderer runs it — a device that loses its WebGL context mid-replay must not
+        // also change its mind about what the camera is doing.
+        const reselected = followed !== lastSelected;
+        if (reselected) {
+          lastSelected = followed;
+          if (followed === null) {
+            if (fit) camera.engage();
+            else camera.showFrame(strategicOverviewFrame(replay, framingRef.current));
+          }
+        }
+        if (followed !== null && (reselected || camera.followingSelection)) {
+          const point = selectedUnitPointAt(replay, now, followed);
+          camera.track(
+            point ? selectionFollowFrame(point, framingRef.current) : null,
+          );
+        }
+        if (camera.auto)
+          camera.aim(
+            focusFrame(
+              focusPointsAt(replay, now, followed, highlighted),
+              framingRef.current,
+            ),
+            now,
+            followed === null ? directorShotHoldTicks(replay) : 0,
+          );
+        // Real seconds, so the camera settles at the same rate whatever the playback speed
+        // and whatever the frame rate; the spring clamps a huge step of its own accord.
+        camera.advance(last === null ? 0 : (stamp - last) / 1000);
+        last = stamp;
+      }
+
+      drawArena(
+        ctx,
+        replay,
+        {
+          time: now,
+          selectedUnitKey: followed,
+          highlightedUnitKeys: highlighted,
+          showVisibility: fov,
+          frame: cameraRef.current?.frame ?? null,
+          entrants,
+        },
+        width,
+        height,
+      );
       frame = requestAnimationFrame(render);
     };
     frame = requestAnimationFrame(render);
-    return () => cancelAnimationFrame(frame);
-  }, [replay]);
+    return () => {
+      cancelAnimationFrame(frame);
+      gestures?.detach();
+      gesturesRef.current = null;
+    };
+  }, [replay, cameraGestures, entrants, renderProfile]);
 
   const handleClick = (event: React.MouseEvent<HTMLCanvasElement>) => {
-    // Hit-test bots at their current interpolated tile.
+    // A drag that moved the camera is not a tap on a bot.
+    if (gesturesRef.current?.panned()) return;
+    // Hit-test bots at their current interpolated tile, through the camera's own transform
+    // — a zoomed-in arena must still pick the bot that is under the cursor.
     const canvas = canvasRef.current!;
     const rect = canvas.getBoundingClientRect();
     const clickX = event.clientX - rect.left;
     const clickY = event.clientY - rect.top;
-    const mapWidth = replay.map.width;
-    const mapHeight = replay.map.height;
-    const tile = Math.floor(
-      // Mirrors drawArena's MARGIN_TILES; if they disagree, clicks land on the wrong bot.
-      Math.min(rect.width / (mapWidth + 0.4), rect.height / (mapHeight + 0.4)),
+    const { tile, originX, originY } = arenaViewport(
+      cameraRef.current?.frame ?? null,
+      replay.map.width,
+      replay.map.height,
+      rect.width,
+      logicalArenaHeight(rect.height),
     );
-    const originX = Math.floor((rect.width - tile * mapWidth) / 2);
-    const originY = Math.floor((rect.height - tile * mapHeight) / 2);
 
     for (const pose of posesAt(replay, stateRef.current.time)) {
       const cx = originX + pose.x * tile + tile / 2;
       const cy = originY + pose.y * tile + tile / 2;
-      if (Math.hypot(clickX - cx, clickY - cy) < tile * 0.5) {
+      if (
+        Math.hypot(clickX - cx, unprojectCanvasY(clickY) - cy) <
+        tile * 0.5
+      ) {
         onSelectUnit(
           selectedUnitKey === pose.unitKey ? null : pose.unitKey,
         );
@@ -85,9 +304,17 @@ export default function ArenaCanvas({
       // height the two would chase each other: canvas grows, parent grows by its
       // border, canvas reads the larger value next frame. That is the arena slowly
       // inflating on load. Out of flow, the parent measures independently.
-      className="absolute inset-0 h-full w-full cursor-pointer"
+      className="arena-touch absolute inset-0 h-full w-full cursor-pointer"
       role="img"
       aria-label="nilbots match playback"
+      data-render-profile={renderProfile.id}
+      data-rate-limited={renderProfile.presentationRateLimited}
+      data-active-fps={renderProfile.activeFramesPerSecond}
+      data-idle-fps={renderProfile.idleFramesPerSecond}
+      data-pixel-ratio={Math.min(
+        typeof window === 'undefined' ? 1 : window.devicePixelRatio || 1,
+        renderProfile.canvasMaxPixelRatio,
+      )}
     />
   );
 }

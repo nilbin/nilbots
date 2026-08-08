@@ -3,6 +3,11 @@ import type {
   ReplayModel,
   ReplayTick,
 } from '../replayModel';
+import {
+  isAttackEvent,
+  isDestructionEvent,
+  isDisqualificationEvent,
+} from '../replayModel';
 import type {
   AdaptiveMusicKeyframe,
   MusicTrigger,
@@ -207,20 +212,19 @@ function seedForFrame(
   };
 
   for (const event of evidence) {
-    switch (event.type) {
-      case 'base-breached':
-      case 'destroyed':
-      case 'disqualified':
-        offer(1, 'decisive');
-        break;
-      case 'damage':
-        offer(0.84, 'damage');
-        break;
-      case 'shot':
-        offer(0.42, 'combat');
-        break;
-      default:
-        break;
+    // Under either generation's spelling — a v3 `attack`/`destruction` is the same
+    // beat as a v1 `shot`/`destroyed`, and a highlight reel that only recognised one
+    // vocabulary ranked a class-arm match as though nothing had happened in it.
+    if (
+      event.type === 'base-breached' ||
+      isDestructionEvent(event.type) ||
+      isDisqualificationEvent(event.type)
+    ) {
+      offer(1, 'decisive');
+    } else if (event.type === 'damage') {
+      offer(0.84, 'damage');
+    } else if (isAttackEvent(event.type)) {
+      offer(0.42, 'combat');
     }
   }
   for (const trigger of frame.triggers) {

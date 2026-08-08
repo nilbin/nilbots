@@ -1,0 +1,258 @@
+import assert from 'node:assert/strict';
+import { readdirSync, readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import test from 'node:test';
+import {
+  applyTeamAccentToSvg,
+  classIconLook,
+  presentationBotLook,
+} from './.harness/harness.entry.js';
+
+const assetsRoot = join(
+  dirname(fileURLToPath(import.meta.url)),
+  '..',
+  'src',
+  'assets',
+);
+const classLooksRoot = join(assetsRoot, 'class-looks');
+const projectilesRoot = join(assetsRoot, 'class-projectile-looks');
+const conceptRoot = join(
+  dirname(fileURLToPath(import.meta.url)),
+  '..',
+  '..',
+  'art',
+  'class-look-concepts',
+);
+
+const expectedLooks = new Map([
+  ['aegis-tortoise', ['bulwark', 'rebound-diamond']],
+  ['aegis-tortoise-shell', ['bulwark', 'rebound-diamond']],
+  ['aegis-tortoise-turret', ['bulwark', 'rebound-diamond']],
+  ['lattice-loom', ['fabricator', 'lattice-rivet']],
+  ['trident-wasp', ['striker', 'trident-spark']],
+  ['trident-wasp-volley', ['striker', 'trident-spark']],
+  ...[
+    'kestrel',
+    'palisade',
+    'towline',
+    'patchbay',
+    'lantern',
+    'mortar',
+    'minesmith',
+    'hush',
+    'relay',
+    'switchback',
+    'longshot',
+    'mason',
+    'sunder',
+    'repulsor',
+    'veil',
+    'nest',
+  ].map((classId) => [`arc-${classId}`, [classId, 'arc-pulse']]),
+]);
+
+test('internal class looks are tagged SVG packages with explicit raster exceptions', () => {
+  const found = new Set<string>();
+  for (const directory of readdirSync(classLooksRoot, {
+    withFileTypes: true,
+  })) {
+    if (!directory.isDirectory()) continue;
+    const root = join(classLooksRoot, directory.name);
+    const manifest = JSON.parse(
+      readFileSync(join(root, 'look.json'), 'utf8'),
+    ) as {
+      id: string;
+      label: string;
+      sprite: string;
+      classId: string;
+      defaultProjectile: string;
+      locomotionCue?: string;
+      scale: number;
+    };
+    found.add(manifest.id);
+    assert.equal(manifest.id, directory.name);
+    const isArcRelayRasterException = manifest.id.startsWith('arc-');
+    assert.equal(
+      manifest.sprite,
+      isArcRelayRasterException ? 'sprite.png' : 'sprite.svg',
+    );
+    assert.ok(manifest.scale >= 0.8 && manifest.scale <= 1.4);
+    assert.deepEqual(
+      [manifest.classId, manifest.defaultProjectile],
+      expectedLooks.get(manifest.id),
+    );
+
+    const source = readFileSync(
+      join(root, isArcRelayRasterException ? 'team.svg' : manifest.sprite),
+      'utf8',
+    );
+    assert.match(source, /viewBox="0 0 512 512"/);
+    if (isArcRelayRasterException) {
+      assert.match(source, /data-runtime-art="raster-exception"/);
+      assert.match(source, /href="__BASE_IMAGE_URL__"/);
+      assert.match(source, /href="__TEAM_MASK_URL__"/);
+      assert.doesNotMatch(source, /data:image\//i);
+      assert.ok(readFileSync(join(root, 'sprite.png')).byteLength > 0);
+      assert.ok(readFileSync(join(root, 'team-mask.png')).byteLength > 0);
+    } else {
+      assert.doesNotMatch(source, /<image\b|data:image\//i);
+      assert.doesNotMatch(source, /data-runtime-art="raster-exception"/);
+    }
+    const tagged = source.match(
+      /<(?:path|circle|ellipse|rect|polygon)\b[^>]*data-team-accent="true"[^>]*>/gi,
+    ) ?? [];
+    assert.ok(
+      tagged.length >= 2 && tagged.length <= 8,
+      `${manifest.id} has a restrained semantic accent set`,
+    );
+    assert.doesNotMatch(
+      source,
+      /<g\b[^>]*data-team-accent="true"/i,
+      `${manifest.id} tags direct surfaces, not inherited groups`,
+    );
+    for (const element of tagged) {
+      assert.match(element, /\bfill="#[0-9a-f]{6}"/i);
+      assert.doesNotMatch(element, /\bfill="none"/i);
+    }
+    if (manifest.id.startsWith('arc-')) {
+      assert.equal(
+        manifest.label,
+        manifest.classId
+          .split('-')
+          .map((word) => word[0].toUpperCase() + word.slice(1))
+          .join(' '),
+        `${manifest.id} presents the class name without a mode prefix`,
+      );
+      assert.match(source, /<g id="chassis">/);
+      assert.match(source, /<g id="weapon-hardware">/);
+      assert.match(source, /<g id="underbody-locomotion">/);
+      assert.match(source, /<g id="team-accents">/);
+      assert.match(source, /<g id="emissives">/);
+      assert.ok(
+        ['low-hover', 'wheels', 'treads', 'skids'].includes(
+          manifest.locomotionCue ?? '',
+        ),
+      );
+      const effect = readFileSync(join(root, 'effect.svg'), 'utf8');
+      assert.match(effect, /viewBox="0 0 256 256"/);
+      assert.match(effect, /<g id="signature-effect"/);
+      assert.match(effect, /data-team-accent="true"/);
+      assert.doesNotMatch(effect, /<image\b|data:image\//i);
+    }
+  }
+  assert.deepEqual([...found].sort(), [...expectedLooks.keys()].sort());
+});
+
+test('internal class projectiles are compact white-alpha SVG masks', () => {
+  const expected = [
+    'arc-pulse',
+    'lattice-rivet',
+    'rebound-diamond',
+    'trident-spark',
+  ];
+  const found: string[] = [];
+  for (const directory of readdirSync(projectilesRoot, {
+    withFileTypes: true,
+  })) {
+    if (!directory.isDirectory()) continue;
+    const root = join(projectilesRoot, directory.name);
+    const manifest = JSON.parse(
+      readFileSync(join(root, 'look.json'), 'utf8'),
+    ) as { id: string; sprite: string; scale: number };
+    found.push(manifest.id);
+    assert.equal(manifest.id, directory.name);
+    assert.equal(manifest.sprite, 'sprite.svg');
+    assert.ok(manifest.scale >= 0.3 && manifest.scale <= 0.7);
+    const source = readFileSync(join(root, manifest.sprite), 'utf8');
+    assert.match(source, /viewBox="0 0 256 256"/);
+    assert.doesNotMatch(source, /<image\b|data:image\//i);
+    const colors = [
+      ...source.matchAll(/(?:fill|stroke)="(#[0-9a-f]{3,8})"/gi),
+    ].map((match) => match[1].toLowerCase());
+    assert.ok(colors.length > 0);
+    assert.ok(colors.every((color) => color === '#fff'));
+  }
+  assert.deepEqual(found.sort(), expected);
+});
+
+test('semantic team accents replace tagged paint and preserve authored armor', () => {
+  const source =
+    '<svg><path fill="#334155"/>' +
+    '<path data-team-accent="true" fill="#38bdf8" stroke="#e0f2fe"/>' +
+    '</svg>';
+  assert.equal(
+    applyTeamAccentToSvg(source, '#fb923c'),
+    '<svg><path fill="#334155"/>' +
+      '<path data-team-accent="true" fill="#fb923c" stroke="#fb923c"/>' +
+      '</svg>',
+  );
+  assert.equal(
+    applyTeamAccentToSvg(source, 'url(javascript:bad)'),
+    source,
+    'only a strict replay-safe colour is inserted into SVG markup',
+  );
+});
+
+test('internal class looks expose typed class metadata without entering cosmetics options', () => {
+  assert.equal(presentationBotLook('trident-wasp').classId, 'striker');
+  assert.equal(presentationBotLook('aegis-tortoise').classId, 'bulwark');
+  assert.equal(presentationBotLook('lattice-loom').classId, 'fabricator');
+  assert.equal(presentationBotLook('arc-kestrel').classId, 'kestrel');
+  assert.equal(presentationBotLook('arc-nest').classId, 'nest');
+});
+
+test('class identity icons resolve to primary authored silhouettes', () => {
+  assert.equal(classIconLook('striker')?.id, 'trident-wasp');
+  assert.equal(classIconLook('bulwark')?.id, 'aegis-tortoise');
+  assert.equal(classIconLook('fabricator')?.id, 'lattice-loom');
+  for (const classId of [
+    'kestrel', 'palisade', 'towline', 'patchbay', 'lantern', 'mortar',
+    'minesmith', 'hush', 'relay', 'switchback', 'longshot', 'mason',
+    'sunder', 'repulsor', 'veil', 'nest',
+  ]) assert.equal(classIconLook(classId)?.id, `arc-${classId}`);
+  assert.equal(classIconLook('future-class'), null);
+});
+
+test('the concept registry preserves three exact pairs per class', () => {
+  const document = JSON.parse(
+    readFileSync(join(conceptRoot, 'store-bundles.json'), 'utf8'),
+  ) as {
+    version: number;
+    bundles: {
+      packId: string;
+      classId: string;
+      classDefault: boolean;
+      availability: string;
+      chassis: { id: string; source: string };
+      projectile: { id: string; source: string };
+    }[];
+  };
+  assert.equal(document.version, 1);
+  assert.equal(document.bundles.length, 9);
+  for (const classId of ['striker', 'bulwark', 'fabricator']) {
+    const entries = document.bundles.filter(
+      (bundle) => bundle.classId === classId,
+    );
+    assert.equal(entries.length, 3);
+    assert.equal(
+      entries.filter((bundle) => bundle.classDefault).length,
+      1,
+    );
+  }
+  assert.equal(
+    document.bundles.filter(
+      (bundle) => bundle.availability === 'live-store',
+    ).length,
+    6,
+  );
+  for (const bundle of document.bundles) {
+    assert.match(bundle.packId, /^(striker|bulwark|fabricator)-/);
+    assert.doesNotThrow(() =>
+      readFileSync(join(conceptRoot, bundle.chassis.source)),
+    );
+    assert.doesNotThrow(() =>
+      readFileSync(join(conceptRoot, bundle.projectile.source)),
+    );
+  }
+});

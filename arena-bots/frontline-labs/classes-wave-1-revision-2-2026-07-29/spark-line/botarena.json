@@ -1,0 +1,11 @@
+{
+  "name": "SparkLine",
+  "entryType": "SparkLine",
+  "sdkVersion": "0.10.4",
+  "class": "fabricator",
+  "appearance": {
+    "accent": "#facc15",
+    "look": "vanguard",
+    "projectile": "pulse-bolt"
+  }
+}

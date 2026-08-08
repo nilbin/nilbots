@@ -4,6 +4,13 @@ import type {
   ReplayTick,
 } from '../replayModel';
 import {
+  isAttackEvent,
+  isDestructionEvent,
+  isDisqualificationEvent,
+  isMovementEvent,
+  isRotationEvent,
+} from '../replayModel';
+import {
   createPresenter,
   type TickPresentation,
 } from '../replayPresentation';
@@ -605,13 +612,14 @@ function analyzeTick(
 ): TickSignals {
   const previous = memory.previousTick;
   const source = tick.replay;
-  const hasShot = hasEvent(source, 'shot');
-  const hasDamage = hasEvent(source, 'damage');
-  const hasDestruction =
-    hasEvent(source, 'destroyed') ||
-    hasEvent(source, 'disqualified');
-  const movementEvents = countEvent(source, 'move');
-  const turnEvents = countEvent(source, 'turn');
+  const hasShot = hasEvent(source, isAttackEvent);
+  const hasDamage = hasEvent(source, (type) => type === 'damage');
+  const hasDestruction = hasEvent(
+    source,
+    (type) => isDestructionEvent(type) || isDisqualificationEvent(type),
+  );
+  const movementEvents = countEvent(source, isMovementEvent);
+  const turnEvents = countEvent(source, isRotationEvent);
   const positionMotion = positionMotionSince(previous, tick);
   const visibleContact = tick.presentation.units.some(
     (unit) => unit.visibleEnemies.length > 0,
@@ -1351,13 +1359,24 @@ function positionMotionSince(
   return distance;
 }
 
-function hasEvent(tick: ReplayTick, type: string): boolean {
-  return causalEvents(tick).some((event) => event.type === type);
+/**
+ * Both lookups take a *predicate*, not a literal: a replay carries its own generation's
+ * spelling and the score must hear the event under either one (`isAttackEvent` and
+ * friends on the model).
+ */
+function hasEvent(
+  tick: ReplayTick,
+  matches: (type: string) => boolean,
+): boolean {
+  return causalEvents(tick).some((event) => matches(event.type));
 }
 
-function countEvent(tick: ReplayTick, type: string): number {
+function countEvent(
+  tick: ReplayTick,
+  matches: (type: string) => boolean,
+): number {
   return causalEvents(tick).reduce(
-    (count, event) => count + (event.type === type ? 1 : 0),
+    (count, event) => count + (matches(event.type) ? 1 : 0),
     0,
   );
 }

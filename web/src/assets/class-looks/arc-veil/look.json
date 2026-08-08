@@ -1,0 +1,10 @@
+{
+  "id": "arc-veil",
+  "label": "Veil",
+  "sprite": "sprite.png",
+  "suggestedAccent": "#38bdf8",
+  "defaultProjectile": "arc-pulse",
+  "classId": "veil",
+  "locomotionCue": "low-hover",
+  "scale": 1.06
+}

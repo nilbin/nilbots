@@ -68,24 +68,29 @@ public class PostgreSqlSchemaIntegrationTests
         IMigrator migrator = db.GetService<IMigrator>();
         await migrator.MigrateAsync("20260725141835_ProjectileLooks");
 
-        var user = new User
-        {
-            DisplayName = "backfill-test",
-            Email = "backfill@example.test",
-            PasswordHash = "not-used",
-        };
-        var bot = new Bot
-        {
-            OwnerUserId = user.Id,
-            Name = "Legacy Lancer",
-            Slug = "legacy-lancer",
-            LookId = "lancer",
-        };
-        db.Users.Add(user);
-        db.Bots.Add(bot);
-        await db.SaveChangesAsync();
+        // Seed through the historical schema, not the current EF model. New nullable
+        // Bot columns do not exist at this migration point, and EF includes them in an
+        // INSERT even when their values are null.
+        Guid userId = Guid.NewGuid();
+        Guid botId = Guid.NewGuid();
         Guid versionId = Guid.NewGuid();
+        DateTime createdAt = DateTime.UtcNow;
         DateTime builtAt = DateTime.UtcNow;
+        await db.Database.ExecuteSqlInterpolatedAsync($"""
+            INSERT INTO "Users"
+                ("Id", "DisplayName", "Email", "PasswordHash", "CreatedAt", "IsSystem")
+            VALUES
+                ({userId}, {"backfill-test"}, {"backfill@example.test"},
+                 {"not-used"}, {createdAt}, {false})
+            """);
+        await db.Database.ExecuteSqlInterpolatedAsync($"""
+            INSERT INTO "Bots"
+                ("Id", "OwnerUserId", "Name", "Slug", "Accent", "LookId",
+                 "ProjectileLookId", "CreatedAt")
+            VALUES
+                ({botId}, {userId}, {"Legacy Lancer"}, {"legacy-lancer"},
+                 {"#22d3ee"}, {"lancer"}, {"pulse-bolt"}, {createdAt})
+            """);
         await db.Database.ExecuteSqlInterpolatedAsync($"""
             INSERT INTO "BotVersions"
                 ("Id", "BotId", "VersionNumber", "EntryType", "SourcesJson",
@@ -93,7 +98,7 @@ public class PostgreSqlSchemaIntegrationTests
                  "RuntimeProtocolVersion", "RuntimeConfigurationVersion",
                  "CreatedAt", "BuiltAt", "IsActive")
             VALUES
-                ({versionId}, {bot.Id}, {1}, {"Bot"}, CAST({"[]"} AS jsonb),
+                ({versionId}, {botId}, {1}, {"Bot"}, CAST({"[]"} AS jsonb),
                  {"legacy"}, {"Built"},
                  {Engine.BotArenaVersions.GameRulesVersion},
                  {Engine.BotArenaVersions.RuntimeProtocolVersion},
@@ -104,7 +109,7 @@ public class PostgreSqlSchemaIntegrationTests
         await migrator.MigrateAsync();
 
         var grants = await db.EntitlementGrants
-            .Where(grant => grant.UserId == user.Id)
+            .Where(grant => grant.UserId == userId)
             .Select(grant => new { grant.EntitlementKey, grant.SourceKind, grant.SourceId })
             .ToListAsync();
         Assert.Contains(

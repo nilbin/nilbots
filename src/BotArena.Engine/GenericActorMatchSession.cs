@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Diagnostics;
 
 namespace BotArena.Engine;
 
@@ -15,29 +16,141 @@ public sealed class GenericActorMatchSession : IDisposable
     private readonly BoundedChildFabricationKernel _fabrication;
     private readonly SplitReplicationKernel _split;
     private readonly ActorSameLifeTransitionKernel _sameLife;
+
+    /// <summary>
+    /// Route-cooldown clocks (#181): first tick each cooldown-bearing route
+    /// is available again, keyed by UNIT SLOT so the clock survives the
+    /// body (a respawn does not reset it). Requested queues are gated;
+    /// automatic (engine-caused) returns are exempt by design — a forced
+    /// return must never be trapped by its own route's clock.
+    /// </summary>
+    private readonly Dictionary<(int TeamId, int UnitId, string TransitionId),
+        int> _routeReadyAtTick = new();
     private readonly Dictionary<string, ActorFormDefinition> _forms;
     private readonly Dictionary<string, ActorVisionProfileDefinition>
         _visionProfiles;
     private readonly Dictionary<string, ActorAttackProfileDefinition>
         _attackProfiles;
+    private readonly Dictionary<string, ActorMovementProfileDefinition>
+        _movementProfiles;
     private readonly Dictionary<string, ActorActionDefinition> _actions;
     private readonly Dictionary<string, ActorLifecycleProfileDefinition>
         _lifecycleProfiles;
     private readonly Dictionary<string, InitialSpawnDefinition> _spawns;
     private readonly Dictionary<int, int> _participantTeams;
+    private readonly Dictionary<int, string?> _participantClassIds;
+    private readonly Dictionary<(int TeamId, int UnitId), string?>
+        _slotClassIds;
+
+    /// <summary>
+    /// THE ROOT FACTORY clock, per participant (DECISIONS #194). A
+    /// participant whose slots are all placed by explicit fabrication cannot
+    /// place one once its last body dies, so the home base seeds one for it.
+    /// Empty on every ruleset that declares no bootstrap, which is every
+    /// ruleset shipped before prime dissolution.
+    /// </summary>
+    private readonly Dictionary<int, int> _rootFactoryDueTick = [];
     private readonly Dictionary<(int TeamId, int UnitId), SlotState> _slots;
     private readonly Dictionary<ActorIdentity, LifeState> _lives = [];
     private readonly List<ProjectileState> _projectiles = [];
+    private readonly List<PendingStrike> _pendingStrikes = [];
+    private readonly List<PendingHookPull> _pendingHookPulls = [];
+    private readonly List<PendingSignatureBolt> _pendingSignatureBolts = [];
     private readonly List<BoundedChildFabricationProvisionalReservation>
         _fabricationReservations = [];
     private readonly List<SplitReplicationReservation> _splitReservations = [];
     private readonly Dictionary<int, int> _nextEventOrdinalByTick = [];
     private readonly Dictionary<ObservationAudienceKey, EventProjectionState>
         _eventProjectionStates = [];
+
+    /// <summary>
+    /// This tick's observable union per scoring team. Cleared at the top of
+    /// every <c>PrepareTick</c>, so it can never outlive the frozen boundary
+    /// it belongs to.
+    /// </summary>
+    private readonly Dictionary<int, GenericMindTeamProjection>
+        _teamProjectionCache = [];
+    private readonly Dictionary<ActorIdentity, HashSet<Position>>
+        _visibleTilesCache = [];
+    private readonly Dictionary<int, HashSet<Position>>
+        _occludingSmokeCache = [];
+
+    /// <summary>
+    /// This tick's TEAM observable union of tiles — the same picture the mind
+    /// acts on — used by declared-strike lock tracking (owner ruling
+    /// 2026-08-09). Cleared with every other projection cache.
+    /// </summary>
+    private readonly Dictionary<int, HashSet<Position>>
+        _teamVisibleTilesCache = [];
+    private readonly Dictionary<Position,
+        GenericActorRuntimeObservation.SpawnReservation?>
+        _spawnReservationCache = [];
+    private readonly Dictionary<StaticVisibilityKey,
+        ImmutableArray<StaticVisibilityRay>> _staticVisibilityCache = [];
+    private readonly Dictionary<ActorIdentity,
+        ImmutableArray<GenericActorRuntimeActionLegality>>
+        _actionLegalitiesCache = [];
+    private readonly Dictionary<(ActorIdentity ActorId, string ActionId),
+        ImmutableArray<Position>> _signaturePositionTargetsCache = [];
+    private readonly Dictionary<(ActorIdentity ActorId, string ActionId),
+        ImmutableArray<GenericActorRuntimeActionArgument.UnitTarget>>
+        _signatureUnitTargetsCache = [];
+    private ImmutableArray<ArcRelaySignatureRuntime.Life>?
+        _projectionSignatureLivesCache;
+    private GenericActorModeProjection? _projectionModeCache;
+
+    /// <summary>
+    /// Where every body stood in the PREVIOUS mind observation — literally
+    /// "last tick's <c>Bodies</c>", which is the collection a mind would
+    /// otherwise hold in its own fields. Publishing it is what makes
+    /// <c>MovedLastTick</c> free rather than a favour: the fact is exactly
+    /// <c>previous.Position != Position</c>, computed once by the engine
+    /// instead of nine times by nine authors with a documented footgun.
+    /// <para>Deliberately NOT
+    /// <see cref="_positionsAtPreviousTickEnd"/>, which is the mid-step
+    /// stillness reference and equals the body's tick-start position by
+    /// construction.</para>
+    /// </summary>
+    private ImmutableDictionary<ActorIdentity, Position>
+        _positionsAtPreviousMindObservation =
+            ImmutableDictionary<ActorIdentity, Position>.Empty;
+
+    /// <summary>
+    /// The label each body's own mind last attached to it (§12). Sticky, so
+    /// one <c>SetRole</c> keeps publishing until the mind changes it; keyed by
+    /// LIFE, so a slot's next body starts unlabelled rather than inheriting its
+    /// predecessor's job.
+    /// <para>
+    /// It is deliberately readable by the whole projection rather than by the
+    /// owning mind alone, because the tag is published on VISIBLE ENEMIES too.
+    /// That is the design: the engine never reads the label, so a label the
+    /// enemy can read is a free deception channel and calling your channeler a
+    /// screen is a real move. Empty on the per-life generation, which has no
+    /// way to set one.
+    /// </para>
+    /// </summary>
+    private readonly Dictionary<ActorIdentity, string> _roleTags = [];
+    private readonly HashSet<ActorIdentity> _arcSignatureDamagedThisTick = [];
+    private readonly Dictionary<ActorIdentity, int> _arcHealChannel = [];
+    private ImmutableHashSet<Position>? _arcHealTiles;
+    private readonly int _resolutionPhase;
     private ImmutableArray<GenericActorAuthoritativeEvent>
         _priorResolvedEvents;
+    private ImmutableDictionary<ActorIdentity, Position>
+        _positionsAtPreviousTickEnd =
+            ImmutableDictionary<ActorIdentity, Position>.Empty;
     private GenericActorMatchPreparedTick? _preparedTick;
     private GenericActorMatchTickStart? _preparedChronologyTick;
+    private readonly bool _perfDiagnostics = string.Equals(
+        Environment.GetEnvironmentVariable("BOTARENA_PERF_DIAGNOSTICS"),
+        "1",
+        StringComparison.Ordinal);
+    private long _runtimeWallTicks;
+    private long _runtimeAllocatedBytes;
+    private long _mindProjectionWallTicks;
+    private long _mindProjectionAllocatedBytes;
+    private long _lifeProjectionWallTicks;
+    private long _lifeProjectionAllocatedBytes;
     private long _nextAuthoritativeFactOrdinal;
     private long _nextProjectileId;
 
@@ -48,12 +161,16 @@ public sealed class GenericActorMatchSession : IDisposable
     public GenericActorMatchSession(
         ActorResolvedMatchDefinition definition,
         IEnumerable<GenericActorParticipantConfiguration> participants,
-        ulong matchSeed)
+        ulong matchSeed,
+        bool recordChronology = true)
     {
         ArgumentNullException.ThrowIfNull(definition);
         ArgumentNullException.ThrowIfNull(participants);
         IGenericActorMatchModeDriver mode =
-            GenericActorMatchModeDriverFactory.Create(definition);
+            GenericActorMatchModeDriverFactory.Create(definition, matchSeed);
+        _resolutionPhase = definition.Rules.GameMode.SeedPhasedResolutionOrder
+            ? SeedDerivation.DeriveResolutionPhase(matchSeed)
+            : 0;
         ValidateWorldCapabilities(definition);
 
         _definition = definition;
@@ -64,6 +181,9 @@ public sealed class GenericActorMatchSession : IDisposable
             profile => profile.Id,
             StringComparer.Ordinal);
         _attackProfiles = definition.Rules.AttackProfiles.ToDictionary(
+            profile => profile.Id,
+            StringComparer.Ordinal);
+        _movementProfiles = definition.Rules.MovementProfiles.ToDictionary(
             profile => profile.Id,
             StringComparer.Ordinal);
         _actions = definition.Rules.Actions.ToDictionary(
@@ -79,6 +199,12 @@ public sealed class GenericActorMatchSession : IDisposable
         _participantTeams = definition.Topology.Participants.ToDictionary(
             participant => participant.ParticipantId,
             participant => participant.TeamId);
+        _slotClassIds = definition.Topology.UnitSlots.ToDictionary(
+            slot => (slot.TeamId, slot.UnitId),
+            slot => slot.ClassId);
+        _participantClassIds = definition.Topology.Participants.ToDictionary(
+            participant => participant.ParticipantId,
+            participant => participant.ClassId);
         _slots = CreateSlots(definition);
         _mode = mode;
         _fabrication = new BoundedChildFabricationKernel(definition);
@@ -87,7 +213,8 @@ public sealed class GenericActorMatchSession : IDisposable
         _host = new GenericActorMatchHost(
             definition,
             participants,
-            matchSeed);
+            matchSeed,
+            recordChronology);
 
         var initialEvents =
             ImmutableArray.CreateBuilder<GenericActorAuthoritativeEvent>();
@@ -110,7 +237,10 @@ public sealed class GenericActorMatchSession : IDisposable
                     slot.Assignment.InitialGeneration!.Value,
                     spawn.Position,
                     spawn.Facing,
-                    health: _forms[deployment.FormId].MaxHealth,
+                    health: EffectiveMaxHealth(
+                        deployment.FormId,
+                        deployment.TeamId,
+                        deployment.UnitId),
                     GenericActorRuntimeStart.SpawnReason.Initial,
                     parentActorId: null,
                     sourceTransitionId: null,
@@ -131,6 +261,11 @@ public sealed class GenericActorMatchSession : IDisposable
         }
 
         _priorResolvedEvents = initialEvents.ToImmutable();
+        // The deployed world is the "end of the previous tick" tick 0 reads
+        // against, which is also exactly what the replay validator sees in
+        // the initial frame — so the two derivations of stillness agree from
+        // the first tick rather than from the second.
+        RememberPositions();
         _host.RecordInitial(
             new GenericActorMatchInitialFrame(
                 SnapshotWorld(),
@@ -147,7 +282,14 @@ public sealed class GenericActorMatchSession : IDisposable
         get
         {
             ThrowIfOperationInProgress();
-            return _mode.State;
+            GenericActorModeState state = _mode.State;
+            if (state is GenericActorModeState.ArcRelay arcRelay)
+            {
+                return new GenericActorModeState.ArcRelay(
+                    (GenericActorRuntimeObservation.ModeObservationState
+                        .ArcRelay)WithPendingStrikes(arcRelay.State));
+            }
+            return state;
         }
     }
     public GenericActorMatchDescriptor MatchDescriptor
@@ -209,6 +351,19 @@ public sealed class GenericActorMatchSession : IDisposable
     }
 
     /// <summary>
+    /// Captures the current authoritative world for a presentation recorder.
+    /// It exposes no mutation seam and is unavailable during a runtime
+    /// callback, matching every other session inspection boundary.
+    /// </summary>
+    public GenericActorWorldSnapshot CaptureWorldSnapshot()
+    {
+        using SessionOperation operation =
+            EnterOperation(nameof(CaptureWorldSnapshot));
+        ThrowIfDisposed();
+        return SnapshotWorld();
+    }
+
+    /// <summary>
     /// Applies due lifecycle exactly once, freezes public pre-tick
     /// observations, and returns the exact active-life input batch.
     /// </summary>
@@ -233,7 +388,17 @@ public sealed class GenericActorMatchSession : IDisposable
             ImmutableArray.CreateBuilder<GenericActorLifeStart>();
         var projectileTransitions =
             ImmutableArray.CreateBuilder<GenericActorProjectileTraversal>();
-        ApplyInitialUnlocks();
+        ApplyInitialUnlocks(
+            tickStartEvents,
+            lifeStarts,
+            projectileTransitions);
+        // The base seeds BEFORE the ordinary readiness pass, because the seed
+        // consumes the very clock that pass would otherwise turn into an idle
+        // Ready slot: a bootstrapped slot goes straight from pending to live.
+        ApplyRootFactorySeeds(
+            tickStartEvents,
+            lifeStarts,
+            projectileTransitions);
         ApplyAutomaticReturns(
             tickStartEvents,
             lifeStarts,
@@ -250,28 +415,130 @@ public sealed class GenericActorMatchSession : IDisposable
             ActorTransitionWindupDefinition.ActorTransitionCompletionKind
                 .TickStartAfterDuration,
             tickStartEvents);
+        if (_mode is ArcRelayActorMatchModeDriver arcRelay)
+        {
+            _arcSignatureDamagedThisTick.Clear();
+            GenericActorRuntimeObservation.ModeObservationState.ArcRelay
+                beforeSignatures = ((GenericActorModeState.ArcRelay)
+                    arcRelay.State).State;
+            ArcRelaySignatureRuntime.TickResult signatureTick =
+                arcRelay.Signatures.Advance(Tick, ArcRelaySignatureLives());
+            EmitModeEvents(signatureTick.Events, tickStartEvents);
+            ArcSignatureApplication signatureApplication =
+                ApplyArcRelaySignatureEffects(
+                    arcRelay,
+                    signatureTick.Effects,
+                    tickStartEvents);
+            EmitModeEvents(
+                arcRelay.ResolveForcedMovement(
+                    Tick,
+                    signatureApplication.RelocatedActors,
+                    ModeWorldView()),
+                tickStartEvents);
+            if (_arcSignatureDamagedThisTick.Count > 0)
+            {
+                var damageInterruptEvents = ImmutableArray
+                    .CreateBuilder<GenericActorModeEvent>();
+                arcRelay.Signatures.NotifyDamaged(
+                    Tick,
+                    _arcSignatureDamagedThisTick.ToImmutableArray(),
+                    damageInterruptEvents);
+                EmitModeEvents(damageInterruptEvents, tickStartEvents);
+                _arcSignatureDamagedThisTick.Clear();
+            }
+            ImmutableArray<FrontlineScrapDestruction> signatureDestructions =
+                FinalizeDestroyedLives(
+                    ImmutableHashSet<int>.Empty,
+                    tickStartEvents);
+            if (!signatureDestructions.IsEmpty)
+            {
+                var signatureEvents = ImmutableArray
+                    .CreateBuilder<GenericActorModeEvent>();
+                arcRelay.Signatures.NotifyDestroyed(
+                    Tick,
+                    signatureDestructions.Select(value => value.ActorId)
+                        .ToImmutableArray(),
+                    signatureEvents);
+                EmitModeEvents(signatureEvents, tickStartEvents);
+                EmitModeEvents(
+                    arcRelay.HandleDestructions(Tick, signatureDestructions),
+                    tickStartEvents);
+            }
+            GenericActorRuntimeObservation.ModeObservationState.ArcRelay
+                afterSignatures = arcRelay.ProjectStateAtTick(Tick);
+            if (!Equals(beforeSignatures, afterSignatures))
+            {
+                EmitModeChanges(
+                    new GenericActorModeTickResult(
+                        scoreChanges: [],
+                        afterSignatures,
+                        modeObjectiveReached: false),
+                    tickStartEvents);
+            }
+            EmitModeChanges(
+                arcRelay.PrepareTick(Tick, ModeWorldView()),
+                tickStartEvents);
+        }
 
         ImmutableArray<GenericActorAuthoritativeEvent> sourceEvents =
             [
                 .. _priorResolvedEvents,
                 .. tickStartEvents,
             ];
+        // ONE union per team per tick, for BOTH profiles. Under the per-life
+        // profile the specialization is now a thin wrapper — self, the ally
+        // list, and the legality mask — over a union computed once instead of
+        // N byte-identical times, which is the O(N^2 x mapArea) -> O(N x
+        // mapArea) collapse the memo measured (§4.6). Under the mind profile
+        // the same object is handed straight to the participant.
+        ResetProjectionCaches();
+        long projectionStart = _perfDiagnostics
+            ? Stopwatch.GetTimestamp()
+            : 0;
+        long projectionAllocationStart = _perfDiagnostics
+            ? GC.GetTotalAllocatedBytes(precise: false)
+            : 0;
+        ImmutableArray<GenericMindRuntimeObservation> mindObservations =
+            _host.IsMindProfile
+                ? ProjectMindObservations(sourceEvents)
+                : [];
+        if (_perfDiagnostics)
+        {
+            _mindProjectionWallTicks +=
+                Stopwatch.GetTimestamp() - projectionStart;
+            _mindProjectionAllocatedBytes += GC.GetTotalAllocatedBytes(
+                precise: false) - projectionAllocationStart;
+            projectionStart = Stopwatch.GetTimestamp();
+            projectionAllocationStart = GC.GetTotalAllocatedBytes(
+                precise: false);
+        }
         ImmutableArray<GenericActorRuntimeObservation> observations =
             _lives.Values
                 .OrderBy(life => life.ActorId)
                 .Select(life => ProjectObservation(life, sourceEvents))
                 .ToImmutableArray();
+        if (_perfDiagnostics)
+        {
+            _lifeProjectionWallTicks +=
+                Stopwatch.GetTimestamp() - projectionStart;
+            _lifeProjectionAllocatedBytes += GC.GetTotalAllocatedBytes(
+                precise: false) - projectionAllocationStart;
+        }
         _preparedTick = new GenericActorMatchPreparedTick(
             Tick,
             observations,
             tickStartEvents
                 .Select(ToObservedEvent)
-                .ToImmutableArray());
+                .ToImmutableArray())
+        {
+            MindObservations = mindObservations,
+        };
         _preparedChronologyTick = new GenericActorMatchTickStart(
             Tick,
             SnapshotWorld(),
-            observations
-                .Select(observation => observation.Self.ActorId)
+            _lives.Values
+                .Select(life => life.ActorId)
+                .Order()
                 .ToImmutableArray(),
             lifeStarts.ToImmutable(),
             tickStartEvents.ToImmutable(),
@@ -313,37 +580,147 @@ public sealed class GenericActorMatchSession : IDisposable
         GenericActorRuntimeObservation[] supplied = [.. observations];
         ValidateFrozenObservationBatch(tickStart, supplied);
 
+        // The ONE structural change the mind profile makes to a tick: one
+        // runtime per participant instead of one per life. The fan-out hands
+        // everything below this line exactly the shape it always received, so
+        // the 16 canonical phases run unchanged.
+        long runtimeStart = _perfDiagnostics ? Stopwatch.GetTimestamp() : 0;
+        long runtimeAllocationStart = _perfDiagnostics
+            ? GC.GetTotalAllocatedBytes(precise: false)
+            : 0;
+        GenericMindRuntimeTickResult? mindTick = _host.IsMindProfile
+            ? _host.CollectMindTickDecisions(
+                Tick,
+                tickStart.MindObservations)
+            : null;
         GenericActorRuntimeTickResult runtimeTick =
-            _host.CollectTickDecisions(Tick, supplied);
+            mindTick?.ToActorTickResult()
+            ?? _host.CollectTickDecisions(Tick, supplied);
+        if (_perfDiagnostics)
+        {
+            _runtimeWallTicks += Stopwatch.GetTimestamp() - runtimeStart;
+            _runtimeAllocatedBytes += GC.GetTotalAllocatedBytes(precise: false)
+                - runtimeAllocationStart;
+        }
         var resolutions = CreateActionResolutions(runtimeTick);
         var events =
             ImmutableArray.CreateBuilder<GenericActorAuthoritativeEvent>();
         var projectileTransitions =
             ImmutableArray.CreateBuilder<GenericActorProjectileTraversal>();
         var contacts = new List<PendingDamageContact>();
+        var deflections = new List<PendingDeflection>();
         int contactOrdinal = 0;
+        _arcSignatureDamagedThisTick.Clear();
 
         ResolveRotations(resolutions, events);
         ResolveMovement(
             resolutions,
             contacts,
             ref contactOrdinal,
+            deflections,
             events,
             projectileTransitions);
+        if (_mode is ArcRelayActorMatchModeDriver arcRelayAfterMovement)
+        {
+            ImmutableArray<ActorIdentity> movedActors = resolutions.Values
+                .Where(resolution =>
+                    resolution.Outcome
+                        == GenericActorRuntimeActionResolution.ActionOutcome
+                            .Success
+                    && _actions[resolution.ValidatedAction.ActionId].Kind
+                        == ActorActionKind.Movement)
+                .Select(resolution => resolution.ActorId)
+                .Order()
+                .ToImmutableArray();
+            EmitModeEvents(
+                arcRelayAfterMovement.ResolveMovement(
+                    Tick,
+                    movedActors,
+                    ModeWorldView()),
+                events);
+            var movedSignatureEvents =
+                ImmutableArray.CreateBuilder<GenericActorModeEvent>();
+            arcRelayAfterMovement.Signatures.NotifyMoved(
+                Tick,
+                movedActors,
+                movedSignatureEvents);
+            EmitModeEvents(movedSignatureEvents, events);
+            ArcRelaySignatureRuntime.TickResult postMovementSignatures =
+                arcRelayAfterMovement.Signatures.ResolvePostMovement(
+                    Tick,
+                    ArcRelaySignatureLives());
+            EmitModeEvents(postMovementSignatures.Events, events);
+            ApplyArcRelaySignatureEffects(
+                arcRelayAfterMovement,
+                postMovementSignatures.Effects,
+                events);
+            // Matured LOCKED line attacks resolve before this tick's new
+            // declares, exactly as LaunchMaturedStrikes resolves before
+            // ResolveAttacks. That placement is the whole point of the lock
+            // ruling: a windup that matured at tick start could never be
+            // followed, because its target had not moved yet.
+            ResolveMaturedLockedLineStrikes(arcRelayAfterMovement, events);
+            ResolveArcRelaySignatureActions(
+                resolutions,
+                arcRelayAfterMovement,
+                events);
+            ResolveArcRelayObjectiveActions(resolutions, events);
+        }
         ReserveLifecycleCreations(resolutions, events);
         StartSameLifeTransitions(resolutions, events);
+        LaunchPendingSignatureBolts(
+            contacts,
+            ref contactOrdinal,
+            deflections,
+            events,
+            projectileTransitions);
+        LaunchMaturedStrikes(
+            contacts,
+            ref contactOrdinal,
+            deflections,
+            events,
+            projectileTransitions);
         AdvanceExistingProjectiles(
             contacts,
             ref contactOrdinal,
+            deflections,
+            events,
             projectileTransitions);
         ResolveAttacks(
             resolutions,
             contacts,
             ref contactOrdinal,
+            deflections,
             events,
             projectileTransitions);
+        // The tick's one launch point for guard returns: after every advance
+        // and every attack, so a returned bolt joins the world exactly like a
+        // freshly fired one.
+        LaunchDeflectedProjectiles(
+            deflections,
+            contacts,
+            ref contactOrdinal,
+            events,
+            projectileTransitions);
+        // Counters are final here — the fan has launched and every guard
+        // return has been published — and damage has not landed yet, so a
+        // lethal hit cancels this windup exactly as it cancels a requested one.
+        StartAutomaticReturns(events);
         ImmutableArray<GenericActorModeDamageContact> scoredContacts =
             ApplyDamage(contacts, events);
+        if (_mode is ArcRelayActorMatchModeDriver signatureDamageMode)
+        {
+            var signatureEvents =
+                ImmutableArray.CreateBuilder<GenericActorModeEvent>();
+            signatureDamageMode.Signatures.NotifyDamaged(
+                Tick,
+                contacts.Select(value => value.TargetActorId)
+                    .Concat(_arcSignatureDamagedThisTick)
+                    .Distinct()
+                    .ToImmutableArray(),
+                signatureEvents);
+            EmitModeEvents(signatureEvents, events);
+        }
 
         foreach (GenericActorRuntimeFault fault in runtimeTick.Faults)
         {
@@ -355,13 +732,38 @@ public sealed class GenericActorMatchSession : IDisposable
                 fault.ActorId.TeamId));
         }
 
+        // A mind that traps on a tick it owns NO body has no per-body event to
+        // ride on, and under the shipped threshold-0 allowance that silent
+        // frame is exactly the moment a participant lost the match. Publish it
+        // participant-scoped instead, team-private like every other fault, so
+        // the fact is visible in events and in the replay rather than only in
+        // the disqualification that follows it (P3, §4.7).
+        foreach (GenericMindRuntimeFault fault in
+                 mindTick?.Faults ?? [])
+        {
+            if (fault.ActorId is not null)
+                continue;
+            events.Add(EmitTeamPrivate(
+                Tick,
+                GenericActorRuntimeObservation.EventKind.MindRuntimeFault,
+                new GenericActorRuntimeObservation.EventPayload
+                    .MindRuntimeFault(fault),
+                fault.TeamId));
+        }
+
         HashSet<int> newlyDisqualified =
             runtimeTick.NewlyDisqualifiedParticipantIds.ToHashSet();
         ApplyDisqualifications(
             runtimeTick.NewlyDisqualifiedParticipantIds,
             events,
             projectileTransitions);
-        FinalizeDestroyedLives(newlyDisqualified, events);
+        ImmutableArray<FrontlineScrapDestruction> destructions =
+            FinalizeDestroyedLives(newlyDisqualified, events);
+        // The mode store's verb settles here: after every bolt has flown, so
+        // a tier bought this tick cannot lengthen this tick's shot, and
+        // before the resolutions are remembered, so a blocked purchase is the
+        // outcome the next observation reports.
+        ResolveInvestments(resolutions);
         RememberActionResolutions(resolutions);
 
         ImmutableArray<int> eligibleTeams = EligibleTeamIds();
@@ -376,7 +778,10 @@ public sealed class GenericActorMatchSession : IDisposable
             UpdateCooldownsAndEnergy(resolutions);
             GenericActorModeTickResult modeTick = _mode.ApplyJointTick(
                 ModeWorldView(),
-                new GenericActorModeTickInput(Tick, scoredContacts));
+                new GenericActorModeTickInput(
+                    Tick,
+                    scoredContacts,
+                    destructions));
             EmitModeChanges(modeTick, events);
             modeObjectiveCompletion = modeTick.ModeObjectiveReached;
             CompleteDueSameLifeTransitions(
@@ -427,29 +832,46 @@ public sealed class GenericActorMatchSession : IDisposable
             _preparedChronologyTick
             ?? throw new InvalidOperationException(
                 "The prepared tick has no authoritative chronology.");
-        Dictionary<ActorIdentity, GenericActorRuntimeObservation>
-            observationsByActor = tickStart.Observations.ToDictionary(
-                observation => observation.Self.ActorId);
-        ImmutableArray<GenericActorMatchActorTurn> actorTurns =
-            runtimeTick.Turns
-                .OrderBy(turn => turn.ActorId)
-                .Select(turn =>
-                    new GenericActorMatchActorTurn(
-                        executedTick,
-                        turn.ParticipantId,
-                        turn.ActorId,
-                        observationsByActor[turn.ActorId],
-                        turn.SubmittedDecision,
-                        resolutions[turn.ActorId].ToPublic()))
-                .ToImmutableArray();
         GenericActorWorldSnapshot postState = SnapshotWorld();
-        _host.RecordResolvedTick(
-            new GenericActorMatchTickFrame(
-                chronologyTick,
-                actorTurns,
-                authoritativeEvents,
-                projectileTransitions.ToImmutable(),
-                postState));
+        if (_host.RecordsChronology)
+        {
+            Dictionary<ActorIdentity, GenericActorRuntimeObservation>
+                observationsByActor = tickStart.Observations.ToDictionary(
+                    observation => observation.Self.ActorId);
+            ImmutableArray<GenericActorMatchActorTurn> actorTurns =
+                runtimeTick.Turns
+                    .OrderBy(turn => turn.ActorId)
+                    .Select(turn =>
+                        new GenericActorMatchActorTurn(
+                            executedTick,
+                            turn.ParticipantId,
+                            turn.ActorId,
+                            observationsByActor[turn.ActorId],
+                            turn.SubmittedDecision,
+                            resolutions[turn.ActorId].ToPublic()))
+                    .ToImmutableArray();
+            ImmutableArray<GenericActorMatchMindTurn> mindTurns =
+                ProjectMindTurns(executedTick, tickStart, mindTick);
+            _host.RecordResolvedTick(
+                new GenericActorMatchTickFrame(
+                    chronologyTick,
+                    actorTurns,
+                    authoritativeEvents,
+                    projectileTransitions.ToImmutable(),
+                    postState,
+                    mindTurns));
+        }
+        // The tags this tick's accepted commands set become NEXT tick's
+        // published labels; the observation the mind just answered was frozen
+        // before any of them were written, which is the same one-tick
+        // telegraph grammar a claim, a windup and a purchase already use.
+        ApplyRoleTags(mindTick);
+        foreach (ActorIdentity dead in _roleTags.Keys
+                     .Where(actor => !_lives.ContainsKey(actor))
+                     .ToArray())
+        {
+            _roleTags.Remove(dead);
+        }
         GenericActorMatchResult? terminalResult = null;
         if (terminal is not null)
         {
@@ -462,6 +884,7 @@ public sealed class GenericActorMatchSession : IDisposable
         }
 
         _priorResolvedEvents = authoritativeEvents;
+        RememberPositions();
         _preparedTick = null;
         _preparedChronologyTick = null;
         return new GenericActorMatchStepResult(
@@ -472,7 +895,76 @@ public sealed class GenericActorMatchSession : IDisposable
             resolvedEvents,
             postState,
             IsCompleted,
-            terminalResult);
+            terminalResult)
+        {
+            MindTurns = mindTick?.MindTurns ?? [],
+            AuthoritativeTickStart = chronologyTick,
+            AuthoritativeEvents = authoritativeEvents,
+            ProjectileTraversals = projectileTransitions.ToImmutable(),
+        };
+    }
+
+    private void ApplyRoleTags(GenericMindRuntimeTickResult? mindTick)
+    {
+        foreach (GenericMindRuntimeTurn turn in mindTick?.MindTurns ?? [])
+        {
+            if (turn.RuntimeFault is not null)
+                continue;
+            foreach (GenericMindCommandResolution resolution in turn.Commands)
+            {
+                if (resolution.Outcome != GenericMindCommandOutcome.Accepted)
+                    continue;
+                var actorId = new ActorIdentity(
+                    turn.TeamId,
+                    resolution.Command.UnitId,
+                    resolution.Command.LifeId);
+                string? applied = GenericMindRoleTag.Apply(
+                    _roleTags.TryGetValue(actorId, out string? remembered)
+                        ? remembered
+                        : null,
+                    resolution.Command.RoleTag);
+                if (applied is null)
+                    _roleTags.Remove(actorId);
+                else
+                    _roleTags[actorId] = applied;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Pairs each participant's frozen mind observation with what its runtime
+    /// did with it, producing the chronology's mind-era turn
+    /// (<c>docs/DESIGN-MIND-ARCHITECTURE-2026-07-31.md</c> §5.1). Empty on the
+    /// per-life generation, where there is nothing to pair.
+    /// </summary>
+    private static ImmutableArray<GenericActorMatchMindTurn> ProjectMindTurns(
+        int executedTick,
+        GenericActorMatchPreparedTick tickStart,
+        GenericMindRuntimeTickResult? mindTick)
+    {
+        if (mindTick is null)
+            return [];
+
+        Dictionary<int, GenericMindRuntimeObservation> byParticipant =
+            tickStart.MindObservations.ToDictionary(
+                observation => observation.ParticipantId);
+        return
+        [
+            .. mindTick.MindTurns
+                .OrderBy(turn => turn.ParticipantId)
+                .Select(turn => new GenericActorMatchMindTurn(
+                    executedTick,
+                    turn.ParticipantId,
+                    turn.TeamId,
+                    turn.TickFuelBudget,
+                    turn.LiveOwnBodyCount,
+                    byParticipant[turn.ParticipantId],
+                    turn.Commands,
+                    turn.ResolvedBodies,
+                    turn.RejectedIntents,
+                    turn.RuntimeFault,
+                    turn.DebugMessage)),
+        ];
     }
 
     /// <summary>Runs until one terminal rule completes and returns its result.</summary>
@@ -480,10 +972,50 @@ public sealed class GenericActorMatchSession : IDisposable
     {
         using SessionOperation operation = EnterOperation(nameof(Run));
         ThrowIfDisposed();
+        long prepareWallTicks = 0;
+        long stepWallTicks = 0;
+        long prepareAllocatedBytes = 0;
+        long stepAllocatedBytes = 0;
         while (!IsCompleted)
         {
+            long phaseStart = _perfDiagnostics ? Stopwatch.GetTimestamp() : 0;
+            long allocationStart = _perfDiagnostics
+                ? GC.GetTotalAllocatedBytes(precise: false)
+                : 0;
             PrepareTickCore();
+            if (_perfDiagnostics)
+            {
+                prepareWallTicks += Stopwatch.GetTimestamp() - phaseStart;
+                prepareAllocatedBytes += GC.GetTotalAllocatedBytes(
+                    precise: false) - allocationStart;
+                phaseStart = Stopwatch.GetTimestamp();
+                allocationStart = GC.GetTotalAllocatedBytes(precise: false);
+            }
             StepCore(_preparedTick!.Observations);
+            if (_perfDiagnostics)
+            {
+                stepWallTicks += Stopwatch.GetTimestamp() - phaseStart;
+                stepAllocatedBytes += GC.GetTotalAllocatedBytes(
+                    precise: false) - allocationStart;
+            }
+        }
+        if (_perfDiagnostics)
+        {
+            Console.Error.WriteLine(
+                $"PERF match.prepare: wall={Stopwatch.GetElapsedTime(0, prepareWallTicks).TotalMilliseconds:F1}ms "
+                + $"allocated={prepareAllocatedBytes / 1_048_576.0:F1}MiB");
+            Console.Error.WriteLine(
+                $"PERF match.step: wall={Stopwatch.GetElapsedTime(0, stepWallTicks).TotalMilliseconds:F1}ms "
+                + $"allocated={stepAllocatedBytes / 1_048_576.0:F1}MiB");
+            Console.Error.WriteLine(
+                $"PERF match.runtime: wall={Stopwatch.GetElapsedTime(0, _runtimeWallTicks).TotalMilliseconds:F1}ms "
+                + $"allocated={_runtimeAllocatedBytes / 1_048_576.0:F1}MiB");
+            Console.Error.WriteLine(
+                $"PERF match.project-mind: wall={Stopwatch.GetElapsedTime(0, _mindProjectionWallTicks).TotalMilliseconds:F1}ms "
+                + $"allocated={_mindProjectionAllocatedBytes / 1_048_576.0:F1}MiB");
+            Console.Error.WriteLine(
+                $"PERF match.project-life: wall={Stopwatch.GetElapsedTime(0, _lifeProjectionWallTicks).TotalMilliseconds:F1}ms "
+                + $"allocated={_lifeProjectionAllocatedBytes / 1_048_576.0:F1}MiB");
         }
         return Result!;
     }
@@ -509,7 +1041,10 @@ public sealed class GenericActorMatchSession : IDisposable
         }
     }
 
-    private void ApplyInitialUnlocks()
+    private void ApplyInitialUnlocks(
+        ImmutableArray<GenericActorAuthoritativeEvent>.Builder events,
+        ImmutableArray<GenericActorLifeStart>.Builder lifeStarts,
+        ImmutableArray<GenericActorProjectileTraversal>.Builder traversals)
     {
         foreach (SlotState slot in _slots.Values
                      .OrderBy(slot => slot.TeamId)
@@ -521,6 +1056,41 @@ public sealed class GenericActorMatchSession : IDisposable
                         .InitialUnlock
                 || slot.DueTick != Tick)
             {
+                continue;
+            }
+            if (slot.Assignment.InitialAvailability
+                == ActorUnitSlotLifecycleAssignmentDefinition
+                    .InitialAvailabilityKind
+                    .DormantAutomaticActivationAtTick)
+            {
+                ActorLifecycleProfileDefinition profile =
+                    _lifecycleProfiles[slot.Assignment.LifecycleProfileId];
+                string formId = profile.AutomaticReturnFormId
+                    ?? throw new InvalidOperationException(
+                        "Automatic activation has no target form.");
+                InitialSpawnDefinition spawn = _spawns[
+                    slot.Assignment.AssignedRespawnSpawnId!];
+                Position arrival = ResolveAutomaticArrival(slot, spawn);
+                ConsumeProjectilesAt(arrival, traversals);
+                LifeState life = CreateLife(
+                    slot,
+                    formId,
+                    slot.Assignment.InitialGeneration!.Value,
+                    arrival,
+                    spawn.Facing,
+                    EffectiveMaxHealth(formId, slot.TeamId, slot.UnitId),
+                    GenericActorRuntimeStart.SpawnReason
+                        .AutomaticActivation,
+                    parentActorId: null,
+                    sourceTransitionId: null,
+                    sourceOperationId: null);
+                lifeStarts.Add(life.LifeStart);
+                ClearPendingClock(slot);
+                events.Add(EmitSpatial(
+                    Tick,
+                    GenericActorRuntimeObservation.EventKind.LifeSpawned,
+                    SpawnPayload(life),
+                    life.Position));
                 continue;
             }
             slot.Kind = SlotKind.Ready;
@@ -547,16 +1117,17 @@ public sealed class GenericActorMatchSession : IDisposable
                         "Automatic return has no target form.");
                 InitialSpawnDefinition spawn = _spawns[
                     slot.Assignment.AssignedRespawnSpawnId!];
+                Position arrival = ResolveAutomaticArrival(slot, spawn);
                 ConsumeProjectilesAt(
-                    spawn.Position,
+                    arrival,
                     traversals);
                 LifeState life = CreateLife(
                     slot,
                     formId,
                     slot.PendingGeneration!.Value,
-                    spawn.Position,
+                    arrival,
                     spawn.Facing,
-                    _forms[formId].MaxHealth,
+                    EffectiveMaxHealth(formId, slot.TeamId, slot.UnitId),
                     GenericActorRuntimeStart.SpawnReason.AutomaticReturn,
                     slot.PendingParentActorId,
                     sourceTransitionId: null,
@@ -616,7 +1187,10 @@ public sealed class GenericActorMatchSession : IDisposable
                 reservation.TargetGeneration,
                 reservation.ReservedPosition,
                 reservation.OutputFacing,
-                _forms[reservation.TargetFormId].MaxHealth,
+                EffectiveMaxHealth(
+                    reservation.TargetFormId,
+                    reservation.TargetTeamId,
+                    reservation.TargetUnitId),
                 GenericActorRuntimeStart.SpawnReason.Fabrication,
                 reservation.SourceActorId,
                 reservation.TransitionId,
@@ -811,18 +1385,44 @@ public sealed class GenericActorMatchSession : IDisposable
         switch (action.Kind)
         {
             case ActorActionKind.Wait:
-            case ActorActionKind.Movement:
             case ActorActionKind.Rotation:
+                return;
+            case ActorActionKind.Movement:
+                if (_mode is ArcRelayActorMatchModeDriver movementMode
+                    && !movementMode.CanCarrierRelocate(life.ActorId, Tick))
+                {
+                    Block(state);
+                }
                 return;
             case ActorActionKind.Attack:
                 ActorAttackProfileDefinition? attack = AttackFor(life);
                 if (attack is null
+                    || _mode is ArcRelayActorMatchModeDriver arcRelay
+                        && arcRelay.CarriesCore(life.ActorId)
                     || life.Cooldown > 0
                     || attack.MaxEnergy > 0
                     && life.Energy < attack.AttackEnergyCost)
                 {
                     Block(state);
                 }
+                return;
+            case ActorActionKind.Objective:
+                if (_mode is not ArcRelayActorMatchModeDriver objectiveMode
+                    || !ArcRelayObjectiveAvailable(
+                        objectiveMode,
+                        life,
+                        action))
+                {
+                    Block(state);
+                }
+                return;
+            case ActorActionKind.Signature:
+                if (_mode is not ArcRelayActorMatchModeDriver signatureMode
+                    || !ArcRelaySignatureAvailable(
+                        signatureMode,
+                        life,
+                        action))
+                    Block(state);
                 return;
             case ActorActionKind.Replication:
                 SplitReplicationTransitionDefinition[] matches =
@@ -837,6 +1437,7 @@ public sealed class GenericActorMatchSession : IDisposable
                         state.ValidatedAction)
                     .ToArray();
                 if (sameLifeMatches.Length != 1
+                    || RouteOnCooldown(life, sameLifeMatches[0])
                     || !_sameLife.CanQueue(
                         SameLifeSnapshot(life),
                         sameLifeMatches[0].TransitionId))
@@ -850,11 +1451,52 @@ public sealed class GenericActorMatchSession : IDisposable
                 if (fabricationMatches.Length != 1)
                     Block(state);
                 return;
+            case ActorActionKind.ModeInvestment:
+                // The mask this life was handed was computed against the bank
+                // as of tick start, and this is that same instant, so a track
+                // absent from it was never legal. Whether the purchase still
+                // fits AFTER a teammate spent first is settled later, in
+                // ResolveInvestments — that is the ordinary simultaneous
+                // reservation grammar rather than a new rule.
+                if (InvestedTrack(state.ValidatedAction) is not string track
+                    || !_mode.InvestableTracks(life.ActorId.TeamId)
+                        .Contains(track, StringComparer.Ordinal))
+                {
+                    Block(state);
+                }
+                return;
             default:
                 throw new InvalidOperationException(
                     $"Action kind '{action.Kind}' has no generic resolver.");
         }
     }
+
+    private bool RouteOnCooldown(
+        LifeState life,
+        ActorFormTransitionDefinition transition) =>
+        transition.CooldownTicks > 0
+        && _routeReadyAtTick.TryGetValue(
+            (life.ActorId.TeamId, life.ActorId.UnitId,
+                transition.TransitionId),
+            out int readyAtTick)
+        && Tick < readyAtTick;
+
+    private ImmutableArray<GenericActorRuntimeObservation
+        .ObservedRouteCooldown> LiveRouteCooldowns(int teamId, int unitId) =>
+        [
+            .. _routeReadyAtTick
+                .Where(entry =>
+                    entry.Key.TeamId == teamId
+                    && entry.Key.UnitId == unitId
+                    && Tick < entry.Value)
+                .OrderBy(
+                    entry => entry.Key.TransitionId,
+                    StringComparer.Ordinal)
+                .Select(entry =>
+                    new GenericActorRuntimeObservation.ObservedRouteCooldown(
+                        entry.Key.TransitionId,
+                        entry.Value)),
+        ];
 
     private static void Block(ActionState state)
     {
@@ -903,6 +1545,7 @@ public sealed class GenericActorMatchSession : IDisposable
         IReadOnlyDictionary<ActorIdentity, ActionState> resolutions,
         ICollection<PendingDamageContact> contacts,
         ref int contactOrdinal,
+        ICollection<PendingDeflection> deflections,
         ImmutableArray<GenericActorAuthoritativeEvent>.Builder events,
         ImmutableArray<GenericActorProjectileTraversal>.Builder traversals)
     {
@@ -910,8 +1553,17 @@ public sealed class GenericActorMatchSession : IDisposable
         var blocked = new HashSet<ActorIdentity>();
         Dictionary<Position, LifeState> occupants = _lives.Values.ToDictionary(
             life => life.Position);
-        foreach (ActionState resolution in resolutions.Values
-                     .OrderBy(value => value.ActorId))
+        // The only order-dependent effect in this loop is which mover
+        // consumes a projectile that several movers step toward. Ascending
+        // ActorId always favours team 0, so a mode may opt into alternating
+        // the direction by tick parity (foundations -03 fairness).
+        bool descendingResolution =
+            _definition.Rules.GameMode.AlternatingResolutionOrder
+            && (Tick + _resolutionPhase) % 2 == 1;
+        IEnumerable<ActionState> movementOrder = descendingResolution
+            ? resolutions.Values.OrderByDescending(value => value.ActorId)
+            : resolutions.Values.OrderBy(value => value.ActorId);
+        foreach (ActionState resolution in movementOrder)
         {
             ActorActionDefinition action =
                 _actions[resolution.ValidatedAction.ActionId];
@@ -923,18 +1575,50 @@ public sealed class GenericActorMatchSession : IDisposable
             }
 
             LifeState life = _lives[resolution.ActorId];
-            Direction direction = resolution.ValidatedAction.Arguments
-                .OfType<
-                    GenericActorRuntimeActionArgument.DirectionArgument>()
-                .Single()
-                .Value;
-            var (dx, dy) = direction.Vector();
+            // Rooted windup (DECISIONS #221): a declarer that commands a move
+            // or strafe during its own windup ABANDONS the declare. No bolt —
+            // the dead-shooter precedent — and the move itself proceeds
+            // untouched. The engine holds no policy about when abandoning is
+            // wise; it only makes the two mutually exclusive, so a strike can
+            // never be a free rider on a body that walked away from it. The
+            // COMMAND is the abandonment, not the displacement: a move that
+            // then resolves Blocked has still spent the windup, because the
+            // decision to leave was made either way.
+            _pendingStrikes.RemoveAll(
+                strike => strike.Shooter == resolution.ActorId);
+            // Same rule, same tick, for a declared line attack: rail, hook
+            // and sentinel freeze a telegraph at declare and the declarer is
+            // rooted to it (owner ruling 2026-08-08). Utility signatures are
+            // untouched.
+            if (_mode is ArcRelayActorMatchModeDriver rootedSignatures)
+            {
+                var abandoned =
+                    ImmutableArray.CreateBuilder<GenericActorModeEvent>();
+                rootedSignatures.Signatures.AbandonWindupsOnMove(
+                    Tick, resolution.ActorId, abandoned);
+                EmitModeEvents(abandoned, events);
+            }
+            ProjectileHeading heading = MovementHeading(
+                resolution.ValidatedAction);
+            var (dx, dy) = heading.Vector();
             Position target = life.Position.Offset(dx, dy);
             targets.Add(life.ActorId, target);
             if (_definition.Map.IsWall(target)
+                || _mode is ArcRelayActorMatchModeDriver arcMovement
+                    && !arcMovement.CanEnter(life.ActorId, target)
+                || _mode is ArcRelayActorMatchModeDriver constructMode
+                    && constructMode.Signatures.BlocksBody(target, Tick)
                 || IsForeignReservedReturnTile(life, target)
                 || IsReservedLifecycleTile(target)
-                || occupants.ContainsKey(target))
+                || occupants.ContainsKey(target)
+                // Defence in depth: the legality mask already offers only the
+                // facing to a FacingLocked mover, so a non-facing direction
+                // never survives argument admission. If one ever did, it must
+                // resolve as Blocked rather than as a free sidestep.
+                || (ActorMovementFacingResolver.EffectiveCoupling(
+                            MovementFor(life), action)
+                        == ActorMovementFacingCoupling.FacingLocked
+                    && heading != life.Facing.ToProjectileHeading()))
             {
                 blocked.Add(life.ActorId);
             }
@@ -963,15 +1647,32 @@ public sealed class GenericActorMatchSession : IDisposable
                         .MovementContact(
                             life.ActorId,
                             contact.Damages)));
-                if (contact.Damages)
+                if (contact.Damages
+                    && projectile.SignatureBoltHook is not null)
+                {
+                    _pendingHookPulls.Add(new PendingHookPull(
+                        projectile.SignatureBoltOperationId!,
+                        projectile.OwnerActorId,
+                        life.ActorId,
+                        projectile.SignatureBoltHook.PullOrigin,
+                        projectile.SignatureBoltHook.MaxPullTiles));
+                }
+                else if (contact.Damages)
                 {
                     contacts.Add(new PendingDamageContact(
                         life.ActorId,
                         projectile.OwnerTeamId,
                         projectile.OwnerActorId,
                         projectile.Id,
-                        projectile.Profile.Projectile.DamagePerHit,
+                        ProjectileDamage(
+                            projectile,
+                            life,
+                            events),
                         contactOrdinal++));
+                }
+                else if (contact.Deflected)
+                {
+                    Deflect(projectile, life, events, deflections);
                 }
             }
         }
@@ -1011,6 +1712,15 @@ public sealed class GenericActorMatchSession : IDisposable
             }
 
             life.Position = target;
+            ProjectileHeading heading = MovementHeading(
+                resolution.ValidatedAction);
+            ActorActionDefinition action =
+                _actions[resolution.ValidatedAction.ActionId];
+            life.Facing = ActorMovementFacingResolver.AfterSuccessfulMove(
+                life.Facing,
+                heading,
+                ActorMovementFacingResolver.EffectiveCoupling(
+                    MovementFor(life), action));
             events.Add(EmitSpatial(
                 Tick,
                 GenericActorRuntimeObservation.EventKind.Movement,
@@ -1026,6 +1736,869 @@ public sealed class GenericActorMatchSession : IDisposable
                 target));
         }
     }
+
+    private static ProjectileHeading MovementHeading(
+        GenericActorRuntimeActionResolution.ResolvedAction action) =>
+        action.Arguments
+            .OfType<GenericActorRuntimeActionArgument
+                .ProjectileHeadingArgument>()
+            .SingleOrDefault()?.Value
+        ?? action.Arguments
+            .OfType<GenericActorRuntimeActionArgument.DirectionArgument>()
+            .Single().Value.ToProjectileHeading();
+
+    private void ResolveArcRelayObjectiveActions(
+        IReadOnlyDictionary<ActorIdentity, ActionState> resolutions,
+        ImmutableArray<GenericActorAuthoritativeEvent>.Builder events)
+    {
+        if (_mode is not ArcRelayActorMatchModeDriver arcRelay)
+            return;
+        Dictionary<ActorIdentity, GenericActorWorldSnapshot.LifeSnapshot>
+            tickStartLives = _preparedChronologyTick!.State.ActiveLives
+                .ToDictionary(value => value.ActorId);
+        foreach (ActionState resolution in resolutions.Values
+                     .OrderBy(value => value.ActorId))
+        {
+            ActorActionDefinition action =
+                _actions[resolution.ValidatedAction.ActionId];
+            if (resolution.Outcome
+                    != GenericActorRuntimeActionResolution.ActionOutcome.Success
+                || action.Kind != ActorActionKind.Objective)
+            {
+                continue;
+            }
+            GenericActorModeEvent? modeEvent;
+            if (string.Equals(
+                    action.Id,
+                    ArcRelayActionIds.DropCore,
+                    StringComparison.Ordinal))
+            {
+                if (!arcRelay.TryDrop(
+                        Tick,
+                        resolution.ActorId,
+                        out modeEvent))
+                {
+                    Block(resolution);
+                    continue;
+                }
+            }
+            else if (string.Equals(
+                         action.Id,
+                         ArcRelayActionIds.HandoffCore,
+                         StringComparison.Ordinal))
+            {
+                GenericActorRuntimeActionArgument.UnitTarget target =
+                    resolution.ValidatedAction.Arguments
+                        .OfType<GenericActorRuntimeActionArgument
+                            .UnitTargetArgument>()
+                        .Single().Value;
+                LifeState? targetLife = _lives.Values.SingleOrDefault(value =>
+                    value.ActorId.TeamId == target.TeamId
+                    && value.ActorId.UnitId == target.UnitId);
+                bool receiverWaited = targetLife is not null
+                    && resolutions.TryGetValue(
+                        targetLife.ActorId,
+                        out ActionState? targetResolution)
+                    && targetResolution.Outcome
+                        == GenericActorRuntimeActionResolution.ActionOutcome
+                            .Success
+                    && _actions[targetResolution.ValidatedAction.ActionId].Kind
+                        == ActorActionKind.Wait
+                    && tickStartLives[targetLife.ActorId].Position
+                        == targetLife.Position;
+                if (!receiverWaited
+                    || !arcRelay.TryHandoff(
+                        Tick,
+                        resolution.ActorId,
+                        targetLife!.ActorId,
+                        _lives[resolution.ActorId].Position,
+                        targetLife.Position,
+                        out modeEvent))
+                {
+                    Block(resolution);
+                    continue;
+                }
+            }
+            else
+            {
+                Block(resolution);
+                continue;
+            }
+            EmitModeEvent(modeEvent!, events);
+        }
+        ApplyArcRelayZoneHealing(arcRelay, resolutions, events);
+    }
+
+    /// <summary>
+    /// Heal zones (owner direction 2026-08-05): a body that successfully
+    /// Waits on a heal-region tile channels 1 health per
+    /// <c>HealZoneTicksPerHp</c> consecutive waiting ticks, up to its
+    /// effective maximum — which the veterancy vitality track can raise, so
+    /// bought health becomes recoverable rather than spawn-only. Any other
+    /// action, or leaving the tile, resets the channel.
+    /// </summary>
+    private void ApplyArcRelayZoneHealing(
+        ArcRelayActorMatchModeDriver arcRelay,
+        IReadOnlyDictionary<ActorIdentity, ActionState> resolutions,
+        ImmutableArray<GenericActorAuthoritativeEvent>.Builder events)
+    {
+        int ticksPerHp = arcRelay.GameMode.HealZoneTicksPerHp;
+        if (ticksPerHp <= 0)
+            return;
+        _arcHealTiles ??= _definition.Map.Regions
+            .Where(region => region.RegionId.StartsWith(
+                "heal-", StringComparison.Ordinal))
+            .SelectMany(region => region.Tiles)
+            .ToImmutableHashSet();
+        foreach (LifeState life in _lives.Values
+                     .OrderBy(value => value.ActorId)
+                     .ToArray())
+        {
+            bool channeling = life.Health > 0
+                && _arcHealTiles.Contains(life.Position)
+                && resolutions.TryGetValue(
+                    life.ActorId, out ActionState? resolution)
+                && resolution.Outcome
+                    == GenericActorRuntimeActionResolution.ActionOutcome
+                        .Success
+                && _actions[resolution.ValidatedAction.ActionId].Kind
+                    == ActorActionKind.Wait;
+            if (!channeling)
+            {
+                _arcHealChannel.Remove(life.ActorId);
+                continue;
+            }
+            int progress = _arcHealChannel.GetValueOrDefault(life.ActorId) + 1;
+            if (progress >= ticksPerHp)
+            {
+                progress = 0;
+                int maximum = EffectiveMaxHealth(
+                    life.FormId,
+                    life.ActorId.TeamId,
+                    life.ActorId.UnitId);
+                if (life.Health < maximum)
+                {
+                    life.Health++;
+                    EmitModeEvent(new GenericActorModeEvent(
+                        new GenericActorRuntimeObservation.EventPayload
+                            .ArcRelay(new ArcRelayEvent.ZoneHealed(
+                                life.ActorId,
+                                1,
+                                life.Health,
+                                life.Position)),
+                        life.Position), events);
+                }
+            }
+            _arcHealChannel[life.ActorId] = progress;
+        }
+    }
+
+    /// <summary>
+    /// Matures the locked bolt-class line attacks whose windup ends this
+    /// tick (owner ruling 2026-08-09). The cancels are the declared strike's,
+    /// evaluated through the same <see cref="LockStaysTrackable"/> rule, so
+    /// there is exactly one answer to "is this lock still live" in the
+    /// engine.
+    /// </summary>
+    private void ResolveMaturedLockedLineStrikes(
+        ArcRelayActorMatchModeDriver mode,
+        ImmutableArray<GenericActorAuthoritativeEvent>.Builder events)
+    {
+        ArcRelaySignatureRuntime.TickResult matured =
+            mode.Signatures.ResolveLockedLineStrikes(
+                Tick,
+                ArcRelaySignatureLives(),
+                LockStaysTrackable);
+        if (matured.Events.IsEmpty && matured.Effects.IsEmpty)
+            return;
+        EmitModeEvents(matured.Events, events);
+        ArcSignatureApplication application = ApplyArcRelaySignatureEffects(
+            mode,
+            matured.Effects,
+            events);
+        EmitModeEvents(
+            mode.ResolveForcedMovement(
+                Tick,
+                application.RelocatedActors,
+                ModeWorldView()),
+            events);
+    }
+
+    private void ResolveArcRelaySignatureActions(
+        IReadOnlyDictionary<ActorIdentity, ActionState> resolutions,
+        ArcRelayActorMatchModeDriver mode,
+        ImmutableArray<GenericActorAuthoritativeEvent>.Builder events)
+    {
+        foreach (ActionState resolution in resolutions.Values
+                     .OrderBy(value => value.ActorId))
+        {
+            ActorActionDefinition action =
+                _actions[resolution.ValidatedAction.ActionId];
+            if (resolution.Outcome
+                    != GenericActorRuntimeActionResolution.ActionOutcome.Success
+                || action.Kind != ActorActionKind.Signature)
+            {
+                continue;
+            }
+
+            ArcRelaySignatureDefinition signature =
+                mode.Signatures.DefinitionForAction(action.Id);
+            if (signature is ArcRelaySignatureDefinition.ArcToss
+                && (!mode.CarriesCore(resolution.ActorId)
+                    || !mode.CanCarrierRelocate(resolution.ActorId, Tick)))
+            {
+                Block(resolution);
+                continue;
+            }
+            if (signature is ArcRelaySignatureDefinition.Exchange)
+            {
+                GenericActorRuntimeActionArgument.UnitTarget target =
+                    resolution.ValidatedAction.Arguments
+                        .OfType<GenericActorRuntimeActionArgument
+                            .UnitTargetArgument>()
+                        .Single().Value;
+                LifeState? targetLife = _lives.Values.SingleOrDefault(value =>
+                    value.ActorId.TeamId == target.TeamId
+                    && value.ActorId.UnitId == target.UnitId);
+                bool targetWaited = targetLife is not null
+                    && resolutions.TryGetValue(
+                        targetLife.ActorId,
+                        out ActionState? targetResolution)
+                    && targetResolution.Outcome
+                        == GenericActorRuntimeActionResolution.ActionOutcome
+                            .Success
+                    && _actions[targetResolution.ValidatedAction.ActionId].Kind
+                        == ActorActionKind.Wait;
+                if (!targetWaited)
+                {
+                    Block(resolution);
+                    continue;
+                }
+            }
+
+            LifeState owner = _lives[resolution.ActorId];
+            ArcRelaySignatureRuntime.TickResult started = mode.Signatures.Start(
+                Tick,
+                owner.ActorId,
+                owner.Position,
+                action.Id,
+                resolution.ValidatedAction.Arguments,
+                ArcRelaySignatureLives());
+            EmitModeEvents(started.Events, events);
+            ArcSignatureApplication application =
+                ApplyArcRelaySignatureEffects(mode, started.Effects, events);
+            EmitModeEvents(
+                mode.ResolveForcedMovement(
+                    Tick,
+                    application.RelocatedActors,
+                    ModeWorldView()),
+                events);
+        }
+    }
+
+    private ArcSignatureApplication ApplyArcRelaySignatureEffects(
+        ArcRelayActorMatchModeDriver mode,
+        IEnumerable<ArcRelaySignatureRuntime.Effect> effects,
+        ImmutableArray<GenericActorAuthoritativeEvent>.Builder events)
+    {
+        var relocated = ImmutableArray.CreateBuilder<ActorIdentity>();
+        // A hook bolt that connected last tick reels its catch in now, in
+        // the same forced-movement phase every other signature relocation
+        // uses.
+        ApplyPendingHookPulls(mode, relocated, events);
+        foreach (ArcRelaySignatureRuntime.Effect effect in effects)
+        {
+            switch (effect)
+            {
+                case ArcRelaySignatureRuntime.Effect.VectorDash dash:
+                    ApplyVectorDash(mode, dash, relocated, events);
+                    break;
+                case ArcRelaySignatureRuntime.Effect.TractorHook hook:
+                    ApplyTractorHook(mode, hook, relocated, events);
+                    break;
+                case ArcRelaySignatureRuntime.Effect.SentinelBolt bolt:
+                    _pendingSignatureBolts.Add(new PendingSignatureBolt(
+                        bolt.Id,
+                        bolt.Actor,
+                        bolt.Origin,
+                        bolt.Heading,
+                        "sentinel-bolt",
+                        HookPull: null));
+                    break;
+                case ArcRelaySignatureRuntime.Effect.HookBolt grapple:
+                    _pendingSignatureBolts.Add(new PendingSignatureBolt(
+                        grapple.Id,
+                        grapple.Actor,
+                        grapple.Origin,
+                        grapple.Heading,
+                        "hook-bolt",
+                        new SignatureBoltHook(
+                            grapple.Origin,
+                            grapple.MaxPullTiles)));
+                    break;
+                case ArcRelaySignatureRuntime.Effect.Repair repair:
+                    ApplySignatureRepair(mode, repair, events);
+                    break;
+                case ArcRelaySignatureRuntime.Effect.FallingStar star:
+                    foreach (LifeState target in _lives.Values
+                                 .Where(value => IsFallingStarTile(
+                                     value.Position,
+                                     star.Target))
+                                 .OrderBy(value => value.ActorId)
+                                 .ToArray())
+                    {
+                        ApplySignatureDamage(
+                            mode,
+                            star.OperationId,
+                            star.Owner,
+                            target,
+                            ((ArcRelaySignatureDefinition.FallingStar)
+                                mode.Signatures.DefinitionFor(star.Owner)).Damage,
+                            events);
+                    }
+                    break;
+                case ArcRelaySignatureRuntime.Effect.TripNode node:
+                    if (_lives.TryGetValue(
+                            node.Target,
+                            out LifeState? nodeTarget))
+                    {
+                        ApplySignatureDamage(
+                            mode,
+                            node.OperationId,
+                            node.Owner,
+                            nodeTarget,
+                            node.Damage,
+                            events);
+                    }
+                    break;
+                case ArcRelaySignatureRuntime.Effect.ArcTossLaunch launch:
+                    EmitModeEvents(
+                        mode.LaunchArcToss(
+                            Tick,
+                            launch.Owner,
+                            launch.Target,
+                            launch.CompletesAtTick),
+                        events);
+                    break;
+                case ArcRelaySignatureRuntime.Effect.ArcTossLand landing:
+                    EmitModeEvents(
+                        mode.LandArcToss(
+                            Tick,
+                            landing.Owner,
+                            landing.Target,
+                            ModeWorldView()),
+                        events);
+                    break;
+                case ArcRelaySignatureRuntime.Effect.Exchange exchange:
+                    ApplyExchange(mode, exchange, relocated, events);
+                    break;
+                case ArcRelaySignatureRuntime.Effect.RailLine rail:
+                    ApplyRailLine(mode, rail, events);
+                    break;
+                case ArcRelaySignatureRuntime.Effect.KineticBurst burst:
+                    ApplyKineticBurst(mode, burst, relocated, events);
+                    break;
+                case ArcRelaySignatureRuntime.Effect.SentinelFire sentinel:
+                    ApplySentinelFire(mode, sentinel, events);
+                    break;
+            }
+        }
+        if (relocated.Count > 0)
+        {
+            var signatureEvents =
+                ImmutableArray.CreateBuilder<GenericActorModeEvent>();
+            mode.Signatures.NotifyMoved(
+                Tick,
+                relocated.ToImmutable(),
+                signatureEvents);
+            EmitModeEvents(signatureEvents, events);
+        }
+        return new ArcSignatureApplication(relocated.ToImmutable());
+    }
+
+    private void ApplyVectorDash(
+        ArcRelayActorMatchModeDriver mode,
+        ArcRelaySignatureRuntime.Effect.VectorDash effect,
+        ImmutableArray<ActorIdentity>.Builder relocated,
+        ImmutableArray<GenericActorAuthoritativeEvent>.Builder events)
+    {
+        if (!_lives.TryGetValue(effect.Owner, out LifeState? life))
+            return;
+        if (mode.TrySignatureDepartureDrop(
+                Tick,
+                effect.Owner,
+                out GenericActorModeEvent? drop))
+        {
+            EmitModeEvent(drop!, events);
+        }
+        int range = ((ArcRelaySignatureDefinition.VectorDash)
+            mode.Signatures.DefinitionFor(effect.Owner)).MaxTiles;
+        Position destination = FurthestLegalSignatureTile(
+            life.ActorId,
+            life.Position,
+            effect.Heading,
+            range);
+        RelocateBySignature(
+            mode,
+            effect.OperationId,
+            effect.Owner,
+            life,
+            destination,
+            relocated,
+            events);
+    }
+
+    private sealed record SignatureBoltHook(
+        Position PullOrigin,
+        int MaxPullTiles);
+
+    private sealed record PendingSignatureBolt(
+        string OperationId,
+        ActorIdentity Owner,
+        Position Origin,
+        ProjectileHeading Heading,
+        string ProfileId,
+        SignatureBoltHook? HookPull);
+
+    private sealed record PendingHookPull(
+        string OperationId,
+        ActorIdentity Owner,
+        ActorIdentity Target,
+        Position PullOrigin,
+        int MaxPullTiles);
+
+    /// <summary>
+    /// Grammar-2 signature bolts ride the ordinary projectile machinery:
+    /// traced, traversal-recorded, wall- and construct-blockable, and
+    /// dodged by leaving the ray. A sentinel bolt damages through the
+    /// standard contact pipeline; a hook bolt records a pending pull that
+    /// the next signature phase reels in.
+    /// </summary>
+    private void LaunchPendingSignatureBolts(
+        ICollection<PendingDamageContact> contacts,
+        ref int contactOrdinal,
+        ICollection<PendingDeflection> deflections,
+        ImmutableArray<GenericActorAuthoritativeEvent>.Builder events,
+        ImmutableArray<GenericActorProjectileTraversal>.Builder traversals)
+    {
+        foreach (PendingSignatureBolt pending in _pendingSignatureBolts)
+        {
+            int participantId = _definition.Topology.UnitSlots
+                .First(slot => slot.TeamId == pending.Owner.TeamId
+                    && slot.UnitId == pending.Owner.UnitId)
+                .ControllerParticipantId;
+            ActorAttackProfileDefinition profile = _definition.Rules
+                .AttackProfiles.Single(candidate => string.Equals(
+                    candidate.Id, pending.ProfileId, StringComparison.Ordinal));
+            ImmutableArray<Position> path = TraceProjectilePath(
+                pending.Origin,
+                pending.Heading,
+                profile,
+                program: null,
+                extraTravelTiles: 0);
+            long projectileId = _nextProjectileId;
+            _nextProjectileId = checked(_nextProjectileId + 1);
+            var projectile = new ProjectileState(
+                projectileId,
+                participantId,
+                pending.Owner.TeamId,
+                pending.Owner,
+                Tick,
+                pending.Origin,
+                pending.Heading,
+                shotProgram: null,
+                profile,
+                path)
+            {
+                SignatureBoltOperationId = pending.OperationId,
+                SignatureBoltHook = pending.HookPull,
+            };
+            TraverseProjectile(
+                projectile,
+                profile.Projectile.LaunchTiles,
+                contacts,
+                ref contactOrdinal,
+                deflections,
+                events,
+                traversals,
+                GenericActorProjectileTraversal.TraversalTrigger
+                    .AttackLaunch);
+            if (!projectile.Consumed && projectile.RemainingTiles > 0)
+                _projectiles.Add(projectile);
+        }
+        _pendingSignatureBolts.Clear();
+    }
+
+    private void ApplyPendingHookPulls(
+        ArcRelayActorMatchModeDriver mode,
+        ImmutableArray<ActorIdentity>.Builder relocated,
+        ImmutableArray<GenericActorAuthoritativeEvent>.Builder events)
+    {
+        IEnumerable<PendingHookPull> pullOrder =
+            _definition.Rules.GameMode.AlternatingResolutionOrder
+            && (Tick + _resolutionPhase) % 2 == 1
+                ? Enumerable.Reverse(_pendingHookPulls)
+                : _pendingHookPulls;
+        foreach (PendingHookPull pull in pullOrder)
+        {
+            if (!_lives.TryGetValue(pull.Target, out LifeState? target))
+                continue;
+            Position destination = target.Position;
+            for (int step = 0; step < pull.MaxPullTiles; step++)
+            {
+                int dx = Math.Sign(pull.PullOrigin.X - destination.X);
+                int dy = Math.Sign(pull.PullOrigin.Y - destination.Y);
+                if (dx == 0 && dy == 0)
+                    break;
+                Position next = destination.Offset(dx, dy);
+                if (next == pull.PullOrigin
+                    || _definition.Map.IsWall(next)
+                    || _lives.Values.Any(value =>
+                        value.ActorId != target.ActorId
+                        && value.Position == next))
+                {
+                    break;
+                }
+                destination = next;
+            }
+            if (destination != target.Position)
+            {
+                RelocateBySignature(
+                    mode,
+                    pull.OperationId,
+                    pull.Owner,
+                    target,
+                    destination,
+                    relocated,
+                    events);
+            }
+        }
+        _pendingHookPulls.Clear();
+    }
+
+    private void ApplyTractorHook(
+        ArcRelayActorMatchModeDriver mode,
+        ArcRelaySignatureRuntime.Effect.TractorHook effect,
+        ImmutableArray<ActorIdentity>.Builder relocated,
+        ImmutableArray<GenericActorAuthoritativeEvent>.Builder events)
+    {
+        if (!_lives.TryGetValue(effect.Owner, out LifeState? owner))
+            return;
+        ArcRelaySignatureDefinition.TractorHook rule =
+            (ArcRelaySignatureDefinition.TractorHook)
+                mode.Signatures.DefinitionFor(effect.Owner);
+        var (dx, dy) = effect.Heading.Vector();
+        LifeState? target = null;
+        for (int step = 1; step <= rule.Range; step++)
+        {
+            Position tile = owner.Position.Offset(dx * step, dy * step);
+            if (_definition.Map.IsWall(tile))
+                break;
+            target = _lives.Values.SingleOrDefault(value =>
+                value.Position == tile);
+            if (target is not null)
+                break;
+        }
+        if (target is null)
+            return;
+        Position destination = target.Position;
+        for (int step = 0; step < rule.MaxPullTiles; step++)
+        {
+            Position next = destination.Offset(-dx, -dy);
+            if (next == owner.Position
+                || _definition.Map.IsWall(next)
+                || _lives.Values.Any(value =>
+                    value.ActorId != target.ActorId
+                    && value.Position == next))
+            {
+                break;
+            }
+            destination = next;
+        }
+        RelocateBySignature(mode, effect.OperationId, effect.Owner, target,
+            destination, relocated, events);
+    }
+
+    private void ApplyExchange(
+        ArcRelayActorMatchModeDriver mode,
+        ArcRelaySignatureRuntime.Effect.Exchange effect,
+        ImmutableArray<ActorIdentity>.Builder relocated,
+        ImmutableArray<GenericActorAuthoritativeEvent>.Builder events)
+    {
+        if (!_lives.TryGetValue(effect.Owner, out LifeState? owner)
+            || !_lives.TryGetValue(effect.Target, out LifeState? target)
+            || owner.Position != effect.SourceStart
+            || target.Position != effect.TargetStart
+            || !mode.CanEnter(owner.ActorId, effect.TargetStart)
+            || !mode.CanEnter(target.ActorId, effect.SourceStart)
+            || IsForeignReservedReturnTile(owner, effect.TargetStart)
+            || IsForeignReservedReturnTile(target, effect.SourceStart))
+        {
+            return;
+        }
+        if (mode.TrySignatureDepartureDrop(
+                Tick,
+                target.ActorId,
+                out GenericActorModeEvent? drop))
+        {
+            EmitModeEvent(drop!, events);
+        }
+        Position ownerFrom = owner.Position;
+        Position targetFrom = target.Position;
+        owner.Position = targetFrom;
+        target.Position = ownerFrom;
+        relocated.Add(owner.ActorId);
+        relocated.Add(target.ActorId);
+        EmitSignatureRelocation(mode, effect.OperationId, effect.Owner,
+            owner.ActorId, ownerFrom, owner.Position, events);
+        EmitSignatureRelocation(mode, effect.OperationId, effect.Owner,
+            target.ActorId, targetFrom, target.Position, events);
+    }
+
+    private void ApplyKineticBurst(
+        ArcRelayActorMatchModeDriver mode,
+        ArcRelaySignatureRuntime.Effect.KineticBurst effect,
+        ImmutableArray<ActorIdentity>.Builder relocated,
+        ImmutableArray<GenericActorAuthoritativeEvent>.Builder events)
+    {
+        LifeState[] adjacent = _lives.Values.Where(value =>
+                value.ActorId != effect.Owner
+                && value.Position.ChebyshevDistance(effect.Origin) == 1)
+            .OrderBy(value => value.ActorId).ToArray();
+        Dictionary<ActorIdentity, Position> requested = adjacent.ToDictionary(
+            value => value.ActorId,
+            value => value.Position.Offset(
+                Math.Sign(value.Position.X - effect.Origin.X),
+                Math.Sign(value.Position.Y - effect.Origin.Y)));
+        HashSet<Position> duplicateTargets = requested.Values
+            .GroupBy(value => value)
+            .Where(value => value.Count() > 1)
+            .Select(value => value.Key).ToHashSet();
+        foreach (LifeState target in adjacent)
+        {
+            Position destination = requested[target.ActorId];
+            if (duplicateTargets.Contains(destination)
+                || _definition.Map.IsWall(destination)
+                || _lives.Values.Any(value =>
+                    value.ActorId != target.ActorId
+                    && value.Position == destination))
+            {
+                continue;
+            }
+            RelocateBySignature(mode, effect.OperationId, effect.Owner, target,
+                destination, relocated, events);
+        }
+    }
+
+    /// <summary>
+    /// The rail beam PIERCES: it walks its line tile by tile and every body
+    /// standing on one takes the damage, so interposing a body SHARES the
+    /// beam rather than stopping it. A locked rail carries the frozen line it
+    /// fires down (the line to its lock, owner ruling 2026-08-09); an
+    /// unlocked one walks its declared heading from wherever its owner
+    /// stands, exactly as it always has.
+    /// </summary>
+    private void ApplyRailLine(
+        ArcRelayActorMatchModeDriver mode,
+        ArcRelaySignatureRuntime.Effect.RailLine effect,
+        ImmutableArray<GenericActorAuthoritativeEvent>.Builder events)
+    {
+        if (!_lives.TryGetValue(effect.Owner, out LifeState? owner))
+            return;
+        ArcRelaySignatureDefinition.RailLine rule =
+            (ArcRelaySignatureDefinition.RailLine)
+                mode.Signatures.DefinitionFor(effect.Owner);
+        ImmutableArray<Position> path = effect.Path;
+        if (path.IsDefaultOrEmpty)
+        {
+            var traced = ImmutableArray.CreateBuilder<Position>();
+            var (dx, dy) = effect.Heading.Vector();
+            for (int step = 1; step <= rule.Range; step++)
+            {
+                Position tile = owner.Position.Offset(dx * step, dy * step);
+                if (_definition.Map.IsWall(tile))
+                    break;
+                traced.Add(tile);
+            }
+            path = traced.ToImmutable();
+        }
+        foreach (Position tile in path)
+        {
+            // Own-team bodies are TRANSPARENT to the rail (owner consistency
+            // ruling 2026-08-10). Every other delivery on this ruleset already
+            // spares its own side - projectiles carry
+            // AlliedProjectileContactKind.PassThrough and every other
+            // signature either names one actor or filters by team, as
+            // ApplySentinelFire does twenty lines down - and the rail was the
+            // single exception, by omission rather than by design. Pierce
+            // semantics against ENEMIES are untouched: the line still does not
+            // stop at the first body it meets.
+            foreach (LifeState target in _lives.Values
+                         .Where(value => value.Position == tile
+                             && value.ActorId.TeamId != effect.Owner.TeamId)
+                         .OrderBy(value => value.ActorId)
+                         .ToArray())
+            {
+                ApplySignatureDamage(mode, effect.OperationId, effect.Owner,
+                    target, rule.Damage, events);
+            }
+        }
+    }
+
+    private void ApplySentinelFire(
+        ArcRelayActorMatchModeDriver mode,
+        ArcRelaySignatureRuntime.Effect.SentinelFire effect,
+        ImmutableArray<GenericActorAuthoritativeEvent>.Builder events)
+    {
+        ArcRelaySignatureDefinition.SentinelSeed rule =
+            (ArcRelaySignatureDefinition.SentinelSeed)
+                mode.Signatures.DefinitionFor(effect.Owner);
+        if (_lives.TryGetValue(effect.Target, out LifeState? target)
+            && target.ActorId.TeamId != effect.Owner.TeamId
+            && target.Position.ChebyshevDistance(effect.Origin) <= rule.Range)
+        {
+            ApplySignatureDamage(mode, effect.OperationId, effect.Owner,
+                target, rule.Damage, events);
+        }
+    }
+
+    private void ApplySignatureRepair(
+        ArcRelayActorMatchModeDriver mode,
+        ArcRelaySignatureRuntime.Effect.Repair effect,
+        ImmutableArray<GenericActorAuthoritativeEvent>.Builder events)
+    {
+        if (!_lives.TryGetValue(effect.Target, out LifeState? target))
+            return;
+        int maximum = EffectiveMaxHealth(
+            target.FormId,
+            target.ActorId.TeamId,
+            target.ActorId.UnitId);
+        int amount = Math.Min(effect.Amount, maximum - target.Health);
+        if (amount <= 0)
+            return;
+        target.Health += amount;
+        ArcRelaySignatureDefinition signature =
+            mode.Signatures.DefinitionFor(effect.Owner);
+        EmitModeEvent(new GenericActorModeEvent(
+            new GenericActorRuntimeObservation.EventPayload.ArcRelay(
+                new ArcRelayEvent.SignatureRepair(
+                    effect.OperationId,
+                    signature.SignatureId,
+                    effect.Owner,
+                    target.ActorId,
+                    amount,
+                    target.Health,
+                    target.Position)),
+            target.Position), events);
+    }
+
+    private void ApplySignatureDamage(
+        ArcRelayActorMatchModeDriver mode,
+        string operationId,
+        ActorIdentity owner,
+        LifeState target,
+        int amount,
+        ImmutableArray<GenericActorAuthoritativeEvent>.Builder events)
+    {
+        if (target.Health <= 0)
+            return;
+        target.Health = Math.Max(0, target.Health - amount);
+        _arcSignatureDamagedThisTick.Add(target.ActorId);
+        ArcRelaySignatureDefinition signature =
+            mode.Signatures.DefinitionFor(owner);
+        EmitModeEvent(new GenericActorModeEvent(
+            new GenericActorRuntimeObservation.EventPayload.ArcRelay(
+                new ArcRelayEvent.SignatureDamage(
+                    operationId,
+                    signature.SignatureId,
+                    owner,
+                    target.ActorId,
+                    amount,
+                    target.Health,
+                    target.Position)),
+            target.Position), events);
+    }
+
+    private void RelocateBySignature(
+        ArcRelayActorMatchModeDriver mode,
+        string operationId,
+        ActorIdentity owner,
+        LifeState target,
+        Position destination,
+        ImmutableArray<ActorIdentity>.Builder relocated,
+        ImmutableArray<GenericActorAuthoritativeEvent>.Builder events)
+    {
+        if (destination == target.Position
+            || !mode.CanCarrierRelocate(target.ActorId, Tick)
+            || _definition.Map.IsWall(destination)
+            || !mode.CanEnter(target.ActorId, destination)
+            || IsForeignReservedReturnTile(target, destination)
+            || _lives.Values.Any(value =>
+                value.ActorId != target.ActorId
+                && value.Position == destination))
+            return;
+        Position from = target.Position;
+        target.Position = destination;
+        relocated.Add(target.ActorId);
+        EmitSignatureRelocation(mode, operationId, owner, target.ActorId,
+            from, destination, events);
+    }
+
+    private void EmitSignatureRelocation(
+        ArcRelayActorMatchModeDriver mode,
+        string operationId,
+        ActorIdentity owner,
+        ActorIdentity target,
+        Position from,
+        Position to,
+        ImmutableArray<GenericActorAuthoritativeEvent>.Builder events)
+    {
+        ArcRelaySignatureDefinition signature =
+            mode.Signatures.DefinitionFor(owner);
+        EmitModeEvent(new GenericActorModeEvent(
+            new GenericActorRuntimeObservation.EventPayload.ArcRelay(
+                new ArcRelayEvent.BodyRelocated(
+                    operationId,
+                    signature.SignatureId,
+                    owner,
+                    target,
+                    from,
+                    to)),
+            to), events);
+    }
+
+    private Position FurthestLegalSignatureTile(
+        ActorIdentity actorId,
+        Position source,
+        ProjectileHeading heading,
+        int range)
+    {
+        var (dx, dy) = heading.Vector();
+        Position current = source;
+        for (int step = 0; step < range; step++)
+        {
+            Position next = current.Offset(dx, dy);
+            if (_definition.Map.IsWall(next)
+                || _mode is ArcRelayActorMatchModeDriver arcRelay
+                    && !arcRelay.CanEnter(actorId, next)
+                || IsForeignReservedReturnTile(_lives[actorId], next)
+                || _lives.Values.Any(value =>
+                    value.ActorId != actorId && value.Position == next))
+            {
+                break;
+            }
+            current = next;
+        }
+        return current;
+    }
+
+    private static bool IsFallingStarTile(Position value, Position centre) =>
+        value == centre
+        || Math.Abs(value.X - centre.X)
+            + Math.Abs(value.Y - centre.Y) == 1;
+
+    private sealed record ArcSignatureApplication(
+        ImmutableArray<ActorIdentity> RelocatedActors);
 
     private void ReserveLifecycleCreations(
         IReadOnlyDictionary<ActorIdentity, ActionState> resolutions,
@@ -1271,6 +2844,8 @@ public sealed class GenericActorMatchSession : IDisposable
             }
 
             life.PendingSameLifeTransition = reservation;
+            life.PendingSameLifeTransitionReason =
+                GenericActorRuntimeObservation.FormTransitionReason.Requested;
             events.Add(EmitSpatial(
                 Tick,
                 GenericActorRuntimeObservation.EventKind
@@ -1279,6 +2854,100 @@ public sealed class GenericActorMatchSession : IDisposable
                 life.Position));
         }
     }
+
+    /// <summary>
+    /// The engine's own same-life cause: a form whose declared automatic
+    /// return has reached its threshold begins that return with no action
+    /// (<see cref="ActorAutomaticReturnTriggerDefinition"/>). It runs after
+    /// every attack, advance, and guard return of this tick — so the counters
+    /// are final — and before damage is applied, so a lethal hit cancels the
+    /// windup through the ordinary destruction path exactly as it cancels a
+    /// requested one. A life already leaving is left alone: an early exit
+    /// below the threshold is the author's to make, and the return it is
+    /// already serving cannot be started twice.
+    /// </summary>
+    private void StartAutomaticReturns(
+        ImmutableArray<GenericActorAuthoritativeEvent>.Builder events)
+    {
+        foreach (LifeState life in _lives.Values
+                     .Where(life =>
+                         life.Health > 0
+                         && life.PendingSameLifeTransition is null)
+                     .OrderBy(life => life.ActorId)
+                     .ToArray())
+        {
+            if (AutomaticReturnRoute(life.FormId) is not
+                    { AutomaticReturn: { } trigger } route
+                || AutomaticReturnCount(life, trigger) < trigger.Threshold)
+            {
+                continue;
+            }
+
+            var request = new ActorSameLifeTransitionRequest(
+                life.ActorId,
+                route.TransitionId,
+                $"automatic-return:{Tick}:{life.ActorId.TeamId}:" +
+                $"{life.ActorId.UnitId}:{life.ActorId.LifeId}:" +
+                $"{route.TransitionId}");
+            ActorSameLifeTransitionQueueOutcome outcome = _sameLife.Queue(
+                Tick,
+                request,
+                SameLifeSnapshot(life));
+            if (outcome.Reservation is not
+                ActorSameLifeTransitionReservation reservation)
+            {
+                // A blocked queue (an illegal completion tile, say) does not
+                // discharge the threshold: the counter still stands, so the
+                // return is retried every tick until it takes. The budget is
+                // a rule, and a rule cannot be waited out.
+                continue;
+            }
+
+            life.PendingSameLifeTransition = reservation;
+            life.PendingSameLifeTransitionReason =
+                GenericActorRuntimeObservation.FormTransitionReason
+                    .AutomaticThresholdReturn;
+            events.Add(EmitSpatial(
+                Tick,
+                GenericActorRuntimeObservation.EventKind
+                    .FormTransitionStarted,
+                FormTransitionPayload(
+                    reservation,
+                    GenericActorRuntimeObservation.FormTransitionReason
+                        .AutomaticThresholdReturn),
+                life.Position));
+        }
+    }
+
+    /// <summary>
+    /// The one automatic-return route declared out of a form, or null. The
+    /// rules validator has already refused a second one, so this is exact.
+    /// </summary>
+    private ActorFormTransitionDefinition? AutomaticReturnRoute(
+        string formId) =>
+        _definition.Rules.SameLifeTransitions
+            .OfType<ActorFormTransitionDefinition>()
+            .SingleOrDefault(transition =>
+                transition.AutomaticReturn is not null
+                && string.Equals(
+                    transition.SourceFormId,
+                    formId,
+                    StringComparison.Ordinal));
+
+    private static int AutomaticReturnCount(
+        LifeState life,
+        ActorAutomaticReturnTriggerDefinition trigger) =>
+        trigger.Counter switch
+        {
+            ActorAutomaticReturnTriggerDefinition.AutomaticReturnCounterKind
+                .AttacksIssuedSinceEnteringSourceForm =>
+                life.AttacksIssuedInForm,
+            ActorAutomaticReturnTriggerDefinition.AutomaticReturnCounterKind
+                .ProjectilesDeflectedSinceEnteringSourceForm =>
+                life.ProjectilesDeflectedInForm,
+            _ => throw new NotSupportedException(
+                "The automatic return counts an unsupported fact."),
+        };
 
     private void CompleteDueSameLifeTransitions(
         ActorTransitionWindupDefinition.ActorTransitionCompletionKind
@@ -1314,24 +2983,40 @@ public sealed class GenericActorMatchSession : IDisposable
                 completion.State
                 ?? throw new InvalidOperationException(
                     "A completed same-life transition has no state.");
-            life.FormId = state.FormId;
+            // EnterForm, not an assignment: arriving in a form restarts its
+            // automatic-return counters, so a second stance entry within one
+            // life starts its budget over instead of returning on entry.
+            life.EnterForm(state.FormId);
             life.Position = state.Position;
             life.Facing = state.Facing;
             life.Health = state.Health;
             life.Cooldown = state.Cooldown;
             life.Energy = state.Energy;
+            GenericActorRuntimeObservation.FormTransitionReason reason =
+                life.PendingSameLifeTransitionReason;
             life.PendingSameLifeTransition = null;
+            life.PendingSameLifeTransitionReason =
+                GenericActorRuntimeObservation.FormTransitionReason.Requested;
             life.HasPriorSameLifeTransition = true;
-            if (SameLifeTransition(reservation).IrreversibleForLife)
+            ActorSameLifeTransitionDefinition completedRoute =
+                SameLifeTransition(reservation);
+            if (completedRoute.IrreversibleForLife)
             {
                 life.IrreversibleReturnFormIds.Add(
                     reservation.SourceFormId);
+            }
+            if (completedRoute.CooldownTicks > 0)
+            {
+                _routeReadyAtTick[
+                    (life.ActorId.TeamId, life.ActorId.UnitId,
+                        completedRoute.TransitionId)] =
+                    checked(Tick + completedRoute.CooldownTicks + 1);
             }
             events.Add(EmitSpatial(
                 Tick,
                 GenericActorRuntimeObservation.EventKind
                     .FormTransitionCompleted,
-                FormTransitionPayload(reservation),
+                FormTransitionPayload(reservation, reason),
                 life.Position));
         }
     }
@@ -1339,10 +3024,21 @@ public sealed class GenericActorMatchSession : IDisposable
     private void AdvanceExistingProjectiles(
         ICollection<PendingDamageContact> contacts,
         ref int contactOrdinal,
+        ICollection<PendingDeflection> deflections,
+        ImmutableArray<GenericActorAuthoritativeEvent>.Builder events,
         ImmutableArray<GenericActorProjectileTraversal>.Builder traversals)
     {
-        foreach (ProjectileState projectile in _projectiles
-                     .OrderBy(projectile => projectile.Id)
+        // Launch order is attack-resolution order, which is ActorId order —
+        // always team 0 first. The order decides which bolt spends itself on
+        // a limited-capacity construct and which same-target hook pull gets
+        // the final word, so -03 fairness alternates it by tick parity.
+        bool descendingAdvance =
+            _definition.Rules.GameMode.AlternatingResolutionOrder
+            && (Tick + _resolutionPhase) % 2 == 1;
+        foreach (ProjectileState projectile in (descendingAdvance
+                     ? _projectiles.OrderByDescending(
+                         projectile => projectile.Id)
+                     : _projectiles.OrderBy(projectile => projectile.Id))
                      .ToArray())
         {
             projectile.TicksUntilAdvance--;
@@ -1355,9 +3051,274 @@ public sealed class GenericActorMatchSession : IDisposable
                 projectile.Profile.Projectile.TilesPerAdvance,
                 contacts,
                 ref contactOrdinal,
+                deflections,
+                events,
                 traversals,
                 GenericActorProjectileTraversal.TraversalTrigger
                     .ScheduledAdvance);
+        }
+    }
+
+    /// <summary>
+    /// One declared strike, frozen at declaration (DECISIONS #212). The
+    /// origin and per-bolt paths are the announced state; maturation fires
+    /// them as ordinary instant rays through the standard launch machinery,
+    /// so events, traversals, deflections, and damage all behave exactly
+    /// like a same-tick shot. A strike whose exact declaring LIFE is gone
+    /// at maturation is cancelled: the windup was that fighter's own effort.
+    /// The windup is also ROOTED (DECISIONS #221): the declarer commanding a
+    /// move or strafe abandons it on the spot, so a pending strike always
+    /// fires from the tile its declarer is still standing on.
+    /// </summary>
+    private sealed record PendingStrike(
+        ActorIdentity Shooter,
+        ActorAttackProfileDefinition Profile,
+        Position Origin,
+        ImmutableArray<DeclaredStrikeBolt> Bolts,
+        ProjectileHeading CentralHeading,
+        ImmutableArray<Position> ConeTiles,
+        ActorIdentity? DeclaredTarget,
+        GenericActorRuntimeActionResolution.ResolvedAction DeclaredAction,
+        int DeclaredTravel,
+        int ResolveAtTick)
+    {
+        /// <summary>
+        /// The frozen public telegraph. A synthesized cone lights its whole
+        /// wedge; an authored volley lights the union of its frozen ray
+        /// paths (Bolts and ConeTiles are mutually exclusive shapes).
+        /// </summary>
+        public ImmutableArray<Position> TelegraphTiles =>
+            ConeTiles.IsDefaultOrEmpty
+                ? [.. Bolts.SelectMany(bolt => bolt.Path)]
+                : ConeTiles;
+    }
+
+    private sealed record DeclaredStrikeBolt(
+        ProjectileHeading Heading,
+        ImmutableArray<Position> Path);
+
+    private DeclaredStrikeBolt StrikeLineBolt(
+        PendingStrike strike,
+        Position target)
+    {
+        ImmutableArray<Position> line = GenericActorStrikeCone.LineTo(
+            _definition.Map,
+            strike.Origin,
+            target,
+            strike.Profile.Projectile.DiagonalCornersMustBeClear);
+        return new DeclaredStrikeBolt(
+            line.IsEmpty
+                ? strike.CentralHeading
+                : ProjectileHeadingExtensions.Between(
+                    strike.Origin, line[0]),
+            line);
+    }
+
+    /// <summary>
+    /// The body a cone strike locks when it lights: the target the MIND
+    /// declared, and nothing else (owner correction 2026-08-08 to
+    /// DECISIONS #222 — "the lock is the target picked by the MIND and
+    /// nothing else"). The shooter names a unit in the attack's UnitTarget
+    /// argument; that unit's live body locks when it stands inside the frozen
+    /// wedge at declare. There is no substitution of any kind: not the
+    /// nearest body, not the first enemy on the ray, not an interposed one.
+    /// A declare that names nobody — or names a unit that is dead, absent,
+    /// friendly, or outside the wedge — locks NOTHING and keeps the
+    /// theatrical whiff down the central heading.
+    /// <para>
+    /// Interposition is a DELIVERY rule and is untouched: the bolt is an
+    /// ordinary first-body-contact ray along the firing line, so whoever
+    /// stands on that line when it flies is who it meets — including a
+    /// bodyguard who never was the lock.
+    /// </para>
+    /// </summary>
+    private LifeState? SelectStrikeAnchor(
+        GenericActorRuntimeActionResolution.ResolvedAction declaredAction,
+        ImmutableArray<Position> coneTiles,
+        ActorIdentity shooter)
+    {
+        if (coneTiles.IsDefaultOrEmpty)
+            return null;
+        GenericActorRuntimeActionArgument.UnitTarget? named = declaredAction
+            .Arguments
+            .OfType<GenericActorRuntimeActionArgument.UnitTargetArgument>()
+            .Select(argument => (GenericActorRuntimeActionArgument.UnitTarget?)
+                argument.Value)
+            .SingleOrDefault();
+        if (named is not { } target || target.TeamId == shooter.TeamId)
+            return null;
+        LifeState? body = _lives.Values.FirstOrDefault(life =>
+            life.ActorId.TeamId == target.TeamId
+            && life.ActorId.UnitId == target.UnitId);
+        if (body is null || !coneTiles.Contains(body.Position))
+            return null;
+        return body;
+    }
+
+    private void LaunchMaturedStrikes(
+        ICollection<PendingDamageContact> contacts,
+        ref int contactOrdinal,
+        ICollection<PendingDeflection> deflections,
+        ImmutableArray<GenericActorAuthoritativeEvent>.Builder events,
+        ImmutableArray<GenericActorProjectileTraversal>.Builder traversals)
+    {
+        if (_pendingStrikes.Count == 0)
+            return;
+        PendingStrike[] matured = [.. _pendingStrikes
+            .Where(strike => strike.ResolveAtTick <= Tick)
+            .OrderBy(strike => strike.Shooter)];
+        _pendingStrikes.RemoveAll(strike => strike.ResolveAtTick <= Tick);
+        foreach (PendingStrike strike in matured)
+        {
+            if (!_lives.TryGetValue(strike.Shooter, out LifeState? shooter))
+                continue;
+            // A cone strike resolves against the frozen wedge: single-target
+            // picks the nearest body anywhere in it — Chebyshev first (the
+            // movement metric), most-central on ties, then canonical tile
+            // order — and the delivery is the same strike line that made the
+            // tile lit, so interposition still works tile by tile. No body
+            // in the wedge fires the theatrical whiff down the central
+            // heading. The sweep variant hits every body in the wedge (a
+            // reserved class trait). Authored volleys keep their historical
+            // per-ray resolution below.
+            ImmutableArray<DeclaredStrikeBolt> bolts;
+            if (!strike.ConeTiles.IsDefaultOrEmpty)
+            {
+                // Lock-and-follow (owner ruling 2026-08): the strike resolves
+                // ONLY against the body it locked at declare. It follows that
+                // body anywhere inside the frozen wedge; it cancels - no
+                // bolt, like a dead shooter - when the lock is dead, has
+                // crossed the wedge boundary, when the shooter's TEAM has
+                // lost sight of it, or when a wall stands on the
+                // shooter-to-target ray. All four are LOCK-side: the shooter
+                // cannot drift out of its own shot, because commanding a move
+                // abandons the declare outright (#221).
+                // Tracking is SPOTTER doctrine (owner ruling 2026-08-09):
+                // the shooter's own facing cone no longer gates it, because
+                // a teammate watching the target is eyes enough. What the
+                // shooter still owes is physical line of sight - a clear ray
+                // from the frozen origin, walls and corners counted, facing
+                // ignored. Bodyguarding is stepping onto the firing
+                // line, never proximity: the delivery is still an ordinary
+                // first-body-contact ray. A strike declared over an empty
+                // wedge keeps its theatrical whiff down the centre. The sweep
+                // variant still hits every body in the wedge (reserved).
+                if (strike.Profile.Projectile.StrikeSweep)
+                {
+                    var cone = strike.ConeTiles.ToHashSet();
+                    LifeState[] victims = [.. _lives.Values
+                        .Where(life => life.ActorId != strike.Shooter
+                            && cone.Contains(life.Position))
+                        .OrderBy(life => life.ActorId)];
+                    bolts = [.. victims.Select(victim =>
+                        StrikeLineBolt(strike, victim.Position))];
+                    if (bolts.IsEmpty)
+                        continue;
+                }
+                else if (strike.DeclaredTarget is not ActorIdentity locked)
+                {
+                    bolts =
+                    [
+                        new DeclaredStrikeBolt(
+                            strike.CentralHeading,
+                            TraceProjectilePath(
+                                strike.Origin,
+                                strike.CentralHeading,
+                                strike.Profile,
+                                null,
+                                strike.DeclaredTravel)),
+                    ];
+                }
+                else
+                {
+                    if (!_lives.TryGetValue(locked, out LifeState? target)
+                        || !strike.ConeTiles.Contains(target.Position)
+                        || !LockStaysTrackable(
+                            strike.Shooter.TeamId,
+                            strike.Origin,
+                            target.Position))
+                    {
+                        continue;
+                    }
+                    bolts = [StrikeLineBolt(strike, target.Position)];
+                }
+            }
+            else
+            {
+                bolts = strike.Bolts;
+                if (!strike.Profile.Projectile.StrikeSweep
+                    && bolts.Length > 1)
+                {
+                    HashSet<Position> occupied = _lives.Values
+                        .Where(life => life.ActorId != strike.Shooter)
+                        .Select(life => life.Position)
+                        .ToHashSet();
+                    int centre = bolts.Length / 2;
+                    int bestIndex = centre;
+                    (int Contact, int CentreBias) best = (int.MaxValue, 0);
+                    for (int index = 0; index < bolts.Length; index++)
+                    {
+                        ImmutableArray<Position> path = bolts[index].Path;
+                        for (int tile = 0; tile < path.Length; tile++)
+                        {
+                            if (!occupied.Contains(path[tile]))
+                                continue;
+                            (int Contact, int CentreBias) candidate =
+                                (tile, Math.Abs(index - centre));
+                            if (candidate.Contact < best.Contact
+                                || candidate.Contact == best.Contact
+                                && candidate.CentreBias < best.CentreBias)
+                            {
+                                best = candidate;
+                                bestIndex = index;
+                            }
+                            break;
+                        }
+                    }
+                    bolts = [bolts[bestIndex]];
+                }
+            }
+            long firstProjectileId = _nextProjectileId;
+            _nextProjectileId = checked(
+                _nextProjectileId + bolts.Length);
+            for (int bolt = 0; bolt < bolts.Length; bolt++)
+            {
+                DeclaredStrikeBolt declared = bolts[bolt];
+                long projectileId = firstProjectileId + bolt;
+                var projectile = new ProjectileState(
+                    projectileId,
+                    shooter.ParticipantId,
+                    strike.Shooter.TeamId,
+                    strike.Shooter,
+                    Tick,
+                    strike.Origin,
+                    declared.Heading,
+                    null,
+                    strike.Profile,
+                    declared.Path,
+                    strike.DeclaredTravel);
+                events.Add(EmitSpatial(
+                    Tick,
+                    GenericActorRuntimeObservation.EventKind.Attack,
+                    new GenericActorRuntimeObservation.EventPayload.Attack(
+                        strike.Shooter,
+                        strike.DeclaredAction,
+                        projectileId,
+                        strike.Origin,
+                        declared.Heading),
+                    strike.Origin));
+                TraverseProjectile(
+                    projectile,
+                    checked(strike.Profile.Projectile.MaxTravelTiles
+                        + strike.DeclaredTravel),
+                    contacts,
+                    ref contactOrdinal,
+                    deflections,
+                    events,
+                    traversals,
+                    GenericActorProjectileTraversal.TraversalTrigger
+                        .AttackLaunch);
+            }
         }
     }
 
@@ -1365,6 +3326,7 @@ public sealed class GenericActorMatchSession : IDisposable
         IReadOnlyDictionary<ActorIdentity, ActionState> resolutions,
         ICollection<PendingDamageContact> contacts,
         ref int contactOrdinal,
+        ICollection<PendingDeflection> deflections,
         ImmutableArray<GenericActorAuthoritativeEvent>.Builder events,
         ImmutableArray<GenericActorProjectileTraversal>.Builder traversals)
     {
@@ -1383,61 +3345,196 @@ public sealed class GenericActorMatchSession : IDisposable
             ActorAttackProfileDefinition profile = AttackFor(shooter)
                 ?? throw new InvalidOperationException(
                     "A successful attack has no form attack profile.");
-            ProjectileHeading heading = ResolveLaunchHeading(
+            ProjectileHeading resolvedHeading = ResolveLaunchHeading(
                 shooter,
                 profile,
                 resolution.ValidatedAction);
             ShotProgram? program = ResolveShotProgram(
                 profile,
                 resolution.ValidatedAction);
-            ImmutableArray<Position> path = TraceProjectilePath(
-                shooter.Position,
-                heading,
-                profile,
-                program);
-            long projectileId = checked(_nextProjectileId++);
-            var projectile = new ProjectileState(
-                projectileId,
-                shooter.ParticipantId,
-                shooter.ActorId.TeamId,
-                shooter.ActorId,
-                Tick,
-                shooter.Position,
-                heading,
-                program,
-                profile,
-                path);
             resolution.SuccessfulAttack = true;
-            events.Add(EmitSpatial(
-                Tick,
-                GenericActorRuntimeObservation.EventKind.Attack,
-                new GenericActorRuntimeObservation.EventPayload.Attack(
-                    shooter.ActorId,
-                    resolution.ValidatedAction,
-                    projectileId,
-                    shooter.Position,
-                    heading),
-                shooter.Position));
+            // The cast counter: one ACTION is one count whatever its declared
+            // projectile count, so a three-bolt fan is one cast rather than
+            // three (ActorAutomaticReturnTriggerDefinition).
+            shooter.CountAttackIssued();
 
-            int launchTraversal =
-                profile.Projectile.Mode == ActorProjectileMode.InstantRay
-                    ? profile.Projectile.MaxTravelTiles
-                    : profile.Projectile.LaunchTiles;
-            TraverseProjectile(
-                projectile,
-                launchTraversal,
-                contacts,
-                ref contactOrdinal,
-                traversals,
-                GenericActorProjectileTraversal.TraversalTrigger
-                    .AttackLaunch);
-            if (!projectile.Consumed
-                && projectile.RemainingTiles > 0
-                && profile.Projectile.Mode == ActorProjectileMode.Discrete)
+            if (profile.Projectile.StrikeWindupTicks > 0)
             {
-                _projectiles.Add(projectile);
+                // Declared strike (DECISIONS #212): the attack succeeds and
+                // pays its cadence now, but the ray fires when the windup
+                // ends. Origin, headings, and paths freeze at declare — the
+                // announced tiles are exactly the tiles that resolve, so the
+                // victim's counterplay is leaving them or interposing a
+                // body, never re-reading a moving cone.
+                int declaredTravel = _mode
+                    .StatModifiersFor(shooter.ActorId)
+                    .AttackTravelTilesDelta;
+                // The telegraph is the REAL cone (owner ruling 2026-08-06,
+                // superseding the three-spoke fan): the filled 90° wedge
+                // between the resolved heading's adjacent sectors, wall-
+                // occluded, out to this shooter's reach. A single-target
+                // strike still resolves exactly one victim at maturation —
+                // the nearest body anywhere in the wedge. A profile with a
+                // real volley keeps its authored fan of frozen ray paths.
+                ImmutableArray<DeclaredStrikeBolt> declaredBolts =
+                    profile.Volley is not null
+                        ? [.. VolleyHeadings(profile, resolvedHeading)
+                            .Select(heading => new DeclaredStrikeBolt(
+                                heading,
+                                TraceProjectilePath(
+                                    shooter.Position,
+                                    heading,
+                                    profile,
+                                    ResolveShotProgram(
+                                        profile,
+                                        resolution.ValidatedAction),
+                                    declaredTravel)))]
+                        : [];
+                ImmutableArray<Position> coneTiles =
+                    profile.Volley is not null
+                        ? []
+                        : GenericActorStrikeCone.Tiles(
+                            _definition.Map,
+                            shooter.Position,
+                            resolvedHeading,
+                            checked(profile.Projectile.MaxTravelTiles
+                                + declaredTravel),
+                            profile.Projectile.DiagonalCornersMustBeClear);
+                // Lock-and-follow (owner ruling 2026-08, corrected
+                // 2026-08-08): the strike is FOR the body the MIND named,
+                // and it follows that body anywhere inside the frozen wedge,
+                // resolving only against it. The geometry no longer picks the
+                // lock — an interposed body between shooter and target is
+                // irrelevant here and matters only when the bolt flies. A
+                // volley profile keeps its historical per-ray resolution and
+                // locks nothing.
+                ActorIdentity? declaredTarget = SelectStrikeAnchor(
+                    resolution.ValidatedAction,
+                    coneTiles,
+                    shooter.ActorId)?.ActorId;
+                _pendingStrikes.Add(new PendingStrike(
+                    shooter.ActorId,
+                    profile,
+                    shooter.Position,
+                    declaredBolts,
+                    resolvedHeading,
+                    coneTiles,
+                    declaredTarget,
+                    resolution.ValidatedAction,
+                    declaredTravel,
+                    checked(Tick + profile.Projectile.StrikeWindupTicks)));
+                continue;
+            }
+
+            // One successful attack action issues the profile's declared
+            // projectile count. Each bolt is an ordinary projectile with its
+            // own ID, Attack event, path, and traversal; the volley shape only
+            // decides the headings and the launch order, and the IDs follow
+            // that order contiguously (ActorAttackVolleyDefinition). The whole
+            // fan's identities are reserved before any bolt flies: a bolt's
+            // launch traversal can contact a projectile guard, and the
+            // deflection mints the return's identity at contact — reserving
+            // up front keeps the contract's contiguous-ascending-in-launch-
+            // order promise true through a mid-fan deflection.
+            ProjectileHeading[] headings =
+                [.. VolleyHeadings(profile, resolvedHeading)];
+            long firstProjectileId = _nextProjectileId;
+            _nextProjectileId = checked(_nextProjectileId + headings.Length);
+            for (int bolt = 0; bolt < headings.Length; bolt++)
+            {
+                ProjectileHeading heading = headings[bolt];
+                // Effective gun reach is the profile's declared travel plus
+                // whatever the mode currently adds to this body. The path and
+                // the bolt's remaining distance are traced against the same
+                // number, so a lengthened shot behaves exactly like a longer
+                // declared gun rather than like a bolt that outlives its path.
+                int extraTravel = _mode
+                    .StatModifiersFor(shooter.ActorId)
+                    .AttackTravelTilesDelta;
+                ImmutableArray<Position> path = TraceProjectilePath(
+                    shooter.Position,
+                    heading,
+                    profile,
+                    program,
+                    extraTravel);
+                long projectileId = firstProjectileId + bolt;
+                var projectile = new ProjectileState(
+                    projectileId,
+                    shooter.ParticipantId,
+                    shooter.ActorId.TeamId,
+                    shooter.ActorId,
+                    Tick,
+                    shooter.Position,
+                    heading,
+                    program,
+                    profile,
+                    path,
+                    extraTravel);
+                events.Add(EmitSpatial(
+                    Tick,
+                    GenericActorRuntimeObservation.EventKind.Attack,
+                    new GenericActorRuntimeObservation.EventPayload.Attack(
+                        shooter.ActorId,
+                        resolution.ValidatedAction,
+                        projectileId,
+                        shooter.Position,
+                        heading),
+                    shooter.Position));
+
+                int launchTraversal =
+                    profile.Projectile.Mode == ActorProjectileMode.InstantRay
+                        ? checked(
+                            profile.Projectile.MaxTravelTiles + extraTravel)
+                        : profile.Projectile.LaunchTiles;
+                TraverseProjectile(
+                    projectile,
+                    launchTraversal,
+                    contacts,
+                    ref contactOrdinal,
+                    deflections,
+                    events,
+                    traversals,
+                    GenericActorProjectileTraversal.TraversalTrigger
+                        .AttackLaunch);
+                if (!projectile.Consumed
+                    && projectile.RemainingTiles > 0
+                    && profile.Projectile.Mode == ActorProjectileMode.Discrete)
+                {
+                    _projectiles.Add(projectile);
+                }
             }
         }
+    }
+
+    /// <summary>
+    /// The exact launch headings for one attack, in launch (and therefore
+    /// projectile-ID) order. A profile without a volley yields exactly the
+    /// resolved heading, so every historical contract is unchanged.
+    /// </summary>
+    internal static IEnumerable<ProjectileHeading> VolleyHeadings(
+        ActorAttackProfileDefinition profile,
+        ProjectileHeading resolvedHeading)
+    {
+        ArgumentNullException.ThrowIfNull(profile);
+        if (profile.Volley is not { } volley)
+            return [resolvedHeading];
+        return volley.Spread switch
+        {
+            ActorAttackVolleyDefinition.VolleySpreadKind
+                .SharedResolvedHeading =>
+                Enumerable.Repeat(
+                    resolvedHeading,
+                    volley.ProjectileCount),
+            ActorAttackVolleyDefinition.VolleySpreadKind
+                .SymmetricAdjacentHeadingFanAscendingSignedSectorOffset =>
+                Enumerable
+                    .Range(
+                        -volley.FanHalfWidthSectors,
+                        volley.ProjectileCount)
+                    .Select(offset => resolvedHeading.Turned(offset)),
+            _ => throw new InvalidOperationException(
+                "Unknown attack volley spread."),
+        };
     }
 
     private void TraverseProjectile(
@@ -1445,6 +3542,8 @@ public sealed class GenericActorMatchSession : IDisposable
         int maximumTiles,
         ICollection<PendingDamageContact> contacts,
         ref int contactOrdinal,
+        ICollection<PendingDeflection> deflections,
+        ImmutableArray<GenericActorAuthoritativeEvent>.Builder events,
         ImmutableArray<GenericActorProjectileTraversal>.Builder traversals,
         GenericActorProjectileTraversal.TraversalTrigger trigger)
     {
@@ -1465,6 +3564,20 @@ public sealed class GenericActorMatchSession : IDisposable
             projectile.Position = next;
             entered.Add(next);
             projectile.RemainingTiles--;
+            if (_mode is ArcRelayActorMatchModeDriver arcRelay
+                && arcRelay.Signatures.TryConsumeProjectile(
+                    projectile.Position,
+                    projectile.OwnerTeamId,
+                    Tick,
+                    out GenericActorModeEvent? constructContact))
+            {
+                EmitModeEvent(constructContact!, events);
+                projectile.Consumed = true;
+                _projectiles.Remove(projectile);
+                terminal = new GenericActorProjectileTraversal
+                    .TerminalDisposition.WallOrPathExhausted();
+                break;
+            }
             LifeState? target = _lives.Values
                 .Where(life => life.Position == projectile.Position)
                 .OrderBy(life => life.ActorId)
@@ -1477,20 +3590,38 @@ public sealed class GenericActorMatchSession : IDisposable
                 continue;
             projectile.Consumed = true;
             _projectiles.Remove(projectile);
+            bool hooked = contact.Damages
+                && projectile.SignatureBoltHook is not null;
             terminal =
                 new GenericActorProjectileTraversal.TerminalDisposition
                     .ActorContact(
                         target.ActorId,
-                        contact.Damages);
-            if (contact.Damages)
+                        contact.Damages && !hooked);
+            if (hooked)
+            {
+                _pendingHookPulls.Add(new PendingHookPull(
+                    projectile.SignatureBoltOperationId!,
+                    projectile.OwnerActorId,
+                    target.ActorId,
+                    projectile.SignatureBoltHook!.PullOrigin,
+                    projectile.SignatureBoltHook.MaxPullTiles));
+            }
+            else if (contact.Damages)
             {
                 contacts.Add(new PendingDamageContact(
                     target.ActorId,
                     projectile.OwnerTeamId,
                     projectile.OwnerActorId,
                     projectile.Id,
-                    projectile.Profile.Projectile.DamagePerHit,
+                    ProjectileDamage(
+                        projectile,
+                        target,
+                        events),
                     contactOrdinal++));
+            }
+            else if (contact.Deflected)
+            {
+                Deflect(projectile, target, events, deflections);
             }
             break;
         }
@@ -1516,6 +3647,45 @@ public sealed class GenericActorMatchSession : IDisposable
             from,
             entered.ToImmutable(),
             terminal));
+    }
+
+    private int ProjectileDamage(
+        ProjectileState projectile,
+        LifeState target,
+        ImmutableArray<GenericActorAuthoritativeEvent>.Builder events)
+    {
+        int damage = projectile.Profile.Projectile.DamagePerHit;
+        if (_mode is not ArcRelayActorMatchModeDriver arcRelay)
+            return damage;
+        // Veterancy damage points add before the rear multiplier, capped so
+        // the leveled base never exceeds 3 (owner rule against front-arc
+        // one-shots at max health 5).
+        int damagePoints = arcRelay.VeterancyDamagePoints(
+            projectile.OwnerActorId);
+        if (damagePoints > 0)
+            damage += Math.Min(damagePoints, Math.Max(0, 3 - damage));
+        int rearMultiplier = arcRelay.GameMode.RearArcDamageMultiplier;
+        if (rearMultiplier > 1)
+        {
+            // A shot travelling in the victim's own facing quadrant was
+            // fired from its blind rear arc: the backstab bonus applies
+            // before any painted-target bonus.
+            (int headingDx, int headingDy) = projectile.Heading.Vector();
+            if (Visibility.InQuadrant(headingDx, headingDy, target.Facing))
+                damage = checked(damage * rearMultiplier);
+        }
+        int bonus = arcRelay.Signatures.TargetPaintBonus(
+            projectile.OwnerActorId,
+            target.ActorId,
+            Tick,
+            out string? operationId);
+        if (bonus == 0 || operationId is null)
+            return damage;
+        GenericActorModeEvent? modeEvent =
+            arcRelay.Signatures.ConsumeTargetPaint(operationId);
+        if (modeEvent is not null)
+            EmitModeEvent(modeEvent, events);
+        return checked(damage + bonus);
     }
 
     private ImmutableArray<GenericActorModeDamageContact> ApplyDamage(
@@ -1556,7 +3726,8 @@ public sealed class GenericActorMatchSession : IDisposable
                     contact.SourceTeamId,
                     target.ActorId.TeamId,
                     actual,
-                    destroyed));
+                    destroyed,
+                    target.Position));
                 events.Add(EmitSpatial(
                     Tick,
                     GenericActorRuntimeObservation.EventKind.Damage,
@@ -1680,10 +3851,18 @@ public sealed class GenericActorMatchSession : IDisposable
         }
     }
 
-    private void FinalizeDestroyedLives(
+    /// <summary>
+    /// Retires every body that reached zero health, and reports each one with
+    /// the tile it died on. A mode that places anything at a death site — a
+    /// wreck, for the scrap economy — needs the destruction rather than the
+    /// contact that caused it, because the contact names where the bolt was.
+    /// </summary>
+    private ImmutableArray<FrontlineScrapDestruction> FinalizeDestroyedLives(
         IReadOnlySet<int> newlyDisqualified,
         ImmutableArray<GenericActorAuthoritativeEvent>.Builder events)
     {
+        var destroyed =
+            ImmutableArray.CreateBuilder<FrontlineScrapDestruction>();
         foreach (LifeState life in _lives.Values
                      .Where(life => life.Health == 0)
                      .OrderBy(life => life.ActorId)
@@ -1691,6 +3870,10 @@ public sealed class GenericActorMatchSession : IDisposable
         {
             if (newlyDisqualified.Contains(life.ParticipantId))
                 continue;
+            destroyed.Add(new FrontlineScrapDestruction(
+                life.ActorId,
+                life.Position,
+                life.DestructionCause?.SourceActorId));
             CancelSourceSplit(life.ActorId, "source-destroyed", events);
             _host.RetireLife(life.ActorId);
             _lives.Remove(life.ActorId);
@@ -1704,6 +3887,160 @@ public sealed class GenericActorMatchSession : IDisposable
                 life.Position));
             CancelSameLifeTransition(life, events);
             ScheduleAfterDestruction(slot, life);
+        }
+        ScheduleRootFactorySeeds();
+        return destroyed.ToImmutable();
+    }
+
+    /// <summary>
+    /// Starts the root factory's clock for any participant this tick left
+    /// with no live body at all.
+    /// <para>It uses the ordinary destruction grammar —
+    /// <c>tick + 1 + profile delay</c>, the class's own respawn delay — so a
+    /// wiped participant waits exactly as long for its bootstrap body as an
+    /// ordinary body waits to be re-placeable. Nothing is scheduled while any
+    /// life-creating clock is still running, because a participant that is
+    /// merely between bodies is not wiped.</para>
+    /// </summary>
+    private void ScheduleRootFactorySeeds()
+    {
+        foreach (int participantId in _participantTeams.Keys.Order())
+        {
+            if (RootFactorySlot(participantId) is not SlotState slot)
+                continue;
+            if (_rootFactoryDueTick.ContainsKey(participantId))
+                continue;
+            int dueTick = checked(
+                Tick
+                + 1
+                + _lifecycleProfiles[slot.Assignment.LifecycleProfileId]
+                    .DelayTicks);
+            // The seed rides the slot's OWN availability clock rather than a
+            // second one beside it: a bootstrapped slot goes from pending
+            // straight to live, which is the shape an automatic activation
+            // already has and the shape the chronology already validates.
+            slot.Kind = SlotKind.AvailabilityPending;
+            slot.DueTick = dueTick;
+            slot.PendingReason = GenericActorRuntimeObservation
+                .AvailabilityReason.DestructionRecovery;
+            _rootFactoryDueTick[participantId] = dueTick;
+        }
+    }
+
+    /// <summary>
+    /// The slot the root factory would seed for one participant, or null when
+    /// the participant needs no bootstrap this tick — it still holds a body,
+    /// a life-creating clock is already running, or its ruleset declares no
+    /// root factory at all.
+    /// <para>The seeded slot is the LOWEST-numbered one that owns a home
+    /// spawn, which under prime dissolution is the slot the authored
+    /// PrimeSpawn pad now reserves as an ordinary home spawn.</para>
+    /// </summary>
+    private SlotState? RootFactorySlot(int participantId)
+    {
+        if (_lives.Values.Any(life => life.ParticipantId == participantId))
+            return null;
+        // A disqualified participant is out of the match, not merely wiped.
+        // Its base seeds nothing: the bootstrap answers a total body loss, and
+        // a disqualification is a loss of the PLAYER.
+        if (_host.ParticipantStatuses.Any(status =>
+                status.ParticipantId == participantId
+                && status.Disqualified))
+        {
+            return null;
+        }
+        SlotState[] owned =
+            [
+                .. _slots.Values
+                    .Where(slot => slot.ParticipantId == participantId)
+                    .OrderBy(slot => slot.UnitId),
+            ];
+        // A pending automatic return or activation is a body already on its
+        // way; the base does not seed against one.
+        if (owned.Any(slot =>
+                slot.Kind is SlotKind.AutomaticReturnPending
+                || slot.Kind == SlotKind.AvailabilityPending
+                    && slot.Assignment.InitialAvailability
+                    == ActorUnitSlotLifecycleAssignmentDefinition
+                        .InitialAvailabilityKind
+                        .DormantAutomaticActivationAtTick))
+        {
+            return null;
+        }
+        if (_fabricationReservations.Any(reservation =>
+                reservation.ParticipantId == participantId))
+        {
+            return null;
+        }
+        return owned.FirstOrDefault(slot =>
+            slot.Kind != SlotKind.PermanentlyDormant
+            && slot.Assignment.AssignedRespawnSpawnId is not null
+            && _lifecycleProfiles[slot.Assignment.LifecycleProfileId]
+                .RootFactorySeedFormId is not null);
+    }
+
+    /// <summary>
+    /// Seeds one body at the home spawn for every participant whose root
+    /// factory is due this tick. It runs in the canonical returns/readiness
+    /// phase, in participant order, exactly like every other tick-start life
+    /// creation, and it costs the participant nothing: no action, no scrap, no
+    /// slot beyond the one it fills.
+    /// </summary>
+    private void ApplyRootFactorySeeds(
+        ImmutableArray<GenericActorAuthoritativeEvent>.Builder events,
+        ImmutableArray<GenericActorLifeStart>.Builder lifeStarts,
+        ImmutableArray<GenericActorProjectileTraversal>.Builder traversals)
+    {
+        foreach (int participantId in _rootFactoryDueTick.Keys.Order())
+        {
+            if (_rootFactoryDueTick[participantId] != Tick)
+                continue;
+            if (RootFactorySlot(participantId) is not SlotState slot
+                || slot.Kind != SlotKind.AvailabilityPending
+                || slot.DueTick != Tick)
+            {
+                // The participant recovered by some other route before the
+                // base could seed it. The bootstrap is a floor, never a bonus.
+                _rootFactoryDueTick.Remove(participantId);
+                continue;
+            }
+            string formId =
+                _lifecycleProfiles[slot.Assignment.LifecycleProfileId]
+                    .RootFactorySeedFormId!;
+            InitialSpawnDefinition spawn = _spawns[
+                slot.Assignment.AssignedRespawnSpawnId!];
+            ConsumeProjectilesAt(spawn.Position, traversals);
+            LifeState life = CreateLife(
+                slot,
+                formId,
+                // A base seed starts a fresh lineage: the structure is not a
+                // parent, so there is no source generation to carry.
+                0,
+                spawn.Position,
+                spawn.Facing,
+                EffectiveMaxHealth(formId, slot.TeamId, slot.UnitId),
+                GenericActorRuntimeStart.SpawnReason.RootFactorySeed,
+                parentActorId: null,
+                sourceTransitionId: null,
+                sourceOperationId: null);
+            lifeStarts.Add(life.LifeStart);
+            ClearPendingClock(slot);
+            _rootFactoryDueTick.Remove(participantId);
+            events.Add(EmitSpatial(
+                Tick,
+                GenericActorRuntimeObservation.EventKind.LifeSpawned,
+                SpawnPayload(life),
+                life.Position));
+        }
+        // A participant that regained a body some other way keeps no stale
+        // clock: the bootstrap only ever answers a total loss.
+        foreach (int participantId in _rootFactoryDueTick.Keys.ToArray())
+        {
+            if (_lives.Values.Any(life =>
+                    life.ParticipantId == participantId))
+            {
+                _rootFactoryDueTick.Remove(participantId);
+            }
         }
     }
 
@@ -1794,8 +4131,16 @@ public sealed class GenericActorMatchSession : IDisposable
             ActorAttackProfileDefinition? attack = AttackFor(life);
             if (attack is null)
             {
-                // A same-life transition into an unarmed form keeps the
-                // remaining cooldown as inert state.
+                // Historically an unarmed form keeps the remaining cooldown
+                // as inert state — time stops for the gun. Under the
+                // advances-with-time clock (#180) the cooldown keeps
+                // running, so a stance or windup no longer pauses recovery.
+                if (_definition.Rules.TickResolution.CooldownClock
+                    == ActorTickResolutionDefinition.CooldownClockKind
+                        .AdvancesWithTime)
+                {
+                    life.Cooldown = Math.Max(0, life.Cooldown - 1);
+                }
                 life.Energy = null;
                 continue;
             }
@@ -1836,6 +4181,7 @@ public sealed class GenericActorMatchSession : IDisposable
         GenericActorModeTickResult modeTick,
         ImmutableArray<GenericActorAuthoritativeEvent>.Builder events)
     {
+        EmitModeEvents(modeTick.ModeEvents, events);
         foreach (GenericActorModeScoreChange change
                  in modeTick.ScoreChanges)
         {
@@ -1858,6 +4204,30 @@ public sealed class GenericActorMatchSession : IDisposable
                 modeTick.ModeChange)));
     }
 
+    private void EmitModeEvents(
+        IEnumerable<GenericActorModeEvent> modeEvents,
+        ImmutableArray<GenericActorAuthoritativeEvent>.Builder events)
+    {
+        foreach (GenericActorModeEvent modeEvent in modeEvents)
+            EmitModeEvent(modeEvent, events);
+    }
+
+    private void EmitModeEvent(
+        GenericActorModeEvent modeEvent,
+        ImmutableArray<GenericActorAuthoritativeEvent>.Builder events)
+    {
+        events.Add(modeEvent.SpatialPosition is Position position
+            ? EmitSpatial(
+                Tick,
+                GenericActorRuntimeObservation.EventKind.ArcRelay,
+                modeEvent.Payload,
+                position)
+            : EmitPublic(
+                Tick,
+                GenericActorRuntimeObservation.EventKind.ArcRelay,
+                modeEvent.Payload));
+    }
+
     private GenericActorModeCompletion Complete(
         GenericActorModeCompletionKind kind)
         => _mode.ResolveCompletion(
@@ -1869,22 +4239,217 @@ public sealed class GenericActorMatchSession : IDisposable
         LifeState observer,
         ImmutableArray<GenericActorAuthoritativeEvent> sourceEvents)
     {
-        ImmutableArray<LifeState> sensors =
+        // Resolved up front because the mode's body-scoped facts are stamped
+        // onto self, ally, and enemy states as they are built.
+        GenericActorModeProjection modeProjection = ProjectionMode();
+        GenericMindTeamProjection shared = SharedProjectionFor(
+            observer,
+            sourceEvents,
+            modeProjection);
+
+        ImmutableArray<GenericActorRuntimeObservation.ObservedAllyState>
+            allies =
             _definition.Rules.TeamPerception.Kind
                 == ActorTeamPerceptionDefinition.PerceptionKind.ImmediateUnion
                 ? _lives.Values
                     .Where(life =>
-                        life.ActorId.TeamId == observer.ActorId.TeamId)
+                        life.ActorId.TeamId == observer.ActorId.TeamId
+                        && life.ActorId != observer.ActorId)
                     .OrderBy(life => life.ActorId)
+                    .Select(life => ProjectAlly(life, modeProjection))
                     .ToImmutableArray()
-                : [observer];
+                : [];
+
+        return new GenericActorRuntimeObservation(
+            _definition.CapabilityVersions.ObservationSchemaVersion,
+            Tick,
+            _host.MatchContractFingerprint,
+            new GenericActorRuntimeObservation.ObservedSelfState(
+                observer.ActorId,
+                observer.Generation,
+                observer.FormId,
+                observer.Position,
+                observer.Facing,
+                observer.Health,
+                observer.Cooldown,
+                observer.Energy,
+                observer.PreviousActionResolution,
+                PendingObservation(observer))
+            {
+                ClassId = BodyClassId(
+                    observer.ActorId.TeamId,
+                    observer.ActorId.UnitId,
+                    observer.ParticipantId),
+                RouteCooldowns = LiveRouteCooldowns(
+                    observer.ActorId.TeamId,
+                    observer.ActorId.UnitId),
+                CarriedScrap = modeProjection.CarriedScrapByActor
+                    .GetValueOrDefault(observer.ActorId),
+            },
+            shared.TeamUnits,
+            shared.Participants,
+            allies,
+            shared.Enemies,
+            shared.VisibleTiles,
+            shared.VisibleProjectiles,
+            shared.VisibleEvents,
+            shared.HeardSounds,
+            shared.Scoreboard,
+            shared.Mode,
+            ActionLegalities(observer));
+    }
+
+    /// <summary>
+    /// The observable union this observer reads, computed once per team per
+    /// tick and reused by reference.
+    /// <para>
+    /// The memoization is only correct — and is exactly correct — under
+    /// immediate-union perception, because that is the case in which the
+    /// sensor set, the enemy set, the redaction audience and the event
+    /// projection state are all functions of the TEAM rather than of the body.
+    /// Under any other perception kind the union is genuinely per-observer and
+    /// nothing is shared, which is also why the mind profile requires immediate
+    /// union (see <c>ValidateWorldCapabilities</c>).
+    /// </para>
+    /// </summary>
+    private GenericMindTeamProjection SharedProjectionFor(
+        LifeState observer,
+        ImmutableArray<GenericActorAuthoritativeEvent> sourceEvents,
+        GenericActorModeProjection modeProjection)
+    {
+        int teamId = observer.ActorId.TeamId;
+        if (_definition.Rules.TeamPerception.Kind
+            != ActorTeamPerceptionDefinition.PerceptionKind.ImmediateUnion)
+        {
+            return ProjectPerceptionUnion(
+                teamId,
+                [observer],
+                EventProjectionFor(observer),
+                sourceEvents,
+                modeProjection);
+        }
+        if (!_teamProjectionCache.TryGetValue(
+                teamId,
+                out GenericMindTeamProjection? cached))
+        {
+            cached = ProjectPerceptionUnion(
+                teamId,
+                SensorsFor(observer),
+                EventProjectionFor(observer),
+                sourceEvents,
+                modeProjection);
+            _teamProjectionCache.Add(teamId, cached);
+        }
+        return cached;
+    }
+
+    /// <summary>
+    /// The union for one team, independent of any observer. Used by the mind
+    /// projection, which has no "self" to key on.
+    /// </summary>
+    private GenericMindTeamProjection SharedProjectionForTeam(
+        int teamId,
+        ImmutableArray<GenericActorAuthoritativeEvent> sourceEvents,
+        GenericActorModeProjection modeProjection)
+    {
+        if (!_teamProjectionCache.TryGetValue(
+                teamId,
+                out GenericMindTeamProjection? cached))
+        {
+            cached = ProjectPerceptionUnion(
+                teamId,
+                [
+                    .. _lives.Values
+                        .Where(life => life.ActorId.TeamId == teamId)
+                        .OrderBy(life => life.ActorId),
+                ],
+                TeamEventProjection(teamId),
+                sourceEvents,
+                modeProjection);
+            _teamProjectionCache.Add(teamId, cached);
+        }
+        return cached;
+    }
+
+    /// <summary>
+    /// Every body whose sensors contribute to one observer's picture. Under
+    /// the shipped immediate-union perception that is the whole scoring team,
+    /// which is precisely why the union is the same object for every body on
+    /// it — the fact the mind profile finally exploits.
+    /// </summary>
+    private ImmutableArray<LifeState> SensorsFor(LifeState observer) =>
+        _definition.Rules.TeamPerception.Kind
+            == ActorTeamPerceptionDefinition.PerceptionKind.ImmediateUnion
+            ? _lives.Values
+                .Where(life =>
+                    life.ActorId.TeamId == observer.ActorId.TeamId)
+                .OrderBy(life => life.ActorId)
+                .ToImmutableArray()
+            : [observer];
+
+    private GenericActorRuntimeObservation.ObservedAllyState ProjectAlly(
+        LifeState life,
+        GenericActorModeProjection modeProjection) =>
+        new(
+            life.ActorId,
+            life.Generation,
+            life.FormId,
+            life.Position,
+            life.Facing,
+            life.Health,
+            life.Cooldown,
+            life.Energy,
+            life.PreviousActionResolution,
+            PendingObservation(life))
+        {
+            ClassId = BodyClassId(
+                life.ActorId.TeamId,
+                life.ActorId.UnitId,
+                life.ParticipantId),
+            RouteCooldowns = LiveRouteCooldowns(
+                life.ActorId.TeamId,
+                life.ActorId.UnitId),
+            CarriedScrap = modeProjection.CarriedScrapByActor
+                .GetValueOrDefault(life.ActorId),
+            RoleTag = _roleTags.GetValueOrDefault(life.ActorId),
+        };
+
+    /// <summary>
+    /// The observable union for one audience: visible tiles with provenance,
+    /// visible enemies, visible projectiles, redacted events, heard sounds,
+    /// the team's slot table, participant statuses, the scoreboard and the
+    /// mode state.
+    /// <para>
+    /// This is the single most expensive computation in a tick —
+    /// <c>VisibleTilesFor</c> scans the map per sensor, <c>ObserversAt</c> runs
+    /// per tile per sensor, and <c>SpawnReservationAt</c> runs a
+    /// <c>SingleOrDefault</c> over the reservation lists per visible tile — and
+    /// under the per-life profile it is executed once per LIFE with a
+    /// byte-identical result each time. The mind profile calls it once per TEAM
+    /// per tick, turning <c>O(N^2 x mapArea)</c> into <c>O(N x mapArea)</c>. It
+    /// is extracted rather than duplicated so the two profiles cannot drift:
+    /// the null pin compares two drivers, not two implementations.
+    /// </para>
+    /// </summary>
+    private GenericMindTeamProjection ProjectPerceptionUnion(
+        int observingTeamId,
+        ImmutableArray<LifeState> sensors,
+        EventProjectionState eventProjection,
+        ImmutableArray<GenericActorAuthoritativeEvent> sourceEvents,
+        GenericActorModeProjection modeProjection)
+    {
         Dictionary<ActorIdentity, HashSet<Position>> visibleBySensor =
             sensors.ToDictionary(
                 sensor => sensor.ActorId,
                 VisibleTilesFor);
 
+        var visiblePositions = new HashSet<Position>();
+        foreach (HashSet<Position> sensorTiles in visibleBySensor.Values)
+            visiblePositions.UnionWith(sensorTiles);
         ImmutableArray<GenericActorRuntimeObservation.ObservedTile>
-            visibleTiles = AllMapPositions()
+            visibleTiles = visiblePositions
+                .OrderBy(position => position.Y)
+                .ThenBy(position => position.X)
                 .Select(position =>
                 {
                     ImmutableArray<ActorIdentity> observedBy =
@@ -1896,13 +4461,15 @@ public sealed class GenericActorMatchSession : IDisposable
                     new GenericActorRuntimeObservation.ObservedTile(
                         item.position,
                         _definition.Map.IsWall(item.position),
-                        item.observedBy))
+                        item.observedBy)
+                    {
+                        SpawnReservation = SpawnReservationAt(item.position),
+                    })
                 .ToImmutableArray();
 
         ImmutableArray<GenericActorRuntimeObservation.ObservedEnemyState>
             enemies = _lives.Values
-                .Where(life =>
-                    life.ActorId.TeamId != observer.ActorId.TeamId)
+                .Where(life => life.ActorId.TeamId != observingTeamId)
                 .OrderBy(life => life.ActorId)
                 .Select(life =>
                     (life, observedBy:
@@ -1916,34 +4483,26 @@ public sealed class GenericActorMatchSession : IDisposable
                         item.life.Facing,
                         item.life.Health,
                         PendingObservation(item.life),
-                        item.observedBy))
+                        item.observedBy)
+                    {
+                        ClassId = BodyClassId(
+                            item.life.ActorId.TeamId,
+                            item.life.ActorId.UnitId,
+                            item.life.ParticipantId),
+                        CarriedScrap = modeProjection.CarriedScrapByActor
+                            .GetValueOrDefault(item.life.ActorId),
+                        // Public on purpose (§12.2): this game telegraphs
+                        // banks, tiers, claims, holds and death sites with no
+                        // visibility requirement at all, so a visible body's
+                        // declared job is a smaller leak than any of those --
+                        // and it is what makes the set-piece legible to a
+                        // spectator watching both sides' assignments.
+                        RoleTag = _roleTags.GetValueOrDefault(
+                            item.life.ActorId),
+                    })
                 .ToImmutableArray();
         HashSet<ActorIdentity> visibleEnemyIds =
             enemies.Select(enemy => enemy.ActorId).ToHashSet();
-
-        ImmutableArray<GenericActorRuntimeObservation.ObservedAllyState>
-            allies =
-            _definition.Rules.TeamPerception.Kind
-                == ActorTeamPerceptionDefinition.PerceptionKind.ImmediateUnion
-                ? _lives.Values
-                    .Where(life =>
-                        life.ActorId.TeamId == observer.ActorId.TeamId
-                        && life.ActorId != observer.ActorId)
-                    .OrderBy(life => life.ActorId)
-                    .Select(life =>
-                        new GenericActorRuntimeObservation.ObservedAllyState(
-                            life.ActorId,
-                            life.Generation,
-                            life.FormId,
-                            life.Position,
-                            life.Facing,
-                            life.Health,
-                            life.Cooldown,
-                            life.Energy,
-                            life.PreviousActionResolution,
-                            PendingObservation(life)))
-                    .ToImmutableArray()
-                : [];
 
         ImmutableArray<GenericActorRuntimeObservation.ObservedProjectile>?
             projectiles = _definition.Rules.AttackProfiles.All(profile =>
@@ -1963,7 +4522,7 @@ public sealed class GenericActorMatchSession : IDisposable
                                 item.projectile.Id,
                                 item.projectile.OwnerTeamId,
                                 item.projectile.OwnerTeamId
-                                        == observer.ActorId.TeamId
+                                        == observingTeamId
                                     || visibleEnemyIds.Contains(
                                         item.projectile.OwnerActorId)
                                     ? item.projectile.OwnerActorId
@@ -1974,7 +4533,19 @@ public sealed class GenericActorMatchSession : IDisposable
                                     .TilesPerAdvance,
                                 item.projectile.TicksUntilAdvance,
                                 item.projectile.RemainingTiles,
-                                item.observedBy))
+                                item.observedBy,
+                                // Both were already authoritative on the
+                                // firing profile and both were unreadable
+                                // from an observation: the wave-2 forensics
+                                // asked "should I eat this?" and could answer
+                                // neither how fast the bolt closes nor what
+                                // it costs. A volley bolt and a mobile bolt
+                                // can differ in both, so they are per
+                                // projectile rather than per contract.
+                                item.projectile.Profile.Projectile
+                                    .TicksPerAdvance,
+                                item.projectile.Profile.Projectile
+                                    .DamagePerHit))
                     .ToImmutableArray();
 
         var visibleEvents =
@@ -1983,8 +4554,6 @@ public sealed class GenericActorMatchSession : IDisposable
         var heardSounds =
             ImmutableArray.CreateBuilder<
                 GenericActorRuntimeObservation.ObservedSound>();
-        EventProjectionState eventProjection =
-            EventProjectionFor(observer);
         foreach (GenericActorAuthoritativeEvent source in
                  sourceEvents
                      .OrderBy(item => item.Tick)
@@ -2001,12 +4570,12 @@ public sealed class GenericActorMatchSession : IDisposable
                 GenericActorAuthoritativeEvent.Audience.Public => true,
                 GenericActorAuthoritativeEvent.Audience.TeamPrivate
                     teamPrivate =>
-                    teamPrivate.TeamId == observer.ActorId.TeamId,
+                    teamPrivate.TeamId == observingTeamId,
                 GenericActorAuthoritativeEvent.Audience.Spatial spatial =>
                     ProjectSpatialEvent(
                         sourceEvent,
                         spatial.PrimaryPosition,
-                        observer.ActorId.TeamId,
+                        observingTeamId,
                         sensors,
                         visibleBySensor,
                         visibleEnemyIds,
@@ -2047,26 +4616,10 @@ public sealed class GenericActorMatchSession : IDisposable
             }
         }
 
-        GenericActorModeProjection modeProjection =
-            _mode.Project(ModeWorldView());
-        return new GenericActorRuntimeObservation(
-            _definition.CapabilityVersions.ObservationSchemaVersion,
-            Tick,
-            _host.MatchContractFingerprint,
-            new GenericActorRuntimeObservation.ObservedSelfState(
-                observer.ActorId,
-                observer.Generation,
-                observer.FormId,
-                observer.Position,
-                observer.Facing,
-                observer.Health,
-                observer.Cooldown,
-                observer.Energy,
-                observer.PreviousActionResolution,
-                PendingObservation(observer)),
-            TeamUnitObservations(observer.ActorId.TeamId),
+        return new GenericMindTeamProjection(
+            observingTeamId,
+            TeamUnitObservations(observingTeamId),
             _host.ParticipantStatuses,
-            allies,
             enemies,
             visibleTiles,
             projectiles,
@@ -2075,8 +4628,291 @@ public sealed class GenericActorMatchSession : IDisposable
                 ? null
                 : heardSounds.ToImmutable(),
             modeProjection.Scoreboard,
-            modeProjection.Mode,
-            ActionLegalities(observer));
+            ProjectModeForTeam(
+                modeProjection.Mode,
+                observingTeamId,
+                visibleTiles.Select(value => value.Position).ToHashSet()));
+    }
+
+    private GenericActorRuntimeObservation.ModeObservationState
+        ProjectModeForTeam(
+            GenericActorRuntimeObservation.ModeObservationState mode,
+            int observingTeamId,
+            IReadOnlySet<Position> visibleTiles)
+    {
+        if (mode is not GenericActorRuntimeObservation.ModeObservationState
+                .ArcRelay arcRelay)
+        {
+            return mode;
+        }
+        int tripNodeRevealRange = ((ArcRelayGameModeDefinition)
+                _definition.Rules.GameMode).Signatures
+            .OfType<ArcRelaySignatureDefinition.TripNode>()
+            .Single().RevealRange;
+        Position[] ownBodies = _lives.Values
+            .Where(value => value.ActorId.TeamId == observingTeamId)
+            .Select(value => value.Position)
+            .ToArray();
+
+        return new GenericActorRuntimeObservation.ModeObservationState.ArcRelay(
+            arcRelay.ModeId,
+            arcRelay.Wells,
+            arcRelay.Reactors,
+            arcRelay.VisibleCores.Where(core =>
+                    core.CarrierActorId?.TeamId == observingTeamId
+                    || visibleTiles.Contains(core.Position))
+                .ToImmutableArray(),
+            arcRelay.VisibleSignatures.Where(signature =>
+                    signature.OwnerTeamId == observingTeamId
+                    // Tells are public because their only purpose is to offer
+                    // deterministic counterplay before the effect resolves.
+                    || signature.Phase
+                        == ArcRelaySignatureState.SignaturePhase.Tell
+                    || signature.Kind
+                        == ArcRelaySignatureDefinition.SignatureKind.TripNode
+                        && signature.Positions.Any(position =>
+                            ownBodies.Any(body =>
+                                body.ChebyshevDistance(position)
+                                    <= tripNodeRevealRange))
+                    || signature.Positions.Any(visibleTiles.Contains))
+                .ToImmutableArray(),
+            arcRelay.LatestPulseTeamId,
+            arcRelay.LatestPulseTick)
+        {
+            // Declared strikes follow the SHOOTER's visibility (owner ruling
+            // 2026-08-12: an enemy cannot see a cone declared from behind
+            // unless that team has vision there). Seeing the striker reveals
+            // the whole swing; not seeing it reveals NOTHING - not even lit
+            // ground underfoot, or every backstab would warn its victim. Own
+            // strikes are always fully visible, and the spectator's
+            // authoritative view keeps every cone.
+            PendingStrikes = [.. PendingStrikeStates()
+                .Where(strike => strike.Shooter.TeamId == observingTeamId
+                    || visibleTiles.Contains(
+                        _lives.TryGetValue(
+                            strike.Shooter, out LifeState? striker)
+                            ? striker.Position
+                            : strike.Origin))],
+        };
+    }
+
+    /// <summary>
+    /// One frozen observation per TICKING PARTICIPANT
+    /// (<c>docs/DESIGN-MIND-ARCHITECTURE-2026-07-31.md</c> §2.3, §2.7).
+    /// <para>
+    /// Every non-disqualified participant appears here on every tick, whether
+    /// or not it owns a live body. A mind that went dark on a total body loss
+    /// would lose the ability to plan the return — exactly the "real fun
+    /// complexity" #190 asked for, especially under a home-walk respawn — would
+    /// accumulate silent memory staleness, and would be blind during the very
+    /// window its enemy-position beliefs decay fastest. It costs only the base
+    /// fuel term, so it ticks.
+    /// </para>
+    /// </summary>
+    private ImmutableArray<GenericMindRuntimeObservation>
+        ProjectMindObservations(
+            ImmutableArray<GenericActorAuthoritativeEvent> sourceEvents)
+    {
+        GenericActorModeProjection modeProjection = ProjectionMode();
+        var result =
+            ImmutableArray.CreateBuilder<GenericMindRuntimeObservation>();
+        foreach (int participantId in _host.TickingParticipantIds)
+        {
+            int teamId = _participantTeams[participantId];
+            GenericMindTeamProjection shared = SharedProjectionForTeam(
+                teamId,
+                sourceEvents,
+                modeProjection);
+            result.Add(new GenericMindRuntimeObservation(
+                _definition.CapabilityVersions.ObservationSchemaVersion,
+                Tick,
+                _host.MatchContractFingerprint,
+                participantId,
+                teamId,
+                [
+                    .. _lives.Values
+                        .Where(life => life.ParticipantId == participantId)
+                        .OrderBy(life => life.ActorId)
+                        .Select(life => ProjectBody(life, modeProjection)),
+                ],
+                [
+                    .. _slots.Values
+                        .Where(slot => slot.ParticipantId == participantId)
+                        .OrderBy(slot => slot.UnitId)
+                        .Select(slot =>
+                            new GenericMindRuntimeObservation.ObservedOwnSlot(
+                                slot.TeamId,
+                                slot.UnitId,
+                                ProjectSlotState(slot),
+                                SlotClassId(slot))),
+                ],
+                // Allied MINDS' bodies: the team's bodies this participant does
+                // NOT command. Always empty in head-to-head and in FFA-N,
+                // because there is one participant per scoring team; the 2v2
+                // hook that makes the #190 rider structural rather than
+                // documented.
+                [
+                    .. _lives.Values
+                        .Where(life =>
+                            life.ActorId.TeamId == teamId
+                            && life.ParticipantId != participantId)
+                        .OrderBy(life => life.ActorId)
+                        .Select(life => ProjectAlly(life, modeProjection)),
+                ],
+                shared,
+                // Reserved (§11.3): the engine writes the empty collection, so
+                // the field is negotiated and the shape is fixed while nothing
+                // executes.
+                AlliedIntents: []));
+        }
+
+        // This tick's published positions become next tick's "previous". The
+        // update happens exactly once per tick because PrepareTick memoizes.
+        _positionsAtPreviousMindObservation = _lives.Values.ToImmutableDictionary(
+            life => life.ActorId,
+            life => life.Position);
+        return result.ToImmutable();
+    }
+
+    private GenericMindRuntimeObservation.ObservedBodyState ProjectBody(
+        LifeState life,
+        GenericActorModeProjection modeProjection)
+    {
+        Position? previousPosition =
+            _positionsAtPreviousMindObservation.TryGetValue(
+                life.ActorId,
+                out Position remembered)
+                ? remembered
+                : null;
+        return new GenericMindRuntimeObservation.ObservedBodyState(
+            life.ActorId,
+            life.Generation,
+            life.FormId,
+            life.Position,
+            life.Facing,
+            life.Health,
+            life.Cooldown,
+            life.Energy,
+            life.PreviousActionResolution,
+            PendingObservation(life),
+            previousPosition,
+            // The wave-8 ask, published rather than reconstructed. A body with
+            // no previous position is new this tick, and a new body has not
+            // moved — the same rule an author had to derive and could get
+            // silently wrong.
+            previousPosition is Position previous
+                && previous != life.Position,
+            life.SpawnedAtTick,
+            life.LifeStart.Origin,
+            ActionLegalities(life))
+        {
+            ClassId = BodyClassId(
+                life.ActorId.TeamId,
+                life.ActorId.UnitId,
+                life.ParticipantId),
+            RouteCooldowns = LiveRouteCooldowns(
+                life.ActorId.TeamId,
+                life.ActorId.UnitId),
+            CarriedScrap = modeProjection.CarriedScrapByActor
+                .GetValueOrDefault(life.ActorId),
+            RoleTag = _roleTags.GetValueOrDefault(life.ActorId),
+            // P3's null-pin fix: the EXACT seed the per-life profile would
+            // have handed this life, so a wrapped bot drawing from
+            // context.Random reproduces its per-life behaviour rather than
+            // merely resembling it.
+            BodyRandomSeed = life.LifeStart.ActorRandomSeed,
+        };
+    }
+
+    /// <summary>
+    /// The chassis one BODY carries. Under a mixed composition that is the
+    /// SLOT's declared chassis, not the participant's composition token — a
+    /// warden's slot-3 body is a fabricator and says so, which is what makes
+    /// "condition on the enemy's stats and routes" still work when an army is
+    /// not one thing.
+    /// <para>On every mono cell the slot declares nothing and this falls
+    /// through to the participant's own ID, so nothing an existing bot reads
+    /// changes.</para>
+    /// </summary>
+    private string? BodyClassId(int teamId, int unitId, int participantId) =>
+        _slotClassIds.GetValueOrDefault((teamId, unitId))
+        ?? _participantClassIds[participantId];
+
+    private string? SlotClassId(SlotState slot) =>
+        _definition.Topology.UnitSlots
+            .Single(value =>
+                value.TeamId == slot.TeamId
+                && value.UnitId == slot.UnitId)
+            .ClassId;
+
+    private GenericActorRuntimeObservation.SpawnReservation?
+        SpawnReservationAt(Position position)
+    {
+        if (_spawnReservationCache.TryGetValue(
+                position,
+                out GenericActorRuntimeObservation.SpawnReservation? cached))
+        {
+            return cached;
+        }
+        BoundedChildFabricationProvisionalReservation? fabrication =
+            _fabricationReservations.SingleOrDefault(reservation =>
+                reservation.ReservedPosition == position);
+        if (fabrication is not null)
+        {
+            var fabricationResult =
+                new GenericActorRuntimeObservation.SpawnReservation(
+                fabrication.TargetTeamId,
+                fabrication.TargetUnitId,
+                GenericActorRuntimeObservation.SpawnReservationKind
+                    .Fabrication,
+                fabrication.DueTick);
+            _spawnReservationCache.Add(position, fabricationResult);
+            return fabricationResult;
+        }
+
+        SplitReplicationReservedDescendant? descendant =
+            _splitReservations
+                .SelectMany(reservation =>
+                    reservation.Descendants.Select(value =>
+                        (Reservation: reservation, Descendant: value)))
+                .Where(item => item.Descendant.Position == position)
+                .Select(item => item.Descendant)
+                .SingleOrDefault();
+        if (descendant is not null)
+        {
+            SplitReplicationReservation reservation = _splitReservations
+                .Single(value => value.Descendants.Contains(descendant));
+            var replicationResult =
+                new GenericActorRuntimeObservation.SpawnReservation(
+                descendant.TeamId,
+                descendant.UnitId,
+                GenericActorRuntimeObservation.SpawnReservationKind
+                    .Replication,
+                reservation.DueTick);
+            _spawnReservationCache.Add(position, replicationResult);
+            return replicationResult;
+        }
+
+        SlotState? returnSlot = _slots.Values
+            .Where(slot =>
+                _lifecycleProfiles[slot.Assignment.LifecycleProfileId]
+                    .DestructionPolicy
+                == ActorLifecycleProfileDefinition.DestructionPolicyKind
+                    .AutomaticRespawn)
+            .SingleOrDefault(slot =>
+                _spawns[slot.Assignment.AssignedRespawnSpawnId!].Position
+                    == position);
+        GenericActorRuntimeObservation.SpawnReservation? result =
+            returnSlot is null
+            ? null
+            : new GenericActorRuntimeObservation.SpawnReservation(
+                returnSlot.TeamId,
+                returnSlot.UnitId,
+                GenericActorRuntimeObservation.SpawnReservationKind
+                    .AutomaticReturn,
+                DueTick: null);
+        _spawnReservationCache.Add(position, result);
+        return result;
     }
 
     private bool ProjectSpatialEvent(
@@ -2128,9 +4964,8 @@ public sealed class GenericActorMatchSession : IDisposable
         return false;
     }
 
-    private EventProjectionState EventProjectionFor(LifeState observer)
-    {
-        ObservationAudienceKey audience =
+    private EventProjectionState EventProjectionFor(LifeState observer) =>
+        EventProjectionFor(
             _definition.Rules.TeamPerception.Kind
                 == ActorTeamPerceptionDefinition.PerceptionKind.ImmediateUnion
                 ? new ObservationAudienceKey(
@@ -2138,7 +4973,20 @@ public sealed class GenericActorMatchSession : IDisposable
                     ActorId: null)
                 : new ObservationAudienceKey(
                     observer.ActorId.TeamId,
-                    observer.ActorId);
+                    observer.ActorId));
+
+    /// <summary>
+    /// The team's projected-event identity state. Under immediate union this
+    /// is the same object every body on the team reads, so a mind and a
+    /// per-life body see identical event handles and ordinals — which is what
+    /// keeps the two profiles' event streams comparable.
+    /// </summary>
+    private EventProjectionState TeamEventProjection(int teamId) =>
+        EventProjectionFor(new ObservationAudienceKey(teamId, ActorId: null));
+
+    private EventProjectionState EventProjectionFor(
+        ObservationAudienceKey audience)
+    {
         if (!_eventProjectionStates.TryGetValue(
                 audience,
                 out EventProjectionState? projection))
@@ -2234,8 +5082,15 @@ public sealed class GenericActorMatchSession : IDisposable
     private ImmutableArray<GenericActorRuntimeActionLegality>
         ActionLegalities(LifeState life)
     {
+        if (_actionLegalitiesCache.TryGetValue(
+                life.ActorId,
+                out ImmutableArray<GenericActorRuntimeActionLegality> cached))
+        {
+            return cached;
+        }
         ActorFormDefinition form = _forms[life.FormId];
-        return _definition.Rules.Actions
+        ImmutableArray<GenericActorRuntimeActionLegality> legalities =
+            _definition.Rules.Actions
             .OrderBy(action => action.Code)
             .Select(action =>
             {
@@ -2250,6 +5105,8 @@ public sealed class GenericActorMatchSession : IDisposable
                     ActionConstraints(life, action));
             })
             .ToImmutableArray();
+        _actionLegalitiesCache.Add(life.ActorId, legalities);
+        return legalities;
     }
 
     private bool IsAvailable(
@@ -2266,9 +5123,14 @@ public sealed class GenericActorMatchSession : IDisposable
         return action.Kind switch
         {
             ActorActionKind.Wait => true,
-            ActorActionKind.Movement or ActorActionKind.Rotation => true,
+            ActorActionKind.Rotation => true,
+            ActorActionKind.Movement =>
+                _mode is not ArcRelayActorMatchModeDriver movementMode
+                || movementMode.CanCarrierRelocate(life.ActorId, Tick),
             ActorActionKind.Attack =>
                 AttackFor(life) is ActorAttackProfileDefinition attack
+                && (_mode is not ArcRelayActorMatchModeDriver arcRelay
+                    || !arcRelay.CarriesCore(life.ActorId))
                 && life.Cooldown == 0
                 && (attack.MaxEnergy == 0
                     || life.Energy >= attack.AttackEnergyCost),
@@ -2285,11 +5147,202 @@ public sealed class GenericActorMatchSession : IDisposable
                 && FabricationTargets(life, action).Length > 0,
             ActorActionKind.SameLifeTransition =>
                 _sameLife.MatchRoutes(life.FormId, action.Id)
-                    .Any(transition => _sameLife.CanQueue(
-                        SameLifeSnapshot(life),
-                        transition.TransitionId)),
+                    .Any(transition =>
+                        !RouteOnCooldown(life, transition)
+                        && _sameLife.CanQueue(
+                            SameLifeSnapshot(life),
+                            transition.TransitionId)),
+            // Available exactly when the mode's store would accept SOMETHING
+            // right now. Which tracks is the constraint's job, so a bot that
+            // reads its mask never prices the ladder itself.
+            ActorActionKind.ModeInvestment =>
+                _mode.InvestableTracks(life.ActorId.TeamId).Count > 0,
+            ActorActionKind.Objective =>
+                _mode is ArcRelayActorMatchModeDriver objectiveMode
+                && ArcRelayObjectiveAvailable(objectiveMode, life, action),
+            ActorActionKind.Signature =>
+                _mode is ArcRelayActorMatchModeDriver signatureMode
+                && ArcRelaySignatureAvailable(signatureMode, life, action),
             _ => false,
         };
+    }
+
+    /// <summary>
+    /// The track a mode-investment names, or null when it named none.
+    /// </summary>
+    private static string? InvestedTrack(
+        GenericActorRuntimeActionResolution.ResolvedAction action) =>
+        action.Arguments
+            .OfType<GenericActorRuntimeActionArgument.UpgradeTrackArgument>()
+            .SingleOrDefault()
+            ?.TrackId;
+
+    private bool ArcRelayObjectiveAvailable(
+        ArcRelayActorMatchModeDriver mode,
+        LifeState life,
+        ActorActionDefinition action) =>
+        string.Equals(
+            action.Id,
+            ArcRelayActionIds.DropCore,
+            StringComparison.Ordinal)
+            ? mode.CarriesCore(life.ActorId)
+            : string.Equals(
+                action.Id,
+                ArcRelayActionIds.HandoffCore,
+                StringComparison.Ordinal)
+              && mode.CarriesCore(life.ActorId)
+              && mode.CanCarrierRelocate(life.ActorId, Tick)
+              && ArcRelayHandoffTargets(life).Length > 0;
+
+    private bool ArcRelaySignatureAvailable(
+        ArcRelayActorMatchModeDriver mode,
+        LifeState life,
+        ActorActionDefinition action)
+    {
+        if (!mode.Signatures.CanStart(
+                life.ActorId,
+                action.Id,
+                Tick,
+                life.Position))
+        {
+            return false;
+        }
+        ArcRelaySignatureDefinition signature =
+            mode.Signatures.DefinitionForAction(action.Id);
+        if (signature is ArcRelaySignatureDefinition.ArcToss
+            && (!mode.CarriesCore(life.ActorId)
+                || !mode.CanCarrierRelocate(life.ActorId, Tick)))
+        {
+            return false;
+        }
+        return action.ParameterKinds.All(kind => kind switch
+        {
+            ActorActionParameterKind.PositionTarget =>
+                ArcRelaySignaturePositionTargets(
+                    mode,
+                    life,
+                    action.Id).Length > 0,
+            ActorActionParameterKind.UnitTarget =>
+                ArcRelaySignatureUnitTargets(
+                    mode,
+                    life,
+                    action.Id).Length > 0,
+            _ => true,
+        });
+    }
+
+    private ImmutableArray<Position> ArcRelaySignaturePositionTargets(
+        ArcRelayActorMatchModeDriver mode,
+        LifeState life,
+        string actionId)
+    {
+        var key = (life.ActorId, actionId);
+        if (_signaturePositionTargetsCache.TryGetValue(
+                key,
+                out ImmutableArray<Position> cached))
+        {
+            return cached;
+        }
+        ImmutableArray<Position> targets = mode.Signatures.PositionTargets(
+            life.ActorId,
+            life.Position,
+            VisibleTilesFor(life),
+            ProjectionSignatureLives(),
+            mode.CarriesCore(life.ActorId));
+        _signaturePositionTargetsCache.Add(key, targets);
+        return targets;
+    }
+
+    private ImmutableArray<GenericActorRuntimeActionArgument.UnitTarget>
+        ArcRelaySignatureUnitTargets(
+            ArcRelayActorMatchModeDriver mode,
+            LifeState life,
+            string actionId)
+    {
+        var key = (life.ActorId, actionId);
+        if (_signatureUnitTargetsCache.TryGetValue(
+                key,
+                out ImmutableArray<GenericActorRuntimeActionArgument.UnitTarget>
+                    cached))
+        {
+            return cached;
+        }
+        ImmutableArray<GenericActorRuntimeActionArgument.UnitTarget> targets =
+            mode.Signatures.UnitTargets(
+            life.ActorId,
+            life.Position,
+            VisibleTilesFor(life),
+            ProjectionSignatureLives());
+        _signatureUnitTargetsCache.Add(key, targets);
+        return targets;
+    }
+
+    private ImmutableArray<ArcRelaySignatureRuntime.Life>
+        ProjectionSignatureLives()
+    {
+        if (_projectionSignatureLivesCache is { } cached)
+            return cached;
+        ImmutableArray<ArcRelaySignatureRuntime.Life> lives =
+            ArcRelaySignatureLives();
+        _projectionSignatureLivesCache = lives;
+        return lives;
+    }
+
+    private ImmutableArray<ArcRelaySignatureRuntime.Life>
+        ArcRelaySignatureLives() =>
+        _lives.Values.OrderBy(value => value.ActorId)
+            .Select(value => new ArcRelaySignatureRuntime.Life(
+                value.ActorId,
+                value.Position,
+                value.Health,
+                EffectiveMaxHealth(
+                    value.FormId,
+                    value.ActorId.TeamId,
+                    value.ActorId.UnitId)))
+            .ToImmutableArray();
+
+    private ImmutableArray<GenericActorRuntimeActionArgument.UnitTarget>
+        ArcRelayHandoffTargets(LifeState source) =>
+        _lives.Values
+            .Where(target =>
+                target.ActorId.TeamId == source.ActorId.TeamId
+                && target.ActorId != source.ActorId
+                && source.Position.ChebyshevDistance(target.Position) == 1
+                && _mode is ArcRelayActorMatchModeDriver mode
+                && !mode.CarriesCore(target.ActorId))
+            .OrderBy(target => target.ActorId)
+            .Select(target => new GenericActorRuntimeActionArgument.UnitTarget(
+                target.ActorId.TeamId,
+                target.ActorId.UnitId))
+            .ToImmutableArray();
+
+    /// <summary>
+    /// Settles this tick's mode-store purchases in canonical
+    /// <c>(teamId, unitId, lifeId)</c> order. Two teammates investing against
+    /// a bank that covers only one leave the second Blocked, which costs it
+    /// its action exactly as any other blocked verb does.
+    /// </summary>
+    private void ResolveInvestments(
+        IReadOnlyDictionary<ActorIdentity, ActionState> resolutions)
+    {
+        foreach (ActionState resolution in resolutions.Values
+                     .OrderBy(value => value.ActorId))
+        {
+            ActorActionDefinition action =
+                _actions[resolution.ValidatedAction.ActionId];
+            if (resolution.Outcome
+                    != GenericActorRuntimeActionResolution.ActionOutcome
+                        .Success
+                || action.Kind != ActorActionKind.ModeInvestment)
+            {
+                continue;
+            }
+            if (InvestedTrack(resolution.ValidatedAction) is not string track
+                || !_mode.TryInvest(Tick, resolution.ActorId, track))
+            {
+                Block(resolution);
+            }
+        }
     }
 
     private bool IsSplitAvailable(
@@ -2343,12 +5396,37 @@ public sealed class GenericActorMatchSession : IDisposable
                 ActorActionParameterKind.Direction =>
                     new GenericActorRuntimeActionLegality.ArgumentConstraint
                         .DirectionConstraint(
-                            Enum.GetValues<Direction>().ToImmutableArray()),
+                            AllowedDirections(life, action)),
                 ActorActionParameterKind.UnitTarget =>
                     new GenericActorRuntimeActionLegality.ArgumentConstraint
                         .UnitTargetConstraint(
                             action.Kind == ActorActionKind.Fabrication
                                 ? FabricationTargets(life, action)
+                                : action.Kind == ActorActionKind.Signature
+                                  && _mode
+                                      is ArcRelayActorMatchModeDriver
+                                          signatureMode
+                                    ? ArcRelaySignatureUnitTargets(
+                                        signatureMode,
+                                        life,
+                                        action.Id)
+                                : action.Kind == ActorActionKind.Objective
+                                    ? ArcRelayHandoffTargets(life)
+                                // A strike names the body it locks
+                                // (DECISIONS #222), and only an enemy can be
+                                // locked, so the mask is the opposing slots.
+                                : action.Kind == ActorActionKind.Attack
+                                    ? [.. _definition.Topology.UnitSlots
+                                        .Where(slot =>
+                                            slot.TeamId
+                                                != life.ActorId.TeamId)
+                                        .OrderBy(slot => slot.TeamId)
+                                        .ThenBy(slot => slot.UnitId)
+                                        .Select(slot =>
+                                            new GenericActorRuntimeActionArgument
+                                                .UnitTarget(
+                                                    slot.TeamId,
+                                                    slot.UnitId))]
                                 : _definition.Topology.UnitSlots
                                     .OrderBy(slot => slot.TeamId)
                                     .ThenBy(slot => slot.UnitId)
@@ -2372,8 +5450,32 @@ public sealed class GenericActorMatchSession : IDisposable
                 ActorActionParameterKind.ProjectileHeading =>
                     new GenericActorRuntimeActionLegality.ArgumentConstraint
                         .ProjectileHeadingConstraint(
-                            Enum.GetValues<ProjectileHeading>()
-                                .ToImmutableArray()),
+                            AllowedProjectileHeadings(life, action)),
+                // Affordability lives in the mask, not in the bot: a track is
+                // offered only when the team's bank covers its next tier and
+                // no cap forbids it. The mask is a SET in canonical ordinal
+                // order, like every other enumerated constraint; the
+                // contract's DECLARED track order is the separate thing tier
+                // vectors are published positionally against.
+                ActorActionParameterKind.UpgradeTrack =>
+                    new GenericActorRuntimeActionLegality.ArgumentConstraint
+                        .UpgradeTrackConstraint(
+                            [
+                                .. _mode
+                                    .InvestableTracks(life.ActorId.TeamId)
+                                    .Order(StringComparer.Ordinal),
+                            ]),
+                ActorActionParameterKind.PositionTarget =>
+                    new GenericActorRuntimeActionLegality.ArgumentConstraint
+                        .PositionTargetConstraint(
+                            action.Kind == ActorActionKind.Signature
+                            && _mode is ArcRelayActorMatchModeDriver
+                                signatureMode
+                                ? ArcRelaySignaturePositionTargets(
+                                    signatureMode,
+                                    life,
+                                    action.Id)
+                                : []),
                 _ => throw new InvalidOperationException(
                     "Unknown actor action parameter kind."),
             });
@@ -2381,41 +5483,257 @@ public sealed class GenericActorMatchSession : IDisposable
         return constraints.ToImmutable();
     }
 
+    /// <summary>
+    /// Publishes the Direction domain for one action. A FacingLocked mover
+    /// may only step where it already looks, so the movement mask offers
+    /// exactly its current facing; Rotation keeps all four cardinals under
+    /// every coupling, and every other coupling keeps all four for movement
+    /// too.
+    /// </summary>
+    private ImmutableArray<Direction> AllowedDirections(
+        LifeState life,
+        ActorActionDefinition action) =>
+        action.Kind == ActorActionKind.Movement
+        && MovementFor(life).FacingCoupling
+            == ActorMovementFacingCoupling.FacingLocked
+            ? [life.Facing]
+            : Enum.GetValues<Direction>().ToImmutableArray();
+
+    private ImmutableArray<ProjectileHeading> AllowedProjectileHeadings(
+        LifeState life,
+        ActorActionDefinition action)
+    {
+        if (action.Kind == ActorActionKind.Movement
+            && ActorMovementFacingResolver.EffectiveCoupling(
+                    MovementFor(life), action)
+                == ActorMovementFacingCoupling.FacingLocked)
+        {
+            return [life.Facing.ToProjectileHeading()];
+        }
+        if (action.Kind == ActorActionKind.Attack
+            && AttackFor(life) is { FacingAimHalfWidthSectors: > 0 } attack)
+        {
+            ProjectileHeading centre = life.Facing.ToProjectileHeading();
+            return Enum.GetValues<ProjectileHeading>()
+                .Where(heading => CircularHeadingDistance(centre, heading)
+                    <= attack.FacingAimHalfWidthSectors)
+                .ToImmutableArray();
+        }
+        return Enum.GetValues<ProjectileHeading>().ToImmutableArray();
+    }
+
+    private static int CircularHeadingDistance(
+        ProjectileHeading first,
+        ProjectileHeading second)
+    {
+        int difference = Math.Abs((int)first - (int)second);
+        return Math.Min(difference, 8 - difference);
+    }
+
+    /// <summary>
+    /// Whether a declared lock is still trackable this tick (owner ruling
+    /// 2026-08-09, superseding the shooter's-own-eyes rule of #215/#234):
+    /// <c>"Team vision of course - but line of sight (ie no walls in between
+    /// or corners) the shooter and the target"</c>. Both halves must hold.
+    /// </summary>
+    /// <remarks>
+    /// TEAM VISION is the observable union the mind itself acts on, so a
+    /// spotter keeps a lock alive for a shooter facing the other way — the
+    /// facing cone stopped gating tracking, and with it the blind-flank
+    /// cancel class of DECISIONS #234. PHYSICAL LINE OF SIGHT is the
+    /// engine's canonical corner-strict supercover ray from the frozen
+    /// origin, facing-independent: a wall between the two ends the lock
+    /// whatever the team can see.
+    /// </remarks>
+    private bool LockStaysTrackable(
+        int shooterTeamId,
+        Position origin,
+        Position target) =>
+        TeamVisibleTiles(shooterTeamId).Contains(target)
+        && HasClearSightRay(origin, target);
+
+    /// <summary>
+    /// The union of every live body's sight on one team — the team observable
+    /// union, cached for the tick.
+    /// </summary>
+    private HashSet<Position> TeamVisibleTiles(int teamId)
+    {
+        if (_teamVisibleTilesCache.TryGetValue(
+                teamId,
+                out HashSet<Position>? cached))
+        {
+            return cached;
+        }
+        var union = new HashSet<Position>();
+        foreach (LifeState sensor in _lives.Values
+                     .Where(life => life.ActorId.TeamId == teamId)
+                     .OrderBy(life => life.ActorId))
+        {
+            union.UnionWith(VisibleTilesFor(sensor));
+        }
+        _teamVisibleTilesCache.Add(teamId, union);
+        return union;
+    }
+
+    /// <summary>
+    /// The engine's canonical sight ray, facing-independent: every supercover
+    /// tile strictly between the two ends must be floor, corners included.
+    /// </summary>
+    private bool HasClearSightRay(Position origin, Position target)
+    {
+        foreach (Position position in Visibility.SupercoverLine(origin, target))
+        {
+            if (position == origin || position == target)
+                continue;
+            if (_definition.Map.IsWall(position))
+                return false;
+        }
+        return true;
+    }
+
     private HashSet<Position> VisibleTilesFor(LifeState sensor)
     {
-        ActorVisionProfileDefinition vision = VisionFor(sensor);
-        var visible = new HashSet<Position>();
-        foreach (Position target in AllMapPositions())
+        if (_visibleTilesCache.TryGetValue(
+                sensor.ActorId,
+                out HashSet<Position>? cached))
         {
-            int distance = sensor.Position.ChebyshevDistance(target);
-            if (distance > vision.Range)
-                continue;
-            if (vision.Shape == ActorVisionShape.FacingQuadrant
-                && distance > vision.OmnidirectionalProximityRange
-                && !Visibility.InCone(
-                    sensor.Position,
-                    target,
-                    sensor.Facing))
-            {
-                continue;
-            }
+            return cached;
+        }
+        ActorVisionProfileDefinition vision = VisionFor(sensor);
+        // Effective sight is the form's declared range plus whatever the mode
+        // currently adds. The omnidirectional proximity radius is deliberately
+        // NOT moved: the tier widens what a body sees at distance, it does not
+        // reshape what it sees up close.
+        int range = checked(
+            vision.Range
+            + _mode.StatModifiersFor(sensor.ActorId).VisionRangeDelta);
+        Direction? facing = vision.Shape == ActorVisionShape.FacingQuadrant
+            ? sensor.Facing
+            : null;
+        var key = new StaticVisibilityKey(
+            sensor.Position,
+            range,
+            vision.Shape,
+            vision.OmnidirectionalProximityRange,
+            facing);
+        if (!_staticVisibilityCache.TryGetValue(
+                key,
+                out ImmutableArray<StaticVisibilityRay> candidates))
+        {
+            candidates = StaticVisibilityCandidates(
+                sensor.Position,
+                range,
+                vision.Shape,
+                vision.OmnidirectionalProximityRange,
+                facing);
+            _staticVisibilityCache.Add(key, candidates);
+        }
+
+        HashSet<Position>? occludingSmoke =
+            _mode is ArcRelayActorMatchModeDriver smokeMode
+                ? OccludingSmokeForTeam(
+                    smokeMode,
+                    sensor.ActorId.TeamId)
+                : null;
+        var visible = new HashSet<Position>(candidates.Length);
+        foreach (StaticVisibilityRay candidate in candidates)
+        {
             bool hasLineOfSight = true;
-            foreach (Position position in Visibility.SupercoverLine(
-                         sensor.Position,
-                         target))
+            if (sensor.Position.ChebyshevDistance(candidate.Target) > 1
+                && occludingSmoke is { Count: > 0 })
             {
-                if (position == sensor.Position || position == target)
-                    continue;
-                if (_definition.Map.IsWall(position))
+                foreach (Position position in candidate.Ray)
                 {
-                    hasLineOfSight = false;
-                    break;
+                    if (position == sensor.Position)
+                        continue;
+                    if (occludingSmoke.Contains(position))
+                    {
+                        hasLineOfSight = false;
+                        break;
+                    }
                 }
             }
             if (hasLineOfSight)
-                visible.Add(target);
+                visible.Add(candidate.Target);
         }
+        _visibleTilesCache.Add(sensor.ActorId, visible);
         return visible;
+    }
+
+    private HashSet<Position> OccludingSmokeForTeam(
+        ArcRelayActorMatchModeDriver mode,
+        int teamId)
+    {
+        if (!_occludingSmokeCache.TryGetValue(
+                teamId,
+                out HashSet<Position>? smoke))
+        {
+            smoke = mode.Signatures.OccludingSmokeForTeam(teamId, Tick);
+            _occludingSmokeCache.Add(teamId, smoke);
+        }
+        return smoke;
+    }
+
+    private ImmutableArray<StaticVisibilityRay> StaticVisibilityCandidates(
+        Position origin,
+        int range,
+        ActorVisionShape shape,
+        int omnidirectionalProximityRange,
+        Direction? facing)
+    {
+        var result = ImmutableArray.CreateBuilder<StaticVisibilityRay>();
+        int minimumY = Math.Max(0, origin.Y - range);
+        int maximumY = Math.Min(_definition.Map.Height - 1, origin.Y + range);
+        int minimumX = Math.Max(0, origin.X - range);
+        int maximumX = Math.Min(_definition.Map.Width - 1, origin.X + range);
+        for (int y = minimumY; y <= maximumY; y++)
+        {
+            for (int x = minimumX; x <= maximumX; x++)
+            {
+                var target = new Position(x, y);
+                int distance = origin.ChebyshevDistance(target);
+                if (shape == ActorVisionShape.FacingQuadrant
+                    && distance > omnidirectionalProximityRange
+                    && !Visibility.InCone(origin, target, facing!.Value))
+                {
+                    continue;
+                }
+                ImmutableArray<Position> ray =
+                    Visibility.SupercoverLine(origin, target)
+                        .ToImmutableArray();
+                bool blocked = false;
+                foreach (Position position in ray)
+                {
+                    if (position == origin || position == target)
+                        continue;
+                    if (_definition.Map.IsWall(position))
+                    {
+                        blocked = true;
+                        break;
+                    }
+                }
+                if (!blocked)
+                    result.Add(new StaticVisibilityRay(target, ray));
+            }
+        }
+        return result.ToImmutable();
+    }
+
+    private GenericActorModeProjection ProjectionMode() =>
+        _projectionModeCache ??= _mode.Project(ModeWorldView());
+
+    private void ResetProjectionCaches()
+    {
+        _teamProjectionCache.Clear();
+        _visibleTilesCache.Clear();
+        _teamVisibleTilesCache.Clear();
+        _occludingSmokeCache.Clear();
+        _spawnReservationCache.Clear();
+        _actionLegalitiesCache.Clear();
+        _signaturePositionTargetsCache.Clear();
+        _signatureUnitTargetsCache.Clear();
+        _projectionSignatureLivesCache = null;
+        _projectionModeCache = null;
     }
 
     private IEnumerable<Position> AllMapPositions()
@@ -2430,12 +5748,30 @@ public sealed class GenericActorMatchSession : IDisposable
     private static ImmutableArray<ActorIdentity> ObserversAt(
         Position position,
         IReadOnlyDictionary<ActorIdentity, HashSet<Position>>
-            visibleBySensor) =>
-        visibleBySensor
-            .Where(pair => pair.Value.Contains(position))
-            .Select(pair => pair.Key)
-            .Order()
-            .ToImmutableArray();
+            visibleBySensor)
+    {
+        var result = ImmutableArray.CreateBuilder<ActorIdentity>(
+            visibleBySensor.Count);
+        foreach ((ActorIdentity actorId, HashSet<Position> visible) in
+                 visibleBySensor)
+        {
+            if (visible.Contains(position))
+                result.Add(actorId);
+        }
+        result.Sort();
+        return result.ToImmutable();
+    }
+
+    private readonly record struct StaticVisibilityKey(
+        Position Origin,
+        int Range,
+        ActorVisionShape Shape,
+        int OmnidirectionalProximityRange,
+        Direction? Facing);
+
+    private readonly record struct StaticVisibilityRay(
+        Position Target,
+        ImmutableArray<Position> Ray);
 
     private static ActorAudibleEventKind? AudibleKind(
         GenericActorRuntimeObservation.EventKind kind) =>
@@ -2551,6 +5887,27 @@ public sealed class GenericActorMatchSession : IDisposable
 
     private ActorVisionProfileDefinition VisionFor(LifeState life) =>
         _visionProfiles[_forms[life.FormId].VisionProfileId];
+
+    /// <summary>
+    /// The health one new life of a slot arrives with: the form's declared
+    /// maximum plus whatever the mode currently adds to that slot. It is
+    /// deliberately read only at SPAWN, which is what makes a purchased
+    /// health tier raise the ceiling without healing anybody — a standing
+    /// body keeps its exact current health, so buying mid-duel is never a
+    /// rescue.
+    /// </summary>
+    private int EffectiveMaxHealth(string formId, int teamId, int unitId) =>
+        checked(
+            _forms[formId].MaxHealth
+            // The modifier's scope is the stable SLOT, so the life half of the
+            // identity is immaterial here and the not-yet-minted life is
+            // probed as its slot.
+            + _mode.StatModifiersFor(
+                    ActorIdentity.FromTeamUnitLife(teamId, unitId, 0))
+                .MaxHealthDelta);
+
+    private ActorMovementProfileDefinition MovementFor(LifeState life) =>
+        _movementProfiles[_forms[life.FormId].MovementProfileId];
 
     private ActorAttackProfileDefinition? AttackFor(LifeState life)
     {
@@ -2681,7 +6038,8 @@ public sealed class GenericActorMatchSession : IDisposable
         ActorAttackProfileDefinition profile,
         GenericActorRuntimeActionResolution.ResolvedAction action)
     {
-        if (profile.OmnidirectionalAim)
+        if (profile.OmnidirectionalAim
+            || profile.FacingAimHalfWidthSectors > 0)
         {
             return action.Arguments
                 .OfType<
@@ -2719,13 +6077,15 @@ public sealed class GenericActorMatchSession : IDisposable
         Position origin,
         ProjectileHeading initialHeading,
         ActorAttackProfileDefinition profile,
-        ShotProgram? program) =>
+        ShotProgram? program,
+        int extraTravelTiles = 0) =>
         GenericActorProjectilePath.Trace(
             _definition.Map,
             origin,
             initialHeading,
             profile,
-            program);
+            program,
+            extraTravelTiles);
 
     private ProjectileContact Contact(
         ProjectileState projectile,
@@ -2737,7 +6097,15 @@ public sealed class GenericActorMatchSession : IDisposable
             return ProjectileContact.Pass;
         }
         if (target.ActorId.TeamId != projectile.OwnerTeamId)
-            return ProjectileContact.Damage;
+        {
+            // A hostile contact is the only one a projectile guard answers:
+            // the shell turns incoming enemy fire, it does not deflect its own
+            // team's bolts. Allied contacts fall through to the collision
+            // contract below and never reach the guard at all.
+            return DeflectsFrontalContact(target, projectile)
+                ? ProjectileContact.Deflect
+                : ProjectileContact.Damage;
+        }
         return _definition.Rules.Collisions.AlliedProjectileContact switch
         {
             ActorCollisionDefinition.AlliedProjectileContactKind.PassThrough =>
@@ -2750,6 +6118,219 @@ public sealed class GenericActorMatchSession : IDisposable
                 "Unknown allied projectile policy."),
         };
     }
+
+    /// <summary>
+    /// Whether the target's form guard turns this hostile contact instead of
+    /// taking damage from it. Contact puts both bodies on one tile, so the arc
+    /// question is asked of the projectile's approach vector — the reverse of
+    /// its travel heading — against the target's facing quadrant.
+    /// </summary>
+    private bool DeflectsFrontalContact(
+        LifeState target,
+        ProjectileState projectile)
+    {
+        if (_forms[target.FormId].ProjectileGuard
+            != ActorFormProjectileGuardKind.FacingQuadrantContactsDeflected)
+        {
+            return false;
+        }
+        // A bolt returned on this very tick is still leaving the guard that
+        // returned it and cannot be turned a second time before it has flown.
+        // The rule exists so the cascade terminates by construction: two
+        // shields facing each other one tile apart trade a hit instead of
+        // volleying one bolt forever inside a single tick.
+        if (projectile.ReturnedAtTick == Tick)
+            return false;
+        var (dx, dy) = projectile.Heading.Vector();
+        return Visibility.InQuadrant(-dx, -dy, target.Facing);
+    }
+
+    /// <summary>
+    /// Publishes one deflection and reserves the returned bolt's identity. The
+    /// identity is allocated here, in contact order, so multiple deflections
+    /// in one tick are ordered by the tick's deterministic contact sequence;
+    /// the projectile itself is materialized later by
+    /// <see cref="LaunchDeflectedProjectiles"/>.
+    /// </summary>
+    private void Deflect(
+        ProjectileState projectile,
+        LifeState target,
+        ImmutableArray<GenericActorAuthoritativeEvent>.Builder events,
+        ICollection<PendingDeflection> deflections)
+    {
+        long deflectedId = checked(_nextProjectileId++);
+        // The shield-break counter, counted where the deflection is published
+        // so that every deflection this tick — several may land at once — is
+        // already in the total when the automatic return is evaluated.
+        target.CountProjectileDeflected();
+        events.Add(EmitSpatial(
+            Tick,
+            GenericActorRuntimeObservation.EventKind.ProjectileDeflected,
+            new GenericActorRuntimeObservation.EventPayload
+                .ProjectileDeflected(
+                    projectile.OwnerTeamId,
+                    projectile.OwnerActorId,
+                    target.ActorId,
+                    projectile.Id,
+                    deflectedId,
+                    target.FormId,
+                    target.Facing,
+                    projectile.Heading,
+                    target.Position),
+            target.Position));
+        deflections.Add(new PendingDeflection(
+            deflectedId,
+            target,
+            // The exactly reversed heading: the bolt retraces its approach.
+            // The deflector never aims, so the locked arc chosen on entry is
+            // the whole of its control over where the return goes.
+            projectile.Heading.Reversed(),
+            // The shooter's own bolt comes back: identical damage, speed, and
+            // range class, with a fresh travel budget from the guard's tile.
+            // The stance form declares no attack profile of its own, and a
+            // deflection is not an attack action.
+            projectile.Profile));
+    }
+
+    /// <summary>
+    /// Materializes this tick's returned bolts. It runs once, after existing
+    /// projectiles advanced and after attacks launched, so a return is exactly
+    /// as kinematically ordinary as a freshly fired bolt: one launch traversal
+    /// of the profile's launch tiles, then the ordinary advance cadence.
+    ///
+    /// The work list cannot grow while it drains, because a bolt returned this
+    /// tick is not eligible to be returned again this tick (see
+    /// <see cref="DeflectsFrontalContact"/>) — which is what makes two shields
+    /// facing each other one tile apart resolve instead of volleying forever.
+    /// </summary>
+    private void LaunchDeflectedProjectiles(
+        ICollection<PendingDeflection> deflections,
+        ICollection<PendingDamageContact> contacts,
+        ref int contactOrdinal,
+        ImmutableArray<GenericActorAuthoritativeEvent>.Builder events,
+        ImmutableArray<GenericActorProjectileTraversal>.Builder traversals)
+    {
+        // A return carries no aim of its own. Where the profile publishes a
+        // shot program the world contract requires one to be present, so it
+        // takes that profile's own default — which is the straight, bendless
+        // program — and otherwise none at all.
+        foreach (PendingDeflection deflection in deflections.ToArray())
+        {
+            ActorProjectileDefinition kinematics =
+                deflection.Profile.Projectile;
+            ShotProgram? program =
+                deflection.Profile.ShotProgram.Enabled
+                    ? new ShotProgram(
+                        deflection.Profile.ShotProgram.DefaultProgram
+                            .InitialAimOffset,
+                        deflection.Profile.ShotProgram.DefaultProgram
+                            .BendDirection,
+                        deflection.Profile.ShotProgram.DefaultProgram
+                            .BendAfterTiles,
+                        deflection.Profile.ShotProgram.DefaultProgram
+                            .BendEveryTiles,
+                        deflection.Profile.ShotProgram.DefaultProgram
+                            .BendCount)
+                    : null;
+            // A returned bolt keeps the SHOOTER's declared kinematics with no
+            // ladder on top: the edge tier buys the mobile gun's range, not
+            // the parry's, and the return flies the attacker's profile — a
+            // deflector's mobile-gun tier grafted onto an enemy profile is
+            // incoherent, and the chronology validator rightly demands the
+            // raw fresh budget (wave-8 finding: the boosted return aborted
+            // every shell-plus-edge match; no completed measurement ever
+            // contained one).
+            const int returnExtraTravel = 0;
+            var returned = new ProjectileState(
+                deflection.ProjectileId,
+                deflection.Deflector.ParticipantId,
+                deflection.Deflector.ActorId.TeamId,
+                deflection.Deflector.ActorId,
+                Tick,
+                deflection.Deflector.Position,
+                deflection.Heading,
+                program,
+                deflection.Profile,
+                TraceProjectilePath(
+                    deflection.Deflector.Position,
+                    deflection.Heading,
+                    deflection.Profile,
+                    program,
+                    returnExtraTravel),
+                returnExtraTravel)
+            {
+                ReturnedAtTick = Tick,
+            };
+            TraverseProjectile(
+                returned,
+                kinematics.Mode == ActorProjectileMode.InstantRay
+                    ? checked(kinematics.MaxTravelTiles + returnExtraTravel)
+                    : kinematics.LaunchTiles,
+                contacts,
+                ref contactOrdinal,
+                // A return cannot produce a further return this tick, so this
+                // sink stays empty and the snapshot above is the whole work.
+                deflections,
+                events,
+                traversals,
+                GenericActorProjectileTraversal.TraversalTrigger
+                    .GuardDeflection);
+            if (!returned.Consumed
+                && returned.RemainingTiles > 0
+                && kinematics.Mode == ActorProjectileMode.Discrete)
+            {
+                _projectiles.Add(returned);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Where a due automatic return or activation for this slot lands. The
+    /// assigned spawn stays the answer for every contract except the
+    /// forward-rally placement, and stays the fallback under it, so its
+    /// permanent reservation remains load-bearing.
+    /// </summary>
+    private Position ResolveAutomaticArrival(
+        SlotState slot,
+        InitialSpawnDefinition spawn)
+    {
+        if (!FrontlineForwardRallyPlacement.MayRallyForward(_definition))
+            return spawn.Position;
+        if (_mode.State is not GenericActorModeState.Frontline frontline)
+            return spawn.Position;
+
+        return FrontlineForwardRallyPlacement.Resolve(
+            _definition,
+            slot.TeamId,
+            spawn.Position,
+            frontline.Control.ActivePositionIndex,
+            FrontlineForwardRallyPlacement.BlockedTiles(
+                _lives.Values.Select(life => life.Position),
+                [
+                    .. _fabricationReservations.Select(reservation =>
+                        reservation.ReservedPosition),
+                    .. _splitReservations.SelectMany(reservation =>
+                        reservation.Descendants.Select(
+                            descendant => descendant.Position)),
+                ],
+                ReservedReturnSpawnPositions()),
+            slot.Assignment,
+            // The owner as it stands when this arrival lands, which is
+            // exactly the owner the boundary before it published — so the
+            // chronology validator re-derives the same tile from the
+            // recorded observation rather than from private state.
+            frontline.Control.SecondaryControl?.OwnerTeamId);
+    }
+
+    private IEnumerable<Position> ReservedReturnSpawnPositions() =>
+        _slots.Values
+            .Where(slot =>
+                _lifecycleProfiles[slot.Assignment.LifecycleProfileId]
+                    .DestructionPolicy
+                == ActorLifecycleProfileDefinition.DestructionPolicyKind
+                    .AutomaticRespawn)
+            .Select(slot =>
+                _spawns[slot.Assignment.AssignedRespawnSpawnId!].Position);
 
     private bool IsForeignReservedReturnTile(
         LifeState mover,
@@ -2848,9 +6429,13 @@ public sealed class GenericActorMatchSession : IDisposable
         if (slot.ActiveLife is not null
             || _lives.Values.Any(life => life.Position == position))
         {
+            LifeState? tileOccupant = _lives.Values.SingleOrDefault(
+                life => life.Position == position);
             throw new InvalidOperationException(
                 $"Cannot create a life in occupied slot/tile " +
-                $"{slot.TeamId}:{slot.UnitId} at {position}.");
+                $"{slot.TeamId}:{slot.UnitId} at {position}; "
+                + $"slot occupant={slot.ActiveLife?.ActorId.ToString() ?? "none"}, "
+                + $"tile occupant={tileOccupant?.ActorId.ToString() ?? "none"}.");
         }
         if (!slot.Assignment.AllowedFormIds.Contains(
                 formId,
@@ -2993,11 +6578,15 @@ public sealed class GenericActorMatchSession : IDisposable
         {
             return;
         }
+        GenericActorRuntimeObservation.FormTransitionReason reason =
+            life.PendingSameLifeTransitionReason;
         life.PendingSameLifeTransition = null;
+        life.PendingSameLifeTransitionReason =
+            GenericActorRuntimeObservation.FormTransitionReason.Requested;
         events.Add(EmitSpatial(
             Tick,
             GenericActorRuntimeObservation.EventKind.FormTransitionCancelled,
-            FormTransitionPayload(reservation),
+            FormTransitionPayload(reservation, reason),
             life.Position));
     }
 
@@ -3211,13 +6800,35 @@ public sealed class GenericActorMatchSession : IDisposable
             ActiveHealthByTeam(),
             EligibleTeamIds(),
             _lives.Values
+                // Signature effects can reduce a body to zero during tick
+                // start, immediately before the canonical destruction pass.
+                // Such a body is still present for destruction chronology but
+                // is no longer an active life in a mode world projection.
+                .Where(life => life.Health > 0)
                 .OrderBy(life => life.ActorId)
                 .Select(life => new GenericActorModeActiveLife(
                     life.ActorId,
                     life.FormId,
                     life.Position,
-                    life.Health))
+                    life.Health,
+                    _positionsAtPreviousTickEnd.TryGetValue(
+                        life.ActorId,
+                        out Position previous)
+                        ? previous
+                        : null))
                 .ToImmutableArray());
+
+    /// <summary>
+    /// Remembers where every surviving life stands at the end of a resolved
+    /// tick, which is what the next tick's stillness reading compares
+    /// against. A life created after this snapshot — a respawn, a
+    /// fabrication, a Split descendant — is simply absent, which is exactly
+    /// "no previous position", and a destroyed life drops out with its slot.
+    /// </summary>
+    private void RememberPositions() =>
+        _positionsAtPreviousTickEnd = _lives.Values.ToImmutableDictionary(
+            life => life.ActorId,
+            life => life.Position);
 
     private GenericActorRuntimeObservation.EventPayload.LifeSpawned
         SpawnPayload(LifeState life)
@@ -3279,7 +6890,10 @@ public sealed class GenericActorMatchSession : IDisposable
 
     private static GenericActorRuntimeObservation.EventPayload.FormTransition
         FormTransitionPayload(
-            ActorSameLifeTransitionReservation reservation) =>
+            ActorSameLifeTransitionReservation reservation,
+            GenericActorRuntimeObservation.FormTransitionReason reason =
+                GenericActorRuntimeObservation.FormTransitionReason
+                    .Requested) =>
         new(
             reservation.SourceActorId,
             reservation.TransitionId,
@@ -3287,7 +6901,8 @@ public sealed class GenericActorMatchSession : IDisposable
             reservation.SourceFormId,
             reservation.TargetFormId,
             reservation.StartedTick,
-            reservation.DueTick);
+            reservation.DueTick,
+            reason);
 
     private static SplitReplicationReservedDescendant? SplitTarget(
         SplitReplicationReservation reservation) =>
@@ -3463,7 +7078,72 @@ public sealed class GenericActorMatchSession : IDisposable
             _splitReservations,
             projectiles,
             modeProjection.Scoreboard,
-            modeProjection.Mode);
+            WithPendingStrikes(modeProjection.Mode));
+    }
+
+    /// <summary>
+    /// The session owns declared strikes (DECISIONS #212); every projection
+    /// of the arc mode state — authoritative snapshot, per-team observation,
+    /// external mode state — carries them through here so the lit cone is
+    /// one fact everywhere.
+    /// </summary>
+    private GenericActorRuntimeObservation.ModeObservationState
+        WithPendingStrikes(
+            GenericActorRuntimeObservation.ModeObservationState mode)
+    {
+        if (mode is not GenericActorRuntimeObservation.ModeObservationState
+                .ArcRelay arcRelay)
+        {
+            return mode;
+        }
+        ImmutableArray<GenericActorRuntimeObservation.ArcRelayPendingStrikeState>
+            pending = PendingStrikeStates();
+        return pending.IsEmpty
+            ? mode
+            : arcRelay with { PendingStrikes = pending };
+    }
+
+    /// <summary>
+    /// Every declare in windup on the ONE wire the viewer's tracking ray
+    /// reads: the guns' declared strikes and the locked bolt-class line
+    /// signatures, which are the same control plane and differ only in what
+    /// leaves the muzzle (owner ruling 2026-08-09).
+    /// </summary>
+    private ImmutableArray<
+        GenericActorRuntimeObservation.ArcRelayPendingStrikeState>
+        PendingStrikeStates()
+    {
+        ImmutableArray<ArcRelaySignatureRuntime.PendingLineStrike> lines =
+            _mode is ArcRelayActorMatchModeDriver arcMode
+                ? arcMode.Signatures.PendingLineStrikes()
+                : [];
+        if (_pendingStrikes.Count == 0 && lines.IsEmpty)
+            return [];
+        return
+        [
+            .. _pendingStrikes
+                .Select(strike =>
+                    new GenericActorRuntimeObservation
+                        .ArcRelayPendingStrikeState(
+                            strike.Shooter,
+                            strike.ResolveAtTick,
+                            strike.Origin,
+                            strike.CentralHeading,
+                            strike.DeclaredTarget,
+                            strike.TelegraphTiles))
+                .Concat(lines.Select(line =>
+                    new GenericActorRuntimeObservation
+                        .ArcRelayPendingStrikeState(
+                            line.Shooter,
+                            line.ResolveAtTick,
+                            line.Origin,
+                            line.CentralHeading,
+                            line.Target,
+                            line.Tiles)))
+                .OrderBy(strike => strike.Shooter)
+                .ThenBy(strike => strike.ResolveAtTick)
+                .ThenBy(strike => strike.CentralHeading),
+        ];
     }
 
     private static GenericActorMatchResult ToGenericResult(
@@ -3519,8 +7199,8 @@ public sealed class GenericActorMatchSession : IDisposable
                             : SlotKind.AvailabilityPending,
                     DueTick = assignment.UnlockTick,
                     PendingReason = assignment.InitialAvailability
-                        == ActorUnitSlotLifecycleAssignmentDefinition
-                            .InitialAvailabilityKind.DormantUnlockAtTick
+                        != ActorUnitSlotLifecycleAssignmentDefinition
+                            .InitialAvailabilityKind.ActiveAtTickZero
                             ? GenericActorRuntimeObservation
                                 .AvailabilityReason.InitialUnlock
                             : null,
@@ -3548,6 +7228,39 @@ public sealed class GenericActorMatchSession : IDisposable
         {
             throw new NotSupportedException(
                 "The first generic session requires initial life IDs and generations to start at zero.");
+        }
+        if (definition.CapabilityVersions.IsMindProfile
+            && definition.Rules.TeamPerception.Kind
+                != ActorTeamPerceptionDefinition.PerceptionKind
+                    .ImmediateUnion)
+        {
+            // The mind receives its team's observable union ONCE. That is only
+            // meaningful when perception is a team union in the first place —
+            // under any per-body perception the "shared" projection would be a
+            // fiction. Team perception is unchanged and stays team-scoped
+            // (DESIGN-MIND-ARCHITECTURE §1.3); the mind profile simply
+            // requires it.
+            throw new NotSupportedException(
+                "The mind profile requires immediate-union team perception.");
+        }
+        if (definition.CapabilityVersions.IsMindProfile
+            && definition.Topology.UnitSlots.Any(slot =>
+                slot.ClassId is not null
+                && !GenericMindContractReservations
+                    .RegisteredCompositionTokens
+                    .Contains(slot.ClassId, StringComparer.Ordinal)
+                && (definition.Rules.GameMode
+                        is not ArcRelayGameModeDefinition arcRelay
+                    || !arcRelay.Signatures.Any(signature => string.Equals(
+                        signature.ClassId,
+                        slot.ClassId,
+                        StringComparison.Ordinal)))))
+        {
+            // A profile ID is a pre-registration in this project, and so is a
+            // composition token. An unregistered chassis on a slot faults here
+            // rather than travelling unlabelled into balance evidence (§9.5).
+            throw new NotSupportedException(
+                "Every per-slot chassis must name a registered composition chassis.");
         }
 
         Dictionary<string, ActorMovementProfileDefinition> movement =
@@ -3739,6 +7452,40 @@ public sealed class GenericActorMatchSession : IDisposable
         public ActorSameLifeTransitionReservation?
             PendingSameLifeTransition
         { get; set; }
+
+        /// <summary>
+        /// Why <see cref="PendingSameLifeTransition"/> exists. The stance
+        /// return route serves both the author's early exit and the engine's
+        /// threshold return, so the cause has to be remembered rather than
+        /// re-derived, and every event about this instance repeats it.
+        /// </summary>
+        public GenericActorRuntimeObservation.FormTransitionReason
+            PendingSameLifeTransitionReason
+        { get; set; }
+
+        /// <summary>
+        /// Automatic-return counters, scoped to the current occupancy of this
+        /// life's form. They live on the life, so nothing survives a respawn,
+        /// and <see cref="EnterForm"/> clears them, so nothing survives a
+        /// stance cycle either.
+        /// </summary>
+        public int AttacksIssuedInForm { get; private set; }
+
+        public int ProjectilesDeflectedInForm { get; private set; }
+
+        public void CountAttackIssued() => AttacksIssuedInForm++;
+
+        public void CountProjectileDeflected() =>
+            ProjectilesDeflectedInForm++;
+
+        /// <summary>Adopts a new form and restarts its trigger counters.</summary>
+        public void EnterForm(string formId)
+        {
+            FormId = formId;
+            AttacksIssuedInForm = 0;
+            ProjectilesDeflectedInForm = 0;
+        }
+
         public bool HasPriorSameLifeTransition { get; set; }
         public HashSet<string> IrreversibleReturnFormIds { get; } =
             new(StringComparer.Ordinal);
@@ -3805,7 +7552,8 @@ public sealed class GenericActorMatchSession : IDisposable
             ProjectileHeading launchHeading,
             ShotProgram? shotProgram,
             ActorAttackProfileDefinition profile,
-            ImmutableArray<Position> path)
+            ImmutableArray<Position> path,
+            int extraTravelTiles = 0)
         {
             Id = id;
             OwnerParticipantId = ownerParticipantId;
@@ -3819,7 +7567,8 @@ public sealed class GenericActorMatchSession : IDisposable
             ShotProgram = shotProgram;
             Profile = profile;
             Path = path;
-            RemainingTiles = profile.Projectile.MaxTravelTiles;
+            RemainingTiles = checked(
+                profile.Projectile.MaxTravelTiles + extraTravelTiles);
             TicksUntilAdvance = profile.Projectile.TicksPerAdvance;
         }
 
@@ -3839,6 +7588,22 @@ public sealed class GenericActorMatchSession : IDisposable
         public int RemainingTiles { get; set; }
         public int TicksUntilAdvance { get; set; }
         public bool Consumed { get; set; }
+
+        /// <summary>
+        /// Set on grammar-2 signature bolts: the operation that fired them,
+        /// and — for hook bolts — the pull applied on contact instead of
+        /// the profile's nominal damage.
+        /// </summary>
+        public string? SignatureBoltOperationId { get; init; }
+        public SignatureBoltHook? SignatureBoltHook { get; init; }
+
+        /// <summary>
+        /// Set only on a bolt a projectile guard returned, to the tick it was
+        /// returned on. Runtime-only bookkeeping: the world snapshot never
+        /// carries it, because the chronology reads the same fact from the
+        /// deflection event that names the bolt.
+        /// </summary>
+        public int? ReturnedAtTick { get; init; }
     }
 
     private sealed record PendingDamageContact(
@@ -3851,10 +7616,35 @@ public sealed class GenericActorMatchSession : IDisposable
 
     private readonly record struct ProjectileContact(
         bool Consumes,
-        bool Damages)
+        bool Damages,
+        bool Deflected = false)
     {
         public static ProjectileContact Pass => new(false, false);
         public static ProjectileContact Block => new(true, false);
         public static ProjectileContact Damage => new(true, true);
+
+        /// <summary>
+        /// Turned by a form's projectile guard: the incoming bolt is spent, no
+        /// damage is scheduled, and a replacement bolt is launched back along
+        /// the reversed heading under the guard's ownership.
+        /// </summary>
+        public static ProjectileContact Deflect =>
+            new(true, false, Deflected: true);
     }
+
+    /// <summary>
+    /// One deflection accepted during this tick's contact resolution. The
+    /// returned bolt's identity is allocated at contact time — contact order
+    /// is therefore identity order — while the body is materialized in the
+    /// tick's single launch phase, so a deflected bolt can never advance on
+    /// the tick that created it (the invariant
+    /// <see cref="ActorProjectileDefinition.AdvancesOnLaunchTick"/> already
+    /// states for attack launches) and a deflection chain cannot recurse
+    /// inside one tick.
+    /// </summary>
+    private sealed record PendingDeflection(
+        long ProjectileId,
+        LifeState Deflector,
+        ProjectileHeading Heading,
+        ActorAttackProfileDefinition Profile);
 }

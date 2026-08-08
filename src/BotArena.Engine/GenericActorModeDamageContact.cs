@@ -10,7 +10,8 @@ internal sealed record GenericActorModeDamageContact
         int? sourceTeamId,
         int targetTeamId,
         long actualHealthRemoved,
-        bool causedDestruction)
+        bool causedDestruction,
+        Position targetPosition = default)
     {
         if (sourceTeamId < 0)
             throw new ArgumentOutOfRangeException(nameof(sourceTeamId));
@@ -32,10 +33,25 @@ internal sealed record GenericActorModeDamageContact
         TargetTeamId = targetTeamId;
         ActualHealthRemoved = actualHealthRemoved;
         CausedDestruction = causedDestruction;
+        TargetPosition = targetPosition;
     }
 
     public int? SourceTeamId { get; }
     public int TargetTeamId { get; }
     public long ActualHealthRemoved { get; }
     public bool CausedDestruction { get; }
+
+    /// <summary>
+    /// Where the target stood when the contact landed — after movement, so it
+    /// is the tile the target occupies for the rest of the tick. A mode that
+    /// scopes damage to a region reads it; a mode that does not ignores it.
+    /// </summary>
+    public Position TargetPosition { get; }
+
+    /// <summary>
+    /// True when the damage came from another scoring team. Environmental and
+    /// same-team contacts are never hostile.
+    /// </summary>
+    public bool IsHostile =>
+        SourceTeamId is int sourceTeamId && sourceTeamId != TargetTeamId;
 }

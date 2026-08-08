@@ -6,10 +6,16 @@ import type {
   ReplayModel,
   ReplayStableUnitKey,
 } from '../replayModel';
-import { participantForUnit } from '../replayParticipants';
+import {
+  isAttackEvent,
+  isDestructionEvent,
+  isDisqualificationEvent,
+} from '../replayModel';
 import type { PlaybackState } from '../playback';
 import { playerAccent } from '../presentation/playerAccent';
+import { unitAccent } from '../render/unitPresentation';
 import { styleVariables } from '../presentation/styleVariables';
+import { playAwarenessTimeline } from '../presentation/playAwareness';
 
 /**
  * The timeline, carrying what happened rather than only where we are.
@@ -42,7 +48,7 @@ const LANE_HEIGHT = 14; // h-3.5
 const LANE_GAP = 4; //    gap-1
 
 /** Marks are ordered by how much they matter, which is also how they stack visually. */
-type MarkKind = 'fired' | 'hit' | 'lost' | 'form';
+type MarkKind = 'fired' | 'hit' | 'deflected' | 'lost' | 'form';
 
 interface Mark {
   key: string;
@@ -50,6 +56,14 @@ interface Mark {
   kind: MarkKind;
   lane: string;
   accent: string;
+}
+
+interface Bookmark {
+  key: string;
+  tick: number;
+  label: string;
+  accent: string;
+  kind: 'core' | 'play' | 'contact';
 }
 
 /** Events that belong to the match rather than to any one team. */
@@ -62,25 +76,31 @@ export default function Timeline({
   replay,
   playback,
   selectedUnitKey,
+  selectedPlayKey,
+  perspectiveTeamId,
 }: {
   replay: ReplayModel;
   playback: PlaybackState;
   selectedUnitKey: ReplayStableUnitKey | null;
+  selectedPlayKey: string | null;
+  perspectiveTeamId: number | null;
 }) {
   const lastTick = Math.max(1, playback.tickCount - 1);
 
-  const { lanes, marks, moments } = useMemo(() => {
-    const accentOf = (unitKey: ReplayStableUnitKey | undefined): string => {
-      const accent = unitKey
-        ? participantForUnit(replay, unitKey)?.accent
-        : null;
-      return accent ? playerAccent(accent, 'panel') : 'currentColor';
-    };
+  const { lanes, marks, moments, bookmarks } = useMemo(() => {
+    // Through `unitAccent`, not `participant.accent`: a generation-3 class match
+    // gives every participant the same default colour, and two lanes of marks in
+    // one hue is the same as no lanes at all.
+    const accentOf = (unitKey: ReplayStableUnitKey | undefined): string =>
+      unitKey === undefined
+        ? 'currentColor'
+        : playerAccent(unitAccent(replay, unitKey), 'panel');
     const teamOf = (unitKey: ReplayStableUnitKey | undefined): number | null =>
       replay.units.find((unit) => unit.unitKey === unitKey)?.teamId ?? null;
 
     const collected: Mark[] = [];
     const matchMoments: { key: string; tick: number }[] = [];
+    const collectedBookmarks: Bookmark[] = [];
 
     const add = (
       event: ReplayCausalEvent,
@@ -119,24 +139,68 @@ export default function Timeline({
           matchMoments.push({ key: event.eventId, tick });
           continue;
         }
-        switch (event.type) {
-          case 'shot':
-            add(event, tick, event.sourceActor?.unitKey, 'fired');
-            break;
-          case 'damage':
-            add(event, tick, event.targetActor?.unitKey, 'hit');
-            break;
-          case 'destroyed':
-          case 'disqualified':
-            add(event, tick, event.targetActor?.unitKey, 'lost');
-            break;
-          case 'form-changed':
-          case 'fabricated':
-            add(event, tick, event.sourceActor?.unitKey, 'form');
-            break;
-          default:
-            break;
+        if (event.arcRelayFact) {
+          const bookmark = arcBookmark(replay, replayTick.tick, event);
+          if (bookmark) collectedBookmarks.push(bookmark);
         }
+        // Firing, dying and being disqualified each arrive in two spellings —
+        // a duel says `shot`/`destroyed`/`disqualified` where a generic
+        // replay-v3 match says `attack`/`destruction`/`participant-disqualified`.
+        // Matched on the literals alone, every generation-3 timeline is blank.
+        if (isAttackEvent(event.type)) {
+          add(event, tick, event.sourceActor?.unitKey, 'fired');
+        } else if (
+          isDestructionEvent(event.type) ||
+          isDisqualificationEvent(event.type)
+        ) {
+          add(event, tick, event.targetActor?.unitKey, 'lost');
+        } else if (event.type === 'projectile-deflected') {
+          // A guard changed the shot's ownership and direction without taking damage.
+          // Put the mark on the defender's lane; drawing it as a hit would say the exact
+          // opposite of what happened.
+          add(event, tick, event.targetActor?.unitKey, 'deflected');
+        } else if (event.type === 'damage') {
+          add(event, tick, event.targetActor?.unitKey, 'hit');
+        } else if (
+          event.type === 'form-changed' ||
+          event.type === 'fabricated'
+        ) {
+          add(event, tick, event.sourceActor?.unitKey, 'form');
+        }
+      }
+    }
+
+    const trace = playAwarenessTimeline(replay);
+    const visibleActivations = perspectiveTeamId === null
+      ? trace.activations
+      : trace.activations.filter((entry) => entry.teamId === perspectiveTeamId);
+    const activations = selectedPlayKey === null
+      ? visibleActivations
+      : visibleActivations.filter((entry) => entry.key === selectedPlayKey);
+    for (const activation of activations) {
+      const unit = replay.units.find((candidate) =>
+        candidate.teamId === activation.teamId,
+      );
+      const accent = unit
+        ? playerAccent(unitAccent(replay, unit.unitKey), 'panel')
+        : '#d9e6ee';
+      for (const transition of activation.transitions) {
+        collectedBookmarks.push({
+          key: `${activation.key}:${transition.phase}:${transition.tick}`,
+          tick: transition.tick,
+          label: `${activation.name} ${transition.phase}`,
+          accent,
+          kind: 'play',
+        });
+      }
+      for (const contact of activation.contacts) {
+        collectedBookmarks.push({
+          key: `${activation.key}:contact:${contact.eventId}`,
+          tick: contact.tick,
+          label: `${activation.name}: ${contact.summary}`,
+          accent,
+          kind: 'contact',
+        });
       }
     }
 
@@ -149,8 +213,13 @@ export default function Timeline({
       ? [{ key: 'selected', label: 'Selected' }, ...teamLanes]
       : teamLanes;
 
-    return { lanes: laneList, marks: collected, moments: matchMoments };
-  }, [replay, selectedUnitKey]);
+    return {
+      lanes: laneList,
+      marks: collected,
+      moments: matchMoments,
+      bookmarks: collectedBookmarks,
+    };
+  }, [perspectiveTeamId, replay, selectedPlayKey, selectedUnitKey]);
 
   const at = (tick: number) => `${(tick / lastTick) * 100}%`;
   const progress = Math.min(playback.time, lastTick) / lastTick;
@@ -174,6 +243,35 @@ export default function Timeline({
             aria-hidden
             className="runtime-position absolute inset-y-0 w-px bg-arena-edge2"
             style={styleVariables({ '--runtime-position': at(moment.tick) })}
+          />
+        ))}
+
+        {bookmarks.map((bookmark, index) => (
+          <button
+            key={bookmark.key}
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              playback.seek(bookmark.tick);
+            }}
+            title={`${bookmark.label} · tick ${bookmark.tick}`}
+            aria-label={`Seek to ${bookmark.label} at tick ${bookmark.tick}`}
+            className={clsx(
+              'runtime-position absolute z-[3] block -translate-x-1/2 border focus:outline-1 focus:outline-white',
+              bookmark.kind === 'core'
+                ? 'top-0 size-2 rounded-full'
+                : bookmark.kind === 'contact'
+                  ? 'top-0 size-2 rotate-45'
+                  : 'top-[3px] h-1.5 w-2.5 rounded-[1px]',
+            )}
+            style={{
+              ...styleVariables({ '--runtime-position': at(bookmark.tick) }),
+              borderColor: bookmark.accent,
+              backgroundColor: `${bookmark.accent}55`,
+              // Separate coincident marks enough to remain tappable without
+              // moving them to a different tick on the horizontal axis.
+              marginTop: `${(index % 2) * 5}px`,
+            }}
           />
         ))}
 
@@ -215,11 +313,15 @@ export default function Timeline({
                   aria-hidden
                   className={clsx(
                     'absolute top-1/2 -translate-x-1/2 -translate-y-1/2',
-                    'player-accent-fill runtime-position',
+                    'runtime-position',
+                    mark.kind === 'deflected'
+                      ? 'player-accent-border size-2.5 rotate-45 border-2'
+                      : 'player-accent-fill',
                     // A shot is a hairline, a hit taken is a notch, a loss is a block:
                     // weight tracks consequence, so a lane reads at a glance.
                     mark.kind === 'fired' && 'h-2 w-[1.5px] opacity-75',
                     mark.kind === 'hit' && 'h-[11px] w-[5px] rounded-[2px]',
+                    mark.kind === 'deflected' && 'rounded-[1px]',
                     mark.kind === 'lost' && 'size-2.5 rounded-[2.5px]',
                     mark.kind === 'form' &&
                       'h-2 w-2 rotate-45 rounded-[1px] opacity-80',
@@ -256,4 +358,39 @@ export default function Timeline({
       </Slider.Thumb>
     </Slider.Root>
   );
+}
+
+function arcBookmark(
+  replay: ReplayModel,
+  tick: number,
+  event: ReplayCausalEvent,
+): Bookmark | null {
+  const fact = event.arcRelayFact;
+  if (!fact) return null;
+  let label: string;
+  let teamId: number | null = null;
+  switch (fact.kind) {
+    case 'core-born': label = 'Core birth'; break;
+    case 'core-picked-up':
+      label = 'Core pickup'; teamId = fact.carrierActor.teamId; break;
+    case 'core-handed-off':
+      label = 'Core handoff'; teamId = fact.targetActor.teamId; break;
+    case 'core-dropped':
+      label = 'Core drop'; teamId = fact.sourceActor.teamId; break;
+    case 'core-banked': label = 'Core bank'; teamId = fact.teamId; break;
+    case 'pulse': label = `Pulse ${fact.pulseOrdinal}`; teamId = fact.teamId; break;
+    default: return null;
+  }
+  const unit = teamId === null
+    ? null
+    : replay.units.find((candidate) => candidate.teamId === teamId) ?? null;
+  return {
+    key: `${event.eventId}:arc`,
+    tick,
+    label,
+    accent: unit
+      ? playerAccent(unitAccent(replay, unit.unitKey), 'panel')
+      : '#d9e6ee',
+    kind: 'core',
+  };
 }

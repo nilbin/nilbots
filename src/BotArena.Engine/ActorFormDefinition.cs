@@ -16,7 +16,9 @@ public sealed record ActorFormDefinition
         string visionProfileId,
         string? attackProfileId,
         int objectiveWeight,
-        IEnumerable<string> allowedActionIds)
+        IEnumerable<string> allowedActionIds,
+        ActorFormProjectileGuardKind projectileGuard =
+            ActorFormProjectileGuardKind.None)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(id);
         ArgumentException.ThrowIfNullOrWhiteSpace(movementProfileId);
@@ -28,6 +30,8 @@ public sealed record ActorFormDefinition
             throw new ArgumentOutOfRangeException(nameof(maxHealth));
         if (objectiveWeight < 0)
             throw new ArgumentOutOfRangeException(nameof(objectiveWeight));
+        if (!Enum.IsDefined(projectileGuard))
+            throw new ArgumentOutOfRangeException(nameof(projectileGuard));
 
         ImmutableArray<string> actionIds = allowedActionIds
             .Select(value => value)
@@ -52,6 +56,7 @@ public sealed record ActorFormDefinition
         VisionProfileId = visionProfileId;
         AttackProfileId = attackProfileId;
         ObjectiveWeight = objectiveWeight;
+        ProjectileGuard = projectileGuard;
         AllowedActionIds = actionIds
             .Order(StringComparer.Ordinal)
             .ToImmutableArray();
@@ -63,5 +68,12 @@ public sealed record ActorFormDefinition
     public string VisionProfileId { get; }
     public string? AttackProfileId { get; }
     public int ObjectiveWeight { get; }
+
+    /// <summary>
+    /// Defensive projectile-contact capability. <see cref="ActorFormProjectileGuardKind.None"/>
+    /// is the inert default and writes no canonical bytes.
+    /// </summary>
+    public ActorFormProjectileGuardKind ProjectileGuard { get; }
+
     public ImmutableArray<string> AllowedActionIds { get; }
 }

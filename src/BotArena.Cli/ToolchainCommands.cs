@@ -10,6 +10,7 @@ public static class BuildCommand
         var (directory, rest) = TakeDirectory(args);
         var options = CliSupport.ParseOptions(rest);
         var project = BotProject.Load(directory);
+        WarnOnStaleSdkVersion(project.Manifest);
         var built = BotBuilder.EnsureBuilt(project, noCache: options.ContainsKey("no-cache"));
         // A tangible artifact in the project (gen-2 finding #10): lets you point
         // `play --opponent` at this build as a file, like champions/*/bot.wasm.
@@ -19,6 +20,24 @@ public static class BuildCommand
         PrintSummary(project, built);
         Console.WriteLine($"Artifact:         {artifactCopy}");
         return 0;
+    }
+
+    /// <summary>
+    /// One line when the manifest's declared sdkVersion disagrees with the
+    /// toolchain's. A WARNING, never a failure: a stale declaration cannot
+    /// produce a stale artifact (the cache key carries the pinned SDK and the
+    /// staged Sdk/Guest DLL bytes), which is precisely why a whole campaign of
+    /// projects declared a version they were not built against and stayed
+    /// green. It goes to stderr so a harness reading the build's stdout
+    /// summary is unaffected.
+    /// </summary>
+    /// <returns>True when a warning was emitted.</returns>
+    public static bool WarnOnStaleSdkVersion(BotManifest manifest)
+    {
+        if (SdkVersionAdvisory.Describe(manifest) is not string advisory)
+            return false;
+        Console.Error.WriteLine($"warning: {advisory}");
+        return true;
     }
 
     public static void PrintSummary(BotProject project, BuiltBot built)
@@ -31,8 +50,18 @@ public static class BuildCommand
         Console.WriteLine(
             $"Runtime protocols: legacy " +
             $"{BotArenaVersions.RuntimeProtocolVersion}; actor " +
-            $"{BotArenaVersions.GenericActorRuntimeProtocolVersion} " +
+            $"{BotArenaVersions.GenericActorRuntimeProtocolVersion}; mind " +
+            $"{BotArenaVersions.GenericMindRuntimeProtocolVersion} " +
             "(selected by match and implemented entry interface)");
+        // Both generic profiles, always, because both are always true of the
+        // artifact: an IGenericMindBot entry drives the mind natively and any
+        // IGenericActorBot entry reaches it through the guest's wrap adapter.
+        // The host deliberately cannot tell which, so printing a guess here
+        // would be inventing a claim nothing can check.
+        Console.WriteLine(
+            $"Contract profiles: {BotArenaVersions.GenericActorContractProfileId} " +
+            $"(per-life) · {BotArenaVersions.GenericMindContractProfileId} " +
+            "(mind; a per-life entry is wrapped, no source edits)");
         Console.WriteLine($"SDK:              {ToolchainInfo.SdkVersion}");
         Console.WriteLine($"Compiler:         NativeAOT-LLVM {ToolchainInfo.IlcLlvmVersion}");
         Console.WriteLine($"Cache:            {(built.FromCache ? "hit" : "miss (compiled)")} · key {built.CacheKey}");

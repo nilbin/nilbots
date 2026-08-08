@@ -1,0 +1,676 @@
+{
+  "cells": [
+    {
+      "cellId": "confirm--rear-hook--balanced--s67867967--op0",
+      "counterThesis": "general baseline control checks over-specialisation",
+      "matchContractFingerprint": "55b54897cc13c72ffe72a7c5bf80d8bc6023df16d5cf82cae4397e1c79e76a80",
+      "operationId": "rear-hook",
+      "operationTeamId": 0,
+      "opponentId": "balanced",
+      "seed": "67867967",
+      "team0": "op-rear-hook",
+      "team1": "pop-balanced",
+      "topologyFingerprint": "5d254072d43a922b5840b59acac2d3f76ca23f058a7f68854e3176316a1c53ba"
+    },
+    {
+      "cellId": "confirm--rear-hook--balanced--s982451653--op1",
+      "counterThesis": "general baseline control checks over-specialisation",
+      "matchContractFingerprint": "1428c94569eacedce36d97d9dca14ac3457a0f0d42cc597b82c5f4815486720f",
+      "operationId": "rear-hook",
+      "operationTeamId": 1,
+      "opponentId": "balanced",
+      "seed": "982451653",
+      "team0": "pop-balanced",
+      "team1": "op-rear-hook",
+      "topologyFingerprint": "615b42564b6530126652d81c14e8260610d79d5778166b9e8998b10b9c7caa63"
+    },
+    {
+      "cellId": "confirm--rear-hook--fortress-counterattack--s67867967--op1",
+      "counterThesis": "prepared home defence punishes infiltrators",
+      "matchContractFingerprint": "d25e3ce16d9ba4bd7edcc93f73616f084853cd35e5e2082184b571b8ca7a91cc",
+      "operationId": "rear-hook",
+      "operationTeamId": 1,
+      "opponentId": "fortress-counterattack",
+      "seed": "67867967",
+      "team0": "pop-fortress-counterattack",
+      "team1": "op-rear-hook",
+      "topologyFingerprint": "6c4c2c9f3a8af31264e4a602e5d5bb5968233d8da052315aa56156ac8af67aa2"
+    },
+    {
+      "cellId": "confirm--rear-hook--fortress-counterattack--s982451653--op0",
+      "counterThesis": "prepared home defence punishes infiltrators",
+      "matchContractFingerprint": "a0dfa26e779fce6350ef20f986dfcba3e42e5eaac4d9f2eaa3c849424322a4d9",
+      "operationId": "rear-hook",
+      "operationTeamId": 0,
+      "opponentId": "fortress-counterattack",
+      "seed": "982451653",
+      "team0": "op-rear-hook",
+      "team1": "pop-fortress-counterattack",
+      "topologyFingerprint": "821236434be03990bdbd8d83d0265e08ca8162d9a309b66a9d9df69970512350"
+    },
+    {
+      "cellId": "confirm--lantern-sweep--beacon-hunt--s67867967--op1",
+      "counterThesis": "sensor contest hunts the exposed Lantern",
+      "matchContractFingerprint": "8f1f93d262d5cda3e703e8b5c199c598b6614bd6d1adafe4ad490e1d69f839c4",
+      "operationId": "lantern-sweep",
+      "operationTeamId": 1,
+      "opponentId": "beacon-hunt",
+      "seed": "67867967",
+      "team0": "pop-beacon-hunt",
+      "team1": "op-lantern-sweep",
+      "topologyFingerprint": "3e6b7e0fe1fd563241b760f49165d3ea438eadbbb1bfef72dc8e76b5c562bf3a"
+    },
+    {
+      "cellId": "confirm--lantern-sweep--beacon-hunt--s982451653--op0",
+      "counterThesis": "sensor contest hunts the exposed Lantern",
+      "matchContractFingerprint": "86eafc7a1226147abe8c4ccf3746b45feab0142eae74c4ba28ff802275371648",
+      "operationId": "lantern-sweep",
+      "operationTeamId": 0,
+      "opponentId": "beacon-hunt",
+      "seed": "982451653",
+      "team0": "op-lantern-sweep",
+      "team1": "pop-beacon-hunt",
+      "topologyFingerprint": "f7dc650570a432f1fcbd0649188742a01ce1871564a24957faf8427a2c088c9c"
+    },
+    {
+      "cellId": "confirm--lantern-sweep--sensor-grid--s67867967--op0",
+      "counterThesis": "distributed vision contests information advantage",
+      "matchContractFingerprint": "4a07dc577498e08b251d1d3a2db1f6113c4b24946aef43e76c7f30f47ac73f9c",
+      "operationId": "lantern-sweep",
+      "operationTeamId": 0,
+      "opponentId": "sensor-grid",
+      "seed": "67867967",
+      "team0": "op-lantern-sweep",
+      "team1": "pop-sensor-grid",
+      "topologyFingerprint": "eedce2822938cd1d8a86f5e2f6f40d6cae9f0a793ccad4a0d60da494779afda1"
+    },
+    {
+      "cellId": "confirm--lantern-sweep--sensor-grid--s982451653--op1",
+      "counterThesis": "distributed vision contests information advantage",
+      "matchContractFingerprint": "a13bf3e6a8c3fe2d1fa287a481e177073de0661d914be19051b5bc8bf7a2c1fa",
+      "operationId": "lantern-sweep",
+      "operationTeamId": 1,
+      "opponentId": "sensor-grid",
+      "seed": "982451653",
+      "team0": "pop-sensor-grid",
+      "team1": "op-lantern-sweep",
+      "topologyFingerprint": "78514f9ca437e1015ffe7233ac429ce10e24fa07bca1d1d3681a8a3e3832a3a1"
+    },
+    {
+      "cellId": "confirm--fork-shadow--smoke-convoy--s67867967--op0",
+      "counterThesis": "concealment tests last-seen pursuit",
+      "matchContractFingerprint": "85d0d4e0fec6c98d728824a95adcec24b593f2065ba17393206a16bdda1ca343",
+      "operationId": "fork-shadow",
+      "operationTeamId": 0,
+      "opponentId": "smoke-convoy",
+      "seed": "67867967",
+      "team0": "op-fork-shadow",
+      "team1": "pop-smoke-convoy",
+      "topologyFingerprint": "7cb8116be145289ac1412ced703a90a35055fb0ce4febbd7c430af543eb12e3e"
+    },
+    {
+      "cellId": "confirm--fork-shadow--smoke-convoy--s982451653--op1",
+      "counterThesis": "concealment tests last-seen pursuit",
+      "matchContractFingerprint": "120eea549f1518bfb63e0ae6b01426d5714de0ae8e8535a27221fcec2fe3c159",
+      "operationId": "fork-shadow",
+      "operationTeamId": 1,
+      "opponentId": "smoke-convoy",
+      "seed": "982451653",
+      "team0": "pop-smoke-convoy",
+      "team1": "op-fork-shadow",
+      "topologyFingerprint": "d583e28b463a6563377d9b911d5ff6199a046529438a405745fef21b28416ac9"
+    },
+    {
+      "cellId": "confirm--fork-shadow--counter-courier--s67867967--op1",
+      "counterThesis": "escort pressure protects the exact carrier",
+      "matchContractFingerprint": "cb1b8d517a8c5772c81dafd485d0b9d65178ded6b8c9681f57a8818c1a2f185a",
+      "operationId": "fork-shadow",
+      "operationTeamId": 1,
+      "opponentId": "counter-courier",
+      "seed": "67867967",
+      "team0": "pop-counter-courier",
+      "team1": "op-fork-shadow",
+      "topologyFingerprint": "4a2bc5cb2443162a6d749d44290308acb2b5e23886286341c513d698d0547865"
+    },
+    {
+      "cellId": "confirm--fork-shadow--counter-courier--s982451653--op0",
+      "counterThesis": "escort pressure protects the exact carrier",
+      "matchContractFingerprint": "0edad5c08807a1f70695972e764b585250629b01bbb5a060e80a2e431403e9d9",
+      "operationId": "fork-shadow",
+      "operationTeamId": 0,
+      "opponentId": "counter-courier",
+      "seed": "982451653",
+      "team0": "op-fork-shadow",
+      "team1": "pop-counter-courier",
+      "topologyFingerprint": "d96e1ed25433b71d85000e451cc583608c757348ee232a5b99efa9424f619497"
+    },
+    {
+      "cellId": "confirm--birth-rotation--beacon-hunt--s67867967--op1",
+      "counterThesis": "scouting pressure detects early rotation",
+      "matchContractFingerprint": "8f1f93d262d5cda3e703e8b5c199c598b6614bd6d1adafe4ad490e1d69f839c4",
+      "operationId": "birth-rotation",
+      "operationTeamId": 1,
+      "opponentId": "beacon-hunt",
+      "seed": "67867967",
+      "team0": "pop-beacon-hunt",
+      "team1": "op-birth-rotation",
+      "topologyFingerprint": "3e6b7e0fe1fd563241b760f49165d3ea438eadbbb1bfef72dc8e76b5c562bf3a"
+    },
+    {
+      "cellId": "confirm--birth-rotation--beacon-hunt--s982451653--op0",
+      "counterThesis": "scouting pressure detects early rotation",
+      "matchContractFingerprint": "86eafc7a1226147abe8c4ccf3746b45feab0142eae74c4ba28ff802275371648",
+      "operationId": "birth-rotation",
+      "operationTeamId": 0,
+      "opponentId": "beacon-hunt",
+      "seed": "982451653",
+      "team0": "op-birth-rotation",
+      "team1": "pop-beacon-hunt",
+      "topologyFingerprint": "f7dc650570a432f1fcbd0649188742a01ce1871564a24957faf8427a2c088c9c"
+    },
+    {
+      "cellId": "confirm--birth-rotation--centre-phalanx--s67867967--op0",
+      "counterThesis": "central mass tests whether rotation concedes home",
+      "matchContractFingerprint": "b21a21c58d44a7021974bbda2e6def77f7c669befce3295d61ce1e4d470e3b63",
+      "operationId": "birth-rotation",
+      "operationTeamId": 0,
+      "opponentId": "centre-phalanx",
+      "seed": "67867967",
+      "team0": "op-birth-rotation",
+      "team1": "pop-centre-phalanx",
+      "topologyFingerprint": "4b013239bb4196a7edca59b89c649d3e63b38e41ad34433bce19b09d6cee92a9"
+    },
+    {
+      "cellId": "confirm--birth-rotation--centre-phalanx--s982451653--op1",
+      "counterThesis": "central mass tests whether rotation concedes home",
+      "matchContractFingerprint": "7522402f3fe02b69a0d7ea2704744602af97c2fd2614412b09bea539221c1261",
+      "operationId": "birth-rotation",
+      "operationTeamId": 1,
+      "opponentId": "centre-phalanx",
+      "seed": "982451653",
+      "team0": "pop-centre-phalanx",
+      "team1": "op-birth-rotation",
+      "topologyFingerprint": "0d60037401f9cf354d1e034103007a962ee39089d6e9654d538a03bbf415c3e4"
+    },
+    {
+      "cellId": "confirm--escort-counterpunch--fireline-picks--s67867967--op0",
+      "counterThesis": "long-range focus punishes a held carrier",
+      "matchContractFingerprint": "05aa7b34285e9c70f67b157d4ec3305264cca7a5eee342adfcc2be1f729fb669",
+      "operationId": "escort-counterpunch",
+      "operationTeamId": 0,
+      "opponentId": "fireline-picks",
+      "seed": "67867967",
+      "team0": "op-escort-counterpunch",
+      "team1": "pop-fireline-picks",
+      "topologyFingerprint": "4cfe96812d4bed0fecd74e45e3486476f85e499a71a4a91f44ce42886e20e74f"
+    },
+    {
+      "cellId": "confirm--escort-counterpunch--fireline-picks--s982451653--op1",
+      "counterThesis": "long-range focus punishes a held carrier",
+      "matchContractFingerprint": "ffa6d70cb25e3a6ab8262d10bd06306eede4c7b424812e5d4bf40794ca110cf5",
+      "operationId": "escort-counterpunch",
+      "operationTeamId": 1,
+      "opponentId": "fireline-picks",
+      "seed": "982451653",
+      "team0": "pop-fireline-picks",
+      "team1": "op-escort-counterpunch",
+      "topologyFingerprint": "db2fa5f1ec5d894b8eb55cf103a6061015944bd6457ef1757d2056a37ace0a86"
+    },
+    {
+      "cellId": "confirm--escort-counterpunch--home-counterpunch--s67867967--op1",
+      "counterThesis": "mirrored counterpressure tests route choice",
+      "matchContractFingerprint": "c66a64ad4e2ccb2b7a4ea3b6472b554f867b4395c67a7926b5470219ffeed22b",
+      "operationId": "escort-counterpunch",
+      "operationTeamId": 1,
+      "opponentId": "home-counterpunch",
+      "seed": "67867967",
+      "team0": "pop-home-counterpunch",
+      "team1": "op-escort-counterpunch",
+      "topologyFingerprint": "02d08fbfc0a32488978dc284d332452014783dff0e059fc220a4593fa6532430"
+    },
+    {
+      "cellId": "confirm--escort-counterpunch--home-counterpunch--s982451653--op0",
+      "counterThesis": "mirrored counterpressure tests route choice",
+      "matchContractFingerprint": "0015ba8285e12269c63b716ea0afe507f24e50d00b9f5272d2effd6093491d5a",
+      "operationId": "escort-counterpunch",
+      "operationTeamId": 0,
+      "opponentId": "home-counterpunch",
+      "seed": "982451653",
+      "team0": "op-escort-counterpunch",
+      "team1": "pop-home-counterpunch",
+      "topologyFingerprint": "ad168f8823c9643767f4da9dda218c468eed451ad79f5ab994e94e9eef60effd"
+    },
+    {
+      "cellId": "confirm--smoke-breach--null-veil--s67867967--op1",
+      "counterThesis": "counter-concealment and dampening contest signatures",
+      "matchContractFingerprint": "f77e65ce352c12acfcb6d39411add581f1899451c0b3df960e4e3fb802875117",
+      "operationId": "smoke-breach",
+      "operationTeamId": 1,
+      "opponentId": "null-veil",
+      "seed": "67867967",
+      "team0": "pop-null-veil",
+      "team1": "op-smoke-breach",
+      "topologyFingerprint": "e5fc66abf3a483a4ff07b4069754f07443f500465e9bddb95b27e17f74ff7f34"
+    },
+    {
+      "cellId": "confirm--smoke-breach--null-veil--s982451653--op0",
+      "counterThesis": "counter-concealment and dampening contest signatures",
+      "matchContractFingerprint": "fa6728cee2f9e4936734e5eda8e17b691e42e7e162c7dce5cd0bd93fc424337b",
+      "operationId": "smoke-breach",
+      "operationTeamId": 0,
+      "opponentId": "null-veil",
+      "seed": "982451653",
+      "team0": "op-smoke-breach",
+      "team1": "pop-null-veil",
+      "topologyFingerprint": "2d43a048de2804725533889cd275f399fa3b4c1c8761336d27fd1ad7b5b8addd"
+    },
+    {
+      "cellId": "confirm--smoke-breach--rotating-bastions--s67867967--op0",
+      "counterThesis": "hard lane defence absorbs the breach",
+      "matchContractFingerprint": "92391e8afa80d6a3007ddfab40243f8ba18c21400a113df62ef80a10b6ee6f7c",
+      "operationId": "smoke-breach",
+      "operationTeamId": 0,
+      "opponentId": "rotating-bastions",
+      "seed": "67867967",
+      "team0": "op-smoke-breach",
+      "team1": "pop-rotating-bastions",
+      "topologyFingerprint": "9ba73094dec4ffb4619115cb85fbd406d9564fa6b28683187ee093be2de420f9"
+    },
+    {
+      "cellId": "confirm--smoke-breach--rotating-bastions--s982451653--op1",
+      "counterThesis": "hard lane defence absorbs the breach",
+      "matchContractFingerprint": "77b06a21b9e170d8aba56567245272a28c02495195bf6f916c5e493a13b6bece",
+      "operationId": "smoke-breach",
+      "operationTeamId": 1,
+      "opponentId": "rotating-bastions",
+      "seed": "982451653",
+      "team0": "pop-rotating-bastions",
+      "team1": "op-smoke-breach",
+      "topologyFingerprint": "6f58dbf987b678c99d0021c1a7b6685780a7735f565571f026b064f5dff6a80b"
+    },
+    {
+      "cellId": "confirm--hardlight-gate--breach-column--s67867967--op0",
+      "counterThesis": "concentrated breach pressure tests the gate",
+      "matchContractFingerprint": "5deffd89023ec6f34109fc3357d4c03f1f30c0920e202eb373244bef00e8e177",
+      "operationId": "hardlight-gate",
+      "operationTeamId": 0,
+      "opponentId": "breach-column",
+      "seed": "67867967",
+      "team0": "op-hardlight-gate",
+      "team1": "pop-breach-column",
+      "topologyFingerprint": "70060f74a678d68e1a9ba4d33a01c2ab1b2248d534f24ac355372796722ea661"
+    },
+    {
+      "cellId": "confirm--hardlight-gate--breach-column--s982451653--op1",
+      "counterThesis": "concentrated breach pressure tests the gate",
+      "matchContractFingerprint": "723373753c65ce0e60a208179858069095c9676a45fd105f5bd4ba9cfb7697a2",
+      "operationId": "hardlight-gate",
+      "operationTeamId": 1,
+      "opponentId": "breach-column",
+      "seed": "982451653",
+      "team0": "pop-breach-column",
+      "team1": "op-hardlight-gate",
+      "topologyFingerprint": "4b6946096ba9037e833e77e8c2113a9878e84bf3e4c8755660433f5de0560ab4"
+    },
+    {
+      "cellId": "confirm--hardlight-gate--counter-courier--s67867967--op1",
+      "counterThesis": "carrier hunters force the protection mission",
+      "matchContractFingerprint": "fe56b842b5ea91d37c440cdd4bc99f378161d2d68137b840b00a21ae96328d2a",
+      "operationId": "hardlight-gate",
+      "operationTeamId": 1,
+      "opponentId": "counter-courier",
+      "seed": "67867967",
+      "team0": "pop-counter-courier",
+      "team1": "op-hardlight-gate",
+      "topologyFingerprint": "6a9ffd59c41154ba06cb72d71cfae2cdee7e78d5d41248a721d50ab3999e734d"
+    },
+    {
+      "cellId": "confirm--hardlight-gate--counter-courier--s982451653--op0",
+      "counterThesis": "carrier hunters force the protection mission",
+      "matchContractFingerprint": "0b2e853f077ac02091bb1757b1180b8a5d8e6fda8151fc613b9467102c45fc92",
+      "operationId": "hardlight-gate",
+      "operationTeamId": 0,
+      "opponentId": "counter-courier",
+      "seed": "982451653",
+      "team0": "op-hardlight-gate",
+      "team1": "pop-counter-courier",
+      "topologyFingerprint": "a6d5de69b2b67f935675bffabc87f717978b7a471345dd3a33015ce5dbe0a2b0"
+    },
+    {
+      "cellId": "confirm--relay-catch--trap-punish--s67867967--op1",
+      "counterThesis": "predictable catch position is denied",
+      "matchContractFingerprint": "e9545f7cb101220af1dc88b66babb8503613e6d7815a484784360ab8d43d350e",
+      "operationId": "relay-catch",
+      "operationTeamId": 1,
+      "opponentId": "trap-punish",
+      "seed": "67867967",
+      "team0": "pop-trap-punish",
+      "team1": "op-relay-catch",
+      "topologyFingerprint": "b958a5326d81b35f462455dee1777e572cc54ef8d38656382cbf7cb3c5c6bcf0"
+    },
+    {
+      "cellId": "confirm--relay-catch--trap-punish--s982451653--op0",
+      "counterThesis": "predictable catch position is denied",
+      "matchContractFingerprint": "8653c710d30ed66d38963ce011f84db45c39aa2e3bbda68a1406392aacafc2a3",
+      "operationId": "relay-catch",
+      "operationTeamId": 0,
+      "opponentId": "trap-punish",
+      "seed": "982451653",
+      "team0": "op-relay-catch",
+      "team1": "pop-trap-punish",
+      "topologyFingerprint": "882b5797d6b5cdcb64906c4578c1edbae7b573a81e1c11a471b84b53639241bc"
+    },
+    {
+      "cellId": "confirm--relay-catch--hook-burst--s67867967--op0",
+      "counterThesis": "forced movement can break the catch lane",
+      "matchContractFingerprint": "83056aab9a87636320dc44916fee0a8e25c14500d56e3def016222b1d6138503",
+      "operationId": "relay-catch",
+      "operationTeamId": 0,
+      "opponentId": "hook-burst",
+      "seed": "67867967",
+      "team0": "op-relay-catch",
+      "team1": "pop-hook-burst",
+      "topologyFingerprint": "c123b6ed692efd6e62bed16679161381fa77bc2dde09a9fde48850557c1d1e96"
+    },
+    {
+      "cellId": "confirm--relay-catch--hook-burst--s982451653--op1",
+      "counterThesis": "forced movement can break the catch lane",
+      "matchContractFingerprint": "386f1ed6d40a69c2f41911e6b3615c13c1e03eb23467b9ee9581c755fe70806c",
+      "operationId": "relay-catch",
+      "operationTeamId": 1,
+      "opponentId": "hook-burst",
+      "seed": "982451653",
+      "team0": "pop-hook-burst",
+      "team1": "op-relay-catch",
+      "topologyFingerprint": "103fb213e499f08c99f9f07e26b433e978b37125170f7944ee34fdf2ff08d273"
+    },
+    {
+      "cellId": "confirm--decoy-switch--beacon-hunt--s67867967--op0",
+      "counterThesis": "active scouts test false-pressure credibility",
+      "matchContractFingerprint": "86eafc7a1226147abe8c4ccf3746b45feab0142eae74c4ba28ff802275371648",
+      "operationId": "decoy-switch",
+      "operationTeamId": 0,
+      "opponentId": "beacon-hunt",
+      "seed": "67867967",
+      "team0": "op-decoy-switch",
+      "team1": "pop-beacon-hunt",
+      "topologyFingerprint": "f7dc650570a432f1fcbd0649188742a01ce1871564a24957faf8427a2c088c9c"
+    },
+    {
+      "cellId": "confirm--decoy-switch--beacon-hunt--s982451653--op1",
+      "counterThesis": "active scouts test false-pressure credibility",
+      "matchContractFingerprint": "8f1f93d262d5cda3e703e8b5c199c598b6614bd6d1adafe4ad490e1d69f839c4",
+      "operationId": "decoy-switch",
+      "operationTeamId": 1,
+      "opponentId": "beacon-hunt",
+      "seed": "982451653",
+      "team0": "pop-beacon-hunt",
+      "team1": "op-decoy-switch",
+      "topologyFingerprint": "3e6b7e0fe1fd563241b760f49165d3ea438eadbbb1bfef72dc8e76b5c562bf3a"
+    },
+    {
+      "cellId": "confirm--decoy-switch--elastic-reserve--s67867967--op1",
+      "counterThesis": "mobile reserves answer the locked pincer",
+      "matchContractFingerprint": "194010b5fc0b755eef1bc237708864df62b52bacb826c3af6ffb1e789e6693d1",
+      "operationId": "decoy-switch",
+      "operationTeamId": 1,
+      "opponentId": "elastic-reserve",
+      "seed": "67867967",
+      "team0": "pop-elastic-reserve",
+      "team1": "op-decoy-switch",
+      "topologyFingerprint": "128ec55077231184d5d3381732645a9fdbe2f84cdd91be50bd39d50e3218935b"
+    },
+    {
+      "cellId": "confirm--decoy-switch--elastic-reserve--s982451653--op0",
+      "counterThesis": "mobile reserves answer the locked pincer",
+      "matchContractFingerprint": "b4761cf6af7f5eaf5fdb7b9b9bdd4d293e2943c6e2ce0343e6480086dee43c96",
+      "operationId": "decoy-switch",
+      "operationTeamId": 0,
+      "opponentId": "elastic-reserve",
+      "seed": "982451653",
+      "team0": "op-decoy-switch",
+      "team1": "pop-elastic-reserve",
+      "topologyFingerprint": "5cb7f02fd04f25a109787ec375ceb2f7bc49f3cc0437b9d08231fd0c1c4485ba"
+    },
+    {
+      "cellId": "confirm--emergency-exchange--interception--s67867967--op1",
+      "counterThesis": "carrier hunters force the emergency",
+      "matchContractFingerprint": "58e2eb658367aa309232a2e3fc1c2d468e9cddd8af646350a8e77718bb35ea84",
+      "operationId": "emergency-exchange",
+      "operationTeamId": 1,
+      "opponentId": "interception",
+      "seed": "67867967",
+      "team0": "pop-interception",
+      "team1": "op-emergency-exchange",
+      "topologyFingerprint": "55cee851b7acae2ab009d3992c53b6590049962413f3ae19a662593d94434b92"
+    },
+    {
+      "cellId": "confirm--emergency-exchange--interception--s982451653--op0",
+      "counterThesis": "carrier hunters force the emergency",
+      "matchContractFingerprint": "7383d72343db0e76f08d33763e81dce6e72c8aac826cbd8549d099ac2ff2944f",
+      "operationId": "emergency-exchange",
+      "operationTeamId": 0,
+      "opponentId": "interception",
+      "seed": "982451653",
+      "team0": "op-emergency-exchange",
+      "team1": "pop-interception",
+      "topologyFingerprint": "22b7a7df4178a2a332bb2bb9c3c3c2319bd3da73d30882129816cf345ce928a5"
+    },
+    {
+      "cellId": "confirm--emergency-exchange--mortar-wheel--s67867967--op0",
+      "counterThesis": "area pressure attacks the rendezvous",
+      "matchContractFingerprint": "e14e814d08c7ed427f6a9f9ccb0165b8421a7c28e798ff60979b93cadf047a52",
+      "operationId": "emergency-exchange",
+      "operationTeamId": 0,
+      "opponentId": "mortar-wheel",
+      "seed": "67867967",
+      "team0": "op-emergency-exchange",
+      "team1": "pop-mortar-wheel",
+      "topologyFingerprint": "2c5441181802bec31fe6d0c6a8ce9d4540699e2b835324be4aabf45bb2d19c71"
+    },
+    {
+      "cellId": "confirm--emergency-exchange--mortar-wheel--s982451653--op1",
+      "counterThesis": "area pressure attacks the rendezvous",
+      "matchContractFingerprint": "4411059425f9734a38fa57749ba86fdd79d52aecb47bfcc3848f5bb1810e6948",
+      "operationId": "emergency-exchange",
+      "operationTeamId": 1,
+      "opponentId": "mortar-wheel",
+      "seed": "982451653",
+      "team0": "pop-mortar-wheel",
+      "team1": "op-emergency-exchange",
+      "topologyFingerprint": "c2d2d7e52630d149a390ae332c8f65b99ef615c549a6d2a4ddc864dc3171cd37"
+    }
+  ],
+  "cohortId": "arc-relay-operation-counterplay-confirmation-v1",
+  "counterTaxonomy": "arena-bots/arc-relay/operation-counterplay-v1-2026-08-03/counter-taxonomy-v2.json",
+  "counterTaxonomySha256": "0b7fc8a9fb566c97bd54990538e1b8aa0c23e665b9b6b55791a8fbeda8dd08b1",
+  "eligibilityBars": "balance/arc-relay-felt-degeneracy-bars-v3.json",
+  "eligibilityBarsSha256": "7a32179220246997c37a40bcf9a5731f8ccc1c5f6cd50076439023274fe22ce4",
+  "engineVersion": "1.0.5",
+  "entrants": {
+    "op-birth-rotation": {
+      "artifact": "arena-bots/arc-relay/stock-mind-v3/out/bot.wasm",
+      "artifactSha256": "46f12690d4251e42584f5634b956844f7292498e485c99b231cb9ec1b8bc4aee",
+      "sheet": "arena-bots/arc-relay/intelligent-operation-proof-v1-2026-08-02/sheets/birth-rotation.json",
+      "sheetSha256": "848f17f00a075bfc18ffdd49d038756f3317a92114cfb491e82efdee7429684e"
+    },
+    "op-decoy-switch": {
+      "artifact": "arena-bots/arc-relay/stock-mind-v3/out/bot.wasm",
+      "artifactSha256": "46f12690d4251e42584f5634b956844f7292498e485c99b231cb9ec1b8bc4aee",
+      "sheet": "arena-bots/arc-relay/intelligent-operation-proof-v1-2026-08-02/sheets/decoy-switch.json",
+      "sheetSha256": "a8c459c512449287f140cca104ecf25d569827ef5eb3de5c9050a588ccceda59"
+    },
+    "op-emergency-exchange": {
+      "artifact": "arena-bots/arc-relay/stock-mind-v3/out/bot.wasm",
+      "artifactSha256": "46f12690d4251e42584f5634b956844f7292498e485c99b231cb9ec1b8bc4aee",
+      "sheet": "arena-bots/arc-relay/intelligent-operation-proof-v1-2026-08-02/sheets/emergency-exchange.json",
+      "sheetSha256": "ad3c61126877492fb8b7251bfc319194220656a492be9b1266bb080409a1590e"
+    },
+    "op-escort-counterpunch": {
+      "artifact": "arena-bots/arc-relay/stock-mind-v3/out/bot.wasm",
+      "artifactSha256": "46f12690d4251e42584f5634b956844f7292498e485c99b231cb9ec1b8bc4aee",
+      "sheet": "arena-bots/arc-relay/intelligent-operation-proof-v1-2026-08-02/sheets/escort-counterpunch.json",
+      "sheetSha256": "4ef8e5ed02e69abd5f748e7885f9d8a882ab7f04682f50a839ed740a89a4b7f6"
+    },
+    "op-fork-shadow": {
+      "artifact": "arena-bots/arc-relay/stock-mind-v3/out/bot.wasm",
+      "artifactSha256": "46f12690d4251e42584f5634b956844f7292498e485c99b231cb9ec1b8bc4aee",
+      "sheet": "arena-bots/arc-relay/intelligent-operation-proof-v1-2026-08-02/sheets/fork-shadow.json",
+      "sheetSha256": "33b5e0d400bed3cd0ded13777f956200ecef2260cc69e3c8cc46e7977a8394ac"
+    },
+    "op-hardlight-gate": {
+      "artifact": "arena-bots/arc-relay/stock-mind-v3/out/bot.wasm",
+      "artifactSha256": "46f12690d4251e42584f5634b956844f7292498e485c99b231cb9ec1b8bc4aee",
+      "sheet": "arena-bots/arc-relay/intelligent-operation-proof-v1-2026-08-02/sheets/hardlight-gate.json",
+      "sheetSha256": "a8e1322fa1597c904646ee366f4716746c6a7dfd758a154f10a2816861095997"
+    },
+    "op-lantern-sweep": {
+      "artifact": "arena-bots/arc-relay/stock-mind-v3/out/bot.wasm",
+      "artifactSha256": "46f12690d4251e42584f5634b956844f7292498e485c99b231cb9ec1b8bc4aee",
+      "sheet": "arena-bots/arc-relay/intelligent-operation-proof-v1-2026-08-02/sheets/lantern-sweep.json",
+      "sheetSha256": "0e14fdfb9578f125e7e3232c4dca516488b91aea21b3bae669bcab9e96ee8be3"
+    },
+    "op-rear-hook": {
+      "artifact": "arena-bots/arc-relay/stock-mind-v3/out/bot.wasm",
+      "artifactSha256": "46f12690d4251e42584f5634b956844f7292498e485c99b231cb9ec1b8bc4aee",
+      "sheet": "arena-bots/arc-relay/intelligent-operation-proof-v1-2026-08-02/sheets/rear-hook.json",
+      "sheetSha256": "dffe24943f2dcade1cffa1a6c8c1cba800b0cd32b51aa2aedb7af40a1ca1ee5e"
+    },
+    "op-relay-catch": {
+      "artifact": "arena-bots/arc-relay/stock-mind-v3/out/bot.wasm",
+      "artifactSha256": "46f12690d4251e42584f5634b956844f7292498e485c99b231cb9ec1b8bc4aee",
+      "sheet": "arena-bots/arc-relay/intelligent-operation-proof-v1-2026-08-02/sheets/relay-catch.json",
+      "sheetSha256": "87617a904d935e05261ca8238d772fa89ae321a7bd5a37be871e082d990d832d"
+    },
+    "op-smoke-breach": {
+      "artifact": "arena-bots/arc-relay/stock-mind-v3/out/bot.wasm",
+      "artifactSha256": "46f12690d4251e42584f5634b956844f7292498e485c99b231cb9ec1b8bc4aee",
+      "sheet": "arena-bots/arc-relay/intelligent-operation-proof-v1-2026-08-02/sheets/smoke-breach.json",
+      "sheetSha256": "4794f770f9f72b89164a402d3d1b410dd78b40fa330807c5c60b35691363780d"
+    },
+    "pop-balanced": {
+      "artifact": "arena-bots/arc-relay/flow-intent-v1-2026-08-02/out/bot.wasm",
+      "artifactSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+      "sheet": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets/balanced.json",
+      "sheetSha256": "78ddb0b6909b1648a7ffa3c04a1c67a35be62935d3231dd9aa3ba2a296290137"
+    },
+    "pop-beacon-hunt": {
+      "artifact": "arena-bots/arc-relay/flow-intent-v1-2026-08-02/out/bot.wasm",
+      "artifactSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+      "sheet": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets/beacon-hunt.json",
+      "sheetSha256": "6d7b7f62b9c5f4ee7431d7bf1928417a6d1beb5fd2fce370a5d5c5551952eaed"
+    },
+    "pop-breach-column": {
+      "artifact": "arena-bots/arc-relay/flow-intent-v1-2026-08-02/out/bot.wasm",
+      "artifactSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+      "sheet": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets/breach-column.json",
+      "sheetSha256": "fc390cd089ed1f64c756c953c6fd170104a2dcc3010516bf7071d5d62bae64ed"
+    },
+    "pop-centre-phalanx": {
+      "artifact": "arena-bots/arc-relay/flow-intent-v1-2026-08-02/out/bot.wasm",
+      "artifactSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+      "sheet": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets/centre-phalanx.json",
+      "sheetSha256": "ea954359e1469dfcd7f3e98730497ec7cacd28bf6e6879294504f0ab70dca60e"
+    },
+    "pop-counter-courier": {
+      "artifact": "arena-bots/arc-relay/flow-intent-v1-2026-08-02/out/bot.wasm",
+      "artifactSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+      "sheet": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets/counter-courier.json",
+      "sheetSha256": "5a4cde2e61d6f9bab16c6281218516308da7aa83e6dab9641a67806ad5e23a77"
+    },
+    "pop-elastic-reserve": {
+      "artifact": "arena-bots/arc-relay/flow-intent-v1-2026-08-02/out/bot.wasm",
+      "artifactSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+      "sheet": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets/elastic-reserve.json",
+      "sheetSha256": "7b6e11b230c8e4965a6c53b709056044eb0359f42a78d0a37c862508d060cb85"
+    },
+    "pop-fireline-picks": {
+      "artifact": "arena-bots/arc-relay/flow-intent-v1-2026-08-02/out/bot.wasm",
+      "artifactSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+      "sheet": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets/fireline-picks.json",
+      "sheetSha256": "43b2ee077846c119b448a42e953a298744d59368a501b0ca51f85cf23895000a"
+    },
+    "pop-fortress-counterattack": {
+      "artifact": "arena-bots/arc-relay/flow-intent-v1-2026-08-02/out/bot.wasm",
+      "artifactSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+      "sheet": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets/fortress-counterattack.json",
+      "sheetSha256": "92eda68aeee837dde2093b8ef7bf515dac23f7db64d746175c4b9d79ce813c1d"
+    },
+    "pop-home-counterpunch": {
+      "artifact": "arena-bots/arc-relay/flow-intent-v1-2026-08-02/out/bot.wasm",
+      "artifactSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+      "sheet": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets/home-counterpunch.json",
+      "sheetSha256": "bfb15f294b383673406ebde1c959957c3a6999a62e7a2b1858e364e64c5cf686"
+    },
+    "pop-hook-burst": {
+      "artifact": "arena-bots/arc-relay/flow-intent-v1-2026-08-02/out/bot.wasm",
+      "artifactSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+      "sheet": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets/hook-burst.json",
+      "sheetSha256": "df62fc97edc1bdb59ddcef7fbff16b0fe37298262f07cf73456c2c97c56f7f97"
+    },
+    "pop-interception": {
+      "artifact": "arena-bots/arc-relay/flow-intent-v1-2026-08-02/out/bot.wasm",
+      "artifactSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+      "sheet": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets/interception.json",
+      "sheetSha256": "bae86dbc1dd219c0b7a01bdaf6c1036dd6d38fcf9798a696c165555a49f7cfd1"
+    },
+    "pop-mortar-wheel": {
+      "artifact": "arena-bots/arc-relay/flow-intent-v1-2026-08-02/out/bot.wasm",
+      "artifactSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+      "sheet": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets/mortar-wheel.json",
+      "sheetSha256": "df04d488f6279f27d0308992940823f1cfc2d7673a994ca4f6bce168f04a897a"
+    },
+    "pop-null-veil": {
+      "artifact": "arena-bots/arc-relay/flow-intent-v1-2026-08-02/out/bot.wasm",
+      "artifactSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+      "sheet": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets/null-veil.json",
+      "sheetSha256": "e4b662b2300688cfa5481a199387dd8203e1e690c5dedbc942dfd6cbb286c6eb"
+    },
+    "pop-rotating-bastions": {
+      "artifact": "arena-bots/arc-relay/flow-intent-v1-2026-08-02/out/bot.wasm",
+      "artifactSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+      "sheet": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets/rotating-bastions.json",
+      "sheetSha256": "10d6c6b53ac4608c25330e988f5701526199eab4baa645ef8fbe1e888a0b2ea3"
+    },
+    "pop-sensor-grid": {
+      "artifact": "arena-bots/arc-relay/flow-intent-v1-2026-08-02/out/bot.wasm",
+      "artifactSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+      "sheet": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets/sensor-grid.json",
+      "sheetSha256": "d84288626d58cbdcfded113be44b13b079ad4e3554d2695e067f727e1d6e621c"
+    },
+    "pop-smoke-convoy": {
+      "artifact": "arena-bots/arc-relay/flow-intent-v1-2026-08-02/out/bot.wasm",
+      "artifactSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+      "sheet": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets/smoke-convoy.json",
+      "sheetSha256": "de0a3ea3635203a41c7293df65a2fbd7bddcb3ee9272d1f1be45f97da7a3b690"
+    },
+    "pop-trap-punish": {
+      "artifact": "arena-bots/arc-relay/flow-intent-v1-2026-08-02/out/bot.wasm",
+      "artifactSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+      "sheet": "arena-bots/arc-relay/depth-map-v1-2026-08-02/counterflow/sheets/trap-punish.json",
+      "sheetSha256": "bf27d3f1c247a1ac02683c188cb33b96e1d1a98e614ff6f4b4f12ad101e121c2"
+    }
+  },
+  "loopProfile": "depth-counterflow",
+  "mapFingerprint": "5ca7d1a1826791d736465d352c1558793846fc2e3df343d730f1df4c79f47e0c",
+  "mapId": "arc-relay-threefold-depth-counterflow-01",
+  "purpose": "held-out confirmation of success, explicit counter categories, casualty recovery, bounded release, baseline return, and bars",
+  "registration": {
+    "cells": 40,
+    "discoveryWasOutcomeInformed": true,
+    "heldOutSeeds": [
+      "67867967",
+      "982451653"
+    ],
+    "operations": 10,
+    "opponentsPerOperation": 2,
+    "participantAssignment": "alternating by frozen operation/opponent/seed index",
+    "selectionBasis": "two real-population opponents with causal discovery contact; all retained claims come only from these held-out cells",
+    "status": "frozen-before-held-out-outcomes"
+  },
+  "rulesFingerprint": "f6d3ee9b1bb17d7bd8d0981941fd00a6a96f0e7ef834497d11924c06087174eb",
+  "rulesetId": "arc-relay-h0-01",
+  "runtime": "wasm",
+  "schema": "arc-relay-sweep-plan-v1",
+  "sweepId": "arc-relay-operation-counterplay-confirmation-v1"
+}

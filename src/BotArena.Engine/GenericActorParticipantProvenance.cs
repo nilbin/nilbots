@@ -17,7 +17,8 @@ public sealed record GenericActorParticipantProvenance
         string? artifactHash,
         string accent,
         string? lookId,
-        string? projectileLookId)
+        string? projectileLookId,
+        string? mindDataHash = null)
     {
         if (participantId < 0)
         {
@@ -31,6 +32,7 @@ public sealed record GenericActorParticipantProvenance
         ArgumentException.ThrowIfNullOrWhiteSpace(runtimeKind);
         ArgumentException.ThrowIfNullOrWhiteSpace(accent);
         ValidateOptionalMetadata(artifactHash, nameof(artifactHash));
+        ValidateOptionalMetadata(mindDataHash, nameof(mindDataHash));
         ValidateOptionalMetadata(lookId, nameof(lookId));
         ValidateOptionalMetadata(
             projectileLookId,
@@ -41,6 +43,7 @@ public sealed record GenericActorParticipantProvenance
         Name = name;
         RuntimeKind = runtimeKind;
         ArtifactHash = artifactHash;
+        MindDataHash = mindDataHash;
         Accent = accent;
         LookId = lookId;
         ProjectileLookId = projectileLookId;
@@ -51,6 +54,7 @@ public sealed record GenericActorParticipantProvenance
     public string Name { get; }
     public string RuntimeKind { get; }
     public string? ArtifactHash { get; }
+    public string? MindDataHash { get; }
     public string Accent { get; }
     public string? LookId { get; }
     public string? ProjectileLookId { get; }
@@ -81,7 +85,11 @@ public sealed record GenericActorParticipantProvenance
                     "Participant configurations cannot contain null.",
                     nameof(configurations));
             }
-            if (configuration.RuntimeFactory is null)
+            // Either programming model satisfies provenance: a per-life
+            // participant brings a life factory, a mind participant brings a
+            // mind factory, and the two profiles coexist beside each other.
+            if (configuration.RuntimeFactory is null
+                && configuration.MindRuntimeFactory is null)
             {
                 throw new ArgumentException(
                     $"Participant {configuration.ParticipantId} has no runtime factory.",
@@ -103,7 +111,8 @@ public sealed record GenericActorParticipantProvenance
                     configuration.ArtifactHash,
                     configuration.Accent,
                     configuration.LookId,
-                    configuration.ProjectileLookId));
+                    configuration.ProjectileLookId,
+                    configuration.MindDataHash));
         }
 
         return CanonicalizeExact(

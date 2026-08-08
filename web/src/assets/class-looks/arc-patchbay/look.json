@@ -1,0 +1,10 @@
+{
+  "id": "arc-patchbay",
+  "label": "Patchbay",
+  "sprite": "sprite.png",
+  "suggestedAccent": "#38bdf8",
+  "defaultProjectile": "arc-pulse",
+  "classId": "patchbay",
+  "locomotionCue": "skids",
+  "scale": 1.04
+}

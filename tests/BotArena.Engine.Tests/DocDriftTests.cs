@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
@@ -137,6 +138,404 @@ public class DocDriftTests
     {
         foreach (string name in GameRules.KnownNames)
             _ = GameRules.Resolve(name); // must not throw; KnownNames and Resolve move together
+    }
+
+    /// <summary>The class-skill brief is the only document an agent-arena author gets for
+    /// the kit, so its mechanical lists have to be the engine's. Every stance form ID and
+    /// every arm token is derived here rather than typed, which is what caught the arm
+    /// rename: changing a token without updating the brief now fails the build.</summary>
+    [Fact]
+    public void ClassSkillsBrief_NamesEveryStanceFormAndArmToken()
+    {
+        string brief = ReadRepoFile("docs", "EXPERIMENTAL-FRONTLINE-CLASSES.md");
+        foreach (var entry in FrontlineLabsClassDefinition.All)
+        {
+            if (entry.Skill is not (FrontlineLabsSkillKit.StrikerVolley
+                or FrontlineLabsSkillKit.BulwarkAegisShell))
+                continue;
+            foreach (string formId in new[] { entry.PrimeStanceFormId, entry.ChildStanceFormId })
+                Assert.True(brief.Contains(formId, StringComparison.Ordinal),
+                    $"The class-skills brief never names the stance form '{formId}'.");
+        }
+
+        // The arm identities the brief quotes must be the ones the engine mints.
+        foreach (string armId in new[]
+                 {
+                     FrontlineLabsDefinition.CreatePendulumExperiment(
+                         FrontlineLabsPendulumArm.None,
+                         (FrontlineLabsClassDefinition.Bulwark, FrontlineLabsClassDefinition.Striker),
+                         skills: FrontlineLabsSkillKit.StrikerVolley
+                             | FrontlineLabsSkillKit.BulwarkAegisShell).Rules.RulesetId,
+                 })
+            Assert.True(brief.Contains(armId, StringComparison.Ordinal),
+                $"The class-skills brief quotes no arm identity matching '{armId}'.");
+    }
+
+    /// <summary>The automatic return is a rule players plan against, so the brief must state
+    /// its canonical spellings — the counters, the reason code, and both budgets — in the
+    /// exact strings the contract and replay carry.</summary>
+    [Fact]
+    public void ClassSkillsBrief_StatesTheAutomaticReturnContractVerbatim()
+    {
+        string brief = ReadRepoFile("docs", "EXPERIMENTAL-FRONTLINE-CLASSES.md");
+        var counters = Enum.GetValues<ActorAutomaticReturnTriggerDefinition.AutomaticReturnCounterKind>();
+        foreach (var counter in counters)
+        {
+            string id = ActorContractCanonicalIds.Id(counter);
+            Assert.True(brief.Contains(id, StringComparison.Ordinal),
+                $"The class-skills brief never names the automatic-return counter '{id}'.");
+        }
+        Assert.Contains("automaticReturn", brief, StringComparison.Ordinal);
+        Assert.Contains("automatic-threshold-return", brief, StringComparison.Ordinal);
+        Assert.Contains(
+            $"threshold **{FrontlineLabsDefinition.VolleyCastBudget}**", brief, StringComparison.Ordinal);
+        Assert.Contains(
+            $"threshold **{FrontlineLabsDefinition.ShieldBreakBudget}**", brief, StringComparison.Ordinal);
+    }
+
+    /// <summary>The bend envelope varies by class, and a stale number here would teach every
+    /// author to submit programs the engine rejects.</summary>
+    [Fact]
+    public void ClassSkillsBrief_QuotesEachClassBendDepth()
+    {
+        string brief = ReadRepoFile("docs", "EXPERIMENTAL-FRONTLINE-CLASSES.md");
+        foreach (var entry in FrontlineLabsClassDefinition.All)
+            Assert.True(
+                brief.Contains($"1–{entry.MobileMaxBendAfterTiles}", StringComparison.Ordinal)
+                || brief.Contains($"1-{entry.MobileMaxBendAfterTiles}", StringComparison.Ordinal),
+                $"The class-skills brief never states {entry.Id}'s bend depth "
+                + $"(1-{entry.MobileMaxBendAfterTiles} tiles).");
+    }
+
+    [Fact]
+    public void CliHelp_ListsEveryBendEnvelopeAndSkillArm()
+    {
+        string help = ReadRepoFile("src", "BotArena.Cli", "Program.cs");
+        foreach (string token in new[] { "striker-only", "universal" })
+            Assert.True(help.Contains(token, StringComparison.Ordinal),
+                $"CLI help does not mention --bend '{token}'.");
+    }
+
+    [Fact]
+    public void SdkVersionNote_NamesTheMindApiItShipped()
+    {
+        // The version notes are how a frozen artifact's capabilities are read
+        // back years later. A version that moved because a whole programming
+        // model landed has to say so, by name, or the note is worse than
+        // absent.
+        string toolchain = ReadRepoFile("src", "BotArena.Toolchain", "BotProject.cs");
+        foreach (string token in new[]
+                 {
+                     "IGenericMindBot",
+                     "MindContext",
+                     "MindBody",
+                     "generic-mind-match-1",
+                     "WrappedPerLifeMind",
+                 })
+        {
+            Assert.True(
+                toolchain.Contains(token, StringComparison.Ordinal),
+                $"The SDK version notes never mention '{token}'.");
+        }
+    }
+
+    [Fact]
+    public void QualificationBrief_NamesEveryMindSuiteAndProfileItMinted()
+    {
+        // A suite ID is a pre-registration, and an unwritten one is a suite
+        // nobody can ask for. These are mechanical mirrors of engine
+        // constants, which is exactly the class of drift this file pins.
+        string brief = ReadRepoFile("docs", "BOT-QUALIFICATION-SUITE.md");
+        foreach (string token in new[]
+                 {
+                     FrontlineLabsQualificationDefinition
+                         .MindFundamentalsSuiteId,
+                     FrontlineLabsQualificationDefinition
+                         .MindFundamentalsProfileId,
+                     FrontlineLabsQualificationDefinition
+                         .MindTacticalSuiteId,
+                     FrontlineLabsQualificationDefinition
+                         .MindTacticalProfileId,
+                     FrontlineLabsQualificationDefinition
+                         .MindPositionalSuiteId,
+                     FrontlineLabsQualificationDefinition
+                         .MindPositionalProfileId,
+                     FrontlineLabsQualificationDefinition.BodyHandoffProbeId,
+                     FrontlineLabsQualificationDefinition
+                         .EscortIntegrityProbeId,
+                 })
+        {
+            Assert.True(
+                brief.Contains(token, StringComparison.Ordinal),
+                $"BOT-QUALIFICATION-SUITE.md never mentions '{token}'.");
+        }
+    }
+
+    [Fact]
+    public void CliHelp_ReachesTheMindProfileFromEveryCommandThatTakesIt()
+    {
+        // The mind is only worth building if a player can get to it, and the
+        // help text is the whole discovery surface for a local-only profile
+        // that no hosted lane advertises.
+        string help = ReadRepoFile("src", "BotArena.Cli", "Program.cs");
+        foreach (string token in new[]
+                 {
+                     "generic-mind",
+                     "--profile mind",
+                     FrontlineLabsQualificationDefinition
+                         .MindFundamentalsSuiteId,
+                     "IGenericMindBot",
+                 })
+        {
+            Assert.True(
+                help.Contains(token, StringComparison.Ordinal),
+                $"CLI help never mentions '{token}'.");
+        }
+    }
+
+    [Fact]
+    public void RulesCard_StatesTheMindMemoryModelAndItsFaultCost()
+    {
+        // Every clause of the per-life memory paragraph inverts under the
+        // mind, and the one that costs a match — a trap forgets everything —
+        // has to be loud rather than inferable.
+        string rules = ReadRepoFile("docs", "FRONTLINE-LABS-RULES.md");
+        foreach (string token in new[]
+                 {
+                     BotArenaVersions.GenericMindContractProfileId,
+                     "forgets the match",
+                     "SetRole",
+                 })
+        {
+            Assert.True(
+                rules.Contains(token, StringComparison.Ordinal),
+                $"FRONTLINE-LABS-RULES.md never mentions '{token}'.");
+        }
+    }
+
+    /// <summary>
+    /// The roster arm has TWO spellings — the flag the CLI accepts (`legion`)
+    /// and the ruleset-ID token the engine appends (`levy`) — and a whole
+    /// section of the brief was written against the wrong one, telling authors
+    /// to pass a flag that does not parse and naming a map generation that does
+    /// not exist. Both facts are mechanical, so pin both.
+    /// </summary>
+    [Fact]
+    public void ClassSkillsBrief_SpellsTheRosterFlagAndItsMapGeneration()
+    {
+        string brief = ReadRepoFile("docs", "EXPERIMENTAL-FRONTLINE-CLASSES.md");
+        Assert.Contains("`--roster legion`", brief, StringComparison.Ordinal);
+        Assert.DoesNotContain("`--roster levy`", brief, StringComparison.Ordinal);
+        Assert.Contains(
+            FrontlineLabsLegionRoster.MapId,
+            brief,
+            StringComparison.Ordinal);
+        // The tranche ticks the same section tabulates.
+        foreach (int tick in new[]
+                 {
+                     FrontlineLabsLegionRoster.MidTrancheUnlockTick,
+                     FrontlineLabsLegionRoster.LateTrancheUnlockTick,
+                 })
+        {
+            Assert.True(
+                brief.Contains(
+                    tick.ToString(CultureInfo.InvariantCulture),
+                    StringComparison.Ordinal),
+                $"The class-skills brief never states the tranche tick {tick}.");
+        }
+    }
+
+    /// <summary>
+    /// `--print-candidate-contract` grew a mode after three waves of authors
+    /// mined replay headers for declared numbers. Help that does not name the
+    /// mode is help that keeps them mining.
+    /// </summary>
+    /// <summary>
+    /// Prime dissolution's mechanical lists: the flag tokens the CLI accepts,
+    /// the unified form IDs the arm mints, the upgrade scope it forces, the
+    /// tier price it ships with, and the new spawn reason a base seed carries.
+    /// Prose accuracy is on the author; these are the names that rot.
+    /// </summary>
+    [Fact]
+    public void ChassisBrief_SpellsEveryUnifiedNameTheArmMints()
+    {
+        string brief = ReadRepoFile(
+            "docs/EXPERIMENTAL-FRONTLINE-CLASSES.md");
+        string help = ReadRepoFile("src/BotArena.Cli/Program.cs");
+
+        foreach (string token in new[]
+                 {
+                     "--chassis unified",
+                     "--tier-cost",
+                     "rootFactorySeedFormId",
+                     "all-slot-lives",
+                     "root-factory-seed",
+                     "peer",
+                     "phalanx",
+                     "swarm",
+                     "curtain",
+                 })
+        {
+            Assert.Contains(token, brief, StringComparison.Ordinal);
+        }
+        Assert.Contains("[--chassis split|unified]", help, StringComparison.Ordinal);
+        Assert.Contains("[--tier-cost <positive-n>]", help, StringComparison.Ordinal);
+
+        // The unified form IDs the arm actually mints, per class.
+        foreach (FrontlineLabsClassDefinition entry
+                 in FrontlineLabsClassDefinition.All)
+        {
+            Assert.Contains(
+                entry.UnifiedFormId,
+                brief,
+                StringComparison.Ordinal);
+        }
+
+        // The two numbers the arm moves, quoted rather than described.
+        Assert.Contains(
+            $"{FrontlineLabsScrapEconomy.UnifiedChassisTierCost} scrap per "
+            + "tier instead of "
+            + FrontlineLabsScrapEconomy.TierCost,
+            brief,
+            StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// The composition set is a pre-registration, so the brief, the engine's
+    /// registered table and the reserved contract allocation must all name the
+    /// same five tokens and the same two mixed ones.
+    /// </summary>
+    [Fact]
+    public void CompositionBrief_NamesEveryRegisteredToken()
+    {
+        string brief = ReadRepoFile(
+            "docs/EXPERIMENTAL-FRONTLINE-CLASSES.md");
+        string help = ReadRepoFile("src/BotArena.Cli/Program.cs");
+
+        Assert.Equal(
+            GenericMindContractReservations.RegisteredCompositionTokens,
+            FrontlineLabsComposition.All.Select(entry => entry.Token));
+        Assert.Equal(
+            GenericMindContractReservations.RegisteredMixedCompositionTokens,
+            FrontlineLabsComposition.All
+                .Where(entry => entry.IsMixed)
+                .Select(entry => entry.Token));
+        foreach (FrontlineLabsComposition entry
+                 in FrontlineLabsComposition.All)
+        {
+            Assert.Contains(entry.Token, brief, StringComparison.Ordinal);
+            Assert.Contains(entry.Token, help, StringComparison.Ordinal);
+        }
+        Assert.Contains(
+            "--compositions <a>-vs-<b>",
+            brief,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "[--compositions <a>-vs-<b>]",
+            help,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "fabricationOutputFormId",
+            brief,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void CliHelp_NamesEveryCandidateContractPrintMode()
+    {
+        string help = ReadRepoFile("src", "BotArena.Cli", "Program.cs");
+        foreach (string token in new[] { "identity", "full" })
+        {
+            Assert.True(
+                help.Contains(
+                    $"--print-candidate-contract [{token}",
+                    StringComparison.Ordinal)
+                || help.Contains(
+                    $"|{token}]",
+                    StringComparison.Ordinal),
+                $"CLI help does not offer --print-candidate-contract '{token}'.");
+        }
+    }
+
+    /// <summary>
+    /// The abort exit code exists so a sweep can tell "this cell measured
+    /// nothing" from "your flags were wrong". A code nobody documents is a
+    /// code nobody wires in.
+    /// </summary>
+    [Fact]
+    public void AuthorPacketAndCliHelp_StateTheAbortExitCode()
+    {
+        string help = ReadRepoFile("src", "BotArena.Cli", "Program.cs");
+        Assert.Contains("ABORTED", help, StringComparison.Ordinal);
+        string packet = ReadRepoFile(
+            "docs",
+            "FRONTLINE-LABS-BOT-AUTHOR-PACKET.md");
+        Assert.Contains("never score it", packet, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Wave-8 friction: the salvo section told authors to read an enemy's fan
+    /// entry off `routeCooldowns`. The observation type is the authority, and
+    /// it publishes the field on SELF and ALLIES only — so the pin is the type,
+    /// and the brief must say which.
+    /// </summary>
+    [Fact]
+    public void ClassSkillsBrief_DoesNotClaimEnemiesPublishRouteCooldowns()
+    {
+        const string field = "RouteCooldowns";
+        Assert.NotNull(
+            typeof(GenericActorRuntimeObservation.ObservedSelfState)
+                .GetProperty(field));
+        Assert.NotNull(
+            typeof(GenericActorRuntimeObservation.ObservedAllyState)
+                .GetProperty(field));
+        Assert.Null(
+            typeof(GenericActorRuntimeObservation.ObservedEnemyState)
+                .GetProperty(field));
+
+        string brief = ReadRepoFile("docs", "EXPERIMENTAL-FRONTLINE-CLASSES.md");
+        Assert.Contains("never on an enemy", brief, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Arc Relay's launch roster and one-signature-per-class table are the
+    /// mechanical authoring vocabulary. A renamed or omitted class/signature
+    /// must fail beside the approved brief rather than silently teaching mind
+    /// authors a stale list.
+    /// </summary>
+    [Fact]
+    public void ArcRelayBrief_NamesEveryLaunchClassAndSignature()
+    {
+        string brief = ReadRepoFile(
+            "docs",
+            "reports",
+            "GATE-2-MECHANICS-BRIEF.md");
+        var mode = Assert.IsType<ArcRelayGameModeDefinition>(
+            ArcRelayH0Definition.Create().Rules.GameMode);
+
+        Assert.Contains(ArcRelayH0Definition.MapId, brief,
+            StringComparison.Ordinal);
+        Assert.Contains("no match-stable pre-filter", brief,
+            StringComparison.Ordinal);
+        Assert.Equal(
+            ArcRelayLaunchClassIds.All.Order(StringComparer.Ordinal),
+            mode.Signatures.Select(value => value.ClassId)
+                .Order(StringComparer.Ordinal));
+
+        foreach (string classId in ArcRelayLaunchClassIds.All)
+        {
+            Assert.True(
+                brief.Contains(classId, StringComparison.OrdinalIgnoreCase),
+                $"The Arc Relay brief never names launch class '{classId}'.");
+        }
+        foreach (ArcRelaySignatureDefinition signature in mode.Signatures)
+        {
+            string label = signature.ActionId.Replace('-', ' ');
+            Assert.True(
+                brief.Contains(label, StringComparison.OrdinalIgnoreCase),
+                $"The Arc Relay brief never names signature "
+                + $"'{signature.ActionId}'.");
+        }
     }
 
     [Fact]

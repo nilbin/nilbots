@@ -40,6 +40,8 @@ internal static class ActorGuestProtocol
             return ActorGuestContractGeneration.LegacyActorV1;
         if (hello.RequiredProfile == ActorContractProfile.GenericV2)
             return ActorGuestContractGeneration.GenericActorV2;
+        if (hello.RequiredProfile == ActorContractProfile.MindV1)
+            return ActorGuestContractGeneration.GenericMindV1;
 
         throw new ActorCapabilityNotSupportedException(
             "actor-contract-profile",
@@ -64,6 +66,11 @@ internal static class ActorGuestProtocol
                 ActorWireProtocol.EncodeHelloAck(
                     selected,
                     ActorContractProfile.GenericV2),
+            ActorGuestContractGeneration.GenericMindV1
+                when hello.RequiredProfile == ActorContractProfile.MindV1 =>
+                ActorWireProtocol.EncodeHelloAck(
+                    selected,
+                    ActorContractProfile.MindV1),
             _ => throw new FormatException(
                 "Actor contract selection does not match the host Hello."),
         };
@@ -94,6 +101,21 @@ internal static class ActorGuestProtocol
         ActorGuestFrame frame) =>
         ActorWireProtocol.DecodeGenericObservation(frame.Bytes);
 
+    public static MindStartEnvelope ParseMindStart(ActorGuestFrame frame)
+    {
+        ActorWireMindStart start =
+            ActorWireProtocol.DecodeMindStart(frame.Bytes);
+        return new MindStartEnvelope(start.BotName, start.Start);
+    }
+
+    public static MindContext ParseMindObservation(
+        ActorGuestFrame frame,
+        MindWaitAction waitAction) =>
+        ActorWireProtocol.DecodeMindObservation(frame.Bytes, waitAction);
+
+    public static string ParseMatchEndReason(ActorGuestFrame frame) =>
+        ActorWireProtocol.DecodeMatchEnd(frame.Bytes);
+
     public static byte[] FormatReady(
         ActorGuestContractGeneration generation) =>
         generation switch
@@ -113,6 +135,17 @@ internal static class ActorGuestProtocol
                     GenericActorContractVersions.ObservationSchemaVersion,
                     GenericActorContractVersions.DecisionSchemaVersion,
                     ActorContractProfile.GenericV2),
+            // The mind schemas are attested from the constants COMPILED INTO
+            // this artifact, never echoed from the host's Hello: attestation
+            // that repeats what it was told proves nothing.
+            ActorGuestContractGeneration.GenericMindV1 =>
+                ActorWireProtocol.EncodeReady(
+                    MajorVersion,
+                    GenericMindContractVersions.RuntimeContractVersion,
+                    GenericMindContractVersions.MatchStartSchemaVersion,
+                    GenericMindContractVersions.ObservationSchemaVersion,
+                    GenericMindContractVersions.DecisionSchemaVersion,
+                    ActorContractProfile.MindV1),
             _ => throw new InvalidOperationException(
                 "Actor Ready requires a negotiated contract generation."),
         };
@@ -123,6 +156,9 @@ internal static class ActorGuestProtocol
     public static byte[] FormatGenericDecision(
         GenericActorDecision decision) =>
         ActorWireProtocol.EncodeGenericDecision(decision);
+
+    public static byte[] FormatMindDecisions(MindDecisions decisions) =>
+        ActorWireProtocol.EncodeMindDecisions(decisions);
 
     public static byte[] FormatFault(string message) =>
         ActorWireProtocol.EncodeFault(message);

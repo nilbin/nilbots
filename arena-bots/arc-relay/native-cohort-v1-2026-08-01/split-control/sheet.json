@@ -1,0 +1,15 @@
+{
+  "schema": "arc-relay-evaluation-sheet-v0",
+  "sheetId": "split-control-v1",
+  "mapId": "arc-relay-threefold-01",
+  "composition": [
+    "kestrel",
+    "palisade",
+    "relay",
+    "minesmith",
+    "towline",
+    "hush",
+    "lantern",
+    "veil"
+  ]
+}

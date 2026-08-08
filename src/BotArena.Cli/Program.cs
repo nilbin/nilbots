@@ -37,10 +37,25 @@ try
         ["leaderboard", .. var rest] => ServerCommands.Leaderboard(rest),
         ["build", .. var rest] => BuildCommand.Run(rest),
         ["play", .. var rest] => PlayCommand.Run(rest),
+        // Arc Relay is a first-class command, not an experiment (DECISIONS
+        // #247). `experiment arc-relay` below stays as a permanent alias so
+        // every script, brief and report that already spells it that way keeps
+        // running — both spellings reach the same command with the same args.
+        ["arc-relay", .. var rest] => ArcRelayExperimentCommand.Run(rest),
         ["experiment", "frontline", .. var rest] =>
             FrontlineExperimentCommand.Run(rest),
+        ["experiment", "frontline-labs", "qualify", .. var rest] =>
+            FrontlineLabsQualificationCommand.Run(rest),
         ["experiment", "frontline-labs", .. var rest] =>
             FrontlineLabsExperimentCommand.Run(rest),
+        ["experiment", "arc-relay-h0-smoke", .. var rest] =>
+            ArcRelayH0SmokeCommand.Run(rest),
+        ["experiment", "arc-relay", .. var rest] =>
+            ArcRelayExperimentCommand.Run(rest),
+        ["experiment", "arc-relay-screen-batch", .. var rest] =>
+            ArcRelayScreenBatchCommand.Run(rest),
+        ["experiment", "arc-relay-playbook", .. var rest] =>
+            ArcRelayTacticalPlaybookCommand.Run(rest),
         ["set", .. var rest] => SetCommand.Run(rest),
         ["watch", .. var rest] => WatchCommand.Run(rest),
         ["replay", var file, .. var rest] => ReplayCommand.Run(file, rest),
@@ -52,39 +67,13 @@ try
         _ => Help(),
     };
 }
-catch (BotBuildException ex)
-{
-    // The message already carries the extracted compiler diagnostics and the log path.
-    Console.Error.WriteLine($"error: {ex.Message}");
-    return 1;
-}
-catch (Exception ex) when (ex is InvalidOperationException or FileNotFoundException
-    or ArgumentException or DirectoryNotFoundException or IOException
-    or System.Net.Http.HttpRequestException or TaskCanceledException)
-{
-    // Expected user-facing failures (bad argument, unreachable server, missing file):
-    // one clean line, never a stack trace — those leaked CI build paths to players.
-    Console.Error.WriteLine($"error: {Describe(ex)}");
-    return 1;
-}
 catch (Exception ex)
 {
-    // Last resort: an unexpected fault is still a bug, but a player should get a
-    // readable line and a way to produce the full trace for a report.
-    Console.Error.WriteLine($"error: {Describe(ex)}");
-    Console.Error.WriteLine("This looks like a bug. Set NILBOTS_DEBUG=1 and re-run for the full trace.");
-    if (Environment.GetEnvironmentVariable("NILBOTS_DEBUG") is "1" or "true")
-        Console.Error.WriteLine(ex);
-    return 1;
+    // ONE failure boundary for every command. CliFailure owns the message, the
+    // exit code, and the stderr routing so no path can invent its own — and so
+    // the "no failure exits 0" invariant is a test rather than a habit.
+    return CliFailure.Print(ex);
 }
-
-static string Describe(Exception ex) => ex switch
-{
-    System.Net.Http.HttpRequestException or TaskCanceledException =>
-        $"could not reach the server: {ex.Message.TrimEnd('.')}. " +
-        "Check the URL (--server) and your connection; `nilbots doctor` shows the configured server.",
-    _ => ex.Message,
-};
 
 static int Help(int exitCode = 1)
 {
@@ -92,7 +81,7 @@ static int Help(int exitCode = 1)
         nilbots CLI (prototype)
 
         Usage:
-          nilbots new <Name> [--profile duel|generic-actor]
+          nilbots new <Name> [--profile duel|generic-actor|generic-mind]
                                                   create a bot project
           nilbots register [--server url]         create an account + sign in via the browser
                         [--email <a@b.c> --password <pw> [--name <display>]]
@@ -121,6 +110,21 @@ static int Help(int exitCode = 1)
                                  cone-occupancy-bolt2-arcs|0.5-control|cone|
                                  bolts|conebolts|conebolts1|strafe|hill|hill-shared|slate|energy
                         [--max-ticks <n>] [--out <dir>]
+          nilbots arc-relay
+                        --bot <generic-mind-project-or-wasm>
+                        --opponent <generic-mind-project-or-wasm>
+                        [--sheet0 <json> --sheet1 <json>]
+                        [--classes0 a,b,... --classes1 a,b,...]
+                        [--loop-profile <id>] [--seed <n>]
+                        [--runtime wasm|in-process] [--out <dir>]
+                        [--screen] [--mind-stepper greedy|coordinated]
+                                                  the Arc Relay match: eight bodies a
+                                                  side, one mind per team, Wells and
+                                                  Cores and reactors. Writes a gzip
+                                                  canonical replay and a run receipt.
+                                                  Also spelled `experiment arc-relay`.
+                                                  --screen omits canonical evidence and
+                                                  is not audit-admissible
           nilbots experiment frontline
                         [--bot <actor-spec>] [--opponent <actor-spec>]
                         [--map frontline-01] [--rules frontline-alpha-1]
@@ -132,16 +136,53 @@ static int Help(int exitCode = 1)
           nilbots experiment frontline-labs
                         --bot <generic-spec> --opponent <generic-spec>
                         [--seed <n> | --seeds a,b,c] [--swap]
-                        [--runtime wasm|in-process] [--out <dir>] [--open]
+                        [--profile actor|mind]
+                        [--print-candidate-contract [identity|full]]
+                        [--runtime wasm|in-process] [--out <dir>] [--viewer] [--open]
                                                   exact hosted Labs v1 contract,
-                                                  local/quota-free, replay v3
+                                                  local/quota-free, replay v3;
+                                                  --profile mind runs the same
+                                                  game with ONE runtime per
+                                                  participant driving all its
+                                                  bodies. --print-candidate-contract
+                                                  full prints the whole resolved
+                                                  contract JSON (every declared
+                                                  number) and exits
+          nilbots experiment arc-relay-h0-smoke [--out <dir>] [--viewer]
+                                                  [--seed 17|29]
+                                                  ENGINEERING SMOKE: writes
+                                                  two mind-profile Arc Relay
+                                                  replay files; no stock doctrine
+          nilbots experiment arc-relay-screen-batch
+                        (--plan <screen-plan.json> |
+                         --sweep-plan <sweep-plan.json> --bot <project>)
+                        [--opponent <project>] [--limit <n>] --out <dir>
+                                                  persistent in-process bulk
+                                                  screening; finalists still
+                                                  require WASM + canonical
+                                                  replay verification
+          nilbots experiment arc-relay-playbook
+                        --playbook <json> [--out <dir>]
+                                                  validate and compile a typed
+                                                  tactical playbook; emit its
+                                                  normalized IR, bound layout,
+                                                  ATP1 package, and explain view
+          nilbots experiment frontline-labs qualify
+                        --bot <generic-spec> [--runtime wasm|in-process]
+                        [--suite frontline-qualification-1|frontline-qualification-2|frontline-qualification-3|frontline-qualification-4|frontline-qualification-5]
+                        [--profile mind --suite frontline-mind-qualification-3|frontline-mind-qualification-4|frontline-mind-qualification-5]
+                        [--viewer] [--out <dir>]
+                                                  versioned local capability
+                                                  probes; never ranked.
+                                                  Viewers are opt-in (--viewer):
+                                                  a T4 run writes 38 replays
           nilbots set --bot <spec> --opponent <spec> [--maps a,b,c] [--seeds x,y,z]
                         [--runtime ...] [--out <dir>]
                                                   ranked mirrored set; preserves each game
           nilbots watch [dir] [play options]      rebuild + replay on every change
-          nilbots replay <replay.json> [--summary [--no-debug] [--full]] [--out]
+          nilbots replay <replay.json[.gz]> [--summary [--no-debug] [--full]] [--out]
                                                   compact match digest, or the visual viewer
-          nilbots verify <replay.json>            check a replay's hash
+          nilbots verify <replay.json[.gz]>        check a replay's hash
           nilbots doctor                          toolchain and environment status
           nilbots cache [status|clear]            build cache maintenance
           nilbots bots | nilbots maps             list built-ins
@@ -150,8 +191,11 @@ static int Help(int exitCode = 1)
         project directory, or a path to a .wasm artifact.
         A Frontline <actor-spec> is an actor built-in (`nilbots help experiment`),
         an IActorBot project directory, or an actor-protocol .wasm artifact.
-        A Labs <generic-spec> is an IGenericActorBot project directory or a
-        generic-actor-profile .wasm artifact; both entrants must be named.
+        A Labs <generic-spec> is an IGenericActorBot or IGenericMindBot project
+        directory, or a .wasm artifact; both entrants must be named. Every
+        artifact built by this CLI attests BOTH contract profiles, so a per-life
+        bot enters a `--profile mind` match with no source edits — the guest
+        wraps it, one sub-brain per body life.
         Defaults: --bot hunter --opponent wander --map basic-01 --seed 42
                   --runtime wasm --rules 0.5
         A `"rules"` field in your project's botarena.json pins the default --rules
@@ -174,12 +218,20 @@ static int CommandHelp(string command)
     string? help = command.ToLowerInvariant() switch
     {
         "new" => """
-            Usage: nilbots new <Name> [--profile duel|generic-actor]
+            Usage: nilbots new <Name> [--profile duel|generic-actor|generic-mind]
             Creates <Name>/ with bot source, botarena.json, a portable SDK
             reference, and profile-specific authoring instructions.
 
             duel is the shipped default. generic-actor creates an experimental
-            IGenericActorBot scaffold for `nilbots experiment frontline-labs`.
+            IGenericActorBot scaffold — one independent instance per body life —
+            for `nilbots experiment frontline-labs`.
+
+            generic-mind creates an IGenericMindBot scaffold: ONE program that
+            drives every body you own, for the whole match, with its fields as
+            persistent memory. Commands are written onto bodies rather than
+            returned, and every body you do not write to waits. Roles.cs is the
+            file you edit first. Run it with
+            `nilbots experiment frontline-labs --profile mind`.
             """,
         "build" => """
             Usage: nilbots build [dir] [--no-cache]
@@ -193,6 +245,50 @@ static int CommandHelp(string command)
                    [--max-ticks <n>] [--out <dir>]
             Example: nilbots play --bot . --opponent hunter --runtime in-process \
                      --seeds 7,42,1337
+            """,
+        "arc-relay" => """
+            Usage: nilbots arc-relay
+                   --bot <generic-mind-project-or-wasm>
+                   --opponent <generic-mind-project-or-wasm>
+                   [--sheet0 <playbook.json> --sheet1 <playbook.json>]
+                   [--classes0 a,b,... --classes1 a,b,...]
+                   [--loop-profile <id>] [--seed <n>]
+                   [--runtime wasm|in-process] [--mind-stepper greedy|coordinated]
+                   [--screen] [--print-contract] [--out <dir>]
+
+            Runs one Arc Relay match. Each team is ONE mind driving eight bodies
+            (the participant-scoped MIND profile), and the match is decided by
+            Wells, Cores and reactor Pulses rather than by kills. It writes a
+            gzip canonical replay plus a run receipt.
+
+            `nilbots experiment arc-relay` is a permanent alias for this command
+            and takes the same options.
+
+            Sheets. --sheet0/--sheet1 take a tactical playbook
+            (`arc-relay-tactical-playbook-v1`), which this command compiles
+            in place — its `layout` names a layout file and pins that file's
+            sha256, so editing a layout without repinning is a hard error.
+            Frozen `arc-relay-evaluation-sheet-v0..v3` documents still load.
+            Compilation is the only authority on whether a sheet is valid;
+            `nilbots experiment arc-relay-playbook --playbook <json>` runs the
+            same compiler on its own and writes the normalized IR, the ATP1
+            package and an explain view when you want to see why. Without a
+            sheet a team uses --classes0/--classes1 (or the default eight).
+
+            Loop profile. --loop-profile selects the ruleset/map pair; every
+            registered id is listed in the error text when one is misspelled.
+            The default is `h0`, the frozen original — it is NOT the current
+            design line. Pass `--loop-profile ambush-warren-11` for the current
+            one (rules `arc-relay-ambush-11`, declared strikes, veterancy, the
+            deep warren map). The hosted ladder runs neither: it is pinned to
+            its own playlist version.
+
+            --screen omits canonical evidence for bulk iteration and is not
+            audit-admissible; confirm anything that matters without it.
+            --print-contract prints the resolved match contract and exits.
+
+            Example: nilbots arc-relay --bot ./MyMind --opponent ./TheirMind \
+                     --loop-profile ambush-warren-11 --seed 7
             """,
         "experiment" => """
             Usage: nilbots experiment frontline
@@ -208,7 +304,7 @@ static int CommandHelp(string command)
 
             Actor built-ins:
               frontline-rusher       objective-first; never Anchors
-              frontline-swarm        fabricates every child; stays mobile
+              frontline-horde        fabricates every child; stays mobile
               frontline-bastion      fabricates, Anchors, and fires turrets
               frontline-counterpunch defends its half, then advances on contact
               frontline-probe        protocol/action diagnostic, not a doctrine
@@ -226,6 +322,29 @@ static int CommandHelp(string command)
                    [--mobilize-turrets]
                    [--remote-fabrication]
                    [--net-control]
+                   [--one-bend-shots]
+                   [--auto-companions]
+                   [--duel-map current|thin-fronts|outer-shoulder-bypass]
+                   [--classes <class>-vs-<class>]
+                   [--movement preserve-facing|move-sets-facing|facing-locked]
+                   [--pendulum control|ratchet|ratchet-contest|keel|sticky-frontline|forward-rally|contest-majority|enemy-sole-decay]
+                   [--skills none|kit|volley|shell|five-slots]
+                   [--bend striker-only|universal]
+                   [--five-slots full|trim|boom|drag|moor|wane]
+                   [--stance-ground strict|free|open]
+                   [--aim straight|offset]
+                   [--cooldown frozen|ticking]
+                   [--volley cast|salvo]
+                   [--side-objective none|muster]
+                   [--capture frozen|channel]
+                   [--economy none|scrap|scrap-flat]
+                   [--roster none|legion]
+                   [--horizon standard|long]
+                   [--chassis split|unified]
+                   [--compositions <a>-vs-<b>]
+                   [--tier-cost <positive-n>]
+                   [--prime-respawn-ticks <positive-n>]
+                   [--print-candidate-contract [identity|full]]
                    [--runtime wasm|in-process] [--out <dir>] [--open]
 
             Runs the exact immutable hosted Frontline Labs v1 resolved contract
@@ -241,8 +360,359 @@ static int CommandHelp(string command)
             from any walkable tile while retaining the protected home output.
             --net-control lets surplus objective weight create capture pressure
             instead of treating every two-team presence as a complete contest.
+            --one-bend-shots limits mobile fire to straight or one private
+            45-degree bend after 1-4 tiles for the duel-depth screen.
+            --auto-companions applies those one-bend rules and creates child
+            lives automatically at ticks 120 and 260. It may be paired with
+            --duel-map; fabrication and Split are absent from this isolated arm.
+            --duel-map runs those same one-bend rules on a content-identified
+            map arm. thin-fronts raises the positional cost of retreat;
+            outer-shoulder-bypass adds an earlier, longer flank without opening
+            the last-moment central choke.
+            --classes gives each team one pre-registered chassis (bulwark,
+            fabricator, or striker) under its own local-only ruleset identity.
+            Pairs are canonical in alphabetical order. A project may instead
+            declare its class in botarena.json ("class": "striker"): declared
+            classes select the arm automatically, always bind each bot to its
+            class's canonical team side, and must agree with an explicit
+            --classes. --ignore-declared-classes runs classed projects on the
+            explicit or base contract instead (the contract qualification
+            exercises). --print-candidate-contract honors declared classes
+            when bot specs are given. Movement and projectile kinematics stay
+            shared; classes differ in durability, vision, fire tempo, shot
+            language, anchor play, and fabrication economics. May be paired
+            with --duel-map.
+            --movement selects the pre-registered movement-kinematics arm.
+            preserve-facing is the default measured baseline: a step never
+            turns the body, and it adds no ruleset suffix. move-sets-facing
+            turns the body to the direction a successful step moved, so
+            backpedal-kiting costs the aim it was holding. facing-locked
+            offers only the current facing to a movement action, making a
+            turn a separate decision. Absolute rotate is unchanged in every
+            arm. It composes with --classes and with --duel-map (declared
+            manifest classes compose the same way); it is exclusive only
+            with the unrelated numeric arms such as --capture-gain-phase or
+            --net-control.
+            --pendulum selects one pre-registered structural counterweight to
+            the mean-reverting frontline. control is the measured baseline and
+            adds no ruleset suffix. sticky-frontline holds a completed advance
+            against enemy regression for 40 ticks. forward-rally lands
+            respawns and companion arrivals on the own-side objective beside
+            the fight instead of at home, on the rear-most free tile of that
+            region measured along your own advance direction, so both sides
+            arrive at mirrored distances from the fight. contest-majority
+            makes surplus
+            objective weight create pressure, so a lone body no longer nulls a
+            committed force for free. enemy-sole-decay stops empty and
+            contested ticks from destroying capture progress. ratchet is
+            sticky-frontline plus forward-rally, ratchet-contest adds
+            contest-majority, and keel adds enemy-sole-decay on top of that —
+            every counterweight at once; those three are the registered factor
+            levels, and comma-separated tokens compose any other ablation. A
+            comma spelling that lands on a registered combination resolves to
+            that same ruleset.
+            --skills adds the pre-registered class-skill kit on top of a class
+            pair. Each skill belongs to exactly one class, so a cell carries
+            only the skills whose owning class is in it and kit is shorthand
+            for all three. volley gives the striker a reversible windup-2
+            stance whose gun fires three simultaneous bolts down the facing
+            lane and both adjacent 45-degree headings, straight only, on a
+            slower cadence; the stance is immobile and keeps objective weight
+            1. shell gives the bulwark a reversible windup-1 stance that
+            DEFLECTS enemy projectiles arriving inside its facing quadrant:
+            the incoming bolt dies on the arc and a new bolt launches from the
+            shell's tile along the exactly reversed heading, owned by the
+            bulwark's team, so a bot that pokes a shell head-on is shot by its
+            own fire. The stance cannot move, shoot, or rotate — the protected
+            quadrant is chosen before the shield rises — and flank and rear
+            hits still land. five-slots gives a fabricator team five unit slots
+            against the opponent's three, unlocking at 60/180/300/420 with the
+            extra two rebuilding on the slower 30-tick clock; that arm mints
+            its own topology profile and fingerprint. Skills compose with
+            --classes, --movement, --pendulum, the numbers-only factors, and
+            --duel-map, subject to the 64-character canonical ID budget.
+            --five-slots selects a registered FIVE SLOTS tuning variant
+            (DECISIONS #171) and is only legal in a cell that carries the
+            skill: full is the measured arm and adds no suffix; trim drops
+            the fifth slot; boom swings the extra schedule late (360/480 on
+            the same cadence); drag prices count in tempo by putting the
+            ordinary children on the 30-tick baseline rebuild clock instead
+            of the fabricator's native 15. Each single-lever variant moves
+            exactly one lever; round 2's registered composites carry the two
+            levers round 1 measured working on different edges — moor is
+            trim + drag, wane is trim + a half-step 22-tick rebuild. Every
+            variant mints its own suffixed ruleset identity.
+            --stance-ground free drops the transition-placement-forbidden
+            tag kind from the VOLLEY and AEGIS SHELL entry routes, so a
+            skill stance can rise on objective tiles and in the central
+            corridor; turret anchor routes keep the tag. open goes further
+            (DECISIONS #176): EVERY transform placement is free — turret
+            anchors included — and the turret becomes a true cycle:
+            anchor/mobilize unlimited per life, health mapped proportionally
+            (floored, minimum one) in both directions, no entry heal. A
+            ground arm is inert where nothing it touches exists, so the
+            same flags work on every pair. wane + free is registered as
+            `berth`; the whole open game (aim + wane + open) as `deck`.
+            --aim offset restores the ±1-sector (45°) initial launch offset
+            on every class's mobile gun (DECISIONS #173) — the one-bend
+            grammar had dropped it by conflation, never by ruling. Specials
+            are untouched. Needs a class pair. rig + aim is registered as
+            `sail`, and the whole tuned game (rig + aim + wane) as `crew`.
+            --cooldown ticking advances a body's attack cooldown with TIME
+            in every form (DECISIONS #180): a gunless stance or windup no
+            longer freezes gun recovery. General for all classes. The open
+            game on the ticking clock is registered as `tide`.
+            --volley salvo re-arms the striker's fan (DECISIONS #182/#183):
+            every bolt deals 2, the fan stops taxing the mobile gun's
+            shared counter, the stance enters on the uniform 1-tick windup
+            (the 2-tick fan was the game's only 2-tick public telegraph),
+            and its frequency is priced on the stance ENTRY route instead
+            — an 8-tick slot-scoped route cooldown (the first consumer of
+            the #181 capability; it survives your death). Needs volley in
+            the cell's kit; inert-omitted where no striker is present.
+            tide + salvo is registered as `swell`.
+            --side-objective muster adds MUSTER, the rally flag: a capturable
+            site in the two widened alcoves on the map's centre column, held
+            by SOLE objective weight for 12 consecutive ticks (any empty or
+            contested tick puts the claim back to zero) and then latched
+            until the other team completes a claim of its own. While a team
+            owns it, that team's PRIME automatic returns land on the forward
+            rally tile beside the fight; without it they walk from home. It
+            is the ONLY source of a forward rally on this arm — the
+            unconditional placement keel hands both teams is taken away and
+            becomes the thing they fight over — and it is scoped to the
+            Prime, so a fabricator's fourth body gains nothing extra. It
+            never pays territorial progress. Read the owner and the running
+            claim from the mode observation (secondaryOwnerTeamId,
+            secondaryClaimProgress: signed, positive for team 0) and the
+            site's regions, threshold, and effect from the contract's
+            gameMode.secondaryControl. It runs on its own map generation
+            (frontline-labs-02-muster) because the alcoves are widened to two
+            approach headings, so it is a real arm on every pair rather than
+            an inert-omitted one, and it needs a class pair or a --pendulum
+            level to sit in. tide + muster is registered as `ensign`, and
+            swell + muster as `banner`.
+            --capture channel makes TAKING GROUND a channel (DECISIONS #187).
+            Capture gain counts only bodies that did NOT change tile this
+            tick; denial counts all of them, so a defender may kite inside
+            the region and still subtract while an attacker that stepped
+            contributes nothing. Stillness is positional: a blocked move did
+            not move, and rotating, shooting, or starting a transform never
+            breaks it. Hostile damage to a CONTROLLING body standing ON the
+            objective reverts that team's work on the current run by the
+            damage amount — never past where the run began, so being shot can
+            never complete a capture for the shooter — while damage to a body
+            OFF the objective reverts nothing, which is what makes screening
+            a channeler the intended play. Gain scales with net stationary
+            weight but is CAPPED AT 2, so extra channelers buy screens and
+            denial rather than speed. Eroding an enemy claim is a channel
+            too, at 8x build speed, so one controlling tick erases even a
+            maximal standing claim and a full flip costs 9 ticks against a
+            fresh capture's 8. The paired `channel-speed` factor
+            moves the threshold 15 -> 8. It publishes no new observation
+            fact: every rule above moves captureProgress and claimingTeamId
+            in their exact published shape — read the policy, the cap, the
+            erosion multiple, and the interrupt from the contract's
+            gameMode.capture (controlPolicy, stationaryGainMultiplierCap,
+            opposingErosionMultiplier, claimInterrupt) instead of assuming
+            them. It is a real arm on every pair and needs a class pair or a
+            --pendulum level to sit in. swell + channel is registered as
+            `storm` (the wave-8 erosion-4 spelling `siege` still names those
+            exact bytes).
+            --economy scrap adds a BATTLEFIELD ECONOMY (DECISIONS #187).
+            Deposits worth 8 arrive at (11,1) and (11,13) — the two dead side
+            lanes, equidistant from both home pads by construction — on ticks
+            60, 130, 200, 270, 340 and 410, and every destroyed body leaves a
+            wreck worth 2 at its death tile. Standing on a pile banks 1 for your
+            team instantly and loads the rest as carry up to 6; a load banks
+            in full when you end a tick on your own home pad, and drops with
+            you, merged into your wreck, when you die. Piles expire 80 ticks
+            after they appear, which is ten ticks LONGER than the cadence: a
+            deposit nobody took is still standing when the next one lands on
+            it, so the two merge and a neglected lane accumulates. A form
+            with objective weight 0 — an anchored
+            turret — can neither pick up nor carry, and anchoring drops the
+            load. Spend the bank with the new `invest` verb, which costs the
+            casting body its action for that tick and takes an upgrade track:
+            `edge` (+1 gun travel per tier), `plate` (+1 max health per tier,
+            applied at spawn — it NEVER heals) or `optic` (+1 vision per
+            tier). Ten per tier, flat; at most 2 in one track, and the whole
+            board is 6 (there is no total cap: the economy is allowed to
+            decide the match);
+            every tier applies to your PRIME slot's lives, current and
+            future. Affordability lives in the legality mask, so read your
+            constraint rather than pricing the ladder yourself. Three
+            observation facts arrive with it — mode.scrapTeams (both teams'
+            bank and tier vector), mode.scrapPiles (every live pile with its
+            expiry) and carriedScrap on self, allies, and visible enemies —
+            and no new event kind: every purchase and every bank change rides
+            the existing mode-changed fact carrying the post-change state.
+            --economy scrap-flat is the pre-registered CONTROL: same
+            deposits, same carrying, same ladder, but the bank buys greedily
+            by itself in declared track order at no action cost and the
+            `invest` verb does not exist. It is a real arm on every pair,
+            needs a class pair or a --pendulum level to sit in, and cannot be
+            combined with --side-objective. swell + scrap is registered as
+            `foundry`, and swell + channel + scrap — the full shipped game —
+            as `citadel` (the wave-8 pricing's own spellings, `forge` and
+            `bastion`, still name those exact bytes).
+            --roster legion raises the ROSTER (owner ruling on the wave-8
+            read). Every team starts with three live bodies instead of one,
+            gains two more slots at tick 150 and three more at 300, and ends
+            the match with eight. The FABRICATOR stands FOUR live bodies at
+            tick zero rather than three (owner ruling on the levy re-mint:
+            "the initial spawn should be automatic for the Fab"), and its
+            exclusive verb prices the mid and late tranches instead — its
+            slots at 150 and 300 are fabricable rather than automatic, so
+            its endgame roster is nine. The arm runs on its own map generation
+            (frontline-labs-03-legion): a slot that returns automatically
+            needs a reserved spawn anchor, so the map carries seven
+            mirror-fair companion anchors per team and a home pad widened to
+            cover them (which is also the banking region under --economy).
+            It supersedes the FIVE SLOTS slot schedule — two factors that
+            both set the slot count could not be attributed apart — while the
+            skill's rebuild-clock variants still apply. Read the slot count,
+            each slot's availability, and its activation tick from the
+            contract's topology and lifecycle assignments; nothing about it
+            is inferable from a body count. It is a real arm on every pair,
+            needs a class pair, and cannot be combined with --side-objective
+            (both mint a map generation). swell + legion is registered as
+            `warband`, and the full v1.1 game plus the roster as `brigade`.
+            --horizon long raises the match limit from 500 to 750 ticks
+            (owner ruling: "longer games at this point is ok"). It is a
+            contract LIMIT, so read limits.maxTicks instead of assuming a
+            number: every pacing gate in the game — the 18-tick Prime return,
+            the 40-tick ratchet hold, the vein cadence, the roster tranches —
+            was priced against 500 and is being re-priced against 750. It is a
+            real arm on every pair and needs a class pair or a --pendulum
+            level to sit in.
+            --chassis unified DISSOLVES THE PRIME. Every body of a class
+            shares one statline (each class unified at its CHILD values:
+            bulwark 4, fabricator 3, striker 3, and the bulwark's anchor
+            windup at the child's 1), one lifecycle profile, and one action
+            catalog. Three consequences travel with it because they are one
+            design step: the fabricate verb sits on EVERY fabricator body, so
+            any live body is a fabrication origin and killing one never kills
+            the factory; at TOTAL body loss the home base acts as the ROOT
+            FACTORY and seeds one body at the home spawn after the class's own
+            respawn delay, at no cost (active fabrication still needs a live
+            body); and a purchased upgrade tier applies to EVERY body of the
+            buying team instead of the prime slot's lives, at 20 scrap per
+            tier instead of 10. Read the tier price from the contract's
+            scrapEconomy tracks and the bootstrap from the lifecycle
+            profile's rootFactorySeedFormId. It needs a class pair, it refuses
+            --prime-respawn-ticks (which names a lifecycle it deletes) and
+            --side-objective (whose effect is prime-scoped), and it appends
+            `peer` to the ruleset identity.
+            --tier-cost <n> sweeps the flat upgrade price. It is the
+            registered ablation on the widened scope — 10, 20 and 30 are
+            pre-registered — and it spells its number in the ruleset identity.
+            --compositions <a>-vs-<b> lets a participant's SLOTS carry chassis
+            of more than one class. Registered tokens: the three monos
+            (bulwark, fabricator, striker), which are byte-identical to
+            today's class arms and are what every cell already plays, plus
+            spearhead (a fabricator leading a striker/bulwark line — does
+            mixing beat mono at all?) and warden (a bulwark leading fabricator
+            and striker companions — does the fabricator's monopoly survive
+            being a companion?). Pairs are canonical in alphabetical order and
+            a single token names the mirror. A composition's lead chassis must
+            agree with that team's --classes side: composition is a departure
+            from a declared class, not a second matchmaking axis. A MIXED
+            composition needs --chassis unified (a class's verbs live on its
+            prime form otherwise) and --roster legion (the registered mixed
+            profiles are legion shapes). Composition tokens live in the
+            TOPOLOGY profile ID and never in the ruleset ID, so two
+            compositions playing the same mechanics share a rules fingerprint
+            and differ in the topology and aggregate ones. Read the per-slot
+            classId on the topology's unitSlots; free composition is a later
+            registered level.
+            --pendulum hull is the keel WITHOUT its forward rally (owner
+            ruling): sticky frontline, contest majority and enemy-sole decay
+            are unchanged, but every automatic arrival — prime respawns and
+            companion activations alike — lands on its own reserved home
+            spawn. Read rules.lifecycle.automaticReturnPlacement rather than
+            assuming a rally: under hull the fabricator's field-placed
+            children are the ONLY forward body delivery in the game.
+            The next round's whole package — hull + the tuned class game +
+            --capture channel + --economy scrap + --horizon long — carries one
+            registered identity per shape: `vigil` on the striker shapes,
+            `warren` on the fabricator shapes, `bastille` on the bulwark
+            mirror; with --roster legion they are `warpath`, `horde` and
+            `stockade`.
+            Both stances spend a declared budget and then return by
+            themselves: the volley returns the tick its fan launches (one cast
+            per entry, so a parked striker cannot become artillery), and the
+            shell shatters on its third deflection. Leaving earlier is still
+            yours to do through the parameterless mobilize; leaving later is
+            not. Read the budget from the return route's automaticReturn.
+            --bend selects the curve grammar. striker-only (the default) is
+            today's contract: only a chassis declaring shot programs bends.
+            universal hands every class's mobile gun the one-bend grammar at
+            its own depth — the striker keeps 1-4 tiles, the classes that gain
+            it here get 1-2 — moving those guns from shoot-straight to shoot
+            with an optional payload. Specials never curve: a volley profile
+            refuses programmed shots and turret guns stay straight. It needs a
+            class pair and composes like the other factors.
+            --prime-respawn-ticks retunes the Prime automatic-return delay
+            (18 by default); with --capture-threshold it is the numbers-only
+            factor level. Both compose with --pendulum, --skills, --classes,
+            --movement, and --duel-map, and none of them is compatible with
+            --capture-gain-phase, --mobilize-turrets, --remote-fabrication,
+            --net-control, --one-bend-shots, or --auto-companions.
             Both entrants are required; a generic spec is an IGenericActorBot
             project or a generic-actor-profile WASM artifact.
+            EXIT CODES: 0 the match produced a result; 1 usage/environment;
+            2 a participant faulted or was disqualified (a real outcome, with
+            a real replay); 4 the match ABORTED — no result and no replay, so
+            the cell measured nothing and must be re-run rather than scored.
+            Nothing that failed returns 0.
+            --print-candidate-contract emits the resolved candidate and exits;
+            bot arguments are not required in this mode. The bare flag (or
+            `identity`) prints the ruleset/map/format/topology IDs and their
+            fingerprints. `full` prints the COMPLETE resolved canonical match
+            contract as JSON on stdout — byte-identical to what the runtime
+            receives at MatchStart and to a replay-v3 header's contract — so
+            every declared number (limits.maxTicks, each action's
+            routeCooldown.cooldownTicks, sameLifeTransitions windups, the mode's
+            capture arithmetic, the economy schedule and upgrade tracks) is
+            readable without running a throwaway match.
+
+            Usage: nilbots experiment frontline-labs qualify
+                   --bot <generic-spec> [--runtime wasm|in-process]
+                   [--seed <n>] [--profile actor|mind] [--viewer]
+                   [--suite frontline-qualification-1|frontline-qualification-2|frontline-qualification-3|frontline-qualification-4|frontline-qualification-5]
+                   [--out <dir>]
+
+            Runs mirrored, versioned capability probes and writes verified
+            replay-v3 evidence plus qualification.json. Suite 1 is the frozen
+            T4 entry-initiative component. Suite 2 requires WASM and freezes
+            the automatic-life foundation component. Suite 3 is the
+            cumulative WASM-only T2 duel-depth union profile; suite 4 adds
+            cumulative T3 tactical geometry; suite 5 adds cumulative T4
+            positional doctrine and is the first balance-eligible tier.
+            Probe failure returns exit code 3; runtime or contract failure
+            returns 2; a probe match that ABORTED — no result and no replay —
+            returns 4. Nothing that failed returns 0. It is never ranked.
+
+            THE MIND SUITES. --profile mind selects
+            frontline-mind-qualification-3/4/5 on the parallel
+            frontline-mind-union-t2/t3/t4-v1 profiles. The probe contracts are
+            the same ones; what changes is that your artifact drives them as
+            ONE participant-scoped runtime. Two probes exist only there:
+            body-handoff at T2, where the body holding the objective is
+            destroyed and another of yours must take the point within 12 ticks
+            without your bodies blocking each other; and escort-integrity at
+            T4, the escorted channel — one body still on the point with another
+            beside it for six consecutive ticks, from both assignments. The
+            documented respawn-reorient requirement does not appear: a mind's
+            memory does not reset when a body dies, so it measured nothing.
+            The C1-C5 coordination axis folds into those tiers for a mind
+            (reported as coordinationGradeAwarded "folded-into-tiers") and
+            stays unchanged for per-life artifacts.
+
+            Viewers are OPT-IN. A cumulative T4 run writes 38 replays, and a
+            self-contained viewer embeds the whole replay into a multi-megabyte
+            theme template; pass --viewer when you actually want to watch one.
             """,
         "set" => """
             Usage: nilbots set --bot <spec> --opponent <spec>

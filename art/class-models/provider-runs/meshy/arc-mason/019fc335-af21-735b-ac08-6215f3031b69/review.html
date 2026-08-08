@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Arc Mason · current relief vs Meshy T2</title>
+  <style>
+    :root { color-scheme: dark; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; background:#070b10; color:#dbe7ef; }
+    body { margin:0; padding:26px; }
+    h1 { margin:0 0 5px; font:700 30px/1.1 system-ui,sans-serif; }
+    p { margin:0 0 22px; color:#8fa5b4; }
+    main { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+    figure { margin:0; border:1px solid #20303c; background:#080d12; }
+    canvas { display:block; width:100%; aspect-ratio:1; }
+    figcaption { padding:10px 12px; border-top:1px solid #20303c; }
+    small { display:block; margin-top:3px; color:#8fa5b4; }
+  </style>
+  <script type="importmap">
+    { "imports": { "three": "/web/node_modules/three/build/three.module.js" } }
+  </script>
+</head>
+<body>
+  <h1>Arc Mason · one-call comparison</h1>
+  <p>Same +X facing, 0.9-tile planform, perspective lens, 58° gameplay pitch, floor and lighting. No model-owned team tint.</p>
+  <main>
+    <figure>
+      <canvas id="current" width="640" height="640"></canvas>
+      <figcaption>Current orthographic vector relief<small>418,924 B · 7,754 triangles</small></figcaption>
+    </figure>
+    <figure>
+      <canvas id="candidate" width="640" height="640"></canvas>
+      <figcaption>Meshy Smart Topology T2<small>678,480 B · 14,278 triangles · 1024px WebP PBR</small></figcaption>
+    </figure>
+  </main>
+  <script type="module">
+    import * as THREE from 'three';
+    import { GLTFLoader } from '/web/node_modules/three/examples/jsm/loaders/GLTFLoader.js';
+
+    const models = [
+      ['/web/src/assets/class-looks/arc-mason/model.glb', 'current'],
+      ['/art/class-models/provider-runs/meshy/arc-mason/019fc335-af21-735b-ac08-6215f3031b69/mason-normalized-review.glb', 'candidate'],
+    ];
+    await Promise.all(models.map(([url, id]) => render(url, document.getElementById(id))));
+    window.__nilbotsReviewReady = true;
+
+    async function render(url, canvas) {
+      const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, alpha:false });
+      renderer.setPixelRatio(1);
+      renderer.setSize(640, 640, false);
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.12;
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color('#080d12');
+      scene.add(new THREE.HemisphereLight('#bcd8e8', '#111820', 1.25));
+      const key = new THREE.DirectionalLight('#fff1d8', 3.2);
+      key.position.set(-1.6, 2.7, 2.1);
+      key.castShadow = true;
+      key.shadow.mapSize.set(1024, 1024);
+      scene.add(key);
+
+      const floorMaterial = new THREE.MeshStandardMaterial({ color:'#17232c', roughness:0.92, metalness:0.08 });
+      const floor = new THREE.Mesh(new THREE.PlaneGeometry(2.5, 2.5), floorMaterial);
+      floor.rotation.x = -Math.PI / 2;
+      floor.receiveShadow = true;
+      scene.add(floor);
+      const grid = new THREE.GridHelper(2.5, 5, '#314551', '#22333e');
+      grid.position.y = 0.002;
+      scene.add(grid);
+
+      const gltf = await new GLTFLoader().loadAsync(url);
+      gltf.scene.traverse((node) => {
+        if (!node.isMesh) return;
+        node.castShadow = true;
+        node.receiveShadow = true;
+        const materials = Array.isArray(node.material) ? node.material : [node.material];
+        for (const material of materials) {
+          material.side = THREE.FrontSide;
+          if (material.userData?.nilbotsRole === 'team-accent') {
+            material.color.set('#e0a62e');
+            material.emissive?.set('#5f3d0b');
+            material.emissiveIntensity = 0.35;
+          }
+        }
+      });
+      scene.add(gltf.scene);
+
+      const camera = new THREE.PerspectiveCamera(42, 1, 0.05, 20);
+      const pitch = 58 * Math.PI / 180;
+      const distance = 1.72;
+      camera.position.set(0, Math.sin(pitch) * distance + 0.08, Math.cos(pitch) * distance);
+      camera.lookAt(0, 0.18, 0);
+      renderer.render(scene, camera);
+    }
+  </script>
+</body>
+</html>

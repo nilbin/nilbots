@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "id": "arc-kestrel",
+  "file": "model.glb",
+  "kind": "bot",
+  "part": "whole",
+  "facing": "+x",
+  "up": "+y",
+  "source": {
+    "generator": "scripts/class-models/promote-meshy-arc-fleet.mjs",
+    "recipe": "art/class-models/runtime-tiers/arc-relay/ktx2-selective-v1/audit.json",
+    "artifact": "art/class-models/runtime-tiers/arc-relay/ktx2-selective-v1/arc-kestrel.glb",
+    "sourceSha256": "2cd3e1a79a7e32e047aa60890a9aa91ffd05b305365894e7288860e05a9d1a5c",
+    "approvedArtifact": "art/class-models/provider-runs/meshy/arc-kestrel/019fc37b-3531-713a-b811-b9180a9dc880/model-normalized-facing-review.glb",
+    "approvedSha256": "08a59ea57608acedb2c61aaf8a7e019e02b4cfecc310cc66cc59d73bc3e07ad8",
+    "textureTier": "arc-relay-ktx2-selective-v1",
+    "provider": "Meshy",
+    "model": "meshy-t2",
+    "endpoint": "image-to-3d",
+    "modelType": "smart-topology",
+    "taskId": "019fc37b-3531-713a-b811-b9180a9dc880",
+    "orientation": "lay-flat-x",
+    "facingYawDegrees": 180
+  },
+  "motion": {
+    "locomotion": "low-hover",
+    "handling": "swift",
+    "hardwareLagTicks": 0.18,
+    "hardwareOvershoot": 0.12
+  },
+  "signature": "vector-dash",
+  "ledger": {
+    "bytes": 594448,
+    "sha256": "2cd3e1a79a7e32e047aa60890a9aa91ffd05b305365894e7288860e05a9d1a5c",
+    "triangles": 13362,
+    "materials": 1,
+    "textureCount": 4,
+    "geometrySha256": "80536228240ebbe3ef9477fce2b68cc560761fc597a7b280f2754e80e30eb115",
+    "geometryGpuBytes": 372312,
+    "textureGpuBytesCompressedTarget": 360528,
+    "textureGpuBytesRgba8Fallback": 2184528,
+    "modelGpuBytesCompressedTarget": 732840,
+    "modelGpuBytesRgba8Fallback": 2556840,
+    "textureTier": "arc-relay-ktx2-selective-v1"
+  }
+}

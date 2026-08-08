@@ -63,6 +63,35 @@ public static class CliSupport
         return options;
     }
 
+    /// <summary>
+    /// Resolves the Labs contract profile a command runs on. The per-life
+    /// generation is the default and stays the default: it is the shipped
+    /// product, the pinned hosted playlist, and the generation every measured
+    /// cohort was authored for.
+    ///
+    /// <para>Profile is a MATCH-level choice, not a per-entrant one, and that
+    /// is the whole reason a mixed match works. One match resolves one
+    /// contract, so both entrants answer the same observation shape; an
+    /// artifact whose author only ever wrote a per-life bot answers a mind
+    /// observation through the guest's wrap adapter, with no source edit and
+    /// no flag of its own. Selecting per entrant would mean two contracts in
+    /// one match, which is not a thing a fingerprinted match can be.</para>
+    /// </summary>
+    /// <returns>True when the mind profile was selected.</returns>
+    public static bool ParseLabsProfile(string? value)
+    {
+        if (value is null)
+            return false;
+        return value.ToLowerInvariant() switch
+        {
+            "actor" or "generic-actor" or "generic-actor-match-2" or "per-life"
+                => false,
+            "mind" or "generic-mind" or "generic-mind-match-1" => true,
+            _ => throw new InvalidOperationException(
+                $"Unknown contract profile '{value}' (use actor or mind)."),
+        };
+    }
+
     public static void RejectUnknownOptions(
         IReadOnlyDictionary<string, string> options,
         params string[] allowed)

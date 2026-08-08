@@ -1,0 +1,38 @@
+{
+  "id": "019fafe2-6a02-7048-b4f2-58be96b34423",
+  "type": "multi-image-to-3d",
+  "name": "",
+  "art_style": "",
+  "object_prompt": "",
+  "style_prompt": "",
+  "negative_prompt": "",
+  "texture_prompt": "Graphite-black hard-surface armor with weathered bronze panels, crisp panel seams and recessed vents, cyan emissive team-accent inlays, and warm amber engine/core emission. Controlled PBR metallic/roughness. Keep cyan confined to sharply bounded inlay surfaces with no cyan spill elsewhere. No text, logos, labels, decals, or baked lighting.",
+  "texture_image_url": "",
+  "text_style_prompt": "",
+  "image_style_url": "",
+  "status": "SUCCEEDED",
+  "created_at": 1785362281366,
+  "progress": 100,
+  "started_at": 1785362281706,
+  "finished_at": 1785362527772,
+  "expires_at": 1785621727772,
+  "task_error": null,
+  "model_url": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019fafe2-6a02-7048-b4f2-58be96b34423/output/model.glb",
+  "model_urls": {
+    "glb": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019fafe2-6a02-7048-b4f2-58be96b34423/output/model.glb"
+  },
+  "thumbnail_url": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019fafe2-6a02-7048-b4f2-58be96b34423/output/preview.png",
+  "texture_urls": [
+    {
+      "base_color": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019fafe2-6a02-7048-b4f2-58be96b34423/output/texture_0.png",
+      "metallic": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019fafe2-6a02-7048-b4f2-58be96b34423/output/texture_0_metallic.png",
+      "roughness": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019fafe2-6a02-7048-b4f2-58be96b34423/output/texture_0_roughness.png",
+      "normal": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019fafe2-6a02-7048-b4f2-58be96b34423/output/texture_0_normal.png",
+      "emission": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019fafe2-6a02-7048-b4f2-58be96b34423/output/texture_0_emission.png"
+    }
+  ],
+  "remove_lighting": true,
+  "hd_texture": true,
+  "texture_resolution": "4k",
+  "consumed_credits": 30
+}

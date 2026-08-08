@@ -69,6 +69,14 @@ export interface ReplayV3ContractForm {
 export interface ReplayV3MovementProfile {
   id: string;
   movementLayer: string;
+  /**
+   * Optional facing coupling: 'preserve-facing' (the inert default),
+   * 'face-movement-direction', 'facing-locked',
+   * 'face-movement-heading-projected', or 'combat-strafe'. The engine's canonical
+   * writer omits the property entirely while the profile preserves facing,
+   * so an absent field means 'preserve-facing' — never a missing value.
+   */
+  facingCoupling?: string;
 }
 
 export interface ReplayV3VisionProfile {
@@ -112,6 +120,9 @@ export interface ReplayV3ShotProgramDefinition extends ReplayV3JsonObject {
 export interface ReplayV3AttackProfile extends ReplayV3JsonObject {
   id: string;
   omnidirectionalAim: boolean;
+  aimInterpretation: string;
+  /** Optional non-inert facing-relative half-width in eight-way sectors. */
+  facingAimHalfWidthSectors?: number;
   projectile: ReplayV3ProjectileDefinition;
   cooldownTicks: number;
   maxEnergy: number;
@@ -126,6 +137,8 @@ export interface ReplayV3ActionDefinition {
   code: number;
   kind: string;
   parameterKinds: string[];
+  /** Optional per-movement-action override of the profile's facing coupling. */
+  movementFacingOverride?: string;
 }
 
 export interface ReplayV3ScoreCatalogEntry {
@@ -168,7 +181,9 @@ export interface ReplayV3FrontlineModeDefinition extends ReplayV3JsonObject {
     decayIntervalTicks: number;
     redeployPauseTicks: number;
     controlPolicy:
-      'binary-positive-weight-per-team-no-stacking-non-sole-applies-configured-decay-opposition-erodes-to-neutral';
+      | 'binary-positive-weight-per-team-no-stacking-non-sole-applies-configured-decay-opposition-erodes-to-neutral'
+      | 'net-positive-objective-weight-difference-scales-gain-non-positive-applies-configured-decay-opposition-erodes-to-neutral'
+      | 'stationary-claim-weight-versus-total-denial-weight-scales-gain-capped-opposition-erodes-at-multiple-then-builds';
     timeoutPolicy:
       'signed-position-threshold-plus-claim-zero-draw-no-tiebreakers';
     territorialProgressFormula:
@@ -180,12 +195,73 @@ export interface ReplayV3FrontlineModeDefinition extends ReplayV3JsonObject {
     oppositionArithmetic:
       'erode-toward-zero-without-carrying-overshoot-into-own-claim';
     decayClock:
-      'consecutive-empty-or-contested-ticks-reset-by-any-sole-control';
+      | 'consecutive-empty-or-contested-ticks-reset-by-any-sole-control'
+      | 'empty-and-contested-ticks-preserve-claim-enemy-sole-erosion-only';
     disabledDecay: 'zero-pair-preserves-claim-and-keeps-clock-zero';
     redeployPolicy:
-      'advance-immediately-reset-claim-keep-world-pause-through-capture-plus-configured-ticks-breach-skips-pause';
+      | 'advance-immediately-reset-claim-keep-world-pause-through-capture-plus-configured-ticks-breach-skips-pause'
+      | 'advance-immediately-then-deny-enemy-regression-past-the-high-water-mark-through-configured-hold-ticks';
+    ratchetHoldTicks?: number;
     redeployTickArithmetic:
       'checked-int64-capture-tick-plus-one-plus-pause-require-int32';
+    /**
+     * The capture channel's three settings. Additive and inert-omitted
+     * together with the ratchet hold's discipline: a ruleset that does not
+     * channel writes no bytes for any of them, so every historical contract
+     * keeps its exact fingerprint. They are carried by exactly the channel
+     * control policy.
+     */
+    stationaryGainMultiplierCap?: number;
+    opposingErosionMultiplier?: number;
+    claimInterrupt?: {
+      kind: 'damage-to-controller-on-objective-reverts-work';
+      revertPerDamagePoint: number;
+      scope: 'controlling-team-bodies-on-active-objective-region';
+      granularity: 'whole-run';
+    };
+  };
+  /**
+   * The declared side objective. Additive and inert-omitted: a mode without
+   * one writes no bytes for it, so every historical ruleset keeps its exact
+   * fingerprint.
+   */
+  secondaryControl?: {
+    regionIds: string[];
+    captureThresholdTicks: number;
+    ownership: 'latched-until-recaptured-by-sole-objective-weight';
+    effect: 'muster';
+    rallyScope: 'prime-automatic-return-only';
+  };
+  /**
+   * The declared battlefield economy. Additive and inert-omitted on the same
+   * discipline, and mutually exclusive with `secondaryControl` because both
+   * claim the side lanes' attention.
+   */
+  scrapEconomy?: {
+    veinSites: { x: number; y: number }[];
+    veinFirstSpawnTick: number;
+    veinSpawnIntervalTicks: number;
+    veinLastSpawnTick: number;
+    veinAmount: number;
+    wreckAmount: number;
+    assayAmount: number;
+    carryCapacity: number;
+    pileLifetimeTicks: number;
+    maxSimultaneousPiles: number;
+    bankRegionIds: string[];
+    upgradeScope: 'prime-slot-lives-only' | 'all-slot-lives';
+    maxTotalTiers: number;
+    purchaseMode: 'invest-action' | 'automatic-greedy-declared-order';
+    tracks: {
+      trackId: string;
+      effect:
+        | 'mobile-attack-travel-tiles-delta'
+        | 'spawn-max-health-delta'
+        | 'vision-range-delta';
+      perTierMagnitude: number;
+      maxTier: number;
+      tierCosts: number[];
+    }[];
   };
 }
 
@@ -196,9 +272,40 @@ export interface ReplayV3FrontlineCaptureGainPhase
   gainPerSoleTeamTick: number;
 }
 
+export interface ReplayV3ArcRelayModeDefinition extends ReplayV3JsonObject {
+  kind: 'arc-relay';
+  modeId: string;
+  victory: ReplayV3JsonObject & {
+    kind: 'arc-relay';
+    timeoutRanking: ReplayV3RankingRule[];
+    pulsesToDestroyReactor: number;
+  };
+  scoreCatalog: ReplayV3ScoreCatalogEntry[];
+  pendingRearmTicks: number;
+  coreRelocationIntervalTicks: number;
+  coresPerPulse: number;
+  fieldedSlotsPerTeam: number;
+  maxCopiesPerClass: number;
+  respawnDelayTicks: number;
+  wells: {
+    wellId: string;
+    firstBirthTick: number;
+    cadenceTicks: number;
+    finalBirthTick: number;
+  }[];
+  signatures: (ReplayV3JsonObject & {
+    kind: string;
+    signatureId: string;
+    classId: string;
+    actionId: string;
+    cooldownTicks: number;
+  })[];
+}
+
 export type ReplayV3GameModeDefinition =
   | ReplayV3DeathmatchModeDefinition
-  | ReplayV3FrontlineModeDefinition;
+  | ReplayV3FrontlineModeDefinition
+  | ReplayV3ArcRelayModeDefinition;
 
 export interface ReplayV3RulesContract {
   schemaVersion: number;
@@ -279,12 +386,22 @@ export interface ReplayV3TopologyContract {
     unitSlotCount: number;
     initialLifeCount: number;
   };
-  teams: { teamId: number }[];
-  participants: { participantId: number; teamId: number }[];
+  teams: { teamId: number; classId?: string }[];
+  participants: {
+    participantId: number;
+    teamId: number;
+    classId?: string;
+  }[];
   unitSlots: {
     teamId: number;
     unitId: number;
     controllerParticipantId: number;
+    /**
+     * The per-slot chassis (§9.2). Additive under the #156 canonical
+     * discipline: present only where a ruleset declares COMPOSITIONS, so a
+     * mono army keeps its exact topology bytes.
+     */
+    classId?: string;
   }[];
   initialLives: {
     teamId: number;
@@ -318,6 +435,13 @@ export interface ReplayV3LifecycleAssignment extends ReplayV3JsonObject {
   initialAvailability: string;
   unlockTick: number | null;
   assignedRespawnSpawnId: string | null;
+  /**
+   * The form a fabrication INTO this slot produces, overriding the fabrication
+   * transition's declared output — "fabricate produces the target slot's
+   * chassis". Present only under a MIXED composition; absent (not null) on
+   * every mono cell, which is the #156 additive-canonical rule.
+   */
+  fabricationOutputFormId?: string;
 }
 
 export interface ReplayV3DeathmatchModeMapBinding {
@@ -334,9 +458,17 @@ export interface ReplayV3FrontlineModeMapBinding {
   }[];
 }
 
+export interface ReplayV3ArcRelayModeMapBinding {
+  kind: 'arc-relay';
+  orderedWellRegionIds: string[];
+  reactorRegionRoleId: string;
+  homePadRegionRoleId: string;
+}
+
 export type ReplayV3ModeMapBinding =
   | ReplayV3DeathmatchModeMapBinding
-  | ReplayV3FrontlineModeMapBinding;
+  | ReplayV3FrontlineModeMapBinding
+  | ReplayV3ArcRelayModeMapBinding;
 
 export interface ReplayV3ResolvedContract {
   schemaVersion: number;
@@ -435,6 +567,7 @@ export interface ReplayV3ParticipantStatus {
   teamId: number;
   runtimeFaultCount: string;
   disqualified: boolean;
+  classId: string | null;
 }
 
 export interface ReplayV3PendingSameLifeTransition {
@@ -450,14 +583,18 @@ export type ReplayV3RawActionArgument =
   | { kind: 'direction'; value: number }
   | { kind: 'unit-target'; value: { teamId: number; unitId: number } }
   | { kind: 'form-target'; formId: string | null }
-  | { kind: 'projectile-heading'; value: number };
+  | { kind: 'position-target'; value: ReplayV3Position }
+  | { kind: 'projectile-heading'; value: number }
+  | { kind: 'upgrade-track'; trackId: string | null };
 
 export type ReplayV3ActionArgument =
   | { kind: 'shot-program'; value: ReplayV3ShotProgram }
   | { kind: 'direction'; value: ReplayV3Direction }
   | { kind: 'unit-target'; value: { teamId: number; unitId: number } }
   | { kind: 'form-target'; formId: string }
-  | { kind: 'projectile-heading'; value: ReplayV3ProjectileHeading };
+  | { kind: 'position-target'; value: ReplayV3Position }
+  | { kind: 'projectile-heading'; value: ReplayV3ProjectileHeading }
+  | { kind: 'upgrade-track'; trackId: string };
 
 export interface ReplayV3SubmittedDecision {
   actionId: string | null;
@@ -579,7 +716,119 @@ export type ReplayV3ModeState =
       captureProgress: number;
       decayTicksElapsed: number;
       controlResumesAtTick: number;
-    };
+      /** Team a live territory-ratchet hold protects; null when none is live. */
+      holdOwnerTeamId: number | null;
+      /** First tick the live hold stops denying regression; null when none. */
+      holdEndsAtTick: number | null;
+      /** Team that owns the declared side objective; null while neutral. */
+      secondaryOwnerTeamId: number | null;
+      /** Signed sole-presence ticks claimed on it: + team 0, - team 1. */
+      secondaryClaimProgress: number;
+      /**
+       * Both teams' bank and tier vector, ordered by team ID. Present only
+       * on a ruleset that declares a scrap economy.
+       */
+      scrapTeams?: ReplayV3ScrapTeam[];
+      /** Live piles of loose scrap, ordered by (y, x). */
+      scrapPiles?: ReplayV3ScrapPile[];
+    }
+  | ReplayV3ArcRelayModeState;
+
+export interface ReplayV3ArcCoreId {
+  sourceWellId: string;
+  sourceOrdinal: number;
+}
+
+export interface ReplayV3ArcWell {
+  wellId: string;
+  position: ReplayV3Position;
+  nextScheduledBirthTick: number | null;
+  outstandingCoreId: ReplayV3ArcCoreId | null;
+  pendingCharge: boolean;
+  rearmCompletesAtTick: number | null;
+}
+
+export interface ReplayV3ArcReactor {
+  teamId: number;
+  position: ReplayV3Position;
+  chargePips: number;
+  integritySegments: number;
+  /** Threefold sockets; present only under threefold rulesets. */
+  filledSocketWellIds?: string[];
+}
+
+export interface ReplayV3ArcCore {
+  coreId: ReplayV3ArcCoreId;
+  position: ReplayV3Position;
+  disposition: 'loose' | 'carried' | 'in-flight';
+  carrierActorId: ReplayV3ActorId | null;
+  nextRelocationTick: number;
+  flightTarget: ReplayV3Position | null;
+  flightCompletesAtTick: number | null;
+  /** Charge this Core banks for; present only under charge-value rulesets. */
+  chargeValue?: number;
+}
+
+export interface ReplayV3ArcSignature {
+  operationId: string;
+  signatureId: string;
+  signatureKind: string;
+  ownerActorId: ReplayV3ActorId;
+  ownerTeamId: number;
+  phase: 'tell' | 'active' | 'channel' | 'in-flight';
+  startedTick: number;
+  completesAtTick: number | null;
+  endsAtTick: number | null;
+  positions: ReplayV3Position[];
+  targetActorId: ReplayV3ActorId | null;
+  remainingCapacity: number;
+  suppressed: boolean;
+}
+
+export interface ReplayV3ArcRelayModeState {
+  kind: 'arc-relay';
+  modeId: string;
+  wells: ReplayV3ArcWell[];
+  reactors: ReplayV3ArcReactor[];
+  visibleCores: ReplayV3ArcCore[];
+  visibleSignatures: ReplayV3ArcSignature[];
+  latestPulseTeamId: number | null;
+  latestPulseTick: number | null;
+  /**
+   * Declared strikes in windup (DECISIONS #212). Present only on rulesets
+   * with strike windups; absence is the historical document shape.
+   */
+  pendingStrikes?: ReplayV3ArcPendingStrike[];
+}
+
+/** One publicly declared strike in windup (DECISIONS #212). */
+export interface ReplayV3ArcPendingStrike extends ReplayV3JsonObject {
+  shooter: ReplayV3ActorId;
+  resolveAtTick: number;
+  /** The strike's frozen apex; absent on documents written before it. */
+  origin?: ReplayV3Position;
+  /** Declared heading (kebab-case); absent on documents written before it. */
+  centralHeading?: string;
+  /** The locked body (lock-and-follow); absent over an empty wedge. */
+  target?: ReplayV3ActorId;
+  tiles: ReplayV3Position[];
+}
+
+/** One team's published economic position under a declared scrap economy. */
+export interface ReplayV3ScrapTeam extends ReplayV3JsonObject {
+  teamId: number;
+  bank: number;
+  /** Tier held per track, positional against the declared track order. */
+  tierLevels: number[];
+}
+
+/** One live pile of loose scrap. */
+export interface ReplayV3ScrapPile extends ReplayV3JsonObject {
+  position: ReplayV3Position;
+  amount: number;
+  /** The pile is gone the first tick `tick >= expiresAtTick`. */
+  expiresAtTick: number;
+}
 
 export interface ReplayV3WorldState {
   matchContractFingerprint: string;
@@ -594,20 +843,26 @@ export interface ReplayV3WorldState {
   mode: ReplayV3ModeState;
 }
 
+export interface ReplayV3LifeOrigin {
+  reason: string;
+  generation: number;
+  parentActorId: ReplayV3ActorId | null;
+  sourceTransitionId: string | null;
+  sourceOperationId: string | null;
+}
+
 export interface ReplayV3LifeStart {
   schemaVersion: number;
   runtimeContractVersion: number;
   actorId: ReplayV3ActorId;
   participantId: number;
   actorRandomSeed: string;
-  origin: {
-    reason: string;
-    generation: number;
-    parentActorId: ReplayV3ActorId | null;
-    sourceTransitionId: string | null;
-    sourceOperationId: string | null;
-  };
+  origin: ReplayV3LifeOrigin;
   matchContractFingerprint: string;
+  // Trailing additive key: the scoring team's shared random root, identical
+  // for every life on the team. Absent only in a document written before the
+  // team stream existed.
+  teamRandomSeed?: string;
 }
 
 export interface ReplayV3ObservedSelf {
@@ -621,6 +876,31 @@ export interface ReplayV3ObservedSelf {
   energy: number | null;
   previousActionResolution: ReplayV3ActionResolution | null;
   pendingSameLifeTransition: ReplayV3PendingSameLifeTransition | null;
+  classId: string | null;
+  /**
+   * Live slot-scoped route cooldowns, ordered by transition ID; the named
+   * same-life route refuses re-entry while the observed tick is strictly
+   * below readyAtTick. Present only while at least one clock is live.
+   */
+  routeCooldowns?: ReplayV3RouteCooldown[];
+  /**
+   * Scrap this body is carrying. Present only while it is actually carrying,
+   * so a document from a contract with no declared economy never carries it.
+   */
+  carriedScrap?: number;
+  /**
+   * The label this body's own mind last published for it. The canonical wire
+   * never writes it on `self` — a per-life bot cannot set one, and a mind body
+   * carries it on its own frame — so it exists here only because the mind
+   * specialization reuses this shape when it projects one mind turn into per-
+   * body turns for the viewer.
+   */
+  roleTag?: string;
+}
+
+export interface ReplayV3RouteCooldown {
+  transitionId: string;
+  readyAtTick: number;
 }
 
 export interface ReplayV3ObservedAlly extends ReplayV3ObservedSelf {}
@@ -633,6 +913,31 @@ export interface ReplayV3ObservedEnemy {
   health: number;
   pendingSameLifeTransition: ReplayV3PendingSameLifeTransition | null;
   observedBy: ReplayV3ActorId[];
+  classId: string | null;
+  /** A visible enemy's load; present only while it is carrying. */
+  carriedScrap?: number;
+  /**
+   * The label the enemy's own mind published for this body. Public on purpose
+   * and entirely non-authoritative, so it is what the opponent SAYS this body's
+   * job is; absent whenever nobody has tagged it, which is every per-life
+   * replay.
+   */
+  roleTag?: string;
+}
+
+export interface ReplayV3SpawnReservation {
+  teamId: number;
+  unitId: number;
+  kind: 'automatic-return' | 'fabrication' | 'replication';
+  /** Null exactly for a permanent automatic-return slot claim. */
+  dueTick: number | null;
+}
+
+export interface ReplayV3ObservedTile {
+  position: ReplayV3Position;
+  isWall: boolean;
+  observedBy: ReplayV3ActorId[];
+  spawnReservation: ReplayV3SpawnReservation | null;
 }
 
 export interface ReplayV3ObservedProjectile {
@@ -645,6 +950,10 @@ export interface ReplayV3ObservedProjectile {
   ticksUntilAdvance: number;
   remainingTiles: number;
   observedBy: ReplayV3ActorId[];
+  /** Declared tick cadence between advances for the firing profile. */
+  ticksPerAdvance: number;
+  /** Health one contact with this projectile removes. */
+  damagePerHit: number;
 }
 
 export type ReplayV3ActionConstraint =
@@ -658,7 +967,9 @@ export type ReplayV3ActionConstraint =
   | {
       kind: 'projectile-heading';
       allowedValues: ReplayV3ProjectileHeading[];
-    };
+    }
+  | { kind: 'position-target'; allowedValues: ReplayV3Position[] }
+  | { kind: 'upgrade-track'; allowedTrackIds: string[] };
 
 export interface ReplayV3ActionLegality {
   actionId: string;
@@ -749,6 +1060,10 @@ export type ReplayV3EventPayload =
       fault: ReplayV3RuntimeFault;
     }
   | {
+      kind: 'mind-runtime-fault';
+      fault: ReplayV3MindRuntimeFault;
+    }
+  | {
       kind: 'participant';
       participantId: number;
       teamId: number;
@@ -772,6 +1087,9 @@ export type ReplayV3EventPayload =
       toFormId: string;
       startedTick: number;
       dueTick: number;
+      // Absent means the author requested it; present means the engine
+      // started it when the source form's declared counter hit its threshold.
+      reason?: 'automatic-threshold-return';
     }
   | {
       kind: 'score-changed';
@@ -786,7 +1104,37 @@ export type ReplayV3EventPayload =
       targetUnitId: number;
       cancelledState: ReplayV3UnitSlotState;
       cancellationReason: string;
-    };
+    }
+  | {
+      kind: 'projectile-deflected';
+      sourceTeamId: number;
+      sourceActorId: ReplayV3ActorId | null;
+      targetActorId: ReplayV3ActorId;
+      projectileId: string;
+      deflectedProjectileId: string;
+      targetFormId: string;
+      targetFacing: string;
+      heading: string;
+      position: ReplayV3Position;
+    }
+  | { kind: 'arc-relay'; fact: ReplayV3ArcRelayFact };
+
+export type ReplayV3ArcRelayFact =
+  | (ReplayV3JsonObject & { kind: 'core-born'; coreId: ReplayV3ArcCoreId; position: ReplayV3Position; chargeValue?: number })
+  | (ReplayV3JsonObject & { kind: 'core-ripened'; coreId: ReplayV3ArcCoreId; position: ReplayV3Position; value: number })
+  | (ReplayV3JsonObject & { kind: 'leveled-up'; actorId: ReplayV3ActorId; level: number; position: ReplayV3Position })
+  | (ReplayV3JsonObject & { kind: 'zone-healed'; actorId: ReplayV3ActorId; amount: number; newHealth: number; position: ReplayV3Position })
+  | (ReplayV3JsonObject & { kind: 'core-picked-up'; coreId: ReplayV3ArcCoreId; carrierActorId: ReplayV3ActorId; position: ReplayV3Position; nextRelocationTick: number })
+  | (ReplayV3JsonObject & { kind: 'core-relocated'; coreId: ReplayV3ArcCoreId; carrierActorId: ReplayV3ActorId | null; from: ReplayV3Position; to: ReplayV3Position; nextRelocationTick: number; relocationKind: string })
+  | (ReplayV3JsonObject & { kind: 'core-handed-off'; coreId: ReplayV3ArcCoreId; sourceActorId: ReplayV3ActorId; targetActorId: ReplayV3ActorId; position: ReplayV3Position; nextRelocationTick: number })
+  | (ReplayV3JsonObject & { kind: 'core-dropped'; coreId: ReplayV3ArcCoreId; sourceActorId: ReplayV3ActorId; position: ReplayV3Position; nextRelocationTick: number; dropKind: string })
+  | (ReplayV3JsonObject & { kind: 'core-banked'; coreId: ReplayV3ArcCoreId; carrierActorId: ReplayV3ActorId; teamId: number; position: ReplayV3Position; chargePips: number })
+  | (ReplayV3JsonObject & { kind: 'well-changed'; wellId: string; pendingCharge: boolean; rearmCompletesAtTick: number | null; outstandingCoreId: ReplayV3ArcCoreId | null })
+  | (ReplayV3JsonObject & { kind: 'pulse'; teamId: number; pulseOrdinal: number; opposingReactorIntegrity: number })
+  | (ReplayV3JsonObject & { kind: 'signature-changed'; signatureId: string; operationId: string; ownerActorId: ReplayV3ActorId; phase: string | null; reason: string })
+  | (ReplayV3JsonObject & { kind: 'body-relocated'; signatureId: string; operationId: string; ownerActorId: ReplayV3ActorId; targetActorId: ReplayV3ActorId; from: ReplayV3Position; to: ReplayV3Position })
+  | (ReplayV3JsonObject & { kind: 'signature-damage'; signatureId: string; operationId: string; ownerActorId: ReplayV3ActorId; targetActorId: ReplayV3ActorId; amount: number; newHealth: number; position: ReplayV3Position })
+  | (ReplayV3JsonObject & { kind: 'signature-repair'; signatureId: string; operationId: string; ownerActorId: ReplayV3ActorId; targetActorId: ReplayV3ActorId; amount: number; newHealth: number; position: ReplayV3Position });
 
 export type ReplayV3EventKind =
   | 'rotation'
@@ -798,6 +1146,7 @@ export type ReplayV3EventKind =
   | 'life-spawned'
   | 'life-retired'
   | 'runtime-fault'
+  | 'mind-runtime-fault'
   | 'participant-disqualified'
   | 'lifecycle-queued'
   | 'lifecycle-cancelled'
@@ -807,7 +1156,9 @@ export type ReplayV3EventKind =
   | 'form-transition-cancelled'
   | 'score-changed'
   | 'mode-changed'
-  | 'lifecycle-clock-cancelled';
+  | 'lifecycle-clock-cancelled'
+  | 'projectile-deflected'
+  | 'arc-relay';
 
 export interface ReplayV3ObservedEvent {
   eventHandle: string;
@@ -841,11 +1192,7 @@ export interface ReplayV3Observation {
   participants: ReplayV3ParticipantStatus[];
   allies: ReplayV3ObservedAlly[];
   enemies: ReplayV3ObservedEnemy[];
-  visibleTiles: {
-    position: ReplayV3Position;
-    isWall: boolean;
-    observedBy: ReplayV3ActorId[];
-  }[];
+  visibleTiles: ReplayV3ObservedTile[];
   visibleProjectiles: ReplayV3ObservedProjectile[] | null;
   visibleEvents: ReplayV3ObservedEvent[];
   heardSounds: ReplayV3ObservedSound[] | null;
@@ -861,6 +1208,140 @@ export interface ReplayV3ActorTurn {
   observation: ReplayV3Observation;
   submittedDecision: ReplayV3SubmittedDecision | null;
   actionResolution: ReplayV3ActionResolution;
+}
+
+/**
+ * One participant's complete tick under the mind profile: the union-once
+ * observation stored ONCE instead of once per body, every command the mind
+ * wrote with the host's admission verdict, and one resolution per own live
+ * body — including the bodies it never named, which carry the synthetic Wait.
+ */
+export interface ReplayV3MindTurn {
+  tick: number;
+  participantId: number;
+  teamId: number;
+  /** `250M + 200M x liveBodyCount`, as a decimal-safe string. */
+  fuelBudget: string;
+  liveBodyCount: number;
+  observation: ReplayV3MindObservation;
+  commands: ReplayV3MindCommand[];
+  resolutions: ReplayV3MindBodyResolution[];
+  /** Reserved inter-mind declarations; always empty in v1. */
+  intents: ReplayV3MindIntent[];
+  runtimeFault: ReplayV3MindRuntimeFault | null;
+  /**
+   * The mind's own diagnostic text for this tick, omitted when inert.
+   *
+   * It sits on the TURN rather than on a command because a mind reasons once
+   * per tick over its whole army — and on a tick where it owns no live body
+   * there is no command for it to ride on at all. A faulted turn never carries
+   * one: the reply that would have carried it never parsed.
+   */
+  debugMessage?: string;
+}
+
+export type ReplayV3MindCommandOutcome = 'accepted' | 'rejected';
+
+export interface ReplayV3MindCommand {
+  unitId: number;
+  lifeId: number;
+  actionId: string;
+  actionCode: number;
+  arguments: (ReplayV3RawActionArgument | null)[] | null;
+  outcome: ReplayV3MindCommandOutcome;
+  /** Absent means "unchanged"; the empty string means "clear". */
+  roleTag?: string;
+  debugMessage: string | null;
+}
+
+export interface ReplayV3MindBodyResolution {
+  unitId: number;
+  lifeId: number;
+  submittedDecision: ReplayV3SubmittedDecision | null;
+  actionResolution: ReplayV3ActionResolution;
+}
+
+export interface ReplayV3MindIntent {
+  tagId: string;
+  value: string;
+}
+
+export interface ReplayV3MindAlliedIntent {
+  participantId: number;
+  tagId: string;
+  value: string;
+}
+
+/**
+ * A participant-scoped fault. `actorId` is null when the mind held no live
+ * body — a mind ticks on a tick it owns nothing, so it can also trap on one.
+ */
+export interface ReplayV3MindRuntimeFault {
+  participantId: number;
+  teamId: number;
+  actorId: ReplayV3ActorId | null;
+  stage: string;
+  faultCode: string;
+  cumulativeFaultCount: string;
+  disqualificationTriggered: boolean;
+}
+
+export interface ReplayV3MindObservation {
+  schemaVersion: number;
+  tick: number;
+  matchContractFingerprint: string;
+  participantId: number;
+  teamId: number;
+  bodies: ReplayV3MindBody[];
+  slots: ReplayV3MindSlot[];
+  teamUnits: {
+    teamId: number;
+    unitId: number;
+    state: ReplayV3UnitSlotState;
+  }[];
+  participants: ReplayV3ParticipantStatus[];
+  allies: ReplayV3ObservedAlly[];
+  enemies: ReplayV3ObservedEnemy[];
+  visibleTiles: ReplayV3ObservedTile[];
+  visibleProjectiles: ReplayV3ObservedProjectile[] | null;
+  visibleEvents: ReplayV3ObservedEvent[];
+  heardSounds: ReplayV3ObservedSound[] | null;
+  scoreboard: ReplayV3Scoreboard;
+  mode: ReplayV3ModeState;
+  alliedIntents: ReplayV3MindAlliedIntent[];
+}
+
+export interface ReplayV3MindBody {
+  actorId: ReplayV3ActorId;
+  generation: number;
+  formId: string;
+  position: ReplayV3Position;
+  facing: ReplayV3Direction;
+  health: number;
+  cooldown: number;
+  energy: number | null;
+  previousActionResolution: ReplayV3ActionResolution | null;
+  pendingSameLifeTransition: ReplayV3PendingSameLifeTransition | null;
+  classId: string | null;
+  previousPosition: ReplayV3Position | null;
+  movedLastTick: boolean;
+  lifeStartedTick: number;
+  origin: ReplayV3LifeOrigin;
+  /** The exact per-life stream seed this body would have been handed. */
+  bodyRandomSeed: string;
+  routeCooldowns?: ReplayV3RouteCooldown[];
+  carriedScrap?: number;
+  roleTag?: string;
+  actionLegalities: ReplayV3ActionLegality[];
+}
+
+export interface ReplayV3MindSlot {
+  teamId: number;
+  unitId: number;
+  state: ReplayV3UnitSlotState;
+  classId?: string;
+  candidateClassIds?: string[];
+  selectedClassId?: string;
 }
 
 export type ReplayV3EventAudience =
@@ -923,10 +1404,16 @@ export interface ReplayV3TickStart {
   traversals: ReplayV3ProjectileTraversal[];
 }
 
+/**
+ * One resolved tick. A document carries EXACTLY ONE of `actorTurns` /
+ * `mindTurns`, decided by the header's contract profile — never inferred from
+ * the payload (docs/DESIGN-MIND-ARCHITECTURE-2026-07-31.md §5.1).
+ */
 export interface ReplayV3Tick {
   tick: number;
   tickStart: ReplayV3TickStart;
-  actorTurns: ReplayV3ActorTurn[];
+  actorTurns?: ReplayV3ActorTurn[];
+  mindTurns?: ReplayV3MindTurn[];
   events: ReplayV3AuthoritativeEvent[];
   traversals: ReplayV3ProjectileTraversal[];
   postState: ReplayV3WorldState;
@@ -983,9 +1470,16 @@ export interface ReplayV3FrontlineResult {
   }[];
 }
 
+export interface ReplayV3ArcRelayResult {
+  kind: 'arc-relay';
+  reason: 'fault-eligibility' | 'reactor-destroyed' | 'max-ticks';
+  state: ReplayV3ArcRelayModeState;
+}
+
 export type ReplayV3ModeResult =
   | ReplayV3DeathmatchResult
-  | ReplayV3FrontlineResult;
+  | ReplayV3FrontlineResult
+  | ReplayV3ArcRelayResult;
 
 export interface ReplayV3Document {
   header: ReplayV3Header;

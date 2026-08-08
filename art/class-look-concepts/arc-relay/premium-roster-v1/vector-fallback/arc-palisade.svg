@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Palisade">
+  <defs>
+    <linearGradient id="palisade-chassis" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#4d5b6c"/><stop offset=".42" stop-color="#172536"/><stop offset="1" stop-color="#000314"/>
+    </linearGradient>
+    <linearGradient id="palisade-plate" x1="0" y1="0" x2=".85" y2="1">
+      <stop stop-color="#fffff7"/><stop offset=".38" stop-color="#e1d9c5"/><stop offset="1" stop-color="#a79f8b"/>
+    </linearGradient>
+    <linearGradient id="palisade-hardware" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#ccae88"/><stop offset=".46" stop-color="#92744e"/><stop offset="1" stop-color="#583a14"/>
+    </linearGradient>
+    <linearGradient id="palisade-deep" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#233142"/><stop offset="1" stop-color="#000002"/>
+    </linearGradient>
+    <linearGradient id="palisade-side" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#071526"/><stop offset=".44" stop-color="#000010"/><stop offset="1" stop-color="#000000"/>
+    </linearGradient>
+    <radialGradient id="palisade-emissive">
+      <stop stop-color="#fffdf0"/><stop offset=".25" stop-color="#ffff9b"/><stop offset=".64" stop-color="#f1bd57"/><stop offset="1" stop-color="#996500"/>
+    </radialGradient>
+    <pattern id="palisade-brush" width="18" height="18" patternUnits="userSpaceOnUse" patternTransform="rotate(-18)">
+      <path d="M0 2h18M0 11h18" stroke="#ffffff" stroke-opacity=".16" stroke-width="1"/>
+      <path d="M0 7h18M0 16h18" stroke="#02050a" stroke-opacity=".24" stroke-width="1"/>
+    </pattern>
+    <clipPath id="palisade-clip"><path d="M90 170 224 104 382 126 456 190 456 322 382 386 224 408 90 342 58 256Z"/></clipPath>
+    <filter id="palisade-bevel" x="-12%" y="-14%" width="128%" height="138%" color-interpolation-filters="sRGB">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="2.2" result="edge-blur"/>
+      <feSpecularLighting in="edge-blur" surfaceScale="4.5" specularConstant=".42" specularExponent="16" lighting-color="#f7fbff" result="specular">
+        <feDistantLight azimuth="225" elevation="52"/>
+      </feSpecularLighting>
+      <feComposite in="specular" in2="SourceAlpha" operator="in" result="specular-cut"/>
+      <feMerge><feMergeNode in="SourceGraphic"/><feMergeNode in="specular-cut"/></feMerge>
+    </filter>
+    <filter id="palisade-team-glow" x="-55%" y="-55%" width="210%" height="210%" color-interpolation-filters="sRGB">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="7" result="glow"/>
+      <feComponentTransfer in="glow" result="soft-glow"><feFuncA type="linear" slope=".58"/></feComponentTransfer>
+      <feMerge><feMergeNode in="soft-glow"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <g stroke-linejoin="round" stroke-linecap="round">
+    <g id="underbody-locomotion">
+      <rect fill="#090c10" stroke="#0b1118" stroke-width="14" x="106" y="126" width="250" height="76" rx="34"/>
+      <rect fill="#090c10" stroke="#0b1118" stroke-width="14" x="106" y="310" width="250" height="76" rx="34"/>
+      <path fill="none" stroke="#586069" stroke-width="12" stroke-dasharray="24 14" d="M132 164h198M132 348h198"/>
+    </g>
+    <g id="chassis-depth">
+      <path d="M90 170 224 104 382 126 456 190 456 322 382 386 224 408 90 342 58 256Z" transform="translate(0 22)" fill="url(#palisade-side)" stroke="#05080d" stroke-width="18"/>
+      <path d="M90 170 224 104 382 126 456 190 456 322 382 386 224 408 90 342 58 256Z" transform="translate(0 16)" fill="none" stroke="#293748" stroke-opacity=".46" stroke-width="5"/>
+    </g>
+    <g id="chassis" filter="url(#palisade-bevel)">
+      <path fill="url(#palisade-chassis)" stroke="#0b1118" stroke-width="18" d="M90 170 224 104 382 126 456 190 456 322 382 386 224 408 90 342 58 256Z"/>
+      <path fill="url(#palisade-hardware)" stroke="#0b1118" stroke-width="7" d="m278 126 104 22 52 56v104l-52 56-104 22 34-82v-96Z"/>
+      <g id="material-finish" clip-path="url(#palisade-clip)" opacity="0.22">
+        <rect x="36" y="70" width="448" height="370" fill="url(#palisade-brush)"/>
+      </g>
+      <g id="armor-plates" fill="url(#palisade-plate)" stroke="#f7efdb" stroke-width="4">
+        <path d="M108 206 220 152l58 38-34 52-122 6Z"/><path fill="#9f9783" stroke="#c3bba7" d="m122 270 122 6 34 52-58 38-112-54Z"/><path fill="url(#palisade-hardware)" stroke="#aa8c66" d="m286 148 88 18-46 60-58 12Z"/><path fill="#644620" stroke="#80623c" d="m270 274 58 12 46 60-88 18Z"/>
+      </g>
+      <g id="surface-panels" fill="none" stroke="#ffffff" stroke-opacity=".58" stroke-width="5">
+        <path d="M108 194 224 144l82 42M108 318l116 50 82-42M126 236h126M126 276h126"/>
+      </g>
+      <g id="panel-shadows" fill="none" stroke="#00000a" stroke-opacity=".78" stroke-width="4" transform="translate(0 5)">
+        <path d="M108 194 224 144l82 42M108 318l116 50 82-42M126 236h126M126 276h126"/>
+      </g>
+      <g id="fasteners" fill="#bc9e78" stroke="#090d12" stroke-width="3">
+        <circle cx="126" cy="196" r="6"/><circle cx="126" cy="316" r="6"/><circle cx="348" cy="176" r="6"/><circle cx="348" cy="336" r="6"/>
+      </g>
+    </g>
+    <g id="hardware-depth">
+      <path fill="#000008" stroke="#070a0f" stroke-width="6" d="M116 198 232 146 300 190v132l-68 44-116-52-28-58Z" transform="translate(0 9)"/>
+    </g>
+    <g id="weapon-hardware">
+      <path fill="url(#palisade-plate)" stroke="#0b1118" stroke-width="6" d="M116 198 232 146 300 190v132l-68 44-116-52-28-58Z"/>
+      <g id="signature-machinery" fill="none" stroke="#c8aa84" stroke-width="6" stroke-opacity=".88">
+        <path d="M386 190v132M368 214h40m-40 42h40m-40 42h40"/><path d="M236 224h58v64h-58Z"/>
+      </g>
+    </g>
+    <g id="team-accents" filter="url(#palisade-team-glow)">
+      <rect data-team-accent="true" fill="#38bdf8" x="374" y="176" width="34" height="160" rx="14"/>
+      <path data-team-accent="true" fill="#38bdf8" d="m130 190 70-28 16 30-72 30Z"/>
+      <path data-team-accent="true" fill="#38bdf8" d="m130 322 70 28 16-30-72-30Z"/>
+    </g>
+    <g id="emissives">
+      <circle fill="url(#palisade-emissive)" cx="266" cy="256" r="34"/>
+      <circle fill="#fff9dc" fill-opacity="0.78" cx="266" cy="256" r="4"/>
+    </g>
+  </g>
+</svg>

@@ -1,0 +1,291 @@
+{
+  "anchors": [
+    {
+      "anchorId": "enemy-perimeter",
+      "position": [
+        26,
+        11
+      ]
+    },
+    {
+      "anchorId": "rally-centre",
+      "position": [
+        24,
+        11
+      ]
+    },
+    {
+      "anchorId": "sanitation-release",
+      "position": [
+        22,
+        11
+      ]
+    },
+    {
+      "anchorId": "own-bank",
+      "position": [
+        2,
+        11
+      ]
+    },
+    {
+      "anchorId": "well-line-centre",
+      "position": [
+        15,
+        11
+      ]
+    }
+  ],
+  "bindings": [
+    {
+      "formationAliases": {
+        "living-ring": "living-ring-west-forward"
+      },
+      "matchContractFingerprint": "736147ae50d997d37e97e0e1ee3522b766dd5d0e7aa17b5fc2353578cf27de9d",
+      "ownReactorSide": "west",
+      "routeAliases": {},
+      "transform": "identity"
+    },
+    {
+      "formationAliases": {},
+      "matchContractFingerprint": "49d8132e55331408e61958b64265bc51bebee3148e7ef3b6a4ffb24877e082e3",
+      "ownReactorSide": "east",
+      "routeAliases": {
+        "outer-rush": "outer-rush-opposite",
+        "short-breach": "short-breach-opposite"
+      },
+      "transform": "rotate-180"
+    }
+  ],
+  "layoutId": "counterflow-home-siege-v3",
+  "mapId": "arc-relay-threefold-depth-counterflow-01",
+  "routes": [
+    {
+      "corridorWidth": 2,
+      "routeId": "outer-rush",
+      "waypoints": [
+        [
+          4,
+          8
+        ],
+        [
+          7,
+          6
+        ],
+        [
+          10,
+          6
+        ],
+        [
+          13,
+          5
+        ],
+        [
+          16,
+          5
+        ],
+        [
+          19,
+          6
+        ],
+        [
+          22,
+          6
+        ],
+        [
+          24,
+          8
+        ],
+        [
+          25,
+          10
+        ],
+        [
+          26,
+          11
+        ]
+      ]
+    },
+    {
+      "corridorWidth": 2,
+      "routeId": "short-breach",
+      "waypoints": [
+        [
+          24,
+          9
+        ],
+        [
+          25,
+          10
+        ],
+        [
+          26,
+          11
+        ]
+      ]
+    },
+    {
+      "corridorWidth": 2,
+      "routeId": "outer-rush-opposite",
+      "waypoints": [
+        [
+          4,
+          14
+        ],
+        [
+          7,
+          16
+        ],
+        [
+          10,
+          16
+        ],
+        [
+          13,
+          17
+        ],
+        [
+          16,
+          17
+        ],
+        [
+          19,
+          16
+        ],
+        [
+          22,
+          16
+        ],
+        [
+          24,
+          14
+        ],
+        [
+          25,
+          12
+        ],
+        [
+          26,
+          11
+        ]
+      ]
+    },
+    {
+      "corridorWidth": 2,
+      "routeId": "short-breach-opposite",
+      "waypoints": [
+        [
+          24,
+          13
+        ],
+        [
+          25,
+          12
+        ],
+        [
+          26,
+          11
+        ]
+      ]
+    },
+    {
+      "corridorWidth": 2,
+      "routeId": "score-return",
+      "waypoints": [
+        [
+          25,
+          8
+        ],
+        [
+          22,
+          6
+        ],
+        [
+          19,
+          6
+        ],
+        [
+          16,
+          5
+        ],
+        [
+          13,
+          5
+        ],
+        [
+          10,
+          6
+        ],
+        [
+          7,
+          6
+        ],
+        [
+          4,
+          8
+        ],
+        [
+          2,
+          11
+        ]
+      ]
+    }
+  ],
+  "schema": "arc-relay-tactical-layout-v1",
+  "zones": [
+    {
+      "rect": [
+        24,
+        7,
+        29,
+        15
+      ],
+      "zoneId": "enemy-home"
+    },
+    {
+      "rect": [
+        27,
+        10,
+        29,
+        12
+      ],
+      "zoneId": "enemy-bank-danger"
+    },
+    {
+      "rect": [
+        24,
+        8,
+        26,
+        14
+      ],
+      "zoneId": "bank-seal"
+    },
+    {
+      "rect": [
+        23,
+        8,
+        26,
+        14
+      ],
+      "zoneId": "forward-rally"
+    },
+    {
+      "rect": [
+        21,
+        5,
+        29,
+        17
+      ],
+      "zoneId": "siege-leash"
+    },
+    {
+      "rect": [
+        12,
+        2,
+        18,
+        20
+      ],
+      "zoneId": "well-line"
+    }
+  ]
+}

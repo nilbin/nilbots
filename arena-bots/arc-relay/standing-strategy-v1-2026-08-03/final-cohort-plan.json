@@ -1,0 +1,113 @@
+{
+  "cells": [
+    {
+      "cellId": "home-siege--static-baseline--s324161--a0",
+      "matchContractFingerprint": "736147ae50d997d37e97e0e1ee3522b766dd5d0e7aa17b5fc2353578cf27de9d",
+      "seed": "324161",
+      "team0": "home-siege",
+      "team1": "static-baseline",
+      "topologyFingerprint": "082206efc9ff8b30e8150b7474896944543e46ed95b6488353166d27c99b9281"
+    },
+    {
+      "cellId": "home-siege--static-baseline--s324161--a1",
+      "matchContractFingerprint": "49d8132e55331408e61958b64265bc51bebee3148e7ef3b6a4ffb24877e082e3",
+      "seed": "324161",
+      "team0": "static-baseline",
+      "team1": "home-siege",
+      "topologyFingerprint": "1ebc7558949b16e25a5adfef496956ad295574f738013e8132c934f4a60f6212"
+    },
+    {
+      "cellId": "home-siege--static-baseline--s350377--a0",
+      "matchContractFingerprint": "736147ae50d997d37e97e0e1ee3522b766dd5d0e7aa17b5fc2353578cf27de9d",
+      "seed": "350377",
+      "team0": "home-siege",
+      "team1": "static-baseline",
+      "topologyFingerprint": "082206efc9ff8b30e8150b7474896944543e46ed95b6488353166d27c99b9281"
+    },
+    {
+      "cellId": "home-siege--static-baseline--s350377--a1",
+      "matchContractFingerprint": "49d8132e55331408e61958b64265bc51bebee3148e7ef3b6a4ffb24877e082e3",
+      "seed": "350377",
+      "team0": "static-baseline",
+      "team1": "home-siege",
+      "topologyFingerprint": "1ebc7558949b16e25a5adfef496956ad295574f738013e8132c934f4a60f6212"
+    },
+    {
+      "cellId": "home-siege--static-baseline--s376573--a0",
+      "matchContractFingerprint": "736147ae50d997d37e97e0e1ee3522b766dd5d0e7aa17b5fc2353578cf27de9d",
+      "seed": "376573",
+      "team0": "home-siege",
+      "team1": "static-baseline",
+      "topologyFingerprint": "082206efc9ff8b30e8150b7474896944543e46ed95b6488353166d27c99b9281"
+    },
+    {
+      "cellId": "home-siege--static-baseline--s376573--a1",
+      "matchContractFingerprint": "49d8132e55331408e61958b64265bc51bebee3148e7ef3b6a4ffb24877e082e3",
+      "seed": "376573",
+      "team0": "static-baseline",
+      "team1": "home-siege",
+      "topologyFingerprint": "1ebc7558949b16e25a5adfef496956ad295574f738013e8132c934f4a60f6212"
+    },
+    {
+      "cellId": "home-siege--static-baseline--s402943--a0",
+      "matchContractFingerprint": "736147ae50d997d37e97e0e1ee3522b766dd5d0e7aa17b5fc2353578cf27de9d",
+      "seed": "402943",
+      "team0": "home-siege",
+      "team1": "static-baseline",
+      "topologyFingerprint": "082206efc9ff8b30e8150b7474896944543e46ed95b6488353166d27c99b9281"
+    },
+    {
+      "cellId": "home-siege--static-baseline--s402943--a1",
+      "matchContractFingerprint": "49d8132e55331408e61958b64265bc51bebee3148e7ef3b6a4ffb24877e082e3",
+      "seed": "402943",
+      "team0": "static-baseline",
+      "team1": "home-siege",
+      "topologyFingerprint": "1ebc7558949b16e25a5adfef496956ad295574f738013e8132c934f4a60f6212"
+    },
+    {
+      "cellId": "home-siege--static-baseline--s429127--a0",
+      "matchContractFingerprint": "736147ae50d997d37e97e0e1ee3522b766dd5d0e7aa17b5fc2353578cf27de9d",
+      "seed": "429127",
+      "team0": "home-siege",
+      "team1": "static-baseline",
+      "topologyFingerprint": "082206efc9ff8b30e8150b7474896944543e46ed95b6488353166d27c99b9281"
+    },
+    {
+      "cellId": "home-siege--static-baseline--s429127--a1",
+      "matchContractFingerprint": "49d8132e55331408e61958b64265bc51bebee3148e7ef3b6a4ffb24877e082e3",
+      "seed": "429127",
+      "team0": "static-baseline",
+      "team1": "home-siege",
+      "topologyFingerprint": "1ebc7558949b16e25a5adfef496956ad295574f738013e8132c934f4a60f6212"
+    }
+  ],
+  "cohortFile": "arena-bots/arc-relay/standing-strategy-v1-2026-08-03/final-cohort.json",
+  "cohortId": "home-siege-stage-1-final-2026-08-03",
+  "cohortSha256": "225dc0a0392310bb0325a82775fc0b5a9e1a8070b95d7505c36df848b1b86032",
+  "eligibilityBars": "balance/arc-relay-felt-degeneracy-bars-v4.json",
+  "eligibilityBarsSha256": "be728f90a22c36b087cd056ef4efd8bb6ca8400933ddf7fe277c35824a9cb5ef",
+  "engineVersion": "1.0.5",
+  "entrants": {
+    "home-siege": {
+      "artifact": "arena-bots/arc-relay/stock-mind-v5/bot.wasm",
+      "artifactSha256": "9064aca98347f675a11c11315f9e733701fda326b3cd54988071dae48deb3d39",
+      "sheet": "arena-bots/arc-relay/standing-strategy-v1-2026-08-03/sheets/home-siege-north.json",
+      "sheetSha256": "128b2ea9ab45cd6658d3823835faa76d84ecd39134efabdd51c0058641a1a9d7"
+    },
+    "static-baseline": {
+      "artifact": "arena-bots/arc-relay/stock-mind-v4/bot.wasm",
+      "artifactSha256": "fdd61b1f4c24895926d3bdde7e8b70c0c6eb957d107dda99b04719614d499368",
+      "sheet": "arena-bots/arc-relay/forward-combat-operation-proof-v1-2026-08-03/sheets/baseline.json",
+      "sheetSha256": "c8a33184b90a7d017d74d365e6f598a7b0c82047551136d66559d38849984c26"
+    }
+  },
+  "loopProfile": "forward-combat",
+  "mapFingerprint": "5ca7d1a1826791d736465d352c1558793846fc2e3df343d730f1df4c79f47e0c",
+  "mapId": "arc-relay-threefold-depth-counterflow-01",
+  "preparedBeforeOutcomes": true,
+  "rulesFingerprint": "0acab8947506cf6224ac00029d8c3d62e9ec61cbda224e2a955db45b711b90a9",
+  "rulesetId": "arc-relay-forward-combat-01",
+  "runtime": "wasm",
+  "schema": "arc-relay-sweep-plan-v1",
+  "sweepId": "home-siege-stage-1-final"
+}

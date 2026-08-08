@@ -1,0 +1,29 @@
+Revision: mechanical-repair-5 source before mechanical repair 6
+Reason: with field/travel signatures suppressed, temporary stderr-only tracing
+showed the remaining abort immediately after an arc-toss at tick 281. The
+selection preferred the reactor socket itself. A toss ending in immediate
+delivery can leave no position for its still-projected signature operation.
+This repair excludes the reactor tile while retaining every other legal toss
+that advances the Core. Roles, routes, composition, target selection outside
+that malformed endpoint, cadence logic, and every numeric threshold are
+unchanged.
+
+Pre-repair SHA-256:
+  ArcNavigation.cs d399cec9d709f7eac2ec21fc59d8b27acc8b259e6ebc32c2e093d048b95644a2
+  SplitControlMind.cs 3c5783d079e0628429b1a18769a00c907e4d7e757ea9f9275630a4aaf25ce523
+  SplitControlMind.csproj 8d7859751b3e83de3c624a2ae60158112ecfbe788a6d1e9cfb1b99cbc8092573
+  botarena.json 3bb78b867a07c21ec5a8a72b456725826382e6d73eb1ebfb5566064de41733a4
+  sheet.json 4f4eb72ff253218cf9e1a5bdf69f6a4002f96bb1b7a19f909d30bd06be7a4374
+
+Reverse patch:
+
+--- SplitControlMind.cs.repaired
++++ SplitControlMind.cs.revision-5
+@@
+             Position? landing = targets?.AllowedValues
+                 .Where(position =>
+-                    position.ChebyshevDistance(_reactor) > 0
+-                    && position.ChebyshevDistance(_reactor)
+-                        < body.Position.ChebyshevDistance(_reactor))
++                    position.ChebyshevDistance(_reactor)
++                    < body.Position.ChebyshevDistance(_reactor))

@@ -1,0 +1,11 @@
+{
+  "name": "IronRoot",
+  "entryType": "IronRoot",
+  "sdkVersion": "0.10.6",
+  "class": "bulwark",
+  "appearance": {
+    "accent": "#7f8c3a",
+    "look": "vanguard",
+    "projectile": "pulse-bolt"
+  }
+}

@@ -243,6 +243,55 @@ entrants/results, reveal-ordered settlement, broad generic APIs, FFA/2v2 or
 Deathmatch admission, seasons, ladders, and multiplayer rating policies remain
 later work.
 
+Balance work now has a reusable mode-independent entry point:
+[`NILBOTS-BALANCE-LAB.md`](NILBOTS-BALANCE-LAB.md). A candidate is the
+independently fingerprinted mode, ruleset, map, and match-format tuple,
+resolved with an explicit topology profile/fingerprint; a spec freezes its
+factor product, study blocks, evaluation/decision profile, bot sources/WASM,
+profile-scoped qualifications, common-randomness profile, committed holdout,
+and runner. The implemented slices freeze one published toolchain, execute
+verified mirrored full cross-play, Frontline replay-v3 dynamics, payoff
+matrices, vector reports, and factorial contrasts without inventing one
+balance score. Unqualified populations are hard-blocked from balance verdicts,
+and missing layers block candidate promotion.
+
+The frozen WASM-only `frontline-qualification-2` foundation retains its
+deterministic automatic-life component. The separate immutable
+`frontline-qualification-3` profile now completes cumulative T2 across
+contract/count handling, useful automatic lives, objective movement/holding,
+direct fire, straight evasion, and explicit fabrication in both assignments.
+T2 remains fun-floor evidence rather than a numeric balance vote. Immutable
+`frontline-qualification-4` now reruns and hash-links that prerequisite and
+completes cumulative T3 across legal curved intercepts, strict-corner
+termination, remaining-range cadence, cooldown tempo, and local transform
+safety. The first retained adjacent pair is measured: HouseApprentice retains
+T2 while failing positive-bend and cooldown components; ArcApprentice adds a
+narrow contract-driven tactical layer and passes T3. Immutable
+`frontline-qualification-5` now completes cumulative T4
+across suppression, proactive choke entry, objective-preserving prediction
+response, front rotation, and thin-front map holdout. It measures
+ArcApprentice as an exact T3 boundary and BreachApprentice as the first T4
+revision. They remain one authoring lineage, so neither their artifact count
+nor their adjacent-tier difference supplies independent pilot breadth.
+Restricted-play wrappers, calibrated doctrine-redundancy thresholds, and
+structured human review remain later layers. The Lab now emits a diagnostic
+effective-doctrine estimate from payoff, action, form, and objective
+signatures; it cannot gate promotion until calibrated.
+Empirical
+equilibrium/best-response analysis and automated candidate search are
+explicitly deferred until a credible qualified population exists.
+
+The first spec compares three duel map topologies under manual fabrication and
+an explicit automatic-companion progression bundle. The latter is a
+separately fingerprinted local contract—children activate at ticks 120/260
+with fresh runtimes and distinct `automatic-activation` lineage; hosted Labs
+remains manual. Its 12-match unqualified population run validates the
+frozen infrastructure and shared private RNG profile, not a map-policy
+conclusion or balance winner. Cumulative T1–T4 qualification is complete. The
+next critical path is four independently authored effective T4+ doctrines for
+the directional pilot and the six-cell run; T5/T6 doctrine breadth gates a
+later launch verdict.
+
 ## Next session pointers
 
 1. ~~Fast inner loop~~ **DONE** (DECISIONS #44): `--runtime in-process` runs

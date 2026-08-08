@@ -1,0 +1,64 @@
+{
+  "cellCount": 24,
+  "cli": "/Users/sebastian.lind/hobby-projects/nilbots-wt/arc-strategy-ladder/src/BotArena.Cli/bin/Debug/net10.0/botarena.dll",
+  "executionSurface": [
+    {
+      "path": "scripts/arc-relay-broadcast.py",
+      "sha256": "7f9fdf695f71f7a5427281480694ed6bc44286664bb1235cde932080162d880b"
+    },
+    {
+      "path": "scripts/arc-relay-match.py",
+      "sha256": "655679e8f171cc28e4e943f6e64b81a12b7459d6f8bb9c4b3338803fa8d058d0"
+    },
+    {
+      "path": "scripts/arc-relay-scorecard.py",
+      "sha256": "bb11ee48fdea153f503451c2749e503ba8858febbcaaa8106535d8608afe2e46"
+    },
+    {
+      "path": "scripts/arc-relay-sweep.py",
+      "sha256": "61fd8f474da691acff8d1928220809ad697df1b26d522cd6a566b132c4e9be2d"
+    },
+    {
+      "path": "src/BotArena.Cli/bin/Debug/net10.0/BotArena.ActorContracts.dll",
+      "sha256": "c1afb8b199ad0184446b6a76f4ef07ecdca5a5723b4af7278b5ed432dceeb990"
+    },
+    {
+      "path": "src/BotArena.Cli/bin/Debug/net10.0/BotArena.Bots.BuiltIn.dll",
+      "sha256": "64c9a635db6f43790193f356183bd66234de836010d99a1321f72e70d92e1e74"
+    },
+    {
+      "path": "src/BotArena.Cli/bin/Debug/net10.0/BotArena.Engine.dll",
+      "sha256": "ca8d3c1f31b8b5c0b561a93cbfc1a7b4f35c4fc44530124f1ae9b4b48900a771"
+    },
+    {
+      "path": "src/BotArena.Cli/bin/Debug/net10.0/BotArena.Guest.dll",
+      "sha256": "67860609d63a71f2b7ecf431a8c4424fa64c7f5b51765a8fed15f1139b07445c"
+    },
+    {
+      "path": "src/BotArena.Cli/bin/Debug/net10.0/BotArena.Runtime.Wasm.dll",
+      "sha256": "d9a4ec2e62289345c92a477e182a72860c02118b3035c9bdbd1687fe67b09a8a"
+    },
+    {
+      "path": "src/BotArena.Cli/bin/Debug/net10.0/BotArena.Runtime.dll",
+      "sha256": "1c1ed74227c8e348379655be7b13390bb27582af34ca4ba2473d95b4826d5700"
+    },
+    {
+      "path": "src/BotArena.Cli/bin/Debug/net10.0/BotArena.Sdk.dll",
+      "sha256": "6f2b268c20aaa4559bc8b4c413d642f2aca4b6e847ca35752647f0ca4c908f4d"
+    },
+    {
+      "path": "src/BotArena.Cli/bin/Debug/net10.0/BotArena.Toolchain.dll",
+      "sha256": "8c9d54cf6532f7f067860d2f61851665848e62a65fcf0f32a601d2c25f10b488"
+    },
+    {
+      "path": "src/BotArena.Cli/bin/Debug/net10.0/botarena.dll",
+      "sha256": "c134b123d9062c8266765efd61378be81dbc98332e54b06574db3110ff344489"
+    }
+  ],
+  "executionSurfaceSha256": "2619c625eca187df2192901124d15f2152f89b3d30101c37dee67726bf565bde",
+  "manifest": "/Users/sebastian.lind/hobby-projects/nilbots-wt/arc-strategy-ladder/arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/evidence/final-cohort-plan.json",
+  "manifestSha256": "e8356110910a71a89544ed7cddb3c034bbeb9ad92bf9dc2e5c29ac6db5973c8b",
+  "runtime": "wasm",
+  "schema": "arc-relay-sweep-attempt-v1",
+  "sweepId": "home-siege-v2-5-1-1-1-final"
+}

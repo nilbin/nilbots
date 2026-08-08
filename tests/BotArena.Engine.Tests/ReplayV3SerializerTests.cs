@@ -17,7 +17,7 @@ public sealed class ReplayV3SerializerTests
     private const ulong FixtureSeed = 9_007_199_254_740_993UL;
     private const string FixtureName = "generic-replay-v3.json";
     private const string FixtureReplayHash =
-        "bab89df8cbf1e25bdfdcb63c4adf6f9b6611e992c08687c5b1219734cf8dfc53";
+        "149ee5d2150ea6afff7bfd81b1facb401074d073e37e8388690ef69675d395e4";
 
     [Fact]
     public void CompleteDocument_HasExactEnvelopeAndVerifiablePayloadHash()
@@ -122,6 +122,36 @@ public sealed class ReplayV3SerializerTests
     [Fact]
     public void Verification_RejectsCanonicalPayloadTampering()
     {
+        // The per-life seed is bounds-checked but never re-derived at the
+        // document layer, so a bounds-legal swap survives every semantic rule
+        // and has to be caught by the hash — which is exactly the property
+        // this test exists to pin.
+        (ReplayV3 replay, _) = CreateCompleteReplay();
+        string json = ReplayV3Serializer.ToJson(replay);
+        string actorRandomSeed = replay.InitialFrame.LifeStarts[0]
+            .ActorRandomSeed;
+        string tampered = json.Replace(
+            $"\"actorRandomSeed\":\"{actorRandomSeed}\"",
+            "\"actorRandomSeed\":\"1\"",
+            StringComparison.Ordinal);
+
+        Assert.NotEqual(json, tampered);
+        Assert.False(
+            ReplayV3Serializer.VerifyHash(
+                tampered,
+                out string? failure));
+        Assert.Contains(
+            "hash",
+            failure,
+            StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Verification_RejectsRelabelledMatchSeedThroughTeamSeed()
+    {
+        // The team seed IS re-derived from the header seed, so relabelling the
+        // match's seed no longer merely breaks the hash: it contradicts the
+        // recorded team streams and is refused on that stronger ground.
         (ReplayV3 replay, _) = CreateCompleteReplay();
         string json = ReplayV3Serializer.ToJson(replay);
         string tampered = json.Replace(
@@ -135,9 +165,115 @@ public sealed class ReplayV3SerializerTests
                 tampered,
                 out string? failure));
         Assert.Contains(
-            "hash",
+            "team seed does not match deterministic derivation",
             failure,
-            StringComparison.OrdinalIgnoreCase);
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Verification_RejectsTeamSeedBorrowedFromTheOtherTeam()
+    {
+        (ReplayV3 replay, _) = CreateCompleteReplay();
+        ReplayV3.LifeStart first = replay.InitialFrame.LifeStarts[0];
+        ReplayV3.LifeStart second = replay.InitialFrame.LifeStarts[1];
+        Assert.NotEqual(first.ActorId.TeamId, second.ActorId.TeamId);
+        Assert.NotEqual(first.TeamRandomSeed, second.TeamRandomSeed);
+
+        var swapped = replay with
+        {
+            InitialFrame = replay.InitialFrame with
+            {
+                LifeStarts =
+                [
+                    first with { TeamRandomSeed = second.TeamRandomSeed },
+                    second,
+                ],
+            },
+        };
+
+        ArgumentException failure = Assert.Throws<ArgumentException>(
+            () => ReplayV3Serializer.ToJson(swapped));
+        Assert.Contains(
+            "team seed does not match deterministic derivation",
+            failure.Message,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ADocumentWrittenBeforeTheTeamStreamStillVerifies()
+    {
+        // Trailing additive key: a history recorded before the team stream
+        // existed omits it entirely, and must still write, verify, and read
+        // back as the exact canonical wire representation.
+        (ReplayV3 replay, _) = CreateCompleteReplay();
+        var legacy = replay with
+        {
+            InitialFrame = replay.InitialFrame with
+            {
+                LifeStarts =
+                [
+                    .. replay.InitialFrame.LifeStarts.Select(start =>
+                        start with { TeamRandomSeed = null }),
+                ],
+            },
+            Ticks =
+            [
+                .. replay.Ticks.Select(tick => tick with
+                {
+                    TickStart = tick.TickStart with
+                    {
+                        LifeStarts =
+                        [
+                            .. tick.TickStart.LifeStarts.Select(start =>
+                                start with { TeamRandomSeed = null }),
+                        ],
+                    },
+                }),
+            ],
+        };
+
+        string json = ReplayV3Serializer.ToJson(legacy);
+        Assert.DoesNotContain(
+            "teamRandomSeed",
+            json,
+            StringComparison.Ordinal);
+        Assert.True(
+            ReplayV3Serializer.VerifyHash(json, out string? failure),
+            failure);
+        ReplayV3 decoded = ReplayV3Serializer.ReadCanonicalComplete(json);
+        Assert.All(
+            decoded.InitialFrame.LifeStarts,
+            start => Assert.Null(start.TeamRandomSeed));
+        Assert.NotEqual(
+            ReplayV3Serializer.ComputeHash(replay),
+            ReplayV3Serializer.ComputeHash(legacy));
+    }
+
+    [Fact]
+    public void EveryLifeOnOneTeamSharesTheTeamSeedAcrossTheWholeMatch()
+    {
+        (ReplayV3 replay, ActorResolvedMatchDefinition definition) =
+            CreateCompleteReplay();
+
+        ReplayV3.LifeStart[] starts =
+        [
+            .. replay.InitialFrame.LifeStarts,
+            .. replay.Ticks.SelectMany(tick => tick.TickStart.LifeStarts),
+        ];
+        Assert.NotEmpty(starts);
+        foreach (ReplayV3.LifeStart start in starts)
+        {
+            Assert.Equal(
+                SeedDerivation.DeriveTeamSeed(
+                    FixtureSeed,
+                    start.ActorId.TeamId,
+                    definition.Rules.SeedMechanics.SeedProfileId)
+                    .ToString(CultureInfo.InvariantCulture),
+                start.TeamRandomSeed);
+        }
+        Assert.Equal(
+            starts.Select(start => start.ActorId.TeamId).Distinct().Count(),
+            starts.Select(start => start.TeamRandomSeed).Distinct().Count());
     }
 
     [Fact]
@@ -412,6 +548,56 @@ public sealed class ReplayV3SerializerTests
         Assert.Contains(
             "victory policy",
             rankingFailure,
+            StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void VerificationRejectsProjectileAndSpawnReservationDrift()
+    {
+        (ReplayV3 replay, _) = CreateCompleteReplay();
+        string json = ReplayV3Serializer.ToJson(replay);
+        string projectileDrift = MutateAndRehash(
+            json,
+            root =>
+            {
+                JsonObject projectile = root["ticks"]![1]![
+                        "actorTurns"]![0]!["observation"]![
+                        "visibleProjectiles"]![0]!
+                    .AsObject();
+                projectile["ticksPerAdvance"] =
+                    projectile["ticksPerAdvance"]!.GetValue<int>() + 1;
+            });
+        string reservationDrift = MutateAndRehash(
+            json,
+            root =>
+            {
+                JsonArray tiles = root["ticks"]![0]![
+                        "actorTurns"]![0]!["observation"]![
+                        "visibleTiles"]!
+                    .AsArray();
+                JsonObject reservation = tiles
+                    .Select(tile => tile!.AsObject())
+                    .First(tile => tile["spawnReservation"] is not null)[
+                        "spawnReservation"]!.AsObject();
+                reservation["unitId"] =
+                    reservation["unitId"]!.GetValue<int>() + 1;
+            });
+
+        Assert.False(
+            ReplayV3Serializer.VerifyHash(
+                projectileDrift,
+                out string? projectileFailure));
+        Assert.Contains(
+            "projectile",
+            projectileFailure,
+            StringComparison.OrdinalIgnoreCase);
+        Assert.False(
+            ReplayV3Serializer.VerifyHash(
+                reservationDrift,
+                out string? reservationFailure));
+        Assert.Contains(
+            "spawn reservation",
+            reservationFailure,
             StringComparison.OrdinalIgnoreCase);
     }
 

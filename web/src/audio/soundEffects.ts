@@ -1,4 +1,13 @@
-export type SoundEffectCueId = 'projectile' | 'impact' | 'destroyed';
+export type SoundEffectCueId =
+  | 'projectile'
+  | 'impact'
+  | 'destroyed'
+  | 'arc-birth'
+  | 'arc-pickup'
+  | 'arc-steal'
+  | 'arc-drop'
+  | 'arc-bank'
+  | 'arc-pulse';
 export type SoundEffectPackId = 'obsidian-foundry';
 
 interface SoundEffectManifest {
@@ -11,6 +20,7 @@ interface SoundEffectManifest {
   channels: number;
   provenance: {
     generatedBy: string;
+    arcRelayGeneratedBy: string;
     rightsStatus: 'rights-cleared';
     shipApproval: 'approved';
   };
@@ -53,6 +63,8 @@ function loadSoundEffectPack(): SoundEffectPack {
     manifest.channels !== 2 ||
     manifest.provenance?.generatedBy !==
       'scripts/generate-audio-v2-candidates.mjs' ||
+    manifest.provenance?.arcRelayGeneratedBy !==
+      'scripts/generate-arc-relay-sfx.mjs' ||
     manifest.provenance.rightsStatus !== 'rights-cleared' ||
     manifest.provenance.shipApproval !== 'approved'
   ) {
@@ -60,7 +72,19 @@ function loadSoundEffectPack(): SoundEffectPack {
   }
   const directory = manifestPath.slice(0, manifestPath.lastIndexOf('/'));
   const cues = Object.fromEntries(
-    (['projectile', 'impact', 'destroyed'] as const).map((cue) => {
+    (
+      [
+        'projectile',
+        'impact',
+        'destroyed',
+        'arc-birth',
+        'arc-pickup',
+        'arc-steal',
+        'arc-drop',
+        'arc-bank',
+        'arc-pulse',
+      ] as const
+    ).map((cue) => {
       const filename = manifest.cues[cue];
       const url = assetUrls[`${directory}/${filename}`];
       if (!url) {

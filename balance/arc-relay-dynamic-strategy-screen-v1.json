@@ -1,0 +1,581 @@
+{
+  "cells": [
+    {
+      "cellId": "escort-counterpunch-dynamic--escort-counterpunch-static--s26080211--a0",
+      "matchContractFingerprint": "515a9ada9f8afbf1b4b56a4fa400e420cd18e5c818b7ed4d820fa90ef8650409",
+      "seed": "26080211",
+      "team0": "escort-counterpunch-dynamic",
+      "team1": "escort-counterpunch-static",
+      "topologyFingerprint": "b3e7897fa3db47a469fb0089b5489185e8227ca19b5c2f452b47a7d177661a1a"
+    },
+    {
+      "cellId": "escort-counterpunch-dynamic--escort-counterpunch-static--s26080211--a1",
+      "matchContractFingerprint": "515a9ada9f8afbf1b4b56a4fa400e420cd18e5c818b7ed4d820fa90ef8650409",
+      "seed": "26080211",
+      "team0": "escort-counterpunch-static",
+      "team1": "escort-counterpunch-dynamic",
+      "topologyFingerprint": "b3e7897fa3db47a469fb0089b5489185e8227ca19b5c2f452b47a7d177661a1a"
+    },
+    {
+      "cellId": "escort-counterpunch-dynamic--feint-pincer-dynamic--s26080211--a0",
+      "matchContractFingerprint": "dcb7e5f135b15f4cf6aae2e0d8729febc9676a21fd74c06159470ceafdb1ac85",
+      "seed": "26080211",
+      "team0": "escort-counterpunch-dynamic",
+      "team1": "feint-pincer-dynamic",
+      "topologyFingerprint": "65fcafc721368a46fea0bffbc46fe12e5bffd0fcba6aaf8f2ab684d95992c056"
+    },
+    {
+      "cellId": "escort-counterpunch-dynamic--feint-pincer-dynamic--s26080211--a1",
+      "matchContractFingerprint": "788deceea55647c87823f6efdc2c22cd0d6d485b9104f1419079dde530fae464",
+      "seed": "26080211",
+      "team0": "feint-pincer-dynamic",
+      "team1": "escort-counterpunch-dynamic",
+      "topologyFingerprint": "c2233421fae1d8dd937a78c4215f5f217dc27ee5c46d078cae04b699a9a0b481"
+    },
+    {
+      "cellId": "escort-counterpunch-dynamic--rear-ambush-dynamic--s26080211--a0",
+      "matchContractFingerprint": "72ae4c25f759e7b3a8f9924ffa41912d61816850cda3f71ffee261ed51f902e5",
+      "seed": "26080211",
+      "team0": "escort-counterpunch-dynamic",
+      "team1": "rear-ambush-dynamic",
+      "topologyFingerprint": "afadf403d3a8ba7e8132ae3014fa22c2bddfa3ac865d5781c13a70ba457d3ca4"
+    },
+    {
+      "cellId": "escort-counterpunch-dynamic--rear-ambush-dynamic--s26080211--a1",
+      "matchContractFingerprint": "c6f139f15d1ca0aece22d1c519e31ec68277ae5841aaef04ff03f7956bc21fab",
+      "seed": "26080211",
+      "team0": "rear-ambush-dynamic",
+      "team1": "escort-counterpunch-dynamic",
+      "topologyFingerprint": "8be3966095eb23f1cede4c809ee374bf4f7e9cd6266f7d74273f8723766751d6"
+    },
+    {
+      "cellId": "escort-counterpunch-dynamic--well-rotation-dynamic--s26080211--a0",
+      "matchContractFingerprint": "28907182146784b3ddf8ff05b8a90e0fc2d99d867001839fdb898f09b7b1c70d",
+      "seed": "26080211",
+      "team0": "escort-counterpunch-dynamic",
+      "team1": "well-rotation-dynamic",
+      "topologyFingerprint": "db1b3c9736dc48ca099c56faffa193ebc491f6895c34bd998d9454c7be66aad8"
+    },
+    {
+      "cellId": "escort-counterpunch-dynamic--well-rotation-dynamic--s26080211--a1",
+      "matchContractFingerprint": "1f72753900ae247a00be30ce09fec0947478f14cbe9c7c31c43121360a117157",
+      "seed": "26080211",
+      "team0": "well-rotation-dynamic",
+      "team1": "escort-counterpunch-dynamic",
+      "topologyFingerprint": "ab4ba4a4c70c77c5a905efbfb0b1fbb4a052ea88bf79f001bf7ae5bc316bff6f"
+    },
+    {
+      "cellId": "escort-counterpunch-static--feint-pincer-static--s26080211--a0",
+      "matchContractFingerprint": "dcb7e5f135b15f4cf6aae2e0d8729febc9676a21fd74c06159470ceafdb1ac85",
+      "seed": "26080211",
+      "team0": "escort-counterpunch-static",
+      "team1": "feint-pincer-static",
+      "topologyFingerprint": "65fcafc721368a46fea0bffbc46fe12e5bffd0fcba6aaf8f2ab684d95992c056"
+    },
+    {
+      "cellId": "escort-counterpunch-static--feint-pincer-static--s26080211--a1",
+      "matchContractFingerprint": "788deceea55647c87823f6efdc2c22cd0d6d485b9104f1419079dde530fae464",
+      "seed": "26080211",
+      "team0": "feint-pincer-static",
+      "team1": "escort-counterpunch-static",
+      "topologyFingerprint": "c2233421fae1d8dd937a78c4215f5f217dc27ee5c46d078cae04b699a9a0b481"
+    },
+    {
+      "cellId": "escort-counterpunch-static--rear-ambush-static--s26080211--a0",
+      "matchContractFingerprint": "72ae4c25f759e7b3a8f9924ffa41912d61816850cda3f71ffee261ed51f902e5",
+      "seed": "26080211",
+      "team0": "escort-counterpunch-static",
+      "team1": "rear-ambush-static",
+      "topologyFingerprint": "afadf403d3a8ba7e8132ae3014fa22c2bddfa3ac865d5781c13a70ba457d3ca4"
+    },
+    {
+      "cellId": "escort-counterpunch-static--rear-ambush-static--s26080211--a1",
+      "matchContractFingerprint": "c6f139f15d1ca0aece22d1c519e31ec68277ae5841aaef04ff03f7956bc21fab",
+      "seed": "26080211",
+      "team0": "rear-ambush-static",
+      "team1": "escort-counterpunch-static",
+      "topologyFingerprint": "8be3966095eb23f1cede4c809ee374bf4f7e9cd6266f7d74273f8723766751d6"
+    },
+    {
+      "cellId": "escort-counterpunch-static--well-rotation-static--s26080211--a0",
+      "matchContractFingerprint": "28907182146784b3ddf8ff05b8a90e0fc2d99d867001839fdb898f09b7b1c70d",
+      "seed": "26080211",
+      "team0": "escort-counterpunch-static",
+      "team1": "well-rotation-static",
+      "topologyFingerprint": "db1b3c9736dc48ca099c56faffa193ebc491f6895c34bd998d9454c7be66aad8"
+    },
+    {
+      "cellId": "escort-counterpunch-static--well-rotation-static--s26080211--a1",
+      "matchContractFingerprint": "1f72753900ae247a00be30ce09fec0947478f14cbe9c7c31c43121360a117157",
+      "seed": "26080211",
+      "team0": "well-rotation-static",
+      "team1": "escort-counterpunch-static",
+      "topologyFingerprint": "ab4ba4a4c70c77c5a905efbfb0b1fbb4a052ea88bf79f001bf7ae5bc316bff6f"
+    },
+    {
+      "cellId": "feint-pincer-dynamic--feint-pincer-static--s26080211--a0",
+      "matchContractFingerprint": "02ee0377389738542f60ab9a28145ba9ed8ffe6d34d6928eb84d75c9a86c9805",
+      "seed": "26080211",
+      "team0": "feint-pincer-dynamic",
+      "team1": "feint-pincer-static",
+      "topologyFingerprint": "d7a5a162fc7a3c5687f4fa1efdca54eff0e67d7dab79b8eaef649520d8c97498"
+    },
+    {
+      "cellId": "feint-pincer-dynamic--feint-pincer-static--s26080211--a1",
+      "matchContractFingerprint": "02ee0377389738542f60ab9a28145ba9ed8ffe6d34d6928eb84d75c9a86c9805",
+      "seed": "26080211",
+      "team0": "feint-pincer-static",
+      "team1": "feint-pincer-dynamic",
+      "topologyFingerprint": "d7a5a162fc7a3c5687f4fa1efdca54eff0e67d7dab79b8eaef649520d8c97498"
+    },
+    {
+      "cellId": "feint-pincer-dynamic--rear-ambush-dynamic--s26080211--a0",
+      "matchContractFingerprint": "c091d54a2043f9fcc180a9f73409b5488569d8d279521967fe95106e4281c2b4",
+      "seed": "26080211",
+      "team0": "feint-pincer-dynamic",
+      "team1": "rear-ambush-dynamic",
+      "topologyFingerprint": "29d15116c23fad85e0e899e0f9694c0af792865c0260ba64064b6bc74b8f6c34"
+    },
+    {
+      "cellId": "feint-pincer-dynamic--rear-ambush-dynamic--s26080211--a1",
+      "matchContractFingerprint": "3701f05ab01377c8bd1d2821168cb2c375d230fc1875a8e81a4f0973706b036c",
+      "seed": "26080211",
+      "team0": "rear-ambush-dynamic",
+      "team1": "feint-pincer-dynamic",
+      "topologyFingerprint": "5d3efcd3d6a854e8a58bc6f055e0f465b1c5175284d23426d5f2844aef309b8c"
+    },
+    {
+      "cellId": "feint-pincer-dynamic--well-rotation-dynamic--s26080211--a0",
+      "matchContractFingerprint": "4b5fcaf39c97ee17f241a235a5e85e52370bbece176f22e1e26f341fb14e4319",
+      "seed": "26080211",
+      "team0": "feint-pincer-dynamic",
+      "team1": "well-rotation-dynamic",
+      "topologyFingerprint": "d39109f3128c06492ff6e252b65e3a6a71dd8802a3e7f8c538f9e4106104921b"
+    },
+    {
+      "cellId": "feint-pincer-dynamic--well-rotation-dynamic--s26080211--a1",
+      "matchContractFingerprint": "0ad69e38b3fbddf27c0cd2cb81e39742ae11e86be06e8b051980ba9fbd72158f",
+      "seed": "26080211",
+      "team0": "well-rotation-dynamic",
+      "team1": "feint-pincer-dynamic",
+      "topologyFingerprint": "a811d9be9a51aa006d5a6abbc240136f6986e7d1073f3b3bda2cad148d857e4c"
+    },
+    {
+      "cellId": "feint-pincer-static--rear-ambush-static--s26080211--a0",
+      "matchContractFingerprint": "c091d54a2043f9fcc180a9f73409b5488569d8d279521967fe95106e4281c2b4",
+      "seed": "26080211",
+      "team0": "feint-pincer-static",
+      "team1": "rear-ambush-static",
+      "topologyFingerprint": "29d15116c23fad85e0e899e0f9694c0af792865c0260ba64064b6bc74b8f6c34"
+    },
+    {
+      "cellId": "feint-pincer-static--rear-ambush-static--s26080211--a1",
+      "matchContractFingerprint": "3701f05ab01377c8bd1d2821168cb2c375d230fc1875a8e81a4f0973706b036c",
+      "seed": "26080211",
+      "team0": "rear-ambush-static",
+      "team1": "feint-pincer-static",
+      "topologyFingerprint": "5d3efcd3d6a854e8a58bc6f055e0f465b1c5175284d23426d5f2844aef309b8c"
+    },
+    {
+      "cellId": "feint-pincer-static--well-rotation-static--s26080211--a0",
+      "matchContractFingerprint": "4b5fcaf39c97ee17f241a235a5e85e52370bbece176f22e1e26f341fb14e4319",
+      "seed": "26080211",
+      "team0": "feint-pincer-static",
+      "team1": "well-rotation-static",
+      "topologyFingerprint": "d39109f3128c06492ff6e252b65e3a6a71dd8802a3e7f8c538f9e4106104921b"
+    },
+    {
+      "cellId": "feint-pincer-static--well-rotation-static--s26080211--a1",
+      "matchContractFingerprint": "0ad69e38b3fbddf27c0cd2cb81e39742ae11e86be06e8b051980ba9fbd72158f",
+      "seed": "26080211",
+      "team0": "well-rotation-static",
+      "team1": "feint-pincer-static",
+      "topologyFingerprint": "a811d9be9a51aa006d5a6abbc240136f6986e7d1073f3b3bda2cad148d857e4c"
+    },
+    {
+      "cellId": "rear-ambush-dynamic--rear-ambush-static--s26080211--a0",
+      "matchContractFingerprint": "3f011a329bb5842e15a1e1dbb002e3e52ccd8215dba02a490fefce2b8ee4839b",
+      "seed": "26080211",
+      "team0": "rear-ambush-dynamic",
+      "team1": "rear-ambush-static",
+      "topologyFingerprint": "a39f8608ffc3e8ce2e68c43df4fd2b52a3bf826ff3d75de69995f9ec70cffcc2"
+    },
+    {
+      "cellId": "rear-ambush-dynamic--rear-ambush-static--s26080211--a1",
+      "matchContractFingerprint": "3f011a329bb5842e15a1e1dbb002e3e52ccd8215dba02a490fefce2b8ee4839b",
+      "seed": "26080211",
+      "team0": "rear-ambush-static",
+      "team1": "rear-ambush-dynamic",
+      "topologyFingerprint": "a39f8608ffc3e8ce2e68c43df4fd2b52a3bf826ff3d75de69995f9ec70cffcc2"
+    },
+    {
+      "cellId": "rear-ambush-dynamic--well-rotation-dynamic--s26080211--a0",
+      "matchContractFingerprint": "c88b82bf4d10ae1265135a0746c428a010c899e14fc086501d1f8d8085b82881",
+      "seed": "26080211",
+      "team0": "rear-ambush-dynamic",
+      "team1": "well-rotation-dynamic",
+      "topologyFingerprint": "45757f5e9538908acf3f17b9a9d0de2128a3ae6263923e3adf91d5e4371ec4b1"
+    },
+    {
+      "cellId": "rear-ambush-dynamic--well-rotation-dynamic--s26080211--a1",
+      "matchContractFingerprint": "9ba170ec8d2fae8aafead7d78498958802aa9bad2b7687f0b34cc9c8e4c26d7c",
+      "seed": "26080211",
+      "team0": "well-rotation-dynamic",
+      "team1": "rear-ambush-dynamic",
+      "topologyFingerprint": "16878c0527cf8f15939a209e13cbb6d2fef9542f142bb53d5e717d368937bbb9"
+    },
+    {
+      "cellId": "rear-ambush-static--well-rotation-static--s26080211--a0",
+      "matchContractFingerprint": "c88b82bf4d10ae1265135a0746c428a010c899e14fc086501d1f8d8085b82881",
+      "seed": "26080211",
+      "team0": "rear-ambush-static",
+      "team1": "well-rotation-static",
+      "topologyFingerprint": "45757f5e9538908acf3f17b9a9d0de2128a3ae6263923e3adf91d5e4371ec4b1"
+    },
+    {
+      "cellId": "rear-ambush-static--well-rotation-static--s26080211--a1",
+      "matchContractFingerprint": "9ba170ec8d2fae8aafead7d78498958802aa9bad2b7687f0b34cc9c8e4c26d7c",
+      "seed": "26080211",
+      "team0": "well-rotation-static",
+      "team1": "rear-ambush-static",
+      "topologyFingerprint": "16878c0527cf8f15939a209e13cbb6d2fef9542f142bb53d5e717d368937bbb9"
+    },
+    {
+      "cellId": "well-rotation-dynamic--well-rotation-static--s26080211--a0",
+      "matchContractFingerprint": "33fa878cb75bda8b7aad8f12b3b2c5a3f27ed13648e47daa9c8fc0446bcfc398",
+      "seed": "26080211",
+      "team0": "well-rotation-dynamic",
+      "team1": "well-rotation-static",
+      "topologyFingerprint": "d61330bfee68e300800bfc4fb39365bf48b9717f9fd8db14ac69d2ab495d22fe"
+    },
+    {
+      "cellId": "well-rotation-dynamic--well-rotation-static--s26080211--a1",
+      "matchContractFingerprint": "33fa878cb75bda8b7aad8f12b3b2c5a3f27ed13648e47daa9c8fc0446bcfc398",
+      "seed": "26080211",
+      "team0": "well-rotation-static",
+      "team1": "well-rotation-dynamic",
+      "topologyFingerprint": "d61330bfee68e300800bfc4fb39365bf48b9717f9fd8db14ac69d2ab495d22fe"
+    },
+    {
+      "cellId": "escort-counterpunch-dynamic--escort-counterpunch-static--s26080229--a0",
+      "matchContractFingerprint": "515a9ada9f8afbf1b4b56a4fa400e420cd18e5c818b7ed4d820fa90ef8650409",
+      "seed": "26080229",
+      "team0": "escort-counterpunch-dynamic",
+      "team1": "escort-counterpunch-static",
+      "topologyFingerprint": "b3e7897fa3db47a469fb0089b5489185e8227ca19b5c2f452b47a7d177661a1a"
+    },
+    {
+      "cellId": "escort-counterpunch-dynamic--escort-counterpunch-static--s26080229--a1",
+      "matchContractFingerprint": "515a9ada9f8afbf1b4b56a4fa400e420cd18e5c818b7ed4d820fa90ef8650409",
+      "seed": "26080229",
+      "team0": "escort-counterpunch-static",
+      "team1": "escort-counterpunch-dynamic",
+      "topologyFingerprint": "b3e7897fa3db47a469fb0089b5489185e8227ca19b5c2f452b47a7d177661a1a"
+    },
+    {
+      "cellId": "escort-counterpunch-dynamic--feint-pincer-dynamic--s26080229--a0",
+      "matchContractFingerprint": "dcb7e5f135b15f4cf6aae2e0d8729febc9676a21fd74c06159470ceafdb1ac85",
+      "seed": "26080229",
+      "team0": "escort-counterpunch-dynamic",
+      "team1": "feint-pincer-dynamic",
+      "topologyFingerprint": "65fcafc721368a46fea0bffbc46fe12e5bffd0fcba6aaf8f2ab684d95992c056"
+    },
+    {
+      "cellId": "escort-counterpunch-dynamic--feint-pincer-dynamic--s26080229--a1",
+      "matchContractFingerprint": "788deceea55647c87823f6efdc2c22cd0d6d485b9104f1419079dde530fae464",
+      "seed": "26080229",
+      "team0": "feint-pincer-dynamic",
+      "team1": "escort-counterpunch-dynamic",
+      "topologyFingerprint": "c2233421fae1d8dd937a78c4215f5f217dc27ee5c46d078cae04b699a9a0b481"
+    },
+    {
+      "cellId": "escort-counterpunch-dynamic--rear-ambush-dynamic--s26080229--a0",
+      "matchContractFingerprint": "72ae4c25f759e7b3a8f9924ffa41912d61816850cda3f71ffee261ed51f902e5",
+      "seed": "26080229",
+      "team0": "escort-counterpunch-dynamic",
+      "team1": "rear-ambush-dynamic",
+      "topologyFingerprint": "afadf403d3a8ba7e8132ae3014fa22c2bddfa3ac865d5781c13a70ba457d3ca4"
+    },
+    {
+      "cellId": "escort-counterpunch-dynamic--rear-ambush-dynamic--s26080229--a1",
+      "matchContractFingerprint": "c6f139f15d1ca0aece22d1c519e31ec68277ae5841aaef04ff03f7956bc21fab",
+      "seed": "26080229",
+      "team0": "rear-ambush-dynamic",
+      "team1": "escort-counterpunch-dynamic",
+      "topologyFingerprint": "8be3966095eb23f1cede4c809ee374bf4f7e9cd6266f7d74273f8723766751d6"
+    },
+    {
+      "cellId": "escort-counterpunch-dynamic--well-rotation-dynamic--s26080229--a0",
+      "matchContractFingerprint": "28907182146784b3ddf8ff05b8a90e0fc2d99d867001839fdb898f09b7b1c70d",
+      "seed": "26080229",
+      "team0": "escort-counterpunch-dynamic",
+      "team1": "well-rotation-dynamic",
+      "topologyFingerprint": "db1b3c9736dc48ca099c56faffa193ebc491f6895c34bd998d9454c7be66aad8"
+    },
+    {
+      "cellId": "escort-counterpunch-dynamic--well-rotation-dynamic--s26080229--a1",
+      "matchContractFingerprint": "1f72753900ae247a00be30ce09fec0947478f14cbe9c7c31c43121360a117157",
+      "seed": "26080229",
+      "team0": "well-rotation-dynamic",
+      "team1": "escort-counterpunch-dynamic",
+      "topologyFingerprint": "ab4ba4a4c70c77c5a905efbfb0b1fbb4a052ea88bf79f001bf7ae5bc316bff6f"
+    },
+    {
+      "cellId": "escort-counterpunch-static--feint-pincer-static--s26080229--a0",
+      "matchContractFingerprint": "dcb7e5f135b15f4cf6aae2e0d8729febc9676a21fd74c06159470ceafdb1ac85",
+      "seed": "26080229",
+      "team0": "escort-counterpunch-static",
+      "team1": "feint-pincer-static",
+      "topologyFingerprint": "65fcafc721368a46fea0bffbc46fe12e5bffd0fcba6aaf8f2ab684d95992c056"
+    },
+    {
+      "cellId": "escort-counterpunch-static--feint-pincer-static--s26080229--a1",
+      "matchContractFingerprint": "788deceea55647c87823f6efdc2c22cd0d6d485b9104f1419079dde530fae464",
+      "seed": "26080229",
+      "team0": "feint-pincer-static",
+      "team1": "escort-counterpunch-static",
+      "topologyFingerprint": "c2233421fae1d8dd937a78c4215f5f217dc27ee5c46d078cae04b699a9a0b481"
+    },
+    {
+      "cellId": "escort-counterpunch-static--rear-ambush-static--s26080229--a0",
+      "matchContractFingerprint": "72ae4c25f759e7b3a8f9924ffa41912d61816850cda3f71ffee261ed51f902e5",
+      "seed": "26080229",
+      "team0": "escort-counterpunch-static",
+      "team1": "rear-ambush-static",
+      "topologyFingerprint": "afadf403d3a8ba7e8132ae3014fa22c2bddfa3ac865d5781c13a70ba457d3ca4"
+    },
+    {
+      "cellId": "escort-counterpunch-static--rear-ambush-static--s26080229--a1",
+      "matchContractFingerprint": "c6f139f15d1ca0aece22d1c519e31ec68277ae5841aaef04ff03f7956bc21fab",
+      "seed": "26080229",
+      "team0": "rear-ambush-static",
+      "team1": "escort-counterpunch-static",
+      "topologyFingerprint": "8be3966095eb23f1cede4c809ee374bf4f7e9cd6266f7d74273f8723766751d6"
+    },
+    {
+      "cellId": "escort-counterpunch-static--well-rotation-static--s26080229--a0",
+      "matchContractFingerprint": "28907182146784b3ddf8ff05b8a90e0fc2d99d867001839fdb898f09b7b1c70d",
+      "seed": "26080229",
+      "team0": "escort-counterpunch-static",
+      "team1": "well-rotation-static",
+      "topologyFingerprint": "db1b3c9736dc48ca099c56faffa193ebc491f6895c34bd998d9454c7be66aad8"
+    },
+    {
+      "cellId": "escort-counterpunch-static--well-rotation-static--s26080229--a1",
+      "matchContractFingerprint": "1f72753900ae247a00be30ce09fec0947478f14cbe9c7c31c43121360a117157",
+      "seed": "26080229",
+      "team0": "well-rotation-static",
+      "team1": "escort-counterpunch-static",
+      "topologyFingerprint": "ab4ba4a4c70c77c5a905efbfb0b1fbb4a052ea88bf79f001bf7ae5bc316bff6f"
+    },
+    {
+      "cellId": "feint-pincer-dynamic--feint-pincer-static--s26080229--a0",
+      "matchContractFingerprint": "02ee0377389738542f60ab9a28145ba9ed8ffe6d34d6928eb84d75c9a86c9805",
+      "seed": "26080229",
+      "team0": "feint-pincer-dynamic",
+      "team1": "feint-pincer-static",
+      "topologyFingerprint": "d7a5a162fc7a3c5687f4fa1efdca54eff0e67d7dab79b8eaef649520d8c97498"
+    },
+    {
+      "cellId": "feint-pincer-dynamic--feint-pincer-static--s26080229--a1",
+      "matchContractFingerprint": "02ee0377389738542f60ab9a28145ba9ed8ffe6d34d6928eb84d75c9a86c9805",
+      "seed": "26080229",
+      "team0": "feint-pincer-static",
+      "team1": "feint-pincer-dynamic",
+      "topologyFingerprint": "d7a5a162fc7a3c5687f4fa1efdca54eff0e67d7dab79b8eaef649520d8c97498"
+    },
+    {
+      "cellId": "feint-pincer-dynamic--rear-ambush-dynamic--s26080229--a0",
+      "matchContractFingerprint": "c091d54a2043f9fcc180a9f73409b5488569d8d279521967fe95106e4281c2b4",
+      "seed": "26080229",
+      "team0": "feint-pincer-dynamic",
+      "team1": "rear-ambush-dynamic",
+      "topologyFingerprint": "29d15116c23fad85e0e899e0f9694c0af792865c0260ba64064b6bc74b8f6c34"
+    },
+    {
+      "cellId": "feint-pincer-dynamic--rear-ambush-dynamic--s26080229--a1",
+      "matchContractFingerprint": "3701f05ab01377c8bd1d2821168cb2c375d230fc1875a8e81a4f0973706b036c",
+      "seed": "26080229",
+      "team0": "rear-ambush-dynamic",
+      "team1": "feint-pincer-dynamic",
+      "topologyFingerprint": "5d3efcd3d6a854e8a58bc6f055e0f465b1c5175284d23426d5f2844aef309b8c"
+    },
+    {
+      "cellId": "feint-pincer-dynamic--well-rotation-dynamic--s26080229--a0",
+      "matchContractFingerprint": "4b5fcaf39c97ee17f241a235a5e85e52370bbece176f22e1e26f341fb14e4319",
+      "seed": "26080229",
+      "team0": "feint-pincer-dynamic",
+      "team1": "well-rotation-dynamic",
+      "topologyFingerprint": "d39109f3128c06492ff6e252b65e3a6a71dd8802a3e7f8c538f9e4106104921b"
+    },
+    {
+      "cellId": "feint-pincer-dynamic--well-rotation-dynamic--s26080229--a1",
+      "matchContractFingerprint": "0ad69e38b3fbddf27c0cd2cb81e39742ae11e86be06e8b051980ba9fbd72158f",
+      "seed": "26080229",
+      "team0": "well-rotation-dynamic",
+      "team1": "feint-pincer-dynamic",
+      "topologyFingerprint": "a811d9be9a51aa006d5a6abbc240136f6986e7d1073f3b3bda2cad148d857e4c"
+    },
+    {
+      "cellId": "feint-pincer-static--rear-ambush-static--s26080229--a0",
+      "matchContractFingerprint": "c091d54a2043f9fcc180a9f73409b5488569d8d279521967fe95106e4281c2b4",
+      "seed": "26080229",
+      "team0": "feint-pincer-static",
+      "team1": "rear-ambush-static",
+      "topologyFingerprint": "29d15116c23fad85e0e899e0f9694c0af792865c0260ba64064b6bc74b8f6c34"
+    },
+    {
+      "cellId": "feint-pincer-static--rear-ambush-static--s26080229--a1",
+      "matchContractFingerprint": "3701f05ab01377c8bd1d2821168cb2c375d230fc1875a8e81a4f0973706b036c",
+      "seed": "26080229",
+      "team0": "rear-ambush-static",
+      "team1": "feint-pincer-static",
+      "topologyFingerprint": "5d3efcd3d6a854e8a58bc6f055e0f465b1c5175284d23426d5f2844aef309b8c"
+    },
+    {
+      "cellId": "feint-pincer-static--well-rotation-static--s26080229--a0",
+      "matchContractFingerprint": "4b5fcaf39c97ee17f241a235a5e85e52370bbece176f22e1e26f341fb14e4319",
+      "seed": "26080229",
+      "team0": "feint-pincer-static",
+      "team1": "well-rotation-static",
+      "topologyFingerprint": "d39109f3128c06492ff6e252b65e3a6a71dd8802a3e7f8c538f9e4106104921b"
+    },
+    {
+      "cellId": "feint-pincer-static--well-rotation-static--s26080229--a1",
+      "matchContractFingerprint": "0ad69e38b3fbddf27c0cd2cb81e39742ae11e86be06e8b051980ba9fbd72158f",
+      "seed": "26080229",
+      "team0": "well-rotation-static",
+      "team1": "feint-pincer-static",
+      "topologyFingerprint": "a811d9be9a51aa006d5a6abbc240136f6986e7d1073f3b3bda2cad148d857e4c"
+    },
+    {
+      "cellId": "rear-ambush-dynamic--rear-ambush-static--s26080229--a0",
+      "matchContractFingerprint": "3f011a329bb5842e15a1e1dbb002e3e52ccd8215dba02a490fefce2b8ee4839b",
+      "seed": "26080229",
+      "team0": "rear-ambush-dynamic",
+      "team1": "rear-ambush-static",
+      "topologyFingerprint": "a39f8608ffc3e8ce2e68c43df4fd2b52a3bf826ff3d75de69995f9ec70cffcc2"
+    },
+    {
+      "cellId": "rear-ambush-dynamic--rear-ambush-static--s26080229--a1",
+      "matchContractFingerprint": "3f011a329bb5842e15a1e1dbb002e3e52ccd8215dba02a490fefce2b8ee4839b",
+      "seed": "26080229",
+      "team0": "rear-ambush-static",
+      "team1": "rear-ambush-dynamic",
+      "topologyFingerprint": "a39f8608ffc3e8ce2e68c43df4fd2b52a3bf826ff3d75de69995f9ec70cffcc2"
+    },
+    {
+      "cellId": "rear-ambush-dynamic--well-rotation-dynamic--s26080229--a0",
+      "matchContractFingerprint": "c88b82bf4d10ae1265135a0746c428a010c899e14fc086501d1f8d8085b82881",
+      "seed": "26080229",
+      "team0": "rear-ambush-dynamic",
+      "team1": "well-rotation-dynamic",
+      "topologyFingerprint": "45757f5e9538908acf3f17b9a9d0de2128a3ae6263923e3adf91d5e4371ec4b1"
+    },
+    {
+      "cellId": "rear-ambush-dynamic--well-rotation-dynamic--s26080229--a1",
+      "matchContractFingerprint": "9ba170ec8d2fae8aafead7d78498958802aa9bad2b7687f0b34cc9c8e4c26d7c",
+      "seed": "26080229",
+      "team0": "well-rotation-dynamic",
+      "team1": "rear-ambush-dynamic",
+      "topologyFingerprint": "16878c0527cf8f15939a209e13cbb6d2fef9542f142bb53d5e717d368937bbb9"
+    },
+    {
+      "cellId": "rear-ambush-static--well-rotation-static--s26080229--a0",
+      "matchContractFingerprint": "c88b82bf4d10ae1265135a0746c428a010c899e14fc086501d1f8d8085b82881",
+      "seed": "26080229",
+      "team0": "rear-ambush-static",
+      "team1": "well-rotation-static",
+      "topologyFingerprint": "45757f5e9538908acf3f17b9a9d0de2128a3ae6263923e3adf91d5e4371ec4b1"
+    },
+    {
+      "cellId": "rear-ambush-static--well-rotation-static--s26080229--a1",
+      "matchContractFingerprint": "9ba170ec8d2fae8aafead7d78498958802aa9bad2b7687f0b34cc9c8e4c26d7c",
+      "seed": "26080229",
+      "team0": "well-rotation-static",
+      "team1": "rear-ambush-static",
+      "topologyFingerprint": "16878c0527cf8f15939a209e13cbb6d2fef9542f142bb53d5e717d368937bbb9"
+    },
+    {
+      "cellId": "well-rotation-dynamic--well-rotation-static--s26080229--a0",
+      "matchContractFingerprint": "33fa878cb75bda8b7aad8f12b3b2c5a3f27ed13648e47daa9c8fc0446bcfc398",
+      "seed": "26080229",
+      "team0": "well-rotation-dynamic",
+      "team1": "well-rotation-static",
+      "topologyFingerprint": "d61330bfee68e300800bfc4fb39365bf48b9717f9fd8db14ac69d2ab495d22fe"
+    },
+    {
+      "cellId": "well-rotation-dynamic--well-rotation-static--s26080229--a1",
+      "matchContractFingerprint": "33fa878cb75bda8b7aad8f12b3b2c5a3f27ed13648e47daa9c8fc0446bcfc398",
+      "seed": "26080229",
+      "team0": "well-rotation-static",
+      "team1": "well-rotation-dynamic",
+      "topologyFingerprint": "d61330bfee68e300800bfc4fb39365bf48b9717f9fd8db14ac69d2ab495d22fe"
+    }
+  ],
+  "cohortFile": "arena-bots/arc-relay/dynamic-strategy-v1-2026-08-02/cohort.json",
+  "cohortId": "arc-relay-dynamic-strategy-v1",
+  "cohortSha256": "9f0d431899e96712bc6263860367ba6573dabd18b6574fa8aa184efc39bffaef",
+  "eligibilityBars": "balance/arc-relay-felt-degeneracy-bars-v3.json",
+  "eligibilityBarsSha256": "7a32179220246997c37a40bcf9a5731f8ccc1c5f6cd50076439023274fe22ce4",
+  "engineVersion": "1.0.5",
+  "entrants": {
+    "escort-counterpunch-dynamic": {
+      "artifact": "arena-bots/arc-relay/stock-mind-v1/out/bot.wasm",
+      "artifactSha256": "a99634cd42ad8bbf1762b27a32eabc4fb8558ab1bbd45658a9bb684bd8186774",
+      "sheet": "arena-bots/arc-relay/dynamic-strategy-v1-2026-08-02/sheets/escort-counterpunch-dynamic.json",
+      "sheetSha256": "5098faa2dbab1821da1ced8d524b9b7c36a796921255833e61549d84ebad4b31"
+    },
+    "escort-counterpunch-static": {
+      "artifact": "arena-bots/arc-relay/stock-mind-v1/out/bot.wasm",
+      "artifactSha256": "a99634cd42ad8bbf1762b27a32eabc4fb8558ab1bbd45658a9bb684bd8186774",
+      "sheet": "arena-bots/arc-relay/dynamic-strategy-v1-2026-08-02/sheets/escort-counterpunch-static.json",
+      "sheetSha256": "6391493c5d483d2cf2e92fec1dec2133a8ec9f2b5fcc7c30ca1b4a8f11467261"
+    },
+    "feint-pincer-dynamic": {
+      "artifact": "arena-bots/arc-relay/stock-mind-v1/out/bot.wasm",
+      "artifactSha256": "a99634cd42ad8bbf1762b27a32eabc4fb8558ab1bbd45658a9bb684bd8186774",
+      "sheet": "arena-bots/arc-relay/dynamic-strategy-v1-2026-08-02/sheets/feint-pincer-dynamic.json",
+      "sheetSha256": "8e80ae381d9644b3e43fc9af1d4c72ce67aead12edcbff609915c577e44292e6"
+    },
+    "feint-pincer-static": {
+      "artifact": "arena-bots/arc-relay/stock-mind-v1/out/bot.wasm",
+      "artifactSha256": "a99634cd42ad8bbf1762b27a32eabc4fb8558ab1bbd45658a9bb684bd8186774",
+      "sheet": "arena-bots/arc-relay/dynamic-strategy-v1-2026-08-02/sheets/feint-pincer-static.json",
+      "sheetSha256": "7f338e5c66e6eec67a4ffe9c30a980ccf7ca18346d7ac314179ced3aca6cdba5"
+    },
+    "rear-ambush-dynamic": {
+      "artifact": "arena-bots/arc-relay/stock-mind-v1/out/bot.wasm",
+      "artifactSha256": "a99634cd42ad8bbf1762b27a32eabc4fb8558ab1bbd45658a9bb684bd8186774",
+      "sheet": "arena-bots/arc-relay/dynamic-strategy-v1-2026-08-02/sheets/rear-ambush-dynamic.json",
+      "sheetSha256": "c7ede8fc0f5ae6901598b6448b0fdf33220273833edaa21fc004127e47ffaa95"
+    },
+    "rear-ambush-static": {
+      "artifact": "arena-bots/arc-relay/stock-mind-v1/out/bot.wasm",
+      "artifactSha256": "a99634cd42ad8bbf1762b27a32eabc4fb8558ab1bbd45658a9bb684bd8186774",
+      "sheet": "arena-bots/arc-relay/dynamic-strategy-v1-2026-08-02/sheets/rear-ambush-static.json",
+      "sheetSha256": "eee4e4ed01d6672410c1fc73a1841dad77dc49a55efcdab7df3caa6e2c764c6d"
+    },
+    "well-rotation-dynamic": {
+      "artifact": "arena-bots/arc-relay/stock-mind-v1/out/bot.wasm",
+      "artifactSha256": "a99634cd42ad8bbf1762b27a32eabc4fb8558ab1bbd45658a9bb684bd8186774",
+      "sheet": "arena-bots/arc-relay/dynamic-strategy-v1-2026-08-02/sheets/well-rotation-dynamic.json",
+      "sheetSha256": "7ca743404c34e92366ab907a42ddc40b080db477fc8768f1ba0bac7441039853"
+    },
+    "well-rotation-static": {
+      "artifact": "arena-bots/arc-relay/stock-mind-v1/out/bot.wasm",
+      "artifactSha256": "a99634cd42ad8bbf1762b27a32eabc4fb8558ab1bbd45658a9bb684bd8186774",
+      "sheet": "arena-bots/arc-relay/dynamic-strategy-v1-2026-08-02/sheets/well-rotation-static.json",
+      "sheetSha256": "7bd1aa353d82713a490066ab60c30ae239516296bedff1d5b10d234a3f82b5d9"
+    }
+  },
+  "loopProfile": "depth-counterflow",
+  "mapFingerprint": "5ca7d1a1826791d736465d352c1558793846fc2e3df343d730f1df4c79f47e0c",
+  "mapId": "arc-relay-threefold-depth-counterflow-01",
+  "preparedBeforeOutcomes": true,
+  "rulesFingerprint": "f6d3ee9b1bb17d7bd8d0981941fd00a6a96f0e7ef834497d11924c06087174eb",
+  "rulesetId": "arc-relay-h0-01",
+  "runtime": "in-process",
+  "schema": "arc-relay-sweep-plan-v1",
+  "sweepId": "arc-relay-dynamic-strategy-screen-v1"
+}

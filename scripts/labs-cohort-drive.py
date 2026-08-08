@@ -17,6 +17,7 @@ import os
 import re
 import shlex
 import shutil
+import concurrent.futures
 import subprocess
 import sys
 from collections import Counter, defaultdict
@@ -252,6 +253,23 @@ def load_manifest(path: Path, repository_root: Path) -> dict[str, Any]:
     entrants = document.get("entrants")
     if not isinstance(entrants, list) or len(entrants) != 4:
         raise ValueError("entrants must contain exactly four bots")
+    registered_doctrines = document.get(
+        "registeredDoctrines",
+        sorted(EXPECTED_DOCTRINES),
+    )
+    if (
+        not isinstance(registered_doctrines, list)
+        or len(registered_doctrines) != 4
+        or len(set(registered_doctrines)) != len(registered_doctrines)
+        or any(
+            not isinstance(doctrine, str)
+            or _slug(doctrine) != doctrine
+            for doctrine in registered_doctrines
+        )
+    ):
+        raise ValueError(
+            "registeredDoctrines must contain four unique kebab-case slugs"
+        )
     doctrines = [
         entrant.get("doctrine")
         for entrant in entrants
@@ -260,7 +278,7 @@ def load_manifest(path: Path, repository_root: Path) -> dict[str, Any]:
     if (
         len(doctrines) != len(entrants)
         or any(not isinstance(doctrine, str) for doctrine in doctrines)
-        or set(doctrines) != EXPECTED_DOCTRINES
+        or set(doctrines) != set(registered_doctrines)
     ):
         raise ValueError(
             "entrants must contain each registered doctrine exactly once"
@@ -338,6 +356,47 @@ def load_manifest(path: Path, repository_root: Path) -> dict[str, Any]:
         normalized,
         key=lambda entrant: entrant["id"],
     )
+    document["registeredDoctrines"] = sorted(registered_doctrines)
+    pairing_extra_seeds = document.get("pairingExtraSeeds", {})
+    if not isinstance(pairing_extra_seeds, dict):
+        raise ValueError("pairingExtraSeeds must be an object")
+    normalized_extra_seeds: dict[str, list[int]] = {}
+    for raw_pair, extra_seeds in pairing_extra_seeds.items():
+        if not isinstance(raw_pair, str):
+            raise ValueError("pairingExtraSeeds keys must be strings")
+        first, separator, second = raw_pair.partition(":")
+        if (
+            separator != ":"
+            or not first
+            or not second
+            or first >= second
+            or first not in ids
+            or second not in ids
+        ):
+            raise ValueError(
+                "pairingExtraSeeds keys must be canonical "
+                "'lower-id:higher-id' entrant pairs"
+            )
+        if (
+            not isinstance(extra_seeds, list)
+            or not extra_seeds
+            or any(
+                not isinstance(seed, int)
+                or isinstance(seed, bool)
+                or seed < 0
+                for seed in extra_seeds
+            )
+            or len(set(extra_seeds)) != len(extra_seeds)
+            or set(extra_seeds).intersection(seeds)
+        ):
+            raise ValueError(
+                f"{raw_pair}: extra seeds must be distinct non-negative "
+                "integers not present in seeds"
+            )
+        normalized_extra_seeds[raw_pair] = extra_seeds
+    document["pairingExtraSeeds"] = dict(
+        sorted(normalized_extra_seeds.items())
+    )
     document["repositorySource"] = _repository_source_identity(repository_root)
     return document
 
@@ -345,12 +404,26 @@ def load_manifest(path: Path, repository_root: Path) -> dict[str, Any]:
 def build_plan(
     entrants: list[dict[str, Any]],
     seeds: list[int],
+    pairing_extra_seeds: dict[str, list[int]] | None = None,
+    *,
+    include_self_play: bool = False,
 ) -> list[dict[str, Any]]:
+    pairing_extra_seeds = pairing_extra_seeds or {}
     plan = []
     sequence = 0
-    for first, second in itertools.combinations(entrants, 2):
-        for seed in seeds:
-            for bot, opponent in ((first, second), (second, first)):
+    pairings = list(itertools.combinations(entrants, 2))
+    if include_self_play:
+        pairings.extend((entrant, entrant) for entrant in entrants)
+    for first, second in pairings:
+        pair = ":".join(sorted((first["id"], second["id"])))
+        pair_seeds = [*seeds, *pairing_extra_seeds.get(pair, [])]
+        for seed in pair_seeds:
+            assignments = (
+                ((first, second),)
+                if first["id"] == second["id"]
+                else ((first, second), (second, first))
+            )
+            for bot, opponent in assignments:
                 sequence += 1
                 match_id = (
                     f"{sequence:03}--{bot['id']}-vs-{opponent['id']}"
@@ -366,6 +439,71 @@ def build_plan(
                             "0": bot["id"],
                             "1": opponent["id"],
                         },
+                    }
+                )
+    return plan
+
+
+def build_class_bound_plan(
+    entrants: list[dict[str, Any]],
+    seeds: list[int],
+    team_zero_class: str,
+    team_one_class: str,
+    *,
+    include_self_play: bool = False,
+) -> list[dict[str, Any]]:
+    """Schedule a class-bound candidate cell.
+
+    A classed entrant only ever plays its declared chassis. Mirror cells
+    (both teams one class) keep ordinary mirrored cross-play within that
+    class. Cross-class cells pair the two class rosters Cartesian and run
+    each pairing once per seed: the bots cannot swap chassis, so there is
+    no mirrored assignment and side fairness rests on the declared map
+    symmetry — rows carry ``classBound`` so the analyzer accounts for the
+    missing mirror instead of flagging it incomplete.
+    """
+    team_zero = [
+        entrant
+        for entrant in entrants
+        if entrant.get("classId") == team_zero_class
+    ]
+    team_one = [
+        entrant
+        for entrant in entrants
+        if entrant.get("classId") == team_one_class
+    ]
+    if not team_zero or not team_one:
+        raise ValueError(
+            "class-bound cell has no eligible entrants for "
+            f"'{team_zero_class}' vs '{team_one_class}'"
+        )
+    if team_zero_class == team_one_class:
+        return build_plan(
+            team_zero,
+            seeds,
+            include_self_play=include_self_play,
+        )
+
+    plan = []
+    sequence = 0
+    for first in team_zero:
+        for second in team_one:
+            for seed in seeds:
+                sequence += 1
+                plan.append(
+                    {
+                        "id": (
+                            f"{sequence:03}--{first['id']}"
+                            f"-vs-{second['id']}--s{seed}"
+                        ),
+                        "seed": seed,
+                        "bot": first["id"],
+                        "opponent": second["id"],
+                        "teamAssignments": {
+                            "0": first["id"],
+                            "1": second["id"],
+                        },
+                        "classBound": True,
                     }
                 )
     return plan
@@ -437,6 +575,8 @@ def freeze_run(
         "playlist": manifest.get("playlist"),
         "authoringBudget": manifest.get("authoringBudget"),
         "seeds": manifest["seeds"],
+        "pairingExtraSeeds": manifest["pairingExtraSeeds"],
+        "registeredDoctrines": manifest["registeredDoctrines"],
         "runtime": "wasm",
         "runnerCommand": runner_command,
         "verifyCommand": verify_command,
@@ -588,11 +728,15 @@ def execute_plan(
     *,
     dry_run: bool,
     reverify_existing: bool = False,
+    extra_values: dict[str, Any] | None = None,
+    jobs: int = 1,
 ) -> list[dict[str, Any]]:
-    executions = []
-    for item in plan:
+    extra_values = extra_values or {}
+
+    def execute_item(item: dict[str, Any]) -> dict[str, Any]:
         match_dir = output / "matches" / item["id"]
         values = {
+            **extra_values,
             "bot": artifacts[item["bot"]].resolve(),
             "opponent": artifacts[item["opponent"]].resolve(),
             "seed": item["seed"],
@@ -607,10 +751,7 @@ def execute_plan(
             reverify=reverify_existing and not dry_run,
         )
         if verified is not None:
-            executions.append(
-                {"plan": item, "attempt": verified, "status": "verified"}
-            )
-            continue
+            return {"plan": item, "attempt": verified, "status": "verified"}
         attempt_number = len(list(match_dir.glob("attempt-*"))) + 1
         attempt = match_dir / f"attempt-{attempt_number:02}"
         attempt.mkdir(parents=True)
@@ -630,10 +771,7 @@ def execute_plan(
             encoding="utf-8",
         )
         if dry_run:
-            executions.append(
-                {"plan": item, "attempt": attempt, "status": "planned"}
-            )
-            continue
+            return {"plan": item, "attempt": attempt, "status": "planned"}
         with (attempt / "runner.stdout.log").open("w") as stdout, (
             attempt / "runner.stderr.log"
         ).open("w") as stderr:
@@ -646,15 +784,12 @@ def execute_plan(
                 text=True,
             )
         if completed.returncode != 0 or not (attempt / "replay.json").is_file():
-            executions.append(
-                {
-                    "plan": item,
-                    "attempt": attempt,
-                    "status": "runner-failed",
-                    "exitCode": completed.returncode,
-                }
-            )
-            continue
+            return {
+                "plan": item,
+                "attempt": attempt,
+                "status": "runner-failed",
+                "exitCode": completed.returncode,
+            }
         verification_status = _run_verifier(
             attempt,
             verifier,
@@ -670,15 +805,23 @@ def execute_plan(
             ) + "\n",
             encoding="utf-8",
         )
-        executions.append(
-            {
-                "plan": item,
-                "attempt": attempt,
-                "status": "verified" if verified_ok else "verify-failed",
-                "exitCode": verification_status["exitCode"],
-            }
-        )
-    return executions
+        return {
+            "plan": item,
+            "attempt": attempt,
+            "status": "verified" if verified_ok else "verify-failed",
+            "exitCode": verification_status["exitCode"],
+        }
+
+    # Matches are independent processes writing disjoint attempt
+    # directories, so parallel lanes are provenance-safe. pool.map
+    # preserves plan order, keeping reports byte-stable regardless of
+    # completion order.
+    if jobs <= 1:
+        return [execute_item(item) for item in plan]
+    with concurrent.futures.ThreadPoolExecutor(
+        max_workers=jobs,
+    ) as pool:
+        return list(pool.map(execute_item, plan))
 
 
 def replay_identity_issues(
@@ -988,7 +1131,11 @@ def main(argv: list[str] | None = None) -> int:
     manifest_path = args.manifest.resolve()
     output = args.output.resolve()
     manifest = load_manifest(manifest_path, repository_root)
-    plan = build_plan(manifest["entrants"], manifest["seeds"])
+    plan = build_plan(
+        manifest["entrants"],
+        manifest["seeds"],
+        manifest["pairingExtraSeeds"],
+    )
     if args.resume:
         artifacts = resume_run(
             output,

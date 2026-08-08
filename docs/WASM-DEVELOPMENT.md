@@ -15,7 +15,7 @@ only the **compiler host** has a platform restriction.
 
 The pinned toolchain publishes `runtime.linux-x64` and `runtime.linux-arm64`
 `Microsoft.DotNet.ILCompiler.LLVM` compiler-host packages, and both emit
-byte-identical modules (DECISIONS #147). There is no macOS host package at the
+byte-identical modules (DECISIONS #151). There is no macOS host package at the
 pinned version, so a Linux environment (Docker) remains required on macOS —
 but the builder container always matches the host CPU, so the compiler never
 runs emulated by default. `BOTARENA_WASM_DOCKER_PLATFORM` can force a specific
@@ -152,11 +152,15 @@ actor protocol/configuration 1.0. The explicit local
 `nilbots experiment frontline` command selects it; historical `play`,
 App/server admission, and ladders do not.
 
-SDK/Guest 0.10.3 carries the separately negotiated
+SDK/Guest 0.10.6 carries the separately negotiated
 `generic-actor-match-2` profile and `IGenericActorBot`. Its static match
 contract, variable entity observations, generic scores/mode state, typed
 actions/events/lineage, and exact profile attestation do not widen the
-Frontline-alpha objects. One bot type may implement several programming
+Frontline-alpha objects. Version 0.10.6 retains 0.10.4's data-declared delayed
+first-life activation and adds explicit class identity, the live ratchet hold's
+owner and expiry, projectile cadence and damage per hit, and a visible tile's
+spawn reservation — all additive, so the profile is unchanged. One bot type may
+implement several programming
 interfaces; controlled-build pipeline 4 detects those interfaces from the
 closed entry type without constructing a throwaway instance. Hosted App
 execution selects the generic Engine host/session only through an immutable

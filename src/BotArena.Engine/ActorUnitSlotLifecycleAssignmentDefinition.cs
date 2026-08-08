@@ -17,7 +17,8 @@ public sealed record ActorUnitSlotLifecycleAssignmentDefinition
         IEnumerable<string> allowedFormIds,
         InitialAvailabilityKind initialAvailability,
         int? unlockTick,
-        string? assignedRespawnSpawnId)
+        string? assignedRespawnSpawnId,
+        string? fabricationOutputFormId = null)
     {
         if (teamId < 0)
             throw new ArgumentOutOfRangeException(nameof(teamId));
@@ -69,9 +70,10 @@ public sealed record ActorUnitSlotLifecycleAssignmentDefinition
                 "A tick-zero active slot must declare its initial life generation.",
                 nameof(initialGeneration));
         }
-        if (initialAvailability
-                == InitialAvailabilityKind.DormantUnlockAtTick
-            && unlockTick is null)
+        bool delayed = initialAvailability is
+            InitialAvailabilityKind.DormantUnlockAtTick
+            or InitialAvailabilityKind.DormantAutomaticActivationAtTick;
+        if (delayed && unlockTick is null)
         {
             throw new ArgumentException(
                 "A dormant slot must declare its absolute unlock tick.",
@@ -85,6 +87,37 @@ public sealed record ActorUnitSlotLifecycleAssignmentDefinition
                 "A dormant slot has no life generation before fabrication.",
                 nameof(initialGeneration));
         }
+        if (initialAvailability
+                == InitialAvailabilityKind.DormantAutomaticActivationAtTick
+            && initialGeneration is null)
+        {
+            throw new ArgumentException(
+                "An automatically activated slot must declare its first life generation.",
+                nameof(initialGeneration));
+        }
+        if (initialAvailability
+                == InitialAvailabilityKind.DormantAutomaticActivationAtTick
+            && assignedRespawnSpawnId is null)
+        {
+            throw new ArgumentException(
+                "An automatically activated slot must declare its activation and respawn spawn.",
+                nameof(assignedRespawnSpawnId));
+        }
+
+        if (fabricationOutputFormId is not null)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(
+                fabricationOutputFormId);
+            if (!formIds.Contains(
+                    fabricationOutputFormId,
+                    StringComparer.Ordinal))
+            {
+                throw new ArgumentException(
+                    "A slot's fabrication output form must be one of the "
+                    + "forms that slot allows.",
+                    nameof(fabricationOutputFormId));
+            }
+        }
 
         TeamId = teamId;
         UnitId = unitId;
@@ -96,6 +129,7 @@ public sealed record ActorUnitSlotLifecycleAssignmentDefinition
         InitialAvailability = initialAvailability;
         UnlockTick = unlockTick;
         AssignedRespawnSpawnId = assignedRespawnSpawnId;
+        FabricationOutputFormId = fabricationOutputFormId;
     }
 
     public int TeamId { get; }
@@ -107,6 +141,26 @@ public sealed record ActorUnitSlotLifecycleAssignmentDefinition
     public int? UnlockTick { get; }
     public string? AssignedRespawnSpawnId { get; }
 
+    /// <summary>
+    /// The form a fabrication INTO this slot produces, overriding the
+    /// fabrication transition's declared output
+    /// (<c>docs/DESIGN-MIND-ARCHITECTURE-2026-07-31.md</c> §9.4: "fabricate
+    /// produces the target slot's chassis").
+    /// <para>
+    /// Null on every slot that takes the transition's own output, which is
+    /// every slot outside a MIXED composition — so the property writes no
+    /// canonical bytes and no existing contract moves. It exists because a
+    /// fabricating body under a mixed composition builds the ARMY, not copies
+    /// of itself: a spearhead's fabricator places striker and bulwark bodies
+    /// into the slots that declare them.
+    /// </para>
+    /// <para>The kernel still checks the resolved form against
+    /// <see cref="AllowedFormIds"/>, and the constructor checks it here, so an
+    /// override can only ever narrow to something the slot could already
+    /// hold.</para>
+    /// </summary>
+    public string? FabricationOutputFormId { get; }
+
     public enum InitialAvailabilityKind
     {
         /// <summary>The topology supplies one life active at tick zero.</summary>
@@ -117,5 +171,14 @@ public sealed record ActorUnitSlotLifecycleAssignmentDefinition
         /// becomes ready for explicit fabrication.
         /// </summary>
         DormantUnlockAtTick = 1,
+
+        /// <summary>
+        /// No life exists initially. At <see cref="UnlockTick"/> the engine
+        /// creates the slot's first life at its assigned respawn spawn using
+        /// the lifecycle profile's automatic-return form. Tick-start
+        /// activations share the canonical returns/readiness lifecycle phase
+        /// and settle before due fabrication and replication.
+        /// </summary>
+        DormantAutomaticActivationAtTick = 2,
     }
 }

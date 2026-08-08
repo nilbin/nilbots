@@ -52,6 +52,14 @@ public sealed record GenericActorMatchChronology
             initialFrame,
             tickSnapshot,
             result);
+        ValidateProjectileSkillEvidence(
+            descriptor.Definition,
+            tickSnapshot,
+            nameof(ticks));
+        ValidateAutomaticReturnEvidence(
+            descriptor.Definition,
+            tickSnapshot,
+            nameof(ticks));
         if (descriptor.Definition.Rules.GameMode
             is FrontlineGameModeDefinition)
         {
@@ -203,6 +211,1080 @@ public sealed record GenericActorMatchChronology
                     nameof(ticks));
             }
             turn.ValidateAgainst(descriptor);
+        }
+
+        ValidateMindEvidence(descriptor, ticks);
+    }
+
+    /// <summary>
+    /// The mind-profile chronology rules
+    /// (<c>docs/DESIGN-MIND-ARCHITECTURE-2026-07-31.md</c> §5.3).
+    /// <para>
+    /// The profile decides the turn kind, and there is no mixed history: a
+    /// mind-profile chronology carries a turn for every ticking participant on
+    /// every tick, and a per-life chronology carries none at all. Beyond the
+    /// shape, one derived fact is checked here because it is the only place
+    /// with the whole history in view: a published role tag must be the last
+    /// tag the mind actually set for that body, re-derived from the accepted
+    /// commands. That is what stops a doctored document from narrating a
+    /// strategy that never happened.
+    /// </para>
+    /// </summary>
+    private static void ValidateMindEvidence(
+        GenericActorMatchDescriptor descriptor,
+        IReadOnlyCollection<GenericActorMatchTickFrame> ticks)
+    {
+        bool mindProfile =
+            descriptor.Definition.CapabilityVersions.IsMindProfile;
+        if (!mindProfile)
+        {
+            if (ticks.Any(frame => !frame.MindTurns.IsEmpty))
+            {
+                throw new ArgumentException(
+                    "A per-life contract profile cannot record mind turns.",
+                    nameof(ticks));
+            }
+            return;
+        }
+        if (ticks.Any(frame => frame.MindTurns.IsEmpty))
+        {
+            throw new ArgumentException(
+                "A mind-profile chronology must record one turn per ticking participant on every tick.",
+                nameof(ticks));
+        }
+
+        var tags = new Dictionary<ActorIdentity, string>();
+        foreach (GenericActorMatchTickFrame frame in ticks)
+        {
+            foreach (GenericActorMatchMindTurn turn in frame.MindTurns)
+            {
+                if (!string.Equals(
+                        turn.Observation.MatchContractFingerprint,
+                        descriptor.MatchContractFingerprint,
+                        StringComparison.Ordinal))
+                {
+                    throw new ArgumentException(
+                        "Every recorded mind observation must reference the chronology descriptor's exact contract.",
+                        nameof(ticks));
+                }
+                turn.ValidateAgainst(descriptor);
+                ValidateMindObservationAgainstState(
+                    descriptor.Definition,
+                    frame,
+                    turn,
+                    tags);
+            }
+
+            // The tags this tick's accepted commands set are what the NEXT
+            // tick publishes; the observation was frozen before any of them
+            // were written.
+            foreach (GenericActorMatchMindTurn turn in frame.MindTurns)
+                turn.ApplyRoleTags(tags);
+
+            // A body that is gone takes its tag with it, so a slot's next life
+            // starts unlabelled rather than inheriting its predecessor's job.
+            HashSet<ActorIdentity> live = frame.PostState.ActiveLives
+                .Select(life => life.ActorId)
+                .ToHashSet();
+            foreach (ActorIdentity dead in
+                     tags.Keys.Where(actor => !live.Contains(actor)).ToArray())
+            {
+                tags.Remove(dead);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Re-derives one mind observation against the authoritative pre-tick
+    /// state: the bodies are exactly the participant's own live lives with
+    /// their exact published state, the slot table is the participant's own
+    /// slots in their authoritative state, the team-shared mode matches, and
+    /// every published role tag — on own bodies and on visible enemies alike —
+    /// is one the owning mind actually set.
+    /// </summary>
+    private static void ValidateMindObservationAgainstState(
+        ActorResolvedMatchDefinition definition,
+        GenericActorMatchTickFrame frame,
+        GenericActorMatchMindTurn turn,
+        IReadOnlyDictionary<ActorIdentity, string> tags)
+    {
+        GenericActorWorldSnapshot state = frame.TickStart.State;
+        Dictionary<ActorIdentity, GenericActorWorldSnapshot.LifeSnapshot>
+            lives = state.ActiveLives.ToDictionary(life => life.ActorId);
+        ActorIdentity[] expectedBodies = state.ActiveLives
+            .Where(life => life.ParticipantId == turn.ParticipantId)
+            .Select(life => life.ActorId)
+            .Order()
+            .ToArray();
+        if (!turn.ResolvedBodies.SequenceEqual(expectedBodies))
+        {
+            throw new ArgumentException(
+                "A mind turn must resolve exactly its participant's own live bodies for that tick.",
+                nameof(frame));
+        }
+
+        foreach (GenericMindRuntimeObservation.ObservedBodyState body in
+                 turn.Observation.Bodies)
+        {
+            GenericActorWorldSnapshot.LifeSnapshot life =
+                lives[body.ActorId];
+            if (body.Generation != life.Generation
+                || !string.Equals(
+                    body.FormId,
+                    life.FormId,
+                    StringComparison.Ordinal)
+                || body.Position != life.Position
+                || body.Facing != life.Facing
+                || body.Health != life.Health
+                || body.Cooldown != life.Cooldown
+                || body.Energy != life.Energy
+                || body.LifeStartedTick != life.SpawnedAtTick
+                || !GenericActorMatchActorTurn
+                    .ActionResolutionsSemanticallyEqual(
+                        body.PreviousActionResolution,
+                        life.PreviousActionResolution))
+            {
+                throw new ArgumentException(
+                    "Every mind body must publish the exact authoritative pre-tick state.",
+                    nameof(frame));
+            }
+            RequirePublishedTag(body.RoleTag, body.ActorId, tags);
+        }
+
+        if (!turn.Observation.Slots
+            .Select(slot => (slot.TeamId, slot.UnitId))
+            .SequenceEqual(state.Slots
+                .Where(slot => slot.ParticipantId == turn.ParticipantId)
+                .Select(slot => (slot.TeamId, slot.UnitId))
+                .Order()))
+        {
+            throw new ArgumentException(
+                "A mind's published slot table must be exactly its own slots.",
+                nameof(frame));
+        }
+        if (!ModeObservationMatches(
+                turn.Observation.Mode,
+                state.Mode,
+                turn.TeamId,
+                turn.Observation.VisibleTiles.Select(value => value.Position),
+                definition,
+                state))
+        {
+            throw new ArgumentException(
+                "A mind observation's mode must exactly match the authoritative pre-state.",
+                nameof(frame));
+        }
+        foreach (GenericActorRuntimeObservation.ObservedEnemyState enemy in
+                 turn.Observation.Enemies)
+        {
+            RequirePublishedTag(enemy.RoleTag, enemy.ActorId, tags);
+        }
+        foreach (GenericActorRuntimeObservation.ObservedAllyState ally in
+                 turn.Observation.Allies)
+        {
+            RequirePublishedTag(ally.RoleTag, ally.ActorId, tags);
+        }
+    }
+
+    private static bool ModeObservationMatches(
+        GenericActorRuntimeObservation.ModeObservationState observed,
+        GenericActorRuntimeObservation.ModeObservationState authoritative,
+        int observingTeamId,
+        IEnumerable<Position> visiblePositions,
+        ActorResolvedMatchDefinition definition,
+        GenericActorWorldSnapshot state)
+    {
+        if (observed is not GenericActorRuntimeObservation
+                .ModeObservationState.ArcRelay arcObserved
+            || authoritative is not GenericActorRuntimeObservation
+                .ModeObservationState.ArcRelay arcAuthoritative)
+        {
+            return observed == authoritative;
+        }
+
+        HashSet<Position> visible = visiblePositions.ToHashSet();
+        int tripNodeRevealRange = ((ArcRelayGameModeDefinition)
+                definition.Rules.GameMode).Signatures
+            .OfType<ArcRelaySignatureDefinition.TripNode>()
+            .Single().RevealRange;
+        Position[] ownBodies = state.ActiveLives
+            .Where(value => value.ActorId.TeamId == observingTeamId)
+            .Select(value => value.Position)
+            .ToArray();
+        ImmutableArray<ArcRelayCoreState> expectedCores = arcAuthoritative
+            .VisibleCores.Where(core =>
+                core.CarrierActorId?.TeamId == observingTeamId
+                || visible.Contains(core.Position))
+            .ToImmutableArray();
+        ImmutableArray<ArcRelaySignatureState> expectedSignatures =
+            arcAuthoritative.VisibleSignatures.Where(signature =>
+                    signature.OwnerTeamId == observingTeamId
+                    || signature.Phase
+                        == ArcRelaySignatureState.SignaturePhase.Tell
+                    || signature.Kind
+                        == ArcRelaySignatureDefinition.SignatureKind.TripNode
+                        && signature.Positions.Any(position =>
+                            ownBodies.Any(body =>
+                                body.ChebyshevDistance(position)
+                                    <= tripNodeRevealRange))
+                    || signature.Positions.Any(visible.Contains))
+                .ToImmutableArray();
+        return string.Equals(
+                arcObserved.ModeId,
+                arcAuthoritative.ModeId,
+                StringComparison.Ordinal)
+            && arcObserved.Wells.SequenceEqual(arcAuthoritative.Wells)
+            && arcObserved.Reactors.SequenceEqual(arcAuthoritative.Reactors)
+            && arcObserved.VisibleCores.SequenceEqual(expectedCores)
+            && arcObserved.VisibleSignatures.SequenceEqual(expectedSignatures)
+            && arcObserved.LatestPulseTeamId
+                == arcAuthoritative.LatestPulseTeamId
+            && arcObserved.LatestPulseTick == arcAuthoritative.LatestPulseTick;
+    }
+
+    private static void RequirePublishedTag(
+        string? published,
+        ActorIdentity actorId,
+        IReadOnlyDictionary<ActorIdentity, string> tags)
+    {
+        if (published is not null && !GenericMindRoleTag.IsValid(published))
+        {
+            throw new ArgumentException(
+                "A published role tag must be a canonical kebab label within the 24-byte cap.",
+                nameof(published));
+        }
+        string? expected = tags.GetValueOrDefault(actorId);
+        if (!string.Equals(published, expected, StringComparison.Ordinal))
+        {
+            throw new ArgumentException(
+                $"Published role tag for '{actorId}' is not the last tag its mind set.",
+                nameof(published));
+        }
+    }
+
+    /// <summary>
+    /// The two causality facts the class-skill kit introduced. Both are the
+    /// same kind of teaching the movement coupling needed in #156: a validator
+    /// that reasonably assumed one cause now has to accept a second declared
+    /// one, and must still reject every history that only looks consistent.
+    ///
+    /// VOLLEY — one successful attack action issues exactly the profile's
+    /// declared projectile count, with contiguous ascending projectile IDs in
+    /// launch order and, for a symmetric fan, consecutive heading sectors
+    /// centred on the first bolt's heading.
+    ///
+    /// AEGIS SHELL — a deflection is published exactly when a hostile
+    /// projectile is consumed without damage by a target whose form declares
+    /// the guard and whose facing quadrant contains the approach; the
+    /// traversal that consumed it must agree that no damage was applied; and
+    /// the returned bolt must exist with the guard's ownership, the guard's
+    /// tile as origin, the exactly reversed heading, and a fresh budget.
+    /// Symmetrically, no projectile may enter the world during resolution
+    /// without either an attack or a deflection naming it.
+    /// </summary>
+    private static void ValidateProjectileSkillEvidence(
+        ActorResolvedMatchDefinition definition,
+        IReadOnlyList<GenericActorMatchTickFrame> ticks,
+        string parameterName)
+    {
+        Dictionary<string, ActorFormDefinition> forms =
+            definition.Rules.Forms.ToDictionary(
+                form => form.Id,
+                StringComparer.Ordinal);
+        Dictionary<string, ActorAttackProfileDefinition> attacks =
+            definition.Rules.AttackProfiles.ToDictionary(
+                profile => profile.Id,
+                StringComparer.Ordinal);
+        foreach (GenericActorMatchTickFrame frame in ticks)
+        {
+            Dictionary<ActorIdentity, GenericActorWorldSnapshot.LifeSnapshot>
+                lives = frame.TickStart.State.ActiveLives.ToDictionary(
+                    life => life.ActorId);
+            ValidateVolleyEvidence(
+                forms,
+                attacks,
+                lives,
+                frame,
+                parameterName);
+            ValidateDeflectionEvidence(
+                forms,
+                attacks,
+                lives,
+                frame,
+                definition.Rules.GameMode.ModeOwnedAttackProfileIds,
+                parameterName);
+        }
+        ValidateRouteCooldownEvidence(definition, ticks, parameterName);
+    }
+
+    /// <summary>
+    /// Route cooldowns (#181): after a completion of a cooldown-bearing
+    /// route, a REQUESTED start of the same route for the same UNIT SLOT
+    /// before completionTick + cooldownTicks + 1 is an impossible history.
+    /// Automatic (engine-caused) starts are exempt, and the clock survives
+    /// the body — it is keyed by slot, not by life.
+    /// </summary>
+    private static void ValidateRouteCooldownEvidence(
+        ActorResolvedMatchDefinition definition,
+        IReadOnlyList<GenericActorMatchTickFrame> ticks,
+        string parameterName)
+    {
+        Dictionary<string, ActorSameLifeTransitionDefinition> routes =
+            definition.Rules.SameLifeTransitions
+                .Where(route => route.CooldownTicks > 0)
+                .ToDictionary(
+                    route => route.TransitionId,
+                    StringComparer.Ordinal);
+        if (routes.Count == 0)
+            return;
+
+        var readyAtTick =
+            new Dictionary<(int TeamId, int UnitId, string TransitionId),
+                int>();
+        foreach (GenericActorMatchTickFrame frame in ticks)
+        {
+            foreach (GenericActorAuthoritativeEvent item in frame
+                         .TickStart.Events
+                         .Concat(frame.Events))
+            {
+                if (item.Payload is not GenericActorRuntimeObservation
+                        .EventPayload.FormTransition transition
+                    || !routes.TryGetValue(
+                        transition.TransitionId,
+                        out ActorSameLifeTransitionDefinition? route))
+                {
+                    continue;
+                }
+                (int, int, string) key = (
+                    transition.ActorId.TeamId,
+                    transition.ActorId.UnitId,
+                    transition.TransitionId);
+                if (item.Kind == GenericActorRuntimeObservation.EventKind
+                        .FormTransitionStarted
+                    && transition.Reason == GenericActorRuntimeObservation
+                        .FormTransitionReason.Requested
+                    && readyAtTick.TryGetValue(key, out int ready)
+                    && item.Tick < ready)
+                {
+                    throw new ArgumentException(
+                        $"Route '{transition.TransitionId}' was requested "
+                        + $"at tick {item.Tick} while its cooldown holds "
+                        + $"the slot until tick {ready}.",
+                        parameterName);
+                }
+                if (item.Kind == GenericActorRuntimeObservation.EventKind
+                        .FormTransitionCompleted)
+                {
+                    readyAtTick[key] = checked(
+                        item.Tick + route.CooldownTicks + 1);
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// The third causality fact the class-skill kit introduced, and the one
+    /// with no action behind it: a form may declare that the engine starts its
+    /// return route by itself once a typed counter reaches a threshold
+    /// (<see cref="ActorAutomaticReturnTriggerDefinition"/>). A validator that
+    /// reasonably assumed every same-life start was requested now has to
+    /// accept a second cause — and refuse three ways of faking it.
+    ///
+    /// * **Forged** — a start claiming the automatic cause on a route that
+    ///   declares no trigger, or before its count is actually reached.
+    /// * **Suppressed** — a life that reached the threshold, could have
+    ///   queued, and simply stayed. The budget is a rule; it cannot be waited
+    ///   out, and this is the whole point of the mechanism.
+    /// * **Mislabelled** — a completion or cancellation whose cause disagrees
+    ///   with the start it consumes. One instance, one cause.
+    ///
+    /// A manual exit BELOW the threshold stays entirely legal: leaving early
+    /// is the author's choice and the same route serves it.
+    /// </summary>
+    private static void ValidateAutomaticReturnEvidence(
+        ActorResolvedMatchDefinition definition,
+        IReadOnlyList<GenericActorMatchTickFrame> ticks,
+        string parameterName)
+    {
+        Dictionary<string, ActorFormTransitionDefinition> routes =
+            definition.Rules.SameLifeTransitions
+                .OfType<ActorFormTransitionDefinition>()
+                .Where(transition => transition.AutomaticReturn is not null)
+                .ToDictionary(
+                    transition => transition.SourceFormId,
+                    StringComparer.Ordinal);
+        if (routes.Count == 0)
+        {
+            // No contract in this match can produce the fact, so any claim of
+            // it is a forgery — cheap to check and worth checking.
+            foreach (GenericActorMatchTickFrame frame in ticks)
+            {
+                if (AutomaticStarts(frame).Length != 0)
+                {
+                    throw new ArgumentException(
+                        "An automatic-return start requires a route that declares the trigger.",
+                        parameterName);
+                }
+            }
+            return;
+        }
+
+        var walk = new Dictionary<ActorIdentity, AutomaticReturnCounts>();
+        var automaticPending = new HashSet<ActorIdentity>();
+        foreach (GenericActorMatchTickFrame frame in ticks)
+        {
+            // Lives already leaving at the boundary are exempt for the whole
+            // tick: the engine never queues a second route over a pending one,
+            // and the return they are serving is the one that matters.
+            HashSet<ActorIdentity> leaving =
+            [
+                .. frame.TickStart.State.ActiveLives
+                    .Where(life => life.PendingSameLifeTransition is not null)
+                    .Select(life => life.ActorId),
+            ];
+            SeedForms(frame, walk);
+            Dictionary<ActorIdentity, AutomaticReturnCounts> frameStart =
+                walk.ToDictionary(entry => entry.Key, entry => entry.Value);
+            var owed =
+                new Dictionary<ActorIdentity, ActorFormTransitionDefinition>();
+
+            foreach (GenericActorAuthoritativeEvent item in frame.TickStart
+                         .Events
+                         .Concat(frame.Events)
+                         .OrderBy(item => item.Tick)
+                         .ThenBy(item => item.Ordinal))
+            {
+                ApplyAutomaticReturnEvent(
+                    item,
+                    routes,
+                    walk,
+                    automaticPending,
+                    leaving,
+                    owed,
+                    frameStart,
+                    parameterName);
+            }
+
+            ValidateNoSuppressedAutomaticReturn(
+                definition,
+                owed,
+                frame,
+                parameterName);
+        }
+    }
+
+    /// <summary>
+    /// Records the form each life is standing in at the tick boundary, for
+    /// every life the walk has not seen yet. Afterwards the walk owns the form
+    /// itself, because a completed transition both moves the life and restarts
+    /// its counters.
+    /// </summary>
+    private static void SeedForms(
+        GenericActorMatchTickFrame frame,
+        IDictionary<ActorIdentity, AutomaticReturnCounts> walk)
+    {
+        foreach (GenericActorWorldSnapshot.LifeSnapshot life in
+                 frame.TickStart.State.ActiveLives)
+        {
+            if (!walk.ContainsKey(life.ActorId))
+                walk[life.ActorId] = new AutomaticReturnCounts(life.FormId);
+        }
+    }
+
+    /// <summary>
+    /// One event's effect on the automatic-return bookkeeping. Counters are
+    /// cumulative since the life entered its current form, so a completed
+    /// transition clears them: a second stance entry starts its budget over
+    /// rather than returning on arrival.
+    /// </summary>
+    private static void ApplyAutomaticReturnEvent(
+        GenericActorAuthoritativeEvent item,
+        IReadOnlyDictionary<string, ActorFormTransitionDefinition> routes,
+        IDictionary<ActorIdentity, AutomaticReturnCounts> walk,
+        ISet<ActorIdentity> automaticPending,
+        ISet<ActorIdentity> leaving,
+        IDictionary<ActorIdentity, ActorFormTransitionDefinition> owed,
+        IReadOnlyDictionary<ActorIdentity, AutomaticReturnCounts> frameStart,
+        string parameterName)
+    {
+        switch (item.Payload)
+        {
+            case GenericActorRuntimeObservation.EventPayload.Attack attack:
+                // One action is one cast whatever its projectile count, and a
+                // life acts at most once per tick, so a volley's three bolts
+                // advance the counter exactly once.
+                Bump(
+                    attack.ActorId,
+                    value => value.WithAttackOn(item.Tick),
+                    routes,
+                    walk,
+                    leaving,
+                    owed);
+                return;
+            case GenericActorRuntimeObservation.EventPayload.ProjectileDeflected
+                deflected:
+                Bump(
+                    deflected.TargetActorId,
+                    value => value.WithDeflection(),
+                    routes,
+                    walk,
+                    leaving,
+                    owed);
+                return;
+            case GenericActorRuntimeObservation.EventPayload.FormTransition:
+                break;
+            default:
+                return;
+        }
+
+        var transition =
+            (GenericActorRuntimeObservation.EventPayload.FormTransition)
+            item.Payload;
+        bool automatic = transition.Reason
+            == GenericActorRuntimeObservation.FormTransitionReason
+                .AutomaticThresholdReturn;
+        switch (item.Kind)
+        {
+            case GenericActorRuntimeObservation.EventKind
+                .FormTransitionStarted:
+                if (automatic)
+                {
+                    ValidateAutomaticReturnStart(
+                        transition,
+                        routes,
+                        Count(walk, transition.ActorId),
+                        frameStart.TryGetValue(
+                            transition.ActorId,
+                            out AutomaticReturnCounts before)
+                            ? before
+                            : default,
+                        parameterName);
+                    automaticPending.Add(transition.ActorId);
+                    owed.Remove(transition.ActorId);
+                }
+                else
+                {
+                    automaticPending.Remove(transition.ActorId);
+                }
+                // A requested start ordered BEFORE the crossing is the engine's
+                // own phase order — same-life starts resolve ahead of attacks
+                // and projectile advance — so the life was already leaving when
+                // the threshold arrived. A requested start ordered AFTER it is
+                // an automatic return wearing the wrong cause, and stays owed.
+                leaving.Add(transition.ActorId);
+                return;
+            case GenericActorRuntimeObservation.EventKind
+                    .FormTransitionCompleted:
+            case GenericActorRuntimeObservation.EventKind
+                .FormTransitionCancelled:
+                if (automatic != automaticPending.Contains(transition.ActorId))
+                {
+                    throw new ArgumentException(
+                        "A same-life completion or cancellation must report the same cause as the start it consumes.",
+                        parameterName);
+                }
+                automaticPending.Remove(transition.ActorId);
+                if (item.Kind
+                    == GenericActorRuntimeObservation.EventKind
+                        .FormTransitionCompleted)
+                {
+                    walk[transition.ActorId] =
+                        new AutomaticReturnCounts(transition.ToFormId);
+                    leaving.Remove(transition.ActorId);
+                }
+                return;
+            default:
+                return;
+        }
+    }
+
+    /// <summary>
+    /// Advances one counter and, if that is the moment its form's declared
+    /// threshold is reached, records that this life now owes a return.
+    /// </summary>
+    private static void Bump(
+        ActorIdentity actorId,
+        Func<AutomaticReturnCounts, AutomaticReturnCounts> advance,
+        IReadOnlyDictionary<string, ActorFormTransitionDefinition> routes,
+        IDictionary<ActorIdentity, AutomaticReturnCounts> walk,
+        ISet<ActorIdentity> leaving,
+        IDictionary<ActorIdentity, ActorFormTransitionDefinition> owed)
+    {
+        AutomaticReturnCounts before = Count(walk, actorId);
+        AutomaticReturnCounts after = advance(before);
+        walk[actorId] = after;
+        if (leaving.Contains(actorId)
+            || !routes.TryGetValue(
+                after.FormId,
+                out ActorFormTransitionDefinition? route)
+            || route.AutomaticReturn is not { } trigger
+            || before.Of(trigger.Counter) >= trigger.Threshold
+            || after.Of(trigger.Counter) < trigger.Threshold)
+        {
+            return;
+        }
+        owed[actorId] = route;
+    }
+
+    private static void ValidateAutomaticReturnStart(
+        GenericActorRuntimeObservation.EventPayload.FormTransition transition,
+        IReadOnlyDictionary<string, ActorFormTransitionDefinition> routes,
+        AutomaticReturnCounts current,
+        AutomaticReturnCounts beforeThisTick,
+        string parameterName)
+    {
+        if (!routes.TryGetValue(
+                transition.FromFormId,
+                out ActorFormTransitionDefinition? route)
+            || route.AutomaticReturn is not { } trigger
+            || !string.Equals(
+                route.TransitionId,
+                transition.TransitionId,
+                StringComparison.Ordinal))
+        {
+            throw new ArgumentException(
+                "An automatic-return start must name the exact route its source form declares.",
+                parameterName);
+        }
+        if (current.Of(trigger.Counter) < trigger.Threshold
+            || beforeThisTick.Of(trigger.Counter) >= trigger.Threshold)
+        {
+            throw new ArgumentException(
+                "An automatic return must start on the exact tick its declared counter first reaches the threshold.",
+                parameterName);
+        }
+    }
+
+    /// <summary>
+    /// A life that earned its return this tick, was not already leaving, and
+    /// survived must be leaving by the end of it. The one honest exception is
+    /// a route the kernel itself would have refused to queue, so the placement
+    /// is re-evaluated here rather than assumed legal.
+    /// </summary>
+    private static void ValidateNoSuppressedAutomaticReturn(
+        ActorResolvedMatchDefinition definition,
+        IReadOnlyDictionary<ActorIdentity, ActorFormTransitionDefinition> owed,
+        GenericActorMatchTickFrame frame,
+        string parameterName)
+    {
+        if (owed.Count == 0)
+            return;
+        Dictionary<ActorIdentity, GenericActorWorldSnapshot.LifeSnapshot>
+            survivors = frame.PostState.ActiveLives.ToDictionary(
+                life => life.ActorId);
+        foreach ((ActorIdentity actorId, ActorFormTransitionDefinition route)
+                 in owed)
+        {
+            // A life that died owes nothing, and neither does one whose route
+            // the kernel itself would have refused to queue — the placement is
+            // re-evaluated rather than assumed legal. Everything else earned
+            // its return this tick and did not start one, whether it stayed
+            // put or left under a cause it did not have.
+            if (!survivors.TryGetValue(
+                    actorId,
+                    out GenericActorWorldSnapshot.LifeSnapshot? life)
+                || !AutomaticReturnPlacementIsLegal(
+                    definition,
+                    life.Position,
+                    route.Placement))
+            {
+                continue;
+            }
+
+            throw new ArgumentException(
+                "A life whose automatic-return threshold is reached must be leaving; the budget is not waitable.",
+                parameterName);
+        }
+    }
+
+    private static bool AutomaticReturnPlacementIsLegal(
+        ActorResolvedMatchDefinition definition,
+        Position position,
+        ActorSameLifePlacementDefinition placement)
+    {
+        if (definition.Map.IsWall(position))
+            return false;
+        HashSet<ActorMapTileTagDefinition.TileTagKind> actual =
+            definition.Map.TileTags
+                .Where(tag => tag.Tiles.Contains(position))
+                .Select(tag => tag.Kind)
+                .ToHashSet();
+        return placement.RequiredTileTags.All(actual.Contains)
+            && !placement.ForbiddenTileTags.Any(actual.Contains);
+    }
+
+    private static GenericActorAuthoritativeEvent[] AutomaticStarts(
+        GenericActorMatchTickFrame frame) =>
+        [
+            .. frame.TickStart.Events
+                .Concat(frame.Events)
+                .Where(item =>
+                    item.Payload is GenericActorRuntimeObservation.EventPayload
+                            .FormTransition { Reason:
+                                GenericActorRuntimeObservation
+                                    .FormTransitionReason
+                                    .AutomaticThresholdReturn }),
+        ];
+
+    private static AutomaticReturnCounts Count(
+        IDictionary<ActorIdentity, AutomaticReturnCounts> walk,
+        ActorIdentity actorId) =>
+        walk.TryGetValue(actorId, out AutomaticReturnCounts value)
+            ? value
+            : default;
+
+    /// <summary>
+    /// Automatic-return counters as the chronology re-derives them from the
+    /// recorded facts alone, scoped to the form the life currently stands in.
+    /// <see cref="LastAttackTick"/> makes the attack counter idempotent within
+    /// a tick, so a volley's bolts cannot inflate a cast count the engine only
+    /// ever advances once per action.
+    /// </summary>
+    private readonly record struct AutomaticReturnCounts(
+        string FormId,
+        int Attacks,
+        int Deflections,
+        int LastAttackTick)
+    {
+        public AutomaticReturnCounts(string formId)
+            : this(formId, 0, 0, -1)
+        {
+        }
+
+        public AutomaticReturnCounts WithAttackOn(int tick) =>
+            LastAttackTick == tick
+                ? this
+                : this with { Attacks = Attacks + 1, LastAttackTick = tick };
+
+        public AutomaticReturnCounts WithDeflection() =>
+            this with { Deflections = Deflections + 1 };
+
+        public int Of(
+            ActorAutomaticReturnTriggerDefinition.AutomaticReturnCounterKind
+                counter) =>
+            counter switch
+            {
+                ActorAutomaticReturnTriggerDefinition
+                    .AutomaticReturnCounterKind
+                    .AttacksIssuedSinceEnteringSourceForm => Attacks,
+                ActorAutomaticReturnTriggerDefinition
+                    .AutomaticReturnCounterKind
+                    .ProjectilesDeflectedSinceEnteringSourceForm =>
+                    Deflections,
+                _ => throw new NotSupportedException(
+                    "The automatic return counts an unsupported fact."),
+            };
+    }
+
+    private static void ValidateVolleyEvidence(
+        IReadOnlyDictionary<string, ActorFormDefinition> forms,
+        IReadOnlyDictionary<string, ActorAttackProfileDefinition> attacks,
+        IReadOnlyDictionary<
+            ActorIdentity,
+            GenericActorWorldSnapshot.LifeSnapshot> lives,
+        GenericActorMatchTickFrame frame,
+        string parameterName)
+    {
+        foreach (IGrouping<
+                     ActorIdentity,
+                     GenericActorRuntimeObservation.EventPayload.Attack>
+                 shots in frame.Events
+                     .Where(item => item.Kind
+                         == GenericActorRuntimeObservation.EventKind.Attack)
+                     .Select(item =>
+                         (GenericActorRuntimeObservation.EventPayload.Attack)
+                         item.Payload)
+                     .GroupBy(payload => payload.ActorId))
+        {
+            GenericActorRuntimeObservation.EventPayload.Attack[] volley =
+                [.. shots];
+            if (!lives.TryGetValue(shots.Key, out
+                    GenericActorWorldSnapshot.LifeSnapshot? shooter)
+                || !forms.TryGetValue(
+                    shooter.FormId,
+                    out ActorFormDefinition? form)
+                || form.AttackProfileId is not string attackProfileId
+                || !attacks.TryGetValue(
+                    attackProfileId,
+                    out ActorAttackProfileDefinition? profile))
+            {
+                throw new ArgumentException(
+                    "An attack fact must come from an active life whose form declares an attack profile.",
+                    parameterName);
+            }
+            if (volley.Length != profile.ProjectilesPerAttack)
+            {
+                throw new ArgumentException(
+                    "One successful attack must issue exactly its profile's declared projectile count.",
+                    parameterName);
+            }
+            for (int index = 1; index < volley.Length; index++)
+            {
+                if (volley[index].ProjectileId
+                    != volley[index - 1].ProjectileId + 1)
+                {
+                    throw new ArgumentException(
+                        "Volley projectile identities must be contiguous and ascending in launch order.",
+                        parameterName);
+                }
+            }
+            if (profile.Volley is not { } shape)
+                continue;
+            for (int index = 0; index < volley.Length; index++)
+            {
+                ProjectileHeading expected = shape.Spread switch
+                {
+                    ActorAttackVolleyDefinition.VolleySpreadKind
+                        .SharedResolvedHeading => volley[0].Heading,
+                    _ => volley[0].Heading.Turned(index),
+                };
+                if (volley[index].Heading != expected)
+                {
+                    throw new ArgumentException(
+                        "Volley headings must follow the profile's declared spread from the first bolt.",
+                        parameterName);
+                }
+            }
+        }
+    }
+
+    private static void ValidateDeflectionEvidence(
+        IReadOnlyDictionary<string, ActorFormDefinition> forms,
+        IReadOnlyDictionary<string, ActorAttackProfileDefinition> attacks,
+        IReadOnlyDictionary<
+            ActorIdentity,
+            GenericActorWorldSnapshot.LifeSnapshot> lives,
+        GenericActorMatchTickFrame frame,
+        ImmutableArray<string> modeOwnedAttackProfileIds,
+        string parameterName)
+    {
+        HashSet<long> damaged = frame.Events
+            .Where(item => item.Kind
+                == GenericActorRuntimeObservation.EventKind.Damage)
+            .Select(item =>
+                ((GenericActorRuntimeObservation.EventPayload.Damage)
+                    item.Payload).ProjectileId)
+            .ToHashSet();
+        GenericActorRuntimeObservation.EventPayload.ProjectileDeflected[]
+            deflections =
+            [
+                .. frame.Events
+                    .Where(item => item.Kind
+                        == GenericActorRuntimeObservation.EventKind
+                            .ProjectileDeflected)
+                    .Select(item =>
+                        (GenericActorRuntimeObservation.EventPayload
+                            .ProjectileDeflected)item.Payload),
+            ];
+        Dictionary<long, GenericActorWorldSnapshot.ProjectileSnapshot>
+            survivors = frame.PostState.Projectiles.ToDictionary(
+                projectile => projectile.ProjectileId);
+        HashSet<long> carried = frame.TickStart.State.Projectiles
+            .Select(projectile => projectile.ProjectileId)
+            .ToHashSet();
+        ILookup<long, GenericActorProjectileTraversal> returnLaunches =
+            frame.Traversals
+                .Where(traversal => traversal.Trigger
+                    == GenericActorProjectileTraversal.TraversalTrigger
+                        .GuardDeflection)
+                .ToLookup(traversal => traversal.ProjectileId);
+        HashSet<long> returned = deflections
+            .Select(item => item.DeflectedProjectileId)
+            .ToHashSet();
+        if (returnLaunches.Any(group => !returned.Contains(group.Key)))
+        {
+            throw new ArgumentException(
+                "A guard-deflection launch must be named by a deflection event in its own tick.",
+                parameterName);
+        }
+
+        foreach (GenericActorRuntimeObservation.EventPayload.ProjectileDeflected
+                 deflected in deflections)
+        {
+            if (!lives.ContainsKey(deflected.TargetActorId)
+                || !forms.TryGetValue(
+                    deflected.TargetFormId,
+                    out ActorFormDefinition? guardForm)
+                || guardForm.ProjectileGuard
+                    != ActorFormProjectileGuardKind
+                        .FacingQuadrantContactsDeflected)
+            {
+                throw new ArgumentException(
+                    "A deflection must name an active life in a form whose declared guard deflects contacts.",
+                    parameterName);
+            }
+            if (deflected.SourceTeamId == deflected.TargetActorId.TeamId)
+            {
+                throw new ArgumentException(
+                    "A projectile guard deflects hostile fire only.",
+                    parameterName);
+            }
+            var (dx, dy) = deflected.Heading.Vector();
+            if (!Visibility.InQuadrant(-dx, -dy, deflected.TargetFacing))
+            {
+                throw new ArgumentException(
+                    "A deflected contact must approach from inside the guard's facing quadrant.",
+                    parameterName);
+            }
+            if (damaged.Contains(deflected.ProjectileId))
+            {
+                throw new ArgumentException(
+                    "A deflected projectile cannot also have applied damage.",
+                    parameterName);
+            }
+            if (returned.Contains(deflected.ProjectileId))
+            {
+                throw new ArgumentException(
+                    "A bolt returned this tick cannot be deflected again on the same tick.",
+                    parameterName);
+            }
+            bool consumedWithoutDamage = frame.Traversals.Any(traversal =>
+                traversal.ProjectileId == deflected.ProjectileId
+                && traversal.Terminal switch
+                {
+                    GenericActorProjectileTraversal.TerminalDisposition
+                        .ActorContact contact =>
+                        contact.TargetActorId == deflected.TargetActorId
+                        && !contact.AppliedDamage,
+                    GenericActorProjectileTraversal.TerminalDisposition
+                        .MovementContact contact =>
+                        contact.TargetActorId == deflected.TargetActorId
+                        && !contact.AppliedDamage,
+                    _ => false,
+                });
+            if (!consumedWithoutDamage)
+            {
+                throw new ArgumentException(
+                    "Every deflection must have exactly one contact traversal that consumed the incoming projectile without damage.",
+                    parameterName);
+            }
+            ValidateDeflectedLaunch(
+                attacks,
+                frame,
+                survivors,
+                carried,
+                returnLaunches,
+                deflected,
+                parameterName);
+        }
+
+        // The converse of the deflection rule: resolution may only add a
+        // projectile the tick can account for. Every bolt that survives to the
+        // post-state without having been carried in must be named either by an
+        // attack action or by a deflection.
+        HashSet<long> launched = frame.Events
+            .Where(item => item.Kind
+                == GenericActorRuntimeObservation.EventKind.Attack)
+            .Select(item =>
+                ((GenericActorRuntimeObservation.EventPayload.Attack)
+                    item.Payload).ProjectileId)
+            .Concat(deflections.Select(item => item.DeflectedProjectileId))
+            // Mode-owned bolts (grammar-2 signature fire) are evidenced by
+            // their launch traversal under a mode-declared profile rather
+            // than by an actor's attack action.
+            .Concat(frame.Traversals
+                .Where(item => item.Trigger
+                        == GenericActorProjectileTraversal.TraversalTrigger
+                            .AttackLaunch
+                    && modeOwnedAttackProfileIds.Contains(
+                        item.AttackProfileId))
+                .Select(item => item.ProjectileId))
+            .ToHashSet();
+        if (survivors.Keys.Any(id =>
+                !carried.Contains(id) && !launched.Contains(id)))
+        {
+            throw new ArgumentException(
+                "A projectile that entered the world during resolution must be evidenced by an attack or a deflection.",
+                parameterName);
+        }
+    }
+
+    /// <summary>
+    /// The returned bolt is the deflection's second authoritative fact, and it
+    /// is checked as strictly as the consumed one: it has its own launch
+    /// traversal from the guard's own tile along the exactly reversed heading,
+    /// under the guard's team and life, and if it survives the tick its
+    /// snapshot repeats those facts with a fresh travel budget.
+    /// </summary>
+    private static void ValidateDeflectedLaunch(
+        IReadOnlyDictionary<string, ActorAttackProfileDefinition> attacks,
+        GenericActorMatchTickFrame frame,
+        IReadOnlyDictionary<long, GenericActorWorldSnapshot.ProjectileSnapshot>
+            survivors,
+        IReadOnlySet<long> carried,
+        ILookup<long, GenericActorProjectileTraversal> returnLaunches,
+        GenericActorRuntimeObservation.EventPayload.ProjectileDeflected
+            deflected,
+        string parameterName)
+    {
+        if (deflected.DeflectedProjectileId == deflected.ProjectileId
+            || carried.Contains(deflected.DeflectedProjectileId))
+        {
+            throw new ArgumentException(
+                "A deflection must return a new projectile identity, not the consumed one or a carried one.",
+                parameterName);
+        }
+        if (returnLaunches[deflected.DeflectedProjectileId].Count() != 1)
+        {
+            throw new ArgumentException(
+                "A deflection must be evidenced by exactly one guard-deflection launch of the projectile it names.",
+                parameterName);
+        }
+        GenericActorProjectileTraversal launch =
+            returnLaunches[deflected.DeflectedProjectileId].Single();
+        if (!attacks.TryGetValue(
+                launch.AttackProfileId,
+                out ActorAttackProfileDefinition? profile))
+        {
+            throw new ArgumentException(
+                "A returned projectile must carry a declared attack profile.",
+                parameterName);
+        }
+        if (launch.OwnerTeamId != deflected.TargetActorId.TeamId
+            || launch.OwnerActorId != deflected.TargetActorId)
+        {
+            throw new ArgumentException(
+                "A returned projectile belongs to the deflecting life and its team.",
+                parameterName);
+        }
+        if (launch.From != deflected.Position)
+        {
+            throw new ArgumentException(
+                "A returned projectile launches from the deflecting life's own tile.",
+                parameterName);
+        }
+        if (launch.LaunchHeading != deflected.Heading.Reversed())
+        {
+            throw new ArgumentException(
+                "A returned projectile flies the exactly reversed heading.",
+                parameterName);
+        }
+        if (!survivors.TryGetValue(
+                deflected.DeflectedProjectileId,
+                out GenericActorWorldSnapshot.ProjectileSnapshot? returned))
+        {
+            // A return that died on its own launch step — a wall, a body, or a
+            // disqualification purge — leaves the traversal above as its whole
+            // evidence, which is exactly what an attack-launched bolt leaves.
+            return;
+        }
+        if (returned.OwnerTeamId != deflected.TargetActorId.TeamId
+            || returned.OwnerActorId != deflected.TargetActorId
+            || returned.Origin != deflected.Position
+            || returned.LaunchHeading != deflected.Heading.Reversed())
+        {
+            throw new ArgumentException(
+                "A surviving returned projectile must keep the deflection's owner, origin, and heading.",
+                parameterName);
+        }
+        if (returned.SpawnedAtTick != frame.Tick
+            || returned.RemainingTiles
+                != profile.Projectile.MaxTravelTiles
+                    - profile.Projectile.LaunchTiles)
+        {
+            throw new ArgumentException(
+                "A returned projectile is launched on the deflection tick with a fresh travel budget.",
+                parameterName);
         }
     }
 
@@ -504,6 +1586,9 @@ public sealed record GenericActorMatchChronology
             GenericActorMatchModeResult.Frontline frontline =>
                 frontline.Reason
                     == GenericFrontlineEndReason.FaultEligibility,
+            GenericActorMatchModeResult.ArcRelay arcRelay =>
+                arcRelay.Reason
+                    == GenericArcRelayEndReason.FaultEligibility,
             _ => false,
         };
         GenericActorWorldSnapshot? finalState =
@@ -558,16 +1643,40 @@ public sealed record GenericActorMatchChronology
             definition,
             tickStart.Events,
             parameterName);
+        // ModeChanged evidence is DRIVER state; declared strikes are session
+        // state the driver cannot know (DECISIONS #212). The evidence match
+        // therefore compares the driver-owned portion, and strike stability
+        // across the lifecycle boundary is required separately.
+        bool evidencedArcModeChange =
+            before.Mode is GenericActorRuntimeObservation
+                .ModeObservationState.ArcRelay strikesBefore
+            && after.Mode is GenericActorRuntimeObservation
+                .ModeObservationState.ArcRelay strikesAfter
+            && strikesBefore.PendingStrikes
+                .SequenceEqual(strikesAfter.PendingStrikes)
+            && tickStart.Events.Any(value =>
+                value.UnredactedPayload is GenericActorRuntimeObservation
+                    .EventPayload.ModeChanged changed
+                && Equals(
+                    changed.State,
+                    strikesAfter with { PendingStrikes = [] }));
+        bool derivedArcScheduleAdvance = ArcScheduleOnlyAdvance(
+            before.Mode,
+            after.Mode,
+            tickStart.Tick);
         if (before.NextTick != tickStart.Tick
             || before.NextProjectileId != after.NextProjectileId
             || !before.Participants.SequenceEqual(after.Participants)
             || !Equals(before.Mode, after.Mode)
+                && !evidencedArcModeChange
+                && !derivedArcScheduleAdvance
             || !ScoreboardsStableAcrossLifecycleBoundary(
                 before.Scoreboard,
                 after.Scoreboard))
         {
             throw new ArgumentException(
-                "Tick-start lifecycle processing cannot change participants, mode, projectile issuance, eligibility, or non-derived scores.",
+                $"Tick-start {tickStart.Tick} lifecycle processing cannot change participants, mode, projectile issuance, eligibility, or non-derived scores " +
+                $"(clock={before.NextTick == tickStart.Tick}, projectile={before.NextProjectileId == after.NextProjectileId}, participants={before.Participants.SequenceEqual(after.Participants)}, mode={Equals(before.Mode, after.Mode)}, arcEvidence={evidencedArcModeChange}, arcSchedule={derivedArcScheduleAdvance}, scoreboard={ScoreboardsStableAcrossLifecycleBoundary(before.Scoreboard, after.Scoreboard)}).",
                 parameterName);
         }
 
@@ -616,6 +1725,248 @@ public sealed record GenericActorMatchChronology
             parameterName);
     }
 
+    private static bool ArcScheduleOnlyAdvance(
+        GenericActorRuntimeObservation.ModeObservationState before,
+        GenericActorRuntimeObservation.ModeObservationState after,
+        int tick)
+    {
+        if (before is not GenericActorRuntimeObservation.ModeObservationState
+                .ArcRelay left
+            || after is not GenericActorRuntimeObservation.ModeObservationState
+                .ArcRelay right
+            || !string.Equals(left.ModeId, right.ModeId, StringComparison.Ordinal)
+            || !left.Reactors.SequenceEqual(right.Reactors)
+            || !left.VisibleCores.SequenceEqual(right.VisibleCores)
+            || !left.VisibleSignatures.SequenceEqual(right.VisibleSignatures)
+            || left.LatestPulseTeamId != right.LatestPulseTeamId
+            || left.LatestPulseTick != right.LatestPulseTick
+            // Declared strikes may not appear, vanish, or move across the
+            // lifecycle boundary either (DECISIONS #212): they change only
+            // inside a step, at declare and at maturation.
+            || !left.PendingStrikes.SequenceEqual(right.PendingStrikes)
+            || left.Wells.Length != right.Wells.Length)
+        {
+            return false;
+        }
+
+        bool changed = false;
+        for (int index = 0; index < left.Wells.Length; index++)
+        {
+            ArcRelayWellState oldWell = left.Wells[index];
+            ArcRelayWellState newWell = right.Wells[index];
+            if (!string.Equals(
+                    oldWell.WellId,
+                    newWell.WellId,
+                    StringComparison.Ordinal)
+                || oldWell.Position != newWell.Position
+                || oldWell.OutstandingCoreId != newWell.OutstandingCoreId
+                || oldWell.PendingCharge != newWell.PendingCharge
+                || oldWell.RearmCompletesAtTick
+                    != newWell.RearmCompletesAtTick)
+            {
+                return false;
+            }
+            if (oldWell.NextScheduledBirthTick
+                    == newWell.NextScheduledBirthTick)
+            {
+                continue;
+            }
+            if (oldWell.NextScheduledBirthTick != tick
+                || newWell.NextScheduledBirthTick is int next && next <= tick)
+            {
+                return false;
+            }
+            changed = true;
+        }
+        return changed;
+    }
+
+    /// <summary>
+    /// Recomputes the authoritative arrival tile of every automatic
+    /// activation and automatic return due at this tick start. Contracts that
+    /// place arrivals on the permanently reserved assigned spawn produce an
+    /// empty map and keep the historical assertion; the forward-rally
+    /// placement derives its tiles from the objective chain, in the exact
+    /// order the session applies them, with each arrival blocking the next.
+    /// </summary>
+    private static Dictionary<(int TeamId, int UnitId), Position>
+        ExpectedAutomaticArrivals(
+            ActorResolvedMatchDefinition definition,
+            GenericActorWorldSnapshot before,
+            int tick,
+            IReadOnlyDictionary<string, InitialSpawnDefinition> spawns,
+            IReadOnlyDictionary<(int TeamId, int UnitId),
+                ActorUnitSlotLifecycleAssignmentDefinition> assignments,
+            IReadOnlyDictionary<string, ActorLifecycleProfileDefinition>
+                profiles)
+    {
+        var arrivals = new Dictionary<(int TeamId, int UnitId), Position>();
+        if (!FrontlineForwardRallyPlacement.MayRallyForward(definition)
+            || before.Mode
+                is not GenericActorRuntimeObservation.ModeObservationState
+                    .Frontline frontline)
+        {
+            return arrivals;
+        }
+
+        var blocked = new HashSet<Position>(
+            FrontlineForwardRallyPlacement.BlockedTiles(
+                before.ActiveLives.Select(life => life.Position),
+                [
+                    .. before.Slots
+                        .Select(slot => slot.State)
+                        .OfType<GenericActorRuntimeObservation.UnitSlotState
+                            .FabricationPending>()
+                        .Select(pending => pending.ReservedPosition),
+                    .. before.PendingReplications.SelectMany(reservation =>
+                        reservation.Descendants.Select(
+                            descendant => descendant.Position)),
+                ],
+                assignments.Values
+                    .Where(assignment =>
+                        profiles[assignment.LifecycleProfileId]
+                            .DestructionPolicy
+                        == ActorLifecycleProfileDefinition
+                            .DestructionPolicyKind.AutomaticRespawn)
+                    .Select(assignment =>
+                        spawns[assignment.AssignedRespawnSpawnId!]
+                            .Position)));
+
+        // Exactly the session's tick-start order: activations first, then
+        // automatic returns, each pass in canonical team/unit order.
+        foreach (GenericActorWorldSnapshot.SlotSnapshot slot in before.Slots)
+        {
+            if (slot.State
+                    is not GenericActorRuntimeObservation.UnitSlotState
+                        .AvailabilityPending availability
+                || availability.DueTick != tick
+                || availability.Reason
+                    != GenericActorRuntimeObservation.AvailabilityReason
+                        .InitialUnlock
+                || assignments[(slot.TeamId, slot.UnitId)].InitialAvailability
+                    != ActorUnitSlotLifecycleAssignmentDefinition
+                        .InitialAvailabilityKind
+                        .DormantAutomaticActivationAtTick)
+            {
+                continue;
+            }
+            AddArrival(slot);
+        }
+        foreach (GenericActorWorldSnapshot.SlotSnapshot slot in before.Slots)
+        {
+            if (slot.State
+                    is not GenericActorRuntimeObservation.UnitSlotState
+                        .AutomaticReturnPending pending
+                || pending.DueTick != tick)
+            {
+                continue;
+            }
+            AddArrival(slot);
+        }
+        return arrivals;
+
+        void AddArrival(GenericActorWorldSnapshot.SlotSnapshot slot)
+        {
+            Position arrival = FrontlineForwardRallyPlacement.Resolve(
+                definition,
+                slot.TeamId,
+                spawns[assignments[(slot.TeamId, slot.UnitId)]
+                    .AssignedRespawnSpawnId!].Position,
+                frontline.ActivePositionIndex,
+                blocked,
+                assignments[(slot.TeamId, slot.UnitId)],
+                // Re-derived from the RECORDED observation, which is what
+                // makes a forged muster owner unable to buy a forward
+                // arrival: the owner and the arrival tile have to agree.
+                frontline.SecondaryOwnerTeamId);
+            arrivals[(slot.TeamId, slot.UnitId)] = arrival;
+            blocked.Add(arrival);
+        }
+    }
+
+    /// <summary>
+    /// The form this slot's profile bootstraps with, or null when it declares
+    /// no root factory — which is every ruleset shipped before prime
+    /// dissolution.
+    /// </summary>
+    private static string? RootFactorySeedForm(
+        ActorResolvedMatchDefinition definition,
+        GenericActorWorldSnapshot.SlotSnapshot slot)
+    {
+        ActorUnitSlotLifecycleAssignmentDefinition? assignment =
+            definition.LifecycleAssignments.FirstOrDefault(entry =>
+                entry.TeamId == slot.TeamId && entry.UnitId == slot.UnitId);
+        if (assignment?.AssignedRespawnSpawnId is null)
+            return null;
+        return definition.Rules.Lifecycle.Profiles
+            .FirstOrDefault(profile =>
+                profile.ProfileId == assignment.LifecycleProfileId)
+            ?.RootFactorySeedFormId;
+    }
+
+    /// <summary>
+    /// A base seed is re-derivable from the recorded boundary alone: one life,
+    /// on the seeded slot, parentless, at the slot's declared home spawn, in
+    /// the profile's declared seed form, at a fresh generation — and only for a
+    /// participant that recorded no live body at all going in.
+    /// </summary>
+    private static void ValidateRootFactorySeed(
+        ActorResolvedMatchDefinition definition,
+        GenericActorMatchTickStart tickStart,
+        GenericActorWorldSnapshot.SlotSnapshot beforeSlot,
+        GenericActorWorldSnapshot.SlotSnapshot afterSlot,
+        string seedFormId,
+        string parameterName)
+    {
+        ActorUnitSlotLifecycleAssignmentDefinition assignment =
+            definition.LifecycleAssignments.Single(entry =>
+                entry.TeamId == beforeSlot.TeamId
+                && entry.UnitId == beforeSlot.UnitId);
+        InitialSpawnDefinition spawn = definition.InitialDeployment.Spawns
+            .Single(entry =>
+                entry.SpawnId == assignment.AssignedRespawnSpawnId);
+        var actorId = new ActorIdentity(
+            beforeSlot.TeamId,
+            beforeSlot.UnitId,
+            beforeSlot.NextLifeId);
+        GenericActorWorldSnapshot.LifeSnapshot? life = tickStart.State
+            .ActiveLives
+            .FirstOrDefault(entry => entry.ActorId == actorId);
+        GenericActorLifeStart? start = tickStart.LifeStarts
+            .FirstOrDefault(entry => entry.ActorId == actorId);
+        if (life is null
+            || start is null
+            || afterSlot.NextLifeId != beforeSlot.NextLifeId + 1
+            || afterSlot.PendingParentActorId is not null
+            || afterSlot.SplitReservation is not null
+            || life.SpawnReason
+                != GenericActorRuntimeStart.SpawnReason.RootFactorySeed
+            || life.ParentActorId is not null
+            || life.SourceTransitionId is not null
+            || life.SourceOperationId is not null
+            || life.Generation != 0
+            || life.Position != spawn.Position
+            || life.Facing != spawn.Facing
+            || !string.Equals(
+                life.FormId,
+                seedFormId,
+                StringComparison.Ordinal)
+            || start.Origin.Reason
+                != GenericActorRuntimeStart.SpawnReason.RootFactorySeed
+            || start.Origin.ParentActorId is not null
+            || start.Origin.Generation != 0
+            // The bootstrap answers a TOTAL loss: the participant held
+            // nothing at all going into this tick.
+            || tickStart.State.ActiveLives.Any(entry =>
+                entry.ParticipantId == beforeSlot.ParticipantId
+                && entry.ActorId != actorId))
+        {
+            throw new ArgumentException(
+                "A root-factory seed must consume its exact availability clock into one parentless home-spawn life for a participant holding nothing.",
+                parameterName);
+        }
+    }
+
     private static void ValidateSlotClockLifecycleBoundary(
         ActorResolvedMatchDefinition definition,
         GenericActorWorldSnapshot before,
@@ -639,7 +1990,24 @@ public sealed record GenericActorMatchChronology
             definition.Rules.Forms.ToDictionary(
                 form => form.Id,
                 StringComparer.Ordinal);
+        Dictionary<string, ActorLifecycleProfileDefinition> profiles =
+            definition.Rules.Lifecycle.Profiles.ToDictionary(
+                profile => profile.ProfileId,
+                StringComparer.Ordinal);
         var expectedAutomaticActors = new List<ActorIdentity>();
+        var expectedActivationActors = new List<ActorIdentity>();
+        // Under the forward-rally placement the arrival tile is derived from
+        // the objective chain and from what is already standing, so the
+        // expected positions are recomputed in the declared tick-start order
+        // (activations, then returns) before any slot is judged.
+        Dictionary<(int TeamId, int UnitId), Position> arrivals =
+            ExpectedAutomaticArrivals(
+                definition,
+                before,
+                tickStart.Tick,
+                spawns,
+                assignments,
+                profiles);
 
         foreach (GenericActorWorldSnapshot.SlotSnapshot beforeSlot in
                  before.Slots)
@@ -660,6 +2028,191 @@ public sealed record GenericActorMatchChronology
                                 "A not-yet-due availability clock must remain exact across tick start.",
                                 parameterName);
                         }
+                        break;
+                    }
+                    ActorUnitSlotLifecycleAssignmentDefinition
+                        availabilityAssignment = assignments[
+                            (beforeSlot.TeamId, beforeSlot.UnitId)];
+                    if (availabilityAssignment.InitialAvailability
+                        == ActorUnitSlotLifecycleAssignmentDefinition
+                            .InitialAvailabilityKind
+                            .DormantAutomaticActivationAtTick)
+                    {
+                        if (pending.DueTick != tickStart.Tick
+                            || pending.Reason
+                                != GenericActorRuntimeObservation
+                                    .AvailabilityReason.InitialUnlock)
+                        {
+                            throw new ArgumentException(
+                                "An automatic-activation clock must be an exact-due initial unlock.",
+                                parameterName);
+                        }
+                        InitialSpawnDefinition activationSpawn = spawns[
+                            availabilityAssignment
+                                .AssignedRespawnSpawnId!];
+                        Position activationArrival = arrivals.GetValueOrDefault(
+                            (beforeSlot.TeamId, beforeSlot.UnitId),
+                            activationSpawn.Position);
+                        ActorLifecycleProfileDefinition activationProfile =
+                            profiles[
+                                availabilityAssignment.LifecycleProfileId];
+                        string activationFormId =
+                            activationProfile.AutomaticReturnFormId!;
+                        var activationActorId = new ActorIdentity(
+                            beforeSlot.TeamId,
+                            beforeSlot.UnitId,
+                            beforeSlot.NextLifeId);
+                        expectedActivationActors.Add(activationActorId);
+                        GenericActorWorldSnapshot.LifeSnapshot[]
+                            activationLives = tickStart.State.ActiveLives
+                                .Where(life =>
+                                    life.ActorId == activationActorId)
+                                .ToArray();
+                        GenericActorLifeStart[] activationStarts =
+                            tickStart.LifeStarts
+                                .Where(start =>
+                                    start.ActorId == activationActorId)
+                                .ToArray();
+                        GenericActorAuthoritativeEvent[]
+                            activationSpawnEvents = tickStart.Events
+                                .Where(item =>
+                                    item.Payload is
+                                        GenericActorRuntimeObservation
+                                            .EventPayload.LifeSpawned spawned
+                                    && spawned.ActorId
+                                        == activationActorId)
+                                .ToArray();
+                        if (activationLives.Length != 1
+                            || activationStarts.Length != 1
+                            || activationSpawnEvents.Length != 1)
+                        {
+                            throw new ArgumentException(
+                                "An exact-due automatic activation needs one active life, life start, and spawn event.",
+                                parameterName);
+                        }
+                        GenericActorWorldSnapshot.LifeSnapshot
+                            activationLife = activationLives[0];
+                        GenericActorLifeStart activationStart =
+                            activationStarts[0];
+                        var activationSpawned =
+                            (GenericActorRuntimeObservation.EventPayload
+                                .LifeSpawned)activationSpawnEvents[0].Payload;
+                        ActorFormDefinition activationForm =
+                            forms[activationFormId];
+                        int activationGeneration =
+                            availabilityAssignment.InitialGeneration!.Value;
+                        int? activationEnergy = InitialFormEnergy(
+                            definition,
+                            activationFormId);
+                        if (afterSlot.ParticipantId
+                                != beforeSlot.ParticipantId
+                            || afterSlot.NextLifeId
+                                != checked(beforeSlot.NextLifeId + 1)
+                            || afterSlot.State is not
+                                GenericActorRuntimeObservation.UnitSlotState
+                                    .Active activationActive
+                            || activationActive.ActorId
+                                != activationActorId
+                            || activationActive.Generation
+                                != activationGeneration
+                            || !string.Equals(
+                                activationActive.FormId,
+                                activationFormId,
+                                StringComparison.Ordinal)
+                            || afterSlot.PendingParentActorId is not null
+                            || afterSlot.SplitReservation is not null
+                            || activationLife.ParticipantId
+                                != beforeSlot.ParticipantId
+                            || activationLife.Generation
+                                != activationGeneration
+                            || !string.Equals(
+                                activationLife.FormId,
+                                activationFormId,
+                                StringComparison.Ordinal)
+                            || activationLife.Facing
+                                != activationSpawn.Facing
+                            || activationLife.Cooldown != 0
+                            || activationLife.Energy != activationEnergy
+                            || activationLife.SpawnedAtTick
+                                != tickStart.Tick
+                            || activationLife.SpawnReason
+                                != GenericActorRuntimeStart.SpawnReason
+                                    .AutomaticActivation
+                            || activationLife.ParentActorId is not null
+                            || activationLife.SourceTransitionId is not null
+                            || activationLife.SourceOperationId is not null
+                            || activationLife.PreviousActionResolution
+                                is not null
+                            || activationLife.PendingSameLifeTransition
+                                is not null
+                            || activationStart.ParticipantId
+                                != beforeSlot.ParticipantId
+                            || activationStart.Origin.Reason
+                                != GenericActorRuntimeStart.SpawnReason
+                                    .AutomaticActivation
+                            || activationStart.Origin.Generation
+                                != activationGeneration
+                            || activationStart.Origin.ParentActorId
+                                is not null
+                            || activationStart.Origin.SourceTransitionId
+                                is not null
+                            || activationStart.Origin.SourceOperationId
+                                is not null
+                            || activationSpawned.ParticipantId
+                                != beforeSlot.ParticipantId
+                            || activationSpawned.Reason
+                                != GenericActorRuntimeStart.SpawnReason
+                                    .AutomaticActivation
+                            || activationSpawned.ParentActorId is not null
+                            || activationSpawned.Generation
+                                != activationGeneration
+                            || !string.Equals(
+                                activationSpawned.FormId,
+                                activationFormId,
+                                StringComparison.Ordinal)
+                            || !IsSpawnHealthInBand(
+                                definition,
+                                activationSpawned.Health,
+                                activationForm)
+                            || activationSpawned.Position
+                                != activationArrival
+                            || !SpawnedLifeMatchesTickStartState(
+                                activationLife,
+                                activationSpawned,
+                                tickStart.Events)
+                            || activationSpawned.SourceTransitionId
+                                is not null
+                            || activationSpawned.SourceOperationId
+                                is not null)
+                        {
+                            throw new ArgumentException(
+                                "An automatic activation must consume its exact contract clock into the declared first assigned-spawn life.",
+                                parameterName);
+                        }
+                        break;
+                    }
+                    // THE ROOT FACTORY (DECISIONS #194). A slot whose profile
+                    // declares a bootstrap consumes its own due availability
+                    // clock into a live body at its home spawn instead of
+                    // becoming an idle Ready slot — because for a participant
+                    // holding nothing, an idle Ready slot is a slot nothing
+                    // can ever place a body into. The shape is exactly the
+                    // automatic activation's: parentless, transitionless, at
+                    // the assigned spawn, one life, one clock consumed.
+                    if (pending.DueTick == tickStart.Tick
+                        && RootFactorySeedForm(definition, beforeSlot)
+                            is string seedFormId
+                        && afterSlot.State
+                            is GenericActorRuntimeObservation.UnitSlotState
+                                .Active)
+                    {
+                        ValidateRootFactorySeed(
+                            definition,
+                            tickStart,
+                            beforeSlot,
+                            afterSlot,
+                            seedFormId,
+                            parameterName);
                         break;
                     }
                     if (pending.DueTick != tickStart.Tick
@@ -705,6 +2258,9 @@ public sealed record GenericActorMatchChronology
                             (beforeSlot.TeamId, beforeSlot.UnitId)];
                     InitialSpawnDefinition spawn =
                         spawns[assignment.AssignedRespawnSpawnId!];
+                    Position arrival = arrivals.GetValueOrDefault(
+                        (beforeSlot.TeamId, beforeSlot.UnitId),
+                        spawn.Position);
                     var actorId = new ActorIdentity(
                         beforeSlot.TeamId,
                         beforeSlot.UnitId,
@@ -764,9 +2320,7 @@ public sealed record GenericActorMatchChronology
                             life.FormId,
                             pending.TargetFormId,
                             StringComparison.Ordinal)
-                        || life.Position != spawn.Position
                         || life.Facing != spawn.Facing
-                        || life.Health != form.MaxHealth
                         || life.Cooldown != 0
                         || life.Energy != expectedEnergy
                         || life.SpawnedAtTick != tickStart.Tick
@@ -800,8 +2354,15 @@ public sealed record GenericActorMatchChronology
                             spawned.FormId,
                             pending.TargetFormId,
                             StringComparison.Ordinal)
-                        || spawned.Health != form.MaxHealth
-                        || spawned.Position != spawn.Position
+                        || !IsSpawnHealthInBand(
+                            definition,
+                            spawned.Health,
+                            form)
+                        || spawned.Position != arrival
+                        || !SpawnedLifeMatchesTickStartState(
+                            life,
+                            spawned,
+                            tickStart.Events)
                         || spawned.SourceTransitionId is not null
                         || spawned.SourceOperationId is not null)
                     {
@@ -835,14 +2396,42 @@ public sealed record GenericActorMatchChronology
                     item.Payload).ActorId)
             .Order()
             .ToArray();
+        ActorIdentity[] expectedActivations = expectedActivationActors
+            .Order()
+            .ToArray();
+        ActorIdentity[] recordedActivationStarts = tickStart.LifeStarts
+            .Where(start =>
+                start.Origin.Reason
+                    == GenericActorRuntimeStart.SpawnReason
+                        .AutomaticActivation)
+            .Select(start => start.ActorId)
+            .Order()
+            .ToArray();
+        ActorIdentity[] recordedActivationEvents = tickStart.Events
+            .Where(item =>
+                item.Payload is
+                    GenericActorRuntimeObservation.EventPayload.LifeSpawned
+                        spawned
+                && spawned.Reason
+                    == GenericActorRuntimeStart.SpawnReason
+                        .AutomaticActivation)
+            .Select(item =>
+                ((GenericActorRuntimeObservation.EventPayload.LifeSpawned)
+                    item.Payload).ActorId)
+            .Order()
+            .ToArray();
         if (!expected.SequenceEqual(recordedStarts)
             || !expected.SequenceEqual(recordedEvents)
+            || !expectedActivations.SequenceEqual(
+                recordedActivationStarts)
+            || !expectedActivations.SequenceEqual(
+                recordedActivationEvents)
             || tickStart.Events.Any(item => item.Kind
                 == GenericActorRuntimeObservation.EventKind
                     .LifecycleClockCancelled))
         {
             throw new ArgumentException(
-                "Automatic-return evidence must originate from every and only exact-due slot clock, and tick-start clocks cannot be cancelled.",
+                "Automatic lifecycle evidence must originate from every and only exact-due slot clock, and tick-start clocks cannot be cancelled.",
                 parameterName);
         }
     }
@@ -856,6 +2445,17 @@ public sealed record GenericActorMatchChronology
             .FabricationTransitions
             .Select(transition => transition.TransitionId)
             .ToHashSet(StringComparer.Ordinal);
+        GenericActorAuthoritativeEvent[] activationSpawns =
+            tickStart.Events
+                .Where(item =>
+                    item.Payload is
+                        GenericActorRuntimeObservation.EventPayload.LifeSpawned
+                            spawned
+                    && spawned.Reason
+                        == GenericActorRuntimeStart.SpawnReason
+                            .AutomaticActivation)
+                .OrderBy(item => item.Ordinal)
+                .ToArray();
         GenericActorAuthoritativeEvent[] automaticSpawns =
             tickStart.Events
                 .Where(item =>
@@ -866,17 +2466,27 @@ public sealed record GenericActorMatchChronology
                         == GenericActorRuntimeStart.SpawnReason.AutomaticReturn)
                 .OrderBy(item => item.Ordinal)
                 .ToArray();
-        if (!automaticSpawns.SequenceEqual(
+        if (!activationSpawns.SequenceEqual(
+                activationSpawns.OrderBy(item =>
+                    ((GenericActorRuntimeObservation.EventPayload.LifeSpawned)
+                        item.Payload).ActorId))
+            || !automaticSpawns.SequenceEqual(
                 automaticSpawns.OrderBy(item =>
                     ((GenericActorRuntimeObservation.EventPayload.LifeSpawned)
                         item.Payload).ActorId)))
         {
             throw new ArgumentException(
-                "Automatic returns must resolve in stable-slot order.",
+                "Automatic activations and returns must each resolve in stable-slot order.",
                 parameterName);
         }
+        GenericActorAuthoritativeEvent[] automaticLifecycleSpawns =
+        [
+            .. activationSpawns,
+            .. automaticSpawns,
+        ];
         long priorAutomaticBundleEnd = -1;
-        foreach (GenericActorAuthoritativeEvent spawnEvent in automaticSpawns)
+        foreach (GenericActorAuthoritativeEvent spawnEvent in
+                 automaticLifecycleSpawns)
         {
             Position position =
                 ((GenericActorRuntimeObservation.EventPayload.LifeSpawned)
@@ -904,13 +2514,13 @@ public sealed record GenericActorMatchChronology
                         .Order()))
             {
                 throw new ArgumentException(
-                    "Each automatic-return bundle must purge projectiles by ID and spawn atomically in stable-slot order.",
+                    "Each automatic lifecycle bundle must purge projectiles by ID and spawn atomically in declared phase order.",
                     parameterName);
             }
             priorAutomaticBundleEnd = spawnEvent.Ordinal;
         }
 
-        Position[] automaticPositions = automaticSpawns
+        Position[] automaticPositions = automaticLifecycleSpawns
             .Select(item =>
                 ((GenericActorRuntimeObservation.EventPayload.LifeSpawned)
                     item.Payload).Position)
@@ -938,7 +2548,7 @@ public sealed record GenericActorMatchChronology
                     item.Payload).Position)
             .ToArray();
 
-        var automaticOrdinals = automaticSpawns
+        var automaticOrdinals = automaticLifecycleSpawns
             .Select(item => item.Ordinal)
             .Concat(tickStart.Traversals
                 .Where(traversal =>
@@ -1018,7 +2628,7 @@ public sealed record GenericActorMatchChronology
             if (phase.Min() <= previousPhaseEnd)
             {
                 throw new ArgumentException(
-                    "Tick-start lifecycle facts must resolve as automatic returns, fabrication, Split, then same-life work without phase interleaving.",
+                    "Tick-start lifecycle facts must resolve as automatic activation/return, fabrication, Split, then same-life work without phase interleaving.",
                     parameterName);
             }
             previousPhaseEnd = phase.Max();
@@ -1784,7 +3394,10 @@ public sealed record GenericActorMatchChronology
                 StringComparison.Ordinal)
             || child.Position != pendingFact.Pending.ReservedPosition
             || child.Facing != outputFacing
-            || child.Health != outputForm.MaxHealth
+            || !IsSpawnHealthInBand(
+                definition,
+                child.Health,
+                outputForm)
             || child.Cooldown != 0
             || child.Energy != outputEnergy
             || child.SpawnedAtTick != tickStart.Tick
@@ -2281,6 +3894,10 @@ public sealed record GenericActorMatchChronology
             definition.Rules.Forms.ToDictionary(
                 form => form.Id,
                 StringComparer.Ordinal);
+        Dictionary<string, ActorMovementProfileDefinition> movementProfiles =
+            definition.Rules.MovementProfiles.ToDictionary(
+                profile => profile.Id,
+                StringComparer.Ordinal);
         var rotatedActors = new HashSet<ActorIdentity>();
         foreach (GenericActorMatchActorTurn turn in turns)
         {
@@ -2444,29 +4061,61 @@ public sealed record GenericActorMatchChronology
                 continue;
             }
 
-            Direction direction =
-                turn.ActionResolution.ValidatedAction.Arguments
-                    .OfType<GenericActorRuntimeActionArgument
-                        .DirectionArgument>()
-                    .Single()
-                    .Value;
-            var (dx, dy) = direction.Vector();
+            ProjectileHeading heading = MovementHeading(
+                turn.ActionResolution.ValidatedAction);
+            var (dx, dy) = heading.Vector();
             Position target = life.Position.Offset(dx, dy);
             bool foreignReturnReservation =
                 automaticReturnReservations.Any(reservation =>
                     reservation.Position == target
                     && (reservation.TeamId != life.ActorId.TeamId
                         || reservation.UnitId != life.ActorId.UnitId));
+            ActorActionDefinition movementAction =
+                actions[turn.ActionResolution.ValidatedAction.ActionId];
+            ActorMovementFacingCoupling coupling =
+                ActorMovementFacingResolver.EffectiveCoupling(
+                    movementProfiles[forms[life.FormId].MovementProfileId],
+                    movementAction);
+            Direction queueFacing = poses[turn.ActorId].Facing;
+            bool arcBlocked = before.Mode is
+                GenericActorRuntimeObservation.ModeObservationState.ArcRelay
+                    arc
+                && (ArcRelayForeignHomePad(
+                        definition,
+                        life.ActorId.TeamId,
+                        target)
+                    || arc.VisibleCores.Any(core =>
+                        core.CarrierActorId == life.ActorId
+                        && before.NextTick < core.NextRelocationTick)
+                    || arc.VisibleSignatures.Any(signature =>
+                        signature.Kind
+                            == ArcRelaySignatureDefinition.SignatureKind
+                                .HardlightBlock
+                        && signature.Phase
+                            == ArcRelaySignatureState.SignaturePhase.Active
+                        && signature.EndsAtTick > before.NextTick
+                        && !signature.Suppressed
+                        && signature.Positions.Contains(target)));
             bool blocked = definition.Map.IsWall(target)
                 || occupiedPositions.Contains(target)
                 || reservedLifecyclePositions.Contains(target)
-                || foreignReturnReservation;
+                || foreignReturnReservation
+                || arcBlocked
+                // Mirrors the session's defensive block: a FacingLocked mover
+                // that somehow validated an off-facing direction is Blocked,
+                // never displaced.
+                || (coupling == ActorMovementFacingCoupling.FacingLocked
+                    && heading != queueFacing.ToProjectileHeading());
             candidates.Add(
                 turn.ActorId,
                 new MovementQueueCandidate(
                     life.Position,
                     target,
-                    poses[turn.ActorId].Facing,
+                    queueFacing,
+                    ActorMovementFacingResolver.AfterSuccessfulMove(
+                        queueFacing,
+                        heading,
+                        coupling),
                     blocked));
         }
 
@@ -2489,8 +4138,17 @@ public sealed record GenericActorMatchChronology
                 projectile => projectile.ProjectileId);
         var expectedMovementContacts =
             new Dictionary<long, MovementContactExpectation>();
+        // Mirrors the session's parity-alternating consumption order under
+        // AlternatingResolutionOrder (foundations -03 fairness).
+        bool descendingResolution =
+            definition.Rules.GameMode.AlternatingResolutionOrder
+            && before.NextTick % 2 == 1;
+        IEnumerable<KeyValuePair<ActorIdentity, MovementQueueCandidate>>
+            consumptionOrder = descendingResolution
+                ? candidates.OrderByDescending(pair => pair.Key)
+                : candidates.OrderBy(pair => pair.Key);
         foreach ((ActorIdentity actorId, MovementQueueCandidate candidate)
-                 in candidates.OrderBy(pair => pair.Key))
+                 in consumptionOrder)
         {
             GenericActorWorldSnapshot.LifeSnapshot life =
                 before.ActiveLives.Single(value =>
@@ -2537,8 +4195,13 @@ public sealed record GenericActorMatchChronology
                         .MovementContact)
             .OrderBy(traversal => traversal.Ordinal)
             .ToArray();
-        long[] canonicalMovementContactIds = expectedMovementContacts
-            .OrderBy(pair => pair.Value.TargetActorId)
+        long[] canonicalMovementContactIds = (descendingResolution
+                ? expectedMovementContacts
+                    .OrderByDescending(pair => pair.Value.TargetActorId)
+                : (IOrderedEnumerable<
+                        KeyValuePair<long, MovementContactExpectation>>)
+                    expectedMovementContacts
+                        .OrderBy(pair => pair.Value.TargetActorId))
             .ThenBy(pair => pair.Key)
             .Select(pair => pair.Key)
             .ToArray();
@@ -2638,7 +4301,11 @@ public sealed record GenericActorMatchChronology
                     when !candidate.Blocked =>
                     movement.From == candidate.Source
                     && movement.To == candidate.Target
-                    && movement.Facing == candidate.Facing
+                    // Under a facing-coupled movement profile the successful
+                    // Movement event is itself the facing-change evidence, so
+                    // it carries the post-step facing rather than the
+                    // queue-time one.
+                    && movement.Facing == candidate.SuccessFacing
                     && ResolvedActionsSemanticallyEqual(
                         turn.ActionResolution.ValidatedAction,
                         movement.Action),
@@ -2663,6 +4330,7 @@ public sealed record GenericActorMatchChronology
                 poses[actorId] = poses[actorId] with
                 {
                     Position = candidate.Target,
+                    Facing = candidate.SuccessFacing,
                 };
             }
         }
@@ -2709,6 +4377,44 @@ public sealed record GenericActorMatchChronology
         }
         return poses;
     }
+
+    private static bool ArcRelayForeignHomePad(
+        ActorResolvedMatchDefinition definition,
+        int actorTeamId,
+        Position target)
+    {
+        if (definition.ModeMapBinding is not
+            ArcRelayActorModeMapBindingDefinition binding)
+        {
+            return false;
+        }
+        Dictionary<int, int> teamByParticipant = definition.Topology
+            .Participants.ToDictionary(
+                participant => participant.ParticipantId,
+                participant => participant.TeamId);
+        HashSet<string> foreignRegionIds = definition
+            .ParticipantRegionAssignments
+            .Where(assignment => string.Equals(
+                    assignment.RegionRoleId,
+                    binding.HomePadRegionRoleId,
+                    StringComparison.Ordinal)
+                && teamByParticipant[assignment.ParticipantId] != actorTeamId)
+            .Select(assignment => assignment.MapRegionId)
+            .ToHashSet(StringComparer.Ordinal);
+        return definition.Map.Regions.Any(region =>
+            foreignRegionIds.Contains(region.RegionId)
+            && region.Tiles.Contains(target));
+    }
+
+    private static ProjectileHeading MovementHeading(
+        GenericActorRuntimeActionResolution.ResolvedAction action) =>
+        action.Arguments
+            .OfType<GenericActorRuntimeActionArgument
+                .ProjectileHeadingArgument>()
+            .SingleOrDefault()?.Value
+        ?? action.Arguments
+            .OfType<GenericActorRuntimeActionArgument.DirectionArgument>()
+            .Single().Value.ToProjectileHeading();
 
     private static BoundedChildFabricationSlotSnapshot
         FabricationQueueSlot(
@@ -3278,10 +4984,21 @@ public sealed record GenericActorMatchChronology
         Position Position,
         Direction Facing);
 
+    /// <param name="Facing">
+    /// The mover's facing entering the movement phase — the facing a Blocked
+    /// attempt must still evidence, because a blocked move changes nothing.
+    /// </param>
+    /// <param name="SuccessFacing">
+    /// The facing a successful move must evidence. It equals
+    /// <paramref name="Facing"/> unless the mover's movement profile couples
+    /// facing to movement, in which case a successful step turns the body to
+    /// the movement direction (DECISIONS #156).
+    /// </param>
     private readonly record struct MovementQueueCandidate(
         Position Source,
         Position Target,
         Direction Facing,
+        Direction SuccessFacing,
         bool Blocked);
 
     private readonly record struct MovementContactExpectation(
@@ -3884,8 +5601,10 @@ public sealed record GenericActorMatchChronology
                     spawned.FormId,
                     life.FormId,
                     StringComparison.Ordinal)
-                || spawned.Health != life.Health
-                || spawned.Position != life.Position
+                || !SpawnedLifeMatchesTickStartState(
+                    life,
+                    spawned,
+                    events)
                 || spawned.Reason != start.Origin.Reason
                 || !string.Equals(
                     spawned.SourceTransitionId,
@@ -3901,6 +5620,38 @@ public sealed record GenericActorMatchChronology
                     parameterName);
             }
         }
+    }
+
+    private static bool SpawnedLifeMatchesTickStartState(
+        GenericActorWorldSnapshot.LifeSnapshot life,
+        GenericActorRuntimeObservation.EventPayload.LifeSpawned spawned,
+        IReadOnlyCollection<GenericActorAuthoritativeEvent> events)
+    {
+        var atSpawn = new GenericActorWorldSnapshot.LifeSnapshot(
+            life.ActorId,
+            life.ParticipantId,
+            life.Generation,
+            life.FormId,
+            spawned.Position,
+            life.Facing,
+            spawned.Health,
+            life.Cooldown,
+            life.Energy,
+            life.SpawnedAtTick,
+            life.SpawnReason,
+            life.ParentActorId,
+            life.SourceTransitionId,
+            life.SourceOperationId,
+            life.PreviousActionResolution,
+            life.PendingSameLifeTransition);
+        GenericActorAuthoritativeEvent[] arcEvents = events
+            .Where(item => ArcSignatureTarget(item) == life.ActorId)
+            .OrderBy(item => item.GlobalOrdinal)
+            .ToArray();
+        return ArcSignatureFactsExplainLifeChange(
+            atSpawn,
+            life,
+            arcEvents);
     }
 
     private static void ValidateLifeRemovalEvidence(
@@ -3951,7 +5702,11 @@ public sealed record GenericActorMatchChronology
                         life.FormId,
                         StringComparison.Ordinal)
                     && (!requireUnchangedPosition
-                        || destruction.Position == life.Position),
+                        || ArcSignatureFactsExplainRemoval(
+                            life,
+                            destruction.Position,
+                            destroyed: true,
+                            events)),
                 GenericActorRuntimeObservation.EventPayload.LifeRetired
                     retired =>
                     retired.Generation == life.Generation
@@ -3960,13 +5715,23 @@ public sealed record GenericActorMatchChronology
                         life.FormId,
                         StringComparison.Ordinal)
                     && (!requireUnchangedPosition
-                        || retired.Position == life.Position),
+                        || ArcSignatureFactsExplainRemoval(
+                            life,
+                            retired.Position,
+                            destroyed: false,
+                            events)),
                 _ => false,
             };
             if (!exact)
             {
                 throw new ArgumentException(
-                    "Life removal evidence must identify the removed life's exact generation and form, plus its unchanged position at a tick-start boundary.",
+                    "Life removal evidence for " + actorId
+                    + " must identify generation " + life.Generation
+                    + ", form '" + life.FormId + "', and"
+                    + (requireUnchangedPosition
+                        ? " unchanged position " + life.Position
+                        : " the removed life")
+                    + "; received " + item.Payload + ".",
                     parameterName);
             }
         }
@@ -4358,7 +6123,16 @@ public sealed record GenericActorMatchChronology
         if (skipUpdate)
             return (before.Cooldown, before.Energy);
         if (source.AttackProfileId is not string attackProfileId)
-            return (before.Cooldown, null);
+        {
+            // Mirrors the session's unarmed branch: the historical clock
+            // freezes the cooldown; advances-with-time (#180) keeps it
+            // running through unarmed forms.
+            return (definition.Rules.TickResolution.CooldownClock
+                    == ActorTickResolutionDefinition.CooldownClockKind
+                        .AdvancesWithTime
+                ? Math.Max(0, before.Cooldown - 1)
+                : before.Cooldown, null);
+        }
         ActorAttackProfileDefinition attack =
             definition.Rules.AttackProfiles.Single(profile =>
                 string.Equals(
@@ -4422,6 +6196,10 @@ public sealed record GenericActorMatchChronology
                 .ToLookup(item =>
                     ((GenericActorRuntimeObservation.EventPayload
                         .FormTransition)item.Payload).ActorId);
+        ILookup<ActorIdentity, GenericActorAuthoritativeEvent>
+            arcFactsByTarget = events
+                .Where(item => ArcSignatureTarget(item) is not null)
+                .ToLookup(item => ArcSignatureTarget(item)!);
         foreach (GenericActorWorldSnapshot.LifeSnapshot beforeLife in
                  before.ActiveLives)
         {
@@ -4434,27 +6212,22 @@ public sealed record GenericActorMatchChronology
 
             GenericActorAuthoritativeEvent[] transitionEvents =
                 transitionsByActor[beforeLife.ActorId].ToArray();
-            if (LifeSnapshotsSemanticallyEqual(beforeLife, afterLife))
-            {
-                if (transitionEvents.Length != 0)
-                {
-                    throw new ArgumentException(
-                        "A tick-start form-transition event must cause its declared same-life state transition.",
-                        parameterName);
-                }
-                continue;
-            }
-            if (transitionEvents.Length != 1
-                || !SameLifeTransitionExplainsChange(
+            GenericActorAuthoritativeEvent[] arcEvents =
+                arcFactsByTarget[beforeLife.ActorId]
+                    .OrderBy(value => value.GlobalOrdinal)
+                    .ToArray();
+            if (TickStartLifeEvidenceExplainsState(
                     definition,
                     beforeLife,
                     afterLife,
-                    transitionEvents[0]))
+                    transitionEvents,
+                    arcEvents))
             {
-                throw new ArgumentException(
-                    "A surviving life must remain exact across tick-start unless one declared same-life transition event fully explains the change.",
-                    parameterName);
+                continue;
             }
+            throw new ArgumentException(
+                "A surviving life must remain exact across tick-start unless declared same-life or Arc Relay signature evidence fully explains the change, including a net-zero sequence.",
+                parameterName);
         }
 
         HashSet<ActorIdentity> survivingActors = before.ActiveLives
@@ -4470,6 +6243,171 @@ public sealed record GenericActorMatchChronology
                 "Tick-start form-transition evidence must identify one surviving life.",
                 parameterName);
         }
+    }
+
+    internal static bool TickStartLifeEvidenceExplainsState(
+        ActorResolvedMatchDefinition definition,
+        GenericActorWorldSnapshot.LifeSnapshot before,
+        GenericActorWorldSnapshot.LifeSnapshot after,
+        IReadOnlyCollection<GenericActorAuthoritativeEvent> transitionEvents,
+        IReadOnlyCollection<GenericActorAuthoritativeEvent> arcEvents)
+    {
+        if (transitionEvents.Count == 0)
+        {
+            return arcEvents.Count == 0
+                ? LifeSnapshotsSemanticallyEqual(before, after)
+                : ArcSignatureFactsExplainLifeChange(
+                    before,
+                    after,
+                    arcEvents);
+        }
+        return arcEvents.Count == 0
+            && transitionEvents.Count == 1
+            && SameLifeTransitionExplainsChange(
+                definition,
+                before,
+                after,
+                transitionEvents.Single());
+    }
+
+    private static ActorIdentity? ArcSignatureTarget(
+        GenericActorAuthoritativeEvent item) =>
+        item.Payload is GenericActorRuntimeObservation.EventPayload.ArcRelay arc
+            ? arc.Fact switch
+            {
+                ArcRelayEvent.BodyRelocated value => value.TargetActorId,
+                ArcRelayEvent.SignatureDamage value => value.TargetActorId,
+                ArcRelayEvent.SignatureRepair value => value.TargetActorId,
+                _ => null,
+            }
+            : null;
+
+    private static bool ArcSignatureFactsExplainLifeChange(
+        GenericActorWorldSnapshot.LifeSnapshot before,
+        GenericActorWorldSnapshot.LifeSnapshot after,
+        IReadOnlyCollection<GenericActorAuthoritativeEvent> events)
+    {
+        Position position = before.Position;
+        int health = before.Health;
+        foreach (GenericActorAuthoritativeEvent item in events)
+        {
+            if (item.Payload is not GenericActorRuntimeObservation
+                    .EventPayload.ArcRelay arc)
+            {
+                return false;
+            }
+            switch (arc.Fact)
+            {
+                case ArcRelayEvent.BodyRelocated relocation:
+                    if (relocation.From != position
+                        || relocation.To == relocation.From)
+                    {
+                        return false;
+                    }
+                    position = relocation.To;
+                    break;
+                case ArcRelayEvent.SignatureDamage damage:
+                    if (damage.Position != position
+                        || damage.Amount <= 0
+                        || damage.NewHealth
+                            != Math.Max(0, health - damage.Amount))
+                    {
+                        return false;
+                    }
+                    health = damage.NewHealth;
+                    break;
+                case ArcRelayEvent.SignatureRepair repair:
+                    if (repair.Position != position
+                        || repair.Amount <= 0
+                        || repair.NewHealth != health + repair.Amount)
+                    {
+                        return false;
+                    }
+                    health = repair.NewHealth;
+                    break;
+                default:
+                    return false;
+            }
+        }
+        var expected = new GenericActorWorldSnapshot.LifeSnapshot(
+            before.ActorId,
+            before.ParticipantId,
+            before.Generation,
+            before.FormId,
+            position,
+            before.Facing,
+            health,
+            before.Cooldown,
+            before.Energy,
+            before.SpawnedAtTick,
+            before.SpawnReason,
+            before.ParentActorId,
+            before.SourceTransitionId,
+            before.SourceOperationId,
+            before.PreviousActionResolution,
+            before.PendingSameLifeTransition);
+        return LifeSnapshotsSemanticallyEqual(expected, after);
+    }
+
+    private static bool ArcSignatureFactsExplainRemoval(
+        GenericActorWorldSnapshot.LifeSnapshot before,
+        Position removalPosition,
+        bool destroyed,
+        IReadOnlyCollection<GenericActorAuthoritativeEvent> events)
+    {
+        GenericActorAuthoritativeEvent[] arcEvents = events
+            .Where(item => ArcSignatureTarget(item) == before.ActorId)
+            .OrderBy(item => item.GlobalOrdinal)
+            .ToArray();
+        if (!destroyed)
+        {
+            return arcEvents.Length == 0
+                && removalPosition == before.Position;
+        }
+
+        Position position = before.Position;
+        int health = before.Health;
+        foreach (GenericActorAuthoritativeEvent item in arcEvents)
+        {
+            if (item.Payload is not GenericActorRuntimeObservation
+                    .EventPayload.ArcRelay arc)
+            {
+                return false;
+            }
+            switch (arc.Fact)
+            {
+                case ArcRelayEvent.BodyRelocated relocation:
+                    if (relocation.From != position
+                        || relocation.To == relocation.From)
+                    {
+                        return false;
+                    }
+                    position = relocation.To;
+                    break;
+                case ArcRelayEvent.SignatureDamage damage:
+                    if (damage.Position != position
+                        || damage.Amount <= 0
+                        || damage.NewHealth
+                            != Math.Max(0, health - damage.Amount))
+                    {
+                        return false;
+                    }
+                    health = damage.NewHealth;
+                    break;
+                case ArcRelayEvent.SignatureRepair repair:
+                    if (repair.Position != position
+                        || repair.Amount <= 0
+                        || repair.NewHealth != health + repair.Amount)
+                    {
+                        return false;
+                    }
+                    health = repair.NewHealth;
+                    break;
+                default:
+                    return false;
+            }
+        }
+        return health == 0 && removalPosition == position;
     }
 
     private static bool SameLifeTransitionExplainsChange(
@@ -4714,12 +6652,19 @@ public sealed record GenericActorMatchChronology
             .Where(id => !afterProjectiles.ContainsKey(id))
             .Order()
             .ToArray();
-        HashSet<ActorIdentity> priorActors = before.ActiveLives
-            .Select(life => life.ActorId)
-            .ToHashSet();
-        Position[] placementPositions = after.ActiveLives
-            .Where(life => !priorActors.Contains(life.ActorId))
-            .Select(life => life.Position)
+        // Placement tiles come from the recorded LifeSpawned events, not from
+        // the post-boundary life positions: the arc-relay signature phase runs
+        // inside this same window AFTER lifecycle placement and may lawfully
+        // relocate a just-placed life (knockback, hook pull), so a new life's
+        // final position can differ from the tile whose projectiles the
+        // placement purged.
+        Position[] placementPositions = events
+            .Where(item =>
+                item.Payload is
+                    GenericActorRuntimeObservation.EventPayload.LifeSpawned)
+            .Select(item =>
+                ((GenericActorRuntimeObservation.EventPayload.LifeSpawned)
+                    item.Payload).Position)
             .ToArray();
         long[] expectedRemovedIds = beforeProjectiles.Values
             .Where(projectile =>
@@ -4735,8 +6680,23 @@ public sealed record GenericActorMatchChronology
                 beforeProjectiles.ContainsKey(item.ProjectileId)
                 && afterProjectiles.ContainsKey(item.ProjectileId)))
         {
+            string removedDetail = string.Join(
+                ", ",
+                removedIds.Select(id =>
+                    $"{id}@{beforeProjectiles[id].Position}"));
+            string expectedDetail = string.Join(
+                ", ",
+                expectedRemovedIds.Select(id =>
+                    $"{id}@{beforeProjectiles[id].Position}"));
+            string placementDetail = string.Join(
+                ", ",
+                placementPositions.Select(position => position.ToString()));
             throw new ArgumentException(
-                "Every tick-start projectile removal must have exactly one lifecycle-placement traversal.",
+                "Every tick-start projectile removal must have exactly one "
+                + $"lifecycle-placement traversal. Removed [{removedDetail}], "
+                + $"expected [{expectedDetail}], placements "
+                + $"[{placementDetail}], boundary before tick "
+                + $"{after.NextTick}.",
                 parameterName);
         }
 
@@ -4918,6 +6878,10 @@ public sealed record GenericActorMatchChronology
                     FrontlineGameModeDefinition,
                     GenericActorMatchModeResult.Frontline
                 ) => true,
+                (
+                    ArcRelayGameModeDefinition,
+                    GenericActorMatchModeResult.ArcRelay
+                ) => true,
                 _ => false,
             };
         if (!modeMatches)
@@ -4970,6 +6934,23 @@ public sealed record GenericActorMatchChronology
         }
 
         ValidateTerminalScores(finalState, result);
+        if (result.Mode is GenericActorMatchModeResult.ArcRelay arcRelay)
+        {
+            // Terminal facts are DRIVER state; a strike still winding up at
+            // the final horn is session ephemera that dies with the match
+            // (DECISIONS #212), so the comparison strips it - the same
+            // ownership split the lifecycle boundary makes.
+            if (finalState.Mode is not GenericActorRuntimeObservation
+                    .ModeObservationState.ArcRelay finalArc
+                || !Equals(
+                    finalArc with { PendingStrikes = [] },
+                    arcRelay.State))
+            {
+                throw new ArgumentException(
+                    "Arc Relay terminal facts must exactly equal the final world.",
+                    nameof(result));
+            }
+        }
         if (descriptor.Definition.Rules.GameMode
             is DeathmatchGameModeDefinition)
         {
@@ -5192,6 +7173,29 @@ public sealed record GenericActorMatchChronology
         && ReplicationReservationsSemanticallyEqual(
             left.SplitReservation,
             right.SplitReservation);
+
+    /// <summary>
+    /// Whether a fresh life's health is a legal spawn value. A body arrives at
+    /// its form's declared maximum plus whatever the mode's own declared
+    /// upgrade ladder adds to that slot — never less, and never more than the
+    /// ladder's headroom. This generic layer checks the BAND because the tier
+    /// vector is mode state; the exact value is re-derived per team and per
+    /// tick by the mode's own chronology evidence, which also proves the bank
+    /// the tier was bought with. On every contract that declares no ladder the
+    /// headroom is zero and this is the historical equality verbatim.
+    /// </summary>
+    private static bool IsSpawnHealthInBand(
+        ActorResolvedMatchDefinition definition,
+        int health,
+        ActorFormDefinition form) =>
+        health >= form.MaxHealth
+        && health
+            <= checked(
+                form.MaxHealth
+                + FrontlineScrapEconomyDefinition.HeadroomOn(
+                    definition.Rules.GameMode,
+                    FrontlineScrapEconomyDefinition.UpgradeEffectKind
+                        .SpawnMaxHealthDelta));
 
     private static bool LifeSnapshotsSemanticallyEqual(
         GenericActorWorldSnapshot.LifeSnapshot left,

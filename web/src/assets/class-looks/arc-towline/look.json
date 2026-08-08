@@ -1,0 +1,10 @@
+{
+  "id": "arc-towline",
+  "label": "Towline",
+  "sprite": "sprite.png",
+  "suggestedAccent": "#38bdf8",
+  "defaultProjectile": "arc-pulse",
+  "classId": "towline",
+  "locomotionCue": "wheels",
+  "scale": 1.07
+}

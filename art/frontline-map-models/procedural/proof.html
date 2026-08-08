@@ -1,0 +1,549 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href="data:," />
+    <title>Frontline modular-kit proof</title>
+    <style>
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        background: #060403;
+      }
+
+      canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <script type="module">
+      import * as THREE from '/three.module.js';
+
+      const CAMERA_PITCH = (58 * Math.PI) / 180;
+      const map = await fetch('/map.json').then((response) => response.json());
+      const loader = new THREE.TextureLoader();
+
+      const [
+        floorTexture,
+        perimeterAlbedo,
+        perimeterNormal,
+        perimeterRoughness,
+        coverAlbedo,
+        coverNormal,
+        coverRoughness,
+      ] = await Promise.all([
+        texture('/floor.webp', true),
+        texture('/perimeter-albedo.png', true),
+        texture('/perimeter-normal.png'),
+        texture('/perimeter-roughness.png'),
+        texture('/cover-albedo.png', true),
+        texture('/cover-normal.png'),
+        texture('/cover-roughness.png'),
+      ]);
+
+      const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFShadowMap;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.18;
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
+      document.body.appendChild(renderer.domElement);
+
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x060403);
+      scene.fog = new THREE.Fog(0x060403, map.width * 0.95, map.width * 2.2);
+
+      const camera = new THREE.PerspectiveCamera(
+        42,
+        window.innerWidth / window.innerHeight,
+        0.1,
+        200,
+      );
+      const span = Math.max(map.width / camera.aspect, map.height);
+      const distance = (span / 2) / Math.tan((camera.fov * Math.PI) / 360);
+      const centre = new THREE.Vector3(map.width / 2, 0, map.height / 2);
+      camera.position.set(
+        centre.x,
+        Math.sin(CAMERA_PITCH) * distance * 1.08,
+        centre.z + Math.cos(CAMERA_PITCH) * distance * 1.08,
+      );
+      camera.lookAt(centre);
+
+      addLights();
+      addFloor();
+
+      const perimeterMaterial = new THREE.MeshStandardMaterial({
+        map: perimeterAlbedo,
+        normalMap: perimeterNormal,
+        normalScale: new THREE.Vector2(0.65, 0.65),
+        roughnessMap: perimeterRoughness,
+        roughness: 0.88,
+        metalness: 0.52,
+        color: 0xcac4bc,
+      });
+      const coverMaterial = new THREE.MeshStandardMaterial({
+        map: coverAlbedo,
+        normalMap: coverNormal,
+        normalScale: new THREE.Vector2(0.55, 0.55),
+        roughnessMap: coverRoughness,
+        roughness: 0.84,
+        metalness: 0.36,
+        color: 0xd2cbc0,
+      });
+      const copperMaterial = new THREE.MeshStandardMaterial({
+        color: 0x8f4c24,
+        roughness: 0.43,
+        metalness: 0.86,
+      });
+      const ceramicMaterial = new THREE.MeshStandardMaterial({
+        color: 0x80623a,
+        roughness: 0.78,
+        metalness: 0.08,
+      });
+
+      addFamily('perimeter', perimeterMaterial, {
+        height: 0.72,
+        radius: 0.27,
+        bevel: 0.065,
+        capWidth: 0.7,
+        capDepth: 0.54,
+        capHeight: 0.065,
+      });
+      addFamily('cover', coverMaterial, {
+        height: 0.46,
+        radius: 0.26,
+        bevel: 0.06,
+        capWidth: 0.58,
+        capDepth: 0.36,
+        capHeight: 0.06,
+      });
+
+      renderer.render(scene, camera);
+      document.body.dataset.ready = '1';
+
+      async function texture(url, srgb = false) {
+        const loaded = await loader.loadAsync(url);
+        loaded.wrapS = THREE.RepeatWrapping;
+        loaded.wrapT = THREE.RepeatWrapping;
+        loaded.anisotropy = 8;
+        if (srgb) loaded.colorSpace = THREE.SRGBColorSpace;
+        return loaded;
+      }
+
+      function familyAt(x, y) {
+        if (x < 0 || y < 0 || x >= map.width || y >= map.height) return null;
+        if (map.tiles[y][x] !== '#') return null;
+        return x === 0 || y === 0 || x === map.width - 1 || y === map.height - 1
+          ? 'perimeter'
+          : 'cover';
+      }
+
+      function neighbours(x, y, family) {
+        return {
+          north: familyAt(x, y - 1) === family,
+          east: familyAt(x + 1, y) === family,
+          south: familyAt(x, y + 1) === family,
+          west: familyAt(x - 1, y) === family,
+        };
+      }
+
+      function addFamily(family, material, dimensions) {
+        const tiles = [];
+        for (let y = 0; y < map.height; y += 1) {
+          for (let x = 0; x < map.width; x += 1) {
+            if (familyAt(x, y) === family) tiles.push({ x, y });
+          }
+        }
+
+        const body = new THREE.ExtrudeGeometry(
+          wallShapes(tiles, family === 'perimeter' ? 0.23 : 0.31),
+          {
+            depth: dimensions.height - dimensions.bevel,
+            bevelEnabled: true,
+            bevelThickness: dimensions.bevel,
+            bevelSize: dimensions.bevel,
+            bevelSegments: 3,
+            curveSegments: 6,
+          },
+        );
+        body.rotateX(-Math.PI / 2);
+        projectWorldUvs(body, map.width, map.height);
+        body.computeVertexNormals();
+        const bodyMesh = new THREE.Mesh(body, material);
+        bodyMesh.castShadow = true;
+        bodyMesh.receiveShadow = true;
+        scene.add(bodyMesh);
+
+        const capGeometry = roundedBlock(
+          dimensions.capWidth,
+          dimensions.capDepth,
+          dimensions.capHeight,
+          Math.min(dimensions.radius, 0.16),
+          Math.min(dimensions.capHeight * 0.35, 0.026),
+        );
+        const channelHorizontal = roundedBlock(0.38, 0.045, 0.025, 0.02, 0.008);
+        const channelVertical = roundedBlock(0.045, 0.38, 0.025, 0.02, 0.008);
+        const servicePanel = roundedBlock(0.25, 0.19, 0.022, 0.045, 0.006);
+
+        const caps = [];
+        const horizontalChannels = [];
+        const verticalChannels = [];
+        const servicePanels = [];
+
+        for (const tile of tiles) {
+          const adjacent = neighbours(tile.x, tile.y, family);
+          const horizontal = adjacent.east || adjacent.west;
+          const vertical = adjacent.north || adjacent.south;
+          const variant = hash(tile.x, tile.y, family === 'perimeter' ? 11 : 29);
+          const centreX = tile.x + 0.5;
+          const centreZ = tile.y + 0.5;
+          const capRotation =
+            horizontal && !vertical
+              ? 0
+              : vertical && !horizontal
+                ? Math.PI / 2
+                : ((variant % 5) - 2) * 0.12;
+          const capScaleX = horizontal && !vertical ? 1.2 : 0.9;
+          const capScaleZ = vertical && !horizontal ? 1.2 : 0.9;
+          if (family === 'cover' ? variant % 2 === 0 : variant % 4 === 0)
+            caps.push(
+              matrix(
+                centreX,
+                dimensions.height - dimensions.capHeight * 0.18,
+                centreZ,
+                capRotation,
+                capScaleX,
+                1,
+                capScaleZ,
+              ),
+            );
+
+          const detailHeight =
+            dimensions.height + dimensions.capHeight * 0.72;
+          const channelMatrix = matrix(
+            centreX + ((variant % 3) - 1) * 0.08,
+            detailHeight,
+            centreZ,
+            0,
+          );
+          if (variant % 3 === 0) {
+            if (horizontal && !vertical) horizontalChannels.push(channelMatrix);
+            else verticalChannels.push(channelMatrix);
+          }
+
+          if (family === 'cover' && variant % 3 === 0)
+            servicePanels.push(
+              matrix(
+                centreX + (variant % 2 === 0 ? -0.12 : 0.12),
+                detailHeight + 0.004,
+                centreZ + (variant % 2 === 0 ? 0.08 : -0.08),
+                capRotation,
+              ),
+            );
+        }
+
+        addInstances(capGeometry, material, caps);
+        addInstances(channelHorizontal, copperMaterial, horizontalChannels);
+        addInstances(channelVertical, copperMaterial, verticalChannels);
+        addInstances(servicePanel, ceramicMaterial, servicePanels);
+      }
+
+      function wallShapes(tiles, cornerRadius) {
+        const filled = new Set(tiles.map((tile) => `${tile.x},${tile.y}`));
+        if (filled.size === 0) return [];
+
+        const loops = trace(filled).map(toLoop);
+        const outers = [];
+        const holes = [];
+        for (const loop of loops) {
+          const depth = loops.filter(
+            (other) => other !== loop && contains(other.points, loop.points[0]),
+          ).length;
+          (depth % 2 === 0 ? outers : holes).push(loop);
+        }
+
+        const shapes = outers.map((outer) => ({
+          outer,
+          shape: rounded(outer.points, new THREE.Shape(), cornerRadius),
+        }));
+        for (const hole of holes) {
+          const owner = shapes
+            .filter(({ outer }) => contains(outer.points, hole.points[0]))
+            .sort((left, right) => left.outer.area - right.outer.area)[0];
+          if (owner)
+            owner.shape.holes.push(
+              rounded(hole.points, new THREE.Path(), cornerRadius),
+            );
+        }
+        return shapes.map(({ shape }) => shape);
+      }
+
+      function trace(filled) {
+        const pending = new Map();
+        const push = (from, to) => {
+          const key = `${from[0]},${from[1]}`;
+          const edges = pending.get(key) ?? [];
+          edges.push([
+            new THREE.Vector2(from[0], from[1]),
+            new THREE.Vector2(to[0], to[1]),
+          ]);
+          pending.set(key, edges);
+        };
+
+        for (const cell of filled) {
+          const [x, y] = cell.split(',').map(Number);
+          if (!filled.has(`${x},${y - 1}`)) push([x, y], [x + 1, y]);
+          if (!filled.has(`${x + 1},${y}`)) push([x + 1, y], [x + 1, y + 1]);
+          if (!filled.has(`${x},${y + 1}`)) push([x + 1, y + 1], [x, y + 1]);
+          if (!filled.has(`${x - 1},${y}`)) push([x, y + 1], [x, y]);
+        }
+
+        const take = (key) => {
+          const edges = pending.get(key);
+          if (!edges || edges.length === 0) return null;
+          const edge = edges.pop();
+          if (edges.length === 0) pending.delete(key);
+          return edge;
+        };
+
+        const loops = [];
+        while (pending.size > 0) {
+          const start = pending.keys().next().value;
+          let edge = take(start);
+          if (!edge) continue;
+          const loop = [edge[0]];
+          while (edge) {
+            loop.push(edge[1]);
+            edge = take(`${edge[1].x},${edge[1].y}`);
+          }
+          if (loop.length > 3) loops.push(loop);
+        }
+        return loops;
+      }
+
+      function toLoop(points) {
+        const flipped = points.map((point) => new THREE.Vector2(point.x, -point.y));
+        if (
+          flipped.length > 1 &&
+          flipped[0].equals(flipped[flipped.length - 1])
+        )
+          flipped.pop();
+
+        const corners = [];
+        for (let index = 0; index < flipped.length; index += 1) {
+          const previous = flipped[(index - 1 + flipped.length) % flipped.length];
+          const current = flipped[index];
+          const next = flipped[(index + 1) % flipped.length];
+          const turn =
+            (current.x - previous.x) * (next.y - current.y) -
+            (current.y - previous.y) * (next.x - current.x);
+          if (Math.abs(turn) > 1e-9) corners.push(current);
+        }
+
+        let area = 0;
+        for (let index = 0; index < corners.length; index += 1) {
+          const current = corners[index];
+          const next = corners[(index + 1) % corners.length];
+          area += current.x * next.y - next.x * current.y;
+        }
+        return { points: corners, area: Math.abs(area) / 2 };
+      }
+
+      function rounded(points, path, requestedRadius) {
+        let radius = requestedRadius;
+        for (let index = 0; index < points.length; index += 1)
+          radius = Math.min(
+            radius,
+            points[index].distanceTo(points[(index + 1) % points.length]) / 2,
+          );
+        const approach = (corner, towards) =>
+          corner
+            .clone()
+            .addScaledVector(towards.clone().sub(corner).normalize(), radius);
+
+        for (let index = 0; index < points.length; index += 1) {
+          const previous = points[(index - 1 + points.length) % points.length];
+          const corner = points[index];
+          const next = points[(index + 1) % points.length];
+          const entry = approach(corner, previous);
+          const exit = approach(corner, next);
+          if (index === 0) path.moveTo(entry.x, entry.y);
+          else path.lineTo(entry.x, entry.y);
+          path.quadraticCurveTo(corner.x, corner.y, exit.x, exit.y);
+        }
+        path.closePath();
+        return path;
+      }
+
+      function contains(polygon, point) {
+        let inside = false;
+        for (
+          let index = 0, previous = polygon.length - 1;
+          index < polygon.length;
+          previous = index, index += 1
+        ) {
+          const a = polygon[index];
+          const b = polygon[previous];
+          if (
+            a.y > point.y !== b.y > point.y &&
+            point.x <
+              ((b.x - a.x) * (point.y - a.y)) / (b.y - a.y) + a.x
+          )
+            inside = !inside;
+        }
+        return inside;
+      }
+
+      function roundedBlock(width, depth, height, radius, bevel) {
+        const shape = new THREE.Shape();
+        const x = -width / 2;
+        const y = -depth / 2;
+        const safeRadius = Math.min(radius, width / 2, depth / 2);
+        shape.moveTo(x + safeRadius, y);
+        shape.lineTo(x + width - safeRadius, y);
+        shape.quadraticCurveTo(x + width, y, x + width, y + safeRadius);
+        shape.lineTo(x + width, y + depth - safeRadius);
+        shape.quadraticCurveTo(
+          x + width,
+          y + depth,
+          x + width - safeRadius,
+          y + depth,
+        );
+        shape.lineTo(x + safeRadius, y + depth);
+        shape.quadraticCurveTo(x, y + depth, x, y + depth - safeRadius);
+        shape.lineTo(x, y + safeRadius);
+        shape.quadraticCurveTo(x, y, x + safeRadius, y);
+
+        const geometry = new THREE.ExtrudeGeometry(shape, {
+          depth: Math.max(0.01, height - bevel),
+          bevelEnabled: true,
+          bevelThickness: bevel,
+          bevelSize: bevel,
+          bevelSegments: 3,
+          curveSegments: 6,
+        });
+        geometry.rotateX(-Math.PI / 2);
+        geometry.computeVertexNormals();
+        return geometry;
+      }
+
+      function projectWorldUvs(geometry, mapWidth, mapHeight) {
+        const position = geometry.attributes.position;
+        const normal = geometry.attributes.normal;
+        const uv = geometry.attributes.uv;
+        for (let vertex = 0; vertex < position.count; vertex += 1) {
+          const x = position.getX(vertex);
+          const y = position.getY(vertex);
+          const z = position.getZ(vertex);
+          if (Math.abs(normal.getY(vertex)) > 0.5)
+            uv.setXY(vertex, x / mapWidth, 1 - z / mapHeight);
+          else if (Math.abs(normal.getX(vertex)) > 0.5)
+            uv.setXY(vertex, z / mapHeight, y / mapHeight);
+          else uv.setXY(vertex, x / mapWidth, y / mapHeight);
+        }
+        uv.needsUpdate = true;
+      }
+
+      function matrix(
+        x,
+        y,
+        z,
+        rotation = 0,
+        scaleX = 1,
+        scaleY = 1,
+        scaleZ = 1,
+      ) {
+        return new THREE.Matrix4().compose(
+          new THREE.Vector3(x, y, z),
+          new THREE.Quaternion().setFromEuler(new THREE.Euler(0, rotation, 0)),
+          new THREE.Vector3(scaleX, scaleY, scaleZ),
+        );
+      }
+
+      function addInstances(geometry, material, transforms) {
+        if (transforms.length === 0) return;
+        const mesh = new THREE.InstancedMesh(geometry, material, transforms.length);
+        transforms.forEach((transform, index) => mesh.setMatrixAt(index, transform));
+        mesh.instanceMatrix.needsUpdate = true;
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        scene.add(mesh);
+      }
+
+      function hash(x, y, salt) {
+        let value = (x + 1) * 0x9e3779b1 ^ (y + 1) * 0x85ebca77 ^ salt;
+        value ^= value >>> 16;
+        value = Math.imul(value, 0x7feb352d);
+        value ^= value >>> 15;
+        return value >>> 0;
+      }
+
+      function addFloor() {
+        const geometry = new THREE.PlaneGeometry(map.width, map.height);
+        geometry.rotateX(-Math.PI / 2);
+        geometry.translate(map.width / 2, 0, map.height / 2);
+        const material = new THREE.MeshStandardMaterial({
+          map: floorTexture,
+          bumpMap: floorTexture,
+          bumpScale: 0.045,
+          color: 0xbdb7ae,
+          roughness: 0.86,
+          metalness: 0.34,
+        });
+        const floor = new THREE.Mesh(geometry, material);
+        floor.receiveShadow = true;
+        scene.add(floor);
+
+        const wearMaterial = new THREE.MeshBasicMaterial({
+          color: 0x713418,
+          transparent: true,
+          opacity: 0.08,
+          depthWrite: false,
+        });
+        for (let y = 1; y < map.height - 1; y += 1) {
+          for (let x = 1; x < map.width - 1; x += 1) {
+            if (map.tiles[y][x] !== '.' || hash(x, y, 47) % 29 !== 0) continue;
+            const geometry = new THREE.CircleGeometry(0.62, 24);
+            geometry.rotateX(-Math.PI / 2);
+            const wear = new THREE.Mesh(geometry, wearMaterial);
+            const variant = hash(x, y, 53);
+            wear.position.set(x + 0.5, 0.004, y + 0.5);
+            wear.rotation.y = (variant % 16) * (Math.PI / 8);
+            wear.scale.set(1.6, 1, 0.42);
+            scene.add(wear);
+          }
+        }
+      }
+
+      function addLights() {
+        const key = new THREE.DirectionalLight(0xffead2, 5.0);
+        key.position.set(map.width * 0.58, map.width * 0.82, map.height * 0.72);
+        key.castShadow = true;
+        key.shadow.mapSize.set(2048, 2048);
+        const extent = Math.max(map.width, map.height) * 0.82;
+        key.shadow.camera.left = -extent;
+        key.shadow.camera.right = extent;
+        key.shadow.camera.top = extent;
+        key.shadow.camera.bottom = -extent;
+        key.shadow.camera.far = map.width * 3;
+        key.shadow.bias = -0.0015;
+        key.shadow.normalBias = 0.02;
+        scene.add(key, key.target);
+
+        const ambient = new THREE.AmbientLight(0x788097, 2.8);
+        const fill = new THREE.DirectionalLight(0x71432e, 1.45);
+        fill.position.set(-map.width * 0.55, map.width * 0.35, -map.height * 0.45);
+        scene.add(ambient, fill);
+      }
+    </script>
+  </body>
+</html>

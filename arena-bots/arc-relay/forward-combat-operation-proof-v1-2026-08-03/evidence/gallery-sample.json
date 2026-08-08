@@ -1,0 +1,68 @@
+{
+  "sampleVersion": 2,
+  "selection": "outcome-visible eligible stock-recovery live proof",
+  "outcomeBlind": false,
+  "identitiesBlind": false,
+  "replays": [
+    {
+      "operationId": "rear-hook",
+      "map": "arc-relay-threefold-depth-counterflow-01",
+      "rules": "arc-relay-forward-combat-01",
+      "source": "arena-bots/arc-relay/forward-combat-operation-proof-v1-2026-08-03/evidence/replays/rear-hook.broadcast.json.gz"
+    },
+    {
+      "operationId": "lantern-sweep",
+      "map": "arc-relay-threefold-depth-counterflow-01",
+      "rules": "arc-relay-forward-combat-01",
+      "source": "arena-bots/arc-relay/forward-combat-operation-proof-v1-2026-08-03/evidence/replays/lantern-sweep.broadcast.json.gz"
+    },
+    {
+      "operationId": "fork-shadow",
+      "map": "arc-relay-threefold-depth-counterflow-01",
+      "rules": "arc-relay-forward-combat-01",
+      "source": "arena-bots/arc-relay/forward-combat-operation-proof-v1-2026-08-03/evidence/replays/fork-shadow.broadcast.json.gz"
+    },
+    {
+      "operationId": "birth-rotation",
+      "map": "arc-relay-threefold-depth-counterflow-01",
+      "rules": "arc-relay-forward-combat-01",
+      "source": "arena-bots/arc-relay/forward-combat-operation-proof-v1-2026-08-03/evidence/replays/birth-rotation.broadcast.json.gz"
+    },
+    {
+      "operationId": "escort-counterpunch",
+      "map": "arc-relay-threefold-depth-counterflow-01",
+      "rules": "arc-relay-forward-combat-01",
+      "source": "arena-bots/arc-relay/forward-combat-operation-proof-v1-2026-08-03/evidence/replays/escort-counterpunch.broadcast.json.gz"
+    },
+    {
+      "operationId": "smoke-breach",
+      "map": "arc-relay-threefold-depth-counterflow-01",
+      "rules": "arc-relay-forward-combat-01",
+      "source": "arena-bots/arc-relay/forward-combat-operation-proof-v1-2026-08-03/evidence/replays/smoke-breach.broadcast.json.gz"
+    },
+    {
+      "operationId": "hardlight-gate",
+      "map": "arc-relay-threefold-depth-counterflow-01",
+      "rules": "arc-relay-forward-combat-01",
+      "source": "arena-bots/arc-relay/forward-combat-operation-proof-v1-2026-08-03/evidence/replays/hardlight-gate.broadcast.json.gz"
+    },
+    {
+      "operationId": "relay-catch",
+      "map": "arc-relay-threefold-depth-counterflow-01",
+      "rules": "arc-relay-forward-combat-01",
+      "source": "arena-bots/arc-relay/forward-combat-operation-proof-v1-2026-08-03/evidence/replays/relay-catch.broadcast.json.gz"
+    },
+    {
+      "operationId": "decoy-switch",
+      "map": "arc-relay-threefold-depth-counterflow-01",
+      "rules": "arc-relay-forward-combat-01",
+      "source": "arena-bots/arc-relay/forward-combat-operation-proof-v1-2026-08-03/evidence/replays/decoy-switch.broadcast.json.gz"
+    },
+    {
+      "operationId": "emergency-exchange",
+      "map": "arc-relay-threefold-depth-counterflow-01",
+      "rules": "arc-relay-forward-combat-01",
+      "source": "arena-bots/arc-relay/forward-combat-operation-proof-v1-2026-08-03/evidence/replays/emergency-exchange.broadcast.json.gz"
+    }
+  ]
+}

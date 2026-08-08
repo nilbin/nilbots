@@ -1,0 +1,474 @@
+{
+  "auditDimensions": {
+    "adaptationStyle": "static",
+    "allocation": "3 north / 2 centre / 3 south",
+    "executionStyle": "fireline-picks",
+    "failureMode": "fixed firing geometry can be bypassed after the opponent reads the chosen corridors",
+    "policyStyle": "projector faces and sensor masts establish two public rails around a central courier",
+    "sheetRevision": 3,
+    "visibleCounter": "smoke or flank the firing bases and make their slow carrier solve multiple births"
+  },
+  "auditStatus": {
+    "mapStudyAdaptation": {
+      "coordinateTransform": "three-Well anchored vertical stretch v1",
+      "sourceMapId": "arc-relay-threefold-home-gates-wide-01",
+      "variant": "larger"
+    },
+    "playerFacingProductSchema": false,
+    "provisionalEvaluationOnly": true,
+    "purpose": "32-sheet structural diversity and balance population"
+  },
+  "composition": [
+    "longshot",
+    "longshot",
+    "palisade",
+    "palisade",
+    "lantern",
+    "lantern",
+    "sunder",
+    "relay"
+  ],
+  "gambits": [],
+  "mapId": "arc-relay-threefold-depth-larger-01",
+  "policies": {
+    "carrier": {
+      "handoffHealthAtOrBelow": 1,
+      "preferAssignedTheater": true,
+      "routeFailureTicks": 10
+    },
+    "escort": {
+      "focusEnemyCarrier": true,
+      "followDistance": 2
+    },
+    "interception": {
+      "focusEnemyCarrier": true,
+      "looseCoreFallback": true
+    }
+  },
+  "rallyLines": {
+    "forward": [
+      [
+        13,
+        7
+      ],
+      [
+        13,
+        11
+      ],
+      [
+        13,
+        17
+      ],
+      [
+        13,
+        21
+      ]
+    ],
+    "home": [
+      [
+        4,
+        11
+      ],
+      [
+        4,
+        14
+      ],
+      [
+        4,
+        17
+      ]
+    ],
+    "middle": [
+      [
+        9,
+        7
+      ],
+      [
+        9,
+        11
+      ],
+      [
+        9,
+        17
+      ],
+      [
+        9,
+        21
+      ]
+    ]
+  },
+  "schema": "arc-relay-evaluation-sheet-v0",
+  "sheetId": "population-rail-screen-style-fireline-picks-v3",
+  "slots": [
+    {
+      "outboundPath": [
+        [
+          4,
+          11
+        ],
+        [
+          8,
+          11
+        ],
+        [
+          13,
+          10
+        ],
+        [
+          15,
+          4
+        ]
+      ],
+      "partnerUnitId": 2,
+      "returnPath": [
+        [
+          13,
+          7
+        ],
+        [
+          9,
+          11
+        ],
+        [
+          5,
+          11
+        ],
+        [
+          3,
+          13
+        ],
+        [
+          2,
+          14
+        ]
+      ],
+      "role": "intercept",
+      "theater": "north",
+      "unitId": 0
+    },
+    {
+      "outboundPath": [
+        [
+          4,
+          17
+        ],
+        [
+          8,
+          17
+        ],
+        [
+          13,
+          18
+        ],
+        [
+          15,
+          24
+        ]
+      ],
+      "partnerUnitId": 3,
+      "returnPath": [
+        [
+          13,
+          21
+        ],
+        [
+          9,
+          17
+        ],
+        [
+          5,
+          17
+        ],
+        [
+          3,
+          15
+        ],
+        [
+          2,
+          14
+        ]
+      ],
+      "role": "intercept",
+      "theater": "south",
+      "unitId": 1
+    },
+    {
+      "outboundPath": [
+        [
+          4,
+          11
+        ],
+        [
+          8,
+          10
+        ],
+        [
+          12,
+          8
+        ],
+        [
+          14,
+          5
+        ]
+      ],
+      "partnerUnitId": 0,
+      "returnPath": [
+        [
+          11,
+          8
+        ],
+        [
+          7,
+          11
+        ],
+        [
+          4,
+          13
+        ],
+        [
+          2,
+          15
+        ]
+      ],
+      "role": "screen",
+      "theater": "north",
+      "unitId": 2
+    },
+    {
+      "outboundPath": [
+        [
+          5,
+          18
+        ],
+        [
+          9,
+          20
+        ],
+        [
+          13,
+          21
+        ],
+        [
+          15,
+          24
+        ]
+      ],
+      "partnerUnitId": 1,
+      "returnPath": [
+        [
+          12,
+          20
+        ],
+        [
+          8,
+          17
+        ],
+        [
+          4,
+          15
+        ],
+        [
+          2,
+          15
+        ]
+      ],
+      "role": "screen",
+      "theater": "south",
+      "unitId": 3
+    },
+    {
+      "outboundPath": [
+        [
+          4,
+          10
+        ],
+        [
+          8,
+          8
+        ],
+        [
+          12,
+          7
+        ],
+        [
+          15,
+          4
+        ]
+      ],
+      "partnerUnitId": 2,
+      "returnPath": [
+        [
+          12,
+          7
+        ],
+        [
+          8,
+          10
+        ],
+        [
+          5,
+          13
+        ],
+        [
+          2,
+          14
+        ]
+      ],
+      "role": "carrier",
+      "theater": "north",
+      "unitId": 4
+    },
+    {
+      "outboundPath": [
+        [
+          4,
+          17
+        ],
+        [
+          8,
+          20
+        ],
+        [
+          12,
+          21
+        ],
+        [
+          15,
+          24
+        ]
+      ],
+      "partnerUnitId": 3,
+      "returnPath": [
+        [
+          12,
+          21
+        ],
+        [
+          8,
+          18
+        ],
+        [
+          5,
+          15
+        ],
+        [
+          2,
+          14
+        ]
+      ],
+      "role": "carrier",
+      "theater": "south",
+      "unitId": 5
+    },
+    {
+      "outboundPath": [
+        [
+          4,
+          14
+        ],
+        [
+          8,
+          14
+        ],
+        [
+          12,
+          14
+        ],
+        [
+          14,
+          14
+        ]
+      ],
+      "partnerUnitId": 7,
+      "returnPath": [
+        [
+          11,
+          14
+        ],
+        [
+          7,
+          14
+        ],
+        [
+          4,
+          14
+        ],
+        [
+          2,
+          13
+        ]
+      ],
+      "role": "intercept",
+      "theater": "centre",
+      "unitId": 6
+    },
+    {
+      "outboundPath": [
+        [
+          4,
+          11
+        ],
+        [
+          8,
+          11
+        ],
+        [
+          13,
+          11
+        ],
+        [
+          15,
+          14
+        ]
+      ],
+      "partnerUnitId": 6,
+      "returnPath": [
+        [
+          13,
+          11
+        ],
+        [
+          9,
+          11
+        ],
+        [
+          5,
+          11
+        ],
+        [
+          2,
+          14
+        ]
+      ],
+      "role": "carrier",
+      "theater": "centre",
+      "unitId": 7
+    }
+  ],
+  "zones": {
+    "centre": [
+      10,
+      8,
+      20,
+      20
+    ],
+    "intercept": [
+      9,
+      2,
+      21,
+      26
+    ],
+    "north": [
+      11,
+      1,
+      19,
+      10
+    ],
+    "south": [
+      11,
+      18,
+      19,
+      27
+    ]
+  }
+}

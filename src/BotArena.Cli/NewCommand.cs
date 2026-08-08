@@ -6,6 +6,7 @@ public static class NewCommand
 {
     private const string DuelProfile = "duel";
     private const string GenericActorProfile = "generic-actor";
+    private const string GenericMindProfile = "generic-mind";
 
     public static int Run(string name) => Run(name, []);
 
@@ -22,9 +23,11 @@ public static class NewCommand
         {
             DuelProfile => "botarena-bot",
             GenericActorProfile => "botarena-generic-actor",
+            GenericMindProfile => "botarena-generic-mind",
             _ => throw new InvalidOperationException(
                 $"Unknown bot profile '{profile}' " +
-                $"(use {DuelProfile} or {GenericActorProfile})."),
+                $"(use {DuelProfile}, {GenericActorProfile}, or "
+                + $"{GenericMindProfile})."),
         };
 
         if (!System.Text.RegularExpressions.Regex.IsMatch(
@@ -121,11 +124,14 @@ public static class NewCommand
         Console.WriteLine($"Created bot project: {targetDir}");
         Console.WriteLine();
         Console.WriteLine($"  cd {name}");
-        Console.WriteLine(
-            profile == GenericActorProfile
-                ? "  nilbots experiment frontline-labs --bot . " +
-                  "--opponent <other-generic-bot> --seed 42"
-                : "  nilbots play --bot . --opponent hunter --seed 42");
+        Console.WriteLine(FirstRun(profile, "nilbots"));
+        if (profile == GenericMindProfile)
+        {
+            Console.WriteLine();
+            Console.WriteLine(
+                "One mind drives every body you own, for the whole match. "
+                + "Roles.cs is the file to edit first.");
+        }
         if (sdkProject is not null)
         {
             Console.WriteLine();
@@ -138,15 +144,22 @@ public static class NewCommand
                     "..",
                     "scripts",
                     "botarena"));
-            Console.WriteLine(
-                profile == GenericActorProfile
-                    ? $"  {wrapper} experiment frontline-labs --bot . " +
-                      "--opponent <other-generic-bot> --seed 42"
-                    : $"  {wrapper} play --bot . --opponent hunter " +
-                      "--seed 42");
+            Console.WriteLine(FirstRun(profile, wrapper));
         }
         return 0;
     }
+
+    private static string FirstRun(string profile, string tool) =>
+        profile switch
+        {
+            GenericMindProfile =>
+                $"  {tool} experiment frontline-labs --profile mind "
+                + "--bot . --opponent <other-bot> --seed 42",
+            GenericActorProfile =>
+                $"  {tool} experiment frontline-labs --bot . "
+                + "--opponent <other-generic-bot> --seed 42",
+            _ => $"  {tool} play --bot . --opponent hunter --seed 42",
+        };
 
     /// <summary>
     /// The one copy of the player rules card. The same file backs

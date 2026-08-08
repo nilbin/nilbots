@@ -196,29 +196,59 @@ public static class ActorCanonicalContractReader
             Int(element, "decisionSchemaVersion"),
             Int(element, "matchContractSchemaVersion"));
 
-        if (result.ContractProfileId
-                != GenericActorContractVersions.ContractProfileId
-            || result.RuntimeProtocolVersion
-                != GenericActorContractVersions.RuntimeProtocolVersion
-            || result.RuntimeConfigurationVersion
-                != GenericActorContractVersions.RuntimeConfigurationVersion
-            || result.RuntimeContractVersion
-                != GenericActorContractVersions.RuntimeContractVersion
-            || result.MatchStartSchemaVersion
-                != GenericActorContractVersions.MatchStartSchemaVersion
-            || result.ObservationSchemaVersion
-                != GenericActorContractVersions.ObservationSchemaVersion
-            || result.DecisionSchemaVersion
-                != GenericActorContractVersions.DecisionSchemaVersion
-            || result.MatchContractSchemaVersion
-                != GenericActorContractVersions.MatchContractSchemaVersion)
+        // A profile is an INDIVISIBLE tuple: the whole set matches one
+        // negotiated profile or the contract is refused. The two profiles
+        // coexist beside each other (DECISIONS #191), so the reader admits
+        // exactly two exact tuples and nothing in between — a contract that
+        // mixed the actor line's schemas with the mind line's would be a
+        // combination nobody has ever tested.
+        if (!IsExactly(result, generic: true)
+            && !IsExactly(result, generic: false))
         {
             throw Unsupported(
                 "capabilityVersions",
-                "The capability tuple is not the negotiated generic-v2 profile.");
+                "The capability tuple is not a negotiated contract profile.");
         }
         return result;
     }
+
+    private static bool IsExactly(
+        MatchContract.CapabilityVersionSet result,
+        bool generic) =>
+        generic
+            ? result.ContractProfileId
+                    == GenericActorContractVersions.ContractProfileId
+                && result.RuntimeProtocolVersion
+                    == GenericActorContractVersions.RuntimeProtocolVersion
+                && result.RuntimeConfigurationVersion
+                    == GenericActorContractVersions
+                        .RuntimeConfigurationVersion
+                && result.RuntimeContractVersion
+                    == GenericActorContractVersions.RuntimeContractVersion
+                && result.MatchStartSchemaVersion
+                    == GenericActorContractVersions.MatchStartSchemaVersion
+                && result.ObservationSchemaVersion
+                    == GenericActorContractVersions.ObservationSchemaVersion
+                && result.DecisionSchemaVersion
+                    == GenericActorContractVersions.DecisionSchemaVersion
+                && result.MatchContractSchemaVersion
+                    == GenericActorContractVersions.MatchContractSchemaVersion
+            : result.ContractProfileId
+                    == GenericMindContractVersions.ContractProfileId
+                && result.RuntimeProtocolVersion
+                    == GenericMindContractVersions.RuntimeProtocolVersion
+                && result.RuntimeConfigurationVersion
+                    == GenericMindContractVersions.RuntimeConfigurationVersion
+                && result.RuntimeContractVersion
+                    == GenericMindContractVersions.RuntimeContractVersion
+                && result.MatchStartSchemaVersion
+                    == GenericMindContractVersions.MatchStartSchemaVersion
+                && result.ObservationSchemaVersion
+                    == GenericMindContractVersions.ObservationSchemaVersion
+                && result.DecisionSchemaVersion
+                    == GenericMindContractVersions.DecisionSchemaVersion
+                && result.MatchContractSchemaVersion
+                    == GenericMindContractVersions.MatchContractSchemaVersion;
 
     private static MapContract ReadMap(JsonElement element)
     {
@@ -350,29 +380,53 @@ public static class ActorCanonicalContractReader
 
     private static PublicScoringTeam ReadTeam(JsonElement element)
     {
-        ExactObject(element, "teamId");
-        return new PublicScoringTeam(Int(element, "teamId"));
+        bool hasClassId = element.TryGetProperty(
+            "classId",
+            out JsonElement classId);
+        ExactObject(
+            element,
+            hasClassId
+                ? ["teamId", "classId"]
+                : ["teamId"]);
+        return new PublicScoringTeam(
+            Int(element, "teamId"),
+            hasClassId ? Id(classId) : null);
     }
 
     private static PublicParticipant ReadParticipant(JsonElement element)
     {
-        ExactObject(element, "participantId", "teamId");
+        bool hasClassId = element.TryGetProperty(
+            "classId",
+            out JsonElement classId);
+        ExactObject(
+            element,
+            hasClassId
+                ? ["participantId", "teamId", "classId"]
+                : ["participantId", "teamId"]);
         return new PublicParticipant(
             Int(element, "participantId"),
-            Int(element, "teamId"));
+            Int(element, "teamId"),
+            hasClassId ? Id(classId) : null);
     }
 
     private static PublicUnitSlot ReadUnitSlot(JsonElement element)
     {
+        // Per-slot chassis reads under the same additive discipline as the
+        // scoring team's and the participant's: present or absent, never an
+        // explicit null, so the absence has exactly one encoding.
+        bool hasClassId = element.TryGetProperty(
+            "classId",
+            out JsonElement classId);
         ExactObject(
             element,
-            "teamId",
-            "unitId",
-            "controllerParticipantId");
+            hasClassId
+                ? ["teamId", "unitId", "controllerParticipantId", "classId"]
+                : ["teamId", "unitId", "controllerParticipantId"]);
         return new PublicUnitSlot(
             Int(element, "teamId"),
             Int(element, "unitId"),
-            Int(element, "controllerParticipantId"));
+            Int(element, "controllerParticipantId"),
+            hasClassId ? Id(classId) : null);
     }
 
     private static PublicInitialLife ReadInitialLife(JsonElement element)
@@ -425,16 +479,28 @@ public static class ActorCanonicalContractReader
     private static MatchContract.LifecycleAssignment ReadLifecycleAssignment(
         JsonElement element)
     {
+        // Additive optional field: written only under a MIXED composition,
+        // so an absent property means "this slot takes the fabrication
+        // transition's own output" and an explicit null would be a second
+        // encoding of the same contract.
+        bool hasFabricationOutput = element.TryGetProperty(
+            "fabricationOutputFormId",
+            out JsonElement fabricationOutput);
         ExactObject(
             element,
-            "teamId",
-            "unitId",
-            "lifecycleProfileId",
-            "initialGeneration",
-            "allowedFormIds",
-            "initialAvailability",
-            "unlockTick",
-            "assignedRespawnSpawnId");
+            [
+                "teamId",
+                "unitId",
+                "lifecycleProfileId",
+                "initialGeneration",
+                "allowedFormIds",
+                "initialAvailability",
+                "unlockTick",
+                "assignedRespawnSpawnId",
+                .. hasFabricationOutput
+                    ? new[] { "fabricationOutputFormId" }
+                    : [],
+            ]);
         return new MatchContract.LifecycleAssignment(
             Int(element, "teamId"),
             Int(element, "unitId"),
@@ -443,7 +509,17 @@ public static class ActorCanonicalContractReader
             Array(Property(element, "allowedFormIds"), Id),
             InitialAvailability(element, "initialAvailability"),
             NullableInt(element, "unlockTick"),
-            NullableId(element, "assignedRespawnSpawnId"));
+            NullableId(element, "assignedRespawnSpawnId"))
+        {
+            FabricationOutputFormId = hasFabricationOutput
+                ? fabricationOutput.ValueKind == JsonValueKind.String
+                    ? fabricationOutput.GetString()!
+                    : throw new FormatException(
+                        "A canonical fabrication output form must be a "
+                        + "string; a slot that takes the transition's own "
+                        + "output omits the property entirely.")
+                : null,
+        };
     }
 
     private static MatchContract.ParticipantRegionAssignment
@@ -484,6 +560,19 @@ public static class ActorCanonicalContractReader
                     Array(
                         Property(element, "teamAdvances"),
                         ReadTeamAdvance));
+            case "arc-relay":
+                ExactObject(
+                    element,
+                    "kind",
+                    "orderedWellRegionIds",
+                    "reactorRegionRoleId",
+                    "homePadRegionRoleId");
+                return new MatchContract.ArcRelayModeMapBinding(
+                    Array(
+                        Property(element, "orderedWellRegionIds"),
+                        Id),
+                    Id(element, "reactorRegionRoleId"),
+                    Id(element, "homePadRegionRoleId"));
             default:
                 throw Unsupported("modeMapBinding.kind", kind);
         }
@@ -634,7 +723,265 @@ public static class ActorCanonicalContractReader
         {
             "deathmatch" => ReadDeathmatchMode(element),
             "frontline" => ReadFrontlineMode(element),
+            "arc-relay" => ReadArcRelayMode(element),
             _ => throw Unsupported("gameMode.kind", kind),
+        };
+    }
+
+    private static RulesContract.ArcRelayGameMode ReadArcRelayMode(
+        JsonElement element)
+    {
+        bool hasGrammarVersion = element.TryGetProperty(
+            "signatureGrammarVersion", out _);
+        bool hasBirthJitter = element.TryGetProperty(
+            "wellBirthJitterTicks", out _);
+        bool hasAlternatingOrder = element.TryGetProperty(
+            "alternatingResolutionOrder", out _);
+        bool hasThreefold = element.TryGetProperty(
+            "threefoldSockets", out _);
+        bool hasBaseValue = element.TryGetProperty(
+            "coreBaseValue", out _);
+        bool hasRipening = element.TryGetProperty(
+            "ripenIntervalTicks", out _);
+        bool hasRearArc = element.TryGetProperty(
+            "rearArcDamageMultiplier", out _);
+        bool hasVeterancy = element.TryGetProperty(
+            "veterancyXpPerLevel", out _);
+        bool hasSeedPhase = element.TryGetProperty(
+            "seedPhasedResolutionOrder", out _);
+        bool hasWellLead = element.TryGetProperty(
+            "seedPhasedWellLead", out _);
+        bool hasHealZones = element.TryGetProperty(
+            "healZoneTicksPerHp", out _);
+        string[] modeFields =
+        [
+            "kind", "modeId", "victory", "scoreCatalog",
+            "pendingRearmTicks", "coreRelocationIntervalTicks",
+            "coresPerPulse", "fieldedSlotsPerTeam", "maxCopiesPerClass",
+            "respawnDelayTicks",
+            .. hasGrammarVersion
+                ? new[] { "signatureGrammarVersion" }
+                : System.Array.Empty<string>(),
+            .. hasBirthJitter
+                ? new[] { "wellBirthJitterTicks" }
+                : System.Array.Empty<string>(),
+            .. hasAlternatingOrder
+                ? new[] { "alternatingResolutionOrder" }
+                : System.Array.Empty<string>(),
+            .. hasThreefold
+                ? new[] { "threefoldSockets" }
+                : System.Array.Empty<string>(),
+            .. hasBaseValue
+                ? new[] { "coreBaseValue" }
+                : System.Array.Empty<string>(),
+            .. hasRipening
+                ? new[]
+                {
+                    "ripenIntervalTicks", "ripenMaxValue",
+                    "ripenResumeTicks",
+                }
+                : System.Array.Empty<string>(),
+            .. hasRearArc
+                ? new[] { "rearArcDamageMultiplier" }
+                : System.Array.Empty<string>(),
+            .. hasVeterancy
+                ? new[] { "veterancyXpPerLevel", "veterancyMaxLevel" }
+                : System.Array.Empty<string>(),
+            .. hasSeedPhase
+                ? new[] { "seedPhasedResolutionOrder" }
+                : System.Array.Empty<string>(),
+            .. hasWellLead
+                ? new[] { "seedPhasedWellLead" }
+                : System.Array.Empty<string>(),
+            .. hasHealZones
+                ? new[] { "healZoneTicksPerHp" }
+                : System.Array.Empty<string>(),
+            "wells", "signatures",
+        ];
+        ExactObject(element, modeFields);
+        RulesContract.Victory victory =
+            ReadVictory(Property(element, "victory"));
+        if (victory is not RulesContract.ArcRelayVictory arcRelayVictory)
+        {
+            throw new FormatException(
+                "Arc Relay gameMode requires Arc Relay victory.");
+        }
+        return new RulesContract.ArcRelayGameMode(
+            Id(element, "modeId"),
+            arcRelayVictory,
+            Array(Property(element, "scoreCatalog"), ReadScoreChannel),
+            Int(element, "pendingRearmTicks"),
+            Int(element, "coreRelocationIntervalTicks"),
+            Int(element, "coresPerPulse"),
+            Int(element, "fieldedSlotsPerTeam"),
+            Int(element, "maxCopiesPerClass"),
+            Int(element, "respawnDelayTicks"),
+            Array(Property(element, "wells"), ReadArcRelayWell),
+            Array(Property(element, "signatures"), ReadArcRelaySignature))
+        {
+            SignatureGrammarVersion = hasGrammarVersion
+                ? Int(element, "signatureGrammarVersion")
+                : 1,
+            WellBirthJitterTicks = hasBirthJitter
+                ? Int(element, "wellBirthJitterTicks")
+                : 0,
+            AlternatingResolutionOrder = hasAlternatingOrder
+                && Bool(element, "alternatingResolutionOrder"),
+            ThreefoldSockets = hasThreefold
+                && Bool(element, "threefoldSockets"),
+            CoreBaseValue = hasBaseValue
+                ? Int(element, "coreBaseValue")
+                : 1,
+            RipenIntervalTicks = hasRipening
+                ? Int(element, "ripenIntervalTicks")
+                : 0,
+            RipenMaxValue = hasRipening
+                ? Int(element, "ripenMaxValue")
+                : 0,
+            RipenResumeTicks = hasRipening
+                ? Int(element, "ripenResumeTicks")
+                : 0,
+            RearArcDamageMultiplier = hasRearArc
+                ? Int(element, "rearArcDamageMultiplier")
+                : 1,
+            VeterancyXpPerLevel = hasVeterancy
+                ? Int(element, "veterancyXpPerLevel")
+                : 0,
+            VeterancyMaxLevel = hasVeterancy
+                ? Int(element, "veterancyMaxLevel")
+                : 0,
+            HealZoneTicksPerHp = hasHealZones
+                ? Int(element, "healZoneTicksPerHp")
+                : 0,
+            SeedPhasedResolutionOrder = hasSeedPhase
+                && Bool(element, "seedPhasedResolutionOrder"),
+            SeedPhasedWellLead = hasWellLead
+                && Bool(element, "seedPhasedWellLead"),
+        };
+    }
+
+    private static RulesContract.ArcRelayWellSchedule ReadArcRelayWell(
+        JsonElement element)
+    {
+        ExactObject(
+            element,
+            "wellId",
+            "firstBirthTick",
+            "cadenceTicks",
+            "finalBirthTick");
+        return new RulesContract.ArcRelayWellSchedule(
+            Id(element, "wellId"),
+            Int(element, "firstBirthTick"),
+            Int(element, "cadenceTicks"),
+            Int(element, "finalBirthTick"));
+    }
+
+    private static RulesContract.ArcRelaySignature ReadArcRelaySignature(
+        JsonElement element)
+    {
+        string kind = PeekString(element, "kind");
+        // Grammar-2 forms keep their player-facing kind id; the extra
+        // physics fields and the designed-role metadata are recognized by
+        // presence, the same way the writer emits them.
+        bool hasBolt = element.TryGetProperty("boltTilesPerAdvance", out _);
+        bool hasFieldTell = element.TryGetProperty("tellTicks", out _);
+        bool hasMetadata = element.TryGetProperty("category", out _);
+        // The bolt-class telegraph windup (owner ruling 2026-08-08), written
+        // only by a ruleset that authors one.
+        bool hasWindup = element.TryGetProperty("windupTicks", out _);
+        string[] specific = kind switch
+        {
+            "vector-dash" => ["tellTicks", "maxTiles"],
+            "prism-wall" =>
+                ["segmentCount", "durationTicks", "contactCapacity"],
+            "tractor-hook" => hasBolt
+                ? hasWindup
+                    ? ["windupTicks", "range", "maxPullTiles",
+                        "boltTilesPerAdvance"]
+                    : ["range", "maxPullTiles", "boltTilesPerAdvance"]
+                : ["range", "maxPullTiles"],
+            "repair-beam" =>
+                ["range", "ticksPerRepair", "hullPerRepair",
+                    "maxHullPerActivation"],
+            "survey-flare" =>
+                ["range", "travelTilesPerTick", "revealRadius",
+                    "durationTicks"],
+            "falling-star" => ["range", "tellTicks", "damage"],
+            "trip-node" => ["hull", "triggerDamage", "revealRange"],
+            "null-field" => hasFieldTell
+                ? ["radius", "durationTicks", "tellTicks"]
+                : ["radius", "durationTicks"],
+            "arc-toss" =>
+                ["range", "tellTicks", "travelTilesPerTick"],
+            "exchange" => ["range", "tellTicks"],
+            "rail-line" =>
+                ["tellTicks", "range", "damage", "cancelCooldownTicks"],
+            "hardlight-block" => ["hull", "durationTicks"],
+            "target-paint" =>
+                ["range", "durationTicks", "enhancedHitCount",
+                    "bonusDamage"],
+            "kinetic-burst" => ["tellTicks", "pushTiles"],
+            "smoke-canister" => ["range", "radius", "durationTicks"],
+            "sentinel-seed" => hasBolt
+                ? hasWindup
+                    ? ["windupTicks", "hull", "range", "damage",
+                        "fireCooldownTicks", "durationTicks",
+                        "boltTilesPerAdvance"]
+                    : ["hull", "range", "damage", "fireCooldownTicks",
+                        "durationTicks", "boltTilesPerAdvance"]
+                : ["hull", "range", "damage", "fireCooldownTicks",
+                    "durationTicks"],
+            _ => throw Unsupported("signature.kind", kind),
+        };
+        ExactObject(
+            element,
+            ["kind", "signatureId", "classId", "actionId",
+                "cooldownTicks", .. specific,
+                .. hasMetadata
+                    ? new[] { "category", "argumentKind", "engagementRange" }
+                    : []]);
+
+        int? Optional(string name) => specific.Contains(name)
+            ? Int(element, name)
+            : null;
+        return new RulesContract.ArcRelaySignature(
+            kind,
+            Id(element, "signatureId"),
+            Id(element, "classId"),
+            Id(element, "actionId"),
+            Int(element, "cooldownTicks"))
+        {
+            TellTicks = Optional("tellTicks"),
+            WindupTicks = Optional("windupTicks"),
+            Range = Optional("range"),
+            MaxTiles = Optional("maxTiles"),
+            SegmentCount = Optional("segmentCount"),
+            DurationTicks = Optional("durationTicks"),
+            ContactCapacity = Optional("contactCapacity"),
+            MaxPullTiles = Optional("maxPullTiles"),
+            TicksPerRepair = Optional("ticksPerRepair"),
+            HullPerRepair = Optional("hullPerRepair"),
+            MaxHullPerActivation = Optional("maxHullPerActivation"),
+            TravelTilesPerTick = Optional("travelTilesPerTick"),
+            RevealRadius = Optional("revealRadius"),
+            Damage = Optional("damage"),
+            Hull = Optional("hull"),
+            TriggerDamage = Optional("triggerDamage"),
+            RevealRange = Optional("revealRange"),
+            Radius = Optional("radius"),
+            CancelCooldownTicks = Optional("cancelCooldownTicks"),
+            EnhancedHitCount = Optional("enhancedHitCount"),
+            BonusDamage = Optional("bonusDamage"),
+            PushTiles = Optional("pushTiles"),
+            FireCooldownTicks = Optional("fireCooldownTicks"),
+            BoltTilesPerAdvance = specific.Contains("boltTilesPerAdvance")
+                ? Int(element, "boltTilesPerAdvance")
+                : null,
+            Category = hasMetadata ? Id(element, "category") : null,
+            ArgumentKind = hasMetadata ? Id(element, "argumentKind") : null,
+            EngagementRange = hasMetadata
+                ? Int(element, "engagementRange")
+                : null,
         };
     }
 
@@ -665,14 +1012,39 @@ public static class ActorCanonicalContractReader
     private static RulesContract.FrontlineGameMode ReadFrontlineMode(
         JsonElement element)
     {
+        // Additive trailing optional block, exactly like the capture
+        // ratchet's hold: the canonical writer emits it only for a mode that
+        // declares a side objective, so an absent property means "no side
+        // objective" and an explicitly empty one is a second, non-canonical
+        // encoding of the same contract.
+        bool hasSecondaryControl = element.TryGetProperty(
+            "secondaryControl",
+            out JsonElement secondaryControl);
+        bool hasScrapEconomy = element.TryGetProperty(
+            "scrapEconomy",
+            out JsonElement scrapEconomy);
+        if (hasSecondaryControl && hasScrapEconomy)
+        {
+            throw new FormatException(
+                "A canonical Frontline mode declares a side objective or a "
+                + "scrap economy, never both.");
+        }
         ExactObject(
             element,
-            "kind",
-            "modeId",
-            "victory",
-            "scoreCatalog",
-            "frontlinePositionCount",
-            "capture");
+            [
+                "kind",
+                "modeId",
+                "victory",
+                "scoreCatalog",
+                "frontlinePositionCount",
+                "capture",
+                .. hasSecondaryControl
+                    ? new[] { "secondaryControl" }
+                    : [],
+                .. hasScrapEconomy
+                    ? new[] { "scrapEconomy" }
+                    : [],
+            ]);
         RulesContract.Victory victory =
             ReadVictory(Property(element, "victory"));
         if (victory is not RulesContract.FrontlineVictory frontlineVictory)
@@ -685,7 +1057,174 @@ public static class ActorCanonicalContractReader
             frontlineVictory,
             Array(Property(element, "scoreCatalog"), ReadScoreChannel),
             Int(element, "frontlinePositionCount"),
-            ReadFrontlineCapture(Property(element, "capture")));
+            ReadFrontlineCapture(Property(element, "capture")))
+        {
+            SecondaryControl = hasSecondaryControl
+                ? ReadFrontlineSecondaryControl(secondaryControl)
+                : null,
+            ScrapEconomy = hasScrapEconomy
+                ? ReadFrontlineScrapEconomy(scrapEconomy)
+                : null,
+        };
+    }
+
+    private static RulesContract.FrontlineScrapEconomy
+        ReadFrontlineScrapEconomy(JsonElement element)
+    {
+        ExactObject(
+            element,
+            "veinSites",
+            "veinFirstSpawnTick",
+            "veinSpawnIntervalTicks",
+            "veinLastSpawnTick",
+            "veinAmount",
+            "wreckAmount",
+            "assayAmount",
+            "carryCapacity",
+            "pileLifetimeTicks",
+            "maxSimultaneousPiles",
+            "bankRegionIds",
+            "upgradeScope",
+            "maxTotalTiers",
+            "purchaseMode",
+            "tracks");
+        ImmutableArray<RulesContract.ScrapVeinSite> veinSites =
+            Array(Property(element, "veinSites"), ReadScrapVeinSite);
+        ImmutableArray<string> bankRegionIds =
+            Array(Property(element, "bankRegionIds"), Id);
+        ImmutableArray<RulesContract.ScrapUpgradeTrack> tracks =
+            Array(Property(element, "tracks"), ReadScrapUpgradeTrack);
+        int firstTick = Int(element, "veinFirstSpawnTick");
+        int interval = Int(element, "veinSpawnIntervalTicks");
+        int lastTick = Int(element, "veinLastSpawnTick");
+        if (veinSites.Length == 0
+            || veinSites.Distinct().Count() != veinSites.Length
+            || bankRegionIds.Length == 0
+            || bankRegionIds.Distinct(StringComparer.Ordinal).Count()
+                != bankRegionIds.Length
+            || tracks.Length == 0
+            || tracks
+                .Select(track => track.TrackId)
+                .Distinct(StringComparer.Ordinal)
+                .Count() != tracks.Length
+            || firstTick < 0
+            || interval <= 0
+            || lastTick < firstTick
+            || (lastTick - firstTick) % interval != 0)
+        {
+            throw new FormatException(
+                "A canonical Frontline scrap economy declares distinct vein "
+                + "sites, distinct banking regions, distinct tracks, and a "
+                + "schedule whose last tick sits on its cadence.");
+        }
+        return new RulesContract.FrontlineScrapEconomy(
+            veinSites,
+            firstTick,
+            interval,
+            lastTick,
+            Int(element, "veinAmount"),
+            Int(element, "wreckAmount"),
+            Int(element, "assayAmount"),
+            Int(element, "carryCapacity"),
+            Int(element, "pileLifetimeTicks"),
+            Int(element, "maxSimultaneousPiles"),
+            bankRegionIds,
+            EnumId(
+                element,
+                "upgradeScope",
+                "prime-slot-lives-only",
+                "all-slot-lives"),
+            Int(element, "maxTotalTiers"),
+            EnumId(
+                element,
+                "purchaseMode",
+                "invest-action",
+                "automatic-greedy-declared-order"),
+            tracks);
+    }
+
+    private static RulesContract.ScrapVeinSite ReadScrapVeinSite(
+        JsonElement element)
+    {
+        ExactObject(element, "x", "y");
+        return new RulesContract.ScrapVeinSite(
+            Int(element, "x"),
+            Int(element, "y"));
+    }
+
+    private static RulesContract.ScrapUpgradeTrack ReadScrapUpgradeTrack(
+        JsonElement element)
+    {
+        ExactObject(
+            element,
+            "trackId",
+            "effect",
+            "perTierMagnitude",
+            "maxTier",
+            "tierCosts");
+        int maxTier = Int(element, "maxTier");
+        ImmutableArray<int> tierCosts =
+            Array(Property(element, "tierCosts"), Int);
+        if (maxTier <= 0
+            || tierCosts.Length != maxTier
+            || tierCosts.Any(cost => cost <= 0))
+        {
+            throw new FormatException(
+                "A canonical scrap track prices every tier it declares, "
+                + "positively.");
+        }
+        return new RulesContract.ScrapUpgradeTrack(
+            Id(element, "trackId"),
+            EnumId(
+                element,
+                "effect",
+                "mobile-attack-travel-tiles-delta",
+                "spawn-max-health-delta",
+                "vision-range-delta"),
+            Int(element, "perTierMagnitude"),
+            maxTier,
+            tierCosts);
+    }
+
+    private static RulesContract.FrontlineSecondaryControl
+        ReadFrontlineSecondaryControl(JsonElement element)
+    {
+        ExactObject(
+            element,
+            "regionIds",
+            "captureThresholdTicks",
+            "ownership",
+            "effect",
+            "rallyScope");
+        ImmutableArray<string> regionIds =
+            Array(Property(element, "regionIds"), Id);
+        if (regionIds.Length == 0
+            || regionIds.Distinct(StringComparer.Ordinal).Count()
+                != regionIds.Length)
+        {
+            throw new FormatException(
+                "A canonical Frontline secondary control names at least one "
+                + "site region and never repeats one.");
+        }
+        int threshold = Int(element, "captureThresholdTicks");
+        if (threshold <= 0)
+        {
+            throw new FormatException(
+                "A canonical Frontline secondary-control latch threshold is "
+                + "positive.");
+        }
+        return new RulesContract.FrontlineSecondaryControl(
+            regionIds,
+            threshold,
+            EnumId(
+                element,
+                "ownership",
+                "latched-until-recaptured-by-sole-objective-weight"),
+            EnumId(element, "effect", "muster"),
+            EnumId(
+                element,
+                "rallyScope",
+                "prime-automatic-return-only"));
     }
 
     private static RulesContract.Victory ReadVictory(JsonElement element)
@@ -717,6 +1256,17 @@ public static class ActorCanonicalContractReader
                         Property(element, "timeoutRanking"),
                         ReadScoreRanking),
                     Int(element, "pushesToBreach"));
+            case "arc-relay":
+                ExactObject(
+                    element,
+                    "kind",
+                    "timeoutRanking",
+                    "pulsesToDestroyReactor");
+                return new RulesContract.ArcRelayVictory(
+                    Array(
+                        Property(element, "timeoutRanking"),
+                        ReadScoreRanking),
+                    Int(element, "pulsesToDestroyReactor"));
             default:
                 throw Unsupported("victory.kind", kind);
         }
@@ -775,48 +1325,84 @@ public static class ActorCanonicalContractReader
     {
         bool hasGainSchedule =
             element.TryGetProperty("gainSchedule", out JsonElement schedule);
+        // Additive optional field, exactly like the capture-gain schedule and
+        // the movement profile's facing coupling: the canonical writer emits
+        // a hold duration only for the high-water-mark redeploy policy, so an
+        // absent field means "no ratchet" and an explicitly inert zero is a
+        // second, non-canonical encoding of the same contract.
+        bool hasRatchetHold = element.TryGetProperty(
+            "ratchetHoldTicks",
+            out JsonElement ratchetHoldTicks);
+        // The capture channel's three trailing additive facts, with the same
+        // discipline again: the writer emits them only for the channel
+        // control policy, so an absent block means "no channel" and an
+        // explicitly inert one is a second, non-canonical encoding.
+        bool hasStackCap = element.TryGetProperty(
+            "stationaryGainMultiplierCap",
+            out JsonElement stationaryGainMultiplierCap);
+        bool hasErosionMultiplier = element.TryGetProperty(
+            "opposingErosionMultiplier",
+            out JsonElement opposingErosionMultiplier);
+        bool hasClaimInterrupt = element.TryGetProperty(
+            "claimInterrupt",
+            out JsonElement claimInterrupt);
         ExactObject(
             element,
-            hasGainSchedule
-                ?
-                [
-                    "threshold",
-                    "gainPerSoleTeamTick",
-                    "gainSchedule",
-                    "decayAmount",
-                    "decayIntervalTicks",
-                    "redeployPauseTicks",
-                    "controlPolicy",
-                    "timeoutPolicy",
-                    "territorialProgressFormula",
-                    "completionPolicy",
-                    "initialPosition",
-                    "captureArithmetic",
-                    "oppositionArithmetic",
-                    "decayClock",
-                    "disabledDecay",
-                    "redeployPolicy",
-                    "redeployTickArithmetic",
-                ]
-                :
-                [
-                    "threshold",
-                    "gainPerSoleTeamTick",
-                    "decayAmount",
-                    "decayIntervalTicks",
-                    "redeployPauseTicks",
-                    "controlPolicy",
-                    "timeoutPolicy",
-                    "territorialProgressFormula",
-                    "completionPolicy",
-                    "initialPosition",
-                    "captureArithmetic",
-                    "oppositionArithmetic",
-                    "decayClock",
-                    "disabledDecay",
-                    "redeployPolicy",
-                    "redeployTickArithmetic",
-                ]);
+            [
+                "threshold",
+                "gainPerSoleTeamTick",
+                .. hasGainSchedule ? new[] { "gainSchedule" } : [],
+                "decayAmount",
+                "decayIntervalTicks",
+                "redeployPauseTicks",
+                "controlPolicy",
+                "timeoutPolicy",
+                "territorialProgressFormula",
+                "completionPolicy",
+                "initialPosition",
+                "captureArithmetic",
+                "oppositionArithmetic",
+                "decayClock",
+                "disabledDecay",
+                "redeployPolicy",
+                .. hasRatchetHold ? new[] { "ratchetHoldTicks" } : [],
+                "redeployTickArithmetic",
+                .. hasStackCap
+                    ? new[] { "stationaryGainMultiplierCap" }
+                    : [],
+                .. hasErosionMultiplier
+                    ? new[] { "opposingErosionMultiplier" }
+                    : [],
+                .. hasClaimInterrupt ? new[] { "claimInterrupt" } : [],
+            ]);
+        int hold = hasRatchetHold ? Int(element, "ratchetHoldTicks") : 0;
+        bool ratchetPolicy = string.Equals(
+            Semantic(element, "redeployPolicy"),
+            RatchetRedeployPolicyId,
+            StringComparison.Ordinal);
+        if (hasRatchetHold != ratchetPolicy || hasRatchetHold && hold <= 0)
+        {
+            throw new FormatException(
+                "A canonical Frontline capture carries a positive ratchetHoldTicks exactly when its redeploy policy holds a high-water mark, and omits it otherwise.");
+        }
+        bool channelPolicy = string.Equals(
+            Semantic(element, "controlPolicy"),
+            ChannelControlPolicyId,
+            StringComparison.Ordinal);
+        int stackCap = hasStackCap
+            ? Int(element, "stationaryGainMultiplierCap")
+            : 0;
+        int erosionMultiplier = hasErosionMultiplier
+            ? Int(element, "opposingErosionMultiplier")
+            : 0;
+        if (hasStackCap != channelPolicy
+            || hasErosionMultiplier != channelPolicy
+            || hasClaimInterrupt != channelPolicy
+            || channelPolicy && (stackCap <= 0 || erosionMultiplier <= 0))
+        {
+            throw new FormatException(
+                "A canonical Frontline capture carries a positive stationaryGainMultiplierCap, a positive opposingErosionMultiplier, and a claimInterrupt exactly when its control policy channels a capture, and omits all three otherwise.");
+        }
         return new RulesContract.FrontlineCapture(
             Int(element, "threshold"),
             Int(element, "gainPerSoleTeamTick"),
@@ -838,8 +1424,57 @@ public static class ActorCanonicalContractReader
             GainSchedule = hasGainSchedule
                 ? Array(schedule, ReadFrontlineCaptureGainPhase)
                 : [],
+            RatchetHoldTicks = hold,
+            StationaryGainMultiplierCap = stackCap,
+            OpposingErosionMultiplier = erosionMultiplier,
+            ClaimInterrupt = hasClaimInterrupt
+                ? ReadFrontlineClaimInterrupt(claimInterrupt)
+                : null,
         };
     }
+
+    private static RulesContract.FrontlineClaimInterrupt
+        ReadFrontlineClaimInterrupt(JsonElement element)
+    {
+        ExactObject(
+            element,
+            "kind",
+            "revertPerDamagePoint",
+            "scope",
+            "granularity");
+        int revertPerDamagePoint = Int(element, "revertPerDamagePoint");
+        if (revertPerDamagePoint <= 0)
+        {
+            throw new FormatException(
+                "A canonical Frontline claim interrupt reverts a positive "
+                + "amount per damage point.");
+        }
+        return new RulesContract.FrontlineClaimInterrupt(
+            EnumId(
+                element,
+                "kind",
+                "damage-to-controller-on-objective-reverts-work"),
+            revertPerDamagePoint,
+            EnumId(
+                element,
+                "scope",
+                "controlling-team-bodies-on-active-objective-region"),
+            EnumId(element, "granularity", "whole-run"));
+    }
+
+    /// <summary>
+    /// The one redeploy policy that owns a hold duration. Named here so the
+    /// mirror can reject both halves of the inert encoding.
+    /// </summary>
+    private const string RatchetRedeployPolicyId =
+        "advance-immediately-then-deny-enemy-regression-past-the-high-water-mark-through-configured-hold-ticks";
+
+    /// <summary>
+    /// The one control policy that owns a stack cap, an erosion multiple, and
+    /// a claim interrupt. Named here for the same reason.
+    /// </summary>
+    private const string ChannelControlPolicyId =
+        "stationary-claim-weight-versus-total-denial-weight-scales-gain-capped-opposition-erodes-at-multiple-then-builds";
 
     private static RulesContract.FrontlineCaptureGainPhase
         ReadFrontlineCaptureGainPhase(JsonElement element)
@@ -884,12 +1519,22 @@ public static class ActorCanonicalContractReader
     private static RulesContract.LifecycleProfile ReadLifecycleProfile(
         JsonElement element)
     {
+        // Additive optional field, exactly like the form's projectile guard:
+        // the canonical writer omits it while the profile declares no
+        // root-factory bootstrap, so an absent property means "none" and an
+        // explicit null would be a second encoding of the same contract.
+        bool hasRootFactory = element.TryGetProperty(
+            "rootFactorySeedFormId",
+            out JsonElement rootFactory);
         ExactObject(
             element,
-            "profileId",
-            "destructionPolicy",
-            "delayTicks",
-            "automaticReturnFormId");
+            [
+                "profileId",
+                "destructionPolicy",
+                "delayTicks",
+                "automaticReturnFormId",
+                .. hasRootFactory ? new[] { "rootFactorySeedFormId" } : [],
+            ]);
         return new RulesContract.LifecycleProfile(
             Id(element, "profileId"),
             EnumId(
@@ -899,20 +1544,40 @@ public static class ActorCanonicalContractReader
                 "ready-for-explicit-fabrication",
                 "permanently-dormant"),
             Int(element, "delayTicks"),
-            NullableId(element, "automaticReturnFormId"));
+            NullableId(element, "automaticReturnFormId"))
+        {
+            RootFactorySeedFormId = hasRootFactory
+                ? rootFactory.ValueKind == JsonValueKind.String
+                    ? rootFactory.GetString()!
+                    : throw new FormatException(
+                        "A canonical root-factory seed form must be a "
+                        + "string; a profile without a bootstrap omits the "
+                        + "property entirely.")
+                : null,
+        };
     }
 
     private static RulesContract.Form ReadForm(JsonElement element)
     {
+        // Additive optional field, exactly like the movement profile's facing
+        // coupling: the canonical writer omits it while the form declares no
+        // projectile guard, so an absent property means None and an
+        // explicitly-inert "none" is a second, non-canonical encoding.
+        bool hasProjectileGuard = element.TryGetProperty(
+            "projectileGuard",
+            out JsonElement projectileGuard);
         ExactObject(
             element,
-            "id",
-            "maxHealth",
-            "movementProfileId",
-            "visionProfileId",
-            "attackProfileId",
-            "objectiveWeight",
-            "allowedActionIds");
+            [
+                "id",
+                "maxHealth",
+                "movementProfileId",
+                "visionProfileId",
+                "attackProfileId",
+                "objectiveWeight",
+                .. hasProjectileGuard ? new[] { "projectileGuard" } : [],
+                "allowedActionIds",
+            ]);
         return new RulesContract.Form(
             Id(element, "id"),
             Int(element, "maxHealth"),
@@ -920,16 +1585,55 @@ public static class ActorCanonicalContractReader
             Id(element, "visionProfileId"),
             NullableId(element, "attackProfileId"),
             Int(element, "objectiveWeight"),
-            Array(Property(element, "allowedActionIds"), Id));
+            Array(Property(element, "allowedActionIds"), Id))
+        {
+            ProjectileGuard = hasProjectileGuard
+                ? FormProjectileGuard(projectileGuard)
+                : RulesContract.FormProjectileGuard.None,
+        };
+    }
+
+    private static RulesContract.FormProjectileGuard FormProjectileGuard(
+        JsonElement element)
+    {
+        string value = element.ValueKind == JsonValueKind.String
+            ? element.GetString()!
+            : throw new FormatException(
+                "A canonical form projectile guard must be a string.");
+        return value switch
+        {
+            "facing-quadrant-contacts-deflected" =>
+                RulesContract.FormProjectileGuard
+                    .FacingQuadrantContactsDeflected,
+            _ => throw new FormatException(
+                "A canonical form omits projectileGuard when it declares no "
+                + "guard; an explicitly inert value is a second encoding of "
+                + $"the same contract (read '{value}')."),
+        };
     }
 
     private static RulesContract.MovementProfile ReadMovementProfile(
         JsonElement element)
     {
-        ExactObject(element, "id", "movementLayer");
+        // Additive optional field, exactly like the capture-gain schedule:
+        // the canonical writer omits it while the profile preserves facing,
+        // so an absent property means PreserveFacing rather than an error.
+        bool hasFacingCoupling = element.TryGetProperty(
+            "facingCoupling",
+            out JsonElement facingCoupling);
+        ExactObject(
+            element,
+            hasFacingCoupling
+                ? ["id", "movementLayer", "facingCoupling"]
+                : ["id", "movementLayer"]);
         return new RulesContract.MovementProfile(
             Id(element, "id"),
-            MovementLayer(element, "movementLayer"));
+            MovementLayer(element, "movementLayer"))
+        {
+            FacingCoupling = hasFacingCoupling
+                ? MovementFacingCoupling(facingCoupling)
+                : RulesContract.MovementFacingCoupling.PreserveFacing,
+        };
     }
 
     private static RulesContract.VisionProfile ReadVisionProfile(
@@ -986,23 +1690,122 @@ public static class ActorCanonicalContractReader
     private static RulesContract.AttackProfile ReadAttackProfile(
         JsonElement element)
     {
+        // Additive optional field: a one-bolt attack carries no volley object,
+        // so its absence means exactly one projectile and an emitted volley
+        // with a count of one is a second encoding of the same contract.
+        bool hasVolley = element.TryGetProperty(
+            "volley",
+            out JsonElement volley);
+        bool hasFacingAimHalfWidth = element.TryGetProperty(
+            "facingAimHalfWidthSectors",
+            out JsonElement facingAimHalfWidth);
         ExactObject(
             element,
-            "id",
-            "omnidirectionalAim",
-            "aimInterpretation",
-            "projectile",
-            "cooldownTicks",
-            "maxEnergy",
-            "attackEnergyCost",
-            "energyRegenerationIntervalTicks",
-            "energyRegenerationAmount",
-            "energyRegenerationClock",
-            "energyUpdateOrder",
-            "energyArithmetic",
-            "attackAvailability",
-            "cooldownUpdate",
-            "shotProgram");
+            [
+                "id",
+                "omnidirectionalAim",
+                "aimInterpretation",
+                .. hasFacingAimHalfWidth
+                    ? new[] { "facingAimHalfWidthSectors" }
+                    : [],
+                "projectile",
+                "cooldownTicks",
+                "maxEnergy",
+                "attackEnergyCost",
+                "energyRegenerationIntervalTicks",
+                "energyRegenerationAmount",
+                "energyRegenerationClock",
+                "energyUpdateOrder",
+                "energyArithmetic",
+                "attackAvailability",
+                "cooldownUpdate",
+                "shotProgram",
+                .. hasVolley ? new[] { "volley" } : [],
+            ]);
+        RulesContract.ShotProgramDefinition shotProgram =
+            ReadShotProgram(Property(element, "shotProgram"));
+        RulesContract.AttackVolley? launch =
+            hasVolley ? ReadVolley(volley) : null;
+        if (launch is not null && shotProgram.Enabled)
+        {
+            throw new FormatException(
+                "A canonical volley profile fires straight: programmed shots "
+                + "and multi-projectile volleys are mutually exclusive.");
+        }
+        RulesContract.AttackProfile profile = BaseAttackProfile(
+            element,
+            shotProgram);
+        int halfWidth = hasFacingAimHalfWidth
+            ? Int(facingAimHalfWidth)
+            : 0;
+        const string coneAim =
+            "absolute-submitted-eight-way-heading-within-facing-cone-facing-unchanged";
+        if (hasFacingAimHalfWidth
+            && (halfWidth is < 1 or > 3
+                || profile.OmnidirectionalAim
+                || profile.ShotProgram.Enabled
+                || !string.Equals(
+                    profile.AimInterpretation,
+                    coneAim,
+                    StringComparison.Ordinal)))
+        {
+            throw new FormatException(
+                "A canonical facing aim cone has width 1..3, is not "
+                + "omnidirectional or programmed, and uses the facing-cone "
+                + "aim interpretation.");
+        }
+        if (!hasFacingAimHalfWidth
+            && string.Equals(
+                profile.AimInterpretation,
+                coneAim,
+                StringComparison.Ordinal))
+        {
+            throw new FormatException(
+                "The facing-cone aim interpretation requires a non-inert "
+                + "facingAimHalfWidthSectors field.");
+        }
+        return profile with
+        {
+            Volley = launch,
+            FacingAimHalfWidthSectors = halfWidth,
+        };
+    }
+
+    private static RulesContract.AttackVolley ReadVolley(JsonElement element)
+    {
+        ExactObject(element, "projectileCount", "spread", "identityOrder");
+        int count = Int(element, "projectileCount");
+        string spread = EnumId(
+            element,
+            "spread",
+            "shared-resolved-heading",
+            "symmetric-adjacent-heading-fan-ascending-signed-sector-offset");
+        if (count < 2)
+        {
+            throw new FormatException(
+                "A canonical attack volley launches at least two projectiles; "
+                + "a single-bolt attack omits the volley entirely.");
+        }
+        if (spread
+                == "symmetric-adjacent-heading-fan-ascending-signed-sector-offset"
+            && count % 2 == 0)
+        {
+            throw new FormatException(
+                "A canonical symmetric heading fan carries an odd projectile count.");
+        }
+        return new RulesContract.AttackVolley(
+            count,
+            spread,
+            EnumId(
+                element,
+                "identityOrder",
+                "contiguous-ascending-in-launch-order"));
+    }
+
+    private static RulesContract.AttackProfile BaseAttackProfile(
+        JsonElement element,
+        RulesContract.ShotProgramDefinition shotProgram)
+    {
         return new RulesContract.AttackProfile(
             Id(element, "id"),
             Bool(element, "omnidirectionalAim"),
@@ -1011,7 +1814,8 @@ public static class ActorCanonicalContractReader
                 "aimInterpretation",
                 "current-facing-straight",
                 "current-facing-plus-relative-eight-way-shot-program",
-                "absolute-submitted-eight-way-heading-facing-unchanged"),
+                "absolute-submitted-eight-way-heading-facing-unchanged",
+                "absolute-submitted-eight-way-heading-within-facing-cone-facing-unchanged"),
             ReadProjectile(Property(element, "projectile")),
             Int(element, "cooldownTicks"),
             Int(element, "maxEnergy"),
@@ -1023,23 +1827,32 @@ public static class ActorCanonicalContractReader
             Semantic(element, "energyArithmetic"),
             Semantic(element, "attackAvailability"),
             Semantic(element, "cooldownUpdate"),
-            ReadShotProgram(Property(element, "shotProgram")));
+            shotProgram);
     }
 
     private static RulesContract.Projectile ReadProjectile(
         JsonElement element)
     {
+        // Declared strikes (DECISIONS #212) appear only on rulesets that
+        // author a windup; historical documents stay byte-exact without it.
+        bool hasStrikeWindup = element.TryGetProperty(
+            "strikeWindupTicks", out _);
         ExactObject(
             element,
-            "mode",
-            "damagePerHit",
-            "maxTravelTiles",
-            "ticksPerAdvance",
-            "tilesPerAdvance",
-            "launchTiles",
-            "advancesOnLaunchTick",
-            "damageAppliedSimultaneously",
-            "diagonalCornersMustBeClear");
+            [
+                "mode",
+                .. hasStrikeWindup
+                    ? new[] { "strikeWindupTicks" }
+                    : System.Array.Empty<string>(),
+                "damagePerHit",
+                "maxTravelTiles",
+                "ticksPerAdvance",
+                "tilesPerAdvance",
+                "launchTiles",
+                "advancesOnLaunchTick",
+                "damageAppliedSimultaneously",
+                "diagonalCornersMustBeClear",
+            ]);
         return new RulesContract.Projectile(
             ProjectileMode(element, "mode"),
             Int(element, "damagePerHit"),
@@ -1049,7 +1862,12 @@ public static class ActorCanonicalContractReader
             Int(element, "launchTiles"),
             Bool(element, "advancesOnLaunchTick"),
             Bool(element, "damageAppliedSimultaneously"),
-            Bool(element, "diagonalCornersMustBeClear"));
+            Bool(element, "diagonalCornersMustBeClear"))
+        {
+            StrikeWindupTicks = hasStrikeWindup
+                ? Int(element, "strikeWindupTicks")
+                : 0,
+        };
     }
 
     private static RulesContract.ShotProgramDefinition ReadShotProgram(
@@ -1153,15 +1971,54 @@ public static class ActorCanonicalContractReader
     private static RulesContract.ActionDefinition ReadAction(
         JsonElement element)
     {
-        ExactObject(element, "id", "code", "kind", "parameterKinds");
+        bool hasMovementFacingOverride = element.TryGetProperty(
+            "movementFacingOverride",
+            out JsonElement movementFacingOverride);
+        ExactObject(
+            element,
+            hasMovementFacingOverride
+                ? ["id", "code", "kind", "parameterKinds",
+                    "movementFacingOverride"]
+                : ["id", "code", "kind", "parameterKinds"]);
+        RulesContract.ActionKind kind = ActionKind(element, "kind");
+        if (hasMovementFacingOverride
+            && kind != RulesContract.ActionKind.Movement)
+        {
+            throw new FormatException(
+                "Only a movement action may carry movementFacingOverride.");
+        }
         return new RulesContract.ActionDefinition(
             Id(element, "id"),
             Int(element, "code"),
-            ActionKind(element, "kind"),
+            kind,
             Array(
                 Property(element, "parameterKinds"),
-                ActionParameterKind));
+                ActionParameterKind))
+        {
+            MovementFacingOverride = hasMovementFacingOverride
+                ? ReadMovementFacingOverride(movementFacingOverride)
+                : null,
+        };
     }
+
+    private static RulesContract.MovementFacingCoupling
+        ReadMovementFacingOverride(JsonElement element) =>
+        Semantic(element) switch
+        {
+            "preserve-facing" =>
+                RulesContract.MovementFacingCoupling.PreserveFacing,
+            "face-movement-direction" =>
+                RulesContract.MovementFacingCoupling.FaceMovementDirection,
+            "facing-locked" =>
+                RulesContract.MovementFacingCoupling.FacingLocked,
+            "face-movement-heading-projected" =>
+                RulesContract.MovementFacingCoupling
+                    .FaceMovementHeadingProjected,
+            "combat-strafe" =>
+                RulesContract.MovementFacingCoupling.CombatStrafe,
+            string value => throw Unsupported(
+                "action movement facing override", value),
+        };
 
     private static RulesContract.FabricationTransition
         ReadFabricationTransition(JsonElement element)
@@ -1272,19 +2129,36 @@ public static class ActorCanonicalContractReader
         if (kind != "form-transition")
             throw Unsupported("sameLifeTransitions[].kind", kind);
 
+        // Additive and omitted while inert, exactly like the form's projectile
+        // guard: a route the engine never fires by itself carries no trigger,
+        // so the key is spliced in only when it is actually present and every
+        // pre-existing contract keeps its fingerprint.
+        bool hasAutomaticReturn = element.TryGetProperty(
+            "automaticReturn",
+            out JsonElement automaticReturn);
+        // Trailing additive optional field (#181): absent means no route
+        // cooldown; an explicit zero is a second, non-canonical encoding
+        // and stays rejected.
+        bool hasCooldownTicks = element.TryGetProperty(
+            "cooldownTicks",
+            out _);
         ExactObject(
             element,
-            "kind",
-            "transitionId",
-            "actionId",
-            "sourceFormId",
-            "targetFormId",
-            "windup",
-            "memoryContinuity",
-            "health",
-            "combatState",
-            "placement",
-            "irreversibleForLife");
+            [
+                "kind",
+                "transitionId",
+                "actionId",
+                "sourceFormId",
+                "targetFormId",
+                "windup",
+                "memoryContinuity",
+                "health",
+                "combatState",
+                "placement",
+                "irreversibleForLife",
+                .. hasAutomaticReturn ? new[] { "automaticReturn" } : [],
+                .. hasCooldownTicks ? new[] { "cooldownTicks" } : [],
+            ]);
         return new RulesContract.FormTransition(
             Id(element, "transitionId"),
             Id(element, "actionId"),
@@ -1295,7 +2169,34 @@ public static class ActorCanonicalContractReader
             ReadSameLifeHealth(Property(element, "health")),
             ReadSameLifeCombatState(Property(element, "combatState")),
             ReadSameLifePlacement(Property(element, "placement")),
-            Bool(element, "irreversibleForLife"));
+            Bool(element, "irreversibleForLife"),
+            hasAutomaticReturn
+                ? ReadAutomaticReturn(automaticReturn)
+                : null,
+            hasCooldownTicks ? Int(element, "cooldownTicks") : 0);
+    }
+
+    private static RulesContract.AutomaticReturnTrigger ReadAutomaticReturn(
+        JsonElement element)
+    {
+        ExactObject(element, "counter", "threshold");
+        string counter = Semantic(element, "counter");
+        if (counter is not "attacks-issued-since-entering-source-form"
+            and not "projectiles-deflected-since-entering-source-form")
+        {
+            throw Unsupported(
+                "sameLifeTransitions[].automaticReturn.counter",
+                counter);
+        }
+        int threshold = Int(element, "threshold");
+        if (threshold < 1)
+        {
+            throw new FormatException(
+                "A canonical route omits automaticReturn when the engine "
+                + "never fires it; a non-positive threshold is a second "
+                + $"encoding of the same contract (read {threshold}).");
+        }
+        return new RulesContract.AutomaticReturnTrigger(counter, threshold);
     }
 
     private static RulesContract.TransitionWindup ReadWindup(
@@ -1545,17 +2446,26 @@ public static class ActorCanonicalContractReader
     private static RulesContract.TickResolutionDefinition ReadTickResolution(
         JsonElement element)
     {
+        // Trailing additive optional field: absent means the historical
+        // armed-form clock; an explicitly written default would be a
+        // second, non-canonical encoding and stays rejected.
+        bool hasCooldownClock = element.TryGetProperty(
+            "cooldownClock",
+            out _);
         ExactObject(
             element,
-            "observationsUsePreTickState",
-            "decisionsResolveAsJointStep",
-            "movementActionResolution",
-            "rotationActionResolution",
-            "actionAdmission",
-            "actionFaultCounting",
-            "matchCompletionPrecedence",
-            "damageResolution",
-            "phases");
+            [
+                "observationsUsePreTickState",
+                "decisionsResolveAsJointStep",
+                "movementActionResolution",
+                "rotationActionResolution",
+                "actionAdmission",
+                "actionFaultCounting",
+                "matchCompletionPrecedence",
+                "damageResolution",
+                "phases",
+                .. hasCooldownClock ? new[] { "cooldownClock" } : [],
+            ]);
         return new RulesContract.TickResolutionDefinition(
             Bool(element, "observationsUsePreTickState"),
             Bool(element, "decisionsResolveAsJointStep"),
@@ -1584,7 +2494,10 @@ public static class ActorCanonicalContractReader
                     "update-cooldowns-and-resources",
                     "update-mode",
                     "complete-due-same-life-transitions",
-                    "resolve-match-completion")));
+                    "resolve-match-completion")),
+            hasCooldownClock
+                ? Semantic(element, "cooldownClock")
+                : null);
     }
 
     private static RulesContract.DamageResolution ReadDamageResolution(
@@ -1648,6 +2561,31 @@ public static class ActorCanonicalContractReader
             throw new FormatException(
                 "Topology counts do not match their canonical collections.");
         }
+        Dictionary<int, string?> teamClasses;
+        try
+        {
+            teamClasses = topology.Teams.ToDictionary(
+                team => team.TeamId,
+                team => team.ClassId);
+        }
+        catch (ArgumentException exception)
+        {
+            throw new FormatException(
+                "Topology team identifiers must be unique.",
+                exception);
+        }
+        if (topology.Participants.Any(participant =>
+                !teamClasses.TryGetValue(
+                    participant.TeamId,
+                    out string? teamClassId)
+                || !string.Equals(
+                    participant.ClassId,
+                    teamClassId,
+                    StringComparison.Ordinal)))
+        {
+            throw new FormatException(
+                "Each participant classId must exactly match its scoring team classId.");
+        }
         if (format.ScoringTeamCount != topology.Teams.Length
             || format.ParticipantCount != topology.Participants.Length
             || format.ParticipantsPerTeam <= 0
@@ -1708,6 +2646,63 @@ public static class ActorCanonicalContractReader
                         "Frontline mode-map binding is inconsistent.");
                 }
                 ValidateFrontlineCapture(frontline.Capture);
+                // A side objective sits OFF the chain: its sites are typed
+                // Objective regions the front never advances into, so a
+                // region on both lists would make one tile mean two things.
+                if (frontline.SecondaryControl is { } secondary
+                    && secondary.RegionIds.Any(regionId =>
+                        frontlineBinding.OrderedObjectiveRegionIds.Contains(
+                            regionId,
+                            StringComparer.Ordinal)))
+                {
+                    throw new FormatException(
+                        "A Frontline secondary-control site region cannot "
+                        + "also be a frontline chain position.");
+                }
+                break;
+
+            case (RulesContract.ArcRelayGameMode arcRelay,
+                MatchContract.ArcRelayModeMapBinding arcBinding):
+                if (arcRelay.ModeId != "arc-relay-h0"
+                    || arcRelay.PendingRearmTicks <= 0
+                    || arcRelay.CoreRelocationIntervalTicks <= 0
+                    || arcRelay.CoresPerPulse <= 0
+                    || arcRelay.FieldedSlotsPerTeam <= 0
+                    || arcRelay.MaxCopiesPerClass <= 0
+                    || arcRelay.RespawnDelayTicks <= 0
+                    || arcRelay.Wells.IsDefaultOrEmpty
+                    || arcRelay.Signatures.IsDefaultOrEmpty
+                    || arcBinding.OrderedWellRegionIds.Length
+                        != arcRelay.Wells.Length
+                    || arcBinding.OrderedWellRegionIds
+                        .Distinct(StringComparer.Ordinal).Count()
+                        != arcBinding.OrderedWellRegionIds.Length
+                    || arcBinding.OrderedWellRegionIds.Any(regionId =>
+                        !map.Regions.Any(region =>
+                            region.RegionId == regionId
+                            && region.Kind
+                                == MapContract.RegionKind.Objective))
+                    || arcRelay.Wells.Any(well =>
+                        well.FirstBirthTick < 0
+                        || well.CadenceTicks <= 0
+                        || well.FinalBirthTick < well.FirstBirthTick)
+                    || arcRelay.Wells.Select(well => well.WellId)
+                        .Distinct(StringComparer.Ordinal).Count()
+                        != arcRelay.Wells.Length
+                    || arcRelay.Signatures.Any(signature =>
+                        signature.CooldownTicks <= 0)
+                    || arcRelay.Signatures
+                        .Select(signature => signature.SignatureId)
+                        .Distinct(StringComparer.Ordinal).Count()
+                        != arcRelay.Signatures.Length
+                    || arcRelay.Signatures
+                        .Select(signature => signature.ClassId)
+                        .Distinct(StringComparer.Ordinal).Count()
+                        != arcRelay.Signatures.Length)
+                {
+                    throw new FormatException(
+                        "Arc Relay mode-map binding or rules are inconsistent.");
+                }
                 break;
 
             default:
@@ -2128,7 +3123,9 @@ public static class ActorCanonicalContractReader
             "deaths",
             "damage-dealt",
             "active-health",
-            "territorial-progress");
+            "territorial-progress",
+            "pulses",
+            "reactor-charge");
 
     private static string EnumId(
         JsonElement element,
@@ -2186,6 +3183,25 @@ public static class ActorCanonicalContractReader
             string value => throw Unsupported("movement layer", value),
         };
 
+    private static RulesContract.MovementFacingCoupling
+        MovementFacingCoupling(JsonElement element) =>
+        Semantic(element) switch
+        {
+            // Omitted, never written inert: canonical bytes have exactly one
+            // encoding of a facing-preserving profile.
+            "face-movement-direction" =>
+                RulesContract.MovementFacingCoupling.FaceMovementDirection,
+            "facing-locked" =>
+                RulesContract.MovementFacingCoupling.FacingLocked,
+            "face-movement-heading-projected" =>
+                RulesContract.MovementFacingCoupling
+                    .FaceMovementHeadingProjected,
+            "combat-strafe" =>
+                RulesContract.MovementFacingCoupling.CombatStrafe,
+            string value =>
+                throw Unsupported("movement facing coupling", value),
+        };
+
     private static MapContract.RegionKind RegionKind(
         JsonElement element,
         string propertyName) =>
@@ -2209,6 +3225,8 @@ public static class ActorCanonicalContractReader
                 MapContract.TileTagKind.TransitionPlacementForbidden,
             "spawn-protected" =>
                 MapContract.TileTagKind.SpawnProtected,
+            "signature-placement-forbidden" =>
+                MapContract.TileTagKind.SignaturePlacementForbidden,
             string value => throw Unsupported("map tile-tag kind", value),
         };
 
@@ -2232,6 +3250,9 @@ public static class ActorCanonicalContractReader
                 MatchContract.InitialAvailability.ActiveAtTickZero,
             "dormant-unlock-at-tick" =>
                 MatchContract.InitialAvailability.DormantUnlockAtTick,
+            "dormant-automatic-activation-at-tick" =>
+                MatchContract.InitialAvailability
+                    .DormantAutomaticActivationAtTick,
             string value => throw Unsupported(
                 "initial availability",
                 value),
@@ -2289,6 +3310,9 @@ public static class ActorCanonicalContractReader
             "same-life-transition" =>
                 RulesContract.ActionKind.SameLifeTransition,
             "replication" => RulesContract.ActionKind.Replication,
+            "mode-investment" => RulesContract.ActionKind.ModeInvestment,
+            "objective" => RulesContract.ActionKind.Objective,
+            "signature" => RulesContract.ActionKind.Signature,
             string value => throw Unsupported("action kind", value),
         };
 
@@ -2305,6 +3329,10 @@ public static class ActorCanonicalContractReader
                 RulesContract.ActionParameterKind.FormTarget,
             "projectile-heading" =>
                 RulesContract.ActionParameterKind.ProjectileHeading,
+            "upgrade-track" =>
+                RulesContract.ActionParameterKind.UpgradeTrack,
+            "position-target" =>
+                RulesContract.ActionParameterKind.PositionTarget,
             string value => throw Unsupported(
                 "action parameter kind",
                 value),

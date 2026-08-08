@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "outputDirectory": "web/dist-review",
+  "archiveDirectory": "art/class-models/provider-runs/meshy/arc-fleet-review/replay-gallery",
+  "entries": [
+    {
+      "id": "stock-a-v-flow-b",
+      "displayBots": [
+        "Stock · roster A · amber",
+        "Flow · roster B · cyan"
+      ],
+      "run": "sandbox/arc-3d-review-replay-final/run.json",
+      "replay": "sandbox/arc-3d-review-replay-final/replay.json.gz",
+      "transport": "sandbox/arc-3d-review-replay-final/broadcast.json.gz"
+    },
+    {
+      "id": "stock-b-v-flow-a",
+      "displayBots": [
+        "Stock · roster B · amber",
+        "Flow · roster A · cyan"
+      ],
+      "run": "sandbox/arc-3d-review-replay-swapped/run.json",
+      "replay": "sandbox/arc-3d-review-replay-swapped/replay.json.gz",
+      "transport": "sandbox/arc-3d-review-replay-swapped/broadcast.json.gz"
+    },
+    {
+      "id": "stock-preflight-mirror",
+      "displayBots": [
+        "Stock preflight · amber",
+        "Stock preflight · cyan"
+      ],
+      "broadcastOnly": "arena-bots/arc-relay/stock-mind-v0/preflight/broadcast.json.gz"
+    }
+  ]
+}

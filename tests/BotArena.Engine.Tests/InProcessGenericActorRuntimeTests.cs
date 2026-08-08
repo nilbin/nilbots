@@ -161,6 +161,7 @@ public sealed class InProcessGenericActorRuntimeTests
             ActorId = actorId,
             ParticipantId = 10,
             ActorRandomSeed = seed,
+            TeamRandomSeed = seed ^ 0x5EED_7EA5_5EED_7EA5UL,
             Origin = new Engine.GenericActorRuntimeStart.LifeOrigin(
                 Engine.GenericActorRuntimeStart.SpawnReason.Initial,
                 Generation: 0,

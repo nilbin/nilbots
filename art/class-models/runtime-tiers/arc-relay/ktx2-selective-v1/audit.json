@@ -1,0 +1,1618 @@
+{
+  "schemaVersion": 1,
+  "id": "arc-relay-ktx2-selective-v1",
+  "generator": "scripts/class-models/build-arc-runtime-texture-tier.mjs",
+  "sourceAudit": "art/class-models/provider-runs/meshy/arc-fleet-review/fleet-audit.json",
+  "toolchain": {
+    "gltfTransform": "4.4.2",
+    "ktxSoftware": "4.4.2"
+  },
+  "contract": {
+    "geometry": "byte-semantic accessor match to the approved quantized monolithic candidate",
+    "texturePolicy": {
+      "baseColorTexture": {
+        "width": 512,
+        "height": 512,
+        "encoding": "ETC1S",
+        "quality": 255
+      },
+      "normalTexture": {
+        "width": 256,
+        "height": 256,
+        "encoding": "UASTC",
+        "level": 2,
+        "rdoLambda": 0.5
+      },
+      "metallicRoughnessTexture": {
+        "width": 256,
+        "height": 256,
+        "encoding": "UASTC",
+        "level": 2,
+        "rdoLambda": 4
+      },
+      "emissiveTexture": {
+        "width": 128,
+        "height": 128,
+        "encoding": "ETC1S",
+        "quality": 255
+      }
+    },
+    "mipmaps": true,
+    "compressedTarget": "opaque ETC1S to ETC1/ETC2 RGB at 4 bpp; UASTC to ASTC/BC7/ETC2 RGBA at 8 bpp",
+    "fallback": "RGBA8 when the device exposes no supported compressed texture target",
+    "decoder": "Three KTX2Loader, initialized only by the WebGL renderer"
+  },
+  "budgets": {
+    "decoderTransferBytes": 600000,
+    "perLookTransferBytes": 1048576,
+    "fleetTransferBytes": 12582912,
+    "compressedTextureGpuBytes": 6291456,
+    "rgba8FallbackTextureGpuBytes": 37748736,
+    "compressedModelGpuBytes": 12582912,
+    "rgba8FallbackModelGpuBytes": 50331648
+  },
+  "totals": {
+    "approvedTransferBytes": 10726052,
+    "runtimeTransferBytes": 8941992,
+    "geometryGpuBytes": 5386440,
+    "textureGpuBytesCompressedTarget": 5768448,
+    "textureGpuBytesRgba8Fallback": 34952448,
+    "modelGpuBytesCompressedTarget": 11154888,
+    "modelGpuBytesRgba8Fallback": 40338888,
+    "triangles": 219230
+  },
+  "looks": [
+    {
+      "id": "arc-hush",
+      "taskId": "019fc377-da97-748f-8455-0f31d5e85c0b",
+      "approvedCandidate": {
+        "file": "art/class-models/provider-runs/meshy/arc-hush/019fc377-da97-748f-8455-0f31d5e85c0b/model-normalized-review.glb",
+        "bytes": 741832,
+        "sha256": "9da702d12c91f1580b3c420907927e910b31ff64b5629ef3a86bf7d05430edc8"
+      },
+      "normalizedSource": {
+        "file": "art/class-models/provider-runs/meshy/arc-hush/019fc377-da97-748f-8455-0f31d5e85c0b/model-normalized-raw.glb",
+        "bytes": 30337304,
+        "sha256": "608390ed94996019b4278d0174a46e50db6e42d1f8f8024fe59668db3cdb84b9"
+      },
+      "runtime": {
+        "file": "art/class-models/runtime-tiers/arc-relay/ktx2-selective-v1/arc-hush.glb",
+        "bytes": 611748,
+        "sha256": "b360ef10ce0b2be32074921c10486ea4da53842a7a8fe1d1b38a7d0c75654529"
+      },
+      "orientation": "lay-flat-x",
+      "facingYawDegrees": 0,
+      "triangles": 13595,
+      "geometrySha256": "2b31d60733935edd05175495af84d97fb8db084dd5044f511418838295517c68",
+      "materials": 1,
+      "textures": 4,
+      "targetPlanformSpan": 0.99,
+      "floorY": 0,
+      "memory": {
+        "transferBytes": 611748,
+        "geometryGpuBytes": 396532,
+        "textureGpuBytesCompressedTarget": 360528,
+        "textureGpuBytesRgba8Fallback": 2184528,
+        "modelGpuBytesCompressedTarget": 757060,
+        "modelGpuBytesRgba8Fallback": 2581060,
+        "textures": [
+          {
+            "imageIndex": 0,
+            "name": "Image_3",
+            "slots": [
+              "emissiveTexture"
+            ],
+            "mimeType": "image/ktx2",
+            "encoding": "ETC1S",
+            "width": 128,
+            "height": 128,
+            "mipLevels": 8,
+            "transferBytes": 5150,
+            "gpuBytesCompressedTarget": 10936,
+            "gpuBytesRgba8Fallback": 87380
+          },
+          {
+            "imageIndex": 1,
+            "name": "Image_2",
+            "slots": [
+              "normalTexture"
+            ],
+            "mimeType": "image/ktx2",
+            "encoding": "UASTC",
+            "width": 256,
+            "height": 256,
+            "mipLevels": 9,
+            "transferBytes": 41435,
+            "gpuBytesCompressedTarget": 87408,
+            "gpuBytesRgba8Fallback": 349524
+          },
+          {
+            "imageIndex": 2,
+            "name": "Image_0",
+            "slots": [
+              "baseColorTexture"
+            ],
+            "mimeType": "image/ktx2",
+            "encoding": "ETC1S",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 106219,
+            "gpuBytesCompressedTarget": 174776,
+            "gpuBytesRgba8Fallback": 1398100
+          },
+          {
+            "imageIndex": 3,
+            "name": "Image_1",
+            "slots": [
+              "metallicRoughnessTexture"
+            ],
+            "mimeType": "image/ktx2",
+            "encoding": "UASTC",
+            "width": 256,
+            "height": 256,
+            "mipLevels": 9,
+            "transferBytes": 59623,
+            "gpuBytesCompressedTarget": 87408,
+            "gpuBytesRgba8Fallback": 349524
+          }
+        ]
+      }
+    },
+    {
+      "id": "arc-kestrel",
+      "taskId": "019fc37b-3531-713a-b811-b9180a9dc880",
+      "approvedCandidate": {
+        "file": "art/class-models/provider-runs/meshy/arc-kestrel/019fc37b-3531-713a-b811-b9180a9dc880/model-normalized-facing-review.glb",
+        "bytes": 688996,
+        "sha256": "08a59ea57608acedb2c61aaf8a7e019e02b4cfecc310cc66cc59d73bc3e07ad8"
+      },
+      "normalizedSource": {
+        "file": "art/class-models/provider-runs/meshy/arc-kestrel/019fc37b-3531-713a-b811-b9180a9dc880/model-normalized-raw.glb",
+        "bytes": 28515296,
+        "sha256": "a55c4a13f2fffa824f130b5a99acde85e5a40c95e55dd32f712b60724473ff21"
+      },
+      "runtime": {
+        "file": "art/class-models/runtime-tiers/arc-relay/ktx2-selective-v1/arc-kestrel.glb",
+        "bytes": 594448,
+        "sha256": "2cd3e1a79a7e32e047aa60890a9aa91ffd05b305365894e7288860e05a9d1a5c"
+      },
+      "orientation": "lay-flat-x",
+      "facingYawDegrees": 180,
+      "triangles": 13362,
+      "geometrySha256": "80536228240ebbe3ef9477fce2b68cc560761fc597a7b280f2754e80e30eb115",
+      "materials": 1,
+      "textures": 4,
+      "targetPlanformSpan": 0.99,
+      "floorY": 0,
+      "memory": {
+        "transferBytes": 594448,
+        "geometryGpuBytes": 372312,
+        "textureGpuBytesCompressedTarget": 360528,
+        "textureGpuBytesRgba8Fallback": 2184528,
+        "modelGpuBytesCompressedTarget": 732840,
+        "modelGpuBytesRgba8Fallback": 2556840,
+        "textures": [
+          {
+            "imageIndex": 0,
+            "name": "Image_3",
+            "slots": [
+              "emissiveTexture"
+            ],
+            "mimeType": "image/ktx2",
+            "encoding": "ETC1S",
+            "width": 128,
+            "height": 128,
+            "mipLevels": 8,
+            "transferBytes": 1056,
+            "gpuBytesCompressedTarget": 10936,
+            "gpuBytesRgba8Fallback": 87380
+          },
+          {
+            "imageIndex": 1,
+            "name": "Image_2",
+            "slots": [
+              "normalTexture"
+            ],
+            "mimeType": "image/ktx2",
+            "encoding": "UASTC",
+            "width": 256,
+            "height": 256,
+            "mipLevels": 9,
+            "transferBytes": 55491,
+            "gpuBytesCompressedTarget": 87408,
+            "gpuBytesRgba8Fallback": 349524
+          },
+          {
+            "imageIndex": 2,
+            "name": "Image_0",
+            "slots": [
+              "baseColorTexture"
+            ],
+            "mimeType": "image/ktx2",
+            "encoding": "ETC1S",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 103001,
+            "gpuBytesCompressedTarget": 174776,
+            "gpuBytesRgba8Fallback": 1398100
+          },
+          {
+            "imageIndex": 3,
+            "name": "Image_1",
+            "slots": [
+              "metallicRoughnessTexture"
+            ],
+            "mimeType": "image/ktx2",
+            "encoding": "UASTC",
+            "width": 256,
+            "height": 256,
+            "mipLevels": 9,
+            "transferBytes": 59813,
+            "gpuBytesCompressedTarget": 87408,
+            "gpuBytesRgba8Fallback": 349524
+          }
+        ]
+      }
+    },
+    {
+      "id": "arc-lantern",
+      "taskId": "019fc37e-1510-7c24-8d4b-079bcbdd48c1",
+      "approvedCandidate": {
+        "file": "art/class-models/provider-runs/meshy/arc-lantern/019fc37e-1510-7c24-8d4b-079bcbdd48c1/model-normalized-identity-review.glb",
+        "bytes": 623192,
+        "sha256": "cede9b588c27adfde450fd44816d83b8025fefe682e21b1b3753a14c2e0bcfdb"
+      },
+      "normalizedSource": {
+        "file": "art/class-models/provider-runs/meshy/arc-lantern/019fc37e-1510-7c24-8d4b-079bcbdd48c1/model-normalized-identity-raw.glb",
+        "bytes": 27541572,
+        "sha256": "b4d410d0c6f0cf7610d87ba2e31725199e53f07fd310903f2a5a347f1d36a96b"
+      },
+      "runtime": {
+        "file": "art/class-models/runtime-tiers/arc-relay/ktx2-selective-v1/arc-lantern.glb",
+        "bytes": 533788,
+        "sha256": "e6bf4157fac080466c9888fb3d42cccf67d137593a64976cd7aab3c3cda2d6f7"
+      },
+      "orientation": "identity",
+      "facingYawDegrees": 0,
+      "triangles": 15301,
+      "geometrySha256": "ca7186fcb0cb900c59e31e7631e6801adecdac8efac2643f68a1161637005ed2",
+      "materials": 1,
+      "textures": 4,
+      "targetPlanformSpan": 0.99,
+      "floorY": 0,
+      "memory": {
+        "transferBytes": 533788,
+        "geometryGpuBytes": 304968,
+        "textureGpuBytesCompressedTarget": 360528,
+        "textureGpuBytesRgba8Fallback": 2184528,
+        "modelGpuBytesCompressedTarget": 665496,
+        "modelGpuBytesRgba8Fallback": 2489496,
+        "textures": [
+          {
+            "imageIndex": 0,
+            "name": "Image_3",
+            "slots": [
+              "emissiveTexture"
+            ],
+            "mimeType": "image/ktx2",
+            "encoding": "ETC1S",
+            "width": 128,
+            "height": 128,
+            "mipLevels": 8,
+            "transferBytes": 2939,
+            "gpuBytesCompressedTarget": 10936,
+            "gpuBytesRgba8Fallback": 87380
+          },
+          {
+            "imageIndex": 1,
+            "name": "Image_2",
+            "slots": [
+              "normalTexture"
+            ],
+            "mimeType": "image/ktx2",
+            "encoding": "UASTC",
+            "width": 256,
+            "height": 256,
+            "mipLevels": 9,
+            "transferBytes": 57006,
+            "gpuBytesCompressedTarget": 87408,
+            "gpuBytesRgba8Fallback": 349524
+          },
+          {
+            "imageIndex": 2,
+            "name": "Image_0",
+            "slots": [
+              "baseColorTexture"
+            ],
+            "mimeType": "image/ktx2",
+            "encoding": "ETC1S",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 108599,
+            "gpuBytesCompressedTarget": 174776,
+            "gpuBytesRgba8Fallback": 1398100
+          },
+          {
+            "imageIndex": 3,
+            "name": "Image_1",
+            "slots": [
+              "metallicRoughnessTexture"
+            ],
+            "mimeType": "image/ktx2",
+            "encoding": "UASTC",
+            "width": 256,
+            "height": 256,
+            "mipLevels": 9,
+            "transferBytes": 57599,
+            "gpuBytesCompressedTarget": 87408,
+            "gpuBytesRgba8Fallback": 349524
+          }
+        ]
+      }
+    },
+    {
+      "id": "arc-longshot",
+      "taskId": "019fc381-a1d0-729b-be0f-149a70a90b1a",
+      "approvedCandidate": {
+        "file": "art/class-models/provider-runs/meshy/arc-longshot/019fc381-a1d0-729b-be0f-149a70a90b1a/model-normalized-review.glb",
+        "bytes": 648924,
+        "sha256": "aa376fd65ac4c80968fdf55a6ac2a89d2f5966e58c45e8c22d70fc6b5c5f0640"
+      },
+      "normalizedSource": {
+        "file": "art/class-models/provider-runs/meshy/arc-longshot/019fc381-a1d0-729b-be0f-149a70a90b1a/model-normalized-raw.glb",
+        "bytes": 30912556,
+        "sha256": "1d3250059334f09a83e177faf1f4a57ee5515e0346b10461d91973fd5912aa42"
+      },
+      "runtime": {
+        "file": "art/class-models/runtime-tiers/arc-relay/ktx2-selective-v1/arc-longshot.glb",
+        "bytes": 576824,
+        "sha256": "909942c20d95372dd6dd1d02a4e47a0531932be22e3c492fafd2c42e59e0a495"
+      },
+      "orientation": "lay-flat-x",
+      "facingYawDegrees": 0,
+      "triangles": 11525,
+      "geometrySha256": "1ef768d63b0fb544069f1ba68e369af5cd261c65eb6481dadb407cd5c737719f",
+      "materials": 1,
+      "textures": 4,
+      "targetPlanformSpan": 0.99,
+      "floorY": 0,
+      "memory": {
+        "transferBytes": 576824,
+        "geometryGpuBytes": 384372,
+        "textureGpuBytesCompressedTarget": 360528,
+        "textureGpuBytesRgba8Fallback": 2184528,
+        "modelGpuBytesCompressedTarget": 744900,
+        "modelGpuBytesRgba8Fallback": 2568900,
+        "textures": [
+          {
+            "imageIndex": 0,
+            "name": "Image_3",
+            "slots": [
+              "emissiveTexture"
+            ],
+            "mimeType": "image/ktx2",
+            "encoding": "ETC1S",
+            "width": 128,
+            "height": 128,
+            "mipLevels": 8,
+            "transferBytes": 724,
+            "gpuBytesCompressedTarget": 10936,
+            "gpuBytesRgba8Fallback": 87380
+          },
+          {
+            "imageIndex": 1,
+            "name": "Image_2",
+            "slots": [
+              "normalTexture"
+            ],
+            "mimeType": "image/ktx2",
+            "encoding": "UASTC",
+            "width": 256,
+            "height": 256,
+            "mipLevels": 9,
+            "transferBytes": 35279,
+            "gpuBytesCompressedTarget": 87408,
+            "gpuBytesRgba8Fallback": 349524
+          },
+          {
+            "imageIndex": 2,
+            "name": "Image_0",
+            "slots": [
+              "baseColorTexture"
+            ],
+            "mimeType": "image/ktx2",
+            "encoding": "ETC1S",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 100014,
+            "gpuBytesCompressedTarget": 174776,
+            "gpuBytesRgba8Fallback": 1398100
+          },
+          {
+            "imageIndex": 3,
+            "name": "Image_1",
+            "slots": [
+              "metallicRoughnessTexture"
+            ],
+            "mimeType": "image/ktx2",
+            "encoding": "UASTC",
+            "width": 256,
+            "height": 256,
+            "mipLevels": 9,
+            "transferBytes": 53650,
+            "gpuBytesCompressedTarget": 87408,
+            "gpuBytesRgba8Fallback": 349524
+          }
+        ]
+      }
+    },
+    {
+      "id": "arc-mason",
+      "taskId": "019fc335-af21-735b-ac08-6215f3031b69",
+      "approvedCandidate": {
+        "file": "art/class-models/provider-runs/meshy/arc-mason/019fc335-af21-735b-ac08-6215f3031b69/mason-normalized-large-review.glb",
+        "bytes": 678556,
+        "sha256": "2653efe1f297c2e5115fbd046bbb4fd6da658d294b454ad6c308fc705c13721c"
+      },
+      "normalizedSource": {
+        "file": "art/class-models/provider-runs/meshy/arc-mason/019fc335-af21-735b-ac08-6215f3031b69/mason-normalized-large-raw.glb",
+        "bytes": 29363236,
+        "sha256": "314b9e4abea86ca37ffbf1cdba2c9ff8a040c5700a25f3cafe775e02c56f0d37"
+      },
+      "runtime": {
+        "file": "art/class-models/runtime-tiers/arc-relay/ktx2-selective-v1/arc-mason.glb",
+        "bytes": 527912,
+        "sha256": "87365734755af942671707ea7c35632de5719aff51423c6f0d6f6f7108ab17eb"
+      },
+      "orientation": "lay-flat-x",
+      "facingYawDegrees": 0,
+      "triangles": 14278,
+      "geometrySha256": "613b9c5ff80a4524ae51585185285a70185a7b198db29017c6f9b29634cf1243",
+      "materials": 1,
+      "textures": 4,
+      "targetPlanformSpan": 0.99,
+      "floorY": 0,
+      "memory": {
+        "transferBytes": 527912,
+        "geometryGpuBytes": 286568,
+        "textureGpuBytesCompressedTarget": 360528,
+        "textureGpuBytesRgba8Fallback": 2184528,
+        "modelGpuBytesCompressedTarget": 647096,
+        "modelGpuBytesRgba8Fallback": 2471096,
+        "textures": [
+          {
+            "imageIndex": 0,
+            "name": "Image_3",
+            "slots": [
+              "emissiveTexture"
+            ],
+            "mimeType": "image/ktx2",
+            "encoding": "ETC1S",
+            "width": 128,
+            "height": 128,
+            "mipLevels": 8,
+            "transferBytes": 6034,
+            "gpuBytesCompressedTarget": 10936,
+            "gpuBytesRgba8Fallback": 87380
+          },
+          {
+            "imageIndex": 1,
+            "name": "Image_2",
+            "slots": [
+              "normalTexture"
+            ],
+            "mimeType": "image/ktx2",
+            "encoding": "UASTC",
+            "width": 256,
+            "height": 256,
+            "mipLevels": 9,
+            "transferBytes": 62877,
+            "gpuBytesCompressedTarget": 87408,
+            "gpuBytesRgba8Fallback": 349524
+          },
+          {
+            "imageIndex": 2,
+            "name": "Image_0",
+            "slots": [
+              "baseColorTexture"
+            ],
+            "mimeType": "image/ktx2",
+            "encoding": "ETC1S",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 112050,
+            "gpuBytesCompressedTarget": 174776,
+            "gpuBytesRgba8Fallback": 1398100
+          },
+          {
+            "imageIndex": 3,
+            "name": "Image_1",
+            "slots": [
+              "metallicRoughnessTexture"
+            ],
+            "mimeType": "image/ktx2",
+            "encoding": "UASTC",
+            "width": 256,
+            "height": 256,
+            "mipLevels": 9,
+            "transferBytes": 57609,
+            "gpuBytesCompressedTarget": 87408,
+            "gpuBytesRgba8Fallback": 349524
+          }
+        ]
+      }
+    },
+    {
+      "id": "arc-minesmith",
+      "taskId": "019fc384-be6a-7480-a333-5cb8f37c1c46",
+      "approvedCandidate": {
+        "file": "art/class-models/provider-runs/meshy/arc-minesmith/019fc384-be6a-7480-a333-5cb8f37c1c46/model-normalized-review.glb",
+        "bytes": 700916,
+        "sha256": "c566ab7363aac9090c463c683db6dd70941d09059d04b82ad6c87e29c1159a2c"
+      },
+      "normalizedSource": {
+        "file": "art/class-models/provider-runs/meshy/arc-minesmith/019fc384-be6a-7480-a333-5cb8f37c1c46/model-normalized-raw.glb",
+        "bytes": 27593800,
+        "sha256": "bbf30a996a46dd87f94cf9305655203fee47aefc8fce3867cc2d1166ec384053"
+      },
+      "runtime": {
+        "file": "art/class-models/runtime-tiers/arc-relay/ktx2-selective-v1/arc-minesmith.glb",
+        "bytes": 584332,
+        "sha256": "067def44f3ef7fbe99eb61e703b70c0ae1f37884229e8e3504bd0580092f256e"
+      },
+      "orientation": "lay-flat-x",
+      "facingYawDegrees": 0,
+      "triangles": 12945,
+      "geometrySha256": "a8e5ef2221fe20b857afacea5afaca90c570a1c232d4a30e84e32b21e479e484",
+      "materials": 1,
+      "textures": 4,
+      "targetPlanformSpan": 0.99,
+      "floorY": 0,
+      "memory": {
+        "transferBytes": 584332,
+        "geometryGpuBytes": 353752,
+        "textureGpuBytesCompressedTarget": 360528,
+        "textureGpuBytesRgba8Fallback": 2184528,
+        "modelGpuBytesCompressedTarget": 714280,
+        "modelGpuBytesRgba8Fallback": 2538280,
+        "textures": [
+          {
+            "imageIndex": 0,
+            "name": "Image_3",
+            "slots": [
+              "emissiveTexture"
+            ],
+            "mimeType": "image/ktx2",
+            "encoding": "ETC1S",
+            "width": 128,
+            "height": 128,
+            "mipLevels": 8,
+            "transferBytes": 724,
+            "gpuBytesCompressedTarget": 10936,
+            "gpuBytesRgba8Fallback": 87380
+          },
+          {
+            "imageIndex": 1,
+            "name": "Image_2",
+            "slots": [
+              "normalTexture"
+            ],
+            "mimeType": "image/ktx2",
+            "encoding": "UASTC",
+            "width": 256,
+            "height": 256,
+            "mipLevels": 9,
+            "transferBytes": 56211,
+            "gpuBytesCompressedTarget": 87408,
+            "gpuBytesRgba8Fallback": 349524
+          },
+          {
+            "imageIndex": 2,
+            "name": "Image_0",
+            "slots": [
+              "baseColorTexture"
+            ],
+            "mimeType": "image/ktx2",
+            "encoding": "ETC1S",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 109944,
+            "gpuBytesCompressedTarget": 174776,
+            "gpuBytesRgba8Fallback": 1398100
+          },
+          {
+            "imageIndex": 3,
+            "name": "Image_1",
+            "slots": [
+              "metallicRoughnessTexture"
+            ],
+            "mimeType": "image/ktx2",
+            "encoding": "UASTC",
+            "width": 256,
+            "height": 256,
+            "mipLevels": 9,
+            "transferBytes": 60929,
+            "gpuBytesCompressedTarget": 87408,
+            "gpuBytesRgba8Fallback": 349524
+          }
+        ]
+      }
+    },
+    {
+      "id": "arc-mortar",
+      "taskId": "019fc80a-8b00-783e-af88-a60d3dd45773",
+      "approvedCandidate": {
+        "file": "art/class-models/provider-runs/meshy/arc-mortar/019fc80a-8b00-783e-af88-a60d3dd45773/model-normalized-identity-facing-review.glb",
+        "bytes": 764716,
+        "sha256": "818cb92ed6b4cc39a38a8bed6cbe530798e82c9246f5d97b483817b18931bb8c"
+      },
+      "normalizedSource": {
+        "file": "art/class-models/provider-runs/meshy/arc-mortar/019fc80a-8b00-783e-af88-a60d3dd45773/model-normalized-identity-raw.glb",
+        "bytes": 29536700,
+        "sha256": "7f9fabdf7b025f30d5f5968a01dbf277c52e18d72c382d4ede0c5709c8a38376"
+      },
+      "runtime": {
+        "file": "art/class-models/runtime-tiers/arc-relay/ktx2-selective-v1/arc-mortar.glb",
+        "bytes": 629448,
+        "sha256": "fc0d7e85df8d1befe53e78d28ea2234abbf450d9ee761075d4fbfad221a3d7a4"
+      },
+      "orientation": "identity",
+      "facingYawDegrees": 180,
+      "triangles": 13736,
+      "geometrySha256": "e8fbfd9ef9841b0436636f878fffa90abfd4a7c83628030161eec2b3d04af6ca",
+      "materials": 1,
+      "textures": 4,
+      "targetPlanformSpan": 0.99,
+      "floorY": 0,
+      "memory": {
+        "transferBytes": 629448,
+        "geometryGpuBytes": 430436,
+        "textureGpuBytesCompressedTarget": 360528,
+        "textureGpuBytesRgba8Fallback": 2184528,
+        "modelGpuBytesCompressedTarget": 790964,
+        "modelGpuBytesRgba8Fallback": 2614964,
+        "textures": [
+          {
+            "imageIndex": 0,
+            "name": "Image_3",
+            "slots": [
+              "emissiveTexture"
+            ],
+            "mimeType": "image/ktx2",
+            "encoding": "ETC1S",
+            "width": 128,
+            "height": 128,
+            "mipLevels": 8,
+            "transferBytes": 1012,
+            "gpuBytesCompressedTarget": 10936,
+            "gpuBytesRgba8Fallback": 87380
+          },
+          {
+            "imageIndex": 1,
+            "name": "Image_2",
+            "slots": [
+              "normalTexture"
+            ],
+            "mimeType": "image/ktx2",
+            "encoding": "UASTC",
+            "width": 256,
+            "height": 256,
+            "mipLevels": 9,
+            "transferBytes": 43844,
+            "gpuBytesCompressedTarget": 87408,
+            "gpuBytesRgba8Fallback": 349524
+          },
+          {
+            "imageIndex": 2,
+            "name": "Image_0",
+            "slots": [
+              "baseColorTexture"
+            ],
+            "mimeType": "image/ktx2",
+            "encoding": "ETC1S",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 99906,
+            "gpuBytesCompressedTarget": 174776,
+            "gpuBytesRgba8Fallback": 1398100
+          },
+          {
+            "imageIndex": 3,
+            "name": "Image_1",
+            "slots": [
+              "metallicRoughnessTexture"
+            ],
+            "mimeType": "image/ktx2",
+            "encoding": "UASTC",
+            "width": 256,
+            "height": 256,
+            "mipLevels": 9,
+            "transferBytes": 51506,
+            "gpuBytesCompressedTarget": 87408,
+            "gpuBytesRgba8Fallback": 349524
+          }
+        ]
+      }
+    },
+    {
+      "id": "arc-nest",
+      "taskId": "019fc38c-5dfd-7f2c-bafc-29c7adee94fe",
+      "approvedCandidate": {
+        "file": "art/class-models/provider-runs/meshy/arc-nest/019fc38c-5dfd-7f2c-bafc-29c7adee94fe/model-normalized-review.glb",
+        "bytes": 612864,
+        "sha256": "3ca03a3594c10e160c9a26904fd065bace1e056c5ab142a516aaa449c09569c1"
+      },
+      "normalizedSource": {
+        "file": "art/class-models/provider-runs/meshy/arc-nest/019fc38c-5dfd-7f2c-bafc-29c7adee94fe/model-normalized-raw.glb",
+        "bytes": 26671524,
+        "sha256": "f8f1118b365c4aad59ff5ab3b88bec7af3afad13628a85016cee293e3d2feaca"
+      },
+      "runtime": {
+        "file": "art/class-models/runtime-tiers/arc-relay/ktx2-selective-v1/arc-nest.glb",
+        "bytes": 524540,
+        "sha256": "48ae465dad7bc816f4bfa361864da7c2a33da21161346c510f139df65d88deda"
+      },
+      "orientation": "lay-flat-x",
+      "facingYawDegrees": 0,
+      "triangles": 13893,
+      "geometrySha256": "06213558f2e2ae720d91465b41dacf71db1a525e8e16335c83dcf6644047b5cb",
+      "materials": 1,
+      "textures": 4,
+      "targetPlanformSpan": 0.99,
+      "floorY": 0,
+      "memory": {
+        "transferBytes": 524540,
+        "geometryGpuBytes": 303740,
+        "textureGpuBytesCompressedTarget": 360528,
+        "textureGpuBytesRgba8Fallback": 2184528,
+        "modelGpuBytesCompressedTarget": 664268,
+        "modelGpuBytesRgba8Fallback": 2488268,
+        "textures": [
+          {
+            "imageIndex": 0,
+            "name": "Image_3",
+            "slots": [
+              "emissiveTexture"
+            ],
+            "mimeType": "image/ktx2",
+            "encoding": "ETC1S",
+            "width": 128,
+            "height": 128,
+            "mipLevels": 8,
+            "transferBytes": 724,
+            "gpuBytesCompressedTarget": 10936,
+            "gpuBytesRgba8Fallback": 87380
+          },
+          {
+            "imageIndex": 1,
+            "name": "Image_2",
+            "slots": [
+              "normalTexture"
+            ],
+            "mimeType": "image/ktx2",
+            "encoding": "UASTC",
+            "width": 256,
+            "height": 256,
+            "mipLevels": 9,
+            "transferBytes": 53649,
+            "gpuBytesCompressedTarget": 87408,
+            "gpuBytesRgba8Fallback": 349524
+          },
+          {
+            "imageIndex": 2,
+            "name": "Image_0",
+            "slots": [
+              "baseColorTexture"
+            ],
+            "mimeType": "image/ktx2",
+            "encoding": "ETC1S",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 104642,
+            "gpuBytesCompressedTarget": 174776,
+            "gpuBytesRgba8Fallback": 1398100
+          },
+          {
+            "imageIndex": 3,
+            "name": "Image_1",
+            "slots": [
+              "metallicRoughnessTexture"
+            ],
+            "mimeType": "image/ktx2",
+            "encoding": "UASTC",
+            "width": 256,
+            "height": 256,
+            "mipLevels": 9,
+            "transferBytes": 59059,
+            "gpuBytesCompressedTarget": 87408,
+            "gpuBytesRgba8Fallback": 349524
+          }
+        ]
+      }
+    },
+    {
+      "id": "arc-palisade",
+      "taskId": "019fc38f-b5a7-7fce-8910-e708b93ecaac",
+      "approvedCandidate": {
+        "file": "art/class-models/provider-runs/meshy/arc-palisade/019fc38f-b5a7-7fce-8910-e708b93ecaac/model-normalized-review.glb",
+        "bytes": 641408,
+        "sha256": "38bb47b8b2abf0b59e8336bf090f3a241a33d30c7b875ab269df62469ad92dfe"
+      },
+      "normalizedSource": {
+        "file": "art/class-models/provider-runs/meshy/arc-palisade/019fc38f-b5a7-7fce-8910-e708b93ecaac/model-normalized-raw.glb",
+        "bytes": 26499324,
+        "sha256": "b0d71ca213a9961e31982726f6c2ed53e3417861c1b3bc494b5d30fb11c6c48c"
+      },
+      "runtime": {
+        "file": "art/class-models/runtime-tiers/arc-relay/ktx2-selective-v1/arc-palisade.glb",
+        "bytes": 524964,
+        "sha256": "8b10b23a43db6a6fe83b7df5c904567f44f45561fe8baf180d5a82904802731d"
+      },
+      "orientation": "lay-flat-x",
+      "facingYawDegrees": 0,
+      "triangles": 13542,
+      "geometrySha256": "66d5b48d194b07f4000aab817ae9a17e35408e4f054f92878c4084867e3c07d0",
+      "materials": 1,
+      "textures": 4,
+      "targetPlanformSpan": 0.99,
+      "floorY": 0,
+      "memory": {
+        "transferBytes": 524964,
+        "geometryGpuBytes": 293892,
+        "textureGpuBytesCompressedTarget": 360528,
+        "textureGpuBytesRgba8Fallback": 2184528,
+        "modelGpuBytesCompressedTarget": 654420,
+        "modelGpuBytesRgba8Fallback": 2478420,
+        "textures": [
+          {
+            "imageIndex": 0,
+            "name": "Image_3",
+            "slots": [
+              "emissiveTexture"
+            ],
+            "mimeType": "image/ktx2",
+            "encoding": "ETC1S",
+            "width": 128,
+            "height": 128,
+            "mipLevels": 8,
+            "transferBytes": 2320,
+            "gpuBytesCompressedTarget": 10936,
+            "gpuBytesRgba8Fallback": 87380
+          },
+          {
+            "imageIndex": 1,
+            "name": "Image_2",
+            "slots": [
+              "normalTexture"
+            ],
+            "mimeType": "image/ktx2",
+            "encoding": "UASTC",
+            "width": 256,
+            "height": 256,
+            "mipLevels": 9,
+            "transferBytes": 58037,
+            "gpuBytesCompressedTarget": 87408,
+            "gpuBytesRgba8Fallback": 349524
+          },
+          {
+            "imageIndex": 2,
+            "name": "Image_0",
+            "slots": [
+              "baseColorTexture"
+            ],
+            "mimeType": "image/ktx2",
+            "encoding": "ETC1S",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 106503,
+            "gpuBytesCompressedTarget": 174776,
+            "gpuBytesRgba8Fallback": 1398100
+          },
+          {
+            "imageIndex": 3,
+            "name": "Image_1",
+            "slots": [
+              "metallicRoughnessTexture"
+            ],
+            "mimeType": "image/ktx2",
+            "encoding": "UASTC",
+            "width": 256,
+            "height": 256,
+            "mipLevels": 9,
+            "transferBytes": 61494,
+            "gpuBytesCompressedTarget": 87408,
+            "gpuBytesRgba8Fallback": 349524
+          }
+        ]
+      }
+    },
+    {
+      "id": "arc-patchbay",
+      "taskId": "019fc393-6297-70c0-8cd7-0811d40a1fbd",
+      "approvedCandidate": {
+        "file": "art/class-models/provider-runs/meshy/arc-patchbay/019fc393-6297-70c0-8cd7-0811d40a1fbd/model-normalized-review.glb",
+        "bytes": 672520,
+        "sha256": "c8d5661948c55701d7dedccab38f070d0f60b8a84c5ad004d96a6d0d1eda7061"
+      },
+      "normalizedSource": {
+        "file": "art/class-models/provider-runs/meshy/arc-patchbay/019fc393-6297-70c0-8cd7-0811d40a1fbd/model-normalized-raw.glb",
+        "bytes": 27226148,
+        "sha256": "70cb6e6dcfe268b7b335fdcfafbcd6dd1777bbcd7586bb0c19c66f8ee37f4e1d"
+      },
+      "runtime": {
+        "file": "art/class-models/runtime-tiers/arc-relay/ktx2-selective-v1/arc-patchbay.glb",
+        "bytes": 513812,
+        "sha256": "296d0c6d2f94fe0132fa1f0977f7c2f435e447ee356db1497bf15be3b8914ae3"
+      },
+      "orientation": "lay-flat-x",
+      "facingYawDegrees": 0,
+      "triangles": 13808,
+      "geometrySha256": "08d79d2a2808dd3fa4385912c57c7e38600390d5092d568bdeff57b4bf670200",
+      "materials": 1,
+      "textures": 4,
+      "targetPlanformSpan": 0.99,
+      "floorY": 0,
+      "memory": {
+        "transferBytes": 513812,
+        "geometryGpuBytes": 279228,
+        "textureGpuBytesCompressedTarget": 360528,
+        "textureGpuBytesRgba8Fallback": 2184528,
+        "modelGpuBytesCompressedTarget": 639756,
+        "modelGpuBytesRgba8Fallback": 2463756,
+        "textures": [
+          {
+            "imageIndex": 0,
+            "name": "Image_3",
+            "slots": [
+              "emissiveTexture"
+            ],
+            "mimeType": "image/ktx2",
+            "encoding": "ETC1S",
+            "width": 128,
+            "height": 128,
+            "mipLevels": 8,
+            "transferBytes": 1653,
+            "gpuBytesCompressedTarget": 10936,
+            "gpuBytesRgba8Fallback": 87380
+          },
+          {
+            "imageIndex": 1,
+            "name": "Image_2",
+            "slots": [
+              "normalTexture"
+            ],
+            "mimeType": "image/ktx2",
+            "encoding": "UASTC",
+            "width": 256,
+            "height": 256,
+            "mipLevels": 9,
+            "transferBytes": 60810,
+            "gpuBytesCompressedTarget": 87408,
+            "gpuBytesRgba8Fallback": 349524
+          },
+          {
+            "imageIndex": 2,
+            "name": "Image_0",
+            "slots": [
+              "baseColorTexture"
+            ],
+            "mimeType": "image/ktx2",
+            "encoding": "ETC1S",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 105309,
+            "gpuBytesCompressedTarget": 174776,
+            "gpuBytesRgba8Fallback": 1398100
+          },
+          {
+            "imageIndex": 3,
+            "name": "Image_1",
+            "slots": [
+              "metallicRoughnessTexture"
+            ],
+            "mimeType": "image/ktx2",
+            "encoding": "UASTC",
+            "width": 256,
+            "height": 256,
+            "mipLevels": 9,
+            "transferBytes": 64080,
+            "gpuBytesCompressedTarget": 87408,
+            "gpuBytesRgba8Fallback": 349524
+          }
+        ]
+      }
+    },
+    {
+      "id": "arc-relay",
+      "taskId": "019fc396-a4ea-7171-a329-7aeb2e9c42b8",
+      "approvedCandidate": {
+        "file": "art/class-models/provider-runs/meshy/arc-relay/019fc396-a4ea-7171-a329-7aeb2e9c42b8/model-normalized-review.glb",
+        "bytes": 626756,
+        "sha256": "8ef9bbd92aef26f23e765498532ccfcd1b8407db00893bdbfd0234dbb1511782"
+      },
+      "normalizedSource": {
+        "file": "art/class-models/provider-runs/meshy/arc-relay/019fc396-a4ea-7171-a329-7aeb2e9c42b8/model-normalized-raw.glb",
+        "bytes": 28338888,
+        "sha256": "6153185c356badebfabc03314cb2e4d8283786bc4270ee0f4c102b5fa3780f06"
+      },
+      "runtime": {
+        "file": "art/class-models/runtime-tiers/arc-relay/ktx2-selective-v1/arc-relay.glb",
+        "bytes": 529928,
+        "sha256": "dcc5035b8693ee47a15545888bbf001317dcc000c2d25dbf4dc1df8e6ab02068"
+      },
+      "orientation": "lay-flat-x",
+      "facingYawDegrees": 0,
+      "triangles": 12043,
+      "geometrySha256": "c127031d12abca026ce577d8f02572f4387c3d9974f8e7ea79f493765a9bc079",
+      "materials": 1,
+      "textures": 4,
+      "targetPlanformSpan": 0.99,
+      "floorY": 0,
+      "memory": {
+        "transferBytes": 529928,
+        "geometryGpuBytes": 313900,
+        "textureGpuBytesCompressedTarget": 360528,
+        "textureGpuBytesRgba8Fallback": 2184528,
+        "modelGpuBytesCompressedTarget": 674428,
+        "modelGpuBytesRgba8Fallback": 2498428,
+        "textures": [
+          {
+            "imageIndex": 0,
+            "name": "Image_3",
+            "slots": [
+              "emissiveTexture"
+            ],
+            "mimeType": "image/ktx2",
+            "encoding": "ETC1S",
+            "width": 128,
+            "height": 128,
+            "mipLevels": 8,
+            "transferBytes": 3321,
+            "gpuBytesCompressedTarget": 10936,
+            "gpuBytesRgba8Fallback": 87380
+          },
+          {
+            "imageIndex": 1,
+            "name": "Image_2",
+            "slots": [
+              "normalTexture"
+            ],
+            "mimeType": "image/ktx2",
+            "encoding": "UASTC",
+            "width": 256,
+            "height": 256,
+            "mipLevels": 9,
+            "transferBytes": 43326,
+            "gpuBytesCompressedTarget": 87408,
+            "gpuBytesRgba8Fallback": 349524
+          },
+          {
+            "imageIndex": 2,
+            "name": "Image_0",
+            "slots": [
+              "baseColorTexture"
+            ],
+            "mimeType": "image/ktx2",
+            "encoding": "ETC1S",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 106478,
+            "gpuBytesCompressedTarget": 174776,
+            "gpuBytesRgba8Fallback": 1398100
+          },
+          {
+            "imageIndex": 3,
+            "name": "Image_1",
+            "slots": [
+              "metallicRoughnessTexture"
+            ],
+            "mimeType": "image/ktx2",
+            "encoding": "UASTC",
+            "width": 256,
+            "height": 256,
+            "mipLevels": 9,
+            "transferBytes": 60183,
+            "gpuBytesCompressedTarget": 87408,
+            "gpuBytesRgba8Fallback": 349524
+          }
+        ]
+      }
+    },
+    {
+      "id": "arc-repulsor",
+      "taskId": "019fc399-7a64-78a8-b9df-bc7f765eeddf",
+      "approvedCandidate": {
+        "file": "art/class-models/provider-runs/meshy/arc-repulsor/019fc399-7a64-78a8-b9df-bc7f765eeddf/model-normalized-review.glb",
+        "bytes": 600348,
+        "sha256": "c1424f1424bc4b6620742d03cc90370394ac46ea459fce89c5588a937cacd07d"
+      },
+      "normalizedSource": {
+        "file": "art/class-models/provider-runs/meshy/arc-repulsor/019fc399-7a64-78a8-b9df-bc7f765eeddf/model-normalized-raw.glb",
+        "bytes": 27929492,
+        "sha256": "31fdb26210b6f6548587571104701b9ec89810fc39fe430c13dc800e759aa8dd"
+      },
+      "runtime": {
+        "file": "art/class-models/runtime-tiers/arc-relay/ktx2-selective-v1/arc-repulsor.glb",
+        "bytes": 509244,
+        "sha256": "59a8681dec871f0cf37e9e7fadf055b9192e0c478a3551f6953d30d47a1aa1cd"
+      },
+      "orientation": "lay-flat-x",
+      "facingYawDegrees": 0,
+      "triangles": 15079,
+      "geometrySha256": "0dacd4364e9a0300ff2f4d3f401bd41646aa5f06b83ef2be78c08ea2a36307b8",
+      "materials": 1,
+      "textures": 4,
+      "targetPlanformSpan": 0.99,
+      "floorY": 0,
+      "memory": {
+        "transferBytes": 509244,
+        "geometryGpuBytes": 279056,
+        "textureGpuBytesCompressedTarget": 360528,
+        "textureGpuBytesRgba8Fallback": 2184528,
+        "modelGpuBytesCompressedTarget": 639584,
+        "modelGpuBytesRgba8Fallback": 2463584,
+        "textures": [
+          {
+            "imageIndex": 0,
+            "name": "Image_3",
+            "slots": [
+              "emissiveTexture"
+            ],
+            "mimeType": "image/ktx2",
+            "encoding": "ETC1S",
+            "width": 128,
+            "height": 128,
+            "mipLevels": 8,
+            "transferBytes": 4391,
+            "gpuBytesCompressedTarget": 10936,
+            "gpuBytesRgba8Fallback": 87380
+          },
+          {
+            "imageIndex": 1,
+            "name": "Image_2",
+            "slots": [
+              "normalTexture"
+            ],
+            "mimeType": "image/ktx2",
+            "encoding": "UASTC",
+            "width": 256,
+            "height": 256,
+            "mipLevels": 9,
+            "transferBytes": 59317,
+            "gpuBytesCompressedTarget": 87408,
+            "gpuBytesRgba8Fallback": 349524
+          },
+          {
+            "imageIndex": 2,
+            "name": "Image_0",
+            "slots": [
+              "baseColorTexture"
+            ],
+            "mimeType": "image/ktx2",
+            "encoding": "ETC1S",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 105755,
+            "gpuBytesCompressedTarget": 174776,
+            "gpuBytesRgba8Fallback": 1398100
+          },
+          {
+            "imageIndex": 3,
+            "name": "Image_1",
+            "slots": [
+              "metallicRoughnessTexture"
+            ],
+            "mimeType": "image/ktx2",
+            "encoding": "UASTC",
+            "width": 256,
+            "height": 256,
+            "mipLevels": 9,
+            "transferBytes": 57975,
+            "gpuBytesCompressedTarget": 87408,
+            "gpuBytesRgba8Fallback": 349524
+          }
+        ]
+      }
+    },
+    {
+      "id": "arc-sunder",
+      "taskId": "019fc39c-aa25-792a-bd75-3791ddd95373",
+      "approvedCandidate": {
+        "file": "art/class-models/provider-runs/meshy/arc-sunder/019fc39c-aa25-792a-bd75-3791ddd95373/model-normalized-review.glb",
+        "bytes": 673812,
+        "sha256": "b1b8ec42d1533bf4ab20d79c34b94a34caceb71d1388e6de99c62a36e2621e48"
+      },
+      "normalizedSource": {
+        "file": "art/class-models/provider-runs/meshy/arc-sunder/019fc39c-aa25-792a-bd75-3791ddd95373/model-normalized-raw.glb",
+        "bytes": 28887452,
+        "sha256": "3fbe25532052a2c4120884313f2e4943e746a3457cc732d9b9a7668838cd92ef"
+      },
+      "runtime": {
+        "file": "art/class-models/runtime-tiers/arc-relay/ktx2-selective-v1/arc-sunder.glb",
+        "bytes": 569792,
+        "sha256": "52786bd6bf8732dae8ba60807814c7e3d581ea96217775c0940bdf2d4a07ea45"
+      },
+      "orientation": "lay-flat-x",
+      "facingYawDegrees": 0,
+      "triangles": 12267,
+      "geometrySha256": "37ad376332eb133b15eb3848d3e91bf1cff3b3c63ca08f68bb776547b0f884fe",
+      "materials": 1,
+      "textures": 4,
+      "targetPlanformSpan": 0.99,
+      "floorY": 0,
+      "memory": {
+        "transferBytes": 569792,
+        "geometryGpuBytes": 368344,
+        "textureGpuBytesCompressedTarget": 360528,
+        "textureGpuBytesRgba8Fallback": 2184528,
+        "modelGpuBytesCompressedTarget": 728872,
+        "modelGpuBytesRgba8Fallback": 2552872,
+        "textures": [
+          {
+            "imageIndex": 0,
+            "name": "Image_3",
+            "slots": [
+              "emissiveTexture"
+            ],
+            "mimeType": "image/ktx2",
+            "encoding": "ETC1S",
+            "width": 128,
+            "height": 128,
+            "mipLevels": 8,
+            "transferBytes": 1385,
+            "gpuBytesCompressedTarget": 10936,
+            "gpuBytesRgba8Fallback": 87380
+          },
+          {
+            "imageIndex": 1,
+            "name": "Image_2",
+            "slots": [
+              "normalTexture"
+            ],
+            "mimeType": "image/ktx2",
+            "encoding": "UASTC",
+            "width": 256,
+            "height": 256,
+            "mipLevels": 9,
+            "transferBytes": 31458,
+            "gpuBytesCompressedTarget": 87408,
+            "gpuBytesRgba8Fallback": 349524
+          },
+          {
+            "imageIndex": 2,
+            "name": "Image_0",
+            "slots": [
+              "baseColorTexture"
+            ],
+            "mimeType": "image/ktx2",
+            "encoding": "ETC1S",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 107127,
+            "gpuBytesCompressedTarget": 174776,
+            "gpuBytesRgba8Fallback": 1398100
+          },
+          {
+            "imageIndex": 3,
+            "name": "Image_1",
+            "slots": [
+              "metallicRoughnessTexture"
+            ],
+            "mimeType": "image/ktx2",
+            "encoding": "UASTC",
+            "width": 256,
+            "height": 256,
+            "mipLevels": 9,
+            "transferBytes": 58776,
+            "gpuBytesCompressedTarget": 87408,
+            "gpuBytesRgba8Fallback": 349524
+          }
+        ]
+      }
+    },
+    {
+      "id": "arc-switchback",
+      "taskId": "019fc39f-6f51-73b5-8d52-4fcb3461262f",
+      "approvedCandidate": {
+        "file": "art/class-models/provider-runs/meshy/arc-switchback/019fc39f-6f51-73b5-8d52-4fcb3461262f/model-normalized-review.glb",
+        "bytes": 591668,
+        "sha256": "54c2b495013b698e0775a09638afb0550dedf12c105bf5921c8b49c34483e97d"
+      },
+      "normalizedSource": {
+        "file": "art/class-models/provider-runs/meshy/arc-switchback/019fc39f-6f51-73b5-8d52-4fcb3461262f/model-normalized-raw.glb",
+        "bytes": 27193724,
+        "sha256": "596b058547f6760bd4b28dd921106a5e39854e4695ca22f2788f574efc1e8957"
+      },
+      "runtime": {
+        "file": "art/class-models/runtime-tiers/arc-relay/ktx2-selective-v1/arc-switchback.glb",
+        "bytes": 521656,
+        "sha256": "979bb666024cd39eb1949d4007b17a5a6236d8d34cfa882a0ba29aef46a6803b"
+      },
+      "orientation": "lay-flat-x",
+      "facingYawDegrees": 0,
+      "triangles": 15939,
+      "geometrySha256": "2ce89e3f54526fd7cb597e3ea14fb0bd0bb05351a0451314536d7212ddf81fe0",
+      "materials": 1,
+      "textures": 4,
+      "targetPlanformSpan": 0.99,
+      "floorY": 0,
+      "memory": {
+        "transferBytes": 521656,
+        "geometryGpuBytes": 300856,
+        "textureGpuBytesCompressedTarget": 360528,
+        "textureGpuBytesRgba8Fallback": 2184528,
+        "modelGpuBytesCompressedTarget": 661384,
+        "modelGpuBytesRgba8Fallback": 2485384,
+        "textures": [
+          {
+            "imageIndex": 0,
+            "name": "Image_3",
+            "slots": [
+              "emissiveTexture"
+            ],
+            "mimeType": "image/ktx2",
+            "encoding": "ETC1S",
+            "width": 128,
+            "height": 128,
+            "mipLevels": 8,
+            "transferBytes": 2832,
+            "gpuBytesCompressedTarget": 10936,
+            "gpuBytesRgba8Fallback": 87380
+          },
+          {
+            "imageIndex": 1,
+            "name": "Image_2",
+            "slots": [
+              "normalTexture"
+            ],
+            "mimeType": "image/ktx2",
+            "encoding": "UASTC",
+            "width": 256,
+            "height": 256,
+            "mipLevels": 9,
+            "transferBytes": 50799,
+            "gpuBytesCompressedTarget": 87408,
+            "gpuBytesRgba8Fallback": 349524
+          },
+          {
+            "imageIndex": 2,
+            "name": "Image_0",
+            "slots": [
+              "baseColorTexture"
+            ],
+            "mimeType": "image/ktx2",
+            "encoding": "ETC1S",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 104504,
+            "gpuBytesCompressedTarget": 174776,
+            "gpuBytesRgba8Fallback": 1398100
+          },
+          {
+            "imageIndex": 3,
+            "name": "Image_1",
+            "slots": [
+              "metallicRoughnessTexture"
+            ],
+            "mimeType": "image/ktx2",
+            "encoding": "UASTC",
+            "width": 256,
+            "height": 256,
+            "mipLevels": 9,
+            "transferBytes": 59936,
+            "gpuBytesCompressedTarget": 87408,
+            "gpuBytesRgba8Fallback": 349524
+          }
+        ]
+      }
+    },
+    {
+      "id": "arc-towline",
+      "taskId": "019fc3a2-7382-78a9-8950-3d67759a5e5d",
+      "approvedCandidate": {
+        "file": "art/class-models/provider-runs/meshy/arc-towline/019fc3a2-7382-78a9-8950-3d67759a5e5d/model-normalized-review.glb",
+        "bytes": 644856,
+        "sha256": "5a84cb1f9b8354cc985620437662c4bafc9f228d60a1459454a44b668c6af6b3"
+      },
+      "normalizedSource": {
+        "file": "art/class-models/provider-runs/meshy/arc-towline/019fc3a2-7382-78a9-8950-3d67759a5e5d/model-normalized-raw.glb",
+        "bytes": 27204396,
+        "sha256": "e069bb75042b0c08ce57afe0247f664537596897abfc183e331e9203ebe42466"
+      },
+      "runtime": {
+        "file": "art/class-models/runtime-tiers/arc-relay/ktx2-selective-v1/arc-towline.glb",
+        "bytes": 539112,
+        "sha256": "271ebcf8e48b139d5d5fcb40c9d897ff478c18076786d18015aa96a2e0dce90e"
+      },
+      "orientation": "lay-flat-x",
+      "facingYawDegrees": 0,
+      "triangles": 15375,
+      "geometrySha256": "1be0d5b93c7eef71b9a04689bcb5cbad7cacdd09b1e382ba412433c79b9b8dc1",
+      "materials": 1,
+      "textures": 4,
+      "targetPlanformSpan": 0.99,
+      "floorY": 0,
+      "memory": {
+        "transferBytes": 539112,
+        "geometryGpuBytes": 299332,
+        "textureGpuBytesCompressedTarget": 360528,
+        "textureGpuBytesRgba8Fallback": 2184528,
+        "modelGpuBytesCompressedTarget": 659860,
+        "modelGpuBytesRgba8Fallback": 2483860,
+        "textures": [
+          {
+            "imageIndex": 0,
+            "name": "Image_3",
+            "slots": [
+              "emissiveTexture"
+            ],
+            "mimeType": "image/ktx2",
+            "encoding": "ETC1S",
+            "width": 128,
+            "height": 128,
+            "mipLevels": 8,
+            "transferBytes": 5041,
+            "gpuBytesCompressedTarget": 10936,
+            "gpuBytesRgba8Fallback": 87380
+          },
+          {
+            "imageIndex": 1,
+            "name": "Image_2",
+            "slots": [
+              "normalTexture"
+            ],
+            "mimeType": "image/ktx2",
+            "encoding": "UASTC",
+            "width": 256,
+            "height": 256,
+            "mipLevels": 9,
+            "transferBytes": 58498,
+            "gpuBytesCompressedTarget": 87408,
+            "gpuBytesRgba8Fallback": 349524
+          },
+          {
+            "imageIndex": 2,
+            "name": "Image_0",
+            "slots": [
+              "baseColorTexture"
+            ],
+            "mimeType": "image/ktx2",
+            "encoding": "ETC1S",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 109785,
+            "gpuBytesCompressedTarget": 174776,
+            "gpuBytesRgba8Fallback": 1398100
+          },
+          {
+            "imageIndex": 3,
+            "name": "Image_1",
+            "slots": [
+              "metallicRoughnessTexture"
+            ],
+            "mimeType": "image/ktx2",
+            "encoding": "UASTC",
+            "width": 256,
+            "height": 256,
+            "mipLevels": 9,
+            "transferBytes": 63663,
+            "gpuBytesCompressedTarget": 87408,
+            "gpuBytesRgba8Fallback": 349524
+          }
+        ]
+      }
+    },
+    {
+      "id": "arc-veil",
+      "taskId": "019fc3a5-b087-7b50-9f62-a1f27d372881",
+      "approvedCandidate": {
+        "file": "art/class-models/provider-runs/meshy/arc-veil/019fc3a5-b087-7b50-9f62-a1f27d372881/model-normalized-review.glb",
+        "bytes": 814688,
+        "sha256": "70acf4779fe1ffcde3bd6ed3235c6952f3554215bf9df7a71335010b2f70254a"
+      },
+      "normalizedSource": {
+        "file": "art/class-models/provider-runs/meshy/arc-veil/019fc3a5-b087-7b50-9f62-a1f27d372881/model-normalized-raw.glb",
+        "bytes": 28412272,
+        "sha256": "1b8fa12dbf6f9f78466d8144618ad99e2faa5aa04d82bb30603596a8d9521e8b"
+      },
+      "runtime": {
+        "file": "art/class-models/runtime-tiers/arc-relay/ktx2-selective-v1/arc-veil.glb",
+        "bytes": 650444,
+        "sha256": "525e97a2cdd9c29e24ffcd06fe6cd42c0c99a799fb81e835975cb8014a3c78c6"
+      },
+      "orientation": "lay-flat-x",
+      "facingYawDegrees": 0,
+      "triangles": 12542,
+      "geometrySha256": "cb34ac3efefbb6823bada27abc03a30912be908bc976b96230780fb05740c747",
+      "materials": 1,
+      "textures": 4,
+      "targetPlanformSpan": 0.99,
+      "floorY": 0,
+      "memory": {
+        "transferBytes": 650444,
+        "geometryGpuBytes": 419152,
+        "textureGpuBytesCompressedTarget": 360528,
+        "textureGpuBytesRgba8Fallback": 2184528,
+        "modelGpuBytesCompressedTarget": 779680,
+        "modelGpuBytesRgba8Fallback": 2603680,
+        "textures": [
+          {
+            "imageIndex": 0,
+            "name": "Image_3",
+            "slots": [
+              "emissiveTexture"
+            ],
+            "mimeType": "image/ktx2",
+            "encoding": "ETC1S",
+            "width": 128,
+            "height": 128,
+            "mipLevels": 8,
+            "transferBytes": 724,
+            "gpuBytesCompressedTarget": 10936,
+            "gpuBytesRgba8Fallback": 87380
+          },
+          {
+            "imageIndex": 1,
+            "name": "Image_2",
+            "slots": [
+              "normalTexture"
+            ],
+            "mimeType": "image/ktx2",
+            "encoding": "UASTC",
+            "width": 256,
+            "height": 256,
+            "mipLevels": 9,
+            "transferBytes": 60817,
+            "gpuBytesCompressedTarget": 87408,
+            "gpuBytesRgba8Fallback": 349524
+          },
+          {
+            "imageIndex": 2,
+            "name": "Image_0",
+            "slots": [
+              "baseColorTexture"
+            ],
+            "mimeType": "image/ktx2",
+            "encoding": "ETC1S",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 105569,
+            "gpuBytesCompressedTarget": 174776,
+            "gpuBytesRgba8Fallback": 1398100
+          },
+          {
+            "imageIndex": 3,
+            "name": "Image_1",
+            "slots": [
+              "metallicRoughnessTexture"
+            ],
+            "mimeType": "image/ktx2",
+            "encoding": "UASTC",
+            "width": 256,
+            "height": 256,
+            "mipLevels": 9,
+            "transferBytes": 61446,
+            "gpuBytesCompressedTarget": 87408,
+            "gpuBytesRgba8Fallback": 349524
+          }
+        ]
+      }
+    }
+  ]
+}

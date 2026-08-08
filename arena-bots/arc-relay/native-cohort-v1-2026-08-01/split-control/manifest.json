@@ -1,0 +1,89 @@
+{
+  "entrantId": "split-control",
+  "entryType": "SplitControlMind",
+  "doctrineCell": "A",
+  "coverageCell": "split-control",
+  "sdkVersion": "0.10.11",
+  "sourceSha256": "4d85c3f22704cbd71d6b772f3414bf1c06813c870d2c91624bdc9ddbae5a00eb",
+  "sourceHashAlgorithm": "sha256 of sorted lines '<file-sha256>  <basename>\\n' for the top-level .cs files",
+  "sourceFiles": {
+    "ArcNavigation.cs": "d399cec9d709f7eac2ec21fc59d8b27acc8b259e6ebc32c2e093d048b95644a2",
+    "SplitControlMind.cs": "bcc413ce14363f09350a521e78ddf9758fcafb97232df79bdeba3d111fe8295f"
+  },
+  "projectSha256": "8d7859751b3e83de3c624a2ae60158112ecfbe788a6d1e9cfb1b99cbc8092573",
+  "botarenaJsonSha256": "3bb78b867a07c21ec5a8a72b456725826382e6d73eb1ebfb5566064de41733a4",
+  "sheetSha256": "4f4eb72ff253218cf9e1a5bdf69f6a4002f96bb1b7a19f909d30bd06be7a4374",
+  "artifactSha256": "223bc7c557c6ae5e3b6a7e7fb493032b3a5d0a9de788214de58d0f4ea7ccb8d2",
+  "artifactBytes": 3569607,
+  "controlledBuild": {
+    "count": 1,
+    "cacheMode": "no-cache",
+    "cacheKey": "926dae3e28717a41fb503cfc81122047f7f3fafbe559e3086b2713d91c23db54",
+    "compiler": "NativeAOT-LLVM 10.0.0-rc.1.26306.1"
+  },
+  "composition": [
+    "kestrel",
+    "palisade",
+    "relay",
+    "minesmith",
+    "towline",
+    "hush",
+    "lantern",
+    "veil"
+  ],
+  "mechanicalSmoke": {
+    "runtime": "in-process",
+    "seed": 314159,
+    "completed": true,
+    "endTick": 504,
+    "tickCount": 505,
+    "eligibleTeamIds": [0, 1],
+    "zeroRuntimeFaults": true,
+    "zeroRuntimeFaultsBasis": "both teams eligible under public contract allowance of zero faults before disqualification",
+    "replaySha256": "7a7e18472476d1141104fc055d0eab95a5d9b0b43ea198f41332541ff099672b"
+  },
+  "repairHistory": [
+    {
+      "revision": 0,
+      "repair": "suppress null-field submission after empty-position signature-state abort",
+      "outcome": "abort persisted",
+      "archive": "repair-history/000-null-field-runtime-fault.reverse.patch"
+    },
+    {
+      "revision": 1,
+      "repair": "suppress trip-node submission after mechanical signature tracing",
+      "outcome": "abort persisted",
+      "archive": "repair-history/001-trip-node-runtime-fault.reverse.patch"
+    },
+    {
+      "revision": 2,
+      "repair": "suppress prism-wall submission that could project no surviving segment",
+      "outcome": "abort persisted",
+      "archive": "repair-history/002-prism-wall-runtime-fault.reverse.patch"
+    },
+    {
+      "revision": 3,
+      "repair": "suppress smoke-canister submission",
+      "outcome": "abort persisted",
+      "archive": "repair-history/003-smoke-runtime-fault.reverse.patch"
+    },
+    {
+      "revision": 4,
+      "repair": "suppress survey-flare submission",
+      "outcome": "match advanced farther; abort persisted",
+      "archive": "repair-history/004-survey-flare-runtime-fault.reverse.patch"
+    },
+    {
+      "revision": 5,
+      "repair": "exclude own reactor as arc-toss landing after mechanical signature tracing",
+      "outcome": "abort persisted",
+      "archive": "repair-history/005-arc-toss-reactor-runtime-fault.reverse.patch"
+    },
+    {
+      "revision": 6,
+      "repair": "suppress arc-toss submission",
+      "outcome": "mechanical smoke completed",
+      "archive": "repair-history/006-arc-toss-runtime-fault.reverse.patch"
+    }
+  ]
+}

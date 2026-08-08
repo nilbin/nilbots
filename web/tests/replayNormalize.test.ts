@@ -886,6 +886,215 @@ test('replay-v3 normalizes the Engine golden without collapsing unit and life id
   }
 });
 
+test('replay-v3 carries every automatic-return placement policy', () => {
+  // The lifecycle policy is contract data the viewer relays rather than
+  // re-decides, so a new placement must normalize without a viewer change and
+  // the historical one must keep normalizing — archived replays name it.
+  const placements = [
+    'own-side-chain-adjacent-objective-tile-in-team-advance-order-then-assigned-spawn',
+    'own-side-chain-adjacent-objective-tile-then-assigned-spawn',
+    'assigned-spawn-permanently-reserved-for-slot-against-other-actors-and-lifecycle-claims',
+  ];
+  for (const placement of placements) {
+    const raw = replayV3FixtureText().replace(
+      /"automaticReturnPlacement":"[^"]*"/,
+      `"automaticReturnPlacement":"${placement}"`,
+    );
+    const decoded = decodeReplayJson(raw);
+    assert.equal(decoded.replayVersion, 3);
+    const contract = decoded.replay.contract;
+    assert.equal(contract.kind, 'v3-generic');
+    if (contract.kind === 'v3-generic') {
+      assert.equal(
+        (contract.rawContract.rules.lifecycle as Record<string, unknown>)
+          .automaticReturnPlacement,
+        placement,
+      );
+    }
+  }
+});
+
+test('replay-v3 carries typed class identity through topology and both observed sides', () => {
+  const input = replayV3FixtureInput();
+  const classForTeam = (teamId: number) =>
+    teamId === 0 ? 'bulwark' : 'striker';
+  input.header.contract.topology.teams.forEach((team) => {
+    team.classId = classForTeam(team.teamId);
+  });
+  input.header.contract.topology.participants.forEach((participant) => {
+    participant.classId = classForTeam(participant.teamId);
+  });
+  const worlds = [
+    input.initialFrame.state,
+    ...input.ticks.flatMap((tick) => [
+      tick.tickStart.state,
+      tick.postState,
+    ]),
+  ];
+  worlds.forEach((world) => {
+    world.participants.forEach((participant) => {
+      participant.classId = classForTeam(participant.teamId);
+    });
+  });
+  input.ticks.forEach((tick) => {
+    tick.actorTurns.forEach((turn) => {
+      const observation = turn.observation;
+      observation.self.classId = classForTeam(
+        observation.self.actorId.teamId,
+      );
+      observation.participants.forEach((participant) => {
+        participant.classId = classForTeam(participant.teamId);
+      });
+      [...observation.allies, ...observation.enemies].forEach((actor) => {
+        actor.classId = classForTeam(actor.actorId.teamId);
+      });
+    });
+  });
+
+  const replay = decodeReplay(input).replay;
+  assert.deepEqual(
+    replay.teams.map((team) => team.classId),
+    ['bulwark', 'striker'],
+  );
+  assert.deepEqual(
+    replay.participants.map((participant) => participant.classId),
+    ['bulwark', 'striker'],
+  );
+  assert.ok(
+    replay.ticks.every((tick) =>
+      tick.actorTurns.every(
+        (turn) =>
+          turn.observation.self?.classId ===
+          classForTeam(turn.actor.teamId),
+      ),
+    ),
+  );
+  const observedEnemy = replay.ticks
+    .flatMap((tick) => tick.actorTurns)
+    .flatMap((turn) => turn.observation.enemies)
+    .at(0);
+  assert.equal(
+    observedEnemy?.classId,
+    observedEnemy?.actor.kind === 'exact'
+      ? classForTeam(observedEnemy.actor.identity.teamId)
+      : classForTeam(observedEnemy?.actor.teamId ?? -1),
+  );
+});
+
+test('replay-v3 rejects explicitly inert class and hold encodings', () => {
+  const explicitNullClass = replayV3FixtureInput();
+  (
+    explicitNullClass.header.contract.topology.teams[0] as unknown as {
+      classId: null;
+    }
+  ).classId = null;
+  assert.throws(
+    () => decodeReplay(explicitNullClass),
+    /topology\.teams\[0\]\.classId/,
+  );
+
+  const partialHold = adaptReplayV3ToFrontline(replayV3FixtureInput());
+  if (partialHold.initialFrame.state.mode.kind !== 'frontline') {
+    assert.fail('expected Frontline mode');
+  }
+  partialHold.initialFrame.state.mode.holdOwnerTeamId = 0;
+  assert.throws(
+    () => decodeReplay(partialHold),
+    /hold owner and expiry must be published together/,
+  );
+
+  const lapsedHold = adaptReplayV3ToFrontline(replayV3FixtureInput());
+  if (lapsedHold.initialFrame.state.mode.kind !== 'frontline') {
+    assert.fail('expected Frontline mode');
+  }
+  lapsedHold.initialFrame.state.mode.holdOwnerTeamId = 0;
+  lapsedHold.initialFrame.state.mode.holdEndsAtTick =
+    lapsedHold.initialFrame.state.nextTick;
+  assert.throws(
+    () => decodeReplay(lapsedHold),
+    /violates frontline control invariants/,
+  );
+});
+
+test('replay-v3 carries the shared team seed and tolerates a document without one', () => {
+  const replay = decodeReplay(replayV3FixtureInput()).replay;
+  const starts = replay.initialLifeStarts ?? [];
+
+  assert.ok(starts.length >= 2);
+  for (const start of starts) {
+    assert.match(String(start.teamRandomSeed), /^(0|[1-9][0-9]*)$/);
+  }
+  // One value per scoring team: teammates share it, opponents do not.
+  assert.equal(
+    new Set(starts.map((start) => start.teamRandomSeed)).size,
+    new Set(starts.map((start) => start.actor.teamId)).size,
+  );
+  assert.notEqual(starts[0]?.teamRandomSeed, starts[0]?.actorRandomSeed);
+
+  // A bounds-illegal seed is refused by the mirror on its own.
+  const malformed = replayV3FixtureInput();
+  (malformed.initialFrame.lifeStarts[0] as { teamRandomSeed: string })
+    .teamRandomSeed = '-1';
+  assert.throws(() => decodeReplay(malformed), /teamRandomSeed/);
+
+  // A document written before the team stream existed still decodes.
+  const legacy = replayV3FixtureInput();
+  for (const start of legacy.initialFrame.lifeStarts) {
+    delete (start as { teamRandomSeed?: string }).teamRandomSeed;
+  }
+  for (const tick of legacy.ticks) {
+    for (const start of tick.tickStart.lifeStarts) {
+      delete (start as { teamRandomSeed?: string }).teamRandomSeed;
+    }
+  }
+  const decodedLegacy = decodeReplay(legacy).replay;
+  assert.equal(
+    decodedLegacy.initialLifeStarts?.[0]?.teamRandomSeed,
+    null,
+  );
+});
+
+test('replay-v3 preserves projectile threat and spawn claims and rejects causal drift', () => {
+  const replay = decodeReplay(replayV3FixtureInput()).replay;
+  const projectile = replay.ticks
+    .flatMap((tick) => tick.actorTurns)
+    .flatMap((turn) => turn.observation.visibleProjectiles ?? [])
+    .at(0);
+  const reservation = replay.ticks
+    .flatMap((tick) => tick.actorTurns)
+    .flatMap((turn) => turn.observation.visibleTiles)
+    .map((tile) => tile.spawnReservation)
+    .find((claim) => claim !== null);
+
+  assert.equal(projectile?.ticksPerAdvance, 1);
+  assert.equal(projectile?.damagePerHit, 1);
+  assert.equal(reservation?.kind, 'automatic-return');
+  assert.equal(reservation?.dueTick, null);
+
+  const projectileDrift = replayV3FixtureInput();
+  const observedProjectile = projectileDrift.ticks
+    .flatMap((tick) => tick.actorTurns)
+    .flatMap((turn) => turn.observation.visibleProjectiles ?? [])
+    .at(0)!;
+  observedProjectile.ticksPerAdvance += 1;
+  assert.throws(
+    () => decodeReplay(projectileDrift),
+    /must match the authoritative projectile and attack profile/,
+  );
+
+  const reservationDrift = replayV3FixtureInput();
+  const observedReservation = reservationDrift.ticks
+    .flatMap((tick) => tick.actorTurns)
+    .flatMap((turn) => turn.observation.visibleTiles)
+    .map((tile) => tile.spawnReservation)
+    .find((claim) => claim !== null)!;
+  observedReservation.unitId += 1;
+  assert.throws(
+    () => decodeReplay(reservationDrift),
+    /must match the authoritative tick-start spawn claim/,
+  );
+});
+
 test('replay-v3 accepts a declared automatic return at the tick-start boundary', () => {
   const fixture = replayV3FixtureInput();
   const before = structuredClone(fixture.initialFrame.state);
@@ -1255,6 +1464,10 @@ test('replay-v3 Frontline normalizes typed rules, ordered geometry, control, and
       captureProgress: 0,
       decayTicksElapsed: 0,
       controlResumesAtTick: 0,
+      holdOwnerTeamId: null,
+      holdEndsAtTick: null,
+      secondaryOwnerTeamId: null,
+      secondaryClaimProgress: 0,
     },
     scores: [
       {
@@ -1668,6 +1881,467 @@ test('replay-v3 accepts backend-grouped event tags without collapsing payload ki
   assert.throws(
     () => decodeReplay(mismatched),
     /must use payload kind form-transition/,
+  );
+});
+
+test('replay-v3 accepts every pre-registered pendulum capture policy and rejects an inert hold', () => {
+  const frontline = () => {
+    const input = adaptReplayV3ToFrontline(replayV3FixtureInput());
+    if (input.header.contract.rules.gameMode.kind !== 'frontline') {
+      assert.fail('expected Frontline rules');
+    }
+    return input.header.contract.rules.gameMode.capture;
+  };
+  const withCapture = (
+    mutate: (capture: ReturnType<typeof frontline>) => void,
+  ) => {
+    const input = adaptReplayV3ToFrontline(replayV3FixtureInput());
+    if (input.header.contract.rules.gameMode.kind !== 'frontline') {
+      assert.fail('expected Frontline rules');
+    }
+    mutate(input.header.contract.rules.gameMode.capture);
+    return input;
+  };
+  const RATCHET =
+    'advance-immediately-then-deny-enemy-regression-past-the-high-water-mark-through-configured-hold-ticks';
+
+  assert.equal(
+    decodeReplay(
+      withCapture((capture) => {
+        capture.controlPolicy =
+          'net-positive-objective-weight-difference-scales-gain-non-positive-applies-configured-decay-opposition-erodes-to-neutral';
+      }),
+    ).replay.sourceVersion,
+    3,
+  );
+  assert.equal(
+    decodeReplay(
+      withCapture((capture) => {
+        capture.decayClock =
+          'empty-and-contested-ticks-preserve-claim-enemy-sole-erosion-only';
+      }),
+    ).replay.sourceVersion,
+    3,
+  );
+  assert.equal(
+    decodeReplay(
+      withCapture((capture) => {
+        capture.redeployPolicy = RATCHET;
+        capture.ratchetHoldTicks = 40;
+      }),
+    ).replay.sourceVersion,
+    3,
+  );
+
+  // The engine writes a hold duration only for the high-water-mark policy, so
+  // both halves of the inert encoding are non-canonical.
+  assert.throws(
+    () =>
+      decodeReplay(
+        withCapture((capture) => {
+          capture.ratchetHoldTicks = 0;
+        }),
+      ),
+    /ratchetHoldTicks: must be omitted instead of emitted inert/,
+  );
+  assert.throws(
+    () =>
+      decodeReplay(
+        withCapture((capture) => {
+          capture.redeployPolicy = RATCHET;
+        }),
+      ),
+    /ratchetHoldTicks: is carried by exactly the high-water-mark redeploy policy/,
+  );
+  assert.throws(
+    () =>
+      decodeReplay(
+        withCapture((capture) => {
+          (capture as { decayClock: string }).decayClock =
+            'never-decays-at-all';
+        }),
+      ),
+    /decayClock: expected one of/,
+  );
+});
+
+test('replay-v3 validates the published ratchet hold against the ratchet contract', () => {
+  const RATCHET =
+    'advance-immediately-then-deny-enemy-regression-past-the-high-water-mark-through-configured-hold-ticks';
+  type FrontlineControl = {
+    holdOwnerTeamId: number | null;
+    holdEndsAtTick: number | null;
+  };
+  // One live hold published on EVERY boundary, which is what a real ratchet
+  // history looks like: the tick-start boundary, the post state, and each
+  // actor's frozen copy all carry the same clocks, so the only thing under
+  // test is whether the contract could have produced them.
+  const held = (
+    mutate: (control: FrontlineControl) => void,
+    ratchet = true,
+  ) => {
+    const input = adaptReplayV3ToFrontline(replayV3FixtureInput());
+    if (input.header.contract.rules.gameMode.kind !== 'frontline') {
+      assert.fail('expected Frontline rules');
+    }
+    if (ratchet) {
+      input.header.contract.rules.gameMode.capture.redeployPolicy = RATCHET;
+      input.header.contract.rules.gameMode.capture.ratchetHoldTicks = 40;
+    }
+    const controls: FrontlineControl[] = [
+      input.initialFrame.state.mode as unknown as FrontlineControl,
+      ...input.ticks.flatMap((tick) => [
+        tick.tickStart.state.mode as unknown as FrontlineControl,
+        tick.postState.mode as unknown as FrontlineControl,
+        ...tick.actorTurns.map(
+          (turn) => turn.observation.mode as unknown as FrontlineControl,
+        ),
+      ]),
+      ...(input.result?.mode.kind === 'frontline'
+        ? [input.result.mode.control as unknown as FrontlineControl]
+        : []),
+    ];
+    for (const control of controls) {
+      control.holdOwnerTeamId = 0;
+      control.holdEndsAtTick = 40;
+      mutate(control);
+    }
+    return input;
+  };
+
+  // The honest shape decodes, and the fields reach the model.
+  const decoded = decodeReplay(held(() => {})).replay;
+  assert.equal(decoded.sourceVersion, 3);
+  const mode = decoded.initialWorld?.mode;
+  assert.equal(mode?.kind, 'frontline');
+  assert.deepEqual(
+    {
+      holdOwnerTeamId: (mode as FrontlineControl).holdOwnerTeamId,
+      holdEndsAtTick: (mode as FrontlineControl).holdEndsAtTick,
+    },
+    { holdOwnerTeamId: 0, holdEndsAtTick: 40 },
+  );
+
+  // Both clocks travel together...
+  assert.throws(
+    () => decodeReplay(held((control) => { control.holdEndsAtTick = null; })),
+    /hold owner and expiry must be published together/,
+  );
+  assert.throws(
+    () => decodeReplay(held((control) => { control.holdOwnerTeamId = null; })),
+    /hold owner and expiry must be published together/,
+  );
+  // ...the owner is a real scoring team...
+  assert.throws(
+    () => decodeReplay(held((control) => { control.holdOwnerTeamId = 7; })),
+    /violates frontline control invariants/,
+  );
+  // ...a published hold still binds, and never outlasts its declared duration...
+  assert.throws(
+    () => decodeReplay(held((control) => { control.holdEndsAtTick = 0; })),
+    /violates frontline control invariants/,
+  );
+  assert.throws(
+    () => decodeReplay(held((control) => { control.holdEndsAtTick = 42; })),
+    /violates frontline control invariants/,
+  );
+  // ...and only the high-water-mark redeploy policy may publish one at all.
+  assert.throws(
+    () => decodeReplay(held(() => {}, false)),
+    /violates frontline control invariants/,
+  );
+});
+
+test('replay-v3 validates the published side objective against the declared capability', () => {
+  type FrontlineControl = {
+    secondaryOwnerTeamId: number | null;
+    secondaryClaimProgress: number;
+  };
+  // A declared side objective plus one published owner on EVERY boundary,
+  // which is what a real muster history looks like: the tick-start boundary,
+  // the post state, and each actor's frozen copy carry the same two facts, so
+  // the only thing under test is whether the contract could have produced
+  // them.
+  const flagged = (
+    mutate: (control: FrontlineControl) => void,
+    declared = true,
+  ) => {
+    const input = adaptReplayV3ToFrontline(replayV3FixtureInput());
+    if (input.header.contract.rules.gameMode.kind !== 'frontline') {
+      assert.fail('expected Frontline rules');
+    }
+    if (declared) {
+      input.header.contract.rules.gameMode.secondaryControl = {
+        regionIds: ['muster-site-north', 'muster-site-south'],
+        captureThresholdTicks: 12,
+        ownership: 'latched-until-recaptured-by-sole-objective-weight',
+        effect: 'muster',
+        rallyScope: 'prime-automatic-return-only',
+      };
+    }
+    const controls: FrontlineControl[] = [
+      input.initialFrame.state.mode as unknown as FrontlineControl,
+      ...input.ticks.flatMap((tick) => [
+        tick.tickStart.state.mode as unknown as FrontlineControl,
+        tick.postState.mode as unknown as FrontlineControl,
+        ...tick.actorTurns.map(
+          (turn) => turn.observation.mode as unknown as FrontlineControl,
+        ),
+      ]),
+      ...(input.result?.mode.kind === 'frontline'
+        ? [input.result.mode.control as unknown as FrontlineControl]
+        : []),
+    ];
+    for (const control of controls) {
+      control.secondaryOwnerTeamId = 0;
+      control.secondaryClaimProgress = 0;
+      mutate(control);
+    }
+    return input;
+  };
+
+  // The honest shape decodes, and both facts reach the model.
+  const decoded = decodeReplay(flagged(() => {})).replay;
+  const mode = decoded.initialWorld?.mode;
+  assert.equal(mode?.kind, 'frontline');
+  assert.deepEqual(
+    {
+      secondaryOwnerTeamId: (mode as FrontlineControl).secondaryOwnerTeamId,
+      secondaryClaimProgress: (mode as FrontlineControl)
+        .secondaryClaimProgress,
+    },
+    { secondaryOwnerTeamId: 0, secondaryClaimProgress: 0 },
+  );
+
+  // The owner is a real scoring team...
+  assert.throws(
+    () =>
+      decodeReplay(
+        flagged((control) => {
+          control.secondaryOwnerTeamId = 7;
+        }),
+      ),
+    /violates frontline control invariants/,
+  );
+  // ...the owner is never also the claimant...
+  assert.throws(
+    () =>
+      decodeReplay(
+        flagged((control) => {
+          control.secondaryClaimProgress = 3;
+        }),
+      ),
+    /violates frontline control invariants/,
+  );
+  // ...a standing claim is strictly below the declared threshold, because
+  // reaching it latches ownership on that very tick...
+  assert.throws(
+    () =>
+      decodeReplay(
+        flagged((control) => {
+          control.secondaryOwnerTeamId = null;
+          control.secondaryClaimProgress = 12;
+        }),
+      ),
+    /violates frontline control invariants/,
+  );
+  // ...and only a mode that DECLARES a side objective may publish one.
+  assert.throws(
+    () => decodeReplay(flagged(() => {}, false)),
+    /violates frontline control invariants/,
+  );
+
+  // The declaration itself is checked: an empty site, a non-positive latch,
+  // and an unregistered effect are all refused.
+  const declaration = (
+    mutate: (value: Record<string, unknown>) => void,
+  ) => {
+    const input = flagged(() => {});
+    if (input.header.contract.rules.gameMode.kind !== 'frontline') {
+      assert.fail('expected Frontline rules');
+    }
+    mutate(
+      input.header.contract.rules.gameMode.secondaryControl as unknown as
+        Record<string, unknown>,
+    );
+    return input;
+  };
+  assert.throws(
+    () =>
+      decodeReplay(
+        declaration((value) => {
+          value.regionIds = [];
+        }),
+      ),
+    /at least one site region/,
+  );
+  assert.throws(
+    () =>
+      decodeReplay(
+        declaration((value) => {
+          value.captureThresholdTicks = 0;
+        }),
+      ),
+    /positive latch threshold/,
+  );
+  assert.throws(
+    () =>
+      decodeReplay(
+        declaration((value) => {
+          value.effect = 'relay';
+        }),
+      ),
+    /expected one of muster/,
+  );
+});
+
+test('replay-v3 accepts the optional movement facing coupling and rejects an inert or unknown one', () => {
+  const coupled = replayV3FixtureInput();
+  coupled.header.contract.rules.movementProfiles[0]!.facingCoupling =
+    'face-movement-direction';
+  const decoded = decodeReplay(coupled).replay;
+
+  assert.equal(decoded.sourceVersion, 3);
+  assert.equal(decoded.forms[0]?.movementLayer, 'ground');
+  for (const value of [
+    'face-movement-heading-projected',
+    'combat-strafe',
+  ]) {
+    const candidate = replayV3FixtureInput();
+    candidate.header.contract.rules.movementProfiles[0]!.facingCoupling = value;
+    assert.equal(decodeReplay(candidate).replay.sourceVersion, 3);
+  }
+
+  // The engine's canonical writer omits the property entirely while the
+  // profile preserves facing, so an explicitly inert value is a second,
+  // non-canonical encoding of the same contract.
+  const inert = replayV3FixtureInput();
+  inert.header.contract.rules.movementProfiles[0]!.facingCoupling =
+    'preserve-facing';
+  assert.throws(
+    () => decodeReplay(inert),
+    /facingCoupling: must be omitted instead of emitted inert/,
+  );
+
+  const unknown = replayV3FixtureInput();
+  unknown.header.contract.rules.movementProfiles[0]!.facingCoupling =
+    'tank-controls';
+  assert.throws(
+    () => decodeReplay(unknown),
+    /facingCoupling: expected a known non-inert movement\/facing coupling/,
+  );
+
+  const strayField = replayV3FixtureInput();
+  (
+    unknown.header.contract.rules.movementProfiles[0] as unknown as {
+      facingCoupling?: string;
+    }
+  ).facingCoupling = undefined;
+  (
+    strayField.header.contract.rules.movementProfiles[0] as unknown as {
+      couplings?: string;
+    }
+  ).couplings = 'face-movement-direction';
+  assert.throws(
+    () => decodeReplay(strayField),
+    /movementProfiles\[0\]\.couplings: unknown property/,
+  );
+});
+
+test('replay-v3 accepts the forward aim cone and movement-action override as one strict contract', () => {
+  const forward = replayV3FixtureInput();
+  const attackIndex = 0;
+  const attack = forward.header.contract.rules.attackProfiles[attackIndex]!;
+  attack.shotProgram.enabled = false;
+  attack.omnidirectionalAim = false;
+  attack.aimInterpretation =
+    'absolute-submitted-eight-way-heading-within-facing-cone-facing-unchanged';
+  attack.facingAimHalfWidthSectors = 1;
+  const action = forward.header.contract.rules.actions.find(
+    (candidate) => candidate.kind === 'movement',
+  )!;
+  action.movementFacingOverride = 'preserve-facing';
+  assert.equal(decodeReplay(forward).replay.sourceVersion, 3);
+
+  const inert = structuredClone(forward);
+  inert.header.contract.rules.attackProfiles[attackIndex]!
+    .facingAimHalfWidthSectors = 0;
+  assert.throws(
+    () => decodeReplay(inert),
+    /facingAimHalfWidthSectors: must be 1\.\.3 when present/,
+  );
+
+  const missing = structuredClone(forward);
+  delete missing.header.contract.rules.attackProfiles[attackIndex]!
+    .facingAimHalfWidthSectors;
+  assert.throws(
+    () => decodeReplay(missing),
+    /aimInterpretation: requires facingAimHalfWidthSectors/,
+  );
+
+  const wrongKind = structuredClone(forward);
+  wrongKind.header.contract.rules.actions.find(
+    (candidate) => candidate.kind === 'attack',
+  )!.movementFacingOverride = 'preserve-facing';
+  assert.throws(
+    () => decodeReplay(wrongKind),
+    /movementFacingOverride: is permitted only on movement actions/,
+  );
+});
+
+test('replay-v3 accepts a movement-coupled facing change with no rotation evidence', () => {
+  const coupled = replayV3FixtureInput();
+  coupled.header.contract.rules.movementProfiles[0]!.facingCoupling =
+    'face-movement-direction';
+  const tick = coupled.ticks.at(-1)!;
+  const life = tick.postState.activeLives[0]!;
+  const from = { ...life.position };
+  const to = { x: from.x, y: from.y - 1 };
+  const turned = life.facing === 'north' ? 'south' : 'north';
+
+  // Under FaceMovementDirection the Movement event is itself the
+  // facing-change evidence: no rotation event accompanies it, and the tick's
+  // authoritative post-state carries the new facing.
+  life.facing = turned;
+  life.position = to;
+  const resultUnit = coupled.result!.units.find(
+    (unit) =>
+      unit.slot.teamId === life.actorId.teamId &&
+      unit.slot.unitId === life.actorId.unitId,
+  )!;
+  resultUnit.activeLife = structuredClone(life);
+  tick.events.push({
+    eventHandle: 'synthetic-coupled-movement',
+    tick: tick.tick,
+    globalOrdinal: '900',
+    sourceOrdinal: (tick.events.at(-1)?.sourceOrdinal ?? -1) + 1,
+    kind: 'movement',
+    payload: {
+      kind: 'movement',
+      actorId: { ...life.actorId },
+      action: { actionId: 'move', actionCode: 1, arguments: [] },
+      from,
+      to,
+      facing: turned,
+    },
+    audience: { kind: 'spatial', primaryPosition: to },
+  } as (typeof tick.events)[number]);
+
+  const replay = decodeReplay(coupled).replay;
+  const moved = replay.ticks.at(-1)!.after.actors.find(
+    (actor) =>
+      actor.identity.teamId === life.actorId.teamId &&
+      actor.identity.unitId === life.actorId.unitId,
+  );
+
+  assert.equal(moved?.facing, turned);
+  assert.equal(
+    replay.ticks.at(-1)!.events.some((event) => event.type === 'rotation'),
+    false,
+  );
+  assert.equal(
+    replay.ticks.at(-1)!.events.at(-1)?.type,
+    'movement',
   );
 });
 

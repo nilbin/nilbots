@@ -9,4 +9,5 @@ public static class PlaylistVisibilityIds
 {
     public const string Legacy = "legacy";
     public const string Labs = "labs";
+    public const string Public = "public";
 }

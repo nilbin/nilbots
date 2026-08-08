@@ -24,6 +24,10 @@ internal static class GenericActorWireContractCodec
             ActorWireValue.String(
                 value.Contract.CanonicalJson,
                 GenericActorContractVersions.MaxCanonicalContractBytes));
+        // Trailing additive field (#156 discipline): an artifact compiled
+        // before the team stream existed simply ignores field 8 and keeps
+        // negotiating and running.
+        writer.Field(8, ActorWireValue.UInt64(value.TeamRandomSeed));
         return writer.ToArray();
     }
 
@@ -35,6 +39,10 @@ internal static class GenericActorWireContractCodec
         try
         {
             var reader = new ActorWireObjectReader(bytes, depth);
+            // Optional so a frame produced by an encoder that predates the
+            // team stream still decodes; such a frame carries no team seed,
+            // and zero is still identical for every life on the team.
+            byte[]? teamRandomSeed = reader.Optional(8);
             var result = new GenericActorMatchStart
             {
                 SchemaVersion = ActorWireValue.Int32(reader.Required(1)),
@@ -46,6 +54,9 @@ internal static class GenericActorWireContractCodec
                 ParticipantId = ActorWireValue.Int32(reader.Required(4)),
                 ActorRandomSeed =
                     ActorWireValue.UInt64(reader.Required(5)),
+                TeamRandomSeed = teamRandomSeed is null
+                    ? 0
+                    : ActorWireValue.UInt64(teamRandomSeed),
                 Origin = DecodeOrigin(reader.Required(6), depth + 1),
                 Contract = ActorCanonicalContractReader.ParseUtf8(
                     reader.Required(7)),
@@ -61,7 +72,7 @@ internal static class GenericActorWireContractCodec
         }
     }
 
-    private static byte[] EncodeOrigin(
+    internal static byte[] EncodeOrigin(
         GenericActorMatchStart.LifeOrigin origin)
     {
         var writer = new ActorWireObjectWriter();
@@ -88,7 +99,7 @@ internal static class GenericActorWireContractCodec
         return writer.ToArray();
     }
 
-    private static GenericActorMatchStart.LifeOrigin DecodeOrigin(
+    internal static GenericActorMatchStart.LifeOrigin DecodeOrigin(
         byte[] bytes,
         int depth)
     {
@@ -218,8 +229,62 @@ internal static class GenericActorWireContractCodec
                 HasValidFabrication(value, origin),
             GenericActorMatchStart.SpawnReason.Replication =>
                 HasValidReplication(value, origin),
+            GenericActorMatchStart.SpawnReason.AutomaticActivation =>
+                HasValidAutomaticActivation(value, origin),
+            GenericActorMatchStart.SpawnReason.RootFactorySeed =>
+                HasValidRootFactorySeed(value, origin),
             _ => false,
         };
+    }
+
+    /// <summary>
+    /// A root-factory seed is the base's own placement: a fresh lineage, no
+    /// parent, no transition, on a slot whose profile actually declares the
+    /// bootstrap and whose home spawn exists to receive it.
+    /// </summary>
+    private static bool HasValidRootFactorySeed(
+        GenericActorMatchStart value,
+        GenericActorMatchStart.LifeOrigin origin)
+    {
+        GenericActorResolvedMatchContract.LifecycleAssignment? assignment =
+            FindAssignment(value);
+        if (assignment is null)
+            return false;
+        GenericActorRulesContract.LifecycleProfile? profile =
+            value.Contract.Rules.Lifecycle.Profiles.FirstOrDefault(
+                candidate =>
+                    candidate.ProfileId == assignment.LifecycleProfileId);
+        return origin.Generation == 0
+            && origin.ParentActorId is null
+            && origin.SourceTransitionId is null
+            && origin.SourceOperationId is null
+            && assignment.AssignedRespawnSpawnId is not null
+            && profile?.RootFactorySeedFormId is not null;
+    }
+
+    private static bool HasValidAutomaticActivation(
+        GenericActorMatchStart value,
+        GenericActorMatchStart.LifeOrigin origin)
+    {
+        GenericActorResolvedMatchContract.LifecycleAssignment? assignment =
+            FindAssignment(value);
+        if (assignment is null)
+            return false;
+        GenericActorRulesContract.LifecycleProfile? profile =
+            value.Contract.Rules.Lifecycle.Profiles.FirstOrDefault(
+                candidate =>
+                    candidate.ProfileId == assignment.LifecycleProfileId);
+        return value.ActorId.LifeId == 0
+            && origin.Generation == assignment.InitialGeneration
+            && origin.ParentActorId is null
+            && origin.SourceTransitionId is null
+            && origin.SourceOperationId is null
+            && assignment.InitialAvailability
+                == GenericActorResolvedMatchContract.InitialAvailability
+                    .DormantAutomaticActivationAtTick
+            && assignment.UnlockTick is not null
+            && assignment.AssignedRespawnSpawnId is not null
+            && profile?.DestructionPolicy == "automatic-respawn";
     }
 
     private static bool HasValidAutomaticReturn(

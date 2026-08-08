@@ -1,0 +1,10 @@
+{
+  "id": "arc-minesmith",
+  "label": "Minesmith",
+  "sprite": "sprite.png",
+  "suggestedAccent": "#38bdf8",
+  "defaultProjectile": "arc-pulse",
+  "classId": "minesmith",
+  "locomotionCue": "wheels",
+  "scale": 1.06
+}

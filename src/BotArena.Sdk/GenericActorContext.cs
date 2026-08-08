@@ -3,7 +3,7 @@ using System.Collections.Immutable;
 namespace BotArena.Sdk;
 
 /// <summary>
-/// Canonical schema-2 public pre-tick input for one generic actor life. Static
+/// Canonical schema-3 public pre-tick input for one generic actor life. Static
 /// rules, map, topology, and counts are joined through the match fingerprint
 /// delivered at life start.
 /// </summary>
@@ -52,11 +52,12 @@ public sealed record GenericActorContext
         ModeObservationState mode,
         IEnumerable<GenericActorActionLegality> actionLegalities)
     {
-        if (schemaVersion != CurrentSchemaVersion)
+        if (schemaVersion
+            != GenericActorContractVersions.ObservationSchemaVersion)
         {
             throw new ArgumentOutOfRangeException(
                 nameof(schemaVersion),
-                $"Generic actor observations require schema {CurrentSchemaVersion}.");
+                "Generic actor observations require the exact profile's observation schema.");
         }
         if (tick < 0)
             throw new ArgumentOutOfRangeException(nameof(tick));
@@ -176,8 +177,52 @@ public sealed record GenericActorContext
     /// </summary>
     public ImmutableArray<GenericActorActionLegality> ActionLegalities { get; }
 
-    /// <summary>Deterministic randomness scoped to the exact observing life.</summary>
+    /// <summary>
+    /// Deterministic randomness scoped to the exact observing life. Every life
+    /// draws a DIFFERENT sequence, so a teammate never reproduces your draw —
+    /// use it for private tie-breaks only. A plan that must be shared with the
+    /// team belongs on <see cref="TeamRandom"/>.
+    /// </summary>
     public IBotRandom Random { get; init; } = null!;
+
+    /// <summary>
+    /// Deterministic randomness shared by the whole scoring team, so a
+    /// randomized choice can still be a coordinated one.
+    ///
+    /// <para>
+    /// Teams have no channel to talk over. Coordination works because every
+    /// life on the team receives this identical frozen observation, so any
+    /// pure function of it is a plan all teammates independently agree on.
+    /// <see cref="Random"/> breaks that — it differs per life, so a plan that
+    /// touches it silently diverges between teammates. <c>TeamRandom</c>
+    /// restores it: draws are unpredictable to the opponent, identical inside
+    /// the team, and byte-identical on replay.
+    /// </para>
+    ///
+    /// <para><b>What is guaranteed equal.</b> Within one tick, the Nth draw of
+    /// this stream returns the same value for every life on your team,
+    /// whatever their unit, form, position, or age — including a life created
+    /// this very tick, which agrees with its teammates on its FIRST tick. The
+    /// two teams draw unrelated sequences, and neither can derive the other's.
+    /// </para>
+    ///
+    /// <para><b>When values change.</b> The stream is re-derived from
+    /// (team seed, <see cref="Tick"/>) at the start of every tick — it is
+    /// never carried across ticks. So the same draw index gives a different
+    /// value on the next tick, and re-drawing it is how a team re-rolls a
+    /// shared choice. Nothing you drew on an earlier tick shifts what you draw
+    /// on this one, which is exactly why a mid-match respawn stays in step.
+    /// </para>
+    ///
+    /// <para><b>The one rule.</b> Agreement holds while teammates draw the
+    /// same number of values in the same order within a tick. Draw before you
+    /// branch on private state — <c>bool flank = context.TeamRandom.NextBool();
+    /// if (amScout) …</c> agrees; drawing inside a branch only some lives take
+    /// does not. A mismatch costs you only that tick: the next tick reseeds
+    /// and the team is back in step.
+    /// </para>
+    /// </summary>
+    public IBotRandom TeamRandom { get; init; } = null!;
 
     /// <summary>Bounded diagnostic output; never part of the wire observation.</summary>
     public IBotDebug Debug { get; init; } = null!;
@@ -214,6 +259,17 @@ public sealed record GenericActorContext
         /// <param name="pendingSameLifeTransition">
         /// Current form-transition windup, or <see langword="null"/>.
         /// </param>
+        /// <param name="classId">
+        /// Immutable chassis class, or <see langword="null"/> for a classless
+        /// contract.
+        /// </param>
+        /// <param name="routeCooldowns">
+        /// Live slot-scoped route cooldowns, or empty when none are live.
+        /// </param>
+        /// <param name="carriedScrap">
+        /// Scrap this body is carrying, or zero — which is also every
+        /// contract without a declared economy.
+        /// </param>
         public ObservedSelfState(
             ActorIdentity actorId,
             int generation,
@@ -224,8 +280,12 @@ public sealed record GenericActorContext
             int cooldown,
             int? energy,
             GenericActorActionResolution? previousActionResolution,
-            PendingSameLifeTransition? pendingSameLifeTransition)
+            PendingSameLifeTransition? pendingSameLifeTransition,
+            string? classId = null,
+            ImmutableArray<ObservedRouteCooldown> routeCooldowns = default,
+            int carriedScrap = 0)
         {
+            ArgumentOutOfRangeException.ThrowIfNegative(carriedScrap);
             ArgumentNullException.ThrowIfNull(actorId);
             ValidateBody(
                 generation,
@@ -245,6 +305,15 @@ public sealed record GenericActorContext
             Energy = energy;
             PreviousActionResolution = previousActionResolution;
             PendingSameLifeTransition = pendingSameLifeTransition;
+            ClassId = classId is null
+                ? null
+                : GenericActorDynamicValueRules.SemanticId(
+                    classId,
+                    nameof(classId));
+            RouteCooldowns = routeCooldowns.IsDefault
+                ? []
+                : routeCooldowns;
+            CarriedScrap = carriedScrap;
         }
 
         /// <summary>Exact body-life identity.</summary>
@@ -273,6 +342,59 @@ public sealed record GenericActorContext
         public GenericActorActionResolution? PreviousActionResolution { get; }
         /// <summary>Current same-life transition windup, if any.</summary>
         public PendingSameLifeTransition? PendingSameLifeTransition { get; }
+        /// <summary>
+        /// Immutable chassis class, or null for a classless contract.
+        /// </summary>
+        public string? ClassId { get; }
+
+        /// <summary>
+        /// Every same-life route of this body's stable unit slot currently
+        /// held shut by a declared route cooldown, ordered by transition ID.
+        /// Each entry names the first tick its route accepts a request
+        /// again; the route refuses re-entry while the observed tick is
+        /// strictly below it. The clock is scoped to the unit slot, so it
+        /// survives this life's death. Empty when no route cooldown is live
+        /// — including every contract that declares none.
+        /// </summary>
+        public ImmutableArray<ObservedRouteCooldown> RouteCooldowns { get; }
+
+        /// <summary>
+        /// Scrap this body is currently carrying, which is exactly what a
+        /// death on this tile would put on the floor. Stepping onto a pile
+        /// banks the declared assay instantly and loads the remainder up to
+        /// the declared carry capacity; standing on your own team's declared
+        /// banking region converts the whole load, automatically and free.
+        /// Zero when carrying nothing, and zero for the whole match on every
+        /// contract whose
+        /// <c>GenericActorRulesContract.FrontlineGameMode.ScrapEconomy</c> is
+        /// absent.
+        /// </summary>
+        public int CarriedScrap { get; }
+    }
+
+    /// <summary>
+    /// One live slot-scoped route cooldown: the named same-life transition
+    /// refuses requests until the published tick arrives.
+    /// </summary>
+    public sealed record ObservedRouteCooldown
+    {
+        /// <summary>Creates one live route-cooldown clock.</summary>
+        /// <param name="transitionId">Held same-life transition.</param>
+        /// <param name="readyAtTick">First tick the route accepts a request.</param>
+        public ObservedRouteCooldown(string transitionId, int readyAtTick)
+        {
+            TransitionId = GenericActorDynamicValueRules.SemanticId(
+                transitionId,
+                nameof(transitionId));
+            ArgumentOutOfRangeException.ThrowIfNegative(readyAtTick);
+            ReadyAtTick = readyAtTick;
+        }
+
+        /// <summary>Held same-life transition identifier.</summary>
+        public string TransitionId { get; }
+
+        /// <summary>First tick the route accepts a request again.</summary>
+        public int ReadyAtTick { get; }
     }
 
     /// <summary>
@@ -292,6 +414,11 @@ public sealed record GenericActorContext
         /// <param name="energy">Current energy, or <see langword="null"/> if unsupported.</param>
         /// <param name="previousActionResolution">Allied prior action result, if any.</param>
         /// <param name="pendingSameLifeTransition">Allied transition windup, if any.</param>
+        /// <param name="classId">Immutable allied chassis class, if declared.</param>
+        /// <param name="routeCooldowns">
+        /// Live allied slot route cooldowns, or empty when none are live.
+        /// </param>
+        /// <param name="carriedScrap">The ally's load, or zero.</param>
         public ObservedAllyState(
             ActorIdentity actorId,
             int generation,
@@ -302,9 +429,13 @@ public sealed record GenericActorContext
             int cooldown,
             int? energy,
             GenericActorActionResolution? previousActionResolution,
-            PendingSameLifeTransition? pendingSameLifeTransition)
+            PendingSameLifeTransition? pendingSameLifeTransition,
+            string? classId = null,
+            ImmutableArray<ObservedRouteCooldown> routeCooldowns = default,
+            int carriedScrap = 0)
         {
             ArgumentNullException.ThrowIfNull(actorId);
+            ArgumentOutOfRangeException.ThrowIfNegative(carriedScrap);
             ValidateBody(
                 generation,
                 formId,
@@ -323,6 +454,15 @@ public sealed record GenericActorContext
             Energy = energy;
             PreviousActionResolution = previousActionResolution;
             PendingSameLifeTransition = pendingSameLifeTransition;
+            ClassId = classId is null
+                ? null
+                : GenericActorDynamicValueRules.SemanticId(
+                    classId,
+                    nameof(classId));
+            RouteCooldowns = routeCooldowns.IsDefault
+                ? []
+                : routeCooldowns;
+            CarriedScrap = carriedScrap;
         }
 
         /// <summary>Exact allied body-life identity.</summary>
@@ -345,6 +485,23 @@ public sealed record GenericActorContext
         public GenericActorActionResolution? PreviousActionResolution { get; }
         /// <summary>Allied same-life transition windup, if any.</summary>
         public PendingSameLifeTransition? PendingSameLifeTransition { get; }
+        /// <summary>Immutable allied chassis class, if declared.</summary>
+        public string? ClassId { get; }
+
+        /// <summary>
+        /// Live allied slot route cooldowns, published under the same
+        /// grammar as <see cref="ObservedSelfState.RouteCooldowns"/> —
+        /// allies share their complete gameplay state.
+        /// </summary>
+        public ImmutableArray<ObservedRouteCooldown> RouteCooldowns { get; }
+
+        /// <summary>
+        /// The ally's load, published under the same grammar as
+        /// <see cref="ObservedSelfState.CarriedScrap"/> — allies share their
+        /// complete gameplay state, so an escort knows what it is escorting
+        /// and a team can decide whether the walk home is worth covering.
+        /// </summary>
+        public int CarriedScrap { get; }
     }
 
     /// <summary>
@@ -698,11 +855,13 @@ public sealed record GenericActorContext
         /// <param name="teamId">Assigned scoring-team identifier.</param>
         /// <param name="runtimeFaultCount">Cumulative participant fault count.</param>
         /// <param name="disqualified">Whether the participant is ineligible to continue.</param>
+        /// <param name="classId">Immutable participant chassis class, if declared.</param>
         public ObservedParticipantStatus(
             int participantId,
             int teamId,
             long runtimeFaultCount,
-            bool disqualified)
+            bool disqualified,
+            string? classId = null)
         {
             if (participantId < 0)
                 throw new ArgumentOutOfRangeException(nameof(participantId));
@@ -717,6 +876,11 @@ public sealed record GenericActorContext
             TeamId = teamId;
             RuntimeFaultCount = runtimeFaultCount;
             Disqualified = disqualified;
+            ClassId = classId is null
+                ? null
+                : GenericActorDynamicValueRules.SemanticId(
+                    classId,
+                    nameof(classId));
         }
 
         /// <summary>Submitted-program identifier.</summary>
@@ -727,6 +891,8 @@ public sealed record GenericActorContext
         public long RuntimeFaultCount { get; }
         /// <summary>Whether the participant is ineligible to continue.</summary>
         public bool Disqualified { get; }
+        /// <summary>Immutable participant chassis class, if declared.</summary>
+        public string? ClassId { get; }
     }
 
     /// <summary>
@@ -745,6 +911,16 @@ public sealed record GenericActorContext
         /// <param name="observedBy">
         /// Exact allied life identities whose sensors revealed this state.
         /// </param>
+        /// <param name="classId">Immutable enemy chassis class, if declared.</param>
+        /// <param name="carriedScrap">The enemy's visible load, or zero.</param>
+        /// <param name="roleTag">
+        /// The label the enemy's own mind published for this body, or null.
+        /// It is entirely non-authoritative and it is deliberately PUBLIC: a
+        /// label the engine never reads and the enemy can read is a free
+        /// deception channel, so a body tagged <c>screen</c> may well be the
+        /// channeler. Always null against a per-life opponent, which has no way
+        /// to set one.
+        /// </param>
         public ObservedEnemyState(
             ActorIdentity actorId,
             string formId,
@@ -752,9 +928,13 @@ public sealed record GenericActorContext
             Direction facing,
             int health,
             PendingSameLifeTransition? pendingSameLifeTransition,
-            IEnumerable<ActorIdentity> observedBy)
+            IEnumerable<ActorIdentity> observedBy,
+            string? classId = null,
+            int carriedScrap = 0,
+            string? roleTag = null)
         {
             ArgumentNullException.ThrowIfNull(actorId);
+            ArgumentOutOfRangeException.ThrowIfNegative(carriedScrap);
             ValidatePosition(position, nameof(position));
             if (health <= 0)
                 throw new ArgumentOutOfRangeException(nameof(health));
@@ -771,7 +951,23 @@ public sealed record GenericActorContext
             ObservedBy = GenericActorDynamicValueRules.CanonicalActors(
                 observedBy,
                 nameof(observedBy));
+            ClassId = classId is null
+                ? null
+                : GenericActorDynamicValueRules.SemanticId(
+                    classId,
+                    nameof(classId));
+            CarriedScrap = carriedScrap;
+            RoleTag = roleTag is null
+                ? null
+                : MindValueRules.RoleTag(roleTag, nameof(roleTag));
         }
+
+        /// <summary>
+        /// The label the enemy's own mind published for this body, or null.
+        /// Non-authoritative, public on purpose, and never to be trusted: it is
+        /// what the opponent SAYS this body's job is.
+        /// </summary>
+        public string? RoleTag { get; }
 
         /// <summary>Exact visible enemy body-life identity.</summary>
         public ActorIdentity ActorId { get; }
@@ -790,6 +986,17 @@ public sealed record GenericActorContext
         /// Empty is valid only under a provenance policy that declares it.
         /// </summary>
         public ImmutableArray<ActorIdentity> ObservedBy { get; }
+        /// <summary>Immutable enemy chassis class, if declared.</summary>
+        public string? ClassId { get; }
+
+        /// <summary>
+        /// A visible enemy's load. This is the fact that makes interception a
+        /// decision rather than a guess: killing a loaded carrier drops its
+        /// whole load plus its wreck on one tile, so "is that body worth
+        /// chasing" has an answer. Zero when it carries nothing, and zero for
+        /// the whole match on every contract without a declared economy.
+        /// </summary>
+        public int CarriedScrap { get; }
     }
 
     /// <summary>One sensor-visible map tile and its observation provenance.</summary>
@@ -799,10 +1006,14 @@ public sealed record GenericActorContext
         /// <param name="position">Map coordinate in tiles.</param>
         /// <param name="isWall">Whether the gameplay tile blocks as a wall.</param>
         /// <param name="observedBy">Allied lives whose sensors revealed the tile.</param>
+        /// <param name="spawnReservation">
+        /// Visible lifecycle output claim, or <see langword="null"/>.
+        /// </param>
         public ObservedTile(
             Position position,
             bool isWall,
-            IEnumerable<ActorIdentity> observedBy)
+            IEnumerable<ActorIdentity> observedBy,
+            SpawnReservation? spawnReservation = null)
         {
             ValidatePosition(position, nameof(position));
             Position = position;
@@ -810,6 +1021,7 @@ public sealed record GenericActorContext
             ObservedBy = GenericActorDynamicValueRules.CanonicalActors(
                 observedBy,
                 nameof(observedBy));
+            SpawnReservation = spawnReservation;
         }
 
         /// <summary>Map coordinate in tiles.</summary>
@@ -818,6 +1030,59 @@ public sealed record GenericActorContext
         public bool IsWall { get; }
         /// <summary>Exact allied lives whose sensors revealed the tile.</summary>
         public ImmutableArray<ActorIdentity> ObservedBy { get; }
+        /// <summary>
+        /// Visible lifecycle output claim, or null when this tile is not
+        /// reserved for a future or recurring spawn.
+        /// </summary>
+        public SpawnReservation? SpawnReservation { get; }
+    }
+
+    /// <summary>One spawn claim attached to an already visible tile.</summary>
+    public sealed record SpawnReservation
+    {
+        /// <summary>Creates a visible spawn claim.</summary>
+        public SpawnReservation(
+            int teamId,
+            int unitId,
+            SpawnReservationKind kind,
+            int? dueTick)
+        {
+            if (teamId < 0)
+                throw new ArgumentOutOfRangeException(nameof(teamId));
+            if (unitId < 0)
+                throw new ArgumentOutOfRangeException(nameof(unitId));
+            Kind = GenericActorDynamicValueRules.EnumValue(
+                kind,
+                nameof(kind));
+            if (kind == SpawnReservationKind.AutomaticReturn
+                    && dueTick is not null
+                || kind != SpawnReservationKind.AutomaticReturn
+                    && dueTick is null or < 0)
+            {
+                throw new ArgumentException(
+                    "Permanent automatic-return claims omit dueTick; pending lifecycle claims require a non-negative dueTick.",
+                    nameof(dueTick));
+            }
+            TeamId = teamId;
+            UnitId = unitId;
+            DueTick = dueTick;
+        }
+
+        public int TeamId { get; }
+        public int UnitId { get; }
+        public SpawnReservationKind Kind { get; }
+        public int? DueTick { get; }
+    }
+
+    /// <summary>Why a visible tile is unavailable for another spawn.</summary>
+    public enum SpawnReservationKind
+    {
+        /// <summary>A slot's authored return anchor is permanently claimed.</summary>
+        AutomaticReturn = 0,
+        /// <summary>A queued fabrication claimed this output tile.</summary>
+        Fabrication = 1,
+        /// <summary>A queued replication claimed this output tile.</summary>
+        Replication = 2,
     }
 
     /// <summary>
@@ -838,6 +1103,11 @@ public sealed record GenericActorContext
         /// <param name="ticksUntilAdvance">Ticks until the next advance.</param>
         /// <param name="remainingTiles">Remaining travel budget in tiles.</param>
         /// <param name="observedBy">Allied lives whose sensors revealed it.</param>
+        /// <param name="ticksPerAdvance">
+        /// Declared tick cadence between advances for the profile that fired
+        /// this projectile.
+        /// </param>
+        /// <param name="damagePerHit">Health removed by one contact.</param>
         public ObservedProjectile(
             long projectileId,
             int ownerTeamId,
@@ -847,7 +1117,9 @@ public sealed record GenericActorContext
             int tilesPerAdvance,
             int ticksUntilAdvance,
             int remainingTiles,
-            IEnumerable<ActorIdentity> observedBy)
+            IEnumerable<ActorIdentity> observedBy,
+            int ticksPerAdvance,
+            int damagePerHit)
         {
             if (projectileId < 0)
                 throw new ArgumentOutOfRangeException(nameof(projectileId));
@@ -867,6 +1139,10 @@ public sealed record GenericActorContext
                 throw new ArgumentOutOfRangeException(nameof(ticksUntilAdvance));
             if (remainingTiles < 0)
                 throw new ArgumentOutOfRangeException(nameof(remainingTiles));
+            if (ticksPerAdvance <= 0)
+                throw new ArgumentOutOfRangeException(nameof(ticksPerAdvance));
+            if (damagePerHit <= 0)
+                throw new ArgumentOutOfRangeException(nameof(damagePerHit));
 
             ProjectileId = projectileId;
             OwnerTeamId = ownerTeamId;
@@ -881,6 +1157,8 @@ public sealed record GenericActorContext
             ObservedBy = GenericActorDynamicValueRules.CanonicalActors(
                 observedBy,
                 nameof(observedBy));
+            TicksPerAdvance = ticksPerAdvance;
+            DamagePerHit = damagePerHit;
         }
 
         /// <summary>Match-unique projectile identifier.</summary>
@@ -904,6 +1182,20 @@ public sealed record GenericActorContext
         public int RemainingTiles { get; }
         /// <summary>Exact allied lives whose sensors revealed the projectile.</summary>
         public ImmutableArray<ActorIdentity> ObservedBy { get; }
+        /// <summary>
+        /// Ticks the firing profile spends between advances. With
+        /// <see cref="TicksUntilAdvance"/> and <see cref="TilesPerAdvance"/>
+        /// this closes the timing question a bot actually asks — when does
+        /// this bolt reach my tile — without reverse-engineering the attack
+        /// profile that fired it, which a redacted owner may not even name.
+        /// </summary>
+        public int TicksPerAdvance { get; }
+        /// <summary>
+        /// Health one contact with this projectile removes. Published per
+        /// projectile because a volley bolt and an ordinary bolt need not
+        /// agree, so "should I eat this?" is answerable from the bolt itself.
+        /// </summary>
+        public int DamagePerHit { get; }
     }
 
     /// <summary>
@@ -1293,6 +1585,113 @@ public sealed record GenericActorContext
                 kind == EventKind.Damage;
         }
 
+        /// <summary>
+        /// A hostile projectile died on the target form's declared projectile
+        /// guard instead of damaging it, and the guard returned a new bolt
+        /// from its own tile along the exactly reversed heading under its own
+        /// team's ownership. Contracts whose forms declare no guard never
+        /// produce this event.
+        /// </summary>
+        public sealed record ProjectileDeflected : EventPayload
+        {
+            /// <summary>Creates a projectile-deflection payload.</summary>
+            /// <param name="sourceTeamId">Consumed bolt's owning scoring team.</param>
+            /// <param name="sourceActorId">
+            /// Exact firing life when visible, otherwise <see langword="null"/>.
+            /// </param>
+            /// <param name="targetActorId">Life whose guard turned the bolt.</param>
+            /// <param name="projectileId">Incoming projectile consumed without damage.</param>
+            /// <param name="deflectedProjectileId">
+            /// Returned projectile launched by the guard. It belongs to the
+            /// guard's team and flies the reverse of <paramref name="heading"/>
+            /// from <paramref name="position"/>.
+            /// </param>
+            /// <param name="targetFormId">Guarding form at contact.</param>
+            /// <param name="targetFacing">Guard facing at contact.</param>
+            /// <param name="heading">Incoming travel heading at contact.</param>
+            /// <param name="position">Contact tile, and the return's origin.</param>
+            public ProjectileDeflected(
+                int sourceTeamId,
+                ActorIdentity? sourceActorId,
+                ActorIdentity targetActorId,
+                long projectileId,
+                long deflectedProjectileId,
+                string targetFormId,
+                Direction targetFacing,
+                ProjectileHeading heading,
+                Position position)
+            {
+                ArgumentNullException.ThrowIfNull(targetActorId);
+                if (sourceTeamId < 0)
+                    throw new ArgumentOutOfRangeException(nameof(sourceTeamId));
+                if (sourceActorId is not null
+                    && sourceActorId.TeamId != sourceTeamId)
+                {
+                    throw new ArgumentException(
+                        "A visible source actor must belong to the reported source team.",
+                        nameof(sourceActorId));
+                }
+                if (projectileId < 0)
+                    throw new ArgumentOutOfRangeException(nameof(projectileId));
+                if (deflectedProjectileId < 0)
+                {
+                    throw new ArgumentOutOfRangeException(
+                        nameof(deflectedProjectileId));
+                }
+                if (deflectedProjectileId == projectileId)
+                {
+                    throw new ArgumentException(
+                        "A deflection returns a new projectile identity, never the consumed one.",
+                        nameof(deflectedProjectileId));
+                }
+                if (!Enum.IsDefined(targetFacing))
+                    throw new ArgumentOutOfRangeException(nameof(targetFacing));
+                if (!Enum.IsDefined(heading))
+                    throw new ArgumentOutOfRangeException(nameof(heading));
+                ValidatePosition(position, nameof(position));
+                SourceTeamId = sourceTeamId;
+                SourceActorId = sourceActorId;
+                TargetActorId = targetActorId;
+                ProjectileId = projectileId;
+                DeflectedProjectileId = deflectedProjectileId;
+                TargetFormId = GenericActorDynamicValueRules.SemanticId(
+                    targetFormId,
+                    nameof(targetFormId));
+                TargetFacing = targetFacing;
+                Heading = heading;
+                Position = position;
+            }
+
+            /// <summary>Consumed bolt's owning scoring team.</summary>
+            public int SourceTeamId { get; }
+            /// <summary>
+            /// Exact firing life when observation policy reveals it; otherwise
+            /// <see langword="null"/>.
+            /// </summary>
+            public ActorIdentity? SourceActorId { get; }
+            /// <summary>Life whose guard turned the bolt.</summary>
+            public ActorIdentity TargetActorId { get; }
+            /// <summary>Incoming projectile consumed without damage.</summary>
+            public long ProjectileId { get; }
+            /// <summary>
+            /// Returned projectile: owned by the deflecting life's team,
+            /// launched from <see cref="Position"/> along the reverse of
+            /// <see cref="Heading"/>, and lethal to whoever fired the original.
+            /// </summary>
+            public long DeflectedProjectileId { get; }
+            /// <summary>Guarding form at contact.</summary>
+            public string TargetFormId { get; }
+            /// <summary>Guard facing at contact.</summary>
+            public Direction TargetFacing { get; }
+            /// <summary>Incoming projectile travel heading at contact.</summary>
+            public ProjectileHeading Heading { get; }
+            /// <summary>Contact map tile, and the return bolt's origin.</summary>
+            public Position Position { get; }
+
+            internal override bool Supports(EventKind kind) =>
+                kind == EventKind.ProjectileDeflected;
+        }
+
         /// <summary>One body life reached the ruleset's destruction condition.</summary>
         public sealed record Destruction : EventPayload
         {
@@ -1570,6 +1969,71 @@ public sealed record GenericActorContext
                 kind == EventKind.RuntimeFault;
         }
 
+        /// <summary>
+        /// A participant-scoped MIND fault with no body to attribute it to.
+        /// Under a threshold-0 contract this is the frame on which a mind
+        /// forgot the match and lost it.
+        /// </summary>
+        public sealed record MindRuntimeFault : EventPayload
+        {
+            /// <summary>Creates a participant-scoped mind-fault payload.</summary>
+            /// <param name="participantId">Participant charged with the fault.</param>
+            /// <param name="teamId">Its scoring team.</param>
+            /// <param name="stage">Runtime lifecycle stage that faulted.</param>
+            /// <param name="faultCode">Stable, non-diagnostic fault category.</param>
+            /// <param name="cumulativeFaultCount">Count after this fault.</param>
+            /// <param name="disqualificationTriggered">
+            /// Whether this fault crossed the disqualification threshold.
+            /// </param>
+            public MindRuntimeFault(
+                int participantId,
+                int teamId,
+                GenericActorRuntimeFaultContext.FaultStage stage,
+                string faultCode,
+                long cumulativeFaultCount,
+                bool disqualificationTriggered)
+            {
+                if (participantId < 0)
+                {
+                    throw new ArgumentOutOfRangeException(
+                        nameof(participantId));
+                }
+                if (teamId < 0)
+                    throw new ArgumentOutOfRangeException(nameof(teamId));
+                if (cumulativeFaultCount < 0)
+                {
+                    throw new ArgumentOutOfRangeException(
+                        nameof(cumulativeFaultCount));
+                }
+                ParticipantId = participantId;
+                TeamId = teamId;
+                Stage = GenericActorDynamicValueRules.EnumValue(
+                    stage,
+                    nameof(stage));
+                FaultCode = GenericActorDynamicValueRules.SemanticId(
+                    faultCode,
+                    nameof(faultCode));
+                CumulativeFaultCount = cumulativeFaultCount;
+                DisqualificationTriggered = disqualificationTriggered;
+            }
+
+            /// <summary>Participant charged with the fault.</summary>
+            public int ParticipantId { get; }
+            /// <summary>Its scoring team.</summary>
+            public int TeamId { get; }
+            /// <summary>Runtime lifecycle stage that faulted.</summary>
+            public GenericActorRuntimeFaultContext.FaultStage Stage { get; }
+            /// <summary>Stable, non-diagnostic fault category.</summary>
+            public string FaultCode { get; }
+            /// <summary>Participant fault count after applying this fault.</summary>
+            public long CumulativeFaultCount { get; }
+            /// <summary>Whether this fault triggered disqualification.</summary>
+            public bool DisqualificationTriggered { get; }
+
+            internal override bool Supports(EventKind kind) =>
+                kind == EventKind.MindRuntimeFault;
+        }
+
         /// <summary>A participant was disqualified from the match.</summary>
         public sealed record Participant : EventPayload
         {
@@ -1685,6 +2149,13 @@ public sealed record GenericActorContext
             /// <param name="toFormId">Target form.</param>
             /// <param name="startedTick">Tick on which the operation was accepted.</param>
             /// <param name="dueTick">Scheduled completion tick.</param>
+            /// <param name="automatic">
+            /// True when the engine started this route with no action because
+            /// the source form's declared counter reached its threshold — the
+            /// stance's own budget spending itself. False when an action
+            /// requested it, which is every transition on a contract that
+            /// declares no automatic return.
+            /// </param>
             public FormTransition(
                 ActorIdentity actorId,
                 string transitionId,
@@ -1692,7 +2163,8 @@ public sealed record GenericActorContext
                 string fromFormId,
                 string toFormId,
                 int startedTick,
-                int dueTick)
+                int dueTick,
+                bool automatic = false)
             {
                 ArgumentNullException.ThrowIfNull(actorId);
                 if (startedTick < 0)
@@ -1718,10 +2190,16 @@ public sealed record GenericActorContext
                     nameof(toFormId));
                 StartedTick = startedTick;
                 DueTick = dueTick;
+                Automatic = automatic;
             }
 
             /// <summary>Life retaining identity through the transition.</summary>
             public ActorIdentity ActorId { get; }
+            /// <summary>
+            /// Whether the engine started this route on its own because the
+            /// source form's automatic-return threshold was reached.
+            /// </summary>
+            public bool Automatic { get; }
             /// <summary>Static transition catalog identifier.</summary>
             public string TransitionId { get; }
             /// <summary>Unique operation occurrence handle.</summary>
@@ -1841,6 +2319,22 @@ public sealed record GenericActorContext
             internal override bool Supports(EventKind kind) =>
                 kind == EventKind.LifecycleClockCancelled;
         }
+
+        /// <summary>One authoritative Arc Relay objective/signature fact.</summary>
+        public sealed record ArcRelay : EventPayload
+        {
+            /// <summary>Creates an Arc Relay fact payload.</summary>
+            public ArcRelay(ArcRelayEvent fact)
+            {
+                ArgumentNullException.ThrowIfNull(fact);
+                Fact = fact;
+            }
+
+            /// <summary>The typed Arc Relay fact.</summary>
+            public ArcRelayEvent Fact { get; }
+            internal override bool Supports(EventKind kind) =>
+                kind == EventKind.ArcRelay;
+        }
     }
 
     /// <summary>Discriminator for visible events and redacted heard-event kinds.</summary>
@@ -1884,6 +2378,22 @@ public sealed record GenericActorContext
         ModeChanged = 17,
         /// <summary>A pending stable-slot lifecycle clock was cancelled.</summary>
         LifecycleClockCancelled = 18,
+        /// <summary>
+        /// A form's projectile guard killed a hostile bolt on its arc and
+        /// returned a team-flipped bolt along the reversed heading. Inert on
+        /// every contract whose forms declare no guard.
+        /// </summary>
+        ProjectileDeflected = 19,
+
+        /// <summary>
+        /// A PARTICIPANT-SCOPED runtime fault with no body to attribute it
+        /// to. Only the mind profile can produce one — a mind ticks even on a
+        /// tick it owns nothing, so it can also trap on one — and no per-life
+        /// contract ever emits it.
+        /// </summary>
+        MindRuntimeFault = 20,
+        /// <summary>An Arc Relay Core, Well, Pulse, or signature fact.</summary>
+        ArcRelay = 21,
     }
 
     /// <summary>Authoritative score channels for every public scoring team.</summary>
@@ -2015,13 +2525,44 @@ public sealed record GenericActorContext
             /// <param name="controlResumesAtTick">
             /// Earliest tick on which objective control may resume.
             /// </param>
+            /// <param name="holdOwnerTeamId">
+            /// Team whose advance a live territory-ratchet hold protects, or
+            /// <see langword="null"/> when no hold is live.
+            /// </param>
+            /// <param name="holdEndsAtTick">
+            /// First tick on which that hold no longer denies regression, or
+            /// <see langword="null"/> when no hold is live.
+            /// </param>
+            /// <param name="secondaryOwnerTeamId">
+            /// Team that owns the declared side objective, or
+            /// <see langword="null"/> when it is neutral — including every
+            /// ruleset that declares none.
+            /// </param>
+            /// <param name="secondaryClaimProgress">
+            /// Signed sole-presence ticks accumulated toward the next side
+            /// objective capture: positive for team 0, negative for team 1,
+            /// zero when no claim stands.
+            /// </param>
+            /// <param name="scrapTeams">
+            /// Both teams' bank and tier vector, ordered by team ID, or empty
+            /// on every ruleset without a declared economy.
+            /// </param>
+            /// <param name="scrapPiles">
+            /// Live piles of loose scrap ordered by (y, x), or empty.
+            /// </param>
             public Frontline(
                 string modeId,
                 int activePositionIndex,
                 int? claimingTeamId,
                 int captureProgress,
                 int decayTicksElapsed,
-                int controlResumesAtTick)
+                int controlResumesAtTick,
+                int? holdOwnerTeamId = null,
+                int? holdEndsAtTick = null,
+                int? secondaryOwnerTeamId = null,
+                int secondaryClaimProgress = 0,
+                ImmutableArray<ScrapTeamState> scrapTeams = default,
+                ImmutableArray<ScrapPile> scrapPiles = default)
                 : base(modeId)
             {
                 if (activePositionIndex < 0)
@@ -2040,11 +2581,33 @@ public sealed record GenericActorContext
                     throw new ArgumentOutOfRangeException(
                         nameof(controlResumesAtTick));
                 }
+                if (holdOwnerTeamId is < 0)
+                    throw new ArgumentOutOfRangeException(nameof(holdOwnerTeamId));
+                if (holdEndsAtTick is < 0)
+                    throw new ArgumentOutOfRangeException(nameof(holdEndsAtTick));
+                if ((holdOwnerTeamId is null) != (holdEndsAtTick is null))
+                {
+                    throw new ArgumentException(
+                        "A territory-ratchet hold publishes its owner and its "
+                        + "expiry together or not at all.",
+                        nameof(holdOwnerTeamId));
+                }
+                if (secondaryOwnerTeamId is < 0)
+                {
+                    throw new ArgumentOutOfRangeException(
+                        nameof(secondaryOwnerTeamId));
+                }
                 ActivePositionIndex = activePositionIndex;
                 ClaimingTeamId = claimingTeamId;
                 CaptureProgress = captureProgress;
                 DecayTicksElapsed = decayTicksElapsed;
                 ControlResumesAtTick = controlResumesAtTick;
+                HoldOwnerTeamId = holdOwnerTeamId;
+                HoldEndsAtTick = holdEndsAtTick;
+                SecondaryOwnerTeamId = secondaryOwnerTeamId;
+                SecondaryClaimProgress = secondaryClaimProgress;
+                ScrapTeams = scrapTeams.IsDefault ? [] : scrapTeams;
+                ScrapPiles = scrapPiles.IsDefault ? [] : scrapPiles;
             }
 
             /// <inheritdoc />
@@ -2060,7 +2623,441 @@ public sealed record GenericActorContext
             public int DecayTicksElapsed { get; }
             /// <summary>Earliest authoritative tick on which control may resume.</summary>
             public int ControlResumesAtTick { get; }
+            /// <summary>
+            /// The team whose completed advance the territory ratchet is
+            /// currently protecting, or <see langword="null"/> when no hold is
+            /// live — which includes every ruleset whose redeploy policy has
+            /// no ratchet. Read it instead of inferring ownership from front
+            /// displacement: that inference is wrong after the first
+            /// regression and impossible for a life born inside the hold.
+            /// </summary>
+            public int? HoldOwnerTeamId { get; }
+            /// <summary>
+            /// The first tick on which the live hold stops denying enemy
+            /// regression, or <see langword="null"/> when no hold is live.
+            /// Same grammar as <see cref="ControlResumesAtTick"/>, so the hold
+            /// binds while the observed tick is strictly below it.
+            /// </summary>
+            public int? HoldEndsAtTick { get; }
+            /// <summary>
+            /// The team that owns the declared side objective, or
+            /// <see langword="null"/> while it is neutral — which includes
+            /// every ruleset that declares no side objective at all. Read the
+            /// site's regions, its latch threshold, and what owning it does
+            /// from
+            /// <c>GenericActorRulesContract.FrontlineGameMode.SecondaryControl</c>;
+            /// this field is only who holds it right now. It is the read that
+            /// says "they are one body light at the front".
+            /// </summary>
+            public int? SecondaryOwnerTeamId { get; }
+            /// <summary>
+            /// The running claim on the side objective as signed
+            /// sole-presence ticks: positive counts for team 0, negative for
+            /// team 1, and zero means no claim stands. Compare its magnitude
+            /// against the contract's declared
+            /// <c>CaptureThresholdTicks</c> to price a contest; any empty or
+            /// contested tick puts it straight back to zero, so walking in
+            /// once is a real denial rather than a pause.
+            /// </summary>
+            public int SecondaryClaimProgress { get; }
+
+            /// <summary>
+            /// Both teams' complete economic position — liquid bank and the
+            /// tier held on each declared track — ordered by team ID and
+            /// public to everybody. Read what a tier DOES, what the next one
+            /// costs, and how deep a track goes from
+            /// <c>GenericActorRulesContract.FrontlineGameMode.ScrapEconomy</c>;
+            /// this field is only where both teams stand right now.
+            /// <para>Every purchase is public on the tick it happens: a tier
+            /// change moves this state, and a changed mode state rides the
+            /// ordinary mode-changed event, so the enemy's bank dropping and
+            /// its tier rising arrive together with no inference and no
+            /// visibility requirement. Empty on every ruleset that declares no
+            /// economy.</para>
+            /// </summary>
+            public ImmutableArray<ScrapTeamState> ScrapTeams { get; }
+
+            /// <summary>
+            /// Every live pile of loose scrap, ordered by (y, x). The deposit
+            /// schedule is static contract data, but WHETHER a deposit is
+            /// still standing is not — and neither is where a body you never
+            /// saw died. Empty on every ruleset that declares no economy.
+            /// </summary>
+            public ImmutableArray<ScrapPile> ScrapPiles { get; }
         }
+
+        /// <summary>Current Arc Relay public and visibility-filtered state.</summary>
+        public sealed record ArcRelay : ModeObservationState
+        {
+            /// <summary>Creates one Arc Relay mode observation.</summary>
+            public ArcRelay(
+                string modeId,
+                ImmutableArray<ArcRelayWellState> wells,
+                ImmutableArray<ArcRelayReactorState> reactors,
+                ImmutableArray<ArcRelayCoreState> visibleCores,
+                ImmutableArray<ArcRelaySignatureState> visibleSignatures,
+                int? latestPulseTeamId,
+                int? latestPulseTick)
+                : base(modeId)
+            {
+                Wells = wells.IsDefault ? [] : wells;
+                Reactors = reactors.IsDefault ? [] : reactors;
+                VisibleCores = visibleCores.IsDefault ? [] : visibleCores;
+                VisibleSignatures = visibleSignatures.IsDefault
+                    ? []
+                    : visibleSignatures;
+                LatestPulseTeamId = latestPulseTeamId;
+                LatestPulseTick = latestPulseTick;
+            }
+
+            /// <inheritdoc />
+            public override GenericActorRulesContract.GameModeKind Kind =>
+                GenericActorRulesContract.GameModeKind.ArcRelay;
+            /// <summary>All public Well clocks and capacity facts.</summary>
+            public ImmutableArray<ArcRelayWellState> Wells { get; }
+            /// <summary>Both public reactor states.</summary>
+            public ImmutableArray<ArcRelayReactorState> Reactors { get; }
+            /// <summary>Cores visible to this team.</summary>
+            public ImmutableArray<ArcRelayCoreState> VisibleCores { get; }
+            /// <summary>Signature state visible to this team.</summary>
+            public ImmutableArray<ArcRelaySignatureState> VisibleSignatures
+            { get; }
+            /// <summary>Team owning the most recent Pulse, if any.</summary>
+            public int? LatestPulseTeamId { get; }
+            /// <summary>Tick of the most recent Pulse, if any.</summary>
+            public int? LatestPulseTick { get; }
+
+            /// <summary>
+            /// Every declared strike currently winding up, visible to BOTH
+            /// teams (DECISIONS #212): the announcement is the mechanic. The
+            /// tiles are frozen at declaration; a body still standing on them
+            /// at <see cref="ArcRelayPendingStrike.ResolveAtTick"/> eats the
+            /// hit. Empty on every ruleset without strike windups.
+            /// </summary>
+            public ImmutableArray<ArcRelayPendingStrike> PendingStrikes
+            { get; init; } = [];
+        }
+    }
+
+    /// <summary>
+    /// One publicly declared strike in windup (DECISIONS #212). Tiles are
+    /// the union of the strike's bolt paths in trace order.
+    /// </summary>
+    public sealed record ArcRelayPendingStrike(
+        ActorIdentity Shooter,
+        int ResolveAtTick,
+        Position Origin,
+        ProjectileHeading CentralHeading,
+        ActorIdentity? Target,
+        ImmutableArray<Position> Tiles)
+    {
+        public bool Equals(ArcRelayPendingStrike? other) =>
+            other is not null
+            && Shooter == other.Shooter
+            && ResolveAtTick == other.ResolveAtTick
+            && Origin == other.Origin
+            && CentralHeading == other.CentralHeading
+            && Target == other.Target
+            && Tiles.SequenceEqual(other.Tiles);
+
+        public override int GetHashCode() => HashCode.Combine(
+            Shooter,
+            ResolveAtTick,
+            Origin,
+            CentralHeading,
+            Target,
+            Tiles.Length);
+    }
+
+    /// <summary>Stable source-local Core identity.</summary>
+    public sealed record ArcRelayCoreId(string SourceWellId, int SourceOrdinal);
+
+    /// <summary>One public Well state.</summary>
+    public sealed record ArcRelayWellState(
+        string WellId,
+        Position Position,
+        int? NextScheduledBirthTick,
+        ArcRelayCoreId? OutstandingCoreId,
+        bool PendingCharge,
+        int? RearmCompletesAtTick);
+
+    /// <summary>One public reactor state.</summary>
+    public sealed record ArcRelayReactorState(
+        int TeamId,
+        Position Position,
+        int ChargePips,
+        int IntegritySegments)
+    {
+        /// <summary>
+        /// Filled Threefold socket well ids, in the contract's canonical
+        /// well order. Empty outside threefold rulesets; under threefold,
+        /// <see cref="ChargePips"/> equals this count.
+        /// </summary>
+        public ImmutableArray<string> FilledSocketWellIds { get; init; } = [];
+
+        public bool Equals(ArcRelayReactorState? other) =>
+            other is not null
+            && TeamId == other.TeamId
+            && Position == other.Position
+            && ChargePips == other.ChargePips
+            && IntegritySegments == other.IntegritySegments
+            && FilledSocketWellIds.SequenceEqual(
+                other.FilledSocketWellIds, StringComparer.Ordinal);
+
+        public override int GetHashCode()
+        {
+            var hash = new HashCode();
+            hash.Add(TeamId);
+            hash.Add(Position);
+            hash.Add(ChargePips);
+            hash.Add(IntegritySegments);
+            foreach (string wellId in FilledSocketWellIds)
+                hash.Add(wellId, StringComparer.Ordinal);
+            return hash.ToHashCode();
+        }
+    }
+
+    /// <summary>One currently visible Core.</summary>
+    public sealed record ArcRelayCoreState(
+        ArcRelayCoreId CoreId,
+        Position Position,
+        ArcRelayCoreDisposition Disposition,
+        ActorIdentity? CarrierActorId,
+        int NextRelocationTick,
+        Position? FlightTarget,
+        int? FlightCompletesAtTick)
+    {
+        /// <summary>
+        /// Charge this Core banks for (1 historically; base 2 under the
+        /// charge-value primitive, up to the ripening cap).
+        /// </summary>
+        public int ChargeValue { get; init; } = 1;
+    }
+
+    /// <summary>One visible signature tell/effect/construct.</summary>
+    public sealed record ArcRelaySignatureState(
+        string OperationId,
+        string SignatureId,
+        string Kind,
+        ActorIdentity OwnerActorId,
+        int OwnerTeamId,
+        ArcRelaySignaturePhase Phase,
+        int StartedTick,
+        int? CompletesAtTick,
+        int? EndsAtTick,
+        ImmutableArray<Position> Positions,
+        ActorIdentity? TargetActorId,
+        int RemainingCapacity,
+        bool Suppressed);
+
+    /// <summary>Current physical disposition of a visible Core.</summary>
+    public enum ArcRelayCoreDisposition
+    {
+        /// <summary>Neutral on a floor tile.</summary>
+        Loose = 0,
+        /// <summary>Owned by a live body.</summary>
+        Carried = 1,
+        /// <summary>Travelling through an Arc Toss.</summary>
+        InFlight = 2,
+    }
+
+    /// <summary>Presentation/resolution phase of a signature occurrence.</summary>
+    public enum ArcRelaySignaturePhase
+    {
+        /// <summary>Public counterplay tell.</summary>
+        Tell = 0,
+        /// <summary>Active field or construct.</summary>
+        Active = 1,
+        /// <summary>Maintained channel.</summary>
+        Channel = 2,
+        /// <summary>Visible travel.</summary>
+        InFlight = 3,
+    }
+
+    /// <summary>Closed SDK mirror of Arc Relay authoritative facts.</summary>
+    public abstract record ArcRelayEvent
+    {
+        private ArcRelayEvent() { }
+        /// <summary>A scheduled or rearmed Core appeared.</summary>
+        public sealed record CoreBorn(
+            ArcRelayCoreId CoreId,
+            Position Position) : ArcRelayEvent
+        {
+            /// <summary>Charge at birth; 1 outside charge-value rulesets.</summary>
+            public int ChargeValue { get; init; } = 1;
+        }
+        /// <summary>A loose Core's charge value grew by one.</summary>
+        public sealed record CoreRipened(
+            ArcRelayCoreId CoreId,
+            Position Position,
+            int Value) : ArcRelayEvent;
+        /// <summary>A body's kill earned it a veterancy level.</summary>
+        public sealed record LeveledUp(
+            ActorIdentity ActorId,
+            int Level,
+            Position Position) : ArcRelayEvent;
+        /// <summary>A body channeled a point of health on a heal tile.</summary>
+        public sealed record ZoneHealed(
+            ActorIdentity ActorId,
+            int Amount,
+            int NewHealth,
+            Position Position) : ArcRelayEvent;
+        /// <summary>A body acquired a loose Core.</summary>
+        public sealed record CorePickedUp(
+            ArcRelayCoreId CoreId,
+            ActorIdentity CarrierActorId,
+            Position Position,
+            int NextRelocationTick) : ArcRelayEvent;
+        /// <summary>A carried/displaced/tossed Core changed tiles.</summary>
+        public sealed record CoreRelocated(
+            ArcRelayCoreId CoreId,
+            ActorIdentity? CarrierActorId,
+            Position From,
+            Position To,
+            int NextRelocationTick,
+            string Kind) : ArcRelayEvent;
+        /// <summary>An adjacent committed handoff succeeded.</summary>
+        public sealed record CoreHandedOff(
+            ArcRelayCoreId CoreId,
+            ActorIdentity SourceActorId,
+            ActorIdentity TargetActorId,
+            Position Position,
+            int NextRelocationTick) : ArcRelayEvent;
+        /// <summary>A Core became neutral.</summary>
+        public sealed record CoreDropped(
+            ArcRelayCoreId CoreId,
+            ActorIdentity SourceActorId,
+            Position Position,
+            int NextRelocationTick,
+            string Kind) : ArcRelayEvent;
+        /// <summary>A surviving carrier delivered a Core.</summary>
+        public sealed record CoreBanked(
+            ArcRelayCoreId CoreId,
+            ActorIdentity CarrierActorId,
+            int TeamId,
+            Position Position,
+            int ChargePips) : ArcRelayEvent;
+        /// <summary>A Well's capacity/rearm state changed.</summary>
+        public sealed record WellChanged(
+            string WellId,
+            bool PendingCharge,
+            int? RearmCompletesAtTick,
+            ArcRelayCoreId? OutstandingCoreId) : ArcRelayEvent;
+        /// <summary>A delivery completed a Pulse.</summary>
+        public sealed record Pulse(
+            int TeamId,
+            int PulseOrdinal,
+            int OpposingReactorIntegrity) : ArcRelayEvent;
+        /// <summary>A signature occurrence changed phase or ended.</summary>
+        public sealed record SignatureChanged(
+            string OperationId,
+            string SignatureId,
+            ActorIdentity OwnerActorId,
+            ArcRelaySignaturePhase? Phase,
+            string Reason) : ArcRelayEvent;
+        /// <summary>A signature moved a body between exact tiles.</summary>
+        public sealed record BodyRelocated(
+            string OperationId,
+            string SignatureId,
+            ActorIdentity OwnerActorId,
+            ActorIdentity TargetActorId,
+            Position From,
+            Position To) : ArcRelayEvent;
+        /// <summary>A signature applied direct hull damage.</summary>
+        public sealed record SignatureDamage(
+            string OperationId,
+            string SignatureId,
+            ActorIdentity OwnerActorId,
+            ActorIdentity TargetActorId,
+            int Amount,
+            int NewHealth,
+            Position Position) : ArcRelayEvent;
+        /// <summary>A signature restored hull.</summary>
+        public sealed record SignatureRepair(
+            string OperationId,
+            string SignatureId,
+            ActorIdentity OwnerActorId,
+            ActorIdentity TargetActorId,
+            int Amount,
+            int NewHealth,
+            Position Position) : ArcRelayEvent;
+    }
+
+    /// <summary>One team's published economic position.</summary>
+    public sealed record ScrapTeamState
+    {
+        /// <summary>Creates one team's economic position.</summary>
+        /// <param name="teamId">The scoring team.</param>
+        /// <param name="bank">Unspent scrap.</param>
+        /// <param name="tierLevels">
+        /// Tier held on each track, positionally against the contract's
+        /// declared track order.
+        /// </param>
+        public ScrapTeamState(
+            int teamId,
+            int bank,
+            ImmutableArray<int> tierLevels)
+        {
+            ArgumentOutOfRangeException.ThrowIfNegative(teamId);
+            ArgumentOutOfRangeException.ThrowIfNegative(bank);
+            ImmutableArray<int> tiers =
+                tierLevels.IsDefault ? [] : tierLevels;
+            if (tiers.Any(tier => tier < 0))
+            {
+                throw new ArgumentOutOfRangeException(nameof(tierLevels));
+            }
+            TeamId = teamId;
+            Bank = bank;
+            TierLevels = tiers;
+        }
+
+        /// <summary>The scoring team.</summary>
+        public int TeamId { get; }
+        /// <summary>Unspent scrap. Both teams' banks are public.</summary>
+        public int Bank { get; }
+        /// <summary>
+        /// Tier held on each declared track, in the contract's declared track
+        /// order. Multiply by that track's declared per-tier magnitude to get
+        /// the effective modifier — the form catalog carries the BASE number,
+        /// this carries the step.
+        /// </summary>
+        public ImmutableArray<int> TierLevels { get; }
+    }
+
+    /// <summary>
+    /// One live pile of loose scrap. Piles merge by tile, so there is no
+    /// origin discriminator — a wreck landing on a live deposit is one pile,
+    /// and a killed carrier is simply a bigger wreck.
+    /// </summary>
+    public sealed record ScrapPile
+    {
+        /// <summary>Creates one live pile.</summary>
+        /// <param name="position">The tile it sits on.</param>
+        /// <param name="amount">Scrap on it.</param>
+        /// <param name="expiresAtTick">
+        /// The pile is gone the first tick <c>tick &gt;= expiresAtTick</c>.
+        /// </param>
+        public ScrapPile(Position position, int amount, int expiresAtTick)
+        {
+            ValidatePosition(position, nameof(position));
+            if (amount <= 0)
+                throw new ArgumentOutOfRangeException(nameof(amount));
+            ArgumentOutOfRangeException.ThrowIfNegative(expiresAtTick);
+            Position = position;
+            Amount = amount;
+            ExpiresAtTick = expiresAtTick;
+        }
+
+        /// <summary>The tile it sits on.</summary>
+        public Position Position { get; }
+        /// <summary>Scrap on it.</summary>
+        public int Amount { get; }
+        /// <summary>
+        /// The first tick on which this pile no longer exists — the same clock
+        /// grammar as a route cooldown's ready tick and the ratchet hold's
+        /// end tick. It binds while the observed tick is strictly below it.
+        /// </summary>
+        public int ExpiresAtTick { get; }
     }
 
     private static void ValidateBody(
@@ -2224,6 +3221,12 @@ public sealed record GenericActorContext
         {
             GenericActorMatchStart.SpawnReason.Initial =>
                 generation == 0
+                && parentActorId is null
+                && sourceTransitionId is null
+                && sourceOperationId is null,
+            GenericActorMatchStart.SpawnReason.AutomaticActivation
+                or GenericActorMatchStart.SpawnReason.RootFactorySeed =>
+                generation >= 0
                 && parentActorId is null
                 && sourceTransitionId is null
                 && sourceOperationId is null,

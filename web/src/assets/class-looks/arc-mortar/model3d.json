@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "id": "arc-mortar",
+  "file": "model.glb",
+  "kind": "bot",
+  "part": "whole",
+  "facing": "+x",
+  "up": "+y",
+  "source": {
+    "generator": "scripts/class-models/promote-meshy-arc-fleet.mjs",
+    "recipe": "art/class-models/runtime-tiers/arc-relay/ktx2-selective-v1/audit.json",
+    "artifact": "art/class-models/runtime-tiers/arc-relay/ktx2-selective-v1/arc-mortar.glb",
+    "sourceSha256": "fc0d7e85df8d1befe53e78d28ea2234abbf450d9ee761075d4fbfad221a3d7a4",
+    "approvedArtifact": "art/class-models/provider-runs/meshy/arc-mortar/019fc80a-8b00-783e-af88-a60d3dd45773/model-normalized-identity-facing-review.glb",
+    "approvedSha256": "818cb92ed6b4cc39a38a8bed6cbe530798e82c9246f5d97b483817b18931bb8c",
+    "textureTier": "arc-relay-ktx2-selective-v1",
+    "provider": "Meshy",
+    "model": "meshy-t2",
+    "endpoint": "image-to-3d",
+    "modelType": "smart-topology",
+    "taskId": "019fc80a-8b00-783e-af88-a60d3dd45773",
+    "orientation": "identity",
+    "facingYawDegrees": 180
+  },
+  "motion": {
+    "locomotion": "treads",
+    "handling": "deliberate",
+    "hardwareLagTicks": 0.48,
+    "hardwareOvershoot": 0
+  },
+  "signature": "falling-star",
+  "ledger": {
+    "bytes": 629448,
+    "sha256": "fc0d7e85df8d1befe53e78d28ea2234abbf450d9ee761075d4fbfad221a3d7a4",
+    "triangles": 13736,
+    "materials": 1,
+    "textureCount": 4,
+    "geometrySha256": "e8fbfd9ef9841b0436636f878fffa90abfd4a7c83628030161eec2b3d04af6ca",
+    "geometryGpuBytes": 430436,
+    "textureGpuBytesCompressedTarget": 360528,
+    "textureGpuBytesRgba8Fallback": 2184528,
+    "modelGpuBytesCompressedTarget": 790964,
+    "modelGpuBytesRgba8Fallback": 2614964,
+    "textureTier": "arc-relay-ktx2-selective-v1"
+  }
+}

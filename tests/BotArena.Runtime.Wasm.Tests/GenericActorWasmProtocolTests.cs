@@ -157,6 +157,8 @@ public sealed class GenericActorWasmProtocolTests
             99,
             [
                 new Sdk.GenericActorActionArgument
+                    .UpgradeTrackArgument("plate"),
+                new Sdk.GenericActorActionArgument
                     .ProjectileHeadingArgument(
                         Sdk.ProjectileHeading.NorthEast),
                 new Sdk.GenericActorActionArgument
@@ -169,6 +171,8 @@ public sealed class GenericActorWasmProtocolTests
                 new Sdk.GenericActorActionArgument
                     .ShotProgramArgument(
                         new Sdk.ShotProgram(1, -1, 2, 3, 2)),
+                new Sdk.GenericActorActionArgument
+                    .PositionTargetArgument(new Sdk.Position(7, 9)),
             ],
             "diagnostic");
 
@@ -208,6 +212,16 @@ public sealed class GenericActorWasmProtocolTests
                 Engine.GenericActorRuntimeActionArgument
                     .ProjectileHeadingArgument>(
                         decoded.Arguments[4]).Value);
+        Assert.Equal(
+            "plate",
+            Assert.IsType<
+                Engine.GenericActorRuntimeActionArgument
+                    .UpgradeTrackArgument>(decoded.Arguments[5]).TrackId);
+        Assert.Equal(
+            new Engine.Position(7, 9),
+            Assert.IsType<
+                Engine.GenericActorRuntimeActionArgument
+                    .PositionTargetArgument>(decoded.Arguments[6]).Value);
     }
 
     [Fact]

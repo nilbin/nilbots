@@ -1,0 +1,148 @@
+{
+  "schema": "arc-relay-tactical-candidate-freeze-v1",
+  "candidateId": "home-siege-v2-5-1-1-1-2026-08-04",
+  "preparedBeforeFinalOutcomes": true,
+  "implementationCommit": "48fe327135b5ce6bf124e1ebba7667960026aa1c",
+  "runtime": "wasm",
+  "loopProfile": "forward-combat",
+  "candidateFormula": {
+    "primaryLivingBlockade": 5,
+    "rememberedCarrierInterceptor": 1,
+    "courier": 1,
+    "escort": 1,
+    "totalBodies": 8,
+    "schedulerConstraint": "minimumPrimaryBodies: 5"
+  },
+  "formulaRationale": {
+    "sixBodyReserve": "rejected: prevented the courier-plus-escort conversion pair while carrier denial owned one lease",
+    "fiveBodyReserve": "retained: cleared the mirrored development screen at 9-4 and 9-3 with two integrity segments",
+    "twoInterceptors": "rejected: dissolved blockade pressure and lost both mirrored development cells",
+    "scope": "evaluation candidate identity, not a game rule or runtime heuristic"
+  },
+  "contract": {
+    "engineVersion": "1.0.5",
+    "rulesetId": "arc-relay-forward-combat-01",
+    "rulesFingerprint": "0acab8947506cf6224ac00029d8c3d62e9ec61cbda224e2a955db45b711b90a9",
+    "mapId": "arc-relay-threefold-depth-counterflow-01",
+    "mapFingerprint": "5ca7d1a1826791d736465d352c1558793846fc2e3df343d730f1df4c79f47e0c",
+    "team0TopologyFingerprint": "082206efc9ff8b30e8150b7474896944543e46ed95b6488353166d27c99b9281",
+    "team0MatchContractFingerprint": "736147ae50d997d37e97e0e1ee3522b766dd5d0e7aa17b5fc2353578cf27de9d",
+    "team1TopologyFingerprint": "1ebc7558949b16e25a5adfef496956ad295574f738013e8132c934f4a60f6212",
+    "team1MatchContractFingerprint": "49d8132e55331408e61958b64265bc51bebee3148e7ef3b6a4ffb24877e082e3"
+  },
+  "assets": {
+    "candidateArtifact": {
+      "path": "arena-bots/arc-relay/tactical-playbook-mind-v1/bot.wasm",
+      "sha256": "3c349dea01f8bc3d27dd978941a349fba0bcc86bd3131024169bc4ef6bb1a816"
+    },
+    "candidatePlaybook": {
+      "path": "arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/playbooks/home-siege-v2.json",
+      "sha256": "1812b16d03ff9a70c3f9e66e6a4f0b0a9293b9543925281e9df2657ed25e5fdb"
+    },
+    "candidateLayout": {
+      "path": "arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/layouts/counterflow-home-siege.json",
+      "sha256": "2a2b6961b652499ed3cbbb5ef18e7e4b6df3af5f241408b0b19133af93ba4e66"
+    },
+    "compiledPlaybook": {
+      "path": "arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/examples/home-siege-v2/playbook.atp",
+      "sha256": "d9f3b82a569833e4f6590b7de9a77c49ba3c68479858f2ebdd1084c44be66511"
+    },
+    "parityArtifact": {
+      "path": "arena-bots/arc-relay/stock-mind-v4/bot.wasm",
+      "sha256": "999183019785e9aac163ed607d43ed5fd6efa903264f216362e4f84711203b0f"
+    },
+    "paritySheet": {
+      "path": "arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/controls/coordination-parity-baseline.json",
+      "sha256": "56aa2cb0261b4aeff3a8d0e0b0af1e5a5153c5f7a551f6d9bc1607a6cf470cc1"
+    },
+    "homeSiegeV1ControlArtifact": {
+      "path": "arena-bots/arc-relay/stock-mind-v5/bot.wasm",
+      "sha256": "9064aca98347f675a11c11315f9e733701fda326b3cd54988071dae48deb3d39"
+    },
+    "eligibilityBars": {
+      "path": "balance/arc-relay-felt-degeneracy-bars-v4.json",
+      "sha256": "be728f90a22c36b087cd056ef4efd8bb6ca8400933ddf7fe277c35824a9cb5ef"
+    }
+  },
+  "runner": {
+    "cli": {
+      "path": "src/BotArena.Cli/bin/Debug/net10.0/botarena.dll",
+      "sha256": "c134b123d9062c8266765efd61378be81dbc98332e54b06574db3110ff344489"
+    },
+    "sweep": {
+      "path": "scripts/arc-relay-sweep.py",
+      "sha256": "61fd8f474da691acff8d1928220809ad697df1b26d522cd6a566b132c4e9be2d"
+    },
+    "match": {
+      "path": "scripts/arc-relay-match.py",
+      "sha256": "655679e8f171cc28e4e943f6e64b81a12b7459d6f8bb9c4b3338803fa8d058d0"
+    },
+    "broadcast": {
+      "path": "scripts/arc-relay-broadcast.py",
+      "sha256": "7f9fdf695f71f7a5427281480694ed6bc44286664bb1235cde932080162d880b"
+    },
+    "scorecard": {
+      "path": "scripts/arc-relay-scorecard.py",
+      "sha256": "bb11ee48fdea153f503451c2749e503ba8858febbcaaa8106535d8608afe2e46"
+    }
+  },
+  "preOutcomeCorrections": [
+    {
+      "failedAttempt": "attempt-01",
+      "outcomeExposure": "none: four launched cells ended at tick 0 with fault-eligibility and produced no eligible result",
+      "cause": "the tracked stock-mind-v4 WASM predated the coordination-parity source/schema commit and exited while loading that sheet",
+      "correction": "rebuilt the unchanged stock-mind-v4 control source with SDK 0.10.12 and replaced only its frozen artifact hash",
+      "oldArtifactSha256": "fdd61b1f4c24895926d3bdde7e8b70c0c6eb957d107dda99b04719614d499368",
+      "newArtifactSha256": "999183019785e9aac163ed607d43ed5fd6efa903264f216362e4f84711203b0f",
+      "candidateChanged": false,
+      "seedsChanged": false,
+      "barsChanged": false,
+      "thresholdsChanged": false,
+      "requiredRelaunch": "all 24 cells in a new immutable attempt"
+    }
+  ],
+  "seedDerivation": {
+    "basis": "arc-relay-home-siege-v2-final-canonical-v1|48fe3271|1812b16d03ff9a70c3f9e66e6a4f0b0a9293b9543925281e9df2657ed25e5fdb|5+1+1+1",
+    "algorithm": "100000 + (uint32-be(first four bytes of SHA-256(basis + '|' + zero-based-index)) mod 900000)",
+    "seeds": [
+      "939580",
+      "737182",
+      "921408",
+      "440678",
+      "577986",
+      "803080",
+      "352170",
+      "824911",
+      "419119",
+      "627839",
+      "737592",
+      "542587"
+    ]
+  },
+  "hardGate": {
+    "cells": 24,
+    "validCanonicalWasmCells": 24,
+    "requiredWinner": "home-siege-v2",
+    "requiredReason": "reactor-destroyed",
+    "maximumBaselineScoreEveryCell": 4,
+    "minimumMedianPairedWorstScore": 9,
+    "maximumMedianPairedWorstBaselineScore": 3,
+    "minimumSiegeIntegrityEveryCell": 2,
+    "maximumBaselineBanksAfterOccupation": 1,
+    "unchangedBarsGreenForBothTeams": true,
+    "runtimeFaults": 0,
+    "requiredLifecycleProofs": [
+      "stable-occupation",
+      "formation",
+      "focus",
+      "repair",
+      "casualty-replacement",
+      "remembered-carrier-denial",
+      "courier-conversion",
+      "conversion-escort",
+      "regroup",
+      "release",
+      "recovery"
+    ]
+  }
+}

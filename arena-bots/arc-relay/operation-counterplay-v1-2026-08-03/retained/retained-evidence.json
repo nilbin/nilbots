@@ -1,0 +1,4245 @@
+{
+  "allCommittedOnlyRequirementsMet": false,
+  "allRequirementsMet": true,
+  "analysis": "/Users/sebastian.lind/hobby-projects/nilbots-wt/game-redesign/arena-bots/arc-relay/operation-counterplay-v1-2026-08-03/confirmation-read.json",
+  "analysisSha256": "7596008ee013725e871510dce4ef1e79f128e2a1cf063ba72839f1827ff2ca60",
+  "budgets": {
+    "actualGalleryBroadcastGzipBytes": 1364354,
+    "broadcastGzipBytesPerMatch": 307200,
+    "galleryBroadcastGzipBytes": 8388608,
+    "recordBytesPerMatch": 4096
+  },
+  "confirmationCells": 40,
+  "counterTaxonomy": "arena-bots/arc-relay/operation-counterplay-v1-2026-08-03/counter-taxonomy-v2.json",
+  "counterTaxonomySha256": "0b7fc8a9fb566c97bd54990538e1b8aa0c23e665b9b6b55791a8fbeda8dd08b1",
+  "eligibleConfirmationCells": 40,
+  "manifest": "/Users/sebastian.lind/hobby-projects/nilbots-wt/game-redesign/arena-bots/arc-relay/operation-counterplay-v1-2026-08-03/confirmation-manifest.json",
+  "manifestSha256": "b91aa7995ff5623d0e32c09ccc86781a15eb0bd9676521dfd9c059016989275a",
+  "retainedMatches": [
+    {
+      "activeAtMatchEnd": 1,
+      "broadcast": {
+        "file": "arena-bots/arc-relay/operation-counterplay-v1-2026-08-03/retained/rear-hook/broadcast.json.gz",
+        "gzipBytes": 135322,
+        "sha256": "488f3b5e9ca7a5f3b5bab147f8fe81d24f226d5ff2b57c255edda1d977618ca2"
+      },
+      "canonicalReplayHash": "ce27aeea0f65122d7b9ba7400ee4f467b5bc0f0fc699eadfd2324fdfb74025a3",
+      "casualtyRecovery": {
+        "baselineRelease": true,
+        "boundedRelease": true,
+        "branch": "carrier-strike",
+        "casualties": [
+          {
+            "kind": "destruction",
+            "lifeId": 0,
+            "sourceActor": {
+              "lifeId": 0,
+              "teamId": 1,
+              "unitId": 7
+            },
+            "tick": 36,
+            "unitId": 5
+          },
+          {
+            "kind": "destruction",
+            "lifeId": 0,
+            "sourceActor": {
+              "lifeId": 0,
+              "teamId": 1,
+              "unitId": 3
+            },
+            "tick": 45,
+            "unitId": 4
+          }
+        ],
+        "casualtyRespawnBaseline": true,
+        "commitTick": 26,
+        "hostileImpacts": [
+          {
+            "kind": "damage",
+            "lifeId": 0,
+            "sourceActor": {
+              "lifeId": 0,
+              "teamId": 1,
+              "unitId": 3
+            },
+            "tick": 22,
+            "unitId": 4
+          },
+          {
+            "kind": "damage",
+            "lifeId": 0,
+            "sourceActor": {
+              "lifeId": 0,
+              "teamId": 1,
+              "unitId": 3
+            },
+            "tick": 24,
+            "unitId": 4
+          },
+          {
+            "kind": "damage",
+            "lifeId": 0,
+            "sourceActor": {
+              "lifeId": 0,
+              "teamId": 1,
+              "unitId": 4
+            },
+            "tick": 25,
+            "unitId": 5
+          },
+          {
+            "kind": "damage",
+            "lifeId": 0,
+            "sourceActor": {
+              "lifeId": 0,
+              "teamId": 1,
+              "unitId": 5
+            },
+            "tick": 25,
+            "unitId": 5
+          },
+          {
+            "kind": "damage",
+            "lifeId": 0,
+            "sourceActor": {
+              "lifeId": 0,
+              "teamId": 1,
+              "unitId": 6
+            },
+            "tick": 27,
+            "unitId": 4
+          },
+          {
+            "kind": "damage",
+            "lifeId": 0,
+            "sourceActor": {
+              "lifeId": 0,
+              "teamId": 1,
+              "unitId": 3
+            },
+            "tick": 36,
+            "unitId": 5
+          },
+          {
+            "kind": "damage",
+            "lifeId": 0,
+            "sourceActor": {
+              "lifeId": 0,
+              "teamId": 1,
+              "unitId": 7
+            },
+            "tick": 36,
+            "unitId": 5
+          },
+          {
+            "kind": "destruction",
+            "lifeId": 0,
+            "sourceActor": {
+              "lifeId": 0,
+              "teamId": 1,
+              "unitId": 7
+            },
+            "tick": 36,
+            "unitId": 5
+          },
+          {
+            "kind": "damage",
+            "lifeId": 0,
+            "sourceActor": {
+              "lifeId": 0,
+              "teamId": 1,
+              "unitId": 3
+            },
+            "tick": 45,
+            "unitId": 4
+          },
+          {
+            "kind": "destruction",
+            "lifeId": 0,
+            "sourceActor": {
+              "lifeId": 0,
+              "teamId": 1,
+              "unitId": 3
+            },
+            "tick": 45,
+            "unitId": 4
+          }
+        ],
+        "participantLives": {
+          "4": 0,
+          "5": 0
+        },
+        "participants": [
+          4,
+          5
+        ],
+        "postReleaseCommands": {
+          "4": {
+            "actionId": "tractor-hook",
+            "lifeId": 1,
+            "roleTag": "a-amb-int-n",
+            "tick": 86
+          },
+          "5": {
+            "actionId": "move-eight-way",
+            "lifeId": 1,
+            "roleTag": "a-amb-int-s",
+            "tick": 86
+          }
+        },
+        "prepareTick": 9,
+        "qualifies": {
+          "casualtyRecovery": true,
+          "committedCounter": true,
+          "counter": true,
+          "preparationDenial": false,
+          "success": false
+        },
+        "recoveryDeadlineTicks": 12,
+        "recoveryTicks": 12,
+        "releaseTick": 86,
+        "requiredActionTicks": {
+          "tractor-hook": [
+            26,
+            38,
+            68
+          ]
+        },
+        "terminalReason": "mission-deadline",
+        "terminalTick": 74
+      },
+      "cellId": "confirm--rear-hook--balanced--s67867967--op0",
+      "counter": {
+        "baselineRelease": true,
+        "boundedRelease": true,
+        "branch": "carrier-strike",
+        "casualties": [
+          {
+            "kind": "destruction",
+            "lifeId": 0,
+            "sourceActor": {
+              "lifeId": 0,
+              "teamId": 1,
+              "unitId": 7
+            },
+            "tick": 36,
+            "unitId": 5
+          },
+          {
+            "kind": "destruction",
+            "lifeId": 0,
+            "sourceActor": {
+              "lifeId": 0,
+              "teamId": 1,
+              "unitId": 3
+            },
+            "tick": 45,
+            "unitId": 4
+          }
+        ],
+        "casualtyRespawnBaseline": true,
+        "commitTick": 26,
+        "hostileImpacts": [
+          {
+            "kind": "damage",
+            "lifeId": 0,
+            "sourceActor": {
+              "lifeId": 0,
+              "teamId": 1,
+              "unitId": 3
+            },
+            "tick": 22,
+            "unitId": 4
+          },
+          {
+            "kind": "damage",
+            "lifeId": 0,
+            "sourceActor": {
+              "lifeId": 0,
+              "teamId": 1,
+              "unitId": 3
+            },
+            "tick": 24,
+            "unitId": 4
+          },
+          {
+            "kind": "damage",
+            "lifeId": 0,
+            "sourceActor": {
+              "lifeId": 0,
+              "teamId": 1,
+              "unitId": 4
+            },
+            "tick": 25,
+            "unitId": 5
+          },
+          {
+            "kind": "damage",
+            "lifeId": 0,
+            "sourceActor": {
+              "lifeId": 0,
+              "teamId": 1,
+              "unitId": 5
+            },
+            "tick": 25,
+            "unitId": 5
+          },
+          {
+            "kind": "damage",
+            "lifeId": 0,
+            "sourceActor": {
+              "lifeId": 0,
+              "teamId": 1,
+              "unitId": 6
+            },
+            "tick": 27,
+            "unitId": 4
+          },
+          {
+            "kind": "damage",
+            "lifeId": 0,
+            "sourceActor": {
+              "lifeId": 0,
+              "teamId": 1,
+              "unitId": 3
+            },
+            "tick": 36,
+            "unitId": 5
+          },
+          {
+            "kind": "damage",
+            "lifeId": 0,
+            "sourceActor": {
+              "lifeId": 0,
+              "teamId": 1,
+              "unitId": 7
+            },
+            "tick": 36,
+            "unitId": 5
+          },
+          {
+            "kind": "destruction",
+            "lifeId": 0,
+            "sourceActor": {
+              "lifeId": 0,
+              "teamId": 1,
+              "unitId": 7
+            },
+            "tick": 36,
+            "unitId": 5
+          },
+          {
+            "kind": "damage",
+            "lifeId": 0,
+            "sourceActor": {
+              "lifeId": 0,
+              "teamId": 1,
+              "unitId": 3
+            },
+            "tick": 45,
+            "unitId": 4
+          },
+          {
+            "kind": "destruction",
+            "lifeId": 0,
+            "sourceActor": {
+              "lifeId": 0,
+              "teamId": 1,
+              "unitId": 3
+            },
+            "tick": 45,
+            "unitId": 4
+          }
+        ],
+        "kind": "committed counter",
+        "participantLives": {
+          "4": 0,
+          "5": 0
+        },
+        "participants": [
+          4,
+          5
+        ],
+        "postReleaseCommands": {
+          "4": {
+            "actionId": "tractor-hook",
+            "lifeId": 1,
+            "roleTag": "a-amb-int-n",
+            "tick": 86
+          },
+          "5": {
+            "actionId": "move-eight-way",
+            "lifeId": 1,
+            "roleTag": "a-amb-int-s",
+            "tick": 86
+          }
+        },
+        "prepareTick": 9,
+        "qualifies": {
+          "casualtyRecovery": true,
+          "committedCounter": true,
+          "counter": true,
+          "preparationDenial": false,
+          "success": false
+        },
+        "recoveryDeadlineTicks": 12,
+        "recoveryTicks": 12,
+        "releaseTick": 86,
+        "requiredActionTicks": {
+          "tractor-hook": [
+            26,
+            38,
+            68
+          ]
+        },
+        "terminalReason": "mission-deadline",
+        "terminalTick": 74
+      },
+      "counterThesis": "general baseline control checks over-specialisation",
+      "feltDegeneracy": {
+        "cohortEligibilityByTeam": {
+          "0": true,
+          "1": true
+        },
+        "formationFreeze": {
+          "bar": {
+            "highWaitTicks": 60,
+            "operator": ">=",
+            "windowTicks": 75
+          },
+          "barTrippedByTeam": {
+            "0": false,
+            "1": false
+          },
+          "definition": "from the first scheduled Core birth, a high-wait tick has at least 75% of commanded bodies waiting; Core proximity and possession do not excuse a frozen formation",
+          "maxHighWaitTicksInWindowByTeam": {
+            "0": 4,
+            "1": 3
+          },
+          "trippingWindowRunsByTeam": {
+            "0": [],
+            "1": []
+          }
+        },
+        "handoffPingPong": {
+          "bar": {
+            "operator": ">=",
+            "reversalsInOneEpisode": 3
+          },
+          "barTrippedByTeam": {
+            "0": false,
+            "1": false
+          },
+          "definition": "consecutive A->B, B->A handoff reversals for one Core and life pair, each no more than 4 ticks apart",
+          "episodes": [],
+          "maxEpisodeReversalsByTeam": {
+            "0": 0,
+            "1": 0
+          },
+          "totalReversalsByTeam": {
+            "0": 0,
+            "1": 0
+          }
+        },
+        "homeCarrierNonProgress": {
+          "bar": {
+            "enemyContestChebyshevDistance": 2,
+            "homeRadiusShortestPathTiles": 6,
+            "operator": ">=",
+            "uncontestedTicksWithoutNewBestDistance": 30
+          },
+          "barTrippedByTeam": {
+            "0": false,
+            "1": false
+          },
+          "definition": "during same-team carried possession, count uncontested worlds within 6 static walkable tiles of that team's reactor since the Core last reached a strictly lower distance; allied handoffs and equal-distance movement do not reset the run",
+          "enabled": true,
+          "maxUncontestedTicksWithoutProgressByTeam": {
+            "0": 6,
+            "1": 3
+          },
+          "trippingRuns": []
+        },
+        "matchEligibleForCohortRead": true,
+        "stuckCarrier": {
+          "bar": {
+            "consecutiveTicks": 30,
+            "operator": ">="
+          },
+          "barTrippedByTeam": {
+            "0": false,
+            "1": false
+          },
+          "definition": "one Core remains carried by the same life on the same tile for consecutive spectator worlds",
+          "maxConsecutiveTicksByTeam": {
+            "0": 3,
+            "1": 5
+          },
+          "trippingRuns": []
+        },
+        "sustainedPassivity": {
+          "bar": {
+            "operator": ">=",
+            "quietTicks": 60,
+            "windowTicks": 75
+          },
+          "barTrippedByTeam": {
+            "0": false,
+            "1": false
+          },
+          "definition": "from the first scheduled Core birth, a quiet tick has at least 75% of commanded bodies waiting while the team carries no Core and has no body within Chebyshev 4 of a live Core",
+          "highWaitTicksByTeam": {
+            "0": 7,
+            "1": 10
+          },
+          "maxQuietTicksInWindowByTeam": {
+            "0": 0,
+            "1": 0
+          },
+          "noTheaterPresenceTicksByTeam": {
+            "0": 73,
+            "1": 54
+          },
+          "quietTicksByTeam": {
+            "0": 0,
+            "1": 0
+          },
+          "trippingWindowRunsByTeam": {
+            "0": [],
+            "1": []
+          }
+        }
+      },
+      "matchEndPreemptedReleases": 0,
+      "operationId": "rear-hook",
+      "operationTeamId": 0,
+      "opponentId": "balanced",
+      "record": {
+        "bytes": 2327,
+        "file": "arena-bots/arc-relay/operation-counterplay-v1-2026-08-03/retained/rear-hook/match-record.json",
+        "sha256": "b6f7f6dd5934296c5425637efcc7f7609987bdf1378294feacbde816e91387ed"
+      },
+      "result": {
+        "eligibleTeamIds": [
+          0,
+          1
+        ],
+        "endTick": 407,
+        "reason": "reactor-destroyed",
+        "winnerTeamId": 1
+      },
+      "scorecard": {
+        "bytes": 19654,
+        "file": "arena-bots/arc-relay/operation-counterplay-v1-2026-08-03/retained/rear-hook/scorecard.json",
+        "sha256": "2659365a7105148ec5888162b7740c359632c85db067b050d88e00abe47fe737"
+      },
+      "seed": "67867967",
+      "sourceReplayFileSha256": "a5e1aec6ccbd0fe701d990cb32677028f0d6ddb492bd81181c0110a6bf6705d7",
+      "strandedActivations": 0,
+      "success": {
+        "baselineRelease": true,
+        "boundedRelease": true,
+        "branch": "carrier-strike",
+        "casualties": [],
+        "casualtyRespawnBaseline": true,
+        "commitTick": 153,
+        "hostileImpacts": [
+          {
+            "kind": "damage",
+            "lifeId": 1,
+            "sourceActor": {
+              "lifeId": 2,
+              "teamId": 1,
+              "unitId": 1
+            },
+            "tick": 151,
+            "unitId": 4
+          },
+          {
+            "kind": "damage",
+            "lifeId": 1,
+            "sourceActor": {
+              "lifeId": 3,
+              "teamId": 1,
+              "unitId": 4
+            },
+            "tick": 151,
+            "unitId": 5
+          }
+        ],
+        "participantLives": {
+          "4": 1,
+          "5": 1
+        },
+        "participants": [
+          4,
+          5
+        ],
+        "postReleaseCommands": {
+          "4": {
+            "actionId": "shoot-direction",
+            "lifeId": 1,
+            "roleTag": "a-amb-int-n",
+            "tick": 163
+          },
+          "5": {
+            "actionId": "move-eight-way",
+            "lifeId": 1,
+            "roleTag": "a-amb-int-s",
+            "tick": 163
+          }
+        },
+        "prepareTick": 130,
+        "qualifies": {
+          "casualtyRecovery": false,
+          "committedCounter": false,
+          "counter": false,
+          "preparationDenial": false,
+          "success": true
+        },
+        "recoveryDeadlineTicks": 12,
+        "recoveryTicks": 5,
+        "releaseTick": 163,
+        "requiredActionTicks": {
+          "tractor-hook": [
+            153
+          ]
+        },
+        "terminalReason": "mission-success",
+        "terminalTick": 158
+      }
+    },
+    {
+      "activeAtMatchEnd": 0,
+      "broadcast": {
+        "file": "arena-bots/arc-relay/operation-counterplay-v1-2026-08-03/retained/lantern-sweep/broadcast.json.gz",
+        "gzipBytes": 144682,
+        "sha256": "e33efb2fe50d41233d834d267cab1b82e532df315221e148b38bb39e2d90e5d6"
+      },
+      "canonicalReplayHash": "59a373c7e3eae62571ba086ac0b67b2957b598bd4831fce98eeb407b8f5fcfbd",
+      "casualtyRecovery": {
+        "baselineRelease": true,
+        "boundedRelease": true,
+        "branch": null,
+        "casualties": [
+          {
+            "kind": "destruction",
+            "lifeId": 2,
+            "sourceActor": {
+              "lifeId": 1,
+              "teamId": 0,
+              "unitId": 5
+            },
+            "tick": 101,
+            "unitId": 7
+          }
+        ],
+        "casualtyRespawnBaseline": true,
+        "commitTick": null,
+        "hostileImpacts": [
+          {
+            "kind": "damage",
+            "lifeId": 2,
+            "sourceActor": {
+              "lifeId": 1,
+              "teamId": 0,
+              "unitId": 5
+            },
+            "tick": 101,
+            "unitId": 7
+          },
+          {
+            "kind": "destruction",
+            "lifeId": 2,
+            "sourceActor": {
+              "lifeId": 1,
+              "teamId": 0,
+              "unitId": 5
+            },
+            "tick": 101,
+            "unitId": 7
+          }
+        ],
+        "participantLives": {
+          "2": 1,
+          "3": 0,
+          "7": 2
+        },
+        "participants": [
+          2,
+          3,
+          7
+        ],
+        "postReleaseCommands": {
+          "2": {
+            "actionId": "move-eight-way",
+            "lifeId": 1,
+            "roleTag": "a-bal-scr-n",
+            "tick": 106
+          },
+          "3": {
+            "actionId": "move-eight-way",
+            "lifeId": 0,
+            "roleTag": "a-bal-scr-s",
+            "tick": 106
+          },
+          "7": {
+            "actionId": "move-eight-way",
+            "lifeId": 3,
+            "roleTag": "a-bal-res-c",
+            "tick": 122
+          }
+        },
+        "prepareTick": 101,
+        "qualifies": {
+          "casualtyRecovery": true,
+          "committedCounter": false,
+          "counter": true,
+          "preparationDenial": true,
+          "success": false
+        },
+        "recoveryDeadlineTicks": 12,
+        "recoveryTicks": 4,
+        "releaseTick": 106,
+        "requiredActionTicks": {},
+        "terminalReason": "prepare-abort",
+        "terminalTick": 102
+      },
+      "cellId": "confirm--lantern-sweep--beacon-hunt--s67867967--op1",
+      "counter": {
+        "baselineRelease": true,
+        "boundedRelease": true,
+        "branch": null,
+        "casualties": [
+          {
+            "kind": "destruction",
+            "lifeId": 2,
+            "sourceActor": {
+              "lifeId": 1,
+              "teamId": 0,
+              "unitId": 5
+            },
+            "tick": 101,
+            "unitId": 7
+          }
+        ],
+        "casualtyRespawnBaseline": true,
+        "commitTick": null,
+        "hostileImpacts": [
+          {
+            "kind": "damage",
+            "lifeId": 2,
+            "sourceActor": {
+              "lifeId": 1,
+              "teamId": 0,
+              "unitId": 5
+            },
+            "tick": 101,
+            "unitId": 7
+          },
+          {
+            "kind": "destruction",
+            "lifeId": 2,
+            "sourceActor": {
+              "lifeId": 1,
+              "teamId": 0,
+              "unitId": 5
+            },
+            "tick": 101,
+            "unitId": 7
+          }
+        ],
+        "kind": "preparation denial",
+        "participantLives": {
+          "2": 1,
+          "3": 0,
+          "7": 2
+        },
+        "participants": [
+          2,
+          3,
+          7
+        ],
+        "postReleaseCommands": {
+          "2": {
+            "actionId": "move-eight-way",
+            "lifeId": 1,
+            "roleTag": "a-bal-scr-n",
+            "tick": 106
+          },
+          "3": {
+            "actionId": "move-eight-way",
+            "lifeId": 0,
+            "roleTag": "a-bal-scr-s",
+            "tick": 106
+          },
+          "7": {
+            "actionId": "move-eight-way",
+            "lifeId": 3,
+            "roleTag": "a-bal-res-c",
+            "tick": 122
+          }
+        },
+        "prepareTick": 101,
+        "qualifies": {
+          "casualtyRecovery": true,
+          "committedCounter": false,
+          "counter": true,
+          "preparationDenial": true,
+          "success": false
+        },
+        "recoveryDeadlineTicks": 12,
+        "recoveryTicks": 4,
+        "releaseTick": 106,
+        "requiredActionTicks": {},
+        "terminalReason": "prepare-abort",
+        "terminalTick": 102
+      },
+      "counterThesis": "sensor contest hunts the exposed Lantern",
+      "feltDegeneracy": {
+        "cohortEligibilityByTeam": {
+          "0": true,
+          "1": true
+        },
+        "formationFreeze": {
+          "bar": {
+            "highWaitTicks": 60,
+            "operator": ">=",
+            "windowTicks": 75
+          },
+          "barTrippedByTeam": {
+            "0": false,
+            "1": false
+          },
+          "definition": "from the first scheduled Core birth, a high-wait tick has at least 75% of commanded bodies waiting; Core proximity and possession do not excuse a frozen formation",
+          "maxHighWaitTicksInWindowByTeam": {
+            "0": 3,
+            "1": 2
+          },
+          "trippingWindowRunsByTeam": {
+            "0": [],
+            "1": []
+          }
+        },
+        "handoffPingPong": {
+          "bar": {
+            "operator": ">=",
+            "reversalsInOneEpisode": 3
+          },
+          "barTrippedByTeam": {
+            "0": false,
+            "1": false
+          },
+          "definition": "consecutive A->B, B->A handoff reversals for one Core and life pair, each no more than 4 ticks apart",
+          "episodes": [],
+          "maxEpisodeReversalsByTeam": {
+            "0": 0,
+            "1": 0
+          },
+          "totalReversalsByTeam": {
+            "0": 0,
+            "1": 0
+          }
+        },
+        "homeCarrierNonProgress": {
+          "bar": {
+            "enemyContestChebyshevDistance": 2,
+            "homeRadiusShortestPathTiles": 6,
+            "operator": ">=",
+            "uncontestedTicksWithoutNewBestDistance": 30
+          },
+          "barTrippedByTeam": {
+            "0": false,
+            "1": false
+          },
+          "definition": "during same-team carried possession, count uncontested worlds within 6 static walkable tiles of that team's reactor since the Core last reached a strictly lower distance; allied handoffs and equal-distance movement do not reset the run",
+          "enabled": true,
+          "maxUncontestedTicksWithoutProgressByTeam": {
+            "0": 3,
+            "1": 10
+          },
+          "trippingRuns": []
+        },
+        "matchEligibleForCohortRead": true,
+        "stuckCarrier": {
+          "bar": {
+            "consecutiveTicks": 30,
+            "operator": ">="
+          },
+          "barTrippedByTeam": {
+            "0": false,
+            "1": false
+          },
+          "definition": "one Core remains carried by the same life on the same tile for consecutive spectator worlds",
+          "maxConsecutiveTicksByTeam": {
+            "0": 3,
+            "1": 3
+          },
+          "trippingRuns": []
+        },
+        "sustainedPassivity": {
+          "bar": {
+            "operator": ">=",
+            "quietTicks": 60,
+            "windowTicks": 75
+          },
+          "barTrippedByTeam": {
+            "0": false,
+            "1": false
+          },
+          "definition": "from the first scheduled Core birth, a quiet tick has at least 75% of commanded bodies waiting while the team carries no Core and has no body within Chebyshev 4 of a live Core",
+          "highWaitTicksByTeam": {
+            "0": 9,
+            "1": 2
+          },
+          "maxQuietTicksInWindowByTeam": {
+            "0": 1,
+            "1": 0
+          },
+          "noTheaterPresenceTicksByTeam": {
+            "0": 75,
+            "1": 123
+          },
+          "quietTicksByTeam": {
+            "0": 1,
+            "1": 0
+          },
+          "trippingWindowRunsByTeam": {
+            "0": [],
+            "1": []
+          }
+        }
+      },
+      "matchEndPreemptedReleases": 0,
+      "operationId": "lantern-sweep",
+      "operationTeamId": 1,
+      "opponentId": "beacon-hunt",
+      "record": {
+        "bytes": 2347,
+        "file": "arena-bots/arc-relay/operation-counterplay-v1-2026-08-03/retained/lantern-sweep/match-record.json",
+        "sha256": "c0e3a94a997620ba61620f432e7b5e2dff7d53494ab01e3a1c4e2ccf1f0ff4ca"
+      },
+      "result": {
+        "eligibleTeamIds": [
+          0,
+          1
+        ],
+        "endTick": 432,
+        "reason": "reactor-destroyed",
+        "winnerTeamId": 0
+      },
+      "scorecard": {
+        "bytes": 19846,
+        "file": "arena-bots/arc-relay/operation-counterplay-v1-2026-08-03/retained/lantern-sweep/scorecard.json",
+        "sha256": "64b92b77a472b9b2a86474f1c1c24a70c1a65706f84c8e62484457092547aca5"
+      },
+      "seed": "67867967",
+      "sourceReplayFileSha256": "7ce80c8ec030f0347f83ae1fc3cf2fca1005e19e66ca8a98a2eab0e00f961ca6",
+      "strandedActivations": 0,
+      "success": {
+        "baselineRelease": true,
+        "boundedRelease": true,
+        "branch": "alternate-return",
+        "casualties": [],
+        "casualtyRespawnBaseline": true,
+        "commitTick": 335,
+        "hostileImpacts": [],
+        "participantLives": {
+          "3": 1,
+          "6": 6
+        },
+        "participants": [
+          3,
+          6
+        ],
+        "postReleaseCommands": {
+          "3": {
+            "actionId": "rotate",
+            "lifeId": 1,
+            "roleTag": "a-bal-scr-s",
+            "tick": 337
+          },
+          "6": {
+            "actionId": "move-eight-way",
+            "lifeId": 6,
+            "roleTag": "a-bal-res-c",
+            "tick": 337
+          }
+        },
+        "prepareTick": 331,
+        "qualifies": {
+          "casualtyRecovery": false,
+          "committedCounter": false,
+          "counter": false,
+          "preparationDenial": false,
+          "success": true
+        },
+        "recoveryDeadlineTicks": 12,
+        "recoveryTicks": 1,
+        "releaseTick": 337,
+        "requiredActionTicks": {},
+        "terminalReason": "mission-success",
+        "terminalTick": 336
+      }
+    },
+    {
+      "activeAtMatchEnd": 0,
+      "broadcast": {
+        "file": "arena-bots/arc-relay/operation-counterplay-v1-2026-08-03/retained/fork-shadow/broadcast.json.gz",
+        "gzipBytes": 120944,
+        "sha256": "f3f41cda0026448bfcc7401139ad0ddaa31f8f5f39531875a9650df1d6cf68c3"
+      },
+      "canonicalReplayHash": "a073af7a6ac5c5d8b9f382648e9f582b86e79d5d642fc764c5915b7eb4cc2a8f",
+      "casualtyRecovery": {
+        "baselineRelease": true,
+        "boundedRelease": true,
+        "branch": null,
+        "casualties": [
+          {
+            "kind": "destruction",
+            "lifeId": 2,
+            "sourceActor": {
+              "lifeId": 3,
+              "teamId": 1,
+              "unitId": 0
+            },
+            "tick": 215,
+            "unitId": 4
+          }
+        ],
+        "casualtyRespawnBaseline": true,
+        "commitTick": null,
+        "hostileImpacts": [
+          {
+            "kind": "damage",
+            "lifeId": 3,
+            "sourceActor": {
+              "lifeId": 2,
+              "teamId": 1,
+              "unitId": 4
+            },
+            "tick": 200,
+            "unitId": 5
+          },
+          {
+            "kind": "damage",
+            "lifeId": 2,
+            "sourceActor": {
+              "lifeId": 2,
+              "teamId": 1,
+              "unitId": 6
+            },
+            "tick": 206,
+            "unitId": 4
+          },
+          {
+            "kind": "damage",
+            "lifeId": 3,
+            "sourceActor": {
+              "lifeId": 2,
+              "teamId": 1,
+              "unitId": 1
+            },
+            "tick": 210,
+            "unitId": 5
+          },
+          {
+            "kind": "damage",
+            "lifeId": 2,
+            "sourceActor": {
+              "lifeId": 2,
+              "teamId": 1,
+              "unitId": 6
+            },
+            "tick": 212,
+            "unitId": 4
+          },
+          {
+            "kind": "damage",
+            "lifeId": 2,
+            "sourceActor": {
+              "lifeId": 3,
+              "teamId": 1,
+              "unitId": 0
+            },
+            "tick": 213,
+            "unitId": 4
+          },
+          {
+            "kind": "damage",
+            "lifeId": 3,
+            "sourceActor": {
+              "lifeId": 2,
+              "teamId": 1,
+              "unitId": 1
+            },
+            "tick": 214,
+            "unitId": 5
+          },
+          {
+            "kind": "damage",
+            "lifeId": 2,
+            "sourceActor": {
+              "lifeId": 3,
+              "teamId": 1,
+              "unitId": 0
+            },
+            "tick": 215,
+            "unitId": 4
+          },
+          {
+            "kind": "destruction",
+            "lifeId": 2,
+            "sourceActor": {
+              "lifeId": 3,
+              "teamId": 1,
+              "unitId": 0
+            },
+            "tick": 215,
+            "unitId": 4
+          }
+        ],
+        "participantLives": {
+          "4": 2,
+          "5": 3
+        },
+        "participants": [
+          4,
+          5
+        ],
+        "postReleaseCommands": {
+          "4": {
+            "actionId": "move-eight-way",
+            "lifeId": 3,
+            "roleTag": "a-amb-int-n",
+            "tick": 236
+          },
+          "5": {
+            "actionId": "tractor-hook",
+            "lifeId": 3,
+            "roleTag": "a-amb-int-s",
+            "tick": 221
+          }
+        },
+        "prepareTick": 186,
+        "qualifies": {
+          "casualtyRecovery": true,
+          "committedCounter": false,
+          "counter": true,
+          "preparationDenial": true,
+          "success": false
+        },
+        "recoveryDeadlineTicks": 12,
+        "recoveryTicks": 5,
+        "releaseTick": 221,
+        "requiredActionTicks": {
+          "tractor-hook": []
+        },
+        "terminalReason": "prepare-participant-minimum",
+        "terminalTick": 216
+      },
+      "cellId": "confirm--fork-shadow--counter-courier--s982451653--op0",
+      "counter": {
+        "baselineRelease": true,
+        "boundedRelease": true,
+        "branch": "south-cutoff",
+        "casualties": [
+          {
+            "kind": "destruction",
+            "lifeId": 4,
+            "sourceActor": {
+              "lifeId": 4,
+              "teamId": 1,
+              "unitId": 5
+            },
+            "tick": 334,
+            "unitId": 4
+          },
+          {
+            "kind": "destruction",
+            "lifeId": 5,
+            "sourceActor": {
+              "lifeId": 4,
+              "teamId": 1,
+              "unitId": 4
+            },
+            "tick": 341,
+            "unitId": 5
+          }
+        ],
+        "casualtyRespawnBaseline": true,
+        "commitTick": 303,
+        "hostileImpacts": [
+          {
+            "kind": "damage",
+            "lifeId": 4,
+            "sourceActor": {
+              "lifeId": 3,
+              "teamId": 1,
+              "unitId": 5
+            },
+            "tick": 309,
+            "unitId": 4
+          },
+          {
+            "kind": "damage",
+            "lifeId": 5,
+            "sourceActor": {
+              "lifeId": 5,
+              "teamId": 1,
+              "unitId": 3
+            },
+            "tick": 321,
+            "unitId": 5
+          },
+          {
+            "kind": "damage",
+            "lifeId": 4,
+            "sourceActor": {
+              "lifeId": 4,
+              "teamId": 1,
+              "unitId": 5
+            },
+            "tick": 331,
+            "unitId": 4
+          },
+          {
+            "kind": "damage",
+            "lifeId": 4,
+            "sourceActor": {
+              "lifeId": 4,
+              "teamId": 1,
+              "unitId": 5
+            },
+            "tick": 332,
+            "unitId": 4
+          },
+          {
+            "kind": "damage",
+            "lifeId": 4,
+            "sourceActor": {
+              "lifeId": 4,
+              "teamId": 1,
+              "unitId": 5
+            },
+            "tick": 334,
+            "unitId": 4
+          },
+          {
+            "kind": "destruction",
+            "lifeId": 4,
+            "sourceActor": {
+              "lifeId": 4,
+              "teamId": 1,
+              "unitId": 5
+            },
+            "tick": 334,
+            "unitId": 4
+          },
+          {
+            "kind": "damage",
+            "lifeId": 5,
+            "sourceActor": {
+              "lifeId": 4,
+              "teamId": 1,
+              "unitId": 5
+            },
+            "tick": 338,
+            "unitId": 5
+          },
+          {
+            "kind": "damage",
+            "lifeId": 5,
+            "sourceActor": {
+              "lifeId": 3,
+              "teamId": 1,
+              "unitId": 7
+            },
+            "tick": 338,
+            "unitId": 5
+          },
+          {
+            "kind": "damage",
+            "lifeId": 5,
+            "sourceActor": {
+              "lifeId": 4,
+              "teamId": 1,
+              "unitId": 4
+            },
+            "tick": 341,
+            "unitId": 5
+          },
+          {
+            "kind": "destruction",
+            "lifeId": 5,
+            "sourceActor": {
+              "lifeId": 4,
+              "teamId": 1,
+              "unitId": 4
+            },
+            "tick": 341,
+            "unitId": 5
+          }
+        ],
+        "kind": "committed counter",
+        "participantLives": {
+          "4": 4,
+          "5": 5
+        },
+        "participants": [
+          4,
+          5
+        ],
+        "postReleaseCommands": {
+          "4": {
+            "actionId": "move-eight-way",
+            "lifeId": 5,
+            "roleTag": "a-amb-int-n",
+            "tick": 363
+          },
+          "5": {
+            "actionId": "move-eight-way",
+            "lifeId": 6,
+            "roleTag": "a-amb-int-s",
+            "tick": 363
+          }
+        },
+        "prepareTick": 302,
+        "qualifies": {
+          "casualtyRecovery": true,
+          "committedCounter": true,
+          "counter": true,
+          "preparationDenial": false,
+          "success": false
+        },
+        "recoveryDeadlineTicks": 12,
+        "recoveryTicks": 12,
+        "releaseTick": 363,
+        "requiredActionTicks": {
+          "tractor-hook": [
+            305,
+            313,
+            321,
+            326,
+            333
+          ]
+        },
+        "terminalReason": "mission-deadline",
+        "terminalTick": 351
+      },
+      "counterThesis": "escort pressure protects the exact carrier",
+      "feltDegeneracy": {
+        "cohortEligibilityByTeam": {
+          "0": true,
+          "1": true
+        },
+        "formationFreeze": {
+          "bar": {
+            "highWaitTicks": 60,
+            "operator": ">=",
+            "windowTicks": 75
+          },
+          "barTrippedByTeam": {
+            "0": false,
+            "1": false
+          },
+          "definition": "from the first scheduled Core birth, a high-wait tick has at least 75% of commanded bodies waiting; Core proximity and possession do not excuse a frozen formation",
+          "maxHighWaitTicksInWindowByTeam": {
+            "0": 6,
+            "1": 9
+          },
+          "trippingWindowRunsByTeam": {
+            "0": [],
+            "1": []
+          }
+        },
+        "handoffPingPong": {
+          "bar": {
+            "operator": ">=",
+            "reversalsInOneEpisode": 3
+          },
+          "barTrippedByTeam": {
+            "0": false,
+            "1": false
+          },
+          "definition": "consecutive A->B, B->A handoff reversals for one Core and life pair, each no more than 4 ticks apart",
+          "episodes": [],
+          "maxEpisodeReversalsByTeam": {
+            "0": 0,
+            "1": 0
+          },
+          "totalReversalsByTeam": {
+            "0": 0,
+            "1": 0
+          }
+        },
+        "homeCarrierNonProgress": {
+          "bar": {
+            "enemyContestChebyshevDistance": 2,
+            "homeRadiusShortestPathTiles": 6,
+            "operator": ">=",
+            "uncontestedTicksWithoutNewBestDistance": 30
+          },
+          "barTrippedByTeam": {
+            "0": false,
+            "1": false
+          },
+          "definition": "during same-team carried possession, count uncontested worlds within 6 static walkable tiles of that team's reactor since the Core last reached a strictly lower distance; allied handoffs and equal-distance movement do not reset the run",
+          "enabled": true,
+          "maxUncontestedTicksWithoutProgressByTeam": {
+            "0": 2,
+            "1": 3
+          },
+          "trippingRuns": []
+        },
+        "matchEligibleForCohortRead": true,
+        "stuckCarrier": {
+          "bar": {
+            "consecutiveTicks": 30,
+            "operator": ">="
+          },
+          "barTrippedByTeam": {
+            "0": false,
+            "1": false
+          },
+          "definition": "one Core remains carried by the same life on the same tile for consecutive spectator worlds",
+          "maxConsecutiveTicksByTeam": {
+            "0": 3,
+            "1": 3
+          },
+          "trippingRuns": []
+        },
+        "sustainedPassivity": {
+          "bar": {
+            "operator": ">=",
+            "quietTicks": 60,
+            "windowTicks": 75
+          },
+          "barTrippedByTeam": {
+            "0": false,
+            "1": false
+          },
+          "definition": "from the first scheduled Core birth, a quiet tick has at least 75% of commanded bodies waiting while the team carries no Core and has no body within Chebyshev 4 of a live Core",
+          "highWaitTicksByTeam": {
+            "0": 16,
+            "1": 18
+          },
+          "maxQuietTicksInWindowByTeam": {
+            "0": 4,
+            "1": 0
+          },
+          "noTheaterPresenceTicksByTeam": {
+            "0": 129,
+            "1": 35
+          },
+          "quietTicksByTeam": {
+            "0": 6,
+            "1": 0
+          },
+          "trippingWindowRunsByTeam": {
+            "0": [],
+            "1": []
+          }
+        }
+      },
+      "matchEndPreemptedReleases": 0,
+      "operationId": "fork-shadow",
+      "operationTeamId": 0,
+      "opponentId": "counter-courier",
+      "record": {
+        "bytes": 2350,
+        "file": "arena-bots/arc-relay/operation-counterplay-v1-2026-08-03/retained/fork-shadow/match-record.json",
+        "sha256": "752a2c037f03301e5f33fb97ccbf694baca6338f4bc801e289ae150abff73470"
+      },
+      "result": {
+        "eligibleTeamIds": [
+          0,
+          1
+        ],
+        "endTick": 384,
+        "reason": "reactor-destroyed",
+        "winnerTeamId": 1
+      },
+      "scorecard": {
+        "bytes": 18609,
+        "file": "arena-bots/arc-relay/operation-counterplay-v1-2026-08-03/retained/fork-shadow/scorecard.json",
+        "sha256": "aa7b40c34712f575807ba6be970752cc59e9997a71dae430fccb833ce87965b2"
+      },
+      "seed": "982451653",
+      "sourceReplayFileSha256": "960b54473a1bb57bd8aefd47a2d8ba0ae60012b240c31463c6007be3d069fd7a",
+      "strandedActivations": 0,
+      "success": {
+        "baselineRelease": true,
+        "boundedRelease": true,
+        "branch": "north-cutoff",
+        "casualties": [],
+        "casualtyRespawnBaseline": true,
+        "commitTick": 51,
+        "hostileImpacts": [
+          {
+            "kind": "damage",
+            "lifeId": 1,
+            "sourceActor": {
+              "lifeId": 0,
+              "teamId": 1,
+              "unitId": 6
+            },
+            "tick": 58,
+            "unitId": 5
+          },
+          {
+            "kind": "damage",
+            "lifeId": 0,
+            "sourceActor": {
+              "lifeId": 0,
+              "teamId": 1,
+              "unitId": 7
+            },
+            "tick": 63,
+            "unitId": 4
+          }
+        ],
+        "participantLives": {
+          "4": 0,
+          "5": 1
+        },
+        "participants": [
+          4,
+          5
+        ],
+        "postReleaseCommands": {
+          "4": {
+            "actionId": "move-eight-way",
+            "lifeId": 0,
+            "roleTag": "a-amb-int-n",
+            "tick": 89
+          },
+          "5": {
+            "actionId": "move-eight-way",
+            "lifeId": 1,
+            "roleTag": "a-amb-int-s",
+            "tick": 89
+          }
+        },
+        "prepareTick": 44,
+        "qualifies": {
+          "casualtyRecovery": false,
+          "committedCounter": false,
+          "counter": false,
+          "preparationDenial": false,
+          "success": true
+        },
+        "recoveryDeadlineTicks": 12,
+        "recoveryTicks": 12,
+        "releaseTick": 89,
+        "requiredActionTicks": {
+          "tractor-hook": [
+            54,
+            57,
+            66,
+            72
+          ]
+        },
+        "terminalReason": "mission-success",
+        "terminalTick": 77
+      }
+    },
+    {
+      "activeAtMatchEnd": 0,
+      "broadcast": {
+        "file": "arena-bots/arc-relay/operation-counterplay-v1-2026-08-03/retained/birth-rotation/broadcast.json.gz",
+        "gzipBytes": 129567,
+        "sha256": "950cc2d8345e983bfd6dc153cbd7d288b09f8cbdad643380d33c3423140df10e"
+      },
+      "canonicalReplayHash": "6220a309a82253ecee17d1241ad21ba77f04703503d622f21a2d9846a1ddc397",
+      "casualtyRecovery": {
+        "baselineRelease": true,
+        "boundedRelease": true,
+        "branch": null,
+        "casualties": [
+          {
+            "kind": "destruction",
+            "lifeId": 0,
+            "sourceActor": {
+              "lifeId": 0,
+              "teamId": 0,
+              "unitId": 4
+            },
+            "tick": 70,
+            "unitId": 2
+          }
+        ],
+        "casualtyRespawnBaseline": true,
+        "commitTick": null,
+        "hostileImpacts": [
+          {
+            "kind": "damage",
+            "lifeId": 0,
+            "sourceActor": {
+              "lifeId": 1,
+              "teamId": 0,
+              "unitId": 5
+            },
+            "tick": 62,
+            "unitId": 2
+          },
+          {
+            "kind": "damage",
+            "lifeId": 0,
+            "sourceActor": {
+              "lifeId": 1,
+              "teamId": 0,
+              "unitId": 7
+            },
+            "tick": 63,
+            "unitId": 2
+          },
+          {
+            "kind": "damage",
+            "lifeId": 0,
+            "sourceActor": {
+              "lifeId": 0,
+              "teamId": 0,
+              "unitId": 4
+            },
+            "tick": 70,
+            "unitId": 2
+          },
+          {
+            "kind": "destruction",
+            "lifeId": 0,
+            "sourceActor": {
+              "lifeId": 0,
+              "teamId": 0,
+              "unitId": 4
+            },
+            "tick": 70,
+            "unitId": 2
+          }
+        ],
+        "participantLives": {
+          "2": 0,
+          "6": 1
+        },
+        "participants": [
+          2,
+          6
+        ],
+        "postReleaseCommands": {
+          "2": {
+            "actionId": "move-eight-way",
+            "lifeId": 1,
+            "roleTag": "a-spl-scr-n",
+            "tick": 91
+          },
+          "6": {
+            "actionId": "move-eight-way",
+            "lifeId": 1,
+            "roleTag": "a-spl-res-c",
+            "tick": 72
+          }
+        },
+        "prepareTick": 55,
+        "qualifies": {
+          "casualtyRecovery": true,
+          "committedCounter": false,
+          "counter": true,
+          "preparationDenial": true,
+          "success": false
+        },
+        "recoveryDeadlineTicks": 12,
+        "recoveryTicks": 1,
+        "releaseTick": 72,
+        "requiredActionTicks": {},
+        "terminalReason": "prepare-participant-minimum",
+        "terminalTick": 71
+      },
+      "cellId": "confirm--birth-rotation--beacon-hunt--s67867967--op1",
+      "counter": {
+        "baselineRelease": true,
+        "boundedRelease": true,
+        "branch": "release-to-next-well",
+        "casualties": [
+          {
+            "kind": "destruction",
+            "lifeId": 4,
+            "sourceActor": {
+              "lifeId": 3,
+              "teamId": 0,
+              "unitId": 5
+            },
+            "tick": 292,
+            "unitId": 6
+          }
+        ],
+        "casualtyRespawnBaseline": true,
+        "commitTick": 287,
+        "hostileImpacts": [
+          {
+            "kind": "damage",
+            "lifeId": 4,
+            "sourceActor": {
+              "lifeId": 3,
+              "teamId": 0,
+              "unitId": 5
+            },
+            "tick": 292,
+            "unitId": 6
+          },
+          {
+            "kind": "destruction",
+            "lifeId": 4,
+            "sourceActor": {
+              "lifeId": 3,
+              "teamId": 0,
+              "unitId": 5
+            },
+            "tick": 292,
+            "unitId": 6
+          }
+        ],
+        "kind": "committed counter",
+        "participantLives": {
+          "2": 3,
+          "6": 4
+        },
+        "participants": [
+          2,
+          6
+        ],
+        "postReleaseCommands": {
+          "2": {
+            "actionId": "move-eight-way",
+            "lifeId": 3,
+            "roleTag": "a-spl-scr-n",
+            "tick": 294
+          },
+          "6": {
+            "actionId": "move-eight-way",
+            "lifeId": 5,
+            "roleTag": "a-spl-res-c",
+            "tick": 313
+          }
+        },
+        "prepareTick": 280,
+        "qualifies": {
+          "casualtyRecovery": true,
+          "committedCounter": true,
+          "counter": true,
+          "preparationDenial": false,
+          "success": false
+        },
+        "recoveryDeadlineTicks": 12,
+        "recoveryTicks": 1,
+        "releaseTick": 294,
+        "requiredActionTicks": {},
+        "terminalReason": "commit-participant-minimum",
+        "terminalTick": 293
+      },
+      "counterThesis": "scouting pressure detects early rotation",
+      "feltDegeneracy": {
+        "cohortEligibilityByTeam": {
+          "0": true,
+          "1": true
+        },
+        "formationFreeze": {
+          "bar": {
+            "highWaitTicks": 60,
+            "operator": ">=",
+            "windowTicks": 75
+          },
+          "barTrippedByTeam": {
+            "0": false,
+            "1": false
+          },
+          "definition": "from the first scheduled Core birth, a high-wait tick has at least 75% of commanded bodies waiting; Core proximity and possession do not excuse a frozen formation",
+          "maxHighWaitTicksInWindowByTeam": {
+            "0": 6,
+            "1": 3
+          },
+          "trippingWindowRunsByTeam": {
+            "0": [],
+            "1": []
+          }
+        },
+        "handoffPingPong": {
+          "bar": {
+            "operator": ">=",
+            "reversalsInOneEpisode": 3
+          },
+          "barTrippedByTeam": {
+            "0": false,
+            "1": false
+          },
+          "definition": "consecutive A->B, B->A handoff reversals for one Core and life pair, each no more than 4 ticks apart",
+          "episodes": [],
+          "maxEpisodeReversalsByTeam": {
+            "0": 0,
+            "1": 0
+          },
+          "totalReversalsByTeam": {
+            "0": 0,
+            "1": 0
+          }
+        },
+        "homeCarrierNonProgress": {
+          "bar": {
+            "enemyContestChebyshevDistance": 2,
+            "homeRadiusShortestPathTiles": 6,
+            "operator": ">=",
+            "uncontestedTicksWithoutNewBestDistance": 30
+          },
+          "barTrippedByTeam": {
+            "0": false,
+            "1": false
+          },
+          "definition": "during same-team carried possession, count uncontested worlds within 6 static walkable tiles of that team's reactor since the Core last reached a strictly lower distance; allied handoffs and equal-distance movement do not reset the run",
+          "enabled": true,
+          "maxUncontestedTicksWithoutProgressByTeam": {
+            "0": 6,
+            "1": 4
+          },
+          "trippingRuns": []
+        },
+        "matchEligibleForCohortRead": true,
+        "stuckCarrier": {
+          "bar": {
+            "consecutiveTicks": 30,
+            "operator": ">="
+          },
+          "barTrippedByTeam": {
+            "0": false,
+            "1": false
+          },
+          "definition": "one Core remains carried by the same life on the same tile for consecutive spectator worlds",
+          "maxConsecutiveTicksByTeam": {
+            "0": 4,
+            "1": 4
+          },
+          "trippingRuns": []
+        },
+        "sustainedPassivity": {
+          "bar": {
+            "operator": ">=",
+            "quietTicks": 60,
+            "windowTicks": 75
+          },
+          "barTrippedByTeam": {
+            "0": false,
+            "1": false
+          },
+          "definition": "from the first scheduled Core birth, a quiet tick has at least 75% of commanded bodies waiting while the team carries no Core and has no body within Chebyshev 4 of a live Core",
+          "highWaitTicksByTeam": {
+            "0": 8,
+            "1": 3
+          },
+          "maxQuietTicksInWindowByTeam": {
+            "0": 0,
+            "1": 3
+          },
+          "noTheaterPresenceTicksByTeam": {
+            "0": 38,
+            "1": 100
+          },
+          "quietTicksByTeam": {
+            "0": 0,
+            "1": 3
+          },
+          "trippingWindowRunsByTeam": {
+            "0": [],
+            "1": []
+          }
+        }
+      },
+      "matchEndPreemptedReleases": 0,
+      "operationId": "birth-rotation",
+      "operationTeamId": 1,
+      "opponentId": "beacon-hunt",
+      "record": {
+        "bytes": 2350,
+        "file": "arena-bots/arc-relay/operation-counterplay-v1-2026-08-03/retained/birth-rotation/match-record.json",
+        "sha256": "37e0fc9fedcb3c175672ac7149ec2c6c12f1accc4f53426392442e041f8e9a00"
+      },
+      "result": {
+        "eligibleTeamIds": [
+          0,
+          1
+        ],
+        "endTick": 376,
+        "reason": "reactor-destroyed",
+        "winnerTeamId": 0
+      },
+      "scorecard": {
+        "bytes": 19809,
+        "file": "arena-bots/arc-relay/operation-counterplay-v1-2026-08-03/retained/birth-rotation/scorecard.json",
+        "sha256": "2fff1c39294209e27e5471154771fdc27259b5a31c78d056c10b524fb9204d92"
+      },
+      "seed": "67867967",
+      "sourceReplayFileSha256": "947fbaa73fdfedd7a36d39066b1d1596d6a171a86edaa9fac021df9690a2e6bf",
+      "strandedActivations": 0,
+      "success": {
+        "baselineRelease": true,
+        "boundedRelease": true,
+        "branch": "release-to-next-well",
+        "casualties": [],
+        "casualtyRespawnBaseline": true,
+        "commitTick": 123,
+        "hostileImpacts": [],
+        "participantLives": {
+          "2": 1,
+          "7": 3
+        },
+        "participants": [
+          2,
+          7
+        ],
+        "postReleaseCommands": {
+          "2": {
+            "actionId": "shoot-direction",
+            "lifeId": 1,
+            "roleTag": "a-spl-scr-n",
+            "tick": 134
+          },
+          "7": {
+            "actionId": "move-eight-way",
+            "lifeId": 3,
+            "roleTag": "a-spl-res-c",
+            "tick": 134
+          }
+        },
+        "prepareTick": 119,
+        "qualifies": {
+          "casualtyRecovery": false,
+          "committedCounter": false,
+          "counter": false,
+          "preparationDenial": false,
+          "success": true
+        },
+        "recoveryDeadlineTicks": 12,
+        "recoveryTicks": 2,
+        "releaseTick": 134,
+        "requiredActionTicks": {},
+        "terminalReason": "mission-success",
+        "terminalTick": 132
+      }
+    },
+    {
+      "activeAtMatchEnd": 0,
+      "broadcast": {
+        "file": "arena-bots/arc-relay/operation-counterplay-v1-2026-08-03/retained/escort-counterpunch/broadcast.json.gz",
+        "gzipBytes": 108812,
+        "sha256": "a41596d944eef4c0785212a62db1fbdb62a9114335b547f32f092515ff3b10ef"
+      },
+      "canonicalReplayHash": "69a027b3bf44177309f31cb3eca779c27e8a10f36b183c50147a0804a3e4634f",
+      "casualtyRecovery": {
+        "baselineRelease": true,
+        "boundedRelease": true,
+        "branch": null,
+        "casualties": [
+          {
+            "kind": "destruction",
+            "lifeId": 2,
+            "sourceActor": {
+              "lifeId": 2,
+              "teamId": 0,
+              "unitId": 4
+            },
+            "tick": 151,
+            "unitId": 0
+          }
+        ],
+        "casualtyRespawnBaseline": true,
+        "commitTick": null,
+        "hostileImpacts": [
+          {
+            "kind": "damage",
+            "lifeId": 2,
+            "sourceActor": {
+              "lifeId": 3,
+              "teamId": 0,
+              "unitId": 2
+            },
+            "tick": 151,
+            "unitId": 0
+          },
+          {
+            "kind": "damage",
+            "lifeId": 2,
+            "sourceActor": {
+              "lifeId": 2,
+              "teamId": 0,
+              "unitId": 4
+            },
+            "tick": 151,
+            "unitId": 0
+          },
+          {
+            "kind": "destruction",
+            "lifeId": 2,
+            "sourceActor": {
+              "lifeId": 2,
+              "teamId": 0,
+              "unitId": 4
+            },
+            "tick": 151,
+            "unitId": 0
+          }
+        ],
+        "participantLives": {
+          "0": 2,
+          "3": 0
+        },
+        "participants": [
+          0,
+          3
+        ],
+        "postReleaseCommands": {
+          "0": {
+            "actionId": "move-eight-way",
+            "lifeId": 3,
+            "roleTag": "a-int-car-n",
+            "tick": 172
+          },
+          "3": {
+            "actionId": "shoot-direction",
+            "lifeId": 0,
+            "roleTag": "a-int-scr-s",
+            "tick": 164
+          }
+        },
+        "prepareTick": 151,
+        "qualifies": {
+          "casualtyRecovery": true,
+          "committedCounter": false,
+          "counter": true,
+          "preparationDenial": true,
+          "success": false
+        },
+        "recoveryDeadlineTicks": 12,
+        "recoveryTicks": 12,
+        "releaseTick": 164,
+        "requiredActionTicks": {},
+        "terminalReason": "prepare-participant-minimum",
+        "terminalTick": 152
+      },
+      "cellId": "confirm--escort-counterpunch--fireline-picks--s982451653--op1",
+      "counter": {
+        "baselineRelease": true,
+        "boundedRelease": true,
+        "branch": "counter-route",
+        "casualties": [
+          {
+            "kind": "destruction",
+            "lifeId": 3,
+            "sourceActor": {
+              "lifeId": 2,
+              "teamId": 0,
+              "unitId": 3
+            },
+            "tick": 235,
+            "unitId": 1
+          }
+        ],
+        "casualtyRespawnBaseline": true,
+        "commitTick": 235,
+        "hostileImpacts": [
+          {
+            "kind": "damage",
+            "lifeId": 3,
+            "sourceActor": {
+              "lifeId": 2,
+              "teamId": 0,
+              "unitId": 3
+            },
+            "tick": 234,
+            "unitId": 1
+          },
+          {
+            "kind": "damage",
+            "lifeId": 3,
+            "sourceActor": {
+              "lifeId": 3,
+              "teamId": 0,
+              "unitId": 7
+            },
+            "tick": 234,
+            "unitId": 1
+          },
+          {
+            "kind": "damage",
+            "lifeId": 3,
+            "sourceActor": {
+              "lifeId": 2,
+              "teamId": 0,
+              "unitId": 3
+            },
+            "tick": 235,
+            "unitId": 1
+          },
+          {
+            "kind": "destruction",
+            "lifeId": 3,
+            "sourceActor": {
+              "lifeId": 2,
+              "teamId": 0,
+              "unitId": 3
+            },
+            "tick": 235,
+            "unitId": 1
+          }
+        ],
+        "kind": "committed counter",
+        "participantLives": {
+          "1": 3,
+          "3": 1
+        },
+        "participants": [
+          1,
+          3
+        ],
+        "postReleaseCommands": {
+          "1": {
+            "actionId": "move-eight-way",
+            "lifeId": 4,
+            "roleTag": "a-int-car-s",
+            "tick": 256
+          },
+          "3": {
+            "actionId": "move-eight-way",
+            "lifeId": 1,
+            "roleTag": "a-int-scr-s",
+            "tick": 244
+          }
+        },
+        "prepareTick": 233,
+        "qualifies": {
+          "casualtyRecovery": true,
+          "committedCounter": true,
+          "counter": true,
+          "preparationDenial": false,
+          "success": false
+        },
+        "recoveryDeadlineTicks": 12,
+        "recoveryTicks": 8,
+        "releaseTick": 244,
+        "requiredActionTicks": {},
+        "terminalReason": "mission-abort",
+        "terminalTick": 236
+      },
+      "counterThesis": "long-range focus punishes a held carrier",
+      "feltDegeneracy": {
+        "cohortEligibilityByTeam": {
+          "0": true,
+          "1": true
+        },
+        "formationFreeze": {
+          "bar": {
+            "highWaitTicks": 60,
+            "operator": ">=",
+            "windowTicks": 75
+          },
+          "barTrippedByTeam": {
+            "0": false,
+            "1": false
+          },
+          "definition": "from the first scheduled Core birth, a high-wait tick has at least 75% of commanded bodies waiting; Core proximity and possession do not excuse a frozen formation",
+          "maxHighWaitTicksInWindowByTeam": {
+            "0": 1,
+            "1": 5
+          },
+          "trippingWindowRunsByTeam": {
+            "0": [],
+            "1": []
+          }
+        },
+        "handoffPingPong": {
+          "bar": {
+            "operator": ">=",
+            "reversalsInOneEpisode": 3
+          },
+          "barTrippedByTeam": {
+            "0": false,
+            "1": false
+          },
+          "definition": "consecutive A->B, B->A handoff reversals for one Core and life pair, each no more than 4 ticks apart",
+          "episodes": [],
+          "maxEpisodeReversalsByTeam": {
+            "0": 0,
+            "1": 0
+          },
+          "totalReversalsByTeam": {
+            "0": 0,
+            "1": 0
+          }
+        },
+        "homeCarrierNonProgress": {
+          "bar": {
+            "enemyContestChebyshevDistance": 2,
+            "homeRadiusShortestPathTiles": 6,
+            "operator": ">=",
+            "uncontestedTicksWithoutNewBestDistance": 30
+          },
+          "barTrippedByTeam": {
+            "0": false,
+            "1": false
+          },
+          "definition": "during same-team carried possession, count uncontested worlds within 6 static walkable tiles of that team's reactor since the Core last reached a strictly lower distance; allied handoffs and equal-distance movement do not reset the run",
+          "enabled": true,
+          "maxUncontestedTicksWithoutProgressByTeam": {
+            "0": 2,
+            "1": 7
+          },
+          "trippingRuns": []
+        },
+        "matchEligibleForCohortRead": true,
+        "stuckCarrier": {
+          "bar": {
+            "consecutiveTicks": 30,
+            "operator": ">="
+          },
+          "barTrippedByTeam": {
+            "0": false,
+            "1": false
+          },
+          "definition": "one Core remains carried by the same life on the same tile for consecutive spectator worlds",
+          "maxConsecutiveTicksByTeam": {
+            "0": 4,
+            "1": 3
+          },
+          "trippingRuns": []
+        },
+        "sustainedPassivity": {
+          "bar": {
+            "operator": ">=",
+            "quietTicks": 60,
+            "windowTicks": 75
+          },
+          "barTrippedByTeam": {
+            "0": false,
+            "1": false
+          },
+          "definition": "from the first scheduled Core birth, a quiet tick has at least 75% of commanded bodies waiting while the team carries no Core and has no body within Chebyshev 4 of a live Core",
+          "highWaitTicksByTeam": {
+            "0": 2,
+            "1": 7
+          },
+          "maxQuietTicksInWindowByTeam": {
+            "0": 1,
+            "1": 2
+          },
+          "noTheaterPresenceTicksByTeam": {
+            "0": 154,
+            "1": 43
+          },
+          "quietTicksByTeam": {
+            "0": 1,
+            "1": 2
+          },
+          "trippingWindowRunsByTeam": {
+            "0": [],
+            "1": []
+          }
+        }
+      },
+      "matchEndPreemptedReleases": 0,
+      "operationId": "escort-counterpunch",
+      "operationTeamId": 1,
+      "opponentId": "fireline-picks",
+      "record": {
+        "bytes": 2375,
+        "file": "arena-bots/arc-relay/operation-counterplay-v1-2026-08-03/retained/escort-counterpunch/match-record.json",
+        "sha256": "d666c29bc489a83bb515cf1681fe8eb546530dd521330a6865222c3773a864b4"
+      },
+      "result": {
+        "eligibleTeamIds": [
+          0,
+          1
+        ],
+        "endTick": 346,
+        "reason": "reactor-destroyed",
+        "winnerTeamId": 1
+      },
+      "scorecard": {
+        "bytes": 18454,
+        "file": "arena-bots/arc-relay/operation-counterplay-v1-2026-08-03/retained/escort-counterpunch/scorecard.json",
+        "sha256": "11d51cb86bfaf184fc709ecf029c3e9c269aba519b1cbcb7ac3527e1544944a6"
+      },
+      "seed": "982451653",
+      "sourceReplayFileSha256": "0f396b1be543f6a0bee3bab6f189ad244e83c69d52f861382dcd9b27e7675391",
+      "strandedActivations": 0,
+      "success": {
+        "baselineRelease": true,
+        "boundedRelease": true,
+        "branch": "counter-route",
+        "casualties": [],
+        "casualtyRespawnBaseline": true,
+        "commitTick": 64,
+        "hostileImpacts": [],
+        "participantLives": {
+          "2": 1,
+          "3": 0
+        },
+        "participants": [
+          2,
+          3
+        ],
+        "postReleaseCommands": {
+          "2": {
+            "actionId": "move-eight-way",
+            "lifeId": 1,
+            "roleTag": "a-int-scr-n",
+            "tick": 70
+          },
+          "3": {
+            "actionId": "move-eight-way",
+            "lifeId": 0,
+            "roleTag": "a-int-scr-s",
+            "tick": 70
+          }
+        },
+        "prepareTick": 63,
+        "qualifies": {
+          "casualtyRecovery": false,
+          "committedCounter": false,
+          "counter": false,
+          "preparationDenial": false,
+          "success": true
+        },
+        "recoveryDeadlineTicks": 12,
+        "recoveryTicks": 5,
+        "releaseTick": 70,
+        "requiredActionTicks": {},
+        "terminalReason": "mission-success",
+        "terminalTick": 65
+      }
+    },
+    {
+      "activeAtMatchEnd": 0,
+      "broadcast": {
+        "file": "arena-bots/arc-relay/operation-counterplay-v1-2026-08-03/retained/smoke-breach/broadcast.json.gz",
+        "gzipBytes": 138535,
+        "sha256": "3b200c853101ef7791806701f6c28965706b4854b5e0d79956684ed22fd9dc1a"
+      },
+      "canonicalReplayHash": "87322bc3bee438de649e3a9475b27efb286297ed14f04b0f3f851d4add4b97dd",
+      "casualtyRecovery": {
+        "baselineRelease": true,
+        "boundedRelease": true,
+        "branch": null,
+        "casualties": [
+          {
+            "kind": "destruction",
+            "lifeId": 3,
+            "sourceActor": {
+              "lifeId": 2,
+              "teamId": 0,
+              "unitId": 6
+            },
+            "tick": 215,
+            "unitId": 6
+          }
+        ],
+        "casualtyRespawnBaseline": true,
+        "commitTick": null,
+        "hostileImpacts": [
+          {
+            "kind": "damage",
+            "lifeId": 3,
+            "sourceActor": {
+              "lifeId": 4,
+              "teamId": 0,
+              "unitId": 2
+            },
+            "tick": 210,
+            "unitId": 4
+          },
+          {
+            "kind": "damage",
+            "lifeId": 3,
+            "sourceActor": {
+              "lifeId": 2,
+              "teamId": 0,
+              "unitId": 6
+            },
+            "tick": 215,
+            "unitId": 6
+          },
+          {
+            "kind": "destruction",
+            "lifeId": 3,
+            "sourceActor": {
+              "lifeId": 2,
+              "teamId": 0,
+              "unitId": 6
+            },
+            "tick": 215,
+            "unitId": 6
+          }
+        ],
+        "participantLives": {
+          "4": 3,
+          "6": 3
+        },
+        "participants": [
+          4,
+          6
+        ],
+        "postReleaseCommands": {
+          "4": {
+            "actionId": "shoot-direction",
+            "lifeId": 3,
+            "roleTag": "a-amb-int-n",
+            "tick": 219
+          },
+          "6": {
+            "actionId": "move-eight-way",
+            "lifeId": 4,
+            "roleTag": "a-amb-res-c",
+            "tick": 236
+          }
+        },
+        "prepareTick": 210,
+        "qualifies": {
+          "casualtyRecovery": true,
+          "committedCounter": false,
+          "counter": true,
+          "preparationDenial": true,
+          "success": false
+        },
+        "recoveryDeadlineTicks": 12,
+        "recoveryTicks": 3,
+        "releaseTick": 219,
+        "requiredActionTicks": {
+          "smoke-canister": [
+            210
+          ]
+        },
+        "terminalReason": "prepare-participant-minimum",
+        "terminalTick": 216
+      },
+      "cellId": "confirm--smoke-breach--null-veil--s67867967--op1",
+      "counter": {
+        "baselineRelease": true,
+        "boundedRelease": true,
+        "branch": "cross-centre",
+        "casualties": [],
+        "casualtyRespawnBaseline": true,
+        "commitTick": 111,
+        "hostileImpacts": [
+          {
+            "kind": "damage",
+            "lifeId": 2,
+            "sourceActor": {
+              "lifeId": 1,
+              "teamId": 0,
+              "unitId": 7
+            },
+            "tick": 113,
+            "unitId": 6
+          },
+          {
+            "kind": "damage",
+            "lifeId": 2,
+            "sourceActor": {
+              "lifeId": 1,
+              "teamId": 0,
+              "unitId": 7
+            },
+            "tick": 114,
+            "unitId": 6
+          }
+        ],
+        "kind": "committed counter",
+        "participantLives": {
+          "6": 2,
+          "7": 2
+        },
+        "participants": [
+          6,
+          7
+        ],
+        "postReleaseCommands": {
+          "6": {
+            "actionId": "shoot-direction",
+            "lifeId": 2,
+            "roleTag": "a-amb-res-c",
+            "tick": 116
+          },
+          "7": {
+            "actionId": "move-eight-way",
+            "lifeId": 2,
+            "roleTag": "a-amb-res-c",
+            "tick": 116
+          }
+        },
+        "prepareTick": 102,
+        "qualifies": {
+          "casualtyRecovery": false,
+          "committedCounter": true,
+          "counter": true,
+          "preparationDenial": false,
+          "success": false
+        },
+        "recoveryDeadlineTicks": 12,
+        "recoveryTicks": 1,
+        "releaseTick": 116,
+        "requiredActionTicks": {
+          "smoke-canister": [
+            102
+          ]
+        },
+        "terminalReason": "mission-abort",
+        "terminalTick": 115
+      },
+      "counterThesis": "counter-concealment and dampening contest signatures",
+      "feltDegeneracy": {
+        "cohortEligibilityByTeam": {
+          "0": true,
+          "1": true
+        },
+        "formationFreeze": {
+          "bar": {
+            "highWaitTicks": 60,
+            "operator": ">=",
+            "windowTicks": 75
+          },
+          "barTrippedByTeam": {
+            "0": false,
+            "1": false
+          },
+          "definition": "from the first scheduled Core birth, a high-wait tick has at least 75% of commanded bodies waiting; Core proximity and possession do not excuse a frozen formation",
+          "maxHighWaitTicksInWindowByTeam": {
+            "0": 1,
+            "1": 2
+          },
+          "trippingWindowRunsByTeam": {
+            "0": [],
+            "1": []
+          }
+        },
+        "handoffPingPong": {
+          "bar": {
+            "operator": ">=",
+            "reversalsInOneEpisode": 3
+          },
+          "barTrippedByTeam": {
+            "0": false,
+            "1": false
+          },
+          "definition": "consecutive A->B, B->A handoff reversals for one Core and life pair, each no more than 4 ticks apart",
+          "episodes": [],
+          "maxEpisodeReversalsByTeam": {
+            "0": 0,
+            "1": 0
+          },
+          "totalReversalsByTeam": {
+            "0": 0,
+            "1": 0
+          }
+        },
+        "homeCarrierNonProgress": {
+          "bar": {
+            "enemyContestChebyshevDistance": 2,
+            "homeRadiusShortestPathTiles": 6,
+            "operator": ">=",
+            "uncontestedTicksWithoutNewBestDistance": 30
+          },
+          "barTrippedByTeam": {
+            "0": false,
+            "1": false
+          },
+          "definition": "during same-team carried possession, count uncontested worlds within 6 static walkable tiles of that team's reactor since the Core last reached a strictly lower distance; allied handoffs and equal-distance movement do not reset the run",
+          "enabled": true,
+          "maxUncontestedTicksWithoutProgressByTeam": {
+            "0": 6,
+            "1": 3
+          },
+          "trippingRuns": []
+        },
+        "matchEligibleForCohortRead": true,
+        "stuckCarrier": {
+          "bar": {
+            "consecutiveTicks": 30,
+            "operator": ">="
+          },
+          "barTrippedByTeam": {
+            "0": false,
+            "1": false
+          },
+          "definition": "one Core remains carried by the same life on the same tile for consecutive spectator worlds",
+          "maxConsecutiveTicksByTeam": {
+            "0": 4,
+            "1": 3
+          },
+          "trippingRuns": []
+        },
+        "sustainedPassivity": {
+          "bar": {
+            "operator": ">=",
+            "quietTicks": 60,
+            "windowTicks": 75
+          },
+          "barTrippedByTeam": {
+            "0": false,
+            "1": false
+          },
+          "definition": "from the first scheduled Core birth, a quiet tick has at least 75% of commanded bodies waiting while the team carries no Core and has no body within Chebyshev 4 of a live Core",
+          "highWaitTicksByTeam": {
+            "0": 2,
+            "1": 3
+          },
+          "maxQuietTicksInWindowByTeam": {
+            "0": 1,
+            "1": 0
+          },
+          "noTheaterPresenceTicksByTeam": {
+            "0": 87,
+            "1": 128
+          },
+          "quietTicksByTeam": {
+            "0": 1,
+            "1": 0
+          },
+          "trippingWindowRunsByTeam": {
+            "0": [],
+            "1": []
+          }
+        }
+      },
+      "matchEndPreemptedReleases": 0,
+      "operationId": "smoke-breach",
+      "operationTeamId": 1,
+      "opponentId": "null-veil",
+      "record": {
+        "bytes": 2330,
+        "file": "arena-bots/arc-relay/operation-counterplay-v1-2026-08-03/retained/smoke-breach/match-record.json",
+        "sha256": "cc85d2d8240299c81f77d1375069409c1f5939af9f82303843864fc0592606be"
+      },
+      "result": {
+        "eligibleTeamIds": [
+          0,
+          1
+        ],
+        "endTick": 426,
+        "reason": "reactor-destroyed",
+        "winnerTeamId": 0
+      },
+      "scorecard": {
+        "bytes": 19423,
+        "file": "arena-bots/arc-relay/operation-counterplay-v1-2026-08-03/retained/smoke-breach/scorecard.json",
+        "sha256": "74352eb561af8abe434e79dc751cec7e84a8c2c5aaf7d5809b94afedbf800f6d"
+      },
+      "seed": "67867967",
+      "sourceReplayFileSha256": "383058aac34e57038b20b35b7fa6615240d1fabdfbfb4e31d8315f8f7653e7b7",
+      "strandedActivations": 0,
+      "success": {
+        "baselineRelease": true,
+        "boundedRelease": true,
+        "branch": "cross-centre",
+        "casualties": [],
+        "casualtyRespawnBaseline": true,
+        "commitTick": 58,
+        "hostileImpacts": [],
+        "participantLives": {
+          "6": 1,
+          "7": 1
+        },
+        "participants": [
+          6,
+          7
+        ],
+        "postReleaseCommands": {
+          "6": {
+            "actionId": "move-eight-way",
+            "lifeId": 1,
+            "roleTag": "a-amb-res-c",
+            "tick": 66
+          },
+          "7": {
+            "actionId": "move-eight-way",
+            "lifeId": 1,
+            "roleTag": "a-amb-res-c",
+            "tick": 66
+          }
+        },
+        "prepareTick": 57,
+        "qualifies": {
+          "casualtyRecovery": false,
+          "committedCounter": false,
+          "counter": false,
+          "preparationDenial": false,
+          "success": true
+        },
+        "recoveryDeadlineTicks": 12,
+        "recoveryTicks": 4,
+        "releaseTick": 66,
+        "requiredActionTicks": {
+          "smoke-canister": [
+            57
+          ]
+        },
+        "terminalReason": "mission-success",
+        "terminalTick": 62
+      }
+    },
+    {
+      "activeAtMatchEnd": 0,
+      "broadcast": {
+        "file": "arena-bots/arc-relay/operation-counterplay-v1-2026-08-03/retained/hardlight-gate/broadcast.json.gz",
+        "gzipBytes": 143866,
+        "sha256": "3b12029bf5a79c271e4a5a4497cb00892d08f225973b2cf199828e8bdb465423"
+      },
+      "canonicalReplayHash": "29247eefbbf548c8815fbc038b2b1db9950f2cabd27896721ca9547237cee1c4",
+      "casualtyRecovery": {
+        "baselineRelease": true,
+        "boundedRelease": true,
+        "branch": null,
+        "casualties": [
+          {
+            "kind": "destruction",
+            "lifeId": 2,
+            "sourceActor": {
+              "lifeId": 2,
+              "teamId": 1,
+              "unitId": 1
+            },
+            "tick": 283,
+            "unitId": 3
+          }
+        ],
+        "casualtyRespawnBaseline": true,
+        "commitTick": null,
+        "hostileImpacts": [
+          {
+            "kind": "damage",
+            "lifeId": 2,
+            "sourceActor": {
+              "lifeId": 2,
+              "teamId": 1,
+              "unitId": 1
+            },
+            "tick": 283,
+            "unitId": 3
+          },
+          {
+            "kind": "destruction",
+            "lifeId": 2,
+            "sourceActor": {
+              "lifeId": 2,
+              "teamId": 1,
+              "unitId": 1
+            },
+            "tick": 283,
+            "unitId": 3
+          }
+        ],
+        "participantLives": {
+          "2": 2,
+          "3": 2
+        },
+        "participants": [
+          2,
+          3
+        ],
+        "postReleaseCommands": {
+          "2": {
+            "actionId": "wait",
+            "lifeId": 2,
+            "roleTag": "a-for-scr-n",
+            "tick": 287
+          },
+          "3": {
+            "actionId": "hardlight-block",
+            "lifeId": 3,
+            "roleTag": "a-for-scr-s",
+            "tick": 304
+          }
+        },
+        "prepareTick": 282,
+        "qualifies": {
+          "casualtyRecovery": true,
+          "committedCounter": false,
+          "counter": true,
+          "preparationDenial": true,
+          "success": false
+        },
+        "recoveryDeadlineTicks": 12,
+        "recoveryTicks": 3,
+        "releaseTick": 287,
+        "requiredActionTicks": {
+          "hardlight-block": []
+        },
+        "terminalReason": "prepare-participant-minimum",
+        "terminalTick": 284
+      },
+      "cellId": "confirm--hardlight-gate--breach-column--s67867967--op0",
+      "counter": {
+        "baselineRelease": true,
+        "boundedRelease": true,
+        "branch": null,
+        "casualties": [
+          {
+            "kind": "destruction",
+            "lifeId": 2,
+            "sourceActor": {
+              "lifeId": 2,
+              "teamId": 1,
+              "unitId": 1
+            },
+            "tick": 283,
+            "unitId": 3
+          }
+        ],
+        "casualtyRespawnBaseline": true,
+        "commitTick": null,
+        "hostileImpacts": [
+          {
+            "kind": "damage",
+            "lifeId": 2,
+            "sourceActor": {
+              "lifeId": 2,
+              "teamId": 1,
+              "unitId": 1
+            },
+            "tick": 283,
+            "unitId": 3
+          },
+          {
+            "kind": "destruction",
+            "lifeId": 2,
+            "sourceActor": {
+              "lifeId": 2,
+              "teamId": 1,
+              "unitId": 1
+            },
+            "tick": 283,
+            "unitId": 3
+          }
+        ],
+        "kind": "preparation denial",
+        "participantLives": {
+          "2": 2,
+          "3": 2
+        },
+        "participants": [
+          2,
+          3
+        ],
+        "postReleaseCommands": {
+          "2": {
+            "actionId": "wait",
+            "lifeId": 2,
+            "roleTag": "a-for-scr-n",
+            "tick": 287
+          },
+          "3": {
+            "actionId": "hardlight-block",
+            "lifeId": 3,
+            "roleTag": "a-for-scr-s",
+            "tick": 304
+          }
+        },
+        "prepareTick": 282,
+        "qualifies": {
+          "casualtyRecovery": true,
+          "committedCounter": false,
+          "counter": true,
+          "preparationDenial": true,
+          "success": false
+        },
+        "recoveryDeadlineTicks": 12,
+        "recoveryTicks": 3,
+        "releaseTick": 287,
+        "requiredActionTicks": {
+          "hardlight-block": []
+        },
+        "terminalReason": "prepare-participant-minimum",
+        "terminalTick": 284
+      },
+      "counterThesis": "concentrated breach pressure tests the gate",
+      "feltDegeneracy": {
+        "cohortEligibilityByTeam": {
+          "0": true,
+          "1": true
+        },
+        "formationFreeze": {
+          "bar": {
+            "highWaitTicks": 60,
+            "operator": ">=",
+            "windowTicks": 75
+          },
+          "barTrippedByTeam": {
+            "0": false,
+            "1": false
+          },
+          "definition": "from the first scheduled Core birth, a high-wait tick has at least 75% of commanded bodies waiting; Core proximity and possession do not excuse a frozen formation",
+          "maxHighWaitTicksInWindowByTeam": {
+            "0": 12,
+            "1": 1
+          },
+          "trippingWindowRunsByTeam": {
+            "0": [],
+            "1": []
+          }
+        },
+        "handoffPingPong": {
+          "bar": {
+            "operator": ">=",
+            "reversalsInOneEpisode": 3
+          },
+          "barTrippedByTeam": {
+            "0": false,
+            "1": false
+          },
+          "definition": "consecutive A->B, B->A handoff reversals for one Core and life pair, each no more than 4 ticks apart",
+          "episodes": [],
+          "maxEpisodeReversalsByTeam": {
+            "0": 0,
+            "1": 0
+          },
+          "totalReversalsByTeam": {
+            "0": 0,
+            "1": 0
+          }
+        },
+        "homeCarrierNonProgress": {
+          "bar": {
+            "enemyContestChebyshevDistance": 2,
+            "homeRadiusShortestPathTiles": 6,
+            "operator": ">=",
+            "uncontestedTicksWithoutNewBestDistance": 30
+          },
+          "barTrippedByTeam": {
+            "0": false,
+            "1": false
+          },
+          "definition": "during same-team carried possession, count uncontested worlds within 6 static walkable tiles of that team's reactor since the Core last reached a strictly lower distance; allied handoffs and equal-distance movement do not reset the run",
+          "enabled": true,
+          "maxUncontestedTicksWithoutProgressByTeam": {
+            "0": 3,
+            "1": 6
+          },
+          "trippingRuns": []
+        },
+        "matchEligibleForCohortRead": true,
+        "stuckCarrier": {
+          "bar": {
+            "consecutiveTicks": 30,
+            "operator": ">="
+          },
+          "barTrippedByTeam": {
+            "0": false,
+            "1": false
+          },
+          "definition": "one Core remains carried by the same life on the same tile for consecutive spectator worlds",
+          "maxConsecutiveTicksByTeam": {
+            "0": 3,
+            "1": 6
+          },
+          "trippingRuns": []
+        },
+        "sustainedPassivity": {
+          "bar": {
+            "operator": ">=",
+            "quietTicks": 60,
+            "windowTicks": 75
+          },
+          "barTrippedByTeam": {
+            "0": false,
+            "1": false
+          },
+          "definition": "from the first scheduled Core birth, a quiet tick has at least 75% of commanded bodies waiting while the team carries no Core and has no body within Chebyshev 4 of a live Core",
+          "highWaitTicksByTeam": {
+            "0": 21,
+            "1": 1
+          },
+          "maxQuietTicksInWindowByTeam": {
+            "0": 6,
+            "1": 0
+          },
+          "noTheaterPresenceTicksByTeam": {
+            "0": 93,
+            "1": 72
+          },
+          "quietTicksByTeam": {
+            "0": 8,
+            "1": 0
+          },
+          "trippingWindowRunsByTeam": {
+            "0": [],
+            "1": []
+          }
+        }
+      },
+      "matchEndPreemptedReleases": 0,
+      "operationId": "hardlight-gate",
+      "operationTeamId": 0,
+      "opponentId": "breach-column",
+      "record": {
+        "bytes": 2353,
+        "file": "arena-bots/arc-relay/operation-counterplay-v1-2026-08-03/retained/hardlight-gate/match-record.json",
+        "sha256": "b2f56c2a42169052d8e939d1818c43f3814f514285c4d5d4af5b535eae0ca51f"
+      },
+      "result": {
+        "eligibleTeamIds": [
+          0,
+          1
+        ],
+        "endTick": 430,
+        "reason": "reactor-destroyed",
+        "winnerTeamId": 1
+      },
+      "scorecard": {
+        "bytes": 19035,
+        "file": "arena-bots/arc-relay/operation-counterplay-v1-2026-08-03/retained/hardlight-gate/scorecard.json",
+        "sha256": "fed4ba4806e76b990015da03787786314727b680cf4adbfa4907d9c51e0a9433"
+      },
+      "seed": "67867967",
+      "sourceReplayFileSha256": "8bbd3bb59bdc8171cf934879f243e0227c0e8638bd689bba72535472bbb2c5dd",
+      "strandedActivations": 0,
+      "success": {
+        "baselineRelease": true,
+        "boundedRelease": true,
+        "branch": "hold-gate",
+        "casualties": [],
+        "casualtyRespawnBaseline": true,
+        "commitTick": 168,
+        "hostileImpacts": [],
+        "participantLives": {
+          "2": 1,
+          "3": 2
+        },
+        "participants": [
+          2,
+          3
+        ],
+        "postReleaseCommands": {
+          "2": {
+            "actionId": "move-eight-way",
+            "lifeId": 1,
+            "roleTag": "a-for-scr-n",
+            "tick": 170
+          },
+          "3": {
+            "actionId": "rotate",
+            "lifeId": 2,
+            "roleTag": "a-for-scr-s",
+            "tick": 170
+          }
+        },
+        "prepareTick": 151,
+        "qualifies": {
+          "casualtyRecovery": false,
+          "committedCounter": false,
+          "counter": false,
+          "preparationDenial": false,
+          "success": true
+        },
+        "recoveryDeadlineTicks": 12,
+        "recoveryTicks": 1,
+        "releaseTick": 170,
+        "requiredActionTicks": {
+          "hardlight-block": [
+            151,
+            165
+          ]
+        },
+        "terminalReason": "mission-success",
+        "terminalTick": 169
+      }
+    },
+    {
+      "activeAtMatchEnd": 0,
+      "broadcast": {
+        "file": "arena-bots/arc-relay/operation-counterplay-v1-2026-08-03/retained/relay-catch/broadcast.json.gz",
+        "gzipBytes": 144852,
+        "sha256": "0f8be82ba1d83dd7290b15132ff3141e5024c195309450342d982ba46d883d6d"
+      },
+      "canonicalReplayHash": "29df2808f1a88eb2d754c963a6682252a41787c0c6c527eac1b72767c7c7bf84",
+      "casualtyRecovery": {
+        "baselineRelease": true,
+        "boundedRelease": true,
+        "branch": "throw-home",
+        "casualties": [
+          {
+            "kind": "destruction",
+            "lifeId": 2,
+            "sourceActor": {
+              "lifeId": 3,
+              "teamId": 1,
+              "unitId": 7
+            },
+            "tick": 335,
+            "unitId": 0
+          }
+        ],
+        "casualtyRespawnBaseline": true,
+        "commitTick": 313,
+        "hostileImpacts": [
+          {
+            "kind": "damage",
+            "lifeId": 2,
+            "sourceActor": {
+              "lifeId": 3,
+              "teamId": 1,
+              "unitId": 7
+            },
+            "tick": 335,
+            "unitId": 0
+          },
+          {
+            "kind": "destruction",
+            "lifeId": 2,
+            "sourceActor": {
+              "lifeId": 3,
+              "teamId": 1,
+              "unitId": 7
+            },
+            "tick": 335,
+            "unitId": 0
+          }
+        ],
+        "participantLives": {
+          "0": 2,
+          "1": 2
+        },
+        "participants": [
+          0,
+          1
+        ],
+        "postReleaseCommands": {
+          "0": {
+            "actionId": "move-eight-way",
+            "lifeId": 3,
+            "roleTag": "a-rly-scr-s",
+            "tick": 356
+          },
+          "1": {
+            "actionId": "move-eight-way",
+            "lifeId": 2,
+            "roleTag": "a-rly-car-s",
+            "tick": 337
+          }
+        },
+        "prepareTick": 312,
+        "qualifies": {
+          "casualtyRecovery": true,
+          "committedCounter": true,
+          "counter": true,
+          "preparationDenial": false,
+          "success": false
+        },
+        "recoveryDeadlineTicks": 12,
+        "recoveryTicks": 1,
+        "releaseTick": 337,
+        "requiredActionTicks": {
+          "arc-toss": []
+        },
+        "terminalReason": "commit-participant-minimum",
+        "terminalTick": 336
+      },
+      "cellId": "confirm--relay-catch--hook-burst--s67867967--op0",
+      "counter": {
+        "baselineRelease": true,
+        "boundedRelease": true,
+        "branch": "throw-home",
+        "casualties": [
+          {
+            "kind": "destruction",
+            "lifeId": 2,
+            "sourceActor": {
+              "lifeId": 3,
+              "teamId": 1,
+              "unitId": 7
+            },
+            "tick": 335,
+            "unitId": 0
+          }
+        ],
+        "casualtyRespawnBaseline": true,
+        "commitTick": 313,
+        "hostileImpacts": [
+          {
+            "kind": "damage",
+            "lifeId": 2,
+            "sourceActor": {
+              "lifeId": 3,
+              "teamId": 1,
+              "unitId": 7
+            },
+            "tick": 335,
+            "unitId": 0
+          },
+          {
+            "kind": "destruction",
+            "lifeId": 2,
+            "sourceActor": {
+              "lifeId": 3,
+              "teamId": 1,
+              "unitId": 7
+            },
+            "tick": 335,
+            "unitId": 0
+          }
+        ],
+        "kind": "committed counter",
+        "participantLives": {
+          "0": 2,
+          "1": 2
+        },
+        "participants": [
+          0,
+          1
+        ],
+        "postReleaseCommands": {
+          "0": {
+            "actionId": "move-eight-way",
+            "lifeId": 3,
+            "roleTag": "a-rly-scr-s",
+            "tick": 356
+          },
+          "1": {
+            "actionId": "move-eight-way",
+            "lifeId": 2,
+            "roleTag": "a-rly-car-s",
+            "tick": 337
+          }
+        },
+        "prepareTick": 312,
+        "qualifies": {
+          "casualtyRecovery": true,
+          "committedCounter": true,
+          "counter": true,
+          "preparationDenial": false,
+          "success": false
+        },
+        "recoveryDeadlineTicks": 12,
+        "recoveryTicks": 1,
+        "releaseTick": 337,
+        "requiredActionTicks": {
+          "arc-toss": []
+        },
+        "terminalReason": "commit-participant-minimum",
+        "terminalTick": 336
+      },
+      "counterThesis": "forced movement can break the catch lane",
+      "feltDegeneracy": {
+        "cohortEligibilityByTeam": {
+          "0": true,
+          "1": true
+        },
+        "formationFreeze": {
+          "bar": {
+            "highWaitTicks": 60,
+            "operator": ">=",
+            "windowTicks": 75
+          },
+          "barTrippedByTeam": {
+            "0": false,
+            "1": false
+          },
+          "definition": "from the first scheduled Core birth, a high-wait tick has at least 75% of commanded bodies waiting; Core proximity and possession do not excuse a frozen formation",
+          "maxHighWaitTicksInWindowByTeam": {
+            "0": 2,
+            "1": 12
+          },
+          "trippingWindowRunsByTeam": {
+            "0": [],
+            "1": []
+          }
+        },
+        "handoffPingPong": {
+          "bar": {
+            "operator": ">=",
+            "reversalsInOneEpisode": 3
+          },
+          "barTrippedByTeam": {
+            "0": false,
+            "1": false
+          },
+          "definition": "consecutive A->B, B->A handoff reversals for one Core and life pair, each no more than 4 ticks apart",
+          "episodes": [],
+          "maxEpisodeReversalsByTeam": {
+            "0": 0,
+            "1": 0
+          },
+          "totalReversalsByTeam": {
+            "0": 0,
+            "1": 0
+          }
+        },
+        "homeCarrierNonProgress": {
+          "bar": {
+            "enemyContestChebyshevDistance": 2,
+            "homeRadiusShortestPathTiles": 6,
+            "operator": ">=",
+            "uncontestedTicksWithoutNewBestDistance": 30
+          },
+          "barTrippedByTeam": {
+            "0": false,
+            "1": false
+          },
+          "definition": "during same-team carried possession, count uncontested worlds within 6 static walkable tiles of that team's reactor since the Core last reached a strictly lower distance; allied handoffs and equal-distance movement do not reset the run",
+          "enabled": true,
+          "maxUncontestedTicksWithoutProgressByTeam": {
+            "0": 3,
+            "1": 2
+          },
+          "trippingRuns": []
+        },
+        "matchEligibleForCohortRead": true,
+        "stuckCarrier": {
+          "bar": {
+            "consecutiveTicks": 30,
+            "operator": ">="
+          },
+          "barTrippedByTeam": {
+            "0": false,
+            "1": false
+          },
+          "definition": "one Core remains carried by the same life on the same tile for consecutive spectator worlds",
+          "maxConsecutiveTicksByTeam": {
+            "0": 17,
+            "1": 3
+          },
+          "trippingRuns": []
+        },
+        "sustainedPassivity": {
+          "bar": {
+            "operator": ">=",
+            "quietTicks": 60,
+            "windowTicks": 75
+          },
+          "barTrippedByTeam": {
+            "0": false,
+            "1": false
+          },
+          "definition": "from the first scheduled Core birth, a quiet tick has at least 75% of commanded bodies waiting while the team carries no Core and has no body within Chebyshev 4 of a live Core",
+          "highWaitTicksByTeam": {
+            "0": 4,
+            "1": 17
+          },
+          "maxQuietTicksInWindowByTeam": {
+            "0": 2,
+            "1": 1
+          },
+          "noTheaterPresenceTicksByTeam": {
+            "0": 107,
+            "1": 45
+          },
+          "quietTicksByTeam": {
+            "0": 2,
+            "1": 1
+          },
+          "trippingWindowRunsByTeam": {
+            "0": [],
+            "1": []
+          }
+        }
+      },
+      "matchEndPreemptedReleases": 0,
+      "operationId": "relay-catch",
+      "operationTeamId": 0,
+      "opponentId": "hook-burst",
+      "record": {
+        "bytes": 2335,
+        "file": "arena-bots/arc-relay/operation-counterplay-v1-2026-08-03/retained/relay-catch/match-record.json",
+        "sha256": "f4fe5e3a9ec08f4d2edfba7660d7f2f6b9d34e99f6ffd93e3e2077e380689f85"
+      },
+      "result": {
+        "eligibleTeamIds": [
+          0,
+          1
+        ],
+        "endTick": 426,
+        "reason": "reactor-destroyed",
+        "winnerTeamId": 1
+      },
+      "scorecard": {
+        "bytes": 19903,
+        "file": "arena-bots/arc-relay/operation-counterplay-v1-2026-08-03/retained/relay-catch/scorecard.json",
+        "sha256": "b06a265ec312e176c2d6e77ad21830ab3d46791760ecd977b88246947c4f72de"
+      },
+      "seed": "67867967",
+      "sourceReplayFileSha256": "99bffb1709240cf44703831bd5fb1477e8f820759fb89c736b623fdb4a06765f",
+      "strandedActivations": 0,
+      "success": {
+        "baselineRelease": true,
+        "boundedRelease": true,
+        "branch": "throw-home",
+        "casualties": [],
+        "casualtyRespawnBaseline": true,
+        "commitTick": 152,
+        "hostileImpacts": [
+          {
+            "kind": "damage",
+            "lifeId": 1,
+            "sourceActor": {
+              "lifeId": 1,
+              "teamId": 1,
+              "unitId": 2
+            },
+            "tick": 154,
+            "unitId": 0
+          },
+          {
+            "kind": "damage",
+            "lifeId": 1,
+            "sourceActor": {
+              "lifeId": 1,
+              "teamId": 1,
+              "unitId": 2
+            },
+            "tick": 156,
+            "unitId": 0
+          },
+          {
+            "kind": "damage",
+            "lifeId": 1,
+            "sourceActor": {
+              "lifeId": 3,
+              "teamId": 1,
+              "unitId": 1
+            },
+            "tick": 166,
+            "unitId": 1
+          }
+        ],
+        "participantLives": {
+          "0": 1,
+          "1": 1
+        },
+        "participants": [
+          0,
+          1
+        ],
+        "postReleaseCommands": {
+          "0": {
+            "actionId": "wait",
+            "lifeId": 1,
+            "roleTag": "a-rly-scr-s",
+            "tick": 172
+          },
+          "1": {
+            "actionId": "move-eight-way",
+            "lifeId": 1,
+            "roleTag": "a-rly-car-s",
+            "tick": 172
+          }
+        },
+        "prepareTick": 151,
+        "qualifies": {
+          "casualtyRecovery": false,
+          "committedCounter": false,
+          "counter": false,
+          "preparationDenial": false,
+          "success": true
+        },
+        "recoveryDeadlineTicks": 12,
+        "recoveryTicks": 5,
+        "releaseTick": 172,
+        "requiredActionTicks": {
+          "arc-toss": [
+            165
+          ]
+        },
+        "terminalReason": "mission-success",
+        "terminalTick": 167
+      }
+    },
+    {
+      "activeAtMatchEnd": 0,
+      "broadcast": {
+        "file": "arena-bots/arc-relay/operation-counterplay-v1-2026-08-03/retained/decoy-switch/broadcast.json.gz",
+        "gzipBytes": 133459,
+        "sha256": "649b3f7cabc0d864fe8c6ea8b6d7e8c1a05242dfc66c8cada5b6e8d0d01a9ec1"
+      },
+      "canonicalReplayHash": "daf19f41f68f0c4f804168b097c6bfa0aec10ad1fbc7b4244e98ad72a1fcdf37",
+      "casualtyRecovery": {
+        "baselineRelease": true,
+        "boundedRelease": true,
+        "branch": "south-pincer",
+        "casualties": [
+          {
+            "kind": "destruction",
+            "lifeId": 0,
+            "sourceActor": {
+              "lifeId": 0,
+              "teamId": 1,
+              "unitId": 4
+            },
+            "tick": 18,
+            "unitId": 6
+          }
+        ],
+        "casualtyRespawnBaseline": true,
+        "commitTick": 18,
+        "hostileImpacts": [
+          {
+            "kind": "damage",
+            "lifeId": 0,
+            "sourceActor": {
+              "lifeId": 0,
+              "teamId": 1,
+              "unitId": 1
+            },
+            "tick": 17,
+            "unitId": 6
+          },
+          {
+            "kind": "damage",
+            "lifeId": 0,
+            "sourceActor": {
+              "lifeId": 0,
+              "teamId": 1,
+              "unitId": 4
+            },
+            "tick": 18,
+            "unitId": 6
+          },
+          {
+            "kind": "destruction",
+            "lifeId": 0,
+            "sourceActor": {
+              "lifeId": 0,
+              "teamId": 1,
+              "unitId": 4
+            },
+            "tick": 18,
+            "unitId": 6
+          }
+        ],
+        "participantLives": {
+          "0": 0,
+          "6": 0,
+          "7": 0
+        },
+        "participants": [
+          0,
+          6,
+          7
+        ],
+        "postReleaseCommands": {
+          "0": {
+            "actionId": "shoot-direction",
+            "lifeId": 0,
+            "roleTag": "a-fnt-car-n",
+            "tick": 20
+          },
+          "6": {
+            "actionId": "move-eight-way",
+            "lifeId": 1,
+            "roleTag": "a-fnt-res-c",
+            "tick": 39
+          },
+          "7": {
+            "actionId": "move-eight-way",
+            "lifeId": 0,
+            "roleTag": "a-fnt-res-c",
+            "tick": 20
+          }
+        },
+        "prepareTick": 9,
+        "qualifies": {
+          "casualtyRecovery": true,
+          "committedCounter": true,
+          "counter": true,
+          "preparationDenial": false,
+          "success": false
+        },
+        "recoveryDeadlineTicks": 12,
+        "recoveryTicks": 1,
+        "releaseTick": 20,
+        "requiredActionTicks": {},
+        "terminalReason": "mission-abort",
+        "terminalTick": 19
+      },
+      "cellId": "confirm--decoy-switch--beacon-hunt--s67867967--op0",
+      "counter": {
+        "baselineRelease": true,
+        "boundedRelease": true,
+        "branch": "south-pincer",
+        "casualties": [
+          {
+            "kind": "destruction",
+            "lifeId": 0,
+            "sourceActor": {
+              "lifeId": 0,
+              "teamId": 1,
+              "unitId": 4
+            },
+            "tick": 18,
+            "unitId": 6
+          }
+        ],
+        "casualtyRespawnBaseline": true,
+        "commitTick": 18,
+        "hostileImpacts": [
+          {
+            "kind": "damage",
+            "lifeId": 0,
+            "sourceActor": {
+              "lifeId": 0,
+              "teamId": 1,
+              "unitId": 1
+            },
+            "tick": 17,
+            "unitId": 6
+          },
+          {
+            "kind": "damage",
+            "lifeId": 0,
+            "sourceActor": {
+              "lifeId": 0,
+              "teamId": 1,
+              "unitId": 4
+            },
+            "tick": 18,
+            "unitId": 6
+          },
+          {
+            "kind": "destruction",
+            "lifeId": 0,
+            "sourceActor": {
+              "lifeId": 0,
+              "teamId": 1,
+              "unitId": 4
+            },
+            "tick": 18,
+            "unitId": 6
+          }
+        ],
+        "kind": "committed counter",
+        "participantLives": {
+          "0": 0,
+          "6": 0,
+          "7": 0
+        },
+        "participants": [
+          0,
+          6,
+          7
+        ],
+        "postReleaseCommands": {
+          "0": {
+            "actionId": "shoot-direction",
+            "lifeId": 0,
+            "roleTag": "a-fnt-car-n",
+            "tick": 20
+          },
+          "6": {
+            "actionId": "move-eight-way",
+            "lifeId": 1,
+            "roleTag": "a-fnt-res-c",
+            "tick": 39
+          },
+          "7": {
+            "actionId": "move-eight-way",
+            "lifeId": 0,
+            "roleTag": "a-fnt-res-c",
+            "tick": 20
+          }
+        },
+        "prepareTick": 9,
+        "qualifies": {
+          "casualtyRecovery": true,
+          "committedCounter": true,
+          "counter": true,
+          "preparationDenial": false,
+          "success": false
+        },
+        "recoveryDeadlineTicks": 12,
+        "recoveryTicks": 1,
+        "releaseTick": 20,
+        "requiredActionTicks": {},
+        "terminalReason": "mission-abort",
+        "terminalTick": 19
+      },
+      "counterThesis": "active scouts test false-pressure credibility",
+      "feltDegeneracy": {
+        "cohortEligibilityByTeam": {
+          "0": true,
+          "1": true
+        },
+        "formationFreeze": {
+          "bar": {
+            "highWaitTicks": 60,
+            "operator": ">=",
+            "windowTicks": 75
+          },
+          "barTrippedByTeam": {
+            "0": false,
+            "1": false
+          },
+          "definition": "from the first scheduled Core birth, a high-wait tick has at least 75% of commanded bodies waiting; Core proximity and possession do not excuse a frozen formation",
+          "maxHighWaitTicksInWindowByTeam": {
+            "0": 6,
+            "1": 3
+          },
+          "trippingWindowRunsByTeam": {
+            "0": [],
+            "1": []
+          }
+        },
+        "handoffPingPong": {
+          "bar": {
+            "operator": ">=",
+            "reversalsInOneEpisode": 3
+          },
+          "barTrippedByTeam": {
+            "0": false,
+            "1": false
+          },
+          "definition": "consecutive A->B, B->A handoff reversals for one Core and life pair, each no more than 4 ticks apart",
+          "episodes": [],
+          "maxEpisodeReversalsByTeam": {
+            "0": 0,
+            "1": 0
+          },
+          "totalReversalsByTeam": {
+            "0": 0,
+            "1": 0
+          }
+        },
+        "homeCarrierNonProgress": {
+          "bar": {
+            "enemyContestChebyshevDistance": 2,
+            "homeRadiusShortestPathTiles": 6,
+            "operator": ">=",
+            "uncontestedTicksWithoutNewBestDistance": 30
+          },
+          "barTrippedByTeam": {
+            "0": false,
+            "1": false
+          },
+          "definition": "during same-team carried possession, count uncontested worlds within 6 static walkable tiles of that team's reactor since the Core last reached a strictly lower distance; allied handoffs and equal-distance movement do not reset the run",
+          "enabled": true,
+          "maxUncontestedTicksWithoutProgressByTeam": {
+            "0": 2,
+            "1": 29
+          },
+          "trippingRuns": []
+        },
+        "matchEligibleForCohortRead": true,
+        "stuckCarrier": {
+          "bar": {
+            "consecutiveTicks": 30,
+            "operator": ">="
+          },
+          "barTrippedByTeam": {
+            "0": false,
+            "1": false
+          },
+          "definition": "one Core remains carried by the same life on the same tile for consecutive spectator worlds",
+          "maxConsecutiveTicksByTeam": {
+            "0": 5,
+            "1": 8
+          },
+          "trippingRuns": []
+        },
+        "sustainedPassivity": {
+          "bar": {
+            "operator": ">=",
+            "quietTicks": 60,
+            "windowTicks": 75
+          },
+          "barTrippedByTeam": {
+            "0": false,
+            "1": false
+          },
+          "definition": "from the first scheduled Core birth, a quiet tick has at least 75% of commanded bodies waiting while the team carries no Core and has no body within Chebyshev 4 of a live Core",
+          "highWaitTicksByTeam": {
+            "0": 10,
+            "1": 3
+          },
+          "maxQuietTicksInWindowByTeam": {
+            "0": 4,
+            "1": 0
+          },
+          "noTheaterPresenceTicksByTeam": {
+            "0": 170,
+            "1": 41
+          },
+          "quietTicksByTeam": {
+            "0": 4,
+            "1": 0
+          },
+          "trippingWindowRunsByTeam": {
+            "0": [],
+            "1": []
+          }
+        }
+      },
+      "matchEndPreemptedReleases": 0,
+      "operationId": "decoy-switch",
+      "operationTeamId": 0,
+      "opponentId": "beacon-hunt",
+      "record": {
+        "bytes": 2344,
+        "file": "arena-bots/arc-relay/operation-counterplay-v1-2026-08-03/retained/decoy-switch/match-record.json",
+        "sha256": "27445a44c5d6478f5993afc2636ef1ee91a2121692d39a7d20050c9a6f96dde7"
+      },
+      "result": {
+        "eligibleTeamIds": [
+          0,
+          1
+        ],
+        "endTick": 406,
+        "reason": "reactor-destroyed",
+        "winnerTeamId": 1
+      },
+      "scorecard": {
+        "bytes": 18306,
+        "file": "arena-bots/arc-relay/operation-counterplay-v1-2026-08-03/retained/decoy-switch/scorecard.json",
+        "sha256": "eb88d0afaa533b958f56657e7674235b4d6843ce95ccfca8502d82a6104ebe54"
+      },
+      "seed": "67867967",
+      "sourceReplayFileSha256": "f696a702bb0620b063c1dd5718f2ca52bc1fe0111c749b3df30f337d1883ec9c",
+      "strandedActivations": 0,
+      "success": {
+        "baselineRelease": true,
+        "boundedRelease": true,
+        "branch": "south-pincer",
+        "casualties": [],
+        "casualtyRespawnBaseline": true,
+        "commitTick": 62,
+        "hostileImpacts": [
+          {
+            "kind": "damage",
+            "lifeId": 1,
+            "sourceActor": {
+              "lifeId": 0,
+              "teamId": 1,
+              "unitId": 4
+            },
+            "tick": 64,
+            "unitId": 0
+          }
+        ],
+        "participantLives": {
+          "0": 1,
+          "6": 1,
+          "7": 1
+        },
+        "participants": [
+          0,
+          6,
+          7
+        ],
+        "postReleaseCommands": {
+          "0": {
+            "actionId": "move-eight-way",
+            "lifeId": 1,
+            "roleTag": "a-fnt-car-n",
+            "tick": 75
+          },
+          "6": {
+            "actionId": "move-eight-way",
+            "lifeId": 1,
+            "roleTag": "a-fnt-res-c",
+            "tick": 75
+          },
+          "7": {
+            "actionId": "shoot-direction",
+            "lifeId": 1,
+            "roleTag": "a-fnt-res-c",
+            "tick": 75
+          }
+        },
+        "prepareTick": 56,
+        "qualifies": {
+          "casualtyRecovery": false,
+          "committedCounter": false,
+          "counter": false,
+          "preparationDenial": false,
+          "success": true
+        },
+        "recoveryDeadlineTicks": 12,
+        "recoveryTicks": 3,
+        "releaseTick": 75,
+        "requiredActionTicks": {},
+        "terminalReason": "mission-success",
+        "terminalTick": 72
+      }
+    },
+    {
+      "activeAtMatchEnd": 0,
+      "broadcast": {
+        "file": "arena-bots/arc-relay/operation-counterplay-v1-2026-08-03/retained/emergency-exchange/broadcast.json.gz",
+        "gzipBytes": 164315,
+        "sha256": "5f40811ea3ddee964a860b6a4c925f22017ba4947c6679b07e5be1ec920becb9"
+      },
+      "canonicalReplayHash": "b5c221aa2f49a38f8249ce7e1e45108b1412cf2506669aa54668eb39d51ba736",
+      "casualtyRecovery": {
+        "baselineRelease": true,
+        "boundedRelease": true,
+        "branch": "exchange-and-return",
+        "casualties": [
+          {
+            "kind": "destruction",
+            "lifeId": 1,
+            "sourceActor": {
+              "lifeId": 0,
+              "teamId": 0,
+              "unitId": 3
+            },
+            "tick": 68,
+            "unitId": 7
+          }
+        ],
+        "casualtyRespawnBaseline": true,
+        "commitTick": 66,
+        "hostileImpacts": [
+          {
+            "kind": "damage",
+            "lifeId": 1,
+            "sourceActor": {
+              "lifeId": 0,
+              "teamId": 0,
+              "unitId": 3
+            },
+            "tick": 68,
+            "unitId": 7
+          },
+          {
+            "kind": "destruction",
+            "lifeId": 1,
+            "sourceActor": {
+              "lifeId": 0,
+              "teamId": 0,
+              "unitId": 3
+            },
+            "tick": 68,
+            "unitId": 7
+          }
+        ],
+        "participantLives": {
+          "0": 1,
+          "7": 1
+        },
+        "participants": [
+          0,
+          7
+        ],
+        "postReleaseCommands": {
+          "0": {
+            "actionId": "wait",
+            "lifeId": 1,
+            "roleTag": "a-int-car-n",
+            "tick": 73
+          },
+          "7": {
+            "actionId": "move-eight-way",
+            "lifeId": 2,
+            "roleTag": "a-int-res-c",
+            "tick": 89
+          }
+        },
+        "prepareTick": 65,
+        "qualifies": {
+          "casualtyRecovery": true,
+          "committedCounter": true,
+          "counter": true,
+          "preparationDenial": false,
+          "success": false
+        },
+        "recoveryDeadlineTicks": 12,
+        "recoveryTicks": 4,
+        "releaseTick": 73,
+        "requiredActionTicks": {
+          "exchange": []
+        },
+        "terminalReason": "commit-participant-minimum",
+        "terminalTick": 69
+      },
+      "cellId": "confirm--emergency-exchange--interception--s67867967--op1",
+      "counter": {
+        "baselineRelease": true,
+        "boundedRelease": true,
+        "branch": "exchange-and-return",
+        "casualties": [
+          {
+            "kind": "destruction",
+            "lifeId": 1,
+            "sourceActor": {
+              "lifeId": 0,
+              "teamId": 0,
+              "unitId": 3
+            },
+            "tick": 68,
+            "unitId": 7
+          }
+        ],
+        "casualtyRespawnBaseline": true,
+        "commitTick": 66,
+        "hostileImpacts": [
+          {
+            "kind": "damage",
+            "lifeId": 1,
+            "sourceActor": {
+              "lifeId": 0,
+              "teamId": 0,
+              "unitId": 3
+            },
+            "tick": 68,
+            "unitId": 7
+          },
+          {
+            "kind": "destruction",
+            "lifeId": 1,
+            "sourceActor": {
+              "lifeId": 0,
+              "teamId": 0,
+              "unitId": 3
+            },
+            "tick": 68,
+            "unitId": 7
+          }
+        ],
+        "kind": "committed counter",
+        "participantLives": {
+          "0": 1,
+          "7": 1
+        },
+        "participants": [
+          0,
+          7
+        ],
+        "postReleaseCommands": {
+          "0": {
+            "actionId": "wait",
+            "lifeId": 1,
+            "roleTag": "a-int-car-n",
+            "tick": 73
+          },
+          "7": {
+            "actionId": "move-eight-way",
+            "lifeId": 2,
+            "roleTag": "a-int-res-c",
+            "tick": 89
+          }
+        },
+        "prepareTick": 65,
+        "qualifies": {
+          "casualtyRecovery": true,
+          "committedCounter": true,
+          "counter": true,
+          "preparationDenial": false,
+          "success": false
+        },
+        "recoveryDeadlineTicks": 12,
+        "recoveryTicks": 4,
+        "releaseTick": 73,
+        "requiredActionTicks": {
+          "exchange": []
+        },
+        "terminalReason": "commit-participant-minimum",
+        "terminalTick": 69
+      },
+      "counterThesis": "carrier hunters force the emergency",
+      "feltDegeneracy": {
+        "cohortEligibilityByTeam": {
+          "0": true,
+          "1": true
+        },
+        "formationFreeze": {
+          "bar": {
+            "highWaitTicks": 60,
+            "operator": ">=",
+            "windowTicks": 75
+          },
+          "barTrippedByTeam": {
+            "0": false,
+            "1": false
+          },
+          "definition": "from the first scheduled Core birth, a high-wait tick has at least 75% of commanded bodies waiting; Core proximity and possession do not excuse a frozen formation",
+          "maxHighWaitTicksInWindowByTeam": {
+            "0": 0,
+            "1": 3
+          },
+          "trippingWindowRunsByTeam": {
+            "0": [],
+            "1": []
+          }
+        },
+        "handoffPingPong": {
+          "bar": {
+            "operator": ">=",
+            "reversalsInOneEpisode": 3
+          },
+          "barTrippedByTeam": {
+            "0": false,
+            "1": false
+          },
+          "definition": "consecutive A->B, B->A handoff reversals for one Core and life pair, each no more than 4 ticks apart",
+          "episodes": [],
+          "maxEpisodeReversalsByTeam": {
+            "0": 0,
+            "1": 0
+          },
+          "totalReversalsByTeam": {
+            "0": 0,
+            "1": 0
+          }
+        },
+        "homeCarrierNonProgress": {
+          "bar": {
+            "enemyContestChebyshevDistance": 2,
+            "homeRadiusShortestPathTiles": 6,
+            "operator": ">=",
+            "uncontestedTicksWithoutNewBestDistance": 30
+          },
+          "barTrippedByTeam": {
+            "0": false,
+            "1": false
+          },
+          "definition": "during same-team carried possession, count uncontested worlds within 6 static walkable tiles of that team's reactor since the Core last reached a strictly lower distance; allied handoffs and equal-distance movement do not reset the run",
+          "enabled": true,
+          "maxUncontestedTicksWithoutProgressByTeam": {
+            "0": 3,
+            "1": 4
+          },
+          "trippingRuns": []
+        },
+        "matchEligibleForCohortRead": true,
+        "stuckCarrier": {
+          "bar": {
+            "consecutiveTicks": 30,
+            "operator": ">="
+          },
+          "barTrippedByTeam": {
+            "0": false,
+            "1": false
+          },
+          "definition": "one Core remains carried by the same life on the same tile for consecutive spectator worlds",
+          "maxConsecutiveTicksByTeam": {
+            "0": 4,
+            "1": 4
+          },
+          "trippingRuns": []
+        },
+        "sustainedPassivity": {
+          "bar": {
+            "operator": ">=",
+            "quietTicks": 60,
+            "windowTicks": 75
+          },
+          "barTrippedByTeam": {
+            "0": false,
+            "1": false
+          },
+          "definition": "from the first scheduled Core birth, a quiet tick has at least 75% of commanded bodies waiting while the team carries no Core and has no body within Chebyshev 4 of a live Core",
+          "highWaitTicksByTeam": {
+            "0": 0,
+            "1": 4
+          },
+          "maxQuietTicksInWindowByTeam": {
+            "0": 0,
+            "1": 0
+          },
+          "noTheaterPresenceTicksByTeam": {
+            "0": 38,
+            "1": 65
+          },
+          "quietTicksByTeam": {
+            "0": 0,
+            "1": 0
+          },
+          "trippingWindowRunsByTeam": {
+            "0": [],
+            "1": []
+          }
+        }
+      },
+      "matchEndPreemptedReleases": 0,
+      "operationId": "emergency-exchange",
+      "operationTeamId": 1,
+      "opponentId": "interception",
+      "record": {
+        "bytes": 2364,
+        "file": "arena-bots/arc-relay/operation-counterplay-v1-2026-08-03/retained/emergency-exchange/match-record.json",
+        "sha256": "546d02ac78181d7ff16b8af70ef23f31f3a0b9e7f6319aa23772a418da5051d1"
+      },
+      "result": {
+        "eligibleTeamIds": [
+          0,
+          1
+        ],
+        "endTick": 458,
+        "reason": "reactor-destroyed",
+        "winnerTeamId": 0
+      },
+      "scorecard": {
+        "bytes": 20594,
+        "file": "arena-bots/arc-relay/operation-counterplay-v1-2026-08-03/retained/emergency-exchange/scorecard.json",
+        "sha256": "4cbc6f0bedab5209600402c4834923fc8bda6ee18b09a54b9858f9b19c976bc8"
+      },
+      "seed": "67867967",
+      "sourceReplayFileSha256": "2158e5ea53c8b06e24d1104e65fd849301d51fb6c772b0f3491794486d33455b",
+      "strandedActivations": 0,
+      "success": {
+        "baselineRelease": true,
+        "boundedRelease": true,
+        "branch": "exchange-and-return",
+        "casualties": [],
+        "casualtyRespawnBaseline": true,
+        "commitTick": 296,
+        "hostileImpacts": [
+          {
+            "kind": "damage",
+            "lifeId": 4,
+            "sourceActor": {
+              "lifeId": 2,
+              "teamId": 0,
+              "unitId": 5
+            },
+            "tick": 303,
+            "unitId": 0
+          }
+        ],
+        "participantLives": {
+          "0": 4,
+          "7": 6
+        },
+        "participants": [
+          0,
+          7
+        ],
+        "postReleaseCommands": {
+          "0": {
+            "actionId": "move-eight-way",
+            "lifeId": 4,
+            "roleTag": "a-int-car-n",
+            "tick": 305
+          },
+          "7": {
+            "actionId": "rotate",
+            "lifeId": 6,
+            "roleTag": "a-int-res-c",
+            "tick": 305
+          }
+        },
+        "prepareTick": 295,
+        "qualifies": {
+          "casualtyRecovery": false,
+          "committedCounter": false,
+          "counter": false,
+          "preparationDenial": false,
+          "success": true
+        },
+        "recoveryDeadlineTicks": 12,
+        "recoveryTicks": 1,
+        "releaseTick": 305,
+        "requiredActionTicks": {
+          "exchange": [
+            303
+          ]
+        },
+        "terminalReason": "mission-success",
+        "terminalTick": 304
+      }
+    }
+  ],
+  "runtime": "wasm",
+  "schema": "arc-relay-operation-retained-evidence-v1"
+}

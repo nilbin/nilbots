@@ -1,0 +1,10 @@
+{
+  "id": "arc-lantern",
+  "label": "Lantern",
+  "sprite": "sprite.png",
+  "suggestedAccent": "#38bdf8",
+  "defaultProjectile": "arc-pulse",
+  "classId": "lantern",
+  "locomotionCue": "low-hover",
+  "scale": 1.03
+}

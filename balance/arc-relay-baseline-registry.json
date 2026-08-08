@@ -1,0 +1,34 @@
+{
+  "schema": "arc-relay-baseline-registry-v1",
+  "purpose": "Disambiguates Arc Relay control artifacts. Two different WASM byte sets have historically been called 'stock-v4', and the path arena-bots/arc-relay/stock-mind-v4/bot.wasm has held different bytes over time. Manifests must bind controls by SHA-256, never by path or nickname alone.",
+  "canonicalArchetypeGateBaseline": "coordination-parity-stock-v4",
+  "controls": [
+    {
+      "id": "coordination-parity-stock-v4",
+      "role": "Canonical archetype-gate baseline per DECISIONS #205. Stock mind rebuilt with the generic coordination machinery so candidates are judged against a coordinating opponent, not a legacy static one.",
+      "artifactSha256": "999183019785e9aac163ed607d43ed5fd6efa903264f216362e4f84711203b0f",
+      "artifactPath": "arena-bots/arc-relay/stock-mind-v4/bot.wasm",
+      "sheetPath": "arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/controls/coordination-parity-baseline.json",
+      "status": "current-bytes-at-path"
+    },
+    {
+      "id": "static-stage1-stock-v4",
+      "role": "Historical Stage 1 static 3/2/3 baseline (ARC-RELAY-HOME-SIEGE-SHEET-PASS.md). Superseded as a gate by DECISIONS #205; results against it are context, never acceptance evidence.",
+      "artifactSha256": "fdd61b1f4c24895926d3bdde7e8b70c0c6eb957d107dda99b04719614d499368",
+      "artifactPath": "arena-bots/arc-relay/stock-mind-v4/bot.wasm (HISTORICAL BYTES — path since rebuilt; recover via git history at the standing-strategy-v1 freeze or rebuild from frozen sources)",
+      "referencedBy": [
+        "arena-bots/arc-relay/standing-strategy-v1-2026-08-03/final-cohort-plan.json",
+        "arena-bots/arc-relay/standing-strategy-v1-2026-08-03/final-cohort.json"
+      ],
+      "status": "bytes-not-retained-in-tree"
+    },
+    {
+      "id": "home-siege-v3-tactical",
+      "role": "Frozen accepted Home Siege v3 executor (not a baseline; listed to anchor the tactical artifact hash beside the controls it is judged against).",
+      "artifactSha256": "3f330f6c95b279d44e3741e05cc8d5a13e51a9ca5f481f7a80d4668166eec6c3",
+      "artifactPath": "arena-bots/arc-relay/tactical-playbook-mind-v1/bot.wasm",
+      "sheetPath": "arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/playbooks/home-siege-v3.json",
+      "status": "current-bytes-at-path"
+    }
+  ]
+}

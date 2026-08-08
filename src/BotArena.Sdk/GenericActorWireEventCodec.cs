@@ -186,6 +186,35 @@ internal static class GenericActorWireEventCodec
                     GenericActorWireCodecValues.EncodePosition(
                         damage.Position));
                 break;
+            case GenericActorContext.EventPayload.ProjectileDeflected deflected:
+                writer.Field(1, ActorWireValue.Int32(deflected.SourceTeamId));
+                writer.Optional(
+                    2,
+                    deflected.SourceActorId is null
+                        ? null
+                        : GenericActorWireCodecValues.EncodeIdentity(
+                            deflected.SourceActorId));
+                writer.Field(
+                    3,
+                    GenericActorWireCodecValues.EncodeIdentity(
+                        deflected.TargetActorId));
+                writer.Field(
+                    4,
+                    GenericActorWireCodecValues.Int64(deflected.ProjectileId));
+                writer.Field(
+                    5,
+                    ActorWireValue.String(deflected.TargetFormId));
+                writer.Field(6, ActorWireValue.Enum(deflected.TargetFacing));
+                writer.Field(7, ActorWireValue.Enum(deflected.Heading));
+                writer.Field(
+                    8,
+                    GenericActorWireCodecValues.EncodePosition(
+                        deflected.Position));
+                writer.Field(
+                    9,
+                    GenericActorWireCodecValues.Int64(
+                        deflected.DeflectedProjectileId));
+                break;
             case GenericActorContext.EventPayload.Destruction destruction:
                 writer.Field(
                     1,
@@ -290,6 +319,25 @@ internal static class GenericActorWireEventCodec
                     GenericActorWireActionCodec.EncodeRuntimeFault(
                         fault.Fault));
                 break;
+            case GenericActorContext.EventPayload.MindRuntimeFault mindFault:
+                writer.Field(
+                    1,
+                    ActorWireValue.Int32(mindFault.ParticipantId));
+                writer.Field(2, ActorWireValue.Int32(mindFault.TeamId));
+                writer.Field(3, ActorWireValue.Enum(mindFault.Stage));
+                writer.Field(
+                    4,
+                    GenericActorWireCodecValues.SemanticId(
+                        mindFault.FaultCode));
+                writer.Field(
+                    5,
+                    GenericActorWireCodecValues.Int64(
+                        mindFault.CumulativeFaultCount));
+                writer.Field(
+                    6,
+                    ActorWireValue.Boolean(
+                        mindFault.DisqualificationTriggered));
+                break;
             case GenericActorContext.EventPayload.Participant participant:
                 writer.Field(
                     1,
@@ -353,6 +401,11 @@ internal static class GenericActorWireEventCodec
                     6,
                     ActorWireValue.Int32(transition.StartedTick));
                 writer.Field(7, ActorWireValue.Int32(transition.DueTick));
+                // Additive optional tag: a requested transition writes no
+                // field, so an artifact compiled before automatic returns
+                // decodes exactly the histories it always did.
+                if (transition.Automatic)
+                    writer.Field(8, ActorWireValue.Boolean(true));
                 break;
             case GenericActorContext.EventPayload.ScoreChanged score:
                 writer.Field(1, ActorWireValue.Int32(score.TeamId));
@@ -367,6 +420,9 @@ internal static class GenericActorWireEventCodec
                 writer.Field(
                     1,
                     GenericActorWireObservationCodec.EncodeMode(mode.State));
+                break;
+            case GenericActorContext.EventPayload.ArcRelay arcRelay:
+                writer.Field(1, EncodeArcRelayFact(arcRelay.Fact));
                 break;
             case GenericActorContext.EventPayload.LifecycleClockCancelled
                 clock:
@@ -412,6 +468,8 @@ internal static class GenericActorWireEventCodec
                     DecodeAttack(reader, depth),
                 GenericActorContext.EventKind.Damage =>
                     DecodeDamage(reader, depth),
+                GenericActorContext.EventKind.ProjectileDeflected =>
+                    DecodeProjectileDeflected(reader, depth),
                 GenericActorContext.EventKind.Destruction =>
                     DecodeDestruction(reader, depth),
                 GenericActorContext.EventKind.LifeSpawned =>
@@ -423,6 +481,19 @@ internal static class GenericActorWireEventCodec
                         GenericActorWireActionCodec.DecodeRuntimeFault(
                             reader.Required(1),
                             depth + 1)),
+                GenericActorContext.EventKind.MindRuntimeFault =>
+                    new GenericActorContext.EventPayload.MindRuntimeFault(
+                        GenericActorWireCodecValues.Int32(reader, 1),
+                        GenericActorWireCodecValues.Int32(reader, 2),
+                        GenericActorWireCodecValues.Enum<
+                            GenericActorRuntimeFaultContext.FaultStage>(
+                            reader,
+                            3),
+                        GenericActorWireCodecValues.SemanticId(
+                            reader.Required(4)),
+                        GenericActorWireCodecValues.Int64(
+                            reader.Required(5)),
+                        GenericActorWireCodecValues.Boolean(reader, 6)),
                 GenericActorContext.EventKind.ParticipantDisqualified =>
                     new GenericActorContext.EventPayload.Participant(
                         GenericActorWireCodecValues.Int32(reader, 1),
@@ -447,6 +518,11 @@ internal static class GenericActorWireEventCodec
                         GenericActorWireObservationCodec.DecodeMode(
                             reader.Required(1),
                             depth + 1)),
+                GenericActorContext.EventKind.ArcRelay =>
+                    new GenericActorContext.EventPayload.ArcRelay(
+                        DecodeArcRelayFact(
+                            reader.Required(1),
+                            depth + 1)),
                 GenericActorContext.EventKind.LifecycleClockCancelled =>
                     new GenericActorContext.EventPayload
                         .LifecycleClockCancelled(
@@ -463,6 +539,335 @@ internal static class GenericActorWireEventCodec
             },
             "event payload");
     }
+
+    private static byte[] EncodeArcRelayFact(
+        GenericActorContext.ArcRelayEvent value)
+    {
+        var writer = new ActorWireObjectWriter();
+        switch (value)
+        {
+            case GenericActorContext.ArcRelayEvent.CoreBorn fact:
+                writer.Field(1, GenericActorWireCodecValues.SemanticId("core-born"));
+                writer.Field(2, GenericActorWireObservationCodec.EncodeArcCoreId(fact.CoreId));
+                writer.Field(3, GenericActorWireCodecValues.EncodePosition(fact.Position));
+                if (fact.ChargeValue != 1)
+                    writer.Field(4, ActorWireValue.Int32(fact.ChargeValue));
+                break;
+            case GenericActorContext.ArcRelayEvent.CoreRipened fact:
+                writer.Field(1, GenericActorWireCodecValues.SemanticId("core-ripened"));
+                writer.Field(2, GenericActorWireObservationCodec.EncodeArcCoreId(fact.CoreId));
+                writer.Field(3, GenericActorWireCodecValues.EncodePosition(fact.Position));
+                writer.Field(4, ActorWireValue.Int32(fact.Value));
+                break;
+            case GenericActorContext.ArcRelayEvent.LeveledUp fact:
+                writer.Field(1, GenericActorWireCodecValues.SemanticId("leveled-up"));
+                writer.Field(2, GenericActorWireCodecValues.EncodeIdentity(fact.ActorId));
+                writer.Field(3, ActorWireValue.Int32(fact.Level));
+                writer.Field(4, GenericActorWireCodecValues.EncodePosition(fact.Position));
+                break;
+            case GenericActorContext.ArcRelayEvent.ZoneHealed fact:
+                writer.Field(1, GenericActorWireCodecValues.SemanticId("zone-healed"));
+                writer.Field(2, GenericActorWireCodecValues.EncodeIdentity(fact.ActorId));
+                writer.Field(3, ActorWireValue.Int32(fact.Amount));
+                writer.Field(4, ActorWireValue.Int32(fact.NewHealth));
+                writer.Field(5, GenericActorWireCodecValues.EncodePosition(fact.Position));
+                break;
+            case GenericActorContext.ArcRelayEvent.CorePickedUp fact:
+                writer.Field(1, GenericActorWireCodecValues.SemanticId("core-picked-up"));
+                writer.Field(2, GenericActorWireObservationCodec.EncodeArcCoreId(fact.CoreId));
+                writer.Field(3, GenericActorWireCodecValues.EncodeIdentity(fact.CarrierActorId));
+                writer.Field(4, GenericActorWireCodecValues.EncodePosition(fact.Position));
+                writer.Field(5, ActorWireValue.Int32(fact.NextRelocationTick));
+                break;
+            case GenericActorContext.ArcRelayEvent.CoreRelocated fact:
+                writer.Field(1, GenericActorWireCodecValues.SemanticId("core-relocated"));
+                writer.Field(2, GenericActorWireObservationCodec.EncodeArcCoreId(fact.CoreId));
+                writer.Optional(
+                    3,
+                    fact.CarrierActorId is { } carrier
+                        ? GenericActorWireCodecValues.EncodeIdentity(carrier)
+                        : null);
+                writer.Field(4, GenericActorWireCodecValues.EncodePosition(fact.From));
+                writer.Field(5, GenericActorWireCodecValues.EncodePosition(fact.To));
+                writer.Field(6, ActorWireValue.Int32(fact.NextRelocationTick));
+                writer.Field(7, GenericActorWireCodecValues.SemanticId(fact.Kind));
+                break;
+            case GenericActorContext.ArcRelayEvent.CoreHandedOff fact:
+                writer.Field(1, GenericActorWireCodecValues.SemanticId("core-handed-off"));
+                writer.Field(2, GenericActorWireObservationCodec.EncodeArcCoreId(fact.CoreId));
+                writer.Field(3, GenericActorWireCodecValues.EncodeIdentity(fact.SourceActorId));
+                writer.Field(4, GenericActorWireCodecValues.EncodeIdentity(fact.TargetActorId));
+                writer.Field(5, GenericActorWireCodecValues.EncodePosition(fact.Position));
+                writer.Field(6, ActorWireValue.Int32(fact.NextRelocationTick));
+                break;
+            case GenericActorContext.ArcRelayEvent.CoreDropped fact:
+                writer.Field(1, GenericActorWireCodecValues.SemanticId("core-dropped"));
+                writer.Field(2, GenericActorWireObservationCodec.EncodeArcCoreId(fact.CoreId));
+                writer.Field(3, GenericActorWireCodecValues.EncodeIdentity(fact.SourceActorId));
+                writer.Field(4, GenericActorWireCodecValues.EncodePosition(fact.Position));
+                writer.Field(5, ActorWireValue.Int32(fact.NextRelocationTick));
+                writer.Field(6, GenericActorWireCodecValues.SemanticId(fact.Kind));
+                break;
+            case GenericActorContext.ArcRelayEvent.CoreBanked fact:
+                writer.Field(1, GenericActorWireCodecValues.SemanticId("core-banked"));
+                writer.Field(2, GenericActorWireObservationCodec.EncodeArcCoreId(fact.CoreId));
+                writer.Field(3, GenericActorWireCodecValues.EncodeIdentity(fact.CarrierActorId));
+                writer.Field(4, ActorWireValue.Int32(fact.TeamId));
+                writer.Field(5, GenericActorWireCodecValues.EncodePosition(fact.Position));
+                writer.Field(6, ActorWireValue.Int32(fact.ChargePips));
+                break;
+            case GenericActorContext.ArcRelayEvent.WellChanged fact:
+                writer.Field(1, GenericActorWireCodecValues.SemanticId("well-changed"));
+                writer.Field(2, GenericActorWireCodecValues.SemanticId(fact.WellId));
+                writer.Field(3, ActorWireValue.Boolean(fact.PendingCharge));
+                GenericActorWireCodecValues.OptionalInt32(writer, 4, fact.RearmCompletesAtTick);
+                writer.Optional(
+                    5,
+                    fact.OutstandingCoreId is { } coreId
+                        ? GenericActorWireObservationCodec.EncodeArcCoreId(coreId)
+                        : null);
+                break;
+            case GenericActorContext.ArcRelayEvent.Pulse fact:
+                writer.Field(1, GenericActorWireCodecValues.SemanticId("pulse"));
+                writer.Field(2, ActorWireValue.Int32(fact.TeamId));
+                writer.Field(3, ActorWireValue.Int32(fact.PulseOrdinal));
+                writer.Field(4, ActorWireValue.Int32(fact.OpposingReactorIntegrity));
+                break;
+            case GenericActorContext.ArcRelayEvent.SignatureChanged fact:
+                writer.Field(1, GenericActorWireCodecValues.SemanticId("signature-changed"));
+                writer.Field(2, GenericActorWireCodecValues.Handle(fact.OperationId));
+                writer.Field(3, GenericActorWireCodecValues.SemanticId(fact.SignatureId));
+                writer.Field(4, GenericActorWireCodecValues.EncodeIdentity(fact.OwnerActorId));
+                writer.Optional(
+                    5,
+                    fact.Phase is { } phase ? ActorWireValue.Enum(phase) : null);
+                writer.Field(6, GenericActorWireCodecValues.SemanticId(fact.Reason));
+                break;
+            case GenericActorContext.ArcRelayEvent.BodyRelocated fact:
+                writer.Field(1, GenericActorWireCodecValues.SemanticId("body-relocated"));
+                writer.Field(2, GenericActorWireCodecValues.Handle(fact.OperationId));
+                writer.Field(3, GenericActorWireCodecValues.SemanticId(fact.SignatureId));
+                writer.Field(4, GenericActorWireCodecValues.EncodeIdentity(fact.OwnerActorId));
+                writer.Field(5, GenericActorWireCodecValues.EncodeIdentity(fact.TargetActorId));
+                writer.Field(6, GenericActorWireCodecValues.EncodePosition(fact.From));
+                writer.Field(7, GenericActorWireCodecValues.EncodePosition(fact.To));
+                break;
+            case GenericActorContext.ArcRelayEvent.SignatureDamage fact:
+                EncodeArcSignatureHealthFact(writer, "signature-damage", fact.OperationId,
+                    fact.SignatureId, fact.OwnerActorId, fact.TargetActorId,
+                    fact.Amount, fact.NewHealth, fact.Position);
+                break;
+            case GenericActorContext.ArcRelayEvent.SignatureRepair fact:
+                EncodeArcSignatureHealthFact(writer, "signature-repair", fact.OperationId,
+                    fact.SignatureId, fact.OwnerActorId, fact.TargetActorId,
+                    fact.Amount, fact.NewHealth, fact.Position);
+                break;
+            default:
+                throw new InvalidOperationException(
+                    "Unknown Arc Relay event fact variant.");
+        }
+        return writer.ToArray();
+    }
+
+    private static GenericActorContext.ArcRelayEvent DecodeArcRelayFact(
+        byte[] bytes,
+        int depth)
+    {
+        var reader = new ActorWireObjectReader(bytes, depth);
+        string kind = GenericActorWireCodecValues.SemanticId(
+            reader.Required(1));
+        return GenericActorWireCodecValues.Decode<
+            GenericActorContext.ArcRelayEvent>(
+            () => kind switch
+            {
+                "core-born" =>
+                    new GenericActorContext.ArcRelayEvent.CoreBorn(
+                        GenericActorWireObservationCodec.DecodeArcCoreId(
+                            reader.Required(2), depth + 1),
+                        GenericActorWireCodecValues.DecodePosition(
+                            reader.Required(3), depth + 1))
+                    {
+                        ChargeValue = GenericActorWireCodecValues
+                            .OptionalInt32(reader, 4) ?? 1,
+                    },
+                "core-ripened" =>
+                    new GenericActorContext.ArcRelayEvent.CoreRipened(
+                        GenericActorWireObservationCodec.DecodeArcCoreId(
+                            reader.Required(2), depth + 1),
+                        GenericActorWireCodecValues.DecodePosition(
+                            reader.Required(3), depth + 1),
+                        GenericActorWireCodecValues.Int32(reader, 4)),
+                "leveled-up" =>
+                    new GenericActorContext.ArcRelayEvent.LeveledUp(
+                        GenericActorWireCodecValues.DecodeIdentity(
+                            reader.Required(2), depth + 1),
+                        GenericActorWireCodecValues.Int32(reader, 3),
+                        GenericActorWireCodecValues.DecodePosition(
+                            reader.Required(4), depth + 1)),
+                "zone-healed" =>
+                    new GenericActorContext.ArcRelayEvent.ZoneHealed(
+                        GenericActorWireCodecValues.DecodeIdentity(
+                            reader.Required(2), depth + 1),
+                        GenericActorWireCodecValues.Int32(reader, 3),
+                        GenericActorWireCodecValues.Int32(reader, 4),
+                        GenericActorWireCodecValues.DecodePosition(
+                            reader.Required(5), depth + 1)),
+                "core-picked-up" =>
+                    new GenericActorContext.ArcRelayEvent.CorePickedUp(
+                        GenericActorWireObservationCodec.DecodeArcCoreId(
+                            reader.Required(2), depth + 1),
+                        GenericActorWireCodecValues.DecodeIdentity(
+                            reader.Required(3), depth + 1),
+                        GenericActorWireCodecValues.DecodePosition(
+                            reader.Required(4), depth + 1),
+                        GenericActorWireCodecValues.Int32(reader, 5)),
+                "core-relocated" => DecodeArcCoreRelocated(reader, depth),
+                "core-handed-off" =>
+                    new GenericActorContext.ArcRelayEvent.CoreHandedOff(
+                        GenericActorWireObservationCodec.DecodeArcCoreId(
+                            reader.Required(2), depth + 1),
+                        GenericActorWireCodecValues.DecodeIdentity(
+                            reader.Required(3), depth + 1),
+                        GenericActorWireCodecValues.DecodeIdentity(
+                            reader.Required(4), depth + 1),
+                        GenericActorWireCodecValues.DecodePosition(
+                            reader.Required(5), depth + 1),
+                        GenericActorWireCodecValues.Int32(reader, 6)),
+                "core-dropped" =>
+                    new GenericActorContext.ArcRelayEvent.CoreDropped(
+                        GenericActorWireObservationCodec.DecodeArcCoreId(
+                            reader.Required(2), depth + 1),
+                        GenericActorWireCodecValues.DecodeIdentity(
+                            reader.Required(3), depth + 1),
+                        GenericActorWireCodecValues.DecodePosition(
+                            reader.Required(4), depth + 1),
+                        GenericActorWireCodecValues.Int32(reader, 5),
+                        GenericActorWireCodecValues.SemanticId(
+                            reader.Required(6))),
+                "core-banked" =>
+                    new GenericActorContext.ArcRelayEvent.CoreBanked(
+                        GenericActorWireObservationCodec.DecodeArcCoreId(
+                            reader.Required(2), depth + 1),
+                        GenericActorWireCodecValues.DecodeIdentity(
+                            reader.Required(3), depth + 1),
+                        GenericActorWireCodecValues.Int32(reader, 4),
+                        GenericActorWireCodecValues.DecodePosition(
+                            reader.Required(5), depth + 1),
+                        GenericActorWireCodecValues.Int32(reader, 6)),
+                "well-changed" => DecodeArcWellChanged(reader, depth),
+                "pulse" => new GenericActorContext.ArcRelayEvent.Pulse(
+                    GenericActorWireCodecValues.Int32(reader, 2),
+                    GenericActorWireCodecValues.Int32(reader, 3),
+                    GenericActorWireCodecValues.Int32(reader, 4)),
+                "signature-changed" =>
+                    DecodeArcSignatureChanged(reader, depth),
+                "body-relocated" =>
+                    new GenericActorContext.ArcRelayEvent.BodyRelocated(
+                        GenericActorWireCodecValues.Handle(reader.Required(2)),
+                        GenericActorWireCodecValues.SemanticId(reader.Required(3)),
+                        GenericActorWireCodecValues.DecodeIdentity(reader.Required(4), depth + 1),
+                        GenericActorWireCodecValues.DecodeIdentity(reader.Required(5), depth + 1),
+                        GenericActorWireCodecValues.DecodePosition(reader.Required(6), depth + 1),
+                        GenericActorWireCodecValues.DecodePosition(reader.Required(7), depth + 1)),
+                "signature-damage" => DecodeArcSignatureDamage(reader, depth),
+                "signature-repair" => DecodeArcSignatureRepair(reader, depth),
+                _ => throw new FormatException(
+                    "Unknown Arc Relay fact discriminator."),
+            },
+            "Arc Relay fact");
+    }
+
+    private static GenericActorContext.ArcRelayEvent.CoreRelocated
+        DecodeArcCoreRelocated(ActorWireObjectReader reader, int depth)
+    {
+        byte[]? carrier = reader.Optional(3);
+        return new GenericActorContext.ArcRelayEvent.CoreRelocated(
+            GenericActorWireObservationCodec.DecodeArcCoreId(
+                reader.Required(2), depth + 1),
+            carrier is null
+                ? null
+                : GenericActorWireCodecValues.DecodeIdentity(
+                    carrier, depth + 1),
+            GenericActorWireCodecValues.DecodePosition(
+                reader.Required(4), depth + 1),
+            GenericActorWireCodecValues.DecodePosition(
+                reader.Required(5), depth + 1),
+            GenericActorWireCodecValues.Int32(reader, 6),
+            GenericActorWireCodecValues.SemanticId(reader.Required(7)));
+    }
+
+    private static GenericActorContext.ArcRelayEvent.WellChanged
+        DecodeArcWellChanged(ActorWireObjectReader reader, int depth)
+    {
+        byte[]? coreId = reader.Optional(5);
+        return new GenericActorContext.ArcRelayEvent.WellChanged(
+            GenericActorWireCodecValues.SemanticId(reader.Required(2)),
+            GenericActorWireCodecValues.Boolean(reader, 3),
+            GenericActorWireCodecValues.OptionalInt32(reader, 4),
+            coreId is null
+                ? null
+                : GenericActorWireObservationCodec.DecodeArcCoreId(
+                    coreId, depth + 1));
+    }
+
+    private static GenericActorContext.ArcRelayEvent.SignatureChanged
+        DecodeArcSignatureChanged(ActorWireObjectReader reader, int depth)
+    {
+        byte[]? phase = reader.Optional(5);
+        return new GenericActorContext.ArcRelayEvent.SignatureChanged(
+            GenericActorWireCodecValues.Handle(reader.Required(2)),
+            GenericActorWireCodecValues.SemanticId(reader.Required(3)),
+            GenericActorWireCodecValues.DecodeIdentity(
+                reader.Required(4), depth + 1),
+            phase is null
+                ? null
+                : ActorWireValue.Enum<
+                    GenericActorContext.ArcRelaySignaturePhase>(phase),
+            GenericActorWireCodecValues.SemanticId(reader.Required(6)));
+    }
+
+    private static void EncodeArcSignatureHealthFact(
+        ActorWireObjectWriter writer,
+        string kind,
+        string operationId,
+        string signatureId,
+        ActorIdentity owner,
+        ActorIdentity target,
+        int amount,
+        int newHealth,
+        Position position)
+    {
+        writer.Field(1, GenericActorWireCodecValues.SemanticId(kind));
+        writer.Field(2, GenericActorWireCodecValues.Handle(operationId));
+        writer.Field(3, GenericActorWireCodecValues.SemanticId(signatureId));
+        writer.Field(4, GenericActorWireCodecValues.EncodeIdentity(owner));
+        writer.Field(5, GenericActorWireCodecValues.EncodeIdentity(target));
+        writer.Field(6, ActorWireValue.Int32(amount));
+        writer.Field(7, ActorWireValue.Int32(newHealth));
+        writer.Field(8, GenericActorWireCodecValues.EncodePosition(position));
+    }
+
+    private static GenericActorContext.ArcRelayEvent.SignatureDamage
+        DecodeArcSignatureDamage(ActorWireObjectReader reader, int depth) =>
+        new(
+            GenericActorWireCodecValues.Handle(reader.Required(2)),
+            GenericActorWireCodecValues.SemanticId(reader.Required(3)),
+            GenericActorWireCodecValues.DecodeIdentity(reader.Required(4), depth + 1),
+            GenericActorWireCodecValues.DecodeIdentity(reader.Required(5), depth + 1),
+            GenericActorWireCodecValues.Int32(reader, 6),
+            GenericActorWireCodecValues.Int32(reader, 7),
+            GenericActorWireCodecValues.DecodePosition(reader.Required(8), depth + 1));
+
+    private static GenericActorContext.ArcRelayEvent.SignatureRepair
+        DecodeArcSignatureRepair(ActorWireObjectReader reader, int depth) =>
+        new(
+            GenericActorWireCodecValues.Handle(reader.Required(2)),
+            GenericActorWireCodecValues.SemanticId(reader.Required(3)),
+            GenericActorWireCodecValues.DecodeIdentity(reader.Required(4), depth + 1),
+            GenericActorWireCodecValues.DecodeIdentity(reader.Required(5), depth + 1),
+            GenericActorWireCodecValues.Int32(reader, 6),
+            GenericActorWireCodecValues.Int32(reader, 7),
+            GenericActorWireCodecValues.DecodePosition(reader.Required(8), depth + 1));
 
     private static GenericActorContext.EventPayload.Rotation DecodeRotation(
         ActorWireObjectReader reader,
@@ -553,6 +958,32 @@ internal static class GenericActorWireEventCodec
             GenericActorWireCodecValues.Int32(reader, 6),
             GenericActorWireCodecValues.DecodePosition(
                 reader.Required(7),
+                depth + 1));
+    }
+
+    private static GenericActorContext.EventPayload.ProjectileDeflected
+        DecodeProjectileDeflected(
+            ActorWireObjectReader reader,
+            int depth)
+    {
+        byte[]? sourceActorId = reader.Optional(2);
+        return new GenericActorContext.EventPayload.ProjectileDeflected(
+            GenericActorWireCodecValues.Int32(reader, 1),
+            sourceActorId is null
+                ? null
+                : GenericActorWireCodecValues.DecodeIdentity(
+                    sourceActorId,
+                    depth + 1),
+            GenericActorWireCodecValues.DecodeIdentity(
+                reader.Required(3),
+                depth + 1),
+            GenericActorWireCodecValues.Int64(reader.Required(4)),
+            GenericActorWireCodecValues.Int64(reader.Required(9)),
+            GenericActorWireCodecValues.SemanticId(reader.Required(5)),
+            GenericActorWireCodecValues.Enum<Direction>(reader, 6),
+            GenericActorWireCodecValues.Enum<ProjectileHeading>(reader, 7),
+            GenericActorWireCodecValues.DecodePosition(
+                reader.Required(8),
                 depth + 1));
     }
 
@@ -666,8 +1097,10 @@ internal static class GenericActorWireEventCodec
     private static GenericActorContext.EventPayload.FormTransition
         DecodeFormTransition(
             ActorWireObjectReader reader,
-            int depth) =>
-        new(
+            int depth)
+    {
+        byte[]? automatic = reader.Optional(8);
+        return new GenericActorContext.EventPayload.FormTransition(
             GenericActorWireCodecValues.DecodeIdentity(
                 reader.Required(1),
                 depth + 1),
@@ -676,5 +1109,14 @@ internal static class GenericActorWireEventCodec
             GenericActorWireCodecValues.SemanticId(reader.Required(4)),
             GenericActorWireCodecValues.SemanticId(reader.Required(5)),
             GenericActorWireCodecValues.Int32(reader, 6),
-            GenericActorWireCodecValues.Int32(reader, 7));
+            GenericActorWireCodecValues.Int32(reader, 7),
+            automatic is null
+                ? false
+                : ActorWireValue.Boolean(automatic)
+                    ? true
+                    : throw new FormatException(
+                        "A requested form transition omits the automatic "
+                        + "field; an explicit false is a second encoding of "
+                        + "the same event."));
+    }
 }

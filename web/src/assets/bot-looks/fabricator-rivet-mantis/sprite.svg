@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Rivet Mantis fabricator chassis facing east">
+  <defs>
+    <linearGradient id="rm-hull" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#626b6f"/>
+      <stop offset=".45" stop-color="#323b3f"/>
+      <stop offset="1" stop-color="#131a1d"/>
+    </linearGradient>
+    <linearGradient id="rm-yellow" x1="0" y1="0" x2="1" y2="0">
+      <stop stop-color="#a66e12"/>
+      <stop offset=".5" stop-color="#e7a91d"/>
+      <stop offset="1" stop-color="#73500f"/>
+    </linearGradient>
+  </defs>
+
+  <!-- A compact ring chassis and four independent tools remain readable in a crowd. -->
+  <path d="M72 256 102 170l72-50 78 20 66 54 66-48 60 14 34 47-44 49 44 49-34 47-60 14-66-48-66 54-78 20-72-50Z"
+    fill="#070c0f" stroke="#070a0c" stroke-width="18" stroke-linejoin="round"/>
+  <path d="m86 256 26-77 65-45 71 18 58 49-30 55 30 55-58 49-71 18-65-45Z"
+    fill="url(#rm-hull)" stroke="#727c82" stroke-width="6"/>
+
+  <!-- Four yellow service pods are authored skin color, not allegiance. -->
+  <g fill="url(#rm-yellow)" stroke="#39280c" stroke-width="5">
+    <path d="m112 179 57-37 39 10-21 52-58 18Z"/>
+    <path d="m112 333 57 37 39-10-21-52-58-18Z"/>
+    <path d="m253 159 55 44-23 43-52-32Z"/>
+    <path d="m253 353 55-44-23-43-52 32Z"/>
+  </g>
+  <g fill="#11191d" stroke="#7d878c" stroke-width="5">
+    <path d="M88 222 44 204 34 224l42 32-42 32 10 20 44-18Z"/>
+    <path d="m168 142-26-54 22-10 39 54Z"/>
+    <path d="m168 370-26 54 22 10 39-54Z"/>
+  </g>
+
+  <!-- Empty opposing jaws are assembly tools; nothing is stored or grown on the body. -->
+  <g fill="url(#rm-hull)" stroke="#7f898f" stroke-width="5" stroke-linejoin="round">
+    <path d="m292 201 63-55 49 9 45 40-23 31-48-25-54 44Z"/>
+    <path d="m292 311 63 55 49-9 45-40-23-31-48 25-54-44Z"/>
+  </g>
+  <g fill="#273036" stroke="#9ba4a9" stroke-width="4">
+    <path d="m414 166 35 25-17 23-38-20-24 15 8-31Z"/>
+    <path d="m414 346 35-25-17-23-38 20-24-15 8 31Z"/>
+  </g>
+  <path d="M298 240h94l42 16-42 16h-94l15-16Z" fill="#192226" stroke="#7b858a" stroke-width="5"/>
+  <path data-team-accent="true" d="m326 248 70 3 18 5-18 5-70 3 9-8Z" fill="#fbbf24"/>
+
+  <circle cx="221" cy="256" r="91" fill="#11191c" stroke="#717c82" stroke-width="8"/>
+  <circle cx="221" cy="256" r="68" fill="#2b353a" stroke="#0d1316" stroke-width="8"/>
+  <circle cx="221" cy="256" r="47" fill="#121c20" stroke="#7d898f" stroke-width="6"/>
+  <circle data-team-accent="true" cx="221" cy="256" r="34" fill="#fbbf24"/>
+  <circle cx="221" cy="256" r="23" fill="#101a1c" stroke="#fef3c7" stroke-width="5"/>
+  <circle data-team-accent="true" cx="221" cy="256" r="11" fill="#fef3c7"/>
+
+  <path data-team-accent="true" d="m137 170 43-20 15 5-51 25Z" fill="#fbbf24"/>
+  <path data-team-accent="true" d="m137 342 43 20 15-5-51-25Z" fill="#fbbf24"/>
+  <path data-team-accent="true" d="M93 247h66l13 9-13 9H93Z" fill="#fbbf24"/>
+  <g fill="#a8b0b4">
+    <circle cx="123" cy="203" r="4"/>
+    <circle cx="123" cy="309" r="4"/>
+    <circle cx="279" cy="190" r="4"/>
+    <circle cx="279" cy="322" r="4"/>
+  </g>
+</svg>

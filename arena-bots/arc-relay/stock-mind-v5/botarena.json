@@ -1,0 +1,10 @@
+{
+  "name": "ArcRelayStandingStrategyMindV5",
+  "entryType": "ArcRelayStandingStrategyMind",
+  "sdkVersion": "0.10.12",
+  "appearance": {
+    "accent": "#22d3ee",
+    "look": "vanguard",
+    "projectile": "pulse-bolt"
+  }
+}

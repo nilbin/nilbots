@@ -1,0 +1,25 @@
+{
+  "schema": "arc-relay-cohort-v1",
+  "cohortId": "home-siege-v3-strict-9-2-final-02-2026-08-04",
+  "purpose": "Predeclared strict Home Siege v3 9-2 proof against the unchanged coordination-parity stock-v4 baseline",
+  "baseCommit": "3a1fb202861744c81ebf24459d9de5f0a3ac9944",
+  "candidateFreeze": "home-siege-v3-candidate-02-freeze.json",
+  "candidateFreezeSha256": "3ca170770be03a720fa35232f23f031b739eb3873906ef1ae1509f7945c6cd9c",
+  "eligibilityBars": "../../../../balance/arc-relay-felt-degeneracy-bars-v4.json",
+  "entrants": [
+    {
+      "entrantId": "home-siege-v3",
+      "artifact": "../../tactical-playbook-mind-v1/bot.wasm",
+      "artifactSha256": "3f330f6c95b279d44e3741e05cc8d5a13e51a9ca5f481f7a80d4668166eec6c3",
+      "sheet": "../playbooks/home-siege-v3.json",
+      "sheetSha256": "3829ce7cacb30a13543d3f4846b731c6a63cec4c22ddd5c994313fbe9b4e78e1"
+    },
+    {
+      "entrantId": "coordination-parity-baseline",
+      "artifact": "../../stock-mind-v4/bot.wasm",
+      "artifactSha256": "999183019785e9aac163ed607d43ed5fd6efa903264f216362e4f84711203b0f",
+      "sheet": "../controls/coordination-parity-baseline.json",
+      "sheetSha256": "56aa2cb0261b4aeff3a8d0e0b0af1e5a5153c5f7a551f6d9bc1607a6cf470cc1"
+    }
+  ]
+}

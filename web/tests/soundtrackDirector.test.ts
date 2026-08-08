@@ -799,6 +799,83 @@ test('a shot reacts vertically while sustained shots earn a minimum combat phras
   assert.equal(timeline.frames[13]?.state, 'sparse');
 });
 
+test('a generation-3 match is scored exactly like the same fight spelled v1', () => {
+  // Same fight, other vocabulary: replay-v1/v2 write `shot`/`destroyed`/`move`/`turn`,
+  // replay-v3 writes `attack`/`destruction`/`movement`/`rotation`, and the model keeps
+  // each document's own words deliberately. The director compared against one spelling,
+  // so a generation-3 match scored as an empty field — no shots, no deaths, nobody
+  // moving — and the timeline never left `sparse`.
+  const ticks = [
+    v1Tick(0, { positions: [[0, 0], [6, 0]] }),
+    v1Tick(1, {
+      positions: [[1, 0], [6, 0]],
+      visible: true,
+      actions: ['MoveForward', 'Wait'],
+      events: [{ type: 'Move', slot: 0, fromX: 0, fromY: 0, toX: 1, toY: 0 }],
+    }),
+    v1Tick(2, {
+      positions: [[2, 0], [6, 0]],
+      visible: true,
+      actions: ['MoveForward', 'TurnLeft'],
+      events: [
+        { type: 'Move', slot: 0, fromX: 1, fromY: 0, toX: 2, toY: 0 },
+        { type: 'Turn', slot: 1, fromFacing: 'West', toFacing: 'North' },
+      ],
+    }),
+    v1Tick(3, {
+      positions: [[2, 0], [6, 0]],
+      visible: true,
+      actions: ['Shoot', 'Wait'],
+      events: [{ type: 'Shot', slot: 0 }],
+    }),
+    v1Tick(4, {
+      positions: [[2, 0], [6, 0]],
+      visible: true,
+      health: [3, 1],
+      events: [
+        { type: 'Damage', slot: 0, targetSlot: 1, amount: 2, newHealth: 1 },
+      ],
+    }),
+    v1Tick(5, {
+      positions: [[2, 0], [6, 0]],
+      visible: true,
+      health: [3, 0],
+      statuses: ['Active', 'Destroyed'],
+      events: [{ type: 'Destroyed', slot: 1 }],
+    }),
+  ];
+  const duel = v1Replay(ticks);
+  const generation3 = structuredClone(duel) as ReplayModel;
+  const v3Spelling: Record<string, string> = {
+    shot: 'attack',
+    destroyed: 'destruction',
+    move: 'movement',
+    turn: 'rotation',
+    disqualified: 'participant-disqualified',
+  };
+  let renamed = 0;
+  for (const tick of generation3.ticks) {
+    for (const event of [...tick.events, ...tick.lifecycleEvents]) {
+      const generic = v3Spelling[event.type];
+      if (generic === undefined) continue;
+      event.type = generic;
+      renamed += 1;
+    }
+  }
+  assert.ok(renamed >= 5, `expected renamed v3 events, got ${renamed}`);
+
+  const scored = buildAdaptiveTimeline(generation3);
+  assert.deepEqual(scored.frames, buildAdaptiveTimeline(duel).frames);
+  assert.ok(scored.frames.some((frame) => frame.triggers.includes('shot')));
+  assert.ok(
+    scored.frames.some((frame) => frame.triggers.includes('destruction')),
+  );
+  // Tick 3 is the shot alone: nobody moved and nothing was hit, so only the attack
+  // event can lift activity past what mere visible contact is worth.
+  const shotFrame = scored.frames.find((frame) => frame.tick === 3);
+  assert.ok((shotFrame?.features.activity ?? 0) >= 0.84);
+});
+
 test('long stationary quiet runs expose stall, thin sparse, and never invent climax', () => {
   const timeline = buildAdaptiveTimeline(
     v1Replay(Array.from({ length: 36 }, (_, index) => v1Tick(index))),

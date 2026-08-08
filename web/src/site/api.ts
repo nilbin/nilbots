@@ -93,6 +93,7 @@ export const api = {
   getText: (url: string) => requestText('GET', url),
   post: <T>(url: string, body?: unknown) => request<T>('POST', url, body),
   put: <T>(url: string, body?: unknown) => request<T>('PUT', url, body),
+  delete: <T>(url: string) => request<T>('DELETE', url),
 };
 
 export type Me = Schemas['UserResponse'];
@@ -154,9 +155,31 @@ export type Leaderboard = Schemas['LeaderboardResponse'];
 export type LabsCatalog = Schemas['LabsCatalogResponse'];
 export type LabsPlaylist = Schemas['LabsPlaylistResponse'];
 export type CreatedMatch = Schemas['CreatedMatchResponse'];
+export type TacticalSheetCatalog = Schemas['TacticalSheetCatalogResponse'];
+export type TacticalSheetClass = Schemas['TacticalSheetClassResponse'];
+export type TacticalSheetMap = Schemas['TacticalSheetMapResponse'];
+export type TacticalSheet = Schemas['TacticalSheetResponse'];
+export type TacticalSheetSummary = Schemas['TacticalSheetSummaryResponse'];
+export type TacticalSheetDeleted = Schemas['TacticalSheetDeletedResponse'];
+export type TacticalStockSheet = Schemas['TacticalStockSheetResponse'];
+export type ArcRelayEntrant = Schemas['ArcRelayEntrantCardResponse'];
+export type ArcRelayLadder = Schemas['ArcRelayLadderResponse'];
+export type ArcRelayMind = Schemas['ArcRelayMindResponse'];
+export type ArcRelayCrest = Schemas['ArcRelayCrestDescriptor'];
+export type ArcRelayCrestOptions = Schemas['ArcRelayCrestOptionsResponse'];
 
 export type CreateBotRequest = Schemas['CreateBotRequest'];
+export type CreatedBot = Schemas['CreatedBot'];
+export type AssignBotClassRequest = Schemas['AssignBotClassRequest'];
+export type AssignedBotClass = Schemas['AssignedBotClass'];
 export type CreateLabsMatchRequest = Schemas['CreateLabsMatchRequest'];
+export type SaveTacticalSheetRequest = Schemas['SaveTacticalSheetRequest'];
+export type TrialTacticalSheetRequest = Schemas['TrialTacticalSheetRequest'];
+export type CreateArcRelayScrimmageRequest = Schemas['CreateArcRelayScrimmageRequest'];
+export type CreateArcRelayMindRequest = Schemas['CreateArcRelayMindRequest'];
+export type ReviseArcRelayMindRequest = Schemas['ReviseArcRelayMindRequest'];
+export type SetArcRelayLadderOptInRequest = Schemas['SetArcRelayLadderOptInRequest'];
+export type SetArcRelayCrestRequest = Schemas['SetArcRelayCrestRequest'];
 export type SubmitVersionRequest = Schemas['SubmitVersionRequest'];
 export type ChallengeRequest = Schemas['ChallengeRequest'];
 export type RankedChallengeRequest = Schemas['RankedChallengeRequest'];
@@ -199,6 +222,14 @@ export const endpoints = {
   botStats: (botId: string) => api.get<BotStatistics>(`/api/bots/${botId}/stats`),
   arena: () => api.get<ArenaCapabilities>('/api/arena'),
   labs: () => api.get<LabsCatalog>('/api/labs'),
+  tacticalSheetCatalog: () => api.get<TacticalSheetCatalog>('/api/sheets/catalog'),
+  tacticalSheets: () => api.get<TacticalSheetSummary[]>('/api/sheets'),
+  tacticalSheet: (sheetId: string) =>
+    api.get<TacticalSheet>(`/api/sheets/${sheetId}`),
+  arcRelayEntrants: () => api.get<ArcRelayEntrant[]>('/api/arc-relay/entrants'),
+  arcRelayLadder: () => api.get<ArcRelayLadder>('/api/arc-relay/ladder'),
+  arcRelayMind: (entrantId: string) =>
+    api.get<ArcRelayMind>(`/api/arc-relay/minds/${entrantId}`),
   leaderboard: (rules?: string | null) =>
     api.get<Leaderboard>(
       `/api/leaderboard${rules ? `?rules=${encodeURIComponent(rules)}` : ''}`,
@@ -219,7 +250,9 @@ export const endpoints = {
   // Writes, bound the same way and for the same reason. The request bodies are generated
   // too, so a field the server renamed fails here rather than silently posting a shape it
   // ignores — which a bare `api.post(url, { ... })` cannot catch at all.
-  createBot: (body: CreateBotRequest) => api.post<{ id: string }>('/api/bots', body),
+  createBot: (body: CreateBotRequest) => api.post<CreatedBot>('/api/bots', body),
+  assignBotClass: (botId: string, body: AssignBotClassRequest) =>
+    api.put<AssignedBotClass>(`/api/bots/${botId}/class`, body),
   submitVersion: (botId: string, body: SubmitVersionRequest) =>
     api.post<unknown>(`/api/bots/${botId}/versions`, body),
   challenge: (body: ChallengeRequest) =>
@@ -228,6 +261,28 @@ export const endpoints = {
     api.post<{ id: string }>('/api/matches/ranked', body),
   createLabsMatch: (body: CreateLabsMatchRequest) =>
     api.post<CreatedMatch>('/api/labs/matches', body),
+  createTacticalSheet: (body: SaveTacticalSheetRequest) =>
+    api.post<TacticalSheet>('/api/sheets', body),
+  updateTacticalSheet: (sheetId: string, body: SaveTacticalSheetRequest) =>
+    api.put<TacticalSheet>(`/api/sheets/${sheetId}`, body),
+  deleteTacticalSheet: (sheetId: string) =>
+    api.delete<TacticalSheetDeleted>(`/api/sheets/${sheetId}`),
+  trialTacticalSheet: (sheetId: string, body: TrialTacticalSheetRequest) =>
+    api.post<CreatedMatch>(`/api/sheets/${sheetId}/trial`, body),
+  createArcRelayScrimmage: (body: CreateArcRelayScrimmageRequest) =>
+    api.post<CreatedMatch>('/api/arc-relay/scrimmages', body),
+  createArcRelayMind: (body: CreateArcRelayMindRequest) =>
+    api.post<ArcRelayMind>('/api/arc-relay/minds', body),
+  reviseArcRelayMind: (entrantId: string, body: ReviseArcRelayMindRequest) =>
+    api.put<ArcRelayMind>(`/api/arc-relay/minds/${entrantId}`, body),
+  arcRelayCrestOptions: (entrantId: string) =>
+    api.get<ArcRelayCrestOptions>(`/api/arc-relay/entrants/${entrantId}/crest-options`),
+  setArcRelayCrest: (entrantId: string, body: SetArcRelayCrestRequest) =>
+    api.put<ArcRelayCrest>(`/api/arc-relay/entrants/${entrantId}/crest`, body),
+  preflightArcRelayMind: (entrantId: string) =>
+    api.post<Schemas['ArcRelayPreflightResponse']>(`/api/arc-relay/entrants/${entrantId}/preflight`, {}),
+  setArcRelayLadder: (entrantId: string, body: SetArcRelayLadderOptInRequest) =>
+    api.put<ArcRelayEntrant>(`/api/arc-relay/entrants/${entrantId}/ladder`, body),
   updateAppearance: (botId: string, body: UpdateBotAppearanceRequest) =>
     api.put<unknown>(`/api/bots/${botId}/appearance`, body),
   register: (body: RegisterRequest) => api.post<unknown>('/api/accounts/register', body),

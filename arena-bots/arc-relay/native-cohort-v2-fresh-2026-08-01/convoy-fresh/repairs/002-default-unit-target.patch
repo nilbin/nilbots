@@ -1,0 +1,22 @@
+Mechanical runtime repair 002
+
+Pre-repair ConvoyFresh.cs SHA-256:
+98bfaaf361bf9db932e1cf225fc48feb665fd64675afd5fc3334cc8e577e4198
+
+Filtered self-play fault evidence (no outcome inspected):
+
+- tick: 98
+- stage: `decision-validation`
+- fault code: `argument-out-of-domain`
+- faulting command family: `target-paint`
+- submitted fallback target: team 0, unit 0
+
+Cause: `UnitTarget` is a value type. `FirstOrDefault(predicate)` returned the
+valid-looking default value `(0,0)` when the requested target was absent from
+the typed constraint, then the nullable wrapper became non-null.
+
+Doctrine-neutral patch: filter first, cast each actual match to
+`UnitTarget?`, then call `FirstOrDefault()`. Absence now stays null in both the
+shared unit-target helper and handoff lookup, so the existing caller falls
+through rather than emitting an out-of-domain argument. No target ordering,
+range, role, route, composition, priority, or handoff condition changed.

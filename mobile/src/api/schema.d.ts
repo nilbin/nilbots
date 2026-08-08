@@ -860,6 +860,47 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/bots/{botId}/class": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    botId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AssignBotClassRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AssignedBotClass"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/bots/{botId}/build-status": {
         parameters: {
             query?: never;
@@ -1391,6 +1432,624 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/arc-relay/catalog": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ArcRelayCatalogResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/arc-relay/entrants": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ArcRelayEntrantCardResponse"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/arc-relay/minds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CreateArcRelayMindRequest"];
+                };
+            };
+            responses: {
+                /** @description Accepted */
+                202: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ArcRelayMindResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/arc-relay/minds/{entrantId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    entrantId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ArcRelayMindResponse"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    entrantId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ReviseArcRelayMindRequest"];
+                };
+            };
+            responses: {
+                /** @description Accepted */
+                202: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ArcRelayMindResponse"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/arc-relay/entrants/{entrantId}/crest-options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    entrantId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ArcRelayCrestOptionsResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/arc-relay/entrants/{entrantId}/crest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    entrantId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SetArcRelayCrestRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ArcRelayCrestDescriptor"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/arc-relay/entrants/{entrantId}/preflight": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    entrantId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Accepted */
+                202: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ArcRelayPreflightResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/arc-relay/entrants/{entrantId}/ladder": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    entrantId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SetArcRelayLadderOptInRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ArcRelayEntrantCardResponse"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/arc-relay/ladder": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ArcRelayLadderResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/arc-relay/scrimmages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CreateArcRelayScrimmageRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CreatedMatchResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sheets/catalog": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TacticalSheetCatalogResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sheets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TacticalSheetSummaryResponse"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SaveTacticalSheetRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TacticalSheetResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sheets/{sheetId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    sheetId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TacticalSheetResponse"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    sheetId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SaveTacticalSheetRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TacticalSheetResponse"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    sheetId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TacticalSheetDeletedResponse"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sheets/{sheetId}/trial": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    sheetId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["TrialTacticalSheetRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CreatedMatchResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/notifications": {
         parameters: {
             query?: never;
@@ -1606,6 +2265,113 @@ export interface components {
             /** Format: int32 */
             retryAfterSeconds: null | number;
         };
+        ArcRelayCatalogResponse: {
+            playlistKey: string;
+            /** Format: uuid */
+            playlistVersionId: string;
+            mapId: string;
+            mapRows: string[];
+            /** Format: int32 */
+            slotCount: number;
+            /** Format: int32 */
+            maximumCopiesPerClass: number;
+            classes: components["schemas"]["ArcRelayClassResponse"][];
+        };
+        ArcRelayClassResponse: {
+            id: string;
+            name: string;
+            signatureName: string;
+            fantasy: string;
+            starter: boolean;
+            unlocked: boolean;
+        };
+        ArcRelayCompositionDeclaration: {
+            classIds: string[];
+            adaptivePolicyId?: null | string;
+            adaptiveClassIds?: null | string[];
+        };
+        ArcRelayCompositionSlotResponse: {
+            /** Format: int32 */
+            slot: number;
+            classId: string;
+            className: string;
+            lookId: string;
+        };
+        ArcRelayCrestDescriptor: {
+            key: string;
+            /** Format: int32 */
+            variant: number;
+            shape: string;
+            pattern: string;
+            mark: string;
+            primary: string;
+            secondary: string;
+            detail: string;
+        };
+        ArcRelayCrestOptionsResponse: {
+            /** Format: uuid */
+            entrantId: string;
+            options: components["schemas"]["ArcRelayCrestDescriptor"][];
+        };
+        ArcRelayEntrantCardResponse: {
+            /** Format: uuid */
+            id: string;
+            kind: string;
+            name: string;
+            ownerDisplayName: string;
+            /** Format: int32 */
+            revision: number;
+            crest: components["schemas"]["ArcRelayCrestDescriptor"];
+            composition: components["schemas"]["ArcRelayCompositionSlotResponse"][];
+            /** Format: double */
+            rating: number;
+            /** Format: int32 */
+            rankedMatches: number;
+            ladderOptedIn: boolean;
+            status: string;
+            suspensionReason: null | string;
+            /** Format: uuid */
+            suspensionMatchId: null | string;
+            artifactHash: null | string;
+            contentHash: string;
+            isOwner: boolean;
+        };
+        ArcRelayLadderResponse: {
+            /** Format: uuid */
+            ladderId: string;
+            name: string;
+            pairingPolicy: string;
+            /** Format: int32 */
+            maximumOptedInPerAccount: number;
+            /** Format: int32 */
+            maximumMatchesPerEntrantPerDay: number;
+            entrants: components["schemas"]["ArcRelayEntrantCardResponse"][];
+        };
+        ArcRelayMatchEntrantResponse: {
+            /** Format: uuid */
+            entrantId: null | string;
+            entrantKind: null | string;
+            /** Format: int32 */
+            entrantRevision: null | number;
+            crest: null | components["schemas"]["ArcRelayCrestDescriptor"];
+            composition: string[];
+        };
+        ArcRelayMindResponse: {
+            entrant: components["schemas"]["ArcRelayEntrantCardResponse"];
+            entryType: string;
+            files: components["schemas"]["SourceFileDto"][];
+            composition: components["schemas"]["ArcRelayCompositionDeclaration"];
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+            buildLog: null | string;
+        };
+        ArcRelayPreflightResponse: {
+            /** Format: uuid */
+            matchId: string;
+            status: string;
+        };
         ArenaAllowanceResponse: {
             /** Format: int32 */
             used: number;
@@ -1642,6 +2408,14 @@ export interface components {
             /** Format: int32 */
             gamesPerMatch: number;
             defaultMapId: string;
+        };
+        AssignBotClassRequest: {
+            classId: null | string;
+        };
+        AssignedBotClass: {
+            /** Format: uuid */
+            id: string;
+            classId: string;
         };
         AuthProvidersResponse: {
             google: boolean;
@@ -1689,6 +2463,7 @@ export interface components {
             isOwner: boolean;
             currentStanding: null | components["schemas"]["LadderStanding"];
             versions: components["schemas"]["BotVersionResponse"][];
+            classId?: null | string;
         };
         BotLadderRatingResponse: {
             rulesVersion: string;
@@ -1761,6 +2536,7 @@ export interface components {
             /** Format: int32 */
             versionCount: number;
             currentStanding?: null | components["schemas"]["LadderStanding"];
+            classId?: null | string;
         };
         BotVersionResponse: {
             /** Format: uuid */
@@ -1834,11 +2610,31 @@ export interface components {
             sourceId: string;
             hint: string;
         };
+        CreateArcRelayMindRequest: {
+            name: string;
+            entryType: string;
+            files: components["schemas"]["SourceFileDto"][];
+            composition: components["schemas"]["ArcRelayCompositionDeclaration"];
+            /**
+             * Format: int32
+             * @default 0
+             */
+            crestVariant: number;
+        };
+        CreateArcRelayScrimmageRequest: {
+            /** Format: uuid */
+            entrantId: string;
+            /** Format: uuid */
+            opponentEntrantId: string;
+            /** Format: int64 */
+            seed: null | number;
+        };
         CreateBotRequest: {
             name: string;
             accent: null | string;
             lookId?: null | string;
             projectileLookId?: null | string;
+            classId?: null | string;
         };
         CreateLabsMatchRequest: {
             /** Format: uuid */
@@ -1855,6 +2651,7 @@ export interface components {
             accent: string;
             lookId: string;
             projectileLookId: string;
+            classId: null | string;
         };
         CreatedMatchResponse: {
             /** Format: uuid */
@@ -1954,6 +2751,7 @@ export interface components {
             damageDealt: null | number;
             /** Format: int32 */
             faults: null | number;
+            entrant?: null | components["schemas"]["ArcRelayMatchEntrantResponse"];
         };
         MatchDetailResponse: {
             /** Format: uuid */
@@ -1983,6 +2781,7 @@ export interface components {
             completedAt: null | string;
             participants: components["schemas"]["MatchDetailParticipantResponse"][];
             teamResults: components["schemas"]["MatchTeamResultResponse"][];
+            arcRelayLane?: null | string;
         };
         MatchLiveResponse: {
             status: string;
@@ -1990,7 +2789,7 @@ export interface components {
             matchSetId: null | string;
             /** Format: int32 */
             setGame: null | number;
-            /** Format: int32 */
+            /** Format: double */
             presentationTicksPerSecond: number;
             /** Format: int32 */
             presentationTick: number;
@@ -2106,6 +2905,9 @@ export interface components {
             scoreChannelId: string;
             value: string;
         };
+        MetaBotClassResponse: {
+            id: string;
+        };
         MetaMapResponse: {
             id: string;
             /** Format: int32 */
@@ -2122,6 +2924,7 @@ export interface components {
             buildPipelineVersion: string;
             cliVersion: string;
             maps: components["schemas"]["MetaMapResponse"][];
+            botClasses: components["schemas"]["MetaBotClassResponse"][];
         };
         MyBotResponse: {
             /** Format: uuid */
@@ -2132,6 +2935,7 @@ export interface components {
             lookId: string;
             projectileLookId: string;
             latestVersion: null | components["schemas"]["MyBotVersionResponse"];
+            classId?: null | string;
         };
         MyBotVersionResponse: {
             /** Format: int32 */
@@ -2180,6 +2984,29 @@ export interface components {
             email: string;
             password: string;
         };
+        ReviseArcRelayMindRequest: {
+            name: string;
+            /** Format: int32 */
+            expectedRevision: number;
+            entryType: string;
+            files: components["schemas"]["SourceFileDto"][];
+            composition: components["schemas"]["ArcRelayCompositionDeclaration"];
+        };
+        SaveTacticalSheetRequest: {
+            name: string;
+            /** Format: int32 */
+            expectedRevision: null | number;
+            playbookJson: string;
+            layoutJson: string;
+            enterLadder?: null | boolean;
+        };
+        SetArcRelayCrestRequest: {
+            /** Format: int32 */
+            variant: number;
+        };
+        SetArcRelayLadderOptInRequest: {
+            optedIn: boolean;
+        };
         SourceFile: {
             relativePath: string;
             content: string;
@@ -2223,6 +3050,107 @@ export interface components {
             /** Format: int32 */
             versionNumber: number;
             status: string;
+        };
+        TacticalSheetCatalogResponse: {
+            playlistKey: string;
+            /** Format: uuid */
+            playlistVersionId: string;
+            map: components["schemas"]["TacticalSheetMapResponse"];
+            /** Format: int32 */
+            slotCount: number;
+            /** Format: int32 */
+            maximumCopiesPerClass: number;
+            classes: components["schemas"]["TacticalSheetClassResponse"][];
+            templatePlaybookJson: string;
+            templateLayoutJson: string;
+            stockOpponents: components["schemas"]["TacticalStockSheetResponse"][];
+        };
+        TacticalSheetClassResponse: {
+            id: string;
+            name: string;
+            signatureName: string;
+            fantasy: string;
+            starter: boolean;
+            unlocked: boolean;
+        };
+        TacticalSheetDeletedResponse: {
+            /** Format: uuid */
+            id: string;
+        };
+        TacticalSheetMapRegionResponse: {
+            id: string;
+            kind: string;
+            tiles: components["schemas"]["TacticalSheetPointResponse"][];
+        };
+        TacticalSheetMapResponse: {
+            id: string;
+            /** Format: int32 */
+            version: number;
+            /** Format: int32 */
+            formatVersion: number;
+            /** Format: int32 */
+            width: number;
+            /** Format: int32 */
+            height: number;
+            tileRows: string[];
+            regions: components["schemas"]["TacticalSheetMapRegionResponse"][];
+            spawnAnchors: components["schemas"]["TacticalSheetMapSpawnResponse"][];
+            tileTags: components["schemas"]["TacticalSheetMapTagResponse"][];
+        };
+        TacticalSheetMapSpawnResponse: {
+            id: string;
+            position: components["schemas"]["TacticalSheetPointResponse"];
+            facing: string;
+        };
+        TacticalSheetMapTagResponse: {
+            id: string;
+            kind: string;
+            tiles: components["schemas"]["TacticalSheetPointResponse"][];
+        };
+        TacticalSheetPointResponse: {
+            /** Format: int32 */
+            x: number;
+            /** Format: int32 */
+            y: number;
+        };
+        TacticalSheetResponse: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            /** Format: int32 */
+            revision: number;
+            contentHash: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+            playbookJson: string;
+            layoutJson: string;
+            entrant: components["schemas"]["ArcRelayEntrantCardResponse"];
+        };
+        TacticalSheetSummaryResponse: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            /** Format: int32 */
+            revision: number;
+            contentHash: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+            entrant: components["schemas"]["ArcRelayEntrantCardResponse"];
+        };
+        TacticalStockSheetResponse: {
+            id: string;
+            name: string;
+            description: string;
+            composition: string[];
+        };
+        TrialTacticalSheetRequest: {
+            stockSheetId: string;
+            /** Format: int64 */
+            seed: null | number;
         };
         UpdateBotAppearanceRequest: {
             accent: string;

@@ -74,6 +74,7 @@ public static class ActorResolvedMatchDefinitionValidator
             modeMapBinding,
             topologyValid ? topology : null,
             mapRegions,
+            participantRegionAssignments,
             errors);
         ValidateSameLifeMapFeasibility(
             rules.SameLifeTransitions,
@@ -82,6 +83,7 @@ public static class ActorResolvedMatchDefinitionValidator
 
         if (topologyValid)
         {
+            ValidateClassIdentity(topology, errors);
             ValidateScoreAccumulatorBounds(rules, topology, errors);
             try
             {
@@ -100,6 +102,7 @@ public static class ActorResolvedMatchDefinitionValidator
                 initialDeployment,
                 lifecycleAssignments,
                 participantRegionAssignments,
+                modeMapBinding,
                 forms,
                 movementProfiles,
                 lifecycleProfiles,
@@ -128,6 +131,71 @@ public static class ActorResolvedMatchDefinitionValidator
                 error => $"Format/topology: {error}"));
             return false;
         }
+    }
+
+    private static void ValidateClassIdentity(
+        PublicMatchTopology topology,
+        List<string> errors)
+    {
+        Dictionary<int, string?> classByTeam = topology.Teams
+            .ToDictionary(team => team.TeamId, team => team.ClassId);
+        foreach (PublicScoringTeam team in topology.Teams)
+        {
+            if (team.ClassId is not null
+                && !IsCanonicalSemanticId(team.ClassId))
+            {
+                errors.Add(
+                    $"Scoring team {team.TeamId} class ID "
+                    + $"'{team.ClassId}' is not a lowercase-kebab ID.");
+            }
+        }
+        foreach (PublicParticipant participant in topology.Participants)
+        {
+            if (participant.ClassId is not null
+                && !IsCanonicalSemanticId(participant.ClassId))
+            {
+                errors.Add(
+                    $"Participant {participant.ParticipantId} class ID "
+                    + $"'{participant.ClassId}' is not a lowercase-kebab ID.");
+            }
+            if (classByTeam.TryGetValue(
+                    participant.TeamId,
+                    out string? teamClassId)
+                && !string.Equals(
+                    participant.ClassId,
+                    teamClassId,
+                    StringComparison.Ordinal))
+            {
+                errors.Add(
+                    $"Participant {participant.ParticipantId} class ID must "
+                    + $"exactly match scoring team {participant.TeamId}.");
+            }
+        }
+    }
+
+    private static bool IsCanonicalSemanticId(string value)
+    {
+        if (string.IsNullOrEmpty(value) || value.Length > 64)
+            return false;
+
+        bool needsSegmentStart = true;
+        foreach (char character in value)
+        {
+            if (character == '-')
+            {
+                if (needsSegmentStart)
+                    return false;
+                needsSegmentStart = true;
+                continue;
+            }
+            if (character is not (>= 'a' and <= 'z')
+                and not (>= '0' and <= '9'))
+            {
+                return false;
+            }
+            needsSegmentStart = false;
+        }
+        return !needsSegmentStart;
     }
 
     private static void ValidateRuleCatalogReferences(
@@ -420,6 +488,8 @@ public static class ActorResolvedMatchDefinitionValidator
         ActorModeMapBindingDefinition modeMapBinding,
         PublicMatchTopology? topology,
         IReadOnlyDictionary<string, ActorMapRegionDefinition> mapRegions,
+        IReadOnlyList<ActorParticipantRegionAssignmentDefinition>
+            participantRegionAssignments,
         List<string> errors)
     {
         switch (gameMode)
@@ -430,6 +500,25 @@ public static class ActorResolvedMatchDefinitionValidator
                 {
                     errors.Add(
                         "Deathmatch requires the empty Deathmatch mode-map binding.");
+                }
+                break;
+
+            case ArcRelayGameModeDefinition arcRelay:
+                if (modeMapBinding
+                    is ArcRelayActorModeMapBindingDefinition arcBinding)
+                {
+                    ValidateArcRelayBinding(
+                        arcRelay,
+                        arcBinding,
+                        topology,
+                        mapRegions,
+                        participantRegionAssignments,
+                        errors);
+                }
+                else
+                {
+                    errors.Add(
+                        "Arc Relay requires an Arc Relay mode-map binding.");
                 }
                 break;
 
@@ -455,6 +544,133 @@ public static class ActorResolvedMatchDefinitionValidator
                 errors.Add(
                     $"Game mode '{gameMode.ModeId}' uses an unsupported semantic variant.");
                 break;
+        }
+    }
+
+    private static void ValidateArcRelayBinding(
+        ArcRelayGameModeDefinition mode,
+        ArcRelayActorModeMapBindingDefinition binding,
+        PublicMatchTopology? topology,
+        IReadOnlyDictionary<string, ActorMapRegionDefinition> mapRegions,
+        IReadOnlyList<ActorParticipantRegionAssignmentDefinition> assignments,
+        List<string> errors)
+    {
+        if (binding.OrderedWellRegionIds.Length != mode.Wells.Length)
+        {
+            errors.Add(
+                $"Arc Relay requires exactly {mode.Wells.Length} ordered Well regions.");
+        }
+        var wellTiles = new HashSet<Position>();
+        foreach (string regionId in binding.OrderedWellRegionIds)
+        {
+            if (!mapRegions.TryGetValue(regionId, out var region))
+            {
+                errors.Add(
+                    $"Arc Relay references unknown Well region '{regionId}'.");
+                continue;
+            }
+            if (region.Kind != ActorMapRegionDefinition.RegionKind.Objective
+                || region.Tiles.Length != 1)
+            {
+                errors.Add(
+                    $"Arc Relay Well region '{regionId}' must be a one-tile Objective region.");
+            }
+            foreach (Position tile in region.Tiles)
+            {
+                if (!wellTiles.Add(tile))
+                {
+                    errors.Add(
+                        $"Arc Relay Well regions overlap at {tile}.");
+                }
+            }
+        }
+
+        if (topology is null)
+            return;
+
+        HashSet<string> launchClasses = mode.Signatures
+            .Select(signature => signature.ClassId)
+            .ToHashSet(StringComparer.Ordinal);
+        foreach (PublicScoringTeam team in topology.Teams)
+        {
+            PublicUnitSlot[] slots = topology.UnitSlots
+                .Where(slot => slot.TeamId == team.TeamId)
+                .OrderBy(slot => slot.UnitId)
+                .ToArray();
+            if (slots.Length != mode.FieldedSlotsPerTeam)
+            {
+                errors.Add(
+                    $"Arc Relay team {team.TeamId} must field exactly {mode.FieldedSlotsPerTeam} slots.");
+            }
+            if (slots.Any(slot => slot.ClassId is null
+                || !launchClasses.Contains(slot.ClassId)))
+            {
+                errors.Add(
+                    $"Arc Relay team {team.TeamId} slots must each declare one launch class.");
+            }
+            foreach (IGrouping<string?, PublicUnitSlot> group in
+                     slots.GroupBy(slot => slot.ClassId, StringComparer.Ordinal))
+            {
+                if (group.Key is not null
+                    && group.Count() > mode.MaxCopiesPerClass)
+                {
+                    errors.Add(
+                        $"Arc Relay team {team.TeamId} fields {group.Count()} copies of '{group.Key}', above the {mode.MaxCopiesPerClass}-copy cap.");
+                }
+            }
+        }
+
+        foreach (PublicParticipant participant in topology.Participants)
+        {
+            ActorParticipantRegionAssignmentDefinition[] own = assignments
+                .Where(item => item.ParticipantId == participant.ParticipantId)
+                .ToArray();
+            ValidateArcRelayRole(
+                participant.ParticipantId,
+                binding.ReactorRegionRoleId,
+                own,
+                mapRegions,
+                oneTile: true,
+                errors);
+            ValidateArcRelayRole(
+                participant.ParticipantId,
+                binding.HomePadRegionRoleId,
+                own,
+                mapRegions,
+                oneTile: false,
+                errors);
+        }
+    }
+
+    private static void ValidateArcRelayRole(
+        int participantId,
+        string roleId,
+        IReadOnlyCollection<ActorParticipantRegionAssignmentDefinition>
+            assignments,
+        IReadOnlyDictionary<string, ActorMapRegionDefinition> mapRegions,
+        bool oneTile,
+        List<string> errors)
+    {
+        ActorParticipantRegionAssignmentDefinition[] matches = assignments
+            .Where(item => string.Equals(
+                item.RegionRoleId,
+                roleId,
+                StringComparison.Ordinal))
+            .ToArray();
+        if (matches.Length != 1)
+        {
+            errors.Add(
+                $"Arc Relay participant {participantId} must bind role '{roleId}' exactly once.");
+            return;
+        }
+        if (!mapRegions.TryGetValue(matches[0].MapRegionId, out var region))
+            return;
+        if (region.Kind != ActorMapRegionDefinition.RegionKind.Objective
+            || oneTile && region.Tiles.Length != 1)
+        {
+            errors.Add(
+                $"Arc Relay role '{roleId}' must bind an Objective region"
+                + (oneTile ? " containing exactly one tile." : "."));
         }
     }
 
@@ -508,6 +724,12 @@ public static class ActorResolvedMatchDefinitionValidator
             }
         }
 
+        ValidateFrontlineSecondaryControl(
+            frontline,
+            objectiveTiles,
+            mapRegions,
+            errors);
+
         if (topology is null)
             return;
 
@@ -526,6 +748,63 @@ public static class ActorResolvedMatchDefinitionValidator
         }
     }
 
+    /// <summary>
+    /// A declared side objective resolves onto typed Objective regions that
+    /// exist, do not repeat a tile between themselves, and sit OFF the
+    /// frontline chain — a site that was also a chain position would make one
+    /// tile mean two contested things at once.
+    /// </summary>
+    private static void ValidateFrontlineSecondaryControl(
+        FrontlineGameModeDefinition frontline,
+        IReadOnlyDictionary<Position, string> chainTiles,
+        IReadOnlyDictionary<string, ActorMapRegionDefinition> mapRegions,
+        List<string> errors)
+    {
+        if (frontline.SecondaryControl is not { } secondaryControl)
+            return;
+
+        var siteTiles = new Dictionary<Position, string>();
+        foreach (string regionId in secondaryControl.RegionIds)
+        {
+            if (!mapRegions.TryGetValue(
+                    regionId,
+                    out ActorMapRegionDefinition? region))
+            {
+                errors.Add(
+                    "Frontline secondary control references unknown site "
+                    + $"region '{regionId}'.");
+                continue;
+            }
+            if (region.Kind != ActorMapRegionDefinition.RegionKind.Objective)
+            {
+                errors.Add(
+                    $"Frontline secondary-control region '{regionId}' must "
+                    + "be an Objective region.");
+                continue;
+            }
+            foreach (Position tile in region.Tiles)
+            {
+                if (chainTiles.ContainsKey(tile))
+                {
+                    errors.Add(
+                        "Frontline secondary-control region "
+                        + $"'{regionId}' overlaps the frontline chain at "
+                        + $"{tile}.");
+                }
+                else if (siteTiles.TryGetValue(tile, out string? existing))
+                {
+                    errors.Add(
+                        $"Frontline secondary-control regions '{existing}' "
+                        + $"and '{regionId}' overlap at {tile}.");
+                }
+                else
+                {
+                    siteTiles.Add(tile, regionId);
+                }
+            }
+        }
+    }
+
     private static void ValidateMatchLocalBindings(
         ActorRulesDefinition rules,
         ActorMapDefinition map,
@@ -535,6 +814,7 @@ public static class ActorResolvedMatchDefinitionValidator
             lifecycleAssignments,
         IReadOnlyList<ActorParticipantRegionAssignmentDefinition>
             participantRegionAssignments,
+        ActorModeMapBindingDefinition modeMapBinding,
         IReadOnlyDictionary<string, ActorFormDefinition> forms,
         IReadOnlyDictionary<string, ActorMovementProfileDefinition>
             movementProfiles,
@@ -583,6 +863,7 @@ public static class ActorResolvedMatchDefinitionValidator
                 participantIds,
                 mapRegions,
                 rules.FabricationTransitions,
+                modeMapBinding as ArcRelayActorModeMapBindingDefinition,
                 errors);
         HashSet<Position> reservedRespawnTiles =
             ValidateReservedRespawnSpawns(
@@ -778,6 +1059,18 @@ public static class ActorResolvedMatchDefinitionValidator
                     $"references unknown profile '{assignment.LifecycleProfileId}'.");
                 continue;
             }
+            if (assignment.InitialAvailability
+                    == ActorUnitSlotLifecycleAssignmentDefinition
+                        .InitialAvailabilityKind
+                        .DormantAutomaticActivationAtTick
+                && profile.DestructionPolicy
+                    != ActorLifecycleProfileDefinition
+                        .DestructionPolicyKind.AutomaticRespawn)
+            {
+                errors.Add(
+                    $"Lifecycle assignment {assignment.TeamId}:{assignment.UnitId} " +
+                    "automatic activation requires an automatic-respawn profile.");
+            }
 
             ValidateAssignmentRespawn(
                 assignment,
@@ -817,11 +1110,43 @@ public static class ActorResolvedMatchDefinitionValidator
                 .AutomaticRespawn;
         if (!automatic)
         {
-            if (assignment.AssignedRespawnSpawnId is not null)
+            // A ROOT-FACTORY profile is the one non-automatic policy that
+            // still needs a home spawn: the base seeds its bootstrap body
+            // there when the participant has lost every body. The spawn is
+            // NOT registered as an automatic-return reservation, so it does
+            // not become a permanently reserved tile — it is an address, not
+            // a claim (DECISIONS #194).
+            if (assignment.AssignedRespawnSpawnId is not null
+                && profile.RootFactorySeedFormId is null)
             {
                 errors.Add(
                     $"Lifecycle assignment {assignment.TeamId}:{assignment.UnitId} " +
                     "must not assign a respawn spawn for a non-automatic profile.");
+            }
+            if (assignment.AssignedRespawnSpawnId is string seedSpawnId
+                && profile.RootFactorySeedFormId is string seedFormId)
+            {
+                if (!mapSpawns.ContainsKey(seedSpawnId))
+                {
+                    errors.Add(
+                        $"Lifecycle assignment {assignment.TeamId}:{assignment.UnitId} " +
+                        $"references unknown respawn spawn '{seedSpawnId}'.");
+                }
+                if (!assignment.AllowedFormIds.Contains(
+                        seedFormId,
+                        StringComparer.Ordinal))
+                {
+                    errors.Add(
+                        $"Lifecycle assignment {assignment.TeamId}:{assignment.UnitId} " +
+                        "must allow its profile's root-factory seed form.");
+                }
+            }
+            if (profile.RootFactorySeedFormId is string declaredSeedForm
+                && !forms.ContainsKey(declaredSeedForm))
+            {
+                errors.Add(
+                    $"Lifecycle profile '{profile.ProfileId}' names an unknown "
+                    + $"root-factory seed form '{declaredSeedForm}'.");
             }
             return;
         }
@@ -965,6 +1290,7 @@ public static class ActorResolvedMatchDefinitionValidator
             IReadOnlyDictionary<string, ActorMapRegionDefinition> mapRegions,
             IEnumerable<ActorFabricationTransitionDefinition>
                 fabricationTransitions,
+            ArcRelayActorModeMapBindingDefinition? arcRelayBinding,
             List<string> errors)
     {
         HashSet<string> knownRoleIds = fabricationTransitions
@@ -975,6 +1301,13 @@ public static class ActorResolvedMatchDefinitionValidator
                 transition.OutputRegionRoleId,
             })
             .ToHashSet(StringComparer.Ordinal);
+        var arcRelayRoleIds = new HashSet<string>(StringComparer.Ordinal);
+        if (arcRelayBinding is not null)
+        {
+            arcRelayRoleIds.Add(arcRelayBinding.ReactorRegionRoleId);
+            arcRelayRoleIds.Add(arcRelayBinding.HomePadRegionRoleId);
+            knownRoleIds.UnionWith(arcRelayRoleIds);
+        }
         var assignments = new Dictionary<
             (int ParticipantId, string RegionRoleId),
             ActorParticipantRegionAssignmentDefinition>();
@@ -1016,12 +1349,16 @@ public static class ActorResolvedMatchDefinitionValidator
                     $"Region assignment references unknown map region " +
                     $"'{assignment.MapRegionId}'.");
             }
-            else if (region.Kind
-                     != ActorMapRegionDefinition.RegionKind.TransitionPlacement)
+            else if (arcRelayRoleIds.Contains(assignment.RegionRoleId)
+                ? region.Kind != ActorMapRegionDefinition.RegionKind.Objective
+                : region.Kind
+                    != ActorMapRegionDefinition.RegionKind.TransitionPlacement)
             {
                 errors.Add(
-                    $"Region assignment '{assignment.MapRegionId}' must reference " +
-                    "a TransitionPlacement region.");
+                    $"Region assignment '{assignment.MapRegionId}' must reference "
+                    + (arcRelayRoleIds.Contains(assignment.RegionRoleId)
+                        ? "an Objective region."
+                        : "a TransitionPlacement region."));
             }
         }
 
@@ -1098,7 +1435,12 @@ public static class ActorResolvedMatchDefinitionValidator
                             out ActorUnitSlotLifecycleAssignmentDefinition?
                                 assignment)
                         && assignment.AllowedFormIds.Contains(
-                            bounded.OutputFormId,
+                            // "Fabricate produces the target SLOT's chassis":
+                            // a slot may override the transition's declared
+                            // output, and the override is exactly what makes a
+                            // mixed composition buildable.
+                            assignment.FabricationOutputFormId
+                            ?? bounded.OutputFormId,
                             StringComparer.Ordinal)
                         && CanBecomeReadyForExplicitCreation(
                             assignment,

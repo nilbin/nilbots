@@ -20,7 +20,7 @@ export default function BotAppearancePage() {
         <h1 className="type-display text-[24px]">No bot called “{botKey}”</h1>
         <p className="t-meta mt-2">
           It may have been renamed or never existed.{' '}
-          <Link to="/bots" className="text-link">
+          <Link to="/archive/bots" className="text-link">
             Browse every bot
           </Link>
           .
@@ -33,7 +33,7 @@ export default function BotAppearancePage() {
   if (authLoading) return <LoadingState label="Checking who owns this look…" />;
 
   if (!bot.isOwner) {
-    const returnUrl = `/bots/${bot.slug}/appearance`;
+    const returnUrl = `/archive/bots/${bot.slug}/appearance`;
     return (
       <section className="panel pad mx-auto max-w-xl">
         <h1 className="type-display text-[24px]">
@@ -53,14 +53,14 @@ export default function BotAppearancePage() {
               Sign in and return
             </Link>
           )}
-          <Link to={`/bots/${bot.slug}`} className="btn">
+          <Link to={`/archive/bots/${bot.slug}`} className="btn">
             Return to {bot.name}
           </Link>
         </span>
       </section>
     );
   }
-  const botPath = `/bots/${bot.slug}`;
+  const botPath = `/archive/bots/${bot.slug}`;
   const returnTarget = internalReturnTarget(location.state, {
     to: botPath,
     label: bot.name,

@@ -1,0 +1,2421 @@
+{
+ "schema": "arc-relay-tactical-playbook-v1",
+ "playbookId": "hunter-v1",
+ "auditStatus": {
+  "provisionalEvaluationOnly": true,
+  "playerFacingProductSchema": false
+ },
+ "composition": [
+  "kestrel",
+  "patchbay",
+  "relay",
+  "longshot",
+  "longshot",
+  "towline",
+  "towline",
+  "mason"
+ ],
+ "layout": {
+  "path": "../layouts/warren6-hunter-v1.json",
+  "sha256": "42a3f15b49792a5dedceebf9fd816d161ceacd6c1ab8aea3b0f38200495996a2"
+ },
+ "perspective": "team-relative",
+ "memory": {
+  "enemyUnavailableTicks": 21,
+  "lastSeenEnemyTicks": 30,
+  "securedCoreTicks": 40,
+  "objectiveProgressTicks": 90,
+  "formationStableTicks": 3
+ },
+ "arbitration": {
+  "mode": "first-legal",
+  "channels": [
+   "custody-emergency",
+   "self-preservation",
+   "repair",
+   "signature",
+   "focus-fire",
+   "movement",
+   "facing",
+   "hold"
+  ]
+ },
+ "roles": [
+  {
+   "roleId": "hunter",
+   "candidateClasses": [
+    "kestrel"
+   ],
+   "minimum": 0,
+   "preferred": 1,
+   "maximum": 1,
+   "carrierPreference": "forbid",
+   "deathPolicy": "hold-vacancy",
+   "respawnPolicy": "rejoin",
+   "overflowRoleId": "reserve",
+   "build": [
+    "damage",
+    "damage",
+    "vision",
+    "vitality"
+   ]
+  },
+  {
+   "roleId": "medic",
+   "candidateClasses": [
+    "patchbay"
+   ],
+   "minimum": 0,
+   "preferred": 1,
+   "maximum": 1,
+   "carrierPreference": "forbid",
+   "deathPolicy": "hold-vacancy",
+   "respawnPolicy": "rejoin",
+   "overflowRoleId": "reserve",
+   "build": [
+    "reach",
+    "vitality",
+    "vitality",
+    "reach"
+   ]
+  },
+  {
+   "roleId": "hauler",
+   "candidateClasses": [
+    "relay"
+   ],
+   "minimum": 0,
+   "preferred": 1,
+   "maximum": 1,
+   "carrierPreference": "prefer",
+   "deathPolicy": "hold-vacancy",
+   "respawnPolicy": "rejoin",
+   "overflowRoleId": "reserve",
+   "build": [
+    "vitality",
+    "vitality",
+    "vision",
+    "vitality"
+   ]
+  },
+  {
+   "roleId": "carrier",
+   "candidateClasses": [
+    "longshot"
+   ],
+   "minimum": 0,
+   "preferred": 2,
+   "maximum": 2,
+   "carrierPreference": "allow",
+   "deathPolicy": "hold-vacancy",
+   "respawnPolicy": "rejoin",
+   "overflowRoleId": "reserve",
+   "build": [
+    "damage",
+    "vision",
+    "vitality",
+    "vitality"
+   ]
+  },
+  {
+   "roleId": "lancer",
+   "candidateClasses": [
+    "towline"
+   ],
+   "minimum": 0,
+   "preferred": 2,
+   "maximum": 2,
+   "carrierPreference": "allow",
+   "deathPolicy": "hold-vacancy",
+   "respawnPolicy": "rejoin",
+   "overflowRoleId": "reserve",
+   "build": [
+    "damage",
+    "vision",
+    "vitality",
+    "vitality"
+   ]
+  },
+  {
+   "roleId": "eyes",
+   "candidateClasses": [
+    "mason"
+   ],
+   "minimum": 0,
+   "preferred": 1,
+   "maximum": 1,
+   "carrierPreference": "allow",
+   "deathPolicy": "hold-vacancy",
+   "respawnPolicy": "rejoin",
+   "overflowRoleId": "reserve",
+   "build": [
+    "vitality",
+    "vision",
+    "vitality",
+    "vitality"
+   ]
+  },
+  {
+   "roleId": "reserve",
+   "candidateClasses": [
+    "kestrel",
+    "patchbay",
+    "longshot",
+    "towline",
+    "mason"
+   ],
+   "minimum": 0,
+   "preferred": 0,
+   "maximum": 8,
+   "carrierPreference": "allow",
+   "deathPolicy": "hold-vacancy",
+   "respawnPolicy": "rejoin",
+   "overflowRoleId": "reserve"
+  }
+ ],
+ "groups": [
+  {
+   "groupId": "shadow-group",
+   "roleIds": [
+    "hunter"
+   ],
+   "minimum": 1,
+   "preferred": 1,
+   "maximum": 1,
+   "membership": {
+    "persistence": "stable-slot",
+    "casualty": "hold-vacancy",
+    "preemption": "never",
+    "overflow": "unassigned"
+   },
+   "localStateMachine": {
+    "initialState": "prowling",
+    "states": [
+     {
+      "stateId": "prowling",
+      "minimumTicks": 0,
+      "transitions": []
+     }
+    ]
+   }
+  },
+  {
+   "groupId": "well-group",
+   "roleIds": [
+    "medic",
+    "hauler",
+    "carrier",
+    "lancer",
+    "eyes"
+   ],
+   "minimum": 1,
+   "preferred": 7,
+   "maximum": 7,
+   "membership": {
+    "persistence": "stable-slot",
+    "casualty": "hold-vacancy",
+    "preemption": "never",
+    "overflow": "unassigned"
+   },
+   "localStateMachine": {
+    "initialState": "farming",
+    "states": [
+     {
+      "stateId": "farming",
+      "minimumTicks": 0,
+      "transitions": []
+     }
+    ]
+   }
+  },
+  {
+   "groupId": "reserve-group",
+   "roleIds": [
+    "reserve"
+   ],
+   "minimum": 0,
+   "preferred": 0,
+   "maximum": 8,
+   "membership": {
+    "persistence": "stable-slot",
+    "casualty": "hold-vacancy",
+    "preemption": "never",
+    "overflow": "unassigned"
+   },
+   "localStateMachine": {
+    "initialState": "idle",
+    "states": [
+     {
+      "stateId": "idle",
+      "minimumTicks": 0,
+      "transitions": []
+     }
+    ]
+   }
+  }
+ ],
+ "formations": [
+  {
+   "formationId": "shadow-file",
+   "shape": "escort",
+   "orientation": "enemy-reactor",
+   "spacing": {
+    "metric": "chebyshev",
+    "minimum": 1,
+    "preferred": 2,
+    "maximum": 4
+   },
+   "cohesion": {
+    "arrivalRatioPercent": 63,
+    "breakRatioPercent": 50,
+    "breakTicks": 3,
+    "reformTicks": 4,
+    "pace": "slowest"
+   },
+   "reflow": {
+    "blockedSlot": "nearest-legal",
+    "vacancy": "compress",
+    "searchRadius": 3,
+    "medicSeparation": 2
+   },
+   "placementBands": [
+    {
+     "roleId": "hunter",
+     "sector": "front",
+     "offsets": [
+      [
+       0,
+       0
+      ]
+     ]
+    },
+    {
+     "roleId": "medic",
+     "sector": "centre",
+     "offsets": [
+      [
+       2,
+       0
+      ]
+     ]
+    },
+    {
+     "roleId": "carrier",
+     "sector": "centre",
+     "offsets": [
+      [
+       1,
+       0
+      ],
+      [
+       1,
+       -1
+      ]
+     ]
+    },
+    {
+     "roleId": "lancer",
+     "sector": "centre",
+     "offsets": [
+      [
+       1,
+       1
+      ],
+      [
+       2,
+       -1
+      ]
+     ]
+    },
+    {
+     "roleId": "eyes",
+     "sector": "centre",
+     "offsets": [
+      [
+       2,
+       1
+      ]
+     ]
+    },
+    {
+     "roleId": "reserve",
+     "sector": "centre",
+     "offsets": [
+      [
+       3,
+       0
+      ],
+      [
+       3,
+       -1
+      ],
+      [
+       3,
+       1
+      ],
+      [
+       4,
+       0
+      ],
+      [
+       4,
+       -1
+      ],
+      [
+       4,
+       1
+      ],
+      [
+       5,
+       0
+      ],
+      [
+       5,
+       -1
+      ]
+     ]
+    },
+    {
+     "roleId": "hauler",
+     "sector": "centre",
+     "offsets": [
+      [
+       2,
+       -2
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "formationId": "well-screen",
+   "shape": "escort",
+   "orientation": "enemy-reactor",
+   "spacing": {
+    "metric": "chebyshev",
+    "minimum": 1,
+    "preferred": 2,
+    "maximum": 4
+   },
+   "cohesion": {
+    "arrivalRatioPercent": 63,
+    "breakRatioPercent": 50,
+    "breakTicks": 3,
+    "reformTicks": 3,
+    "pace": "free"
+   },
+   "reflow": {
+    "blockedSlot": "nearest-legal",
+    "vacancy": "compress",
+    "searchRadius": 3,
+    "medicSeparation": 2
+   },
+   "placementBands": [
+    {
+     "roleId": "lancer",
+     "sector": "front",
+     "offsets": [
+      [
+       0,
+       -1
+      ],
+      [
+       0,
+       1
+      ]
+     ]
+    },
+    {
+     "roleId": "carrier",
+     "sector": "centre",
+     "offsets": [
+      [
+       1,
+       0
+      ],
+      [
+       1,
+       -1
+      ]
+     ]
+    },
+    {
+     "roleId": "eyes",
+     "sector": "centre",
+     "offsets": [
+      [
+       2,
+       0
+      ]
+     ]
+    },
+    {
+     "roleId": "hunter",
+     "sector": "centre",
+     "offsets": [
+      [
+       1,
+       1
+      ]
+     ]
+    },
+    {
+     "roleId": "medic",
+     "sector": "centre",
+     "offsets": [
+      [
+       2,
+       1
+      ]
+     ]
+    },
+    {
+     "roleId": "reserve",
+     "sector": "centre",
+     "offsets": [
+      [
+       3,
+       0
+      ],
+      [
+       3,
+       -1
+      ],
+      [
+       3,
+       1
+      ],
+      [
+       4,
+       0
+      ],
+      [
+       4,
+       -1
+      ],
+      [
+       4,
+       1
+      ],
+      [
+       5,
+       0
+      ],
+      [
+       5,
+       -1
+      ]
+     ]
+    },
+    {
+     "roleId": "hauler",
+     "sector": "centre",
+     "offsets": [
+      [
+       2,
+       -2
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "formationId": "reserve-file",
+   "shape": "escort",
+   "orientation": "own-reactor",
+   "spacing": {
+    "metric": "chebyshev",
+    "minimum": 1,
+    "preferred": 2,
+    "maximum": 4
+   },
+   "cohesion": {
+    "arrivalRatioPercent": 63,
+    "breakRatioPercent": 50,
+    "breakTicks": 3,
+    "reformTicks": 3,
+    "pace": "free"
+   },
+   "reflow": {
+    "blockedSlot": "nearest-legal",
+    "vacancy": "compress",
+    "searchRadius": 3,
+    "medicSeparation": 2
+   },
+   "placementBands": [
+    {
+     "roleId": "reserve",
+     "sector": "centre",
+     "offsets": [
+      [
+       3,
+       0
+      ],
+      [
+       3,
+       -1
+      ],
+      [
+       3,
+       1
+      ],
+      [
+       4,
+       0
+      ],
+      [
+       4,
+       -1
+      ],
+      [
+       4,
+       1
+      ],
+      [
+       5,
+       0
+      ],
+      [
+       5,
+       -1
+      ]
+     ]
+    },
+    {
+     "roleId": "hunter",
+     "sector": "front",
+     "offsets": [
+      [
+       0,
+       0
+      ]
+     ]
+    },
+    {
+     "roleId": "medic",
+     "sector": "centre",
+     "offsets": [
+      [
+       2,
+       0
+      ]
+     ]
+    },
+    {
+     "roleId": "carrier",
+     "sector": "centre",
+     "offsets": [
+      [
+       1,
+       0
+      ],
+      [
+       1,
+       -1
+      ]
+     ]
+    },
+    {
+     "roleId": "lancer",
+     "sector": "centre",
+     "offsets": [
+      [
+       1,
+       1
+      ],
+      [
+       2,
+       -1
+      ]
+     ]
+    },
+    {
+     "roleId": "eyes",
+     "sector": "centre",
+     "offsets": [
+      [
+       2,
+       1
+      ]
+     ]
+    },
+    {
+     "roleId": "hauler",
+     "sector": "centre",
+     "offsets": [
+      [
+       2,
+       -2
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "formationId": "ghost-solo",
+   "shape": "escort",
+   "orientation": "enemy-reactor",
+   "spacing": {
+    "metric": "chebyshev",
+    "minimum": 1,
+    "preferred": 2,
+    "maximum": 4
+   },
+   "cohesion": {
+    "arrivalRatioPercent": 63,
+    "breakRatioPercent": 50,
+    "breakTicks": 3,
+    "reformTicks": 4,
+    "pace": "free"
+   },
+   "reflow": {
+    "blockedSlot": "nearest-legal",
+    "vacancy": "compress",
+    "searchRadius": 3,
+    "medicSeparation": 2
+   },
+   "placementBands": [
+    {
+     "roleId": "hunter",
+     "sector": "front",
+     "offsets": [
+      [
+       0,
+       0
+      ]
+     ]
+    },
+    {
+     "roleId": "medic",
+     "sector": "centre",
+     "offsets": [
+      [
+       2,
+       0
+      ]
+     ]
+    },
+    {
+     "roleId": "carrier",
+     "sector": "centre",
+     "offsets": [
+      [
+       1,
+       0
+      ],
+      [
+       1,
+       -1
+      ]
+     ]
+    },
+    {
+     "roleId": "lancer",
+     "sector": "centre",
+     "offsets": [
+      [
+       1,
+       1
+      ],
+      [
+       2,
+       -1
+      ]
+     ]
+    },
+    {
+     "roleId": "eyes",
+     "sector": "centre",
+     "offsets": [
+      [
+       2,
+       1
+      ]
+     ]
+    },
+    {
+     "roleId": "reserve",
+     "sector": "centre",
+     "offsets": [
+      [
+       3,
+       0
+      ],
+      [
+       3,
+       -1
+      ],
+      [
+       3,
+       1
+      ],
+      [
+       4,
+       0
+      ],
+      [
+       4,
+       -1
+      ],
+      [
+       4,
+       1
+      ],
+      [
+       5,
+       0
+      ],
+      [
+       5,
+       -1
+      ]
+     ]
+    },
+    {
+     "roleId": "hauler",
+     "sector": "centre",
+     "offsets": [
+      [
+       2,
+       -2
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "formationId": "ghost-escort",
+   "shape": "escort",
+   "orientation": "enemy-reactor",
+   "spacing": {
+    "metric": "chebyshev",
+    "minimum": 1,
+    "preferred": 2,
+    "maximum": 4
+   },
+   "cohesion": {
+    "arrivalRatioPercent": 63,
+    "breakRatioPercent": 50,
+    "breakTicks": 3,
+    "reformTicks": 4,
+    "pace": "slowest"
+   },
+   "reflow": {
+    "blockedSlot": "nearest-legal",
+    "vacancy": "compress",
+    "searchRadius": 3,
+    "medicSeparation": 2
+   },
+   "placementBands": [
+    {
+     "roleId": "hunter",
+     "sector": "front",
+     "offsets": [
+      [
+       0,
+       0
+      ]
+     ]
+    },
+    {
+     "roleId": "medic",
+     "sector": "centre",
+     "offsets": [
+      [
+       2,
+       0
+      ]
+     ]
+    },
+    {
+     "roleId": "carrier",
+     "sector": "centre",
+     "offsets": [
+      [
+       1,
+       0
+      ],
+      [
+       1,
+       -1
+      ]
+     ]
+    },
+    {
+     "roleId": "lancer",
+     "sector": "centre",
+     "offsets": [
+      [
+       1,
+       1
+      ],
+      [
+       2,
+       -1
+      ]
+     ]
+    },
+    {
+     "roleId": "eyes",
+     "sector": "centre",
+     "offsets": [
+      [
+       2,
+       1
+      ]
+     ]
+    },
+    {
+     "roleId": "reserve",
+     "sector": "centre",
+     "offsets": [
+      [
+       3,
+       0
+      ],
+      [
+       3,
+       -1
+      ],
+      [
+       3,
+       1
+      ],
+      [
+       4,
+       0
+      ],
+      [
+       4,
+       -1
+      ],
+      [
+       4,
+       1
+      ],
+      [
+       5,
+       0
+      ],
+      [
+       5,
+       -1
+      ]
+     ]
+    },
+    {
+     "roleId": "hauler",
+     "sector": "centre",
+     "offsets": [
+      [
+       2,
+       -2
+      ]
+     ]
+    }
+   ]
+  }
+ ],
+ "engagements": [
+  {
+   "engagementId": "shadow-strike",
+   "participants": [
+    "hunter",
+    "medic",
+    "carrier",
+    "lancer",
+    "hauler"
+   ],
+   "targetPriorities": [
+    "enemy-carrier",
+    "lowest-health"
+   ],
+   "tieBreakers": [
+    "distance",
+    "health",
+    "unit-id",
+    "life-id"
+   ],
+   "coordinationScope": "shared-policy",
+   "lockTicks": 4,
+   "lockPreemption": "urgent-carrier",
+   "maximumAttackersPerTarget": 2,
+   "overkillDamage": 0,
+   "aimPreparation": "rotate-to-engage",
+   "chaseLeash": 4,
+   "signatureCoordination": "damage-first",
+   "holdFire": {
+    "withinDistance": 4
+   },
+   "release": {
+    "hiddenTicks": 2,
+    "unreachableTicks": 3,
+    "outsideLeash": true,
+    "destroyed": true
+   },
+   "selfDefense": {
+    "enabled": true,
+    "threatDistance": 2,
+    "returnToFormation": true
+   },
+   "isolation": {
+    "supportRange": 4
+   },
+   "commit": {
+    "roles": [
+     "hunter"
+    ],
+    "awareness": {
+     "radius": 5,
+     "memoryTicks": 16
+    },
+    "engageWhen": {},
+    "chase": {
+     "leash": 6,
+     "onlyCatchable": true,
+     "executeBelowHealth": 1
+    },
+    "disengageWhen": {
+     "threats": 4,
+     "withdrawTo": "shadow-north-long"
+    }
+   }
+  },
+  {
+   "engagementId": "well-fight",
+   "participants": [
+    "carrier",
+    "lancer",
+    "eyes",
+    "hauler",
+    "medic"
+   ],
+   "targetPriorities": [
+    "enemy-carrier",
+    "closest-to-anchor",
+    "lowest-health"
+   ],
+   "tieBreakers": [
+    "distance",
+    "health",
+    "unit-id",
+    "life-id"
+   ],
+   "coordinationScope": "shared-policy",
+   "lockTicks": 4,
+   "lockPreemption": "urgent-carrier",
+   "maximumAttackersPerTarget": 3,
+   "overkillDamage": 0,
+   "aimPreparation": "rotate-to-engage",
+   "chaseLeash": 1,
+   "signatureCoordination": "control-first",
+   "release": {
+    "hiddenTicks": 1,
+    "unreachableTicks": 3,
+    "outsideLeash": true,
+    "destroyed": true
+   },
+   "selfDefense": {
+    "enabled": true,
+    "threatDistance": 3,
+    "returnToFormation": true
+   }
+  },
+  {
+   "engagementId": "reserve-fight",
+   "participants": [
+    "reserve"
+   ],
+   "targetPriorities": [
+    "enemy-carrier",
+    "lowest-health"
+   ],
+   "tieBreakers": [
+    "distance",
+    "health",
+    "unit-id",
+    "life-id"
+   ],
+   "coordinationScope": "shared-policy",
+   "lockTicks": 4,
+   "lockPreemption": "urgent-carrier",
+   "maximumAttackersPerTarget": 2,
+   "overkillDamage": 0,
+   "aimPreparation": "current-cone-only",
+   "chaseLeash": 2,
+   "signatureCoordination": "damage-first",
+   "release": {
+    "hiddenTicks": 1,
+    "unreachableTicks": 3,
+    "outsideLeash": true,
+    "destroyed": true
+   },
+   "selfDefense": {
+    "enabled": true,
+    "threatDistance": 3,
+    "returnToFormation": true
+   }
+  },
+  {
+   "engagementId": "disrupt-fight",
+   "participants": [
+    "carrier",
+    "lancer",
+    "eyes",
+    "hauler",
+    "medic"
+   ],
+   "targetPriorities": [
+    "enemy-carrier",
+    "lowest-health"
+   ],
+   "tieBreakers": [
+    "distance",
+    "health",
+    "unit-id",
+    "life-id"
+   ],
+   "coordinationScope": "shared-policy",
+   "lockTicks": 3,
+   "lockPreemption": "urgent-carrier",
+   "maximumAttackersPerTarget": 2,
+   "overkillDamage": 0,
+   "aimPreparation": "current-cone-only",
+   "chaseLeash": 0,
+   "signatureCoordination": "control-first",
+   "release": {
+    "hiddenTicks": 1,
+    "unreachableTicks": 2,
+    "outsideLeash": true,
+    "destroyed": true
+   },
+   "selfDefense": {
+    "enabled": true,
+    "threatDistance": 4,
+    "returnToFormation": true
+   }
+  },
+  {
+   "engagementId": "carrier-strike",
+   "participants": [
+    "hunter",
+    "hauler",
+    "carrier",
+    "lancer",
+    "medic"
+   ],
+   "targetPriorities": [
+    "enemy-carrier",
+    "lowest-health"
+   ],
+   "tieBreakers": [
+    "distance",
+    "health",
+    "unit-id",
+    "life-id"
+   ],
+   "coordinationScope": "shared-policy",
+   "lockTicks": 4,
+   "lockPreemption": "urgent-carrier",
+   "maximumAttackersPerTarget": 1,
+   "overkillDamage": 0,
+   "aimPreparation": "rotate-to-engage",
+   "chaseLeash": 6,
+   "signatureCoordination": "damage-first",
+   "release": {
+    "hiddenTicks": 2,
+    "unreachableTicks": 3,
+    "outsideLeash": true,
+    "destroyed": true
+   },
+   "selfDefense": {
+    "enabled": true,
+    "threatDistance": 2,
+    "returnToFormation": true
+   }
+  }
+ ],
+ "supportPolicies": [
+  {
+   "supportId": "medic-beam",
+   "providers": [
+    "medic"
+   ],
+   "targetPriorities": [
+    "lowest-health",
+    "carrier",
+    "any"
+   ],
+   "maximumProvidersPerTarget": 1,
+   "minimumProviderSeparation": 2,
+   "reserveHealthPercent": 30,
+   "survivalFallback": "evade"
+  }
+ ],
+ "custodyPolicies": [
+  {
+   "custodyId": "well-custody",
+   "authorizedCarrierRoles": [
+    "hauler",
+    "carrier",
+    "lancer",
+    "eyes",
+    "reserve"
+   ],
+   "escortGroups": [
+    "well-group",
+    "reserve-group"
+   ],
+   "sourceWells": [
+    "north",
+    "centre",
+    "south"
+   ],
+   "pickupReservationTicks": 8,
+   "transferTimeoutTicks": 8,
+   "deliveryTimeoutTicks": 120,
+   "accidentalPickup": "transfer",
+   "deliveryRoutes": [
+    {
+     "zone": "north-farm",
+     "route": "shadow-north-long"
+    },
+    {
+     "zone": "enemy-backfield",
+     "route": "shadow-north-long"
+    },
+    {
+     "zone": "midfield",
+     "route": "shadow-north-long"
+    },
+    {
+     "zone": "north-perch",
+     "route": "shadow-north-long"
+    },
+    {
+     "zone": "south-perch",
+     "route": "shadow-north-long"
+    }
+   ],
+   "dropRecovery": "nearest-authorized",
+   "unreachableFallback": "guard",
+   "safeConversionConditionSetId": "convert-freely"
+  }
+ ],
+ "authoring": {
+  "kind": "maneuver-catalog",
+  "library": {
+   "path": "../library/standard-v1.json",
+   "sha256": "101f48de08eed262b8cff1bfa407862231fe2b3a74642f92d8d1ff2b0fd1df49"
+  },
+  "parameters": {
+   "spring-gate": {
+    "value": 2,
+    "minimum": 1,
+    "maximum": 4
+   }
+  },
+  "assignmentProfiles": {
+   "shadow-standard": {
+    "groupId": "shadow-group",
+    "localState": "prowling",
+    "priority": 20,
+    "members": {
+     "kind": "all"
+    },
+    "stuckRecovery": "repath",
+    "supportId": "medic-beam"
+   },
+   "well-standard": {
+    "groupId": "well-group",
+    "localState": "farming",
+    "priority": 10,
+    "members": {
+     "kind": "all"
+    },
+    "stuckRecovery": "repath",
+    "supportId": ""
+   },
+   "reserve-standard": {
+    "groupId": "reserve-group",
+    "localState": "idle",
+    "priority": 5,
+    "members": {
+     "kind": "all"
+    },
+    "stuckRecovery": "repath",
+    "supportId": ""
+   }
+  },
+  "standingOrders": {},
+  "maneuvers": {
+   "prowl-set": {
+    "tracks": {
+     "shadow": {
+      "formationId": "shadow-file",
+      "movement": {
+       "kind": "route",
+       "target": "shadow-north-long",
+       "stuckTicks": 10,
+       "pace": "slowest"
+      },
+      "assignments": {
+       "shadow-prowl": {
+        "arrivalRadius": 2,
+        "completion": "continuous",
+        "chaseLeash": 3,
+        "engagementId": "shadow-strike",
+        "custodyId": "well-custody",
+        "fallbackId": "continue-and-hold-invalid",
+        "assignmentProfileId": "shadow-standard",
+        "stance": "ambush"
+       }
+      }
+     },
+     "wells": {
+      "formationId": "well-screen",
+      "movement": {
+       "kind": "route",
+       "target": "stage-loop",
+       "stuckTicks": 8,
+       "pace": "free"
+      },
+      "assignments": {
+       "well-watch": {
+        "arrivalRadius": 2,
+        "completion": "continuous",
+        "chaseLeash": 1,
+        "engagementId": "disrupt-fight",
+        "custodyId": "well-custody",
+        "fallbackId": "continue-and-hold-invalid",
+        "assignmentProfileId": "well-standard"
+       }
+      }
+     },
+     "reserve": {
+      "formationId": "reserve-file",
+      "movement": {
+       "kind": "zone",
+       "target": "own-approach",
+       "stuckTicks": 8,
+       "pace": "free"
+      },
+      "assignments": {
+       "reserve-idle": {
+        "arrivalRadius": 2,
+        "completion": "continuous",
+        "chaseLeash": 2,
+        "engagementId": "reserve-fight",
+        "custodyId": "well-custody",
+        "fallbackId": "continue-and-hold-invalid",
+        "assignmentProfileId": "reserve-standard"
+       }
+      }
+     }
+    }
+   },
+   "apex-set": {
+    "tracks": {
+     "shadow": {
+      "formationId": "shadow-file",
+      "movement": {
+       "kind": "route",
+       "target": "strike-line",
+       "stuckTicks": 10,
+       "pace": "slowest"
+      },
+      "assignments": {
+       "apex-strike": {
+        "arrivalRadius": 2,
+        "completion": "continuous",
+        "chaseLeash": 14,
+        "engagementId": "carrier-strike",
+        "custodyId": "well-custody",
+        "fallbackId": "continue-with-alternate",
+        "assignmentProfileId": "shadow-standard",
+        "stance": "ambush"
+       }
+      }
+     },
+     "wells": {
+      "formationId": "well-screen",
+      "movement": {
+       "kind": "route",
+       "target": "stage-loop",
+       "stuckTicks": 8,
+       "pace": "free"
+      },
+      "assignments": {
+       "well-watch-apex": {
+        "arrivalRadius": 2,
+        "completion": "continuous",
+        "chaseLeash": 14,
+        "engagementId": "disrupt-fight",
+        "custodyId": "well-custody",
+        "fallbackId": "continue-and-hold-invalid",
+        "assignmentProfileId": "well-standard"
+       }
+      }
+     },
+     "reserve": {
+      "formationId": "reserve-file",
+      "movement": {
+       "kind": "zone",
+       "target": "own-approach",
+       "stuckTicks": 8,
+       "pace": "free"
+      },
+      "assignments": {
+       "reserve-idle-apex": {
+        "arrivalRadius": 2,
+        "completion": "continuous",
+        "chaseLeash": 14,
+        "engagementId": "reserve-fight",
+        "custodyId": "well-custody",
+        "fallbackId": "continue-and-hold-invalid",
+        "assignmentProfileId": "reserve-standard"
+       }
+      }
+     }
+    }
+   },
+   "well-north-race": {
+    "tracks": {
+     "main": {
+      "formationId": "well-screen",
+      "movement": {
+       "kind": "route",
+       "target": "north-well-loop",
+       "stuckTicks": 8,
+       "pace": "free"
+      },
+      "assignments": {
+       "race-north": {
+        "arrivalRadius": 1,
+        "completion": "continuous",
+        "chaseLeash": 1,
+        "engagementId": "well-fight",
+        "custodyId": "well-custody",
+        "fallbackId": "continue-and-hold-invalid",
+        "assignmentProfileId": "well-standard"
+       }
+      }
+     }
+    }
+   },
+   "well-south-race": {
+    "tracks": {
+     "main": {
+      "formationId": "well-screen",
+      "movement": {
+       "kind": "route",
+       "target": "south-well-loop",
+       "stuckTicks": 8,
+       "pace": "free"
+      },
+      "assignments": {
+       "race-south": {
+        "arrivalRadius": 1,
+        "completion": "continuous",
+        "chaseLeash": 1,
+        "engagementId": "well-fight",
+        "custodyId": "well-custody",
+        "fallbackId": "continue-and-hold-invalid",
+        "assignmentProfileId": "well-standard"
+       }
+      }
+     }
+    }
+   },
+   "carrier-cutoff": {
+    "tracks": {
+     "main": {
+      "formationId": "shadow-file",
+      "movement": {
+       "kind": "enemy-carrier-cutoff",
+       "target": "perch-north",
+       "stuckTicks": 8,
+       "pace": "slowest",
+       "leadTiles": 1
+      },
+      "assignments": {
+       "cutoff-strike": {
+        "arrivalRadius": 1,
+        "completion": "continuous",
+        "chaseLeash": 14,
+        "engagementId": "shadow-strike",
+        "custodyId": "well-custody",
+        "fallbackId": "continue-with-alternate",
+        "assignmentProfileId": "shadow-standard",
+        "stance": "ambush"
+       }
+      }
+     }
+    }
+   },
+   "surge-wells": {
+    "tracks": {
+     "main": {
+      "formationId": "well-screen",
+      "movement": {
+       "kind": "zone",
+       "target": "well-line",
+       "stuckTicks": 8,
+       "pace": "free"
+      },
+      "assignments": {
+       "surge-bank": {
+        "arrivalRadius": 2,
+        "completion": "continuous",
+        "chaseLeash": 1,
+        "engagementId": "well-fight",
+        "custodyId": "well-custody",
+        "fallbackId": "continue-and-hold-invalid",
+        "assignmentProfileId": "well-standard"
+       }
+      }
+     }
+    }
+   },
+   "prowl-south-set": {
+    "tracks": {
+     "shadow": {
+      "formationId": "shadow-file",
+      "movement": {
+       "kind": "route",
+       "target": "shadow-south-long",
+       "stuckTicks": 10,
+       "pace": "slowest"
+      },
+      "assignments": {
+       "shadow-prowl-south": {
+        "arrivalRadius": 2,
+        "completion": "continuous",
+        "chaseLeash": 3,
+        "engagementId": "shadow-strike",
+        "custodyId": "well-custody",
+        "fallbackId": "continue-and-hold-invalid",
+        "assignmentProfileId": "shadow-standard",
+        "stance": "ambush"
+       }
+      }
+     },
+     "wells": {
+      "formationId": "well-screen",
+      "movement": {
+       "kind": "route",
+       "target": "stage-loop",
+       "stuckTicks": 8,
+       "pace": "free"
+      },
+      "assignments": {
+       "well-watch-south": {
+        "arrivalRadius": 2,
+        "completion": "continuous",
+        "chaseLeash": 1,
+        "engagementId": "disrupt-fight",
+        "custodyId": "well-custody",
+        "fallbackId": "continue-and-hold-invalid",
+        "assignmentProfileId": "well-standard"
+       }
+      }
+     },
+     "reserve": {
+      "formationId": "reserve-file",
+      "movement": {
+       "kind": "zone",
+       "target": "own-approach",
+       "stuckTicks": 8,
+       "pace": "free"
+      },
+      "assignments": {
+       "reserve-idle-south": {
+        "arrivalRadius": 2,
+        "completion": "continuous",
+        "chaseLeash": 2,
+        "engagementId": "reserve-fight",
+        "custodyId": "well-custody",
+        "fallbackId": "continue-and-hold-invalid",
+        "assignmentProfileId": "reserve-standard"
+       }
+      }
+     }
+    }
+   },
+   "well-centre-race": {
+    "tracks": {
+     "main": {
+      "formationId": "well-screen",
+      "movement": {
+       "kind": "route",
+       "target": "centre-well-loop",
+       "stuckTicks": 8,
+       "pace": "free"
+      },
+      "assignments": {
+       "race-centre": {
+        "arrivalRadius": 1,
+        "completion": "continuous",
+        "chaseLeash": 1,
+        "engagementId": "well-fight",
+        "custodyId": "well-custody",
+        "fallbackId": "continue-and-hold-invalid",
+        "assignmentProfileId": "well-standard"
+       }
+      }
+     }
+    }
+   },
+   "home-guard": {
+    "tracks": {
+     "main": {
+      "formationId": "well-screen",
+      "movement": {
+       "kind": "zone",
+       "target": "own-home",
+       "stuckTicks": 8,
+       "pace": "free"
+      },
+      "assignments": {
+       "guard-home": {
+        "arrivalRadius": 2,
+        "completion": "continuous",
+        "chaseLeash": 4,
+        "engagementId": "well-fight",
+        "custodyId": "well-custody",
+        "fallbackId": "continue-and-hold-invalid",
+        "assignmentProfileId": "well-standard"
+       }
+      }
+     }
+    }
+   }
+  },
+  "predicates": {
+   "apex-reached": {
+    "fact": "group-max-level",
+    "operator": "at-least",
+    "value": 4,
+    "subject": "shadow-group"
+   },
+   "apex-lost": {
+    "fact": "group-max-level",
+    "operator": "at-most",
+    "value": 3,
+    "subject": "shadow-group"
+   },
+   "north-birth-soon": {
+    "fact": "well-ticks-until-birth",
+    "operator": "at-most",
+    "value": 28,
+    "subject": "north"
+   },
+   "south-birth-soon": {
+    "fact": "well-ticks-until-birth",
+    "operator": "at-most",
+    "value": 28,
+    "subject": "south"
+   },
+   "north-birth-far": {
+    "fact": "well-ticks-until-birth",
+    "operator": "at-least",
+    "value": 45,
+    "subject": "north"
+   },
+   "south-birth-far": {
+    "fact": "well-ticks-until-birth",
+    "operator": "at-least",
+    "value": 45,
+    "subject": "south"
+   },
+   "carrier-known": {
+    "fact": "known-enemy-carriers",
+    "operator": "at-least",
+    "value": 1
+   },
+   "window-open": {
+    "fact": "known-enemies-unavailable",
+    "operator": "at-least",
+    "value": 2
+   },
+   "shadow-pair-alive": {
+    "fact": "group-live-count",
+    "operator": "at-least",
+    "value": 2,
+    "subject": "shadow-group"
+   },
+   "long-dwell": {
+    "fact": "phase-state-ticks",
+    "operator": "at-least",
+    "value": 90
+   },
+   "shadow-op": {
+    "fact": "group-max-level",
+    "operator": "at-least",
+    "value": 3,
+    "subject": "shadow-group"
+   },
+   "well-op": {
+    "fact": "group-max-level",
+    "operator": "at-least",
+    "value": 3,
+    "subject": "well-group"
+   },
+   "shadow-cooled": {
+    "fact": "group-max-level",
+    "operator": "at-most",
+    "value": 2,
+    "subject": "shadow-group"
+   },
+   "well-cooled": {
+    "fact": "group-max-level",
+    "operator": "at-most",
+    "value": 2,
+    "subject": "well-group"
+   },
+   "enemy-remembered": {
+    "fact": "remembered-enemies-in-zone",
+    "operator": "at-least",
+    "value": 1,
+    "zone": "well-line",
+    "freshnessTicks": 30
+   },
+   "enemy-remembered-deep": {
+    "fact": "remembered-enemies-in-zone",
+    "operator": "at-least",
+    "value": 1,
+    "zone": "enemy-backfield",
+    "freshnessTicks": 30
+   },
+   "centre-birth-soon": {
+    "fact": "well-ticks-until-birth",
+    "operator": "at-most",
+    "value": 28,
+    "subject": "centre"
+   },
+   "centre-birth-far": {
+    "fact": "well-ticks-until-birth",
+    "operator": "at-least",
+    "value": 45,
+    "subject": "centre"
+   },
+   "gate-threat": {
+    "fact": "remembered-enemies-in-zone",
+    "operator": "at-least",
+    "value": 1,
+    "zone": "own-approach",
+    "freshnessTicks": 21
+   },
+   "home-threat": {
+    "fact": "remembered-enemies-in-zone",
+    "operator": "at-least",
+    "value": 1,
+    "zone": "own-home",
+    "freshnessTicks": 21
+   },
+   "approach-clear": {
+    "fact": "remembered-enemies-in-zone",
+    "operator": "at-most",
+    "value": 0,
+    "zone": "own-approach",
+    "freshnessTicks": 21
+   },
+   "home-clear": {
+    "fact": "remembered-enemies-in-zone",
+    "operator": "at-most",
+    "value": 0,
+    "zone": "own-home",
+    "freshnessTicks": 21
+   },
+   "carriers-none": {
+    "fact": "known-enemy-carriers",
+    "operator": "at-most",
+    "value": 0
+   },
+   "well-line-cold": {
+    "fact": "remembered-enemies-in-zone",
+    "operator": "at-most",
+    "value": 0,
+    "zone": "well-line",
+    "freshnessTicks": 30
+   },
+   "backfield-cold": {
+    "fact": "remembered-enemies-in-zone",
+    "operator": "at-most",
+    "value": 0,
+    "zone": "enemy-backfield",
+    "freshnessTicks": 30
+   },
+   "ghost-hurt": {
+    "fact": "role-health",
+    "operator": "at-most",
+    "value": 2,
+    "subject": "hunter"
+   },
+   "ghost-whole": {
+    "fact": "role-health",
+    "operator": "at-least",
+    "value": 3,
+    "subject": "hunter"
+   }
+  },
+  "conditionSets": {
+   "convert-freely": [
+    [
+     "always"
+    ]
+   ],
+   "task-never-done": [
+    [
+     "no-live-friendlies"
+    ]
+   ],
+   "apex-on": [
+    [
+     "shadow-op"
+    ],
+    [
+     "well-op"
+    ]
+   ],
+   "apex-off": [
+    [
+     "shadow-cooled",
+     "well-cooled"
+    ]
+   ],
+   "north-soon": [
+    [
+     "north-birth-soon"
+    ]
+   ],
+   "south-soon": [
+    [
+     "south-birth-soon"
+    ]
+   ],
+   "north-far": [
+    [
+     "north-birth-far"
+    ]
+   ],
+   "south-far": [
+    [
+     "south-birth-far"
+    ]
+   ],
+   "carrier-sighted": [
+    [
+     "carrier-known"
+    ],
+    [
+     "enemy-remembered"
+    ],
+    [
+     "enemy-remembered-deep"
+    ]
+   ],
+   "kill-window": [
+    [
+     "window-open"
+    ]
+   ],
+   "rotate-timer": [
+    [
+     "long-dwell"
+    ]
+   ],
+   "centre-soon": [
+    [
+     "centre-birth-soon"
+    ]
+   ],
+   "centre-far": [
+    [
+     "centre-birth-far"
+    ]
+   ],
+   "gates-threatened": [
+    [
+     "gate-threat"
+    ],
+    [
+     "home-threat"
+    ]
+   ],
+   "gates-clear": [
+    [
+     "approach-clear",
+     "home-clear"
+    ]
+   ],
+   "prey-cold": [
+    [
+     "carriers-none",
+     "well-line-cold",
+     "backfield-cold"
+    ]
+   ]
+  }
+ },
+ "coordination": {
+  "initialPhase": "prowl",
+  "tasks": [
+   {
+    "taskId": "home-defense",
+    "priority": 6,
+    "activation": "while-true",
+    "preemption": "higher-priority",
+    "participantLoss": "replace",
+    "triggerStableTicks": 1,
+    "minimumTicks": 8,
+    "timeoutTicks": 600,
+    "cooldownTicks": 2,
+    "minimumPrimaryBodies": 1,
+    "eligiblePhases": [
+     "prowl",
+     "prowl-south",
+     "apex"
+    ],
+    "assignments": [
+     {
+      "assignmentId": "guard-home",
+      "orderId": "guard-home",
+      "roles": [
+       "hauler",
+       "carrier",
+       "lancer",
+       "eyes",
+       "medic"
+      ],
+      "classes": [
+       "relay",
+       "longshot",
+       "towline",
+       "mason",
+       "patchbay"
+      ],
+      "minimum": 1,
+      "preferred": 4,
+      "maximum": 6,
+      "carrier": "allow",
+      "distance": {
+       "kind": "anchor",
+       "target": "home-gate"
+      }
+     }
+    ],
+    "whenConditionSetId": "gates-threatened",
+    "completeConditionSetId": "gates-clear",
+    "failConditionSetId": "task-never-done",
+    "reintegration": {
+     "mode": "primary-order",
+     "orderIds": [],
+     "completeConditionSetId": "",
+     "timeoutTicks": 0
+    }
+   },
+   {
+    "taskId": "north-race-task",
+    "priority": 8,
+    "activation": "while-true",
+    "preemption": "higher-priority",
+    "participantLoss": "replace",
+    "triggerStableTicks": 1,
+    "minimumTicks": 8,
+    "timeoutTicks": 110,
+    "cooldownTicks": 20,
+    "minimumPrimaryBodies": 1,
+    "eligiblePhases": [
+     "prowl",
+     "prowl-south",
+     "apex"
+    ],
+    "assignments": [
+     {
+      "assignmentId": "race-north",
+      "orderId": "race-north",
+      "roles": [
+       "hauler",
+       "carrier",
+       "lancer",
+       "eyes"
+      ],
+      "classes": [
+       "relay",
+       "longshot",
+       "towline",
+       "mason"
+      ],
+      "minimum": 1,
+      "preferred": 3,
+      "maximum": 3,
+      "carrier": "allow",
+      "distance": {
+       "kind": "anchor",
+       "target": "home-gate"
+      }
+     },
+     {
+      "assignmentId": "race-north-medic",
+      "orderId": "race-north",
+      "roles": [
+       "medic"
+      ],
+      "classes": [
+       "patchbay"
+      ],
+      "minimum": 0,
+      "preferred": 1,
+      "maximum": 1,
+      "carrier": "forbid",
+      "distance": {
+       "kind": "anchor",
+       "target": "home-gate"
+      }
+     }
+    ],
+    "whenConditionSetId": "north-soon",
+    "completeConditionSetId": "task-never-done",
+    "failConditionSetId": "task-never-done",
+    "reintegration": {
+     "mode": "primary-order",
+     "orderIds": [],
+     "completeConditionSetId": "",
+     "timeoutTicks": 0
+    },
+    "completionArmMode": "assigned-carrier",
+    "completionReleaseMode": "armed-carrier-loss"
+   },
+   {
+    "taskId": "centre-race-task",
+    "priority": 8,
+    "activation": "while-true",
+    "preemption": "higher-priority",
+    "participantLoss": "replace",
+    "triggerStableTicks": 1,
+    "minimumTicks": 8,
+    "timeoutTicks": 110,
+    "cooldownTicks": 20,
+    "minimumPrimaryBodies": 1,
+    "eligiblePhases": [
+     "prowl",
+     "prowl-south",
+     "apex"
+    ],
+    "assignments": [
+     {
+      "assignmentId": "race-centre",
+      "orderId": "race-centre",
+      "roles": [
+       "hauler",
+       "carrier",
+       "lancer",
+       "eyes"
+      ],
+      "classes": [
+       "relay",
+       "longshot",
+       "towline",
+       "mason"
+      ],
+      "minimum": 1,
+      "preferred": 3,
+      "maximum": 3,
+      "carrier": "allow",
+      "distance": {
+       "kind": "anchor",
+       "target": "home-gate"
+      }
+     },
+     {
+      "assignmentId": "race-centre-medic",
+      "orderId": "race-centre",
+      "roles": [
+       "medic"
+      ],
+      "classes": [
+       "patchbay"
+      ],
+      "minimum": 0,
+      "preferred": 1,
+      "maximum": 1,
+      "carrier": "forbid",
+      "distance": {
+       "kind": "anchor",
+       "target": "home-gate"
+      }
+     }
+    ],
+    "whenConditionSetId": "centre-soon",
+    "completeConditionSetId": "task-never-done",
+    "failConditionSetId": "task-never-done",
+    "reintegration": {
+     "mode": "primary-order",
+     "orderIds": [],
+     "completeConditionSetId": "",
+     "timeoutTicks": 0
+    },
+    "completionArmMode": "assigned-carrier",
+    "completionReleaseMode": "armed-carrier-loss"
+   },
+   {
+    "taskId": "south-race-task",
+    "priority": 8,
+    "activation": "while-true",
+    "preemption": "higher-priority",
+    "participantLoss": "replace",
+    "triggerStableTicks": 1,
+    "minimumTicks": 8,
+    "timeoutTicks": 110,
+    "cooldownTicks": 20,
+    "minimumPrimaryBodies": 1,
+    "eligiblePhases": [
+     "prowl",
+     "prowl-south",
+     "apex"
+    ],
+    "assignments": [
+     {
+      "assignmentId": "race-south",
+      "orderId": "race-south",
+      "roles": [
+       "hauler",
+       "carrier",
+       "lancer",
+       "eyes"
+      ],
+      "classes": [
+       "relay",
+       "longshot",
+       "towline",
+       "mason"
+      ],
+      "minimum": 1,
+      "preferred": 3,
+      "maximum": 3,
+      "carrier": "allow",
+      "distance": {
+       "kind": "anchor",
+       "target": "home-gate"
+      }
+     },
+     {
+      "assignmentId": "race-south-medic",
+      "orderId": "race-south",
+      "roles": [
+       "medic"
+      ],
+      "classes": [
+       "patchbay"
+      ],
+      "minimum": 0,
+      "preferred": 1,
+      "maximum": 1,
+      "carrier": "forbid",
+      "distance": {
+       "kind": "anchor",
+       "target": "home-gate"
+      }
+     }
+    ],
+    "whenConditionSetId": "south-soon",
+    "completeConditionSetId": "task-never-done",
+    "failConditionSetId": "task-never-done",
+    "reintegration": {
+     "mode": "primary-order",
+     "orderIds": [],
+     "completeConditionSetId": "",
+     "timeoutTicks": 0
+    },
+    "completionArmMode": "assigned-carrier",
+    "completionReleaseMode": "armed-carrier-loss"
+   },
+   {
+    "taskId": "kill-window-surge",
+    "priority": 30,
+    "activation": "while-true",
+    "preemption": "higher-priority",
+    "participantLoss": "replace",
+    "triggerStableTicks": 1,
+    "minimumTicks": 6,
+    "timeoutTicks": 600,
+    "cooldownTicks": 2,
+    "minimumPrimaryBodies": 1,
+    "eligiblePhases": [
+     "prowl",
+     "prowl-south",
+     "apex"
+    ],
+    "assignments": [
+     {
+      "assignmentId": "surge-bank",
+      "orderId": "surge-bank",
+      "roles": [
+       "hauler",
+       "carrier",
+       "lancer",
+       "eyes"
+      ],
+      "classes": [
+       "relay",
+       "longshot",
+       "towline",
+       "mason"
+      ],
+      "minimum": 1,
+      "preferred": 4,
+      "maximum": 5,
+      "carrier": "allow",
+      "distance": {
+       "kind": "anchor",
+       "target": "home-gate"
+      }
+     }
+    ],
+    "whenConditionSetId": "kill-window",
+    "completeConditionSetId": "task-never-done",
+    "failConditionSetId": "task-never-done",
+    "reintegration": {
+     "mode": "primary-order",
+     "orderIds": [],
+     "completeConditionSetId": "",
+     "timeoutTicks": 0
+    }
+   },
+   {
+    "taskId": "assassin-promotion",
+    "priority": 5,
+    "activation": "while-true",
+    "preemption": "higher-priority",
+    "participantLoss": "replace",
+    "triggerStableTicks": 2,
+    "minimumTicks": 10,
+    "timeoutTicks": 600,
+    "cooldownTicks": 4,
+    "minimumPrimaryBodies": 1,
+    "eligiblePhases": [
+     "prowl",
+     "prowl-south",
+     "apex"
+    ],
+    "assignments": [
+     {
+      "assignmentId": "apex-assassin",
+      "orderId": "apex-strike",
+      "roles": [
+       "hauler",
+       "carrier",
+       "lancer"
+      ],
+      "classes": [
+       "relay",
+       "longshot",
+       "towline"
+      ],
+      "minimum": 1,
+      "preferred": 1,
+      "maximum": 1,
+      "carrier": "forbid",
+      "distance": {
+       "kind": "veterancy-rank",
+       "target": "",
+       "maximum": 7
+      }
+     },
+     {
+      "assignmentId": "apex-escort",
+      "orderId": "apex-strike",
+      "roles": [
+       "medic"
+      ],
+      "classes": [
+       "patchbay"
+      ],
+      "minimum": 0,
+      "preferred": 1,
+      "maximum": 1,
+      "carrier": "forbid",
+      "distance": {
+       "kind": "none",
+       "target": ""
+      }
+     }
+    ],
+    "whenConditionSetId": "apex-on",
+    "completeConditionSetId": "task-never-done",
+    "failConditionSetId": "task-never-done",
+    "reintegration": {
+     "mode": "primary-order",
+     "orderIds": [],
+     "completeConditionSetId": "",
+     "timeoutTicks": 0
+    }
+   }
+  ],
+  "phases": [
+   {
+    "phaseId": "prowl",
+    "minimumTicks": 4,
+    "maneuverId": "prowl-set",
+    "standingOrderIds": [],
+    "transitions": [
+     {
+      "priority": 10,
+      "to": "apex",
+      "cause": "success",
+      "minimumPolicy": "respect",
+      "stableTicks": 2,
+      "conditionSetId": "apex-on"
+     },
+     {
+      "priority": 20,
+      "to": "prowl-south",
+      "cause": "success",
+      "minimumPolicy": "respect",
+      "stableTicks": 2,
+      "conditionSetId": "rotate-timer"
+     }
+    ]
+   },
+   {
+    "phaseId": "prowl-south",
+    "minimumTicks": 4,
+    "maneuverId": "prowl-south-set",
+    "standingOrderIds": [],
+    "transitions": [
+     {
+      "priority": 10,
+      "to": "apex",
+      "cause": "success",
+      "minimumPolicy": "respect",
+      "stableTicks": 2,
+      "conditionSetId": "apex-on"
+     },
+     {
+      "priority": 20,
+      "to": "prowl",
+      "cause": "success",
+      "minimumPolicy": "respect",
+      "stableTicks": 2,
+      "conditionSetId": "rotate-timer"
+     }
+    ]
+   },
+   {
+    "phaseId": "apex",
+    "minimumTicks": 8,
+    "maneuverId": "apex-set",
+    "standingOrderIds": [],
+    "transitions": [
+     {
+      "priority": 10,
+      "to": "prowl",
+      "cause": "failure",
+      "minimumPolicy": "respect",
+      "stableTicks": 2,
+      "conditionSetId": "apex-off"
+     }
+    ]
+   }
+  ]
+ },
+ "doctrines": {
+  "ghost": {
+   "role": "hunter",
+   "custody": "well-custody",
+   "fight": {
+    "collect": "yield",
+    "heal": "yield",
+    "targets": {
+     "prefer": [
+      "carrier",
+      "weakest"
+     ]
+    },
+    "breakOff": {
+     "health": 1,
+     "recoverTicks": 24
+    },
+    "chase": {
+     "leash": 16,
+     "persistTicks": 30
+    },
+    "defense": {
+     "radius": 2,
+     "return": false
+    }
+   },
+   "modes": [
+    {
+     "recover": "auto"
+    },
+    {
+     "assault": "strike-line",
+     "while": "shadow-op",
+     "until": "shadow-cooled",
+     "escort": [
+      {
+       "role": "medic"
+      },
+      {
+       "role": "lancer",
+       "posture": "screen"
+      }
+     ],
+     "fight": {
+      "collect": "first"
+     }
+    },
+    {
+     "patrol": "stage-loop",
+     "while": "ghost-hurt",
+     "until": "ghost-whole"
+    },
+    {
+     "patrol": "shadow-north-long",
+     "fight": {
+      "collect": "first"
+     }
+    }
+   ],
+   "conceal": false,
+   "collect": [
+    "north-farm",
+    "centre-farm",
+    "south-farm",
+    "midfield",
+    "enemy-backfield",
+    "north-perch",
+    "south-perch"
+   ]
+  },
+  "medic-support": {
+   "role": "medic",
+   "custody": "well-custody",
+   "modes": [
+    {
+     "recover": "auto"
+    },
+    {
+     "muster": "escort"
+    },
+    {
+     "squad": true
+    }
+   ]
+  },
+  "lancer-support": {
+   "role": "lancer",
+   "custody": "well-custody",
+   "modes": [
+    {
+     "muster": "escort"
+    },
+    {
+     "squad": true
+    }
+   ]
+  }
+ }
+}

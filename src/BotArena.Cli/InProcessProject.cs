@@ -25,12 +25,27 @@ internal static class InProcessProject
     internal sealed record LoadedGenericActorFactory(
         Func<Sdk.IGenericActorBot> Factory,
         string ProvenanceHash);
+
+    /// <summary>
+    /// One mind policy plus how this project reaches the mind profile: a type
+    /// that implements <see cref="Sdk.IGenericMindBot"/> drives it natively,
+    /// and any other <see cref="Sdk.IGenericActorBot"/> reaches it through the
+    /// guest's wrap adapter with no source edits
+    /// (<c>docs/DESIGN-MIND-ARCHITECTURE-2026-07-31.md</c> §7.1).
+    /// </summary>
+    internal sealed record LoadedGenericMindFactory(
+        Func<Sdk.IGenericMindBot> Factory,
+        string ProvenanceHash,
+        bool NativeMind);
     private sealed record CachedActorFactory(
         long SourceStamp,
         LoadedActorFactory Loaded);
     private sealed record CachedGenericActorFactory(
         long SourceStamp,
         LoadedGenericActorFactory Loaded);
+    private sealed record CachedGenericMindFactory(
+        long SourceStamp,
+        LoadedGenericMindFactory Loaded);
 
     private static readonly Dictionary<string, CachedFactory> Factories =
         new(StringComparer.Ordinal);
@@ -38,6 +53,8 @@ internal static class InProcessProject
         new(StringComparer.Ordinal);
     private static readonly Dictionary<string, CachedGenericActorFactory>
         GenericActorFactories = new(StringComparer.Ordinal);
+    private static readonly Dictionary<string, CachedGenericMindFactory>
+        GenericMindFactories = new(StringComparer.Ordinal);
 
     public static Func<Sdk.IBot> LoadFactory(BotProject project, bool quiet = false)
     {
@@ -139,6 +156,69 @@ internal static class InProcessProject
             AssemblyClosureHash(dllPath));
         GenericActorFactories[projectDirectory] =
             new CachedGenericActorFactory(sourceStamp, loaded);
+        return loaded;
+    }
+
+    /// <summary>
+    /// Mind equivalent of <see cref="LoadGenericActorFactory"/>, and the one
+    /// place the CLI decides how a project reaches the mind profile.
+    ///
+    /// <para>There is no manifest field and no second build path: the entry
+    /// TYPE decides, exactly as <c>GuestHost.RunDetected</c> decides it inside
+    /// the artifact. A mind drives the profile natively; anything else that is
+    /// a per-life bot gets the guest's own wrap adapter, so the diagnostic
+    /// loop and the sandbox agree about the migration rather than merely
+    /// resembling each other.</para>
+    /// </summary>
+    public static LoadedGenericMindFactory LoadGenericMindFactory(
+        BotProject project,
+        bool quiet = false)
+    {
+        string projectDirectory = Path.GetFullPath(project.Directory);
+        long sourceStamp = SourceStamp(project, projectDirectory);
+        if (GenericMindFactories.TryGetValue(
+                projectDirectory,
+                out CachedGenericMindFactory? cached)
+            && cached.SourceStamp == sourceStamp)
+        {
+            return cached.Loaded;
+        }
+
+        string dllPath = Build(project, quiet);
+        var context = new BotLoadContext(dllPath);
+        Assembly assembly = context.LoadFromAssemblyPath(dllPath);
+        Type entryType = FindEntryType(project, dllPath, assembly);
+        string provenance = AssemblyClosureHash(dllPath);
+        LoadedGenericMindFactory loaded;
+        if (typeof(Sdk.IGenericMindBot).IsAssignableFrom(entryType))
+        {
+            loaded = new LoadedGenericMindFactory(
+                () => (Sdk.IGenericMindBot)Activator.CreateInstance(entryType)!,
+                provenance,
+                NativeMind: true);
+        }
+        else if (typeof(Sdk.IGenericActorBot).IsAssignableFrom(entryType))
+        {
+            string botName = project.Manifest.Name;
+            loaded = new LoadedGenericMindFactory(
+                () => Guest.GuestHost.WrapPerLife(
+                    botName,
+                    _ => (Sdk.IGenericActorBot)Activator
+                        .CreateInstance(entryType)!),
+                provenance,
+                NativeMind: false);
+        }
+        else
+        {
+            throw new InvalidOperationException(
+                $"{entryType.FullName} implements neither "
+                + "BotArena.Sdk.IGenericMindBot nor "
+                + "BotArena.Sdk.IGenericActorBot, so it cannot play the mind "
+                + "profile.");
+        }
+
+        GenericMindFactories[projectDirectory] =
+            new CachedGenericMindFactory(sourceStamp, loaded);
         return loaded;
     }
 

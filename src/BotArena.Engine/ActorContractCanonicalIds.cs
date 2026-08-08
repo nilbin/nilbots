@@ -15,14 +15,18 @@ internal static class ActorContractCanonicalIds
 
         GameModeDefinition.GameModeDefinitionKind.Frontline => "frontline",
         GameModeDefinition.GameModeDefinitionKind.Deathmatch => "deathmatch",
+        GameModeDefinition.GameModeDefinitionKind.ArcRelay => "arc-relay",
         VictoryDefinition.VictoryDefinitionKind.Frontline => "frontline",
         VictoryDefinition.VictoryDefinitionKind.Deathmatch => "deathmatch",
+        VictoryDefinition.VictoryDefinitionKind.ArcRelay => "arc-relay",
         ScoreChannelDefinition.ChannelKind.Kills => "kills",
         ScoreChannelDefinition.ChannelKind.Deaths => "deaths",
         ScoreChannelDefinition.ChannelKind.DamageDealt => "damage-dealt",
         ScoreChannelDefinition.ChannelKind.ActiveHealth => "active-health",
         ScoreChannelDefinition.ChannelKind.TerritorialProgress =>
             "territorial-progress",
+        ScoreChannelDefinition.ChannelKind.Pulses => "pulses",
+        ScoreChannelDefinition.ChannelKind.ReactorCharge => "reactor-charge",
         ScoreChannelDefinition.ValueDomain.NonNegative => "non-negative",
         ScoreChannelDefinition.ValueDomain.Signed => "signed",
         ScoreRankingDefinition.SortDirection.HigherWins => "higher-wins",
@@ -57,6 +61,18 @@ internal static class ActorContractCanonicalIds
         FrontlineCaptureDefinition.ControlPolicyKind
                   .NetPositiveObjectiveWeightDifferenceScalesGainNonPositiveAppliesConfiguredDecayOppositionErodesToNeutral =>
               "net-positive-objective-weight-difference-scales-gain-non-positive-applies-configured-decay-opposition-erodes-to-neutral",
+        FrontlineCaptureDefinition.ControlPolicyKind
+                  .StationaryClaimWeightVersusTotalDenialWeightScalesGainCappedOppositionErodesAtMultipleThenBuilds =>
+              "stationary-claim-weight-versus-total-denial-weight-scales-gain-capped-opposition-erodes-at-multiple-then-builds",
+        FrontlineClaimInterruptDefinition.ClaimInterruptKind
+                .DamageToControllerOnObjectiveRevertsWork =>
+            "damage-to-controller-on-objective-reverts-work",
+        FrontlineClaimInterruptDefinition.ClaimInterruptScopeKind
+                .ControllingTeamBodiesOnActiveObjectiveRegion =>
+            "controlling-team-bodies-on-active-objective-region",
+        FrontlineClaimInterruptDefinition.ClaimInterruptGranularityKind
+                .WholeRun =>
+            "whole-run",
         FrontlineCaptureDefinition.TimeoutPolicyKind
                 .SignedPositionThresholdPlusClaimZeroDrawNoTiebreakers =>
             "signed-position-threshold-plus-claim-zero-draw-no-tiebreakers",
@@ -78,15 +94,50 @@ internal static class ActorContractCanonicalIds
         FrontlineCaptureDefinition.DecayClockKind
                 .ConsecutiveEmptyOrContestedTicksResetByAnySoleControl =>
             "consecutive-empty-or-contested-ticks-reset-by-any-sole-control",
+        FrontlineCaptureDefinition.DecayClockKind
+                .EmptyAndContestedTicksPreserveClaimEnemySoleErosionOnly =>
+            "empty-and-contested-ticks-preserve-claim-enemy-sole-erosion-only",
         FrontlineCaptureDefinition.DisabledDecayKind
                 .ZeroPairPreservesClaimAndKeepsClockZero =>
             "zero-pair-preserves-claim-and-keeps-clock-zero",
         FrontlineCaptureDefinition.RedeployPolicyKind
                 .AdvanceImmediatelyResetClaimKeepWorldPauseThroughCapturePlusConfiguredTicksBreachSkipsPause =>
             "advance-immediately-reset-claim-keep-world-pause-through-capture-plus-configured-ticks-breach-skips-pause",
+        FrontlineCaptureDefinition.RedeployPolicyKind
+                .AdvanceImmediatelyThenDenyEnemyRegressionPastTheHighWaterMarkThroughConfiguredHoldTicks =>
+            "advance-immediately-then-deny-enemy-regression-past-the-high-water-mark-through-configured-hold-ticks",
         FrontlineCaptureDefinition.RedeployTickArithmeticKind
                 .CheckedInt64CaptureTickPlusOnePlusPauseRequireInt32 =>
             "checked-int64-capture-tick-plus-one-plus-pause-require-int32",
+
+        FrontlineSecondaryControlDefinition.SecondaryOwnershipKind
+                .LatchedUntilRecapturedBySoleObjectiveWeight =>
+            "latched-until-recaptured-by-sole-objective-weight",
+        FrontlineSecondaryControlDefinition.SecondaryEffectKind.Muster =>
+            "muster",
+        FrontlineSecondaryControlDefinition.SecondaryRallyScopeKind
+                .PrimeAutomaticReturnOnly =>
+            "prime-automatic-return-only",
+
+        FrontlineScrapEconomyDefinition.UpgradeEffectKind
+                .MobileAttackTravelTilesDelta =>
+            "mobile-attack-travel-tiles-delta",
+        FrontlineScrapEconomyDefinition.UpgradeEffectKind
+                .SpawnMaxHealthDelta =>
+            "spawn-max-health-delta",
+        FrontlineScrapEconomyDefinition.UpgradeEffectKind.VisionRangeDelta =>
+            "vision-range-delta",
+        FrontlineScrapEconomyDefinition.UpgradeScopeKind
+                .PrimeSlotLivesOnly =>
+            "prime-slot-lives-only",
+        FrontlineScrapEconomyDefinition.UpgradeScopeKind
+                .AllSlotLives =>
+            "all-slot-lives",
+        FrontlineScrapEconomyDefinition.PurchaseModeKind.InvestAction =>
+            "invest-action",
+        FrontlineScrapEconomyDefinition.PurchaseModeKind
+                .AutomaticGreedyDeclaredOrder =>
+            "automatic-greedy-declared-order",
 
         MatchFormatDefinition.MatchFormatDefinitionKind.HeadToHead =>
             "head-to-head",
@@ -99,6 +150,9 @@ internal static class ActorContractCanonicalIds
         ActorModeMapBindingDefinition.ActorModeMapBindingDefinitionKind
                 .Frontline =>
             "frontline",
+        ActorModeMapBindingDefinition.ActorModeMapBindingDefinitionKind
+                .ArcRelay =>
+            "arc-relay",
         FrontlineTeamAdvanceDefinition.ObjectiveAdvanceDirection
                 .TowardLowerIndex =>
             "toward-lower-index",
@@ -108,6 +162,30 @@ internal static class ActorContractCanonicalIds
 
         ActorMovementLayer.Ground => "ground",
         ActorMovementLayer.Air => "air",
+        ActorMovementFacingCoupling.PreserveFacing => "preserve-facing",
+        ActorMovementFacingCoupling.FaceMovementDirection =>
+            "face-movement-direction",
+        ActorMovementFacingCoupling.FacingLocked => "facing-locked",
+        ActorMovementFacingCoupling.FaceMovementHeadingProjected =>
+            "face-movement-heading-projected",
+        ActorMovementFacingCoupling.CombatStrafe => "combat-strafe",
+        ActorFormProjectileGuardKind.None => "none",
+        ActorFormProjectileGuardKind.FacingQuadrantContactsDeflected =>
+            "facing-quadrant-contacts-deflected",
+        ActorAttackVolleyDefinition.VolleySpreadKind.SharedResolvedHeading =>
+            "shared-resolved-heading",
+        ActorAttackVolleyDefinition.VolleySpreadKind
+                .SymmetricAdjacentHeadingFanAscendingSignedSectorOffset =>
+            "symmetric-adjacent-heading-fan-ascending-signed-sector-offset",
+        ActorAttackVolleyDefinition.IdentityOrderKind
+                .ContiguousAscendingInLaunchOrder =>
+            "contiguous-ascending-in-launch-order",
+        ActorAutomaticReturnTriggerDefinition.AutomaticReturnCounterKind
+                .AttacksIssuedSinceEnteringSourceForm =>
+            "attacks-issued-since-entering-source-form",
+        ActorAutomaticReturnTriggerDefinition.AutomaticReturnCounterKind
+                .ProjectilesDeflectedSinceEnteringSourceForm =>
+            "projectiles-deflected-since-entering-source-form",
         ActorMapRegionDefinition.RegionKind.Objective => "objective",
         ActorMapRegionDefinition.RegionKind.TransitionPlacement =>
             "transition-placement",
@@ -116,6 +194,38 @@ internal static class ActorContractCanonicalIds
             "transition-placement-forbidden",
         ActorMapTileTagDefinition.TileTagKind.SpawnProtected =>
             "spawn-protected",
+        ActorMapTileTagDefinition.TileTagKind.SignaturePlacementForbidden =>
+            "signature-placement-forbidden",
+
+        ArcRelaySignatureDefinition.SignatureKind.VectorDash => "vector-dash",
+        ArcRelaySignatureDefinition.SignatureKind.PrismWall => "prism-wall",
+        ArcRelaySignatureDefinition.SignatureKind.TractorHook => "tractor-hook",
+        ArcRelaySignatureDefinition.SignatureKind.RepairBeam => "repair-beam",
+        ArcRelaySignatureDefinition.SignatureKind.SurveyFlare => "survey-flare",
+        ArcRelaySignatureDefinition.SignatureKind.FallingStar => "falling-star",
+        ArcRelaySignatureDefinition.SignatureKind.TripNode => "trip-node",
+        ArcRelaySignatureDefinition.SignatureKind.NullField => "null-field",
+        ArcRelaySignatureDefinition.SignatureKind.ArcToss => "arc-toss",
+        ArcRelaySignatureDefinition.SignatureKind.Exchange => "exchange",
+        ArcRelaySignatureDefinition.SignatureKind.RailLine => "rail-line",
+        ArcRelaySignatureDefinition.SignatureKind.HardlightBlock =>
+            "hardlight-block",
+        ArcRelaySignatureDefinition.SignatureKind.TargetPaint => "target-paint",
+        ArcRelaySignatureDefinition.SignatureKind.KineticBurst =>
+            "kinetic-burst",
+        ArcRelaySignatureDefinition.SignatureKind.SmokeCanister =>
+            "smoke-canister",
+        ArcRelaySignatureDefinition.SignatureKind.SentinelSeed =>
+            "sentinel-seed",
+        // Grammar-2 forms share the player-facing id: the signature IS the
+        // sentinel/hook/field; the grammar version, carried on the mode,
+        // says which physics it obeys.
+        ArcRelaySignatureDefinition.SignatureKind.SentinelSeed2 =>
+            "sentinel-seed",
+        ArcRelaySignatureDefinition.SignatureKind.TractorHook2 =>
+            "tractor-hook",
+        ArcRelaySignatureDefinition.SignatureKind.NullField2 =>
+            "null-field",
 
         ActorRuntimeFaultDefinition.AccumulationScopeKind
                 .ParticipantAcrossAllSlotsLivesAndRuntimeStages =>
@@ -196,6 +306,12 @@ internal static class ActorContractCanonicalIds
         ActorLifecycleDefinition.ActorAutomaticReturnPlacementKind
                 .AssignedSpawnPermanentlyReservedForSlotAgainstOtherActorsAndLifecycleClaims =>
             "assigned-spawn-permanently-reserved-for-slot-against-other-actors-and-lifecycle-claims",
+        ActorLifecycleDefinition.ActorAutomaticReturnPlacementKind
+                .OwnSideChainAdjacentObjectiveTileThenAssignedSpawn =>
+            "own-side-chain-adjacent-objective-tile-then-assigned-spawn",
+        ActorLifecycleDefinition.ActorAutomaticReturnPlacementKind
+                .OwnSideChainAdjacentObjectiveTileInTeamAdvanceOrderThenAssignedSpawn =>
+            "own-side-chain-adjacent-objective-tile-in-team-advance-order-then-assigned-spawn",
         ActorLifecycleDefinition.TickStartLifecycleOrderKind
                 .DueTickThenReturnsAndReadinessThenFabricationThenReplicationCanonicalActorOrder =>
             "due-tick-then-returns-and-readiness-then-fabrication-then-replication-canonical-actor-order",
@@ -255,6 +371,9 @@ internal static class ActorContractCanonicalIds
         ActorAttackProfileDefinition.AimInterpretationKind
                 .AbsoluteSubmittedEightWayHeadingFacingUnchanged =>
             "absolute-submitted-eight-way-heading-facing-unchanged",
+        ActorAttackProfileDefinition.AimInterpretationKind
+                .AbsoluteSubmittedEightWayHeadingWithinFacingConeFacingUnchanged =>
+            "absolute-submitted-eight-way-heading-within-facing-cone-facing-unchanged",
 
         ActorActionKind.Wait => "wait",
         ActorActionKind.Movement => "movement",
@@ -263,11 +382,16 @@ internal static class ActorContractCanonicalIds
         ActorActionKind.Fabrication => "fabrication",
         ActorActionKind.SameLifeTransition => "same-life-transition",
         ActorActionKind.Replication => "replication",
+        ActorActionKind.ModeInvestment => "mode-investment",
+        ActorActionKind.Objective => "objective",
+        ActorActionKind.Signature => "signature",
         ActorActionParameterKind.ShotProgram => "shot-program",
         ActorActionParameterKind.Direction => "direction",
         ActorActionParameterKind.UnitTarget => "unit-target",
         ActorActionParameterKind.FormTarget => "form-target",
         ActorActionParameterKind.ProjectileHeading => "projectile-heading",
+        ActorActionParameterKind.UpgradeTrack => "upgrade-track",
+        ActorActionParameterKind.PositionTarget => "position-target",
         ActorActionRejectionResult.Blocked => "blocked",
         ActorActionRejectionResult.Faulted => "faulted",
         ActorActionRejectionResult.Rejected => "rejected",
@@ -503,6 +627,11 @@ internal static class ActorContractCanonicalIds
         ActorTickResolutionDefinition.MatchCompletionPrecedenceKind
                 .FaultEligibilityShortCircuitThenModeEarlyThenEligibleTimeout =>
             "fault-eligibility-short-circuit-then-mode-early-then-eligible-timeout",
+        ActorTickResolutionDefinition.CooldownClockKind
+                .AdvancesOnlyWithAnArmedForm =>
+            "advances-only-with-an-armed-form",
+        ActorTickResolutionDefinition.CooldownClockKind.AdvancesWithTime =>
+            "advances-with-time",
         ActorTickResolutionPhase.ResolveTickStartLifecycle =>
             "resolve-tick-start-lifecycle",
         ActorTickResolutionPhase.FreezeObservations => "freeze-observations",
@@ -537,6 +666,9 @@ internal static class ActorContractCanonicalIds
         ActorUnitSlotLifecycleAssignmentDefinition.InitialAvailabilityKind
                 .DormantUnlockAtTick =>
             "dormant-unlock-at-tick",
+        ActorUnitSlotLifecycleAssignmentDefinition.InitialAvailabilityKind
+                .DormantAutomaticActivationAtTick =>
+            "dormant-automatic-activation-at-tick",
 
         _ => throw new ArgumentOutOfRangeException(
             nameof(value),

@@ -1,0 +1,242 @@
+{
+  "schemaVersion": 1,
+  "url": "http://127.0.0.1:8941/",
+  "outcomeVisible": true,
+  "expectedRenderer": "webgl",
+  "index": {
+    "cards": [
+      {
+        "href": "sample-01.html",
+        "title": "Escort Counterpunch — Blue operation",
+        "subtitle": "Blue operation vs Baseline · Blue wins by reactor destroyed at t356 · prepare t53→commit t59→success t60→release t61 · baseline resumed"
+      },
+      {
+        "href": "sample-02.html",
+        "title": "Emergency Exchange — Blue operation",
+        "subtitle": "Blue operation vs Baseline · Blue wins by reactor destroyed at t473 · prepare t101→commit t102→success t113→release t114 · baseline resumed"
+      },
+      {
+        "href": "sample-03.html",
+        "title": "Birth Rotation — Blue operation",
+        "subtitle": "Blue operation vs Baseline · Orange wins by reactor destroyed at t412 · prepare t373→commit t379→success t386→release t388 · baseline resumed"
+      },
+      {
+        "href": "sample-04.html",
+        "title": "Smoke Breach — Blue operation",
+        "subtitle": "Blue operation vs Baseline · Orange wins by reactor destroyed at t355 · prepare t255→commit t264→success t273→release t277 · baseline resumed"
+      },
+      {
+        "href": "sample-05.html",
+        "title": "Lantern Sweep — Blue operation",
+        "subtitle": "Blue operation vs Baseline · Orange wins by reactor destroyed at t402 · prepare t53→commit t59→success t60→release t61 · baseline resumed"
+      },
+      {
+        "href": "sample-06.html",
+        "title": "Decoy Switch — Blue operation",
+        "subtitle": "Blue operation vs Baseline · Orange wins by reactor destroyed at t402 · prepare t9→commit t15→success t25→release t29 · baseline resumed"
+      },
+      {
+        "href": "sample-07.html",
+        "title": "Rear Hook — Blue operation",
+        "subtitle": "Blue operation vs Forward Baseline · Blue wins by reactor destroyed at t407 · prepare t9→commit t25→success t31→release t37 · baseline resumed"
+      },
+      {
+        "href": "sample-08.html",
+        "title": "Hardlight Gate — Blue operation",
+        "subtitle": "Blue operation vs Baseline · Orange wins by reactor destroyed at t376 · prepare t57→commit t69→success t70→release t71 · baseline resumed"
+      },
+      {
+        "href": "sample-09.html",
+        "title": "Relay Catch — Blue operation",
+        "subtitle": "Blue operation vs Hook Burst · Blue wins by reactor destroyed at t505 · prepare t76→commit t77→success t80→release t85 · baseline resumed"
+      },
+      {
+        "href": "sample-10.html",
+        "title": "Fork Shadow — Blue operation",
+        "subtitle": "Blue operation vs Baseline · Blue wins by reactor destroyed at t465 · prepare t93→commit t103→success t124→release t136 · baseline resumed"
+      }
+    ],
+    "screenshot": "art/reviews/arc-relay-play-awareness/index.png",
+    "screenshotSha256": "35493ee7ee4c5fc92cf6bd7d43b778d8cae0779e2af34ee37a3840a16bd40912"
+  },
+  "samples": [
+    {
+      "sample": "sample-01.html",
+      "title": "Escort Counterpunch — Blue operation",
+      "subtitle": "Blue operation vs Baseline · Blue wins by reactor destroyed at t356 · prepare t53→commit t59→success t60→release t61 · baseline resumed",
+      "readyMilliseconds": 29781,
+      "canvasKind": "webgl",
+      "tickBefore": 0,
+      "tickAfter": 2,
+      "scoreBug": true,
+      "tacticsTrace": true,
+      "tacticsProofTick": 60,
+      "causalCard": true,
+      "pageErrors": [],
+      "consoleErrors": [],
+      "failedRequests": [],
+      "screenshot": "art/reviews/arc-relay-play-awareness/first-operation-webgl.png",
+      "screenshotSha256": "4d05a9833fac848decae076666d7fca79a3698135a9453868f7995ca96b09b89"
+    },
+    {
+      "sample": "sample-02.html",
+      "title": "Emergency Exchange — Blue operation",
+      "subtitle": "Blue operation vs Baseline · Blue wins by reactor destroyed at t473 · prepare t101→commit t102→success t113→release t114 · baseline resumed",
+      "readyMilliseconds": 16244,
+      "canvasKind": "webgl",
+      "tickBefore": 0,
+      "tickAfter": 2,
+      "scoreBug": true,
+      "tacticsTrace": true,
+      "tacticsProofTick": 113,
+      "causalCard": true,
+      "pageErrors": [],
+      "consoleErrors": [],
+      "failedRequests": []
+    },
+    {
+      "sample": "sample-03.html",
+      "title": "Birth Rotation — Blue operation",
+      "subtitle": "Blue operation vs Baseline · Orange wins by reactor destroyed at t412 · prepare t373→commit t379→success t386→release t388 · baseline resumed",
+      "readyMilliseconds": 16794,
+      "canvasKind": "webgl",
+      "tickBefore": 0,
+      "tickAfter": 2,
+      "scoreBug": true,
+      "tacticsTrace": true,
+      "tacticsProofTick": 386,
+      "causalCard": true,
+      "pageErrors": [],
+      "consoleErrors": [],
+      "failedRequests": []
+    },
+    {
+      "sample": "sample-04.html",
+      "title": "Smoke Breach — Blue operation",
+      "subtitle": "Blue operation vs Baseline · Orange wins by reactor destroyed at t355 · prepare t255→commit t264→success t273→release t277 · baseline resumed",
+      "readyMilliseconds": 15835,
+      "canvasKind": "webgl",
+      "tickBefore": 0,
+      "tickAfter": 2,
+      "scoreBug": true,
+      "tacticsTrace": true,
+      "tacticsProofTick": 273,
+      "causalCard": true,
+      "pageErrors": [],
+      "consoleErrors": [],
+      "failedRequests": []
+    },
+    {
+      "sample": "sample-05.html",
+      "title": "Lantern Sweep — Blue operation",
+      "subtitle": "Blue operation vs Baseline · Orange wins by reactor destroyed at t402 · prepare t53→commit t59→success t60→release t61 · baseline resumed",
+      "readyMilliseconds": 15285,
+      "canvasKind": "webgl",
+      "tickBefore": 0,
+      "tickAfter": 2,
+      "scoreBug": true,
+      "tacticsTrace": true,
+      "tacticsProofTick": 60,
+      "causalCard": true,
+      "pageErrors": [],
+      "consoleErrors": [],
+      "failedRequests": []
+    },
+    {
+      "sample": "sample-06.html",
+      "title": "Decoy Switch — Blue operation",
+      "subtitle": "Blue operation vs Baseline · Orange wins by reactor destroyed at t402 · prepare t9→commit t15→success t25→release t29 · baseline resumed",
+      "readyMilliseconds": 13258,
+      "canvasKind": "webgl",
+      "tickBefore": 0,
+      "tickAfter": 2,
+      "scoreBug": true,
+      "tacticsTrace": true,
+      "tacticsProofTick": 25,
+      "causalCard": true,
+      "pageErrors": [],
+      "consoleErrors": [],
+      "failedRequests": []
+    },
+    {
+      "sample": "sample-07.html",
+      "title": "Rear Hook — Blue operation",
+      "subtitle": "Blue operation vs Forward Baseline · Blue wins by reactor destroyed at t407 · prepare t9→commit t25→success t31→release t37 · baseline resumed",
+      "readyMilliseconds": 14232,
+      "canvasKind": "webgl",
+      "tickBefore": 0,
+      "tickAfter": 2,
+      "scoreBug": true,
+      "tacticsTrace": true,
+      "tacticsProofTick": 31,
+      "causalCard": true,
+      "pageErrors": [],
+      "consoleErrors": [],
+      "failedRequests": []
+    },
+    {
+      "sample": "sample-08.html",
+      "title": "Hardlight Gate — Blue operation",
+      "subtitle": "Blue operation vs Baseline · Orange wins by reactor destroyed at t376 · prepare t57→commit t69→success t70→release t71 · baseline resumed",
+      "readyMilliseconds": 15955,
+      "canvasKind": "webgl",
+      "tickBefore": 0,
+      "tickAfter": 2,
+      "scoreBug": true,
+      "tacticsTrace": true,
+      "tacticsProofTick": 70,
+      "causalCard": true,
+      "pageErrors": [],
+      "consoleErrors": [],
+      "failedRequests": []
+    },
+    {
+      "sample": "sample-09.html",
+      "title": "Relay Catch — Blue operation",
+      "subtitle": "Blue operation vs Hook Burst · Blue wins by reactor destroyed at t505 · prepare t76→commit t77→success t80→release t85 · baseline resumed",
+      "readyMilliseconds": 15470,
+      "canvasKind": "webgl",
+      "tickBefore": 0,
+      "tickAfter": 2,
+      "scoreBug": true,
+      "tacticsTrace": true,
+      "tacticsProofTick": 80,
+      "causalCard": true,
+      "pageErrors": [],
+      "consoleErrors": [],
+      "failedRequests": []
+    },
+    {
+      "sample": "sample-10.html",
+      "title": "Fork Shadow — Blue operation",
+      "subtitle": "Blue operation vs Baseline · Blue wins by reactor destroyed at t465 · prepare t93→commit t103→success t124→release t136 · baseline resumed",
+      "readyMilliseconds": 14308,
+      "canvasKind": "webgl",
+      "tickBefore": 0,
+      "tickAfter": 2,
+      "scoreBug": true,
+      "tacticsTrace": true,
+      "tacticsProofTick": 124,
+      "causalCard": true,
+      "pageErrors": [],
+      "consoleErrors": [],
+      "failedRequests": []
+    }
+  ],
+  "possessionCue": {
+    "tick": 30,
+    "presentation": "diegetic Core pickup effect plus timeline anchor; no text banner",
+    "screenshot": "art/reviews/arc-relay-play-awareness/core-pickup-webgl.png",
+    "screenshotSha256": "9d14e354cb8825f4a7391c461a5b2e32b4cf88c49392cb6c2c3751e07fa3edf0"
+  },
+  "tacticsLens": {
+    "tick": 59,
+    "activeTrace": true,
+    "selectedTraceCard": true
+  },
+  "strategicOverview": {
+    "scope": "all three Wells; deep home aprons may be cropped",
+    "screenshot": "art/reviews/arc-relay-play-awareness/three-theater-overview-webgl.png",
+    "screenshotSha256": "bee8f3065836f2440cb1c4071f6f3b2535356eb569f22ff05d42dd73ba0c887b"
+  }
+}

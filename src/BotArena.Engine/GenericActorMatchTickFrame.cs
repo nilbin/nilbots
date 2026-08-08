@@ -13,12 +13,43 @@ public sealed record GenericActorMatchTickFrame
         IReadOnlyCollection<GenericActorAuthoritativeEvent> events,
         IReadOnlyCollection<GenericActorProjectileTraversal> traversals,
         GenericActorWorldSnapshot postState)
+        : this(
+            tickStart,
+            actorTurns,
+            events,
+            traversals,
+            postState,
+            [])
+    {
+    }
+
+    /// <summary>
+    /// The mind-profile overload. <paramref name="mindTurns"/> is empty on the
+    /// per-life generation and carries one turn per ticking participant under
+    /// the mind, which is what the replay document writes INSTEAD of N per-life
+    /// turns (<c>docs/DESIGN-MIND-ARCHITECTURE-2026-07-31.md</c> §5.1).
+    /// <para>
+    /// The frame keeps its actor turns either way: they are the authoritative
+    /// per-body record the rest of the engine's chronology validation reads,
+    /// and they are what the mind turn's <c>resolutions[]</c> is projected
+    /// from. What changes at the DOCUMENT boundary is which of the two is
+    /// written.
+    /// </para>
+    /// </summary>
+    public GenericActorMatchTickFrame(
+        GenericActorMatchTickStart tickStart,
+        IReadOnlyCollection<GenericActorMatchActorTurn> actorTurns,
+        IReadOnlyCollection<GenericActorAuthoritativeEvent> events,
+        IReadOnlyCollection<GenericActorProjectileTraversal> traversals,
+        GenericActorWorldSnapshot postState,
+        IReadOnlyCollection<GenericActorMatchMindTurn> mindTurns)
     {
         ArgumentNullException.ThrowIfNull(tickStart);
         ArgumentNullException.ThrowIfNull(actorTurns);
         ArgumentNullException.ThrowIfNull(events);
         ArgumentNullException.ThrowIfNull(traversals);
         ArgumentNullException.ThrowIfNull(postState);
+        ArgumentNullException.ThrowIfNull(mindTurns);
         int expectedNextTick = checked(tickStart.Tick + 1);
         if (postState.NextTick != expectedNextTick)
         {
@@ -29,6 +60,8 @@ public sealed record GenericActorMatchTickFrame
 
         GenericActorMatchActorTurn[] turnSnapshot = [.. actorTurns];
         ValidateTurns(tickStart, turnSnapshot);
+        GenericActorMatchMindTurn[] mindSnapshot = [.. mindTurns];
+        ValidateMindTurns(tickStart, turnSnapshot, mindSnapshot);
         GenericActorAuthoritativeEvent[] eventSnapshot = [.. events];
         ValidateEvents(tickStart, eventSnapshot);
         GenericActorProjectileTraversal[] traversalSnapshot =
@@ -43,6 +76,9 @@ public sealed record GenericActorMatchTickFrame
         ActorTurns = turnSnapshot
             .OrderBy(turn => turn.ActorId)
             .ToImmutableArray();
+        MindTurns = mindSnapshot
+            .OrderBy(turn => turn.ParticipantId)
+            .ToImmutableArray();
         Events = eventSnapshot
             .OrderBy(item => item.Ordinal)
             .ToImmutableArray();
@@ -55,6 +91,13 @@ public sealed record GenericActorMatchTickFrame
     public int Tick => TickStart.Tick;
     public GenericActorMatchTickStart TickStart { get; }
     public ImmutableArray<GenericActorMatchActorTurn> ActorTurns { get; }
+
+    /// <summary>
+    /// One turn per ticking participant under the mind profile, empty on the
+    /// per-life generation. Canonical order is by participant.
+    /// </summary>
+    public ImmutableArray<GenericActorMatchMindTurn> MindTurns { get; }
+
     public ImmutableArray<GenericActorAuthoritativeEvent> Events { get; }
     public ImmutableArray<GenericActorProjectileTraversal> Traversals { get; }
     public GenericActorWorldSnapshot PostState { get; }
@@ -111,6 +154,63 @@ public sealed record GenericActorMatchTickFrame
                 throw new ArgumentException(
                     "Every actor turn must use the exact authoritative pre-tick self state.",
                     nameof(turns));
+            }
+        }
+    }
+
+    /// <summary>
+    /// The mind-era coverage rule. Every ticking participant contributes one
+    /// turn, no participant contributes two, and the union of every turn's
+    /// resolved bodies is EXACTLY the frozen active actor set — which is where
+    /// the per-life "exactly those keys" strictness belongs once the host stops
+    /// mapping N runtimes onto N keys
+    /// (<c>docs/DESIGN-MIND-ARCHITECTURE-2026-07-31.md</c> §5.3).
+    /// </summary>
+    private static void ValidateMindTurns(
+        GenericActorMatchTickStart tickStart,
+        IReadOnlyCollection<GenericActorMatchActorTurn> actorTurns,
+        IReadOnlyCollection<GenericActorMatchMindTurn> mindTurns)
+    {
+        if (mindTurns.Count == 0)
+            return;
+        if (mindTurns.Any(turn => turn is null)
+            || mindTurns.Select(turn => turn.ParticipantId)
+                .Distinct()
+                .Count() != mindTurns.Count)
+        {
+            throw new ArgumentException(
+                "Mind turns must be non-null and participant-unique.",
+                nameof(mindTurns));
+        }
+        if (mindTurns.Any(turn => turn.Tick != tickStart.Tick))
+        {
+            throw new ArgumentException(
+                "Mind turns must be aligned to their tick.",
+                nameof(mindTurns));
+        }
+        if (!mindTurns
+            .SelectMany(turn => turn.ResolvedBodies)
+            .Order()
+            .SequenceEqual(tickStart.ActiveActorIds))
+        {
+            throw new ArgumentException(
+                "Mind turns must resolve exactly the frozen active actor set exactly once.",
+                nameof(mindTurns));
+        }
+
+        Dictionary<ActorIdentity, int> participantByActor = actorTurns
+            .ToDictionary(turn => turn.ActorId, turn => turn.ParticipantId);
+        foreach (GenericActorMatchMindTurn turn in mindTurns)
+        {
+            foreach (ActorIdentity body in turn.ResolvedBodies)
+            {
+                if (!participantByActor.TryGetValue(body, out int owner)
+                    || owner != turn.ParticipantId)
+                {
+                    throw new ArgumentException(
+                        "A mind turn resolved a body its participant does not control.",
+                        nameof(mindTurns));
+                }
             }
         }
     }

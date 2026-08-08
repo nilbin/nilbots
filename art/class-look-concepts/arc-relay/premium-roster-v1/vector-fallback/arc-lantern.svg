@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Lantern">
+  <defs>
+    <linearGradient id="lantern-chassis" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#5c566e"/><stop offset=".42" stop-color="#262038"/><stop offset="1" stop-color="#040016"/>
+    </linearGradient>
+    <linearGradient id="lantern-plate" x1="0" y1="0" x2=".85" y2="1">
+      <stop stop-color="#c0abdb"/><stop offset=".38" stop-color="#8e79a9"/><stop offset="1" stop-color="#543f6f"/>
+    </linearGradient>
+    <linearGradient id="lantern-hardware" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#fffff0"/><stop offset=".46" stop-color="#d9cbb6"/><stop offset="1" stop-color="#9f917c"/>
+    </linearGradient>
+    <linearGradient id="lantern-deep" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#322c44"/><stop offset="1" stop-color="#000004"/>
+    </linearGradient>
+    <linearGradient id="lantern-side" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#161028"/><stop offset=".44" stop-color="#000012"/><stop offset="1" stop-color="#000000"/>
+    </linearGradient>
+    <radialGradient id="lantern-emissive">
+      <stop stop-color="#fffdf0"/><stop offset=".25" stop-color="#ffff9e"/><stop offset=".64" stop-color="#f5c65a"/><stop offset="1" stop-color="#9d6e02"/>
+    </radialGradient>
+    <pattern id="lantern-brush" width="18" height="18" patternUnits="userSpaceOnUse" patternTransform="rotate(-18)">
+      <path d="M0 2h18M0 11h18" stroke="#ffffff" stroke-opacity=".16" stroke-width="1"/>
+      <path d="M0 7h18M0 16h18" stroke="#02050a" stroke-opacity=".24" stroke-width="1"/>
+    </pattern>
+    <clipPath id="lantern-clip"><path d="M64 230 126 196 166 126 230 142 270 74 310 142 374 126 414 196 476 230 446 256 476 282 414 316 374 386 310 370 270 438 230 370 166 386 126 316 64 282 94 256Z"/></clipPath>
+    <filter id="lantern-bevel" x="-12%" y="-14%" width="128%" height="138%" color-interpolation-filters="sRGB">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="2.2" result="edge-blur"/>
+      <feSpecularLighting in="edge-blur" surfaceScale="4.5" specularConstant=".42" specularExponent="16" lighting-color="#f7fbff" result="specular">
+        <feDistantLight azimuth="225" elevation="52"/>
+      </feSpecularLighting>
+      <feComposite in="specular" in2="SourceAlpha" operator="in" result="specular-cut"/>
+      <feMerge><feMergeNode in="SourceGraphic"/><feMergeNode in="specular-cut"/></feMerge>
+    </filter>
+    <filter id="lantern-team-glow" x="-55%" y="-55%" width="210%" height="210%" color-interpolation-filters="sRGB">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="7" result="glow"/>
+      <feComponentTransfer in="glow" result="soft-glow"><feFuncA type="linear" slope=".58"/></feComponentTransfer>
+      <feMerge><feMergeNode in="soft-glow"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <g stroke-linejoin="round" stroke-linecap="round">
+    <g id="underbody-locomotion">
+      <ellipse fill="#06090d" fill-opacity="0.72" cx="256" cy="324" rx="142" ry="46"/>
+      <path fill="#f5c65a" fill-opacity="0.38" d="M142 304h72l-22 48h-64Zm156 0h72l14 48h-64Z"/>
+    </g>
+    <g id="chassis-depth">
+      <path d="M64 230 126 196 166 126 230 142 270 74 310 142 374 126 414 196 476 230 446 256 476 282 414 316 374 386 310 370 270 438 230 370 166 386 126 316 64 282 94 256Z" transform="translate(0 22)" fill="url(#lantern-side)" stroke="#05080d" stroke-width="18"/>
+      <path d="M64 230 126 196 166 126 230 142 270 74 310 142 374 126 414 196 476 230 446 256 476 282 414 316 374 386 310 370 270 438 230 370 166 386 126 316 64 282 94 256Z" transform="translate(0 16)" fill="none" stroke="#38324a" stroke-opacity=".46" stroke-width="5"/>
+    </g>
+    <g id="chassis" filter="url(#lantern-bevel)">
+      <path fill="url(#lantern-chassis)" stroke="#0b1118" stroke-width="18" d="M64 230 126 196 166 126 230 142 270 74 310 142 374 126 414 196 476 230 446 256 476 282 414 316 374 386 310 370 270 438 230 370 166 386 126 316 64 282 94 256Z"/>
+      <path fill="url(#lantern-plate)" stroke="#0b1118" stroke-width="7" d="M112 232 174 200 208 160 270 150 332 160 366 200 428 232 404 256 428 280 366 312 332 352 270 362 208 352 174 312 112 280 136 256Z"/>
+      <g id="material-finish" clip-path="url(#lantern-clip)" opacity="0.22">
+        <rect x="36" y="70" width="448" height="370" fill="url(#lantern-brush)"/>
+      </g>
+      <g id="armor-plates" fill="url(#lantern-plate)" stroke="#a48fbf" stroke-width="4">
+        <path d="m126 238 72-48 54-18-18 64-56 18Z"/><path fill="#4c3767" stroke="#705b8b" d="m178 270 56 18 18 64-54-18-72-48Z"/><path fill="url(#lantern-hardware)" stroke="#f1e3ce" d="m290 168 56 18 52 42-72 14-42-30Z"/><path fill="#ab9d88" stroke="#c7b9a4" d="m326 278 72 14-52 42-56 18-6-44Z"/>
+      </g>
+      <g id="surface-panels" fill="none" stroke="#ccb7e7" stroke-opacity=".58" stroke-width="5">
+        <path d="m138 228 68-44 64-16 64 16 68 44M138 284l68 44 64 16 64-16 68-44M188 214l-34 42 34 42"/>
+      </g>
+      <g id="panel-shadows" fill="none" stroke="#00000c" stroke-opacity=".78" stroke-width="4" transform="translate(0 5)">
+        <path d="m138 228 68-44 64-16 64 16 68 44M138 284l68 44 64 16 64-16 68-44M188 214l-34 42 34 42"/>
+      </g>
+      <g id="fasteners" fill="#fff5e0" stroke="#090d12" stroke-width="3">
+        <circle cx="174" cy="212" r="6"/><circle cx="174" cy="300" r="6"/><circle cx="366" cy="212" r="6"/><circle cx="366" cy="300" r="6"/>
+      </g>
+    </g>
+    <g id="hardware-depth">
+      <circle fill="#00000a" stroke="#070a0f" stroke-width="7" cx="270" cy="256" r="82" transform="translate(0 9)"/>
+      <circle fill="#00000a" stroke="#070a0f" stroke-width="6" cx="270" cy="256" r="50" transform="translate(0 9)"/>
+    </g>
+    <g id="weapon-hardware">
+      <circle fill="url(#lantern-hardware)" stroke="#0b1118" stroke-width="7" cx="270" cy="256" r="82"/>
+      <circle fill="url(#lantern-deep)" stroke="#0b1118" stroke-width="6" cx="270" cy="256" r="50"/>
+      <g id="signature-machinery" fill="none" stroke="#ffffec" stroke-width="6" stroke-opacity=".88">
+        <circle cx="270" cy="256" r="66"/><circle cx="270" cy="256" r="38"/><path d="M270 150v48m0 116v48M164 256h48m116 0h48"/>
+      </g>
+    </g>
+    <g id="team-accents" filter="url(#lantern-team-glow)">
+      <path data-team-accent="true" fill="#38bdf8" d="M270 178a78 78 0 0 1 64 34l-30 18a42 42 0 0 0-34-18Z"/>
+      <path data-team-accent="true" fill="#38bdf8" d="M270 334a78 78 0 0 0 64-34l-30-18a42 42 0 0 1-34 18Z"/>
+      <path data-team-accent="true" fill="#38bdf8" d="m390 226 58 30-58 30 18-30Z"/>
+    </g>
+    <g id="emissives">
+      <circle fill="url(#lantern-emissive)" cx="270" cy="256" r="26"/>
+      <circle fill="#fff9dc" fill-opacity="0.78" cx="270" cy="256" r="4"/>
+    </g>
+  </g>
+</svg>

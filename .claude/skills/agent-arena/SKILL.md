@@ -49,9 +49,114 @@ not apply.
   native round-robin. Mechanical compile/contract/fault repairs are allowed
   without opponent results. If a shared brief or scaffold defect needs a
   repair pass, give every author the same opportunity and archive all
-  revisions. This is an exploratory tuning screen, not a ship verdict.
+  revisions. This is a T1/T2/DX and exploratory screen, not a bot-quality
+  proof, numeric balance authority, or ship verdict.
 
 ## Frontline Labs cohort sprint
+
+Do not infer mechanic strength from a one-pass cohort's standings. Before a
+Frontline run may support numeric balance claims, every voting entrant must
+pass pre-registered capability gates relevant to its doctrine, receive the
+same small improvement budget, and run unchanged across mirrored A/B arms and
+holdout seeds. Keep every revision. A failed doctrine demonstration is a bot
+finding; reroute the rules verdict rather than calling the mechanic weak.
+
+Use the cumulative T1–T8 individual ladder and independent C0–C5 coordination
+grades in `docs/BOT-CAPABILITY-AND-SOLVABILITY.md`. Probe definitions and the
+canonical evidence shape live in `docs/BOT-QUALIFICATION-SUITE.md`. State the
+minimum T/C grade before authoring or selecting entrants. The first Frontline
+pilot targets at least four independent cumulative T4+ lineages, including
+T5-capable policies where available. T7/T8, automated best-response search,
+and equilibrium estimation are explicitly deferred until that credible
+population exists.
+
+Population targets are tier-dependent. T1/T2 and most T3 artifacts are
+calibration instruments: retain a small canonical set of behaviorally distinct
+archetypes that passes Tn and demonstrably fails T(n+1). At the T5/T6 verdict
+band, commission independently authored doctrine briefs and continue until
+there are at least six effective doctrines, the declared strategy cells are
+covered, and leave-one-doctrine-out conclusions are stable. Similar payoff
+rows plus similar dynamics/action signatures count as redundancy evidence;
+artifact count alone is never population breadth. Preserve intermediate
+passing revisions, but never count revisions of one lineage as independent
+policies. Never infer a tier from tournament wins.
+
+Five separately versioned dynamic suites now exist:
+
+```bash
+# Frozen positional component:
+nilbots experiment frontline-labs qualify \
+  --bot <generic-project-or-wasm> \
+  --suite frontline-qualification-1 \
+  --out <evidence-dir>
+
+# Frozen WASM-only foundation component:
+nilbots experiment frontline-labs qualify \
+  --bot <generic-wasm> \
+  --suite frontline-qualification-2 \
+  --out <evidence-dir>
+
+# Cumulative T2 union profile:
+nilbots experiment frontline-labs qualify \
+  --bot <generic-wasm> \
+  --suite frontline-qualification-3 \
+  --out <evidence-dir>
+
+# Cumulative T3 tactical profile (reruns exact T2):
+nilbots experiment frontline-labs qualify \
+  --bot <generic-wasm> \
+  --suite frontline-qualification-4 \
+  --out <evidence-dir>
+
+# Current cumulative T4 positional profile (reruns exact T3):
+nilbots experiment frontline-labs qualify \
+  --bot <generic-wasm> \
+  --suite frontline-qualification-5 \
+  --out <evidence-dir>
+```
+
+Suite 1 mirrors the `entry-initiative` probe; retain it as immutable T4
+component evidence and never label one passing artifact T4 by itself. Suite 2
+repeats both assignments under the automatic-companion topology and requires
+verified identical replay hashes, zero faults, and the declared automatic
+child life. Its current report has `profileComplete: false`, deliberately
+awards no tier, and is not balance-evidence eligible. Use it to separate
+current-toolchain contract competence from strategy, not as T1/T2 proof.
+
+Suite 3 is the current prerequisite for population work. It exercises
+non-default participant identities and all three unit slots per team, useful
+automatic child lives, objective navigation/holding, direct fire,
+straight-projectile evasion, and explicit fabrication under both assignments.
+A clean pass awards T2 under
+`frontline-duel-depth-union-t2-v1`; it remains authoring/fun-floor evidence,
+not a numeric balance vote.
+
+Suite 4 reruns and hash-links the exact suite-3 prerequisite, then tests a
+required legal curve, strict wall termination, declared remaining-range
+cadence, missed-shot cooldown tempo, and local transform safety from both
+assignments. A clean pass awards T3 under
+`frontline-duel-depth-union-t3-v1`; it also remains below the numeric-balance
+voting floor. Run suite 3 directly for an assigned T2 boundary and suite 4 for
+an assigned T3 boundary.
+
+Suite 5 reruns and hash-links exact T3, then tests suppression, proactive
+pressure entry, objective-preserving response, front rotation, and the
+thin-fronts holdout from both assignments. A clean pass awards T4 under
+`frontline-duel-depth-union-t4-v1` and sets entrant-level balance eligibility.
+That does not waive the independent-lineage, study-block, or evidence-layer
+requirements. Use suite 5 for every directional-pilot author.
+
+Every Balance Lab entrant must pin
+the exact suite/version, qualification profile and contract fingerprint,
+evidence-file SHA-256, artifact hash, and awarded T/C values. Never copy a
+tier label between profiles or seasons. A new strategically necessary
+capability such as Air or FFA coalition play requires a new/extended profile;
+historical qualification remains valid only for its original profile.
+
+The causal manual-versus-automatic factorial requires one union-qualified
+population that can handle explicit Fabricate/rebuild and declared automatic
+activation/return. Rules-native product comparisons use separately authored
+or adapted populations and must not be mislabeled as the causal A/B.
 
 Do not boot the hosted App or use `scripts/tournament-drive.py` for Labs. The
 hosted path has quotas and no ladder; the exact local generic runner is the
@@ -66,12 +171,20 @@ narrow falsification screen, adapt the smallest retained micro-cohort that
 covers the competing policies; promote to a four-doctrine sprint only if the
 screen survives.
 
-Pre-register the run in `docs/FRONTLINE-LABS-COHORT-BASELINE.md`. Give each of
-four independent agents the identical
-`docs/FRONTLINE-LABS-BOT-AUTHOR-PACKET.md`, the player rules in
-`docs/FRONTLINE-LABS-RULES.md`, and exactly one doctrine sentence: pressure,
-fabricator, bastion, or adapter. Authors may inspect only the player-facing
-material permitted by the packet. They create projects with
+For duel-depth map A/Bs, use one frozen artifact set with
+`--duel-map current`, `--duel-map thin-fronts`, and
+`--duel-map outer-shoulder-bypass`. These arms share one-bend rules and differ
+by content-identified map fingerprints. Do not treat a map win table as
+balance evidence until the voting artifacts pass the relevant qualification
+probes.
+
+For new retained population work, give every independent author
+`docs/FRONTLINE-BALANCE-POPULATION-AUTHOR-PACKET.md`, the player rules, an
+explicit target tier/role/budget, and a deliberately distinct doctrine brief.
+The historical `docs/FRONTLINE-LABS-BOT-AUTHOR-PACKET.md` and
+`docs/FRONTLINE-LABS-COHORT-BASELINE.md` remain frozen inputs only when
+reproducing the original four-doctrine sprint. Authors may inspect only the
+player-facing material permitted by the selected packet. They create projects with
 `nilbots new <Name> --profile generic-actor`, receive one implementation pass,
 and do not see another entrant, standings, or replay evidence before freeze.
 
@@ -87,13 +200,18 @@ tournament with those artifacts. Rebuild only after a source or compiled
 SDK/Guest input changes; a rules-only experiment does not require bot
 recompilation.
 
-Archive **every** entrant under
+Archive **every** entrant and revision under
 `arena-bots/frontline-labs/<cohort-id>/<entrant-id>/`, never just the leader
 and never under `champions/`. Preserve source, project metadata,
 `botarena.json`, README, `DX.md`, every repair revision, canonical `bot.wasm`,
 and its SHA-256. Fill the cohort manifest described by
 `arena-bots/frontline-labs/README.md`; freeze all hashes before the first
 match.
+
+Treat source plus WASM as one immutable population revision. A mechanically
+qualified, entertaining revision may later be explicitly promoted as a
+system-owned playlist opponent. Do not publish Lab-only ablations or
+adversarial sentinels, and do not edit an archived revision during promotion.
 
 ```bash
 python3 scripts/labs-cohort-drive.py \
@@ -314,6 +432,41 @@ the ceiling, tune rules, or expose the leading bot's source unless the product
 owner explicitly changes the acceptance policy; in that case preserve the
 failed result and record a separate override per the balance-harness skill.
 
+## 1.9 Pre-flight gate — never commission authors against an unverified mechanism
+
+Agent authoring time is the expensive resource; a mechanism or DX defect
+discovered by a running author wastes the whole round. Before launching
+any authoring or revision wave that touches new rules, verbs, or arms,
+every item below must pass — this gate is what made the wave-1 revision
+round go six-for-six:
+
+- **Contract truth**: each new action/skill appears in
+  `--print-candidate-contract` output and in real legality masks; a
+  scripted probe match exercises the full lifecycle (attempt → windup →
+  completion/cancellation → events) and the replay verifies.
+- **Template safety**: run the scaffold starter against itself on every
+  new arm and confirm it *acts* (moves, fires, uses no-trap helpers).
+  Precedent: the facing-locked starter freeze — three isolated agents
+  independently burned hours rediscovering the same
+  mask-as-search-space trap that one pre-flight self-match would have
+  caught.
+- **Doc truth**: rule card, class addendum, and author packet agree
+  with the engine (DocDrift green is necessary, not sufficient — read
+  the prose against the contract).
+- **Fresh tooling**: republish the sandbox CLI authors will use; clear
+  any DX-ledger items that would block or mislead authors.
+
+`python3 scripts/preflight-authoring-gate.py --arm "" --arm "--pendulum
+ratchet" …` mechanizes every item above except the prose read — per-arm
+contract identity, a starter self-match that must ACT, a foreign-doctrine
+smoke, a rebuild of every frozen cohort artifact, doc-vs-CLI token
+agreement, and published-CLI freshness — with evidence paths and a
+nonzero exit on any FAIL.
+
+If any item fails, fix it first. Commissioning "to see what the agents
+hit" is strictly worse than one probe match — agents report friction at
+the END, in their DX notes, after the budget is spent.
+
 ## 2. Launch the challenger(s)
 
 Give each agent: a persona (one challenger: pick the archetype most relevant
@@ -367,6 +520,34 @@ completion notification → the agent likely died with the environment:
 verify postgres + the app are up (restart per §1 if not), then SendMessage
 the agent — it resumes from its transcript. Stop the check-ins once all
 reports are in.
+
+## 2.6 Friction watch — kill a doomed round early
+
+At each §2.5 check-in, also grep the agents' fresh partial output and
+draft DX notes for **critical-friction** signals — defects in the game,
+template, docs, or tooling that no author can overcome:
+
+```bash
+grep -rn -i -E "template (bug|trap)|never (legal|available)|contradicts|\
+unsatisfiable|exited before|freezes|schema|cannot qualify" \
+  sandbox/*-scratch-*/ arena-bots/**/DX.md 2>/dev/null | tail
+```
+
+Critical friction: the starter misbehaves under the arm's rules; an
+action the brief describes is never legal; the contract contradicts the
+docs; a qualification clause is unsatisfiable; frozen artifacts crash on
+the new contract. Ordinary struggle — losing matches, doctrine churn,
+slow progress — is NOT a kill signal; leave healthy agents alone.
+
+On a critical signal, do not let the rest of the round keep paying for
+it: **kill the affected agents, fix the root cause once, re-verify per
+§1.9, then relaunch a fresh isolated round.** Never message the fix into
+running isolated authors — mid-flight information contaminates the brief
+and creates unequal authoring conditions. The fairness rule stays what
+it has always been: same brief, same opportunity, every author; a
+kill-fix-relaunch round satisfies it, a selectively-patched round does
+not. Archive the killed round's partial work (it is forensic evidence,
+not waste).
 
 ## 3. Tournament
 

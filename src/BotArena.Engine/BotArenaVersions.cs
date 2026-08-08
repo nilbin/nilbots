@@ -59,6 +59,11 @@ public static class BotArenaVersions
     public const int GenericActorMatchContractSchemaVersion = 2;
     public const int GenericActorReplayFormatVersion = 3;
     /// <summary>
+    /// Compact spectator-only Arc Relay broadcast stored by the trusted hosted
+    /// product lane. Canonical audit evidence remains replay format 3.
+    /// </summary>
+    public const int ArcRelayBroadcastFormatVersion = 4;
+    /// <summary>
     /// Canonical static-contract budget after reserving one KiB for the
     /// enclosing one-MiB MatchStart frame.
     /// </summary>
@@ -80,4 +85,61 @@ public static class BotArenaVersions
     /// separate <see cref="GenericActorReplayFormatVersion"/> 3 contract.
     /// </summary>
     public const int EntityReplayFormatVersion = 2;
+
+    /// <summary>
+    /// Negotiated contract profile for the participant-scoped MIND generation
+    /// (DECISIONS #190/#191). It sits BESIDE the generic actor block above
+    /// rather than superseding it: the per-life generation stays byte-exact so
+    /// the hosted playlist, the eight measured lineages, and every frozen
+    /// cohort's evidence remain valid and comparable.
+    /// </summary>
+    public const string GenericMindContractProfileId =
+        "generic-mind-match-1";
+
+    /// <summary>Framing protocol, carried unchanged from the actor line.</summary>
+    public const string GenericMindRuntimeProtocolVersion = "1.0";
+
+    /// <summary>
+    /// Runtime CONFIGURATION 2.0: the fuel formula, the linear-memory ceiling,
+    /// and the instance topology all change. Configuration 1.0 stays exactly
+    /// as pinned for the per-life generation.
+    /// </summary>
+    public const string GenericMindRuntimeConfigurationVersion = "2.0";
+
+    /// <summary>
+    /// Semantic implementation version for mind matches, separate from
+    /// <see cref="GenericActorEngineVersion"/> so introducing the new path
+    /// does not relabel per-life matches.
+    /// </summary>
+    // 1.0.1: Arc Relay legality no longer offers position targets that create
+    // degenerate signature state.
+    // 1.0.2: a life reduced to zero by a tick-start signature is excluded from
+    // mode projection while its destruction chronology is finalized.
+    // 1.0.3: signature relocation respects permanent automatic-return spawn
+    // reservations, as ordinary movement already did.
+    // 1.0.4: tick-start chronology admits an exactly evidenced signature
+    // relocation followed by signature destruction of that same life.
+    // 1.0.5: signature pulls and bursts respect a carried Core's object-owned
+    // relocation recovery instead of moving its carrier between legal beats.
+    public const string GenericMindEngineVersion = "1.0.5";
+
+    public const int GenericMindRuntimeContractVersion = 1;
+    public const int GenericMindMatchStartSchemaVersion = 1;
+    public const int GenericMindObservationSchemaVersion = 1;
+    public const int GenericMindDecisionSchemaVersion = 1;
+
+    /// <summary>
+    /// CARRIED OVER from the actor generation and load-bearing: the mind plays
+    /// the same game, so the resolved static contract is the same schema. The
+    /// null pin depends on this.
+    /// </summary>
+    public const int GenericMindMatchContractSchemaVersion =
+        GenericActorMatchContractSchemaVersion;
+
+    /// <summary>
+    /// Replay 3, carried: the document grows a <c>mindTurns</c> alternative to
+    /// <c>actorTurns</c>, keyed by the contract profile in its header.
+    /// </summary>
+    public const int GenericMindReplayFormatVersion =
+        GenericActorReplayFormatVersion;
 }

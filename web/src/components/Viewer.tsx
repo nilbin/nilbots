@@ -5,28 +5,51 @@ import type {
   ReplayStableUnitKey,
 } from '../replayModel';
 import {
-  participantForUnit,
   teamName,
-  unitName,
-  visualIndexForUnit,
 } from '../replayParticipants';
+import { unitAccent } from '../render/unitPresentation';
 import { ArenaAudioSession } from '../audio/ArenaAudioSession';
 import { usePlayback, useLiveFollower, type LiveFollow } from '../playback';
 import { useReplaySoundEffects } from '../audio/useReplaySoundEffects';
 import { useAssetReadiness } from '../render/useAssetReadiness';
+import { viewerGate } from '../render/viewerReadiness';
 import { readSoundtrackEnabledPreference } from '../soundtrack/preferences';
 import { useImmersive } from './useImmersive';
+import { useScreenWakeLock } from './useScreenWakeLock';
 import ArenaCanvas from './ArenaCanvas';
+import PlayOverlay from './PlayOverlay';
+import TacticsLens from './TacticsLens';
 
 import SoundEffectsControl from './SoundEffectsControl';
+import CameraFitToggle from './CameraFitToggle';
 import Controls from './Controls';
 import BotPanel from './BotPanel';
 import EventFeed from './EventFeed';
 import Logo from './Logo';
-import IdentityChip from './IdentityChip';
 import { playerAccent } from '../presentation/playerAccent';
 import { styleVariables } from '../presentation/styleVariables';
+import { roleTagColor } from '../presentation/roleTag';
 import LiveStatus, { LiveDot } from './LiveStatus';
+import EntrantCrest, { type CrestPresentation } from './EntrantCrest';
+import ClassIcon from './ClassIcon';
+import {
+  createPresenter,
+} from '../replayPresentation';
+import {
+  playAwarenessTimeline,
+  playForUnit,
+  playsAt,
+} from '../presentation/playAwareness';
+import { teamVisionAt } from '../render/teamVision';
+import { currentArenaRenderProfile } from '../render/arenaRenderProfile';
+
+export interface ViewerEntrantPresentation {
+  teamId: number;
+  name: string;
+  kind: string | null;
+  crest: CrestPresentation;
+  composition?: readonly string[];
+}
 
 /**
  * The hosted viewer's 3D renderer — what the web viewer is.
@@ -50,27 +73,57 @@ export default function Viewer({
   replay,
   live,
   soundtrackPresentationId,
+  entrants,
 }: {
   replay: ReplayModel;
   live?: LiveFollow;
   /** Stable match identity across partial-live and complete replay documents. */
   soundtrackPresentationId?: string;
+  entrants?: readonly ViewerEntrantPresentation[];
 }) {
   const assets = useAssetReadiness();
   const immersive = useImmersive();
   const shell = useRef<HTMLDivElement>(null);
   const isLive = live !== undefined;
+  const renderProfile = useMemo(() => currentArenaRenderProfile(), []);
+  const playbackFrameCap = renderProfile.presentationRateLimited
+    ? renderProfile.activeFramesPerSecond
+    : undefined;
   const audioSession = useMemo(() => new ArenaAudioSession(), []);
   const audioActivationInFlight = useRef(false);
   const [audioActivationGranted, setAudioActivationGranted] =
     useState(false);
   // Immersive chrome fades out so nothing but the arena remains; any touch brings it back.
   const [chromeVisible, setChromeVisible] = useState(true);
-  const playback = usePlayback(replay, assets.ready, !isLive);
-  const liveTime = useLiveFollower(replay, live);
+  // Whether that touch was the one that brought it back. See `selectFromArena`.
+  const chromeWasHidden = useRef(false);
+  // The WebGL renderer arrives as its own chunk and then builds a scene, and neither of
+  // those is an asset the counter can see. Until the first frame has been drawn there is
+  // nothing on screen, so readiness has to include it — otherwise the button lights while
+  // the arena is still a black rectangle, which is the state this whole gate exists to
+  // remove. Canvas2D needs no equivalent: it draws from the same atlases the counter
+  // already holds, so it is ready the moment they are.
+  const [sceneReady, setSceneReady] = useState(false);
+  // Whether the viewer has been asked to play. The overlay is offered exactly once — the
+  // transport owns pause and resume from there, and a scrim over a running match would be
+  // worse than none.
+  const [started, setStarted] = useState(false);
+  const liveTime = useLiveFollower(
+    replay,
+    live,
+    playbackFrameCap,
+  );
   const [selectedUnitKey, setSelectedUnitKey] =
     useState<ReplayStableUnitKey | null>(null);
+  const [selectedPlayKey, setSelectedPlayKey] = useState<string | null>(null);
   const [showVisibility, setShowVisibility] = useState(true);
+  // The camera starts on the fixed plan view (owner ruling: a first watch reads
+  // positions before it follows a fight); the transport toggle hands the director back,
+  // and any pan or zoom gesture drops it again. Owned here rather than inside either
+  // renderer because the two must never disagree about it — a device that loses its WebGL
+  // context falls back to Canvas2D mid-replay, and the camera should not change its mind
+  // about following at the same moment the arena changes how it is drawn.
+  const [autoFit, setAutoFit] = useState(false);
   // The 3D renderer is the viewer now, and there is no way to ask for the flat one:
   // a dimension count was never a choice a player wanted to make.
   //
@@ -82,10 +135,76 @@ export default function Viewer({
   // catches. Both fall back without asking.
   const [dimensional, setDimensional] = useState(DIMENSIONAL_RENDERER_AVAILABLE);
 
+  const gate = viewerGate({
+    assetsReady: assets.ready,
+    dimensional,
+    sceneReady,
+    live: isLive,
+    started,
+  });
+  // Never autostarted. A live broadcast is the exception and not a contradiction: its clock
+  // is the server's, every viewer is on the same tick, and there is no transport to press.
+  const playback = usePlayback(
+    replay,
+    gate.ready,
+    !isLive,
+    false,
+    playbackFrameCap,
+  );
+
   const soundEffectsAvailable =
     new URLSearchParams(window.location.search).get('audio') !== 'off';
   const time = isLive ? liveTime : playback.time;
   const tick = Math.max(0, Math.min(Math.floor(time), replay.ticks.length - 1));
+  const presenter = useMemo(() => createPresenter(replay), [replay]);
+  const standing = presenter.at(tick);
+  const arcStanding = standing.arcRelay;
+  const playTimeline = useMemo(() => playAwarenessTimeline(replay), [replay]);
+  const activePlays = playsAt(replay, tick);
+  const selectedActivePlay = selectedPlayKey === null
+    ? null
+    : activePlays.find((play) => play.activationKey === selectedPlayKey) ?? null;
+  const selectedUnitPlay = playForUnit(replay, tick, selectedUnitKey);
+  const selectedUnit =
+    selectedUnitKey === null
+      ? null
+      : standing.units.find((unit) => unit.unitKey === selectedUnitKey) ?? null;
+  const perspectiveTeamId = teamVisionAt(
+    replay,
+    replay.ticks[tick],
+    selectedUnitKey,
+    showVisibility,
+  )?.teamId ?? null;
+  const highlightedUnitKeys = (
+    selectedActivePlay ?? selectedUnitPlay
+  )?.participants.map((participant) => participant.unitKey) ?? [];
+  const selectUnit = (unitKey: ReplayStableUnitKey | null) => {
+    setSelectedUnitKey(unitKey);
+    if (unitKey !== null) setSelectedPlayKey(null);
+  };
+  /**
+   * A tap on the arena, which in immersive mode is TWO answers to one gesture.
+   *
+   * The chrome is hidden and the arena is the whole screen, so the only way to
+   * see the transport again is to touch the arena — and that same touch used to
+   * clear the selection. Checking the controls therefore cost you the body you
+   * were following, every time, which is exactly the complaint (owner,
+   * 2026-08-09: "I lose my selection just checking the UI").
+   *
+   * So the first tap after the chrome went away only WAKES it. The second acts.
+   * Selecting a different body is never swallowed — that is an unambiguous
+   * instruction and it wins whatever the chrome is doing — and outside immersive
+   * mode nothing changes at all, because the chrome is never hidden there.
+   *
+   * `chromeWasHidden` has to be a ref read at gesture time, not `chromeVisible`:
+   * the shell's `onPointerDown` is an ancestor of the canvas, so by the time the
+   * canvas's own click/pointerup runs, the chrome has ALREADY been revealed and
+   * the state says so.
+   */
+  const selectFromArena = (unitKey: ReplayStableUnitKey | null) => {
+    if (unitKey === null && chromeWasHidden.current) return;
+    selectUnit(unitKey);
+  };
   const soundEffects = useReplaySoundEffects({
     replay,
     time,
@@ -99,6 +218,19 @@ export default function Viewer({
   });
 
   useEffect(() => audioSession.retainOwner(), [audioSession]);
+
+  // The overlay is not the only way in — the transport has a play button, space toggles,
+  // and a seek starts the clock too. Whichever route was taken, the invitation has been
+  // accepted and must not be drawn over a running match again.
+  useEffect(() => {
+    if (playback.playing) setStarted(true);
+  }, [playback.playing]);
+
+  // A replay is minutes of watching with nothing to touch, so the phone dims and locks
+  // mid-match. Held while the clock is running and given back the moment it stops — a
+  // paused viewer left on a desk is not a reason to keep a screen awake. A live broadcast
+  // counts as running: its clock is the server's, and there is no transport to press.
+  useScreenWakeLock(isLive || playback.playing);
 
   useEffect(() => {
     if (audioActivationGranted) return;
@@ -154,7 +286,14 @@ export default function Viewer({
   useEffect(() => {
     if (isLive) return; // No seeking during a live broadcast — viewers stay synchronized.
     const onKey = (event: KeyboardEvent) => {
-      if (event.target instanceof HTMLInputElement) return;
+      const target = event.target;
+      if (
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        (target instanceof HTMLElement && target.isContentEditable)
+      ) {
+        return;
+      }
       switch (event.key) {
         case ' ':
           event.preventDefault();
@@ -203,6 +342,9 @@ export default function Viewer({
   }, [immersive.active]);
 
   const { result } = replay;
+  const isArcRelay =
+    replay.contract.kind === 'v3-generic' &&
+    replay.contract.modeKind === 'arc-relay';
   const winnerTeam =
     result?.winnerTeamId === null || result?.winnerTeamId === undefined
       ? null
@@ -213,20 +355,32 @@ export default function Viewer({
     ? replay.units.find((unit) => unit.teamId === winnerTeam.teamId) ??
       null
     : null;
-  const winnerParticipant = winnerUnit
-    ? participantForUnit(replay, winnerUnit.unitKey)
+  const winnerAccent = winnerUnit
+    ? unitAccent(replay, winnerUnit.unitKey)
     : null;
   const transport = isLive ? (
+    // A live broadcast has no transport — every viewer is at the same tick — but the
+    // camera is not transport, it is how this viewer is looking, so it stays offered.
     <div className="panel pad val flex min-w-0 items-center gap-2.5">
       <LiveDot className="size-2" />
       Broadcasting tick {String(tick).padStart(3, '0')} — every viewer sees
       this moment.
+      <span className="ml-auto">
+        <CameraFitToggle
+          enabled={autoFit}
+          onToggle={() => setAutoFit((value) => !value)}
+        />
+      </span>
     </div>
   ) : (
     <Controls
       playback={playback}
       replay={replay}
       selectedUnitKey={selectedUnitKey}
+      selectedPlayKey={selectedPlayKey}
+      perspectiveTeamId={perspectiveTeamId}
+      autoFit={autoFit}
+      onToggleAutoFit={() => setAutoFit((value) => !value)}
     />
   );
 
@@ -236,6 +390,9 @@ export default function Viewer({
       onPointerDown={
         immersive.active
           ? () => {
+              // Recorded BEFORE the reveal, because the arena's own handler runs
+              // after this one and would otherwise only ever see "visible".
+              chromeWasHidden.current = !chromeVisible;
               setChromeVisible(true);
               immersive.promote(shell.current);
             }
@@ -266,32 +423,15 @@ export default function Viewer({
             version and the hash are provenance — they matter enormously, which is why
             they get a disclosure of their own rather than a byline nobody reads. */}
         <span className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
-          {replay.teams.map((team, index) => {
-            // A team's units, not a fixed pair: a duel shows one chip a side and a
-            // Frontline team shows however many it fields.
-            const unitKeys = replay.units
-              .filter((unit) => unit.teamId === team.teamId)
-              .map((unit) => unit.unitKey);
-            return (
-              <span key={team.teamKey} className="flex items-center gap-3">
+          {isArcRelay
+            ? <ArcRelayMatchupHeader replay={replay} entrants={entrants} />
+            : replay.teams.map((team, index) => <span key={team.teamKey}
+                className="flex min-w-0 items-center gap-2">
                 {index > 0 && <span className="lab">vs</span>}
-                {unitKeys.slice(0, 3).map((unitKey) => (
-                  <IdentityChip
-                    key={unitKey}
-                    lookId={participantForUnit(replay, unitKey)?.lookId}
-                    visualIndex={visualIndexForUnit(replay, unitKey)}
-                    accent={participantForUnit(replay, unitKey)?.accent}
-                    name={unitName(replay, unitKey)}
-                    nameClassName="text-[14px]"
-                    size={22}
-                  />
-                ))}
-                {unitKeys.length > 3 && (
-                  <span className="val">+{unitKeys.length - 3}</span>
-                )}
-              </span>
-            );
-          })}
+                <span className="truncate text-[14px] font-semibold text-arena-text">
+                  {teamName(replay, team.teamId)}
+                </span>
+              </span>)}
         </span>
         {isLive ? (
           <LiveStatus className="ml-auto" />
@@ -397,9 +537,16 @@ export default function Viewer({
                 replay={replay}
                 time={time}
                 selectedUnitKey={selectedUnitKey}
+                highlightedUnitKeys={highlightedUnitKeys}
                 showVisibility={showVisibility}
-                onSelectUnit={setSelectedUnitKey}
+                onSelectUnit={selectFromArena}
                 onUnavailable={() => setDimensional(false)}
+                onReady={() => setSceneReady(true)}
+                autoFit={autoFit}
+                onManualCamera={() => setAutoFit(false)}
+                entrants={entrants}
+                active={isLive || playback.playing}
+                renderProfile={renderProfile}
               />
             </Suspense>
           ) : (
@@ -407,8 +554,14 @@ export default function Viewer({
               replay={replay}
               time={time}
               selectedUnitKey={selectedUnitKey}
+              highlightedUnitKeys={highlightedUnitKeys}
               showVisibility={showVisibility}
-              onSelectUnit={setSelectedUnitKey}
+              onSelectUnit={selectFromArena}
+              autoFit={autoFit}
+              onManualCamera={() => setAutoFit(false)}
+              entrants={entrants}
+              active={isLive || playback.playing}
+              renderProfile={renderProfile}
             />
           )}
           {/* Where we are, over the game rather than under it: the eye is on the arena,
@@ -427,34 +580,113 @@ export default function Viewer({
             </span>{' '}
             / {String(Math.max(0, replay.ticks.length - 1)).padStart(3, '0')}
           </p>
-          {!assets.ready && (
+          {isArcRelay && arcStanding && (
+            /* In immersive mode the score bug follows the chrome: tapping
+               reveals the transport AND the names/scores together, and both
+               get out of the way of the match. Fully hidden rather than
+               dimmed - names and scores are exactly what a spectator wants
+               gone while watching, unlike the tick, which stays readable. */
+            <div
+              className={clsx(
+                'transition-opacity duration-300',
+                immersive.active && !chromeVisible &&
+                  'pointer-events-none opacity-0',
+              )}
+            >
+              <ArcRelayScoreBug replay={replay} tick={tick} entrants={entrants}
+                reactors={arcStanding.reactors} />
+            </div>
+          )}
+          {/* WHAT THE SELECTED BODY IS DOING, over the arena itself.
+              The 3D renderer draws the order tag under a chassis, which says
+              what a body is FOR; it has nowhere to put what the body is doing
+              about it this tick, and the panel is off-screen on a phone and
+              behind the arena in immersive mode. So the selection answers
+              itself where the selection was made. Bottom right: the tick chip
+              owns top left, the score bug top right, the tactics lens bottom
+              left. */}
+          {selectedUnit?.order && (
+            <div
+              aria-label="Selected unit order"
+              className={clsx(
+                'val absolute right-2 bottom-2 z-[9] flex max-w-[calc(100%-16px)] items-baseline gap-1.5 rounded-full border border-arena-edge bg-arena-bg/80 px-[9px] py-[3px] backdrop-blur-[3px] transition-opacity duration-300',
+                immersive.active && !chromeVisible && 'opacity-0',
+              )}
+            >
+              {/* The name yields first. It is the one part the panel and the
+                  chassis label both already answer; the order and what the body
+                  is doing about it are why the chip is here at all. */}
+              <span
+                className="min-w-0 truncate"
+                style={styleVariables({
+                  '--player-accent': playerAccent(selectedUnit.accent, 'panel'),
+                })}
+              >
+                <span className="player-accent-text">{selectedUnit.name}</span>
+              </span>
+              {selectedUnit.order.orderId !== null && (
+                <span
+                  className="shrink-0 whitespace-nowrap"
+                  style={{ color: roleTagColor(selectedUnit.order.orderId) }}
+                >
+                  {selectedUnit.order.orderId}
+                </span>
+              )}
+              <span className="shrink-0 whitespace-nowrap text-arena-dim">
+                {selectedUnit.order.action}
+              </span>
+            </div>
+          )}
+          {isArcRelay && !playback.atEnd && playTimeline.activations.length > 0 && (
+            <TacticsLens
+              replay={replay}
+              tick={tick}
+              selectedActivationKey={selectedPlayKey}
+              onSelectActivation={setSelectedPlayKey}
+              onSelectUnit={selectUnit}
+              onSeek={(target) => {
+                if (!isLive) playback.seek(target);
+              }}
+              selectedUnitKey={selectedUnitKey}
+              showVisibility={showVisibility}
+            />
+          )}
+          {/* A live broadcast has no play button — the clock belongs to the server and
+              every viewer is on the same tick — so it keeps a plain indicator. */}
+          {isLive && gate.overlay === 'loading' && (
             <div className="absolute inset-0 flex items-center justify-center bg-arena-bg/80">
               <p className="lab" role="status">
-                Loading arena — {assets.pending} texture
-                {assets.pending === 1 ? '' : 's'}
+                Loading arena
+                {assets.pending > 0 && ` — ${assets.pending} asset${assets.pending === 1 ? '' : 's'}`}
               </p>
             </div>
+          )}
+          {!isLive && gate.overlay !== 'hidden' && (
+            <PlayOverlay
+              ready={gate.playable}
+              pending={assets.pending}
+              onPlay={() => {
+                setStarted(true);
+                playback.play();
+              }}
+            />
           )}
           {!isLive && playback.atEnd && result && (
             <div className="absolute inset-0 flex items-center justify-center bg-arena-bg/70">
               <div className="panel px-8 py-6 text-center">
-                <p className="lab">
-                  Match complete — {result.reason} · tick {result.endTick}
-                </p>
+                <p className="lab">Match complete · tick {result.endTick}</p>
                 <p className="type-display mt-2 text-[21px]">
                   {winnerTeam ? (
                     <>
                       <span
                         className={
-                          winnerParticipant?.accent
-                            ? 'player-accent-text'
-                            : undefined
+                          winnerAccent ? 'player-accent-text' : undefined
                         }
                         style={
-                          winnerParticipant?.accent
+                          winnerAccent
                             ? styleVariables({
                                 '--player-accent': playerAccent(
-                                  winnerParticipant.accent,
+                                  winnerAccent,
                                   'panel',
                                 ),
                               })
@@ -469,6 +701,9 @@ export default function Viewer({
                     'DRAW'
                   )}
                 </p>
+                {result.mode?.kind === 'arc-relay' && (
+                  <ArcRelayResultSummary replay={replay} />
+                )}
                 {result.teams.some((team) => team.zoneTicks !== null) && (
                   <p className="val mt-1">
                     zone{' '}
@@ -535,15 +770,17 @@ export default function Viewer({
               tick={tick}
               selectedUnitKey={selectedUnitKey}
               showVisibility={showVisibility}
-              onSelectUnit={setSelectedUnitKey}
+              onSelectUnit={selectUnit}
               onToggleVisibility={() => setShowVisibility((value) => !value)}
             />
-            <EventFeed
-              replay={replay}
-              tick={tick}
-              selectedUnitKey={selectedUnitKey}
-              onSeek={isLive ? undefined : playback.seek}
-            />
+            {!isArcRelay && (
+              <EventFeed
+                replay={replay}
+                tick={tick}
+                selectedUnitKey={selectedUnitKey}
+                onSeek={isLive ? undefined : playback.seek}
+              />
+            )}
           </div>
         </aside>
       </div>
@@ -557,18 +794,29 @@ export default function Viewer({
           gallery-01 is `frost-relay`, which is nearly white, and a hard-edged dark
           rectangle dropped on it reads as damage. A gradient darkens whatever is
           actually there — and it fades on the same element as the controls, so hidden
-          chrome cannot leave a permanent band across the bottom of the arena. */}
+          chrome cannot leave a permanent band across the bottom of the arena.
+
+          **The scrim never takes a tap; only the controls do.** It is a gradient with
+          48px of transparent lead-in above the panel, drawn full-bleed and — because it
+          carried `pointer-events-auto` — swallowing every touch in the bottom ~130px of
+          the arena. On a desktop-shaped window that band is empty. On a phone held
+          sideways the viewport is ~320-350px tall, and the band lands squarely on the
+          end-of-match card's "Watch again" button and on the lower third of the play
+          button: the first tap revealed the chrome, which turned the scrim's pointer
+          events on, and every tap after that hit a gradient. "Watch again in full screen
+          on my phone doesn't work" was literally that — a decoration eating the control
+          underneath it. Decoration is `pointer-events-none`; the panel opts back in. */}
       {immersive.active && (
         <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10">
           <div
             className={clsx(
-              'bg-gradient-to-t from-arena-bg via-arena-bg/80 to-transparent p-2 pt-12 pb-[env(safe-area-inset-bottom)] transition-opacity duration-300',
-              chromeVisible
-                ? 'visible pointer-events-auto opacity-95'
-                : 'invisible pointer-events-none opacity-0',
+              'pointer-events-none bg-gradient-to-t from-arena-bg via-arena-bg/80 to-transparent p-2 pt-12 pb-[env(safe-area-inset-bottom)] transition-opacity duration-300',
+              chromeVisible ? 'visible opacity-95' : 'invisible opacity-0',
             )}
           >
-            {transport}
+            <div className={chromeVisible ? 'pointer-events-auto' : undefined}>
+              {transport}
+            </div>
           </div>
         </div>
       )}
@@ -594,6 +842,85 @@ export default function Viewer({
   );
 }
 
+function ArcRelayMatchupHeader({ replay, entrants }: {
+  replay: ReplayModel;
+  entrants?: readonly ViewerEntrantPresentation[];
+}) {
+  return replay.teams.map((team, index) => {
+    const supplied = entrants?.find((value) => value.teamId === team.teamId);
+    const firstUnit = replay.units.find((unit) => unit.teamId === team.teamId);
+    const name = supplied?.name ?? teamName(replay, team.teamId);
+    const accent = firstUnit
+      ? unitAccent(replay, firstUnit.unitKey)
+      : team.teamId === 0 ? '#22d3ee' : '#fb5360';
+    const crest = supplied?.crest ?? fallbackCrest(name, accent);
+    return <span key={team.teamKey} className="flex min-w-0 items-center gap-2">
+      {index > 0 && <span className="lab mx-1">vs</span>}
+      <EntrantCrest crest={crest} size={28} />
+      <span className="min-w-0">
+        <span className="block max-w-[180px] truncate text-[14px] font-semibold text-arena-text">
+          {name}
+        </span>
+        <span className="block text-[8px] uppercase tracking-[.16em] text-arena-dim">
+          {supplied?.kind ?? 'entrant'}
+        </span>
+      </span>
+    </span>;
+  });
+}
+
+function ArcRelayScoreBug({ replay, tick, entrants, reactors }: {
+  replay: ReplayModel;
+  tick: number;
+  entrants?: readonly ViewerEntrantPresentation[];
+  reactors: readonly { teamId: number; chargePips: number; integritySegments: number; accent: string }[];
+}) {
+  const seconds = Math.floor(tick / 5);
+  const clock = `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
+  return <div aria-label="Arc Relay score" className="absolute top-2 right-2 z-[8] flex max-w-[calc(100%-74px)] items-stretch overflow-hidden rounded-sm border border-white/15 bg-[#10161c]/92 text-white shadow-[0_4px_18px_rgba(0,0,0,.42)] backdrop-blur-[5px]">
+    {[0, 1].map((teamId) => {
+      const reactor = reactors.find((value) => value.teamId === teamId);
+      const supplied = entrants?.find((value) => value.teamId === teamId);
+      const name = supplied?.name ?? teamName(replay, teamId);
+      const crest = supplied?.crest ?? fallbackCrest(name, reactor?.accent ?? (teamId === 0 ? '#22d3ee' : '#fb5360'));
+      const composition = supplied?.composition ?? replay.units
+        .filter((unit) => unit.teamId === teamId && unit.classId)
+        .map((unit) => unit.classId!);
+      return <div key={teamId} className="flex min-w-0 items-center gap-2 px-2 py-1.5" style={{ order: teamId === 0 ? 0 : 2 }}>
+        <EntrantCrest crest={crest} size={30} />
+        <div className="min-w-0">
+          <p className="max-w-[120px] truncate text-[11px] font-bold tracking-[.04em]">{name}</p>
+          <div className="mt-1 flex items-center gap-2">
+            <span className="flex gap-[2px]" aria-label={`${reactor?.integritySegments ?? 0} reactor integrity`}>
+              {[0, 1, 2].map((value) => <i key={value} className="h-[5px] w-4 rounded-[1px] border border-white/15"
+                style={{ background: value < (reactor?.integritySegments ?? 0) ? crest.primary : '#27313a' }} />)}
+            </span>
+            <span className="flex gap-[3px]" aria-label={`${reactor?.chargePips ?? 0} charge`}>
+              {[0, 1, 2].map((value) => <i key={value} className="h-[6px] w-[6px] rounded-full"
+                style={{ background: value < (reactor?.chargePips ?? 0) ? crest.detail : '#33404a', boxShadow: value < (reactor?.chargePips ?? 0) ? `0 0 5px ${crest.detail}` : undefined }} />)}
+            </span>
+          </div>
+          {composition.length > 0 && <span className="mt-0.5 flex gap-[1px]" aria-label={`${name} composition`}>
+            {composition.slice(0, 8).map((classId, index) => <ClassIcon key={`${classId}:${index}`}
+              classId={classId} size={10} framed={false} decorative />)}
+          </span>}
+        </div>
+      </div>;
+    })}
+    <div className="order-1 flex min-w-[58px] flex-col items-center justify-center border-x border-white/10 bg-black/25 px-2">
+      <span className="font-mono text-[13px] font-bold tabular-nums">{clock}</span>
+      <span className="text-[7px] uppercase tracking-[.2em] text-white/55">Arc Relay</span>
+    </div>
+  </div>;
+}
+
+function fallbackCrest(name: string, accent: string): CrestPresentation {
+  return {
+    shape: 'shield', pattern: 'split', mark: name.slice(0, 1) || 'A',
+    primary: accent, secondary: '#202a32', detail: '#f2e9d8',
+  };
+}
+
 const NON_ACTIVATING_AUDIO_KEYS = new Set([
   'Alt',
   'CapsLock',
@@ -603,3 +930,33 @@ const NON_ACTIVATING_AUDIO_KEYS = new Set([
   'Shift',
   'Tab',
 ]);
+
+function ArcRelayResultSummary({ replay }: { replay: ReplayModel }) {
+  const result = replay.result;
+  if (!result || result.mode?.kind !== 'arc-relay') return null;
+  const reason =
+    result.mode.reason === 'reactor-destroyed'
+      ? 'REACTOR DESTROYED'
+      : result.mode.reason === 'max-ticks'
+        ? 'HORIZON RANKING'
+        : 'FAULT ELIGIBILITY';
+  const reactors = [...result.mode.state.reactors].sort(
+    (left, right) => left.teamId - right.teamId,
+  );
+  return (
+    <div className="mt-3 border-t border-arena-edge pt-3">
+      <p className="type-display text-[13px] tracking-[0.16em]">{reason}</p>
+      <div className="mt-2 grid grid-cols-2 gap-4 text-left">
+        {reactors.map((reactor) => (
+          <div key={reactor.teamId}>
+            <p className="lab">{teamName(replay, reactor.teamId)}</p>
+            <p className="val mt-1 text-arena-text">
+              integrity {reactor.integritySegments}/3
+            </p>
+            <p className="val">charge {reactor.chargePips}/3</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}

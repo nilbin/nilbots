@@ -1,0 +1,116 @@
+{
+  "version": 1,
+  "recipe": {
+    "file": "art/class-models/provider-runs/meshy/trident-wasp/019fb00c-9e8d-723b-9485-49706e307cb9/team-accent/recipe.json",
+    "sha256": "946d7bb83612bf5ff9716ab5d2153b46fb631371a48f781a89c2ee5086d764f8"
+  },
+  "source": "sandbox/meshy-runtime/v2-off-lean-runtime-correct-112.glb",
+  "output": "sandbox/class-model-builds/trident-wasp-team-accent/striker-team-accent-review.glb",
+  "artifacts": {
+    "sourceModelSha256": "ee53bb8676bbf59dd53ae0c0bddd2e9853a91547b5741cf1b97e41239f0d5471",
+    "outputModelSha256": "17c1998906729ebe70d8653c8b18b588ac3acfbeb521698737a266279147c07e",
+    "outputModelBytes": 4588820
+  },
+  "coordinateContract": {
+    "facing": "+X",
+    "up": "+Y",
+    "boundsMin": [
+      -0.5600000000000002,
+      0,
+      -0.335671150040827
+    ],
+    "boundsMax": [
+      0.56,
+      0.43198354690204854,
+      0.335671150040827
+    ],
+    "maxPlanformSpan": 1.12
+  },
+  "portabilityWarnings": [
+    {
+      "code": "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE",
+      "mesh": 0,
+      "primitive": 0
+    },
+    {
+      "code": "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE",
+      "mesh": 0,
+      "primitive": 1
+    }
+  ],
+  "pass": true,
+  "checks": [
+    {
+      "name": "recipe pins every source and generated artifact",
+      "pass": true
+    },
+    {
+      "name": "source has one primitive",
+      "pass": true
+    },
+    {
+      "name": "output has exactly hull + team-accent primitives",
+      "pass": true
+    },
+    {
+      "name": "both output primitives share the untouched geometry accessors",
+      "pass": true
+    },
+    {
+      "name": "scene graph and transforms preserve facing exactly",
+      "pass": true
+    },
+    {
+      "name": "coordinate bounds preserve the pinned +X/+Y normalized source",
+      "pass": true
+    },
+    {
+      "name": "face split is a lossless partition of source triangles",
+      "pass": true
+    },
+    {
+      "name": "team role is semantic on primitive and material",
+      "pass": true
+    },
+    {
+      "name": "team material is tintable without fixed color maps",
+      "pass": true
+    },
+    {
+      "name": "team material keeps normal and metallic/roughness PBR",
+      "pass": true
+    },
+    {
+      "name": "hull retains all four PBR texture roles",
+      "pass": true
+    },
+    {
+      "name": "normal and metallic/roughness payloads are byte-identical",
+      "pass": true
+    },
+    {
+      "name": "hull color and emission are embedded lossless PNGs",
+      "pass": true
+    },
+    {
+      "name": "generated PNGs retain their pinned resolutions",
+      "pass": true
+    },
+    {
+      "name": "runtime model remains inside its pinned transfer budget",
+      "pass": true
+    },
+    {
+      "name": "known tangent-space portability warnings remain explicit",
+      "pass": true
+    },
+    {
+      "name": "runtime model contains no camera, light, or animation",
+      "pass": true
+    },
+    {
+      "name": "report hashes and internal checks match generated files",
+      "pass": true
+    }
+  ]
+}

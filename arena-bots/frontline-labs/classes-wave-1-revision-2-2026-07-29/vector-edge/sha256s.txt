@@ -1,0 +1,100 @@
+# SHA-256 manifest — VectorEdge revision 2 (lineage vector-edge-v1, class striker)
+# Frozen 2026-07-29T03:46:31Z. Paths are relative to this directory.
+# Toolchain: NativeAOT-LLVM 10.0.0-rc.1.26306.1, SDK/Guest 0.10.4, controlled
+# 'botarena build --no-cache' through the platform-matched Docker builder.
+
+## submitted source and project metadata
+9cae31d594188f46403887578c2347307cfecd018b2a9d84e06fc82c09afb194  ArenaBasics.cs
+7b9aee1acbded847d5229170d22945d725cfad47608bc5d0dc793747f448fef0  Ballistics.cs
+b2cd32732a279eab31e03728b615d59921761794c810cd7e9623d8faa8929ff0  DX.md
+ece970b033905bb4cc25d21c68c1ab8e16a0db836afefd9fa40b30fc66c5ec09  Doctrine.cs
+a0f3b917bfea038127e65aaee0596ace45cb6798f63ae9e625498282c493ed43  DodgeLedger.cs
+08e9d1d12303dbaf41cdf8288e6d59ee887cd4f0c1813367c3145133ebec2897  Field.cs
+360c555cef3905b672e95b01cc57d736374eb5c71b2c510d602d823331fdf43c  README.md
+7c65315b881fe08c663759483192580fb07b24c0521885a197cdf9683fde7ae6  ShotSolver.cs
+89dad335608b5bd73c067eda17e09af24d117633b6f6ac006df556d0d4ddcaea  VectorEdge.cs
+8d7859751b3e83de3c624a2ae60158112ecfbe788a6d1e9cfb1b99cbc8092573  VectorEdge.csproj
+2d3611abf876fdd106c383570df298cc32c25a50e9bbe3d64bb608a9f132c647  botarena.json
+
+## canonical artifact
+36cadf4bac048b1f6566b65961bfd4528f07f9bb6367c11d91327d5e66e01493  out/bot.wasm
+
+## qualification evidence (frontline-qualification-5, exit 0, T4)
+7c7711fcce281e88c50f3e2ab272f738451c43a9dbd7c2f7506be074cd367ecc  evidence/t4/entry-initiative/current-map-pressure-entry/bot-team-0/replay.json
+126c6b91d3a92c40f157de17330aa5e86101402c83e1d09970057e9ab3266e1c  evidence/t4/entry-initiative/current-map-pressure-entry/bot-team-0/viewer.html
+3468b7381e1ac4dc14d6e08411d190b5ef8653850fc858b52cc7e6133a665337  evidence/t4/entry-initiative/current-map-pressure-entry/bot-team-1/replay.json
+8db97aca777dd0c9449c879f80a86016780815329e0e57cd4130fe8d8a593b45  evidence/t4/entry-initiative/current-map-pressure-entry/bot-team-1/viewer.html
+e45d19ce4c9ab89f4fabd33ca91db2a4495855d929c8cb219bb7aaea47299f55  evidence/t4/front-rotation/advance-after-capture/bot-team-0/replay.json
+cc1895cc19af86a87635061670921251dace0094a33af415bde0036bb2d0f762  evidence/t4/front-rotation/advance-after-capture/bot-team-0/viewer.html
+c5b969886c9636151af4e99574a13f77e5dcffc57354b6193279bbd26722b2db  evidence/t4/front-rotation/advance-after-capture/bot-team-1/replay.json
+b8ce03cb06a59697d6a566bb216cb43d4ac796362d28c3af6e26859559ecdfcc  evidence/t4/front-rotation/advance-after-capture/bot-team-1/viewer.html
+9e39a9c8b20b44fc2244876e3166d047ebbfbc0dc6ce24ff6d2ec005b466c4cb  evidence/t4/map-holdout/thin-fronts-pressure-entry/bot-team-0/replay.json
+e0fddca3a4eedb2e4e19a76c23a03b7eb28b928f340d2a933afc4a71ea08d9b4  evidence/t4/map-holdout/thin-fronts-pressure-entry/bot-team-0/viewer.html
+b79ba8bd74e5a625e3cdd810fbbf2b9e91b59ca440b7912eba0b47ef88d63fc8  evidence/t4/map-holdout/thin-fronts-pressure-entry/bot-team-1/replay.json
+f31dafdeff913e428fa5a97fc0e5cb17ee965de80446f7b953b5c76e7d93ee14  evidence/t4/map-holdout/thin-fronts-pressure-entry/bot-team-1/viewer.html
+3bb87e3a721e27e08934c341e883221cef05b41f3a3d3a0d1c51baf8efa0db01  evidence/t4/prediction-chamber/objective-preserving-response/bot-team-0/replay.json
+d315065c695c2b4df674adf9736c18ef2ebb73993c430a30250852798676f4fc  evidence/t4/prediction-chamber/objective-preserving-response/bot-team-0/viewer.html
+022fc9d1f4b241993593e80060d6a9c7761630053fff97e4e8cf130e9a56e079  evidence/t4/prediction-chamber/objective-preserving-response/bot-team-1/replay.json
+64a9c1528977409a5d13f4c032da6423f9ed9db00d32f0872c72b4c21d68cc6d  evidence/t4/prediction-chamber/objective-preserving-response/bot-team-1/viewer.html
+8d513f8e1c499e92b27d52ce3407e447228d538aaf521d9742f085ba03bc3643  evidence/t4/prerequisite-t3/cadence-parity/range-3-harmless/bot-team-0/replay.json
+2f4deed12361372f942319bd520e077221cc1dc4da32c8d5a7f60bf31ffc723c  evidence/t4/prerequisite-t3/cadence-parity/range-3-harmless/bot-team-0/viewer.html
+1a66271e1f68d24d5ec48eafac05bbdc97a17da2443a1e178ab6b6c8d2255d42  evidence/t4/prerequisite-t3/cadence-parity/range-3-harmless/bot-team-1/replay.json
+8802125e308beed99123262612ae152c0dc2faf34d27bbf4eaf7333ca6d486f2  evidence/t4/prerequisite-t3/cadence-parity/range-3-harmless/bot-team-1/viewer.html
+f2cccf9c9903a2d44ef36ac695e35916e856a781c7984ab635c86d6dfed7b419  evidence/t4/prerequisite-t3/cadence-parity/range-4-threatening/bot-team-0/replay.json
+c3c547861e8f988137f2715b731edd25b6e3a88a3e603e3bfa249b4a2a040969  evidence/t4/prerequisite-t3/cadence-parity/range-4-threatening/bot-team-0/viewer.html
+62c34ab5f4096cff618fc3d5177b70858bfb7f0dc5f974202ffa97e7c0abab5c  evidence/t4/prerequisite-t3/cadence-parity/range-4-threatening/bot-team-1/replay.json
+5657cd173885c5160c3144ccd7306696f0ec29d57d269c948e1293f46ef42b6c  evidence/t4/prerequisite-t3/cadence-parity/range-4-threatening/bot-team-1/viewer.html
+db0c1d0f4b70a2a3cc0703559cf139fab74e893d48bd902bce81e4fc297d8284  evidence/t4/prerequisite-t3/cooldown-window/declared-mobile-cooldown/bot-team-0/replay.json
+d398fe61985ffa4f16393bf9148077396a741ba4ac5d01a8266b4f02f41bc237  evidence/t4/prerequisite-t3/cooldown-window/declared-mobile-cooldown/bot-team-0/viewer.html
+8673bde84bfbde74dc30d471aeeb53e09608f5b3b0efcbabc97f8e4734c9747c  evidence/t4/prerequisite-t3/cooldown-window/declared-mobile-cooldown/bot-team-1/replay.json
+aa2e50b9be0b7a7760487cbbe778b774b0e0d69fa7f3fdf83d67f1f92f76dc38  evidence/t4/prerequisite-t3/cooldown-window/declared-mobile-cooldown/bot-team-1/viewer.html
+4c203fd126a28b5f62ed762f3d762dedd46b4ede7a0fd6b841322905d53a7684  evidence/t4/prerequisite-t3/local-form-safety/objective-weight-zero-transform/bot-team-0/replay.json
+f821742e78502b15625f4b8147b095ea84c31b199db7e746f621f1e121041671  evidence/t4/prerequisite-t3/local-form-safety/objective-weight-zero-transform/bot-team-0/viewer.html
+31ff2fc8a458866ecfecee3e0759a1a4f76f5b891d8b52704cb440fb3467df49  evidence/t4/prerequisite-t3/local-form-safety/objective-weight-zero-transform/bot-team-1/replay.json
+38cecc2d182a34ec89c7f765ab739e47962688569388e0364ab71cf64fa48856  evidence/t4/prerequisite-t3/local-form-safety/objective-weight-zero-transform/bot-team-1/viewer.html
+cb2b90caf78d5ffbb1dfe2e5e7fc630c736d1aafe51fde494ee92c3a6d63e593  evidence/t4/prerequisite-t3/prerequisite-t2/automatic-life-cycle/bot-team-0/primary/replay.json
+44244f65cb1d623e0505274f9c01b5aefa0388f2b634f2b029c9c2914dd56f28  evidence/t4/prerequisite-t3/prerequisite-t2/automatic-life-cycle/bot-team-0/primary/viewer.html
+f3492a491d4583bd7ad896efd94e582cb88b864b43c75e1db5e73e694a75e93d  evidence/t4/prerequisite-t3/prerequisite-t2/automatic-life-cycle/bot-team-1/primary/replay.json
+644a07d8759c5517ced827414648433c810eee1a9940651ec5aa9a4258c77a51  evidence/t4/prerequisite-t3/prerequisite-t2/automatic-life-cycle/bot-team-1/primary/viewer.html
+cb2b90caf78d5ffbb1dfe2e5e7fc630c736d1aafe51fde494ee92c3a6d63e593  evidence/t4/prerequisite-t3/prerequisite-t2/contract-matrix/bot-team-0/determinism-repeat/replay.json
+44244f65cb1d623e0505274f9c01b5aefa0388f2b634f2b029c9c2914dd56f28  evidence/t4/prerequisite-t3/prerequisite-t2/contract-matrix/bot-team-0/determinism-repeat/viewer.html
+cb2b90caf78d5ffbb1dfe2e5e7fc630c736d1aafe51fde494ee92c3a6d63e593  evidence/t4/prerequisite-t3/prerequisite-t2/contract-matrix/bot-team-0/primary/replay.json
+44244f65cb1d623e0505274f9c01b5aefa0388f2b634f2b029c9c2914dd56f28  evidence/t4/prerequisite-t3/prerequisite-t2/contract-matrix/bot-team-0/primary/viewer.html
+f3492a491d4583bd7ad896efd94e582cb88b864b43c75e1db5e73e694a75e93d  evidence/t4/prerequisite-t3/prerequisite-t2/contract-matrix/bot-team-1/determinism-repeat/replay.json
+644a07d8759c5517ced827414648433c810eee1a9940651ec5aa9a4258c77a51  evidence/t4/prerequisite-t3/prerequisite-t2/contract-matrix/bot-team-1/determinism-repeat/viewer.html
+f3492a491d4583bd7ad896efd94e582cb88b864b43c75e1db5e73e694a75e93d  evidence/t4/prerequisite-t3/prerequisite-t2/contract-matrix/bot-team-1/primary/replay.json
+644a07d8759c5517ced827414648433c810eee1a9940651ec5aa9a4258c77a51  evidence/t4/prerequisite-t3/prerequisite-t2/contract-matrix/bot-team-1/primary/viewer.html
+fe4d69ef5efe34ccae806f723dc4ef4d640502a498de41dde057db00db7ebeca  evidence/t4/prerequisite-t3/prerequisite-t2/direct-fire/bot-team-0/primary/replay.json
+c0418daa5a5983db9aa9a609f7cd88522f46cb00cff8ca6d13b33c9ce6a4f8ed  evidence/t4/prerequisite-t3/prerequisite-t2/direct-fire/bot-team-0/primary/viewer.html
+781b87bccbbd12d7363df2213ebcb522a0f54861988b182638ffa9a44e63425b  evidence/t4/prerequisite-t3/prerequisite-t2/direct-fire/bot-team-1/primary/replay.json
+ea4e0cd833b5bce1497f6dac862ca7f9c9be13a86bbeafd0631bf150ba24175e  evidence/t4/prerequisite-t3/prerequisite-t2/direct-fire/bot-team-1/primary/viewer.html
+b37b0b34a503db0a1c9f833e1b003dbfb0a4246c7e2f63326e254a9c289b92a1  evidence/t4/prerequisite-t3/prerequisite-t2/manual-fabrication/bot-team-0/primary/replay.json
+61337169ffd950af403ae3614c0ea4f2ae2c203d247707852c0c4c5eeac5e9a4  evidence/t4/prerequisite-t3/prerequisite-t2/manual-fabrication/bot-team-0/primary/viewer.html
+37844ab53624d854c35cc73efcb4482024037c77538e8b1f40238d8defb422bf  evidence/t4/prerequisite-t3/prerequisite-t2/manual-fabrication/bot-team-1/primary/replay.json
+112ca41b7b675b3299f83f7d319e445c06b4bb2d51eb43459a7c15fdfa321b7a  evidence/t4/prerequisite-t3/prerequisite-t2/manual-fabrication/bot-team-1/primary/viewer.html
+b564218cc7243382c950cc46124e8d375fe665c2a29fc26895bfcca4ef4d0e45  evidence/t4/prerequisite-t3/prerequisite-t2/objective-path/bot-team-0/primary/replay.json
+e971587025e9b92a6b9196b7d00b4d83b5621e3866f114f01daa3f6d54a6f4a3  evidence/t4/prerequisite-t3/prerequisite-t2/objective-path/bot-team-0/primary/viewer.html
+0aaf4663ae34cdf77eabd78aad3b1c19cfbf845273618d9d8f70431980ed62c5  evidence/t4/prerequisite-t3/prerequisite-t2/objective-path/bot-team-1/primary/replay.json
+9fa08dd43c6429a67a74bfe999539426c6e4a454bc0277abf6029619a8fb6906  evidence/t4/prerequisite-t3/prerequisite-t2/objective-path/bot-team-1/primary/viewer.html
+7e43378d98e7e427f5dcb4141f34e59c15896c5f5c4fb12a21208fc947fc2a5a  evidence/t4/prerequisite-t3/prerequisite-t2/qualification.json
+4d566894096df21b63fb073344ddd3c1e5e4ed677616889512d2fa751880a850  evidence/t4/prerequisite-t3/prerequisite-t2/straight-evade/bot-team-0/primary/replay.json
+002c1cb39e04c3b0131fa68401e176d11b8fa2606ec3d8998cdd036cc16fd00b  evidence/t4/prerequisite-t3/prerequisite-t2/straight-evade/bot-team-0/primary/viewer.html
+effcc15ce4a221e41c2c88ff165821dd559364e3587c1d914ec501e1068b3796  evidence/t4/prerequisite-t3/prerequisite-t2/straight-evade/bot-team-1/primary/replay.json
+13962450893770609a61063240091a76bafd77f007c509c1a86f89051a934292  evidence/t4/prerequisite-t3/prerequisite-t2/straight-evade/bot-team-1/primary/viewer.html
+df0a5b13d528fa8bd82883d363c2fc67c71a464f280670ea368e06911a7a4cec  evidence/t4/prerequisite-t3/qualification.json
+78687291bb9ad17998562ed5e94b79c5454021933338d28e0b0733be97121128  evidence/t4/prerequisite-t3/strict-corner/strict-corner-invalid-intercept/bot-team-0/replay.json
+f735ea5d9cdcce3879249a465de631d0fb89082ed5149d8432f52d0a24170256  evidence/t4/prerequisite-t3/strict-corner/strict-corner-invalid-intercept/bot-team-0/viewer.html
+89780df141f2f3608424a5a945c4c31f3455f7d9d13d66ea0224e64aef5de91e  evidence/t4/prerequisite-t3/strict-corner/strict-corner-invalid-intercept/bot-team-1/replay.json
+e09f41bab28be959fd2711dc098f68f1c00925df209b6e4455b1b04cd06fc09c  evidence/t4/prerequisite-t3/strict-corner/strict-corner-invalid-intercept/bot-team-1/viewer.html
+d8d0cdf20f99e2019db34a0835c3f67b52713c1801d07d6346f6f7b4ade495cb  evidence/t4/prerequisite-t3/wall-terminated-bend/off-axis-visible-target/bot-team-0/replay.json
+3c3b5dbb3e6a5d6716554cce64356a0bbea21663fb4e6d97f02dd918f8472852  evidence/t4/prerequisite-t3/wall-terminated-bend/off-axis-visible-target/bot-team-0/viewer.html
+38cbcb6544980ad06dbc57419292548fb646e57b751c5d7408c5ede0d813b2b8  evidence/t4/prerequisite-t3/wall-terminated-bend/off-axis-visible-target/bot-team-1/replay.json
+6e5b84658bac806a42dbe1ed0f1827ba929df209d70bb7d4198451f859a5e576  evidence/t4/prerequisite-t3/wall-terminated-bend/off-axis-visible-target/bot-team-1/viewer.html
+e41d28a635c55fd996b8941c5147a2e765c749281375b9d90c25044f4bc3ed22  evidence/t4/qualification.json
+73d1e5a6c9f7d16bcf27d23ccbe59ab0edf54ba104faa0d7c1978f9a1c599bf6  evidence/t4/suppression-choke/objective-hold-straight-pressure/bot-team-0/replay.json
+f93ab1d5ceb3dc6f7bb776a4459c836952ee2eed4f4513e874949ccdff28b226  evidence/t4/suppression-choke/objective-hold-straight-pressure/bot-team-0/viewer.html
+1a1dbe9a197b13a11b61dfc5a5881c121a5ef36fd0cdb8b02901cd4d3e9b1fd4  evidence/t4/suppression-choke/objective-hold-straight-pressure/bot-team-1/replay.json
+e4adb3b6058c8cacba1a738fa41bfacbf9c714685f447b1f95ec3c9b6cd1e954  evidence/t4/suppression-choke/objective-hold-straight-pressure/bot-team-1/viewer.html
+
+## deterministic source-tree hash (sha256 of the sorted source manifest above)
+49b07265a1310737f885dac7a36f415a313752539ebe1944d19b3513b69135a1  source-tree

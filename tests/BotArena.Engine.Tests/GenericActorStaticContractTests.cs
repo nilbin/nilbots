@@ -135,6 +135,78 @@ public sealed class GenericActorStaticContractTests
     }
 
     [Fact]
+    public void ParsesClassIdsFromTopologyWithoutFormNameInference()
+    {
+        ActorResolvedMatchDefinition source =
+            FrontlineLabsDefinition.CreateClassesExperiment(
+                FrontlineLabsClassDefinition.Bulwark,
+                FrontlineLabsClassDefinition.Striker);
+        string canonical =
+            ActorContractManifestSerializer.ToCanonicalJson(source);
+
+        GenericActorResolvedMatchContract contract =
+            ActorCanonicalContractReader.Parse(canonical);
+
+        Assert.Equal(
+            ["bulwark", "striker"],
+            contract.Topology.Teams.Select(team => team.ClassId));
+        Assert.Equal(
+            ["bulwark", "striker"],
+            contract.Topology.Participants.Select(
+                participant => participant.ClassId));
+        Assert.Contains(
+            "\"classId\":\"bulwark\"",
+            canonical,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "\"classId\":",
+            ActorContractManifestSerializer.ToCanonicalJson(
+                GenericActorContractTestFixture.Frontline()),
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ReaderRejectsExplicitlyInertOrMismatchedClassIdentity()
+    {
+        string classless = ActorContractManifestSerializer.ToCanonicalJson(
+            GenericActorContractTestFixture.Deathmatch("head-to-head"));
+        string explicitNull = classless.Replace(
+            "\"teams\":[{\"teamId\":0}",
+            "\"teams\":[{\"teamId\":0,\"classId\":null}",
+            StringComparison.Ordinal);
+        string classed = ActorContractManifestSerializer.ToCanonicalJson(
+            FrontlineLabsDefinition.CreateClassesExperiment(
+                FrontlineLabsClassDefinition.Bulwark,
+                FrontlineLabsClassDefinition.Striker));
+        JsonObject mismatchRoot =
+            Assert.IsType<JsonObject>(JsonNode.Parse(classed));
+        JsonObject mismatchTopology =
+            Assert.IsType<JsonObject>(mismatchRoot["topology"]);
+        Assert.IsType<JsonArray>(
+            mismatchTopology["participants"])[0]!["classId"] =
+                "striker";
+        Rehash(
+            mismatchTopology,
+            "topologyFingerprint",
+            "topologyFingerprint");
+        Rehash(
+            mismatchRoot,
+            "matchContractFingerprint",
+            "matchContractFingerprint");
+        string mismatch = mismatchRoot.ToJsonString();
+
+        Assert.NotEqual(classless, explicitNull);
+        Assert.NotEqual(classed, mismatch);
+        Assert.Throws<FormatException>(() =>
+            ActorCanonicalContractReader.Parse(explicitNull));
+        Assert.Contains(
+            "class",
+            Assert.Throws<FormatException>(() =>
+                ActorCanonicalContractReader.Parse(mismatch)).Message,
+            StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void ParsesOptionalFrontlineCaptureGainSchedule()
     {
         ActorResolvedMatchDefinition source =
@@ -209,6 +281,7 @@ public sealed class GenericActorStaticContractTests
             ActorId = new BotArena.Sdk.ActorIdentity(0, 1, 0),
             ParticipantId = 11,
             ActorRandomSeed = 18_446_744_073_709_551_000UL,
+            TeamRandomSeed = 18_446_744_073_709_551_615UL,
             Origin = new GenericActorMatchStart.LifeOrigin(
                 GenericActorMatchStart.SpawnReason.Initial,
                 Generation: 0,
@@ -230,6 +303,7 @@ public sealed class GenericActorStaticContractTests
         Assert.Equal(start.ActorId, decoded.ActorId);
         Assert.Equal(start.ParticipantId, decoded.ParticipantId);
         Assert.Equal(start.ActorRandomSeed, decoded.ActorRandomSeed);
+        Assert.Equal(start.TeamRandomSeed, decoded.TeamRandomSeed);
         Assert.Equal(start.Origin, decoded.Origin);
         Assert.Equal(canonical, decoded.Contract.CanonicalJson);
         Assert.Equal(
@@ -277,6 +351,7 @@ public sealed class GenericActorStaticContractTests
             ActorId = new BotArena.Sdk.ActorIdentity(0, 1, 0),
             ParticipantId = 10,
             ActorRandomSeed = 42,
+            TeamRandomSeed = 4242,
             Origin = new GenericActorMatchStart.LifeOrigin(
                 GenericActorMatchStart.SpawnReason.Replication,
                 Generation: 1,
@@ -298,7 +373,7 @@ public sealed class GenericActorStaticContractTests
     }
 
     [Fact]
-    public void FabricationAndAutomaticReturnOriginsRoundTrip()
+    public void FabricationAutomaticReturnAndActivationOriginsRoundTrip()
     {
         GenericActorResolvedMatchContract transitionContract =
             Parse(GenericActorContractTestFixture.WithTransitions());
@@ -337,6 +412,35 @@ public sealed class GenericActorStaticContractTests
             GenericActorWireContractCodec.DecodeMatchStart(
                 GenericActorWireContractCodec.EncodeMatchStart(
                     automaticReturn)).Origin);
+
+        GenericActorResolvedMatchContract activationContract =
+            Parse(
+                FrontlineLabsDefinition
+                    .CreateAutomaticCompanionsExperiment());
+        GenericActorMatchStart automaticActivation = Start(
+            activationContract,
+            new BotArena.Sdk.ActorIdentity(0, 1, 0),
+            participantId: 0,
+            new GenericActorMatchStart.LifeOrigin(
+                GenericActorMatchStart.SpawnReason.AutomaticActivation,
+                Generation: 0,
+                ParentActorId: null,
+                SourceTransitionId: null,
+                SourceOperationId: null));
+        GenericActorMatchStart decodedActivation =
+            GenericActorWireContractCodec.DecodeMatchStart(
+                GenericActorWireContractCodec.EncodeMatchStart(
+                    automaticActivation));
+        Assert.Equal(
+            automaticActivation.Origin,
+            decodedActivation.Origin);
+        Assert.Equal(
+            GenericActorResolvedMatchContract.InitialAvailability
+                .DormantAutomaticActivationAtTick,
+            decodedActivation.Contract.LifecycleAssignments.Single(
+                assignment =>
+                    assignment.TeamId == 0
+                    && assignment.UnitId == 1).InitialAvailability);
     }
 
     [Fact]
@@ -589,8 +693,12 @@ public sealed class GenericActorStaticContractTests
                 "\"kind\":\"future-action\",\"parameterKinds\"",
                 StringComparison.Ordinal),
             "unknown-property" => canonical.Replace(
-                "{\"schemaVersion\":2,",
-                "{\"schemaVersion\":2,\"future\":true,",
+                "{\"schemaVersion\":"
+                    + ActorResolvedMatchDefinition.CurrentSchemaVersion
+                    + ",",
+                "{\"schemaVersion\":"
+                    + ActorResolvedMatchDefinition.CurrentSchemaVersion
+                    + ",\"future\":true,",
                 StringComparison.Ordinal),
             "noncanonical-number" => canonical.Replace(
                 "\"maxTicks\":100",
@@ -616,8 +724,14 @@ public sealed class GenericActorStaticContractTests
                 StringComparison.Ordinal),
             "trailing-data" => canonical + "false",
             "duplicate-property" => canonical.Replace(
-                "{\"schemaVersion\":2,",
-                "{\"schemaVersion\":2,\"schemaVersion\":2,",
+                "{\"schemaVersion\":"
+                    + ActorResolvedMatchDefinition.CurrentSchemaVersion
+                    + ",",
+                "{\"schemaVersion\":"
+                    + ActorResolvedMatchDefinition.CurrentSchemaVersion
+                    + ",\"schemaVersion\":"
+                    + ActorResolvedMatchDefinition.CurrentSchemaVersion
+                    + ",",
                 StringComparison.Ordinal),
             "trailing-comma" => canonical.Insert(
                 canonical.Length - 1,
@@ -769,6 +883,7 @@ public sealed class GenericActorStaticContractTests
             ActorId = new BotArena.Sdk.ActorIdentity(0, 0, 1),
             ParticipantId = 10,
             ActorRandomSeed = 1,
+            TeamRandomSeed = 2,
             Origin = new GenericActorMatchStart.LifeOrigin(
                 GenericActorMatchStart.SpawnReason.AutomaticReturn,
                 Generation: 0,
@@ -809,6 +924,84 @@ public sealed class GenericActorStaticContractTests
         Assert.Throws<FormatException>(
             () => GenericActorWireContractCodec.DecodeMatchStart(
                 wire.ToArray()));
+    }
+
+    [Fact]
+    public void MatchStartTeamSeedIsATolerantTrailingWireField()
+    {
+        // #156 discipline, both directions. An encoder that predates the team
+        // stream omits field 8 and the current decoder still accepts the
+        // frame; a decoder that predates it meets an unknown field 8 and must
+        // ignore it, which is what lets a frozen artifact keep negotiating.
+        ActorResolvedMatchDefinition source =
+            GenericActorContractTestFixture.Deathmatch("teams");
+        string canonical =
+            ActorContractManifestSerializer.ToCanonicalJson(source);
+        GenericActorResolvedMatchContract contract =
+            ActorCanonicalContractReader.Parse(canonical);
+        GenericActorMatchStart start = Start(
+            contract,
+            new BotArena.Sdk.ActorIdentity(0, 1, 0),
+            participantId: 11,
+            new GenericActorMatchStart.LifeOrigin(
+                GenericActorMatchStart.SpawnReason.Initial,
+                Generation: 0,
+                ParentActorId: null,
+                SourceTransitionId: null,
+                SourceOperationId: null));
+
+        byte[] current =
+            GenericActorWireContractCodec.EncodeMatchStart(start);
+        var legacy = new ActorWireObjectWriter();
+        legacy.Field(
+            1,
+            ActorWireValue.Int32(start.SchemaVersion));
+        legacy.Field(
+            2,
+            ActorWireValue.Int32(start.RuntimeContractVersion));
+        legacy.Field(
+            3,
+            ActorWireContractCodec.EncodeIdentity(start.ActorId));
+        legacy.Field(4, ActorWireValue.Int32(start.ParticipantId));
+        legacy.Field(5, ActorWireValue.UInt64(start.ActorRandomSeed));
+        legacy.Field(6, EncodeInitialOrigin());
+        legacy.Field(
+            7,
+            ActorWireValue.String(
+                canonical,
+                ActorWireProtocol.MaxHostFrameBytes));
+        byte[] legacyBytes = legacy.ToArray();
+
+        Assert.True(current.Length > legacyBytes.Length);
+        Assert.Equal(
+            legacyBytes,
+            current.AsSpan(0, legacyBytes.Length).ToArray());
+
+        GenericActorMatchStart decodedLegacy =
+            GenericActorWireContractCodec.DecodeMatchStart(legacyBytes);
+        Assert.Equal(0UL, decodedLegacy.TeamRandomSeed);
+        Assert.Equal(start.ActorRandomSeed, decodedLegacy.ActorRandomSeed);
+
+        // The old decoder's behavior, reproduced exactly: parse the frame it
+        // knows about and never look at the trailing field.
+        var reader = new ActorWireObjectReader(current, depth: 0);
+        Assert.Equal(
+            start.ActorRandomSeed,
+            ActorWireValue.UInt64(reader.Required(5)));
+        Assert.Equal(
+            start.TeamRandomSeed,
+            ActorWireValue.UInt64(reader.Required(8)));
+    }
+
+    private static byte[] EncodeInitialOrigin()
+    {
+        var origin = new ActorWireObjectWriter();
+        origin.Field(
+            1,
+            ActorWireValue.Enum(
+                GenericActorMatchStart.SpawnReason.Initial));
+        origin.Field(2, ActorWireValue.Int32(0));
+        return origin.ToArray();
     }
 
     [Fact]
@@ -885,6 +1078,7 @@ public sealed class GenericActorStaticContractTests
             ActorId = actorId,
             ParticipantId = participantId,
             ActorRandomSeed = 42,
+            TeamRandomSeed = 4242,
             Origin = origin,
             Contract = contract,
         };

@@ -15,5 +15,6 @@ public sealed record ActorMapTileTagDefinition(
     {
         TransitionPlacementForbidden = 0,
         SpawnProtected = 1,
+        SignaturePlacementForbidden = 2,
     }
 }

@@ -1,3 +1,6 @@
+using System.Buffers;
+using System.Text;
+using System.IO.Compression;
 using BotArena.Engine;
 
 namespace BotArena.Cli;
@@ -29,14 +32,222 @@ public static class ReplayOutput
     public static WrittenReplay WriteJson(
         string json,
         string outDir,
-        string? themeId = null)
+        string? themeId = null,
+        bool withViewer = true)
     {
         ArgumentNullException.ThrowIfNull(json);
         Directory.CreateDirectory(outDir);
         string replayPath = Path.GetFullPath(Path.Combine(outDir, "replay.json"));
-        File.WriteAllText(replayPath, json);
-        string? viewerPath = WriteViewer(json, outDir, themeId);
+        WriteVerified(replayPath, json);
+        string? viewerPath = withViewer
+            ? WriteViewer(json, outDir, themeId)
+            : null;
         return new WrittenReplay(replayPath, viewerPath);
+    }
+
+    /// <summary>
+    /// Writes one canonical replay as <c>replay.json.gz</c> without ever
+    /// materialising an uncompressed durable sibling. Evaluation campaigns use
+    /// this path: the canonical document remains available for audit and hash
+    /// verification, while galleries receive a separately derived broadcast
+    /// slice.
+    /// </summary>
+    public static WrittenReplay WriteGzipJson(
+        string json,
+        string outDir)
+    {
+        ArgumentNullException.ThrowIfNull(json);
+        Directory.CreateDirectory(outDir);
+        string replayPath = Path.GetFullPath(
+            Path.Combine(outDir, "replay.json.gz"));
+        string temp = replayPath + ".tmp";
+        try
+        {
+            using (FileStream output = File.Create(temp))
+            using (var compressed = new GZipStream(
+                       output,
+                       CompressionLevel.SmallestSize))
+            using (var writer = new StreamWriter(
+                       compressed,
+                       new UTF8Encoding(
+                           encoderShouldEmitUTF8Identifier: false,
+                           throwOnInvalidBytes: true)))
+            {
+                writer.Write(json);
+            }
+
+            if (!GzipContentEquals(temp, json))
+            {
+                throw new IOException(
+                    "Compressed replay write verification failed: the "
+                    + "decompressed bytes differ from the canonical input.");
+            }
+            File.Move(temp, replayPath, overwrite: true);
+            return new WrittenReplay(replayPath, ViewerPath: null);
+        }
+        catch
+        {
+            try
+            {
+                File.Delete(temp);
+            }
+            catch (IOException)
+            {
+                // Preserve the original failure.
+            }
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Byte-oriented twin of <see cref="WriteGzipJson(string,string)"/> for
+    /// replay-v3 documents that already exist as canonical UTF-8.
+    /// </summary>
+    public static WrittenReplay WriteGzipJson(
+        ReadOnlyMemory<byte> utf8Json,
+        string outDir)
+    {
+        Directory.CreateDirectory(outDir);
+        string replayPath = Path.GetFullPath(
+            Path.Combine(outDir, "replay.json.gz"));
+        string temp = replayPath + ".tmp";
+        try
+        {
+            using (FileStream output = File.Create(temp))
+            using (var compressed = new GZipStream(
+                       output,
+                       CompressionLevel.Optimal))
+            {
+                compressed.Write(utf8Json.Span);
+            }
+
+            if (!GzipContentEquals(temp, utf8Json))
+            {
+                throw new IOException(
+                    "Compressed replay write verification failed: the "
+                    + "decompressed bytes differ from the canonical input.");
+            }
+            File.Move(temp, replayPath, overwrite: true);
+            return new WrittenReplay(replayPath, ViewerPath: null);
+        }
+        catch
+        {
+            try
+            {
+                File.Delete(temp);
+            }
+            catch (IOException)
+            {
+                // Preserve the original failure.
+            }
+            throw;
+        }
+    }
+
+    private static bool GzipContentEquals(string path, string expected)
+    {
+        char[] buffer = ArrayPool<char>.Shared.Rent(64 * 1024);
+        try
+        {
+            using FileStream input = File.OpenRead(path);
+            using var compressed = new GZipStream(
+                input,
+                CompressionMode.Decompress);
+            using var reader = new StreamReader(
+                compressed,
+                new UTF8Encoding(
+                    encoderShouldEmitUTF8Identifier: false,
+                    throwOnInvalidBytes: true),
+                detectEncodingFromByteOrderMarks: false,
+                bufferSize: 64 * 1024,
+                leaveOpen: false);
+            int offset = 0;
+            while (true)
+            {
+                int read = reader.Read(buffer, 0, buffer.Length);
+                if (read == 0)
+                    return offset == expected.Length;
+                if (read > expected.Length - offset
+                    || !buffer.AsSpan(0, read).SequenceEqual(
+                        expected.AsSpan(offset, read)))
+                {
+                    return false;
+                }
+                offset += read;
+            }
+        }
+        finally
+        {
+            ArrayPool<char>.Shared.Return(buffer);
+        }
+    }
+
+    private static bool GzipContentEquals(
+        string path,
+        ReadOnlyMemory<byte> expected)
+    {
+        byte[] buffer = ArrayPool<byte>.Shared.Rent(64 * 1024);
+        try
+        {
+            using FileStream input = File.OpenRead(path);
+            using var compressed = new GZipStream(
+                input,
+                CompressionMode.Decompress);
+            int offset = 0;
+            while (true)
+            {
+                int read = compressed.Read(buffer, 0, buffer.Length);
+                if (read == 0)
+                    return offset == expected.Length;
+                if (read > expected.Length - offset
+                    || !buffer.AsSpan(0, read).SequenceEqual(
+                        expected.Span.Slice(offset, read)))
+                {
+                    return false;
+                }
+                offset += read;
+            }
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(buffer);
+        }
+    }
+
+    /// <summary>
+    /// Writes through a temp file, verifies the byte length on disk, and
+    /// moves into place — so a full volume produces a loud failure instead
+    /// of a truncated replay that parses, reports plausible standings, and
+    /// lies (a wave-5 author lost a sweep to exactly that).
+    /// </summary>
+    private static void WriteVerified(string path, string content)
+    {
+        string temp = path + ".tmp";
+        try
+        {
+            File.WriteAllText(temp, content);
+            long expected = new UTF8Encoding(false).GetByteCount(content);
+            long actual = new FileInfo(temp).Length;
+            if (actual != expected)
+            {
+                throw new IOException(
+                    $"Replay write verification failed: {actual} bytes on "
+                    + $"disk, {expected} expected — is the volume full?");
+            }
+            File.Move(temp, path, overwrite: true);
+        }
+        catch
+        {
+            try
+            {
+                File.Delete(temp);
+            }
+            catch (IOException)
+            {
+                // The loud failure below matters more than temp hygiene.
+            }
+            throw;
+        }
     }
 
     public static string? WriteViewer(string replayJson, string outDir, string? themeId = null)
@@ -44,6 +255,7 @@ public static class ReplayOutput
         string? template = FindTemplate(themeId);
         if (template is null || !File.Exists(template))
             return null;
+        Directory.CreateDirectory(outDir);
         string html = File.ReadAllText(template);
         if (!html.Contains(InjectionMarker))
             return null;

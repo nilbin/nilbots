@@ -1,0 +1,26 @@
+{
+  "sampleVersion": 2,
+  "selection": "outcome-visible Home Siege v3 mirrored strict proof plus immutable v2 reference",
+  "outcomeBlind": false,
+  "identitiesBlind": false,
+  "replays": [
+    {
+      "operationId": "home-siege-v3-blue",
+      "map": "arc-relay-threefold-depth-counterflow-01",
+      "rules": "arc-relay-forward-combat-01",
+      "source": "arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/evidence/replays/home-siege-v3-blue.broadcast.json.gz"
+    },
+    {
+      "operationId": "home-siege-v3-orange",
+      "map": "arc-relay-threefold-depth-counterflow-01",
+      "rules": "arc-relay-forward-combat-01",
+      "source": "arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/evidence/replays/home-siege-v3-orange.broadcast.json.gz"
+    },
+    {
+      "operationId": "home-siege-v2-reference",
+      "map": "arc-relay-threefold-depth-counterflow-01",
+      "rules": "arc-relay-forward-combat-01",
+      "source": "arena-bots/arc-relay/standing-strategy-v1-2026-08-03/evidence/replays/home-siege-orange.broadcast.json.gz"
+    }
+  ]
+}

@@ -35,6 +35,14 @@ public static class ProjectileHeadingExtensions
     public static ProjectileHeading Turned(this ProjectileHeading heading, int octants) =>
         (ProjectileHeading)(((int)heading + octants % 8 + 8) % 8);
 
+    /// <summary>
+    /// The exactly opposite heading — four octants around. A deflecting
+    /// projectile guard sends the bolt back along this heading, so the
+    /// returned bolt retraces the approach vector rather than aiming.
+    /// </summary>
+    public static ProjectileHeading Reversed(this ProjectileHeading heading) =>
+        heading.Turned(4);
+
     public static ProjectileHeading Between(Position from, Position to)
     {
         int dx = Math.Sign(to.X - from.X);

@@ -77,7 +77,7 @@ function visibleUnitKeys(group: THREE.Object3D): ReplayStableUnitKey[] {
 
 function formPart(
   chassis: THREE.Object3D,
-  form: 'mobile' | 'stationary-omnidirectional',
+  form: 'mobile' | 'stationary-omnidirectional' | 'stance-directional',
 ): THREE.Object3D {
   const part = chassis.children.find(
     (child) => child.userData.renderForm === form,
@@ -489,10 +489,13 @@ test('3D overlays show the five-position Frontline and absent-unit lifecycle cue
   overlays.update(1.5, null, false);
 
   const positionMeshes: THREE.Object3D[] = [];
+  const spawnPads: THREE.Object3D[] = [];
   const lifecycleMeshes: THREE.Object3D[] = [];
   overlays.group.traverse((node) => {
     if (typeof node.userData.positionIndex === 'number')
       positionMeshes.push(node);
+    if (node.userData.kind === 'frontline-spawn-pad')
+      spawnPads.push(node);
     if (typeof node.userData.lifecycleStatus === 'string')
       lifecycleMeshes.push(node);
   });
@@ -500,6 +503,19 @@ test('3D overlays show the five-position Frontline and absent-unit lifecycle cue
   assert.equal(
     positionMeshes.filter((mesh) => mesh.userData.active).length,
     1,
+  );
+  assert.equal(spawnPads.length, 2, 'both authored home pads are visible');
+  assert.deepEqual(
+    spawnPads.map((pad) => pad.userData.teamId).sort(),
+    [0, 1],
+  );
+  assert.ok(
+    spawnPads.every(
+      (pad) =>
+        typeof pad.userData.accent === 'string' &&
+        pad.userData.accent.length > 0,
+    ),
+    'spawn-pad team colour comes from renderer presentation',
   );
   const queued = lifecycleMeshes.find(
     (mesh) =>
@@ -528,6 +544,234 @@ test('3D overlays show the five-position Frontline and absent-unit lifecycle cue
   overlays.dispose();
 });
 
+test('Frontline capture fields derive contested state through the binary capture policy', () => {
+  const contestedReplay = structuredClone(frontline) as ReplayModel;
+  const definition = contestedReplay.map.frontline;
+  assert.ok(definition);
+  const active = definition.positions.find(
+    (position) => position.positionIndex === 1,
+  );
+  assert.ok(active);
+  // Both active Prime positions at tick zero, expressed as an authored
+  // multi-tile objective footprint rather than an invented overlay position.
+  active.tiles = [
+    { x: 1, y: 4 },
+    { x: 13, y: 4 },
+  ];
+
+  const overlays = buildOverlays(contestedReplay);
+  overlays.update(0.5, null, false);
+
+  const fields: THREE.Object3D[] = [];
+  overlays.group.traverse((node) => {
+    if (node.userData.kind === 'frontline-capture-field')
+      fields.push(node);
+  });
+  const activeField = fields.find((field) => field.userData.active);
+  assert.ok(activeField);
+  assert.equal(activeField.userData.positionIndex, 1);
+  assert.equal(activeField.userData.state, 'contested');
+
+  overlays.dispose();
+});
+
+test('3D capture overlays separate build, erosion, and exact post-advance ratchet ownership', () => {
+  const building = captureReplay({
+    activePositionIndex: 1,
+    tiles: [{ x: 1, y: 4 }],
+    claimingTeamId: 0,
+    captureProgress: 2,
+  });
+  const buildOverlaysResult = buildOverlays(building);
+  buildOverlaysResult.update(0.5, null, false);
+  const buildField = activeCaptureField(buildOverlaysResult.group);
+  assert.equal(buildField.userData.state, 'building');
+  assert.equal(buildField.userData.progressDirection, 'building');
+  assert.equal(buildField.userData.claimantTeamId, 0);
+  assert.ok(
+    captureMaterial(buildField, 'frontline-capture-progress').opacity >
+      0.8,
+  );
+  assert.ok(
+    captureMaterial(buildField, 'frontline-capture-ownership').opacity >
+      0,
+  );
+  buildOverlaysResult.dispose();
+
+  const eroding = captureReplay({
+    activePositionIndex: 1,
+    tiles: [{ x: 13, y: 4 }],
+    claimingTeamId: 0,
+    captureProgress: 2,
+  });
+  const erosionOverlays = buildOverlays(eroding);
+  erosionOverlays.update(0.5, null, false);
+  const erosionField = activeCaptureField(erosionOverlays.group);
+  assert.equal(erosionField.userData.state, 'eroding');
+  assert.equal(erosionField.userData.progressDirection, 'eroding');
+  assert.equal(erosionField.userData.claimantTeamId, 0);
+  assert.equal(erosionField.userData.challengerTeamId, 1);
+  assert.ok(
+    captureMaterial(erosionField, 'frontline-capture-erosion').opacity >
+      0.6,
+  );
+  erosionOverlays.dispose();
+
+  const held = captureReplay({
+    activePositionIndex: 2,
+    tiles: [{ x: 9, y: 2 }],
+    claimingTeamId: null,
+    captureProgress: 0,
+    holdOwnerTeamId: 1,
+    holdEndsAtTick: 31,
+  });
+  const holdOverlays = buildOverlays(held);
+  holdOverlays.update(0.5, null, false);
+  const heldField = activeCaptureField(holdOverlays.group);
+  assert.equal(heldField.userData.positionIndex, 2);
+  assert.equal(heldField.userData.state, 'holding');
+  assert.equal(heldField.userData.holdOwnerTeamId, 1);
+  assert.equal(heldField.userData.holdEndsAtTick, 31);
+  assert.ok(
+    captureMaterial(heldField, 'frontline-capture-ownership').opacity >=
+      0.2,
+  );
+  assert.ok(
+    captureMaterial(heldField, 'frontline-capture-hold').opacity > 0.7,
+  );
+  holdOverlays.dispose();
+});
+
+test('the accent pool stays transparent when a bot is followed', () => {
+  // The pool is an additively blended `PlaneGeometry` two and a half tiles square with a
+  // radial glow for a texture and no alpha test — everything it draws is alpha. Following a
+  // bot raises its base opacity to exactly 1, and `fade` used to *assign*
+  // `transparent = factor < 1 || base < 1`, which at full strength is `false`. Dropped into
+  // the opaque pass, the soft circle of light became a hard square: the rectangular box
+  // reported around one unit at a time — the selected one.
+  const actors = buildActors(replay);
+  const followed: ReplayStableUnitKey = 'duel:0:unit:0';
+
+  const poolOf = (unitKey: ReplayStableUnitKey) => {
+    let material: THREE.MeshBasicMaterial | null = null;
+    chassisOf(actors.group, unitKey).traverse((node) => {
+      if (node.userData.cue !== 'accent-pool') return;
+      const mesh = node as THREE.Mesh;
+      assert.ok(mesh.material instanceof THREE.MeshBasicMaterial);
+      material = mesh.material;
+    });
+    assert.ok(material, `no accent pool for ${unitKey}`);
+    return material as THREE.MeshBasicMaterial;
+  };
+
+  // Unfollowed: base is below 1, so even the old rule kept this one honest.
+  actors.update(10, null, false);
+  assert.equal(poolOf(followed).transparent, true);
+
+  // Followed, unfogged, fully emerged — base 1 and factor 1, the exact corner that broke.
+  actors.update(10, followed, false);
+  const pool = poolOf(followed);
+  assert.equal(
+    pool.transparent,
+    true,
+    'the followed bot\'s pool must stay in the transparent pass',
+  );
+  assert.ok(pool.opacity > 0.99, 'and it is at full strength while followed');
+
+  // Selecting a different bot must hand the first one back unbroken.
+  actors.update(10, 'duel:1:unit:0' as ReplayStableUnitKey, false);
+  assert.equal(poolOf(followed).transparent, true);
+
+  actors.dispose();
+});
+
+test('capture arcs spin about their own tile, never about the map corner', () => {
+  // The erosion and hold arcs are `InstancedMesh`es whose tile translation lives in the
+  // instance matrices. Turning the mesh — the obvious way to spin them — swung every arc
+  // around tile (0,0) on a radius of however far into the arena its tile sat, at nearly two
+  // revolutions a second. That is what "random flying circles all over the map" was: rings
+  // of light orbiting the corner of the arena, surfacing wherever the playhead landed.
+  const held = captureReplay({
+    activePositionIndex: 2,
+    tiles: [{ x: 9, y: 2 }],
+    claimingTeamId: null,
+    captureProgress: 0,
+    holdOwnerTeamId: 1,
+    holdEndsAtTick: 31,
+  });
+  const overlays = buildOverlays(held);
+
+  // Several playheads, because the angle is a function of time: at t=0 even a mesh
+  // rotation is the identity, so a single early frame proves nothing.
+  for (const time of [0, 0.5, 7.5, 31.25, 220]) {
+    overlays.update(time, null, false);
+    overlays.group.updateMatrixWorld(true);
+
+    const placed: Record<string, THREE.Vector3> = {};
+    overlays.group.traverse((node) => {
+      const kind = node.userData.kind;
+      const mesh = node as THREE.InstancedMesh;
+      if (typeof kind !== 'string' || !mesh.isInstancedMesh) return;
+      const matrix = new THREE.Matrix4();
+      mesh.getMatrixAt(0, matrix);
+      placed[kind] = new THREE.Vector3()
+        .setFromMatrixPosition(matrix)
+        .applyMatrix4(mesh.matrixWorld);
+    });
+
+    for (const kind of [
+      'frontline-capture-progress',
+      'frontline-capture-erosion',
+      'frontline-capture-hold',
+    ]) {
+      const at = placed[kind];
+      assert.ok(at, `${kind} is instanced`);
+      assert.ok(
+        Math.abs(at.x - 9.5) < 1e-6 && Math.abs(at.z - 2.5) < 1e-6,
+        `${kind} sits on its tile at t=${time}, not at (${at.x.toFixed(2)}, ${at.z.toFixed(2)})`,
+      );
+    }
+  }
+
+  overlays.dispose();
+});
+
+test('the capture arcs still turn — the spin is local, not removed', () => {
+  // The fix must not be "delete the rotation". The arcs are meant to counter-rotate; what
+  // changed is the centre they turn about, so the instance matrices have to differ between
+  // two playheads while their translation stays put.
+  const held = captureReplay({
+    activePositionIndex: 2,
+    tiles: [{ x: 9, y: 2 }],
+    claimingTeamId: null,
+    captureProgress: 0,
+    holdOwnerTeamId: 1,
+    holdEndsAtTick: 31,
+  });
+  const overlays = buildOverlays(held);
+
+  const basisAt = (time: number): number[] => {
+    overlays.update(time, null, false);
+    let found: number[] | null = null;
+    overlays.group.traverse((node) => {
+      if (node.userData.kind !== 'frontline-capture-hold') return;
+      const matrix = new THREE.Matrix4();
+      (node as THREE.InstancedMesh).getMatrixAt(0, matrix);
+      found = [...matrix.elements];
+    });
+    assert.ok(found);
+    return found;
+  };
+
+  const early = basisAt(1);
+  const later = basisAt(2.5);
+  assert.notDeepEqual(early, later, 'the arc turns between two playheads');
+  // Elements 12/13/14 are the translation column: unchanged while the basis rotates.
+  assert.deepEqual(early.slice(12, 15), later.slice(12, 15));
+
+  overlays.dispose();
+});
+
 test('zero-tick replay-v2 prefixes do not invent bodies, lifecycle, or an active position', () => {
   const actors = buildActors(emptyFrontlinePrefix);
   actors.update(0, null, false);
@@ -544,4 +788,293 @@ test('zero-tick replay-v2 prefixes do not invent bodies, lifecycle, or an active
 
   actors.dispose();
   overlays.dispose();
+});
+
+function captureReplay({
+  activePositionIndex,
+  tiles,
+  claimingTeamId,
+  captureProgress,
+  holdOwnerTeamId = null,
+  holdEndsAtTick = null,
+}: {
+  activePositionIndex: number;
+  tiles: { x: number; y: number }[];
+  claimingTeamId: number | null;
+  captureProgress: number;
+  holdOwnerTeamId?: number | null;
+  holdEndsAtTick?: number | null;
+}): ReplayModel {
+  const candidate = structuredClone(frontline) as ReplayModel;
+  const definition = candidate.map.frontline;
+  assert.ok(definition);
+  const position = definition.positions.find(
+    (entry) => entry.positionIndex === activePositionIndex,
+  );
+  assert.ok(position);
+  position.tiles = tiles;
+  const objective = candidate.ticks[0]!.after.objective;
+  assert.equal(objective.kind, 'frontline');
+  if (objective.kind !== 'frontline') return candidate;
+  objective.activePositionIndex = activePositionIndex;
+  objective.claimingTeamId = claimingTeamId;
+  objective.captureProgress = captureProgress;
+  objective.holdOwnerTeamId = holdOwnerTeamId;
+  objective.holdEndsAtTick = holdEndsAtTick;
+  return candidate;
+}
+
+function activeCaptureField(group: THREE.Object3D): THREE.Object3D {
+  let active: THREE.Object3D | null = null;
+  group.traverse((node) => {
+    if (
+      node.userData.kind === 'frontline-capture-field' &&
+      node.userData.active
+    ) {
+      active = node;
+    }
+  });
+  assert.ok(active);
+  return active;
+}
+
+function captureMaterial(
+  field: THREE.Object3D,
+  kind: string,
+): THREE.MeshBasicMaterial {
+  const mesh = field.children.find(
+    (child) => child.userData.kind === kind,
+  ) as THREE.Mesh | undefined;
+  assert.ok(mesh);
+  assert.ok(mesh.material instanceof THREE.MeshBasicMaterial);
+  return mesh.material;
+}
+
+/**
+ * A striker's volley, as a replay the renderer can be asked about.
+ *
+ * The Labs replays that carry a real one are twelve megabytes each, and the animation
+ * being pinned is a pure function of two events and a form catalog — so the shape is
+ * borrowed from the engine-authored Frontline fixture rather than a fixture of its own.
+ * Its unit 1 already performs a same-tick form change on tick 9, which is exactly the
+ * shape of a volley entry; pointing it at a stance form instead of a turret, and adding
+ * the automatic return on the tick the bolts leave, reproduces the move a Labs striker
+ * makes. The engine fixture itself is never touched (see `tests/fixtures/README.md`).
+ */
+const VOLLEY_CASTER: ReplayStableUnitKey = 'frontline:0:unit:1';
+const VOLLEY_STANCE_FORM = 'child-mobile-volley-stance';
+/** Entered here, and cast on the next tick — the one-tick windup this exists for. */
+const VOLLEY_ENTER_TICK = 9;
+const VOLLEY_CAST_TICK = 10;
+
+function volleyReplay(): ReplayModel {
+  const model = structuredClone(frontline) as ReplayModel;
+  const mobile = model.forms.find(
+    (form) => form.formId === 'child-mobile',
+  )!;
+  model.forms.push({
+    ...mobile,
+    formId: VOLLEY_STANCE_FORM,
+    canMove: false,
+  });
+
+  let entry: (typeof model.ticks)[number]['events'][number] | null = null;
+  for (const tick of model.ticks) {
+    for (const event of tick.events) {
+      if (
+        event.sourceActor?.unitKey !== VOLLEY_CASTER ||
+        (event.type !== 'form-transition-started' &&
+          event.type !== 'form-changed')
+      ) {
+        continue;
+      }
+      event.toFormId = VOLLEY_STANCE_FORM;
+      if (event.type === 'form-transition-started') entry = event;
+    }
+    // The authoritative form follows the same story, so nothing downstream of the
+    // animation reads a turret where a stance is being drawn.
+    for (const state of [tick.before, tick.after]) {
+      for (const actor of state.actors) {
+        if (actor.unitKey !== VOLLEY_CASTER) continue;
+        if (actor.formId !== 'turret') continue;
+        actor.formId =
+          tick.tick === VOLLEY_ENTER_TICK
+            ? VOLLEY_STANCE_FORM
+            : 'child-mobile';
+      }
+    }
+  }
+  assert.ok(entry, 'the fixture no longer carries a same-tick form change');
+
+  const cast = model.ticks.find(
+    (tick) => tick.tick === VOLLEY_CAST_TICK,
+  )!;
+  cast.events.push({
+    ...structuredClone(entry),
+    eventId: 'synthetic:volley-return',
+    tick: VOLLEY_CAST_TICK,
+    fromFormId: VOLLEY_STANCE_FORM,
+    toFormId: 'child-mobile',
+    formTransitionStartedAtTick: VOLLEY_CAST_TICK,
+    formTransitionCompletesAtTick: VOLLEY_CAST_TICK,
+  });
+  return model;
+}
+
+test('the volley stance is fully out on the tick it fires, and never pops', () => {
+  const actors = buildActors(volleyReplay());
+  const chassis = chassisOf(actors.group, VOLLEY_CASTER);
+  const mobile = formPart(chassis, 'mobile');
+  const stance = formPart(chassis, 'stance-directional');
+  const anchor = chassis.children.find(
+    (child) => child.userData.cue === 'form-transition-pending',
+  );
+  const pool = chassis.children.find(
+    (child) => child.userData.cue === 'accent-pool',
+  );
+  assert.ok(anchor && pool);
+  const hinges = stance.children.filter(
+    (child) => child.userData.fanAngle !== undefined,
+  );
+  assert.equal(hinges.length, 3, 'three launch lanes');
+
+  /** How far the fan has swung, as a share of the heading it fires along. */
+  const fanned = () =>
+    Math.abs(hinges[0]!.rotation.y) /
+    Math.abs(hinges[0]!.userData.fanAngle as number);
+  /** The size of whichever body is actually on screen. */
+  const shownSize = () =>
+    mobile.visible ? mobile.scale.x : stance.scale.x;
+
+  // The reported bug, stated as a number. The entry used to run on Anchor's 1.5-tick
+  // fallback, so at the instant the three bolts left the muzzle the fan was 60% open and
+  // still moving — the telegraph arrived after the thing it announced.
+  actors.update(VOLLEY_CAST_TICK, null, false);
+  assert.equal(stance.visible, true, 'the stance body is what fires');
+  assert.equal(mobile.visible, false);
+  assert.ok(
+    fanned() > 0.99,
+    `the fan is open when the volley leaves (${(fanned() * 100).toFixed(0)}%)`,
+  );
+  assert.ok(
+    Math.abs(hinges[0]!.rotation.y) <=
+      Math.abs(hinges[0]!.userData.fanAngle as number) + 1e-9,
+    'and never past the heading the profile actually fires along',
+  );
+
+  // No pop. The two bodies used to cross at 0.58 and 0.71 — a fifth of the machine's size,
+  // gained in one frame, on top of a model swap. Sampled finely across the whole move,
+  // because a discontinuity is exactly what an eye catches and an end-state assertion does
+  // not.
+  let previous: number | null = null;
+  let worst = 0;
+  let charge = 0;
+  for (let t = VOLLEY_ENTER_TICK; t <= VOLLEY_CAST_TICK + 1; t += 0.02) {
+    actors.update(t, null, false);
+    if (previous !== null) worst = Math.max(worst, Math.abs(shownSize() - previous));
+    previous = shownSize();
+    charge = Math.max(charge, pool.scale.x);
+    assert.equal(
+      anchor.visible,
+      false,
+      `no windup dial on a one-tick stance (t=${t.toFixed(2)})`,
+    );
+  }
+  assert.ok(worst < 0.02, `the body never jumps size (worst step ${worst.toFixed(3)})`);
+
+  // And the striker does light up: the accent pool flares and spreads while it winds.
+  assert.ok(charge > 1.2, `the charge reads (${charge.toFixed(2)}×)`);
+  actors.update(VOLLEY_CAST_TICK + 2, null, false);
+  assert.ok(pool.scale.x < 1.01, 'and is given back once the move is over');
+
+  actors.dispose();
+});
+
+/** The floor ring belonging to one unit, found by its cue like the health pips are. */
+function selectionRingOf(
+  group: THREE.Object3D,
+  unitKey: ReplayStableUnitKey,
+): THREE.Object3D {
+  let found: THREE.Object3D | null = null;
+  group.traverse((node) => {
+    if (
+      node.userData.cue === 'selection-ring' &&
+      node.userData.forUnitKey === unitKey
+    ) {
+      found = node;
+    }
+  });
+  assert.ok(found, `no selection ring for unit ${unitKey}`);
+  return found;
+}
+
+/**
+ * The ring under the selected body.
+ *
+ * Three things about it are decisions rather than styling, and all three are invisible in
+ * a screenshot of a dark map: it belongs to exactly one bot at a time, it sits outside
+ * the chassis silhouette rather than across it, and it is above the fog plane so a body
+ * standing at the edge of its own team's vision keeps it.
+ */
+test('the selected body is ringed on the floor, and only that one', () => {
+  const actors = buildActors(replay);
+  const [first, second] = replay.units.map((unit) => unit.unitKey);
+  assert.ok(first && second && first !== second);
+
+  actors.update(2, null, false);
+  assert.equal(
+    selectionRingOf(actors.group, first).visible,
+    false,
+    'nothing is ringed until something is picked',
+  );
+
+  actors.update(2, first, false);
+  const ring = selectionRingOf(actors.group, first);
+  assert.equal(ring.visible, true);
+  assert.equal(
+    selectionRingOf(actors.group, second).visible,
+    false,
+    'selection is one bot at a time',
+  );
+
+  // Above the fog mask (0.03), which is the whole of "readable in fog": every other floor
+  // cue sits under it because the fog is entitled to hide what is happening on that
+  // ground, and this one is the viewer's own state rather than the match's.
+  assert.ok(ring.position.y > 0.03, 'the ring clears the fog plane');
+
+  // Outside the machine, not drawn across it. The first attempt at a selection ring was
+  // removed for reading as painted over the chassis, and the fix is geometric.
+  const radii = ring.children.map((child) => {
+    const geometry = (child as THREE.Mesh).geometry as THREE.BufferGeometry;
+    geometry.computeBoundingSphere();
+    return geometry.boundingSphere!.radius;
+  });
+  assert.ok(radii.length === 2, 'a dark backing under a bright edge, so any theme reads');
+  assert.ok(Math.min(...radii) > 0.9, 'and it sits out at the tile boundary');
+
+  // Broken, not solid. Every other ring on this floor reports a rules state and every one
+  // of them is continuous; a dashed one cannot be read as any of them, and it is what the
+  // flat renderer has always drawn for selection.
+  const position = (
+    (ring.children[0] as THREE.Mesh).geometry as THREE.BufferGeometry
+  ).getAttribute('position');
+  const angles = [];
+  for (let index = 0; index < position.count; index += 1) {
+    angles.push(Math.atan2(position.getZ(index), position.getX(index)));
+  }
+  angles.sort((left, right) => left - right);
+  const widest = angles.reduce(
+    (gap, angle, index) =>
+      index === 0 ? gap : Math.max(gap, angle - angles[index - 1]!),
+    angles[0]! + Math.PI * 2 - angles[angles.length - 1]!,
+  );
+  assert.ok(widest > 0.2, `the ring is dashed (widest gap ${widest.toFixed(2)} rad)`);
+
+  actors.update(2, second, false);
+  assert.equal(
+    selectionRingOf(actors.group, first).visible,
+    false,
+    'picking another bot gives the ground back',
+  );
+  assert.equal(selectionRingOf(actors.group, second).visible, true);
 });

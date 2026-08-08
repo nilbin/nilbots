@@ -16,7 +16,9 @@ public sealed record ActorAttackProfileDefinition
         int attackEnergyCost,
         int energyRegenerationIntervalTicks,
         int energyRegenerationAmount,
-        ActorShotProgramDefinition shotProgram)
+        ActorShotProgramDefinition shotProgram,
+        ActorAttackVolleyDefinition? volley = null,
+        int facingAimHalfWidthSectors = 0)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(id);
         ArgumentNullException.ThrowIfNull(projectile);
@@ -66,6 +68,30 @@ public sealed record ActorAttackProfileDefinition
                 "Projectile and programmed-shot corner policies must agree.",
                 nameof(shotProgram));
         }
+        // A shot program is a private per-shot trajectory commitment; a volley
+        // is a public simultaneous fan. Combining them would make the fan a
+        // hidden-information skill, which the slate's design guards forbid on
+        // a special (docs/DESIGN-MECHANISM-SLATE-2026-07-29.md).
+        if (volley is not null && shotProgram.Enabled)
+        {
+            throw new ArgumentException(
+                "A multi-projectile volley fires straight: programmed shots "
+                + "are unavailable on a volley profile.",
+                nameof(volley));
+        }
+        if (facingAimHalfWidthSectors is < 0 or > 3)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(facingAimHalfWidthSectors));
+        }
+        if (facingAimHalfWidthSectors > 0
+            && (omnidirectionalAim || shotProgram.Enabled))
+        {
+            throw new ArgumentException(
+                "A facing aim cone is incompatible with omnidirectional aim "
+                + "and programmed shots.",
+                nameof(facingAimHalfWidthSectors));
+        }
 
         Id = id;
         OmnidirectionalAim = omnidirectionalAim;
@@ -76,6 +102,8 @@ public sealed record ActorAttackProfileDefinition
         EnergyRegenerationIntervalTicks = energyRegenerationIntervalTicks;
         EnergyRegenerationAmount = energyRegenerationAmount;
         ShotProgram = shotProgram;
+        Volley = volley;
+        FacingAimHalfWidthSectors = facingAimHalfWidthSectors;
     }
 
     public string Id { get; }
@@ -104,11 +132,30 @@ public sealed record ActorAttackProfileDefinition
         OmnidirectionalAim
             ? AimInterpretationKind
                 .AbsoluteSubmittedEightWayHeadingFacingUnchanged
+            : FacingAimHalfWidthSectors > 0
+                ? AimInterpretationKind
+                    .AbsoluteSubmittedEightWayHeadingWithinFacingConeFacingUnchanged
             : ShotProgram.Enabled
                 ? AimInterpretationKind
                     .CurrentFacingPlusRelativeEightWayShotProgram
                 : AimInterpretationKind.CurrentFacingStraight;
     public ActorShotProgramDefinition ShotProgram { get; }
+
+    /// <summary>
+    /// Half-width of a facing-relative eight-way aim cone. Zero is the inert
+    /// historical straight-shot behavior and writes no additional canonical
+    /// bytes. A value of one permits straight and the two adjacent diagonals.
+    /// </summary>
+    public int FacingAimHalfWidthSectors { get; }
+
+    /// <summary>
+    /// Multi-projectile launch shape, or null for the historical one-bolt
+    /// attack. Null is the inert default and writes no canonical bytes.
+    /// </summary>
+    public ActorAttackVolleyDefinition? Volley { get; }
+
+    /// <summary>Projectiles issued by one successful attack action.</summary>
+    public int ProjectilesPerAttack => Volley?.ProjectileCount ?? 1;
 
     public enum EnergyRegenerationClockKind
     {
@@ -159,5 +206,6 @@ public sealed record ActorAttackProfileDefinition
         CurrentFacingStraight = 0,
         CurrentFacingPlusRelativeEightWayShotProgram = 1,
         AbsoluteSubmittedEightWayHeadingFacingUnchanged = 2,
+        AbsoluteSubmittedEightWayHeadingWithinFacingConeFacingUnchanged = 3,
     }
 }

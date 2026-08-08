@@ -1,0 +1,10 @@
+{
+  "name": "ConvoyFresh",
+  "entryType": "ConvoyFresh",
+  "sdkVersion": "0.10.11",
+  "appearance": {
+    "accent": "#22d3a7",
+    "look": "vanguard",
+    "projectile": "pulse-bolt"
+  }
+}

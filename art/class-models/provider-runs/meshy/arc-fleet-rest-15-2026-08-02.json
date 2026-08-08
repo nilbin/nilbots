@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "authorizedAt": "2026-08-02",
+  "scope": "Remaining 15 Arc Relay class models",
+  "provider": "Meshy",
+  "endpoint": "image-to-3d",
+  "model": "meshy-t2",
+  "modelType": "smart-topology",
+  "execution": "sequential-stop-on-failure",
+  "expectedCreditsPerCall": 15,
+  "authorizedCalls": 15,
+  "expectedMaximumCredits": 225,
+  "balanceBefore": 520,
+  "normalization": {
+    "orientation": "lay-flat-x",
+    "targetPlanformSpan": 0.99,
+    "teamGlow": "renderer-owned-only",
+    "meshContract": "monolithic"
+  },
+  "looks": [
+    "arc-hush",
+    "arc-kestrel",
+    "arc-lantern",
+    "arc-longshot",
+    "arc-minesmith",
+    "arc-mortar",
+    "arc-nest",
+    "arc-palisade",
+    "arc-patchbay",
+    "arc-relay",
+    "arc-repulsor",
+    "arc-sunder",
+    "arc-switchback",
+    "arc-towline",
+    "arc-veil"
+  ]
+}

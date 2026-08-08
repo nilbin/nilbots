@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "id": "breach-apprentice-t4-v1",
+  "name": "BreachApprentice",
+  "authoringLineageId": "house-apprentice-template-v1",
+  "doctrineId": "objective-initiative-before-conservative-evasion",
+  "role": "boundary-instrument",
+  "targetTier": "T4",
+  "status": "t4-qualified-t5-boundary-pending",
+  "launchPopulationStatus": "eligible-for-later-entertainment-review",
+  "derivedFrom": "arc-apprentice-t3-v1",
+  "authoringBudgetId": "t4-positional-extension-v1",
+  "authorPacketSha256": "79ad08b6c4cc7c9494c9cd87bafbe5f2b9ca25ec97a1d380cd1f7cc46501df6a",
+  "sourceFiles": {
+    "BreachApprentice.cs": "d48ce880cb15fac0f442375e3151f5a3f916fc193f1b1eec3cf023cbc7f85847",
+    "ArenaBasics.cs": "452cf9e6946dced1d7a5ecc31a4c4ddcd1c493073f7eea73bcb4678aeecc7f2f"
+  },
+  "builder": {
+    "protocol": "controlled-platform-matched-docker-wasi-publish-v2",
+    "engineHead": "e1a8cde91f0f67ea38031273ea292695eb935b50",
+    "engineWorktreeDirty": true,
+    "containerPlatform": "linux/arm64",
+    "sdkVersion": "0.10.4",
+    "compilerVersion": "NativeAOT-LLVM 10.0.0-rc.1.26306.1",
+    "stabilityFlags": []
+  },
+  "artifact": {
+    "path": "bot.wasm",
+    "sha256": "2612a2b3a4cea50302877425ae9b9531cce27c7db89ab69bf05d708a0df52002"
+  },
+  "qualification": {
+    "suiteId": "frontline-qualification-5",
+    "suiteVersion": 1,
+    "qualificationProfileId": "frontline-duel-depth-union-t4-v1",
+    "qualificationContractFingerprint": "2e3d4bcd4652814c5f58ce19c606f52031985b998d2b269d1c00d418edeb6ddb",
+    "report": "qualification-frontline-5.json",
+    "reportSha256": "7b06fa3ccd852293d8082df13c3ed939df97374402b7a8ab2c025fba99ca2738",
+    "passed": true,
+    "tierAwarded": "T4",
+    "coordinationGradeAwarded": null,
+    "balanceEvidenceEligible": true
+  }
+}

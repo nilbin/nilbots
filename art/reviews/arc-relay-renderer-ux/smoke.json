@@ -1,0 +1,207 @@
+{
+  "schemaVersion": 1,
+  "url": "http://127.0.0.1:8961/",
+  "outcomeVisible": true,
+  "expectedRenderer": "webgl",
+  "index": {
+    "cards": [
+      {
+        "href": "sample-01.html",
+        "title": "Hardlight Gate — Blue operation",
+        "subtitle": "Blue operation vs Breach Column · Orange wins by reactor destroyed at t430 · success t169→release t170; preparation denial t284→release t287; casualty t283→baseline life 3 t304"
+      },
+      {
+        "href": "sample-02.html",
+        "title": "Escort Counterpunch — Orange operation",
+        "subtitle": "Orange operation vs Fireline Picks · Orange wins by reactor destroyed at t346 · success t65→release t70; committed counter t236→release t244; casualty t151→baseline life 3 t172"
+      },
+      {
+        "href": "sample-03.html",
+        "title": "Fork Shadow — Blue operation",
+        "subtitle": "Blue operation vs Counter Courier · Orange wins by reactor destroyed at t384 · success t77→release t89; committed counter t351→release t363; casualty t215→baseline life 3 t236"
+      },
+      {
+        "href": "sample-04.html",
+        "title": "Relay Catch — Blue operation",
+        "subtitle": "Blue operation vs Hook Burst · Orange wins by reactor destroyed at t426 · success t167→release t172; committed counter t336→release t337; casualty t335→baseline life 3 t356"
+      },
+      {
+        "href": "sample-05.html",
+        "title": "Birth Rotation — Orange operation",
+        "subtitle": "Orange operation vs Beacon Hunt · Blue wins by reactor destroyed at t376 · success t132→release t134; committed counter t293→release t294; casualty t70→baseline life 1 t91"
+      },
+      {
+        "href": "sample-06.html",
+        "title": "Rear Hook — Blue operation",
+        "subtitle": "Blue operation vs Balanced · Orange wins by reactor destroyed at t407 · success t158→release t163; committed counter t74→release t86; casualty t36→baseline life 1 t86"
+      },
+      {
+        "href": "sample-07.html",
+        "title": "Decoy Switch — Blue operation",
+        "subtitle": "Blue operation vs Beacon Hunt · Orange wins by reactor destroyed at t406 · success t72→release t75; committed counter t19→release t20; casualty t18→baseline life 1 t39"
+      },
+      {
+        "href": "sample-08.html",
+        "title": "Smoke Breach — Orange operation",
+        "subtitle": "Orange operation vs Null Veil · Blue wins by reactor destroyed at t426 · success t62→release t66; committed counter t115→release t116; casualty t215→baseline life 4 t236"
+      },
+      {
+        "href": "sample-09.html",
+        "title": "Emergency Exchange — Orange operation",
+        "subtitle": "Orange operation vs Interception · Blue wins by reactor destroyed at t458 · success t304→release t305; committed counter t69→release t73; casualty t68→baseline life 2 t89"
+      },
+      {
+        "href": "sample-10.html",
+        "title": "Lantern Sweep — Orange operation",
+        "subtitle": "Orange operation vs Beacon Hunt · Blue wins by reactor destroyed at t432 · success t336→release t337; preparation denial t102→release t106; casualty t101→baseline life 3 t122"
+      }
+    ],
+    "screenshot": "art/reviews/arc-relay-renderer-ux/index.png",
+    "screenshotSha256": "26d55841225536e70addebcd9c4dce0be7d4a4a1c59e0af65d90a01631bf4eaf"
+  },
+  "samples": [
+    {
+      "sample": "sample-01.html",
+      "title": "Hardlight Gate — Blue operation",
+      "subtitle": "Blue operation vs Breach Column · Orange wins by reactor destroyed at t430 · success t169→release t170; preparation denial t284→release t287; casualty t283→baseline life 3 t304",
+      "readyMilliseconds": 20068,
+      "canvasKind": "webgl",
+      "tickBefore": 0,
+      "tickAfter": 2,
+      "scoreBug": true,
+      "pageErrors": [],
+      "consoleErrors": [],
+      "failedRequests": [],
+      "screenshot": "art/reviews/arc-relay-renderer-ux/first-operation-webgl.png",
+      "screenshotSha256": "6f2f0b133602791815d88edfc14e6bd7e2f3010bf8d3f1482ae555a0789f4ebb"
+    },
+    {
+      "sample": "sample-02.html",
+      "title": "Escort Counterpunch — Orange operation",
+      "subtitle": "Orange operation vs Fireline Picks · Orange wins by reactor destroyed at t346 · success t65→release t70; committed counter t236→release t244; casualty t151→baseline life 3 t172",
+      "readyMilliseconds": 6265,
+      "canvasKind": "webgl",
+      "tickBefore": 0,
+      "tickAfter": 2,
+      "scoreBug": true,
+      "pageErrors": [],
+      "consoleErrors": [],
+      "failedRequests": []
+    },
+    {
+      "sample": "sample-03.html",
+      "title": "Fork Shadow — Blue operation",
+      "subtitle": "Blue operation vs Counter Courier · Orange wins by reactor destroyed at t384 · success t77→release t89; committed counter t351→release t363; casualty t215→baseline life 3 t236",
+      "readyMilliseconds": 6929,
+      "canvasKind": "webgl",
+      "tickBefore": 0,
+      "tickAfter": 2,
+      "scoreBug": true,
+      "pageErrors": [],
+      "consoleErrors": [],
+      "failedRequests": []
+    },
+    {
+      "sample": "sample-04.html",
+      "title": "Relay Catch — Blue operation",
+      "subtitle": "Blue operation vs Hook Burst · Orange wins by reactor destroyed at t426 · success t167→release t172; committed counter t336→release t337; casualty t335→baseline life 3 t356",
+      "readyMilliseconds": 6126,
+      "canvasKind": "webgl",
+      "tickBefore": 0,
+      "tickAfter": 2,
+      "scoreBug": true,
+      "pageErrors": [],
+      "consoleErrors": [],
+      "failedRequests": []
+    },
+    {
+      "sample": "sample-05.html",
+      "title": "Birth Rotation — Orange operation",
+      "subtitle": "Orange operation vs Beacon Hunt · Blue wins by reactor destroyed at t376 · success t132→release t134; committed counter t293→release t294; casualty t70→baseline life 1 t91",
+      "readyMilliseconds": 5809,
+      "canvasKind": "webgl",
+      "tickBefore": 0,
+      "tickAfter": 2,
+      "scoreBug": true,
+      "pageErrors": [],
+      "consoleErrors": [],
+      "failedRequests": []
+    },
+    {
+      "sample": "sample-06.html",
+      "title": "Rear Hook — Blue operation",
+      "subtitle": "Blue operation vs Balanced · Orange wins by reactor destroyed at t407 · success t158→release t163; committed counter t74→release t86; casualty t36→baseline life 1 t86",
+      "readyMilliseconds": 7042,
+      "canvasKind": "webgl",
+      "tickBefore": 0,
+      "tickAfter": 2,
+      "scoreBug": true,
+      "pageErrors": [],
+      "consoleErrors": [],
+      "failedRequests": []
+    },
+    {
+      "sample": "sample-07.html",
+      "title": "Decoy Switch — Blue operation",
+      "subtitle": "Blue operation vs Beacon Hunt · Orange wins by reactor destroyed at t406 · success t72→release t75; committed counter t19→release t20; casualty t18→baseline life 1 t39",
+      "readyMilliseconds": 5967,
+      "canvasKind": "webgl",
+      "tickBefore": 0,
+      "tickAfter": 2,
+      "scoreBug": true,
+      "pageErrors": [],
+      "consoleErrors": [],
+      "failedRequests": []
+    },
+    {
+      "sample": "sample-08.html",
+      "title": "Smoke Breach — Orange operation",
+      "subtitle": "Orange operation vs Null Veil · Blue wins by reactor destroyed at t426 · success t62→release t66; committed counter t115→release t116; casualty t215→baseline life 4 t236",
+      "readyMilliseconds": 6361,
+      "canvasKind": "webgl",
+      "tickBefore": 0,
+      "tickAfter": 2,
+      "scoreBug": true,
+      "pageErrors": [],
+      "consoleErrors": [],
+      "failedRequests": []
+    },
+    {
+      "sample": "sample-09.html",
+      "title": "Emergency Exchange — Orange operation",
+      "subtitle": "Orange operation vs Interception · Blue wins by reactor destroyed at t458 · success t304→release t305; committed counter t69→release t73; casualty t68→baseline life 2 t89",
+      "readyMilliseconds": 6385,
+      "canvasKind": "webgl",
+      "tickBefore": 0,
+      "tickAfter": 2,
+      "scoreBug": true,
+      "pageErrors": [],
+      "consoleErrors": [],
+      "failedRequests": []
+    },
+    {
+      "sample": "sample-10.html",
+      "title": "Lantern Sweep — Orange operation",
+      "subtitle": "Orange operation vs Beacon Hunt · Blue wins by reactor destroyed at t432 · success t336→release t337; preparation denial t102→release t106; casualty t101→baseline life 3 t122",
+      "readyMilliseconds": 6068,
+      "canvasKind": "webgl",
+      "tickBefore": 0,
+      "tickAfter": 2,
+      "scoreBug": true,
+      "pageErrors": [],
+      "consoleErrors": [],
+      "failedRequests": []
+    }
+  ],
+  "possessionCue": {
+    "tick": 26,
+    "headline": "CORE PICKED UP",
+    "screenshot": "art/reviews/arc-relay-renderer-ux/core-pickup-webgl.png",
+    "screenshotSha256": "09a3c55565f16c8d49c8f790f7d96c4ac050d5a962ff423978a43bbab999e0a1"
+  },
+  "strategicOverview": {
+    "scope": "all three Wells; deep home aprons may be cropped",
+    "screenshot": "art/reviews/arc-relay-renderer-ux/three-theater-overview-webgl.png",
+    "screenshotSha256": "1abaefc366d808b437655d55b5b2bcf4f4ab3157ecc70ad02baeef69e8de7faf"
+  }
+}

@@ -1,3 +1,4 @@
+using System.IO.Compression;
 using System.Security.Claims;
 using BotArena.App.Accounts;
 using BotArena.App.Competition;
@@ -25,6 +26,7 @@ public static class MatchesEndpoints
         group.MapPost("/challenge", async (
             ChallengeRequest request,
             ClaimsPrincipal principal,
+            LegacyDuelSettings legacyDuel,
             AppDbContext db,
             MatchAdmissionService admission,
             MatchParticipantSnapshotFactory snapshots,
@@ -36,6 +38,8 @@ public static class MatchesEndpoints
             HttpContext http,
             CancellationToken cancellationToken) =>
         {
+            if (!legacyDuel.AdmissionEnabled)
+                return Results.Problem("Legacy Duel admission is retired. Create an Arc Relay entrant at /relay.", statusCode: StatusCodes.Status410Gone, title: "Legacy mode retired.");
             if (principal.UserId() is not Guid userId)
                 return Results.Unauthorized();
             if (request.BotId == request.OpponentBotId)
@@ -241,6 +245,7 @@ public static class MatchesEndpoints
             AppDbContext db,
             IObjectStore objectStore,
             TimeProvider timeProvider,
+            HttpContext httpContext,
             CancellationToken cancellationToken) =>
         {
             var match = await db.Matches.FindAsync([matchId], cancellationToken);
@@ -252,14 +257,39 @@ public static class MatchesEndpoints
 
             DateTime now = timeProvider.GetUtcNow().UtcDateTime;
             if (match.BroadcastComplete(now))
+            {
+                if (match.ReplayFormatVersion ==
+                    ArcRelayBroadcastDocument.FormatVersion)
+                {
+                    httpContext.Response.Headers.ContentEncoding = "gzip";
+                }
                 return Results.Stream(replay, "application/json");
+            }
 
             await using (replay)
             {
                 int visibleTicks = Math.Max(0, match.PresentationTick(now) + 1);
-                using var reader = new StreamReader(replay);
+                Stream replayJsonStream = match.ReplayFormatVersion ==
+                    ArcRelayBroadcastDocument.FormatVersion
+                        ? new GZipStream(
+                            replay,
+                            CompressionMode.Decompress,
+                            leaveOpen: true)
+                        : replay;
+                using var reader = new StreamReader(replayJsonStream);
                 string replayJson =
                     await reader.ReadToEndAsync(cancellationToken);
+                if (match.ReplayFormatVersion ==
+                    ArcRelayBroadcastDocument.FormatVersion)
+                {
+                    string partialReplayJson =
+                        ArcRelayBroadcastDocument.CreatePartialPrefix(
+                            replayJson,
+                            visibleTicks);
+                    return Results.Text(
+                        partialReplayJson,
+                        "application/json; charset=utf-8");
+                }
                 if (match.ReplayFormatVersion ==
                     BotArenaVersions.GenericActorReplayFormatVersion)
                 {

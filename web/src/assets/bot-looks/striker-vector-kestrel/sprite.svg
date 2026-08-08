@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Vector Kestrel striker chassis facing east">
+  <defs>
+    <linearGradient id="vk-hull" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#66727c"/>
+      <stop offset=".42" stop-color="#303b44"/>
+      <stop offset="1" stop-color="#121a20"/>
+    </linearGradient>
+    <linearGradient id="vk-wing" x1="0" y1="0" x2="1" y2="0">
+      <stop stop-color="#48545e"/>
+      <stop offset=".7" stop-color="#202b33"/>
+      <stop offset="1" stop-color="#10171c"/>
+    </linearGradient>
+  </defs>
+
+  <!-- A swept, three-vector silhouette: the long nose and forked wings say tempo. -->
+  <path d="M62 148 196 194 286 202 458 248 458 264 286 310 196 318 62 364 110 286 76 256 110 226Z"
+    fill="#080e13" stroke="#070b0f" stroke-width="18" stroke-linejoin="round"/>
+  <path d="M76 160 202 202 284 212 442 252 442 260 284 300 202 310 76 352 120 282 88 256 120 230Z"
+    fill="url(#vk-wing)" stroke="#6f7b84" stroke-width="5" stroke-linejoin="round"/>
+
+  <path d="M112 176 210 210 184 234 118 224Z" fill="#59656e" stroke="#1a242b" stroke-width="4"/>
+  <path d="M112 336 210 302 184 278 118 288Z" fill="#29343c" stroke="#10181e" stroke-width="4"/>
+  <path d="m124 230 88 12 50-18 112 32-112 32-50-18-88 12-34-26Z"
+    fill="url(#vk-hull)" stroke="#7f8a92" stroke-width="6" stroke-linejoin="round"/>
+  <path d="m198 242 62-12 122 26-122 26-62-12-24-14Z"
+    fill="#202a31" stroke="#0b1217" stroke-width="4"/>
+  <path d="m260 230 122 26-122 26 34-26Z" fill="#38454e" opacity=".9"/>
+
+  <!-- Three forward rails repeat the class's fan/volley language without changing hitbox. -->
+  <path d="M286 235 406 252 424 256 406 260 286 277 304 256Z"
+    fill="#11191f" stroke="#6d7a83" stroke-width="3"/>
+  <path data-team-accent="true" d="m292 238 94 14-16 6-88-10Z" fill="#22d3ee"/>
+  <path data-team-accent="true" d="m292 274 94-14-16-6-88 10Z" fill="#22d3ee"/>
+  <path data-team-accent="true" d="M226 251h106l18 5-18 5H226Z" fill="#67e8f9"/>
+
+  <path d="m120 190 74 25-26 13-62-17Z" fill="#96a0a7" opacity=".68"/>
+  <path d="m120 322 74-25-26-13-62 17Z" fill="#5c6870" opacity=".74"/>
+  <path data-team-accent="true" d="m118 204 54 18-13 7-51-14Z" fill="#22d3ee"/>
+  <path data-team-accent="true" d="m118 308 54-18-13-7-51 14Z" fill="#22d3ee"/>
+
+  <path d="m172 256 22-20h38l24 20-24 20h-38Z" fill="#0d161b" stroke="#75828b" stroke-width="4"/>
+  <path data-team-accent="true" d="m190 256 13-11h22l13 11-13 11h-22Z" fill="#a5f3fc"/>
+  <g fill="#9ba6ad">
+    <circle cx="199" cy="211" r="4"/>
+    <circle cx="199" cy="301" r="4"/>
+    <circle cx="273" cy="218" r="3"/>
+    <circle cx="273" cy="294" r="3"/>
+  </g>
+</svg>

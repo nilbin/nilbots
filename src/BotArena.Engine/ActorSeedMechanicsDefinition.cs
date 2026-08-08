@@ -55,6 +55,13 @@ public sealed record ActorSeedMechanicsDefinition
         /// x=Mix(matchSeed XOR H), then successively
         /// x=Mix(x+STEP*(teamId+1)), x=Mix(x+STEP*(unitId+1)), and
         /// x=Mix(x+STEP*(lifeId+1)). IDs are non-negative Int32 values.
+        /// The same profile also names the TEAM stream: with H'
+        /// = FNV-1a-64 over UTF-8("teams:" + SeedProfileId), the team root
+        /// seed is Mix(Mix(matchSeed XOR H')+STEP*(teamId+1)), and the state
+        /// that team uses on tick t is Mix(teamRoot+STEP*(t+1)) — re-derived
+        /// per tick, never carried across ticks. The team derivation is
+        /// additive to this behavior name: it introduces no new value into
+        /// the fingerprinted rules bytes.
         /// </summary>
         MatchSeedProfileTeamUnitLifeMix64V1 = 0,
     }

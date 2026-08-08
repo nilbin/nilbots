@@ -1,0 +1,338 @@
+# Mechanism slate — widening the search space (2026-07-29)
+
+Agent-produced design exploration commissioned against the owner
+direction "games feel a bit dull… do we need to add more mechanisms to
+the game/classes? To make the diversity and search space larger", plus
+owner rulings received on review: **energy is not a candidate**
+(tried and closed — DECISIONS #47/#48: "taxes aggression as much as
+camping", stalemate fortresses), **curved shots deliver watchable
+value** (blind-validated: both fun-4 games in the viewing pass featured
+the high-bend striker), **bend exclusivity is in question**, and —
+ruling received after the slate landed — **"I like turrets because
+they add something visually, it's essentially a cooldown which adds
+depth and it's overall just good fun. I think we need more such
+skills. Not necessarily static, just skills."**
+
+The slate's structural diagnosis (three contract facts): the scoring
+channel has a free counter (contest nulls sole presence at the cost of
+standing nearby); kills do not convert (18-tick full-health respawn vs
+15-tick capture); nothing in a match ratchets. Striker dominance is
+structural: its exclusive verb is a free option on an action it takes
+anyway, while bulwark and fabricator pay for their verbs in scoring
+currency (turret = objective weight 0; fabricate = a combat action).
+
+## Ranked slate (as amended by owner rulings)
+
+1. ~~Energy budget~~ — **struck by owner ruling** (#47/#48 precedent:
+   punishes pushing, rewards camping; dormant fields stay dormant).
+2. ~~**Deployable barricade**~~ — **killed on owner review, and the
+   kill generalizes.** Under honest slot economics (a wall must consume
+   a child slot: a dedicated wall slot varies topology by class against
+   #153, and a free wall repeats the striker free-option mistake) the
+   barricade is **strictly dominated by fabricating a child**: same
+   slot, same action, same 3 HP, identical bolt-blocking (enemy bolts
+   stop on any body) — while the child also shoots, moves, and carries
+   objective weight 1. Its correct usage rate is zero; the adoption
+   gate would kill it in the pilot. The owner's framing is the durable
+   lesson: *a skill must not be a degenerate form of an existing skill*
+   ("a turret with less HP and no attack"). Player-authored static
+   cover only becomes viable if walls are ever additional matter
+   outside the body economy — which is the rejected
+   new-entity-kind/new-topology cost. Bodies are the game's cover.
+   **SURGE replaces it as the fabricator's one new thing** (see the
+   kit); the degeneracy objection that benched surge evaporates with
+   the barricade gone.
+3. **Public stances / class skills** — generalize Anchor's machinery
+   (reversible windup-gated same-life transitions; `ObservedFormTransition`
+   is already public to enemies with start/completion ticks) into a
+   per-class skill kit: e.g. striker overwatch (windup 2 → range 10,
+   damage 2, immobile, reversible), fabricator field-works (windup 1 →
+   faster/wider fabrication, slower gun). **This is the direct
+   generalization of what the owner likes about turrets** — a visible
+   shape change, a countdown an opponent can read and punish, a
+   cooldown-like cycle — and it is the *public* commitment mechanic the
+   private bend structurally cannot be (skill-shot forensics: the
+   bend's mixup value is capped at 1/3 by a covering number invariant
+   to envelope size, and 80% of bends render too short to read).
+   Data-only on existing types. Design guard: every stance must forfeit
+   objective weight or mobility while active (the turret bargain), stay
+   reversible, and keep bounded tenure (liveness).
+4. **Directional armor** (front 1 / flank 1 / rear 2) — makes facing a
+   defended asset, prices strafing economically, rewards flanks (the
+   first mechanically-paid team play), and gives facing-locked's
+   rotation share meaning. Zero schema change (Facing and Heading are
+   already public). Turrets exempt. Cost M.
+5. **Dual-live frontline** (two active positions) — the first real
+   allocation problem; the only slate item that changes the observation
+   tensor shape. Gate behind static/exact analysis of two-front
+   geometry. Cost M/L.
+6. **Projectile interception** — goal-3 trap (useless at T2–T4,
+   possibly dominant at T7–T8); collision-profile change; measure with
+   a purpose-built sentinel before believing anything.
+7. **Sensor doctrine** — cheap audible-kind append is worth taking
+   (fabrication and form transitions audible at radius 8, which makes
+   skills *audible* commitments too); per-class perception is deferred —
+   adding hidden information while the existing hidden information
+   (the bend) is measured inert inverts the diagnosis.
+8. **Skirmisher (Air layer)** — the enum exists but it is a genuine new
+   engine capability with six semantics to author, and the classic
+   dominates-low-play trap. Later.
+
+Explicitly rejected: attach/symbiote (occupancy invariant, illegible),
+stealth as a headline (wrong order of operations), salvage pickups (a
+fourth entity kind to deliver what two respawn numbers can), destructible
+static walls (map fingerprint/time-varying observation cascade;
+barricades deliver ~80% as actors), and **more shot-program
+parameters** (proven worthless: 9, 17, and 217 programs solve to the
+same value).
+
+## Current kit (owner-iterated, pending the DECISIONS entry)
+
+Owner-directed rebuild from the three blind-validated fun primitives —
+turret-feel, curve-feel, numbers-feel — with the counter-cycle traced
+per edge and capped ("the factor can't be TOO weighing"). Bends become
+shared grammar on mobile facing-aimed guns (never on specials).
+
+- **Striker VOLLEY** (renamed from lance on owner review — the
+  telegraphed 1-wide piercing line is dodged for free; width is what
+  beats the covering number). Public windup, then simultaneous
+  damage-1 bolts down three adjacent lanes. Tuned as zoning, not a
+  wipe: it must *soften* striker-vs-fabricator toward the band, not
+  deepen the game's most lopsided edge. **Resolved (owner ruling):
+  striker keeps the deepest curve envelope while every class gains the
+  one-bend grammar on its mobile gun** — identity and option richness,
+  not raw power (the solver's covering-number cap is envelope-
+  invariant). Specials never curve. Universal-vs-striker-only remains
+  a phase-2 factor so the change is measured, not assumed.
+  **Volley is a CAST, not a stance (owner ruling).** A parked striker
+  firing repeated fans is artillery — the bulwark's fantasy leaking
+  into the striker's kit. The prototype implements it on stance
+  machinery (the engine's only public-windup primitive), so gallery
+  drivers must play it enter→fire-once→exit, never squatting; if the
+  skill survives the screen, the adoption-grade mechanism is
+  **auto-exit (owner-chosen)**: firing the fan automatically triggers
+  the return transition (a new causal fact with its own reason code —
+  the validator-teaching pattern #156 and automatic-activation already
+  established), which is both smaller than a windup-bearing attack
+  primitive and stronger than it — artillery squatting becomes
+  impossible by rule, not by driver etiquette. Authors submit enter
+  (aiming by facing) then shoot; no exit bookkeeping. Renderer note:
+  the wide-arrow glyph is the skill's identity; the stance silhouette
+  is transitional plumbing.
+- **Bulwark AEGIS SHELL** (barrage benched on owner review, and the
+  RPS trace agrees: a radial proximity burst punishes whoever stands
+  CLOSE — fabricator bodies, the class bulwark must lose to — while
+  the range-8 striker it exists to blunt never enters the radius).
+  Reversible windup stance absorbing projectiles in its facing arc;
+  slow or immobile; bounded tenure. Blanks poke, loses to flanks and
+  multi-angle bodies. The staring-contest objection that benched
+  shell was priced before the pendulum fix; with ratchet +
+  contest-majority attacking passivity structurally, skills no longer
+  carry the pacing burden.
+  **Shield break (owner ruling — indefinite absorption is an
+  off-switch for ranged combat; the probe's 121-absorb zero-damage
+  match is the proof).** The shell absorbs a BUDGET of bolts (~3) and
+  shatters on the last: forced auto-exit, per-absorb crack visuals,
+  exit+reentry windups as the punish gap. **Facing locks on entry** —
+  the protected quadrant is chosen when the shield rises and never
+  tracks, so flanking stays real even 1v1 (weight 1 + tracking arc
+  would be an invincible capturer). Counter-play becomes two-axis: go
+  around it, or feed it three bolts to buy the window. Adoption-grade
+  mechanism is SHARED with volley: one threshold-triggered automatic
+  return transition (volley fires-count 1, shell absorbs-count N) —
+  one primitive, one new causal fact. Gallery drivers play the budget
+  by etiquette until then.
+  **Deflection, not absorption (owner ruling).** The shield DEFLECTS:
+  the incoming bolt dies on the arc and a new bolt launches from the
+  shell along the reversed heading, owned by the bulwark's team (the
+  ownership flip is what makes it lethal to the shooter and renders
+  it in the deflector's colors). Fully public and dodgeable — a tempo
+  tax on frontal poke, not auto-damage. Feeding the break now costs
+  footwork: each of the ~3 shatter-buying bolts has a return to
+  sidestep. Converts the stance from a null into a threat and gives
+  the viewer the ricochet beat; still bounded by shield-break and the
+  locked arc.
+- **Fabricator FIVE SLOTS** (surge died with the treadmill critique:
+  faster replacement of free bodies accelerates the exact loop the
+  dynamics report convicted). The fabricator simply has more unit
+  slots than any other class — the numbers class literally has
+  numbers. Slot counts are contract data, not array shapes; this is a
+  new topology profile for fabricator arms, deliberately amending
+  #153's same-topology reading as the good asymmetry (the barricade
+  was the bad one). Out-bodies the fortress arithmetically; each body
+  stays the weakest in the game, so volleys and cadence still farm
+  them.
+
+**Cycle-magnitude band (pre-registration guard):** every cross-class
+edge on the presumptive arm must land at |payoff| ∈ [0.15, 0.40] —
+below-band is no cycle, above-band means the matchup screen decides
+the game (today's +0.67 striker-vs-fabricator fails high). Public
+windups on every skill are the deeper guard: a punishable commitment
+keeps doctrine stronger than matchup.
+
+Benched, pre-registered as fallbacks: SUPPRESSION BARRAGE, CHARGE,
+DASH. Dead: barricade (dominated), surge (treadmill accelerant),
+lance-as-line (free dodge), energy (#47/#48). Split stays parked for
+a future swarm class.
+
+## Owner roadmap notes (2026-07-30, after watching the wave-5 deck games)
+
+- **Reclaim economics factorial (owner: "2x on the recapture is a bit
+  excessive... something we can play around with later in factorials").**
+  Today a reclaim erodes the standing claim at the build rate and then
+  builds from zero — up to 2x a virgin capture, plus the 40-tick ratchet
+  hold, plus contested-freeze. Candidate single-lever arms when this
+  runs: an erode-rate multiplier (erosion faster than building), a
+  partial-credit flip (claim flips at zero with starting progress), a
+  shorter hold, and the plain gain/decay numbers. Keel's measured wins
+  (#168/#169) are the do-no-harm anchors.
+- **Side objective (roadmap consideration)** — a second, lesser
+  objective to open the map and add an allocation decision. Adjacent to
+  the benched "dual-live frontline" slate item (the first real
+  allocation problem; observation-tensor impact was its gate) — a SIDE
+  objective that feeds score or a buff without moving the frontline may
+  deliver most of the depth at a fraction of the schema cost, and the
+  map-as-tuning-surface direction (#176) makes its placement tunable
+  level design. Needs a design pass before any build.
+- **More skills, dump-then-tune (standing pattern per #173/#174):** new
+  skills ship into the game for variety/fun first and get tuned after —
+  never gated on pre-adoption A/Bs. Ready on the bench when the owner
+  pulls the trigger: SUPPRESSION BARRAGE / CHARGE / DASH (pre-registered
+  fallbacks), the higher-power tier behind the public-cooldown
+  capability (drafted below, still the prerequisite build), and the
+  open design question the wave-5 discovery raised (#178 README:
+  should a gunless stance freeze the mobile gun's cooldown?) which any
+  new stance skill inherits.
+
+## Drafted for the post-phase-2 tuning pass (owner direction, 2026-07-30)
+
+- **RESOLVED (#172): `wane` adopted** — four slots at 60/180/300 with a
+  22-tick ordinary rebuild; both fabricator edges inside the band on
+  the pooled evidence (−0.383 / +0.383, n=60 each). The stance-ground
+  lever was measured on owner direction and returned: freeing the
+  forbidden tiles backfires on bulwark-vs-fabricator (the shell is
+  opponent-shaped — more raises in worse spots against a swarm) while
+  measurably helping bulwark-vs-striker toward the band from the
+  striker side. Remaining opens live in #172.
+- **Five-slot schedule is the first knob (measured, #171).** Phase 2's
+  factorial replicated fabricator dominance on both seed sets
+  (−0.833/−0.833 over bulwark, +0.778/+0.667 over striker, mains/
+  holdout): the counter-cycle did not form because the numbers class
+  out-scales both counters. The pair structure attributes it to FIVE
+  SLOTS (both other skills sat on the losing side of the swing), with
+  universal bend a secondary amplifier — more guns curve more. Knobs
+  in priority order: slot count (5→4 as a registered arm), the
+  60/180/300/420 unlock schedule (push the late slots right), and the
+  30-tick late-rebuild clock. Keep the volley and shell legs as-is:
+  bulwark-vs-striker landed at +0.333/+0.278 — the healthiest
+  cross-class edge yet measured.
+- **The break budget fires in cross-class play — the wave-4 "0 breaks"
+  finding was a sparring artifact.** With real volleys in the arena
+  the shell broke 206/86 times (mains/holdout kit-on) against
+  1706/1038 deflections: a fan feeds up to three bolts per cast, so
+  the volley is the natural shell-breaker and the two-axis counter-play
+  (flank the locked arc or feed the break) operates constantly. The
+  tuning question is no longer "does the budget ever fire" but whether
+  ~3 is the right price now that one cast can pay most of it.
+
+- **Turret cycling**: anchor/mobilize becomes unlimited per life with a
+  cooldown **per unit slot** (never per life — free respawns make
+  per-life cooldowns die-to-reset exploitable; slot-level state
+  survives the body and the slot machinery already carries clocks).
+  Removes the invisible once-per-life "spent" state and lets the
+  fortress migrate with the keel front. Balance note: bulwark's legs
+  are already rising under keel — this rides the edge band, not a
+  hunch.
+- **Cooldowns as a general typed capability**: the pricing vocabulary
+  completes — windups make each use punishable, cooldowns make POWER
+  affordable by bounding frequency, which is the prerequisite for the
+  higher-power skill tier the owner is drafting. Design law carried
+  over: cooldowns are PUBLICLY readable (remaining ticks in the
+  observation — an opponent reads the push window the way they read a
+  windup; a private cooldown is the bend mistake again). Engineering:
+  the machinery the adoption pass deferred — typed cooldown on the
+  transition route, slot-level last-used state, legality gating,
+  readable remaining ticks, full mirror set. Build window: after the
+  wave-4 freeze, never mid-wave.
+
+## Design guards (owner rulings)
+
+- **No skill may reintroduce facing-decoupled movement.** Strafe is dead
+  (DECISIONS #159) and facing-locked's balance win *is* the dodge tax —
+  sidestepping costs a rotation. Any skill granting lateral or
+  facing-free movement (dash-sideways, blink, dodge-step) silently
+  refunds that tax and unravels the coupling. Mobility skills must
+  commit along facing (charge is the template: less freedom than
+  normal movement, not more).
+- Skills are priced in public windups and tenure, never energy
+  (#47/#48) and never hidden state.
+- Every stance pays in the scoring currency deliberately or keeps
+  objective weight 1 deliberately — the turret's accidental 0.13%
+  usage is the cautionary precedent either way.
+
+## Process requirements
+
+Every piloted mechanism enters `balance/frontline-ablation-debt-v1.json`
+at authoring time with its factors registered separately (the barricade
+bundles slot-count + form + route and will be unattributable
+otherwise). The dynamics report's pass/fail metrics are the
+pre-registration targets. The numbers-only lethality/respawn arm runs
+as the control factor in the same factorial (steelman: the largest
+balance effect ever measured here came from a non-mechanism change).
+
+## Ground healing (owner-ruled 2026-07-31, next-window candidate)
+
+Healing on OWN captured ground, ruled "has to be fairly slow": a body
+standing still on its team's captured half regenerates 1 HP per N
+stationary ticks (N in the 8–12 band, pre-registered), capped at the
+body's current max health so the plate ladder composes (plate raises
+the ceiling, ground restores toward it). The stillness gate reuses the
+channel's still-tick grammar deliberately — healing costs front
+presence, the same currency capturing costs, so recovery is a
+decision, not a regen aura. The rejected variant is recorded with its
+reason: healing scaled to captured positions amplifies the winner
+(more pushed ground = more healing) on top of a now-decisive economy;
+the slow own-half rule keeps both teams' recovery symmetric in space.
+Explicitly NOT in the legion/no-rally/economy-v1.1 package — it ships
+as its own A/B in the round after, so its effect on the bulwark crown
+reads clean. Register `ground-healing` (rate, gate, cap) in the
+ablation debt at build time.
+
+## The prime dissolves; production refined (owner-ruled 2026-07-31, post-mind-wave window)
+
+Ruled for the design window AFTER the mind-native wave (the Codex wave
+runs on the current game untouched):
+
+- **No class keeps the prime concept.** The prime was the per-life
+  world's avatar; under the mind the player IS the mind, and slot 0 is
+  just a slot. All bodies of a class share one chassis and one
+  lifecycle. Per-class statlines need re-ruling at build time (today's
+  prime/child splits — bulwark 5/4, fabricator 2/3 — collapse to one
+  number each).
+- **The fabricator becomes a headless production network**: any live
+  fabricator body is a fabrication origin ("spawn at me" from every
+  unit), the mind chooses which. Killing a body never kills the
+  factory. This restores the class USP that generalized tempo-buying
+  would otherwise erode: everyone may buy WHEN reinforcements come;
+  only the fabricator controls WHERE, from any of its bodies.
+- **OPEN FORK for the owner at build time — the fabricator bootstrap**:
+  without a respawning prime, what happens at total body loss? (a) the
+  home base acts as the root factory (a structure, not a body, can
+  always seed one body — comeback preserved, no special body); (b)
+  total wipe = elimination for the fabricator — which quietly
+  introduces the annihilation win condition the mind memo analyzed and
+  parked. Both are coherent; (b) is the sharper game.
+- **FOUNDRY refined by the owner's pricing challenge** ("would you
+  spend money on that choice?"): chassis CHOICE at activation is FREE
+  (the cost is commitment; the depth is the read); scrap buys TEMPO
+  (accelerate a tranche's arrival — the missing late-game money sink;
+  wave-8 banks peaked ~335 with ~37 spent); purchased tranches arrive
+  at HOME and walk, while fabrication delivers in the field. An
+  import-tax variant (off-class chassis costs a little) stays
+  registered as the alternative.
+- **Consequences owed at build time**: upgrade scope re-ruled (the
+  prime-scoped ladder dies with the prime; the registered per-track /
+  all-bodies axis is the replacement space), lifecycle profiles
+  unified per class, PrimeSpawn/muster-scope machinery generalized,
+  and the balance triangle re-read from scratch — one-chassis classes
+  are a new game.

@@ -73,6 +73,34 @@ public static class ActorRulesDefinitionValidator
                 }
             }
         }
+        else if (gameMode is ArcRelayGameModeDefinition arcRelay)
+        {
+            foreach (ArcRelayWellScheduleDefinition well in arcRelay.Wells)
+            {
+                ValidateCanonicalId(well.WellId, "Arc Relay Well ID", errors);
+                if (well.FinalBirthTick >= limits.MaxTicks)
+                {
+                    errors.Add(
+                        $"Arc Relay Well '{well.WellId}' must finish before MaxTicks.");
+                }
+            }
+            foreach (ArcRelaySignatureDefinition signature in
+                     arcRelay.Signatures)
+            {
+                ValidateCanonicalId(
+                    signature.SignatureId,
+                    "Arc Relay signature ID",
+                    errors);
+                ValidateCanonicalId(
+                    signature.ClassId,
+                    "Arc Relay signature class ID",
+                    errors);
+                ValidateCanonicalId(
+                    signature.ActionId,
+                    "Arc Relay signature action ID",
+                    errors);
+            }
+        }
 
         Dictionary<string, ActorFormDefinition> formsById = IndexCatalog(
             forms,
@@ -112,6 +140,7 @@ public static class ActorRulesDefinitionValidator
         ValidateGenericActionShapes(actions, errors);
         ValidateLifecycle(lifecycle, formsById, errors);
         ValidateGroundAdmission(movementProfiles, errors);
+        ValidateFacingCouplingAdmission(movementProfiles, errors);
         ValidateCombatAdmission(attackProfiles, errors);
         ValidateObjectiveWeights(gameMode, forms, errors);
         ValidateCheckedTickArithmetic(
@@ -157,7 +186,9 @@ public static class ActorRulesDefinitionValidator
             attackProfiles,
             profile => profile.Id,
             "Attack profile",
-            usedAttackProfiles,
+            usedAttackProfiles
+                .Union(gameMode.ModeOwnedAttackProfileIds)
+                .ToHashSet(StringComparer.Ordinal),
             errors);
         ValidateUnusedCatalogEntries(
             actions,
@@ -276,6 +307,12 @@ public static class ActorRulesDefinitionValidator
                     $"Frontline form '{form.Id}' objective weight must be zero " +
                     "or one because positive presence does not stack.");
             }
+            else if (gameMode is ArcRelayGameModeDefinition
+                     && form.ObjectiveWeight != 0)
+            {
+                errors.Add(
+                    $"Arc Relay form '{form.Id}' must use objective weight zero.");
+            }
         }
     }
 
@@ -365,6 +402,14 @@ public static class ActorRulesDefinitionValidator
                 maxTicks,
                 1L + frontline.Capture.RedeployPauseTicks,
                 errors);
+            if (frontline.Capture.RatchetHoldTicks > 0)
+            {
+                ValidateMaximumDueTick(
+                    "Frontline ratchet hold",
+                    maxTicks,
+                    frontline.Capture.RatchetHoldTicks,
+                    errors);
+            }
         }
     }
 
@@ -498,6 +543,23 @@ public static class ActorRulesDefinitionValidator
         }
     }
 
+    private static void ValidateFacingCouplingAdmission(
+        IReadOnlyList<ActorMovementProfileDefinition> movementProfiles,
+        List<string> errors)
+    {
+        foreach (ActorMovementProfileDefinition? profile in movementProfiles)
+        {
+            if (profile is null)
+                continue;
+            if (!Enum.IsDefined(profile.FacingCoupling))
+            {
+                errors.Add(
+                    $"Movement profile '{profile.Id}' selects undefined facing " +
+                    $"coupling '{profile.FacingCoupling}'.");
+            }
+        }
+    }
+
     private static void ValidateForms(
         IReadOnlyList<ActorFormDefinition> forms,
         IReadOnlyDictionary<string, ActorMovementProfileDefinition>
@@ -623,6 +685,14 @@ public static class ActorRulesDefinitionValidator
         {
             if (action is null)
                 continue;
+            if (action.MovementFacingOverride is { } facingOverride
+                && (!Enum.IsDefined(facingOverride)
+                    || action.Kind != ActorActionKind.Movement))
+            {
+                errors.Add(
+                    $"Action '{action.Id}' may declare movement-facing " +
+                    "behavior only on a Movement action with a known value.");
+            }
             switch (action.Kind)
             {
                 case ActorActionKind.Wait
@@ -633,10 +703,13 @@ public static class ActorRulesDefinitionValidator
                 case ActorActionKind.Movement
                     when !HasExactly(
                         action.ParameterKinds,
-                        ActorActionParameterKind.Direction):
+                        ActorActionParameterKind.Direction)
+                        && !HasExactly(
+                            action.ParameterKinds,
+                            ActorActionParameterKind.ProjectileHeading):
                     errors.Add(
                         $"Movement action '{action.Id}' must declare exactly " +
-                        "Direction under actor rules schema 3.");
+                        "Direction or ProjectileHeading under actor rules schema 3.");
                     break;
                 case ActorActionKind.Rotation
                     when !HasExactly(
@@ -653,7 +726,8 @@ public static class ActorRulesDefinitionValidator
                             ActorActionParameterKind.ShotProgram)
                         && !HasExactly(
                             action.ParameterKinds,
-                            ActorActionParameterKind.ProjectileHeading):
+                            ActorActionParameterKind.ProjectileHeading)
+                        && !HasAimedTargetPayload(action.ParameterKinds):
                     errors.Add(
                         $"Attack action '{action.Id}' has no supported schema-3 " +
                         "payload shape.");
@@ -671,15 +745,27 @@ public static class ActorRulesDefinitionValidator
         ActorShotProgramDefinition shotProgram = attackProfile.ShotProgram;
         bool valid;
         string expected;
+        // A declared strike additionally names its lock (DECISIONS #222), so
+        // a windup profile accepts heading+UnitTarget wherever the same
+        // profile without a windup accepts the heading alone.
+        bool aimPayload = HasExactly(
+                action.ParameterKinds,
+                ActorActionParameterKind.ProjectileHeading)
+            || attackProfile.Projectile.StrikeWindupTicks > 0
+                && HasAimedTargetPayload(action.ParameterKinds);
         if (attackProfile.OmnidirectionalAim)
         {
-            valid = !shotProgram.Enabled
-                && HasExactly(
-                    action.ParameterKinds,
-                    ActorActionParameterKind.ProjectileHeading);
+            valid = !shotProgram.Enabled && aimPayload;
             expected =
                 "an omnidirectional profile with disabled shot programs and " +
-                "exactly ProjectileHeading";
+                "exactly ProjectileHeading (plus UnitTarget when it winds up)";
+        }
+        else if (attackProfile.FacingAimHalfWidthSectors > 0)
+        {
+            valid = !shotProgram.Enabled && aimPayload;
+            expected =
+                "a facing-cone profile with disabled shot programs and " +
+                "exactly ProjectileHeading (plus UnitTarget when it winds up)";
         }
         else if (shotProgram.Enabled)
         {
@@ -874,6 +960,7 @@ public static class ActorRulesDefinitionValidator
         List<string> errors)
     {
         var routeCounts = new Dictionary<(string Source, string Action), int>();
+        var automaticReturnSources = new HashSet<string>(StringComparer.Ordinal);
         foreach (ActorSameLifeTransitionDefinition? transition in transitions)
         {
             if (transition is null)
@@ -921,6 +1008,19 @@ public static class ActorRulesDefinitionValidator
                     "exactly FormTarget.");
             }
 
+            if (transition is ActorFormTransitionDefinition
+                {
+                    AutomaticReturn: { } trigger,
+                } automatic)
+            {
+                ValidateAutomaticReturn(
+                    automatic,
+                    trigger,
+                    formsById,
+                    automaticReturnSources,
+                    errors);
+            }
+
             var route = (
                 transition.SourceFormId,
                 transition.ActionId,
@@ -954,6 +1054,53 @@ public static class ActorRulesDefinitionValidator
                 $"Parameterless same-life action '{actionId}' on form " +
                 $"'{source}' resolves {routeCount} targets; it must declare " +
                 "exactly FormTarget.");
+        }
+    }
+
+    /// <summary>
+    /// An automatic return has to be unambiguous and countable: one source
+    /// form may declare at most one, and the counter it names must be a fact
+    /// that form can actually produce. A shell that cannot deflect would never
+    /// leave; a stance that cannot attack would never cast.
+    /// </summary>
+    private static void ValidateAutomaticReturn(
+        ActorFormTransitionDefinition transition,
+        ActorAutomaticReturnTriggerDefinition trigger,
+        IReadOnlyDictionary<string, ActorFormDefinition> formsById,
+        HashSet<string> automaticReturnSources,
+        List<string> errors)
+    {
+        if (!automaticReturnSources.Add(transition.SourceFormId))
+        {
+            errors.Add(
+                $"Form '{transition.SourceFormId}' declares more than one " +
+                "automatic-return route; the engine's actionless choice must " +
+                "resolve to exactly one.");
+        }
+        if (!formsById.TryGetValue(
+                transition.SourceFormId,
+                out ActorFormDefinition? source))
+        {
+            return;
+        }
+
+        bool countable = trigger.Counter switch
+        {
+            ActorAutomaticReturnTriggerDefinition.AutomaticReturnCounterKind
+                .AttacksIssuedSinceEnteringSourceForm =>
+                source.AttackProfileId is not null,
+            ActorAutomaticReturnTriggerDefinition.AutomaticReturnCounterKind
+                .ProjectilesDeflectedSinceEnteringSourceForm =>
+                source.ProjectileGuard != ActorFormProjectileGuardKind.None,
+            _ => false,
+        };
+        if (!countable)
+        {
+            errors.Add(
+                $"Same-life transition '{transition.TransitionId}' counts " +
+                $"'{ActorContractCanonicalIds.Id(trigger.Counter)}' on form " +
+                $"'{transition.SourceFormId}', which can never produce that " +
+                "fact, so the automatic return could never fire.");
         }
     }
 
@@ -1166,6 +1313,18 @@ public static class ActorRulesDefinitionValidator
         IReadOnlyList<ActorActionParameterKind> parameters,
         ActorActionParameterKind expected) =>
         parameters.Count == 1 && parameters[0] == expected;
+
+    /// <summary>
+    /// The aimed-and-named payload of a declared strike: the heading the ray
+    /// flies down plus the identity the windup locks (DECISIONS #222). Only a
+    /// windup profile may carry it — an instant gun has nothing to lock, so
+    /// its payload stays exactly the heading.
+    /// </summary>
+    private static bool HasAimedTargetPayload(
+        IReadOnlyList<ActorActionParameterKind> parameters) =>
+        parameters.Count == 2
+        && parameters.Contains(ActorActionParameterKind.ProjectileHeading)
+        && parameters.Contains(ActorActionParameterKind.UnitTarget);
 
     private static void ValidateCanonicalId(
         string? value,

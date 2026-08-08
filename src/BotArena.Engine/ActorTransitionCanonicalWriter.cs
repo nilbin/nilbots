@@ -178,6 +178,30 @@ internal static class ActorTransitionCanonicalWriter
         writer.WriteBoolean(
             "irreversibleForLife",
             transition.IrreversibleForLife);
+        // Inert-default omission, exactly like the form's projectile guard and
+        // the attack profile's volley: a route the engine never fires by
+        // itself carries no trigger object at all, so every contract authored
+        // before automatic returns existed keeps its exact fingerprint
+        // (DECISIONS #156's additive pattern).
+        if (transition.AutomaticReturn is { } automaticReturn)
+        {
+            writer.WritePropertyName("automaticReturn");
+            WriteAutomaticReturn(writer, automaticReturn);
+        }
+        // Trailing additive optional field (#181): zero writes nothing, so
+        // every pre-existing contract keeps its exact bytes.
+        if (transition.CooldownTicks > 0)
+            writer.WriteNumber("cooldownTicks", transition.CooldownTicks);
+        writer.WriteEndObject();
+    }
+
+    private static void WriteAutomaticReturn(
+        Utf8JsonWriter writer,
+        ActorAutomaticReturnTriggerDefinition trigger)
+    {
+        writer.WriteStartObject();
+        writer.WriteString("counter", Id(trigger.Counter));
+        writer.WriteNumber("threshold", trigger.Threshold);
         writer.WriteEndObject();
     }
 

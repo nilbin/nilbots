@@ -1,0 +1,15 @@
+{
+  "id": "019fb015-f431-7462-9ed2-36ba06a0e2c2",
+  "type": "multi-image-to-3d",
+  "status": "SUCCEEDED",
+  "created_at": 1785365659959,
+  "started_at": 1785365660299,
+  "finished_at": 1785365906920,
+  "progress": 100,
+  "task_error": null,
+  "remove_lighting": true,
+  "hd_texture": true,
+  "texture_resolution": "4k",
+  "consumed_credits": 30,
+  "texture_prompt": "Blackened forged iron and matte graphite armor, broad weathered plates, restrained aged-bronze clamps and seam bands, sparse ember-orange heat wear only in recessed maintenance slots. Preserve the exact material placement in the reference views. Physically based metallic, roughness, and normal detail. No text, logo, floor, shadow, team color, neon spill, lava, flame, added prop, or new ornament."
+}

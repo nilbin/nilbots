@@ -9,10 +9,18 @@ before seeing the outcome table.
 
 import argparse
 import collections
+import gzip
 import hashlib
 import json
 import pathlib
-import shutil
+
+
+def replay_bytes(path):
+    """Replay document bytes, decompressing a .gz transparently."""
+    if path.suffix == ".gz":
+        with gzip.open(path, "rb") as stream:
+            return stream.read()
+    return path.read_bytes()
 
 
 def file_sha256(path):
@@ -24,19 +32,32 @@ def file_sha256(path):
 
 
 def replay_files(roots):
+    # The experiment command writes replay.json.gz; other flows write
+    # replay.json. Accept both, deduplicating on the uncompressed name so
+    # a directory holding both counts once (the .json wins).
     seen = set()
     for root in roots:
         path = pathlib.Path(root)
-        candidates = [path] if path.is_file() else path.rglob("replay.json")
+        if path.is_file():
+            candidates = [path]
+        else:
+            candidates = sorted(path.rglob("replay.json")) + sorted(
+                path.rglob("replay.json.gz")
+            )
         for candidate in candidates:
             resolved = candidate.resolve()
-            if resolved not in seen:
-                seen.add(resolved)
+            key = (
+                resolved.with_suffix("")
+                if resolved.suffix == ".gz"
+                else resolved
+            )
+            if key not in seen:
+                seen.add(key)
                 yield candidate
 
 
 def candidate(path, selection_seed):
-    document = json.loads(path.read_text())
+    document = json.loads(replay_bytes(path))
     header = document["header"]
     replay_version = header.get("replayVersion")
     if replay_version == 1:
@@ -135,8 +156,9 @@ def write_review_package(destination, chosen, blind):
         sample_id = f"sample-{sample_index:02}"
         copied_replay = replay_directory / f"{sample_id}.json"
         source = pathlib.Path(item["source"])
-        source_hash = file_sha256(source)
-        shutil.copy2(source, copied_replay)
+        source_bytes = replay_bytes(source)
+        source_hash = hashlib.sha256(source_bytes).hexdigest()
+        copied_replay.write_bytes(source_bytes)
         copied_hash = file_sha256(copied_replay)
         if copied_hash != source_hash:
             raise ValueError(f"{source}: copied replay bytes changed")

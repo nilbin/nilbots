@@ -22,6 +22,11 @@ nilbots experiment frontline-labs \
   --bot out/bot.wasm \
   --opponent ../AnotherGenericBot/out/bot.wasm \
   --seed 104729
+
+# Cumulative WASM-only fundamentals qualification:
+nilbots experiment frontline-labs qualify \
+  --bot out/bot.wasm \
+  --suite frontline-qualification-3
 ```
 
 The command always selects the immutable `frontline-labs-1` definition and
@@ -33,15 +38,19 @@ and team assignment. A batch `--out evidence` writes one replay under
 Nilbots creates one independent instance of your class for every active life.
 `StartLife` receives the exact static rules, map, topology, participant/team
 counts, unit slots, forms, transitions, objective binding, lineage, and
-private deterministic seed. `Tick` receives dynamic allies, visible enemies,
-scores, objective state, and exact action legality for that body.
+private deterministic seed, plus the seed of your team's SHARED stream.
+`Tick` receives dynamic allies, visible enemies, scores, objective state, and
+exact action legality for that body.
 
 The generated bot is a competent apprentice rather than a blank or solved
 policy. Its short `Tick` priority list promptly activates an available
-companion, leaves an obvious one-advance projectile path, takes a clear direct
-shot, and pathfinds around walls toward the active objective. Those
-contract-driven building blocks live in `ArenaBasics.cs`; keep or replace them
-as your policy develops.
+companion, leaves an imminent straight-projectile path, takes a clear direct
+shot, and pathfinds around walls toward the active objective. Its dodge helper
+projects a visible projectile's current heading across two advances, and each
+life avoids its just-vacated dodge tile for one further tick so objective
+pathing cannot immediately step back into the same shot. Those contract-driven
+building blocks live in `ArenaBasics.cs`; keep or replace them as your policy
+develops.
 
 The immediate evasion is intentionally baseline boilerplate. The interesting
 work starts with deciding when moving costs too much territory or firing
@@ -53,6 +62,26 @@ coordinate focus fire, program curved-shot traps, remember opponents, or adapt
 its doctrine. `BOTNAME.cs` is the intended first editing surface: reorder its
 priorities, add conditions, and use actor/unit identity plus shared
 observations to make the independent lives cooperate.
+
+The qualification command is local and unranked. Current suite 3 runs both
+assignments in WASM and checks contract/count handling, deterministic replay
+hashes, useful automatic children, objective movement/holding, direct fire,
+straight-projectile evasion, and explicit Fabricate. A complete pass awards
+T2 under the pinned duel-depth union profile. It remains authoring/fun-floor
+evidence (`balanceEvidenceEligible: false`); numeric balance voting starts at
+the separately qualified T4 floor.
+
+After the starter passes suite 3, suite 4 is the next tactical target. It
+automatically reruns that exact T2 prerequisite, then checks legal curved
+intercepts, strict wall termination, declared projectile range/cadence,
+cooldown tempo, and local transform safety. The generated starter is
+intentionally not claimed to pass it.
+
+Suite 5 is the first balance-eligible target. It reruns exact T3, then checks
+suppression versus concession, proactive pressure entry,
+objective-preserving response, front rotation, and a thin-fronts map holdout.
+Passing qualifies one artifact as T4; a pilot still needs independently
+authored effective doctrines rather than several revisions of one starter.
 
 `ArenaBasics` demonstrates the important authoring pattern: select actions by
 their contract kind or stable ID, use the negotiated numeric code, and obey
@@ -67,3 +96,53 @@ Do not assume all forms expose all actions. See
 rule card and `docs/EXPERIMENTAL-FRONTLINE.md` for its product/authoring
 boundary. The exact contract delivered to the bot and embedded in the replay
 remains authoritative.
+
+## Helpers worth knowing before you write your own
+
+- `context.TeamRandom` is the one way to make a RANDOM choice a COORDINATED
+  one. Your team has no channel; coordination works only because every life
+  gets the identical observation, so any pure function of it is a plan you all
+  independently agree on. `context.Random` is per life and silently breaks
+  that — two teammates computing "flank left or right?" from it get different
+  answers and split. `TeamRandom` gives every life on your team the same
+  values at the same point in the same tick, including a life that spawned
+  this tick, and re-derives per tick so private draws elsewhere in your code
+  cannot shift the shared plan. The one rule: draw before you branch on
+  private state, so teammates draw the same number of values in the same
+  order. `ArenaBasics.OrderedDirections` already uses it.
+- `ShotPaths.Preview` replays the engine's exact bend rule for a candidate
+  program — the most useful single call in the SDK for aiming and
+  interception. Trust it over your own geometry.
+- `ArenaBasics.Capabilities(contract, context)` answers the questions a
+  doctrine branches on (shot programs? anchor route? fabrication route?
+  unlock tick?) straight from the contract; `ArenaBasics.ClassOf` reads a
+  team's class chassis. Prefer these over hard-coded assumptions — arms
+  differ, and the qualification profile is not your class arm.
+- `ArenaBasics.Capture(contract)` reads what a push is worth: capture
+  threshold, gain, decay, redeploy pause, whether surplus objective weight
+  scales capture pressure, whether only enemy sole presence erodes a claim,
+  and how long a completed advance holds. That last one is `null` when the
+  capture definition declares no hold at all — canonical contracts omit inert
+  fields, so an absent hold means captures never lock and the front can come
+  straight back. When a hold IS declared, a capture completed inside an
+  enemy hold is spent: the claim resets and the objective does not move.
+  Pricing every capture as an advance is how a bot overpays for a push.
+- `ArenaBasics.ObjectivePresence(contract, context)` counts objective weight
+  on the active objective by side (a form may declare weight zero and hold
+  ground for nothing) — the number that matters when control is weight-scaled
+  rather than binary. It sees only what your team observes, so read enemy
+  weight as a lower bound.
+- `ArenaBasics.ExpectedArrivalTiles(contract, context)` says where your
+  slot's next automatic arrival is intended to land. Read
+  `lifecycle.automaticReturnPlacement`: some contracts place returns and
+  activations on your own side of the *active objective* rather than at your
+  spawn, which makes "I respawn at home and walk to the front" wrong. Plan
+  from your life's actual first-tick `Self.Position`; use this helper only to
+  price a death before it happens.
+- `ArenaBasics.ActiveObjectiveTiles`, `ObjectiveTiles`,
+  `OwnSideObjectiveTiles`, and `AdvanceDirection(contract, teamId)` are the
+  chain-derived geometry — front, rear, and either team's push direction —
+  with no home-relative assumption in any of them.
+- When a probe or match behaves inexplicably, dump the resolved contract
+  from your own replay's `header.contract` — it is the authoritative
+  ruleset, and reading it beats guessing from prose every time.

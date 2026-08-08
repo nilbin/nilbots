@@ -33,6 +33,7 @@ public class BotLifecyclePostgreSqlIntegrationTests
         var appearancePolicy = new BotAppearancePolicy(entitlements);
         var create = new CreateBotUseCase(
             db,
+            new BotClassPolicy(),
             appearancePolicy,
             timeProvider,
             NullLogger<CreateBotUseCase>.Instance);

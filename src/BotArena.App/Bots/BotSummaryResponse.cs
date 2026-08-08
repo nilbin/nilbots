@@ -25,7 +25,8 @@ public sealed record BotSummaryResponse(
     string Owner,
     BotActiveVersionResponse? ActiveVersion,
     int VersionCount,
-    LadderStanding? CurrentStanding = null);
+    LadderStanding? CurrentStanding = null,
+    string? ClassId = null);
 
 /// <summary>One rules-version ladder a bot has fought on (DECISIONS #54), newest first.</summary>
 public sealed record BotLadderRatingResponse(string RulesVersion, double Rating, int RankedSets);
@@ -48,7 +49,8 @@ public sealed record MyBotResponse(
     string Accent,
     string LookId,
     string ProjectileLookId,
-    MyBotVersionResponse? LatestVersion);
+    MyBotVersionResponse? LatestVersion,
+    string? ClassId = null);
 
 /// <summary>The newest version of an owned bot, whatever its build state.</summary>
 public sealed record MyBotVersionResponse(int VersionNumber, string Status, bool IsActive);

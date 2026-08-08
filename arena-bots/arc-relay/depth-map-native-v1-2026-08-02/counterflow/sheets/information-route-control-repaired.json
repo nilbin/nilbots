@@ -1,0 +1,15 @@
+{
+  "composition": [
+    "lantern",
+    "lantern",
+    "veil",
+    "veil",
+    "minesmith",
+    "hush",
+    "mason",
+    "relay"
+  ],
+  "mapId": "arc-relay-threefold-depth-counterflow-01",
+  "schema": "arc-relay-evaluation-sheet-v0",
+  "sheetId": "information-route-control-v1"
+}

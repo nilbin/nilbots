@@ -1,0 +1,43 @@
+{
+  "provider": "Meshy",
+  "endpoint": "multi-image-to-3d",
+  "taskId": "019fb015-f431-7462-9ed2-36ba06a0e2c2",
+  "submittedAt": "2026-07-29T22:54:19.959Z",
+  "inputs": [
+    {
+      "view": "front",
+      "path": "../../../../meshy-inputs/perimeter-straight-v1/front.png",
+      "sha256": "43c0fa795f292ba319b41dbfd0378156fd9ed8874860e1703565f75b78753931"
+    },
+    {
+      "view": "side",
+      "path": "../../../../meshy-inputs/perimeter-straight-v1/side.png",
+      "sha256": "8734e2a9bb8c885f0340dbf33592d76286e26335e418fd95345ff8d7ce639098"
+    },
+    {
+      "view": "rear",
+      "path": "../../../../meshy-inputs/perimeter-straight-v1/rear.png",
+      "sha256": "910765555a52107b08e62547e8328d78a83a0a68115d7b7662c9bca3369bc53a"
+    },
+    {
+      "view": "top",
+      "path": "../../../../meshy-inputs/perimeter-straight-v1/top.png",
+      "sha256": "c135ad06a50e32356a6ecfa9d518f7a67827e2109e31e5af89a5c2049312b42c"
+    }
+  ],
+  "parameters": {
+    "ai_model": "meshy-6",
+    "should_texture": true,
+    "enable_pbr": true,
+    "texture_resolution": "4k",
+    "should_remesh": false,
+    "pose_mode": "",
+    "image_enhancement": false,
+    "remove_lighting": true,
+    "target_formats": [
+      "glb"
+    ],
+    "texture_prompt": "Blackened forged iron and matte graphite armor, broad weathered plates, restrained aged-bronze clamps and seam bands, sparse ember-orange heat wear only in recessed maintenance slots. Preserve the exact material placement in the reference views. Physically based metallic, roughness, and normal detail. No text, logo, floor, shadow, team color, neon spill, lava, flame, added prop, or new ornament."
+  },
+  "credentialIncluded": false
+}

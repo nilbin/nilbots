@@ -1,0 +1,183 @@
+{
+  "schema": "arc-relay-tactical-layout-v1",
+  "layoutId": "counterflow-predator-v1",
+  "mapId": "arc-relay-threefold-depth-counterflow-01",
+  "bindings": [
+    {
+      "matchContractFingerprint": "any-composition",
+      "ownReactorSide": "east",
+      "transform": "rotate-180",
+      "routeAliases": {
+        "north-out": "south-out",
+        "south-out": "north-out"
+      },
+      "formationAliases": {}
+    },
+    {
+      "matchContractFingerprint": "any-composition",
+      "ownReactorSide": "west",
+      "transform": "identity",
+      "routeAliases": {},
+      "formationAliases": {}
+    }
+  ],
+  "zones": [
+    {
+      "zoneId": "own-home",
+      "rect": [
+        1,
+        7,
+        7,
+        15
+      ]
+    },
+    {
+      "zoneId": "own-choke",
+      "rect": [
+        3,
+        6,
+        7,
+        16
+      ]
+    },
+    {
+      "zoneId": "own-approach",
+      "rect": [
+        4,
+        4,
+        11,
+        18
+      ]
+    },
+    {
+      "zoneId": "north-farm",
+      "rect": [
+        12,
+        2,
+        18,
+        8
+      ]
+    },
+    {
+      "zoneId": "south-farm",
+      "rect": [
+        12,
+        14,
+        18,
+        20
+      ]
+    },
+    {
+      "zoneId": "well-line",
+      "rect": [
+        12,
+        2,
+        18,
+        20
+      ]
+    },
+    {
+      "zoneId": "centre-farm",
+      "rect": [
+        12,
+        9,
+        18,
+        13
+      ]
+    },
+    {
+      "zoneId": "kill-pocket",
+      "rect": [
+        10,
+        7,
+        13,
+        10
+      ]
+    }
+  ],
+  "routes": [
+    {
+      "routeId": "north-out",
+      "corridorWidth": 2,
+      "waypoints": [
+        [
+          4,
+          8
+        ],
+        [
+          7,
+          6
+        ],
+        [
+          10,
+          5
+        ],
+        [
+          13,
+          4
+        ],
+        [
+          15,
+          4
+        ]
+      ]
+    },
+    {
+      "routeId": "south-out",
+      "corridorWidth": 2,
+      "waypoints": [
+        [
+          4,
+          14
+        ],
+        [
+          7,
+          16
+        ],
+        [
+          10,
+          17
+        ],
+        [
+          13,
+          18
+        ],
+        [
+          15,
+          18
+        ]
+      ]
+    },
+    {
+      "routeId": "centre-probe",
+      "corridorWidth": 2,
+      "waypoints": [
+        [
+          5,
+          11
+        ],
+        [
+          9,
+          11
+        ],
+        [
+          12,
+          11
+        ],
+        [
+          15,
+          11
+        ]
+      ]
+    }
+  ],
+  "anchors": [
+    {
+      "anchorId": "home-gate",
+      "position": [
+        5,
+        11
+      ]
+    }
+  ]
+}

@@ -665,10 +665,19 @@ public sealed class SplitReplicationKernel
                 && assignment.AllowedFormIds.Contains(
                     actor.FormId,
                     StringComparer.Ordinal);
+            // A body may carry the mode's declared upgrade headroom above its
+            // form's declared maximum; zero on every contract without a
+            // ladder.
             bool healthValid = _forms.TryGetValue(
                     actor.FormId,
                     out ActorFormDefinition? form)
-                && actor.Health <= form.MaxHealth;
+                && actor.Health
+                    <= checked(
+                        form.MaxHealth
+                        + FrontlineScrapEconomyDefinition.HeadroomOn(
+                            _definition.Rules.GameMode,
+                            FrontlineScrapEconomyDefinition.UpgradeEffectKind
+                                .SpawnMaxHealthDelta));
             if (actor.ParticipantId < 0
                 || actor.Generation < 0
                 || actor.Health <= 0

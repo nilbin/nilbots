@@ -1079,6 +1079,7 @@ public sealed class GenericActorRuntimeCoordinatorTests
             ActorId = actorId,
             ParticipantId = participantId,
             ActorRandomSeed = (ulong)(actorId.TeamId + actorId.UnitId + 17),
+            TeamRandomSeed = (ulong)(actorId.TeamId + 101),
             Origin = new GenericActorRuntimeStart.LifeOrigin(
                 GenericActorRuntimeStart.SpawnReason.Initial,
                 Generation: 0,

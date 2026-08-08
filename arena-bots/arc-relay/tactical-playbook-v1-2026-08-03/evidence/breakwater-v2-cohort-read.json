@@ -1,0 +1,456 @@
+{
+  "candidate": "breakwater-v1 (v2 config)",
+  "seed": "424242",
+  "runtime": "in-process (analysis lane)",
+  "total": "50/64",
+  "entrants": {
+    "balanced": {
+      "west": {
+        "win": false,
+        "score": "2-3",
+        "tick": 401,
+        "reason": "reactor-destroyed"
+      },
+      "east": {
+        "win": false,
+        "score": "1-3",
+        "tick": 352,
+        "reason": "reactor-destroyed"
+      }
+    },
+    "beacon-hunt": {
+      "west": {
+        "win": true,
+        "score": "3-1",
+        "tick": 393,
+        "reason": "reactor-destroyed"
+      },
+      "east": {
+        "win": true,
+        "score": "3-2",
+        "tick": 496,
+        "reason": "reactor-destroyed"
+      }
+    },
+    "breach-column": {
+      "west": {
+        "win": true,
+        "score": "3-2",
+        "tick": 426,
+        "reason": "reactor-destroyed"
+      },
+      "east": {
+        "win": true,
+        "score": "3-2",
+        "tick": 437,
+        "reason": "reactor-destroyed"
+      }
+    },
+    "centre-phalanx": {
+      "west": {
+        "win": true,
+        "score": "3-1",
+        "tick": 388,
+        "reason": "reactor-destroyed"
+      },
+      "east": {
+        "win": true,
+        "score": "3-2",
+        "tick": 456,
+        "reason": "reactor-destroyed"
+      }
+    },
+    "control-grid": {
+      "west": {
+        "win": true,
+        "score": "3-2",
+        "tick": 437,
+        "reason": "reactor-destroyed"
+      },
+      "east": {
+        "win": true,
+        "score": "3-2",
+        "tick": 447,
+        "reason": "reactor-destroyed"
+      }
+    },
+    "convoy": {
+      "west": {
+        "win": true,
+        "score": "3-2",
+        "tick": 439,
+        "reason": "reactor-destroyed"
+      },
+      "east": {
+        "win": false,
+        "score": "2-3",
+        "tick": 455,
+        "reason": "reactor-destroyed"
+      }
+    },
+    "counter-courier": {
+      "west": {
+        "win": true,
+        "score": "3-2",
+        "tick": 439,
+        "reason": "reactor-destroyed"
+      },
+      "east": {
+        "win": true,
+        "score": "3-1",
+        "tick": 388,
+        "reason": "reactor-destroyed"
+      }
+    },
+    "courier-sprint": {
+      "west": {
+        "win": true,
+        "score": "3-2",
+        "tick": 453,
+        "reason": "reactor-destroyed"
+      },
+      "east": {
+        "win": false,
+        "score": "2-3",
+        "tick": 451,
+        "reason": "reactor-destroyed"
+      }
+    },
+    "displacement-control": {
+      "west": {
+        "win": false,
+        "score": "2-3",
+        "tick": 401,
+        "reason": "reactor-destroyed"
+      },
+      "east": {
+        "win": true,
+        "score": "3-2",
+        "tick": 435,
+        "reason": "reactor-destroyed"
+      }
+    },
+    "elastic-reserve": {
+      "west": {
+        "win": true,
+        "score": "3-1",
+        "tick": 383,
+        "reason": "reactor-destroyed"
+      },
+      "east": {
+        "win": true,
+        "score": "3-1",
+        "tick": 379,
+        "reason": "reactor-destroyed"
+      }
+    },
+    "feint-switch": {
+      "west": {
+        "win": true,
+        "score": "3-1",
+        "tick": 353,
+        "reason": "reactor-destroyed"
+      },
+      "east": {
+        "win": false,
+        "score": "1-3",
+        "tick": 401,
+        "reason": "reactor-destroyed"
+      }
+    },
+    "fireline-picks": {
+      "west": {
+        "win": true,
+        "score": "3-1",
+        "tick": 380,
+        "reason": "reactor-destroyed"
+      },
+      "east": {
+        "win": true,
+        "score": "3-2",
+        "tick": 578,
+        "reason": "reactor-destroyed"
+      }
+    },
+    "fortress-counterattack": {
+      "west": {
+        "win": true,
+        "score": "3-1",
+        "tick": 376,
+        "reason": "reactor-destroyed"
+      },
+      "east": {
+        "win": true,
+        "score": "3-1",
+        "tick": 376,
+        "reason": "reactor-destroyed"
+      }
+    },
+    "home-counterpunch": {
+      "west": {
+        "win": true,
+        "score": "3-1",
+        "tick": 385,
+        "reason": "reactor-destroyed"
+      },
+      "east": {
+        "win": true,
+        "score": "3-1",
+        "tick": 364,
+        "reason": "reactor-destroyed"
+      }
+    },
+    "hook-burst": {
+      "west": {
+        "win": false,
+        "score": "2-3",
+        "tick": 444,
+        "reason": "reactor-destroyed"
+      },
+      "east": {
+        "win": true,
+        "score": "3-1",
+        "tick": 393,
+        "reason": "reactor-destroyed"
+      }
+    },
+    "interception": {
+      "west": {
+        "win": true,
+        "score": "3-2",
+        "tick": 453,
+        "reason": "reactor-destroyed"
+      },
+      "east": {
+        "win": false,
+        "score": "2-3",
+        "tick": 492,
+        "reason": "reactor-destroyed"
+      }
+    },
+    "mine-crescent": {
+      "west": {
+        "win": true,
+        "score": "3-2",
+        "tick": 426,
+        "reason": "reactor-destroyed"
+      },
+      "east": {
+        "win": true,
+        "score": "3-2",
+        "tick": 426,
+        "reason": "reactor-destroyed"
+      }
+    },
+    "mortar-wheel": {
+      "west": {
+        "win": true,
+        "score": "3-2",
+        "tick": 428,
+        "reason": "reactor-destroyed"
+      },
+      "east": {
+        "win": false,
+        "score": "2-3",
+        "tick": 402,
+        "reason": "reactor-destroyed"
+      }
+    },
+    "null-veil": {
+      "west": {
+        "win": true,
+        "score": "3-2",
+        "tick": 456,
+        "reason": "reactor-destroyed"
+      },
+      "east": {
+        "win": true,
+        "score": "3-1",
+        "tick": 377,
+        "reason": "reactor-destroyed"
+      }
+    },
+    "outer-pincers": {
+      "west": {
+        "win": true,
+        "score": "3-1",
+        "tick": 384,
+        "reason": "reactor-destroyed"
+      },
+      "east": {
+        "win": true,
+        "score": "3-2",
+        "tick": 451,
+        "reason": "reactor-destroyed"
+      }
+    },
+    "pod-lattice": {
+      "west": {
+        "win": true,
+        "score": "3-1",
+        "tick": 452,
+        "reason": "reactor-destroyed"
+      },
+      "east": {
+        "win": true,
+        "score": "3-1",
+        "tick": 391,
+        "reason": "reactor-destroyed"
+      }
+    },
+    "rail-screen": {
+      "west": {
+        "win": true,
+        "score": "3-1",
+        "tick": 351,
+        "reason": "reactor-destroyed"
+      },
+      "east": {
+        "win": true,
+        "score": "3-1",
+        "tick": 426,
+        "reason": "reactor-destroyed"
+      }
+    },
+    "relay-chain": {
+      "west": {
+        "win": true,
+        "score": "3-1",
+        "tick": 363,
+        "reason": "reactor-destroyed"
+      },
+      "east": {
+        "win": true,
+        "score": "3-2",
+        "tick": 426,
+        "reason": "reactor-destroyed"
+      }
+    },
+    "repair-web": {
+      "west": {
+        "win": true,
+        "score": "3-2",
+        "tick": 436,
+        "reason": "reactor-destroyed"
+      },
+      "east": {
+        "win": true,
+        "score": "3-1",
+        "tick": 380,
+        "reason": "reactor-destroyed"
+      }
+    },
+    "rotating-bastions": {
+      "west": {
+        "win": true,
+        "score": "3-2",
+        "tick": 426,
+        "reason": "reactor-destroyed"
+      },
+      "east": {
+        "win": true,
+        "score": "3-1",
+        "tick": 364,
+        "reason": "reactor-destroyed"
+      }
+    },
+    "sensor-grid": {
+      "west": {
+        "win": false,
+        "score": "2-3",
+        "tick": 417,
+        "reason": "reactor-destroyed"
+      },
+      "east": {
+        "win": false,
+        "score": "1-3",
+        "tick": 326,
+        "reason": "reactor-destroyed"
+      }
+    },
+    "smoke-and-mines": {
+      "west": {
+        "win": true,
+        "score": "3-1",
+        "tick": 369,
+        "reason": "reactor-destroyed"
+      },
+      "east": {
+        "win": false,
+        "score": "2-3",
+        "tick": 401,
+        "reason": "reactor-destroyed"
+      }
+    },
+    "smoke-convoy": {
+      "west": {
+        "win": true,
+        "score": "3-1",
+        "tick": 451,
+        "reason": "reactor-destroyed"
+      },
+      "east": {
+        "win": true,
+        "score": "3-1",
+        "tick": 376,
+        "reason": "reactor-destroyed"
+      }
+    },
+    "split": {
+      "west": {
+        "win": false,
+        "score": "2-3",
+        "tick": 401,
+        "reason": "reactor-destroyed"
+      },
+      "east": {
+        "win": true,
+        "score": "3-2",
+        "tick": 426,
+        "reason": "reactor-destroyed"
+      }
+    },
+    "sustain-attrition": {
+      "west": {
+        "win": true,
+        "score": "3-1",
+        "tick": 378,
+        "reason": "reactor-destroyed"
+      },
+      "east": {
+        "win": true,
+        "score": "3-1",
+        "tick": 378,
+        "reason": "reactor-destroyed"
+      }
+    },
+    "three-well-race": {
+      "west": {
+        "win": true,
+        "score": "3-2",
+        "tick": 451,
+        "reason": "reactor-destroyed"
+      },
+      "east": {
+        "win": false,
+        "score": "1-3",
+        "tick": 401,
+        "reason": "reactor-destroyed"
+      }
+    },
+    "trap-punish": {
+      "west": {
+        "win": true,
+        "score": "3-2",
+        "tick": 435,
+        "reason": "reactor-destroyed"
+      },
+      "east": {
+        "win": true,
+        "score": "3-1",
+        "tick": 374,
+        "reason": "reactor-destroyed"
+      }
+    }
+  }
+}

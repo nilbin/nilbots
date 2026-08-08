@@ -12,4 +12,16 @@ public enum ActorActionParameterKind
     UnitTarget = 2,
     FormTarget = 3,
     ProjectileHeading = 4,
+
+    /// <summary>
+    /// Names one declared upgrade track. Additive append; the legality mask
+    /// carries the tracks that are affordable and uncapped this tick, so a
+    /// bot reading its mask never does the arithmetic.
+    /// </summary>
+    UpgradeTrack = 5,
+
+    // Ordinal 6 is the pre-registered but still dormant class-target shape.
+
+    /// <summary>An absolute floor tile inside the resolved map.</summary>
+    PositionTarget = 7,
 }

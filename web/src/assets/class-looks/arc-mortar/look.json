@@ -1,0 +1,10 @@
+{
+  "id": "arc-mortar",
+  "label": "Mortar",
+  "sprite": "sprite.png",
+  "suggestedAccent": "#38bdf8",
+  "defaultProjectile": "arc-pulse",
+  "classId": "mortar",
+  "locomotionCue": "treads",
+  "scale": 1.09
+}

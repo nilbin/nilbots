@@ -1,3 +1,4 @@
+using System.Text.Json;
 using BotArena.Bots.BuiltIn;
 using BotArena.Engine;
 
@@ -8,7 +9,15 @@ public static class ReplayCommand
     public static int Run(string file, IReadOnlyList<string> args)
     {
         var options = CliSupport.ParseOptions(args);
-        string json = File.ReadAllText(file);
+        string json = ReplayInput.ReadAllText(file);
+        using JsonDocument envelope = JsonDocument.Parse(json);
+        JsonElement root = envelope.RootElement;
+        int replayVersion = root.GetProperty("header")
+            .GetProperty("replayVersion")
+            .GetInt32();
+        if (replayVersion == BotArenaVersions.GenericActorReplayFormatVersion)
+            return RunGeneric(json, root, file, options);
+
         var document = ReplaySerializer.FromJson(json); // Validates the format.
         // --full alone implies --summary (gen-6 finding: it silently printed only the
         // header as a sub-flag, which read as a bug).
@@ -24,6 +33,66 @@ public static class ReplayCommand
         if (viewer is null)
         {
             Console.Error.WriteLine("Viewer template not found — build it with `npm run build` in web/.");
+            return 1;
+        }
+        Console.WriteLine($"Viewer:  {viewer}");
+        return 0;
+    }
+
+    private static int RunGeneric(
+        string json,
+        JsonElement root,
+        string file,
+        IReadOnlyDictionary<string, string> options)
+    {
+        if (!GenericActorReplayDocument.VerifyHash(
+                json,
+                out string? failure))
+        {
+            Console.Error.WriteLine(
+                $"Replay-v3 verification failed: {failure}");
+            return 1;
+        }
+
+        if (options.ContainsKey("summary") || options.ContainsKey("full"))
+        {
+            try
+            {
+                Console.WriteLine(
+                    GenericActorArcRelayReplaySummary.Read(json).Format());
+                return 0;
+            }
+            catch (ArgumentException exception)
+            {
+                Console.Error.WriteLine(exception.Message);
+                return 1;
+            }
+        }
+
+        JsonElement header = root.GetProperty("header");
+        JsonElement contract = header.GetProperty("contract");
+        string mapId = contract.GetProperty("map")
+            .GetProperty("mapId").GetString()!;
+        string seed = header.GetProperty("seed").GetString()!;
+        string rules = header.GetProperty("gameRulesVersion").GetString()!;
+        int ticks = root.GetProperty("ticks").GetArrayLength();
+        string? themeId = header.GetProperty("presentation").ValueKind
+            == JsonValueKind.Object
+            && header.GetProperty("presentation").TryGetProperty(
+                "themeId",
+                out JsonElement theme)
+            ? theme.GetString()
+            : null;
+        string outDir = options.GetValueOrDefault(
+            "out",
+            Path.GetDirectoryName(Path.GetFullPath(file)) ?? ".")!;
+        Console.WriteLine(
+            $"Replay:  {mapId} seed {seed} ({ticks} ticks, rules {rules})");
+        string? viewer = ReplayOutput.WriteViewer(json, outDir, themeId);
+        if (viewer is null)
+        {
+            Console.Error.WriteLine(
+                "Viewer template not found — build it with `npm run build` in web/.");
             return 1;
         }
         Console.WriteLine($"Viewer:  {viewer}");

@@ -1,0 +1,9 @@
+{
+  "id": "lattice-loom",
+  "label": "Lattice Loom",
+  "sprite": "sprite.svg",
+  "suggestedAccent": "#f59e0b",
+  "defaultProjectile": "lattice-rivet",
+  "classId": "fabricator",
+  "scale": 1.14
+}

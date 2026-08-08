@@ -1,0 +1,157 @@
+{
+  "schemaVersion": 1,
+  "url": "http://127.0.0.1:4175/?standalone&audio=off",
+  "seconds": 5,
+  "captures": [
+    {
+      "id": "stock-a-v-flow-b-desktop",
+      "replay": "Stock · roster A · amber",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "mobile": false,
+      "renderer": "webgl",
+      "playbackSpeed": 0.5,
+      "requestedStartTick": 0,
+      "canvasPixels": {
+        "width": 1440,
+        "height": 900,
+        "clientWidth": 1440,
+        "clientHeight": 900
+      },
+      "tickBefore": 0,
+      "tickAfter": 5,
+      "ticksAdvanced": 5,
+      "video": "art/reviews/arc-relay-3d/motion/stock-a-v-flow-b-desktop.webm",
+      "videoBytes": 565526,
+      "videoSha256": "925155b31bc53393f80969c9246521549df90be841fc7faaec4c8e6b501fbb83",
+      "contactSheet": "art/reviews/arc-relay-3d/motion/stock-a-v-flow-b-desktop-contact.webp",
+      "contactSheetSha256": "54337fa8aba2e714b3241f0814302473b1f09a485b1250516e383d621f7303ea",
+      "openingStill": "art/reviews/arc-relay-3d/motion/stock-a-v-flow-b-desktop-opening.webp",
+      "openingStillSha256": "80f6c944948e61933bf168ecf89d995e91cc776c4912aaf4aebf2211c51121e1",
+      "pageErrors": [],
+      "consoleErrors": []
+    },
+    {
+      "id": "stock-b-v-flow-a-desktop",
+      "replay": "Stock · roster B · amber",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "mobile": false,
+      "renderer": "webgl",
+      "playbackSpeed": 0.5,
+      "requestedStartTick": 0,
+      "canvasPixels": {
+        "width": 1440,
+        "height": 900,
+        "clientWidth": 1440,
+        "clientHeight": 900
+      },
+      "tickBefore": 0,
+      "tickAfter": 5,
+      "ticksAdvanced": 5,
+      "video": "art/reviews/arc-relay-3d/motion/stock-b-v-flow-a-desktop.webm",
+      "videoBytes": 592168,
+      "videoSha256": "2dded92d1b1ed4550f71b06af9ed6f2ce8c839380308feb40891c3b010a9403c",
+      "contactSheet": "art/reviews/arc-relay-3d/motion/stock-b-v-flow-a-desktop-contact.webp",
+      "contactSheetSha256": "fd9e5a7da15841df9aeac774922fe0292ae3970b611083d26b640346c25bbefe",
+      "openingStill": "art/reviews/arc-relay-3d/motion/stock-b-v-flow-a-desktop-opening.webp",
+      "openingStillSha256": "f468dd241baa2dc3597b8f9bca2d06fc60df8dae52b4dcea3134d6cbf1224d85",
+      "pageErrors": [],
+      "consoleErrors": []
+    },
+    {
+      "id": "stock-a-carrier-desktop",
+      "replay": "Stock · roster A · amber",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "mobile": false,
+      "renderer": "webgl",
+      "playbackSpeed": 0.5,
+      "requestedStartTick": 26,
+      "canvasPixels": {
+        "width": 1440,
+        "height": 900,
+        "clientWidth": 1440,
+        "clientHeight": 900
+      },
+      "tickBefore": 26,
+      "tickAfter": 31,
+      "ticksAdvanced": 5,
+      "video": "art/reviews/arc-relay-3d/motion/stock-a-carrier-desktop.webm",
+      "videoBytes": 480863,
+      "videoSha256": "72fb2954e51b11a7ab676c496190abcbdaed62d58efc304f1b9dd3f61f80ebd2",
+      "contactSheet": "art/reviews/arc-relay-3d/motion/stock-a-carrier-desktop-contact.webp",
+      "contactSheetSha256": "4ccea1bad01767df3e9f296fde186b40fb65818f0c6ef2ead95b0d596b76acd2",
+      "openingStill": "art/reviews/arc-relay-3d/motion/stock-a-carrier-desktop-opening.webp",
+      "openingStillSha256": "100c9e02dc82fcca532d7ad68efea6da2f0b22c177dbd17926bc8b662678a6d4",
+      "pageErrors": [],
+      "consoleErrors": []
+    },
+    {
+      "id": "stock-a-carrier-canvas-desktop",
+      "replay": "Stock · roster A · amber",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "mobile": false,
+      "renderer": "2d",
+      "playbackSpeed": 0.5,
+      "requestedStartTick": 26,
+      "canvasPixels": {
+        "width": 1440,
+        "height": 900,
+        "clientWidth": 1440,
+        "clientHeight": 900
+      },
+      "tickBefore": 26,
+      "tickAfter": 31,
+      "ticksAdvanced": 5,
+      "video": "art/reviews/arc-relay-3d/motion/stock-a-carrier-canvas-desktop.webm",
+      "videoBytes": 325529,
+      "videoSha256": "352fb0c5854e07a5e8d191a67799302ac334530b10a0361c2e94711c1c82499e",
+      "contactSheet": "art/reviews/arc-relay-3d/motion/stock-a-carrier-canvas-desktop-contact.webp",
+      "contactSheetSha256": "dc44c4582be57f57ab85e0c4faf4e46963519e050fae715fccc780b3190543ec",
+      "openingStill": "art/reviews/arc-relay-3d/motion/stock-a-carrier-canvas-desktop-opening.webp",
+      "openingStillSha256": "b404179a5fae476b99763548d0e308e8616b63c3aa60cfa606cef96d1fe9b4fa",
+      "pageErrors": [],
+      "consoleErrors": []
+    },
+    {
+      "id": "stock-a-v-flow-b-phone",
+      "replay": "Stock · roster A · amber",
+      "viewport": {
+        "width": 844,
+        "height": 390
+      },
+      "mobile": true,
+      "renderer": "webgl",
+      "playbackSpeed": 0.5,
+      "requestedStartTick": 0,
+      "canvasPixels": {
+        "width": 844,
+        "height": 390,
+        "clientWidth": 844,
+        "clientHeight": 390
+      },
+      "tickBefore": 0,
+      "tickAfter": 6,
+      "ticksAdvanced": 6,
+      "video": "art/reviews/arc-relay-3d/motion/stock-a-v-flow-b-phone.webm",
+      "videoBytes": 731637,
+      "videoSha256": "f596a8dff5187b55ec6ffbf3b923513a0b75bdec6792093c3ce6edc9b43db9f9",
+      "contactSheet": "art/reviews/arc-relay-3d/motion/stock-a-v-flow-b-phone-contact.webp",
+      "contactSheetSha256": "2ec05df41235377f4d41895efd4e48816630cec0a0c661a4b1f771edca47417d",
+      "openingStill": "art/reviews/arc-relay-3d/motion/stock-a-v-flow-b-phone-opening.webp",
+      "openingStillSha256": "5c0edc6dc47ac32840cf060d0ab6667156be867979636113e7009ca1301654d1",
+      "pageErrors": [],
+      "consoleErrors": []
+    }
+  ]
+}

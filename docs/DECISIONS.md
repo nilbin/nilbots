@@ -2366,37 +2366,7 @@ This foundation does not claim normalized generic entrants/team results,
 reveal-ordered settlement, generic APIs, or an FFA/team rating policy; those
 remain the explicit next persistence stages.
 
-## 140. 3D is the viewer, and Canvas2D is a floor rather than a mode
-
-The 2D/2.5D toggle is gone. It asked a player to choose between a fidelity and a
-dimension count, which is not a decision anyone wanted to make, and the flat renderer
-was only ever the safer default rather than the better one. Extending #127 and #128, the
-WebGL renderer under `web/src/render3d/` is simply what the web viewer draws with, and
-the name in prose is **3D** — "2.5D" described how it was built, not what it is.
-
-Canvas2D is not deleted. It is demoted from a mode to a floor for the two cases where
-3D cannot draw at all, both of which fall back without asking:
-
-- the CLI's self-contained artifact, where `vite.cli.config.ts` stubs the dynamic import
-  and sets `__BOTARENA_DIMENSIONAL_RENDERER__` false so Three.js never enters a copied
-  replay — verified by every `dist-cli/<theme>` containing zero `WebGLRenderer`;
-- a device that yields no WebGL context, which `ArenaCanvas3D`'s `onUnavailable` already
-  catches.
-
-So Canvas2D can only be removed once Three.js is allowed into the CLI artifact, which is
-a size decision about `nilbots play`, not a rendering one.
-
-Two things this deliberately does not change. `HostedViewer`, the mobile WebView path,
-still renders Canvas2D unconditionally: switching it alters mobile rendering with no
-device QA behind it, and the web redesign goes first. And the golden frames are not
-exposed to any of this — `goldenFrames.test.ts` imports `drawArena` from the SSR harness
-and calls it directly, never passing through the viewer's renderer choice, so no harness
-pin was needed.
-
-Replacing the WebView with a shared native renderer (expo-gl) is **deferred**: the app
-keeps the shared web viewer for now.
-
-## 141. Hosted Frontline Labs stops at one off-by-default, setless, unranked H2H match
+## 140. Hosted Frontline Labs stops at one off-by-default, setless, unranked H2H match
 
 The first App consumer of the generic actor architecture is immutable playlist
 `frontline-labs` version 1. It pins ruleset `frontline-labs-1`, map
@@ -2469,7 +2439,7 @@ flag must remain disabled in any deployment until the existing release guard
 passes and CLI/package 0.9.0 from the exact compatibility revision has been
 published and tagged `cli-v0.9.0`.
 
-## 142. Frontline Labs gets an exact local authoring loop before its balance cohort
+## 141. Frontline Labs gets an exact local authoring loop before its balance cohort
 
 The CLI adds `nilbots experiment frontline-labs` as a local, quota-free
 authoring boundary around the immutable hosted Frontline Labs v1 definition.
@@ -2499,7 +2469,7 @@ unpublished 0.9.0 compatibility revision to 0.9.1 and must be tagged
 `cli-v0.9.1` before Labs may be enabled. SDK/Guest remain 0.10.0 and controlled
 build pipeline remains 4.
 
-## 143. Labs balance waits for truthful action masks and an Anchor-safe SDK
+## 142. Labs balance waits for truthful action masks and an Anchor-safe SDK
 
 The first frozen four-doctrine Labs cohort is retained but cannot justify a
 numeric rules change. Its 36 verified WASM matches had no participant-slot side
@@ -2538,7 +2508,7 @@ faults. Public replay faults remain stable/redacted. The next balance evidence
 must rebuild probes and entrants against 0.10.2, use a shorter two-seed mirrored
 cohort, and demonstrate lifecycle coverage before any one-variable numeric arm.
 
-## 144. Phased Frontline pacing is optional canonical contract data
+## 143. Phased Frontline pacing is optional canonical contract data
 
 Static capture tuning did not remove the repetitive late tail in the first
 Frontline Labs population. A phased candidate therefore needs to be legible to
@@ -2558,7 +2528,7 @@ generic-actor profile/schema numbers, replay v3, and controlled-build pipeline
 4 remain unchanged: older artifacts still run unchanged on contracts that omit
 the schedule, while schedule-aware rules require a rebuilt artifact.
 
-## 145. Turret remobilization proves the transform architecture but misses its pacing gate
+## 144. Turret remobilization proves the transform architecture but misses its pacing gate
 
 A local-only `frontline-labs-1-experiment-mobilize` definition adds the
 declared `mobilize` action and a `turret -> child-mobile` same-life route using
@@ -2584,7 +2554,755 @@ zero-to-weighted routes are Mobilize, and only Anchor target forms count as
 fortified for turret-deadlock detection. This prevents a mobile target of a
 future transition from being mislabeled as a turret.
 
-## 146. The Arena UI reads one advisory server authority without relabeling legacy Duel
+## 145. Balance work becomes a fingerprinted Lab; automatic companions remain an explicit arm
+
+The experiment-wide evidence/holdout details in this historical decision were
+superseded by study blocks and commit/reveal in decision 147.
+
+Balance evidence is now organized around an immutable candidate tuple:
+`mode + ruleset + map + match format`. A checked-in spec declares the complete
+factor product, paired and sealed holdout seeds, exact contract fingerprints,
+runtime commands, retained source/WASM hashes, qualification status, and
+evidence class. The first mode-independent runner verifies complete mirrored
+within-population cross-play, rejects replay/provenance/fault drift, builds a
+payoff matrix, adapts replay-v3 Frontline dynamics, and reports a balance
+vector plus same-artifact factorial contrasts. Missing exploitability,
+equilibrium, tier-gradient, ablation, or human-review evidence is explicitly
+`not-measured`; there is no composite score and no champion-only pruning.
+
+The engine/SDK contract adds a third initial slot lifecycle:
+`dormant-automatic-activation-at-tick`. On the exact due tick it creates a
+fresh generation-declared life at the assigned spawn, before fabrication and
+replication, able to act immediately. Its parentless life-origin reason is
+`automatic-activation`, distinct from tick-zero deployment and ordinary
+post-destruction return. Validation, canonical wire reading, replay projection,
+and chronology all preserve that distinction. Hosted `frontline-labs-1`
+remains byte-identical and manual.
+
+The first local Frontline arm activates children at ticks 120/260 and uses
+automatic 30-absent-tick child returns. It deliberately removes Prime
+Fabricate and Split, retaining child Anchor/turret, because already occupied
+child slots cannot also be honest capacity for those operations. The
+comparison is therefore named a progression-policy bundle, not a single
+boolean ablation. Its three map variants and ruleset have separate
+fingerprints and are never selected implicitly.
+
+The 12-replay, one-seed Balance Lab run is retained only as
+`infrastructure-smoke`: both bots are cumulatively unqualified. Its claimed
+causal map-policy effects were superseded after decision 147 found mismatched
+private seed profiles between progression arms. It promotes no candidate.
+SDK/Guest advance to
+0.10.4 for the additive lifecycle/origin contract and CLI/package advances to
+0.9.5; actor framing/configuration and controlled-build pipeline 4 remain
+unchanged.
+
+## 146. Balance evidence pins topology, evaluation policy, and scoped qualification
+
+The Balance Lab schema advances to slice 2. Each resolved candidate now
+declares a descriptive topology profile plus the independently replay-verified
+topology fingerprint, in addition to mode/ruleset/map/format and aggregate
+match fingerprints. This prevents one-controller three-body H2H, five-body
+H2H, true multi-participant teams, and FFA from sharing an ambiguous
+experimental identity.
+
+An explicit `evaluationProfileId` owns lineup and payoff semantics. The only
+implemented profile is `two-team-zero-sum-v1`; team-lineup and FFA
+general-sum evaluation remain separate future profiles rather than
+conditionals in the duel matrix.
+
+Population and entrant manifests now carry exact qualification suite/version,
+profile, qualification-contract fingerprint, evidence hash, T/C awards, and
+balance-evidence eligibility. The driver rejects identity or eligibility
+mismatch and emits a hard `balanceVerdictEligible` gate. It may retain
+descriptive diagnostics from an unqualified infrastructure population, but
+those measurements cannot select a candidate; the separate promotion gate
+also remains false while required evaluation layers are unmeasured.
+
+The immutable `frontline-qualification-1` remains the suite-1 T4
+entry-initiative component. CLI 0.9.6 adds a distinct WASM-only
+`frontline-qualification-2` foundation profile. Its first
+`contract-auto-determinism` component runs both participant assignments twice,
+requires verified identical replay hashes, zero faults/disqualification, and
+the declared automatic child life under an immutable shortened contract. It
+awards no tier and is not balance eligible until the remaining T1/T2
+identity, path, fire, evade, and fresh-life holdouts exist. SDK/Guest 0.10.4,
+actor framing, replay 3, and hosted Labs remain unchanged.
+
+## 147. Freeze Balance Lab pilot architecture and make qualified population the critical path
+
+The first Lab smoke revealed a causal-provenance bug: manual and automatic
+progression arms derived private actor streams from different ruleset
+identities. Equal numeric seeds therefore did not supply common random
+numbers. Both duel-depth arms now declare
+`frontline-labs-duel-depth-1` as their shared seed profile, while preserving
+their distinct rules and match fingerprints. The old cross-progression smoke
+effects are superseded; a corrected 12-match WASM smoke verified all replays
+and common initial actor streams, but remains non-voting.
+
+Balance Lab schema 3 replaces one experiment-wide evidence label with
+study-scoped roles: compatibility sentinel, mechanic causality,
+rules-native product, infrastructure smoke, and adversarial sentinel. Each
+block owns candidate/population membership, qualification profile,
+self-play policy, and common-randomness declaration. A versioned decision
+profile owns voting tier, lineage, coverage, multiplicity, and required
+evidence-layer gates. Diagnostic blocks remain visible without poisoning or
+promoting voting evidence.
+
+The runner now publishes and hashes one complete executable bundle, rejects
+source/toolchain drift during execution or resume, records independent
+lineage/doctrine/authoring-budget identities, rejects duplicate source or
+artifact populations, and reports finite-population paired contrasts plus
+leave-one-lineage-out sensitivity. Pair/seed intervals are explicitly
+conditional on the frozen population and are not population-generalization
+claims. The internal Frontline pilot floor is four independent cumulative
+T4+ lineages; two lineages remain diagnostic only.
+
+Engine-derived candidate blocks replace hand-copied fingerprints through
+`--print-candidate-contract` and
+`scripts/frontline-balance-candidates.py`. Hidden final seeds use an external
+nonce-backed commit/reveal/consume artifact; checked-in seeds are never
+described as sealed. Open isolation promises are frozen in
+`balance/frontline-ablation-debt-v1.json`.
+
+This is the pilot architecture freeze. T7/T8 qualification, empirical
+equilibrium/best-response analysis, and automated candidate search are
+deferred until a credible population exists. The next critical path is
+cumulative T1–T4 qualification, at least four independent T4+ Frontline
+lineages under an equal budget, the registered six-cell
+topology-by-progression experiment, and outcome-blind replay/DX review. Duel
+conclusions remain provisional for 2v2/3v3, and FFA retains its separate
+general-sum evaluation profile and ladder.
+
+## 148. Qualified evaluation bots become explicit launch-population assets
+
+Frontline evaluation cohorts are permanent source/artifact lineages, not
+disposable tournament inputs. Lower-tier exact-boundary instruments and every
+meaningful passing revision are retained for calibration; independently
+authored T5/T6 doctrines supply the eventual verdict population.
+
+A revision may advance from `lab-only` to `official-population` only through
+an explicit future promotion manifest that pins its source tree, author
+packet, build identity, WASM, qualification evidence, playlist profile, and
+entertainment-review result. Promotion references unchanged archived bytes;
+the server must never publish every Lab directory implicitly.
+
+Official bots are visibly system-owned launch opponents: T2 for onboarding,
+T3/T4 for ordinary population depth, and T5/T6 for aspirational play and
+rating anchors. They may backfill sparse playlist queues, have independent
+rating/history per playlist, and cannot win human prizes or champion claims.
+Restricted variants, metric attackers, and pathological sentinels remain
+Lab-only.
+
+## 149. Count effective doctrines, not artifacts, and specialize population by tier
+
+One fixed artifact quota at every tier is rejected. T1/T2 and most T3 bots are
+calibration instruments in a small behavior space: keep a canonical set of
+distinct archetypes that passes Tn and demonstrably fails T(n+1). Repeated
+implementations of the same objective/shoot/dodge policy do not add evidence.
+
+The first directional pilot still requires at least four independently
+authored effective T4+ doctrines. Launch-balance evidence concentrates effort
+at T5/T6, where Balance Population v1 targets at least six effective doctrines
+spanning predeclared strategy cells and continues authoring until
+leave-one-doctrine-out conclusions stabilize. T7/T8 shifts to bounded
+best-response/search attacks rather than manual enumeration.
+
+The Lab reports artifact count separately from a diagnostic
+effective-doctrine estimate. Versioned v1 pair evidence combines normalized
+payoff-row, accepted-action, form-occupancy, and objective-residence distances;
+its fixed thresholds remain non-gating until calibrated against known
+redundant and distinct populations. No clustering score may silently merge
+entrants or discard their immutable records. Same-model authoring uses
+different doctrine briefs and equal budgets rather than repeated identical
+prompts.
+
+Exact-tier instruments and public launch opponents are related but not
+identical roles. A natural, entertaining retained revision may be promoted as
+a system-owned opponent, while deliberately crippled instruments, ablations,
+and sentinels remain Lab-only. Qualification reuse is profile-scoped: new
+verbs, topology, or strategically material contract changes may require new
+instruments.
+
+## 150. Cumulative T3 is an immutable tactical boundary, not a match-strength label
+
+`frontline-qualification-4` freezes
+`frontline-duel-depth-union-t3-v1`. It always reruns and hash-links the exact
+suite-3 cumulative T2 prerequisite, then executes mirrored positive-curve,
+strict-corner, remaining-range cadence, missed-shot cooldown, and local
+transform-safety probes. A clean T3 failure retains the prerequisite tier;
+runtime, artifact, contract, controller, or replay invalidity remains exit 2.
+T3 is still below the cumulative T4 numeric-balance voting floor.
+
+The negative curve scenario uses a visible target with an invalid
+wall-terminated intercept. A proposed unseen-projectile version was rejected:
+under the authoritative strict-corner model, the same corner that blocks the
+projectile also blocks its visibility, so the scenario could not fairly
+require a reaction from public observations.
+
+HouseApprentice and ArcApprentice form the first retained adjacent
+qualification pair. HouseApprentice passes T2 and fails the positive-bend and
+cooldown components; ArcApprentice adds only contract-driven legal curve
+preview and objective-first routine tempo, then passes T3. Both preserve
+source, controlled WASM, profile-scoped evidence, and replay-byte manifests.
+ArcApprentice is not called an exact T3 boundary until cumulative T4 measures
+its upper edge.
+
+## 151. The Docker WASM builder matches the host CPU; emulated builds run single-node
+
+`nilbots build` on Apple Silicon intermittently sat at 0% CPU forever with an
+empty quiet-verbosity log. Captured `/proc` evidence from three reproduced
+stalls showed the same signature: the entry `dotnet publish` blocked in
+`rt_mutex_schedule` after spawning only some of its MSBuild worker nodes, the
+spawned workers parked in `futex_wait_queue` mid-handshake, and VBCSCompiler
+idle — a multi-node fan-out deadlock under Rosetta's x64 emulation inside the
+Docker VM. Measured baseline: 4 stalls in 45 builds (~9%), healthy builds 18 s
+serial. `DOTNET_EnableWriteXorExecute=0` alone was tested and refuted (stalled
+within 6 builds). Forcing `-maxcpucount:1 -nodeReuse:false
+-p:UseSharedCompilation=false` removed every cross-process handshake and every
+stall, but serialized the framework-object clang compiles behind
+`BuildInParallel` and doubled the build to 36 s.
+
+The structural fix: the pinned NativeAOT-LLVM release also publishes a
+`runtime.linux-arm64` compiler host (the historical "Linux x64 only" note was
+stale), and it emits **byte-identical** modules — verified by full SHA-256
+equality on the same sources. `run-wasm-publish.sh` selects the container
+platform matching the host CPU (override: `BOTARENA_WASM_DOCKER_PLATFORM`),
+keys the cached builder image per architecture, and the generated workspace
+plus `BotArena.WasmGuest` reference the compiler host package conditionally on
+the build-process architecture. A native-arm64 `nilbots build` measures 9
+seconds end-to-end versus 18 seconds under emulation, and no platform-matched
+configuration emulates at all. The single-node, no-build-server, and W^X
+guards remain only for an explicitly emulated fallback.
+`WasmPublishEmulationGuardTests` pins both command shapes; the emulated
+fallback was re-verified against the prior amd64 image with identical hashes.
+
+`BuildPipelineVersion` stays at 1 because player artifact bytes and cache keys
+are unchanged. In the composed qualification branch the CLI compatibility
+version advances to 0.9.7, after the 0.9.6 qualification release. The
+campaigns also surfaced a second, independent fault: deleting and recreating
+the workspace directory between builds occasionally raced macOS virtiofs into
+a transient empty container view (`MSB1009`, roughly 2% of Docker builds), so
+`BotBuilder` now empties the bind-mount root in place instead of replacing its
+inode. If an `osx-arm64` compiler host ever ships upstream, the Docker
+requirement itself could be revisited.
+
+## 152. Cumulative T4 measures positional commitment and gates entrant evidence
+
+`frontline-qualification-5` freezes
+`frontline-duel-depth-union-t4-v1`. It always reruns and hash-links the exact
+suite-4 cumulative T3 prerequisite, then executes five mirrored components:
+useful-ground suppression, pressure-lane entry, objective-preserving threat
+response, rotation after a captured front, and a thin-fronts map holdout. A
+clean failure retains the prerequisite tier; artifact, runtime, contract,
+controller, or replay invalidity remains exit 2.
+
+T4 is the first tier whose passing artifact may set entrant-level
+`balanceEvidenceEligible=true`. That field is necessary but not sufficient:
+population lineage breadth, study validity, multiplicity policy, and human
+replay review remain independent verdict gates. The holdout is a second
+declared map, not evidence that T4 generalizes to every future topology.
+
+ArcApprentice now forms an exact T3 upper boundary: it passes four T4
+components but, from one mirrored assignment, repeatedly retreats from the
+current-map choke and never enters the objective. BreachApprentice adds one
+contract-driven initiative rule, passes cumulative T4 from both assignments,
+and preserves its source, WASM, report, and replay-byte manifest. Because
+Breach is an adjacent House/Arc revision, all three artifacts remain one
+authoring lineage and one effective doctrine for pilot-breadth accounting.
+The next balance experiment therefore authors independently briefed T4+
+doctrines rather than treating the qualification lineage as a population.
+
+## 153. Classes are data-only chassis on the generic form catalog; kinematics never vary by class
+
+The first class slate — `striker` (one-bend prediction duelist), `bulwark`
+(durable short-sighted holder with reversible turret commitment), and
+`fabricator` (fragile economy engine with earlier, faster companions) — is
+implemented entirely as data: `FrontlineLabsClassDefinition` stat blocks
+expand into per-class forms, vision/attack profiles, fabrication/anchor/split
+routes, and per-slot lifecycle assignments inside
+`frontline-labs-1-experiment-classes-<a>-vs-<b>` arms that compose with the
+duel map arms and share the `frontline-labs-classes-1` seed profile.
+Class pairs are canonical in ordinal ID order; fairness comes from mirrored
+bot assignments, never from a second swapped contract. Mirror pairs collapse
+to one catalog so striker-vs-striker contains each entry exactly once.
+
+The axis split is the load-bearing decision: classes may vary durability,
+vision shape/range, fire tempo, projectile range, shot language (the
+parameterless `shoot-straight` action versus one-bend programs), anchor
+reversibility and turret durability, and fabrication economics (unlock
+ticks, rebuild delay). They may never vary movement speed, projectile
+speed/damage, or the movement layer — those constants define the parity
+structure of the exact duel analysis, and varying them would fork that
+layer per class pair. Projectile range is the one admitted geometry
+variable and is disclosed as such. Classes are conceptually mode-neutral
+(the chassis expands into the generic actor catalog and per-slot topology
+that any mode consumes); they are deliberately packaged as a Labs
+experiment arm first and lift into a mode-neutral catalog when a second
+mode schedules its first class experiment, exactly like the evaluation
+profiles. No class arm is hosted, ranked, or promoted; the stat values are
+pre-registered candidates for the class-pair factorial, and the class
+choice mechanism (a player-facing admission input) is explicitly out of
+scope for the lab, which needs only pre-registered topology cells.
+Pinned by `FrontlineLabsClassesDefinitionTests` and the classes CLI arm
+test; the shared `BuildRules` assembly point keeps limits, seed mechanics,
+mode, perception, collision, and tick resolution byte-identical across
+every arm.
+
+## 154. One exclusive verb per class; companions are automatic unless fabrication is the class skill
+
+The slate revision sharpens #153 into one exclusive verb family per class
+and resolves the manual-fabrication chore verdict. **Striker** keeps the
+one-bend programs. **Anchor becomes Bulwark-exclusive and class-wide**: the
+old child-only restriction guarded against an irreversible prime
+self-brick, but Bulwark's Anchor is reversible (Mobilize back, once per
+life), so a fortifying prime is a priced commitment rather than a trap.
+Each source form anchors into its own turret form
+(`bulwark-prime-turret`, `bulwark-child-turret`) so the parameterless
+Mobilize resolves a single return target, and the prime's three-tick
+windup versus the child's one makes the stronger commitment a visible,
+punishable window — pre-registered values, not tuning. **Striker and
+Bulwark receive companions automatically** at their unlock ticks
+(the earlier finding stands: an explicit queue with no price, alternative,
+or placement choice is a dominant chore). **Fabricator is the only class
+that fabricates**, and its verb carries exactly the ingredients the
+doctrine demands for manual spawning: placement choice (the child
+materializes beside the prime in the field, never on a protected pad),
+timing risk, and a scarce alternative (the action was a shot or a move) —
+at earlier unlocks and faster rebuilds, giving the class the lowest floor
+and the highest ceiling. **Split is absent from every class arm** and
+reserved as the identity verb of a future swarm class: it was a trap for
+the fragile Fabricator, off-identity for Bulwark, and unused in every
+retained screen. The composite nature of each chassis is registered as
+ablation debt (`classes-composite-chassis`), and class capability remains
+fully contract-visible to opponents: routes, windups, reversibility, and
+turret stats are all in the resolved contract before tick zero. Class as
+bot-level identity (manifest declaration, arm resolution from the
+entrants' declared classes) and a typed `classId` in the next contract
+generation for ML-stable observation remain the follow-on phases; the
+class information is already derivable from the contract and replays, so
+no authored population requires re-authoring when the typed field lands —
+retained sources rebuild and requalify mechanically.
+
+## 155. Facing-decoupled movement was never decided and is reopened as a candidate
+
+Schema 3 declares movement as one absolute cardinal tile without changing
+facing. That choice — functionally universal strafe — carries no numbered
+decision, no measurement, and no reference to the duel-game record that
+convicted the same mechanic: #49 held strafe for oscillation-dodging and
++80% game length, and the 0.5 record calls it the dodge-everything
+regression 0.5 removed. Every generation-3 analysis layer (the exact duel
+enumeration's mobile-choice language, the evade probes, the class slate's
+kinematics discipline) subsequently built on the undocumented choice as a
+given. The wave-1 class factorial's dominant standoff-kiting doctrine and
+its 500-tick draws are consistent with the original conviction, and the
+product owner independently rejected the visual result on review.
+
+Disposition: the current model stays the measured baseline; facing-coupled
+movement enters the pipeline as pre-registered typed arms rather than a
+hot rules change. The first candidate is move-sets-facing (a step turns
+the body to the movement direction; rotate remains free aim), which kills
+backpedal-kiting while preserving one-action dodges at an aim cost; full
+tank movement (forward-only plus turns) is the deeper cut requiring a
+complete exact-analysis and probe recomputation. Registered as ablation
+debt `movement-facing-coupling`, required before the internal pilot's
+first movement-touching verdict. Contract-driven bots survive any arm
+through the movement legality mask. The blind-review verdict on standoff
+watchability decides the arm's priority.
+
+## 156. Facing coupling is a typed movement-profile policy with an inert default
+
+#155 registered facing-coupled movement as pre-registered arms rather than a
+hot rules change; this is that capability. `ActorMovementProfileDefinition`
+gains one optional `ActorMovementFacingCoupling`, so the policy belongs to a
+movement profile — the same place the movement layer already lives — and a
+form inherits it by selecting that profile. **PreserveFacing** is today's
+behaviour and the default. **FaceMovementDirection** sets the life's facing to
+the direction it moved on a *successful* step, before the Movement event is
+emitted, so that event's facing payload is the change's evidence; a Blocked
+step changes neither position nor facing, which keeps the wall-bump from
+becoming a free turn. **FacingLocked** restricts the published Direction
+domain of Movement-kind actions to the mover's current facing while Rotation
+keeps all four, and resolution defensively Blocks an off-facing movement that
+somehow reaches it. Bots read all of this from the legality mask, so a
+contract-driven entrant needs no re-authoring to play any arm — the
+observable difference is which directions the movement mask offers and what
+the Movement event reports.
+
+The load-bearing part is the fingerprint discipline. The canonical writer
+emits `facingCoupling` **only when it is not PreserveFacing**, following the
+exact precedent of the optional capture-gain schedule, and both mirrors — the
+SDK canonical reader and the web replay-v3 normalizer — reject an explicitly
+inert value as a second, non-canonical encoding of the same contract. That is
+what lets an immutable hosted contract acquire a new capability at all: every
+existing ruleset, `frontline-labs-1` included, keeps byte-identical rules,
+map, and match fingerprints, and the pinned golden tests passed unmodified.
+The same additive discipline runs through the SDK wire mirror (an absent field
+means PreserveFacing) and the engine's replay-v3 causality validator, which
+previously reconstructed every facing change from rotation evidence and now
+accepts a Movement event as the evidence for a coupled step — the second time
+this session that a new authoritative fact had to be taught to a validator
+that reasonably assumed the old exclusive cause.
+
+**Absolute rotate is deliberately held constant.** Rotation remains a free,
+absolute, one-action turn to any cardinal in every arm, so the A/B measures
+exactly one mechanic: whether movement spends the aim. Rotation granularity —
+relative turns, multi-tick turns, or a turn rate that would make
+FacingLocked genuine tank movement rather than a legality mask — is named here
+as follow-on debt (`movement-rotation-granularity`) and is a separate
+pre-registered arm, not a tuning knob to fold into this one. #155's full tank
+movement still requires the complete exact-analysis and probe recomputation it
+named.
+
+The arms exist for the pre-registered A/B, not as a ship decision:
+`frontline-labs-1-experiment-move-sets-facing` and
+`frontline-labs-1-experiment-facing-locked` on the base contract, plus
+composition with the class slate so the movement factor can be measured inside
+the wave-1 doctrine rather than only against class-free bots. Composed arms
+are identified `frontline-labs-1-classes-<a>-vs-<b>-sets-facing` /
+`-facing-locked`: the `-experiment-classes-` segment is dropped and the
+coupling token shortened because canonical IDs are capped at 64 characters and
+the longest class pair leaves no room — a naming compromise, and the
+PreserveFacing pair keeps its historical `-experiment-classes-` identity byte
+for byte. Each family keeps its existing seed profile. `nilbots experiment
+frontline-labs --movement <preserve-facing|move-sets-facing|facing-locked>`
+selects the arm and composes with `--classes` and `--duel-map`; the default
+adds no ruleset suffix and leaves every existing arm identity unchanged.
+
+## 157. Movement factorial evidence: facing-locked halves class imbalance; the bend prediction failed
+
+The pre-registered classes × movement × maps factorial
+(`frontline-classes-wave-2-movement-factorial-v1`, 54 cells, 486/486
+verified matches, seeds 180001/210011/240007, unopened sha256
+commit-reveal holdout) ran on the `classes-wave-1-r2` population — six
+frozen revision-2 lineages, two per class, all cumulative T4 on
+`frontline-duel-depth-union-t4-v1`. It is the first run whose cells are
+balance-verdict eligible (six voting lineages against a four-lineage
+floor, `bonferroni-all-contrasts-v1`); candidate promotion correctly
+remains gated on the unmeasured layers. This entry is the measurement
+record. **Selecting a hosted movement coupling is a product-owner call
+that this entry deliberately does not make**, and the holdout reveal is
+appended below once consumed.
+
+Scored against the pre-registered hypothesis:
+
+1. *Coupling shifts payoffs toward fortification and presence, away from
+   maneuver; facing-locked further than move-sets-facing.* **Partial.**
+   Under facing-locked both anti-striker matchups improve (bulwark
+   −0.50 → −0.19; fabricator −0.94 → −0.67 mean payoff) and
+   bulwark-vs-fabricator crosses zero toward the fabricator
+   (+0.33 → −0.28). But move-sets-facing is not the midpoint the
+   hypothesis assumed: the bulwark does *worse* there than at baseline
+   (−0.50 → −0.69 vs striker) — half-coupling taxes the wall's rotations
+   while leaving the dodger's one-action escapes intact.
+2. *The wave-1 counter-cycle direction persists under every arm.*
+   **Partial.** Striker-beats-fabricator holds everywhere;
+   fabricator-out-bodies-bulwark only materializes under facing-locked;
+   bulwark-blunts-striker is refuted in every arm by this population.
+3. *Striker bend usage rises under coupling.* **Refuted**, and the
+   refutation is the finding: bend share falls 42.4% → 34.1% → 33.3%
+   (still-water 56% → 40%; vector-edge flat at 26%). Coupling suppresses
+   dodging, which raises the value of the straight bolt, which reduces
+   the need for bends. The mechanism the hypothesis named is real; it
+   moves the observable the other way.
+4. *No arm collapses into fortress stalemates.* **Confirmed.** Bulwark
+   mirrors are 13/18 decisive at baseline and 18/18 under facing-locked
+   — the historically stalest cell becomes the most decisive.
+
+The cross-cutting numbers. Class payoff spread (best class minus worst,
+mean over cross-class cells): preserve-facing 1.36, move-sets-facing
+1.28, **facing-locked 0.67** — the deep coupling halves the class
+imbalance while the striker stays on top in every arm (+0.72/+0.82/+0.43).
+The cost is a rotation tax: rotations are 10.7% of active decisions at
+baseline, 17.4% under move-sets-facing, and 37.2% under facing-locked —
+over a third of everything bots do on that arm is turning, which is
+either tank-game texture or dead air and is exactly what the
+outcome-blind viewing pass must judge. Median cell duration stays at the
+500-tick cap in most cells on every arm, so no coupling fixes pacing by
+itself; the shortest cells (bulwark-vs-striker at 429.5 median under
+move-sets-facing) shorten through kills, not captures.
+
+Two harness facts this run established: the revision-2 population fully
+restores seed variance (every cell 6/6 or 12/12 distinct replay hashes —
+wave-1's three-seeds-one-observation collapse was a population property,
+now disclosed per cell by the `seedVariance` block), and the
+balance-eligible registration path worked end to end for the first time,
+after normalizing the null-vs-"unqualified" coordination-grade mismatch
+it had never exercised.
+
+**Holdout replication (appended after the above was committed).** The
+commitment was consumed and its two sealed seeds ran the identical
+54-cell matrix as the registered derived spec
+`frontline-classes-wave-2-movement-factorial-v1-holdout` (324/324
+verified). Four of the five pre-registered replication targets hold on
+unseen seeds: the class-spread ordering with facing-locked smallest
+(1.35 / 1.15 / 0.75 vs main 1.36 / 1.29 / 0.67), bulwark-mirror
+decisiveness maximal under facing-locked (12/12), the rotation-tax
+ordering nearly digit for digit (10.9% / 17.2% / 37.3%), and the bend
+decline (42.6% → 32.0% → 32.2%). The sign-stability target fails in one
+column: **bulwark-vs-fabricator flips** (+0.33 bulwark-favored on main
+seeds, −0.29 fabricator-favored on holdout at preserve-facing) — that
+matchup is the closest to balanced and its per-run sign is seed noise;
+no verdict should cite its direction. Every striker matchup's sign and
+gradient replicates. Net: the striker-dominance compression, the
+mirror-decisiveness gain, and the rotation tax of facing-locked are
+robust findings; the bulwark-fabricator boundary is measured as
+genuinely contested.
+
+**Outcome-blind viewing pass (appended; full record in
+`BLIND-REVIEW-MOVEMENT-FACTORIAL-2026-07-29.md`).** Twelve samples,
+four per arm, arm- and outcome-blind. The arms do not separate on
+watchability (mean fun 2.75 on all three; clarity 3.75–4.0), so
+facing-locked's rotation tax carries no measured viewing penalty, and
+both explicit negative reactions targeted preserve-facing strafing.
+The watchability driver the pass did detect is the bend: the only two
+fun-4 games are the only two featuring the high-bend striker, and the
+owner's verdict — recorded blind, then confirmed — is that curved
+shots deliver dynamism and that striker-exclusivity of the bend
+envelope is itself in question. Dullness is quantified at mean fun
+2.75 with no 5s while clarity never fell below 3: presentation is no
+longer the bottleneck, the game is. The owner also ruled energy out as
+a mechanism candidate, citing #47/#48's closed verdict.
+
+## 158. Dullness diagnosed: a mean-reverting pendulum, a capped skill shot, and a skills-shaped remedy
+
+Three parallel forensic passes over the full 810-replay movement-
+factorial corpus (full reports:
+`DESIGN-FORENSICS-DYNAMICS-2026-07-29.md`,
+`DESIGN-FORENSICS-SKILLSHOTS-2026-07-29.md`,
+`DESIGN-MECHANISM-SLATE-2026-07-29.md`) converge with the outcome-blind
+viewing pass on one diagnosis. This entry records the measured facts
+and the owner's design rulings; pilot selection is deferred to the
+owner.
+
+**The pacing fact.** The game is a mean-reverting pendulum:
+`P(the leading side pushes further) = 0.350`, manufactured by the
+objective walking toward the loser's spawn (reinforcement transit 4
+ticks when trailing by 2 vs 20 when leading by 2) while death is free
+(automatic full-health return). Kills don't convert (half leave a
+contester in the doorway; contest nulls for free — 83% of contested
+ticks are 1v1), 48% of capture progress decays away, and 22% of viewing
+time is bodies within 3 tiles doing no damage. The corpus contains the
+numbers-only disproof: thin-fronts fixed every stall symptom and
+produced the *worst* cap share — cheaper captures raise the pendulum's
+frequency, not its amplitude. Movement arms relabel the loop
+(facing-locked: strafe-dance 16%→0% but stand-and-spin dwell up, worst
+cap share 0.804); coupling is a texture knob, not a pacing knob.
+
+**The skill-shot fact.** The bend mechanic is used near-optimally by
+the bots (52% correct-program selection vs 11% blind) and contributes
+28.5% of striker damage — but its equilibrium value is a covering
+number, capped at 1/3 inside a two-tile annulus and **invariant to the
+envelope** (9, 17, and 217 programs solve identically), it decays as
+opponents dodge better, 80% of bends render too short to read as
+curves, and facing-locked mechanically suppresses the mixup
+(V(straight)→1 on the lane). Its real function is off-axis access for
+a four-cardinal gun. No numeric tuning changes any of this.
+
+**The owner's rulings** (recorded across this session's review): energy
+stays closed per #47/#48; curved shots deliver blind-validated
+watchable value and their striker-exclusivity is in question; and the
+design direction is **"more skills like the turret — not necessarily
+static"**: public, telegraphed, cooldown-cycled, visually
+state-changing abilities. The engine already carries the machinery
+(reversible windup-gated same-life transitions with public
+`ObservedFormTransition` start/completion ticks); the turret is today
+its only instance, invoked in 0.13% of decisions largely because its
+objective-weight-0 bargain is priced in the scoring currency.
+
+**Direction of travel, pending owner pilot selection:** (a) a
+structural pendulum counterweight — territory ratchet + lead-independent
+reinforcement + contest-costs-something, with the dynamics report's
+pass/fail metrics as pre-registration targets; (b) a per-class public
+skill kit on the transition machinery (the turret shape generalized:
+windup in, visible form, cooldown out), with barricades and
+telegraphed charged/area shots as the leading candidates because they
+also attack the covering number and the eviction problem; (c) the
+numbers-only lethality/respawn arm runs as the control factor in the
+same factorial. Split remains parked; energy remains closed.
+
+## 159. Strafe is dead; facing-locked is the presumptive coupling, preserve-facing demoted to experimental control
+
+The owner has ruled free-direction movement out on identity grounds,
+twice, the second time blind: "a bot shouldn't be able to move north if
+it's facing east" (#155's reopening) and "strafing just doesn't feel
+right" written on a preserve-facing sample the owner could not identify
+(`BLIND-REVIEW-MOVEMENT-FACTORIAL-2026-07-29.md`). The wave-2 factorial
+was therefore always deciding *which* coupling, not *whether*.
+`move-sets-facing` is dropped as dominated (worst dullness metrics in
+the dynamics forensics; not the assumed midpoint — it taxes the wall's
+rotations while leaving one-action dodges intact, #157). That leaves
+**facing-locked as the only ship candidate**: best class balance
+(spread halved, holdout-replicated), no measured blind-viewing penalty,
+and it abolishes the strafe-dance outright.
+
+`preserve-facing` remains in the phase-2 skills factorial strictly as a
+**measurement control** — it isolates the skill kit's effect from the
+coupling's and anchors the bend-legibility comparison — not as a
+candidate. The remaining ship gate is confirmation, not selection:
+facing-locked must pass the phase-2 do-no-harm gates (cap share, wait
+share, leader-extends) and the watchability gate under the new kit,
+whose pieces were chosen compatible with it (a committed charge is
+coherent under locked and reads as a super-strafe under preserve; the
+dodge tax that halved class spread is unchanged). If facing-locked
+fails those gates the question reopens explicitly rather than falling
+back to strafe by default.
+
+## 160. Pendulum counterweights exist as typed rules-side arms; measurement may begin
+
+The phase-1 structural interventions from #158 are implemented as
+pre-registered candidate arms on the existing capture/lifecycle policy
+seams, with zero observation-schema change and the pinned goldens
+unmodified (hosted `frontline-labs-1` byte-identical). Composable
+`--pendulum` tokens: `sticky-frontline` (a completed advance holds for
+`ratchetHoldTicks` = 40 — derived from the corpus's 33-tick reversal
+latency — and an enemy capture inside the hold is spent, moving
+nothing; breach is never denied), `forward-rally` (automatic returns
+and activations place on the own-side chain-adjacent objective region,
+derived from the chain, no new map regions), `contest-majority` (the
+existing net-objective-weight control policy composed in: surplus
+weight scales capture pressure, one body no longer nulls two), and
+`enemy-sole-decay` (empty and contested ticks preserve claim; only
+enemy sole erosion reduces it). Registered levels: `ratchet` =
+sticky + rally; `ratchet-contest` = ratchet + majority; numbers-only
+runs on `--capture-threshold` / `--prime-respawn-ticks`. The one new
+canonical field (`ratchetHoldTicks`) follows the #156 additive
+pattern, so frozen artifacts fault on sticky-carrying arms until
+rebuilt — the same accepted consequence facing-locked already
+established. The dynamics gates are machine-checkable via
+`labs-replay-eval.py --dynamics`, which reproduced all 27 baseline
+expectations on the wave-2 corpus before gating anything. A one-seed
+smoke ran in the pre-registered direction (control max-ticks; ratchet
+breach at 354; ratchet-contest breach at 206) and is recorded here as
+direction, not evidence. CLI 0.9.8.
+
+## 161. The prototype skills exist as arms; adoption awaits the watchability screen
+
+The three kit candidates from the slate are implemented as composable
+`--skills` arms (CLI 0.9.9), proven firing end-to-end in verified
+replays, in-process and WASM behavior byte-identical, pinned goldens
+unmodified. VOLLEY: a reversible striker stance (windup 2 in / 1 out,
+immobile, objective weight 1) whose gun fires three damage-1 straight
+bolts across adjacent headings at cooldown 5 — multi-projectile-per-
+attack (`ActorAttackVolleyDefinition`) is the one new engine
+capability; bolts are ordinary projectiles with contiguous launch-order
+IDs. SHELL: a reversible bulwark stance (windup 1 each way, no attack,
+objective weight 1, no health gain so cycling can never heal) whose
+form consumes hostile contacts arriving in its facing quadrant,
+evaluated on the projectile's approach vector; absorptions publish
+`projectile-absorbed`. FIVE SLOTS: fabricator teams field prime + four
+children on a continued 120-tick cadence (60/180/300/420) with late
+slots on slow 30-tick rebuilds — count without tempo, honoring the
+surge critique; mints five-slot and asymmetric 5-3 topology profiles,
+the deliberate #153 amendment. Ablation-debt entries registered per
+skill (each flag is one factor to the CLI, three to the measurement).
+
+Two probe findings scope the watchability screen: the naive shell
+probe produced 121 absorptions and **zero damage events in the entire
+match** — the reactive-parry degeneracy named in the slate, observed
+on day one (fix ladder if it survives smarter drivers: longer entry
+windup, minimum tenure, then cooldown machinery); and the fifth
+fabricator body cannot exist before tick 429, while ratchet-arm
+matches can end by tick ~206 — the unlock schedule is a data knob if
+the numbers-fantasy fails to materialize on screen. Latent three-slot
+assumptions in qualification probe trimming and prose are flagged in
+the implementation report; unreachable today, they bill to any future
+five-slot qualification work. Kit adoption is NOT decided here — it
+waits on the owner's outcome-blind prototype gallery.
+
+## 162. The prototype skills get a presentation, and it states the rule
+
+The watchability screen #161 defers to could not be run on the arms as
+they rendered. Both stances resolved to the mobile chassis, and the
+2.5D renderer — keying on `canMove === false` alone — reared them onto
+their noses as spinning omnidirectional turrets, which is a lie about
+two forms whose whole content is the direction they face. A volley
+arrived as three unrelated bolts; an absorbed bolt vanished. So the
+presentation layer now says all three out loud, and every cue is the
+rule rather than a flourish:
+
+- **A stance is a third body**, beside mobile and emplaced, resolved in
+  `unitPresentation` from the stance token the engine appends to the
+  source form ID (`-volley-stance`, `-aegis-shell`) and looked up in
+  the replay's own form catalog, never composed from a naming rule. It
+  keeps its facing marker; an emplacement still does not. The volley
+  grows three barrels at the fan's own −45/0/+45, so the shape predicts
+  the shot. The aegis fills the facing quadrant and stops hard at ±45°
+  — the *edge* is the counter-play, so the boundary is drawn, and the
+  unguarded three quarters are stated rather than left blank.
+- **A volley is one wide-arrow glyph**, recovered renderer-side from
+  what the contract guarantees and nothing weaker: same owner, same
+  launch tick, contiguous ascending IDs (`identityOrder`). A gap in the
+  identities means these were not one launch. The outline pushes each
+  blade forward along *its own* heading, which is what bows a symmetric
+  fan into a crescent — no code knows it is drawing one. A terminated
+  blade cuts the run, and survivors either side fly on as separate
+  arrows rather than being joined across the gap.
+- **An absorption is not a hit.** Nothing expands, nothing is thrown,
+  the camera does not move: the guarded arc rings at its own radius on
+  the event's own `targetFacing`, and the bolt collapses inward on the
+  contact tile. Every absorption restates which quadrant is covered.
+
+Two things this uncovered. The class-form look table gains a stance
+slot filled from the shipped catalog (`rift-runner`, `mossback`) — the
+same explicitly-temporary stand-in status the mobile and emplaced picks
+carry, no new assets, no catalog entries. And every presentation
+surface compared event types against the replay-v1/v2 spelling
+(`shot`/`destroyed`), so a generation-3 replay played back with no
+muzzle flash, no kill flare, no recoil, no death collapse, no camera
+knock and no sound cues; `isAttackEvent`/`isDestructionEvent` on the
+model now own that equivalence in one place. The model keeps each
+document's own vocabulary deliberately — re-labelling `attack` as
+`shot` during normalization would invent an equivalence the schemas do
+not state.
+
+Two limits the screen has to know about. On
+`frontline-labs-01-classes` the volley's flanking lanes almost always
+die within a tick or two: the map pinches at columns 10–12 and its one
+fully-open row is flush with the boundary, so the widest sustained fan
+the map allows is one tick of three lanes. And the naive shell probe is
+never flanked (#161's zero-damage finding), so the arc's *cost* is
+unproven on screen even though its extent is legible.
+
+The absorption cue is written against the rule as the engine emits it
+today, and the slate's later deflection ruling would invert its
+sentence: a shell that launches a team-flipped bolt back has not
+nullified anything. The return bolt needs no presentation work — it is
+an ordinary projectile owned by the guard — but the bolt's inward
+collapse would have to become a redirect, or the arena would show one
+bolt dying and an unrelated one appearing. The arc flash survives
+either ruling; both renderers carry the note at the effect.
+
+## 163. 3D is the viewer, and Canvas2D is a floor rather than a mode
+
+The 2D/2.5D toggle is gone. It asked a player to choose between a fidelity and a
+dimension count, which is not a decision anyone wanted to make, and the flat renderer
+was only ever the safer default rather than the better one. Extending #127 and #128, the
+WebGL renderer under `web/src/render3d/` is simply what the web viewer draws with, and
+the name in prose is **3D** — "2.5D" described how it was built, not what it is.
+
+Canvas2D is not deleted. It is demoted from a mode to a floor for the two cases where
+3D cannot draw at all, both of which fall back without asking:
+
+- the CLI's self-contained artifact, where `vite.cli.config.ts` stubs the dynamic import
+  and sets `__BOTARENA_DIMENSIONAL_RENDERER__` false so Three.js never enters a copied
+  replay — verified by every `dist-cli/<theme>` containing zero `WebGLRenderer`;
+- a device that yields no WebGL context, which `ArenaCanvas3D`'s `onUnavailable` already
+  catches.
+
+So Canvas2D can only be removed once Three.js is allowed into the CLI artifact, which is
+a size decision about `nilbots play`, not a rendering one.
+
+Two things this deliberately does not change. `HostedViewer`, the mobile WebView path,
+still renders Canvas2D unconditionally: switching it alters mobile rendering with no
+device QA behind it, and the web redesign goes first. And the golden frames are not
+exposed to any of this — `goldenFrames.test.ts` imports `drawArena` from the SSR harness
+and calls it directly, never passing through the viewer's renderer choice, so no harness
+pin was needed.
+
+Replacing the WebView with a shared native renderer (expo-gl) is **deferred**: the app
+keeps the shared web viewer for now.
+
+## 164. The Arena UI reads one advisory server authority without relabeling legacy Duel
 
 The authenticated `GET /api/arena` projection is the single UI authority for
 the current official Duel format, effective rolling allowances, ranked
@@ -2613,45 +3331,1296 @@ occurrences, time-zone/DST policy, worker leases, bounded retries, entitlement
 revocation and idempotent creation are not implied by the manual capability
 projection. Match-creation idempotency also remains a required follow-up.
 
-## 147. The Docker WASM builder matches the host CPU; emulated builds run single-node
+## 165. The skill kit is adopted for phase-2 measurement, as rules rather than etiquette
 
-`nilbots build` on Apple Silicon intermittently sat at 0% CPU forever with an
-empty quiet-verbosity log. Captured `/proc` evidence from three reproduced
-stalls showed the same signature: the entry `dotnet publish` blocked in
-`rt_mutex_schedule` after spawning only some of its MSBuild worker nodes, the
-spawned workers parked in `futex_wait_queue` mid-handshake, and VBCSCompiler
-idle — a multi-node fan-out deadlock under Rosetta's x64 emulation inside the
-Docker VM. Measured baseline: 4 stalls in 45 builds (~9%), healthy builds 18 s
-serial. `DOTNET_EnableWriteXorExecute=0` alone was tested and refuted (stalled
-within 6 builds). Forcing `-maxcpucount:1 -nodeReuse:false
--p:UseSharedCompilation=false` removed every cross-process handshake and every
-stall, but serialized the framework-object clang compiles behind
-`BuildInParallel` and doubled the build to 36 s.
+The mechanism screen passed (owner verdict on the prototype gallery:
+"definitely more entertaining", correctly scoped as a mechanism screen —
+driver bots, not candidates) and every kit question is owner-ruled, so
+the kit graduates to adoption-grade mechanics. One primitive serves
+both stances: a threshold-triggered automatic return on the same-life
+return route (`automaticReturn: {counter, threshold}`, inert-omitted),
+with the cause published as a typed `automatic-threshold-return`
+form-transition reason following the automatic-activation precedent,
+counters life-scoped and blocked-queue-proof, lethal damage cancelling
+through the ordinary destruction path, and the chronology validator
+re-deriving counts to refuse forged, early, suppressed, or mislabelled
+returns. VOLLEY casts (auto-return after one fan — squatting is
+impossible by rule); AEGIS SHELL breaks (forced return on the third
+deflection); FIVE SLOTS stays 60/180/300/420. The stance arms are
+reidentified `cast` and `break` because behaviour changed; the curve
+grammar ships as a separable `--bend striker-only|universal` factor
+with per-class depth (striker bend-after 1–4, bulwark/fabricator 1–2;
+specials never curve). Baseline and every prior arm keep byte-identical
+fingerprints; probes verify the cast timeline, the shatter, and a
+bulwark bolt genuinely curving on the universal arm.
 
-The structural fix: the pinned NativeAOT-LLVM release also publishes a
-`runtime.linux-arm64` compiler host (the historical "Linux x64 only" note was
-stale), and it emits **byte-identical** modules — verified by full SHA-256
-equality on the same sources. `run-wasm-publish.sh` therefore selects the
-container platform matching the host CPU (override:
-`BOTARENA_WASM_DOCKER_PLATFORM`), keys the cached builder image per
-architecture, and the generated workspace plus `BotArena.WasmGuest` reference
-the compiler host package conditionally on the build-process architecture. A
-native-arm64 `nilbots build` measures 9 s end-to-end against the emulated
-18 s, and no platform-matched configuration emulates at all. The anti-stall
-single-node flags and the W^X toggle remain, applied only when the selected
-container platform differs from the host CPU. `WasmPublishEmulationGuardTests`
-pins both shapes; the emulated fallback was re-verified against the prior
-amd64 image with identical hashes.
+Adoption is a gate to MEASUREMENT, not a ship decision: the phase-2
+factorial still owns the verdict via the pre-registered counter-cycle
+sign predictions, the 0.15–0.40 edge band, the do-no-harm pendulum
+gates, and a watchability pass on a real T4+ population. Benched
+fallbacks (barrage, charge, dash, shell-as-absorption) stay registered.
+Two registered ablation debts scope the evidence: one primitive at two
+thresholds means a result on one stance is weak evidence about the
+other, and gaining the bend grammar also changes which action a gun
+uses. Known constraint for the phase-2 pre-registration: the 64-char
+canonical ID cap overflows on the widest composed cells
+(bulwark-vs-fabricator + break + slot5 + bend + facing-locked), so the
+factorial needs a shorter token scheme or a registered combination
+identity before every cell can run.
 
-Because artifact bytes are unchanged, `BuildPipelineVersion` stays at 1 and no
-player cache invalidates; because `run-wasm-publish.sh` and `BotBuilder` are
-in the CLI compatibility surface, `CliVersion` bumps to 0.9.5. The campaigns
-also surfaced a second, independent fault: deleting and recreating the
-workspace directory between builds occasionally raced macOS virtiofs into a
-transient empty container view (`MSB1009`, roughly 2% of Docker builds), so
-`BotBuilder` now empties the bind-mount root in place instead of replacing its
-inode. If an `osx-arm64` compiler host ever ships upstream, the Docker
-requirement itself could be revisited.
+## 166. Phase 1 verdict: the pendulum survived the registered dose; sticky ground without contest cost backfires
+
+`frontline-pendulum-wave-3-v1` ran 216/216 verified matches (24 cells,
+four levels × six class pairs, facing-locked, classes-wave-1-r3
+population) plus a 144-match sealed-seed holdout, and the pre-registered
+gates FAILED — replicated on both seed sets, published as measured.
+
+The instructive failure: **plain ratchet (sticky + rally, no contest
+cost) made the game worse** — cap share rose 0.685 → 0.796 (holdout
+0.750 → 0.778) and draws exploded 9.3% → 29.6% (8.3% → 25.0%). The
+mechanism is legible in its own metrics: the ratchet did its literal
+job (reversal rate 0.69 → 0.51), but with one body still nulling any
+number at the objective, blocking regression froze the front rather
+than freeing it — nobody can lose ground, so nobody gains any.
+**Contest-majority is not an enhancement to the ratchet; it is a
+precondition.** Ratchet-contest moved every H1/H3 metric the right
+direction on both seed sets (leader-extends 0.466/0.474 vs control
+0.359/0.346; cap share 0.444/0.472; draws 7.4%/2.8%; the frozen-
+scoreboard gate actually passed at 0.111 twice) and missed every other
+threshold. H2's transit spread halved (14 → 6-7 ticks), not flattened —
+forward rally helps but the placement region still trails the front.
+**H4 passed exactly as registered**: numbers-only left the reversal
+median at ~0.65-0.67 and leader-extends at 0.29-0.32 on both seed sets
+— cheap numbers do not touch the pendulum, so the structural diagnosis
+survives its own falsification test. The dose was insufficient, not the
+theory.
+
+H5 also failed with a population finding attached: the r3 revisions,
+proven decision-identical to their predecessors only on pendulum-free
+contracts, shifted cross-class balance — control-cell spread is 1.56-
+1.62 (striker sweeping both classes outright) versus wave-2's 0.67 with
+the r2 population. Cross-class balance claims from this run are
+population-confounded and none are made; the phase-2 population plan
+(fresh skill-native lineages) was already the answer.
+
+Disposition: phase 2 does not start on this baseline, per the
+registered gate. The next registered dose is **phase-1b**: compose
+`enemy-sole-decay` into the winning level (`ratchet-contest` +
+enemy-sole-decay — one factor delta, per attribution discipline),
+targeting the wasted-sole share that stayed at 45-60% across all
+levels while being the one built counterweight the registered levels
+never included. Same gates, unchanged thresholds — a failed gate is
+answered with a stronger dose, never a softer bar.
+
+## 167. Classes get real skins: internal defaults plus six approved purchase packs
+
+The class-skins branch (Codex; integration notes in
+`HANDOVER-CODEX-NOTES.md`) lands the visual identities the class system
+has been renting from catalog stand-ins. The **class defaults are
+internal form presentation, not account cosmetics** — Trident Wasp +
+Trident Spark (striker), Aegis Tortoise + Rebound Diamond (bulwark),
+Lattice Loom + Lattice Rivet (fabricator) — and rendering them never
+depends on ownership. The owner approved the remaining six concept
+pairs as live purchase packs, which **supersedes the historical
+invariant that Aureate Warden is the only chassis manifest carrying a
+recommended projectile**; that prose is reconciled here rather than on
+the branch, which deliberately minted no number. Known gap, explicitly
+deferred: alternate manifests expose a presentation-only `classId`,
+but account appearance persistence has no class-compatibility
+enforcement — purchased looks remain globally equipable until the
+class-first-class branch supplies the end-to-end policy. No schema was
+added. Art sources and the generation pipeline live under
+`art/class-look-concepts/` with `scripts/build-class-look-concepts.py`.
+
+## 168. Phase-1b verdict: keel is the best dose and capture economics is exhausted
+
+`frontline-pendulum-wave-3b-v1` (162/162 mains, 108/108 sealed-seed
+holdout, ratchet-contest as replication anchor, keel differing by
+exactly enemy-sole-decay) delivers the counterweights' best result and
+a diagnosis worth more than a pass. Keel clears the displacement-
+efficiency gate on both seed sets (0.457 / 0.429 vs the 0.40 bar — the
+first H1 sub-gate ever passed), drives draws to 3.7% / 0.0%, cuts the
+reversal rate to 0.40, and drops cap share to 0.46-0.50. The anchor
+reproduced its phase-1 values. But **P(leader extends) has plateaued
+at ~0.47-0.48 across three escalating doses** (0.36 control → 0.47
+ratchet-contest → 0.47 keel, twice replicated), and the wasted-sole
+share did not move (0.53-0.56) — enemy-sole-decay relocated erosion
+into the opponent's sole windows rather than eliminating it, a
+measured null on the mechanism it was added for. With all four
+capture-economy counterweights active and the metric unresponsive,
+**the remaining mean reversion is not capture economics.** The
+never-tried levers from the #158 diagnosis are S4 (overtime/
+escalation in place of the flat 500-tick cap — not yet built) and S5
+(map geometry: the two-corridor funnel). H2's transit spread holds at
+6-8 (halved, not flat); H1 overall therefore still fails and phase 2
+does not start on a passed gate.
+
+The balance signal inside the miss: under keel, bulwark-vs-fabricator
+sits at exactly 0.00 on both seed sets and bulwark-vs-striker at
+−0.17/−0.50 — the counterweights alone nearly balanced two legs of
+the class triangle. The outlier is striker-vs-fabricator at −1.00 on
+every seed set, which is precisely the cell the adopted phase-2 kit
+targets (five slots; the volley softening prediction). Owner fork,
+explicitly not decided here: build S4 and run phase-1c before phase 2,
+or adopt keel as the phase-2 pendulum baseline — displacement passed,
+draws zero, caps down 22 points from control — and carry overtime as a
+parallel arm inside phase 2. Gates stay unmoved either way.
+
+## 169. Keel is the phase-2 baseline; the schema window executes with the observability mini-bump
+
+Owner ruling on #168's fork: proceed to phase 2 on the keel baseline —
+displacement gate passed twice, draws at zero, cap share down 22
+points — rather than chasing the 0.35 cap bar first. S4
+(overtime/escalation) is parked as registered follow-up debt, not
+abandoned: the leader-extends plateau says the remaining reversion
+lives in the flat cap or the map, and either returns to the bench if
+phase 2's pacing gates demand it. Phase 2's design consequence: the
+movement factor is dropped (all cells keel + facing-locked; #159
+demoted preserve-facing to a coupling-measurement control, and phase 2
+measures the kit, not the coupling — a deliberate deviation from the
+original 48-cell design, disclosed here). The factorial is skill-kit
+(off/on) × bend-envelope (striker-only/universal) × six class pairs =
+24 cells, with kit-off/striker-only anchoring as a keel replication.
+
+The batched SDK-bump window between phases executes now, scoped to the
+measured consensus: the ratchet-hold observability fields (five
+authors, two waves — the hold's owner and remaining ticks become
+readable instead of inferred) and the ObservedProjectile
+timing/damage fields (the wave-2 "should I eat this?" forensics).
+Typed classId and cosmetic class-compatibility enforcement stay with
+the Codex class-first-class branch (not started at this window; class
+remains readable via form prefixes, so nothing in phase 2 blocks on
+it). Composite arm identities for the phase-2 cells get the keel
+treatment — registered short tokens, since even keel+bend overflows
+the worst class cell by one character.
+
+## 170. Class becomes a first-class citizen, additively — and the schema window closes
+
+Three integrations complete #153's Phase B inside the #169 window, all
+on contract profile 2 with the pinned hosted fingerprints byte-
+identical throughout. (1) **Persistence** (`codex/bot-class-config`):
+a nullable persisted `Bot.ClassId` with EF migration, engine-owned
+catalog validation, class identity on the bot API contracts with
+regenerated mirrors, owner-only immutable atomic first assignment for
+legacy bots, Garage UI, and CLI propagation with declaration-mismatch
+checks — the persisted identity is authoritative; an omitted manifest
+class stays deliberately class-agnostic. (2) **Observability** (the
+phase-2 engine prep): readable ratchet-hold facts (`holdOwnerTeamId`,
+`holdEndsAtTick`, `controlResumesAtTick` grammar) and
+`ObservedProjectile` timing/damage, probe-proven, plus the registered
+phase-2 composite identities `helm`/`veer`/`rig` beside `keel`.
+(3) **Contract classId + spawn reservations**
+(`codex/class-first-class`, resolved): typed `classId` on scoring
+teams, participants, and every observed body — copied from the
+controlling participant, never parsed from form IDs — and
+`spawnReservation` on observed tiles.
+
+The load-bearing resolution: Codex minted a contract profile 3 for
+this, and it is **rejected with evidence** — its own branch had to
+rewrite the pinned match-fingerprint golden and assert the entire
+phase-1 WASM population faulting at tick 0 across all qualification
+probes, because the capability tuple rides inside the fingerprinted
+bytes. Everything it carried lands additively under the #156 pattern
+instead; `observationSchemaVersion` deliberately does not move (the
+rule, documented in RUNTIME-PROTOCOL.md: additive unknown-ignored
+fields retain the version, since bumping relabels every immutable
+ruleset); duplicate hold/projectile encodings are removed with a
+reflection test pinning one encoding per fact. `generic-actor-match-2`
+remains the one generic lineage. SDK 0.10.6, CLI 0.9.15; frozen
+artifacts fault on new contracts until rebuilt — the accepted
+consequence the wave-4 rebuild absorbs.
+
+Measurement note for phase 2: class-declaring arms now carry classId
+in their canonical bytes, so every phase-2 cell is a fresh
+content-identified ruleset relative to the phase-1 cohort's arms. That
+is correct, not a problem — phase 2 pre-registers fresh contracts, and
+its keel anchor cells double as a robustness replication of #168 under
+the new identities. Remaining class work outside this window:
+cosmetic class-gating of the six purchase packs (rides the persisted
+identity, no schema), and the Meshy 3D model pipeline (presentation
+only).
+
+## 171. Phase 2 measured: the kit works as a mechanism and overshoots as a balance
+
+`balance/frontline-skills-wave-4-v1.json` pre-registered before any run
+(24 cells: six class pairs × keel/helm/veer/rig; the eight-entrant
+wave-4 T4 population; fresh seeds 480013/510007/540041; sealed 2-seed
+holdout, commitment `8384c66e…`). Mains 420/420 verified, holdout
+280/280, no collapsed seeds, verdict-eligible on both.
+
+**The factorial's first catch was an engine fault, not a balance
+fact.** Mains run 1 faulted 9/420 matches — every one arc-light's
+volley fan meeting a gate-stone or iron-root shell: a fan bolt
+deflected during its own launch traversal minted the return's identity
+mid-fan, gapping the volley's projectile identities, and the
+chronology validator correctly rejected the engine's own history
+against the contract's contiguous-ascending-in-launch-order promise.
+Wave-4 authoring could not have seen it — authors spar only their own
+class, and volley-into-shell is inherently cross-class. Fixed by
+reserving the fan's whole identity block before any bolt flies
+(CliVersion 0.9.16); regression test runs a point-blank fan into a
+raised shell, red on the old engine with the production error. No
+previously valid replay changes (a passing volley match replays
+byte-identical; every affected match had faulted, not replayed). Run 1
+is preserved beside the rerun with its payoffs unconsulted; the
+holdout stayed sealed through the fix.
+
+**Balance verdict: the predicted counter-cycle did not form — FIVE
+SLOTS makes the fabricator dominant, not cyclic.** Kit-on pooled
+edges, mains and holdout agreeing: fabricator over bulwark −0.833 /
+−0.833, fabricator over striker +0.778 / +0.667, bulwark over striker
++0.333 / +0.278. Only the bulwark-vs-striker leg lands in the
+registered [0.15, 0.40] band; G4 fails on the two fabricator legs
+both runs. Attribution needs no extra ablation — the pair structure
+carries it: bulwark-vs-fabricator has no striker (volley irrelevant)
+and fabricator-vs-striker has no bulwark (shell irrelevant), and the
+kit's other skill sits on the losing side of both swings. Universal
+bend alone (veer) already tilts the same way (fabricator −0.278/+0.333
+vs keel's +0.056/0.000): more guns curve more. G1a fails as-written
+(delta −0.019/−0.056 vs the +0.30 prediction) for a reason worth
+recording: the prediction assumed phase-1's striker-favoured anchor,
+but keel plus the wave-4 doctrines had already put bulwark ahead
+(+0.35 kit-off) — there was no gap left for the shell to close. Its
+companion G1b (ends ≥ −0.10) passes both runs.
+
+**Mechanism verdict: adopted, alive, and it improves the game's
+pacing.** All three do-no-harm gates pass on both seed sets with the
+sign of improvement, not mere non-harm: cap share 0.43→0.24 (mains)
+and 0.40→0.29 (holdout), draws to ~0, leader-extends UP 0.51→0.58 /
+0.52→0.57 — the first intervention measured here that raises
+leader-extends above the #168 plateau. The skill loop operates in
+real cross-class play: 348/316 volley casts, 1706/1038 deflections,
+and 206/86 shell breaks (mains/holdout kit-on cells). Wave-4's "break
+budget never fires" (0 in ~350 self-play raises) was a sparring
+artifact — the volley is the natural shell-breaker, and the designed
+two-axis counter-play (flank the locked arc or feed the break) is
+exercised constantly. Adoption: arc-light casts in 81.5% of kit-on
+matches; all three bulwarks raise shells (59–78%); vector-edge and
+still-water's 0%/6% are the priced declines already on the wave-4
+record (the measured-decline clause applies; striker pooled 29% ≥
+25%). Five slots is passive topology, so the usage gate is
+inapplicable to it by construction.
+
+Two disclosures resolved: striker-mirror cells keel≡veer and helm≡rig
+share identical rules/map/topology/format fingerprints, but the match
+provenance differs and seed derivation mixes it, so those cells are
+independent samples of one ruleset — honest replications, not
+double-counted bytes. And the placement-tag rationing and break
+budget were measured AS-IS per the registration; the tuning pass owns
+those knobs.
+
+Consequence: the kit stays adopted (mechanism gates passed with
+improvement), the balance fails its band as-is, and the first tuning
+knob is the five-slot schedule (count and 60/180/300/420 unlocks,
+#165) with the volley/shell legs kept — bulwark-vs-striker is the
+healthiest cross-class edge yet measured. The owner watchability
+gallery (the phase-2 human gate) proceeds on this evidence; the
+leave-one-skill-out arms stay registered for the tuning pass.
+
+## 172. The tuning pass: wane adopted; the stance-ground lever measured and returned
+
+Three pre-registered rounds executed the #171 consequence ("the first
+tuning knob is the five-slot schedule"), every round with fresh seeds,
+a sealed holdout consumed after mains, and a written selection rule so
+no knob could be shopped after the numbers.
+
+**Round 1** (`frontline-five-slot-tuning-v1`, arms trim/boom/drag vs
+full): a clean lever split, replicated on the holdout. Dropping the
+fifth slot moved only the bulwark edge (−0.800 → −0.600); the baseline
+30-tick rebuild clock moved only the striker edge (+0.667 → +0.133 —
+volley farming finally sticks, the counter-play the fan was built for)
+but stalled the fabricator mirror (9/10 capped); the late schedule
+moved nothing. Registered outcome: adopt nothing, compose.
+
+**Round 2** (`frontline-five-slot-tuning-2-v1`, composites moor =
+trim+drag and wane = trim + a half-step 22-tick rebuild, plus the
+kit-minus-five-slots diagnostic column): moor inherited the mirror
+stall (7/10 capped, do-no-harm fail); wane passed every health gate
+and put fabricator-vs-striker in the band, leaving
+bulwark-vs-fabricator at −0.467 against the 0.40 gate on that round's
+seeds. The diagnostic column exonerated the shell (shell-alone
+−0.067, at the keel anchor) and measured volley-alone at +0.333 —
+in band by itself.
+
+**Round 3** (`frontline-stance-ground-v1`, owner-directed): the
+`--stance-ground free` arm drops the anchor-forbidden tag kind from
+the VOLLEY and AEGIS SHELL entries only (turret anchors keep it; an
+objectives-without-corridor level is a map-format question, deferred),
+CliVersion 0.9.19, strict pinned byte-identical. Measured pooled with
+its holdout: **free backfires on bulwark-vs-fabricator** (−0.300 →
+−0.700) — freed placement means more shell raises in worse spots, and
+an immobile deflector on an objective is what a swarm envelops; the
+shell's value is opponent-shaped. Meanwhile free pulls
+bulwark-vs-striker toward the band (+0.644 → +0.533, the striker
+exploits freed volley ground), leaves fabricator-vs-striker unmoved
+(+0.300, in band; strict-authored doctrine uses the corridor only
+opportunistically), and mildly improves bulwark-mirror pacing.
+Registered fallback fires: **wane alone is adopted**; the
+stance-ground question returns to the owner with these numbers.
+
+**The adopted tuned default for future phases is `rig` + `wane`**
+(keel + kit + universal bend + four slots at 60/180/300 + 22-tick
+ordinary rebuild). Pooling every post-registration wane measurement
+(rounds 2–3 mains + holdouts, n=60 per edge, four fresh seed sets):
+bulwark-vs-fabricator **−0.383**, fabricator-vs-striker **+0.383** —
+both inside the 0.40 gate and the band, with per-round seed drift
+(−0.467/−0.300 and +0.467/+0.300) disclosed rather than averaged
+away. The registered arms and their identities stay immutable; `full`
+remains the phase-2 measured arm.
+
+Open items recorded, not decided: bulwark-vs-striker rides above the
+band on rig cells (+0.644 strict, phase-2 rig-only ~+0.60) — the one
+place the freed stance ground measurably helped — so a striker-side
+stance-ground revisit or a shell-decline-vs-bulwark doctrine note is
+live; the shell-break budget question shifts from "does it fire" to
+"is ~3 right when one fan pays most of it"; and the drafted
+turret-cycling/cooldown capability work stays parked where #171 left
+it.
+
+## 173. Owner rulings: skills are in the game; the 45° aim comes back; reports get a format
+
+Three owner rulings from the post-#172 review (the owner watched the
+phase-2 gallery):
+
+1. **The skill kit is in the game — for entertainment and depth, and
+   that is non-negotiable.** Blind fun-rating A/Bs stop gating skill
+   adoption; this is an explicit product-gate override per the
+   balance-harness skill's own rule, recorded here rather than
+   laundered into a pass. Balance and match-health gates remain hard.
+   The measurement program's job is now to make the skills *land well*
+   (tuning, doctrine, presentation), not to decide whether they exist.
+2. **The ±45° initial aim is restored.** The owner spotted in watched
+   games what three factorial rounds did not surface: `oneBendOnly`
+   conflated "one bend per shot" with "no initial aim offset", so
+   since the class arms began no mobile gun could fire diagonally at
+   all (and a diagonally-adjacent enemy was unhittable — wave-4
+   measured the symptom without the cause). That was never a design
+   ruling. Restoration ships as a registered arm and is measured
+   before adoption, with an adopt-unless-it-breaks selection rule
+   (the entertainment ruling flips the default: the arm is adopted
+   unless it pushes a fabricator edge out of band, worsens
+   bulwark-vs-striker, or regresses pacing). Prediction registered in
+   the spec: diagonal aim is flank grammar and should pull the
+   over-band bulwark-vs-striker edge (+0.64) down.
+3. **Owner reports follow a fixed format** — DECISION NEEDED / RESULT
+   / EVIDENCE / NEXT, decisions first, codenames spelled out every
+   time (balance-harness skill §6). Prompted by a report that buried
+   the ask.
+
+Also commissioned outside the lab: a viewer pass on the follow-camera
+auto-fit (action drifting off-center) and a mobile wake-lock so the
+screen stays on during replays.
+
+## 174. Fast-iteration mode; crew is the working game; aim numbers provisional
+
+Owner process ruling: until the game is balanced and fun, small changes
+are NOT verified standalone — batch, check at mains level, record as
+provisional, keep moving (balance-harness skill §6 carries the rule;
+the full discipline returns on a stable base). Consequences applied
+immediately: the aim-restoration factorial's sealed holdout is
+deliberately left unconsumed (its commitment stays valid if ever
+wanted), and no per-knob owner review happens.
+
+**`crew` is the working game** — keel + skill kit + universal bend +
+four-slot/22-tick-rebuild fabricator + the restored 45° aim (`sail` on
+pairs without a fabricator) — per the #173 entertainment ruling. The
+aim mains (210/210 verified, fresh seeds, wave-4 population) are
+recorded as PROVISIONAL: diagonals swing bulwark-vs-fabricator from
+−0.667 to 0.000, but the striker loses ground everywhere
+(bulwark-vs-striker +0.93, fabricator-vs-striker +0.78 toward the
+fabricator) and two mirrors cap more. Read with the registered
+disclosure: wave-4 striker doctrine predates diagonals entirely, while
+scaffold-driven chassis exploit them mechanically — the population is
+the distortion. Wave 5 authors doctrine the full crew game; balance is
+re-read coarsely on their play, and tuning resumes from there.
+
+## 175. The follow-camera centres the action, not the map — and playback holds the screen awake
+
+The viewer pass commissioned in #173, from a phone watching a served
+gallery.
+
+**The fit centres the action, and the frame may hang over the edge of
+the arena to do it.** `focusFrame` used to clamp the fitted frame so the
+whole of it stayed inside the map (`clampCentre`, band
+`[-0.2 + span/2, extent + 0.2 - span/2]`), which sounds obviously right
+and was the entire off-centre bug: the frame is first *grown* to the
+viewport's shape, so on a 2.17:1 phone a small skirmish becomes a
+15.6-tile-wide frame, and a 24-wide arena then leaves a band four tiles
+wide to be "centred" in. A duel by the right-hand spawn came out **33%
+of the viewport width right of centre** with empty floor beside it, and
+a portrait fight in the top third landed 20–34% high. Nothing was wrong
+with either projection — `arenaViewport` and the 3D look target both put
+`frame.x, frame.y` exactly at the middle of the screen; the frame handed
+to them was already off the action. The clamp was also inconsistent with
+the zoom-out limit it lives beside: `fullArenaFrame` letterboxes
+background on the short axis without apology, so "a fit may never show
+background" was an invariant the wide shot itself broke.
+
+The new rule is two lines. The centre is the middle of the fitted box,
+clamped only so the *point being looked at* stays over the arena — which
+never binds on a fit, only on a gesture, so pan and zoom can now reach
+everywhere the fit can (a hand that cannot is a camera that jumps when
+auto-fit is handed back). The one override: an axis the frame already
+covers whole is centred on the arena instead, because sliding that would
+push the map off one side and show background on the other for nothing.
+The accepted cost is background beside a fight that is hugging a wall,
+bounded by the span rules already in place — never wider than the whole
+arena, and at least half of each axis is arena, because the centre is
+over the board.
+
+**The deadband gained a drift band.** Containment alone let a wipe on
+one flank reshape the fitted box without escaping the committed frame,
+so the survivors sat a tenth of the screen off-centre for the rest of
+the replay. Re-aiming when the fitted centre drifts past 10% of the
+committed span is a pan the spring absorbs; it is not the zoom hunt the
+deadband exists to stop.
+
+Both are pinned by projected-pixel tests at real phone aspect ratios
+(`web/tests/arenaCamera.test.ts`), including the fit-to-selected-team
+path — the worst case for the old clamp, since a team is dug in at its
+own end of the map and its box is therefore always near an edge.
+
+**Playback holds a screen wake lock** (`useScreenWakeLock`, in
+`components/` so both viewer outputs and the hosted WebView share one
+implementation), wired to "the clock is running" rather than to the play
+button, so a live broadcast counts. The re-acquire on `visibilitychange`
+is the load-bearing part: the platform releases the lock whenever the
+page is hidden and does not give it back, so without it a viewer who
+checks a message watches the rest of the match on a screen free to
+sleep. Everything about it is silent by design — the API is absent on
+iOS Safari and on a `file:` CLI viewer, and the request rejects on a low
+battery. A console error on a device that simply cannot do this teaches
+people to ignore the console.
+
+## 176. The open game: tiles unlocked for every skill, and the turret becomes a cycle
+
+Owner rulings during the wave-5 relaunch window, applied as one batch
+(fast-iteration mode, #174):
+
+1. **All transform placements open as the starting point — turret
+   anchors included.** The wave-5 game is `deck` = crew + `--stance-ground
+   open`: shells, volleys, AND turrets may rise on objective tiles and
+   the corridor. The turret on a point keeps its weight-zero bargain.
+   The owner's standing design direction, recorded for when
+   restrictions return: **granular tile classes with per-skill rules,
+   never one umbrella tag** — which also turns the map itself into a
+   tuning surface (retag a zone, reshape a corridor) with clean
+   per-variant fingerprints.
+2. **The turret is a true cycle.** Anchor⇄mobilize unlimited per life
+   (the once-per-life mobilize was the old rule), the +2 entry heal is
+   removed (a healing entry on a repeatable route is a repair loop —
+   owner: "turret healing is probably a bad idea to begin with"), and
+   health maps by the pre-existing `preserve-ratio-floor-minimum-one`
+   policy in BOTH directions, per the owner's relative-floor idea: full
+   health cycles losslessly (4/4 ⇄ 7/7, so the turret's high maximum
+   finally matters), partial health pays the floor each round trip (a
+   natural anti-flicker tax), and preserve-capped on the way down was
+   rejected because it silently heals (5/7 → 4/4). Windups remain the
+   commitment price; the drafted per-slot cooldown stays parked unless
+   cycling proves abusive in play.
+3. A ground arm is inert-omitted where nothing it touches exists (the
+   skills rule), so one flag set serves every pair of a wave.
+
+Wave 5 was killed pre-freeze and relaunched on `deck` (agents were
+still orienting; no work lost). All under CliVersion 0.9.21 with every
+existing ruleset pinned byte-identical.
+
+## 177. Wave-5 infrastructure rulings: viewers opt-in, writes verified, source cap 2 MB
+
+Three owner-directed fixes from wave-5 friction, batched under CliVersion
+0.9.22 (fast-iteration mode):
+
+1. **The experiment command's self-contained viewer is opt-in**
+   (`--viewer`, or implied by `--open`). It embeds the entire replay
+   into a multi-megabyte theme template — most of a sweep's footprint,
+   duplicated per match for a file nobody opens; two authors filled the
+   disk under it ("self contained viewer per replay is stupid" — owner).
+   `play`/`replay` keep writing viewers; the balance-lab drive benefits
+   automatically.
+2. **Replay writes verify and fail loudly.** The full-disk incident
+   produced replays that parsed, carried plausible standings, and were
+   wrong by five wins with exit code 0. Writes now go through a temp
+   file with byte-length verification and an atomic move.
+3. **The submission source cap rises 256 KB → 2 MB** (files stay ≤16).
+   Wave-5 measured the old cap as the binding constraint on exactly the
+   two behaviours the author packet demands — read the contract, write
+   the reasoning down — with ~20% of any budget being scaffold
+   boilerplate. The scaffold-as-SDK-type idea stays on the bench.
+
+## 178. Wave 5 frozen; the coarse deck read says ladder, not cycle
+
+Wave 5 — the first cohort authored FOR the deck game — froze 8/8 T4 on
+first attempts with zero friction kills (cohort README carries the
+converged findings; #177 carries the infrastructure fixes it forced).
+The coarse balance read (fast-iteration mode: mains only, wave-5 vs
+wave-5, one bot-assignment per pairing, 3 seeds with heavy
+deterministic collapse disclosed — 8–12 distinct outcomes per pooled
+18–27) is directional, and its direction is one ladder:
+**bulwark +0.815 over striker, bulwark +0.611 over fabricator,
+fabricator +0.667 over striker.** Every edge above the 0.40 band; the
+old fabricator dominance is gone (both wave-5 bulwarks' doctrine
+out-evolved the swarm); the striker is now the floor of every matchup
+despite the wave's most inventive revisions — vector-edge's sight-band
+inversion beat the wave-4 bulwark 20-0 and still loses to the wave-5
+ones. Match texture is what the campaign wanted: 30+ breaches in 63
+matches, one draw, shells holding points, turret leases, diagonal
+duels. The owner gallery ships from these replays; the next balance
+move is striker-side (candidates already on record: the freed-ground
+bvs pull measured in round 3, the shell/turret pricing questions in
+#176/#177, lethality numbers) and takes the owner's watch impressions
+as input.
+
+## 179. Wave 6: coordination fixed a balance edge; the striker problem is now the class
+
+The coordination cohort froze 8/8 T4 first-attempt (cohort README
+carries the converged findings — coordination does not decompose;
+corridors are fixed by routing, not yielding; spacing only works as a
+tiebreak; the convention is common knowledge from the frozen union and
+per-life randomness is what breaks it). Every author beat or matched
+its wave-5 self, several overwhelmingly (ledger-fly 48-0; spark-line
+24-0; march-wall 29-1-2 with a zero-breach control).
+
+The coarse re-read (same 63-cell sweep as #178, coordinating bots):
+**bulwark-vs-fabricator +0.333 — inside the band, fixed by IQ alone**
+(was +0.611); bulwark-vs-striker +0.815 unchanged;
+fabricator-vs-striker hardened to +1.000. March-wall's caveat
+confirmed: wave-5's meta was partly a coordination artifact, and what
+survives smart play is one crisp finding — **the striker loses to both
+classes and it is the class, not the bots** (three inventive striker
+lineages across two waves cannot close it). The striker buff is the
+next balance conversation, with candidates already measured on the
+record: freed striker-side stance ground (pulled bulwark-vs-striker
+toward band in the round-3 factorial), the sight-band/vision numbers,
+lethality, and the gunless-stance cooldown-freeze un-nerf.
+
+The owner gallery was refreshed from these matches under the standing
+tunnel. The post-wave engineering batch is queued by demand: qualify
+viewer opt-out (six authors), refusals naming their cause + observed
+ally next-step + resolved placement candidate lists (schema window),
+the coordination-grade suite (five authors; T4 is reachable by a bot
+that cannot share a corridor with itself), team-scoped randomness, the
+evidence/ build-glob exclusion, and the frozen-artifact drift
+investigation (a wave-5 freeze re-measured differently across the
+0.9.21→0.9.22 republish — determinism is the product; find the moved
+input).
+
+## 180. The ticking cooldown clock; tide is the working game
+
+Owner rulings executed as one window. The attack cooldown becomes a
+property of TIME instead of the armed form (`--cooldown ticking`,
+contract fact `tickResolution.cooldownClock`, inert-omitted): a gunless
+stance or windup no longer freezes gun recovery, ending the hidden
+stance tax gate-stone discovered in wave 5. Everything else about
+cooldowns is unchanged (one public counter per body, declared price per
+gun, shared across forms, reset on a new life). **`tide`** — the open
+game on the ticking clock — is the working game. Two catches recorded:
+the first tide sweep caught a canonical-order bug (the new field was
+emitted mid-object; canonical readers demand exact order — moved to
+trailing position, reader taught), and the first sweep also
+demonstrated the #170 consequence live (frozen pre-0.10.7 artifacts
+fault on tide contracts; the cohort was rebuilt from source).
+
+Coarse tide read (rebuilt wave-6 cohort; doctrine authored under the
+FROZEN clock, so this is a stale-doctrine lower bound):
+bulwark-vs-fabricator **+0.333 — still in band, undisturbed**;
+bulwark-vs-striker hardened +0.815 → **+1.000**;
+fabricator-vs-striker +1.000. The clock helps every stance user and
+helps the shell most (bulwarks now raise and come out with a live
+gun), so as a striker buff the hypothesis is REFUTED — it was adopted
+as a design-correctness ruling, not a balance lever, and stands. The
+striker conversation now has exactly two levers left on the record:
+class numbers (HP/vision/lethality) and granular asymmetric stance
+ground (the per-skill tile classes). A wave-7 doctrine pass would
+re-price everything above; per fast-iteration these numbers ship as
+provisional.
+
+## 181. Route cooldowns: the general skill-pricing capability
+
+Owner ruling ("we should add it — will be good to have going
+forward"): any same-life route may declare `cooldownTicks`
+(`sameLifeTransitions[].cooldownTicks`, inert-omitted). After the
+route COMPLETES, requesting it again from the same UNIT SLOT is
+refused while `tick < completionTick + cooldownTicks + 1`. The clock
+survives the body — die-to-reset, the exploit the original draft
+flagged, is closed by construction — and automatic returns are
+exempt, so a forced exit is never trapped by its own clock. Session
+gates the availability mask and the queue and stamps at completion;
+the chronology validator rejects impossible cooldown histories with a
+mirrored match-level pass; a live probe pins spacing = cooldown + 1
+and no deadlock. SDK 0.10.7 / CLI 0.9.24 carry both of this window's
+trailing additive contract facts. No skill declares a cooldown yet:
+this is the prerequisite for the higher-power skill tier, and the
+observation publication of remaining ticks is bound to the first
+skill that uses it (the readability law binds at first use). The
+`nilbots` symlink beside `botarena` also finally exists.
+
+## 182. The salvo: the volley re-armed as the first route-cooldown consumer
+
+Owner observation ("the volley skill is a bit weak — don't see it used
+a lot") diagnosed, and the "decouple + sharpen" option chosen. The
+diagnosis: the aim restoration (#173) cannibalized the fan — its spread
+is exactly the mobile gun's three aim options, offered one at a time at
+twice the cadence without giving up the step, so the wave-6 cohort's
+near-universal volley DECLINE was priced correctly, not timidly.
+
+`--volley salvo` (inert-omitted without a striker; `tide` + salvo is
+the registered identity **`surf`**): every fan bolt deals 2 (a
+diverging fan lands at most one bolt per body, so per-bolt damage is
+not representable and "sharper center" ships as all-2 with identical
+duel effect); the fan's profile counter drops to the 1-tick floor so
+the stance stops taxing the mobile gun; and frequency moves to the
+stance ENTRY routes as `cooldownTicks: 8` — the first consumer of
+#181. That bound the readability law: live route-cooldown clocks are
+now published (`self`/ally `routeCooldowns` = ordered
+`{transitionId, readyAtTick}`, trailing tagged wire field, replay-v3
+key present only while live, validators reject lapsed or unordered
+clocks; observation schema stays 2). Cast cells stay byte-identical
+(pinned), and the salvo values ship untuned per the dump-then-tune
+doctrine. SDK 0.10.8 / CLI 0.9.25.
+
+Coarse surf read (same rebuilt wave-6 cohort and seeds as the tide
+read, so directly comparable): bulwark-vs-fabricator **+0.333** —
+identical to tide, as it must be (salvo inert-omits there; the field
+replays mint the tide identity); bulwark-vs-striker **+1.000**;
+fabricator-vs-striker **+1.000**. No movement — and the usage count
+says why: 57 volley entries across the 45 striker matches, most of
+them from still-water (4–5 casts/match), with vector-edge never
+entering the stance at all. The cohort's doctrine was authored when
+the fan was measured DECLINE, so a stale-doctrine read cannot price
+the salvo; it can only confirm nothing regressed. The salvo's real
+pricing waits for a doctrine wave briefed on the new fan (and the
+route-cooldown observation gives authors the clock to play around).
+One CLI catch recorded: the --volley guard first validated the
+class-EFFECTIVE kit and rejected the fabricator mirror cells the arm
+is designed to inert-omit in — fixed to validate the requested kit,
+preserving the one-flag-set-per-wave property.
+
+## 183. The salvo sharpened: 1-tick entry; surf re-mints as swell
+
+Owner ruling on "is salvo enough, or also lower the windup?": fold the
+faster entry into the salvo now, one coherent skill change, priced as
+a package by the next doctrine wave. Rationale accepted: the fan's
+delivery had the worst telegraph-to-payoff ratio in the game — the
+only 2-tick public windup (pending transitions are published), spent
+stationary for a one-tick payoff, against a shell that deflects
+frontal bolts — so damage alone fixes the reward while leaving the
+landing problem intact. Under salvo the volley entry drops to the
+uniform 1-tick stance grammar (`SalvoEntryWindupTicks`); the measured
+cast fan keeps its historical 2-tick entry, pinned. Behavior changed
+hours after the first mint, so the identity re-minted: plain token
+`salvo` → `crest`, composite `surf` → **`swell`** — the surf-id sweep
+replays in #182 stay honest as entry-2 history. On the record
+unchanged: striker loses +1.000 in both pairs with near-zero fan
+usage, so the chassis is losing, not just the fan; class numbers and
+granular asymmetric tiles remain the levers behind this one, and the
+salvo package prices at wave 7 [it did — #184].
+
+Coarse swell read (same cohort/seeds as the tide and surf reads;
+superseded by the wave-7 read in #184):
+**the first striker movement of the campaign, on stale doctrine** —
+bulwark-vs-striker +1.000 → **+0.852** (vector-edge beats iron-root
+in a seed; arc-light beats march-wall in a seed),
+fabricator-vs-striker +1.000 → **+0.778** (still-water beats
+ledger-fly in two seeds); bulwark-vs-fabricator **+0.333** unchanged
+(inert-omitted, as required). Usage spread from 8 to 11 match-dirs
+with casts — vector-edge, which never entered the stance under surf,
+now casts. Same deterministic bots, same seeds, doctrine unchanged:
+the delta is pure mechanics. Still a stale-doctrine LOWER bound —
+wave 7 prices the package properly.
+
+## 184. Wave 7: the triangle closes — every class pair in band
+
+The striker-only salvo-integration round the owner commissioned
+("another training round on the striker bots only with the new updated
+information"), run while he was AFK under standing autonomy. Three
+authors (vector-edge, still-water, arc-light revision 7), wave-6
+harness, 3/3 T4 first-attempt, frozen at
+arena-bots/frontline-labs/classes-wave-7-strikers-2026-07-30/ with the
+full read and converged findings in that README.
+
+The verdict: **bulwark-vs-striker +1.000 → +0.333,
+fabricator-vs-striker +1.000 → −0.222, bulwark-vs-fabricator +0.333
+unmoved — every class pair inside the cycle-magnitude band for the
+first time in the campaign.** Fan usage in the read went 45 → 368
+entries. The wave's converged insight: the wave-6 strikers had been
+CORRECTLY refusing to cast under the old arithmetic (their refusal
+logic priced the old fan right); re-reading the contract's declared
+damage numbers was the whole fix, and both attempts at plain
+aggression measured worse. The salvo (#182) + sharpened entry (#183)
+are hereby priced: adopted, working, tuned enough for now.
+
+Standing caveats: freshness is asymmetric (fresh strikers vs stale
+wave-6 bulwark/fabricator doctrine) — wave 8 re-prices the triangle
+with every lineage adapted (and with MUSTER + TeamRandom in the game);
+iron-root's leg is the entire remaining bvs payoff and two authors
+localized it to striker POSTURE (out-trades, under-holds), which is
+wave-8 doctrine material, not a fan tune. Distinct-outcome discipline
+disclosed in the README. Engineering asks recorded there too — the
+recurring ones (qualify's viewer spam, print-candidate-contract
+printing identity not contract, movement-blocked naming no blocker)
+plus a new inconsistency: two authors observed DIFFERENT
+`allowedFormIds` shapes for a cooldown-held route.
+
+## 185. TeamRandom: coordinated unpredictability (SDK 0.10.9 / CLI 0.9.26)
+
+Owner ruling ("go for team random if you can find a decent way to do
+it"). The decent way: a team root seed derived host-side in its own
+SplitMix64 domain, delivered as a trailing tagged runtime-start field,
+with the stream RE-DERIVED PER TICK from (team seed, tick) — never
+advanced across ticks — so every life on a team draws identical values
+at the same tick, a life born mid-match agrees on its FIRST tick, and
+private `context.Random` use cannot desync the shared plan. Teams
+cannot derive each other's stream; replays record and re-derive the
+seed (C# validator refuses forged/team-swapped documents; TS mirror
+bounds-checks). The scaffold's `OrderedDirections` — the wave-6 trap
+that invalidated an author's sweeps — now draws from TeamRandom with an
+explicit per-life override. Replay-v3 documents grow a trailing
+LifeStart key (old documents still verify; new hashes move — the
+accepted #169-style consequence). Wave 8's coordination story: teams
+can finally flip a coin the enemy cannot predict and all three bodies
+see the same coin.
+
+## 186. Side objective, take two: muster ships dormant; SCRAP is the direction
+
+The owner picked MUSTER from the side-objective memo, then pivoted on
+seeing what it does: keel's forward rally already IS
+respawn-at-the-front, so gating it on a flag is thinner than the memo
+sold ("we already have respawn at previous capture"); buff effects were
+rejected next ("do better — can we involve RTS aspects? Not
+necessarily a hold-the-zone"), landing on two directives: real RTS
+macro, and "the side lanes of the map need to matter". The
+secondary-control capability + muster arm shipped anyway, DORMANT
+(`--side-objective muster`, identities ensign/banner/pennant, new map
+generation frontline-labs-02-muster with the alcoves opened into
+through-passages, latch factors pre-registered, RELAY the family
+control arm) — the flagless game is byte-identical, and any future
+site-based effect is an enum value away. The live direction is SCRAP:
+a battlefield economy (mirror-scheduled veins in the dead side lanes +
+wreckage drops at death sites + team bank + telegraphed tiered
+upgrades via an invest action), deep-design memo commissioned with the
+owner's constraints as hard requirements (side lanes must measurably
+matter; upgrades must not re-open the #184 triangle; body count stays
+the fabricator's monopoly). Wave 8 is held until the SCRAP ruling.
+
+## 187. The channel game: capture reworked, SCRAP adopted, ruled under delegation
+
+The part-2 analysis (memo parts 2–3) proved the owner's breach-rush
+worry FROM THE CONTRACT: under current capture math, sending any body
+to a vein concedes ~one capture, (stay, stay) is the unique
+equilibrium, and SCRAP alone measures null — the economy cannot be
+fixed by tuning the economy. The owner's own capture-channel proposal
+fixes it, and he delegated the ruling ("AFK you decide"). Ruled, per
+his stated criteria:
+
+- **`--capture channel` adopted** (composite `siege` = swell +
+  channel): capture GAIN counts only bodies that did not change tile
+  this tick (denial counts all); damage to a controlling body ON the
+  objective reverts the controller's work on this run by the damage
+  amount (poke delays, sustained control denies; a screened solo
+  channeler completes in 8, unscreened dies; 2 kiting defenders hold
+  3); threshold 15 → 8 as the paired `channel-speed` factor; stacking
+  scales gain with stationary weight CAPPED AT 2 (fabricator's extras
+  buy screens and denial, never speed); whole-run revert (per-body is
+  degenerate under the cap); ERODING is also a channel; recapture via
+  erosion multiplier N=4 lands the full range in the owner's 1.0–1.25×
+  band; ratchet hold NOT re-tuned (diagnostic registered). Zero new
+  observation facts — every rule moves captureProgress/claimingTeamId
+  in their exact published shape.
+- **`--economy scrap` adopted with the significance fixes** (`forge` =
+  swell + scrap; `bastion` = the full game): veins 6 scrap at ticks
+  120/200/280/360, wreckage 1/death, carried-with-assay (cap 6, pile
+  life 80), invest action, edge/plate/optic at a FLAT 10 per tier
+  (deep = broad = 30, no volume discounts), prime-only scope in v1
+  with per-track scope (plate-to-all-bodies) registered as the v2
+  favorite and the all-bodies fabricator amplification (1.27–1.45×)
+  on the record.
+- **No drone in v1** — three structural blockers (a bolt-absorbing,
+  tile-denying free screen is body count by another name under the
+  channel; topology-identity fault; unmeasurable in this window).
+  Registered `scrap-drone-tier-3` with a build-ready v2 spec.
+- **One deviation from the analysis's shipping plan, reasoned**: it
+  recommended two sequenced waves (8a siege, 8b bastion). Ruled
+  instead: ONE authoring wave briefed on the full bastion game, with
+  the balance read run as the pre-registered 2×2 attribution
+  (swell/siege/forge/bastion — the arms inert-omit, so one cohort
+  plays all four cells). The forced ordering the analysis proved is
+  about ADOPTION knowledge, which the 2×2 delivers; the owner
+  commissioned one "proper round for all", and a bastion-trained
+  cohort still prices siege cells (recorded as a stale-doctrine-style
+  confound on the forge cell).
+- Pre-registered predictions held to: siege alone moves bvs toward
+  +0.05…+0.20 and squeezes the bulwark from both sides — the floor
+  watch (any pair below +0.15) is the wave-8 tripwire.
+
+## 188. Wave 8: the channel game works; the bulwark wears the crown
+
+The full-cohort round on the #187 game, run under standing AFK
+autonomy. Eight of eight T4 first-attempt, byte-reproducing freezes at
+arena-bots/frontline-labs/classes-wave-8-2026-07-31/ (full read and
+converged findings in that README). The game itself is a success by
+the owner's dynamism criteria: captures are escorted set-pieces, the
+stillness doctrine converged in eight independent phrasings, the
+striker interrupts, the bulwark holds ground, the fabricator screens
+and stacks, and the population found and precisely isolated two engine
+defects (both fixed mid-wave, republished, affected measurements
+re-run; both reachable only by mask-reading bots — the population is
+now the engine's best fuzzer).
+
+The symmetric 2×2 read (every lineage equally fresh — a campaign
+first): swell bvs +0.667 / bvf +0.444 / fvs −0.222; siege +0.556 /
++0.500 / −0.222; forge +0.630 / +0.667 / −0.222; bastion **+0.778 /
++0.667 / −0.111**. The #184 triangle did not survive two waves of
+bulwark catch-up: the channel alone moved bvs the predicted DIRECTION
+at a fraction of the predicted magnitude, the economy as priced is a
+bulwark amplifier (+0.223 on bvf), and their interaction (+0.259 bvs)
+crowns the bulwark on the full game — the #187 floor tripwire fired
+in reverse. Fabricator-vs-striker stays in band on every arm.
+
+Owner-prediction refutations recorded with numbers: the turret is not
+the class's recapture denial (a body's unconditional denial weight
+beats the conditional revert, twice independently); TeamRandom's
+first doctrine verdict is null-to-negative (capability sound, no
+doctrine has found where coordinated unpredictability pays).
+
+Next balance levers, in the order the evidence suggests: (1) economy
+pricing/scope — the scrap arm favors the class that survives to
+collect; the per-track scope (plate-to-all-bodies) and vein/carry
+incentives are the registered knobs, and the deep-carry game is
+mostly unbought as priced; (2) channel-speed and the interrupt
+setting; (3) class numbers. Engineering queue promoted by unanimity:
+publish movedThisTick, fix ArenaBasics.Capture's channel misread, fix
+abort paths that exit 0. Everything provisional per #174; the owner
+rules on the next lever when he returns.
+
+## 189. The legion round: fabricator renaissance, crown dissolved
+
+Six owner rulings shipped as one package after he watched wave 8
+("didn't see the new mechanisms"; "initial number of bots higher…
+add 2 then 3 so end game is genuinely many"; "recapture needs to be
+faster"; "the new mechanism needs to be stronger and happen earlier";
+"the respawn at capture point may be too strong and it also means
+Fab's signature skill is almost useless — next balancing round
+without that"; "longer games ok"; "scraps should decide the game").
+Plus the fix for the seeing itself: the viewer now RENDERS both
+mechanics (piles, couriers, bank/tier pips, purchase beats, channel
+arcs with interrupt-vs-erosion distinction, channeler/screen auras) —
+and an adjacent v3 bug meant impact effects had never rendered at
+all; restored.
+
+The stack: `--roster legion` (3 bodies at tick 0, fabricator 4 via
+dormant-unlock slots its prime field-fabricates — the monopoly becomes
+the opening verb; +2 at 150, +3 at 300; endgame 8–9; new map
+generation frontline-labs-03-legion), `--pendulum hull` (keel minus
+forward-rally: home respawns make fabrication the ONLY forward body
+delivery), erosion 8 (flips 1.125×), economy v1.1 (veins 8 scrap from
+tick 60 every 70 through 620, wreckage 2/death, six-tier board — the
+economy is now allowed to decide), `--horizon long` (750). Wave-8
+tokens retired to their measured bytes; the package mints
+vigil/crusade. Full-roster observation: 14.1KB, 1.3% of the payload
+cap.
+
+Coarse crusade read (wave-8 cohort, stale doctrine on every axis —
+the heaviest lower-bound caveat of the campaign):
+**bulwark-vs-striker +0.778 → +0.370; bulwark-vs-fabricator +0.667 →
+−0.278; fabricator-vs-striker −0.111 → +0.333.** The bulwark crown
+is gone and the fabricator is the package's winner exactly as
+designed — its restored signature plus the numeric opening. A soft
+cycle shows (bulwark > striker > … < fabricator > bulwark). Pacing
+note, honest: 44/63 matches reach max-ticks and draws returned (6) —
+eight-body defenses under stale doctrine hold hard; whether that is
+the doctrine or the numbers is wave-9's question, and
+channel-ratchet-retune is now the most-live registered factor (home
+respawns lengthened every walk the 40-tick hold was calibrated
+against). Ground healing (slow, own-half, stillness-gated) is ruled
+and slated as the next-window A/B.
+
+## 190. The mind: one runtime drives all of a participant's bodies
+
+Owner ruling, made knowingly after the feasibility read: "I want the
+most drastical one — the 'one mind controls all bots'… I think this
+will let the player focus more on the real fun complexity than
+ergonomics." The per-life every-bot-for-himself model — with its
+common-knowledge coordination, life-scoped memory, and the wave-6/8
+friction families it produced — is superseded for this game by a
+PARTICIPANT-scoped controller: one submitted artifact, one runtime,
+one persistent mind driving every body that participant owns for the
+whole match. The owner's own rider fixes the boundary correctly: the
+mind is the PARTICIPANT, not the team, so future 2v2/FFA formats
+(already expressible in the gen-3 format definitions) are teams of
+ALLIED MINDS — and the common-knowledge toolkit (TeamRandom, declared
+intents) survives one level up as inter-mind coordination rather than
+dissolving. Wave 9 was cancelled minutes in precisely because
+authoring more per-life doctrine ergonomics would have been obsolete
+work. Design memo commissioned: profile shape beside the per-life
+generation (the shipped duel product and the measured cohorts stay
+playable and comparable via a wrap adapter), persistent-memory
+information game analyzed with eyes open, fuel and payload budgets,
+replay-v3 mind turns, qualification and scaffold redesign, migration
+plan for the eight lineages. The build ruling follows the memo.
+
+## 191. The mind build: full go, P0-P6, gated at the null pin
+
+Owner ruling on the memo ("Full go: P0-P6"): the mind profile
+(generic-mind-match-1, resolved contract schema unchanged so the null
+pin means something) builds in the memo's phase order — P0 reserved
+field IDs (role tags, allied intents, per-slot chassis, candidate
+chassis: the one irreversible step), P1 engine session + contract, P2
+SDK/Guest/Runtime + codecs + the WrappedPerLifeMind adapter, P3
+replay mind-turns + validators + TS + viewer, P4 CLI/qualification/
+scaffold/docs + publish, P5 THE NULL PIN (wrapped cohort
+outcome-identical across profiles — explicitly allowed to stop the
+project), P6 the port wave with the ported-vs-wrapped A/B and the
+pre-registered pacing diagnostic. Compositions (P7) and pacing arms
+(P8) stay read-gated behind P6. Fuel 250M + 200M/body, persistent
+memory undamped with the fog-effectiveness diagnostic, `mind` is the
+product word.
+
+## 192. The null pin holds: the mind is behavior-identical, 63/63
+
+P5 ran twice, and the first run is the story: 33 of 63 cells DIVERGED
+— the pin caught a real wrapper defect (one shared TeamRandom stream
+position across sub-brains, where per-life semantics re-derive each
+life's stream per tick so every life's Nth draw is identical). Fixed
+at the source, pinned by a two-body double-draw regression, guest
+adapter 0.10.12. Second run: the rebuilt wave-8 cohort's full matrix
+on the warpath stack, actor profile vs mind profile, zero tolerances
+— winner, end tick, completion reason, scores, and every body's
+accepted-action sequence — **63/63 identical. The mind plays the same
+game.** Also learned and recorded for the port handover: pre-mind
+artifacts fault at startup on the mind profile (expected — their
+guests predate the protocol; the standard from-source rebuild fixes
+it), and a mind-startup fault currently aborts document recording
+instead of producing a clean disqualification (queued in the
+pre-friction pass). P6 goes to Codex per the owner's directive, after
+the pre-friction check.
+
+## 193. Pre-friction pass done; the Codex handover state is FINAL
+
+The pre-friction check commissioned in #192 landed in full, CLI
+0.9.29 (local-window bump, republished to sandbox/cli-publish). What
+it fixed, beyond docs: (1) the mind-startup fault recording defect —
+`FaultedTurn` stamped the canonically-first body's ActorId on every
+stopped body's fault, so recording aborted with "Runtime fault
+evidence does not match its actor turn"; now
+`GenericMindRuntimeFault.ToActorFault(body)` stamps each body's own
+identity and the repro completes as a clean participant
+disqualification, exit 2, replay verifies. (2) The generic-mind
+template's ArenaBasics released VACATED tiles despite the contract's
+`followingVacatedActorAllowed: false` — 16/1357 blocked moves in a
+scaffold match; the contract-reading `Vacate` fix measures 0/1512.
+(3) Uniform CLI failure mapping: new `CliFailure`/`MatchRun`, abort
+exit code 4 distinct from disqualification's 2, stderr guaranteed,
+27-case pin. (4) `--print-candidate-contract full` prints the whole
+resolved canonical contract (Codex's contract-reading entry point).
+(5) `SdkVersionAdvisory` warns on manifest/toolchain mismatch — the
+#170/#192 pre-mind-artifact startup fault now has a legible
+pre-flight hint. Doc sweep: retired `levy` spelling and the stale
+"fabricator must fabricate its opening" claim scrubbed from brief,
+CLI help, run banner and BotProject note; enemies-publish
+routeCooldowns falsehood fixed; 4 new DocDrift pins; one pre-existing
+red test repaired. All suites green. Handover doc carries the two
+owner amendments (skip the strict-port stage; THREE bots, one per
+class, agents unleashed); wrapped baselines prebuilt at
+sandbox/w8-mind-0.10.11. Codex runs P6 whenever the owner says it is
+due. Parked for the owner: the fabricator-bootstrap fork
+(base-as-root-factory vs elimination) in the mechanism slate.
+
+## 194. Build the game first; the fabricator bootstraps from base
+
+Two owner rulings (2026-07-31). FIRST, the order flips: "we're at the
+point where we're designing and building the game before we build
+more bots." The Codex mind wave stays parked — the handover is final
+but untriggered — and the design window the slate had scheduled
+post-wave builds NOW, so Codex's mind natives will be written against
+the finished game rather than one shifting under them. The handover
+and wrapped baselines get a refresh pass before Codex ever runs.
+SECOND, the open fork closes: at total body loss the fabricator's
+HOME BASE acts as the root factory — a structure, not a body, can
+always seed one body. Comeback preserved, no special body returns,
+and a full wipe is a huge tempo win rather than an instant kill.
+Total-loss-as-elimination stays registered as the sharper alternative
+arm. The build package that follows under #174 delegation: prime
+dissolution for all classes (one chassis, one lifecycle per class),
+the headless fabricator production network, FOUNDRY in its refined
+shape (free chassis choice, scrap buys tempo, home delivery vs field
+fabrication), the upgrade-scope re-rule the slate owes, and the
+ground-healing A/B riding the same read.
+
+## 195. Commander mode: the passive manager layer, per-sheet only
+
+Mid-window the owner re-scoped #194's package ("remove prime" and
+composition are ready; the headless fabricator network is PART of
+removing prime; FOUNDRY tempo, home delivery, and ground healing go
+back on the design table) and opened the bigger question: can
+non-coders play? The direction that emerged and is now ruled:
+commander mode, a PASSIVE manager game on the mind architecture. A
+non-coder authors a SHEET — composition plans, ordered upgrade
+priorities with reserve triggers, economy and capture policies,
+roles, FF12-style ordered gambits, and DRAWN spatial plans (paths,
+zones, rally lines) — which configures a curated stock mind and
+compiles to an ordinary artifact; the ladder plays it while the
+player is away, and the morning report (results, decisive replays,
+loss attribution, counterfactual re-sims) closes the loop. The owner
+ruled drawings PER-SHEET: saved plans executed blind, never live
+redrawing — no decision points, no sessions, no pause machinery; the
+interactive Mechabellum-style variant is dead. Matchmaking being
+blind makes the gambit block carry ALL counter-play, so in-match
+conditionals are first-class in the stock-mind config schema. Owner
+direction alongside: a much wider class roster (stable of ~5 from a
+launch band of ~10-12 mechanically distinct classes — dormant engine
+mechanics are the seeds) and a reward loop that unlocks BREADTH,
+never power. The map likely grows (spatial authorship needs a
+"where"; the mind removed the per-life big-map penalty; map-gen-3
+regions are the machinery). Full design:
+docs/DESIGN-COMMANDER-MODE-2026-07-31.md. The empirical go/no-go is
+the DEPTH AUDIT — fixed stock mind, sheet-space tournament, payoff
+matrix read for dominance vs cycles — which, like the map-scale
+prototype, waits on stock mind v0 after the one-chassis package
+lands. Still open with the owner: the one-shared-ladder question and
+who writes stock minds beyond the curated first set.
+
+## 196. The game-redesign campaign hands to Codex; 2D is the renderer
+
+Owner rulings (2026-07-31), driven by quota — the campaign continues
+under Codex with the owner at the gates. FIRST, presentation: the
+experimental game GOES BACK TO THE 2D RENDERER as its primary and
+only REQUIRED surface — way less work per class, and agents can
+review a Canvas2D frame autonomously. The 3D viewer is PARKED for the
+experiment (kept compiling, no longer extended per new mechanic); the
+shipped duel product keeps its 3D stance. The #189 law stands
+("viewer must render the mechanics") and 2D is now how it is
+satisfied cheaply. SECOND, the commission, in the owner's own frame:
+15-20 classes; fun variety; "we are NOT committed to any of the
+existing classes"; each class some depth but not too much; a BIGGER
+map than current frontline; and core mechanics MORE INTERESTING than
+today's — the owner's verdict on the current game is on record:
+"frontline feels a bit too dull." Commander mode (#195) is the
+overall vision it all serves. The one-chassis package (#194, in
+flight) lands as class-agnostic infrastructure — chassis unification
+and slot-scoped composition survive any roster. The mind-native bot
+wave (the previous Codex handover) is SUPERSEDED IN ORDER: bots are
+authored after the game stabilizes, not before. Owner gates are part
+of the campaign contract: taste rulings on curated forks, and the
+felt-experience gate — galleries watched by the owner — as the only
+authority on "fun."
+
+## 197. The commission un-led: figure it out; one skill; fun to watch
+
+Owner refinement of #196, ruled before the handover freezes: do NOT
+lead Codex toward existing mechanisms ("don't want to lead it in too
+much with muster etc") — the enumerated dormant-mechanics shelf came
+out of the handover; the engine's shelved mechanisms are minable but
+nothing in the current game is a lead. "We need it to make a good
+game and figure it out itself." Three shape rulings ride along: ONE
+signature skill per class; human fun value is first-class — the game
+MUST BE FUN TO WATCH (under commander mode the product largely is
+watching replays, and the owner's gate is watching games); and Codex
+may design a DRASTICALLY different game than frontline, keeping the
+engine platform (deterministic tile arena, the mind architecture, the
+WASM pipeline, the harness) while treating everything frontline
+layered on top as disposable.
+
+## 198. The commander-mode player layer stays; gates may live in chat
+
+Owner clarifications on #197. FIRST: "disposable" scopes to the GAME,
+not the player layer — sheets, ordered gambits, per-sheet drawn map
+tactics, the stable, breadth-only rewards, the morning report, and
+passive/blind play "largely stay." Codex may tangent and improve on
+those ideas but not discard the layer. SECOND, on gate mechanics: the
+gates need no ceremony — the owner may run them as chat check-ins
+with Codex's steering, and steer freely mid-run besides. What the
+gates actually protect is (a) a consolidated decision artifact at
+each fork and (b) no building on unratified foundations — so the
+hard rule is only that Codex POSTS the gate report and WAITS at the
+two big ratification points (concept/roster; the felt-experience
+loop) rather than barreling into build on its own say-so.
+
+## 199. Arc Relay and the sixteen-class launch band are approved
+
+Gate 1 owner ruling (2026-08-01). **Arc Relay is the game.** The
+approved concept is the larger-map logistics-combat sport recorded in
+`docs/reports/GATE-1-CONCEPT-AND-ROSTER.md`: three separated neutral
+Wells produce physical Arc Cores; minds allocate, carry, hand off,
+escort, intercept, steal and bank them; deliveries charge visible
+reactor Pulses, and Pulses decide the match. The concept's
+**no-economy / no-score-to-power** stance is part of the ruling: no
+scrap ladder or required in-match upgrade economy, and scoring never
+grants stronger combat stats. Commander progression continues to
+unlock breadth rather than power.
+
+The recommended sixteen-class launch band is approved unchanged:
+Kestrel, Palisade, Towline, Patchbay, Lantern, Mortar, Minesmith,
+Hush, Relay, Switchback, Longshot, Mason, Sunder, Repulsor, Veil and
+Nest. The report's remaining alternates, holds and rejects stay
+registered exactly as recorded; a later season may widen the roster
+if the game first proves fun. Phase A is closed and its foundation is
+ratified for Phase B. This ruling does not itself begin implementation.
+
+## 200. Threefold and the Arc Relay Phase B mechanics are approved
+
+Gate 2 owner ruling (2026-08-01): **approved unchanged.** Threefold and
+the complete H0 mechanics brief in
+`docs/reports/GATE-2-MECHANICS-BRIEF.md` are the ratified Phase C
+implementation hypothesis: the exact 31x23 map; eight fixed bodies per
+side; direct composition from the player's unlocked classes with at
+most two copies of one class; the three-Well production schedule and
+three-live-Core bound; the Core-owned relocation recovery and committed
+handoff; three deliveries per Pulse, three Pulses to win, the 600-tick
+horizon, and the 20-tick respawn delay; the statline bands and first
+implementation envelopes for all sixteen signatures.
+
+There is no five-class stable in ordinary Arc Relay sheet structure.
+That mechanism stays registered only as a scale response if the roster
+grows beyond roughly 25 classes, or as an explicit draft/tournament
+format lever. Approval makes the H0 package buildable; it does not turn
+its provisional numbers into measured balance, establish that the game
+is fun, or itself begin Phase C. Rules-native evidence and the owner's
+felt-experience gallery remain the authorities for those later gates.
+
+## 201. Counterflow is the hosted map; the failed depth gates stay failed
+
+Owner gallery ruling (2026-08-02). Counterflow's exact rotational fairness,
+stronger contested-pickup read, preserved pacing, and better felt lane
+character are sufficient to promote it from study arm to the working hosted
+Arc Relay map. This is a qualitative product choice over the study's default
+HOLD, not a statistical depth pass. The adverse evidence remains on the
+record unchanged: 75% first-Pulse conversion, zero behind-to-ahead Pulse
+reversals, 14 of 16 mirrored matchup sweeps, and zero directed cycles in four
+complete counter-webs. The larger map remains rejected after four entrant
+eligibility failures.
+
+The cutover is immutable playlist version 3. Version 2 remains registered so
+queued historical matches execute against Home Gates Wide. Saved sheets move
+to Counterflow through a deterministic nearest-walkable waypoint migration;
+sheet and entrant identity persist. The open v2 rating population is copied
+to the v3 ladder before v2 closes. Custom minds retain identity and rating but
+must preflight again because a mind may validate the map identity itself. No
+EF schema change is needed. This map ruling changes no historical canonical
+replay, ruleset, economy, score-to-power stance, or first-party stock artifact.
+
+Depth remains an open product risk. The next structural hypothesis is a sport
+of symmetric **Pulse drives**: after either team Pulses, the same neutral
+kickoff reset begins a new drive, and a sheet may select a fresh authored play
+from public match history at that boundary. Reset and play selection must be
+preregistered and tested independently before combination; neither gives the
+trailing side power or changes combat stats.
+
+## 202. Home Siege Stage 1 passes as grammar proof and trips the camping alarm
+
+Owner-directed catch-up ruling (2026-08-04) on the Stage 1 report. The 10–0
+Home Siege result against the frozen static baseline is accepted for exactly
+two simultaneous claims: the evaluation-grade sheet grammar can execute a
+long-horizon, casualty-tolerant team strategy, and the registered **Home
+camping dominates** alarm fired. The latter is not erased by the former and
+the former is not a whole-game balance or fun approval. The unchanged v4 felt-
+degeneracy bars remain an admission condition; a siege that trips them fails,
+and the detectors are never adjusted to admit the tactic.
+
+The intended first answer to the alarm is a separately authored, evidence-
+based recognizer/counter sheet. Pending that test, Stage 1 authorizes no map,
+spawn-safety, rules, class, or balance reaction. If a competent counter cannot
+answer the frozen siege, geometry becomes a later owner-gated design question.
+
+## 203. Home Siege v3's strict 9–2 correction is accepted
+
+The corrected v3 becomes the canonical Home Siege subject for the next stage.
+Against the unchanged stock-v4 coordination-parity control, all 24 fresh,
+mirrored, sandboxed-WASM cells ended in a Siege reactor win: 12 at 9–1 and 12
+at 9–2, every cell retaining all three integrity segments, reproducing its
+canonical hash, passing the unchanged bars, and recording no runtime fault.
+The strict lifecycle audit also closes the live 5+1+1+1 schedule, replacement
+rejoin, exact-carrier release/retarget, bounded causal interception, and
+reachable-Core sanitation requirements.
+
+Acceptance is narrow: v3 is the frozen strategy/opponent identity for the
+recognizer goal, not proof that camping is healthy or unbeatable. V2 and all
+failed attempts remain immutable evidence; v3 does not rewrite them.
+
+## 204. One strategic archetype is authored per owner-gated goal
+
+Each strategy-ladder goal authors, measures, freezes, reports, and then stops
+on **one new archetype**. Home Siege, the recognizer/counter, and the later
+adaptive answer are sequential goals; they may not be co-authored or tuned
+against one another in one run. Variants within the current archetype are
+allowed as declared robustness probes, but they do not smuggle the next
+archetype into the same goal.
+
+This sequencing is evidence control as well as worktree hygiene: the accepted
+subject is immutable before its answer is written, and the answer is immutable
+before adaptation begins. Unseen Home Siege lane and threshold/composition
+variants may be hashed before recognizer authoring, but their outcomes may not
+be used to write that recognizer.
+
+## 205. Strategy acceptance uses a canonical parity baseline and a decisive margin
+
+A strategy does not pass because it edges a weak or obsolete opponent, wins a
+coin-flip set, or merely executes its phase labels. Its final gate freezes a
+canonical baseline before outcomes, gives that baseline the same applicable
+generic coordination machinery as the candidate, mirrors team assignments,
+uses fresh sandboxed-WASM cells and unchanged eligibility bars, and
+pre-registers a decisive score/integrity margin in addition to wins.
+
+For accepted Home Siege v3 the baseline is the exact stock-v4 coordination-
+parity artifact/sheet, and the hard margin is a reactor win in every one of 24
+cells, baseline score at most two, Siege integrity at least two, zero faults,
+and both sides eligible. Future archetypes must register their own meaningful
+decisive margin before their final block; they do not inherit 9–2 as a universal
+balance number. Historical static-baseline results remain useful context but
+cannot substitute for the canonical parity-control gate.
+
+## 206. Breakwater is accepted at 7/8 and ships as the Stage 2 deliverable
+
+The Breakwater finals (freeze `a2d4202f`, results `e596dbe3`) passed every
+registered pairing at its exact bar — frozen siege 3-2 west / 3-1 east,
+parity control 3-1 both ways, all by elimination, WASM tick-identical to the
+in-process screens, zero faults, zero false-positive fortify latches — and
+split the two unseen holdouts: south-mirror fell both ways, while
+four-down-double-relay beat Breakwater's east orientation 2-3. The owner
+re-ruled the bar post-outcome to "all registered pairings plus at least one
+of two holdouts" and accepted the 7/8 result (2026-08-05, in-session).
+Consequences: Breakwater (`breakwater-v1`, nestk-r212hl, sheet
+`4496dd39…`, executor artifact `f97792b9…`) is the Stage 2 strategy-ladder
+deliverable; the double-relay courier rotation is logged as the next
+strategy target; the consumed holdout may be used openly as a development
+opponent from here on; and the west/east detection-sensitivity asymmetry
+(west margin fixed at 3-2 across the searched space) stands as the concrete
+motivation for side-keyed parameter overrides in the format.
+
+## 207. Breakwater v2 supersedes v1 as the Stage 2 deliverable
+
+Owner-ruled 2026-08-05 (in-session "yes"). v2 — release-only memory
+freshness (18 ticks) on the siege-release predicate, no side overrides —
+passed its pre-outcome freeze (`c7d47647`) at 10/10 evidence cells by
+elimination, including the v1-failed double-relay east and a blind
+double-kestrel holdout on first contact, with zero faults and zero
+false-positive fortify latches. The v1 sheet is superseded; the v2 config
+is the artifact all Stage 3 candidates are measured against. The owner
+also approved the sentinel-zone promotion run as the next campaign; the
+Stage 3 cohort-gate proposal remains open pending owner ratification.
+
+## 208. Stage 3 gate: cohort slice replaces the parity control
+
+Owner-approved 2026-08-05 ("let's proceed" on the recommended protocol).
+From the sentinel-zone campaign onward, finals evidence includes the full
+depth-map cohort read — all 32 entrants, both orientations, WASM — with a
+registered bar of at least 75% of games won and no single entrant sweeping
+the candidate 0-2. Entrants that beat the reigning deliverable both ways
+are named as explicit counterplay targets for the following rung. The
+frozen-champion pairings, blind-holdout discipline, false-positive reads,
+and elimination-only scoring are unchanged.
+
+## 209. Sentinel-zone v1 passes the Stage 3 gate and is the Stage 3 deliverable
+
+Owner approved the promotion run in-session (2026-08-05); the pre-outcome
+freeze (`52e8a4a1`) registered the champion cells, the ratified cohort
+gate, an adversarial blind holdout, and false-positive reads. All bars
+were met in 75 WASM games with zero faults: Breakwater v2 beaten 3-1 both
+ways, Home Siege v3 3-0/3-1, the mortar-line holdout — authored as the
+designed counter to sentinel clusters — shut out 3-0 in both orientations
+on first contact, cohort 60/64 with no entrant sweeping the candidate,
+and zero false-positive fortify latches. Sentinel-zone v1 is the Stage 3
+deliverable; the four east-leaning cohort split-losses are the recorded
+signal for the next rung's targets.
 
 ## Deferred decisions
 
@@ -2661,3 +4630,1763 @@ requirement itself could be revisited.
   built-in-style multi-bot selector — decide when the project template lands.
 - wasmtime-dotnet pinning strategy across OSes for identical fuel accounting —
   verify when a second platform enters CI.
+
+
+## 210. Foundations -03: seed variance and side fairness are rules, not tuning
+
+Owner goal (2026-08-05, in-session): single-game determinism made every
+matchup a solved chess position, and counters could only be built with
+one-tile scalpels. `arc-relay-forward-combat-03` mints beside -02 with two
+foundations. VARIANCE: each scheduled well birth round shifts within a
+seed-derived +/-6-tick window (`wellBirthJitterTicks`, drawn from the match
+seed per well and round via a domain-prefixed SplitMix64 stream in
+`SeedDerivation`); measured 8/8 distinct outcomes across 8 seeds on a fixed
+matchup, same-seed replay hash byte-identical. FAIRNESS
+(`alternatingResolutionOrder`): the order-dependent slices of resolution —
+contested projectile consumption during movement, projectile advancement,
+and same-target hook pulls — alternate direction by tick parity instead of
+always resolving lowest-ActorId (team 0) first, and sentinel target ties
+break toward the shooter's own reactor before ActorId. Both fields are
+canonically written only when non-default; -01/-02 fingerprints and goldens
+stay byte-exact.
+
+## 211. Executor decisions are expressed in the team's canonical frame
+
+Mirror matches under -03 exposed that the tactical executor's tie-breaks
+were absolute: lowest-Y/X goal and placement preferences, heading and
+direction enum order, formation reflow and spacing ties. Under the
+180-degree side binding these pick opposite relative tiles for the two
+sides — measured as 6-7/8 side skews in mirrors. All executor tie-breaks
+now route through the mind's canonical frame (`MirroredFrame` /
+frame-keyed orderings). The executor also gained a dedicated
+opportunistic heading channel (hooks and rails fire at ray-aligned
+hostiles without waiting for the gun-gated focus path; 0-2 casts/game
+became 51-55, stock parity) and mine avoidance (armed visible hostile
+trip-nodes are blocked tiles; forced movement still lands on them).
+Residual documented: the hook-heavy hook-control mirror retains a
+13/16-west skew whose mechanism has survived every structural engine
+audit so far; sentinel-zone and stock-baseline mirrors sit inside the
+6/8 bar. Cross-runtime note: tactical-mind games are runtime-deterministic
+but not byte-identical between in-process and WASM (same winner observed);
+evidence remains WASM-only per the standing house rule.
+
+## 212. Positional combat remake: fights resolve from the board, not from micro
+
+Owner ruling 2026-08-11, after replay review kept finding dances and
+Mexican standoffs that every executor patch only relocated: projectile
+dodge combat is the wrong model for a deterministic, spectated,
+sheet-authored game. Perfect-information bots dodge perfectly, so duels
+resolve by tie-break arithmetic that neither the author nor the spectator
+can read, while everything that works in the game (pulse race, birth
+windows, hunts, promotion, backstabs) is positional. The remake goal is
+recorded in docs/EXPERIMENTAL-ARC-RELAY-POSITIONAL-COMBAT.md: combat
+becomes declare -> windup cone -> first-body-in-the-way resolve, with
+facing/level multipliers; sheets own all judgment (engagement entry and
+exit conditions); the mind owns few convergent verbs; standoffs become
+unrepresentable rather than discouraged. Minted as arc-relay-ambush-11
+behind GameRules flags, frozen-beside; acceptance is a 24-seed battery
+with zero felt-degeneracy bar trips, no unresolved-contact streaks,
+both existing sheets running untouched, and owner replay review as the
+final gate. Ranged area-denial and sheet balance are explicit non-goals
+until the melee-beat core proves out.
+
+## 213. Strike cones are the real filled wedge, resolved to the nearest body
+
+Owner rulings 2026-08 during -11 replay review, superseding the
+three-spoke fan of #212's first cut: "attacks are not cones..?", then
+"I want the real cone this is just weird now". The declared telegraph
+is now the filled 90° wedge between the resolved heading's adjacent
+sectors — Chebyshev reach, wall-occluded through the canonical strike
+line (`GenericActorStrikeCone`), boundary spokes inclusive — and
+single-target resolution picks the nearest body anywhere in the wedge
+(Chebyshev first, most-central on integer-exact angle ties, canonical
+tile order last), delivered along the same 8-connected strike line
+through the standard projectile machinery so interposition still works
+tile by tile. A lit tile is exactly a hittable tile; three diverging
+spokes with unlit gaps between them were neither honest nor readable.
+Authored volleys keep frozen per-ray fans; windup stays 1 (one honest
+move, owner tuning after verifying movement precedes combat on the
+resolve tick). Signature bolts (sentinel/hook) still fly untelegraphed
+as historical utility casts — flagged to the owner as the remaining
+inconsistency, ruling pending.
+
+## 214. Movement resolves by weight: carrier right-of-way lanes
+
+Owner design direction 2026-08, after watching the diagnostic pocket
+gallery and asking the right question ("we have a bunch of units that
+want different places - prioritize whose movement weighs most and
+adjust accordingly"): tile conflicts are a cooperative pathfinding
+problem, not a per-unit discipline problem. Two blocker-side plug tests
+(bank-side geometry, then whole-map path existence, then
+policy-admissible steps) all failed the same measured scene because the
+failure was interactional - the escort on the carrier's route DID try
+to move aside every tick, but a dancing teammate earlier in unit order
+claimed its escape tiles, and stole the lane tile whenever it was
+freed. The fix is priority in the existing reservation system: Claims
+carries carrier-owned lane tiles (BlockedNow blocks them for every
+other own body), and bodies standing on a lane act immediately after
+carriers so their escape choices precede lower-priority claims. This is
+windowed cooperative pathfinding in miniature - reservation table plus
+priority classes - and it removed the entire (13,7) corridor family in
+one battery (ab53 17/24 -> ab54 21/24, zero friendly-blocked runs).
+The idle-break's supply-lane plug test (#213-era) remains as a backstop
+but is expected dead; removing it is a measured follow-up. Attribution
+tooling: scripts/arc-relay-pocket-attribution.py classifies every stuck
+run (free / friendly-blocked / enemy-involved, per-unit blocker table)
+so the next pocket names itself.
+
+## 215. Strikes lock and follow; the wedge is reach, not a zone
+
+Owner ruling 2026-08, after the tracking-ray measurement (ab54: 38% of
+strikes landed on the aimed body, 26% side-swiped a neighbour the
+target dodged into, 88% of targets had a one-step wedge exit): the
+strike is an AIMED attack. It locks the body the resolution rule picks
+when the cone lights, follows it anywhere inside the frozen wedge, and
+resolves only against it; it cancels outright - no bolt, the
+dead-shooter precedent - when the lock dies, crosses the wedge
+boundary, or leaves the shooter's own line of sight (VisibleTilesFor).
+Bodyguarding is stepping onto the firing line, never proximity, because
+delivery stays a first-body-contact ray. Empty-wedge declares keep the
+theatrical centre whiff. Escape is earned geometry: boundary and
+max-range tiles have one-step exits, the deep interior is committed.
+Measured (ab56): hunter 15-9, 21/24 bars-clean, 5794 engagements, 59%
+kill endings, zero unresolved streaks - the every-fight-ends criterion
+survives the collateral bucket becoming escapes. The lock rides the
+pending-strike wire so the viewer's ray is authoritative.
+
+## 216. Fight-plane consolidation: one vocabulary for when a unit fights
+
+Owner design review 2026-08-07, conducted field by field against the
+ghost as the concrete case. The job plane (doctrines v1) was
+consolidated long ago; the fight plane accreted four generations
+(predation-era holdFire/isolation/stance, focus-fire lock arithmetic,
+inert dodgeCoverage/posture, and the new commit block) with invisible
+couplings - stance removal alone collapsed a battery, and chaseLeash
+lives in three places. The consolidation target, semantics, mapping
+table, deletions (whileCarrying is not a knob - carriers cannot fight
+and drop-to-fight is ruled out; backstab is automatic engine physics),
+and migration guardrails (parity-first, ghost-scope only, strict sugar
+validation) are frozen in docs/SPEC-GHOST-DOCTRINE-V3.md. Execution
+awaits the owner's go; hunter-v1 stays on the ab72 configuration
+meanwhile.
+
+## 217. Ghost doctrine v3 shipped: parity adjudicated at ab74
+
+The consolidation of #216 is implemented (commit ee5e2970) and the
+translation battery adjudicated. Grammar: verb-keyed modes with an
+unconditioned patrol floor, boolean condition strings, one fight block
+desugaring to generated per-mode engagements, formations by convention,
+everything else derived; commit.approach (get-behind with a position
+budget) and order patienceTicks exist behind the grammar, unauthored in
+the translation. ab74 (v3 translation vs wellwright): 12-12, 23/24
+bars-clean (the trip is the OPPONENT parking), zero unresolved streaks.
+Adjudication: 7/24 cells STATE-IDENTICAL to ab72 whole-match (proving
+the schema deletions and new mind fields byte-inert, and the
+translation exact wherever the one-leash reinterpretation never binds);
+the four outcome flips show equal-or-better ghost intent metrics
+(enemy-share 0.63-0.83, lone conversion up), so they are downstream
+squad chaos; the two CONFINED ghost cells are the strike-line assault
+pocket at (26,13) that ab72 exhibits identically (its w-9012 is
+state-identical at 117t) - the pocket's frequency rose because looser
+chase room means more kills, faster leveling, more assault-mode time.
+The -2 record swing is seed noise correlated with that mode shift.
+Verified by scripts/arc-relay-state-digest.py (promoted from the
+adjudication). Suspected latent inversion noted, untouched for parity:
+the isolation rear-exposure override in AllocateFocus keeps rank==1
+(NOT rear-exposed) targets, the opposite of its comment - measure as
+its own change. Next: migrate values to the spec's target artifact one
+battery at a time (patience, assault gates, breakOff, approach,
+killable) - any value that measures worse stays at translation with the
+data cited for the owner's call.
+
+## 218. Ghost v3 value migration: the translation IS the tune
+
+Every illustrative value in the spec's target artifact was measured as
+its own battery against the ab74 translation, per the sheet-tuning
+skill: patience 12 (ab75, worse everywhere), breakOff 3 (ab76, 9-15
+latch pacifism), gated assault (ab77, a 233-tick base-camp pocket the
+parked bar cannot see), strike-from-behind (ab78, 7-17 - per-target
+hold windows nearly stop the ghost firing against live prey), and
+killableTicks 12 (ab79, 24/24 state-identical - a no-op at kestrel
+damage). All five reverted with the data in their revert commits. The
+ab72-translation values stand as the frozen v3 config: they were tuned
+by five batteries once already, and the consolidation's win is the
+grammar, not new numbers. The from-behind MACHINERY (commit.approach,
+order patienceTicks) stays shipped and unauthored: the owner's
+positioning intent needs a different mechanization (per-engagement
+budget, or gating on unaware/stationary prey) - a design conversation,
+not a value sweep. Gallery for the owner gate: "Ghost doctrine v3 -
+one grammar, same beast" (five wins, two honest losses, exhibits
+labeled) on the standing tunnel.
+
+## 219. Silent-underminer audit: the executor policy sheets cannot see
+
+Owner call after three consecutive replay catches traced to executor
+scaffolding no sheet authors (cooldown formation-drift, hidden-2 lock
+release, always-on concealment micro): sheets had become hard to
+troubleshoot because policy lives in three visibility classes. The
+audit (docs/EXECUTOR-SILENT-POLICY.md) catalogs them from ground truth
+- the full reason-string vocabulary of real replays plus the
+allocation paths that act with no reason at all. Class A acts by
+ABSENCE (lock release, holdFire/isolation/commit filters, attacker
+caps, returning-to-formation, the participants trap); Class B speaks
+but is hard-coded (between-shots posture, evacuation/self-preserve,
+stance micro, idle-break, heal dashes, and the v3 desugar's generated-
+engagement constants - the fight plane's remaining dark matter).
+Standing tool: scripts/arc-relay-fight-trace.py labels every fight
+interruption with its mechanism, or SILENT when an absence-class path
+ended it. Queued as owner design decisions, not drive-bys: fight-block
+homes for the load-bearing constants (chase.persistTicks first), and
+the isolation rear-exposure inversion as its own measured change.
+
+## 220. The strike telegraph is the ray; the cone plates are gone
+
+Owner ruling 2026-08-07 ("remove the blinking tiles since we have the
+aim rays anyway"). #212 lit the whole frozen wedge as red floor plates
+because the wedge WAS the threat: anyone standing in it at maturation
+was hit. #215 made the strike an aimed attack that locks one body and
+follows it, so the wedge stopped being the answer to "who is about to
+be hit" and the plates became a blinking 90-degree apology under the
+line that already says it. Both renderers now draw the windup as the
+tracking ray alone (`strikeAimsAt` -> `buildStrikeAims` /
+`drawStrikeAims`), and the landing as the same red slash as before, so
+ray -> slash reads as one sentence. The frozen wedge remains an
+authoritative wire fact on the pending strike - the ray's escape read
+is exactly "the anchor is no longer on a wedge tile" - it is simply no
+longer drawn as ground. `ArcRelayStoryPresentation.pendingStrikes`
+(tiles + urgency) went with the plates: it had no other consumer, and
+the ray needs the anchor's interpolated pose, which is a frame value
+rather than a per-tick one.
+
+## 221. The windup is rooted: declare-then-move is an abandonment
+
+Owner ruling 2026-08-07, taken together with the strike-cancel audit
+that preceded it (sandbox/strike-cancel-audit.py over the six
+commitx21 cells: 1243 declared strikes, 669 resolutions, 42
+empty-wedge whiffs, 531 cancels - 476 lock-left-the-wedge, 33
+lock-left-LOS, 16 lock-dead, 6 shooter-dead). The audit recomputed
+both #215 tests from replay state and found ZERO cancels with no rule
+behind them, ZERO resolutions a rule should have stopped, and 1194
+frozen wedges byte-identical to a recomputed boundary-inclusive 90
+degree cone - so no strike was ever cancelled unlawfully. What it did
+surface is that rule (c) is evaluated from the tick's PROJECTED line
+of sight, which is the shooter's declare tile and declare facing (the
+same tile the bolt fires from), not a post-movement one: 83 strikes
+resolved that a post-movement LOS would have cancelled and 7
+cancelled that it would have kept, and the engine was consistent with
+the declare-time reading in 90 out of 90 cases.
+
+The ruling settles what that ambiguity was really about. A declared
+strike is a COMMITMENT, and a body in windup is ROOTED. The engine
+states this as one mutually-exclusive rule rather than a movement
+prohibition: an accepted move or strafe command from the declarer
+during its own windup ABANDONS the declare - no bolt, the
+dead-shooter precedent - and the move itself proceeds untouched. The
+COMMAND is the abandonment, not the displacement, so a move that then
+resolves Blocked has still spent the windup: the decision to leave
+was made either way. Involuntary displacement (knockback, dash, hook)
+is not a command and abandons nothing; the bolt still fires from the
+frozen origin. Consequence: the shooter-moved-LOS cancel class
+disappears - a shooter can no longer drift out of its own shot, only
+deliberately walk away from it - and all three surviving cancels are
+LOCK-side (the lock died, left the frozen wedge, or left the
+shooter's declare-time sight).
+
+The engine holds no policy about WHEN abandoning is wise. That lives
+in the mind: only a disengage latch may issue movement during a
+windup, and an incoming cone is explicitly NOT a reason to abandon -
+a body committed under fire trades its hit for the other one's, which
+is the whole point of a commitment. Pinned by
+GenericActorStrikeWindupRootingTests (rooted declarer fires from its
+declare tile; move command abandons and the move proceeds; a blocked
+move abandons too; wedge exit, sight loss and a dead lock all still
+cancel).
+
+## 222. The lock is the declared target, and nothing else
+
+Owner ruling 2026-08-07: "The lock should obviously land on the target.
+The hit itself is still blockable though." Then, correcting the first
+draft of the mechanic: "Not nearest - the TARGET!"
+
+#215 locked the nearest body anywhere in the 90 degree wedge, which is
+how a strike aimed down a lane ended up locked onto something standing
+off to one side - and, because the wedge scan did not care about teams,
+onto a TEAMMATE in 285 of 1194 locks in the commitx21 audit (#221). A
+teammate lock is nonsense twice over: an allied bolt passes straight
+through an ally in this ruleset, so the strike was locked to a body it
+could never hit, and it then CANCELLED when that ally walked off.
+
+The lock is now the DECLARED TARGET: the first ENEMY standing on the
+ray the shooter actually aimed, out to the gun's reach, while inside
+the frozen wedge. There is no substitution of any kind. An aim with no
+enemy on it locks NOTHING and keeps the empty-wedge theatrical whiff -
+the strike never re-aims at a nearer body, friend or enemy. Friendlies
+are skipped rather than treated as blockers when the lock is chosen,
+because bodyguarding is a DELIVERY rule.
+
+Delivery is unchanged and re-affirmed: the bolt is an ordinary
+first-body-contact ray along the firing line under this ruleset's
+collision policy, so whoever is standing on the line when it fires is
+who it meets - a body that steps in during the windup eats the bolt
+meant for the one behind it. Cancel rules are unchanged and remain
+lock-side: the locked target dies, leaves the frozen wedge, or leaves
+the shooter's line of sight. The frozen wedge is still reach, not a
+zone: the target may be followed anywhere inside it.
+
+The viewer follows: `strikeAimsAt` now READS the wire lock instead of
+re-deriving one, so a whiff draws no tracking ray rather than pointing
+at a body the strike was never for. Pinned by
+GenericActorStrikeWindupRootingTests (target-not-nearest, no
+substitution, friendly-never-lock, interception at delivery).
+
+### 222b. Correction, 2026-08-08: the lock is the MIND's target
+
+Owner, correcting the implementation above: "the lock is the target
+picked by the MIND and nothing else."
+
+The first draft inferred the lock from geometry - the first ENEMY on the
+declared ray - because the ray was the only thing on the wire. It is not
+any more. A windup gun's attack action now carries an OPTIONAL UnitTarget
+beside its heading, and the engine locks exactly that unit's live body,
+provided it stands inside the frozen wedge at declare. Naming nobody, or
+naming a body outside the wedge, locks nothing and keeps the theatrical
+whiff. There is no substitution of any kind: not the nearest body, not the
+first enemy on the ray, not an interposed one, never a friendly (the mask
+publishes opposing slots only). Interposition is a DELIVERY rule and is
+untouched - the bolt is still an ordinary first-body-contact ray along the
+firing line, so a bodyguard who was never the lock still eats it.
+
+This is also the real diagnosis of the 29% whiff rate the aim-alignment
+brief blamed on misaimed rays. The rays were not misaimed. Movement
+resolves BEFORE attacks inside a tick, so the body a mind aimed at from
+the tick's opening state has usually already taken its step by the time
+its own declare is read: in the graduated exhibits 279 of 283 whiffs had
+an enemy exactly on the aimed ray at tick start and one tile off it at the
+attack phase (the other 4 were wedge-corner occlusion). No amount of aim
+selection closes a gap that opens after the decision is made. A NAME
+survives it. Measured over the same six cells: declares that lock rose
+from 691/974 (71%) to 919/1020 (90%) greedy and 1032/1119 (92%)
+coordinated; whiff share fell 29% -> 9.8% / 7.8%. The audit's new
+whiff-cause read says the same thing from the other side: BEFORE, 200 of
+279 whiffs had the aimed body still standing INSIDE the frozen wedge -
+locks the geometry rule threw away - against 74 that had genuinely left
+it. AFTER, 98 of 100 (greedy) and 82 of 87 (coordinated) are the target
+leaving the reach wedge altogether, which is exactly the counterplay the
+wedge is supposed to be.
+
+The mind still aims its ray through its target - a misaligned ray with a
+valid in-wedge target now locks anyway, but delivery is a line, so
+alignment is still how a strike usually reaches. Rules schema 3 gained one
+allowance for this: an Attack action may declare ProjectileHeading plus
+UnitTarget when its profile actually winds up. An instant gun keeps its
+single-parameter shape and its fingerprint. Pinned by
+GenericActorStrikeWindupRootingTests (named-not-nearest,
+named-not-interposed, target-steps-off-the-ray-and-is-still-locked,
+names-nobody, outside-the-wedge, friendly-never-blocks-the-lock,
+interception at delivery).
+
+## 223. Graduation: the committed sheet IS hunter-v1, and the loop turns around
+
+Two owner rulings, 2026-08-08, both in velocity mode (battery parked,
+unmeasured by design).
+
+GRADUATION. `hunter-fully-committed.json` stopped being a variant and
+REPLACED the real sheet: `hunter-v1.json` is now that file byte for
+byte apart from its `playbookId`, and the committed variant stays on
+disk as scratch. What moved: the ghost doctrine (prefer
+carrier/weakest instead of a lone-count gate; breakOff on health 1
+instead of a threat count; chase leash 16 with persistTicks 30 instead
+of leash 6 catchable-only; a defense radius; collect/heal yield; a
+`recover: auto` mode ahead of assault; the intercept mode dropped for
+a plain reversed patrol that collects first), custody
+(`accidentalPickup: "transfer"` plus explicit `deliveryRoutes` for all
+five zones), `conceal: false`, and the seven-zone `collect` list. The
+squad machinery - roles, groups, formations, engagements, maneuvers -
+was already identical and was not touched.
+docs/SPEC-GHOST-DOCTRINE-V3.md's freeze section now says the ab72
+translation is history: the five value batteries recorded there
+measured the translation, not this.
+
+PATROL DIRECTION. The owner asked whether the patrol loop should turn
+a different way per side, "given the map's asymmetric balance". The
+honest answer measured out as NO, and the question found a real bug
+anyway. arc-relay-ambush-warren-06 is EXACTLY 180-degree
+rotationally symmetric (zero differing tiles), and the layout binds
+east with `rotate-180` plus a north/south route swap, so the two sides
+are perfect geometric mirrors - the advance profile of the walked
+waypoints is identical to two decimals on both. Nothing about the
+terrain justifies a per-side direction. What the owner actually saw -
+the up-left detour, on the side he happened to be watching - is on
+BOTH sides: the loop's mid-map leg ran HOME. A hunter that broke off a
+fight in midfield rejoined the route at its nearest waypoint, which is
+on the return leg, and then walked all the way back to its own corner
+before it could go out again (traced: waypoint advances 0.83 -> 0.73
+-> 0.63 -> 0.50 -> 0.27, and the hunter oscillating around 0.50 for
+whole matches). So `shadow-north-long-reverse` and
+`shadow-south-long-reverse` - same waypoints, reversed, loop still
+closed - are aliased on BOTH bindings. The mid-map leg now runs
+outward (0.27 -> 0.50 -> 0.63 -> 0.73 -> 0.83) and the top run becomes
+the way home, so a mid-map rejoin continues toward the enemy half.
+
+## 224. East's routes mirror like its zones: the double flip is gone
+
+#223 called arc-relay-ambush-warren-06 exactly 180-degree symmetric with
+mirrored bindings and concluded nothing about the terrain justifies a
+per-side difference. The map half was right. The bindings half was not,
+and it is where both fresh exhibits were losing every east cell.
+
+The east binding does two things on the same axis. It applies
+`rotate-180`, and its `routeAliases` ALSO swap north for south
+(`north-out`<->`south-out`, and since #223
+`shadow-north-long`->`shadow-south-long-reverse` and back). Two flips is
+no flip. East's `shadow-north-long` resolved to the authored SOUTH loop,
+which rotate-180 rendered back at WORLD north - the same corridor west's
+ghost walks - instead of the mirrored south one. Rendered coordinates on
+the 31x27 canvas: west's ghost loop x[8,27] y[1,10]; east's x[3,22]
+y[1,10]; the mirror-correct east loop is x[3,22] y[16,25]. NONE of the
+twelve routes in the hunter layout was the 180-rotation of its west
+counterpart. All twelve are now.
+
+The tell is inside the layout itself, which is why this is a bug and not
+a vocabulary choice. Zones were never aliased, so for an east team
+`north-farm` sat at world y19 while `north-out` ran at world y6-8: one
+layout, two contradictory norths, on ONE side only. A sheet that collects
+at north-farm and leaves by north-out therefore walked the map diagonally
+as east and straight as west. West was consistent throughout.
+
+The swap has ridden along with `rotate-180` since the first binding
+resolver (d4a2c81c) and was inherited by every warren layout; #223's
+symmetry check compared map tiles and missed it. Fixed for the two
+layouts under exhibition (hunter, wellwright) - wellwright never
+referenced north-out/south-out, so that half is consistency only. The
+same double flip is still present in the other layouts and is a standing
+cleanup.
+
+Effect on the six exhibit cells (with 222b, no battery - owner rule, and
+six cells is an exhibition, not a measurement): the greedy stepper went
+1/6 to 4/6 and broke the east shutout (e-9009), west 3/3. The coordinated
+stepper stayed 1/6 and east stayed 0/3, so a residual east skew survives
+both fixes and is NOT explained.
+
+## 225. A corridor is walked forward: the routed delivery stops dancing
+
+Owner catch on the game-2 tab of the coordinated exhibit: a WEST carrier
+stuck with a ball on the EAST side, dancing back and forth. Traced to
+team 0 unit 6 in coordinated w-9002, which lifted centre#0 at tick 57 and
+still had it at tick 107 - fifty-one ticks inside x[21,22], forty of them
+trading exactly two tiles, twenty tiles from a reactor it never reached.
+
+The mechanism is `DeliveryDestination`, and it is neither planner ties nor
+tile contention: every one of those moves resolved `success`, and the
+command reason was `custody:delivery-route` throughout. The routed
+corridor waypoint was re-derived FROM SCRATCH every tick - nearest
+waypoint, forward direction, then skip anything within the arrival radius
+of 2 - with no memory of what had already been walked. At a wall pinch
+that is unstable. Reproduced exactly from the layout and the map:
+
+  at (22,9): waypoint (19,8) is 3 away -> targeted; first step NW -> (21,8)
+  at (21,8): waypoint (19,8) is 2 away -> "arrived", skipped; the next
+             waypoint (15,7) is 10 steps away AROUND the wall block at
+             x18-20/y5-7, so its first step is SE -> (22,9)
+
+Two consecutive corridor waypoints whose shortest paths leave in OPPOSITE
+directions, and a body straddling the arrival radius, is a two-tile
+oscillator with a Core in its hands. The authored route makes this easy to
+hit: the (15,7)->(19,8) leg is 4 tiles apart but TWELVE steps of walking.
+
+A corridor is walked, so the choice is now sticky. `CustodyProgress`
+carries the committed waypoint index and the direction, they survive the
+tick, they reset on a new Core, and they only ever ADVANCE - once the body
+has been inside the arrival radius of a waypoint, that waypoint is spent
+for the rest of the run. Same trace after the fix: one SE step at tick 67
+instead of forty, then S, S, W, W, W, NW along the corridor to (15,7) at
+t86 and `custody:committed-delivery` home, banked at x3 by t110.
+
+The reason this ran forty ticks unpoliced is worth recording separately:
+the delivery watchdog counts `StagnantTicks` by POSITION IDENTITY, so a
+body that moves every tick is never stagnant however little it achieves. A
+two-tile dance is invisible to it. Not fixed here - measuring stagnation
+as progress toward home would break the corridor routes, which
+deliberately walk away from home - but named.
+
+Scope, measured on the same six cells (no battery - owner rule): the
+greedy exhibit is IDENTICAL in all six results, and five of the six
+coordinated cells are identical to the tick. Only coordinated w-9002
+changed, where team 0's A->B->A cycle count fell 514 -> 372. The change
+is inert unless the flip actually occurs. The scoreline moved the other
+way, though: hunter-v1 held that cell before and loses it now (wellwright
+at t398), taking the coordinated record from 1/6 to 0/6 while the greedy
+record stays 4/6. Six cells is an exhibition, not a measurement, and a
+deterministic sim reshuffles wholesale under any change - but the honest
+statement is that fixing the dance did not buy a win here.
+
+## 226. A beam announces itself: the telegraphed bolt signature
+
+Owner ruling 2026-08-08, with the beam as the motivating case ("that kind
+of signature"): damaging and bolt-class signatures — rail, hook and
+sentinel, the line attacks that damage or displace — gain a strike-style
+WINDUP and a wire telegraph. Utility signatures stay instant with no
+telegraph; smoke is untouched.
+
+The shape mirrors the declared strike (#212/#221/#222) with one deliberate
+difference. At declare the LINE freezes — origin plus heading — and the
+operation rides the wire in `tell` for its windup. There is NO lock and no
+follow: a line attack is not target-locked, so the tiles published at
+declare are the tiles that resolve, stepping off them is the dodge and
+stepping onto them is the block. The declarer is ROOTED: commanding a move
+abandons the declare outright (`abandoned-move`), the disengage latch being
+the mind's only voluntary way to spend it. Declarer death already
+cancelled a telegraphing operation and still does.
+
+WINDUP LENGTH IS DATA (owner addendum). Each bolt signature carries its
+own `windupTicks` in the ruleset, defaulting to that ruleset's strike
+windup, so retuning rail against hook against sentinel is a ruleset edit
+and never an engine edit. Zero authors an instant, untelegraphed cast —
+which is exactly what every ruleset WITHOUT a strike windup keeps, so
+ambush-10's hook and sentinel are unchanged. Rail is the one exception:
+its telegraph is positive by construction, because a beam that fires on
+cast has nowhere to put one, and a ruleset with no strike windup leaves
+rail's authored two alone. The key is presence-driven on the canonical
+wire, so not one existing ruleset's fingerprint moved; ambush-11 is the
+only ruleset that changed, and it changed because it was meant to.
+
+Two things came out free, and both are worth recording because they say
+the earlier work generalized correctly. The viewer needed NO change: both
+the Canvas2D floor and the 3D renderer already key the `tell` phase
+generically, so a winding-up hook draws its pulsing dashed ghost the same
+way a rail always did. And the mind needed one predicate, not a new
+channel: `TryStrikeEvacuation` now unions the telegraphing signatures'
+tiles into the same lit set as the pending strikes, because to a body
+standing underfoot they are the same fact — this tile is announced.
+
+One consequence found while pinning it: a ONE-tick windup is unabandonable
+by construction — the declarer physically cannot act again before it
+matures. The rooting rule only starts to bite when a profile buys a longer
+telegraph, which is precisely the lever the owner asked for. The test pins
+abandonment on rail's two-tick windup for that reason.
+
+CORRECTED 2026-08-09 (owner: "the 2-tick move cadence isn't true"). The
+paragraph above originally blamed "a ruleset whose movement cadence is two
+ticks". THERE IS NO SUCH CADENCE. `ActorMovementProfileDefinition`
+(src/BotArena.Engine/ActorMovementProfileDefinition.cs) carries a movement
+LAYER and a facing COUPLING and nothing else; the move action
+(`ArcRelayH0Definition.cs:282`, `new(MoveActionId, 1,
+ActorActionKind.Movement, [ProjectileHeading])`) has no cooldown field to
+set, because `ActorActionDefinition` has none; and `ResolveMovement`
+(`GenericActorMatchSession.cs:1531`) runs every tick, gating only on walls,
+tick-start occupancy, reservations and facing lock. Every body may step
+every tick.
+
+What is true, and what the claim was a garbled version of, is TWO separate
+things. Per-class: the `deliberate` handling binds
+`ActorMovementFacingCoupling.FacingLocked`
+(`ArcRelayH0Definition.cs:235`), so those bodies step only along their
+current facing and a direction change costs a rotate tick — one tile per
+two ticks WHEN TURNING, for those classes, which is a facing coupling and
+not a cadence. And per-situation: a carrier waiting out a handoff
+alternates wait/step, which reads like a cadence in a trace and is not one.
+
+The real reason a one-tick windup cannot be abandoned is the PHASE ORDER,
+and it holds on every ruleset. `Signatures.Advance`
+(`GenericActorMatchSession.cs:425`) runs at TICK START, before
+`CollectMindTickDecisions` (line 584) and before `ResolveMovement` (line
+609) — and an operation fires when `CompletesAtTick == tick`. A declare on
+tick D with `windupTicks: 1` completes at D+1, which arrives before the
+declarer is asked for a D+1 decision at all: there is no move to abandon
+it with. At `windupTicks: 2` the mind gets exactly one decision inside the
+telegraph, and a move there reaches `AbandonWindupsOnMove` first. So the
+abandonment lever opens at two, for reasons of tick ordering, on every
+profile.
+
+## 227. Escorts follow a body, not a slot on the map
+
+Owner ruling 2026-08-09, from a corridor: the ghost turned around and its
+medic was standing in the doorway. The medic was not lost — it was
+perfectly obedient. Its formation slot was `(2, 0)` measured off the
+order's DESTINATION, and when the destination is behind you, the trailing
+slot is the tile you are trying to walk through.
+
+The doctrine plane now has NO formations. Generated orders carry
+`formationId: ""`: no slot, no cohesion lifecycle, no pace gate (pace was
+the other half of the same idea — "do not outrun the column" — and there
+is no column). The leader walks its movement target directly.
+
+An escorted mode instead puts an `escort` block on the generated order:
+
+```json
+"escort": { "leaderRole": "hunter",
+            "followers": [ { "roleId": "medic",
+                             "posture": "trail", "leash": 2 } ] }
+```
+
+Three properties were required and all three are structural rather than
+special-cased. FOLLOWERS ARE A LIST: the array is the precedence order,
+and `TacticalEscortPrimitives` reads a follower's ordinal rather than
+assuming there is one — a file of three escorts resolves through the same
+code. POSTURE IS A FUNCTION: `DesiredTile` switches on a name and only
+`trail` is implemented, so `screen` and `flank` join by extending a switch
+and a `OneOf` in the compiler, not by rewriting the mechanism. And
+POSTURE READS THE LEADER, not the destination: trail is "behind the leader
+along its own line of travel", so the instant the leader turns around, the
+wanted ground turns around with it.
+
+The yielding is said entirely in machinery that already existed — the
+carrier lane (DECISIONS #205's right-of-way). The tile the leader is
+stepping into is `ReserveLane`d to the leader, which blocks every other
+own body including its followers; a follower caught standing in it gets
+the carrier-blocker precedence tier and clears that tick, preferring to
+step straight on so a reversing pair walks the corridor out escort-first
+instead of arguing over one tile. Leader outranks follower unconditionally
+in the body order; followers outrank each other by list position. Nothing
+in the engine changed and no new movement channel exists; the reasons read
+`escort-follow` and `escort-yield`, and the escort's role tag reads
+`<order>-escort` so two bodies on one order stop reading as two ghosts.
+
+The retired convention — the desugar REQUIRING each sheet to author
+`{id}-solo` and `{id}-escort` — is gone from the compiler. Sheets may keep
+those records; nothing reads them. SPEC-GHOST-DOCTRINE-V3 always claimed
+`formationId` was gone from the ghost's plane; only now is that true.
+
+Measured on the six exhibition cells (hunter-v1 vs wellwright-v1,
+ambush-warren-11): over the ticks the ghost and its medic shared an order,
+the escort occupied the leader's backstep tile on 13 ticks -> 3, and steps
+the leader commanded and did not get fell 22 -> 2. The wedge that produced
+the ruling (e-9004, ghost pinned at (15,16) for eight ticks while the
+medic re-formed onto its exit twice) does not recur.
+
+## 228. The hand-off goes to the cheapest receiver for the BALL
+
+Owner refinement 2026-08-09: "closest to base sometimes makes the passer
+run too far." The transfer rule picked, among own bodies strictly nearer
+home than the passer, the one NEAREST THE PASSER. That is a different
+question from the one that matters. A body four tiles away and barely
+ahead of the passer beats a body eight tiles away and half the map ahead,
+so the passer walked to the first one and the ball gained almost nothing.
+
+The receiver is now the one minimising the ball's TOTAL remaining journey:
+`walk(passer -> ally) + walk(ally -> own reactor)`, over own bodies that
+are alive, not already carrying, reachable, and strictly nearer home than
+the passer. Ties go to the receiver the passer reaches soonest, then to
+the lower unit id. With no such ally, the passer couriers it home, as
+before.
+
+Both legs are MAP distances, not Chebyshev. "Nearer home" had been a
+Chebyshev test, which in a warren calls a body one tile away across a wall
+the obvious receiver, and which cannot be summed with anything meaningful.
+`ArenaBasics.StaticDistance` caches its flood per GOAL, so the two legs
+cost two floods for the whole match: one from the reactor, one from the
+passer's tile.
+
+The scene, exact (w-9001 t38, team 0, passer u0 at (16,10), home 15):
+the old rule found u5 at (16,9) INELIGIBLE — Chebyshev-to-reactor 14 for
+both bodies, not strictly nearer — and picked u4 at (11,15), eleven tiles
+away. The passer then walked six tiles over nineteen ticks and dropped at
+(10,8). Under the new rule u5's map distance home is 14 against the
+passer's 15, so it is eligible, and its total is `1 + 14 = 15` — tied with
+u7's `8 + 7`, and the tie-break gives it to the body one step away. The
+hand-off completes on the next tick without the passer moving at all.
+
+## 229. A patrol waypoint is reached one at a time
+
+Owner catch 2026-08-09 on the v3 greedy gallery, game 1 (w-9001): "a west
+unit dances at its own base around t300". It was u7, the mason on `eyes`,
+under `well-watch-apex` — a `route` order on `stage-loop`, the four-corner
+ring around the west base `[(6,9), (10,11), (10,15), (6,17), (6,9)]`. From
+t~280 to the end it marched up and down the column x=8 between y=10 and
+y=15, period 12, and never walked the ring.
+
+The mechanism is in `RouteTarget`'s advance. A waypoint counts as reached
+within `arrival = max(max(1, arrivalRadius), corridorWidth)` — here 2 —
+and the advance was a `while`, so several waypoints could be consumed in
+one evaluation. This ring's legs are four tiles apart, so a tile at x=8
+is within 2 of BOTH the x=6 leg and the x=10 leg. Standing at (8,15) the
+index consumed (10,15) and then (6,17) in a single tick and settled on
+(6,9) — six tiles NORTH — so the body turned around; arriving near (6,9)
+it consumed (6,9) and the wall-tile waypoint (10,11) together and settled
+on (10,15), five tiles south, so it turned around again. It "completed"
+every corner without ever approaching one. (The layout does not help: the
+authored waypoint (10,11) is a wall tile, reachable only to within 2.)
+
+The fix is one word: the advance is an `if`, not a `while` — at most one
+waypoint per tick. That is sufficient because a single advance can never
+carry the target from one leg past the near corner to the leg behind; the
+body must actually walk to the next waypoint before the one after it can
+be considered. Catch-up for a displaced body costs a few ticks and cannot
+oscillate, since the index only moves forward and the closed-loop reset
+only re-indexes the duplicated first waypoint.
+
+Measured on w-9001: u7's axis reversals 109 -> 36, and its share of the
+match spent within eight tiles of its own reactor 99% -> 31%. Across the
+six exhibition cells, the hunter team's total axis reversals fell 2398 ->
+1727.
+
+## 230. Audit verdict: the ghost that would not fight at 1 HP is the sheet
+
+Owner catch 2026-08-09, same gallery, game 2 (w-9002) around t400: the
+ghost ignores a lone enemy walking in from the right and then dies to a
+different one without ever engaging. Traced; NEITHER is a bug, and the
+decline instrumentation named both without ambiguity. Recorded because
+"working as authored" is a finding, not a non-answer.
+
+(a) The ghost took a hit to 1 HP at t384. hunter-v1 authors
+`breakOff: { health: 1, recoverTicks: 24 }`, so `CommitAllowsEngaging`
+armed the disengage latch until t408 and every tick from t384 to t407
+declines with `commit-engage` — including t392-t404, exactly the window in
+which enemy u7 walked in alone from (22,11) to (15,10). At t408, the tick
+the latch expires, the ghost engages on its own: `prepare focus 1:4:4`.
+The latch is doing precisely what DECISIONS #216's timed break says.
+
+(b) It was NOT rooted. It commanded a move on each of t422, t423 and t424,
+so no windup was in progress to root it. It died because the second 1-HP
+event (t421, after the transfer drop) re-armed the same latch until t445,
+and an armed recover outranks fighting (spec precedence 1 and 2) — so at
+1 HP with enemy u3 standing adjacent at (16,9) it walked (15,9) -> (16,8)
+toward a cold heal tile and was killed at t425. The `cornered` suspension
+did not apply: it had exit steps, which is the condition the owner's own
+ruling names.
+
+The one honest question this raises for the owner, left unchanged here:
+`cornered` suspends the break only when NO adjacent tile is walkable and
+unoccupied. It does not cover the case that killed this ghost — exits
+exist, but every one of them stays inside an adjacent enemy's reach, and
+walking at equal speed from a body already in contact only spends the
+remaining hit point. That is a rule change, not a bug fix, so it waits.
+
+## 231. A step is not a plan: the arena says where a body is walking
+
+Owner review 2026-08-09: "I still see a lot of pathing mistakes but can't
+put a finger on it." That is a legibility problem, not a hunting problem.
+A diagnostic reading `formation-move via West` answers which way the body
+stepped and never answers where it thought it was going, so a body walking
+confidently at a tile four legs behind it and a body pacing between two
+tiles look identical from outside — both just shuffle.
+
+The movement plane now names its resolved destination in the reason
+(`formation-move@12,7`, `MovementProvenance`), the broadcast lifts it into
+its own delta column beside `orders`, and the viewer draws it for the
+SELECTED body: a hairline to the destination, a ring on that tile, and a
+diamond on the tile the body's chosen action steps onto. Goal, plan, act.
+A step pointing away from the body's own goal is now a bug visible in one
+frame.
+
+Own column rather than a wider order row, because the two move on
+different clocks: a formation slot hanging off a marching anchor changes
+most ticks while the order it serves holds for hundreds. Measured on the
+e-9004 exhibition cell it costs 4.7 KB gzip on a 144 KB broadcast.
+Only the route/formation channel publishes one — a body closing on a focus
+is walking at something the standing order's target is not.
+
+Beside it, an always-on combat pip (crossed blades, in the strike red) for
+a body with a LIVE fight: `duel-stand`, `close-on-focus`, `flank-approach`,
+`flush-hidden`, or a declared `focus`. Deliberately not `signature`,
+`repair`, `withdraw` or `scan` — those are things a body does near a fight
+without being in one, and a mark that lit for them would mean "something is
+happening", which the arena already says.
+
+## 232. Pacing between two tiles is standing still
+
+The lens (#231) was pointed at the owner's 2026-08-09 catch — three bodies
+in `well-watch` milling near their own base while a fourth sat at a well —
+and the first thing it printed was a body that had been invisible to every
+recovery the movement layer owns.
+
+**What `well-watch` is FOR.** It is the well group's standing job between
+births: the whole group (medic, hauler, two carriers, two lancers, eyes)
+walks `stage-loop` in the `well-screen` formation, disrupts any fight that
+comes to it, and keeps custody of loose Cores. `stage-loop` is authored as
+a four-corner ring AROUND ITS OWN BASE, and that is the point: a group that
+waits at a well is committed to that well, while a group that laps the
+staging ring can still reach whichever one is about to open. The races
+(`race-north` / `race-centre` / `race-south`) are what take it out. So
+"three bodies circling near their own base" is what the sheet asks for, and
+the fourth was a carrier out on custody work. That part is not a bug.
+
+**What the trio actually did.** Post-#229 the ring is walked in order — the
+corner index advanced forward on 113 of 116 advances across the six
+exhibition cells, the three exceptions being respawn re-seeds — so this is
+not #229's pendulum returning. What the lens caught instead was e-9004's
+u3 at t214-t224: eleven ticks alternating between (28,14) and (28,15), on
+its own home pads, with an unchanging destination at (23,17) it never
+stepped toward once.
+
+**The bug.** `MotionProgress` defined stuck as "standing on the tile I
+stood on last tick". A body stepping A -> B -> A -> B changes tile every
+tick, so the counter never armed and repath, reflow and the wedge shake
+were all blind to it — the one pathology they exist for. Remembering the
+tile before last closes the two-cycle exactly and cannot fire on real
+movement, because a body walking A -> B -> C never returns to A. Longer
+cycles are deliberately not chased: a three-tile loop is a patrol as often
+as it is a bug, and this counter is not the place to decide which.
+
+Measured across the six exhibition cells (greedy stepper, hunter-v1):
+two-tile flaps 6.93% -> 5.83% of body-ticks (-16%), axis reversals
+15.23% -> 13.81% (-9%), the named scene gone — u3 walks the ring. Honest
+costs: matches ran 11% longer and outcomes did not move (2 of 6 either
+way). A guard with a blind spot for the exact shape it guards against is
+worth closing on its own terms; it is not claimed as a balance improvement.
+
+**Still open, as squad-plane consolidation material.** The de-confliction
+radius is `min(formation.Reflow.SearchRadius, order.Movement.ChaseLeash)`,
+which bounds a FORMATION spacing search by an ENGAGEMENT leash — for
+`well-watch` that is 1, so seven bodies share a ±1 ring around one waypoint
+and their slots churn tick to tick. And `SelectFormationTarget` falls back
+to the authored tile when every candidate is filtered, handing two bodies
+one destination (23 occurrences in one match). Neither is the trio's cause,
+both are the pre-consolidation squad plane, and both belong to the standing
+well-scrum exhibit rather than to a point fix.
+
+## 233. A strike declares a wedge; facing stays four-way
+
+Owner ruling 2026-08-09, recorded because the asymmetry looks like an
+oversight and is not: **bodies face in four directions and strikes angle in
+eight, deliberately.** Vision, concealment and the rear arc all want crisp
+quadrant geometry and stay on the cardinal facing; the attack is free to
+angle. The engine already models exactly this and nothing had to change for
+the ruling — what changed is the mind, which was not using it.
+
+The coupling, with cites, because it was asked twice:
+
+- `ActorAttackProfileDefinition.AimInterpretation` (lines 133-137) resolves to
+  `AbsoluteSubmittedEightWayHeadingWithinFacingConeFacingUnchanged` whenever
+  `FacingAimHalfWidthSectors > 0`. Absolute, submitted, **facing unchanged** —
+  declaring a diagonal has no facing side-effect whatsoever.
+- `GenericActorMatchSession.AllowedProjectileHeadings` (5445-5453) publishes
+  the mask as every heading within `FacingAimHalfWidthSectors` sectors of
+  `life.Facing.ToProjectileHeading()`. Arc Relay's three guns author 1, so a
+  body facing East may declare NE, E or SE.
+- `ResolveLaunchHeading` (5912-5921) takes that submitted heading verbatim.
+
+So there is no "two adjacent four-way wedges" ambiguity to resolve: the
+diagonal is a first-class declarable heading. And because each declared
+heading freezes a ±45° wedge, those three headings cover a 180° union of
+tiles — while `VisibleTilesFor` (5466-5482) is the ±45° quadrant around the
+same four-way facing. **A body may legally declare into its own blind
+flanks**, and DECISIONS #234 is what that cost.
+
+### The signature heading domain, as it actually stands
+
+Asked and answered factually; NOT changed, and no ruling is recorded here.
+`AllowedProjectileHeadings` special-cases only Movement (FacingLocked) and
+Attack (facing cone); every other action kind falls through to
+`Enum.GetValues<ProjectileHeading>()` (line 5454). So today:
+
+- Heading-argument signatures — `rail-line`, `tractor-hook`, `vector-dash` —
+  are **free eight-way and entirely unconstrained by facing**.
+- `prism-wall` takes a Direction, and `AllowedDirections` (5425-5433)
+  constrains only FacingLocked movement, so it too offers all four cardinals
+  regardless of facing.
+- Position-argument signatures (`survey-flare`, `hardlight-block`,
+  `trip-node`, `falling-star`, `sentinel-seed`, `arc-toss`,
+  `smoke-canister`) never see a heading at all: their domain is the mode's
+  computed tile set, `ArcRelaySignaturePositionTargets` (5404-5411).
+
+A proposal to give bolt-class signatures the strike's declare/lock/cancel
+machinery with a piercing delivery is open and unimplemented at this commit.
+
+## 234. Declaring into your own blind flank is a cancelled strike
+
+The executor asked for exact eight-way alignment before it would declare a
+strike — a fossil of the bolt gun it was first written for, and by #233 a
+weapon eight rays wide standing in for one ninety degrees wide. Bodies stood
+in range rotating onto a ray they did not need.
+
+Replacing it with wedge membership (mirroring `GenericActorStrikeCone`
+exactly, choosing the bearing-closest heading by `dot²/|u|²` so cardinals and
+diagonals weigh the same, ties on canonical order) bought the latency and
+promptly gave a chunk of it back: resolved share fell 54.1% -> 47.7% and
+outside-vision cancels went 0.4% -> 2.8%.
+
+The reason is the second half of #233. The aim mask spans 180°; the shooter's
+own sight is the 90° facing quadrant. The outer flanks of what a body may
+legally declare are exactly the tiles it cannot see, and
+`LaunchMaturedStrikes` cancels a lock outside `VisibleTilesFor(shooter)`.
+The mind cannot simply ask whether the enemy is visible — its observation is
+the TEAM union, so it routinely knows about prey a teammate is watching — so
+the declare gate carries the shooter's own eyes as geometry.
+
+Measured, six exhibition cells, greedy, hunter-v1
+(`scripts/arc-relay-declare-read.py`):
+
+|                        | mean latency | silent windows | declares | resolved |
+|---|---|---|---|---|
+| exact ray (before)     | 5.84t | 753 | 458 | 54.1% |
+| wedge only             | 4.59t | 681 | 572 | 47.7% |
+| wedge + own-vision     | 4.22t | 629 | 493 | 54.8% |
+
+Resolved SHARE back at baseline, declares +7.6%, landed strikes 248 -> 270,
+mean declare latency -28%, silent contact windows -16%. "Lock died" holds
+steady near 30% throughout and is deliberately not counted as a miss — it is
+a kill.
+
+## 235. A beam locks on: the bolt-class signature IS a strike
+
+Owner ruling 2026-08-09, closing the proposal left open at the end of #233:
+**"same lock on mechanism for some signatures with the windup etc similarly
+to regular striking."**
+
+#226 gave rail, hook and sentinel a WINDUP and a wire telegraph and said
+explicitly that there was no lock and no follow, because "a line attack is
+not target-locked". That reading is now superseded for the two signatures
+that really are aimed down a heading. `rail-line` and the grammar-2
+`tractor-hook` take the declared strike's control plane WHOLE: the declare
+carries the mind's NAMED TARGET as an optional `UnitTarget` beside its
+heading (the #222b shape), it freezes the ±45° wedge of that heading through
+the same `GenericActorStrikeCone`, it locks the named enemy standing inside
+that wedge and follows it anywhere within it, it cancels under the same
+rules, and the declarer is ROOTED with the disengage-abandon of #221. The
+windup length stays the per-signature ruleset field #226 minted.
+
+`sentinel-seed` was checked against the ruleset and is NOT a line attack: its
+argument is a POSITION and it plants a turret on an adjacent tile
+(`SignatureParameters`, `ArcRelayH0Definition.cs:628`). It keeps #226's plain
+telegraph and locks nothing. `vector-dash` is movement utility; smoke,
+prism-wall and the whole position-target family are untouched.
+
+ONLY DELIVERY DIFFERS, and each signature keeps its own. Rail's beam PIERCES
+(`ApplyRailLine`, `GenericActorMatchSession.cs:2401`): it walks the line from
+the frozen origin to the lock's tile and every body standing on one takes the
+damage, so interposition SHARES the beam instead of stopping it — the exact
+opposite of the gun's first-body-contact ray, and the pre-existing rail
+semantics preserved. The hook throws its grapple bolt down the eight-way
+heading that same line starts on, and still catches the first body it meets.
+
+MATURITY MOVED, and it had to. `Signatures.Advance` runs at TICK START
+(`GenericActorMatchSession.cs:418`), before decisions and before movement, so
+a windup-1 signature used to resolve before its target had taken a single
+step — following was unobservable by construction. Locked line attacks now
+mature in the ATTACK phase beside `LaunchMaturedStrikes`
+(`ResolveMaturedLockedLineStrikes`, `GenericActorMatchSession.cs:1903`),
+after this tick's movement, which is what makes the follow and the cancels
+mean anything.
+
+The telegraph rides the pending-strike wire. `PendingStrikeStates`
+(`GenericActorMatchSession.cs:7104`) merges the guns' `_pendingStrikes` with
+`ArcRelaySignatureRuntime.PendingLineStrikes()` into one
+`ArcRelayPendingStrikeState` list, so the viewer's tracking ray, its wedge
+escape read, and the mind's `TryStrikeEvacuation` and windup rooting all work
+on a winding-up beam with NO change to any of them. The web build was not
+touched.
+
+Presence-driven, so nothing else moved: the `UnitTarget` parameter is minted
+only where `ArcRelayLoopProfile.StrikeWindupTicks > 0`, exactly as the shoot
+action's is, so ambush-10 and every historical ruleset keep their bytes and
+their fire-and-forget lines.
+
+### 235a. Two latent bugs the wiring surfaced
+
+Both are #226 telegraphs that were never real, and both are fixed here.
+`ArcRelaySignatureRuntime.Start` ran its INSTANT branch unconditionally: a
+telegraphing hook launched its bolt and `Complete`d on the declare tick, and
+a telegraphing sentinel overwrote its own `Tell` phase with `Active` one line
+after publishing it. Only rail ever actually waited. `NothingResolvesBefore
+TheTelegraphMatures` pins all three. The suite could not have caught it
+before — one mind lambda served both participants through a `cast` set keyed
+on `(unit, life)` without the TEAM, so only team 0 ever cast a signature and
+rail and sentinel were never exercised.
+
+Separately, `GenericActorMatchActorTurn` required a `UnitTarget` that
+`GenericActorDecisionAdmission` has always treated as optional, so the
+engine's own nameless "theatrical whiff" declare would have aborted the
+chronology. Evidence validation now mirrors admission.
+
+## 236. Tracking is what the TEAM sees, plus a clear ray
+
+Owner ruling 2026-08-09, in his words: **"Team vision of course - but line of
+sight (ie no walls in between or corners) the shooter and the target"** —
+spotter doctrine, and it governs declared strikes and locked signatures
+alike.
+
+A lock now stays alive while BOTH hold: (1) some body on the shooter's TEAM
+currently sees the target — the team observable union, the same picture the
+mind acts on; and (2) a clear physical ray joins shooter and target, walls
+and corners counted, FACING-INDEPENDENT. The cancels are therefore: the lock
+dies, it leaves the frozen wedge, the team loses sight of it, or a wall
+blocks the ray. `LockStaysTrackable`
+(`GenericActorMatchSession.cs:5538`) is the one answer in the engine, and the
+matured-strike and matured-signature paths both ask it.
+
+What this replaces is `VisibleTilesFor(shooter)` — the shooter's own ±45°
+facing quadrant. That was the whole content of #234: the aim mask spans 180°
+while the shooter's sight is 90°, so the outer flanks of a legal declare were
+exactly the tiles it could not see, and the executor had to carry the
+shooter's own eyes as declare geometry to stop feeding the engine guaranteed
+cancels. The blind-flank quirk is RESOLVED rather than worked around:
+declaring into your own blind flank is now legal AND trackable, provided a
+teammate is watching and nothing solid is in the way. The mind's declare gate
+lost its `SeesTile` quadrant and its `VisionOf` lookup with it, because a
+mind's observation IS team vision — the only half left to check is the ray
+(`ArenaBasics.HasClearSightRay`).
+
+One structural note recorded so it is not rediscovered: on a wedge frozen
+from the shooter's own tile, clause (2) is IMPLIED by wedge membership, since
+the wedge admits only tiles the canonical strike line reaches from that same
+origin. The wall clause is not therefore decoration — it is what makes the
+rule stated rather than emergent, and it is the half that would bite first if
+a profile ever stopped requiring clear diagonals. Clause (1) is the half that
+changed behaviour, and it is pinned both ways: a teammate beside the target
+keeps a blind shooter's lock alive, and the identical scene with that
+teammate removed cancels.
+
+Pinned by `GenericActorStrikeWindupRootingTests` (spotter pair, wall case,
+and the renamed "nobody on the team could see it" cancel) and
+`ArcRelaySignatureLockTests` (the same three for a locked beam).
+
+## 237. Movement-plane consolidation: the stepper seam is the ONE arbiter
+
+Owner scene 2026-08-10: **"a brief dance that was unwarranted just because
+the carrier was close"**. The diagnosis was structural, not local — the mind
+had FOUR movement authorities and they argued about one tile:
+
+1. the stepper (greedy / WHCA* behind `IArenaStepper`) planned the step;
+2. `Claims.ReserveLane` walled the tile afterwards, indistinguishably from
+   terrain, so the planner's answer was refused rather than informed;
+3. `TryCarrierLaneRelief`, `escort-yield` and `clear-custody-return-lane`
+   were three separate movers that displaced the loser after the fact, each
+   with its own trigger, its own patience, its own precedence and its own
+   reason vocabulary;
+4. a routed delivery computed its own next tile with
+   `StaticFirstStepAvoidingReservations` and handed the seam a fait accompli.
+
+The measured shape of the argument, `greedy-e-9004` team 0 unit 6, an
+UNCHANGED destination `@16,8` throughout, a loaded carrier parked at (15,11):
+
+```
+t117 (14,11) formation-move@16,8 via SouthEast
+t118 (15,12) formation-move@16,8 via NorthWest
+t119 (14,11) formation-move@16,8 via SouthEast
+t120 (15,12) formation-move@16,8 via NorthWest
+t121 (14,11) formation-move@16,8 via SouthEast
+t122 (15,12) formation-move@16,8 via North
+```
+
+Six ticks, three steps directly away from its own stated goal, zero progress,
+no enemy involved. `greedy-w-9012` team 1 unit 2 shows the same scene with
+the shove included: walled at t58 and t60, externally displaced at t62 by
+`lane-relief:...:choke-relief`, back where it started at t63.
+
+### What landed
+
+**Reservations are inputs.** `ArenaBasics.Claims` is now the per-tick
+MOVEMENT PLANE and carries lanes, ranks and roots into the arbiter before the
+first body is asked anything. `BlockedNow` additionally returns the QUEUE —
+the part of the refusal that is one-tick traffic (a right-of-way lane, a tile
+somebody has committed to entering) as opposed to a wall. A teammate standing
+still is a wall; a teammate walking through is a queue.
+
+**One precedence list**, documented on `ArenaBasics.Claims` and used for lane
+ownership, for every yield, and for the executor's plan order:
+
+```
+0            carriers            (never yield; the walk home is the match)
+1            escort leaders      (never negotiate with their own escort)
+2            fighters            (focus assignment or contact within 2)
+3            rest
+4 + ordinal  escort followers    (declared list order)
+```
+
+Equal weight NEVER yields — `YieldsTo` is strictly better rank. The first
+implementation tie-broke equals by unit id, exactly as the old lane relief
+did, and it walled the higher-numbered of two carriers out of its own bank:
+six coordinated cells, one to max-ticks, 564 `delivery-timeout-guard`
+commands in a single match. A mutual yield between equals is a stalemate, not
+a courtesy. A body the plane owes ground is promoted to rank 1 for the plan
+order only, which is the old "carriers heaviest, their blockers next" tier
+said once instead of three times. The fighter tier reaches the plan order
+only under `WantsFightPrecedence`, so greedy stepping keeps the order it
+measured its history with.
+
+**Queue, don't detour.** When the step a body wants is queued rather than
+walled, and the traffic-aware alternative makes no progress toward the goal,
+the arbiter answers "wait" instead of "go backwards". Waiting one tick beats
+trading two, and where the detour IS progress nothing changed at all.
+
+**One displacement, one author, one reason.** `StepIntent.Vacate` replaces
+all three shoves; `ArenaBasics.TryVacate` is its single call site and emits
+`...:lane-vacate:u<owner>`. The 2-tick `CarrierLanePatience` and the
+`_lanePlugTicks` ledger are gone: a lane is owed the moment it is reserved.
+`ArenaBasics.PlugsCarrierRoute` — dead code since the relief switched to its
+own adjacency test — becomes the COST SPIKE, expressed as a reservation: a
+body standing on an admissible homeward step while every such step is taken
+has its tile reserved for the carrier, so the arbiter clears it this tick.
+
+**The delivery corridor speaks through the seam.** `StepIntent.Routed` is a
+carrier's own committed plan. Greedy answers it with exactly the old
+computation, so the carrier's route policy is byte-identical; the cooperative
+stepper does NOT re-decide it — a five-tick window re-choosing a sticky
+corridor every tick is the re-derivation #225 removed — it takes the
+committed step and PUBLISHES the corridor into the space-time table, so the
+rest of the team plans around where the Core is going. Publishing rather than
+re-planning was worth 3 of 6 cells: re-planning it lost every cell and pushed
+one to max-ticks.
+
+`ArenaBasics.Submit` is now the only place a movement command is emitted;
+`TryMoveToward`, `TryMoveDirect`, `TryMoveRouted` and `TryVacate` share it.
+`TryMoveAside` is gone as a public wrapper — nothing outside the plane needs
+to shove anybody.
+
+### What it cost and what it bought
+
+Six exhibition cells, hunter-v1 vs wellwright-v1, both steppers. State
+digests all differ: the plan order and the queue rule change bytes wherever
+traffic was contested, which is most ticks of most matches — byte-stability
+was the ideal and it is not what happened, and the mechanisms are named
+above. Outcomes: hunter-v1 takes 2 of 6 greedy (was 1) and 3 of 6
+coordinated (unchanged). This is not claimed as a balance improvement.
+
+The owner's scene class — a non-carrier two-tile flap with an own carrier
+within 2 — as a share of beside-a-carrier body-ticks:
+
+| stepper     | before | after  |
+|-------------|--------|--------|
+| greedy      | 15.72% | 7.63%  |
+| coordinated | 15.00% | 13.06% |
+
+Beside a carrier with an UNCHANGED destination, steps taken directly away
+from that destination: greedy 14.16% -> 4.52%; coordinated 11.59% ->
+12.13% (flat, with "toward" up 44.27% -> 46.92% — the cooperative planner
+spends the difference waiting, which is the answer it is supposed to give).
+Beside-carrier windows of four ticks or more, greedy: 80 windows carrying 52
+away-steps before, 47 windows carrying 13 after, and the worst surviving
+window has 2 away-steps in 5 ticks against the six-tick standstill above.
+
+Traffic-read aggregates over the same six cells (the two dance measures are
+new to the lens, defined in its docstring):
+
+| stepper / team    | flaps before | after  | reversals before | after  |
+|-------------------|--------------|--------|------------------|--------|
+| greedy t0         | 8.69%        | 8.24%  | 13.68%           | 12.13% |
+| greedy t1         | 9.58%        | 8.66%  | 14.58%           | 11.97% |
+| coordinated t0    | 8.91%        | 8.72%  | 13.80%           | 13.62% |
+| coordinated t1    | 9.65%        | 8.78%  | 15.00%           | 13.95% |
+
+Own-contest blockades stay at zero on both steppers, which is the claim the
+lanes were always making; what changed is that the mind no longer pays for
+them with a dance.
+
+## 238. A deep ball outranks a ghost assault
+
+Owner ruling 2026-08-10: **"picking up balls close to the enemy's base
+should be more important than ghost assault"**.
+
+The ghost's assault mode inherited the doctrine-level `fight.collect:
+"yield"` — deliberately authored, and the reasoning was sound as far as it
+went: finish the kill, step over the ball. What it missed is WHERE an assault
+happens. The ghost's collect zones are `midfield`, `enemy-backfield` and the
+two perches; a ball loose inside them is a ball the enemy is about to bank,
+and the enemy half is exactly the ground the assault is standing on. Yielding
+there is not "finish the fight", it is "walk past the most valuable object on
+the map".
+
+Both hunter sheets' assault mode now carries its own
+`"fight": {"collect": "first"}`. This is a per-mode override of the same key
+the patrol mode already sets, so no mechanism moved — the compiler resolves
+mode fight keys over doctrine fight keys and always did. Verified through the
+compiled package: `ghost-assault` collect goes `yield` -> `first`, while
+`ghost-recover` stays `yield` and `ghost-patrol` stays `first`.
+
+Collect-first semantics are unchanged and they are what makes this safe: it
+breaks off the UNCOMMITTED part of a fight only. A strike windup is rooted
+(#221), a cone dodge and the one-hit-from-dead survival channel both outrank
+it, and withdraw still comes first. What it spends is the ghost's free ticks.
+
+Live at seed 9103, team 0, ghost u0, own reactor (2,13), enemy reactor
+(28,13) — a ball at (20,18) is eighteen tiles from home and eight from
+theirs:
+
+```
+t 85 (21,15) ghost-recover  loose=[(20,18)]  veterancy-invest
+t 86 (21,15) ghost-assault  loose=[(20,18)]  collect-core via South
+t 87 (21,16) ghost-assault  loose=[(20,18)]  collect-core via SouthWest
+t 88 (20,17) ghost-assault  loose=[(20,18)]  collect-core via South
+t 89 (20,18) ghost-assault  carrying         custody:transfer-approach-wait
+```
+
+Three ticks from noticing to holding it, then straight into a hand-off. 126
+such commands across twelve probe seeds; zero before the edit.
+
+## 239. The hand-off goes to the nearest ally that is on the way home
+
+Owner ruling 2026-08-10: **"whom to pass to should be pretty much the closest
+ally that is towards the own base"**. This replaces #228.
+
+`TransferReceiver` now filters to own bodies that are alive, not carrying,
+reachable, and STRICTLY nearer home than the passer by map distance — and
+then takes the one CLOSEST TO THE PASSER, ties broken by the shorter walk
+home and then by unit id.
+
+#228 minimised the ball's whole remaining journey, passer-leg plus
+receiver-leg. That sum is a defensible answer to a question nobody asked: it
+treats ten ticks of approach as free if the receiver is ten tiles further
+along, and a hand-off that takes ten ticks to set up is one the defence has
+already answered. Nearness is the point of a pass; "towards the own base" is
+the filter, not the score.
+
+Seed 9103, tick 90 — passer u0 at (20,18), own reactor (2,13), every live
+ally strictly nearer home:
+
+```
+u1 (15, 8)  to-passer 10  to-home 13
+u2 (17,19)  to-passer  3  to-home 15   <- chosen
+u3 ( 9,15)  to-passer 11  to-home  7
+u4 (10,15)  to-passer 10  to-home  8
+u5 ( 9,10)  to-passer 11  to-home  7
+u6 (12,16)  to-passer  8  to-home 10
+u7 (13,15)  to-passer  7  to-home 11
+```
+
+u0 drops at t91, u2 has it at t92 and is delivering at t93. Under the
+combined-cost rule five of those seven scored identically to u2, and the
+choice fell to a tie-break rather than to the rule.
+
+Across the six exhibition cells, greedy: 15 hand-offs at a mean 6.13 approach
+ticks before, 16 at a mean 5.31 after — measured together with #237, so the
+split is not attributed. `scripts/arc-relay-handoff-read.py` states the new
+rule in its docstring: a long approach used to be a trade the rule accepted
+and is now the rule failing.
+
+## 240. The politeness rule: that bot could just move out of the way
+
+Owner follow-up to #237, watching a walker curve around a parked teammate
+with open ground beside it: **"that bot could just move out of the way"**.
+
+#237 gave the movement plane one displacement, but it only fired on a
+RESERVED tile — a carrier lane, an escort leader's step, a plugged homeward
+ring. Everywhere else the plane still had nothing to say, so a body standing
+in a doorway nobody had reserved was walked around.
+
+### The rule
+
+Any body whose exact tile is wanted this tick by a mover it does not outrank
+steps aside to a free adjacent tile that is not itself wanted or reserved,
+reason `...:make-way:u<mover>`, and drifts back toward its post afterwards
+through ordinary movement. It is one generalization of one mechanism:
+`Claims.Owes` now answers from two sources — a reserved LANE and a REQUEST —
+and `StepIntent.Vacate` became `StepIntent.MakeWay`.
+
+Three properties are load-bearing and each cost something to get right:
+
+**Request-driven, never a watchdog.** Nobody asks, nobody moves. A body
+parked where no one needs it stays parked for the whole match, because
+standing is sheet policy and #232 removed the no-idle invariant on purpose.
+There is no patience counter, no idle timer, and no notion of a body being in
+the wrong place — only of a body being in somebody's way THIS TICK.
+
+**Equals never yield**, in the planner exactly as everywhere else — the
+absolute from #237, and the thing that keeps the rule from becoming a shoving
+match between peers. A parked FIGHTER is therefore never moved by free
+traffic; only a carrier, a leader or a fighter can ask a resting body for its
+ground.
+
+**Parked is read, not inferred.** `MindBody.MovedLastTick` is the whole test.
+The first cut asked instead whether the body had a first step toward its
+target left, which classified a body standing on a duel, sweeping a facing or
+stuck as "a mover" and refused to ask it — clearance rose only 9.8% -> 12.1%
+because the rule was declining to fire in exactly the cases the owner was
+pointing at. One tick of history the observation already carries answers it
+without the mind predicting which channel a body is about to take.
+
+### Composition with the queue rule
+
+A body that is already walking is never asked: its tile clears within the
+tick anyway, and the cheap answer is for the mover to wait one tick rather
+than for a third body to be moved. And a request the plane grants becomes a
+QUEUE tile for the asker in `BlockedNow`, so the mover waits for the ground
+it just asked for instead of detouring around the teammate it asked. Ask,
+wait, walk through — never ask and then go the long way.
+
+### Politeness in the planner (owner amendment)
+
+Reactive politeness is not enough for a cooperative stepper: its window
+refused an occupied tile outright at tick 0, so the PLAN committed to the
+long way round before anybody was ever asked. In `CoordinatedArenaStepper` a
+tile held by a DISPLACEABLE body — strictly outranked, not rooted, and
+holding at least one free non-reserved adjacent tile at that slice — is now
+traversable at `DisplaceCost = 5` on top of the step's 2. The arithmetic is
+deliberate against `StepCost`: a two-step detour costs 4 and still wins, a
+three-step detour costs 6 and still wins, a four-step detour costs 8 and
+loses. Plans route through polite bodies exactly when going round is longer
+than about three tiles, and the request fires when the plan arrives. Greedy
+needs nothing: its direct tile ask IS the request.
+
+That amendment surfaced a latent bug of its own. `Step` did
+`chosen ??= _greedy.Step(request)`, which handed a plan's deliberate WAIT to
+the greedy chooser and got a detour back — so `WaitsChosen` had been counting
+yields that never happened since the stepper was written. A `_yielded` flag
+now separates "the plan chose to wait" from "no legal step exists"; only the
+second falls back.
+
+### Measured
+
+Six exhibition cells, hunter-v1 vs wellwright-v1. Volume is bounded — 316
+make-way commands (greedy) and 224 (coordinated) across six full matches,
+roughly one every eight ticks of one team's play, which is what
+request-driven looks like against a watchdog.
+
+Of those commands, the mover took the vacated tile within three ticks 54.7%
+(greedy) and 46.9% (coordinated) of the time; the remainder are lane-driven,
+where the carrier's route may move on. Where a walker was blocked by a
+teammate that had held its tile for three ticks, it got through within three
+ticks 9.8% -> 12.6% (greedy) and 10.6% -> 16.3% (coordinated).
+
+The scene, `coordinated-e-9004` team 1 — a ghost parked on a heal beacon at
+(15,16), which is where carrier u5 is walking:
+
+```
+t52  u0 (15,16) recover-heal          u5 (16,15) formation-move@15,16 via West
+t53  u0 (15,16) make-way:u5 via South u5 (15,15) committed-delivery-wait
+t54  u0 (15,17) formation-move@15,16  u5 (15,15) committed-delivery via South
+t55  u0 (14,17) formation-move@15,16  u5 (15,16) turn for committed-delivery
+```
+
+Request, sidestep, the carrier WAITS rather than detours, walks through at
+t55 — and the ghost is already drifting back to @15,16 on its own movement
+channel. Nothing in that sequence is a special mover.
+
+Escort leaders' rank 1 is exercised: 725 ticks carry a live escort party, and
+24 make-way commands name the escort leader as the mover — including its own
+follower yielding to it (`greedy-e-9004` t395, u1 `ghost-assault-escort`
+making way for leader u0) and a rest-tier body doing the same
+(`greedy-e-9005` t299, u2 `surge-bank`).
+
+Traffic-read over the six cells, against the #237 baseline (`b70c5163`):
+
+| stepper / team | flaps | reversals |
+|---|---|---|
+| greedy t0      | 8.69% -> 6.47% | 13.68% -> 10.12% |
+| greedy t1      | 9.58% -> 7.35% | 14.58% -> 10.93% |
+| coordinated t0 | 8.91% -> 7.72% | 13.80% -> 12.03% |
+| coordinated t1 | 9.65% -> 6.83% | 15.00% -> 11.42% |
+
+Chokes fall on both steppers (greedy 12/13 -> 7/8, coordinated 6/7 -> 5/6)
+and own-contest blockades stay at zero. hunter-v1 takes 3 of 6 under each
+stepper. Not claimed as a balance change.
+
+## 241. The screen posture, and an escort list that is finally a list
+
+Owner go, explicitly an exhibition — "just to see how it looks". Three
+pieces: the escort grammar widens, `screen` joins `trail`, and both hunter
+sheets' assault mode gets a tank on the firing line.
+
+### Grammar
+
+`escort` accepts three shapes now: `"medic"`, `["medic", "lancer"]`, and
+`[{"role": "medic"}, {"role": "lancer", "posture": "screen"}]`. Posture
+defaults to `trail`, so every sheet authored before postures existed compiles
+to the bytes it always did. `ValidateEscort` already took 1-8 followers and
+already carried a per-follower `posture` field — the compiled substrate was
+built for this in #227 and had simply never been given a second entry. The
+only validator change is `OneOf(... "trail")` becoming
+`OneOf(... "trail", "screen")`.
+
+The task rows are the part that actually needed thought. A single row listing
+every escort role with `maximum: 1` claims ONE body and leaves the rest of
+the escort authored-but-never-fielded. The compiler now emits **one row per
+escort role**, each `preferred: 1`, `maximum: 1`, `carrier: forbid`, named
+`{order}-escort-{role}` when there is more than one (a lone escort keeps
+`{order}-escort`, so single-escort sheets keep their assignment ids).
+Measured over six cells: 740 escort body-ticks wearing towline and 603
+wearing patchbay, with both escorts present together on 519 ticks.
+
+### The posture
+
+`screen` INTERPOSES: the tile on the segment between the leader and the
+nearest known threat, as close to the leader as the ordinal allows, leash
+binding. "The segment" is the eight-way ray from leader toward threat, which
+is not an approximation of the firing line — it IS the firing line in this
+arena, because projectiles fly on the eight headings and a shot that can
+reach the leader travels down exactly that ray. Nothing else is special-cased
+and nothing needed to be: standing on the line is the block, and delivery
+physics does the rest.
+
+Two fallbacks, both to `trail` at the same ordinal: no threat known (no line
+to stand on) and a threat already adjacent to the leader (no room between
+them, and the interpose tile would be the enemy's own).
+
+`TacticalEscortPrimitives` stays pure geometry — the nearest threat is passed
+in. It reads the team observable union (`mind.Enemies`), which under #236 is
+already team vision, so "known" needs no separate memory.
+
+One thing the second posture forced apart. `EscortMember.Ordinal` was doing
+two jobs — precedence in the movement plane's one list (followers rank
+4 + ordinal) and spacing within a FILE. Those are different questions the
+moment two postures coexist: a screen that is second in the order's list is
+still the FIRST screen, and a first screen wants the tile adjacent to its
+leader, not the one two tiles out because a medic trails ahead of it in a
+list. `PostureOrdinal` counts within the posture; `Ordinal` still ranks.
+
+### The sheet
+
+Both hunter sheets: `escort: [{"role": "medic"}, {"role": "lancer",
+"posture": "screen"}]`.
+
+Lancer over the alternatives, and mason is the argument worth making: mason
+is one point tougher (5 HP against towline's 4) and would be the naive tank
+pick. It is also `maximum: 1` and it is the team's EYES — spending it as a
+body-shield strips the squad's vision to buy the ghost a hit. Lancer is
+`preferred: 2`, so the screen costs one of two, leaving one on the line; it
+is the second-toughest chassis in the composition; and its `medium-steady`
+gun is the right weapon for a body that stands and holds ground rather than
+kites, which is exactly what a screen does.
+
+### What it looks like
+
+`greedy-w-9002`, team 0 — the clean interception:
+
+```
+t417  ghost u0 (17,10)   screen u6 (20,11) hold        enemy u5 (21,11)
+t418  ghost u0 (18,11)   screen u6 (20,11) duel-stand  enemy u5 (21,11)
+      >> DAMAGE 1:5 -> 0:6 amount 1 -> hp 2 at (20,11)
+```
+
+At t418 the ghost, the screen and the shooter are all on row 11. The shot
+flies west, hits the towline at (20,11), and the ray it was on continues
+through (19,11) into the ghost at (18,11). The screen ate it.
+
+`coordinated-e-9009` t300 is the same shape and the harder version: screen u6
+at (15,11), ghost at (15,14), shooter at (15,10) — one column, the screen
+between them. It takes the hit and dies at 0 HP while the ghost, three tiles
+further down the same ray, is untouched. Its own command that tick was
+`prepare focus 0:2:3` against the very body that killed it.
+
+Of 14 hits taken by a towline wearing `ghost-assault-escort`, 2 are
+verifiable interceptions by the strict test (the hit tile lies on a ray that
+continues into the ghost). The rest are a screen being shot at directly —
+which is what a screen is for, but is not the money shot and is not claimed
+as one.
+
+### Cost
+
+hunter-v1 takes 2 of 6 greedy and 1 of 6 coordinated, down from 3 and 3. The
+screen spends one of two towlines standing in front of the ghost instead of
+shooting, and six cells is not a measurement. This landed as an EXHIBITION on
+the owner's word and is not claimed as a balance change; the mechanism is
+what is being shown.
+
+Traffic-read over the same six cells: flaps 6.54%/7.57% (greedy t0/t1) and
+8.52%/7.78% (coordinated), reversals 10.12%/11.28% and 12.88%/12.49% —
+still well under the #237 baseline of 8.69/9.58% and 13.68/14.58%, with the
+coordinated pair a little above where #240 left it. Own-contest blockades
+stay at zero.
+
+## 242. Covered fire: a lit tile is an announcement, not a sentence
+
+Owner ruling 2026-08-10. Declared-strike evacuation (#212) moved every body
+off every lit tile, whatever else was true. That is one tick of fighting
+spent, and often for a shot that was never going to land on it.
+
+A declared strike delivers ONE bolt, from the shooter's frozen origin to the
+body it LOCKED, and it stops at the first hostile body on that line — hostile
+to the shooter, which means one of ours. The engine says so itself at the
+matured-strike path (`GenericActorMatchSession.cs:3191`): *"Bodyguarding is
+stepping onto the firing line, never proximity: the delivery is still an
+ordinary first-body-contact ray."* So a body inside the lit wedge that is not
+the first of ours on the delivery line is not in danger, and standing is
+correct.
+
+`TryStrikeEvacuation` now walks the engine's canonical strike line from each
+lighting strike's origin to its lock and asks who our first body on it is. If
+every strike lighting this tile answers "somebody else", the body holds and
+the tick goes to `_covered`, which the debug line publishes.
+
+Two deliberate refusals. A SIGNATURE tell is never covered: the rail damages
+every tile of its path rather than stopping at a body, so there is nothing to
+hide behind. And a strike whose lock we cannot locate is treated as
+uncovered — the cheap mistake is dodging a shot that would have missed, not
+standing in one that lands. It is recomputed from the wire every tick and
+latches nothing, so the moment the shield moves the body evacuates normally.
+
+Measured over six cells: 551 covered-stand decisions greedy, 599
+coordinated. `greedy-e-9004` t21, team 0 — u4 stands on (15,8) inside the
+wedge while the strike from (19,11) is locked on u3 at (16,10):
+
+```
+delivery line (19,11) -> (18,11) (17,10) (16,10)
+first own body on it: (16,10), which is u3, not u4
+u4: haul-watch:hold
+```
+
+## 243. Clean lines: the rail only, and why the rest is moot
+
+Owner-surfaced gap, and the verification changed its scope. The concern was
+that the screen posture puts a body ON the leader's firing line by
+construction, so the ghost would shoot its own screen in the back.
+
+**It cannot.** Arc Relay sets
+`ActorCollisionDefinition.AlliedProjectileContactKind.PassThrough`
+(`ArcRelayH0Definition.cs:388`), and `Contact()`
+(`GenericActorMatchSession.cs:6089-6101`) branches on team first: a body of
+another team returns `Damage`/`Deflect`, a body of the OWNER's team falls to
+the allied policy and returns `ProjectileContact.Pass`. Bolts and matured
+strikes fly through their own team untouched. Delivery is first-contact
+against enemies and transparent to allies — not symmetric.
+
+So there is no strike/bolt declare gate here and there should not be: it
+would refuse good declares and send bodies repositioning away from a hazard
+that does not exist. Recorded so the question does not come back.
+
+**The rail is the exception and it is real.** `ApplyRailLine`
+(`GenericActorMatchSession.cs:2425-2434`) walks its whole path and damages
+every life on every tile with no team filter — compare `ApplySentinelFire`
+twenty lines down, which explicitly requires
+`target.ActorId.TeamId != effect.Owner.TeamId`. Measured at `b70c5163` over
+six cells: **31 of 125 rail damage events (greedy) and 22 of 92
+(coordinated) landed on the caster's own team.** `greedy-e-9004` t26, team 1:
+u4's rail hits enemy 0:7 and its own u3 for 2 in the same resolution.
+
+The cast gate now requires no own body anywhere on the segment the rail would
+damage — the whole segment, not "between me and the target", because a
+piercing line hits the ally standing one tile PAST the enemy too.
+`PiercingSignatures` names `rail-line` as a rules fact the contract does not
+publish, with the engine cite beside it.
+
+After: 25 of 114 (greedy) and 13 of 75 (coordinated). Reduced, **not
+eliminated, and the residual has one honest mechanism**: the rail carries
+`tellTicks: 1`, so the line is declared a tick before it resolves and an ally
+that walks onto it during the windup is hit by a cast that was clean when it
+was made. Closing that needs the declared line reserved on the movement plane
+for the windup — the plane already has the vocabulary (a lane nobody may
+enter) and that is the natural next bite, deliberately not taken here.
+
+## 244. Muster: recruitment is a two-sided contract
+
+Owner ruling 2026-08-10, in his words — a role is **"available for group up
+... only activates when a leader calls but may lose to some other mode if the
+unit has something better to do"**.
+
+Escort recruitment used to be one-sided: the leader's task carried a row for
+each escort role and simply took a body. The role had no say, and no way to
+say it. Now there are two sides and they have to agree.
+
+**Leader side — the escort block is a CALL.** It publishes role, posture and,
+by sitting on a mode, the calling task's priority. It claims nobody. The
+leader-side rows are gone; a row would be the old conscription with extra
+steps.
+
+**Recruit side — the new doctrine verb `{"muster": "escort"}`** (or a
+specific order id). Condition-driven internally, exactly like `recover`:
+authoring a `while` on it is an error, because its window is "a leader is
+calling for my role" and no team-level condition can name that. It emits no
+order, no engagement and no maneuver — the recruit is claimed INTO THE
+CALLER'S ORDER, so it inherits the leader's engagement, custody and escort
+block exactly as the old row did. All it needs is a task.
+
+**Its RUNG is the whole policy.** A muster task sits at the recruit's own
+mode priority, so above the floor means "answer when free" and below
+`recover` means "not while hurt". Nothing new had to be invented for that:
+the doctrine plane already turns mode order into task priority, and the task
+machine already preempts by priority and holds bodies through
+`minimumTicks`. That last one is what makes "muster wins idle ticks, never
+rips combat" true rather than aspirational.
+
+**Two calls, one role:** one task per (recruit, call) pair, all at the
+recruit's rung, with the CALLER's priority carried in the task id
+(`{doctrine}-muster-{callerPriority}-{orderId}`) so the machine's own
+`(priority, taskId)` sort answers the stronger caller first. Ties below that
+are canonical by order id.
+
+**Explicit default, owner-ruled: NO MUSTER MODE = NOT RECRUITABLE.** Both
+directions are hard compiler errors — a muster that answers no call, and a
+call no role may answer. A leader waiting forever for an escort its sheet
+never made recruitable is exactly the silent failure the contract exists to
+prevent. (A role calling ITSELF is a different mistake and keeps its own
+message.)
+
+That default is what forces the enabling shape: a squad role needs a mode
+list to be recruitable at all. So `{"squad": true}` — a floor verb meaning
+"do my ordinary squad-plane job" that **emits nothing whatsoever** and lets
+the body fall through to the legacy standing tasks at priority 8+. It is the
+first bite of squad-plane consolidation and it is deliberately one word; the
+floor rule now admits an unconditioned `patrol` or a `squad`.
+
+### Authored and measured
+
+Both hunter sheets gain `medic-support` and `lancer-support`:
+`[{"recover": "auto"}, {"muster": "escort"}, {"squad": true}]` for the medic
+and `[{"muster": "escort"}, {"squad": true}]` for the lancer — so today's
+escorts keep working, through the new contract instead of around it. The
+medic's recover rung is the owner's own example of losing the call to
+something better.
+
+Wellwright is untouched and **compiles byte-identically** (playbook
+`684d17e9…`, package `fbd7f07f…`, 18756 bytes before and after): no escorts,
+no muster, and never recruitable is the right answer for it.
+
+A call answered, `greedy-e-9004` t148 team 1:
+
+```
+ghost-assault  active [triggered]  claims=-
+medic  muster  active [triggered]  claims=1:medic-support-muster-ghost-assault
+lancer muster  active [triggered]  claims=5:lancer-support-muster-ghost-assault
+```
+
+A call declined, `greedy-e-9009` t287 team 1 — the medic is recovering:
+
+```
+ghost-assault          active  [active]              claims=0:ghost-assault
+medic  recover (rung5) active  [triggered]           claims=1:medic-support-recover
+medic  muster  (rung6) dormant [cooldown-until-289]  claims=-
+lancer muster  (rung6) active  [active]              claims=5:lancer-...-ghost-assault
+```
+
+The higher rung holds the medic; the lancer still answers. That is the whole
+ruling in four lines.
+
+Over six cells the muster tasks are active 299 ticks (greedy) and 242
+(coordinated), yielding 417 and 291 escort body-ticks. Pinned by four tests:
+call-answer into the caller's order, rung-outranks-call, no-muster-not-
+recruitable, and two-callers-highest-first.
+
+### 243a. Amendment, 2026-08-10: the rail joins PassThrough, and the gate goes
+
+Owner consistency ruling. #243 built a cast gate because the rail was the one
+delivery on this ruleset that damaged its own team. The owner's answer is to
+fix the inconsistency rather than to route around it: **the rail is no longer
+friendly fire.**
+
+`ApplyRailLine` (`GenericActorMatchSession.cs:2425`) now carries the same
+own-team filter `ApplySentinelFire` has twenty lines below it — it damages
+every ENEMY life on the path and its own side is transparent. Pierce
+semantics against enemies are untouched: the beam still does not stop at the
+first body it meets, which is the whole reason rail's delivery is not the
+gun's first-body-contact ray.
+
+With allies transparent the cast gate withholds casts for a hazard that no
+longer exists, so it is **removed** — `PiercingSignatures`, the
+`pierceBlockers` parameters on both signature wrappers, and
+`FriendlyOnPierceLine` are all gone. The `tellTicks: 1` walk-on residual #243
+reported honestly dissolves with it; there is nothing left to reserve a lane
+for.
+
+Re-pinned in `ArcRelaySignatureLockTests`: `TheBeamSparesItsOwnTeamAndStill\
+ReachesTheLock` (a teammate squarely on the beam takes nothing AND the lock
+behind it is still hit) beside the unchanged
+`TheBeamPiercesAndEveryBodyOnTheLineTakesIt`, which now reads as the ENEMY
+interposition case it always was.
+
+This is a gameplay change to a shipped-adjacent experimental mode: the
+measured friendly-rail damage at `b70c5163` (31 of 125 events greedy, 22 of
+92 coordinated) is now zero by construction rather than by mind policy.
+
+## 245. Break-off rallies to the highest ACTIVE patrol
+
+Owner ruling 2026-08-10. A break-off latch used to rally to the FLOOR patrol
+route by construction — `withdrawTo` was `floorRoute`, full stop. A doctrine
+whose ladder carries a safer patrol above the floor should fall back onto
+THAT while it is running.
+
+The compiled engagement now carries a `withdrawRoutes` **ladder**: every
+patrol-verb mode's generated order and the route it walks, strongest first,
+floor last. At latch trip the mind walks the ladder and takes the first rung
+whose task is actually `Active`, falling down the list to the floor when none
+of the conditional patrols are. The choice stays sticky exactly as before
+(#225's lesson: re-picking per tick made the ghost pace two tiles).
+
+Two things fell out of doing it properly:
+
+**A health break-off had nowhere to go.** `withdrawTo` was only emitted when
+`breakOff.threats > 0`, so a doctrine with only `breakOff.health` latched
+into nothing — the body decided to leave the fight and then stood in it.
+Both triggers now get the ladder.
+
+**`traffic` floors are still rejected**, now for either trigger: a computed
+traffic patrol is not a place you can rally to.
+
+## 246. `role-health`: the weakest body of a role
+
+A team-level condition fact — the minimum current health among live bodies of
+the subject role — so a sheet can say "my hunter is hurt" without the grammar
+learning to talk about individual bodies. **9999 when the role has no live
+body**, the same "absent reads as unreachable" convention
+`well-ticks-until-birth` uses, so a mode gated on hurt does not switch itself
+on the moment the role dies.
+
+Subject is a role id and is validated as one, exactly like `role-live-count`.
+
+### Demonstrated on the committed sheet
+
+Both hunter sheets gain a SAFE-ROADS patrol above the floor:
+
+```json
+{ "patrol": "stage-loop", "while": "ghost-hurt", "until": "ghost-whole" }
+```
+
+with `ghost-hurt` = `role-health hunter at-most 2` and `ghost-whole` =
+`role-health hunter at-least 3` (a kestrel's maximum is 3, so "hurt" is "has
+taken a hit"). `stage-loop` is a tight home-side loop — `[[6,9],[10,11],
+[10,15],[6,17]]` — against the floor's `shadow-north-long`, which runs to
+x=27 in enemy ground. **Note on honesty:** the layout was not authored with a
+"safe route" in mind; `stage-loop` is an existing route that happens to be
+home-side, used here as proof of mechanism rather than as a tuned choice.
+
+The ghost's ladder therefore compiles to
+`[ghost-patrol-1 -> stage-loop, ghost-patrol-2 -> shadow-north-long]`.
+
+Mode flip, `greedy-e-9004` t84 team 1 — ghost u0 at (15,7) drops to health 2
+and `ghost-patrol-1` goes active. Over six cells the safe-roads patrol is
+active 649 ticks (greedy) and 1277 (coordinated).
+
+A break-off rallying to it, same cell, team 1:
+
+```
+t145 (19,19) hp3  ghost-patrol-2:duel-stand
+t146 (19,19) hp1  ghost-recover:withdraw via North
+t147 (19,18) hp1  ghost-recover:withdraw via NorthEast
+...
+t154 (22,11) hp1  ghost-recover:withdraw via NorthEast
+```
+
+The body's own mode is `recover`; the RALLY is `stage-loop` because
+`ghost-patrol-1` is the highest active patrol — it walks toward the mirrored
+home-side loop rather than toward the mirrored `shadow-north-long`. 229
+withdraw commands were issued while the safe road was active.
+
+## 247. This is now the real arc relay
+
+Owner's words, and the whole decision: **"this is now the real arc relay."**
+Arc Relay stops being an experiment and becomes the thing the CLI offers
+alongside `play`. `nilbots arc-relay` is a top-level command with its own
+`nilbots help arc-relay`.
+
+**`experiment arc-relay` stays forever.** It is a permanent alias, not a
+deprecation with a clock on it. Both spellings dispatch to the same command
+with the same arguments. Every balance script, exhibition run, evaluation
+report and DECISIONS entry in this repository that already says
+`nilbots experiment arc-relay` keeps working, and nobody has to sweep them.
+
+### What was NOT promoted, said plainly
+
+Promotion moved a status, not a boundary. Three things a reader will assume and
+should not:
+
+- **The hosted ladder did not move to the current line.** Entrant playlist v6
+  runs `ArcRelayLoopProfile.Current` — forward-combat rules on the Counterflow
+  map. The current design line is `ambush-warren-11`. The hosted ladder does
+  not run it, and this pass did not change that. Moving it needs a new playlist
+  version pinning `AmbushWarren11`, a stock artifact frozen against that
+  profile, a rating-continuity ruling across the version step, and layouts
+  authored on the warren map instead of projected onto the product map
+  (`TacticalSheetTemplateCatalog.ProjectStarterLayoutToCurrentMap`).
+- **The command's default did not move either.** `--loop-profile` still
+  defaults to `h0`, the frozen original. Changing a default changes what every
+  unflagged run means and what the goldens pin; it is a gameplay decision and
+  it was not part of promoting a command name. The help now says so instead of
+  letting the default read as an endorsement.
+- **No new claim of shipped or ranked availability.** The site DocsPage and the
+  templates describe the hosted product, which is unchanged, so neither gained
+  a word here. `docs/EXPERIMENTAL-ARC-RELAY.md` keeps its filename: the arc
+  relay design-line briefs beside it (`-TACTICAL-PLAYBOOK`, `-POSITIONAL-COMBAT`,
+  `-DYNAMIC-STRATEGY`, `-STRATEGY-LADDER`) are still live experiment arms, and
+  renaming one file of a family teaches a wrong boundary more than the stale
+  prefix does. Its opening now states the local/hosted split as the first thing
+  a reader sees.
+
+### The compatibility surface
+
+The CLI changed, so `CliVersion` and the CLI csproj `<Version>` move 0.9.33 ->
+0.9.34 under the rule in CLAUDE.md. Two changes are in that bump: this command
+promotion, and the sheet-editor pass that moved the tactical playbook compiler
+out of `BotArena.Cli` into the shared `BotArena.TacticalPlaybooks` library the
+hosted App now validates saves through. No rules, map, contract, replay or
+sheet format moved with either. The release workflow was NOT run — nothing
+deploys from this pass — so `publish-cli` still owes a `cli-v0.9.34` tag
+BEFORE any `publish-and-deploy` that carries this revision.

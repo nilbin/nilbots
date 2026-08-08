@@ -1,0 +1,10 @@
+{
+  "name": "GeometricDodger",
+  "entryType": "GeometricDodger",
+  "sdkVersion": "0.10.3",
+  "appearance": {
+    "accent": "#22d3ee",
+    "look": "vanguard",
+    "projectile": "pulse-bolt"
+  }
+}

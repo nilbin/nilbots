@@ -6,7 +6,7 @@ import { ErrorState, LoadingState } from '../components/StateView';
 import Th from '../components/TableHeader';
 import LiveStatus, { LiveDot } from '../../components/LiveStatus';
 import { type Me, type MatchLive, type MatchSummary } from '../api';
-import { useBots, useMatchLive, useMatches, useMe, useMeta } from '../queries';
+import { useMatchLive, useMatches, useMe, useMeta } from '../queries';
 import { playerAccent } from '../../presentation/playerAccent';
 import { styleVariables } from '../../presentation/styleVariables';
 
@@ -35,16 +35,14 @@ import { styleVariables } from '../../presentation/styleVariables';
  *   reader is about to watch undercuts the broadcast for nothing.
  */
 export default function ArenaPage() {
-  const { data: bots = [] } = useBots();
   const { data: meta = null } = useMeta();
   const { data: me = null } = useMe();
 
   // Filters live in the URL so a filtered feed can be linked and reloaded.
   const [params, setParams] = useSearchParams();
-  const bot = params.get('bot') ?? '';
   const map = params.get('map') ?? '';
   const ranked = params.get('ranked') ?? '';
-  const filtered = bot !== '' || map !== '' || ranked !== '';
+  const filtered = map !== '' || ranked !== '';
 
   const setFilter = (key: string, value: string) => {
     const next = new URLSearchParams(params);
@@ -56,7 +54,7 @@ export default function ArenaPage() {
 
   // The filters are part of the key, so changing one is a different query rather than a
   // refetch — no manual reset of pages, and switching back finds the old feed cached.
-  const feed = useMatches({ bot, map, ranked });
+  const feed = useMatches({ bot: '', map, ranked });
   const matches =
     feed.data === undefined ? undefined : dedupeById(feed.data.pages.flat());
 
@@ -120,19 +118,6 @@ export default function ArenaPage() {
               </p>
               {/* Controls sit in the panel head, right of the label, where somebody who
                   *does* know what they came for will look. */}
-              <select
-                value={bot}
-                onChange={(event) => setFilter('bot', event.target.value)}
-                aria-label="Filter by bot"
-                className={selectClass}
-              >
-                <option value="">any bot</option>
-                {bots.map((entry) => (
-                  <option key={entry.id} value={entry.slug}>
-                    {entry.name}
-                  </option>
-                ))}
-              </select>
               <select
                 value={map}
                 onChange={(event) => setFilter('map', event.target.value)}
@@ -529,25 +514,19 @@ function FeedRow({ match, me }: { match: MatchSummary; me: Me | null }) {
 function NeverFought() {
   return (
     <section className="panel pad">
-      <p className="lab mb-2">Nothing has fought yet</p>
+      <p className="lab mb-2">No Arc Relay broadcasts yet</p>
       <p className="t-body mb-3 max-w-[52ch]">
-        The arena fills when someone starts a ranked set, a one-off challenge, or
-        an experiment.
+        The arena fills when the passive ladder pairs entrants or a player starts
+        an unrated scrimmage.
       </p>
       <p className="t-meta mb-4 max-w-[62ch]">
-        Every match here is a deterministic record — same bots, same map, same seed, same
-        replay hash, every time. A fight appears while it is still playing out, and you can
+        Every match here is a deterministic record — same entrant revisions, map and seed,
+        same replay hash every time. A broadcast appears on its causal clock, and you can
         scrub it afterwards to the tick it turned.
       </p>
-      <Link to="/bots" className="btn inline-block">
-        Browse bots →
+      <Link to="/relay" className="btn inline-block">
+        Create an entrant →
       </Link>
-      <p className="t-micro mt-4">
-        You do not need an account to watch one — this runs a fight on your own machine:
-      </p>
-      <pre className="term mt-1.5 text-arena-text">
-        nilbots play --bot . --opponent hunter
-      </pre>
     </section>
   );
 }

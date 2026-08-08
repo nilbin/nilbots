@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "id": "arc-relay",
+  "file": "model.glb",
+  "kind": "bot",
+  "part": "whole",
+  "facing": "+x",
+  "up": "+y",
+  "source": {
+    "generator": "scripts/class-models/promote-meshy-arc-fleet.mjs",
+    "recipe": "art/class-models/runtime-tiers/arc-relay/ktx2-selective-v1/audit.json",
+    "artifact": "art/class-models/runtime-tiers/arc-relay/ktx2-selective-v1/arc-relay.glb",
+    "sourceSha256": "dcc5035b8693ee47a15545888bbf001317dcc000c2d25dbf4dc1df8e6ab02068",
+    "approvedArtifact": "art/class-models/provider-runs/meshy/arc-relay/019fc396-a4ea-7171-a329-7aeb2e9c42b8/model-normalized-review.glb",
+    "approvedSha256": "8ef9bbd92aef26f23e765498532ccfcd1b8407db00893bdbfd0234dbb1511782",
+    "textureTier": "arc-relay-ktx2-selective-v1",
+    "provider": "Meshy",
+    "model": "meshy-t2",
+    "endpoint": "image-to-3d",
+    "modelType": "smart-topology",
+    "taskId": "019fc396-a4ea-7171-a329-7aeb2e9c42b8",
+    "orientation": "lay-flat-x"
+  },
+  "motion": {
+    "locomotion": "skids",
+    "handling": "swift",
+    "hardwareLagTicks": 0.18,
+    "hardwareOvershoot": 0.12
+  },
+  "signature": "arc-toss",
+  "ledger": {
+    "bytes": 529928,
+    "sha256": "dcc5035b8693ee47a15545888bbf001317dcc000c2d25dbf4dc1df8e6ab02068",
+    "triangles": 12043,
+    "materials": 1,
+    "textureCount": 4,
+    "geometrySha256": "c127031d12abca026ce577d8f02572f4387c3d9974f8e7ea79f493765a9bc079",
+    "geometryGpuBytes": 313900,
+    "textureGpuBytesCompressedTarget": 360528,
+    "textureGpuBytesRgba8Fallback": 2184528,
+    "modelGpuBytesCompressedTarget": 674428,
+    "modelGpuBytesRgba8Fallback": 2498428,
+    "textureTier": "arc-relay-ktx2-selective-v1"
+  }
+}

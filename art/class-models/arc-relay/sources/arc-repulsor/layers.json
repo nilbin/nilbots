@@ -1,0 +1,52 @@
+{
+  "version": 1,
+  "id": "arc-repulsor",
+  "canonicalLayeredVector": "art/class-look-concepts/arc-relay/premium-roster-v1/vector-fallback/arc-repulsor.svg",
+  "generatedAlbedo": "art/class-models/arc-relay/sources/arc-repulsor/albedo.png",
+  "archivedAlbedo": "art/class-look-concepts/arc-relay/premium-roster-v1/raster-masters/repulsor-base.png",
+  "archivedTeamMask": "art/class-look-concepts/arc-relay/premium-roster-v1/raster-masters/repulsor-team-mask.png",
+  "archivedMasterRoot": "art/class-look-concepts/arc-relay/premium-roster-v1/raster-masters",
+  "archivedMasterProjectionDegrees": 20,
+  "generatedNormal": "art/class-models/arc-relay/sources/arc-repulsor/normal.png",
+  "generatedEmissive": "art/class-models/arc-relay/sources/arc-repulsor/emissive.png",
+  "sourceSha256": "bf8bd0f22f623ce16f8e4394fb979f9f8e48f45fb557384202d1fb2c5054af7c",
+  "groups": {
+    "underbody-locomotion": {
+      "construction": "treads",
+      "floorY": 0,
+      "extrusionHeight": 0.16,
+      "bevel": 0.018
+    },
+    "chassis": {
+      "construction": "orthographic-vector-distance-relief",
+      "sourceProjectionDegrees": 0,
+      "extrusionHeight": 0.14,
+      "domeHeight": 0.1,
+      "bevel": 0.014,
+      "albedo": "art/class-models/arc-relay/sources/arc-repulsor/albedo.png",
+      "normal": "art/class-models/arc-relay/sources/arc-repulsor/normal.png"
+    },
+    "weapon-hardware": {
+      "construction": "named-vector-group-distance-relief",
+      "sourceGroup": "weapon-hardware",
+      "hardwareIdentity": "radial-emitters",
+      "extrusionHeight": 0.225,
+      "domeHeight": 0.065,
+      "pivot": [
+        0,
+        0,
+        0
+      ]
+    },
+    "team-accents": {
+      "construction": "named-vector-semantic-surface",
+      "sourceGroup": "team-accents",
+      "materialRole": "team-accent",
+      "bakedTeamColor": false
+    },
+    "emissives": {
+      "construction": "derived-authored-light-surface",
+      "map": "art/class-models/arc-relay/sources/arc-repulsor/emissive.png"
+    }
+  }
+}

@@ -18,7 +18,11 @@ public sealed record BuiltBot(string WasmPath, string ArtifactHash, bool FromCac
 public static class BotBuilder
 {
     public const int MaxSourceFiles = 16;
-    public const int MaxTotalSourceBytes = 256 * 1024;
+    // 2 MB (owner ruling, 2026-07-30): the old 256 KB cap became the binding
+    // constraint on contract-driven authorship — a wave-5 author paid for
+    // reading three new contract declarations by deleting documented code,
+    // and ~20% of any budget is scaffold boilerplate every project carries.
+    public const int MaxTotalSourceBytes = 2 * 1024 * 1024;
     public const int MaxBuildLogCharacters = 1024 * 1024;
     public const int MaxArtifactBytes = 16 * 1024 * 1024;
 
@@ -79,7 +83,7 @@ public static class BotBuilder
         // Empty the workspace without deleting the directory itself: it becomes a
         // Docker bind-mount source moments later, and replacing the mount root's
         // inode races macOS virtiofs into a transient empty container view
-        // (MSB1009; DECISIONS #147).
+        // (MSB1009; DECISIONS #151).
         Directory.CreateDirectory(workspace);
         foreach (string entry in Directory.EnumerateFileSystemEntries(workspace))
         {
@@ -153,7 +157,7 @@ public static class BotBuilder
               <ItemGroup>
                 <PackageReference Include="Microsoft.DotNet.ILCompiler.LLVM" Version="{ToolchainInfo.IlcLlvmVersion}" />
                 <!-- Host-matched compiler package: the build may run on a linux-x64 or
-                     linux-arm64 host (platform-matched Docker builder, DECISIONS #147);
+                     linux-arm64 host (platform-matched Docker builder, DECISIONS #151);
                      both emit byte-identical modules. The condition evaluates in the
                      build process, so one workspace stays correct on every host. -->
                 <PackageReference Include="runtime.linux-x64.Microsoft.DotNet.ILCompiler.LLVM" Version="{ToolchainInfo.IlcLlvmVersion}" Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)' != 'Arm64'" />
@@ -480,7 +484,19 @@ public static class BotBuilder
             BotArenaVersions.GenericActorMatchStartSchemaVersion,
             BotArenaVersions.GenericActorObservationSchemaVersion,
             BotArenaVersions.GenericActorDecisionSchemaVersion,
-            BotArenaVersions.GenericActorMatchContractSchemaVersion)));
+            BotArenaVersions.GenericActorMatchContractSchemaVersion,
+            // The mind half of the artifact's identity. Every artifact built
+            // from this SDK attests BOTH profiles, so a change to the mind
+            // protocol, configuration or schemas changes what the artifact
+            // promises and must invalidate its cache entry — even on a source
+            // tree that never mentions a mind.
+            BotArenaVersions.GenericMindRuntimeProtocolVersion,
+            BotArenaVersions.GenericMindRuntimeConfigurationVersion,
+            BotArenaVersions.GenericMindRuntimeContractVersion,
+            BotArenaVersions.GenericMindMatchStartSchemaVersion,
+            BotArenaVersions.GenericMindObservationSchemaVersion,
+            BotArenaVersions.GenericMindDecisionSchemaVersion,
+            BotArenaVersions.GenericMindMatchContractSchemaVersion)));
         // The two staged assemblies are compiled into the artifact, so they belong in
         // its identity. Version strings alone were a promise the code did not keep: an
         // Sdk edit without a GuestAdapterVersion bump kept serving the old artifact, and

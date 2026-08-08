@@ -18,6 +18,8 @@ import {
   type HostedBridgeVersion,
 } from '../hostedBridge';
 import ArenaCanvas from './ArenaCanvas';
+import { useScreenWakeLock } from './useScreenWakeLock';
+import { currentArenaRenderProfile } from '../render/arenaRenderProfile';
 
 /**
  * Canvas-only viewer for an embedding host. Bridge 1 is the historical mobile
@@ -35,14 +37,28 @@ export default function HostedViewer({
   bridgeVersion: HostedBridgeVersion;
 }) {
   const assets = useAssetReadiness();
-  const playback = usePlayback(replay, assets.ready);
-  const liveTime = useLiveFollower(replay, live);
+  const following = live !== undefined;
+  const renderProfile = useMemo(() => currentArenaRenderProfile(), []);
+  const playbackFrameCap = renderProfile.presentationRateLimited
+    ? renderProfile.activeFramesPerSecond
+    : undefined;
+  const playback = usePlayback(
+    replay,
+    assets.ready,
+    !following,
+    true,
+    playbackFrameCap,
+  );
+  const liveTime = useLiveFollower(
+    replay,
+    live,
+    playbackFrameCap,
+  );
   const presenter = useMemo(() => createPresenter(replay), [replay]);
   const [selectedUnitKey, setSelectedUnitKey] =
     useState<ReplayStableUnitKey | null>(null);
   const [showVisibility, setShowVisibility] = useState(true);
 
-  const following = live !== undefined;
   const time = following ? liveTime : playback.time;
   const tick = Math.max(
     0,
@@ -51,6 +67,13 @@ export default function HostedViewer({
   const post = useRef((message: Record<string, unknown>) => {
     window.ReactNativeWebView?.postMessage(JSON.stringify(message));
   }).current;
+
+  // The same rule as the standalone viewer, from the same module: the clock is running, so
+  // the screen stays on. This costs the bridge nothing — no message, no contract change —
+  // and a WebView whose host forbids the API simply never gets a lock, which is one of the
+  // ordinary outcomes the hook already swallows. The host's own keep-awake, if it has one,
+  // is additive rather than contradicted.
+  useScreenWakeLock(following || playback.playing);
 
   useEffect(() => {
     const common = {
@@ -158,6 +181,14 @@ export default function HostedViewer({
           setSelectedUnitKey(unitKey);
           post(selectedBridgeMessage(bridgeVersion, replay, unitKey));
         }}
+        // The camera follows the action here as it does everywhere, but this surface
+        // offers no override: the host draws every control natively and the bridge carries
+        // no camera message, so a gesture that paused auto-fit would have nothing to turn
+        // it back on. Adding one is a bridge change, and a bridge change is a mobile
+        // change in the same commit.
+        cameraGestures={false}
+        active={following || playback.playing}
+        renderProfile={renderProfile}
       />
     </div>
   );

@@ -3,7 +3,7 @@ import { Link, useLocation, useParams } from 'react-router-dom';
 import clsx from 'clsx';
 import Viewer from '../../components/Viewer';
 import LiveStatus from '../../components/LiveStatus';
-import ArenaAction, { type ArenaMode } from '../components/ArenaAction';
+import EntrantCrest from '../../components/EntrantCrest';
 import BotIdentity from '../components/BotIdentity';
 import { ErrorState } from '../components/StateView';
 import Th from '../components/TableHeader';
@@ -14,9 +14,7 @@ import {
   type MatchLive,
   type MatchSetDetail,
 } from '../api';
-import { useAuth } from '../auth';
 import { useMatch, useMatchLive, useMatchReplay, useMatchSet } from '../queries';
-import { useMyBots } from '../queries';
 import { internalReturnTarget } from '../returnTarget';
 
 /**
@@ -51,8 +49,6 @@ export default function MatchPage() {
   // The detail runs *always* rather than only for a failed match: map, seed and both
   // artifact hashes are public from the moment the match exists, and the whole argument of
   // this page is that they are published before anyone knows the result.
-  const { user } = useAuth();
-  const { data: myBots = [] } = useMyBots(Boolean(user));
   const { data: live, error: liveError, refetch } = useMatchLive(matchId);
   const {
     data: loadedReplay,
@@ -68,7 +64,7 @@ export default function MatchPage() {
 
   // Either response names the set, so the standing strip never waits on the slower one.
   const matchSetId = live?.matchSetId ?? detail?.matchSetId ?? null;
-  const matchSetPath = matchSetId === null ? null : `/sets/${matchSetId}`;
+  const matchSetPath = matchSetId === null ? null : `/archive/sets/${matchSetId}`;
   const setGame = live?.setGame ?? detail?.setGame ?? null;
   const {
     data: set,
@@ -79,25 +75,6 @@ export default function MatchPage() {
   const missing = liveError instanceof ApiError && liveError.status === 404;
   const failed = live?.status === 'Failed' || detail?.status === 'Failed';
   const finished = live?.broadcastComplete ?? false;
-  const ownedIds = new Set(myBots.map((bot) => bot.id));
-  const ownedParticipant = detail?.participants.find((participant) =>
-    ownedIds.has(participant.botId),
-  );
-  const opponent = detail?.participants.find(
-    (participant) => participant.botId !== ownedParticipant?.botId,
-  );
-  const nextFight =
-    ownedParticipant === undefined
-      ? null
-      : matchSetId !== null
-        ? {
-            modes: ['ranked'] as readonly ArenaMode[],
-            label: 'Start another matchmade set',
-          }
-        : {
-            modes: ['challenge', 'labs'] as readonly ArenaMode[],
-            label: 'Play another',
-          };
 
   // A mistyped id is an answer, not an alarm — so it renders as an empty shape with a way
   // back, rather than as the red state a dead server deserves.
@@ -132,7 +109,7 @@ export default function MatchPage() {
           <>
             <span aria-hidden="true">/</span>
             <Link
-              to={`/sets/${matchSetId}`}
+              to={`/archive/sets/${matchSetId}`}
               state={{
                 returnTo: watchReturn.to,
                 returnLabel: watchReturn.label,
@@ -152,6 +129,7 @@ export default function MatchPage() {
       </nav>
       <h1 className="sr-only">Match {matchId}</h1>
       <Standing
+        arcRelayLane={detail?.arcRelayLane}
         matchSetId={matchSetId}
         setGame={setGame}
         matchId={matchId}
@@ -169,7 +147,8 @@ export default function MatchPage() {
       )}
 
       {failed ? (
-        <DidNotRun error={detail?.error ?? null} ranked={matchSetId !== null} />
+        <DidNotRun error={detail?.error ?? null}
+          ranked={matchSetId !== null || detail?.arcRelayLane === 'ranked'} />
       ) : replayError ? (
         <QueryWarning
           label="Replay unavailable"
@@ -187,6 +166,15 @@ export default function MatchPage() {
             <Viewer
               replay={replay}
               soundtrackPresentationId={matchId}
+              entrants={detail?.participants
+                .filter((participant) => participant.teamId !== null && participant.entrant?.crest != null)
+                .map((participant) => ({
+                  teamId: participant.teamId!,
+                  name: participant.nameSnapshot,
+                  kind: participant.entrant!.entrantKind,
+                  crest: participant.entrant!.crest!,
+                  composition: participant.entrant!.composition,
+                }))}
               live={
                 finished
                   ? undefined
@@ -217,32 +205,14 @@ export default function MatchPage() {
       </div>
       <section className="panel-quiet pad flex flex-wrap items-center gap-2">
         <span className="t-meta mr-auto">
-          {nextFight
-            ? `Keep this bot moving, or return to ${watchReturn.label}.`
-            : `Return to ${watchReturn.label}.`}
+          Return to {watchReturn.label}, or manage Arc Relay entrants in the workshop.
         </span>
         <Link to={watchReturn.to} className="btn">
           {watchReturn.to === '/watch'
             ? 'Watch more'
             : `Return to ${watchReturn.label}`}
         </Link>
-        {nextFight && ownedParticipant && (
-          <ArenaAction
-            bot={{
-              id: ownedParticipant.botId,
-              name: ownedParticipant.nameSnapshot,
-              accent: ownedParticipant.accentSnapshot,
-              lookId: ownedParticipant.lookIdSnapshot,
-              isOwner: true,
-            }}
-            modes={nextFight.modes}
-            initialMode={nextFight.modes[0]}
-            initialOpponentId={opponent?.botId}
-            initialMapId={detail?.mapId}
-            triggerLabel={nextFight.label}
-            challengeContextRole="entrant"
-          />
-        )}
+        <Link to="/relay" className="btn">Entrants</Link>
       </section>
     </div>
   );
@@ -252,6 +222,7 @@ export default function MatchPage() {
    The one line the viewer cannot know: that this game sits inside a set, and where. */
 
 function Standing({
+  arcRelayLane,
   matchSetId,
   setGame,
   matchId,
@@ -260,6 +231,7 @@ function Standing({
   failed,
   returnTarget,
 }: {
+  arcRelayLane: string | null | undefined;
   matchSetId: string | null;
   setGame: number | null;
   matchId: string | undefined;
@@ -268,6 +240,21 @@ function Standing({
   failed: boolean;
   returnTarget: { to: string; label: string };
 }) {
+  if (arcRelayLane !== null && arcRelayLane !== undefined)
+    return (
+      <div className="panel-quiet pad flex flex-wrap items-center gap-x-3 gap-y-2">
+        <p className="lab">
+          {arcRelayLane === 'ranked' ? 'Ranked Arc Relay' : 'Arc Relay scrimmage'}
+        </p>
+        <span className="t-micro">
+          {arcRelayLane === 'ranked'
+            ? 'Rating settles when the causal broadcast completes.'
+            : 'Entrants from one account · always unrated.'}
+        </span>
+        <StandingPill live={live} failed={failed} />
+      </div>
+    );
+
   // An unranked match still renders the strip: "this changed nothing on the ladder" is
   // information, and its absence would read as a page that had not finished loading.
   if (matchSetId === null)
@@ -280,7 +267,7 @@ function Standing({
     );
 
   const games = set?.games.length ?? null;
-  const setPath = `/sets/${matchSetId}`;
+  const setPath = `/archive/sets/${matchSetId}`;
   const setReturnState =
     returnTarget.to === setPath
       ? undefined
@@ -388,7 +375,7 @@ function waitingPhase(
   if (live.status === 'Running')
     return {
       label: 'Fighting',
-      line: 'The bots are playing it out. No replay exists yet.',
+      line: 'The bodies are playing it out. No replay exists yet.',
     };
   if (!finished && live.countdownMs > 0)
     return {
@@ -486,7 +473,7 @@ function Result({
             {detail.participants.map((participant) => (
               <div key={participant.slot} className="panel-quiet pad flex flex-col gap-1.5">
                 <div className="flex items-center justify-between gap-2">
-                  <BotLink participant={participant} winner={isWinner(detail, participant)} />
+                  <ParticipantLink participant={participant} winner={isWinner(detail, participant)} />
                   <span className="val text-arena-text">
                     {participant.outcome?.toLowerCase() ?? '—'}
                   </span>
@@ -502,7 +489,7 @@ function Result({
           <table className="hidden w-full border-collapse sm:table">
             <thead>
               <tr>
-                <Th>Bot</Th>
+                <Th>{detail.arcRelayLane ? 'Entrant' : 'Legacy bot'}</Th>
                 <Th>Out</Th>
                 <Th numeric>HP</Th>
                 <Th numeric>Dmg</Th>
@@ -515,7 +502,7 @@ function Result({
               {detail.participants.map((participant) => (
                 <tr key={participant.slot} className="border-b border-arena-edge last:border-b-0">
                   <td className="py-2 pr-2 align-middle">
-                    <BotLink participant={participant} winner={isWinner(detail, participant)} />
+                    <ParticipantLink participant={participant} winner={isWinner(detail, participant)} />
                   </td>
                   <td className="val py-2 pr-2 align-middle text-arena-text">
                     {participant.outcome?.toLowerCase() ?? '—'}
@@ -610,7 +597,7 @@ function Record({
             <p className="lab">Artifacts</p>
             {detail.participants.map((participant) => (
               <div key={participant.slot} className="flex flex-col gap-1">
-                <BotLink participant={participant} winner={false} />
+                <ParticipantLink participant={participant} winner={false} />
                 <span className="val break-all">{participant.artifactHashSnapshot}</span>
               </div>
             ))}
@@ -664,7 +651,7 @@ function InlineQueryError({
 
 /* ------------------------------------------------------------------------- pieces --- */
 
-function BotLink({
+function ParticipantLink({
   participant,
   winner,
 }: {
@@ -672,11 +659,22 @@ function BotLink({
   winner: boolean;
 }) {
   const location = useLocation();
+  if (participant.entrant?.crest) {
+    return (
+      <Link to="/relay" className="inline-flex min-w-0 items-center gap-2 transition-opacity hover:opacity-80">
+        <EntrantCrest crest={participant.entrant.crest} size={28} />
+        <span className={clsx('truncate', winner && 'font-semibold')}>
+          {participant.nameSnapshot}
+        </span>
+        <span className="pill">{participant.entrant.entrantKind}</span>
+      </Link>
+    );
+  }
   // By id, not by a slug snapshot: `/api/bots/{key}` accepts a uuid and the bot route
   // canonicalizes, so a rename cannot strand this link on a name that no longer exists.
   return (
     <Link
-      to={`/bots/${participant.botId}`}
+      to={`/archive/bots/${participant.botId}`}
       state={{
         returnTo: `${location.pathname}${location.search}`,
         returnLabel: 'Match',

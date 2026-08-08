@@ -1,0 +1,38 @@
+{
+  "id": "019fafbb-27d8-7362-ad99-088ac067cbea",
+  "type": "multi-image-to-3d",
+  "name": "",
+  "art_style": "",
+  "object_prompt": "",
+  "style_prompt": "",
+  "negative_prompt": "",
+  "texture_prompt": "Preserve the exact graphite-black and weathered-bronze hard-surface vehicle design in all references. Preserve fine panel seams, recessed vents, cyan illuminated accent inlays, and warm amber engine and core emission. No added weapons, landing gear, text, logos, supports, background, or new ornamentation.",
+  "texture_image_url": "",
+  "text_style_prompt": "",
+  "image_style_url": "",
+  "status": "SUCCEEDED",
+  "created_at": 1785359708300,
+  "progress": 100,
+  "started_at": 1785359709154,
+  "finished_at": 1785359942137,
+  "expires_at": 1785619142137,
+  "task_error": null,
+  "model_url": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019fafbb-27d8-7362-ad99-088ac067cbea/output/model.glb",
+  "model_urls": {
+    "glb": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019fafbb-27d8-7362-ad99-088ac067cbea/output/model.glb"
+  },
+  "thumbnail_url": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019fafbb-27d8-7362-ad99-088ac067cbea/output/preview.png",
+  "texture_urls": [
+    {
+      "base_color": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019fafbb-27d8-7362-ad99-088ac067cbea/output/texture_0.png",
+      "metallic": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019fafbb-27d8-7362-ad99-088ac067cbea/output/texture_0_metallic.png",
+      "roughness": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019fafbb-27d8-7362-ad99-088ac067cbea/output/texture_0_roughness.png",
+      "normal": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019fafbb-27d8-7362-ad99-088ac067cbea/output/texture_0_normal.png",
+      "emission": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019fafbb-27d8-7362-ad99-088ac067cbea/output/texture_0_emission.png"
+    }
+  ],
+  "remove_lighting": true,
+  "hd_texture": true,
+  "texture_resolution": "4k",
+  "consumed_credits": 30
+}

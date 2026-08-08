@@ -1,0 +1,11 @@
+{
+  "name": "LedgerFly",
+  "entryType": "LedgerFly",
+  "sdkVersion": "0.10.4",
+  "class": "fabricator",
+  "appearance": {
+    "accent": "#b45309",
+    "look": "vanguard",
+    "projectile": "pulse-bolt"
+  }
+}

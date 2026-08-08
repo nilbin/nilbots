@@ -1,0 +1,1601 @@
+{
+  "$schema": "./balance-lab-spec.schema.json",
+  "schemaVersion": 3,
+  "experimentId": "frontline-classes-wave-2-movement-factorial-v1",
+  "status": "experimental",
+  "hypothesis": "Facing-coupled movement prices maneuver in aim. Relative to preserve-facing, both coupled arms lengthen punish windows against mobile bodies, shifting cell payoffs toward fortification (bulwark) and standing presence (fabricator) and away from pure maneuver (striker), with facing-locked shifting further than move-sets-facing. The wave-1 counter-cycle direction persists under every arm; striker bend usage rises under coupling; and no arm collapses play into fortress stalemates (bulwark-mirror decisiveness at or above wave-1 rates on every map). Selection intent: this factorial is the pre-registered evidence base for choosing the hosted movement coupling. Disclosure: every entrant's coupled-arm doctrine is self-play-validated only (qualification runs the uncoupled union profile), so coupled-arm cells are first-contact evidence between foreign doctrines.",
+  "ablationRegistry": {
+    "path": "frontline-ablation-debt-v1.json",
+    "sha256": "1758a472c56c41478401c3cbb3efe2069519570b1dd77c8fc9c436d00cf568fa"
+  },
+  "studyBlocks": [
+    {
+      "id": "classes-movement-wave-2-native",
+      "role": "native-product",
+      "hypothesis": "The six-lineage all-T4 revision-2 population produces class- and arm-distinct play; with two lineages per class and six voting lineages it clears the pre-registered voting floor for the first time.",
+      "qualificationProfileId": "frontline-duel-depth-union-t4-v1",
+      "candidateIds": [
+        "bulwark-vs-bulwark-current-preserve-facing",
+        "bulwark-vs-bulwark-thin-fronts-preserve-facing",
+        "bulwark-vs-bulwark-outer-shoulder-preserve-facing",
+        "bulwark-vs-fabricator-current-preserve-facing",
+        "bulwark-vs-fabricator-thin-fronts-preserve-facing",
+        "bulwark-vs-fabricator-outer-shoulder-preserve-facing",
+        "bulwark-vs-striker-current-preserve-facing",
+        "bulwark-vs-striker-thin-fronts-preserve-facing",
+        "bulwark-vs-striker-outer-shoulder-preserve-facing",
+        "fabricator-vs-fabricator-current-preserve-facing",
+        "fabricator-vs-fabricator-thin-fronts-preserve-facing",
+        "fabricator-vs-fabricator-outer-shoulder-preserve-facing",
+        "fabricator-vs-striker-current-preserve-facing",
+        "fabricator-vs-striker-thin-fronts-preserve-facing",
+        "fabricator-vs-striker-outer-shoulder-preserve-facing",
+        "striker-vs-striker-current-preserve-facing",
+        "striker-vs-striker-thin-fronts-preserve-facing",
+        "striker-vs-striker-outer-shoulder-preserve-facing",
+        "bulwark-vs-bulwark-current-move-sets-facing",
+        "bulwark-vs-bulwark-current-facing-locked",
+        "bulwark-vs-bulwark-thin-fronts-move-sets-facing",
+        "bulwark-vs-bulwark-thin-fronts-facing-locked",
+        "bulwark-vs-bulwark-outer-shoulder-move-sets-facing",
+        "bulwark-vs-bulwark-outer-shoulder-facing-locked",
+        "bulwark-vs-fabricator-current-move-sets-facing",
+        "bulwark-vs-fabricator-current-facing-locked",
+        "bulwark-vs-fabricator-thin-fronts-move-sets-facing",
+        "bulwark-vs-fabricator-thin-fronts-facing-locked",
+        "bulwark-vs-fabricator-outer-shoulder-move-sets-facing",
+        "bulwark-vs-fabricator-outer-shoulder-facing-locked",
+        "bulwark-vs-striker-current-move-sets-facing",
+        "bulwark-vs-striker-current-facing-locked",
+        "bulwark-vs-striker-thin-fronts-move-sets-facing",
+        "bulwark-vs-striker-thin-fronts-facing-locked",
+        "bulwark-vs-striker-outer-shoulder-move-sets-facing",
+        "bulwark-vs-striker-outer-shoulder-facing-locked",
+        "fabricator-vs-fabricator-current-move-sets-facing",
+        "fabricator-vs-fabricator-current-facing-locked",
+        "fabricator-vs-fabricator-thin-fronts-move-sets-facing",
+        "fabricator-vs-fabricator-thin-fronts-facing-locked",
+        "fabricator-vs-fabricator-outer-shoulder-move-sets-facing",
+        "fabricator-vs-fabricator-outer-shoulder-facing-locked",
+        "fabricator-vs-striker-current-move-sets-facing",
+        "fabricator-vs-striker-current-facing-locked",
+        "fabricator-vs-striker-thin-fronts-move-sets-facing",
+        "fabricator-vs-striker-thin-fronts-facing-locked",
+        "fabricator-vs-striker-outer-shoulder-move-sets-facing",
+        "fabricator-vs-striker-outer-shoulder-facing-locked",
+        "striker-vs-striker-current-move-sets-facing",
+        "striker-vs-striker-current-facing-locked",
+        "striker-vs-striker-thin-fronts-move-sets-facing",
+        "striker-vs-striker-thin-fronts-facing-locked",
+        "striker-vs-striker-outer-shoulder-move-sets-facing",
+        "striker-vs-striker-outer-shoulder-facing-locked"
+      ],
+      "populationIds": [
+        "classes-wave-1-r2"
+      ],
+      "includeSelfPlay": false,
+      "commonRandomness": {
+        "protocol": "shared-seed-profile-v1",
+        "seedProfileId": "frontline-labs-classes-1"
+      }
+    }
+  ],
+  "factors": {
+    "class-pair": [
+      "bulwark-vs-bulwark",
+      "bulwark-vs-fabricator",
+      "bulwark-vs-striker",
+      "fabricator-vs-fabricator",
+      "fabricator-vs-striker",
+      "striker-vs-striker"
+    ],
+    "map-topology": [
+      "current",
+      "thin-fronts",
+      "outer-shoulder-bypass"
+    ],
+    "movement-coupling": [
+      "preserve-facing",
+      "move-sets-facing",
+      "facing-locked"
+    ]
+  },
+  "pairedSeeds": [
+    180001,
+    210011,
+    240007
+  ],
+  "holdout": {
+    "protocol": "sha256-commit-reveal-v1",
+    "commitmentSha256": "753d6a5d47ac9e658827821e9f4aa900c7cf89db31e205e7f77153e778abef98",
+    "seedCount": 2
+  },
+  "studyDesign": {
+    "decisionProfileId": "frontline-internal-pilot-v1",
+    "analysisUnit": "class-bound-mirrored-where-possible-v1",
+    "confidenceLevel": 0.95,
+    "bootstrapResamples": 2000,
+    "minimumMirroredUnitsPerCell": 1,
+    "minimumEntrantPairsPerCell": 1,
+    "minimumSeedsPerEntrantPair": 1,
+    "minimumIndependentLineagesPerPopulation": 2,
+    "minimumVotingLineagesPerPopulation": 4,
+    "minimumVotingTier": "T4",
+    "multiplicityPolicy": "bonferroni-all-contrasts-v1",
+    "requiredEvidenceLayers": [
+      "contract-validity",
+      "static-map-analysis",
+      "exact-tactical-analysis",
+      "qualification",
+      "population-cross-play",
+      "restricted-play",
+      "adversarial-sentinels",
+      "statistical-sufficiency",
+      "holdout",
+      "blind-replay-review",
+      "author-dx"
+    ]
+  },
+  "toolchain": {
+    "protocol": "frozen-build-output-v1",
+    "buildCommand": "dotnet publish src/BotArena.Cli/BotArena.Cli.csproj --configuration Release --no-restore --output {out}",
+    "entrypoint": "botarena"
+  },
+  "verifyCommand": "{toolchain} verify {replay}",
+  "evaluationProfileId": "two-team-zero-sum-v1",
+  "dynamicsAdapter": "generic-frontline-replay-v3",
+  "candidates": [
+    {
+      "id": "bulwark-vs-bulwark-current-preserve-facing",
+      "factors": {
+        "class-pair": "bulwark-vs-bulwark",
+        "map-topology": "current",
+        "movement-coupling": "preserve-facing"
+      },
+      "runnerCommand": "{toolchain} experiment frontline-labs --bot {bot} --opponent {opponent} --seed {seed} --runtime wasm --out {out} --classes bulwark-vs-bulwark --duel-map current",
+      "contract": {
+        "modeId": "frontline",
+        "rulesetId": "frontline-labs-1-experiment-classes-bulwark-vs-bulwark",
+        "rulesFingerprint": "a0edc0fd7f2309c59c81bb6622220cd83f381a34028b3f12ba3ad4ce04ddb13d",
+        "seedProfileId": "frontline-labs-classes-1",
+        "mapId": "frontline-labs-01-classes",
+        "mapVersion": 1,
+        "mapFingerprint": "61f477904dfaf048093d5fb164f5d580f8b41f5c884eb357446de9b8739d1a3d",
+        "formatId": "head-to-head",
+        "formatFingerprint": "dc81a4f285ada9baceba99751e2de2ede8247cd943ad5c2164368c2f55129463",
+        "topologyProfileId": "two-team-one-controller-three-slots-v1",
+        "topologyFingerprint": "ef5441d4e0ec7aa4ef2f251d8c17fbaafa9b8bfe1be6546154f78a4d64df04dc",
+        "contractProfileId": "generic-actor-match-2",
+        "matchContractFingerprint": "83856f43414f1528399430228dc2310ba67f22e5c35ddbb5a55088064fad9e48"
+      }
+    },
+    {
+      "id": "bulwark-vs-bulwark-thin-fronts-preserve-facing",
+      "factors": {
+        "class-pair": "bulwark-vs-bulwark",
+        "map-topology": "thin-fronts",
+        "movement-coupling": "preserve-facing"
+      },
+      "runnerCommand": "{toolchain} experiment frontline-labs --bot {bot} --opponent {opponent} --seed {seed} --runtime wasm --out {out} --classes bulwark-vs-bulwark --duel-map thin-fronts",
+      "contract": {
+        "modeId": "frontline",
+        "rulesetId": "frontline-labs-1-experiment-classes-bulwark-vs-bulwark",
+        "rulesFingerprint": "a0edc0fd7f2309c59c81bb6622220cd83f381a34028b3f12ba3ad4ce04ddb13d",
+        "seedProfileId": "frontline-labs-classes-1",
+        "mapId": "frontline-labs-01-thin-fronts-classes",
+        "mapVersion": 1,
+        "mapFingerprint": "5ddd64bb20dd778921e40dbb3ebea04fd9b376217e62b4d779fd7d32032d1500",
+        "formatId": "head-to-head",
+        "formatFingerprint": "dc81a4f285ada9baceba99751e2de2ede8247cd943ad5c2164368c2f55129463",
+        "topologyProfileId": "two-team-one-controller-three-slots-v1",
+        "topologyFingerprint": "ef5441d4e0ec7aa4ef2f251d8c17fbaafa9b8bfe1be6546154f78a4d64df04dc",
+        "contractProfileId": "generic-actor-match-2",
+        "matchContractFingerprint": "4fbfa47ffec7580157fcba1cb9942518dcc17f9880e4d36239bae5a5aed781c6"
+      }
+    },
+    {
+      "id": "bulwark-vs-bulwark-outer-shoulder-preserve-facing",
+      "factors": {
+        "class-pair": "bulwark-vs-bulwark",
+        "map-topology": "outer-shoulder-bypass",
+        "movement-coupling": "preserve-facing"
+      },
+      "runnerCommand": "{toolchain} experiment frontline-labs --bot {bot} --opponent {opponent} --seed {seed} --runtime wasm --out {out} --classes bulwark-vs-bulwark --duel-map outer-shoulder-bypass",
+      "contract": {
+        "modeId": "frontline",
+        "rulesetId": "frontline-labs-1-experiment-classes-bulwark-vs-bulwark",
+        "rulesFingerprint": "a0edc0fd7f2309c59c81bb6622220cd83f381a34028b3f12ba3ad4ce04ddb13d",
+        "seedProfileId": "frontline-labs-classes-1",
+        "mapId": "frontline-labs-01-outer-shoulder-classes",
+        "mapVersion": 1,
+        "mapFingerprint": "e62f0607ade2b6ad375375101a2c852dbde304a41c37313b7e5b9d839d18347d",
+        "formatId": "head-to-head",
+        "formatFingerprint": "dc81a4f285ada9baceba99751e2de2ede8247cd943ad5c2164368c2f55129463",
+        "topologyProfileId": "two-team-one-controller-three-slots-v1",
+        "topologyFingerprint": "ef5441d4e0ec7aa4ef2f251d8c17fbaafa9b8bfe1be6546154f78a4d64df04dc",
+        "contractProfileId": "generic-actor-match-2",
+        "matchContractFingerprint": "9f0510b19628fce5954b0c5f0d662c2b02f5731288a417c04cccd2e70b184bbb"
+      }
+    },
+    {
+      "id": "bulwark-vs-fabricator-current-preserve-facing",
+      "factors": {
+        "class-pair": "bulwark-vs-fabricator",
+        "map-topology": "current",
+        "movement-coupling": "preserve-facing"
+      },
+      "runnerCommand": "{toolchain} experiment frontline-labs --bot {bot} --opponent {opponent} --seed {seed} --runtime wasm --out {out} --classes bulwark-vs-fabricator --duel-map current",
+      "contract": {
+        "modeId": "frontline",
+        "rulesetId": "frontline-labs-1-experiment-classes-bulwark-vs-fabricator",
+        "rulesFingerprint": "9310f04a0a2762935268313ecc6bb462f3f71d4b60588fd6f43baac253e17036",
+        "seedProfileId": "frontline-labs-classes-1",
+        "mapId": "frontline-labs-01-classes",
+        "mapVersion": 1,
+        "mapFingerprint": "61f477904dfaf048093d5fb164f5d580f8b41f5c884eb357446de9b8739d1a3d",
+        "formatId": "head-to-head",
+        "formatFingerprint": "dc81a4f285ada9baceba99751e2de2ede8247cd943ad5c2164368c2f55129463",
+        "topologyProfileId": "two-team-one-controller-three-slots-v1",
+        "topologyFingerprint": "b12b9f8695231d68be5e7bdf6f547ca5ab3ac8880ff58deeab06543440e78175",
+        "contractProfileId": "generic-actor-match-2",
+        "matchContractFingerprint": "e78351a0de403c9ce4f83dcdfe591df69601c4d29f7e696770de076b5505bb9a"
+      }
+    },
+    {
+      "id": "bulwark-vs-fabricator-thin-fronts-preserve-facing",
+      "factors": {
+        "class-pair": "bulwark-vs-fabricator",
+        "map-topology": "thin-fronts",
+        "movement-coupling": "preserve-facing"
+      },
+      "runnerCommand": "{toolchain} experiment frontline-labs --bot {bot} --opponent {opponent} --seed {seed} --runtime wasm --out {out} --classes bulwark-vs-fabricator --duel-map thin-fronts",
+      "contract": {
+        "modeId": "frontline",
+        "rulesetId": "frontline-labs-1-experiment-classes-bulwark-vs-fabricator",
+        "rulesFingerprint": "9310f04a0a2762935268313ecc6bb462f3f71d4b60588fd6f43baac253e17036",
+        "seedProfileId": "frontline-labs-classes-1",
+        "mapId": "frontline-labs-01-thin-fronts-classes",
+        "mapVersion": 1,
+        "mapFingerprint": "5ddd64bb20dd778921e40dbb3ebea04fd9b376217e62b4d779fd7d32032d1500",
+        "formatId": "head-to-head",
+        "formatFingerprint": "dc81a4f285ada9baceba99751e2de2ede8247cd943ad5c2164368c2f55129463",
+        "topologyProfileId": "two-team-one-controller-three-slots-v1",
+        "topologyFingerprint": "b12b9f8695231d68be5e7bdf6f547ca5ab3ac8880ff58deeab06543440e78175",
+        "contractProfileId": "generic-actor-match-2",
+        "matchContractFingerprint": "d1f9f2c057f5d1c5e4339c5a2b217db05c3ebb44bb61488dce28b2cddcaaf430"
+      }
+    },
+    {
+      "id": "bulwark-vs-fabricator-outer-shoulder-preserve-facing",
+      "factors": {
+        "class-pair": "bulwark-vs-fabricator",
+        "map-topology": "outer-shoulder-bypass",
+        "movement-coupling": "preserve-facing"
+      },
+      "runnerCommand": "{toolchain} experiment frontline-labs --bot {bot} --opponent {opponent} --seed {seed} --runtime wasm --out {out} --classes bulwark-vs-fabricator --duel-map outer-shoulder-bypass",
+      "contract": {
+        "modeId": "frontline",
+        "rulesetId": "frontline-labs-1-experiment-classes-bulwark-vs-fabricator",
+        "rulesFingerprint": "9310f04a0a2762935268313ecc6bb462f3f71d4b60588fd6f43baac253e17036",
+        "seedProfileId": "frontline-labs-classes-1",
+        "mapId": "frontline-labs-01-outer-shoulder-classes",
+        "mapVersion": 1,
+        "mapFingerprint": "e62f0607ade2b6ad375375101a2c852dbde304a41c37313b7e5b9d839d18347d",
+        "formatId": "head-to-head",
+        "formatFingerprint": "dc81a4f285ada9baceba99751e2de2ede8247cd943ad5c2164368c2f55129463",
+        "topologyProfileId": "two-team-one-controller-three-slots-v1",
+        "topologyFingerprint": "b12b9f8695231d68be5e7bdf6f547ca5ab3ac8880ff58deeab06543440e78175",
+        "contractProfileId": "generic-actor-match-2",
+        "matchContractFingerprint": "dd5800a7198a6316dbd6dbe53aa8b1b472588533b2fd92c57c1d0916e7696f83"
+      }
+    },
+    {
+      "id": "bulwark-vs-striker-current-preserve-facing",
+      "factors": {
+        "class-pair": "bulwark-vs-striker",
+        "map-topology": "current",
+        "movement-coupling": "preserve-facing"
+      },
+      "runnerCommand": "{toolchain} experiment frontline-labs --bot {bot} --opponent {opponent} --seed {seed} --runtime wasm --out {out} --classes bulwark-vs-striker --duel-map current",
+      "contract": {
+        "modeId": "frontline",
+        "rulesetId": "frontline-labs-1-experiment-classes-bulwark-vs-striker",
+        "rulesFingerprint": "e627cd5499a5c512fec821591a85119022904f3f13f41cf136fc2b920dcb63e3",
+        "seedProfileId": "frontline-labs-classes-1",
+        "mapId": "frontline-labs-01-classes",
+        "mapVersion": 1,
+        "mapFingerprint": "61f477904dfaf048093d5fb164f5d580f8b41f5c884eb357446de9b8739d1a3d",
+        "formatId": "head-to-head",
+        "formatFingerprint": "dc81a4f285ada9baceba99751e2de2ede8247cd943ad5c2164368c2f55129463",
+        "topologyProfileId": "two-team-one-controller-three-slots-v1",
+        "topologyFingerprint": "fbd7f6eeaf533e72793afdc7d28de20d269c33998265d3c9b93f0c848fe615ac",
+        "contractProfileId": "generic-actor-match-2",
+        "matchContractFingerprint": "67e7116a34b6f679550622aa2a07af8333402f544d379c17696e2f42d1062e37"
+      }
+    },
+    {
+      "id": "bulwark-vs-striker-thin-fronts-preserve-facing",
+      "factors": {
+        "class-pair": "bulwark-vs-striker",
+        "map-topology": "thin-fronts",
+        "movement-coupling": "preserve-facing"
+      },
+      "runnerCommand": "{toolchain} experiment frontline-labs --bot {bot} --opponent {opponent} --seed {seed} --runtime wasm --out {out} --classes bulwark-vs-striker --duel-map thin-fronts",
+      "contract": {
+        "modeId": "frontline",
+        "rulesetId": "frontline-labs-1-experiment-classes-bulwark-vs-striker",
+        "rulesFingerprint": "e627cd5499a5c512fec821591a85119022904f3f13f41cf136fc2b920dcb63e3",
+        "seedProfileId": "frontline-labs-classes-1",
+        "mapId": "frontline-labs-01-thin-fronts-classes",
+        "mapVersion": 1,
+        "mapFingerprint": "5ddd64bb20dd778921e40dbb3ebea04fd9b376217e62b4d779fd7d32032d1500",
+        "formatId": "head-to-head",
+        "formatFingerprint": "dc81a4f285ada9baceba99751e2de2ede8247cd943ad5c2164368c2f55129463",
+        "topologyProfileId": "two-team-one-controller-three-slots-v1",
+        "topologyFingerprint": "fbd7f6eeaf533e72793afdc7d28de20d269c33998265d3c9b93f0c848fe615ac",
+        "contractProfileId": "generic-actor-match-2",
+        "matchContractFingerprint": "aded0ffb1bf3c1af80a77ebdbeaa2eecfc8d6ed86c444fb51476b0235be1b5cd"
+      }
+    },
+    {
+      "id": "bulwark-vs-striker-outer-shoulder-preserve-facing",
+      "factors": {
+        "class-pair": "bulwark-vs-striker",
+        "map-topology": "outer-shoulder-bypass",
+        "movement-coupling": "preserve-facing"
+      },
+      "runnerCommand": "{toolchain} experiment frontline-labs --bot {bot} --opponent {opponent} --seed {seed} --runtime wasm --out {out} --classes bulwark-vs-striker --duel-map outer-shoulder-bypass",
+      "contract": {
+        "modeId": "frontline",
+        "rulesetId": "frontline-labs-1-experiment-classes-bulwark-vs-striker",
+        "rulesFingerprint": "e627cd5499a5c512fec821591a85119022904f3f13f41cf136fc2b920dcb63e3",
+        "seedProfileId": "frontline-labs-classes-1",
+        "mapId": "frontline-labs-01-outer-shoulder-classes",
+        "mapVersion": 1,
+        "mapFingerprint": "e62f0607ade2b6ad375375101a2c852dbde304a41c37313b7e5b9d839d18347d",
+        "formatId": "head-to-head",
+        "formatFingerprint": "dc81a4f285ada9baceba99751e2de2ede8247cd943ad5c2164368c2f55129463",
+        "topologyProfileId": "two-team-one-controller-three-slots-v1",
+        "topologyFingerprint": "fbd7f6eeaf533e72793afdc7d28de20d269c33998265d3c9b93f0c848fe615ac",
+        "contractProfileId": "generic-actor-match-2",
+        "matchContractFingerprint": "dc02d6b3b0e1b7f34a307e8d50da9ac31406faeb401c946becec857c15814d0e"
+      }
+    },
+    {
+      "id": "fabricator-vs-fabricator-current-preserve-facing",
+      "factors": {
+        "class-pair": "fabricator-vs-fabricator",
+        "map-topology": "current",
+        "movement-coupling": "preserve-facing"
+      },
+      "runnerCommand": "{toolchain} experiment frontline-labs --bot {bot} --opponent {opponent} --seed {seed} --runtime wasm --out {out} --classes fabricator-vs-fabricator --duel-map current",
+      "contract": {
+        "modeId": "frontline",
+        "rulesetId": "frontline-labs-1-experiment-classes-fabricator-vs-fabricator",
+        "rulesFingerprint": "b096b2980f35584e283bf94bddadaebf3c2f3c45277dcff94147de96f58bab27",
+        "seedProfileId": "frontline-labs-classes-1",
+        "mapId": "frontline-labs-01-classes",
+        "mapVersion": 1,
+        "mapFingerprint": "61f477904dfaf048093d5fb164f5d580f8b41f5c884eb357446de9b8739d1a3d",
+        "formatId": "head-to-head",
+        "formatFingerprint": "dc81a4f285ada9baceba99751e2de2ede8247cd943ad5c2164368c2f55129463",
+        "topologyProfileId": "two-team-one-controller-three-slots-v1",
+        "topologyFingerprint": "f3fc1fa7510b0c08ca792a561904d9d38be7c1e04addd0771595a540b9e279f6",
+        "contractProfileId": "generic-actor-match-2",
+        "matchContractFingerprint": "cb165ab15fb81c6e078c19f97dd7d2cc6c72500ae26b06bb583f8711e1a54015"
+      }
+    },
+    {
+      "id": "fabricator-vs-fabricator-thin-fronts-preserve-facing",
+      "factors": {
+        "class-pair": "fabricator-vs-fabricator",
+        "map-topology": "thin-fronts",
+        "movement-coupling": "preserve-facing"
+      },
+      "runnerCommand": "{toolchain} experiment frontline-labs --bot {bot} --opponent {opponent} --seed {seed} --runtime wasm --out {out} --classes fabricator-vs-fabricator --duel-map thin-fronts",
+      "contract": {
+        "modeId": "frontline",
+        "rulesetId": "frontline-labs-1-experiment-classes-fabricator-vs-fabricator",
+        "rulesFingerprint": "b096b2980f35584e283bf94bddadaebf3c2f3c45277dcff94147de96f58bab27",
+        "seedProfileId": "frontline-labs-classes-1",
+        "mapId": "frontline-labs-01-thin-fronts-classes",
+        "mapVersion": 1,
+        "mapFingerprint": "5ddd64bb20dd778921e40dbb3ebea04fd9b376217e62b4d779fd7d32032d1500",
+        "formatId": "head-to-head",
+        "formatFingerprint": "dc81a4f285ada9baceba99751e2de2ede8247cd943ad5c2164368c2f55129463",
+        "topologyProfileId": "two-team-one-controller-three-slots-v1",
+        "topologyFingerprint": "f3fc1fa7510b0c08ca792a561904d9d38be7c1e04addd0771595a540b9e279f6",
+        "contractProfileId": "generic-actor-match-2",
+        "matchContractFingerprint": "d906c398ff1772d735816a31d67efd8a2d42320ed29d702234fc3e9c8e383d39"
+      }
+    },
+    {
+      "id": "fabricator-vs-fabricator-outer-shoulder-preserve-facing",
+      "factors": {
+        "class-pair": "fabricator-vs-fabricator",
+        "map-topology": "outer-shoulder-bypass",
+        "movement-coupling": "preserve-facing"
+      },
+      "runnerCommand": "{toolchain} experiment frontline-labs --bot {bot} --opponent {opponent} --seed {seed} --runtime wasm --out {out} --classes fabricator-vs-fabricator --duel-map outer-shoulder-bypass",
+      "contract": {
+        "modeId": "frontline",
+        "rulesetId": "frontline-labs-1-experiment-classes-fabricator-vs-fabricator",
+        "rulesFingerprint": "b096b2980f35584e283bf94bddadaebf3c2f3c45277dcff94147de96f58bab27",
+        "seedProfileId": "frontline-labs-classes-1",
+        "mapId": "frontline-labs-01-outer-shoulder-classes",
+        "mapVersion": 1,
+        "mapFingerprint": "e62f0607ade2b6ad375375101a2c852dbde304a41c37313b7e5b9d839d18347d",
+        "formatId": "head-to-head",
+        "formatFingerprint": "dc81a4f285ada9baceba99751e2de2ede8247cd943ad5c2164368c2f55129463",
+        "topologyProfileId": "two-team-one-controller-three-slots-v1",
+        "topologyFingerprint": "f3fc1fa7510b0c08ca792a561904d9d38be7c1e04addd0771595a540b9e279f6",
+        "contractProfileId": "generic-actor-match-2",
+        "matchContractFingerprint": "9892f196d933062e8e5e999a2114889c4daf606f5fa3ac2fac8f90cfd69455ef"
+      }
+    },
+    {
+      "id": "fabricator-vs-striker-current-preserve-facing",
+      "factors": {
+        "class-pair": "fabricator-vs-striker",
+        "map-topology": "current",
+        "movement-coupling": "preserve-facing"
+      },
+      "runnerCommand": "{toolchain} experiment frontline-labs --bot {bot} --opponent {opponent} --seed {seed} --runtime wasm --out {out} --classes fabricator-vs-striker --duel-map current",
+      "contract": {
+        "modeId": "frontline",
+        "rulesetId": "frontline-labs-1-experiment-classes-fabricator-vs-striker",
+        "rulesFingerprint": "9c354eacfa40f91a51f5e7275bddb374ae99f93114c63439969533796eb57345",
+        "seedProfileId": "frontline-labs-classes-1",
+        "mapId": "frontline-labs-01-classes",
+        "mapVersion": 1,
+        "mapFingerprint": "61f477904dfaf048093d5fb164f5d580f8b41f5c884eb357446de9b8739d1a3d",
+        "formatId": "head-to-head",
+        "formatFingerprint": "dc81a4f285ada9baceba99751e2de2ede8247cd943ad5c2164368c2f55129463",
+        "topologyProfileId": "two-team-one-controller-three-slots-v1",
+        "topologyFingerprint": "d7e010c79f5d52a57175f941b8636d565c014cbdffeb8bc45f1949b5ab53222d",
+        "contractProfileId": "generic-actor-match-2",
+        "matchContractFingerprint": "8aeba4395dba036d1ddcff83a870d954ba1f1466663e1112953ddf6261834485"
+      }
+    },
+    {
+      "id": "fabricator-vs-striker-thin-fronts-preserve-facing",
+      "factors": {
+        "class-pair": "fabricator-vs-striker",
+        "map-topology": "thin-fronts",
+        "movement-coupling": "preserve-facing"
+      },
+      "runnerCommand": "{toolchain} experiment frontline-labs --bot {bot} --opponent {opponent} --seed {seed} --runtime wasm --out {out} --classes fabricator-vs-striker --duel-map thin-fronts",
+      "contract": {
+        "modeId": "frontline",
+        "rulesetId": "frontline-labs-1-experiment-classes-fabricator-vs-striker",
+        "rulesFingerprint": "9c354eacfa40f91a51f5e7275bddb374ae99f93114c63439969533796eb57345",
+        "seedProfileId": "frontline-labs-classes-1",
+        "mapId": "frontline-labs-01-thin-fronts-classes",
+        "mapVersion": 1,
+        "mapFingerprint": "5ddd64bb20dd778921e40dbb3ebea04fd9b376217e62b4d779fd7d32032d1500",
+        "formatId": "head-to-head",
+        "formatFingerprint": "dc81a4f285ada9baceba99751e2de2ede8247cd943ad5c2164368c2f55129463",
+        "topologyProfileId": "two-team-one-controller-three-slots-v1",
+        "topologyFingerprint": "d7e010c79f5d52a57175f941b8636d565c014cbdffeb8bc45f1949b5ab53222d",
+        "contractProfileId": "generic-actor-match-2",
+        "matchContractFingerprint": "608083ff61fafc08d84b298a9c89a66ae883037c8e59427fc56d3cdb20929c20"
+      }
+    },
+    {
+      "id": "fabricator-vs-striker-outer-shoulder-preserve-facing",
+      "factors": {
+        "class-pair": "fabricator-vs-striker",
+        "map-topology": "outer-shoulder-bypass",
+        "movement-coupling": "preserve-facing"
+      },
+      "runnerCommand": "{toolchain} experiment frontline-labs --bot {bot} --opponent {opponent} --seed {seed} --runtime wasm --out {out} --classes fabricator-vs-striker --duel-map outer-shoulder-bypass",
+      "contract": {
+        "modeId": "frontline",
+        "rulesetId": "frontline-labs-1-experiment-classes-fabricator-vs-striker",
+        "rulesFingerprint": "9c354eacfa40f91a51f5e7275bddb374ae99f93114c63439969533796eb57345",
+        "seedProfileId": "frontline-labs-classes-1",
+        "mapId": "frontline-labs-01-outer-shoulder-classes",
+        "mapVersion": 1,
+        "mapFingerprint": "e62f0607ade2b6ad375375101a2c852dbde304a41c37313b7e5b9d839d18347d",
+        "formatId": "head-to-head",
+        "formatFingerprint": "dc81a4f285ada9baceba99751e2de2ede8247cd943ad5c2164368c2f55129463",
+        "topologyProfileId": "two-team-one-controller-three-slots-v1",
+        "topologyFingerprint": "d7e010c79f5d52a57175f941b8636d565c014cbdffeb8bc45f1949b5ab53222d",
+        "contractProfileId": "generic-actor-match-2",
+        "matchContractFingerprint": "326102d91cf398d27fb25f7240ea836c732e478bcd7f1b41099ad9918570a199"
+      }
+    },
+    {
+      "id": "striker-vs-striker-current-preserve-facing",
+      "factors": {
+        "class-pair": "striker-vs-striker",
+        "map-topology": "current",
+        "movement-coupling": "preserve-facing"
+      },
+      "runnerCommand": "{toolchain} experiment frontline-labs --bot {bot} --opponent {opponent} --seed {seed} --runtime wasm --out {out} --classes striker-vs-striker --duel-map current",
+      "contract": {
+        "modeId": "frontline",
+        "rulesetId": "frontline-labs-1-experiment-classes-striker-vs-striker",
+        "rulesFingerprint": "1fbdc406bed586445daf5d249eae1b8ea63b5161e99da4b262a8bcb5a28db550",
+        "seedProfileId": "frontline-labs-classes-1",
+        "mapId": "frontline-labs-01-classes",
+        "mapVersion": 1,
+        "mapFingerprint": "61f477904dfaf048093d5fb164f5d580f8b41f5c884eb357446de9b8739d1a3d",
+        "formatId": "head-to-head",
+        "formatFingerprint": "dc81a4f285ada9baceba99751e2de2ede8247cd943ad5c2164368c2f55129463",
+        "topologyProfileId": "two-team-one-controller-three-slots-v1",
+        "topologyFingerprint": "d2a7178f29dc54263caccb93e3f71a34d1a4b9960e82b8ce8d8934e74efad117",
+        "contractProfileId": "generic-actor-match-2",
+        "matchContractFingerprint": "87aa3ba35145f9ddd62730aead49bb014cb346ae2a365e21e03e7d265cdd7c95"
+      }
+    },
+    {
+      "id": "striker-vs-striker-thin-fronts-preserve-facing",
+      "factors": {
+        "class-pair": "striker-vs-striker",
+        "map-topology": "thin-fronts",
+        "movement-coupling": "preserve-facing"
+      },
+      "runnerCommand": "{toolchain} experiment frontline-labs --bot {bot} --opponent {opponent} --seed {seed} --runtime wasm --out {out} --classes striker-vs-striker --duel-map thin-fronts",
+      "contract": {
+        "modeId": "frontline",
+        "rulesetId": "frontline-labs-1-experiment-classes-striker-vs-striker",
+        "rulesFingerprint": "1fbdc406bed586445daf5d249eae1b8ea63b5161e99da4b262a8bcb5a28db550",
+        "seedProfileId": "frontline-labs-classes-1",
+        "mapId": "frontline-labs-01-thin-fronts-classes",
+        "mapVersion": 1,
+        "mapFingerprint": "5ddd64bb20dd778921e40dbb3ebea04fd9b376217e62b4d779fd7d32032d1500",
+        "formatId": "head-to-head",
+        "formatFingerprint": "dc81a4f285ada9baceba99751e2de2ede8247cd943ad5c2164368c2f55129463",
+        "topologyProfileId": "two-team-one-controller-three-slots-v1",
+        "topologyFingerprint": "d2a7178f29dc54263caccb93e3f71a34d1a4b9960e82b8ce8d8934e74efad117",
+        "contractProfileId": "generic-actor-match-2",
+        "matchContractFingerprint": "aed45d09e78fe1fd6fd844cfe4a2e019f9412915a377c5af6bbce272b6aeb4d3"
+      }
+    },
+    {
+      "id": "striker-vs-striker-outer-shoulder-preserve-facing",
+      "factors": {
+        "class-pair": "striker-vs-striker",
+        "map-topology": "outer-shoulder-bypass",
+        "movement-coupling": "preserve-facing"
+      },
+      "runnerCommand": "{toolchain} experiment frontline-labs --bot {bot} --opponent {opponent} --seed {seed} --runtime wasm --out {out} --classes striker-vs-striker --duel-map outer-shoulder-bypass",
+      "contract": {
+        "modeId": "frontline",
+        "rulesetId": "frontline-labs-1-experiment-classes-striker-vs-striker",
+        "rulesFingerprint": "1fbdc406bed586445daf5d249eae1b8ea63b5161e99da4b262a8bcb5a28db550",
+        "seedProfileId": "frontline-labs-classes-1",
+        "mapId": "frontline-labs-01-outer-shoulder-classes",
+        "mapVersion": 1,
+        "mapFingerprint": "e62f0607ade2b6ad375375101a2c852dbde304a41c37313b7e5b9d839d18347d",
+        "formatId": "head-to-head",
+        "formatFingerprint": "dc81a4f285ada9baceba99751e2de2ede8247cd943ad5c2164368c2f55129463",
+        "topologyProfileId": "two-team-one-controller-three-slots-v1",
+        "topologyFingerprint": "d2a7178f29dc54263caccb93e3f71a34d1a4b9960e82b8ce8d8934e74efad117",
+        "contractProfileId": "generic-actor-match-2",
+        "matchContractFingerprint": "12216fb3e23f30a8a5cef9ad3c9225b7a0ca9d6ba28c81dc159382d1f2ca6333"
+      }
+    },
+    {
+      "id": "bulwark-vs-bulwark-current-move-sets-facing",
+      "factors": {
+        "class-pair": "bulwark-vs-bulwark",
+        "map-topology": "current",
+        "movement-coupling": "move-sets-facing"
+      },
+      "runnerCommand": "{toolchain} experiment frontline-labs --bot {bot} --opponent {opponent} --seed {seed} --runtime wasm --out {out} --classes bulwark-vs-bulwark --duel-map current --movement move-sets-facing",
+      "contract": {
+        "modeId": "frontline",
+        "rulesetId": "frontline-labs-1-classes-bulwark-vs-bulwark-sets-facing",
+        "rulesFingerprint": "f42fff05c7a16cc5fdf87ce23520ad5a148d7f75a05a30dac8589afcd746478b",
+        "seedProfileId": "frontline-labs-classes-1",
+        "mapId": "frontline-labs-01-classes",
+        "mapVersion": 1,
+        "mapFingerprint": "61f477904dfaf048093d5fb164f5d580f8b41f5c884eb357446de9b8739d1a3d",
+        "formatId": "head-to-head",
+        "formatFingerprint": "dc81a4f285ada9baceba99751e2de2ede8247cd943ad5c2164368c2f55129463",
+        "topologyProfileId": "two-team-one-controller-three-slots-v1",
+        "topologyFingerprint": "ef5441d4e0ec7aa4ef2f251d8c17fbaafa9b8bfe1be6546154f78a4d64df04dc",
+        "contractProfileId": "generic-actor-match-2",
+        "matchContractFingerprint": "4098dbad0097d4d0beceede83582541d24bf21ea3aaf624ad3dd2475cc6dcb0f"
+      }
+    },
+    {
+      "id": "bulwark-vs-bulwark-current-facing-locked",
+      "factors": {
+        "class-pair": "bulwark-vs-bulwark",
+        "map-topology": "current",
+        "movement-coupling": "facing-locked"
+      },
+      "runnerCommand": "{toolchain} experiment frontline-labs --bot {bot} --opponent {opponent} --seed {seed} --runtime wasm --out {out} --classes bulwark-vs-bulwark --duel-map current --movement facing-locked",
+      "contract": {
+        "modeId": "frontline",
+        "rulesetId": "frontline-labs-1-classes-bulwark-vs-bulwark-facing-locked",
+        "rulesFingerprint": "22a920edaef533b840227fa4aa2cac7fd54d90be2568e9d6f06ed64f22a833c3",
+        "seedProfileId": "frontline-labs-classes-1",
+        "mapId": "frontline-labs-01-classes",
+        "mapVersion": 1,
+        "mapFingerprint": "61f477904dfaf048093d5fb164f5d580f8b41f5c884eb357446de9b8739d1a3d",
+        "formatId": "head-to-head",
+        "formatFingerprint": "dc81a4f285ada9baceba99751e2de2ede8247cd943ad5c2164368c2f55129463",
+        "topologyProfileId": "two-team-one-controller-three-slots-v1",
+        "topologyFingerprint": "ef5441d4e0ec7aa4ef2f251d8c17fbaafa9b8bfe1be6546154f78a4d64df04dc",
+        "contractProfileId": "generic-actor-match-2",
+        "matchContractFingerprint": "d6008d08bff5445d8844f22ae9790966739d276e7f22274a88be6f0152be7090"
+      }
+    },
+    {
+      "id": "bulwark-vs-bulwark-thin-fronts-move-sets-facing",
+      "factors": {
+        "class-pair": "bulwark-vs-bulwark",
+        "map-topology": "thin-fronts",
+        "movement-coupling": "move-sets-facing"
+      },
+      "runnerCommand": "{toolchain} experiment frontline-labs --bot {bot} --opponent {opponent} --seed {seed} --runtime wasm --out {out} --classes bulwark-vs-bulwark --duel-map thin-fronts --movement move-sets-facing",
+      "contract": {
+        "modeId": "frontline",
+        "rulesetId": "frontline-labs-1-classes-bulwark-vs-bulwark-sets-facing",
+        "rulesFingerprint": "f42fff05c7a16cc5fdf87ce23520ad5a148d7f75a05a30dac8589afcd746478b",
+        "seedProfileId": "frontline-labs-classes-1",
+        "mapId": "frontline-labs-01-thin-fronts-classes",
+        "mapVersion": 1,
+        "mapFingerprint": "5ddd64bb20dd778921e40dbb3ebea04fd9b376217e62b4d779fd7d32032d1500",
+        "formatId": "head-to-head",
+        "formatFingerprint": "dc81a4f285ada9baceba99751e2de2ede8247cd943ad5c2164368c2f55129463",
+        "topologyProfileId": "two-team-one-controller-three-slots-v1",
+        "topologyFingerprint": "ef5441d4e0ec7aa4ef2f251d8c17fbaafa9b8bfe1be6546154f78a4d64df04dc",
+        "contractProfileId": "generic-actor-match-2",
+        "matchContractFingerprint": "edc11b60cb10a3970c0c35dadc6cdc0dd54eb2f98031a79d1a19d559ef2645e3"
+      }
+    },
+    {
+      "id": "bulwark-vs-bulwark-thin-fronts-facing-locked",
+      "factors": {
+        "class-pair": "bulwark-vs-bulwark",
+        "map-topology": "thin-fronts",
+        "movement-coupling": "facing-locked"
+      },
+      "runnerCommand": "{toolchain} experiment frontline-labs --bot {bot} --opponent {opponent} --seed {seed} --runtime wasm --out {out} --classes bulwark-vs-bulwark --duel-map thin-fronts --movement facing-locked",
+      "contract": {
+        "modeId": "frontline",
+        "rulesetId": "frontline-labs-1-classes-bulwark-vs-bulwark-facing-locked",
+        "rulesFingerprint": "22a920edaef533b840227fa4aa2cac7fd54d90be2568e9d6f06ed64f22a833c3",
+        "seedProfileId": "frontline-labs-classes-1",
+        "mapId": "frontline-labs-01-thin-fronts-classes",
+        "mapVersion": 1,
+        "mapFingerprint": "5ddd64bb20dd778921e40dbb3ebea04fd9b376217e62b4d779fd7d32032d1500",
+        "formatId": "head-to-head",
+        "formatFingerprint": "dc81a4f285ada9baceba99751e2de2ede8247cd943ad5c2164368c2f55129463",
+        "topologyProfileId": "two-team-one-controller-three-slots-v1",
+        "topologyFingerprint": "ef5441d4e0ec7aa4ef2f251d8c17fbaafa9b8bfe1be6546154f78a4d64df04dc",
+        "contractProfileId": "generic-actor-match-2",
+        "matchContractFingerprint": "4dd5402af111b045b7a01f15975edfcaca19f68259d464dd0cc806a95793dc79"
+      }
+    },
+    {
+      "id": "bulwark-vs-bulwark-outer-shoulder-move-sets-facing",
+      "factors": {
+        "class-pair": "bulwark-vs-bulwark",
+        "map-topology": "outer-shoulder-bypass",
+        "movement-coupling": "move-sets-facing"
+      },
+      "runnerCommand": "{toolchain} experiment frontline-labs --bot {bot} --opponent {opponent} --seed {seed} --runtime wasm --out {out} --classes bulwark-vs-bulwark --duel-map outer-shoulder-bypass --movement move-sets-facing",
+      "contract": {
+        "modeId": "frontline",
+        "rulesetId": "frontline-labs-1-classes-bulwark-vs-bulwark-sets-facing",
+        "rulesFingerprint": "f42fff05c7a16cc5fdf87ce23520ad5a148d7f75a05a30dac8589afcd746478b",
+        "seedProfileId": "frontline-labs-classes-1",
+        "mapId": "frontline-labs-01-outer-shoulder-classes",
+        "mapVersion": 1,
+        "mapFingerprint": "e62f0607ade2b6ad375375101a2c852dbde304a41c37313b7e5b9d839d18347d",
+        "formatId": "head-to-head",
+        "formatFingerprint": "dc81a4f285ada9baceba99751e2de2ede8247cd943ad5c2164368c2f55129463",
+        "topologyProfileId": "two-team-one-controller-three-slots-v1",
+        "topologyFingerprint": "ef5441d4e0ec7aa4ef2f251d8c17fbaafa9b8bfe1be6546154f78a4d64df04dc",
+        "contractProfileId": "generic-actor-match-2",
+        "matchContractFingerprint": "c8fd2bbf1cff2966f7384afc57a009309c2fb4a500af432fb25d9c516d56e6e7"
+      }
+    },
+    {
+      "id": "bulwark-vs-bulwark-outer-shoulder-facing-locked",
+      "factors": {
+        "class-pair": "bulwark-vs-bulwark",
+        "map-topology": "outer-shoulder-bypass",
+        "movement-coupling": "facing-locked"
+      },
+      "runnerCommand": "{toolchain} experiment frontline-labs --bot {bot} --opponent {opponent} --seed {seed} --runtime wasm --out {out} --classes bulwark-vs-bulwark --duel-map outer-shoulder-bypass --movement facing-locked",
+      "contract": {
+        "modeId": "frontline",
+        "rulesetId": "frontline-labs-1-classes-bulwark-vs-bulwark-facing-locked",
+        "rulesFingerprint": "22a920edaef533b840227fa4aa2cac7fd54d90be2568e9d6f06ed64f22a833c3",
+        "seedProfileId": "frontline-labs-classes-1",
+        "mapId": "frontline-labs-01-outer-shoulder-classes",
+        "mapVersion": 1,
+        "mapFingerprint": "e62f0607ade2b6ad375375101a2c852dbde304a41c37313b7e5b9d839d18347d",
+        "formatId": "head-to-head",
+        "formatFingerprint": "dc81a4f285ada9baceba99751e2de2ede8247cd943ad5c2164368c2f55129463",
+        "topologyProfileId": "two-team-one-controller-three-slots-v1",
+        "topologyFingerprint": "ef5441d4e0ec7aa4ef2f251d8c17fbaafa9b8bfe1be6546154f78a4d64df04dc",
+        "contractProfileId": "generic-actor-match-2",
+        "matchContractFingerprint": "9e67e89869e0e48857de3f7bf07166d330b376a5cf9037166e106ad6f66e468d"
+      }
+    },
+    {
+      "id": "bulwark-vs-fabricator-current-move-sets-facing",
+      "factors": {
+        "class-pair": "bulwark-vs-fabricator",
+        "map-topology": "current",
+        "movement-coupling": "move-sets-facing"
+      },
+      "runnerCommand": "{toolchain} experiment frontline-labs --bot {bot} --opponent {opponent} --seed {seed} --runtime wasm --out {out} --classes bulwark-vs-fabricator --duel-map current --movement move-sets-facing",
+      "contract": {
+        "modeId": "frontline",
+        "rulesetId": "frontline-labs-1-classes-bulwark-vs-fabricator-sets-facing",
+        "rulesFingerprint": "6ceed2b07e0a0c1ae45970dd5f3ff6dc8480362da516ca83dba107bf2e22f571",
+        "seedProfileId": "frontline-labs-classes-1",
+        "mapId": "frontline-labs-01-classes",
+        "mapVersion": 1,
+        "mapFingerprint": "61f477904dfaf048093d5fb164f5d580f8b41f5c884eb357446de9b8739d1a3d",
+        "formatId": "head-to-head",
+        "formatFingerprint": "dc81a4f285ada9baceba99751e2de2ede8247cd943ad5c2164368c2f55129463",
+        "topologyProfileId": "two-team-one-controller-three-slots-v1",
+        "topologyFingerprint": "b12b9f8695231d68be5e7bdf6f547ca5ab3ac8880ff58deeab06543440e78175",
+        "contractProfileId": "generic-actor-match-2",
+        "matchContractFingerprint": "f9a6eb02e8b529643b841d28ca273fe0668ed8bea5c258fd3caf0a7a92539e70"
+      }
+    },
+    {
+      "id": "bulwark-vs-fabricator-current-facing-locked",
+      "factors": {
+        "class-pair": "bulwark-vs-fabricator",
+        "map-topology": "current",
+        "movement-coupling": "facing-locked"
+      },
+      "runnerCommand": "{toolchain} experiment frontline-labs --bot {bot} --opponent {opponent} --seed {seed} --runtime wasm --out {out} --classes bulwark-vs-fabricator --duel-map current --movement facing-locked",
+      "contract": {
+        "modeId": "frontline",
+        "rulesetId": "frontline-labs-1-classes-bulwark-vs-fabricator-facing-locked",
+        "rulesFingerprint": "0d1a650a04a71a48ccd05d3ed872e25223e969883e652c10a27c973ef9c53ccb",
+        "seedProfileId": "frontline-labs-classes-1",
+        "mapId": "frontline-labs-01-classes",
+        "mapVersion": 1,
+        "mapFingerprint": "61f477904dfaf048093d5fb164f5d580f8b41f5c884eb357446de9b8739d1a3d",
+        "formatId": "head-to-head",
+        "formatFingerprint": "dc81a4f285ada9baceba99751e2de2ede8247cd943ad5c2164368c2f55129463",
+        "topologyProfileId": "two-team-one-controller-three-slots-v1",
+        "topologyFingerprint": "b12b9f8695231d68be5e7bdf6f547ca5ab3ac8880ff58deeab06543440e78175",
+        "contractProfileId": "generic-actor-match-2",
+        "matchContractFingerprint": "4df27499a0af1273c0a596e7e5b92e07c577f644492ee2d292e9756966071318"
+      }
+    },
+    {
+      "id": "bulwark-vs-fabricator-thin-fronts-move-sets-facing",
+      "factors": {
+        "class-pair": "bulwark-vs-fabricator",
+        "map-topology": "thin-fronts",
+        "movement-coupling": "move-sets-facing"
+      },
+      "runnerCommand": "{toolchain} experiment frontline-labs --bot {bot} --opponent {opponent} --seed {seed} --runtime wasm --out {out} --classes bulwark-vs-fabricator --duel-map thin-fronts --movement move-sets-facing",
+      "contract": {
+        "modeId": "frontline",
+        "rulesetId": "frontline-labs-1-classes-bulwark-vs-fabricator-sets-facing",
+        "rulesFingerprint": "6ceed2b07e0a0c1ae45970dd5f3ff6dc8480362da516ca83dba107bf2e22f571",
+        "seedProfileId": "frontline-labs-classes-1",
+        "mapId": "frontline-labs-01-thin-fronts-classes",
+        "mapVersion": 1,
+        "mapFingerprint": "5ddd64bb20dd778921e40dbb3ebea04fd9b376217e62b4d779fd7d32032d1500",
+        "formatId": "head-to-head",
+        "formatFingerprint": "dc81a4f285ada9baceba99751e2de2ede8247cd943ad5c2164368c2f55129463",
+        "topologyProfileId": "two-team-one-controller-three-slots-v1",
+        "topologyFingerprint": "b12b9f8695231d68be5e7bdf6f547ca5ab3ac8880ff58deeab06543440e78175",
+        "contractProfileId": "generic-actor-match-2",
+        "matchContractFingerprint": "d684f1f3d8829f0925e1d79256e8b1332fb6f71cc1226d3e03d5ef12d41d1106"
+      }
+    },
+    {
+      "id": "bulwark-vs-fabricator-thin-fronts-facing-locked",
+      "factors": {
+        "class-pair": "bulwark-vs-fabricator",
+        "map-topology": "thin-fronts",
+        "movement-coupling": "facing-locked"
+      },
+      "runnerCommand": "{toolchain} experiment frontline-labs --bot {bot} --opponent {opponent} --seed {seed} --runtime wasm --out {out} --classes bulwark-vs-fabricator --duel-map thin-fronts --movement facing-locked",
+      "contract": {
+        "modeId": "frontline",
+        "rulesetId": "frontline-labs-1-classes-bulwark-vs-fabricator-facing-locked",
+        "rulesFingerprint": "0d1a650a04a71a48ccd05d3ed872e25223e969883e652c10a27c973ef9c53ccb",
+        "seedProfileId": "frontline-labs-classes-1",
+        "mapId": "frontline-labs-01-thin-fronts-classes",
+        "mapVersion": 1,
+        "mapFingerprint": "5ddd64bb20dd778921e40dbb3ebea04fd9b376217e62b4d779fd7d32032d1500",
+        "formatId": "head-to-head",
+        "formatFingerprint": "dc81a4f285ada9baceba99751e2de2ede8247cd943ad5c2164368c2f55129463",
+        "topologyProfileId": "two-team-one-controller-three-slots-v1",
+        "topologyFingerprint": "b12b9f8695231d68be5e7bdf6f547ca5ab3ac8880ff58deeab06543440e78175",
+        "contractProfileId": "generic-actor-match-2",
+        "matchContractFingerprint": "f9de9bfcab6253172b1412d2407f18ccf5c6c116213766a4845478d11b766311"
+      }
+    },
+    {
+      "id": "bulwark-vs-fabricator-outer-shoulder-move-sets-facing",
+      "factors": {
+        "class-pair": "bulwark-vs-fabricator",
+        "map-topology": "outer-shoulder-bypass",
+        "movement-coupling": "move-sets-facing"
+      },
+      "runnerCommand": "{toolchain} experiment frontline-labs --bot {bot} --opponent {opponent} --seed {seed} --runtime wasm --out {out} --classes bulwark-vs-fabricator --duel-map outer-shoulder-bypass --movement move-sets-facing",
+      "contract": {
+        "modeId": "frontline",
+        "rulesetId": "frontline-labs-1-classes-bulwark-vs-fabricator-sets-facing",
+        "rulesFingerprint": "6ceed2b07e0a0c1ae45970dd5f3ff6dc8480362da516ca83dba107bf2e22f571",
+        "seedProfileId": "frontline-labs-classes-1",
+        "mapId": "frontline-labs-01-outer-shoulder-classes",
+        "mapVersion": 1,
+        "mapFingerprint": "e62f0607ade2b6ad375375101a2c852dbde304a41c37313b7e5b9d839d18347d",
+        "formatId": "head-to-head",
+        "formatFingerprint": "dc81a4f285ada9baceba99751e2de2ede8247cd943ad5c2164368c2f55129463",
+        "topologyProfileId": "two-team-one-controller-three-slots-v1",
+        "topologyFingerprint": "b12b9f8695231d68be5e7bdf6f547ca5ab3ac8880ff58deeab06543440e78175",
+        "contractProfileId": "generic-actor-match-2",
+        "matchContractFingerprint": "074641340a12385ce8993dd80748cd32faa3b2b2022285ddbf68da7afdd5be69"
+      }
+    },
+    {
+      "id": "bulwark-vs-fabricator-outer-shoulder-facing-locked",
+      "factors": {
+        "class-pair": "bulwark-vs-fabricator",
+        "map-topology": "outer-shoulder-bypass",
+        "movement-coupling": "facing-locked"
+      },
+      "runnerCommand": "{toolchain} experiment frontline-labs --bot {bot} --opponent {opponent} --seed {seed} --runtime wasm --out {out} --classes bulwark-vs-fabricator --duel-map outer-shoulder-bypass --movement facing-locked",
+      "contract": {
+        "modeId": "frontline",
+        "rulesetId": "frontline-labs-1-classes-bulwark-vs-fabricator-facing-locked",
+        "rulesFingerprint": "0d1a650a04a71a48ccd05d3ed872e25223e969883e652c10a27c973ef9c53ccb",
+        "seedProfileId": "frontline-labs-classes-1",
+        "mapId": "frontline-labs-01-outer-shoulder-classes",
+        "mapVersion": 1,
+        "mapFingerprint": "e62f0607ade2b6ad375375101a2c852dbde304a41c37313b7e5b9d839d18347d",
+        "formatId": "head-to-head",
+        "formatFingerprint": "dc81a4f285ada9baceba99751e2de2ede8247cd943ad5c2164368c2f55129463",
+        "topologyProfileId": "two-team-one-controller-three-slots-v1",
+        "topologyFingerprint": "b12b9f8695231d68be5e7bdf6f547ca5ab3ac8880ff58deeab06543440e78175",
+        "contractProfileId": "generic-actor-match-2",
+        "matchContractFingerprint": "db96c94202da23e83153ca80954823a4162ef2f558d0da4472354230447c7210"
+      }
+    },
+    {
+      "id": "bulwark-vs-striker-current-move-sets-facing",
+      "factors": {
+        "class-pair": "bulwark-vs-striker",
+        "map-topology": "current",
+        "movement-coupling": "move-sets-facing"
+      },
+      "runnerCommand": "{toolchain} experiment frontline-labs --bot {bot} --opponent {opponent} --seed {seed} --runtime wasm --out {out} --classes bulwark-vs-striker --duel-map current --movement move-sets-facing",
+      "contract": {
+        "modeId": "frontline",
+        "rulesetId": "frontline-labs-1-classes-bulwark-vs-striker-sets-facing",
+        "rulesFingerprint": "ab7202524c41cc23962c604aa5d5ab49a85aa9a59b331a5979776ea39c023b95",
+        "seedProfileId": "frontline-labs-classes-1",
+        "mapId": "frontline-labs-01-classes",
+        "mapVersion": 1,
+        "mapFingerprint": "61f477904dfaf048093d5fb164f5d580f8b41f5c884eb357446de9b8739d1a3d",
+        "formatId": "head-to-head",
+        "formatFingerprint": "dc81a4f285ada9baceba99751e2de2ede8247cd943ad5c2164368c2f55129463",
+        "topologyProfileId": "two-team-one-controller-three-slots-v1",
+        "topologyFingerprint": "fbd7f6eeaf533e72793afdc7d28de20d269c33998265d3c9b93f0c848fe615ac",
+        "contractProfileId": "generic-actor-match-2",
+        "matchContractFingerprint": "94c5e758c8f6cd716a81995c87161678e386cba068254f2ed0b5ff953891ce69"
+      }
+    },
+    {
+      "id": "bulwark-vs-striker-current-facing-locked",
+      "factors": {
+        "class-pair": "bulwark-vs-striker",
+        "map-topology": "current",
+        "movement-coupling": "facing-locked"
+      },
+      "runnerCommand": "{toolchain} experiment frontline-labs --bot {bot} --opponent {opponent} --seed {seed} --runtime wasm --out {out} --classes bulwark-vs-striker --duel-map current --movement facing-locked",
+      "contract": {
+        "modeId": "frontline",
+        "rulesetId": "frontline-labs-1-classes-bulwark-vs-striker-facing-locked",
+        "rulesFingerprint": "af60fcda888423d27a19b4a9d21595c178a841f36de93575593bcf0004371392",
+        "seedProfileId": "frontline-labs-classes-1",
+        "mapId": "frontline-labs-01-classes",
+        "mapVersion": 1,
+        "mapFingerprint": "61f477904dfaf048093d5fb164f5d580f8b41f5c884eb357446de9b8739d1a3d",
+        "formatId": "head-to-head",
+        "formatFingerprint": "dc81a4f285ada9baceba99751e2de2ede8247cd943ad5c2164368c2f55129463",
+        "topologyProfileId": "two-team-one-controller-three-slots-v1",
+        "topologyFingerprint": "fbd7f6eeaf533e72793afdc7d28de20d269c33998265d3c9b93f0c848fe615ac",
+        "contractProfileId": "generic-actor-match-2",
+        "matchContractFingerprint": "a4e312238ad86ecb2b555fbc65080d6c7160f47feccafe49dc410cda0fb4fabe"
+      }
+    },
+    {
+      "id": "bulwark-vs-striker-thin-fronts-move-sets-facing",
+      "factors": {
+        "class-pair": "bulwark-vs-striker",
+        "map-topology": "thin-fronts",
+        "movement-coupling": "move-sets-facing"
+      },
+      "runnerCommand": "{toolchain} experiment frontline-labs --bot {bot} --opponent {opponent} --seed {seed} --runtime wasm --out {out} --classes bulwark-vs-striker --duel-map thin-fronts --movement move-sets-facing",
+      "contract": {
+        "modeId": "frontline",
+        "rulesetId": "frontline-labs-1-classes-bulwark-vs-striker-sets-facing",
+        "rulesFingerprint": "ab7202524c41cc23962c604aa5d5ab49a85aa9a59b331a5979776ea39c023b95",
+        "seedProfileId": "frontline-labs-classes-1",
+        "mapId": "frontline-labs-01-thin-fronts-classes",
+        "mapVersion": 1,
+        "mapFingerprint": "5ddd64bb20dd778921e40dbb3ebea04fd9b376217e62b4d779fd7d32032d1500",
+        "formatId": "head-to-head",
+        "formatFingerprint": "dc81a4f285ada9baceba99751e2de2ede8247cd943ad5c2164368c2f55129463",
+        "topologyProfileId": "two-team-one-controller-three-slots-v1",
+        "topologyFingerprint": "fbd7f6eeaf533e72793afdc7d28de20d269c33998265d3c9b93f0c848fe615ac",
+        "contractProfileId": "generic-actor-match-2",
+        "matchContractFingerprint": "b59591e1d54c1a4ff9c69e47ca301977303300787ab10ec0811a721886f453be"
+      }
+    },
+    {
+      "id": "bulwark-vs-striker-thin-fronts-facing-locked",
+      "factors": {
+        "class-pair": "bulwark-vs-striker",
+        "map-topology": "thin-fronts",
+        "movement-coupling": "facing-locked"
+      },
+      "runnerCommand": "{toolchain} experiment frontline-labs --bot {bot} --opponent {opponent} --seed {seed} --runtime wasm --out {out} --classes bulwark-vs-striker --duel-map thin-fronts --movement facing-locked",
+      "contract": {
+        "modeId": "frontline",
+        "rulesetId": "frontline-labs-1-classes-bulwark-vs-striker-facing-locked",
+        "rulesFingerprint": "af60fcda888423d27a19b4a9d21595c178a841f36de93575593bcf0004371392",
+        "seedProfileId": "frontline-labs-classes-1",
+        "mapId": "frontline-labs-01-thin-fronts-classes",
+        "mapVersion": 1,
+        "mapFingerprint": "5ddd64bb20dd778921e40dbb3ebea04fd9b376217e62b4d779fd7d32032d1500",
+        "formatId": "head-to-head",
+        "formatFingerprint": "dc81a4f285ada9baceba99751e2de2ede8247cd943ad5c2164368c2f55129463",
+        "topologyProfileId": "two-team-one-controller-three-slots-v1",
+        "topologyFingerprint": "fbd7f6eeaf533e72793afdc7d28de20d269c33998265d3c9b93f0c848fe615ac",
+        "contractProfileId": "generic-actor-match-2",
+        "matchContractFingerprint": "f60e170fb9597014221242fae828aecd19a24415b87982ff105cadc90f52ff17"
+      }
+    },
+    {
+      "id": "bulwark-vs-striker-outer-shoulder-move-sets-facing",
+      "factors": {
+        "class-pair": "bulwark-vs-striker",
+        "map-topology": "outer-shoulder-bypass",
+        "movement-coupling": "move-sets-facing"
+      },
+      "runnerCommand": "{toolchain} experiment frontline-labs --bot {bot} --opponent {opponent} --seed {seed} --runtime wasm --out {out} --classes bulwark-vs-striker --duel-map outer-shoulder-bypass --movement move-sets-facing",
+      "contract": {
+        "modeId": "frontline",
+        "rulesetId": "frontline-labs-1-classes-bulwark-vs-striker-sets-facing",
+        "rulesFingerprint": "ab7202524c41cc23962c604aa5d5ab49a85aa9a59b331a5979776ea39c023b95",
+        "seedProfileId": "frontline-labs-classes-1",
+        "mapId": "frontline-labs-01-outer-shoulder-classes",
+        "mapVersion": 1,
+        "mapFingerprint": "e62f0607ade2b6ad375375101a2c852dbde304a41c37313b7e5b9d839d18347d",
+        "formatId": "head-to-head",
+        "formatFingerprint": "dc81a4f285ada9baceba99751e2de2ede8247cd943ad5c2164368c2f55129463",
+        "topologyProfileId": "two-team-one-controller-three-slots-v1",
+        "topologyFingerprint": "fbd7f6eeaf533e72793afdc7d28de20d269c33998265d3c9b93f0c848fe615ac",
+        "contractProfileId": "generic-actor-match-2",
+        "matchContractFingerprint": "bd64157254148f14be6f275cce7d9f4ae2522c5328601ebc3b0c2f640c086a43"
+      }
+    },
+    {
+      "id": "bulwark-vs-striker-outer-shoulder-facing-locked",
+      "factors": {
+        "class-pair": "bulwark-vs-striker",
+        "map-topology": "outer-shoulder-bypass",
+        "movement-coupling": "facing-locked"
+      },
+      "runnerCommand": "{toolchain} experiment frontline-labs --bot {bot} --opponent {opponent} --seed {seed} --runtime wasm --out {out} --classes bulwark-vs-striker --duel-map outer-shoulder-bypass --movement facing-locked",
+      "contract": {
+        "modeId": "frontline",
+        "rulesetId": "frontline-labs-1-classes-bulwark-vs-striker-facing-locked",
+        "rulesFingerprint": "af60fcda888423d27a19b4a9d21595c178a841f36de93575593bcf0004371392",
+        "seedProfileId": "frontline-labs-classes-1",
+        "mapId": "frontline-labs-01-outer-shoulder-classes",
+        "mapVersion": 1,
+        "mapFingerprint": "e62f0607ade2b6ad375375101a2c852dbde304a41c37313b7e5b9d839d18347d",
+        "formatId": "head-to-head",
+        "formatFingerprint": "dc81a4f285ada9baceba99751e2de2ede8247cd943ad5c2164368c2f55129463",
+        "topologyProfileId": "two-team-one-controller-three-slots-v1",
+        "topologyFingerprint": "fbd7f6eeaf533e72793afdc7d28de20d269c33998265d3c9b93f0c848fe615ac",
+        "contractProfileId": "generic-actor-match-2",
+        "matchContractFingerprint": "071146962d2ba6ef4d7f22b3e2cef079294bdad028e27547373f124d6ead4f7e"
+      }
+    },
+    {
+      "id": "fabricator-vs-fabricator-current-move-sets-facing",
+      "factors": {
+        "class-pair": "fabricator-vs-fabricator",
+        "map-topology": "current",
+        "movement-coupling": "move-sets-facing"
+      },
+      "runnerCommand": "{toolchain} experiment frontline-labs --bot {bot} --opponent {opponent} --seed {seed} --runtime wasm --out {out} --classes fabricator-vs-fabricator --duel-map current --movement move-sets-facing",
+      "contract": {
+        "modeId": "frontline",
+        "rulesetId": "frontline-labs-1-classes-fabricator-vs-fabricator-sets-facing",
+        "rulesFingerprint": "d0a1d81e478f21d66cffc5951bfee4206036035f0a00d9f1468c300acf053038",
+        "seedProfileId": "frontline-labs-classes-1",
+        "mapId": "frontline-labs-01-classes",
+        "mapVersion": 1,
+        "mapFingerprint": "61f477904dfaf048093d5fb164f5d580f8b41f5c884eb357446de9b8739d1a3d",
+        "formatId": "head-to-head",
+        "formatFingerprint": "dc81a4f285ada9baceba99751e2de2ede8247cd943ad5c2164368c2f55129463",
+        "topologyProfileId": "two-team-one-controller-three-slots-v1",
+        "topologyFingerprint": "f3fc1fa7510b0c08ca792a561904d9d38be7c1e04addd0771595a540b9e279f6",
+        "contractProfileId": "generic-actor-match-2",
+        "matchContractFingerprint": "16ff4b55bbc1ff3e78f77088c05f873c179e8480c9bb4658f82b27690edf7d37"
+      }
+    },
+    {
+      "id": "fabricator-vs-fabricator-current-facing-locked",
+      "factors": {
+        "class-pair": "fabricator-vs-fabricator",
+        "map-topology": "current",
+        "movement-coupling": "facing-locked"
+      },
+      "runnerCommand": "{toolchain} experiment frontline-labs --bot {bot} --opponent {opponent} --seed {seed} --runtime wasm --out {out} --classes fabricator-vs-fabricator --duel-map current --movement facing-locked",
+      "contract": {
+        "modeId": "frontline",
+        "rulesetId": "frontline-labs-1-classes-fabricator-vs-fabricator-facing-locked",
+        "rulesFingerprint": "34b9362628b14932c75126c8c269136aa6ed7ccceda7ee5aea5cbe42c25af03a",
+        "seedProfileId": "frontline-labs-classes-1",
+        "mapId": "frontline-labs-01-classes",
+        "mapVersion": 1,
+        "mapFingerprint": "61f477904dfaf048093d5fb164f5d580f8b41f5c884eb357446de9b8739d1a3d",
+        "formatId": "head-to-head",
+        "formatFingerprint": "dc81a4f285ada9baceba99751e2de2ede8247cd943ad5c2164368c2f55129463",
+        "topologyProfileId": "two-team-one-controller-three-slots-v1",
+        "topologyFingerprint": "f3fc1fa7510b0c08ca792a561904d9d38be7c1e04addd0771595a540b9e279f6",
+        "contractProfileId": "generic-actor-match-2",
+        "matchContractFingerprint": "1c6e4fbede3374e24a49ab13a1712355d6646a9da00f084477ec54b73c558fff"
+      }
+    },
+    {
+      "id": "fabricator-vs-fabricator-thin-fronts-move-sets-facing",
+      "factors": {
+        "class-pair": "fabricator-vs-fabricator",
+        "map-topology": "thin-fronts",
+        "movement-coupling": "move-sets-facing"
+      },
+      "runnerCommand": "{toolchain} experiment frontline-labs --bot {bot} --opponent {opponent} --seed {seed} --runtime wasm --out {out} --classes fabricator-vs-fabricator --duel-map thin-fronts --movement move-sets-facing",
+      "contract": {
+        "modeId": "frontline",
+        "rulesetId": "frontline-labs-1-classes-fabricator-vs-fabricator-sets-facing",
+        "rulesFingerprint": "d0a1d81e478f21d66cffc5951bfee4206036035f0a00d9f1468c300acf053038",
+        "seedProfileId": "frontline-labs-classes-1",
+        "mapId": "frontline-labs-01-thin-fronts-classes",
+        "mapVersion": 1,
+        "mapFingerprint": "5ddd64bb20dd778921e40dbb3ebea04fd9b376217e62b4d779fd7d32032d1500",
+        "formatId": "head-to-head",
+        "formatFingerprint": "dc81a4f285ada9baceba99751e2de2ede8247cd943ad5c2164368c2f55129463",
+        "topologyProfileId": "two-team-one-controller-three-slots-v1",
+        "topologyFingerprint": "f3fc1fa7510b0c08ca792a561904d9d38be7c1e04addd0771595a540b9e279f6",
+        "contractProfileId": "generic-actor-match-2",
+        "matchContractFingerprint": "4514516047c8208eb58a9afb7c3dccaef84717aa06d91f66e50c10c6731e7ca3"
+      }
+    },
+    {
+      "id": "fabricator-vs-fabricator-thin-fronts-facing-locked",
+      "factors": {
+        "class-pair": "fabricator-vs-fabricator",
+        "map-topology": "thin-fronts",
+        "movement-coupling": "facing-locked"
+      },
+      "runnerCommand": "{toolchain} experiment frontline-labs --bot {bot} --opponent {opponent} --seed {seed} --runtime wasm --out {out} --classes fabricator-vs-fabricator --duel-map thin-fronts --movement facing-locked",
+      "contract": {
+        "modeId": "frontline",
+        "rulesetId": "frontline-labs-1-classes-fabricator-vs-fabricator-facing-locked",
+        "rulesFingerprint": "34b9362628b14932c75126c8c269136aa6ed7ccceda7ee5aea5cbe42c25af03a",
+        "seedProfileId": "frontline-labs-classes-1",
+        "mapId": "frontline-labs-01-thin-fronts-classes",
+        "mapVersion": 1,
+        "mapFingerprint": "5ddd64bb20dd778921e40dbb3ebea04fd9b376217e62b4d779fd7d32032d1500",
+        "formatId": "head-to-head",
+        "formatFingerprint": "dc81a4f285ada9baceba99751e2de2ede8247cd943ad5c2164368c2f55129463",
+        "topologyProfileId": "two-team-one-controller-three-slots-v1",
+        "topologyFingerprint": "f3fc1fa7510b0c08ca792a561904d9d38be7c1e04addd0771595a540b9e279f6",
+        "contractProfileId": "generic-actor-match-2",
+        "matchContractFingerprint": "a0cb9cf7266d4270f2a1603d6f18dcadb3faa3ce8b9f5f98e08c7b2d3bd0c62c"
+      }
+    },
+    {
+      "id": "fabricator-vs-fabricator-outer-shoulder-move-sets-facing",
+      "factors": {
+        "class-pair": "fabricator-vs-fabricator",
+        "map-topology": "outer-shoulder-bypass",
+        "movement-coupling": "move-sets-facing"
+      },
+      "runnerCommand": "{toolchain} experiment frontline-labs --bot {bot} --opponent {opponent} --seed {seed} --runtime wasm --out {out} --classes fabricator-vs-fabricator --duel-map outer-shoulder-bypass --movement move-sets-facing",
+      "contract": {
+        "modeId": "frontline",
+        "rulesetId": "frontline-labs-1-classes-fabricator-vs-fabricator-sets-facing",
+        "rulesFingerprint": "d0a1d81e478f21d66cffc5951bfee4206036035f0a00d9f1468c300acf053038",
+        "seedProfileId": "frontline-labs-classes-1",
+        "mapId": "frontline-labs-01-outer-shoulder-classes",
+        "mapVersion": 1,
+        "mapFingerprint": "e62f0607ade2b6ad375375101a2c852dbde304a41c37313b7e5b9d839d18347d",
+        "formatId": "head-to-head",
+        "formatFingerprint": "dc81a4f285ada9baceba99751e2de2ede8247cd943ad5c2164368c2f55129463",
+        "topologyProfileId": "two-team-one-controller-three-slots-v1",
+        "topologyFingerprint": "f3fc1fa7510b0c08ca792a561904d9d38be7c1e04addd0771595a540b9e279f6",
+        "contractProfileId": "generic-actor-match-2",
+        "matchContractFingerprint": "ea71fa33eaddf8b6d7990aa3bf31a75e5758bee4bb8cb10cbcb2ea389d299500"
+      }
+    },
+    {
+      "id": "fabricator-vs-fabricator-outer-shoulder-facing-locked",
+      "factors": {
+        "class-pair": "fabricator-vs-fabricator",
+        "map-topology": "outer-shoulder-bypass",
+        "movement-coupling": "facing-locked"
+      },
+      "runnerCommand": "{toolchain} experiment frontline-labs --bot {bot} --opponent {opponent} --seed {seed} --runtime wasm --out {out} --classes fabricator-vs-fabricator --duel-map outer-shoulder-bypass --movement facing-locked",
+      "contract": {
+        "modeId": "frontline",
+        "rulesetId": "frontline-labs-1-classes-fabricator-vs-fabricator-facing-locked",
+        "rulesFingerprint": "34b9362628b14932c75126c8c269136aa6ed7ccceda7ee5aea5cbe42c25af03a",
+        "seedProfileId": "frontline-labs-classes-1",
+        "mapId": "frontline-labs-01-outer-shoulder-classes",
+        "mapVersion": 1,
+        "mapFingerprint": "e62f0607ade2b6ad375375101a2c852dbde304a41c37313b7e5b9d839d18347d",
+        "formatId": "head-to-head",
+        "formatFingerprint": "dc81a4f285ada9baceba99751e2de2ede8247cd943ad5c2164368c2f55129463",
+        "topologyProfileId": "two-team-one-controller-three-slots-v1",
+        "topologyFingerprint": "f3fc1fa7510b0c08ca792a561904d9d38be7c1e04addd0771595a540b9e279f6",
+        "contractProfileId": "generic-actor-match-2",
+        "matchContractFingerprint": "d173110fe6481a9531cf288a350ecfc049415b05ecd0141dfa7e141d999195e0"
+      }
+    },
+    {
+      "id": "fabricator-vs-striker-current-move-sets-facing",
+      "factors": {
+        "class-pair": "fabricator-vs-striker",
+        "map-topology": "current",
+        "movement-coupling": "move-sets-facing"
+      },
+      "runnerCommand": "{toolchain} experiment frontline-labs --bot {bot} --opponent {opponent} --seed {seed} --runtime wasm --out {out} --classes fabricator-vs-striker --duel-map current --movement move-sets-facing",
+      "contract": {
+        "modeId": "frontline",
+        "rulesetId": "frontline-labs-1-classes-fabricator-vs-striker-sets-facing",
+        "rulesFingerprint": "ffcea8126970adfdfd922615b290d29dca2c09d82a9de3f5a1e3976d972b5779",
+        "seedProfileId": "frontline-labs-classes-1",
+        "mapId": "frontline-labs-01-classes",
+        "mapVersion": 1,
+        "mapFingerprint": "61f477904dfaf048093d5fb164f5d580f8b41f5c884eb357446de9b8739d1a3d",
+        "formatId": "head-to-head",
+        "formatFingerprint": "dc81a4f285ada9baceba99751e2de2ede8247cd943ad5c2164368c2f55129463",
+        "topologyProfileId": "two-team-one-controller-three-slots-v1",
+        "topologyFingerprint": "d7e010c79f5d52a57175f941b8636d565c014cbdffeb8bc45f1949b5ab53222d",
+        "contractProfileId": "generic-actor-match-2",
+        "matchContractFingerprint": "f4e8c3cc2c18d5d6f5107ccd2625a4d5b170a1020446c36f8a8fc6250a428eb2"
+      }
+    },
+    {
+      "id": "fabricator-vs-striker-current-facing-locked",
+      "factors": {
+        "class-pair": "fabricator-vs-striker",
+        "map-topology": "current",
+        "movement-coupling": "facing-locked"
+      },
+      "runnerCommand": "{toolchain} experiment frontline-labs --bot {bot} --opponent {opponent} --seed {seed} --runtime wasm --out {out} --classes fabricator-vs-striker --duel-map current --movement facing-locked",
+      "contract": {
+        "modeId": "frontline",
+        "rulesetId": "frontline-labs-1-classes-fabricator-vs-striker-facing-locked",
+        "rulesFingerprint": "a6a20e1020ccde714c5dc688f908249aad4eee7d04bcf0f52469603cc31b7b85",
+        "seedProfileId": "frontline-labs-classes-1",
+        "mapId": "frontline-labs-01-classes",
+        "mapVersion": 1,
+        "mapFingerprint": "61f477904dfaf048093d5fb164f5d580f8b41f5c884eb357446de9b8739d1a3d",
+        "formatId": "head-to-head",
+        "formatFingerprint": "dc81a4f285ada9baceba99751e2de2ede8247cd943ad5c2164368c2f55129463",
+        "topologyProfileId": "two-team-one-controller-three-slots-v1",
+        "topologyFingerprint": "d7e010c79f5d52a57175f941b8636d565c014cbdffeb8bc45f1949b5ab53222d",
+        "contractProfileId": "generic-actor-match-2",
+        "matchContractFingerprint": "2709c3d2557e46dcba8e7061acaab60be252a4eb734fddc7fc81e5a2abbfeb53"
+      }
+    },
+    {
+      "id": "fabricator-vs-striker-thin-fronts-move-sets-facing",
+      "factors": {
+        "class-pair": "fabricator-vs-striker",
+        "map-topology": "thin-fronts",
+        "movement-coupling": "move-sets-facing"
+      },
+      "runnerCommand": "{toolchain} experiment frontline-labs --bot {bot} --opponent {opponent} --seed {seed} --runtime wasm --out {out} --classes fabricator-vs-striker --duel-map thin-fronts --movement move-sets-facing",
+      "contract": {
+        "modeId": "frontline",
+        "rulesetId": "frontline-labs-1-classes-fabricator-vs-striker-sets-facing",
+        "rulesFingerprint": "ffcea8126970adfdfd922615b290d29dca2c09d82a9de3f5a1e3976d972b5779",
+        "seedProfileId": "frontline-labs-classes-1",
+        "mapId": "frontline-labs-01-thin-fronts-classes",
+        "mapVersion": 1,
+        "mapFingerprint": "5ddd64bb20dd778921e40dbb3ebea04fd9b376217e62b4d779fd7d32032d1500",
+        "formatId": "head-to-head",
+        "formatFingerprint": "dc81a4f285ada9baceba99751e2de2ede8247cd943ad5c2164368c2f55129463",
+        "topologyProfileId": "two-team-one-controller-three-slots-v1",
+        "topologyFingerprint": "d7e010c79f5d52a57175f941b8636d565c014cbdffeb8bc45f1949b5ab53222d",
+        "contractProfileId": "generic-actor-match-2",
+        "matchContractFingerprint": "036fe1ec613df399244e198e6e741c88efa82c81692b1572b2d93849af953014"
+      }
+    },
+    {
+      "id": "fabricator-vs-striker-thin-fronts-facing-locked",
+      "factors": {
+        "class-pair": "fabricator-vs-striker",
+        "map-topology": "thin-fronts",
+        "movement-coupling": "facing-locked"
+      },
+      "runnerCommand": "{toolchain} experiment frontline-labs --bot {bot} --opponent {opponent} --seed {seed} --runtime wasm --out {out} --classes fabricator-vs-striker --duel-map thin-fronts --movement facing-locked",
+      "contract": {
+        "modeId": "frontline",
+        "rulesetId": "frontline-labs-1-classes-fabricator-vs-striker-facing-locked",
+        "rulesFingerprint": "a6a20e1020ccde714c5dc688f908249aad4eee7d04bcf0f52469603cc31b7b85",
+        "seedProfileId": "frontline-labs-classes-1",
+        "mapId": "frontline-labs-01-thin-fronts-classes",
+        "mapVersion": 1,
+        "mapFingerprint": "5ddd64bb20dd778921e40dbb3ebea04fd9b376217e62b4d779fd7d32032d1500",
+        "formatId": "head-to-head",
+        "formatFingerprint": "dc81a4f285ada9baceba99751e2de2ede8247cd943ad5c2164368c2f55129463",
+        "topologyProfileId": "two-team-one-controller-three-slots-v1",
+        "topologyFingerprint": "d7e010c79f5d52a57175f941b8636d565c014cbdffeb8bc45f1949b5ab53222d",
+        "contractProfileId": "generic-actor-match-2",
+        "matchContractFingerprint": "a2669d76ff46ea01c08d3aaf2b2e44e0c627e97acafea2e48ad532e1c9580bdb"
+      }
+    },
+    {
+      "id": "fabricator-vs-striker-outer-shoulder-move-sets-facing",
+      "factors": {
+        "class-pair": "fabricator-vs-striker",
+        "map-topology": "outer-shoulder-bypass",
+        "movement-coupling": "move-sets-facing"
+      },
+      "runnerCommand": "{toolchain} experiment frontline-labs --bot {bot} --opponent {opponent} --seed {seed} --runtime wasm --out {out} --classes fabricator-vs-striker --duel-map outer-shoulder-bypass --movement move-sets-facing",
+      "contract": {
+        "modeId": "frontline",
+        "rulesetId": "frontline-labs-1-classes-fabricator-vs-striker-sets-facing",
+        "rulesFingerprint": "ffcea8126970adfdfd922615b290d29dca2c09d82a9de3f5a1e3976d972b5779",
+        "seedProfileId": "frontline-labs-classes-1",
+        "mapId": "frontline-labs-01-outer-shoulder-classes",
+        "mapVersion": 1,
+        "mapFingerprint": "e62f0607ade2b6ad375375101a2c852dbde304a41c37313b7e5b9d839d18347d",
+        "formatId": "head-to-head",
+        "formatFingerprint": "dc81a4f285ada9baceba99751e2de2ede8247cd943ad5c2164368c2f55129463",
+        "topologyProfileId": "two-team-one-controller-three-slots-v1",
+        "topologyFingerprint": "d7e010c79f5d52a57175f941b8636d565c014cbdffeb8bc45f1949b5ab53222d",
+        "contractProfileId": "generic-actor-match-2",
+        "matchContractFingerprint": "dabe8494a3eb8c3a1c28c33b700bd89892942a40728008871e04dbfc4cc170e7"
+      }
+    },
+    {
+      "id": "fabricator-vs-striker-outer-shoulder-facing-locked",
+      "factors": {
+        "class-pair": "fabricator-vs-striker",
+        "map-topology": "outer-shoulder-bypass",
+        "movement-coupling": "facing-locked"
+      },
+      "runnerCommand": "{toolchain} experiment frontline-labs --bot {bot} --opponent {opponent} --seed {seed} --runtime wasm --out {out} --classes fabricator-vs-striker --duel-map outer-shoulder-bypass --movement facing-locked",
+      "contract": {
+        "modeId": "frontline",
+        "rulesetId": "frontline-labs-1-classes-fabricator-vs-striker-facing-locked",
+        "rulesFingerprint": "a6a20e1020ccde714c5dc688f908249aad4eee7d04bcf0f52469603cc31b7b85",
+        "seedProfileId": "frontline-labs-classes-1",
+        "mapId": "frontline-labs-01-outer-shoulder-classes",
+        "mapVersion": 1,
+        "mapFingerprint": "e62f0607ade2b6ad375375101a2c852dbde304a41c37313b7e5b9d839d18347d",
+        "formatId": "head-to-head",
+        "formatFingerprint": "dc81a4f285ada9baceba99751e2de2ede8247cd943ad5c2164368c2f55129463",
+        "topologyProfileId": "two-team-one-controller-three-slots-v1",
+        "topologyFingerprint": "d7e010c79f5d52a57175f941b8636d565c014cbdffeb8bc45f1949b5ab53222d",
+        "contractProfileId": "generic-actor-match-2",
+        "matchContractFingerprint": "063656f9ad2aae1f835e3eb1f0d3784f3efe0f86d03a1e1bfda917e82c6c0deb"
+      }
+    },
+    {
+      "id": "striker-vs-striker-current-move-sets-facing",
+      "factors": {
+        "class-pair": "striker-vs-striker",
+        "map-topology": "current",
+        "movement-coupling": "move-sets-facing"
+      },
+      "runnerCommand": "{toolchain} experiment frontline-labs --bot {bot} --opponent {opponent} --seed {seed} --runtime wasm --out {out} --classes striker-vs-striker --duel-map current --movement move-sets-facing",
+      "contract": {
+        "modeId": "frontline",
+        "rulesetId": "frontline-labs-1-classes-striker-vs-striker-sets-facing",
+        "rulesFingerprint": "c9f8b407ee7299ee07b18aa10fb614cc01140892955bed326703b21513cc95f8",
+        "seedProfileId": "frontline-labs-classes-1",
+        "mapId": "frontline-labs-01-classes",
+        "mapVersion": 1,
+        "mapFingerprint": "61f477904dfaf048093d5fb164f5d580f8b41f5c884eb357446de9b8739d1a3d",
+        "formatId": "head-to-head",
+        "formatFingerprint": "dc81a4f285ada9baceba99751e2de2ede8247cd943ad5c2164368c2f55129463",
+        "topologyProfileId": "two-team-one-controller-three-slots-v1",
+        "topologyFingerprint": "d2a7178f29dc54263caccb93e3f71a34d1a4b9960e82b8ce8d8934e74efad117",
+        "contractProfileId": "generic-actor-match-2",
+        "matchContractFingerprint": "e0c0dc4cf1dbff0eea54ef37e09b31ea5336adccc78b6a014bad667d4a17ac7e"
+      }
+    },
+    {
+      "id": "striker-vs-striker-current-facing-locked",
+      "factors": {
+        "class-pair": "striker-vs-striker",
+        "map-topology": "current",
+        "movement-coupling": "facing-locked"
+      },
+      "runnerCommand": "{toolchain} experiment frontline-labs --bot {bot} --opponent {opponent} --seed {seed} --runtime wasm --out {out} --classes striker-vs-striker --duel-map current --movement facing-locked",
+      "contract": {
+        "modeId": "frontline",
+        "rulesetId": "frontline-labs-1-classes-striker-vs-striker-facing-locked",
+        "rulesFingerprint": "74e45181d55e62c8536264b0e372dfedd690eb7f97c6a6db60a83c60cc075927",
+        "seedProfileId": "frontline-labs-classes-1",
+        "mapId": "frontline-labs-01-classes",
+        "mapVersion": 1,
+        "mapFingerprint": "61f477904dfaf048093d5fb164f5d580f8b41f5c884eb357446de9b8739d1a3d",
+        "formatId": "head-to-head",
+        "formatFingerprint": "dc81a4f285ada9baceba99751e2de2ede8247cd943ad5c2164368c2f55129463",
+        "topologyProfileId": "two-team-one-controller-three-slots-v1",
+        "topologyFingerprint": "d2a7178f29dc54263caccb93e3f71a34d1a4b9960e82b8ce8d8934e74efad117",
+        "contractProfileId": "generic-actor-match-2",
+        "matchContractFingerprint": "e35212f363943ec8b9dd8c8354502b12d389f69ac917ba6248dd48bf8bb474e4"
+      }
+    },
+    {
+      "id": "striker-vs-striker-thin-fronts-move-sets-facing",
+      "factors": {
+        "class-pair": "striker-vs-striker",
+        "map-topology": "thin-fronts",
+        "movement-coupling": "move-sets-facing"
+      },
+      "runnerCommand": "{toolchain} experiment frontline-labs --bot {bot} --opponent {opponent} --seed {seed} --runtime wasm --out {out} --classes striker-vs-striker --duel-map thin-fronts --movement move-sets-facing",
+      "contract": {
+        "modeId": "frontline",
+        "rulesetId": "frontline-labs-1-classes-striker-vs-striker-sets-facing",
+        "rulesFingerprint": "c9f8b407ee7299ee07b18aa10fb614cc01140892955bed326703b21513cc95f8",
+        "seedProfileId": "frontline-labs-classes-1",
+        "mapId": "frontline-labs-01-thin-fronts-classes",
+        "mapVersion": 1,
+        "mapFingerprint": "5ddd64bb20dd778921e40dbb3ebea04fd9b376217e62b4d779fd7d32032d1500",
+        "formatId": "head-to-head",
+        "formatFingerprint": "dc81a4f285ada9baceba99751e2de2ede8247cd943ad5c2164368c2f55129463",
+        "topologyProfileId": "two-team-one-controller-three-slots-v1",
+        "topologyFingerprint": "d2a7178f29dc54263caccb93e3f71a34d1a4b9960e82b8ce8d8934e74efad117",
+        "contractProfileId": "generic-actor-match-2",
+        "matchContractFingerprint": "2fd189ee349d3597c80ff6c8da5456ae101e59bfa80a951deefbd1aa32657cda"
+      }
+    },
+    {
+      "id": "striker-vs-striker-thin-fronts-facing-locked",
+      "factors": {
+        "class-pair": "striker-vs-striker",
+        "map-topology": "thin-fronts",
+        "movement-coupling": "facing-locked"
+      },
+      "runnerCommand": "{toolchain} experiment frontline-labs --bot {bot} --opponent {opponent} --seed {seed} --runtime wasm --out {out} --classes striker-vs-striker --duel-map thin-fronts --movement facing-locked",
+      "contract": {
+        "modeId": "frontline",
+        "rulesetId": "frontline-labs-1-classes-striker-vs-striker-facing-locked",
+        "rulesFingerprint": "74e45181d55e62c8536264b0e372dfedd690eb7f97c6a6db60a83c60cc075927",
+        "seedProfileId": "frontline-labs-classes-1",
+        "mapId": "frontline-labs-01-thin-fronts-classes",
+        "mapVersion": 1,
+        "mapFingerprint": "5ddd64bb20dd778921e40dbb3ebea04fd9b376217e62b4d779fd7d32032d1500",
+        "formatId": "head-to-head",
+        "formatFingerprint": "dc81a4f285ada9baceba99751e2de2ede8247cd943ad5c2164368c2f55129463",
+        "topologyProfileId": "two-team-one-controller-three-slots-v1",
+        "topologyFingerprint": "d2a7178f29dc54263caccb93e3f71a34d1a4b9960e82b8ce8d8934e74efad117",
+        "contractProfileId": "generic-actor-match-2",
+        "matchContractFingerprint": "48a8fabd355bb3e6c6170d936feefb56e357a977805701cb59510027f2b5d3d4"
+      }
+    },
+    {
+      "id": "striker-vs-striker-outer-shoulder-move-sets-facing",
+      "factors": {
+        "class-pair": "striker-vs-striker",
+        "map-topology": "outer-shoulder-bypass",
+        "movement-coupling": "move-sets-facing"
+      },
+      "runnerCommand": "{toolchain} experiment frontline-labs --bot {bot} --opponent {opponent} --seed {seed} --runtime wasm --out {out} --classes striker-vs-striker --duel-map outer-shoulder-bypass --movement move-sets-facing",
+      "contract": {
+        "modeId": "frontline",
+        "rulesetId": "frontline-labs-1-classes-striker-vs-striker-sets-facing",
+        "rulesFingerprint": "c9f8b407ee7299ee07b18aa10fb614cc01140892955bed326703b21513cc95f8",
+        "seedProfileId": "frontline-labs-classes-1",
+        "mapId": "frontline-labs-01-outer-shoulder-classes",
+        "mapVersion": 1,
+        "mapFingerprint": "e62f0607ade2b6ad375375101a2c852dbde304a41c37313b7e5b9d839d18347d",
+        "formatId": "head-to-head",
+        "formatFingerprint": "dc81a4f285ada9baceba99751e2de2ede8247cd943ad5c2164368c2f55129463",
+        "topologyProfileId": "two-team-one-controller-three-slots-v1",
+        "topologyFingerprint": "d2a7178f29dc54263caccb93e3f71a34d1a4b9960e82b8ce8d8934e74efad117",
+        "contractProfileId": "generic-actor-match-2",
+        "matchContractFingerprint": "163c67e566c2fafce3e26083a95b6646ae996709cf7d538021ef45e820984a88"
+      }
+    },
+    {
+      "id": "striker-vs-striker-outer-shoulder-facing-locked",
+      "factors": {
+        "class-pair": "striker-vs-striker",
+        "map-topology": "outer-shoulder-bypass",
+        "movement-coupling": "facing-locked"
+      },
+      "runnerCommand": "{toolchain} experiment frontline-labs --bot {bot} --opponent {opponent} --seed {seed} --runtime wasm --out {out} --classes striker-vs-striker --duel-map outer-shoulder-bypass --movement facing-locked",
+      "contract": {
+        "modeId": "frontline",
+        "rulesetId": "frontline-labs-1-classes-striker-vs-striker-facing-locked",
+        "rulesFingerprint": "74e45181d55e62c8536264b0e372dfedd690eb7f97c6a6db60a83c60cc075927",
+        "seedProfileId": "frontline-labs-classes-1",
+        "mapId": "frontline-labs-01-outer-shoulder-classes",
+        "mapVersion": 1,
+        "mapFingerprint": "e62f0607ade2b6ad375375101a2c852dbde304a41c37313b7e5b9d839d18347d",
+        "formatId": "head-to-head",
+        "formatFingerprint": "dc81a4f285ada9baceba99751e2de2ede8247cd943ad5c2164368c2f55129463",
+        "topologyProfileId": "two-team-one-controller-three-slots-v1",
+        "topologyFingerprint": "d2a7178f29dc54263caccb93e3f71a34d1a4b9960e82b8ce8d8934e74efad117",
+        "contractProfileId": "generic-actor-match-2",
+        "matchContractFingerprint": "f7593a2a7e0f2940d62af003dbb1d4a0e5cd8ed964fb3ac387e35d6fcd15ca0a"
+      }
+    }
+  ],
+  "populations": [
+    {
+      "id": "classes-wave-1-r2",
+      "tier": "T4",
+      "coordinationGrade": "unqualified",
+      "qualificationProfileId": "frontline-duel-depth-union-t4-v1",
+      "qualificationContractFingerprint": "2e3d4bcd4652814c5f58ce19c606f52031985b998d2b269d1c00d418edeb6ddb",
+      "balanceEvidenceEligible": true,
+      "entrants": [
+        {
+          "id": "iron-root",
+          "name": "IronRoot",
+          "classId": "bulwark",
+          "authoringLineageId": "iron-root-v1",
+          "doctrineId": "fortress-rotator",
+          "authoringBudgetId": "classes-wave-1-revision-2-one-strategic-pass",
+          "authorPacketSha256": "d31b59aad68176694ff9119620976acb455f34069601487a9edf4495e31ac16e",
+          "root": "../arena-bots/frontline-labs/classes-wave-1-revision-2-2026-07-29/iron-root",
+          "artifact": "../arena-bots/frontline-labs/classes-wave-1-revision-2-2026-07-29/iron-root/out/bot.wasm",
+          "artifactSha256": "793c4f2e3406c5ea29efdc5b8f4f1ff6830449be4042c7bc52baa589bca4841c",
+          "sourceTreeSha256": "sha256:9b10a4b086e9a13dc921ec5468ea19d4b50b1da6077d1ccc69b6c9db37fd8c15",
+          "qualification": {
+            "suiteId": "frontline-qualification-5",
+            "suiteVersion": 1,
+            "qualificationProfileId": "frontline-duel-depth-union-t4-v1",
+            "qualificationContractFingerprint": "2e3d4bcd4652814c5f58ce19c606f52031985b998d2b269d1c00d418edeb6ddb",
+            "evidence": "../arena-bots/frontline-labs/classes-wave-1-revision-2-2026-07-29/iron-root/evidence/t4/qualification.json",
+            "evidenceSha256": "bb0479c8acb027235787cafe1ebc9001943845e60f257f5faa93f65fd2eb8a8e",
+            "tierAwarded": "T4",
+            "coordinationGradeAwarded": null,
+            "balanceEvidenceEligible": true
+          }
+        },
+        {
+          "id": "ledger-fly",
+          "name": "LedgerFly",
+          "classId": "fabricator",
+          "authoringLineageId": "ledger-fly-v1",
+          "doctrineId": "attrition-banker",
+          "authoringBudgetId": "classes-wave-1-revision-2-one-strategic-pass",
+          "authorPacketSha256": "d31b59aad68176694ff9119620976acb455f34069601487a9edf4495e31ac16e",
+          "root": "../arena-bots/frontline-labs/classes-wave-1-revision-2-2026-07-29/ledger-fly",
+          "artifact": "../arena-bots/frontline-labs/classes-wave-1-revision-2-2026-07-29/ledger-fly/out/bot.wasm",
+          "artifactSha256": "81b7a91704cccdea864f84494bf85690084791c17bfeddfbc5f47942779a986c",
+          "sourceTreeSha256": "sha256:a6af78b32268c816a522b66404d05f5c94d6702ac1e16b472e8148d9d1cde40f",
+          "qualification": {
+            "suiteId": "frontline-qualification-5",
+            "suiteVersion": 1,
+            "qualificationProfileId": "frontline-duel-depth-union-t4-v1",
+            "qualificationContractFingerprint": "2e3d4bcd4652814c5f58ce19c606f52031985b998d2b269d1c00d418edeb6ddb",
+            "evidence": "../arena-bots/frontline-labs/classes-wave-1-revision-2-2026-07-29/ledger-fly/evidence/t4/qualification.json",
+            "evidenceSha256": "ca6dd69ec7a6fc3ed999624a3cac63ed5a11ba9a7c3e9de22d835c224eddda29",
+            "tierAwarded": "T4",
+            "coordinationGradeAwarded": null,
+            "balanceEvidenceEligible": true
+          }
+        },
+        {
+          "id": "march-wall",
+          "name": "MarchWall",
+          "classId": "bulwark",
+          "authoringLineageId": "march-wall-v1",
+          "doctrineId": "advancing-wall",
+          "authoringBudgetId": "classes-wave-1-revision-2-one-strategic-pass",
+          "authorPacketSha256": "d31b59aad68176694ff9119620976acb455f34069601487a9edf4495e31ac16e",
+          "root": "../arena-bots/frontline-labs/classes-wave-1-revision-2-2026-07-29/march-wall",
+          "artifact": "../arena-bots/frontline-labs/classes-wave-1-revision-2-2026-07-29/march-wall/out/bot.wasm",
+          "artifactSha256": "c0e24671a241ce77ff81df12550d304d93eacd17825ec1cbd87384d0b9ae51ac",
+          "sourceTreeSha256": "sha256:a29429a401964e2245ce114d91c11667e6563206c1090150ca968945df9b9fbc",
+          "qualification": {
+            "suiteId": "frontline-qualification-5",
+            "suiteVersion": 1,
+            "qualificationProfileId": "frontline-duel-depth-union-t4-v1",
+            "qualificationContractFingerprint": "2e3d4bcd4652814c5f58ce19c606f52031985b998d2b269d1c00d418edeb6ddb",
+            "evidence": "../arena-bots/frontline-labs/classes-wave-1-revision-2-2026-07-29/march-wall/evidence/t4/qualification.json",
+            "evidenceSha256": "959531ce6dde0982bdababb86877ae728e6badf89e1280466760148ab336dae7",
+            "tierAwarded": "T4",
+            "coordinationGradeAwarded": null,
+            "balanceEvidenceEligible": true
+          }
+        },
+        {
+          "id": "spark-line",
+          "name": "SparkLine",
+          "classId": "fabricator",
+          "authoringLineageId": "spark-line-v1",
+          "doctrineId": "tempo-engine",
+          "authoringBudgetId": "classes-wave-1-revision-2-one-strategic-pass",
+          "authorPacketSha256": "d31b59aad68176694ff9119620976acb455f34069601487a9edf4495e31ac16e",
+          "root": "../arena-bots/frontline-labs/classes-wave-1-revision-2-2026-07-29/spark-line",
+          "artifact": "../arena-bots/frontline-labs/classes-wave-1-revision-2-2026-07-29/spark-line/out/bot.wasm",
+          "artifactSha256": "8bb386542d4ef3b203e2885fb643e6cf29cb4f3b4241ea98987050b1e8985290",
+          "sourceTreeSha256": "sha256:4376900e9a8595744d9be2be2855697c50abc28ee72079e96ad689130dc16751",
+          "qualification": {
+            "suiteId": "frontline-qualification-5",
+            "suiteVersion": 1,
+            "qualificationProfileId": "frontline-duel-depth-union-t4-v1",
+            "qualificationContractFingerprint": "2e3d4bcd4652814c5f58ce19c606f52031985b998d2b269d1c00d418edeb6ddb",
+            "evidence": "../arena-bots/frontline-labs/classes-wave-1-revision-2-2026-07-29/spark-line/evidence/t4/qualification.json",
+            "evidenceSha256": "aab9bf95d1b912a6e13f8a34b5d6be602c650e0a05c4e35788365b6728a176d0",
+            "tierAwarded": "T4",
+            "coordinationGradeAwarded": null,
+            "balanceEvidenceEligible": true
+          }
+        },
+        {
+          "id": "still-water",
+          "name": "StillWater",
+          "classId": "striker",
+          "authoringLineageId": "still-water-v1",
+          "doctrineId": "patient-interceptor",
+          "authoringBudgetId": "classes-wave-1-revision-2-one-strategic-pass",
+          "authorPacketSha256": "d31b59aad68176694ff9119620976acb455f34069601487a9edf4495e31ac16e",
+          "root": "../arena-bots/frontline-labs/classes-wave-1-revision-2-2026-07-29/still-water",
+          "artifact": "../arena-bots/frontline-labs/classes-wave-1-revision-2-2026-07-29/still-water/out/bot.wasm",
+          "artifactSha256": "b0fe1f36708df1c62a117dfe57f8506c6d59abea01770e2c78618d2a6712e289",
+          "sourceTreeSha256": "sha256:adc78e2f714a983344b0b668f35ac68e414da9603605be2dff888d5a5ce3901d",
+          "qualification": {
+            "suiteId": "frontline-qualification-5",
+            "suiteVersion": 1,
+            "qualificationProfileId": "frontline-duel-depth-union-t4-v1",
+            "qualificationContractFingerprint": "2e3d4bcd4652814c5f58ce19c606f52031985b998d2b269d1c00d418edeb6ddb",
+            "evidence": "../arena-bots/frontline-labs/classes-wave-1-revision-2-2026-07-29/still-water/evidence/t4/qualification.json",
+            "evidenceSha256": "6ae46552ff2518d0eb44680e6e1d1831b697f2fc29e14fdf22336ad1cca72262",
+            "tierAwarded": "T4",
+            "coordinationGradeAwarded": null,
+            "balanceEvidenceEligible": true
+          }
+        },
+        {
+          "id": "vector-edge",
+          "name": "VectorEdge",
+          "classId": "striker",
+          "authoringLineageId": "vector-edge-v1",
+          "doctrineId": "pressure-duelist",
+          "authoringBudgetId": "classes-wave-1-revision-2-one-strategic-pass",
+          "authorPacketSha256": "d31b59aad68176694ff9119620976acb455f34069601487a9edf4495e31ac16e",
+          "root": "../arena-bots/frontline-labs/classes-wave-1-revision-2-2026-07-29/vector-edge",
+          "artifact": "../arena-bots/frontline-labs/classes-wave-1-revision-2-2026-07-29/vector-edge/out/bot.wasm",
+          "artifactSha256": "36cadf4bac048b1f6566b65961bfd4528f07f9bb6367c11d91327d5e66e01493",
+          "sourceTreeSha256": "sha256:2ca02bf7486b3f301087416f01d39d16f00485355735aa06e9bc598579322c12",
+          "qualification": {
+            "suiteId": "frontline-qualification-5",
+            "suiteVersion": 1,
+            "qualificationProfileId": "frontline-duel-depth-union-t4-v1",
+            "qualificationContractFingerprint": "2e3d4bcd4652814c5f58ce19c606f52031985b998d2b269d1c00d418edeb6ddb",
+            "evidence": "../arena-bots/frontline-labs/classes-wave-1-revision-2-2026-07-29/vector-edge/evidence/t4/qualification.json",
+            "evidenceSha256": "e41d28a635c55fd996b8941c5147a2e765c749281375b9d90c25044f4bc3ed22",
+            "tierAwarded": "T4",
+            "coordinationGradeAwarded": null,
+            "balanceEvidenceEligible": true
+          }
+        }
+      ]
+    }
+  ]
+}

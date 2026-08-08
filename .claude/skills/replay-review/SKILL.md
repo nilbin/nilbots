@@ -1,6 +1,6 @@
 ---
 name: replay-review
-description: Serve the arena viewer to a real device for judging visuals and audio, and pick replays worth judging them on. Use when a user asks to review, preview, look at, or listen to the arena, fog, lighting, sound cues, or a candidate audio pack — especially on a phone.
+description: Serve the arena viewer to a real device and select replays worth judging for visuals, audio, spectator clarity, or Arc Relay tactics. Use when a user asks to review, preview, watch, look at, or listen to the arena, a replay gallery, fog, lighting, sound cues, tactical plays, or a candidate audio pack — especially on a phone.
 ---
 
 # Replay review
@@ -18,6 +18,27 @@ npm run review                 # LAN — open the printed http://<ip>:4173 on a 
 npm run review -- --tunnel     # + a public HTTPS URL via cloudflared
 npm run review -- --no-build   # serve what is already in dist-review
 ```
+
+For iterative tactics or sheet review, build the production viewer once, then
+reuse it with `--no-build` and refresh only the selected replay payloads and
+explanatory cards. A one- or two-replay targeted gallery plus a focused browser
+smoke is enough while discovering. Rebuild assets, run the full browser matrix,
+and publish the permanent gallery only for a frozen promotion candidate or a
+change to viewer code/assets. Do not turn every replay refresh into a release
+gauntlet.
+
+For Arc Relay, a canonical replay is an audit input, never a runtime gallery
+payload. Project it first with `scripts/arc-relay-broadcast.py` (300 KiB gzip
+ceiling), then install it as `transport` alongside the hash-matched replay so
+the installer can retain team vision. Never omit `transport`: a canonical
+diagnostic replay can exceed 100 MB after decompression and strand a phone on
+“Loading replay.” Keep the generated `.json.gz` sibling beside every runtime
+JSON.
+
+Before handing over any public URL, load that exact URL in a phone-sized real
+browser, wait for the replay UI (not merely HTTP 200), and fail on console or
+page errors. Confirm the chosen replay list and one replay payload both arrive
+gzip-encoded. A `curl` response alone does not prove that the viewer booted.
 
 **The review build cannot be opened from disk.** It is deliberately not self-contained —
 separate hashed atlases, audio and JavaScript, so a phone streams them instead of parsing
@@ -63,6 +84,46 @@ score stands in for judgement, it does not replace a person asking for a matchup
 If nothing suitable exists, generate some: `dotnet run --project src/BotArena.Cli -- spar
 "<bot>" "<bot>" --map <map>`. Replays are picked from the local API, so the server must be
 running.
+
+## Arc Relay owner reviews
+
+Do not fill an Arc Relay gallery with arbitrary smoke matches or the first
+cells returned by a sweep. Prefer the latest tracked, canonical-verified,
+cohort-eligible operation corpus whose rules, map, stock artifact, and viewer
+match the work being reviewed. The ten-play stock-recovery baseline named by
+the `replay-highlights` skill is the current pin: its retained campaign passes
+the v4 bars for both teams in every match, and a second seed campaign repeats
+all ten successes. Do not treat operation success alone as gallery
+eligibility. Re-run the pinned retention check or select a replacement set
+that passes the current bars before the next broad owner review.
+
+A useful Arc Relay set must:
+
+- contain distinct coordinated plays rather than ten variants of ordinary
+  Core return;
+- show causal trigger, preparation, commitment, physical success or failure,
+  bounded release, and return to baseline;
+- include real opposition and counterplay opportunities, not target practice;
+- cover several theaters, class signatures, possession beats, fights, and
+  match phases;
+- exclude runtime faults and felt-degeneracy failures; and
+- be outcome-visible for an owner review unless the user explicitly requests
+  a blind methodology read.
+
+Prefer at least six replays and cover all ten operations for a broad renderer,
+awareness, or tactics review. A shorter targeted gallery may use fewer only
+when every selected replay exercises the feature under review.
+
+Let `scripts/build-review-gallery.py` enforce the current Arc Relay bars. Never
+use its explicit eligibility skip except to show a clearly labelled diagnostic
+failure.
+
+For tactical galleries, follow the explanatory card contract in the
+`replay-highlights` skill. A matchup label is not enough: the reviewer must
+know the actual opponent's allocation and doctrine, whether it is bespoke
+counterplay or general live opposition, what caused the play, what the
+operation intends, how the opponent can answer it, when it gives up, and what
+causal evidence to watch for.
 
 ## Diagnosing "there is no sound"
 

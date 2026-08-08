@@ -1,0 +1,10 @@
+{
+  "name": "ArcRelayForwardStockMindV1",
+  "entryType": "ArcRelayForwardStock.ArcRelayForwardStockMind",
+  "sdkVersion": "0.10.12",
+  "appearance": {
+    "accent": "#f59e0b",
+    "look": "vanguard",
+    "projectile": "pulse-bolt"
+  }
+}

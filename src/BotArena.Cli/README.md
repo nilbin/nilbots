@@ -43,7 +43,7 @@ self-hosted development.
 
 ## Local Frontline experiment
 
-CLI 0.9.4 includes the explicitly separate, unranked Frontline authoring loop:
+CLI 0.9.6 includes the explicitly separate, unranked Frontline authoring loop:
 
 ```bash
 nilbots experiment frontline \
@@ -82,8 +82,21 @@ This command runs the exact immutable hosted `frontline-labs-1` resolved
 contract through `GenericActorMatchSession`, then writes canonical replay v3.
 It bypasses App accounts, queues, and pilot quotas and remains local and
 unranked. Both entrants are required: a generic spec is an
-`IGenericActorBot` project or generic-profile WASM artifact, and no generic
-built-in opponent exists. Use `--swap` for the other team assignment.
+`IGenericActorBot` or `IGenericMindBot` project, or a generic-profile WASM
+artifact, and no generic built-in opponent exists. Use `--swap` for the other
+team assignment.
+
+`--profile mind` runs the same immutable contract on `generic-mind-match-1`:
+one runtime per PARTICIPANT for the whole match, driving every body it owns,
+instead of one runtime per body life. Rules, map, format, topology and mode are
+unchanged — only the capability tuple moves — so the rules and map fingerprints
+are identical and only the aggregate match fingerprint differs. Profile is a
+match-level choice, never per entrant: every artifact this CLI builds attests
+both profiles, so a per-life bot enters a mind match with no source edits (the
+guest hosts it as one sub-brain per body life) and a MIXED match is ordinary.
+`nilbots new <Name> --profile generic-mind` is the mind scaffold, and
+`qualify --profile mind` runs the parallel
+`frontline-mind-qualification-3/4/5` suites.
 
 For a registered local numeric arm, `--capture-threshold <positive-n>` creates
 a distinct ruleset such as
@@ -117,9 +130,34 @@ still contests the objective, while a positive weight surplus applies capture
 gain multiplied by that surplus. It uses the distinct ruleset
 `frontline-labs-1-experiment-net-control`.
 
+For the duel-depth arm, `--one-bend-shots` keeps the map, topology, objective,
+combat cadence, and lifecycle fixed while simplifying mobile programs to
+straight or one private 45-degree bend after one to four tiles. Initial aim
+offsets and repeated bends are unavailable. It uses ruleset
+`frontline-labs-1-experiment-one-bend-shots`; the opening through tick 119 is
+the native Prime-versus-Prime isolation window before companion unlocks.
+
 Iterate in-process, then build both projects and repeat in the default WASM
 runtime before treating results as evidence. `nilbots verify <replay.json>`
 cryptographically verifies replay v3, including its exact embedded contract
 fingerprints and payload hash.
+
+The versioned local qualification runner can check the current cumulative
+tactical profile:
+
+```bash
+nilbots experiment frontline-labs qualify \
+  --bot LabsBot/out/bot.wasm \
+  --suite frontline-qualification-5 \
+  --out out/LabsBot-qualification
+```
+
+Suite 5 requires WASM, reruns the exact cumulative T3 prerequisite, then
+checks suppression, proactive pressure entry, objective-preserving response,
+front rotation, and the thin-fronts map holdout. A complete pass awards T4
+and entrant-level balance eligibility. Run suite 3 directly for T2 and suite
+4 for T3. Frozen suite 1 remains only the historical `entry-initiative` T4
+component, while suite 2 remains an incomplete automatic-life/determinism
+foundation.
 
 Source and issue tracker: [github.com/nilbin/nilbots](https://github.com/nilbin/nilbots)

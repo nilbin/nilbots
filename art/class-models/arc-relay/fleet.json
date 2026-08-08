@@ -1,0 +1,152 @@
+{
+  "version": 1,
+  "generator": "scripts/build-arc-relay-models.mjs",
+  "generatorVersion": 3,
+  "sourceProjectionDegrees": 0,
+  "sourceRoot": "art/class-look-concepts/arc-relay/premium-roster-v1/vector-fallback",
+  "archivedMasterRoot": "art/class-look-concepts/arc-relay/premium-roster-v1/raster-masters",
+  "archivedMasterProjectionDegrees": 20,
+  "runtimeRoot": "web/src/assets/class-looks",
+  "textureSize": 256,
+  "heightfieldCells": 48,
+  "assetBudgetBytes": 524288,
+  "requiredGroups": [
+    "underbody-locomotion",
+    "chassis",
+    "weapon-hardware",
+    "team-accents",
+    "emissives"
+  ],
+  "classes": [
+    {
+      "id": "kestrel",
+      "label": "Kestrel",
+      "locomotion": "low-hover",
+      "handling": "swift",
+      "signature": "vector-dash",
+      "hardware": "dart-fins"
+    },
+    {
+      "id": "palisade",
+      "label": "Palisade",
+      "locomotion": "treads",
+      "handling": "deliberate",
+      "signature": "prism-wall",
+      "hardware": "projector-plate"
+    },
+    {
+      "id": "towline",
+      "label": "Towline",
+      "locomotion": "wheels",
+      "handling": "standard",
+      "signature": "tractor-hook",
+      "hardware": "winch-boom"
+    },
+    {
+      "id": "patchbay",
+      "label": "Patchbay",
+      "locomotion": "skids",
+      "handling": "standard",
+      "signature": "repair-beam",
+      "hardware": "repair-arms"
+    },
+    {
+      "id": "lantern",
+      "label": "Lantern",
+      "locomotion": "low-hover",
+      "handling": "swift",
+      "signature": "survey-flare",
+      "hardware": "sensor-dish",
+      "idleNodes": ["idle-lantern-dish"]
+    },
+    {
+      "id": "mortar",
+      "label": "Mortar",
+      "locomotion": "treads",
+      "handling": "deliberate",
+      "signature": "falling-star",
+      "hardware": "mortar-tube"
+    },
+    {
+      "id": "minesmith",
+      "label": "Minesmith",
+      "locomotion": "wheels",
+      "handling": "standard",
+      "signature": "trip-node",
+      "hardware": "mine-rack"
+    },
+    {
+      "id": "hush",
+      "label": "Hush",
+      "locomotion": "low-hover",
+      "handling": "standard",
+      "signature": "null-field",
+      "hardware": "dampener-array"
+    },
+    {
+      "id": "relay",
+      "label": "Relay",
+      "locomotion": "skids",
+      "handling": "swift",
+      "signature": "arc-toss",
+      "hardware": "core-cradle"
+    },
+    {
+      "id": "switchback",
+      "label": "Switchback",
+      "locomotion": "low-hover",
+      "handling": "standard",
+      "signature": "exchange",
+      "hardware": "twin-frame"
+    },
+    {
+      "id": "longshot",
+      "label": "Longshot",
+      "locomotion": "skids",
+      "handling": "deliberate",
+      "signature": "rail-line",
+      "hardware": "long-rail"
+    },
+    {
+      "id": "mason",
+      "label": "Mason",
+      "locomotion": "treads",
+      "handling": "deliberate",
+      "signature": "hardlight-block",
+      "hardware": "builder-rig"
+    },
+    {
+      "id": "sunder",
+      "label": "Sunder",
+      "locomotion": "low-hover",
+      "handling": "standard",
+      "signature": "target-paint",
+      "hardware": "optic-mast"
+    },
+    {
+      "id": "repulsor",
+      "label": "Repulsor",
+      "locomotion": "treads",
+      "handling": "standard",
+      "signature": "kinetic-burst",
+      "hardware": "radial-emitters"
+    },
+    {
+      "id": "veil",
+      "label": "Veil",
+      "locomotion": "low-hover",
+      "handling": "swift",
+      "signature": "smoke-canister",
+      "hardware": "smoke-tubes"
+    },
+    {
+      "id": "nest",
+      "label": "Nest",
+      "locomotion": "wheels",
+      "handling": "deliberate",
+      "signature": "sentinel-seed",
+      "hardware": "pod-rack",
+      "idleNodes": ["idle-nest-pod-left", "idle-nest-pod-right"]
+    }
+  ]
+}

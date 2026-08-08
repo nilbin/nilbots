@@ -8,6 +8,29 @@ namespace BotArena.Engine;
 /// </summary>
 public abstract record GameModeDefinition
 {
+    /// <summary>
+    /// Attack profiles the MODE itself launches (signature bolts and the
+    /// like), as opposed to a form's gun. The rules validator counts these
+    /// as used; sessions resolve them by id when the mode fires.
+    /// </summary>
+    public virtual ImmutableArray<string> ModeOwnedAttackProfileIds => [];
+
+    /// <summary>
+    /// When true, the order-dependent slice of movement resolution — which
+    /// mover consumes a projectile both movers step toward — alternates
+    /// direction by tick parity instead of always favouring the lowest
+    /// ActorId (which is always team 0). False for every historical ruleset,
+    /// so their replay bytes never move.
+    /// </summary>
+    public virtual bool AlternatingResolutionOrder => false;
+
+    /// <summary>
+    /// When alternating resolution is on, phase the tick-parity alternation
+    /// by a seed-derived bit so a symmetric contest at a fixed tick splits
+    /// evenly ACROSS seeds instead of resolving identically in every match.
+    /// </summary>
+    public virtual bool SeedPhasedResolutionOrder => false;
+
     internal GameModeDefinition(
         string modeId,
         VictoryDefinition victory,
@@ -108,5 +131,6 @@ public abstract record GameModeDefinition
     {
         Frontline = 0,
         Deathmatch = 1,
+        ArcRelay = 2,
     }
 }

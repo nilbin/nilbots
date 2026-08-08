@@ -24,17 +24,53 @@
     <EmbeddedResource Include="../../cosmetics/catalog.json" LogicalName="BotArena.Cosmetics.catalog.json" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="../BotArena.TacticalPlaybooks/BotArena.TacticalPlaybooks.csproj" />
     <ProjectReference Include="../BotArena.Engine/BotArena.Engine.csproj" />
     <ProjectReference Include="../BotArena.Runtime.Wasm/BotArena.Runtime.Wasm.csproj" />
     <ProjectReference Include="../BotArena.Toolchain/BotArena.Toolchain.csproj" />
     <ProjectReference Include="../BotArena.Runtime/BotArena.Runtime.csproj" />
     <ProjectReference Include="../BotArena.Bots.BuiltIn/BotArena.Bots.BuiltIn.csproj" />
+    <!-- Exact managed twin of the current operation-capable stock WASM. Keeping
+         it in its own assembly avoids type collisions with frozen v0 sources. -->
+    <ProjectReference Include="../../arena-bots/arc-relay/stock-mind-v4/ArcRelayStrategyMind.csproj" />
+    <ProjectReference Include="../../arena-bots/arc-relay/tactical-playbook-mind-v1/ArcRelayTacticalPlaybookMind.csproj" />
     <!-- Not used by any App code: it puts BotArena.Guest.dll beside the server the way
          it already sits beside the CLI, so both hosts stage the assemblies they shipped
          with. Without it the server had only Sdk.dll here and silently fell back to
          building its own copies from the repo — a different build of a different
          configuration than the CLI staged (DECISIONS #84). -->
     <ProjectReference Include="../BotArena.Guest/BotArena.Guest.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Source-authored tactical templates. The Sheets module resolves the
+         shared library and pins layout bytes before exposing any draft. -->
+    <EmbeddedResource Include="../../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/library/standard-v1.json"
+                      LogicalName="BotArena.Sheets.standard-v1.json" />
+    <EmbeddedResource Include="../../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/playbooks/hunter-v1.json"
+                      LogicalName="BotArena.Sheets.hunter-v1.playbook.json" />
+    <EmbeddedResource Include="../../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/layouts/warren6-hunter-v1.json"
+                      LogicalName="BotArena.Sheets.hunter-v1.layout.json" />
+    <EmbeddedResource Include="../../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/playbooks/home-siege-v3.json"
+                      LogicalName="BotArena.Sheets.home-siege-v3.playbook.json" />
+    <EmbeddedResource Include="../../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/layouts/counterflow-home-siege-v3.json"
+                      LogicalName="BotArena.Sheets.home-siege-v3.layout.json" />
+    <EmbeddedResource Include="../../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/playbooks/breakwater-v1.json"
+                      LogicalName="BotArena.Sheets.breakwater-v1.playbook.json" />
+    <EmbeddedResource Include="../../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/layouts/counterflow-breakwater-v1.json"
+                      LogicalName="BotArena.Sheets.breakwater-v1.layout.json" />
+    <EmbeddedResource Include="../../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/playbooks/ripen-harvest-v1.json"
+                      LogicalName="BotArena.Sheets.ripen-harvest-v1.playbook.json" />
+    <EmbeddedResource Include="../../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/layouts/counterflow-ripen-harvest-v1.json"
+                      LogicalName="BotArena.Sheets.ripen-harvest-v1.layout.json" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- One frozen first-party stock algorithm is compiled once into the
+         trusted hosted worker. The exact same sources build its WASM audit
+         twin; player sheets remain separately hashed data. -->
+    <Compile Include="../../arena-bots/arc-relay/stock-mind-v0/ArcRelayStockMind.cs"
+             Link="ArcRelay/StockMind/ArcRelayStockMind.cs" />
+    <Compile Include="../../arena-bots/arc-relay/stock-mind-v0/StockSheet.cs"
+             Link="ArcRelay/StockMind/StockSheet.cs" />
   </ItemGroup>
 
   <!-- The OpenAPI document is a build artifact, not a running-server artifact: it is

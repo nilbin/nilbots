@@ -118,7 +118,8 @@ public sealed class GenericActorWorldSnapshot
     public long NextProjectileId { get; }
     public ImmutableArray<
         GenericActorRuntimeObservation.ObservedParticipantStatus>
-        Participants { get; }
+        Participants
+    { get; }
     public ImmutableArray<SlotSnapshot> Slots { get; }
     public ImmutableArray<LifeSnapshot> ActiveLives { get; }
     public ImmutableArray<SplitReplicationReservation> PendingReplications
@@ -286,9 +287,11 @@ public sealed class GenericActorWorldSnapshot
         public string? SourceTransitionId { get; }
         public string? SourceOperationId { get; }
         public GenericActorRuntimeActionResolution?
-            PreviousActionResolution { get; }
+            PreviousActionResolution
+        { get; }
         public GenericActorRuntimeObservation.PendingSameLifeTransition?
-            PendingSameLifeTransition { get; }
+            PendingSameLifeTransition
+        { get; }
     }
 
     public sealed record ProjectileSnapshot
@@ -520,7 +523,18 @@ public sealed class GenericActorWorldSnapshot
                     "Every active life must exactly match one active slot, placement, and transition state.",
                     nameof(lives));
             }
-            if (life.Health <= 0 || life.Health > form.MaxHealth)
+            // A body may exceed its form's declared maximum by exactly the
+            // headroom the mode's own declared upgrade ladder allows, and
+            // never by more. On every contract that declares no ladder the
+            // headroom is zero and this is the historical invariant verbatim.
+            if (life.Health <= 0
+                || life.Health
+                    > checked(
+                        form.MaxHealth
+                        + FrontlineScrapEconomyDefinition.HeadroomOn(
+                            definition.Rules.GameMode,
+                            FrontlineScrapEconomyDefinition.UpgradeEffectKind
+                                .SpawnMaxHealthDelta)))
             {
                 throw new ArgumentException(
                     "An active life's health must be within its form maximum.",
@@ -741,20 +755,31 @@ public sealed class GenericActorWorldSnapshot
                     && !profiles[value.AttackProfileId]
                         .ShotProgram.IsValid(program)
                 || value.CommittedPath.IsEmpty
-                || value.CommittedPath.Length
-                    > profiles[value.AttackProfileId]
-                        .Projectile.MaxTravelTiles
                 || value.NextPathIndex <= 0
                 || value.NextPathIndex >= value.CommittedPath.Length
                 || value.Position
                     != value.CommittedPath[value.NextPathIndex - 1]
-                || value.RemainingTiles
-                    > profiles[value.AttackProfileId]
+                || value.RemainingTiles < 0
+                // A bolt's REACH is its remaining travel plus what it has
+                // already spent. It is the profile's declared maximum plus
+                // whatever the mode's declared ladder adds to the firing body
+                // — never less, because nothing shortens a declared gun, and
+                // never more than the ladder's own headroom. On a contract
+                // that declares no ladder the headroom is zero and the two
+                // bounds collapse into the historical equality.
+                || checked(value.RemainingTiles + value.NextPathIndex)
+                    < profiles[value.AttackProfileId]
                         .Projectile.MaxTravelTiles
-                || value.RemainingTiles
-                    != profiles[value.AttackProfileId]
-                        .Projectile.MaxTravelTiles
-                        - value.NextPathIndex
+                || checked(value.RemainingTiles + value.NextPathIndex)
+                    > checked(
+                        profiles[value.AttackProfileId]
+                            .Projectile.MaxTravelTiles
+                        + FrontlineScrapEconomyDefinition.HeadroomOn(
+                            definition.Rules.GameMode,
+                            FrontlineScrapEconomyDefinition.UpgradeEffectKind
+                                .MobileAttackTravelTilesDelta))
+                || value.CommittedPath.Length
+                    > checked(value.RemainingTiles + value.NextPathIndex)
                 || value.TicksUntilAdvance
                     > profiles[value.AttackProfileId]
                         .Projectile.TicksPerAdvance))
@@ -768,13 +793,27 @@ public sealed class GenericActorWorldSnapshot
         {
             ActorAttackProfileDefinition profile =
                 profiles[projectile.AttackProfileId];
+            // A bolt's committed path was traced at LAUNCH with the firing
+            // body's settled travel ladder, and the snapshot carries no
+            // ladder history — but the bolt itself does: its conserved
+            // reach (remaining + spent) minus the profile's declared base
+            // IS the launch-time extra, already clamped to the mode's
+            // declared headroom by the reach bounds above. Re-tracing with
+            // the raw profile instead aborted every match whose team fired
+            // after buying the travel tier (wave-8 finding, three authors
+            // independently). Zero on every ladderless contract, so this
+            // collapses to the historical exact re-trace there.
+            int inferredExtraTravelTiles = checked(
+                projectile.RemainingTiles + projectile.NextPathIndex)
+                - profile.Projectile.MaxTravelTiles;
             ImmutableArray<Position> expectedPath =
                 GenericActorProjectilePath.Trace(
                     definition.Map,
                     projectile.Origin,
                     projectile.LaunchHeading,
                     profile,
-                    projectile.ShotProgram);
+                    projectile.ShotProgram,
+                    inferredExtraTravelTiles);
             if (!projectile.CommittedPath.SequenceEqual(expectedPath))
             {
                 throw new ArgumentException(
@@ -1408,6 +1447,10 @@ public sealed class GenericActorWorldSnapshot
         {
             GenericActorRuntimeStart.SpawnReason.Initial =>
                 life.ParentActorId is null && !hasTransition,
+            GenericActorRuntimeStart.SpawnReason.AutomaticActivation
+                // A ROOT-FACTORY seed has no parent: a structure placed it.
+                or GenericActorRuntimeStart.SpawnReason.RootFactorySeed =>
+                life.ParentActorId is null && !hasTransition,
             GenericActorRuntimeStart.SpawnReason.AutomaticReturn =>
                 life.ParentActorId is not null && !hasTransition,
             GenericActorRuntimeStart.SpawnReason.Fabrication =>
@@ -1439,6 +1482,9 @@ public sealed class GenericActorWorldSnapshot
             (FrontlineGameModeDefinition,
                 GenericActorRuntimeObservation.ModeObservationState
                     .Frontline) => true,
+            (ArcRelayGameModeDefinition,
+                GenericActorRuntimeObservation.ModeObservationState
+                    .ArcRelay) => true,
             _ => false,
         };
 }

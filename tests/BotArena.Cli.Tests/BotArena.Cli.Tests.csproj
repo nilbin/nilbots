@@ -10,8 +10,65 @@
   </ItemGroup>
   <ItemGroup>
     <Using Include="Xunit" />
+    <Using Include="BotArena.TacticalPlaybooks" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../../src/BotArena.Cli/BotArena.Cli.csproj" />
+    <ProjectReference Include="../../arena-bots/arc-relay/tactical-playbook-mind-v1/ArcRelayTacticalPlaybookMind.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- The scaffold's helpers, compiled here as the player compiles them.
+         GenericActorScaffoldTests proves the template builds standalone;
+         linking the same file lets ArenaBasicsTemplateTests assert what it
+         READS out of a real resolved contract, which is the part a compile
+         cannot check. -->
+    <Compile
+      Include="../../templates/botarena-generic-actor/ArenaBasics.cs"
+      Link="Template/ArenaBasics.cs" />
+    <Compile
+      Include="../../arena-bots/arc-relay/stock-mind-v3/StrategySheet.cs"
+      Link="IntelligentGambit/StrategySheet.cs" />
+    <Compile
+      Include="../../arena-bots/arc-relay/stock-mind-v3/IntelligentOperationModels.cs"
+      Link="IntelligentGambit/IntelligentOperationModels.cs" />
+    <Compile
+      Include="../../arena-bots/arc-relay/stock-mind-v3/IntelligentOperationMachine.cs"
+      Link="IntelligentGambit/IntelligentOperationMachine.cs" />
+    <Compile
+      Include="../../arena-bots/arc-relay/stock-mind-v3/CausalCarrierTarget.cs"
+      Link="IntelligentGambit/CausalCarrierTarget.cs" />
+    <Compile
+      Include="../../arena-bots/arc-relay/stock-mind-v5/StandingStrategyModels.cs"
+      Link="StandingStrategy/StandingStrategyModels.cs" />
+    <Compile
+      Include="../../arena-bots/arc-relay/stock-mind-v5/StandingStrategyMachine.cs"
+      Link="StandingStrategy/StandingStrategyMachine.cs" />
+    <Compile
+      Include="../../arena-bots/arc-relay/tactical-playbook-mind-v1/TacticalPlaybookPackage.cs"
+      Link="TacticalPlaybook/TacticalPlaybookPackage.cs" />
+    <Compile
+      Include="../../arena-bots/arc-relay/tactical-playbook-mind-v1/TacticalPlaybookMachine.cs"
+      Link="TacticalPlaybook/TacticalPlaybookMachine.cs" />
+    <Compile
+      Include="../../arena-bots/arc-relay/tactical-playbook-mind-v1/TacticalTaskMachine.cs"
+      Link="TacticalPlaybook/TacticalTaskMachine.cs" />
+    <Compile
+      Include="../../arena-bots/arc-relay/tactical-playbook-mind-v1/TacticalPlaybookJsonContext.cs"
+      Link="TacticalPlaybook/TacticalPlaybookJsonContext.cs" />
+    <Compile
+      Include="../../arena-bots/arc-relay/tactical-playbook-mind-v1/TacticalCoordinationPrimitives.cs"
+      Link="TacticalPlaybook/TacticalCoordinationPrimitives.cs" />
+    <Compile
+      Include="../../arena-bots/arc-relay/tactical-playbook-mind-v1/TacticalFormationPrimitives.cs"
+      Link="TacticalPlaybook/TacticalFormationPrimitives.cs" />
+    <Compile
+      Include="../../arena-bots/arc-relay/tactical-playbook-mind-v1/TacticalCustodyPrimitives.cs"
+      Link="TacticalPlaybook/TacticalCustodyPrimitives.cs" />
+    <Compile
+      Include="../../arena-bots/arc-relay/tactical-playbook-mind-v1/TacticalDetachmentPrimitives.cs"
+      Link="TacticalPlaybook/TacticalDetachmentPrimitives.cs" />
+    <Compile
+      Include="../../arena-bots/arc-relay/tactical-playbook-mind-v1/TacticalMembershipPrimitives.cs"
+      Link="TacticalPlaybook/TacticalMembershipPrimitives.cs" />
   </ItemGroup>
 </Project>

@@ -1,0 +1,10 @@
+{
+  "id": "arc-palisade",
+  "label": "Palisade",
+  "sprite": "sprite.png",
+  "suggestedAccent": "#38bdf8",
+  "defaultProjectile": "arc-pulse",
+  "classId": "palisade",
+  "locomotionCue": "treads",
+  "scale": 1.1
+}

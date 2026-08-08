@@ -1,0 +1,499 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Frontline live-size clearance proof</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        background: #090706;
+        color: #eadbc9;
+      }
+      * { box-sizing: border-box; }
+      body { margin: 0; overflow: hidden; }
+      canvas { display: block; width: 1920px; height: 1080px; }
+      .heading {
+        position: fixed;
+        top: 24px;
+        left: 32px;
+        z-index: 2;
+        font: 700 20px/1.2 system-ui, sans-serif;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+      }
+      .sub {
+        position: fixed;
+        top: 57px;
+        left: 32px;
+        z-index: 2;
+        color: #a9947d;
+        font-size: 12px;
+      }
+      .panel {
+        position: fixed;
+        top: 108px;
+        z-index: 2;
+        font: 700 15px/1.2 system-ui, sans-serif;
+        letter-spacing: .09em;
+        text-transform: uppercase;
+      }
+      .current { left: 34px; color: #f2a36d; }
+      .proposed { left: 994px; color: #8bd5a6; }
+      .note {
+        position: fixed;
+        top: 845px;
+        width: 900px;
+        min-height: 190px;
+        padding: 16px 18px;
+        border: 1px solid #4f3c2e;
+        background: rgba(12, 9, 8, .94);
+        color: #c5b29b;
+        font-size: 12px;
+        line-height: 1.6;
+      }
+      .left { left: 30px; }
+      .right { left: 990px; }
+      .metric { color: #f0d5b8; }
+      .good { color: #8bd5a6; }
+      .bad { color: #f2a36d; }
+    </style>
+  </head>
+  <body>
+    <div class="heading">Frontline visual-clearance audit · live 1.18944-span Striker</div>
+    <div class="sub">approved GLB 1.12 × runtime actor size 1.062 · authoritative map · exact 58° pitch · tile centres unchanged</div>
+    <div class="panel current">Current wall body + cap</div>
+    <div class="panel proposed">Renderer-only open-edge setback</div>
+    <div class="note left">
+      <span class="metric">Authoritative centreline → wall boundary:</span> 0.500 tile<br />
+      <span class="bad">Current body reaches 0.055 into open floor:</span> clearance 0.445,
+      signed margin −0.180 for a rotation-safe radius-0.62462 chassis.<br />
+      <span class="bad">Current topology cap reaches 0.112 into open floor:</span>
+      signed margin −0.236 before camera projection.<br />
+      The diagnostic rings are the measured rotation-safe static envelope, not collision.
+    </div>
+    <div class="note right">
+      <span class="metric">Proposed widest lower body face:</span> 0.14462 tile
+      inside every open wall edge.<br />
+      <span class="good">Resulting centreline clearance:</span> 0.64462 tile,
+      signed visual margin +0.020.<br />
+      Connected cap edges retain their gutter overlap; only edges facing open
+      floor end on the supported planar top at a 0.19962 source inset
+      (0.14462 visual relief + 0.055 outward bevel). Map JSON, collision,
+      paths, tile centres, pads, and objectives are untouched.
+    </div>
+    <canvas id="stage" width="1920" height="1080"></canvas>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "/three.module.js"
+        }
+      }
+    </script>
+    <script type="module">
+      import * as THREE from '/three.module.js';
+      import { GLTFLoader } from '/GLTFLoader.js';
+
+      const map = await fetch('/map.json').then((response) => response.json());
+      const runtimeActorSize = 1.062;
+      const liveBotRadius = 0.62462;
+      const openEdgeInset = 0.14462;
+      const proposedCapInset = openEdgeInset + 0.055;
+      const loader = new THREE.TextureLoader();
+      const [floorTexture, perimeterTexture, coverTexture, strikerGltf] =
+        await Promise.all([
+          texture('/floor.webp', true),
+          texture('/perimeter-albedo.png', true),
+          texture('/cover-albedo.png', true),
+          new GLTFLoader().loadAsync('/striker-112.glb'),
+        ]);
+
+      const renderer = new THREE.WebGLRenderer({
+        canvas: document.querySelector('#stage'),
+        antialias: true,
+        preserveDrawingBuffer: true,
+        powerPreference: 'high-performance',
+      });
+      renderer.setSize(1920, 1080, false);
+      renderer.setPixelRatio(1);
+      renderer.setScissorTest(true);
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFShadowMap;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.12;
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+      const current = buildScene(false);
+      const proposed = buildScene(true);
+      const camera = reviewCamera();
+      renderPanel(current, 0, 200, 960, 600);
+      renderPanel(proposed, 960, 200, 960, 600);
+      document.documentElement.dataset.ready = 'true';
+
+      async function texture(url, srgb = false) {
+        const loaded = await loader.loadAsync(url);
+        loaded.wrapS = THREE.RepeatWrapping;
+        loaded.wrapT = THREE.RepeatWrapping;
+        loaded.anisotropy = 8;
+        if (srgb) loaded.colorSpace = THREE.SRGBColorSpace;
+        return loaded;
+      }
+
+      function buildScene(withClearance) {
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color('#100c0a');
+        scene.fog = new THREE.Fog('#100c0a', 9, 20);
+        addLights(scene);
+        addFloor(scene);
+
+        const perimeter = new THREE.MeshStandardMaterial({
+          map: perimeterTexture,
+          bumpMap: perimeterTexture,
+          bumpScale: 2.2,
+          color: '#b5afa7',
+          roughness: .88,
+          metalness: .2,
+        });
+        const cover = new THREE.MeshStandardMaterial({
+          map: coverTexture,
+          bumpMap: coverTexture,
+          bumpScale: 2.2,
+          color: '#b5afa7',
+          roughness: .88,
+          metalness: .2,
+        });
+        addFamily(scene, 'perimeter', perimeter, withClearance);
+        addFamily(scene, 'cover', cover, withClearance);
+
+        for (const z of [2.5, 3.5]) {
+          const bot = strikerGltf.scene.clone(true);
+          bot.scale.setScalar(runtimeActorSize);
+          bot.position.set(11.5, 0, z);
+          bot.traverse((node) => {
+            if (!node.isMesh) return;
+            node.castShadow = true;
+            node.receiveShadow = true;
+          });
+          scene.add(bot);
+
+          const ringGeometry = new THREE.RingGeometry(
+            liveBotRadius - .007,
+            liveBotRadius,
+            64,
+          );
+          ringGeometry.rotateX(-Math.PI / 2);
+          const ring = new THREE.Mesh(
+            ringGeometry,
+            new THREE.MeshBasicMaterial({
+              color: withClearance ? '#75d49b' : '#f18b58',
+              transparent: true,
+              opacity: .9,
+              depthWrite: false,
+              side: THREE.DoubleSide,
+            }),
+          );
+          ring.position.set(11.5, .025, z);
+          scene.add(ring);
+        }
+        return scene;
+      }
+
+      function addFamily(scene, family, material, withClearance) {
+        const tiles = [];
+        for (let y = 0; y < map.height; y += 1)
+          for (let x = 0; x < map.width; x += 1)
+            if (familyAt(x, y) === family) tiles.push({ x, y });
+
+        if (withClearance) {
+          // A production mesh builder should emit one continuous top surface
+          // and only move faces that border open floor. Separate boxes make
+          // those renderer-only bounds explicit in this review proof without
+          // creating false gaps between connected tiles or wall families.
+          for (const tile of tiles) {
+            const connected = {
+              north: isWall(tile.x, tile.y - 1),
+              east: isWall(tile.x + 1, tile.y),
+              south: isWall(tile.x, tile.y + 1),
+              west: isWall(tile.x - 1, tile.y),
+            };
+            const left = tile.x + (connected.west ? 0 : openEdgeInset);
+            const right =
+              tile.x + 1 - (connected.east ? 0 : openEdgeInset);
+            const north = tile.y + (connected.north ? 0 : openEdgeInset);
+            const south =
+              tile.y + 1 - (connected.south ? 0 : openEdgeInset);
+            const geometry = new THREE.BoxGeometry(
+              right - left,
+              .565,
+              south - north,
+            );
+            geometry.translate(
+              (left + right) / 2,
+              .565 / 2,
+              (north + south) / 2,
+            );
+            const body = new THREE.Mesh(geometry, material);
+            body.castShadow = true;
+            body.receiveShadow = true;
+            scene.add(body);
+          }
+        } else {
+          const geometry = new THREE.ExtrudeGeometry(wallShapes(tiles), {
+            depth: .565,
+            bevelEnabled: true,
+            bevelThickness: .055,
+            bevelSize: .055,
+            bevelOffset: 0,
+            bevelSegments: 2,
+            curveSegments: 3,
+          });
+          geometry.rotateX(-Math.PI / 2);
+          geometry.computeVertexNormals();
+          const body = new THREE.Mesh(geometry, material);
+          body.castShadow = true;
+          body.receiveShadow = true;
+          scene.add(body);
+        }
+
+        const capMaterial = material.clone();
+        capMaterial.roughness = .72;
+        const currentHalf = .5 + 32 / 192 - .055;
+        const exposedHalf = .5 - proposedCapInset;
+        for (const tile of tiles) {
+          const connected = {
+            north: isWall(tile.x, tile.y - 1),
+            east: isWall(tile.x + 1, tile.y),
+            south: isWall(tile.x, tile.y + 1),
+            west: isWall(tile.x - 1, tile.y),
+          };
+          const left =
+            withClearance && !connected.west ? -exposedHalf : -currentHalf;
+          const right =
+            withClearance && !connected.east ? exposedHalf : currentHalf;
+          const north =
+            withClearance && !connected.north ? -exposedHalf : -currentHalf;
+          const south =
+            withClearance && !connected.south ? exposedHalf : currentHalf;
+          const capGeometry = new THREE.PlaneGeometry(
+            right - left,
+            south - north,
+          );
+          capGeometry.rotateX(-Math.PI / 2);
+          capGeometry.translate(
+            tile.x + .5 + (left + right) / 2,
+            .624,
+            tile.y + .5 + (north + south) / 2,
+          );
+          const cap = new THREE.Mesh(capGeometry, capMaterial);
+          cap.receiveShadow = true;
+          scene.add(cap);
+        }
+      }
+
+      function addFloor(scene) {
+        const geometry = new THREE.PlaneGeometry(map.width, map.height);
+        geometry.rotateX(-Math.PI / 2);
+        geometry.translate(map.width / 2, 0, map.height / 2);
+        const material = new THREE.MeshStandardMaterial({
+          map: floorTexture,
+          bumpMap: floorTexture,
+          bumpScale: 1.6,
+          color: '#5b514b',
+          roughness: .86,
+          metalness: .12,
+        });
+        const floor = new THREE.Mesh(geometry, material);
+        floor.receiveShadow = true;
+        scene.add(floor);
+      }
+
+      function addLights(scene) {
+        const key = new THREE.DirectionalLight(0xe8f1ff, 4.4);
+        key.position.set(map.width * .55, map.width * .85, map.height * .75);
+        key.castShadow = true;
+        key.shadow.mapSize.set(2048, 2048);
+        key.shadow.camera.left = -20;
+        key.shadow.camera.right = 20;
+        key.shadow.camera.top = 20;
+        key.shadow.camera.bottom = -20;
+        key.shadow.camera.far = 70;
+        key.shadow.bias = -.0015;
+        key.shadow.normalBias = .02;
+        const ambient = new THREE.AmbientLight(0x6f8bb0, 2.4);
+        const fill = new THREE.DirectionalLight(0x4d7099, 1.5);
+        fill.position.set(-map.width * .6, map.width * .4, -map.height * .5);
+        scene.add(key, key.target, ambient, fill);
+      }
+
+      function reviewCamera() {
+        const camera = new THREE.PerspectiveCamera(42, 1.6, .1, 200);
+        const frame = { x: 11.5, y: 3, width: 8, height: 5 };
+        const span = Math.max(frame.width / camera.aspect, frame.height);
+        const distance =
+          (span / 2) / Math.tan(camera.fov * Math.PI / 360);
+        const pitch = 58 * Math.PI / 180;
+        camera.position.set(
+          frame.x,
+          Math.sin(pitch) * distance * 1.02,
+          frame.y + Math.cos(pitch) * distance * 1.02,
+        );
+        camera.lookAt(frame.x, 0, frame.y);
+        return camera;
+      }
+
+      function renderPanel(scene, x, y, width, height) {
+        renderer.setViewport(x, y, width, height);
+        renderer.setScissor(x, y, width, height);
+        renderer.setClearColor('#100c0a');
+        renderer.clear(true, true, true);
+        renderer.render(scene, camera);
+      }
+
+      function familyAt(x, y) {
+        if (x < 0 || y < 0 || x >= map.width || y >= map.height)
+          return 'perimeter';
+        if (map.tiles[y][x] !== '#') return null;
+        return x === 0 ||
+          y === 0 ||
+          x === map.width - 1 ||
+          y === map.height - 1
+          ? 'perimeter'
+          : 'cover';
+      }
+      function isWall(x, y) {
+        return familyAt(x, y) !== null;
+      }
+
+      function wallShapes(tiles) {
+        const filled = new Set(tiles.map(({ x, y }) => `${x},${y}`));
+        const loops = trace(filled).map(toLoop);
+        const outers = [];
+        const holes = [];
+        for (const loop of loops) {
+          const depth = loops.filter(
+            (other) => other !== loop && contains(other.points, loop.points[0]),
+          ).length;
+          (depth % 2 === 0 ? outers : holes).push(loop);
+        }
+        const shapes = outers.map((outer) => ({
+          outer,
+          shape: rounded(outer.points, new THREE.Shape()),
+        }));
+        for (const hole of holes) {
+          const owner = shapes
+            .filter(({ outer }) => contains(outer.points, hole.points[0]))
+            .sort((a, b) => a.outer.area - b.outer.area)[0];
+          if (owner)
+            owner.shape.holes.push(rounded(hole.points, new THREE.Path()));
+        }
+        return shapes.map(({ shape }) => shape);
+      }
+
+      function trace(filled) {
+        const pending = new Map();
+        const push = (from, to) => {
+          const key = `${from[0]},${from[1]}`;
+          const edges = pending.get(key) || [];
+          edges.push([
+            new THREE.Vector2(from[0], from[1]),
+            new THREE.Vector2(to[0], to[1]),
+          ]);
+          pending.set(key, edges);
+        };
+        for (const cell of filled) {
+          const [x, y] = cell.split(',').map(Number);
+          if (!filled.has(`${x},${y - 1}`)) push([x, y], [x + 1, y]);
+          if (!filled.has(`${x + 1},${y}`)) push([x + 1, y], [x + 1, y + 1]);
+          if (!filled.has(`${x},${y + 1}`)) push([x + 1, y + 1], [x, y + 1]);
+          if (!filled.has(`${x - 1},${y}`)) push([x, y + 1], [x, y]);
+        }
+        const take = (key) => {
+          const edges = pending.get(key);
+          if (!edges?.length) return null;
+          const edge = edges.pop();
+          if (!edges.length) pending.delete(key);
+          return edge;
+        };
+        const loops = [];
+        while (pending.size) {
+          let edge = take(pending.keys().next().value);
+          if (!edge) continue;
+          const loop = [edge[0]];
+          while (edge) {
+            loop.push(edge[1]);
+            edge = take(`${edge[1].x},${edge[1].y}`);
+          }
+          if (loop.length > 3) loops.push(loop);
+        }
+        return loops;
+      }
+
+      function toLoop(points) {
+        const flipped = points.map(({ x, y }) => new THREE.Vector2(x, -y));
+        if (flipped[0].equals(flipped.at(-1))) flipped.pop();
+        const corners = [];
+        for (let index = 0; index < flipped.length; index++) {
+          const previous = flipped[(index - 1 + flipped.length) % flipped.length];
+          const current = flipped[index];
+          const next = flipped[(index + 1) % flipped.length];
+          const turn =
+            (current.x - previous.x) * (next.y - current.y) -
+            (current.y - previous.y) * (next.x - current.x);
+          if (Math.abs(turn) > 1e-9) corners.push(current);
+        }
+        let area = 0;
+        for (let index = 0; index < corners.length; index++) {
+          const current = corners[index];
+          const next = corners[(index + 1) % corners.length];
+          area += current.x * next.y - next.x * current.y;
+        }
+        return { points: corners, area: Math.abs(area) / 2 };
+      }
+
+      function rounded(points, path) {
+        let radius = .1;
+        for (let index = 0; index < points.length; index++)
+          radius = Math.min(
+            radius,
+            points[index].distanceTo(points[(index + 1) % points.length]) / 2,
+          );
+        const approach = (corner, towards) =>
+          corner
+            .clone()
+            .addScaledVector(towards.clone().sub(corner).normalize(), radius);
+        for (let index = 0; index < points.length; index++) {
+          const previous = points[(index - 1 + points.length) % points.length];
+          const corner = points[index];
+          const next = points[(index + 1) % points.length];
+          const entry = approach(corner, previous);
+          const exit = approach(corner, next);
+          if (index === 0) path.moveTo(entry.x, entry.y);
+          else path.lineTo(entry.x, entry.y);
+          path.quadraticCurveTo(corner.x, corner.y, exit.x, exit.y);
+        }
+        path.closePath();
+        return path;
+      }
+
+      function contains(polygon, point) {
+        let inside = false;
+        for (
+          let index = 0, previous = polygon.length - 1;
+          index < polygon.length;
+          previous = index++
+        ) {
+          const a = polygon[index];
+          const b = polygon[previous];
+          if (
+            a.y > point.y !== b.y > point.y &&
+            point.x <
+              ((b.x - a.x) * (point.y - a.y)) / (b.y - a.y) + a.x
+          )
+            inside = !inside;
+        }
+        return inside;
+      }
+    </script>
+  </body>
+</html>

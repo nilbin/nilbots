@@ -14,14 +14,15 @@ internal static class ReplayV3Projection
         ReplayV3.PresentationMetadata? presentation = null)
     {
         ArgumentNullException.ThrowIfNull(chronology);
-
+        bool mindProfile = chronology.Descriptor.Definition
+            .CapabilityVersions.IsMindProfile;
         return new ReplayV3(
             Header(
                 chronology.Descriptor,
                 Presentation(presentation)),
             InitialFrame(chronology.InitialFrame),
             chronology.Ticks
-                .Select(TickFrame)
+                .Select(frame => TickFrame(frame, mindProfile))
                 .ToImmutableArray(),
             chronology.Result is null
                 ? null
@@ -30,7 +31,7 @@ internal static class ReplayV3Projection
             Partial: chronology.Partial);
     }
 
-    private static ReplayV3.ReplayHeader Header(
+    internal static ReplayV3.ReplayHeader Header(
         GenericActorMatchDescriptor descriptor,
         ReplayV3.PresentationMetadata? presentation)
     {
@@ -200,24 +201,214 @@ internal static class ReplayV3Projection
             participant.ArtifactHash,
             participant.Accent,
             participant.LookId,
-            participant.ProjectileLookId);
+            participant.ProjectileLookId,
+            participant.MindDataHash);
 
     private static ReplayV3.ReplayInitialFrame InitialFrame(
         GenericActorMatchInitialFrame frame) =>
         new(
             WorldState(frame.State),
             frame.LifeStarts.Select(LifeStart).ToImmutableArray(),
-            frame.Events.Select(Event).ToImmutableArray());
+            frame.Events
+                .Select(value => Event(value))
+                .ToImmutableArray());
 
+    /// <summary>
+    /// The profile decides the turn kind. On a mind document the N per-life
+    /// turns are REPLACED by one turn per participant — the union is stored
+    /// once instead of nine times, which is the ~7x cut on the chronology term
+    /// and ~3x on the whole document
+    /// (<c>docs/DESIGN-MIND-ARCHITECTURE-2026-07-31.md</c> §5.2). The per-body
+    /// resolutions the format still owes are folded into the mind turn from
+    /// the same actor turns a per-life document would have written.
+    /// </summary>
     private static ReplayV3.TickFrame TickFrame(
-        GenericActorMatchTickFrame frame) =>
+        GenericActorMatchTickFrame frame,
+        bool mindProfile) =>
         new(
             frame.Tick,
             TickStart(frame.TickStart),
-            frame.ActorTurns.Select(ActorTurn).ToImmutableArray(),
-            frame.Events.Select(Event).ToImmutableArray(),
+            frame.Events
+                .Select(value => Event(value))
+                .ToImmutableArray(),
             frame.Traversals.Select(Traversal).ToImmutableArray(),
-            WorldState(frame.PostState));
+            WorldState(frame.PostState),
+            // The absent turn kind is left UNINITIALIZED rather than empty, so
+            // "this document has no actor turns" and "this document has an
+            // empty actor-turns array" stay distinguishable — which is what
+            // lets the validator refuse a mind document that smuggles an empty
+            // actorTurns key rather than merely round-tripping it away.
+            mindProfile
+                ? default
+                : frame.ActorTurns.Select(ActorTurn).ToImmutableArray(),
+            mindProfile
+                ? frame.MindTurns
+                    .Select(turn => MindTurn(turn, frame))
+                    .ToImmutableArray()
+                : default);
+
+    private static ReplayV3.MindTurn MindTurn(
+        GenericActorMatchMindTurn turn,
+        GenericActorMatchTickFrame frame)
+    {
+        Dictionary<ActorIdentity, GenericActorMatchActorTurn> byActor =
+            frame.ActorTurns.ToDictionary(value => value.ActorId);
+        return new ReplayV3.MindTurn(
+            turn.Tick,
+            turn.ParticipantId,
+            turn.TeamId,
+            Decimal(turn.TickFuelBudget),
+            turn.LiveOwnBodyCount,
+            MindObservation(turn.Observation),
+            turn.Commands.Select(MindCommand).ToImmutableArray(),
+            [
+                .. turn.ResolvedBodies.Select(actorId =>
+                {
+                    GenericActorMatchActorTurn body = byActor[actorId];
+                    return new ReplayV3.MindBodyResolution(
+                        actorId.UnitId,
+                        actorId.LifeId,
+                        body.SubmittedDecision is null
+                            ? null
+                            : SubmittedDecision(body.SubmittedDecision),
+                        ActionResolution(body.ActionResolution));
+                }),
+            ],
+            turn.RejectedIntents
+                .Select(intent => new ReplayV3.MindIntent(
+                    intent.TagId,
+                    Decimal(intent.Value)))
+                .ToImmutableArray(),
+            turn.RuntimeFault is null
+                ? null
+                : MindRuntimeFault(turn.RuntimeFault),
+            turn.DebugMessage);
+    }
+
+    private static ReplayV3.MindCommand MindCommand(
+        GenericMindCommandResolution resolution) =>
+        new(
+            resolution.Command.UnitId,
+            resolution.Command.LifeId,
+            resolution.Command.ActionId,
+            resolution.Command.ActionCode,
+            resolution.Command.Arguments
+                .Select(static value => RawActionArgument(value))
+                .ToImmutableArray(),
+            MindCommandOutcome(resolution.Outcome),
+            resolution.Command.RoleTag,
+            resolution.Command.DebugMessage);
+
+    private static string MindCommandOutcome(
+        GenericMindCommandOutcome value) =>
+        value switch
+        {
+            GenericMindCommandOutcome.Accepted => "accepted",
+            GenericMindCommandOutcome.Rejected => "rejected",
+            _ => throw new ArgumentOutOfRangeException(
+                nameof(value),
+                value,
+                "Unknown mind command outcome."),
+        };
+
+    private static ReplayV3.MindRuntimeFault MindRuntimeFault(
+        GenericMindRuntimeFault value) =>
+        new(
+            value.ParticipantId,
+            value.TeamId,
+            value.ActorId is null ? null : ActorId(value.ActorId),
+            FaultStage(value.Stage),
+            value.FaultCode,
+            Decimal(value.CumulativeFaultCount),
+            value.DisqualificationTriggered);
+
+    private static ReplayV3.MindObservation MindObservation(
+        GenericMindRuntimeObservation observation) =>
+        new(
+            observation.SchemaVersion,
+            observation.Tick,
+            observation.MatchContractFingerprint,
+            observation.ParticipantId,
+            observation.TeamId,
+            observation.Bodies.Select(MindBody).ToImmutableArray(),
+            observation.Slots.Select(MindSlot).ToImmutableArray(),
+            observation.Team.TeamUnits
+                .Select(ObservedUnitSlot)
+                .ToImmutableArray(),
+            observation.Team.Participants
+                .Select(ParticipantStatus)
+                .ToImmutableArray(),
+            observation.Allies.Select(ObservedAlly).ToImmutableArray(),
+            observation.Enemies.Select(ObservedEnemy).ToImmutableArray(),
+            observation.VisibleTiles
+                .Select(ObservedTile)
+                .ToImmutableArray(),
+            observation.Team.VisibleProjectiles is null
+                ? null
+                : observation.Team.VisibleProjectiles.Value
+                    .Select(ObservedProjectile)
+                    .ToImmutableArray(),
+            observation.VisibleEvents
+                .Select(ObservedEvent)
+                .ToImmutableArray(),
+            observation.Team.HeardSounds is null
+                ? null
+                : observation.Team.HeardSounds.Value
+                    .Select(ObservedSound)
+                    .ToImmutableArray(),
+            Scoreboard(observation.Scoreboard),
+            ModeState(observation.Mode),
+            observation.AlliedIntents
+                .Select(intent => new ReplayV3.MindAlliedIntent(
+                    intent.ParticipantId,
+                    intent.TagId,
+                    Decimal(intent.Value)))
+                .ToImmutableArray());
+
+    private static ReplayV3.MindBody MindBody(
+        GenericMindRuntimeObservation.ObservedBodyState body) =>
+        new(
+            ActorId(body.ActorId),
+            body.Generation,
+            body.FormId,
+            Position(body.Position),
+            Direction(body.Facing),
+            body.Health,
+            body.Cooldown,
+            body.Energy,
+            body.PreviousActionResolution is null
+                ? null
+                : ActionResolution(body.PreviousActionResolution),
+            PendingTransition(body.PendingSameLifeTransition),
+            body.ClassId,
+            body.PreviousPosition is Position previous
+                ? Position(previous)
+                : null,
+            body.MovedLastTick,
+            body.LifeStartedTick,
+            new ReplayV3.LifeOrigin(
+                SpawnReason(body.Origin.Reason),
+                body.Origin.Generation,
+                body.Origin.ParentActorId is null
+                    ? null
+                    : ActorId(body.Origin.ParentActorId),
+                body.Origin.SourceTransitionId,
+                body.Origin.SourceOperationId),
+            Decimal(body.BodyRandomSeed),
+            body.ActionLegalities.Select(ActionLegality).ToImmutableArray(),
+            RouteCooldowns(body.RouteCooldowns),
+            body.CarriedScrap,
+            body.RoleTag);
+
+    private static ReplayV3.MindSlot MindSlot(
+        GenericMindRuntimeObservation.ObservedOwnSlot slot) =>
+        new(
+            slot.TeamId,
+            slot.UnitId,
+            UnitSlotState(slot.State),
+            slot.ClassId,
+            slot.CandidateClassIds,
+            slot.SelectedClassId);
 
     private static ReplayV3.TickStart TickStart(
         GenericActorMatchTickStart tickStart) =>
@@ -226,7 +417,9 @@ internal static class ReplayV3Projection
             WorldState(tickStart.State),
             tickStart.ActiveActorIds.Select(ActorId).ToImmutableArray(),
             tickStart.LifeStarts.Select(LifeStart).ToImmutableArray(),
-            tickStart.Events.Select(Event).ToImmutableArray(),
+            tickStart.Events
+                .Select(value => Event(value))
+                .ToImmutableArray(),
             tickStart.Traversals.Select(Traversal).ToImmutableArray());
 
     private static ReplayV3.ActorTurn ActorTurn(
@@ -257,11 +450,13 @@ internal static class ReplayV3Projection
                     : ActorId(start.Origin.ParentActorId),
                 start.Origin.SourceTransitionId,
                 start.Origin.SourceOperationId),
-            start.MatchContractFingerprint);
+            start.MatchContractFingerprint,
+            Decimal(start.TeamRandomSeed));
 
     private static ReplayV3.Observation Observation(
-        GenericActorRuntimeObservation observation) =>
-        new(
+        GenericActorRuntimeObservation observation)
+    {
+        return new(
             observation.SchemaVersion,
             observation.Tick,
             observation.MatchContractFingerprint,
@@ -270,24 +465,27 @@ internal static class ReplayV3Projection
                 .Select(ObservedUnitSlot)
                 .ToImmutableArray(),
             observation.Participants
-                .Select(ParticipantStatus)
+                .Select(value =>
+                    ParticipantStatus(value))
                 .ToImmutableArray(),
             observation.Allies
-                .Select(ObservedAlly)
+                .Select(value => ObservedAlly(value))
                 .ToImmutableArray(),
             observation.Enemies
-                .Select(ObservedEnemy)
+                .Select(value => ObservedEnemy(value))
                 .ToImmutableArray(),
             observation.VisibleTiles
-                .Select(ObservedTile)
+                .Select(value => ObservedTile(value))
                 .ToImmutableArray(),
             observation.VisibleProjectiles is { } projectiles
                 ? projectiles
-                    .Select(ObservedProjectile)
+                    .Select(value =>
+                        ObservedProjectile(value))
                     .ToImmutableArray()
                 : null,
             observation.VisibleEvents
-                .Select(ObservedEvent)
+                .Select(value =>
+                    ObservedEvent(value))
                 .ToImmutableArray(),
             observation.HeardSounds is { } sounds
                 ? sounds
@@ -299,6 +497,7 @@ internal static class ReplayV3Projection
             observation.ActionLegalities
                 .Select(ActionLegality)
                 .ToImmutableArray());
+    }
 
     private static ReplayV3.ObservedSelf ObservedSelf(
         GenericActorRuntimeObservation.ObservedSelfState value) =>
@@ -314,7 +513,10 @@ internal static class ReplayV3Projection
             value.PreviousActionResolution is null
                 ? null
                 : ActionResolution(value.PreviousActionResolution),
-            PendingTransition(value.PendingSameLifeTransition));
+            PendingTransition(value.PendingSameLifeTransition),
+            value.ClassId,
+            RouteCooldowns(value.RouteCooldowns),
+            value.CarriedScrap);
 
     private static ReplayV3.ObservedAlly ObservedAlly(
         GenericActorRuntimeObservation.ObservedAllyState value) =>
@@ -330,7 +532,20 @@ internal static class ReplayV3Projection
             value.PreviousActionResolution is null
                 ? null
                 : ActionResolution(value.PreviousActionResolution),
-            PendingTransition(value.PendingSameLifeTransition));
+            PendingTransition(value.PendingSameLifeTransition),
+            value.ClassId,
+            RouteCooldowns(value.RouteCooldowns),
+            value.CarriedScrap,
+            value.RoleTag);
+
+    private static ImmutableArray<ReplayV3.RouteCooldown> RouteCooldowns(
+        ImmutableArray<GenericActorRuntimeObservation.ObservedRouteCooldown>
+            value) =>
+        [
+            .. value.Select(cooldown => new ReplayV3.RouteCooldown(
+                cooldown.TransitionId,
+                cooldown.ReadyAtTick)),
+        ];
 
     private static ReplayV3.ObservedEnemy ObservedEnemy(
         GenericActorRuntimeObservation.ObservedEnemyState value) =>
@@ -341,7 +556,10 @@ internal static class ReplayV3Projection
             Direction(value.Facing),
             value.Health,
             PendingTransition(value.PendingSameLifeTransition),
-            value.ObservedBy.Select(ActorId).ToImmutableArray());
+            value.ObservedBy.Select(ActorId).ToImmutableArray(),
+            value.ClassId,
+            value.CarriedScrap,
+            value.RoleTag);
 
     private static ReplayV3.PendingSameLifeTransition? PendingTransition(
         GenericActorRuntimeObservation.PendingSameLifeTransition? value) =>
@@ -416,14 +634,22 @@ internal static class ReplayV3Projection
             value.ParticipantId,
             value.TeamId,
             Decimal(value.RuntimeFaultCount),
-            value.Disqualified);
+            value.Disqualified,
+            value.ClassId);
 
     private static ReplayV3.ObservedTile ObservedTile(
         GenericActorRuntimeObservation.ObservedTile value) =>
         new(
             Position(value.Position),
             value.IsWall,
-            value.ObservedBy.Select(ActorId).ToImmutableArray());
+            value.ObservedBy.Select(ActorId).ToImmutableArray(),
+            value.SpawnReservation is null
+                ? null
+                : new ReplayV3.SpawnReservation(
+                    value.SpawnReservation.TeamId,
+                    value.SpawnReservation.UnitId,
+                    SpawnReservationKind(value.SpawnReservation.Kind),
+                    value.SpawnReservation.DueTick));
 
     private static ReplayV3.ObservedProjectile ObservedProjectile(
         GenericActorRuntimeObservation.ObservedProjectile value) =>
@@ -438,7 +664,9 @@ internal static class ReplayV3Projection
             value.TilesPerAdvance,
             value.TicksUntilAdvance,
             value.RemainingTiles,
-            value.ObservedBy.Select(ActorId).ToImmutableArray());
+            value.ObservedBy.Select(ActorId).ToImmutableArray(),
+            value.TicksPerAdvance,
+            value.DamagePerHit);
 
     private static ReplayV3.ObservedEvent ObservedEvent(
         GenericActorRuntimeObservation.ObservedEvent value) =>
@@ -501,13 +729,21 @@ internal static class ReplayV3Projection
                 argument =>
                 new ReplayV3.RawActionArgument.ProjectileHeading(
                     (int)argument.Value),
+            GenericActorRuntimeActionArgument.UpgradeTrackArgument
+                argument =>
+                new ReplayV3.RawActionArgument.UpgradeTrack(
+                    argument.TrackId),
+            GenericActorRuntimeActionArgument.PositionTargetArgument
+                argument =>
+                new ReplayV3.RawActionArgument.PositionTarget(
+                    Position(argument.Value)),
             _ => throw new ArgumentOutOfRangeException(
                 nameof(value),
                 value,
                 "Unknown raw action argument."),
         };
 
-    private static ReplayV3.ActionResolution ActionResolution(
+    internal static ReplayV3.ActionResolution ActionResolution(
         GenericActorRuntimeActionResolution value) =>
         new(
             value.SubmittedAction is null
@@ -555,6 +791,13 @@ internal static class ReplayV3Projection
                 argument =>
                 new ReplayV3.ActionArgument.ProjectileHeading(
                     ProjectileHeading(argument.Value)),
+            GenericActorRuntimeActionArgument.UpgradeTrackArgument
+                argument =>
+                new ReplayV3.ActionArgument.UpgradeTrack(argument.TrackId),
+            GenericActorRuntimeActionArgument.PositionTargetArgument
+                argument =>
+                new ReplayV3.ActionArgument.PositionTarget(
+                    Position(argument.Value)),
             _ => throw new ArgumentOutOfRangeException(
                 nameof(value),
                 value,
@@ -615,6 +858,15 @@ internal static class ReplayV3Projection
                     constraint.AllowedValues
                         .Select(ProjectileHeading)
                         .ToImmutableArray()),
+            GenericActorRuntimeActionLegality.ArgumentConstraint
+                .UpgradeTrackConstraint constraint =>
+                new ReplayV3.ActionConstraint.UpgradeTrack(
+                    constraint.AllowedTrackIds),
+            GenericActorRuntimeActionLegality.ArgumentConstraint
+                .PositionTargetConstraint constraint =>
+                new ReplayV3.ActionConstraint.PositionTarget(
+                    constraint.AllowedValues.Select(Position)
+                        .ToImmutableArray()),
             _ => throw new ArgumentOutOfRangeException(
                 nameof(value),
                 value,
@@ -665,6 +917,20 @@ internal static class ReplayV3Projection
                     payload.Amount,
                     payload.NewHealth,
                     Position(payload.Position)),
+            GenericActorRuntimeObservation.EventPayload.ProjectileDeflected
+                payload =>
+                new ReplayV3.EventPayload.ProjectileDeflected(
+                    payload.SourceTeamId,
+                    payload.SourceActorId is null
+                        ? null
+                        : ActorId(payload.SourceActorId),
+                    ActorId(payload.TargetActorId),
+                    Decimal(payload.ProjectileId),
+                    Decimal(payload.DeflectedProjectileId),
+                    payload.TargetFormId,
+                    Direction(payload.TargetFacing),
+                    ProjectileHeading(payload.Heading),
+                    Position(payload.Position)),
             GenericActorRuntimeObservation.EventPayload.Destruction
                 payload =>
                 new ReplayV3.EventPayload.Destruction(
@@ -708,6 +974,10 @@ internal static class ReplayV3Projection
                 payload =>
                 new ReplayV3.EventPayload.RuntimeFaultValue(
                     RuntimeFault(payload.Fault)),
+            GenericActorRuntimeObservation.EventPayload.MindRuntimeFault
+                payload =>
+                new ReplayV3.EventPayload.MindRuntimeFaultValue(
+                    MindRuntimeFault(payload.Fault)),
             GenericActorRuntimeObservation.EventPayload.Participant
                 payload =>
                 new ReplayV3.EventPayload.Participant(
@@ -731,7 +1001,8 @@ internal static class ReplayV3Projection
                     payload.FromFormId,
                     payload.ToFormId,
                     payload.StartedTick,
-                    payload.DueTick),
+                    payload.DueTick,
+                    FormTransitionReason(payload.Reason)),
             GenericActorRuntimeObservation.EventPayload.ScoreChanged
                 payload =>
                 new ReplayV3.EventPayload.ScoreChanged(
@@ -749,13 +1020,16 @@ internal static class ReplayV3Projection
                     payload.TargetUnitId,
                     UnitSlotState(payload.CancelledState),
                     payload.CancellationReason),
+            GenericActorRuntimeObservation.EventPayload.ArcRelay payload =>
+                new ReplayV3.EventPayload.ArcRelay(
+                    ArcRelayFact(payload.Fact)),
             _ => throw new ArgumentOutOfRangeException(
                 nameof(value),
                 value,
                 "Unknown event payload."),
         };
 
-    private static ReplayV3.AuthoritativeEvent Event(
+    internal static ReplayV3.AuthoritativeEvent Event(
         GenericActorAuthoritativeEvent value) =>
         new(
             value.EventHandle,
@@ -783,7 +1057,149 @@ internal static class ReplayV3Projection
                 "Unknown event audience."),
         };
 
-    private static ReplayV3.ProjectileTraversal Traversal(
+    private static ReplayV3.ArcCoreId ArcCoreId(ArcRelayCoreId value) =>
+        new(value.SourceWellId, value.SourceOrdinal);
+
+    private static ReplayV3.ArcRelayFact ArcRelayFact(ArcRelayEvent value) =>
+        value switch
+        {
+            ArcRelayEvent.CoreBorn fact =>
+                new ReplayV3.ArcRelayFact.CoreBorn(
+                    ArcCoreId(fact.CoreId),
+                    Position(fact.Position))
+                {
+                    ChargeValue = fact.ChargeValue,
+                },
+            ArcRelayEvent.CoreRipened fact =>
+                new ReplayV3.ArcRelayFact.CoreRipened(
+                    ArcCoreId(fact.CoreId),
+                    Position(fact.Position),
+                    fact.Value),
+            ArcRelayEvent.LeveledUp fact =>
+                new ReplayV3.ArcRelayFact.LeveledUp(
+                    ActorId(fact.ActorId),
+                    fact.Level,
+                    Position(fact.Position)),
+            ArcRelayEvent.ZoneHealed fact =>
+                new ReplayV3.ArcRelayFact.ZoneHealed(
+                    ActorId(fact.ActorId),
+                    fact.Amount,
+                    fact.NewHealth,
+                    Position(fact.Position)),
+            ArcRelayEvent.CorePickedUp fact =>
+                new ReplayV3.ArcRelayFact.CorePickedUp(
+                    ArcCoreId(fact.CoreId),
+                    ActorId(fact.CarrierActorId),
+                    Position(fact.Position),
+                    fact.NextRelocationTick),
+            ArcRelayEvent.CoreRelocated fact =>
+                new ReplayV3.ArcRelayFact.CoreRelocated(
+                    ArcCoreId(fact.CoreId),
+                    fact.CarrierActorId is { } carrier
+                        ? ActorId(carrier)
+                        : null,
+                    Position(fact.From),
+                    Position(fact.To),
+                    fact.NextRelocationTick,
+                    fact.Kind switch
+                    {
+                        ArcRelayEvent.CoreRelocationKind.CarriedMovement =>
+                            "carried-movement",
+                        ArcRelayEvent.CoreRelocationKind.ForcedDisplacement =>
+                            "forced-displacement",
+                        ArcRelayEvent.CoreRelocationKind.ArcTossLanding =>
+                            "arc-toss-landing",
+                        _ => throw new ArgumentOutOfRangeException(),
+                    }),
+            ArcRelayEvent.CoreHandedOff fact =>
+                new ReplayV3.ArcRelayFact.CoreHandedOff(
+                    ArcCoreId(fact.CoreId),
+                    ActorId(fact.SourceActorId),
+                    ActorId(fact.TargetActorId),
+                    Position(fact.Position),
+                    fact.NextRelocationTick),
+            ArcRelayEvent.CoreDropped fact =>
+                new ReplayV3.ArcRelayFact.CoreDropped(
+                    ArcCoreId(fact.CoreId),
+                    ActorId(fact.SourceActorId),
+                    Position(fact.Position),
+                    fact.NextRelocationTick,
+                    fact.Kind switch
+                    {
+                        ArcRelayEvent.CoreDropKind.Voluntary => "voluntary",
+                        ArcRelayEvent.CoreDropKind.Destruction => "destruction",
+                        ArcRelayEvent.CoreDropKind.SignatureDeparture =>
+                            "signature-departure",
+                        ArcRelayEvent.CoreDropKind.ArcTossLanding =>
+                            "arc-toss-landing",
+                        _ => throw new ArgumentOutOfRangeException(),
+                    }),
+            ArcRelayEvent.CoreBanked fact =>
+                new ReplayV3.ArcRelayFact.CoreBanked(
+                    ArcCoreId(fact.CoreId),
+                    ActorId(fact.CarrierActorId),
+                    fact.TeamId,
+                    Position(fact.Position),
+                    fact.ChargePips),
+            ArcRelayEvent.WellChanged fact =>
+                new ReplayV3.ArcRelayFact.WellChanged(
+                    fact.WellId,
+                    fact.PendingCharge,
+                    fact.RearmCompletesAtTick,
+                    fact.OutstandingCoreId is { } coreId
+                        ? ArcCoreId(coreId)
+                        : null),
+            ArcRelayEvent.Pulse fact =>
+                new ReplayV3.ArcRelayFact.Pulse(
+                    fact.TeamId,
+                    fact.PulseOrdinal,
+                    fact.OpposingReactorIntegrity),
+            ArcRelayEvent.SignatureChanged fact =>
+                new ReplayV3.ArcRelayFact.SignatureChanged(
+                    fact.OperationId,
+                    fact.SignatureId,
+                    ActorId(fact.OwnerActorId),
+                    fact.Phase is { } phase
+                        ? phase switch
+                        {
+                            ArcRelaySignatureState.SignaturePhase.Tell => "tell",
+                            ArcRelaySignatureState.SignaturePhase.Active => "active",
+                            ArcRelaySignatureState.SignaturePhase.Channel => "channel",
+                            ArcRelaySignatureState.SignaturePhase.InFlight => "in-flight",
+                            _ => throw new ArgumentOutOfRangeException(),
+                        }
+                        : null,
+                    fact.Reason),
+            ArcRelayEvent.BodyRelocated fact =>
+                new ReplayV3.ArcRelayFact.BodyRelocated(
+                    fact.OperationId,
+                    fact.SignatureId,
+                    ActorId(fact.OwnerActorId),
+                    ActorId(fact.TargetActorId),
+                    Position(fact.From),
+                    Position(fact.To)),
+            ArcRelayEvent.SignatureDamage fact =>
+                new ReplayV3.ArcRelayFact.SignatureDamage(
+                    fact.OperationId,
+                    fact.SignatureId,
+                    ActorId(fact.OwnerActorId),
+                    ActorId(fact.TargetActorId),
+                    fact.Amount,
+                    fact.NewHealth,
+                    Position(fact.Position)),
+            ArcRelayEvent.SignatureRepair fact =>
+                new ReplayV3.ArcRelayFact.SignatureRepair(
+                    fact.OperationId,
+                    fact.SignatureId,
+                    ActorId(fact.OwnerActorId),
+                    ActorId(fact.TargetActorId),
+                    fact.Amount,
+                    fact.NewHealth,
+                    Position(fact.Position)),
+            _ => throw new ArgumentOutOfRangeException(nameof(value)),
+        };
+
+    internal static ReplayV3.ProjectileTraversal Traversal(
         GenericActorProjectileTraversal value) =>
         new(
             value.Tick,
@@ -841,7 +1257,7 @@ internal static class ReplayV3Projection
                 "Unknown projectile terminal disposition."),
         };
 
-    private static ReplayV3.WorldState WorldState(
+    internal static ReplayV3.WorldState WorldState(
         GenericActorWorldSnapshot value) =>
         new(
             value.MatchContractFingerprint,
@@ -970,6 +1386,9 @@ internal static class ReplayV3Projection
             GenericActorRuntimeObservation.ModeObservationState.Frontline
                 frontline =>
                 FrontlineModeState(frontline),
+            GenericActorRuntimeObservation.ModeObservationState.ArcRelay
+                arcRelay =>
+                ArcRelayModeState(arcRelay),
             _ => throw new ArgumentOutOfRangeException(
                 nameof(value),
                 value,
@@ -985,9 +1404,107 @@ internal static class ReplayV3Projection
             value.ClaimingTeamId,
             value.CaptureProgress,
             value.DecayTicksElapsed,
-            value.ControlResumesAtTick);
+            value.ControlResumesAtTick,
+            value.HoldOwnerTeamId,
+            value.HoldEndsAtTick,
+            value.SecondaryOwnerTeamId,
+            value.SecondaryClaimProgress,
+            [
+                .. value.ScrapTeams.Select(team => new ReplayV3.ScrapTeam(
+                    team.TeamId,
+                    team.Bank,
+                    team.TierLevels)),
+            ],
+            [
+                .. value.ScrapPiles.Select(pile => new ReplayV3.ScrapPile(
+                    Position(pile.Position),
+                    pile.Amount,
+                    pile.ExpiresAtTick)),
+            ]);
 
-    private static ReplayV3.MatchResult MatchResult(
+    private static ReplayV3.ModeState.ArcRelay ArcRelayModeState(
+        GenericActorRuntimeObservation.ModeObservationState.ArcRelay value) =>
+        new(
+            value.ModeId,
+            [.. value.Wells.Select(well => new ReplayV3.ArcWell(
+                well.WellId,
+                Position(well.Position),
+                well.NextScheduledBirthTick,
+                well.OutstandingCoreId is { } coreId
+                    ? ArcCoreId(coreId)
+                    : null,
+                well.PendingCharge,
+                well.RearmCompletesAtTick))],
+            [.. value.Reactors.Select(reactor => new ReplayV3.ArcReactor(
+                reactor.TeamId,
+                Position(reactor.Position),
+                reactor.ChargePips,
+                reactor.IntegritySegments)
+            {
+                FilledSocketWellIds = reactor.FilledSocketWellIds,
+            })],
+            [.. value.VisibleCores.Select(core => new ReplayV3.ArcCore(
+                ArcCoreId(core.CoreId),
+                Position(core.Position),
+                core.Disposition switch
+                {
+                    ArcRelayCoreState.CoreDisposition.Loose => "loose",
+                    ArcRelayCoreState.CoreDisposition.Carried => "carried",
+                    ArcRelayCoreState.CoreDisposition.InFlight => "in-flight",
+                    _ => throw new ArgumentOutOfRangeException(),
+                },
+                core.CarrierActorId is { } carrier
+                    ? ActorId(carrier)
+                    : null,
+                core.NextRelocationTick,
+                core.FlightTarget is { } target ? Position(target) : null,
+                core.FlightCompletesAtTick)
+            {
+                ChargeValue = core.ChargeValue,
+            })],
+            [.. value.VisibleSignatures.Select(signature =>
+                new ReplayV3.ArcSignature(
+                    signature.OperationId,
+                    signature.SignatureId,
+                    ActorContractCanonicalIds.Id(signature.Kind),
+                    ActorId(signature.OwnerActorId),
+                    signature.OwnerTeamId,
+                    signature.Phase switch
+                    {
+                        ArcRelaySignatureState.SignaturePhase.Tell => "tell",
+                        ArcRelaySignatureState.SignaturePhase.Active => "active",
+                        ArcRelaySignatureState.SignaturePhase.Channel => "channel",
+                        ArcRelaySignatureState.SignaturePhase.InFlight => "in-flight",
+                        _ => throw new ArgumentOutOfRangeException(),
+                    },
+                    signature.StartedTick,
+                    signature.CompletesAtTick,
+                    signature.EndsAtTick,
+                    [.. signature.Positions.Select(Position)],
+                    signature.TargetActorId is { } target
+                        ? ActorId(target)
+                        : null,
+                    signature.RemainingCapacity,
+                    signature.Suppressed))],
+            value.LatestPulseTeamId,
+            value.LatestPulseTick)
+        {
+            PendingStrikes = [.. value.PendingStrikes.Select(strike =>
+                new ReplayV3.ArcPendingStrike(
+                    ActorId(strike.Shooter),
+                    strike.ResolveAtTick,
+                    [.. strike.Tiles.Select(Position)])
+                {
+                    Origin = Position(strike.Origin),
+                    CentralHeading = ProjectileHeading(
+                        strike.CentralHeading),
+                    Target = strike.Target is { } target
+                        ? ActorId(target)
+                        : null,
+                })],
+        };
+
+    internal static ReplayV3.MatchResult MatchResult(
         GenericActorMatchResult value) =>
         new(
             value.CompletionReason,
@@ -1048,6 +1565,10 @@ internal static class ReplayV3Projection
                                 score.TeamId,
                                 Decimal(score.TerritorialProgress)))
                         .ToImmutableArray()),
+            GenericActorMatchModeResult.ArcRelay arcRelay =>
+                new ReplayV3.ModeResult.ArcRelay(
+                    ArcRelayEndReason(arcRelay.Reason),
+                    ArcRelayModeState(arcRelay.State)),
             _ => throw new ArgumentOutOfRangeException(
                 nameof(value),
                 value,
@@ -1110,6 +1631,25 @@ internal static class ReplayV3Projection
                 "fabrication",
             GenericActorRuntimeStart.SpawnReason.Replication =>
                 "replication",
+            GenericActorRuntimeStart.SpawnReason.AutomaticActivation =>
+                "automatic-activation",
+            GenericActorRuntimeStart.SpawnReason.RootFactorySeed =>
+                "root-factory-seed",
+            _ => throw new ArgumentOutOfRangeException(nameof(value)),
+        };
+
+    /// <summary>
+    /// Null for the inert cause, so the canonical document omits the property
+    /// and every replay written before automatic returns keeps its bytes.
+    /// </summary>
+    private static string? FormTransitionReason(
+        GenericActorRuntimeObservation.FormTransitionReason value) =>
+        value switch
+        {
+            GenericActorRuntimeObservation.FormTransitionReason.Requested =>
+                null,
+            GenericActorRuntimeObservation.FormTransitionReason
+                .AutomaticThresholdReturn => "automatic-threshold-return",
             _ => throw new ArgumentOutOfRangeException(nameof(value)),
         };
 
@@ -1121,6 +1661,19 @@ internal static class ReplayV3Projection
                 .InitialUnlock => "initial-unlock",
             GenericActorRuntimeObservation.AvailabilityReason
                 .DestructionRecovery => "destruction-recovery",
+            _ => throw new ArgumentOutOfRangeException(nameof(value)),
+        };
+
+    private static string SpawnReservationKind(
+        GenericActorRuntimeObservation.SpawnReservationKind value) =>
+        value switch
+        {
+            GenericActorRuntimeObservation.SpawnReservationKind
+                .AutomaticReturn => "automatic-return",
+            GenericActorRuntimeObservation.SpawnReservationKind
+                .Fabrication => "fabrication",
+            GenericActorRuntimeObservation.SpawnReservationKind
+                .Replication => "replication",
             _ => throw new ArgumentOutOfRangeException(nameof(value)),
         };
 
@@ -1171,6 +1724,8 @@ internal static class ReplayV3Projection
                 "life-retired",
             GenericActorRuntimeObservation.EventKind.RuntimeFault =>
                 "runtime-fault",
+            GenericActorRuntimeObservation.EventKind.MindRuntimeFault =>
+                "mind-runtime-fault",
             GenericActorRuntimeObservation.EventKind
                 .ParticipantDisqualified =>
                 "participant-disqualified",
@@ -1196,6 +1751,9 @@ internal static class ReplayV3Projection
             GenericActorRuntimeObservation.EventKind
                 .LifecycleClockCancelled =>
                 "lifecycle-clock-cancelled",
+            GenericActorRuntimeObservation.EventKind.ProjectileDeflected =>
+                "projectile-deflected",
+            GenericActorRuntimeObservation.EventKind.ArcRelay => "arc-relay",
             _ => throw new ArgumentOutOfRangeException(nameof(value)),
         };
 
@@ -1226,6 +1784,9 @@ internal static class ReplayV3Projection
             GenericActorProjectileTraversal.TraversalTrigger.AttackLaunch =>
                 "attack-launch",
             GenericActorProjectileTraversal.TraversalTrigger
+                .GuardDeflection =>
+                "guard-deflection",
+            GenericActorProjectileTraversal.TraversalTrigger
                 .ParticipantDisqualification =>
                 "participant-disqualification",
             _ => throw new ArgumentOutOfRangeException(nameof(value)),
@@ -1252,6 +1813,9 @@ internal static class ReplayV3Projection
                 "active-health",
             ScoreChannelDefinition.ChannelKind.TerritorialProgress =>
                 "territorial-progress",
+            ScoreChannelDefinition.ChannelKind.Pulses => "pulses",
+            ScoreChannelDefinition.ChannelKind.ReactorCharge =>
+                "reactor-charge",
             _ => throw new ArgumentOutOfRangeException(nameof(value)),
         };
 
@@ -1274,6 +1838,15 @@ internal static class ReplayV3Projection
                 "fault-eligibility",
             GenericFrontlineEndReason.BaseBreach => "base-breach",
             GenericFrontlineEndReason.MaxTicks => "max-ticks",
+            _ => throw new ArgumentOutOfRangeException(nameof(value)),
+        };
+
+    private static string ArcRelayEndReason(
+        GenericArcRelayEndReason value) => value switch
+        {
+            GenericArcRelayEndReason.FaultEligibility => "fault-eligibility",
+            GenericArcRelayEndReason.ReactorDestroyed => "reactor-destroyed",
+            GenericArcRelayEndReason.MaxTicks => "max-ticks",
             _ => throw new ArgumentOutOfRangeException(nameof(value)),
         };
 }

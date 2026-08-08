@@ -19,6 +19,15 @@ public sealed record GenericActorMatchStart
     /// Deterministic private random seed scoped to this exact body life.
     /// </summary>
     public required ulong ActorRandomSeed { get; init; }
+    /// <summary>
+    /// Root seed of the scoring team's SHARED deterministic stream, delivered
+    /// identically to every life on the team — including lives created later
+    /// in the match. It is the raw material behind
+    /// <see cref="GenericActorContext.TeamRandom"/>; read that instead of
+    /// seeding your own generator from this value, because the guarantee is
+    /// about drawing at the same point in the same tick, not about the seed.
+    /// </summary>
+    public required ulong TeamRandomSeed { get; init; }
     /// <summary>Immutable creation reason and lineage for this life.</summary>
     public required LifeOrigin Origin { get; init; }
     /// <summary>
@@ -36,7 +45,8 @@ public sealed record GenericActorMatchStart
     /// <param name="Generation">Replication/return generation of the new life.</param>
     /// <param name="ParentActorId">
     /// Prior same-slot life for automatic return, or source life for
-    /// fabrication/replication; <see langword="null"/> only for an initial life.
+    /// fabrication/replication; <see langword="null"/> for an initial life or
+    /// declared first automatic activation.
     /// </param>
     /// <param name="SourceTransitionId">
     /// Static catalog transition ID for transition-created lives; otherwise
@@ -64,5 +74,19 @@ public sealed record GenericActorMatchStart
         Fabrication = 2,
         /// <summary>Life was created by a replication transition.</summary>
         Replication = 3,
+        /// <summary>
+        /// The slot's declared delayed activation created its first life.
+        /// </summary>
+        AutomaticActivation = 4,
+        /// <summary>
+        /// The participant's HOME BASE acted as the ROOT FACTORY: it held no
+        /// live body at all, and the base seeded this one, alone, at the home
+        /// spawn, after the class's own respawn delay. It costs nothing and
+        /// spends no action, and it happens only on a ruleset whose lifecycle
+        /// profile declares a root-factory seed form — read
+        /// <c>rootFactorySeedFormId</c> if you want to know whether a total
+        /// wipe is survivable in this match.
+        /// </summary>
+        RootFactorySeed = 5,
     }
 }

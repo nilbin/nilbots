@@ -5784,6 +5784,7 @@ function normalizeReplayV1Internal(
       participantId: participant.slot,
       teamKey: replayTeamKey(participant.slot),
       teamId: participant.slot,
+      classId: null,
       name: participant.name,
       runtimeKind: participant.runtimeKind,
       artifactHash: participant.artifactHash,
@@ -5810,6 +5811,7 @@ function normalizeReplayV1Internal(
   const teams = participants.map<Model.ReplayTeam>((participant) => ({
     teamKey: participant.teamKey,
     teamId: participant.teamId,
+    classId: null,
     participantKeys: [participant.participantKey],
     unitKeys: [replayDuelIdentity(participant.teamId).unitKey],
   }));
@@ -5841,6 +5843,7 @@ function normalizeReplayV1Internal(
     height: document.header.mapHeight,
     tileRows: [...document.header.mapTiles],
     objectiveTiles: (document.header.zoneTiles ?? []).map(positionFromTuple),
+    regions: [],
     frontline: null,
     presentation:
       document.header.themeId === undefined &&
@@ -6039,12 +6042,14 @@ function legacyContractFromV1(
       teams: participants.map((participant) => ({
         teamId: participant.slot,
         teamKey: replayTeamKey(participant.slot),
+        classId: null,
       })),
       participants: participants.map((participant) => ({
         participantId: participant.slot,
         participantKey: replayParticipantKey(participant.slot),
         teamId: participant.slot,
         teamKey: replayTeamKey(participant.slot),
+        classId: null,
       })),
       unitSlots: participants.map((participant) => {
         const actor = replayDuelIdentity(participant.slot);
@@ -6325,6 +6330,7 @@ function v1ActorTurn(
           const enemyIdentity = replayDuelIdentity(enemy.slot);
           return {
             actor: { kind: 'exact', identity: enemyIdentity },
+            classId: null,
             formId: 'legacy-mobile',
             position: { x: enemy.x, y: enemy.y },
             facing: directionFromV1(enemy.facing),
@@ -6334,6 +6340,10 @@ function v1ActorTurn(
             previousActionResult: null,
             pendingFormTransition: null,
             observedBy: [identity.actorKey],
+            // Replay-v1 predates every battlefield economy.
+            carriedScrap: 0,
+            // Per-life generations have no way to publish one.
+            roleTag: null,
           };
         }),
       visibleTiles: turn.visibleTiles
@@ -6343,6 +6353,7 @@ function v1ActorTurn(
           position,
           isWall: header.mapTiles[position.y]?.[position.x] === '#',
           observedBy: [identity.actorKey],
+          spawnReservation: null,
         })),
       visibleProjectiles: null,
       visibleEvents: [],
@@ -6598,6 +6609,7 @@ function observedActorFromState(
 ): Model.ReplayObservedActor {
   return {
     actor: { kind: 'exact', identity: state.identity },
+    classId: null,
     formId: state.formId,
     position: copyPosition(state.position),
     facing: state.facing,
@@ -6607,6 +6619,11 @@ function observedActorFromState(
     previousActionResult: state.previousActionResult,
     pendingFormTransition: state.pendingFormTransition,
     observedBy,
+    // Authoritative world lives carry no load in any wire; only a replay-v3
+    // observation publishes one.
+    carriedScrap: 0,
+    // Per-life generations have no way to publish one.
+    roleTag: null,
   };
 }
 
@@ -6803,6 +6820,7 @@ export function normalizeReplayV2(
       participantId: participant.participantId,
       teamKey: replayTeamKey(participant.teamId),
       teamId: participant.teamId,
+      classId: null,
       name: participant.name,
       runtimeKind: participant.runtimeKind,
       artifactHash: participant.artifactHash,
@@ -6850,6 +6868,7 @@ export function normalizeReplayV2(
     .map<Model.ReplayTeam>((team) => ({
       teamKey: replayTeamKey(team.teamId),
       teamId: team.teamId,
+      classId: null,
       participantKeys: participants
         .filter((participant) => participant.teamId === team.teamId)
         .map((participant) => participant.participantKey),
@@ -7066,6 +7085,7 @@ function contractFromV2(
         .map((team) => ({
           teamId: team.teamId,
           teamKey: replayTeamKey(team.teamId),
+          classId: null,
         })),
       participants: [...topology.participants]
         .sort(compareParticipant)
@@ -7076,6 +7096,7 @@ function contractFromV2(
           ),
           teamId: participant.teamId,
           teamKey: replayTeamKey(participant.teamId),
+          classId: null,
         })),
       unitSlots: [...topology.unitSlots]
         .sort(compareUnitIdentity)
@@ -7116,6 +7137,7 @@ function mapFromV2(header: V2.ReplayV2Header): Model.ReplayMap {
     height: map.height,
     tileRows: [...map.tileRows],
     objectiveTiles: map.objectiveTiles.map(positionFromTuple),
+    regions: [],
     frontline: map.frontline
       ? {
           positions: [...map.frontline.positions]
@@ -7459,6 +7481,7 @@ function observationFromV2(
       )
       .map((enemy) => ({
         actor: opaqueEnemyActorFromV2(enemy.actor),
+        classId: null,
         formId: enemy.formId,
         position: copyPosition(enemy.position),
         facing: enemy.facing,
@@ -7469,6 +7492,9 @@ function observationFromV2(
         pendingFormTransition: copyV2FormTransition(
           enemy.pendingFormTransition,
         ),
+        carriedScrap: 0,
+        // Per-life generations have no way to publish one.
+        roleTag: null,
         observedBy: [...enemy.observedBy]
           .sort(compareActorIdentity)
           .map((actor) => actorIdentityFromV2(actor).actorKey),
@@ -7483,6 +7509,7 @@ function observationFromV2(
         observedBy: [...tile.observedBy]
           .sort(compareActorIdentity)
           .map((actor) => actorIdentityFromV2(actor).actorKey),
+        spawnReservation: null,
       })),
     visibleProjectiles:
       observation.visibleProjectiles === null
@@ -7631,6 +7658,7 @@ function observedSelfFromV2(
       kind: 'exact',
       identity: actorIdentityFromV2(observed.actorId),
     },
+    classId: null,
     formId: observed.formId,
     position: copyPosition(observed.position),
     facing: observed.facing,
@@ -7642,6 +7670,10 @@ function observedSelfFromV2(
       observed.pendingFormTransition,
     ),
     observedBy,
+    // Internal replay-v2 predates the scrap economy.
+    carriedScrap: 0,
+    // Per-life generations have no way to publish one.
+    roleTag: null,
   };
 }
 

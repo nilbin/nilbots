@@ -1,0 +1,1232 @@
+{
+  "auditDimensions": {
+    "adaptationStyle": "bounded rising-edge gambits",
+    "allocation": "3 north / 2 centre / 3 south",
+    "executionStyle": "displacement-control",
+    "failureMode": "almost no protective screen leaves a wing brittle after its first failed pickup",
+    "policyStyle": "paired outer wings race their own Core and displace the opposing return at once",
+    "sheetRevision": 2,
+    "visibleCounter": "hold centre and refuse isolated outer fights until the two wings overextend"
+  },
+  "auditStatus": {
+    "playerFacingProductSchema": false,
+    "provisionalEvaluationOnly": true,
+    "purpose": "ten-operation live success proof"
+  },
+  "composition": [
+    "relay",
+    "relay",
+    "lantern",
+    "palisade",
+    "towline",
+    "towline",
+    "veil",
+    "switchback"
+  ],
+  "dynamicStrategyAudit": {
+    "family": "intelligent-operation-proof",
+    "pairedControl": true,
+    "playerFacingProductSchema": false,
+    "provisionalEvaluationOnly": true
+  },
+  "gambits": [],
+  "mapId": "arc-relay-threefold-depth-counterflow-01",
+  "operations": [
+    {
+      "branches": [
+        {
+          "abortAny": [
+            {
+              "fact": "always",
+              "operator": "equals",
+              "value": 0,
+              "zone": ""
+            }
+          ],
+          "commitWhen": {
+            "all": [
+              {
+                "fact": "always",
+                "operator": "at-least",
+                "value": 1,
+                "zone": ""
+              }
+            ],
+            "any": []
+          },
+          "deadlineTicks": 24,
+          "id": "throw-home",
+          "successAny": [
+            {
+              "fact": "task-participants-carrying",
+              "operator": "at-least",
+              "subject": "receiver",
+              "value": 1,
+              "zone": ""
+            }
+          ],
+          "tasks": [
+            {
+              "candidateClassIds": [],
+              "candidateRoles": [],
+              "candidateUnitIds": [
+                1
+              ],
+              "engagementIntent": "opportunistic",
+              "id": "relay-carrier",
+              "minimum": 1,
+              "permitsCarrying": true,
+              "position": {
+                "arrival": "hold",
+                "fallbackZone": "risk-fork",
+                "kind": "anchor-offset",
+                "offset": [
+                  0,
+                  0
+                ],
+                "target": "task:relay-carrier"
+              },
+              "requiresCarrying": true,
+              "resilience": "essential",
+              "roleOverride": "thrower",
+              "signatureIntent": "aggressive"
+            },
+            {
+              "candidateClassIds": [],
+              "candidateRoles": [],
+              "candidateUnitIds": [
+                0
+              ],
+              "engagementIntent": "defend-in-place",
+              "id": "receiver",
+              "minimum": 1,
+              "permitsCarrying": false,
+              "position": {
+                "arrival": "hold",
+                "fallbackZone": "safe-pre-fork",
+                "kind": "anchor-offset",
+                "offset": [
+                  -3,
+                  0
+                ],
+                "target": "task:relay-carrier"
+              },
+              "requiresCarrying": false,
+              "resilience": "essential",
+              "roleOverride": "receiver",
+              "signatureIntent": "conserve"
+            }
+          ]
+        }
+      ],
+      "cooldownTicks": 36,
+      "id": "relay-catch",
+      "prepare": {
+        "abortAny": [
+          {
+            "fact": "own-carried-cores",
+            "operator": "equals",
+            "value": 0,
+            "zone": ""
+          }
+        ],
+        "tasks": [
+          {
+            "candidateClassIds": [],
+            "candidateRoles": [],
+            "candidateUnitIds": [
+              1
+            ],
+            "engagementIntent": "defend-in-place",
+            "id": "relay-carrier",
+            "minimum": 1,
+            "permitsCarrying": true,
+            "position": {
+              "arrival": "hold",
+              "fallbackZone": "risk-fork",
+              "kind": "anchor-offset",
+              "offset": [
+                0,
+                0
+              ],
+              "target": "task:relay-carrier"
+            },
+            "requiresCarrying": true,
+            "resilience": "essential",
+            "roleOverride": "thrower",
+            "signatureIntent": "conserve"
+          },
+          {
+            "candidateClassIds": [],
+            "candidateRoles": [],
+            "candidateUnitIds": [
+              0
+            ],
+            "engagementIntent": "defend-in-place",
+            "id": "receiver",
+            "minimum": 1,
+            "permitsCarrying": false,
+            "position": {
+              "arrival": "hold",
+              "fallbackZone": "safe-pre-fork",
+              "kind": "anchor-offset",
+              "offset": [
+                -3,
+                0
+              ],
+              "target": "task:relay-carrier"
+            },
+            "requiresCarrying": false,
+            "resilience": "essential",
+            "roleOverride": "receiver",
+            "signatureIntent": "conserve"
+          }
+        ],
+        "when": {
+          "all": [
+            {
+              "fact": "own-carriers-in-zone",
+              "operator": "at-least",
+              "value": 1,
+              "zone": "forward-field"
+            }
+          ],
+          "any": []
+        }
+      },
+      "prepareDeadlineTicks": 36,
+      "priority": 10,
+      "recovery": {
+        "completeAll": [
+          {
+            "fact": "task-participants-in-zone",
+            "operator": "at-least",
+            "subject": "extract",
+            "value": 1,
+            "zone": "home-gate"
+          }
+        ],
+        "deadlineTicks": 12,
+        "onAbort": [
+          {
+            "candidateClassIds": [],
+            "candidateRoles": [],
+            "candidateUnitIds": [
+              0,
+              1
+            ],
+            "engagementIntent": "break-contact",
+            "id": "extract",
+            "minimum": 0,
+            "permitsCarrying": true,
+            "position": {
+              "arrival": "hold",
+              "fallbackZone": "",
+              "kind": "zone",
+              "offset": [
+                0,
+                0
+              ],
+              "target": "home-gate"
+            },
+            "requiresCarrying": false,
+            "resilience": "optional",
+            "roleOverride": "extract",
+            "signatureIntent": "conserve"
+          }
+        ],
+        "onSuccess": [
+          {
+            "candidateClassIds": [],
+            "candidateRoles": [],
+            "candidateUnitIds": [
+              0,
+              1
+            ],
+            "engagementIntent": "break-contact",
+            "id": "extract",
+            "minimum": 0,
+            "permitsCarrying": true,
+            "position": {
+              "arrival": "hold",
+              "fallbackZone": "",
+              "kind": "zone",
+              "offset": [
+                0,
+                0
+              ],
+              "target": "home-gate"
+            },
+            "requiresCarrying": false,
+            "resilience": "optional",
+            "roleOverride": "extract",
+            "signatureIntent": "conserve"
+          }
+        ]
+      }
+    }
+  ],
+  "paths": {
+    "feint-north": [
+      [
+        7,
+        7
+      ],
+      [
+        10,
+        5
+      ],
+      [
+        14,
+        4
+      ]
+    ],
+    "feint-south-pincer": [
+      [
+        13,
+        18
+      ],
+      [
+        16,
+        18
+      ],
+      [
+        19,
+        17
+      ]
+    ],
+    "feint-south-stage": [
+      [
+        7,
+        15
+      ],
+      [
+        10,
+        17
+      ],
+      [
+        13,
+        18
+      ]
+    ],
+    "hardlight-gate-line": [
+      [
+        6,
+        9
+      ],
+      [
+        8,
+        10
+      ],
+      [
+        10,
+        11
+      ]
+    ],
+    "hook-stage-north": [
+      [
+        5,
+        8
+      ],
+      [
+        9,
+        6
+      ],
+      [
+        13,
+        5
+      ],
+      [
+        16,
+        6
+      ]
+    ],
+    "hook-stage-south": [
+      [
+        5,
+        14
+      ],
+      [
+        9,
+        16
+      ],
+      [
+        13,
+        17
+      ],
+      [
+        16,
+        16
+      ]
+    ],
+    "lantern-probe": [
+      [
+        9,
+        10
+      ],
+      [
+        11,
+        8
+      ],
+      [
+        13,
+        7
+      ]
+    ],
+    "lantern-sweep-primary": [
+      [
+        12,
+        9
+      ],
+      [
+        10,
+        8
+      ],
+      [
+        8,
+        8
+      ]
+    ],
+    "rear-infiltration-north": [
+      [
+        5,
+        8
+      ],
+      [
+        8,
+        6
+      ],
+      [
+        13,
+        6
+      ],
+      [
+        17,
+        6
+      ],
+      [
+        21,
+        7
+      ],
+      [
+        24,
+        8
+      ]
+    ],
+    "rear-infiltration-south": [
+      [
+        5,
+        14
+      ],
+      [
+        8,
+        16
+      ],
+      [
+        13,
+        16
+      ],
+      [
+        17,
+        16
+      ],
+      [
+        21,
+        15
+      ],
+      [
+        24,
+        14
+      ]
+    ],
+    "return-alternate": [
+      [
+        11,
+        13
+      ],
+      [
+        8,
+        13
+      ],
+      [
+        5,
+        12
+      ],
+      [
+        2,
+        11
+      ]
+    ],
+    "return-primary": [
+      [
+        11,
+        9
+      ],
+      [
+        8,
+        9
+      ],
+      [
+        5,
+        10
+      ],
+      [
+        2,
+        11
+      ]
+    ],
+    "rotation-stage": [
+      [
+        7,
+        11
+      ],
+      [
+        9,
+        10
+      ],
+      [
+        10,
+        12
+      ]
+    ],
+    "shadow-north": [
+      [
+        8,
+        7
+      ],
+      [
+        12,
+        5
+      ],
+      [
+        16,
+        6
+      ]
+    ],
+    "shadow-south": [
+      [
+        8,
+        15
+      ],
+      [
+        12,
+        17
+      ],
+      [
+        16,
+        16
+      ]
+    ],
+    "smoke-breach-line": [
+      [
+        13,
+        11
+      ],
+      [
+        16,
+        11
+      ],
+      [
+        19,
+        11
+      ]
+    ],
+    "smoke-stage": [
+      [
+        7,
+        11
+      ],
+      [
+        10,
+        11
+      ],
+      [
+        13,
+        11
+      ]
+    ]
+  },
+  "policies": {
+    "carrier": {
+      "handoffHealthAtOrBelow": 1,
+      "preferAssignedTheater": false,
+      "routeFailureTicks": 6
+    },
+    "escort": {
+      "focusEnemyCarrier": true,
+      "followDistance": 1
+    },
+    "interception": {
+      "focusEnemyCarrier": true,
+      "looseCoreFallback": true
+    }
+  },
+  "rallyLines": {
+    "forward": [
+      [
+        13,
+        6
+      ],
+      [
+        13,
+        9
+      ],
+      [
+        13,
+        13
+      ],
+      [
+        13,
+        16
+      ]
+    ],
+    "home": [
+      [
+        4,
+        9
+      ],
+      [
+        4,
+        11
+      ],
+      [
+        4,
+        13
+      ]
+    ],
+    "middle": [
+      [
+        9,
+        6
+      ],
+      [
+        9,
+        9
+      ],
+      [
+        9,
+        13
+      ],
+      [
+        9,
+        16
+      ]
+    ]
+  },
+  "schema": "arc-relay-evaluation-sheet-v2",
+  "sheetId": "intelligent-operation-proof-relay-chain-relay-catch-v1",
+  "slots": [
+    {
+      "defaultIntent": {
+        "engagementIntent": "normal",
+        "position": {
+          "arrival": "base-assignment",
+          "fallbackZone": "",
+          "kind": "base-assignment",
+          "offset": [
+            0,
+            0
+          ],
+          "target": ""
+        },
+        "signatureIntent": "normal"
+      },
+      "outboundPath": [
+        [
+          4,
+          6
+        ],
+        [
+          8,
+          6
+        ],
+        [
+          13,
+          6
+        ],
+        [
+          15,
+          4
+        ]
+      ],
+      "partnerUnitId": 1,
+      "returnPath": [
+        [
+          13,
+          6
+        ],
+        [
+          9,
+          6
+        ],
+        [
+          5,
+          6
+        ],
+        [
+          2,
+          11
+        ]
+      ],
+      "role": "screen",
+      "theater": "south",
+      "unitId": 0
+    },
+    {
+      "defaultIntent": {
+        "engagementIntent": "normal",
+        "position": {
+          "arrival": "base-assignment",
+          "fallbackZone": "",
+          "kind": "base-assignment",
+          "offset": [
+            0,
+            0
+          ],
+          "target": ""
+        },
+        "signatureIntent": "normal"
+      },
+      "outboundPath": [
+        [
+          4,
+          16
+        ],
+        [
+          8,
+          16
+        ],
+        [
+          13,
+          16
+        ],
+        [
+          15,
+          18
+        ]
+      ],
+      "partnerUnitId": 0,
+      "returnPath": [
+        [
+          13,
+          16
+        ],
+        [
+          9,
+          16
+        ],
+        [
+          5,
+          16
+        ],
+        [
+          2,
+          11
+        ]
+      ],
+      "role": "carrier",
+      "theater": "south",
+      "unitId": 1
+    },
+    {
+      "defaultIntent": {
+        "engagementIntent": "normal",
+        "position": {
+          "arrival": "base-assignment",
+          "fallbackZone": "",
+          "kind": "base-assignment",
+          "offset": [
+            0,
+            0
+          ],
+          "target": ""
+        },
+        "signatureIntent": "normal"
+      },
+      "outboundPath": [
+        [
+          4,
+          8
+        ],
+        [
+          8,
+          7
+        ],
+        [
+          12,
+          6
+        ],
+        [
+          15,
+          4
+        ]
+      ],
+      "partnerUnitId": 0,
+      "returnPath": [
+        [
+          12,
+          6
+        ],
+        [
+          8,
+          8
+        ],
+        [
+          5,
+          10
+        ],
+        [
+          2,
+          11
+        ]
+      ],
+      "role": "screen",
+      "theater": "north",
+      "unitId": 2
+    },
+    {
+      "defaultIntent": {
+        "engagementIntent": "normal",
+        "position": {
+          "arrival": "base-assignment",
+          "fallbackZone": "",
+          "kind": "base-assignment",
+          "offset": [
+            0,
+            0
+          ],
+          "target": ""
+        },
+        "signatureIntent": "normal"
+      },
+      "outboundPath": [
+        [
+          4,
+          13
+        ],
+        [
+          8,
+          15
+        ],
+        [
+          12,
+          16
+        ],
+        [
+          15,
+          18
+        ]
+      ],
+      "partnerUnitId": 1,
+      "returnPath": [
+        [
+          12,
+          16
+        ],
+        [
+          8,
+          14
+        ],
+        [
+          5,
+          12
+        ],
+        [
+          2,
+          11
+        ]
+      ],
+      "role": "screen",
+      "theater": "south",
+      "unitId": 3
+    },
+    {
+      "defaultIntent": {
+        "engagementIntent": "normal",
+        "position": {
+          "arrival": "base-assignment",
+          "fallbackZone": "",
+          "kind": "base-assignment",
+          "offset": [
+            0,
+            0
+          ],
+          "target": ""
+        },
+        "signatureIntent": "normal"
+      },
+      "outboundPath": [
+        [
+          4,
+          11
+        ],
+        [
+          8,
+          10
+        ],
+        [
+          12,
+          8
+        ],
+        [
+          15,
+          4
+        ]
+      ],
+      "partnerUnitId": 0,
+      "returnPath": [
+        [
+          12,
+          6
+        ],
+        [
+          9,
+          9
+        ],
+        [
+          5,
+          11
+        ],
+        [
+          2,
+          11
+        ]
+      ],
+      "role": "intercept",
+      "theater": "north",
+      "unitId": 4
+    },
+    {
+      "defaultIntent": {
+        "engagementIntent": "normal",
+        "position": {
+          "arrival": "base-assignment",
+          "fallbackZone": "",
+          "kind": "base-assignment",
+          "offset": [
+            0,
+            0
+          ],
+          "target": ""
+        },
+        "signatureIntent": "normal"
+      },
+      "outboundPath": [
+        [
+          4,
+          11
+        ],
+        [
+          8,
+          12
+        ],
+        [
+          12,
+          14
+        ],
+        [
+          15,
+          18
+        ]
+      ],
+      "partnerUnitId": 1,
+      "returnPath": [
+        [
+          12,
+          16
+        ],
+        [
+          9,
+          13
+        ],
+        [
+          5,
+          11
+        ],
+        [
+          2,
+          11
+        ]
+      ],
+      "role": "intercept",
+      "theater": "south",
+      "unitId": 5
+    },
+    {
+      "defaultIntent": {
+        "engagementIntent": "normal",
+        "position": {
+          "arrival": "base-assignment",
+          "fallbackZone": "",
+          "kind": "base-assignment",
+          "offset": [
+            0,
+            0
+          ],
+          "target": ""
+        },
+        "signatureIntent": "normal"
+      },
+      "outboundPath": [
+        [
+          4,
+          11
+        ],
+        [
+          8,
+          11
+        ],
+        [
+          12,
+          11
+        ],
+        [
+          14,
+          11
+        ]
+      ],
+      "partnerUnitId": 7,
+      "returnPath": [
+        [
+          11,
+          11
+        ],
+        [
+          7,
+          11
+        ],
+        [
+          4,
+          11
+        ],
+        [
+          2,
+          10
+        ]
+      ],
+      "role": "reserve",
+      "theater": "centre",
+      "unitId": 6
+    },
+    {
+      "defaultIntent": {
+        "engagementIntent": "normal",
+        "position": {
+          "arrival": "base-assignment",
+          "fallbackZone": "",
+          "kind": "base-assignment",
+          "offset": [
+            0,
+            0
+          ],
+          "target": ""
+        },
+        "signatureIntent": "normal"
+      },
+      "outboundPath": [
+        [
+          4,
+          9
+        ],
+        [
+          8,
+          9
+        ],
+        [
+          13,
+          9
+        ],
+        [
+          15,
+          11
+        ]
+      ],
+      "partnerUnitId": 6,
+      "returnPath": [
+        [
+          13,
+          9
+        ],
+        [
+          9,
+          9
+        ],
+        [
+          5,
+          9
+        ],
+        [
+          2,
+          11
+        ]
+      ],
+      "role": "reserve",
+      "theater": "centre",
+      "unitId": 7
+    }
+  ],
+  "zones": {
+    "alternate-return": [
+      7,
+      12,
+      11,
+      15
+    ],
+    "centre": [
+      10,
+      7,
+      20,
+      15
+    ],
+    "centre-forward": [
+      15,
+      7,
+      22,
+      15
+    ],
+    "centre-stage": [
+      9,
+      7,
+      15,
+      15
+    ],
+    "enemy-rear-staging": [
+      23,
+      6,
+      24,
+      16
+    ],
+    "enemy-return-corridor": [
+      15,
+      2,
+      26,
+      20
+    ],
+    "forward-field": [
+      12,
+      1,
+      24,
+      21
+    ],
+    "forward-objectives": [
+      13,
+      1,
+      20,
+      21
+    ],
+    "home-gate": [
+      6,
+      7,
+      11,
+      15
+    ],
+    "home-risk": [
+      6,
+      4,
+      15,
+      18
+    ],
+    "home-risk-approach": [
+      5,
+      5,
+      14,
+      17
+    ],
+    "home-side": [
+      2,
+      1,
+      16,
+      21
+    ],
+    "intercept": [
+      9,
+      2,
+      21,
+      20
+    ],
+    "intercept-recovery": [
+      7,
+      3,
+      12,
+      19
+    ],
+    "north": [
+      11,
+      1,
+      19,
+      8
+    ],
+    "north-forward": [
+      14,
+      1,
+      22,
+      9
+    ],
+    "north-return": [
+      15,
+      2,
+      26,
+      10
+    ],
+    "north-stage": [
+      10,
+      2,
+      16,
+      9
+    ],
+    "outer-approach": [
+      12,
+      2,
+      20,
+      9
+    ],
+    "primary-return": [
+      7,
+      7,
+      11,
+      10
+    ],
+    "rear-pocket": [
+      13,
+      3,
+      19,
+      19
+    ],
+    "risk-fork": [
+      9,
+      4,
+      15,
+      18
+    ],
+    "safe-pre-fork": [
+      8,
+      7,
+      12,
+      15
+    ],
+    "south": [
+      11,
+      14,
+      19,
+      21
+    ],
+    "south-forward": [
+      14,
+      13,
+      22,
+      21
+    ],
+    "south-return": [
+      15,
+      12,
+      26,
+      20
+    ],
+    "south-stage": [
+      10,
+      13,
+      16,
+      20
+    ]
+  }
+}

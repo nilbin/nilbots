@@ -1,0 +1,233 @@
+{
+  "schema": "arc-relay-sheet-population-study-v2",
+  "status": "pre-registered-before-outcomes",
+  "classification": "evaluation-sheet population expansion and balance screen; no rule, class, map, objective, economy, or presentation change",
+  "authority": "owner requested twenty additional distinct sheets followed by balance work, 2026-08-02",
+  "hypothesis": "Twenty additional evaluation sheets can remain structurally and behaviorally distinct from one another and the twelve retained controls while producing an eligibility-clean 32-sheet counter-web without one shared-mind sheet dominating the field.",
+  "productBoundary": {
+    "evaluationGradeOnly": true,
+    "playerFacingSheetSchema": false,
+    "independentAuthorLineages": false,
+    "humanFunAuthority": false,
+    "stableOfFive": false,
+    "fieldedBodies": 8,
+    "twoCopyCap": true
+  },
+  "candidate": {
+    "rulesetId": "arc-relay-h0-01",
+    "mapProfile": "home-gates-wide",
+    "runtime": "wasm",
+    "sharedAlgorithm": "arena-bots/arc-relay/balance-audit-v2-2026-08-01/out/bot.wasm",
+    "sharedAlgorithmSha256": "c1da7d0fe12e80bbe4396fb4572671285d4cb721e832f0ee238be40135da4890",
+    "cohort": "arena-bots/arc-relay/sheet-population-v3-2026-08-02/cohort.json",
+    "eligibilityBars": "balance/arc-relay-felt-degeneracy-bars-v2.json"
+  },
+  "newEntrants": [
+    "courier-sprint",
+    "smoke-convoy",
+    "beacon-hunt",
+    "centre-phalanx",
+    "outer-pincers",
+    "mine-crescent",
+    "pod-lattice",
+    "rail-screen",
+    "hook-burst",
+    "null-veil",
+    "repair-web",
+    "mortar-wheel",
+    "counter-courier",
+    "sensor-grid",
+    "breach-column",
+    "elastic-reserve",
+    "three-well-race",
+    "home-counterpunch",
+    "smoke-and-mines",
+    "rotating-bastions"
+  ],
+  "distinctnessGates": {
+    "exactGameplayDuplicates": 0,
+    "staticMetric": "composition 0.28 + class/role/theater 0.36 + routes 0.12 + policies 0.10 + gambit grammar 0.14",
+    "minimumNewStaticDistance": 0.18,
+    "frozenObservedMinimumNewStaticDistance": 0.294762,
+    "minimumExecutionShapeNormalizedRms": 0.12,
+    "executionShapeOmitsOutcomes": true,
+    "failureDisposition": "repair the sheet without outcome access or replace it; do not count a near-duplicate among the twenty"
+  },
+  "stages": [
+    {
+      "id": "anchor-distinctness-and-eligibility",
+      "seed": "15485863",
+      "population": "each new sheet against Balanced, Interception, and Sustain Attrition in both participant assignments",
+      "cells": 120,
+      "purpose": "WASM faults, exact replay verification, felt degeneracy, assignment sensitivity, and outcome-blind empirical execution distance",
+      "outcomeAccess": "open only after all twenty pass eligibility and distinctness or have been repaired/replaced"
+    },
+    {
+      "id": "full-32-round-robin",
+      "seed": "32452843",
+      "population": "all 32 sheets, every unordered pair, both assignments",
+      "cells": 992,
+      "purpose": "gross balance, non-transitive counter-web, class and signature coverage, first-Pulse conversion, and full-population execution redundancy"
+    },
+    {
+      "id": "targeted-sheet-balance-loop",
+      "seed": "49979687",
+      "population": "only pre-registered extreme or redundant rows against their strongest, weakest, and nearest-shape matchups, mirrored",
+      "purpose": "repair sheet competence without class-stat changes; freeze identities and disclose every revision"
+    }
+  ],
+  "registeredRevisions": [
+    {
+      "id": "population-sheet-v2-execution-style-binding",
+      "timing": "after the first corrected-engine anchor outcome read and before any full-population screen",
+      "reason": "Nineteen new sheet ids omitted the frozen audit mind's strategy keyword and therefore fell through to Balanced signature behavior. The anchor is retained as implementation-diagnosis evidence, not used for tuning or a balance verdict.",
+      "change": "Bind each already-authored thesis to the closest existing audit execution style in sheetId; do not change rules, class numbers, map, cadence, composition, assignments, routes, policies, or the shared WASM artifact.",
+      "mapping": {
+        "courier-sprint": "split",
+        "smoke-convoy": "convoy",
+        "beacon-hunt": "interception",
+        "centre-phalanx": "fortress-counterattack",
+        "outer-pincers": "displacement-control",
+        "mine-crescent": "trap-punish",
+        "pod-lattice": "control-grid",
+        "rail-screen": "fireline-picks",
+        "hook-burst": "displacement-control",
+        "null-veil": "sustain-attrition",
+        "repair-web": "sustain-attrition",
+        "mortar-wheel": "trap-punish",
+        "counter-courier": "balanced",
+        "sensor-grid": "control-grid",
+        "breach-column": "displacement-control",
+        "elastic-reserve": "feint-switch",
+        "three-well-race": "split",
+        "home-counterpunch": "interception",
+        "smoke-and-mines": "trap-punish",
+        "rotating-bastions": "fortress-counterattack"
+      },
+      "retest": "Repeat the 120-cell outcome-blind anchor gate under the new sheet hashes before reading revised outcomes."
+    },
+    {
+      "id": "population-sheet-v3-zero-win-objective-repair",
+      "timing": "after the style-corrected 120-cell anchor outcome read and before any cross-population screen",
+      "trigger": "pre-registered no-zero-win guardrail; six sheets finished 0-0-6 against Balanced, Interception, and Sustain Attrition",
+      "scope": [
+        "breach-column",
+        "centre-phalanx",
+        "null-veil",
+        "rail-screen",
+        "repair-web",
+        "rotating-bastions"
+      ],
+      "change": {
+        "breach-column": "promote the centre Repulsor and north Sunder to pickup runners and enable loose-Core fallback; preserve the six-body breach axis and composition",
+        "centre-phalanx": "promote the two outer reserves to pickup runners; preserve the central five-body protection package and composition",
+        "null-veil": "promote the centre Switchback reserve to a third carrier; preserve smoke, suppression, and composition",
+        "rail-screen": "send the two Lanterns to the outer Wells as pickup runners while the rails hold their firing lanes; preserve composition",
+        "repair-web": "replace the two carrier Palisades and one duplicate Nest with a Towline, Kestrel, and one Palisade so the sustain web can actually rotate; keep two Patchbays, a Nest, Hush, and Relay",
+        "rotating-bastions": "plant Mason/Palisade screens in both outer theaters, move the two Relays to outer carrier duty, and leave paired Switchback couriers in the centre; preserve composition"
+      },
+      "forbidden": "no class-stat, rule, map, cadence, eligibility, or execution-engine change",
+      "retest": "Run a mirrored targeted repair screen before cross-population outcomes; retain only eligibility-clean, behaviorally distinct revisions that no longer have zero wins."
+    },
+    {
+      "id": "centre-phalanx-v4-active-flanks",
+      "timing": "after the v3 targeted repair eligibility read and before opening its outcomes",
+      "trigger": "Centre Phalanx alone tripped formation freeze in one assignment against Rotating Bastions (74 high-wait ticks in a 75-tick window)",
+      "change": "Convert two of five central screen roles to intercept roles so the construction core actively contests its lane; keep the same composition, three carrier lanes, paths, policies, and fortress execution style.",
+      "retest": "Repeat every targeted-repair pair involving Centre Phalanx under the v4 hash; do not alter the frozen eligibility threshold."
+    },
+    {
+      "id": "null-veil-v4-smoke-couriers",
+      "timing": "after the eligibility-clean v3 targeted-repair outcome read and before the cross-population screen",
+      "trigger": "Null Veil alone remained 0-0-6 after the first objective repair",
+      "change": "Promote the two outer Veils from screen to carrier roles so their smoke accompanies actual north/south courier routes; retain Relay and Switchback as the concealed central carrier pair, both Hush interceptors, composition, policies, and sustain execution style.",
+      "retest": "Repeat the same mirrored Interception, Sustain Attrition, and Repair Web target pairs under the v4 hash; retain only if eligible, distinct, and non-zero-win."
+    },
+    {
+      "id": "sustain-attrition-v2-objective-conversion",
+      "timing": "after the eligibility-clean five-regular cross-population outcome read",
+      "trigger": "the pre-registered no-zero-win guardrail: Sustain Attrition finished 0-8-2 while usually remaining within one Pulse; its duplicate healer produced little useful repair and one Patchbay was assigned as an outer carrier",
+      "change": "Replace one of two Patchbays with a Kestrel and assign it to the north courier route; return the retained Patchbay to screen duty, retain paired Palisades, Hush, Nest, Relay, Towline, the three-theater allocation, policies, and sustain execution style.",
+      "forbidden": "no class-stat, rule, map, cadence, eligibility, shared-engine, or historical source-pack change",
+      "retest": "Repeat Sustain Attrition's five frozen cross-screen opponent pairs in both participant assignments; retain v2 only if both sides remain eligible, execution shape remains distinct, and the zero-win defect clears."
+    }
+  ],
+  "stageAmendments": [
+    {
+      "id": "five-regular-cross-population-screen",
+      "timing": "frozen after anchor and targeted-repair outcomes, before any cross-population outcome",
+      "reason": "The 992-cell exhaustive round robin is disproportionate for a provisional shared-mind screen. The corrected Release harness still costs about four wall-seconds per fully audited cell across four workers.",
+      "dispositionOfFullRoundRobin": "deferred, not silently replaced as product balance authority; commission only if the sparse screen leaves a decision boundary unresolved",
+      "seed": "32452843",
+      "runtime": "wasm",
+      "participantAssignments": "both",
+      "entrants": 32,
+      "degreePerEntrant": 5,
+      "unorderedPairs": 80,
+      "cells": 160,
+      "construction": "One outcome-seeded circular order; pair every index at offsets +1 and +5, plus the opposite index +16. This gives every sheet two nearby-strength opponents, two broader-strength opponents, and one high/low bridge without adapting to cross-screen results.",
+      "offsets": [1, 5, 16],
+      "seededOrder": [
+        "interception",
+        "counter-courier",
+        "control-grid",
+        "split",
+        "sensor-grid",
+        "hook-burst",
+        "balanced",
+        "displacement-control",
+        "courier-sprint",
+        "smoke-and-mines",
+        "sustain-attrition",
+        "mine-crescent",
+        "elastic-reserve",
+        "outer-pincers",
+        "three-well-race",
+        "fortress-counterattack",
+        "feint-switch",
+        "trap-punish",
+        "breach-column",
+        "beacon-hunt",
+        "home-counterpunch",
+        "mortar-wheel",
+        "pod-lattice",
+        "smoke-convoy",
+        "repair-web",
+        "null-veil",
+        "relay-chain",
+        "fireline-picks",
+        "rotating-bastions",
+        "rail-screen",
+        "centre-phalanx",
+        "convoy"
+      ]
+    }
+  ],
+  "hardGates": {
+    "runtimeFaults": 0,
+    "exactReplayVerification": "every retained cell",
+    "feltDegeneracyEligibility": "every retained side passes v2",
+    "distinctNewSheets": 20,
+    "goldenReplayHashes": "6/6 byte-identical after any harness or engine work"
+  },
+  "balanceRead": {
+    "provisionalSharedMindGuardrails": {
+      "drawRateAtMost": 0.1,
+      "minimumWinningSheets": 12,
+      "leaderShareOfDecidedWinsAtMost": 0.15,
+      "noZeroWinSheet": true,
+      "firstPulseConversionAlertAbove": 0.7
+    },
+    "interpretation": "This diagnoses sheet-space and shared-stock-mind balance only. It cannot establish independent-lineage product balance or human enjoyment.",
+    "classStats": "No class-stat change follows directly from sheet records; class exposure and matchup-conditioned mechanic evidence must agree before any isolated same-cohort tuning arm is registered."
+  },
+  "forbiddenResponses": [
+    "counting renamed or lightly retuned sheets as distinct",
+    "opening outcomes before anchor distinctness repairs are frozen",
+    "comeback mechanic",
+    "score-to-power",
+    "post-outcome eligibility threshold changes",
+    "presenting ARS1 as the player-facing sheet UX",
+    "class-stat tuning from raw sheet win rates"
+  ]
+}

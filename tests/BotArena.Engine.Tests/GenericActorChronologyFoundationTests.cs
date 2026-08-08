@@ -71,6 +71,36 @@ public sealed class GenericActorChronologyFoundationTests
     }
 
     [Fact]
+    public void MindDescriptor_UsesTheIndependentMindEngineVersion()
+    {
+        string[] composition =
+        [
+            ArcRelayLaunchClassIds.Kestrel,
+            ArcRelayLaunchClassIds.Towline,
+            ArcRelayLaunchClassIds.Relay,
+            ArcRelayLaunchClassIds.Palisade,
+            ArcRelayLaunchClassIds.Switchback,
+            ArcRelayLaunchClassIds.Hush,
+            ArcRelayLaunchClassIds.Lantern,
+            ArcRelayLaunchClassIds.Patchbay,
+        ];
+        ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create(
+            composition,
+            composition);
+
+        GenericActorMatchDescriptor descriptor =
+            GenericActorMatchDescriptor.Create(
+                definition,
+                42,
+                Configurations(definition));
+
+        Assert.True(definition.CapabilityVersions.IsMindProfile);
+        Assert.Equal(
+            BotArenaVersions.GenericMindEngineVersion,
+            descriptor.EngineVersion);
+    }
+
+    [Fact]
     public void ParticipantSnapshotAndDescriptor_RejectMalformedMetadataAndTopology()
     {
         ActorResolvedMatchDefinition definition =
@@ -532,6 +562,43 @@ public sealed class GenericActorChronologyFoundationTests
                                     .AvailabilityReason.InitialUnlock,
                                 3),
                         "participant-disqualified")),
+            new(
+                19,
+                GenericActorRuntimeObservation.EventKind.ProjectileDeflected,
+                new GenericActorRuntimeObservation.EventPayload
+                    .ProjectileDeflected(
+                        0,
+                        actor,
+                        target,
+                        12,
+                        13,
+                        "bulwark-prime-aegis-shell",
+                        Direction.West,
+                        ProjectileHeading.East,
+                        position)),
+            // P3: a participant-scoped mind fault has no body to name, which
+            // is exactly why it needs its own kind.
+            new(
+                20,
+                GenericActorRuntimeObservation.EventKind.MindRuntimeFault,
+                new GenericActorRuntimeObservation.EventPayload
+                    .MindRuntimeFault(
+                        new GenericMindRuntimeFault(
+                            10,
+                            0,
+                            ActorId: null,
+                            GenericActorRuntimeFault.FaultStage.TickExecution,
+                            GenericActorRuntimeFaultCodes
+                                .TickExecutionFailed,
+                            1,
+                            true))),
+            new(
+                21,
+                GenericActorRuntimeObservation.EventKind.ArcRelay,
+                new GenericActorRuntimeObservation.EventPayload.ArcRelay(
+                    new ArcRelayEvent.CoreBorn(
+                        new ArcRelayCoreId("well-centre", 0),
+                        position))),
         ];
     }
 
@@ -562,6 +629,9 @@ public sealed class GenericActorChronologyFoundationTests
             GenericActorRuntimeObservation.EventKind.RuntimeFault =>
                 typeof(GenericActorRuntimeObservation.EventPayload
                     .RuntimeFault),
+            GenericActorRuntimeObservation.EventKind.MindRuntimeFault =>
+                typeof(GenericActorRuntimeObservation.EventPayload
+                    .MindRuntimeFault),
             GenericActorRuntimeObservation.EventKind
                     .ParticipantDisqualified =>
                 typeof(GenericActorRuntimeObservation.EventPayload
@@ -590,6 +660,11 @@ public sealed class GenericActorChronologyFoundationTests
                     .LifecycleClockCancelled =>
                 typeof(GenericActorRuntimeObservation.EventPayload
                     .LifecycleClockCancelled),
+            GenericActorRuntimeObservation.EventKind.ProjectileDeflected =>
+                typeof(GenericActorRuntimeObservation.EventPayload
+                    .ProjectileDeflected),
+            GenericActorRuntimeObservation.EventKind.ArcRelay =>
+                typeof(GenericActorRuntimeObservation.EventPayload.ArcRelay),
             _ => throw new ArgumentOutOfRangeException(nameof(kind)),
         };
 

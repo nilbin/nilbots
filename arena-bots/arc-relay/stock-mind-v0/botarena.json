@@ -1,0 +1,10 @@
+{
+  "name": "ArcRelayStockMindV0",
+  "entryType": "ArcRelayStockMind",
+  "sdkVersion": "0.10.11",
+  "appearance": {
+    "accent": "#f59e0b",
+    "look": "vanguard",
+    "projectile": "pulse-bolt"
+  }
+}

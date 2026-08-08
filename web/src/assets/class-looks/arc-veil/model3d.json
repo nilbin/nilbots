@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "id": "arc-veil",
+  "file": "model.glb",
+  "kind": "bot",
+  "part": "whole",
+  "facing": "+x",
+  "up": "+y",
+  "source": {
+    "generator": "scripts/class-models/promote-meshy-arc-fleet.mjs",
+    "recipe": "art/class-models/runtime-tiers/arc-relay/ktx2-selective-v1/audit.json",
+    "artifact": "art/class-models/runtime-tiers/arc-relay/ktx2-selective-v1/arc-veil.glb",
+    "sourceSha256": "525e97a2cdd9c29e24ffcd06fe6cd42c0c99a799fb81e835975cb8014a3c78c6",
+    "approvedArtifact": "art/class-models/provider-runs/meshy/arc-veil/019fc3a5-b087-7b50-9f62-a1f27d372881/model-normalized-review.glb",
+    "approvedSha256": "70acf4779fe1ffcde3bd6ed3235c6952f3554215bf9df7a71335010b2f70254a",
+    "textureTier": "arc-relay-ktx2-selective-v1",
+    "provider": "Meshy",
+    "model": "meshy-t2",
+    "endpoint": "image-to-3d",
+    "modelType": "smart-topology",
+    "taskId": "019fc3a5-b087-7b50-9f62-a1f27d372881",
+    "orientation": "lay-flat-x"
+  },
+  "motion": {
+    "locomotion": "low-hover",
+    "handling": "swift",
+    "hardwareLagTicks": 0.18,
+    "hardwareOvershoot": 0.12
+  },
+  "signature": "smoke-canister",
+  "ledger": {
+    "bytes": 650444,
+    "sha256": "525e97a2cdd9c29e24ffcd06fe6cd42c0c99a799fb81e835975cb8014a3c78c6",
+    "triangles": 12542,
+    "materials": 1,
+    "textureCount": 4,
+    "geometrySha256": "cb34ac3efefbb6823bada27abc03a30912be908bc976b96230780fb05740c747",
+    "geometryGpuBytes": 419152,
+    "textureGpuBytesCompressedTarget": 360528,
+    "textureGpuBytesRgba8Fallback": 2184528,
+    "modelGpuBytesCompressedTarget": 779680,
+    "modelGpuBytesRgba8Fallback": 2603680,
+    "textureTier": "arc-relay-ktx2-selective-v1"
+  }
+}

@@ -1,6 +1,7 @@
 import clsx from 'clsx';
 import type { PlaybackState } from '../playback';
 import type { ReplayModel, ReplayStableUnitKey } from '../replayModel';
+import CameraFitToggle from './CameraFitToggle';
 import Timeline from './Timeline';
 
 const SPEEDS = [0.25, 0.5, 1, 2, 4];
@@ -20,10 +21,18 @@ export default function Controls({
   playback,
   replay,
   selectedUnitKey,
+  selectedPlayKey,
+  perspectiveTeamId,
+  autoFit,
+  onToggleAutoFit,
 }: {
   playback: PlaybackState;
   replay: ReplayModel;
   selectedUnitKey: ReplayStableUnitKey | null;
+  selectedPlayKey: string | null;
+  perspectiveTeamId: number | null;
+  autoFit: boolean;
+  onToggleAutoFit: () => void;
 }) {
   return (
     <div className="panel min-w-0 px-3 py-2.5">
@@ -56,28 +65,36 @@ export default function Controls({
             replay={replay}
             playback={playback}
             selectedUnitKey={selectedUnitKey}
+            selectedPlayKey={selectedPlayKey}
+            perspectiveTeamId={perspectiveTeamId}
           />
         </div>
 
-        <div
-          className="ml-auto flex flex-none items-center gap-1"
-          role="group"
-          aria-label="Playback speed"
-        >
-          {SPEEDS.map((speed) => (
-            <button
-              key={speed}
-              type="button"
-              onClick={() => playback.setSpeed(speed)}
-              aria-pressed={playback.speed === speed}
-              className={clsx(
-                'btn val px-[9px] py-[5px]',
-                playback.speed === speed && 'btn-on text-arena-text',
-              )}
-            >
-              {speed}×
-            </button>
-          ))}
+        {/* Beside the speeds rather than among them: both say how you are watching rather
+            than what you are watching, and neither belongs on the transport's own row. */}
+        <div className="ml-auto flex flex-none items-center gap-2.5">
+          <CameraFitToggle enabled={autoFit} onToggle={onToggleAutoFit} />
+
+          <div
+            className="flex flex-none items-center gap-1"
+            role="group"
+            aria-label="Playback speed"
+          >
+            {SPEEDS.map((speed) => (
+              <button
+                key={speed}
+                type="button"
+                onClick={() => playback.setSpeed(speed)}
+                aria-pressed={playback.speed === speed}
+                className={clsx(
+                  'btn val px-[9px] py-[5px]',
+                  playback.speed === speed && 'btn-on text-arena-text',
+                )}
+              >
+                {speed}×
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -96,6 +113,13 @@ export default function Controls({
             className="block h-[11px] w-[5px] rounded-[2px] bg-arena-dim"
           />
           took a hit
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <i
+            aria-hidden
+            className="block size-2 rotate-45 rounded-[1px] border-2 border-arena-dim"
+          />
+          deflected
         </span>
         <span className="inline-flex items-center gap-1.5">
           <i aria-hidden className="block size-2.5 rounded-[2px] bg-arena-hot" />

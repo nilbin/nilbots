@@ -229,7 +229,8 @@ public sealed class GenericActorChronologyRecorderTests
                     otherActor,
                     SourceTransitionId: null,
                     SourceOperationId: null),
-                valid.MatchContractFingerprint));
+                valid.MatchContractFingerprint,
+                valid.TeamRandomSeed));
 
         GenericActorLifeStart wrongOwner = CopyLifeStart(
             valid,
@@ -729,7 +730,8 @@ public sealed class GenericActorChronologyRecorderTests
                         replacement.ParentActorId,
                         replacement.SourceTransitionId,
                         replacement.SourceOperationId),
-                    originalStart.MatchContractFingerprint);
+                    originalStart.MatchContractFingerprint,
+                    originalStart.TeamRandomSeed);
             GenericActorWorldSnapshot.SlotSnapshot slot =
                 fixture.InitialFrame.State.Slots.Single(value =>
                     value.TeamId == replacement.ActorId.TeamId
@@ -824,7 +826,8 @@ public sealed class GenericActorChronologyRecorderTests
                 parent.ActorId,
                 "fabricate-child",
                 "fabrication-0"),
-            parent.MatchContractFingerprint);
+            parent.MatchContractFingerprint,
+            parent.TeamRandomSeed);
 
         child.ValidateDynamicLineage(parent);
         Assert.Throws<ArgumentException>(() =>
@@ -858,7 +861,8 @@ public sealed class GenericActorChronologyRecorderTests
                 parent.ActorId,
                 SourceTransitionId: null,
                 SourceOperationId: null),
-            parent.MatchContractFingerprint);
+            parent.MatchContractFingerprint,
+            parent.TeamRandomSeed);
         validReturn.ValidateDynamicLineage(parent);
         GenericActorLifeStart changedReturnGeneration = CopyLifeStart(
             validReturn,
@@ -877,7 +881,8 @@ public sealed class GenericActorChronologyRecorderTests
         int? participantId = null,
         ulong? actorRandomSeed = null,
         GenericActorRuntimeStart.LifeOrigin? origin = null,
-        string? matchContractFingerprint = null) =>
+        string? matchContractFingerprint = null,
+        ulong? teamRandomSeed = null) =>
         new(
             schemaVersion ?? source.SchemaVersion,
             runtimeContractVersion ?? source.RuntimeContractVersion,
@@ -886,7 +891,8 @@ public sealed class GenericActorChronologyRecorderTests
             actorRandomSeed ?? source.ActorRandomSeed,
             origin ?? source.Origin,
             matchContractFingerprint
-                ?? source.MatchContractFingerprint);
+                ?? source.MatchContractFingerprint,
+            teamRandomSeed ?? source.TeamRandomSeed);
 
     private static GenericActorMatchActorTurn CopyTurn(
         GenericActorMatchActorTurn source,
@@ -1125,7 +1131,11 @@ public sealed class GenericActorChronologyRecorderTests
                         life.ParentActorId,
                         life.SourceTransitionId,
                         life.SourceOperationId),
-                    descriptor.MatchContractFingerprint))
+                    descriptor.MatchContractFingerprint,
+                    teamRandomSeed: SeedDerivation.DeriveTeamSeed(
+                        descriptor.MatchSeed,
+                        life.ActorId.TeamId,
+                        definition.Rules.SeedMechanics.SeedProfileId)))
             .Reverse()
             .ToArray();
         GenericActorAuthoritativeEvent[] events = state.ActiveLives

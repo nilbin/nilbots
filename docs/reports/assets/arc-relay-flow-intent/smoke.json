@@ -1,0 +1,17 @@
+{
+  "schema": "nilbots-arc-relay-flow-intent-smoke-v1",
+  "url": "http://127.0.0.1:8942/sample-01.html",
+  "productionBuild": "web/dist-gate3",
+  "renderer": "Canvas2D",
+  "authoritativeReverse": {
+    "actorKey": "1:6:0",
+    "tick": 1,
+    "facing": "west",
+    "dx": 1,
+    "dy": 0
+  },
+  "playheadAdvancedFrom": 0.5,
+  "playheadAdvancedTo": 1.9076250000000003,
+  "screenshotSha256": "5e6f320bd0b0bf2202e33410e13dbddcebd7073fbac5c06ba3dd084ba17ab3b2",
+  "pageErrors": []
+}

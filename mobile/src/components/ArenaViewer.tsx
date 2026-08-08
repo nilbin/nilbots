@@ -140,14 +140,22 @@ export function ArenaViewerProvider({ children }: { children: ReactNode }) {
       <View
         style={[StyleSheet.absoluteFill, styles.overlay, !visible && styles.hidden]}
         pointerEvents={visible ? 'auto' : 'none'}
-        // Passive: returning false declines the responder, so the touch still reaches the
-        // WebView and a tap on a bot selects it. Capturing here instead would make the
-        // arena unclickable in exactly the mode built around looking at it.
+        // Normally passive: returning false declines the responder, so the touch still
+        // reaches the WebView and a tap on a bot selects it. Capturing here instead would
+        // make the arena unclickable in exactly the mode built around looking at it.
+        //
+        // The ONE exception is the touch that wakes hidden chrome. That tap is the user
+        // asking for the controls, not for a different body, and letting it through cost
+        // them the selection they were following (owner, 2026-08-09). Swallowing it makes
+        // the first tap wake the chrome and the second act — the same rule the web viewer
+        // applies in `Viewer.selectFromArena`, arrived at from the opposite side because
+        // here the chrome is native and the selection lives in the WebView.
         onStartShouldSetResponderCapture={
           landscape
             ? () => {
+                const waking = !chromeVisible;
                 revealChrome();
-                return false;
+                return waking;
               }
             : undefined
         }>

@@ -1,0 +1,10 @@
+{
+  "id": "trident-wasp-volley",
+  "label": "Trident Wasp Volley",
+  "sprite": "sprite.svg",
+  "suggestedAccent": "#f59e0b",
+  "defaultProjectile": "trident-spark",
+  "classId": "striker",
+  "locomotionCue": "low-hover",
+  "scale": 1.2
+}

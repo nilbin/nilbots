@@ -196,6 +196,26 @@ public sealed class BoundedChildFabricationKernel
             [reservation.ReservedPosition]);
     }
 
+    /// <summary>
+    /// The form a fabrication into one slot actually produces: the target
+    /// slot's declared chassis where it declares one, and otherwise the
+    /// transition's own output. Under a MIXED composition a fabricating body
+    /// builds the ARMY rather than copies of itself
+    /// (<c>docs/DESIGN-MIND-ARCHITECTURE-2026-07-31.md</c> §9.4), and the
+    /// override is the whole of that rule — every legality check above resolves
+    /// through here, so an override can never place a form the slot does not
+    /// already allow.
+    /// </summary>
+    private string OutputFormFor(
+        int targetTeamId,
+        int targetUnitId,
+        BoundedChildFabricationDefinition transition) =>
+        _assignments.TryGetValue(
+            (targetTeamId, targetUnitId),
+            out ActorUnitSlotLifecycleAssignmentDefinition? assignment)
+            ? assignment.FabricationOutputFormId ?? transition.OutputFormId
+            : transition.OutputFormId;
+
     internal void ValidateReservationEvidence(
         BoundedChildFabricationProvisionalReservation reservation)
     {
@@ -231,7 +251,10 @@ public sealed class BoundedChildFabricationKernel
                 != (long)reservation.SourceGeneration + 1
             || !string.Equals(
                 reservation.TargetFormId,
-                transition.OutputFormId,
+                OutputFormFor(
+                    reservation.TargetTeamId,
+                    reservation.TargetUnitId,
+                    transition),
                 StringComparison.Ordinal)
             || !_topologySlots.TryGetValue(
                 (reservation.SourceActorId.TeamId,
@@ -248,7 +271,10 @@ public sealed class BoundedChildFabricationKernel
                 == (sourceSlot.TeamId, sourceSlot.UnitId)
             || !_assignments[(targetSlot.TeamId, targetSlot.UnitId)]
                 .AllowedFormIds.Contains(
-                    transition.OutputFormId,
+                    OutputFormFor(
+                        targetSlot.TeamId,
+                        targetSlot.UnitId,
+                        transition),
                     StringComparer.Ordinal)
             || !IsEligibleSourcePosition(
                 reservation.ParticipantId,
@@ -334,7 +360,10 @@ public sealed class BoundedChildFabricationKernel
                 == (sourceSlot.TeamId, sourceSlot.UnitId)
             || !_assignments[(targetSlot.TeamId, targetSlot.UnitId)]
                 .AllowedFormIds.Contains(
-                    transition.OutputFormId,
+                    OutputFormFor(
+                        targetSlot.TeamId,
+                        targetSlot.UnitId,
+                        transition),
                     StringComparer.Ordinal)
             || slotsById[(targetSlot.TeamId, targetSlot.UnitId)].State
                 != BoundedChildFabricationSlotSnapshot
@@ -388,7 +417,10 @@ public sealed class BoundedChildFabricationKernel
                 request.OperationId,
                 targetSlot.TeamId,
                 targetSlot.UnitId,
-                transition.OutputFormId,
+                OutputFormFor(
+                    targetSlot.TeamId,
+                    targetSlot.UnitId,
+                    transition),
                 generation,
                 tick,
                 dueTick,

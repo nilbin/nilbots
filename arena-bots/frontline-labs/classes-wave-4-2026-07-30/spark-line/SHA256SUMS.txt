@@ -1,0 +1,18 @@
+# spark-line revision 4 (wave 4) — freeze manifest
+# artifact + qualification evidence + submitted source SHA-256
+
+b5c328875993fd69f2b8d5ba7ca54eb91da1feb26b3a69d6cbb9ea76d3861f4a  out/bot.wasm
+b6f792fd4d6a44576820bd6bf67e91e834441e87c7b87edf708812d371ffad6d  evidence/t4/qualification.json
+ee1048c01fd36bccd805726492bf60b1fe74f05a93d9b953d5f83d39a29ad1df  evidence/t4/prerequisite-t3/qualification.json
+1c376b7604dd19c47ec5ca2f71f3d8bdf6bdc06ed3bdd126a325bf7977952ad1  evidence/t4/prerequisite-t3/prerequisite-t2/qualification.json
+567e9faff0546472153f773df504dd252de38a63c5b99a50a9c08b72bd192627  ArenaBasics.cs
+0ecb427c420ec0cbe82a2431742cd4cbfc159e3ee0b4a8c96730a5b9a94bb94e  ContractLens.cs
+f8823bc0817725153a81e584357b301708f47f6fb3e8a43c0d00f254177b25ea  DX.md
+7158d88b735409fc9fe432ec3d428fe2f2be7e0a47cd0465a39cc647b61b5fdb  README.md
+8468be05a5995556ce0164b110faa01734746b8a3728da95c44006dabffd22d9  SparkLine.cs
+049b42b422c704c48a825205edcf7cb1c2acf9974a13bee33a6b30e7c74bd4b9  Tactics.cs
+340a566bf2a177dd4b1b81f2e74dae80aabb106b1d8e70acf98ef19c362c9c95  botarena.json
+
+# Deterministic source-tree hash: sorted per-file SHA-256 lines for
+# the .cs sources + botarena.json + README.md, then SHA-256 of that list.
+# f0a3b12cb770d3e403fd6413ba83f5c02a017d5592f2e2c5ef91f0086860949e

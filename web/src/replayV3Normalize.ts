@@ -151,6 +151,36 @@ function direction(value: unknown, path: string, fail: ReplayV3Fail): void {
   }
 }
 
+/**
+ * A movement profile's optional facing coupling. The engine's canonical
+ * writer omits the property entirely while the profile preserves facing —
+ * the same omit-when-inert discipline the capture-gain schedule uses — so an
+ * absent field means 'preserve-facing' and an explicitly inert one is a
+ * second, non-canonical encoding of the same contract.
+ */
+function movementFacingCoupling(
+  value: unknown,
+  path: string,
+  fail: ReplayV3Fail,
+): void {
+  if (value === 'preserve-facing') {
+    fail(path, 'must be omitted instead of emitted inert');
+  }
+  if (
+    ![
+      'face-movement-direction',
+      'facing-locked',
+      'face-movement-heading-projected',
+      'combat-strafe',
+    ].includes(String(value))
+  ) {
+    fail(
+      path,
+      'expected a known non-inert movement/facing coupling',
+    );
+  }
+}
+
 function heading(value: unknown, path: string, fail: ReplayV3Fail): void {
   if (
     ![
@@ -253,6 +283,24 @@ function validateRankings(
     }
   });
 }
+
+/// The one redeploy policy that carries a territory-ratchet hold, and
+/// therefore the only one whose observations may publish hold clocks.
+/**
+ * The participant-scoped MIND profile. It is the one thing that decides which
+ * turn record a tick carries, and the memo is explicit that it must be read
+ * from the header rather than inferred from the payload (§5.1).
+ */
+export const MIND_CONTRACT_PROFILE_ID = 'generic-mind-match-1';
+
+const RATCHET_REDEPLOY_POLICY =
+  'advance-immediately-then-deny-enemy-regression-past-the-high-water-mark-through-configured-hold-ticks';
+
+/// The one control policy that channels a capture, and therefore the only one
+/// that carries a stationary multiplier cap, an opposing erosion multiple, and
+/// a claim interrupt. All three ride together or not at all.
+const CHANNEL_CONTROL_POLICY =
+  'stationary-claim-weight-versus-total-denial-weight-scales-gain-capped-opposition-erodes-at-multiple-then-builds';
 
 function validateContract(
   value: unknown,
@@ -369,14 +417,57 @@ function validateContract(
             'scoreCatalog',
             'frontlinePositionCount',
             'capture',
+            // Additive trailing optional block with the capture ratchet's
+            // discipline: the engine writes it only for a mode that declares
+            // a side objective, so its presence is itself a contract fact.
+            ...(own(mode, 'secondaryControl') ? ['secondaryControl'] : []),
+            // Same discipline for the battlefield economy: written only for
+            // a mode that declares one, and mutually exclusive with the side
+            // objective, because both claim the side lanes' attention.
+            ...(own(mode, 'scrapEconomy') ? ['scrapEconomy'] : []),
           ]
-        : null;
+        : mode.kind === 'arc-relay'
+          ? [
+              'kind',
+              'modeId',
+              'victory',
+              'scoreCatalog',
+              'pendingRearmTicks',
+              'coreRelocationIntervalTicks',
+              'coresPerPulse',
+              'fieldedSlotsPerTeam',
+              'maxCopiesPerClass',
+              'respawnDelayTicks',
+              // Grammar 2 (owner ruling 2026-08-05): dodgeable signature
+              // physics plus designed-role metadata on each signature.
+              ...(own(mode, 'signatureGrammarVersion')
+                ? ['signatureGrammarVersion']
+                : []),
+              // Foundations -03: seed-derived well-birth jitter half-width,
+              // written only when non-zero.
+              ...(own(mode, 'wellBirthJitterTicks')
+                ? ['wellBirthJitterTicks']
+                : []),
+              // Foundations -03: parity-alternating resolution, written only
+              // when true.
+              ...(own(mode, 'alternatingResolutionOrder')
+                ? ['alternatingResolutionOrder']
+                : []),
+              // Threefold Pulse prototype: per-origin sockets, written only
+              // when true.
+              ...(own(mode, 'threefoldSockets') ? ['threefoldSockets'] : []),
+              'wells',
+              'signatures',
+            ]
+          : null;
   if (modeKeys === null) {
     fail(`${modePath}.kind`, `unknown game mode ${String(mode.kind)}`);
   }
   exact(mode, modePath, modeKeys, fail);
   nonEmpty(mode.modeId, `${modePath}.modeId`, fail);
-  if (mode.modeId !== mode.kind) {
+  const supportedModeId =
+    mode.kind === 'arc-relay' ? 'arc-relay-h0' : mode.kind;
+  if (mode.modeId !== supportedModeId) {
     fail(
       `${modePath}.modeId`,
       'must match the supported game-mode kind',
@@ -551,7 +642,7 @@ function validateContract(
         );
       }
     }
-  } else {
+  } else if (mode.kind === 'frontline') {
     const victory = exact(
       mode.victory,
       victoryPath,
@@ -587,6 +678,19 @@ function validateContract(
     const capturePath = `${modePath}.capture`;
     const captureValue = object(mode.capture, capturePath, fail);
     const hasGainSchedule = own(captureValue, 'gainSchedule');
+    // Additive optional field with the capture-gain schedule's discipline:
+    // the engine writes a hold duration only for the high-water-mark
+    // redeploy policy, so its presence is itself part of the contract.
+    const hasRatchetHold = own(captureValue, 'ratchetHoldTicks');
+    // The capture channel's three trailing settings, with the same
+    // discipline: the engine writes them only for the channel control
+    // policy, so their presence is itself part of the contract.
+    const hasStackCap = own(captureValue, 'stationaryGainMultiplierCap');
+    const hasErosionMultiplier = own(
+      captureValue,
+      'opposingErosionMultiplier',
+    );
+    const hasClaimInterrupt = own(captureValue, 'claimInterrupt');
     const capture = exact(
       captureValue,
       capturePath,
@@ -607,7 +711,11 @@ function validateContract(
         'decayClock',
         'disabledDecay',
         'redeployPolicy',
+        ...(hasRatchetHold ? ['ratchetHoldTicks'] : []),
         'redeployTickArithmetic',
+        ...(hasStackCap ? ['stationaryGainMultiplierCap'] : []),
+        ...(hasErosionMultiplier ? ['opposingErosionMultiplier'] : []),
+        ...(hasClaimInterrupt ? ['claimInterrupt'] : []),
       ],
       fail,
     );
@@ -693,8 +801,6 @@ function validateContract(
       });
     }
     const fixedPolicies = {
-      controlPolicy:
-        'binary-positive-weight-per-team-no-stacking-non-sole-applies-configured-decay-opposition-erodes-to-neutral',
       timeoutPolicy:
         'signed-position-threshold-plus-claim-zero-draw-no-tiebreakers',
       territorialProgressFormula:
@@ -705,17 +811,310 @@ function validateContract(
         'checked-int64-add-compare-threshold-completes-one-push-and-discards-overshoot',
       oppositionArithmetic:
         'erode-toward-zero-without-carrying-overshoot-into-own-claim',
-      decayClock:
-        'consecutive-empty-or-contested-ticks-reset-by-any-sole-control',
       disabledDecay: 'zero-pair-preserves-claim-and-keeps-clock-zero',
-      redeployPolicy:
-        'advance-immediately-reset-claim-keep-world-pause-through-capture-plus-configured-ticks-breach-skips-pause',
       redeployTickArithmetic:
         'checked-int64-capture-tick-plus-one-plus-pause-require-int32',
     } as const;
     for (const [key, expected] of Object.entries(fixedPolicies)) {
       if (capture[key] !== expected) {
         fail(`${capturePath}.${key}`, `expected ${expected}`);
+      }
+    }
+    // The three policies with pre-registered candidate arms. Each value is a
+    // distinct ruleset with its own fingerprint; the viewer accepts any of
+    // them and pins the rest of the capture contract as before.
+    const policyArms = {
+      controlPolicy: [
+        'binary-positive-weight-per-team-no-stacking-non-sole-applies-configured-decay-opposition-erodes-to-neutral',
+        'net-positive-objective-weight-difference-scales-gain-non-positive-applies-configured-decay-opposition-erodes-to-neutral',
+        CHANNEL_CONTROL_POLICY,
+      ],
+      decayClock: [
+        'consecutive-empty-or-contested-ticks-reset-by-any-sole-control',
+        'empty-and-contested-ticks-preserve-claim-enemy-sole-erosion-only',
+      ],
+      redeployPolicy: [
+        'advance-immediately-reset-claim-keep-world-pause-through-capture-plus-configured-ticks-breach-skips-pause',
+        RATCHET_REDEPLOY_POLICY,
+      ],
+    } as const;
+    for (const [key, allowed] of Object.entries(policyArms)) {
+      if (!(allowed as readonly string[]).includes(String(capture[key]))) {
+        fail(`${capturePath}.${key}`, `expected one of ${allowed.join(', ')}`);
+      }
+    }
+    if (hasRatchetHold) {
+      integer(capture.ratchetHoldTicks, `${capturePath}.ratchetHoldTicks`, fail);
+      if ((capture.ratchetHoldTicks as number) <= 0) {
+        fail(
+          `${capturePath}.ratchetHoldTicks`,
+          'must be omitted instead of emitted inert',
+        );
+      }
+    }
+    if (hasRatchetHold !== (capture.redeployPolicy === RATCHET_REDEPLOY_POLICY)) {
+      fail(
+        `${capturePath}.ratchetHoldTicks`,
+        'is carried by exactly the high-water-mark redeploy policy',
+      );
+    }
+    const channels = capture.controlPolicy === CHANNEL_CONTROL_POLICY;
+    if (
+      hasStackCap !== channels ||
+      hasErosionMultiplier !== channels ||
+      hasClaimInterrupt !== channels
+    ) {
+      fail(
+        `${capturePath}.claimInterrupt`,
+        'the stationary cap, the erosion multiple, and the interrupt are carried by exactly the channel control policy',
+      );
+    }
+    if (channels) {
+      for (const key of [
+        'stationaryGainMultiplierCap',
+        'opposingErosionMultiplier',
+      ]) {
+        integer(capture[key], `${capturePath}.${key}`, fail);
+        if ((capture[key] as number) <= 0) {
+          fail(`${capturePath}.${key}`, 'must be positive');
+        }
+      }
+      const interruptPath = `${capturePath}.claimInterrupt`;
+      const interrupt = exact(
+        object(capture.claimInterrupt, interruptPath, fail),
+        interruptPath,
+        ['kind', 'revertPerDamagePoint', 'scope', 'granularity'],
+        fail,
+      );
+      integer(
+        interrupt.revertPerDamagePoint,
+        `${interruptPath}.revertPerDamagePoint`,
+        fail,
+      );
+      if ((interrupt.revertPerDamagePoint as number) <= 0) {
+        fail(`${interruptPath}.revertPerDamagePoint`, 'must be positive');
+      }
+      const interruptPolicies = {
+        kind: 'damage-to-controller-on-objective-reverts-work',
+        scope: 'controlling-team-bodies-on-active-objective-region',
+        granularity: 'whole-run',
+      } as const;
+      for (const [key, expected] of Object.entries(interruptPolicies)) {
+        if (interrupt[key] !== expected) {
+          fail(`${interruptPath}.${key}`, `expected ${expected}`);
+        }
+      }
+    }
+    if (own(mode, 'secondaryControl')) {
+      const secondaryPath = `${modePath}.secondaryControl`;
+      const secondary = exact(
+        object(mode.secondaryControl, secondaryPath, fail),
+        secondaryPath,
+        [
+          'regionIds',
+          'captureThresholdTicks',
+          'ownership',
+          'effect',
+          'rallyScope',
+        ],
+        fail,
+      );
+      const regionIds = array(
+        secondary.regionIds,
+        `${secondaryPath}.regionIds`,
+        fail,
+      );
+      regionIds.forEach((regionId, index) =>
+        nonEmpty(regionId, `${secondaryPath}.regionIds[${index}]`, fail),
+      );
+      if (
+        regionIds.length === 0 ||
+        new Set(regionIds.map(String)).size !== regionIds.length
+      ) {
+        fail(
+          `${secondaryPath}.regionIds`,
+          'names at least one site region and never repeats one',
+        );
+      }
+      integer(
+        secondary.captureThresholdTicks,
+        `${secondaryPath}.captureThresholdTicks`,
+        fail,
+      );
+      if ((secondary.captureThresholdTicks as number) <= 0) {
+        fail(
+          `${secondaryPath}.captureThresholdTicks`,
+          'must be a positive latch threshold',
+        );
+      }
+      const secondaryArms = {
+        ownership: ['latched-until-recaptured-by-sole-objective-weight'],
+        effect: ['muster'],
+        rallyScope: ['prime-automatic-return-only'],
+      } as const;
+      for (const [key, allowed] of Object.entries(secondaryArms)) {
+        if (!(allowed as readonly string[]).includes(String(secondary[key]))) {
+          fail(
+            `${secondaryPath}.${key}`,
+            `expected one of ${allowed.join(', ')}`,
+          );
+        }
+      }
+    }
+    if (own(mode, 'scrapEconomy')) {
+      if (own(mode, 'secondaryControl')) {
+        fail(
+          `${modePath}.scrapEconomy`,
+          'a mode declares a side objective or a scrap economy, never both',
+        );
+      }
+      const economyPath = `${modePath}.scrapEconomy`;
+      const economy = exact(
+        object(mode.scrapEconomy, economyPath, fail),
+        economyPath,
+        [
+          'veinSites',
+          'veinFirstSpawnTick',
+          'veinSpawnIntervalTicks',
+          'veinLastSpawnTick',
+          'veinAmount',
+          'wreckAmount',
+          'assayAmount',
+          'carryCapacity',
+          'pileLifetimeTicks',
+          'maxSimultaneousPiles',
+          'bankRegionIds',
+          'upgradeScope',
+          'maxTotalTiers',
+          'purchaseMode',
+          'tracks',
+        ],
+        fail,
+      );
+      const veinSites = array(
+        economy.veinSites,
+        `${economyPath}.veinSites`,
+        fail,
+      );
+      veinSites.forEach((site, index) => {
+        const sitePath = `${economyPath}.veinSites[${index}]`;
+        const value = exact(object(site, sitePath, fail), sitePath, ['x', 'y'], fail);
+        integer(value.x, `${sitePath}.x`, fail);
+        integer(value.y, `${sitePath}.y`, fail);
+      });
+      if (veinSites.length === 0) {
+        fail(`${economyPath}.veinSites`, 'declares at least one vein site');
+      }
+      for (const key of [
+        'veinFirstSpawnTick',
+        'veinSpawnIntervalTicks',
+        'veinLastSpawnTick',
+        'veinAmount',
+        'wreckAmount',
+        'assayAmount',
+        'carryCapacity',
+        'pileLifetimeTicks',
+        'maxSimultaneousPiles',
+        'maxTotalTiers',
+      ]) {
+        integer(economy[key], `${economyPath}.${key}`, fail);
+      }
+      const firstTick = economy.veinFirstSpawnTick as number;
+      const interval = economy.veinSpawnIntervalTicks as number;
+      const lastTick = economy.veinLastSpawnTick as number;
+      if (
+        firstTick < 0 ||
+        interval <= 0 ||
+        lastTick < firstTick ||
+        (lastTick - firstTick) % interval !== 0
+      ) {
+        fail(
+          `${economyPath}.veinLastSpawnTick`,
+          'the last scheduled vein tick must sit on the declared cadence',
+        );
+      }
+      const bankRegionIds = array(
+        economy.bankRegionIds,
+        `${economyPath}.bankRegionIds`,
+        fail,
+      );
+      bankRegionIds.forEach((regionId, index) =>
+        nonEmpty(regionId, `${economyPath}.bankRegionIds[${index}]`, fail),
+      );
+      if (
+        bankRegionIds.length === 0 ||
+        new Set(bankRegionIds.map(String)).size !== bankRegionIds.length
+      ) {
+        fail(
+          `${economyPath}.bankRegionIds`,
+          'names one distinct banking region per scoring team',
+        );
+      }
+      // `all-slot-lives` is prime dissolution's forced consequence
+      // (DECISIONS #194): with no prime slot there is nothing narrower to
+      // scope a purchased tier to.
+      if (
+        String(economy.upgradeScope) !== 'prime-slot-lives-only' &&
+        String(economy.upgradeScope) !== 'all-slot-lives'
+      ) {
+        fail(
+          `${economyPath}.upgradeScope`,
+          'expected one of prime-slot-lives-only, all-slot-lives',
+        );
+      }
+      if (
+        !['invest-action', 'automatic-greedy-declared-order'].includes(
+          String(economy.purchaseMode),
+        )
+      ) {
+        fail(
+          `${economyPath}.purchaseMode`,
+          'expected one of invest-action, automatic-greedy-declared-order',
+        );
+      }
+      const tracks = array(economy.tracks, `${economyPath}.tracks`, fail);
+      const trackIds: string[] = [];
+      tracks.forEach((entry, index) => {
+        const trackPath = `${economyPath}.tracks[${index}]`;
+        const track = exact(
+          object(entry, trackPath, fail),
+          trackPath,
+          ['trackId', 'effect', 'perTierMagnitude', 'maxTier', 'tierCosts'],
+          fail,
+        );
+        nonEmpty(track.trackId, `${trackPath}.trackId`, fail);
+        trackIds.push(String(track.trackId));
+        if (
+          ![
+            'mobile-attack-travel-tiles-delta',
+            'spawn-max-health-delta',
+            'vision-range-delta',
+          ].includes(String(track.effect))
+        ) {
+          fail(`${trackPath}.effect`, 'unknown scrap upgrade effect');
+        }
+        integer(track.perTierMagnitude, `${trackPath}.perTierMagnitude`, fail);
+        integer(track.maxTier, `${trackPath}.maxTier`, fail);
+        const tierCosts = array(track.tierCosts, `${trackPath}.tierCosts`, fail);
+        tierCosts.forEach((cost, costIndex) =>
+          integer(cost, `${trackPath}.tierCosts[${costIndex}]`, fail),
+        );
+        if (
+          (track.maxTier as number) <= 0 ||
+          tierCosts.length !== (track.maxTier as number) ||
+          tierCosts.some((cost) => (cost as number) <= 0)
+        ) {
+          fail(
+            `${trackPath}.tierCosts`,
+            'prices every declared tier, positively',
+          );
+        }
+      });
+      if (tracks.length === 0 || new Set(trackIds).size !== trackIds.length) {
+        fail(
+          `${economyPath}.tracks`,
+          'declares at least one track with unique IDs',
+        );
       }
     }
     if (
@@ -746,6 +1145,93 @@ function validateContract(
         'frontline requires territorial-progress higher-wins',
       );
     }
+  } else {
+    const victory = exact(
+      mode.victory,
+      victoryPath,
+      ['kind', 'timeoutRanking', 'pulsesToDestroyReactor'],
+      fail,
+    );
+    if (victory.kind !== 'arc-relay') {
+      fail(`${victoryPath}.kind`, 'must match the Arc Relay mode');
+    }
+    validateRankings(
+      victory.timeoutRanking,
+      `${victoryPath}.timeoutRanking`,
+      fail,
+    );
+    for (const key of [
+      'pendingRearmTicks',
+      'coreRelocationIntervalTicks',
+      'coresPerPulse',
+      'fieldedSlotsPerTeam',
+      'maxCopiesPerClass',
+      'respawnDelayTicks',
+    ]) {
+      integer(mode[key], `${modePath}.${key}`, fail);
+      if ((mode[key] as number) <= 0) {
+        fail(`${modePath}.${key}`, 'must be positive');
+      }
+    }
+    integer(
+      victory.pulsesToDestroyReactor,
+      `${victoryPath}.pulsesToDestroyReactor`,
+      fail,
+    );
+    if ((victory.pulsesToDestroyReactor as number) <= 0) {
+      fail(`${victoryPath}.pulsesToDestroyReactor`, 'must be positive');
+    }
+    const wells = array(mode.wells, `${modePath}.wells`, fail);
+    wells.forEach((entry, index) => {
+      const wellPath = `${modePath}.wells[${index}]`;
+      const well = exact(
+        entry,
+        wellPath,
+        ['wellId', 'firstBirthTick', 'cadenceTicks', 'finalBirthTick'],
+        fail,
+      );
+      nonEmpty(well.wellId, `${wellPath}.wellId`, fail);
+      for (const key of ['firstBirthTick', 'cadenceTicks', 'finalBirthTick'])
+        integer(well[key], `${wellPath}.${key}`, fail);
+    });
+    const signatures = array(
+      mode.signatures,
+      `${modePath}.signatures`,
+      fail,
+    );
+    signatures.forEach((entry, index) => {
+      const signaturePath = `${modePath}.signatures[${index}]`;
+      const signature = object(entry, signaturePath, fail);
+      for (const key of ['kind', 'signatureId', 'classId', 'actionId'])
+        nonEmpty(signature[key], `${signaturePath}.${key}`, fail);
+      integer(
+        signature.cooldownTicks,
+        `${signaturePath}.cooldownTicks`,
+        fail,
+      );
+      jsonValue(signature, signaturePath, fail);
+    });
+    if (wells.length !== 3 || signatures.length !== 16) {
+      fail(
+        modePath,
+        'Arc Relay H0 declares exactly three Wells and sixteen signatures',
+      );
+    }
+    const expectedChannels = ['pulses', 'reactor-charge'];
+    if (
+      scoreCatalog.length !== expectedChannels.length ||
+      !scoreCatalog.every(
+        (entry, index) =>
+          (entry as Record<string, unknown>).channel ===
+            expectedChannels[index] &&
+          (entry as Record<string, unknown>).domain === 'non-negative',
+      )
+    ) {
+      fail(
+        `${modePath}.scoreCatalog`,
+        'Arc Relay requires pulses then reactor-charge',
+      );
+    }
   }
   for (const key of [
     'forms',
@@ -762,6 +1248,206 @@ function validateContract(
       jsonValue(entry, `${path}.rules.${key}[${index}]`, fail),
     );
   }
+  array(
+    rules.movementProfiles,
+    `${path}.rules.movementProfiles`,
+    fail,
+  ).forEach((entry, index) => {
+    const profilePath = `${path}.rules.movementProfiles[${index}]`;
+    const profileValue = object(entry, profilePath, fail);
+    const hasFacingCoupling = own(profileValue, 'facingCoupling');
+    const profile = exact(
+      profileValue,
+      profilePath,
+      ['id', 'movementLayer', ...(hasFacingCoupling ? ['facingCoupling'] : [])],
+      fail,
+    );
+    semanticId(profile.id, `${profilePath}.id`, fail);
+    nonEmpty(profile.movementLayer, `${profilePath}.movementLayer`, fail);
+    if (hasFacingCoupling) {
+      movementFacingCoupling(
+        profile.facingCoupling,
+        `${profilePath}.facingCoupling`,
+        fail,
+      );
+    }
+  });
+
+  // Two more additive optional contract fields with the facing coupling's
+  // discipline: the engine omits them while they are inert, so an explicitly
+  // inert value is a second, non-canonical encoding of the same contract and
+  // must be rejected rather than normalized away.
+  array(rules.forms, `${path}.rules.forms`, fail).forEach((entry, index) => {
+    const formPath = `${path}.rules.forms[${index}]`;
+    const formValue = object(entry, formPath, fail);
+    if (!own(formValue, 'projectileGuard')) {
+      return;
+    }
+    if (formValue.projectileGuard !== 'facing-quadrant-contacts-deflected') {
+      fail(
+        `${formPath}.projectileGuard`,
+        'must be omitted instead of emitted inert',
+      );
+    }
+  });
+  array(
+    rules.attackProfiles,
+    `${path}.rules.attackProfiles`,
+    fail,
+  ).forEach((entry, index) => {
+    const profilePath = `${path}.rules.attackProfiles[${index}]`;
+    const profileValue = object(entry, profilePath, fail);
+    const hasFacingCone = own(profileValue, 'facingAimHalfWidthSectors');
+    if (hasFacingCone) {
+      integer(
+        profileValue.facingAimHalfWidthSectors,
+        `${profilePath}.facingAimHalfWidthSectors`,
+        fail,
+      );
+      const halfWidth = profileValue.facingAimHalfWidthSectors as number;
+      if (halfWidth < 1 || halfWidth > 3) {
+        fail(
+          `${profilePath}.facingAimHalfWidthSectors`,
+          'must be 1..3 when present',
+        );
+      }
+      if (
+        profileValue.omnidirectionalAim !== false ||
+        profileValue.aimInterpretation !==
+          'absolute-submitted-eight-way-heading-within-facing-cone-facing-unchanged'
+      ) {
+        fail(
+          `${profilePath}.facingAimHalfWidthSectors`,
+          'requires non-omnidirectional facing-cone aim interpretation',
+        );
+      }
+      const program = object(
+        profileValue.shotProgram,
+        `${profilePath}.shotProgram`,
+        fail,
+      );
+      if (program.enabled !== false) {
+        fail(
+          `${profilePath}.facingAimHalfWidthSectors`,
+          'is mutually exclusive with programmed shots',
+        );
+      }
+    } else if (
+      profileValue.aimInterpretation ===
+      'absolute-submitted-eight-way-heading-within-facing-cone-facing-unchanged'
+    ) {
+      fail(
+        `${profilePath}.aimInterpretation`,
+        'requires facingAimHalfWidthSectors',
+      );
+    }
+    if (!own(profileValue, 'volley')) {
+      return;
+    }
+    const volleyPath = `${profilePath}.volley`;
+    const volley = exact(
+      profileValue.volley,
+      volleyPath,
+      ['projectileCount', 'spread', 'identityOrder'],
+      fail,
+    );
+    integer(volley.projectileCount, `${volleyPath}.projectileCount`, fail);
+    const SYMMETRIC_FAN =
+      'symmetric-adjacent-heading-fan-ascending-signed-sector-offset';
+    if (
+      !['shared-resolved-heading', SYMMETRIC_FAN].includes(
+        String(volley.spread),
+      )
+    ) {
+      fail(`${volleyPath}.spread`, 'is not a known volley spread');
+    }
+    if (volley.identityOrder !== 'contiguous-ascending-in-launch-order') {
+      fail(
+        `${volleyPath}.identityOrder`,
+        'expected contiguous-ascending-in-launch-order',
+      );
+    }
+    if ((volley.projectileCount as number) < 2) {
+      fail(
+        `${volleyPath}.projectileCount`,
+        'must be omitted instead of emitted inert',
+      );
+    }
+    if (
+      volley.spread === SYMMETRIC_FAN &&
+      (volley.projectileCount as number) % 2 === 0
+    ) {
+      fail(`${volleyPath}.projectileCount`, 'must be odd for a symmetric fan');
+    }
+    const program = object(profileValue.shotProgram, `${profilePath}.shotProgram`, fail);
+    if (program.enabled === true) {
+      fail(
+        volleyPath,
+        'is mutually exclusive with programmed shots',
+      );
+    }
+  });
+  array(rules.actions, `${path}.rules.actions`, fail).forEach((entry, index) => {
+    const actionPath = `${path}.rules.actions[${index}]`;
+    const actionValue = object(entry, actionPath, fail);
+    if (!own(actionValue, 'movementFacingOverride')) {
+      return;
+    }
+    if (actionValue.kind !== 'movement') {
+      fail(
+        `${actionPath}.movementFacingOverride`,
+        'is permitted only on movement actions',
+      );
+    }
+    const override = String(actionValue.movementFacingOverride);
+    if (
+      ![
+        'preserve-facing',
+        'face-movement-direction',
+        'facing-locked',
+        'face-movement-heading-projected',
+        'combat-strafe',
+      ].includes(override)
+    ) {
+      fail(
+        `${actionPath}.movementFacingOverride`,
+        'expected a known movement/facing coupling',
+      );
+    }
+  });
+  array(
+    rules.sameLifeTransitions,
+    `${path}.rules.sameLifeTransitions`,
+    fail,
+  ).forEach((entry, index) => {
+    const routePath = `${path}.rules.sameLifeTransitions[${index}]`;
+    const routeValue = object(entry, routePath, fail);
+    if (!own(routeValue, 'automaticReturn')) {
+      return;
+    }
+    const triggerPath = `${routePath}.automaticReturn`;
+    const trigger = exact(
+      routeValue.automaticReturn,
+      triggerPath,
+      ['counter', 'threshold'],
+      fail,
+    );
+    if (
+      ![
+        'attacks-issued-since-entering-source-form',
+        'projectiles-deflected-since-entering-source-form',
+      ].includes(String(trigger.counter))
+    ) {
+      fail(`${triggerPath}.counter`, 'is not a known automatic-return counter');
+    }
+    integer(trigger.threshold, `${triggerPath}.threshold`, fail);
+    if ((trigger.threshold as number) < 1) {
+      fail(
+        `${triggerPath}.threshold`,
+        'must be omitted instead of emitted inert',
+      );
+    }
+  });
 
   const map = exact(
     contract.map,
@@ -845,7 +1531,8 @@ function validateContract(
     nonEmpty(tag.tagId, `${tagPath}.tagId`, fail);
     if (
       tag.kind !== 'transition-placement-forbidden' &&
-      tag.kind !== 'spawn-protected'
+      tag.kind !== 'spawn-protected' &&
+      tag.kind !== 'signature-placement-forbidden'
     ) {
       fail(`${tagPath}.kind`, 'unknown map tile-tag kind');
     }
@@ -923,6 +1610,46 @@ function validateContract(
         }
       },
     );
+  } else if (binding.kind === 'arc-relay') {
+    const arc = exact(
+      binding,
+      bindingPath,
+      [
+        'kind',
+        'orderedWellRegionIds',
+        'reactorRegionRoleId',
+        'homePadRegionRoleId',
+      ],
+      fail,
+    );
+    const wellIds = array(
+      arc.orderedWellRegionIds,
+      `${bindingPath}.orderedWellRegionIds`,
+      fail,
+    );
+    wellIds.forEach((regionId, index) =>
+      nonEmpty(
+        regionId,
+        `${bindingPath}.orderedWellRegionIds[${index}]`,
+        fail,
+      ),
+    );
+    nonEmpty(
+      arc.reactorRegionRoleId,
+      `${bindingPath}.reactorRegionRoleId`,
+      fail,
+    );
+    nonEmpty(
+      arc.homePadRegionRoleId,
+      `${bindingPath}.homePadRegionRoleId`,
+      fail,
+    );
+    if (wellIds.length !== 3 || new Set(wellIds.map(String)).size !== 3) {
+      fail(
+        `${bindingPath}.orderedWellRegionIds`,
+        'Arc Relay requires three distinct Well regions',
+      );
+    }
   } else {
     fail(`${bindingPath}.kind`, `unknown mode-map binding ${String(binding.kind)}`);
   }
@@ -959,15 +1686,33 @@ function validateTopology(
     integer(counts[key], `${path}.counts.${key}`, fail);
   }
   array(topology.teams, `${path}.teams`, fail).forEach((entry, index) => {
-    const team = exact(entry, `${path}.teams[${index}]`, ['teamId'], fail);
+    const teamValue = object(entry, `${path}.teams[${index}]`, fail);
+    const hasClassId = own(teamValue, 'classId');
+    const team = exact(
+      teamValue,
+      `${path}.teams[${index}]`,
+      hasClassId ? ['teamId', 'classId'] : ['teamId'],
+      fail,
+    );
     integer(team.teamId, `${path}.teams[${index}].teamId`, fail);
+    if (hasClassId) {
+      semanticId(team.classId, `${path}.teams[${index}].classId`, fail);
+    }
   });
   array(topology.participants, `${path}.participants`, fail).forEach(
     (entry, index) => {
-      const participant = exact(
+      const participantValue = object(
         entry,
         `${path}.participants[${index}]`,
-        ['participantId', 'teamId'],
+        fail,
+      );
+      const hasClassId = own(participantValue, 'classId');
+      const participant = exact(
+        participantValue,
+        `${path}.participants[${index}]`,
+        hasClassId
+          ? ['participantId', 'teamId', 'classId']
+          : ['participantId', 'teamId'],
         fail,
       );
       integer(
@@ -976,18 +1721,36 @@ function validateTopology(
         fail,
       );
       integer(participant.teamId, `${path}.participants[${index}].teamId`, fail);
+      if (hasClassId) {
+        semanticId(
+          participant.classId,
+          `${path}.participants[${index}].classId`,
+          fail,
+        );
+      }
     },
   );
   array(topology.unitSlots, `${path}.unitSlots`, fail).forEach(
     (entry, index) => {
+      const slotValue = object(entry, `${path}.unitSlots[${index}]`, fail);
+      // The per-slot chassis (§9.2). Additive under the #156 canonical
+      // discipline: written only when a ruleset declares compositions, and an
+      // explicit null is refused as a second encoding of absence — which is
+      // what keeps every existing contract's topology fingerprint exact.
+      const hasClassId = own(slotValue, 'classId');
       const slot = exact(
-        entry,
+        slotValue,
         `${path}.unitSlots[${index}]`,
-        ['teamId', 'unitId', 'controllerParticipantId'],
+        hasClassId
+          ? ['teamId', 'unitId', 'controllerParticipantId', 'classId']
+          : ['teamId', 'unitId', 'controllerParticipantId'],
         fail,
       );
       for (const key of ['teamId', 'unitId', 'controllerParticipantId']) {
         integer(slot[key], `${path}.unitSlots[${index}].${key}`, fail);
+      }
+      if (hasClassId) {
+        semanticId(slot.classId, `${path}.unitSlots[${index}].classId`, fail);
       }
     },
   );
@@ -1111,16 +1874,24 @@ function participantStatus(
   path: string,
   fail: ReplayV3Fail,
 ): void {
+  const status = object(value, path, fail);
   const item = exact(
-    value,
+    status,
     path,
-    ['participantId', 'teamId', 'runtimeFaultCount', 'disqualified'],
+    [
+      'participantId',
+      'teamId',
+      'runtimeFaultCount',
+      'disqualified',
+      'classId',
+    ],
     fail,
   );
   integer(item.participantId, `${path}.participantId`, fail);
   integer(item.teamId, `${path}.teamId`, fail);
   int64(item.runtimeFaultCount, `${path}.runtimeFaultCount`, fail, true);
   boolean(item.disqualified, `${path}.disqualified`, fail);
+  nullable(item.classId, `${path}.classId`, semanticId, fail);
 }
 
 function pendingTransition(
@@ -1150,6 +1921,11 @@ function rawArgument(value: unknown, path: string, fail: ReplayV3Fail): void {
     nullable(item.formId, `${path}.formId`, string, fail);
     return;
   }
+  if (base.kind === 'upgrade-track') {
+    const item = exact(base, path, ['kind', 'trackId'], fail);
+    nullable(item.trackId, `${path}.trackId`, string, fail);
+    return;
+  }
   const item = exact(base, path, ['kind', 'value'], fail);
   switch (item.kind) {
     case 'shot-program':
@@ -1165,6 +1941,9 @@ function rawArgument(value: unknown, path: string, fail: ReplayV3Fail): void {
       integer(target.unitId, `${path}.value.unitId`, fail);
       return;
     }
+    case 'position-target':
+      position(item.value, `${path}.value`, fail);
+      return;
     default:
       fail(`${path}.kind`, `unknown raw action argument ${String(item.kind)}`);
   }
@@ -1180,6 +1959,11 @@ function actionArgument(
   if (base.kind === 'form-target') {
     const item = exact(base, path, ['kind', 'formId'], fail);
     nonEmpty(item.formId, `${path}.formId`, fail);
+    return;
+  }
+  if (base.kind === 'upgrade-track') {
+    const item = exact(base, path, ['kind', 'trackId'], fail);
+    nonEmpty(item.trackId, `${path}.trackId`, fail);
     return;
   }
   const item = exact(base, path, ['kind', 'value'], fail);
@@ -1199,6 +1983,9 @@ function actionArgument(
       integer(target.unitId, `${path}.value.unitId`, fail);
       return;
     }
+    case 'position-target':
+      position(item.value, `${path}.value`, fail);
+      return;
     default:
       fail(`${path}.kind`, `unknown action argument ${String(item.kind)}`);
   }
@@ -1507,6 +2294,21 @@ function modeState(value: unknown, path: string, fail: ReplayV3Fail): void {
         'captureProgress',
         'decayTicksElapsed',
         'controlResumesAtTick',
+        // Trailing additive pair (DECISIONS #169). Nullable and always
+        // present, the discipline claimingTeamId already follows: null is a
+        // fact about this tick, not an omitted field.
+        'holdOwnerTeamId',
+        'holdEndsAtTick',
+        // The side objective's two facts, on the same discipline: null
+        // owner means neutral (or no side objective declared at all), and a
+        // signed claim whose sign names the claiming team.
+        'secondaryOwnerTeamId',
+        'secondaryClaimProgress',
+        // The economy's two collections are TRAILING and optional: they
+        // appear only on a ruleset that declares an economy, so a document
+        // written before the capability existed reads identically.
+        ...(own(base, 'scrapTeams') ? ['scrapTeams'] : []),
+        ...(own(base, 'scrapPiles') ? ['scrapPiles'] : []),
       ],
       fail,
     );
@@ -1520,6 +2322,351 @@ function modeState(value: unknown, path: string, fail: ReplayV3Fail): void {
       integer(item[key], `${path}.${key}`, fail);
     }
     nullable(item.claimingTeamId, `${path}.claimingTeamId`, integer, fail);
+    nullable(item.holdOwnerTeamId, `${path}.holdOwnerTeamId`, integer, fail);
+    nullable(item.holdEndsAtTick, `${path}.holdEndsAtTick`, integer, fail);
+    if ((item.holdOwnerTeamId === null) !== (item.holdEndsAtTick === null)) {
+      fail(
+        `${path}.holdOwnerTeamId`,
+        'territory-ratchet hold owner and expiry must be published together',
+      );
+    }
+    nullable(
+      item.secondaryOwnerTeamId,
+      `${path}.secondaryOwnerTeamId`,
+      integer,
+      fail,
+    );
+    integer(item.secondaryClaimProgress, `${path}.secondaryClaimProgress`, fail);
+    if (own(item, 'scrapTeams')) {
+      const teams = array(item.scrapTeams, `${path}.scrapTeams`, fail);
+      if (teams.length === 0) {
+        fail(`${path}.scrapTeams`, 'must be omitted when empty');
+      }
+      teams.forEach((entry, index) => {
+        const teamPath = `${path}.scrapTeams[${index}]`;
+        const team = exact(
+          object(entry, teamPath, fail),
+          teamPath,
+          ['teamId', 'bank', 'tierLevels'],
+          fail,
+        );
+        integer(team.teamId, `${teamPath}.teamId`, fail);
+        integer(team.bank, `${teamPath}.bank`, fail);
+        const tiers = array(team.tierLevels, `${teamPath}.tierLevels`, fail);
+        tiers.forEach((tier, tierIndex) =>
+          integer(tier, `${teamPath}.tierLevels[${tierIndex}]`, fail),
+        );
+        if ((team.bank as number) < 0 || tiers.some((tier) => (tier as number) < 0)) {
+          fail(`${teamPath}.bank`, 'a bank and its tiers are never negative');
+        }
+      });
+    }
+    if (own(item, 'scrapPiles')) {
+      const piles = array(item.scrapPiles, `${path}.scrapPiles`, fail);
+      if (piles.length === 0) {
+        fail(`${path}.scrapPiles`, 'must be omitted when empty');
+      }
+      let previousKey: string | null = null;
+      piles.forEach((entry, index) => {
+        const pilePath = `${path}.scrapPiles[${index}]`;
+        const pile = exact(
+          object(entry, pilePath, fail),
+          pilePath,
+          ['position', 'amount', 'expiresAtTick'],
+          fail,
+        );
+        position(pile.position, `${pilePath}.position`, fail);
+        integer(pile.amount, `${pilePath}.amount`, fail);
+        integer(pile.expiresAtTick, `${pilePath}.expiresAtTick`, fail);
+        if ((pile.amount as number) <= 0) {
+          fail(`${pilePath}.amount`, 'a published pile carries something');
+        }
+        const point = pile.position as { x: number; y: number };
+        const key = `${String(point?.y).padStart(6, '0')}:${String(point?.x).padStart(6, '0')}`;
+        if (previousKey !== null && previousKey >= key) {
+          fail(
+            `${pilePath}.position`,
+            'scrap piles must be strictly ordered by (y, x)',
+          );
+        }
+        previousKey = key;
+      });
+    }
+    return;
+  }
+  if (base.kind === 'arc-relay') {
+    const item = exact(
+      base,
+      path,
+      [
+        'kind',
+        'modeId',
+        'wells',
+        'reactors',
+        'visibleCores',
+        'visibleSignatures',
+        'latestPulseTeamId',
+        'latestPulseTick',
+        // Declared strikes exist only on strike-windup rulesets
+        // (DECISIONS #212); absence is the historical document shape.
+        ...(own(base, 'pendingStrikes') ? ['pendingStrikes'] : []),
+      ],
+      fail,
+    );
+    if (own(item, 'pendingStrikes')) {
+      array(item.pendingStrikes, `${path}.pendingStrikes`, fail).forEach(
+        (entry, index) => {
+          const raw =
+            typeof entry === 'object' && entry !== null
+              ? (entry as Record<string, unknown>)
+              : {};
+          const strike = exact(
+            entry,
+            `${path}.pendingStrikes[${index}]`,
+            [
+              'shooter',
+              'resolveAtTick',
+              'tiles',
+              // Tracking-ray fields; absent on documents written before
+              // they existed.
+              ...(own(raw, 'origin') ? ['origin'] : []),
+              ...(own(raw, 'centralHeading') ? ['centralHeading'] : []),
+              ...(own(raw, 'target') ? ['target'] : []),
+            ],
+            fail,
+          );
+          if (own(strike, 'origin')) {
+            position(
+              strike.origin,
+              `${path}.pendingStrikes[${index}].origin`,
+              fail,
+            );
+          }
+          if (own(strike, 'centralHeading')) {
+            heading(
+              strike.centralHeading,
+              `${path}.pendingStrikes[${index}].centralHeading`,
+              fail,
+            );
+          }
+          if (own(strike, 'target')) {
+            actorId(
+              strike.target,
+              `${path}.pendingStrikes[${index}].target`,
+              fail,
+            );
+          }
+          actorId(strike.shooter, `${path}.pendingStrikes[${index}].shooter`, fail);
+          integer(
+            strike.resolveAtTick,
+            `${path}.pendingStrikes[${index}].resolveAtTick`,
+            fail,
+          );
+          array(
+            strike.tiles,
+            `${path}.pendingStrikes[${index}].tiles`,
+            fail,
+          ).forEach((tile, tileIndex) =>
+            position(
+              tile,
+              `${path}.pendingStrikes[${index}].tiles[${tileIndex}]`,
+              fail,
+            ),
+          );
+        },
+      );
+    }
+    nonEmpty(item.modeId, `${path}.modeId`, fail);
+    const coreId = (value: unknown, corePath: string) => {
+      const core = exact(
+        value,
+        corePath,
+        ['sourceWellId', 'sourceOrdinal'],
+        fail,
+      );
+      nonEmpty(core.sourceWellId, `${corePath}.sourceWellId`, fail);
+      integer(core.sourceOrdinal, `${corePath}.sourceOrdinal`, fail);
+    };
+    array(item.wells, `${path}.wells`, fail).forEach((entry, index) => {
+      const wellPath = `${path}.wells[${index}]`;
+      const well = exact(
+        entry,
+        wellPath,
+        [
+          'wellId',
+          'position',
+          'nextScheduledBirthTick',
+          'outstandingCoreId',
+          'pendingCharge',
+          'rearmCompletesAtTick',
+        ],
+        fail,
+      );
+      nonEmpty(well.wellId, `${wellPath}.wellId`, fail);
+      position(well.position, `${wellPath}.position`, fail);
+      nullable(
+        well.nextScheduledBirthTick,
+        `${wellPath}.nextScheduledBirthTick`,
+        integer,
+        fail,
+      );
+      if (well.outstandingCoreId !== null)
+        coreId(well.outstandingCoreId, `${wellPath}.outstandingCoreId`);
+      boolean(well.pendingCharge, `${wellPath}.pendingCharge`, fail);
+      nullable(
+        well.rearmCompletesAtTick,
+        `${wellPath}.rearmCompletesAtTick`,
+        integer,
+        fail,
+      );
+    });
+    array(item.reactors, `${path}.reactors`, fail).forEach((entry, index) => {
+      const reactorPath = `${path}.reactors[${index}]`;
+      const hasSockets =
+        typeof entry === 'object'
+        && entry !== null
+        && own(entry, 'filledSocketWellIds');
+      const reactor = exact(
+        entry,
+        reactorPath,
+        [
+          'teamId',
+          'position',
+          'chargePips',
+          'integritySegments',
+          // Threefold sockets, written only under threefold rulesets.
+          ...(hasSockets ? ['filledSocketWellIds'] : []),
+        ],
+        fail,
+      );
+      integer(reactor.teamId, `${reactorPath}.teamId`, fail);
+      position(reactor.position, `${reactorPath}.position`, fail);
+      integer(reactor.chargePips, `${reactorPath}.chargePips`, fail);
+      integer(
+        reactor.integritySegments,
+        `${reactorPath}.integritySegments`,
+        fail,
+      );
+      if (hasSockets) {
+        array(
+          reactor.filledSocketWellIds,
+          `${reactorPath}.filledSocketWellIds`,
+          fail,
+        ).forEach((wellId, wellIndex) =>
+          nonEmpty(
+            wellId,
+            `${reactorPath}.filledSocketWellIds[${wellIndex}]`,
+            fail,
+          ),
+        );
+      }
+    });
+    array(item.visibleCores, `${path}.visibleCores`, fail).forEach(
+      (entry, index) => {
+        const corePath = `${path}.visibleCores[${index}]`;
+        const hasChargeValue =
+          typeof entry === 'object'
+          && entry !== null
+          && own(entry, 'chargeValue');
+        const core = exact(
+          entry,
+          corePath,
+          [
+            'coreId',
+            'position',
+            'disposition',
+            'carrierActorId',
+            'nextRelocationTick',
+            'flightTarget',
+            'flightCompletesAtTick',
+            // Charge-value rulesets only.
+            ...(hasChargeValue ? ['chargeValue'] : []),
+          ],
+          fail,
+        );
+        coreId(core.coreId, `${corePath}.coreId`);
+        position(core.position, `${corePath}.position`, fail);
+        if (!['loose', 'carried', 'in-flight'].includes(String(core.disposition)))
+          fail(`${corePath}.disposition`, 'unknown Core disposition');
+        if (core.carrierActorId !== null)
+          actorId(core.carrierActorId, `${corePath}.carrierActorId`, fail);
+        integer(core.nextRelocationTick, `${corePath}.nextRelocationTick`, fail);
+        if (core.flightTarget !== null)
+          position(core.flightTarget, `${corePath}.flightTarget`, fail);
+        nullable(
+          core.flightCompletesAtTick,
+          `${corePath}.flightCompletesAtTick`,
+          integer,
+          fail,
+        );
+        if (hasChargeValue)
+          integer(core.chargeValue, `${corePath}.chargeValue`, fail);
+      },
+    );
+    array(
+      item.visibleSignatures,
+      `${path}.visibleSignatures`,
+      fail,
+    ).forEach((entry, index) => {
+      const signaturePath = `${path}.visibleSignatures[${index}]`;
+      const signature = exact(
+        entry,
+        signaturePath,
+        [
+          'operationId',
+          'signatureId',
+          'signatureKind',
+          'ownerActorId',
+          'ownerTeamId',
+          'phase',
+          'startedTick',
+          'completesAtTick',
+          'endsAtTick',
+          'positions',
+          'targetActorId',
+          'remainingCapacity',
+          'suppressed',
+        ],
+        fail,
+      );
+      for (const key of ['operationId', 'signatureId', 'signatureKind'])
+        nonEmpty(signature[key], `${signaturePath}.${key}`, fail);
+      actorId(signature.ownerActorId, `${signaturePath}.ownerActorId`, fail);
+      integer(signature.ownerTeamId, `${signaturePath}.ownerTeamId`, fail);
+      if (!['tell', 'active', 'channel', 'in-flight'].includes(String(signature.phase)))
+        fail(`${signaturePath}.phase`, 'unknown signature phase');
+      integer(signature.startedTick, `${signaturePath}.startedTick`, fail);
+      nullable(
+        signature.completesAtTick,
+        `${signaturePath}.completesAtTick`,
+        integer,
+        fail,
+      );
+      nullable(
+        signature.endsAtTick,
+        `${signaturePath}.endsAtTick`,
+        integer,
+        fail,
+      );
+      array(signature.positions, `${signaturePath}.positions`, fail).forEach(
+        (point, pointIndex) =>
+          position(point, `${signaturePath}.positions[${pointIndex}]`, fail),
+      );
+      if (signature.targetActorId !== null)
+        actorId(
+          signature.targetActorId,
+          `${signaturePath}.targetActorId`,
+          fail,
+        );
+      integer(
+        signature.remainingCapacity,
+        `${signaturePath}.remainingCapacity`,
+        fail,
+      );
+      boolean(signature.suppressed, `${signaturePath}.suppressed`, fail);
+    });
+    nullable(item.latestPulseTeamId, `${path}.latestPulseTeamId`, integer, fail);
+    nullable(item.latestPulseTick, `${path}.latestPulseTick`, integer, fail);
     return;
   }
   fail(`${path}.kind`, `unknown replay-v3 mode ${String(base.kind)}`);
@@ -1571,8 +2718,13 @@ function worldState(value: unknown, path: string, fail: ReplayV3Fail): void {
 }
 
 function lifeStart(value: unknown, path: string, fail: ReplayV3Fail): void {
+  const container = object(value, path, fail);
+  // Trailing additive key, the routeCooldowns discipline: present in every
+  // document written since the team stream landed, absent in one written
+  // before it, and never optional within a single document's own bytes.
+  const hasTeamRandomSeed = own(container, 'teamRandomSeed');
   const start = exact(
-    value,
+    container,
     path,
     [
       'schemaVersion',
@@ -1582,6 +2734,7 @@ function lifeStart(value: unknown, path: string, fail: ReplayV3Fail): void {
       'actorRandomSeed',
       'origin',
       'matchContractFingerprint',
+      ...(hasTeamRandomSeed ? ['teamRandomSeed'] : []),
     ],
     fail,
   );
@@ -1622,11 +2775,66 @@ function lifeStart(value: unknown, path: string, fail: ReplayV3Fail): void {
     `${path}.matchContractFingerprint`,
     fail,
   );
+  if (hasTeamRandomSeed) {
+    // Bounds only, exactly as actorRandomSeed is treated here: the seed
+    // ALGORITHM lives in the engine, so the C# validator is the layer that
+    // re-derives this value from the header seed and refuses a forged or
+    // team-swapped one. The viewer refuses only what it can decide alone.
+    uint64(start.teamRandomSeed, `${path}.teamRandomSeed`, fail);
+  }
+}
+
+/**
+ * Canonical form for observed route cooldowns: the key exists only while at
+ * least one clock is live, entries are ordered by transition ID, and a
+ * published clock must still bind (a lapsed one is an impossible history).
+ */
+function validateRouteCooldowns(
+  value: unknown,
+  path: string,
+  fail: ReplayV3Fail,
+): void {
+  const entries = array(value, path, fail);
+  if (entries.length === 0) {
+    fail(path, 'must be omitted when empty');
+  }
+  let previousTransitionId: string | null = null;
+  entries.forEach((entry, index) => {
+    const cooldownPath = `${path}[${index}]`;
+    const cooldown = exact(
+      entry,
+      cooldownPath,
+      ['transitionId', 'readyAtTick'],
+      fail,
+    );
+    nonEmpty(cooldown.transitionId, `${cooldownPath}.transitionId`, fail);
+    integer(cooldown.readyAtTick, `${cooldownPath}.readyAtTick`, fail);
+    if (
+      typeof cooldown.transitionId === 'string' &&
+      previousTransitionId !== null &&
+      previousTransitionId >= cooldown.transitionId
+    ) {
+      fail(
+        `${cooldownPath}.transitionId`,
+        'route cooldowns must be strictly ordered by transition id',
+      );
+    }
+    if (typeof cooldown.transitionId === 'string') {
+      previousTransitionId = cooldown.transitionId;
+    }
+  });
 }
 
 function observedSelf(value: unknown, path: string, fail: ReplayV3Fail): void {
+  const self = object(value, path, fail);
+  const hasRouteCooldowns = own(self, 'routeCooldowns');
+  // Trailing additive key on the same discipline: the load is written only
+  // while the body is actually carrying, so a document from a contract with
+  // no declared economy never carries the key.
+  const hasCarriedScrap = own(self, 'carriedScrap');
+  const hasRoleTag = own(self, 'roleTag');
   const item = exact(
-    value,
+    self,
     path,
     [
       'actorId',
@@ -1639,9 +2847,14 @@ function observedSelf(value: unknown, path: string, fail: ReplayV3Fail): void {
       'energy',
       'previousActionResolution',
       'pendingSameLifeTransition',
+      'classId',
+      ...(hasRouteCooldowns ? ['routeCooldowns'] : []),
+      ...(hasCarriedScrap ? ['carriedScrap'] : []),
+      ...(hasRoleTag ? ['roleTag'] : []),
     ],
     fail,
   );
+  if (hasRoleTag) roleTag(item.roleTag, `${path}.roleTag`, fail);
   actorId(item.actorId, `${path}.actorId`, fail);
   integer(item.generation, `${path}.generation`, fail);
   nonEmpty(item.formId, `${path}.formId`, fail);
@@ -1661,6 +2874,16 @@ function observedSelf(value: unknown, path: string, fail: ReplayV3Fail): void {
     `${path}.pendingSameLifeTransition`,
     fail,
   );
+  nullable(item.classId, `${path}.classId`, semanticId, fail);
+  if (hasRouteCooldowns) {
+    validateRouteCooldowns(item.routeCooldowns, `${path}.routeCooldowns`, fail);
+  }
+  if (hasCarriedScrap) {
+    integer(item.carriedScrap, `${path}.carriedScrap`, fail);
+    if ((item.carriedScrap as number) <= 0) {
+      fail(`${path}.carriedScrap`, 'must be omitted when nothing is carried');
+    }
+  }
 }
 
 function eventPayload(value: unknown, path: string, fail: ReplayV3Fail): void {
@@ -1699,6 +2922,40 @@ function eventPayload(value: unknown, path: string, fail: ReplayV3Fail): void {
       int64(item.projectileId, `${path}.projectileId`, fail, true);
       position(item.origin, `${path}.origin`, fail);
       heading(item.heading, `${path}.heading`, fail);
+      return;
+    }
+    case 'projectile-deflected': {
+      const item = exact(
+        base,
+        path,
+        [
+          'kind',
+          'sourceTeamId',
+          'sourceActorId',
+          'targetActorId',
+          'projectileId',
+          'deflectedProjectileId',
+          'targetFormId',
+          'targetFacing',
+          'heading',
+          'position',
+        ],
+        fail,
+      );
+      integer(item.sourceTeamId, `${path}.sourceTeamId`, fail);
+      nullable(item.sourceActorId, `${path}.sourceActorId`, actorId, fail);
+      actorId(item.targetActorId, `${path}.targetActorId`, fail);
+      int64(item.projectileId, `${path}.projectileId`, fail, true);
+      int64(
+        item.deflectedProjectileId,
+        `${path}.deflectedProjectileId`,
+        fail,
+        true,
+      );
+      nonEmpty(item.targetFormId, `${path}.targetFormId`, fail);
+      direction(item.targetFacing, `${path}.targetFacing`, fail);
+      heading(item.heading, `${path}.heading`, fail);
+      position(item.position, `${path}.position`, fail);
       return;
     }
     case 'damage': {
@@ -1814,6 +3071,17 @@ function eventPayload(value: unknown, path: string, fail: ReplayV3Fail): void {
       runtimeFault(item.fault, `${path}.fault`, fail);
       return;
     }
+    case 'mind-runtime-fault': {
+      // The participant-scoped fault with no body to attribute it to. It
+      // exists ONLY for that case, so a payload carrying an actor identity is
+      // the per-body event wearing the wrong kind.
+      const item = exact(base, path, ['kind', 'fault'], fail);
+      mindRuntimeFault(item.fault, `${path}.fault`, fail);
+      if ((item.fault as { actorId: unknown }).actorId !== null) {
+        fail(`${path}.fault.actorId`, 'must be null on a mind-scoped fault');
+      }
+      return;
+    }
     case 'participant': {
       const item = exact(base, path, ['kind', 'participantId', 'teamId'], fail);
       integer(item.participantId, `${path}.participantId`, fail);
@@ -1846,6 +3114,10 @@ function eventPayload(value: unknown, path: string, fail: ReplayV3Fail): void {
       return;
     }
     case 'form-transition': {
+      // The cause is additive and omitted while inert: absent means the
+      // author requested it, so an explicit 'requested' is refused as a
+      // second encoding of the same history.
+      const hasReason = own(base, 'reason');
       const item = exact(
         base,
         path,
@@ -1858,6 +3130,7 @@ function eventPayload(value: unknown, path: string, fail: ReplayV3Fail): void {
           'toFormId',
           'startedTick',
           'dueTick',
+          ...(hasReason ? ['reason'] : []),
         ],
         fail,
       );
@@ -1872,6 +3145,9 @@ function eventPayload(value: unknown, path: string, fail: ReplayV3Fail): void {
       }
       integer(item.startedTick, `${path}.startedTick`, fail);
       integer(item.dueTick, `${path}.dueTick`, fail);
+      if (hasReason && item.reason !== 'automatic-threshold-return') {
+        fail(`${path}.reason`, 'must be omitted instead of emitted inert');
+      }
       return;
     }
     case 'score-changed': {
@@ -1910,6 +3186,13 @@ function eventPayload(value: unknown, path: string, fail: ReplayV3Fail): void {
       nonEmpty(item.cancellationReason, `${path}.cancellationReason`, fail);
       return;
     }
+    case 'arc-relay': {
+      const item = exact(base, path, ['kind', 'fact'], fail);
+      const fact = object(item.fact, `${path}.fact`, fail);
+      nonEmpty(fact.kind, `${path}.fact.kind`, fail);
+      jsonValue(fact, `${path}.fact`, fail);
+      return;
+    }
     default:
       fail(`${path}.kind`, `unknown event payload ${String(base.kind)}`);
   }
@@ -1927,14 +3210,17 @@ function validateEventKindAndPayload(
       case 'movement':
       case 'movement-blocked':
       case 'attack':
+      case 'projectile-deflected':
       case 'damage':
       case 'destruction':
       case 'life-spawned':
       case 'life-retired':
       case 'runtime-fault':
+      case 'mind-runtime-fault':
       case 'score-changed':
       case 'mode-changed':
       case 'lifecycle-clock-cancelled':
+      case 'arc-relay':
         return kind;
       case 'participant-disqualified':
         return 'participant';
@@ -1996,6 +3282,14 @@ function actionConstraint(
     );
     return;
   }
+  if (base.kind === 'upgrade-track') {
+    const item = exact(base, path, ['kind', 'allowedTrackIds'], fail);
+    array(item.allowedTrackIds, `${path}.allowedTrackIds`, fail).forEach(
+      (entry, index) =>
+        nonEmpty(entry, `${path}.allowedTrackIds[${index}]`, fail),
+    );
+    return;
+  }
   const item = exact(base, path, ['kind', 'allowedValues'], fail);
   const values = array(item.allowedValues, `${path}.allowedValues`, fail);
   if (base.kind === 'direction') {
@@ -2023,40 +3317,26 @@ function actionConstraint(
     });
     return;
   }
+  if (base.kind === 'position-target') {
+    values.forEach((entry, index) =>
+      position(entry, `${path}.allowedValues[${index}]`, fail),
+    );
+    return;
+  }
   fail(`${path}.kind`, `unknown action constraint ${String(base.kind)}`);
 }
 
-function observation(value: unknown, path: string, fail: ReplayV3Fail): void {
-  const item = exact(
-    value,
-    path,
-    [
-      'schemaVersion',
-      'tick',
-      'matchContractFingerprint',
-      'self',
-      'teamUnits',
-      'participants',
-      'allies',
-      'enemies',
-      'visibleTiles',
-      'visibleProjectiles',
-      'visibleEvents',
-      'heardSounds',
-      'scoreboard',
-      'mode',
-      'actionLegalities',
-    ],
-    fail,
-  );
-  integer(item.schemaVersion, `${path}.schemaVersion`, fail);
-  integer(item.tick, `${path}.tick`, fail);
-  nonEmpty(
-    item.matchContractFingerprint,
-    `${path}.matchContractFingerprint`,
-    fail,
-  );
-  observedSelf(item.self, `${path}.self`, fail);
+/**
+ * The TEAM-SHARED half of an observation: the collections a per-life document
+ * repeats once per body and a mind document carries exactly once. Extracted so
+ * both turn kinds are validated by the same code — which is the point of the
+ * memo's "every nested record type is the existing SDK type, unchanged".
+ */
+function sharedObservationCollections(
+  item: Record<string, unknown>,
+  path: string,
+  fail: ReplayV3Fail,
+): void {
   array(item.teamUnits, `${path}.teamUnits`, fail).forEach((entry, index) => {
     const unit = exact(
       entry,
@@ -2076,8 +3356,18 @@ function observation(value: unknown, path: string, fail: ReplayV3Fail): void {
     observedSelf(entry, `${path}.allies[${index}]`, fail),
   );
   array(item.enemies, `${path}.enemies`, fail).forEach((entry, index) => {
-    const enemy = exact(
+    const enemyValue = object(
       entry,
+      `${path}.enemies[${index}]`,
+      fail,
+    );
+    const hasEnemyCarriedScrap = own(enemyValue, 'carriedScrap');
+    // Trailing additive key on the same discipline (§12): a published label
+    // exists only when a mind set one, so every per-life document is
+    // byte-identical to what it was.
+    const hasEnemyRoleTag = own(enemyValue, 'roleTag');
+    const enemy = exact(
+      enemyValue,
       `${path}.enemies[${index}]`,
       [
         'actorId',
@@ -2087,6 +3377,9 @@ function observation(value: unknown, path: string, fail: ReplayV3Fail): void {
         'health',
         'pendingSameLifeTransition',
         'observedBy',
+        'classId',
+        ...(hasEnemyCarriedScrap ? ['carriedScrap'] : []),
+        ...(hasEnemyRoleTag ? ['roleTag'] : []),
       ],
       fail,
     );
@@ -2108,13 +3401,43 @@ function observation(value: unknown, path: string, fail: ReplayV3Fail): void {
           fail,
         ),
     );
+    nullable(
+      enemy.classId,
+      `${path}.enemies[${index}].classId`,
+      semanticId,
+      fail,
+    );
+    if (hasEnemyCarriedScrap) {
+      integer(
+        enemy.carriedScrap,
+        `${path}.enemies[${index}].carriedScrap`,
+        fail,
+      );
+      if ((enemy.carriedScrap as number) <= 0) {
+        fail(
+          `${path}.enemies[${index}].carriedScrap`,
+          'must be omitted when nothing is carried',
+        );
+      }
+    }
+    if (hasEnemyRoleTag) {
+      roleTag(enemy.roleTag, `${path}.enemies[${index}].roleTag`, fail);
+    }
   });
   array(item.visibleTiles, `${path}.visibleTiles`, fail).forEach(
     (entry, index) => {
-      const tile = exact(
+      const tileValue = object(
         entry,
         `${path}.visibleTiles[${index}]`,
-        ['position', 'isWall', 'observedBy'],
+        fail,
+      );
+      const tile = exact(
+        tileValue,
+        `${path}.visibleTiles[${index}]`,
+        // spawnReservation is nullable and always present, the discipline
+        // every other nullable observation fact follows: null is a fact
+        // about this tile, not an omitted field.
+        ['position', 'isWall', 'observedBy', 'spawnReservation'],
         fail,
       );
       position(tile.position, `${path}.visibleTiles[${index}].position`, fail);
@@ -2130,6 +3453,45 @@ function observation(value: unknown, path: string, fail: ReplayV3Fail): void {
           fail,
         ),
       );
+      if (tile.spawnReservation !== null) {
+        const reservationPath =
+          `${path}.visibleTiles[${index}].spawnReservation`;
+        const reservation = exact(
+          tile.spawnReservation,
+          reservationPath,
+          ['teamId', 'unitId', 'kind', 'dueTick'],
+          fail,
+        );
+        string(reservation.kind, `${reservationPath}.kind`, fail);
+        const automatic = reservation.kind === 'automatic-return';
+        if (
+          !automatic &&
+          reservation.kind !== 'fabrication' &&
+          reservation.kind !== 'replication'
+        ) {
+          fail(
+            `${reservationPath}.kind`,
+            `unknown spawn reservation ${String(reservation.kind)}`,
+          );
+        }
+        // A permanent slot claim has no clock; a lifecycle output has one.
+        if (automatic !== (reservation.dueTick === null)) {
+          fail(
+            reservationPath,
+            automatic
+              ? 'automatic-return must have a null dueTick'
+              : 'dynamic spawn reservations require dueTick',
+          );
+        }
+        nullable(
+          reservation.dueTick,
+          `${reservationPath}.dueTick`,
+          integer,
+          fail,
+        );
+        integer(reservation.teamId, `${reservationPath}.teamId`, fail);
+        integer(reservation.unitId, `${reservationPath}.unitId`, fail);
+      }
     },
   );
   if (item.visibleProjectiles !== null) {
@@ -2148,6 +3510,11 @@ function observation(value: unknown, path: string, fail: ReplayV3Fail): void {
             'ticksUntilAdvance',
             'remainingTiles',
             'observedBy',
+            // Trailing additive pair (DECISIONS #169): the timing cadence and
+            // the cost of one contact, published per projectile because a
+            // volley bolt and a mobile bolt need not agree on either.
+            'ticksPerAdvance',
+            'damagePerHit',
           ],
           fail,
         );
@@ -2182,11 +3549,27 @@ function observation(value: unknown, path: string, fail: ReplayV3Fail): void {
           'tilesPerAdvance',
           'ticksUntilAdvance',
           'remainingTiles',
+          'ticksPerAdvance',
+          'damagePerHit',
         ]) {
           integer(
             projectile[key],
             `${path}.visibleProjectiles[${index}].${key}`,
             fail,
+          );
+        }
+        if (
+          (projectile.tilesPerAdvance as number) <= 0 ||
+          (projectile.ticksUntilAdvance as number) <= 0 ||
+          (projectile.remainingTiles as number) < 0 ||
+          (projectile.ticksPerAdvance as number) <= 0 ||
+          (projectile.ticksUntilAdvance as number) >
+            (projectile.ticksPerAdvance as number) ||
+          (projectile.damagePerHit as number) <= 0
+        ) {
+          fail(
+            `${path}.visibleProjectiles[${index}]`,
+            'projectile timing, speed, range, and damage are outside their canonical domains',
           );
         }
         array(
@@ -2239,42 +3622,72 @@ function observation(value: unknown, path: string, fail: ReplayV3Fail): void {
   }
   scoreboard(item.scoreboard, `${path}.scoreboard`, fail);
   modeState(item.mode, `${path}.mode`, fail);
+}
+
+function observation(
+  value: unknown,
+  path: string,
+  fail: ReplayV3Fail,
+): void {
+  const item = exact(
+    value,
+    path,
+    [
+      'schemaVersion',
+      'tick',
+      'matchContractFingerprint',
+      'self',
+      'teamUnits',
+      'participants',
+      'allies',
+      'enemies',
+      'visibleTiles',
+      'visibleProjectiles',
+      'visibleEvents',
+      'heardSounds',
+      'scoreboard',
+      'mode',
+      'actionLegalities',
+    ],
+    fail,
+  );
+  integer(item.schemaVersion, `${path}.schemaVersion`, fail);
+  integer(item.tick, `${path}.tick`, fail);
+  nonEmpty(
+    item.matchContractFingerprint,
+    `${path}.matchContractFingerprint`,
+    fail,
+  );
+  observedSelf(item.self, `${path}.self`, fail);
+  sharedObservationCollections(item, path, fail);
   array(item.actionLegalities, `${path}.actionLegalities`, fail).forEach(
-    (entry, index) => {
-      const legality = exact(
-        entry,
-        `${path}.actionLegalities[${index}]`,
-        ['actionId', 'actionCode', 'allowedByForm', 'available', 'constraints'],
+    (entry, index) =>
+      actionLegality(entry, `${path}.actionLegalities[${index}]`, fail),
+  );
+}
+
+function actionLegality(
+  value: unknown,
+  path: string,
+  fail: ReplayV3Fail,
+): void {
+  const legality = exact(
+    value,
+    path,
+    ['actionId', 'actionCode', 'allowedByForm', 'available', 'constraints'],
+    fail,
+  );
+  nonEmpty(legality.actionId, `${path}.actionId`, fail);
+  integer(legality.actionCode, `${path}.actionCode`, fail);
+  boolean(legality.allowedByForm, `${path}.allowedByForm`, fail);
+  boolean(legality.available, `${path}.available`, fail);
+  array(legality.constraints, `${path}.constraints`, fail).forEach(
+    (constraint, constraintIndex) =>
+      actionConstraint(
+        constraint,
+        `${path}.constraints[${constraintIndex}]`,
         fail,
-      );
-      nonEmpty(legality.actionId, `${path}.actionLegalities[${index}].actionId`, fail);
-      integer(
-        legality.actionCode,
-        `${path}.actionLegalities[${index}].actionCode`,
-        fail,
-      );
-      boolean(
-        legality.allowedByForm,
-        `${path}.actionLegalities[${index}].allowedByForm`,
-        fail,
-      );
-      boolean(
-        legality.available,
-        `${path}.actionLegalities[${index}].available`,
-        fail,
-      );
-      array(
-        legality.constraints,
-        `${path}.actionLegalities[${index}].constraints`,
-        fail,
-      ).forEach((constraint, constraintIndex) =>
-        actionConstraint(
-          constraint,
-          `${path}.actionLegalities[${index}].constraints[${constraintIndex}]`,
-          fail,
-        ),
-      );
-    },
+      ),
   );
 }
 
@@ -2324,6 +3737,376 @@ function actorTurn(value: unknown, path: string, fail: ReplayV3Fail): void {
     fail,
   );
   actionResolution(turn.actionResolution, `${path}.actionResolution`, fail);
+}
+
+/**
+ * A role tag (docs/DESIGN-MIND-ARCHITECTURE-2026-07-31.md §12.1): a canonical
+ * lowercase-kebab semantic ID capped at 24 UTF-8 bytes rather than the 64-byte
+ * semantic-ID cap, because it is a display label sent per body per tick. The
+ * EMPTY string is legal on a command and means "clear the tag"; an absent field
+ * means "leave it unchanged", and the two must stay distinct.
+ */
+const ROLE_TAG_MAX_UTF8_BYTES = 24;
+
+function roleTag(value: unknown, path: string, fail: ReplayV3Fail): void {
+  if (typeof value !== 'string') {
+    fail(path, 'expected a role tag string');
+    return;
+  }
+  if (value.length === 0) return;
+  if (new TextEncoder().encode(value).length > ROLE_TAG_MAX_UTF8_BYTES) {
+    fail(path, `must not exceed ${ROLE_TAG_MAX_UTF8_BYTES} UTF-8 bytes`);
+  }
+  semanticId(value, path, fail);
+}
+
+function mindIntent(value: unknown, path: string, fail: ReplayV3Fail): void {
+  const item = exact(value, path, ['tagId', 'value'], fail);
+  semanticId(item.tagId, `${path}.tagId`, fail);
+  int64(item.value, `${path}.value`, fail);
+}
+
+function mindAlliedIntent(
+  value: unknown,
+  path: string,
+  fail: ReplayV3Fail,
+): void {
+  const item = exact(value, path, ['participantId', 'tagId', 'value'], fail);
+  integer(item.participantId, `${path}.participantId`, fail);
+  semanticId(item.tagId, `${path}.tagId`, fail);
+  int64(item.value, `${path}.value`, fail);
+}
+
+function mindRuntimeFault(
+  value: unknown,
+  path: string,
+  fail: ReplayV3Fail,
+): void {
+  const item = exact(
+    value,
+    path,
+    [
+      'participantId',
+      'teamId',
+      'actorId',
+      'stage',
+      'faultCode',
+      'cumulativeFaultCount',
+      'disqualificationTriggered',
+    ],
+    fail,
+  );
+  integer(item.participantId, `${path}.participantId`, fail);
+  integer(item.teamId, `${path}.teamId`, fail);
+  // Null is the WHOLE point of the shape: a mind that trapped on a tick it
+  // owned no body has nothing to name (§4.7).
+  nullable(item.actorId, `${path}.actorId`, actorId, fail);
+  nonEmpty(item.stage, `${path}.stage`, fail);
+  semanticId(item.faultCode, `${path}.faultCode`, fail);
+  int64(item.cumulativeFaultCount, `${path}.cumulativeFaultCount`, fail, true);
+  boolean(
+    item.disqualificationTriggered,
+    `${path}.disqualificationTriggered`,
+    fail,
+  );
+}
+
+function mindCommand(value: unknown, path: string, fail: ReplayV3Fail): void {
+  const commandValue = object(value, path, fail);
+  const hasRoleTag = own(commandValue, 'roleTag');
+  const item = exact(
+    commandValue,
+    path,
+    [
+      'unitId',
+      'lifeId',
+      'actionId',
+      'actionCode',
+      'arguments',
+      'outcome',
+      ...(hasRoleTag ? ['roleTag'] : []),
+      'debugMessage',
+    ],
+    fail,
+  );
+  integer(item.unitId, `${path}.unitId`, fail);
+  integer(item.lifeId, `${path}.lifeId`, fail);
+  nonEmpty(item.actionId, `${path}.actionId`, fail);
+  integer(item.actionCode, `${path}.actionCode`, fail);
+  if (item.arguments !== null) {
+    array(item.arguments, `${path}.arguments`, fail).forEach((entry, index) => {
+      if (entry !== null) {
+        rawArgument(entry, `${path}.arguments[${index}]`, fail);
+      }
+    });
+  }
+  if (item.outcome !== 'accepted' && item.outcome !== 'rejected') {
+    fail(`${path}.outcome`, 'expected accepted or rejected');
+  }
+  if (hasRoleTag) roleTag(item.roleTag, `${path}.roleTag`, fail);
+  nullable(item.debugMessage, `${path}.debugMessage`, string, fail);
+}
+
+function mindBodyResolution(
+  value: unknown,
+  path: string,
+  fail: ReplayV3Fail,
+): void {
+  const item = exact(
+    value,
+    path,
+    ['unitId', 'lifeId', 'submittedDecision', 'actionResolution'],
+    fail,
+  );
+  integer(item.unitId, `${path}.unitId`, fail);
+  integer(item.lifeId, `${path}.lifeId`, fail);
+  nullable(
+    item.submittedDecision,
+    `${path}.submittedDecision`,
+    submittedDecision,
+    fail,
+  );
+  actionResolution(item.actionResolution, `${path}.actionResolution`, fail);
+}
+
+function mindSlot(value: unknown, path: string, fail: ReplayV3Fail): void {
+  const slotValue = object(value, path, fail);
+  const hasClassId = own(slotValue, 'classId');
+  const hasCandidates = own(slotValue, 'candidateClassIds');
+  const hasSelected = own(slotValue, 'selectedClassId');
+  const item = exact(
+    slotValue,
+    path,
+    [
+      'teamId',
+      'unitId',
+      'state',
+      ...(hasClassId ? ['classId'] : []),
+      ...(hasCandidates ? ['candidateClassIds'] : []),
+      ...(hasSelected ? ['selectedClassId'] : []),
+    ],
+    fail,
+  );
+  integer(item.teamId, `${path}.teamId`, fail);
+  integer(item.unitId, `${path}.unitId`, fail);
+  unitSlotState(item.state, `${path}.state`, fail);
+  if (hasClassId) semanticId(item.classId, `${path}.classId`, fail);
+  // The chassis-at-activation block is RESERVED and v1 never writes it, so a
+  // document that carries one was not written by a shipped engine (§10.1).
+  if (hasCandidates || hasSelected) {
+    fail(path, 'reserved chassis selection is never written by v1');
+  }
+}
+
+function mindBody(value: unknown, path: string, fail: ReplayV3Fail): void {
+  const bodyValue = object(value, path, fail);
+  const hasRouteCooldowns = own(bodyValue, 'routeCooldowns');
+  const hasCarriedScrap = own(bodyValue, 'carriedScrap');
+  const hasRoleTag = own(bodyValue, 'roleTag');
+  const item = exact(
+    bodyValue,
+    path,
+    [
+      'actorId',
+      'generation',
+      'formId',
+      'position',
+      'facing',
+      'health',
+      'cooldown',
+      'energy',
+      'previousActionResolution',
+      'pendingSameLifeTransition',
+      'classId',
+      'previousPosition',
+      'movedLastTick',
+      'lifeStartedTick',
+      'origin',
+      'bodyRandomSeed',
+      ...(hasRouteCooldowns ? ['routeCooldowns'] : []),
+      ...(hasCarriedScrap ? ['carriedScrap'] : []),
+      ...(hasRoleTag ? ['roleTag'] : []),
+      'actionLegalities',
+    ],
+    fail,
+  );
+  actorId(item.actorId, `${path}.actorId`, fail);
+  integer(item.generation, `${path}.generation`, fail);
+  nonEmpty(item.formId, `${path}.formId`, fail);
+  position(item.position, `${path}.position`, fail);
+  direction(item.facing, `${path}.facing`, fail);
+  integer(item.health, `${path}.health`, fail);
+  integer(item.cooldown, `${path}.cooldown`, fail);
+  nullable(item.energy, `${path}.energy`, integer, fail);
+  nullable(
+    item.previousActionResolution,
+    `${path}.previousActionResolution`,
+    actionResolution,
+    fail,
+  );
+  pendingTransition(
+    item.pendingSameLifeTransition,
+    `${path}.pendingSameLifeTransition`,
+    fail,
+  );
+  nullable(item.classId, `${path}.classId`, semanticId, fail);
+  // Null is a fact — "this life's first tick" — not an omitted field.
+  nullable(item.previousPosition, `${path}.previousPosition`, position, fail);
+  boolean(item.movedLastTick, `${path}.movedLastTick`, fail);
+  integer(item.lifeStartedTick, `${path}.lifeStartedTick`, fail);
+  const origin = exact(
+    item.origin,
+    `${path}.origin`,
+    [
+      'reason',
+      'generation',
+      'parentActorId',
+      'sourceTransitionId',
+      'sourceOperationId',
+    ],
+    fail,
+  );
+  nonEmpty(origin.reason, `${path}.origin.reason`, fail);
+  integer(origin.generation, `${path}.origin.generation`, fail);
+  nullable(origin.parentActorId, `${path}.origin.parentActorId`, actorId, fail);
+  for (const key of ['sourceTransitionId', 'sourceOperationId']) {
+    nullable(origin[key], `${path}.origin.${key}`, string, fail);
+  }
+  // A uint64 over a decimal string, never widened to a float.
+  uint64(item.bodyRandomSeed, `${path}.bodyRandomSeed`, fail);
+  if (hasRouteCooldowns) {
+    validateRouteCooldowns(item.routeCooldowns, `${path}.routeCooldowns`, fail);
+  }
+  if (hasCarriedScrap) {
+    integer(item.carriedScrap, `${path}.carriedScrap`, fail);
+    if ((item.carriedScrap as number) <= 0) {
+      fail(`${path}.carriedScrap`, 'must be omitted when nothing is carried');
+    }
+  }
+  if (hasRoleTag) roleTag(item.roleTag, `${path}.roleTag`, fail);
+  array(item.actionLegalities, `${path}.actionLegalities`, fail).forEach(
+    (entry, index) =>
+      actionLegality(entry, `${path}.actionLegalities[${index}]`, fail),
+  );
+}
+
+function mindObservation(
+  value: unknown,
+  path: string,
+  fail: ReplayV3Fail,
+): void {
+  const item = exact(
+    value,
+    path,
+    [
+      'schemaVersion',
+      'tick',
+      'matchContractFingerprint',
+      'participantId',
+      'teamId',
+      'bodies',
+      'slots',
+      'teamUnits',
+      'participants',
+      'allies',
+      'enemies',
+      'visibleTiles',
+      'visibleProjectiles',
+      'visibleEvents',
+      'heardSounds',
+      'scoreboard',
+      'mode',
+      'alliedIntents',
+    ],
+    fail,
+  );
+  integer(item.schemaVersion, `${path}.schemaVersion`, fail);
+  integer(item.tick, `${path}.tick`, fail);
+  nonEmpty(
+    item.matchContractFingerprint,
+    `${path}.matchContractFingerprint`,
+    fail,
+  );
+  integer(item.participantId, `${path}.participantId`, fail);
+  integer(item.teamId, `${path}.teamId`, fail);
+  array(item.bodies, `${path}.bodies`, fail).forEach((entry, index) =>
+    mindBody(entry, `${path}.bodies[${index}]`, fail),
+  );
+  array(item.slots, `${path}.slots`, fail).forEach((entry, index) =>
+    mindSlot(entry, `${path}.slots[${index}]`, fail),
+  );
+  sharedObservationCollections(item, path, fail);
+  // RESERVED (§11.3): the engine writes the empty collection so the field is
+  // negotiated, and a non-empty one could not have come from a v1 host.
+  const intents = array(item.alliedIntents, `${path}.alliedIntents`, fail);
+  if (intents.length > 0) {
+    fail(`${path}.alliedIntents`, 'allied intents are reserved and always empty');
+  }
+  intents.forEach((entry, index) =>
+    mindAlliedIntent(entry, `${path}.alliedIntents[${index}]`, fail),
+  );
+}
+
+function mindTurn(value: unknown, path: string, fail: ReplayV3Fail): void {
+  const turnValue = object(value, path, fail);
+  // The mind's own diagnostic text is omitted when inert, like every other
+  // additive key in this format, so its presence is optional and its absence
+  // is a real answer rather than a gap.
+  const hasDebugMessage = own(turnValue, 'debugMessage');
+  const turn = exact(
+    turnValue,
+    path,
+    [
+      'tick',
+      'participantId',
+      'teamId',
+      'fuelBudget',
+      'liveBodyCount',
+      'observation',
+      'commands',
+      'resolutions',
+      'intents',
+      'runtimeFault',
+      ...(hasDebugMessage ? ['debugMessage'] : []),
+    ],
+    fail,
+  );
+  integer(turn.tick, `${path}.tick`, fail);
+  integer(turn.participantId, `${path}.participantId`, fail);
+  integer(turn.teamId, `${path}.teamId`, fail);
+  int64(turn.fuelBudget, `${path}.fuelBudget`, fail, true);
+  integer(turn.liveBodyCount, `${path}.liveBodyCount`, fail);
+  // The budget is a pure function of authoritative tick-start state, so the
+  // mirror can decide it alone: 250M + 200M per live body (§4.2).
+  const expectedFuel =
+    BigInt(250_000_000) + BigInt(200_000_000) * BigInt(turn.liveBodyCount as number);
+  if (BigInt(turn.fuelBudget as string) !== expectedFuel) {
+    fail(`${path}.fuelBudget`, 'must be exactly 250M + 200M per live body');
+  }
+  mindObservation(turn.observation, `${path}.observation`, fail);
+  array(turn.commands, `${path}.commands`, fail).forEach((entry, index) =>
+    mindCommand(entry, `${path}.commands[${index}]`, fail),
+  );
+  const resolutions = array(turn.resolutions, `${path}.resolutions`, fail);
+  resolutions.forEach((entry, index) =>
+    mindBodyResolution(entry, `${path}.resolutions[${index}]`, fail),
+  );
+  if (resolutions.length !== (turn.liveBodyCount as number)) {
+    fail(`${path}.resolutions`, 'must cover exactly the live body count');
+  }
+  array(turn.intents, `${path}.intents`, fail).forEach((entry, index) =>
+    mindIntent(entry, `${path}.intents[${index}]`, fail),
+  );
+  nullable(turn.runtimeFault, `${path}.runtimeFault`, mindRuntimeFault, fail);
+  if (hasDebugMessage) {
+    string(turn.debugMessage, `${path}.debugMessage`, fail);
+    // A faulted turn's reply never parsed, so it cannot have carried text.
+    // This one the mirror can decide alone, which is where the division of
+    // labour puts it.
+    if (turn.runtimeFault !== null) {
+      fail(`${path}.debugMessage`, 'a faulted mind turn carries no diagnostic');
+    }
+  }
 }
 
 function eventAudience(
@@ -2592,6 +4375,30 @@ function validateResult(value: unknown, path: string, fail: ReplayV3Fail): void 
     );
     return;
   }
+  if (mode.kind === 'arc-relay') {
+    const arc = exact(
+      mode,
+      `${path}.mode`,
+      ['kind', 'reason', 'state'],
+      fail,
+    );
+    if (
+      arc.reason !== 'fault-eligibility' &&
+      arc.reason !== 'reactor-destroyed' &&
+      arc.reason !== 'max-ticks'
+    ) {
+      fail(`${path}.mode.reason`, 'unknown Arc Relay end reason');
+    }
+    modeState(arc.state, `${path}.mode.state`, fail);
+    const state = object(arc.state, `${path}.mode.state`, fail);
+    if (state.kind !== 'arc-relay') {
+      fail(
+        `${path}.mode.state.kind`,
+        'Arc Relay result requires Arc Relay state',
+      );
+    }
+    return;
+  }
   fail(`${path}.mode.kind`, `unknown mode result ${String(mode.kind)}`);
 }
 
@@ -2795,11 +4602,22 @@ export function validateReplayV3(
       authoritativeEvent(entry, `replay.initialFrame.events[${index}]`, fail),
   );
 
+  // THE TURN-KIND DISCRIMINATOR (§5.1). The header's contract profile decides
+  // which turn record a tick carries, and a document carries exactly one —
+  // never both, and never the other profile's.
+  const mindProfile = runtime.contractProfileId === MIND_CONTRACT_PROFILE_ID;
   array(root.ticks, 'replay.ticks', fail).forEach((entry, index) => {
     const tick = exact(
       entry,
       `replay.ticks[${index}]`,
-      ['tick', 'tickStart', 'actorTurns', 'events', 'traversals', 'postState'],
+      [
+        'tick',
+        'tickStart',
+        mindProfile ? 'mindTurns' : 'actorTurns',
+        'events',
+        'traversals',
+        'postState',
+      ],
       fail,
     );
     integer(tick.tick, `replay.ticks[${index}].tick`, fail);
@@ -2843,10 +4661,25 @@ export function validateReplayV3(
           fail,
         ),
     );
-    array(tick.actorTurns, `replay.ticks[${index}].actorTurns`, fail).forEach(
-      (turn, turnIndex) =>
-        actorTurn(turn, `replay.ticks[${index}].actorTurns[${turnIndex}]`, fail),
-    );
+    if (mindProfile) {
+      array(tick.mindTurns, `replay.ticks[${index}].mindTurns`, fail).forEach(
+        (turn, turnIndex) =>
+          mindTurn(
+            turn,
+            `replay.ticks[${index}].mindTurns[${turnIndex}]`,
+            fail,
+          ),
+      );
+    } else {
+      array(tick.actorTurns, `replay.ticks[${index}].actorTurns`, fail).forEach(
+        (turn, turnIndex) =>
+          actorTurn(
+            turn,
+            `replay.ticks[${index}].actorTurns[${turnIndex}]`,
+            fail,
+          ),
+      );
+    }
     array(tick.events, `replay.ticks[${index}].events`, fail).forEach(
       (event, eventIndex) =>
         authoritativeEvent(event, `replay.ticks[${index}].events[${eventIndex}]`, fail),
@@ -2893,6 +4726,41 @@ function jsonEqual(left: unknown, right: unknown): boolean {
   return JSON.stringify(left) === JSON.stringify(right);
 }
 
+function observedModeMatchesWorld(
+  observed: V3.ReplayV3ModeState,
+  world: V3.ReplayV3ModeState,
+): boolean {
+  if (observed.kind !== 'arc-relay' || world.kind !== 'arc-relay') {
+    return jsonEqual(observed, world);
+  }
+  if (
+    observed.modeId !== world.modeId ||
+    !jsonEqual(observed.wells, world.wells) ||
+    !jsonEqual(observed.reactors, world.reactors) ||
+    observed.latestPulseTeamId !== world.latestPulseTeamId ||
+    observed.latestPulseTick !== world.latestPulseTick
+  ) {
+    return false;
+  }
+  const cores = new Map(
+    world.visibleCores.map((core) => [JSON.stringify(core.coreId), core]),
+  );
+  const signatures = new Map(
+    world.visibleSignatures.map((signature) => [
+      signature.operationId,
+      signature,
+    ]),
+  );
+  return (
+    observed.visibleCores.every((core) =>
+      jsonEqual(cores.get(JSON.stringify(core.coreId)), core),
+    ) &&
+    observed.visibleSignatures.every((signature) =>
+      jsonEqual(signatures.get(signature.operationId), signature),
+    )
+  );
+}
+
 function scoreboardsStableAcrossTickStart(
   before: V3.ReplayV3Scoreboard,
   after: V3.ReplayV3Scoreboard,
@@ -2934,18 +4802,26 @@ export function validateReplayV3TickStartBoundary(
   const after = tickStart.state;
   if (jsonEqual(before, after)) return;
 
+  const arcModeChange =
+    before.mode.kind === 'arc-relay' &&
+    after.mode.kind === 'arc-relay' &&
+    tickStart.events.some((event) =>
+      event.payload.kind === 'arc-relay' ||
+      event.payload.kind === 'mode-changed',
+    );
+
   if (
     before.matchContractFingerprint !== after.matchContractFingerprint ||
     before.nextTick !== tickStart.tick ||
     after.nextTick !== tickStart.tick ||
     before.nextProjectileId !== after.nextProjectileId ||
     !jsonEqual(before.participants, after.participants) ||
-    !jsonEqual(before.mode, after.mode) ||
+    (!jsonEqual(before.mode, after.mode) && !arcModeChange) ||
     !scoreboardsStableAcrossTickStart(before.scoreboard, after.scoreboard)
   ) {
     fail(
       path,
-      'tick-start lifecycle cannot change participants, mode, projectile issuance, eligibility, or non-derived scores',
+      'tick-start lifecycle cannot change participants, mode, projectile issuance, eligibility, or non-derived scores without exact Arc mode evidence',
     );
   }
 
@@ -3054,7 +4930,15 @@ export function validateReplayV3TickStartBoundary(
         event.payload.kind === 'form-transition' &&
         actorValue(event.payload.actorId) === actor,
     );
-    if (formEvents.length !== 1) {
+    const hasArcLifeEvidence = tickStart.events.some((event) =>
+      event.payload.kind === 'arc-relay' &&
+      ((event.payload.fact.kind === 'body-relocated' &&
+        actorValue(event.payload.fact.targetActorId) === actor) ||
+        ((event.payload.fact.kind === 'signature-damage' ||
+          event.payload.fact.kind === 'signature-repair') &&
+          actorValue(event.payload.fact.targetActorId) === actor)),
+    );
+    if (formEvents.length !== 1 && !hasArcLifeEvidence) {
       fail(
         `${path}.activeLives`,
         `surviving life ${actor} changed without exactly one form-transition event`,
@@ -3085,6 +4969,35 @@ export function validateReplayV3TickStartBoundary(
       afterSlot.splitReservation === null
     ) {
       continue;
+    }
+
+    if (
+      sameStableFields &&
+      beforeSlot.state.kind === 'availability-pending' &&
+      beforeSlot.state.dueTick === tickStart.tick &&
+      afterSlot.nextLifeId === beforeSlot.nextLifeId + 1 &&
+      afterSlot.state.kind === 'active' &&
+      afterSlot.pendingParentActorId === null &&
+      afterSlot.splitReservation === null
+    ) {
+      // Declared automatic activation: a dormant slot's first life spawns
+      // at its exact unlock tick (the auto-companions and class arms)
+      // instead of merely becoming ready for explicit fabrication.
+      const actor = actorValue(afterSlot.state.actorId);
+      const start = starts.get(actor);
+      if (
+        afterSlot.state.actorId.teamId === beforeSlot.teamId &&
+        afterSlot.state.actorId.unitId === beforeSlot.unitId &&
+        afterSlot.state.actorId.lifeId === beforeSlot.nextLifeId &&
+        (start?.origin.reason === 'automatic-activation' ||
+          // THE ROOT FACTORY (DECISIONS #194): a slot whose profile declares
+          // a bootstrap consumes its own due availability clock into a live
+          // body at its home spawn, because for a participant holding nothing
+          // an idle Ready slot is a slot nothing can ever fill.
+          start?.origin.reason === 'root-factory-seed')
+      ) {
+        continue;
+      }
     }
 
     if (
@@ -3222,6 +5135,274 @@ function ensureUnique<T>(
   }
 }
 
+/**
+ * THE MIND SPECIALIZATION. One mind turn becomes one per-body turn for every
+ * own live body, which is what lets the whole viewer — fog, per-unit facts,
+ * the bot panel, both renderers — stay exactly as it is on a mind replay
+ * (docs/DESIGN-MIND-ARCHITECTURE-2026-07-31.md §5.3).
+ *
+ * It is deliberately the same projection the Guest's migration adapter
+ * performs host-side: `self` from the matching body, `allies` from the OTHER
+ * own bodies plus any allied mind's bodies, and every team-shared collection
+ * passed through untouched. Because the mind observation reuses the per-life
+ * shapes for every nested type, this moves references rather than rebuilding
+ * values.
+ */
+export function specializeMindTurn(
+  turn: V3.ReplayV3MindTurn,
+): V3.ReplayV3ActorTurn[] {
+  const bodies = new Map(
+    turn.observation.bodies.map((body) => [
+      `${body.actorId.unitId}:${body.actorId.lifeId}`,
+      body,
+    ]),
+  );
+  return turn.resolutions.flatMap((resolution) => {
+    const body = bodies.get(`${resolution.unitId}:${resolution.lifeId}`);
+    if (!body) return [];
+    const allies: V3.ReplayV3ObservedAlly[] = [
+      ...turn.observation.bodies
+        .filter((other) => other !== body)
+        .map(mindBodyAsAlly),
+      ...turn.observation.allies,
+    ];
+    return [
+      {
+        tick: turn.tick,
+        participantId: turn.participantId,
+        actorId: body.actorId,
+        observation: {
+          schemaVersion: turn.observation.schemaVersion,
+          tick: turn.observation.tick,
+          matchContractFingerprint:
+            turn.observation.matchContractFingerprint,
+          self: mindBodyAsAlly(body),
+          teamUnits: turn.observation.teamUnits,
+          participants: turn.observation.participants,
+          allies,
+          enemies: turn.observation.enemies,
+          visibleTiles: turn.observation.visibleTiles,
+          visibleProjectiles: turn.observation.visibleProjectiles,
+          visibleEvents: turn.observation.visibleEvents,
+          heardSounds: turn.observation.heardSounds,
+          scoreboard: turn.observation.scoreboard,
+          mode: turn.observation.mode,
+          actionLegalities: body.actionLegalities,
+        },
+        submittedDecision: resolution.submittedDecision,
+        actionResolution: resolution.actionResolution,
+      },
+    ];
+  });
+}
+
+function mindBodyAsAlly(body: V3.ReplayV3MindBody): V3.ReplayV3ObservedAlly {
+  return {
+    actorId: body.actorId,
+    generation: body.generation,
+    formId: body.formId,
+    position: body.position,
+    facing: body.facing,
+    health: body.health,
+    cooldown: body.cooldown,
+    energy: body.energy,
+    previousActionResolution: body.previousActionResolution,
+    pendingSameLifeTransition: body.pendingSameLifeTransition,
+    classId: body.classId,
+    ...(body.routeCooldowns ? { routeCooldowns: body.routeCooldowns } : {}),
+    ...(body.carriedScrap ? { carriedScrap: body.carriedScrap } : {}),
+    ...(body.roleTag ? { roleTag: body.roleTag } : {}),
+  };
+}
+
+/**
+ * The mind-era relational rules the mirror can decide alone (§5.3). The
+ * division of labour is unchanged: the mirror bounds-checks and re-derives
+ * what one document contains; the C# validator re-derives against the engine.
+ *
+ * Refused here: a turn whose participant is not the one the pre-state says
+ * owns those bodies; a resolution set that is not exactly the participant's
+ * own live bodies; a command claimed accepted on a body that is not an own
+ * live body; two commands for one body on a healthy turn; a slot table that is
+ * not the participant's own slots; a published role tag no accepted command
+ * ever set; and a body random seed that is not the one the document itself
+ * declared at that life's start.
+ */
+function validateMindTurnRelationships(
+  mindTurns: readonly V3.ReplayV3MindTurn[],
+  tick: V3.ReplayV3Tick,
+  path: string,
+  roleTags: Map<string, string>,
+  seedsByActor: ReadonlyMap<string, string>,
+  fail: ReplayV3Fail,
+): void {
+  ensureUnique(
+    mindTurns,
+    (turn) => String(turn.participantId),
+    `${path}.mindTurns`,
+    fail,
+  );
+  mindTurns.forEach((turn, turnIndex) => {
+    const turnPath = `${path}.mindTurns[${turnIndex}]`;
+    if (turn.tick !== tick.tick || turn.observation.tick !== tick.tick) {
+      fail(turnPath, 'mind turn and its observation must state their tick');
+    }
+    if (
+      turn.observation.participantId !== turn.participantId ||
+      turn.observation.teamId !== turn.teamId
+    ) {
+      fail(turnPath, 'mind observation must identify its own participant');
+    }
+
+    const ownLives = tick.tickStart.state.activeLives.filter(
+      (life) => life.participantId === turn.participantId,
+    );
+    const ownKeys = ownLives.map((life) => actorValue(life.actorId));
+    if (
+      !sameSet(
+        turn.resolutions.map(
+          (resolution) =>
+            `${turn.teamId}:${resolution.unitId}:${resolution.lifeId}`,
+        ),
+        ownKeys,
+      ) ||
+      turn.resolutions.length !== ownLives.length
+    ) {
+      fail(
+        `${turnPath}.resolutions`,
+        'must cover exactly the participant own live bodies',
+      );
+    }
+    if (
+      !sameSet(
+        turn.observation.bodies.map((body) => actorValue(body.actorId)),
+        ownKeys,
+      )
+    ) {
+      fail(
+        `${turnPath}.observation.bodies`,
+        'must be exactly the participant own live bodies',
+      );
+    }
+
+    const ownSlots = tick.tickStart.state.slots
+      .filter((slot) => slot.participantId === turn.participantId)
+      .map(unitValue);
+    if (
+      !sameSet(turn.observation.slots.map(unitValue), ownSlots) ||
+      turn.observation.slots.some((slot) => slot.teamId !== turn.teamId)
+    ) {
+      fail(
+        `${turnPath}.observation.slots`,
+        'must be exactly the participant own slots',
+      );
+    }
+
+    const faulted = turn.runtimeFault !== null;
+    const liveKeys = new Set(
+      ownLives.map((life) => `${life.actorId.unitId}:${life.actorId.lifeId}`),
+    );
+    const commanded = new Set<string>();
+    turn.commands.forEach((command, commandIndex) => {
+      const key = `${command.unitId}:${command.lifeId}`;
+      // A duplicate is legitimate only on the faulted turn the duplicate
+      // itself caused, where nothing was routed.
+      if (commanded.has(key) && !faulted) {
+        fail(
+          `${turnPath}.commands[${commandIndex}]`,
+          'cannot command the same body twice',
+        );
+      }
+      commanded.add(key);
+      const accepted = command.outcome === 'accepted';
+      if (faulted && accepted) {
+        fail(
+          `${turnPath}.commands[${commandIndex}]`,
+          'a faulted turn cannot record an accepted command',
+        );
+      }
+      if (!faulted && accepted !== liveKeys.has(key)) {
+        fail(
+          `${turnPath}.commands[${commandIndex}]`,
+          accepted
+            ? 'accepted a command on a body that is not an own live body'
+            : 'rejected a command on one of its own live bodies',
+        );
+      }
+    });
+
+    // Every published tag, on own bodies and on visible enemies alike, must be
+    // the last tag its own mind actually set.
+    for (const body of turn.observation.bodies) {
+      requirePublishedRoleTag(
+        body.roleTag,
+        actorValue(body.actorId),
+        roleTags,
+        `${turnPath}.observation.bodies`,
+        fail,
+      );
+      const declared = seedsByActor.get(actorValue(body.actorId));
+      if (declared === undefined || body.bodyRandomSeed !== declared) {
+        fail(
+          `${turnPath}.observation.bodies`,
+          'body random seed must be the seed declared at that life start',
+        );
+      }
+    }
+    for (const enemy of turn.observation.enemies) {
+      requirePublishedRoleTag(
+        enemy.roleTag,
+        actorValue(enemy.actorId),
+        roleTags,
+        `${turnPath}.observation.enemies`,
+        fail,
+      );
+    }
+    for (const ally of turn.observation.allies) {
+      requirePublishedRoleTag(
+        ally.roleTag,
+        actorValue(ally.actorId),
+        roleTags,
+        `${turnPath}.observation.allies`,
+        fail,
+      );
+    }
+  });
+
+  // Tags set this tick are what the NEXT tick publishes: the observation the
+  // mind just answered was frozen before any of them were written.
+  for (const turn of mindTurns) {
+    if (turn.runtimeFault !== null) continue;
+    for (const command of turn.commands) {
+      if (command.outcome !== 'accepted' || command.roleTag === undefined) {
+        continue;
+      }
+      const key = `${turn.teamId}:${command.unitId}:${command.lifeId}`;
+      if (command.roleTag.length === 0) roleTags.delete(key);
+      else roleTags.set(key, command.roleTag);
+    }
+  }
+  const live = new Set(
+    tick.postState.activeLives.map((life) => actorValue(life.actorId)),
+  );
+  for (const key of [...roleTags.keys()]) {
+    if (!live.has(key)) roleTags.delete(key);
+  }
+}
+
+function requirePublishedRoleTag(
+  published: string | undefined,
+  actorKey: string,
+  roleTags: ReadonlyMap<string, string>,
+  path: string,
+  fail: ReplayV3Fail,
+): void {
+  const expected = roleTags.get(actorKey);
+  if ((published ?? null) !== (expected ?? null)) {
+    fail(path, 'publishes a role tag its mind never set on that body');
+  }
+}
+
 function validateV3Relationships(
   document: V3.ReplayV3Document,
   fail: ReplayV3Fail,
@@ -3280,6 +5461,39 @@ function validateV3Relationships(
         'must match contract capability versions',
       );
     }
+  }
+  const capabilities = contract.capabilityVersions;
+  // Two exact tuples, side by side rather than one widened one: the mind
+  // profile mints fresh runtime/MatchStart/observation/decision schema numbers
+  // in its own namespace precisely so they never collide with the actor line's
+  // 2s, and it CARRIES match-contract schema 2 because the game is unchanged —
+  // only who is driving it changes (§1.2). Admitting it by relaxing the
+  // per-life tuple would lose exactly that distinction.
+  const perLifeProfile =
+    capabilities.contractProfileId === 'generic-actor-match-2' &&
+    capabilities.runtimeProtocolVersion === '1.0' &&
+    capabilities.runtimeConfigurationVersion === '1.0' &&
+    capabilities.runtimeContractVersion === 2 &&
+    capabilities.matchStartSchemaVersion === 2 &&
+    capabilities.observationSchemaVersion === 2 &&
+    capabilities.decisionSchemaVersion === 2;
+  const mindProfileTuple =
+    capabilities.contractProfileId === MIND_CONTRACT_PROFILE_ID &&
+    capabilities.runtimeProtocolVersion === '1.0' &&
+    capabilities.runtimeConfigurationVersion === '2.0' &&
+    capabilities.runtimeContractVersion === 1 &&
+    capabilities.matchStartSchemaVersion === 1 &&
+    capabilities.observationSchemaVersion === 1 &&
+    capabilities.decisionSchemaVersion === 1;
+  if (
+    (!perLifeProfile && !mindProfileTuple) ||
+    capabilities.matchContractSchemaVersion !== 2 ||
+    contract.schemaVersion !== 2
+  ) {
+    fail(
+      'replay.header.contract.capabilityVersions',
+      'must select the exact supported generic actor contract profile',
+    );
   }
   if (contract.rules.rulesetId !== header.gameRulesVersion) {
     fail(
@@ -3407,6 +5621,9 @@ function validateV3Relationships(
   }
 
   const teams = new Set(topology.teams.map((team) => team.teamId));
+  const teamDefinitions = new Map(
+    topology.teams.map((team) => [team.teamId, team]),
+  );
   if (contract.modeMapBinding.kind === 'frontline') {
     const advances = contract.modeMapBinding.teamAdvances;
     ensureUnique(
@@ -3449,12 +5666,35 @@ function validateV3Relationships(
   const slots = new Map(
     topology.unitSlots.map((slot) => [unitValue(slot), slot]),
   );
+  const classForActor = (actor: V3.ReplayV3ActorId): string | null => {
+    const slot = slots.get(unitValue(actor));
+    if (!slot) return null;
+    // A BODY's published chassis is its SLOT's where the slot declares one,
+    // and its participant's otherwise. Under a mixed COMPOSITION the
+    // participant's ID is a composition token rather than a chassis, so a
+    // body must never be checked against it (DECISIONS #191 §9.2, #194).
+    return (
+      slot.classId ??
+      participants.get(slot.controllerParticipantId)?.classId ??
+      null
+    );
+  };
+  const attackProfiles = new Map(
+    contract.rules.attackProfiles.map((profile) => [profile.id, profile]),
+  );
   const forms = new Set(contract.rules.forms.map((form) => form.id));
   for (const [index, participant] of topology.participants.entries()) {
-    if (!teams.has(participant.teamId)) {
+    const team = teamDefinitions.get(participant.teamId);
+    if (!team) {
       fail(
         `replay.header.contract.topology.participants[${index}].teamId`,
         `unknown team ${participant.teamId}`,
+      );
+    }
+    if (participant.classId !== team.classId) {
+      fail(
+        `replay.header.contract.topology.participants[${index}].classId`,
+        'must exactly match the scoring team classId, including omission',
       );
     }
   }
@@ -3500,6 +5740,107 @@ function validateV3Relationships(
     'replay.header.contract.initialDeployment.lives',
     fail,
   );
+  const declaredSpawns = new Map(
+    contract.map.spawnAnchors.map((spawn) => [
+      spawn.spawnId,
+      spawn.position,
+    ]),
+  );
+  const permanentReservations = new Map<
+    string,
+    V3.ReplayV3SpawnReservation
+  >();
+  const lifecycle = object(
+    contract.rules.lifecycle,
+    'replay.header.contract.rules.lifecycle',
+    fail,
+  );
+  const automaticProfileIds = new Set(
+    array(
+      lifecycle.profiles,
+      'replay.header.contract.rules.lifecycle.profiles',
+      fail,
+    )
+      .map((value, index) =>
+        object(
+          value,
+          `replay.header.contract.rules.lifecycle.profiles[${index}]`,
+          fail,
+        ),
+      )
+      .filter(
+        (profile) => profile.destructionPolicy === 'automatic-respawn',
+      )
+      .map((profile) => {
+        semanticId(
+          profile.profileId,
+          'replay.header.contract.rules.lifecycle.profiles[].profileId',
+          fail,
+        );
+        return profile.profileId as string;
+      }),
+  );
+  contract.lifecycleAssignments.forEach((assignment, index) => {
+    if (!automaticProfileIds.has(assignment.lifecycleProfileId)) return;
+    if (assignment.assignedRespawnSpawnId === null) return;
+    const position = declaredSpawns.get(
+      assignment.assignedRespawnSpawnId,
+    );
+    if (!position) {
+      fail(
+        `replay.header.contract.lifecycleAssignments[${index}].assignedRespawnSpawnId`,
+        'must reference a declared map spawn',
+      );
+    }
+    const key = `${position[0]},${position[1]}`;
+    if (permanentReservations.has(key)) {
+      fail(
+        `replay.header.contract.lifecycleAssignments[${index}].assignedRespawnSpawnId`,
+        'automatic-return spawn reservations must be position-unique',
+      );
+    }
+    permanentReservations.set(key, {
+      teamId: assignment.teamId,
+      unitId: assignment.unitId,
+      kind: 'automatic-return',
+      dueTick: null,
+    });
+  });
+  const spawnReservationAt = (
+    position: V3.ReplayV3Position,
+    world: V3.ReplayV3WorldState,
+  ): V3.ReplayV3SpawnReservation | null => {
+    for (const replication of world.pendingReplications) {
+      const descendant = replication.descendants.find(
+        (candidate) =>
+          candidate.position.x === position.x &&
+          candidate.position.y === position.y,
+      );
+      if (descendant) {
+        return {
+          teamId: descendant.teamId,
+          unitId: descendant.unitId,
+          kind: 'replication',
+          dueTick: replication.dueTick,
+        };
+      }
+    }
+    for (const slot of world.slots) {
+      if (
+        slot.state.kind === 'fabrication-pending' &&
+        slot.state.reservedPosition.x === position.x &&
+        slot.state.reservedPosition.y === position.y
+      ) {
+        return {
+          teamId: slot.teamId,
+          unitId: slot.unitId,
+          kind: 'fabrication',
+          dueTick: slot.state.dueTick,
+        };
+      }
+    }
+    return permanentReservations.get(`${position.x},${position.y}`) ?? null;
+  };
   if (
     !sameSet(
       contract.initialDeployment.lives.map(actorValue),
@@ -3607,10 +5948,14 @@ function validateV3Relationships(
       fail(`${path}.slots`, 'must cover exactly topology unit slots');
     }
     for (const [index, status] of world.participants.entries()) {
-      if (participants.get(status.participantId)?.teamId !== status.teamId) {
+      const participant = participants.get(status.participantId);
+      if (
+        participant?.teamId !== status.teamId ||
+        (participant.classId ?? null) !== status.classId
+      ) {
         fail(
-          `${path}.participants[${index}].teamId`,
-          'must match topology participant team',
+          `${path}.participants[${index}]`,
+          'must match topology participant team and classId',
         );
       }
     }
@@ -3691,6 +6036,8 @@ function validateV3Relationships(
       const control = world.mode;
       const mode = contract.rules.gameMode;
       const capture = mode.capture;
+      const secondaryThresholdTicks =
+        mode.secondaryControl?.captureThresholdTicks ?? null;
       const claimantKnown =
         control.claimingTeamId === null ||
         teams.has(control.claimingTeamId);
@@ -3713,7 +6060,41 @@ function validateV3Relationships(
         (world.nextTick < control.controlResumesAtTick &&
           (!neutral ||
             control.captureProgress !== 0 ||
-            control.decayTicksElapsed !== 0));
+            control.decayTicksElapsed !== 0)) ||
+        // The hold clocks travel as a pair, only the high-water-mark redeploy
+        // policy may carry them at all, an owner must be a real scoring team,
+        // and a PUBLISHED hold is by definition still live — so its expiry is
+        // strictly ahead of this tick and inside the declared duration.
+        (control.holdOwnerTeamId === null) !==
+          (control.holdEndsAtTick === null) ||
+        (control.holdOwnerTeamId !== null &&
+          capture.redeployPolicy !== RATCHET_REDEPLOY_POLICY) ||
+        (control.holdOwnerTeamId !== null &&
+          !teams.has(control.holdOwnerTeamId)) ||
+        // A hold is created on the advance tick T with expiry T+hold+1, and
+        // the earliest boundary that can publish it has nextTick T+1, so the
+        // widest honest gap is exactly the declared duration.
+        (control.holdEndsAtTick !== null &&
+          (control.holdEndsAtTick <= world.nextTick ||
+            control.holdEndsAtTick - world.nextTick >
+              (capture.ratchetHoldTicks ?? 0))) ||
+        // Only a mode that declares a side objective may publish one. Its
+        // owner and its claimant are real scoring teams, they are never the
+        // same team, and a standing claim is strictly below the declared
+        // threshold because reaching it latches ownership that very tick.
+        ((control.secondaryOwnerTeamId !== null ||
+          control.secondaryClaimProgress !== 0) &&
+          secondaryThresholdTicks === null) ||
+        (control.secondaryOwnerTeamId !== null &&
+          !teams.has(control.secondaryOwnerTeamId)) ||
+        Math.abs(control.secondaryClaimProgress) >=
+          Math.max(secondaryThresholdTicks ?? 0, 1) ||
+        (secondaryClaimant(control.secondaryClaimProgress) !== null &&
+          (!teams.has(
+            secondaryClaimant(control.secondaryClaimProgress) as number,
+          ) ||
+            secondaryClaimant(control.secondaryClaimProgress) ===
+              control.secondaryOwnerTeamId));
       if (invalidControl) {
         fail(`${path}.mode`, 'violates frontline control invariants');
       }
@@ -3827,6 +6208,17 @@ function validateV3Relationships(
     );
   }
 
+  // The mind-era derived facts, accumulated across ticks so the mirror can
+  // decide them alone: the seed each life was declared with, and the last tag
+  // each mind actually set. Empty on a per-life document.
+  const seedsByActor = new Map<string, string>(
+    initialFrame.lifeStarts.map((start) => [
+      actorValue(start.actorId),
+      start.actorRandomSeed,
+    ]),
+  );
+  const roleTags = new Map<string, string>();
+
   let previousWorld = initialFrame.state;
   document.ticks.forEach((tick, tickIndex) => {
     const path = `replay.ticks[${tickIndex}]`;
@@ -3852,10 +6244,32 @@ function validateV3Relationships(
         'must cover exactly the tick-start active lives',
       );
     }
-    ensureUnique(tick.actorTurns, (turn) => actorValue(turn.actorId), `${path}.actorTurns`, fail);
+    // Under the mind, the per-body turns are DERIVED from one turn per
+    // participant. Deriving them here rather than branching every check below
+    // is the same trade the memo makes for the viewer: the union was always
+    // the interesting invariant, and the per-life specialization of it was
+    // only ever a projection.
+    for (const start of tick.tickStart.lifeStarts) {
+      seedsByActor.set(actorValue(start.actorId), start.actorRandomSeed);
+    }
+    const mindTurns = tick.mindTurns;
+    const turns = mindTurns
+      ? mindTurns.flatMap(specializeMindTurn)
+      : (tick.actorTurns ?? []);
+    if (mindTurns) {
+      validateMindTurnRelationships(
+        mindTurns,
+        tick,
+        path,
+        roleTags,
+        seedsByActor,
+        fail,
+      );
+    }
+    ensureUnique(turns, (turn) => actorValue(turn.actorId), `${path}.actorTurns`, fail);
     if (
       !sameSet(
-        tick.actorTurns.map((turn) => actorValue(turn.actorId)),
+        turns.map((turn) => actorValue(turn.actorId)),
         tick.tickStart.activeActorIds.map(actorValue),
       )
     ) {
@@ -3863,6 +6277,7 @@ function validateV3Relationships(
     }
     tick.tickStart.lifeStarts.forEach((start, index) => {
       const startPath = `${path}.tickStart.lifeStarts[${index}]`;
+      seedsByActor.set(actorValue(start.actorId), start.actorRandomSeed);
       validateStart(start, startPath);
       const life = tick.tickStart.state.activeLives.find(
         (candidate) =>
@@ -3876,7 +6291,7 @@ function validateV3Relationships(
         fail(startPath, 'must match a tick-start authoritative active life');
       }
     });
-    tick.actorTurns.forEach((turn, turnIndex) => {
+    turns.forEach((turn, turnIndex) => {
       const turnPath = `${path}.actorTurns[${turnIndex}]`;
       const actor = tick.tickStart.state.activeLives.find(
         (life) => actorValue(life.actorId) === actorValue(turn.actorId),
@@ -3902,6 +6317,7 @@ function validateV3Relationships(
         actor.health !== observedSelf.health ||
         actor.cooldown !== observedSelf.cooldown ||
         actor.energy !== observedSelf.energy ||
+        observedSelf.classId !== classForActor(turn.actorId) ||
         JSON.stringify(actor.previousActionResolution) !==
           JSON.stringify(observedSelf.previousActionResolution) ||
         JSON.stringify(actor.pendingSameLifeTransition) !==
@@ -3917,8 +6333,10 @@ function validateV3Relationships(
           JSON.stringify(tick.tickStart.state.participants) ||
         JSON.stringify(turn.observation.scoreboard) !==
           JSON.stringify(tick.tickStart.state.scoreboard) ||
-        JSON.stringify(turn.observation.mode) !==
-          JSON.stringify(tick.tickStart.state.mode)
+        !observedModeMatchesWorld(
+          turn.observation.mode,
+          tick.tickStart.state.mode,
+        )
       ) {
         fail(
           `${turnPath}.observation`,
@@ -3954,6 +6372,86 @@ function validateV3Relationships(
           );
         }
       });
+      [...turn.observation.allies, ...turn.observation.enemies].forEach(
+        (observedActor, observedIndex) => {
+          if (
+            observedActor.classId !==
+            classForActor(observedActor.actorId)
+          ) {
+            fail(
+              `${turnPath}.observation.visibleActors[${observedIndex}].classId`,
+              'must match the observed actor controller classId',
+            );
+          }
+        },
+      );
+      turn.observation.visibleTiles.forEach((tile, tileIndex) => {
+        const expected = spawnReservationAt(
+          tile.position,
+          tick.tickStart.state,
+        );
+        if (
+          JSON.stringify(tile.spawnReservation ?? null) !==
+          JSON.stringify(expected)
+        ) {
+          fail(
+            `${turnPath}.observation.visibleTiles[${tileIndex}].spawnReservation`,
+            'must match the authoritative tick-start spawn claim',
+          );
+        }
+      });
+      const authoritativeProjectiles = new Map(
+        tick.tickStart.state.projectiles.map((projectile) => [
+          projectile.projectileId,
+          projectile,
+        ]),
+      );
+      turn.observation.visibleProjectiles?.forEach(
+        (observedProjectile, projectileIndex) => {
+          const authoritative = authoritativeProjectiles.get(
+            observedProjectile.projectileId,
+          );
+          const profile = authoritative
+            ? attackProfiles.get(authoritative.attackProfileId)
+            : undefined;
+          const expectedOwnerActorId =
+            authoritative &&
+            (authoritative.ownerTeamId === turn.actorId.teamId ||
+              turn.observation.enemies.some(
+                (enemy) =>
+                  actorValue(enemy.actorId) ===
+                  actorValue(authoritative.ownerActorId),
+              ))
+              ? authoritative.ownerActorId
+              : null;
+          if (
+            !authoritative ||
+            !profile ||
+            observedProjectile.ownerTeamId !==
+              authoritative.ownerTeamId ||
+            JSON.stringify(observedProjectile.ownerActorId) !==
+              JSON.stringify(expectedOwnerActorId) ||
+            JSON.stringify(observedProjectile.position) !==
+              JSON.stringify(authoritative.position) ||
+            observedProjectile.heading !== authoritative.heading ||
+            observedProjectile.tilesPerAdvance !==
+              profile.projectile.tilesPerAdvance ||
+            observedProjectile.ticksUntilAdvance !==
+              authoritative.ticksUntilAdvance ||
+            observedProjectile.remainingTiles !==
+              authoritative.remainingTiles ||
+            observedProjectile.ticksPerAdvance !==
+              profile.projectile.ticksPerAdvance ||
+            observedProjectile.damagePerHit !==
+              profile.projectile.damagePerHit
+          ) {
+            fail(
+              `${turnPath}.observation.visibleProjectiles[${projectileIndex}]`,
+              'must match the authoritative projectile and attack profile',
+            );
+          }
+        },
+      );
       const actionsById = new Map(
         contract.rules.actions.map((action) => [action.id, action]),
       );
@@ -4147,30 +6645,33 @@ function validateV3Relationships(
     ) {
       fail('replay.result.mode', 'must match completion reason and final mode');
     }
-    ensureUnique(
-      result.mode.scores.map((score) => score.teamId),
-      (teamId) => teamId,
-      'replay.result.mode.scores',
-      fail,
-    );
-    result.mode.scores.forEach((score, index) => {
+    if (result.mode.kind !== 'arc-relay') {
+      const modeScores = result.mode.scores;
+      ensureUnique(
+        modeScores.map((score) => score.teamId),
+        (teamId) => teamId,
+        'replay.result.mode.scores',
+        fail,
+      );
+      modeScores.forEach((score, index) => {
+        if (
+          index > 0 &&
+          score.teamId <= modeScores[index - 1]!.teamId
+        ) {
+          fail(
+            `replay.result.mode.scores[${index}].teamId`,
+            'must be in canonical ascending team order',
+          );
+        }
+      });
       if (
-        index > 0 &&
-        score.teamId <= result.mode.scores[index - 1]!.teamId
+        !sameSet(
+          modeScores.map((score) => String(score.teamId)),
+          topology.teams.map((team) => String(team.teamId)),
+        )
       ) {
-        fail(
-          `replay.result.mode.scores[${index}].teamId`,
-          'must be in canonical ascending team order',
-        );
+        fail('replay.result.mode.scores', 'must cover exactly topology teams');
       }
-    });
-    if (
-      !sameSet(
-        result.mode.scores.map((score) => String(score.teamId)),
-        topology.teams.map((team) => String(team.teamId)),
-      )
-    ) {
-      fail('replay.result.mode.scores', 'must cover exactly topology teams');
     }
     if (
       result.mode.kind === 'deathmatch' &&
@@ -4547,6 +7048,45 @@ function validateV3Relationships(
         );
       }
     }
+    if (
+      result.mode.kind === 'arc-relay' &&
+      finalWorld.mode.kind === 'arc-relay' &&
+      contract.rules.gameMode.kind === 'arc-relay'
+    ) {
+      if (JSON.stringify(result.mode.state) !== JSON.stringify(finalWorld.mode)) {
+        fail(
+          'replay.result.mode.state',
+          'must exactly match final authoritative Arc Relay state',
+        );
+      }
+      if (
+        result.mode.reason === 'max-ticks' &&
+        finalWorld.nextTick !== contract.rules.limits.maxTicks
+      ) {
+        fail(
+          'replay.result.mode.reason',
+          'max-ticks requires the configured maximum tick boundary',
+        );
+      }
+      if (
+        result.mode.reason === 'reactor-destroyed' &&
+        !finalWorld.mode.reactors.some((reactor) => reactor.integritySegments === 0)
+      ) {
+        fail(
+          'replay.result.mode.reason',
+          'reactor-destroyed requires a reactor with no integrity segments',
+        );
+      }
+      if (
+        result.mode.reason === 'fault-eligibility' &&
+        result.eligibleTeamIds.length > 1
+      ) {
+        fail(
+          'replay.result.mode.reason',
+          'fault eligibility requires at most one eligible team',
+        );
+      }
+    }
   }
 }
 
@@ -4632,6 +7172,7 @@ export function normalizeReplayV3(
         participantId: participant.participantId,
         teamKey: replayTeamKey(participant.teamId),
         teamId: participant.teamId,
+        classId: participant.classId ?? null,
         name: source?.name ?? `participant ${participant.participantId}`,
         runtimeKind: source?.runtimeKind ?? 'unknown',
         artifactHash: source?.artifactHash ?? null,
@@ -4660,6 +7201,7 @@ export function normalizeReplayV3(
         initialActorKey: initialActor?.actorKey ?? null,
         initialLifeId: initialLife?.lifeId ?? null,
         initialFormId: initialLife?.formId ?? null,
+        classId: slot.classId ?? null,
       };
     });
   const teams = [...contract.topology.teams]
@@ -4667,6 +7209,7 @@ export function normalizeReplayV3(
     .map<Model.ReplayTeam>((team) => ({
       teamKey: replayTeamKey(team.teamId),
       teamId: team.teamId,
+      classId: team.classId ?? null,
       participantKeys: participants
         .filter((participant) => participant.teamId === team.teamId)
         .map((participant) => participant.participantKey),
@@ -4805,6 +7348,24 @@ function contractFromV3(
       return {
         kind: 'deathmatch',
         modeId: contract.rules.gameMode.modeId,
+      };
+    }
+    if (contract.rules.gameMode.kind === 'arc-relay') {
+      if (contract.modeMapBinding.kind !== 'arc-relay') {
+        throw new Error('validated replay-v3 lost its Arc Relay map binding');
+      }
+      return {
+        kind: 'arc-relay',
+        modeId: contract.rules.gameMode.modeId,
+        pendingRearmTicks: contract.rules.gameMode.pendingRearmTicks,
+        coreRelocationIntervalTicks:
+          contract.rules.gameMode.coreRelocationIntervalTicks,
+        coresPerPulse: contract.rules.gameMode.coresPerPulse,
+        pulsesToDestroyReactor:
+          contract.rules.gameMode.victory.pulsesToDestroyReactor,
+        orderedWellRegionIds: [
+          ...contract.modeMapBinding.orderedWellRegionIds,
+        ],
       };
     }
     if (contract.modeMapBinding.kind !== 'frontline') {
@@ -5092,12 +7653,14 @@ function contractFromV3(
       teams: topology.teams.map((team) => ({
         teamId: team.teamId,
         teamKey: replayTeamKey(team.teamId),
+        classId: team.classId ?? null,
       })),
       participants: topology.participants.map((participant) => ({
         participantId: participant.participantId,
         participantKey: replayParticipantKey(participant.participantId),
         teamId: participant.teamId,
         teamKey: replayTeamKey(participant.teamId),
+        classId: participant.classId ?? null,
       })),
       unitSlots: topology.unitSlots.map((slot) => ({
         teamId: slot.teamId,
@@ -5139,6 +7702,10 @@ function mapFromV3(header: V3.ReplayV3Header): Model.ReplayMap {
       frontline?.positions.flatMap((position) =>
         position.tiles.map((tile) => ({ ...tile })),
       ) ?? [],
+    regions: map.regions.map((region) => ({
+      regionId: region.regionId,
+      tiles: region.tiles.map(positionFromTuple),
+    })),
     frontline,
     presentation: header.presentation
       ? {
@@ -5175,10 +7742,23 @@ function scoreboardFromV3(
   };
 }
 
+/**
+ * The team a signed side-objective claim belongs to: positive counts for team
+ * 0 and negative for team 1, the direction the public team-advance ordering
+ * uses. Zero is no claim at all.
+ */
+function secondaryClaimant(claimProgress: number): number | null {
+  if (claimProgress === 0) {
+    return null;
+  }
+  return claimProgress > 0 ? 0 : 1;
+}
+
 function modeFromV3(mode: V3.ReplayV3ModeState): Model.ReplayModeState {
-  return mode.kind === 'deathmatch'
-    ? { kind: 'deathmatch', modeId: mode.modeId }
-    : {
+  if (mode.kind === 'deathmatch')
+    return { kind: 'deathmatch', modeId: mode.modeId };
+  if (mode.kind === 'frontline')
+    return {
         kind: 'frontline',
         modeId: mode.modeId,
         activePositionIndex: mode.activePositionIndex,
@@ -5186,7 +7766,92 @@ function modeFromV3(mode: V3.ReplayV3ModeState): Model.ReplayModeState {
         captureProgress: mode.captureProgress,
         decayTicksElapsed: mode.decayTicksElapsed,
         controlResumesAtTick: mode.controlResumesAtTick,
+        holdOwnerTeamId: mode.holdOwnerTeamId,
+        holdEndsAtTick: mode.holdEndsAtTick,
+        secondaryOwnerTeamId: mode.secondaryOwnerTeamId,
+        secondaryClaimProgress: mode.secondaryClaimProgress,
+        // Spread rather than assign: the economy's collections are absent
+        // on every ruleset without one, and an explicit `undefined` key is a
+        // different shape from an omitted one.
+        ...(mode.scrapTeams === undefined
+          ? {}
+          : {
+              scrapTeams: mode.scrapTeams.map((team) => ({
+                teamId: team.teamId,
+                bank: team.bank,
+                tierLevels: [...team.tierLevels],
+              })),
+            }),
+        ...(mode.scrapPiles === undefined
+          ? {}
+          : {
+              scrapPiles: mode.scrapPiles.map((pile) => ({
+                position: { x: pile.position.x, y: pile.position.y },
+                amount: pile.amount,
+                expiresAtTick: pile.expiresAtTick,
+              })),
+            }),
       };
+  return {
+    kind: 'arc-relay',
+    modeId: mode.modeId,
+    wells: mode.wells.map((well) => ({
+      ...well,
+      position: copyPosition(well.position),
+      outstandingCoreId: well.outstandingCoreId
+        ? { ...well.outstandingCoreId }
+        : null,
+    })),
+    reactors: mode.reactors.map((reactor) => ({
+      teamId: reactor.teamId,
+      position: copyPosition(reactor.position),
+      chargePips: reactor.chargePips,
+      integritySegments: reactor.integritySegments,
+      filledSocketWellIds: [...(reactor.filledSocketWellIds ?? [])],
+    })),
+    visibleCores: mode.visibleCores.map((core) => ({
+      coreId: { ...core.coreId },
+      position: copyPosition(core.position),
+      disposition: core.disposition,
+      carrierActor: core.carrierActorId
+        ? identity(core.carrierActorId)
+        : null,
+      nextRelocationTick: core.nextRelocationTick,
+      flightTarget: core.flightTarget
+        ? copyPosition(core.flightTarget)
+        : null,
+      flightCompletesAtTick: core.flightCompletesAtTick,
+    })),
+    visibleSignatures: mode.visibleSignatures.map((signature) => ({
+      operationId: signature.operationId,
+      signatureId: signature.signatureId,
+      signatureKind: signature.signatureKind,
+      ownerActor: identity(signature.ownerActorId),
+      ownerTeamId: signature.ownerTeamId,
+      phase: signature.phase,
+      startedTick: signature.startedTick,
+      completesAtTick: signature.completesAtTick,
+      endsAtTick: signature.endsAtTick,
+      positions: signature.positions.map(copyPosition),
+      targetActor: signature.targetActorId
+        ? identity(signature.targetActorId)
+        : null,
+      remainingCapacity: signature.remainingCapacity,
+      suppressed: signature.suppressed,
+    })),
+    latestPulseTeamId: mode.latestPulseTeamId,
+    latestPulseTick: mode.latestPulseTick,
+    pendingStrikes: (mode.pendingStrikes ?? []).map((strike) => ({
+      shooter: identity(strike.shooter),
+      resolveAtTick: strike.resolveAtTick,
+      origin: strike.origin ? copyPosition(strike.origin) : null,
+      centralHeading:
+        (strike.centralHeading as Model.ReplayProjectileHeading | undefined) ??
+        null,
+      target: strike.target ? identity(strike.target) : null,
+      tiles: strike.tiles.map(copyPosition),
+    })),
+  };
 }
 
 function objectiveFromV3(
@@ -5201,6 +7866,8 @@ function objectiveFromV3(
       captureProgress: mode.captureProgress,
       decayTicksElapsed: mode.decayTicksElapsed,
       controlResumesAtTick: mode.controlResumesAtTick,
+      holdOwnerTeamId: mode.holdOwnerTeamId,
+      holdEndsAtTick: mode.holdEndsAtTick,
       winnerTeamId: null,
       completeness: 'exact',
     };
@@ -5385,6 +8052,7 @@ function worldFromV3(
       participantId: participant.participantId,
       teamKey: replayTeamKey(participant.teamId),
       teamId: participant.teamId,
+      classId: participant.classId ?? null,
       runtimeFaultCount: participant.runtimeFaultCount,
       disqualified: participant.disqualified,
     })),
@@ -5444,7 +8112,12 @@ function tickFromV3(
       (actor) => identity(actor).actorKey,
     ),
     lifecycleEvents: tick.tickStart.events.map(eventFromV3),
-    actorTurns: tick.actorTurns.map((turn) =>
+    // A mind tick's per-body turns are derived from its one turn per
+    // participant, so everything downstream — fog, per-unit facts, the bot
+    // panel, both renderers — is untouched by the profile (§5.3).
+    actorTurns: (
+      tick.actorTurns ?? (tick.mindTurns ?? []).flatMap(specializeMindTurn)
+    ).map((turn) =>
       actorTurnFromV3(turn, starts.get(actorValue(turn.actorId)) ?? null),
     ),
     events: tick.events.map(eventFromV3),
@@ -5465,6 +8138,7 @@ function payloadFromArguments(
     launchHeading: null,
     unitKey: null,
     formTargetId: null,
+    positionTarget: null,
   };
   for (const argument of argumentsValue) {
     switch (argument.kind) {
@@ -5486,6 +8160,9 @@ function payloadFromArguments(
       case 'form-target':
         payload.formTargetId = argument.formId;
         break;
+      case 'position-target':
+        payload.positionTarget = copyPosition(argument.value);
+        break;
     }
   }
   return payload;
@@ -5501,6 +8178,7 @@ function rawPayload(
     launchHeading: null,
     unitKey: null,
     formTargetId: null,
+    positionTarget: null,
   };
   for (const argument of argumentsValue) {
     if (argument === null) continue;
@@ -5516,6 +8194,9 @@ function rawPayload(
         break;
       case 'form-target':
         payload.formTargetId = argument.formId;
+        break;
+      case 'position-target':
+        payload.positionTarget = copyPosition(argument.value);
         break;
       // Raw numeric enum arguments deliberately remain only on the retained
       // wire document until they have been accepted into a named value.
@@ -5578,6 +8259,7 @@ function lifeStartFromV3(
     actor: identity(start.actorId),
     participantId: start.participantId,
     actorRandomSeed: start.actorRandomSeed,
+    teamRandomSeed: start.teamRandomSeed ?? null,
     spawnReason: start.origin.reason,
     generation: start.origin.generation,
     parentActor: start.origin.parentActorId
@@ -5595,6 +8277,7 @@ function observedActor(
 ): Model.ReplayObservedActor {
   return {
     actor: { kind: 'exact', identity: identity(actor.actorId) },
+    classId: actor.classId ?? null,
     formId: actor.formId,
     position: copyPosition(actor.position),
     facing: actor.facing,
@@ -5609,6 +8292,13 @@ function observedActor(
       actor.formId,
     ),
     observedBy,
+    // The wire omits the key while a body carries nothing, and omits it for
+    // the whole match on a ruleset with no declared economy. Both mean the
+    // same thing to a viewer, so normalization settles them into one number.
+    carriedScrap: actor.carriedScrap ?? 0,
+    // Absent means unlabelled, which is what an unlabelled body should look
+    // like. Never the string "none".
+    roleTag: actor.roleTag ?? null,
   };
 }
 
@@ -5660,6 +8350,7 @@ function observationFromV3(
       participantId: participant.participantId,
       teamKey: replayTeamKey(participant.teamId),
       teamId: participant.teamId,
+      classId: participant.classId ?? null,
       runtimeFaultCount: participant.runtimeFaultCount,
       disqualified: participant.disqualified,
     })),
@@ -5670,6 +8361,7 @@ function observationFromV3(
     ),
     enemies: observation.enemies.map((enemy) => ({
       actor: { kind: 'exact', identity: identity(enemy.actorId) },
+      classId: enemy.classId ?? null,
       formId: enemy.formId,
       position: copyPosition(enemy.position),
       facing: enemy.facing,
@@ -5682,11 +8374,27 @@ function observationFromV3(
         enemy.formId,
       ),
       observedBy: enemy.observedBy.map((actor) => identity(actor).actorKey),
+      carriedScrap: enemy.carriedScrap ?? 0,
+      // Public on visible enemies by design (§12.2): half the drama of a
+      // set-piece is seeing both sides' assignments and knowing one is wrong.
+      roleTag: enemy.roleTag ?? null,
     })),
     visibleTiles: observation.visibleTiles.map((tile) => ({
       position: copyPosition(tile.position),
       isWall: tile.isWall,
       observedBy: tile.observedBy.map((actor) => identity(actor).actorKey),
+      spawnReservation: tile.spawnReservation
+        ? {
+            teamId: tile.spawnReservation.teamId,
+            unitId: tile.spawnReservation.unitId,
+            unitKey: genericUnitKey(
+              tile.spawnReservation.teamId,
+              tile.spawnReservation.unitId,
+            ),
+            kind: tile.spawnReservation.kind,
+            dueTick: tile.spawnReservation.dueTick ?? null,
+          }
+        : null,
     })),
     visibleProjectiles:
       observation.visibleProjectiles?.map((projectile) => {
@@ -5709,6 +8417,8 @@ function observationFromV3(
           observedBy: projectile.observedBy.map(
             (actor) => identity(actor).actorKey,
           ),
+          ticksPerAdvance: projectile.ticksPerAdvance,
+          damagePerHit: projectile.damagePerHit,
         };
       }) ?? null,
     visibleEvents: observation.visibleEvents.map(observedEventFromV3),
@@ -5731,6 +8441,8 @@ function observationFromV3(
             captureProgress: observation.mode.captureProgress,
             decayTicksElapsed: observation.mode.decayTicksElapsed,
             controlResumesAtTick: observation.mode.controlResumesAtTick,
+            holdOwnerTeamId: observation.mode.holdOwnerTeamId,
+            holdEndsAtTick: observation.mode.holdEndsAtTick,
           }
         : null,
     actions: observation.actionLegalities.map((legality) => {
@@ -5748,6 +8460,12 @@ function observationFromV3(
       );
       const forms = legality.constraints.find(
         (constraint) => constraint.kind === 'form-target',
+      );
+      const positions = legality.constraints.find(
+        (constraint) => constraint.kind === 'position-target',
+      );
+      const tracks = legality.constraints.find(
+        (constraint) => constraint.kind === 'upgrade-track',
       );
       return {
         actionId: legality.actionId,
@@ -5775,6 +8493,14 @@ function observationFromV3(
             : null,
         allowedFormTargets:
           forms?.kind === 'form-target' ? [...forms.allowedFormIds] : null,
+        allowedPositions:
+          positions?.kind === 'position-target'
+            ? positions.allowedValues.map(copyPosition)
+            : null,
+        allowedUpgradeTracks:
+          tracks?.kind === 'upgrade-track'
+            ? [...tracks.allowedTrackIds]
+            : null,
       };
     }),
   };
@@ -5861,6 +8587,137 @@ function actionFromPayload(
   payload: Record<string, unknown>,
 ): V3.ReplayV3ResolvedAction | null {
   return (payload.action as V3.ReplayV3ResolvedAction | undefined) ?? null;
+}
+
+function arcRelayFactFromV3(
+  fact: V3.ReplayV3ArcRelayFact,
+): Model.ReplayArcRelayFact {
+  switch (fact.kind) {
+    case 'core-born':
+      return {
+        kind: fact.kind,
+        coreId: { ...fact.coreId },
+        position: copyPosition(fact.position),
+        chargeValue: fact.chargeValue ?? 1,
+      };
+    case 'core-ripened':
+      return {
+        kind: fact.kind,
+        coreId: { ...fact.coreId },
+        position: copyPosition(fact.position),
+        value: fact.value,
+      };
+    case 'leveled-up':
+      return {
+        kind: fact.kind,
+        actor: identity(fact.actorId),
+        level: fact.level,
+        position: copyPosition(fact.position),
+      };
+    case 'zone-healed':
+      return {
+        kind: fact.kind,
+        actor: identity(fact.actorId),
+        amount: fact.amount,
+        newHealth: fact.newHealth,
+        position: copyPosition(fact.position),
+      };
+    case 'core-picked-up':
+      return {
+        kind: fact.kind,
+        coreId: { ...fact.coreId },
+        carrierActor: identity(fact.carrierActorId),
+        position: copyPosition(fact.position),
+        nextRelocationTick: fact.nextRelocationTick,
+      };
+    case 'core-relocated':
+      return {
+        kind: fact.kind,
+        coreId: { ...fact.coreId },
+        carrierActor: fact.carrierActorId
+          ? identity(fact.carrierActorId)
+          : null,
+        from: copyPosition(fact.from),
+        to: copyPosition(fact.to),
+        nextRelocationTick: fact.nextRelocationTick,
+        relocationKind: fact.relocationKind,
+      };
+    case 'core-handed-off':
+      return {
+        kind: fact.kind,
+        coreId: { ...fact.coreId },
+        sourceActor: identity(fact.sourceActorId),
+        targetActor: identity(fact.targetActorId),
+        position: copyPosition(fact.position),
+        nextRelocationTick: fact.nextRelocationTick,
+      };
+    case 'core-dropped':
+      return {
+        kind: fact.kind,
+        coreId: { ...fact.coreId },
+        sourceActor: identity(fact.sourceActorId),
+        position: copyPosition(fact.position),
+        nextRelocationTick: fact.nextRelocationTick,
+        dropKind: fact.dropKind,
+      };
+    case 'core-banked':
+      return {
+        kind: fact.kind,
+        coreId: { ...fact.coreId },
+        carrierActor: identity(fact.carrierActorId),
+        teamId: fact.teamId,
+        position: copyPosition(fact.position),
+        chargePips: fact.chargePips,
+      };
+    case 'well-changed':
+      return {
+        kind: fact.kind,
+        wellId: fact.wellId,
+        pendingCharge: fact.pendingCharge,
+        rearmCompletesAtTick: fact.rearmCompletesAtTick,
+        outstandingCoreId: fact.outstandingCoreId
+          ? { ...fact.outstandingCoreId }
+          : null,
+      };
+    case 'pulse':
+      return {
+        kind: fact.kind,
+        teamId: fact.teamId,
+        pulseOrdinal: fact.pulseOrdinal,
+        opposingReactorIntegrity: fact.opposingReactorIntegrity,
+      };
+    case 'signature-changed':
+      return {
+        kind: fact.kind,
+        operationId: fact.operationId,
+        signatureId: fact.signatureId,
+        ownerActor: identity(fact.ownerActorId),
+        phase: fact.phase,
+        reason: fact.reason,
+      };
+    case 'body-relocated':
+      return {
+        kind: fact.kind,
+        operationId: fact.operationId,
+        signatureId: fact.signatureId,
+        ownerActor: identity(fact.ownerActorId),
+        targetActor: identity(fact.targetActorId),
+        from: copyPosition(fact.from),
+        to: copyPosition(fact.to),
+      };
+    case 'signature-damage':
+    case 'signature-repair':
+      return {
+        kind: fact.kind,
+        operationId: fact.operationId,
+        signatureId: fact.signatureId,
+        ownerActor: identity(fact.ownerActorId),
+        targetActor: identity(fact.targetActorId),
+        amount: fact.amount,
+        newHealth: fact.newHealth,
+        position: copyPosition(fact.position),
+      };
+  }
 }
 
 function observedEventFromV3(
@@ -5976,7 +8833,12 @@ function eventFromV3(
     ) as Model.ReplayDirection | null,
     toFacing:
       (stringField(payload, 'toFacing') as Model.ReplayDirection | null) ??
-      (stringField(payload, 'facing') as Model.ReplayDirection | null),
+      (stringField(payload, 'facing') as Model.ReplayDirection | null) ??
+      // `projectile-deflected` carries the guard's own facing, and it is the
+      // load-bearing field of the event: the shell turns contacts arriving in
+      // that quadrant and nothing else. Surfaced beside `targetFormId` below,
+      // which the same event uses the same way.
+      (stringField(payload, 'targetFacing') as Model.ReplayDirection | null),
     projectileHeading: stringField(
       payload,
       'heading',
@@ -6013,6 +8875,10 @@ function eventFromV3(
     completeness: 'exact',
     globalOrdinal: event.globalOrdinal,
     payloadKind: event.payload.kind,
+    arcRelayFact:
+      event.payload.kind === 'arc-relay'
+        ? arcRelayFactFromV3(event.payload.fact)
+        : undefined,
     audience:
       event.audience.kind === 'spatial'
         ? {
@@ -6147,14 +9013,24 @@ function resultFromV3(
               ...score,
             })),
           }
-        : {
-            kind: 'frontline',
-            reason: result.mode.reason,
-            control: { ...result.mode.control },
-            scores: result.mode.scores.map((score) => ({
-              teamKey: replayTeamKey(score.teamId),
-              ...score,
-            })),
-          },
+        : result.mode.kind === 'frontline'
+          ? {
+              kind: 'frontline',
+              reason: result.mode.reason,
+              control: {
+                ...result.mode.control,
+                holdOwnerTeamId: result.mode.control.holdOwnerTeamId,
+                holdEndsAtTick: result.mode.control.holdEndsAtTick,
+              },
+              scores: result.mode.scores.map((score) => ({
+                teamKey: replayTeamKey(score.teamId),
+                ...score,
+              })),
+            }
+          : {
+              kind: 'arc-relay',
+              reason: result.mode.reason,
+              state: modeFromV3(result.mode.state) as Model.ReplayArcRelayModeState,
+            },
   };
 }

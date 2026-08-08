@@ -1,0 +1,10 @@
+{
+  "id": "arc-relay",
+  "label": "Relay",
+  "sprite": "sprite.png",
+  "suggestedAccent": "#38bdf8",
+  "defaultProjectile": "arc-pulse",
+  "classId": "relay",
+  "locomotionCue": "skids",
+  "scale": 1.05
+}

@@ -1,0 +1,703 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://nilbots.com/schemas/balance-lab-spec-3.json",
+  "title": "Nilbots Balance Lab experiment",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "experimentId",
+    "status",
+    "hypothesis",
+    "studyBlocks",
+    "ablationRegistry",
+    "factors",
+    "pairedSeeds",
+    "holdout",
+    "studyDesign",
+    "toolchain",
+    "verifyCommand",
+    "evaluationProfileId",
+    "candidates",
+    "populations"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "schemaVersion": {
+      "const": 3
+    },
+    "experimentId": {
+      "$ref": "#/$defs/slug"
+    },
+    "status": {
+      "const": "experimental"
+    },
+    "hypothesis": {
+      "type": "string",
+      "minLength": 1
+    },
+    "studyBlocks": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/studyBlock"
+      }
+    },
+    "ablationRegistry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sha256": {
+          "$ref": "#/$defs/fingerprint"
+        }
+      }
+    },
+    "factors": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {
+        "$ref": "#/$defs/slug"
+      },
+      "additionalProperties": {
+        "type": "array",
+        "minItems": 1,
+        "uniqueItems": true,
+        "items": {
+          "$ref": "#/$defs/slug"
+        }
+      }
+    },
+    "pairedSeeds": {
+      "$ref": "#/$defs/seeds"
+    },
+    "holdout": {
+      "$ref": "#/$defs/holdout"
+    },
+    "studyDesign": {
+      "$ref": "#/$defs/studyDesign"
+    },
+    "toolchain": {
+      "$ref": "#/$defs/toolchain"
+    },
+    "verifyCommand": {
+      "type": "string",
+      "minLength": 1
+    },
+    "evaluationProfileId": {
+      "enum": [
+        "two-team-zero-sum-v1"
+      ]
+    },
+    "dynamicsAdapter": {
+      "enum": [
+        "generic-frontline-replay-v3"
+      ]
+    },
+    "candidates": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/candidate"
+      }
+    },
+    "populations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/population"
+      }
+    }
+  },
+  "$defs": {
+    "slug": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+    },
+    "fingerprint": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "seeds": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "integer",
+        "minimum": 0
+      }
+    },
+    "holdout": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "protocol",
+            "reason"
+          ],
+          "properties": {
+            "protocol": {
+              "const": "none"
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "protocol",
+            "commitmentSha256",
+            "seedCount"
+          ],
+          "properties": {
+            "protocol": {
+              "const": "sha256-commit-reveal-v1"
+            },
+            "commitmentSha256": {
+              "$ref": "#/$defs/fingerprint"
+            },
+            "seedCount": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        }
+      ]
+    },
+    "studyDesign": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "decisionProfileId",
+        "analysisUnit",
+        "confidenceLevel",
+        "bootstrapResamples",
+        "minimumMirroredUnitsPerCell",
+        "minimumEntrantPairsPerCell",
+        "minimumSeedsPerEntrantPair",
+        "minimumIndependentLineagesPerPopulation",
+        "minimumVotingLineagesPerPopulation",
+        "minimumVotingTier",
+        "multiplicityPolicy",
+        "requiredEvidenceLayers"
+      ],
+      "properties": {
+        "decisionProfileId": {
+          "$ref": "#/$defs/slug"
+        },
+        "analysisUnit": {
+          "enum": [
+            "mirrored-entrant-pair-seed-v1",
+            "class-bound-mirrored-where-possible-v1"
+          ]
+        },
+        "confidenceLevel": {
+          "type": "number",
+          "exclusiveMinimum": 0.5,
+          "exclusiveMaximum": 1
+        },
+        "bootstrapResamples": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 100000
+        },
+        "minimumMirroredUnitsPerCell": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "minimumEntrantPairsPerCell": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "minimumSeedsPerEntrantPair": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "minimumIndependentLineagesPerPopulation": {
+          "type": "integer",
+          "minimum": 2
+        },
+        "minimumVotingLineagesPerPopulation": {
+          "type": "integer",
+          "minimum": 2
+        },
+        "minimumVotingTier": {
+          "enum": [
+            "T2",
+            "T3",
+            "T4",
+            "T5",
+            "T6",
+            "T7",
+            "T8"
+          ]
+        },
+        "multiplicityPolicy": {
+          "enum": [
+            "diagnostic-no-selection",
+            "bonferroni-all-contrasts-v1"
+          ]
+        },
+        "requiredEvidenceLayers": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "contract-validity",
+              "static-map-analysis",
+              "exact-tactical-analysis",
+              "qualification",
+              "population-cross-play",
+              "restricted-play",
+              "adversarial-sentinels",
+              "statistical-sufficiency",
+              "holdout",
+              "blind-replay-review",
+              "author-dx"
+            ]
+          }
+        }
+      }
+    },
+    "commonRandomness": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "protocol"
+          ],
+          "properties": {
+            "protocol": {
+              "const": "not-required"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "protocol",
+            "seedProfileId"
+          ],
+          "properties": {
+            "protocol": {
+              "const": "shared-seed-profile-v1"
+            },
+            "seedProfileId": {
+              "$ref": "#/$defs/slug"
+            }
+          }
+        }
+      ]
+    },
+    "studyBlock": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "role",
+        "hypothesis",
+        "qualificationProfileId",
+        "candidateIds",
+        "populationIds",
+        "includeSelfPlay",
+        "commonRandomness"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/slug"
+        },
+        "role": {
+          "enum": [
+            "compatibility-sentinel",
+            "mechanic-causality",
+            "native-product",
+            "infrastructure-smoke",
+            "adversarial-sentinel"
+          ]
+        },
+        "hypothesis": {
+          "type": "string",
+          "minLength": 1
+        },
+        "qualificationProfileId": {
+          "$ref": "#/$defs/slug"
+        },
+        "candidateIds": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/slug"
+          }
+        },
+        "populationIds": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/slug"
+          }
+        },
+        "includeSelfPlay": {
+          "type": "boolean"
+        },
+        "commonRandomness": {
+          "$ref": "#/$defs/commonRandomness"
+        }
+      }
+    },
+    "toolchain": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "protocol",
+            "reason"
+          ],
+          "properties": {
+            "protocol": {
+              "const": "diagnostic-current-process"
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "protocol",
+            "buildCommand",
+            "entrypoint"
+          ],
+          "properties": {
+            "protocol": {
+              "const": "frozen-build-output-v1"
+            },
+            "buildCommand": {
+              "type": "string",
+              "minLength": 1
+            },
+            "entrypoint": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._-]+$"
+            }
+          }
+        }
+      ]
+    },
+    "contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "modeId",
+        "rulesetId",
+        "rulesFingerprint",
+        "seedProfileId",
+        "mapId",
+        "mapVersion",
+        "mapFingerprint",
+        "formatId",
+        "formatFingerprint",
+        "topologyProfileId",
+        "topologyFingerprint",
+        "contractProfileId",
+        "matchContractFingerprint"
+      ],
+      "properties": {
+        "modeId": {
+          "$ref": "#/$defs/slug"
+        },
+        "rulesetId": {
+          "$ref": "#/$defs/slug"
+        },
+        "rulesFingerprint": {
+          "$ref": "#/$defs/fingerprint"
+        },
+        "seedProfileId": {
+          "$ref": "#/$defs/slug"
+        },
+        "mapId": {
+          "$ref": "#/$defs/slug"
+        },
+        "mapVersion": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "mapFingerprint": {
+          "$ref": "#/$defs/fingerprint"
+        },
+        "formatId": {
+          "$ref": "#/$defs/slug"
+        },
+        "formatFingerprint": {
+          "$ref": "#/$defs/fingerprint"
+        },
+        "topologyProfileId": {
+          "$ref": "#/$defs/slug"
+        },
+        "topologyFingerprint": {
+          "$ref": "#/$defs/fingerprint"
+        },
+        "contractProfileId": {
+          "$ref": "#/$defs/slug"
+        },
+        "matchContractFingerprint": {
+          "$ref": "#/$defs/fingerprint"
+        }
+      }
+    },
+    "candidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "factors",
+        "runnerCommand",
+        "contract"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/slug"
+        },
+        "factors": {
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": {
+            "$ref": "#/$defs/slug"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/slug"
+          }
+        },
+        "runnerCommand": {
+          "type": "string",
+          "minLength": 1
+        },
+        "contract": {
+          "$ref": "#/$defs/contract"
+        }
+      }
+    },
+    "qualification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "suiteId",
+        "suiteVersion",
+        "qualificationProfileId",
+        "qualificationContractFingerprint",
+        "evidence",
+        "evidenceSha256",
+        "tierAwarded",
+        "coordinationGradeAwarded",
+        "balanceEvidenceEligible"
+      ],
+      "properties": {
+        "suiteId": {
+          "$ref": "#/$defs/slug"
+        },
+        "suiteVersion": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "qualificationProfileId": {
+          "$ref": "#/$defs/slug"
+        },
+        "qualificationContractFingerprint": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/fingerprint"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "evidence": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "evidenceSha256": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/fingerprint"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "tierAwarded": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "coordinationGradeAwarded": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "balanceEvidenceEligible": {
+          "type": "boolean"
+        }
+      }
+    },
+    "entrant": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "authoringLineageId",
+        "doctrineId",
+        "authoringBudgetId",
+        "authorPacketSha256",
+        "root",
+        "artifact",
+        "artifactSha256",
+        "sourceTreeSha256",
+        "qualification"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/slug"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "authoringLineageId": {
+          "$ref": "#/$defs/slug"
+        },
+        "doctrineId": {
+          "$ref": "#/$defs/slug"
+        },
+        "authoringBudgetId": {
+          "$ref": "#/$defs/slug"
+        },
+        "authorPacketSha256": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/fingerprint"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "root": {
+          "type": "string",
+          "minLength": 1
+        },
+        "artifact": {
+          "type": "string",
+          "minLength": 1
+        },
+        "artifactSha256": {
+          "$ref": "#/$defs/fingerprint"
+        },
+        "sourceTreeSha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "qualification": {
+          "$ref": "#/$defs/qualification"
+        },
+        "classId": {
+          "$ref": "#/$defs/slug"
+        }
+      }
+    },
+    "population": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "tier",
+        "coordinationGrade",
+        "qualificationProfileId",
+        "qualificationContractFingerprint",
+        "balanceEvidenceEligible",
+        "entrants"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/slug"
+        },
+        "tier": {
+          "enum": [
+            "unqualified",
+            "R0",
+            "T1",
+            "T2",
+            "T3",
+            "T4",
+            "T5",
+            "T6",
+            "T7",
+            "T8"
+          ]
+        },
+        "coordinationGrade": {
+          "enum": [
+            "unqualified",
+            "C0",
+            "C1",
+            "C2",
+            "C3",
+            "C4",
+            "C5"
+          ]
+        },
+        "qualificationProfileId": {
+          "$ref": "#/$defs/slug"
+        },
+        "qualificationContractFingerprint": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/fingerprint"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "balanceEvidenceEligible": {
+          "type": "boolean"
+        },
+        "entrants": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "$ref": "#/$defs/entrant"
+          }
+        }
+      }
+    }
+  }
+}

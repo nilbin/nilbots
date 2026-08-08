@@ -1,0 +1,10 @@
+{
+  "id": "arc-switchback",
+  "label": "Switchback",
+  "sprite": "sprite.png",
+  "suggestedAccent": "#38bdf8",
+  "defaultProjectile": "arc-pulse",
+  "classId": "switchback",
+  "locomotionCue": "low-hover",
+  "scale": 1.06
+}

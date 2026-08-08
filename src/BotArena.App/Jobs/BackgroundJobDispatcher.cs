@@ -1,4 +1,5 @@
 using BotArena.App.Competition;
+using BotArena.App.ArcRelay;
 
 namespace BotArena.App.Jobs;
 
@@ -13,6 +14,7 @@ public sealed class BackgroundJobDispatcher(
     AnnounceMatchResultJobHandler announceMatchResult,
     AnnounceSetResultJobHandler announceSetResult,
     DeliverPushJobHandler deliverPush,
+    ArcRelayRatingSettlementJobHandler settleArcRelayRating,
     HostedGenericMatchDefinitionRegistry genericDefinitions)
 {
     public Task<JobExecutionResult> DispatchAsync(
@@ -48,6 +50,10 @@ public sealed class BackgroundJobDispatcher(
             BackgroundJob.DeliverPushType =>
                 deliverPush.HandleAsync(
                     job.PayloadId("notificationId"),
+                    cancellationToken),
+            BackgroundJob.SettleArcRelayRatingType =>
+                settleArcRelayRating.HandleAsync(
+                    job.PayloadId("matchId"),
                     cancellationToken),
             _ => throw new InvalidOperationException(
                 $"Unknown job type '{job.Type}'."),

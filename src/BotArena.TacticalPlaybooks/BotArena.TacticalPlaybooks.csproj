@@ -1,0 +1,4 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Pure source-to-package compiler shared by the CLI and hosted App.
+       It deliberately has no host, database, engine, or runtime dependency. -->
+</Project>

@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Switchback">
+  <defs>
+    <linearGradient id="switchback-chassis" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#5a5e64"/><stop offset=".42" stop-color="#24282e"/><stop offset="1" stop-color="#02060c"/>
+    </linearGradient>
+    <linearGradient id="switchback-plate" x1="0" y1="0" x2=".85" y2="1">
+      <stop stop-color="#fffffc"/><stop offset=".38" stop-color="#d8d4ca"/><stop offset="1" stop-color="#9e9a90"/>
+    </linearGradient>
+    <linearGradient id="switchback-hardware" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#b1b5bc"/><stop offset=".46" stop-color="#777b82"/><stop offset="1" stop-color="#3d4148"/>
+    </linearGradient>
+    <linearGradient id="switchback-deep" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#30343a"/><stop offset="1" stop-color="#000000"/>
+    </linearGradient>
+    <linearGradient id="switchback-side" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#14181e"/><stop offset=".44" stop-color="#000208"/><stop offset="1" stop-color="#000000"/>
+    </linearGradient>
+    <radialGradient id="switchback-emissive">
+      <stop stop-color="#fffdf0"/><stop offset=".25" stop-color="#fffc91"/><stop offset=".64" stop-color="#f2b84d"/><stop offset="1" stop-color="#9a6000"/>
+    </radialGradient>
+    <pattern id="switchback-brush" width="18" height="18" patternUnits="userSpaceOnUse" patternTransform="rotate(-18)">
+      <path d="M0 2h18M0 11h18" stroke="#ffffff" stroke-opacity=".16" stroke-width="1"/>
+      <path d="M0 7h18M0 16h18" stroke="#02050a" stroke-opacity=".24" stroke-width="1"/>
+    </pattern>
+    <clipPath id="switchback-clip"><path d="M80 182 180 118 274 154 342 126 438 194 470 256 438 318 342 386 274 358 180 394 80 330 116 256Z"/></clipPath>
+    <filter id="switchback-bevel" x="-12%" y="-14%" width="128%" height="138%" color-interpolation-filters="sRGB">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="2.2" result="edge-blur"/>
+      <feSpecularLighting in="edge-blur" surfaceScale="4.5" specularConstant=".42" specularExponent="16" lighting-color="#f7fbff" result="specular">
+        <feDistantLight azimuth="225" elevation="52"/>
+      </feSpecularLighting>
+      <feComposite in="specular" in2="SourceAlpha" operator="in" result="specular-cut"/>
+      <feMerge><feMergeNode in="SourceGraphic"/><feMergeNode in="specular-cut"/></feMerge>
+    </filter>
+    <filter id="switchback-team-glow" x="-55%" y="-55%" width="210%" height="210%" color-interpolation-filters="sRGB">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="7" result="glow"/>
+      <feComponentTransfer in="glow" result="soft-glow"><feFuncA type="linear" slope=".58"/></feComponentTransfer>
+      <feMerge><feMergeNode in="soft-glow"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <g stroke-linejoin="round" stroke-linecap="round">
+    <g id="underbody-locomotion">
+      <ellipse fill="#06090d" fill-opacity="0.72" cx="256" cy="324" rx="142" ry="46"/>
+      <path fill="#f2b84d" fill-opacity="0.38" d="M142 304h72l-22 48h-64Zm156 0h72l14 48h-64Z"/>
+    </g>
+    <g id="chassis-depth">
+      <path d="M80 182 180 118 274 154 342 126 438 194 470 256 438 318 342 386 274 358 180 394 80 330 116 256Z" transform="translate(0 22)" fill="url(#switchback-side)" stroke="#05080d" stroke-width="18"/>
+      <path d="M80 182 180 118 274 154 342 126 438 194 470 256 438 318 342 386 274 358 180 394 80 330 116 256Z" transform="translate(0 16)" fill="none" stroke="#363a40" stroke-opacity=".46" stroke-width="5"/>
+    </g>
+    <g id="chassis" filter="url(#switchback-bevel)">
+      <path fill="url(#switchback-chassis)" stroke="#0b1118" stroke-width="18" d="M80 182 180 118 274 154 342 126 438 194 470 256 438 318 342 386 274 358 180 394 80 330 116 256Z"/>
+      <path fill="url(#switchback-plate)" stroke="#0b1118" stroke-width="7" d="m134 192 54-34 76 30-46 68 46 68-76 30-54-34 28-64Z"/>
+      <g id="material-finish" clip-path="url(#switchback-clip)" opacity="0.22">
+        <rect x="36" y="70" width="448" height="370" fill="url(#switchback-brush)"/>
+      </g>
+      <g id="armor-plates" fill="url(#switchback-plate)" stroke="#eeeae0" stroke-width="4">
+        <path d="m114 198 70-46 70 30-40 58-84 16Z"/><path fill="#969288" stroke="#bab6ac" d="m130 272 84 16 40 58-70 30-70-46Z"/><path fill="url(#switchback-hardware)" stroke="#8f939a" d="m328 152 70 46-16 58-84-16-40-58Z"/><path fill="#494d54" stroke="#656970" d="m298 272 84-16 16 58-70 46-70-30Z"/>
+      </g>
+      <g id="surface-panels" fill="none" stroke="#ffffff" stroke-opacity=".58" stroke-width="5">
+        <path d="m126 204 58-38 64 26-42 64 42 64-64 26-58-38M386 204l-58-38-64 26 42 64-42 64 64 26 58-38"/>
+      </g>
+      <g id="panel-shadows" fill="none" stroke="#000002" stroke-opacity=".78" stroke-width="4" transform="translate(0 5)">
+        <path d="m126 204 58-38 64 26-42 64 42 64-64 26-58-38M386 204l-58-38-64 26 42 64-42 64 64 26 58-38"/>
+      </g>
+      <g id="fasteners" fill="#a1a5ac" stroke="#090d12" stroke-width="3">
+        <circle cx="154" cy="198" r="6"/><circle cx="154" cy="314" r="6"/><circle cx="358" cy="198" r="6"/><circle cx="358" cy="314" r="6"/>
+      </g>
+    </g>
+    <g id="hardware-depth">
+      <path fill="#000000" stroke="#070a0f" stroke-width="7" d="m378 192-54-34-76 30 46 68-46 68 76 30 54-34-28-64Z" transform="translate(0 9)"/>
+      <path fill="#000000" stroke="#070a0f" stroke-width="5" d="m216 256 40-58 40 58-40 58Z" transform="translate(0 9)"/>
+    </g>
+    <g id="weapon-hardware">
+      <path fill="url(#switchback-hardware)" stroke="#0b1118" stroke-width="7" d="m378 192-54-34-76 30 46 68-46 68 76 30 54-34-28-64Z"/>
+      <path fill="url(#switchback-deep)" stroke="#0b1118" stroke-width="5" d="m216 256 40-58 40 58-40 58Z"/>
+      <g id="signature-machinery" fill="none" stroke="#adb1b8" stroke-width="6" stroke-opacity=".88">
+        <path d="m216 256 40-58 40 58-40 58Z"/><path d="M154 214 214 256l-60 42m204-84-60 42 60 42"/>
+      </g>
+    </g>
+    <g id="team-accents" filter="url(#switchback-team-glow)">
+      <path data-team-accent="true" fill="#38bdf8" d="m104 188 70-44 16 34-66 44Z"/>
+      <path data-team-accent="true" fill="#38bdf8" d="m408 324-70 44-16-34 66-44Z"/>
+      <path data-team-accent="true" fill="#38bdf8" d="m392 212 54 44-54 44 14-44Z"/>
+    </g>
+    <g id="emissives">
+      <circle fill="url(#switchback-emissive)" cx="256" cy="256" r="18"/>
+      <circle fill="#fff9dc" fill-opacity="0.78" cx="256" cy="256" r="4"/>
+    </g>
+  </g>
+</svg>

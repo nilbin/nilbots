@@ -6,14 +6,34 @@ import type {
   ReplayStableUnitKey,
 } from '../replayModel';
 import {
+  isAttackEvent,
+  isDestructionEvent,
+  isDisqualificationEvent,
+  isMovementEvent,
+  isRotationEvent,
+} from '../replayModel';
+import {
   actorName,
   teamName,
   unitName,
 } from '../replayParticipants';
 import ToggleButton from './ToggleButton';
 
-/** Events that end a unit's participation. The only ones that earn a colour. */
-const TERMINAL = new Set(['destroyed', 'disqualified', 'fault']);
+/**
+ * Events that end a unit's participation. The only ones that earn a colour.
+ *
+ * Asked through the model predicates rather than a literal set, because destruction and
+ * disqualification each arrive in two spellings: a generation-3 replay says
+ * `destruction`/`participant-disqualified` where a duel says `destroyed`/`disqualified`,
+ * and a hard-coded set silently greys out every death in the newer format.
+ */
+function isTerminalEvent(type: string): boolean {
+  return (
+    isDestructionEvent(type) ||
+    isDisqualificationEvent(type) ||
+    type === 'fault'
+  );
+}
 
 /**
  * A row is a headline and, when there is one, the clause that explains it.
@@ -59,7 +79,8 @@ export default function EventFeed({
         ...replayTick.lifecycleEvents,
         ...replayTick.events,
       ]) {
-        if (event.type === 'move' || event.type === 'turn') continue;
+        if (isMovementEvent(event.type) || isRotationEvent(event.type))
+          continue;
         list.push({ tick: replayTick.tick, event });
       }
     }
@@ -81,11 +102,66 @@ export default function EventFeed({
     const stableName = stableUnit
       ? unitName(replay, stableUnit.unitKey)
       : `team ${event.teamId ?? '?'} unit ${event.unitId ?? '?'}`;
+    const arc = event.arcRelayFact;
+    if (arc) {
+      const source = 'coreId' in arc
+        ? arc.coreId.sourceWellId.replace(/[-_]/g, ' ')
+        : '';
+      switch (arc.kind) {
+        case 'core-born':
+          return `${source} Core is born · contest begins at ${arc.position.x},${arc.position.y}`;
+        case 'core-picked-up':
+          return `${actorName(replay, arc.carrierActor)} claims the ${source} Core`;
+        case 'core-handed-off':
+          return `${actorName(replay, arc.sourceActor)} hands the ${source} Core to ${actorName(replay, arc.targetActor)}`;
+        case 'core-dropped':
+          return `${actorName(replay, arc.sourceActor)} drops the ${source} Core · loose at ${arc.position.x},${arc.position.y}`;
+        case 'core-banked':
+          return `${teamName(replay, arc.teamId)} banks the ${source} Core · charge ${arc.chargePips}/3`;
+        case 'pulse':
+          return `${teamName(replay, arc.teamId)} fires Pulse ${arc.pulseOrdinal} · opposing reactor ${arc.opposingReactorIntegrity}/3`;
+        case 'core-relocated':
+          return `${source} Core relocates · ${arc.relocationKind}`;
+        case 'well-changed':
+          return `${arc.wellId} Well ${arc.pendingCharge ? 'rearms' : 'is ready'}`;
+        case 'signature-changed':
+          return `${actorName(replay, arc.ownerActor)} ${arc.reason} ${arc.signatureId}`;
+        case 'body-relocated':
+          return `${actorName(replay, arc.ownerActor)} relocates ${actorName(replay, arc.targetActor)} · ${arc.signatureId}`;
+        case 'signature-damage':
+          return `${actorName(replay, arc.ownerActor)} deals ${arc.amount} with ${arc.signatureId}`;
+        case 'signature-repair':
+          return `${actorName(replay, arc.ownerActor)} repairs ${actorName(replay, arc.targetActor)} for ${arc.amount}`;
+      }
+    }
+    // Attack/destruction/disqualification arrive in version-specific
+    // spellings; the model predicates own that equivalence.
+    if (isAttackEvent(event.type)) {
+      return event.targetActor
+        ? `${actorName(replay, event.sourceActor)} hits ${actorName(replay, event.targetActor)}`
+        : `${actorName(replay, event.sourceActor)} fires`;
+    }
+    if (isDestructionEvent(event.type)) {
+      return (
+        `${actorName(replay, event.targetActor)} is destroyed` +
+        (event.respawnAtTick !== null
+          ? ` · returns T${event.respawnAtTick}`
+          : event.rebuildReadyAtTick !== null
+            ? ` · rebuild ready T${event.rebuildReadyAtTick}`
+            : '')
+      );
+    }
+    if (isDisqualificationEvent(event.type)) {
+      return `${actorName(replay, event.targetActor)} is disqualified`;
+    }
     switch (event.type) {
-      case 'shot':
-        return event.targetActor
-          ? `${actorName(replay, event.sourceActor)} hits ${actorName(replay, event.targetActor)}`
-          : `${actorName(replay, event.sourceActor)} fires`;
+      case 'projectile-deflected':
+        // Named for what it costs the shooter: the guard's health is unchanged
+        // and the bolt is coming back at whoever fired it.
+        return (
+          `${actorName(replay, event.targetActor)} turns a shot back` +
+          (event.toFacing ? ` · guarding ${event.toFacing}` : '')
+        );
       case 'damage':
         return (
           `${actorName(replay, event.targetActor)} takes ${event.amount ?? '?'} damage` +
@@ -93,23 +169,13 @@ export default function EventFeed({
             ? ''
             : ` · ${event.newHealth} hp left`)
         );
-      case 'destroyed':
-        return (
-          `${actorName(replay, event.targetActor)} is destroyed` +
-          (event.respawnAtTick !== null
-            ? ` · returns T${event.respawnAtTick}`
-            : event.rebuildReadyAtTick !== null
-              ? ` · rebuild ready T${event.rebuildReadyAtTick}`
-              : '')
-        );
       case 'respawned':
         return `${actorName(replay, event.sourceActor)} returns`;
       case 'move-blocked':
+      case 'movement-blocked':
         return `${actorName(replay, event.sourceActor)} bumps into something`;
       case 'fault':
         return `${actorName(replay, event.sourceActor)} runtime fault`;
-      case 'disqualified':
-        return `${actorName(replay, event.targetActor)} is disqualified`;
       case 'frontline-progress-changed':
         return event.claimingTeamId === null
           ? 'Frontline pressure neutralizes'
@@ -203,7 +269,7 @@ export default function EventFeed({
               <span
                 className={clsx(
                   't-body',
-                  TERMINAL.has(event.type)
+                  isTerminalEvent(event.type)
                     ? 'font-semibold text-arena-hot'
                     : involves(event)
                       ? 'text-arena-text'

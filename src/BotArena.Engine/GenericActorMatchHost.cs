@@ -11,16 +11,17 @@ namespace BotArena.Engine;
 internal sealed class GenericActorMatchHost : IDisposable
 {
     private readonly GenericActorMatchDescriptor _descriptor;
-    private readonly InMemoryGenericActorMatchChronologyRecorder _chronology =
-        new();
-    private readonly GenericActorRuntimeCoordinator _runtimes;
+    private readonly InMemoryGenericActorMatchChronologyRecorder? _chronology;
+    private readonly GenericActorRuntimeCoordinator? _runtimes;
+    private readonly GenericMindRuntimeCoordinator? _minds;
     private int _operationGate;
     private bool _disposed;
 
     public GenericActorMatchHost(
         ActorResolvedMatchDefinition definition,
         IEnumerable<GenericActorParticipantConfiguration> participants,
-        ulong matchSeed)
+        ulong matchSeed,
+        bool recordChronology = true)
     {
         ArgumentNullException.ThrowIfNull(definition);
         ArgumentNullException.ThrowIfNull(participants);
@@ -31,10 +32,50 @@ internal sealed class GenericActorMatchHost : IDisposable
             definition,
             matchSeed,
             participantSnapshot);
-        _runtimes = new GenericActorRuntimeCoordinator(
-            definition,
-            participantSnapshot);
+        _chronology = recordChronology
+            ? new InMemoryGenericActorMatchChronologyRecorder()
+            : null;
+        // ONE profile ID decides the execution shape: one runtime per life, or
+        // one runtime per participant. Everything downstream of decision
+        // collection is identical, which is the whole design (DECISIONS #191).
+        if (definition.CapabilityVersions.IsMindProfile)
+        {
+            _minds = new GenericMindRuntimeCoordinator(
+                definition,
+                participantSnapshot,
+                matchSeed);
+        }
+        else
+        {
+            _runtimes = new GenericActorRuntimeCoordinator(
+                definition,
+                participantSnapshot);
+        }
     }
+
+    /// <summary>True when this match runs the participant-scoped mind profile.</summary>
+    public bool IsMindProfile => _minds is not null;
+
+    /// <summary>
+    /// Whether this host retains the audit-grade observation chronology.
+    /// Trusted product playback may instead consume each authoritative tick
+    /// immediately through the session result and persist a compact broadcast.
+    /// </summary>
+    public bool RecordsChronology => _chronology is not null;
+
+    /// <inheritdoc cref="GenericMindRuntimeCoordinator.TickingParticipantIds"/>
+    public ImmutableArray<int> TickingParticipantIds =>
+        Minds.TickingParticipantIds;
+
+    private GenericActorRuntimeCoordinator Runtimes =>
+        _runtimes
+        ?? throw new InvalidOperationException(
+            "This match resolved the mind profile and has no per-life runtime coordinator.");
+
+    private GenericMindRuntimeCoordinator Minds =>
+        _minds
+        ?? throw new InvalidOperationException(
+            "This match resolved the per-life profile and has no mind coordinator.");
 
     public GenericActorMatchDescriptor Descriptor
     {
@@ -50,16 +91,20 @@ internal sealed class GenericActorMatchHost : IDisposable
         get
         {
             ThrowIfOperationInProgress();
-            return _chronology.Snapshot;
+            return _chronology?.Snapshot
+                ?? throw new InvalidOperationException(
+                    "This match was configured for compact playback and has no audit chronology.");
         }
     }
 
     public string MatchContractFingerprint =>
-        _runtimes.MatchContractFingerprint;
+        _minds?.MatchContractFingerprint
+        ?? Runtimes.MatchContractFingerprint;
 
     public ImmutableArray<
         GenericActorRuntimeObservation.ObservedParticipantStatus>
-        ParticipantStatuses => _runtimes.ParticipantStatuses;
+        ParticipantStatuses =>
+        _minds?.ParticipantStatuses ?? Runtimes.ParticipantStatuses;
 
     public bool IsDisposed => _disposed;
 
@@ -86,41 +131,69 @@ internal sealed class GenericActorMatchHost : IDisposable
                 _descriptor.MatchSeed,
                 actorId,
                 _descriptor.Definition.Rules.SeedMechanics.SeedProfileId),
+            TeamRandomSeed = SeedDerivation.DeriveTeamSeed(
+                _descriptor.MatchSeed,
+                actorId.TeamId,
+                _descriptor.Definition.Rules.SeedMechanics.SeedProfileId),
             Origin = origin,
             Contract = _descriptor.Definition,
         };
         GenericActorLifeStart lifeStart =
             GenericActorLifeStart.FromRuntimeStart(runtimeStart);
-        _runtimes.StartLife(runtimeStart);
+        if (_minds is not null)
+            _minds.StartLife(runtimeStart);
+        else
+            Runtimes.StartLife(runtimeStart);
         return lifeStart;
     }
 
-    public void RetireLife(ActorIdentity actorId) =>
-        _runtimes.RetireLife(actorId);
+    public void RetireLife(ActorIdentity actorId)
+    {
+        if (_minds is not null)
+            _minds.RetireLife(actorId);
+        else
+            Runtimes.RetireLife(actorId);
+    }
 
     public GenericActorRuntimeTickResult CollectTickDecisions(
         int tick,
         IEnumerable<GenericActorRuntimeObservation> observations) =>
-        _runtimes.CollectTickDecisions(tick, observations);
+        Runtimes.CollectTickDecisions(tick, observations);
+
+    /// <summary>
+    /// Collects one decision MAP per participant and fans it out across that
+    /// participant's bodies. This is the ONE structural change the mind
+    /// profile makes to the host: <c>PrepareTick()</c> -&gt; <c>Step()</c>, the
+    /// 16 tick phases, the re-entrancy guard and the invocation ordering are
+    /// all preserved.
+    /// </summary>
+    public GenericMindRuntimeTickResult CollectMindTickDecisions(
+        int tick,
+        IEnumerable<GenericMindRuntimeObservation> observations) =>
+        Minds.CollectTickDecisions(tick, observations);
 
     public ImmutableArray<ActorIdentity> ApplyDisqualification(
         int participantId) =>
-        _runtimes.ApplyDisqualification(participantId);
+        _minds is not null
+            ? _minds.ApplyDisqualification(participantId)
+            : Runtimes.ApplyDisqualification(participantId);
 
     public bool TryProjectSubmittedAction(
         GenericActorRuntimeDecision? decision,
         out GenericActorRuntimeActionResolution.ResolvedAction?
             submittedAction) =>
-        _runtimes.TryProjectSubmittedAction(decision, out submittedAction);
+        _minds is not null
+            ? _minds.TryProjectSubmittedAction(decision, out submittedAction)
+            : Runtimes.TryProjectSubmittedAction(decision, out submittedAction);
 
     public void RecordInitial(GenericActorMatchInitialFrame initialFrame) =>
-        _chronology.RecordInitial(_descriptor, initialFrame);
+        _chronology?.RecordInitial(_descriptor, initialFrame);
 
     public void RecordResolvedTick(GenericActorMatchTickFrame frame) =>
-        _chronology.RecordResolvedTick(frame);
+        _chronology?.RecordResolvedTick(frame);
 
     public void RecordCompleted(GenericActorMatchResult result) =>
-        _chronology.RecordCompleted(result);
+        _chronology?.RecordCompleted(result);
 
     public void ThrowIfDisposed() =>
         ObjectDisposedException.ThrowIf(_disposed, this);
@@ -151,7 +224,8 @@ internal sealed class GenericActorMatchHost : IDisposable
             return;
 
         _disposed = true;
-        _runtimes.Dispose();
+        _runtimes?.Dispose();
+        _minds?.Dispose();
     }
 
     public HostOperation EnterOperation(string operationName)

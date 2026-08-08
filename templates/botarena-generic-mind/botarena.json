@@ -1,0 +1,10 @@
+{
+  "name": "BOTNAME",
+  "entryType": "BOTNAME",
+  "sdkVersion": "SDKVERSION",
+  "appearance": {
+    "accent": "#a78bfa",
+    "look": "vanguard",
+    "projectile": "pulse-bolt"
+  }
+}

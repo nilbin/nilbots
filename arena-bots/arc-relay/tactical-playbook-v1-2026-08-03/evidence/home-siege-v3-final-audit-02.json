@@ -1,0 +1,4253 @@
+{
+  "cells": [
+    {
+      "campingDiagnostics": {
+        "campToDeliveryShare": 0.5555555555555556,
+        "enemyFinalThirdBodyTicks": 2665,
+        "enemyReactorRadiusSixBodyTicks": 2542,
+        "fiveBodyCampTicks": 358,
+        "killsByDistanceFromEnemyReactor": {
+          "outside6": 9,
+          "within2": 9,
+          "within6": 8
+        },
+        "opponentCoreDropsByDistanceFromEnemyReactor": {
+          "outside6": 2,
+          "within2": 4,
+          "within6": 7
+        },
+        "subjectCoreDropsByDistanceFromEnemyReactor": {
+          "outside6": 8,
+          "within2": 0,
+          "within6": 0
+        }
+      },
+      "canonicalReplaySha256": "dd218baa9d36b6276830ec849fbf7bb7644db8b2fd0a545375fa7213a67dbd70",
+      "casualtyRespawn": {
+        "deathsWithLaterRespawn": 19,
+        "respawnsRejoiningStrategy": 19,
+        "subjectDeaths": 20
+      },
+      "cellId": "coordination-parity-baseline--home-siege-v3--s145135--a0",
+      "completionReason": "reactor-destroyed",
+      "coreConversion": {
+        "counterBanksDuringFiveBodyCamp": 1,
+        "declaredScorerPickups": 0,
+        "opportunisticPickups": 17,
+        "securedCoreBanks": 3,
+        "securedCorePickups": 11,
+        "securedCoreScorerBanks": 0,
+        "securedCoreScorerPickups": 0,
+        "subjectBanks": 9,
+        "subjectBanksDuringFiveBodyCamp": 5,
+        "subjectPickups": 17
+      },
+      "deliveries": {
+        "opponent": 2,
+        "subject": 9
+      },
+      "eligibility": {
+        "matchEligibleForCohortRead": true,
+        "subjectFormationFreezeTripped": false,
+        "subjectHandoffPingPongTripped": false,
+        "subjectHomeCarrierNonProgressTripped": false,
+        "subjectPickupDropCycleTripped": false,
+        "subjectStuckCarrierTripped": false,
+        "subjectSustainedPassivityTripped": false
+      },
+      "endTick": 524,
+      "finalIntegrity": {
+        "opponent": 0,
+        "subject": 3
+      },
+      "phaseTimeline": [
+        {
+          "phase": "assault",
+          "tick": 1
+        },
+        {
+          "phase": "occupy",
+          "tick": 32
+        },
+        {
+          "phase": "regroup",
+          "tick": 117
+        },
+        {
+          "phase": "breach",
+          "tick": 128
+        },
+        {
+          "phase": "regroup",
+          "tick": 156
+        },
+        {
+          "phase": "breach",
+          "tick": 183
+        },
+        {
+          "phase": "occupy",
+          "tick": 191
+        },
+        {
+          "phase": "regroup",
+          "tick": 201
+        },
+        {
+          "phase": "breach",
+          "tick": 212
+        },
+        {
+          "phase": "occupy",
+          "tick": 228
+        },
+        {
+          "phase": "regroup",
+          "tick": 467
+        },
+        {
+          "phase": "breach",
+          "tick": 478
+        }
+      ],
+      "recoveryCycleObserved": true,
+      "repair": {
+        "acceptedRepairCommands": 71,
+        "distinctMedicLives": 6,
+        "distinctTargetSlots": 8
+      },
+      "seed": "145135",
+      "strictCorrections": {
+        "boundedCutoff": {
+          "actionTicks": 74,
+          "activeTicks": 108,
+          "lastSeenOnlyTicks": 10
+        },
+        "carrierLifecycle": {
+          "finishedTripOwnHomeHoldTicks": 0,
+          "releaseTicks": 0,
+          "retargetTicks": 1
+        },
+        "emergencyCore": {
+          "commands": 2,
+          "protectedEnemyPadCommands": 2,
+          "reachableCommands": 0
+        },
+        "fivePlusOnePlusOnePlusOneTicks": 0,
+        "replacementCatchUp": {
+          "maximumConsecutiveOwnHomeWaitTicks": 1,
+          "movementActionTicks": 530,
+          "returningReplacementTicks": 725
+        },
+        "traceExamples": {
+          "boundedCutoff": {
+            "debug": "playbook home-siege-v3; phase=occupy; live=8; enemy-down=1; secured=0; carriers=0; loose=0; wells=1; reactor=3/0; focus=; returning=7; repair=; tasks=secure-bank-drop=dormant[trigger-false-rearmed|armed=0|c=-];deny-visible-carrier=active[triggered|armed=1|c=6:interceptor];advance-fire-element=dormant[phase-ineligible|armed=0|c=-];harvest-core-window=dormant[trigger-false-rearmed|armed=0|c=-]; sheet=3829ce7c; layout=89c92e70",
+            "tick": 37
+          },
+          "carrierRetarget": {
+            "debug": "playbook home-siege-v3; phase=occupy; live=7; enemy-down=1; secured=1; carriers=1; loose=0; wells=2; reactor=3/1; focus=0->0:1:1@(3,14),5->0:1:1@(4,13); returning=1,4; repair=2; tasks=secure-bank-drop=dormant[trigger-false-rearmed|armed=0|c=-];deny-visible-carrier=dormant[trigger-false-rearmed|armed=0|c=-];advance-fire-element=dormant[phase-ineligible|armed=0|c=-];harvest-core-window=active[armed-carrier-retargeted|armed=1|c=1:courier,6:escort]; sheet=3829ce7c; layout=89c92e70",
+            "tick": 410
+          },
+          "emergencyCore": {
+            "command": {
+              "actionCode": 1,
+              "actionId": "move-eight-way",
+              "arguments": [
+                {
+                  "kind": "projectile-heading",
+                  "value": 5
+                }
+              ],
+              "debugMessage": "custody:emergency-pickup-fallback via SouthWest",
+              "lifeId": 1,
+              "outcome": "accepted",
+              "roleTag": "occupy-runner-group-runn",
+              "unitId": 1
+            },
+            "tick": 415,
+            "visibleLooseCorePositions": [
+              [
+                2,
+                12
+              ]
+            ]
+          },
+          "replacementCatchUp": {
+            "actionId": "shoot-direction",
+            "actorId": {
+              "lifeId": 1,
+              "teamId": 1,
+              "unitId": 3
+            },
+            "position": {
+              "x": 18,
+              "y": 8
+            },
+            "tick": 113
+          }
+        }
+      },
+      "subjectTeamId": 1,
+      "winnerTeamId": 1
+    },
+    {
+      "campingDiagnostics": {
+        "campToDeliveryShare": 0.6666666666666666,
+        "enemyFinalThirdBodyTicks": 2603,
+        "enemyReactorRadiusSixBodyTicks": 2447,
+        "fiveBodyCampTicks": 361,
+        "killsByDistanceFromEnemyReactor": {
+          "outside6": 12,
+          "within2": 6,
+          "within6": 15
+        },
+        "opponentCoreDropsByDistanceFromEnemyReactor": {
+          "outside6": 5,
+          "within2": 1,
+          "within6": 12
+        },
+        "subjectCoreDropsByDistanceFromEnemyReactor": {
+          "outside6": 8,
+          "within2": 0,
+          "within6": 0
+        }
+      },
+      "canonicalReplaySha256": "a94c04fbf38b50a427e9842ff8dc921363c12827aae2c391ae23c7c0b14191e3",
+      "casualtyRespawn": {
+        "deathsWithLaterRespawn": 22,
+        "respawnsRejoiningStrategy": 22,
+        "subjectDeaths": 22
+      },
+      "cellId": "coordination-parity-baseline--home-siege-v3--s145135--a1",
+      "completionReason": "reactor-destroyed",
+      "coreConversion": {
+        "counterBanksDuringFiveBodyCamp": 0,
+        "declaredScorerPickups": 0,
+        "opportunisticPickups": 17,
+        "securedCoreBanks": 6,
+        "securedCorePickups": 14,
+        "securedCoreScorerBanks": 0,
+        "securedCoreScorerPickups": 0,
+        "subjectBanks": 9,
+        "subjectBanksDuringFiveBodyCamp": 6,
+        "subjectPickups": 17
+      },
+      "deliveries": {
+        "opponent": 1,
+        "subject": 9
+      },
+      "eligibility": {
+        "matchEligibleForCohortRead": true,
+        "subjectFormationFreezeTripped": false,
+        "subjectHandoffPingPongTripped": false,
+        "subjectHomeCarrierNonProgressTripped": false,
+        "subjectPickupDropCycleTripped": false,
+        "subjectStuckCarrierTripped": false,
+        "subjectSustainedPassivityTripped": false
+      },
+      "endTick": 560,
+      "finalIntegrity": {
+        "opponent": 0,
+        "subject": 3
+      },
+      "phaseTimeline": [
+        {
+          "phase": "assault",
+          "tick": 1
+        },
+        {
+          "phase": "occupy",
+          "tick": 33
+        },
+        {
+          "phase": "regroup",
+          "tick": 112
+        },
+        {
+          "phase": "breach",
+          "tick": 123
+        },
+        {
+          "phase": "regroup",
+          "tick": 198
+        },
+        {
+          "phase": "breach",
+          "tick": 274
+        },
+        {
+          "phase": "occupy",
+          "tick": 282
+        },
+        {
+          "phase": "regroup",
+          "tick": 307
+        },
+        {
+          "phase": "breach",
+          "tick": 318
+        },
+        {
+          "phase": "occupy",
+          "tick": 346
+        }
+      ],
+      "recoveryCycleObserved": true,
+      "repair": {
+        "acceptedRepairCommands": 73,
+        "distinctMedicLives": 7,
+        "distinctTargetSlots": 8
+      },
+      "seed": "145135",
+      "strictCorrections": {
+        "boundedCutoff": {
+          "actionTicks": 82,
+          "activeTicks": 126,
+          "lastSeenOnlyTicks": 13
+        },
+        "carrierLifecycle": {
+          "finishedTripOwnHomeHoldTicks": 0,
+          "releaseTicks": 0,
+          "retargetTicks": 2
+        },
+        "emergencyCore": {
+          "commands": 0,
+          "protectedEnemyPadCommands": 0,
+          "reachableCommands": 0
+        },
+        "fivePlusOnePlusOnePlusOneTicks": 26,
+        "replacementCatchUp": {
+          "maximumConsecutiveOwnHomeWaitTicks": 1,
+          "movementActionTicks": 413,
+          "returningReplacementTicks": 482
+        },
+        "traceExamples": {
+          "boundedCutoff": {
+            "debug": "playbook home-siege-v3; phase=occupy; live=8; enemy-down=1; secured=0; carriers=0; loose=0; wells=1; reactor=3/0; focus=6->1:6:0@(17,9); returning=0,5,6,7; repair=; tasks=secure-bank-drop=dormant[trigger-false-rearmed|armed=0|c=-];deny-visible-carrier=active[triggered|armed=1|c=7:interceptor];advance-fire-element=dormant[phase-ineligible|armed=0|c=-];harvest-core-window=dormant[trigger-false-rearmed|armed=0|c=-]; sheet=3829ce7c; layout=89c92e70",
+            "tick": 33
+          },
+          "carrierRetarget": {
+            "debug": "playbook home-siege-v3; phase=breach; live=8; enemy-down=0; secured=0; carriers=1; loose=0; wells=2; reactor=3/2; focus=1->1:0:1@(24,9),3->1:2:0@(23,8),4->1:4:4@(21,9); returning=; repair=; tasks=secure-bank-drop=dormant[phase-ineligible|armed=0|c=-];deny-visible-carrier=dormant[phase-ineligible|armed=0|c=-];advance-fire-element=dormant[trigger-false-rearmed|armed=0|c=-];harvest-core-window=active[armed-carrier-retargeted|armed=1|c=0:courier,6:escort]; sheet=3829ce7c; layout=89c92e70",
+            "tick": 147
+          },
+          "fivePlusOnePlusOnePlusOne": {
+            "debug": "playbook home-siege-v3; phase=occupy; live=8; enemy-down=2; secured=0; carriers=1; loose=0; wells=3; reactor=3/0; focus=4->1:4:2@(28,11); returning=0,7; repair=2; tasks=secure-bank-drop=dormant[trigger-false-rearmed|armed=0|c=-];deny-visible-carrier=active[active|armed=1|c=4:interceptor];advance-fire-element=dormant[phase-ineligible|armed=0|c=-];harvest-core-window=active[triggered|armed=0|c=0:courier,6:escort]; sheet=3829ce7c; layout=89c92e70",
+            "tick": 77
+          },
+          "replacementCatchUp": {
+            "actionId": "shoot-direction",
+            "actorId": {
+              "lifeId": 1,
+              "teamId": 0,
+              "unitId": 6
+            },
+            "position": {
+              "x": 12,
+              "y": 14
+            },
+            "tick": 128
+          }
+        }
+      },
+      "subjectTeamId": 0,
+      "winnerTeamId": 0
+    },
+    {
+      "campingDiagnostics": {
+        "campToDeliveryShare": 0.5555555555555556,
+        "enemyFinalThirdBodyTicks": 2665,
+        "enemyReactorRadiusSixBodyTicks": 2542,
+        "fiveBodyCampTicks": 358,
+        "killsByDistanceFromEnemyReactor": {
+          "outside6": 9,
+          "within2": 9,
+          "within6": 8
+        },
+        "opponentCoreDropsByDistanceFromEnemyReactor": {
+          "outside6": 2,
+          "within2": 4,
+          "within6": 7
+        },
+        "subjectCoreDropsByDistanceFromEnemyReactor": {
+          "outside6": 8,
+          "within2": 0,
+          "within6": 0
+        }
+      },
+      "canonicalReplaySha256": "9cf92a4ad22ab706da2f2269a03eee0a9147c82fbf5db61502f5ec86ab217e5f",
+      "casualtyRespawn": {
+        "deathsWithLaterRespawn": 19,
+        "respawnsRejoiningStrategy": 19,
+        "subjectDeaths": 20
+      },
+      "cellId": "coordination-parity-baseline--home-siege-v3--s185553--a0",
+      "completionReason": "reactor-destroyed",
+      "coreConversion": {
+        "counterBanksDuringFiveBodyCamp": 1,
+        "declaredScorerPickups": 0,
+        "opportunisticPickups": 17,
+        "securedCoreBanks": 3,
+        "securedCorePickups": 11,
+        "securedCoreScorerBanks": 0,
+        "securedCoreScorerPickups": 0,
+        "subjectBanks": 9,
+        "subjectBanksDuringFiveBodyCamp": 5,
+        "subjectPickups": 17
+      },
+      "deliveries": {
+        "opponent": 2,
+        "subject": 9
+      },
+      "eligibility": {
+        "matchEligibleForCohortRead": true,
+        "subjectFormationFreezeTripped": false,
+        "subjectHandoffPingPongTripped": false,
+        "subjectHomeCarrierNonProgressTripped": false,
+        "subjectPickupDropCycleTripped": false,
+        "subjectStuckCarrierTripped": false,
+        "subjectSustainedPassivityTripped": false
+      },
+      "endTick": 524,
+      "finalIntegrity": {
+        "opponent": 0,
+        "subject": 3
+      },
+      "phaseTimeline": [
+        {
+          "phase": "assault",
+          "tick": 1
+        },
+        {
+          "phase": "occupy",
+          "tick": 32
+        },
+        {
+          "phase": "regroup",
+          "tick": 117
+        },
+        {
+          "phase": "breach",
+          "tick": 128
+        },
+        {
+          "phase": "regroup",
+          "tick": 156
+        },
+        {
+          "phase": "breach",
+          "tick": 183
+        },
+        {
+          "phase": "occupy",
+          "tick": 191
+        },
+        {
+          "phase": "regroup",
+          "tick": 201
+        },
+        {
+          "phase": "breach",
+          "tick": 212
+        },
+        {
+          "phase": "occupy",
+          "tick": 228
+        },
+        {
+          "phase": "regroup",
+          "tick": 467
+        },
+        {
+          "phase": "breach",
+          "tick": 478
+        }
+      ],
+      "recoveryCycleObserved": true,
+      "repair": {
+        "acceptedRepairCommands": 71,
+        "distinctMedicLives": 6,
+        "distinctTargetSlots": 8
+      },
+      "seed": "185553",
+      "strictCorrections": {
+        "boundedCutoff": {
+          "actionTicks": 74,
+          "activeTicks": 108,
+          "lastSeenOnlyTicks": 10
+        },
+        "carrierLifecycle": {
+          "finishedTripOwnHomeHoldTicks": 0,
+          "releaseTicks": 0,
+          "retargetTicks": 1
+        },
+        "emergencyCore": {
+          "commands": 2,
+          "protectedEnemyPadCommands": 2,
+          "reachableCommands": 0
+        },
+        "fivePlusOnePlusOnePlusOneTicks": 0,
+        "replacementCatchUp": {
+          "maximumConsecutiveOwnHomeWaitTicks": 1,
+          "movementActionTicks": 530,
+          "returningReplacementTicks": 725
+        },
+        "traceExamples": {
+          "boundedCutoff": {
+            "debug": "playbook home-siege-v3; phase=occupy; live=8; enemy-down=1; secured=0; carriers=0; loose=0; wells=1; reactor=3/0; focus=; returning=7; repair=; tasks=secure-bank-drop=dormant[trigger-false-rearmed|armed=0|c=-];deny-visible-carrier=active[triggered|armed=1|c=6:interceptor];advance-fire-element=dormant[phase-ineligible|armed=0|c=-];harvest-core-window=dormant[trigger-false-rearmed|armed=0|c=-]; sheet=3829ce7c; layout=89c92e70",
+            "tick": 37
+          },
+          "carrierRetarget": {
+            "debug": "playbook home-siege-v3; phase=occupy; live=7; enemy-down=1; secured=1; carriers=1; loose=0; wells=2; reactor=3/1; focus=0->0:1:1@(3,14),5->0:1:1@(4,13); returning=1,4; repair=2; tasks=secure-bank-drop=dormant[trigger-false-rearmed|armed=0|c=-];deny-visible-carrier=dormant[trigger-false-rearmed|armed=0|c=-];advance-fire-element=dormant[phase-ineligible|armed=0|c=-];harvest-core-window=active[armed-carrier-retargeted|armed=1|c=1:courier,6:escort]; sheet=3829ce7c; layout=89c92e70",
+            "tick": 410
+          },
+          "emergencyCore": {
+            "command": {
+              "actionCode": 1,
+              "actionId": "move-eight-way",
+              "arguments": [
+                {
+                  "kind": "projectile-heading",
+                  "value": 5
+                }
+              ],
+              "debugMessage": "custody:emergency-pickup-fallback via SouthWest",
+              "lifeId": 1,
+              "outcome": "accepted",
+              "roleTag": "occupy-runner-group-runn",
+              "unitId": 1
+            },
+            "tick": 415,
+            "visibleLooseCorePositions": [
+              [
+                2,
+                12
+              ]
+            ]
+          },
+          "replacementCatchUp": {
+            "actionId": "shoot-direction",
+            "actorId": {
+              "lifeId": 1,
+              "teamId": 1,
+              "unitId": 3
+            },
+            "position": {
+              "x": 18,
+              "y": 8
+            },
+            "tick": 113
+          }
+        }
+      },
+      "subjectTeamId": 1,
+      "winnerTeamId": 1
+    },
+    {
+      "campingDiagnostics": {
+        "campToDeliveryShare": 0.6666666666666666,
+        "enemyFinalThirdBodyTicks": 2603,
+        "enemyReactorRadiusSixBodyTicks": 2447,
+        "fiveBodyCampTicks": 361,
+        "killsByDistanceFromEnemyReactor": {
+          "outside6": 12,
+          "within2": 6,
+          "within6": 15
+        },
+        "opponentCoreDropsByDistanceFromEnemyReactor": {
+          "outside6": 5,
+          "within2": 1,
+          "within6": 12
+        },
+        "subjectCoreDropsByDistanceFromEnemyReactor": {
+          "outside6": 8,
+          "within2": 0,
+          "within6": 0
+        }
+      },
+      "canonicalReplaySha256": "7d9ea2396dd4dbc953624d38e9495e43d83607b9d270e3dc88481e4bfb2892f2",
+      "casualtyRespawn": {
+        "deathsWithLaterRespawn": 22,
+        "respawnsRejoiningStrategy": 22,
+        "subjectDeaths": 22
+      },
+      "cellId": "coordination-parity-baseline--home-siege-v3--s185553--a1",
+      "completionReason": "reactor-destroyed",
+      "coreConversion": {
+        "counterBanksDuringFiveBodyCamp": 0,
+        "declaredScorerPickups": 0,
+        "opportunisticPickups": 17,
+        "securedCoreBanks": 6,
+        "securedCorePickups": 14,
+        "securedCoreScorerBanks": 0,
+        "securedCoreScorerPickups": 0,
+        "subjectBanks": 9,
+        "subjectBanksDuringFiveBodyCamp": 6,
+        "subjectPickups": 17
+      },
+      "deliveries": {
+        "opponent": 1,
+        "subject": 9
+      },
+      "eligibility": {
+        "matchEligibleForCohortRead": true,
+        "subjectFormationFreezeTripped": false,
+        "subjectHandoffPingPongTripped": false,
+        "subjectHomeCarrierNonProgressTripped": false,
+        "subjectPickupDropCycleTripped": false,
+        "subjectStuckCarrierTripped": false,
+        "subjectSustainedPassivityTripped": false
+      },
+      "endTick": 560,
+      "finalIntegrity": {
+        "opponent": 0,
+        "subject": 3
+      },
+      "phaseTimeline": [
+        {
+          "phase": "assault",
+          "tick": 1
+        },
+        {
+          "phase": "occupy",
+          "tick": 33
+        },
+        {
+          "phase": "regroup",
+          "tick": 112
+        },
+        {
+          "phase": "breach",
+          "tick": 123
+        },
+        {
+          "phase": "regroup",
+          "tick": 198
+        },
+        {
+          "phase": "breach",
+          "tick": 274
+        },
+        {
+          "phase": "occupy",
+          "tick": 282
+        },
+        {
+          "phase": "regroup",
+          "tick": 307
+        },
+        {
+          "phase": "breach",
+          "tick": 318
+        },
+        {
+          "phase": "occupy",
+          "tick": 346
+        }
+      ],
+      "recoveryCycleObserved": true,
+      "repair": {
+        "acceptedRepairCommands": 73,
+        "distinctMedicLives": 7,
+        "distinctTargetSlots": 8
+      },
+      "seed": "185553",
+      "strictCorrections": {
+        "boundedCutoff": {
+          "actionTicks": 82,
+          "activeTicks": 126,
+          "lastSeenOnlyTicks": 13
+        },
+        "carrierLifecycle": {
+          "finishedTripOwnHomeHoldTicks": 0,
+          "releaseTicks": 0,
+          "retargetTicks": 2
+        },
+        "emergencyCore": {
+          "commands": 0,
+          "protectedEnemyPadCommands": 0,
+          "reachableCommands": 0
+        },
+        "fivePlusOnePlusOnePlusOneTicks": 26,
+        "replacementCatchUp": {
+          "maximumConsecutiveOwnHomeWaitTicks": 1,
+          "movementActionTicks": 413,
+          "returningReplacementTicks": 482
+        },
+        "traceExamples": {
+          "boundedCutoff": {
+            "debug": "playbook home-siege-v3; phase=occupy; live=8; enemy-down=1; secured=0; carriers=0; loose=0; wells=1; reactor=3/0; focus=6->1:6:0@(17,9); returning=0,5,6,7; repair=; tasks=secure-bank-drop=dormant[trigger-false-rearmed|armed=0|c=-];deny-visible-carrier=active[triggered|armed=1|c=7:interceptor];advance-fire-element=dormant[phase-ineligible|armed=0|c=-];harvest-core-window=dormant[trigger-false-rearmed|armed=0|c=-]; sheet=3829ce7c; layout=89c92e70",
+            "tick": 33
+          },
+          "carrierRetarget": {
+            "debug": "playbook home-siege-v3; phase=breach; live=8; enemy-down=0; secured=0; carriers=1; loose=0; wells=2; reactor=3/2; focus=1->1:0:1@(24,9),3->1:2:0@(23,8),4->1:4:4@(21,9); returning=; repair=; tasks=secure-bank-drop=dormant[phase-ineligible|armed=0|c=-];deny-visible-carrier=dormant[phase-ineligible|armed=0|c=-];advance-fire-element=dormant[trigger-false-rearmed|armed=0|c=-];harvest-core-window=active[armed-carrier-retargeted|armed=1|c=0:courier,6:escort]; sheet=3829ce7c; layout=89c92e70",
+            "tick": 147
+          },
+          "fivePlusOnePlusOnePlusOne": {
+            "debug": "playbook home-siege-v3; phase=occupy; live=8; enemy-down=2; secured=0; carriers=1; loose=0; wells=3; reactor=3/0; focus=4->1:4:2@(28,11); returning=0,7; repair=2; tasks=secure-bank-drop=dormant[trigger-false-rearmed|armed=0|c=-];deny-visible-carrier=active[active|armed=1|c=4:interceptor];advance-fire-element=dormant[phase-ineligible|armed=0|c=-];harvest-core-window=active[triggered|armed=0|c=0:courier,6:escort]; sheet=3829ce7c; layout=89c92e70",
+            "tick": 77
+          },
+          "replacementCatchUp": {
+            "actionId": "shoot-direction",
+            "actorId": {
+              "lifeId": 1,
+              "teamId": 0,
+              "unitId": 6
+            },
+            "position": {
+              "x": 12,
+              "y": 14
+            },
+            "tick": 128
+          }
+        }
+      },
+      "subjectTeamId": 0,
+      "winnerTeamId": 0
+    },
+    {
+      "campingDiagnostics": {
+        "campToDeliveryShare": 0.5555555555555556,
+        "enemyFinalThirdBodyTicks": 2665,
+        "enemyReactorRadiusSixBodyTicks": 2542,
+        "fiveBodyCampTicks": 358,
+        "killsByDistanceFromEnemyReactor": {
+          "outside6": 9,
+          "within2": 9,
+          "within6": 8
+        },
+        "opponentCoreDropsByDistanceFromEnemyReactor": {
+          "outside6": 2,
+          "within2": 4,
+          "within6": 7
+        },
+        "subjectCoreDropsByDistanceFromEnemyReactor": {
+          "outside6": 8,
+          "within2": 0,
+          "within6": 0
+        }
+      },
+      "canonicalReplaySha256": "893d04c9315cb8e26b785e8a98d0703818040172ff284f7ac457d43feae154d9",
+      "casualtyRespawn": {
+        "deathsWithLaterRespawn": 19,
+        "respawnsRejoiningStrategy": 19,
+        "subjectDeaths": 20
+      },
+      "cellId": "coordination-parity-baseline--home-siege-v3--s322419--a0",
+      "completionReason": "reactor-destroyed",
+      "coreConversion": {
+        "counterBanksDuringFiveBodyCamp": 1,
+        "declaredScorerPickups": 0,
+        "opportunisticPickups": 17,
+        "securedCoreBanks": 3,
+        "securedCorePickups": 11,
+        "securedCoreScorerBanks": 0,
+        "securedCoreScorerPickups": 0,
+        "subjectBanks": 9,
+        "subjectBanksDuringFiveBodyCamp": 5,
+        "subjectPickups": 17
+      },
+      "deliveries": {
+        "opponent": 2,
+        "subject": 9
+      },
+      "eligibility": {
+        "matchEligibleForCohortRead": true,
+        "subjectFormationFreezeTripped": false,
+        "subjectHandoffPingPongTripped": false,
+        "subjectHomeCarrierNonProgressTripped": false,
+        "subjectPickupDropCycleTripped": false,
+        "subjectStuckCarrierTripped": false,
+        "subjectSustainedPassivityTripped": false
+      },
+      "endTick": 524,
+      "finalIntegrity": {
+        "opponent": 0,
+        "subject": 3
+      },
+      "phaseTimeline": [
+        {
+          "phase": "assault",
+          "tick": 1
+        },
+        {
+          "phase": "occupy",
+          "tick": 32
+        },
+        {
+          "phase": "regroup",
+          "tick": 117
+        },
+        {
+          "phase": "breach",
+          "tick": 128
+        },
+        {
+          "phase": "regroup",
+          "tick": 156
+        },
+        {
+          "phase": "breach",
+          "tick": 183
+        },
+        {
+          "phase": "occupy",
+          "tick": 191
+        },
+        {
+          "phase": "regroup",
+          "tick": 201
+        },
+        {
+          "phase": "breach",
+          "tick": 212
+        },
+        {
+          "phase": "occupy",
+          "tick": 228
+        },
+        {
+          "phase": "regroup",
+          "tick": 467
+        },
+        {
+          "phase": "breach",
+          "tick": 478
+        }
+      ],
+      "recoveryCycleObserved": true,
+      "repair": {
+        "acceptedRepairCommands": 71,
+        "distinctMedicLives": 6,
+        "distinctTargetSlots": 8
+      },
+      "seed": "322419",
+      "strictCorrections": {
+        "boundedCutoff": {
+          "actionTicks": 74,
+          "activeTicks": 108,
+          "lastSeenOnlyTicks": 10
+        },
+        "carrierLifecycle": {
+          "finishedTripOwnHomeHoldTicks": 0,
+          "releaseTicks": 0,
+          "retargetTicks": 1
+        },
+        "emergencyCore": {
+          "commands": 2,
+          "protectedEnemyPadCommands": 2,
+          "reachableCommands": 0
+        },
+        "fivePlusOnePlusOnePlusOneTicks": 0,
+        "replacementCatchUp": {
+          "maximumConsecutiveOwnHomeWaitTicks": 1,
+          "movementActionTicks": 530,
+          "returningReplacementTicks": 725
+        },
+        "traceExamples": {
+          "boundedCutoff": {
+            "debug": "playbook home-siege-v3; phase=occupy; live=8; enemy-down=1; secured=0; carriers=0; loose=0; wells=1; reactor=3/0; focus=; returning=7; repair=; tasks=secure-bank-drop=dormant[trigger-false-rearmed|armed=0|c=-];deny-visible-carrier=active[triggered|armed=1|c=6:interceptor];advance-fire-element=dormant[phase-ineligible|armed=0|c=-];harvest-core-window=dormant[trigger-false-rearmed|armed=0|c=-]; sheet=3829ce7c; layout=89c92e70",
+            "tick": 37
+          },
+          "carrierRetarget": {
+            "debug": "playbook home-siege-v3; phase=occupy; live=7; enemy-down=1; secured=1; carriers=1; loose=0; wells=2; reactor=3/1; focus=0->0:1:1@(3,14),5->0:1:1@(4,13); returning=1,4; repair=2; tasks=secure-bank-drop=dormant[trigger-false-rearmed|armed=0|c=-];deny-visible-carrier=dormant[trigger-false-rearmed|armed=0|c=-];advance-fire-element=dormant[phase-ineligible|armed=0|c=-];harvest-core-window=active[armed-carrier-retargeted|armed=1|c=1:courier,6:escort]; sheet=3829ce7c; layout=89c92e70",
+            "tick": 410
+          },
+          "emergencyCore": {
+            "command": {
+              "actionCode": 1,
+              "actionId": "move-eight-way",
+              "arguments": [
+                {
+                  "kind": "projectile-heading",
+                  "value": 5
+                }
+              ],
+              "debugMessage": "custody:emergency-pickup-fallback via SouthWest",
+              "lifeId": 1,
+              "outcome": "accepted",
+              "roleTag": "occupy-runner-group-runn",
+              "unitId": 1
+            },
+            "tick": 415,
+            "visibleLooseCorePositions": [
+              [
+                2,
+                12
+              ]
+            ]
+          },
+          "replacementCatchUp": {
+            "actionId": "shoot-direction",
+            "actorId": {
+              "lifeId": 1,
+              "teamId": 1,
+              "unitId": 3
+            },
+            "position": {
+              "x": 18,
+              "y": 8
+            },
+            "tick": 113
+          }
+        }
+      },
+      "subjectTeamId": 1,
+      "winnerTeamId": 1
+    },
+    {
+      "campingDiagnostics": {
+        "campToDeliveryShare": 0.6666666666666666,
+        "enemyFinalThirdBodyTicks": 2603,
+        "enemyReactorRadiusSixBodyTicks": 2447,
+        "fiveBodyCampTicks": 361,
+        "killsByDistanceFromEnemyReactor": {
+          "outside6": 12,
+          "within2": 6,
+          "within6": 15
+        },
+        "opponentCoreDropsByDistanceFromEnemyReactor": {
+          "outside6": 5,
+          "within2": 1,
+          "within6": 12
+        },
+        "subjectCoreDropsByDistanceFromEnemyReactor": {
+          "outside6": 8,
+          "within2": 0,
+          "within6": 0
+        }
+      },
+      "canonicalReplaySha256": "f909ef7cac61af2873283b2d4cceab5cc0102ec7411177b295ee2e16e3c61193",
+      "casualtyRespawn": {
+        "deathsWithLaterRespawn": 22,
+        "respawnsRejoiningStrategy": 22,
+        "subjectDeaths": 22
+      },
+      "cellId": "coordination-parity-baseline--home-siege-v3--s322419--a1",
+      "completionReason": "reactor-destroyed",
+      "coreConversion": {
+        "counterBanksDuringFiveBodyCamp": 0,
+        "declaredScorerPickups": 0,
+        "opportunisticPickups": 17,
+        "securedCoreBanks": 6,
+        "securedCorePickups": 14,
+        "securedCoreScorerBanks": 0,
+        "securedCoreScorerPickups": 0,
+        "subjectBanks": 9,
+        "subjectBanksDuringFiveBodyCamp": 6,
+        "subjectPickups": 17
+      },
+      "deliveries": {
+        "opponent": 1,
+        "subject": 9
+      },
+      "eligibility": {
+        "matchEligibleForCohortRead": true,
+        "subjectFormationFreezeTripped": false,
+        "subjectHandoffPingPongTripped": false,
+        "subjectHomeCarrierNonProgressTripped": false,
+        "subjectPickupDropCycleTripped": false,
+        "subjectStuckCarrierTripped": false,
+        "subjectSustainedPassivityTripped": false
+      },
+      "endTick": 560,
+      "finalIntegrity": {
+        "opponent": 0,
+        "subject": 3
+      },
+      "phaseTimeline": [
+        {
+          "phase": "assault",
+          "tick": 1
+        },
+        {
+          "phase": "occupy",
+          "tick": 33
+        },
+        {
+          "phase": "regroup",
+          "tick": 112
+        },
+        {
+          "phase": "breach",
+          "tick": 123
+        },
+        {
+          "phase": "regroup",
+          "tick": 198
+        },
+        {
+          "phase": "breach",
+          "tick": 274
+        },
+        {
+          "phase": "occupy",
+          "tick": 282
+        },
+        {
+          "phase": "regroup",
+          "tick": 307
+        },
+        {
+          "phase": "breach",
+          "tick": 318
+        },
+        {
+          "phase": "occupy",
+          "tick": 346
+        }
+      ],
+      "recoveryCycleObserved": true,
+      "repair": {
+        "acceptedRepairCommands": 73,
+        "distinctMedicLives": 7,
+        "distinctTargetSlots": 8
+      },
+      "seed": "322419",
+      "strictCorrections": {
+        "boundedCutoff": {
+          "actionTicks": 82,
+          "activeTicks": 126,
+          "lastSeenOnlyTicks": 13
+        },
+        "carrierLifecycle": {
+          "finishedTripOwnHomeHoldTicks": 0,
+          "releaseTicks": 0,
+          "retargetTicks": 2
+        },
+        "emergencyCore": {
+          "commands": 0,
+          "protectedEnemyPadCommands": 0,
+          "reachableCommands": 0
+        },
+        "fivePlusOnePlusOnePlusOneTicks": 26,
+        "replacementCatchUp": {
+          "maximumConsecutiveOwnHomeWaitTicks": 1,
+          "movementActionTicks": 413,
+          "returningReplacementTicks": 482
+        },
+        "traceExamples": {
+          "boundedCutoff": {
+            "debug": "playbook home-siege-v3; phase=occupy; live=8; enemy-down=1; secured=0; carriers=0; loose=0; wells=1; reactor=3/0; focus=6->1:6:0@(17,9); returning=0,5,6,7; repair=; tasks=secure-bank-drop=dormant[trigger-false-rearmed|armed=0|c=-];deny-visible-carrier=active[triggered|armed=1|c=7:interceptor];advance-fire-element=dormant[phase-ineligible|armed=0|c=-];harvest-core-window=dormant[trigger-false-rearmed|armed=0|c=-]; sheet=3829ce7c; layout=89c92e70",
+            "tick": 33
+          },
+          "carrierRetarget": {
+            "debug": "playbook home-siege-v3; phase=breach; live=8; enemy-down=0; secured=0; carriers=1; loose=0; wells=2; reactor=3/2; focus=1->1:0:1@(24,9),3->1:2:0@(23,8),4->1:4:4@(21,9); returning=; repair=; tasks=secure-bank-drop=dormant[phase-ineligible|armed=0|c=-];deny-visible-carrier=dormant[phase-ineligible|armed=0|c=-];advance-fire-element=dormant[trigger-false-rearmed|armed=0|c=-];harvest-core-window=active[armed-carrier-retargeted|armed=1|c=0:courier,6:escort]; sheet=3829ce7c; layout=89c92e70",
+            "tick": 147
+          },
+          "fivePlusOnePlusOnePlusOne": {
+            "debug": "playbook home-siege-v3; phase=occupy; live=8; enemy-down=2; secured=0; carriers=1; loose=0; wells=3; reactor=3/0; focus=4->1:4:2@(28,11); returning=0,7; repair=2; tasks=secure-bank-drop=dormant[trigger-false-rearmed|armed=0|c=-];deny-visible-carrier=active[active|armed=1|c=4:interceptor];advance-fire-element=dormant[phase-ineligible|armed=0|c=-];harvest-core-window=active[triggered|armed=0|c=0:courier,6:escort]; sheet=3829ce7c; layout=89c92e70",
+            "tick": 77
+          },
+          "replacementCatchUp": {
+            "actionId": "shoot-direction",
+            "actorId": {
+              "lifeId": 1,
+              "teamId": 0,
+              "unitId": 6
+            },
+            "position": {
+              "x": 12,
+              "y": 14
+            },
+            "tick": 128
+          }
+        }
+      },
+      "subjectTeamId": 0,
+      "winnerTeamId": 0
+    },
+    {
+      "campingDiagnostics": {
+        "campToDeliveryShare": 0.5555555555555556,
+        "enemyFinalThirdBodyTicks": 2665,
+        "enemyReactorRadiusSixBodyTicks": 2542,
+        "fiveBodyCampTicks": 358,
+        "killsByDistanceFromEnemyReactor": {
+          "outside6": 9,
+          "within2": 9,
+          "within6": 8
+        },
+        "opponentCoreDropsByDistanceFromEnemyReactor": {
+          "outside6": 2,
+          "within2": 4,
+          "within6": 7
+        },
+        "subjectCoreDropsByDistanceFromEnemyReactor": {
+          "outside6": 8,
+          "within2": 0,
+          "within6": 0
+        }
+      },
+      "canonicalReplaySha256": "c5e6a42e9402e029210993770622b4853dbec88c31bc48005b0b546438823337",
+      "casualtyRespawn": {
+        "deathsWithLaterRespawn": 19,
+        "respawnsRejoiningStrategy": 19,
+        "subjectDeaths": 20
+      },
+      "cellId": "coordination-parity-baseline--home-siege-v3--s331276--a0",
+      "completionReason": "reactor-destroyed",
+      "coreConversion": {
+        "counterBanksDuringFiveBodyCamp": 1,
+        "declaredScorerPickups": 0,
+        "opportunisticPickups": 17,
+        "securedCoreBanks": 3,
+        "securedCorePickups": 11,
+        "securedCoreScorerBanks": 0,
+        "securedCoreScorerPickups": 0,
+        "subjectBanks": 9,
+        "subjectBanksDuringFiveBodyCamp": 5,
+        "subjectPickups": 17
+      },
+      "deliveries": {
+        "opponent": 2,
+        "subject": 9
+      },
+      "eligibility": {
+        "matchEligibleForCohortRead": true,
+        "subjectFormationFreezeTripped": false,
+        "subjectHandoffPingPongTripped": false,
+        "subjectHomeCarrierNonProgressTripped": false,
+        "subjectPickupDropCycleTripped": false,
+        "subjectStuckCarrierTripped": false,
+        "subjectSustainedPassivityTripped": false
+      },
+      "endTick": 524,
+      "finalIntegrity": {
+        "opponent": 0,
+        "subject": 3
+      },
+      "phaseTimeline": [
+        {
+          "phase": "assault",
+          "tick": 1
+        },
+        {
+          "phase": "occupy",
+          "tick": 32
+        },
+        {
+          "phase": "regroup",
+          "tick": 117
+        },
+        {
+          "phase": "breach",
+          "tick": 128
+        },
+        {
+          "phase": "regroup",
+          "tick": 156
+        },
+        {
+          "phase": "breach",
+          "tick": 183
+        },
+        {
+          "phase": "occupy",
+          "tick": 191
+        },
+        {
+          "phase": "regroup",
+          "tick": 201
+        },
+        {
+          "phase": "breach",
+          "tick": 212
+        },
+        {
+          "phase": "occupy",
+          "tick": 228
+        },
+        {
+          "phase": "regroup",
+          "tick": 467
+        },
+        {
+          "phase": "breach",
+          "tick": 478
+        }
+      ],
+      "recoveryCycleObserved": true,
+      "repair": {
+        "acceptedRepairCommands": 71,
+        "distinctMedicLives": 6,
+        "distinctTargetSlots": 8
+      },
+      "seed": "331276",
+      "strictCorrections": {
+        "boundedCutoff": {
+          "actionTicks": 74,
+          "activeTicks": 108,
+          "lastSeenOnlyTicks": 10
+        },
+        "carrierLifecycle": {
+          "finishedTripOwnHomeHoldTicks": 0,
+          "releaseTicks": 0,
+          "retargetTicks": 1
+        },
+        "emergencyCore": {
+          "commands": 2,
+          "protectedEnemyPadCommands": 2,
+          "reachableCommands": 0
+        },
+        "fivePlusOnePlusOnePlusOneTicks": 0,
+        "replacementCatchUp": {
+          "maximumConsecutiveOwnHomeWaitTicks": 1,
+          "movementActionTicks": 530,
+          "returningReplacementTicks": 725
+        },
+        "traceExamples": {
+          "boundedCutoff": {
+            "debug": "playbook home-siege-v3; phase=occupy; live=8; enemy-down=1; secured=0; carriers=0; loose=0; wells=1; reactor=3/0; focus=; returning=7; repair=; tasks=secure-bank-drop=dormant[trigger-false-rearmed|armed=0|c=-];deny-visible-carrier=active[triggered|armed=1|c=6:interceptor];advance-fire-element=dormant[phase-ineligible|armed=0|c=-];harvest-core-window=dormant[trigger-false-rearmed|armed=0|c=-]; sheet=3829ce7c; layout=89c92e70",
+            "tick": 37
+          },
+          "carrierRetarget": {
+            "debug": "playbook home-siege-v3; phase=occupy; live=7; enemy-down=1; secured=1; carriers=1; loose=0; wells=2; reactor=3/1; focus=0->0:1:1@(3,14),5->0:1:1@(4,13); returning=1,4; repair=2; tasks=secure-bank-drop=dormant[trigger-false-rearmed|armed=0|c=-];deny-visible-carrier=dormant[trigger-false-rearmed|armed=0|c=-];advance-fire-element=dormant[phase-ineligible|armed=0|c=-];harvest-core-window=active[armed-carrier-retargeted|armed=1|c=1:courier,6:escort]; sheet=3829ce7c; layout=89c92e70",
+            "tick": 410
+          },
+          "emergencyCore": {
+            "command": {
+              "actionCode": 1,
+              "actionId": "move-eight-way",
+              "arguments": [
+                {
+                  "kind": "projectile-heading",
+                  "value": 5
+                }
+              ],
+              "debugMessage": "custody:emergency-pickup-fallback via SouthWest",
+              "lifeId": 1,
+              "outcome": "accepted",
+              "roleTag": "occupy-runner-group-runn",
+              "unitId": 1
+            },
+            "tick": 415,
+            "visibleLooseCorePositions": [
+              [
+                2,
+                12
+              ]
+            ]
+          },
+          "replacementCatchUp": {
+            "actionId": "shoot-direction",
+            "actorId": {
+              "lifeId": 1,
+              "teamId": 1,
+              "unitId": 3
+            },
+            "position": {
+              "x": 18,
+              "y": 8
+            },
+            "tick": 113
+          }
+        }
+      },
+      "subjectTeamId": 1,
+      "winnerTeamId": 1
+    },
+    {
+      "campingDiagnostics": {
+        "campToDeliveryShare": 0.6666666666666666,
+        "enemyFinalThirdBodyTicks": 2603,
+        "enemyReactorRadiusSixBodyTicks": 2447,
+        "fiveBodyCampTicks": 361,
+        "killsByDistanceFromEnemyReactor": {
+          "outside6": 12,
+          "within2": 6,
+          "within6": 15
+        },
+        "opponentCoreDropsByDistanceFromEnemyReactor": {
+          "outside6": 5,
+          "within2": 1,
+          "within6": 12
+        },
+        "subjectCoreDropsByDistanceFromEnemyReactor": {
+          "outside6": 8,
+          "within2": 0,
+          "within6": 0
+        }
+      },
+      "canonicalReplaySha256": "c01ddba416a99a9661789bf105e0557b214e1b2e622e89dd452c3250be023583",
+      "casualtyRespawn": {
+        "deathsWithLaterRespawn": 22,
+        "respawnsRejoiningStrategy": 22,
+        "subjectDeaths": 22
+      },
+      "cellId": "coordination-parity-baseline--home-siege-v3--s331276--a1",
+      "completionReason": "reactor-destroyed",
+      "coreConversion": {
+        "counterBanksDuringFiveBodyCamp": 0,
+        "declaredScorerPickups": 0,
+        "opportunisticPickups": 17,
+        "securedCoreBanks": 6,
+        "securedCorePickups": 14,
+        "securedCoreScorerBanks": 0,
+        "securedCoreScorerPickups": 0,
+        "subjectBanks": 9,
+        "subjectBanksDuringFiveBodyCamp": 6,
+        "subjectPickups": 17
+      },
+      "deliveries": {
+        "opponent": 1,
+        "subject": 9
+      },
+      "eligibility": {
+        "matchEligibleForCohortRead": true,
+        "subjectFormationFreezeTripped": false,
+        "subjectHandoffPingPongTripped": false,
+        "subjectHomeCarrierNonProgressTripped": false,
+        "subjectPickupDropCycleTripped": false,
+        "subjectStuckCarrierTripped": false,
+        "subjectSustainedPassivityTripped": false
+      },
+      "endTick": 560,
+      "finalIntegrity": {
+        "opponent": 0,
+        "subject": 3
+      },
+      "phaseTimeline": [
+        {
+          "phase": "assault",
+          "tick": 1
+        },
+        {
+          "phase": "occupy",
+          "tick": 33
+        },
+        {
+          "phase": "regroup",
+          "tick": 112
+        },
+        {
+          "phase": "breach",
+          "tick": 123
+        },
+        {
+          "phase": "regroup",
+          "tick": 198
+        },
+        {
+          "phase": "breach",
+          "tick": 274
+        },
+        {
+          "phase": "occupy",
+          "tick": 282
+        },
+        {
+          "phase": "regroup",
+          "tick": 307
+        },
+        {
+          "phase": "breach",
+          "tick": 318
+        },
+        {
+          "phase": "occupy",
+          "tick": 346
+        }
+      ],
+      "recoveryCycleObserved": true,
+      "repair": {
+        "acceptedRepairCommands": 73,
+        "distinctMedicLives": 7,
+        "distinctTargetSlots": 8
+      },
+      "seed": "331276",
+      "strictCorrections": {
+        "boundedCutoff": {
+          "actionTicks": 82,
+          "activeTicks": 126,
+          "lastSeenOnlyTicks": 13
+        },
+        "carrierLifecycle": {
+          "finishedTripOwnHomeHoldTicks": 0,
+          "releaseTicks": 0,
+          "retargetTicks": 2
+        },
+        "emergencyCore": {
+          "commands": 0,
+          "protectedEnemyPadCommands": 0,
+          "reachableCommands": 0
+        },
+        "fivePlusOnePlusOnePlusOneTicks": 26,
+        "replacementCatchUp": {
+          "maximumConsecutiveOwnHomeWaitTicks": 1,
+          "movementActionTicks": 413,
+          "returningReplacementTicks": 482
+        },
+        "traceExamples": {
+          "boundedCutoff": {
+            "debug": "playbook home-siege-v3; phase=occupy; live=8; enemy-down=1; secured=0; carriers=0; loose=0; wells=1; reactor=3/0; focus=6->1:6:0@(17,9); returning=0,5,6,7; repair=; tasks=secure-bank-drop=dormant[trigger-false-rearmed|armed=0|c=-];deny-visible-carrier=active[triggered|armed=1|c=7:interceptor];advance-fire-element=dormant[phase-ineligible|armed=0|c=-];harvest-core-window=dormant[trigger-false-rearmed|armed=0|c=-]; sheet=3829ce7c; layout=89c92e70",
+            "tick": 33
+          },
+          "carrierRetarget": {
+            "debug": "playbook home-siege-v3; phase=breach; live=8; enemy-down=0; secured=0; carriers=1; loose=0; wells=2; reactor=3/2; focus=1->1:0:1@(24,9),3->1:2:0@(23,8),4->1:4:4@(21,9); returning=; repair=; tasks=secure-bank-drop=dormant[phase-ineligible|armed=0|c=-];deny-visible-carrier=dormant[phase-ineligible|armed=0|c=-];advance-fire-element=dormant[trigger-false-rearmed|armed=0|c=-];harvest-core-window=active[armed-carrier-retargeted|armed=1|c=0:courier,6:escort]; sheet=3829ce7c; layout=89c92e70",
+            "tick": 147
+          },
+          "fivePlusOnePlusOnePlusOne": {
+            "debug": "playbook home-siege-v3; phase=occupy; live=8; enemy-down=2; secured=0; carriers=1; loose=0; wells=3; reactor=3/0; focus=4->1:4:2@(28,11); returning=0,7; repair=2; tasks=secure-bank-drop=dormant[trigger-false-rearmed|armed=0|c=-];deny-visible-carrier=active[active|armed=1|c=4:interceptor];advance-fire-element=dormant[phase-ineligible|armed=0|c=-];harvest-core-window=active[triggered|armed=0|c=0:courier,6:escort]; sheet=3829ce7c; layout=89c92e70",
+            "tick": 77
+          },
+          "replacementCatchUp": {
+            "actionId": "shoot-direction",
+            "actorId": {
+              "lifeId": 1,
+              "teamId": 0,
+              "unitId": 6
+            },
+            "position": {
+              "x": 12,
+              "y": 14
+            },
+            "tick": 128
+          }
+        }
+      },
+      "subjectTeamId": 0,
+      "winnerTeamId": 0
+    },
+    {
+      "campingDiagnostics": {
+        "campToDeliveryShare": 0.5555555555555556,
+        "enemyFinalThirdBodyTicks": 2665,
+        "enemyReactorRadiusSixBodyTicks": 2542,
+        "fiveBodyCampTicks": 358,
+        "killsByDistanceFromEnemyReactor": {
+          "outside6": 9,
+          "within2": 9,
+          "within6": 8
+        },
+        "opponentCoreDropsByDistanceFromEnemyReactor": {
+          "outside6": 2,
+          "within2": 4,
+          "within6": 7
+        },
+        "subjectCoreDropsByDistanceFromEnemyReactor": {
+          "outside6": 8,
+          "within2": 0,
+          "within6": 0
+        }
+      },
+      "canonicalReplaySha256": "7f9bd259fe5325e46694090e1864f53d64f895e9a3ed86a43056d66f6b6ab07c",
+      "casualtyRespawn": {
+        "deathsWithLaterRespawn": 19,
+        "respawnsRejoiningStrategy": 19,
+        "subjectDeaths": 20
+      },
+      "cellId": "coordination-parity-baseline--home-siege-v3--s395740--a0",
+      "completionReason": "reactor-destroyed",
+      "coreConversion": {
+        "counterBanksDuringFiveBodyCamp": 1,
+        "declaredScorerPickups": 0,
+        "opportunisticPickups": 17,
+        "securedCoreBanks": 3,
+        "securedCorePickups": 11,
+        "securedCoreScorerBanks": 0,
+        "securedCoreScorerPickups": 0,
+        "subjectBanks": 9,
+        "subjectBanksDuringFiveBodyCamp": 5,
+        "subjectPickups": 17
+      },
+      "deliveries": {
+        "opponent": 2,
+        "subject": 9
+      },
+      "eligibility": {
+        "matchEligibleForCohortRead": true,
+        "subjectFormationFreezeTripped": false,
+        "subjectHandoffPingPongTripped": false,
+        "subjectHomeCarrierNonProgressTripped": false,
+        "subjectPickupDropCycleTripped": false,
+        "subjectStuckCarrierTripped": false,
+        "subjectSustainedPassivityTripped": false
+      },
+      "endTick": 524,
+      "finalIntegrity": {
+        "opponent": 0,
+        "subject": 3
+      },
+      "phaseTimeline": [
+        {
+          "phase": "assault",
+          "tick": 1
+        },
+        {
+          "phase": "occupy",
+          "tick": 32
+        },
+        {
+          "phase": "regroup",
+          "tick": 117
+        },
+        {
+          "phase": "breach",
+          "tick": 128
+        },
+        {
+          "phase": "regroup",
+          "tick": 156
+        },
+        {
+          "phase": "breach",
+          "tick": 183
+        },
+        {
+          "phase": "occupy",
+          "tick": 191
+        },
+        {
+          "phase": "regroup",
+          "tick": 201
+        },
+        {
+          "phase": "breach",
+          "tick": 212
+        },
+        {
+          "phase": "occupy",
+          "tick": 228
+        },
+        {
+          "phase": "regroup",
+          "tick": 467
+        },
+        {
+          "phase": "breach",
+          "tick": 478
+        }
+      ],
+      "recoveryCycleObserved": true,
+      "repair": {
+        "acceptedRepairCommands": 71,
+        "distinctMedicLives": 6,
+        "distinctTargetSlots": 8
+      },
+      "seed": "395740",
+      "strictCorrections": {
+        "boundedCutoff": {
+          "actionTicks": 74,
+          "activeTicks": 108,
+          "lastSeenOnlyTicks": 10
+        },
+        "carrierLifecycle": {
+          "finishedTripOwnHomeHoldTicks": 0,
+          "releaseTicks": 0,
+          "retargetTicks": 1
+        },
+        "emergencyCore": {
+          "commands": 2,
+          "protectedEnemyPadCommands": 2,
+          "reachableCommands": 0
+        },
+        "fivePlusOnePlusOnePlusOneTicks": 0,
+        "replacementCatchUp": {
+          "maximumConsecutiveOwnHomeWaitTicks": 1,
+          "movementActionTicks": 530,
+          "returningReplacementTicks": 725
+        },
+        "traceExamples": {
+          "boundedCutoff": {
+            "debug": "playbook home-siege-v3; phase=occupy; live=8; enemy-down=1; secured=0; carriers=0; loose=0; wells=1; reactor=3/0; focus=; returning=7; repair=; tasks=secure-bank-drop=dormant[trigger-false-rearmed|armed=0|c=-];deny-visible-carrier=active[triggered|armed=1|c=6:interceptor];advance-fire-element=dormant[phase-ineligible|armed=0|c=-];harvest-core-window=dormant[trigger-false-rearmed|armed=0|c=-]; sheet=3829ce7c; layout=89c92e70",
+            "tick": 37
+          },
+          "carrierRetarget": {
+            "debug": "playbook home-siege-v3; phase=occupy; live=7; enemy-down=1; secured=1; carriers=1; loose=0; wells=2; reactor=3/1; focus=0->0:1:1@(3,14),5->0:1:1@(4,13); returning=1,4; repair=2; tasks=secure-bank-drop=dormant[trigger-false-rearmed|armed=0|c=-];deny-visible-carrier=dormant[trigger-false-rearmed|armed=0|c=-];advance-fire-element=dormant[phase-ineligible|armed=0|c=-];harvest-core-window=active[armed-carrier-retargeted|armed=1|c=1:courier,6:escort]; sheet=3829ce7c; layout=89c92e70",
+            "tick": 410
+          },
+          "emergencyCore": {
+            "command": {
+              "actionCode": 1,
+              "actionId": "move-eight-way",
+              "arguments": [
+                {
+                  "kind": "projectile-heading",
+                  "value": 5
+                }
+              ],
+              "debugMessage": "custody:emergency-pickup-fallback via SouthWest",
+              "lifeId": 1,
+              "outcome": "accepted",
+              "roleTag": "occupy-runner-group-runn",
+              "unitId": 1
+            },
+            "tick": 415,
+            "visibleLooseCorePositions": [
+              [
+                2,
+                12
+              ]
+            ]
+          },
+          "replacementCatchUp": {
+            "actionId": "shoot-direction",
+            "actorId": {
+              "lifeId": 1,
+              "teamId": 1,
+              "unitId": 3
+            },
+            "position": {
+              "x": 18,
+              "y": 8
+            },
+            "tick": 113
+          }
+        }
+      },
+      "subjectTeamId": 1,
+      "winnerTeamId": 1
+    },
+    {
+      "campingDiagnostics": {
+        "campToDeliveryShare": 0.6666666666666666,
+        "enemyFinalThirdBodyTicks": 2603,
+        "enemyReactorRadiusSixBodyTicks": 2447,
+        "fiveBodyCampTicks": 361,
+        "killsByDistanceFromEnemyReactor": {
+          "outside6": 12,
+          "within2": 6,
+          "within6": 15
+        },
+        "opponentCoreDropsByDistanceFromEnemyReactor": {
+          "outside6": 5,
+          "within2": 1,
+          "within6": 12
+        },
+        "subjectCoreDropsByDistanceFromEnemyReactor": {
+          "outside6": 8,
+          "within2": 0,
+          "within6": 0
+        }
+      },
+      "canonicalReplaySha256": "89f11e1b66d089ebcada816bbe676306165f473e708bc7990216c099f0825cc6",
+      "casualtyRespawn": {
+        "deathsWithLaterRespawn": 22,
+        "respawnsRejoiningStrategy": 22,
+        "subjectDeaths": 22
+      },
+      "cellId": "coordination-parity-baseline--home-siege-v3--s395740--a1",
+      "completionReason": "reactor-destroyed",
+      "coreConversion": {
+        "counterBanksDuringFiveBodyCamp": 0,
+        "declaredScorerPickups": 0,
+        "opportunisticPickups": 17,
+        "securedCoreBanks": 6,
+        "securedCorePickups": 14,
+        "securedCoreScorerBanks": 0,
+        "securedCoreScorerPickups": 0,
+        "subjectBanks": 9,
+        "subjectBanksDuringFiveBodyCamp": 6,
+        "subjectPickups": 17
+      },
+      "deliveries": {
+        "opponent": 1,
+        "subject": 9
+      },
+      "eligibility": {
+        "matchEligibleForCohortRead": true,
+        "subjectFormationFreezeTripped": false,
+        "subjectHandoffPingPongTripped": false,
+        "subjectHomeCarrierNonProgressTripped": false,
+        "subjectPickupDropCycleTripped": false,
+        "subjectStuckCarrierTripped": false,
+        "subjectSustainedPassivityTripped": false
+      },
+      "endTick": 560,
+      "finalIntegrity": {
+        "opponent": 0,
+        "subject": 3
+      },
+      "phaseTimeline": [
+        {
+          "phase": "assault",
+          "tick": 1
+        },
+        {
+          "phase": "occupy",
+          "tick": 33
+        },
+        {
+          "phase": "regroup",
+          "tick": 112
+        },
+        {
+          "phase": "breach",
+          "tick": 123
+        },
+        {
+          "phase": "regroup",
+          "tick": 198
+        },
+        {
+          "phase": "breach",
+          "tick": 274
+        },
+        {
+          "phase": "occupy",
+          "tick": 282
+        },
+        {
+          "phase": "regroup",
+          "tick": 307
+        },
+        {
+          "phase": "breach",
+          "tick": 318
+        },
+        {
+          "phase": "occupy",
+          "tick": 346
+        }
+      ],
+      "recoveryCycleObserved": true,
+      "repair": {
+        "acceptedRepairCommands": 73,
+        "distinctMedicLives": 7,
+        "distinctTargetSlots": 8
+      },
+      "seed": "395740",
+      "strictCorrections": {
+        "boundedCutoff": {
+          "actionTicks": 82,
+          "activeTicks": 126,
+          "lastSeenOnlyTicks": 13
+        },
+        "carrierLifecycle": {
+          "finishedTripOwnHomeHoldTicks": 0,
+          "releaseTicks": 0,
+          "retargetTicks": 2
+        },
+        "emergencyCore": {
+          "commands": 0,
+          "protectedEnemyPadCommands": 0,
+          "reachableCommands": 0
+        },
+        "fivePlusOnePlusOnePlusOneTicks": 26,
+        "replacementCatchUp": {
+          "maximumConsecutiveOwnHomeWaitTicks": 1,
+          "movementActionTicks": 413,
+          "returningReplacementTicks": 482
+        },
+        "traceExamples": {
+          "boundedCutoff": {
+            "debug": "playbook home-siege-v3; phase=occupy; live=8; enemy-down=1; secured=0; carriers=0; loose=0; wells=1; reactor=3/0; focus=6->1:6:0@(17,9); returning=0,5,6,7; repair=; tasks=secure-bank-drop=dormant[trigger-false-rearmed|armed=0|c=-];deny-visible-carrier=active[triggered|armed=1|c=7:interceptor];advance-fire-element=dormant[phase-ineligible|armed=0|c=-];harvest-core-window=dormant[trigger-false-rearmed|armed=0|c=-]; sheet=3829ce7c; layout=89c92e70",
+            "tick": 33
+          },
+          "carrierRetarget": {
+            "debug": "playbook home-siege-v3; phase=breach; live=8; enemy-down=0; secured=0; carriers=1; loose=0; wells=2; reactor=3/2; focus=1->1:0:1@(24,9),3->1:2:0@(23,8),4->1:4:4@(21,9); returning=; repair=; tasks=secure-bank-drop=dormant[phase-ineligible|armed=0|c=-];deny-visible-carrier=dormant[phase-ineligible|armed=0|c=-];advance-fire-element=dormant[trigger-false-rearmed|armed=0|c=-];harvest-core-window=active[armed-carrier-retargeted|armed=1|c=0:courier,6:escort]; sheet=3829ce7c; layout=89c92e70",
+            "tick": 147
+          },
+          "fivePlusOnePlusOnePlusOne": {
+            "debug": "playbook home-siege-v3; phase=occupy; live=8; enemy-down=2; secured=0; carriers=1; loose=0; wells=3; reactor=3/0; focus=4->1:4:2@(28,11); returning=0,7; repair=2; tasks=secure-bank-drop=dormant[trigger-false-rearmed|armed=0|c=-];deny-visible-carrier=active[active|armed=1|c=4:interceptor];advance-fire-element=dormant[phase-ineligible|armed=0|c=-];harvest-core-window=active[triggered|armed=0|c=0:courier,6:escort]; sheet=3829ce7c; layout=89c92e70",
+            "tick": 77
+          },
+          "replacementCatchUp": {
+            "actionId": "shoot-direction",
+            "actorId": {
+              "lifeId": 1,
+              "teamId": 0,
+              "unitId": 6
+            },
+            "position": {
+              "x": 12,
+              "y": 14
+            },
+            "tick": 128
+          }
+        }
+      },
+      "subjectTeamId": 0,
+      "winnerTeamId": 0
+    },
+    {
+      "campingDiagnostics": {
+        "campToDeliveryShare": 0.5555555555555556,
+        "enemyFinalThirdBodyTicks": 2665,
+        "enemyReactorRadiusSixBodyTicks": 2542,
+        "fiveBodyCampTicks": 358,
+        "killsByDistanceFromEnemyReactor": {
+          "outside6": 9,
+          "within2": 9,
+          "within6": 8
+        },
+        "opponentCoreDropsByDistanceFromEnemyReactor": {
+          "outside6": 2,
+          "within2": 4,
+          "within6": 7
+        },
+        "subjectCoreDropsByDistanceFromEnemyReactor": {
+          "outside6": 8,
+          "within2": 0,
+          "within6": 0
+        }
+      },
+      "canonicalReplaySha256": "2e506bf7a7c6c1149fb414a0a988486b3cc361196f087e419658524a7d6c888c",
+      "casualtyRespawn": {
+        "deathsWithLaterRespawn": 19,
+        "respawnsRejoiningStrategy": 19,
+        "subjectDeaths": 20
+      },
+      "cellId": "coordination-parity-baseline--home-siege-v3--s426025--a0",
+      "completionReason": "reactor-destroyed",
+      "coreConversion": {
+        "counterBanksDuringFiveBodyCamp": 1,
+        "declaredScorerPickups": 0,
+        "opportunisticPickups": 17,
+        "securedCoreBanks": 3,
+        "securedCorePickups": 11,
+        "securedCoreScorerBanks": 0,
+        "securedCoreScorerPickups": 0,
+        "subjectBanks": 9,
+        "subjectBanksDuringFiveBodyCamp": 5,
+        "subjectPickups": 17
+      },
+      "deliveries": {
+        "opponent": 2,
+        "subject": 9
+      },
+      "eligibility": {
+        "matchEligibleForCohortRead": true,
+        "subjectFormationFreezeTripped": false,
+        "subjectHandoffPingPongTripped": false,
+        "subjectHomeCarrierNonProgressTripped": false,
+        "subjectPickupDropCycleTripped": false,
+        "subjectStuckCarrierTripped": false,
+        "subjectSustainedPassivityTripped": false
+      },
+      "endTick": 524,
+      "finalIntegrity": {
+        "opponent": 0,
+        "subject": 3
+      },
+      "phaseTimeline": [
+        {
+          "phase": "assault",
+          "tick": 1
+        },
+        {
+          "phase": "occupy",
+          "tick": 32
+        },
+        {
+          "phase": "regroup",
+          "tick": 117
+        },
+        {
+          "phase": "breach",
+          "tick": 128
+        },
+        {
+          "phase": "regroup",
+          "tick": 156
+        },
+        {
+          "phase": "breach",
+          "tick": 183
+        },
+        {
+          "phase": "occupy",
+          "tick": 191
+        },
+        {
+          "phase": "regroup",
+          "tick": 201
+        },
+        {
+          "phase": "breach",
+          "tick": 212
+        },
+        {
+          "phase": "occupy",
+          "tick": 228
+        },
+        {
+          "phase": "regroup",
+          "tick": 467
+        },
+        {
+          "phase": "breach",
+          "tick": 478
+        }
+      ],
+      "recoveryCycleObserved": true,
+      "repair": {
+        "acceptedRepairCommands": 71,
+        "distinctMedicLives": 6,
+        "distinctTargetSlots": 8
+      },
+      "seed": "426025",
+      "strictCorrections": {
+        "boundedCutoff": {
+          "actionTicks": 74,
+          "activeTicks": 108,
+          "lastSeenOnlyTicks": 10
+        },
+        "carrierLifecycle": {
+          "finishedTripOwnHomeHoldTicks": 0,
+          "releaseTicks": 0,
+          "retargetTicks": 1
+        },
+        "emergencyCore": {
+          "commands": 2,
+          "protectedEnemyPadCommands": 2,
+          "reachableCommands": 0
+        },
+        "fivePlusOnePlusOnePlusOneTicks": 0,
+        "replacementCatchUp": {
+          "maximumConsecutiveOwnHomeWaitTicks": 1,
+          "movementActionTicks": 530,
+          "returningReplacementTicks": 725
+        },
+        "traceExamples": {
+          "boundedCutoff": {
+            "debug": "playbook home-siege-v3; phase=occupy; live=8; enemy-down=1; secured=0; carriers=0; loose=0; wells=1; reactor=3/0; focus=; returning=7; repair=; tasks=secure-bank-drop=dormant[trigger-false-rearmed|armed=0|c=-];deny-visible-carrier=active[triggered|armed=1|c=6:interceptor];advance-fire-element=dormant[phase-ineligible|armed=0|c=-];harvest-core-window=dormant[trigger-false-rearmed|armed=0|c=-]; sheet=3829ce7c; layout=89c92e70",
+            "tick": 37
+          },
+          "carrierRetarget": {
+            "debug": "playbook home-siege-v3; phase=occupy; live=7; enemy-down=1; secured=1; carriers=1; loose=0; wells=2; reactor=3/1; focus=0->0:1:1@(3,14),5->0:1:1@(4,13); returning=1,4; repair=2; tasks=secure-bank-drop=dormant[trigger-false-rearmed|armed=0|c=-];deny-visible-carrier=dormant[trigger-false-rearmed|armed=0|c=-];advance-fire-element=dormant[phase-ineligible|armed=0|c=-];harvest-core-window=active[armed-carrier-retargeted|armed=1|c=1:courier,6:escort]; sheet=3829ce7c; layout=89c92e70",
+            "tick": 410
+          },
+          "emergencyCore": {
+            "command": {
+              "actionCode": 1,
+              "actionId": "move-eight-way",
+              "arguments": [
+                {
+                  "kind": "projectile-heading",
+                  "value": 5
+                }
+              ],
+              "debugMessage": "custody:emergency-pickup-fallback via SouthWest",
+              "lifeId": 1,
+              "outcome": "accepted",
+              "roleTag": "occupy-runner-group-runn",
+              "unitId": 1
+            },
+            "tick": 415,
+            "visibleLooseCorePositions": [
+              [
+                2,
+                12
+              ]
+            ]
+          },
+          "replacementCatchUp": {
+            "actionId": "shoot-direction",
+            "actorId": {
+              "lifeId": 1,
+              "teamId": 1,
+              "unitId": 3
+            },
+            "position": {
+              "x": 18,
+              "y": 8
+            },
+            "tick": 113
+          }
+        }
+      },
+      "subjectTeamId": 1,
+      "winnerTeamId": 1
+    },
+    {
+      "campingDiagnostics": {
+        "campToDeliveryShare": 0.6666666666666666,
+        "enemyFinalThirdBodyTicks": 2603,
+        "enemyReactorRadiusSixBodyTicks": 2447,
+        "fiveBodyCampTicks": 361,
+        "killsByDistanceFromEnemyReactor": {
+          "outside6": 12,
+          "within2": 6,
+          "within6": 15
+        },
+        "opponentCoreDropsByDistanceFromEnemyReactor": {
+          "outside6": 5,
+          "within2": 1,
+          "within6": 12
+        },
+        "subjectCoreDropsByDistanceFromEnemyReactor": {
+          "outside6": 8,
+          "within2": 0,
+          "within6": 0
+        }
+      },
+      "canonicalReplaySha256": "ef30e523a87ab8e5e6f33c7b35b99b11df756fae797bbca3e8c6657a7390313b",
+      "casualtyRespawn": {
+        "deathsWithLaterRespawn": 22,
+        "respawnsRejoiningStrategy": 22,
+        "subjectDeaths": 22
+      },
+      "cellId": "coordination-parity-baseline--home-siege-v3--s426025--a1",
+      "completionReason": "reactor-destroyed",
+      "coreConversion": {
+        "counterBanksDuringFiveBodyCamp": 0,
+        "declaredScorerPickups": 0,
+        "opportunisticPickups": 17,
+        "securedCoreBanks": 6,
+        "securedCorePickups": 14,
+        "securedCoreScorerBanks": 0,
+        "securedCoreScorerPickups": 0,
+        "subjectBanks": 9,
+        "subjectBanksDuringFiveBodyCamp": 6,
+        "subjectPickups": 17
+      },
+      "deliveries": {
+        "opponent": 1,
+        "subject": 9
+      },
+      "eligibility": {
+        "matchEligibleForCohortRead": true,
+        "subjectFormationFreezeTripped": false,
+        "subjectHandoffPingPongTripped": false,
+        "subjectHomeCarrierNonProgressTripped": false,
+        "subjectPickupDropCycleTripped": false,
+        "subjectStuckCarrierTripped": false,
+        "subjectSustainedPassivityTripped": false
+      },
+      "endTick": 560,
+      "finalIntegrity": {
+        "opponent": 0,
+        "subject": 3
+      },
+      "phaseTimeline": [
+        {
+          "phase": "assault",
+          "tick": 1
+        },
+        {
+          "phase": "occupy",
+          "tick": 33
+        },
+        {
+          "phase": "regroup",
+          "tick": 112
+        },
+        {
+          "phase": "breach",
+          "tick": 123
+        },
+        {
+          "phase": "regroup",
+          "tick": 198
+        },
+        {
+          "phase": "breach",
+          "tick": 274
+        },
+        {
+          "phase": "occupy",
+          "tick": 282
+        },
+        {
+          "phase": "regroup",
+          "tick": 307
+        },
+        {
+          "phase": "breach",
+          "tick": 318
+        },
+        {
+          "phase": "occupy",
+          "tick": 346
+        }
+      ],
+      "recoveryCycleObserved": true,
+      "repair": {
+        "acceptedRepairCommands": 73,
+        "distinctMedicLives": 7,
+        "distinctTargetSlots": 8
+      },
+      "seed": "426025",
+      "strictCorrections": {
+        "boundedCutoff": {
+          "actionTicks": 82,
+          "activeTicks": 126,
+          "lastSeenOnlyTicks": 13
+        },
+        "carrierLifecycle": {
+          "finishedTripOwnHomeHoldTicks": 0,
+          "releaseTicks": 0,
+          "retargetTicks": 2
+        },
+        "emergencyCore": {
+          "commands": 0,
+          "protectedEnemyPadCommands": 0,
+          "reachableCommands": 0
+        },
+        "fivePlusOnePlusOnePlusOneTicks": 26,
+        "replacementCatchUp": {
+          "maximumConsecutiveOwnHomeWaitTicks": 1,
+          "movementActionTicks": 413,
+          "returningReplacementTicks": 482
+        },
+        "traceExamples": {
+          "boundedCutoff": {
+            "debug": "playbook home-siege-v3; phase=occupy; live=8; enemy-down=1; secured=0; carriers=0; loose=0; wells=1; reactor=3/0; focus=6->1:6:0@(17,9); returning=0,5,6,7; repair=; tasks=secure-bank-drop=dormant[trigger-false-rearmed|armed=0|c=-];deny-visible-carrier=active[triggered|armed=1|c=7:interceptor];advance-fire-element=dormant[phase-ineligible|armed=0|c=-];harvest-core-window=dormant[trigger-false-rearmed|armed=0|c=-]; sheet=3829ce7c; layout=89c92e70",
+            "tick": 33
+          },
+          "carrierRetarget": {
+            "debug": "playbook home-siege-v3; phase=breach; live=8; enemy-down=0; secured=0; carriers=1; loose=0; wells=2; reactor=3/2; focus=1->1:0:1@(24,9),3->1:2:0@(23,8),4->1:4:4@(21,9); returning=; repair=; tasks=secure-bank-drop=dormant[phase-ineligible|armed=0|c=-];deny-visible-carrier=dormant[phase-ineligible|armed=0|c=-];advance-fire-element=dormant[trigger-false-rearmed|armed=0|c=-];harvest-core-window=active[armed-carrier-retargeted|armed=1|c=0:courier,6:escort]; sheet=3829ce7c; layout=89c92e70",
+            "tick": 147
+          },
+          "fivePlusOnePlusOnePlusOne": {
+            "debug": "playbook home-siege-v3; phase=occupy; live=8; enemy-down=2; secured=0; carriers=1; loose=0; wells=3; reactor=3/0; focus=4->1:4:2@(28,11); returning=0,7; repair=2; tasks=secure-bank-drop=dormant[trigger-false-rearmed|armed=0|c=-];deny-visible-carrier=active[active|armed=1|c=4:interceptor];advance-fire-element=dormant[phase-ineligible|armed=0|c=-];harvest-core-window=active[triggered|armed=0|c=0:courier,6:escort]; sheet=3829ce7c; layout=89c92e70",
+            "tick": 77
+          },
+          "replacementCatchUp": {
+            "actionId": "shoot-direction",
+            "actorId": {
+              "lifeId": 1,
+              "teamId": 0,
+              "unitId": 6
+            },
+            "position": {
+              "x": 12,
+              "y": 14
+            },
+            "tick": 128
+          }
+        }
+      },
+      "subjectTeamId": 0,
+      "winnerTeamId": 0
+    },
+    {
+      "campingDiagnostics": {
+        "campToDeliveryShare": 0.5555555555555556,
+        "enemyFinalThirdBodyTicks": 2665,
+        "enemyReactorRadiusSixBodyTicks": 2542,
+        "fiveBodyCampTicks": 358,
+        "killsByDistanceFromEnemyReactor": {
+          "outside6": 9,
+          "within2": 9,
+          "within6": 8
+        },
+        "opponentCoreDropsByDistanceFromEnemyReactor": {
+          "outside6": 2,
+          "within2": 4,
+          "within6": 7
+        },
+        "subjectCoreDropsByDistanceFromEnemyReactor": {
+          "outside6": 8,
+          "within2": 0,
+          "within6": 0
+        }
+      },
+      "canonicalReplaySha256": "1cdd503327f3c4b3479fc01d2560fe90623e96d68fc6679da9ccfb6c22c1debd",
+      "casualtyRespawn": {
+        "deathsWithLaterRespawn": 19,
+        "respawnsRejoiningStrategy": 19,
+        "subjectDeaths": 20
+      },
+      "cellId": "coordination-parity-baseline--home-siege-v3--s537464--a0",
+      "completionReason": "reactor-destroyed",
+      "coreConversion": {
+        "counterBanksDuringFiveBodyCamp": 1,
+        "declaredScorerPickups": 0,
+        "opportunisticPickups": 17,
+        "securedCoreBanks": 3,
+        "securedCorePickups": 11,
+        "securedCoreScorerBanks": 0,
+        "securedCoreScorerPickups": 0,
+        "subjectBanks": 9,
+        "subjectBanksDuringFiveBodyCamp": 5,
+        "subjectPickups": 17
+      },
+      "deliveries": {
+        "opponent": 2,
+        "subject": 9
+      },
+      "eligibility": {
+        "matchEligibleForCohortRead": true,
+        "subjectFormationFreezeTripped": false,
+        "subjectHandoffPingPongTripped": false,
+        "subjectHomeCarrierNonProgressTripped": false,
+        "subjectPickupDropCycleTripped": false,
+        "subjectStuckCarrierTripped": false,
+        "subjectSustainedPassivityTripped": false
+      },
+      "endTick": 524,
+      "finalIntegrity": {
+        "opponent": 0,
+        "subject": 3
+      },
+      "phaseTimeline": [
+        {
+          "phase": "assault",
+          "tick": 1
+        },
+        {
+          "phase": "occupy",
+          "tick": 32
+        },
+        {
+          "phase": "regroup",
+          "tick": 117
+        },
+        {
+          "phase": "breach",
+          "tick": 128
+        },
+        {
+          "phase": "regroup",
+          "tick": 156
+        },
+        {
+          "phase": "breach",
+          "tick": 183
+        },
+        {
+          "phase": "occupy",
+          "tick": 191
+        },
+        {
+          "phase": "regroup",
+          "tick": 201
+        },
+        {
+          "phase": "breach",
+          "tick": 212
+        },
+        {
+          "phase": "occupy",
+          "tick": 228
+        },
+        {
+          "phase": "regroup",
+          "tick": 467
+        },
+        {
+          "phase": "breach",
+          "tick": 478
+        }
+      ],
+      "recoveryCycleObserved": true,
+      "repair": {
+        "acceptedRepairCommands": 71,
+        "distinctMedicLives": 6,
+        "distinctTargetSlots": 8
+      },
+      "seed": "537464",
+      "strictCorrections": {
+        "boundedCutoff": {
+          "actionTicks": 74,
+          "activeTicks": 108,
+          "lastSeenOnlyTicks": 10
+        },
+        "carrierLifecycle": {
+          "finishedTripOwnHomeHoldTicks": 0,
+          "releaseTicks": 0,
+          "retargetTicks": 1
+        },
+        "emergencyCore": {
+          "commands": 2,
+          "protectedEnemyPadCommands": 2,
+          "reachableCommands": 0
+        },
+        "fivePlusOnePlusOnePlusOneTicks": 0,
+        "replacementCatchUp": {
+          "maximumConsecutiveOwnHomeWaitTicks": 1,
+          "movementActionTicks": 530,
+          "returningReplacementTicks": 725
+        },
+        "traceExamples": {
+          "boundedCutoff": {
+            "debug": "playbook home-siege-v3; phase=occupy; live=8; enemy-down=1; secured=0; carriers=0; loose=0; wells=1; reactor=3/0; focus=; returning=7; repair=; tasks=secure-bank-drop=dormant[trigger-false-rearmed|armed=0|c=-];deny-visible-carrier=active[triggered|armed=1|c=6:interceptor];advance-fire-element=dormant[phase-ineligible|armed=0|c=-];harvest-core-window=dormant[trigger-false-rearmed|armed=0|c=-]; sheet=3829ce7c; layout=89c92e70",
+            "tick": 37
+          },
+          "carrierRetarget": {
+            "debug": "playbook home-siege-v3; phase=occupy; live=7; enemy-down=1; secured=1; carriers=1; loose=0; wells=2; reactor=3/1; focus=0->0:1:1@(3,14),5->0:1:1@(4,13); returning=1,4; repair=2; tasks=secure-bank-drop=dormant[trigger-false-rearmed|armed=0|c=-];deny-visible-carrier=dormant[trigger-false-rearmed|armed=0|c=-];advance-fire-element=dormant[phase-ineligible|armed=0|c=-];harvest-core-window=active[armed-carrier-retargeted|armed=1|c=1:courier,6:escort]; sheet=3829ce7c; layout=89c92e70",
+            "tick": 410
+          },
+          "emergencyCore": {
+            "command": {
+              "actionCode": 1,
+              "actionId": "move-eight-way",
+              "arguments": [
+                {
+                  "kind": "projectile-heading",
+                  "value": 5
+                }
+              ],
+              "debugMessage": "custody:emergency-pickup-fallback via SouthWest",
+              "lifeId": 1,
+              "outcome": "accepted",
+              "roleTag": "occupy-runner-group-runn",
+              "unitId": 1
+            },
+            "tick": 415,
+            "visibleLooseCorePositions": [
+              [
+                2,
+                12
+              ]
+            ]
+          },
+          "replacementCatchUp": {
+            "actionId": "shoot-direction",
+            "actorId": {
+              "lifeId": 1,
+              "teamId": 1,
+              "unitId": 3
+            },
+            "position": {
+              "x": 18,
+              "y": 8
+            },
+            "tick": 113
+          }
+        }
+      },
+      "subjectTeamId": 1,
+      "winnerTeamId": 1
+    },
+    {
+      "campingDiagnostics": {
+        "campToDeliveryShare": 0.6666666666666666,
+        "enemyFinalThirdBodyTicks": 2603,
+        "enemyReactorRadiusSixBodyTicks": 2447,
+        "fiveBodyCampTicks": 361,
+        "killsByDistanceFromEnemyReactor": {
+          "outside6": 12,
+          "within2": 6,
+          "within6": 15
+        },
+        "opponentCoreDropsByDistanceFromEnemyReactor": {
+          "outside6": 5,
+          "within2": 1,
+          "within6": 12
+        },
+        "subjectCoreDropsByDistanceFromEnemyReactor": {
+          "outside6": 8,
+          "within2": 0,
+          "within6": 0
+        }
+      },
+      "canonicalReplaySha256": "dee79604457fa177f0d0a12c99ab9a096ed78f48c60081e79f7ffc7ac1503417",
+      "casualtyRespawn": {
+        "deathsWithLaterRespawn": 22,
+        "respawnsRejoiningStrategy": 22,
+        "subjectDeaths": 22
+      },
+      "cellId": "coordination-parity-baseline--home-siege-v3--s537464--a1",
+      "completionReason": "reactor-destroyed",
+      "coreConversion": {
+        "counterBanksDuringFiveBodyCamp": 0,
+        "declaredScorerPickups": 0,
+        "opportunisticPickups": 17,
+        "securedCoreBanks": 6,
+        "securedCorePickups": 14,
+        "securedCoreScorerBanks": 0,
+        "securedCoreScorerPickups": 0,
+        "subjectBanks": 9,
+        "subjectBanksDuringFiveBodyCamp": 6,
+        "subjectPickups": 17
+      },
+      "deliveries": {
+        "opponent": 1,
+        "subject": 9
+      },
+      "eligibility": {
+        "matchEligibleForCohortRead": true,
+        "subjectFormationFreezeTripped": false,
+        "subjectHandoffPingPongTripped": false,
+        "subjectHomeCarrierNonProgressTripped": false,
+        "subjectPickupDropCycleTripped": false,
+        "subjectStuckCarrierTripped": false,
+        "subjectSustainedPassivityTripped": false
+      },
+      "endTick": 560,
+      "finalIntegrity": {
+        "opponent": 0,
+        "subject": 3
+      },
+      "phaseTimeline": [
+        {
+          "phase": "assault",
+          "tick": 1
+        },
+        {
+          "phase": "occupy",
+          "tick": 33
+        },
+        {
+          "phase": "regroup",
+          "tick": 112
+        },
+        {
+          "phase": "breach",
+          "tick": 123
+        },
+        {
+          "phase": "regroup",
+          "tick": 198
+        },
+        {
+          "phase": "breach",
+          "tick": 274
+        },
+        {
+          "phase": "occupy",
+          "tick": 282
+        },
+        {
+          "phase": "regroup",
+          "tick": 307
+        },
+        {
+          "phase": "breach",
+          "tick": 318
+        },
+        {
+          "phase": "occupy",
+          "tick": 346
+        }
+      ],
+      "recoveryCycleObserved": true,
+      "repair": {
+        "acceptedRepairCommands": 73,
+        "distinctMedicLives": 7,
+        "distinctTargetSlots": 8
+      },
+      "seed": "537464",
+      "strictCorrections": {
+        "boundedCutoff": {
+          "actionTicks": 82,
+          "activeTicks": 126,
+          "lastSeenOnlyTicks": 13
+        },
+        "carrierLifecycle": {
+          "finishedTripOwnHomeHoldTicks": 0,
+          "releaseTicks": 0,
+          "retargetTicks": 2
+        },
+        "emergencyCore": {
+          "commands": 0,
+          "protectedEnemyPadCommands": 0,
+          "reachableCommands": 0
+        },
+        "fivePlusOnePlusOnePlusOneTicks": 26,
+        "replacementCatchUp": {
+          "maximumConsecutiveOwnHomeWaitTicks": 1,
+          "movementActionTicks": 413,
+          "returningReplacementTicks": 482
+        },
+        "traceExamples": {
+          "boundedCutoff": {
+            "debug": "playbook home-siege-v3; phase=occupy; live=8; enemy-down=1; secured=0; carriers=0; loose=0; wells=1; reactor=3/0; focus=6->1:6:0@(17,9); returning=0,5,6,7; repair=; tasks=secure-bank-drop=dormant[trigger-false-rearmed|armed=0|c=-];deny-visible-carrier=active[triggered|armed=1|c=7:interceptor];advance-fire-element=dormant[phase-ineligible|armed=0|c=-];harvest-core-window=dormant[trigger-false-rearmed|armed=0|c=-]; sheet=3829ce7c; layout=89c92e70",
+            "tick": 33
+          },
+          "carrierRetarget": {
+            "debug": "playbook home-siege-v3; phase=breach; live=8; enemy-down=0; secured=0; carriers=1; loose=0; wells=2; reactor=3/2; focus=1->1:0:1@(24,9),3->1:2:0@(23,8),4->1:4:4@(21,9); returning=; repair=; tasks=secure-bank-drop=dormant[phase-ineligible|armed=0|c=-];deny-visible-carrier=dormant[phase-ineligible|armed=0|c=-];advance-fire-element=dormant[trigger-false-rearmed|armed=0|c=-];harvest-core-window=active[armed-carrier-retargeted|armed=1|c=0:courier,6:escort]; sheet=3829ce7c; layout=89c92e70",
+            "tick": 147
+          },
+          "fivePlusOnePlusOnePlusOne": {
+            "debug": "playbook home-siege-v3; phase=occupy; live=8; enemy-down=2; secured=0; carriers=1; loose=0; wells=3; reactor=3/0; focus=4->1:4:2@(28,11); returning=0,7; repair=2; tasks=secure-bank-drop=dormant[trigger-false-rearmed|armed=0|c=-];deny-visible-carrier=active[active|armed=1|c=4:interceptor];advance-fire-element=dormant[phase-ineligible|armed=0|c=-];harvest-core-window=active[triggered|armed=0|c=0:courier,6:escort]; sheet=3829ce7c; layout=89c92e70",
+            "tick": 77
+          },
+          "replacementCatchUp": {
+            "actionId": "shoot-direction",
+            "actorId": {
+              "lifeId": 1,
+              "teamId": 0,
+              "unitId": 6
+            },
+            "position": {
+              "x": 12,
+              "y": 14
+            },
+            "tick": 128
+          }
+        }
+      },
+      "subjectTeamId": 0,
+      "winnerTeamId": 0
+    },
+    {
+      "campingDiagnostics": {
+        "campToDeliveryShare": 0.5555555555555556,
+        "enemyFinalThirdBodyTicks": 2665,
+        "enemyReactorRadiusSixBodyTicks": 2542,
+        "fiveBodyCampTicks": 358,
+        "killsByDistanceFromEnemyReactor": {
+          "outside6": 9,
+          "within2": 9,
+          "within6": 8
+        },
+        "opponentCoreDropsByDistanceFromEnemyReactor": {
+          "outside6": 2,
+          "within2": 4,
+          "within6": 7
+        },
+        "subjectCoreDropsByDistanceFromEnemyReactor": {
+          "outside6": 8,
+          "within2": 0,
+          "within6": 0
+        }
+      },
+      "canonicalReplaySha256": "d860d692c96b49aefa28af1fb7c9bb8a9fc8364d6e2901b12c433585e5bfefc3",
+      "casualtyRespawn": {
+        "deathsWithLaterRespawn": 19,
+        "respawnsRejoiningStrategy": 19,
+        "subjectDeaths": 20
+      },
+      "cellId": "coordination-parity-baseline--home-siege-v3--s543732--a0",
+      "completionReason": "reactor-destroyed",
+      "coreConversion": {
+        "counterBanksDuringFiveBodyCamp": 1,
+        "declaredScorerPickups": 0,
+        "opportunisticPickups": 17,
+        "securedCoreBanks": 3,
+        "securedCorePickups": 11,
+        "securedCoreScorerBanks": 0,
+        "securedCoreScorerPickups": 0,
+        "subjectBanks": 9,
+        "subjectBanksDuringFiveBodyCamp": 5,
+        "subjectPickups": 17
+      },
+      "deliveries": {
+        "opponent": 2,
+        "subject": 9
+      },
+      "eligibility": {
+        "matchEligibleForCohortRead": true,
+        "subjectFormationFreezeTripped": false,
+        "subjectHandoffPingPongTripped": false,
+        "subjectHomeCarrierNonProgressTripped": false,
+        "subjectPickupDropCycleTripped": false,
+        "subjectStuckCarrierTripped": false,
+        "subjectSustainedPassivityTripped": false
+      },
+      "endTick": 524,
+      "finalIntegrity": {
+        "opponent": 0,
+        "subject": 3
+      },
+      "phaseTimeline": [
+        {
+          "phase": "assault",
+          "tick": 1
+        },
+        {
+          "phase": "occupy",
+          "tick": 32
+        },
+        {
+          "phase": "regroup",
+          "tick": 117
+        },
+        {
+          "phase": "breach",
+          "tick": 128
+        },
+        {
+          "phase": "regroup",
+          "tick": 156
+        },
+        {
+          "phase": "breach",
+          "tick": 183
+        },
+        {
+          "phase": "occupy",
+          "tick": 191
+        },
+        {
+          "phase": "regroup",
+          "tick": 201
+        },
+        {
+          "phase": "breach",
+          "tick": 212
+        },
+        {
+          "phase": "occupy",
+          "tick": 228
+        },
+        {
+          "phase": "regroup",
+          "tick": 467
+        },
+        {
+          "phase": "breach",
+          "tick": 478
+        }
+      ],
+      "recoveryCycleObserved": true,
+      "repair": {
+        "acceptedRepairCommands": 71,
+        "distinctMedicLives": 6,
+        "distinctTargetSlots": 8
+      },
+      "seed": "543732",
+      "strictCorrections": {
+        "boundedCutoff": {
+          "actionTicks": 74,
+          "activeTicks": 108,
+          "lastSeenOnlyTicks": 10
+        },
+        "carrierLifecycle": {
+          "finishedTripOwnHomeHoldTicks": 0,
+          "releaseTicks": 0,
+          "retargetTicks": 1
+        },
+        "emergencyCore": {
+          "commands": 2,
+          "protectedEnemyPadCommands": 2,
+          "reachableCommands": 0
+        },
+        "fivePlusOnePlusOnePlusOneTicks": 0,
+        "replacementCatchUp": {
+          "maximumConsecutiveOwnHomeWaitTicks": 1,
+          "movementActionTicks": 530,
+          "returningReplacementTicks": 725
+        },
+        "traceExamples": {
+          "boundedCutoff": {
+            "debug": "playbook home-siege-v3; phase=occupy; live=8; enemy-down=1; secured=0; carriers=0; loose=0; wells=1; reactor=3/0; focus=; returning=7; repair=; tasks=secure-bank-drop=dormant[trigger-false-rearmed|armed=0|c=-];deny-visible-carrier=active[triggered|armed=1|c=6:interceptor];advance-fire-element=dormant[phase-ineligible|armed=0|c=-];harvest-core-window=dormant[trigger-false-rearmed|armed=0|c=-]; sheet=3829ce7c; layout=89c92e70",
+            "tick": 37
+          },
+          "carrierRetarget": {
+            "debug": "playbook home-siege-v3; phase=occupy; live=7; enemy-down=1; secured=1; carriers=1; loose=0; wells=2; reactor=3/1; focus=0->0:1:1@(3,14),5->0:1:1@(4,13); returning=1,4; repair=2; tasks=secure-bank-drop=dormant[trigger-false-rearmed|armed=0|c=-];deny-visible-carrier=dormant[trigger-false-rearmed|armed=0|c=-];advance-fire-element=dormant[phase-ineligible|armed=0|c=-];harvest-core-window=active[armed-carrier-retargeted|armed=1|c=1:courier,6:escort]; sheet=3829ce7c; layout=89c92e70",
+            "tick": 410
+          },
+          "emergencyCore": {
+            "command": {
+              "actionCode": 1,
+              "actionId": "move-eight-way",
+              "arguments": [
+                {
+                  "kind": "projectile-heading",
+                  "value": 5
+                }
+              ],
+              "debugMessage": "custody:emergency-pickup-fallback via SouthWest",
+              "lifeId": 1,
+              "outcome": "accepted",
+              "roleTag": "occupy-runner-group-runn",
+              "unitId": 1
+            },
+            "tick": 415,
+            "visibleLooseCorePositions": [
+              [
+                2,
+                12
+              ]
+            ]
+          },
+          "replacementCatchUp": {
+            "actionId": "shoot-direction",
+            "actorId": {
+              "lifeId": 1,
+              "teamId": 1,
+              "unitId": 3
+            },
+            "position": {
+              "x": 18,
+              "y": 8
+            },
+            "tick": 113
+          }
+        }
+      },
+      "subjectTeamId": 1,
+      "winnerTeamId": 1
+    },
+    {
+      "campingDiagnostics": {
+        "campToDeliveryShare": 0.6666666666666666,
+        "enemyFinalThirdBodyTicks": 2603,
+        "enemyReactorRadiusSixBodyTicks": 2447,
+        "fiveBodyCampTicks": 361,
+        "killsByDistanceFromEnemyReactor": {
+          "outside6": 12,
+          "within2": 6,
+          "within6": 15
+        },
+        "opponentCoreDropsByDistanceFromEnemyReactor": {
+          "outside6": 5,
+          "within2": 1,
+          "within6": 12
+        },
+        "subjectCoreDropsByDistanceFromEnemyReactor": {
+          "outside6": 8,
+          "within2": 0,
+          "within6": 0
+        }
+      },
+      "canonicalReplaySha256": "de2fb311c4caab519b22b0ca9f77dcb72a920dc4f7d98b926c969b998d948920",
+      "casualtyRespawn": {
+        "deathsWithLaterRespawn": 22,
+        "respawnsRejoiningStrategy": 22,
+        "subjectDeaths": 22
+      },
+      "cellId": "coordination-parity-baseline--home-siege-v3--s543732--a1",
+      "completionReason": "reactor-destroyed",
+      "coreConversion": {
+        "counterBanksDuringFiveBodyCamp": 0,
+        "declaredScorerPickups": 0,
+        "opportunisticPickups": 17,
+        "securedCoreBanks": 6,
+        "securedCorePickups": 14,
+        "securedCoreScorerBanks": 0,
+        "securedCoreScorerPickups": 0,
+        "subjectBanks": 9,
+        "subjectBanksDuringFiveBodyCamp": 6,
+        "subjectPickups": 17
+      },
+      "deliveries": {
+        "opponent": 1,
+        "subject": 9
+      },
+      "eligibility": {
+        "matchEligibleForCohortRead": true,
+        "subjectFormationFreezeTripped": false,
+        "subjectHandoffPingPongTripped": false,
+        "subjectHomeCarrierNonProgressTripped": false,
+        "subjectPickupDropCycleTripped": false,
+        "subjectStuckCarrierTripped": false,
+        "subjectSustainedPassivityTripped": false
+      },
+      "endTick": 560,
+      "finalIntegrity": {
+        "opponent": 0,
+        "subject": 3
+      },
+      "phaseTimeline": [
+        {
+          "phase": "assault",
+          "tick": 1
+        },
+        {
+          "phase": "occupy",
+          "tick": 33
+        },
+        {
+          "phase": "regroup",
+          "tick": 112
+        },
+        {
+          "phase": "breach",
+          "tick": 123
+        },
+        {
+          "phase": "regroup",
+          "tick": 198
+        },
+        {
+          "phase": "breach",
+          "tick": 274
+        },
+        {
+          "phase": "occupy",
+          "tick": 282
+        },
+        {
+          "phase": "regroup",
+          "tick": 307
+        },
+        {
+          "phase": "breach",
+          "tick": 318
+        },
+        {
+          "phase": "occupy",
+          "tick": 346
+        }
+      ],
+      "recoveryCycleObserved": true,
+      "repair": {
+        "acceptedRepairCommands": 73,
+        "distinctMedicLives": 7,
+        "distinctTargetSlots": 8
+      },
+      "seed": "543732",
+      "strictCorrections": {
+        "boundedCutoff": {
+          "actionTicks": 82,
+          "activeTicks": 126,
+          "lastSeenOnlyTicks": 13
+        },
+        "carrierLifecycle": {
+          "finishedTripOwnHomeHoldTicks": 0,
+          "releaseTicks": 0,
+          "retargetTicks": 2
+        },
+        "emergencyCore": {
+          "commands": 0,
+          "protectedEnemyPadCommands": 0,
+          "reachableCommands": 0
+        },
+        "fivePlusOnePlusOnePlusOneTicks": 26,
+        "replacementCatchUp": {
+          "maximumConsecutiveOwnHomeWaitTicks": 1,
+          "movementActionTicks": 413,
+          "returningReplacementTicks": 482
+        },
+        "traceExamples": {
+          "boundedCutoff": {
+            "debug": "playbook home-siege-v3; phase=occupy; live=8; enemy-down=1; secured=0; carriers=0; loose=0; wells=1; reactor=3/0; focus=6->1:6:0@(17,9); returning=0,5,6,7; repair=; tasks=secure-bank-drop=dormant[trigger-false-rearmed|armed=0|c=-];deny-visible-carrier=active[triggered|armed=1|c=7:interceptor];advance-fire-element=dormant[phase-ineligible|armed=0|c=-];harvest-core-window=dormant[trigger-false-rearmed|armed=0|c=-]; sheet=3829ce7c; layout=89c92e70",
+            "tick": 33
+          },
+          "carrierRetarget": {
+            "debug": "playbook home-siege-v3; phase=breach; live=8; enemy-down=0; secured=0; carriers=1; loose=0; wells=2; reactor=3/2; focus=1->1:0:1@(24,9),3->1:2:0@(23,8),4->1:4:4@(21,9); returning=; repair=; tasks=secure-bank-drop=dormant[phase-ineligible|armed=0|c=-];deny-visible-carrier=dormant[phase-ineligible|armed=0|c=-];advance-fire-element=dormant[trigger-false-rearmed|armed=0|c=-];harvest-core-window=active[armed-carrier-retargeted|armed=1|c=0:courier,6:escort]; sheet=3829ce7c; layout=89c92e70",
+            "tick": 147
+          },
+          "fivePlusOnePlusOnePlusOne": {
+            "debug": "playbook home-siege-v3; phase=occupy; live=8; enemy-down=2; secured=0; carriers=1; loose=0; wells=3; reactor=3/0; focus=4->1:4:2@(28,11); returning=0,7; repair=2; tasks=secure-bank-drop=dormant[trigger-false-rearmed|armed=0|c=-];deny-visible-carrier=active[active|armed=1|c=4:interceptor];advance-fire-element=dormant[phase-ineligible|armed=0|c=-];harvest-core-window=active[triggered|armed=0|c=0:courier,6:escort]; sheet=3829ce7c; layout=89c92e70",
+            "tick": 77
+          },
+          "replacementCatchUp": {
+            "actionId": "shoot-direction",
+            "actorId": {
+              "lifeId": 1,
+              "teamId": 0,
+              "unitId": 6
+            },
+            "position": {
+              "x": 12,
+              "y": 14
+            },
+            "tick": 128
+          }
+        }
+      },
+      "subjectTeamId": 0,
+      "winnerTeamId": 0
+    },
+    {
+      "campingDiagnostics": {
+        "campToDeliveryShare": 0.5555555555555556,
+        "enemyFinalThirdBodyTicks": 2665,
+        "enemyReactorRadiusSixBodyTicks": 2542,
+        "fiveBodyCampTicks": 358,
+        "killsByDistanceFromEnemyReactor": {
+          "outside6": 9,
+          "within2": 9,
+          "within6": 8
+        },
+        "opponentCoreDropsByDistanceFromEnemyReactor": {
+          "outside6": 2,
+          "within2": 4,
+          "within6": 7
+        },
+        "subjectCoreDropsByDistanceFromEnemyReactor": {
+          "outside6": 8,
+          "within2": 0,
+          "within6": 0
+        }
+      },
+      "canonicalReplaySha256": "2b4fefbdfbbd08367e658b8334f4bef2014672db28731e00a058c925b39bfbc7",
+      "casualtyRespawn": {
+        "deathsWithLaterRespawn": 19,
+        "respawnsRejoiningStrategy": 19,
+        "subjectDeaths": 20
+      },
+      "cellId": "coordination-parity-baseline--home-siege-v3--s544777--a0",
+      "completionReason": "reactor-destroyed",
+      "coreConversion": {
+        "counterBanksDuringFiveBodyCamp": 1,
+        "declaredScorerPickups": 0,
+        "opportunisticPickups": 17,
+        "securedCoreBanks": 3,
+        "securedCorePickups": 11,
+        "securedCoreScorerBanks": 0,
+        "securedCoreScorerPickups": 0,
+        "subjectBanks": 9,
+        "subjectBanksDuringFiveBodyCamp": 5,
+        "subjectPickups": 17
+      },
+      "deliveries": {
+        "opponent": 2,
+        "subject": 9
+      },
+      "eligibility": {
+        "matchEligibleForCohortRead": true,
+        "subjectFormationFreezeTripped": false,
+        "subjectHandoffPingPongTripped": false,
+        "subjectHomeCarrierNonProgressTripped": false,
+        "subjectPickupDropCycleTripped": false,
+        "subjectStuckCarrierTripped": false,
+        "subjectSustainedPassivityTripped": false
+      },
+      "endTick": 524,
+      "finalIntegrity": {
+        "opponent": 0,
+        "subject": 3
+      },
+      "phaseTimeline": [
+        {
+          "phase": "assault",
+          "tick": 1
+        },
+        {
+          "phase": "occupy",
+          "tick": 32
+        },
+        {
+          "phase": "regroup",
+          "tick": 117
+        },
+        {
+          "phase": "breach",
+          "tick": 128
+        },
+        {
+          "phase": "regroup",
+          "tick": 156
+        },
+        {
+          "phase": "breach",
+          "tick": 183
+        },
+        {
+          "phase": "occupy",
+          "tick": 191
+        },
+        {
+          "phase": "regroup",
+          "tick": 201
+        },
+        {
+          "phase": "breach",
+          "tick": 212
+        },
+        {
+          "phase": "occupy",
+          "tick": 228
+        },
+        {
+          "phase": "regroup",
+          "tick": 467
+        },
+        {
+          "phase": "breach",
+          "tick": 478
+        }
+      ],
+      "recoveryCycleObserved": true,
+      "repair": {
+        "acceptedRepairCommands": 71,
+        "distinctMedicLives": 6,
+        "distinctTargetSlots": 8
+      },
+      "seed": "544777",
+      "strictCorrections": {
+        "boundedCutoff": {
+          "actionTicks": 74,
+          "activeTicks": 108,
+          "lastSeenOnlyTicks": 10
+        },
+        "carrierLifecycle": {
+          "finishedTripOwnHomeHoldTicks": 0,
+          "releaseTicks": 0,
+          "retargetTicks": 1
+        },
+        "emergencyCore": {
+          "commands": 2,
+          "protectedEnemyPadCommands": 2,
+          "reachableCommands": 0
+        },
+        "fivePlusOnePlusOnePlusOneTicks": 0,
+        "replacementCatchUp": {
+          "maximumConsecutiveOwnHomeWaitTicks": 1,
+          "movementActionTicks": 530,
+          "returningReplacementTicks": 725
+        },
+        "traceExamples": {
+          "boundedCutoff": {
+            "debug": "playbook home-siege-v3; phase=occupy; live=8; enemy-down=1; secured=0; carriers=0; loose=0; wells=1; reactor=3/0; focus=; returning=7; repair=; tasks=secure-bank-drop=dormant[trigger-false-rearmed|armed=0|c=-];deny-visible-carrier=active[triggered|armed=1|c=6:interceptor];advance-fire-element=dormant[phase-ineligible|armed=0|c=-];harvest-core-window=dormant[trigger-false-rearmed|armed=0|c=-]; sheet=3829ce7c; layout=89c92e70",
+            "tick": 37
+          },
+          "carrierRetarget": {
+            "debug": "playbook home-siege-v3; phase=occupy; live=7; enemy-down=1; secured=1; carriers=1; loose=0; wells=2; reactor=3/1; focus=0->0:1:1@(3,14),5->0:1:1@(4,13); returning=1,4; repair=2; tasks=secure-bank-drop=dormant[trigger-false-rearmed|armed=0|c=-];deny-visible-carrier=dormant[trigger-false-rearmed|armed=0|c=-];advance-fire-element=dormant[phase-ineligible|armed=0|c=-];harvest-core-window=active[armed-carrier-retargeted|armed=1|c=1:courier,6:escort]; sheet=3829ce7c; layout=89c92e70",
+            "tick": 410
+          },
+          "emergencyCore": {
+            "command": {
+              "actionCode": 1,
+              "actionId": "move-eight-way",
+              "arguments": [
+                {
+                  "kind": "projectile-heading",
+                  "value": 5
+                }
+              ],
+              "debugMessage": "custody:emergency-pickup-fallback via SouthWest",
+              "lifeId": 1,
+              "outcome": "accepted",
+              "roleTag": "occupy-runner-group-runn",
+              "unitId": 1
+            },
+            "tick": 415,
+            "visibleLooseCorePositions": [
+              [
+                2,
+                12
+              ]
+            ]
+          },
+          "replacementCatchUp": {
+            "actionId": "shoot-direction",
+            "actorId": {
+              "lifeId": 1,
+              "teamId": 1,
+              "unitId": 3
+            },
+            "position": {
+              "x": 18,
+              "y": 8
+            },
+            "tick": 113
+          }
+        }
+      },
+      "subjectTeamId": 1,
+      "winnerTeamId": 1
+    },
+    {
+      "campingDiagnostics": {
+        "campToDeliveryShare": 0.6666666666666666,
+        "enemyFinalThirdBodyTicks": 2603,
+        "enemyReactorRadiusSixBodyTicks": 2447,
+        "fiveBodyCampTicks": 361,
+        "killsByDistanceFromEnemyReactor": {
+          "outside6": 12,
+          "within2": 6,
+          "within6": 15
+        },
+        "opponentCoreDropsByDistanceFromEnemyReactor": {
+          "outside6": 5,
+          "within2": 1,
+          "within6": 12
+        },
+        "subjectCoreDropsByDistanceFromEnemyReactor": {
+          "outside6": 8,
+          "within2": 0,
+          "within6": 0
+        }
+      },
+      "canonicalReplaySha256": "bc6bdf5d126f7c0aea18ba473719b7b84c330f7186f7e94335d54abb1dbd42e0",
+      "casualtyRespawn": {
+        "deathsWithLaterRespawn": 22,
+        "respawnsRejoiningStrategy": 22,
+        "subjectDeaths": 22
+      },
+      "cellId": "coordination-parity-baseline--home-siege-v3--s544777--a1",
+      "completionReason": "reactor-destroyed",
+      "coreConversion": {
+        "counterBanksDuringFiveBodyCamp": 0,
+        "declaredScorerPickups": 0,
+        "opportunisticPickups": 17,
+        "securedCoreBanks": 6,
+        "securedCorePickups": 14,
+        "securedCoreScorerBanks": 0,
+        "securedCoreScorerPickups": 0,
+        "subjectBanks": 9,
+        "subjectBanksDuringFiveBodyCamp": 6,
+        "subjectPickups": 17
+      },
+      "deliveries": {
+        "opponent": 1,
+        "subject": 9
+      },
+      "eligibility": {
+        "matchEligibleForCohortRead": true,
+        "subjectFormationFreezeTripped": false,
+        "subjectHandoffPingPongTripped": false,
+        "subjectHomeCarrierNonProgressTripped": false,
+        "subjectPickupDropCycleTripped": false,
+        "subjectStuckCarrierTripped": false,
+        "subjectSustainedPassivityTripped": false
+      },
+      "endTick": 560,
+      "finalIntegrity": {
+        "opponent": 0,
+        "subject": 3
+      },
+      "phaseTimeline": [
+        {
+          "phase": "assault",
+          "tick": 1
+        },
+        {
+          "phase": "occupy",
+          "tick": 33
+        },
+        {
+          "phase": "regroup",
+          "tick": 112
+        },
+        {
+          "phase": "breach",
+          "tick": 123
+        },
+        {
+          "phase": "regroup",
+          "tick": 198
+        },
+        {
+          "phase": "breach",
+          "tick": 274
+        },
+        {
+          "phase": "occupy",
+          "tick": 282
+        },
+        {
+          "phase": "regroup",
+          "tick": 307
+        },
+        {
+          "phase": "breach",
+          "tick": 318
+        },
+        {
+          "phase": "occupy",
+          "tick": 346
+        }
+      ],
+      "recoveryCycleObserved": true,
+      "repair": {
+        "acceptedRepairCommands": 73,
+        "distinctMedicLives": 7,
+        "distinctTargetSlots": 8
+      },
+      "seed": "544777",
+      "strictCorrections": {
+        "boundedCutoff": {
+          "actionTicks": 82,
+          "activeTicks": 126,
+          "lastSeenOnlyTicks": 13
+        },
+        "carrierLifecycle": {
+          "finishedTripOwnHomeHoldTicks": 0,
+          "releaseTicks": 0,
+          "retargetTicks": 2
+        },
+        "emergencyCore": {
+          "commands": 0,
+          "protectedEnemyPadCommands": 0,
+          "reachableCommands": 0
+        },
+        "fivePlusOnePlusOnePlusOneTicks": 26,
+        "replacementCatchUp": {
+          "maximumConsecutiveOwnHomeWaitTicks": 1,
+          "movementActionTicks": 413,
+          "returningReplacementTicks": 482
+        },
+        "traceExamples": {
+          "boundedCutoff": {
+            "debug": "playbook home-siege-v3; phase=occupy; live=8; enemy-down=1; secured=0; carriers=0; loose=0; wells=1; reactor=3/0; focus=6->1:6:0@(17,9); returning=0,5,6,7; repair=; tasks=secure-bank-drop=dormant[trigger-false-rearmed|armed=0|c=-];deny-visible-carrier=active[triggered|armed=1|c=7:interceptor];advance-fire-element=dormant[phase-ineligible|armed=0|c=-];harvest-core-window=dormant[trigger-false-rearmed|armed=0|c=-]; sheet=3829ce7c; layout=89c92e70",
+            "tick": 33
+          },
+          "carrierRetarget": {
+            "debug": "playbook home-siege-v3; phase=breach; live=8; enemy-down=0; secured=0; carriers=1; loose=0; wells=2; reactor=3/2; focus=1->1:0:1@(24,9),3->1:2:0@(23,8),4->1:4:4@(21,9); returning=; repair=; tasks=secure-bank-drop=dormant[phase-ineligible|armed=0|c=-];deny-visible-carrier=dormant[phase-ineligible|armed=0|c=-];advance-fire-element=dormant[trigger-false-rearmed|armed=0|c=-];harvest-core-window=active[armed-carrier-retargeted|armed=1|c=0:courier,6:escort]; sheet=3829ce7c; layout=89c92e70",
+            "tick": 147
+          },
+          "fivePlusOnePlusOnePlusOne": {
+            "debug": "playbook home-siege-v3; phase=occupy; live=8; enemy-down=2; secured=0; carriers=1; loose=0; wells=3; reactor=3/0; focus=4->1:4:2@(28,11); returning=0,7; repair=2; tasks=secure-bank-drop=dormant[trigger-false-rearmed|armed=0|c=-];deny-visible-carrier=active[active|armed=1|c=4:interceptor];advance-fire-element=dormant[phase-ineligible|armed=0|c=-];harvest-core-window=active[triggered|armed=0|c=0:courier,6:escort]; sheet=3829ce7c; layout=89c92e70",
+            "tick": 77
+          },
+          "replacementCatchUp": {
+            "actionId": "shoot-direction",
+            "actorId": {
+              "lifeId": 1,
+              "teamId": 0,
+              "unitId": 6
+            },
+            "position": {
+              "x": 12,
+              "y": 14
+            },
+            "tick": 128
+          }
+        }
+      },
+      "subjectTeamId": 0,
+      "winnerTeamId": 0
+    },
+    {
+      "campingDiagnostics": {
+        "campToDeliveryShare": 0.5555555555555556,
+        "enemyFinalThirdBodyTicks": 2665,
+        "enemyReactorRadiusSixBodyTicks": 2542,
+        "fiveBodyCampTicks": 358,
+        "killsByDistanceFromEnemyReactor": {
+          "outside6": 9,
+          "within2": 9,
+          "within6": 8
+        },
+        "opponentCoreDropsByDistanceFromEnemyReactor": {
+          "outside6": 2,
+          "within2": 4,
+          "within6": 7
+        },
+        "subjectCoreDropsByDistanceFromEnemyReactor": {
+          "outside6": 8,
+          "within2": 0,
+          "within6": 0
+        }
+      },
+      "canonicalReplaySha256": "f1d4d2e5c86127c4da9d5fbff52fc303118e33950bab3df38cb5e862bc68a3be",
+      "casualtyRespawn": {
+        "deathsWithLaterRespawn": 19,
+        "respawnsRejoiningStrategy": 19,
+        "subjectDeaths": 20
+      },
+      "cellId": "coordination-parity-baseline--home-siege-v3--s604754--a0",
+      "completionReason": "reactor-destroyed",
+      "coreConversion": {
+        "counterBanksDuringFiveBodyCamp": 1,
+        "declaredScorerPickups": 0,
+        "opportunisticPickups": 17,
+        "securedCoreBanks": 3,
+        "securedCorePickups": 11,
+        "securedCoreScorerBanks": 0,
+        "securedCoreScorerPickups": 0,
+        "subjectBanks": 9,
+        "subjectBanksDuringFiveBodyCamp": 5,
+        "subjectPickups": 17
+      },
+      "deliveries": {
+        "opponent": 2,
+        "subject": 9
+      },
+      "eligibility": {
+        "matchEligibleForCohortRead": true,
+        "subjectFormationFreezeTripped": false,
+        "subjectHandoffPingPongTripped": false,
+        "subjectHomeCarrierNonProgressTripped": false,
+        "subjectPickupDropCycleTripped": false,
+        "subjectStuckCarrierTripped": false,
+        "subjectSustainedPassivityTripped": false
+      },
+      "endTick": 524,
+      "finalIntegrity": {
+        "opponent": 0,
+        "subject": 3
+      },
+      "phaseTimeline": [
+        {
+          "phase": "assault",
+          "tick": 1
+        },
+        {
+          "phase": "occupy",
+          "tick": 32
+        },
+        {
+          "phase": "regroup",
+          "tick": 117
+        },
+        {
+          "phase": "breach",
+          "tick": 128
+        },
+        {
+          "phase": "regroup",
+          "tick": 156
+        },
+        {
+          "phase": "breach",
+          "tick": 183
+        },
+        {
+          "phase": "occupy",
+          "tick": 191
+        },
+        {
+          "phase": "regroup",
+          "tick": 201
+        },
+        {
+          "phase": "breach",
+          "tick": 212
+        },
+        {
+          "phase": "occupy",
+          "tick": 228
+        },
+        {
+          "phase": "regroup",
+          "tick": 467
+        },
+        {
+          "phase": "breach",
+          "tick": 478
+        }
+      ],
+      "recoveryCycleObserved": true,
+      "repair": {
+        "acceptedRepairCommands": 71,
+        "distinctMedicLives": 6,
+        "distinctTargetSlots": 8
+      },
+      "seed": "604754",
+      "strictCorrections": {
+        "boundedCutoff": {
+          "actionTicks": 74,
+          "activeTicks": 108,
+          "lastSeenOnlyTicks": 10
+        },
+        "carrierLifecycle": {
+          "finishedTripOwnHomeHoldTicks": 0,
+          "releaseTicks": 0,
+          "retargetTicks": 1
+        },
+        "emergencyCore": {
+          "commands": 2,
+          "protectedEnemyPadCommands": 2,
+          "reachableCommands": 0
+        },
+        "fivePlusOnePlusOnePlusOneTicks": 0,
+        "replacementCatchUp": {
+          "maximumConsecutiveOwnHomeWaitTicks": 1,
+          "movementActionTicks": 530,
+          "returningReplacementTicks": 725
+        },
+        "traceExamples": {
+          "boundedCutoff": {
+            "debug": "playbook home-siege-v3; phase=occupy; live=8; enemy-down=1; secured=0; carriers=0; loose=0; wells=1; reactor=3/0; focus=; returning=7; repair=; tasks=secure-bank-drop=dormant[trigger-false-rearmed|armed=0|c=-];deny-visible-carrier=active[triggered|armed=1|c=6:interceptor];advance-fire-element=dormant[phase-ineligible|armed=0|c=-];harvest-core-window=dormant[trigger-false-rearmed|armed=0|c=-]; sheet=3829ce7c; layout=89c92e70",
+            "tick": 37
+          },
+          "carrierRetarget": {
+            "debug": "playbook home-siege-v3; phase=occupy; live=7; enemy-down=1; secured=1; carriers=1; loose=0; wells=2; reactor=3/1; focus=0->0:1:1@(3,14),5->0:1:1@(4,13); returning=1,4; repair=2; tasks=secure-bank-drop=dormant[trigger-false-rearmed|armed=0|c=-];deny-visible-carrier=dormant[trigger-false-rearmed|armed=0|c=-];advance-fire-element=dormant[phase-ineligible|armed=0|c=-];harvest-core-window=active[armed-carrier-retargeted|armed=1|c=1:courier,6:escort]; sheet=3829ce7c; layout=89c92e70",
+            "tick": 410
+          },
+          "emergencyCore": {
+            "command": {
+              "actionCode": 1,
+              "actionId": "move-eight-way",
+              "arguments": [
+                {
+                  "kind": "projectile-heading",
+                  "value": 5
+                }
+              ],
+              "debugMessage": "custody:emergency-pickup-fallback via SouthWest",
+              "lifeId": 1,
+              "outcome": "accepted",
+              "roleTag": "occupy-runner-group-runn",
+              "unitId": 1
+            },
+            "tick": 415,
+            "visibleLooseCorePositions": [
+              [
+                2,
+                12
+              ]
+            ]
+          },
+          "replacementCatchUp": {
+            "actionId": "shoot-direction",
+            "actorId": {
+              "lifeId": 1,
+              "teamId": 1,
+              "unitId": 3
+            },
+            "position": {
+              "x": 18,
+              "y": 8
+            },
+            "tick": 113
+          }
+        }
+      },
+      "subjectTeamId": 1,
+      "winnerTeamId": 1
+    },
+    {
+      "campingDiagnostics": {
+        "campToDeliveryShare": 0.6666666666666666,
+        "enemyFinalThirdBodyTicks": 2603,
+        "enemyReactorRadiusSixBodyTicks": 2447,
+        "fiveBodyCampTicks": 361,
+        "killsByDistanceFromEnemyReactor": {
+          "outside6": 12,
+          "within2": 6,
+          "within6": 15
+        },
+        "opponentCoreDropsByDistanceFromEnemyReactor": {
+          "outside6": 5,
+          "within2": 1,
+          "within6": 12
+        },
+        "subjectCoreDropsByDistanceFromEnemyReactor": {
+          "outside6": 8,
+          "within2": 0,
+          "within6": 0
+        }
+      },
+      "canonicalReplaySha256": "600c4d358ddb89459317903fce5a505ee621b8817a0718daffb83688321925d1",
+      "casualtyRespawn": {
+        "deathsWithLaterRespawn": 22,
+        "respawnsRejoiningStrategy": 22,
+        "subjectDeaths": 22
+      },
+      "cellId": "coordination-parity-baseline--home-siege-v3--s604754--a1",
+      "completionReason": "reactor-destroyed",
+      "coreConversion": {
+        "counterBanksDuringFiveBodyCamp": 0,
+        "declaredScorerPickups": 0,
+        "opportunisticPickups": 17,
+        "securedCoreBanks": 6,
+        "securedCorePickups": 14,
+        "securedCoreScorerBanks": 0,
+        "securedCoreScorerPickups": 0,
+        "subjectBanks": 9,
+        "subjectBanksDuringFiveBodyCamp": 6,
+        "subjectPickups": 17
+      },
+      "deliveries": {
+        "opponent": 1,
+        "subject": 9
+      },
+      "eligibility": {
+        "matchEligibleForCohortRead": true,
+        "subjectFormationFreezeTripped": false,
+        "subjectHandoffPingPongTripped": false,
+        "subjectHomeCarrierNonProgressTripped": false,
+        "subjectPickupDropCycleTripped": false,
+        "subjectStuckCarrierTripped": false,
+        "subjectSustainedPassivityTripped": false
+      },
+      "endTick": 560,
+      "finalIntegrity": {
+        "opponent": 0,
+        "subject": 3
+      },
+      "phaseTimeline": [
+        {
+          "phase": "assault",
+          "tick": 1
+        },
+        {
+          "phase": "occupy",
+          "tick": 33
+        },
+        {
+          "phase": "regroup",
+          "tick": 112
+        },
+        {
+          "phase": "breach",
+          "tick": 123
+        },
+        {
+          "phase": "regroup",
+          "tick": 198
+        },
+        {
+          "phase": "breach",
+          "tick": 274
+        },
+        {
+          "phase": "occupy",
+          "tick": 282
+        },
+        {
+          "phase": "regroup",
+          "tick": 307
+        },
+        {
+          "phase": "breach",
+          "tick": 318
+        },
+        {
+          "phase": "occupy",
+          "tick": 346
+        }
+      ],
+      "recoveryCycleObserved": true,
+      "repair": {
+        "acceptedRepairCommands": 73,
+        "distinctMedicLives": 7,
+        "distinctTargetSlots": 8
+      },
+      "seed": "604754",
+      "strictCorrections": {
+        "boundedCutoff": {
+          "actionTicks": 82,
+          "activeTicks": 126,
+          "lastSeenOnlyTicks": 13
+        },
+        "carrierLifecycle": {
+          "finishedTripOwnHomeHoldTicks": 0,
+          "releaseTicks": 0,
+          "retargetTicks": 2
+        },
+        "emergencyCore": {
+          "commands": 0,
+          "protectedEnemyPadCommands": 0,
+          "reachableCommands": 0
+        },
+        "fivePlusOnePlusOnePlusOneTicks": 26,
+        "replacementCatchUp": {
+          "maximumConsecutiveOwnHomeWaitTicks": 1,
+          "movementActionTicks": 413,
+          "returningReplacementTicks": 482
+        },
+        "traceExamples": {
+          "boundedCutoff": {
+            "debug": "playbook home-siege-v3; phase=occupy; live=8; enemy-down=1; secured=0; carriers=0; loose=0; wells=1; reactor=3/0; focus=6->1:6:0@(17,9); returning=0,5,6,7; repair=; tasks=secure-bank-drop=dormant[trigger-false-rearmed|armed=0|c=-];deny-visible-carrier=active[triggered|armed=1|c=7:interceptor];advance-fire-element=dormant[phase-ineligible|armed=0|c=-];harvest-core-window=dormant[trigger-false-rearmed|armed=0|c=-]; sheet=3829ce7c; layout=89c92e70",
+            "tick": 33
+          },
+          "carrierRetarget": {
+            "debug": "playbook home-siege-v3; phase=breach; live=8; enemy-down=0; secured=0; carriers=1; loose=0; wells=2; reactor=3/2; focus=1->1:0:1@(24,9),3->1:2:0@(23,8),4->1:4:4@(21,9); returning=; repair=; tasks=secure-bank-drop=dormant[phase-ineligible|armed=0|c=-];deny-visible-carrier=dormant[phase-ineligible|armed=0|c=-];advance-fire-element=dormant[trigger-false-rearmed|armed=0|c=-];harvest-core-window=active[armed-carrier-retargeted|armed=1|c=0:courier,6:escort]; sheet=3829ce7c; layout=89c92e70",
+            "tick": 147
+          },
+          "fivePlusOnePlusOnePlusOne": {
+            "debug": "playbook home-siege-v3; phase=occupy; live=8; enemy-down=2; secured=0; carriers=1; loose=0; wells=3; reactor=3/0; focus=4->1:4:2@(28,11); returning=0,7; repair=2; tasks=secure-bank-drop=dormant[trigger-false-rearmed|armed=0|c=-];deny-visible-carrier=active[active|armed=1|c=4:interceptor];advance-fire-element=dormant[phase-ineligible|armed=0|c=-];harvest-core-window=active[triggered|armed=0|c=0:courier,6:escort]; sheet=3829ce7c; layout=89c92e70",
+            "tick": 77
+          },
+          "replacementCatchUp": {
+            "actionId": "shoot-direction",
+            "actorId": {
+              "lifeId": 1,
+              "teamId": 0,
+              "unitId": 6
+            },
+            "position": {
+              "x": 12,
+              "y": 14
+            },
+            "tick": 128
+          }
+        }
+      },
+      "subjectTeamId": 0,
+      "winnerTeamId": 0
+    },
+    {
+      "campingDiagnostics": {
+        "campToDeliveryShare": 0.5555555555555556,
+        "enemyFinalThirdBodyTicks": 2665,
+        "enemyReactorRadiusSixBodyTicks": 2542,
+        "fiveBodyCampTicks": 358,
+        "killsByDistanceFromEnemyReactor": {
+          "outside6": 9,
+          "within2": 9,
+          "within6": 8
+        },
+        "opponentCoreDropsByDistanceFromEnemyReactor": {
+          "outside6": 2,
+          "within2": 4,
+          "within6": 7
+        },
+        "subjectCoreDropsByDistanceFromEnemyReactor": {
+          "outside6": 8,
+          "within2": 0,
+          "within6": 0
+        }
+      },
+      "canonicalReplaySha256": "050693fce48227642ddcd4829d00d2c41a95534842d484bedb492970d26d062c",
+      "casualtyRespawn": {
+        "deathsWithLaterRespawn": 19,
+        "respawnsRejoiningStrategy": 19,
+        "subjectDeaths": 20
+      },
+      "cellId": "coordination-parity-baseline--home-siege-v3--s679068--a0",
+      "completionReason": "reactor-destroyed",
+      "coreConversion": {
+        "counterBanksDuringFiveBodyCamp": 1,
+        "declaredScorerPickups": 0,
+        "opportunisticPickups": 17,
+        "securedCoreBanks": 3,
+        "securedCorePickups": 11,
+        "securedCoreScorerBanks": 0,
+        "securedCoreScorerPickups": 0,
+        "subjectBanks": 9,
+        "subjectBanksDuringFiveBodyCamp": 5,
+        "subjectPickups": 17
+      },
+      "deliveries": {
+        "opponent": 2,
+        "subject": 9
+      },
+      "eligibility": {
+        "matchEligibleForCohortRead": true,
+        "subjectFormationFreezeTripped": false,
+        "subjectHandoffPingPongTripped": false,
+        "subjectHomeCarrierNonProgressTripped": false,
+        "subjectPickupDropCycleTripped": false,
+        "subjectStuckCarrierTripped": false,
+        "subjectSustainedPassivityTripped": false
+      },
+      "endTick": 524,
+      "finalIntegrity": {
+        "opponent": 0,
+        "subject": 3
+      },
+      "phaseTimeline": [
+        {
+          "phase": "assault",
+          "tick": 1
+        },
+        {
+          "phase": "occupy",
+          "tick": 32
+        },
+        {
+          "phase": "regroup",
+          "tick": 117
+        },
+        {
+          "phase": "breach",
+          "tick": 128
+        },
+        {
+          "phase": "regroup",
+          "tick": 156
+        },
+        {
+          "phase": "breach",
+          "tick": 183
+        },
+        {
+          "phase": "occupy",
+          "tick": 191
+        },
+        {
+          "phase": "regroup",
+          "tick": 201
+        },
+        {
+          "phase": "breach",
+          "tick": 212
+        },
+        {
+          "phase": "occupy",
+          "tick": 228
+        },
+        {
+          "phase": "regroup",
+          "tick": 467
+        },
+        {
+          "phase": "breach",
+          "tick": 478
+        }
+      ],
+      "recoveryCycleObserved": true,
+      "repair": {
+        "acceptedRepairCommands": 71,
+        "distinctMedicLives": 6,
+        "distinctTargetSlots": 8
+      },
+      "seed": "679068",
+      "strictCorrections": {
+        "boundedCutoff": {
+          "actionTicks": 74,
+          "activeTicks": 108,
+          "lastSeenOnlyTicks": 10
+        },
+        "carrierLifecycle": {
+          "finishedTripOwnHomeHoldTicks": 0,
+          "releaseTicks": 0,
+          "retargetTicks": 1
+        },
+        "emergencyCore": {
+          "commands": 2,
+          "protectedEnemyPadCommands": 2,
+          "reachableCommands": 0
+        },
+        "fivePlusOnePlusOnePlusOneTicks": 0,
+        "replacementCatchUp": {
+          "maximumConsecutiveOwnHomeWaitTicks": 1,
+          "movementActionTicks": 530,
+          "returningReplacementTicks": 725
+        },
+        "traceExamples": {
+          "boundedCutoff": {
+            "debug": "playbook home-siege-v3; phase=occupy; live=8; enemy-down=1; secured=0; carriers=0; loose=0; wells=1; reactor=3/0; focus=; returning=7; repair=; tasks=secure-bank-drop=dormant[trigger-false-rearmed|armed=0|c=-];deny-visible-carrier=active[triggered|armed=1|c=6:interceptor];advance-fire-element=dormant[phase-ineligible|armed=0|c=-];harvest-core-window=dormant[trigger-false-rearmed|armed=0|c=-]; sheet=3829ce7c; layout=89c92e70",
+            "tick": 37
+          },
+          "carrierRetarget": {
+            "debug": "playbook home-siege-v3; phase=occupy; live=7; enemy-down=1; secured=1; carriers=1; loose=0; wells=2; reactor=3/1; focus=0->0:1:1@(3,14),5->0:1:1@(4,13); returning=1,4; repair=2; tasks=secure-bank-drop=dormant[trigger-false-rearmed|armed=0|c=-];deny-visible-carrier=dormant[trigger-false-rearmed|armed=0|c=-];advance-fire-element=dormant[phase-ineligible|armed=0|c=-];harvest-core-window=active[armed-carrier-retargeted|armed=1|c=1:courier,6:escort]; sheet=3829ce7c; layout=89c92e70",
+            "tick": 410
+          },
+          "emergencyCore": {
+            "command": {
+              "actionCode": 1,
+              "actionId": "move-eight-way",
+              "arguments": [
+                {
+                  "kind": "projectile-heading",
+                  "value": 5
+                }
+              ],
+              "debugMessage": "custody:emergency-pickup-fallback via SouthWest",
+              "lifeId": 1,
+              "outcome": "accepted",
+              "roleTag": "occupy-runner-group-runn",
+              "unitId": 1
+            },
+            "tick": 415,
+            "visibleLooseCorePositions": [
+              [
+                2,
+                12
+              ]
+            ]
+          },
+          "replacementCatchUp": {
+            "actionId": "shoot-direction",
+            "actorId": {
+              "lifeId": 1,
+              "teamId": 1,
+              "unitId": 3
+            },
+            "position": {
+              "x": 18,
+              "y": 8
+            },
+            "tick": 113
+          }
+        }
+      },
+      "subjectTeamId": 1,
+      "winnerTeamId": 1
+    },
+    {
+      "campingDiagnostics": {
+        "campToDeliveryShare": 0.6666666666666666,
+        "enemyFinalThirdBodyTicks": 2603,
+        "enemyReactorRadiusSixBodyTicks": 2447,
+        "fiveBodyCampTicks": 361,
+        "killsByDistanceFromEnemyReactor": {
+          "outside6": 12,
+          "within2": 6,
+          "within6": 15
+        },
+        "opponentCoreDropsByDistanceFromEnemyReactor": {
+          "outside6": 5,
+          "within2": 1,
+          "within6": 12
+        },
+        "subjectCoreDropsByDistanceFromEnemyReactor": {
+          "outside6": 8,
+          "within2": 0,
+          "within6": 0
+        }
+      },
+      "canonicalReplaySha256": "b2e0cbcaeb7da72651bdcf2a3511fbaaad093fc597534790788d79976fa8319c",
+      "casualtyRespawn": {
+        "deathsWithLaterRespawn": 22,
+        "respawnsRejoiningStrategy": 22,
+        "subjectDeaths": 22
+      },
+      "cellId": "coordination-parity-baseline--home-siege-v3--s679068--a1",
+      "completionReason": "reactor-destroyed",
+      "coreConversion": {
+        "counterBanksDuringFiveBodyCamp": 0,
+        "declaredScorerPickups": 0,
+        "opportunisticPickups": 17,
+        "securedCoreBanks": 6,
+        "securedCorePickups": 14,
+        "securedCoreScorerBanks": 0,
+        "securedCoreScorerPickups": 0,
+        "subjectBanks": 9,
+        "subjectBanksDuringFiveBodyCamp": 6,
+        "subjectPickups": 17
+      },
+      "deliveries": {
+        "opponent": 1,
+        "subject": 9
+      },
+      "eligibility": {
+        "matchEligibleForCohortRead": true,
+        "subjectFormationFreezeTripped": false,
+        "subjectHandoffPingPongTripped": false,
+        "subjectHomeCarrierNonProgressTripped": false,
+        "subjectPickupDropCycleTripped": false,
+        "subjectStuckCarrierTripped": false,
+        "subjectSustainedPassivityTripped": false
+      },
+      "endTick": 560,
+      "finalIntegrity": {
+        "opponent": 0,
+        "subject": 3
+      },
+      "phaseTimeline": [
+        {
+          "phase": "assault",
+          "tick": 1
+        },
+        {
+          "phase": "occupy",
+          "tick": 33
+        },
+        {
+          "phase": "regroup",
+          "tick": 112
+        },
+        {
+          "phase": "breach",
+          "tick": 123
+        },
+        {
+          "phase": "regroup",
+          "tick": 198
+        },
+        {
+          "phase": "breach",
+          "tick": 274
+        },
+        {
+          "phase": "occupy",
+          "tick": 282
+        },
+        {
+          "phase": "regroup",
+          "tick": 307
+        },
+        {
+          "phase": "breach",
+          "tick": 318
+        },
+        {
+          "phase": "occupy",
+          "tick": 346
+        }
+      ],
+      "recoveryCycleObserved": true,
+      "repair": {
+        "acceptedRepairCommands": 73,
+        "distinctMedicLives": 7,
+        "distinctTargetSlots": 8
+      },
+      "seed": "679068",
+      "strictCorrections": {
+        "boundedCutoff": {
+          "actionTicks": 82,
+          "activeTicks": 126,
+          "lastSeenOnlyTicks": 13
+        },
+        "carrierLifecycle": {
+          "finishedTripOwnHomeHoldTicks": 0,
+          "releaseTicks": 0,
+          "retargetTicks": 2
+        },
+        "emergencyCore": {
+          "commands": 0,
+          "protectedEnemyPadCommands": 0,
+          "reachableCommands": 0
+        },
+        "fivePlusOnePlusOnePlusOneTicks": 26,
+        "replacementCatchUp": {
+          "maximumConsecutiveOwnHomeWaitTicks": 1,
+          "movementActionTicks": 413,
+          "returningReplacementTicks": 482
+        },
+        "traceExamples": {
+          "boundedCutoff": {
+            "debug": "playbook home-siege-v3; phase=occupy; live=8; enemy-down=1; secured=0; carriers=0; loose=0; wells=1; reactor=3/0; focus=6->1:6:0@(17,9); returning=0,5,6,7; repair=; tasks=secure-bank-drop=dormant[trigger-false-rearmed|armed=0|c=-];deny-visible-carrier=active[triggered|armed=1|c=7:interceptor];advance-fire-element=dormant[phase-ineligible|armed=0|c=-];harvest-core-window=dormant[trigger-false-rearmed|armed=0|c=-]; sheet=3829ce7c; layout=89c92e70",
+            "tick": 33
+          },
+          "carrierRetarget": {
+            "debug": "playbook home-siege-v3; phase=breach; live=8; enemy-down=0; secured=0; carriers=1; loose=0; wells=2; reactor=3/2; focus=1->1:0:1@(24,9),3->1:2:0@(23,8),4->1:4:4@(21,9); returning=; repair=; tasks=secure-bank-drop=dormant[phase-ineligible|armed=0|c=-];deny-visible-carrier=dormant[phase-ineligible|armed=0|c=-];advance-fire-element=dormant[trigger-false-rearmed|armed=0|c=-];harvest-core-window=active[armed-carrier-retargeted|armed=1|c=0:courier,6:escort]; sheet=3829ce7c; layout=89c92e70",
+            "tick": 147
+          },
+          "fivePlusOnePlusOnePlusOne": {
+            "debug": "playbook home-siege-v3; phase=occupy; live=8; enemy-down=2; secured=0; carriers=1; loose=0; wells=3; reactor=3/0; focus=4->1:4:2@(28,11); returning=0,7; repair=2; tasks=secure-bank-drop=dormant[trigger-false-rearmed|armed=0|c=-];deny-visible-carrier=active[active|armed=1|c=4:interceptor];advance-fire-element=dormant[phase-ineligible|armed=0|c=-];harvest-core-window=active[triggered|armed=0|c=0:courier,6:escort]; sheet=3829ce7c; layout=89c92e70",
+            "tick": 77
+          },
+          "replacementCatchUp": {
+            "actionId": "shoot-direction",
+            "actorId": {
+              "lifeId": 1,
+              "teamId": 0,
+              "unitId": 6
+            },
+            "position": {
+              "x": 12,
+              "y": 14
+            },
+            "tick": 128
+          }
+        }
+      },
+      "subjectTeamId": 0,
+      "winnerTeamId": 0
+    },
+    {
+      "campingDiagnostics": {
+        "campToDeliveryShare": 0.5555555555555556,
+        "enemyFinalThirdBodyTicks": 2665,
+        "enemyReactorRadiusSixBodyTicks": 2542,
+        "fiveBodyCampTicks": 358,
+        "killsByDistanceFromEnemyReactor": {
+          "outside6": 9,
+          "within2": 9,
+          "within6": 8
+        },
+        "opponentCoreDropsByDistanceFromEnemyReactor": {
+          "outside6": 2,
+          "within2": 4,
+          "within6": 7
+        },
+        "subjectCoreDropsByDistanceFromEnemyReactor": {
+          "outside6": 8,
+          "within2": 0,
+          "within6": 0
+        }
+      },
+      "canonicalReplaySha256": "e1481eff25e5b64ad006e527c891606dfc79ce7c94e68b004d75ffc35ad98560",
+      "casualtyRespawn": {
+        "deathsWithLaterRespawn": 19,
+        "respawnsRejoiningStrategy": 19,
+        "subjectDeaths": 20
+      },
+      "cellId": "coordination-parity-baseline--home-siege-v3--s906128--a0",
+      "completionReason": "reactor-destroyed",
+      "coreConversion": {
+        "counterBanksDuringFiveBodyCamp": 1,
+        "declaredScorerPickups": 0,
+        "opportunisticPickups": 17,
+        "securedCoreBanks": 3,
+        "securedCorePickups": 11,
+        "securedCoreScorerBanks": 0,
+        "securedCoreScorerPickups": 0,
+        "subjectBanks": 9,
+        "subjectBanksDuringFiveBodyCamp": 5,
+        "subjectPickups": 17
+      },
+      "deliveries": {
+        "opponent": 2,
+        "subject": 9
+      },
+      "eligibility": {
+        "matchEligibleForCohortRead": true,
+        "subjectFormationFreezeTripped": false,
+        "subjectHandoffPingPongTripped": false,
+        "subjectHomeCarrierNonProgressTripped": false,
+        "subjectPickupDropCycleTripped": false,
+        "subjectStuckCarrierTripped": false,
+        "subjectSustainedPassivityTripped": false
+      },
+      "endTick": 524,
+      "finalIntegrity": {
+        "opponent": 0,
+        "subject": 3
+      },
+      "phaseTimeline": [
+        {
+          "phase": "assault",
+          "tick": 1
+        },
+        {
+          "phase": "occupy",
+          "tick": 32
+        },
+        {
+          "phase": "regroup",
+          "tick": 117
+        },
+        {
+          "phase": "breach",
+          "tick": 128
+        },
+        {
+          "phase": "regroup",
+          "tick": 156
+        },
+        {
+          "phase": "breach",
+          "tick": 183
+        },
+        {
+          "phase": "occupy",
+          "tick": 191
+        },
+        {
+          "phase": "regroup",
+          "tick": 201
+        },
+        {
+          "phase": "breach",
+          "tick": 212
+        },
+        {
+          "phase": "occupy",
+          "tick": 228
+        },
+        {
+          "phase": "regroup",
+          "tick": 467
+        },
+        {
+          "phase": "breach",
+          "tick": 478
+        }
+      ],
+      "recoveryCycleObserved": true,
+      "repair": {
+        "acceptedRepairCommands": 71,
+        "distinctMedicLives": 6,
+        "distinctTargetSlots": 8
+      },
+      "seed": "906128",
+      "strictCorrections": {
+        "boundedCutoff": {
+          "actionTicks": 74,
+          "activeTicks": 108,
+          "lastSeenOnlyTicks": 10
+        },
+        "carrierLifecycle": {
+          "finishedTripOwnHomeHoldTicks": 0,
+          "releaseTicks": 0,
+          "retargetTicks": 1
+        },
+        "emergencyCore": {
+          "commands": 2,
+          "protectedEnemyPadCommands": 2,
+          "reachableCommands": 0
+        },
+        "fivePlusOnePlusOnePlusOneTicks": 0,
+        "replacementCatchUp": {
+          "maximumConsecutiveOwnHomeWaitTicks": 1,
+          "movementActionTicks": 530,
+          "returningReplacementTicks": 725
+        },
+        "traceExamples": {
+          "boundedCutoff": {
+            "debug": "playbook home-siege-v3; phase=occupy; live=8; enemy-down=1; secured=0; carriers=0; loose=0; wells=1; reactor=3/0; focus=; returning=7; repair=; tasks=secure-bank-drop=dormant[trigger-false-rearmed|armed=0|c=-];deny-visible-carrier=active[triggered|armed=1|c=6:interceptor];advance-fire-element=dormant[phase-ineligible|armed=0|c=-];harvest-core-window=dormant[trigger-false-rearmed|armed=0|c=-]; sheet=3829ce7c; layout=89c92e70",
+            "tick": 37
+          },
+          "carrierRetarget": {
+            "debug": "playbook home-siege-v3; phase=occupy; live=7; enemy-down=1; secured=1; carriers=1; loose=0; wells=2; reactor=3/1; focus=0->0:1:1@(3,14),5->0:1:1@(4,13); returning=1,4; repair=2; tasks=secure-bank-drop=dormant[trigger-false-rearmed|armed=0|c=-];deny-visible-carrier=dormant[trigger-false-rearmed|armed=0|c=-];advance-fire-element=dormant[phase-ineligible|armed=0|c=-];harvest-core-window=active[armed-carrier-retargeted|armed=1|c=1:courier,6:escort]; sheet=3829ce7c; layout=89c92e70",
+            "tick": 410
+          },
+          "emergencyCore": {
+            "command": {
+              "actionCode": 1,
+              "actionId": "move-eight-way",
+              "arguments": [
+                {
+                  "kind": "projectile-heading",
+                  "value": 5
+                }
+              ],
+              "debugMessage": "custody:emergency-pickup-fallback via SouthWest",
+              "lifeId": 1,
+              "outcome": "accepted",
+              "roleTag": "occupy-runner-group-runn",
+              "unitId": 1
+            },
+            "tick": 415,
+            "visibleLooseCorePositions": [
+              [
+                2,
+                12
+              ]
+            ]
+          },
+          "replacementCatchUp": {
+            "actionId": "shoot-direction",
+            "actorId": {
+              "lifeId": 1,
+              "teamId": 1,
+              "unitId": 3
+            },
+            "position": {
+              "x": 18,
+              "y": 8
+            },
+            "tick": 113
+          }
+        }
+      },
+      "subjectTeamId": 1,
+      "winnerTeamId": 1
+    },
+    {
+      "campingDiagnostics": {
+        "campToDeliveryShare": 0.6666666666666666,
+        "enemyFinalThirdBodyTicks": 2603,
+        "enemyReactorRadiusSixBodyTicks": 2447,
+        "fiveBodyCampTicks": 361,
+        "killsByDistanceFromEnemyReactor": {
+          "outside6": 12,
+          "within2": 6,
+          "within6": 15
+        },
+        "opponentCoreDropsByDistanceFromEnemyReactor": {
+          "outside6": 5,
+          "within2": 1,
+          "within6": 12
+        },
+        "subjectCoreDropsByDistanceFromEnemyReactor": {
+          "outside6": 8,
+          "within2": 0,
+          "within6": 0
+        }
+      },
+      "canonicalReplaySha256": "c82d4bec46a30b1620ba79b7931a6cf230c6b6fbb813ea1262df4f525f8165ea",
+      "casualtyRespawn": {
+        "deathsWithLaterRespawn": 22,
+        "respawnsRejoiningStrategy": 22,
+        "subjectDeaths": 22
+      },
+      "cellId": "coordination-parity-baseline--home-siege-v3--s906128--a1",
+      "completionReason": "reactor-destroyed",
+      "coreConversion": {
+        "counterBanksDuringFiveBodyCamp": 0,
+        "declaredScorerPickups": 0,
+        "opportunisticPickups": 17,
+        "securedCoreBanks": 6,
+        "securedCorePickups": 14,
+        "securedCoreScorerBanks": 0,
+        "securedCoreScorerPickups": 0,
+        "subjectBanks": 9,
+        "subjectBanksDuringFiveBodyCamp": 6,
+        "subjectPickups": 17
+      },
+      "deliveries": {
+        "opponent": 1,
+        "subject": 9
+      },
+      "eligibility": {
+        "matchEligibleForCohortRead": true,
+        "subjectFormationFreezeTripped": false,
+        "subjectHandoffPingPongTripped": false,
+        "subjectHomeCarrierNonProgressTripped": false,
+        "subjectPickupDropCycleTripped": false,
+        "subjectStuckCarrierTripped": false,
+        "subjectSustainedPassivityTripped": false
+      },
+      "endTick": 560,
+      "finalIntegrity": {
+        "opponent": 0,
+        "subject": 3
+      },
+      "phaseTimeline": [
+        {
+          "phase": "assault",
+          "tick": 1
+        },
+        {
+          "phase": "occupy",
+          "tick": 33
+        },
+        {
+          "phase": "regroup",
+          "tick": 112
+        },
+        {
+          "phase": "breach",
+          "tick": 123
+        },
+        {
+          "phase": "regroup",
+          "tick": 198
+        },
+        {
+          "phase": "breach",
+          "tick": 274
+        },
+        {
+          "phase": "occupy",
+          "tick": 282
+        },
+        {
+          "phase": "regroup",
+          "tick": 307
+        },
+        {
+          "phase": "breach",
+          "tick": 318
+        },
+        {
+          "phase": "occupy",
+          "tick": 346
+        }
+      ],
+      "recoveryCycleObserved": true,
+      "repair": {
+        "acceptedRepairCommands": 73,
+        "distinctMedicLives": 7,
+        "distinctTargetSlots": 8
+      },
+      "seed": "906128",
+      "strictCorrections": {
+        "boundedCutoff": {
+          "actionTicks": 82,
+          "activeTicks": 126,
+          "lastSeenOnlyTicks": 13
+        },
+        "carrierLifecycle": {
+          "finishedTripOwnHomeHoldTicks": 0,
+          "releaseTicks": 0,
+          "retargetTicks": 2
+        },
+        "emergencyCore": {
+          "commands": 0,
+          "protectedEnemyPadCommands": 0,
+          "reachableCommands": 0
+        },
+        "fivePlusOnePlusOnePlusOneTicks": 26,
+        "replacementCatchUp": {
+          "maximumConsecutiveOwnHomeWaitTicks": 1,
+          "movementActionTicks": 413,
+          "returningReplacementTicks": 482
+        },
+        "traceExamples": {
+          "boundedCutoff": {
+            "debug": "playbook home-siege-v3; phase=occupy; live=8; enemy-down=1; secured=0; carriers=0; loose=0; wells=1; reactor=3/0; focus=6->1:6:0@(17,9); returning=0,5,6,7; repair=; tasks=secure-bank-drop=dormant[trigger-false-rearmed|armed=0|c=-];deny-visible-carrier=active[triggered|armed=1|c=7:interceptor];advance-fire-element=dormant[phase-ineligible|armed=0|c=-];harvest-core-window=dormant[trigger-false-rearmed|armed=0|c=-]; sheet=3829ce7c; layout=89c92e70",
+            "tick": 33
+          },
+          "carrierRetarget": {
+            "debug": "playbook home-siege-v3; phase=breach; live=8; enemy-down=0; secured=0; carriers=1; loose=0; wells=2; reactor=3/2; focus=1->1:0:1@(24,9),3->1:2:0@(23,8),4->1:4:4@(21,9); returning=; repair=; tasks=secure-bank-drop=dormant[phase-ineligible|armed=0|c=-];deny-visible-carrier=dormant[phase-ineligible|armed=0|c=-];advance-fire-element=dormant[trigger-false-rearmed|armed=0|c=-];harvest-core-window=active[armed-carrier-retargeted|armed=1|c=0:courier,6:escort]; sheet=3829ce7c; layout=89c92e70",
+            "tick": 147
+          },
+          "fivePlusOnePlusOnePlusOne": {
+            "debug": "playbook home-siege-v3; phase=occupy; live=8; enemy-down=2; secured=0; carriers=1; loose=0; wells=3; reactor=3/0; focus=4->1:4:2@(28,11); returning=0,7; repair=2; tasks=secure-bank-drop=dormant[trigger-false-rearmed|armed=0|c=-];deny-visible-carrier=active[active|armed=1|c=4:interceptor];advance-fire-element=dormant[phase-ineligible|armed=0|c=-];harvest-core-window=active[triggered|armed=0|c=0:courier,6:escort]; sheet=3829ce7c; layout=89c92e70",
+            "tick": 77
+          },
+          "replacementCatchUp": {
+            "actionId": "shoot-direction",
+            "actorId": {
+              "lifeId": 1,
+              "teamId": 0,
+              "unitId": 6
+            },
+            "position": {
+              "x": 12,
+              "y": 14
+            },
+            "tick": 128
+          }
+        }
+      },
+      "subjectTeamId": 0,
+      "winnerTeamId": 0
+    }
+  ],
+  "schema": "arc-relay-home-siege-audit-v2",
+  "sourceSweep": "/tmp/home-siege-v3-strict-canonical/attempt-01",
+  "summary": {
+    "acceptedRepairCommands": 1728,
+    "allEligible": true,
+    "boundedCutoffTicks": 2808,
+    "carrierReleaseTicks": 0,
+    "carrierRetargetTicks": 36,
+    "cells": 24,
+    "cellsWithRecoveryCycle": 24,
+    "counterBanksDuringCamp": 12,
+    "deathsWithLaterRespawn": 492,
+    "emergencyCoreCommands": 24,
+    "enemyFinalThirdBodyTicks": 63216,
+    "finishedTripOwnHomeHoldTicks": 0,
+    "fivePlusOnePlusOnePlusOneTicks": 312,
+    "homeSiegeWins": 24,
+    "lastSeenCutoffTicks": 276,
+    "maximumConsecutiveReplacementOwnHomeWaitTicks": 1,
+    "protectedEnemyPadEmergencyCommands": 24,
+    "respawnsRejoiningStrategy": 492,
+    "securedCoreBanks": 108,
+    "securedCoreScorerBanks": 0,
+    "subjectBanks": 216
+  }
+}

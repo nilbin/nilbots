@@ -19,7 +19,8 @@ public sealed record BotDetailResponse(
     string Owner,
     bool IsOwner,
     LadderStanding? CurrentStanding,
-    IReadOnlyList<BotVersionResponse> Versions);
+    IReadOnlyList<BotVersionResponse> Versions,
+    string? ClassId = null);
 
 /// <summary>
 /// One submitted version of a bot. <see cref="BuildLog"/>, <see cref="EntryType"/> and

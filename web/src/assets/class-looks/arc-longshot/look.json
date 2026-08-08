@@ -1,0 +1,10 @@
+{
+  "id": "arc-longshot",
+  "label": "Longshot",
+  "sprite": "sprite.png",
+  "suggestedAccent": "#38bdf8",
+  "defaultProjectile": "arc-pulse",
+  "classId": "longshot",
+  "locomotionCue": "skids",
+  "scale": 1.1
+}

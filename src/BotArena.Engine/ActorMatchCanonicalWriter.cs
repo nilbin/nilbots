@@ -214,6 +214,13 @@ internal static class ActorMatchCanonicalWriter
         {
             writer.WriteStartObject();
             writer.WriteNumber("teamId", team.TeamId);
+            // Emitted only when a ruleset declares classes, the #156
+            // additive-canonical pattern: a class-free topology writes exactly
+            // the bytes it wrote before, so every existing fingerprint holds.
+            // The SDK reader and the web normalizer both refuse an explicit
+            // null, so the absence has one encoding.
+            if (team.ClassId is not null)
+                writer.WriteString("classId", team.ClassId);
             writer.WriteEndObject();
         }
         writer.WriteEndArray();
@@ -227,6 +234,9 @@ internal static class ActorMatchCanonicalWriter
                 "participantId",
                 participant.ParticipantId);
             writer.WriteNumber("teamId", participant.TeamId);
+            // Same additive discipline as the scoring team above.
+            if (participant.ClassId is not null)
+                writer.WriteString("classId", participant.ClassId);
             writer.WriteEndObject();
         }
         writer.WriteEndArray();
@@ -241,6 +251,13 @@ internal static class ActorMatchCanonicalWriter
             writer.WriteNumber(
                 "controllerParticipantId",
                 slot.ControllerParticipantId);
+            // Per-slot chassis, emitted only when a ruleset declares
+            // compositions — the same #156 additive-canonical pattern the
+            // scoring team and participant above already follow. A
+            // composition-free topology writes exactly the bytes it wrote
+            // before, so every existing fingerprint holds.
+            if (slot.ClassId is not null)
+                writer.WriteString("classId", slot.ClassId);
             writer.WriteEndObject();
         }
         writer.WriteEndArray();
@@ -413,6 +430,17 @@ internal static class ActorMatchCanonicalWriter
                 writer,
                 "assignedRespawnSpawnId",
                 assignment.AssignedRespawnSpawnId);
+            // Additive trailing field under the #156 canonical discipline:
+            // emitted only where a MIXED composition makes a fabrication into
+            // this slot produce the slot's own chassis rather than the
+            // transition's declared output. Every mono cell writes exactly the
+            // bytes it wrote before.
+            if (assignment.FabricationOutputFormId is not null)
+            {
+                writer.WriteString(
+                    "fabricationOutputFormId",
+                    assignment.FabricationOutputFormId);
+            }
             writer.WriteEndObject();
         }
         writer.WriteEndArray();
@@ -477,6 +505,19 @@ internal static class ActorMatchCanonicalWriter
                 }
                 writer.WriteEndArray();
                 break;
+            case ArcRelayActorModeMapBindingDefinition arcRelay:
+                writer.WritePropertyName("orderedWellRegionIds");
+                writer.WriteStartArray();
+                foreach (string regionId in arcRelay.OrderedWellRegionIds)
+                    writer.WriteStringValue(regionId);
+                writer.WriteEndArray();
+                writer.WriteString(
+                    "reactorRegionRoleId",
+                    arcRelay.ReactorRegionRoleId);
+                writer.WriteString(
+                    "homePadRegionRoleId",
+                    arcRelay.HomePadRegionRoleId);
+                break;
             default:
                 throw new ArgumentOutOfRangeException(
                     nameof(binding),
@@ -519,10 +560,13 @@ internal static class ActorMatchCanonicalWriter
         var teamIds = new HashSet<int>();
         foreach (PublicScoringTeam team in topology.Teams)
         {
-            if (team.TeamId < 0 || !teamIds.Add(team.TeamId))
+            if (team.TeamId < 0
+                || !teamIds.Add(team.TeamId)
+                || team.ClassId is not null
+                    && !IsCanonicalSemanticId(team.ClassId))
             {
                 throw InvalidTopology(
-                    "Scoring-team IDs must be unique and non-negative.");
+                    "Scoring-team IDs must be unique and non-negative, and optional class IDs must be lowercase-kebab IDs.");
             }
         }
 
@@ -531,12 +575,27 @@ internal static class ActorMatchCanonicalWriter
         {
             if (participant.ParticipantId < 0
                 || !teamIds.Contains(participant.TeamId)
+                || participant.ClassId is not null
+                    && !IsCanonicalSemanticId(participant.ClassId)
                 || !participants.TryAdd(
                     participant.ParticipantId,
                     participant))
             {
                 throw InvalidTopology(
-                    "Participants must have unique non-negative IDs and reference a declared team.");
+                    "Participants must have unique non-negative IDs, reference a declared team, and use lowercase-kebab optional class IDs.");
+            }
+        }
+        foreach (PublicScoringTeam team in topology.Teams)
+        {
+            if (participants.Values.Any(participant =>
+                    participant.TeamId == team.TeamId
+                    && !string.Equals(
+                        participant.ClassId,
+                        team.ClassId,
+                        StringComparison.Ordinal)))
+            {
+                throw InvalidTopology(
+                    "Every participant class ID must exactly match its scoring team's class ID.");
             }
         }
         if (teamIds.Any(teamId =>
@@ -597,6 +656,31 @@ internal static class ActorMatchCanonicalWriter
             throw InvalidTopology(
                 "Every scoring team must have at least one initial life.");
         }
+    }
+
+    private static bool IsCanonicalSemanticId(string? value)
+    {
+        if (string.IsNullOrEmpty(value) || value.Length > 64)
+            return false;
+
+        bool needsSegmentStart = true;
+        foreach (char character in value)
+        {
+            if (character == '-')
+            {
+                if (needsSegmentStart)
+                    return false;
+                needsSegmentStart = true;
+                continue;
+            }
+            if (character is not (>= 'a' and <= 'z')
+                and not (>= '0' and <= '9'))
+            {
+                return false;
+            }
+            needsSegmentStart = false;
+        }
+        return !needsSegmentStart;
     }
 
     private static ArgumentException InvalidTopology(string message) =>

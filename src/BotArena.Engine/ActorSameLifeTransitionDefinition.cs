@@ -16,8 +16,12 @@ public abstract record ActorSameLifeTransitionDefinition
         ActorSameLifeHealthDefinition health,
         ActorSameLifeCombatStateDefinition combatState,
         ActorSameLifePlacementDefinition placement,
-        bool irreversibleForLife)
+        bool irreversibleForLife,
+        int cooldownTicks = 0)
     {
+        if (cooldownTicks < 0)
+            throw new ArgumentOutOfRangeException(nameof(cooldownTicks));
+        CooldownTicks = cooldownTicks;
         ArgumentException.ThrowIfNullOrWhiteSpace(transitionId);
         ArgumentException.ThrowIfNullOrWhiteSpace(actionId);
         ArgumentException.ThrowIfNullOrWhiteSpace(sourceFormId);
@@ -52,6 +56,18 @@ public abstract record ActorSameLifeTransitionDefinition
     public ActorSameLifeCombatStateDefinition CombatState { get; }
     public ActorSameLifePlacementDefinition Placement { get; }
     public bool IrreversibleForLife { get; }
+
+    /// <summary>
+    /// Route cooldown (DECISIONS #181): after this route COMPLETES, the
+    /// same route is refused for this many ticks. The clock is held per
+    /// (team, unit slot, transition) and SURVIVES the body — a respawn
+    /// does not reset it (die-to-reset was the drafted exploit). Zero
+    /// means no cooldown and is omitted from canonical bytes, so every
+    /// contract authored before this field keeps its exact fingerprints.
+    /// The route becomes available again at completionTick + cooldownTicks
+    /// + 1, and the refusal is an ordinary Blocked outcome.
+    /// </summary>
+    public int CooldownTicks { get; }
 
     public enum SameLifeTransitionKind
     {

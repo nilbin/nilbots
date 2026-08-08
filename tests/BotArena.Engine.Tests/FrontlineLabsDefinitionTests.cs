@@ -329,6 +329,54 @@ public sealed class FrontlineLabsDefinitionTests
     }
 
     [Fact]
+    public void OneBendShotsExperimentPublishesTheSmallPrivateChoice()
+    {
+        ActorResolvedMatchDefinition baseline =
+            FrontlineLabsDefinition.Create();
+        ActorResolvedMatchDefinition candidate =
+            FrontlineLabsDefinition.CreateOneBendShotsExperiment();
+        ActorShotProgramDefinition baselineProgram = baseline.Rules
+            .AttackProfiles.Single(profile => profile.Id == "mobile-bolt")
+            .ShotProgram;
+        ActorShotProgramDefinition candidateProgram = candidate.Rules
+            .AttackProfiles.Single(profile => profile.Id == "mobile-bolt")
+            .ShotProgram;
+
+        Assert.Equal(
+            "frontline-labs-1-experiment-one-bend-shots",
+            candidate.Rules.RulesetId);
+        Assert.Equal((0, 0), (
+            candidateProgram.MinInitialAimSteps,
+            candidateProgram.MaxInitialAimSteps));
+        Assert.Equal((1, 1), (
+            candidateProgram.MinBendCount,
+            candidateProgram.MaxBendCount));
+        Assert.Equal((1, 4), (
+            candidateProgram.MinBendAfterTiles,
+            candidateProgram.MaxBendAfterTiles));
+        Assert.Equal((1, 1), (
+            candidateProgram.MinBendEveryTiles,
+            candidateProgram.MaxBendEveryTiles));
+        Assert.True(candidateProgram.PayloadOptional);
+        Assert.Equal(
+            [-1, 1],
+            candidateProgram.AllowedCurvedBendDirections.ToArray());
+        Assert.Equal((-1, 1, 3), (
+            baselineProgram.MinInitialAimSteps,
+            baselineProgram.MaxInitialAimSteps,
+            baselineProgram.MaxBendCount));
+        Assert.Equal(
+            ActorContractFingerprint.ComputeMap(baseline.Map),
+            ActorContractFingerprint.ComputeMap(candidate.Map));
+        Assert.Equal(
+            ActorContractFingerprint.ComputeTopology(baseline.Topology),
+            ActorContractFingerprint.ComputeTopology(candidate.Topology));
+        Assert.NotEqual(
+            ActorContractFingerprint.ComputeRules(baseline.Rules),
+            ActorContractFingerprint.ComputeRules(candidate.Rules));
+    }
+
+    [Fact]
     public void SplitOutputCannotAnchorAndPrimeSlotStaysObjectiveCapable()
     {
         ActorResolvedMatchDefinition definition =

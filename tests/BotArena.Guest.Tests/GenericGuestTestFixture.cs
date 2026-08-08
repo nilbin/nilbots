@@ -26,6 +26,7 @@ internal static class GenericGuestTestFixture
             ActorId = new ActorIdentity(0, 1, 0),
             ParticipantId = 11,
             ActorRandomSeed = 0x1234_5678_9ABC_DEF0UL,
+            TeamRandomSeed = 0x0FED_CBA9_8765_4321UL,
             Origin = new GenericActorMatchStart.LifeOrigin(
                 GenericActorMatchStart.SpawnReason.Initial,
                 Generation: 0,

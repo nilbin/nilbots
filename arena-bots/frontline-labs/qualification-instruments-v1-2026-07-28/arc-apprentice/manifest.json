@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "id": "arc-apprentice-t3-v1",
+  "name": "ArcApprentice",
+  "authoringLineageId": "house-apprentice-template-v1",
+  "doctrineId": "exact-local-projectile-geometry",
+  "role": "boundary-instrument",
+  "targetTier": "T3",
+  "status": "exact-t3-boundary-measured",
+  "launchPopulationStatus": "eligible-for-later-entertainment-review",
+  "derivedFrom": "house-apprentice-t2-v1",
+  "authoringBudgetId": "t3-tactical-extension-v1",
+  "authorPacketSha256": "e292185ab35778acec549bb06b119cfea31a69e493d13ce1eae7695f62d99d1d",
+  "sourceFiles": {
+    "ArcApprentice.cs": "44c5df6cd7f632a12f6e8be62da44c821cffbe97df6deba3d36784b163d0f996",
+    "ArenaBasics.cs": "571ea22853e751f043ceceebed1b767277dc13227bbf3b5113db200cfb71a0c9"
+  },
+  "builder": {
+    "protocol": "controlled-docker-wasi-publish-v1",
+    "engineHead": "e9628bc189aaabeeded80c4f3856f674baa6dce3",
+    "engineWorktreeDirty": true,
+    "sdkVersion": "0.10.3",
+    "stabilityFlags": [
+      "--disable-build-servers",
+      "-m:1",
+      "-p:UseSharedCompilation=false"
+    ]
+  },
+  "artifact": {
+    "path": "bot.wasm",
+    "sha256": "956093006ac9b8f31664b49223de7781670f2bfbec9347509b3dc85f5eabad9a"
+  },
+  "qualification": {
+    "suiteId": "frontline-qualification-4",
+    "suiteVersion": 1,
+    "qualificationProfileId": "frontline-duel-depth-union-t3-v1",
+    "qualificationContractFingerprint": "4e77075bd13bbe56485eb29b57c8b916fec9dcd8c9ef9fdaa40fc6fad6944e8e",
+    "report": "qualification-frontline-4.json",
+    "reportSha256": "2e5a2946a02e1e2075d625920bdfdccb047dd52cb1087d2954f7fa3b64a36681",
+    "passed": true,
+    "tierAwarded": "T3",
+    "coordinationGradeAwarded": null,
+    "balanceEvidenceEligible": false
+  },
+  "upperBoundary": {
+    "suiteId": "frontline-qualification-5",
+    "suiteVersion": 1,
+    "qualificationProfileId": "frontline-duel-depth-union-t4-v1",
+    "qualificationContractFingerprint": "2e3d4bcd4652814c5f58ce19c606f52031985b998d2b269d1c00d418edeb6ddb",
+    "report": "qualification-frontline-5-boundary.json",
+    "reportSha256": "f6195ce6283e5a3613a6c2c04e6e40f8bf1bc3fcb65f2d394603ca491a7a6a2d",
+    "passed": false,
+    "tierRetained": "T3",
+    "failedProbeIds": [
+      "entry-initiative"
+    ]
+  }
+}

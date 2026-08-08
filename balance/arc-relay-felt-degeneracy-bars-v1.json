@@ -1,0 +1,18 @@
+{
+  "schema": "arc-relay-felt-degeneracy-bars-v1",
+  "status": "frozen-before-gate-3-2-loop-reads",
+  "authority": "owner Gate 3 blind-gallery steer, 2026-08-01",
+  "purpose": "Cohort eligibility, not an outcome or fun score",
+  "handoffPingPong": {
+    "maximumGapCoreRelocationIntervals": 2,
+    "tripAtReversalsInOneSamePairEpisode": 3
+  },
+  "sustainedPassivity": {
+    "startAtFirstScheduledCoreBirth": true,
+    "windowTicks": 75,
+    "tripAtQuietTicksInWindow": 60,
+    "quietTickMinimumWaitShare": 0.75,
+    "liveCoreTheaterChebyshevDistance": 4
+  },
+  "eligibility": "A doctrine or sheet side that trips either bar is excluded from cohort reads and galleries until fixed; exclusions are disclosed."
+}

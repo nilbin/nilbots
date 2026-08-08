@@ -1,9 +1,18 @@
-import type { ReplayModel } from './replayModel';
+import type {
+  ReplayModel,
+  ReplayPublishedUnitDestination,
+  ReplayPublishedUnitOrder,
+} from './replayModel';
 import {
   decodeReplay,
   decodeReplayJson,
   type ReplayWireDocument,
 } from './replayNormalize';
+import {
+  expandArcRelayBroadcastV1,
+  isArcRelayBroadcastV1,
+} from './replayBroadcastV1';
+import { normalizeReplayV3 } from './replayV3Normalize';
 
 /**
  * Ingress evidence retained beside the normalized model. Raw text is available
@@ -18,6 +27,15 @@ export interface LoadedReplay {
 }
 
 export function loadReplayJson(rawJson: string): LoadedReplay {
+  // Broadcast documents put their discriminator first. Avoid parsing ordinary
+  // canonical replays here because decodeReplayJson must parse them once
+  // already, and evaluation replays can be hundreds of megabytes.
+  if (/^\s*\{\s*"broadcastVersion"\s*:\s*[12]\b/.test(rawJson)) {
+    const parsed = JSON.parse(rawJson) as unknown;
+    if (isArcRelayBroadcastV1(parsed)) {
+      return loadArcRelayBroadcast(parsed);
+    }
+  }
   const decoded = decodeReplayJson(rawJson);
   return {
     replay: decoded.replay,
@@ -28,11 +46,71 @@ export function loadReplayJson(rawJson: string): LoadedReplay {
 }
 
 export function loadReplayObject(input: unknown): LoadedReplay {
+  if (isArcRelayBroadcastV1(input)) return loadArcRelayBroadcast(input);
   const decoded = decodeReplay(input);
   return {
     replay: decoded.replay,
     wire: decoded.wire,
     replayVersion: decoded.replayVersion,
+    rawJson: null,
+  };
+}
+
+function loadArcRelayBroadcast(
+  input: Parameters<typeof expandArcRelayBroadcastV1>[0],
+): LoadedReplay {
+  const wire = expandArcRelayBroadcastV1(input);
+  const replay = normalizeReplayV3(wire);
+  if (input.vision !== undefined) {
+    for (const [tickIndex, rows] of input.vision.entries()) {
+      const tick = replay.ticks[tickIndex];
+      if (!tick) continue;
+      tick.publishedTeamVision = rows.map(([teamId, tiles]) => ({
+        teamId,
+        visibleTiles: tiles.map(([x, y]) => ({ x, y })),
+      }));
+    }
+  }
+  if (input.orders !== undefined) {
+    // The column carries CHANGES. Replaying them forward here — once, at
+    // ingress — is what lets every consumer read one tick and get the whole
+    // standing table, the same way it would from a canonical replay's turns.
+    const standing = new Map<string, ReplayPublishedUnitOrder>();
+    for (const [tickIndex, rows] of input.orders.entries()) {
+      const tick = replay.ticks[tickIndex];
+      for (const [teamId, unitId, orderId, action] of rows) {
+        standing.set(`${teamId}:${unitId}`, { teamId, unitId, orderId, action });
+      }
+      if (!tick) continue;
+      tick.publishedUnitOrders = [...standing.values()];
+    }
+  }
+  if (input.destinations !== undefined) {
+    // The same delta, carried forward the same way. A row of `null, null` is a
+    // published fact — "this body is no longer walking anywhere it can name" —
+    // and must clear the standing entry rather than be skipped, or the lens
+    // leaves a marker standing over a body that has moved on.
+    const standing = new Map<string, ReplayPublishedUnitDestination>();
+    for (const [tickIndex, rows] of input.destinations.entries()) {
+      const tick = replay.ticks[tickIndex];
+      for (const [teamId, unitId, x, y] of rows) {
+        standing.set(`${teamId}:${unitId}`, {
+          teamId,
+          unitId,
+          destination: x === null || y === null ? null : { x, y },
+        });
+      }
+      if (!tick) continue;
+      tick.publishedUnitDestinations = [...standing.values()];
+    }
+  }
+  return {
+    replay,
+    wire,
+    replayVersion: 3,
+    // A gallery v1 carries the canonical audit replay's address; hosted v2
+    // carries its own compact replay hash. Neither transport is canonical v3
+    // bytes, so never hand its raw text to the v3 hash verifier.
     rawJson: null,
   };
 }

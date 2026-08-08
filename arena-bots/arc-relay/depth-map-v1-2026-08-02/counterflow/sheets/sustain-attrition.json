@@ -1,0 +1,470 @@
+{
+  "auditDimensions": {
+    "adaptationStyle": "static",
+    "allocation": "3 north / 3 centre / 2 south",
+    "executionStyle": "sustain-attrition",
+    "failureMode": "one healer must choose between theaters, while the central web can still concede a fast opposite-side birth",
+    "policyStyle": "one mobile outer courier converts births while repair, paired projection, suppression, and a sentry preserve the attrition web",
+    "sheetRevision": 2,
+    "visibleCounter": "split the two outer carriers and focus the lone healer before the projector pair can establish both return lanes"
+  },
+  "auditStatus": {
+    "mapStudyAdaptation": {
+      "coordinateTransform": "identity coordinates v1",
+      "sourceMapId": "arc-relay-threefold-home-gates-wide-01",
+      "variant": "counterflow"
+    },
+    "playerFacingProductSchema": false,
+    "provisionalEvaluationOnly": true,
+    "purpose": "32-sheet structural diversity and balance population"
+  },
+  "composition": [
+    "patchbay",
+    "kestrel",
+    "palisade",
+    "palisade",
+    "hush",
+    "nest",
+    "relay",
+    "towline"
+  ],
+  "gambits": [],
+  "mapId": "arc-relay-threefold-depth-counterflow-01",
+  "policies": {
+    "carrier": {
+      "handoffHealthAtOrBelow": 3,
+      "preferAssignedTheater": true,
+      "routeFailureTicks": 14
+    },
+    "escort": {
+      "focusEnemyCarrier": true,
+      "followDistance": 1
+    },
+    "interception": {
+      "focusEnemyCarrier": true,
+      "looseCoreFallback": true
+    }
+  },
+  "rallyLines": {
+    "forward": [
+      [
+        13,
+        6
+      ],
+      [
+        13,
+        9
+      ],
+      [
+        13,
+        13
+      ],
+      [
+        13,
+        16
+      ]
+    ],
+    "home": [
+      [
+        4,
+        9
+      ],
+      [
+        4,
+        11
+      ],
+      [
+        4,
+        13
+      ]
+    ],
+    "middle": [
+      [
+        9,
+        6
+      ],
+      [
+        9,
+        9
+      ],
+      [
+        9,
+        13
+      ],
+      [
+        9,
+        16
+      ]
+    ]
+  },
+  "schema": "arc-relay-evaluation-sheet-v0",
+  "sheetId": "population-sustain-attrition-style-sustain-attrition-v2",
+  "slots": [
+    {
+      "outboundPath": [
+        [
+          4,
+          9
+        ],
+        [
+          8,
+          9
+        ],
+        [
+          13,
+          8
+        ],
+        [
+          15,
+          4
+        ]
+      ],
+      "partnerUnitId": 1,
+      "returnPath": [
+        [
+          13,
+          6
+        ],
+        [
+          9,
+          9
+        ],
+        [
+          5,
+          9
+        ],
+        [
+          3,
+          10
+        ],
+        [
+          2,
+          11
+        ]
+      ],
+      "role": "screen",
+      "theater": "north",
+      "unitId": 0
+    },
+    {
+      "outboundPath": [
+        [
+          4,
+          6
+        ],
+        [
+          8,
+          6
+        ],
+        [
+          13,
+          6
+        ],
+        [
+          15,
+          4
+        ]
+      ],
+      "partnerUnitId": 0,
+      "returnPath": [
+        [
+          13,
+          6
+        ],
+        [
+          9,
+          6
+        ],
+        [
+          5,
+          6
+        ],
+        [
+          2,
+          11
+        ]
+      ],
+      "role": "carrier",
+      "theater": "north",
+      "unitId": 1
+    },
+    {
+      "outboundPath": [
+        [
+          4,
+          9
+        ],
+        [
+          8,
+          8
+        ],
+        [
+          12,
+          7
+        ],
+        [
+          14,
+          5
+        ]
+      ],
+      "partnerUnitId": 1,
+      "returnPath": [
+        [
+          11,
+          7
+        ],
+        [
+          7,
+          9
+        ],
+        [
+          4,
+          10
+        ],
+        [
+          2,
+          12
+        ]
+      ],
+      "role": "screen",
+      "theater": "north",
+      "unitId": 2
+    },
+    {
+      "outboundPath": [
+        [
+          5,
+          14
+        ],
+        [
+          9,
+          15
+        ],
+        [
+          13,
+          16
+        ],
+        [
+          15,
+          18
+        ]
+      ],
+      "partnerUnitId": 7,
+      "returnPath": [
+        [
+          12,
+          15
+        ],
+        [
+          8,
+          13
+        ],
+        [
+          4,
+          12
+        ],
+        [
+          2,
+          12
+        ]
+      ],
+      "role": "screen",
+      "theater": "south",
+      "unitId": 3
+    },
+    {
+      "outboundPath": [
+        [
+          5,
+          10
+        ],
+        [
+          8,
+          9
+        ],
+        [
+          12,
+          9
+        ],
+        [
+          15,
+          11
+        ]
+      ],
+      "partnerUnitId": 6,
+      "returnPath": [
+        [
+          12,
+          13
+        ],
+        [
+          8,
+          13
+        ],
+        [
+          5,
+          12
+        ],
+        [
+          2,
+          11
+        ]
+      ],
+      "role": "intercept",
+      "theater": "centre",
+      "unitId": 4
+    },
+    {
+      "outboundPath": [
+        [
+          5,
+          13
+        ],
+        [
+          8,
+          12
+        ],
+        [
+          11,
+          12
+        ],
+        [
+          14,
+          12
+        ]
+      ],
+      "partnerUnitId": 6,
+      "returnPath": [
+        [
+          10,
+          12
+        ],
+        [
+          6,
+          12
+        ],
+        [
+          3,
+          12
+        ],
+        [
+          2,
+          11
+        ]
+      ],
+      "role": "reserve",
+      "theater": "centre",
+      "unitId": 5
+    },
+    {
+      "outboundPath": [
+        [
+          4,
+          9
+        ],
+        [
+          8,
+          9
+        ],
+        [
+          13,
+          9
+        ],
+        [
+          15,
+          11
+        ]
+      ],
+      "partnerUnitId": 4,
+      "returnPath": [
+        [
+          13,
+          9
+        ],
+        [
+          9,
+          9
+        ],
+        [
+          5,
+          9
+        ],
+        [
+          2,
+          11
+        ]
+      ],
+      "role": "carrier",
+      "theater": "centre",
+      "unitId": 6
+    },
+    {
+      "outboundPath": [
+        [
+          4,
+          13
+        ],
+        [
+          8,
+          15
+        ],
+        [
+          12,
+          16
+        ],
+        [
+          15,
+          18
+        ]
+      ],
+      "partnerUnitId": 3,
+      "returnPath": [
+        [
+          12,
+          16
+        ],
+        [
+          8,
+          14
+        ],
+        [
+          5,
+          12
+        ],
+        [
+          2,
+          11
+        ]
+      ],
+      "role": "carrier",
+      "theater": "south",
+      "unitId": 7
+    }
+  ],
+  "zones": {
+    "centre": [
+      10,
+      7,
+      20,
+      15
+    ],
+    "intercept": [
+      9,
+      2,
+      21,
+      20
+    ],
+    "north": [
+      11,
+      1,
+      19,
+      8
+    ],
+    "south": [
+      11,
+      14,
+      19,
+      21
+    ]
+  }
+}

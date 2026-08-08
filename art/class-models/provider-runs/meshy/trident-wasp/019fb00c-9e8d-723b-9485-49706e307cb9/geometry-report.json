@@ -1,0 +1,93 @@
+{
+  "source": {
+    "file": "raw-model.glb",
+    "bytes": 45492852,
+    "sha256": "7e7d71bad742551731673f167ad34c44a89f775eb6a29e16772eb54b4ad6db66"
+  },
+  "geometry": {
+    "meshes": 1,
+    "primitives": 1,
+    "vertices": 291292,
+    "triangles": 556188,
+    "boundsMin": [
+      -0.95063,
+      -0.56977,
+      -0.367
+    ],
+    "boundsMax": [
+      0.9482,
+      0.56827,
+      0.36529
+    ],
+    "sourceFacing": "-x",
+    "sourceUp": "+z"
+  },
+  "materials": {
+    "count": 1,
+    "doubleSided": true,
+    "semanticTeamMaterial": false,
+    "embeddedTextures": [
+      "baseColor",
+      "metallicRoughness",
+      "normal",
+      "emission"
+    ]
+  },
+  "silhouette": {
+    "approvedInputTopIoU": 0.94848,
+    "rawCanonicalTopIoUAfterRigidFacingCorrection": 0.95669,
+    "leanCanonicalTopIoUAfterRigidFacingCorrection": 0.95673,
+    "richCanonicalTopIoUAfterRigidFacingCorrection": 0.95666,
+    "rawToLeanIoU": 0.99952,
+    "rawToRichIoU": 0.99986,
+    "leanCanonicalCoverage": 0.97687,
+    "leanAreaDifference": -0.00207,
+    "verdict": "passed-planform"
+  },
+  "reviewDerivatives": {
+    "lean": {
+      "bytes": 2813112,
+      "sha256": "3c0148300534d394ccb6da387f8c6b1269df23d29983d22bce01d89aec713e3c",
+      "boundsMin": [
+        -0.5,
+        0,
+        -0.29971
+      ],
+      "boundsMax": [
+        0.5,
+        0.3857,
+        0.29971
+      ],
+      "vertices": 54400,
+      "triangles": 88989,
+      "textureResolution": 1024,
+      "approvedGeometry": true,
+      "approvedForRuntime": false
+    },
+    "rich": {
+      "bytes": 7072728,
+      "sha256": "c66b0e6acb046636c9827d796ba16223d3d0111ba668b078d32c50f83a5a78fe",
+      "boundsMin": [
+        -0.5,
+        0,
+        -0.29967
+      ],
+      "boundsMax": [
+        0.5,
+        0.38563,
+        0.29967
+      ],
+      "vertices": 100427,
+      "triangles": 177976,
+      "textureResolution": 2048,
+      "approvedGeometry": true,
+      "approvedForRuntime": false
+    }
+  },
+  "validation": {
+    "errors": 0,
+    "warnings": [
+      "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE"
+    ]
+  }
+}

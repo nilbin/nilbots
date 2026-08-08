@@ -1,0 +1,240 @@
+{
+  "cohortId": "arc-relay-sheet-population-v3",
+  "eligibilityBars": "../../../balance/arc-relay-felt-degeneracy-bars-v3.json",
+  "entrants": [
+    {
+      "artifact": "out/bot.wasm",
+      "artifactSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+      "entrantId": "balanced",
+      "sheet": "sheets/balanced.json",
+      "sheetSha256": "de6b59d940da05fae7b5af400008c73e2a50287f32932b4e1762976070d944e4"
+    },
+    {
+      "artifact": "out/bot.wasm",
+      "artifactSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+      "entrantId": "beacon-hunt",
+      "sheet": "sheets/beacon-hunt.json",
+      "sheetSha256": "22d0e5b996182e30f679b21a3fad4f288f19075c73a397f9d90973942aba6fff"
+    },
+    {
+      "artifact": "out/bot.wasm",
+      "artifactSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+      "entrantId": "breach-column",
+      "sheet": "sheets/breach-column.json",
+      "sheetSha256": "b56399de19587e2d797bea0196e1516269ba122ad402dc0d00f6db188886e2e2"
+    },
+    {
+      "artifact": "out/bot.wasm",
+      "artifactSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+      "entrantId": "centre-phalanx",
+      "sheet": "sheets/centre-phalanx.json",
+      "sheetSha256": "ef1519373f20f4dcd0d2fe7d0800508f3da607709e313457d5ee0979c13c384c"
+    },
+    {
+      "artifact": "out/bot.wasm",
+      "artifactSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+      "entrantId": "control-grid",
+      "sheet": "sheets/control-grid.json",
+      "sheetSha256": "69a4e38200deea351d65d04ee92175ac8a065bfa2e32cfdc1d69bbec1ddca431"
+    },
+    {
+      "artifact": "out/bot.wasm",
+      "artifactSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+      "entrantId": "convoy",
+      "sheet": "sheets/convoy.json",
+      "sheetSha256": "c200e1c7aeb343863adf77967afa80947e1cf82325743a0dcc936a41479a07c0"
+    },
+    {
+      "artifact": "out/bot.wasm",
+      "artifactSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+      "entrantId": "counter-courier",
+      "sheet": "sheets/counter-courier.json",
+      "sheetSha256": "e0aec734e2edb4dc0aa2f1901f700e419d0eea20ec2fd2822758f59a94452b03"
+    },
+    {
+      "artifact": "out/bot.wasm",
+      "artifactSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+      "entrantId": "courier-sprint",
+      "sheet": "sheets/courier-sprint.json",
+      "sheetSha256": "d12d8008fb98e3216055cb0af004a8494ef08359c7a57c06e8f03c2527e140d3"
+    },
+    {
+      "artifact": "out/bot.wasm",
+      "artifactSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+      "entrantId": "displacement-control",
+      "sheet": "sheets/displacement-control.json",
+      "sheetSha256": "304fc2c181ef18dbe288181d0d9c7e435879343bcccf1b8c0b1d70897a550e71"
+    },
+    {
+      "artifact": "out/bot.wasm",
+      "artifactSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+      "entrantId": "elastic-reserve",
+      "sheet": "sheets/elastic-reserve.json",
+      "sheetSha256": "c50e0f7dd981a8045bc449baef59688280a7aa2e9274034e4d78013fe18227da"
+    },
+    {
+      "artifact": "out/bot.wasm",
+      "artifactSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+      "entrantId": "feint-switch",
+      "sheet": "sheets/feint-switch.json",
+      "sheetSha256": "a15e35471691526610225efd2f0d9e17dd5842537f3a0fae08ad71d207655a19"
+    },
+    {
+      "artifact": "out/bot.wasm",
+      "artifactSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+      "entrantId": "fireline-picks",
+      "sheet": "sheets/fireline-picks.json",
+      "sheetSha256": "1b2570d238f541ddc70b90f0e49441b8a12acc683fe41171cfd88e19f302d234"
+    },
+    {
+      "artifact": "out/bot.wasm",
+      "artifactSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+      "entrantId": "fortress-counterattack",
+      "sheet": "sheets/fortress-counterattack.json",
+      "sheetSha256": "267d69a5c35f76113d130f3c67c57de8c736c17749bcca355965279f9180b153"
+    },
+    {
+      "artifact": "out/bot.wasm",
+      "artifactSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+      "entrantId": "home-counterpunch",
+      "sheet": "sheets/home-counterpunch.json",
+      "sheetSha256": "ca7a8d9b1462a885b008961bb55cfb7e001d8817938b2a3638215e958a450972"
+    },
+    {
+      "artifact": "out/bot.wasm",
+      "artifactSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+      "entrantId": "hook-burst",
+      "sheet": "sheets/hook-burst.json",
+      "sheetSha256": "4a462477a79fa764451719e84cef8afec3f6139d00efc4f50a1a34674610b62d"
+    },
+    {
+      "artifact": "out/bot.wasm",
+      "artifactSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+      "entrantId": "interception",
+      "sheet": "sheets/interception.json",
+      "sheetSha256": "a52f6f3cc1884c9d68ddaf475c5b04c562de9136d2f175a0b2a2aa7f049d7bcc"
+    },
+    {
+      "artifact": "out/bot.wasm",
+      "artifactSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+      "entrantId": "mine-crescent",
+      "sheet": "sheets/mine-crescent.json",
+      "sheetSha256": "12b86d94609ad38d1787ddda3c2478806e4bdbf75aa6c5bbae4b115508aca886"
+    },
+    {
+      "artifact": "out/bot.wasm",
+      "artifactSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+      "entrantId": "mortar-wheel",
+      "sheet": "sheets/mortar-wheel.json",
+      "sheetSha256": "f3c69d8fd7a082ac837273f7069fd9d82db879fe4aabc17610acc38ae9a62fbc"
+    },
+    {
+      "artifact": "out/bot.wasm",
+      "artifactSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+      "entrantId": "null-veil",
+      "sheet": "sheets/null-veil.json",
+      "sheetSha256": "4080b4bf48d459acad31acccf33f56358427129bf4e3fd0b1c7d66de4e4ae5f6"
+    },
+    {
+      "artifact": "out/bot.wasm",
+      "artifactSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+      "entrantId": "outer-pincers",
+      "sheet": "sheets/outer-pincers.json",
+      "sheetSha256": "4cbf9a4135a068399c2f0d7d944a9e34e7aeb68d6ef12d0734368875dee2eefc"
+    },
+    {
+      "artifact": "out/bot.wasm",
+      "artifactSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+      "entrantId": "pod-lattice",
+      "sheet": "sheets/pod-lattice.json",
+      "sheetSha256": "f804126e68be0d80d133556f704ca2e14941c8c5cb9a0922b03168f3454739ef"
+    },
+    {
+      "artifact": "out/bot.wasm",
+      "artifactSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+      "entrantId": "rail-screen",
+      "sheet": "sheets/rail-screen.json",
+      "sheetSha256": "bbf877c156e0a34eeb6b02b90757c787d2d3acb7604f606ea04641dbebace4bf"
+    },
+    {
+      "artifact": "out/bot.wasm",
+      "artifactSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+      "entrantId": "relay-chain",
+      "sheet": "sheets/relay-chain.json",
+      "sheetSha256": "d32e8202d4caa02096cbac5746123824f33af32793cd9d864abb198d2c4c81b1"
+    },
+    {
+      "artifact": "out/bot.wasm",
+      "artifactSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+      "entrantId": "repair-web",
+      "sheet": "sheets/repair-web.json",
+      "sheetSha256": "db9f0f60bbea657a3ff0c6fc3f20e19673a616db9cc61376b4c511a49c696776"
+    },
+    {
+      "artifact": "out/bot.wasm",
+      "artifactSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+      "entrantId": "rotating-bastions",
+      "sheet": "sheets/rotating-bastions.json",
+      "sheetSha256": "f35c03702385a0e971742d9cc58826d7a8e76c48a2f5711dca99160be6543888"
+    },
+    {
+      "artifact": "out/bot.wasm",
+      "artifactSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+      "entrantId": "sensor-grid",
+      "sheet": "sheets/sensor-grid.json",
+      "sheetSha256": "166d40999a259afd2305302fa1cc4d161c660cec48d20196914fe739f75d2ffd"
+    },
+    {
+      "artifact": "out/bot.wasm",
+      "artifactSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+      "entrantId": "smoke-and-mines",
+      "sheet": "sheets/smoke-and-mines.json",
+      "sheetSha256": "6bb60ceac6f5a12a53c3f00edab254557a80025fd7cc68315dfcbfe4cfcd8e6f"
+    },
+    {
+      "artifact": "out/bot.wasm",
+      "artifactSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+      "entrantId": "smoke-convoy",
+      "sheet": "sheets/smoke-convoy.json",
+      "sheetSha256": "57d25b2c1698755dbba80ad03eca61b727c8ff99bce6112b2b847811aa514583"
+    },
+    {
+      "artifact": "out/bot.wasm",
+      "artifactSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+      "entrantId": "split",
+      "sheet": "sheets/split.json",
+      "sheetSha256": "1997fc9514806becc3465dddf82d07b0d7fec98e74e9df3504d7654ab905e315"
+    },
+    {
+      "artifact": "out/bot.wasm",
+      "artifactSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+      "entrantId": "sustain-attrition",
+      "sheet": "sheets/sustain-attrition.json",
+      "sheetSha256": "0174196b6aad686493f3cca68f5d6c3c9becd8319f428c7ade0bbfbdb79875d1"
+    },
+    {
+      "artifact": "out/bot.wasm",
+      "artifactSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+      "entrantId": "three-well-race",
+      "sheet": "sheets/three-well-race.json",
+      "sheetSha256": "7bd5a020714f48c011b345d7b2e19a34bf86fc4e76682726c6ef5a321d401f71"
+    },
+    {
+      "artifact": "out/bot.wasm",
+      "artifactSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+      "entrantId": "trap-punish",
+      "sheet": "sheets/trap-punish.json",
+      "sheetSha256": "11b1e8f93034fe8182402b8d841095d3fa0019a6ac87e5a6ffaab022f07e17f7"
+    }
+  ],
+  "excludedBeforeOutcomeReads": [],
+  "provenance": {
+    "authoringBoundary": "evaluation-grade ARS1 sheets, not player-facing product schema",
+    "claimScope": "shared-stock-mind sheet-space diversity and balance screen; not independent-lineage or human-fun authority",
+    "rulesChange": "none",
+    "sharedExecutionEngine": "out/bot.wasm",
+    "sharedExecutionEngineSha256": "e945f8ad34ef350c5995a480d4793466a751aef1e5a32f29c045254583311f42",
+    "staticDistinctness": "static-distinctness.json"
+  },
+  "schema": "arc-relay-native-eligible-population-v1"
+}

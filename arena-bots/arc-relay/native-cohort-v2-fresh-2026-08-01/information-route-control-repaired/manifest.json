@@ -1,0 +1,66 @@
+{
+  "schema": "arc-relay-native-cohort-manifest-v1",
+  "entrantId": "information-route-control-repaired",
+  "sourceSha256": "f916b4454ab2e1985b461e6e2a40cf9852e477dee34dc60e688113ee47eceb12",
+  "sourceHashMethod": "ordinal filename + NUL + decimal byte length + NUL + exact file bytes for active .cs/.csproj",
+  "sourceFiles": {
+    "InformationRouteControl.cs": "5a0cf64c7acf640c73f0cc905818648501a4069138495f5aa917cb53f0c7b75a",
+    "InformationRouteControl.csproj": "0a3d0b3470172cc3f2643c57a0d5f1f3dc0e679da41979a9a1a54cbac90d5abb",
+    "Navigation.cs": "b928b1e4739aa45b947da0060c9956d207f4621c9b9753b81095896c039054f5"
+  },
+  "sheetSha256": "58edbc6c6285831ac8da58557fb888d11706143d6d6a7cdc9df1472e71d6bea7",
+  "artifactSha256": "8011298ea0132acd490343d0cef2abc3be221da161cac3827d5ba012a2fa5fb4",
+  "doctrineCell": "D",
+  "sdkVersion": "0.10.11",
+  "selfPlay": {
+    "seed": 314159,
+    "runtime": "in-process",
+    "replayWritten": true,
+    "eligibleTeamIds": [0, 1],
+    "runtimeFaults": 0,
+    "resultSignalInspected": false,
+    "abortOnlyDiagnosticRuns": 4
+  },
+  "repairHistory": [
+    {
+      "revision": "revision-00-authored",
+      "kind": "authored",
+      "summary": "Initial single-pass doctrine source before compilation."
+    },
+    {
+      "revision": "revision-01-archive-exclusion",
+      "kind": "compile",
+      "summary": "Excluded archived sources from project compilation and corrected the public PublicUnitSlot qualification."
+    },
+    {
+      "revision": "revision-02-nullability",
+      "kind": "compile",
+      "summary": "Accepted PriorityQueue.TryDequeue nullability and guarded the impossible null element."
+    },
+    {
+      "revision": "revision-03-abort-tracing",
+      "kind": "diagnostic",
+      "summary": "Added temporary own-source stderr tracing after an exit-4 run wrote no replay."
+    },
+    {
+      "revision": "revision-04-terminal-node-suppression",
+      "kind": "runtime-mechanical",
+      "summary": "Withheld a terminal-tick Trip Node after tracing the last mode-changing submission."
+    },
+    {
+      "revision": "revision-05-node-branch-containment",
+      "kind": "runtime-mechanical",
+      "summary": "Withheld the implicated persistent Trip Node branch after terminal-only suppression still left earlier nodes in terminal mode."
+    },
+    {
+      "revision": "revision-06-trace-removal",
+      "kind": "diagnostic-cleanup",
+      "summary": "Removed stderr tracing with gameplay commands unchanged."
+    },
+    {
+      "revision": "gate-3-2-felt-passivity-repair",
+      "kind": "cohort-eligibility",
+      "summary": "Route unassigned controllers toward live loose Cores and use a collision-safe greedy advance only when the full route planner cannot make progress. The exact formerly failing admission pairing moved from 75/75 quiet ticks to 0/75 without a ping-pong trip; no outcome was admitted as evidence."
+    }
+  ]
+}

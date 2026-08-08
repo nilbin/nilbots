@@ -105,6 +105,48 @@ public abstract record GenericActorActionArgument
         public ProjectileHeading Value { get; }
     }
 
+    /// <summary>Names one declared upgrade track of a mode's store.</summary>
+    public sealed record UpgradeTrackArgument : GenericActorActionArgument
+    {
+        /// <summary>Creates an upgrade-track argument.</summary>
+        /// <param name="trackId">
+        /// The declared track ID. Read the legal ones off this tick's
+        /// <c>UpgradeTrackConstraint</c>: a track is offered only when the
+        /// team's bank covers its next tier and no cap forbids it, so a bot
+        /// that reads its mask never has to price the ladder itself.
+        /// </param>
+        public UpgradeTrackArgument(string trackId)
+        {
+            TrackId = GenericActorDynamicValueRules.SemanticId(
+                trackId,
+                nameof(trackId));
+        }
+
+        /// <inheritdoc />
+        public override GenericActorRulesContract.ActionParameterKind Kind =>
+            GenericActorRulesContract.ActionParameterKind.UpgradeTrack;
+        /// <summary>The requested declared track ID.</summary>
+        public string TrackId { get; }
+    }
+
+    /// <summary>Targets one absolute map tile.</summary>
+    public sealed record PositionTargetArgument : GenericActorActionArgument
+    {
+        /// <summary>Creates a map-tile target argument.</summary>
+        public PositionTargetArgument(Position value)
+        {
+            if (value.X < 0 || value.Y < 0)
+                throw new ArgumentOutOfRangeException(nameof(value));
+            Value = value;
+        }
+
+        /// <inheritdoc />
+        public override GenericActorRulesContract.ActionParameterKind Kind =>
+            GenericActorRulesContract.ActionParameterKind.PositionTarget;
+        /// <summary>The requested absolute tile.</summary>
+        public Position Value { get; }
+    }
+
     /// <summary>
     /// Stable target slot. It does not identify a particular generation or life.
     /// </summary>

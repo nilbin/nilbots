@@ -33,6 +33,13 @@ public sealed class SoundtrackStaticAssetsHttpTests
             using HttpResponseMessage ogg = await client.GetAsync(
                 "/soundtracks/neon-protocol/v1-0123456789abcdef/stem.ogg");
             AssertImmutable(ogg, "audio/ogg");
+
+            using HttpResponseMessage model =
+                await client.GetAsync("/assets/class.glb");
+            Assert.Equal(HttpStatusCode.OK, model.StatusCode);
+            Assert.Equal(
+                "model/gltf-binary",
+                model.Content.Headers.ContentType?.MediaType);
         }
         finally
         {
@@ -84,6 +91,7 @@ public sealed class SoundtrackStaticAssetsHttpTests
             "neon-protocol",
             "v1-0123456789abcdef");
         Directory.CreateDirectory(pack);
+        Directory.CreateDirectory(Path.Combine(root, "assets"));
         File.WriteAllText(Path.Combine(root, "index.html"), "<p>SPA SHELL</p>");
         File.WriteAllText(
             Path.Combine(root, "soundtracks", "index.json"),
@@ -91,6 +99,7 @@ public sealed class SoundtrackStaticAssetsHttpTests
         File.WriteAllText(Path.Combine(pack, "manifest.json"), """{"schemaVersion":1}""");
         File.WriteAllBytes(Path.Combine(pack, "stem.m4a"), [0, 1, 2, 3]);
         File.WriteAllBytes(Path.Combine(pack, "stem.ogg"), [4, 5, 6, 7]);
+        File.WriteAllBytes(Path.Combine(root, "assets", "class.glb"), [8, 9]);
         return root;
     }
 

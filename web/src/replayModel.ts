@@ -149,7 +149,9 @@ export type ReplayActionParameterKind =
   | 'direction'
   | 'unit-target'
   | 'form-target'
-  | 'projectile-heading';
+  | 'projectile-heading'
+  | 'upgrade-track'
+  | 'position-target';
 export type ReplayActionKind =
   | 'wait'
   | 'movement'
@@ -157,7 +159,70 @@ export type ReplayActionKind =
   | 'attack'
   | 'fabrication'
   | 'transformation'
+  | 'mode-investment'
   | (string & {});
+/**
+ * The events presentation surfaces key off, under both names they carry.
+ *
+ * `ReplayCausalEvent.type` is the *source document's* vocabulary, deliberately: the model
+ * is version-neutral about structure, not about naming, and re-labelling a v3 `attack` as
+ * a v1 `shot` during normalization would invent an equivalence the schemas do not state.
+ * The cost is that a consumer comparing against one spelling silently stops firing on the
+ * other generation — which is exactly what happened to every muzzle flash, kill flare,
+ * recoil, death collapse, camera knock and sound cue the moment replay-v3 arrived: none of
+ * them matched `attack`/`destruction`, and a generation-3 match played back as bolts
+ * appearing from nothing and bodies quietly ceasing to exist.
+ *
+ * So the equivalence lives here, once, named, instead of in twelve string literals.
+ */
+export function isAttackEvent(type: string): boolean {
+  return type === 'shot' || type === 'attack';
+}
+
+export function isDestructionEvent(type: string): boolean {
+  return type === 'destroyed' || type === 'destruction';
+}
+
+/**
+ * A life *arriving* — the opposite beat, and the one the viewer had no word for at all.
+ *
+ * Every generation says it differently and says it more than once: a Frontline replay
+ * emits `respawned` when a prime returns to its authored spawn and `fabricated` when a
+ * fabricator builds a child, while a generation-3 replay emits one `life-spawned` whose
+ * payload `reason` carries which of `automatic-return`, `fabrication` or
+ * `automatic-activation` it was. All of them mean the same thing to a spectator: a body
+ * that was not there is there now, and it can act on this tick.
+ *
+ * The reason is presentation-relevant but not presentation-*deciding* — an arrival looks
+ * like an arrival however it was caused — so it stays on the event for anything that wants
+ * to phrase it, and nothing keys an effect off the spelling.
+ */
+export function isArrivalEvent(type: string): boolean {
+  return (
+    type === 'life-spawned' ||
+    type === 'respawned' ||
+    type === 'fabricated'
+  );
+}
+
+/**
+ * The same equivalence for the three the *score* reads. The music director counts
+ * movement and rotation as activity and treats a destruction or a disqualification as a
+ * decisive beat, so a generation-3 match scored as an empty field: no shots, no deaths,
+ * nobody moving, and an adaptive timeline that never left `sparse`.
+ */
+export function isMovementEvent(type: string): boolean {
+  return type === 'move' || type === 'movement';
+}
+
+export function isRotationEvent(type: string): boolean {
+  return type === 'turn' || type === 'rotation';
+}
+
+export function isDisqualificationEvent(type: string): boolean {
+  return type === 'disqualified' || type === 'participant-disqualified';
+}
+
 export type ReplayTickResolutionPhase =
   | 'freeze-observations'
   | 'collect-joint-decisions'
@@ -444,12 +509,14 @@ export interface ReplayContractTopology {
   teams: {
     teamId: number;
     teamKey: ReplayTeamKey;
+    classId: string | null;
   }[];
   participants: {
     participantId: number;
     participantKey: ReplayParticipantKey;
     teamId: number;
     teamKey: ReplayTeamKey;
+    classId: string | null;
   }[];
   unitSlots: {
     teamId: number;
@@ -512,6 +579,15 @@ export type ReplayGenericModeDefinition =
         teamId: number;
         positionIndexDelta: -1 | 1;
       }[];
+    }
+  | {
+      kind: 'arc-relay';
+      modeId: string;
+      pendingRearmTicks: number;
+      coreRelocationIntervalTicks: number;
+      coresPerPulse: number;
+      pulsesToDestroyReactor: number;
+      orderedWellRegionIds: string[];
     };
 
 export interface ReplayGenericMatchContract
@@ -623,6 +699,7 @@ export interface ReplayParticipantController {
   participantId: number;
   teamKey: ReplayTeamKey;
   teamId: number;
+  classId: string | null;
   name: string;
   runtimeKind: string;
   artifactHash: string | null;
@@ -634,6 +711,7 @@ export interface ReplayParticipantController {
 export interface ReplayTeam {
   teamKey: ReplayTeamKey;
   teamId: number;
+  classId: string | null;
   participantKeys: ReplayParticipantKey[];
   unitKeys: ReplayStableUnitKey[];
 }
@@ -648,6 +726,8 @@ export interface ReplayStableUnit {
   initialActorKey: ReplayActorLifeKey | null;
   initialLifeId: number | null;
   initialFormId: string | null;
+  /** Fixed per-slot launch class when the resolved topology declares one. */
+  classId?: string | null;
 }
 
 export interface ReplayForm {
@@ -693,6 +773,11 @@ export interface ReplayFrontlineMap {
   anchorForbiddenTiles: ReplayPosition[];
 }
 
+export interface ReplayMapRegion {
+  regionId: string;
+  tiles: ReplayPosition[];
+}
+
 export interface ReplayMap {
   mapId: string;
   mapVersion: number;
@@ -701,6 +786,13 @@ export interface ReplayMap {
   height: number;
   tileRows: string[];
   objectiveTiles: ReplayPosition[];
+  /**
+   * Named map regions from the generic contract (wells, reactors, heal
+   * zones, …), verbatim. Empty on replay generations whose wire format
+   * carries no regions (v1/v2); renderers select by regionId prefix and
+   * must tolerate absence.
+   */
+  regions: ReplayMapRegion[];
   frontline: ReplayFrontlineMap | null;
   presentation: ReplayMapPresentation | null;
 }
@@ -783,6 +875,7 @@ export interface ReplayParticipantStatus {
   participantId: number;
   teamKey: ReplayTeamKey;
   teamId: number;
+  classId: string | null;
   runtimeFaultCount: string;
   disqualified: boolean;
 }
@@ -809,6 +902,7 @@ export type ReplayModeState =
       kind: 'deathmatch';
       modeId: string;
     }
+  | ReplayArcRelayModeState
   | {
       kind: 'frontline';
       modeId: string;
@@ -817,12 +911,108 @@ export type ReplayModeState =
       captureProgress: number;
       decayTicksElapsed: number;
       controlResumesAtTick: number;
+      /**
+       * Team whose advance a live territory-ratchet hold protects, or null
+       * when no hold is live — which includes every ruleset whose redeploy
+       * policy has no ratchet at all. Only the generic contract carries the
+       * fact, so it is absent on replays normalized from older wires.
+       */
+      holdOwnerTeamId?: number | null;
+      /** First tick the live hold stops denying regression; null when none. */
+      holdEndsAtTick?: number | null;
+      /**
+       * Team that owns the declared side objective, or null while it is
+       * neutral — which includes every ruleset that declares none. Only a
+       * generation-3 contract carries the fact, so it is absent on replays
+       * normalized from older wires.
+       */
+      secondaryOwnerTeamId?: number | null;
+      /**
+       * Running claim on the side objective as signed sole-presence ticks:
+       * positive for team 0, negative for team 1, zero when none stands.
+       */
+      secondaryClaimProgress?: number;
+      /**
+       * Both teams' bank and tier vector under a declared scrap economy,
+       * ordered by team ID. Undefined on every ruleset without one.
+       */
+      scrapTeams?: ReplayScrapTeam[];
+      /** Live piles of loose scrap, ordered by (y, x). */
+      scrapPiles?: ReplayScrapPile[];
     }
   | {
       kind: string;
       modeId: string;
       state: Readonly<Record<string, unknown>>;
     };
+
+export interface ReplayArcCoreId {
+  sourceWellId: string;
+  sourceOrdinal: number;
+}
+
+export interface ReplayArcRelayModeState {
+  kind: 'arc-relay';
+  modeId: string;
+  wells: {
+    wellId: string;
+    position: ReplayPosition;
+    nextScheduledBirthTick: number | null;
+    outstandingCoreId: ReplayArcCoreId | null;
+    pendingCharge: boolean;
+    rearmCompletesAtTick: number | null;
+  }[];
+  reactors: {
+    teamId: number;
+    position: ReplayPosition;
+    chargePips: number;
+    integritySegments: number;
+    /** Threefold sockets in canonical well order; empty otherwise. */
+    filledSocketWellIds: string[];
+  }[];
+  visibleCores: {
+    coreId: ReplayArcCoreId;
+    position: ReplayPosition;
+    disposition: 'loose' | 'carried' | 'in-flight';
+    carrierActor: ReplayActorIdentity | null;
+    nextRelocationTick: number;
+    flightTarget: ReplayPosition | null;
+    flightCompletesAtTick: number | null;
+  }[];
+  visibleSignatures: {
+    operationId: string;
+    signatureId: string;
+    signatureKind: string;
+    ownerActor: ReplayActorIdentity;
+    ownerTeamId: number;
+    phase: 'tell' | 'active' | 'channel' | 'in-flight';
+    startedTick: number;
+    completesAtTick: number | null;
+    endsAtTick: number | null;
+    positions: ReplayPosition[];
+    targetActor: ReplayActorIdentity | null;
+    remainingCapacity: number;
+    suppressed: boolean;
+  }[];
+  latestPulseTeamId: number | null;
+  latestPulseTick: number | null;
+  /**
+   * Declared strikes in windup (DECISIONS #212): the shooter, the tick the
+   * ray resolves, and the frozen tiles it will trace. Empty on every ruleset
+   * without strike windups.
+   */
+  pendingStrikes: {
+    shooter: ReplayActorIdentity;
+    resolveAtTick: number;
+    /** The strike's frozen apex; null on documents written before it. */
+    origin: ReplayPosition | null;
+    /** Declared heading; null on documents written before it. */
+    centralHeading: ReplayProjectileHeading | null;
+    /** The locked body (lock-and-follow); null over an empty wedge. */
+    target: ReplayActorIdentity | null;
+    tiles: ReplayPosition[];
+  }[];
+}
 
 export interface ReplayProjectileState {
   projectileId: string;
@@ -865,6 +1055,8 @@ export interface ReplayFrontlineObjectiveState {
   captureProgress: number;
   decayTicksElapsed: number;
   controlResumesAtTick: number;
+  holdOwnerTeamId?: number | null;
+  holdEndsAtTick?: number | null;
   winnerTeamId: number | null;
   completeness: 'exact';
 }
@@ -924,6 +1116,7 @@ export type ReplayObservedActorRef =
 
 export interface ReplayObservedActor {
   actor: ReplayObservedActorRef;
+  classId: string | null;
   formId: string;
   position: ReplayPosition;
   facing: ReplayDirection;
@@ -933,12 +1126,43 @@ export interface ReplayObservedActor {
   previousActionResult: ReplayActionResult | null;
   pendingFormTransition: ReplayFormTransition | null;
   observedBy: ReplayActorLifeKey[];
+  /**
+   * Scrap this body is carrying, under a declared scrap economy.
+   *
+   * Zero rather than absent once normalized: the wire omits the key while a
+   * body carries nothing, and every wire without the economy omits it always,
+   * so an absent key and an empty load are the same picture to a viewer. This
+   * is the **only** place the fact exists — authoritative world lives carry no
+   * load, so a courier is readable only through the observations of the tick
+   * that follows the pickup.
+   */
+  carriedScrap: number;
+  /**
+   * The free-vocabulary label this body's MIND published for it, or null.
+   *
+   * Entirely non-authoritative — the engine never reads it — and public on
+   * visible enemies as well as own bodies, which is what makes it worth
+   * rendering: a spectator reading `channeler / screen / screen / courier`
+   * understands the set-piece without being taught the rules, and a
+   * deliberately wrong label is a real move. Null for every per-life replay,
+   * which has no way to set one.
+   */
+  roleTag: string | null;
 }
 
 export interface ReplayObservedTile {
   position: ReplayPosition;
   isWall: boolean | null;
   observedBy: ReplayActorLifeKey[];
+  spawnReservation: ReplayObservedSpawnReservation | null;
+}
+
+export interface ReplayObservedSpawnReservation {
+  teamId: number;
+  unitId: number;
+  unitKey: ReplayStableUnitKey;
+  kind: 'automatic-return' | 'fabrication' | 'replication';
+  dueTick: number | null;
 }
 
 export interface ReplayObservedProjectile {
@@ -957,6 +1181,13 @@ export interface ReplayObservedProjectile {
   observedBy: ReplayActorLifeKey[];
   /** Exact authoritative projectile identity in replay-v3. */
   projectileId?: string;
+  /**
+   * Declared tick cadence between advances for the profile that fired this
+   * projectile. Generation-3 observations publish it; older wires do not.
+   */
+  ticksPerAdvance?: number;
+  /** Health one contact removes. Generation-3 observations publish it. */
+  damagePerHit?: number;
 }
 
 export interface ReplayObservedEvent {
@@ -1006,6 +1237,29 @@ export interface ReplayObservedActionAvailability {
   allowedProjectileHeadings: ReplayProjectileHeading[] | null;
   allowedUnitKeys: ReplayStableUnitKey[] | null;
   allowedFormTargets: string[] | null;
+  allowedPositions?: ReplayPosition[] | null;
+  /**
+   * Upgrade tracks this body's team may buy the next tier of this tick, or
+   * null when the action declares no such parameter. Affordability and the
+   * caps live in the mask, so an empty array means "nothing is buyable right
+   * now" rather than "no economy exists".
+   */
+  allowedUpgradeTracks?: string[] | null;
+}
+
+/** One team's published economic position under a declared scrap economy. */
+export interface ReplayScrapTeam {
+  teamId: number;
+  bank: number;
+  /** Tier held per track, positional against the declared track order. */
+  tierLevels: number[];
+}
+
+/** One live pile of loose scrap; gone the first tick `tick >= expiresAtTick`. */
+export interface ReplayScrapPile {
+  position: ReplayPosition;
+  amount: number;
+  expiresAtTick: number;
 }
 
 export interface ReplayObservedFrontlineObjective {
@@ -1014,6 +1268,8 @@ export interface ReplayObservedFrontlineObjective {
   captureProgress: number;
   decayTicksElapsed: number;
   controlResumesAtTick: number;
+  holdOwnerTeamId?: number | null;
+  holdEndsAtTick?: number | null;
 }
 
 export interface ReplayActorObservation {
@@ -1043,6 +1299,8 @@ export interface ReplayActionPayload {
   launchHeading: ReplayProjectileHeading | null;
   unitKey: ReplayStableUnitKey | null;
   formTargetId: string | null;
+  /** Exact targeted map tile for position-parameter actions in replay v3. */
+  positionTarget?: ReplayPosition | null;
 }
 
 export interface ReplayActorDecision {
@@ -1080,6 +1338,11 @@ export interface ReplayActorLifeStart {
   actor: ReplayActorIdentity;
   participantId: number;
   actorRandomSeed: string | null;
+  /**
+   * Root seed of the scoring team's shared per-tick stream — identical for
+   * every life on the team. Null for a replay generation that predates it.
+   */
+  teamRandomSeed?: string | null;
   spawnReason: ReplayActorSpawnReason;
   generation?: number;
   parentActor?: ReplayActorIdentity | null;
@@ -1154,11 +1417,119 @@ export interface ReplayCausalEvent {
   completeness: ReplayObservationCompleteness;
   globalOrdinal?: string;
   payloadKind?: string;
+  arcRelayFact?: ReplayArcRelayFact;
   audience?:
     | { kind: 'public' }
     | { kind: 'spatial'; primaryPosition: ReplayPosition }
     | { kind: 'team-private'; teamId: number };
 }
+
+export type ReplayArcRelayFact =
+  | {
+      kind: 'core-born';
+      coreId: ReplayArcCoreId;
+      position: ReplayPosition;
+      chargeValue: number;
+    }
+  | {
+      kind: 'core-ripened';
+      coreId: ReplayArcCoreId;
+      position: ReplayPosition;
+      value: number;
+    }
+  | {
+      kind: 'leveled-up';
+      actor: ReplayActorIdentity;
+      level: number;
+      position: ReplayPosition;
+    }
+  | {
+      kind: 'zone-healed';
+      actor: ReplayActorIdentity;
+      amount: number;
+      newHealth: number;
+      position: ReplayPosition;
+    }
+  | {
+      kind: 'core-picked-up';
+      coreId: ReplayArcCoreId;
+      carrierActor: ReplayActorIdentity;
+      position: ReplayPosition;
+      nextRelocationTick: number;
+    }
+  | {
+      kind: 'core-relocated';
+      coreId: ReplayArcCoreId;
+      carrierActor: ReplayActorIdentity | null;
+      from: ReplayPosition;
+      to: ReplayPosition;
+      nextRelocationTick: number;
+      relocationKind: string;
+    }
+  | {
+      kind: 'core-handed-off';
+      coreId: ReplayArcCoreId;
+      sourceActor: ReplayActorIdentity;
+      targetActor: ReplayActorIdentity;
+      position: ReplayPosition;
+      nextRelocationTick: number;
+    }
+  | {
+      kind: 'core-dropped';
+      coreId: ReplayArcCoreId;
+      sourceActor: ReplayActorIdentity;
+      position: ReplayPosition;
+      nextRelocationTick: number;
+      dropKind: string;
+    }
+  | {
+      kind: 'core-banked';
+      coreId: ReplayArcCoreId;
+      carrierActor: ReplayActorIdentity;
+      teamId: number;
+      position: ReplayPosition;
+      chargePips: number;
+    }
+  | {
+      kind: 'well-changed';
+      wellId: string;
+      pendingCharge: boolean;
+      rearmCompletesAtTick: number | null;
+      outstandingCoreId: ReplayArcCoreId | null;
+    }
+  | {
+      kind: 'pulse';
+      teamId: number;
+      pulseOrdinal: number;
+      opposingReactorIntegrity: number;
+    }
+  | {
+      kind: 'signature-changed';
+      operationId: string;
+      signatureId: string;
+      ownerActor: ReplayActorIdentity;
+      phase: string | null;
+      reason: string;
+    }
+  | {
+      kind: 'body-relocated';
+      operationId: string;
+      signatureId: string;
+      ownerActor: ReplayActorIdentity;
+      targetActor: ReplayActorIdentity;
+      from: ReplayPosition;
+      to: ReplayPosition;
+    }
+  | {
+      kind: 'signature-damage' | 'signature-repair';
+      operationId: string;
+      signatureId: string;
+      ownerActor: ReplayActorIdentity;
+      targetActor: ReplayActorIdentity;
+      amount: number;
+      newHealth: number;
+      position: ReplayPosition;
+    };
 
 export interface ReplayProjectileTraversal {
   projectileId: string;
@@ -1186,9 +1557,70 @@ export interface ReplayTick {
   activeActorKeys: ReplayActorLifeKey[];
   lifecycleEvents: ReplayCausalEvent[];
   actorTurns: ReplayActorTurn[];
+  /**
+   * A compact spectator transport can publish one shared vision snapshot per
+   * team instead of repeating it in every body turn. Undefined on canonical
+   * replays and compact broadcasts that predate team-perspective fog.
+   */
+  publishedTeamVision?: ReplayPublishedTeamVision[];
+  /**
+   * What each unit was ordered to do at this tick, as the mind itself said it.
+   *
+   * A compact spectator transport drops every body's diagnostic text, which is
+   * correct — it is private reasoning — except for the one clause a spectator
+   * is actually asking about while watching: what this body is doing right
+   * now. That clause is published back as a per-tick table.
+   *
+   * Undefined on canonical replays, where the same fact is read straight off
+   * the turn's own debug message, and on broadcasts written before the column
+   * existed.
+   */
+  publishedUnitOrders?: ReplayPublishedUnitOrder[];
+  /**
+   * Where each unit was walking at this tick — the resolved destination tile of
+   * its movement order, not the step it took to get there.
+   *
+   * The sibling of `publishedUnitOrders` and published on the same terms. It
+   * exists because a step is not a plan: a body walking confidently at the
+   * wrong tile and a body oscillating between two look identical from the
+   * outside, and only the destination separates them.
+   *
+   * Undefined on canonical replays (read off the turn's debug message instead)
+   * and on broadcasts written before the column existed.
+   */
+  publishedUnitDestinations?: ReplayPublishedUnitDestination[];
   events: ReplayCausalEvent[];
   projectileTraversals: ReplayProjectileTraversal[];
   after: ReplayWorldSnapshot;
+}
+
+export interface ReplayPublishedTeamVision {
+  teamId: number;
+  visibleTiles: ReplayPosition[];
+}
+
+/**
+ * One body's live order: the standing assignment, and what it is doing about it.
+ *
+ * `orderId` is the mind's own name for the job — `race-north`, `ghost-patrol` —
+ * and is null where the reason names no order. `action` is the tail of the same
+ * sentence: `formation-move`, `duel-stand`, `idle-break/streak`.
+ */
+export interface ReplayPublishedUnitOrder {
+  teamId: number;
+  unitId: number;
+  orderId: string | null;
+  action: string;
+}
+
+/**
+ * One body's live movement destination, or null while it is not walking at a
+ * tile it can name (fighting, holding, carrying).
+ */
+export interface ReplayPublishedUnitDestination {
+  teamId: number;
+  unitId: number;
+  destination: ReplayPosition | null;
 }
 
 export interface ReplayTeamResult {
@@ -1246,6 +1678,12 @@ export interface ReplayFrontlineResult {
   }[];
 }
 
+export interface ReplayArcRelayResult {
+  kind: 'arc-relay';
+  reason: 'fault-eligibility' | 'reactor-destroyed' | 'max-ticks';
+  state: ReplayArcRelayModeState;
+}
+
 export interface ReplayTerminalResult {
   winnerTeamId: number | null;
   reason: string;
@@ -1256,7 +1694,7 @@ export interface ReplayTerminalResult {
   /** Exact wire value; null is permitted by the generic result contract. */
   reportedEndTick?: number | null;
   eligibleTeamIds?: number[];
-  mode?: ReplayDeathmatchResult | ReplayFrontlineResult;
+  mode?: ReplayDeathmatchResult | ReplayFrontlineResult | ReplayArcRelayResult;
 }
 
 export interface ReplayHeaderVersions {

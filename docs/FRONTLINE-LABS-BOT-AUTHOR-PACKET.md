@@ -5,8 +5,11 @@ Status: frozen common input for the first independently authored
 
 ## Purpose
 
-Create one deterministic, contract-driven `IGenericActorBot` that expresses
-the assigned doctrine. This is a one-pass authorship exercise, not an
+Create one deterministic, contract-driven bot that expresses the assigned
+doctrine: an `IGenericMindBot` on the mind profile (one program driving every
+body the participant owns, for the whole match) or an `IGenericActorBot` on the
+per-life profile (one independent instance per body life). Your assignment names
+which. This is a one-pass authorship exercise, not an
 iterative tournament optimization exercise.
 
 Every cohort author receives this same packet and one doctrine sentence.
@@ -22,11 +25,18 @@ Use only:
   including its README and starter helper;
 - the complete Labs-v1 rule card in
   [`FRONTLINE-LABS-RULES.md`](FRONTLINE-LABS-RULES.md);
+- when explicitly assigned an automatic-companion or duel-map experiment, the
+  additional candidate contract in
+  [`EXPERIMENTAL-FRONTLINE-DUEL-DEPTH.md`](EXPERIMENTAL-FRONTLINE-DUEL-DEPTH.md);
 - the Labs-v1 authoring command and product boundary in
   [`EXPERIMENTAL-FRONTLINE.md`](EXPERIMENTAL-FRONTLINE.md);
 - the generic runtime/toolchain material in
   [`WASM-DEVELOPMENT.md`](WASM-DEVELOPMENT.md);
-- public types and XML comments in `src/BotArena.Sdk`.
+- public types and XML comments in `src/BotArena.Sdk`;
+- for a mind assignment, the `nilbots new <Name> --profile generic-mind`
+  project and its README, plus the mind sections of
+  [`RUNTIME-PROTOCOL.md`](RUNTIME-PROTOCOL.md) and
+  [`FRONTLINE-LABS-RULES.md`](FRONTLINE-LABS-RULES.md).
 
 Do not inspect:
 
@@ -40,7 +50,7 @@ strategy independently derived from the same player-facing information.
 
 ## Common implementation requirements
 
-- Implement `IGenericActorBot`.
+- Implement `IGenericActorBot`, or `IGenericMindBot` on a mind assignment.
 - Treat `StartLife.Contract` as authoritative. Read teams, participants, unit
   slots, forms, actions, transitions, map regions, and mode binding from it.
 - Resolve the numeric action code from the current
@@ -51,11 +61,33 @@ strategy independently derived from the same player-facing information.
 - Use stable IDs only where the doctrine intentionally recognizes an optional
   semantic capability such as `fabricate`, `split`, `transform`, or
   `shoot-direction`. Fall back safely when it is absent.
-- Remember that each active body life has a separate bot instance and private
-  memory. A form change preserves that instance; destruction, return,
-  fabrication, and replication create fresh instances. Current allied body
-  state and allied sensor union are shared through observations, not through
-  hidden cross-instance memory.
+- **Memory.** Per-life: each active body life has a separate bot instance and
+  private memory; a form change preserves that instance, while destruction,
+  return, fabrication and replication create fresh ones. **Under the mind: one
+  instance for the whole match, and its fields are your memory.** Nothing is
+  cleared when a body dies, there is no memory API to learn, and **a runtime
+  fault forgets the match** — the Store and everything in it are discarded, and
+  under this contract's zero allowance the fault also disqualifies you. Write
+  for that.
+- **The tick invariant (mind).** `Think` is called exactly once per tick,
+  unconditionally, from tick 0 to the terminal tick — including ticks on which
+  you own no live body. Ask `mind.Bodies.Length`, do not branch on being alive.
+- **The default-`Wait` contract (mind).** Commands are written onto bodies, not
+  returned. Every own live body you do not write to waits; forgetting one costs
+  that body a tick in the replay, not the match. A command naming a body you do
+  not own or that is not live is `Rejected` and recorded; two commands for one
+  body is a fault.
+- **Role tags (mind).** `body.SetRole("channeler")` publishes a free-vocabulary
+  label of at most 24 UTF-8 bytes. It is non-authoritative, sticky until
+  changed, and **published on your bodies that an enemy can see**. Use your own
+  vocabulary; a deliberately wrong label is a legitimate move.
+- **Composition.** `botarena.json` declares the army you play, and a bot is
+  permanently classed: switching means a new bot, not an edited one.
+- Treat lifecycle assignments and `StartLife.Origin` as data. A future or
+  experimental slot may be Ready for explicit fabrication or may create its
+  first fresh life automatically at a declared tick. Automatic activation
+  inherits no Prime/parent memory and is distinct from both initial deployment
+  and post-destruction automatic return.
 - Use only deterministic observation, contract, and `context.Random` inputs.
   Do not use clocks, entropy APIs, files, network access, threads, reflection,
   native calls, or environment state.
@@ -66,6 +98,39 @@ strategy independently derived from the same player-facing information.
   In-process success does not exercise the sandbox or embedded SDK/Guest.
   Local Labs reports the precise sandbox failure and peak completed-tick fuel
   when a WASM life faults; preserve that output in DX notes.
+
+## Reading the contract before you write
+
+```bash
+nilbots experiment frontline-labs --print-candidate-contract full \
+  <the cell's flags>
+```
+
+prints the cell's complete resolved canonical contract as JSON on stdout and
+exits, taking no bot arguments. Those are the exact bytes the runtime receives
+at MatchStart and the exact bytes a replay-v3 header carries, so every declared
+number — tick limit, windups, route and gun cooldowns, damage, capture
+arithmetic, economy schedule, upgrade tracks, topology, lifecycle — is readable
+before a single match runs. The bare flag prints identity (IDs and
+fingerprints) only.
+
+## Reading the CLI's exit codes
+
+Every local Labs command reports failure the same way: one line on **stderr**
+and a **non-zero** exit code. Nothing that failed exits `0`.
+
+| code | meaning | what a sweep should do |
+| --- | --- | --- |
+| `0` | the match or probe ran to a result | score it |
+| `1` | usage, environment, or build failure | fix the invocation |
+| `2` | a participant faulted or was disqualified | a real outcome, with a real replay — read it |
+| `3` | a qualification probe failed cleanly | read the report; the prerequisite tier is retained |
+| `4` | the match **aborted**: it produced no result and **no replay** | re-run the cell; never score it |
+
+Code `4` is the one worth wiring into a harness. An aborted cell measures
+nothing, and scoring it as a loss (or as a completed match) is how three waves
+of authors lost sweeps. Counting `replay.json` files is still good practice —
+it catches an interrupted run too — but the exit code is now load-bearing.
 
 ## Budget and repair policy
 
@@ -90,7 +155,10 @@ The assigned cohort directory must contain:
 - `DX.md`, written after the source is frozen, recording time to first valid
   build, documentation gaps, terminology confusion, missing helpers, awkward
   action/contract APIs, useful diagnostics, hardcoding temptations, and every
-  mechanical repair.
+  mechanical repair. On a mind assignment it must also record **what the profile
+  made EASY** — which per-life machinery you did not have to write, and which
+  bug classes never appeared. The point of the round is to measure the
+  ergonomics claim, not to assert it.
 
 After authorship closes, the orchestrator performs the controlled WASM build,
 records the exact SHA-256 and source revision, archives the canonical artifact,

@@ -1,0 +1,91 @@
+# Arc Relay forward-combat ten-operation live proof
+
+This is an evaluation-grade mechanics corpus, not the player-facing sheet
+format. Each sheet embeds one bounded team operation beside a complete stock
+baseline. The same compiled `stock-mind-v4` artifact loads every operation
+sheet as deterministic data and explicitly prepares facing under the
+three-heading basic-fire cone. Rear Hook and Relay Catch use retained legacy
+sheet data as named opponents to create reproducible tactical situations, but
+both sides execute through the same current stock artifact. Historical stock
+artifacts are compatibility sentinels, not eligible tactical opponents.
+
+Every retained example must show, in one authoritative WASM activation:
+
+1. causal trigger evidence;
+2. atomic participant preparation;
+3. one locked branch commitment;
+4. the authored mission success, including any required signature action;
+5. physical recovery or its bounded deadline; and
+6. surviving participants emitting ordinary baseline role tags after release.
+
+Abort-only traces are diagnostic and never count as proof.
+
+| Operation | Prepare and commit rule | Counted success | Failure and baseline behavior |
+| --- | --- | --- | --- |
+| Rear Hook | Two Towlines infiltrate after public Well timing and visible forward pressure; commit only to an observed carrier in the enemy return corridor. | The exact bound Core becomes loose or ours after at least one `tractor-hook`. | Before commit, loss of a required stager recovers. After commit, an optional strike survivor may continue; deadline releases all survivors. |
+| Lantern Sweep | A carrier pauses at a safe fork while a Lantern and screen probe; visible risk selects alternate return before the ordered primary branch. | The carrier crosses onto its home half. | Core loss aborts. Surviving participants extract and return to their complete baseline roles. |
+| Fork Shadow | A visible returning carrier triggers two Towlines; the observed north/south route selects one cutoff branch. | The exact carrier loses its Core or is forced outside that committed route after a `tractor-hook`. | The branch never flips. Optional strike partners may degrade to one survivor; deadline releases it. |
+| Birth Rotation | Public next-Well timing claims any feasible two of three declared reserves. | Two committed rotators reach the forward-objective band. | Visible home overload aborts; otherwise recovery returns the surviving pool to baseline. |
+| Escort Counterpunch | A pressured own carrier and one declared guard stage at the fork; two visible threats select the counter route before direct return. | An own carrier crosses onto its home half. | Core loss aborts. A dead guard is never silently replaced after commitment. |
+| Smoke Breach | Visible centre resistance stages a Veil and one of two declared breachers. | Two committed bodies cross into centre-forward after `smoke-canister` use. | A three-enemy home emergency aborts; the concentrated pair otherwise accepts the exposed-lane cost. |
+| Hardlight Gate | A pressured return claims a Lantern and Mason and commits once both form the home gate. | The carrier reaches its home half after the Mason has used `hardlight-block`. | Core loss aborts; the gate pair physically extracts before ordinary objective work resumes. |
+| Relay Catch | A south Relay carrier and its paired Relay screen commit immediately; the receiver follows the specifically assigned carrier. | The assigned receiver becomes the Core carrier after `arc-toss`. | The in-flight one-tick possession gap is not mistaken for loss; deadline handles a genuinely failed catch. |
+| Decoy Switch | Public Well timing plus visible north pressure stages one north decoy and a declared south pair. | Both hitters reach south-forward after the locked south-pincer branch. | A home overload aborts. The decoy and pair otherwise pay the loss of centre coverage. |
+| Emergency Exchange | A wounded carrier in the risk fork claims the declared Switchback. | `exchange` occurs during the activation and an own carrier is on the home half. | Core loss or participant loss aborts; the Switchback cannot create a success merely by arriving late. |
+
+Reproduce the two-campaign proof from the repository root:
+
+```sh
+python3 scripts/arc-relay-operation-proof.py prove \
+  --catalog arena-bots/arc-relay/forward-combat-operation-proof-v1-2026-08-03/catalog.json \
+  --artifact arena-bots/arc-relay/stock-mind-v4/bot.wasm \
+  --output /tmp/nilbots-forward-combat-operation-proof \
+  --workers 4
+
+python3 scripts/arc-relay-operation-proof.py prove \
+  --catalog arena-bots/arc-relay/forward-combat-operation-proof-v1-2026-08-03/catalog.json \
+  --artifact arena-bots/arc-relay/stock-mind-v4/bot.wasm \
+  --seed 86080202 \
+  --output /tmp/nilbots-forward-combat-operation-proof-seed2 \
+  --workers 4
+
+python3 scripts/retain-arc-relay-live-proof.py \
+  --catalog arena-bots/arc-relay/forward-combat-operation-proof-v1-2026-08-03/catalog.json \
+  --artifact arena-bots/arc-relay/stock-mind-v4/bot.wasm \
+  --proof /tmp/nilbots-forward-combat-operation-proof/proof.json \
+  --proof /tmp/nilbots-forward-combat-operation-proof-seed2/proof.json \
+  --output arena-bots/arc-relay/forward-combat-operation-proof-v1-2026-08-03/evidence
+```
+
+The tracked compact receipt is
+[`evidence/live-proof-summary.json`](evidence/live-proof-summary.json). Full
+canonical replays are deliberately regenerated and verified rather than
+committed. It records 20/20 passing operation cells across two campaigns,
+requires both teams in every whole match to pass the v4 felt-degeneracy bars,
+and retains compact broadcast slices from the first passing campaign under
+`evidence/replays/` for the outcome-visible production review gallery. Those
+slices do not replace canonical verification. Each gallery card names the
+actual static stock opponent and its allocation/doctrine, distinguishes
+possible counterplay from observed behavior, and reports the terminal Core
+delivery, Pulse, charge, and reactor-integrity score separately from operation
+success.
+
+Build the eligible review gallery with:
+
+```sh
+python3 scripts/build-review-gallery.py \
+  --sample arena-bots/arc-relay/forward-combat-operation-proof-v1-2026-08-03/evidence/gallery-sample.json \
+  --index-cards arena-bots/arc-relay/forward-combat-operation-proof-v1-2026-08-03/evidence/gallery-cards.json \
+  --output sandbox/arc-relay-forward-awareness-review-v1 \
+  --viewer hosted --viewer-build web/dist --review-panel \
+  --review-protocol arc-relay-forward-awareness-v1
+```
+
+This corpus proves executable grammar and recovery behavior only; it is not a
+balance, reliability, fun, or product-UX claim.
+
+The superseded retained broadcasts exposed three false passes under the v4
+bars: Emergency Exchange pickup/drop cycling, Rear Hook home-carrier
+non-progress, and Relay Catch stationary-carrier stalling. The current corpus
+replaces them rather than suppressing diagnostics: all three matches now pass
+the same bars that found the defects.

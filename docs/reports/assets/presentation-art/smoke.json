@@ -1,0 +1,17 @@
+{
+  "schema": "nilbots-presentation-art-smoke-v1",
+  "oldUrl": "http://127.0.0.1:8941/sample-01.html",
+  "newUrl": "http://127.0.0.1:8940/sample-01.html",
+  "productionBuild": "web/dist-gate3",
+  "renderer": "Canvas2D",
+  "replayTick": 66,
+  "diegeticOnly": true,
+  "autoDirectorEngaged": true,
+  "audioBufferStarts": 2,
+  "screenshots": {
+    "flatBefore": "ccba997b9c1a46d2638a23cb46a4ed424569dc1f34e73c4375441cfa55e01464",
+    "tiltedAfter": "06977162a1755a153313865f2983fc53429a98f234dd563c0d83a698797c2ee4",
+    "victoryScreen": "a14f30b3917b05b783733d918814b9e12bc002ec9189154d4aef2e1c04646bea"
+  },
+  "pageErrors": []
+}

@@ -1,0 +1,32 @@
+{
+  "title": "Arc Relay — Home Siege Stage 1",
+  "intro": "Outcome-visible, targeted review of the two mirrored representatives from a predeclared 10–0 WASM cohort. Home Siege fields Relay, Kestrel, two Patchbays, two Sunders and two Repulsors against the unchanged static baseline. The other four fresh seeds per assignment repeat the same winners and end ticks. This proves execution and exposes the registered home-camping alarm; it is not a fun or balance approval. The opponent is live general opposition, not a bespoke recognizer — authoring that counter is Stage 2.",
+  "cards": [
+    {
+      "id": "sample-01",
+      "title": "Home Siege — Orange standing strategy",
+      "subtitle": "Orange Home Siege vs static baseline · Orange wins by reactor destroyed at t557 · occupy t44 → regroup t68 → breach t140 → regroup t531",
+      "win": true,
+      "opponent": "Blue uses the unchanged static stock sheet: Kestrel and Relay carriers, Lantern/Palisade screens, paired Towline interceptors, and Veil/Switchback centre reserves. It has no gambits or standing operations and does not recognize Home Siege; its ordinary two-wing Core routes provide live opposition, not bespoke counterplay.",
+      "score": "Blue 8–9 Orange Core deliveries (Blue Pulses 2, charge 2, integrity 0; Orange Pulses 3, charge 0, integrity 1). Home Siege won this match and the strategy's recovery cycle executed.",
+      "trigger": "The eight-body north assault begins at match start. Six bodies in the enemy-home zone arms occupation; falling to five or fewer there for three ticks orders regroup; five bodies stable in the forward rally for four ticks orders a new breach. A scorer becomes active for carried or secured Cores, five confirmed enemy deaths during control, or a 60-tick objective stall with the declared Well outstanding.",
+      "tactic": "Rush one outer lane, form a moving perimeter around the enemy home, focus carrier threats, and keep two Patchbays repairing distinct allies. Relay/Kestrel proactively seek the scoring Core; an incidental carrier converts immediately rather than wasting tempo on a handoff.",
+      "counterplay": "Concentrate enough defenders to keep six attackers from stabilizing, kill or displace the scorer before extraction, deny the five-body rally, attack the vacated Wells, or pressure the opposite route while the siege is committed. This baseline does not deliberately select those answers.",
+      "fallback": "Occupation collapses into regroup instead of leaving survivors parked. A new breach requires a stable five-body rally; respawns re-enter the current phase. The tactic never relaxes the formation-freeze, passivity, stuck-carrier, handoff-loop, pickup/drop, or home-carrier bars.",
+      "watch": "Orange occupies at t44, loses control and regroups at t68, rebuilds five bodies and breaches at t140, then regroups again at t531. It records 112 accepted repair commands, 24/24 observable respawns rejoining strategy, 24 kills within six tiles of Blue's reactor, and still allows seven Blue banks during five-body camp ticks before Orange wins at t557."
+    },
+    {
+      "id": "sample-02",
+      "title": "Home Siege — Blue standing strategy",
+      "subtitle": "Blue Home Siege vs static baseline · Blue wins by reactor destroyed at t578 · sustained assault with living reinforcement",
+      "win": true,
+      "opponent": "Orange uses the same unchanged static stock sheet: Kestrel and Relay carriers, Lantern/Palisade screens, paired Towline interceptors, and Veil/Switchback centre reserves. It has no gambits or standing operations and is general live opposition rather than a Home Siege recognizer.",
+      "score": "Blue 9–8 Orange Core deliveries (Blue Pulses 3, charge 0, integrity 1; Orange Pulses 2, charge 2, integrity 0). Home Siege won this match, while its assault threshold never claimed a stable six-body occupation.",
+      "trigger": "The standing assault begins immediately and stays in assault because six Blue bodies never simultaneously stabilize inside Orange's enemy-home zone. Scoring branches still arm from possession, secured dropped Cores, or the bounded 60-tick stall rule while enough attackers remain forward.",
+      "tactic": "Keep sending all available bodies through the north route, let Patchbays sustain the advancing group, fight around Orange's home, and convert any incidental Core pickup without abandoning it for a nominal runner.",
+      "counterplay": "Break the reinforcement stream, isolate both Patchbays, clear bodies before they reach the final third, attack south and centre while Blue is concentrated north, or screen the Core return. The static baseline exercises those routes but does not coordinate a specific recognition response.",
+      "fallback": "At four or fewer live bodies the assault orders regroup; otherwise new lives rejoin the authored route. A later six-body foothold would switch to occupation, and a collapse there would use the same five-body rally gate as the mirrored replay.",
+      "watch": "Blue remains honestly labelled assault for the full match rather than claiming an occupation it never formed. It still produces 268 five-body camp ticks, 123 accepted repair commands, 17/18 observable respawns rejoining strategy, 21 kills within six tiles of Orange's reactor, three Orange banks during the camp, and the final Blue Pulse at t578."
+    }
+  ]
+}
