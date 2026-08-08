@@ -9,7 +9,7 @@ rewriting playlist v7 or `ambush-warren-11-stock-v1`.
   `scripts/run-wasm-publish.sh` on macOS
 - build input: see `bot.build-receipt.json`
 - artifact SHA-256:
-  `072e9799933dad3c6ffc40a425c44fe0dbf7a173851761b597506b1d5136b4aa`
+  `7cf7e2f56fad1d80bec2250b0c309191b9b24ac2141bf36374116431c19adec3`
 - stock sheet: `wellwright-v1`
 - loop profile: `ambush-warren-11`
 

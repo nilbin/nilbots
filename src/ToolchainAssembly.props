@@ -25,5 +25,11 @@
     <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
     <PathMap>$(MSBuildProjectDirectory)=/src/$(MSBuildProjectName)</PathMap>
     <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
+    <!-- The SDK writes SourceRevisionId into AssemblyInformationalVersion by
+         default. That made these supposedly content-stable staged DLLs change
+         after EVERY commit, so a tracked bot could never match a receipt made
+         before the commit that tracked it. Git provenance belongs in release
+         metadata, not in the executable compiler input. -->
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
   </PropertyGroup>
 </Project>

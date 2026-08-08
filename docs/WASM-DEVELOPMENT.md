@@ -176,7 +176,7 @@ first-life activation and adds explicit class identity, the live ratchet hold's
 owner and expiry, projectile cadence and damage per hit, and a visible tile's
 spawn reservation — all additive, so the profile is unchanged. One bot type may
 implement several programming
-interfaces; controlled-build pipeline 4 detects those interfaces from the
+interfaces; controlled-build pipeline 5 detects those interfaces from the
 closed entry type without constructing a throwaway instance. Hosted App
 execution selects the generic Engine host/session only through an immutable
 hosted definition and its playlist-version queue capability. A configured

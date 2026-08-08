@@ -6460,9 +6460,9 @@ Those bytes faulted before tick 0 with zero measured fuel although a controlled
 build of the same source completed. The tactical source is rebuilt through the
 platform-matched Docker path beneath `scripts/run-wasm-publish.sh`; current
 source and frozen stock v2 now pin build input
-`d31d16d267a70f76e50a0446e477e5117d4feec740e84506a0e01fce90f76d45`
+`b4b9646298f6aa754f662fc2dfe6838775ff32231db850f9f03b2df72f33165d`
 and artifact
-`072e9799933dad3c6ffc40a425c44fe0dbf7a173851761b597506b1d5136b4aa`.
+`7cf7e2f56fad1d80bec2250b0c309191b9b24ac2141bf36374116431c19adec3`.
 Every tracked current player artifact carries `bot.build-receipt.json`, and a
 test recomputes both identities from HEAD. A source, SDK, guest, compiler, or
 pipeline edit can no longer leave the committed output silently stale.
@@ -6496,11 +6496,22 @@ either hold provenance equal, as the regression does, or use
 `scripts/arc-relay-state-digest.py`. Exhibits remain in-process and ranked play
 remains WASM; every claim must name which runtime produced it.
 
+The staleness guard also exposed a prior compiler-identity defect: the staged
+SDK/Guest DLLs embedded the checkout SHA in
+`AssemblyInformationalVersion`, so merely committing an artifact changed the
+next recomputed build key. Toolchain assemblies now set
+`IncludeSourceRevisionInInformationalVersion=false`; Git provenance remains in
+release/build receipts instead of executable compiler inputs. This is a
+controlled-input byte change, so build pipeline moves 4→5 and every cache key
+is invalidated deliberately. The shared built-in guest's input stamp now also
+hashes `src/ToolchainAssembly.props`; it previously claimed "up to date" after
+that imported file changed.
+
 The optional NativeAOT size flags are not folded into this repair. Disabling
-stack traces changes bot-visible exception text, size optimization measurably
-raises fuel use, and either flag would invalidate every pipeline-4 cache entry.
-That trade belongs in a separately measured compiler-input change, not in the
-artifact/parity correction. `CliVersion` and its package move 0.9.35→0.9.36;
-SDK and Guest move to 0.10.13; build pipeline remains 4. No release or deploy
-workflow ran. `publish-cli` therefore owes the untagged `cli-v0.9.34`,
+stack traces changes bot-visible exception text, and size optimization
+measurably raises fuel use. That trade belongs in a separately measured
+compiler-input change, not in the artifact/parity correction. `CliVersion` and
+its package move 0.9.35→0.9.36; SDK and Guest move to 0.10.13; build pipeline
+moves to 5. No release or deploy workflow ran. `publish-cli` therefore owes
+the untagged `cli-v0.9.34`,
 `cli-v0.9.35`, and `cli-v0.9.36` tags before a deploy carrying this line.

@@ -39,7 +39,7 @@ stamp="artifacts/wasm/builtin-bots.inputs"
 
 input_hash="$(
   {
-    printf '%s\n' "builtin-wasm-inputs-v5"
+    printf '%s\n' "builtin-wasm-inputs-v6"
     {
       find \
         src/BotArena.Sdk \
@@ -52,6 +52,7 @@ input_hash="$(
         \( -name '*.cs' -o -name '*.csproj' \) -print
       printf '%s\n' \
         Directory.Build.props \
+        src/ToolchainAssembly.props \
         docker/wasm-builder.Dockerfile \
         global.json \
         nuget.config \

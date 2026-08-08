@@ -37,7 +37,7 @@ public static class ToolchainInfo
     /// SdkVersion or BuildPipelineVersion changes: those decide artifact bytes, and
     /// `submit` refuses against a server the installed tool cannot match, so a player
     /// needs a NEW tool version to upgrade to (DECISIONS #93). 0.9.x carries
-    /// SDK/Guest 0.10.x, build pipeline 4, the frozen local Frontline
+    /// SDK/Guest 0.10.x, build pipeline 5, the frozen local Frontline
     /// actor/replay-v2 experiment, and the negotiated generic actor-match
     /// programming model. 0.9.1 adds the exact local Frontline Labs runner,
     /// generic-actor scaffold, and replay-v3 verification without changing
@@ -567,7 +567,10 @@ public static class ToolchainInfo
     // 4: generated entry-point capability detection exposes every implemented
     //    bot interface without constructing a throwaway instance. This changes
     //    generated source and therefore every controlled artifact cache key.
-    public const string BuildPipelineVersion = "4";
+    // 5: staged SDK/Guest assemblies no longer embed the checkout's Git SHA in
+    //    AssemblyInformationalVersion. Identical sources now keep identical
+    //    compiler-input bytes across the commit that tracks their artifact.
+    public const string BuildPipelineVersion = "5";
 
     public static string CacheRoot =>
         Environment.GetEnvironmentVariable("BOTARENA_HOME") is { Length: > 0 } home
