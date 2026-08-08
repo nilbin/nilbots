@@ -598,6 +598,7 @@ refresh();window.addEventListener('pageshow',refresh);
     (output / "index.html").write_text(f"""<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,">
 <title>{html.escape(title)}</title>
 <style>
  body{{font:16px/1.5 system-ui;margin:2rem auto;max-width:52rem;padding:0 1rem;
