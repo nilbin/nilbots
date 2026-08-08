@@ -145,7 +145,12 @@ function EntrantRoster({ entrants, ladder, templateClasses, classes }: {
                 <span className="pill ml-auto">{entrant.kind}</span>
               </div>
               <p className="t-micro">{entrant.rating} rating · {entrant.rankedMatches} ranked · r{entrant.revision}</p>
-              <p className={clsx('t-micro mt-1', entrant.status === 'suspended' ? 'text-red-300' : 'text-arena-material')}>
+              <p className={clsx(
+                't-micro mt-1',
+                entrant.status === 'suspended' && 'text-red-300',
+                entrant.status === 'legacy' && 'text-amber-300',
+                entrant.status !== 'suspended' && entrant.status !== 'legacy' && 'text-arena-material',
+              )}>
                 {entrant.status}{entrant.suspensionReason ? ` · ${entrant.suspensionReason}` : ''}
               </p>
             </div>
@@ -159,13 +164,17 @@ function EntrantRoster({ entrants, ladder, templateClasses, classes }: {
             {entrant.kind === 'mind' && (entrant.status === 'required' || entrant.status === 'built') &&
               <button type="button" className="btn min-h-11" disabled={preflight.isPending}
                 onClick={() => preflight.mutate(entrant.id)}>Run preflight</button>}
-            {(entrant.kind === 'sheet' || entrant.status === 'passed') && entrant.status !== 'suspended' &&
+            {((entrant.kind === 'sheet' && entrant.status === 'ready') || entrant.status === 'passed') &&
               <button type="button" className={clsx('btn min-h-11', entrant.ladderOptedIn && 'btn-on')}
                 disabled={ladderOptIn.isPending}
                 onClick={() => ladderOptIn.mutate({ entrantId: entrant.id, optedIn: !entrant.ladderOptedIn })}>
                 {entrant.ladderOptedIn ? 'Leave ladder' : 'Enter ladder'}
               </button>}
           </div>
+          {entrant.status === 'legacy' && <p className="t-micro mt-3 border-t border-arena-edge pt-3 text-amber-200">
+            Counterflow layout — readable history, but not v7-admissible. Open it in the workshop
+            below and replot the routes, zones and anchors on the Warren; coordinates are not migrated.
+          </p>}
           {crestOptions.data?.entrantId === entrant.id && (
             <div className="mt-3 flex flex-wrap gap-2 border-t border-arena-edge pt-3" aria-label="Crest choices">
               {crestOptions.data.options.map((crest) => <button key={crest.key} type="button"

@@ -285,6 +285,20 @@ public static class ArcRelayEndpoints
                     return Results.Problem("This entrant is suspended until it is revised and passes admission again.", statusCode: 409);
                 if (entrant.Kind == ArcRelayEntrantKind.CustomMind && entrant.PreflightStatus != ArcRelayPreflightStatus.Passed)
                     return Results.Problem("A custom mind must pass hosted preflight before entering the ladder.", statusCode: 409);
+                if (entrant.Kind == ArcRelayEntrantKind.Sheet)
+                {
+                    string? layout = await db.TacticalSheets
+                        .Where(value => value.Id == entrant.Id)
+                        .Select(value => value.LayoutJson)
+                        .SingleOrDefaultAsync(cancellationToken);
+                    if (layout is null ||
+                        !TacticalSheetCompiler.IsAdmissibleToV7(layout))
+                    {
+                        return Results.Problem(
+                            "This legacy Counterflow sheet is not admissible to Arc Relay v7. Replot it natively on the Warren map.",
+                            statusCode: 409);
+                    }
+                }
                 int optedIn = await db.ArcRelayEntrants.CountAsync(value =>
                     value.OwnerUserId == userId && value.LadderOptedIn && value.Id != entrant.Id, cancellationToken);
                 if (optedIn >= ArcRelayLadderPolicy.MaximumOptedInPerAccount)
@@ -352,10 +366,22 @@ public static class ArcRelayEndpoints
                     || db.TacticalSheets.Any(sheet => sheet.Id == value.Id)))
                 .ToArrayAsync(cancellationToken);
             if (entrants.Length != 2) return Results.NotFound();
-            Match match = await admission.CreateAsync(
-                entrants.Single(value => value.Id == request.EntrantId),
-                entrants.Single(value => value.Id == request.OpponentEntrantId),
-                ArcRelayMatchLane.Scrimmage, userId, request.Seed, cancellationToken);
+            Match match;
+            try
+            {
+                match = await admission.CreateAsync(
+                    entrants.Single(value => value.Id == request.EntrantId),
+                    entrants.Single(value =>
+                        value.Id == request.OpponentEntrantId),
+                    ArcRelayMatchLane.Scrimmage,
+                    userId,
+                    request.Seed,
+                    cancellationToken);
+            }
+            catch (InvalidDataException exception)
+            {
+                return Invalid(exception.Message);
+            }
             await db.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
             return Results.Ok(new CreatedMatchResponse(match.Id));

@@ -29,7 +29,7 @@ public sealed class ArcRelayLegacySnapshotCodecTests
         Assert.Equal(first.CanonicalJson, second.CanonicalJson);
         Assert.Equal(first.LinkedData, second.LinkedData);
         Assert.True(first.LinkedData.Length < 64 * 1024);
-        Assert.Equal(ArcRelayLoopProfile.Current.MapId, document.MapId);
+        Assert.Equal(ArcRelayLoopProfile.ForwardCombat.MapId, document.MapId);
     }
 
     [Fact]
@@ -63,14 +63,14 @@ public sealed class ArcRelayLegacySnapshotCodecTests
             Catalog.StarterIds,
             "migrated:r2");
 
-        Assert.Equal(ArcRelayLoopProfile.Current.MapId, first.MapId);
+        Assert.Equal(ArcRelayLoopProfile.ForwardCombat.MapId, first.MapId);
         Assert.Equal(compiled.CanonicalJson, compiledAgain.CanonicalJson);
         Assert.Equal(compiled.ContentHash, compiledAgain.ContentHash);
         ArcRelaySheetPoint relocated = first.RallyLines
             .Single(line => line.Id == "home").Points[0];
         Assert.NotEqual(new ArcRelaySheetPoint(6, 3), relocated);
         Assert.False(ArcRelayH0Definition.CreateMap(
-            ArcRelayLoopProfile.Current).IsWall(relocated.X, relocated.Y));
+            ArcRelayLoopProfile.ForwardCombat).IsWall(relocated.X, relocated.Y));
         Assert.Equal(64, compiled.ContentHash.Length);
     }
 

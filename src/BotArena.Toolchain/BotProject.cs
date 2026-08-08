@@ -399,7 +399,9 @@ public static class ToolchainInfo
     /// saves through. No rules, map, contract, or sheet format moves.
     /// Keep in lockstep with BotArena.Cli.csproj's
     /// Version — PackagedCliVersionTests pins them together.</summary>
-    public const string CliVersion = "0.9.34";
+    /// 0.9.35 makes ambush-warren-11 the Arc Relay command default and ships
+    /// the contract used by hosted entrant playlist v7.
+    public const string CliVersion = "0.9.35";
     // 0.2.0: BotContext.Slot + documented event semantics (DECISIONS #46).
     // 0.3.0: BotContext.Energy for the energy-shot rules candidate (DECISIONS #47).
     // 0.4.0: strafe actions + map dims + zone-control fields for the rules 0.3 slate

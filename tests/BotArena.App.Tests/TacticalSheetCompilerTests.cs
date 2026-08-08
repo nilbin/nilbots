@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using BotArena.App.ArcRelay;
+using BotArena.App.Competition;
 using BotArena.App.Sheets;
 using BotArena.Engine;
 
@@ -24,7 +25,8 @@ public sealed class TacticalSheetCompilerTests
             .Select(value => value.Id)
             .ToHashSet(StringComparer.Ordinal);
 
-        Assert.Equal(3, templates.Stock.Count);
+        TacticalSheetSource stock = Assert.Single(templates.Stock);
+        Assert.Equal(ArcRelayEntrantPlaylistDefinition.StockSheetId, stock.Id);
         foreach (TacticalSheetSource source in
                  new[] { templates.Template }.Concat(templates.Stock))
         {
@@ -69,7 +71,7 @@ public sealed class TacticalSheetCompilerTests
         Assert.Equal(roles, doctrineRoles);
 
         ActorMapDefinition map = ArcRelayH0Definition.CreateMap(
-            ArcRelayLoopProfile.Current);
+            ArcRelayLoopProfile.AmbushWarren11);
         Assert.Equal(map.Id,
             layout.RootElement.GetProperty("mapId").GetString());
         foreach (JsonElement zone in layout.RootElement.GetProperty("zones")
@@ -125,5 +127,24 @@ public sealed class TacticalSheetCompilerTests
                 "copy-cap"));
         Assert.Contains("two-copy cap", copyError.Message,
             StringComparison.OrdinalIgnoreCase);
+
+        JsonObject legacyLayout = JsonNode.Parse(
+            templates.Template.LayoutJson)!.AsObject();
+        legacyLayout["mapId"] = ArcRelayLoopProfile.ForwardCombat.MapId;
+        string legacyJson = legacyLayout.ToJsonString(Pretty);
+        JsonObject legacyPlaybook = JsonNode.Parse(
+            templates.Template.PlaybookJson)!.AsObject();
+        legacyPlaybook["layout"]!["sha256"] =
+            Convert.ToHexStringLower(SHA256.HashData(
+                Encoding.UTF8.GetBytes(legacyJson)));
+        InvalidDataException legacyError = Assert.Throws<InvalidDataException>(
+            () => compiler.Compile(
+                legacyPlaybook.ToJsonString(Pretty),
+                legacyJson,
+                unlocked,
+                "legacy-counterflow"));
+        Assert.Contains("not migrated", legacyError.Message,
+            StringComparison.OrdinalIgnoreCase);
+        Assert.False(TacticalSheetCompiler.IsAdmissibleToV7(legacyJson));
     }
 }

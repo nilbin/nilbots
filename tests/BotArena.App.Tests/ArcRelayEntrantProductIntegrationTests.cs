@@ -370,7 +370,7 @@ public sealed class ArcRelayEntrantProductIntegrationTests
     }
     [SkippableFact]
     [Trait("Category", PostgreSqlDatabaseFixture.Category)]
-    public async Task Tactical_sheet_cutover_preserves_v5_minds_preflight_and_rating()
+    public async Task Ambush_v7_cutover_keeps_v6_history_but_starts_minds_and_ratings_fresh()
     {
         await using var database = await PostgreSqlDatabaseFixture.CreateAsync();
         await using (AppDbContext migration =
@@ -391,11 +391,11 @@ public sealed class ArcRelayEntrantProductIntegrationTests
             Playlist playlist = await db.Playlists.SingleAsync(value =>
                 value.Key == ArcRelayEntrantPlaylistDefinition.PlaylistKey);
             ArcRelayEntrantPlaylistDefinition historical =
-                ArcRelayEntrantPlaylistDefinition.CreateHistoricalV5();
+                ArcRelayEntrantPlaylistDefinition.CreateHistoricalV6();
             var version = new PlaylistVersion
             {
                 PlaylistId = playlist.Id,
-                Version = ArcRelayEntrantPlaylistDefinition.PreviousVersion,
+                Version = ArcRelayEntrantPlaylistDefinition.TacticalVersion,
                 GameModeId = historical.Match.Rules.GameMode.ModeId,
                 RulesetId = historical.Match.Rules.RulesetId,
                 MatchFormatId = historical.Match.Format.FormatId,
@@ -481,16 +481,19 @@ public sealed class ArcRelayEntrantProductIntegrationTests
                     on ladder.PlaylistVersionId equals version.Id
                 where version.Version == ArcRelayEntrantPlaylistDefinition.Version
                 select ladder).SingleAsync();
-            ArcRelayEntrantRating rating = await db.ArcRelayEntrantRatings
+            Assert.False(await db.ArcRelayEntrantRatings.AnyAsync(value =>
+                value.EntrantId == entrantId &&
+                value.LadderId == currentLadder.Id));
+            ArcRelayEntrantRating historicalRating = await db.ArcRelayEntrantRatings
                 .SingleAsync(value => value.EntrantId == entrantId &&
-                    value.LadderId == currentLadder.Id);
-            Assert.Equal(1462, rating.Rating);
-            Assert.Equal(17, rating.RankedMatches);
+                    value.LadderId == oldLadderId);
+            Assert.Equal(1462, historicalRating.Rating);
+            Assert.Equal(17, historicalRating.RankedMatches);
             ArcRelayEntrant entrant = await db.ArcRelayEntrants.SingleAsync(
                 value => value.Id == entrantId);
-            Assert.Equal(ArcRelayPreflightStatus.Passed, entrant.PreflightStatus);
-            Assert.Equal(3, entrant.PreflightRevision);
-            Assert.True(entrant.LadderOptedIn);
+            Assert.Equal(ArcRelayPreflightStatus.Required, entrant.PreflightStatus);
+            Assert.Null(entrant.PreflightRevision);
+            Assert.False(entrant.LadderOptedIn);
         }
     }
 

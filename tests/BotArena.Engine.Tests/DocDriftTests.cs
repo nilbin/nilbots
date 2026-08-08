@@ -1,5 +1,7 @@
 using System.Globalization;
 using System.Reflection;
+using System.Security.Cryptography;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
 
@@ -85,9 +87,16 @@ public class DocDriftTests
         string source = Path.Combine(Root, "web", "src", "site", "pages", "DocsPage.tsx");
         if (!File.Exists(dist))
             return; // nothing built here (fresh clone / CI before the web build)
-        Assert.True(File.GetLastWriteTimeUtc(dist) >= File.GetLastWriteTimeUtc(source),
-            "web/dist is older than the docs source, so the site would serve stale rules " +
-            "to players. Rebuild it: (cd web && npm run build).");
+        string stamp = Path.Combine(Root, "web", "dist", "source-hashes.json");
+        Assert.True(File.Exists(stamp),
+            "web/dist has no content-hash stamp, so its docs source cannot be " +
+            "verified. Rebuild it: (cd web && npm run build).");
+        using JsonDocument document = JsonDocument.Parse(File.ReadAllBytes(stamp));
+        string? built = document.RootElement
+            .GetProperty("docsPageSha256").GetString();
+        string current = Convert.ToHexStringLower(
+            SHA256.HashData(File.ReadAllBytes(source)));
+        Assert.Equal(current, built);
     }
 
     /// <summary>The canonical player rules card is now the ONE source of rules prose:

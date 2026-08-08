@@ -8,27 +8,17 @@ paragraphs as one fact each, because they are the two things that get confused.
 **Locally it is first-class.** `nilbots arc-relay` is a top-level command with
 its own help. `nilbots experiment arc-relay` remains a permanent alias, so
 every script, brief and report that already spells it that way keeps working.
-The current design line is `--loop-profile ambush-warren-11` (rules
+The command defaults to `--loop-profile ambush-warren-11` (rules
 `arc-relay-ambush-11` on map `arc-relay-ambush-warren-06`): declared strikes,
-veterancy, rear-arc damage, the deep warren. The command's own default is
-still the frozen original `h0`, so a run that does not pass `--loop-profile`
-is not on the current line.
+veterancy, rear-arc damage, the deep Warren. `h0` and every historical profile
+remain explicit immutable compatibility selections.
 
-**Hosted, the ladder is pinned where it was.** Entrant playlist v6 runs rules
-identity `arc-relay-forward-combat-01` on map
-`arc-relay-threefold-depth-counterflow-01` with the first-party tactical
-playbook mind, and accepts sheets as `arc-relay-tactical-playbook-v1`. That is
-the sheet format advancing, not the game line: **the hosted ladder does not run
-ambush-11.** Playlist v5 retains the same profile with the previous stock
-artifact and the legacy sheet snapshot format; v4 retains the original
-forward-combat stock artifact; v3 retains the accepted Counterflow geometry
-with the prior omnidirectional basic-fire rules. Historical H0 and playlist-v2
-remain immutable and executable under their original identities.
-
-Moving the hosted ladder onto ambush-11 is a separate, deliberate piece of
-work — a new playlist version pinning `AmbushWarren11`, a stock artifact frozen
-against it, a rating-continuity ruling, and layouts authored on the warren map
-rather than projected onto the product map. None of that is done here.
+**Hosted, entrant playlist v7 is the same line.** It pins ambush-warren-11,
+the `arc-relay-tactical-playbook-v1` sheet format, and the frozen Wellwright v1
+stock participant. v7 is a fresh rating era: ForwardCombat Elo does not carry
+across games. Playlist v6 and its ratings/matches remain readable and
+executable on `arc-relay-threefold-depth-counterflow-01`; v6 sheets are marked
+legacy until re-authored on the Warren, never geometrically projected.
 
 ## Match shape
 
@@ -55,9 +45,10 @@ facts and causal observations; they cannot fetch an opponent's sheet.
 
 ## Objective
 
-Three public Wells stand at north `(15,4)`, centre `(15,11)`, and south
-`(15,18)`. Centre first produces at tick 25, north at 50, and south at 75;
-each repeats every 75 ticks through 525. A Well has at most one unresolved
+Three public Wells stand at north `(15,6)`, centre `(15,13)`, and south
+`(15,20)`. Their nominal first beats are centre 25, north 50, and south 75;
+the seed-phased lead and ±6-tick birth jitter below choose the exact order and
+tick. Each then repeats on the 75-tick schedule through the horizon. A Well has at most one unresolved
 Core and one visible pending charge, so at most three Cores are live.
 
 A body ending movement on a loose Core picks it up. A Core can relocate only
@@ -66,8 +57,8 @@ clock belongs to the Core and survives possession changes. A carrier cannot
 use its basic gun. It may wait, turn, drop, or use a legal non-movement
 signature while the Core recovers.
 
-Bring a surviving carrier to its own reactor socket—west `(2,11)`, east
-`(28,11)`—to deliver. Three deliveries create one arena-wide Pulse. The third
+Bring a surviving carrier to its own reactor socket—west `(2,13)`, east
+`(28,13)`—to deliver. Three deliveries create one arena-wide Pulse. The third
 Pulse destroys the opposing reactor and wins. A delivery grants score only.
 
 `handoff-core` names an adjacent allied unit. The receiver must remain alive,
@@ -75,43 +66,22 @@ carry no Core, and submit `Wait`; the source spends its action. `drop-core`
 leaves the Core neutral on the carrier's tile. Pickup, delivery, handoff, drop,
 flight, and recovery are all authoritative replay facts.
 
-## Threefold Counterflow
+## Deep Warren
 
-Coordinates are zero-based. `#` is a wall and `.` is floor. The map is fair
-under exact 180-degree rotation `(x,y) -> (30-x,22-y)`. It deliberately does not
-mirror north/south or east/west: both sides receive the same competitive
-geometry after rotation, while the two outer routes have distinct character.
+Coordinates are zero-based. The 31×27 map is fair under exact 180-degree
+rotation `(x,y) -> (30-x,26-y)`, but deliberately not under north/south or
+east/west reflection. Its serpentine interior has pockets, broken sightlines
+and single-tile return chokes, then a top and bottom shadow corridor behind
+three-gate screen walls. That is what makes route concealment and rear
+interception possible without giving either side better geometry.
 
-```text
-###############################
-#.............................#
-#.............................#
-#....####.###.....###....#....#
-#....#....###.....###....#....#
-#.................###.........#
-#.............................#
-#....#...................#....#
-#.............................#
-#.............................#
-#....#....###.....###....#....#
-#....#....###.....###....#....#
-#....#....###.....###....#....#
-#.............................#
-#.............................#
-#....#...................#....#
-#.............................#
-#.........###.................#
-#....#....###.....###....#....#
-#....#....###.....###.####....#
-#.............................#
-#.............................#
-###############################
-```
-
-West spawns by unit are `(1,8)`, `(2,8)`, `(3,9)`, `(1,10)`, `(1,12)`,
-`(3,13)`, `(1,14)`, `(2,14)`; east spawns are exact reflections. The home-pad
+West spawns by unit are `(1,10)`, `(2,10)`, `(3,11)`, `(1,12)`, `(1,14)`,
+`(3,15)`, `(1,16)`, `(2,16)`; east spawns are exact 180-degree rotations. The home-pad
 rectangles are spawn-protected against hostile ground entry, not damage.
 Wells and reactor sockets refuse placed constructs.
+
+The authoritative tile rows are exported by the engine in every replay header
+and by `/api/sheets/catalog`; the sheet editor plots that export directly.
 
 ## Shared body rules
 

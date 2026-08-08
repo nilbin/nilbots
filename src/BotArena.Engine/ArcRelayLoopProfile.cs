@@ -620,10 +620,11 @@ public sealed record ArcRelayLoopProfile
         strikeWindupTicks: 1);
 
     /// <summary>
-    /// Owner-selected hosted product map. Kept separate from H0 so historical
-    /// contracts and golden replays never change when the product advances.
+    /// Owner-selected product line. Kept separate from H0 and every historical
+    /// hosted playlist so advancing the product never rewrites old contracts or
+    /// golden replays.
     /// </summary>
-    public static ArcRelayLoopProfile Current => ForwardCombat;
+    public static ArcRelayLoopProfile Current => AmbushWarren11;
 
     public static ArcRelayLoopProfile Return16 { get; } = new(
         "return-16",

@@ -6390,3 +6390,39 @@ hosted App now validates saves through. No rules, map, contract, replay or
 sheet format moved with either. The release workflow was NOT run — nothing
 deploys from this pass — so `publish-cli` still owes a `cli-v0.9.34` tag
 BEFORE any `publish-and-deploy` that carries this revision.
+
+## 248. Hosted Arc Relay advances to ambush-warren-11 as a fresh rating era
+
+Owner product goal (2026-08-08). The two gaps deliberately left by #247 are
+closed together. `nilbots arc-relay` now defaults to
+`ArcRelayLoopProfile.AmbushWarren11`, and immutable hosted entrant playlist v7
+pins that same `arc-relay-ambush-11` rules identity on
+`arc-relay-ambush-warren-06`. Playlist v6 is not edited: its ForwardCombat /
+Counterflow definition, matches, ratings and queued-worker capability remain
+readable and executable byte-for-byte.
+
+**v7 is a fresh rating era.** ForwardCombat Elo is evidence about a different
+game and does not transfer. The v6 ladder closes and stays historical; v7
+creates a new ladder and never copies rating or ranked-match counts. Custom
+minds must preflight again against v7 before pairing. An already v7-native
+sheet that was fielded may remain fielded, but receives a new default rating
+record. Entrant identity, revision history and historical v6 rating records
+remain intact.
+
+**Geometry is authored, never converted.** v7 accepts only layouts whose
+pinned `mapId` is the Warren. The starter hunter and frozen Wellwright stock
+layout are authored on that 31x27 map. The old
+`ProjectStarterLayoutToCurrentMap` path is deleted. Existing Counterflow sheets
+remain readable and are shown as `legacy`, but are removed from v7 admission
+until a player replots them; no coordinate projection or data migration is
+allowed to fabricate a Warren strategy from Counterflow points.
+
+Wellwright v1 is the v7 stock participant. The immutable playlist definition
+pins its playbook source, layout source and the frozen first-party tactical
+mind artifact hashes. A separately named built-in bot identity carries those
+bytes and ambush-11 provenance so later tactical-mind work cannot silently
+change v7.
+
+The CLI surface changes, so `CliVersion` and the packaged CLI version move
+0.9.34 -> 0.9.35. No release or deploy workflow ran here. `publish-cli` owes
+the exact `cli-v0.9.35` tag before any deploy carrying this revision.

@@ -1,5 +1,10 @@
 # The Positional Combat Remake — Goal (owner-set 2026-08-11)
 
+Status: **promoted to the Arc Relay product line**. The accepted result is
+`ambush-warren-11`; local `nilbots arc-relay` and hosted entrant playlist v7
+both pin it. This file remains the historical acceptance brief, not a second
+set of live rules.
+
 **Every fight ends, and every death explains itself.**
 
 Combat outcomes are a pure, readable function of the board — facing, numbers,

@@ -36,6 +36,12 @@ export default function DocsPage() {
           preserves entrant identity and rating; <b>save as copy</b> starts a new entrant
           and rating.
         </p>
+        <p className="mt-2 text-arena-dim">
+          Hosted playlist v7 and the local <code>nilbots arc-relay</code> default
+          both run ambush-warren-11 on the deep Warren. Counterflow-era sheets
+          remain readable history but must be replotted natively before v7 admission;
+          coordinates are never projected between maps. v7 ratings start fresh.
+        </p>
         <p className="mt-2">
           A custom mind submits source files through the controlled toolchain and runs only
           as sandboxed WASM with fuel and memory limits. Every revision declares and

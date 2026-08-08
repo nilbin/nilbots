@@ -1,7 +1,10 @@
 # Arc Relay tactical playbook v1
 
-Status: **provisional evaluation infrastructure**. This is not the player-facing
-sheet schema and is not a proposed editor UI.
+Status: **hosted source and runtime format**. The exhaustive normalized IR
+remains internal evaluation/compiler infrastructure; the player-facing surface
+is the guided editor specified in `docs/SHEET-AUTHORING.md`. Hosted entrant
+playlist v7 admits the same `arc-relay-tactical-playbook-v1` source format on
+the Warren map only.
 
 The tactical playbook is a deterministic data layer for testing whether Arc
 Relay can express coordinated, long-horizon strategies. One frozen algorithm

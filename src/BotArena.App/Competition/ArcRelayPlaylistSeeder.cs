@@ -17,6 +17,8 @@ public sealed class ArcRelayPlaylistSeeder(
     public const string ForwardStockBotSlug = "arc-relay-forward-stock-mind";
     public const string TacticalPlaybookBotSlug =
         "arc-relay-tactical-playbook-mind";
+    public const string AmbushTacticalPlaybookBotSlug =
+        "arc-relay-ambush-11-tactical-playbook-mind";
 
     public async Task<ArcRelaySeedResult> SeedAsync(
         CancellationToken cancellationToken = default)
@@ -68,6 +70,7 @@ public sealed class ArcRelayPlaylistSeeder(
         BotVersion stockVersion = await SeedStockMindAsync(cancellationToken);
         await SeedForwardStockMindAsync(cancellationToken);
         await SeedTacticalPlaybookMindAsync(cancellationToken);
+        await SeedAmbushTacticalPlaybookMindAsync(cancellationToken);
         if (await db.Ladders.AnyAsync(
                 ladder => ladder.PlaylistVersionId == version.Id,
                 cancellationToken))
@@ -327,7 +330,103 @@ public sealed class ArcRelayPlaylistSeeder(
                 SupportedContractProfiles =
                     [BotArenaVersions.GenericMindContractProfileId],
                 GuestBotName = "Arc Relay tactical-playbook mind",
-                GameRulesVersion = ArcRelayLoopProfile.Current.RulesetId,
+                GameRulesVersion = ArcRelayLoopProfile.ForwardCombat.RulesetId,
+                RuntimeProtocolVersion =
+                    BotArenaVersions.RuntimeProtocolVersion,
+                RuntimeConfigurationVersion =
+                    BotArenaVersions.GenericMindRuntimeConfigurationVersion,
+                BuiltAt = DateTime.UtcNow,
+                IsActive = true,
+            };
+            bot.Versions.Add(version);
+            db.BotVersions.Add(version);
+        }
+        await db.SaveChangesAsync(cancellationToken);
+        return version;
+    }
+
+    private async Task<BotVersion> SeedAmbushTacticalPlaybookMindAsync(
+        CancellationToken cancellationToken)
+    {
+        string? wasmPath = RepoPaths.FindUpward(Path.Combine(
+            "arena-bots",
+            "arc-relay",
+            "ambush-warren-11-stock-v1",
+            "bot.wasm"));
+        if (wasmPath is null)
+        {
+            throw new InvalidOperationException(
+                "Frozen ambush-warren-11 tactical mind artifact is missing.");
+        }
+        string artifactHash = BotBuilder.Sha256File(wasmPath);
+        if (!string.Equals(
+                artifactHash,
+                ArcRelayEntrantPlaylistDefinition.TacticalArtifactHash,
+                StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                "Frozen ambush-warren-11 tactical mind hash moved.");
+        }
+        string artifactKey = ObjectKeys.Artifact(artifactHash);
+        await using (var stream = File.OpenRead(wasmPath))
+        {
+            await objectStore.PutAsync(
+                artifactKey, stream, artifactHash, cancellationToken);
+        }
+
+        var system = await BuiltInBotSeeder.GetOrCreateSystemUser(
+            db, cancellationToken);
+        Bot? bot = await db.Bots.Include(value => value.Versions)
+            .SingleOrDefaultAsync(value =>
+                value.Slug == AmbushTacticalPlaybookBotSlug,
+                cancellationToken);
+        if (bot is null)
+        {
+            bot = new Bot
+            {
+                OwnerUserId = system.Id,
+                Name = "Arc Relay ambush-11 frozen Wellwright",
+                Slug = AmbushTacticalPlaybookBotSlug,
+                Accent = "#22d3ee",
+                LookId = "arc-relay",
+                ProjectileLookId =
+                    ArcRelayH0ReplayPresentation.ProjectileLookId,
+            };
+            db.Bots.Add(bot);
+        }
+        BotVersion? version = bot.Versions.SingleOrDefault(value =>
+            string.Equals(
+                value.ArtifactHash, artifactHash, StringComparison.Ordinal));
+        if (version is null)
+        {
+            version = new BotVersion
+            {
+                BotId = bot.Id,
+                VersionNumber = bot.Versions.Count + 1,
+                EntryType = "ArcRelayTacticalPlaybookMind",
+                SourcesJson = "[]",
+                SourceHash = artifactHash,
+                Status = BuildStatus.Built,
+                ArtifactKey = artifactKey,
+                ArtifactHash = artifactHash,
+                BuildReceiptJson = JsonSerializer.Serialize(new
+                {
+                    schemaVersion = 1,
+                    kind = "frozen-first-party-ambush-warren-11-stock",
+                    loopProfile = ArcRelayLoopProfile.AmbushWarren11.Id,
+                    playbookSchema = "arc-relay-tactical-playbook-v1",
+                    stockSheetId =
+                        ArcRelayEntrantPlaylistDefinition.StockSheetId,
+                    stockPlaybookSourceHash =
+                        ArcRelayEntrantPlaylistDefinition.StockPlaybookSourceHash,
+                    stockLayoutSourceHash =
+                        ArcRelayEntrantPlaylistDefinition.StockLayoutSourceHash,
+                    artifactSha256 = artifactHash,
+                }),
+                SupportedContractProfiles =
+                    [BotArenaVersions.GenericMindContractProfileId],
+                GuestBotName = "Arc Relay ambush-11 Wellwright",
+                GameRulesVersion = ArcRelayLoopProfile.AmbushWarren11.RulesetId,
                 RuntimeProtocolVersion =
                     BotArenaVersions.RuntimeProtocolVersion,
                 RuntimeConfigurationVersion =

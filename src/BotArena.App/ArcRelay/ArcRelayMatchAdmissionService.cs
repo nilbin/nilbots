@@ -234,6 +234,8 @@ public sealed class ArcRelayMatchAdmissionService(
     {
         Guid fixtureId = source.Id switch
         {
+            ArcRelayEntrantPlaylistDefinition.StockSheetId => new Guid(
+                "5aee9e75-6595-4fb9-a6df-c76abcf1a663"),
             "home-siege-v3" => new Guid(
                 "d7ed7a58-a59e-42d4-98f8-b6216711f188"),
             "breakwater-v1" => new Guid(
@@ -272,7 +274,7 @@ public sealed class ArcRelayMatchAdmissionService(
         CancellationToken cancellationToken)
     {
         Bot bot = await db.Bots.SingleAsync(value =>
-            value.Slug == ArcRelayPlaylistSeeder.TacticalPlaybookBotSlug,
+            value.Slug == ArcRelayPlaylistSeeder.AmbushTacticalPlaybookBotSlug,
             cancellationToken);
         BotVersion version = await db.BotVersions.SingleAsync(value =>
             value.BotId == bot.Id

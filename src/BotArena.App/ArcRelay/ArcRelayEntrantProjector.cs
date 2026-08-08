@@ -52,7 +52,9 @@ public sealed class ArcRelayEntrantProjector(
                 System.Text.Json.JsonDocument.Parse(sheet.PlaybookJson);
             classes = playbook.RootElement.GetProperty("composition")
                 .EnumerateArray().Select(value => value.GetString()!).ToArray();
-            status = suspensionDisclosed ? "suspended" : "ready";
+            status = !TacticalSheetCompiler.IsAdmissibleToV7(sheet.LayoutJson)
+                ? "legacy"
+                : suspensionDisclosed ? "suspended" : "ready";
         }
         else
         {
@@ -85,7 +87,9 @@ public sealed class ArcRelayEntrantProjector(
                 classId)).ToArray(),
             Math.Round(rating?.Rating ?? BotRating.DefaultRating),
             rating?.RankedMatches ?? 0,
-            entrant.LadderOptedIn || (entrant.SuspensionReason is not null && !suspensionDisclosed),
+            status != "legacy" &&
+                (entrant.LadderOptedIn ||
+                    (entrant.SuspensionReason is not null && !suspensionDisclosed)),
             status,
             suspensionDisclosed ? entrant.SuspensionReason : null,
             suspensionDisclosed ? entrant.SuspensionMatchId : null,

@@ -197,13 +197,12 @@ Project boundaries that must not be violated:
   `docs/GAME-MODE-ARCHITECTURE.md`.
 - **Arc Relay is a first-class command, not an experiment** (DECISIONS #247).
   `nilbots arc-relay` is top-level; `nilbots experiment arc-relay` is a
-  permanent alias, so existing scripts and briefs keep their spelling. Two
-  things the promotion did NOT do, and both are load-bearing: `--loop-profile`
-  still defaults to the frozen `h0` rather than the current
-  `ambush-warren-11` line, and the **hosted ladder still runs entrant playlist
-  v6 on forward-combat rules over the Counterflow map — not ambush-11**. The
-  hosted lane accepting `arc-relay-tactical-playbook-v1` sheets is the sheet
-  format advancing, not the game line. Sheets compile through
+  permanent alias, so existing scripts and briefs keep their spelling.
+  `--loop-profile` defaults to `ambush-warren-11`, and immutable hosted entrant
+  playlist v7 pins that same rules/map line with Warren-native tactical sheets
+  and a fresh rating era. v6 remains the readable/executable ForwardCombat on
+  Counterflow history; never mutate it or migrate its sheet geometry. Sheets
+  compile through
   `BotArena.TacticalPlaybooks`, the one shared compiler: the CLI's
   `experiment arc-relay-playbook` and the App's `/api/sheets` saves both call
   it, and **the App must never reach into BotArena.Cli** for it. The remaining

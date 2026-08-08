@@ -36,7 +36,8 @@ public static class ArcRelayExperimentCommand
         bool printContract = OptionalFlag(options, "print-contract");
         bool screen = OptionalFlag(options, "screen");
         ArcRelayLoopProfile loopProfile = ArcRelayLoopProfile.Resolve(
-            options.GetValueOrDefault("loop-profile", "h0"));
+            options.GetValueOrDefault(
+                "loop-profile", ArcRelayLoopProfile.Current.Id));
         string stepper = MindStepper(options);
         SheetSelection teamZero = Sheet(
             options,

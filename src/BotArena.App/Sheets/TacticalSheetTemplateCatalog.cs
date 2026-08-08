@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using BotArena.App.ArcRelay;
+using BotArena.App.Competition;
 using BotArena.Engine;
 using BotArena.TacticalPlaybooks;
 
@@ -47,25 +48,11 @@ public sealed class TacticalSheetTemplateCatalog
         TacticalSheetSource[] opponents =
         [
             Resolve(
-                "home-siege-v3",
-                "Home Siege v3",
-                "Commits to a living perimeter and converts control into safe returns.",
-                Resource("BotArena.Sheets.home-siege-v3.playbook.json"),
-                Resource("BotArena.Sheets.home-siege-v3.layout.json"),
-                library),
-            Resolve(
-                "breakwater-v1",
-                "Breakwater",
-                "Recognizes committed pressure, absorbs it, then counterattacks the exposed route.",
-                Resource("BotArena.Sheets.breakwater-v1.playbook.json"),
-                Resource("BotArena.Sheets.breakwater-v1.layout.json"),
-                library),
-            Resolve(
-                "ripen-harvest-v1",
-                "Ripen Harvest",
-                "Protects valuable loose Cores and chooses delayed collection windows.",
-                Resource("BotArena.Sheets.ripen-harvest-v1.playbook.json"),
-                Resource("BotArena.Sheets.ripen-harvest-v1.layout.json"),
+                ArcRelayEntrantPlaylistDefinition.StockSheetId,
+                "Wellwright v1",
+                "The frozen ambush-warren-11 stock entrant: farms all three Wells with paired haulers and escorts.",
+                Resource("BotArena.Sheets.wellwright-v1.playbook.json"),
+                Resource("BotArena.Sheets.wellwright-v1.layout.json"),
                 library),
         ];
         stock = opponents.ToDictionary(value => value.Id, StringComparer.Ordinal);
@@ -103,10 +90,21 @@ public sealed class TacticalSheetTemplateCatalog
         {
             MakeStarterComposition(playbook);
             CompleteStarterDoctrines(playbook);
-            ProjectStarterLayoutToCurrentMap(layout);
         }
         layout["layoutId"] = id;
-        layout["mapId"] = ArcRelayLoopProfile.Current.MapId;
+        string mapId = layout["mapId"]?.GetValue<string>()
+            ?? throw new InvalidDataException(
+                $"Embedded layout '{id}' has no map id.");
+        if (!string.Equals(
+                mapId,
+                ArcRelayLoopProfile.AmbushWarren11.MapId,
+                StringComparison.Ordinal))
+        {
+            throw new InvalidDataException(
+                $"Embedded layout '{id}' targets '{mapId}', not the native "
+                + $"'{ArcRelayLoopProfile.AmbushWarren11.MapId}' Warren. "
+                + "Template geometry is never projected between maps.");
+        }
         NormalizeBindings(layout, id);
 
         string resolvedLayout = layout.ToJsonString(Pretty);
@@ -222,47 +220,6 @@ public sealed class TacticalSheetTemplateCatalog
                 },
             };
         }
-    }
-
-    private static void ProjectStarterLayoutToCurrentMap(JsonObject layout)
-    {
-        // hunter-v1 is the sole tracked doctrine-first teaching source, but
-        // its geometry was authored on the 31x27 ambush-warren study map.
-        // The product contract is now the 31x23 Counterflow map. Preserve the
-        // authored relative geography while projecting every plotted point
-        // into the current replay-header dimensions; the editor then shows
-        // those points over the exact engine map instead of silently serving
-        // coordinates from a retired board.
-        ActorMapDefinition map = ArcRelayH0Definition.CreateMap(
-            ArcRelayLoopProfile.Current);
-        const int sourceMaximumX = 30;
-        const int sourceMaximumY = 26;
-
-        foreach (JsonNode? node in layout["zones"]!.AsArray())
-            ProjectTuple(node!["rect"]!.AsArray(), 0, 1, 2, 3);
-        foreach (JsonNode? node in layout["routes"]!.AsArray())
-        foreach (JsonNode? waypoint in node!["waypoints"]!.AsArray())
-            ProjectTuple(waypoint!.AsArray(), 0, 1);
-        foreach (JsonNode? node in layout["anchors"]!.AsArray())
-            ProjectTuple(node!["position"]!.AsArray(), 0, 1);
-
-        void ProjectTuple(JsonArray values, params int[] indexes)
-        {
-            for (int offset = 0; offset < indexes.Length; offset += 2)
-            {
-                int xIndex = indexes[offset];
-                int yIndex = indexes[offset + 1];
-                int x = values[xIndex]!.GetValue<int>();
-                int y = values[yIndex]!.GetValue<int>();
-                values[xIndex] = Project(x, sourceMaximumX, map.Width - 1);
-                values[yIndex] = Project(y, sourceMaximumY, map.Height - 1);
-            }
-        }
-
-        static int Project(int value, int sourceMaximum, int targetMaximum) =>
-            (int)Math.Round(
-                value * targetMaximum / (double)sourceMaximum,
-                MidpointRounding.AwayFromZero);
     }
 
     private static void NormalizeCustodyConditions(

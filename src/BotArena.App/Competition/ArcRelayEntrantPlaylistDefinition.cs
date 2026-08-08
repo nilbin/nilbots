@@ -14,8 +14,9 @@ public sealed class ArcRelayEntrantPlaylistDefinition : IHostedGenericMatchDefin
 {
     public const string PlaylistKey = ArcRelayPlaylistDefinition.PlaylistKey;
     public const string DisplayName = ArcRelayPlaylistDefinition.DisplayName;
-    public const int Version = 6;
-    public const int PreviousVersion = 5;
+    public const int Version = 7;
+    public const int TacticalVersion = 6;
+    public const int RecoveryVersion = 5;
     public const int ForwardVersion = 4;
     public const int CounterflowVersion = 3;
     public const int HistoricalVersion = 2;
@@ -24,6 +25,11 @@ public sealed class ArcRelayEntrantPlaylistDefinition : IHostedGenericMatchDefin
     public const string Visibility = PlaylistVisibilityIds.Public;
     public const string TacticalArtifactHash =
         "42288a911821f7893f34fb096cd8c17464f24da7a170761898f10e8b0497763b";
+    public const string StockSheetId = "wellwright-v1";
+    public const string StockPlaybookSourceHash =
+        "684d17e9064b557441b7440570effd122363a4ea617b8484c708fb0b14c2ffc7";
+    public const string StockLayoutSourceHash =
+        "89141634c776ae7d98c7611577450fe7818d8dcaee8e0bb7adb9e343ce3699a5";
 
     private ArcRelayEntrantPlaylistDefinition(
         int version,
@@ -60,13 +66,19 @@ public sealed class ArcRelayEntrantPlaylistDefinition : IHostedGenericMatchDefin
 
     public static ArcRelayEntrantPlaylistDefinition Create() => Create(
         Version,
-        ArcRelayLoopProfile.Current,
+        ArcRelayLoopProfile.AmbushWarren11,
+        source: "arc-relay-ambush-warren-11-hosted-promotion",
+        canonicalGameplayUnchangedFromVersion1: false);
+
+    public static ArcRelayEntrantPlaylistDefinition CreateHistoricalV6() => Create(
+        TacticalVersion,
+        ArcRelayLoopProfile.ForwardCombat,
         source: "arc-relay-tactical-sheet-editor-pass",
         canonicalGameplayUnchangedFromVersion1: false);
 
     public static ArcRelayEntrantPlaylistDefinition CreateHistoricalV5() => Create(
-        PreviousVersion,
-        ArcRelayLoopProfile.Current,
+        RecoveryVersion,
+        ArcRelayLoopProfile.ForwardCombat,
         source: "arc-relay-stock-recovery-pass",
         canonicalGameplayUnchangedFromVersion1: false);
 
@@ -121,15 +133,23 @@ public sealed class ArcRelayEntrantPlaylistDefinition : IHostedGenericMatchDefin
                 "stockArtifactHash",
                 version switch
                 {
-                    Version => TacticalArtifactHash,
-                    PreviousVersion => ArcRelayPlaylistDefinition.ForwardStockArtifactHash,
+                    Version or TacticalVersion => TacticalArtifactHash,
+                    RecoveryVersion => ArcRelayPlaylistDefinition.ForwardStockArtifactHash,
                     ForwardVersion => ArcRelayPlaylistDefinition
                         .HistoricalForwardStockArtifactHash,
                     _ => ArcRelayPlaylistDefinition.StockArtifactHash,
                 });
-            writer.WriteString("sheetSchema", version == Version
+            writer.WriteString("sheetSchema", version >= TacticalVersion
                 ? "arc-relay-tactical-playbook-v1"
                 : ArcRelayLegacySnapshotCodec.SchemaId);
+            if (version == Version)
+            {
+                writer.WriteString("stockSheetId", StockSheetId);
+                writer.WriteString(
+                    "stockPlaybookSourceHash", StockPlaybookSourceHash);
+                writer.WriteString(
+                    "stockLayoutSourceHash", StockLayoutSourceHash);
+            }
             writer.WriteString("compositionSchema", "arc-relay-composition-v1");
             writer.WriteNumber("compositionSlots", ArcRelayComposition.SlotCount);
             writer.WriteNumber("maximumCopiesPerClass", ArcRelayComposition.MaximumCopiesPerClass);
@@ -153,12 +173,22 @@ public sealed class ArcRelayEntrantPlaylistDefinition : IHostedGenericMatchDefin
                 canonicalGameplayUnchangedFromVersion1);
             if (version == Version)
             {
+                writer.WriteBoolean("ownerApprovedAmbushWarren11", true);
+                writer.WriteBoolean("freshRatingEra", true);
+                writer.WriteBoolean("warrenNativeLayoutsOnly", true);
+                writer.WriteBoolean("frozenWellwrightStock", true);
+                writer.WriteBoolean("tacticalPlaybookCompilerShared", true);
+                writer.WriteBoolean("portableTwoFileSheets", true);
+            }
+            else if (version == TacticalVersion)
+            {
+                // Preserve v6's immutable provenance bytes exactly.
                 writer.WriteBoolean("ownerApprovedForwardCombat", true);
                 writer.WriteBoolean("tacticalPlaybookCompilerShared", true);
                 writer.WriteBoolean("portableTwoFileSheets", true);
-                writer.WriteNumber("ratingContinuityFromVersion", PreviousVersion);
+                writer.WriteNumber("ratingContinuityFromVersion", RecoveryVersion);
             }
-            else if (version == PreviousVersion)
+            else if (version == RecoveryVersion)
             {
                 // Preserve v5's immutable provenance bytes exactly.
                 writer.WriteBoolean("ownerApprovedForwardCombat", true);

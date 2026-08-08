@@ -65,7 +65,7 @@ public sealed class ArcRelayLegacySnapshotCodec(ArcRelayClassCatalog catalog)
     public void Validate(
         ArcRelaySheetDocument document,
         IReadOnlySet<string> unlockedClassIds)
-        => ValidateForProfile(document, unlockedClassIds, ArcRelayLoopProfile.Current);
+        => ValidateForProfile(document, unlockedClassIds, ArcRelayLoopProfile.ForwardCombat);
 
     /// <summary>
     /// Deterministically advances a saved Home Gates sheet to the current map.
@@ -80,7 +80,7 @@ public sealed class ArcRelayLegacySnapshotCodec(ArcRelayClassCatalog catalog)
         ArgumentNullException.ThrowIfNull(document);
         if (string.Equals(
                 document.MapId,
-                ArcRelayLoopProfile.Current.MapId,
+                ArcRelayLoopProfile.ForwardCombat.MapId,
                 StringComparison.Ordinal))
         {
             Validate(document, unlockedClassIds);
@@ -101,10 +101,10 @@ public sealed class ArcRelayLegacySnapshotCodec(ArcRelayClassCatalog catalog)
             unlockedClassIds,
             ArcRelayLoopProfile.HomeGatesWide);
         ActorMapDefinition currentMap = ArcRelayH0Definition.CreateMap(
-            ArcRelayLoopProfile.Current);
+            ArcRelayLoopProfile.ForwardCombat);
         ArcRelaySheetDocument migrated = document with
         {
-            MapId = ArcRelayLoopProfile.Current.MapId,
+            MapId = ArcRelayLoopProfile.ForwardCombat.MapId,
             Slots = document.Slots.Select(slot => slot with
             {
                 OutboundPath = RelocatePath(slot.OutboundPath, currentMap),
@@ -267,7 +267,7 @@ public sealed class ArcRelayLegacySnapshotCodec(ArcRelayClassCatalog catalog)
 
     public static ArcRelaySheetDocument NewSheetTemplate() => new(
         SchemaVersion,
-        ArcRelayLoopProfile.Current.MapId,
+        ArcRelayLoopProfile.ForwardCombat.MapId,
         [
             Slot(0, "kestrel", "north", "carrier", 1,
                 [(4, 9), (8, 8), (12, 6), (15, 4)],

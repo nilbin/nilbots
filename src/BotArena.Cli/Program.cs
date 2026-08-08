@@ -277,18 +277,18 @@ static int CommandHelp(string command)
 
             Loop profile. --loop-profile selects the ruleset/map pair; every
             registered id is listed in the error text when one is misspelled.
-            The default is `h0`, the frozen original — it is NOT the current
-            design line. Pass `--loop-profile ambush-warren-11` for the current
-            one (rules `arc-relay-ambush-11`, declared strikes, veterancy, the
-            deep warren map). The hosted ladder runs neither: it is pinned to
-            its own playlist version.
+            The default is `ambush-warren-11`: rules `arc-relay-ambush-11`,
+            declared strikes, veterancy, rear-arc damage and the deep Warren.
+            The hosted v7 ladder pins that same profile immutably; historical
+            profiles and playlist versions remain explicitly selectable and
+            byte-verifiable.
 
             --screen omits canonical evidence for bulk iteration and is not
             audit-admissible; confirm anything that matters without it.
             --print-contract prints the resolved match contract and exits.
 
             Example: nilbots arc-relay --bot ./MyMind --opponent ./TheirMind \
-                     --loop-profile ambush-warren-11 --seed 7
+                     --seed 7
             """,
         "experiment" => """
             Usage: nilbots experiment frontline

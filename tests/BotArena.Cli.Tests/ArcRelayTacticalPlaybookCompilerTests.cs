@@ -1429,7 +1429,7 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
         ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create(
             compilation.Composition,
             baseline,
-            loopProfile: ArcRelayLoopProfile.Current);
+            loopProfile: ArcRelayLoopProfile.ForwardCombat);
         GenericActorResolvedMatchContract contract =
             ActorCanonicalContractReader.Parse(
                 ActorContractManifestSerializer.ToCanonicalJson(definition));
@@ -1463,7 +1463,7 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
         ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create(
             compilation.Composition,
             BaselineComposition(),
-            loopProfile: ArcRelayLoopProfile.Current);
+            loopProfile: ArcRelayLoopProfile.ForwardCombat);
         GenericActorResolvedMatchContract contract =
             ActorCanonicalContractReader.Parse(
                 ActorContractManifestSerializer.ToCanonicalJson(definition));

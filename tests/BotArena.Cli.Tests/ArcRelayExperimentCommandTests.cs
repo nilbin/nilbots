@@ -5,6 +5,32 @@ namespace BotArena.Cli.Tests;
 [Collection("Console")]
 public sealed class ArcRelayExperimentCommandTests
 {
+    [Fact]
+    public void Default_is_the_ambush_warren_11_product_line()
+    {
+        TextWriter stdout = Console.Out;
+        using var output = new StringWriter();
+        Console.SetOut(output);
+        try
+        {
+            Assert.Equal(0, ArcRelayExperimentCommand.Run(["--print-contract"]));
+        }
+        finally
+        {
+            Console.SetOut(stdout);
+        }
+
+        using JsonDocument document = JsonDocument.Parse(output.ToString());
+        Assert.Equal(
+            "arc-relay-ambush-11",
+            document.RootElement.GetProperty("rules").GetProperty("rulesetId")
+                .GetString());
+        Assert.Equal(
+            "arc-relay-ambush-warren-06",
+            document.RootElement.GetProperty("map").GetProperty("mapId")
+                .GetString());
+    }
+
     [Theory]
     [InlineData("stock-mind-v0/sheet.json")]
     [InlineData("dynamic-strategy-v4-2026-08-02/sheets/rear-ambush-dynamic.json")]
@@ -76,6 +102,7 @@ public sealed class ArcRelayExperimentCommandTests
                 [
                     "--sheet0", temporary,
                     "--sheet1", temporary,
+                    "--loop-profile", "h0",
                     "--print-contract",
                 ]));
             Assert.Contains("Unsupported evaluation sheet schema", failure.Message);

@@ -27,7 +27,7 @@ public sealed class ArcRelayForwardCombatTests
         ActorResolvedMatchDefinition current = ArcRelayH0Definition.Create(
             Composition,
             Composition,
-            loopProfile: ArcRelayLoopProfile.Current);
+            loopProfile: ArcRelayLoopProfile.ForwardCombat);
 
         Assert.Equal(
             ActorContractFingerprint.ComputeMap(historical.Map),
@@ -93,7 +93,7 @@ public sealed class ArcRelayForwardCombatTests
         ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create(
             Composition,
             Composition,
-            loopProfile: ArcRelayLoopProfile.Current);
+            loopProfile: ArcRelayLoopProfile.ForwardCombat);
         Dictionary<int, GenericMindSessionTestFixture.RecordingMindFactory>
             factories = GenericMindSessionTestFixture.Factories(definition);
         using var session = new GenericActorMatchSession(
@@ -125,7 +125,7 @@ public sealed class ArcRelayForwardCombatTests
         ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create(
             Composition,
             Composition,
-            loopProfile: ArcRelayLoopProfile.Current);
+            loopProfile: ArcRelayLoopProfile.ForwardCombat);
         ActorActionDefinition wait = definition.Rules.Actions.Single(action =>
             action.Kind == ActorActionKind.Wait);
         ActorActionDefinition shoot = definition.Rules.Actions.Single(action =>
@@ -178,7 +178,7 @@ public sealed class ArcRelayForwardCombatTests
         ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create(
             swiftComposition,
             swiftComposition,
-            loopProfile: ArcRelayLoopProfile.Current);
+            loopProfile: ArcRelayLoopProfile.ForwardCombat);
         ActorActionDefinition wait = definition.Rules.Actions.Single(action =>
             action.Kind == ActorActionKind.Wait);
         ActorActionDefinition move = definition.Rules.Actions.Single(action =>

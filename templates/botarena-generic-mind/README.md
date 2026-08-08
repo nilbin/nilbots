@@ -3,14 +3,16 @@
 You have written **one program that drives your whole army**. Not one program
 per body: one, for the match.
 
+Arc Relay is the default whole-army game for this scaffold:
+
 ```bash
-nilbots experiment frontline-labs --profile mind \
-  --bot . --opponent <other-bot> --seed 42 --viewer
+nilbots arc-relay --bot . --opponent <other-mind> --seed 42
 ```
 
-`--profile mind` selects the participant-scoped contract
-(`generic-mind-match-1`). Without it the match runs the per-life profile, where
-your `IGenericMindBot` has nothing to do.
+That command defaults to the hosted `ambush-warren-11` rules/map line. The
+same generic mind can still run Frontline Labs explicitly with
+`nilbots experiment frontline-labs --profile mind ...`; `--profile mind`
+selects the participant-scoped contract (`generic-mind-match-1`) there.
 
 ## The five rules that are actually different
 

@@ -5,6 +5,8 @@ manifest hashes are opened to evaluation.
 
 - `stock-mind-v0/` — fixed stock execution engine plus one provisional
   evaluation sheet.
+- `ambush-warren-11-stock-v1/` — immutable hosted playlist-v7 tactical mind
+  bytes; its manifest pins the Warren-native Wellwright v1 sources.
 - `stock-mind-v3/` — unfrozen intelligent-gambit vertical-slice mind. It keeps
   the complete v2 baseline executor and reads provisional v2 operation data;
   it is evidence for an owner decision, not a launch artifact.

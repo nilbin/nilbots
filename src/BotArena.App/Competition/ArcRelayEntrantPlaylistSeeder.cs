@@ -1,4 +1,5 @@
 using BotArena.App.ArcRelay;
+using BotArena.App.Sheets;
 using BotArena.App.Shared;
 using BotArena.Engine;
 using Microsoft.EntityFrameworkCore;
@@ -6,8 +7,9 @@ using Microsoft.EntityFrameworkCore;
 namespace BotArena.App.Competition;
 
 /// <summary>
-/// Seeds the current immutable entrant lane and performs the one-way hosted-map
-/// cutover without changing entrant identities or losing their rating record.
+/// Seeds the current immutable entrant lane. Playlist v7 is a new rating era:
+/// entrant identities survive, while ratings and map admission start again on
+/// the Warren rather than being projected or carried from Counterflow.
 /// </summary>
 public sealed class ArcRelayEntrantPlaylistSeeder(AppDbContext db)
 {
@@ -39,9 +41,18 @@ public sealed class ArcRelayEntrantPlaylistSeeder(AppDbContext db)
             ArcRelayEntrantPlaylistDefinition.CreateHistoricalV3()
                 .Validate(playlist, counterflowVersion);
         }
+        PlaylistVersion? tacticalVersion = await db.PlaylistVersions
+            .SingleOrDefaultAsync(value => value.PlaylistId == playlist.Id &&
+                value.Version == ArcRelayEntrantPlaylistDefinition.TacticalVersion,
+                cancellationToken);
+        if (tacticalVersion is not null)
+        {
+            ArcRelayEntrantPlaylistDefinition.CreateHistoricalV6()
+                .Validate(playlist, tacticalVersion);
+        }
         PlaylistVersion? recoveryVersion = await db.PlaylistVersions
             .SingleOrDefaultAsync(value => value.PlaylistId == playlist.Id &&
-                value.Version == ArcRelayEntrantPlaylistDefinition.PreviousVersion,
+                value.Version == ArcRelayEntrantPlaylistDefinition.RecoveryVersion,
                 cancellationToken);
         if (recoveryVersion is not null)
         {
@@ -135,52 +146,62 @@ public sealed class ArcRelayEntrantPlaylistSeeder(AppDbContext db)
                 && previousLadder.Status == LadderStatus.Open
             orderby previousVersion.Version descending
             select new { Ladder = previousLadder, Version = previousVersion.Version })
-            .FirstOrDefaultAsync(cancellationToken);
+            .ToArrayAsync(cancellationToken);
 
-        if (previous is not null)
+        if (previous.Length > 0)
         {
-            List<ArcRelayEntrantRating> priorRatings = await db.ArcRelayEntrantRatings
-                .Where(value => value.LadderId == previous.Ladder.Id)
-                .ToListAsync(cancellationToken);
             HashSet<Guid> existing = await db.ArcRelayEntrantRatings
                 .Where(value => value.LadderId == ladder.Id)
                 .Select(value => value.EntrantId)
                 .ToHashSetAsync(cancellationToken);
-            HashSet<Guid> activeEntrants = await db.ArcRelayEntrants
-                .Where(value => value.Kind == ArcRelayEntrantKind.CustomMind
-                    || db.TacticalSheets.Any(sheet => sheet.Id == value.Id))
-                .Select(value => value.Id)
-                .ToHashSetAsync(cancellationToken);
-            db.ArcRelayEntrantRatings.AddRange(priorRatings
-                .Where(value => activeEntrants.Contains(value.EntrantId)
-                    && !existing.Contains(value.EntrantId))
-                .Select(value => new ArcRelayEntrantRating
-                {
-                    EntrantId = value.EntrantId,
-                    LadderId = ladder.Id,
-                    Rating = value.Rating,
-                    RankedMatches = value.RankedMatches,
-                }));
-
-            if (previous.Version < ArcRelayEntrantPlaylistDefinition.PreviousVersion)
+            List<ArcRelayEntrant> entrants = await db.ArcRelayEntrants
+                .ToListAsync(cancellationToken);
+            Dictionary<Guid, TacticalSheet> sheets = await db.TacticalSheets
+                .ToDictionaryAsync(value => value.Id, cancellationToken);
+            DateTime now = DateTime.UtcNow;
+            foreach (ArcRelayEntrant entrant in entrants)
             {
-                List<ArcRelayEntrant> minds = await db.ArcRelayEntrants
-                    .Where(value => value.Kind == ArcRelayEntrantKind.CustomMind)
-                    .ToListAsync(cancellationToken);
-                foreach (ArcRelayEntrant mind in minds)
+                if (entrant.Kind == ArcRelayEntrantKind.CustomMind)
                 {
-                    mind.PreflightStatus = ArcRelayPreflightStatus.Required;
-                    mind.PreflightMatchId = null;
-                    mind.PreflightRevision = null;
-                    mind.PreflightFailure = null;
-                    mind.LadderOptedIn = false;
-                    mind.LadderOptedInAt = null;
-                    mind.UpdatedAt = DateTime.UtcNow;
+                    entrant.PreflightStatus = ArcRelayPreflightStatus.Required;
+                    entrant.PreflightMatchId = null;
+                    entrant.PreflightRevision = null;
+                    entrant.PreflightFailure = null;
+                    entrant.LadderOptedIn = false;
+                    entrant.LadderOptedInAt = null;
+                    entrant.UpdatedAt = now;
+                    continue;
+                }
+
+                bool admissible = sheets.TryGetValue(
+                        entrant.Id, out TacticalSheet? sheet)
+                    && TacticalSheetCompiler.IsAdmissibleToV7(
+                        sheet.LayoutJson);
+                if (!admissible)
+                {
+                    entrant.LadderOptedIn = false;
+                    entrant.LadderOptedInAt = null;
+                    entrant.UpdatedAt = now;
+                    continue;
+                }
+
+                // This is deliberately a fresh default record, never a copy of
+                // the prior ladder's rating or match count.
+                if (entrant.LadderOptedIn && existing.Add(entrant.Id))
+                {
+                    db.ArcRelayEntrantRatings.Add(new ArcRelayEntrantRating
+                    {
+                        EntrantId = entrant.Id,
+                        LadderId = ladder.Id,
+                    });
                 }
             }
 
-            previous.Ladder.Status = LadderStatus.Closed;
-            previous.Ladder.IsListed = false;
+            foreach (var historical in previous)
+            {
+                historical.Ladder.Status = LadderStatus.Closed;
+                historical.Ladder.IsListed = false;
+            }
             await db.SaveChangesAsync(cancellationToken);
         }
 

@@ -74,7 +74,8 @@ public sealed class GenericActorMatchExecutor(
             new TacticalSheetSnapshot?[participants.Count];
         bool tacticalSheets = expected is ArcRelayEntrantPlaylistDefinition
         {
-            PlaylistVersion: ArcRelayEntrantPlaylistDefinition.Version,
+            PlaylistVersion: >= ArcRelayEntrantPlaylistDefinition.TacticalVersion
+                and <= ArcRelayEntrantPlaylistDefinition.Version,
         };
         HostedGenericParticipantInput[] participantInputs = participants
             .Select((participant, index) =>
@@ -259,7 +260,7 @@ public sealed class GenericActorMatchExecutor(
                 bool strategyMind = expected is ArcRelayEntrantPlaylistDefinition
                 {
                     PlaylistVersion: >= ArcRelayEntrantPlaylistDefinition.ForwardVersion
-                        and <= ArcRelayEntrantPlaylistDefinition.PreviousVersion,
+                        and <= ArcRelayEntrantPlaylistDefinition.RecoveryVersion,
                 };
                 configurations = new GenericActorParticipantConfiguration[participants.Count];
                 for (int index = 0; index < participants.Count; index++)
