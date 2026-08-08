@@ -100,6 +100,7 @@ public class MatchParticipant
     public string? SheetNameSnapshot { get; set; }
     public string? SheetHashSnapshot { get; set; }
     public string? SheetCanonicalJsonSnapshot { get; set; }
+    public string? SheetLayoutJsonSnapshot { get; set; }
     public byte[]? MindDataSnapshot { get; set; }
     /// <summary>Immutable entrant identity and presentation at admission.</summary>
     public Guid? EntrantIdSnapshot { get; set; }

@@ -30,7 +30,9 @@ public sealed class ArcRelayLadderPairingService(
             from entrant in db.ArcRelayEntrants
             join rating in db.ArcRelayEntrantRatings on entrant.Id equals rating.EntrantId
             where rating.LadderId == ladderId && entrant.LadderOptedIn && entrant.SuspensionReason == null &&
-                (entrant.Kind == ArcRelayEntrantKind.Sheet || entrant.PreflightStatus == ArcRelayPreflightStatus.Passed)
+                ((entrant.Kind == ArcRelayEntrantKind.Sheet
+                    && db.TacticalSheets.Any(sheet => sheet.Id == entrant.Id))
+                 || entrant.PreflightStatus == ArcRelayPreflightStatus.Passed)
             orderby rating.Rating, entrant.Id
             select new Candidate(entrant, rating.Rating)).ToArrayAsync(cancellationToken);
         var used = new HashSet<Guid>();

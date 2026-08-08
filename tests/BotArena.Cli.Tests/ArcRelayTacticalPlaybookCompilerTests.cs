@@ -106,6 +106,67 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
     }
 
     [Fact]
+    public void CurrentCustodyConditionGroupsCompileWithoutLegacyCatalogReferences()
+    {
+        TacticalPlaybookCompilation referenced =
+            ArcRelayTacticalPlaybookCompiler.Compile(HomeSiege());
+        JsonObject direct = AuthoredHomeSiege();
+        JsonObject authoring = direct["authoring"]!.AsObject();
+        JsonObject predicates = authoring["predicates"]!.AsObject();
+        JsonObject conditionSets = authoring["conditionSets"]!.AsObject();
+        JsonArray directPolicies = direct["custodyPolicies"]!.AsArray();
+        foreach (JsonNode? node in directPolicies)
+        {
+            JsonObject policy = node!.AsObject();
+            string conditionSetId = policy[
+                "safeConversionConditionSetId"]!.GetValue<string>();
+            policy.Remove("safeConversionConditionSetId");
+            policy["safeConversionAll"] = ExpandAuthoredConditionSet(
+                conditionSetId,
+                predicates,
+                conditionSets);
+        }
+
+        string temporary = TemporaryJson(direct);
+        try
+        {
+            TacticalPlaybookCompilation compiled =
+                ArcRelayTacticalPlaybookCompiler.Compile(temporary);
+            JsonNode referencedPolicies = JsonNode.Parse(
+                referenced.NormalizedPlaybook)!["custodyPolicies"]!;
+            JsonNode compiledPolicies = JsonNode.Parse(
+                compiled.NormalizedPlaybook)!["custodyPolicies"]!;
+            Assert.True(JsonNode.DeepEquals(
+                referencedPolicies,
+                compiledPolicies));
+        }
+        finally
+        {
+            File.Delete(temporary);
+        }
+    }
+
+    private static JsonArray ExpandAuthoredConditionSet(
+        string conditionSetId,
+        JsonObject predicates,
+        JsonObject conditionSets)
+    {
+        var expanded = new JsonArray();
+        foreach (JsonNode? alternative in conditionSets[
+                     conditionSetId]!.AsArray())
+        {
+            var all = new JsonArray();
+            foreach (JsonNode? reference in alternative!.AsArray())
+            {
+                string predicateId = reference!.GetValue<string>();
+                all.Add(predicates[predicateId]!.DeepClone());
+            }
+            expanded.Add(new JsonObject { ["all"] = all });
+        }
+        return expanded;
+    }
+
+    [Fact]
     public void HomeSiegeV3BindsTheForwardRingOnlyToTheWestApproach()
     {
         TacticalPlaybookCompilation compilation =

@@ -6,12 +6,11 @@ using BotArena.Engine;
 namespace BotArena.App.ArcRelay;
 
 /// <summary>
-/// Canonical product sheet codec. This is the player-facing document, not the
-/// provisional Gate 3 evaluation JSON. Compilation produces an internal ARS1
-/// data link using the frozen evaluation envelope so the stock algorithm and
-/// its admission-tested WASM artifact remain byte-identical and build-once.
+/// Historical ARS1 snapshot verifier. No route or product UI accepts this
+/// retired commander format; it remains only so already-admitted playlist
+/// versions can execute their immutable queued snapshots.
 /// </summary>
-public sealed class ArcRelayPlayerSheetCodec(ArcRelayClassCatalog catalog)
+public sealed class ArcRelayLegacySnapshotCodec(ArcRelayClassCatalog catalog)
 {
     public const int SchemaVersion = 1;
     public const string SchemaId = "arc-relay-player-sheet-v1";
@@ -586,3 +585,61 @@ public sealed record ArcRelaySheetCompilation(
     string ContentHash,
     byte[] LinkedData,
     IReadOnlyList<string> Classes);
+
+public sealed record ArcRelaySheetDocument(
+    int SchemaVersion,
+    string MapId,
+    IReadOnlyList<ArcRelaySheetSlot> Slots,
+    IReadOnlyList<ArcRelaySheetZone> Zones,
+    IReadOnlyList<ArcRelaySheetRallyLine> RallyLines,
+    ArcRelaySheetPolicies Policies,
+    IReadOnlyList<ArcRelaySheetGambit> Gambits);
+
+public sealed record ArcRelaySheetSlot(
+    int UnitId,
+    string ClassId,
+    string Theater,
+    string Role,
+    int PartnerUnitId,
+    IReadOnlyList<ArcRelaySheetPoint> OutboundPath,
+    IReadOnlyList<ArcRelaySheetPoint> ReturnPath);
+
+public sealed record ArcRelaySheetPoint(int X, int Y);
+
+public sealed record ArcRelaySheetZone(
+    string Id,
+    int MinX,
+    int MinY,
+    int MaxX,
+    int MaxY);
+
+public sealed record ArcRelaySheetRallyLine(
+    string Id,
+    IReadOnlyList<ArcRelaySheetPoint> Points);
+
+public sealed record ArcRelaySheetPolicies(
+    ArcRelayCarrierPolicy Carrier,
+    ArcRelayEscortPolicy Escort,
+    ArcRelayInterceptionPolicy Interception);
+
+public sealed record ArcRelayCarrierPolicy(
+    int HandoffHealthAtOrBelow,
+    bool PreferAssignedTheater,
+    int RouteFailureTicks);
+
+public sealed record ArcRelayEscortPolicy(
+    int FollowDistance,
+    bool FocusEnemyCarrier);
+
+public sealed record ArcRelayInterceptionPolicy(
+    bool FocusEnemyCarrier,
+    bool LooseCoreFallback);
+
+public sealed record ArcRelaySheetGambit(
+    string Id,
+    string Trigger,
+    int DurationTicks,
+    int CooldownTicks,
+    IReadOnlyList<string> ScopeRoles,
+    string RoleOverride,
+    string RallyLineId);

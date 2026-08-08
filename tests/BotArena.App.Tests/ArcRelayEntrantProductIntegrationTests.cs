@@ -1,8 +1,8 @@
 using System.IO.Compression;
 using System.Net;
 using System.Net.Http.Json;
-using System.Security.Cryptography;
-using System.Text;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using BotArena.App.Accounts;
 using BotArena.App.ArcRelay;
 using BotArena.App.Bots;
@@ -10,6 +10,7 @@ using BotArena.App.Competition;
 using BotArena.App.Jobs;
 using BotArena.App.Matches;
 using BotArena.App.Shared;
+using BotArena.App.Sheets;
 using BotArena.App.Storage;
 using BotArena.Engine;
 using BotArena.Toolchain;
@@ -46,26 +47,89 @@ public sealed class ArcRelayEntrantProductIntegrationTests
         using HttpClient client = factory.CreateClient();
         await SeedAsync(factory);
         await RegisterAsync(client, "Sheet Owner");
-        ArcRelayCatalogResponse catalog = (await client.GetFromJsonAsync<ArcRelayCatalogResponse>("/api/arc-relay/catalog"))!;
-        ArcRelaySheetResponse[] sheets = [];
+        TacticalSheetCatalogResponse catalog = (await client
+            .GetFromJsonAsync<TacticalSheetCatalogResponse>(
+                "/api/sheets/catalog"))!;
+        TacticalSheetResponse[] sheets = [];
         for (int index = 0; index < 4; index++)
-            sheets = [.. sheets, await SaveSheetAsync(client, $"Sheet {index + 1}", catalog.NewSheetTemplate)];
+        {
+            sheets = [.. sheets, await SaveSheetAsync(
+                client,
+                $"Sheet {index + 1}",
+                catalog,
+                enterLadder: index switch
+                {
+                    0 => null,
+                    < 3 => true,
+                    _ => false,
+                })];
+        }
 
-        for (int index = 0; index < 3; index++)
-            (await client.PutAsJsonAsync($"/api/arc-relay/entrants/{sheets[index].Id}/ladder",
-                new SetArcRelayLadderOptInRequest(true))).EnsureSuccessStatusCode();
+        Assert.All(sheets.Take(3), sheet =>
+            Assert.True(sheet.Entrant.LadderOptedIn));
+        Assert.False(sheets[3].Entrant.LadderOptedIn);
+        TacticalSheetSummaryResponse[] listed = (await client
+            .GetFromJsonAsync<TacticalSheetSummaryResponse[]>("/api/sheets"))!;
+        Assert.Equal(4, listed.Length);
+        TacticalSheetResponse loaded = (await client
+            .GetFromJsonAsync<TacticalSheetResponse>(
+                $"/api/sheets/{sheets[0].Id}"))!;
+        Assert.Equal(catalog.TemplatePlaybookJson, loaded.PlaybookJson);
+        Assert.Equal(catalog.TemplateLayoutJson, loaded.LayoutJson);
+
+        using HttpClient otherClient = factory.CreateClient();
+        await RegisterAsync(otherClient, "Other Sheet Owner");
+        Assert.Equal(HttpStatusCode.NotFound,
+            (await otherClient.GetAsync($"/api/sheets/{sheets[0].Id}"))
+                .StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound,
+            (await otherClient.DeleteAsync($"/api/sheets/{sheets[3].Id}"))
+                .StatusCode);
+
+        JsonObject invalid = JsonNode.Parse(
+            catalog.TemplatePlaybookJson)!.AsObject();
+        invalid["schema"] = "arc-relay-commander-sheet-v1";
+        HttpResponseMessage invalidSave = await client.PostAsJsonAsync(
+            "/api/sheets",
+            new SaveTacticalSheetRequest(
+                "Invalid legacy document",
+                null,
+                invalid.ToJsonString(),
+                catalog.TemplateLayoutJson,
+                false));
+        Assert.Equal(HttpStatusCode.BadRequest, invalidSave.StatusCode);
+        HttpResponseMessage retiredSave = await client.PostAsJsonAsync(
+            "/api/arc-relay/sheets",
+            new { });
+        Assert.False(retiredSave.IsSuccessStatusCode);
+
         HttpResponseMessage overCap = await client.PutAsJsonAsync(
             $"/api/arc-relay/entrants/{sheets[3].Id}/ladder", new SetArcRelayLadderOptInRequest(true));
         Assert.Equal(HttpStatusCode.Conflict, overCap.StatusCode);
 
         HttpResponseMessage revisedResponse = await client.PutAsJsonAsync(
-            $"/api/arc-relay/sheets/{sheets[0].Id}",
-            new SaveArcRelaySheetRequest("Sheet 1 revised", sheets[0].Revision, catalog.NewSheetTemplate));
+            $"/api/sheets/{sheets[0].Id}",
+            new SaveTacticalSheetRequest(
+                "Sheet 1 revised",
+                sheets[0].Revision,
+                catalog.TemplatePlaybookJson,
+                catalog.TemplateLayoutJson,
+                EnterLadder: true));
         revisedResponse.EnsureSuccessStatusCode();
-        ArcRelaySheetResponse revised = (await revisedResponse.Content.ReadFromJsonAsync<ArcRelaySheetResponse>())!;
+        TacticalSheetResponse revised = (await revisedResponse.Content
+            .ReadFromJsonAsync<TacticalSheetResponse>())!;
         Assert.Equal(sheets[0].Id, revised.Id);
         Assert.Equal(2, revised.Revision);
         Assert.Equal(BotRating.DefaultRating, revised.Entrant.Rating);
+        HttpResponseMessage staleUpdate = await client.PutAsJsonAsync(
+            $"/api/sheets/{sheets[0].Id}",
+            new SaveTacticalSheetRequest(
+                "Stale revision",
+                sheets[0].Revision,
+                catalog.TemplatePlaybookJson,
+                catalog.TemplateLayoutJson,
+                true));
+        Assert.Equal(HttpStatusCode.Conflict, staleUpdate.StatusCode);
 
         HttpResponseMessage scrimmage = await client.PostAsJsonAsync("/api/arc-relay/scrimmages",
             new CreateArcRelayScrimmageRequest(sheets[0].Id, sheets[1].Id, 104729));
@@ -86,12 +150,19 @@ public sealed class ArcRelayEntrantProductIntegrationTests
         Assert.DoesNotContain("winnerSlot", ladder, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("outcome", ladder, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain(created.Id.ToString(), ladder, StringComparison.OrdinalIgnoreCase);
-        Assert.DoesNotContain("outboundPath", ladder, StringComparison.Ordinal);
-        Assert.DoesNotContain("rallyLines", ladder, StringComparison.Ordinal);
+        Assert.DoesNotContain("playbookJson", ladder, StringComparison.Ordinal);
+        Assert.DoesNotContain("layoutJson", ladder, StringComparison.Ordinal);
         string matchDetail = await client.GetStringAsync($"/api/matches/{created.Id}");
-        Assert.DoesNotContain("outboundPath", matchDetail, StringComparison.Ordinal);
-        Assert.DoesNotContain("rallyLines", matchDetail, StringComparison.Ordinal);
+        Assert.DoesNotContain("playbookJson", matchDetail, StringComparison.Ordinal);
+        Assert.DoesNotContain("layoutJson", matchDetail, StringComparison.Ordinal);
         Assert.DoesNotContain("mindData", matchDetail, StringComparison.OrdinalIgnoreCase);
+
+        HttpResponseMessage deleted = await client.DeleteAsync(
+            $"/api/sheets/{sheets[3].Id}");
+        deleted.EnsureSuccessStatusCode();
+        Assert.Equal(3, (await client
+            .GetFromJsonAsync<TacticalSheetSummaryResponse[]>("/api/sheets"))!
+            .Length);
     }
 
     [SkippableFact]
@@ -104,9 +175,13 @@ public sealed class ArcRelayEntrantProductIntegrationTests
         using HttpClient client = factory.CreateClient();
         await SeedAsync(factory);
         await RegisterAsync(client, "Mind Owner");
-        ArcRelayCatalogResponse catalog = (await client.GetFromJsonAsync<ArcRelayCatalogResponse>("/api/arc-relay/catalog"))!;
-        string[] classes = catalog.NewSheetTemplate.Slots.OrderBy(value => value.UnitId)
-            .Select(value => value.ClassId).ToArray();
+        TacticalSheetCatalogResponse catalog = (await client
+            .GetFromJsonAsync<TacticalSheetCatalogResponse>(
+                "/api/sheets/catalog"))!;
+        using JsonDocument template = JsonDocument.Parse(
+            catalog.TemplatePlaybookJson);
+        string[] classes = template.RootElement.GetProperty("composition")
+            .EnumerateArray().Select(value => value.GetString()!).ToArray();
 
         string[] invalidClasses = [.. classes];
         invalidClasses[0] = invalidClasses[1] = invalidClasses[2] = "kestrel";
@@ -204,23 +279,23 @@ public sealed class ArcRelayEntrantProductIntegrationTests
         await SeedAsync(factory);
         UserResponse firstOwner = await RegisterAsync(firstClient, "Ladder Alpha");
         UserResponse secondOwner = await RegisterAsync(secondClient, "Ladder Beta");
-        ArcRelayCatalogResponse catalog = (await firstClient.GetFromJsonAsync<ArcRelayCatalogResponse>("/api/arc-relay/catalog"))!;
-        ArcRelaySheetResponse first = await SaveSheetAsync(firstClient, "Alpha sheet", catalog.NewSheetTemplate);
-        ArcRelaySheetDocument alternate = catalog.NewSheetTemplate with
-        {
-            Policies = catalog.NewSheetTemplate.Policies with
+        TacticalSheetCatalogResponse catalog = (await firstClient
+            .GetFromJsonAsync<TacticalSheetCatalogResponse>(
+                "/api/sheets/catalog"))!;
+        TacticalSheetResponse first = await SaveSheetAsync(
+            firstClient, "Alpha sheet", catalog, enterLadder: true);
+        JsonObject alternate = JsonNode.Parse(
+            catalog.TemplatePlaybookJson)!.AsObject();
+        alternate["doctrines"]!["ghost"]!["conceal"] = true;
+        TacticalSheetResponse second = await SaveSheetAsync(
+            secondClient,
+            "Beta sheet",
+            catalog,
+            enterLadder: true,
+            playbookJson: alternate.ToJsonString(new JsonSerializerOptions
             {
-                Escort = catalog.NewSheetTemplate.Policies.Escort with
-                {
-                    FollowDistance = Math.Min(4, catalog.NewSheetTemplate.Policies.Escort.FollowDistance + 1),
-                },
-            },
-        };
-        ArcRelaySheetResponse second = await SaveSheetAsync(secondClient, "Beta sheet", alternate);
-        (await firstClient.PutAsJsonAsync($"/api/arc-relay/entrants/{first.Id}/ladder",
-            new SetArcRelayLadderOptInRequest(true))).EnsureSuccessStatusCode();
-        (await secondClient.PutAsJsonAsync($"/api/arc-relay/entrants/{second.Id}/ladder",
-            new SetArcRelayLadderOptInRequest(true))).EnsureSuccessStatusCode();
+                WriteIndented = true,
+            }));
 
         await using (AsyncServiceScope scope = factory.Services.CreateAsyncScope())
             await scope.ServiceProvider.GetRequiredService<ArcRelayLadderPairingService>()
@@ -293,131 +368,9 @@ public sealed class ArcRelayEntrantProductIntegrationTests
         Assert.Equal("handoff ping-pong", revealedSuspension.SuspensionReason);
         Assert.Equal(matchId, revealedSuspension.SuspensionMatchId);
     }
-
     [SkippableFact]
     [Trait("Category", PostgreSqlDatabaseFixture.Category)]
-    public async Task Current_cutover_migrates_legacy_sheets_and_carries_ratings_to_v5()
-    {
-        await using var database = await PostgreSqlDatabaseFixture.CreateAsync();
-        await using (AppDbContext migration = await database.CreateMigratedContextAsync()) { }
-        using var factory = new BotArenaApplicationFactory(database.ConnectionString, legacyDuelEnabled: false);
-        using HttpClient client = factory.CreateClient();
-        await using (AsyncServiceScope scope = factory.Services.CreateAsyncScope())
-            await scope.ServiceProvider.GetRequiredService<ArcRelayPlaylistSeeder>().SeedAsync();
-        UserResponse owner = await RegisterAsync(client, "Map Migrant");
-        Guid entrantId = Guid.NewGuid();
-        Guid oldLadderId;
-
-        await using (AppDbContext db = database.CreateContext())
-        {
-            Playlist playlist = await db.Playlists.SingleAsync(value =>
-                value.Key == ArcRelayEntrantPlaylistDefinition.PlaylistKey);
-            ArcRelayEntrantPlaylistDefinition historical =
-                ArcRelayEntrantPlaylistDefinition.CreateHistoricalV2();
-            var version = new PlaylistVersion
-            {
-                PlaylistId = playlist.Id,
-                Version = ArcRelayEntrantPlaylistDefinition.HistoricalVersion,
-                GameModeId = historical.Match.Rules.GameMode.ModeId,
-                RulesetId = historical.Match.Rules.RulesetId,
-                MatchFormatId = historical.Match.Format.FormatId,
-                MapPoolId = historical.Match.Map.Id,
-                SeriesPolicyId = ArcRelayEntrantPlaylistDefinition.SeriesPolicyId,
-                MatchmakingPolicyId = ArcRelayEntrantPlaylistDefinition.MatchmakingPolicyId,
-                AdmissionPolicyId = historical.AdmissionPolicyId,
-                ExecutionPolicyId = historical.ExecutionPolicyId,
-                ExecutionEngineVersion = historical.ExecutionEngineVersion,
-                CanonicalDefinition = historical.CanonicalDefinition,
-                DefinitionFingerprint = historical.DefinitionFingerprint,
-                Provenance = historical.Provenance,
-                Visibility = ArcRelayEntrantPlaylistDefinition.Visibility,
-            };
-            var season = new Season
-            {
-                Key = ArcRelayLadderPolicy.SeasonKey,
-                DisplayName = ArcRelayLadderPolicy.SeasonName,
-            };
-            var ladder = new Ladder
-            {
-                PlaylistVersionId = version.Id,
-                SeasonId = season.Id,
-                Status = LadderStatus.Open,
-                RatingPolicyId = ArcRelayEloV1.Id,
-                IsListed = true,
-                AwardsAchievements = false,
-            };
-            oldLadderId = ladder.Id;
-            var codec = new ArcRelayPlayerSheetCodec(ArcRelayClassCatalog.Default);
-            ArcRelaySheetCompilation current = codec.Compile(
-                ArcRelayPlayerSheetCodec.NewSheetTemplate(),
-                ArcRelayClassCatalog.Default.StarterIds,
-                $"{entrantId}:r1");
-            string legacyJson = current.CanonicalJson.Replace(
-                ArcRelayLoopProfile.Current.MapId,
-                ArcRelayLoopProfile.HomeGatesWide.MapId,
-                StringComparison.Ordinal);
-            string legacyHash = Convert.ToHexStringLower(SHA256.HashData(
-                Encoding.UTF8.GetBytes(legacyJson)));
-            db.PlaylistVersions.Add(version);
-            db.Seasons.Add(season);
-            db.Ladders.Add(ladder);
-            db.ArcRelayEntrants.Add(new ArcRelayEntrant
-            {
-                Id = entrantId,
-                OwnerUserId = owner.Id,
-                Kind = ArcRelayEntrantKind.Sheet,
-                Name = "Legacy line",
-                LadderOptedIn = true,
-                LadderOptedInAt = DateTime.UtcNow,
-            });
-            db.ArcRelaySheets.Add(new ArcRelaySheet
-            {
-                Id = entrantId,
-                OwnerUserId = owner.Id,
-                Name = "Legacy line",
-                CanonicalJson = legacyJson,
-                ContentHash = legacyHash,
-            });
-            db.ArcRelayEntrantRatings.Add(new ArcRelayEntrantRating
-            {
-                EntrantId = entrantId,
-                LadderId = ladder.Id,
-                Rating = 1337,
-                RankedMatches = 9,
-            });
-            await db.SaveChangesAsync();
-        }
-
-        await using (AsyncServiceScope scope = factory.Services.CreateAsyncScope())
-            await scope.ServiceProvider.GetRequiredService<ArcRelayEntrantPlaylistSeeder>().SeedAsync();
-
-        await using (AppDbContext db = database.CreateContext())
-        {
-            Ladder oldLadder = await db.Ladders.SingleAsync(value => value.Id == oldLadderId);
-            Assert.Equal(LadderStatus.Closed, oldLadder.Status);
-            Assert.False(oldLadder.IsListed);
-            Ladder currentLadder = await (
-                from ladder in db.Ladders
-                join version in db.PlaylistVersions on ladder.PlaylistVersionId equals version.Id
-                where version.Version == ArcRelayEntrantPlaylistDefinition.Version
-                select ladder).SingleAsync();
-            ArcRelayEntrantRating rating = await db.ArcRelayEntrantRatings.SingleAsync(value =>
-                value.EntrantId == entrantId && value.LadderId == currentLadder.Id);
-            Assert.Equal(1337, rating.Rating);
-            Assert.Equal(9, rating.RankedMatches);
-            ArcRelaySheet sheet = await db.ArcRelaySheets.SingleAsync(value => value.Id == entrantId);
-            Assert.Equal(2, sheet.Revision);
-            Assert.Equal(
-                ArcRelayLoopProfile.Current.MapId,
-                new ArcRelayPlayerSheetCodec(ArcRelayClassCatalog.Default)
-                    .Read(sheet.CanonicalJson).MapId);
-            Assert.True((await db.ArcRelayEntrants.SingleAsync(value => value.Id == entrantId)).LadderOptedIn);
-        }
-    }
-
-    [SkippableFact]
-    [Trait("Category", PostgreSqlDatabaseFixture.Category)]
-    public async Task Stock_recovery_cutover_preserves_v4_minds_preflight_and_rating()
+    public async Task Tactical_sheet_cutover_preserves_v5_minds_preflight_and_rating()
     {
         await using var database = await PostgreSqlDatabaseFixture.CreateAsync();
         await using (AppDbContext migration =
@@ -438,7 +391,7 @@ public sealed class ArcRelayEntrantProductIntegrationTests
             Playlist playlist = await db.Playlists.SingleAsync(value =>
                 value.Key == ArcRelayEntrantPlaylistDefinition.PlaylistKey);
             ArcRelayEntrantPlaylistDefinition historical =
-                ArcRelayEntrantPlaylistDefinition.CreateHistoricalV4();
+                ArcRelayEntrantPlaylistDefinition.CreateHistoricalV5();
             var version = new PlaylistVersion
             {
                 PlaylistId = playlist.Id,
@@ -481,7 +434,7 @@ public sealed class ArcRelayEntrantProductIntegrationTests
                 ArcRelayComposition.Compile(
                     new ArcRelayCompositionDeclaration(
                         ArcRelayClassCatalog.Default.StarterIds.ToArray()),
-                    new ArcRelayPlayerSheetCodec(ArcRelayClassCatalog.Default),
+                    ArcRelayClassCatalog.Default,
                     ArcRelayClassCatalog.Default.StarterIds);
             oldLadderId = ladder.Id;
             db.PlaylistVersions.Add(version);
@@ -588,12 +541,21 @@ public sealed class ArcRelayEntrantProductIntegrationTests
         return (await response.Content.ReadFromJsonAsync<UserResponse>())!;
     }
 
-    private static async Task<ArcRelaySheetResponse> SaveSheetAsync(
-        HttpClient client, string name, ArcRelaySheetDocument document)
+    private static async Task<TacticalSheetResponse> SaveSheetAsync(
+        HttpClient client,
+        string name,
+        TacticalSheetCatalogResponse catalog,
+        bool? enterLadder,
+        string? playbookJson = null)
     {
-        HttpResponseMessage response = await client.PostAsJsonAsync("/api/arc-relay/sheets",
-            new SaveArcRelaySheetRequest(name, null, document));
+        HttpResponseMessage response = await client.PostAsJsonAsync("/api/sheets",
+            new SaveTacticalSheetRequest(
+                name,
+                ExpectedRevision: null,
+                playbookJson ?? catalog.TemplatePlaybookJson,
+                catalog.TemplateLayoutJson,
+                enterLadder));
         response.EnsureSuccessStatusCode();
-        return (await response.Content.ReadFromJsonAsync<ArcRelaySheetResponse>())!;
+        return (await response.Content.ReadFromJsonAsync<TacticalSheetResponse>())!;
     }
 }

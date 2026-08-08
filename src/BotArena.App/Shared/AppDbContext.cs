@@ -6,6 +6,7 @@ using BotArena.App.Cosmetics;
 using BotArena.App.Jobs;
 using BotArena.App.Matches;
 using BotArena.App.Notifications;
+using BotArena.App.Sheets;
 using BotArena.App.Store;
 using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -32,7 +33,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<NotificationPreference> NotificationPreferences => Set<NotificationPreference>();
     public DbSet<NotificationDelivery> NotificationDeliveries => Set<NotificationDelivery>();
     public DbSet<Match> Matches => Set<Match>();
-    public DbSet<ArcRelaySheet> ArcRelaySheets => Set<ArcRelaySheet>();
+    public DbSet<TacticalSheet> TacticalSheets => Set<TacticalSheet>();
     public DbSet<ArcRelayEntrant> ArcRelayEntrants => Set<ArcRelayEntrant>();
     public DbSet<ArcRelayEntrantRating> ArcRelayEntrantRatings => Set<ArcRelayEntrantRating>();
     public DbSet<ArcRelayRankedMatch> ArcRelayRankedMatches => Set<ArcRelayRankedMatch>();
@@ -224,15 +225,18 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             entity.HasOne<User>().WithMany().HasForeignKey(grant => grant.UserId);
         });
 
-        modelBuilder.Entity<ArcRelaySheet>(entity =>
+        modelBuilder.Entity<TacticalSheet>(entity =>
         {
             entity.ToTable(table => table.HasCheckConstraint(
-                "CK_ArcRelaySheets_Revision_Positive",
+                "CK_TacticalSheets_Revision_Positive",
                 "\"Revision\" > 0"));
             entity.HasIndex(sheet => new { sheet.OwnerUserId, sheet.Name });
             entity.HasIndex(sheet => new { sheet.OwnerUserId, sheet.UpdatedAt });
             entity.Property(sheet => sheet.Name).HasMaxLength(60);
-            entity.Property(sheet => sheet.CanonicalJson).HasColumnType("jsonb");
+            // PostgreSQL json (not jsonb) retains the submitted source text.
+            // Layout pins hash bytes, so whitespace rewriting is corruption.
+            entity.Property(sheet => sheet.PlaybookJson).HasColumnType("json");
+            entity.Property(sheet => sheet.LayoutJson).HasColumnType("json");
             entity.Property(sheet => sheet.ContentHash)
                 .HasMaxLength(64)
                 .IsFixedLength();
@@ -450,6 +454,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
                 .HasMaxLength(64)
                 .IsFixedLength();
             entity.Property(p => p.SheetCanonicalJsonSnapshot)
+                .HasColumnType("jsonb");
+            entity.Property(p => p.SheetLayoutJsonSnapshot)
                 .HasColumnType("jsonb");
             entity.Property(p => p.MindDataSnapshot)
                 .HasColumnType("bytea");

@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Security.Cryptography;
 using BotArena.App.ArcRelay;
 using BotArena.App.Bots;
 using BotArena.App.Competition;
@@ -22,7 +23,7 @@ public sealed class GenericActorMatchExecutor(
     IObjectStore objectStore,
     MatchReplayWriter replayWriter,
     HostedGenericMatchDefinitionRegistry definitions,
-    ArcRelayPlayerSheetCodec sheetCodec,
+    ArcRelayLegacySnapshotCodec legacySheetCodec,
     ArcRelayClassCatalog classCatalog,
     MatchExecutionSettings settings,
     TimeProvider timeProvider,
@@ -67,7 +68,14 @@ public sealed class GenericActorMatchExecutor(
                 .OrderBy(participant => participant.Slot)
                 .ToList();
 
-        var sheetCompilations = new ArcRelaySheetCompilation?[participants.Count];
+        var legacySheetCompilations =
+            new ArcRelaySheetCompilation?[participants.Count];
+        var tacticalSheetSnapshots =
+            new TacticalSheetSnapshot?[participants.Count];
+        bool tacticalSheets = expected is ArcRelayEntrantPlaylistDefinition
+        {
+            PlaylistVersion: ArcRelayEntrantPlaylistDefinition.Version,
+        };
         HostedGenericParticipantInput[] participantInputs = participants
             .Select((participant, index) =>
             {
@@ -82,7 +90,7 @@ public sealed class GenericActorMatchExecutor(
                             throw new InvalidOperationException("Custom mind has no composition snapshot.");
                         ArcRelayCompositionCompilation composition = ArcRelayComposition.Compile(
                             ArcRelayComposition.Read(compositionJson),
-                            sheetCodec,
+                            classCatalog,
                             classCatalog.All.Select(value => value.Id).ToHashSet(StringComparer.Ordinal));
                         if (!string.Equals(composition.ContentHash, compositionHash, StringComparison.Ordinal))
                             throw new InvalidOperationException("Custom mind composition snapshot failed verification.");
@@ -90,9 +98,20 @@ public sealed class GenericActorMatchExecutor(
                     }
                     else
                     {
-                        ArcRelaySheetCompilation compilation = ValidateTrustedSheetSnapshot(participant);
-                        sheetCompilations[index] = compilation;
-                        classes = compilation.Classes;
+                        if (tacticalSheets)
+                        {
+                            TacticalSheetSnapshot snapshot =
+                                ValidateTacticalSheetSnapshot(participant);
+                            tacticalSheetSnapshots[index] = snapshot;
+                            classes = snapshot.Classes;
+                        }
+                        else
+                        {
+                            ArcRelaySheetCompilation compilation =
+                                ValidateLegacySheetSnapshot(participant);
+                            legacySheetCompilations[index] = compilation;
+                            classes = compilation.Classes;
+                        }
                     }
                 }
                 return new HostedGenericParticipantInput(
@@ -217,7 +236,7 @@ public sealed class GenericActorMatchExecutor(
                 }
                 configurations = participants.Select((participant, index) =>
                 {
-                    ArcRelaySheetCompilation compilation = sheetCompilations[index]
+                    ArcRelaySheetCompilation compilation = legacySheetCompilations[index]
                         ?? throw new InvalidOperationException("Trusted stock mind has no sheet snapshot.");
                     return new GenericActorParticipantConfiguration
                     {
@@ -237,9 +256,10 @@ public sealed class GenericActorMatchExecutor(
             }
             else
             {
-                bool forwardCombat = expected is ArcRelayEntrantPlaylistDefinition
+                bool strategyMind = expected is ArcRelayEntrantPlaylistDefinition
                 {
-                    PlaylistVersion: ArcRelayEntrantPlaylistDefinition.Version,
+                    PlaylistVersion: >= ArcRelayEntrantPlaylistDefinition.ForwardVersion
+                        and <= ArcRelayEntrantPlaylistDefinition.PreviousVersion,
                 };
                 configurations = new GenericActorParticipantConfiguration[participants.Count];
                 for (int index = 0; index < participants.Count; index++)
@@ -274,28 +294,68 @@ public sealed class GenericActorMatchExecutor(
                     }
                     else
                     {
-                        var factory = new InProcessGenericMindRuntimeFactory(
-                            forwardCombat
-                                ? static () => new global::ArcRelayStrategyMind()
-                                : static () => new global::ArcRelayStockMind(),
-                            trustedArcRelayStockProjection: true);
-                        factories.Add(factory);
-                        ArcRelaySheetCompilation compilation = sheetCompilations[index]
-                            ?? throw new InvalidOperationException("Stock entrant has no sheet snapshot.");
-                        configurations[index] = new GenericActorParticipantConfiguration
+                        if (tacticalSheets)
                         {
-                            ParticipantId = participant.Slot,
-                            TeamId = participant.TeamId!.Value,
-                            Name = participant.NameSnapshot,
-                            MindRuntimeFactory = factory,
-                            RuntimeKind = "trusted-stock-in-process-v1",
-                            ArtifactHash = participant.ArtifactHashSnapshot,
-                            MindDataHash = compilation.ContentHash,
-                            MindEvaluationData = [.. compilation.LinkedData],
-                            Accent = participant.AccentSnapshot,
-                            LookId = participant.LookIdSnapshot,
-                            ProjectileLookId = participant.ProjectileLookIdSnapshot,
-                        };
+                            var factory = new InProcessGenericMindRuntimeFactory(
+                                static () => new global::ArcRelayTacticalPlaybookMind(),
+                                trustedArcRelayStockProjection: true);
+                            factories.Add(factory);
+                            TacticalSheetSnapshot snapshot =
+                                tacticalSheetSnapshots[index]
+                                ?? throw new InvalidOperationException(
+                                    "Tactical entrant has no sheet snapshot.");
+                            configurations[index] =
+                                new GenericActorParticipantConfiguration
+                                {
+                                    ParticipantId = participant.Slot,
+                                    TeamId = participant.TeamId!.Value,
+                                    Name = participant.NameSnapshot,
+                                    MindRuntimeFactory = factory,
+                                    RuntimeKind =
+                                        "trusted-tactical-playbook-in-process-v1",
+                                    ArtifactHash =
+                                        participant.ArtifactHashSnapshot,
+                                    MindDataHash = snapshot.ContentHash,
+                                    MindEvaluationData = [.. snapshot.LinkedData],
+                                    Accent = participant.AccentSnapshot,
+                                    LookId = participant.LookIdSnapshot,
+                                    ProjectileLookId =
+                                        participant.ProjectileLookIdSnapshot,
+                                };
+                        }
+                        else
+                        {
+                            var factory = new InProcessGenericMindRuntimeFactory(
+                                strategyMind
+                                    ? static () =>
+                                        new global::ArcRelayStrategyMind()
+                                    : static () =>
+                                        new global::ArcRelayStockMind(),
+                                trustedArcRelayStockProjection: true);
+                            factories.Add(factory);
+                            ArcRelaySheetCompilation compilation =
+                                legacySheetCompilations[index]
+                                ?? throw new InvalidOperationException(
+                                    "Historical entrant has no sheet snapshot.");
+                            configurations[index] =
+                                new GenericActorParticipantConfiguration
+                                {
+                                    ParticipantId = participant.Slot,
+                                    TeamId = participant.TeamId!.Value,
+                                    Name = participant.NameSnapshot,
+                                    MindRuntimeFactory = factory,
+                                    RuntimeKind = "trusted-stock-in-process-v1",
+                                    ArtifactHash =
+                                        participant.ArtifactHashSnapshot,
+                                    MindDataHash = compilation.ContentHash,
+                                    MindEvaluationData =
+                                        [.. compilation.LinkedData],
+                                    Accent = participant.AccentSnapshot,
+                                    LookId = participant.LookIdSnapshot,
+                                    ProjectileLookId =
+                                        participant.ProjectileLookIdSnapshot,
+                                };
+                        }
                     }
                 }
             }
@@ -432,7 +492,7 @@ public sealed class GenericActorMatchExecutor(
             persistElapsed.TotalMilliseconds);
         return new JobExecutionResult("completed");
 
-        ArcRelaySheetCompilation ValidateTrustedSheetSnapshot(
+        ArcRelaySheetCompilation ValidateLegacySheetSnapshot(
             MatchParticipant participant)
         {
             if (participant.SheetIdSnapshot is not Guid sheetId
@@ -447,8 +507,8 @@ public sealed class GenericActorMatchExecutor(
             IReadOnlySet<string> everyClass = classCatalog.All
                 .Select(value => value.Id)
                 .ToHashSet(StringComparer.Ordinal);
-            ArcRelaySheetCompilation compilation = sheetCodec.Compile(
-                sheetCodec.Read(canonicalJson),
+            ArcRelaySheetCompilation compilation = legacySheetCodec.Compile(
+                legacySheetCodec.Read(canonicalJson),
                 everyClass,
                 $"{sheetId}:r{revision}");
             if (!string.Equals(compilation.ContentHash, sheetHash, StringComparison.Ordinal)
@@ -459,7 +519,52 @@ public sealed class GenericActorMatchExecutor(
             }
             return compilation;
         }
+
+        TacticalSheetSnapshot ValidateTacticalSheetSnapshot(
+            MatchParticipant participant)
+        {
+            if (participant.SheetIdSnapshot is not Guid
+                || participant.SheetRevisionSnapshot is not int
+                || participant.SheetHashSnapshot is not { } sheetHash
+                || participant.SheetCanonicalJsonSnapshot is null
+                || participant.SheetLayoutJsonSnapshot is null
+                || participant.MindDataSnapshot is not { } linkedData
+                || participant.CompositionSnapshot is not { } compositionJson
+                || participant.CompositionHashSnapshot is not { } compositionHash)
+            {
+                throw new InvalidOperationException(
+                    $"Tactical participant {participant.Slot} has no complete immutable sheet snapshot.");
+            }
+            ArcRelayCompositionCompilation composition =
+                ArcRelayComposition.Compile(
+                    ArcRelayComposition.Read(compositionJson),
+                    classCatalog,
+                    classCatalog.All.Select(value => value.Id)
+                        .ToHashSet(StringComparer.Ordinal));
+            if (!string.Equals(
+                    composition.ContentHash,
+                    compositionHash,
+                    StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    $"Tactical participant {participant.Slot} composition snapshot failed verification.");
+            }
+            string linkedHash = Convert.ToHexStringLower(
+                SHA256.HashData(linkedData));
+            if (!string.Equals(linkedHash, sheetHash, StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    $"Tactical participant {participant.Slot} linked package failed verification.");
+            }
+            return new TacticalSheetSnapshot(
+                sheetHash, linkedData, composition.ClassIds);
+        }
     }
+
+    private sealed record TacticalSheetSnapshot(
+        string ContentHash,
+        byte[] LinkedData,
+        IReadOnlyList<string> Classes);
 
     private static void ValidatePinnedMatch(
         Match match,

@@ -16,6 +16,9 @@ public static partial class SoundtrackStaticAssets
         var contentTypes = new FileExtensionContentTypeProvider();
         contentTypes.Mappings[".m4a"] = "audio/mp4";
         contentTypes.Mappings[".ogg"] = "audio/ogg";
+        contentTypes.Mappings[".glb"] = "model/gltf-binary";
+        contentTypes.Mappings[".gltf"] = "model/gltf+json";
+        contentTypes.Mappings[".ktx2"] = "image/ktx2";
 
         return new StaticFileOptions
         {

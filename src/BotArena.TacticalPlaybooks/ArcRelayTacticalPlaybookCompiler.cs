@@ -628,33 +628,50 @@ public static class ArcRelayTacticalPlaybookCompiler
             {
                 throw Error(path,
                     "authored custody policy must declare exactly one "
-                    + "'safeConversionConditionSetId'.");
+                    + "of 'safeConversionConditionSetId' or "
+                    + "'safeConversionAll'.");
             }
-            string conditionSetId = custody[
-                "safeConversionConditionSetId"]!.GetValue<string>();
-            if (!conditionSets.TryGetValue(
-                    conditionSetId, out JsonArray? conditions))
+            if (hasReference)
             {
-                throw Error(path,
-                    $"custody policy references unknown condition set "
-                    + $"'{conditionSetId}'.");
-            }
-            custody.Remove("safeConversionConditionSetId");
-            custody["safeConversionAll"] = conditions.DeepClone();
-            if (custody["baitDrop"] is JsonObject baitDrop
-                && baitDrop.ContainsKey("reclaimConditionSetId"))
-            {
-                string reclaimId = baitDrop["reclaimConditionSetId"]!
-                    .GetValue<string>();
+                string conditionSetId = custody[
+                    "safeConversionConditionSetId"]!.GetValue<string>();
                 if (!conditionSets.TryGetValue(
-                        reclaimId, out JsonArray? reclaim))
+                        conditionSetId, out JsonArray? conditions))
                 {
                     throw Error(path,
-                        "custody bait drop references unknown condition set "
-                        + $"'{reclaimId}'.");
+                        $"custody policy references unknown condition set "
+                        + $"'{conditionSetId}'.");
                 }
-                baitDrop.Remove("reclaimConditionSetId");
-                baitDrop["reclaimAll"] = reclaim.DeepClone();
+                custody.Remove("safeConversionConditionSetId");
+                custody["safeConversionAll"] = conditions.DeepClone();
+            }
+            if (custody["baitDrop"] is JsonObject baitDrop
+                && (baitDrop.ContainsKey("reclaimConditionSetId")
+                    || baitDrop.ContainsKey("reclaimAll")))
+            {
+                bool hasReclaimReference = baitDrop.ContainsKey(
+                    "reclaimConditionSetId");
+                bool hasReclaimExpanded = baitDrop.ContainsKey("reclaimAll");
+                if (hasReclaimReference == hasReclaimExpanded)
+                {
+                    throw Error(path,
+                        "custody bait drop must declare exactly one of "
+                        + "'reclaimConditionSetId' or 'reclaimAll'.");
+                }
+                if (hasReclaimReference)
+                {
+                    string reclaimId = baitDrop["reclaimConditionSetId"]!
+                        .GetValue<string>();
+                    if (!conditionSets.TryGetValue(
+                            reclaimId, out JsonArray? reclaim))
+                    {
+                        throw Error(path,
+                            "custody bait drop references unknown condition set "
+                            + $"'{reclaimId}'.");
+                    }
+                    baitDrop.Remove("reclaimConditionSetId");
+                    baitDrop["reclaimAll"] = reclaim.DeepClone();
+                }
             }
             if (custody.ContainsKey("emergencyRecoveryConditionSetId"))
             {

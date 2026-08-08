@@ -15,6 +15,8 @@ public sealed class ArcRelayPlaylistSeeder(
 {
     public const string StockBotSlug = "arc-relay-stock-mind";
     public const string ForwardStockBotSlug = "arc-relay-forward-stock-mind";
+    public const string TacticalPlaybookBotSlug =
+        "arc-relay-tactical-playbook-mind";
 
     public async Task<ArcRelaySeedResult> SeedAsync(
         CancellationToken cancellationToken = default)
@@ -65,6 +67,7 @@ public sealed class ArcRelayPlaylistSeeder(
 
         BotVersion stockVersion = await SeedStockMindAsync(cancellationToken);
         await SeedForwardStockMindAsync(cancellationToken);
+        await SeedTacticalPlaybookMindAsync(cancellationToken);
         if (await db.Ladders.AnyAsync(
                 ladder => ladder.PlaylistVersionId == version.Id,
                 cancellationToken))
@@ -130,7 +133,7 @@ public sealed class ArcRelayPlaylistSeeder(
                 {
                     schemaVersion = 1,
                     kind = "frozen-first-party-stock-mind",
-                    sheetSchema = ArcRelay.ArcRelayPlayerSheetCodec.SchemaId,
+                    sheetSchema = ArcRelay.ArcRelayLegacySnapshotCodec.SchemaId,
                 }),
                 SupportedContractProfiles = [BotArenaVersions.GenericMindContractProfileId],
                 GuestBotName = "Arc Relay stock mind",
@@ -154,7 +157,7 @@ public sealed class ArcRelayPlaylistSeeder(
             Path.Combine(
                 "arena-bots",
                 "arc-relay",
-                "stock-mind-v4",
+                "stock-mind-v4-frozen-999183",
                 "bot.wasm"));
         if (wasmPath is null)
         {
@@ -225,7 +228,7 @@ public sealed class ArcRelayPlaylistSeeder(
                     schemaVersion = 1,
                     kind = "versioned-first-party-stock-mind",
                     combatProfile = ArcRelayLoopProfile.ForwardCombat.Id,
-                    sheetSchema = ArcRelay.ArcRelayPlayerSheetCodec.SchemaId,
+                    sheetSchema = ArcRelay.ArcRelayLegacySnapshotCodec.SchemaId,
                     sourceSha256 =
                         "637822b12b9b0643410ddaa42919d009f0a4727768e210b792ae3179e5a8b23b",
                     arenaBasicsSha256 =
@@ -237,6 +240,96 @@ public sealed class ArcRelayPlaylistSeeder(
                 GuestBotName = "Arc Relay forward-combat stock mind",
                 GameRulesVersion = ArcRelayLoopProfile.ForwardCombat.RulesetId,
                 RuntimeProtocolVersion = BotArenaVersions.RuntimeProtocolVersion,
+                RuntimeConfigurationVersion =
+                    BotArenaVersions.GenericMindRuntimeConfigurationVersion,
+                BuiltAt = DateTime.UtcNow,
+                IsActive = true,
+            };
+            bot.Versions.Add(version);
+            db.BotVersions.Add(version);
+        }
+        await db.SaveChangesAsync(cancellationToken);
+        return version;
+    }
+
+    private async Task<BotVersion> SeedTacticalPlaybookMindAsync(
+        CancellationToken cancellationToken)
+    {
+        string? wasmPath = RepoPaths.FindUpward(Path.Combine(
+            "arena-bots",
+            "arc-relay",
+            "tactical-playbook-mind-v1",
+            "bot.wasm"));
+        if (wasmPath is null)
+        {
+            throw new InvalidOperationException(
+                "Tactical-playbook Arc Relay mind artifact is missing.");
+        }
+        string artifactHash = BotBuilder.Sha256File(wasmPath);
+        if (!string.Equals(
+                artifactHash,
+                ArcRelayEntrantPlaylistDefinition.TacticalArtifactHash,
+                StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                "Tactical-playbook Arc Relay mind hash moved.");
+        }
+        string artifactKey = ObjectKeys.Artifact(artifactHash);
+        await using (var stream = File.OpenRead(wasmPath))
+        {
+            await objectStore.PutAsync(
+                artifactKey, stream, artifactHash, cancellationToken);
+        }
+
+        var system = await BuiltInBotSeeder.GetOrCreateSystemUser(
+            db, cancellationToken);
+        Bot? bot = await db.Bots.Include(value => value.Versions)
+            .SingleOrDefaultAsync(value =>
+                value.Slug == TacticalPlaybookBotSlug, cancellationToken);
+        if (bot is null)
+        {
+            bot = new Bot
+            {
+                OwnerUserId = system.Id,
+                Name = "Arc Relay tactical-playbook mind",
+                Slug = TacticalPlaybookBotSlug,
+                Accent = "#22d3ee",
+                LookId = "arc-relay",
+                ProjectileLookId =
+                    ArcRelayH0ReplayPresentation.ProjectileLookId,
+            };
+            db.Bots.Add(bot);
+        }
+        BotVersion? version = bot.Versions.SingleOrDefault(value =>
+            string.Equals(
+                value.ArtifactHash, artifactHash, StringComparison.Ordinal));
+        if (version is null)
+        {
+            foreach (BotVersion old in bot.Versions)
+                old.IsActive = false;
+            version = new BotVersion
+            {
+                BotId = bot.Id,
+                VersionNumber = bot.Versions.Count + 1,
+                EntryType = "ArcRelayTacticalPlaybookMind",
+                SourcesJson = "[]",
+                SourceHash = artifactHash,
+                Status = BuildStatus.Built,
+                ArtifactKey = artifactKey,
+                ArtifactHash = artifactHash,
+                BuildReceiptJson = JsonSerializer.Serialize(new
+                {
+                    schemaVersion = 1,
+                    kind = "versioned-first-party-tactical-playbook-mind",
+                    playbookSchema = "arc-relay-tactical-playbook-v1",
+                    artifactSha256 = artifactHash,
+                }),
+                SupportedContractProfiles =
+                    [BotArenaVersions.GenericMindContractProfileId],
+                GuestBotName = "Arc Relay tactical-playbook mind",
+                GameRulesVersion = ArcRelayLoopProfile.Current.RulesetId,
+                RuntimeProtocolVersion =
+                    BotArenaVersions.RuntimeProtocolVersion,
                 RuntimeConfigurationVersion =
                     BotArenaVersions.GenericMindRuntimeConfigurationVersion,
                 BuiltAt = DateTime.UtcNow,
