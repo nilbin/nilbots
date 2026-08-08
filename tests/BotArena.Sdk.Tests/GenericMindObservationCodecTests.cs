@@ -113,6 +113,48 @@ public sealed class GenericMindObservationCodecTests
     }
 
     [Fact]
+    public void ArcRelayPendingStrikesReachTheMindObservation()
+    {
+        var strike = new GenericActorContext.ArcRelayPendingStrike(
+            new ActorIdentity(1, 3, 5),
+            ResolveAtTick: 15,
+            new Position(15, 18),
+            ProjectileHeading.NorthWest,
+            new ActorIdentity(0, 2, 4),
+            [new Position(14, 17), new Position(13, 16)]);
+        var mode = new GenericActorContext.ModeObservationState.ArcRelay(
+            "arc-relay-h0",
+            [],
+            [],
+            [],
+            [],
+            latestPulseTeamId: null,
+            latestPulseTick: null)
+        {
+            PendingStrikes = [strike],
+        };
+        MindContext original =
+            GenericMindDynamicTestFixture.Context(mode: mode);
+
+        MindContext decoded = GenericMindWireObservationCodec.Decode(
+            GenericMindWireObservationCodec.Encode(original),
+            GenericMindDynamicTestFixture.Wait);
+
+        var arc = Assert.IsType<
+            GenericActorContext.ModeObservationState.ArcRelay>(decoded.Mode);
+        GenericActorContext.ArcRelayPendingStrike decodedStrike =
+            Assert.Single(arc.PendingStrikes);
+        Assert.Equal(strike.Shooter, decodedStrike.Shooter);
+        Assert.Equal(strike.ResolveAtTick, decodedStrike.ResolveAtTick);
+        Assert.Equal(strike.Origin, decodedStrike.Origin);
+        Assert.Equal(strike.CentralHeading, decodedStrike.CentralHeading);
+        Assert.Equal(strike.Target, decodedStrike.Target);
+        Assert.Equal(
+            strike.Tiles.AsEnumerable(),
+            decodedStrike.Tiles.AsEnumerable());
+    }
+
+    [Fact]
     public void AZeroBodyObservationEncodesAndDecodes()
     {
         // Every body dead at once is an ordinary state, and the frame has to

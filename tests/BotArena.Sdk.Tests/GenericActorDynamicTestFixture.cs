@@ -120,6 +120,7 @@ internal static class GenericActorDynamicTestFixture
         bool emptyCapabilities = false,
         bool includeAllEvents = true,
         bool frontline = true,
+        GenericActorContext.ModeObservationState? mode = null,
         int schemaVersion = GenericActorContext.CurrentSchemaVersion)
     {
         GenericActorContext.ObservedEvent[] events = includeAllEvents
@@ -263,7 +264,7 @@ internal static class GenericActorDynamicTestFixture
             events,
             sounds,
             Scoreboard(),
-            frontline
+            mode ?? (frontline
                 ? new GenericActorContext.ModeObservationState.Frontline(
                     "frontline",
                     activePositionIndex: 2,
@@ -274,7 +275,7 @@ internal static class GenericActorDynamicTestFixture
                     holdOwnerTeamId: 1,
                     holdEndsAtTick: 47)
                 : new GenericActorContext.ModeObservationState.Deathmatch(
-                    "deathmatch"),
+                    "deathmatch")),
             [
                 FullLegality(),
                 new GenericActorActionLegality(

@@ -179,7 +179,16 @@ internal static class GenericActorWireObservationCodec
                             4,
                             item => DecodeArcSignature(item, depth + 1)),
                         GenericActorWireCodecValues.OptionalInt32(payload, 5),
-                        GenericActorWireCodecValues.OptionalInt32(payload, 6)),
+                        GenericActorWireCodecValues.OptionalInt32(payload, 6))
+                    {
+                        PendingStrikes = payload.Optional(7) is { } strikes
+                            ? ActorWireValue.Array(
+                                strikes,
+                                item => DecodeArcPendingStrike(
+                                    item,
+                                    depth + 1))
+                            : [],
+                    },
                 _ => throw new FormatException(
                     "Unknown generic actor mode discriminator."),
             },
@@ -1037,6 +1046,18 @@ internal static class GenericActorWireObservationCodec
                     writer,
                     6,
                     arcRelay.LatestPulseTick);
+                // Additive Arc Relay mode-payload field. Older guests skip
+                // tag 7 and retain the inert empty default; current guests
+                // receive the public strike announcement that the direct
+                // in-process context already carried.
+                if (!arcRelay.PendingStrikes.IsEmpty)
+                {
+                    writer.Field(
+                        7,
+                        Array(
+                            arcRelay.PendingStrikes,
+                            EncodeArcPendingStrike));
+                }
                 break;
             default:
                 throw new InvalidOperationException(
@@ -1054,6 +1075,55 @@ internal static class GenericActorWireObservationCodec
             GenericActorWireCodecValues.SemanticId(value.SourceWellId));
         writer.Field(2, ActorWireValue.Int32(value.SourceOrdinal));
         return writer.ToArray();
+    }
+
+    private static byte[] EncodeArcPendingStrike(
+        GenericActorContext.ArcRelayPendingStrike value)
+    {
+        var writer = new ActorWireObjectWriter();
+        writer.Field(
+            1,
+            GenericActorWireCodecValues.EncodeIdentity(value.Shooter));
+        writer.Field(2, ActorWireValue.Int32(value.ResolveAtTick));
+        writer.Field(
+            3,
+            GenericActorWireCodecValues.EncodePosition(value.Origin));
+        writer.Field(4, ActorWireValue.Enum(value.CentralHeading));
+        writer.Optional(
+            5,
+            value.Target is { } target
+                ? GenericActorWireCodecValues.EncodeIdentity(target)
+                : null);
+        writer.Field(
+            6,
+            Array(
+                value.Tiles,
+                GenericActorWireCodecValues.EncodePosition));
+        return writer.ToArray();
+    }
+
+    private static GenericActorContext.ArcRelayPendingStrike
+        DecodeArcPendingStrike(byte[] bytes, int depth)
+    {
+        var reader = new ActorWireObjectReader(bytes, depth);
+        byte[]? target = reader.Optional(5);
+        return new GenericActorContext.ArcRelayPendingStrike(
+            GenericActorWireCodecValues.DecodeIdentity(
+                reader.Required(1), depth + 1),
+            GenericActorWireCodecValues.Int32(reader, 2),
+            GenericActorWireCodecValues.DecodePosition(
+                reader.Required(3), depth + 1),
+            GenericActorWireCodecValues.Enum<ProjectileHeading>(reader, 4),
+            target is null
+                ? null
+                : GenericActorWireCodecValues.DecodeIdentity(
+                    target, depth + 1),
+            Array(
+                reader,
+                6,
+                item => GenericActorWireCodecValues.DecodePosition(
+                    item,
+                    depth + 1)));
     }
 
     internal static GenericActorContext.ArcRelayCoreId DecodeArcCoreId(

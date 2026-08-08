@@ -71,11 +71,13 @@ internal static class GenericMindDynamicTestFixture
     public static MindContext Context(
         bool nullCapabilities = false,
         int bodyCount = 2,
+        GenericActorContext.ModeObservationState? mode = null,
         int schemaVersion = MindContext.CurrentSchemaVersion)
     {
         GenericActorContext source =
             GenericActorDynamicTestFixture.Context(
-                nullCapabilities: nullCapabilities);
+                nullCapabilities: nullCapabilities,
+                mode: mode);
         MindBody[] bodies =
         [
             .. Enumerable.Range(0, bodyCount).Select(index =>
