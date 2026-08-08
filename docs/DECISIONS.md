@@ -6426,3 +6426,27 @@ change v7.
 The CLI surface changes, so `CliVersion` and the packaged CLI version move
 0.9.34 -> 0.9.35. No release or deploy workflow ran here. `publish-cli` owes
 the exact `cli-v0.9.35` tag before any deploy carrying this revision.
+
+## 249. Arc Relay iteration is trace-first and exhibit-first
+
+Owner workflow ruling (2026-08-08). Ordinary Arc Relay sheet, executor,
+pathing, and tactical iteration is reviewed by watching a standard six-cell
+exhibit (`w-9001 w-9002 e-9005 e-9009 w-9012 e-9004`), not by running a
+balance battery. `scripts/arc-relay-exhibit.sh` is the one-command path: it
+runs the cells and broadcast projection in parallel, builds once, swaps into a
+served directory, and reuses the published CLI. The public Cloudflare URL is
+the delivery; localhost is not.
+
+A battery, sweep, or balance verdict now requires an explicit owner request.
+The six exhibit records describe only those six games and support no balance
+claim. Trace the motivating replay window before changing behavior, make one
+honest change, and carry comparable before/after scene evidence into the
+exhibit. Never edit executable inputs while matches are running. Every
+executor action continues to require a non-empty `debugMessage`; behavior
+without a reason is a bug class.
+
+The canonical procedure lives in `.claude/skills/sheet-tuning/SKILL.md`, with
+the copy-paste invocation and environment contract beside the executable in
+`scripts/arc-relay-exhibit.sh`. This is a development-method ruling only: no
+rules, map, sheet grammar, runtime, replay, contract, frozen artifact, or
+canonical hash changes.

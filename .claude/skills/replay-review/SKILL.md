@@ -87,6 +87,15 @@ running.
 
 ## Arc Relay owner reviews
 
+For a sheet, executor, pathing, or tactical iteration, the `sheet-tuning`
+skill is the controlling workflow: trace first, run its standard six-cell
+exhibit, and deliver the outcome-visible phone gallery. Do not substitute a
+battery or the broad corpus below. The exhibit wrapper's explicit eligibility
+skip is intentional because an exhibit makes no eligibility or balance claim.
+
+Use the rest of this section for a broad renderer, awareness, presentation, or
+promotion review—not the ordinary fast iteration loop.
+
 Do not fill an Arc Relay gallery with arbitrary smoke matches or the first
 cells returned by a sweep. Prefer the latest tracked, canonical-verified,
 cohort-eligible operation corpus whose rules, map, stock artifact, and viewer
@@ -114,7 +123,8 @@ Prefer at least six replays and cover all ten operations for a broad renderer,
 awareness, or tactics review. A shorter targeted gallery may use fewer only
 when every selected replay exercises the feature under review.
 
-Let `scripts/build-review-gallery.py` enforce the current Arc Relay bars. Never
+For a broad or promotion gallery, let `scripts/build-review-gallery.py` enforce
+the current Arc Relay bars. Outside the `arc-relay-exhibit.sh` fast loop, never
 use its explicit eligibility skip except to show a clearly labelled diagnostic
 failure.
 

@@ -5,8 +5,14 @@ description: Build and publish selected nilbots viewer.html files as a phone-fri
 
 # Replay Highlights
 
-Publish through the existing site in `.openai/hosting.json`. Reuse its stable
-production URL and project ID; never create a second site for another batch.
+For an ordinary Arc Relay sheet, executor, pathing, or tactical iteration,
+follow the `sheet-tuning` skill end-to-end. Its six-cell exhibit and
+Cloudflare quick tunnel are the delivery; do not deploy the exhibit to the
+stable highlights site or substitute the historical broad corpus.
+
+For a separately requested persistent highlights publication, use the
+existing site in `.openai/hosting.json`. Reuse its stable production URL and
+project ID; never create a second site for another batch.
 
 ## Fast path
 
@@ -95,9 +101,9 @@ builder: `--index-cards <json>` supplies curated card order, titles,
 subtitles, optional explanatory fields, and a `win` flag; `--intro` replaces
 the blind-protocol lede, and `--review-protocol` names the record. The index
 still emits its own progress markers and export button, so curated copy never
-costs the rating flow. The sample ids come from the builder's hash shuffle,
-not the manifest order — build once, read the mapping out of the output, then
-write the cards.
+costs the rating flow. With `--index-cards`, sample ids keep manifest order;
+write the cards against that order before building. The deterministic hash
+shuffle applies only to blind galleries.
 
 ## Arc Relay owner-gallery baseline
 
@@ -127,8 +133,11 @@ scorecards, and broadcast budgets. Regenerate through the commands in the
 corpus README when rules, map, artifact, or bars move; do not silently fall
 back to bland matches merely because they are newer.
 
-Use `--skip-arc-relay-eligibility` only when the gallery is explicitly about a
-known failure. The default builder refusal is part of the methodology.
+Outside the `arc-relay-exhibit.sh` fast loop, use
+`--skip-arc-relay-eligibility` only when the gallery is explicitly about a
+known failure. The exhibit wrapper skips the gate because it makes no balance
+or eligibility claim; the default builder refusal remains part of broad-review
+and promotion methodology.
 
 Owner galleries are outcome-visible by default. Use outcome blindness only
 when the requested evaluation methodology requires it.

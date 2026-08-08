@@ -378,6 +378,14 @@ Web (`web/`) is one Vite/React build with two modes chosen at runtime in
   http://127.0.0.1:<port>`, reuse a running one when its port matches), and
   put the https://*.trycloudflare.com URL in the report. A review without a
   working public URL is not ready for the gate.
+- **Arc Relay iteration is exhibit-first.** Read and follow
+  `.claude/skills/sheet-tuning/SKILL.md` for any sheet, executor, tactical,
+  pathing, or replay-visible behavior iteration. Trace the motivating scene,
+  make one change, and deliver the standard six-cell phone exhibit. Do not run
+  a battery, sweep, or make a balance verdict unless the owner explicitly asks
+  for one; an exhibit shows what a change looks like and proves nothing about
+  balance. Never edit source or sheets while its matches are running, and
+  every executor action must carry a non-empty `debugMessage` reason.
 - **One top-level class per file**, named for it — tests included (one test
   class per file). Small records/DTOs tightly coupled to a main type may
   colocate (the `Replay.cs` pattern). Legacy grouped CLI files

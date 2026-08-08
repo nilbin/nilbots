@@ -10,6 +10,18 @@
 # Usage:
 #   scripts/arc-relay-exhibit.sh NAME SHEET_A SHEET_B SITE_DIR CELL...
 #
+# Standard review set (keep this order):
+#   w-9001 w-9002 e-9005 e-9009 w-9012 e-9004
+#
+# Example:
+#   BATTERY_OUT=/tmp/arc-batteries \
+#   EXHIBIT_TITLE="My change, described" \
+#   scripts/arc-relay-exhibit.sh mychange1 \
+#     arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/playbooks/hunter-v1.json \
+#     arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/playbooks/wellwright-v1.json \
+#     /tmp/arc-batteries/site \
+#     w-9001 w-9002 e-9005 e-9009 w-9012 e-9004
+#
 #   NAME      exhibition label (outputs land in $BATTERY_OUT/NAME-CELL)
 #   SHEET_A   playbook under exhibition (team 0 in w cells, 1 in e)
 #   SHEET_B   opponent playbook
@@ -22,7 +34,12 @@
 #   EXHIBIT_TITLE   gallery title (default: NAME)
 #   EXHIBIT_CARDS   optional curated cards JSON; without it the script
 #                   writes honest minimal cards (win/loss, end tick, the
-#                   sheet-under-test unit-0 audit line)
+#                   sheet-under-test unit-0 audit line). Accepted shape:
+#                   {"title":"...","cards":[{"id":"sample-01",
+#                   "title":"...","win":true,"opponent":"...",
+#                   "score":"...","trigger":"...","tactic":"...",
+#                   "counterplay":"...","fallback":"...",
+#                   "watch":"..."}]}
 #   EXHIBIT_MATCH_ARGS
 #                   extra flags passed verbatim to every cell's
 #                   `experiment arc-relay` invocation, e.g.
@@ -31,6 +48,14 @@
 #
 # Timing on the reference machine: ~2s per match, ~10s per broadcast
 # (parallel), one gallery build ~20s. Six cells land in ~1 minute.
+#
+# Cache rule: this script deliberately reuses $BATTERY_OUT/botarena-pub.
+# After changing src/ (engine, CLI, or compiler), remove that directory
+# before running again. Changes under arena-bots/ need no republish: minds
+# compile in-process per match.
+#
+# This is an EXHIBIT, not a battery. Its outcomes describe these six games
+# and are not a balance verdict.
 set -euo pipefail
 
 NAME=${1:?exhibition name}

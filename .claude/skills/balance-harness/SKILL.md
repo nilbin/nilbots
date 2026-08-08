@@ -1,9 +1,14 @@
 ---
 name: balance-harness
-description: Evaluate a game-rules candidate with causal A/B diagnostics, rules-native bot generations, replay-dynamics metrics, and outcome-blind viewing before making a ship/no-ship call. Use for any gameplay change (mechanic, tuning, maps) before pinning a rules version.
+description: Evaluate a game-rules candidate with causal A/B diagnostics, rules-native bot generations, replay-dynamics metrics, and outcome-blind viewing before making a ship/no-ship call. Use for gameplay changes before pinning a rules version. For Arc Relay, use only when the owner explicitly requests a battery, sweep, balance read, or ship/no-ship verdict; ordinary iteration uses the sheet-tuning skill.
 ---
 
 # Balance harness: rules changes prove themselves in play
+
+For Arc Relay, do not initiate this workflow from an ordinary request to
+change, debug, or show behavior. Follow `sheet-tuning` and produce its
+trace-first six-cell exhibit. Enter this harness only after the owner
+explicitly calls for balance measurement or a product verdict.
 
 Canonical methodology: `docs/EVALUATION-METHODOLOGY.md`. Instruments:
 `scripts/balance-eval.py`, `scripts/replay-dynamics-eval.py`,
@@ -120,7 +125,8 @@ Results field map (saves the scavenger hunt):
   `ticks[].events[].kind` (`score-changed` fires for deliveries AND Pulses;
   Core detail is under kind `arc-relay`), `ticks[].mindTurns[]`.
 
-Use a deliberate two-speed loop for Arc Relay sheet/doctrine iteration:
+After the owner authorizes an Arc Relay balance read, use this deliberate
+two-speed measurement loop:
 
 1. **Discovery loop:** run in-process batch screening, targeted tests, current
    bars, and one or two deliberately chosen replay cards. Reuse the existing
@@ -416,5 +422,7 @@ is part of every sheet's behavior. After ANY executor change:
   manifest sample ids; hosted mode refuses raw arc-relay docs) →
   `scripts/serve-gallery.py` behind cloudflared. The builder's independent
   eligibility read can disagree with the engine's `EligibleTeamIds`
-  attestation; for evidence galleries pass `--skip-arc-relay-eligibility`
-  and cite the engine attestation.
+  attestation. The fast exhibit wrapper deliberately skips eligibility because
+  it makes no balance claim. A balance-evidence gallery must not skip it;
+  resolve and disclose any disagreement before treating the cohort as
+  evidence.
