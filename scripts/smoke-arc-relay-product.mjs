@@ -22,7 +22,14 @@ const page = await context.newPage();
 const browserErrors = [];
 page.on('pageerror', (error) => browserErrors.push(error.message));
 page.on('console', (message) => {
-  if (message.type() === 'error') browserErrors.push(message.text());
+  if (message.type() === 'error'
+      && !message.text().startsWith('Failed to load resource:')) {
+    browserErrors.push(message.text());
+  }
+});
+page.on('response', (response) => {
+  if (response.status() >= 400)
+    browserErrors.push(`${response.status()} ${response.url()}`);
 });
 
 try {
@@ -37,24 +44,40 @@ try {
   if (!registration.ok()) throw new Error(`Registration failed: ${registration.status()}`);
 
   await page.goto(`${base}/relay`, { waitUntil: 'networkidle' });
-  await page.getByRole('heading', { name: 'Eight bodies. One drawn plan.' }).waitFor();
+  await page.getByRole('heading', {
+    name: 'Eight bodies. Conditional team strategy.',
+  }).waitFor();
+  await page.getByText('Map plotting', { exact: true }).waitFor();
+  const initialSaveButton = page.getByRole('button', { name: 'Save & enter ladder', exact: true });
+  if (await initialSaveButton.isDisabled()) {
+    const issues = await page.locator('[data-sheet-issue]').allTextContents();
+    throw new Error(`Initial template is not saveable: ${issues.join(' | ')}`);
+  }
   const saveResponse = page.waitForResponse((response) =>
-    response.url() === `${base}/api/arc-relay/sheets`
+    response.url() === `${base}/api/sheets`
       && response.request().method() === 'POST');
-  await page.getByRole('button', { name: 'Save sheet', exact: true }).click();
+  await initialSaveButton.click();
   if (!(await saveResponse).ok()) throw new Error('First sheet save failed.');
 
   const copyResponse = page.waitForResponse((response) =>
-    response.url() === `${base}/api/arc-relay/sheets`
+    response.url() === `${base}/api/sheets`
       && response.request().method() === 'POST');
-  await page.getByRole('button', { name: 'Save a copy', exact: true }).click();
+  await page.getByRole('button', { name: 'Save copy', exact: true }).click();
   if (!(await copyResponse).ok()) throw new Error('Second sheet save failed.');
   await page.screenshot({ path: join(output, 'sheet-workshop.png'), fullPage: true });
 
+  await page.setViewportSize({ width: 390, height: 844 });
+  const phoneOverflow = await page.evaluate(() =>
+    document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  if (phoneOverflow > 1) throw new Error(`Sheet editor overflows phone viewport by ${phoneOverflow}px.`);
+  await page.getByRole('button', { name: 'Save & watch trial', exact: true }).scrollIntoViewIfNeeded();
+  await page.screenshot({ path: join(output, 'sheet-workshop-phone.png'), fullPage: true });
+  await page.setViewportSize({ width: 1440, height: 1050 });
+
   const matchResponse = page.waitForResponse((response) =>
-    response.url() === `${base}/api/arc-relay/matches`
+    /\/api\/sheets\/[0-9a-f-]+\/trial$/i.test(response.url())
       && response.request().method() === 'POST');
-  await page.getByRole('button', { name: 'Run match', exact: true }).click();
+  await page.getByRole('button', { name: 'Save & watch trial', exact: true }).click();
   const createdResponse = await matchResponse;
   if (!createdResponse.ok()) throw new Error(`Match admission failed: ${createdResponse.status()}`);
   const created = await createdResponse.json();
@@ -102,6 +125,7 @@ try {
     visibleTicks: replay.worlds.length,
     screenshots: {
       workshop: join(output, 'sheet-workshop.png'),
+      workshopPhone: join(output, 'sheet-workshop-phone.png'),
       match: join(output, 'hosted-match.png'),
     },
   }, null, 2));

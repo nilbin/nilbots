@@ -93,6 +93,7 @@ export const api = {
   getText: (url: string) => requestText('GET', url),
   post: <T>(url: string, body?: unknown) => request<T>('POST', url, body),
   put: <T>(url: string, body?: unknown) => request<T>('PUT', url, body),
+  delete: <T>(url: string) => request<T>('DELETE', url),
 };
 
 export type Me = Schemas['UserResponse'];
@@ -154,13 +155,13 @@ export type Leaderboard = Schemas['LeaderboardResponse'];
 export type LabsCatalog = Schemas['LabsCatalogResponse'];
 export type LabsPlaylist = Schemas['LabsPlaylistResponse'];
 export type CreatedMatch = Schemas['CreatedMatchResponse'];
-export type ArcRelayCatalog = Schemas['ArcRelayCatalogResponse'];
-export type ArcRelayClass = Schemas['ArcRelayClassResponse'];
-export type ArcRelaySheet = Schemas['ArcRelaySheetResponse'];
-export type ArcRelaySheetDocument = Schemas['ArcRelaySheetDocument'];
-export type ArcRelaySheetSlot = Schemas['ArcRelaySheetSlot'];
-export type ArcRelaySheetPoint = Schemas['ArcRelaySheetPoint'];
-export type ArcRelaySheetGambit = Schemas['ArcRelaySheetGambit'];
+export type TacticalSheetCatalog = Schemas['TacticalSheetCatalogResponse'];
+export type TacticalSheetClass = Schemas['TacticalSheetClassResponse'];
+export type TacticalSheetMap = Schemas['TacticalSheetMapResponse'];
+export type TacticalSheet = Schemas['TacticalSheetResponse'];
+export type TacticalSheetSummary = Schemas['TacticalSheetSummaryResponse'];
+export type TacticalSheetDeleted = Schemas['TacticalSheetDeletedResponse'];
+export type TacticalStockSheet = Schemas['TacticalStockSheetResponse'];
 export type ArcRelayEntrant = Schemas['ArcRelayEntrantCardResponse'];
 export type ArcRelayLadder = Schemas['ArcRelayLadderResponse'];
 export type ArcRelayMind = Schemas['ArcRelayMindResponse'];
@@ -172,7 +173,8 @@ export type CreatedBot = Schemas['CreatedBot'];
 export type AssignBotClassRequest = Schemas['AssignBotClassRequest'];
 export type AssignedBotClass = Schemas['AssignedBotClass'];
 export type CreateLabsMatchRequest = Schemas['CreateLabsMatchRequest'];
-export type SaveArcRelaySheetRequest = Schemas['SaveArcRelaySheetRequest'];
+export type SaveTacticalSheetRequest = Schemas['SaveTacticalSheetRequest'];
+export type TrialTacticalSheetRequest = Schemas['TrialTacticalSheetRequest'];
 export type CreateArcRelayScrimmageRequest = Schemas['CreateArcRelayScrimmageRequest'];
 export type CreateArcRelayMindRequest = Schemas['CreateArcRelayMindRequest'];
 export type ReviseArcRelayMindRequest = Schemas['ReviseArcRelayMindRequest'];
@@ -220,8 +222,10 @@ export const endpoints = {
   botStats: (botId: string) => api.get<BotStatistics>(`/api/bots/${botId}/stats`),
   arena: () => api.get<ArenaCapabilities>('/api/arena'),
   labs: () => api.get<LabsCatalog>('/api/labs'),
-  arcRelayCatalog: () => api.get<ArcRelayCatalog>('/api/arc-relay/catalog'),
-  arcRelaySheets: () => api.get<ArcRelaySheet[]>('/api/arc-relay/sheets'),
+  tacticalSheetCatalog: () => api.get<TacticalSheetCatalog>('/api/sheets/catalog'),
+  tacticalSheets: () => api.get<TacticalSheetSummary[]>('/api/sheets'),
+  tacticalSheet: (sheetId: string) =>
+    api.get<TacticalSheet>(`/api/sheets/${sheetId}`),
   arcRelayEntrants: () => api.get<ArcRelayEntrant[]>('/api/arc-relay/entrants'),
   arcRelayLadder: () => api.get<ArcRelayLadder>('/api/arc-relay/ladder'),
   arcRelayMind: (entrantId: string) =>
@@ -257,10 +261,14 @@ export const endpoints = {
     api.post<{ id: string }>('/api/matches/ranked', body),
   createLabsMatch: (body: CreateLabsMatchRequest) =>
     api.post<CreatedMatch>('/api/labs/matches', body),
-  createArcRelaySheet: (body: SaveArcRelaySheetRequest) =>
-    api.post<ArcRelaySheet>('/api/arc-relay/sheets', body),
-  updateArcRelaySheet: (sheetId: string, body: SaveArcRelaySheetRequest) =>
-    api.put<ArcRelaySheet>(`/api/arc-relay/sheets/${sheetId}`, body),
+  createTacticalSheet: (body: SaveTacticalSheetRequest) =>
+    api.post<TacticalSheet>('/api/sheets', body),
+  updateTacticalSheet: (sheetId: string, body: SaveTacticalSheetRequest) =>
+    api.put<TacticalSheet>(`/api/sheets/${sheetId}`, body),
+  deleteTacticalSheet: (sheetId: string) =>
+    api.delete<TacticalSheetDeleted>(`/api/sheets/${sheetId}`),
+  trialTacticalSheet: (sheetId: string, body: TrialTacticalSheetRequest) =>
+    api.post<CreatedMatch>(`/api/sheets/${sheetId}/trial`, body),
   createArcRelayScrimmage: (body: CreateArcRelayScrimmageRequest) =>
     api.post<CreatedMatch>('/api/arc-relay/scrimmages', body),
   createArcRelayMind: (body: CreateArcRelayMindRequest) =>
