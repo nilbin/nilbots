@@ -92,16 +92,18 @@ function buildTreeFamily(
       root.mask,
       root.salt + 17,
     );
+    const heightNoise = unitByte(shapeSeed, 0);
+    const widthNoise = unitByte(shapeSeed, 8);
     const heightScale = lerp(
       config.minHeightScale,
       config.maxHeightScale,
-      unitByte(shapeSeed, 0),
+      heightNoise,
     );
     const radialScale =
       lerp(
         config.minWidthScale,
         config.maxWidthScale,
-        unitByte(shapeSeed, 8),
+        widthNoise * 0.68 + heightNoise * 0.32,
       ) * (root.border ? 1.12 : 1);
     const canopyHeightScale = 0.72 + unitByte(shapeSeed, 16) * 0.48;
     const lobeReduction = Math.floor(
@@ -328,6 +330,8 @@ function buildTreeFamily(
     config.canopyRadius * config.maxWidthScale * 0.96 * 1.12;
   familyGroup.userData.allowsCanopyOverhang = true;
   familyGroup.userData.boundaryDepth = config.boundaryDepth;
+  familyGroup.userData.boundaryShape =
+    config.boundaryDepth > 0 ? 'scattered-rounded-band' : 'none';
   familyGroup.userData.maximumHeight =
     config.trunkHeight * config.maxHeightScale + config.canopyHeight * 2.4;
 
@@ -444,56 +448,95 @@ function boundaryForestRoots(
   depth: number,
 ): TreeRoot[] {
   const roots: TreeRoot[] = [];
-  const layers = Math.max(2, Math.ceil(depth / 0.58));
-  const sides = [
-    { length: layout.width + depth * 2, horizontal: true, far: false },
-    { length: layout.width + depth * 2, horizontal: true, far: true },
-    { length: layout.height + depth * 2, horizontal: false, far: false },
-    { length: layout.height + depth * 2, horizontal: false, far: true },
-  ] as const;
-  for (let layer = 0; layer < layers; layer++) {
-    const layerFraction = layer / Math.max(1, layers - 1);
-    const offset = 0.24 + layerFraction * Math.max(0, depth - 0.24);
-    const spacing = 0.61 + layerFraction * 0.2;
-    for (let side = 0; side < sides.length; side++) {
-      const edge = sides[side];
-      const count = Math.max(1, Math.ceil(edge.length / spacing));
-      for (let index = 0; index < count; index++) {
-        const along = -depth + ((index + 0.5) / count) * edge.length;
-        const seed = treeHash(
-          familyId,
-          index,
-          -(layer + 1),
-          255,
-          211 + side * 31,
-        );
-        const alongJitter = signedByte(seed, 8) * spacing * 0.28;
-        if (unitByte(seed, 24) < 0.07) continue;
-        const depthJitter = signedByte(seed, 16) * 0.22;
-        const cross = offset + depthJitter;
-        const x = edge.horizontal
-          ? along + alongJitter
-          : edge.far
-            ? layout.width + cross
-            : -cross;
-        const z = edge.horizontal
-          ? edge.far
-            ? layout.height + cross
-            : -cross
-          : along + alongJitter;
-        roots.push({
-          x,
-          z,
-          seedX: edge.horizontal ? index : -(layer + 1),
-          seedY: edge.horizontal ? -(layer + 1) : index,
-          mask: 255,
-          salt: 211 + side * 31,
-          border: true,
-        });
-      }
+  // Fill one jittered band instead of drawing parallel rows along four sides. Distance
+  // from the map is Euclidean at the corners, rounding the old square outline, while a
+  // pair of slow waves changes the outer reach along each edge. Sparse rejection near
+  // that reach feathers the silhouette rather than terminating every tree at one line.
+  const spacing = 0.49;
+  const paddedWidth = layout.width + depth * 2;
+  const paddedHeight = layout.height + depth * 2;
+  const columns = Math.ceil(paddedWidth / spacing);
+  const rows = Math.ceil(paddedHeight / spacing);
+  const stepX = paddedWidth / columns;
+  const stepZ = paddedHeight / rows;
+  for (let row = 0; row < rows; row++) {
+    for (let column = 0; column < columns; column++) {
+      const seed = treeHash(familyId, column, row, 255, 211);
+      const x =
+        -depth +
+        (column + 0.5) * stepX +
+        signedByte(seed, 8) * stepX * 0.42;
+      const z =
+        -depth +
+        (row + 0.5) * stepZ +
+        signedByte(seed, 16) * stepZ * 0.42;
+      const boundary = outsideBoundary(layout, x, z);
+      if (boundary.distance <= 0.06) continue;
+      const reach = boundaryReach(familyId, boundary.side, boundary.along, depth);
+      if (boundary.distance > reach) continue;
+      const edgeFraction = boundary.distance / reach;
+      const keepProbability =
+        edgeFraction < 0.62
+          ? 0.96
+          : lerp(0.9, 0.48, (edgeFraction - 0.62) / 0.38);
+      if (unitByte(seed, 24) > keepProbability) continue;
+      roots.push({
+        x,
+        z,
+        seedX: column,
+        seedY: row,
+        mask: 255,
+        salt: 211,
+        border: true,
+      });
     }
   }
   return roots;
+}
+
+type OutsideBoundary = {
+  distance: number;
+  side: 0 | 1 | 2 | 3;
+  along: number;
+};
+
+function outsideBoundary(
+  layout: WallLayout,
+  x: number,
+  z: number,
+): OutsideBoundary {
+  const outsideLeft = Math.max(0, -x);
+  const outsideRight = Math.max(0, x - layout.width);
+  const outsideNear = Math.max(0, -z);
+  const outsideFar = Math.max(0, z - layout.height);
+  const outsideX = Math.max(outsideLeft, outsideRight);
+  const outsideZ = Math.max(outsideNear, outsideFar);
+  if (outsideX >= outsideZ)
+    return {
+      distance: Math.hypot(outsideX, outsideZ),
+      side: outsideLeft > 0 ? 2 : 3,
+      along: z,
+    };
+  return {
+    distance: Math.hypot(outsideX, outsideZ),
+    side: outsideNear > 0 ? 0 : 1,
+    along: x,
+  };
+}
+
+function boundaryReach(
+  familyId: string,
+  side: number,
+  along: number,
+  depth: number,
+): number {
+  const phaseSeed = treeHash(familyId, side, 0, 255, 419);
+  const phaseA = unitByte(phaseSeed, 0) * Math.PI * 2;
+  const phaseB = unitByte(phaseSeed, 8) * Math.PI * 2;
+  const wave =
+    Math.sin(along * 0.53 + phaseA) * 0.62 +
+    Math.sin(along * 1.37 + phaseB) * 0.38;
+  return depth * (0.78 + wave * 0.22);
 }
 
 function lerp(from: number, to: number, amount: number): number {

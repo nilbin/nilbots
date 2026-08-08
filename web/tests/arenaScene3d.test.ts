@@ -333,7 +333,12 @@ test('Woodland roots remain authoritative while organic foliage overhangs', () =
       'organic crowns intentionally overhang the old per-cell padding',
     );
     assert.ok(familyGroups.get('perimeter')!.userData.borderTreeCount > 40);
+    assert.equal(
+      familyGroups.get('perimeter')!.userData.boundaryShape,
+      'scattered-rounded-band',
+    );
     assert.equal(familyGroups.get('cover')!.userData.borderTreeCount, 0);
+    assert.equal(familyGroups.get('cover')!.userData.boundaryShape, 'none');
     assert.ok(conifers.some((mesh) => mesh.count > 0));
 
     const matrix = new THREE.Matrix4();
@@ -343,6 +348,8 @@ test('Woodland roots remain authoritative while organic foliage overhangs', () =
     const trunkHeights = new Set<string>();
     const trunkWidths = new Set<string>();
     let outsideBorderRoots = 0;
+    let roundedCornerRoots = 0;
+    const outsideDepths = new Set<string>();
     for (const trunk of trunks) {
       for (let index = 0; index < trunk.count; index++) {
         trunk.getMatrixAt(index, matrix);
@@ -356,6 +363,18 @@ test('Woodland roots remain authoritative while organic foliage overhangs', () =
           position.z >= source.map.height
         ) {
           outsideBorderRoots++;
+          const outsideX = Math.max(
+            0,
+            -position.x,
+            position.x - source.map.width,
+          );
+          const outsideZ = Math.max(
+            0,
+            -position.z,
+            position.z - source.map.height,
+          );
+          outsideDepths.add(Math.hypot(outsideX, outsideZ).toFixed(2));
+          if (outsideX > 0 && outsideZ > 0) roundedCornerRoots++;
         } else {
           assert.equal(
             source.map.tileRows[Math.floor(position.z)]?.[
@@ -376,6 +395,14 @@ test('Woodland roots remain authoritative while organic foliage overhangs', () =
       'tree cover must alternate trunk widths instead of stamping one tree',
     );
     assert.ok(outsideBorderRoots > 40, 'the perimeter must grow outward in depth');
+    assert.ok(
+      outsideDepths.size > 30,
+      'the outer forest must occupy a scattered band rather than aligned rows',
+    );
+    assert.ok(
+      roundedCornerRoots > 8,
+      'the outer forest must round and soften all four map corners',
+    );
     let overhangingCrowns = 0;
     for (const canopy of canopies) {
       for (let index = 0; index < canopy.count; index++) {

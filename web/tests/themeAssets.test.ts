@@ -262,6 +262,9 @@ test('Woodland Grove carries a MOBA camera and organic tree families', () => {
   );
   assert.ok(perimeter.treeCover.boundaryDepth > 1);
   assert.equal(cover.treeCover.boundaryDepth, 0);
+  assert.ok(cover.treeCover.maxHeightScale >= 1.5);
+  assert.ok(cover.treeCover.maxWidthScale >= 1.5);
+  assert.ok(cover.treeCover.trunkHeight >= 0.5);
   assert.ok(
     perimeter.height +
       perimeter.treeCover.trunkHeight *

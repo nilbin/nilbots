@@ -19,13 +19,16 @@ Living cover deliberately skips the ordinary extruded wall and topology cap.
 Instead, one flush, continuous, rounded foliage field is traced per connected
 family beneath the clusters. That preserves immediate blocker legibility
 without exposing the map as raised brown planting beds or stamped cubes.
-Perimeter growth is darker, taller, and broader, with a staggered 1.45-tile
-forest continuing outward beyond the map; interior growth is lighter, lower,
-and airier. A theme-owned 22° yaw, 52° pitch, and 26° field of view provide the
-low-distortion three-quarter framing common to MOBA play. Camera-space fitting
-keeps the requested action frame visible, and fog distance scales with the
-lens. Canvas2D remains a functional fallback, but this revision's visual
-review target is WebGL.
+Perimeter growth is darker, taller, and broader, with a scattered 1.45-tile
+forest continuing outward beyond the map. Its locally varying reach, feathered
+outer density, and rounded corners prevent the boundary from resolving into a
+sharp rectangle. Interior growth is lighter and airier; its much broader
+height and width ranges mix low scrub with occasional tall, wide inner trees
+instead of producing a uniform hedge. A theme-owned 22° yaw, 52° pitch, and
+26° field of view provide the low-distortion three-quarter framing common to
+MOBA play. Camera-space fitting keeps the requested action frame visible, and
+fog distance scales with the lens. Canvas2D remains a functional fallback,
+but this revision's visual review target is WebGL.
 
 ## Source and provider route
 
@@ -59,7 +62,7 @@ uses sample 01 during live play in the strategic overview:
 
 - `review/ambush-warren-gameplay-webgl.webp` — revision-3 WebGL with the MOBA
   camera, flush foliage fields, irregular rooted clusters, mixed tree forms,
-  and the wider outward perimeter forest.
+  and the wider, irregular outward perimeter forest.
 
 The prior Canvas2D frame is retained only as fallback history; this revision
 was judged in 3D. Bodies, team accents, labels, projectiles, wells, reactors,
