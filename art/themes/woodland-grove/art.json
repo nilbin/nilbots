@@ -52,19 +52,19 @@
       "geometry": {
         "contentPixels": 96,
         "gutterPixels": 16,
-        "insetPixels": 10,
-        "outsetPixels": 4,
-        "bevelPixels": 5,
+        "insetPixels": 7,
+        "outsetPixels": 2,
+        "bevelPixels": 8,
         "light": [-0.55, -0.83],
-        "edgeColour": "#75634a",
-        "sideColour": "#261c15",
-        "highlightColour": "#a89069",
-        "hardwareColour": "#667442",
-        "hardwareRadius": 2,
+        "edgeColour": "#3c5737",
+        "sideColour": "#142719",
+        "highlightColour": "#657b50",
+        "hardwareColour": "#3c5737",
+        "hardwareRadius": 0,
         "shadowColour": "#0a0d08",
-        "shadowOpacity": 0.50,
+        "shadowOpacity": 0.28,
         "shadowBlur": 8,
-        "shadowOffset": [5, 7]
+        "shadowOffset": [3, 4]
       }
     },
     "cover": {
@@ -77,19 +77,19 @@
       "geometry": {
         "contentPixels": 96,
         "gutterPixels": 16,
-        "insetPixels": 13,
-        "outsetPixels": 3,
-        "bevelPixels": 4,
+        "insetPixels": 6,
+        "outsetPixels": 1,
+        "bevelPixels": 9,
         "light": [-0.55, -0.83],
-        "edgeColour": "#927b55",
-        "sideColour": "#3a2c1e",
-        "highlightColour": "#bea477",
-        "hardwareColour": "#7d894b",
-        "hardwareRadius": 1,
+        "edgeColour": "#587044",
+        "sideColour": "#273a23",
+        "highlightColour": "#7e945f",
+        "hardwareColour": "#587044",
+        "hardwareRadius": 0,
         "shadowColour": "#0b0d08",
-        "shadowOpacity": 0.38,
+        "shadowOpacity": 0.20,
         "shadowBlur": 6,
-        "shadowOffset": [4, 6]
+        "shadowOffset": [2, 3]
       }
     }
   }

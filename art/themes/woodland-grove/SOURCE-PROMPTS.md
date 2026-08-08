@@ -1,53 +1,56 @@
-# Woodland Grove accepted source prompts
+# Woodland Grove accepted source prompts — revision 2
 
-Generated with Codex's built-in image-generation tool on 2026-08-08. The
-accepted lossless outputs are retained beside this file and are production
-inputs to `scripts/build-theme-art.py`.
+Generated with Codex's built-in image-generation tool on 2026-08-08. These
+lossless outputs replace the first-pass sources and are production inputs to
+`scripts/build-theme-art.py`. The first-pass prompts remain in Git history.
 
-## Floor / grass and undergrowth
+## Floor / quiet continuous undergrowth
 
 ```text
 Use case: stylized-concept
-Asset type: seamless floor source material for the Nilbots top-down arena theme "Woodland Grove"
-Primary request: create a premium woodland clearing floor material made from calm grass and low undergrowth that stays immediately readable beneath small combat robots
-Scene/backdrop: one continuous natural ground material fills the square edge to edge
-Style/medium: polished stylized game texture, high-end hand-painted PBR albedo source, readable at a 40–70 pixel gameplay cell
-Composition/framing: strict orthographic top-down flat material swatch; broad interwoven mossy grass, muted clover-like ground cover, sparse soft leaf litter and small exposed loam patches; organic asymmetrical distribution; every feature continues naturally through the boundaries
-Lighting/mood: neutral even upper-left illumination, no central spotlight, no cast shadows
-Color palette: desaturated fern green, olive grass, deep moss, muted brown loam, restrained pale sage highlights
-Materials/textures: short grass blades massed into broad shapes, velvety moss, low flat leaves, damp earth; medium-scale detail only
-Constraints: opaque square seamless tileable texture; material only; no gameplay grid, paths, rivers, trenches, tall plants, tree trunks, rocks, flowers, standalone props, text, letters, numerals, logos, watermark, frame, horizon, perspective, or deep shadows
-Avoid: repeated quadrants, checkerboard, identical tufts, high-frequency lawn noise, neon green, golf-course stripes, dense jungle clutter, obvious focal object
+Asset type: revised seamless floor source material for the Nilbots top-down arena theme Woodland Grove
+Input images: Image 1 is the edit target and establishes the woodland palette and material identity
+Primary request: calm the existing ground down so it supports tiny combat robots instead of competing with them; replace the busy high-frequency leaf and grass pattern with broad, softly blended areas of short moss, muted grass, and very sparse low groundcover
+Scene/backdrop: one continuous natural ground material filling the square edge to edge
+Style/medium: premium stylized game texture, hand-painted PBR albedo source, intentionally quiet at a 40–70 pixel gameplay cell
+Composition/framing: strict orthographic top-down flat material swatch; broad irregular patches much larger than a gameplay tile; no directional bands or repeating clusters; only occasional soft leaf shapes
+Lighting/mood: neutral even upper-left illumination, shallow value range, no cast shadows
+Color palette: desaturated deep moss, subdued olive, fern grey-green, tiny amounts of dark loam; reduce saturation and local contrast substantially from Image 1
+Materials/textures: velvety moss and short grass dominate; low soft detail, no crisp individual blades across most of the field
+Constraints: change only texture frequency, contrast, and groundcover density; preserve opaque square woodland ground identity; visually continuous and seamless; no gameplay grid, tile outlines, paths, rivers, trenches, tall plants, tree trunks, rocks, flowers, props, text, logos, watermark, frame, horizon, perspective, or deep shadows
+Avoid: checkerboard, quilting, square patches, repeated quadrants, diagonal seams, obvious focal areas, bright lime green, crunchy micro-detail, high-contrast bare-dirt channels
 ```
 
-## Perimeter / ancient tree line
+## Perimeter / foliage-led ancient tree line
 
 ```text
 Use case: stylized-concept
-Asset type: seamless perimeter source material for the deterministic Nilbots top-down wall-baking pipeline, Woodland Grove theme
-Primary request: create a fortified ancient woodland perimeter MATERIAL FIELD that reads as massive old trees and impenetrable roots, substantially heavier and darker than the grass floor
-Scene/backdrop: one continuous organic material fills the square edge to edge
-Style/medium: premium stylized game texture, high-end hand-painted PBR albedo source, readable at small gameplay scale
-Composition/framing: strict orthographic top-down flat material swatch; broad dark old-oak bark plates, gnarled interlocking root ridges, deep crevices, restrained moss shelves and a few muted lichen patches; asymmetrical large forms continue naturally beyond every boundary
-Lighting/mood: neutral flat albedo-like upper-left illumination; no cast shadows, no directional scene spotlight, no isolated tree silhouette
-Color palette: charcoal umber bark, deep walnut, near-black crevices, forest moss, muted grey-green lichen
-Materials/textures: coarse ancient bark, thick woody roots, damp moss, worn lichen; strong large-scale value separation
-Constraints: opaque square seamless tileable continuous material; material only; no standalone tree, no canopy silhouette, no surrounding grass floor, no outer border, frame, perspective, empty background, flowers, fruit, text, logo, or watermark
-Avoid: planks, lumber, cut logs, brick pattern, repeated quadrants, bilateral symmetry, grid, checkerboard, identical knots, dramatic black shadows, bright saturated foliage, dense tiny noise
+Asset type: revised seamless ancient-tree perimeter material for the Nilbots Woodland Grove 3D arena
+Input images: Image 1 is the edit target and establishes the ancient woodland family
+Primary request: replace the bark-dominated brown field with a dark organic forest-boundary material led by overlapping evergreen and broadleaf crown fragments, moss cushions, ivy, and only occasional glimpses of charcoal old trunk; it must read as dense living tree cover rather than dirt or a brown wall
+Scene/backdrop: one continuous impenetrable woodland material filling the square edge to edge
+Style/medium: premium stylized game material, hand-painted PBR albedo source, readable at a 40–70 pixel gameplay cell
+Composition/framing: strict orthographic top-down flat material swatch; broad irregular foliage islands interlock across the entire field; varied leaf mass sizes and asymmetric gaps; no isolated tree silhouette and no outer boundary
+Lighting/mood: neutral even upper-left illumination, restrained contrast, no cast shadows
+Color palette: deep pine, blue-green hemlock, charcoal moss, muted sage lichen, very small amounts of near-black trunk; green dominates strongly
+Materials/textures: layered foliage and moss dominate; old wood is subordinate and dark, never a continuous brown bed
+Constraints: preserve opaque square ancient-perimeter identity; visually continuous and seamless; material field only; no surrounding floor, exposed soil, dirt border, brown frame, cut logs, lumber, rocks, flowers, gameplay grid, tile outline, text, logos, watermark, perspective, or deep shadows
+Avoid: checkerboard, square clumps, rows of identical trees, repeated quadrants, bare root carpet, continuous bark slabs, orange brown, obvious focal tree, crisp cellular tiling
 ```
 
-## Interior cover / young trees and understory
+## Interior cover / living understory
 
 ```text
 Use case: stylized-concept
-Asset type: seamless interior-cover source material for the deterministic Nilbots top-down wall-baking pipeline, Woodland Grove theme
-Primary request: create a lower woodland tree-cover MATERIAL FIELD that reads as younger trunks, roots, and understory, clearly lighter, lower, and more open than the ancient perimeter family
-Scene/backdrop: one continuous organic material fills the square edge to edge
-Style/medium: premium stylized game texture, high-end hand-painted PBR albedo source, readable at small gameplay scale
-Composition/framing: strict orthographic top-down flat material swatch; broad warm-brown young bark forms, smaller interlaced roots, patches of soft moss, sparse flat fern fronds and muted leaf litter; asymmetrical distribution continuing naturally through boundaries
-Lighting/mood: neutral flat albedo-like upper-left illumination; no cast shadows, no directional scene spotlight, no isolated tree silhouette
-Color palette: warm chestnut bark, muted olive moss, sage fern, dark soil, restrained ochre leaf litter
-Materials/textures: smoother young bark, shallow root ridges, velvety moss, low flat understory leaves; medium and large detail
-Constraints: opaque square seamless tileable continuous material; material only; visually distinct from the darker fortified perimeter; no standalone tree, canopy silhouette, surrounding floor, outer frame, perspective, empty background, tall grass, flowers, text, logo, or watermark
-Avoid: matching the perimeter, cut timber, lumber planks, brick pattern, repeated quadrants, grid, checkerboard, identical ferns, dramatic shadows, neon green, dense tiny foliage
+Asset type: revised seamless young-tree cover material for the Nilbots Woodland Grove 3D arena
+Input images: Image 1 is the edit target and establishes the younger woodland family
+Primary request: remove the exposed brown soil-and-root carpet and replace it with lower, airier living understory: overlapping fern fans, soft sapling leaf clusters, ivy, moss, and sparse slim young stems; it must read as organic green cover rather than dirt outlined into wall tiles
+Scene/backdrop: one continuous younger woodland material filling the square edge to edge
+Style/medium: premium stylized game material, hand-painted PBR albedo source, readable at a 40–70 pixel gameplay cell
+Composition/framing: strict orthographic top-down flat material swatch; broad asymmetric understory masses with varied sizes and irregular negative pockets; loose alternation between fern, sapling leaf, and moss shapes; no isolated tree object and no boundary frame
+Lighting/mood: neutral even upper-left illumination, softer and lighter than the ancient perimeter, no cast shadows
+Color palette: muted fern, sage, olive moss, cool young-leaf green; tiny restrained dark stems only; green dominates strongly
+Materials/textures: foliage and moss dominate; young wood is subordinate; no exposed earth bed
+Constraints: preserve opaque square young-cover identity and clear distinction from the darker ancient perimeter; visually continuous and seamless; material field only; no surrounding floor, exposed soil, dirt border, brown frame, cut logs, lumber, rocks, flowers, gameplay grid, tile outline, text, logos, watermark, perspective, or deep shadows
+Avoid: checkerboard, square clumps, rows, repeated quadrants, root carpet, orange or chestnut field, isolated identical ferns, bright lime, crisp cellular tiling
 ```

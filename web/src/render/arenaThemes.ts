@@ -115,6 +115,9 @@ export interface ArenaTheme {
   zoneTexture: HTMLImageElement | null;
   zoneTextureScale: number;
   environment3d: {
+    camera: {
+      yawDegrees: number;
+    };
     lighting: {
       keyColor: string;
       keyIntensity: number;
@@ -155,6 +158,7 @@ interface ThemeManifest {
   id: string;
   label: string;
   environment3d?: {
+    camera?: Partial<ArenaTheme['environment3d']['camera']>;
     lighting?: Partial<ArenaTheme['environment3d']['lighting']>;
     floor?: Partial<ArenaTheme['environment3d']['floor']>;
   };
@@ -550,7 +554,7 @@ function wallGeometry3d(
   const cornerRadius = candidate?.cornerRadius ?? 0.1;
   if (
     !Number.isFinite(height) ||
-    height < 0.25 ||
+    height < (candidate?.treeCover ? 0 : 0.25) ||
     height > 0.9 ||
     !Number.isFinite(cornerRadius) ||
     cornerRadius < 0 ||
@@ -635,6 +639,9 @@ function environment3d(
   candidate: ThemeManifest['environment3d'],
   themeId: string,
 ): ArenaTheme['environment3d'] {
+  const camera = {
+    yawDegrees: candidate?.camera?.yawDegrees ?? 0,
+  };
   const lighting = {
     keyColor: candidate?.lighting?.keyColor ?? '#e8f1ff',
     keyIntensity: candidate?.lighting?.keyIntensity ?? 4.4,
@@ -649,6 +656,7 @@ function environment3d(
     metalness: candidate?.floor?.metalness ?? 0.12,
   };
   if (
+    !finiteRange(camera.yawDegrees, -30, 30) ||
     !validHex(lighting.keyColor) ||
     !validHex(lighting.ambientColor) ||
     !validHex(lighting.fillColor) ||
@@ -660,7 +668,7 @@ function environment3d(
     !finiteRange(floor.metalness, 0, 1)
   )
     throw new Error(`Theme '${themeId}' has invalid 3D environment values.`);
-  return { lighting, floor };
+  return { camera, lighting, floor };
 }
 
 function finiteRange(value: number, minimum: number, maximum: number): boolean {

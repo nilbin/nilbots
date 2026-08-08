@@ -150,6 +150,13 @@ export default function ArenaCanvas3D({
 
     const arena = buildArena(replay, { shadowMapSize: renderProfile.shadowMapSize });
     const actors = buildActors(replay);
+    // Health and engagement cues are authored as fixed billboards. A theme may add a
+    // restrained side bias to the otherwise fixed camera, so turn their shared row by the
+    // same amount rather than letting it become slightly edge-on.
+    actors.group.traverse((node) => {
+      if (node.userData.cue === 'health-pips')
+        node.rotation.y = arena.cameraYaw;
+    });
     const overlays = buildOverlays(replay, entrants);
     arena.scene.add(actors.group);
     arena.scene.add(overlays.group);
@@ -181,16 +188,29 @@ export default function ArenaCanvas3D({
      * at; `arenaCamera` does, once, for both.
      */
     const look = (frame: ArenaFrame) => {
-      const span = Math.max(frame.width / arena.camera.aspect, frame.height);
+      const yaw = arena.cameraYaw;
+      // Rotate the requested ground rectangle into camera space before fitting it. Without
+      // this compensation even a small side bias can trim a corner on phone-width views.
+      const projectedWidth =
+        Math.abs(Math.cos(yaw)) * frame.width +
+        Math.abs(Math.sin(yaw)) * frame.height;
+      const projectedDepth =
+        Math.abs(Math.sin(yaw)) * frame.width +
+        Math.abs(Math.cos(yaw)) * frame.height;
+      const span = Math.max(
+        projectedWidth / arena.camera.aspect,
+        projectedDepth,
+      );
       const distance = (span / 2) / Math.tan((arena.camera.fov * Math.PI) / 360);
       // A shallow tilt: steep enough that walls show a face and cast across the floor,
       // shallow enough that the far half of the arena is not hidden behind the near walls.
       const pitch = CAMERA_PITCH;
       looking.set(frame.x, 0, frame.y);
+      const horizontalDistance = Math.cos(pitch) * distance * 1.02;
       framed.set(
-        frame.x,
+        frame.x + Math.sin(yaw) * horizontalDistance,
         Math.sin(pitch) * distance * 1.02,
-        frame.y + Math.cos(pitch) * distance * 1.02,
+        frame.y + Math.cos(yaw) * horizontalDistance,
       );
     };
 

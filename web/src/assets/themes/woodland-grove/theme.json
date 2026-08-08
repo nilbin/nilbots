@@ -2,6 +2,9 @@
   "id": "woodland-grove",
   "label": "Woodland Grove",
   "environment3d": {
+    "camera": {
+      "yawDegrees": 14
+    },
     "lighting": {
       "keyColor": "#eee4c9",
       "keyIntensity": 3.2,
@@ -36,17 +39,17 @@
         "edgeAtlas": "wall-perimeter-edges.webp",
         "shadowAtlas": "wall-perimeter-shadows.webp",
         "geometry3d": {
-          "height": 0.3,
+          "height": 0.0,
           "cornerRadius": 0.36,
           "treeCover": {
-            "trunkHeight": 0.52,
+            "trunkHeight": 0.64,
             "trunkRadius": 0.105,
             "canopyRadius": 0.29,
             "canopyHeight": 0.18,
-            "canopyLobes": 3,
+            "canopyLobes": 4,
             "trunkColor": "#493426",
-            "canopyColor": "#36552f",
-            "canopyAccentColor": "#6f7f48"
+            "canopyColor": "#29482f",
+            "canopyAccentColor": "#647749"
           }
         },
         "material3d": {
@@ -63,17 +66,17 @@
         "edgeAtlas": "wall-cover-edges.webp",
         "shadowAtlas": "wall-cover-shadows.webp",
         "geometry3d": {
-          "height": 0.25,
+          "height": 0.0,
           "cornerRadius": 0.4,
           "treeCover": {
-            "trunkHeight": 0.3,
+            "trunkHeight": 0.42,
             "trunkRadius": 0.075,
             "canopyRadius": 0.22,
             "canopyHeight": 0.13,
             "canopyLobes": 3,
-            "trunkColor": "#765438",
-            "canopyColor": "#59713c",
-            "canopyAccentColor": "#89935a"
+            "trunkColor": "#67513a",
+            "canopyColor": "#536f3f",
+            "canopyAccentColor": "#83945c"
           }
         },
         "material3d": {

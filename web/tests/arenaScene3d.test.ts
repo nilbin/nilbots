@@ -52,7 +52,8 @@ function wallsByKind(
   kind:
     | 'arena-wall-body'
     | 'arena-wall-caps'
-    | 'arena-wall-upper-profile',
+    | 'arena-wall-upper-profile'
+    | 'arena-woodland-groundcover',
 ): Map<string, THREE.Mesh> {
   const result = new Map<string, THREE.Mesh>();
   scene.traverse((node) => {
@@ -264,6 +265,7 @@ test('Woodland trees stay on blocked tiles and inside the live-body clearance', 
 
     const familyGroups = new Map<string, THREE.Object3D>();
     const canopies: THREE.InstancedMesh[] = [];
+    const trunks: THREE.InstancedMesh[] = [];
     arena.scene.traverse((node) => {
       if (
         node.userData.kind === 'arena-woodland-family' &&
@@ -275,7 +277,28 @@ test('Woodland trees stay on blocked tiles and inside the live-body clearance', 
         node.userData.kind === 'arena-woodland-canopy-lobes'
       )
         canopies.push(node);
+      if (
+        node instanceof THREE.InstancedMesh &&
+        node.userData.kind === 'arena-woodland-trunks'
+      )
+        trunks.push(node);
     });
+    assert.ok(Math.abs(arena.cameraYaw - (14 * Math.PI) / 180) < 1e-9);
+    assert.deepEqual(
+      [...wallsByKind(arena.scene, 'arena-wall-body').keys()],
+      [],
+      'living cover must not reveal the tile grid as a raised substrate',
+    );
+    assert.deepEqual(
+      [...wallsByKind(arena.scene, 'arena-wall-caps').keys()],
+      [],
+      'living cover must not carry rectangular topology caps',
+    );
+    assert.deepEqual(
+      [...wallsByKind(arena.scene, 'arena-woodland-groundcover').keys()].sort(),
+      ['cover', 'perimeter'],
+      'living blockers need one continuous, flush understory field per family',
+    );
     assert.deepEqual([...familyGroups.keys()].sort(), ['cover', 'perimeter']);
     assert.ok(
       familyGroups.get('perimeter')!.userData.maximumHeight >
@@ -290,6 +313,18 @@ test('Woodland trees stay on blocked tiles and inside the live-body clearance', 
     const position = new THREE.Vector3();
     const rotation = new THREE.Quaternion();
     const scale = new THREE.Vector3();
+    const trunkHeights = new Set<string>();
+    for (const trunk of trunks) {
+      for (let index = 0; index < trunk.count; index++) {
+        trunk.getMatrixAt(index, matrix);
+        matrix.decompose(position, rotation, scale);
+        trunkHeights.add(scale.y.toFixed(4));
+      }
+    }
+    assert.ok(
+      trunkHeights.size > 8,
+      'tree cover must alternate trunk heights instead of stamping one tree',
+    );
     for (const canopy of canopies) {
       for (let index = 0; index < canopy.count; index++) {
         canopy.getMatrixAt(index, matrix);

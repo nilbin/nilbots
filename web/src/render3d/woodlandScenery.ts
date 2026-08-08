@@ -2,7 +2,6 @@ import * as THREE from 'three';
 import type {
   ArenaTheme,
   TreeCover3d,
-  WallFamily,
 } from '../render/arenaThemes';
 import { WallLayout } from '../render/wallTopology';
 
@@ -16,15 +15,16 @@ type InstancePlacement = {
 };
 
 const UP = new THREE.Vector3(0, 1, 0);
-const TREE_CENTER_JITTER = 0.03;
+const TREE_CENTER_JITTER = 0.045;
 
 /**
  * Actual low-poly trees rooted exclusively in authoritative blocked tiles.
  *
- * The low root substrate still carries the canonical topology material, but it no
- * longer has to impersonate the whole tree. Trunks, branches, and broken-up crowns are
- * instanced geometry. Their positions hash only stable family/tile/mask inputs and every
- * crown stays inside its occupied tile's reviewed clearance envelope.
+ * Trunks, branches, broken-up crowns, and low understory are instanced geometry. Their
+ * positions hash only stable family/tile/mask inputs and every crown stays inside its
+ * occupied tile's reviewed clearance envelope. There is deliberately no raised wall
+ * substrate below them: the living cluster and flush foliage field are the visual
+ * blocker, so the blocked grid never appears as a rectangular planting bed.
  */
 export function buildWoodlandScenery(
   layout: WallLayout,
@@ -40,7 +40,6 @@ export function buildWoodlandScenery(
     const familyGroup = buildTreeFamily(
       layout,
       familyId,
-      family,
       config,
       disposables,
     );
@@ -57,7 +56,6 @@ export function buildWoodlandScenery(
 function buildTreeFamily(
   layout: WallLayout,
   familyId: string,
-  family: WallFamily,
   config: TreeCover3d,
   disposables: Disposable[],
 ): THREE.Group {
@@ -65,15 +63,33 @@ function buildTreeFamily(
   const rootFlares: InstancePlacement[] = [];
   const branches: InstancePlacement[] = [];
   const canopyLobes: InstancePlacement[] = [];
+  const understoryLobes: InstancePlacement[] = [];
   let treeCount = 0;
 
   for (const wall of layout.walls()) {
     if (wall.family !== familyId) continue;
     treeCount++;
     const seed = treeHash(familyId, wall.x, wall.y, wall.mask, 0);
+    const shapeSeed = treeHash(familyId, wall.x, wall.y, wall.mask, 17);
+    const heightScale = 0.5 + unitByte(shapeSeed, 0) * 0.48;
+    const radialScale = 0.84 + unitByte(shapeSeed, 8) * 0.24;
+    const canopyHeightScale = 0.8 + unitByte(shapeSeed, 16) * 0.25;
+    const lobeReduction = Math.floor(
+      unitByte(shapeSeed, 24) * Math.min(3, config.canopyLobes - 1),
+    );
+    const lobeCount = Math.max(2, config.canopyLobes - lobeReduction);
+    const trunkHeight = config.trunkHeight * heightScale;
+    const trunkRadius = config.trunkRadius * radialScale;
+    const canopyHeight = config.canopyHeight * canopyHeightScale;
+    const woodColor = new THREE.Color(config.trunkColor).multiplyScalar(
+      0.82 + unitByte(seed, 0) * 0.18,
+    );
+    const canopyColor = new THREE.Color(config.canopyColor);
+    const canopyAccent = new THREE.Color(config.canopyAccentColor);
+    const treeAccentMix = 0.06 + unitByte(shapeSeed, 24) * 0.36;
     const centre = new THREE.Vector3(
       wall.x + 0.5 + signedByte(seed, 8) * TREE_CENTER_JITTER,
-      family.geometry3d.height,
+      0,
       wall.y + 0.5 + signedByte(seed, 16) * TREE_CENTER_JITTER,
     );
     const yaw = unitByte(seed, 24) * Math.PI * 2;
@@ -83,29 +99,44 @@ function buildTreeFamily(
       position: centre.clone().add(new THREE.Vector3(0, 0.0325, 0)),
       quaternion: yawRotation.clone(),
       scale: new THREE.Vector3(
-        config.trunkRadius,
+        trunkRadius,
         0.065,
-        config.trunkRadius,
+        trunkRadius,
       ),
+      color: woodColor,
     });
     trunks.push({
       position: centre
         .clone()
-        .add(new THREE.Vector3(0, config.trunkHeight / 2, 0)),
+        .add(new THREE.Vector3(0, trunkHeight / 2, 0)),
       quaternion: yawRotation.clone(),
       scale: new THREE.Vector3(
-        config.trunkRadius,
-        config.trunkHeight,
-        config.trunkRadius,
+        trunkRadius,
+        trunkHeight,
+        trunkRadius,
       ),
+      color: woodColor,
     });
 
     const crownY =
-      centre.y + config.trunkHeight + config.canopyHeight * 0.42;
-    const lobeRadius = config.canopyRadius * 0.62;
-    const lobeOffset = config.canopyRadius * 0.3;
-    const branchStartY = centre.y + config.trunkHeight * 0.68;
-    for (let lobe = 0; lobe < config.canopyLobes; lobe++) {
+      centre.y + trunkHeight + canopyHeight * 0.42;
+    const lobeRadius = config.canopyRadius * 0.62 * radialScale;
+    const lobeOffset = config.canopyRadius * 0.3 * radialScale;
+    const branchStartY = centre.y + trunkHeight * 0.68;
+    canopyLobes.push({
+      position: new THREE.Vector3(centre.x, crownY, centre.z),
+      quaternion: yawRotation.clone(),
+      scale: new THREE.Vector3(
+        config.canopyRadius * 0.74 * radialScale,
+        canopyHeight * 0.54,
+        config.canopyRadius * 0.7 * radialScale,
+      ),
+      color: canopyColor.clone().lerp(
+        canopyAccent,
+        0.12 + unitByte(shapeSeed, 8) * 0.48,
+      ),
+    });
+    for (let lobe = 0; lobe < lobeCount; lobe++) {
       const lobeSeed = treeHash(
         familyId,
         wall.x,
@@ -115,11 +146,11 @@ function buildTreeFamily(
       );
       const angle =
         yaw +
-        (lobe / config.canopyLobes) * Math.PI * 2 +
+        (lobe / lobeCount) * Math.PI * 2 +
         signedByte(lobeSeed, 8) * 0.18;
       const lobePosition = new THREE.Vector3(
         centre.x + Math.cos(angle) * lobeOffset,
-        crownY + signedByte(lobeSeed, 16) * config.canopyHeight * 0.08,
+        crownY + signedByte(lobeSeed, 16) * canopyHeight * 0.08,
         centre.z + Math.sin(angle) * lobeOffset,
       );
       canopyLobes.push({
@@ -130,13 +161,15 @@ function buildTreeFamily(
         ),
         scale: new THREE.Vector3(
           lobeRadius,
-          config.canopyHeight / 2,
+          canopyHeight / 2,
           lobeRadius,
         ),
-        color: new THREE.Color(
-          lobeSeed % 3 === 0
-            ? config.canopyAccentColor
-            : config.canopyColor,
+        color: canopyColor.clone().lerp(
+          canopyAccent,
+          Math.min(
+            0.72,
+            treeAccentMix + (lobeSeed % 3 === 0 ? 0.2 : 0),
+          ),
         ),
       });
 
@@ -146,7 +179,7 @@ function buildTreeFamily(
         centre.z,
       );
       const branchEnd = lobePosition.clone().add(
-        new THREE.Vector3(0, -config.canopyHeight * 0.18, 0),
+        new THREE.Vector3(0, -canopyHeight * 0.18, 0),
       );
       const direction = branchEnd.clone().sub(branchStart);
       branches.push({
@@ -156,9 +189,63 @@ function buildTreeFamily(
           direction.clone().normalize(),
         ),
         scale: new THREE.Vector3(
-          config.trunkRadius * 0.5,
+          trunkRadius * 0.5,
           direction.length(),
-          config.trunkRadius * 0.5,
+          trunkRadius * 0.5,
+        ),
+        color: woodColor,
+      });
+    }
+
+    understoryLobes.push({
+      position: new THREE.Vector3(
+        centre.x + signedByte(shapeSeed, 8) * config.canopyRadius * 0.12,
+        config.canopyRadius * 0.075,
+        centre.z + signedByte(shapeSeed, 16) * config.canopyRadius * 0.12,
+      ),
+      quaternion: yawRotation.clone(),
+      scale: new THREE.Vector3(
+        config.canopyRadius * (0.52 + unitByte(seed, 0) * 0.12),
+        config.canopyRadius * 0.075,
+        config.canopyRadius * (0.44 + unitByte(seed, 24) * 0.14),
+      ),
+      color: canopyColor.clone().lerp(canopyAccent, 0.34),
+    });
+
+    const understoryCount = 2 + (shapeSeed % 2);
+    const understoryRadius = config.canopyRadius * 0.34;
+    const understoryOffset = config.canopyRadius * 0.48;
+    for (let shrub = 0; shrub < understoryCount; shrub++) {
+      const shrubSeed = treeHash(
+        familyId,
+        wall.x,
+        wall.y,
+        wall.mask,
+        41 + shrub,
+      );
+      const angle =
+        yaw +
+        (shrub / understoryCount) * Math.PI * 2 +
+        signedByte(shrubSeed, 8) * 0.36;
+      const shrubScale = 0.78 + unitByte(shrubSeed, 16) * 0.22;
+      understoryLobes.push({
+        position: new THREE.Vector3(
+          centre.x + Math.cos(angle) * understoryOffset,
+          understoryRadius * 0.34,
+          centre.z + Math.sin(angle) * understoryOffset,
+        ),
+        quaternion: new THREE.Quaternion().setFromAxisAngle(
+          UP,
+          unitByte(shrubSeed, 24) * Math.PI * 2,
+        ),
+        scale: new THREE.Vector3(
+          understoryRadius * shrubScale,
+          understoryRadius * 0.34,
+          understoryRadius * (0.68 + unitByte(shrubSeed, 0) * 0.22),
+        ),
+        color: canopyColor.clone().lerp(
+          canopyAccent,
+          0.24 + unitByte(shrubSeed, 8) * 0.34,
         ),
       });
     }
@@ -169,16 +256,14 @@ function buildTreeFamily(
   familyGroup.userData.family = familyId;
   familyGroup.userData.treeCount = treeCount;
   familyGroup.userData.maximumTileRadius =
-    Math.SQRT2 * TREE_CENTER_JITTER + config.canopyRadius * 0.92;
+    Math.SQRT2 * TREE_CENTER_JITTER + config.canopyRadius * 0.92 * 1.08;
   familyGroup.userData.maximumHeight =
-    family.geometry3d.height +
-    config.trunkHeight +
-    config.canopyHeight;
+    config.trunkHeight + config.canopyHeight;
 
   if (treeCount === 0) return familyGroup;
 
   const woodMaterial = new THREE.MeshStandardMaterial({
-    color: config.trunkColor,
+    color: '#ffffff',
     roughness: 0.94,
     metalness: 0,
   });
@@ -220,6 +305,15 @@ function buildTreeFamily(
     canopyMaterial,
     canopyLobes,
     'canopy-lobes',
+    familyId,
+    disposables,
+  );
+  addInstances(
+    familyGroup,
+    new THREE.DodecahedronGeometry(1, 0),
+    canopyMaterial,
+    understoryLobes,
+    'understory-lobes',
     familyId,
     disposables,
   );

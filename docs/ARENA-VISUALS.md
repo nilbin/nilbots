@@ -781,11 +781,15 @@ generic prop catalog. A wall family's optional `geometry3d.treeCover` block
 declares reviewed trunk/crown proportions and colours. The WebGL scene roots
 instanced low-poly trunks, root flares, branches, and broken-up crown lobes in
 the exact blocked tiles supplied by `WallLayout`; their stable placement hash
-uses only family, coordinate, and topology. Crowns remain inside the blocked
+uses only family, coordinate, and topology while varying height, width, crown
+count, colour, rotation, and low understory. Crowns remain inside the blocked
 tile's live-body clearance envelope and the whole tree has a capped height.
-The canonical topology solid becomes a low rounded root bed beneath that real
-geometry, not a bark texture asked to impersonate a tree. Canvas2D continues
-to use the baked perimeter/cover atlases and never pays for WebGL geometry.
+Living families omit the extruded wall body and square topology cap. A flush,
+continuous rounded foliage field makes the blocker readable without exposing
+the tile grid as a raised dirt bed. Woodland also owns a restrained 14° camera
+yaw; camera-space framing compensation keeps that three-quarter view inside
+the viewport. Canvas2D continues to use the baked perimeter/cover atlases and
+never pays for WebGL geometry or the theme-specific camera presentation.
 
 - Start from `WallLayout`: trace continuous family solids, then layer
   manifest-owned upper-profile and material settings. Place optional panels,

@@ -15,6 +15,9 @@ const stagedRoot = join(repositoryRoot, 'art', 'themes');
 type ThemeManifest = {
   id: string;
   environment3d?: {
+    camera?: {
+      yawDegrees?: number;
+    };
     lighting?: {
       keyColor?: string;
       keyIntensity?: number;
@@ -93,7 +96,8 @@ function assertCompletePackage(root: string, expectedId: string) {
       assert.doesNotThrow(() => readFileSync(join(root, asset)));
     if (family.geometry3d) {
       assert.ok(
-        family.geometry3d.height >= 0.25 &&
+        family.geometry3d.height >=
+          (family.geometry3d.treeCover ? 0 : 0.25) &&
           family.geometry3d.height <= 0.9,
         `wall height ${family.geometry3d.height} is outside the runtime contract`,
       );
@@ -221,8 +225,9 @@ test('Woodland Grove carries distinct, footprint-limited tree families', () => {
   ) as ThemeManifest;
   const perimeter = manifest.walls.families.perimeter.geometry3d!;
   const cover = manifest.walls.families.cover.geometry3d!;
-  assert.equal(perimeter.height, 0.3);
-  assert.equal(cover.height, 0.25);
+  assert.equal(manifest.environment3d?.camera?.yawDegrees, 14);
+  assert.equal(perimeter.height, 0);
+  assert.equal(cover.height, 0);
   assert.ok(perimeter.treeCover);
   assert.ok(cover.treeCover);
   assert.ok(

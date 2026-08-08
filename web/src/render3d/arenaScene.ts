@@ -55,6 +55,7 @@ export const WALL_OPEN_EDGE_INSET = 0.14462;
 export interface ArenaScene {
   scene: THREE.Scene;
   camera: THREE.PerspectiveCamera;
+  cameraYaw: number;
   dispose: () => void;
 }
 
@@ -104,6 +105,7 @@ export function buildArena(
   return {
     scene,
     camera,
+    cameraYaw: (theme.environment3d.camera.yawDegrees * Math.PI) / 180,
     dispose: () => {
       for (const item of disposables) item.dispose();
     },
@@ -227,10 +229,16 @@ function walls(
   const byFamily = new Map<string, { x: number; y: number }[]>();
   const capsByFamily = new Map<string, THREE.BufferGeometry[]>();
   for (const wall of layout.walls()) {
+    const family = theme.walls.families.get(wall.family)!;
+    // Living woodland cover is the blocker. Drawing the ordinary traced wall body below
+    // it reveals the authoritative tile outline as a raised rectangular planting bed,
+    // which defeats the point of replacing masonry with trees. Its topology remains in
+    // WallLayout for gameplay, placement, clearance, and the flush foliage field; only
+    // the synthetic raised substrate is omitted from the 3D presentation.
     (byFamily.get(wall.family) ?? byFamily.set(wall.family, []).get(wall.family)!)
       .push({ x: wall.x, y: wall.y });
+    if (family.geometry3d.treeCover !== null) continue;
 
-    const family = theme.walls.families.get(wall.family)!;
     const upper = family.geometry3d.upperProfile;
 
     // Preserve atlas gutter only across same-family joins. A different wall family meets
@@ -295,6 +303,49 @@ function walls(
   for (const [familyId, tiles] of byFamily) {
     const family = theme.walls.families.get(familyId);
     if (!family) continue;
+    if (family.geometry3d.treeCover !== null) {
+      const groundcoverShapes = wallShapes(tiles, {
+        cornerRadius: family.geometry3d.cornerRadius,
+        openEdgeInset: WALL_OPEN_EDGE_INSET,
+        isWall: (x, y) => layout.familyAt(x, y) !== null,
+      });
+      if (groundcoverShapes.length === 0) continue;
+      const groundcoverGeometry = new THREE.ShapeGeometry(
+        groundcoverShapes,
+        5,
+      );
+      groundcoverGeometry.rotateX(-Math.PI / 2);
+      groundcoverGeometry.translate(0, 0.003, 0);
+      projectWorldUvs(
+        groundcoverGeometry,
+        replay.map.width,
+        replay.map.height,
+      );
+      const groundcoverTexture = sprite(
+        family.materialTexture,
+        THREE.RepeatWrapping,
+      );
+      const groundcoverMaterial = new THREE.MeshStandardMaterial({
+        map: groundcoverTexture,
+        color: tintMultiplier(theme.palette.wallTint),
+        roughness: 1,
+        metalness: 0,
+        polygonOffset: true,
+        polygonOffsetFactor: -1,
+      });
+      const groundcover = new THREE.Mesh(
+        groundcoverGeometry,
+        groundcoverMaterial,
+      );
+      groundcover.userData.kind = 'arena-woodland-groundcover';
+      groundcover.userData.family = familyId;
+      groundcover.userData.openEdgeInset = WALL_OPEN_EDGE_INSET;
+      groundcover.receiveShadow = true;
+      meshes.push(groundcover);
+      disposables.push(groundcoverGeometry, groundcoverMaterial);
+      if (groundcoverTexture) disposables.push(groundcoverTexture);
+      continue;
+    }
     const height = family.geometry3d.height;
     const upper = family.geometry3d.upperProfile;
     const bodyHeight = upper === null
