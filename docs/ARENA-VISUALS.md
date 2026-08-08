@@ -760,8 +760,8 @@ production candidates, then normalized locally:
   fifteen separately generated material fields—one floor, one fortified
   perimeter, and one interior-cover source per theme. Their exact accepted
   prompts live in `art/themes/SOURCE-PROMPTS.md`; deterministic baking owns
-  seamless normalization and topology. Ember Forge and Frost Relay ship on
-  Arena and Gallery respectively. Drowned Vault, Desert Array, and Void
+  seamless normalization and topology. Ember Forge ships on Arena and Arc
+  Relay, while Frost Relay ships on Gallery. Drowned Vault, Desert Array, and Void
   Sanctum remain complete staged packages under `art/`; keeping them outside
   Vite avoids adding every large theme to every self-contained viewer before
   per-replay asset packaging exists.
@@ -785,6 +785,19 @@ and lazy wall normal/roughness maps. No authored modular environment GLB
 package or whole-map mesh ships. It is the first pilot because its camera,
 cover, objective strip, class silhouettes, and projectile grammar exercise
 the contract before it is generalized to other arenas.
+
+Ember Forge generalizes that pilot to Arc Relay through an optional
+`geometry3d.bastionCover` family block. The manifest owns a rise range, sparse
+shoulder/tower cadence, material palette, and an optional outside-map
+foundation depth. Stable family/coordinate/topology hashes place instanced
+rounded shoulders, end and junction towers, sloped exposed-face ribs, thin
+heat seams, and perimeter supports over the exact traced wall substrate. Base
+profiles stay continuous and collision-readable; raised modules vary the
+skyline without moving an open edge. The perimeter's low 1.2-tile apron,
+rounded corner plates, and irregular external pylons broaden only the
+non-playable side of the map. Ember's Arc Relay camera uses 12° yaw, 52° pitch,
+and a 28° lens; its matte graphite/copper balance and quieter floor response
+are theme-owned rather than renderer-wide exceptions.
 
 Woodland Grove adds one deliberately narrow organic companion rather than a
 generic prop catalog. A wall family's optional `geometry3d.treeCover` block

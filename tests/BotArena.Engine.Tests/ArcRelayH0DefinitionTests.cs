@@ -249,17 +249,15 @@ public sealed class ArcRelayH0DefinitionTests
     }
 
     [Fact]
-    public void ReplayPresentation_BindsWoodlandOnlyToTheDeepWarrenMap()
+    public void ReplayPresentation_BindsEmberForgeToTheDeepWarrenMap()
     {
         ActorResolvedMatchDefinition warren = ArcRelayH0Definition.Create(
             loopProfile: ArcRelayLoopProfile.AmbushWarren11);
         ActorResolvedMatchDefinition historical = ArcRelayH0Definition.Create();
 
+        Assert.Equal("arc-relay-ambush-warren-06", warren.Map.Id);
         Assert.Equal(
-            ArcRelayH0ReplayPresentation.WoodlandMapId,
-            warren.Map.Id);
-        Assert.Equal(
-            ArcRelayH0ReplayPresentation.WoodlandThemeId,
+            ArcRelayH0ReplayPresentation.ThemeId,
             ArcRelayH0ReplayPresentation.Create(warren).ThemeId);
         Assert.Equal(
             ArcRelayH0ReplayPresentation.ThemeId,

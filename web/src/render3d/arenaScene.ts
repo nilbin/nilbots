@@ -6,6 +6,7 @@ import { wallShapes } from './wallSolids';
 import { buildWallDetails } from './wallDetails';
 import { themeMaterialImage } from './themeMaterialAssets';
 import { buildWoodlandScenery } from './woodlandScenery';
+import { buildBastionScenery } from './bastionScenery';
 
 /**
  * The arena as actual geometry.
@@ -101,6 +102,14 @@ export function buildArena(
   for (const mesh of walls(replay, theme, layout, disposables))
     scene.add(mesh);
   scene.add(buildWoodlandScenery(layout, theme, disposables));
+  scene.add(
+    buildBastionScenery(
+      layout,
+      theme,
+      WALL_OPEN_EDGE_INSET,
+      disposables,
+    ),
+  );
   scene.add(
     buildWallDetails(
       layout,
@@ -214,7 +223,9 @@ function floor(
     // the key light, instead of a photograph of shading lying flat under a different one.
     bumpMap: texture,
     bumpScale: floorMaterial.bumpScale,
-    color: tintMultiplier(theme.palette.floorTint),
+    color:
+      floorMaterial.colorMultiplier ??
+      tintMultiplier(theme.palette.floorTint),
     roughness: floorMaterial.roughness,
     metalness: floorMaterial.metalness,
   });
@@ -420,7 +431,9 @@ function walls(
         family.material3d.normalScale,
         family.material3d.normalScale,
       ),
-      color: tintMultiplier(theme.palette.wallTint),
+      color:
+        family.material3d.colorMultiplier ??
+        tintMultiplier(theme.palette.wallTint),
       roughnessMap,
       roughness: family.material3d.roughness,
       metalness: family.material3d.metalness,
@@ -479,12 +492,20 @@ function walls(
       for (const part of caps) part.dispose();
       const capMaterial = new THREE.MeshStandardMaterial({
         map: sprite(family.edgeAtlasTexture),
+        color:
+          family.geometry3d.bastionCover === null
+            ? '#ffffff'
+            : '#8c827b',
+        opacity:
+          family.geometry3d.bastionCover === null ? 1 : 0.76,
         transparent: true,
         // Sits a fraction above the wall top, so depth writes would fight the box beneath
         // it at grazing angles. Reading depth without writing it settles that.
         depthWrite: false,
-        roughness: 0.7,
-        metalness: 0.25,
+        roughness:
+          family.geometry3d.bastionCover === null ? 0.7 : 0.94,
+        metalness:
+          family.geometry3d.bastionCover === null ? 0.25 : 0.14,
       });
       const capMesh = new THREE.Mesh(capGeometry, capMaterial);
       capMesh.userData.kind = 'arena-wall-caps';

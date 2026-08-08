@@ -32,6 +32,7 @@ type ThemeManifest = {
       bumpScale?: number;
       roughness?: number;
       metalness?: number;
+      colorMultiplier?: string;
     };
   };
   textures: { floor: string };
@@ -58,6 +59,16 @@ type ThemeManifest = {
             clampColor: string;
             ventColor: string;
           };
+          bastionCover?: {
+            shoulderEvery: number;
+            towerEvery: number;
+            minRise: number;
+            maxRise: number;
+            boundaryDepth: number;
+            bodyColor: string;
+            trimColor: string;
+            heatColor: string;
+          };
           treeCover?: {
             trunkHeight: number;
             trunkRadius: number;
@@ -82,6 +93,7 @@ type ThemeManifest = {
           normalScale?: number;
           roughness?: number;
           metalness?: number;
+          colorMultiplier?: string;
         };
       }
     >;
@@ -128,6 +140,19 @@ function assertCompletePackage(root: string, expectedId: string) {
         ])
           assert.ok(Number.isInteger(frequency) && frequency > 0);
       }
+      if (family.geometry3d.bastionCover) {
+        const bastion = family.geometry3d.bastionCover;
+        assert.ok(Number.isInteger(bastion.shoulderEvery));
+        assert.ok(Number.isInteger(bastion.towerEvery));
+        assert.ok(bastion.minRise < bastion.maxRise);
+        assert.ok(bastion.boundaryDepth >= 0 && bastion.boundaryDepth <= 2);
+        for (const color of [
+          bastion.bodyColor,
+          bastion.trimColor,
+          bastion.heatColor,
+        ])
+          assert.match(color, /^#[0-9a-f]{6}$/i);
+      }
       if (family.geometry3d.treeCover) {
         const tree = family.geometry3d.treeCover;
         assert.ok(tree.trunkHeight >= 0.18 && tree.trunkHeight <= 0.65);
@@ -149,6 +174,11 @@ function assertCompletePackage(root: string, expectedId: string) {
       }
     }
     if (family.material3d) {
+      if (family.material3d.colorMultiplier)
+        assert.match(
+          family.material3d.colorMultiplier,
+          /^#[0-9a-f]{6}$/i,
+        );
       for (const asset of [
         family.material3d.normalMap,
         family.material3d.roughnessMap,
@@ -179,41 +209,58 @@ test('future map themes remain complete staged packages', () => {
     assertCompletePackage(join(stagedRoot, id, 'runtime'), id);
 });
 
-test('Ember Forge carries the approved Frontline 3D wall profiles', () => {
+test('Ember Forge carries the approved living-bastion profiles', () => {
   const manifest = JSON.parse(
     readFileSync(join(activeRoot, 'ember-forge', 'theme.json'), 'utf8'),
   ) as ThemeManifest;
   assert.equal(
     manifest.walls.families.perimeter.geometry3d?.height,
-    0.72,
+    0.84,
   );
   assert.equal(
     manifest.walls.families.perimeter.geometry3d?.cornerRadius,
-    0.23,
+    0.29,
   );
   assert.deepEqual(
     manifest.walls.families.perimeter.geometry3d?.upperProfile,
-    { height: 0.19, inset: 0.025, chamfer: 0.035 },
+    { height: 0.25, inset: 0.035, chamfer: 0.045 },
   );
   assert.equal(
     manifest.walls.families.cover.geometry3d?.height,
-    0.46,
+    0.58,
   );
   assert.equal(
     manifest.walls.families.cover.geometry3d?.cornerRadius,
-    0.31,
+    0.35,
   );
   assert.deepEqual(
     manifest.walls.families.cover.geometry3d?.upperProfile,
-    { height: 0.14, inset: 0.04, chamfer: 0.03 },
+    { height: 0.18, inset: 0.05, chamfer: 0.035 },
   );
   assert.equal(
     manifest.environment3d?.floor?.roughness,
-    0.95,
+    0.98,
   );
   assert.equal(
     manifest.environment3d?.floor?.bumpScale,
-    0.045,
+    0.028,
+  );
+  assert.equal(
+    manifest.environment3d?.floor?.colorMultiplier,
+    '#c7c7c7',
+  );
+  assert.equal(manifest.environment3d?.camera?.yawDegrees, 12);
+  assert.equal(manifest.environment3d?.camera?.pitchDegrees, 52);
+  assert.equal(manifest.environment3d?.camera?.fovDegrees, 28);
+  assert.equal(
+    manifest.walls.families.perimeter.geometry3d?.bastionCover
+      ?.boundaryDepth,
+    1.2,
+  );
+  assert.equal(
+    manifest.walls.families.cover.geometry3d?.bastionCover
+      ?.boundaryDepth,
+    0,
   );
   assert.equal(
     manifest.walls.families.perimeter.material3d?.normalMap,

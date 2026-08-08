@@ -82,6 +82,24 @@ export interface TreeCover3d {
   canopyAccentColor: string;
 }
 
+/**
+ * A sparse raised hard-surface layer for themes whose blocker should read as a built
+ * structure rather than one continuous-height extrusion.
+ *
+ * Placement remains topology-derived. The manifest owns only the silhouette cadence,
+ * height range, optional outside-map foundation depth, and restrained material palette.
+ */
+export interface BastionCover3d {
+  shoulderEvery: number;
+  towerEvery: number;
+  minRise: number;
+  maxRise: number;
+  boundaryDepth: number;
+  bodyColor: string;
+  trimColor: string;
+  heatColor: string;
+}
+
 export interface WallFamily {
   id: string;
   label: string;
@@ -104,6 +122,7 @@ export interface WallFamily {
       clampColor: string;
       ventColor: string;
     } | null;
+    bastionCover: BastionCover3d | null;
     treeCover: TreeCover3d | null;
   };
   material3d: {
@@ -112,6 +131,7 @@ export interface WallFamily {
     normalScale: number;
     roughness: number;
     metalness: number;
+    colorMultiplier: string | null;
   };
 }
 
@@ -139,6 +159,7 @@ export interface ArenaTheme {
       bumpScale: number;
       roughness: number;
       metalness: number;
+      colorMultiplier: string | null;
     };
   };
   walls: {
@@ -204,6 +225,7 @@ interface ThemeManifest {
             clampColor: string;
             ventColor: string;
           };
+          bastionCover?: BastionCover3d;
           treeCover?: TreeCover3d;
         };
         material3d?: {
@@ -212,6 +234,7 @@ interface ThemeManifest {
           normalScale?: number;
           roughness?: number;
           metalness?: number;
+          colorMultiplier?: string;
         };
       }
     >;
@@ -553,6 +576,7 @@ function wallGeometry3d(
           clampColor: string;
           ventColor: string;
         };
+        bastionCover?: BastionCover3d;
         treeCover?: TreeCover3d;
       }
     | undefined,
@@ -596,6 +620,26 @@ function wallGeometry3d(
     throw new Error(
       `Theme '${themeId}' wall family '${familyId}' has invalid 3D details.`,
     );
+  const bastionCover = candidate?.bastionCover ?? null;
+  if (
+    bastionCover !== null &&
+    (!Number.isInteger(bastionCover.shoulderEvery) ||
+      bastionCover.shoulderEvery < 1 ||
+      bastionCover.shoulderEvery > 16 ||
+      !Number.isInteger(bastionCover.towerEvery) ||
+      bastionCover.towerEvery < 1 ||
+      bastionCover.towerEvery > 16 ||
+      !finiteRange(bastionCover.minRise, 0.04, 0.4) ||
+      !finiteRange(bastionCover.maxRise, 0.08, 0.55) ||
+      bastionCover.minRise >= bastionCover.maxRise ||
+      !finiteRange(bastionCover.boundaryDepth, 0, 2) ||
+      !validHex(bastionCover.bodyColor) ||
+      !validHex(bastionCover.trimColor) ||
+      !validHex(bastionCover.heatColor))
+  )
+    throw new Error(
+      `Theme '${themeId}' wall family '${familyId}' has invalid bastion cover.`,
+    );
   const treeCover = candidate?.treeCover ?? null;
   if (
     treeCover !== null &&
@@ -627,7 +671,14 @@ function wallGeometry3d(
     throw new Error(
       `Theme '${themeId}' wall family '${familyId}' has invalid tree cover.`,
     );
-  return { height, cornerRadius, upperProfile, details, treeCover };
+  return {
+    height,
+    cornerRadius,
+    upperProfile,
+    details,
+    bastionCover,
+    treeCover,
+  };
 }
 
 function wallMaterial3d(
@@ -641,6 +692,7 @@ function wallMaterial3d(
     normalScale: candidate?.normalScale ?? 1,
     roughness: candidate?.roughness ?? 0.88,
     metalness: candidate?.metalness ?? 0.2,
+    colorMultiplier: candidate?.colorMultiplier ?? null,
   };
   if (
     (result.normalMap !== null && !validAssetPath(result.normalMap)) ||
@@ -648,7 +700,9 @@ function wallMaterial3d(
       !validAssetPath(result.roughnessMap)) ||
     !finiteRange(result.normalScale, 0, 4) ||
     !finiteRange(result.roughness, 0, 1) ||
-    !finiteRange(result.metalness, 0, 1)
+    !finiteRange(result.metalness, 0, 1) ||
+    (result.colorMultiplier !== null &&
+      !validHex(result.colorMultiplier))
   )
     throw new Error(
       `Theme '${themeId}' wall family '${familyId}' has invalid 3D material.`,
@@ -677,6 +731,7 @@ function environment3d(
     bumpScale: candidate?.floor?.bumpScale ?? 1.6,
     roughness: candidate?.floor?.roughness ?? 0.86,
     metalness: candidate?.floor?.metalness ?? 0.12,
+    colorMultiplier: candidate?.floor?.colorMultiplier ?? null,
   };
   if (
     !finiteRange(camera.yawDegrees, -45, 45) ||
@@ -690,7 +745,9 @@ function environment3d(
     !finiteRange(lighting.fillIntensity, 0, 12) ||
     !finiteRange(floor.bumpScale, 0, 4) ||
     !finiteRange(floor.roughness, 0, 1) ||
-    !finiteRange(floor.metalness, 0, 1)
+    !finiteRange(floor.metalness, 0, 1) ||
+    (floor.colorMultiplier !== null &&
+      !validHex(floor.colorMultiplier))
   )
     throw new Error(`Theme '${themeId}' has invalid 3D environment values.`);
   return { camera, lighting, floor };

@@ -1,9 +1,11 @@
 # Woodland Grove
 
-Woodland Grove is the Arc Relay deep-warren presentation for
-`arc-relay-ambush-warren-06`. It does not change the map contract or any ASCII
-tile. Walkable cells use one continuous quiet moss/grass field; blocked cells
-retain separate ancient-perimeter and young-cover families.
+Woodland Grove is the retained organic Arc Relay deep-warren presentation.
+Replays already authored with it remain valid and preserve their recorded
+`themeId`; new `arc-relay-ambush-warren-06` replays use Ember Forge after the
+owner's 2026-08-08 direction. Woodland does not change the map contract or any
+ASCII tile. Walkable cells use one continuous quiet moss/grass field; blocked
+cells retain separate ancient-perimeter and young-cover families.
 
 ## 3D mechanism
 

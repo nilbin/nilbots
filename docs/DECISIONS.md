@@ -6601,3 +6601,33 @@ perspective checkbox off returns to the all-unit terrain mask rather than
 making the arena bright. Replays that predate published vision still disable
 fog instead of presenting missing data as darkness. This refines #252's
 terrain shader without changing its 58% darkness or #253's camera.
+
+## 255. Arc Relay moves to Ember Forge's topology-derived living bastion
+
+Owner direction (2026-08-08): improve Ember Forge in the actual Arc Relay map,
+not in the old Frontline showcase. New Arc Relay presentations, including the
+31×27 Ambush Warren, therefore author `ember-forge` directly. Existing replays
+remain immutable: a replay already carrying `woodland-grove` continues to load
+that retained theme. Rules, map IDs/fingerprints, tiles, collision, vision,
+wells, reactors, and camera-mode framing do not change.
+
+Ember's continuous family extrusions remain the blocker truth, but their base
+profiles rise to 0.84 tiles for perimeter and 0.58 for cover. A declarative
+`bastionCover` companion places sparse instanced shoulders, towers, sloped face
+ribs, top trim, and heat seams from stable family/coordinate/topology hashes.
+This creates real alternating height and width without a per-map mesh or a
+one-prop-per-tile contract. In-map additions stay within blocked footprints and
+the measured live-chassis open-edge inset. A 1.2-tile low apron, rounded corner
+plates, and irregular supports extend only outward from the perimeter to make
+the arena shell broader without implying playable ground.
+
+Material response moves toward the approved V4 matte living-bastion direction:
+cooler neutral light, graphite raised modules, restrained copper/heat accents,
+a dark partially blended topology cap, quieter floor bump, and higher
+roughness. Ember receives the proven 12°/52° three-quarter camera with a 28°
+lens. All new meshes use the raised-terrain fog shader, so the unselected
+all-unit union and selected team-only mask remain continuous across floor,
+base walls, varied profiles, and the outside foundation. Fresh native seed
+9001 review evidence records `themeId: ember-forge` and canonical replay hash
+`9a40d1de8ee085ce41cb7ba14bd593d268841481dfb178b4f3ec5bc94de47938`;
+WebGL reports error 0 with no console/page errors.
