@@ -59,13 +59,15 @@ canonical files gives 2,568,888 bytes, 2,431,112 below the unchanged cap.
 
 Six real `arc-relay-ambush-warren-06` matches use the standard exhibition
 cells (`w-9001`, `w-9002`, `e-9005`, `e-9009`, `w-9012`, `e-9004`). Every
-replay header records `themeId: woodland-grove`. The current desktop frame
-uses sample 01 during live play while following Kestrel:
+replay header records `themeId: woodland-grove`. The current desktop frames
+use sample 01 during live play with Kestrel selected for team vision:
 
-- `review/ambush-warren-gameplay-webgl.webp` — revision-4 WebGL with the
-  viewport-aware 63×63 selection camera, flush foliage fields, irregular
-  rooted clusters, mixed tree forms, and the wider, irregular outward
-  perimeter forest.
+- `review/ambush-warren-gameplay-webgl.webp` — revision-5 WebGL strategic
+  overview with the closer objective frame and softened replay-authored fog
+  continuing from the floor onto raised walls and trees.
+- `review/ambush-warren-follow-webgl.webp` — revision-5 WebGL selection shot
+  with a wider 5.8-tile follow frame, viewport-aware 63×63 interaction floor,
+  and enough neighboring terrain to read the immediate fight.
 
 The prior Canvas2D frame is retained only as fallback history; this revision
 was judged in 3D. Bodies, team accents, labels, projectiles, wells, reactors,

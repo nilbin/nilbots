@@ -2012,6 +2012,7 @@ One deliberate divergence: fog darkens the **floor**, not the walls. A horizonta
 can only align at one height, and lifting it above the walls slides it off the floor by most
 of a tile at this camera pitch. Walls are static terrain both players have always known
 about; the information is in where bots and bolts are, and those are hidden by the actors.
+Decision #252 supersedes this floor-only exception with a shared world-space terrain mask.
 
 ## 128. The 2.5D renderer consumes normalized replay identity and represents forms explicitly
 
@@ -6540,3 +6541,28 @@ above 63 px on the reference landscape phone. The strategic overview remains
 an explicit exception because its purpose is to show all three theaters; it is
 never entered by selecting a bot and does not pretend to satisfy a per-body
 readability contract while showing the whole 31×27 board.
+
+## 252. Camera presets converge; raised terrain enters softened fog
+
+Owner correction (2026-08-08): the first 63×63 selection pass over-corrected
+the follow camera while the overview still spent too much of the viewport on
+the map apron. Selection now reserves 98 rather than 120 CSS pixels per tile
+and caps the tight axis at 5.8 tiles. On the desktop review canvas the smallest
+body itself remains above 63×63 CSS pixels; on narrow screens the complete
+selected render, including its dashed ground marker, retains that interaction
+floor. The reference 926×578 follow frame moves from about 7.72×4.82 to
+9.29×5.8 tiles, restoring the neighboring wall and tactical context.
+
+Arc Relay's manual overview no longer treats the map rectangle as an anchor.
+It frames every published Well and Reactor with half a tile of breathing room,
+then conforms that strategic box to the viewport. On the desktop Warren this
+moves the view from 32 to 27 tiles wide while keeping all three theaters; only
+the unplayed outer apron may leave the shot.
+
+The WebGL unseen-terrain darkness moves from 82% to 58%. The existing floor
+plane and every Woodland wall/tree material sample one replay-authored vision
+texture; raised and instanced terrain uses world position so it stays aligned
+with the floor mask at the MOBA camera pitch. Disabling perspective fog sets a
+shared uniform rather than rebuilding materials. Actors and projectiles remain
+hidden by their separate authoritative visibility path. This supersedes #127's
+floor-only exception and refines #251's initial camera constants.

@@ -139,16 +139,10 @@ export function fullArenaFrame(framing: ArenaFraming): ArenaFrame {
  * Small on purpose. The overview's job is to show the board, and a board with a wide
  * frame of background around it is a board nobody can read the far side of.
  */
-const OVERVIEW_MARGIN_TILES = 0.5;
+const OVERVIEW_ANCHOR_MARGIN_TILES = 0.5;
 
 /**
- * How much room the strategic anchors keep around them before the overview refuses to
- * crop any further, in tiles.
- */
-const OVERVIEW_ANCHOR_MARGIN_TILES = 1.5;
-
-/**
- * Arc Relay's overview: **the map, filling the view**.
+ * Arc Relay's overview: **the strategic anchors, filling the view**.
  *
  * This used to be a fit of the three Wells, and before that `fullArenaFrame`, and both
  * had the same failure for the same reason — they CONTAIN rather than COVER. A frame is
@@ -158,14 +152,10 @@ const OVERVIEW_ANCHOR_MARGIN_TILES = 1.5;
  * which is what a viewer opens on, that reads as a camera parked much too far back
  * (owner review 2026-08).
  *
- * So the span is now taken from the *map's own bounds* plus a small margin, and where the
- * viewport's shape disagrees the LONG axis is cropped instead of the short one padded:
- * the warren meets the left and right edges of a landscape viewport, and only its outer
- * apron leaves the frame. Cropping is bounded — the frame widens back out until every
- * strategic anchor the mode names is inside it, which for Arc Relay is all three Wells
- * and both Reactors, the whole reason a strategic overview exists. It never exceeds
- * `fullArenaFrame`, so a portrait phone still gets the whole board rather than a
- * pathological zoom.
+ * The map bounds are deliberately not an anchor. Treating them as one made "overview" a
+ * synonym for maximum zoom-out even when every objective occupied a much smaller box. The
+ * frame now holds all three Wells and both Reactors with half a tile of breathing room;
+ * the unplayed apron may leave the shot. It never exceeds `fullArenaFrame`.
  *
  * The anchors are read from the first causal mode state the replay carries rather than
  * reconstructed from a map id, so a later Arc Relay map gets the same behavior without a
@@ -185,12 +175,7 @@ export function strategicOverviewFrame(
   ].map((position) => ({ x: position.x + 0.5, y: position.y + 0.5 }));
 
   const full = fullArenaFrame(framing);
-  // Cover: the smaller of the two aspect-grown spans, which is the one that puts the map
-  // against the edges of the viewport instead of inside a border of background.
-  let width = Math.min(
-    framing.mapWidth + OVERVIEW_MARGIN_TILES * 2,
-    (framing.mapHeight + OVERVIEW_MARGIN_TILES * 2) * framing.aspect,
-  );
+  let width = framing.minSpan ?? MIN_SPAN_TILES;
   if (anchors.length > 0) {
     const left = Math.min(...anchors.map((point) => point.x));
     const right = Math.max(...anchors.map((point) => point.x));
@@ -338,23 +323,23 @@ export function frameEscapes(
 /**
  * How much clear ground a deliberately followed body may keep around it, in tiles.
  *
- * Five tiles on the viewport's tight axis is the context ceiling, not a fixed pad. A
+ * 5.8 tiles on the viewport's tight axis is the context ceiling, not a fixed pad. A
  * smaller screen closes further so the body does not become smaller merely because the
  * canvas did. The resulting shot still shows the next wall or two beyond the selected
  * machine, but the machine is now the subject rather than a dot inside a squad-wide view.
  */
-export const SELECTION_FOLLOW_MAX_MINOR_SPAN_TILES = 5;
+export const SELECTION_FOLLOW_MAX_MINOR_SPAN_TILES = 5.8;
 
 /**
  * CSS pixels per ground tile reserved by the WebGL selection shot.
  *
  * A chassis' minimum plan span is 0.82 tile. Its raised, tilted projection and Woodland
  * Grove's side-biased camera consume part of that nominal size, so 63 / 0.82 is not a safe
- * camera density. 120 px/tile includes that perspective loss: the smallest fallback body
- * projects above 63×63 px at both 852×393 and 393×852, while a desktop view keeps the
- * useful five-tile context ceiling instead of turning selection into a portrait.
+ * camera density. 98 px/tile holds the body itself above 63×63 px at the desktop review
+ * camera. On narrower screens the selected body's dashed ground marker keeps the complete
+ * render above that interaction floor without forcing the terrain back into a close-up.
  */
-const SELECTION_FOLLOW_PIXELS_PER_TILE = 120;
+const SELECTION_FOLLOW_PIXELS_PER_TILE = 98;
 
 /**
  * The screen-readable frame that follows one deliberately selected body.
@@ -379,7 +364,7 @@ export function selectionFollowFrame(
       ? SELECTION_FOLLOW_MAX_MINOR_SPAN_TILES
       : Math.max(viewportMinor / SELECTION_FOLLOW_PIXELS_PER_TILE, 1),
   );
-  // `focusFrame.minSpan` names the horizontal span. On a landscape hole the five-tile
+  // `focusFrame.minSpan` names the horizontal span. On a landscape hole the tight-axis
   // readability budget belongs to height, so grow it by the aspect here; in portrait the
   // horizontal axis is already the tight one.
   const width = minorSpan * Math.max(1, framing.aspect);

@@ -7,6 +7,7 @@ import type { ReplayModel } from '../src/replayModel.ts';
 import { loadReplayJson } from '../src/replayIngress.ts';
 import {
   buildArena,
+  buildOverlays,
   WALL_OPEN_EDGE_INSET,
 } from './.harness/harness.entry.js';
 
@@ -454,6 +455,37 @@ test('Woodland roots remain authoritative while organic foliage overhangs', () =
       overhangingCrowns > 8,
       'crowns should cross cell edges instead of exposing tile-shaped padding',
     );
+
+    const overlays = buildOverlays(source, undefined, arena.scene);
+    const canopyMaterial = canopies[0]!.material;
+    assert.ok(!Array.isArray(canopyMaterial));
+    const fog = canopyMaterial.userData.arenaVisionFog as {
+      enabled: { value: number };
+      texture: THREE.DataTexture;
+    };
+    assert.ok(fog, 'living wall materials receive the team-vision mask');
+    const selected = source.units.find((unit) => unit.teamId === 0)!;
+    overlays.update(0, selected.unitKey, true);
+    assert.equal(fog.enabled.value, 1);
+    const mask = fog.texture.image.data as Uint8Array;
+    assert.ok(mask.some((value, index) => index % 4 === 3 && value === 0));
+    assert.ok(
+      mask.some((value, index) => index % 4 === 3 && value > 0 && value < 200),
+      'unseen terrain is subdued rather than blacked out',
+    );
+
+    const shader = {
+      uniforms: {},
+      vertexShader: 'void main() {\n#include <project_vertex>\n}',
+      fragmentShader: 'void main() {\n#include <opaque_fragment>\n}',
+    };
+    canopyMaterial.onBeforeCompile(shader as never, {} as never);
+    assert.match(shader.vertexShader, /instanceMatrix/);
+    assert.match(shader.fragmentShader, /arenaVisionFogMap/);
+    assert.ok('arenaVisionFogEnabled' in shader.uniforms);
+    overlays.update(0, null, false);
+    assert.equal(fog.enabled.value, 0, 'turning vision off restores all terrain');
+    overlays.dispose();
     arena.dispose();
   } finally {
     globalThis.Image = image;

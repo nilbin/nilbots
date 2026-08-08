@@ -673,7 +673,7 @@ Animations describe recorded events; they do not create events.
 | Fabrication/lifecycle | Stable unit and explicit lifecycle events | Unit-qualified spawn/rebuild status without inventing an active body |
 | Anchor | Recorded pending transition plus start/change/cancel events | Source-body windup ring/status, then body swap only on `FormChanged` |
 | Turret | Recorded current form/capabilities and absolute shot heading | Stationary/360 cue and heading-true muzzle/projectile treatment |
-| Fog/vision | Recorded visible tiles/enemies/projectiles from every active teammate | Selecting a bot chooses its team perspective: both renderers union that team's published observations for one truthful shared-vision mask |
+| Fog/vision | Recorded visible tiles/enemies/projectiles from every active teammate | Selecting a bot chooses its team perspective: both renderers union that team's published observations for one truthful shared-vision mask; WebGL applies its softened mask to the floor and raised wall/tree terrain while hiding unseen actors separately |
 | Arc Relay Core | Recorded spawn/flight/possession plus the carrier's interpolated pose | One luminous sphere: neutral white/lilac (never a team hue) over its well, dropped tile, or flight arc; only possession adds the carrier team's colour, fixed above the carrier with subtle hover and a faint tether |
 
 Arc Relay's compact spectator transport carries that visible-tile union once per
@@ -707,11 +707,15 @@ Arc Relay's automatic director has a shared seven-and-a-half-tile closest shot
 in Canvas2D and WebGL. It clusters sustained combat, treats a carrier as a
 camera subject only while threatened, and holds an ordinary shot for seven
 replay ticks before another theater may win. Deliberately selecting a bot is a
-closer, viewport-aware shot: its tight axis never exceeds five tiles and closes
-further on small screens so the minimum 0.82-tile WebGL body projects at least
-63×63 CSS pixels through the shipped MOBA camera in both phone orientations.
-The manual overview fits the published Wells, retaining all three theaters
-while allowing deep home aprons to leave the frame. A compact causal HUD call
+closer, viewport-aware shot: its tight axis never exceeds 5.8 tiles and closes
+further on small screens. The minimum 0.82-tile WebGL body clears 63×63 CSS
+pixels on the desktop review camera; on narrow screens the complete selected
+render, including its dashed ground marker, retains that interaction floor
+without turning the terrain into a close-up. The manual overview fits the
+published Wells and Reactors with half a tile of breathing room, retaining all
+three theaters while allowing deep home aprons to leave the frame. Perspective
+fog darkens unseen terrain by 58% rather than blacking it out; one shared mask
+affects the floor and raised wall/tree materials. A compact causal HUD call
 beside the standing score identifies Core
 birth, pickup/steal, drop, bank, and Pulse events; it does not replace their
 diegetic world effects or reveal facts after the playhead.

@@ -66,6 +66,7 @@ const PHONE_PORTRAIT = { width: 393, height: 852 };
 function projectedWebglBotFootprint(
   frame: ArenaFrame,
   viewport: { width: number; height: number },
+  includeSelectionMarker = false,
 ): { width: number; height: number } {
   const yaw = (22 * Math.PI) / 180;
   const pitch = (52 * Math.PI) / 180;
@@ -110,6 +111,23 @@ function projectedWebglBotFootprint(
         top = Math.min(top, corner.y);
         bottom = Math.max(bottom, corner.y);
       }
+    }
+  }
+  if (includeSelectionMarker) {
+    // The selected render includes the dashed marker at 1.09 chassis widths. It is part of
+    // the interaction footprint on narrow screens, where preserving more terrain makes an
+    // intentionally slender authored hull smaller than its nominal square normalization.
+    for (let sample = 0; sample < 64; sample += 1) {
+      const angle = (sample / 64) * Math.PI * 2;
+      const corner = new THREE.Vector3(
+        frame.x + Math.cos(angle) * 0.82 * 1.09,
+        0.034,
+        frame.y + Math.sin(angle) * 0.82 * 1.09,
+      ).project(camera);
+      left = Math.min(left, corner.x);
+      right = Math.max(right, corner.x);
+      top = Math.min(top, corner.y);
+      bottom = Math.max(bottom, corner.y);
     }
   }
   return {
@@ -284,14 +302,12 @@ test('Arc Relay overview frames all three theaters closer than the whole map', (
   for (const y of [4.5, 11.5, 18.5])
     assert.ok(Math.abs(y - overview.y) < overview.height / 2, `theater ${y} remains visible`);
 
-  // The overview COVERS the map rather than containing it: a 31-wide warren reaches both
-  // edges of a landscape viewport, give or take the margin, instead of sitting inside a
-  // third of a screen of background — which is what `fullArenaFrame` asks for and what an
-  // opening frame used to look like (owner review 2026-08).
+  // The overview frames the strategic anchors rather than treating the map boundary as
+  // one. The unplayed apron may leave the shot instead of making overview synonymous with
+  // maximum zoom-out (owner review 2026-08).
   assert.ok(
-    overview.width >= framing.mapWidth &&
-      overview.width <= framing.mapWidth + 2,
-    `a ${framing.mapWidth}-wide map fills a ${overview.width}-tile overview`,
+    overview.width < framing.mapWidth,
+    `the ${overview.width}-tile overview crops a ${framing.mapWidth}-wide map`,
   );
   assert.ok(
     Math.abs(overview.x - framing.mapWidth / 2) < 1e-9 &&
@@ -359,7 +375,12 @@ test('a camera opened in overview holds it, with no intro zoom', () => {
     camera.aim(focusFrame(focusPointsAt(arc, step / 6, null), framing), step / 6);
     camera.advance(1 / 60);
   }
-  assert.deepEqual(camera.frame, overview, 'and stays there while the match runs');
+  for (const coordinate of ['x', 'y', 'width', 'height'] as const) {
+    assert.ok(
+      Math.abs(camera.frame[coordinate] - overview[coordinate]) < 1e-9,
+      `and ${coordinate} stays there while the match runs`,
+    );
+  }
 });
 
 test('an unthreatened bank run does not outrank cross-team play', () => {
@@ -906,7 +927,7 @@ test('camera targets consume continuous rendered poses rather than snapped tiles
  * screenshot: the shot is genuinely between the overview and the closest the fit will go,
  * it pans without breathing, and the hand still wins.
  */
-test('a selection follow keeps the chosen body above 63×63 CSS pixels', () => {
+test('a selection follow keeps context while its complete render clears 63×63 CSS pixels', () => {
   const framing = {
     mapWidth: 31,
     mapHeight: 23,
@@ -926,12 +947,21 @@ test('a selection follow keeps the chosen body above 63×63 CSS pixels', () => {
     `clearly closer than the board (${follow.width.toFixed(1)} of ${full.width.toFixed(1)})`,
   );
   assert.ok(
-    follow.height <= 5,
-    `at most five tiles on the tight axis (${follow.height.toFixed(1)})`,
+    follow.height <= 5.8,
+    `at most 5.8 tiles on the tight axis (${follow.height.toFixed(1)})`,
   );
   assert.ok(
     Math.abs(follow.x - body.x) < 1e-9 && Math.abs(follow.y - body.y) < 1e-9,
     'centred on the body, not on the map',
+  );
+  const desktopFootprint = projectedWebglBotFootprint(follow, {
+    width: framing.viewportWidth,
+    height: framing.viewportHeight,
+  });
+  assert.ok(
+    desktopFootprint.width >= MINIMUM_BOT_RENDER_PIXELS &&
+      desktopFootprint.height >= MINIMUM_BOT_RENDER_PIXELS,
+    `desktop body is ${desktopFootprint.width.toFixed(1)}×${desktopFootprint.height.toFixed(1)} px`,
   );
 
   for (const viewport of [PHONE_LANDSCAPE, PHONE_PORTRAIT]) {
@@ -942,7 +972,7 @@ test('a selection follow keeps the chosen body above 63×63 CSS pixels', () => {
       viewportHeight: viewport.height,
     };
     const phoneFollow = selectionFollowFrame(body, phoneFraming);
-    const footprint = projectedWebglBotFootprint(phoneFollow, viewport);
+    const footprint = projectedWebglBotFootprint(phoneFollow, viewport, true);
     assert.ok(
       footprint.width >= MINIMUM_BOT_RENDER_PIXELS &&
         footprint.height >= MINIMUM_BOT_RENDER_PIXELS,

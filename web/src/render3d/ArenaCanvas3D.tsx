@@ -160,7 +160,7 @@ export default function ArenaCanvas3D({
         node.rotation.x = CAMERA_PITCH - arena.cameraPitch;
       }
     });
-    const overlays = buildOverlays(replay, entrants);
+    const overlays = buildOverlays(replay, entrants, arena.scene);
     arena.scene.add(actors.group);
     arena.scene.add(overlays.group);
 
