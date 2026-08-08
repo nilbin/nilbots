@@ -3,17 +3,17 @@ using BotArena.Engine;
 
 namespace BotArena.App.Tests;
 
-public sealed class ArcRelayPlayerSheetCodecTests
+public sealed class ArcRelayLegacySnapshotCodecTests
 {
     private static readonly ArcRelayClassCatalog Catalog =
         ArcRelayClassCatalog.Default;
-    private static readonly ArcRelayPlayerSheetCodec Codec = new(Catalog);
+    private static readonly ArcRelayLegacySnapshotCodec Codec = new(Catalog);
 
     [Fact]
     public void Template_is_valid_canonical_and_builds_without_rebuilding_the_mind()
     {
         ArcRelaySheetDocument document =
-            ArcRelayPlayerSheetCodec.NewSheetTemplate();
+            ArcRelayLegacySnapshotCodec.NewSheetTemplate();
         ArcRelaySheetCompilation first = Codec.Compile(
             document,
             Catalog.StarterIds,
@@ -35,7 +35,7 @@ public sealed class ArcRelayPlayerSheetCodecTests
     [Fact]
     public void Home_gates_sheet_migrates_to_counterflow_deterministically()
     {
-        ArcRelaySheetDocument current = ArcRelayPlayerSheetCodec.NewSheetTemplate();
+        ArcRelaySheetDocument current = ArcRelayLegacySnapshotCodec.NewSheetTemplate();
         ArcRelaySheetDocument legacy = current with
         {
             MapId = ArcRelayLoopProfile.HomeGatesWide.MapId,
@@ -78,7 +78,7 @@ public sealed class ArcRelayPlayerSheetCodecTests
     public void Locked_class_is_rejected_at_the_product_boundary()
     {
         ArcRelaySheetDocument original =
-            ArcRelayPlayerSheetCodec.NewSheetTemplate();
+            ArcRelayLegacySnapshotCodec.NewSheetTemplate();
         ArcRelaySheetDocument changed = original with
         {
             Slots = original.Slots.Select(slot => slot.UnitId == 0
@@ -96,7 +96,7 @@ public sealed class ArcRelayPlayerSheetCodecTests
     public void More_than_two_copies_of_one_class_is_rejected()
     {
         ArcRelaySheetDocument original =
-            ArcRelayPlayerSheetCodec.NewSheetTemplate();
+            ArcRelayLegacySnapshotCodec.NewSheetTemplate();
         ArcRelaySheetDocument changed = original with
         {
             Slots = original.Slots.Select(slot => slot.UnitId <= 2
@@ -124,19 +124,19 @@ public sealed class ArcRelayPlayerSheetCodecTests
     [Fact]
     public void Custom_mind_composition_uses_the_same_cap_and_reserves_adaptive_fields()
     {
-        string[] valid = ArcRelayPlayerSheetCodec.NewSheetTemplate().Slots
+        string[] valid = ArcRelayLegacySnapshotCodec.NewSheetTemplate().Slots
             .OrderBy(value => value.UnitId).Select(value => value.ClassId).ToArray();
         ArcRelayCompositionCompilation compiled = ArcRelayComposition.Compile(
-            new ArcRelayCompositionDeclaration(valid), Codec, Catalog.StarterIds);
+            new ArcRelayCompositionDeclaration(valid), Catalog, Catalog.StarterIds);
 
         Assert.Equal(valid, ArcRelayComposition.Read(compiled.CanonicalJson).ClassIds);
         Assert.Equal(64, compiled.ContentHash.Length);
         Assert.Throws<InvalidDataException>(() => ArcRelayComposition.Compile(
             new ArcRelayCompositionDeclaration(valid, "adaptive-v1", []),
-            Codec, Catalog.StarterIds));
+            Catalog, Catalog.StarterIds));
         Assert.Throws<InvalidDataException>(() => ArcRelayComposition.Compile(
             new ArcRelayCompositionDeclaration(valid.Select((value, index) => index < 3 ? "kestrel" : value).ToArray()),
-            Codec, Catalog.StarterIds));
+            Catalog, Catalog.StarterIds));
     }
 
     [Fact]

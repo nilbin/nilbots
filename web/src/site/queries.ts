@@ -11,10 +11,10 @@ import {
   type MatchSetDetail,
   type MatchSummary,
   type AssignBotClassRequest,
-  type CreateArcRelayScrimmageRequest,
   type CreateArcRelayMindRequest,
   type ReviseArcRelayMindRequest,
-  type SaveArcRelaySheetRequest,
+  type SaveTacticalSheetRequest,
+  type TrialTacticalSheetRequest,
   type SubmitVersionRequest,
   type UpdateBotAppearanceRequest,
 } from './api';
@@ -52,8 +52,9 @@ const keys = {
   me: ['me'] as const,
   myBots: ['my-bots'] as const,
   notifications: ['notifications'] as const,
-  arcRelayCatalog: ['arc-relay', 'catalog'] as const,
-  arcRelaySheets: ['arc-relay', 'sheets'] as const,
+  tacticalSheetCatalog: ['sheets', 'catalog'] as const,
+  tacticalSheets: ['sheets'] as const,
+  tacticalSheet: (id: string) => ['sheets', id] as const,
   arcRelayEntrants: ['arc-relay', 'entrants'] as const,
   arcRelayLadder: ['arc-relay', 'ladder'] as const,
 };
@@ -163,22 +164,30 @@ export function useLabsCatalog(enabled = true) {
   });
 }
 
-/** Arc Relay class/unlock vocabulary and the server-authored eight-slot starter sheet. */
-export function useArcRelayCatalog(enabled = true) {
+/** Current tactical vocabulary, exact hosted map and portable starter sources. */
+export function useTacticalSheetCatalog(enabled = true) {
   return useQuery({
-    queryKey: keys.arcRelayCatalog,
-    queryFn: endpoints.arcRelayCatalog,
+    queryKey: keys.tacticalSheetCatalog,
+    queryFn: endpoints.tacticalSheetCatalog,
     enabled,
     staleTime: 5 * 60_000,
   });
 }
 
-/** Saved commander sheets are private, revisioned account data. */
-export function useArcRelaySheets(enabled: boolean) {
+/** Saved tactical sheets are private, revisioned account data. */
+export function useTacticalSheets(enabled: boolean) {
   return useQuery({
-    queryKey: keys.arcRelaySheets,
-    queryFn: endpoints.arcRelaySheets,
+    queryKey: keys.tacticalSheets,
+    queryFn: endpoints.tacticalSheets,
     enabled,
+  });
+}
+
+export function useTacticalSheet(sheetId: string | null) {
+  return useQuery({
+    queryKey: keys.tacticalSheet(sheetId ?? ''),
+    queryFn: () => endpoints.tacticalSheet(sheetId!),
+    enabled: sheetId !== null,
   });
 }
 
@@ -502,26 +511,46 @@ export function useCreateLabsMatch() {
   });
 }
 
-export function useSaveArcRelaySheet() {
+export function useSaveTacticalSheet() {
   const client = useQueryClient();
   return useMutation({
     mutationFn: ({ sheetId, body }: {
       sheetId?: string;
-      body: SaveArcRelaySheetRequest;
+      body: SaveTacticalSheetRequest;
     }) => sheetId
-      ? endpoints.updateArcRelaySheet(sheetId, body)
-      : endpoints.createArcRelaySheet(body),
-    onSuccess: () => client.invalidateQueries({ queryKey: keys.arcRelaySheets }),
+      ? endpoints.updateTacticalSheet(sheetId, body)
+      : endpoints.createTacticalSheet(body),
+    onSuccess: (saved) => {
+      client.setQueryData(keys.tacticalSheet(saved.id), saved);
+      void client.invalidateQueries({ queryKey: keys.tacticalSheets });
+      void client.invalidateQueries({ queryKey: keys.arcRelayEntrants });
+      void client.invalidateQueries({ queryKey: keys.arcRelayLadder });
+    },
   });
 }
 
-export function useCreateArcRelayMatch() {
+export function useDeleteTacticalSheet() {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: (body: CreateArcRelayScrimmageRequest) => endpoints.createArcRelayScrimmage(body),
+    mutationFn: (sheetId: string) => endpoints.deleteTacticalSheet(sheetId),
+    onSuccess: ({ id }) => {
+      client.removeQueries({ queryKey: keys.tacticalSheet(id) });
+      void client.invalidateQueries({ queryKey: keys.tacticalSheets });
+      void client.invalidateQueries({ queryKey: keys.arcRelayEntrants });
+      void client.invalidateQueries({ queryKey: keys.arcRelayLadder });
+    },
+  });
+}
+
+export function useTrialTacticalSheet() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({ sheetId, body }: {
+      sheetId: string;
+      body: TrialTacticalSheetRequest;
+    }) => endpoints.trialTacticalSheet(sheetId, body),
     onSuccess: () => {
       void client.invalidateQueries({ queryKey: ['matches'] });
-      void client.invalidateQueries({ queryKey: keys.arcRelaySheets });
     },
   });
 }

@@ -1502,105 +1502,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/arc-relay/sheets": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ArcRelaySheetResponse"][];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["SaveArcRelaySheetRequest"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ArcRelaySheetResponse"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/arc-relay/sheets/{sheetId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    sheetId: string;
-                };
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["SaveArcRelaySheetRequest"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ArcRelaySheetResponse"];
-                    };
-                };
-            };
-        };
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/arc-relay/minds": {
         parameters: {
             query?: never;
@@ -1932,7 +1833,183 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/arc-relay/matches": {
+    "/api/sheets/catalog": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TacticalSheetCatalogResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sheets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TacticalSheetSummaryResponse"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SaveTacticalSheetRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TacticalSheetResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sheets/{sheetId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    sheetId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TacticalSheetResponse"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    sheetId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SaveTacticalSheetRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TacticalSheetResponse"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    sheetId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TacticalSheetDeletedResponse"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sheets/{sheetId}/trial": {
         parameters: {
             query?: never;
             header?: never;
@@ -1945,12 +2022,14 @@ export interface paths {
             parameters: {
                 query?: never;
                 header?: never;
-                path?: never;
+                path: {
+                    sheetId: string;
+                };
                 cookie?: never;
             };
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["CreateArcRelayMatchRequest"];
+                    "application/json": components["schemas"]["TrialTacticalSheetRequest"];
                 };
             };
             responses: {
@@ -2186,13 +2265,6 @@ export interface components {
             /** Format: int32 */
             retryAfterSeconds: null | number;
         };
-        ArcRelayCarrierPolicy: {
-            /** Format: int32 */
-            handoffHealthAtOrBelow: number;
-            preferAssignedTheater: boolean;
-            /** Format: int32 */
-            routeFailureTicks: number;
-        };
         ArcRelayCatalogResponse: {
             playlistKey: string;
             /** Format: uuid */
@@ -2203,11 +2275,7 @@ export interface components {
             slotCount: number;
             /** Format: int32 */
             maximumCopiesPerClass: number;
-            theaters: string[];
-            roles: string[];
-            gambitTriggers: string[];
             classes: components["schemas"]["ArcRelayClassResponse"][];
-            newSheetTemplate: components["schemas"]["ArcRelaySheetDocument"];
         };
         ArcRelayClassResponse: {
             id: string;
@@ -2268,15 +2336,6 @@ export interface components {
             contentHash: string;
             isOwner: boolean;
         };
-        ArcRelayEscortPolicy: {
-            /** Format: int32 */
-            followDistance: number;
-            focusEnemyCarrier: boolean;
-        };
-        ArcRelayInterceptionPolicy: {
-            focusEnemyCarrier: boolean;
-            looseCoreFallback: boolean;
-        };
         ArcRelayLadderResponse: {
             /** Format: uuid */
             ladderId: string;
@@ -2312,78 +2371,6 @@ export interface components {
             /** Format: uuid */
             matchId: string;
             status: string;
-        };
-        ArcRelaySheetDocument: {
-            /** Format: int32 */
-            schemaVersion: number;
-            mapId: string;
-            slots: components["schemas"]["ArcRelaySheetSlot"][];
-            zones: components["schemas"]["ArcRelaySheetZone"][];
-            rallyLines: components["schemas"]["ArcRelaySheetRallyLine"][];
-            policies: components["schemas"]["ArcRelaySheetPolicies"];
-            gambits: components["schemas"]["ArcRelaySheetGambit"][];
-        };
-        ArcRelaySheetGambit: {
-            id: string;
-            trigger: string;
-            /** Format: int32 */
-            durationTicks: number;
-            /** Format: int32 */
-            cooldownTicks: number;
-            scopeRoles: string[];
-            roleOverride: string;
-            rallyLineId: string;
-        };
-        ArcRelaySheetPoint: {
-            /** Format: int32 */
-            x: number;
-            /** Format: int32 */
-            y: number;
-        };
-        ArcRelaySheetPolicies: {
-            carrier: components["schemas"]["ArcRelayCarrierPolicy"];
-            escort: components["schemas"]["ArcRelayEscortPolicy"];
-            interception: components["schemas"]["ArcRelayInterceptionPolicy"];
-        };
-        ArcRelaySheetRallyLine: {
-            id: string;
-            points: components["schemas"]["ArcRelaySheetPoint"][];
-        };
-        ArcRelaySheetResponse: {
-            /** Format: uuid */
-            id: string;
-            name: string;
-            /** Format: int32 */
-            revision: number;
-            contentHash: string;
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
-            updatedAt: string;
-            document: components["schemas"]["ArcRelaySheetDocument"];
-            entrant: components["schemas"]["ArcRelayEntrantCardResponse"];
-        };
-        ArcRelaySheetSlot: {
-            /** Format: int32 */
-            unitId: number;
-            classId: string;
-            theater: string;
-            role: string;
-            /** Format: int32 */
-            partnerUnitId: number;
-            outboundPath: components["schemas"]["ArcRelaySheetPoint"][];
-            returnPath: components["schemas"]["ArcRelaySheetPoint"][];
-        };
-        ArcRelaySheetZone: {
-            id: string;
-            /** Format: int32 */
-            minX: number;
-            /** Format: int32 */
-            minY: number;
-            /** Format: int32 */
-            maxX: number;
-            /** Format: int32 */
-            maxY: number;
         };
         ArenaAllowanceResponse: {
             /** Format: int32 */
@@ -2622,14 +2609,6 @@ export interface components {
             sourceKind: string;
             sourceId: string;
             hint: string;
-        };
-        CreateArcRelayMatchRequest: {
-            /** Format: uuid */
-            sheetId: string;
-            /** Format: uuid */
-            opponentSheetId: string;
-            /** Format: int64 */
-            seed: null | number;
         };
         CreateArcRelayMindRequest: {
             name: string;
@@ -3013,11 +2992,13 @@ export interface components {
             files: components["schemas"]["SourceFileDto"][];
             composition: components["schemas"]["ArcRelayCompositionDeclaration"];
         };
-        SaveArcRelaySheetRequest: {
+        SaveTacticalSheetRequest: {
             name: string;
             /** Format: int32 */
             expectedRevision: null | number;
-            document: components["schemas"]["ArcRelaySheetDocument"];
+            playbookJson: string;
+            layoutJson: string;
+            enterLadder?: null | boolean;
         };
         SetArcRelayCrestRequest: {
             /** Format: int32 */
@@ -3069,6 +3050,107 @@ export interface components {
             /** Format: int32 */
             versionNumber: number;
             status: string;
+        };
+        TacticalSheetCatalogResponse: {
+            playlistKey: string;
+            /** Format: uuid */
+            playlistVersionId: string;
+            map: components["schemas"]["TacticalSheetMapResponse"];
+            /** Format: int32 */
+            slotCount: number;
+            /** Format: int32 */
+            maximumCopiesPerClass: number;
+            classes: components["schemas"]["TacticalSheetClassResponse"][];
+            templatePlaybookJson: string;
+            templateLayoutJson: string;
+            stockOpponents: components["schemas"]["TacticalStockSheetResponse"][];
+        };
+        TacticalSheetClassResponse: {
+            id: string;
+            name: string;
+            signatureName: string;
+            fantasy: string;
+            starter: boolean;
+            unlocked: boolean;
+        };
+        TacticalSheetDeletedResponse: {
+            /** Format: uuid */
+            id: string;
+        };
+        TacticalSheetMapRegionResponse: {
+            id: string;
+            kind: string;
+            tiles: components["schemas"]["TacticalSheetPointResponse"][];
+        };
+        TacticalSheetMapResponse: {
+            id: string;
+            /** Format: int32 */
+            version: number;
+            /** Format: int32 */
+            formatVersion: number;
+            /** Format: int32 */
+            width: number;
+            /** Format: int32 */
+            height: number;
+            tileRows: string[];
+            regions: components["schemas"]["TacticalSheetMapRegionResponse"][];
+            spawnAnchors: components["schemas"]["TacticalSheetMapSpawnResponse"][];
+            tileTags: components["schemas"]["TacticalSheetMapTagResponse"][];
+        };
+        TacticalSheetMapSpawnResponse: {
+            id: string;
+            position: components["schemas"]["TacticalSheetPointResponse"];
+            facing: string;
+        };
+        TacticalSheetMapTagResponse: {
+            id: string;
+            kind: string;
+            tiles: components["schemas"]["TacticalSheetPointResponse"][];
+        };
+        TacticalSheetPointResponse: {
+            /** Format: int32 */
+            x: number;
+            /** Format: int32 */
+            y: number;
+        };
+        TacticalSheetResponse: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            /** Format: int32 */
+            revision: number;
+            contentHash: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+            playbookJson: string;
+            layoutJson: string;
+            entrant: components["schemas"]["ArcRelayEntrantCardResponse"];
+        };
+        TacticalSheetSummaryResponse: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            /** Format: int32 */
+            revision: number;
+            contentHash: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+            entrant: components["schemas"]["ArcRelayEntrantCardResponse"];
+        };
+        TacticalStockSheetResponse: {
+            id: string;
+            name: string;
+            description: string;
+            composition: string[];
+        };
+        TrialTacticalSheetRequest: {
+            stockSheetId: string;
+            /** Format: int64 */
+            seed: null | number;
         };
         UpdateBotAppearanceRequest: {
             accent: string;

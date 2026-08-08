@@ -14,13 +14,16 @@ public sealed class ArcRelayEntrantPlaylistDefinition : IHostedGenericMatchDefin
 {
     public const string PlaylistKey = ArcRelayPlaylistDefinition.PlaylistKey;
     public const string DisplayName = ArcRelayPlaylistDefinition.DisplayName;
-    public const int Version = 5;
-    public const int PreviousVersion = 4;
+    public const int Version = 6;
+    public const int PreviousVersion = 5;
+    public const int ForwardVersion = 4;
     public const int CounterflowVersion = 3;
     public const int HistoricalVersion = 2;
     public const string SeriesPolicyId = "single-match-v1";
     public const string MatchmakingPolicyId = "passive-elo-proximity-v1";
     public const string Visibility = PlaylistVisibilityIds.Public;
+    public const string TacticalArtifactHash =
+        "42288a911821f7893f34fb096cd8c17464f24da7a170761898f10e8b0497763b";
 
     private ArcRelayEntrantPlaylistDefinition(
         int version,
@@ -58,11 +61,17 @@ public sealed class ArcRelayEntrantPlaylistDefinition : IHostedGenericMatchDefin
     public static ArcRelayEntrantPlaylistDefinition Create() => Create(
         Version,
         ArcRelayLoopProfile.Current,
+        source: "arc-relay-tactical-sheet-editor-pass",
+        canonicalGameplayUnchangedFromVersion1: false);
+
+    public static ArcRelayEntrantPlaylistDefinition CreateHistoricalV5() => Create(
+        PreviousVersion,
+        ArcRelayLoopProfile.Current,
         source: "arc-relay-stock-recovery-pass",
         canonicalGameplayUnchangedFromVersion1: false);
 
     public static ArcRelayEntrantPlaylistDefinition CreateHistoricalV4() => Create(
-        PreviousVersion,
+        ForwardVersion,
         ArcRelayLoopProfile.ForwardCombat,
         source: "arc-relay-forward-combat-owner-ruling",
         canonicalGameplayUnchangedFromVersion1: false);
@@ -85,7 +94,7 @@ public sealed class ArcRelayEntrantPlaylistDefinition : IHostedGenericMatchDefin
         string source,
         bool canonicalGameplayUnchangedFromVersion1)
     {
-        string[] classes = ArcRelayPlayerSheetCodec.NewSheetTemplate().Slots
+        string[] classes = ArcRelayLegacySnapshotCodec.NewSheetTemplate().Slots
             .OrderBy(slot => slot.UnitId)
             .Select(slot => slot.ClassId)
             .ToArray();
@@ -112,15 +121,18 @@ public sealed class ArcRelayEntrantPlaylistDefinition : IHostedGenericMatchDefin
                 "stockArtifactHash",
                 version switch
                 {
-                    Version => ArcRelayPlaylistDefinition.ForwardStockArtifactHash,
-                    PreviousVersion => ArcRelayPlaylistDefinition
+                    Version => TacticalArtifactHash,
+                    PreviousVersion => ArcRelayPlaylistDefinition.ForwardStockArtifactHash,
+                    ForwardVersion => ArcRelayPlaylistDefinition
                         .HistoricalForwardStockArtifactHash,
                     _ => ArcRelayPlaylistDefinition.StockArtifactHash,
                 });
-            writer.WriteString("sheetSchema", ArcRelayPlayerSheetCodec.SchemaId);
+            writer.WriteString("sheetSchema", version == Version
+                ? "arc-relay-tactical-playbook-v1"
+                : ArcRelayLegacySnapshotCodec.SchemaId);
             writer.WriteString("compositionSchema", "arc-relay-composition-v1");
-            writer.WriteNumber("compositionSlots", ArcRelayPlayerSheetCodec.SlotCount);
-            writer.WriteNumber("maximumCopiesPerClass", ArcRelayPlayerSheetCodec.MaximumCopiesPerClass);
+            writer.WriteNumber("compositionSlots", ArcRelayComposition.SlotCount);
+            writer.WriteNumber("maximumCopiesPerClass", ArcRelayComposition.MaximumCopiesPerClass);
             writer.WriteNumber("maximumOptedInPerAccount", ArcRelayLadderPolicy.MaximumOptedInPerAccount);
             writer.WriteNumber("maximumMatchesPerEntrantPerDay", ArcRelayLadderPolicy.MaximumMatchesPerEntrantPerDay);
             writer.WriteNumber("presentationTicksPerSecond", 1.25);
@@ -142,10 +154,18 @@ public sealed class ArcRelayEntrantPlaylistDefinition : IHostedGenericMatchDefin
             if (version == Version)
             {
                 writer.WriteBoolean("ownerApprovedForwardCombat", true);
-                writer.WriteBoolean("stockRecoveryPass", true);
+                writer.WriteBoolean("tacticalPlaybookCompilerShared", true);
+                writer.WriteBoolean("portableTwoFileSheets", true);
                 writer.WriteNumber("ratingContinuityFromVersion", PreviousVersion);
             }
             else if (version == PreviousVersion)
+            {
+                // Preserve v5's immutable provenance bytes exactly.
+                writer.WriteBoolean("ownerApprovedForwardCombat", true);
+                writer.WriteBoolean("stockRecoveryPass", true);
+                writer.WriteNumber("ratingContinuityFromVersion", ForwardVersion);
+            }
+            else if (version == ForwardVersion)
             {
                 // Preserve v4's immutable provenance bytes exactly.
                 writer.WriteBoolean("ownerApprovedForwardCombat", true);

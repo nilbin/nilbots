@@ -3,8 +3,9 @@
 Arc Relay's competitive entity is an **entrant**. The hosted product ships two
 kinds on the same ladder surface:
 
-- a **sheet**: saved evaluation-grade commander data executed by the frozen,
-  registered stock mind;
+- a **sheet**: a saved tactical playbook plus plotted map layout, compiled by
+  the shared tactical compiler and executed by the registered first-party
+  tactical mind;
 - a **custom mind**: player source built by the controlled toolchain and run
   only in the fuel- and memory-limited WASM sandbox.
 
@@ -19,6 +20,14 @@ Both kinds snapshot eight unlocked classes with no more than two copies of one
 class. Custom minds declare that composition at submission and revision time;
 the reserved adaptive-composition fields remain empty in v1. The server
 validates declarations against current ownership before it accepts them.
+
+A sheet is authored as the current doctrine grammar: ordered role modes,
+condition predicates, fight and custody policy, and map-plotted zones, routes
+and anchors. The server stores the exact playbook and layout sources, validates
+every save with the same compiler as the CLI, and snapshots the compiled package
+into a match. Saving enters the sheet into the ladder by default, with an
+explicit opt-out. A trial runs the current revision against a tracked stock
+sheet and opens it in the ordinary replay viewer.
 
 A custom mind must complete one hosted validation match without a runtime fault
 before ladder opt-in. Ladder execution never trusts submitted code in-process.

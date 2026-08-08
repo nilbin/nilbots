@@ -20,9 +20,12 @@ public sealed record ArcRelayCompositionCompilation(
 
 public static class ArcRelayComposition
 {
+    public const int SlotCount = 8;
+    public const int MaximumCopiesPerClass = 2;
+
     public static ArcRelayCompositionCompilation Compile(
         ArcRelayCompositionDeclaration declaration,
-        ArcRelayPlayerSheetCodec sheetCodec,
+        ArcRelayClassCatalog catalog,
         IReadOnlySet<string> unlockedClassIds)
     {
         ArgumentNullException.ThrowIfNull(declaration);
@@ -33,9 +36,27 @@ public static class ArcRelayComposition
                 "Adaptive composition is reserved and must be empty in v1.");
         }
 
-        string[] classes = sheetCodec.ValidateComposition(
-            declaration.ClassIds,
-            unlockedClassIds);
+        if (declaration.ClassIds.Count != SlotCount)
+            throw new InvalidDataException(
+                $"Composition must contain exactly {SlotCount} class ids.");
+        string[] classes = declaration.ClassIds.ToArray();
+        foreach (string classId in classes)
+        {
+            if (!catalog.Contains(classId))
+                throw new InvalidDataException(
+                    $"Unknown Arc Relay class '{classId}'.");
+            if (!unlockedClassIds.Contains(classId))
+                throw new InvalidDataException(
+                    $"Class '{classId}' is not unlocked for this account.");
+        }
+        string? overLimit = classes.GroupBy(value => value, StringComparer.Ordinal)
+            .Where(group => group.Count() > MaximumCopiesPerClass)
+            .Select(group => group.Key)
+            .Order(StringComparer.Ordinal)
+            .FirstOrDefault();
+        if (overLimit is not null)
+            throw new InvalidDataException(
+                $"Class '{overLimit}' appears more than {MaximumCopiesPerClass} times.");
         using var stream = new MemoryStream();
         using (var writer = new Utf8JsonWriter(stream))
         {

@@ -54,7 +54,7 @@ public sealed class ArcRelayPlaylistDefinition : IHostedGenericMatchDefinition
 
     public static ArcRelayPlaylistDefinition Create()
     {
-        string[] classes = ArcRelayPlayerSheetCodec.NewSheetTemplate().Slots
+        string[] classes = ArcRelayLegacySnapshotCodec.NewSheetTemplate().Slots
             .OrderBy(slot => slot.UnitId)
             .Select(slot => slot.ClassId)
             .ToArray();
@@ -78,9 +78,9 @@ public sealed class ArcRelayPlaylistDefinition : IHostedGenericMatchDefinition
             writer.WriteString("executionEngineVersion", BotArenaVersions.GenericActorEngineVersion);
             writer.WriteString("runtimeModel", "trusted-stock-mind-v1");
             writer.WriteString("stockArtifactHash", StockArtifactHash);
-            writer.WriteString("sheetSchema", ArcRelayPlayerSheetCodec.SchemaId);
-            writer.WriteNumber("sheetSlots", ArcRelayPlayerSheetCodec.SlotCount);
-            writer.WriteNumber("maximumCopiesPerClass", ArcRelayPlayerSheetCodec.MaximumCopiesPerClass);
+            writer.WriteString("sheetSchema", ArcRelayLegacySnapshotCodec.SchemaId);
+            writer.WriteNumber("sheetSlots", ArcRelayLegacySnapshotCodec.SlotCount);
+            writer.WriteNumber("maximumCopiesPerClass", ArcRelayLegacySnapshotCodec.MaximumCopiesPerClass);
             // Viewer base cadence (2.5) × Arc Relay's approved first-watch 0.5x.
             writer.WriteNumber("presentationTicksPerSecond", 1.25);
             writer.WriteString("rulesFingerprint", ActorContractFingerprint.ComputeRules(representative.Rules));

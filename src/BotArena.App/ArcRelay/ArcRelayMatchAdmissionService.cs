@@ -3,15 +3,17 @@ using BotArena.App.Competition;
 using BotArena.App.Jobs;
 using BotArena.App.Matches;
 using BotArena.App.Shared;
+using BotArena.App.Sheets;
 using BotArena.Engine;
 using Microsoft.EntityFrameworkCore;
 
 namespace BotArena.App.ArcRelay;
 
-/// <summary>Creates one current-version match from immutable entrant revision snapshots.</summary>
+/// <summary>Creates current-version matches from immutable entrant revisions.</summary>
 public sealed class ArcRelayMatchAdmissionService(
     AppDbContext db,
-    ArcRelayPlayerSheetCodec sheetCodec,
+    TacticalSheetCompiler sheetCompiler,
+    TacticalSheetTemplateCatalog templates,
     ArcRelayClassCatalog classCatalog)
 {
     public async Task<Match> CreateAsync(
@@ -27,7 +29,27 @@ public sealed class ArcRelayMatchAdmissionService(
             await MaterializeAsync(first, cancellationToken),
             await MaterializeAsync(second, cancellationToken),
         ];
-        return await CreateCoreAsync(materials, lane, initiatedBy, seed, cancellationToken);
+        return await CreateCoreAsync(
+            materials, lane, initiatedBy, seed, cancellationToken);
+    }
+
+    public async Task<Match> CreateTrialAsync(
+        ArcRelayEntrant sheet,
+        string stockSheetId,
+        Guid initiatedBy,
+        long? seed,
+        CancellationToken cancellationToken)
+    {
+        ParticipantMaterial candidate = await MaterializeAsync(
+            sheet, cancellationToken);
+        ParticipantMaterial stock = await StockFixtureAsync(
+            templates.GetStock(stockSheetId), cancellationToken);
+        return await CreateCoreAsync(
+            [candidate, stock],
+            ArcRelayMatchLane.Scrimmage,
+            initiatedBy,
+            seed,
+            cancellationToken);
     }
 
     public async Task<Match> CreatePreflightAsync(
@@ -36,9 +58,16 @@ public sealed class ArcRelayMatchAdmissionService(
         long? seed,
         CancellationToken cancellationToken)
     {
-        ParticipantMaterial candidate = await MaterializeAsync(customMind, cancellationToken);
-        ParticipantMaterial stock = await StockFixtureAsync(cancellationToken);
-        return await CreateCoreAsync([candidate, stock], ArcRelayMatchLane.Preflight, initiatedBy, seed, cancellationToken);
+        ParticipantMaterial candidate = await MaterializeAsync(
+            customMind, cancellationToken);
+        ParticipantMaterial stock = await StockFixtureAsync(
+            templates.Stock[0], cancellationToken);
+        return await CreateCoreAsync(
+            [candidate, stock],
+            ArcRelayMatchLane.Preflight,
+            initiatedBy,
+            seed,
+            cancellationToken);
     }
 
     private async Task<Match> CreateCoreAsync(
@@ -48,10 +77,14 @@ public sealed class ArcRelayMatchAdmissionService(
         long? seed,
         CancellationToken cancellationToken)
     {
-        ArcRelayEntrantPlaylistDefinition definition = ArcRelayEntrantPlaylistDefinition.Create();
+        ArcRelayEntrantPlaylistDefinition definition =
+            ArcRelayEntrantPlaylistDefinition.Create();
         PlaylistVersion playlistVersion = await db.PlaylistVersions.SingleAsync(
-            version => version.Version == ArcRelayEntrantPlaylistDefinition.Version &&
-                db.Playlists.Any(playlist => playlist.Id == version.PlaylistId && playlist.Key == ArcRelayEntrantPlaylistDefinition.PlaylistKey),
+            version => version.Version
+                    == ArcRelayEntrantPlaylistDefinition.Version
+                && db.Playlists.Any(playlist => playlist.Id == version.PlaylistId
+                    && playlist.Key
+                        == ArcRelayEntrantPlaylistDefinition.PlaylistKey),
             cancellationToken);
         ActorResolvedMatchDefinition resolved = definition.ResolveMatch(
         [
@@ -65,7 +98,8 @@ public sealed class ArcRelayMatchAdmissionService(
             Seed = seed ?? Random.Shared.NextInt64(),
             InitiatedByUserId = initiatedBy,
             GameRulesVersion = resolved.Rules.RulesetId,
-            RuntimeConfigurationVersion = resolved.CapabilityVersions.RuntimeConfigurationVersion,
+            RuntimeConfigurationVersion =
+                resolved.CapabilityVersions.RuntimeConfigurationVersion,
             PlaylistVersionId = playlistVersion.Id,
             ArcRelayLane = lane,
         };
@@ -83,13 +117,15 @@ public sealed class ArcRelayMatchAdmissionService(
                 OwnerDisplayNameSnapshot = value.OwnerName,
                 AccentSnapshot = index == 0 ? "#22d3ee" : "#fb5360",
                 LookIdSnapshot = "arc-relay-entrant",
-                ProjectileLookIdSnapshot = ArcRelayH0ReplayPresentation.ProjectileLookId,
+                ProjectileLookIdSnapshot =
+                    ArcRelayH0ReplayPresentation.ProjectileLookId,
                 ArtifactHashSnapshot = value.ArtifactHash,
                 SheetIdSnapshot = value.SheetId,
                 SheetRevisionSnapshot = value.SheetRevision,
                 SheetNameSnapshot = value.SheetId is null ? null : value.Name,
                 SheetHashSnapshot = value.SheetHash,
-                SheetCanonicalJsonSnapshot = value.SheetJson,
+                SheetCanonicalJsonSnapshot = value.PlaybookJson,
+                SheetLayoutJsonSnapshot = value.LayoutJson,
                 MindDataSnapshot = value.MindData,
                 EntrantIdSnapshot = value.EntrantId,
                 EntrantKindSnapshot = value.Kind,
@@ -111,71 +147,145 @@ public sealed class ArcRelayMatchAdmissionService(
         ArcRelayEntrant entrant,
         CancellationToken cancellationToken)
     {
-        string owner = await db.Users.Where(value => value.Id == entrant.OwnerUserId)
-            .Select(value => value.DisplayName).SingleAsync(cancellationToken);
+        string owner = await db.Users.Where(value =>
+                value.Id == entrant.OwnerUserId)
+            .Select(value => value.DisplayName)
+            .SingleAsync(cancellationToken);
         if (entrant.Kind == ArcRelayEntrantKind.Sheet)
         {
-            ArcRelaySheet sheet = await db.ArcRelaySheets.SingleAsync(value => value.Id == entrant.Id, cancellationToken);
-            IReadOnlySet<string> all = classCatalog.All.Select(value => value.Id).ToHashSet(StringComparer.Ordinal);
-            ArcRelaySheetCompilation compiled = sheetCodec.Compile(sheetCodec.Read(sheet.CanonicalJson), all, $"{sheet.Id}:r{sheet.Revision}");
-            if (!string.Equals(compiled.ContentHash, sheet.ContentHash, StringComparison.Ordinal))
-                throw new InvalidDataException("Saved sheet content hash failed verification.");
-            (Bot bot, BotVersion version) = await StockArtifactAsync(cancellationToken);
-            string composition = ArcRelayComposition.Compile(
-                new ArcRelayCompositionDeclaration(compiled.Classes), sheetCodec, all).CanonicalJson;
-            string compositionHash = ArcRelayComposition.Compile(
-                new ArcRelayCompositionDeclaration(compiled.Classes), sheetCodec, all).ContentHash;
+            TacticalSheet sheet = await db.TacticalSheets.SingleAsync(
+                value => value.Id == entrant.Id, cancellationToken);
+            ValidatedTacticalSheet compiled = sheetCompiler.Compile(
+                sheet.PlaybookJson,
+                sheet.LayoutJson,
+                EveryClass(),
+                $"{sheet.Id}:r{sheet.Revision}");
+            if (!string.Equals(
+                    compiled.ContentHash,
+                    sheet.ContentHash,
+                    StringComparison.Ordinal))
+            {
+                throw new InvalidDataException(
+                    "Saved tactical sheet content hash failed verification.");
+            }
+            (Bot bot, BotVersion version) = await TacticalArtifactAsync(
+                cancellationToken);
             return new ParticipantMaterial(
-                entrant.Id, "sheet", sheet.Revision, entrant.Name, owner,
-                ArcRelayCrestGenerator.Snapshot(entrant.Id, entrant.CrestVariant),
-                bot.Id, version.Id, ArcRelayPlaylistDefinition.ForwardStockArtifactHash,
-                compiled.Classes, composition, compositionHash,
-                sheet.Id, sheet.Revision, sheet.ContentHash, sheet.CanonicalJson, compiled.LinkedData);
+                entrant.Id,
+                "sheet",
+                sheet.Revision,
+                entrant.Name,
+                owner,
+                ArcRelayCrestGenerator.Snapshot(
+                    entrant.Id, entrant.CrestVariant),
+                bot.Id,
+                version.Id,
+                ArcRelayEntrantPlaylistDefinition.TacticalArtifactHash,
+                compiled.Compilation.Composition,
+                compiled.Composition.CanonicalJson,
+                compiled.Composition.ContentHash,
+                sheet.Id,
+                sheet.Revision,
+                sheet.ContentHash,
+                sheet.PlaybookJson,
+                sheet.LayoutJson,
+                compiled.Compilation.LinkedData);
         }
 
         BotVersion active = await db.BotVersions.SingleAsync(
-            value => value.BotId == entrant.MindBotId && value.IsActive && value.Status == BuildStatus.Built,
+            value => value.BotId == entrant.MindBotId
+                && value.IsActive
+                && value.Status == BuildStatus.Built,
             cancellationToken);
-        if (!BotContractProfiles.Supports(active.SupportedContractProfiles, BotArenaVersions.GenericMindContractProfileId))
-            throw new InvalidOperationException("Custom mind does not support the generic-mind contract.");
-        ArcRelayCompositionDeclaration declaration = ArcRelayComposition.Read(entrant.CompositionJson!);
+        if (!BotContractProfiles.Supports(
+                active.SupportedContractProfiles,
+                BotArenaVersions.GenericMindContractProfileId))
+        {
+            throw new InvalidOperationException(
+                "Custom mind does not support the generic-mind contract.");
+        }
+        ArcRelayCompositionDeclaration declaration =
+            ArcRelayComposition.Read(entrant.CompositionJson!);
         return new ParticipantMaterial(
-            entrant.Id, "mind", active.VersionNumber, entrant.Name, owner,
-            ArcRelayCrestGenerator.Snapshot(entrant.Id, entrant.CrestVariant),
-            entrant.MindBotId!.Value, active.Id, active.ArtifactHash!, declaration.ClassIds,
-            entrant.CompositionJson!, entrant.CompositionHash!, null, null, null, null, null);
+            entrant.Id,
+            "mind",
+            active.VersionNumber,
+            entrant.Name,
+            owner,
+            ArcRelayCrestGenerator.Snapshot(
+                entrant.Id, entrant.CrestVariant),
+            entrant.MindBotId!.Value,
+            active.Id,
+            active.ArtifactHash!,
+            declaration.ClassIds,
+            entrant.CompositionJson!,
+            entrant.CompositionHash!,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null);
     }
 
-    private async Task<ParticipantMaterial> StockFixtureAsync(CancellationToken cancellationToken)
+    private async Task<ParticipantMaterial> StockFixtureAsync(
+        TacticalSheetSource source,
+        CancellationToken cancellationToken)
     {
-        Guid fixtureId = new("d7ed7a58-a59e-42d4-98f8-b6216711f188");
-        (Bot bot, BotVersion version) = await StockArtifactAsync(cancellationToken);
-        ArcRelaySheetDocument document = ArcRelayPlayerSheetCodec.NewSheetTemplate();
-        IReadOnlySet<string> all = classCatalog.All.Select(value => value.Id).ToHashSet(StringComparer.Ordinal);
-        ArcRelaySheetCompilation compiled = sheetCodec.Compile(document, all, $"{fixtureId}:r1");
-        ArcRelayCompositionCompilation composition = ArcRelayComposition.Compile(
-            new ArcRelayCompositionDeclaration(compiled.Classes), sheetCodec, all);
+        Guid fixtureId = source.Id switch
+        {
+            "home-siege-v3" => new Guid(
+                "d7ed7a58-a59e-42d4-98f8-b6216711f188"),
+            "breakwater-v1" => new Guid(
+                "0e8db149-77d7-47fc-8997-0b7eca82ab46"),
+            _ => new Guid("f75aca5f-10f9-40d8-b244-d333d411de83"),
+        };
+        (Bot bot, BotVersion version) = await TacticalArtifactAsync(
+            cancellationToken);
+        ArcRelayCompositionCompilation composition =
+            ArcRelayComposition.Compile(
+                new ArcRelayCompositionDeclaration(source.Composition),
+                classCatalog,
+                EveryClass());
         return new ParticipantMaterial(
-            null, "stock-fixture", 1, "Stock validation", "Nilbots",
+            null,
+            "stock-fixture",
+            1,
+            source.Name,
+            "Nilbots",
             ArcRelayCrestGenerator.Snapshot(fixtureId, 0),
-            bot.Id, version.Id, ArcRelayPlaylistDefinition.ForwardStockArtifactHash,
-            compiled.Classes, composition.CanonicalJson, composition.ContentHash,
-            fixtureId, 1, compiled.ContentHash, compiled.CanonicalJson, compiled.LinkedData);
+            bot.Id,
+            version.Id,
+            ArcRelayEntrantPlaylistDefinition.TacticalArtifactHash,
+            source.Composition,
+            composition.CanonicalJson,
+            composition.ContentHash,
+            fixtureId,
+            1,
+            source.ContentHash,
+            source.PlaybookJson,
+            source.LayoutJson,
+            source.LinkedData);
     }
 
-    private async Task<(Bot, BotVersion)> StockArtifactAsync(CancellationToken cancellationToken)
+    private async Task<(Bot, BotVersion)> TacticalArtifactAsync(
+        CancellationToken cancellationToken)
     {
         Bot bot = await db.Bots.SingleAsync(value =>
-            value.Slug == ArcRelayPlaylistSeeder.ForwardStockBotSlug,
+            value.Slug == ArcRelayPlaylistSeeder.TacticalPlaybookBotSlug,
             cancellationToken);
         BotVersion version = await db.BotVersions.SingleAsync(value =>
             value.BotId == bot.Id
             && value.IsActive
             && value.ArtifactHash
-                == ArcRelayPlaylistDefinition.ForwardStockArtifactHash,
+                == ArcRelayEntrantPlaylistDefinition.TacticalArtifactHash,
             cancellationToken);
         return (bot, version);
     }
+
+    private IReadOnlySet<string> EveryClass() => classCatalog.All
+        .Select(value => value.Id)
+        .ToHashSet(StringComparer.Ordinal);
 
     private sealed record ParticipantMaterial(
         Guid? EntrantId,
@@ -193,6 +303,7 @@ public sealed class ArcRelayMatchAdmissionService(
         Guid? SheetId,
         int? SheetRevision,
         string? SheetHash,
-        string? SheetJson,
+        string? PlaybookJson,
+        string? LayoutJson,
         byte[]? MindData);
 }

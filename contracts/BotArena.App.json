@@ -1088,95 +1088,6 @@
         }
       }
     },
-    "/api/arc-relay/sheets": {
-      "get": {
-        "tags": [
-          "BotArena.App"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/ArcRelaySheetResponse"
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "BotArena.App"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SaveArcRelaySheetRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ArcRelaySheetResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/arc-relay/sheets/{sheetId}": {
-      "put": {
-        "tags": [
-          "BotArena.App"
-        ],
-        "parameters": [
-          {
-            "name": "sheetId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SaveArcRelaySheetRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ArcRelaySheetResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/arc-relay/minds": {
       "post": {
         "tags": [
@@ -1462,7 +1373,46 @@
         }
       }
     },
-    "/api/arc-relay/matches": {
+    "/api/sheets/catalog": {
+      "get": {
+        "tags": [
+          "BotArena.App"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TacticalSheetCatalogResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/sheets": {
+      "get": {
+        "tags": [
+          "BotArena.App"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TacticalSheetSummaryResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
       "post": {
         "tags": [
           "BotArena.App"
@@ -1471,7 +1421,143 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateArcRelayMatchRequest"
+                "$ref": "#/components/schemas/SaveTacticalSheetRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TacticalSheetResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/sheets/{sheetId}": {
+      "get": {
+        "tags": [
+          "BotArena.App"
+        ],
+        "parameters": [
+          {
+            "name": "sheetId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TacticalSheetResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "BotArena.App"
+        ],
+        "parameters": [
+          {
+            "name": "sheetId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveTacticalSheetRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TacticalSheetResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "BotArena.App"
+        ],
+        "parameters": [
+          {
+            "name": "sheetId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TacticalSheetDeletedResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/sheets/{sheetId}/trial": {
+      "post": {
+        "tags": [
+          "BotArena.App"
+        ],
+        "parameters": [
+          {
+            "name": "sheetId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrialTacticalSheetRequest"
               }
             }
           },
@@ -1675,27 +1761,6 @@
           }
         }
       },
-      "ArcRelayCarrierPolicy": {
-        "required": [
-          "handoffHealthAtOrBelow",
-          "preferAssignedTheater",
-          "routeFailureTicks"
-        ],
-        "type": "object",
-        "properties": {
-          "handoffHealthAtOrBelow": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "preferAssignedTheater": {
-            "type": "boolean"
-          },
-          "routeFailureTicks": {
-            "type": "integer",
-            "format": "int32"
-          }
-        }
-      },
       "ArcRelayCatalogResponse": {
         "required": [
           "playlistKey",
@@ -1704,11 +1769,7 @@
           "mapRows",
           "slotCount",
           "maximumCopiesPerClass",
-          "theaters",
-          "roles",
-          "gambitTriggers",
-          "classes",
-          "newSheetTemplate"
+          "classes"
         ],
         "type": "object",
         "properties": {
@@ -1736,32 +1797,11 @@
             "type": "integer",
             "format": "int32"
           },
-          "theaters": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "roles": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "gambitTriggers": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
           "classes": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ArcRelayClassResponse"
             }
-          },
-          "newSheetTemplate": {
-            "$ref": "#/components/schemas/ArcRelaySheetDocument"
           }
         }
       },
@@ -1996,37 +2036,6 @@
           }
         }
       },
-      "ArcRelayEscortPolicy": {
-        "required": [
-          "followDistance",
-          "focusEnemyCarrier"
-        ],
-        "type": "object",
-        "properties": {
-          "followDistance": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "focusEnemyCarrier": {
-            "type": "boolean"
-          }
-        }
-      },
-      "ArcRelayInterceptionPolicy": {
-        "required": [
-          "focusEnemyCarrier",
-          "looseCoreFallback"
-        ],
-        "type": "object",
-        "properties": {
-          "focusEnemyCarrier": {
-            "type": "boolean"
-          },
-          "looseCoreFallback": {
-            "type": "boolean"
-          }
-        }
-      },
       "ArcRelayLadderResponse": {
         "required": [
           "ladderId",
@@ -2168,265 +2177,6 @@
           },
           "status": {
             "type": "string"
-          }
-        }
-      },
-      "ArcRelaySheetDocument": {
-        "required": [
-          "schemaVersion",
-          "mapId",
-          "slots",
-          "zones",
-          "rallyLines",
-          "policies",
-          "gambits"
-        ],
-        "type": "object",
-        "properties": {
-          "schemaVersion": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "mapId": {
-            "type": "string"
-          },
-          "slots": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ArcRelaySheetSlot"
-            }
-          },
-          "zones": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ArcRelaySheetZone"
-            }
-          },
-          "rallyLines": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ArcRelaySheetRallyLine"
-            }
-          },
-          "policies": {
-            "$ref": "#/components/schemas/ArcRelaySheetPolicies"
-          },
-          "gambits": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ArcRelaySheetGambit"
-            }
-          }
-        }
-      },
-      "ArcRelaySheetGambit": {
-        "required": [
-          "id",
-          "trigger",
-          "durationTicks",
-          "cooldownTicks",
-          "scopeRoles",
-          "roleOverride",
-          "rallyLineId"
-        ],
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "trigger": {
-            "type": "string"
-          },
-          "durationTicks": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "cooldownTicks": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "scopeRoles": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "roleOverride": {
-            "type": "string"
-          },
-          "rallyLineId": {
-            "type": "string"
-          }
-        }
-      },
-      "ArcRelaySheetPoint": {
-        "required": [
-          "x",
-          "y"
-        ],
-        "type": "object",
-        "properties": {
-          "x": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "y": {
-            "type": "integer",
-            "format": "int32"
-          }
-        }
-      },
-      "ArcRelaySheetPolicies": {
-        "required": [
-          "carrier",
-          "escort",
-          "interception"
-        ],
-        "type": "object",
-        "properties": {
-          "carrier": {
-            "$ref": "#/components/schemas/ArcRelayCarrierPolicy"
-          },
-          "escort": {
-            "$ref": "#/components/schemas/ArcRelayEscortPolicy"
-          },
-          "interception": {
-            "$ref": "#/components/schemas/ArcRelayInterceptionPolicy"
-          }
-        }
-      },
-      "ArcRelaySheetRallyLine": {
-        "required": [
-          "id",
-          "points"
-        ],
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "points": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ArcRelaySheetPoint"
-            }
-          }
-        }
-      },
-      "ArcRelaySheetResponse": {
-        "required": [
-          "id",
-          "name",
-          "revision",
-          "contentHash",
-          "createdAt",
-          "updatedAt",
-          "document",
-          "entrant"
-        ],
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "name": {
-            "type": "string"
-          },
-          "revision": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "contentHash": {
-            "type": "string"
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "updatedAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "document": {
-            "$ref": "#/components/schemas/ArcRelaySheetDocument"
-          },
-          "entrant": {
-            "$ref": "#/components/schemas/ArcRelayEntrantCardResponse"
-          }
-        }
-      },
-      "ArcRelaySheetSlot": {
-        "required": [
-          "unitId",
-          "classId",
-          "theater",
-          "role",
-          "partnerUnitId",
-          "outboundPath",
-          "returnPath"
-        ],
-        "type": "object",
-        "properties": {
-          "unitId": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "classId": {
-            "type": "string"
-          },
-          "theater": {
-            "type": "string"
-          },
-          "role": {
-            "type": "string"
-          },
-          "partnerUnitId": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "outboundPath": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ArcRelaySheetPoint"
-            }
-          },
-          "returnPath": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ArcRelaySheetPoint"
-            }
-          }
-        }
-      },
-      "ArcRelaySheetZone": {
-        "required": [
-          "id",
-          "minX",
-          "minY",
-          "maxX",
-          "maxY"
-        ],
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "minX": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "minY": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "maxX": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "maxY": {
-            "type": "integer",
-            "format": "int32"
           }
         }
       },
@@ -3336,31 +3086,6 @@
           },
           "hint": {
             "type": "string"
-          }
-        }
-      },
-      "CreateArcRelayMatchRequest": {
-        "required": [
-          "sheetId",
-          "opponentSheetId",
-          "seed"
-        ],
-        "type": "object",
-        "properties": {
-          "sheetId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "opponentSheetId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "seed": {
-            "type": [
-              "null",
-              "integer"
-            ],
-            "format": "int64"
           }
         }
       },
@@ -4798,11 +4523,12 @@
           }
         }
       },
-      "SaveArcRelaySheetRequest": {
+      "SaveTacticalSheetRequest": {
         "required": [
           "name",
           "expectedRevision",
-          "document"
+          "playbookJson",
+          "layoutJson"
         ],
         "type": "object",
         "properties": {
@@ -4816,8 +4542,17 @@
             ],
             "format": "int32"
           },
-          "document": {
-            "$ref": "#/components/schemas/ArcRelaySheetDocument"
+          "playbookJson": {
+            "type": "string"
+          },
+          "layoutJson": {
+            "type": "string"
+          },
+          "enterLadder": {
+            "type": [
+              "null",
+              "boolean"
+            ]
           }
         }
       },
@@ -5019,6 +4754,371 @@
           },
           "status": {
             "type": "string"
+          }
+        }
+      },
+      "TacticalSheetCatalogResponse": {
+        "required": [
+          "playlistKey",
+          "playlistVersionId",
+          "map",
+          "slotCount",
+          "maximumCopiesPerClass",
+          "classes",
+          "templatePlaybookJson",
+          "templateLayoutJson",
+          "stockOpponents"
+        ],
+        "type": "object",
+        "properties": {
+          "playlistKey": {
+            "type": "string"
+          },
+          "playlistVersionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "map": {
+            "$ref": "#/components/schemas/TacticalSheetMapResponse"
+          },
+          "slotCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "maximumCopiesPerClass": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "classes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TacticalSheetClassResponse"
+            }
+          },
+          "templatePlaybookJson": {
+            "type": "string"
+          },
+          "templateLayoutJson": {
+            "type": "string"
+          },
+          "stockOpponents": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TacticalStockSheetResponse"
+            }
+          }
+        }
+      },
+      "TacticalSheetClassResponse": {
+        "required": [
+          "id",
+          "name",
+          "signatureName",
+          "fantasy",
+          "starter",
+          "unlocked"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "signatureName": {
+            "type": "string"
+          },
+          "fantasy": {
+            "type": "string"
+          },
+          "starter": {
+            "type": "boolean"
+          },
+          "unlocked": {
+            "type": "boolean"
+          }
+        }
+      },
+      "TacticalSheetDeletedResponse": {
+        "required": [
+          "id"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "TacticalSheetMapRegionResponse": {
+        "required": [
+          "id",
+          "kind",
+          "tiles"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "tiles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TacticalSheetPointResponse"
+            }
+          }
+        }
+      },
+      "TacticalSheetMapResponse": {
+        "required": [
+          "id",
+          "version",
+          "formatVersion",
+          "width",
+          "height",
+          "tileRows",
+          "regions",
+          "spawnAnchors",
+          "tileTags"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "formatVersion": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "width": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "height": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "tileRows": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "regions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TacticalSheetMapRegionResponse"
+            }
+          },
+          "spawnAnchors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TacticalSheetMapSpawnResponse"
+            }
+          },
+          "tileTags": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TacticalSheetMapTagResponse"
+            }
+          }
+        }
+      },
+      "TacticalSheetMapSpawnResponse": {
+        "required": [
+          "id",
+          "position",
+          "facing"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "position": {
+            "$ref": "#/components/schemas/TacticalSheetPointResponse"
+          },
+          "facing": {
+            "type": "string"
+          }
+        }
+      },
+      "TacticalSheetMapTagResponse": {
+        "required": [
+          "id",
+          "kind",
+          "tiles"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "tiles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TacticalSheetPointResponse"
+            }
+          }
+        }
+      },
+      "TacticalSheetPointResponse": {
+        "required": [
+          "x",
+          "y"
+        ],
+        "type": "object",
+        "properties": {
+          "x": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "y": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "TacticalSheetResponse": {
+        "required": [
+          "id",
+          "name",
+          "revision",
+          "contentHash",
+          "createdAt",
+          "updatedAt",
+          "playbookJson",
+          "layoutJson",
+          "entrant"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "revision": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "contentHash": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "playbookJson": {
+            "type": "string"
+          },
+          "layoutJson": {
+            "type": "string"
+          },
+          "entrant": {
+            "$ref": "#/components/schemas/ArcRelayEntrantCardResponse"
+          }
+        }
+      },
+      "TacticalSheetSummaryResponse": {
+        "required": [
+          "id",
+          "name",
+          "revision",
+          "contentHash",
+          "createdAt",
+          "updatedAt",
+          "entrant"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "revision": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "contentHash": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "entrant": {
+            "$ref": "#/components/schemas/ArcRelayEntrantCardResponse"
+          }
+        }
+      },
+      "TacticalStockSheetResponse": {
+        "required": [
+          "id",
+          "name",
+          "description",
+          "composition"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "composition": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "TrialTacticalSheetRequest": {
+        "required": [
+          "stockSheetId",
+          "seed"
+        ],
+        "type": "object",
+        "properties": {
+          "stockSheetId": {
+            "type": "string"
+          },
+          "seed": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
           }
         }
       },

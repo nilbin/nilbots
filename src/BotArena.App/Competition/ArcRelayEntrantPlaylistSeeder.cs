@@ -9,10 +9,7 @@ namespace BotArena.App.Competition;
 /// Seeds the current immutable entrant lane and performs the one-way hosted-map
 /// cutover without changing entrant identities or losing their rating record.
 /// </summary>
-public sealed class ArcRelayEntrantPlaylistSeeder(
-    AppDbContext db,
-    ArcRelayPlayerSheetCodec sheetCodec,
-    ArcRelayClassCatalog classCatalog)
+public sealed class ArcRelayEntrantPlaylistSeeder(AppDbContext db)
 {
     public async Task<ArcRelayEntrantSeedResult> SeedAsync(
         CancellationToken cancellationToken = default)
@@ -42,9 +39,18 @@ public sealed class ArcRelayEntrantPlaylistSeeder(
             ArcRelayEntrantPlaylistDefinition.CreateHistoricalV3()
                 .Validate(playlist, counterflowVersion);
         }
-        PlaylistVersion? forwardVersion = await db.PlaylistVersions
+        PlaylistVersion? recoveryVersion = await db.PlaylistVersions
             .SingleOrDefaultAsync(value => value.PlaylistId == playlist.Id &&
                 value.Version == ArcRelayEntrantPlaylistDefinition.PreviousVersion,
+                cancellationToken);
+        if (recoveryVersion is not null)
+        {
+            ArcRelayEntrantPlaylistDefinition.CreateHistoricalV5()
+                .Validate(playlist, recoveryVersion);
+        }
+        PlaylistVersion? forwardVersion = await db.PlaylistVersions
+            .SingleOrDefaultAsync(value => value.PlaylistId == playlist.Id &&
+                value.Version == ArcRelayEntrantPlaylistDefinition.ForwardVersion,
                 cancellationToken);
         if (forwardVersion is not null)
         {
@@ -140,8 +146,14 @@ public sealed class ArcRelayEntrantPlaylistSeeder(
                 .Where(value => value.LadderId == ladder.Id)
                 .Select(value => value.EntrantId)
                 .ToHashSetAsync(cancellationToken);
+            HashSet<Guid> activeEntrants = await db.ArcRelayEntrants
+                .Where(value => value.Kind == ArcRelayEntrantKind.CustomMind
+                    || db.TacticalSheets.Any(sheet => sheet.Id == value.Id))
+                .Select(value => value.Id)
+                .ToHashSetAsync(cancellationToken);
             db.ArcRelayEntrantRatings.AddRange(priorRatings
-                .Where(value => !existing.Contains(value.EntrantId))
+                .Where(value => activeEntrants.Contains(value.EntrantId)
+                    && !existing.Contains(value.EntrantId))
                 .Select(value => new ArcRelayEntrantRating
                 {
                     EntrantId = value.EntrantId,
@@ -152,42 +164,6 @@ public sealed class ArcRelayEntrantPlaylistSeeder(
 
             if (previous.Version < ArcRelayEntrantPlaylistDefinition.PreviousVersion)
             {
-                IReadOnlySet<string> allClasses = classCatalog.All
-                    .Select(value => value.Id)
-                    .ToHashSet(StringComparer.Ordinal);
-                List<ArcRelaySheet> sheets = await db.ArcRelaySheets.ToListAsync(
-                    cancellationToken);
-                foreach (ArcRelaySheet sheet in sheets)
-                {
-                    ArcRelaySheetDocument source = sheetCodec.Read(
-                        sheet.CanonicalJson);
-                    if (string.Equals(
-                            source.MapId,
-                            ArcRelayLoopProfile.Current.MapId,
-                            StringComparison.Ordinal))
-                    {
-                        continue;
-                    }
-                    int revision = sheet.Revision + 1;
-                    ArcRelaySheetDocument migrated = sheetCodec.UpgradeToCurrentMap(
-                        source,
-                        allClasses);
-                    ArcRelaySheetCompilation compilation = sheetCodec.Compile(
-                        migrated,
-                        allClasses,
-                        $"{sheet.Id}:r{revision}");
-                    sheet.Revision = revision;
-                    sheet.CanonicalJson = compilation.CanonicalJson;
-                    sheet.ContentHash = compilation.ContentHash;
-                    sheet.UpdatedAt = DateTime.UtcNow;
-                    ArcRelayEntrant? entrant = await db.ArcRelayEntrants
-                        .SingleOrDefaultAsync(
-                            value => value.Id == sheet.Id,
-                            cancellationToken);
-                    if (entrant is not null)
-                        entrant.UpdatedAt = sheet.UpdatedAt;
-                }
-
                 List<ArcRelayEntrant> minds = await db.ArcRelayEntrants
                     .Where(value => value.Kind == ArcRelayEntrantKind.CustomMind)
                     .ToListAsync(cancellationToken);

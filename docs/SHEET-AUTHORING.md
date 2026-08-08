@@ -22,7 +22,7 @@ A sheet is **two JSON documents**. The *playbook* (`playbooks/*.json`,
 `"schema": "arc-relay-tactical-playbook-v1"`) says what the team does: its
 composition, its roles, and — in the modern grammar — one `doctrines` block
 per role describing how that role behaves. The *layout*
-(`layouts/*.json`, `"schema": "arc-relay-tactical-library-v1"`) says *where*,
+(`layouts/*.json`, `"schema": "arc-relay-tactical-layout-v1"`) says *where*,
 as map-plotted geometry: named zones, routes and anchors in map coordinates,
 plus one `bindings` entry per orientation so the same authored geometry serves
 both sides of a rotationally symmetric map (a `transform` such as
@@ -43,16 +43,19 @@ validity**, and the editor's job is to never produce something it rejects.
 
 Required keys: `schema`, `playbookId`, `auditStatus`, `composition`, `layout`,
 `perspective`, `memory`, `arbitration`, `roles`, `groups`, `formations`,
-`engagements`, `supportPolicies`, `custodyPolicies`, `orders`, `coordination`.
+`engagements`, `supportPolicies`, `custodyPolicies`, `coordination`, `authoring`
+and `doctrines`.
 
 `perspective` must be exactly `"team-relative"`. `composition` is the ordered
 list of class ids the team fields. `layout` is `{ "path", "sha256" }`.
 
-For a new sheet the editor should emit `formations`, `engagements`, `orders`
-and `coordination.tasks` as **empty or minimal** and put all behaviour in
-`doctrines` — the compiler generates the packed objects from it. (`doctrines`
-and the `authoring` block are source-only keys consumed by desugaring; they do
-not appear in `normalized-playbook.json`.)
+For a new sheet the editor should emit `formations`, `engagements` and
+`coordination.tasks` as **empty or minimal** and put all behaviour in
+`doctrines`. A doctrine source must not contain root `orders`: the compiler's
+strict source contract accepts exactly one of root `orders` (the frozen packed
+format) or `authoring` (the current source format), then generates the packed
+orders during desugaring. `doctrines` and the `authoring` block are source-only
+keys and do not appear in `normalized-playbook.json`.
 
 ### 2.2 Doctrines
 
@@ -297,12 +300,13 @@ Running any match (`nilbots experiment arc-relay …`) produces one.
 
 ## 5. Persistence
 
-**Verified against the tree, not assumed.** The short answer: **there is no
-backend storage for tactical playbooks today, and the frontend must be
-local-first.** A backend module is OPTIONAL for v1 and specified below if it
-is wanted.
+**Implementation status (2026-08-08).** The local-first guarantees below
+remain binding, and the hosted product now also persists tactical sheets in
+the App's `Sheets` module. Every server save compiles through the shared
+compiler library; the CLI and App do not carry separate validators. The
+historical inventory in §5.1 records what this pass replaced.
 
-### 5.1 What exists today
+### 5.1 What existed before the editor pass
 
 Tactical sheets — the grammar this whole document describes — live **as files
 in this repository** and are consumed by the CLI. Nothing in `src/BotArena.App`,
@@ -357,10 +361,10 @@ server:
 This is enough to author, edit and ship sheets, because the consumer of a
 sheet is the CLI reading files.
 
-### 5.3 If a backend is wanted: a thin `Sheets` module
+### 5.3 Hosted `Sheets` module
 
-**Status: NEEDS BUILDING. Nothing below exists.** It is OPTIONAL for v1 —
-build it only when cloud drafts or sharing are actually wanted.
+**Status: IMPLEMENTED.** The following is the retained design contract for
+the hosted module.
 
 Follow the repository's existing patterns exactly (`CLAUDE.md`, and the
 commander-sheet module above as the working precedent):
@@ -372,12 +376,12 @@ commander-sheet module above as the working precedent):
   `CreatedAt`, `UpdatedAt`. Register a `DbSet` on `AppDbContext` and add an EF
   migration (`cd src/BotArena.App && dotnet ef migrations add <Name>`, with
   `DOTNET_ROOT` exported).
-- **Where the bytes go.** Two documents of a few tens of KB: a `jsonb` column
-  is consistent with `ArcRelaySheet` and is the simpler choice. Use
-  `IObjectStore` (`src/BotArena.App/Storage/IObjectStore.cs`) instead if
-  sheets grow large or gain attachments — durable artifacts are addressed by
-  stable object keys and **database rows must never hold machine-local
-  paths**.
+- **Where the bytes go.** The two source documents are stored in PostgreSQL
+  `json` columns, deliberately not `jsonb`: the layout pin hashes the exact
+  submitted UTF-8 text and PostgreSQL must not rewrite its whitespace or key
+  order. Compiled bytes are immutable match snapshots. Use `IObjectStore`
+  (`src/BotArena.App/Storage/IObjectStore.cs`) if sheets later gain large
+  attachments — database rows must never hold machine-local paths.
 - **Endpoints** under `/api/sheets`, `RequireAuthorization()`:
   `GET /` (list, owner-scoped), `GET /{id}`, `POST /` (create),
   `PUT /{id}` (update, `expectedRevision` for optimistic concurrency),
@@ -396,18 +400,18 @@ commander-sheet module above as the working precedent):
   the compiler and reject invalid documents, or store blobs verbatim and let
   the editor be the only validator. Do not half-validate: a sheet that the
   server accepted and the CLI rejects is the worst outcome.
-- **Do not** couple a stored tactical sheet to `ArcRelayEntrant` or any ladder
-  admission. Storage is a drafting convenience; admission is a separate,
-  deliberate decision.
+- **Entrant coupling.** The original sketch left admission separate; the
+  subsequent owner ruling in §6.3 deliberately supersedes that choice for the
+  shipped product.
 
 ---
 
 ## 6. Legacy surfaces to remove
 
-**The editor build REMOVES the surfaces below.** They are the previous
-generation of sheet editing and are not to be carried forward, migrated from,
-or kept behind a flag. This section is a located-and-verified inventory, not a
-deletion — the deletion is part of the editor work.
+**The editor build removed the surfaces below.** They are the previous
+generation of sheet editing and are not carried forward, migrated from, or
+kept behind a flag. This section remains as the located-and-verified deletion
+inventory.
 
 ### 6.1 No Frontline sheet editor exists
 
@@ -456,26 +460,18 @@ and commit the regenerated `contracts/BotArena.App.json`,
 `src/BotArena.Cli/Generated/ApiContracts.cs` in the same change. Never
 hand-edit them. CI's `contract-drift` job regenerates and fails on any diff.
 
-### 6.3 The one coupling to decide before deleting
+### 6.3 Entrant coupling ruling
 
-`POST /sheets` does two things: it saves a document **and** it creates an
-`ArcRelayEntrant` with `Kind = ArcRelayEntrantKind.Sheet`
-(`ArcRelay/ArcRelayEndpoints.cs:127`). That enum has exactly two values
-(`ArcRelay/ArcRelayEntrant.cs:3-7`) and entrants are created in exactly two
-places — `:127` (sheet) and `:228` (custom mind).
+**Owner ruling (2026-08-08):** saving a tactical sheet creates or revises the
+same-id `Sheet` entrant and enters it into the ladder by default. The editor
+offers an explicit opt-out. Save-as-copy creates a new entrant identity; an
+ordinary revision preserves rating. This ruling supersedes the provisional
+separation advice in the original backend sketch.
 
-So deleting the sheet-editing surface removes **one of the two ways anything
-reaches the arc-relay ladder**. That is match-admission territory and the
-scope guard fences it. Decide explicitly, before deleting:
-
-- if the arc-relay ladder is to keep running on custom-mind entrants alone,
-  the `Sheet` enum member and any pairing/projection code that switches on it
-  come out too (`ArcRelayEntrantProjector.cs`, `ArcRelayLadderPairingService.cs`,
-  `ArcRelayMatchAdmissionService.cs` all read entrant kind); or
-- if tactical sheets are meant to become ladder entrants eventually, leave the
-  entrant model alone and delete only the editing half — but then a stored
-  tactical sheet still must not silently become an entrant (§5.3).
-
-Existing rows are player data. Dropping the table is a destructive migration;
-if the ladder holds live `Sheet` entrants, they need retiring or migrating
-first.
+The new `POST /api/sheets` stores the exact playbook and layout, creates the
+same-id `ArcRelayEntrant` with `Kind = Sheet`, and establishes its
+current-ladder rating when opted in. `PUT /api/sheets/{id}` revises both views
+atomically under optimistic concurrency. The destructive migration cannot
+translate commander documents into tactical playbooks, so it retires their
+entrants from future pairing before dropping the old table; historical match
+snapshots and rating foreign-key identities remain intact.

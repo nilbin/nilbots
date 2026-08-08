@@ -1,6 +1,7 @@
 using BotArena.App.Bots;
 using BotArena.App.Competition;
 using BotArena.App.Matches;
+using BotArena.App.Sheets;
 using BotArena.App.Shared;
 using Microsoft.EntityFrameworkCore;
 
@@ -9,7 +10,6 @@ namespace BotArena.App.ArcRelay;
 /// <summary>One projection for cards, ladder rows and match presentation.</summary>
 public sealed class ArcRelayEntrantProjector(
     AppDbContext db,
-    ArcRelayPlayerSheetCodec sheetCodec,
     ArcRelayClassCatalog classCatalog,
     TimeProvider timeProvider)
 {
@@ -44,12 +44,14 @@ public sealed class ArcRelayEntrantProjector(
         string status;
         if (entrant.Kind == ArcRelayEntrantKind.Sheet)
         {
-            ArcRelaySheet sheet = await db.ArcRelaySheets.AsNoTracking()
+            TacticalSheet sheet = await db.TacticalSheets.AsNoTracking()
                 .SingleAsync(value => value.Id == entrant.Id, cancellationToken);
             revision = sheet.Revision;
             contentHash = sheet.ContentHash;
-            classes = sheetCodec.Read(sheet.CanonicalJson).Slots
-                .OrderBy(value => value.UnitId).Select(value => value.ClassId).ToArray();
+            using System.Text.Json.JsonDocument playbook =
+                System.Text.Json.JsonDocument.Parse(sheet.PlaybookJson);
+            classes = playbook.RootElement.GetProperty("composition")
+                .EnumerateArray().Select(value => value.GetString()!).ToArray();
             status = suspensionDisclosed ? "suspended" : "ready";
         }
         else

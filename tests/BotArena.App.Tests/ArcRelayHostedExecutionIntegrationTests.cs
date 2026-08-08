@@ -1,12 +1,14 @@
 using System.Diagnostics;
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using BotArena.App.Accounts;
 using BotArena.App.ArcRelay;
 using BotArena.App.Competition;
 using BotArena.App.Jobs;
 using BotArena.App.Matches;
 using BotArena.App.Shared;
+using BotArena.App.Sheets;
 using BotArena.App.Storage;
 using BotArena.Engine;
 using Microsoft.EntityFrameworkCore;
@@ -52,35 +54,34 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
         }
 
         UserResponse owner = await RegisterAsync(client);
-        ArcRelayCatalogResponse catalog = Assert.IsType<ArcRelayCatalogResponse>(
-            await client.GetFromJsonAsync<ArcRelayCatalogResponse>(
-                "/api/arc-relay/catalog"));
-        Assert.Equal(ArcRelayPlayerSheetCodec.SlotCount, catalog.NewSheetTemplate.Slots.Count);
+        TacticalSheetCatalogResponse catalog =
+            Assert.IsType<TacticalSheetCatalogResponse>(
+                await client.GetFromJsonAsync<TacticalSheetCatalogResponse>(
+                    "/api/sheets/catalog"));
+        Assert.Equal(ArcRelayComposition.SlotCount, catalog.SlotCount);
 
-        ArcRelaySheetResponse first = await SaveAsync(
+        TacticalSheetResponse first = await SaveAsync(
             client,
             "First line",
-            catalog.NewSheetTemplate);
-        ArcRelaySheetDocument counterPlan = catalog.NewSheetTemplate with
-        {
-            Policies = catalog.NewSheetTemplate.Policies with
-            {
-                Carrier = catalog.NewSheetTemplate.Policies.Carrier with
-                {
-                    HandoffHealthAtOrBelow =
-                        catalog.NewSheetTemplate.Policies.Carrier.HandoffHealthAtOrBelow + 1,
-                },
-            },
-        };
-        ArcRelaySheetResponse second = await SaveAsync(
+            catalog.TemplatePlaybookJson,
+            catalog.TemplateLayoutJson);
+        JsonObject counterPlan = JsonNode.Parse(
+            catalog.TemplatePlaybookJson)!.AsObject();
+        counterPlan["doctrines"]!["ghost"]!["conceal"] = true;
+        TacticalSheetResponse second = await SaveAsync(
             client,
             "Counter line",
-            counterPlan);
+            counterPlan.ToJsonString(new JsonSerializerOptions
+            {
+                WriteIndented = true,
+            }),
+            catalog.TemplateLayoutJson);
         Assert.NotEqual(first.ContentHash, second.ContentHash);
 
         HttpResponseMessage queued = await client.PostAsJsonAsync(
-            "/api/arc-relay/matches",
-            new CreateArcRelayMatchRequest(first.Id, second.Id, Seed: 104729));
+            "/api/arc-relay/scrimmages",
+            new CreateArcRelayScrimmageRequest(
+                first.Id, second.Id, Seed: 104729));
         queued.EnsureSuccessStatusCode();
         CreatedMatchResponse created = Assert.IsType<CreatedMatchResponse>(
             await queued.Content.ReadFromJsonAsync<CreatedMatchResponse>());
@@ -120,13 +121,16 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
             Assert.All(match.Participants, participant =>
             {
                 Assert.Equal(owner.DisplayName, participant.OwnerDisplayNameSnapshot);
-                Assert.Equal(ArcRelayPlaylistDefinition.StockArtifactHash, participant.ArtifactHashSnapshot);
+                Assert.Equal(
+                    ArcRelayEntrantPlaylistDefinition.TacticalArtifactHash,
+                    participant.ArtifactHashSnapshot);
                 Assert.NotNull(participant.SheetIdSnapshot);
                 Assert.NotNull(participant.EntrantIdSnapshot);
                 Assert.Equal("sheet", participant.EntrantKindSnapshot);
                 Assert.Equal(1, participant.SheetRevisionSnapshot);
                 Assert.NotNull(participant.SheetHashSnapshot);
                 Assert.NotNull(participant.SheetCanonicalJsonSnapshot);
+                Assert.NotNull(participant.SheetLayoutJsonSnapshot);
                 Assert.NotEmpty(Assert.IsType<byte[]>(participant.MindDataSnapshot));
             });
             Assert.Equal(first.ContentHash, match.Participants.Single(value => value.Slot == 0).SheetHashSnapshot);
@@ -158,7 +162,7 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
             value => Assert.Equal(first.ContentHash, value.GetProperty("mindDataHash").GetString()),
             value => Assert.Equal(second.ContentHash, value.GetProperty("mindDataHash").GetString()));
         Assert.All(provenance, value => Assert.Equal(
-            ArcRelayPlaylistDefinition.StockArtifactHash,
+            ArcRelayEntrantPlaylistDefinition.TacticalArtifactHash,
             value.GetProperty("artifactHash").GetString()));
         Assert.Equal(replayHash, replay.RootElement.GetProperty("replayHash").GetString());
 
@@ -197,8 +201,9 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
         // Execute the same immutable inputs again after JIT warm-up. This is both the
         // product latency sample and the compact-format determinism proof.
         HttpResponseMessage warmQueued = await client.PostAsJsonAsync(
-            "/api/arc-relay/matches",
-            new CreateArcRelayMatchRequest(first.Id, second.Id, Seed: 104729));
+            "/api/arc-relay/scrimmages",
+            new CreateArcRelayScrimmageRequest(
+                first.Id, second.Id, Seed: 104729));
         warmQueued.EnsureSuccessStatusCode();
         CreatedMatchResponse warmMatch = Assert.IsType<CreatedMatchResponse>(
             await warmQueued.Content.ReadFromJsonAsync<CreatedMatchResponse>());
@@ -224,8 +229,9 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
         }
 
         HttpResponseMessage steadyQueued = await client.PostAsJsonAsync(
-            "/api/arc-relay/matches",
-            new CreateArcRelayMatchRequest(first.Id, second.Id, Seed: 104729));
+            "/api/arc-relay/scrimmages",
+            new CreateArcRelayScrimmageRequest(
+                first.Id, second.Id, Seed: 104729));
         steadyQueued.EnsureSuccessStatusCode();
         CreatedMatchResponse steadyMatch = Assert.IsType<CreatedMatchResponse>(
             await steadyQueued.Content.ReadFromJsonAsync<CreatedMatchResponse>());
@@ -248,6 +254,41 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
         {
             Match repeated = await db.Matches.SingleAsync(value => value.Id == steadyMatch.Id);
             Assert.Equal(replayHash, repeated.ReplayHash);
+        }
+
+        HttpResponseMessage trialQueued = await client.PostAsJsonAsync(
+            $"/api/sheets/{first.Id}/trial",
+            new TrialTacticalSheetRequest(
+                catalog.StockOpponents[0].Id,
+                Seed: 65537));
+        trialQueued.EnsureSuccessStatusCode();
+        CreatedMatchResponse trialMatch = Assert.IsType<CreatedMatchResponse>(
+            await trialQueued.Content.ReadFromJsonAsync<CreatedMatchResponse>());
+        await using (AsyncServiceScope scope = factory.Services.CreateAsyncScope())
+        {
+            JobExecutionResult result = await scope.ServiceProvider
+                .GetRequiredService<GenericActorMatchExecutionJobHandler>()
+                .HandleAsync(
+                    trialMatch.Id,
+                    GenericActorMatchJobType.ForPlaylist(
+                        ArcRelayEntrantPlaylistDefinition.PlaylistKey,
+                        ArcRelayEntrantPlaylistDefinition.Version),
+                    CancellationToken.None);
+            Assert.Equal("completed", result.Outcome);
+        }
+        await using (AppDbContext db = database.CreateContext())
+        {
+            Match trialResult = await db.Matches
+                .Include(value => value.Participants)
+                .SingleAsync(value => value.Id == trialMatch.Id);
+            Assert.Equal(MatchStatus.Completed, trialResult.Status);
+            Assert.Equal(ArcRelayMatchLane.Scrimmage, trialResult.ArcRelayLane);
+            Assert.Collection(
+                trialResult.Participants.OrderBy(value => value.Slot),
+                participant => Assert.Equal("sheet",
+                    participant.EntrantKindSnapshot),
+                participant => Assert.Equal("stock-fixture",
+                    participant.EntrantKindSnapshot));
         }
 
         // This is deliberately generous and only catches a regression back to
@@ -280,16 +321,22 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
             await response.Content.ReadFromJsonAsync<UserResponse>());
     }
 
-    private static async Task<ArcRelaySheetResponse> SaveAsync(
+    private static async Task<TacticalSheetResponse> SaveAsync(
         HttpClient client,
         string name,
-        ArcRelaySheetDocument document)
+        string playbookJson,
+        string layoutJson)
     {
         HttpResponseMessage response = await client.PostAsJsonAsync(
-            "/api/arc-relay/sheets",
-            new SaveArcRelaySheetRequest(name, ExpectedRevision: null, document));
+            "/api/sheets",
+            new SaveTacticalSheetRequest(
+                name,
+                ExpectedRevision: null,
+                playbookJson,
+                layoutJson,
+                EnterLadder: true));
         response.EnsureSuccessStatusCode();
-        return Assert.IsType<ArcRelaySheetResponse>(
-            await response.Content.ReadFromJsonAsync<ArcRelaySheetResponse>());
+        return Assert.IsType<TacticalSheetResponse>(
+            await response.Content.ReadFromJsonAsync<TacticalSheetResponse>());
     }
 }

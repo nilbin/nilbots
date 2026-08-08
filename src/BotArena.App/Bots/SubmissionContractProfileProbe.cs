@@ -136,7 +136,7 @@ public sealed class SubmissionContractProfileProbe(
 
     private static void ProbeGenericMind(string wasmPath)
     {
-        string[] classes = ArcRelayPlayerSheetCodec.NewSheetTemplate().Slots
+        string[] classes = ArcRelayLegacySnapshotCodec.NewSheetTemplate().Slots
             .OrderBy(value => value.UnitId)
             .Select(value => value.ClassId)
             .ToArray();

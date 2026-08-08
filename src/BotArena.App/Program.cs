@@ -8,6 +8,7 @@ using BotArena.App.Jobs;
 using BotArena.App.Matches;
 using BotArena.App.Notifications;
 using BotArena.App.Shared;
+using BotArena.App.Sheets;
 using BotArena.App.Storage;
 using BotArena.App.Store;
 using BotArena.Engine;
@@ -74,7 +75,9 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 });
 builder.Services.AddSingleton(CosmeticCatalog.LoadDefault());
 builder.Services.AddSingleton(ArcRelayClassCatalog.Default);
-builder.Services.AddSingleton<ArcRelayPlayerSheetCodec>();
+builder.Services.AddSingleton<ArcRelayLegacySnapshotCodec>();
+builder.Services.AddSingleton<TacticalSheetCompiler>();
+builder.Services.AddSingleton<TacticalSheetTemplateCatalog>();
 builder.Services.AddScoped<ArcRelayClassEntitlementService>();
 builder.Services.AddScoped<ArcRelayEntrantProjector>();
 builder.Services.AddScoped<ArcRelayMatchAdmissionService>();
@@ -132,6 +135,8 @@ builder.Services.AddSingleton<IHostedGenericMatchDefinition>(
     _ => ArcRelayEntrantPlaylistDefinition.CreateHistoricalV3());
 builder.Services.AddSingleton<IHostedGenericMatchDefinition>(
     _ => ArcRelayEntrantPlaylistDefinition.CreateHistoricalV4());
+builder.Services.AddSingleton<IHostedGenericMatchDefinition>(
+    _ => ArcRelayEntrantPlaylistDefinition.CreateHistoricalV5());
 builder.Services.AddSingleton<IHostedGenericMatchDefinition>(
     _ => ArcRelayEntrantPlaylistDefinition.Create());
 builder.Services.AddSingleton<HostedGenericMatchDefinitionRegistry>();
@@ -304,6 +309,7 @@ if (mode.RunsWeb)
     app.MapArenaCapabilities();
     app.MapFrontlineLabs();
     app.MapArcRelay();
+    app.MapSheets();
     app.MapRanked();
     app.MapUserNotifications();
     app.MapExternalAuth();
@@ -364,7 +370,8 @@ if (mode.RunsWeb)
             {origin}/llms-full.txt   Arc Relay entrant, admission and pairing reference
 
             ## Entrants
-            Sheet: saved evaluation-grade commander data linked to the registered stock mind.
+            Sheet: a saved tactical playbook plus plotted map layout, compiled by the
+            same shared compiler used by the CLI and executed by the registered tactical mind.
             Custom mind: submitted source compiled to WASM and admitted after hosted preflight.
             Both declare eight unlocked classes with at most two copies of any class.
 

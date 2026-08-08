@@ -11,8 +11,8 @@ export default function DocsPage() {
       <section>
         <h1 className="mb-2 type-display text-[26px]">Arc Relay field guide</h1>
         <p className="text-arena-dim">
-          Your competitive identity is an entrant: either a commander sheet executed by
-          the frozen stock mind, or your own submitted mind. Both get the same crest,
+          Your competitive identity is an entrant: either a tactical sheet executed by
+          the frozen tactical-playbook mind, or your own submitted mind. Both get the same crest,
           eight-body composition, match history and persistent rating.
         </p>
       </section>
@@ -29,9 +29,12 @@ export default function DocsPage() {
 
       <Doc title="Sheets and minds">
         <p>
-          A sheet is saved deterministic data: eight unlocked classes under the two-copy
-          cap, assignments, routes and ordered gambits. Saving a revision preserves the
-          entrant identity and rating; <b>save as copy</b> starts a new entrant and rating.
+          A sheet is two hash-pinned JSON documents: eight unlocked classes under the
+          two-copy cap, ordered role doctrines, named conditions, custody policy and
+          map-plotted routes, zones and anchors. Saving compiles through the same shared
+          compiler as the CLI and enters the sheet in the ladder by default. A revision
+          preserves entrant identity and rating; <b>save as copy</b> starts a new entrant
+          and rating.
         </p>
         <p className="mt-2">
           A custom mind submits source files through the controlled toolchain and runs only
