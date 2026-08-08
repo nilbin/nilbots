@@ -48,6 +48,13 @@ one ~15 MiB inline document — and `file://` blocks ES modules. Double-clicking
 `--tunnel` is **public and unauthenticated**; say so when handing over a link, and stop the
 server when the review is done. Needs `brew install cloudflared`.
 
+When an agent starts a server or tunnel that must survive its response, follow
+the detached `screen` procedure in the `sheet-tuning` skill. A foreground tool
+session, `&`, and `nohup` are not durable in this environment: their children
+are reaped after the turn. Verify the named sessions and public URL from a
+separate command before delivery, retain their log paths, and stop only those
+exact sessions after review.
+
 ## Choosing which games to review
 
 This is the part that decides whether a review is worth anything, and the intuitive

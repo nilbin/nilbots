@@ -124,16 +124,34 @@ six-cell record is a balance conclusion.
 Choose an unused port; 8950-8953 may belong to other sessions. Never stop a
 server or tunnel you did not start.
 
+Agent execution sessions reap child processes at turn completion—even children
+started with `&` or `nohup`. For a gallery that must survive handoff, start both
+processes in uniquely named detached `screen` sessions from the repository
+root:
+
 ```bash
-python3 scripts/serve-gallery.py 8960 --directory /tmp/arc-batteries/site &
-cloudflared tunnel --url http://127.0.0.1:8960 &
+screen -dmS nilbots-arc-gallery-server-8960 /bin/zsh -c \
+  'exec python3 scripts/serve-gallery.py 8960 \
+    --directory /tmp/arc-batteries/site \
+    >> /tmp/arc-gallery-8960-server.log 2>&1'
+
+screen -dmS nilbots-arc-gallery-tunnel-8960 /bin/zsh -c \
+  'exec cloudflared tunnel --url http://127.0.0.1:8960 \
+    >> /tmp/arc-gallery-8960-tunnel.log 2>&1'
+
+screen -ls
+rg -o 'https://[a-z0-9-]+\.trycloudflare\.com' \
+  /tmp/arc-gallery-8960-tunnel.log
 ```
 
 Capture the `https://*.trycloudflare.com` URL from Cloudflare output and put it
-in the report. Before delivery, load that exact URL in a phone-sized real
-browser, wait for the replay UI rather than only checking HTTP 200, and confirm
-the index plus one replay payload load without console or page errors. Follow
-the `replay-review` skill for broader viewer QA.
+in the report. Verify both named sessions still appear from a later command;
+starting them is not proof they survived the tool boundary. Before delivery,
+load that exact URL in a phone-sized real browser, wait for the replay UI rather
+than only checking HTTP 200, and confirm the index plus one replay payload load
+without console or page errors. Follow the `replay-review` skill for broader
+viewer QA. When review ends, stop only those exact sessions with
+`screen -S <name> -X quit`.
 
 ## Owner-authorized measurement only
 

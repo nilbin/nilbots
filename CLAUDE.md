@@ -377,7 +377,10 @@ Web (`web/`) is one Vite/React build with two modes chosen at runtime in
   port through a cloudflared quick tunnel (`cloudflared tunnel --url
   http://127.0.0.1:<port>`, reuse a running one when its port matches), and
   put the https://*.trycloudflare.com URL in the report. A review without a
-  working public URL is not ready for the gate.
+  working public URL is not ready for the gate. Agent-launched review
+  processes that must survive handoff run in uniquely named detached `screen`
+  sessions, not a foreground tool session, `&`, or `nohup`; verify both
+  sessions and the public URL again from a later command before reporting.
 - **Arc Relay iteration is exhibit-first.** Read and follow
   `.claude/skills/sheet-tuning/SKILL.md` for any sheet, executor, tactical,
   pathing, or replay-visible behavior iteration. Trace the motivating scene,
