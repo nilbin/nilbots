@@ -15,7 +15,10 @@ internal sealed record TacticalTaskCandidate(
     string LocalState,
     string ClassId,
     bool CarriesCore,
-    Position Position);
+    Position Position,
+    int Health = 1,
+    int Level = 1,
+    int StuckTicks = 0);
 
 internal sealed record TacticalTaskDirective(
     string TaskId,
@@ -26,7 +29,8 @@ internal sealed record TacticalTaskAssignment(
     string AssignmentId,
     string OrderId,
     int UnitId,
-    ActorIdentity ActorId);
+    ActorIdentity ActorId,
+    int StartedTick);
 
 internal sealed record TacticalTaskStateView(
     string TaskId,
@@ -42,6 +46,10 @@ internal sealed record TacticalTaskTrace(
     TacticalTaskPhase To,
     string Reason,
     int[] UnitIds);
+
+internal readonly record struct TacticalCandidateKey(
+    string AssignmentId,
+    ActorIdentity ActorId);
 
 /// <summary>
 /// Pure deterministic scheduler for playbook-owned concurrent tasks. It owns
@@ -113,6 +121,8 @@ internal sealed class TacticalTaskMachine
         string phaseId,
         IReadOnlyList<TacticalTaskCandidate> candidates,
         Func<TacticalPlaybookPackage.ConditionGroup, bool> evaluate,
+        Func<TacticalPlaybookPackage.ConditionGroup,
+            TacticalTaskCandidate, int, bool> evaluateCandidate,
         Func<TacticalPlaybookPackage.TaskAssignment,
             TacticalTaskCandidate, int> distance)
     {
@@ -141,14 +151,16 @@ internal sealed class TacticalTaskMachine
             {
                 case TacticalTaskPhase.Active:
                     AdvanceActive(
-                        tick, phaseId, state, live, owners, evaluate, distance);
+                        tick, phaseId, state, live, owners, evaluate,
+                        evaluateCandidate, distance);
                     break;
                 case TacticalTaskPhase.Reintegrating:
                     AdvanceReintegration(tick, state, live, evaluate);
                     break;
                 case TacticalTaskPhase.Dormant:
                     AdvanceDormant(
-                        tick, phaseId, state, live, owners, evaluate, distance);
+                        tick, phaseId, state, live, owners, evaluate,
+                        evaluateCandidate, distance);
                     break;
             }
             RebuildOwners(owners, live);
@@ -212,13 +224,21 @@ internal sealed class TacticalTaskMachine
         IReadOnlyDictionary<int, TacticalTaskCandidate> live,
         Dictionary<int, Runtime> owners,
         Func<TacticalPlaybookPackage.ConditionGroup, bool> evaluate,
+        Func<TacticalPlaybookPackage.ConditionGroup,
+            TacticalTaskCandidate, int, bool> evaluateCandidate,
         Func<TacticalPlaybookPackage.TaskAssignment,
             TacticalTaskCandidate, int> distance)
     {
+        RefreshCandidateWitnesses(
+            tick, state, live, evaluateCandidate, reset: true);
         bool eligible = state.Plan.EligiblePhases.Contains(
             phaseId,
             StringComparer.Ordinal);
-        bool triggered = eligible && MatchesAny(state.Plan.When, evaluate);
+        bool candidateReady = !HasCandidateScope(state.Plan)
+            || state.CandidateWitnesses.Count > 0;
+        bool triggered = eligible
+            && candidateReady
+            && MatchesAny(state.Plan.When, evaluate);
         if (!triggered)
         {
             state.TriggerStreak = 0;
@@ -256,6 +276,8 @@ internal sealed class TacticalTaskMachine
                 live,
                 owners,
                 distance,
+                evaluateCandidate,
+                tick,
                 allowPreemption: true,
                 out List<TacticalTaskAssignment> selected,
                 out HashSet<Runtime> preempted,
@@ -286,10 +308,20 @@ internal sealed class TacticalTaskMachine
         IReadOnlyDictionary<int, TacticalTaskCandidate> live,
         Dictionary<int, Runtime> owners,
         Func<TacticalPlaybookPackage.ConditionGroup, bool> evaluate,
+        Func<TacticalPlaybookPackage.ConditionGroup,
+            TacticalTaskCandidate, int, bool> evaluateCandidate,
         Func<TacticalPlaybookPackage.TaskAssignment,
             TacticalTaskCandidate, int> distance)
     {
         int elapsed = tick - state.PhaseStartedTick;
+        HashSet<int> conditionReleased = RefreshCandidateWitnesses(
+            tick, state, live, evaluateCandidate, reset: false);
+        if (HasCandidateScope(state.Plan)
+            && state.CandidateWitnesses.Count == 0)
+        {
+            BeginReintegration(tick, state, "candidate-condition");
+            return;
+        }
         bool assignedParticipantCarriesCore = state.Assignments.Any(value =>
             SameLife(live, value) && live[value.UnitId].CarriesCore);
         bool alternateParticipantCarriesCore = live.Values.Any(value =>
@@ -388,6 +420,16 @@ internal sealed class TacticalTaskMachine
             BeginReintegration(tick, state, "failed-condition");
             return;
         }
+        if (conditionReleased.Count > 0)
+        {
+            state.Assignments.RemoveAll(
+                assignment => conditionReleased.Contains(assignment.UnitId));
+            if (!MinimumsHold(state))
+            {
+                BeginReintegration(tick, state, "candidate-condition");
+                return;
+            }
+        }
         if (!state.Plan.EligiblePhases.Contains(
                 phaseId,
                 StringComparer.Ordinal))
@@ -435,7 +477,9 @@ internal sealed class TacticalTaskMachine
                 "replace",
                 StringComparison.Ordinal))
         {
-            if (!Refresh(state, live, owners, distance))
+            if (!Refresh(
+                    state, live, owners, distance, evaluateCandidate, tick,
+                    conditionReleased))
             {
                 BeginReintegration(tick, state, "replacement-unavailable");
                 return;
@@ -480,7 +524,11 @@ internal sealed class TacticalTaskMachine
         IReadOnlyDictionary<int, TacticalTaskCandidate> live,
         IReadOnlyDictionary<int, Runtime> owners,
         Func<TacticalPlaybookPackage.TaskAssignment,
-            TacticalTaskCandidate, int> distance)
+            TacticalTaskCandidate, int> distance,
+        Func<TacticalPlaybookPackage.ConditionGroup,
+            TacticalTaskCandidate, int, bool> evaluateCandidate,
+        int tick,
+        IReadOnlySet<int> conditionReleased)
     {
         var selected = state.Assignments.ToList();
         var claimed = selected.Select(value => value.UnitId).ToHashSet();
@@ -506,10 +554,13 @@ internal sealed class TacticalTaskMachine
             TacticalTaskCandidate[] candidates = Candidates(
                     assignment, live.Values)
                 .Where(value => !claimed.Contains(value.UnitId))
+                .Where(value => !conditionReleased.Contains(value.UnitId))
                 .Where(value => !owners.TryGetValue(
                         value.UnitId,
                         out Runtime? owner)
                     || ReferenceEquals(owner, state))
+                .Where(value => IsCandidateWitness(
+                    state, assignment, value))
                 .Where(value => assignment.Distance.Maximum <= 0
                     || distance(assignment, value)
                         <= assignment.Distance.Maximum)
@@ -525,7 +576,8 @@ internal sealed class TacticalTaskMachine
                     assignment.AssignmentId,
                     assignment.OrderId,
                     actor.UnitId,
-                    actor.ActorId));
+                    actor.ActorId,
+                    tick));
                 capacity--;
             }
         }
@@ -539,6 +591,9 @@ internal sealed class TacticalTaskMachine
         IReadOnlyDictionary<int, Runtime> owners,
         Func<TacticalPlaybookPackage.TaskAssignment,
             TacticalTaskCandidate, int> distance,
+        Func<TacticalPlaybookPackage.ConditionGroup,
+            TacticalTaskCandidate, int, bool> evaluateCandidate,
+        int tick,
         bool allowPreemption,
         out List<TacticalTaskAssignment> selected,
         out HashSet<Runtime> preempted,
@@ -575,6 +630,8 @@ internal sealed class TacticalTaskMachine
             TacticalTaskCandidate[] candidates = Candidates(
                     assignment, live.Values)
                 .Where(value => !claimed.Contains(value.UnitId))
+                .Where(value => IsCandidateWitness(
+                    claimant, assignment, value))
                 .Where(value => Claimable(
                     claimant, value.UnitId, owners, allowPreemption))
                 .Where(value => assignment.Distance.Maximum <= 0
@@ -599,7 +656,8 @@ internal sealed class TacticalTaskMachine
                     assignment.AssignmentId,
                     assignment.OrderId,
                     actor.UnitId,
-                    actor.ActorId));
+                    actor.ActorId,
+                    tick));
                 current++;
                 if (!alreadyLeased)
                     capacity--;
@@ -724,6 +782,113 @@ internal sealed class TacticalTaskMachine
                 $"Unknown task carrier selector '{assignment.Carrier}'."),
         });
 
+    private static bool CandidateMatches(
+        TacticalPlaybookPackage.ConditionGroup[]? conditions,
+        TacticalTaskCandidate candidate,
+        int modeTicks,
+        Func<TacticalPlaybookPackage.ConditionGroup,
+            TacticalTaskCandidate, int, bool> evaluate) =>
+        conditions is not { Length: > 0 }
+        || MatchesAny(
+            conditions,
+            group => evaluate(group, candidate, modeTicks));
+
+    private static bool HasCandidateScope(
+        TacticalPlaybookPackage.TacticalTask plan) =>
+        plan.Assignments.Any(HasCandidateScope);
+
+    private static bool HasCandidateScope(
+        TacticalPlaybookPackage.TaskAssignment assignment) =>
+        assignment.CandidateWhen is { Length: > 0 }
+        || assignment.CandidateUntil is { Length: > 0 };
+
+    private static bool IsCandidateWitness(
+        Runtime state,
+        TacticalPlaybookPackage.TaskAssignment assignment,
+        TacticalTaskCandidate candidate) =>
+        !HasCandidateScope(assignment)
+        || state.CandidateWitnesses.Contains(new(
+            assignment.AssignmentId, candidate.ActorId));
+
+    /// <summary>
+    /// Body-scoped mode conditions need a latch independent of participant
+    /// ownership. A lower rung remains active while a higher rung leases its
+    /// body, and a while/until hysteresis gap remains meaningful. Witnesses
+    /// are exact lives; a respawn evaluates the mode afresh.
+    /// </summary>
+    private static HashSet<int> RefreshCandidateWitnesses(
+        int tick,
+        Runtime state,
+        IReadOnlyDictionary<int, TacticalTaskCandidate> live,
+        Func<TacticalPlaybookPackage.ConditionGroup,
+            TacticalTaskCandidate, int, bool> evaluateCandidate,
+        bool reset)
+    {
+        var releasedUnitIds = new HashSet<int>();
+        if (!HasCandidateScope(state.Plan))
+            return releasedUnitIds;
+        if (reset)
+        {
+            state.CandidateWitnesses.Clear();
+            state.ReleasedCandidates.Clear();
+        }
+
+        HashSet<ActorIdentity> liveActors = live.Values
+            .Select(candidate => candidate.ActorId)
+            .ToHashSet();
+        state.CandidateWitnesses.RemoveWhere(
+            key => !liveActors.Contains(key.ActorId));
+        state.ReleasedCandidates.RemoveWhere(
+            key => !liveActors.Contains(key.ActorId));
+
+        foreach (TacticalPlaybookPackage.TaskAssignment assignment
+                 in state.Plan.Assignments.Where(HasCandidateScope))
+        foreach (TacticalTaskCandidate candidate in Candidates(
+                     assignment, live.Values))
+        {
+            var key = new TacticalCandidateKey(
+                assignment.AssignmentId, candidate.ActorId);
+            if (state.ReleasedCandidates.Contains(key))
+                continue;
+
+            TacticalTaskAssignment? lease = state.Assignments
+                .FirstOrDefault(value => string.Equals(
+                        value.AssignmentId,
+                        assignment.AssignmentId,
+                        StringComparison.Ordinal)
+                    && value.ActorId == candidate.ActorId);
+            if (state.CandidateWitnesses.Contains(key))
+            {
+                int modeTicks = lease is null
+                    ? 0
+                    : tick - lease.StartedTick;
+                if (assignment.CandidateUntil is { Length: > 0 }
+                    && CandidateMatches(
+                        assignment.CandidateUntil,
+                        candidate,
+                        modeTicks,
+                        evaluateCandidate))
+                {
+                    state.CandidateWitnesses.Remove(key);
+                    state.ReleasedCandidates.Add(key);
+                    if (lease is not null)
+                        releasedUnitIds.Add(candidate.UnitId);
+                }
+                continue;
+            }
+
+            if (CandidateMatches(
+                    assignment.CandidateWhen,
+                    candidate,
+                    0,
+                    evaluateCandidate))
+            {
+                state.CandidateWitnesses.Add(key);
+            }
+        }
+        return releasedUnitIds;
+    }
+
     private static int ClassRank(
         TacticalPlaybookPackage.TaskAssignment assignment,
         TacticalTaskCandidate candidate) => assignment.Classes.Length == 0
@@ -778,6 +943,8 @@ internal sealed class TacticalTaskMachine
         state.Assignments.Clear();
         state.CompletionArmed = false;
         state.ArmedCarrier = null;
+        state.CandidateWitnesses.Clear();
+        state.ReleasedCandidates.Clear();
         state.LastReason = reason;
         _transitions.Add(new(
             tick, state.Plan.TaskId, from, state.Phase, reason, unitIds));
@@ -859,5 +1026,7 @@ internal sealed class TacticalTaskMachine
         internal bool EdgeReady { get; set; } = true;
         internal string LastReason { get; set; } = "initial";
         internal List<TacticalTaskAssignment> Assignments { get; set; } = [];
+        internal HashSet<TacticalCandidateKey> CandidateWitnesses { get; } = [];
+        internal HashSet<TacticalCandidateKey> ReleasedCandidates { get; } = [];
     }
 }

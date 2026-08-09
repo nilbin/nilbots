@@ -6789,3 +6789,55 @@ This changes only the presentation multiplier on unseen terrain. The
 authoritative vision tiles, unselected all-unit union, selected team mask,
 actor/projectile filtering, floor/wall continuity, and Canvas2D fallback remain
 unchanged.
+
+## 262. `scavenge` names opportunistic Core geography; `collect` only names fight precedence
+
+Sheet-language ruling (2026-08-09). A doctrine's zone list is `scavenge`, while
+`fight.collect` remains `yield | first`. The former answers where this body may
+break its current mode to scoop a visible loose Core; the latter answers whether
+that scoop outranks a legal attack. A custody policy's `sourceWells` remains the
+third, independent axis: which birth Wells the coordinated ball protocol farms.
+The compiler rejects the former doctrine `collect` key rather than supporting two
+words for one meaning or one word for two meanings.
+
+Named predicates remain `authoring.predicates`, but boolean combinations are
+written at their point of use. Authored `conditionSets` and `*ConditionSetId`
+references are retired; mode, custody, task and transition fields carry the same
+`predicate and predicate or predicate` string grammar. Missing optional failure
+conditions mean “never” rather than requiring an empty string. The compiler may
+intern and expand these strings into private condition records, but that catalog
+is IR and never sheet configuration. The byte-frozen `home-siege-v2` evidence
+control is the sole compatibility exception.
+
+## 263. `self-*` conditions belong to exact body lives, with a latched mode witness
+
+Sheet-language correctness ruling (2026-08-09). `self-health`, `self-level`,
+`self-carrying`, `self-stuck-ticks`, and `self-mode-ticks` are subject-free facts
+legal only in doctrine mode conditions. They refer to the exact candidate life.
+`role-health` retains its distinct meaning—the weakest live body of a named
+role—for legitimate team questions, but is no longer how a body asks about
+itself. This prevents one injured rolemate from putting every body in a
+multi-body assignment into recovery.
+
+Body modes latch an exact-life witness between their `while` and `until`
+conditions. The witness exists independently of a participant lease: a weaker
+mode therefore remains active while a stronger rung owns the body, and resumes
+without losing its hysteresis state. A respawn is a new life and evaluates the
+ladder afresh. This model reproduced all six canonical Hunter-vs-Wellwright
+exhibition state digests byte-for-byte while making multi-body self conditions
+correct.
+
+## 264. Role tags replace groups only when the legacy squad plane leaves
+
+Sheet-DSL sequencing ruling (2026-08-09). `groups` is not mechanically deleted
+before doctrine migration. Hunter's three groups have inert caps and state
+machines, but the tracked corpus does not: some sheets carry real local-state
+transitions and group caps below the sum of their roles. Removing the section
+early would either erase behavior or hide it in compiler inference, failing the
+comprehensibility and parity gates.
+
+The intended final shape is unchanged: each body has exactly one role/doctrine,
+roles may declare many set tags, and facts/protocol references resolve a role or
+tag without a separate group catalog. The deletion and source migration happen
+atomically with Phase 3's replacement of formations, engagements and coordination,
+when group cardinality and local-state behavior have an explicit doctrine home.

@@ -10,6 +10,24 @@ namespace BotArena.Cli.Tests;
 public sealed class ArcRelayTacticalPlaybookCompilerTests
 {
     [Fact]
+    public void EveryTrackedPlaybookCompilesAfterDslMigration()
+    {
+        string playbooks = Path.Combine(
+            FindRepoRoot(),
+            "arena-bots",
+            "arc-relay",
+            "tactical-playbook-v1-2026-08-03",
+            "playbooks");
+        foreach (string path in Directory.GetFiles(playbooks, "*.json")
+                     .Order(StringComparer.Ordinal))
+        {
+            TacticalPlaybookCompilation compilation =
+                ArcRelayTacticalPlaybookCompiler.Compile(path);
+            Assert.NotEmpty(compilation.NormalizedPlaybook);
+        }
+    }
+
+    [Fact]
     public void HomeSiegeV2ReferenceFreezePinsAcceptedBytes()
     {
         string root = FindRepoRoot();
@@ -106,64 +124,20 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
     }
 
     [Fact]
-    public void CurrentCustodyConditionGroupsCompileWithoutLegacyCatalogReferences()
+    public void InlineCustodyConditionsCompileIntoExpandedRuntimeGroups()
     {
-        TacticalPlaybookCompilation referenced =
+        JsonObject source = AuthoredHomeSiege();
+        Assert.Null(source["authoring"]!["conditionSets"]);
+        Assert.NotEmpty(source["custodyPolicies"]![0]!["safeConversion"]!
+            .GetValue<string>());
+
+        TacticalPlaybookCompilation compilation =
             ArcRelayTacticalPlaybookCompiler.Compile(HomeSiege());
-        JsonObject direct = AuthoredHomeSiege();
-        JsonObject authoring = direct["authoring"]!.AsObject();
-        JsonObject predicates = authoring["predicates"]!.AsObject();
-        JsonObject conditionSets = authoring["conditionSets"]!.AsObject();
-        JsonArray directPolicies = direct["custodyPolicies"]!.AsArray();
-        foreach (JsonNode? node in directPolicies)
-        {
-            JsonObject policy = node!.AsObject();
-            string conditionSetId = policy[
-                "safeConversionConditionSetId"]!.GetValue<string>();
-            policy.Remove("safeConversionConditionSetId");
-            policy["safeConversionAll"] = ExpandAuthoredConditionSet(
-                conditionSetId,
-                predicates,
-                conditionSets);
-        }
-
-        string temporary = TemporaryJson(direct);
-        try
-        {
-            TacticalPlaybookCompilation compiled =
-                ArcRelayTacticalPlaybookCompiler.Compile(temporary);
-            JsonNode referencedPolicies = JsonNode.Parse(
-                referenced.NormalizedPlaybook)!["custodyPolicies"]!;
-            JsonNode compiledPolicies = JsonNode.Parse(
-                compiled.NormalizedPlaybook)!["custodyPolicies"]!;
-            Assert.True(JsonNode.DeepEquals(
-                referencedPolicies,
-                compiledPolicies));
-        }
-        finally
-        {
-            File.Delete(temporary);
-        }
-    }
-
-    private static JsonArray ExpandAuthoredConditionSet(
-        string conditionSetId,
-        JsonObject predicates,
-        JsonObject conditionSets)
-    {
-        var expanded = new JsonArray();
-        foreach (JsonNode? alternative in conditionSets[
-                     conditionSetId]!.AsArray())
-        {
-            var all = new JsonArray();
-            foreach (JsonNode? reference in alternative!.AsArray())
-            {
-                string predicateId = reference!.GetValue<string>();
-                all.Add(predicates[predicateId]!.DeepClone());
-            }
-            expanded.Add(new JsonObject { ["all"] = all });
-        }
-        return expanded;
+        JsonObject normalized = JsonNode.Parse(
+            compilation.NormalizedPlaybook)!.AsObject();
+        JsonObject policy = normalized["custodyPolicies"]![0]!.AsObject();
+        Assert.Null(policy["safeConversion"]);
+        Assert.NotEmpty(policy["safeConversionAll"]!.AsArray());
     }
 
     [Fact]
@@ -201,14 +175,14 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
         Assert.Null(source["orders"]);
         Assert.Equal("maneuver-catalog",
             source["authoring"]!["kind"]!.GetValue<string>());
-        Assert.Equal(9, source["authoring"]!["maneuvers"]!.AsObject().Count);
+        Assert.Equal(10, source["authoring"]!["maneuvers"]!.AsObject().Count);
 
         TacticalPlaybookCompilation compilation =
             ArcRelayTacticalPlaybookCompiler.Compile(HomeSiege());
         JsonObject normalized = JsonNode.Parse(compilation.NormalizedPlaybook)!
             .AsObject();
         Assert.Null(normalized["authoring"]);
-        Assert.Equal(22, normalized["orders"]!.AsArray().Count);
+        Assert.Equal(24, normalized["orders"]!.AsArray().Count);
         Assert.Contains(normalized["orders"]!.AsArray(), order =>
             order!["orderId"]!.GetValue<string>()
                 == "line-task-conversion-escort"
@@ -309,17 +283,15 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
     {
         JsonObject source = JsonNode.Parse(File.ReadAllText(HomeSiege()))!
             .AsObject();
-        source["authoring"]!["conditionSets"]![
-            "conversion-window-front"]![0]![0] = "missing-predicate";
+        source["custodyPolicies"]![0]!["safeConversion"] =
+            "missing-predicate";
         string temporary = TemporaryJson(source);
         try
         {
             InvalidDataException failure = Assert.Throws<InvalidDataException>(
                 () => ArcRelayTacticalPlaybookCompiler.Compile(temporary));
-            Assert.Contains(
-                "condition set references unknown predicate "
-                + "'missing-predicate'",
-                failure.Message);
+            Assert.Contains("condition set references unknown predicate "
+                + "'missing-predicate'", failure.Message);
         }
         finally
         {
@@ -645,18 +617,18 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
     }
 
     [Fact]
-    public void ConditionSetsRequireExplicitConjunctionRows()
+    public void ConditionStringsRequireFlatExplicitBooleanGrammar()
     {
         JsonObject source = JsonNode.Parse(File.ReadAllText(HomeSiege()))!
             .AsObject();
-        source["authoring"]!["conditionSets"]![
-            "secured-conversion-safe"]![0] = new JsonObject();
+        source["custodyPolicies"]![0]!["safeConversion"] =
+            "(secured-core and front-attrition-safe)";
         string temporary = TemporaryJson(source);
         try
         {
             InvalidDataException failure = Assert.Throws<InvalidDataException>(
                 () => ArcRelayTacticalPlaybookCompiler.Compile(temporary));
-            Assert.Contains("expected array", failure.Message);
+            Assert.Contains("is not of the form", failure.Message);
         }
         finally
         {
@@ -1108,7 +1080,7 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
                     .GetProperty("orderId").GetString());
             Assert.Equal(5,
                 task.GetProperty("minimumPrimaryBodies").GetInt32());
-            Assert.Equal(2, task.GetProperty("when").GetArrayLength());
+            Assert.Single(task.GetProperty("when").EnumerateArray());
             Assert.Equal(
                 "primary-order",
                 task.GetProperty("reintegration")
@@ -1239,7 +1211,7 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
         {
             ["mode"] = "release-orders",
             ["orderIds"] = new JsonArray("line-siege", "line-recover"),
-            ["completeConditionSetId"] = "return-to-breach",
+            ["complete"] = "no-live-friendlies",
             ["timeoutTicks"] = 20,
         };
         source["coordination"]!["tasks"]!.AsArray().Add(task);
@@ -1515,14 +1487,12 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
                 },
             },
         },
-        ["whenConditionSetId"] = "conversion-window-occupied",
-        ["completeConditionSetId"] = "return-to-breach",
-        ["failConditionSetId"] = "",
+        ["when"] = "always",
+        ["complete"] = "no-live-friendlies",
         ["reintegration"] = new JsonObject
         {
             ["mode"] = "primary-order",
             ["orderIds"] = new JsonArray(),
-            ["completeConditionSetId"] = "",
             ["timeoutTicks"] = 0,
         },
     };
@@ -1939,8 +1909,10 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
 
         JsonObject source = JsonNode.Parse(
             File.ReadAllBytes(HunterV1()))!.AsObject();
-        source["authoring"]!["predicates"]!["ghost-hurt"]!
-            .AsObject()["subject"] = "not-a-role";
+        JsonObject predicate = source["authoring"]!["predicates"]![
+            "ghost-hurt"]!.AsObject();
+        predicate["fact"] = "role-health";
+        predicate["subject"] = "not-a-role";
         string path = Write(source);
         try
         {
@@ -1951,6 +1923,100 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
         finally
         {
             File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void SelfFactsAreCandidateScopedAndTakeNoRepeatedSubject()
+    {
+        TacticalPlaybookCompilation compilation =
+            ArcRelayTacticalPlaybookCompiler.Compile(HunterV1());
+        JsonObject normalized = JsonNode.Parse(
+            compilation.NormalizedPlaybook)!.AsObject();
+        JsonObject recovery = normalized["coordination"]!["tasks"]!
+            .AsArray()
+            .Select(node => node!.AsObject())
+            .Single(task => task["taskId"]!.GetValue<string>()
+                == "ghost-patrol-1");
+        JsonObject assignment = recovery["assignments"]![0]!.AsObject();
+        Assert.Equal(
+            "self-health",
+            assignment["candidateWhen"]![0]!["all"]![0]!["fact"]!
+                .GetValue<string>());
+        Assert.Equal(
+            "self-health",
+            assignment["candidateUntil"]![0]!["all"]![0]!["fact"]!
+                .GetValue<string>());
+
+        JsonObject repeatedSubject = JsonNode.Parse(
+            File.ReadAllBytes(HunterV1()))!.AsObject();
+        repeatedSubject["authoring"]!["predicates"]!["ghost-hurt"]!
+            .AsObject()["subject"] = "hunter";
+        string repeatedSubjectPath = Write(repeatedSubject);
+        try
+        {
+            InvalidDataException failure = Assert.Throws<InvalidDataException>(
+                () => ArcRelayTacticalPlaybookCompiler.Compile(
+                    repeatedSubjectPath));
+            Assert.Contains("takes no subject or zone", failure.Message);
+        }
+        finally
+        {
+            File.Delete(repeatedSubjectPath);
+        }
+
+        JsonObject globalSelf = JsonNode.Parse(
+            File.ReadAllBytes(HunterV1()))!.AsObject();
+        globalSelf["custodyPolicies"]![0]!["safeConversion"] = "ghost-hurt";
+        string globalSelfPath = Write(globalSelf);
+        try
+        {
+            InvalidDataException failure = Assert.Throws<InvalidDataException>(
+                () => ArcRelayTacticalPlaybookCompiler.Compile(globalSelfPath));
+            Assert.Contains("legal only in a doctrine mode", failure.Message);
+        }
+        finally
+        {
+            File.Delete(globalSelfPath);
+        }
+    }
+
+    [Fact]
+    public void LiveSheetsUseInlineConditionsAndScavengeOnly()
+    {
+        JsonObject legacyCatalog = JsonNode.Parse(
+            File.ReadAllBytes(HunterV1()))!.AsObject();
+        legacyCatalog["authoring"]!["conditionSets"] = new JsonObject();
+        string legacyCatalogPath = Write(legacyCatalog);
+        try
+        {
+            InvalidDataException failure = Assert.Throws<InvalidDataException>(
+                () => ArcRelayTacticalPlaybookCompiler.Compile(
+                    legacyCatalogPath));
+            Assert.Contains("'conditionSets' is no longer authored",
+                failure.Message);
+        }
+        finally
+        {
+            File.Delete(legacyCatalogPath);
+        }
+
+        JsonObject legacyCollect = JsonNode.Parse(
+            File.ReadAllBytes(HunterV1()))!.AsObject();
+        JsonObject ghost = legacyCollect["doctrines"]!["ghost"]!.AsObject();
+        ghost["collect"] = ghost["scavenge"]!.DeepClone();
+        ghost.Remove("scavenge");
+        string legacyCollectPath = Write(legacyCollect);
+        try
+        {
+            InvalidDataException failure = Assert.Throws<InvalidDataException>(
+                () => ArcRelayTacticalPlaybookCompiler.Compile(
+                    legacyCollectPath));
+            Assert.Contains("unknown field 'collect'", failure.Message);
+        }
+        finally
+        {
+            File.Delete(legacyCollectPath);
         }
     }
 
@@ -1987,7 +2053,7 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
         "arc-relay",
         "tactical-playbook-v1-2026-08-03",
         "playbooks",
-        "home-siege-v2.json");
+        "home-siege-v3.json");
 
     private static string HomeSiegeV3() => Path.Combine(
         FindRepoRoot(),

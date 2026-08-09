@@ -776,7 +776,9 @@ internal sealed class TacticalPlaybookPackage
         int Preferred,
         int Maximum,
         string Carrier,
-        SelectionDistance Distance);
+        SelectionDistance Distance,
+        ConditionGroup[]? CandidateWhen = null,
+        ConditionGroup[]? CandidateUntil = null);
 
     internal sealed record SelectionDistance(
         string Kind,

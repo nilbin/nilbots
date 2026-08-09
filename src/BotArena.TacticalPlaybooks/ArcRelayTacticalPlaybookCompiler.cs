@@ -63,6 +63,10 @@ public static class ArcRelayTacticalPlaybookCompiler
         // grammar learning to talk about individual bodies. 9999 when the
         // role has no live body, so "hurt" is never true of the dead.
         "role-health",
+        // Body-scoped doctrine facts. These may appear only in a doctrine
+        // mode's candidate condition: a team/global condition has no `self`.
+        "self-health", "self-level", "self-carrying",
+        "self-stuck-ticks", "self-mode-ticks",
         // Threefold sockets (subject = the contract's absolute well id).
         "own-socket-filled", "enemy-socket-filled",
         "own-filled-sockets", "enemy-filled-sockets",
@@ -96,6 +100,12 @@ public static class ArcRelayTacticalPlaybookCompiler
     private static readonly HashSet<string> FreshnessFacts =
     [
         "remembered-enemies-in-zone", "secured-cores",
+    ];
+
+    private static readonly HashSet<string> SelfFacts =
+    [
+        "self-health", "self-level", "self-carrying",
+        "self-stuck-ticks", "self-mode-ticks",
     ];
 
     public static TacticalPlaybookCompilation Compile(string playbookPath)
@@ -242,6 +252,10 @@ public static class ArcRelayTacticalPlaybookCompiler
         using JsonDocument? libraryMerged = MergeAuthoringLibrary(source, path);
         if (libraryMerged is not null)
             source = libraryMerged.RootElement;
+
+        using JsonDocument conditionDesugared = DesugarConditionStrings(
+            source, path);
+        source = conditionDesugared.RootElement;
 
         using JsonDocument? doctrineDesugared = DesugarDoctrines(source, path);
         if (doctrineDesugared is not null)
@@ -536,6 +550,30 @@ public static class ArcRelayTacticalPlaybookCompiler
                 expandedConditionSetById,
                 authoringAt,
                 allowEmpty: true);
+            foreach (JsonObject assignment in expandedTask["assignments"]!
+                         .AsArray().Select(node => node!.AsObject()))
+            {
+                if (assignment.ContainsKey("candidateWhenConditionSetId"))
+                {
+                    ExpandTaskCondition(
+                        assignment,
+                        "candidateWhenConditionSetId",
+                        "candidateWhen",
+                        expandedConditionSetById,
+                        authoringAt,
+                        allowEmpty: false);
+                }
+                if (assignment.ContainsKey("candidateUntilConditionSetId"))
+                {
+                    ExpandTaskCondition(
+                        assignment,
+                        "candidateUntilConditionSetId",
+                        "candidateUntil",
+                        expandedConditionSetById,
+                        authoringAt,
+                        allowEmpty: false);
+                }
+            }
             expandedTasks.Add(expandedTask);
         }
         expanded["coordination"] = new JsonObject
@@ -804,6 +842,164 @@ public static class ArcRelayTacticalPlaybookCompiler
         }
     }
 
+    /// <summary>
+    /// The authored DSL names conditions where they are used. The exhaustive
+    /// runtime IR still carries expanded condition groups, so this pass interns
+    /// those readable strings into a private catalog consumed by the existing
+    /// expansion pipeline. The catalog never survives normalization.
+    /// </summary>
+    private static JsonDocument DesugarConditionStrings(
+        JsonElement source,
+        string path)
+    {
+        JsonObject root = JsonNode.Parse(source.GetRawText())!.AsObject();
+        JsonObject authoring = root["authoring"]?.AsObject()
+            ?? throw Error(path, "authored playbook needs 'authoring'.");
+        if (authoring.ContainsKey("conditionSets"))
+        {
+            // This byte-frozen evidence control is named by an immutable
+            // freeze ledger. It remains executable as history; every live
+            // authoring surface uses the consolidated DSL below.
+            if (string.Equals(
+                    root["playbookId"]?.GetValue<string>(),
+                    "home-siege-v2",
+                    StringComparison.Ordinal)
+                && string.Equals(
+                    Sha256(Encoding.UTF8.GetBytes(source.GetRawText())),
+                    "4e0578e863d0611790375c8f3ad816398351a6c96ddab335047d9576113794bf",
+                    StringComparison.Ordinal))
+            {
+                return JsonDocument.Parse(root.ToJsonString());
+            }
+            throw Error($"{path}.authoring",
+                "'conditionSets' is no longer authored; put each boolean "
+                + "condition string on the behavior it controls.");
+        }
+
+        var conditionSets = new JsonObject();
+        authoring["conditionSets"] = conditionSets;
+        var interned = new Dictionary<string, string>(StringComparer.Ordinal);
+
+        string Intern(JsonNode? node, string at, bool allowEmpty)
+        {
+            if (node is not JsonValue value
+                || !value.TryGetValue(out string? text))
+            {
+                throw Error(at, "condition must be a boolean string.");
+            }
+            text = text.Trim();
+            if (text.Length == 0)
+            {
+                if (allowEmpty)
+                    return "";
+                throw Error(at, "condition must not be empty.");
+            }
+            if (interned.TryGetValue(text, out string? existing))
+                return existing;
+            string id = $"inline-{interned.Count + 1}";
+            conditionSets[id] = ParseConditionString(text, at);
+            interned.Add(text, id);
+            return id;
+        }
+
+        void Replace(
+            JsonObject owner,
+            string authoredName,
+            string internalName,
+            string at,
+            bool required,
+            bool allowEmpty = false)
+        {
+            if (owner.ContainsKey(internalName))
+            {
+                throw Error(at,
+                    $"legacy '{internalName}' is no longer authored; use "
+                    + $"'{authoredName}'.");
+            }
+            if (!owner.TryGetPropertyValue(authoredName, out JsonNode? node))
+            {
+                if (required)
+                    throw Error(at, $"missing required field '{authoredName}'.");
+                return;
+            }
+            owner.Remove(authoredName);
+            owner[internalName] = Intern(
+                node, $"{at}.{authoredName}", allowEmpty);
+        }
+
+        foreach (JsonObject policy in root["custodyPolicies"]!.AsArray()
+                     .Select(node => node!.AsObject()))
+        {
+            string id = policy["custodyId"]!.GetValue<string>();
+            string at = $"{path}.custodyPolicies.{id}";
+            Replace(policy, "safeConversion",
+                "safeConversionConditionSetId", at, required: true);
+            Replace(policy, "emergencyRecovery",
+                "emergencyRecoveryConditionSetId", at, required: false);
+            if (policy["baitDrop"] is JsonObject baitDrop)
+            {
+                Replace(baitDrop, "reclaim", "reclaimConditionSetId",
+                    $"{at}.baitDrop", required: true);
+            }
+        }
+
+        foreach (JsonObject group in root["groups"]!.AsArray()
+                     .Select(node => node!.AsObject()))
+        foreach (JsonObject state in group["localStateMachine"]!["states"]!
+                     .AsArray().Select(node => node!.AsObject()))
+        foreach (JsonObject transition in state["transitions"]!.AsArray()
+                     .Select(node => node!.AsObject()))
+        {
+            Replace(transition, "when", "conditionSetId",
+                $"{path}.groups.{group["groupId"]!.GetValue<string>()}",
+                required: true);
+        }
+
+        foreach (JsonObject engagement in root["engagements"]!.AsArray()
+                     .Select(node => node!.AsObject()))
+        {
+            if (engagement["holdFire"] is JsonObject holdFire)
+            {
+                Replace(holdFire, "release", "releaseConditionSetId",
+                    $"{path}.engagements."
+                    + engagement["engagementId"]!.GetValue<string>(),
+                    required: false);
+            }
+        }
+
+        JsonObject coordination = root["coordination"]!.AsObject();
+        foreach (JsonObject task in coordination["tasks"]!.AsArray()
+                     .Select(node => node!.AsObject()))
+        {
+            string at = $"{path}.coordination.tasks."
+                + task["taskId"]!.GetValue<string>();
+            Replace(task, "when", "whenConditionSetId", at, required: true);
+            Replace(task, "complete", "completeConditionSetId", at,
+                required: true);
+            Replace(task, "fail", "failConditionSetId", at, required: false);
+            if (!task.ContainsKey("failConditionSetId"))
+                task["failConditionSetId"] = "";
+            Replace(task, "completionArm", "completionArmConditionSetId", at,
+                required: false);
+            JsonObject reintegration = task["reintegration"]!.AsObject();
+            Replace(reintegration, "complete", "completeConditionSetId",
+                $"{at}.reintegration", required: false);
+            if (!reintegration.ContainsKey("completeConditionSetId"))
+                reintegration["completeConditionSetId"] = "";
+        }
+        foreach (JsonObject phase in coordination["phases"]!.AsArray()
+                     .Select(node => node!.AsObject()))
+        foreach (JsonObject transition in phase["transitions"]!.AsArray()
+                     .Select(node => node!.AsObject()))
+        {
+            Replace(transition, "when", "conditionSetId",
+                $"{path}.coordination.phases."
+                + phase["phaseId"]!.GetValue<string>(), required: true);
+        }
+
+        return JsonDocument.Parse(root.ToJsonString());
+    }
+
     private static void ResolveConditionParameters(
         JsonNode node,
         IReadOnlyDictionary<string, int> parameters,
@@ -992,11 +1188,29 @@ public static class ArcRelayTacticalPlaybookCompiler
             root["authoring"]!["predicates"]!.AsObject();
         JsonObject conditionSets =
             root["authoring"]!["conditionSets"]!.AsObject();
+        // Compiler constants, not sheet configuration. They used to survive
+        // only because every sheet repeated these named condition sets.
+        conditionSets["convert-freely"] ??= new JsonArray
+        {
+            new JsonArray("always"),
+        };
+        conditionSets["task-never-done"] ??= new JsonArray
+        {
+            new JsonArray("no-live-friendlies"),
+        };
         JsonArray engagements = root["engagements"]!.AsArray();
         JsonArray tasks = root["coordination"]!["tasks"]!.AsArray();
         string[] phaseIds = root["coordination"]!["phases"]!.AsArray()
             .Select(phase => phase!["phaseId"]!.GetValue<string>())
             .ToArray();
+        var roleBounds = root["roles"]!.AsArray()
+            .Select(node => node!.AsObject())
+            .ToDictionary(
+                role => role["roleId"]!.GetValue<string>(),
+                role => (
+                    Preferred: role["preferred"]!.GetValue<int>(),
+                    Maximum: role["maximum"]!.GetValue<int>()),
+                StringComparer.Ordinal);
 
         // The two sides of the muster contract, collected across every
         // doctrine and joined after the loop: a recruit's muster mode may be
@@ -1012,7 +1226,7 @@ public static class ArcRelayTacticalPlaybookCompiler
             string at = $"{path}.doctrines.{id}";
             JsonElement value = doctrine.Value;
             Object(value, at, ["role", "custody", "modes"],
-                ["fight", "conceal", "collect"]);
+                ["fight", "conceal", "scavenge"]);
             string role = value.GetProperty("role").GetString()!;
             string custody = value.GetProperty("custody").GetString()!;
             // Concealment micro (slip out of seen facing cones, skip the
@@ -1023,30 +1237,31 @@ public static class ArcRelayTacticalPlaybookCompiler
             bool conceal = !value.TryGetProperty(
                     "conceal", out JsonElement concealValue)
                 || concealValue.ValueKind != JsonValueKind.False;
-            // `collect: <zone>` — loose Cores seen in that zone are worth
+            // `scavenge: <zone>` — loose Cores seen in that zone are worth
             // breaking any mode for. The doctrine's own role need not be an
             // authorized courier: standing on a Core collects it by rule, and
             // what happens next is the custody's accidental-pickup policy.
-            // `collect` names the ground worth breaking a mode for: one zone
+            // `scavenge` names the ground worth breaking a mode for: one zone
             // or a list of them. A ball dropped by a dying carrier lands
             // wherever the fight was, so a doctrine that only watches its own
             // farm walks past the deep ones (owner catch on commitx13-w-9001:
             // a Core sat loose at (27,12) in enemy-backfield for 24 ticks
             // with the ghost one tile away).
             var collectZones = new JsonArray();
-            if (value.TryGetProperty("collect", out JsonElement collectValue))
+            if (value.TryGetProperty("scavenge", out JsonElement collectValue))
             {
                 if (collectValue.ValueKind == JsonValueKind.String)
                 {
-                    collectZones.Add((JsonNode)Identifier(value, "collect", at));
+                    collectZones.Add((JsonNode)Identifier(
+                        value, "scavenge", at));
                 }
                 else
                 {
                     foreach (JsonElement zone in BoundedArray(
-                                 collectValue, $"{at}.collect", 1, 8))
+                                 collectValue, $"{at}.scavenge", 1, 8))
                     {
                         collectZones.Add((JsonNode)StringValue(
-                            zone, $"{at}.collect"));
+                            zone, $"{at}.scavenge"));
                     }
                 }
             }
@@ -1155,6 +1370,8 @@ public static class ArcRelayTacticalPlaybookCompiler
                 ValidateDoctrineMode(mode, verb, isFloor, modeAt);
 
                 string whenSet = "convert-freely";
+                string? candidateWhenSet = null;
+                string? candidateUntilSet = null;
                 if (verb == "recover")
                 {
                     // The recover window is the executor's own per-body
@@ -1184,9 +1401,18 @@ public static class ArcRelayTacticalPlaybookCompiler
                 }
                 if (mode.TryGetProperty("while", out JsonElement whileText))
                 {
-                    whenSet = $"{name}-on";
-                    conditionSets[whenSet] = ParseConditionString(
+                    JsonArray parsed = ParseConditionString(
                         whileText.GetString()!, modeAt);
+                    if (ConditionReferencesSelf(parsed, predicates, modeAt))
+                    {
+                        candidateWhenSet = $"{name}-candidate-on";
+                        conditionSets[candidateWhenSet] = parsed;
+                    }
+                    else
+                    {
+                        whenSet = $"{name}-on";
+                        conditionSets[whenSet] = parsed;
+                    }
                 }
                 string failSet = "task-never-done";
                 if (verb == "recover")
@@ -1199,11 +1425,22 @@ public static class ArcRelayTacticalPlaybookCompiler
                 }
                 if (mode.TryGetProperty("until", out JsonElement untilText))
                 {
-                    failSet = $"{name}-off";
-                    conditionSets[failSet] = ParseConditionString(
+                    JsonArray parsed = ParseConditionString(
                         untilText.GetString()!, modeAt);
+                    if (ConditionReferencesSelf(parsed, predicates, modeAt))
+                    {
+                        candidateUntilSet = $"{name}-candidate-off";
+                        conditionSets[candidateUntilSet] = parsed;
+                    }
+                    else
+                    {
+                        failSet = $"{name}-off";
+                        conditionSets[failSet] = parsed;
+                    }
                 }
-                else if (whenSet != "convert-freely" && verb != "recover")
+                else if ((whenSet != "convert-freely"
+                        || candidateWhenSet is not null)
+                    && verb != "recover")
                 {
                     Console.Error.WriteLine(
                         $"lint: doctrine '{id}' mode '{verb}' has 'while' "
@@ -1306,40 +1543,53 @@ public static class ArcRelayTacticalPlaybookCompiler
                     ["tracks"] = new JsonObject { ["main"] = track },
                 };
 
+                bool candidateScoped = candidateWhenSet is not null
+                    || candidateUntilSet is not null;
+                (int rolePreferred, int roleMaximum) = roleBounds[role];
+                int candidateMaximum = candidateScoped
+                    ? Math.Max(1, roleMaximum)
+                    : 1;
+                int candidatePreferred = candidateScoped
+                    ? Math.Max(1, Math.Min(rolePreferred, candidateMaximum))
+                    : 1;
+                var row = new JsonObject
+                {
+                    ["assignmentId"] = name,
+                    ["orderId"] = name,
+                    ["roles"] = new JsonArray(role),
+                    ["classes"] = new JsonArray(),
+                    // Doctrine modes may be active while their body is leased
+                    // by a higher rung. Candidate witnesses gate activation;
+                    // the assignment minimum remains zero so that the lower
+                    // rung stays visible to fallback selection exactly as the
+                    // former role-wide condition did.
+                    ["minimum"] = verb == "recover" ? 1 : 0,
+                    ["preferred"] = candidatePreferred,
+                    ["maximum"] = candidateMaximum,
+                    ["carrier"] = "allow",
+                    // Recover selects by the beacon, and its selector admits
+                    // ONLY bodies the recover predicate flagged (everything
+                    // else reads as unreachably far).
+                    ["distance"] = verb == "recover"
+                        ? new JsonObject
+                        {
+                            ["kind"] = "heal-beacon",
+                            ["target"] = "",
+                            ["maximum"] = 64,
+                        }
+                        : new JsonObject
+                        {
+                            ["kind"] = "own-reactor",
+                            ["target"] = "",
+                        },
+                };
+                if (candidateWhenSet is not null)
+                    row["candidateWhenConditionSetId"] = candidateWhenSet;
+                if (candidateUntilSet is not null)
+                    row["candidateUntilConditionSetId"] = candidateUntilSet;
                 var rows = new JsonArray
                 {
-                    new JsonObject
-                    {
-                        ["assignmentId"] = name,
-                        ["orderId"] = name,
-                        ["roles"] = new JsonArray(role),
-                        ["classes"] = new JsonArray(),
-                        // Recover is the one verb that is pointless empty:
-                        // requiring its body keeps the task dormant until a
-                        // real candidate exists and releases it the moment
-                        // that body is gone.
-                        ["minimum"] = verb == "recover" ? 1 : 0,
-                        ["preferred"] = 1,
-                        ["maximum"] = 1,
-                        ["carrier"] = "allow",
-                        // Recover selects by the beacon, and its selector
-                        // admits ONLY bodies the recover predicate flagged
-                        // (everything else reads as unreachably far), so a
-                        // whole hunter is never pulled off its patrol to go
-                        // stand on a heal tile.
-                        ["distance"] = verb == "recover"
-                            ? new JsonObject
-                            {
-                                ["kind"] = "heal-beacon",
-                                ["target"] = "",
-                                ["maximum"] = 64,
-                            }
-                            : new JsonObject
-                            {
-                                ["kind"] = "own-reactor",
-                                ["target"] = "",
-                            },
-                    },
+                    row,
                 };
                 // The escort block is now a CALL and claims nobody. Under
                 // the muster contract recruitment is two-sided: the leader
@@ -1631,6 +1881,27 @@ public static class ArcRelayTacticalPlaybookCompiler
             groups.Add(group);
         }
         return groups;
+    }
+
+    private static bool ConditionReferencesSelf(
+        JsonArray condition,
+        JsonObject predicates,
+        string path)
+    {
+        foreach (JsonNode? alternative in condition)
+        foreach (JsonNode? reference in alternative!.AsArray())
+        {
+            string predicateId = reference!.GetValue<string>();
+            if (predicates[predicateId] is not JsonObject predicate)
+            {
+                throw Error(path,
+                    $"condition references unknown predicate '{predicateId}'.");
+            }
+            string fact = predicate["fact"]!.GetValue<string>();
+            if (SelfFacts.Contains(fact))
+                return true;
+        }
+        return false;
     }
 
     /// <summary>One authored escort: which role follows, and how it stands.
@@ -2423,6 +2694,15 @@ public static class ArcRelayTacticalPlaybookCompiler
         string fact = RequiredString(predicate, "fact", path);
         if (!ConditionFacts.Contains(fact))
             throw Error(path, $"unknown authored condition fact '{fact}'.");
+        if (SelfFacts.Contains(fact)
+            && (predicate.TryGetProperty("subject", out _)
+                || predicate.TryGetProperty("zone", out _)
+                || predicate.TryGetProperty("freshnessTicks", out _)))
+        {
+            throw Error(path,
+                $"body-scoped fact '{fact}' already means the body "
+                + "evaluating its doctrine and takes no subject or zone.");
+        }
         OneOf(predicate, "operator", path,
             "at-least", "at-most", "equals", "less-than", "greater-than");
         bool hasValue = predicate.TryGetProperty("value", out _);
@@ -2640,6 +2920,12 @@ public static class ArcRelayTacticalPlaybookCompiler
                     "assignmentId", "orderId", "roles", "classes",
                     "minimum", "preferred", "maximum", "carrier",
                     "distance",
+                ], [
+                    // Private fields emitted by doctrine desugaring. They
+                    // become expanded candidateWhen/candidateUntil records
+                    // before the normalized IR is validated.
+                    "candidateWhenConditionSetId",
+                    "candidateUntilConditionSetId",
                 ]);
             Identifier(assignment, "assignmentId", at);
             Identifier(assignment, "orderId", at);
@@ -4103,7 +4389,7 @@ public static class ArcRelayTacticalPlaybookCompiler
                         "assignmentId", "orderId", "roles", "classes",
                         "minimum", "preferred", "maximum", "carrier",
                         "distance",
-                    ]);
+                    ], ["candidateWhen", "candidateUntil"]);
                 string assignmentId = Identifier(
                     assignment, "assignmentId", at);
                 Reference(assignment, "orderId", orderIds, at);
@@ -4140,6 +4426,22 @@ public static class ArcRelayTacticalPlaybookCompiler
                     $"{at}.{taskId}.{assignmentId}", 0, 8);
                 OneOf(assignment, "carrier", at,
                     "forbid", "allow", "require");
+                if (assignment.TryGetProperty(
+                        "candidateWhen", out JsonElement candidateWhen))
+                {
+                    ValidateConditionGroups(
+                        candidateWhen, groupIds, roleIds, orderIds,
+                        $"{at}.{taskId}.{assignmentId}.candidateWhen",
+                        1, 16, allowSelfFacts: true);
+                }
+                if (assignment.TryGetProperty(
+                        "candidateUntil", out JsonElement candidateUntil))
+                {
+                    ValidateConditionGroups(
+                        candidateUntil, groupIds, roleIds, orderIds,
+                        $"{at}.{taskId}.{assignmentId}.candidateUntil",
+                        1, 16, allowSelfFacts: true);
+                }
                 JsonElement distance = assignment.GetProperty("distance");
                 Object(distance, $"{at}.{taskId}.{assignmentId}.distance",
                     ["kind", "target"], ["maximum"]);
@@ -4440,7 +4742,8 @@ public static class ArcRelayTacticalPlaybookCompiler
         IReadOnlySet<string> orderIds,
         string path,
         int minimum,
-        int maximum)
+        int maximum,
+        bool allowSelfFacts = false)
     {
         JsonElement[] groups = BoundedArray(value, path, minimum, maximum);
         foreach (JsonElement group in groups)
@@ -4456,7 +4759,8 @@ public static class ArcRelayTacticalPlaybookCompiler
                 $"{path}.{(hasAll ? "all" : "any")}", 1, 16);
             foreach (JsonElement condition in conditions)
                 ValidateCondition(
-                    condition, groupIds, roleIds, orderIds, path);
+                    condition, groupIds, roleIds, orderIds, path,
+                    allowSelfFacts);
         }
     }
 
@@ -4465,11 +4769,18 @@ public static class ArcRelayTacticalPlaybookCompiler
         IReadOnlySet<string> groupIds,
         IReadOnlySet<string> roleIds,
         IReadOnlySet<string> orderIds,
-        string path)
+        string path,
+        bool allowSelfFacts)
     {
         string fact = RequiredString(value, "fact", path);
         if (!ConditionFacts.Contains(fact))
             throw Error(path, $"unknown condition fact '{fact}'.");
+        if (SelfFacts.Contains(fact) && !allowSelfFacts)
+        {
+            throw Error(path,
+                $"body-scoped fact '{fact}' is legal only in a doctrine "
+                + "mode, where one body supplies 'self'.");
+        }
         var variantFields = new List<string>();
         if (GroupSubjectFacts.Contains(fact)
             || fact is "role-live-count" or "role-health"
@@ -4818,7 +5129,7 @@ public static class ArcRelayTacticalPlaybookCompiler
     private static readonly string[] LibrarySections =
     [
         "parameters", "fallbackPolicies", "assignmentProfiles",
-        "standingOrders", "maneuvers", "predicates", "conditionSets",
+        "standingOrders", "maneuvers", "predicates",
     ];
 
     /// <summary>

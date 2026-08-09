@@ -114,30 +114,28 @@ public sealed class MindToolchainSurfaceTests
     }
 
     [Fact]
-    public void FrozenAmbushV8ArtifactCarriesTheSameControlledBuildReceipt()
+    public void FrozenAmbushV8ArtifactRetainsItsOwnControlledBuildReceipt()
     {
         string root = FindRepoRoot();
-        string currentDirectory = Path.Combine(
-            root,
-            "arena-bots",
-            "arc-relay",
-            "tactical-playbook-mind-v1");
         string frozenDirectory = Path.Combine(
             root,
             "arena-bots",
             "arc-relay",
             "ambush-warren-11-stock-v2");
-        TrackedBuildReceipt current = ReadReceipt(Path.Combine(
-            currentDirectory,
-            "bot.build-receipt.json"));
         TrackedBuildReceipt frozen = ReadReceipt(Path.Combine(
             frozenDirectory,
             "bot.build-receipt.json"));
 
-        Assert.Equal(current, frozen);
         Assert.Equal(
-            current.ArtifactSha256,
+            frozen.ArtifactSha256,
             Sha256(Path.Combine(frozenDirectory, "bot.wasm")));
+        Assert.Equal(ToolchainInfo.SdkVersion, frozen.SdkVersion);
+        Assert.Equal(
+            ToolchainInfo.GuestAdapterVersion,
+            frozen.GuestAdapterVersion);
+        Assert.Equal(
+            ToolchainInfo.BuildPipelineVersion,
+            frozen.BuildPipelineVersion);
     }
 
     /// <summary>The version notes live beside the constants they explain.</summary>

@@ -138,6 +138,5 @@
       "operator": "at-least",
       "value": 1
     }
-  },
-  "conditionSets": {}
+  }
 }

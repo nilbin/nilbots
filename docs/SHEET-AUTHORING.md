@@ -78,7 +78,7 @@ One entry per role, keyed by a free identifier:
     "role": "hunter",
     "custody": "well-custody",
     "conceal": false,
-    "collect": ["north-farm", "midfield", "enemy-backfield"],
+    "scavenge": ["north-farm", "midfield", "enemy-backfield"],
     "fight": { ... },
     "modes": [ ... ]
   }
@@ -90,7 +90,7 @@ One entry per role, keyed by a free identifier:
 - **`conceal`** (optional, default `true`) — concealment micro: slip out of
   seen facing cones, skip the flank walk, long ambush patience. `false` makes
   an open fighter.
-- **`collect`** (optional) — one zone id or a list of up to 8. Loose Cores
+- **`scavenge`** (optional) — one zone id or a list of up to 8. Loose Cores
   seen in those zones are worth breaking a mode for.
 - **`fight`** (optional) — the doctrine's combat character, below.
 - **`modes`** (required) — 1..8 entries, **highest priority first**, below.
@@ -177,8 +177,7 @@ whose own doctrine carries a `muster` mode (§3).
 `authoring.predicates` maps a predicate name to one comparison:
 
 ```json
-"ghost-hurt": { "fact": "role-health", "operator": "at-most",
-                "value": 2, "subject": "hunter" }
+"ghost-hurt": { "fact": "self-health", "operator": "at-most", "value": 2 }
 ```
 
 - `operator`: `at-least`, `at-most`, `equals`, `less-than`, `greater-than`
@@ -191,12 +190,23 @@ A **condition string** is `predicate [and predicate ...] [or ...]` — lowercase
 ASCII, digits and hyphens only, `and` binding tighter than `or`. There are no
 parentheses and no negation.
 
+Conditions are written **where they control behavior**. There is no authored
+`authoring.conditionSets` catalog and no `*ConditionSetId` indirection. Mode
+`while` / `until`, custody `safeConversion` / `emergencyRecovery`, bait-drop
+`reclaim`, and the remaining legacy transition/task conditions all contain the
+condition string directly. An omitted task `fail` or reintegration `complete`
+means “never”; empty authored condition strings are not required.
+
 **Fact vocabulary.** No subject: `always`, `tick`, `phase-state-ticks`,
 `live-friendlies`, `known-enemies-unavailable`, `visible-enemy-carriers`,
 `known-enemy-carriers`, `friendly-carriers`, `secured-cores`,
 `visible-loose-cores`, `visible-loose-core-value`, `outstanding-well-count`,
 `ticks-without-objective-progress`, `reactor-integrity`, `reactor-charge`,
 `custody-state-ticks`, `own-filled-sockets`, `enemy-filled-sockets`.
+Body subject, legal only while evaluating one doctrine candidate and therefore
+written without an explicit subject: `self-health`, `self-level`,
+`self-carrying` (0/1), `self-stuck-ticks`, `self-mode-ticks`. These refer to
+the exact body/life considering the mode, never the weakest body in its role.
 Zone subject (`zone`): `friendlies-in-zone-count`, `group-in-zone-count`,
 `visible-enemies-in-zone`, `remembered-enemies-in-zone`,
 `visible-loose-cores-in-zone`, `visible-loose-core-value-in-zone`.
@@ -218,13 +228,13 @@ Required: `custodyId`, `authorizedCarrierRoles` (1..8 role ids), `escortGroups`
 `deliveryTimeoutTicks` (1..1200), `accidentalPickup`
 (`transfer`/`deliver`/`drop-safe`), `dropRecovery`
 (`same-carrier`/`nearest-authorized`/`guard-until-safe`), `unreachableFallback`
-(`hold`/`guard`/`alternate-core`/`regroup`), `safeConversionAll` (1..8
-condition groups).
+(`hold`/`guard`/`alternate-core`/`regroup`), `safeConversion` (one condition
+string).
 
 Optional, and the three an editor should surface first:
 `deliveryRoutes` — 1..8 `{ "zone", "route" }` rules meaning *a Core lifted
 inside this zone walks that route home instead of the shortest line*;
-`accidentalPickup` above; and `baitDrop` — `{ "zone", "reclaimAll" }`, a
+`accidentalPickup` above; and `baitDrop` — `{ "zone", "reclaim" }`, a
 dropped Core left as a trap in that zone until the reclaim conditions hold.
 `forwardPass` is `"none"` or `"relay-catcher"`. The remaining
 `emergency*` keys are an advanced cluster and may be left out entirely.
@@ -274,10 +284,20 @@ enforcing live in the editor, because they are the ones an author trips:
    declarations; identifiers are lowercase ASCII, digits and hyphens.
 9. **Ranges** as tabulated in §2.3 and §2.6.
 10. **Layout pin.** `layout.sha256` must match the layout file's bytes.
+11. **Self facts are body-only.** They take no `subject`, `zone`, or freshness,
+    and a self predicate referenced by a team/task/custody condition is an
+    error. The compiler's body-mode latch preserves `while`/`until` hysteresis
+    even while a stronger rung temporarily owns that body.
 
 The cheapest correctness guarantee for an editor is to shell out to the
 compiler on save and surface its error string verbatim; the messages are
 written to be read by an author, and they carry a JSON path.
+
+One historical exception exists outside the editor surface:
+`home-siege-v2.json` is byte-frozen evidence and retains the former condition
+catalog syntax. The compiler accepts those exact frozen source bytes solely so the
+freeze stays executable. New sheets and every other tracked playbook use the
+grammar above.
 
 ---
 

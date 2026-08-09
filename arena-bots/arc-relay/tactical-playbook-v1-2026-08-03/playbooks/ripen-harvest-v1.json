@@ -515,7 +515,7 @@
       "accidentalPickup": "deliver",
       "dropRecovery": "nearest-authorized",
       "unreachableFallback": "guard",
-      "safeConversionConditionSetId": "harvest-now"
+      "safeConversion": "orchard-worth"
     },
     {
       "custodyId": "farm-outer",
@@ -535,14 +535,14 @@
       "accidentalPickup": "deliver",
       "dropRecovery": "nearest-authorized",
       "unreachableFallback": "guard",
-      "safeConversionConditionSetId": "convert-freely"
+      "safeConversion": "always"
     }
   ],
   "authoring": {
     "kind": "maneuver-catalog",
     "library": {
       "path": "../library/standard-v1.json",
-      "sha256": "101f48de08eed262b8cff1bfa407862231fe2b3a74642f92d8d1ff2b0fd1df49"
+      "sha256": "958e9f9d96d19d1aff1b5b2b0a7f91173a0207d619b86d80cd6467a0587ffb62"
     },
     "parameters": {
       "ripe-value": {
@@ -686,23 +686,6 @@
         "valueParameter": "value-floor",
         "zone": "centre-farm"
       }
-    },
-    "conditionSets": {
-      "harvest-now": [
-        [
-          "orchard-worth"
-        ]
-      ],
-      "convert-freely": [
-        [
-          "always"
-        ]
-      ],
-      "task-never-done": [
-        [
-          "no-live-friendlies"
-        ]
-      ]
     }
   },
   "coordination": {
@@ -743,15 +726,14 @@
             }
           }
         ],
-        "whenConditionSetId": "convert-freely",
-        "completeConditionSetId": "task-never-done",
-        "failConditionSetId": "task-never-done",
         "reintegration": {
           "mode": "primary-order",
           "orderIds": [],
-          "completeConditionSetId": "",
           "timeoutTicks": 0
-        }
+        },
+        "when": "always",
+        "complete": "no-live-friendlies",
+        "fail": "no-live-friendlies"
       },
       {
         "taskId": "farm-south-task",
@@ -788,15 +770,14 @@
             }
           }
         ],
-        "whenConditionSetId": "convert-freely",
-        "completeConditionSetId": "task-never-done",
-        "failConditionSetId": "task-never-done",
         "reintegration": {
           "mode": "primary-order",
           "orderIds": [],
-          "completeConditionSetId": "",
           "timeoutTicks": 0
-        }
+        },
+        "when": "always",
+        "complete": "no-live-friendlies",
+        "fail": "no-live-friendlies"
       }
     ],
     "phases": [

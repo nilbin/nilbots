@@ -257,11 +257,23 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     machine.LocalState(groups[body.UnitId]),
                     body.ClassId ?? "",
                     carried.ContainsKey(body.ActorId),
-                    body.Position))
+                    body.Position,
+                    body.Health,
+                    _unitLevel.TryGetValue(
+                        body.UnitId, out (int LifeId, int Level) level)
+                        && level.LifeId == body.ActorId.LifeId
+                            ? level.Level
+                            : 1,
+                    _motion.GetValueOrDefault(body.UnitId)?.StuckTicks ?? 0))
                 .ToArray(),
             condition => TacticalPlaybookMachine.Matches(
                 condition,
                 leaf => Evaluate(leaf, snapshot, package)),
+            (condition, candidate, modeTicks) =>
+                TacticalPlaybookMachine.Matches(
+                    condition,
+                    leaf => EvaluateCandidate(
+                        leaf, candidate, modeTicks, snapshot, package)),
             (assignment, candidate) => TaskSelectionDistance(
                 package,
                 arc,
@@ -1729,17 +1741,43 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 $"Unknown tactical fact '{condition.Fact}'."),
         };
         _ = package;
-        return condition.Operator switch
-        {
-            "at-least" => actual >= condition.Value,
-            "at-most" => actual <= condition.Value,
-            "equals" => actual == condition.Value,
-            "less-than" => actual < condition.Value,
-            "greater-than" => actual > condition.Value,
-            _ => throw new InvalidDataException(
-                $"Unknown tactical operator '{condition.Operator}'."),
-        };
+        return Compare(condition, actual);
     }
+
+    private bool EvaluateCandidate(
+        TacticalPlaybookPackage.Condition condition,
+        TacticalTaskCandidate candidate,
+        int modeTicks,
+        TacticalSnapshot snapshot,
+        TacticalPlaybookPackage package)
+    {
+        if (!condition.Fact.StartsWith("self-", StringComparison.Ordinal))
+            return Evaluate(condition, snapshot, package);
+        int actual = condition.Fact switch
+        {
+            "self-health" => candidate.Health,
+            "self-level" => candidate.Level,
+            "self-carrying" => candidate.CarriesCore ? 1 : 0,
+            "self-stuck-ticks" => candidate.StuckTicks,
+            "self-mode-ticks" => modeTicks,
+            _ => throw new InvalidDataException(
+                $"Unknown body-scoped tactical fact '{condition.Fact}'."),
+        };
+        return Compare(condition, actual);
+    }
+
+    private static bool Compare(
+        TacticalPlaybookPackage.Condition condition,
+        int actual) => condition.Operator switch
+    {
+        "at-least" => actual >= condition.Value,
+        "at-most" => actual <= condition.Value,
+        "equals" => actual == condition.Value,
+        "less-than" => actual < condition.Value,
+        "greater-than" => actual > condition.Value,
+        _ => throw new InvalidDataException(
+            $"Unknown tactical operator '{condition.Operator}'."),
+    };
 
     private Dictionary<int, TacticalPlaybookPackage.Order> ActiveOrders(
         MindContext mind,

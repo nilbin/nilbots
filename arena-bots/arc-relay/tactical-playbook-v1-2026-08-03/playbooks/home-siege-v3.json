@@ -163,7 +163,7 @@
                 "cause": "failure",
                 "minimumPolicy": "respect",
                 "stableTicks": 3,
-                "conditionSetId": "line-cohesion-broken"
+                "when": "line-cohesion-low"
               }
             ]
           },
@@ -177,7 +177,7 @@
                 "cause": "recovery",
                 "minimumPolicy": "respect",
                 "stableTicks": 3,
-                "conditionSetId": "line-cohesion-recovered"
+                "when": "line-cohesion-restored"
               }
             ]
           }
@@ -896,7 +896,7 @@
       "accidentalPickup": "deliver",
       "dropRecovery": "nearest-authorized",
       "unreachableFallback": "guard",
-      "safeConversionConditionSetId": "secured-conversion-safe"
+      "safeConversion": "front-attrition-safe and six-in-siege and secured-core or front-attrition-safe and no-progress-for-60 and five-in-siege and north-core-outstanding"
     },
     {
       "custodyId": "surge-harvest",
@@ -921,8 +921,6 @@
       "accidentalPickup": "deliver",
       "dropRecovery": "nearest-authorized",
       "unreachableFallback": "alternate-core",
-      "safeConversionConditionSetId": "surge-always",
-      "emergencyRecoveryConditionSetId": "local-enemy-home-sanitation",
       "emergencyRecoveryZones": [
         "enemy-bank-danger"
       ],
@@ -937,7 +935,9 @@
       ],
       "emergencyRecoveryDisposition": "displace",
       "emergencyDisplacementTarget": "sanitation-release",
-      "emergencyDisplacementReleaseRadius": 1
+      "emergencyDisplacementReleaseRadius": 1,
+      "safeConversion": "always",
+      "emergencyRecovery": "five-in-siege and secured-core"
     },
     {
       "custodyId": "incidental-delivery",
@@ -958,7 +958,7 @@
       "accidentalPickup": "deliver",
       "dropRecovery": "nearest-authorized",
       "unreachableFallback": "guard",
-      "safeConversionConditionSetId": "never-convert"
+      "safeConversion": "no-live-friendlies"
     }
   ],
   "authoring": {
@@ -1418,194 +1418,6 @@
         }
       }
     },
-    "conditionSets": {
-      "never-convert": [
-        [
-          "no-live-friendlies"
-        ]
-      ],
-      "task-harvest-window": [
-        [
-          "occupied-attrition-safe",
-          "five-at-bank-seal",
-          "core-outstanding"
-        ]
-      ],
-      "task-bank-drop-visible": [
-        [
-          "secured-core",
-          "five-at-bank-seal",
-          "no-friendly-carrier"
-        ]
-      ],
-      "task-bank-drop-captured": [
-        [
-          "one-friendly-carrier"
-        ]
-      ],
-      "task-bank-drop-lost": [
-        [
-          "no-secured-core"
-        ]
-      ],
-      "task-harvest-acquired": [
-        [
-          "one-friendly-carrier"
-        ]
-      ],
-      "local-enemy-home-sanitation": [
-        [
-          "five-in-siege",
-          "secured-core"
-        ]
-      ],
-      "task-harvest-scored": [
-        [
-          "no-friendly-carrier"
-        ]
-      ],
-      "task-harvest-reintegrated": [
-        [
-          "runner-at-rally",
-          "line-two-at-rally"
-        ]
-      ],
-      "task-denial-visible": [
-        [
-          "visible-enemy-carrier",
-          "five-at-bank-seal"
-        ]
-      ],
-    "task-denial-complete": [
-      [
-        "no-known-enemy-carrier"
-      ]
-      ],
-      "line-cohesion-broken": [
-        [
-          "line-cohesion-low"
-        ]
-      ],
-      "line-cohesion-recovered": [
-        [
-          "line-cohesion-restored"
-        ]
-      ],
-      "secured-conversion-safe": [
-        [
-          "front-attrition-safe",
-          "six-in-siege",
-          "secured-core"
-        ],
-        [
-          "front-attrition-safe",
-          "no-progress-for-60",
-          "five-in-siege",
-          "north-core-outstanding"
-        ]
-      ],
-      "surge-always": [
-        [
-          "always"
-        ]
-      ],
-      "conversion-window-front": [
-        [
-          "front-attrition-safe",
-          "core-outstanding",
-          "five-in-siege"
-        ],
-        [
-          "front-attrition-safe",
-          "no-visible-enemy-carrier",
-          "secured-core",
-          "three-wells-outstanding",
-          "two-loose-cores",
-          "six-live"
-        ]
-      ],
-      "siege-established": [
-        [
-          "six-in-siege"
-        ]
-      ],
-      "combat-force-collapse": [
-        [
-          "four-live-or-fewer"
-        ]
-      ],
-      "conversion-window-occupied": [
-        [
-          "occupied-attrition-safe",
-          "core-outstanding",
-          "six-in-siege"
-        ],
-        [
-          "occupied-attrition-safe",
-          "no-visible-enemy-carrier",
-          "secured-core",
-          "three-wells-outstanding",
-          "two-loose-cores",
-          "six-live"
-        ]
-      ],
-      "siege-formation-thinned": [
-        [
-          "three-or-fewer-at-bank-seal"
-        ]
-      ],
-      "emergency-conversion": [
-        [
-          "reactor-critical",
-          "front-attrition-safe",
-          "core-outstanding",
-          "five-live"
-        ]
-      ],
-      "conversion-surge-from-regroup": [
-        [
-          "front-attrition-safe",
-          "no-visible-enemy-carrier",
-          "secured-core",
-          "three-wells-outstanding",
-          "two-loose-cores",
-          "six-live"
-        ]
-      ],
-    "rally-reformed": [
-      [
-        "line-two-at-rally",
-        "five-live"
-      ]
-      ],
-      "delivery-ready": [
-        [
-          "three-friendly-carriers"
-        ],
-        [
-          "harvest-ready-at-28",
-          "one-friendly-carrier"
-        ]
-      ],
-      "harvest-timeout": [
-        [
-          "harvest-stalled-at-36",
-          "no-friendly-carrier"
-        ]
-      ],
-      "harvest-again": [
-        [
-          "no-friendly-carrier",
-          "front-attrition-safe"
-        ]
-      ],
-      "return-to-breach": [
-        [
-          "no-friendly-carrier",
-          "no-loose-core"
-        ]
-      ]
-    },
     "assignmentProfiles": {
       "runner-standard": {
         "groupId": "runner-group",
@@ -1721,16 +1533,16 @@
         "value": 4,
         "zone": "siege-leash"
       },
-    "no-visible-enemy-carrier": {
-      "fact": "visible-enemy-carriers",
-      "operator": "equals",
-      "value": 0
-    },
-    "no-known-enemy-carrier": {
-      "fact": "known-enemy-carriers",
-      "operator": "equals",
-      "value": 0
-    },
+      "no-visible-enemy-carrier": {
+        "fact": "visible-enemy-carriers",
+        "operator": "equals",
+        "value": 0
+      },
+      "no-known-enemy-carrier": {
+        "fact": "known-enemy-carriers",
+        "operator": "equals",
+        "value": 0
+      },
       "visible-enemy-carrier": {
         "fact": "visible-enemy-carriers",
         "operator": "at-least",
@@ -1913,15 +1725,13 @@
             }
           }
         ],
-        "whenConditionSetId": "never-convert",
-        "completeConditionSetId": "never-convert",
-        "failConditionSetId": "",
         "reintegration": {
           "mode": "primary-order",
           "orderIds": [],
-          "completeConditionSetId": "",
           "timeoutTicks": 0
-        }
+        },
+        "when": "no-live-friendlies",
+        "complete": "no-live-friendlies"
       },
       {
         "taskId": "deny-visible-carrier",
@@ -1945,8 +1755,8 @@
               "line"
             ],
             "classes": [
-            "repulsor",
-            "sunder"
+              "repulsor",
+              "sunder"
             ],
             "minimum": 1,
             "preferred": 1,
@@ -1958,15 +1768,13 @@
             }
           }
         ],
-        "whenConditionSetId": "task-denial-visible",
-        "completeConditionSetId": "task-denial-complete",
-        "failConditionSetId": "",
         "reintegration": {
           "mode": "primary-order",
           "orderIds": [],
-          "completeConditionSetId": "",
           "timeoutTicks": 0
-        }
+        },
+        "when": "visible-enemy-carrier and five-at-bank-seal",
+        "complete": "no-known-enemy-carrier"
       },
       {
         "taskId": "secure-bank-drop",
@@ -2003,15 +1811,14 @@
             }
           }
         ],
-        "whenConditionSetId": "task-bank-drop-visible",
-        "completeConditionSetId": "task-bank-drop-captured",
-        "failConditionSetId": "task-bank-drop-lost",
         "reintegration": {
           "mode": "primary-order",
           "orderIds": [],
-          "completeConditionSetId": "",
           "timeoutTicks": 0
-        }
+        },
+        "when": "secured-core and five-at-bank-seal and no-friendly-carrier",
+        "complete": "one-friendly-carrier",
+        "fail": "no-secured-core"
       },
       {
         "taskId": "harvest-core-window",
@@ -2069,17 +1876,15 @@
             }
           }
         ],
-        "whenConditionSetId": "task-harvest-window",
         "completionArmMode": "any-friendly-carrier",
         "completionReleaseMode": "armed-carrier-retarget-or-loss",
-        "completeConditionSetId": "task-harvest-scored",
-        "failConditionSetId": "",
         "reintegration": {
           "mode": "primary-order",
           "orderIds": [],
-          "completeConditionSetId": "",
           "timeoutTicks": 0
-        }
+        },
+        "when": "occupied-attrition-safe and five-at-bank-seal and core-outstanding",
+        "complete": "no-friendly-carrier"
       }
     ],
     "phases": [
@@ -2087,8 +1892,8 @@
         "phaseId": "assault",
         "minimumTicks": 20,
         "maneuverId": "assault",
-      "standingOrderIds": [
-        "line-recover"
+        "standingOrderIds": [
+          "line-recover"
         ],
         "transitions": [
           {
@@ -2097,7 +1902,7 @@
             "cause": "success",
             "minimumPolicy": "respect",
             "stableTicks": 3,
-            "conditionSetId": "siege-established"
+            "when": "six-in-siege"
           },
           {
             "priority": 20,
@@ -2105,7 +1910,7 @@
             "cause": "failure",
             "minimumPolicy": "respect",
             "stableTicks": 3,
-            "conditionSetId": "combat-force-collapse"
+            "when": "four-live-or-fewer"
           }
         ]
       },
@@ -2113,8 +1918,8 @@
         "phaseId": "occupy",
         "minimumTicks": 8,
         "maneuverId": "occupy",
-      "standingOrderIds": [
-        "line-recover"
+        "standingOrderIds": [
+          "line-recover"
         ],
         "transitions": [
           {
@@ -2123,7 +1928,7 @@
             "cause": "failure",
             "minimumPolicy": "respect",
             "stableTicks": 3,
-            "conditionSetId": "siege-formation-thinned"
+            "when": "three-or-fewer-at-bank-seal"
           }
         ]
       },
@@ -2131,8 +1936,8 @@
         "phaseId": "regroup",
         "minimumTicks": 8,
         "maneuverId": "regroup",
-      "standingOrderIds": [
-        "line-recover"
+        "standingOrderIds": [
+          "line-recover"
         ],
         "transitions": [
           {
@@ -2141,7 +1946,7 @@
             "cause": "recovery",
             "minimumPolicy": "respect",
             "stableTicks": 4,
-            "conditionSetId": "rally-reformed"
+            "when": "line-two-at-rally and five-live"
           }
         ]
       },
@@ -2149,8 +1954,8 @@
         "phaseId": "breach",
         "minimumTicks": 6,
         "maneuverId": "breach",
-      "standingOrderIds": [
-        "line-recover"
+        "standingOrderIds": [
+          "line-recover"
         ],
         "transitions": [
           {
@@ -2159,7 +1964,7 @@
             "cause": "success",
             "minimumPolicy": "respect",
             "stableTicks": 3,
-            "conditionSetId": "siege-established"
+            "when": "six-in-siege"
           },
           {
             "priority": 20,
@@ -2167,7 +1972,7 @@
             "cause": "failure",
             "minimumPolicy": "respect",
             "stableTicks": 3,
-            "conditionSetId": "combat-force-collapse"
+            "when": "four-live-or-fewer"
           }
         ]
       }

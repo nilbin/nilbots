@@ -719,7 +719,7 @@
       "accidentalPickup": "deliver",
       "dropRecovery": "nearest-authorized",
       "unreachableFallback": "guard",
-      "safeConversionConditionSetId": "convert-freely"
+      "safeConversion": "always"
     },
     {
       "custodyId": "farm-south",
@@ -738,7 +738,7 @@
       "accidentalPickup": "deliver",
       "dropRecovery": "nearest-authorized",
       "unreachableFallback": "guard",
-      "safeConversionConditionSetId": "convert-freely"
+      "safeConversion": "always"
     },
     {
       "custodyId": "incidental-delivery",
@@ -763,14 +763,14 @@
       "accidentalPickup": "deliver",
       "dropRecovery": "nearest-authorized",
       "unreachableFallback": "guard",
-      "safeConversionConditionSetId": "convert-freely"
+      "safeConversion": "always"
     }
   ],
   "authoring": {
     "kind": "maneuver-catalog",
     "library": {
       "path": "../library/standard-v1.json",
-      "sha256": "101f48de08eed262b8cff1bfa407862231fe2b3a74642f92d8d1ff2b0fd1df49"
+      "sha256": "958e9f9d96d19d1aff1b5b2b0a7f91173a0207d619b86d80cd6467a0587ffb62"
     },
     "parameters": {
       "detect-mass": {
@@ -1000,44 +1000,6 @@
         "valueParameter": "linger-mass",
         "zone": "own-approach"
       }
-    },
-    "conditionSets": {
-      "siege-detected": [
-        [
-          "approach-mass"
-        ]
-      ],
-      "siege-released": [
-        [
-          "approach-clear"
-        ]
-      ],
-      "convert-freely": [
-        [
-          "always"
-        ]
-      ],
-      "task-never-done": [
-        [
-          "no-live-friendlies"
-        ]
-      ],
-      "courier-visible": [
-        [
-          "visible-enemy-carrier"
-        ]
-      ],
-      "courier-lingering": [
-        [
-          "visible-enemy-carrier",
-          "approach-lingering"
-        ]
-      ],
-      "courier-gone": [
-        [
-          "no-known-enemy-carrier"
-        ]
-      ]
     }
   },
   "coordination": {
@@ -1080,15 +1042,14 @@
             }
           }
         ],
-        "whenConditionSetId": "convert-freely",
-        "completeConditionSetId": "task-never-done",
-        "failConditionSetId": "task-never-done",
         "reintegration": {
           "mode": "primary-order",
           "orderIds": [],
-          "completeConditionSetId": "",
           "timeoutTicks": 0
-        }
+        },
+        "when": "always",
+        "complete": "no-live-friendlies",
+        "fail": "no-live-friendlies"
       },
       {
         "taskId": "farm-south-task",
@@ -1127,15 +1088,14 @@
             }
           }
         ],
-        "whenConditionSetId": "convert-freely",
-        "completeConditionSetId": "task-never-done",
-        "failConditionSetId": "task-never-done",
         "reintegration": {
           "mode": "primary-order",
           "orderIds": [],
-          "completeConditionSetId": "",
           "timeoutTicks": 0
-        }
+        },
+        "when": "always",
+        "complete": "no-live-friendlies",
+        "fail": "no-live-friendlies"
       },
       {
         "taskId": "counter-courier-linger",
@@ -1172,15 +1132,14 @@
             }
           }
         ],
-        "whenConditionSetId": "courier-lingering",
-        "completeConditionSetId": "courier-gone",
-        "failConditionSetId": "task-never-done",
         "reintegration": {
           "mode": "primary-order",
           "orderIds": [],
-          "completeConditionSetId": "",
           "timeoutTicks": 0
-        }
+        },
+        "when": "visible-enemy-carrier and approach-lingering",
+        "complete": "no-known-enemy-carrier",
+        "fail": "no-live-friendlies"
       },
       {
         "taskId": "counter-courier",
@@ -1217,15 +1176,14 @@
             }
           }
         ],
-        "whenConditionSetId": "courier-visible",
-        "completeConditionSetId": "courier-gone",
-        "failConditionSetId": "task-never-done",
         "reintegration": {
           "mode": "primary-order",
           "orderIds": [],
-          "completeConditionSetId": "",
           "timeoutTicks": 0
-        }
+        },
+        "when": "visible-enemy-carrier",
+        "complete": "no-known-enemy-carrier",
+        "fail": "no-live-friendlies"
       }
     ],
     "phases": [
@@ -1241,7 +1199,7 @@
             "cause": "success",
             "minimumPolicy": "respect",
             "stableTicks": 2,
-            "conditionSetId": "siege-detected"
+            "when": "approach-mass"
           }
         ]
       },
@@ -1257,7 +1215,7 @@
             "cause": "failure",
             "minimumPolicy": "respect",
             "stableTicks": 12,
-            "conditionSetId": "siege-released"
+            "when": "approach-clear"
           }
         ]
       }

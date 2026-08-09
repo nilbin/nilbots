@@ -314,6 +314,57 @@ public sealed class TacticalTaskMachineTests
     }
 
     [Fact]
+    public void CandidateConditionsSelectAndReleaseTheMatchingBodyOnly()
+    {
+        TacticalPlaybookPackage.TaskAssignment assignment = Assignment(
+            "hurt", "convert-order", ["kestrel"]) with
+        {
+            CandidateWhen = [Condition("self-health", "at-most", 2)],
+            CandidateUntil = [Condition("self-health", "at-least", 3)],
+        };
+        TacticalTaskMachine machine = Machine(Task("recover", assignment));
+        var facts = new HashSet<string>(["trigger"], StringComparer.Ordinal);
+
+        Step(machine, 0, facts,
+            Candidate(0, "kestrel", x: 0, health: 4),
+            Candidate(1, "kestrel", x: 1, health: 2));
+
+        Assert.Null(machine.DirectiveFor(0));
+        Assert.Equal("convert-order", machine.DirectiveFor(1)!.OrderId);
+
+        Step(machine, 1, facts,
+            Candidate(0, "kestrel", x: 0, health: 4),
+            Candidate(1, "kestrel", x: 1, health: 3));
+
+        Assert.Null(machine.DirectiveFor(1));
+        Assert.Equal(TacticalTaskPhase.Dormant, machine.State("recover").Phase);
+        Assert.Equal(
+            "candidate-condition-primary-order",
+            machine.State("recover").LastReason);
+    }
+
+    [Fact]
+    public void SelfModeTicksBelongToTheAssignedBody()
+    {
+        TacticalPlaybookPackage.TaskAssignment assignment = Assignment(
+            "timed", "convert-order", ["kestrel"]) with
+        {
+            CandidateUntil = [Condition("self-mode-ticks", "at-least", 2)],
+        };
+        TacticalTaskMachine machine = Machine(Task("timed", assignment));
+        var facts = new HashSet<string>(["trigger"], StringComparer.Ordinal);
+        TacticalTaskCandidate actor = Candidate(0, "kestrel", x: 0);
+
+        Step(machine, 0, facts, actor);
+        Step(machine, 1, facts, actor);
+        Assert.NotNull(machine.DirectiveFor(0));
+
+        Step(machine, 2, facts, actor);
+        Assert.Null(machine.DirectiveFor(0));
+        Assert.Equal(TacticalTaskPhase.Dormant, machine.State("timed").Phase);
+    }
+
+    [Fact]
     public void CompletionMustArmBeforeAnInitiallyTrueTerminalConditionReleases()
     {
         TacticalPlaybookPackage.TacticalTask task = Task(
@@ -571,7 +622,8 @@ public sealed class TacticalTaskMachineTests
         int x,
         bool carrier = false,
         int lifeId = 0,
-        string localState = "ready") => new(
+        string localState = "ready",
+        int health = 4) => new(
         unitId,
         new ActorIdentity(0, unitId, lifeId),
         "line",
@@ -579,10 +631,16 @@ public sealed class TacticalTaskMachineTests
         localState,
         classId,
         carrier,
-        new Position(x, 0));
+        new Position(x, 0),
+        health);
 
     private static TacticalPlaybookPackage.ConditionGroup Group(string fact) =>
         new([new(fact, "equals", 1, "", "", 0)], []);
+
+    private static TacticalPlaybookPackage.ConditionGroup Condition(
+        string fact,
+        string comparison,
+        int value) => new([new(fact, comparison, value, "", "", 0)], []);
 
     private static void Step(
         TacticalTaskMachine machine,
@@ -593,5 +651,26 @@ public sealed class TacticalTaskMachineTests
         "occupy",
         candidates,
         group => group.All.All(condition => facts.Contains(condition.Fact)),
+        (group, candidate, modeTicks) => group.All.All(condition =>
+        {
+            int actual = condition.Fact switch
+            {
+                "self-health" => candidate.Health,
+                "self-level" => candidate.Level,
+                "self-carrying" => candidate.CarriesCore ? 1 : 0,
+                "self-stuck-ticks" => candidate.StuckTicks,
+                "self-mode-ticks" => modeTicks,
+                _ => facts.Contains(condition.Fact) ? condition.Value : -1,
+            };
+            return condition.Operator switch
+            {
+                "at-least" => actual >= condition.Value,
+                "at-most" => actual <= condition.Value,
+                "equals" => actual == condition.Value,
+                "less-than" => actual < condition.Value,
+                "greater-than" => actual > condition.Value,
+                _ => false,
+            };
+        }),
         (_, candidate) => candidate.Position.X);
 }
