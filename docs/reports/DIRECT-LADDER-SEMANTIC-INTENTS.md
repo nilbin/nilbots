@@ -7,6 +7,8 @@ Branch: `sheet-bulk`
 Base: `a555c1de`
 Status: implementation complete; not merged
 
+Implementation checkpoint: `2f198a79`
+
 ## Result
 
 Direct doctrine ladders now keep two deliberately different identities:
@@ -91,5 +93,26 @@ port 8990.
 
 ## Validation
 
-Validation results are recorded at the final checkpoint below. `publish-cli`
-owes a `cli-v0.9.39` tag before any release or deploy; none was run here.
+- `dotnet build BotArena.sln` — passed, 0 warnings and 0 errors.
+- `dotnet test tests/BotArena.Cli.Tests --no-build --no-restore` — 257 passed.
+- `dotnet test tests/BotArena.Engine.Tests --no-build --no-restore` — 1,436
+  passed.
+- `dotnet test tests/BotArena.Runtime.Wasm.Tests --no-build --no-restore` — 68
+  passed.
+- `dotnet test tests/BotArena.Determinism.Tests --no-build --no-restore` — 17
+  passed.
+- PostgreSQL-required `BotArena.App.Tests` — 284 passed; the three skipped
+  tests require the separately opted-in S3 or controlled-builder services.
+  Both v8→v10 and v9→v10 Season continuity paths ran against disposable
+  PostgreSQL databases.
+- `bash scripts/generate-api-clients.sh` — passed; no generated client diff.
+- `cd web && npm test` — 437 passed.
+- `cd web && npm run build` — passed, including all five scoped CLI viewers and
+  the production site bundle.
+- controlled WASM/in-process `w-9001` gameplay-state digest — identical at
+  `e77580f1…`.
+- public-gallery phone WebGL smoke — six of six played, zero captured errors.
+- `git diff --check` — passed.
+
+`publish-cli` owes a `cli-v0.9.39` tag before any release or deploy; none was
+run here.
