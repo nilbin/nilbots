@@ -295,7 +295,7 @@ public sealed class ArcRelayEntrantProductIntegrationTests
             firstClient, "Alpha sheet", catalog, enterLadder: true);
         JsonObject alternate = JsonNode.Parse(
             catalog.TemplatePlaybookJson)!.AsObject();
-        alternate["doctrines"]!["ghost"]!["conceal"] = true;
+        alternate["doctrines"]!["roles"]!["hunter"]!["conceal"] = true;
         TacticalSheetResponse second = await SaveSheetAsync(
             secondClient,
             "Beta sheet",

@@ -72,7 +72,7 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
             catalog.TemplateLayoutJson);
         JsonObject counterPlan = JsonNode.Parse(
             catalog.TemplatePlaybookJson)!.AsObject();
-        counterPlan["doctrines"]!["ghost"]!["conceal"] = true;
+        counterPlan["doctrines"]!["roles"]!["hunter"]!["conceal"] = true;
         TacticalSheetResponse second = await SaveAsync(
             client,
             "Counter line",
