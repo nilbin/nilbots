@@ -64,6 +64,7 @@ internal sealed class TacticalTaskMachine
     private readonly Dictionary<string, Runtime> _states;
     private readonly Dictionary<int, TacticalTaskDirective> _directives = [];
     private readonly List<TacticalTaskTrace> _transitions = [];
+    private readonly HashSet<TacticalCandidateKey> _cohortAdmissions = [];
 
     internal TacticalTaskMachine(TacticalPlaybookPackage.Playbook playbook)
     {
@@ -129,6 +130,9 @@ internal sealed class TacticalTaskMachine
         _directives.Clear();
         Dictionary<int, TacticalTaskCandidate> live = candidates.ToDictionary(
             value => value.UnitId);
+        ResolveCohortAdmissions(
+            tick, phaseId, candidates, evaluate, evaluateCandidate, distance);
+        ReleaseDepartedCohortMembers(tick, live);
 
         var owners = new Dictionary<int, Runtime>();
         foreach (Runtime state in _states.Values
@@ -764,7 +768,15 @@ internal sealed class TacticalTaskMachine
     /// class, carrier and the distance selector are the eligibility gate;
     /// priority and <see cref="Claimable"/> decide who wins a contested body.
     /// </summary>
-    private static IEnumerable<TacticalTaskCandidate> Candidates(
+    private IEnumerable<TacticalTaskCandidate> Candidates(
+        TacticalPlaybookPackage.TaskAssignment assignment,
+        IEnumerable<TacticalTaskCandidate> candidates) => RawCandidates(
+            assignment, candidates)
+        .Where(value => assignment.Cohort is null
+            || _cohortAdmissions.Contains(new(
+                assignment.AssignmentId, value.ActorId)));
+
+    private static IEnumerable<TacticalTaskCandidate> RawCandidates(
         TacticalPlaybookPackage.TaskAssignment assignment,
         IEnumerable<TacticalTaskCandidate> candidates) => candidates
         .Where(value => assignment.Roles.Length == 0
@@ -843,7 +855,7 @@ internal sealed class TacticalTaskMachine
 
         foreach (TacticalPlaybookPackage.TaskAssignment assignment
                  in state.Plan.Assignments.Where(HasCandidateScope))
-        foreach (TacticalTaskCandidate candidate in Candidates(
+        foreach (TacticalTaskCandidate candidate in RawCandidates(
                      assignment, live.Values))
         {
             var key = new TacticalCandidateKey(
@@ -895,6 +907,213 @@ internal sealed class TacticalTaskMachine
         ? 0
         : Array.IndexOf(assignment.Classes, candidate.ClassId);
 
+    /// <summary>
+    /// Resolve every authored cohort before task leases. Each live body walks
+    /// its own eligible ladder from the top. A non-cohort rung settles it.
+    /// Bodies meeting the same cohort rung are ranked together by distance to
+    /// that rung's one destination, then stable unit id; winners settle and
+    /// rejected bodies continue down their own ladders. Membership is
+    /// recomputed every tick, with no cohort lifecycle or hidden sticky state.
+    /// </summary>
+    private void ResolveCohortAdmissions(
+        int tick,
+        string phaseId,
+        IReadOnlyList<TacticalTaskCandidate> candidates,
+        Func<TacticalPlaybookPackage.ConditionGroup, bool> evaluate,
+        Func<TacticalPlaybookPackage.ConditionGroup,
+            TacticalTaskCandidate, int, bool> evaluateCandidate,
+        Func<TacticalPlaybookPackage.TaskAssignment,
+            TacticalTaskCandidate, int> distance)
+    {
+        _cohortAdmissions.Clear();
+        if (!_plans.SelectMany(plan => plan.Assignments)
+                .Any(assignment => assignment.Cohort is not null))
+        {
+            return;
+        }
+
+        var ladders = new Dictionary<ActorIdentity,
+            List<(TacticalPlaybookPackage.TacticalTask Plan,
+                TacticalPlaybookPackage.TaskAssignment Assignment)>>();
+        foreach (TacticalTaskCandidate candidate in candidates)
+        {
+            var ladder = new List<(
+                TacticalPlaybookPackage.TacticalTask Plan,
+                TacticalPlaybookPackage.TaskAssignment Assignment)>();
+            foreach (TacticalPlaybookPackage.TacticalTask plan in _plans)
+            {
+                Runtime state = _states[plan.TaskId];
+                if (!CohortRungIsEligible(
+                        tick, phaseId, state, candidate, evaluate,
+                        evaluateCandidate))
+                {
+                    continue;
+                }
+                foreach (TacticalPlaybookPackage.TaskAssignment assignment
+                         in plan.Assignments)
+                {
+                    if (RawCandidates(assignment, [candidate]).Any())
+                        ladder.Add((plan, assignment));
+                }
+            }
+            ladders[candidate.ActorId] = ladder
+                .OrderBy(entry => entry.Plan.Priority)
+                .ThenBy(entry => entry.Plan.TaskId, StringComparer.Ordinal)
+                .ThenBy(entry => entry.Assignment.AssignmentId,
+                    StringComparer.Ordinal)
+                .ToList();
+        }
+
+        var cursor = candidates.ToDictionary(
+            candidate => candidate.ActorId, _ => 0);
+        var settled = new HashSet<ActorIdentity>();
+        while (settled.Count < candidates.Count)
+        {
+            var waiting = new Dictionary<string, List<(
+                TacticalTaskCandidate Candidate,
+                TacticalPlaybookPackage.TaskAssignment Assignment)>>(
+                    StringComparer.Ordinal);
+            foreach (TacticalTaskCandidate candidate in candidates
+                         .OrderBy(value => value.UnitId))
+            {
+                if (settled.Contains(candidate.ActorId))
+                    continue;
+                List<(TacticalPlaybookPackage.TacticalTask Plan,
+                    TacticalPlaybookPackage.TaskAssignment Assignment)>
+                    ladder = ladders[candidate.ActorId];
+                int index = cursor[candidate.ActorId];
+                if (index >= ladder.Count)
+                {
+                    settled.Add(candidate.ActorId);
+                    continue;
+                }
+                TacticalPlaybookPackage.TaskAssignment assignment =
+                    ladder[index].Assignment;
+                if (assignment.Cohort is not { } cohort)
+                {
+                    settled.Add(candidate.ActorId);
+                    continue;
+                }
+                if (!waiting.TryGetValue(cohort.CohortId, out var members))
+                {
+                    members = [];
+                    waiting.Add(cohort.CohortId, members);
+                }
+                members.Add((candidate, assignment));
+            }
+            if (waiting.Count == 0)
+                break;
+
+            foreach ((string cohortId, var members) in waiting
+                         .OrderBy(pair => pair.Key, StringComparer.Ordinal))
+            {
+                TacticalPlaybookPackage.CohortAdmission policy =
+                    members[0].Assignment.Cohort!;
+                if (members.Any(member => member.Assignment.Cohort is not
+                        { } other
+                    || other.Take != policy.Take
+                    || other.Select != policy.Select
+                    || other.DestinationKind != policy.DestinationKind
+                    || other.DestinationTarget != policy.DestinationTarget))
+                {
+                    throw new InvalidDataException(
+                        $"Cohort '{cohortId}' has inconsistent runtime rows.");
+                }
+                var winners = members
+                    .OrderBy(member => distance(
+                        member.Assignment, member.Candidate))
+                    .ThenBy(member => member.Candidate.UnitId)
+                    .Take(policy.Take)
+                    .Select(member => member.Candidate.ActorId)
+                    .ToHashSet();
+                foreach ((TacticalTaskCandidate candidate,
+                             TacticalPlaybookPackage.TaskAssignment assignment)
+                         in members)
+                {
+                    if (winners.Contains(candidate.ActorId))
+                    {
+                        _cohortAdmissions.Add(new(
+                            assignment.AssignmentId, candidate.ActorId));
+                        settled.Add(candidate.ActorId);
+                    }
+                    else
+                    {
+                        cursor[candidate.ActorId]++;
+                    }
+                }
+            }
+        }
+    }
+
+    private bool CohortRungIsEligible(
+        int tick,
+        string phaseId,
+        Runtime state,
+        TacticalTaskCandidate candidate,
+        Func<TacticalPlaybookPackage.ConditionGroup, bool> evaluate,
+        Func<TacticalPlaybookPackage.ConditionGroup,
+            TacticalTaskCandidate, int, bool> evaluateCandidate)
+    {
+        TacticalPlaybookPackage.TacticalTask plan = state.Plan;
+        if (!plan.EligiblePhases.Contains(phaseId, StringComparer.Ordinal)
+            || state.Phase == TacticalTaskPhase.Reintegrating)
+        {
+            return false;
+        }
+        TacticalTaskAssignment? lease = state.Assignments.FirstOrDefault(
+            assignment => assignment.ActorId == candidate.ActorId);
+        if (state.Phase == TacticalTaskPhase.Dormant)
+        {
+            if (tick < state.CooldownUntil
+                || !MatchesAny(plan.When, evaluate))
+            {
+                return false;
+            }
+        }
+        else if (MatchesAny(plan.FailWhen, evaluate))
+        {
+            return false;
+        }
+        return plan.Assignments.Any(assignment =>
+            RawCandidates(assignment, [candidate]).Any()
+            && (lease is not null
+                ? assignment.CandidateUntil is not { Length: > 0 }
+                    || !CandidateMatches(
+                        assignment.CandidateUntil,
+                        candidate,
+                        tick - lease.StartedTick,
+                        evaluateCandidate)
+                : CandidateMatches(
+                    assignment.CandidateWhen,
+                    candidate,
+                    0,
+                    evaluateCandidate)));
+    }
+
+    private void ReleaseDepartedCohortMembers(
+        int tick,
+        IReadOnlyDictionary<int, TacticalTaskCandidate> live)
+    {
+        foreach (Runtime state in _states.Values.Where(value =>
+                     value.Phase == TacticalTaskPhase.Active))
+        {
+            HashSet<string> cohortAssignments = state.Plan.Assignments
+                .Where(assignment => assignment.Cohort is not null)
+                .Select(assignment => assignment.AssignmentId)
+                .ToHashSet(StringComparer.Ordinal);
+            if (cohortAssignments.Count == 0)
+                continue;
+            state.Assignments.RemoveAll(lease =>
+                cohortAssignments.Contains(lease.AssignmentId)
+                && (!_cohortAdmissions.Contains(new(
+                        lease.AssignmentId, lease.ActorId))
+                    || !SameLife(live, lease)));
+            if (!MinimumsHold(state))
+                FinishRelease(
+                    tick, state, "cohort-reselected", applyCooldown: false);
+        }
+    }
+
     private bool MinimumsHold(Runtime state) =>
         state.Assignments.Count >= EffectiveMinimum(state.Plan)
         && state.Assignments.Count <= EffectiveMaximum(state.Plan)
@@ -930,7 +1149,11 @@ internal sealed class TacticalTaskMachine
         Transition(tick, state, TacticalTaskPhase.Reintegrating, reason);
     }
 
-    private void FinishRelease(int tick, Runtime state, string reason)
+    private void FinishRelease(
+        int tick,
+        Runtime state,
+        string reason,
+        bool applyCooldown = true)
     {
         TacticalTaskPhase from = state.Phase;
         int[] unitIds = state.Assignments
@@ -939,7 +1162,8 @@ internal sealed class TacticalTaskMachine
             .ToArray();
         state.Phase = TacticalTaskPhase.Dormant;
         state.PhaseStartedTick = tick;
-        state.CooldownUntil = tick + state.Plan.CooldownTicks;
+        state.CooldownUntil = applyCooldown
+            ? tick + state.Plan.CooldownTicks : tick;
         state.Assignments.Clear();
         state.CompletionArmed = false;
         state.ArmedCarrier = null;

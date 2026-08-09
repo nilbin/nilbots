@@ -359,7 +359,8 @@ public static partial class ArcRelayTacticalPlaybookCompiler
 
         CatalogEntry[] conditionSets = Catalog(
             authoring.GetProperty("conditionSets"),
-            $"{authoringAt}.conditionSets", 1, 64);
+            $"{authoringAt}.conditionSets", 1,
+            hasConsolidatedDsl ? 128 : 64);
         foreach (CatalogEntry conditionSet in conditionSets)
         {
             JsonElement[] alternatives = BoundedArray(
@@ -1149,6 +1150,8 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             expanded["escort"] = JsonNode.Parse(escort.GetRawText());
         if (track.TryGetProperty("follow", out JsonElement follow))
             expanded["follow"] = JsonNode.Parse(follow.GetRawText());
+        if (track.TryGetProperty("posture", out JsonElement posture))
+            expanded["posture"] = posture.GetString();
         return expanded;
     }
 
@@ -1206,9 +1209,16 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         bool compactPriorities = root["compactDoctrinePriorities"]
             ?.GetValue<bool>() == true;
         root.Remove("compactDoctrinePriorities");
-        int? teamFocusMaximumAttackers = root["teamFocusMaximumAttackers"]
-            ?.GetValue<int>();
-        root.Remove("teamFocusMaximumAttackers");
+        JsonObject doctrineCohortSource = root["doctrineCohorts"]
+            as JsonObject ?? new JsonObject();
+        root.Remove("doctrineCohorts");
+        JsonObject doctrineFocusSource = root["doctrineFocus"]
+            as JsonObject ?? new JsonObject();
+        root.Remove("doctrineFocus");
+        Dictionary<string, ConsolidatedCohort> doctrineCohorts = ParseCohorts(
+            doctrineCohortSource, $"{path}.doctrines.cohorts");
+        Dictionary<string, ConsolidatedFocus> doctrineFocus = ParseFocus(
+            doctrineFocusSource, $"{path}.doctrines.focus");
         JsonObject doctrineFloorTargets = root["doctrineFloorTargets"]
             as JsonObject ?? new JsonObject();
         root.Remove("doctrineFloorTargets");
@@ -1619,13 +1629,22 @@ public static partial class ArcRelayTacticalPlaybookCompiler
                         ? modeFight
                         : default,
                     modeAt);
+                (string focusScope, int maximumAttackers) = compactPriorities
+                    ? ResolveFocus(
+                        JsonNode.Parse(
+                            mode.GetProperty("focus").GetRawText())!,
+                        doctrineFocus,
+                        name,
+                        modeAt)
+                    : ("shared-policy", 2);
                 bool hasEscort = TryDoctrineEscort(
                     mode, modeAt, out DoctrineEscort[] escorts);
                 JsonObject generatedEngagement = DoctrineEngagement(
                     name, role,
                     escorts.Select(entry => entry.RoleId).ToArray(),
                     fight, floorRoute, patrolLadder, modeAt,
-                    teamFocusMaximumAttackers);
+                    focusScope,
+                    maximumAttackers);
                 string engagementId = name;
                 if (compactPriorities)
                 {
@@ -1677,8 +1696,6 @@ public static partial class ArcRelayTacticalPlaybookCompiler
                 }
                 var track = new JsonObject
                 {
-                    // No formation on the doctrine plane: the body walks
-                    // its movement target, full stop.
                     ["formationId"] = "",
                     ["movement"] = DoctrineMovement(mode, verb),
                     ["assignments"] = new JsonObject
@@ -1719,6 +1736,12 @@ public static partial class ArcRelayTacticalPlaybookCompiler
                         ["leash"] = 2,
                     };
                 }
+                else if (compactPriorities
+                    && mode.TryGetProperty(
+                        "posture", out JsonElement compactPosture))
+                {
+                    track["posture"] = compactPosture.GetString();
+                }
                 maneuvers[$"{name}-set"] = new JsonObject
                 {
                     ["tracks"] = new JsonObject { ["main"] = track },
@@ -1737,6 +1760,29 @@ public static partial class ArcRelayTacticalPlaybookCompiler
                     : candidateScoped
                         ? Math.Max(1, Math.Min(rolePreferred, candidateMaximum))
                         : 1;
+                JsonObject? cohortRuntime = null;
+                JsonObject selectionDistance = verb == "recover"
+                    ? new JsonObject
+                    {
+                        ["kind"] = "heal-beacon",
+                        ["target"] = "",
+                        ["maximum"] = 64,
+                    }
+                    : mode.TryGetProperty(
+                        "cohort", out JsonElement cohortReference)
+                    ? CohortDistance(
+                        mode,
+                        verb,
+                        cohortReference,
+                        name,
+                        doctrineCohorts,
+                        modeAt,
+                        out cohortRuntime)
+                    : new JsonObject
+                    {
+                        ["kind"] = "own-reactor",
+                        ["target"] = "",
+                    };
                 var row = new JsonObject
                 {
                     ["assignmentId"] = name,
@@ -1748,26 +1794,18 @@ public static partial class ArcRelayTacticalPlaybookCompiler
                     // the assignment minimum remains zero so that the lower
                     // rung stays visible to fallback selection exactly as the
                     // former role-wide condition did.
-                    ["minimum"] = verb == "recover" ? 1 : 0,
+                    ["minimum"] = verb == "recover"
+                        || mode.TryGetProperty("cohort", out _) ? 1 : 0,
                     ["preferred"] = candidatePreferred,
                     ["maximum"] = candidateMaximum,
                     ["carrier"] = "allow",
                     // Recover selects by the beacon, and its selector admits
                     // ONLY bodies the recover predicate flagged (everything
                     // else reads as unreachably far).
-                    ["distance"] = verb == "recover"
-                        ? new JsonObject
-                        {
-                            ["kind"] = "heal-beacon",
-                            ["target"] = "",
-                            ["maximum"] = 64,
-                        }
-                        : new JsonObject
-                        {
-                            ["kind"] = "own-reactor",
-                            ["target"] = "",
-                        },
+                    ["distance"] = selectionDistance,
                 };
+                if (cohortRuntime is not null)
+                    row["cohort"] = cohortRuntime;
                 if (candidateWhenSet is not null)
                     row["candidateWhenConditionSetId"] = candidateWhenSet;
                 if (candidateUntilSet is not null)
@@ -2021,19 +2059,21 @@ public static partial class ArcRelayTacticalPlaybookCompiler
     {
         string[] optional = verb switch
         {
-            "patrol" => ["while", "until", "fight"],
+            "patrol" => ["while", "until", "fight", "cohort", "focus",
+                "posture"],
             // patienceTicks is ACCEPTED BUT INERT since the no-idle watchdog
             // was removed (owner ruling 2026-08-07): it bounded how long a
             // perch could hold before the executor displaced the body, and
             // nothing displaces now. Kept in the grammar so frozen sheets
             // compile byte-identically. See docs/EXECUTOR-SILENT-POLICY.md.
             "intercept" =>
-                ["from", "while", "until", "fight", "patienceTicks"],
+                ["from", "while", "until", "fight", "patienceTicks",
+                    "focus"],
             // Recover is condition-driven INTERNALLY (owner spec): its
             // window is this body's own health and the beacon picture, which
             // no team-level 'while' can name. Authoring one is an error, not
             // an override.
-            "recover" => ["fight"],
+            "recover" => ["fight", "focus"],
             // Muster is condition-driven INTERNALLY, exactly like recover:
             // its window is "a leader is calling for my role", which no
             // team-level 'while' can name. Its RUNG in the mode list is the
@@ -2048,10 +2088,11 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             // Follow is follower-owned. Its role reference is resolved by a
             // fixed nearest-then-stable-id rule; posture is the only local
             // geometry choice.
-            "follow" => ["while", "until", "fight", "posture"],
+            "follow" => ["while", "until", "fight", "posture", "focus"],
             // The squad floor takes nothing: it IS "no doctrine here".
             "squad" => [],
-            _ => ["while", "until", "fight", "escort"],
+            _ => ["while", "until", "fight", "escort", "cohort", "focus",
+                "posture"],
         };
         Object(mode, path, [verb], optional);
         if (verb == "squad")
@@ -2801,7 +2842,8 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         string floorRoute,
         JsonArray patrolLadder,
         string path,
-        int? teamMaximumAttackers = null)
+        string coordinationScope = "shared-policy",
+        int maximumAttackers = 2)
     {
         var engagement = new JsonObject
         {
@@ -2816,11 +2858,10 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             ["heal"] = fight.Heal,
             ["tieBreakers"] = new JsonArray(
                 "distance", "health", "unit-id", "life-id"),
-            ["coordinationScope"] = teamMaximumAttackers is null
-                ? "shared-policy" : "team-policy",
+            ["coordinationScope"] = coordinationScope,
             ["lockTicks"] = 4,
             ["lockPreemption"] = "urgent-carrier",
-            ["maximumAttackersPerTarget"] = teamMaximumAttackers ?? 2,
+            ["maximumAttackersPerTarget"] = maximumAttackers,
             ["overkillDamage"] = 0,
             ["chaseLeash"] = Math.Min(fight.ChaseLeash, 16),
             ["aimPreparation"] = "rotate-to-engage",
@@ -3147,7 +3188,9 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             Object(track.Value,
                 $"{path}.maneuvers.{maneuverId}.tracks.{track.Id}",
                 ["formationId", "movement", "assignments"],
-                ["escort", "follow"]);
+                ["escort", "follow", "posture"]);
+            if (track.Value.TryGetProperty("posture", out _))
+                OneOf(track.Value, "posture", path, "front", "core", "rear");
             // An empty formationId is the explicit "this track has no
             // formation plane" - the doctrine shape. Squad tracks name one.
             NonEmptyString(track.Value, "formationId", path, allowEmpty: true);
@@ -3336,6 +3379,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
                     // before the normalized IR is validated.
                     "candidateWhenConditionSetId",
                     "candidateUntilConditionSetId",
+                    "cohort",
                 ]);
             Identifier(assignment, "assignmentId", at);
             Identifier(assignment, "orderId", at);
@@ -3359,10 +3403,12 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             OneOf(distance, "kind", at,
                 "none", "veterancy-rank", "heal-beacon",
                 "anchor", "own-reactor", "enemy-reactor",
-                "visible-loose-core-in-zone");
+                "visible-loose-core-in-zone", "route", "zone");
             NonEmptyString(distance, "target", at, allowEmpty: true);
             if (distance.TryGetProperty("maximum", out _))
                 Range(distance, "maximum", at, 1, 64);
+            if (assignment.TryGetProperty("cohort", out JsonElement cohort))
+                ValidateCohortRuntime(cohort, at);
         }
         NonEmptyString(task, "whenConditionSetId", at);
         NonEmptyString(task, "completeConditionSetId", at);
@@ -3584,6 +3630,22 @@ public static partial class ArcRelayTacticalPlaybookCompiler
                     $"task '{task.GetProperty("taskId").GetString()}' "
                     + "references unknown selection zone "
                     + $"'{distance.GetProperty("target").GetString()}'.");
+            }
+            string distanceKind = distance.GetProperty("kind").GetString()!;
+            string distanceTarget = distance.GetProperty("target").GetString()!;
+            if (distanceKind == "route" && !routes.Contains(distanceTarget))
+            {
+                throw Error(path,
+                    $"task '{task.GetProperty("taskId").GetString()}' "
+                    + "references unknown cohort route "
+                    + $"'{distanceTarget}'.");
+            }
+            if (distanceKind == "zone" && !zones.Contains(distanceTarget))
+            {
+                throw Error(path,
+                    $"task '{task.GetProperty("taskId").GetString()}' "
+                    + "references unknown cohort zone "
+                    + $"'{distanceTarget}'.");
             }
         }
     }
@@ -4491,8 +4553,17 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         OneOfArray(value.GetProperty("tieBreakers"), at, 1, 8,
             "health", "distance", "enemy-reactor-distance",
             "own-reactor-distance", "unit-id", "life-id", "position");
-        OneOf(value, "coordinationScope", at,
-            "order-group", "shared-policy", "team-policy");
+        string coordinationScope = RequiredString(
+            value, "coordinationScope", at);
+        if (coordinationScope is not (
+                "order-group" or "shared-policy" or "team-policy")
+            && !coordinationScope.StartsWith("focus:",
+                StringComparison.Ordinal))
+        {
+            throw Error(at,
+                "coordinationScope must be order-group, shared-policy, "
+                + "team-policy, or a compiler-owned focus scope.");
+        }
         Range(value, "lockTicks", at, 0, 120);
         OneOf(value, "lockPreemption", at,
             "never", "higher-priority", "urgent-carrier");
@@ -4845,7 +4916,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
                         "assignmentId", "orderId", "roles", "classes",
                         "minimum", "preferred", "maximum", "carrier",
                         "distance",
-                    ], ["candidateWhen", "candidateUntil"]);
+                    ], ["candidateWhen", "candidateUntil", "cohort"]);
                 string assignmentId = Identifier(
                     assignment, "assignmentId", at);
                 Reference(assignment, "orderId", orderIds, at);
@@ -4883,6 +4954,11 @@ public static partial class ArcRelayTacticalPlaybookCompiler
                 OneOf(assignment, "carrier", at,
                     "forbid", "allow", "require");
                 if (assignment.TryGetProperty(
+                        "cohort", out JsonElement cohort))
+                {
+                    ValidateCohortRuntime(cohort, at);
+                }
+                if (assignment.TryGetProperty(
                         "candidateWhen", out JsonElement candidateWhen))
                 {
                     ValidateConditionGroups(
@@ -4905,10 +4981,10 @@ public static partial class ArcRelayTacticalPlaybookCompiler
                 OneOf(distance, "kind", at,
                     "none", "veterancy-rank", "heal-beacon",
                     "anchor", "own-reactor", "enemy-reactor",
-                    "visible-loose-core-in-zone");
+                    "visible-loose-core-in-zone", "route", "zone");
                 string target = RequiredString(distance, "target", at);
                 bool needsTarget = kind is "anchor"
-                    or "visible-loose-core-in-zone";
+                    or "visible-loose-core-in-zone" or "route" or "zone";
                 if (needsTarget != (target.Length > 0))
                 {
                     throw Error(at,
@@ -5060,7 +5136,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             ],
             [
                 "supportId", "stance", "patienceTicks", "collectZones",
-                "escort", "follow",
+                "escort", "follow", "posture",
             ]);
         if (value.TryGetProperty("escort", out JsonElement orderEscort))
             ValidateEscort(orderEscort, at, roleIds);
@@ -5080,6 +5156,8 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             OneOf(value, "stance", at, "ambush");
         if (value.TryGetProperty("patienceTicks", out _))
             Range(value, "patienceTicks", at, 2, 120);
+        if (value.TryGetProperty("posture", out _))
+            OneOf(value, "posture", at, "front", "core", "rear");
         Identifier(value, "orderId", at);
         Reference(value, "groupId", groupIds, at);
         Range(value, "priority", at, 0, 1000);
@@ -5146,6 +5224,20 @@ public static partial class ArcRelayTacticalPlaybookCompiler
                 throw Error(path,
                     $"unknown member selection kind '{kind}'.");
         }
+    }
+
+    private static void ValidateCohortRuntime(
+        JsonElement value,
+        string path)
+    {
+        Object(value, $"{path}.cohort",
+            ["cohortId", "take", "select", "destinationKind",
+                "destinationTarget"]);
+        Identifier(value, "cohortId", path);
+        Range(value, "take", path, 1, 8);
+        OneOf(value, "select", path, "nearest");
+        OneOf(value, "destinationKind", path, "route", "zone");
+        Identifier(value, "destinationTarget", path);
     }
 
     private static void ValidateMovement(JsonElement value, string path)

@@ -1899,6 +1899,12 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             package.AnchorPosition(assignment.Distance.Target)),
         "own-reactor" => candidate.Position.ChebyshevDistance(_ownReactor),
         "enemy-reactor" => candidate.Position.ChebyshevDistance(_enemyReactor),
+        "route" => package.RoutePoints(assignment.Distance.Target)
+            .Select(candidate.Position.ChebyshevDistance)
+            .DefaultIfEmpty(int.MaxValue)
+            .Min(),
+        "zone" => package.ZoneDistance(
+            assignment.Distance.Target, candidate.Position),
         "visible-loose-core-in-zone" => arc.VisibleCores
             .Where(core => core.Disposition
                 == GenericActorContext.ArcRelayCoreDisposition.Loose
@@ -1947,6 +1953,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             _ => throw new InvalidDataException(
                 $"Unknown movement kind '{order.Movement.Kind}'."),
         };
+        anchor = PostureTarget(package, orders, order, body, anchor);
         if (order.Movement.Kind == "route"
             && _routes.GetValueOrDefault(body.UnitId) is RouteProgress progress
             && progress.Index < package.RoutePoints(order.Movement.Target).Length - 1)
@@ -1979,6 +1986,37 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         _ = contract;
         _ = machine;
         return package.FormationPosition(anchor, placement.Offset);
+    }
+
+    private static Position PostureTarget(
+        TacticalPlaybookPackage package,
+        IReadOnlyDictionary<int, TacticalPlaybookPackage.Order> orders,
+        TacticalPlaybookPackage.Order order,
+        MindBody body,
+        Position anchor)
+    {
+        if (order.Posture.Length == 0)
+            return anchor;
+        int[] peers = orders
+            .Where(pair => pair.Value.Posture == order.Posture
+                && pair.Value.Movement.Kind == order.Movement.Kind
+                && pair.Value.Movement.Target == order.Movement.Target)
+            .Select(pair => pair.Key)
+            .Order()
+            .ToArray();
+        int ordinal = Math.Max(0, Array.IndexOf(peers, body.UnitId));
+        int y = ordinal == 0
+            ? 0
+            : (ordinal + 1) / 2 * (ordinal % 2 == 1 ? -1 : 1);
+        int x = order.Posture switch
+        {
+            "front" => 2,
+            "rear" => -2,
+            "core" => 0,
+            _ => throw new InvalidDataException(
+                $"Unknown doctrine posture '{order.Posture}'."),
+        };
+        return package.FormationPosition(anchor, [x, y]);
     }
 
     /// <summary>The slot this body stands on. An order with no formation
@@ -2983,8 +3021,10 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 == GenericActorContext.ArcRelayCoreDisposition.Carried
                 && core.CarrierActorId?.TeamId != _teamId)
             .Select(core => core.CarrierActorId!).ToHashSet();
-        var teamCommittedDamage = new Dictionary<ActorIdentity, int>();
-        var teamAttackerCounts = new Dictionary<ActorIdentity, int>();
+        var sharedCommittedDamage = new Dictionary<string,
+            Dictionary<ActorIdentity, int>>(StringComparer.Ordinal);
+        var sharedAttackerCounts = new Dictionary<string,
+            Dictionary<ActorIdentity, int>>(StringComparer.Ordinal);
         foreach (TacticalPlaybookPackage.Engagement policy in
                  playbook.Engagements)
         {
@@ -3181,13 +3221,25 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                             !_returningToFormation.ContainsKey(body.UnitId))
                         .ToArray();
                 }
-                Dictionary<ActorIdentity, int> committedDamage =
+                bool sharesAttackerCap =
                     policy.CoordinationScope == "team-policy"
-                        ? teamCommittedDamage
+                    || policy.CoordinationScope.StartsWith(
+                        "focus:", StringComparison.Ordinal);
+                string attackerScope = policy.CoordinationScope
+                    == "team-policy"
+                        ? "team-policy"
+                        : policy.CoordinationScope;
+                Dictionary<ActorIdentity, int> committedDamage =
+                    sharesAttackerCap
+                        ? sharedCommittedDamage.GetValueOrDefault(
+                            attackerScope)
+                            ?? AddScope(
+                                sharedCommittedDamage, attackerScope)
                         : new Dictionary<ActorIdentity, int>();
                 Dictionary<ActorIdentity, int> attackerCounts =
-                    policy.CoordinationScope == "team-policy"
-                        ? teamAttackerCounts
+                    sharesAttackerCap
+                        ? sharedAttackerCounts.GetValueOrDefault(attackerScope)
+                            ?? AddScope(sharedAttackerCounts, attackerScope)
                         : new Dictionary<ActorIdentity, int>();
                 foreach (MindBody body in participants
                              .OrderBy(body =>
@@ -3352,6 +3404,15 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             }
         }
         return allocations;
+    }
+
+    private static Dictionary<ActorIdentity, int> AddScope(
+        Dictionary<string, Dictionary<ActorIdentity, int>> scopes,
+        string scopeId)
+    {
+        var scope = new Dictionary<ActorIdentity, int>();
+        scopes.Add(scopeId, scope);
+        return scope;
     }
 
     private static bool NeedsFocusAssignment(

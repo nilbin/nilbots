@@ -14,7 +14,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         JsonObject profiles,
         JsonObject standingOrders,
         JsonArray engagements,
-        int maximumAttackers,
+        IReadOnlyDictionary<string, ConsolidatedFocus> focus,
         string path)
     {
         foreach (ConsolidatedRole role in roles)
@@ -37,6 +37,9 @@ public static partial class ArcRelayTacticalPlaybookCompiler
                 doctrineFight,
                 floorFight,
                 $"{path}.doctrines.roles.{role.Id}.modes[{modes.Count - 1}]");
+            (string focusScope, int maximumAttackers) = ResolveFocus(
+                floor["focus"]!, focus, engagementId,
+                $"{path}.doctrines.roles.{role.Id}.modes[{modes.Count - 1}]");
             engagements.Add(DoctrineEngagement(
                 engagementId,
                 role.Id,
@@ -45,6 +48,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
                 destination.Target,
                 new JsonArray(),
                 $"{path}.doctrines.roles.{role.Id}",
+                focusScope,
                 maximumAttackers));
             if (supportId.Length > 0)
                 profiles[$"{groupId}-profile"]!["supportId"] = supportId;
@@ -78,6 +82,8 @@ public static partial class ArcRelayTacticalPlaybookCompiler
                 },
                 ["custodyId"] = doctrine["custody"]!.GetValue<string>(),
             };
+            if (floor["posture"] is JsonNode posture)
+                order["posture"] = posture.GetValue<string>();
             if (supportId.Length > 0)
                 order["supportId"] = supportId;
             if (doctrine["conceal"]?.GetValue<bool>() != false)

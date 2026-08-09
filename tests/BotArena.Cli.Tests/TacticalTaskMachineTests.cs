@@ -506,6 +506,80 @@ public sealed class TacticalTaskMachineTests
             machine.State("delivery").LastReason);
     }
 
+    [Fact]
+    public void CohortTakesTheNearestBodiesAcrossRoleLocalRungs()
+    {
+        TacticalPlaybookPackage.CohortAdmission cohort = new(
+            "north-runners", 2, "nearest", "route", "north-loop");
+        TacticalTaskMachine machine = Machine(
+            Task("line-north", Assignment(
+                    "line-north", "convert-order", ["kestrel"],
+                    preferred: 2, roles: ["line"]) with { Cohort = cohort }),
+            Task("wing-north", Assignment(
+                    "wing-north", "deny-order", ["repulsor"],
+                    preferred: 2, roles: ["wing"]) with { Cohort = cohort }));
+        var facts = new HashSet<string>(["trigger"], StringComparer.Ordinal);
+
+        Step(machine, 0, facts,
+            Candidate(0, "kestrel", x: 8, role: "line"),
+            Candidate(1, "kestrel", x: 2, role: "line"),
+            Candidate(2, "repulsor", x: 1, role: "wing"),
+            Candidate(3, "repulsor", x: 4, role: "wing"));
+
+        Assert.Equal([1, 2], machine.LeasedUnitIds.Order().ToArray());
+        Assert.Equal("convert-order", machine.DirectiveFor(1)!.OrderId);
+        Assert.Equal("deny-order", machine.DirectiveFor(2)!.OrderId);
+    }
+
+    [Fact]
+    public void RejectedCohortBodyFallsThroughAndMembershipRecomputes()
+    {
+        TacticalPlaybookPackage.CohortAdmission cohort = new(
+            "runner", 1, "nearest", "route", "loop");
+        TacticalTaskMachine machine = Machine(
+            Task("race", Assignment(
+                    "race", "convert-order", ["kestrel"],
+                    preferred: 2) with { Cohort = cohort }, priority: 10),
+            Task("floor", Assignment(
+                "floor", "routine-order", ["kestrel"], preferred: 2),
+                priority: 20));
+        var facts = new HashSet<string>(["trigger"], StringComparer.Ordinal);
+
+        Step(machine, 0, facts,
+            Candidate(0, "kestrel", x: 1),
+            Candidate(1, "kestrel", x: 5));
+        Assert.Equal("convert-order", machine.DirectiveFor(0)!.OrderId);
+        Assert.Equal("routine-order", machine.DirectiveFor(1)!.OrderId);
+
+        Step(machine, 1, facts,
+            Candidate(0, "kestrel", x: 6),
+            Candidate(1, "kestrel", x: 1));
+        Assert.Equal("routine-order", machine.DirectiveFor(0)!.OrderId);
+        Assert.Equal("convert-order", machine.DirectiveFor(1)!.OrderId);
+    }
+
+    [Fact]
+    public void CohortBreaksAnEqualDistanceByStableUnitId()
+    {
+        TacticalPlaybookPackage.CohortAdmission cohort = new(
+            "runner", 1, "nearest", "route", "loop");
+        TacticalTaskMachine machine = Machine(
+            Task("race", Assignment(
+                    "race", "convert-order", ["kestrel"],
+                    preferred: 2) with { Cohort = cohort }, priority: 10),
+            Task("floor", Assignment(
+                    "floor", "routine-order", ["kestrel"], preferred: 2),
+                priority: 20));
+        var facts = new HashSet<string>(["trigger"], StringComparer.Ordinal);
+
+        Step(machine, 0, facts,
+            Candidate(1, "kestrel", x: 3),
+            Candidate(0, "kestrel", x: 3));
+
+        Assert.Equal("convert-order", machine.DirectiveFor(0)!.OrderId);
+        Assert.Equal("routine-order", machine.DirectiveFor(1)!.OrderId);
+    }
+
     private static TacticalTaskMachine Machine(
         params TacticalPlaybookPackage.TacticalTask[] tasks)
     {
@@ -591,10 +665,11 @@ public sealed class TacticalTaskMachineTests
         string orderId,
         string[] classes,
         int minimum = 1,
-        int? preferred = null) => new(
+        int? preferred = null,
+        string[]? roles = null) => new(
         id,
         orderId,
-        ["line"],
+        roles ?? ["line"],
         classes,
         minimum,
         preferred ?? minimum,
@@ -622,11 +697,12 @@ public sealed class TacticalTaskMachineTests
         bool carrier = false,
         int lifeId = 0,
         string localState = "ready",
-        int health = 4) => new(
+        int health = 4,
+        string role = "line") => new(
         unitId,
         new ActorIdentity(0, unitId, lifeId),
-        "line",
-        "line-group",
+        role,
+        $"{role}-group",
         localState,
         classId,
         carrier,

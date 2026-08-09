@@ -28,18 +28,17 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         JsonObject sourceRoot = JsonNode.Parse(source.GetRawText())!.AsObject();
         JsonObject doctrinePlane = RequiredObject(sourceRoot, "doctrines", path);
         ConsolidatedKeys(doctrinePlane, $"{path}.doctrines",
-            ["roles", "focus", "tempo"]);
+            ["roles", "cohorts", "focus"]);
         JsonObject roleDoctrineSource = RequiredObject(
             doctrinePlane, "roles", $"{path}.doctrines");
-        JsonObject focus = RequiredObject(
+        JsonObject cohortSource = RequiredObject(
+            doctrinePlane, "cohorts", $"{path}.doctrines");
+        JsonObject focusSource = RequiredObject(
             doctrinePlane, "focus", $"{path}.doctrines");
-        ConsolidatedKeys(focus, $"{path}.doctrines.focus",
-            ["maximumAttackers"]);
-        int maximumAttackers = RequiredIntNode(
-            focus, "maximumAttackers", $"{path}.doctrines.focus", 1, 8);
-        ConsolidatedTempo tempo = ParseTempo(
-            RequiredObject(doctrinePlane, "tempo", $"{path}.doctrines"),
-            $"{path}.doctrines.tempo");
+        Dictionary<string, ConsolidatedCohort> cohorts = ParseCohorts(
+            cohortSource, $"{path}.doctrines.cohorts");
+        Dictionary<string, ConsolidatedFocus> focus = ParseFocus(
+            focusSource, $"{path}.doctrines.focus");
 
         JsonElement[] roleElements = BoundedArray(
             source.GetProperty("roles"), $"{path}.roles", 1, 16);
@@ -67,6 +66,11 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         var supportPolicies = new JsonArray();
         var floorTargets = new Dictionary<string, DoctrineTarget>(
             StringComparer.Ordinal);
+        var cohortConsumers = cohorts.Keys.ToDictionary(
+            id => id, _ => new List<ConsolidatedCohortConsumer>(),
+            StringComparer.Ordinal);
+        var focusConsumers = focus.Keys.ToDictionary(
+            id => id, _ => new List<string>(), StringComparer.Ordinal);
         foreach (ConsolidatedRole role in roles)
         {
             if (roleDoctrineSource[role.Id] is not JsonObject doctrine)
@@ -107,6 +111,17 @@ public static partial class ArcRelayTacticalPlaybookCompiler
                         "each mode must carry exactly one of patrol, "
                         + "intercept, assault, recover, fetch or follow.");
                 }
+                ValidateModeCoordination(
+                    role.Id,
+                    index,
+                    mode,
+                    verbs[0],
+                    index == modes.Count - 1,
+                    cohorts,
+                    focus,
+                    cohortConsumers,
+                    focusConsumers,
+                    $"{at}.modes[{index}]");
             }
             JsonObject floor = modes[^1]!.AsObject();
             if (!floor.ContainsKey("patrol")
@@ -123,7 +138,8 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             JsonArray runtimeModes = runtimeDoctrine["modes"]!.AsArray();
             // The phase order is the floor in executor IR. Leaving the
             // authored patrol as a doctrine task would make an always-active
-            // task shadow that phase order and make tempo conditions inert.
+            // task shadow that phase order and duplicate one rung at two
+            // priorities.
             runtimeModes[^1] = new JsonObject { ["squad"] = true };
             if (runtimeDoctrine["repair"] is JsonObject repair)
             {
@@ -132,6 +148,8 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             }
             oldDoctrines[role.Id] = runtimeDoctrine;
         }
+        ValidateCoordinationConsumers(
+            cohorts, focus, cohortConsumers, focusConsumers, path);
         foreach (string unknownDoctrine in roleDoctrineSource
                      .Select(value => value.Key)
                      .Where(id => !roleIds.Contains(id)))
@@ -148,9 +166,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         JsonObject predicates = BuildConditions(
             RequiredObject(sourceRoot, "conditions", path),
             roleGroups,
-            tempo,
             path);
-        AddTempoPredicates(predicates, tempo);
         JsonArray custodyPolicies = BuildCustodyPolicies(
             RequiredArray(sourceRoot, "custodyPolicies", path),
             roleDoctrineSource,
@@ -169,7 +185,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             profiles,
             standingOrders,
             engagements,
-            maximumAttackers,
+            focus,
             path);
 
         var runtimeMemory = RequiredObject(sourceRoot, "memory", path)
@@ -193,7 +209,8 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             // Compiler-only markers consumed and removed by the doctrine
             // desugarer. They never enter normalized playbook data.
             ["compactDoctrinePriorities"] = true,
-            ["teamFocusMaximumAttackers"] = maximumAttackers,
+            ["doctrineCohorts"] = cohortSource.DeepClone(),
+            ["doctrineFocus"] = focusSource.DeepClone(),
             ["doctrineFloorTargets"] = new JsonObject(floorTargets.Select(
                 pair => new KeyValuePair<string, JsonNode?>(
                     pair.Key,
@@ -221,10 +238,20 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             },
             ["coordination"] = new JsonObject
             {
-                ["initialPhase"] = tempo.Cycle[0].Id,
-                ["phases"] = BuildTempoPhases(
-                    tempo,
-                    standingOrders.Select(order => order.Key).ToArray()),
+                ["initialPhase"] = "steady",
+                ["phases"] = new JsonArray
+                {
+                    new JsonObject
+                    {
+                        ["phaseId"] = "steady",
+                        ["minimumTicks"] = 0,
+                        ["standingOrderIds"] = new JsonArray(
+                            standingOrders.Select(order => (JsonNode)order.Key)
+                                .ToArray()),
+                        ["maneuverId"] = "",
+                        ["transitions"] = new JsonArray(),
+                    },
+                },
                 ["tasks"] = new JsonArray(),
             },
             ["doctrines"] = oldDoctrines,

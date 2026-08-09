@@ -32,9 +32,11 @@
 # Env:
 #   BATTERY_OUT     scratch root (default /tmp/arc-batteries)
 #   EXHIBIT_TITLE   gallery title (default: NAME)
-#   EXHIBIT_CARDS   optional curated cards JSON; without it the script
-#                   writes honest minimal cards (win/loss, end tick, the
-#                   sheet-under-test unit-0 audit line). Accepted shape:
+#   EXHIBIT_CARDS   optional pre-authored card overlays. The script always
+#                   supplies the mechanical win/loss, end tick, opponent and
+#                   unit-0 audit line after the run; an overlay may add or
+#                   replace explanatory copy without outcome cherry-picking.
+#                   Accepted shape:
 #                   {"title":"...","cards":[{"id":"sample-01",
 #                   "title":"...","win":true,"opponent":"...",
 #                   "score":"...","trigger":"...","tactic":"...",
@@ -113,7 +115,7 @@ for pid in "${pids[@]}"; do wait "$pid"; done
 
 echo "building gallery..."
 python3 - "$NAME" "$OUTDIR" "$BCAST" "$SHEET_A" "$REPO" "${CELLS[@]}" <<'EOF'
-import json, os, subprocess, sys
+import gzip, json, os, subprocess, sys
 name, outdir, bcast, sheet_a, repo = sys.argv[1:6]
 cells = sys.argv[6:]
 sheet_key = os.path.basename(sheet_a).removesuffix('.json')
@@ -137,6 +139,22 @@ for i, cell in enumerate(cells, 1):
         for p in run['Participants'] if p['TeamId'] != team)
     win = run['Result'].get('WinnerTeamId') == team
     end = run['Result'].get('EndTick', '?')
+    with gzip.open(f'{bcast}/{cell}.json.gz', 'rt', encoding='utf-8') as stream:
+        result = json.load(stream)['result']
+    standings = {row['teamId']: row for row in result['standings']['teams']}
+    reactors = {row['teamId']: row for row in result['mode']['state']['reactors']}
+    opponent_team = next(team_id for team_id in standings if team_id != team)
+    def channel(team_id, name):
+        return next(score['value'] for score in standings[team_id]['scores']
+                    if score['channel'] == name)
+    scoreline = (
+        f"pulses {channel(team, 'pulses')}–{channel(opponent_team, 'pulses')} · "
+        f"integrity {reactors[team]['integritySegments']}–"
+        f"{reactors[opponent_team]['integritySegments']} · "
+        f"charge {reactors[team]['chargePips']}–"
+        f"{reactors[opponent_team]['chargePips']} · "
+        f"{result['completionReason']} t{end}"
+    )
     audit = subprocess.run(
         ['python3', f'{repo}/scripts/arc-relay-unit-audit.py',
          f'{outdir}/{name}-{cell}/replay.json.gz', '--team', str(team)],
@@ -157,19 +175,34 @@ for i, cell in enumerate(cells, 1):
         'title': f'{cell} — {"win" if win else "loss"} at t{end}',
         'win': win,
         'opponent': opponent,
-        'score': row or f'ended t{end}',
-        'watch': 'unit 0 of the sheet under exhibition',
+        'score': scoreline,
+        'watch': row or 'unit 0 of the sheet under exhibition',
     })
 open(f'{outdir}/{name}-sample.json', 'w').write(json.dumps(manifest, indent=1))
-cards_path = os.environ.get('EXHIBIT_CARDS')
-if not cards_path:
-    cards_path = f'{outdir}/{name}-cards.json'
-    open(cards_path, 'w').write(json.dumps(
-        {'title': os.environ.get('EXHIBIT_TITLE', name), 'cards': cards},
-        indent=1))
+cards_path = f'{outdir}/{name}-cards.json'
+provided_path = os.environ.get('EXHIBIT_CARDS')
+provided = None
+if provided_path:
+    provided = json.load(open(provided_path))
+    provided_cards = provided if isinstance(provided, list) else provided['cards']
+    overlays = {(card.get('id') or card.get('sample')): card
+                for card in provided_cards}
+    unknown = set(overlays) - {base['id'] for base in cards}
+    if unknown:
+        raise SystemExit('EXHIBIT_CARDS names unknown samples: '
+                         + ', '.join(sorted(unknown)))
+    cards = [base | overlays.get(base['id'], {}) for base in cards]
+document = {
+    'title': (provided.get('title') if isinstance(provided, dict) else None)
+             or os.environ.get('EXHIBIT_TITLE', name),
+    'cards': cards,
+}
+if isinstance(provided, dict) and provided.get('intro') is not None:
+    document['intro'] = provided['intro']
+open(cards_path, 'w').write(json.dumps(document, indent=1))
 print(f'cards: {cards_path}')
 EOF
-CARDS=${EXHIBIT_CARDS:-$OUTDIR/$NAME-cards.json}
+CARDS=$OUTDIR/$NAME-cards.json
 python3 "$REPO/scripts/build-review-gallery.py" \
   --sample "$OUTDIR/$NAME-sample.json" \
   --output "$OUTDIR/$NAME-site" \

@@ -1686,7 +1686,7 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
     }
 
     [Fact]
-    public void ConditionCoordinationKeepsTasksRoleLocalAndFocusTeamWide()
+    public void ConditionCoordinationKeepsTasksRoleLocalAndFocusContextual()
     {
         TacticalPlaybookCompilation compilation =
             ArcRelayTacticalPlaybookCompiler.Compile(HunterV1());
@@ -1701,14 +1701,20 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
                     StringComparer.Ordinal).ToArray();
             Assert.Single(roles);
         });
-        Assert.All(playbook.RootElement.GetProperty("engagements")
-            .EnumerateArray(), engagement =>
-        {
-            Assert.Equal("team-policy", engagement.GetProperty(
-                "coordinationScope").GetString());
-            Assert.Equal(2, engagement.GetProperty(
-                "maximumAttackersPerTarget").GetInt32());
-        });
+        JsonElement[] engagements = playbook.RootElement
+            .GetProperty("engagements").EnumerateArray().ToArray();
+        Assert.All(engagements, engagement => Assert.StartsWith(
+            "focus:", engagement.GetProperty("coordinationScope").GetString()));
+        Assert.Contains(engagements, engagement =>
+            engagement.GetProperty("coordinationScope").GetString()
+                == "focus:assassin"
+            && engagement.GetProperty("maximumAttackersPerTarget").GetInt32()
+                == 1);
+        Assert.Contains(engagements, engagement =>
+            engagement.GetProperty("coordinationScope").GetString()
+                == "focus:well"
+            && engagement.GetProperty("maximumAttackersPerTarget").GetInt32()
+                == 3);
     }
 
     [Fact]
@@ -1999,7 +2005,7 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
             compilation.NormalizedPlaybook);
         string engagementId = playbook.RootElement.GetProperty("orders")
             .EnumerateArray().Single(value => value.GetProperty("orderId")
-                .GetString() == "hunter-patrol-2")
+                .GetString() == "hunter-patrol")
             .GetProperty("engagementId").GetString()!;
         JsonElement disengage = playbook.RootElement
             .GetProperty("engagements")
@@ -2009,7 +2015,7 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
             .GetProperty("commit")
             .GetProperty("disengageWhen");
         Assert.Equal(
-            "shadow-north-long",
+            "shadow-hunt-loop",
             disengage.GetProperty("withdrawTo").GetString());
         (string Order, string Route)[] ladder = disengage
             .GetProperty("withdrawRoutes")
@@ -2019,8 +2025,7 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
                 rung.GetProperty("route").GetString()!))
             .ToArray();
         Assert.Equal(
-            [("hunter-patrol-1", "stage-loop"),
-             ("hunter-patrol-2", "shadow-south-long")],
+            [("hunter-patrol", "stage-loop")],
             ladder);
     }
 
@@ -2065,7 +2070,7 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
             .AsArray()
             .Select(node => node!.AsObject())
             .Single(task => task["taskId"]!.GetValue<string>()
-                == "hunter-patrol-1");
+                == "hunter-patrol");
         JsonObject assignment = recovery["assignments"]![0]!.AsObject();
         Assert.Equal(
             "self-health",
@@ -2172,11 +2177,13 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
             source["memory"]!.AsObject()
                 .Select(property => property.Key).ToArray());
         Assert.Equal(
-            ["roles", "focus", "tempo"],
+            ["roles", "cohorts", "focus"],
             source["doctrines"]!.AsObject()
                 .Select(property => property.Key).ToArray());
-        Assert.Equal(2, source["doctrines"]!["focus"]![
+        Assert.Equal(1, source["doctrines"]!["focus"]!["assassin"]![
             "maximumAttackers"]!.GetValue<int>());
+        Assert.Equal(3, source["doctrines"]!["cohorts"]![
+            "north-runners"]!["take"]!.GetValue<int>());
 
         string[] roles = source["roles"]!.AsArray()
             .Select(role => role!["roleId"]!.GetValue<string>())
@@ -2195,6 +2202,7 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
                      "supportPolicies", "coordination", "authoring",
                      "formationStableTicks", "squad", "operations", "staff",
                      "escort", "muster", "tags", "formationPosture",
+                     "tempo", "tempo-active",
                  })
         {
             Assert.DoesNotContain($"\"{retired}\"", authored);
@@ -2210,6 +2218,247 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
                 .Distinct(StringComparer.Ordinal)
                 .Order(StringComparer.Ordinal)
                 .ToArray());
+    }
+
+    [Fact]
+    public void NarrowCoordinationCompilesWithoutAFormationOrTempoPlane()
+    {
+        TacticalPlaybookCompilation compilation =
+            ArcRelayTacticalPlaybookCompiler.Compile(HunterV1());
+        JsonObject normalized = JsonNode.Parse(
+            compilation.NormalizedPlaybook)!.AsObject();
+
+        Assert.True(compilation.LinkedData.Length < 65_536);
+        Assert.Empty(normalized["formations"]!.AsArray());
+        Assert.DoesNotContain("tempo", normalized.ToJsonString());
+
+        JsonObject[] cohortRows = normalized["coordination"]!["tasks"]!
+            .AsArray()
+            .SelectMany(task => task!["assignments"]!.AsArray())
+            .Select(row => row!.AsObject())
+            .Where(row => row.ContainsKey("cohort"))
+            .ToArray();
+        Assert.Equal(15, cohortRows.Length);
+        Assert.All(cohortRows, row =>
+        {
+            JsonObject cohort = row["cohort"]!.AsObject();
+            Assert.Equal(3, cohort["take"]!.GetValue<int>());
+            Assert.Equal("nearest", cohort["select"]!.GetValue<string>());
+            Assert.Contains(cohort["destinationKind"]!.GetValue<string>(),
+                new[] { "route", "zone" });
+        });
+        Assert.Equal(
+            new Dictionary<string, int>(StringComparer.Ordinal)
+            {
+                ["centre-runners"] = 3,
+                ["home-guard"] = 3,
+                ["north-runners"] = 3,
+                ["south-runners"] = 3,
+                ["well-surge"] = 3,
+            },
+            cohortRows.GroupBy(row =>
+                    row["cohort"]!["cohortId"]!.GetValue<string>(),
+                    StringComparer.Ordinal)
+                .OrderBy(group => group.Key, StringComparer.Ordinal)
+                .ToDictionary(group => group.Key, group => group.Count(),
+                    StringComparer.Ordinal));
+
+        JsonObject[] focusPolicies = normalized["engagements"]!.AsArray()
+            .Select(value => value!.AsObject())
+            .Where(value => value["coordinationScope"]!
+                .GetValue<string>().StartsWith("focus:",
+                    StringComparison.Ordinal))
+            .ToArray();
+        Assert.NotEmpty(focusPolicies);
+        Assert.All(focusPolicies, policy => Assert.Equal(
+            policy["coordinationScope"]!.GetValue<string>() switch
+            {
+                "focus:assassin" => 1,
+                "focus:home" => 3,
+                "focus:patrol" => 2,
+                "focus:well" => 3,
+                string scope => throw new Xunit.Sdk.XunitException(
+                    $"Unexpected focus scope '{scope}'."),
+            },
+            policy["maximumAttackersPerTarget"]!.GetValue<int>()));
+
+        JsonObject[] postured = normalized["orders"]!.AsArray()
+            .Select(value => value!.AsObject())
+            .Where(value => value["posture"]?.GetValue<string>() is
+                "front" or "core" or "rear")
+            .ToArray();
+        Assert.NotEmpty(postured);
+        Assert.Contains(postured, order => order["movement"]!["target"]!
+            .GetValue<string>() == "north-well-loop");
+    }
+
+    [Fact]
+    public void CohortMembershipComesFromSeveralRoleLocalRungs()
+    {
+        JsonObject source = JsonNode.Parse(File.ReadAllBytes(HunterV1()))!
+            .AsObject();
+        foreach (string role in new[] { "hauler", "carrier" })
+        {
+            source["doctrines"]!["roles"]![role]!["modes"]!.AsArray()
+                .Select(mode => mode!.AsObject())
+                .Single(mode => mode["cohort"]?.GetValue<string>()
+                    == "centre-runners")
+                .Remove("cohort");
+        }
+        string path = Write(source);
+        try
+        {
+            InvalidDataException failure = Assert.Throws<InvalidDataException>(
+                () => ArcRelayTacticalPlaybookCompiler.Compile(path));
+            Assert.Contains(
+                "a cohort needs at least two role rungs", failure.Message);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+
+        JsonObject inline = JsonNode.Parse(File.ReadAllBytes(HunterV1()))!
+            .AsObject();
+        foreach (string role in new[] { "hauler", "carrier" })
+        {
+            inline["doctrines"]!["roles"]![role]!["modes"]!.AsArray()
+                .Select(mode => mode!.AsObject())
+                .Single(mode => mode["cohort"]?.GetValue<string>()
+                    == "centre-runners")
+                .Remove("cohort");
+        }
+        inline["doctrines"]!["roles"]!["medic"]!["modes"]!.AsArray()
+            .Select(mode => mode!.AsObject())
+            .Single(mode => mode["cohort"]?.GetValue<string>()
+                == "centre-runners")["cohort"] = new JsonObject
+                {
+                    ["take"] = 1,
+                    ["select"] = "nearest",
+                };
+        inline["doctrines"]!["cohorts"]!.AsObject()
+            .Remove("centre-runners");
+        string inlinePath = Write(inline);
+        try
+        {
+            TacticalPlaybookCompilation compilation =
+                ArcRelayTacticalPlaybookCompiler.Compile(inlinePath);
+            JsonObject normalized = JsonNode.Parse(
+                compilation.NormalizedPlaybook)!.AsObject();
+            JsonObject inlineRow = Assert.Single(
+                normalized["coordination"]!["tasks"]!.AsArray()
+                    .SelectMany(task => task!["assignments"]!.AsArray())
+                    .Select(row => row!.AsObject()),
+                row => row["cohort"]?["cohortId"]?
+                    .GetValue<string>().StartsWith(
+                        "inline-", StringComparison.Ordinal) == true);
+            JsonObject inlineCohort = inlineRow["cohort"]!.AsObject();
+            Assert.Equal(1, inlineCohort["take"]!.GetValue<int>());
+        }
+        finally
+        {
+            File.Delete(inlinePath);
+        }
+    }
+
+    [Fact]
+    public void CohortNearestHasOneAuthoredDestination()
+    {
+        JsonObject source = JsonNode.Parse(File.ReadAllBytes(HunterV1()))!
+            .AsObject();
+        JsonObject carrierNorth = source["doctrines"]!["roles"]!["carrier"]![
+                "modes"]!.AsArray()
+            .Select(mode => mode!.AsObject())
+            .Single(mode => mode["cohort"]?.GetValue<string>()
+                == "north-runners");
+        carrierNorth["patrol"] = "centre-well-loop";
+        string path = Write(source);
+        try
+        {
+            InvalidDataException failure = Assert.Throws<InvalidDataException>(
+                () => ArcRelayTacticalPlaybookCompiler.Compile(path));
+            Assert.Contains(
+                "has more than one destination", failure.Message);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void OneOffFocusIsInlineRatherThanAOneConsumerSharedName()
+    {
+        JsonObject shared = JsonNode.Parse(File.ReadAllBytes(HunterV1()))!
+            .AsObject();
+        shared["doctrines"]!["focus"]!["one-off"] = new JsonObject
+        {
+            ["maximumAttackers"] = 1,
+        };
+        JsonObject hunterAssault = shared["doctrines"]!["roles"]!["hunter"]![
+                "modes"]!.AsArray()
+            .Select(mode => mode!.AsObject())
+            .Single(mode => mode.ContainsKey("assault"));
+        hunterAssault["focus"] = "one-off";
+        string sharedPath = Write(shared);
+        try
+        {
+            InvalidDataException failure = Assert.Throws<InvalidDataException>(
+                () => ArcRelayTacticalPlaybookCompiler.Compile(sharedPath));
+            Assert.Contains(
+                "shared focus scope needs at least two rung consumers",
+                failure.Message);
+        }
+        finally
+        {
+            File.Delete(sharedPath);
+        }
+
+        JsonObject inline = JsonNode.Parse(File.ReadAllBytes(HunterV1()))!
+            .AsObject();
+        inline["doctrines"]!["roles"]!["hunter"]!["modes"]!.AsArray()
+            .Select(mode => mode!.AsObject())
+            .Single(mode => mode.ContainsKey("assault"))["focus"] =
+                new JsonObject { ["maximumAttackers"] = 1 };
+        string inlinePath = Write(inline);
+        try
+        {
+            TacticalPlaybookCompilation compilation =
+                ArcRelayTacticalPlaybookCompiler.Compile(inlinePath);
+            Assert.Contains("focus:inline:hunter-assault",
+                System.Text.Encoding.UTF8.GetString(
+                    compilation.NormalizedPlaybook));
+        }
+        finally
+        {
+            File.Delete(inlinePath);
+        }
+    }
+
+    [Fact]
+    public void TempoFactIsRetiredInFavourOfADrawnPatrol()
+    {
+        JsonObject source = JsonNode.Parse(File.ReadAllBytes(HunterV1()))!
+            .AsObject();
+        source["conditions"]!["old-clock"] = new JsonObject
+        {
+            ["fact"] = "tempo-active",
+            ["operator"] = "equals",
+            ["value"] = 1,
+            ["subject"] = "north",
+        };
+        string path = Write(source);
+        try
+        {
+            InvalidDataException failure = Assert.Throws<InvalidDataException>(
+                () => ArcRelayTacticalPlaybookCompiler.Compile(path));
+            Assert.Contains(
+                "tempo-active is retired", failure.Message);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
     }
 
     [Fact]
@@ -2244,7 +2493,7 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
             InvalidDataException failure = Assert.Throws<InvalidDataException>(
                 () => ArcRelayTacticalPlaybookCompiler.Compile(
                     unknownPosturePath));
-            Assert.Contains("'posture' must be one of: trail, screen",
+            Assert.Contains("posture for follow must be one of: trail, screen",
                 failure.Message);
         }
         finally
@@ -2287,7 +2536,7 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
     }
 
     [Fact]
-    public void ConsolidatedTempoAndRepairCompileIntoTheExistingRuntimeIr()
+    public void ConsolidatedPatrolBeatAndRepairCompileIntoTheRuntimeIr()
     {
         TacticalPlaybookCompilation compilation =
             ArcRelayTacticalPlaybookCompiler.Compile(HunterV1());
@@ -2295,16 +2544,16 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
             compilation.NormalizedPlaybook)!.AsObject();
 
         Assert.Equal(
-            ["prowl", "prowl-south"],
+            ["steady"],
             normalized["coordination"]!["phases"]!.AsArray()
                 .Select(phase => phase!["phaseId"]!.GetValue<string>())
                 .ToArray());
-        JsonObject south = normalized["orders"]!.AsArray()
+        JsonObject patrol = normalized["orders"]!.AsArray()
             .Select(order => order!.AsObject())
             .Single(order => order["orderId"]!.GetValue<string>()
-                == "hunter-patrol-2");
-        Assert.Equal("shadow-south-long",
-            south["movement"]!["target"]!.GetValue<string>());
+                == "hunter-floor");
+        Assert.Equal("shadow-hunt-loop",
+            patrol["movement"]!["target"]!.GetValue<string>());
         Assert.All(normalized["coordination"]!["phases"]!.AsArray(), phase =>
             Assert.Equal(7, phase!["orderIds"]!.AsArray().Count));
 

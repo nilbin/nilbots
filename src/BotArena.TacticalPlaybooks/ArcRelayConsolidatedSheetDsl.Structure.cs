@@ -48,7 +48,6 @@ public static partial class ArcRelayTacticalPlaybookCompiler
     private static JsonObject BuildConditions(
         JsonObject source,
         IReadOnlyDictionary<string, string> roleGroups,
-        ConsolidatedTempo tempo,
         string path)
     {
         var result = new JsonObject
@@ -96,17 +95,9 @@ public static partial class ArcRelayTacticalPlaybookCompiler
                 }
             }
             else if (fact == "tempo-active")
-            {
-                string mode = condition["subject"]?.GetValue<string>()
-                    ?? throw Error($"{path}.conditions.{id}",
-                        "tempo-active needs a tempo mode subject.");
-                if (!tempo.ModeIds.Contains(mode, StringComparer.Ordinal))
-                {
-                    throw Error($"{path}.conditions.{id}",
-                        $"tempo-active references unknown mode '{mode}'.");
-                }
-                condition["fact"] = "phase-active";
-            }
+                throw Error($"{path}.conditions.{id}",
+                    "tempo-active is retired; express a beat as a drawn "
+                    + "patrol route so progress resumes after interruption.");
             else if (fact is "live-count" or "joining-count"
                      or "in-zone-count" or "cohesion" or "stuck-ticks")
             {

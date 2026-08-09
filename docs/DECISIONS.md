@@ -6842,7 +6842,7 @@ tag without a separate group catalog. The deletion and source migration happen
 atomically with Phase 3's replacement of formations, engagements and coordination,
 when group cardinality and local-state behavior have an explicit doctrine home.
 
-## 263. Core fetching is an ordered doctrine rung, while custody remains a shared protocol
+## 265. Core fetching is an ordered doctrine rung, while custody remains a shared protocol
 
 Sheet-language ruling (2026-08-09). A role volunteers for coordinated Core
 pickup with `{ "fetch": "<custodyId>" }` in its own ordered doctrine modes.
@@ -6869,7 +6869,7 @@ not move. Thin `{ fetch, ..., squad }` doctrines make old courier behavior
 explicit until Phase 3 replaces the rest of the squad plane. The six canonical
 Hunter-vs-Wellwright state digests remain byte-identical.
 
-## 264. Executor channel precedence is fixed and absent from sheet source
+## 266. Executor channel precedence is fixed and absent from sheet source
 
 Sheet-language ruling (2026-08-09). `arbitration.channels` is a game rule, not
 configuration. The executor owns one fixed first-legal order: custody emergency,
@@ -6883,7 +6883,7 @@ exception: its historical section must match the canonical order and is then
 discarded during normalization. This keeps the evidence executable without
 teaching current authors a dead configuration surface.
 
-## 265. Multi-body behavior is a doctrine operation with explicit role consent
+## 267. Multi-body behavior is a doctrine operation with explicit role consent
 
 Sheet-language ruling (2026-08-09). A coordinated movement belongs under
 `doctrines.operations`, where it states one formation, fight policy, staffing
@@ -6915,7 +6915,7 @@ by its home defense, Well races, surge, and Well patrol. `wedge` was speculative
 and is rejected. Both currently have evidence from exactly one migrated sheet;
 that fact is retained rather than inflated into a general shape catalog.
 
-## 266. Synchronized team tempo is explicit doctrine source
+## 268. Synchronized team tempo is explicit doctrine source
 
 Sheet-language correction (2026-08-09). Hunter's historical prowl,
 prowl-south, and apex phases were not equivalent to independently ordered body
@@ -6931,7 +6931,7 @@ coordinated operations cannot also declare a body-local tempo override, because
 two sources would then claim its movement. All six standard Hunter-vs-Wellwright
 state digests match the Phase-2 source exactly with this explicit clock.
 
-## 267. Repair policy belongs to its provider; activation belongs to the operation
+## 269. Repair policy belongs to its provider; activation belongs to the operation
 
 Sheet-language ruling (2026-08-09). The medic doctrine owns its repair target
 preference and safety constraints. A coordinated operation says `repair: true`
@@ -6947,7 +6947,7 @@ port and are now named on the operation/fight: `traffic` is
 acquisition. These words compile to the existing assignment profile and
 engagement records; they do not add game rules.
 
-## 268. Hunter's authored DSL has ten root keys; compatibility detail remains private IR
+## 270. Hunter's authored DSL has ten root keys; compatibility detail remains private IR
 
 Sheet-language ruling (2026-08-09). The migrated Hunter source has exactly:
 `schema`, `playbookId`, `auditStatus`, `composition`, `layout`, `memory`,
@@ -6964,3 +6964,29 @@ configuration and cannot be supplied by consolidated source. The Hunter gate
 does not admit a `staffing` root because Hunter has no shared tag-cap constraint;
 the narrowly approved tag-cap row must be implemented and evidenced when
 `predator-v2`, the first sheet that needs it, is migrated.
+
+## 271. Coordination is role-local; shared primitives may share only counts
+
+Owner ruling and Hunter experiment (2026-08-09), superseding the operation and
+tempo designs recorded at the one-sheet gates in #267–#269. `operation`,
+`staff`, `escort`, and `muster` are not sheet concepts. A follower declares
+`follow` on its own ordered ladder and follows the nearest live body of the
+named role, with stable unit id breaking equal-distance ties. It follows that
+body across mode changes. No caller, consent handshake, participant lease, or
+operation priority band exists.
+
+Adaptive participation may use a named cohort containing exactly `take` and
+`select`; membership is derived solely from role-local rungs that reference the
+name. On every tick the eligible candidates are ordered by distance to their
+common side-bound route or zone destination, then stable unit id. Winners run
+their own rung and rejected bodies continue their own ladders. Contextual focus
+may share exactly `maximumAttackers`; it shares no target lock, preference,
+fight policy, order, or lifecycle. A shared cohort or focus name requires at
+least two authored rung consumers; one-consumer cases are inline. Unknown or
+additional fields are compile errors.
+
+Team tempo is deleted rather than relocated. Hunter's north/south beat is one
+drawn, resumable patrol route. Compact `front`, `core`, and `rear` posture may
+live on a rung, but there is no shared formation catalog. These narrow
+primitives restore the evidenced allocation and attacker-count scopes without
+deciding participation or priority outside each body's readable ladder.

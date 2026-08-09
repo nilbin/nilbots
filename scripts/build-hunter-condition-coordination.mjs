@@ -2,6 +2,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import crypto from "node:crypto";
 import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -10,13 +11,57 @@ const target = path.join(
   "arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/playbooks/hunter-v1.json",
 );
 const source = JSON.parse(fs.readFileSync(target, "utf8"));
-
-if (source.doctrines?.focus && !source.doctrines?.operations) {
-  console.log("hunter-v1 already uses condition coordination");
-  process.exit(0);
+if (!source.conditions || !source.doctrines?.roles) {
+  throw new Error("expected the condition-coordinated Hunter source");
 }
-if (!source.conditions || !source.doctrines?.operations) {
-  throw new Error("expected the Hunter Phase 3 gate source");
+
+const oldLayout = path.join(
+  root,
+  "arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/layouts/warren6-hunter-v1.json",
+);
+const newLayout = path.join(
+  root,
+  "arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/layouts/warren6-hunter-condition-v2.json",
+);
+const layout = JSON.parse(fs.readFileSync(oldLayout, "utf8"));
+layout.layoutId = "warren6-hunter-condition-v2";
+for (const binding of layout.bindings) {
+  binding.routeAliases["shadow-hunt-loop"] = "shadow-hunt-loop-reverse";
+}
+const north = layout.routes.find((route) => route.routeId === "shadow-north-long");
+const south = layout.routes.find((route) => route.routeId === "shadow-south-long");
+if (!north || !south) throw new Error("expected both long shadow routes");
+layout.routes = layout.routes.filter((route) =>
+  route.routeId !== "shadow-hunt-loop" && route.routeId !== "shadow-hunt-loop-reverse"
+);
+const connectorDown = [[8, 8], [8, 13], [8, 18], [8, 25]];
+const connectorUp = [[8, 18], [8, 13], [8, 8], [8, 1]];
+const huntWaypoints = [
+  ...north.waypoints,
+  ...connectorDown,
+  ...south.waypoints.slice(1),
+  ...connectorUp,
+];
+layout.routes.push({
+  routeId: "shadow-hunt-loop",
+  corridorWidth: 2,
+  waypoints: huntWaypoints,
+});
+layout.routes.push({
+  routeId: "shadow-hunt-loop-reverse",
+  corridorWidth: 2,
+  waypoints: [...huntWaypoints].reverse(),
+});
+const layoutText = `${JSON.stringify(layout, null, 1)}\n`;
+fs.writeFileSync(newLayout, layoutText);
+const layoutSha256 = crypto.createHash("sha256").update(layoutText).digest("hex");
+
+if (source.doctrines?.cohorts?.["well-surge"]?.take === 3
+    && source.doctrines?.roles?.eyes?.modes?.length === 4
+    && source.layout?.path === "../layouts/warren6-hunter-condition-v2.json"
+    && source.layout?.sha256 === layoutSha256) {
+  console.log("hunter-v1 already uses narrow condition coordination");
+  process.exit(0);
 }
 
 const role = Object.fromEntries(source.roles.map((entry) => [entry.roleId, entry]));
@@ -44,55 +89,67 @@ const raceModes = [
     patrol: "centre-well-loop",
     while: "centre-birth-soon",
     until: "centre-birth-far",
+    cohort: "centre-runners",
+    focus: "well",
   },
   {
     patrol: "north-well-loop",
     while: "north-birth-soon",
     until: "north-birth-far",
+    cohort: "north-runners",
+    focus: "well",
   },
   {
     patrol: "south-well-loop",
     while: "south-birth-soon",
     until: "south-birth-far",
+    cohort: "south-runners",
+    focus: "well",
   },
 ];
-const homeMode = {
+const homeMode = (posture) => ({
   patrol: { zone: "own-home" },
   while: "gate-threat or home-threat",
   until: "approach-clear and home-clear",
+  cohort: "home-guard",
+  focus: "home",
+  posture,
   fight: homeFight,
-};
-const surgeMode = {
+});
+const surgeMode = (posture) => ({
   patrol: { zone: "well-line" },
   while: "window-open",
   until: "window-closed",
-};
-const floor = (target) => ({ patrol: target });
+  cohort: "well-surge",
+  focus: "well",
+  posture,
+});
+const races = (posture) => raceModes.map((mode) => ({ ...mode, posture }));
+const floor = (target, posture) => ({ patrol: target, focus: "patrol", posture });
 
 const roleDoctrines = {
   hunter: {
     custody: "well-custody",
     fight: source.doctrines.roles.hunter.fight,
     modes: [
-      { recover: "auto" },
+      { recover: "auto", focus: "patrol" },
       {
         assault: "strike-line",
         while: "shadow-op",
         until: "shadow-cooled",
+        focus: "assassin",
+        posture: "front",
         fight: { collect: "first" },
       },
       {
         patrol: "stage-loop",
         while: "ghost-hurt",
         until: "ghost-whole",
+        focus: "patrol",
+        posture: "rear",
       },
       {
-        patrol: "shadow-south-long",
-        while: "south-prowl",
-        until: "north-prowl",
-      },
-      {
-        ...floor("shadow-north-long"),
+        ...floor("shadow-hunt-loop", "front"),
         fight: { collect: "first" },
       },
     ],
@@ -104,16 +161,17 @@ const roleDoctrines = {
     fight: standardFight,
     repair: source.doctrines.roles.medic.repair,
     modes: [
-      { recover: "auto" },
+      { recover: "auto", focus: "patrol" },
       {
         follow: "hunter",
         posture: "trail",
         while: "shadow-op",
         until: "shadow-cooled",
+        focus: "assassin",
       },
-      homeMode,
-      ...raceModes,
-      floor("stage-loop"),
+      homeMode("rear"),
+      ...races("rear"),
+      floor("stage-loop", "rear"),
     ],
     conceal: false,
   },
@@ -126,11 +184,13 @@ const roleDoctrines = {
         assault: "strike-line",
         while: "self-veteran",
         until: "self-green",
+        focus: "assassin",
+        posture: "front",
         fight: assassinFight,
       },
-      ...raceModes,
-      surgeMode,
-      floor("stage-loop"),
+      ...races("core"),
+      surgeMode("core"),
+      floor("stage-loop", "core"),
     ],
     conceal: false,
   },
@@ -139,9 +199,9 @@ const roleDoctrines = {
     fight: standardFight,
     modes: [
       { fetch: "well-custody" },
-      ...raceModes,
-      surgeMode,
-      floor("stage-loop"),
+      ...races("core"),
+      surgeMode("core"),
+      floor("stage-loop", "core"),
     ],
     conceal: false,
   },
@@ -155,9 +215,10 @@ const roleDoctrines = {
         posture: "screen",
         while: "shadow-op",
         until: "shadow-cooled",
+        focus: "assassin",
       },
-      homeMode,
-      floor("stage-loop"),
+      homeMode("front"),
+      floor("stage-loop", "front"),
     ],
     conceal: false,
   },
@@ -166,9 +227,9 @@ const roleDoctrines = {
     fight: standardFight,
     modes: [
       { fetch: "well-custody" },
-      homeMode,
-      surgeMode,
-      floor("stage-loop"),
+      homeMode("core"),
+      surgeMode("front"),
+      floor("stage-loop", "front"),
     ],
     conceal: false,
   },
@@ -177,7 +238,7 @@ const roleDoctrines = {
     fight: standardFight,
     modes: [
       { fetch: "well-custody" },
-      floor({ zone: "own-approach" }),
+      floor({ zone: "own-approach" }, "rear"),
     ],
     conceal: false,
   },
@@ -224,12 +285,6 @@ const conditions = {
   "self-green": {
     fact: "self-level", operator: "at-most", value: 2,
   },
-  "south-prowl": {
-    fact: "tempo-active", operator: "equals", value: 1, subject: "prowl-south",
-  },
-  "north-prowl": {
-    fact: "tempo-active", operator: "equals", value: 1, subject: "prowl",
-  },
   "gate-threat": {
     fact: "remembered-enemies-in-zone", operator: "at-least", value: 1,
     zone: "own-approach", freshnessTicks: 21,
@@ -255,18 +310,27 @@ const migrated = {
   playbookId: source.playbookId,
   auditStatus: source.auditStatus,
   composition: source.composition,
-  layout: source.layout,
+  layout: {
+    path: "../layouts/warren6-hunter-condition-v2.json",
+    sha256: layoutSha256,
+  },
   memory: source.memory,
   roles: compactRoles,
   custodyPolicies,
   doctrines: {
     roles: roleDoctrines,
-    focus: { maximumAttackers: 2 },
-    tempo: {
-      cycle: [
-        { modeId: "prowl", forTicks: 90 },
-        { modeId: "prowl-south", forTicks: 90 },
-      ],
+    cohorts: {
+      "centre-runners": { take: 3, select: "nearest" },
+      "north-runners": { take: 3, select: "nearest" },
+      "south-runners": { take: 3, select: "nearest" },
+      "home-guard": { take: 3, select: "nearest" },
+      "well-surge": { take: 3, select: "nearest" },
+    },
+    focus: {
+      assassin: { maximumAttackers: 1 },
+      home: { maximumAttackers: 3 },
+      patrol: { maximumAttackers: 2 },
+      well: { maximumAttackers: 3 },
     },
   },
   conditions,

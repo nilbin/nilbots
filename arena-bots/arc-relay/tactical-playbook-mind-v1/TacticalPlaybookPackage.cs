@@ -215,6 +215,24 @@ internal sealed class TacticalPlaybookPackage
             (zone.Rect[1] + zone.Rect[3]) / 2));
     }
 
+    internal int ZoneDistance(string zoneId, Position position)
+    {
+        Zone zone = _zones.GetValueOrDefault(zoneId)
+            ?? throw new InvalidDataException($"Unknown tactical zone '{zoneId}'.");
+        Position canonical = Canonical(position);
+        int dx = canonical.X < zone.Rect[0]
+            ? zone.Rect[0] - canonical.X
+            : canonical.X > zone.Rect[2]
+                ? canonical.X - zone.Rect[2]
+                : 0;
+        int dy = canonical.Y < zone.Rect[1]
+            ? zone.Rect[1] - canonical.Y
+            : canonical.Y > zone.Rect[3]
+                ? canonical.Y - zone.Rect[3]
+                : 0;
+        return Math.Max(dx, dy);
+    }
+
     internal Position AnchorPosition(string anchorId)
     {
         Anchor anchor = _anchors.GetValueOrDefault(anchorId)
@@ -701,7 +719,11 @@ internal sealed class TacticalPlaybookPackage
         Escort? Escort = null,
         /// <summary>Follower-owned role reference. The nearest live body of
         /// LeaderRole is selected; stable unit id breaks distance ties.</summary>
-        Follow? Follow = null);
+        Follow? Follow = null,
+        /// <summary>Compact per-rung spatial attitude. The executor offsets
+        /// the authored destination toward the front, core, or rear; this is
+        /// deliberately not a shared formation object.</summary>
+        string Posture = "");
 
     internal sealed record Follow(
         string LeaderRole,
@@ -802,7 +824,15 @@ internal sealed class TacticalPlaybookPackage
         string Carrier,
         SelectionDistance Distance,
         ConditionGroup[]? CandidateWhen = null,
-        ConditionGroup[]? CandidateUntil = null);
+        ConditionGroup[]? CandidateUntil = null,
+        CohortAdmission? Cohort = null);
+
+    internal sealed record CohortAdmission(
+        string CohortId,
+        int Take,
+        string Select,
+        string DestinationKind,
+        string DestinationTarget);
 
     internal sealed record SelectionDistance(
         string Kind,
