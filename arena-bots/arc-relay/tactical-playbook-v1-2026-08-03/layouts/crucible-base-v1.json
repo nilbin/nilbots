@@ -1,0 +1,550 @@
+{
+  "schema": "arc-relay-tactical-layout-v1",
+  "layoutId": "crucible-base-v1",
+  "mapId": "arc-relay-crucible-01",
+  "bindings": [
+    {
+      "matchContractFingerprint": "any-composition",
+      "ownReactorSide": "west",
+      "transform": "identity",
+      "routeAliases": {}
+    },
+    {
+      "matchContractFingerprint": "any-composition",
+      "ownReactorSide": "east",
+      "transform": "rotate-180",
+      "routeAliases": {}
+    }
+  ],
+  "zones": [
+    {
+      "zoneId": "centre-well",
+      "rect": [
+        13,
+        9,
+        17,
+        13
+      ]
+    },
+    {
+      "zoneId": "enemy-approach",
+      "rect": [
+        17,
+        12,
+        25,
+        19
+      ]
+    },
+    {
+      "zoneId": "enemy-delivery",
+      "rect": [
+        23,
+        15,
+        25,
+        17
+      ]
+    },
+    {
+      "zoneId": "enemy-heal",
+      "rect": [
+        19,
+        5,
+        21,
+        7
+      ]
+    },
+    {
+      "zoneId": "enemy-home",
+      "rect": [
+        22,
+        14,
+        29,
+        21
+      ]
+    },
+    {
+      "zoneId": "enemy-pad",
+      "rect": [
+        26,
+        18,
+        29,
+        21
+      ]
+    },
+    {
+      "zoneId": "enemy-well",
+      "rect": [
+        19,
+        17,
+        22,
+        21
+      ]
+    },
+    {
+      "zoneId": "enemy-wing",
+      "rect": [
+        17,
+        1,
+        29,
+        10
+      ]
+    },
+    {
+      "zoneId": "midfield",
+      "rect": [
+        10,
+        7,
+        20,
+        15
+      ]
+    },
+    {
+      "zoneId": "own-approach",
+      "rect": [
+        5,
+        3,
+        13,
+        10
+      ]
+    },
+    {
+      "zoneId": "own-delivery",
+      "rect": [
+        5,
+        5,
+        7,
+        7
+      ]
+    },
+    {
+      "zoneId": "own-heal",
+      "rect": [
+        9,
+        15,
+        11,
+        17
+      ]
+    },
+    {
+      "zoneId": "own-home",
+      "rect": [
+        1,
+        1,
+        8,
+        8
+      ]
+    },
+    {
+      "zoneId": "own-pad",
+      "rect": [
+        1,
+        1,
+        4,
+        4
+      ]
+    },
+    {
+      "zoneId": "own-well",
+      "rect": [
+        8,
+        1,
+        11,
+        5
+      ]
+    },
+    {
+      "zoneId": "own-wing",
+      "rect": [
+        1,
+        12,
+        13,
+        21
+      ]
+    }
+  ],
+  "routes": [
+    {
+      "routeId": "centre-hold",
+      "waypoints": [
+        [
+          14,
+          10
+        ],
+        [
+          15,
+          9
+        ],
+        [
+          16,
+          10
+        ],
+        [
+          15,
+          11
+        ],
+        [
+          16,
+          12
+        ],
+        [
+          15,
+          11
+        ],
+        [
+          14,
+          12
+        ],
+        [
+          13,
+          11
+        ],
+        [
+          14,
+          10
+        ]
+      ],
+      "corridorWidth": 1
+    },
+    {
+      "routeId": "centre-push",
+      "waypoints": [
+        [
+          6,
+          6
+        ],
+        [
+          7,
+          5
+        ],
+        [
+          9,
+          5
+        ],
+        [
+          15,
+          11
+        ]
+      ],
+      "corridorWidth": 2
+    },
+    {
+      "routeId": "own-home-patrol",
+      "waypoints": [
+        [
+          5,
+          5
+        ],
+        [
+          6,
+          4
+        ],
+        [
+          7,
+          4
+        ],
+        [
+          8,
+          5
+        ],
+        [
+          6,
+          7
+        ],
+        [
+          7,
+          8
+        ],
+        [
+          5,
+          6
+        ],
+        [
+          3,
+          8
+        ],
+        [
+          3,
+          7
+        ],
+        [
+          5,
+          5
+        ]
+      ],
+      "corridorWidth": 2
+    },
+    {
+      "routeId": "own-lane-patrol",
+      "waypoints": [
+        [
+          8,
+          5
+        ],
+        [
+          9,
+          5
+        ],
+        [
+          12,
+          8
+        ],
+        [
+          12,
+          9
+        ],
+        [
+          10,
+          11
+        ],
+        [
+          11,
+          12
+        ],
+        [
+          8,
+          9
+        ],
+        [
+          6,
+          11
+        ],
+        [
+          5,
+          10
+        ],
+        [
+          5,
+          9
+        ],
+        [
+          6,
+          8
+        ],
+        [
+          6,
+          7
+        ],
+        [
+          8,
+          5
+        ]
+      ],
+      "corridorWidth": 2
+    },
+    {
+      "routeId": "own-well-run",
+      "waypoints": [
+        [
+          6,
+          6
+        ],
+        [
+          7,
+          5
+        ],
+        [
+          8,
+          5
+        ],
+        [
+          9,
+          4
+        ],
+        [
+          9,
+          3
+        ]
+      ],
+      "corridorWidth": 2
+    },
+    {
+      "routeId": "own-wing-run",
+      "waypoints": [
+        [
+          6,
+          6
+        ],
+        [
+          5,
+          7
+        ],
+        [
+          6,
+          8
+        ],
+        [
+          5,
+          9
+        ],
+        [
+          6,
+          10
+        ],
+        [
+          6,
+          11
+        ],
+        [
+          10,
+          15
+        ],
+        [
+          10,
+          16
+        ]
+      ],
+      "corridorWidth": 2
+    },
+    {
+      "routeId": "raid-run",
+      "waypoints": [
+        [
+          6,
+          6
+        ],
+        [
+          5,
+          7
+        ],
+        [
+          6,
+          8
+        ],
+        [
+          5,
+          9
+        ],
+        [
+          5,
+          10
+        ],
+        [
+          10,
+          15
+        ],
+        [
+          10,
+          16
+        ],
+        [
+          11,
+          15
+        ],
+        [
+          13,
+          15
+        ],
+        [
+          15,
+          17
+        ],
+        [
+          16,
+          16
+        ],
+        [
+          20,
+          20
+        ],
+        [
+          21,
+          19
+        ]
+      ],
+      "corridorWidth": 1
+    }
+  ],
+  "anchors": [
+    {
+      "anchorId": "centre-post-near",
+      "position": [
+        14,
+        10
+      ]
+    },
+    {
+      "anchorId": "centre-post-near-far",
+      "position": [
+        16,
+        12
+      ]
+    },
+    {
+      "anchorId": "centre-well-post",
+      "position": [
+        15,
+        11
+      ]
+    },
+    {
+      "anchorId": "enemy-delivery-post",
+      "position": [
+        22,
+        17
+      ]
+    },
+    {
+      "anchorId": "enemy-heal-post",
+      "position": [
+        19,
+        6
+      ]
+    },
+    {
+      "anchorId": "enemy-lane-gate",
+      "position": [
+        24,
+        11
+      ]
+    },
+    {
+      "anchorId": "enemy-reactor",
+      "position": [
+        28,
+        20
+      ]
+    },
+    {
+      "anchorId": "enemy-well-post",
+      "position": [
+        22,
+        19
+      ]
+    },
+    {
+      "anchorId": "own-delivery-post",
+      "position": [
+        8,
+        5
+      ]
+    },
+    {
+      "anchorId": "own-heal-post",
+      "position": [
+        11,
+        16
+      ]
+    },
+    {
+      "anchorId": "own-lane-gate",
+      "position": [
+        6,
+        11
+      ]
+    },
+    {
+      "anchorId": "own-reactor",
+      "position": [
+        2,
+        2
+      ]
+    },
+    {
+      "anchorId": "own-well-post",
+      "position": [
+        8,
+        3
+      ]
+    }
+  ]
+}
