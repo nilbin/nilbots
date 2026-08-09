@@ -75,6 +75,7 @@ export function buildOverlays(
     mapWidth,
     mapHeight,
     theme.environment3d.fog.unseenTerrainDarkness,
+    theme.environment3d.fog.unseenTerrainTint,
     disposables,
   );
   group.add(fog.mesh);
@@ -428,6 +429,7 @@ function buildFog(
   mapWidth: number,
   mapHeight: number,
   unseenTerrainDarkness: number,
+  unseenTerrainTint: string,
   disposables: { dispose: () => void }[],
 ): {
   mesh: THREE.Mesh;
@@ -438,6 +440,7 @@ function buildFog(
   texture: THREE.DataTexture;
   enabled: { value: number };
   mapSize: THREE.Vector2;
+  tint: THREE.Color;
 } {
   const data = new Uint8Array(mapWidth * mapHeight * 4);
   const texture = new THREE.DataTexture(data, mapWidth, mapHeight, THREE.RGBAFormat);
@@ -450,6 +453,7 @@ function buildFog(
   geometry.translate(mapWidth / 2, 0, mapHeight / 2);
   const material = new THREE.MeshBasicMaterial({
     map: texture,
+    color: unseenTerrainTint,
     transparent: true,
     depthWrite: false,
   });
@@ -459,6 +463,7 @@ function buildFog(
   disposables.push(geometry, material, texture);
   const enabled = { value: 0 };
   const mapSize = new THREE.Vector2(mapWidth, mapHeight);
+  const tint = new THREE.Color(unseenTerrainTint);
 
   const paint = (
     visible: readonly ReplayPosition[] | undefined,
@@ -475,9 +480,11 @@ function buildFog(
       for (let x = 0; x < mapWidth; x++) {
         // The plane's V axis runs opposite the map's Y, so rows are written bottom-up.
         const texel = ((mapHeight - 1 - y) * mapWidth + x) * 4;
-        data[texel] = 0;
-        data[texel + 1] = 0;
-        data[texel + 2] = 0;
+        // White lets the material apply the theme's fog tint. The historical black
+        // default remains exactly equivalent to the old all-zero RGB texture.
+        data[texel] = 255;
+        data[texel + 1] = 255;
+        data[texel + 2] = 255;
         data[texel + 3] = seen.has(`${x},${y}`)
           ? 0
           : Math.round(unseenTerrainDarkness * 255);
@@ -486,7 +493,7 @@ function buildFog(
     texture.needsUpdate = true;
   };
 
-  return { mesh, paint, texture, enabled, mapSize };
+  return { mesh, paint, texture, enabled, mapSize, tint };
 }
 
 type FogMask = ReturnType<typeof buildFog>;
@@ -525,6 +532,7 @@ function applyTerrainFog(root: THREE.Object3D, fog: FogMask): void {
       shader.uniforms.arenaVisionFogMap = { value: fog.texture };
       shader.uniforms.arenaVisionFogEnabled = fog.enabled;
       shader.uniforms.arenaVisionFogMapSize = { value: fog.mapSize };
+      shader.uniforms.arenaVisionFogTint = { value: fog.tint };
       shader.vertexShader = shader.vertexShader
         .replace(
           'void main() {',
@@ -548,6 +556,7 @@ vArenaVisionFogWorldPosition = ( modelMatrix * arenaVisionFogPosition ).xyz;
           `uniform sampler2D arenaVisionFogMap;
 uniform float arenaVisionFogEnabled;
 uniform vec2 arenaVisionFogMapSize;
+uniform vec3 arenaVisionFogTint;
 varying vec3 vArenaVisionFogWorldPosition;
 void main() {`,
         )
@@ -566,11 +575,15 @@ float arenaVisionFogAlpha = texture2D(
   arenaVisionFogMap,
   arenaVisionFogUv
 ).a * arenaVisionFogEnabled;
-gl_FragColor.rgb *= 1.0 - arenaVisionFogAlpha;`,
+gl_FragColor.rgb = mix(
+  gl_FragColor.rgb,
+  arenaVisionFogTint,
+  arenaVisionFogAlpha
+);`,
         );
     };
     material.customProgramCacheKey = () =>
-      `${priorCacheKey()}:arena-vision-fog-v1`;
+      `${priorCacheKey()}:arena-vision-fog-v2`;
     material.userData.arenaVisionFog = fog;
     material.needsUpdate = true;
   }
