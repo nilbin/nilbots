@@ -18,6 +18,24 @@
   ],
   "zones": [
     {
+      "zoneId": "bank-seal",
+      "rect": [
+        4,
+        4,
+        8,
+        8
+      ]
+    },
+    {
+      "zoneId": "centre-farm",
+      "rect": [
+        13,
+        9,
+        17,
+        13
+      ]
+    },
+    {
       "zoneId": "centre-well",
       "rect": [
         13,
@@ -36,12 +54,48 @@
       ]
     },
     {
+      "zoneId": "enemy-backfield",
+      "rect": [
+        22,
+        14,
+        29,
+        21
+      ]
+    },
+    {
+      "zoneId": "enemy-bank-danger",
+      "rect": [
+        21,
+        13,
+        27,
+        19
+      ]
+    },
+    {
+      "zoneId": "enemy-choke",
+      "rect": [
+        23,
+        10,
+        25,
+        12
+      ]
+    },
+    {
       "zoneId": "enemy-delivery",
       "rect": [
         23,
         15,
         25,
         17
+      ]
+    },
+    {
+      "zoneId": "enemy-gate",
+      "rect": [
+        21,
+        16,
+        23,
+        18
       ]
     },
     {
@@ -90,12 +144,57 @@
       ]
     },
     {
+      "zoneId": "forward-rally",
+      "rect": [
+        5,
+        3,
+        13,
+        10
+      ]
+    },
+    {
+      "zoneId": "kill-pocket",
+      "rect": [
+        11,
+        9,
+        14,
+        13
+      ]
+    },
+    {
       "zoneId": "midfield",
       "rect": [
         10,
         7,
         20,
         15
+      ]
+    },
+    {
+      "zoneId": "north-farm",
+      "rect": [
+        8,
+        1,
+        11,
+        5
+      ]
+    },
+    {
+      "zoneId": "north-perch",
+      "rect": [
+        19,
+        5,
+        21,
+        7
+      ]
+    },
+    {
+      "zoneId": "outer-gate",
+      "rect": [
+        23,
+        13,
+        26,
+        17
       ]
     },
     {
@@ -108,12 +207,30 @@
       ]
     },
     {
+      "zoneId": "own-choke",
+      "rect": [
+        5,
+        10,
+        7,
+        12
+      ]
+    },
+    {
       "zoneId": "own-delivery",
       "rect": [
         5,
         5,
         7,
         7
+      ]
+    },
+    {
+      "zoneId": "own-gate",
+      "rect": [
+        7,
+        4,
+        9,
+        6
       ]
     },
     {
@@ -159,6 +276,42 @@
         12,
         13,
         21
+      ]
+    },
+    {
+      "zoneId": "siege-leash",
+      "rect": [
+        19,
+        13,
+        26,
+        20
+      ]
+    },
+    {
+      "zoneId": "south-farm",
+      "rect": [
+        19,
+        17,
+        22,
+        21
+      ]
+    },
+    {
+      "zoneId": "south-perch",
+      "rect": [
+        9,
+        15,
+        11,
+        17
+      ]
+    },
+    {
+      "zoneId": "well-line",
+      "rect": [
+        9,
+        3,
+        21,
+        19
       ]
     }
   ],
@@ -206,6 +359,28 @@
       "corridorWidth": 1
     },
     {
+      "routeId": "centre-probe",
+      "waypoints": [
+        [
+          6,
+          6
+        ],
+        [
+          7,
+          5
+        ],
+        [
+          9,
+          5
+        ],
+        [
+          15,
+          11
+        ]
+      ],
+      "corridorWidth": 2
+    },
+    {
       "routeId": "centre-push",
       "waypoints": [
         [
@@ -223,6 +398,278 @@
         [
           15,
           11
+        ]
+      ],
+      "corridorWidth": 2
+    },
+    {
+      "routeId": "centre-well-loop",
+      "waypoints": [
+        [
+          6,
+          6
+        ],
+        [
+          7,
+          5
+        ],
+        [
+          9,
+          5
+        ],
+        [
+          15,
+          11
+        ]
+      ],
+      "corridorWidth": 2
+    },
+    {
+      "routeId": "farm-loop",
+      "waypoints": [
+        [
+          8,
+          5
+        ],
+        [
+          9,
+          5
+        ],
+        [
+          12,
+          8
+        ],
+        [
+          12,
+          9
+        ],
+        [
+          10,
+          11
+        ],
+        [
+          11,
+          12
+        ],
+        [
+          8,
+          9
+        ],
+        [
+          6,
+          11
+        ],
+        [
+          5,
+          10
+        ],
+        [
+          5,
+          9
+        ],
+        [
+          6,
+          8
+        ],
+        [
+          6,
+          7
+        ],
+        [
+          8,
+          5
+        ]
+      ],
+      "corridorWidth": 2
+    },
+    {
+      "routeId": "north-out",
+      "waypoints": [
+        [
+          6,
+          6
+        ],
+        [
+          7,
+          5
+        ],
+        [
+          8,
+          5
+        ],
+        [
+          9,
+          4
+        ],
+        [
+          9,
+          3
+        ]
+      ],
+      "corridorWidth": 2
+    },
+    {
+      "routeId": "north-well-loop",
+      "waypoints": [
+        [
+          6,
+          6
+        ],
+        [
+          7,
+          5
+        ],
+        [
+          8,
+          5
+        ],
+        [
+          9,
+          4
+        ],
+        [
+          9,
+          3
+        ]
+      ],
+      "corridorWidth": 2
+    },
+    {
+      "routeId": "outer-rush",
+      "waypoints": [
+        [
+          6,
+          6
+        ],
+        [
+          5,
+          7
+        ],
+        [
+          6,
+          8
+        ],
+        [
+          5,
+          9
+        ],
+        [
+          5,
+          10
+        ],
+        [
+          10,
+          15
+        ],
+        [
+          10,
+          16
+        ],
+        [
+          11,
+          15
+        ],
+        [
+          13,
+          15
+        ],
+        [
+          15,
+          17
+        ],
+        [
+          16,
+          16
+        ],
+        [
+          20,
+          20
+        ],
+        [
+          21,
+          19
+        ],
+        [
+          21,
+          18
+        ],
+        [
+          23,
+          16
+        ],
+        [
+          24,
+          16
+        ]
+      ],
+      "corridorWidth": 2
+    },
+    {
+      "routeId": "outer-rush-opposite",
+      "waypoints": [
+        [
+          6,
+          6
+        ],
+        [
+          7,
+          5
+        ],
+        [
+          8,
+          5
+        ],
+        [
+          9,
+          4
+        ],
+        [
+          11,
+          6
+        ],
+        [
+          13,
+          4
+        ],
+        [
+          14,
+          4
+        ],
+        [
+          15,
+          3
+        ],
+        [
+          16,
+          3
+        ],
+        [
+          19,
+          6
+        ],
+        [
+          20,
+          6
+        ],
+        [
+          19,
+          7
+        ],
+        [
+          19,
+          8
+        ],
+        [
+          18,
+          9
+        ],
+        [
+          18,
+          10
+        ],
+        [
+          24,
+          16
         ]
       ],
       "corridorWidth": 2
@@ -452,21 +899,435 @@
         ]
       ],
       "corridorWidth": 1
+    },
+    {
+      "routeId": "score-return",
+      "waypoints": [
+        [
+          15,
+          11
+        ],
+        [
+          9,
+          5
+        ],
+        [
+          7,
+          5
+        ],
+        [
+          6,
+          6
+        ]
+      ],
+      "corridorWidth": 2
+    },
+    {
+      "routeId": "shadow-north-long",
+      "waypoints": [
+        [
+          8,
+          5
+        ],
+        [
+          9,
+          4
+        ],
+        [
+          10,
+          5
+        ],
+        [
+          12,
+          3
+        ],
+        [
+          13,
+          4
+        ],
+        [
+          14,
+          4
+        ],
+        [
+          17,
+          1
+        ],
+        [
+          20,
+          4
+        ],
+        [
+          19,
+          4
+        ],
+        [
+          18,
+          5
+        ],
+        [
+          19,
+          6
+        ],
+        [
+          18,
+          6
+        ],
+        [
+          16,
+          8
+        ],
+        [
+          15,
+          8
+        ],
+        [
+          12,
+          5
+        ],
+        [
+          11,
+          6
+        ],
+        [
+          9,
+          4
+        ],
+        [
+          8,
+          5
+        ]
+      ],
+      "corridorWidth": 2
+    },
+    {
+      "routeId": "shadow-south-long",
+      "waypoints": [
+        [
+          6,
+          8
+        ],
+        [
+          4,
+          10
+        ],
+        [
+          4,
+          11
+        ],
+        [
+          5,
+          12
+        ],
+        [
+          5,
+          13
+        ],
+        [
+          7,
+          15
+        ],
+        [
+          8,
+          14
+        ],
+        [
+          9,
+          14
+        ],
+        [
+          11,
+          16
+        ],
+        [
+          10,
+          15
+        ],
+        [
+          12,
+          13
+        ],
+        [
+          7,
+          8
+        ],
+        [
+          6,
+          8
+        ]
+      ],
+      "corridorWidth": 2
+    },
+    {
+      "routeId": "short-breach",
+      "waypoints": [
+        [
+          6,
+          6
+        ],
+        [
+          7,
+          5
+        ],
+        [
+          9,
+          5
+        ],
+        [
+          15,
+          11
+        ],
+        [
+          17,
+          9
+        ],
+        [
+          24,
+          16
+        ]
+      ],
+      "corridorWidth": 1
+    },
+    {
+      "routeId": "short-breach-opposite",
+      "waypoints": [
+        [
+          6,
+          6
+        ],
+        [
+          7,
+          5
+        ],
+        [
+          9,
+          5
+        ],
+        [
+          16,
+          12
+        ],
+        [
+          18,
+          10
+        ],
+        [
+          24,
+          16
+        ]
+      ],
+      "corridorWidth": 1
+    },
+    {
+      "routeId": "south-out",
+      "waypoints": [
+        [
+          6,
+          6
+        ],
+        [
+          5,
+          7
+        ],
+        [
+          6,
+          8
+        ],
+        [
+          5,
+          9
+        ],
+        [
+          5,
+          10
+        ],
+        [
+          10,
+          15
+        ],
+        [
+          10,
+          16
+        ],
+        [
+          11,
+          15
+        ],
+        [
+          13,
+          15
+        ],
+        [
+          15,
+          17
+        ],
+        [
+          16,
+          16
+        ],
+        [
+          20,
+          20
+        ],
+        [
+          21,
+          19
+        ]
+      ],
+      "corridorWidth": 1
+    },
+    {
+      "routeId": "south-well-loop",
+      "waypoints": [
+        [
+          6,
+          6
+        ],
+        [
+          5,
+          7
+        ],
+        [
+          6,
+          8
+        ],
+        [
+          5,
+          9
+        ],
+        [
+          5,
+          10
+        ],
+        [
+          10,
+          15
+        ],
+        [
+          10,
+          16
+        ],
+        [
+          11,
+          15
+        ],
+        [
+          13,
+          15
+        ],
+        [
+          15,
+          17
+        ],
+        [
+          16,
+          16
+        ],
+        [
+          20,
+          20
+        ],
+        [
+          21,
+          19
+        ]
+      ],
+      "corridorWidth": 1
+    },
+    {
+      "routeId": "stage-loop",
+      "waypoints": [
+        [
+          5,
+          5
+        ],
+        [
+          6,
+          4
+        ],
+        [
+          7,
+          4
+        ],
+        [
+          8,
+          5
+        ],
+        [
+          6,
+          7
+        ],
+        [
+          7,
+          8
+        ],
+        [
+          5,
+          6
+        ],
+        [
+          3,
+          8
+        ],
+        [
+          3,
+          7
+        ],
+        [
+          5,
+          5
+        ]
+      ],
+      "corridorWidth": 2
+    },
+    {
+      "routeId": "strike-line",
+      "waypoints": [
+        [
+          6,
+          11
+        ],
+        [
+          8,
+          9
+        ],
+        [
+          11,
+          12
+        ],
+        [
+          12,
+          12
+        ],
+        [
+          13,
+          11
+        ],
+        [
+          14,
+          12
+        ],
+        [
+          15,
+          11
+        ]
+      ],
+      "corridorWidth": 1
     }
   ],
   "anchors": [
+    {
+      "anchorId": "centre-post-far",
+      "position": [
+        16,
+        12
+      ]
+    },
     {
       "anchorId": "centre-post-near",
       "position": [
         14,
         10
-      ]
-    },
-    {
-      "anchorId": "centre-post-near-far",
-      "position": [
-        16,
-        12
       ]
     },
     {
@@ -498,6 +1359,13 @@
       ]
     },
     {
+      "anchorId": "enemy-perimeter",
+      "position": [
+        22,
+        17
+      ]
+    },
+    {
       "anchorId": "enemy-reactor",
       "position": [
         28,
@@ -509,6 +1377,20 @@
       "position": [
         22,
         19
+      ]
+    },
+    {
+      "anchorId": "home-gate",
+      "position": [
+        8,
+        5
+      ]
+    },
+    {
+      "anchorId": "own-bank",
+      "position": [
+        6,
+        6
       ]
     },
     {
@@ -544,6 +1426,41 @@
       "position": [
         8,
         3
+      ]
+    },
+    {
+      "anchorId": "perch-north",
+      "position": [
+        19,
+        6
+      ]
+    },
+    {
+      "anchorId": "perch-south",
+      "position": [
+        11,
+        16
+      ]
+    },
+    {
+      "anchorId": "rally-centre",
+      "position": [
+        14,
+        10
+      ]
+    },
+    {
+      "anchorId": "sanitation-release",
+      "position": [
+        6,
+        10
+      ]
+    },
+    {
+      "anchorId": "well-line-centre",
+      "position": [
+        15,
+        11
       ]
     }
   ]

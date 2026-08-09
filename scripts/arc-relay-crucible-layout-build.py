@@ -95,6 +95,37 @@ for k, v in OWN_ZONES.items():
     zones["enemy-" + k[4:]] = rotrect(v)
 zones.update(SELF_ZONES)
 
+# --- compatibility vocabulary ---------------------------------------------
+# The relation-named ids above are what a Crucible-native sheet should use.
+# These are the names the other 23 layouts already share, mapped onto the
+# Crucible landmark each one actually denotes, so an existing sheet can be
+# repointed here by editing its layout pin instead of every reference.
+# Compiling is not playing well: a sheet drawn for another canvas will still
+# walk this one badly. The point is to make it runnable and watchable.
+COMPAT_ZONES = {
+    # The three Wells are exactly collinear on Crucible, so the classic
+    # "well line" is their literal bounding box.
+    "well-line":       (9, 3, 21, 19),
+    "north-farm":      OWN_ZONES["own-well"],          # west's near Well
+    "south-farm":      rotrect(OWN_ZONES["own-well"]), # east's near Well
+    "centre-farm":     SELF_ZONES["centre-well"],
+    "enemy-backfield": rotrect(OWN_ZONES["own-home"]),
+    "north-perch":     (19, 5, 21, 7),                 # over the far heal
+    "south-perch":     (9, 15, 11, 17),                # over the near heal
+    "own-choke":       (5, 10, 7, 12),                 # middle-row passage
+    "enemy-choke":     (23, 10, 25, 12),
+    # the three names that block the rest of the corpus
+    "forward-rally":   OWN_ZONES["own-approach"],      # staged, not home
+    "own-gate":        (7, 4, 9, 6),                   # your shoulder's mouth
+    "enemy-gate":      (21, 16, 23, 18),
+    "kill-pocket":     (11, 9, 14, 13),                # the centre's near lip
+    "siege-leash":     (19, 13, 26, 20),               # how far a siege ranges
+    "outer-gate":      (23, 13, 26, 17),               # their shoulder, wide
+    "bank-seal":       (4, 4, 8, 8),                   # the ring on your bank
+    "enemy-bank-danger": (21, 13, 27, 19),             # drop a Core here, lose it
+}
+zones.update(COMPAT_ZONES)
+
 # ---- anchors: same rule ---------------------------------------------------
 OWN_ANCHORS = {
     "own-reactor":       (2, 2),
@@ -104,11 +135,31 @@ OWN_ANCHORS = {
     "own-lane-gate":     (6, 11),   # single-tile passage on the middle row
     "centre-post-near":  (14, 10),  # the lip you take centre from
 }
+def mirror_id(name):
+    """The rotated partner's id. own-/enemy- for owned things; near/far for
+    the centre, which belongs to neither side."""
+    if name.startswith("own-"):
+        return "enemy-" + name[len("own-"):]
+    if name.endswith("-near"):
+        return name[: -len("-near")] + "-far"
+    raise SystemExit(f"anchor '{name}' has no mirror naming rule")
+
+
 anchors = {}
 for k, v in OWN_ANCHORS.items():
     anchors[k] = v
-    anchors["enemy-" + k[4:] if k.startswith("own-") else k + "-far"] = rot(v)
+    anchors[mirror_id(k)] = rot(v)
 anchors["centre-well-post"] = (15, 11)
+anchors.update({
+    "home-gate":        (8, 5),    # the mouth of your scoring shoulder
+    "own-bank":         (6, 6),    # the shoulder itself
+    "enemy-perimeter":  (22, 17),
+    "rally-centre":     (14, 10),
+    "well-line-centre": (15, 11),
+    "perch-north":      (19, 6),
+    "perch-south":      (11, 16),
+    "sanitation-release": (6, 10),  # somewhere safe to shed a Core, near home
+})
 
 # ---- routes: pathfound, then thinned to turn points ----------------------
 routes = {
@@ -120,6 +171,30 @@ routes = {
     "centre-hold":     (leg((14, 10), (16, 10), (16, 12), (14, 12), (14, 10)), 1),
     "own-home-patrol": (leg((5, 5), (8, 5), (7, 8), (3, 8), (5, 5)), 2),
 }
+routes.update({
+    # conventional route names, same waypoints as their Crucible equivalents
+    "north-well-loop": routes["own-well-run"],
+    "centre-well-loop": routes["centre-push"],
+    "south-well-loop": routes["raid-run"],
+    "farm-loop":       routes["own-lane-patrol"],
+    "north-out":       routes["own-well-run"],
+    "south-out":       routes["raid-run"],
+    "centre-probe":    routes["centre-push"],
+    "stage-loop":      routes["own-home-patrol"],
+    "score-return":    (leg((15, 11), (14, 10), (6, 6)), 2),
+    "strike-line":     (leg((6, 11), (11, 12), (14, 12), (15, 11)), 1),
+    "shadow-north-long": (leg((8, 5), (14, 4), (20, 4), (19, 6),
+                              (16, 8), (11, 6), (8, 5)), 2),
+    "shadow-south-long": (leg((6, 8), (5, 12), (7, 15), (11, 16),
+                              (12, 13), (9, 10), (6, 8)), 2),
+    # the home-siege family's two approaches, one per wing. On a diagonal map
+    # "outer" is the long way round a wing; "short" is straight down the lane
+    # through the centre Well.
+    "outer-rush":           (leg((6, 6), (10, 16), (21, 19), (24, 16)), 2),
+    "outer-rush-opposite":  (leg((6, 6), (11, 6), (20, 6), (24, 16)), 2),
+    "short-breach":         (leg((6, 6), (15, 11), (24, 16)), 1),
+    "short-breach-opposite": (leg((6, 6), (14, 10), (16, 12), (24, 16)), 1),
+})
 
 layout = {
     "schema": "arc-relay-tactical-layout-v1",
@@ -155,17 +230,22 @@ for r in layout["routes"]:
     for p in r["waypoints"]:
         if not floor(tuple(p)):
             errs.append(f"route {r['routeId']} waypoint {p} is not floor")
-# chirality of the vocabulary
-for k, v in zones.items():
-    if k.startswith("own-"):
-        e = "enemy-" + k[4:]
-        if tuple(rotrect(v)) != tuple(zones[e]):
-            errs.append(f"{k} / {e} are not rotations")
-for k, v in anchors.items():
-    if k.startswith("own-"):
-        e = "enemy-" + k[4:]
-        if rot(v) != anchors[e]:
-            errs.append(f"anchor {k} / {e} are not rotations")
+# chirality of the PRIMARY vocabulary. The compatibility names inherit the
+# same tiles, but they are borrowed compass words and do not pair up.
+for k, v in OWN_ZONES.items():
+    e = "enemy-" + k[4:]
+    if tuple(rotrect(v)) != tuple(zones[e]):
+        errs.append(f"{k} / {e} are not rotations")
+for k, v in SELF_ZONES.items():
+    if tuple(rotrect(v)) != tuple(v):
+        errs.append(f"{k} is not self-symmetric")
+for k, v in OWN_ANCHORS.items():
+    e = mirror_id(k)
+    if rot(v) != anchors[e]:
+        errs.append(f"anchor {k} / {e} are not rotations")
+if tuple(rotrect(COMPAT_ZONES["north-farm"])) != tuple(
+        COMPAT_ZONES["south-farm"]):
+    errs.append("north-farm / south-farm are not rotations")
 # bounds the compiler enforces
 if not 1 <= len(layout["zones"]) <= 64: errs.append("zone count")
 if not 1 <= len(layout["routes"]) <= 64: errs.append("route count")
