@@ -6990,3 +6990,27 @@ drawn, resumable patrol route. Compact `front`, `core`, and `rear` posture may
 live on a rung, but there is no shared formation catalog. These narrow
 primitives restore the evidenced allocation and attacker-count scopes without
 deciding participation or priority outside each body's readable ladder.
+
+## 272. Consolidated sheets execute ATL1 directly; hosted v9 preserves the Season 1 rating book
+
+Owner sheet-DSL ruling (2026-08-09). Current tactical sheets have exactly ten
+root keys and execute their role-local ordered ladders directly from an `ATL1`
+payload. The compiler no longer desugars source into the exhaustive `ATP1`
+squad-plane IR, and current source cannot contain groups, formations,
+engagements, coordination, authoring, support policies, operations, escort,
+muster, staff, or tempo. The six verbs are `patrol`, `intercept`, `assault`,
+`recover`, `fetch`, and follower-owned `follow`.
+
+The tracked corpus is deliberately reduced to the seven consolidated sheets
+that still express a current Warren strategy plus byte-frozen
+`home-siege-v2`. That v2 file is archival exact-byte evidence, not accepted by
+the current compiler; removing the last in-memory legacy action records is a
+separate executor cleanup.
+
+Hosted entrant playlist v9 pins the direct-ladder tactical artifact and the
+migrated Warren-native `wellwright-v1`. Playlists v7 and v8 and their frozen
+artifacts remain byte-exact. This is a representation/compiler cutover on the
+same ambush-warren-11 rules and map, so an already-open public Season 1 carries
+ratings and ranked-match counts from v8 to v9; it does not mint a new rating
+era. Historical ladders remain readable and v8 closes to new pairing when v9
+opens.

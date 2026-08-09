@@ -138,6 +138,33 @@ public sealed class MindToolchainSurfaceTests
             frozen.BuildPipelineVersion);
     }
 
+    [Fact]
+    public void FrozenAmbushV9ArtifactMatchesTheCurrentDirectLadderBuild()
+    {
+        string root = FindRepoRoot();
+        string projectDirectory = Path.Combine(
+            root,
+            "arena-bots",
+            "arc-relay",
+            "tactical-playbook-mind-v1");
+        string frozenDirectory = Path.Combine(
+            root,
+            "arena-bots",
+            "arc-relay",
+            "ambush-warren-11-stock-v3");
+        TrackedBuildReceipt current = ReadReceipt(Path.Combine(
+            projectDirectory,
+            "bot.build-receipt.json"));
+        TrackedBuildReceipt frozen = ReadReceipt(Path.Combine(
+            frozenDirectory,
+            "bot.build-receipt.json"));
+
+        Assert.Equal(current, frozen);
+        Assert.Equal(
+            Sha256(Path.Combine(projectDirectory, "bot.wasm")),
+            Sha256(Path.Combine(frozenDirectory, "bot.wasm")));
+    }
+
     /// <summary>The version notes live beside the constants they explain.</summary>
     private static string ReadToolchainSource()
     {

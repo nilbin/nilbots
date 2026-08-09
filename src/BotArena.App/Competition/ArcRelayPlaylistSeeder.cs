@@ -332,7 +332,7 @@ public sealed class ArcRelayPlaylistSeeder(
                 SupportedContractProfiles =
                     [BotArenaVersions.GenericMindContractProfileId],
                 GuestBotName = "Arc Relay tactical-playbook mind",
-                GameRulesVersion = ArcRelayLoopProfile.ForwardCombat.RulesetId,
+                GameRulesVersion = ArcRelayLoopProfile.AmbushWarren11.RulesetId,
                 RuntimeProtocolVersion =
                     BotArenaVersions.RuntimeProtocolVersion,
                 RuntimeConfigurationVersion =
@@ -353,11 +353,22 @@ public sealed class ArcRelayPlaylistSeeder(
         await SeedAmbushTacticalPlaybookMindVersionAsync(
             "ambush-warren-11-stock-v1",
             ArcRelayEntrantPlaylistDefinition.HistoricalTacticalArtifactHash,
+            ArcRelayEntrantPlaylistDefinition.HistoricalStockPlaybookSourceHash,
+            buildInputHash: null,
             active: false,
             cancellationToken);
         await SeedAmbushTacticalPlaybookMindVersionAsync(
             "ambush-warren-11-stock-v2",
+            ArcRelayEntrantPlaylistDefinition.WasmRepairTacticalArtifactHash,
+            ArcRelayEntrantPlaylistDefinition.HistoricalStockPlaybookSourceHash,
+            ArcRelayEntrantPlaylistDefinition.WasmRepairTacticalBuildInputHash,
+            active: false,
+            cancellationToken);
+        await SeedAmbushTacticalPlaybookMindVersionAsync(
+            "ambush-warren-11-stock-v3",
             ArcRelayEntrantPlaylistDefinition.TacticalArtifactHash,
+            ArcRelayEntrantPlaylistDefinition.StockPlaybookSourceHash,
+            ArcRelayEntrantPlaylistDefinition.TacticalBuildInputHash,
             active: true,
             cancellationToken);
     }
@@ -365,6 +376,8 @@ public sealed class ArcRelayPlaylistSeeder(
     private async Task<BotVersion> SeedAmbushTacticalPlaybookMindVersionAsync(
         string artifactDirectory,
         string expectedArtifactHash,
+        string stockPlaybookSourceHash,
+        string? buildInputHash,
         bool active,
         CancellationToken cancellationToken)
     {
@@ -442,14 +455,10 @@ public sealed class ArcRelayPlaylistSeeder(
                     playbookSchema = "arc-relay-tactical-playbook-v1",
                     stockSheetId =
                         ArcRelayEntrantPlaylistDefinition.StockSheetId,
-                    stockPlaybookSourceHash =
-                        ArcRelayEntrantPlaylistDefinition.StockPlaybookSourceHash,
+                    stockPlaybookSourceHash,
                     stockLayoutSourceHash =
                         ArcRelayEntrantPlaylistDefinition.StockLayoutSourceHash,
-                    buildInputSha256 = active
-                        ? ArcRelayEntrantPlaylistDefinition
-                            .TacticalBuildInputHash
-                        : null,
+                    buildInputSha256 = buildInputHash,
                     artifactSha256 = artifactHash,
                 }),
                 SupportedContractProfiles =

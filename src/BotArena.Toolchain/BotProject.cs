@@ -400,10 +400,13 @@ public static class ToolchainInfo
     /// 0.9.35 makes ambush-warren-11 the Arc Relay command default and ships
     /// the contract used by hosted entrant playlist v7. 0.9.36 carries the
     /// pending-strike wire repair, tracked build receipts, and immutable
-    /// entrant playlist v8 without changing the Arc Relay game line.
+    /// entrant playlist v8 without changing the Arc Relay game line. 0.9.38
+    /// replaces tactical-playbook ATP1 desugaring with the consolidated direct
+    /// ATL1 ladder, retires stale bundled sheets, and pins hosted entrant
+    /// playlist v9 to the matching controlled artifact.
     /// Keep in lockstep with BotArena.Cli.csproj's
     /// Version — PackagedCliVersionTests pins them together.</summary>
-    public const string CliVersion = "0.9.37";
+    public const string CliVersion = "0.9.38";
     // 0.2.0: BotContext.Slot + documented event semantics (DECISIONS #46).
     // 0.3.0: BotContext.Energy for the energy-shot rules candidate (DECISIONS #47).
     // 0.4.0: strafe actions + map dims + zone-control fields for the rules 0.3 slate

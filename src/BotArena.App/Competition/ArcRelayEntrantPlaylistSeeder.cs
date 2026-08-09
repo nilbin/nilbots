@@ -7,9 +7,8 @@ using Microsoft.EntityFrameworkCore;
 namespace BotArena.App.Competition;
 
 /// <summary>
-/// Seeds the current immutable entrant lane. Playlist v7 remains the fresh
-/// Season 1 is the first public competition on the repaired v8 artifact. Earlier
-/// development ladders remain readable, but never seed this season's rating book.
+/// Seeds the current immutable entrant lane. Season 1 began on repaired v8 and
+/// continues on direct-ladder v9; earlier development ladders remain readable.
 /// </summary>
 public sealed class ArcRelayEntrantPlaylistSeeder(
     AppDbContext db,
@@ -61,6 +60,16 @@ public sealed class ArcRelayEntrantPlaylistSeeder(
         {
             ArcRelayEntrantPlaylistDefinition.CreateHistoricalV7()
                 .Validate(playlist, ambushVersion);
+        }
+        PlaylistVersion? wasmRepairVersion = await db.PlaylistVersions
+            .SingleOrDefaultAsync(value => value.PlaylistId == playlist.Id &&
+                value.Version ==
+                    ArcRelayEntrantPlaylistDefinition.WasmRepairVersion,
+                cancellationToken);
+        if (wasmRepairVersion is not null)
+        {
+            ArcRelayEntrantPlaylistDefinition.CreateHistoricalV8()
+                .Validate(playlist, wasmRepairVersion);
         }
         PlaylistVersion? recoveryVersion = await db.PlaylistVersions
             .SingleOrDefaultAsync(value => value.PlaylistId == playlist.Id &&
@@ -171,11 +180,69 @@ public sealed class ArcRelayEntrantPlaylistSeeder(
                 "Arc Relay Season 1 ladder contradicts its registered policy.");
         }
 
+        if (season.Status == SeasonStatus.Open &&
+            ladder.Status == LadderStatus.Draft)
+        {
+            await ContinueOpenSeasonFromV8Async(
+                playlist, season, ladder, cancellationToken);
+        }
+
         await transaction.CommitAsync(cancellationToken);
         await seasons.AdvanceAsync(cancellationToken);
         ladder = await db.Ladders.AsNoTracking().SingleAsync(
             value => value.Id == ladder.Id, cancellationToken);
         return new ArcRelayEntrantSeedResult(version, ladder);
+    }
+
+    private async Task ContinueOpenSeasonFromV8Async(
+        Playlist playlist,
+        Season season,
+        Ladder current,
+        CancellationToken cancellationToken)
+    {
+        Ladder? previous = await (
+            from ladder in db.Ladders
+            join version in db.PlaylistVersions
+                on ladder.PlaylistVersionId equals version.Id
+            where version.PlaylistId == playlist.Id &&
+                version.Version ==
+                    ArcRelayEntrantPlaylistDefinition.WasmRepairVersion &&
+                ladder.SeasonId == season.Id
+            select ladder).SingleOrDefaultAsync(cancellationToken);
+        if (previous is null || previous.Status != LadderStatus.Open)
+        {
+            throw new InvalidOperationException(
+                "An open Arc Relay Season 1 can advance to v9 only from " +
+                "its open immutable v8 ladder.");
+        }
+        if (await db.ArcRelayEntrantRatings.AnyAsync(
+                value => value.LadderId == current.Id,
+                cancellationToken))
+        {
+            throw new InvalidOperationException(
+                "The draft Arc Relay v9 ladder already contains ratings.");
+        }
+
+        ArcRelayEntrantRating[] ratings = await db.ArcRelayEntrantRatings
+            .Where(value => value.LadderId == previous.Id)
+            .OrderBy(value => value.EntrantId)
+            .ToArrayAsync(cancellationToken);
+        foreach (ArcRelayEntrantRating rating in ratings)
+        {
+            db.ArcRelayEntrantRatings.Add(new ArcRelayEntrantRating
+            {
+                EntrantId = rating.EntrantId,
+                LadderId = current.Id,
+                Rating = rating.Rating,
+                RankedMatches = rating.RankedMatches,
+            });
+        }
+
+        previous.Status = LadderStatus.Closed;
+        previous.IsListed = false;
+        current.Status = LadderStatus.Open;
+        current.IsListed = true;
+        await db.SaveChangesAsync(cancellationToken);
     }
 }
 

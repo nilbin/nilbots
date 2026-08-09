@@ -10,6 +10,9 @@ manifest hashes are opened to evaluation.
 - `ambush-warren-11-stock-v2/` — immutable hosted playlist-v8 repair built
   from the current tactical source through the controlled path, with a tracked
   build-input/artifact receipt. v1 remains untouched for historical v7 work.
+- `ambush-warren-11-stock-v3/` — immutable hosted playlist-v9 direct-ladder
+  mind and receipt. It runs the consolidated ATL1 sheet DSL; v1/v2 remain
+  untouched for historical v7/v8 work.
 - `stock-mind-v3/` — unfrozen intelligent-gambit vertical-slice mind. It keeps
   the complete v2 baseline executor and reads provisional v2 operation data;
   it is evidence for an owner decision, not a launch artifact.

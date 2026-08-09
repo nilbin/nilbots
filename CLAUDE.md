@@ -199,12 +199,13 @@ Project boundaries that must not be violated:
   `nilbots arc-relay` is top-level; `nilbots experiment arc-relay` is a
   permanent alias, so existing scripts and briefs keep their spelling.
   `--loop-profile` defaults to `ambush-warren-11`, and immutable hosted entrant
-  playlist v8 pins that same rules/map line with Warren-native tactical sheets
-  and the repaired tactical WASM artifact. v7 began the fresh Warren
+  playlist v9 pins that same rules/map line with Warren-native consolidated
+  tactical sheets and the direct-ladder WASM artifact. v7 began the fresh Warren
   development rating era and remains immutable; v8 carried those development
-  ratings because no game fact changed. Public Season 1 creates a separate,
-  fresh v8 ladder at 1200 with a zero-match record and never presents either
-  development population as Season history. v6 remains the readable/executable
+  ratings because no game fact changed. Public Season 1 began on a separate,
+  fresh v8 ladder at 1200; v9 continues that same rating book because only the
+  sheet grammar/executor representation changed. Neither development population
+  is presented as Season history. v6 remains the readable/executable
   ForwardCombat on Counterflow history; never mutate it or migrate its sheet geometry. Sheets
   compile through
   `BotArena.TacticalPlaybooks`, the one shared compiler: the CLI's

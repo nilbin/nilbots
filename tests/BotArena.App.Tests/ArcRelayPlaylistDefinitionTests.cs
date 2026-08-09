@@ -11,7 +11,7 @@ namespace BotArena.App.Tests;
 public sealed class ArcRelayPlaylistDefinitionTests
 {
     [Fact]
-    public void Entrant_v8_repairs_ambush_stock_while_v2_through_v7_remain_executable()
+    public void Entrant_v9_pins_direct_ladders_while_v2_through_v8_remain_executable()
     {
         ArcRelayEntrantPlaylistDefinition current =
             ArcRelayEntrantPlaylistDefinition.Create();
@@ -27,8 +27,10 @@ public sealed class ArcRelayPlaylistDefinitionTests
             ArcRelayEntrantPlaylistDefinition.CreateHistoricalV6();
         ArcRelayEntrantPlaylistDefinition ambushV7 =
             ArcRelayEntrantPlaylistDefinition.CreateHistoricalV7();
+        ArcRelayEntrantPlaylistDefinition wasmRepairV8 =
+            ArcRelayEntrantPlaylistDefinition.CreateHistoricalV8();
 
-        Assert.Equal(8, current.PlaylistVersion);
+        Assert.Equal(9, current.PlaylistVersion);
         Assert.Equal(ArcRelayLoopProfile.AmbushWarren11.MapId, current.Match.Map.Id);
         Assert.Equal(
             ArcRelayLoopProfile.AmbushWarren11.RulesetId,
@@ -43,6 +45,17 @@ public sealed class ArcRelayPlaylistDefinitionTests
         Assert.Contains(
             ArcRelayEntrantPlaylistDefinition.TacticalBuildInputHash,
             current.CanonicalDefinition);
+        Assert.Contains("consolidatedDirectSheetDsl", current.Provenance);
+        Assert.Equal(8, wasmRepairV8.PlaylistVersion);
+        Assert.Contains(
+            ArcRelayEntrantPlaylistDefinition.WasmRepairTacticalArtifactHash,
+            wasmRepairV8.CanonicalDefinition);
+        Assert.Contains(
+            ArcRelayEntrantPlaylistDefinition.WasmRepairTacticalBuildInputHash,
+            wasmRepairV8.CanonicalDefinition);
+        Assert.Contains(
+            ArcRelayEntrantPlaylistDefinition.HistoricalStockPlaybookSourceHash,
+            wasmRepairV8.CanonicalDefinition);
         Assert.Equal(7, ambushV7.PlaylistVersion);
         Assert.Contains(
             ArcRelayEntrantPlaylistDefinition.HistoricalTacticalArtifactHash,
@@ -77,7 +90,7 @@ public sealed class ArcRelayPlaylistDefinitionTests
         var registry = new HostedGenericMatchDefinitionRegistry(
             [ArcRelayPlaylistDefinition.Create(), historicalV2, counterflow,
                 forward, recoveredStock, tacticalCounterflow, ambushV7,
-                current]);
+                wasmRepairV8, current]);
         Assert.Same(historicalV2, registry.Resolve(
             ArcRelayEntrantPlaylistDefinition.PlaylistKey,
             ArcRelayEntrantPlaylistDefinition.HistoricalVersion));
@@ -96,6 +109,9 @@ public sealed class ArcRelayPlaylistDefinitionTests
         Assert.Same(ambushV7, registry.Resolve(
             ArcRelayEntrantPlaylistDefinition.PlaylistKey,
             ArcRelayEntrantPlaylistDefinition.AmbushVersion));
+        Assert.Same(wasmRepairV8, registry.Resolve(
+            ArcRelayEntrantPlaylistDefinition.PlaylistKey,
+            ArcRelayEntrantPlaylistDefinition.WasmRepairVersion));
         Assert.Same(current, registry.Resolve(
             ArcRelayEntrantPlaylistDefinition.PlaylistKey,
             ArcRelayEntrantPlaylistDefinition.Version));
@@ -275,7 +291,7 @@ public sealed class ArcRelayPlaylistDefinitionTests
     }
 
     [Fact]
-    public void Frozen_ambush_stocks_pin_v7_history_and_v8_repair_bytes()
+    public void Frozen_ambush_stocks_pin_v7_v8_and_current_v9_bytes()
     {
         string root = RepoPaths.FindUpward("BotArena.sln") is { } solution
             ? Path.GetDirectoryName(solution)!
@@ -283,8 +299,11 @@ public sealed class ArcRelayPlaylistDefinitionTests
         string historicalArtifact = Path.Combine(
             root, "arena-bots", "arc-relay", "ambush-warren-11-stock-v1",
             "bot.wasm");
-        string artifact = Path.Combine(
+        string repairedArtifact = Path.Combine(
             root, "arena-bots", "arc-relay", "ambush-warren-11-stock-v2",
+            "bot.wasm");
+        string directArtifact = Path.Combine(
+            root, "arena-bots", "arc-relay", "ambush-warren-11-stock-v3",
             "bot.wasm");
         string playbook = Path.Combine(
             root, "arena-bots", "arc-relay",
@@ -297,7 +316,10 @@ public sealed class ArcRelayPlaylistDefinitionTests
 
         Assert.Equal(
             ArcRelayEntrantPlaylistDefinition.TacticalArtifactHash,
-            BotBuilder.Sha256File(artifact));
+            BotBuilder.Sha256File(directArtifact));
+        Assert.Equal(
+            ArcRelayEntrantPlaylistDefinition.WasmRepairTacticalArtifactHash,
+            BotBuilder.Sha256File(repairedArtifact));
         Assert.Equal(
             ArcRelayEntrantPlaylistDefinition.HistoricalTacticalArtifactHash,
             BotBuilder.Sha256File(historicalArtifact));
