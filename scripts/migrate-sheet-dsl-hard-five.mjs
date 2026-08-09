@@ -358,7 +358,14 @@ const max = (maximumAttackers) => ({ maximumAttackers });
     roleDoctrines,
     {},
     { orchard: max(2), run: max(2) },
-    {},
+    {
+      "orchard-worth": {
+        fact: "visible-loose-core-value-in-zone",
+        operator: "at-least",
+        value: 3,
+        zone: "centre-farm",
+      },
+    },
   );
   writeJson(path.join(playbookDir, "ripen-harvest-v1.json"), migrated);
 }

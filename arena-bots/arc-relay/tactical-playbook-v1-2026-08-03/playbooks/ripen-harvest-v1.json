@@ -323,5 +323,12 @@
    }
   }
  },
- "conditions": {}
+ "conditions": {
+  "orchard-worth": {
+   "fact": "visible-loose-core-value-in-zone",
+   "operator": "at-least",
+   "value": 3,
+   "zone": "centre-farm"
+  }
+ }
 }
