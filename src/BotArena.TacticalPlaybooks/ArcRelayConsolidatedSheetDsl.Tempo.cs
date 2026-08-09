@@ -104,7 +104,9 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         }
     }
 
-    private static JsonArray BuildTempoPhases(ConsolidatedTempo tempo)
+    private static JsonArray BuildTempoPhases(
+        ConsolidatedTempo tempo,
+        IReadOnlyCollection<string> standingOrderIds)
     {
         var phases = new JsonArray();
         for (int index = 0; index < tempo.Cycle.Length; index++)
@@ -140,8 +142,9 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             {
                 ["phaseId"] = step.Id,
                 ["minimumTicks"] = step.MinimumTicks,
-                ["maneuverId"] = $"tempo-{step.Id}-set",
-                ["standingOrderIds"] = new JsonArray(),
+                ["maneuverId"] = "",
+                ["standingOrderIds"] = new JsonArray(standingOrderIds
+                    .Select(id => (JsonNode)id).ToArray()),
                 ["transitions"] = transitions,
             });
         }
@@ -151,8 +154,9 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             {
                 ["phaseId"] = interrupt.Id,
                 ["minimumTicks"] = interrupt.MinimumTicks,
-                ["maneuverId"] = $"tempo-{interrupt.Id}-set",
-                ["standingOrderIds"] = new JsonArray(),
+                ["maneuverId"] = "",
+                ["standingOrderIds"] = new JsonArray(standingOrderIds
+                    .Select(id => (JsonNode)id).ToArray()),
                 ["transitions"] = new JsonArray
                 {
                     new JsonObject

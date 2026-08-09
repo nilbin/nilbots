@@ -105,9 +105,13 @@ SCRIPT_SRC = re.compile(r"\bsrc=\"([^\"]+)\"")
 GZIP_SUFFIXES = {".css", ".html", ".js", ".json", ".map", ".svg", ".txt"}
 GZIP_MIN_BYTES = 1024
 
-DEFAULT_INTRO = """Outcome-blind review: outcomes are hidden. Watch at normal
+DEFAULT_BLIND_INTRO = """Outcome-blind review: outcomes are hidden. Watch at normal
 speed and give two quick 1&ndash;5 scores per sample &mdash; fun to watch, easy
 to follow &mdash; plus any notes."""
+
+DEFAULT_VISIBLE_INTRO = """Outcome-visible exhibit: cards identify the matchup
+and final result. Watch the stated trigger, tactic, counterplay, fallback, and
+review cue in the replay itself."""
 
 CARD_EXPLANATION_FIELDS = (
     ("opponent", "Actual opponent"),
@@ -219,6 +223,19 @@ def sample_entries(manifest_path: Path) -> list[dict]:
     if not entries:
         raise ValueError(f"{manifest_path}: no replays in sample manifest")
     return entries
+
+
+def sample_is_outcome_blind(manifest_path: Path) -> bool:
+    """Return the review promise made by a sample manifest.
+
+    Legacy list-only manifests predate the explicit flag and remain blind by
+    default. A mixed gallery is outcome-visible: claiming hidden outcomes is
+    only truthful when every contributing manifest makes that promise.
+    """
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    return not isinstance(manifest, dict) or bool(
+        manifest.get("outcomeBlind", True)
+    )
 
 
 def card_labels(entry: dict) -> str:
@@ -453,6 +470,8 @@ def build(args: argparse.Namespace) -> None:
     # is a deterministic hash shuffle: concatenation order would otherwise
     # leak the per-manifest block structure (e.g. which samples share an
     # experiment arm) to the reviewer.
+    outcome_blind = all(sample_is_outcome_blind(manifest)
+                        for manifest in args.sample)
     entries = [
         entry
         for manifest in args.sample
@@ -565,7 +584,9 @@ def build(args: argparse.Namespace) -> None:
     title = args.title if args.title is not None else (
         curated_title or "Replay review")
     intro = args.intro if args.intro is not None else (
-        curated_intro if curated_intro is not None else DEFAULT_INTRO)
+        curated_intro if curated_intro is not None else (
+            DEFAULT_BLIND_INTRO if outcome_blind
+            else DEFAULT_VISIBLE_INTRO))
 
     items = "\n".join(render_card(card) for card in cards)
     review_block = ""
@@ -646,8 +667,8 @@ def main() -> int:
                              "else 'Replay review')")
     parser.add_argument("--intro", default=None,
                         help="index lede, raw HTML; '' omits it. Default is "
-                             "the outcome-blind protocol paragraph, which a "
-                             "non-blind gallery must replace")
+                             "derived from the sample manifest's outcomeBlind "
+                             "promise")
     parser.add_argument("--index-cards", type=Path, default=None,
                         help="JSON with curated index card copy and order "
                              "(see module docstring)")

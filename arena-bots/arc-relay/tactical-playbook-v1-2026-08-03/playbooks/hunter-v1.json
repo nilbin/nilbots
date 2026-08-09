@@ -43,11 +43,7 @@
     "damage",
     "vision",
     "vitality"
-   ],
-   "tags": [
-    "shadow"
-   ],
-   "formationPosture": "scout"
+   ]
   },
   {
    "roleId": "medic",
@@ -66,11 +62,7 @@
     "vitality",
     "vitality",
     "reach"
-   ],
-   "tags": [
-    "well"
-   ],
-   "formationPosture": "support"
+   ]
   },
   {
    "roleId": "hauler",
@@ -89,13 +81,7 @@
     "vitality",
     "vision",
     "vitality"
-   ],
-   "tags": [
-    "well",
-    "runner",
-    "assassin"
-   ],
-   "formationPosture": "wide"
+   ]
   },
   {
    "roleId": "carrier",
@@ -114,13 +100,7 @@
     "vision",
     "vitality",
     "vitality"
-   ],
-   "tags": [
-    "well",
-    "runner",
-    "assassin"
-   ],
-   "formationPosture": "core"
+   ]
   },
   {
    "roleId": "lancer",
@@ -139,13 +119,7 @@
     "vision",
     "vitality",
     "vitality"
-   ],
-   "tags": [
-    "well",
-    "runner",
-    "assassin"
-   ],
-   "formationPosture": "vanguard"
+   ]
   },
   {
    "roleId": "eyes",
@@ -164,12 +138,7 @@
     "vision",
     "vitality",
     "vitality"
-   ],
-   "tags": [
-    "well",
-    "runner"
-   ],
-   "formationPosture": "rear"
+   ]
   },
   {
    "roleId": "reserve",
@@ -186,11 +155,7 @@
    "carrierPreference": "allow",
    "deathPolicy": "hold-vacancy",
    "respawnPolicy": "rejoin",
-   "overflowRoleId": "reserve",
-   "tags": [
-    "reserves"
-   ],
-   "formationPosture": "tail"
+   "overflowRoleId": "reserve"
   }
  ],
  "custodyPolicies": [
@@ -229,11 +194,7 @@
    ],
    "dropRecovery": "nearest-authorized",
    "unreachableFallback": "guard",
-   "safeConversion": "always",
-   "escorts": [
-    "well",
-    "reserves"
-   ]
+   "safeConversion": "always"
   }
  ],
  "doctrines": {
@@ -270,15 +231,6 @@
       "assault": "strike-line",
       "while": "shadow-op",
       "until": "shadow-cooled",
-      "escort": [
-       {
-        "role": "medic"
-       },
-       {
-        "role": "lancer",
-        "posture": "screen"
-       }
-      ],
       "fight": {
        "collect": "first"
       }
@@ -287,6 +239,11 @@
       "patrol": "stage-loop",
       "while": "ghost-hurt",
       "until": "ghost-whole"
+     },
+     {
+      "patrol": "shadow-south-long",
+      "while": "south-prowl",
+      "until": "north-prowl"
      },
      {
       "patrol": "shadow-north-long",
@@ -304,41 +261,25 @@
      "enemy-backfield",
      "north-perch",
      "south-perch"
-    ],
-    "tempo": {
-     "prowl-south": {
-      "patrol": "shadow-south-long",
-      "reach": 3
-     },
-     "apex": {
-      "assault": "strike-line",
-      "reach": 14,
-      "fight": {
-       "targets": {
-        "prefer": [
-         "carrier",
-         "weakest"
-        ],
-        "maximumAttackers": 1
-       },
-       "chase": {
-        "leash": 6
-       },
-       "defense": {
-        "radius": 2,
-        "return": true
-       },
-       "signature": "damage-first",
-       "release": {
-        "hiddenTicks": 2,
-        "unreachableTicks": 3
-       }
-      }
-     }
-    }
+    ]
    },
    "medic": {
     "custody": "well-custody",
+    "fight": {
+     "targets": {
+      "prefer": [
+       "carrier",
+       "weakest"
+      ]
+     },
+     "chase": {
+      "leash": 2
+     },
+     "defense": {
+      "radius": 4,
+      "return": true
+     }
+    },
     "repair": {
      "prefer": [
       "weakest",
@@ -355,432 +296,320 @@
       "recover": "auto"
      },
      {
-      "muster": "escort"
+      "follow": "hunter",
+      "posture": "trail",
+      "while": "shadow-op",
+      "until": "shadow-cooled"
      },
      {
-      "muster": [
-       "assassin",
-       "home-defense",
-       "well-race",
-       "well-patrol"
-      ]
+      "patrol": {
+       "zone": "own-home"
+      },
+      "while": "gate-threat or home-threat",
+      "until": "approach-clear and home-clear",
+      "fight": {
+       "targets": {
+        "prefer": [
+         "carrier",
+         "anchor",
+         "weakest"
+        ]
+       },
+       "chase": {
+        "leash": 1
+       },
+       "defense": {
+        "radius": 3,
+        "return": true
+       }
+      }
+     },
+     {
+      "patrol": "centre-well-loop",
+      "while": "centre-birth-soon",
+      "until": "centre-birth-far"
+     },
+     {
+      "patrol": "north-well-loop",
+      "while": "north-birth-soon",
+      "until": "north-birth-far"
+     },
+     {
+      "patrol": "south-well-loop",
+      "while": "south-birth-soon",
+      "until": "south-birth-far"
+     },
+     {
+      "patrol": "stage-loop"
      }
-    ]
+    ],
+    "conceal": false
    },
    "hauler": {
     "custody": "well-custody",
-    "modes": [
-     {
-      "fetch": "well-custody"
-     },
-     {
-      "muster": [
-       "assassin",
-       "home-defense",
-       "well-race",
-       "surge",
-       "well-patrol"
-      ]
-     }
-    ]
-   },
-   "carrier": {
-    "custody": "well-custody",
-    "modes": [
-     {
-      "fetch": "well-custody"
-     },
-     {
-      "muster": [
-       "assassin",
-       "home-defense",
-       "well-race",
-       "surge",
-       "well-patrol"
-      ]
-     }
-    ]
-   },
-   "lancer": {
-    "custody": "well-custody",
-    "modes": [
-     {
-      "fetch": "well-custody"
-     },
-     {
-      "muster": "escort"
-     },
-     {
-      "muster": [
-       "assassin",
-       "home-defense",
-       "well-race",
-       "surge",
-       "well-patrol"
-      ]
-     }
-    ]
-   },
-   "eyes": {
-    "custody": "well-custody",
-    "modes": [
-     {
-      "fetch": "well-custody"
-     },
-     {
-      "muster": [
-       "home-defense",
-       "well-race",
-       "surge",
-       "well-patrol"
-      ]
-     }
-    ]
-   },
-   "reserve": {
-    "custody": "well-custody",
-    "modes": [
-     {
-      "fetch": "well-custody"
-     },
-     {
-      "muster": [
-       "reserve-patrol"
-      ]
-     }
-    ]
-   }
-  },
-  "operations": {
-   "assassin": {
-    "custody": "well-custody",
-    "formation": "file",
-    "pace": "slowest",
-    "conceal": true,
     "fight": {
      "targets": {
       "prefer": [
        "carrier",
        "weakest"
-      ],
-      "maximumAttackers": 1
-     },
-     "chase": {
-      "leash": 6
-     },
-     "defense": {
-      "radius": 2,
-      "return": true
-     },
-     "signature": "damage-first",
-     "release": {
-      "hiddenTicks": 2,
-      "unreachableTicks": 3
-     }
-    },
-    "staff": [
-     {
-      "tag": "assassin",
-      "minimum": 1,
-      "preferred": 1,
-      "maximum": 1,
-      "carrier": "forbid",
-      "select": "most-experienced"
-     },
-     {
-      "role": "medic",
-      "minimum": 0,
-      "preferred": 1,
-      "maximum": 1,
-      "carrier": "forbid"
-     }
-    ],
-    "variants": [
-     {
-      "variantId": "strike",
-      "while": "shadow-op or well-op",
-      "assault": {
-       "route": "strike-line"
-      },
-      "hold": {
-       "stableTicks": 2,
-       "minimumTicks": 10,
-       "cooldownTicks": 4
-      }
-     }
-    ],
-    "repair": true,
-    "traffic": "yield",
-    "reach": 14
-   },
-   "home-defense": {
-    "custody": "well-custody",
-    "formation": "screen",
-    "pace": "free",
-    "fight": {
-     "targets": {
-      "prefer": [
-       "carrier",
-       "anchor",
-       "weakest"
-      ],
-      "maximumAttackers": 3
-     },
-     "chase": {
-      "leash": 1
-     },
-     "defense": {
-      "radius": 3,
-      "return": true
-     },
-     "signature": "control-first",
-     "release": {
-      "hiddenTicks": 1,
-      "unreachableTicks": 3
-     }
-    },
-    "staff": [
-     {
-      "tag": "well",
-      "minimum": 1,
-      "preferred": 4,
-      "maximum": 6,
-      "carrier": "allow",
-      "near": "home-gate"
-     }
-    ],
-    "variants": [
-     {
-      "variantId": "home",
-      "while": "gate-threat or home-threat",
-      "until": "approach-clear and home-clear",
-      "patrol": {
-       "zone": "own-home"
-      }
-     }
-    ],
-    "reach": 4
-   },
-   "well-race": {
-    "custody": "well-custody",
-    "formation": "screen",
-    "pace": "free",
-    "fight": "home-defense",
-    "staff": [
-     {
-      "tag": "runner",
-      "minimum": 1,
-      "preferred": 3,
-      "maximum": 3,
-      "carrier": "allow",
-      "near": "home-gate"
-     },
-     {
-      "role": "medic",
-      "minimum": 0,
-      "preferred": 1,
-      "maximum": 1,
-      "carrier": "forbid",
-      "near": "home-gate"
-     }
-    ],
-    "variants": [
-     {
-      "variantId": "centre",
-      "while": "centre-birth-soon",
-      "patrol": {
-       "route": "centre-well-loop"
-      },
-      "arrivalRadius": 1,
-      "completion": "carrier-loss",
-      "hold": {
-       "timeoutTicks": 110,
-       "cooldownTicks": 20
-      }
-     },
-     {
-      "variantId": "north",
-      "while": "north-birth-soon",
-      "patrol": {
-       "route": "north-well-loop"
-      },
-      "arrivalRadius": 1,
-      "completion": "carrier-loss",
-      "hold": {
-       "timeoutTicks": 110,
-       "cooldownTicks": 20
-      }
-     },
-     {
-      "variantId": "south",
-      "while": "south-birth-soon",
-      "patrol": {
-       "route": "south-well-loop"
-      },
-      "arrivalRadius": 1,
-      "completion": "carrier-loss",
-      "hold": {
-       "timeoutTicks": 110,
-       "cooldownTicks": 20
-      }
-     }
-    ],
-    "reach": 1
-   },
-   "surge": {
-    "custody": "well-custody",
-    "formation": "screen",
-    "pace": "free",
-    "fight": "home-defense",
-    "staff": [
-     {
-      "tag": "runner",
-      "minimum": 1,
-      "preferred": 4,
-      "maximum": 5,
-      "carrier": "allow",
-      "near": "home-gate"
-     }
-    ],
-    "variants": [
-     {
-      "variantId": "surge",
-      "while": "window-open",
-      "patrol": {
-       "zone": "well-line"
-      },
-      "hold": {
-       "minimumTicks": 6
-      }
-     }
-    ],
-    "reach": 1
-   },
-   "well-patrol": {
-    "custody": "well-custody",
-    "formation": "screen",
-    "pace": "free",
-    "fight": {
-     "targets": {
-      "prefer": [
-       "carrier",
-       "weakest"
-      ],
-      "maximumAttackers": 2
-     },
-     "chase": {
-      "leash": 0
-     },
-     "defense": {
-      "radius": 4,
-      "return": true
-     },
-     "lockTicks": 3,
-     "signature": "control-first",
-     "release": {
-      "hiddenTicks": 1,
-      "unreachableTicks": 2
-     },
-     "aim": "facing"
-    },
-    "staff": [
-     {
-      "tag": "well",
-      "minimum": 1,
-      "preferred": 7,
-      "maximum": 7,
-      "carrier": "allow"
-     }
-    ],
-    "variants": [
-     {
-      "variantId": "apex",
-      "during": "apex",
-      "patrol": {
-       "route": "stage-loop"
-      },
-      "reach": 14
-     },
-     {
-      "variantId": "prowl",
-      "during": "prowl",
-      "patrol": {
-       "route": "stage-loop"
-      }
-     },
-     {
-      "variantId": "prowl-south",
-      "during": "prowl-south",
-      "patrol": {
-       "route": "stage-loop"
-      }
-     }
-    ],
-    "reach": 1
-   },
-   "reserve-patrol": {
-    "custody": "well-custody",
-    "formation": "file",
-    "pace": "free",
-    "orientation": "own-reactor",
-    "fight": {
-     "targets": {
-      "prefer": [
-       "carrier",
-       "weakest"
-      ],
-      "maximumAttackers": 2
+      ]
      },
      "chase": {
       "leash": 2
      },
      "defense": {
-      "radius": 3,
+      "radius": 4,
       "return": true
-     },
-     "signature": "damage-first",
-     "release": {
-      "hiddenTicks": 1,
-      "unreachableTicks": 3
-     },
-     "aim": "facing"
+     }
     },
-    "staff": [
+    "modes": [
      {
-      "tag": "reserves",
-      "minimum": 0,
-      "preferred": 0,
-      "maximum": 8,
-      "carrier": "allow"
-     }
-    ],
-    "variants": [
+      "fetch": "well-custody"
+     },
      {
-      "variantId": "apex",
-      "during": "apex",
+      "assault": "strike-line",
+      "while": "self-veteran",
+      "until": "self-green",
+      "fight": {
+       "targets": {
+        "prefer": [
+         "carrier",
+         "weakest"
+        ],
+        "lone": 4
+       },
+       "chase": {
+        "leash": 6,
+        "persistTicks": 3
+       },
+       "defense": {
+        "radius": 2,
+        "return": true
+       }
+      }
+     },
+     {
+      "patrol": "centre-well-loop",
+      "while": "centre-birth-soon",
+      "until": "centre-birth-far"
+     },
+     {
+      "patrol": "north-well-loop",
+      "while": "north-birth-soon",
+      "until": "north-birth-far"
+     },
+     {
+      "patrol": "south-well-loop",
+      "while": "south-birth-soon",
+      "until": "south-birth-far"
+     },
+     {
       "patrol": {
-       "zone": "own-approach"
+       "zone": "well-line"
       },
-      "reach": 14
+      "while": "window-open",
+      "until": "window-closed"
      },
      {
-      "variantId": "prowl",
-      "during": "prowl",
+      "patrol": "stage-loop"
+     }
+    ],
+    "conceal": false
+   },
+   "carrier": {
+    "custody": "well-custody",
+    "fight": {
+     "targets": {
+      "prefer": [
+       "carrier",
+       "weakest"
+      ]
+     },
+     "chase": {
+      "leash": 2
+     },
+     "defense": {
+      "radius": 4,
+      "return": true
+     }
+    },
+    "modes": [
+     {
+      "fetch": "well-custody"
+     },
+     {
+      "patrol": "centre-well-loop",
+      "while": "centre-birth-soon",
+      "until": "centre-birth-far"
+     },
+     {
+      "patrol": "north-well-loop",
+      "while": "north-birth-soon",
+      "until": "north-birth-far"
+     },
+     {
+      "patrol": "south-well-loop",
+      "while": "south-birth-soon",
+      "until": "south-birth-far"
+     },
+     {
       "patrol": {
-       "zone": "own-approach"
+       "zone": "well-line"
+      },
+      "while": "window-open",
+      "until": "window-closed"
+     },
+     {
+      "patrol": "stage-loop"
+     }
+    ],
+    "conceal": false
+   },
+   "lancer": {
+    "custody": "well-custody",
+    "fight": {
+     "targets": {
+      "prefer": [
+       "carrier",
+       "weakest"
+      ]
+     },
+     "chase": {
+      "leash": 2
+     },
+     "defense": {
+      "radius": 4,
+      "return": true
+     }
+    },
+    "modes": [
+     {
+      "fetch": "well-custody"
+     },
+     {
+      "follow": "hunter",
+      "posture": "screen",
+      "while": "shadow-op",
+      "until": "shadow-cooled"
+     },
+     {
+      "patrol": {
+       "zone": "own-home"
+      },
+      "while": "gate-threat or home-threat",
+      "until": "approach-clear and home-clear",
+      "fight": {
+       "targets": {
+        "prefer": [
+         "carrier",
+         "anchor",
+         "weakest"
+        ]
+       },
+       "chase": {
+        "leash": 1
+       },
+       "defense": {
+        "radius": 3,
+        "return": true
+       }
       }
      },
      {
-      "variantId": "prowl-south",
-      "during": "prowl-south",
+      "patrol": "stage-loop"
+     }
+    ],
+    "conceal": false
+   },
+   "eyes": {
+    "custody": "well-custody",
+    "fight": {
+     "targets": {
+      "prefer": [
+       "carrier",
+       "weakest"
+      ]
+     },
+     "chase": {
+      "leash": 2
+     },
+     "defense": {
+      "radius": 4,
+      "return": true
+     }
+    },
+    "modes": [
+     {
+      "fetch": "well-custody"
+     },
+     {
+      "patrol": {
+       "zone": "own-home"
+      },
+      "while": "gate-threat or home-threat",
+      "until": "approach-clear and home-clear",
+      "fight": {
+       "targets": {
+        "prefer": [
+         "carrier",
+         "anchor",
+         "weakest"
+        ]
+       },
+       "chase": {
+        "leash": 1
+       },
+       "defense": {
+        "radius": 3,
+        "return": true
+       }
+      }
+     },
+     {
+      "patrol": {
+       "zone": "well-line"
+      },
+      "while": "window-open",
+      "until": "window-closed"
+     },
+     {
+      "patrol": "stage-loop"
+     }
+    ],
+    "conceal": false
+   },
+   "reserve": {
+    "custody": "well-custody",
+    "fight": {
+     "targets": {
+      "prefer": [
+       "carrier",
+       "weakest"
+      ]
+     },
+     "chase": {
+      "leash": 2
+     },
+     "defense": {
+      "radius": 4,
+      "return": true
+     }
+    },
+    "modes": [
+     {
+      "fetch": "well-custody"
+     },
+     {
       "patrol": {
        "zone": "own-approach"
       }
      }
     ],
-    "traffic": "priority",
-    "reach": 2
+    "conceal": false
    }
+  },
+  "focus": {
+   "maximumAttackers": 2
   },
   "tempo": {
    "cycle": [
@@ -792,15 +621,6 @@
      "modeId": "prowl-south",
      "forTicks": 90
     }
-   ],
-   "interrupts": [
-    {
-     "modeId": "apex",
-     "while": "shadow-op or well-op",
-     "until": "shadow-cooled and well-cooled",
-     "minimumTicks": 8,
-     "stableTicks": 2
-    }
    ]
   }
  },
@@ -811,10 +631,22 @@
    "value": 28,
    "subject": "north"
   },
+  "north-birth-far": {
+   "fact": "well-ticks-until-birth",
+   "operator": "at-least",
+   "value": 45,
+   "subject": "north"
+  },
   "centre-birth-soon": {
    "fact": "well-ticks-until-birth",
    "operator": "at-most",
    "value": 28,
+   "subject": "centre"
+  },
+  "centre-birth-far": {
+   "fact": "well-ticks-until-birth",
+   "operator": "at-least",
+   "value": 45,
    "subject": "centre"
   },
   "south-birth-soon": {
@@ -823,10 +655,21 @@
    "value": 28,
    "subject": "south"
   },
+  "south-birth-far": {
+   "fact": "well-ticks-until-birth",
+   "operator": "at-least",
+   "value": 45,
+   "subject": "south"
+  },
   "window-open": {
    "fact": "known-enemies-unavailable",
    "operator": "at-least",
    "value": 2
+  },
+  "window-closed": {
+   "fact": "known-enemies-unavailable",
+   "operator": "at-most",
+   "value": 1
   },
   "shadow-op": {
    "fact": "max-level",
@@ -834,23 +677,33 @@
    "value": 3,
    "subject": "hunter"
   },
-  "well-op": {
-   "fact": "max-level",
-   "operator": "at-least",
-   "value": 3,
-   "subject": "well"
-  },
   "shadow-cooled": {
    "fact": "max-level",
    "operator": "at-most",
    "value": 2,
    "subject": "hunter"
   },
-  "well-cooled": {
-   "fact": "max-level",
+  "self-veteran": {
+   "fact": "self-level",
+   "operator": "at-least",
+   "value": 3
+  },
+  "self-green": {
+   "fact": "self-level",
    "operator": "at-most",
-   "value": 2,
-   "subject": "well"
+   "value": 2
+  },
+  "south-prowl": {
+   "fact": "tempo-active",
+   "operator": "equals",
+   "value": 1,
+   "subject": "prowl-south"
+  },
+  "north-prowl": {
+   "fact": "tempo-active",
+   "operator": "equals",
+   "value": 1,
+   "subject": "prowl"
   },
   "gate-threat": {
    "fact": "remembered-enemies-in-zone",

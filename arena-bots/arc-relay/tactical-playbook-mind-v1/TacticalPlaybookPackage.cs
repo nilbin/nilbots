@@ -698,7 +698,16 @@ internal sealed class TacticalPlaybookPackage
         /// <summary>Who leads this order and who follows it. Absent on every
         /// squad order; present on a doctrine order that rides escorts.
         /// </summary>
-        Escort? Escort = null);
+        Escort? Escort = null,
+        /// <summary>Follower-owned role reference. The nearest live body of
+        /// LeaderRole is selected; stable unit id breaks distance ties.</summary>
+        Follow? Follow = null);
+
+    internal sealed record Follow(
+        string LeaderRole,
+        string Selector,
+        string Posture,
+        int Leash);
 
     /// <summary>
     /// An order's follower structure: one leader role and an ORDERED list of

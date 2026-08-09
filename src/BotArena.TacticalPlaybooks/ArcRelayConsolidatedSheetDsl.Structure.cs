@@ -4,191 +4,19 @@ namespace BotArena.TacticalPlaybooks;
 
 public static partial class ArcRelayTacticalPlaybookCompiler
 {
-    private static IEnumerable<JsonObject> StaffRows(
-        JsonArray rows,
-        string path)
-    {
-        if (rows.Count is < 1 or > 8)
-            throw Error(path, "expected between 1 and 8 staffing rows.");
-        foreach (JsonNode? node in rows)
-        {
-            JsonObject row = node?.AsObject()
-                ?? throw Error(path, "staffing row must be an object.");
-            ConsolidatedKeys(row, path,
-                ["minimum", "preferred", "maximum", "carrier"],
-                ["role", "tag", "near", "select"]);
-            if ((row["role"] is null) == (row["tag"] is null))
-            {
-                throw Error(path,
-                    "staffing row must name exactly one role or tag.");
-            }
-            int minimum = RequiredIntNode(row, "minimum", path, 0, 8);
-            int preferred = RequiredIntNode(row, "preferred", path, 0, 8);
-            int maximum = RequiredIntNode(row, "maximum", path, 0, 8);
-            if (minimum > preferred || preferred > maximum)
-            {
-                throw Error(path,
-                    "staffing cardinality must satisfy minimum <= preferred "
-                    + "<= maximum.");
-            }
-            OneOfNode(row, "carrier", path, "forbid", "allow", "require");
-            if (row["near"] is not null && row["select"] is not null)
-                throw Error(path, "staffing row cannot name both near and select.");
-            if (row["select"] is not null)
-                OneOfNode(row, "select", path, "most-experienced");
-            yield return row;
-        }
-    }
-
-    private static string[] ResolveSelectorRoles(
-        JsonObject row,
-        IReadOnlySet<string> roleIds,
-        IReadOnlyDictionary<string, List<string>> tagRoles,
-        string path)
-    {
-        if (row["role"] is JsonValue roleValue)
-        {
-            string role = roleValue.GetValue<string>();
-            if (!roleIds.Contains(role))
-                throw Error(path, $"unknown role '{role}'.");
-            return [role];
-        }
-        string tag = row["tag"]?.GetValue<string>()
-            ?? throw Error(path, "staffing row has no selector.");
-        if (!tagRoles.TryGetValue(tag, out List<string>? roles))
-            throw Error(path, $"unknown role tag '{tag}'.");
-        return [.. roles];
-    }
-
-    private static string[] OrderOperations(
-        string[] operationIds,
-        IReadOnlyDictionary<string, string[]> ladders,
-        string path)
-    {
-        var edges = operationIds.ToDictionary(
-            id => id,
-            _ => new HashSet<string>(StringComparer.Ordinal),
-            StringComparer.Ordinal);
-        var indegree = operationIds.ToDictionary(
-            id => id,
-            _ => 0,
-            StringComparer.Ordinal);
-        foreach (string[] ladder in ladders.Values)
-            for (int index = 0; index + 1 < ladder.Length; index++)
-            {
-                if (edges[ladder[index]].Add(ladder[index + 1]))
-                    indegree[ladder[index + 1]]++;
-            }
-        var declarationRank = operationIds
-            .Select((id, index) => (id, index))
-            .ToDictionary(value => value.id, value => value.index,
-                StringComparer.Ordinal);
-        var ready = new SortedSet<string>(Comparer<string>.Create((left, right) =>
-        {
-            int byRank = declarationRank[left].CompareTo(declarationRank[right]);
-            return byRank != 0
-                ? byRank
-                : StringComparer.Ordinal.Compare(left, right);
-        }));
-        foreach ((string id, int degree) in indegree)
-        {
-            if (degree == 0)
-                ready.Add(id);
-        }
-        var result = new List<string>();
-        while (ready.Count > 0)
-        {
-            string next = ready.Min!;
-            ready.Remove(next);
-            result.Add(next);
-            foreach (string child in edges[next])
-            {
-                indegree[child]--;
-                if (indegree[child] == 0)
-                    ready.Add(child);
-            }
-        }
-        if (result.Count != operationIds.Length)
-        {
-            throw Error($"{path}.doctrines.roles",
-                "operation ladders disagree about priority and form a cycle.");
-        }
-        return [.. result];
-    }
-
-    private static Dictionary<string, string> DeriveGroups(
-        IReadOnlyCollection<ConsolidatedRole> roles,
-        IReadOnlyDictionary<string, string[]> ladders,
-        JsonObject operationSource,
-        IReadOnlyDictionary<string, string[]> operationCandidates,
-        ConsolidatedTempo tempo,
-        string path)
-    {
-        var result = new Dictionary<string, string>(StringComparer.Ordinal);
-        foreach (ConsolidatedRole role in roles)
-        {
-            string[] ladder = ladders[role.Id];
-            if (ladder.Length == 0)
-            {
-                result.Add(role.Id, $"{role.Id}-group");
-                continue;
-            }
-            string floor = ladder[^1];
-            JsonObject operation = operationSource[floor]!.AsObject();
-            JsonArray variants = operation["variants"]!.AsArray();
-            bool hasUnconditioned = variants.Any(node =>
-            {
-                JsonObject variant = node!.AsObject();
-                return variant["while"] is null && variant["during"] is null;
-            });
-            string[] coveredModes = variants
-                .Select(node => node!.AsObject()["during"]?.GetValue<string>())
-                .Where(mode => mode is not null)
-                .Cast<string>()
-                .Distinct(StringComparer.Ordinal)
-                .ToArray();
-            bool coversTempo = tempo.ModeIds
-                .ToHashSet(StringComparer.Ordinal)
-                .SetEquals(coveredModes);
-            if (!hasUnconditioned && !coversTempo)
-            {
-                throw Error($"{path}.doctrines.roles.{role.Id}",
-                    $"operation ladder ends in '{floor}', which needs either "
-                    + "one unconditioned floor variant or exactly one "
-                    + "'during' variant for every tempo mode.");
-            }
-            if (!operationCandidates[floor].Contains(
-                    role.Id, StringComparer.Ordinal))
-            {
-                throw Error($"{path}.doctrines.roles.{role.Id}",
-                    $"floor operation '{floor}' cannot staff this role.");
-            }
-            result.Add(role.Id, $"{floor}-group");
-        }
-        return result;
-    }
-
     private static JsonArray BuildRuntimeGroups(
         IReadOnlyCollection<ConsolidatedRole> roles,
         IReadOnlyDictionary<string, string> roleGroups)
     {
         var result = new JsonArray();
-        foreach (IGrouping<string, ConsolidatedRole> group in roles
-                     .GroupBy(role => roleGroups[role.Id], StringComparer.Ordinal))
+        foreach (ConsolidatedRole role in roles)
         {
-            ConsolidatedRole[] members = group.ToArray();
-            int preferred = members.Sum(role =>
-                role.Runtime["preferred"]!.GetValue<int>());
-            int maximum = Math.Min(8, members.Sum(role =>
-                role.Runtime["maximum"]!.GetValue<int>()));
+            int preferred = role.Runtime["preferred"]!.GetValue<int>();
+            int maximum = role.Runtime["maximum"]!.GetValue<int>();
             result.Add(new JsonObject
             {
-                ["groupId"] = group.Key,
-                ["roleIds"] = new JsonArray(
-                    members.Select(role => (JsonNode)role.Id).ToArray()),
-                // Hunter's historical non-zero group minima were redundant
-                // with a fixed eight-body composition. The executor still
-                // needs a viable cohort threshold for respawn joining.
+                ["groupId"] = roleGroups[role.Id],
+                ["roleIds"] = new JsonArray(role.Id),
                 ["minimum"] = preferred > 0 ? 1 : 0,
                 ["preferred"] = preferred,
                 ["maximum"] = maximum,
@@ -217,34 +45,10 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         return result;
     }
 
-    private static Dictionary<string, string> SelectorGroups(
-        IReadOnlyCollection<ConsolidatedRole> roles,
-        IReadOnlyDictionary<string, List<string>> tagRoles,
-        IReadOnlyDictionary<string, string> roleGroups)
-    {
-        var result = roles.ToDictionary(
-            role => role.Id,
-            role => roleGroups[role.Id],
-            StringComparer.Ordinal);
-        foreach ((string tag, List<string> members) in tagRoles)
-        {
-            string[] groups = members.Select(role => roleGroups[role])
-                .Distinct(StringComparer.Ordinal).ToArray();
-            if (groups.Length == 1)
-            {
-                result.Add(tag, groups[0]);
-                continue;
-            }
-            // Tags may freely span cohorts for staffing selectors. They only
-            // need a single runtime group when used by a group-backed fact or
-            // custody escort; callers of this map produce the precise error.
-        }
-        return result;
-    }
-
     private static JsonObject BuildConditions(
         JsonObject source,
-        IReadOnlyDictionary<string, string> selectorGroups,
+        IReadOnlyDictionary<string, string> roleGroups,
+        ConsolidatedTempo tempo,
         string path)
     {
         var result = new JsonObject
@@ -273,28 +77,55 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             string fact = condition["fact"]?.GetValue<string>()
                 ?? throw Error($"{path}.conditions.{id}",
                     "condition needs a fact.");
-            string? translated = fact switch
+            if (fact == "max-level")
             {
-                "live-count" => "group-live-count",
-                "joining-count" => "group-joining-count",
-                "in-zone-count" => "group-in-zone-count",
-                "cohesion" => "group-cohesion",
-                "stuck-ticks" => "group-stuck-ticks",
-                "max-level" => "group-max-level",
-                _ => null,
-            };
-            if (translated is not null)
+                if (condition["subject"] is JsonValue subjectValue)
+                {
+                    string role = subjectValue.GetValue<string>();
+                    if (!roleGroups.TryGetValue(role, out string? group))
+                    {
+                        throw Error($"{path}.conditions.{id}",
+                            $"max-level references unknown role '{role}'.");
+                    }
+                    condition["fact"] = "group-max-level";
+                    condition["subject"] = group;
+                }
+                else
+                {
+                    condition["fact"] = "team-max-level";
+                }
+            }
+            else if (fact == "tempo-active")
             {
-                string subject = condition["subject"]?.GetValue<string>()
+                string mode = condition["subject"]?.GetValue<string>()
                     ?? throw Error($"{path}.conditions.{id}",
-                        $"fact '{fact}' needs a role or tag subject.");
-                if (!selectorGroups.TryGetValue(subject, out string? group))
+                        "tempo-active needs a tempo mode subject.");
+                if (!tempo.ModeIds.Contains(mode, StringComparer.Ordinal))
                 {
                     throw Error($"{path}.conditions.{id}",
-                        $"selector '{subject}' spans more than one doctrine "
-                        + "cohort and cannot back aggregate fact '{fact}'.");
+                        $"tempo-active references unknown mode '{mode}'.");
                 }
-                condition["fact"] = translated;
+                condition["fact"] = "phase-active";
+            }
+            else if (fact is "live-count" or "joining-count"
+                     or "in-zone-count" or "cohesion" or "stuck-ticks")
+            {
+                string role = condition["subject"]?.GetValue<string>()
+                    ?? throw Error($"{path}.conditions.{id}",
+                        $"fact '{fact}' needs a role subject.");
+                if (!roleGroups.TryGetValue(role, out string? group))
+                {
+                    throw Error($"{path}.conditions.{id}",
+                        $"fact '{fact}' references unknown role '{role}'.");
+                }
+                condition["fact"] = fact switch
+                {
+                    "live-count" => "group-live-count",
+                    "joining-count" => "group-joining-count",
+                    "in-zone-count" => "group-in-zone-count",
+                    "cohesion" => "group-cohesion",
+                    _ => "group-stuck-ticks",
+                };
                 condition["subject"] = group;
             }
             if (fact is "formation-established-ticks" or "formation-broken")
@@ -310,7 +141,8 @@ public static partial class ArcRelayTacticalPlaybookCompiler
 
     private static JsonArray BuildCustodyPolicies(
         JsonArray source,
-        IReadOnlyDictionary<string, string> selectorGroups,
+        JsonObject doctrines,
+        IReadOnlyDictionary<string, string> roleGroups,
         string path)
     {
         var result = new JsonArray();
@@ -319,56 +151,42 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             JsonObject policy = node?.DeepClone().AsObject()
                 ?? throw Error($"{path}.custodyPolicies",
                     "custody policy must be an object.");
-            if (policy["escortGroups"] is not null)
+            if (policy.ContainsKey("escortGroups") || policy.ContainsKey("escorts"))
             {
                 throw Error($"{path}.custodyPolicies",
-                    "'escortGroups' is retired; use role/tag selectors in "
-                    + "'escorts'.");
+                    "custody escort lists are retired; fetch rungs already "
+                    + "state which roles volunteer for Core work.");
             }
-            JsonArray escorts = policy["escorts"] as JsonArray
+            string custodyId = policy["custodyId"]?.GetValue<string>()
                 ?? throw Error($"{path}.custodyPolicies",
-                    "custody policy needs an 'escorts' role/tag list.");
-            var groups = new List<string>();
-            foreach (JsonNode? escort in escorts)
-            {
-                string selector = escort?.GetValue<string>()
-                    ?? throw Error($"{path}.custodyPolicies.escorts",
-                        "escort selector must be a string.");
-                if (!selectorGroups.TryGetValue(selector, out string? group))
-                {
-                    throw Error($"{path}.custodyPolicies.escorts",
-                        $"selector '{selector}' spans multiple cohorts.");
-                }
-                if (!groups.Contains(group, StringComparer.Ordinal))
-                    groups.Add(group);
-            }
-            policy.Remove("escorts");
+                    "custody policy needs custodyId.");
+            string[] courierGroups = doctrines
+                .Where(pair => pair.Value is JsonObject doctrine
+                    && doctrine["modes"] is JsonArray modes
+                    && modes.Any(mode => string.Equals(
+                        mode?["fetch"]?.GetValue<string>(),
+                        custodyId,
+                        StringComparison.Ordinal)))
+                .Select(pair => roleGroups[pair.Key])
+                .ToArray();
             policy["escortGroups"] = new JsonArray(
-                groups.Select(group => (JsonNode)group).ToArray());
+                courierGroups.Select(group => (JsonNode)group).ToArray());
             result.Add(policy);
         }
         return result;
     }
 
-    private static JsonObject BuildProfiles(
-        JsonArray groups,
-        IReadOnlyCollection<ConsolidatedRole> roles,
-        IReadOnlyDictionary<string, string> roleGroups,
-        IReadOnlyDictionary<string, string[]> ladders)
+    private static JsonObject BuildProfiles(JsonArray groups)
     {
         var result = new JsonObject();
         foreach (JsonObject group in groups.Select(node => node!.AsObject()))
         {
             string groupId = group["groupId"]!.GetValue<string>();
-            bool bodyLocal = roles.Any(role =>
-                string.Equals(
-                    roleGroups[role.Id], groupId, StringComparison.Ordinal)
-                && ladders[role.Id].Length == 0);
             result[$"{groupId}-profile"] = new JsonObject
             {
                 ["groupId"] = groupId,
                 ["localState"] = "active",
-                ["priority"] = bodyLocal ? 20 : 10,
+                ["priority"] = 20,
                 ["members"] = new JsonObject { ["kind"] = "all" },
                 ["stuckRecovery"] = "repath",
                 ["supportId"] = "",

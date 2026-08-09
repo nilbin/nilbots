@@ -1386,6 +1386,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             StringComparer.Ordinal);
         return new TacticalSnapshot(
             mind.Tick,
+            machine.PhaseId,
             Math.Max(0, mind.Tick - machine.PhaseEnteredTick),
             mind.Bodies.Length,
             _enemyUnavailableUntil.Count,
@@ -1739,6 +1740,12 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 .GetValueOrDefault(condition.Subject, 9999),
             "group-max-level" => snapshot.GroupMaxLevel
                 .GetValueOrDefault(condition.Subject),
+            "team-max-level" => snapshot.GroupMaxLevel.Values
+                .DefaultIfEmpty(0).Max(),
+            "phase-active" => string.Equals(
+                snapshot.PhaseId,
+                condition.Subject,
+                StringComparison.Ordinal) ? 1 : 0,
             // Threefold sockets: subjects are the contract's absolute well
             // ids, exactly like custody sourceWells.
             "own-socket-filled" => snapshot.OwnSocketFilled
@@ -2338,6 +2345,57 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     contract, mind, leader, authoredTargets[leader.UnitId]),
                 followers.ToArray()));
         }
+        // Condition-coordinated follow is one-sided: each follower's own
+        // active order names a ROLE. Resolve the nearest live body of that
+        // role, then stable unit id, so a reader can predict the choice and
+        // no caller, staffing row or shared task decides participation.
+        var followerSelections = new List<(MindBody Leader, MindBody Follower,
+            TacticalPlaybookPackage.Follow Policy)>();
+        foreach (MindBody follower in mind.Bodies.OrderBy(body => body.UnitId))
+        {
+            TacticalPlaybookPackage.Follow? policy =
+                orders[follower.UnitId].Follow;
+            if (policy is null)
+                continue;
+            MindBody? leader = mind.Bodies
+                .Where(body => body.UnitId != follower.UnitId
+                    && string.Equals(
+                        roles[body.UnitId],
+                        policy.LeaderRole,
+                        StringComparison.Ordinal))
+                .OrderBy(body => body.Position.ChebyshevDistance(
+                    follower.Position))
+                .ThenBy(body => body.UnitId)
+                .FirstOrDefault();
+            if (leader is not null)
+                followerSelections.Add((leader, follower, policy));
+        }
+        foreach (IGrouping<int, (MindBody Leader, MindBody Follower,
+                     TacticalPlaybookPackage.Follow Policy)> selected in
+                 followerSelections.GroupBy(value => value.Leader.UnitId))
+        {
+            MindBody leader = selected.First().Leader;
+            var byPosture = new Dictionary<string, int>(StringComparer.Ordinal);
+            var followers = new List<EscortMember>();
+            foreach ((_, MindBody follower,
+                         TacticalPlaybookPackage.Follow policy) in selected
+                     .OrderBy(value => value.Follower.UnitId))
+            {
+                int postureOrdinal = byPosture.GetValueOrDefault(policy.Posture);
+                byPosture[policy.Posture] = postureOrdinal + 1;
+                followers.Add(new EscortMember(
+                    follower,
+                    new TacticalPlaybookPackage.EscortFollower(
+                        roles[follower.UnitId], policy.Posture, policy.Leash),
+                    followers.Count,
+                    postureOrdinal));
+            }
+            parties.Add(new EscortParty(
+                leader,
+                ArenaBasics.StaticFirstStep(
+                    contract, mind, leader, authoredTargets[leader.UnitId]),
+                followers.ToArray()));
+        }
         return parties.ToArray();
     }
 
@@ -2925,6 +2983,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 == GenericActorContext.ArcRelayCoreDisposition.Carried
                 && core.CarrierActorId?.TeamId != _teamId)
             .Select(core => core.CarrierActorId!).ToHashSet();
+        var teamCommittedDamage = new Dictionary<ActorIdentity, int>();
+        var teamAttackerCounts = new Dictionary<ActorIdentity, int>();
         foreach (TacticalPlaybookPackage.Engagement policy in
                  playbook.Engagements)
         {
@@ -2933,7 +2993,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 .ToArray();
             IEnumerable<(string ScopeId,
                     KeyValuePair<int, TacticalPlaybookPackage.Order>[] Orders)>
-                scopes = policy.CoordinationScope == "shared-policy"
+                scopes = policy.CoordinationScope is "shared-policy"
+                    or "team-policy"
                     ? [(policy.EngagementId, matching)]
                     : matching.GroupBy(value => value.Value.GroupId,
                             StringComparer.Ordinal)
@@ -2982,6 +3043,13 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                                 policy, left, right, carriers, participants,
                                 mind.Tick)))
                     .ToArray();
+                if (enemies.Length == 0)
+                {
+                    foreach (MindBody isolated in participants)
+                        _declines[isolated.UnitId] = "isolation";
+                    _focusLocks.Remove(scopeId);
+                    continue;
+                }
                 if (policy.HoldFire is { } holdFire
                     && !(holdFire.ReleaseAll is { Length: > 0 } releaseGroups
                         && releaseGroups.Any(group =>
@@ -3113,8 +3181,14 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                             !_returningToFormation.ContainsKey(body.UnitId))
                         .ToArray();
                 }
-                var committedDamage = new Dictionary<ActorIdentity, int>();
-                var attackerCounts = new Dictionary<ActorIdentity, int>();
+                Dictionary<ActorIdentity, int> committedDamage =
+                    policy.CoordinationScope == "team-policy"
+                        ? teamCommittedDamage
+                        : new Dictionary<ActorIdentity, int>();
+                Dictionary<ActorIdentity, int> attackerCounts =
+                    policy.CoordinationScope == "team-policy"
+                        ? teamAttackerCounts
+                        : new Dictionary<ActorIdentity, int>();
                 foreach (MindBody body in participants
                              .OrderBy(body =>
                                  ArenaBasics.CanFireAtPosition(
@@ -6236,6 +6310,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
 
     private sealed record TacticalSnapshot(
         int Tick,
+        string PhaseId,
         int PhaseStateTicks,
         int LiveFriendlies,
         int KnownEnemiesUnavailable,
