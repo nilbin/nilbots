@@ -561,11 +561,17 @@ public static class ArcRelayH0Definition
                     2 * loopProfile.FirstGlobalBeatTicks
                         + (loopProfile.ScheduledBirthRounds - 1)
                             * loopProfile.WellCadenceTicks),
+                // A chiral loop gives the flank pair ONE lead. On a map where
+                // north and south are neutral flanks the 25-tick stagger is
+                // rhythm; on a map where each side owns its near Well it is a
+                // head start, and a seed coin only moves that between matches.
                 new ArcRelayWellScheduleDefinition(
                     "south",
-                    3 * loopProfile.FirstGlobalBeatTicks,
+                    (loopProfile.ChiralWellBirths ? 2 : 3)
+                        * loopProfile.FirstGlobalBeatTicks,
                     loopProfile.WellCadenceTicks,
-                    3 * loopProfile.FirstGlobalBeatTicks
+                    (loopProfile.ChiralWellBirths ? 2 : 3)
+                        * loopProfile.FirstGlobalBeatTicks
                         + (loopProfile.ScheduledBirthRounds - 1)
                             * loopProfile.WellCadenceTicks),
             ],
@@ -592,7 +598,8 @@ public static class ArcRelayH0Definition
             healZoneTicksPerHp: loopProfile.HealZoneTicksPerHp,
             seedPhasedResolutionOrder:
                 loopProfile.SeedPhasedResolutionOrder,
-            seedPhasedWellLead: loopProfile.SeedPhasedWellLead);
+            seedPhasedWellLead: loopProfile.SeedPhasedWellLead,
+            chiralWellBirths: loopProfile.ChiralWellBirths);
 
     /// <summary>
     /// Grammar 2 swaps exactly three envelopes for their dodgeable forms

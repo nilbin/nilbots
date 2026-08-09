@@ -310,6 +310,12 @@ internal static class ActorRulesCanonicalWriter
                 "seedPhasedWellLead",
                 mode.SeedPhasedWellLead);
         }
+        if (mode.ChiralWellBirths)
+        {
+            writer.WriteBoolean(
+                "chiralWellBirths",
+                mode.ChiralWellBirths);
+        }
         if (mode.HealZoneTicksPerHp != 0)
         {
             writer.WriteNumber(

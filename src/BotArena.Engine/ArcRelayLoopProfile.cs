@@ -34,10 +34,12 @@ public sealed record ArcRelayLoopProfile
         bool seedPhasedResolutionOrder = false,
         bool rotationalSpawnAssignment = false,
         bool seedPhasedWellLead = false,
+        bool chiralWellBirths = false,
         int strikeWindupTicks = 0)
     {
         RotationalSpawnAssignment = rotationalSpawnAssignment;
         SeedPhasedWellLead = seedPhasedWellLead;
+        ChiralWellBirths = chiralWellBirths;
         StrikeWindupTicks = strikeWindupTicks;
         SeedPhasedResolutionOrder = seedPhasedResolutionOrder;
         RearArcDamageMultiplier = rearArcDamageMultiplier;
@@ -91,6 +93,8 @@ public sealed record ArcRelayLoopProfile
     internal bool SeedPhasedResolutionOrder { get; }
     internal bool RotationalSpawnAssignment { get; }
     internal bool SeedPhasedWellLead { get; }
+
+    internal bool ChiralWellBirths { get; }
 
     /// <summary>
     /// Positional combat (DECISIONS #212): when positive, every class gun is
@@ -668,7 +672,7 @@ public sealed record ArcRelayLoopProfile
         healZoneTicksPerHp: 3,
         seedPhasedResolutionOrder: true,
         rotationalSpawnAssignment: true,
-        seedPhasedWellLead: true,
+        chiralWellBirths: true,
         strikeWindupTicks: 1);
 
     /// <summary>

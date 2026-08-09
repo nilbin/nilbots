@@ -37,6 +37,14 @@ internal sealed class ArcRelayActorMatchModeDriver
     private readonly PublicMatchTopology _topology;
     private readonly ImmutableArray<WellRuntime> _wells;
     private readonly Dictionary<string, WellRuntime> _wellsById;
+
+    /// <summary>
+    /// Which seed stream each well draws its birth jitter from. Normally a
+    /// well draws its own; under chiral births a rotation pair draws one
+    /// shared stream, so the two owned near Wells stay exactly in step
+    /// instead of drifting up to two jitter widths apart every round.
+    /// </summary>
+    private readonly Dictionary<string, string> _jitterKeys;
     private readonly Dictionary<ArcRelayCoreId, CoreRuntime> _cores = [];
     private readonly Dictionary<int, ReactorRuntime> _reactors;
     private readonly ImmutableDictionary<int, ImmutableHashSet<Position>>
@@ -109,6 +117,36 @@ internal sealed class ArcRelayActorMatchModeDriver
         _wells = schedules.Select((schedule, index) =>
                 new WellRuntime(schedule, wellPositions[index]))
             .ToImmutableArray();
+        _jitterKeys = schedules.ToDictionary(
+            schedule => schedule.WellId,
+            schedule => schedule.WellId,
+            StringComparer.Ordinal);
+        if (_gameMode.ChiralWellBirths)
+        {
+            int maxX = definition.Map.Width - 1;
+            int maxY = definition.Map.Height - 1;
+            for (int first = 0; first < schedules.Length; first++)
+            {
+                for (int second = first + 1; second < schedules.Length;
+                     second++)
+                {
+                    Position rotated = new(
+                        maxX - wellPositions[second].X,
+                        maxY - wellPositions[second].Y);
+                    if (wellPositions[first] != rotated)
+                        continue;
+                    // Lowest id wins so the shared stream does not depend on
+                    // which of the pair the map happened to list first.
+                    string shared = string.CompareOrdinal(
+                        schedules[first].WellId,
+                        schedules[second].WellId) <= 0
+                        ? schedules[first].WellId
+                        : schedules[second].WellId;
+                    _jitterKeys[schedules[first].WellId] = shared;
+                    _jitterKeys[schedules[second].WellId] = shared;
+                }
+            }
+        }
         _wellsById = _wells.ToDictionary(
             value => value.Schedule.WellId,
             StringComparer.Ordinal);
@@ -1071,7 +1109,7 @@ internal sealed class ArcRelayActorMatchModeDriver
         if (jitter == 0)
             return 0;
         ulong draw = SeedDerivation.DeriveWellBirthDraw(
-            _matchSeed, wellId, round);
+            _matchSeed, _jitterKeys[wellId], round);
         return (int)(draw % (ulong)(2 * jitter + 1)) - jitter;
     }
 
