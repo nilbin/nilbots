@@ -5,13 +5,14 @@ namespace BotArena.Cli.Tests;
 
 public sealed class HardSheetDslMigrationTests
 {
-    private static readonly string[] HardSheets =
+    private static readonly string[] ConsolidatedSheets =
     [
         "home-siege-v3",
         "predator-v2",
         "ripen-harvest-v1",
         "breakwater-v1",
         "trifold-balanced-v1",
+        "wellwright-v1",
     ];
 
     private static readonly string[] RootKeys =
@@ -21,9 +22,9 @@ public sealed class HardSheetDslMigrationTests
     ];
 
     [Fact]
-    public void HardFiveUseOnlyTheConsolidatedDirectGrammar()
+    public void CurrentSheetsUseOnlyTheConsolidatedDirectGrammar()
     {
-        foreach (string name in HardSheets)
+        foreach (string name in ConsolidatedSheets)
         {
             string path = Playbook(name);
             TacticalPlaybookCompilation compilation =
@@ -45,6 +46,27 @@ public sealed class HardSheetDslMigrationTests
                 or "coordination" or "authoring" or "supportPolicies"
                 or "tempo");
         }
+    }
+
+    [Fact]
+    public void WellwrightStatesThreeRaceCapsAndCourierConsentInItsLadders()
+    {
+        JsonObject source = Source("wellwright-v1");
+        JsonObject doctrines = source["doctrines"]!.AsObject();
+        JsonObject roleDoctrines = doctrines["roles"]!.AsObject();
+
+        Assert.Equal(
+            ["centre-race", "north-race", "south-race"],
+            doctrines["cohorts"]!.AsObject().Select(value => value.Key)
+                .Order(StringComparer.Ordinal));
+        Assert.All(doctrines["cohorts"]!.AsObject(), cohort =>
+            Assert.Equal(3, cohort.Value!["take"]!.GetValue<int>()));
+        Assert.All(new[] { "hauler", "runner", "escort", "reserve" }, role =>
+            Assert.Equal("farm-custody", roleDoctrines[role]!["modes"]![0]![
+                "fetch"]!.GetValue<string>()));
+        Assert.All(new[] { "eyes", "medic" }, role =>
+            Assert.DoesNotContain(roleDoctrines[role]!["modes"]!.AsArray(),
+                mode => mode!.AsObject().ContainsKey("fetch")));
     }
 
     [Fact]
