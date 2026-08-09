@@ -34,8 +34,8 @@ public sealed class DirectLadderRuntimeTests
             "preferred": 8,
             "maximum": 8,
             "carrierPreference": "forbid",
-            "deathPolicy": "replace",
-            "respawnPolicy": "return",
+            "deathPolicy": "hold-vacancy",
+            "respawnPolicy": "rejoin",
             "overflowRoleId": "vanguard"
           }],
           "custodyPolicies": [],

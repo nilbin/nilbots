@@ -53,6 +53,9 @@ internal sealed class DirectLadderRuntime
                 StringComparer.Ordinal);
         conditions.TryAdd("always", new TacticalPlaybookPackage.Condition(
             "always", "equals", 1, "", "", 0));
+        conditions.TryAdd("no-live-friendlies",
+            new TacticalPlaybookPackage.Condition(
+                "live-friendlies", "equals", 0, "", "", 0));
 
         JsonElement doctrineRoot = source.GetProperty("doctrines");
         JsonElement doctrineRoles = doctrineRoot.GetProperty("roles");
@@ -205,7 +208,15 @@ internal sealed class DirectLadderRuntime
                 role.Preferred,
                 role.Maximum,
                 new TacticalPlaybookPackage.Membership(
-                    "stable-slot", "hold-vacancy", "never", "unassigned"),
+                    "stable-slot", role.DeathPolicy switch
+                    {
+                        "hold-vacancy" => "hold-vacancy",
+                        "promote-best" => "promote-role",
+                        "rebalance" => "rebalance",
+                        string unknown => throw new InvalidDataException(
+                            $"Direct role '{role.RoleId}' has unknown "
+                            + $"deathPolicy '{unknown}'."),
+                    }, "never", "unassigned"),
                 new TacticalPlaybookPackage.StateMachine(
                     "active",
                     [new TacticalPlaybookPackage.LocalState(

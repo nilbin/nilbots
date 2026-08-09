@@ -1708,6 +1708,20 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 .GetValueOrDefault(condition.Subject),
             "group-stuck-ticks" => snapshot.GroupStuckTicks
                 .GetValueOrDefault(condition.Subject),
+            // Direct ATL1 source keeps the author-facing role words. Its
+            // runtime groups are keyed by role id, so these facts are the
+            // exact direct equivalents of the legacy group's expanded facts.
+            "live-count" => snapshot.GroupLive
+                .GetValueOrDefault(condition.Subject),
+            "joining-count" => snapshot.GroupJoining
+                .GetValueOrDefault(condition.Subject),
+            "in-zone-count" => snapshot.GroupZones
+                .GetValueOrDefault(condition.Subject)?
+                .GetValueOrDefault(condition.Zone) ?? 0,
+            "cohesion" => snapshot.GroupCohesion
+                .GetValueOrDefault(condition.Subject),
+            "stuck-ticks" => snapshot.GroupStuckTicks
+                .GetValueOrDefault(condition.Subject),
             "known-enemies-unavailable" => snapshot.KnownEnemiesUnavailable,
             "visible-enemies-in-zone" => snapshot.VisibleEnemiesByZone
                 .GetValueOrDefault(condition.Zone),

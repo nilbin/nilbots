@@ -400,7 +400,12 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             value => value.Id,
             value => value.Value,
             StringComparer.Ordinal);
-        LintDoctrine(source, coordination, maneuvers, fallbackById);
+        LintDoctrine(
+            source,
+            coordination,
+            maneuvers,
+            fallbackById,
+            lintLegacyTaskOwnership: !hasConsolidatedDsl);
         var assignmentProfileById = assignmentProfiles.ToDictionary(
             value => value.Id,
             value => value.Value,
@@ -1587,7 +1592,8 @@ public static partial class ArcRelayTacticalPlaybookCompiler
                 }
                 else if ((whenSet != "convert-freely"
                         || candidateWhenSet is not null)
-                    && verb != "recover")
+                    && verb != "recover"
+                    && !mode.TryGetProperty("cohort", out _))
                 {
                     Console.Error.WriteLine(
                         $"lint: doctrine '{id}' mode '{verb}' has 'while' "
@@ -3014,7 +3020,8 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         JsonElement source,
         JsonElement coordination,
         CatalogEntry[] maneuvers,
-        IReadOnlyDictionary<string, JsonElement> fallbackById)
+        IReadOnlyDictionary<string, JsonElement> fallbackById,
+        bool lintLegacyTaskOwnership)
     {
         string[] dynamicKinds =
             ["enemy-carrier-cutoff", "enemy-carrier", "carrier",
@@ -3048,6 +3055,9 @@ public static partial class ArcRelayTacticalPlaybookCompiler
                 }
             }
         }
+
+        if (!lintLegacyTaskOwnership)
+            return;
 
         Dictionary<string, int> roleMaxima = source.GetProperty("roles")
             .EnumerateArray()
@@ -3846,7 +3856,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
 
         JsonElement[] supports = BoundedArray(
             root.GetProperty("supportPolicies"),
-            $"{path}.supportPolicies", 1, 16);
+            $"{path}.supportPolicies", 0, 16);
         HashSet<string> supportIds = UniqueIds(
             supports, "supportId", $"{path}.supportPolicies");
         foreach (JsonElement support in supports)

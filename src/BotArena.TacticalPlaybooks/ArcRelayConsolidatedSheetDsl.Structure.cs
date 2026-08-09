@@ -13,6 +13,16 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         {
             int preferred = role.Runtime["preferred"]!.GetValue<int>();
             int maximum = role.Runtime["maximum"]!.GetValue<int>();
+            string casualty = role.Runtime["deathPolicy"]!.GetValue<string>()
+                switch
+                {
+                    "hold-vacancy" => "hold-vacancy",
+                    "promote-best" => "promote-role",
+                    "rebalance" => "rebalance",
+                    string unknown => throw new InvalidDataException(
+                        $"Role '{role.Id}' has unknown deathPolicy "
+                        + $"'{unknown}'."),
+                };
             result.Add(new JsonObject
             {
                 ["groupId"] = roleGroups[role.Id],
@@ -23,7 +33,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
                 ["membership"] = new JsonObject
                 {
                     ["persistence"] = "stable-slot",
-                    ["casualty"] = "hold-vacancy",
+                    ["casualty"] = casualty,
                     ["preemption"] = "never",
                     ["overflow"] = "unassigned",
                 },

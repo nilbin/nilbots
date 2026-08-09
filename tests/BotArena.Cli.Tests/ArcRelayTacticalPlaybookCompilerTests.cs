@@ -141,7 +141,7 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
     }
 
     [Fact]
-    public void HomeSiegeV3BindsTheForwardRingOnlyToTheWestApproach()
+    public void HomeSiegeV3BindsNativeWarrenRoutesForBothSides()
     {
         TacticalPlaybookCompilation compilation =
             ArcRelayTacticalPlaybookCompiler.Compile(HomeSiegeV3());
@@ -150,20 +150,26 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
         using JsonDocument layout = JsonDocument.Parse(
             compilation.NormalizedLayout);
 
-        Assert.Contains(
-            playbook.RootElement.GetProperty("formations").EnumerateArray(),
-            value => value.GetProperty("formationId").GetString()
-                == "living-ring-west-forward");
+        Assert.True(compilation.UsesDirectLadder);
+        Assert.False(playbook.RootElement.TryGetProperty("formations", out _));
+        Assert.Equal("arc-relay-ambush-warren-06",
+            layout.RootElement.GetProperty("mapId").GetString());
         JsonElement west = layout.RootElement.GetProperty("bindings")
             .EnumerateArray().Single(value => value
                 .GetProperty("ownReactorSide").GetString() == "west");
         JsonElement east = layout.RootElement.GetProperty("bindings")
             .EnumerateArray().Single(value => value
                 .GetProperty("ownReactorSide").GetString() == "east");
-        Assert.Equal(
-            "living-ring-west-forward",
-            west.GetProperty("formationAliases")
-                .GetProperty("living-ring").GetString());
+        Assert.Equal("identity", west.GetProperty("transform").GetString());
+        Assert.Empty(west.GetProperty("routeAliases").EnumerateObject());
+        Assert.Equal("rotate-180",
+            east.GetProperty("transform").GetString());
+        Assert.Equal("outer-rush-opposite",
+            east.GetProperty("routeAliases")
+                .GetProperty("outer-rush").GetString());
+        Assert.Equal("short-breach-opposite",
+            east.GetProperty("routeAliases")
+                .GetProperty("short-breach").GetString());
         Assert.Empty(east.GetProperty("formationAliases").EnumerateObject());
     }
 
@@ -1396,7 +1402,7 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
     public void RuntimePackageAcceptsOnlyItsExactBoundContract()
     {
         TacticalPlaybookCompilation compilation =
-            ArcRelayTacticalPlaybookCompiler.Compile(HomeSiege());
+            ArcRelayTacticalPlaybookCompiler.Compile(HomeSiegeV3Library());
         string[] baseline = BaselineComposition();
         ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create(
             compilation.Composition,
@@ -1431,7 +1437,7 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
     public void CompiledHomeSiegeStartsInTheActualTacticalMind()
     {
         TacticalPlaybookCompilation compilation =
-            ArcRelayTacticalPlaybookCompiler.Compile(HomeSiege());
+            ArcRelayTacticalPlaybookCompiler.Compile(HomeSiegeV3Library());
         ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create(
             compilation.Composition,
             BaselineComposition(),
@@ -1594,25 +1600,25 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
     }
 
     [Fact]
-    public void StandardLibraryEditionCompilesToTheFrozenNormalizedIr()
+    public void LegacyLibraryEditionRemainsReadableBesideDirectHomeSiege()
     {
-        TacticalPlaybookCompilation frozen =
+        TacticalPlaybookCompilation direct =
             ArcRelayTacticalPlaybookCompiler.Compile(HomeSiegeV3());
         TacticalPlaybookCompilation libraryEdition =
             ArcRelayTacticalPlaybookCompiler.Compile(HomeSiegeV3Library());
 
-        // The runtime consumes only the normalized IR: identical IR means
-        // identical behavior on every seed. The linked package hash is
-        // ALLOWED to differ because it binds source-byte provenance.
-        Assert.Equal(
-            frozen.NormalizedPlaybook,
+        Assert.True(direct.UsesDirectLadder);
+        Assert.False(libraryEdition.UsesDirectLadder);
+        Assert.NotEqual(direct.NormalizedPlaybook,
             libraryEdition.NormalizedPlaybook);
-        Assert.Equal(
-            frozen.NormalizedLayout,
+        using JsonDocument directLayout = JsonDocument.Parse(
+            direct.NormalizedLayout);
+        using JsonDocument legacyLayout = JsonDocument.Parse(
             libraryEdition.NormalizedLayout);
-        Assert.NotEqual(
-            frozen.PlaybookSha256,
-            libraryEdition.PlaybookSha256);
+        Assert.Equal("arc-relay-ambush-warren-06",
+            directLayout.RootElement.GetProperty("mapId").GetString());
+        Assert.Equal("arc-relay-threefold-depth-counterflow-01",
+            legacyLayout.RootElement.GetProperty("mapId").GetString());
     }
 
     [Fact]
@@ -1781,18 +1787,13 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
             ArcRelayTacticalPlaybookCompiler.Compile(path);
         using JsonDocument playbook = JsonDocument.Parse(
             compilation.NormalizedPlaybook);
-        JsonElement[] runner = playbook.RootElement.GetProperty("fetchRungs")
-            .EnumerateArray()
-            .Where(rung => rung.GetProperty("roleId").GetString() == "runner")
-            .ToArray();
-        Assert.Equal(2, runner.Length);
+        Assert.True(compilation.UsesDirectLadder);
+        JsonElement[] runner = playbook.RootElement.GetProperty("doctrines")
+            .GetProperty("roles").GetProperty("runner").GetProperty("modes")
+            .EnumerateArray().Take(2).ToArray();
         Assert.Equal(
             ["orchard-custody", "farm-outer"],
-            runner.Select(rung => rung.GetProperty("custodyId").GetString()!)
-                .ToArray());
-        Assert.Equal(
-            [5, 6],
-            runner.Select(rung => rung.GetProperty("priority").GetInt32())
+            runner.Select(rung => rung.GetProperty("fetch").GetString()!)
                 .ToArray());
     }
 
@@ -2537,7 +2538,7 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
         "arc-relay",
         "tactical-playbook-v1-2026-08-03",
         "playbooks",
-        "home-siege-v3.json");
+        "home-siege-v3-double-kestrel.json");
 
     private static string HomeSiegeV3() => Path.Combine(
         FindRepoRoot(),

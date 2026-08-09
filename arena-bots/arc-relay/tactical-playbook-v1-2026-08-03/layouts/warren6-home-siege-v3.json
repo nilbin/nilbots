@@ -1,0 +1,297 @@
+{
+ "schema": "arc-relay-tactical-layout-v1",
+ "layoutId": "warren6-home-siege-v3",
+ "mapId": "arc-relay-ambush-warren-06",
+ "bindings": [
+  {
+   "matchContractFingerprint": "any-composition",
+   "ownReactorSide": "east",
+   "transform": "rotate-180",
+   "routeAliases": {
+    "outer-rush": "outer-rush-opposite",
+    "short-breach": "short-breach-opposite"
+   },
+   "formationAliases": {}
+  },
+  {
+   "matchContractFingerprint": "any-composition",
+   "ownReactorSide": "west",
+   "transform": "identity",
+   "routeAliases": {},
+   "formationAliases": {}
+  }
+ ],
+ "zones": [
+  {
+   "zoneId": "enemy-home",
+   "rect": [
+    24,
+    9,
+    29,
+    17
+   ]
+  },
+  {
+   "zoneId": "enemy-bank-danger",
+   "rect": [
+    27,
+    12,
+    29,
+    14
+   ]
+  },
+  {
+   "zoneId": "bank-seal",
+   "rect": [
+    24,
+    10,
+    26,
+    16
+   ]
+  },
+  {
+   "zoneId": "forward-rally",
+   "rect": [
+    22,
+    9,
+    25,
+    17
+   ]
+  },
+  {
+   "zoneId": "siege-leash",
+   "rect": [
+    21,
+    7,
+    29,
+    19
+   ]
+  },
+  {
+   "zoneId": "well-line",
+   "rect": [
+    12,
+    4,
+    18,
+    22
+   ]
+  }
+ ],
+ "routes": [
+  {
+   "routeId": "outer-rush",
+   "corridorWidth": 2,
+   "waypoints": [
+    [
+     4,
+     8
+    ],
+    [
+     8,
+     8
+    ],
+    [
+     11,
+     8
+    ],
+    [
+     14,
+     6
+    ],
+    [
+     15,
+     7
+    ],
+    [
+     19,
+     8
+    ],
+    [
+     22,
+     8
+    ],
+    [
+     25,
+     10
+    ],
+    [
+     26,
+     12
+    ],
+    [
+     27,
+     13
+    ]
+   ]
+  },
+  {
+   "routeId": "outer-rush-opposite",
+   "corridorWidth": 2,
+   "waypoints": [
+    [
+     4,
+     18
+    ],
+    [
+     8,
+     18
+    ],
+    [
+     13,
+     18
+    ],
+    [
+     14,
+     20
+    ],
+    [
+     15,
+     19
+    ],
+    [
+     19,
+     18
+    ],
+    [
+     22,
+     18
+    ],
+    [
+     25,
+     16
+    ],
+    [
+     26,
+     14
+    ],
+    [
+     27,
+     13
+    ]
+   ]
+  },
+  {
+   "routeId": "short-breach",
+   "corridorWidth": 2,
+   "waypoints": [
+    [
+     23,
+     10
+    ],
+    [
+     25,
+     10
+    ],
+    [
+     26,
+     12
+    ],
+    [
+     27,
+     13
+    ]
+   ]
+  },
+  {
+   "routeId": "short-breach-opposite",
+   "corridorWidth": 2,
+   "waypoints": [
+    [
+     23,
+     16
+    ],
+    [
+     25,
+     16
+    ],
+    [
+     26,
+     14
+    ],
+    [
+     27,
+     13
+    ]
+   ]
+  },
+  {
+   "routeId": "score-return",
+   "corridorWidth": 2,
+   "waypoints": [
+    [
+     25,
+     10
+    ],
+    [
+     22,
+     8
+    ],
+    [
+     19,
+     8
+    ],
+    [
+     15,
+     7
+    ],
+    [
+     14,
+     6
+    ],
+    [
+     11,
+     8
+    ],
+    [
+     8,
+     8
+    ],
+    [
+     4,
+     10
+    ],
+    [
+     2,
+     13
+    ]
+   ]
+  }
+ ],
+ "anchors": [
+  {
+   "anchorId": "enemy-perimeter",
+   "position": [
+    26,
+    13
+   ]
+  },
+  {
+   "anchorId": "rally-centre",
+   "position": [
+    24,
+    13
+   ]
+  },
+  {
+   "anchorId": "sanitation-release",
+   "position": [
+    22,
+    13
+   ]
+  },
+  {
+   "anchorId": "own-bank",
+   "position": [
+    2,
+    13
+   ]
+  },
+  {
+   "anchorId": "well-line-centre",
+   "position": [
+    15,
+    13
+   ]
+  }
+ ]
+}
