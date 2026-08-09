@@ -14,7 +14,8 @@ public sealed class ArcRelayEntrantPlaylistDefinition : IHostedGenericMatchDefin
 {
     public const string PlaylistKey = ArcRelayPlaylistDefinition.PlaylistKey;
     public const string DisplayName = ArcRelayPlaylistDefinition.DisplayName;
-    public const int Version = 9;
+    public const int Version = 10;
+    public const int DirectLadderVersion = 9;
     public const int WasmRepairVersion = 8;
     public const int AmbushVersion = 7;
     public const int TacticalVersion = 6;
@@ -26,8 +27,12 @@ public sealed class ArcRelayEntrantPlaylistDefinition : IHostedGenericMatchDefin
     public const string MatchmakingPolicyId = "passive-elo-proximity-v1";
     public const string Visibility = PlaylistVisibilityIds.Public;
     public const string TacticalArtifactHash =
-        "48d778f42e104e30611216c9e72620981e9994857a0052188ba08a866064de3f";
+        "c2b2f0a92f34d2d006bd4e7ecf8d68d0750df89300db7e23f33ef111d793a9a0";
     public const string TacticalBuildInputHash =
+        "a63314ed3de6599fd96b3ccaae5a527eb96364e1950f25decec8b4241bcda4ff";
+    public const string DirectLadderTacticalArtifactHash =
+        "48d778f42e104e30611216c9e72620981e9994857a0052188ba08a866064de3f";
+    public const string DirectLadderTacticalBuildInputHash =
         "b126edf8c768a7cca8aec88bcd851ab77f458522a88ed710e29b7399e35b390a";
     public const string WasmRepairTacticalArtifactHash =
         "7cf7e2f56fad1d80bec2250b0c309191b9b24ac2141bf36374116431c19adec3";
@@ -79,8 +84,15 @@ public sealed class ArcRelayEntrantPlaylistDefinition : IHostedGenericMatchDefin
     public static ArcRelayEntrantPlaylistDefinition Create() => Create(
         Version,
         ArcRelayLoopProfile.AmbushWarren11,
-        source: "arc-relay-direct-sheet-dsl",
+        source: "arc-relay-semantic-intent-labels",
         canonicalGameplayUnchangedFromVersion1: false);
+
+    public static ArcRelayEntrantPlaylistDefinition CreateHistoricalV9() =>
+        Create(
+            DirectLadderVersion,
+            ArcRelayLoopProfile.AmbushWarren11,
+            source: "arc-relay-direct-sheet-dsl",
+            canonicalGameplayUnchangedFromVersion1: false);
 
     public static ArcRelayEntrantPlaylistDefinition CreateHistoricalV8() =>
         Create(
@@ -160,6 +172,8 @@ public sealed class ArcRelayEntrantPlaylistDefinition : IHostedGenericMatchDefin
                 version switch
                 {
                     Version => TacticalArtifactHash,
+                    DirectLadderVersion =>
+                        DirectLadderTacticalArtifactHash,
                     WasmRepairVersion => WasmRepairTacticalArtifactHash,
                     AmbushVersion or TacticalVersion =>
                         HistoricalTacticalArtifactHash,
@@ -171,24 +185,30 @@ public sealed class ArcRelayEntrantPlaylistDefinition : IHostedGenericMatchDefin
             writer.WriteString("sheetSchema", version >= TacticalVersion
                 ? "arc-relay-tactical-playbook-v1"
                 : ArcRelayLegacySnapshotCodec.SchemaId);
-            if (version is Version or WasmRepairVersion or AmbushVersion)
+            if (version is Version or DirectLadderVersion
+                or WasmRepairVersion or AmbushVersion)
             {
                 writer.WriteString("stockSheetId", StockSheetId);
                 writer.WriteString(
                     "stockPlaybookSourceHash",
-                    version == Version
+                    version is Version or DirectLadderVersion
                         ? StockPlaybookSourceHash
                         : HistoricalStockPlaybookSourceHash);
                 writer.WriteString(
                     "stockLayoutSourceHash", StockLayoutSourceHash);
             }
-            if (version is Version or WasmRepairVersion)
+            if (version is Version or DirectLadderVersion
+                or WasmRepairVersion)
             {
                 writer.WriteString(
                     "stockBuildInputHash",
-                    version == Version
-                        ? TacticalBuildInputHash
-                        : WasmRepairTacticalBuildInputHash);
+                    version switch
+                    {
+                        Version => TacticalBuildInputHash,
+                        DirectLadderVersion =>
+                            DirectLadderTacticalBuildInputHash,
+                        _ => WasmRepairTacticalBuildInputHash,
+                    });
             }
             writer.WriteString("compositionSchema", "arc-relay-composition-v1");
             writer.WriteNumber("compositionSlots", ArcRelayComposition.SlotCount);
@@ -213,6 +233,24 @@ public sealed class ArcRelayEntrantPlaylistDefinition : IHostedGenericMatchDefin
                 canonicalGameplayUnchangedFromVersion1);
             if (version == Version)
             {
+                writer.WriteBoolean("ownerApprovedAmbushWarren11", true);
+                writer.WriteBoolean("warrenNativeLayoutsOnly", true);
+                writer.WriteBoolean("frozenWellwrightStock", true);
+                writer.WriteBoolean("tacticalPlaybookCompilerShared", true);
+                writer.WriteBoolean("portableTwoFileSheets", true);
+                writer.WriteBoolean("staleWasmArtifactRepaired", true);
+                writer.WriteBoolean("pendingStrikeWireParity", true);
+                writer.WriteBoolean("consolidatedDirectSheetDsl", true);
+                writer.WriteBoolean("semanticIntentLabels", true);
+                writer.WriteString("linkedDataFormat", "ATL1");
+                writer.WriteStartArray("ratingContinuityFromVersions");
+                writer.WriteNumberValue(WasmRepairVersion);
+                writer.WriteNumberValue(DirectLadderVersion);
+                writer.WriteEndArray();
+            }
+            else if (version == DirectLadderVersion)
+            {
+                // Preserve v9's immutable provenance bytes exactly.
                 writer.WriteBoolean("ownerApprovedAmbushWarren11", true);
                 writer.WriteBoolean("warrenNativeLayoutsOnly", true);
                 writer.WriteBoolean("frozenWellwrightStock", true);

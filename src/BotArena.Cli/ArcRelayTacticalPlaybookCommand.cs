@@ -55,6 +55,7 @@ public static class ArcRelayTacticalPlaybookCommand
         {
             JsonObject doctrine = doctrineNode!.AsObject();
             var rungs = new JsonArray();
+            var intentIds = new HashSet<string>(StringComparer.Ordinal);
             int priority = 0;
             foreach (JsonObject mode in doctrine["modes"]!.AsArray()
                          .Select(node => node!.AsObject()))
@@ -68,7 +69,9 @@ public static class ArcRelayTacticalPlaybookCommand
                 JsonObject rung = mode.DeepClone().AsObject();
                 rung.Insert(0, "rungId",
                     $"rung-{roleId}-{priority + 1}-{verb}");
-                rung.Insert(1, "priority", priority);
+                rung.Insert(1, "intentId",
+                    IntentId(roleId, verb, mode, intentIds));
+                rung.Insert(2, "priority", priority);
                 rungs.Add(rung);
                 priority++;
             }
@@ -124,7 +127,7 @@ public static class ArcRelayTacticalPlaybookCommand
                 "custody-emergency", "self-preservation", "repair",
                 "signature", "focus-fire", "movement", "facing", "hold"),
             ["commandProvenance"] =
-                "tp:steady:<role>:rung-<role>-<position>-<verb>:<channel>",
+                "tp:steady:<role>:<semantic-intent-id>:<channel>",
         };
         return JsonSerializer.SerializeToUtf8Bytes(explain,
             new JsonSerializerOptions { WriteIndented = true });
@@ -140,4 +143,47 @@ public static class ArcRelayTacticalPlaybookCommand
 
     private static string Sha256(byte[] value) =>
         Convert.ToHexStringLower(SHA256.HashData(value));
+
+    private static string IntentId(
+        string role,
+        string verb,
+        JsonObject mode,
+        HashSet<string> used)
+    {
+        string meaning = verb switch
+        {
+            "patrol" or "assault" => CompactDestination(
+                Destination(mode[verb]!)),
+            "recover" => "recover",
+            "follow" => $"follow-{mode["follow"]!.GetValue<string>()}",
+            "intercept" => mode["intercept"]!.GetValue<string>() switch
+            {
+                "enemy-carriers" => "intercept-carriers",
+                "inbound" => "intercept-inbound",
+                string unknown => $"intercept-{unknown}",
+            },
+            _ => verb,
+        };
+        string basis = $"{role}-{meaning}";
+        string candidate = basis;
+        for (int suffix = 2; !used.Add(candidate); suffix++)
+            candidate = $"{basis}-{suffix}";
+        return candidate;
+    }
+
+    private static string Destination(JsonNode value) => value switch
+    {
+        JsonValue scalar => scalar.GetValue<string>(),
+        JsonObject target when target["route"] is JsonValue route =>
+            route.GetValue<string>(),
+        JsonObject target when target["zone"] is JsonValue zone =>
+            zone.GetValue<string>(),
+        _ => throw new InvalidDataException(
+            "A patrol/assault intent has no route or zone."),
+    };
+
+    private static string CompactDestination(string target) =>
+        target.EndsWith("-loop", StringComparison.Ordinal)
+            ? target[..^5]
+            : target;
 }

@@ -770,7 +770,16 @@ public sealed class ArcRelayEntrantProductIntegrationTests
 
     [SkippableFact]
     [Trait("Category", PostgreSqlDatabaseFixture.Category)]
-    public async Task Direct_ladder_v9_continues_the_open_v8_season_rating_book()
+    public async Task Semantic_intent_v10_continues_the_open_v8_or_v9_rating_book()
+    {
+        await AssertSemanticIntentContinuityAsync(
+            ArcRelayEntrantPlaylistDefinition.WasmRepairVersion);
+        await AssertSemanticIntentContinuityAsync(
+            ArcRelayEntrantPlaylistDefinition.DirectLadderVersion);
+    }
+
+    private static async Task AssertSemanticIntentContinuityAsync(
+        int predecessorVersion)
     {
         await using var database = await PostgreSqlDatabaseFixture.CreateAsync();
         await using (AppDbContext migration =
@@ -784,33 +793,43 @@ public sealed class ArcRelayEntrantProductIntegrationTests
             await scope.ServiceProvider.GetRequiredService<ArcRelayPlaylistSeeder>()
                 .SeedAsync();
         }
-        UserResponse owner = await RegisterAsync(client, "V8 Season Entrant");
+        string predecessorName = $"V{predecessorVersion}";
+        UserResponse owner = await RegisterAsync(
+            client, $"{predecessorName} Season Entrant");
         Guid entrantId = Guid.NewGuid();
-        Guid v8LadderId;
+        Guid predecessorLadderId;
 
         await using (AppDbContext db = database.CreateContext())
         {
             Playlist playlist = await db.Playlists.SingleAsync(value =>
                 value.Key == ArcRelayEntrantPlaylistDefinition.PlaylistKey);
-            ArcRelayEntrantPlaylistDefinition v8 =
-                ArcRelayEntrantPlaylistDefinition.CreateHistoricalV8();
+            ArcRelayEntrantPlaylistDefinition predecessor =
+                predecessorVersion switch
+                {
+                    ArcRelayEntrantPlaylistDefinition.WasmRepairVersion =>
+                        ArcRelayEntrantPlaylistDefinition.CreateHistoricalV8(),
+                    ArcRelayEntrantPlaylistDefinition.DirectLadderVersion =>
+                        ArcRelayEntrantPlaylistDefinition.CreateHistoricalV9(),
+                    _ => throw new ArgumentOutOfRangeException(
+                        nameof(predecessorVersion)),
+                };
             var version = new PlaylistVersion
             {
                 PlaylistId = playlist.Id,
-                Version = ArcRelayEntrantPlaylistDefinition.WasmRepairVersion,
-                GameModeId = v8.Match.Rules.GameMode.ModeId,
-                RulesetId = v8.Match.Rules.RulesetId,
-                MatchFormatId = v8.Match.Format.FormatId,
-                MapPoolId = v8.Match.Map.Id,
+                Version = predecessorVersion,
+                GameModeId = predecessor.Match.Rules.GameMode.ModeId,
+                RulesetId = predecessor.Match.Rules.RulesetId,
+                MatchFormatId = predecessor.Match.Format.FormatId,
+                MapPoolId = predecessor.Match.Map.Id,
                 SeriesPolicyId = ArcRelayEntrantPlaylistDefinition.SeriesPolicyId,
                 MatchmakingPolicyId =
                     ArcRelayEntrantPlaylistDefinition.MatchmakingPolicyId,
-                AdmissionPolicyId = v8.AdmissionPolicyId,
-                ExecutionPolicyId = v8.ExecutionPolicyId,
-                ExecutionEngineVersion = v8.ExecutionEngineVersion,
-                CanonicalDefinition = v8.CanonicalDefinition,
-                DefinitionFingerprint = v8.DefinitionFingerprint,
-                Provenance = v8.Provenance,
+                AdmissionPolicyId = predecessor.AdmissionPolicyId,
+                ExecutionPolicyId = predecessor.ExecutionPolicyId,
+                ExecutionEngineVersion = predecessor.ExecutionEngineVersion,
+                CanonicalDefinition = predecessor.CanonicalDefinition,
+                DefinitionFingerprint = predecessor.DefinitionFingerprint,
+                Provenance = predecessor.Provenance,
                 Visibility = ArcRelayEntrantPlaylistDefinition.Visibility,
             };
             DateTime startsAt = DateTime.UtcNow.AddDays(-1);
@@ -835,7 +854,7 @@ public sealed class ArcRelayEntrantProductIntegrationTests
                 IsListed = true,
                 AwardsAchievements = false,
             };
-            v8LadderId = ladder.Id;
+            predecessorLadderId = ladder.Id;
             db.PlaylistVersions.Add(version);
             db.Seasons.Add(season);
             db.Ladders.Add(ladder);
@@ -844,7 +863,7 @@ public sealed class ArcRelayEntrantProductIntegrationTests
                 Id = entrantId,
                 OwnerUserId = owner.Id,
                 Kind = ArcRelayEntrantKind.Sheet,
-                Name = "V8 rated entrant",
+                Name = $"{predecessorName} rated entrant",
             });
             db.ArcRelayEntrantRatings.Add(new ArcRelayEntrantRating
             {
@@ -865,21 +884,21 @@ public sealed class ArcRelayEntrantProductIntegrationTests
 
         await using (AppDbContext db = database.CreateContext())
         {
-            Ladder v8Ladder = await db.Ladders.SingleAsync(value =>
-                value.Id == v8LadderId);
-            Assert.Equal(LadderStatus.Closed, v8Ladder.Status);
-            Assert.False(v8Ladder.IsListed);
-            Ladder v9Ladder = await (
+            Ladder predecessorLadder = await db.Ladders.SingleAsync(value =>
+                value.Id == predecessorLadderId);
+            Assert.Equal(LadderStatus.Closed, predecessorLadder.Status);
+            Assert.False(predecessorLadder.IsListed);
+            Ladder v10Ladder = await (
                 from ladder in db.Ladders
                 join version in db.PlaylistVersions
                     on ladder.PlaylistVersionId equals version.Id
                 where version.Version == ArcRelayEntrantPlaylistDefinition.Version
                 select ladder).SingleAsync();
-            Assert.Equal(LadderStatus.Open, v9Ladder.Status);
-            Assert.True(v9Ladder.IsListed);
+            Assert.Equal(LadderStatus.Open, v10Ladder.Status);
+            Assert.True(v10Ladder.IsListed);
             ArcRelayEntrantRating continued = await db.ArcRelayEntrantRatings
                 .SingleAsync(value => value.EntrantId == entrantId &&
-                    value.LadderId == v9Ladder.Id);
+                    value.LadderId == v10Ladder.Id);
             Assert.Equal(1473, continued.Rating);
             Assert.Equal(19, continued.RankedMatches);
         }

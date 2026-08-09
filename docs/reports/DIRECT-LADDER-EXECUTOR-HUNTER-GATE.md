@@ -239,3 +239,12 @@ The result also identifies the next boundary cleanly: direct ladder selection
 is real and generic; the lower action adapter is still typed in legacy records.
 That is a smaller, evidence-backed cleanup problem and should not block this
 Hunter gate or trigger bulk migration before owner review.
+
+## Erratum — exact assault coverage
+
+The earlier sentence saying all six replays contained Hunter assault was
+incorrect. Exact command-provenance reads show assault in four of the six
+direct-gate cells; `e-9009` and `w-9012` contain no Hunter assault. The report's
+later statement that `e-9009` never promoted was the correct one. This erratum
+changes no replay, result, or interpretation; it records the exact observed
+coverage rather than silently rewriting the historical gate.

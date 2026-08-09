@@ -91,9 +91,9 @@ public sealed class DirectLadderRuntimeTests
                 (_, _, _) => true);
 
         TacticalPlaybookPackage.Order order = Assert.Single(selected).Value;
-        Assert.Equal("rung-vanguard-1-assault", order.OrderId);
+        Assert.Equal("vanguard-breach-route", order.OrderId);
         Assert.Equal("breach-route", order.Movement.Target);
-        Assert.Equal("rungs=41:vanguard[1]/assault", runtime.TraceSummary);
+        Assert.Equal("rungs=41:vanguard-breach-route", runtime.TraceSummary);
         Assert.DoesNotContain("hunter", runtime.TraceSummary,
             StringComparison.OrdinalIgnoreCase);
     }

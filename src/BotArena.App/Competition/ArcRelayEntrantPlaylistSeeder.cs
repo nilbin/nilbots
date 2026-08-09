@@ -7,8 +7,9 @@ using Microsoft.EntityFrameworkCore;
 namespace BotArena.App.Competition;
 
 /// <summary>
-/// Seeds the current immutable entrant lane. Season 1 began on repaired v8 and
-/// continues on direct-ladder v9; earlier development ladders remain readable.
+/// Seeds the current immutable entrant lane. Season 1 began on repaired v8,
+/// continued through direct-ladder v9, and keeps the same rating book when
+/// v10 makes those ladder intents legible to spectators.
 /// </summary>
 public sealed class ArcRelayEntrantPlaylistSeeder(
     AppDbContext db,
@@ -70,6 +71,16 @@ public sealed class ArcRelayEntrantPlaylistSeeder(
         {
             ArcRelayEntrantPlaylistDefinition.CreateHistoricalV8()
                 .Validate(playlist, wasmRepairVersion);
+        }
+        PlaylistVersion? directLadderVersion = await db.PlaylistVersions
+            .SingleOrDefaultAsync(value => value.PlaylistId == playlist.Id &&
+                value.Version ==
+                    ArcRelayEntrantPlaylistDefinition.DirectLadderVersion,
+                cancellationToken);
+        if (directLadderVersion is not null)
+        {
+            ArcRelayEntrantPlaylistDefinition.CreateHistoricalV9()
+                .Validate(playlist, directLadderVersion);
         }
         PlaylistVersion? recoveryVersion = await db.PlaylistVersions
             .SingleOrDefaultAsync(value => value.PlaylistId == playlist.Id &&
@@ -183,7 +194,7 @@ public sealed class ArcRelayEntrantPlaylistSeeder(
         if (season.Status == SeasonStatus.Open &&
             ladder.Status == LadderStatus.Draft)
         {
-            await ContinueOpenSeasonFromV8Async(
+            await ContinueOpenSeasonRatingBookAsync(
                 playlist, season, ladder, cancellationToken);
         }
 
@@ -194,33 +205,50 @@ public sealed class ArcRelayEntrantPlaylistSeeder(
         return new ArcRelayEntrantSeedResult(version, ladder);
     }
 
-    private async Task ContinueOpenSeasonFromV8Async(
+    private async Task ContinueOpenSeasonRatingBookAsync(
         Playlist playlist,
         Season season,
         Ladder current,
         CancellationToken cancellationToken)
     {
-        Ladder? previous = await (
+        var candidates = await (
             from ladder in db.Ladders
             join version in db.PlaylistVersions
                 on ladder.PlaylistVersionId equals version.Id
             where version.PlaylistId == playlist.Id &&
-                version.Version ==
-                    ArcRelayEntrantPlaylistDefinition.WasmRepairVersion &&
+                (version.Version ==
+                    ArcRelayEntrantPlaylistDefinition.DirectLadderVersion ||
+                 version.Version ==
+                    ArcRelayEntrantPlaylistDefinition.WasmRepairVersion) &&
                 ladder.SeasonId == season.Id
-            select ladder).SingleOrDefaultAsync(cancellationToken);
-        if (previous is null || previous.Status != LadderStatus.Open)
+            select new { Ladder = ladder, version.Version })
+            .ToArrayAsync(cancellationToken);
+        var open = candidates
+            .Where(value => value.Ladder.Status == LadderStatus.Open)
+            .ToArray();
+        if (open.Length != 1)
         {
             throw new InvalidOperationException(
-                "An open Arc Relay Season 1 can advance to v9 only from " +
-                "its open immutable v8 ladder.");
+                "An open Arc Relay Season 1 can advance to v10 only from " +
+                "one open immutable v8 or v9 ladder.");
         }
+        var predecessor = open[0];
+        if (predecessor.Version ==
+                ArcRelayEntrantPlaylistDefinition.WasmRepairVersion &&
+            candidates.Any(value => value.Version ==
+                ArcRelayEntrantPlaylistDefinition.DirectLadderVersion))
+        {
+            throw new InvalidOperationException(
+                "Arc Relay Season 1 cannot skip a registered v9 ladder and " +
+                "continue from v8.");
+        }
+        Ladder previous = predecessor.Ladder;
         if (await db.ArcRelayEntrantRatings.AnyAsync(
                 value => value.LadderId == current.Id,
                 cancellationToken))
         {
             throw new InvalidOperationException(
-                "The draft Arc Relay v9 ladder already contains ratings.");
+                "The draft Arc Relay v10 ladder already contains ratings.");
         }
 
         ArcRelayEntrantRating[] ratings = await db.ArcRelayEntrantRatings

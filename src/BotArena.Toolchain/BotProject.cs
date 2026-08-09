@@ -403,10 +403,13 @@ public static class ToolchainInfo
     /// entrant playlist v8 without changing the Arc Relay game line. 0.9.38
     /// replaces tactical-playbook ATP1 desugaring with the consolidated direct
     /// ATL1 ladder, retires stale bundled sheets, and pins hosted entrant
-    /// playlist v9 to the matching controlled artifact.
+    /// playlist v9 to the matching controlled artifact. 0.9.39 separates
+    /// direct-ladder state keys from semantic intent ids, so spectator traces
+    /// say what a body is doing without changing gameplay-state behavior, and
+    /// pins hosted playlist v10 to the rebuilt immutable stock artifact.
     /// Keep in lockstep with BotArena.Cli.csproj's
     /// Version — PackagedCliVersionTests pins them together.</summary>
-    public const string CliVersion = "0.9.38";
+    public const string CliVersion = "0.9.39";
     // 0.2.0: BotContext.Slot + documented event semantics (DECISIONS #46).
     // 0.3.0: BotContext.Energy for the energy-shot rules candidate (DECISIONS #47).
     // 0.4.0: strafe actions + map dims + zone-control fields for the rules 0.3 slate

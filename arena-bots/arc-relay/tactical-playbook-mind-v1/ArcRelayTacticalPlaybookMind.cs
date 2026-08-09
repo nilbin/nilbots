@@ -6233,9 +6233,9 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
 
     // The tag is the spectator's answer to "what does this unit think it is
     // doing" (owner review 2026-08-09: a guard reading as a bug because
-    // intent was illegible). Order ids are already job-shaped - race-north,
-    // guard-home, ghost-stalk - so the tag IS the current order, with the
-    // role only as a prefix when it adds information.
+    // intent was illegible). Direct-ladder order ids are role-qualified for
+    // global uniqueness (hunter-shadow-hunt); the body card already states
+    // the role, so its compact caption drops that redundant prefix.
     private static string RoleTag(
         string phase,
         string group,
@@ -6245,7 +6245,6 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     {
         _ = phase;
         _ = group;
-        _ = role;
         // The arena badge truncates past 14 characters, and every order id
         // is shorter than that: the order alone is the whole caption. A
         // body riding someone else's order says so — "ghost-assault" on two
@@ -6254,8 +6253,12 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         // (Tags are lowercase-kebab semantic ids, so the separator is a
         // dash rather than a space.)
         string value = order.ToLowerInvariant();
+        string rolePrefix = role.ToLowerInvariant() + "-";
+        if (value.StartsWith(rolePrefix, StringComparison.Ordinal))
+            value = value[rolePrefix.Length..];
         const string suffix = "-escort";
-        if (escorting)
+        if (escorting
+            && !value.StartsWith("follow-", StringComparison.Ordinal))
         {
             if (value.Length + suffix.Length > 24)
                 value = value[..(24 - suffix.Length)];

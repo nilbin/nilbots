@@ -7014,3 +7014,29 @@ same ambush-warren-11 rules and map, so an already-open public Season 1 carries
 ratings and ranked-match counts from v8 to v9; it does not mint a new rating
 era. Historical ladders remain readable and v8 closes to new pairing when v9
 opens.
+
+## 273. Direct-ladder state keys are private; spectator intent ids are semantic
+
+Presentation/executor ruling (2026-08-10). An authored doctrine rung has two
+identities with different jobs. Its positional `rung-<role>-<index>-<verb>` key
+is private exact-life scheduler state. Its executable intent id is derived from
+the authored role and destination or action, such as `hunter-shadow-hunt`, and
+is the name carried by orders, command provenance, traces, and spectator body
+cards. Reordering a ladder therefore changes priority without exposing an
+implementation-shaped caption such as `rung-hunter-4-patrol`.
+
+This is not a Hunter behavior adjustment. `hunter-v1` remains byte-exact; a
+pre/post `w-9001` run has the same gameplay-state digest, and legacy/direct
+opening traces put the west-side Hunter on the same actions and positions
+through the north-corridor opening. East-side presentation is the intentional
+team-relative 180-degree mirror.
+
+The WASM bytes and command provenance do change, so immutable playlist v9 and
+`ambush-warren-11-stock-v3` remain untouched. Playlist v10 pins frozen stock v4
+with semantic intent labels. Because rules, map, sheets, decisions, and
+gameplay-state behavior are unchanged, an open Season 1 carries ratings and
+ranked-match counts from v9 to v10 rather than creating a new rating era. This
+branch stack has not landed on `main`, so its first deployment may encounter an
+open v8 ladder with no v9 row ever registered. That one absence may continue
+the same book directly from v8 to v10; once any v9 ladder exists, skipping it is
+a hard error.

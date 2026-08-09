@@ -88,6 +88,7 @@ internal sealed class DirectLadderRuntime
             JsonElement[] modes = doctrine.GetProperty("modes")
                 .EnumerateArray().ToArray();
             var roleBuilders = new List<RungBuilder>();
+            var intentIds = new HashSet<string>(StringComparer.Ordinal);
             for (int index = 0; index < modes.Length; index++)
             {
                 JsonElement mode = modes[index];
@@ -107,6 +108,8 @@ internal sealed class DirectLadderRuntime
                 Destination? destination = verb is "patrol" or "assault"
                     ? ParseDestination(mode.GetProperty(verb))
                     : null;
+                string intentId = UniqueIntentId(
+                    role.RoleId, verb, mode, destination, intentIds);
                 CohortSpec? cohort = mode.TryGetProperty(
                         "cohort", out JsonElement cohortValue)
                     ? ParseCohort(
@@ -114,6 +117,7 @@ internal sealed class DirectLadderRuntime
                     : null;
                 roleBuilders.Add(new RungBuilder(
                     rungId,
+                    intentId,
                     role.RoleId,
                     index,
                     verb,
@@ -173,7 +177,7 @@ internal sealed class DirectLadderRuntime
                     builder.Priority);
                 TacticalPlaybookPackage.Engagement engagement =
                     BuildEngagement(
-                        builder.RungId,
+                        builder.IntentId,
                         role.RoleId,
                         focusScope,
                         maximumAttackers,
@@ -621,13 +625,13 @@ internal sealed class DirectLadderRuntime
                 2)
             : null;
         return new TacticalPlaybookPackage.Order(
-            rung.RungId,
+            rung.IntentId,
             rung.RoleId,
             rung.Priority,
             new TacticalPlaybookPackage.MemberSelection("all", null, null, null),
             movement,
             "",
-            rung.RungId,
+            rung.IntentId,
             supportId,
             custodyId,
             "active",
@@ -645,6 +649,47 @@ internal sealed class DirectLadderRuntime
                 ? ""
                 : StringOr(rung.Mode, "posture", ""));
     }
+
+    /// <summary>
+    /// Builds the stable, human-facing name for an authored intent. Rung
+    /// position remains a separate internal state key: moving a row changes
+    /// its priority, but it must not turn a spectator caption into
+    /// <c>rung-hunter-4-patrol</c>. Destinations already carry the author's
+    /// vocabulary, so they are the clearest label for movement intents.
+    /// </summary>
+    private static string UniqueIntentId(
+        string role,
+        string verb,
+        JsonElement mode,
+        Destination? destination,
+        HashSet<string> used)
+    {
+        string meaning = verb switch
+        {
+            "patrol" or "assault" => CompactDestination(
+                destination!.Target),
+            "recover" => "recover",
+            "follow" => $"follow-{mode.GetProperty("follow").GetString()}",
+            "intercept" => mode.GetProperty("intercept").GetString() switch
+            {
+                "enemy-carriers" => "intercept-carriers",
+                "inbound" => "intercept-inbound",
+                null => "intercept",
+                string unknown => $"intercept-{unknown}",
+            },
+            _ => verb,
+        };
+        string basis = $"{role}-{meaning}";
+        string candidate = basis;
+        for (int suffix = 2; !used.Add(candidate); suffix++)
+            candidate = $"{basis}-{suffix}";
+        return candidate;
+    }
+
+    private static string CompactDestination(string target) =>
+        target.EndsWith("-loop", StringComparison.Ordinal)
+            ? target[..^5]
+            : target;
 
     private static (string Scope, int MaximumAttackers) ResolveFocus(
         JsonElement value,
@@ -909,6 +954,7 @@ internal sealed class DirectLadderRuntime
 
     private sealed record RungBuilder(
         string RungId,
+        string IntentId,
         string RoleId,
         int Priority,
         string Verb,
@@ -922,6 +968,7 @@ internal sealed class DirectLadderRuntime
             TacticalPlaybookPackage.Order? order = null,
             string? fetchCustodyId = null) => new(
             RungId,
+            IntentId,
             RoleId,
             Priority,
             Verb,
@@ -935,6 +982,7 @@ internal sealed class DirectLadderRuntime
 
     private sealed record Rung(
         string RungId,
+        string IntentId,
         string RoleId,
         int Priority,
         string Verb,
@@ -945,7 +993,7 @@ internal sealed class DirectLadderRuntime
         string? FollowRole,
         string? FetchCustodyId)
     {
-        internal string TraceName => $"{RoleId}[{Priority + 1}]/{Verb}";
+        internal string TraceName => IntentId;
     }
 
     private sealed record ConditionExpression(

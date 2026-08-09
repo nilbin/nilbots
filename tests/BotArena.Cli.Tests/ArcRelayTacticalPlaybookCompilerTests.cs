@@ -252,6 +252,35 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
             Assert.Contains(explain.RootElement.GetProperty("ladders")
                 .EnumerateArray(), ladder => ladder.GetProperty("roleId")
                 .GetString() == "hunter");
+            JsonElement hunter = explain.RootElement.GetProperty("ladders")
+                .EnumerateArray().Single(ladder => ladder.GetProperty(
+                    "roleId").GetString() == "hunter");
+            Assert.Contains(hunter.GetProperty("modes").EnumerateArray(),
+                rung => rung.GetProperty("intentId").GetString()
+                    == "hunter-shadow-hunt");
+            Assert.Equal(
+                "tp:steady:<role>:<semantic-intent-id>:<channel>",
+                explain.RootElement.GetProperty("commandProvenance")
+                    .GetString());
+
+            TacticalPlaybookCompilation compilation =
+                ArcRelayTacticalPlaybookCompiler.Compile(
+                    Playbook("hunter-v1"));
+            using JsonDocument source = JsonDocument.Parse(
+                compilation.NormalizedPlaybook);
+            DirectLadderRuntime runtime = DirectLadderRuntime.Create(
+                source.RootElement);
+            string[] explainedIntents = explain.RootElement
+                .GetProperty("ladders").EnumerateArray()
+                .SelectMany(ladder => ladder.GetProperty("modes")
+                    .EnumerateArray())
+                .Where(rung => !rung.TryGetProperty("fetch", out _))
+                .Select(rung => rung.GetProperty("intentId").GetString()!)
+                .Order(StringComparer.Ordinal).ToArray();
+            Assert.Equal(
+                runtime.RuntimePlaybook.Orders.Select(order => order.OrderId)
+                    .Order(StringComparer.Ordinal),
+                explainedIntents);
         }
         finally
         {
