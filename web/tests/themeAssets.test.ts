@@ -257,7 +257,7 @@ test('Ember Forge carries the approved living-bastion profiles', () => {
   assert.equal(manifest.environment3d?.camera?.fovDegrees, 28);
   assert.equal(
     manifest.environment3d?.fog?.unseenTerrainDarkness,
-    0.42,
+    0.2,
   );
   assert.equal(
     manifest.walls.families.perimeter.geometry3d?.bastionCover

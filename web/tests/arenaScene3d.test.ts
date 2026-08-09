@@ -434,7 +434,7 @@ test('Ember builds its approved raised perimeter and cover profiles', () => {
     const emberMask = emberFog.texture.image.data as Uint8Array;
     assert.ok(
       emberMask.some(
-        (value, index) => index % 4 === 3 && value === Math.round(0.42 * 255),
+        (value, index) => index % 4 === 3 && value === Math.round(0.2 * 255),
       ),
       'Ember uses its lighter theme-owned unseen-terrain darkness',
     );
