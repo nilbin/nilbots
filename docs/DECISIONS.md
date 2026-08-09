@@ -6882,3 +6882,85 @@ The exact byte-frozen `home-siege-v2` evidence source is the sole compatibility
 exception: its historical section must match the canonical order and is then
 discarded during normalization. This keeps the evidence executable without
 teaching current authors a dead configuration surface.
+
+## 265. Multi-body behavior is a doctrine operation with explicit role consent
+
+Sheet-language ruling (2026-08-09). A coordinated movement belongs under
+`doctrines.operations`, where it states one formation, fight policy, staffing
+request, and ordered set of triggered or tempo-bound variants. Every selected
+role must separately name that operation in the final `muster` list of its own
+doctrine. An operation that can select a non-consenting role, or consent that no
+staff selector can honor, is a compile error. Multiple role ladders form one
+partial priority order; contradictory ladders are rejected rather than resolved
+by object-key order.
+
+That order is complete only within the coordinated-operation plane. Hunter's
+legacy runtime lets some operation tasks tie or interleave with body-local
+doctrine tasks, while the proposed source shape puts the operation ladder at the
+end. The one-sheet gate preserves observed Hunter behavior through a compiler
+compatibility bridge but does not declare that inter-plane ordering a finished
+DSL design. Bulk migration is blocked on resolving it without numeric authored
+priorities.
+
+This shared operation is not the retired squad dialect under a new root. It can
+only request role/tag cardinalities and behavior already expressed in doctrine
+words (`patrol`, `assault`, `fight`, custody, hold, and formation intent). It does
+not own role membership, casualty policy, transitions, or per-role overrides.
+The compiler may synthesize exhaustive tasks, orders, groups, engagements, and
+formations as private runtime IR.
+
+Only `file` and `screen` ship at the Hunter gate. `file` is required by Hunter's
+slowest-paced assassin run and home-oriented reserve line; `screen` is required
+by its home defense, Well races, surge, and Well patrol. `wedge` was speculative
+and is rejected. Both currently have evidence from exactly one migrated sheet;
+that fact is retained rather than inflated into a general shape catalog.
+
+## 266. Synchronized team tempo is explicit doctrine source
+
+Sheet-language correction (2026-08-09). Hunter's historical prowl,
+prowl-south, and apex phases were not equivalent to independently ordered body
+modes. They synchronized several cohorts, reset formation orders on transition,
+and supplied tempo-specific baseline routes. Removing that clock changed replay
+state. `doctrines.tempo` therefore states a small ordered cycle plus conditioned
+interrupts once for the team; operations select variants with `during`, and a
+body-local doctrine may override its own floor for a named tempo.
+
+This is intentionally only the shape Hunter proves: an ordered cycle and
+conditioned interrupts. It is not a general phase graph. A role leased through
+coordinated operations cannot also declare a body-local tempo override, because
+two sources would then claim its movement. All six standard Hunter-vs-Wellwright
+state digests match the Phase-2 source exactly with this explicit clock.
+
+## 267. Repair policy belongs to its provider; activation belongs to the operation
+
+Sheet-language ruling (2026-08-09). The medic doctrine owns its repair target
+preference and safety constraints. A coordinated operation says `repair: true`
+only when that provider policy participates. This replaces Hunter's standalone
+`supportPolicies` plane without making repair silently active in every medic
+mode. An operation facing zero or several possible provider policies is rejected
+as ambiguous.
+
+Two other previously hidden runtime choices proved behavior-relevant during the
+port and are now named on the operation/fight: `traffic` is
+`priority | normal | yield`; `fight.aim` is `turn | facing`; and operation
+`reach` is movement excursion distance, distinct from `fight.chase.leash` target
+acquisition. These words compile to the existing assignment profile and
+engagement records; they do not add game rules.
+
+## 268. Hunter's authored DSL has ten root keys; compatibility detail remains private IR
+
+Sheet-language ruling (2026-08-09). The migrated Hunter source has exactly:
+`schema`, `playbookId`, `auditStatus`, `composition`, `layout`, `memory`,
+`roles`, `custodyPolicies`, `doctrines`, and `conditions`. `perspective` was a
+one-value constant and is deleted. `authoring` was only a wrapper after its
+maneuver catalog left; its predicates are top-level `conditions`, and its
+library/parameter links are absent. `memory.formationStableTicks` is not
+authorable; the other four memory windows remain live inputs to the stock mind.
+
+The compiler still emits the exhaustive v1 runtime package, including fixed
+team-relative perspective and an internal formation-stability constant, so this
+grammar-only migration remains behavior-compatible. Those fields are not sheet
+configuration and cannot be supplied by consolidated source. The Hunter gate
+does not admit a `staffing` root because Hunter has no shared tag-cap constraint;
+the narrowly approved tag-cap row must be implemented and evidenced when
+`predator-v2`, the first sheet that needs it, is migrated.

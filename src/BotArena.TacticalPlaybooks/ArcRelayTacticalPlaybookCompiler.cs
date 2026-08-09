@@ -10,7 +10,7 @@ namespace BotArena.TacticalPlaybooks;
 /// format. Authoring JSON is validated and canonicalized before it crosses the
 /// mind boundary; the runtime never guesses at misspelled or omitted intent.
 /// </summary>
-public static class ArcRelayTacticalPlaybookCompiler
+public static partial class ArcRelayTacticalPlaybookCompiler
 {
     public const string PlaybookSchema = "arc-relay-tactical-playbook-v1";
     public const string LayoutSchema = "arc-relay-tactical-layout-v1";
@@ -246,6 +246,13 @@ public static class ArcRelayTacticalPlaybookCompiler
                 "fetchRungs and modeRungs are compiler-owned runtime IR; "
                 + "author courier priority with doctrine 'fetch' modes.");
         }
+        bool hasConsolidatedDsl = source.TryGetProperty("conditions", out _);
+        using JsonDocument? consolidatedDsl = hasConsolidatedDsl
+            ? ExpandConsolidatedDoctrineSource(source, path)
+            : null;
+        if (consolidatedDsl is not null)
+            source = consolidatedDsl.RootElement;
+
         bool hasOrders = source.TryGetProperty("orders", out _);
         bool hasAuthoring = source.TryGetProperty("authoring", out _);
         if (hasOrders == hasAuthoring)
@@ -294,7 +301,7 @@ public static class ArcRelayTacticalPlaybookCompiler
 
         CatalogEntry[] parameters = Catalog(
             authoring.GetProperty("parameters"),
-            $"{authoringAt}.parameters", 1, 64);
+            $"{authoringAt}.parameters", 0, 64);
         var parameterById = new Dictionary<string, int>(StringComparer.Ordinal);
         foreach (CatalogEntry parameter in parameters)
         {
