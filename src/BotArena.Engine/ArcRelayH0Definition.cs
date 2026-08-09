@@ -83,6 +83,8 @@ public static class ArcRelayH0Definition
     public static ActorMapDefinition CreateMap(ArcRelayLoopProfile loopProfile)
     {
         ArgumentNullException.ThrowIfNull(loopProfile);
+        if (loopProfile.Geometry == ArcRelayMapGeometry.CrucibleDiagonal)
+            return CreateCrucibleMap(loopProfile);
         ImmutableArray<string> rows = loopProfile.Geometry
             == ArcRelayMapGeometry.DepthLarger
             ? CreateLargerRows()
@@ -211,6 +213,134 @@ public static class ArcRelayH0Definition
                     ActorMapTileTagDefinition.TileTagKind
                         .SignaturePlacementForbidden,
                     forbidden.ToImmutableArray()),
+            ]);
+    }
+
+    /// <summary>
+    /// Crucible: bases in opposite corners, Wells tiered near/centre/far,
+    /// and the scoring zone deliberately OUTSIDE spawn protection.
+    ///
+    /// Only the upper half and the self-symmetric middle row are authored;
+    /// the lower half is their exact 180-degree rotation, so chirality is a
+    /// property of the construction rather than something to re-verify by
+    /// eye. Every landmark below is written as its team-0 tile and its
+    /// rotation, for the same reason.
+    /// </summary>
+    private static ActorMapDefinition CreateCrucibleMap(
+        ArcRelayLoopProfile loopProfile)
+    {
+        ImmutableArray<string> rows =
+        [
+            "###############################",
+            "#....#......#.........##......#",
+            "#....#...#..#....#........##..#",
+            "#.........#..##..#......#.....#",
+            "#.......#.#.............#....##",
+            "###................###.......##",
+            "#.......#...#..#.....#........#",
+            "#.......#......#.....#...##...#",
+            "#.#.##........#...#...........#",
+            "#.....##...#....#...##.##.##..#",
+            "#............#...#............#",
+            "#....#.#....#.....#....#.#....#",
+            "#............#...#............#",
+            "#..##.##.##...#....#...##.....#",
+            "#...........#...#........##.#.#",
+            "#...##...#.....#......#.......#",
+            "#........#.....#..#...#.......#",
+            "##.......###................###",
+            "##....#.............#.#.......#",
+            "#.....#......#..##..#.........#",
+            "#..##........#....#..#...#....#",
+            "#......##.........#......#....#",
+            "###############################",
+        ];
+        int maximumX = rows[0].Length - 1;
+        int maximumY = rows.Length - 1;
+        Position Rotate(Position value) =>
+            new(maximumX - value.X, maximumY - value.Y);
+
+        // Reactors in opposing corners; the contested line is the diagonal
+        // between them and passes through the centre Well.
+        Position reactorWest = new(2, 2);
+        Position reactorEast = Rotate(reactorWest);
+
+        // Wells are TIERED rather than neutral: seven steps to your own,
+        // thirteen to the centre, twenty to theirs. The ids keep their
+        // north/centre/south spelling so existing sheets still bind.
+        Position wellNear = new(9, 3);
+        Position wellCentre = new(15, 11);
+        Position wellFar = Rotate(wellNear);
+
+        // Heals sit on the CROSS diagonal, six from the centre Well. Pulling
+        // out to heal costs you the main lane and can be followed.
+        Position healNorth = new(20, 6);
+        Position healSouth = Rotate(healNorth);
+
+        // The two halves of what used to be one "home": a protected corner
+        // pad that holds the reactor and the respawns, and a scoring
+        // shoulder four steps forward of it that is NOT protected. Camping a
+        // spawn no longer camps the objective.
+        ImmutableArray<Position> padWest = Rectangle(1, 4, 1, 4);
+        ImmutableArray<Position> padEast = [.. padWest.Select(Rotate)
+            .OrderBy(value => value.Y).ThenBy(value => value.X)];
+        ImmutableArray<Position> deliverWest = Rectangle(5, 7, 5, 7);
+        ImmutableArray<Position> deliverEast = [.. deliverWest.Select(Rotate)
+            .OrderBy(value => value.Y).ThenBy(value => value.X)];
+
+        Position[] west =
+        [
+            new(1, 1), new(2, 1), new(3, 1), new(4, 1),
+            new(1, 2), new(3, 2), new(4, 2), new(1, 3),
+        ];
+        var anchors = ImmutableArray.CreateBuilder<ActorMapSpawnAnchorDefinition>();
+        for (int unitId = 0; unitId < west.Length; unitId++)
+        {
+            anchors.Add(Anchor(0, unitId, west[unitId], Direction.East));
+            anchors.Add(Anchor(1, unitId, Rotate(west[unitId]), Direction.West));
+        }
+
+        Position[] forbidden =
+        [
+            wellNear, wellCentre, wellFar, reactorWest, reactorEast,
+        ];
+        return new ActorMapDefinition(
+            loopProfile.MapId,
+            version: 1,
+            rows,
+            anchors.ToImmutable(),
+            [
+                .. loopProfile.HealZoneTicksPerHp > 0
+                    ? new[]
+                    {
+                        Region("heal-north", healNorth),
+                        Region("heal-south", healSouth),
+                    }
+                    : System.Array.Empty<ActorMapRegionDefinition>(),
+                Region("well-north", wellNear),
+                Region("well-centre", wellCentre),
+                Region("well-south", wellFar),
+                Region("reactor-west", reactorWest),
+                Region("reactor-east", reactorEast),
+                new ActorMapRegionDefinition(
+                    "home-west",
+                    ActorMapRegionDefinition.RegionKind.Objective,
+                    deliverWest),
+                new ActorMapRegionDefinition(
+                    "home-east",
+                    ActorMapRegionDefinition.RegionKind.Objective,
+                    deliverEast),
+            ],
+            [
+                new ActorMapTileTagDefinition(
+                    "home-pads",
+                    ActorMapTileTagDefinition.TileTagKind.SpawnProtected,
+                    [.. padWest, .. padEast]),
+                new ActorMapTileTagDefinition(
+                    "arc-required-tiles",
+                    ActorMapTileTagDefinition.TileTagKind
+                        .SignaturePlacementForbidden,
+                    [.. forbidden]),
             ]);
     }
 
