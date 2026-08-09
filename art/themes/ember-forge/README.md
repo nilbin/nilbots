@@ -42,8 +42,9 @@ rather than the whole board, while overview retains the approved 24-tile
 three-Well strategic frame. The all-unit terrain fog applies to every base
 wall, raised module, apron, and floor; selecting a bot narrows that mask to its
 team. Ember currently uses 50% unseen-terrain darkness (the renderer default is
-58%), preserving a clear light-up transition at the edge of vision without
-returning to the original near-black treatment or changing which tiles are seen.
+58%) and a 45% visible-terrain light lift. The floor, base walls, and raised
+foundry modules all consume that two-sided grade, preserving a clear switch-on
+at the edge of vision without changing which tiles are seen.
 
 ## Source and review
 

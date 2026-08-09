@@ -719,9 +719,11 @@ Wells with half a tile of breathing room; distant home Reactors and deep aprons
 may leave the frame rather than shrinking the central theaters. Perspective
 fog darkens unseen terrain by a theme-owned amount, defaulting to 58% rather
 than blacking it out; Ember Forge currently uses 50% to keep a strong light-up
-transition at vision boundaries while retaining more form than the default.
-With no selected perspective, the floor and raised
-wall/tree materials use the cross-team union
+transition at vision boundaries while retaining more form than the default. A
+theme may also lift visible terrain; Ember uses 45% because removing fog from
+its naturally dark graphite materials was not enough to read as illumination.
+With no selected perspective, the floor and raised wall/tree materials use the
+cross-team union
 of every active unit's sight; selection replaces that with the chosen team's
 mask. A compact causal HUD call
 beside the standing score identifies Core

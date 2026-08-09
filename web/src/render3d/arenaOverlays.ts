@@ -75,6 +75,7 @@ export function buildOverlays(
     mapWidth,
     mapHeight,
     theme.environment3d.fog.unseenTerrainDarkness,
+    theme.environment3d.fog.visibleTerrainLift,
     disposables,
   );
   group.add(fog.mesh);
@@ -418,16 +419,17 @@ function buildPlayAwareness(
  * than a quad per hidden tile — the whole mask is one draw call and one upload per tick,
  * and the linear filter gives the soft boundary the flat renderer gets from a blur.
  *
- * With a unit selected, the plane darkens the floor and raised terrain samples the same
- * team mask from fragment world position. Without a selection, both sample the cross-team
- * union: any active unit can light terrain, while unseen ground remains substantially
- * fogged. This cannot be done with a second horizontal plane: lifting one above the trees
- * shifts its mask by most of a tile through the MOBA camera and slices the wrong terrain.
+ * With a unit selected, floor and raised terrain sample the same team mask from fragment
+ * world position. Without a selection, both sample the cross-team union: any active unit
+ * can light terrain, while unseen ground remains substantially fogged. The horizontal
+ * plane remains only as a fallback for callers that do not supply terrain; lifting it
+ * above walls would shift its mask through the MOBA camera and slice the wrong geometry.
  */
 function buildFog(
   mapWidth: number,
   mapHeight: number,
   unseenTerrainDarkness: number,
+  visibleTerrainLift: number,
   disposables: { dispose: () => void }[],
 ): {
   mesh: THREE.Mesh;
@@ -438,6 +440,9 @@ function buildFog(
   texture: THREE.DataTexture;
   enabled: { value: number };
   mapSize: THREE.Vector2;
+  darkness: { value: number };
+  visibleLift: { value: number };
+  floorCovered: { value: boolean };
 } {
   const data = new Uint8Array(mapWidth * mapHeight * 4);
   const texture = new THREE.DataTexture(data, mapWidth, mapHeight, THREE.RGBAFormat);
@@ -450,6 +455,7 @@ function buildFog(
   geometry.translate(mapWidth / 2, 0, mapHeight / 2);
   const material = new THREE.MeshBasicMaterial({
     map: texture,
+    opacity: unseenTerrainDarkness,
     transparent: true,
     depthWrite: false,
   });
@@ -459,12 +465,16 @@ function buildFog(
   disposables.push(geometry, material, texture);
   const enabled = { value: 0 };
   const mapSize = new THREE.Vector2(mapWidth, mapHeight);
+  const darkness = { value: unseenTerrainDarkness };
+  const visibleLift = { value: visibleTerrainLift };
+  const floorCovered = { value: false };
 
   const paint = (
     visible: readonly ReplayPosition[] | undefined,
     floorFogged: boolean,
   ) => {
-    mesh.visible = floorFogged && visible !== undefined;
+    mesh.visible =
+      !floorCovered.value && floorFogged && visible !== undefined;
     enabled.value = visible === undefined ? 0 : 1;
     if (!visible) return;
 
@@ -478,15 +488,24 @@ function buildFog(
         data[texel] = 0;
         data[texel + 1] = 0;
         data[texel + 2] = 0;
-        data[texel + 3] = seen.has(`${x},${y}`)
-          ? 0
-          : Math.round(unseenTerrainDarkness * 255);
+        // Alpha is the authoritative unseen fraction, independent of presentation
+        // strength. The plane and terrain shader apply the theme-owned darkness.
+        data[texel + 3] = seen.has(`${x},${y}`) ? 0 : 255;
       }
     }
     texture.needsUpdate = true;
   };
 
-  return { mesh, paint, texture, enabled, mapSize };
+  return {
+    mesh,
+    paint,
+    texture,
+    enabled,
+    mapSize,
+    darkness,
+    visibleLift,
+    floorCovered,
+  };
 }
 
 type FogMask = ReturnType<typeof buildFog>;
@@ -495,7 +514,9 @@ type FogMask = ReturnType<typeof buildFog>;
 function isFoggedTerrain(node: THREE.Object3D): boolean {
   const kind = node.userData.kind;
   return typeof kind === 'string' &&
-    (kind.startsWith('arena-wall-') || kind.startsWith('arena-woodland-'));
+    (kind === 'arena-floor' ||
+      kind.startsWith('arena-wall-') ||
+      kind.startsWith('arena-woodland-'));
 }
 
 /**
@@ -508,6 +529,7 @@ function applyTerrainFog(root: THREE.Object3D, fog: FogMask): void {
   const visit = (node: THREE.Object3D, inherited: boolean) => {
     const fogged = inherited || isFoggedTerrain(node);
     if (fogged && node instanceof THREE.Mesh) {
+      if (node.userData.kind === 'arena-floor') fog.floorCovered.value = true;
       const nodeMaterials = Array.isArray(node.material)
         ? node.material
         : [node.material];
@@ -525,6 +547,8 @@ function applyTerrainFog(root: THREE.Object3D, fog: FogMask): void {
       shader.uniforms.arenaVisionFogMap = { value: fog.texture };
       shader.uniforms.arenaVisionFogEnabled = fog.enabled;
       shader.uniforms.arenaVisionFogMapSize = { value: fog.mapSize };
+      shader.uniforms.arenaVisionFogDarkness = fog.darkness;
+      shader.uniforms.arenaVisionVisibleLift = fog.visibleLift;
       shader.vertexShader = shader.vertexShader
         .replace(
           'void main() {',
@@ -548,6 +572,8 @@ vArenaVisionFogWorldPosition = ( modelMatrix * arenaVisionFogPosition ).xyz;
           `uniform sampler2D arenaVisionFogMap;
 uniform float arenaVisionFogEnabled;
 uniform vec2 arenaVisionFogMapSize;
+uniform float arenaVisionFogDarkness;
+uniform float arenaVisionVisibleLift;
 varying vec3 vArenaVisionFogWorldPosition;
 void main() {`,
         )
@@ -562,15 +588,20 @@ vec2 arenaVisionFogUv = clamp(
   vec2(0.0),
   vec2(1.0)
 );
-float arenaVisionFogAlpha = texture2D(
+float arenaVisionFogMask = texture2D(
   arenaVisionFogMap,
   arenaVisionFogUv
-).a * arenaVisionFogEnabled;
-gl_FragColor.rgb *= 1.0 - arenaVisionFogAlpha;`,
+).a;
+float arenaVisionFogUnseen = arenaVisionFogMask * arenaVisionFogEnabled;
+float arenaVisionFogSeen =
+  (1.0 - arenaVisionFogMask) * arenaVisionFogEnabled;
+gl_FragColor.rgb *=
+  (1.0 - arenaVisionFogDarkness * arenaVisionFogUnseen) *
+  (1.0 + arenaVisionVisibleLift * arenaVisionFogSeen);`,
         );
     };
     material.customProgramCacheKey = () =>
-      `${priorCacheKey()}:arena-vision-fog-v1`;
+      `${priorCacheKey()}:arena-vision-fog-v2`;
     material.userData.arenaVisionFog = fog;
     material.needsUpdate = true;
   }

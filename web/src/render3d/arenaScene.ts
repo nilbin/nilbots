@@ -231,6 +231,7 @@ function floor(
   });
 
   const mesh = new THREE.Mesh(geometry, material);
+  mesh.userData.kind = 'arena-floor';
   mesh.receiveShadow = true;
   disposables.push(geometry, material);
   if (texture) disposables.push(texture);

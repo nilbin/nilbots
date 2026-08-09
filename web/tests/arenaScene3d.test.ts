@@ -424,6 +424,10 @@ test('Ember builds its approved raised perimeter and cover profiles', () => {
     assert.ok(!Array.isArray(bastionMaterial));
     const emberFog = bastionMaterial.userData.arenaVisionFog as {
       texture: THREE.DataTexture;
+      mesh: THREE.Mesh;
+      darkness: { value: number };
+      visibleLift: { value: number };
+      floorCovered: { value: boolean };
     };
     assert.ok(
       emberFog,
@@ -431,12 +435,29 @@ test('Ember builds its approved raised perimeter and cover profiles', () => {
     );
     const selected = source.units.find((unit) => unit.teamId === 0)!;
     overlays.update(0, selected.unitKey, true);
+    assert.equal(emberFog.darkness.value, 0.5);
+    assert.equal(emberFog.visibleLift.value, 0.45);
+    assert.equal(emberFog.floorCovered.value, true);
+    assert.equal(
+      emberFog.mesh.visible,
+      false,
+      'the terrain shader grades the floor without a second darkening plane',
+    );
+    const arenaFloor = objectByKind(arena.scene, 'arena-floor') as THREE.Mesh;
+    assert.ok(arenaFloor);
+    const floorMaterial = arenaFloor.material;
+    assert.ok(!Array.isArray(floorMaterial));
+    assert.equal(
+      floorMaterial.userData.arenaVisionFog,
+      emberFog,
+      'floor and walls share one authoritative light-up mask',
+    );
     const emberMask = emberFog.texture.image.data as Uint8Array;
     assert.ok(
       emberMask.some(
-        (value, index) => index % 4 === 3 && value === Math.round(0.5 * 255),
+        (value, index) => index % 4 === 3 && value === 255,
       ),
-      'Ember uses its lighter theme-owned unseen-terrain darkness',
+      'the shared texture records unseen terrain independently of theme strength',
     );
     overlays.dispose();
 
@@ -665,12 +686,20 @@ test('Woodland roots remain authoritative while organic foliage overhangs', () =
       enabled: { value: number };
       mesh: THREE.Mesh;
       texture: THREE.DataTexture;
+      darkness: { value: number };
+      visibleLift: { value: number };
     };
     assert.ok(fog, 'living wall materials receive the team-vision mask');
     const selected = source.units.find((unit) => unit.teamId === 0)!;
     overlays.update(0, selected.unitKey, true);
     assert.equal(fog.enabled.value, 1);
-    assert.equal(fog.mesh.visible, true, 'selection fog also covers the floor');
+    assert.equal(fog.darkness.value, 0.58);
+    assert.equal(fog.visibleLift.value, 0);
+    assert.equal(
+      fog.mesh.visible,
+      false,
+      'the floor receives the same shader mask without double fog',
+    );
     const mask = fog.texture.image.data as Uint8Array;
     const selectedVisible = mask.filter(
       (value, index) => index % 4 === 3 && value === 0,
@@ -678,9 +707,9 @@ test('Woodland roots remain authoritative while organic foliage overhangs', () =
     assert.ok(mask.some((value, index) => index % 4 === 3 && value === 0));
     assert.ok(
       mask.some(
-        (value, index) => index % 4 === 3 && value === Math.round(0.58 * 255),
+        (value, index) => index % 4 === 3 && value === 255,
       ),
-      'themes without an override retain the established 58% terrain fog',
+      'the mask retains authoritative unseen tiles at full signal',
     );
 
     const shader = {
@@ -692,9 +721,11 @@ test('Woodland roots remain authoritative while organic foliage overhangs', () =
     assert.match(shader.vertexShader, /instanceMatrix/);
     assert.match(shader.fragmentShader, /arenaVisionFogMap/);
     assert.ok('arenaVisionFogEnabled' in shader.uniforms);
+    assert.ok('arenaVisionFogDarkness' in shader.uniforms);
+    assert.ok('arenaVisionVisibleLift' in shader.uniforms);
     overlays.update(0, null, false);
     assert.equal(fog.enabled.value, 1, 'unselected walls retain all-unit vision');
-    assert.equal(fog.mesh.visible, true, 'the floor uses the same all-unit union');
+    assert.equal(fog.mesh.visible, false, 'the floor shader uses the all-unit union');
     const allUnitVisible = mask.filter(
       (value, index) => index % 4 === 3 && value === 0,
     ).length;

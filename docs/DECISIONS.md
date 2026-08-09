@@ -6792,3 +6792,18 @@ This changes only the presentation multiplier on unseen terrain. The
 authoritative vision tiles, unselected all-unit union, selected team mask,
 actor/projectile filtering, floor/wall continuity, and Canvas2D fallback remain
 unchanged.
+
+## 262. Ember vision actively lights terrain
+
+Owner correction (2026-08-09): even at 50% fog darkness, merely removing the
+mask from Ember's already-dark graphite floor and walls does not read as the
+environment lighting up. WebGL fog therefore also exposes the validated,
+theme-owned `visibleTerrainLift`. Ember sets 45%; every other theme defaults to
+zero and retains its prior response.
+
+The one authoritative mask now grades both sides of the boundary in the terrain
+shader: unseen fragments receive the 50% reduction and seen fragments receive
+the lift. The floor joins wall, tree, and foundry materials in that shader, so a
+second horizontal fog plane cannot double-darken it. The plane remains a
+fallback only for overlay tests/callers without a terrain root. Vision tiles,
+spectator/team scope, actor visibility, collision, and Canvas2D remain unchanged.

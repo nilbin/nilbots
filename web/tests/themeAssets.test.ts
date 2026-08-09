@@ -17,6 +17,7 @@ type ThemeManifest = {
   environment3d?: {
     fog?: {
       unseenTerrainDarkness?: number;
+      visibleTerrainLift?: number;
     };
     camera?: {
       yawDegrees?: number;
@@ -259,6 +260,7 @@ test('Ember Forge carries the approved living-bastion profiles', () => {
     manifest.environment3d?.fog?.unseenTerrainDarkness,
     0.5,
   );
+  assert.equal(manifest.environment3d?.fog?.visibleTerrainLift, 0.45);
   assert.equal(
     manifest.walls.families.perimeter.geometry3d?.bastionCover
       ?.boundaryDepth,

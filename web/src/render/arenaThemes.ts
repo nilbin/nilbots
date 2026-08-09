@@ -148,6 +148,8 @@ export interface ArenaTheme {
     fog: {
       /** Fraction of unseen terrain colour removed by the WebGL vision mask. */
       unseenTerrainDarkness: number;
+      /** Additional linear-light response applied to terrain inside published vision. */
+      visibleTerrainLift: number;
     };
     camera: {
       yawDegrees: number;
@@ -734,6 +736,7 @@ function environment3d(
   const fog = {
     unseenTerrainDarkness:
       candidate?.fog?.unseenTerrainDarkness ?? 0.58,
+    visibleTerrainLift: candidate?.fog?.visibleTerrainLift ?? 0,
   };
   const camera = {
     yawDegrees: candidate?.camera?.yawDegrees ?? 0,
@@ -756,6 +759,7 @@ function environment3d(
   };
   if (
     !finiteRange(fog.unseenTerrainDarkness, 0, 1) ||
+    !finiteRange(fog.visibleTerrainLift, 0, 1) ||
     !finiteRange(camera.yawDegrees, -45, 45) ||
     !finiteRange(camera.pitchDegrees, 40, 70) ||
     !finiteRange(camera.fovDegrees, 18, 55) ||
