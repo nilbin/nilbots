@@ -751,6 +751,8 @@ public static class ActorCanonicalContractReader
             "seedPhasedResolutionOrder", out _);
         bool hasWellLead = element.TryGetProperty(
             "seedPhasedWellLead", out _);
+        bool hasChiralBirths = element.TryGetProperty(
+            "chiralWellBirths", out _);
         bool hasHealZones = element.TryGetProperty(
             "healZoneTicksPerHp", out _);
         string[] modeFields =
@@ -792,6 +794,9 @@ public static class ActorCanonicalContractReader
                 : System.Array.Empty<string>(),
             .. hasWellLead
                 ? new[] { "seedPhasedWellLead" }
+                : System.Array.Empty<string>(),
+            .. hasChiralBirths
+                ? new[] { "chiralWellBirths" }
                 : System.Array.Empty<string>(),
             .. hasHealZones
                 ? new[] { "healZoneTicksPerHp" }
@@ -857,6 +862,8 @@ public static class ActorCanonicalContractReader
                 && Bool(element, "seedPhasedResolutionOrder"),
             SeedPhasedWellLead = hasWellLead
                 && Bool(element, "seedPhasedWellLead"),
+            ChiralWellBirths = hasChiralBirths
+                && Bool(element, "chiralWellBirths"),
         };
     }
 

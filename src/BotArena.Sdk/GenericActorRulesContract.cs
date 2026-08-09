@@ -367,6 +367,14 @@ public sealed class GenericActorRulesContract
         /// The observed per-well schedules already reflect the swap.
         /// </summary>
         public bool SeedPhasedWellLead { get; init; }
+
+        /// <summary>
+        /// Rotationally paired wells share ONE birth schedule -- base tick and
+        /// jitter alike -- so on a map where each side owns its near Well
+        /// neither player's income arrives first. The observed per-well
+        /// schedules already reflect the shared cadence.
+        /// </summary>
+        public bool ChiralWellBirths { get; init; }
     }
 
     /// <summary>One stable Well's complete production cadence.</summary>
