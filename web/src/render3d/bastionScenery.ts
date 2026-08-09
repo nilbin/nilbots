@@ -77,7 +77,10 @@ function buildFamily(
   const crucibleVents: Placement[] = [];
   const crucibleCores: Placement[] = [];
   const splitTowers: Placement[] = [];
-  const trims: Placement[] = [];
+  const topPlates: Placement[] = [];
+  const topPlateClamps: Placement[] = [];
+  const topPlateVents: Placement[] = [];
+  const topPlateFasteners: Placement[] = [];
   const heatSeams: Placement[] = [];
   const faceRibs: Placement[] = [];
   const foundryHalls: Placement[] = [];
@@ -276,7 +279,7 @@ function buildFamily(
           ),
         };
         towers.push(placement);
-        trims.push(topTrim(placement, moduleBase, towerRise, 0.84));
+        topPlates.push(topTrim(placement, moduleBase, towerRise, 0.84));
         if (seed % 4 === 0)
           heatSeams.push(
             heatSeam(placement, moduleBase, towerRise, span * 0.42),
@@ -370,7 +373,7 @@ function buildFamily(
             scale: new THREE.Vector3(span * 0.45, splitRise, span * 0.74),
           };
           splitTowers.push(placement);
-          trims.push(topTrim(placement, moduleBase, splitRise, 0.8));
+          topPlates.push(topTrim(placement, moduleBase, splitRise, 0.8));
           maximumHeight = Math.max(maximumHeight, moduleBase + splitRise);
         }
       }
@@ -391,7 +394,7 @@ function buildFamily(
         scale: new THREE.Vector3(length, shoulderRise, cross),
       };
       shoulders.push(placement);
-      trims.push(topTrim(placement, moduleBase, shoulderRise, 0.82));
+      topPlates.push(topTrim(placement, moduleBase, shoulderRise, 0.82));
       if (seed % 5 === 0)
         heatSeams.push(
           heatSeam(placement, moduleBase, shoulderRise, length * 0.46),
@@ -589,6 +592,83 @@ function buildFamily(
     }
   }
 
+  // The old treatment put one solid burgundy rounded rectangle on every
+  // rectangular module. Turn that footprint into actual service hardware:
+  // forged graphite plate, recessed central slot, two small crimson clamps,
+  // and corner fasteners. The details are generated in each plate's local
+  // orientation so split towers and shoulders do not collapse to one stamp.
+  for (let index = 0; index < topPlates.length; index++) {
+    const plate = topPlates[index];
+    const alongX = plate.scale.x >= plate.scale.z;
+    const longSize = alongX ? plate.scale.x : plate.scale.z;
+    const crossSize = alongX ? plate.scale.z : plate.scale.x;
+    const detailY = plate.position.y + plate.scale.y / 2 + 0.009;
+    const detailSeed = bastionHash(
+      familyId,
+      Math.round(plate.position.x * 16),
+      Math.round(plate.position.z * 16),
+      index,
+      431,
+    );
+    const detailVariant = detailSeed % 3;
+    const clampOffset = longSize * 0.36;
+    const clampDirections = detailVariant === 0
+      ? [-1, 1]
+      : detailVariant === 1
+        ? [detailSeed % 2 === 0 ? -1 : 1]
+        : [];
+    for (const direction of clampDirections) {
+      topPlateClamps.push(
+        localPlateDetail(
+          plate,
+          alongX ? direction * clampOffset : 0,
+          alongX ? 0 : direction * clampOffset,
+          detailY,
+          new THREE.Vector3(
+            alongX ? longSize * 0.13 : crossSize * 0.22,
+            0.017,
+            alongX ? crossSize * 0.22 : longSize * 0.13,
+          ),
+        ),
+      );
+    }
+    topPlateVents.push(
+      localPlateDetail(
+        plate,
+        alongX || detailVariant !== 2 ? 0 : crossSize * 0.1,
+        alongX && detailVariant === 2 ? crossSize * 0.1 : 0,
+        detailY + 0.002,
+        new THREE.Vector3(
+          alongX ? longSize * 0.34 : crossSize * 0.12,
+          0.012,
+          alongX ? crossSize * 0.12 : longSize * 0.34,
+        ),
+      ),
+    );
+    const fastenerAlong = longSize * 0.31;
+    const fastenerAcross = crossSize * 0.3;
+    for (const alongDirection of [-1, 1] as const) {
+      for (const acrossDirection of [-1, 1] as const) {
+        if (
+          (detailVariant === 1 && alongDirection === acrossDirection) ||
+          (detailVariant === 2 &&
+            alongDirection === 1 &&
+            acrossDirection === 1)
+        )
+          continue;
+        topPlateFasteners.push(
+          localPlateDetail(
+            plate,
+            alongX ? alongDirection * fastenerAlong : acrossDirection * fastenerAcross,
+            alongX ? acrossDirection * fastenerAcross : alongDirection * fastenerAlong,
+            detailY + 0.004,
+            new THREE.Vector3(0.026, 0.012, 0.026),
+          ),
+        );
+      }
+    }
+  }
+
   const familyGroup = new THREE.Group();
   familyGroup.userData.kind = 'arena-wall-bastion-family';
   familyGroup.userData.family = familyId;
@@ -602,7 +682,7 @@ function buildFamily(
   addInstances(
     familyGroup,
     roundedPrismGeometry(0.13, 0.055),
-    matteMaterial(config.bodyColor, 0.28),
+    forgedMaterial(config.bodyColor, 0.36, forgedSurface),
     shoulders,
     'shoulders',
     disposables,
@@ -610,7 +690,7 @@ function buildFamily(
   addInstances(
     familyGroup,
     new THREE.CylinderGeometry(0.5, 0.6, 1, 10, 1),
-    matteMaterial(config.bodyColor, 0.3),
+    forgedMaterial(config.bodyColor, 0.4, forgedSurface),
     roundTowers,
     'round-towers',
     disposables,
@@ -662,7 +742,7 @@ function buildFamily(
   addInstances(
     familyGroup,
     roundedPrismGeometry(0.08, 0.035),
-    matteMaterial(config.bodyColor, 0.34),
+    forgedMaterial(config.bodyColor, 0.4, forgedSurface),
     splitTowers,
     'split-towers',
     disposables,
@@ -670,17 +750,45 @@ function buildFamily(
   addInstances(
     familyGroup,
     roundedPrismGeometry(0.24, 0.06),
-    matteMaterial(config.bodyColor, 0.32),
+    forgedMaterial(config.bodyColor, 0.38, forgedSurface),
     towers,
     'towers',
     disposables,
   );
   addInstances(
     familyGroup,
-    roundedPrismGeometry(0.16, 0.02),
-    matteMaterial(config.trimColor, 0.5),
-    trims,
-    'top-trim',
+    new THREE.CylinderGeometry(0.5, 0.54, 1, 8, 1),
+    forgedMaterial(
+      mixedColor(config.bodyColor, '#767074', 0.17),
+      0.58,
+      forgedSurface,
+    ),
+    topPlates,
+    'top-plates',
+    disposables,
+  );
+  addInstances(
+    familyGroup,
+    new THREE.BoxGeometry(1, 1, 1),
+    matteMaterial(config.trimColor, 0.44),
+    topPlateClamps,
+    'top-plate-clamps',
+    disposables,
+  );
+  addInstances(
+    familyGroup,
+    new THREE.BoxGeometry(1, 1, 1),
+    matteMaterial('#0c0d10', 0.32),
+    topPlateVents,
+    'top-plate-vents',
+    disposables,
+  );
+  addInstances(
+    familyGroup,
+    new THREE.CylinderGeometry(0.5, 0.5, 1, 8, 1),
+    matteMaterial('#625f61', 0.62),
+    topPlateFasteners,
+    'top-plate-fasteners',
     disposables,
   );
   addInstances(
@@ -842,6 +950,26 @@ function topTrim(
       0.026,
       placement.scale.z * footprintScale,
     ),
+  };
+}
+
+function localPlateDetail(
+  plate: Placement,
+  localX: number,
+  localZ: number,
+  y: number,
+  scale: THREE.Vector3,
+): Placement {
+  const cosine = Math.cos(plate.rotationY);
+  const sine = Math.sin(plate.rotationY);
+  return {
+    position: new THREE.Vector3(
+      plate.position.x + localX * cosine + localZ * sine,
+      y,
+      plate.position.z - localX * sine + localZ * cosine,
+    ),
+    rotationY: plate.rotationY,
+    scale,
   };
 }
 
@@ -1045,7 +1173,10 @@ function addInstances(
     kind === 'furnace-cores' ||
     kind === 'foundry-hall-heat-channels';
   const surfaceTrim =
-    kind === 'top-trim' ||
+    kind === 'top-plates' ||
+    kind === 'top-plate-clamps' ||
+    kind === 'top-plate-vents' ||
+    kind === 'top-plate-fasteners' ||
     kind === 'crucible-collars' ||
     kind === 'crucible-lids' ||
     kind === 'crucible-clamps' ||

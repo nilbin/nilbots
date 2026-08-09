@@ -803,8 +803,10 @@ towers, layered crucible caps, sloped exposed-face ribs, thin heat seams, and
 perimeter supports over the exact traced wall substrate. Base profiles stay
 continuous and collision-readable; deterministic raised modules vary the
 skyline, with occasional inner-wall structures standing above a bot, without
-moving an open edge. Their burgundy caps sit inside the body footprint and do
-not cast a separate heavy shadow across the wall top. The perimeter's visible
+moving an open edge. Rectangular modules finish in rough graphite service
+plates with recessed slots, corner fasteners, and two small burgundy edge
+clamps rather than a full flat crimson cap. These plates sit inside the body
+footprint and do not cast a separate heavy shadow across the wall top. The perimeter's visible
 low 1.8-tile apron, raised outer rail, rounded corner plates, irregular external
 pylons, banded chimneys, and recessed furnace mouths broaden only the
 non-playable side of the map. The manifest owns chimney/furnace cadence and a

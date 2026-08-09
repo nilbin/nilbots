@@ -334,15 +334,33 @@ test('Ember builds its approved raised perimeter and cover profiles', () => {
       null,
       'Ember avoids the oversized hall caps that flattened wall runs',
     );
-    const topTrim = objectByKind(
+    const topPlate = objectByKind(
       arena.scene,
-      'arena-wall-bastion-top-trim',
+      'arena-wall-bastion-top-plates',
     ) as THREE.InstancedMesh;
-    assert.ok(topTrim, 'raised modules retain restrained burgundy caps');
+    assert.ok(topPlate, 'raised modules finish in forged service plates');
     assert.equal(
-      topTrim.castShadow,
+      topPlate.castShadow,
       false,
-      'thin caps must not paint a heavy black lip across wall tops',
+      'thin plates must not paint a heavy black lip across wall tops',
+    );
+    assert.ok(!Array.isArray(topPlate.material));
+    const topPlateMaterial = topPlate.material as THREE.MeshStandardMaterial;
+    assert.ok(
+      topPlateMaterial.bumpMap && topPlateMaterial.roughnessMap,
+      'rectangular wall tops use the forged micro-surface too',
+    );
+    assert.ok(
+      objectByKind(arena.scene, 'arena-wall-bastion-top-plate-clamps'),
+      'small clamps replace the full burgundy top slab',
+    );
+    assert.ok(
+      objectByKind(arena.scene, 'arena-wall-bastion-top-plate-vents'),
+      'service plates include a recessed slot',
+    );
+    assert.ok(
+      objectByKind(arena.scene, 'arena-wall-bastion-top-plate-fasteners'),
+      'service plates carry corner fasteners at follow scale',
     );
     assert.ok(
       objectByKind(arena.scene, 'arena-wall-bastion-apron-outer-rails'),

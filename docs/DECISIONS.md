@@ -6849,6 +6849,9 @@ team-colour directional signal, avoiding the dropped-item appearance of the
 previous bright rings. Raised-module top trim is inset within the body footprint
 and decorative in-map modules do not cast their own shadow map, removing the
 heavy black lip while retaining ordinary material lighting and terrain fog.
+The remaining full burgundy rectangles are replaced by rough graphite service
+plates with recessed slots, corner fasteners, and two small edge clamps; raised
+module bodies share the same deterministic forged micro-surface.
 The repeated low-poly crimson torus crowns are also removed. Round towers now
 finish in dark layered collars and recessed lids with deterministic
 bump/roughness texture, directional vent slots, and only small burgundy clamps;

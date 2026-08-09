@@ -34,11 +34,14 @@ functional vents, occasional live crucibles, and furnace cores. Round tops use
 dark faceted collars, recessed forged-metal lids, directional vent slots, and
 small burgundy clamps instead of a flat red torus; a deterministic micro-surface
 drives their bump and roughness response. Chimney top plates use the same dark
-forged response while crimson stays on their side bands. Emissive faces
+forged response while crimson stays on their side bands. Rectangular modules
+use the same rough forged surface: their former solid burgundy slabs are now
+graphite service plates with recessed slots, corner fasteners, and two small
+edge clamps. Emissive faces
 are physically separated from their recesses so mobile depth precision cannot
-make them flicker. Raised-module caps are inset within their graphite bodies and
-do not cast their own heavy top shadow, avoiding the oversized black lip that
-made the walls look outlined. The floor remains one arena-wide material field,
+make them flicker. Raised-module plates are inset within their graphite bodies
+and do not cast their own heavy top shadow, avoiding the oversized black lip
+that made the walls look outlined. The floor remains one arena-wide material field,
 with quiet 0.028 bump, 0.98 roughness, and the established authored albedo.
 
 ## Arc Relay landmarks
