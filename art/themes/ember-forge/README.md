@@ -41,10 +41,9 @@ still clears 63×63 CSS pixels. Director opens and idles on one local theater
 rather than the whole board, while overview retains the approved 24-tile
 three-Well strategic frame. The all-unit terrain fog applies to every base
 wall, raised module, apron, and floor; selecting a bot narrows that mask to its
-team. Ember owns a lighter 20% unseen-terrain darkness (the renderer default is
-58%) blended toward a neutral ash-smoke tint instead of black, preserving the
-foundry silhouette while muting unseen detail without changing which tiles are
-seen.
+team. Ember currently uses 50% unseen-terrain darkness (the renderer default is
+58%), preserving a clear light-up transition at the edge of vision without
+returning to the original near-black treatment or changing which tiles are seen.
 
 ## Source and review
 

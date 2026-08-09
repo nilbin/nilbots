@@ -3,8 +3,7 @@
   "label": "Ember Forge",
   "environment3d": {
     "fog": {
-      "unseenTerrainDarkness": 0.2,
-      "unseenTerrainTint": "#4a4850"
+      "unseenTerrainDarkness": 0.5
     },
     "camera": {
       "yawDegrees": 12,

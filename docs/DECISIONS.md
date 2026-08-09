@@ -6783,9 +6783,10 @@ Owner direction (2026-08-09): Ember Forge's deep graphite and crimson materials
 lose too much structural detail under the shared terrain fog. The WebGL theme
 environment therefore owns `fog.unseenTerrainDarkness`, with the established
 58% treatment retained as the validated fallback for every theme that omits it.
-Ember Forge sets 20% after review of the first 42% pass. It also replaces the
-historical black target with a neutral ash-smoke tint, reducing colour and
-detail separation in fog without crushing the foundry's silhouettes.
+Ember Forge first tried 42%, then 20% with an ash-smoke target. The latter lifted
+unseen midtones enough that entering vision no longer felt brighter. The current
+comparison therefore restores the neutral-black treatment at 50%, retaining a
+clear light-up transition while remaining lighter than the 58% default.
 
 This changes only the presentation multiplier on unseen terrain. The
 authoritative vision tiles, unselected all-unit union, selected team mask,

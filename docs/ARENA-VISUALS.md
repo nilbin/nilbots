@@ -718,9 +718,9 @@ selection into a portrait shot. The manual overview fits the three published
 Wells with half a tile of breathing room; distant home Reactors and deep aprons
 may leave the frame rather than shrinking the central theaters. Perspective
 fog darkens unseen terrain by a theme-owned amount, defaulting to 58% rather
-than blacking it out. The blend colour is theme-owned too: Ember Forge uses a
-20% neutral ash-smoke tint so its crimson structures retain readable form while
-unseen detail loses contrast. With no selected perspective, the floor and raised
+than blacking it out; Ember Forge currently uses 50% to keep a strong light-up
+transition at vision boundaries while retaining more form than the default.
+With no selected perspective, the floor and raised
 wall/tree materials use the cross-team union
 of every active unit's sight; selection replaces that with the chosen team's
 mask. A compact causal HUD call

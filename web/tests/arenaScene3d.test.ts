@@ -424,7 +424,6 @@ test('Ember builds its approved raised perimeter and cover profiles', () => {
     assert.ok(!Array.isArray(bastionMaterial));
     const emberFog = bastionMaterial.userData.arenaVisionFog as {
       texture: THREE.DataTexture;
-      tint: THREE.Color;
     };
     assert.ok(
       emberFog,
@@ -433,18 +432,12 @@ test('Ember builds its approved raised perimeter and cover profiles', () => {
     const selected = source.units.find((unit) => unit.teamId === 0)!;
     overlays.update(0, selected.unitKey, true);
     const emberMask = emberFog.texture.image.data as Uint8Array;
-    assert.equal(
-      emberMask[0],
-      255,
-      'the shared mask carries white so the material can apply the theme tint',
-    );
     assert.ok(
       emberMask.some(
-        (value, index) => index % 4 === 3 && value === Math.round(0.2 * 255),
+        (value, index) => index % 4 === 3 && value === Math.round(0.5 * 255),
       ),
       'Ember uses its lighter theme-owned unseen-terrain darkness',
     );
-    assert.equal(emberFog.tint.getHexString(), '4a4850');
     overlays.dispose();
 
     arena.dispose();
@@ -672,14 +665,8 @@ test('Woodland roots remain authoritative while organic foliage overhangs', () =
       enabled: { value: number };
       mesh: THREE.Mesh;
       texture: THREE.DataTexture;
-      tint: THREE.Color;
     };
     assert.ok(fog, 'living wall materials receive the team-vision mask');
-    assert.equal(
-      fog.tint.getHexString(),
-      '000000',
-      'themes without a tint retain the historical black fog blend',
-    );
     const selected = source.units.find((unit) => unit.teamId === 0)!;
     overlays.update(0, selected.unitKey, true);
     assert.equal(fog.enabled.value, 1);
@@ -705,7 +692,6 @@ test('Woodland roots remain authoritative while organic foliage overhangs', () =
     assert.match(shader.vertexShader, /instanceMatrix/);
     assert.match(shader.fragmentShader, /arenaVisionFogMap/);
     assert.ok('arenaVisionFogEnabled' in shader.uniforms);
-    assert.ok('arenaVisionFogTint' in shader.uniforms);
     overlays.update(0, null, false);
     assert.equal(fog.enabled.value, 1, 'unselected walls retain all-unit vision');
     assert.equal(fog.mesh.visible, true, 'the floor uses the same all-unit union');

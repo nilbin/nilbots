@@ -146,10 +146,8 @@ export interface ArenaTheme {
   zoneTextureScale: number;
   environment3d: {
     fog: {
-      /** Blend amount applied to unseen terrain by the WebGL vision mask. */
+      /** Fraction of unseen terrain colour removed by the WebGL vision mask. */
       unseenTerrainDarkness: number;
-      /** Colour unseen terrain approaches; black preserves the historical treatment. */
-      unseenTerrainTint: string;
     };
     camera: {
       yawDegrees: number;
@@ -736,7 +734,6 @@ function environment3d(
   const fog = {
     unseenTerrainDarkness:
       candidate?.fog?.unseenTerrainDarkness ?? 0.58,
-    unseenTerrainTint: candidate?.fog?.unseenTerrainTint ?? '#000000',
   };
   const camera = {
     yawDegrees: candidate?.camera?.yawDegrees ?? 0,
@@ -759,7 +756,6 @@ function environment3d(
   };
   if (
     !finiteRange(fog.unseenTerrainDarkness, 0, 1) ||
-    !validHex(fog.unseenTerrainTint) ||
     !finiteRange(camera.yawDegrees, -45, 45) ||
     !finiteRange(camera.pitchDegrees, 40, 70) ||
     !finiteRange(camera.fovDegrees, 18, 55) ||
