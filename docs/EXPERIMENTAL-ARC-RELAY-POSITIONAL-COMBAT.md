@@ -1,7 +1,7 @@
 # The Positional Combat Remake — Goal (owner-set 2026-08-11)
 
 Status: **promoted to the Arc Relay product line**. The accepted result is
-`ambush-warren-11`; local `nilbots arc-relay` and hosted entrant playlist v8
+`ambush-warren-11`; local `nilbots arc-relay` and hosted entrant playlist v9
 both pin it. This file remains the historical acceptance brief, not a second
 set of live rules.
 
@@ -17,7 +17,7 @@ and standoff, becomes unrepresentable rather than discouraged.
 ## The layering it enforces
 
 - **Sheets own all judgment** — when to engage, when to break off, where to
-  fight, who escorts whom. Play style is entry and exit conditions; courage is
+  fight, and whom a support body follows. Play style is entry and exit conditions; courage is
   a number the player wrote.
 - **The mind owns few, convergent verbs** — move, patrol, attack (declare →
   windup cone → first-body-in-the-way resolve), withdraw. Every verb reaches a

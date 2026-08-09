@@ -1,522 +1,560 @@
-# Sheet authoring: the contract for a sheet editor
+# Arc Relay sheet authoring
 
-This document describes the **current** Arc Relay tactical-sheet surface, as
-of the commit that introduced it. It is written for a developer who has never
-opened this repository, and it is the specification a sheet-editor frontend
-should be built against.
+This is the source and validation contract for the current Arc Relay tactical
+sheet editor. The compiler is authoritative; a frontend mirrors these rules
+for immediate feedback and sends the same two documents to the App for final
+validation.
 
-Player-facing labels use the canonical [Arc Relay vocabulary](ARC-RELAY-GLOSSARY.md).
-This document is the deeper schema and validation contract behind those labels.
+The format is evaluation-grade, not the eventual player-facing UX schema. That
+status is explicit in every playbook. The visual editor may use friendlier
+labels, cards, map tools, and conditional controls, but it must produce exactly
+the grammar below.
 
-**Scope rule, read this first.** Only the vocabulary described here is to be
-supported. This repository contains older surfaces — hand-authored
-`engagements` / `formations` / `maneuvers` / `orders` (collectively "the squad
-plane"), and unrelated Frontline and legacy arc-relay sheet formats. **An
-editor must not offer any of them.** They remain in the packed schema because
-frozen sheets still compile through it; consult the packed schema only where
-this document explicitly says to. Everything a new sheet needs is the v3
-doctrine grammar below.
+## 1. One sheet, two documents
 
----
+A sheet consists of:
 
-## 1. What a sheet is
+- a playbook with schema `arc-relay-tactical-playbook-v1`; and
+- a layout with schema `arc-relay-tactical-layout-v1`.
 
-A sheet is **two JSON documents**. The *playbook* (`playbooks/*.json`,
-`"schema": "arc-relay-tactical-playbook-v1"`) says what the team does: its
-composition, its roles, and — in the modern grammar — one `doctrines` block
-per role describing how that role behaves. The *layout*
-(`layouts/*.json`, `"schema": "arc-relay-tactical-layout-v1"`) says *where*,
-as map-plotted geometry: named zones, routes and anchors in map coordinates,
-plus one `bindings` entry per orientation so the same authored geometry serves
-both sides of a rotationally symmetric map (a `transform` such as
-`rotate-180`, and `routeAliases` / `formationAliases` that swap a route for
-its mirror). The playbook references its layout by relative path **and pinned
-`sha256`**, so editing a layout without updating the pin is a hard error. The
-CLI compiler (`nilbots experiment arc-relay-playbook --playbook <file>`)
-validates both, desugars the doctrine grammar into the packed executor schema,
-and emits `normalized-playbook.json`, `normalized-layout.json`, `explain.json`
-and a binary `playbook.atp`; **compilation is the only source of truth for
-validity**, and the editor's job is to never produce something it rejects.
+The playbook says who the eight bodies are and gives every role one ordered
+ladder. The layout holds all authored geography. The playbook's `layout.path`
+locates the file in a file workflow and `layout.sha256` pins the layout's exact
+UTF-8 bytes. Hosted compilation receives the same pair in memory and verifies
+the same hash.
 
-**Player vocabulary:** the editor presents each `roles[]` entry as an
-**assignment**. A class describes a body's capabilities; an assignment describes its
-job in this sheet. Its `roleId` is the assignment's stable compiler id,
-`candidateClasses` is its ordered eligible-chassis pool, and
-minimum/preferred/maximum are presented as staffing bounds and the normal target.
-Renaming an assignment must rewrite every role reference atomically. This is a UI
-projection only: the JSON keys and compiler grammar remain unchanged.
+The shared compiler is
+`BotArena.TacticalPlaybooks.ArcRelayTacticalPlaybookCompiler`. Both the CLI and
+the App call it. It validates the authored documents, property-canonicalizes
+them without reordering arrays, and links them into one bounded `ATL1` direct
+ladder payload. There is no expanded intermediate playbook.
 
----
+Compile a file-backed sheet with:
 
-## 2. The current vocabulary
+```sh
+nilbots experiment arc-relay-playbook \
+  --playbook path/to/playbook.json \
+  --out out/arc-relay-playbook
+```
 
-### 2.1 Playbook root
+The output file is still named `playbook.atp` for command compatibility, but
+its envelope is `ATL1`. `normalized-playbook.json` and
+`normalized-layout.json` are canonical versions of the authored documents;
+`explain.json` lists the authored rungs as `role[position]/verb` rather than
+inventing order ids. The linked payload may not exceed 65,536 bytes.
 
-Required keys: `schema`, `playbookId`, `auditStatus`, `composition`, `layout`,
-`perspective`, `memory`, `roles`, `groups`, `formations`,
-`engagements`, `supportPolicies`, `custodyPolicies`, `coordination`, `authoring`
-and `doctrines`.
+## 2. Playbook root
 
-`perspective` must be exactly `"team-relative"`. `composition` is the ordered
-list of class ids the team fields. `layout` is `{ "path", "sha256" }`.
+The root has exactly these ten keys:
 
-For a new sheet the editor should emit `formations`, `engagements` and
-`coordination.tasks` as **empty or minimal** and put all behaviour in
-`doctrines`. A doctrine source must not contain root `orders`: the compiler's
-strict source contract accepts exactly one of root `orders` (the frozen packed
-format) or `authoring` (the current source format), then generates the packed
-orders during desugaring. `doctrines` and the `authoring` block are source-only
-keys and do not appear in `normalized-playbook.json`.
+```text
+schema
+playbookId
+auditStatus
+composition
+layout
+memory
+roles
+custodyPolicies
+doctrines
+conditions
+```
 
-Executor channel precedence is a fixed game rule. There is no authored
-`arbitration` section. `fetchRungs` and `modeRungs` may appear in compiler
-output and `--explain`; they are derived IR and are rejected in source.
-
-### 2.2 Doctrines
-
-One entry per role, keyed by a free identifier:
+Unknown or missing keys are errors. A minimal shape is:
 
 ```json
-"doctrines": {
-  "ghost": {
-    "role": "hunter",
-    "custody": "well-custody",
-    "conceal": false,
-    "scavenge": ["north-farm", "midfield", "enemy-backfield"],
-    "fight": { ... },
-    "modes": [ ... ]
-  }
+{
+  "schema": "arc-relay-tactical-playbook-v1",
+  "playbookId": "example-v1",
+  "auditStatus": {
+    "provisionalEvaluationOnly": true,
+    "playerFacingProductSchema": false
+  },
+  "composition": [
+    "relay", "relay", "switchback", "switchback",
+    "towline", "towline", "lantern", "patchbay"
+  ],
+  "layout": {
+    "path": "../layouts/example-v1.json",
+    "sha256": "<64 lowercase hex characters>"
+  },
+  "memory": {
+    "enemyUnavailableTicks": 21,
+    "lastSeenEnemyTicks": 30,
+    "securedCoreTicks": 40,
+    "objectiveProgressTicks": 90
+  },
+  "roles": [],
+  "custodyPolicies": [],
+  "doctrines": {
+    "roles": {},
+    "cohorts": {},
+    "focus": {}
+  },
+  "conditions": {}
 }
 ```
 
-- **`role`** (required) — a role id; must belong to exactly one `group`.
-- **`custody`** (required) — a `custodyPolicies` id.
-- **`conceal`** (optional, default `true`) — concealment micro: slip out of
-  seen facing cones, skip the flank walk, long ambush patience. `false` makes
-  an open fighter.
-- **`scavenge`** (optional) — one zone id or a list of up to 8. Loose Cores
-  seen in those zones are worth breaking a mode for.
-- **`fight`** (optional) — the doctrine's combat character, below.
-- **`modes`** (required) — 1..8 entries, **highest priority first**, below.
+Identifiers are 1–64 lowercase ASCII letters, digits, or hyphens.
+`playbookId` is an identifier. The four memory windows are required integers
+in `1..600`; they tune remembered enemy unavailability, last-seen enemies,
+secured Cores, and absence of objective progress.
 
-### 2.3 The fight block
+### Composition
 
-Valid at doctrine level and, identically, as a per-mode override. Every key is
-optional; a mode's value wins over the doctrine's, key by key.
+`composition` is exactly eight class ids, with at most two copies of a class.
+The launch ids are:
 
-| key | values |
+```text
+kestrel  palisade  towline  patchbay  lantern  mortar  minesmith  hush
+relay    switchback  longshot  mason  sunder  repulsor  veil  nest
+```
+
+The hosted App additionally checks that every selected class is unlocked for
+the account.
+
+## 3. Roles
+
+`roles` contains `1..16` entries. A role is an assignment, not a class: it
+states which chassis may fill a job and how many bodies should fill it.
+
+```json
+{
+  "roleId": "runner",
+  "candidateClasses": ["switchback", "relay"],
+  "minimum": 1,
+  "preferred": 2,
+  "maximum": 2,
+  "carrierPreference": "prefer",
+  "deathPolicy": "hold-vacancy",
+  "respawnPolicy": "rejoin",
+  "overflowRoleId": "reserve",
+  "build": ["damage", "vitality", "reach", "vision"]
+}
+```
+
+| field | contract |
 | --- | --- |
-| `collect` | `"yield"` \| `"first"` — does a loose Core outrank a fight |
-| `heal` | `"yield"` \| `"first"` — does an armed recover outrank a fight |
-| `targets.lone` | 0..8 — only engage targets with no ally within N |
-| `targets.prefer` | 1..5 of `carrier`, `weakest`, `closest`, `strongest-threat`, `freshest` |
-| `engage.within` | 0..12 |
-| `engage.killableTicks` | 0..60 |
-| `engage.from` | `"behind"` |
-| `engage.positionTicks` | 1..64 |
-| `engage.else` | `"strike"` \| `"breakOff"` |
-| `chase.leash` | 0..16 |
-| `chase.persistTicks` | 1..120 |
-| `chase.executeBelowHealth` | 0..8 |
-| `breakOff.threats` | 0..8 |
-| `breakOff.health` | 0..8 |
-| `breakOff.within` | 2..16 |
-| `breakOff.memoryTicks` | 1..120 |
-| `breakOff.recoverTicks` | 4..120 |
-| `defense.radius` | 0..16 |
+| `roleId` | unique role identifier |
+| `candidateClasses` | `1..16` unique launch class ids; earlier entries are preferred when several bodies qualify |
+| `minimum`, `preferred`, `maximum` | integers `0..8`, with `minimum <= preferred <= maximum` |
+| `carrierPreference` | `forbid`, `allow`, `prefer`, or `require` |
+| `deathPolicy` | `hold-vacancy`, `promote-best`, or `rebalance` |
+| `respawnPolicy` | `resume`, `rejoin`, `rally`, or `replace` |
+| `overflowRoleId` | empty string or a declared role id |
+| `build` | optional ordered `1..8` entries from `damage`, `vision`, `reach`, `vitality`; duplicates are meaningful |
+
+Across all roles, the minimum sum must be at most eight, the preferred sum at
+most eight, and the maximum sum at least eight. Every class in the composition
+must be eligible for at least one role, and a role's minimum must be satisfiable
+by the composition.
+
+Allocation is deterministic. Eligible surviving bodies keep a stable role
+unless that role asks to rebalance. The allocator fills role minima, then
+preferences, in authored role order; candidate-class order, health, and stable
+unit id break selection ties. `hold-vacancy` reserves a dead body's stable
+slot, `promote-best` permits an eligible replacement, and `rebalance` permits
+live reassignment. Remaining bodies first use their prior role's
+`overflowRoleId` when legal, then the least-filled eligible role. `replace`
+does not reserve the returning body's old assignment.
+
+`carrierPreference` guides custody selection. A `forbid` role may not contain
+a `fetch` rung. A `require` role must contain at least one.
+
+## 4. Doctrines and ordered ladders
+
+`doctrines` has exactly three objects:
+
+```json
+"doctrines": {
+  "roles": { "runner": { "custody": "farm", "modes": [] } },
+  "cohorts": {},
+  "focus": {}
+}
+```
+
+`doctrines.roles` must have exactly one entry keyed by each declared role id.
+A role doctrine requires `custody` and `modes`, and may contain `fight`,
+`repair`, `conceal`, and `scavenge`:
+
+```json
+"runner": {
+  "custody": "farm",
+  "conceal": false,
+  "scavenge": ["north-farm", "midfield"],
+  "fight": { "targets": { "prefer": ["carrier", "weakest"] } },
+  "modes": [
+    { "fetch": "farm" },
+    {
+      "patrol": "north-well-loop",
+      "while": "north-soon",
+      "until": "north-far",
+      "cohort": "well-runners",
+      "posture": "core",
+      "focus": "well"
+    },
+    {
+      "patrol": "farm-loop",
+      "posture": "core",
+      "focus": { "maximumAttackers": 2 }
+    }
+  ]
+}
+```
+
+`custody` is this role's default carrying policy. `conceal` defaults to `true`;
+`false` makes an open fighter rather than an ambush-seeking one. `scavenge` is
+one zone id or `1..16` unique zone ids in which a nearby visible loose Core may
+interrupt ordinary movement. `fight` supplies role defaults; a rung's `fight`
+overrides it key by key. `repair` makes bodies in this role repair providers.
+
+### 4.1 Ladder selection and latching
+
+`modes` has `1..8` rungs. Position is priority: index 0 is strongest. On every
+tick, each body evaluates its own role's ladder and takes its highest active
+rung, subject only to cohort admission.
+
+`while` opens a rung. Once opened, the rung stays latched for that exact body
+life until its `until` expression becomes true; a later-false `while` does not
+close it. A stronger active rung may temporarily hide it without resetting it.
+Death creates a new life and clears the latch. A conditioned rung without
+`until` therefore remains active for that life and normally shadows weaker
+rungs once triggered.
+
+The last rung must be an unconditioned `patrol` floor. Every rung above it
+needs `while`, except `recover` and `fetch`, whose availability is implicit.
+
+### 4.2 Six verbs
+
+Every rung has exactly one verb.
+
+| verb | value | required alongside it | optional alongside it |
+| --- | --- | --- | --- |
+| `patrol` | route destination, or `{ "route": id }` / `{ "zone": id }` | `focus`; `while` above the floor | `until`, `fight`, `posture`, `cohort` |
+| `intercept` | `enemy-carriers` or `inbound` | anchor `from`, `focus`, `while` | `until`, `fight` |
+| `assault` | route/zone destination | `focus`, `while` | `until`, `fight`, `posture`, `cohort` |
+| `recover` | exactly `auto` | `focus` | `fight` |
+| `fetch` | custody-policy id | nothing else | nothing else |
+| `follow` | another role id | `posture` (`trail` or `screen`), `focus`, `while` | `until`, `fight` |
+
+A plain patrol/assault string names a route. The object form names exactly one
+route or zone. A route literally named `traffic` selects the executor's enemy-
+traffic shadowing movement and must still exist in the layout.
+
+`recover` is active only while that body needs and can use recovery. `fetch` is
+a movement-only overlay: when an eligible loose Core exists, a fetch rung may
+pre-empt the selected ordinary rung only if it appears earlier in the list.
+The ordinary rung's fight and facing behavior remain in force during the fetch.
+
+`follow` belongs entirely to the follower. It names a role, never a particular
+unit and never a caller-owned operation. The body follows the nearest live body
+of that role by Chebyshev distance; stable unit id breaks a tie. The rung becomes
+ineligible if no such leader exists. `trail` follows behind the leader's current
+motion/facing. `screen` places the follower between the leader and its nearest
+known threat, falling back to trail when no usable threat line exists.
+
+Patrol/assault `posture` is a compact per-rung spacing cue:
+
+- `front`: two canonical tiles ahead of the destination spine;
+- `core`: on the spine; and
+- `rear`: two canonical tiles behind it.
+
+Peers sharing a posture and destination spread alternately across the spine by
+stable unit id. The offset applies on the route's final approach, not while
+marching between earlier waypoints.
+
+### 4.3 Cohorts: one shared count
+
+A cohort coordinates adaptive participation without owning behavior:
+
+```json
+"cohorts": {
+  "well-runners": { "take": 3, "select": "nearest" }
+}
+```
+
+A shared cohort must be referenced by at least two rungs on different roles;
+one role may reference it at most once. Every consumer must be a non-floor
+patrol/assault rung, have a posture, and name the same route or zone. Membership
+is derived—there is no role list.
+
+On each tick, bodies whose current highest eligible rung names the cohort form
+the pool. They are ordered by Chebyshev distance to the side-bound destination
+(nearest route waypoint or nearest tile of a zone), then stable unit id. The
+first `take` bodies run their own rungs; rejected bodies continue down their own
+ladders. Membership is recalculated each tick and has no lease, timeout, state,
+or hidden cooldown.
+
+A one-rung cohort is inline instead of named:
+
+```json
+"cohort": { "take": 2, "select": "nearest" }
+```
+
+Both shared and inline `take` are `1..8`; `select` is exactly `nearest`.
+
+### 4.4 Focus: one shared attacker cap
+
+A focus scope shares only a maximum-attacker count:
+
+```json
+"focus": {
+  "well": { "maximumAttackers": 3 }
+}
+```
+
+A shared focus name needs at least two rung consumers. A one-rung cap is
+inline: `{ "maximumAttackers": 1 }`. The value is `1..8`. Every non-fetch
+rung must choose a shared or inline focus.
+
+The cap is applied per enemy target across its consumers. It does not share a
+target lock, target preferences, fight policy, order, or lifecycle. Bodies with
+the same global preference list naturally converge on facts such as `carrier`
+or `weakest`; focus only limits how many may be allocated.
+
+## 5. Fight and repair
+
+Every fight field is optional. A rung-level block overrides the doctrine block
+one leaf at a time.
+
+| field | legal value |
+| --- | --- |
+| `collect` | `yield` or `first` |
+| `heal` | `yield` or `first` |
+| `targets.lone` | `0..8` |
+| `targets.prefer` | `1..6` unique values from `carrier`, `weakest`, `anchor`, `closest`, `strongest-threat`, `freshest` |
+| `engage.within` | `0..12` |
+| `engage.killableTicks` | `0..60` |
+| `engage.from` | exactly `behind` |
+| `engage.positionTicks` | `1..64` |
+| `engage.else` | `strike` or `breakOff` |
+| `chase.leash` | `0..16` |
+| `chase.onlyCatchable` | boolean |
+| `chase.executeBelowHealth` | `0..8` |
+| `chase.persistTicks` | `1..120` |
+| `breakOff.threats` | `0..8` |
+| `breakOff.within` | `2..16` |
+| `breakOff.memoryTicks` | `1..120` |
+| `breakOff.recoverTicks` | `4..120` |
+| `breakOff.health` | `0..8` |
+| `defense.radius` | `0..16` |
 | `defense.return` | boolean |
 
-Either `breakOff` trigger latches a timed break-off, and a latched body
-rallies to the **highest currently-active patrol-verb mode** in its own list,
-falling down the list to the floor. That is why a doctrine with any `breakOff`
-trigger must have a real route floor (see the floor rule).
+Positive `breakOff.threats` requires both `within` and `memoryTicks`.
+Executor defaults are: target `carrier, weakest`; collect/heal `yield`; no
+isolation, hold-fire, commit, chase, or break-off gate; engage fallback
+`strike`; position budget 16; defense radius 2 with return enabled; break-off
+recovery 24 ticks.
 
-### 2.4 Modes
-
-An ordered list; **position is priority**, first is strongest, last is the
-floor. Each mode carries **exactly one verb**:
-
-| verb | value | meaning |
-| --- | --- | --- |
-| `patrol` | route id, or `"traffic"` | walk a route (or shadow enemy traffic) |
-| `intercept` | `"enemy-carriers"` \| `"inbound"` | cut off couriers |
-| `assault` | route id | press an attack along a route |
-| `recover` | `"auto"` | go heal; condition-driven internally |
-| `muster` | `"escort"` or an order id | answer a leader's escort call |
-| `fetch` | custody policy id | volunteer to fetch an eligible loose Core |
-| `squad` | `true` | do the ordinary squad-plane job; emits nothing |
-
-Per-verb optional keys:
-
-- `patrol`: `while`, `until`, `fight`
-- `intercept`: `from` (anchor id), `while`, `until`, `fight`, `patienceTicks`
-  (2..120, **accepted but inert** — the no-idle watchdog it bounded is gone)
-- `assault`: `while`, `until`, `fight`, `escort`
-- `recover`: `fight` only — authoring `while`/`until` is an error, because its
-  window is this body's own health and the beacon picture
-- `muster`: `fight` only — same reason; its window is "a leader is calling"
-- `fetch`: no optional keys — a fetchable Core under the named custody policy
-  is the call; without one the body immediately falls through
-- `squad`: nothing at all
-
-`while` and `until` are **condition strings** (§2.5). Every mode above the
-floor needs a `while` except `recover`, `muster`, and `fetch`, which are conditioned
-internally. A `while` without an `until` is a lint warning, not an error: once
-active such a mode only yields to a stronger one, never back to a weaker.
-
-**Escort lists** (`assault` only) accept three shapes:
+A repair provider declares exactly:
 
 ```json
-"escort": "medic"
-"escort": ["medic", "lancer"]
-"escort": [{ "role": "medic" }, { "role": "lancer", "posture": "screen" }]
+"repair": {
+  "prefer": ["carrier", "weakest", "any"],
+  "maximumProvidersPerTarget": 1,
+  "minimumProviderSeparation": 2,
+  "reserveHealthPercent": 30,
+  "survivalFallback": "evade"
+}
 ```
 
-`posture` is `"trail"` (default — follow behind the leader's line of travel)
-or `"screen"` (interpose between the leader and the nearest known threat).
-1..8 entries, no duplicates, and a role may not escort itself.
+`prefer` is `1..6` unique values from `weakest`, `carrier`, `medic`, `focus`,
+`anchor`, `any`; the two numeric provider fields are `1..8` and `0..8`,
+reserve health is `0..100`, and fallback is `evade`, `regroup`, `hold`, or
+`self-defense`.
 
-An escort entry is a **call**: it claims nobody. It is answered only by a role
-whose own doctrine carries a `muster` mode (§3).
+## 6. Conditions
 
-### 2.5 Conditions
-
-`authoring.predicates` maps a predicate name to one comparison:
+`conditions` maps a name to one typed comparison:
 
 ```json
-"ghost-hurt": { "fact": "self-health", "operator": "at-most", "value": 2 }
+"north-soon": {
+  "fact": "well-ticks-until-birth",
+  "subject": "north",
+  "operator": "at-most",
+  "value": 20
+}
 ```
 
-- `operator`: `at-least`, `at-most`, `equals`, `less-than`, `greater-than`
-- `value`: 0..100000
-- `subject` / `zone`: required only for the facts that take one (below)
-- `freshnessTicks` (1..600): only on `remembered-enemies-in-zone` and
-  `secured-cores`
+Required fields are `fact`, `operator`, and a 32-bit integer `value`.
+Operators are `at-least`, `at-most`, `equals`, `less-than`, and
+`greater-than`. `subject`, `zone`, and `freshnessTicks` are legal only where
+the fact table requires them.
 
-A **condition string** is `predicate [and predicate ...] [or ...]` — lowercase
-ASCII, digits and hyphens only, `and` binding tighter than `or`. There are no
-parentheses and no negation.
+A condition expression is a string:
 
-Conditions are written **where they control behavior**. There is no authored
-`authoring.conditionSets` catalog and no `*ConditionSetId` indirection. Mode
-`while` / `until`, custody `safeConversion` / `emergencyRecovery`, bait-drop
-`reclaim`, and the remaining legacy transition/task conditions all contain the
-condition string directly. An omitted task `fail` or reintegration `complete`
-means “never”; empty authored condition strings are not required.
+```text
+north-soon and enemy-thin or core-loose
+```
 
-**Fact vocabulary.** No subject: `always`, `tick`, `phase-state-ticks`,
-`live-friendlies`, `known-enemies-unavailable`, `visible-enemy-carriers`,
-`known-enemy-carriers`, `friendly-carriers`, `secured-cores`,
-`visible-loose-cores`, `visible-loose-core-value`, `outstanding-well-count`,
-`ticks-without-objective-progress`, `reactor-integrity`, `reactor-charge`,
-`custody-state-ticks`, `own-filled-sockets`, `enemy-filled-sockets`.
-Body subject, legal only while evaluating one doctrine candidate and therefore
-written without an explicit subject: `self-health`, `self-level`,
-`self-carrying` (0/1), `self-stuck-ticks`, `self-mode-ticks`. These refer to
-the exact body/life considering the mode, never the weakest body in its role.
-Zone subject (`zone`): `friendlies-in-zone-count`, `group-in-zone-count`,
-`visible-enemies-in-zone`, `remembered-enemies-in-zone`,
-`visible-loose-cores-in-zone`, `visible-loose-core-value-in-zone`.
-Group subject: `group-live-count`, `group-joining-count`,
-`group-in-zone-count`, `group-cohesion`, `group-stuck-ticks`,
-`formation-established-ticks`, `group-formation-broken`, `group-max-level`.
-Role subject: `role-live-count`, `recover-ready-bodies`, **`role-health`** —
-the minimum current health among live bodies of that role, and `9999` when the
-role has no live body, so "hurt" is never true of the dead.
-Well subject (`north`/`centre`/`south`): `well-has-outstanding`,
-`own-socket-filled`, `enemy-socket-filled`, `well-ticks-until-birth`.
-Order subject: `movement-complete`.
+`and` binds tighter than `or`. There are no parentheses or negation. `always`
+and `no-live-friendlies` are built-in expression names and may not be declared.
+Every declared condition must be referenced at least once.
 
-### 2.6 Custody policies
-
-Required: `custodyId`, `escortGroups` (0..8 group ids), `sourceWells` (1..3 of
-`north`/`centre`/`south`),
-`pickupReservationTicks` (1..120), `transferTimeoutTicks` (1..120),
-`deliveryTimeoutTicks` (1..1200), `accidentalPickup`
-(`transfer`/`deliver`/`drop-safe`), `dropRecovery`
-(`same-carrier`/`nearest-authorized`/`guard-until-safe`), `unreachableFallback`
-(`hold`/`guard`/`alternate-core`/`regroup`), `safeConversion` (one condition
-string).
-
-Optional, and the three an editor should surface first:
-`deliveryRoutes` — 1..8 `{ "zone", "route" }` rules meaning *a Core lifted
-inside this zone walks that route home instead of the shortest line*;
-`accidentalPickup` above; and `baitDrop` — `{ "zone", "reclaim" }`, a
-dropped Core left as a trap in that zone until the reclaim conditions hold.
-`forwardPass` is `"none"` or `"relay-catcher"`. The remaining
-`emergency*` keys are an advanced cluster and may be left out entirely.
-
-There is no carrier roster on a custody policy. A role consents by placing
-`{ "fetch": "<custodyId>" }` in its own ordered doctrine modes. One role may
-name several policies at different priorities. Once a reserved Core is picked
-up, the executor remembers the policy that made the assignment for the whole
-delivery/handoff run; an accidental pickup still uses the doctrine/order's
-ordinary `custody` contract.
-
-### 2.7 Layout
-
-Required: `schema`, `layoutId`, `mapId`, `bindings`, `zones`, `routes`,
-`anchors`.
-
-- **`zones`**: `{ "zoneId", "rect": [x0, y0, x1, y1] }` — inclusive map rects.
-- **`routes`**: `{ "routeId", "corridorWidth", "waypoints": [[x, y], ...] }`.
-  `corridorWidth` is how far off the line a body may reflow and still count as
-  on-route.
-- **`anchors`**: `{ "anchorId", "position": [x, y] }` — single tiles.
-- **`bindings`**: 1..16 entries, one per orientation. Required
-  `matchContractFingerprint` (or `"any-composition"`), `ownReactorSide`
-  (`east`/`west`), `transform` (e.g. `rotate-180`), `routeAliases`; optional
-  `formationAliases`, `parameterOverrides` (side-keyed re-values of declared
-  `authoring.parameters`, within their declared ranges).
-
-All coordinates are **absolute map tiles**, authored once for one orientation;
-the binding's transform produces the other side.
-
----
-
-## 3. Validation a frontend must mirror
-
-The compiler is strict and its errors are the specification. The rules worth
-enforcing live in the editor, because they are the ones an author trips:
-
-1. **Exactly one verb per mode.** Zero or two is an error.
-2. **Floor rule.** The last mode must be an unconditioned `patrol` or
-   `squad` — no `while`, no `until`. `squad` may only be the floor.
-3. **`squad` must be literally `true`.**
-4. **Conditioned modes.** Every non-floor mode needs a `while`, except
-   `recover`, `muster`, and `fetch`.
-5. **The muster/call two-way check.** A `muster` mode that matches no call is
-   an error ("answers no call"); a call whose role has no `muster` mode is an
-   error ("not recruitable"). *No muster mode means not recruitable* — this is
-   the deliberate default, so adding an escort call to a leader obliges the
-   editor to offer adding a `muster` mode to the recruit.
-6. **Fetch consent.** The named custody policy must exist; the same role may
-   name it only once; every custody policy needs at least one consenting role;
-   a role with `carrierPreference: "forbid"` may not fetch.
-7. **Escort lists**: 1..8, no duplicate roles, no self-escort.
-8. **`traffic` floor + any `breakOff` trigger** is an error: a computed
-   traffic patrol is not a place a break-off can rally to.
-9. **Every id is a reference.** Roles, groups, zones, routes, anchors, wells,
-   custody ids and condition subjects are all checked against their
-   declarations; identifiers are lowercase ASCII, digits and hyphens.
-10. **Ranges** as tabulated in §2.3 and §2.6.
-11. **Layout pin.** `layout.sha256` must match the layout file's bytes.
-12. **Self facts are body-only.** They take no `subject`, `zone`, or freshness,
-    and a self predicate referenced by a team/task/custody condition is an
-    error. The compiler's body-mode latch preserves `while`/`until` hysteresis
-    even while a stronger rung temporarily owns that body.
-
-The cheapest correctness guarantee for an editor is to shell out to the
-compiler on save and surface its error string verbatim; the messages are
-written to be read by an author, and they carry a JSON path.
-
-One historical exception exists outside the editor surface:
-`home-siege-v2.json` is byte-frozen evidence and retains the former condition
-catalog syntax. The compiler accepts those exact frozen source bytes solely so the
-freeze stays executable. New sheets and every other tracked playbook use the
-grammar above.
-
----
-
-## 4. Frontend requirements (owner, verbatim intent)
-
-- **User-friendly.** An author should be led through the schema, not
-  confronted with it.
-- **Must work on a phone.** This is a primary target, not a nice-to-have:
-  layout, hit targets and the map view all have to work one-thumbed.
-- **Conditional rendering.** The choices already made must narrow what is
-  offered next — picking `recover` must not show a `while` field; picking
-  `assault` must reveal `escort`; adding an escort call must prompt for the
-  recruit's `muster` mode; a fact that takes a `zone` must offer the zone
-  list, and one that takes a role must offer roles.
-- **Everything spatial is PLOTTED ON THE MAP.** Positions, patrol routes,
-  zones and anchors are map geometry and must be drawn and edited on a map
-  view, never typed as raw coordinate pairs.
-
-**Where the map data is.** Ordinary maps are JSON under `maps/`
-(`formatVersion`, `id`, `width`, `height`, `tiles`, `spawns`, …). The Arc
-Relay warren used by these sheets is **not** a file there — it is generated in
-the engine (`ArcRelayMapGeometry.AmbushWarrenDeep`, selected by
-`src/BotArena.Engine/ArcRelayLoopProfile.cs`, map id
-`arc-relay-ambush-warren-06`, 31x27). The practical export for a frontend is
-the **replay header**: every replay carries
-`header.contract.map` with `width`, `height`, `tileRows`, `regions`,
-`spawnAnchors` and `tileTags`, which is enough to draw the board exactly.
-Running any match (`nilbots arc-relay …`) produces one; the hosted editor gets
-the same engine export directly from `/api/sheets/catalog`. Hosted entrant
-playlist v8 accepts this map id only. Counterflow-era saved sheets remain
-readable as legacy source, but their coordinates are never projected or
-migrated onto the Warren.
-
----
-
-## 5. Persistence
-
-**Implementation status (2026-08-08).** The local-first guarantees below
-remain binding, and the hosted product now also persists tactical sheets in
-the App's `Sheets` module. Every server save compiles through the shared
-compiler library; the CLI and App do not carry separate validators. The
-historical inventory in §5.1 records what this pass replaced.
-
-### 5.1 What existed before the editor pass
-
-Tactical sheets — the grammar this whole document describes — live **as files
-in this repository** and are consumed by the CLI. Nothing in `src/BotArena.App`,
-nothing in `contracts/BotArena.App.json`, and nothing in `web/src` references
-`tactical-playbook` at all (grep returns empty). The compiler reads a path,
-writes to a path, and no server is involved.
-
-What the App *does* have is a **different, older document** that also happens
-to be called a "sheet" — the arc-relay **commander sheet**:
-
-| thing | where |
+| fact family | facts and required qualifiers |
 | --- | --- |
-| entity (`OwnerUserId`, `Name`, `Revision`, `CanonicalJson`, `ContentHash`) | `src/BotArena.App/ArcRelay/ArcRelaySheet.cs` |
-| document shape (`schemaVersion`, `mapId`, `slots[]`, `zones[]`, `rallyLines[]`, `policies`, `gambits[]`) | same file |
-| canonical JSON codec, `SchemaVersion = 1` | `src/BotArena.App/ArcRelay/ArcRelayPlayerSheetCodec.cs` |
-| storage | `DbSet<ArcRelaySheet>` — `src/BotArena.App/Shared/AppDbContext.cs:35`, entity config `:227` (jsonb column, `Revision` as concurrency token, unique-ish indexes on owner+name) |
-| endpoints under `/api/arc-relay` | `src/BotArena.App/ArcRelay/ArcRelayEndpoints.cs` — `GET /sheets` `:74`, `POST /sheets` `:101`, `PUT /sheets/{sheetId:guid}` `:147`. No DELETE. |
-| web editor | `web/src/site/pages/ArcRelayPage.tsx` (784 lines), wired in `web/src/site/api.ts` `:159-263` and `web/src/site/queries.ts` `:177,:505` |
+| body-local | `self-health`, `self-level`, `self-carrying`, `self-stuck-ticks`, `self-mode-ticks`; no subject/zone |
+| role | `live-count`, `joining-count`, `cohesion`, `stuck-ticks`, `role-live-count`, `role-health`; required role `subject` |
+| role + zone | `in-zone-count`; required role `subject` and `zone` |
+| optional role | `max-level`, `recover-ready-bodies`; optional role `subject` |
+| zone | `friendlies-in-zone-count`, `visible-enemies-in-zone`, `remembered-enemies-in-zone`, `visible-loose-cores-in-zone`, `visible-loose-core-value-in-zone`; required `zone` |
+| Well | `well-has-outstanding`, `own-socket-filled`, `enemy-socket-filled`, `well-ticks-until-birth`; `subject` is `north`, `centre`, or `south` |
+| team/global | `always`, `tick`, `phase-state-ticks`, `live-friendlies`, `known-enemies-unavailable`, `visible-enemy-carriers`, `known-enemy-carriers`, `friendly-carriers`, `secured-cores`, `visible-loose-cores`, `visible-loose-core-value`, `outstanding-well-count`, `ticks-without-objective-progress`, `reactor-integrity`, `reactor-charge`, `custody-state-ticks`, `own-filled-sockets`, `enemy-filled-sockets` |
 
-**That format is not this format.** Slots-and-rally-lines is not
-doctrines-and-modes; there is no migration path and none should be attempted.
-It is stored in a database column, not through `IObjectStore`.
+Only `remembered-enemies-in-zone` and `secured-cores` accept
+`freshnessTicks` (`1..600`).
 
-One coupling worth knowing before anything is deleted: `POST /sheets`
-(`ArcRelayEndpoints.cs:127`) also creates an `ArcRelayEntrant` with
-`Kind = ArcRelayEntrantKind.Sheet`. That enum has exactly two values, `Sheet`
-and `CustomMind` (`ArcRelayEntrant.cs:3-7`), and entrants are created in
-exactly two places — `:127` (sheet) and `:228` (custom mind). So the commander
-sheet is one of the two ways a body reaches the arc-relay ladder, and removing
-its editing surface is not purely a frontend deletion.
+Self facts refer to the exact body/life evaluating a rung and are legal only in
+mode `while`/`until`. `self-mode-ticks` is time since that rung latched. Team,
+custody, and bait conditions may not use self facts. `role-health` means the
+lowest health among live bodies in that role and reads as 9999 when none live,
+so a dead role does not look injured.
 
-### 5.2 Draft safety and canonical source
+## 7. Custody policies
 
-**Owner revision (2026-08-08).** The hosted sheet is the product surface. Raw
-playbook/layout JSON, file import/export controls and `layout.sha256` are not
-shown in the player editor; they are compiler and operator details. The server
-still stores the exact source documents, recomputes the layout pin, compiles on
-save and snapshots the resulting hashes into matches. CLI/file workflows remain
-available outside the player UI.
+`custodyPolicies` contains `1..16` policies. Required fields are:
 
-The working draft autosaves in browser storage before any navigation or hosted
-practice admission. Phone browsers discard tabs; an unsaved hour is
-unacceptable. The editor mirrors §3 for immediate field feedback, but the
-shared server compiler remains validation truth on every save and practice run.
-Unknown source fields remain a canonical-codec concern rather than a promise
-made by a visual editor that does not expose raw round-tripping.
+```json
+{
+  "custodyId": "farm",
+  "sourceWells": ["north", "centre", "south"],
+  "pickupReservationTicks": 8,
+  "transferTimeoutTicks": 8,
+  "deliveryTimeoutTicks": 120,
+  "accidentalPickup": "deliver",
+  "dropRecovery": "nearest-authorized",
+  "unreachableFallback": "guard",
+  "safeConversion": "always"
+}
+```
 
-### 5.3 Hosted `Sheets` module
-
-**Status: IMPLEMENTED.** The following is the retained design contract for
-the hosted module.
-
-Follow the repository's existing patterns exactly (`CLAUDE.md`, and the
-commander-sheet module above as the working precedent):
-
-- **Feature folder** `src/BotArena.App/Sheets/`, talking in-process; no broker,
-  no microservice.
-- **Entity** `TacticalSheet` — `Id`, `OwnerUserId`, `Name`, `Revision`
-  (concurrency token), `PlaybookJson`, `LayoutJson`, `ContentHash`,
-  `CreatedAt`, `UpdatedAt`. Register a `DbSet` on `AppDbContext` and add an EF
-  migration (`cd src/BotArena.App && dotnet ef migrations add <Name>`, with
-  `DOTNET_ROOT` exported).
-- **Where the bytes go.** The two source documents are stored in PostgreSQL
-  `json` columns, deliberately not `jsonb`: the layout pin hashes the exact
-  submitted UTF-8 text and PostgreSQL must not rewrite its whitespace or key
-  order. Compiled bytes are immutable match snapshots. Use `IObjectStore`
-  (`src/BotArena.App/Storage/IObjectStore.cs`) if sheets later gain large
-  attachments — database rows must never hold machine-local paths.
-- **Endpoints** under `/api/sheets`, `RequireAuthorization()`:
-  `GET /` (list, owner-scoped), `GET /{id}`, `POST /` (create),
-  `PUT /{id}` (update, `expectedRevision` for optimistic concurrency),
-  `DELETE /{id}`. The commander-sheet module has no DELETE; a drafting tool
-  needs one.
-- **Contract rules, non-negotiable.** Every handler returns a **named response
-  record** — an anonymous type produces no schema — and carries
-  `.Produces<T>()`, because `Results.Ok(...)` is untyped to ASP.NET. Then run
-  `bash scripts/generate-api-clients.sh` and commit the regenerated
-  `contracts/BotArena.App.json`, `web/src/api/schema.d.ts`,
-  `mobile/src/api/schema.d.ts` and
-  `src/BotArena.Cli/Generated/ApiContracts.cs` **with** the change. Never
-  hand-edit a generated file. CI's `contract-drift` job regenerates and fails
-  on any diff.
-- **Compile on write, or not at all.** Either validate server-side by invoking
-  the compiler and reject invalid documents, or store blobs verbatim and let
-  the editor be the only validator. Do not half-validate: a sheet that the
-  server accepted and the CLI rejects is the worst outcome.
-- **Entrant coupling.** The original sketch left admission separate; the
-  subsequent owner ruling in §6.3 deliberately supersedes that choice for the
-  shipped product.
-
----
-
-## 6. Legacy surfaces to remove
-
-**The editor build removed the surfaces below.** They are the previous
-generation of sheet editing and are not carried forward, migrated from, or
-kept behind a flag. This section remains as the located-and-verified deletion
-inventory.
-
-### 6.1 No Frontline sheet editor exists
-
-Searched and found nothing to remove. `find web/src mobile/src -iname
-"*frontline*"` returns exactly one file, `web/src/render/frontlineCaptureVisual.ts`,
-which is a renderer. Every other `frontline` hit under `web/src` is
-replay/render/audio/bridge code (`replayWireV2.ts`, `replayModel.ts`,
-`replayNormalize.ts`, `hostedBridge.ts`, `render/drawArena.ts`, …) — match
-viewing and runtime, explicitly **out of scope and to be left alone**. No
-Frontline authoring UI, no Frontline sheet endpoints.
-
-### 6.2 The arc-relay commander-sheet editor — remove
-
-This is the real one. It edits the `slots`/`zones`/`rallyLines`/`policies`/
-`gambits` document of §5.1, which the new grammar replaces.
-
-**Frontend**
-
-| path | what |
+| field | contract |
 | --- | --- |
-| `web/src/site/pages/ArcRelayPage.tsx` | the editor (784 lines). **Not a whole-file delete** — the same page also launches matches (`launch.mutate({ entrantId, opponentEntrantId, seed })`) and lists entrants/ladder. Remove the editing half; keep or relocate the launcher. |
-| `web/src/site/Site.tsx:22, 57, 105` | import and the two mount points |
-| `web/src/site/api.ts:159-163, 175` | `ArcRelaySheet`, `ArcRelaySheetDocument`, `ArcRelaySheetSlot`, `ArcRelaySheetPoint`, `ArcRelaySheetGambit`, `SaveArcRelaySheetRequest` type aliases |
-| `web/src/site/api.ts:224, 260-263` | `arcRelaySheets`, `createArcRelaySheet`, `updateArcRelaySheet` |
-| `web/src/site/queries.ts:17, 56, 177, 505` | `SaveArcRelaySheetRequest` import, `keys.arcRelaySheets`, `useArcRelaySheets`, `useSaveArcRelaySheet` |
+| `sourceWells` | `1..3` unique values from `north`, `centre`, `south` |
+| `pickupReservationTicks` | `1..120` |
+| `transferTimeoutTicks` | `1..120` |
+| `deliveryTimeoutTicks` | `1..1200` |
+| `accidentalPickup` | `transfer`, `deliver`, or `drop-safe` |
+| `dropRecovery` | `same-carrier`, `nearest-authorized`, or `guard-until-safe` |
+| `unreachableFallback` | `hold`, `guard`, `alternate-core`, or `regroup` |
+| `safeConversion` | condition expression without self facts |
 
-`web/CLAUDE.md` rules still apply to whatever remains, and
-`web/src/site/structure.test.ts` plus the web test suite must be green after
-the removal.
+There is no carrier roster in a custody policy. Roles declare eligibility and
+priority by placing `{ "fetch": "farm" }` in their own ladders. Each policy
+must have at least one fetch consumer; a role may reference a policy only once.
+The policy that reserved a Core remains attached throughout pickup, carrying,
+handoff, delivery, and recovery.
 
-**Backend** (`src/BotArena.App`)
+Optional surface:
 
-| path | what |
-| --- | --- |
-| `ArcRelay/ArcRelayEndpoints.cs:74` | `GET /api/arc-relay/sheets` |
-| `ArcRelay/ArcRelayEndpoints.cs:101` | `POST /api/arc-relay/sheets` |
-| `ArcRelay/ArcRelayEndpoints.cs:147` | `PUT /api/arc-relay/sheets/{sheetId:guid}` |
-| `ArcRelay/ArcRelaySheet.cs` | entity + `ArcRelaySheetDocument` and its record tree |
-| `ArcRelay/ArcRelayPlayerSheetCodec.cs` | canonical codec, `SchemaVersion = 1`; also feeds `GET /catalog` (`ArcRelayEndpoints.cs:44-52`), so that response shrinks rather than disappears |
-| `Shared/AppDbContext.cs:35, 227` | `DbSet<ArcRelaySheet>` and its entity configuration; needs an EF migration to drop the table |
+- `deliveryRoutes`: `1..8` `{ "zone", "route" }` rules. The Core's pickup
+  zone chooses the side-bound delivery route.
+- `forwardPass`: `none` or `relay-catcher`.
+- `baitDrop`: `{ "zone", "reclaim" }`, with a non-self reclaim expression.
+- emergency recovery: an all-or-nothing six-field bundle of
+  `emergencyRecoveryZones` (`1..8` zones), `emergencyPickupRadius` (`1..4`),
+  `emergencyRecovery` (non-self expression), `emergencyRecoveryRoles`
+  (`1..8` roles), `emergencyRecoverySourceWells` (`1..3` Wells), and
+  `emergencyRecoveryDisposition` (`deliver` or `displace`). `displace` also
+  requires `emergencyDisplacementTarget` (anchor) and
+  `emergencyDisplacementReleaseRadius` (`0..4`); `deliver` forbids them.
 
-**Generated clients — mandatory follow-up.** Removing App endpoints changes
-the HTTP contract, so after the deletion run `bash scripts/generate-api-clients.sh`
-and commit the regenerated `contracts/BotArena.App.json`,
-`web/src/api/schema.d.ts`, `mobile/src/api/schema.d.ts` and
-`src/BotArena.Cli/Generated/ApiContracts.cs` in the same change. Never
-hand-edit them. CI's `contract-drift` job regenerates and fails on any diff.
+## 8. Layout contract
 
-### 6.3 Entrant coupling ruling
+The layout has exactly:
 
-**Owner ruling (2026-08-08):** saving a tactical sheet creates or revises the
-same-id `Sheet` entrant and fields it in the current Season by default. The editor
-offers an explicit opt-out. Save-as-copy creates a new entrant identity; an
-ordinary revision preserves rating. This ruling supersedes the provisional
-separation advice in the original backend sketch.
+```text
+schema  layoutId  mapId  bindings  zones  routes  anchors
+```
 
-The new `POST /api/sheets` stores the exact playbook and layout, creates the
-same-id `ArcRelayEntrant` with `Kind = Sheet`, and establishes its
-current-Season rating when fielded. `PUT /api/sheets/{id}` revises both views
-atomically under optimistic concurrency. The destructive migration cannot
-translate commander documents into tactical playbooks, so it retires their
-entrants from future pairing before dropping the old table; historical match
-snapshots and rating foreign-key identities remain intact.
+Current hosted v9 accepts the native Warren map only:
+`arc-relay-ambush-warren-06` (31×27). Coordinates are absolute canonical map
+tiles. The same authored geometry serves both teams through side bindings.
+
+```json
+{
+  "schema": "arc-relay-tactical-layout-v1",
+  "layoutId": "example-warren6-v1",
+  "mapId": "arc-relay-ambush-warren-06",
+  "bindings": [
+    {
+      "matchContractFingerprint": "any-composition",
+      "ownReactorSide": "west",
+      "transform": "identity",
+      "routeAliases": {}
+    },
+    {
+      "matchContractFingerprint": "any-composition",
+      "ownReactorSide": "east",
+      "transform": "rotate-180",
+      "routeAliases": {}
+    }
+  ],
+  "zones": [{ "zoneId": "midfield", "rect": [10, 8, 20, 18] }],
+  "routes": [{
+    "routeId": "farm-loop",
+    "corridorWidth": 2,
+    "waypoints": [[4, 13], [15, 13], [4, 13]]
+  }],
+  "anchors": [{ "anchorId": "home", "position": [3, 13] }]
+}
+```
+
+Validation:
+
+- `bindings`: `2..16`, unique by fingerprint + side, and at least one west
+  and one east. A fingerprint is `any-composition` or a lowercase SHA-256.
+  Transform is `identity`, `mirror-x`, or `rotate-180`.
+  `routeAliases` has at most 32 string entries and both sides of every alias
+  must name declared routes. The obsolete optional `formationAliases` is
+  accepted only as an empty object; new editors omit it.
+- `zones`: `1..64`; `rect` is inclusive `[x0,y0,x1,y1]`, ordered, with each
+  coordinate in `0..255`.
+- `routes`: `1..64`; `1..128` waypoints, each `[x,y]` in `0..255`, and
+  `corridorWidth` in `0..8`.
+- `anchors`: `1..64`; each position is `[x,y]` in `0..255`.
+
+At runtime an exact match-contract binding wins; `any-composition` is the
+fallback for that reactor side. Geometry is never projected between maps.
+The editor draws the Warren from `/api/sheets/catalog`; replay headers expose
+the same `header.contract.map` (`width`, `height`, tile rows, regions, spawn
+anchors, and tile tags). Routes, zones, anchors, pickup geography, and
+delivery geography are plotted and dragged on that map, never entered as raw
+coordinate text in the primary UI.
+
+## 9. Frontend and hosted integration
+
+The product loop is edit → practice → watch → edit.
+
+- `GET /api/sheets/catalog` supplies the current map export, class catalog,
+  unlocks, starter pair, and stock opponents.
+- `GET/POST/PUT/DELETE /api/sheets` is owner-scoped persistence. The App stores
+  exact playbook/layout JSON, validates every save through the shared compiler,
+  and uses optimistic revisions. Server limits are 192 KiB playbook source and
+  96 KiB layout source, in addition to the 64 KiB linked limit.
+- `POST /api/sheets/{id}/trial` runs the saved draft against a stock opponent
+  and returns a replay-viewer target. Compile errors retain JSON paths and must
+  be attached to the corresponding visual control.
+- Creating or updating a sheet fields its entrant in the current ladder by
+  default, subject to the account cap; opting out is explicit.
+
+The browser autosaves the working draft locally before navigation or trial
+admission, so a failed compile, run, or phone-tab eviction cannot lose edits.
+Raw JSON import/export and SHA display are operator utilities, not primary
+player controls. The editor manipulates composition, assignments, ladders,
+conditions, custody, focus/cohorts, and map geometry through guided controls;
+the emitted documents remain the portable truth.
+
+## 10. Editor migration note
+
+The current compiler accepts only the ten-key direct grammar in this document.
+An editor based on the previous contract must remove controls and serializers
+for `perspective`, `groups`, `formations`, `engagements`, `coordination`,
+`authoring`, `supportPolicies`, `tempo`, `operations`, `staff`, `escort`,
+`muster`, and `squad`. Conditions are the top-level `conditions` object;
+coordination is role-local ladders plus the narrow `cohorts` count and `focus`
+cap; following is the follower's `follow` rung; fetching is the courier's
+`fetch` rung.
+
+`home-siege-v2.json` is retained only as byte-frozen historical evidence. Its
+source is intentionally not valid input to the current compiler or editor.

@@ -38,7 +38,7 @@ public sealed class TacticalSheetTemplateCatalog
         Template = Resolve(
             "starter-hunter",
             "Starter hunter",
-            "A readable doctrine-first draft: one open hunter, two recruitable escorts, and a patrol floor.",
+            "A readable doctrine-first draft: an open hunter, follower-owned support, and a patrol floor.",
             Resource("BotArena.Sheets.hunter-v1.playbook.json"),
             Resource("BotArena.Sheets.hunter-v1.layout.json"),
             starterOnly: true);
@@ -47,7 +47,7 @@ public sealed class TacticalSheetTemplateCatalog
             Resolve(
                 ArcRelayEntrantPlaylistDefinition.StockSheetId,
                 "Wellwright v1",
-                "The frozen ambush-warren-11 stock entrant: farms all three Wells with paired haulers and escorts.",
+                "The frozen ambush-warren-11 stock entrant: races all three Wells with independently authored hauler and support ladders.",
                 Resource("BotArena.Sheets.wellwright-v1.playbook.json"),
                 Resource("BotArena.Sheets.wellwright-v1.layout.json")),
         ];

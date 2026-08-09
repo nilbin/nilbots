@@ -18,19 +18,22 @@ navigation, help, errors, and authoring UI use the terms below.
 - **Assignment** — a sheet-authored job filled by eligible classes up to its staffing
   target. The compiler stores assignments in its `roles` collection; `role` remains an
   internal schema term, not a second player concept.
-- **Group** — a named set of assignments used by conditions and custody policy.
 - **Doctrine** — one assignment's ordered tactical behavior: custody, combat preferences,
-  collection geography, and modes.
+  collection geography, and modes. Every declared assignment has exactly one.
 - **Mode** — one conditional behavior inside a doctrine. Modes are evaluated in order;
   the first active mode wins and the last mode is the safe floor.
 - **Verb** — the one action family a mode performs: `patrol`, `intercept`, `assault`,
-  `recover`, `muster`, `fetch`, or `squad`.
+  `recover`, `fetch`, or `follow`.
 - **Condition** — a named comparison over an observed fact. Conditions combine with
   `and` and `or` to open or close modes; they do not reveal hidden information.
 - **Fight block** — the doctrine or mode settings for target preference, engagement,
   chase, break-off, defense, healing, and loose-Core priority.
-- **Escort call** — an assault mode's request for one or more assignments. A called
-  assignment joins only when its own doctrine has a matching `muster` mode.
+- **Follow mode** — follower-owned support intent. The follower names a role and
+  predictably selects its nearest live body; the followed role makes no call.
+- **Cohort** — one shared participation count for two or more compatible modes.
+  Membership is derived from those modes; a cohort does not own roles or behavior.
+- **Focus** — one shared attacker cap for two or more modes. It owns no target lock,
+  preference, order, or lifecycle.
 - **Custody policy** — the shared pickup, delivery, recovery, passing, accidental-pickup,
   and unreachable-route protocol. Each assignment volunteers through its own ordered
   `fetch` mode; the policy does not keep a second carrier roster.

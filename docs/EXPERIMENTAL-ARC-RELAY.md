@@ -13,14 +13,16 @@ The command defaults to `--loop-profile ambush-warren-11` (rules
 veterancy, rear-arc damage, the deep Warren. `h0` and every historical profile
 remain explicit immutable compatibility selections.
 
-**Hosted, entrant playlist v8 is the same line.** It pins ambush-warren-11,
+**Hosted, entrant playlist v9 is the same line.** It pins ambush-warren-11,
 the `arc-relay-tactical-playbook-v1` sheet format, and the frozen Wellwright v1
-stock participant. v7 began the fresh rating era: ForwardCombat Elo did not
-carry across games. v8 repairs the v7 WASM artifact and carries v7 ratings
-because no game fact changed. Playlist v6 and its ratings/matches remain
+stock participant on the direct-ladder ATL1 executor. v7 began the Warren
+development rating era: ForwardCombat Elo did not carry across games. v8
+repaired the v7 WASM artifact and began public Season 1 on a fresh 1200 ladder;
+v9 continues that Season book because the DSL representation changed without
+changing a game fact. Playlist v6 and its ratings/matches remain
 readable and executable on `arc-relay-threefold-depth-counterflow-01`; v6
 sheets are marked legacy until re-authored on the Warren, never geometrically
-projected.
+projected. Historical v7 and v8 definitions and artifacts remain immutable.
 
 ## Match shape
 

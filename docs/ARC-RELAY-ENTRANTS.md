@@ -14,13 +14,14 @@ crest, eight-slot composition, and exact-compatible Elo rating. A sheet save or
 mind resubmission advances its revision without resetting rating. Save-as-copy
 or a new submission creates a new identity and starts at the default rating.
 
-The current hosted identity is immutable entrant playlist v8: rules
+The current hosted identity is immutable entrant playlist v9: rules
 `arc-relay-ambush-11` on the 31x27 `arc-relay-ambush-warren-06` map, matching
-the default local `nilbots arc-relay` command. v7 began a fresh rating era;
-v8 repairs its frozen WASM artifact and carries v7 ratings because the game
-line did not change. ForwardCombat/Counterflow v6 ratings and matches remain
-readable history but were not copied. Rating continuity across revisions and
-the v7→v8 artifact repair applies within an era, not across a different game.
+the default local `nilbots arc-relay` command. v7 began the Warren development
+rating era; v8 repaired its frozen WASM artifact. Public Season 1 began at 1200
+on a separate v8 ladder. v9 moves the stock participant to the consolidated
+direct-ladder sheet representation and continues that same Season rating book
+because no map, rules, or match fact changed. ForwardCombat/Counterflow v6
+ratings and matches remain readable history but were not copied.
 
 ## Admission and composition
 
@@ -29,15 +30,16 @@ class. Custom minds declare that composition at submission and revision time;
 the reserved adaptive-composition fields remain empty in v1. The server
 validates declarations against current ownership before it accepts them.
 
-A sheet is authored as the current doctrine grammar: ordered role modes,
+A sheet is authored as the consolidated doctrine grammar: one ordered mode
+ladder per role, narrow shared cohort counts and focus caps,
 condition predicates, fight and custody policy, and map-plotted zones, routes
 and anchors. The server stores the exact playbook and layout sources, validates
 every save with the same compiler as the CLI, and snapshots the compiled package
 into a match. Saving enters the sheet into the ladder by default, with an
 explicit opt-out. A trial runs the current revision against a tracked stock
-sheet and opens it in the ordinary replay viewer. v8's stock sheet is frozen
+sheet and opens it in the ordinary replay viewer. v9's stock sheet is frozen
 Wellwright v1. New layouts are authored directly on the Warren export;
-Counterflow-era sheets are shown as legacy and cannot enter v8 until replotted.
+Counterflow-era sheets are shown as legacy and cannot enter v9 until replotted.
 The server never projects coordinates between maps.
 
 A custom mind must complete one hosted validation match without a runtime fault

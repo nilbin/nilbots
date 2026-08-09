@@ -12,7 +12,7 @@ Arc Relay is the shipped game. Players field **entrants** of two kinds: tactical
 **sheets** executed by the frozen stock mind, and submitted C# **custom minds** built to
 WASM through the controlled toolchain. Each entrant owns a crest, ordered eight-class
 composition, revisions, match history, and rating. The current CLI default and hosted
-playlist v8 run `ambush-warren-11` on `arc-relay-ambush-warren-06`. The primary loop is
+playlist v9 run `ambush-warren-11` on `arc-relay-ambush-warren-06`. The primary loop is
 **change → run → watch → understand → change again**.
 
 Legacy Duel records and code remain readable and byte-verifiable, but Duel admission and
@@ -20,7 +20,8 @@ creation are retired from the product surface. Frontline is historical design an
 evidence, not a shipped game. Current vocabulary and authoring contracts live in
 [`ARC-RELAY-GLOSSARY.md`](ARC-RELAY-GLOSSARY.md) and
 [`SHEET-AUTHORING.md`](SHEET-AUTHORING.md); decisions 247–250 close the current product,
-playlist, iteration, and runtime-determinism lines.
+playlist, iteration, and runtime-determinism lines. Sheets now link directly as
+bounded ATL1 role ladders; the legacy expanded playbook IR is retired.
 
 ## Non-negotiable architecture
 
