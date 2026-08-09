@@ -21,9 +21,8 @@ public sealed record TacticalSheetSource(
     string ContentHash);
 
 /// <summary>
-/// Reproducible product templates derived from tracked authoring sources.
-/// External library references are resolved once here so every saved sheet is
-/// still exactly the portable two-file format promised by the editor.
+/// Reproducible two-file product templates derived from tracked consolidated
+/// sheet sources.
 /// </summary>
 public sealed class TacticalSheetTemplateCatalog
 {
@@ -36,14 +35,12 @@ public sealed class TacticalSheetTemplateCatalog
 
     public TacticalSheetTemplateCatalog()
     {
-        string library = Resource("BotArena.Sheets.standard-v1.json");
         Template = Resolve(
             "starter-hunter",
             "Starter hunter",
             "A readable doctrine-first draft: one open hunter, two recruitable escorts, and a patrol floor.",
             Resource("BotArena.Sheets.hunter-v1.playbook.json"),
             Resource("BotArena.Sheets.hunter-v1.layout.json"),
-            library,
             starterOnly: true);
         TacticalSheetSource[] opponents =
         [
@@ -52,8 +49,7 @@ public sealed class TacticalSheetTemplateCatalog
                 "Wellwright v1",
                 "The frozen ambush-warren-11 stock entrant: farms all three Wells with paired haulers and escorts.",
                 Resource("BotArena.Sheets.wellwright-v1.playbook.json"),
-                Resource("BotArena.Sheets.wellwright-v1.layout.json"),
-                library),
+                Resource("BotArena.Sheets.wellwright-v1.layout.json")),
         ];
         stock = opponents.ToDictionary(value => value.Id, StringComparer.Ordinal);
         Stock = opponents;
@@ -74,23 +70,14 @@ public sealed class TacticalSheetTemplateCatalog
         string description,
         string playbookJson,
         string layoutJson,
-        string libraryJson,
         bool starterOnly = false)
     {
         JsonObject playbook = JsonNode.Parse(playbookJson)?.AsObject()
             ?? throw new InvalidDataException($"Embedded playbook '{id}' is empty.");
         JsonObject layout = JsonNode.Parse(layoutJson)?.AsObject()
             ?? throw new InvalidDataException($"Embedded layout '{id}' is empty.");
-        JsonObject library = JsonNode.Parse(libraryJson)?.AsObject()
-            ?? throw new InvalidDataException("Embedded tactical library is empty.");
-        ResolveLibrary(playbook, library);
-        NormalizeCustodyConditions(playbook, id);
-
         if (starterOnly)
-        {
             MakeStarterComposition(playbook);
-            CompleteStarterDoctrines(playbook);
-        }
         layout["layoutId"] = id;
         string mapId = layout["mapId"]?.GetValue<string>()
             ?? throw new InvalidDataException(
@@ -139,36 +126,6 @@ public sealed class TacticalSheetTemplateCatalog
             Convert.ToHexStringLower(SHA256.HashData(compilation.LinkedData)));
     }
 
-    private static void ResolveLibrary(JsonObject playbook, JsonObject library)
-    {
-        JsonObject authoring = playbook["authoring"]?.AsObject()
-            ?? throw new InvalidDataException(
-                "Embedded playbook has no authoring catalog.");
-        if (!authoring.Remove("library"))
-            return;
-        foreach (string section in new[]
-                 {
-                     "parameters", "fallbackPolicies", "assignmentProfiles",
-                     "standingOrders", "maneuvers", "predicates",
-                     "conditionSets",
-                 })
-        {
-            JsonObject target = authoring[section]?.AsObject()
-                ?? new JsonObject();
-            if (library[section] is JsonObject shared)
-            {
-                foreach ((string key, JsonNode? value) in shared)
-                {
-                    if (target.ContainsKey(key))
-                        throw new InvalidDataException(
-                            $"Embedded playbook duplicates library entry '{key}'.");
-                    target[key] = value?.DeepClone();
-                }
-            }
-            authoring[section] = target;
-        }
-    }
-
     private static void MakeStarterComposition(JsonObject playbook)
     {
         playbook["composition"] = new JsonArray(
@@ -192,96 +149,6 @@ public sealed class TacticalSheetTemplateCatalog
                     break;
             }
         }
-    }
-
-    private static void CompleteStarterDoctrines(JsonObject playbook)
-    {
-        JsonObject doctrines = playbook["doctrines"]?.AsObject()
-            ?? throw new InvalidDataException(
-                "Embedded starter playbook has no doctrines.");
-        HashSet<string> covered = doctrines
-            .Select(value => value.Value?["role"]?.GetValue<string>())
-            .Where(value => value is not null)
-            .Select(value => value!)
-            .ToHashSet(StringComparer.Ordinal);
-        foreach (JsonNode? node in playbook["roles"]!.AsArray())
-        {
-            string role = node!["roleId"]!.GetValue<string>();
-            if (covered.Contains(role))
-                continue;
-            doctrines[$"{role}-baseline"] = new JsonObject
-            {
-                ["role"] = role,
-                ["custody"] = "well-custody",
-                ["conceal"] = false,
-                ["modes"] = new JsonArray
-                {
-                    new JsonObject { ["squad"] = true },
-                },
-            };
-        }
-    }
-
-    private static void NormalizeCustodyConditions(
-        JsonObject playbook,
-        string id)
-    {
-        JsonObject authoring = playbook["authoring"]!.AsObject();
-        JsonObject predicates = authoring["predicates"]!.AsObject();
-        JsonObject conditionSets = authoring["conditionSets"]!.AsObject();
-        foreach (JsonNode? node in playbook["custodyPolicies"]!.AsArray())
-        {
-            JsonObject policy = node!.AsObject();
-            if (policy.Remove(
-                    "safeConversionConditionSetId",
-                    out JsonNode? safeReference))
-            {
-                policy["safeConversionAll"] = ExpandConditions(
-                    safeReference!.GetValue<string>(),
-                    predicates,
-                    conditionSets,
-                    id);
-            }
-            if (policy["baitDrop"] is JsonObject bait
-                && bait.Remove(
-                    "reclaimConditionSetId",
-                    out JsonNode? reclaimReference))
-            {
-                bait["reclaimAll"] = ExpandConditions(
-                    reclaimReference!.GetValue<string>(),
-                    predicates,
-                    conditionSets,
-                    id);
-            }
-        }
-    }
-
-    private static JsonArray ExpandConditions(
-        string conditionSetId,
-        JsonObject predicates,
-        JsonObject conditionSets,
-        string id)
-    {
-        JsonArray alternatives = conditionSets[conditionSetId]?.AsArray()
-            ?? throw new InvalidDataException(
-                $"Embedded playbook '{id}' references unknown condition set "
-                + $"'{conditionSetId}'.");
-        var expanded = new JsonArray();
-        foreach (JsonNode? alternative in alternatives)
-        {
-            var all = new JsonArray();
-            foreach (JsonNode? reference in alternative!.AsArray())
-            {
-                string predicateId = reference!.GetValue<string>();
-                JsonNode predicate = predicates[predicateId]
-                    ?? throw new InvalidDataException(
-                        $"Embedded playbook '{id}' references unknown predicate "
-                        + $"'{predicateId}'.");
-                all.Add(predicate.DeepClone());
-            }
-            expanded.Add(new JsonObject { ["all"] = all });
-        }
-        return expanded;
     }
 
     private static void NormalizeBindings(JsonObject layout, string id)

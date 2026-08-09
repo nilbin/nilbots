@@ -42,13 +42,11 @@
     <ProjectReference Include="../BotArena.Guest/BotArena.Guest.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <!-- Source-authored tactical templates. The Sheets module resolves the
-         shared library and pins layout bytes before exposing any draft. -->
-    <EmbeddedResource Include="../../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/library/standard-v1.json"
-                      LogicalName="BotArena.Sheets.standard-v1.json" />
+    <!-- Source-authored consolidated tactical templates. The Sheets module
+         pins layout bytes before exposing any draft. -->
     <EmbeddedResource Include="../../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/playbooks/hunter-v1.json"
                       LogicalName="BotArena.Sheets.hunter-v1.playbook.json" />
-    <EmbeddedResource Include="../../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/layouts/warren6-hunter-v1.json"
+    <EmbeddedResource Include="../../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/layouts/warren6-hunter-condition-v2.json"
                       LogicalName="BotArena.Sheets.hunter-v1.layout.json" />
     <EmbeddedResource Include="../../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/playbooks/wellwright-v1.json"
                       LogicalName="BotArena.Sheets.wellwright-v1.playbook.json" />

@@ -166,8 +166,8 @@ static int Help(int exitCode = 1)
                                                   validate and compile a typed
                                                   tactical playbook; emit its
                                                   canonical sheet, bound layout,
-                                                  ATL1 direct package (ATP1 for
-                                                  legacy), and explain view
+                                                  ATL1 direct package and an
+                                                  authored-rung explain view
           nilbots experiment frontline-labs qualify
                         --bot <generic-spec> [--runtime wasm|in-process]
                         [--suite frontline-qualification-1|frontline-qualification-2|frontline-qualification-3|frontline-qualification-4|frontline-qualification-5]
@@ -273,8 +273,8 @@ static int CommandHelp(string command)
             Compilation is the only authority on whether a sheet is valid;
             `nilbots experiment arc-relay-playbook --playbook <json>` runs the
             same compiler on its own and writes the canonical sheet, its bound
-            layout, the ATL1 direct package (ATP1 for legacy sheets), and an
-            explain view whose rungs retain the authored vocabulary. Without
+            layout, the ATL1 direct package, and an explain view whose rungs
+            retain the authored vocabulary. Without
             a sheet a team uses --classes0/--classes1 (or the default eight).
 
             Loop profile. --loop-profile selects the ruleset/map pair; every

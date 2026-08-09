@@ -5,7 +5,6 @@ using BotArena.Sdk;
 
 internal sealed class TacticalPlaybookPackage
 {
-    private const int EnvelopeMagic = 0x31505441;
     private const int DirectEnvelopeMagic = 0x314C5441;
     private const int OptionsMagic = 0x50455453; // STEP, little-endian.
     internal const string DefaultStepperMode = "greedy";
@@ -72,7 +71,7 @@ internal sealed class TacticalPlaybookPackage
         using var reader = new BinaryReader(
             new MemoryStream(linkedData.ToArray()));
         int envelopeMagic = reader.ReadInt32();
-        if (envelopeMagic is not (EnvelopeMagic or DirectEnvelopeMagic))
+        if (envelopeMagic != DirectEnvelopeMagic)
             throw new InvalidDataException("Unknown tactical playbook envelope.");
         string schema = reader.ReadString();
         if (!string.Equals(schema, PlaybookSchema, StringComparison.Ordinal))
@@ -143,20 +142,10 @@ internal sealed class TacticalPlaybookPackage
         // override is a plain re-bake before deserialization.
         if (binding.ParameterOverrides is { Count: > 0 } overrides)
             playbookJson = ApplyParameterOverrides(playbookJson, overrides);
-        DirectLadderRuntime? directLadder = null;
-        Playbook playbook;
-        if (envelopeMagic == DirectEnvelopeMagic)
-        {
-            using JsonDocument document = JsonDocument.Parse(playbookJson);
-            directLadder = DirectLadderRuntime.Create(document.RootElement);
-            playbook = directLadder.RuntimePlaybook;
-        }
-        else
-        {
-            playbook = JsonSerializer.Deserialize<Playbook>(
-                playbookJson, TacticalPlaybookJsonContext.Default.Playbook)
-                ?? throw new InvalidDataException("Tactical playbook is empty.");
-        }
+        using JsonDocument document = JsonDocument.Parse(playbookJson);
+        DirectLadderRuntime directLadder = DirectLadderRuntime.Create(
+            document.RootElement);
+        Playbook playbook = directLadder.RuntimePlaybook;
         if (!string.Equals(playbook.Schema, PlaybookSchema,
                 StringComparison.Ordinal)
             || playbook.Composition.Length != 8)

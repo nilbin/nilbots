@@ -64,8 +64,9 @@ public sealed class TacticalSheetCompilerTests
             .Order(StringComparer.Ordinal)
             .ToArray();
         string[] doctrineRoles = playbook.RootElement.GetProperty("doctrines")
+            .GetProperty("roles")
             .EnumerateObject()
-            .Select(value => value.Value.GetProperty("role").GetString()!)
+            .Select(value => value.Name)
             .Order(StringComparer.Ordinal)
             .ToArray();
         Assert.Equal(roles, doctrineRoles);
