@@ -97,6 +97,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     private TacticalPlaybookPackage? _package;
     private TacticalPlaybookMachine? _machine;
     private TacticalTaskMachine? _tasks;
+    private DirectLadderRuntime? _directLadder;
     private Position _ownReactor;
     private bool _mirrored;
     private int _rearArcDamageMultiplier = 1;
@@ -186,6 +187,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         AssertSignatureCoverage(start.Contract, start.TeamId);
         _machine = new TacticalPlaybookMachine(_package.Source);
         _tasks = new TacticalTaskMachine(_package.Source);
+        _directLadder = _package.DirectLadder;
     }
 
     public void Think(MindContext mind)
@@ -222,7 +224,9 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 machine.PhaseId,
                 StringComparison.Ordinal));
         Dictionary<int, string> groups = GroupMembership(roles, package.Source);
-        IReadOnlySet<int> priorTaskLeases = tasks.LeasedUnitIds;
+        IReadOnlySet<int> priorTaskLeases = _directLadder is null
+            ? tasks.LeasedUnitIds
+            : new HashSet<int>();
         UpdateFriendlyMembership(
             mind, package, machine, roles, groups, priorTaskLeases);
         TacticalSnapshot snapshot = Snapshot(
@@ -254,10 +258,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             mind, arc, package, machine, roles, groups,
             priorTaskLeases,
             updateFormationState: false);
-        tasks.Update(
-            mind.Tick,
-            machine.PhaseId,
-            mind.Bodies.Select(body => new TacticalTaskCandidate(
+        TacticalTaskCandidate[] candidates = mind.Bodies.Select(body =>
+                new TacticalTaskCandidate(
                     body.UnitId,
                     body.ActorId,
                     roles[body.UnitId],
@@ -273,26 +275,44 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                             ? level.Level
                             : 1,
                     _motion.GetValueOrDefault(body.UnitId)?.StuckTicks ?? 0))
-                .ToArray(),
-            condition => TacticalPlaybookMachine.Matches(
-                condition,
-                leaf => Evaluate(leaf, snapshot, package)),
-            (condition, candidate, modeTicks) =>
-                TacticalPlaybookMachine.Matches(
+            .ToArray();
+        if (_directLadder is null)
+        {
+            tasks.Update(
+                mind.Tick,
+                machine.PhaseId,
+                candidates,
+                condition => TacticalPlaybookMachine.Matches(
                     condition,
-                    leaf => EvaluateCandidate(
-                        leaf, candidate, modeTicks, snapshot, package)),
-            (assignment, candidate) => TaskSelectionDistance(
+                    leaf => Evaluate(leaf, snapshot, package)),
+                (condition, candidate, modeTicks) =>
+                    TacticalPlaybookMachine.Matches(
+                        condition,
+                        leaf => EvaluateCandidate(
+                            leaf, candidate, modeTicks, snapshot, package)),
+                (assignment, candidate) => TaskSelectionDistance(
+                    package,
+                    arc,
+                    assignment,
+                    candidate));
+        }
+        Dictionary<int, TacticalPlaybookPackage.Order> orders =
+            _directLadder?.Resolve(
+                mind.Tick,
+                candidates,
                 package,
-                arc,
-                assignment,
-                candidate));
+                _recovering,
+                (condition, candidate, modeTicks) =>
+                    TacticalPlaybookMachine.Matches(
+                        condition,
+                        leaf => EvaluateCandidate(
+                            leaf, candidate, modeTicks, snapshot, package)))
+            ?? ActiveOrders(
+                mind, package.Source, machine, tasks, roles, groups);
         snapshot = Snapshot(
             mind, arc, package, machine, roles, groups,
-            tasks.LeasedUnitIds,
+            _directLadder is null ? tasks.LeasedUnitIds : priorTaskLeases,
             updateFormationState: true);
-        Dictionary<int, TacticalPlaybookPackage.Order> orders = ActiveOrders(
-            mind, package.Source, machine, tasks, roles, groups);
         Dictionary<int, Position> authoredTargets = mind.Bodies.ToDictionary(
             body => body.UnitId,
             body => Target(
@@ -791,7 +811,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             + "returning=" + string.Join(",",
                 _returningToFormation.Keys.Order()) + "; "
             + "repair=" + string.Join(",", repairs.Keys.Order()) + "; "
-            + tasks.TraceSummary + "; "
+            + (_directLadder?.TraceSummary ?? tasks.TraceSummary) + "; "
             + "declines=" + string.Join(",", _declines
                 .OrderBy(value => value.Key)
                 .Select(value => $"{value.Key}:{value.Value}")) + "; "
@@ -1740,6 +1760,13 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 .GetValueOrDefault(condition.Subject, 9999),
             "group-max-level" => snapshot.GroupMaxLevel
                 .GetValueOrDefault(condition.Subject),
+            // Consolidated doctrine source names the role directly. The
+            // legacy compiler used to rewrite this into group-max-level;
+            // the direct ladder keeps the authored word intact.
+            "max-level" => condition.Subject.Length == 0
+                ? snapshot.GroupMaxLevel.Values.DefaultIfEmpty(0).Max()
+                : snapshot.GroupMaxLevel.GetValueOrDefault(
+                    condition.Subject),
             "team-max-level" => snapshot.GroupMaxLevel.Values
                 .DefaultIfEmpty(0).Max(),
             "phase-active" => string.Equals(
@@ -5332,16 +5359,24 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             }
             else
             {
-                int activePriority = tasks.DirectiveFor(body.UnitId) is
-                        { TaskId: string taskId }
-                    && package.Source.ModeRungs.FirstOrDefault(rung =>
-                        string.Equals(
-                            rung.TaskId, taskId, StringComparison.Ordinal)
-                        && string.Equals(
-                            rung.RoleId, roles[body.UnitId],
-                            StringComparison.Ordinal)) is { } modeRung
-                    ? modeRung.Priority
-                    : 8;
+                int activePriority;
+                if (package.DirectLadder is { } directLadder)
+                {
+                    activePriority = directLadder.SelectedPriority(body.UnitId);
+                }
+                else
+                {
+                    activePriority = tasks.DirectiveFor(body.UnitId) is
+                            { TaskId: string taskId }
+                        && package.Source.ModeRungs.FirstOrDefault(rung =>
+                            string.Equals(
+                                rung.TaskId, taskId, StringComparison.Ordinal)
+                            && string.Equals(
+                                rung.RoleId, roles[body.UnitId],
+                                StringComparison.Ordinal)) is { } modeRung
+                        ? modeRung.Priority
+                        : 8;
+                }
                 // A fetch is a movement-only rung. It competes with this
                 // body's current mode by list priority, but deliberately
                 // leaves that mode's fight, facing and formation order in
@@ -5971,7 +6006,9 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         foreach (TacticalPlaybookPackage.WithdrawRung rung in
                  disengage.WithdrawRoutes ?? [])
         {
-            if (_tasks?.IsActive(rung.OrderId) == true)
+            if (_directLadder?.IsRungActive(body.UnitId, rung.OrderId) == true
+                || _directLadder is null
+                && _tasks?.IsActive(rung.OrderId) == true)
             {
                 named = rung.Route;
                 break;

@@ -6,6 +6,7 @@ using BotArena.Sdk;
 internal sealed class TacticalPlaybookPackage
 {
     private const int EnvelopeMagic = 0x31505441;
+    private const int DirectEnvelopeMagic = 0x314C5441;
     private const int OptionsMagic = 0x50455453; // STEP, little-endian.
     internal const string DefaultStepperMode = "greedy";
     private const int MaximumPayloadBytes = 64 * 1024;
@@ -29,7 +30,8 @@ internal sealed class TacticalPlaybookPackage
         int mapWidth,
         int mapHeight,
         IReadOnlyDictionary<string, string> routeAliases,
-        IReadOnlyDictionary<string, string> formationAliases)
+        IReadOnlyDictionary<string, string> formationAliases,
+        DirectLadderRuntime? directLadder)
     {
         Source = source;
         LayoutSource = layout;
@@ -40,6 +42,7 @@ internal sealed class TacticalPlaybookPackage
         _mapHeight = mapHeight;
         _routeAliases = routeAliases;
         _formationAliases = formationAliases;
+        DirectLadder = directLadder;
         _zones = layout.Zones.ToDictionary(value => value.ZoneId,
             StringComparer.Ordinal);
         _routes = layout.Routes.ToDictionary(value => value.RouteId,
@@ -49,6 +52,7 @@ internal sealed class TacticalPlaybookPackage
     }
 
     internal Playbook Source { get; }
+    internal DirectLadderRuntime? DirectLadder { get; }
 
     /// <summary>Which movement seam this run selected. Runner-owned, not
     /// sheet-owned: the same authored sheet plays under either.</summary>
@@ -67,7 +71,8 @@ internal sealed class TacticalPlaybookPackage
             throw new InvalidDataException("Tactical playbook data is missing or too large.");
         using var reader = new BinaryReader(
             new MemoryStream(linkedData.ToArray()));
-        if (reader.ReadInt32() != EnvelopeMagic)
+        int envelopeMagic = reader.ReadInt32();
+        if (envelopeMagic is not (EnvelopeMagic or DirectEnvelopeMagic))
             throw new InvalidDataException("Unknown tactical playbook envelope.");
         string schema = reader.ReadString();
         if (!string.Equals(schema, PlaybookSchema, StringComparison.Ordinal))
@@ -138,9 +143,20 @@ internal sealed class TacticalPlaybookPackage
         // override is a plain re-bake before deserialization.
         if (binding.ParameterOverrides is { Count: > 0 } overrides)
             playbookJson = ApplyParameterOverrides(playbookJson, overrides);
-        Playbook playbook = JsonSerializer.Deserialize<Playbook>(
-            playbookJson, TacticalPlaybookJsonContext.Default.Playbook)
-            ?? throw new InvalidDataException("Tactical playbook is empty.");
+        DirectLadderRuntime? directLadder = null;
+        Playbook playbook;
+        if (envelopeMagic == DirectEnvelopeMagic)
+        {
+            using JsonDocument document = JsonDocument.Parse(playbookJson);
+            directLadder = DirectLadderRuntime.Create(document.RootElement);
+            playbook = directLadder.RuntimePlaybook;
+        }
+        else
+        {
+            playbook = JsonSerializer.Deserialize<Playbook>(
+                playbookJson, TacticalPlaybookJsonContext.Default.Playbook)
+                ?? throw new InvalidDataException("Tactical playbook is empty.");
+        }
         if (!string.Equals(playbook.Schema, PlaybookSchema,
                 StringComparison.Ordinal)
             || playbook.Composition.Length != 8)
@@ -152,7 +168,8 @@ internal sealed class TacticalPlaybookPackage
             playbook, layout, playbookSha256, layoutSha256, transform,
             contract.Map.Width, contract.Map.Height, binding.RouteAliases,
             binding.FormationAliases ?? new Dictionary<string, string>(
-                StringComparer.Ordinal))
+                StringComparer.Ordinal),
+            directLadder)
         {
             StepperMode = stepperMode,
         };

@@ -165,8 +165,9 @@ static int Help(int exitCode = 1)
                         --playbook <json> [--out <dir>]
                                                   validate and compile a typed
                                                   tactical playbook; emit its
-                                                  normalized IR, bound layout,
-                                                  ATP1 package, and explain view
+                                                  canonical sheet, bound layout,
+                                                  ATL1 direct package (ATP1 for
+                                                  legacy), and explain view
           nilbots experiment frontline-labs qualify
                         --bot <generic-spec> [--runtime wasm|in-process]
                         [--suite frontline-qualification-1|frontline-qualification-2|frontline-qualification-3|frontline-qualification-4|frontline-qualification-5]
@@ -271,9 +272,10 @@ static int CommandHelp(string command)
             Frozen `arc-relay-evaluation-sheet-v0..v3` documents still load.
             Compilation is the only authority on whether a sheet is valid;
             `nilbots experiment arc-relay-playbook --playbook <json>` runs the
-            same compiler on its own and writes the normalized IR, the ATP1
-            package and an explain view when you want to see why. Without a
-            sheet a team uses --classes0/--classes1 (or the default eight).
+            same compiler on its own and writes the canonical sheet, its bound
+            layout, the ATL1 direct package (ATP1 for legacy sheets), and an
+            explain view whose rungs retain the authored vocabulary. Without
+            a sheet a team uses --classes0/--classes1 (or the default eight).
 
             Loop profile. --loop-profile selects the ruleset/map pair; every
             registered id is listed in the error text when one is misspelled.

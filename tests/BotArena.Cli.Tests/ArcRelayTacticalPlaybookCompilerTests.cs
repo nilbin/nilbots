@@ -1655,90 +1655,64 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
     }
 
     [Fact]
-    public void FollowerOwnedFollowOrdersHavePredictableSelectorsAndNoFormation()
+    public void FollowerOwnedFollowRungsNameTheirLeaderAndPostureDirectly()
     {
         TacticalPlaybookCompilation compilation =
             ArcRelayTacticalPlaybookCompiler.Compile(HunterV1());
-        using JsonDocument playbook = JsonDocument.Parse(
-            compilation.NormalizedPlaybook);
-        JsonElement[] followOrders = playbook.RootElement.GetProperty("orders")
-            .EnumerateArray().Where(order => order.TryGetProperty(
-                "follow", out _))
+        JsonObject playbook = JsonNode.Parse(
+            compilation.NormalizedPlaybook)!.AsObject();
+        Assert.True(compilation.UsesDirectLadder);
+        var followModes = playbook["doctrines"]!["roles"]!.AsObject()
+            .SelectMany(role => role.Value!["modes"]!.AsArray()
+                .Select(mode => (Role: role.Key, Mode: mode!.AsObject())))
+            .Where(value => value.Mode.ContainsKey("follow"))
             .ToArray();
-        Assert.Equal(2, followOrders.Length);
-        foreach (JsonElement order in followOrders)
+        Assert.Equal(2, followModes.Length);
+        foreach ((_, JsonObject mode) in followModes)
         {
-            Assert.Equal("", order.GetProperty("formationId").GetString());
-            Assert.Equal("free",
-                order.GetProperty("movement").GetProperty("pace").GetString());
-            JsonElement follow = order.GetProperty("follow");
-            Assert.Equal("hunter", follow.GetProperty("leaderRole").GetString());
-            Assert.Equal("nearest", follow.GetProperty("selector").GetString());
-            Assert.Equal(2, follow.GetProperty("leash").GetInt32());
-            Assert.False(order.TryGetProperty("escort", out _));
+            Assert.Equal("hunter", mode["follow"]!.GetValue<string>());
+            Assert.False(mode.ContainsKey("formation"));
+            Assert.False(mode.ContainsKey("escort"));
         }
-        Assert.Equal("trail", followOrders.Single(order => order
-                .GetProperty("orderId").GetString() == "medic-follow")
-            .GetProperty("follow").GetProperty("posture").GetString());
-        Assert.Equal("screen", followOrders.Single(order => order
-                .GetProperty("orderId").GetString() == "lancer-follow")
-            .GetProperty("follow").GetProperty("posture").GetString());
+        Assert.Equal("trail", followModes.Single(value => value.Role == "medic")
+            .Mode["posture"]!.GetValue<string>());
+        Assert.Equal("screen", followModes.Single(value => value.Role == "lancer")
+            .Mode["posture"]!.GetValue<string>());
     }
 
     [Fact]
-    public void ConditionCoordinationKeepsTasksRoleLocalAndFocusContextual()
+    public void ConditionCoordinationKeepsLaddersRoleLocalAndFocusContextual()
     {
         TacticalPlaybookCompilation compilation =
             ArcRelayTacticalPlaybookCompiler.Compile(HunterV1());
-        using JsonDocument playbook = JsonDocument.Parse(
-            compilation.NormalizedPlaybook);
-        Assert.All(playbook.RootElement.GetProperty("coordination")
-            .GetProperty("tasks").EnumerateArray(), task =>
-        {
-            string[] roles = task.GetProperty("assignments").EnumerateArray()
-                .SelectMany(row => row.GetProperty("roles").EnumerateArray())
-                .Select(role => role.GetString()!).Distinct(
-                    StringComparer.Ordinal).ToArray();
-            Assert.Single(roles);
-        });
-        JsonElement[] engagements = playbook.RootElement
-            .GetProperty("engagements").EnumerateArray().ToArray();
-        Assert.All(engagements, engagement => Assert.StartsWith(
-            "focus:", engagement.GetProperty("coordinationScope").GetString()));
-        Assert.Contains(engagements, engagement =>
-            engagement.GetProperty("coordinationScope").GetString()
-                == "focus:assassin"
-            && engagement.GetProperty("maximumAttackersPerTarget").GetInt32()
-                == 1);
-        Assert.Contains(engagements, engagement =>
-            engagement.GetProperty("coordinationScope").GetString()
-                == "focus:well"
-            && engagement.GetProperty("maximumAttackersPerTarget").GetInt32()
-                == 3);
+        JsonObject playbook = JsonNode.Parse(
+            compilation.NormalizedPlaybook)!.AsObject();
+        JsonObject doctrines = playbook["doctrines"]!.AsObject();
+        Assert.Equal(1,
+            doctrines["focus"]!["assassin"]!["maximumAttackers"]!
+                .GetValue<int>());
+        Assert.Equal(3,
+            doctrines["focus"]!["well"]!["maximumAttackers"]!
+                .GetValue<int>());
+        Assert.All(doctrines["roles"]!.AsObject(), role =>
+            Assert.NotEmpty(role.Value!["modes"]!.AsArray()));
+        Assert.False(playbook.ContainsKey("coordination"));
+        Assert.False(playbook.ContainsKey("engagements"));
     }
 
     [Fact]
-    public void FollowIsOwnedByTheFollowersOwnTaskAndOrder()
+    public void FollowIsOwnedByTheFollowersOwnLadderPosition()
     {
         TacticalPlaybookCompilation compilation =
             ArcRelayTacticalPlaybookCompiler.Compile(HunterV1());
-        using JsonDocument playbook = JsonDocument.Parse(
-            compilation.NormalizedPlaybook);
-        JsonElement[] tasks = playbook.RootElement
-            .GetProperty("coordination")
-            .GetProperty("tasks")
-            .EnumerateArray()
-            .ToArray();
+        JsonObject playbook = JsonNode.Parse(
+            compilation.NormalizedPlaybook)!.AsObject();
         foreach (string role in new[] { "medic", "lancer" })
         {
-            JsonElement follow = tasks.Single(task =>
-                task.GetProperty("taskId").GetString() == $"{role}-follow");
-            JsonElement row = Assert.Single(
-                follow.GetProperty("assignments").EnumerateArray());
-            Assert.Equal($"{role}-follow", row.GetProperty("orderId").GetString());
-            Assert.Equal(role, Assert.Single(
-                row.GetProperty("roles").EnumerateArray()).GetString());
-            Assert.Equal(1, follow.GetProperty("priority").GetInt32());
+            JsonArray modes = playbook["doctrines"]!["roles"]![role]![
+                "modes"]!.AsArray();
+            Assert.Equal(1, modes.IndexOf(modes.Single(mode =>
+                mode!.AsObject().ContainsKey("follow"))));
         }
     }
 
@@ -1747,21 +1721,14 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
     {
         TacticalPlaybookCompilation compilation =
             ArcRelayTacticalPlaybookCompiler.Compile(HunterV1());
-        using JsonDocument playbook = JsonDocument.Parse(
-            compilation.NormalizedPlaybook);
-        JsonElement[] tasks = playbook.RootElement
-            .GetProperty("coordination")
-            .GetProperty("tasks")
-            .EnumerateArray()
-            .ToArray();
-        int recover = tasks
-            .Single(task => task.GetProperty("taskId").GetString()
-                == "medic-recover")
-            .GetProperty("priority").GetInt32();
-        int follow = tasks
-            .Single(task => task.GetProperty("taskId").GetString()!
-                .Equals("medic-follow", StringComparison.Ordinal))
-            .GetProperty("priority").GetInt32();
+        JsonObject playbook = JsonNode.Parse(
+            compilation.NormalizedPlaybook)!.AsObject();
+        JsonArray modes = playbook["doctrines"]!["roles"]!["medic"]![
+            "modes"]!.AsArray();
+        int recover = modes.IndexOf(modes.Single(mode =>
+            mode!.AsObject().ContainsKey("recover")));
+        int follow = modes.IndexOf(modes.Single(mode =>
+            mode!.AsObject().ContainsKey("follow")));
         Assert.True(recover < follow,
             $"recover ({recover}) must outrank follow ({follow})");
     }
@@ -1771,37 +1738,32 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
     {
         TacticalPlaybookCompilation compilation =
             ArcRelayTacticalPlaybookCompiler.Compile(HunterV1());
-        using JsonDocument playbook = JsonDocument.Parse(
-            compilation.NormalizedPlaybook);
-        JsonElement root = playbook.RootElement;
-        Assert.False(root.TryGetProperty("arbitration", out _));
+        JsonObject root = JsonNode.Parse(
+            compilation.NormalizedPlaybook)!.AsObject();
+        Assert.False(root.ContainsKey("arbitration"));
 
-        JsonElement[] rungs = root.GetProperty("fetchRungs")
-            .EnumerateArray().ToArray();
+        (string Role, int Priority, string Custody)[] rungs = root[
+                "doctrines"]!["roles"]!.AsObject()
+            .SelectMany(role => role.Value!["modes"]!.AsArray()
+                .Select((mode, priority) => (Role: role.Key,
+                    Priority: priority, Mode: mode!.AsObject())))
+            .Where(value => value.Mode.ContainsKey("fetch"))
+            .Select(value => (value.Role, value.Priority,
+                value.Mode["fetch"]!.GetValue<string>()))
+            .ToArray();
         Assert.Equal(
-            ["hauler", "carrier", "lancer", "eyes", "reserve"],
-            rungs.Select(rung => rung.GetProperty("roleId").GetString()!)
-                .ToArray());
-        Assert.All(rungs, rung => Assert.Equal(
-            "well-custody",
-            rung.GetProperty("custodyId").GetString()));
-
-        JsonElement custody = Assert.Single(root
-            .GetProperty("custodyPolicies").EnumerateArray());
-        Assert.Equal(
-            rungs.Select(rung => rung.GetProperty("roleId").GetString()!),
-            custody.GetProperty("authorizedCarrierRoles")
-                .EnumerateArray().Select(role => role.GetString()!));
+            ["carrier", "eyes", "hauler", "lancer", "reserve"],
+            rungs.Select(rung => rung.Role).ToArray());
+        Assert.All(rungs, rung => Assert.Equal("well-custody", rung.Custody));
+        Assert.False(Assert.Single(root["custodyPolicies"]!.AsArray())!
+            .AsObject().ContainsKey("authorizedCarrierRoles"));
 
         // Fetch is stated first in every courier role's own ladder.
-        Assert.Equal(0, rungs.Single(rung =>
-                rung.GetProperty("roleId").GetString() == "lancer")
-            .GetProperty("priority").GetInt32());
-        JsonElement lancerFollow = root.GetProperty("modeRungs")
-            .EnumerateArray().Single(rung => rung.GetProperty("roleId")
-                .GetString() == "lancer"
-                && rung.GetProperty("taskId").GetString() == "lancer-follow");
-        Assert.Equal(1, lancerFollow.GetProperty("priority").GetInt32());
+        Assert.Equal(0, rungs.Single(rung => rung.Role == "lancer").Priority);
+        JsonArray lancer = root["doctrines"]!["roles"]!["lancer"]![
+            "modes"]!.AsArray();
+        Assert.Equal(1, lancer.IndexOf(lancer.Single(mode =>
+            mode!.AsObject().ContainsKey("follow"))));
     }
 
     [Fact]
@@ -1931,11 +1893,11 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
         {
             File.Delete(path);
         }
-        using JsonDocument normalized = JsonDocument.Parse(
-            compilation.NormalizedPlaybook);
-        Assert.Contains(normalized.RootElement.GetProperty("orders")
-            .EnumerateArray(), order => order.GetProperty("orderId")
-                .GetString() == "medic-follow");
+        JsonObject normalized = JsonNode.Parse(
+            compilation.NormalizedPlaybook)!.AsObject();
+        Assert.Contains(normalized["doctrines"]!["roles"]!["medic"]![
+            "modes"]!.AsArray(), mode =>
+            mode!.AsObject().ContainsKey("follow"));
     }
 
     [Fact]
@@ -1957,13 +1919,14 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
         {
             File.Delete(path);
         }
-        using JsonDocument playbook = JsonDocument.Parse(
-            compilation.NormalizedPlaybook);
-        JsonElement follow = playbook.RootElement.GetProperty("orders")
-            .EnumerateArray().Single(order => order.GetProperty("orderId")
-                .GetString() == "medic-follow").GetProperty("follow");
-        Assert.Equal("carrier", follow.GetProperty("leaderRole").GetString());
-        Assert.Equal("nearest", follow.GetProperty("selector").GetString());
+        JsonObject playbook = JsonNode.Parse(
+            compilation.NormalizedPlaybook)!.AsObject();
+        JsonObject follow = playbook["doctrines"]!["roles"]!["medic"]![
+            "modes"]!.AsArray().Select(mode => mode!.AsObject())
+            .Single(mode => mode.ContainsKey("follow"));
+        Assert.Equal("carrier", follow["follow"]!.GetValue<string>());
+        // Selector is an executor invariant, not a duplicated authored word.
+        Assert.False(follow.ContainsKey("selector"));
     }
 
     [Fact]
@@ -1993,40 +1956,23 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
         }
     }
 
-    /// <summary>The break-off ladder: every patrol-verb mode's order and
-    /// route, strongest first, floor last — so a latched body can rally to
-    /// the highest one that is actually running.</summary>
+    /// <summary>The direct executor derives the break-off ladder from the
+    /// authored patrol rungs, strongest first, floor last.</summary>
     [Fact]
-    public void ABreakOffCarriesThePatrolLadderNotJustTheFloor()
+    public void ABreakOffCanReadTheAuthoredPatrolLadderNotJustTheFloor()
     {
         TacticalPlaybookCompilation compilation =
             ArcRelayTacticalPlaybookCompiler.Compile(HunterV1());
-        using JsonDocument playbook = JsonDocument.Parse(
-            compilation.NormalizedPlaybook);
-        string engagementId = playbook.RootElement.GetProperty("orders")
-            .EnumerateArray().Single(value => value.GetProperty("orderId")
-                .GetString() == "hunter-patrol")
-            .GetProperty("engagementId").GetString()!;
-        JsonElement disengage = playbook.RootElement
-            .GetProperty("engagements")
-            .EnumerateArray()
-            .Single(value => value.GetProperty("engagementId").GetString()
-                == engagementId)
-            .GetProperty("commit")
-            .GetProperty("disengageWhen");
-        Assert.Equal(
-            "shadow-hunt-loop",
-            disengage.GetProperty("withdrawTo").GetString());
-        (string Order, string Route)[] ladder = disengage
-            .GetProperty("withdrawRoutes")
-            .EnumerateArray()
-            .Select(rung => (
-                rung.GetProperty("orderId").GetString()!,
-                rung.GetProperty("route").GetString()!))
+        JsonObject playbook = JsonNode.Parse(
+            compilation.NormalizedPlaybook)!.AsObject();
+        string[] ladder = playbook["doctrines"]!["roles"]!["hunter"]![
+                "modes"]!.AsArray()
+            .Select(mode => mode!.AsObject())
+            .Where(mode => mode.ContainsKey("patrol"))
+            .Select(mode => mode["patrol"]!.GetValue<string>())
             .ToArray();
         Assert.Equal(
-            [("hunter-patrol", "stage-loop")],
-            ladder);
+            ["stage-loop", "shadow-hunt-loop"], ladder);
     }
 
     /// <summary>`role-health` is the weakest live body of a role, and it is
@@ -2066,20 +2012,16 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
             ArcRelayTacticalPlaybookCompiler.Compile(HunterV1());
         JsonObject normalized = JsonNode.Parse(
             compilation.NormalizedPlaybook)!.AsObject();
-        JsonObject recovery = normalized["coordination"]!["tasks"]!
-            .AsArray()
-            .Select(node => node!.AsObject())
-            .Single(task => task["taskId"]!.GetValue<string>()
-                == "hunter-patrol");
-        JsonObject assignment = recovery["assignments"]![0]!.AsObject();
         Assert.Equal(
             "self-health",
-            assignment["candidateWhen"]![0]!["all"]![0]!["fact"]!
+            normalized["conditions"]!["ghost-hurt"]!["fact"]!
                 .GetValue<string>());
         Assert.Equal(
-            "self-health",
-            assignment["candidateUntil"]![0]!["all"]![0]!["fact"]!
-                .GetValue<string>());
+            "ghost-hurt",
+            normalized["doctrines"]!["roles"]!["hunter"]!["modes"]!
+                .AsArray().Select(mode => mode!.AsObject())
+                .Single(mode => mode["patrol"]?.GetValue<string>()
+                    == "stage-loop")["while"]!.GetValue<string>());
 
         JsonObject repeatedSubject = JsonNode.Parse(
             File.ReadAllBytes(HunterV1()))!.AsObject();
@@ -2228,25 +2170,29 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
         JsonObject normalized = JsonNode.Parse(
             compilation.NormalizedPlaybook)!.AsObject();
 
-        Assert.True(compilation.LinkedData.Length < 65_536);
-        Assert.Empty(normalized["formations"]!.AsArray());
+        Assert.True(compilation.UsesDirectLadder);
+        Assert.True(compilation.LinkedData.Length < 20_000);
+        Assert.Equal(
+            ArcRelayTacticalPlaybookCompiler.DirectEnvelopeMagic,
+            BitConverter.ToInt32(compilation.LinkedData));
+        foreach (string legacy in new[]
+                 {
+                     "groups", "formations", "engagements", "orders",
+                     "coordination", "supportPolicies", "fetchRungs",
+                     "modeRungs",
+                 })
+        {
+            Assert.False(normalized.ContainsKey(legacy));
+        }
         Assert.DoesNotContain("tempo", normalized.ToJsonString());
 
-        JsonObject[] cohortRows = normalized["coordination"]!["tasks"]!
-            .AsArray()
-            .SelectMany(task => task!["assignments"]!.AsArray())
-            .Select(row => row!.AsObject())
-            .Where(row => row.ContainsKey("cohort"))
+        JsonObject[] cohortRows = normalized["doctrines"]!["roles"]!
+            .AsObject()
+            .SelectMany(role => role.Value!["modes"]!.AsArray())
+            .Select(mode => mode!.AsObject())
+            .Where(mode => mode.ContainsKey("cohort"))
             .ToArray();
         Assert.Equal(15, cohortRows.Length);
-        Assert.All(cohortRows, row =>
-        {
-            JsonObject cohort = row["cohort"]!.AsObject();
-            Assert.Equal(3, cohort["take"]!.GetValue<int>());
-            Assert.Equal("nearest", cohort["select"]!.GetValue<string>());
-            Assert.Contains(cohort["destinationKind"]!.GetValue<string>(),
-                new[] { "route", "zone" });
-        });
         Assert.Equal(
             new Dictionary<string, int>(StringComparer.Ordinal)
             {
@@ -2256,40 +2202,34 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
                 ["south-runners"] = 3,
                 ["well-surge"] = 3,
             },
-            cohortRows.GroupBy(row =>
-                    row["cohort"]!["cohortId"]!.GetValue<string>(),
+            cohortRows.GroupBy(row => row["cohort"]!.GetValue<string>(),
                     StringComparer.Ordinal)
                 .OrderBy(group => group.Key, StringComparer.Ordinal)
                 .ToDictionary(group => group.Key, group => group.Count(),
                     StringComparer.Ordinal));
 
-        JsonObject[] focusPolicies = normalized["engagements"]!.AsArray()
-            .Select(value => value!.AsObject())
-            .Where(value => value["coordinationScope"]!
-                .GetValue<string>().StartsWith("focus:",
-                    StringComparison.Ordinal))
-            .ToArray();
-        Assert.NotEmpty(focusPolicies);
-        Assert.All(focusPolicies, policy => Assert.Equal(
-            policy["coordinationScope"]!.GetValue<string>() switch
+        Assert.Equal(
+            new Dictionary<string, int>(StringComparer.Ordinal)
             {
-                "focus:assassin" => 1,
-                "focus:home" => 3,
-                "focus:patrol" => 2,
-                "focus:well" => 3,
-                string scope => throw new Xunit.Sdk.XunitException(
-                    $"Unexpected focus scope '{scope}'."),
+                ["assassin"] = 1,
+                ["home"] = 3,
+                ["patrol"] = 2,
+                ["well"] = 3,
             },
-            policy["maximumAttackersPerTarget"]!.GetValue<int>()));
+            normalized["doctrines"]!["focus"]!.AsObject().ToDictionary(
+                pair => pair.Key,
+                pair => pair.Value!["maximumAttackers"]!.GetValue<int>(),
+                StringComparer.Ordinal));
 
-        JsonObject[] postured = normalized["orders"]!.AsArray()
+        JsonObject[] postured = normalized["doctrines"]!["roles"]!.AsObject()
+            .SelectMany(role => role.Value!["modes"]!.AsArray())
             .Select(value => value!.AsObject())
             .Where(value => value["posture"]?.GetValue<string>() is
                 "front" or "core" or "rear")
             .ToArray();
         Assert.NotEmpty(postured);
-        Assert.Contains(postured, order => order["movement"]!["target"]!
-            .GetValue<string>() == "north-well-loop");
+        Assert.Contains(postured, mode => mode["patrol"]?.GetValue<string>()
+            == "north-well-loop");
     }
 
     [Fact]
@@ -2345,14 +2285,12 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
                 ArcRelayTacticalPlaybookCompiler.Compile(inlinePath);
             JsonObject normalized = JsonNode.Parse(
                 compilation.NormalizedPlaybook)!.AsObject();
-            JsonObject inlineRow = Assert.Single(
-                normalized["coordination"]!["tasks"]!.AsArray()
-                    .SelectMany(task => task!["assignments"]!.AsArray())
-                    .Select(row => row!.AsObject()),
-                row => row["cohort"]?["cohortId"]?
-                    .GetValue<string>().StartsWith(
-                        "inline-", StringComparison.Ordinal) == true);
-            JsonObject inlineCohort = inlineRow["cohort"]!.AsObject();
+            JsonObject inlineCohort = normalized["doctrines"]!["roles"]![
+                    "medic"]!["modes"]!.AsArray()
+                .Select(mode => mode!.AsObject())
+                .Select(mode => mode["cohort"])
+                .OfType<JsonObject>()
+                .Single();
             Assert.Equal(1, inlineCohort["take"]!.GetValue<int>());
         }
         finally
@@ -2425,9 +2363,14 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
         {
             TacticalPlaybookCompilation compilation =
                 ArcRelayTacticalPlaybookCompiler.Compile(inlinePath);
-            Assert.Contains("focus:inline:hunter-assault",
-                System.Text.Encoding.UTF8.GetString(
-                    compilation.NormalizedPlaybook));
+            JsonObject normalized = JsonNode.Parse(
+                compilation.NormalizedPlaybook)!.AsObject();
+            JsonObject focus = normalized["doctrines"]!["roles"]![
+                    "hunter"]!["modes"]!.AsArray()
+                .Select(mode => mode!.AsObject())
+                .Single(mode => mode.ContainsKey("assault"))["focus"]!
+                .AsObject();
+            Assert.Equal(1, focus["maximumAttackers"]!.GetValue<int>());
         }
         finally
         {
@@ -2524,55 +2467,41 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
         }
         JsonObject normalized = JsonNode.Parse(
             compilation.NormalizedPlaybook)!.AsObject();
-        JsonObject firstPatrol = normalized["orders"]!.AsArray()
-            .Select(order => order!.AsObject()).Single(order =>
-                order["orderId"]!.GetValue<string>() == "carrier-patrol-1");
+        JsonArray normalizedLadder = normalized["doctrines"]!["roles"]![
+            "carrier"]!["modes"]!.AsArray();
+        JsonObject firstPatrol = normalizedLadder[1]!.AsObject();
         Assert.Equal("north-well-loop",
-            firstPatrol["movement"]!["target"]!.GetValue<string>());
-        Assert.Equal(1, normalized["modeRungs"]!.AsArray()
-            .Select(rung => rung!.AsObject()).Single(rung =>
-                rung["taskId"]!.GetValue<string>() == "carrier-patrol-1")
-            ["priority"]!.GetValue<int>());
+            firstPatrol["patrol"]!.GetValue<string>());
+        Assert.Equal(1, normalizedLadder.IndexOf(firstPatrol));
     }
 
     [Fact]
-    public void ConsolidatedPatrolBeatAndRepairCompileIntoTheRuntimeIr()
+    public void ConsolidatedPatrolBeatAndRepairStayInTheDirectDsl()
     {
         TacticalPlaybookCompilation compilation =
             ArcRelayTacticalPlaybookCompiler.Compile(HunterV1());
         JsonObject normalized = JsonNode.Parse(
             compilation.NormalizedPlaybook)!.AsObject();
 
-        Assert.Equal(
-            ["steady"],
-            normalized["coordination"]!["phases"]!.AsArray()
-                .Select(phase => phase!["phaseId"]!.GetValue<string>())
-                .ToArray());
-        JsonObject patrol = normalized["orders"]!.AsArray()
-            .Select(order => order!.AsObject())
-            .Single(order => order["orderId"]!.GetValue<string>()
-                == "hunter-floor");
+        Assert.True(compilation.UsesDirectLadder);
+        Assert.False(normalized.ContainsKey("coordination"));
+        JsonObject patrol = normalized["doctrines"]!["roles"]!["hunter"]![
+                "modes"]!.AsArray()
+            .Select(mode => mode!.AsObject())
+            .Last(mode => mode.ContainsKey("patrol"));
         Assert.Equal("shadow-hunt-loop",
-            patrol["movement"]!["target"]!.GetValue<string>());
-        Assert.All(normalized["coordination"]!["phases"]!.AsArray(), phase =>
-            Assert.Equal(7, phase!["orderIds"]!.AsArray().Count));
+            patrol["patrol"]!.GetValue<string>());
 
-        JsonObject support = Assert.Single(
-            normalized["supportPolicies"]!.AsArray())!.AsObject();
-        Assert.Equal("medic-repair", support["supportId"]!.GetValue<string>());
-        Assert.Equal("medic", Assert.Single(support["providers"]!.AsArray())!
-            .GetValue<string>());
-        JsonObject medicFollow = normalized["orders"]!.AsArray()
-            .Select(order => order!.AsObject())
-            .Single(order => order["orderId"]!.GetValue<string>()
-                == "medic-follow");
-        Assert.Equal("medic-repair",
-            medicFollow["supportId"]!.GetValue<string>());
-        JsonObject assassin = normalized["orders"]!.AsArray()
-            .Select(order => order!.AsObject())
-            .Single(order => order["orderId"]!.GetValue<string>()
-                == "hauler-assault");
-        Assert.Equal("", assassin["supportId"]!.GetValue<string>());
+        JsonObject medic = normalized["doctrines"]!["roles"]!["medic"]!
+            .AsObject();
+        Assert.NotNull(medic["repair"]);
+        Assert.Equal(
+            ["weakest", "carrier", "any"],
+            medic["repair"]!["prefer"]!.AsArray()
+                .Select(value => value!.GetValue<string>()).ToArray());
+        Assert.All(normalized["doctrines"]!["roles"]!.AsObject()
+            .Where(role => role.Key != "medic"), role =>
+            Assert.Null(role.Value!["repair"]));
     }
 
     /// <summary>Write a modified sheet BESIDE the original so its relative

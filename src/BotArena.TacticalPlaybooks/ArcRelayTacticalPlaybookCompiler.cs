@@ -15,6 +15,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
     public const string PlaybookSchema = "arc-relay-tactical-playbook-v1";
     public const string LayoutSchema = "arc-relay-tactical-layout-v1";
     public const int EnvelopeMagic = 0x31505441; // ATP1, little-endian.
+    public const int DirectEnvelopeMagic = 0x314C5441; // ATL1, little-endian.
     private const int MaximumLinkedBytes = 64 * 1024;
 
     private static readonly HashSet<string> KnownClasses =
@@ -136,6 +137,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         return CompileValidated(
             playbookSource,
             fullPlaybookPath,
+            sourceDocument.RootElement,
             playbookDocument,
             parameterRanges,
             layoutSource,
@@ -170,6 +172,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         return CompileValidated(
             playbookSource,
             playbookName,
+            sourceDocument.RootElement,
             playbookDocument,
             parameterRanges,
             layoutSource,
@@ -179,6 +182,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
     private static TacticalPlaybookCompilation CompileValidated(
         byte[] playbookSource,
         string playbookPath,
+        JsonElement authoredPlaybook,
         JsonDocument playbookDocument,
         Dictionary<string, (int Minimum, int Maximum)> parameterRanges,
         byte[] layoutSource,
@@ -204,10 +208,21 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         ValidateLayout(layout, layoutPath, parameterRanges);
         ValidateLayoutReferences(playbook, layout, playbookPath);
 
-        byte[] canonicalPlaybook = NormalizePlaybook(playbook);
+        bool directLadder = authoredPlaybook.TryGetProperty("conditions", out _)
+            && authoredPlaybook.TryGetProperty(
+                "doctrines", out JsonElement doctrines)
+            && doctrines.ValueKind == JsonValueKind.Object
+            && doctrines.TryGetProperty("roles", out _);
+        // ATL1 carries the vocabulary the author actually wrote. The
+        // exhaustive compatibility document above remains a validation
+        // oracle during this first direct-executor gate, but it is neither
+        // linked nor visible to the mind.
+        byte[] canonicalPlaybook = NormalizePlaybook(
+            directLadder ? authoredPlaybook : playbook);
         byte[] canonicalLayout = Canonicalize(layout);
         string playbookSha256 = Sha256(playbookSource);
         byte[] linked = Encode(
+            directLadder ? DirectEnvelopeMagic : EnvelopeMagic,
             playbookSha256,
             layoutSha256,
             canonicalPlaybook,
@@ -224,7 +239,8 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             composition,
             canonicalPlaybook,
             canonicalLayout,
-            linked);
+            linked,
+            directLadder);
     }
 
     /// <summary>
@@ -3668,6 +3684,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
     }
 
     private static byte[] Encode(
+        int envelopeMagic,
         string playbookSha256,
         string layoutSha256,
         byte[] canonicalPlaybook,
@@ -3675,7 +3692,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
     {
         using var stream = new MemoryStream();
         using var writer = new BinaryWriter(stream, Encoding.UTF8, true);
-        writer.Write(EnvelopeMagic);
+        writer.Write(envelopeMagic);
         writer.Write(PlaybookSchema);
         writer.Write(playbookSha256);
         writer.Write(layoutSha256);
