@@ -77,6 +77,11 @@ function buildFamily(
   const trims: Placement[] = [];
   const heatSeams: Placement[] = [];
   const faceRibs: Placement[] = [];
+  const foundryHalls: Placement[] = [];
+  const hallRoofs: Placement[] = [];
+  const hallStacks: Placement[] = [];
+  const hallStackCaps: Placement[] = [];
+  const hallHeatChannels: Placement[] = [];
   const boundaryPylons: Placement[] = [];
   const boundaryLinks: Placement[] = [];
   const chimneyStacks: Placement[] = [];
@@ -98,8 +103,116 @@ function buildFamily(
           (upper?.chamfer ?? 0)),
   );
 
-  for (const wall of layout.walls()) {
-    if (wall.family !== familyId) continue;
+  const familyWalls = [...layout.walls()].filter(
+    (wall) => wall.family === familyId,
+  );
+  const claimedByHall = new Set<string>();
+  if (config.hallEvery !== null) {
+    for (const wall of familyWalls) {
+      const horizontal =
+        Number(sameFamily(layout, wall.x - 1, wall.y, familyId)) +
+        Number(sameFamily(layout, wall.x + 1, wall.y, familyId));
+      const vertical =
+        Number(sameFamily(layout, wall.x, wall.y - 1, familyId)) +
+        Number(sameFamily(layout, wall.x, wall.y + 1, familyId));
+      if (!((horizontal === 2 && vertical === 0) ||
+        (vertical === 2 && horizontal === 0)))
+        continue;
+      const seed = bastionHash(familyId, wall.x, wall.y, wall.mask, 113);
+      if (seed % config.hallEvery !== 0) continue;
+      const alongX = horizontal === 2;
+      const claimedTiles = [-1, 0, 1].map((offset) =>
+        bastionTileKey(
+          wall.x + (alongX ? offset : 0),
+          wall.y + (alongX ? 0 : offset),
+        ),
+      );
+      if (claimedTiles.some((key) => claimedByHall.has(key))) continue;
+      for (const key of claimedTiles) claimedByHall.add(key);
+
+      const moduleBase = family.geometry3d.height - 0.024;
+      const rise = lerp(config.minRise, config.maxRise, unitByte(seed, 8));
+      const hallRise = 0.075 + rise * (0.64 + unitByte(seed, 16) * 0.22);
+      const centre = new THREE.Vector3(
+        wall.x + 0.5,
+        moduleBase,
+        wall.y + 0.5,
+      );
+      const placement: Placement = {
+        position: centre,
+        rotationY: alongX ? 0 : Math.PI / 2,
+        scale: new THREE.Vector3(
+          2.48 + unitByte(seed, 24) * 0.18,
+          hallRise,
+          Math.min(narrowSpan * 0.78, 0.58),
+        ),
+      };
+      foundryHalls.push(placement);
+      const roof = topTrim(placement, moduleBase, hallRise, 1.025);
+      roof.scale.y = 0.042;
+      hallRoofs.push(roof);
+
+      const hallTop = moduleBase + hallRise;
+      const stackCount = 2 + ((seed >>> 20) % 2);
+      for (let stackIndex = 0; stackIndex < stackCount; stackIndex++) {
+        const stackSeed = bastionHash(
+          familyId,
+          wall.x,
+          wall.y,
+          wall.mask,
+          151 + stackIndex,
+        );
+        const alongOffset =
+          (stackIndex - (stackCount - 1) / 2) *
+          (0.44 + unitByte(stackSeed, 8) * 0.08);
+        const crossOffset = (stackIndex % 2 === 0 ? -1 : 1) * 0.1;
+        const stackHeight =
+          0.18 + rise * (0.72 + unitByte(stackSeed, 16) * 0.76);
+        const stackRadius = 0.14 + unitByte(stackSeed, 24) * 0.045;
+        const stackX = centre.x +
+          (alongX ? alongOffset : crossOffset);
+        const stackZ = centre.z +
+          (alongX ? crossOffset : alongOffset);
+        hallStacks.push({
+          position: new THREE.Vector3(
+            stackX,
+            hallTop + 0.025 + stackHeight / 2,
+            stackZ,
+          ),
+          rotationY: placement.rotationY,
+          scale: new THREE.Vector3(stackRadius, stackHeight, stackRadius),
+        });
+        hallStackCaps.push({
+          position: new THREE.Vector3(
+            stackX,
+            hallTop + 0.045 + stackHeight,
+            stackZ,
+          ),
+          rotationY: placement.rotationY,
+          scale: new THREE.Vector3(
+            stackRadius * 1.3,
+            0.072,
+            stackRadius * 1.3,
+          ),
+        });
+        maximumHeight = Math.max(
+          maximumHeight,
+          hallTop + stackHeight + 0.085,
+        );
+      }
+      hallHeatChannels.push({
+        position: new THREE.Vector3(
+          centre.x,
+          hallTop + 0.052,
+          centre.z,
+        ),
+        rotationY: placement.rotationY,
+        scale: new THREE.Vector3(0.58, 0.014, 0.055),
+      });
+    }
+  }
+
+  for (const wall of familyWalls) {
     const seed = bastionHash(familyId, wall.x, wall.y, wall.mask, 29);
     const horizontal =
       Number(sameFamily(layout, wall.x - 1, wall.y, familyId)) +
@@ -129,14 +242,27 @@ function buildFamily(
       moduleBase,
       wall.y + 0.5,
     );
+    const hallClaimed = claimedByHall.has(bastionTileKey(wall.x, wall.y));
 
-    if (turnsOrBranches || seed % config.towerEvery === 0) {
+    if (
+      !hallClaimed &&
+      (seed % config.towerEvery === 0 ||
+        (turnsOrBranches && (seed >>> 12) % 4 === 0))
+    ) {
       const span = Math.min(
         narrowSpan * (0.72 + unitByte(seed, 16) * 0.12),
         0.5,
       );
       const towerRise = rise * (turnsOrBranches ? 1.08 : 0.88);
-      const variant = (seed >>> 5) % 3;
+      // Keep silhouette family independent from the cadence hash: using adjacent bits
+      // made sparse selections accidentally collapse to one shape on some maps.
+      const variant = bastionHash(
+        familyId,
+        wall.x,
+        wall.y,
+        wall.mask,
+        47,
+      ) % 3;
       if (variant === 0) {
         const placement = {
           position: centre,
@@ -148,8 +274,9 @@ function buildFamily(
           ),
         };
         towers.push(placement);
-        trims.push(topTrim(placement, moduleBase, towerRise, 1.06));
-        if (seed % 4 === 0)
+        if ((seed >>> 14) % 3 !== 0)
+          trims.push(topTrim(placement, moduleBase, towerRise, 1.06));
+        if (seed % 11 === 0)
           heatSeams.push(
             heatSeam(placement, moduleBase, towerRise, span * 0.42),
           );
@@ -206,11 +333,12 @@ function buildFamily(
             scale: new THREE.Vector3(span * 0.45, splitRise, span * 0.74),
           };
           splitTowers.push(placement);
-          trims.push(topTrim(placement, moduleBase, splitRise, 1.05));
+          if ((seed >>> 14) % 2 === 0)
+            trims.push(topTrim(placement, moduleBase, splitRise, 1.05));
           maximumHeight = Math.max(maximumHeight, moduleBase + splitRise);
         }
       }
-    } else if (seed % config.shoulderEvery === 0) {
+    } else if (!hallClaimed && seed % config.shoulderEvery === 0) {
       const neighbours = rotationY === 0 ? horizontal : vertical;
       const length = Math.min(
         neighbours === 2 ? 0.9 : neighbours === 1 ? 0.72 : narrowSpan,
@@ -227,15 +355,16 @@ function buildFamily(
         scale: new THREE.Vector3(length, shoulderRise, cross),
       };
       shoulders.push(placement);
-      trims.push(topTrim(placement, moduleBase, shoulderRise, 1.04));
-      if (seed % 5 === 0)
+      if ((seed >>> 10) % 3 === 0)
+        trims.push(topTrim(placement, moduleBase, shoulderRise, 1.04));
+      if (seed % 13 === 0)
         heatSeams.push(
           heatSeam(placement, moduleBase, shoulderRise, length * 0.46),
         );
       maximumHeight = Math.max(maximumHeight, moduleBase + shoulderRise);
     }
 
-    for (let sideIndex = 0; sideIndex < sides.length; sideIndex++) {
+    for (let sideIndex = 0; !hallClaimed && sideIndex < sides.length; sideIndex++) {
       const side = sides[sideIndex];
       if (
         layout.familyAt(wall.x + side.dx, wall.y + side.dy) !== null
@@ -248,7 +377,7 @@ function buildFamily(
         wall.mask,
         sideIndex,
       );
-      if (sideSeed % 3 !== 0) continue;
+      if (sideSeed % 11 !== 0) continue;
       const depth = 0.18 + unitByte(sideSeed, 8) * 0.08;
       faceRibs.push({
         position: new THREE.Vector3(
@@ -292,7 +421,7 @@ function buildFamily(
         (0.68 + unitByte(sideSeed, 0) * 0.72);
       const x = wall.x + 0.5 + side.dx * outsideDistance;
       const z = wall.y + 0.5 + side.dy * outsideDistance;
-      if (sideSeed % 2 === 0) {
+      if (sideSeed % 5 === 0) {
         boundaryPylons.push({
           position: new THREE.Vector3(x, 0.018, z),
           rotationY: side.inwardRotationY,
@@ -321,54 +450,67 @@ function buildFamily(
           0.5 +
           config.boundaryDepth *
             (0.58 + unitByte(sideSeed, 16) * 0.26);
-        const chimneyHeight =
-          family.geometry3d.height *
-          (1.2 + unitByte(sideSeed, 8) * 0.92);
-        const chimneyRadius = 0.18 + unitByte(sideSeed, 24) * 0.1;
-        const chimneyX =
-          wall.x + 0.5 + side.dx * chimneyDistance;
-        const chimneyZ =
-          wall.y + 0.5 + side.dy * chimneyDistance;
-        chimneyStacks.push({
-          position: new THREE.Vector3(
-            chimneyX,
-            0.04 + chimneyHeight / 2,
-            chimneyZ,
-          ),
-          rotationY: side.inwardRotationY,
-          scale: new THREE.Vector3(
-            chimneyRadius,
-            chimneyHeight,
-            chimneyRadius,
-          ),
-        });
-        chimneyCaps.push({
-          position: new THREE.Vector3(
-            chimneyX,
-            0.07 + chimneyHeight,
-            chimneyZ,
-          ),
-          rotationY: side.inwardRotationY,
-          scale: new THREE.Vector3(
-            chimneyRadius * 1.34,
-            0.13,
-            chimneyRadius * 1.34,
-          ),
-        });
-        chimneyBands.push({
-          position: new THREE.Vector3(
-            chimneyX,
-            0.04 + chimneyHeight * (0.58 + unitByte(sideSeed, 0) * 0.12),
-            chimneyZ,
-          ),
-          rotationY: side.inwardRotationY,
-          scale: new THREE.Vector3(
-            chimneyRadius * 1.12,
-            0.07,
-            chimneyRadius * 1.12,
-          ),
-        });
-        maximumHeight = Math.max(maximumHeight, chimneyHeight + 0.135);
+        const clusterCount = 2 + ((sideSeed >>> 14) % 2);
+        for (let stackIndex = 0; stackIndex < clusterCount; stackIndex++) {
+          const stackSeed = bastionHash(
+            familyId,
+            wall.x,
+            wall.y,
+            wall.mask,
+            211 + sideIndex * 3 + stackIndex,
+          );
+          const tangentOffset =
+            (stackIndex - (clusterCount - 1) / 2) *
+            (0.24 + unitByte(stackSeed, 24) * 0.07);
+          const chimneyHeight =
+            family.geometry3d.height *
+            (1.05 + unitByte(stackSeed, 8) * 1.16);
+          const chimneyRadius = 0.15 + unitByte(stackSeed, 24) * 0.09;
+          const chimneyX =
+            wall.x + 0.5 + side.dx * chimneyDistance + side.dy * tangentOffset;
+          const chimneyZ =
+            wall.y + 0.5 + side.dy * chimneyDistance - side.dx * tangentOffset;
+          chimneyStacks.push({
+            position: new THREE.Vector3(
+              chimneyX,
+              0.04 + chimneyHeight / 2,
+              chimneyZ,
+            ),
+            rotationY: side.inwardRotationY,
+            scale: new THREE.Vector3(
+              chimneyRadius,
+              chimneyHeight,
+              chimneyRadius,
+            ),
+          });
+          chimneyCaps.push({
+            position: new THREE.Vector3(
+              chimneyX,
+              0.07 + chimneyHeight,
+              chimneyZ,
+            ),
+            rotationY: side.inwardRotationY,
+            scale: new THREE.Vector3(
+              chimneyRadius * 1.34,
+              0.13,
+              chimneyRadius * 1.34,
+            ),
+          });
+          chimneyBands.push({
+            position: new THREE.Vector3(
+              chimneyX,
+              0.04 + chimneyHeight * (0.58 + unitByte(stackSeed, 0) * 0.12),
+              chimneyZ,
+            ),
+            rotationY: side.inwardRotationY,
+            scale: new THREE.Vector3(
+              chimneyRadius * 1.12,
+              0.07,
+              chimneyRadius * 1.12,
+            ),
+          });
+          maximumHeight = Math.max(maximumHeight, chimneyHeight + 0.135);
+        }
       }
 
       if (
@@ -381,7 +523,7 @@ function buildFamily(
         furnaceHoods.push({
           position: new THREE.Vector3(faceX, 0.06, faceZ),
           rotationY: side.inwardRotationY,
-          scale: new THREE.Vector3(0.48, 0.46, 0.13),
+          scale: new THREE.Vector3(0.62, 0.52, 0.15),
         });
         furnaceRecesses.push({
           position: new THREE.Vector3(
@@ -390,7 +532,7 @@ function buildFamily(
             faceZ + side.dy * 0.075,
           ),
           rotationY: side.inwardRotationY,
-          scale: new THREE.Vector3(0.34, 0.27, 0.042),
+          scale: new THREE.Vector3(0.42, 0.31, 0.042),
         });
         furnaceCores.push({
           position: new THREE.Vector3(
@@ -503,6 +645,46 @@ function buildFamily(
     matteMaterial(config.trimColor, 0.38),
     faceRibs,
     'face-ribs',
+    disposables,
+  );
+  addInstances(
+    familyGroup,
+    roundedPrismGeometry(0.2, 0.055),
+    matteMaterial(config.bodyColor, 0.34),
+    foundryHalls,
+    'foundry-halls',
+    disposables,
+  );
+  addInstances(
+    familyGroup,
+    roundedPrismGeometry(0.16, 0.025),
+    matteMaterial(config.trimColor, 0.46),
+    hallRoofs,
+    'foundry-hall-roofs',
+    disposables,
+  );
+  addInstances(
+    familyGroup,
+    new THREE.CylinderGeometry(0.48, 0.56, 1, 12, 1),
+    matteMaterial(config.bodyColor, 0.38),
+    hallStacks,
+    'foundry-hall-stacks',
+    disposables,
+  );
+  addInstances(
+    familyGroup,
+    new THREE.CylinderGeometry(0.58, 0.5, 1, 12, 1),
+    matteMaterial(config.accentColor, 0.44),
+    hallStackCaps,
+    'foundry-hall-stack-caps',
+    disposables,
+  );
+  addInstances(
+    familyGroup,
+    new THREE.BoxGeometry(1, 1, 1),
+    heatMaterial(config.heatColor, 1.35),
+    hallHeatChannels,
+    'foundry-hall-heat-channels',
     disposables,
   );
   addInstances(
@@ -808,7 +990,8 @@ function addInstances(
   const emissive =
     kind === 'heat-seams' ||
     kind === 'crucible-cores' ||
-    kind === 'furnace-cores';
+    kind === 'furnace-cores' ||
+    kind === 'foundry-hall-heat-channels';
   mesh.castShadow = !kind.startsWith('apron') && !emissive;
   mesh.receiveShadow = !emissive;
   if (emissive) mesh.renderOrder = 4;
@@ -921,6 +1104,10 @@ function sameFamily(
     y < layout.height &&
     layout.familyAt(x, y) === family
   );
+}
+
+function bastionTileKey(x: number, y: number): string {
+  return `${x}:${y}`;
 }
 
 function isMapBoundary(

@@ -92,6 +92,8 @@ export interface TreeCover3d {
 export interface BastionCover3d {
   shoulderEvery: number;
   towerEvery: number;
+  /** Cadence for a three-cell macro structure; null keeps the family tile-scale only. */
+  hallEvery: number | null;
   chimneyEvery: number | null;
   furnaceEvery: number | null;
   minRise: number;
@@ -168,6 +170,8 @@ export interface ArenaTheme {
       bumpScale: number;
       roughness: number;
       metalness: number;
+      /** Pulls texture values toward a neutral midpoint without changing texel scale. */
+      albedoContrast: number;
       colorMultiplier: string | null;
     };
   };
@@ -639,6 +643,10 @@ function wallGeometry3d(
       !Number.isInteger(bastionCover.towerEvery) ||
       bastionCover.towerEvery < 1 ||
       bastionCover.towerEvery > 16 ||
+      (bastionCover.hallEvery !== null &&
+        (!Number.isInteger(bastionCover.hallEvery) ||
+          bastionCover.hallEvery < 3 ||
+          bastionCover.hallEvery > 32)) ||
       (bastionCover.chimneyEvery !== null &&
         (!Number.isInteger(bastionCover.chimneyEvery) ||
           bastionCover.chimneyEvery < 2 ||
@@ -755,6 +763,7 @@ function environment3d(
     bumpScale: candidate?.floor?.bumpScale ?? 1.6,
     roughness: candidate?.floor?.roughness ?? 0.86,
     metalness: candidate?.floor?.metalness ?? 0.12,
+    albedoContrast: candidate?.floor?.albedoContrast ?? 1,
     colorMultiplier: candidate?.floor?.colorMultiplier ?? null,
   };
   if (
@@ -772,6 +781,7 @@ function environment3d(
     !finiteRange(floor.bumpScale, 0, 4) ||
     !finiteRange(floor.roughness, 0, 1) ||
     !finiteRange(floor.metalness, 0, 1) ||
+    !finiteRange(floor.albedoContrast, 0.35, 1.25) ||
     (floor.colorMultiplier !== null &&
       !validHex(floor.colorMultiplier))
   )

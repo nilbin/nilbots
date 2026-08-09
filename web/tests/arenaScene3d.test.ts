@@ -309,6 +309,21 @@ test('Ember builds its approved raised perimeter and cover profiles', () => {
       'paired unequal towers break the one-module-per-tile silhouette',
     );
     assert.ok(
+      objectByKind(arena.scene, 'arena-wall-bastion-foundry-halls'),
+      'long foundry halls establish a sparse macro scale across wall runs',
+    );
+    assert.ok(
+      objectByKind(arena.scene, 'arena-wall-bastion-foundry-hall-stacks'),
+      'foundry halls carry unequal clustered exhaust stacks',
+    );
+    const hallHeat = objectByKind(
+      arena.scene,
+      'arena-wall-bastion-foundry-hall-heat-channels',
+    ) as THREE.InstancedMesh;
+    assert.ok(hallHeat, 'macro structures retain a localized heat signature');
+    assert.equal(hallHeat.castShadow, false);
+    assert.equal(hallHeat.receiveShadow, false);
+    assert.ok(
       objectByKind(arena.scene, 'arena-wall-bastion-apron-outer-rails'),
       'the widened perimeter finishes in a raised outer rail',
     );
@@ -445,6 +460,7 @@ test('Ember builds its approved raised perimeter and cover profiles', () => {
     );
     const arenaFloor = objectByKind(arena.scene, 'arena-floor') as THREE.Mesh;
     assert.ok(arenaFloor);
+    assert.equal(arenaFloor.material.userData.albedoContrast, 0.68);
     const floorMaterial = arenaFloor.material;
     assert.ok(!Array.isArray(floorMaterial));
     assert.equal(

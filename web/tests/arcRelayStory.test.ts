@@ -49,6 +49,12 @@ function arcRelayReplay(): ReplayModel {
     coresPerPulse: 3,
     pulsesToDestroyReactor: 3,
     orderedWellRegionIds: ['well-centre'],
+    wells: [{
+      wellId: 'well-centre',
+      firstBirthTick: 0,
+      cadenceTicks: 20,
+      finalBirthTick: 100,
+    }],
     victory: {
       kind: 'arc-relay',
       timeoutRanking: [],
@@ -400,6 +406,88 @@ test('a born Core is the same glowing sphere hovering over its authoritative wel
       new THREE.Color(ARC_CORE_NEUTRAL_PALETTE.glow).getHexString(),
     ),
     'neutral Core glow is not either team colour',
+  );
+
+  overlays.dispose();
+});
+
+test('Ember landmarks turn Arc homes, healing, and well charge into foundry machinery', () => {
+  const replay = arcRelayReplay();
+  assert.equal(replay.contract.kind, 'v3-generic');
+  if (replay.contract.kind !== 'v3-generic') return;
+  replay.map.presentation = {
+    themeId: 'ember-forge',
+    boundaryWall: 'perimeter',
+    interiorWall: 'cover',
+    wallGroups: [],
+  };
+  replay.map.frontline = null;
+  const spawns = replay.contract.map.spawns;
+  assert.equal(new Set(spawns.map((spawn) => spawn.teamId)).size, 2);
+  replay.map.regions = [
+    ...spawns.map((spawn) => ({
+      regionId: `home-team-${spawn.teamId}`,
+      tiles: [{ ...spawn.position }],
+    })),
+    { regionId: 'heal-north', tiles: [{ x: 11, y: 6 }] },
+  ];
+  const rules = replay.contract.rawContract.rules.gameMode;
+  assert.equal(rules.kind, 'arc-relay');
+  if (rules.kind !== 'arc-relay') return;
+  rules.wells = [{
+    wellId: 'well-centre',
+    firstBirthTick: 0,
+    cadenceTicks: 4,
+    finalBirthTick: 20,
+  }];
+  for (const tick of replay.ticks) {
+    for (const world of [tick.before, tick.after]) {
+      assert.equal(world.mode?.kind, 'arc-relay');
+      if (world.mode?.kind === 'arc-relay')
+        world.mode.wells[0]!.nextScheduledBirthTick = 4;
+    }
+  }
+
+  const overlays = buildOverlays(replay);
+  overlays.update(2, null, false);
+  const objects: THREE.Object3D[] = [];
+  overlays.group.traverse((node) => objects.push(node));
+  const spawnPads = objects.filter(
+    (node) => node.userData.kind === 'arc-relay-spawn-pad',
+  );
+  const spawnSockets = objects.filter(
+    (node) => node.userData.kind === 'arc-relay-spawn-socket',
+  );
+  const heal = objects.find(
+    (node) => node.userData.kind === 'arc-relay-heal-pad',
+  );
+  const coolant = objects.find(
+    (node) => node.userData.kind === 'arc-relay-heal-coolant',
+  );
+  const well = objects.find(
+    (node) => node.userData.kind === 'arc-relay-well',
+  );
+  const reactor = objects.find(
+    (node) => node.userData.kind === 'arc-relay-reactor',
+  );
+  const progress = objects.find(
+    (node) => node.userData.kind === 'arc-relay-well-birth-progress',
+  ) as THREE.Mesh | undefined;
+
+  assert.equal(spawnPads.length, spawns.length);
+  assert.ok(spawnPads.every((pad) => pad.userData.themeId === 'ember-forge'));
+  assert.equal(spawnSockets.length, spawns.length);
+  assert.equal(heal?.userData.themeId, 'ember-forge');
+  assert.ok(coolant, 'the Ember heal tile has a raised coolant reservoir');
+  assert.equal(well?.userData.themeId, 'ember-forge');
+  assert.equal(reactor?.userData.themeId, 'ember-forge');
+  assert.ok(progress);
+  assert.equal(progress.userData.progress, 0.5);
+  assert.equal(progress.userData.phase, 'scheduled-birth');
+  assert.equal(progress.geometry.drawRange.count, 32 * 6);
+  assert.ok(
+    (progress.material as THREE.MeshBasicMaterial).opacity > 0.65,
+    'the exact next-birth clock appears as a bright well charge arc',
   );
 
   overlays.dispose();

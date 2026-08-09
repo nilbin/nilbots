@@ -229,6 +229,22 @@ function floor(
     roughness: floorMaterial.roughness,
     metalness: floorMaterial.metalness,
   });
+  if (floorMaterial.albedoContrast !== 1) {
+    const priorCacheKey = material.customProgramCacheKey.bind(material);
+    const contrast = floorMaterial.albedoContrast.toFixed(4);
+    material.onBeforeCompile = (shader) => {
+      shader.fragmentShader = shader.fragmentShader.replace(
+        '#include <map_fragment>',
+        `#include <map_fragment>
+// Theme-owned texture restraint. In linear light, 0.055 is a quiet charcoal midpoint:
+// lowering contrast calms baked seams and rivets without turning the arena into a flat fill.
+diffuseColor.rgb = mix(vec3(0.055), diffuseColor.rgb, ${contrast});`,
+      );
+    };
+    material.customProgramCacheKey = () =>
+      `${priorCacheKey()}|floor-albedo-contrast:${contrast}`;
+    material.userData.albedoContrast = floorMaterial.albedoContrast;
+  }
 
   const mesh = new THREE.Mesh(geometry, material);
   mesh.userData.kind = 'arena-floor';

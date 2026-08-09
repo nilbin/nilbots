@@ -23,6 +23,7 @@
       "bumpScale": 0.028,
       "roughness": 0.98,
       "metalness": 0.12,
+      "albedoContrast": 0.68,
       "colorMultiplier": "#c7c7c7"
     }
   },
@@ -54,24 +55,25 @@
             "chamfer": 0.045
           },
           "details": {
-            "panelEvery": 3,
-            "ventEvery": 7,
-            "clampEvery": 5,
+            "panelEvery": 5,
+            "ventEvery": 11,
+            "clampEvery": 9,
             "panelColor": "#48474b",
             "clampColor": "#812d3b",
             "ventColor": "#f05536"
           },
           "bastionCover": {
-            "shoulderEvery": 3,
-            "towerEvery": 7,
-            "chimneyEvery": 6,
-            "furnaceEvery": 5,
-            "minRise": 0.1,
-            "maxRise": 0.34,
+            "shoulderEvery": 5,
+            "towerEvery": 11,
+            "hallEvery": 13,
+            "chimneyEvery": 13,
+            "furnaceEvery": 11,
+            "minRise": 0.12,
+            "maxRise": 0.42,
             "boundaryDepth": 1.8,
-            "bodyColor": "#222429",
-            "trimColor": "#612832",
-            "accentColor": "#9b3043",
+            "bodyColor": "#2c2d32",
+            "trimColor": "#6b2a35",
+            "accentColor": "#a63b4b",
             "heatColor": "#ff5838"
           }
         },
@@ -98,24 +100,25 @@
             "chamfer": 0.035
           },
           "details": {
-            "panelEvery": 3,
-            "ventEvery": 9,
-            "clampEvery": 7,
+            "panelEvery": 6,
+            "ventEvery": 13,
+            "clampEvery": 11,
             "panelColor": "#505055",
             "clampColor": "#702a36",
             "ventColor": "#e84934"
           },
           "bastionCover": {
-            "shoulderEvery": 3,
-            "towerEvery": 7,
+            "shoulderEvery": 5,
+            "towerEvery": 11,
+            "hallEvery": 13,
             "chimneyEvery": null,
             "furnaceEvery": null,
-            "minRise": 0.08,
-            "maxRise": 0.28,
+            "minRise": 0.1,
+            "maxRise": 0.4,
             "boundaryDepth": 0,
-            "bodyColor": "#292a2f",
-            "trimColor": "#57252f",
-            "accentColor": "#812c3b",
+            "bodyColor": "#303136",
+            "trimColor": "#632933",
+            "accentColor": "#8f3241",
             "heatColor": "#ec4c35"
           }
         },

@@ -11,9 +11,12 @@ and retain the theme ID written into their own headers.
 The WebGL scene still traces the exact `WallLayout` into one continuous solid
 per family. Ember's optional `geometry3d.bastionCover` layer adds sparse raised
 shoulders, rectangular and round towers, paired unequal-height towers, sloped
-face ribs, heat seams, ringed crucible crowns, and outside-map foundry supports
-from stable family/coordinate/topology hashes. This gives a wall run multiple
-widths and heights without replacing it with a frozen arena mesh or moving its
+face ribs, heat seams, ringed crucible crowns, rare three-cell foundry halls,
+clustered unequal-height stacks, and outside-map foundry supports from stable
+family/coordinate/topology hashes. Claimed hall runs suppress the smaller
+modules below them, giving the wall field a macro/mid/detail hierarchy instead
+of repeating one decorated box per tile. This gives a wall run multiple widths
+and heights without replacing it with a frozen arena mesh or moving its
 authoritative open edge.
 
 In-map modules remain inside blocked footprints and the existing live-chassis
@@ -32,7 +35,25 @@ are physically separated from their recesses so mobile depth precision cannot
 make them flicker. The topology cap is darkened and partially blended so it
 contributes panel rhythm without flattening every raised profile into a tan
 rectangle. The floor remains one arena-wide material field, with quieter 0.028
-bump and 0.98 roughness rather than per-tile repetition.
+bump, 0.98 roughness, and theme-owned 68% albedo contrast rather than per-tile
+repetition.
+
+## Arc Relay landmarks
+
+The Arc Relay rules geometry now belongs to the foundry as well. Each broad
+team home remains a low service apron, while every authoritative return anchor
+is a separate octagonal casting socket whose inset seal takes the team's live
+accent. Healing tiles are raised coolant stations: a dark faceted housing,
+recessed green reservoir, crimson clamps, and a compact service cross. Reactors
+and Wells use the same faceted graphite/crimson hardware vocabulary rather than
+generic flat discs.
+
+Each Well also carries an outer partial ring driven from replay-owned timing.
+It fills against the declared cadence toward `nextScheduledBirthTick`, or
+against `pendingRearmTicks` while an exact rearm clock is active. Scrubbing is
+therefore deterministic and the ring never estimates a future birth from
+renderer memory. The source glyph and colour still distinguish north, centre,
+and south Wells, while an outstanding Core dims the Well's ordinary live ring.
 
 Ember Forge owns the same restrained MOBA camera family proven on Woodland:
 12° yaw and 52° pitch, with a slightly wider 28° lens. Follow allows up to 9.5
@@ -50,9 +71,10 @@ at the edge of vision without changing which tiles are seen.
 
 The existing canonical Ember material sources and deterministic bake remain in
 `art.json` and `walls/`. This pass adds no generated whole-map image, provider
-mesh, or new bitmap source. Crucibles, furnace mouths, and chimneys are
-procedural instanced geometry; the four lazy wall normal/roughness maps remain
-the only WebGL-only raster additions.
+mesh, or new bitmap source. Halls, crucibles, furnace mouths, chimneys, spawn
+sockets, coolant stations, reactors, and Wells are procedural geometry; the
+four lazy wall normal/roughness maps remain the only WebGL-only raster
+additions.
 
 The current review images come from a fresh native Hunter-versus-Wellwright
 Arc Relay exhibition. Sample 01 is seed 9001 on Ambush Warren, ends at tick 348,

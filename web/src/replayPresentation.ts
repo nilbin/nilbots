@@ -446,6 +446,8 @@ export interface ArcRelayStoryPresentation {
     sourceLabel: string;
     position: { x: number; y: number };
     nextBirthTick: number | null;
+    rearmCompletesAtTick: number | null;
+    pendingCharge: boolean;
     outstanding: boolean;
   }[];
   reactors: {
@@ -1867,6 +1869,8 @@ function arcRelayAt(
       sourceLabel: arcSourceLabel(well.wellId),
       position: well.position,
       nextBirthTick: well.nextScheduledBirthTick,
+      rearmCompletesAtTick: well.rearmCompletesAtTick,
+      pendingCharge: well.pendingCharge,
       outstanding: well.outstandingCoreId !== null,
     })),
     reactors: state.reactors.map((reactor) => {

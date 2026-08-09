@@ -6807,3 +6807,28 @@ the lift. The floor joins wall, tree, and foundry materials in that shader, so a
 second horizontal fog plane cannot double-darken it. The plane remains a
 fallback only for overlay tests/callers without a terrain root. Vision tiles,
 spectator/team scope, actor visibility, collision, and Canvas2D remain unchanged.
+
+## 263. Ember Forge becomes a district-scale foundry with rule-owned landmarks
+
+Owner direction (2026-08-09): take the strongest Ember concept pass, reduce its
+remaining tile repetition, and make Arc Relay's spawn points, Wells, healing
+tiles, and Reactors belong to the theme. The floor now supports a validated
+theme-owned albedo-contrast multiplier; Ember uses 68% so seams and wear remain
+material detail rather than a competing tile grid. Bastion placement becomes
+sparser and introduces rare three-cell foundry halls with unequal clustered
+stacks. A hall claims its straight wall run before ordinary modules are placed,
+creating large, medium, and small silhouettes without changing blocker truth.
+
+Arc home regions remain low non-colliding service aprons, but each exact
+contract spawn anchor now has an octagonal casting socket with a live team seal.
+Healing tiles become raised coolant stations with a dark faceted housing,
+recessed green reservoir, crimson clamps, and a compact cross. Wells and
+Reactors use the same graphite/crimson faceted machinery language. Each Well
+adds an outer partial ring calculated from the published
+`nextScheduledBirthTick` and declared cadence, or from the published rearm clock
+and `pendingRearmTicks`; it does not accumulate renderer state and therefore
+remains exact through pause, seek, and reverse scrubbing.
+
+All additions are procedural WebGL presentation. They do not change map tiles,
+spawn assignments, healing rules, Well schedules, Core state, Reactors,
+collision, vision, replay fingerprints, or Canvas2D fallback behavior.

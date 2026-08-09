@@ -36,6 +36,7 @@ type ThemeManifest = {
       bumpScale?: number;
       roughness?: number;
       metalness?: number;
+      albedoContrast?: number;
       colorMultiplier?: string;
     };
   };
@@ -66,6 +67,9 @@ type ThemeManifest = {
           bastionCover?: {
             shoulderEvery: number;
             towerEvery: number;
+            hallEvery: number | null;
+            chimneyEvery: number | null;
+            furnaceEvery: number | null;
             minRise: number;
             maxRise: number;
             boundaryDepth: number;
@@ -148,6 +152,9 @@ function assertCompletePackage(root: string, expectedId: string) {
         const bastion = family.geometry3d.bastionCover;
         assert.ok(Number.isInteger(bastion.shoulderEvery));
         assert.ok(Number.isInteger(bastion.towerEvery));
+        assert.ok(
+          bastion.hallEvery === null || Number.isInteger(bastion.hallEvery),
+        );
         assert.ok(bastion.minRise < bastion.maxRise);
         assert.ok(bastion.boundaryDepth >= 0 && bastion.boundaryDepth <= 2);
         for (const color of [
@@ -253,6 +260,7 @@ test('Ember Forge carries the approved living-bastion profiles', () => {
     manifest.environment3d?.floor?.colorMultiplier,
     '#c7c7c7',
   );
+  assert.equal(manifest.environment3d?.floor?.albedoContrast, 0.68);
   assert.equal(manifest.environment3d?.camera?.yawDegrees, 12);
   assert.equal(manifest.environment3d?.camera?.pitchDegrees, 52);
   assert.equal(manifest.environment3d?.camera?.fovDegrees, 28);
@@ -269,17 +277,22 @@ test('Ember Forge carries the approved living-bastion profiles', () => {
   assert.equal(
     manifest.walls.families.perimeter.geometry3d?.bastionCover
       ?.chimneyEvery,
-    6,
+    13,
   );
   assert.equal(
     manifest.walls.families.perimeter.geometry3d?.bastionCover
       ?.furnaceEvery,
-    5,
+    11,
+  );
+  assert.equal(
+    manifest.walls.families.perimeter.geometry3d?.bastionCover
+      ?.hallEvery,
+    13,
   );
   assert.equal(
     manifest.walls.families.perimeter.geometry3d?.bastionCover
       ?.accentColor,
-    '#9b3043',
+    '#a63b4b',
   );
   assert.equal(
     manifest.walls.families.cover.geometry3d?.bastionCover
