@@ -799,24 +799,28 @@ Ember Forge generalizes that pilot to Arc Relay through an optional
 shoulder/tower cadence, material palette, and an optional outside-map
 foundation depth. Stable family/coordinate/topology hashes place instanced
 rounded shoulders, rectangular and decagonal towers, paired unequal-height
-towers, ring-crowned crucibles, rare three-cell foundry halls with clustered
-unequal-height stacks, sloped exposed-face ribs, thin heat seams, and perimeter
-supports over the exact traced wall substrate. Hall runs claim their wall cells
-before the smaller decoration pass, creating a macro/mid/detail hierarchy
-without moving an open edge. Base profiles stay continuous and
-collision-readable; raised modules vary the skyline without moving an open
-edge. The perimeter's visible low 1.8-tile apron, raised outer rail, rounded
-corner plates, irregular external pylons, banded chimneys, and recessed furnace
-mouths broaden only the non-playable side of the map. The manifest owns
-hall/chimney/furnace cadence and a separate crimson accent tier.
+towers, layered crucible caps, sloped exposed-face ribs, thin heat seams, and
+perimeter supports over the exact traced wall substrate. Base profiles stay
+continuous and collision-readable; deterministic raised modules vary the
+skyline, with occasional inner-wall structures standing above a bot, without
+moving an open edge. Their burgundy caps sit inside the body footprint and do
+not cast a separate heavy shadow across the wall top. The perimeter's visible
+low 1.8-tile apron, raised outer rail, rounded corner plates, irregular external
+pylons, banded chimneys, and recessed furnace mouths broaden only the
+non-playable side of the map. The manifest owns chimney/furnace cadence and a
+separate crimson accent tier. Round tower tops use a dark faceted collar,
+recessed lid, directional vent, small burgundy clamps, and a deterministic
+bump/roughness microtexture rather than a flat crimson torus. Chimney caps share
+that dark forged material and keep crimson to their side bands.
 Emissive vents, occasional crucible cores, and furnace cores use sparse cadences
 and distinct depths instead of coplanar surfaces, preventing mobile depth
 flicker while reducing box repetition. Ember's Arc Relay camera uses 12° yaw,
 52° pitch, and a 28° lens; its matte graphite/burgundy balance and quieter floor
 response are theme-owned rather than renderer-wide exceptions. The same
 vocabulary continues into Arc Relay's landmarks: team homes expose exact
-octagonal return sockets inside a subdued service apron, heal tiles become
-raised coolant stations, and faceted Wells and Reactors replace generic discs.
+low octagonal return sockets with small directional signals but no enclosing
+home-region outline, heal tiles become raised coolant stations, and faceted
+Wells and Reactors replace generic discs.
 A Well's outer partial ring is driven by its published next-birth or rearm
 clock, so it remains exact while seeking or scrubbing.
 

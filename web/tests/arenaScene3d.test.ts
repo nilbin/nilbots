@@ -294,8 +294,29 @@ test('Ember builds its approved raised perimeter and cover profiles', () => {
       'round foundry stacks break the rectangular-box repetition',
     );
     assert.ok(
-      objectByKind(arena.scene, 'arena-wall-bastion-crucible-crowns'),
-      'round towers finish as crimson-crowned crucibles',
+      objectByKind(arena.scene, 'arena-wall-bastion-crucible-collars'),
+      'round towers finish as layered foundry collars instead of red rings',
+    );
+    const crucibleLid = objectByKind(
+      arena.scene,
+      'arena-wall-bastion-crucible-lids',
+    ) as THREE.InstancedMesh;
+    assert.ok(crucibleLid, 'round towers carry recessed forged-metal lids');
+    assert.equal(crucibleLid.castShadow, false);
+    assert.ok(!Array.isArray(crucibleLid.material));
+    const crucibleLidMaterial =
+      crucibleLid.material as THREE.MeshStandardMaterial;
+    assert.ok(
+      crucibleLidMaterial.bumpMap && crucibleLidMaterial.roughnessMap,
+      'the lid has real micro-surface response rather than a flat colour',
+    );
+    assert.ok(
+      objectByKind(arena.scene, 'arena-wall-bastion-crucible-clamps'),
+      'small burgundy clamps replace the repeated circular accent',
+    );
+    assert.ok(
+      objectByKind(arena.scene, 'arena-wall-bastion-crucible-vents'),
+      'recessed slots give the cap an industrial working face',
     );
     const crucibleCore = objectByKind(
       arena.scene,
@@ -308,21 +329,21 @@ test('Ember builds its approved raised perimeter and cover profiles', () => {
       objectByKind(arena.scene, 'arena-wall-bastion-split-towers'),
       'paired unequal towers break the one-module-per-tile silhouette',
     );
-    assert.ok(
+    assert.equal(
       objectByKind(arena.scene, 'arena-wall-bastion-foundry-halls'),
-      'long foundry halls establish a sparse macro scale across wall runs',
+      null,
+      'Ember avoids the oversized hall caps that flattened wall runs',
     );
-    assert.ok(
-      objectByKind(arena.scene, 'arena-wall-bastion-foundry-hall-stacks'),
-      'foundry halls carry unequal clustered exhaust stacks',
-    );
-    const hallHeat = objectByKind(
+    const topTrim = objectByKind(
       arena.scene,
-      'arena-wall-bastion-foundry-hall-heat-channels',
+      'arena-wall-bastion-top-trim',
     ) as THREE.InstancedMesh;
-    assert.ok(hallHeat, 'macro structures retain a localized heat signature');
-    assert.equal(hallHeat.castShadow, false);
-    assert.equal(hallHeat.receiveShadow, false);
+    assert.ok(topTrim, 'raised modules retain restrained burgundy caps');
+    assert.equal(
+      topTrim.castShadow,
+      false,
+      'thin caps must not paint a heavy black lip across wall tops',
+    );
     assert.ok(
       objectByKind(arena.scene, 'arena-wall-bastion-apron-outer-rails'),
       'the widened perimeter finishes in a raised outer rail',
@@ -403,7 +424,10 @@ test('Ember builds its approved raised perimeter and cover profiles', () => {
     assert.ok(
       bastionFamilies.get('perimeter')!.userData.maximumHeight > 0.84,
     );
-    assert.ok(bastionFamilies.get('cover')!.userData.maximumHeight > 0.58);
+    assert.ok(
+      bastionFamilies.get('cover')!.userData.maximumHeight > 0.9,
+      'some inner-wall structures must rise clearly above a bot chassis',
+    );
 
     const matrix = new THREE.Matrix4();
     const position = new THREE.Vector3();
@@ -460,7 +484,11 @@ test('Ember builds its approved raised perimeter and cover profiles', () => {
     );
     const arenaFloor = objectByKind(arena.scene, 'arena-floor') as THREE.Mesh;
     assert.ok(arenaFloor);
-    assert.equal(arenaFloor.material.userData.albedoContrast, 0.68);
+    assert.equal(
+      arenaFloor.material.userData.albedoContrast,
+      undefined,
+      'the restored authored floor albedo needs no runtime contrast patch',
+    );
     const floorMaterial = arenaFloor.material;
     assert.ok(!Array.isArray(floorMaterial));
     assert.equal(

@@ -11,13 +11,13 @@ and retain the theme ID written into their own headers.
 The WebGL scene still traces the exact `WallLayout` into one continuous solid
 per family. Ember's optional `geometry3d.bastionCover` layer adds sparse raised
 shoulders, rectangular and round towers, paired unequal-height towers, sloped
-face ribs, heat seams, ringed crucible crowns, rare three-cell foundry halls,
-clustered unequal-height stacks, and outside-map foundry supports from stable
-family/coordinate/topology hashes. Claimed hall runs suppress the smaller
-modules below them, giving the wall field a macro/mid/detail hierarchy instead
-of repeating one decorated box per tile. This gives a wall run multiple widths
-and heights without replacing it with a frozen arena mesh or moving its
-authoritative open edge.
+face ribs, heat seams, layered crucible caps, banded chimney stacks, and
+outside-map foundry supports from stable family/coordinate/topology hashes.
+The inner-wall rise range is deliberately broad enough for occasional
+structures to stand above a bot, while the established mix of smaller modules
+keeps the skyline varied instead of uniformly tall. This gives a wall run
+multiple widths and heights without replacing it with a frozen arena mesh or
+moving its authoritative open edge.
 
 In-map modules remain inside blocked footprints and the existing live-chassis
 clearance. The perimeter alone receives a 1.8-tile outside-map foundation:
@@ -30,23 +30,26 @@ The base profiles are now 0.84 tiles for perimeter and 0.58 for cover, with
 deterministic rises above them. Matte graphite modules and cooler neutral light
 replace the prior brown/glossy response. Deep burgundy trim and a brighter but
 sparse crimson tier now identify structure; orange-red emission is reserved for
-functional vents, occasional live crucibles, and furnace cores. Emissive faces
+functional vents, occasional live crucibles, and furnace cores. Round tops use
+dark faceted collars, recessed forged-metal lids, directional vent slots, and
+small burgundy clamps instead of a flat red torus; a deterministic micro-surface
+drives their bump and roughness response. Chimney top plates use the same dark
+forged response while crimson stays on their side bands. Emissive faces
 are physically separated from their recesses so mobile depth precision cannot
-make them flicker. The topology cap is darkened and partially blended so it
-contributes panel rhythm without flattening every raised profile into a tan
-rectangle. The floor remains one arena-wide material field, with quieter 0.028
-bump, 0.98 roughness, and theme-owned 68% albedo contrast rather than per-tile
-repetition.
+make them flicker. Raised-module caps are inset within their graphite bodies and
+do not cast their own heavy top shadow, avoiding the oversized black lip that
+made the walls look outlined. The floor remains one arena-wide material field,
+with quiet 0.028 bump, 0.98 roughness, and the established authored albedo.
 
 ## Arc Relay landmarks
 
-The Arc Relay rules geometry now belongs to the foundry as well. Each broad
-team home remains a low service apron, while every authoritative return anchor
-is a separate octagonal casting socket whose inset seal takes the team's live
-accent. Healing tiles are raised coolant stations: a dark faceted housing,
-recessed green reservoir, crimson clamps, and a compact service cross. Reactors
-and Wells use the same faceted graphite/crimson hardware vocabulary rather than
-generic flat discs.
+The Arc Relay rules geometry now belongs to the foundry as well. Each
+authoritative return anchor is a low dark octagonal casting socket with one
+small team-colour directional signal; the broad home region has no enclosing
+bed or border. Healing tiles are raised coolant stations: a dark faceted
+housing, recessed green reservoir, crimson clamps, and a compact service cross.
+Reactors and Wells use the same faceted graphite/crimson hardware vocabulary
+rather than generic flat discs.
 
 Each Well also carries an outer partial ring driven from replay-owned timing.
 It fills against the declared cadence toward `nextScheduledBirthTick`, or
@@ -71,10 +74,10 @@ at the edge of vision without changing which tiles are seen.
 
 The existing canonical Ember material sources and deterministic bake remain in
 `art.json` and `walls/`. This pass adds no generated whole-map image, provider
-mesh, or new bitmap source. Halls, crucibles, furnace mouths, chimneys, spawn
-sockets, coolant stations, reactors, and Wells are procedural geometry; the
-four lazy wall normal/roughness maps remain the only WebGL-only raster
-additions.
+mesh, or new bitmap source. Crucibles, furnace mouths, chimneys, spawn sockets,
+coolant stations, reactors, and Wells are procedural geometry; cap microtexture
+is a deterministic runtime data texture, and the four lazy wall normal/roughness
+maps remain the only WebGL-only raster additions.
 
 The current review images come from a fresh native Hunter-versus-Wellwright
 Arc Relay exhibition. Sample 01 is seed 9001 on Ambush Warren, ends at tick 348,

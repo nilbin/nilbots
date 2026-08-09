@@ -10,6 +10,7 @@ import { isAttackEvent, isDestructionEvent } from '../replayModel';
 import { frontlineCaptureVisual } from '../render/frontlineCaptureVisual';
 import {
   arrivalsAt,
+  directionAngle,
   posesAt,
   spentBoltsAt,
   strikeAimsAt,
@@ -661,13 +662,24 @@ function buildSpawnPads(
   const homes = replay.map.frontline?.teamHomes ?? arcRelayHomes(replay);
   const emberForge = themeId === 'ember-forge';
   const spawnSocketGeometry = arcRelayPad && emberForge
-    ? new THREE.CylinderGeometry(0.27, 0.34, 0.075, 8)
+    ? new THREE.CylinderGeometry(0.25, 0.32, 0.065, 8)
     : null;
-  const spawnSocketRingGeometry = arcRelayPad && emberForge
-    ? new THREE.TorusGeometry(0.235, 0.026, 5, 8).rotateX(Math.PI / 2)
+  const spawnSocketPlateGeometry = arcRelayPad && emberForge
+    ? new THREE.CylinderGeometry(0.19, 0.22, 0.024, 8)
     : null;
-  if (spawnSocketGeometry && spawnSocketRingGeometry)
-    disposables.push(spawnSocketGeometry, spawnSocketRingGeometry);
+  const spawnSocketSignalGeometry = arcRelayPad && emberForge
+    ? new THREE.BoxGeometry(0.16, 0.018, 0.035)
+    : null;
+  if (
+    spawnSocketGeometry &&
+    spawnSocketPlateGeometry &&
+    spawnSocketSignalGeometry
+  )
+    disposables.push(
+      spawnSocketGeometry,
+      spawnSocketPlateGeometry,
+      spawnSocketSignalGeometry,
+    );
   const entries = homes
     .filter((home) => home.protectedSpawnPad.length > 0)
     .map((home) => {
@@ -687,7 +699,7 @@ function buildSpawnPads(
       });
       const bed = new THREE.Mesh(bedGeometry, bedMaterial);
       bed.position.y = 0.012;
-      pad.add(bed);
+      if (!arcRelayPad) pad.add(bed);
 
       const sealGeometry = tileBoundaryGeometry(
         home.protectedSpawnPad,
@@ -703,7 +715,7 @@ function buildSpawnPads(
       });
       const seal = new THREE.Mesh(sealGeometry, sealMaterial);
       seal.position.y = 0.018;
-      pad.add(seal);
+      if (!arcRelayPad) pad.add(seal);
 
       const hatchGeometry = serviceHatchGeometry(home.protectedSpawnPad);
       const hatchMaterial = new THREE.MeshBasicMaterial({
@@ -715,15 +727,19 @@ function buildSpawnPads(
       });
       const hatches = new THREE.Mesh(hatchGeometry, hatchMaterial);
       hatches.position.y = 0.02;
-      pad.add(hatches);
+      if (!arcRelayPad) pad.add(hatches);
 
       // Arc Relay returns each stable slot to an authored anchor within its
       // broader home. Ember makes those exact anchors physical: low octagonal
-      // casting sockets in a shared service apron. The sockets stay below a
-      // bot's hull and carry team colour only in their inset seal, so the
-      // broad home still reads as one foundry bay instead of eight pickups.
-      let socketRingMaterial: THREE.MeshStandardMaterial | null = null;
-      if (spawnSocketGeometry && spawnSocketRingGeometry) {
+      // casting sockets without outlining the broad home region. A dark
+      // octagonal lift plate and one small directional status lamp replace
+      // the previous bright ring, which read as a dropped-item tile.
+      let socketSignalMaterial: THREE.MeshStandardMaterial | null = null;
+      if (
+        spawnSocketGeometry &&
+        spawnSocketPlateGeometry &&
+        spawnSocketSignalGeometry
+      ) {
         const homeKeys = new Set(
           home.protectedSpawnPad.map((tile) => `${tile.x}:${tile.y}`),
         );
@@ -732,10 +748,15 @@ function buildSpawnPads(
           roughness: 0.64,
           metalness: 0.72,
         });
-        socketRingMaterial = new THREE.MeshStandardMaterial({
+        const socketPlateMaterial = new THREE.MeshStandardMaterial({
+          color: '#494348',
+          roughness: 0.72,
+          metalness: 0.58,
+        });
+        socketSignalMaterial = new THREE.MeshStandardMaterial({
           color: '#a63b4b',
           emissive: '#a63b4b',
-          emissiveIntensity: 0.62,
+          emissiveIntensity: 0.72,
           roughness: 0.48,
           metalness: 0.68,
         });
@@ -754,15 +775,25 @@ function buildSpawnPads(
           const body = new THREE.Mesh(spawnSocketGeometry, socketBodyMaterial);
           body.castShadow = true;
           body.receiveShadow = true;
-          const seal = new THREE.Mesh(
-            spawnSocketRingGeometry,
-            socketRingMaterial,
+          const plate = new THREE.Mesh(
+            spawnSocketPlateGeometry,
+            socketPlateMaterial,
           );
-          seal.position.y = 0.046;
-          socket.add(body, seal);
+          plate.position.y = 0.043;
+          const signal = new THREE.Mesh(
+            spawnSocketSignalGeometry,
+            socketSignalMaterial,
+          );
+          signal.position.set(0, 0.062, -0.12);
+          socket.rotation.y = directionAngle(spawn.facing);
+          socket.add(body, plate, signal);
           pad.add(socket);
         }
-        disposables.push(socketBodyMaterial, socketRingMaterial);
+        disposables.push(
+          socketBodyMaterial,
+          socketPlateMaterial,
+          socketSignalMaterial,
+        );
       }
 
       // The purchase beat. A tier is bought out of the bank and applied to the
@@ -801,7 +832,7 @@ function buildSpawnPads(
         pad,
         sealMaterial,
         hatchMaterial,
-        socketRingMaterial,
+        socketSignalMaterial,
         forge,
         forgeMaterial,
       };
@@ -814,9 +845,9 @@ function buildSpawnPads(
           ?.accent ?? '#b27a43';
       entry.sealMaterial.color.set(accent);
       entry.hatchMaterial.color.set(accent);
-      if (entry.socketRingMaterial) {
-        entry.socketRingMaterial.color.set(accent);
-        entry.socketRingMaterial.emissive.set(accent);
+      if (entry.socketSignalMaterial) {
+        entry.socketSignalMaterial.color.set(accent);
+        entry.socketSignalMaterial.emissive.set(accent);
       }
       entry.pad.userData.accent = accent;
 

@@ -6832,3 +6832,27 @@ remains exact through pause, seek, and reverse scrubbing.
 All additions are procedural WebGL presentation. They do not change map tiles,
 spawn assignments, healing rules, Well schedules, Core state, Reactors,
 collision, vision, replay fingerprints, or Canvas2D fallback behavior.
+
+## 264. Restore Ember's established balance and keep only the successful landmarks
+
+Owner correction (2026-08-09): the district-scale hall and oversized crimson-cap
+pass regressed the theme. Retain the thematic Wells, their deterministic birth
+progress, and the coolant healing stations, but restore Ember's prior floor,
+palette, and denser small-module rhythm. Disable foundry halls, return perimeter
+chimney/furnace cadence to the established composition, and keep the increase in
+wall height modest: the cover rise may reach 0.55 tiles so some structures clear
+a bot without turning every wall into a tower.
+
+Arc Relay home regions no longer receive a broad service-bed outline. Exact
+return anchors instead use low dark octagonal sockets with one small
+team-colour directional signal, avoiding the dropped-item appearance of the
+previous bright rings. Raised-module top trim is inset within the body footprint
+and decorative in-map modules do not cast their own shadow map, removing the
+heavy black lip while retaining ordinary material lighting and terrain fog.
+The repeated low-poly crimson torus crowns are also removed. Round towers now
+finish in dark layered collars and recessed lids with deterministic
+bump/roughness texture, directional vent slots, and only small burgundy clamps;
+chimney top plates use the same dark forged response. Orange functional light
+remains unchanged.
+These are presentation-only corrections; gameplay and replay identity remain
+unchanged.
