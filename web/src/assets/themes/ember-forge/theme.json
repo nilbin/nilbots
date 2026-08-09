@@ -2,6 +2,9 @@
   "id": "ember-forge",
   "label": "Ember Forge",
   "environment3d": {
+    "fog": {
+      "unseenTerrainDarkness": 0.42
+    },
     "camera": {
       "yawDegrees": 12,
       "pitchDegrees": 52,

@@ -30,6 +30,7 @@ import {
 } from '../render/teamVision';
 import { playsAt } from '../presentation/playAwareness';
 import { ARC_CORE_NEUTRAL_PALETTE } from '../presentation/arcCorePalette';
+import { arenaTheme } from '../render/arenaThemes';
 
 /**
  * What the arena knows and what it is doing to itself: fog of war, the objective zone, and
@@ -40,9 +41,6 @@ import { ARC_CORE_NEUTRAL_PALETTE } from '../presentation/arcCorePalette';
  * in the world instead, which is mostly an improvement (a flash lights the floor it is on)
  * and in one place a compromise, noted where it happens.
  */
-
-/** How dark unseen terrain goes: subdued, but still readable as known map geometry. */
-const FOG_STRENGTH = 0.58;
 
 /** How far the camera is thrown by a direct kill, in tiles. */
 const SHAKE_REACH = 0.045;
@@ -71,8 +69,14 @@ export function buildOverlays(
   const group = new THREE.Group();
   const disposables: { dispose: () => void }[] = [];
   const presenter = createPresenter(replay);
+  const theme = arenaTheme(replay.map.presentation?.themeId ?? undefined);
 
-  const fog = buildFog(mapWidth, mapHeight, disposables);
+  const fog = buildFog(
+    mapWidth,
+    mapHeight,
+    theme.environment3d.fog.unseenTerrainDarkness,
+    disposables,
+  );
   group.add(fog.mesh);
   if (terrain) applyTerrainFog(terrain, fog);
 
@@ -423,6 +427,7 @@ function buildPlayAwareness(
 function buildFog(
   mapWidth: number,
   mapHeight: number,
+  unseenTerrainDarkness: number,
   disposables: { dispose: () => void }[],
 ): {
   mesh: THREE.Mesh;
@@ -473,7 +478,9 @@ function buildFog(
         data[texel] = 0;
         data[texel + 1] = 0;
         data[texel + 2] = 0;
-        data[texel + 3] = seen.has(`${x},${y}`) ? 0 : Math.round(FOG_STRENGTH * 255);
+        data[texel + 3] = seen.has(`${x},${y}`)
+          ? 0
+          : Math.round(unseenTerrainDarkness * 255);
       }
     }
     texture.needsUpdate = true;

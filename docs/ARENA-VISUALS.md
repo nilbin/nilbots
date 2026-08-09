@@ -717,8 +717,10 @@ interaction floor in both reference phone orientations without turning
 selection into a portrait shot. The manual overview fits the three published
 Wells with half a tile of breathing room; distant home Reactors and deep aprons
 may leave the frame rather than shrinking the central theaters. Perspective
-fog darkens unseen terrain by 58% rather than blacking it out. With no selected
-perspective, the floor and raised wall/tree materials use the cross-team union
+fog darkens unseen terrain by a theme-owned amount, defaulting to 58% rather
+than blacking it out; Ember Forge uses 42% so its crimson structures retain
+readable form in fog. With no selected perspective, the floor and raised
+wall/tree materials use the cross-team union
 of every active unit's sight; selection replaces that with the chosen team's
 mask. A compact causal HUD call
 beside the standing score identifies Core

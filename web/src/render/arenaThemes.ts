@@ -145,6 +145,10 @@ export interface ArenaTheme {
   zoneTexture: HTMLImageElement | null;
   zoneTextureScale: number;
   environment3d: {
+    fog: {
+      /** Fraction of unseen terrain colour removed by the WebGL vision mask. */
+      unseenTerrainDarkness: number;
+    };
     camera: {
       yawDegrees: number;
       pitchDegrees: number;
@@ -191,6 +195,7 @@ interface ThemeManifest {
   id: string;
   label: string;
   environment3d?: {
+    fog?: Partial<ArenaTheme['environment3d']['fog']>;
     camera?: Partial<ArenaTheme['environment3d']['camera']>;
     lighting?: Partial<ArenaTheme['environment3d']['lighting']>;
     floor?: Partial<ArenaTheme['environment3d']['floor']>;
@@ -726,6 +731,10 @@ function environment3d(
   candidate: ThemeManifest['environment3d'],
   themeId: string,
 ): ArenaTheme['environment3d'] {
+  const fog = {
+    unseenTerrainDarkness:
+      candidate?.fog?.unseenTerrainDarkness ?? 0.58,
+  };
   const camera = {
     yawDegrees: candidate?.camera?.yawDegrees ?? 0,
     pitchDegrees: candidate?.camera?.pitchDegrees ?? 58,
@@ -746,6 +755,7 @@ function environment3d(
     colorMultiplier: candidate?.floor?.colorMultiplier ?? null,
   };
   if (
+    !finiteRange(fog.unseenTerrainDarkness, 0, 1) ||
     !finiteRange(camera.yawDegrees, -45, 45) ||
     !finiteRange(camera.pitchDegrees, 40, 70) ||
     !finiteRange(camera.fovDegrees, 18, 55) ||
@@ -762,7 +772,7 @@ function environment3d(
       !validHex(floor.colorMultiplier))
   )
     throw new Error(`Theme '${themeId}' has invalid 3D environment values.`);
-  return { camera, lighting, floor };
+  return { fog, camera, lighting, floor };
 }
 
 function finiteRange(value: number, minimum: number, maximum: number): boolean {

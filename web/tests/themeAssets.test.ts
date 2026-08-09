@@ -15,6 +15,9 @@ const stagedRoot = join(repositoryRoot, 'art', 'themes');
 type ThemeManifest = {
   id: string;
   environment3d?: {
+    fog?: {
+      unseenTerrainDarkness?: number;
+    };
     camera?: {
       yawDegrees?: number;
       pitchDegrees?: number;
@@ -252,6 +255,10 @@ test('Ember Forge carries the approved living-bastion profiles', () => {
   assert.equal(manifest.environment3d?.camera?.yawDegrees, 12);
   assert.equal(manifest.environment3d?.camera?.pitchDegrees, 52);
   assert.equal(manifest.environment3d?.camera?.fovDegrees, 28);
+  assert.equal(
+    manifest.environment3d?.fog?.unseenTerrainDarkness,
+    0.42,
+  );
   assert.equal(
     manifest.walls.families.perimeter.geometry3d?.bastionCover
       ?.boundaryDepth,

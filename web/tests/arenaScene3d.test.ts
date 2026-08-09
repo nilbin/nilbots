@@ -422,9 +422,21 @@ test('Ember builds its approved raised perimeter and cover profiles', () => {
     const overlays = buildOverlays(source, undefined, arena.scene);
     const bastionMaterial = raisedModules[0]!.material;
     assert.ok(!Array.isArray(bastionMaterial));
+    const emberFog = bastionMaterial.userData.arenaVisionFog as {
+      texture: THREE.DataTexture;
+    };
     assert.ok(
-      bastionMaterial.userData.arenaVisionFog,
+      emberFog,
       'raised bastion modules must share the terrain vision shader',
+    );
+    const selected = source.units.find((unit) => unit.teamId === 0)!;
+    overlays.update(0, selected.unitKey, true);
+    const emberMask = emberFog.texture.image.data as Uint8Array;
+    assert.ok(
+      emberMask.some(
+        (value, index) => index % 4 === 3 && value === Math.round(0.42 * 255),
+      ),
+      'Ember uses its lighter theme-owned unseen-terrain darkness',
     );
     overlays.dispose();
 
@@ -665,8 +677,10 @@ test('Woodland roots remain authoritative while organic foliage overhangs', () =
     ).length;
     assert.ok(mask.some((value, index) => index % 4 === 3 && value === 0));
     assert.ok(
-      mask.some((value, index) => index % 4 === 3 && value > 0 && value < 200),
-      'unseen terrain is subdued rather than blacked out',
+      mask.some(
+        (value, index) => index % 4 === 3 && value === Math.round(0.58 * 255),
+      ),
+      'themes without an override retain the established 58% terrain fog',
     );
 
     const shader = {
