@@ -7,6 +7,7 @@ import type { ReplayModel } from '../src/replayModel.ts';
 import { loadReplayJson } from '../src/replayIngress.ts';
 import {
   buildArena,
+  buildOverlays,
   WALL_OPEN_EDGE_INSET,
 } from './.harness/harness.entry.js';
 
@@ -32,12 +33,28 @@ function withEmberPresentation(source: ReplayModel): ReplayModel {
   };
 }
 
+function withWoodlandPresentation(source: ReplayModel): ReplayModel {
+  return {
+    ...source,
+    map: {
+      ...source.map,
+      presentation: {
+        themeId: 'woodland-grove',
+        boundaryWall: 'perimeter',
+        interiorWall: 'cover',
+        wallGroups: [],
+      },
+    },
+  };
+}
+
 function wallsByKind(
   scene: THREE.Scene,
   kind:
     | 'arena-wall-body'
     | 'arena-wall-caps'
-    | 'arena-wall-upper-profile',
+    | 'arena-wall-upper-profile'
+    | 'arena-woodland-groundcover',
 ): Map<string, THREE.Mesh> {
   const result = new Map<string, THREE.Mesh>();
   scene.traverse((node) => {
@@ -88,7 +105,7 @@ function positionBounds(
   return bounds;
 }
 
-test('Frontline builds the approved Ember perimeter and cover profiles', () => {
+test('Ember builds its approved raised perimeter and cover profiles', () => {
   // The Node canvas shim provides a decode-oriented Image without the DOM event surface
   // used by Three textures. A complete one-pixel stand-in keeps this test about geometry
   // while still building the texture-backed topology caps.
@@ -102,7 +119,8 @@ test('Frontline builds the approved Ember perimeter and cover profiles', () => {
   }
   globalThis.Image = GeometryImage as unknown as typeof Image;
   try {
-    const arena = buildArena(withEmberPresentation(replay), {
+    const source = withEmberPresentation(replay);
+    const arena = buildArena(source, {
       shadowMapSize: 1024,
     });
     const shadowLight = arena.scene.children.find(
@@ -122,14 +140,17 @@ test('Frontline builds the approved Ember perimeter and cover profiles', () => {
     assert.deepEqual([...bodies.keys()].sort(), ['cover', 'perimeter']);
     assert.deepEqual([...caps.keys()].sort(), ['cover', 'perimeter']);
     assert.deepEqual([...profiles.keys()].sort(), ['cover', 'perimeter']);
-    assert.equal(bodies.get('perimeter')!.userData.height, 0.72);
-    assert.equal(bodies.get('perimeter')!.userData.cornerRadius, 0.23);
-    assert.equal(bodies.get('cover')!.userData.height, 0.46);
-    assert.equal(bodies.get('cover')!.userData.cornerRadius, 0.31);
-    assert.equal(profiles.get('perimeter')!.userData.height, 0.19);
-    assert.equal(profiles.get('perimeter')!.userData.inset, 0.025);
-    assert.equal(profiles.get('cover')!.userData.height, 0.14);
-    assert.equal(profiles.get('cover')!.userData.inset, 0.04);
+    assert.equal(bodies.get('perimeter')!.userData.height, 0.84);
+    assert.equal(bodies.get('perimeter')!.userData.cornerRadius, 0.29);
+    assert.equal(bodies.get('cover')!.userData.height, 0.58);
+    assert.equal(bodies.get('cover')!.userData.cornerRadius, 0.35);
+    assert.equal(profiles.get('perimeter')!.userData.height, 0.25);
+    assert.equal(profiles.get('perimeter')!.userData.inset, 0.035);
+    assert.equal(profiles.get('cover')!.userData.height, 0.18);
+    assert.equal(profiles.get('cover')!.userData.inset, 0.05);
+    assert.ok(Math.abs(arena.cameraYaw - (12 * Math.PI) / 180) < 1e-9);
+    assert.ok(Math.abs(arena.cameraPitch - (52 * Math.PI) / 180) < 1e-9);
+    assert.equal(arena.camera.fov, 28);
 
     for (const wall of [...bodies.values(), ...caps.values()])
       assert.equal(wall.userData.openEdgeInset, WALL_OPEN_EDGE_INSET);
@@ -144,7 +165,7 @@ test('Frontline builds the approved Ember perimeter and cover profiles', () => {
       coverProfile.geometry,
       (vertex) =>
         profileNormal.getY(vertex) > 0.999 &&
-        Math.abs(profilePosition.getY(vertex) - 0.46) < 1e-6,
+        Math.abs(profilePosition.getY(vertex) - 0.58) < 1e-6,
     );
     const capBounds = positionBounds(coverCaps.geometry);
 
@@ -153,11 +174,11 @@ test('Frontline builds the approved Ember perimeter and cover profiles', () => {
     // unsupported square lip over the chamfer.
     assertNear(
       capBounds.min.x,
-      3 + WALL_OPEN_EDGE_INSET + 0.04 + 0.03,
+      3 + WALL_OPEN_EDGE_INSET + 0.05 + 0.035,
     );
     assertNear(
       capBounds.max.x,
-      12 - WALL_OPEN_EDGE_INSET - 0.04 - 0.03,
+      12 - WALL_OPEN_EDGE_INSET - 0.05 - 0.035,
     );
     assertNear(capBounds.min.x, topBounds.min.x);
     assertNear(capBounds.max.x, topBounds.max.x);
@@ -184,11 +205,11 @@ test('Frontline builds the approved Ember perimeter and cover profiles', () => {
       if (
         Math.abs(
           quad.min.x -
-            (3 + WALL_OPEN_EDGE_INSET + 0.04 + 0.03),
+            (3 + WALL_OPEN_EDGE_INSET + 0.05 + 0.035),
         ) < 1e-6 &&
         Math.abs(
           quad.max.x -
-            (4 - WALL_OPEN_EDGE_INSET - 0.04 - 0.03),
+            (4 - WALL_OPEN_EDGE_INSET - 0.05 - 0.035),
         ) < 1e-6 &&
         Math.abs(quad.min.z - 1) < 1e-6
       ) {
@@ -220,7 +241,406 @@ test('Frontline builds the approved Ember perimeter and cover profiles', () => {
         'arena-wall-vent-emission',
       ),
     );
+    const ventEmission = objectByKind(
+      arena.scene,
+      'arena-wall-vent-emission',
+    ) as THREE.InstancedMesh;
+    const ventRecess = objectByKind(
+      arena.scene,
+      'arena-wall-vent-recesses',
+    ) as THREE.InstancedMesh;
+    assert.ok(ventEmission && ventRecess);
+    const ventMatrix = new THREE.Matrix4();
+    const recessMatrix = new THREE.Matrix4();
+    const ventPosition = new THREE.Vector3();
+    const recessPosition = new THREE.Vector3();
+    ventEmission.getMatrixAt(0, ventMatrix);
+    ventRecess.getMatrixAt(0, recessMatrix);
+    ventPosition.setFromMatrixPosition(ventMatrix);
+    recessPosition.setFromMatrixPosition(recessMatrix);
+    assert.ok(
+      ventPosition.distanceTo(recessPosition) >= 0.005,
+      'orange vent bars are physically separated from their recess instead of z-fighting',
+    );
+    assert.equal(ventEmission.castShadow, false);
+    assert.equal(ventEmission.receiveShadow, false);
 
+    const bastion = objectByKind(
+      arena.scene,
+      'arena-wall-bastion-scenery',
+    );
+    assert.ok(bastion);
+    assert.ok(bastion.userData.moduleCount > 0);
+    const perimeterBastion = objectByKind(
+      arena.scene,
+      'arena-wall-bastion-family',
+    );
+    assert.ok(perimeterBastion);
+    assert.ok(
+      objectByKind(arena.scene, 'arena-wall-bastion-shoulders') ||
+        objectByKind(arena.scene, 'arena-wall-bastion-towers'),
+    );
+    assert.ok(
+      objectByKind(arena.scene, 'arena-wall-bastion-face-ribs'),
+    );
+    assert.ok(
+      objectByKind(arena.scene, 'arena-wall-bastion-apron-bands'),
+    );
+    assert.ok(
+      objectByKind(arena.scene, 'arena-wall-bastion-corner-pylons'),
+    );
+    assert.ok(
+      objectByKind(arena.scene, 'arena-wall-bastion-round-towers'),
+      'round foundry stacks break the rectangular-box repetition',
+    );
+    assert.ok(
+      objectByKind(arena.scene, 'arena-wall-bastion-split-towers'),
+      'paired unequal towers break the one-module-per-tile silhouette',
+    );
+    assert.ok(
+      objectByKind(arena.scene, 'arena-wall-bastion-apron-outer-rails'),
+      'the widened perimeter finishes in a raised outer rail',
+    );
+    const heatSeams = objectByKind(
+      arena.scene,
+      'arena-wall-bastion-heat-seams',
+    ) as THREE.InstancedMesh;
+    if (heatSeams) {
+      assert.equal(heatSeams.castShadow, false);
+      assert.equal(heatSeams.receiveShadow, false);
+    }
+
+    const bastionFamilies = new Map<string, THREE.Object3D>();
+    const raisedModules: THREE.InstancedMesh[] = [];
+    let apronBands: THREE.InstancedMesh | null = null;
+    arena.scene.traverse((node) => {
+      if (
+        node.userData.kind === 'arena-wall-bastion-family' &&
+        typeof node.userData.family === 'string'
+      )
+        bastionFamilies.set(node.userData.family, node);
+      if (
+        node instanceof THREE.InstancedMesh &&
+        (node.userData.kind === 'arena-wall-bastion-shoulders' ||
+          node.userData.kind === 'arena-wall-bastion-towers')
+      )
+        raisedModules.push(node);
+      if (
+        node instanceof THREE.InstancedMesh &&
+        node.userData.kind === 'arena-wall-bastion-apron-bands'
+      )
+        apronBands = node;
+    });
+    assert.deepEqual([...bastionFamilies.keys()].sort(), [
+      'cover',
+      'perimeter',
+    ]);
+    assert.equal(bastionFamilies.get('perimeter')!.userData.boundaryDepth, 1.8);
+    assert.equal(bastionFamilies.get('cover')!.userData.boundaryDepth, 0);
+    assert.ok(
+      bastionFamilies.get('perimeter')!.userData.maximumHeight > 0.84,
+    );
+    assert.ok(bastionFamilies.get('cover')!.userData.maximumHeight > 0.58);
+
+    const matrix = new THREE.Matrix4();
+    const position = new THREE.Vector3();
+    const rotation = new THREE.Quaternion();
+    const scale = new THREE.Vector3();
+    const rises = new Set<string>();
+    for (const mesh of raisedModules) {
+      for (let index = 0; index < mesh.count; index++) {
+        mesh.getMatrixAt(index, matrix);
+        matrix.decompose(position, rotation, scale);
+        rises.add(scale.y.toFixed(4));
+      }
+    }
+    assert.ok(
+      rises.size > 5,
+      'bastion modules must vary the skyline rather than stamp one height',
+    );
+
+    assert.ok(apronBands);
+    const apronPositions: THREE.Vector3[] = [];
+    for (let index = 0; index < apronBands.count; index++) {
+      apronBands.getMatrixAt(index, matrix);
+      matrix.decompose(position, rotation, scale);
+      apronPositions.push(position.clone());
+    }
+    assert.ok(apronPositions.some((value) => value.x < 0));
+    assert.ok(apronPositions.some((value) => value.z < 0));
+    assert.ok(apronPositions.some((value) => value.x > source.map.width));
+    assert.ok(apronPositions.some((value) => value.z > source.map.height));
+
+    const overlays = buildOverlays(source, undefined, arena.scene);
+    const bastionMaterial = raisedModules[0]!.material;
+    assert.ok(!Array.isArray(bastionMaterial));
+    assert.ok(
+      bastionMaterial.userData.arenaVisionFog,
+      'raised bastion modules must share the terrain vision shader',
+    );
+    overlays.dispose();
+
+    arena.dispose();
+  } finally {
+    globalThis.Image = image;
+  }
+});
+
+test('Woodland roots remain authoritative while organic foliage overhangs', () => {
+  const image = globalThis.Image;
+  class GeometryImage {
+    complete = true;
+    naturalWidth = 1;
+    decoding = 'async';
+    src = '';
+    addEventListener(): void {}
+  }
+  globalThis.Image = GeometryImage as unknown as typeof Image;
+  try {
+    const source = withWoodlandPresentation(replay);
+    const arena = buildArena(source, { shadowMapSize: 1024 });
+    const woodland = objectByKind(
+      arena.scene,
+      'arena-woodland-scenery',
+    );
+    assert.ok(woodland);
+    assert.ok(woodland.userData.treeCount > 0);
+
+    const familyGroups = new Map<string, THREE.Object3D>();
+    const canopies: THREE.InstancedMesh[] = [];
+    const trunks: THREE.InstancedMesh[] = [];
+    const conifers: THREE.InstancedMesh[] = [];
+    const transitionFringes: THREE.InstancedMesh[] = [];
+    arena.scene.traverse((node) => {
+      if (
+        node.userData.kind === 'arena-woodland-family' &&
+        typeof node.userData.family === 'string'
+      )
+        familyGroups.set(node.userData.family, node);
+      if (
+        node instanceof THREE.InstancedMesh &&
+        node.userData.kind === 'arena-woodland-canopy-lobes'
+      )
+        canopies.push(node);
+      if (
+        node instanceof THREE.InstancedMesh &&
+        node.userData.kind === 'arena-woodland-trunks'
+      )
+        trunks.push(node);
+      if (
+        node instanceof THREE.InstancedMesh &&
+        node.userData.kind === 'arena-woodland-conifer-tiers'
+      )
+        conifers.push(node);
+      if (
+        node instanceof THREE.InstancedMesh &&
+        node.userData.kind === 'arena-woodland-transition-fringe'
+      )
+        transitionFringes.push(node);
+    });
+    assert.ok(Math.abs(arena.cameraYaw - (12 * Math.PI) / 180) < 1e-9);
+    assert.ok(Math.abs(arena.cameraPitch - (52 * Math.PI) / 180) < 1e-9);
+    assert.equal(arena.camera.fov, 26);
+    assert.ok(arena.scene.fog instanceof THREE.Fog);
+    assert.ok(
+      arena.scene.fog.far > source.map.width * 3,
+      'the narrow MOBA lens must move the fog plane with the camera',
+    );
+    assert.deepEqual(
+      [...wallsByKind(arena.scene, 'arena-wall-body').keys()],
+      [],
+      'living cover must not reveal the tile grid as a raised substrate',
+    );
+    assert.deepEqual(
+      [...wallsByKind(arena.scene, 'arena-wall-caps').keys()],
+      [],
+      'living cover must not carry rectangular topology caps',
+    );
+    assert.deepEqual(
+      [...wallsByKind(arena.scene, 'arena-woodland-groundcover').keys()].sort(),
+      ['cover', 'perimeter'],
+      'living blockers need one continuous, flush understory field per family',
+    );
+    for (const groundcover of wallsByKind(
+      arena.scene,
+      'arena-woodland-groundcover',
+    ).values())
+      assert.equal(
+        groundcover.userData.openEdgeInset,
+        0,
+        'organic groundcover must not expose a per-tile clearance gutter',
+      );
+    assert.deepEqual([...familyGroups.keys()].sort(), ['cover', 'perimeter']);
+    assert.ok(
+      familyGroups.get('perimeter')!.userData.maximumHeight >
+        familyGroups.get('cover')!.userData.maximumHeight,
+    );
+    assert.ok(
+      familyGroups.get('perimeter')!.userData.maximumRootSpread +
+          familyGroups.get('perimeter')!.userData.maximumCanopyRadius >
+        0.5 - WALL_OPEN_EDGE_INSET,
+      'organic crowns intentionally overhang the old per-cell padding',
+    );
+    assert.ok(familyGroups.get('perimeter')!.userData.borderTreeCount > 40);
+    assert.equal(
+      familyGroups.get('perimeter')!.userData.boundaryShape,
+      'scattered-rounded-band',
+    );
+    assert.equal(familyGroups.get('cover')!.userData.borderTreeCount, 0);
+    assert.equal(familyGroups.get('cover')!.userData.boundaryShape, 'none');
+    assert.ok(
+      familyGroups.get('perimeter')!.userData.transitionFringeCount > 40,
+    );
+    assert.equal(familyGroups.get('cover')!.userData.transitionFringeCount, 0);
+    assert.ok(conifers.some((mesh) => mesh.count > 0));
+    assert.equal(transitionFringes.length, 1);
+
+    const matrix = new THREE.Matrix4();
+    const position = new THREE.Vector3();
+    const rotation = new THREE.Quaternion();
+    const scale = new THREE.Vector3();
+    const trunkHeights = new Set<string>();
+    const trunkWidths = new Set<string>();
+    let outsideBorderRoots = 0;
+    let roundedCornerRoots = 0;
+    const outsideDepths = new Set<string>();
+    for (const trunk of trunks) {
+      for (let index = 0; index < trunk.count; index++) {
+        trunk.getMatrixAt(index, matrix);
+        matrix.decompose(position, rotation, scale);
+        trunkHeights.add(scale.y.toFixed(4));
+        trunkWidths.add(scale.x.toFixed(4));
+        if (
+          position.x < 0 ||
+          position.z < 0 ||
+          position.x >= source.map.width ||
+          position.z >= source.map.height
+        ) {
+          outsideBorderRoots++;
+          const outsideX = Math.max(
+            0,
+            -position.x,
+            position.x - source.map.width,
+          );
+          const outsideZ = Math.max(
+            0,
+            -position.z,
+            position.z - source.map.height,
+          );
+          outsideDepths.add(Math.hypot(outsideX, outsideZ).toFixed(2));
+          if (outsideX > 0 && outsideZ > 0) roundedCornerRoots++;
+        } else {
+          assert.equal(
+            source.map.tileRows[Math.floor(position.z)]?.[
+              Math.floor(position.x)
+            ],
+            '#',
+            'in-map tree roots remain authoritative blockers',
+          );
+        }
+      }
+    }
+    assert.ok(
+      trunkHeights.size > 8,
+      'tree cover must alternate trunk heights instead of stamping one tree',
+    );
+    assert.ok(
+      trunkWidths.size > 8,
+      'tree cover must alternate trunk widths instead of stamping one tree',
+    );
+    assert.ok(outsideBorderRoots > 40, 'the perimeter must grow outward in depth');
+    assert.ok(
+      outsideDepths.size > 30,
+      'the outer forest must occupy a scattered band rather than aligned rows',
+    );
+    assert.ok(
+      roundedCornerRoots > 8,
+      'the outer forest must round and soften all four map corners',
+    );
+    for (const fringe of transitionFringes) {
+      for (let index = 0; index < fringe.count; index++) {
+        fringe.getMatrixAt(index, matrix);
+        matrix.decompose(position, rotation, scale);
+        assert.notEqual(
+          source.map.tileRows[Math.floor(position.z)]?.[
+            Math.floor(position.x)
+          ],
+          '#',
+          'the flat transition fringe should soften the floor side of the seam',
+        );
+        assert.ok(scale.y <= 0.03, 'transition foliage must stay visibly flat');
+      }
+    }
+    let overhangingCrowns = 0;
+    for (const canopy of canopies) {
+      for (let index = 0; index < canopy.count; index++) {
+        canopy.getMatrixAt(index, matrix);
+        matrix.decompose(position, rotation, scale);
+        if (
+          position.x < 0 ||
+          position.z < 0 ||
+          position.x >= source.map.width ||
+          position.z >= source.map.height
+        )
+          continue;
+        const tileX = Math.floor(position.x);
+        const tileY = Math.floor(position.z);
+        const centreDistance = Math.hypot(
+          position.x - (tileX + 0.5),
+          position.z - (tileY + 0.5),
+        );
+        if (centreDistance + Math.max(scale.x, scale.z) > 0.5)
+          overhangingCrowns++;
+      }
+    }
+    assert.ok(
+      overhangingCrowns > 8,
+      'crowns should cross cell edges instead of exposing tile-shaped padding',
+    );
+
+    const overlays = buildOverlays(source, undefined, arena.scene);
+    const canopyMaterial = canopies[0]!.material;
+    assert.ok(!Array.isArray(canopyMaterial));
+    const fog = canopyMaterial.userData.arenaVisionFog as {
+      enabled: { value: number };
+      mesh: THREE.Mesh;
+      texture: THREE.DataTexture;
+    };
+    assert.ok(fog, 'living wall materials receive the team-vision mask');
+    const selected = source.units.find((unit) => unit.teamId === 0)!;
+    overlays.update(0, selected.unitKey, true);
+    assert.equal(fog.enabled.value, 1);
+    assert.equal(fog.mesh.visible, true, 'selection fog also covers the floor');
+    const mask = fog.texture.image.data as Uint8Array;
+    const selectedVisible = mask.filter(
+      (value, index) => index % 4 === 3 && value === 0,
+    ).length;
+    assert.ok(mask.some((value, index) => index % 4 === 3 && value === 0));
+    assert.ok(
+      mask.some((value, index) => index % 4 === 3 && value > 0 && value < 200),
+      'unseen terrain is subdued rather than blacked out',
+    );
+
+    const shader = {
+      uniforms: {},
+      vertexShader: 'void main() {\n#include <project_vertex>\n}',
+      fragmentShader: 'void main() {\n#include <opaque_fragment>\n}',
+    };
+    canopyMaterial.onBeforeCompile(shader as never, {} as never);
+    assert.match(shader.vertexShader, /instanceMatrix/);
+    assert.match(shader.fragmentShader, /arenaVisionFogMap/);
+    assert.ok('arenaVisionFogEnabled' in shader.uniforms);
+    overlays.update(0, null, false);
+    assert.equal(fog.enabled.value, 1, 'unselected walls retain all-unit vision');
+    assert.equal(fog.mesh.visible, true, 'the floor uses the same all-unit union');
+    const allUnitVisible = mask.filter(
+      (value, index) => index % 4 === 3 && value === 0,
+    ).length;
+    assert.ok(
+      allUnitVisible > selectedVisible,
+      'either team can light raised terrain when no perspective is selected',
+    );
+    overlays.dispose();
     arena.dispose();
   } finally {
     globalThis.Image = image;

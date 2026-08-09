@@ -2012,6 +2012,7 @@ One deliberate divergence: fog darkens the **floor**, not the walls. A horizonta
 can only align at one height, and lifting it above the walls slides it off the floor by most
 of a tile at this camera pitch. Walls are static terrain both players have always known
 about; the information is in where bots and bolts are, and those are hidden by the actors.
+Decision #252 supersedes this floor-only exception with a shared world-space terrain mask.
 
 ## 128. The 2.5D renderer consumes normalized replay identity and represents forms explicitly
 
@@ -6608,3 +6609,146 @@ schema role references atomically, while the stored `roles`, `roleId`, doctrine 
 compiler and runtime remain unchanged. The command board consumes these assignments and
 may describe every eligible chassis and signature rather than implying a fixed one-class
 role taxonomy.
+## 254. A selected bot owns at least 63×63 CSS pixels
+
+Owner correction (2026-08-08): 63×63 names the minimum rendered bot footprint,
+not an arena dimension. The fixed selection "mid shot" violated it: four and a
+half tiles of margin became a 14.4×9-tile frame at 16:10, leaving the smallest
+WebGL body roughly 41 px tall on the desktop review canvas.
+
+Selection framing now reads the arena's CSS-pixel dimensions. It retains at
+most five tiles on the viewport's tight axis and closes further below that,
+using 120 CSS px per ground tile to pay for the smallest 0.82-tile body, the
+camera's 22° side yaw and 52° pitch, and the rectangle-fit distance they add.
+The projection test runs the actual perspective arithmetic at 852×393 and
+393×852 and requires both dimensions of that conservative body box to clear
+63 px. Device pixel ratio is deliberately absent: this is apparent size, not a
+texture-resolution claim. Canvas2D receives the same frame for fallback
+continuity, but WebGL remains the product viewer.
+
+The unattended Arc Relay director's closest shot moves from fifteen tiles to
+seven and a half. Fifteen made even its tightest cut an establishing shot; the
+new floor retains nearby tactical context and also keeps the conservative body
+above 63 px on the reference landscape phone. The strategic overview remains
+an explicit exception because its purpose is to show all three theaters; it is
+never entered by selecting a bot and does not pretend to satisfy a per-body
+readability contract while showing the whole 31×27 board.
+
+## 255. Camera presets converge; raised terrain enters softened fog
+
+Owner correction (2026-08-08): the first 63×63 selection pass over-corrected
+the follow camera while the overview still spent too much of the viewport on
+the map apron. Selection now reserves 98 rather than 120 CSS pixels per tile
+and caps the tight axis at 5.8 tiles. On the desktop review canvas the smallest
+body itself remains above 63×63 CSS pixels; on narrow screens the complete
+selected render, including its dashed ground marker, retains that interaction
+floor. The reference 926×578 follow frame moves from about 7.72×4.82 to
+9.29×5.8 tiles, restoring the neighboring wall and tactical context.
+
+Arc Relay's manual overview no longer treats the map rectangle as an anchor.
+It frames every published Well and Reactor with half a tile of breathing room,
+then conforms that strategic box to the viewport. On the desktop Warren this
+moves the view from 32 to 27 tiles wide while keeping all three theaters; only
+the unplayed outer apron may leave the shot.
+
+The WebGL unseen-terrain darkness moves from 82% to 58%. The existing floor
+plane and every Woodland wall/tree material sample one replay-authored vision
+texture; raised and instanced terrain uses world position so it stays aligned
+with the floor mask at the MOBA camera pitch. Disabling perspective fog sets a
+shared uniform rather than rebuilding materials. Actors and projectiles remain
+hidden by their separate authoritative visibility path. This supersedes #127's
+floor-only exception and refines #254's initial camera constants.
+
+## 256. Reduce the side rotation and converge the camera presets again
+
+Owner correction (2026-08-08): the 22° Woodland yaw spent too much of the
+rectangular viewport fitting the empty corners of a strongly rotated ground
+frame. It moves back to a restrained 12°. Pitch and lens stay at 52° and 26°,
+so walls retain their readable faces and the arena remains three-dimensional;
+the smaller yaw simply lets the same strategic ground occupy more screen.
+
+That fit-efficiency gain brings both automatic views closer. Arc Relay's
+overview now holds the three Wells rather than expanding for both distant home
+Reactors, moving the Warren desktop frame from 27 to 24 tiles; the director's
+closest horizontal span moves from 7.5 to 7 tiles. Selection
+moves in the other direction: its tight-axis ceiling grows from 5.8 to 8 tiles
+and its responsive density moves from 98 to 70 CSS pixels per tile. The full
+selected interaction render, including its dashed marker, still clears 63×63
+CSS pixels in both reference phone orientations. This refines #255; it does not
+change its shared terrain-fog decision.
+
+## 257. Unselected terrain uses the all-unit vision union
+
+Owner direction (2026-08-08), clarified after the first implementation: the
+unselected view is the union of every active unit's vision across both teams,
+and that union applies to the complete terrain—not only raised blockers. Floor,
+wall, detail, and Woodland tree materials therefore remain softly fogged until
+any unit lights their tiles. Actors/projectiles remain omniscient in this
+default spectator mode.
+
+Selection is unchanged semantically. Selecting a unit replaces the cross-team
+terrain union with that unit's team union, enables the matching floor mask,
+and retains the existing actor/projectile visibility filtering. Turning the
+perspective checkbox off returns to the all-unit terrain mask rather than
+making the arena bright. Replays that predate published vision still disable
+fog instead of presenting missing data as darkness. This refines #255's
+terrain shader without changing its 58% darkness or #256's camera.
+
+## 258. Arc Relay moves to Ember Forge's topology-derived living bastion
+
+Owner direction (2026-08-08): improve Ember Forge in the actual Arc Relay map,
+not in the old Frontline showcase. New Arc Relay presentations, including the
+31×27 Ambush Warren, therefore author `ember-forge` directly. Existing replays
+remain immutable: a replay already carrying `woodland-grove` continues to load
+that retained theme. Rules, map IDs/fingerprints, tiles, collision, vision,
+wells, reactors, and camera-mode framing do not change.
+
+Ember's continuous family extrusions remain the blocker truth, but their base
+profiles rise to 0.84 tiles for perimeter and 0.58 for cover. A declarative
+`bastionCover` companion places sparse instanced shoulders, towers, sloped face
+ribs, top trim, and heat seams from stable family/coordinate/topology hashes.
+This creates real alternating height and width without a per-map mesh or a
+one-prop-per-tile contract. In-map additions stay within blocked footprints and
+the measured live-chassis open-edge inset. A 1.2-tile low apron, rounded corner
+plates, and irregular supports extend only outward from the perimeter to make
+the arena shell broader without implying playable ground.
+
+Material response moves toward the approved V4 matte living-bastion direction:
+cooler neutral light, graphite raised modules, restrained copper/heat accents,
+a dark partially blended topology cap, quieter floor bump, and higher
+roughness. Ember receives the proven 12°/52° three-quarter camera with a 28°
+lens. All new meshes use the raised-terrain fog shader, so the unselected
+all-unit union and selected team-only mask remain continuous across floor,
+base walls, varied profiles, and the outside foundation. Fresh native seed
+9001 review evidence records `themeId: ember-forge` and canonical replay hash
+`9a40d1de8ee085ce41cb7ba14bd593d268841481dfb178b4f3ec5bc94de47938`;
+WebGL reports error 0 with no console/page errors.
+
+## 259. Ember camera modes separate tactical, directed, and strategic intent
+
+Owner correction (2026-08-09): selected follow needs more tactical context,
+director must stop behaving like an overview, and overview must retain the
+closer three-Well framing already approved on Woodland. A stale interrupted
+review bundle briefly showed the full arena, but that was not the shared source
+contract; overview remains the 24-tile Warren frame from #256 rather than
+expanding to the map rectangle.
+
+Follow's tight-axis ceiling moves from 8 to 9.5 tiles and its responsive density
+from 70 to 60 CSS pixels per tile. The selection pool and dashed ring grow with
+it, and the actual perspective projection test still requires the complete
+selected render to clear 63×63 CSS pixels in both reference phone orientations.
+Director now initializes directly on its first computed shot. Sustained combat
+uses a weighted active cluster instead of every endpoint in the recent event
+window, while quiet play ranks one local formation or Well theater rather than
+falling back to all three Wells. Canvas2D and WebGL consume the same director
+frame function.
+
+Ember's unselected team pool opacity rises from 0.72 to 0.9 and its footprint
+widens so allegiance stays readable at the wider cameras. Orange vent faces
+move outward from their recesses and heat seams rise above their hosts instead
+of relying on coplanar mobile-GPU depth resolution. Straight-run accents and
+raised modules become sparser; rectangular, decagonal, and paired unequal-height
+towers increase silhouette variety. The outside perimeter depth grows from 1.2
+to 1.8 tiles, with a visible low apron, broader pylons, and a raised outer rail.
+These are renderer and theme changes only: replay rules, map topology,
+collision, vision, objectives, and fingerprints do not change.

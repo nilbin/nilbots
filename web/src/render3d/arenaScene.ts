@@ -5,6 +5,8 @@ import { WallLayout } from '../render/wallTopology';
 import { wallShapes } from './wallSolids';
 import { buildWallDetails } from './wallDetails';
 import { themeMaterialImage } from './themeMaterialAssets';
+import { buildWoodlandScenery } from './woodlandScenery';
+import { buildBastionScenery } from './bastionScenery';
 
 /**
  * The arena as actual geometry.
@@ -54,6 +56,8 @@ export const WALL_OPEN_EDGE_INSET = 0.14462;
 export interface ArenaScene {
   scene: THREE.Scene;
   camera: THREE.PerspectiveCamera;
+  cameraYaw: number;
+  cameraPitch: number;
   dispose: () => void;
 }
 
@@ -78,8 +82,17 @@ export function buildArena(
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(theme.palette.canvas);
   // Fog hides the floor plane's edge and gives distance a cost, which is most of what
-  // makes a flat grid read as a space.
-  scene.fog = new THREE.Fog(theme.palette.canvas, mapWidth * 0.9, mapWidth * 2.2);
+  // makes a flat grid read as a space. A narrow MOBA lens sits much farther from the same
+  // frame than the historical 42-degree camera, so scale the cutoff by that exact lens
+  // distance ratio or the whole arena disappears into fog merely because its FOV changed.
+  const fogDistanceScale =
+    Math.tan((42 * Math.PI) / 360) /
+    Math.tan((theme.environment3d.camera.fovDegrees * Math.PI) / 360);
+  scene.fog = new THREE.Fog(
+    theme.palette.canvas,
+    mapWidth * 0.9 * fogDistanceScale,
+    mapWidth * 2.2 * fogDistanceScale,
+  );
 
   const disposables: { dispose: () => void }[] = [];
 
@@ -88,6 +101,15 @@ export function buildArena(
   const layout = wallLayout(replay, theme);
   for (const mesh of walls(replay, theme, layout, disposables))
     scene.add(mesh);
+  scene.add(buildWoodlandScenery(layout, theme, disposables));
+  scene.add(
+    buildBastionScenery(
+      layout,
+      theme,
+      WALL_OPEN_EDGE_INSET,
+      disposables,
+    ),
+  );
   scene.add(
     buildWallDetails(
       layout,
@@ -97,11 +119,19 @@ export function buildArena(
     ),
   );
 
-  const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 200);
+  const camera = new THREE.PerspectiveCamera(
+    theme.environment3d.camera.fovDegrees,
+    1,
+    0.1,
+    300,
+  );
 
   return {
     scene,
     camera,
+    cameraYaw: (theme.environment3d.camera.yawDegrees * Math.PI) / 180,
+    cameraPitch:
+      (theme.environment3d.camera.pitchDegrees * Math.PI) / 180,
     dispose: () => {
       for (const item of disposables) item.dispose();
     },
@@ -193,7 +223,9 @@ function floor(
     // the key light, instead of a photograph of shading lying flat under a different one.
     bumpMap: texture,
     bumpScale: floorMaterial.bumpScale,
-    color: tintMultiplier(theme.palette.floorTint),
+    color:
+      floorMaterial.colorMultiplier ??
+      tintMultiplier(theme.palette.floorTint),
     roughness: floorMaterial.roughness,
     metalness: floorMaterial.metalness,
   });
@@ -225,10 +257,16 @@ function walls(
   const byFamily = new Map<string, { x: number; y: number }[]>();
   const capsByFamily = new Map<string, THREE.BufferGeometry[]>();
   for (const wall of layout.walls()) {
+    const family = theme.walls.families.get(wall.family)!;
+    // Living woodland cover is the blocker. Drawing the ordinary traced wall body below
+    // it reveals the authoritative tile outline as a raised rectangular planting bed,
+    // which defeats the point of replacing masonry with trees. Its topology remains in
+    // WallLayout for gameplay, placement, clearance, and the flush foliage field; only
+    // the synthetic raised substrate is omitted from the 3D presentation.
     (byFamily.get(wall.family) ?? byFamily.set(wall.family, []).get(wall.family)!)
       .push({ x: wall.x, y: wall.y });
+    if (family.geometry3d.treeCover !== null) continue;
 
-    const family = theme.walls.families.get(wall.family)!;
     const upper = family.geometry3d.upperProfile;
 
     // Preserve atlas gutter only across same-family joins. A different wall family meets
@@ -293,6 +331,52 @@ function walls(
   for (const [familyId, tiles] of byFamily) {
     const family = theme.walls.families.get(familyId);
     if (!family) continue;
+    if (family.geometry3d.treeCover !== null) {
+      const groundcoverShapes = wallShapes(tiles, {
+        cornerRadius: family.geometry3d.cornerRadius,
+        // Living foliage is allowed to meet and cross the authoritative boundary. Roots
+        // still originate on blocked cells, but a masonry-style visual clearance gutter
+        // would put the tile grid straight back into the forest silhouette.
+        openEdgeInset: 0,
+        isWall: (x, y) => layout.familyAt(x, y) !== null,
+      });
+      if (groundcoverShapes.length === 0) continue;
+      const groundcoverGeometry = new THREE.ShapeGeometry(
+        groundcoverShapes,
+        5,
+      );
+      groundcoverGeometry.rotateX(-Math.PI / 2);
+      groundcoverGeometry.translate(0, 0.003, 0);
+      projectWorldUvs(
+        groundcoverGeometry,
+        replay.map.width,
+        replay.map.height,
+      );
+      const groundcoverTexture = sprite(
+        family.materialTexture,
+        THREE.RepeatWrapping,
+      );
+      const groundcoverMaterial = new THREE.MeshStandardMaterial({
+        map: groundcoverTexture,
+        color: tintMultiplier(theme.palette.wallTint),
+        roughness: 1,
+        metalness: 0,
+        polygonOffset: true,
+        polygonOffsetFactor: -1,
+      });
+      const groundcover = new THREE.Mesh(
+        groundcoverGeometry,
+        groundcoverMaterial,
+      );
+      groundcover.userData.kind = 'arena-woodland-groundcover';
+      groundcover.userData.family = familyId;
+      groundcover.userData.openEdgeInset = 0;
+      groundcover.receiveShadow = true;
+      meshes.push(groundcover);
+      disposables.push(groundcoverGeometry, groundcoverMaterial);
+      if (groundcoverTexture) disposables.push(groundcoverTexture);
+      continue;
+    }
     const height = family.geometry3d.height;
     const upper = family.geometry3d.upperProfile;
     const bodyHeight = upper === null
@@ -347,7 +431,9 @@ function walls(
         family.material3d.normalScale,
         family.material3d.normalScale,
       ),
-      color: tintMultiplier(theme.palette.wallTint),
+      color:
+        family.material3d.colorMultiplier ??
+        tintMultiplier(theme.palette.wallTint),
       roughnessMap,
       roughness: family.material3d.roughness,
       metalness: family.material3d.metalness,
@@ -406,12 +492,20 @@ function walls(
       for (const part of caps) part.dispose();
       const capMaterial = new THREE.MeshStandardMaterial({
         map: sprite(family.edgeAtlasTexture),
+        color:
+          family.geometry3d.bastionCover === null
+            ? '#ffffff'
+            : '#8c827b',
+        opacity:
+          family.geometry3d.bastionCover === null ? 1 : 0.76,
         transparent: true,
         // Sits a fraction above the wall top, so depth writes would fight the box beneath
         // it at grazing angles. Reading depth without writing it settles that.
         depthWrite: false,
-        roughness: 0.7,
-        metalness: 0.25,
+        roughness:
+          family.geometry3d.bastionCover === null ? 0.7 : 0.94,
+        metalness:
+          family.geometry3d.bastionCover === null ? 0.25 : 0.14,
       });
       const capMesh = new THREE.Mesh(capGeometry, capMaterial);
       capMesh.userData.kind = 'arena-wall-caps';

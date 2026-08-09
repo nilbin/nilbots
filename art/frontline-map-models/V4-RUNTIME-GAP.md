@@ -9,6 +9,17 @@ runtime is a deterministic V4-inspired interpretation over the authoritative
 flat-profile, glossy-material gap while preserving collision, topology,
 overlays, camera, and Canvas fallback.
 
+## Arc Relay follow-up
+
+The 2026-08-08 living-bastion pass closes part of the original silhouette gap
+without invalidating this audit. Sparse raised shoulders, end/corner towers,
+sloped face ribs, heat seams, and external perimeter supports now vary Ember's
+height and width from the same `WallLayout`. The rectangular topology cap is
+darkened and partially blended, while the continuous profile remains the
+collision-readable substrate. Current Arc Relay evidence and camera/material
+values are recorded in `art/themes/ember-forge/README.md`; the Frontline boards
+and measurements below remain the historical baseline.
+
 ## Property transfer
 
 | Approved V4 property | Runtime treatment | Status |
@@ -45,9 +56,10 @@ present in these Canvas-only files.
 - Topology caps are still rectangular atlas planes over rounded profiles. Open
   edges are supported and UV-correct, but a shaped or nine-slice cap would
   close the residual rounded-corner mismatch.
-- The runtime does not reproduce every concept module's bespoke asymmetrical
-  silhouette. It deliberately favors reusable continuous geometry so later
-  map tuning remains data-only.
+- The new raised bastion layer introduces deterministic asymmetry and varied
+  height, but it still does not reproduce every concept module's bespoke
+  silhouette. It deliberately favors reusable geometry so later map tuning
+  remains data-only.
 - The floor has no authored true normal/roughness pair. Its shallow
   albedo-as-bump treatment is intentionally conservative; a future floor PBR
   source should be reviewed as a separate material upgrade.

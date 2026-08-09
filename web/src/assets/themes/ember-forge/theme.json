@@ -2,18 +2,24 @@
   "id": "ember-forge",
   "label": "Ember Forge",
   "environment3d": {
+    "camera": {
+      "yawDegrees": 12,
+      "pitchDegrees": 52,
+      "fovDegrees": 28
+    },
     "lighting": {
-      "keyColor": "#f1d4c0",
-      "keyIntensity": 3.6,
-      "ambientColor": "#5d6670",
-      "ambientIntensity": 1.8,
-      "fillColor": "#8c5d42",
-      "fillIntensity": 0.75
+      "keyColor": "#e7ded7",
+      "keyIntensity": 3.25,
+      "ambientColor": "#52606a",
+      "ambientIntensity": 1.65,
+      "fillColor": "#744936",
+      "fillIntensity": 0.58
     },
     "floor": {
-      "bumpScale": 0.045,
-      "roughness": 0.95,
-      "metalness": 0.16
+      "bumpScale": 0.028,
+      "roughness": 0.98,
+      "metalness": 0.12,
+      "colorMultiplier": "#c7c7c7"
     }
   },
   "textures": {
@@ -36,28 +42,39 @@
         "edgeAtlas": "wall-perimeter-edges.webp",
         "shadowAtlas": "wall-perimeter-shadows.webp",
         "geometry3d": {
-          "height": 0.72,
-          "cornerRadius": 0.23,
+          "height": 0.84,
+          "cornerRadius": 0.29,
           "upperProfile": {
-            "height": 0.19,
-            "inset": 0.025,
-            "chamfer": 0.035
+            "height": 0.25,
+            "inset": 0.035,
+            "chamfer": 0.045
           },
           "details": {
             "panelEvery": 3,
-            "ventEvery": 4,
+            "ventEvery": 7,
             "clampEvery": 5,
-            "panelColor": "#6d594d",
-            "clampColor": "#8e5c3e",
-            "ventColor": "#e2732f"
+            "panelColor": "#4f4b48",
+            "clampColor": "#805239",
+            "ventColor": "#dc682c"
+          },
+          "bastionCover": {
+            "shoulderEvery": 3,
+            "towerEvery": 7,
+            "minRise": 0.1,
+            "maxRise": 0.34,
+            "boundaryDepth": 1.8,
+            "bodyColor": "#242526",
+            "trimColor": "#73503c",
+            "heatColor": "#e56d2d"
           }
         },
         "material3d": {
           "normalMap": "pbr/wall-perimeter-normal.webp",
           "roughnessMap": "pbr/wall-perimeter-roughness.webp",
-          "normalScale": 0.55,
-          "roughness": 0.92,
-          "metalness": 0.18
+          "normalScale": 0.4,
+          "roughness": 0.96,
+          "metalness": 0.16,
+          "colorMultiplier": "#c7c7c7"
         }
       },
       "cover": {
@@ -66,28 +83,39 @@
         "edgeAtlas": "wall-cover-edges.webp",
         "shadowAtlas": "wall-cover-shadows.webp",
         "geometry3d": {
-          "height": 0.46,
-          "cornerRadius": 0.31,
+          "height": 0.58,
+          "cornerRadius": 0.35,
           "upperProfile": {
-            "height": 0.14,
-            "inset": 0.04,
-            "chamfer": 0.03
+            "height": 0.18,
+            "inset": 0.05,
+            "chamfer": 0.035
           },
           "details": {
             "panelEvery": 3,
-            "ventEvery": 5,
+            "ventEvery": 9,
             "clampEvery": 7,
-            "panelColor": "#7d684f",
-            "clampColor": "#80543d",
-            "ventColor": "#d7662b"
+            "panelColor": "#57524e",
+            "clampColor": "#744b37",
+            "ventColor": "#ce5e28"
+          },
+          "bastionCover": {
+            "shoulderEvery": 3,
+            "towerEvery": 7,
+            "minRise": 0.08,
+            "maxRise": 0.28,
+            "boundaryDepth": 0,
+            "bodyColor": "#292a2b",
+            "trimColor": "#684937",
+            "heatColor": "#d45f28"
           }
         },
         "material3d": {
           "normalMap": "pbr/wall-cover-normal.webp",
           "roughnessMap": "pbr/wall-cover-roughness.webp",
-          "normalScale": 0.45,
-          "roughness": 0.94,
-          "metalness": 0.14
+          "normalScale": 0.34,
+          "roughness": 0.97,
+          "metalness": 0.12,
+          "colorMultiplier": "#c7c7c7"
         }
       }
     }

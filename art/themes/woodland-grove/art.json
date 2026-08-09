@@ -1,0 +1,96 @@
+{
+  "formatVersion": 2,
+  "themeId": "woodland-grove",
+  "floor": {
+    "source": "floor/source.png",
+    "runtime": "floor-undergrowth.webp",
+    "size": 1024,
+    "quality": 90
+  },
+  "runtime": {
+    "atlasScale": 2,
+    "edgeQuality": 95,
+    "assetBudgetBytes": 5000000
+  },
+  "runtime3d": {
+    "packagePath": "web/src/assets/themes/woodland-grove/pbr",
+    "materialMaps": [
+      {
+        "source": "walls/perimeter/normal.png",
+        "runtime": "wall-perimeter-normal.webp",
+        "size": 512,
+        "quality": 92
+      },
+      {
+        "source": "walls/perimeter/roughness.png",
+        "runtime": "wall-perimeter-roughness.webp",
+        "size": 512,
+        "quality": 90
+      },
+      {
+        "source": "walls/cover/normal.png",
+        "runtime": "wall-cover-normal.webp",
+        "size": 512,
+        "quality": 92
+      },
+      {
+        "source": "walls/cover/roughness.png",
+        "runtime": "wall-cover-roughness.webp",
+        "size": 512,
+        "quality": 90
+      }
+    ]
+  },
+  "wallFamilies": {
+    "perimeter": {
+      "source": "walls/perimeter/source.png",
+      "material": {
+        "size": 1024,
+        "normalStrength": 10.0,
+        "roughnessBase": 205
+      },
+      "geometry": {
+        "contentPixels": 96,
+        "gutterPixels": 16,
+        "insetPixels": 7,
+        "outsetPixels": 2,
+        "bevelPixels": 8,
+        "light": [-0.55, -0.83],
+        "edgeColour": "#3c5737",
+        "sideColour": "#142719",
+        "highlightColour": "#657b50",
+        "hardwareColour": "#3c5737",
+        "hardwareRadius": 0,
+        "shadowColour": "#0a0d08",
+        "shadowOpacity": 0.28,
+        "shadowBlur": 8,
+        "shadowOffset": [3, 4]
+      }
+    },
+    "cover": {
+      "source": "walls/cover/source.png",
+      "material": {
+        "size": 1024,
+        "normalStrength": 8.0,
+        "roughnessBase": 210
+      },
+      "geometry": {
+        "contentPixels": 96,
+        "gutterPixels": 16,
+        "insetPixels": 6,
+        "outsetPixels": 1,
+        "bevelPixels": 9,
+        "light": [-0.55, -0.83],
+        "edgeColour": "#587044",
+        "sideColour": "#273a23",
+        "highlightColour": "#7e945f",
+        "hardwareColour": "#587044",
+        "hardwareRadius": 0,
+        "shadowColour": "#0b0d08",
+        "shadowOpacity": 0.20,
+        "shadowBlur": 6,
+        "shadowOffset": [2, 3]
+      }
+    }
+  }
+}

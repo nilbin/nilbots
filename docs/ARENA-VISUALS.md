@@ -673,7 +673,7 @@ Animations describe recorded events; they do not create events.
 | Fabrication/lifecycle | Stable unit and explicit lifecycle events | Unit-qualified spawn/rebuild status without inventing an active body |
 | Anchor | Recorded pending transition plus start/change/cancel events | Source-body windup ring/status, then body swap only on `FormChanged` |
 | Turret | Recorded current form/capabilities and absolute shot heading | Stationary/360 cue and heading-true muzzle/projectile treatment |
-| Fog/vision | Recorded visible tiles/enemies/projectiles from every active teammate | Selecting a bot chooses its team perspective: both renderers union that team's published observations for one truthful shared-vision mask |
+| Fog/vision | Recorded visible tiles/enemies/projectiles from active units | With no selection, WebGL applies the cross-team union to floor and raised terrain—any active unit can light a tile, while the rest remains fogged. Selecting a bot keeps the existing team perspective: both renderers union that team's observations, WebGL applies it to floor and raised terrain, and unseen actors/projectiles are hidden separately |
 | Arc Relay Core | Recorded spawn/flight/possession plus the carrier's interpolated pose | One luminous sphere: neutral white/lilac (never a team hue) over its well, dropped tile, or flight arc; only possession adds the carrier team's colour, fixed above the carrier with subtle hover and a faint tether |
 
 Arc Relay's compact spectator transport carries that visible-tile union once per
@@ -703,12 +703,25 @@ but it cannot start a future action early. Movement wakes and thrust remain on
 through an active segment rather than pulsing at integer tick boundaries. Tread
 and wheel scroll accumulates distance along this rendered path, including a
 carrier's relocation-locked glide, rather than the underlying one-tile action.
-Arc Relay's automatic director has a shared fifteen-tile closest shot in
-Canvas2D and WebGL. It clusters sustained combat, treats a carrier as a camera
-subject only while threatened, and holds an ordinary shot for seven replay
-ticks before another theater may win. The manual overview fits the published
-Wells, retaining all three theaters while allowing deep home aprons to leave the
-frame. A compact causal HUD call beside the standing score identifies Core
+Arc Relay's automatic director has a shared seven-tile closest shot
+in Canvas2D and WebGL. It clusters sustained combat, treats a carrier as a
+camera subject only while threatened, and holds an ordinary shot for seven
+replay ticks before another theater may win. Its first and quiet fallback shots
+settle immediately on one ranked local theater rather than easing inward from,
+or returning to, a full-board view; combat shots center their active local
+cluster rather than every historical event endpoint. Deliberately selecting a
+bot is a viewport-aware shot: its tight axis never exceeds 9.5 tiles and uses a
+60-CSS-pixel-per-tile density on larger screens. The complete selected render,
+including its expanded dashed ground marker, retains the 63×63 CSS-pixel
+interaction floor in both reference phone orientations without turning
+selection into a portrait shot. The manual overview fits the three published
+Wells with half a tile of breathing room; distant home Reactors and deep aprons
+may leave the frame rather than shrinking the central theaters. Perspective
+fog darkens unseen terrain by 58% rather than blacking it out. With no selected
+perspective, the floor and raised wall/tree materials use the cross-team union
+of every active unit's sight; selection replaces that with the chosen team's
+mask. A compact causal HUD call
+beside the standing score identifies Core
 birth, pickup/steal, drop, bank, and Pulse events; it does not replace their
 diegetic world effects or reveal facts after the playhead.
 
@@ -750,8 +763,8 @@ production candidates, then normalized locally:
   fifteen separately generated material fields—one floor, one fortified
   perimeter, and one interior-cover source per theme. Their exact accepted
   prompts live in `art/themes/SOURCE-PROMPTS.md`; deterministic baking owns
-  seamless normalization and topology. Ember Forge and Frost Relay ship on
-  Arena and Gallery respectively. Drowned Vault, Desert Array, and Void
+  seamless normalization and topology. Ember Forge ships on Arena and Arc
+  Relay, while Frost Relay ships on Gallery. Drowned Vault, Desert Array, and Void
   Sanctum remain complete staged packages under `art/`; keeping them outside
   Vite avoids adding every large theme to every self-contained viewer before
   per-replay asset packaging exists.
@@ -775,6 +788,54 @@ and lazy wall normal/roughness maps. No authored modular environment GLB
 package or whole-map mesh ships. It is the first pilot because its camera,
 cover, objective strip, class silhouettes, and projectile grammar exercise
 the contract before it is generalized to other arenas.
+
+Ember Forge generalizes that pilot to Arc Relay through an optional
+`geometry3d.bastionCover` family block. The manifest owns a rise range, sparse
+shoulder/tower cadence, material palette, and an optional outside-map
+foundation depth. Stable family/coordinate/topology hashes place instanced
+rounded shoulders, rectangular and decagonal towers, paired unequal-height
+towers, sloped exposed-face ribs, thin heat seams, and perimeter supports over
+the exact traced wall substrate. Base profiles stay continuous and
+collision-readable; raised modules vary the skyline without moving an open
+edge. The perimeter's visible low 1.8-tile apron, raised outer rail, rounded
+corner plates, and irregular external pylons broaden only the non-playable side
+of the map. Emissive vents and heat seams use sparse cadences and distinct
+depths instead of coplanar surfaces, preventing mobile depth flicker while
+reducing box repetition. Ember's Arc Relay camera uses 12° yaw, 52° pitch, and
+a 28° lens; its matte graphite/copper balance and quieter floor response are
+theme-owned rather than renderer-wide exceptions.
+
+Woodland Grove adds one deliberately narrow organic companion rather than a
+generic prop catalog. A wall family's optional `geometry3d.treeCover` block
+declares reviewed root density/spread, height and width ranges, outward border
+depth, proportions, and colours. The WebGL scene roots instanced low-poly
+trunks, root flares, branches, broken-up broadleaf crowns, conifer tiers, and
+low understory from the exact blocked tiles supplied by `WallLayout`; stable
+family/coordinate/topology hashes vary count, position, height, width, lean,
+crown form, colour, and rotation. A blocked cell can therefore carry a gap,
+one root, or two roots instead of advertising a one-tile/one-tree grid.
+
+Roots remain inside authoritative `#` cells and tree height stays capped, but
+Woodland is an owner-approved exception to the ordinary decorative-clearance
+rule: crowns and flat understory may cross cell edges. That overhang never
+changes collision, sight lines, openings, or traversal. Living families omit
+the extruded wall body and square topology cap; their continuous rounded
+foliage field reaches the blocker edge with no masonry-style gutter. The
+perimeter's walkable-side seam is feathered by negligible-height moss and
+understory tongues; they may cross onto open floor but cannot read as raised
+collision. The perimeter additionally grows a scattered 1.45-tile-deep forest
+outward beyond the map. A varying outer reach, density falloff, and Euclidean
+corner distance break the rectangular silhouette without consuming playable
+space. Interior cover uses a wider vertical and radial range, mixing low scrub
+with occasional tall trees while remaining below the perimeter family's
+maximum profile.
+Woodland owns a restrained 12° yaw, 52° pitch, and 26° field of view for a
+low-distortion MOBA-style three-quarter camera. The smaller side rotation keeps
+the organic depth cue while spending less of the rectangular viewport on the
+rotated frame's empty corners; camera-space fitting keeps the requested
+action frame visible and fog distance scales with the lens. Canvas2D continues
+to use the baked perimeter/cover atlases and never pays for WebGL geometry or
+the theme-specific camera presentation.
 
 - Start from `WallLayout`: trace continuous family solids, then layer
   manifest-owned upper-profile and material settings. Place optional panels,

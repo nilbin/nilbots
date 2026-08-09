@@ -7,10 +7,9 @@ import { buildOverlays } from './arenaOverlays';
 import { configureModelTextureSupport } from './lookModel';
 import {
   ArenaCamera,
+  directorFrameAt,
   directorMinSpan,
   directorShotHoldTicks,
-  focusFrame,
-  focusPointsAt,
   selectedUnitPointAt,
   selectionFollowFrame,
   strategicOverviewFrame,
@@ -150,7 +149,17 @@ export default function ArenaCanvas3D({
 
     const arena = buildArena(replay, { shadowMapSize: renderProfile.shadowMapSize });
     const actors = buildActors(replay);
-    const overlays = buildOverlays(replay, entrants);
+    // Health and engagement cues are authored as fixed billboards. A theme may add a
+    // restrained side bias to the otherwise fixed camera, so turn their shared row by the
+    // same amount rather than letting it become slightly edge-on.
+    actors.group.traverse((node) => {
+      if (node.userData.cue === 'health-pips') {
+        node.rotation.order = 'YXZ';
+        node.rotation.y = arena.cameraYaw;
+        node.rotation.x = CAMERA_PITCH - arena.cameraPitch;
+      }
+    });
+    const overlays = buildOverlays(replay, entrants, arena.scene);
     arena.scene.add(actors.group);
     arena.scene.add(overlays.group);
 
@@ -165,6 +174,8 @@ export default function ArenaCanvas3D({
       mapWidth,
       mapHeight,
       aspect: 1,
+      viewportWidth: 1,
+      viewportHeight: 1,
       minSpan: directorMinSpan(replay),
     };
     let camera: ArenaCamera | null = null;
@@ -181,16 +192,29 @@ export default function ArenaCanvas3D({
      * at; `arenaCamera` does, once, for both.
      */
     const look = (frame: ArenaFrame) => {
-      const span = Math.max(frame.width / arena.camera.aspect, frame.height);
+      const yaw = arena.cameraYaw;
+      // Rotate the requested ground rectangle into camera space before fitting it. Without
+      // this compensation even a small side bias can trim a corner on phone-width views.
+      const projectedWidth =
+        Math.abs(Math.cos(yaw)) * frame.width +
+        Math.abs(Math.sin(yaw)) * frame.height;
+      const projectedDepth =
+        Math.abs(Math.sin(yaw)) * frame.width +
+        Math.abs(Math.cos(yaw)) * frame.height;
+      const span = Math.max(
+        projectedWidth / arena.camera.aspect,
+        projectedDepth,
+      );
       const distance = (span / 2) / Math.tan((arena.camera.fov * Math.PI) / 360);
       // A shallow tilt: steep enough that walls show a face and cast across the floor,
       // shallow enough that the far half of the arena is not hidden behind the near walls.
-      const pitch = CAMERA_PITCH;
+      const pitch = arena.cameraPitch;
       looking.set(frame.x, 0, frame.y);
+      const horizontalDistance = Math.cos(pitch) * distance * 1.02;
       framed.set(
-        frame.x,
+        frame.x + Math.sin(yaw) * horizontalDistance,
         Math.sin(pitch) * distance * 1.02,
-        frame.y + Math.cos(pitch) * distance * 1.02,
+        frame.y + Math.cos(yaw) * horizontalDistance,
       );
     };
 
@@ -206,14 +230,39 @@ export default function ArenaCanvas3D({
         mapWidth,
         mapHeight,
         aspect: width / height,
+        viewportWidth: width,
+        viewportHeight: height,
         minSpan: directorMinSpan(replay),
       };
       if (camera === null) {
         camera = new ArenaCamera(framing);
-        // Born in the state the chrome already claims. A viewer that opens on the
-        // overview holds it — no intro zoom across the establishing shot.
-        if (!frameState.current.autoFit)
+        const state = frameState.current;
+        const followedPoint = selectedUnitPointAt(
+          replay,
+          state.time,
+          state.selectedUnitKey,
+        );
+        // Born in the state the chrome already claims. Overview holds its authored frame;
+        // director starts on its first actual theater rather than spending the opening
+        // seconds easing inward from the maximum map view; a retained selection starts on
+        // the same follow shot it will continue tracking.
+        if (followedPoint) {
+          const frame = selectionFollowFrame(followedPoint, framing);
+          camera.settle(frame);
+          camera.track(frame);
+        } else if (!state.autoFit) {
           camera.hold(strategicOverviewFrame(replay, framing));
+        } else {
+          camera.settle(
+            directorFrameAt(
+              replay,
+              state.time,
+              null,
+              state.highlightedUnitKeys,
+              framing,
+            ),
+          );
+        }
       } else camera.reframe(framing);
       look(camera.frame);
     };
@@ -335,8 +384,8 @@ export default function ArenaCanvas3D({
           else if (camera.auto || camera.followingSelection)
             camera.showFrame(strategicOverviewFrame(replay, framing));
         }
-        // Selecting a body is a camera command: it takes the mid shot and holds it on that
-        // machine. Deselecting hands the camera back to whichever mode it was taken from,
+        // Selecting a body is a camera command: it takes the readable shot and holds it on
+        // that machine. Deselecting hands the camera back to whichever mode it was taken from,
         // and a gesture ends the follow like it ends the director's — through `release`,
         // which is why staying in the follow is conditioned on the camera's own allegiance
         // rather than on the selection still being set.
@@ -354,13 +403,11 @@ export default function ArenaCanvas3D({
         }
         if (camera.auto)
           camera.aim(
-            focusFrame(
-              focusPointsAt(
-                replay,
-                now,
-                followed,
-                frameState.current.highlightedUnitKeys,
-              ),
+            directorFrameAt(
+              replay,
+              now,
+              followed,
+              frameState.current.highlightedUnitKeys,
               framing,
             ),
             now,

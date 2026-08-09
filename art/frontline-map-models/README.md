@@ -65,6 +65,15 @@ The current recommended direction is V4:
 
 ## Current verdict
 
+The 2026-08-08 Arc Relay follow-up generalizes this selected direction beyond
+the historical Frontline board. Ember Forge now owns a declarative
+topology-derived bastion layer with varied raised shoulders/towers, sloped face
+ribs, an outside-map foundry foundation, matte graphite balance, and a
+12°/52°/28° camera. New Arc Relay replays author Ember directly. See
+`art/themes/ember-forge/README.md` for current native Ambush Warren evidence.
+The original Frontline pilot record below remains intact as provenance for the
+continuous substrate, PBR maps, clearance audit, and V4 transfer decisions.
+
 V4 is the selected visual direction for the pilot, not approval to ship a
 generated arena wholesale.
 

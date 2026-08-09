@@ -15,6 +15,11 @@ const stagedRoot = join(repositoryRoot, 'art', 'themes');
 type ThemeManifest = {
   id: string;
   environment3d?: {
+    camera?: {
+      yawDegrees?: number;
+      pitchDegrees?: number;
+      fovDegrees?: number;
+    };
     lighting?: {
       keyColor?: string;
       keyIntensity?: number;
@@ -27,6 +32,7 @@ type ThemeManifest = {
       bumpScale?: number;
       roughness?: number;
       metalness?: number;
+      colorMultiplier?: string;
     };
   };
   textures: { floor: string };
@@ -53,6 +59,33 @@ type ThemeManifest = {
             clampColor: string;
             ventColor: string;
           };
+          bastionCover?: {
+            shoulderEvery: number;
+            towerEvery: number;
+            minRise: number;
+            maxRise: number;
+            boundaryDepth: number;
+            bodyColor: string;
+            trimColor: string;
+            heatColor: string;
+          };
+          treeCover?: {
+            trunkHeight: number;
+            trunkRadius: number;
+            canopyRadius: number;
+            canopyHeight: number;
+            canopyLobes: number;
+            density: number;
+            rootSpread: number;
+            minHeightScale: number;
+            maxHeightScale: number;
+            minWidthScale: number;
+            maxWidthScale: number;
+            boundaryDepth: number;
+            trunkColor: string;
+            canopyColor: string;
+            canopyAccentColor: string;
+          };
         };
         material3d?: {
           normalMap?: string;
@@ -60,6 +93,7 @@ type ThemeManifest = {
           normalScale?: number;
           roughness?: number;
           metalness?: number;
+          colorMultiplier?: string;
         };
       }
     >;
@@ -83,7 +117,8 @@ function assertCompletePackage(root: string, expectedId: string) {
       assert.doesNotThrow(() => readFileSync(join(root, asset)));
     if (family.geometry3d) {
       assert.ok(
-        family.geometry3d.height >= 0.25 &&
+        family.geometry3d.height >=
+          (family.geometry3d.treeCover ? 0 : 0.25) &&
           family.geometry3d.height <= 0.9,
         `wall height ${family.geometry3d.height} is outside the runtime contract`,
       );
@@ -105,8 +140,45 @@ function assertCompletePackage(root: string, expectedId: string) {
         ])
           assert.ok(Number.isInteger(frequency) && frequency > 0);
       }
+      if (family.geometry3d.bastionCover) {
+        const bastion = family.geometry3d.bastionCover;
+        assert.ok(Number.isInteger(bastion.shoulderEvery));
+        assert.ok(Number.isInteger(bastion.towerEvery));
+        assert.ok(bastion.minRise < bastion.maxRise);
+        assert.ok(bastion.boundaryDepth >= 0 && bastion.boundaryDepth <= 2);
+        for (const color of [
+          bastion.bodyColor,
+          bastion.trimColor,
+          bastion.heatColor,
+        ])
+          assert.match(color, /^#[0-9a-f]{6}$/i);
+      }
+      if (family.geometry3d.treeCover) {
+        const tree = family.geometry3d.treeCover;
+        assert.ok(tree.trunkHeight >= 0.18 && tree.trunkHeight <= 0.65);
+        assert.ok(tree.trunkRadius >= 0.04 && tree.trunkRadius <= 0.14);
+        assert.ok(tree.canopyRadius >= 0.12 && tree.canopyRadius <= 0.3);
+        assert.ok(tree.canopyHeight >= 0.08 && tree.canopyHeight <= 0.22);
+        assert.ok(Number.isInteger(tree.canopyLobes));
+        assert.ok(tree.density >= 0.3 && tree.density <= 2);
+        assert.ok(tree.rootSpread >= 0.05 && tree.rootSpread <= 0.45);
+        assert.ok(tree.minHeightScale < tree.maxHeightScale);
+        assert.ok(tree.minWidthScale < tree.maxWidthScale);
+        assert.ok(tree.boundaryDepth >= 0 && tree.boundaryDepth <= 2.5);
+        for (const color of [
+          tree.trunkColor,
+          tree.canopyColor,
+          tree.canopyAccentColor,
+        ])
+          assert.match(color, /^#[0-9a-f]{6}$/i);
+      }
     }
     if (family.material3d) {
+      if (family.material3d.colorMultiplier)
+        assert.match(
+          family.material3d.colorMultiplier,
+          /^#[0-9a-f]{6}$/i,
+        );
       for (const asset of [
         family.material3d.normalMap,
         family.material3d.roughnessMap,
@@ -127,6 +199,7 @@ test('only active map themes enter the web bundle', () => {
     'ember-forge',
     'frost-relay',
     'overgrown-lab',
+    'woodland-grove',
   ]);
   for (const id of activeIds) assertCompletePackage(join(activeRoot, id), id);
 });
@@ -136,41 +209,58 @@ test('future map themes remain complete staged packages', () => {
     assertCompletePackage(join(stagedRoot, id, 'runtime'), id);
 });
 
-test('Ember Forge carries the approved Frontline 3D wall profiles', () => {
+test('Ember Forge carries the approved living-bastion profiles', () => {
   const manifest = JSON.parse(
     readFileSync(join(activeRoot, 'ember-forge', 'theme.json'), 'utf8'),
   ) as ThemeManifest;
   assert.equal(
     manifest.walls.families.perimeter.geometry3d?.height,
-    0.72,
+    0.84,
   );
   assert.equal(
     manifest.walls.families.perimeter.geometry3d?.cornerRadius,
-    0.23,
+    0.29,
   );
   assert.deepEqual(
     manifest.walls.families.perimeter.geometry3d?.upperProfile,
-    { height: 0.19, inset: 0.025, chamfer: 0.035 },
+    { height: 0.25, inset: 0.035, chamfer: 0.045 },
   );
   assert.equal(
     manifest.walls.families.cover.geometry3d?.height,
-    0.46,
+    0.58,
   );
   assert.equal(
     manifest.walls.families.cover.geometry3d?.cornerRadius,
-    0.31,
+    0.35,
   );
   assert.deepEqual(
     manifest.walls.families.cover.geometry3d?.upperProfile,
-    { height: 0.14, inset: 0.04, chamfer: 0.03 },
+    { height: 0.18, inset: 0.05, chamfer: 0.035 },
   );
   assert.equal(
     manifest.environment3d?.floor?.roughness,
-    0.95,
+    0.98,
   );
   assert.equal(
     manifest.environment3d?.floor?.bumpScale,
-    0.045,
+    0.028,
+  );
+  assert.equal(
+    manifest.environment3d?.floor?.colorMultiplier,
+    '#c7c7c7',
+  );
+  assert.equal(manifest.environment3d?.camera?.yawDegrees, 12);
+  assert.equal(manifest.environment3d?.camera?.pitchDegrees, 52);
+  assert.equal(manifest.environment3d?.camera?.fovDegrees, 28);
+  assert.equal(
+    manifest.walls.families.perimeter.geometry3d?.bastionCover
+      ?.boundaryDepth,
+    1.8,
+  );
+  assert.equal(
+    manifest.walls.families.cover.geometry3d?.bastionCover
+      ?.boundaryDepth,
+    0,
   );
   assert.equal(
     manifest.walls.families.perimeter.material3d?.normalMap,
@@ -187,6 +277,53 @@ test('Ember Forge carries the approved Frontline 3D wall profiles', () => {
   assert.equal(
     manifest.walls.families.cover.material3d?.roughnessMap,
     'pbr/wall-cover-roughness.webp',
+  );
+});
+
+test('Woodland Grove carries a MOBA camera and organic tree families', () => {
+  const manifest = JSON.parse(
+    readFileSync(join(activeRoot, 'woodland-grove', 'theme.json'), 'utf8'),
+  ) as ThemeManifest;
+  const perimeter = manifest.walls.families.perimeter.geometry3d!;
+  const cover = manifest.walls.families.cover.geometry3d!;
+  assert.equal(manifest.environment3d?.camera?.yawDegrees, 12);
+  assert.equal(manifest.environment3d?.camera?.pitchDegrees, 52);
+  assert.equal(manifest.environment3d?.camera?.fovDegrees, 26);
+  assert.equal(perimeter.height, 0);
+  assert.equal(cover.height, 0);
+  assert.ok(perimeter.treeCover);
+  assert.ok(cover.treeCover);
+  assert.ok(
+    perimeter.treeCover.trunkHeight > cover.treeCover.trunkHeight,
+  );
+  assert.ok(
+    perimeter.treeCover.canopyRadius > cover.treeCover.canopyRadius,
+  );
+  assert.ok(
+    perimeter.treeCover.maxHeightScale >
+      perimeter.treeCover.minHeightScale,
+  );
+  assert.ok(
+    perimeter.treeCover.maxWidthScale >
+      perimeter.treeCover.minWidthScale,
+  );
+  assert.ok(perimeter.treeCover.boundaryDepth > 1);
+  assert.equal(cover.treeCover.boundaryDepth, 0);
+  assert.ok(cover.treeCover.maxHeightScale >= 1.5);
+  assert.ok(cover.treeCover.maxWidthScale >= 1.5);
+  assert.ok(cover.treeCover.trunkHeight >= 0.5);
+  assert.ok(
+    perimeter.height +
+      perimeter.treeCover.trunkHeight *
+        perimeter.treeCover.maxHeightScale +
+      perimeter.treeCover.canopyHeight * 2.4 <=
+      1.8,
+  );
+  assert.ok(
+    cover.height +
+      cover.treeCover.trunkHeight * cover.treeCover.maxHeightScale +
+      cover.treeCover.canopyHeight * 2.4 <=
+      1.8,
   );
 });
 

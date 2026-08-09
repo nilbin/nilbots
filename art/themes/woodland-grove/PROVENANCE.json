@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "themeId": "woodland-grove",
+  "generatedAt": "2026-08-08",
+  "revision": 2,
+  "source": "Codex built-in image generation",
+  "promptLog": "SOURCE-PROMPTS.md",
+  "sources": [
+    {
+      "role": "floor",
+      "path": "floor/source.png",
+      "sha256": "89093746bc268c725026b0c854cfb18683a68b4ab7e6e7b97498eed5073aa3b7"
+    },
+    {
+      "role": "perimeter",
+      "path": "walls/perimeter/source.png",
+      "sha256": "2b629502448efef6e315c0f1a242b849c3c83470a90ae1c14bf9d665bf913a51"
+    },
+    {
+      "role": "cover",
+      "path": "walls/cover/source.png",
+      "sha256": "7fa648d87a72e8f302bf36bf98064c397999aa169f266d20c49eb7d126154dc9"
+    }
+  ],
+  "geometry": {
+    "route": "deterministic topology-derived procedural tree clusters over flush foliage fields",
+    "meshyUsed": false,
+    "meshyCredits": 0,
+    "reason": "Repeated trees benefit more from low-cost deterministic variation and exact blocked-tile authority than from a paid unique provider master."
+  }
+}

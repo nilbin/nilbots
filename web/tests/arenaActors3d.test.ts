@@ -666,7 +666,12 @@ test('the accent pool stays transparent when a bot is followed', () => {
 
   // Unfollowed: base is below 1, so even the old rule kept this one honest.
   actors.update(10, null, false);
-  assert.equal(poolOf(followed).transparent, true);
+  const unselectedPool = poolOf(followed);
+  assert.equal(unselectedPool.transparent, true);
+  assert.ok(
+    unselectedPool.opacity >= 0.89,
+    'ordinary team colour remains strong enough to read under an unselected bot',
+  );
 
   // Followed, unfogged, fully emerged — base 1 and factor 1, the exact corner that broke.
   actors.update(10, followed, false);

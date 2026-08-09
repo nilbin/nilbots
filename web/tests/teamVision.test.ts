@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { loadReplayJson } from '../src/replayIngress.ts';
 import {
+  allUnitVisibleTilesAt,
   teamVisionAt,
   teamVisionSeesActor,
   teamVisionSeesProjectile,
@@ -61,6 +62,38 @@ test('selecting any bot reveals the union of its whole team vision', () => {
   );
   assert.equal(teamVisionSeesActor(selectedScout, enemy), true);
   assert.equal(teamVisionSeesActor(selectedWing, scout.actor), true);
+});
+
+test('unselected terrain vision is lit by every active unit across both teams', () => {
+  const replay = frontlineReplay();
+  const tick = replay.ticks.find(
+    (candidate) =>
+      candidate.actorTurns.some((turn) => turn.actor.teamId === 0) &&
+      candidate.actorTurns.some((turn) => turn.actor.teamId === 1),
+  );
+  assert.ok(tick);
+  const teamZero = tick.actorTurns.find((turn) => turn.actor.teamId === 0)!;
+  const teamOne = tick.actorTurns.find((turn) => turn.actor.teamId === 1)!;
+  const tileTemplate = teamZero.observation.visibleTiles[0];
+  assert.ok(tileTemplate);
+  for (const turn of tick.actorTurns) turn.observation.visibleTiles = [];
+  teamZero.observation.visibleTiles = [
+    { ...tileTemplate, position: { x: 1, y: 1 } },
+  ];
+  teamOne.observation.visibleTiles = [
+    { ...tileTemplate, position: { x: 13, y: 7 } },
+  ];
+
+  assert.deepEqual(
+    [...(allUnitVisibleTilesAt(tick) ?? [])].sort(),
+    ['1,1', '13,7'],
+  );
+  const selected = teamVisionAt(replay, tick, teamZero.actor.unitKey);
+  assert.deepEqual(
+    [...(selected?.visibleTiles ?? [])],
+    ['1,1'],
+    'selection remains the selected team perspective rather than the spectator union',
+  );
 });
 
 test('team projectile sight unions exact handles and falls back to union tiles', () => {
@@ -141,4 +174,10 @@ test('legacy compact turns with omitted vision disable fog instead of blacking o
   for (const turn of teamTurns) turn.observation.visibleTiles = [];
 
   assert.equal(teamVisionAt(replay, tick, selected), null);
+  for (const turn of tick.actorTurns) turn.observation.visibleTiles = [];
+  assert.equal(
+    allUnitVisibleTilesAt(tick),
+    null,
+    'missing historical vision does not become an all-dark terrain claim',
+  );
 });

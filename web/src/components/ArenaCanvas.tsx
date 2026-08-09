@@ -8,10 +8,9 @@ import { posesAt } from '../render/interpolate';
 import {
   ArenaCamera,
   arenaViewport,
+  directorFrameAt,
   directorMinSpan,
   directorShotHoldTicks,
-  focusFrame,
-  focusPointsAt,
   selectedUnitPointAt,
   selectionFollowFrame,
   strategicOverviewFrame,
@@ -96,6 +95,8 @@ export default function ArenaCanvas({
     mapWidth: replay.map.width,
     mapHeight: replay.map.height,
     aspect: 1,
+    viewportWidth: 1,
+    viewportHeight: 1,
     minSpan: directorMinSpan(replay),
   });
 
@@ -174,19 +175,41 @@ export default function ArenaCanvas({
       } =
         stateRef.current;
       if (width > 0 && height > 0) {
+        const arenaHeight = logicalArenaHeight(height);
         framingRef.current = {
           mapWidth: replay.map.width,
           mapHeight: replay.map.height,
-          aspect: width / logicalArenaHeight(height),
+          aspect: width / arenaHeight,
+          viewportWidth: width,
+          viewportHeight: arenaHeight,
           minSpan: directorMinSpan(replay),
         };
         let camera = cameraRef.current;
         if (camera === null) {
           camera = cameraRef.current = new ArenaCamera(framingRef.current);
-          // Born in the state the chrome already claims — see ArenaCamera.hold. The two
-          // renderers must open on the same frame or a device that loses its WebGL
-          // context swaps between two different opening shots.
-          if (!fit) camera.hold(strategicOverviewFrame(replay, framingRef.current));
+          const followedPoint = selectedUnitPointAt(replay, now, followed);
+          // Born in the state the chrome already claims. The two renderers must open on
+          // the same frame or a device that loses its WebGL context swaps between shots.
+          if (followedPoint) {
+            const opening = selectionFollowFrame(
+              followedPoint,
+              framingRef.current,
+            );
+            camera.settle(opening);
+            camera.track(opening);
+          } else if (!fit) {
+            camera.hold(strategicOverviewFrame(replay, framingRef.current));
+          } else {
+            camera.settle(
+              directorFrameAt(
+                replay,
+                now,
+                null,
+                highlighted,
+                framingRef.current,
+              ),
+            );
+          }
         }
         // A resized or rotated viewport re-shapes the frame rather than re-deciding it.
         if (aspect !== 0 && Math.abs(aspect - framingRef.current.aspect) > 1e-6)
@@ -225,8 +248,11 @@ export default function ArenaCanvas({
         }
         if (camera.auto)
           camera.aim(
-            focusFrame(
-              focusPointsAt(replay, now, followed, highlighted),
+            directorFrameAt(
+              replay,
+              now,
+              followed,
+              highlighted,
               framingRef.current,
             ),
             now,

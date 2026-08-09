@@ -1,0 +1,116 @@
+{
+  "id": "woodland-grove",
+  "label": "Woodland Grove",
+  "environment3d": {
+    "camera": {
+      "yawDegrees": 12,
+      "pitchDegrees": 52,
+      "fovDegrees": 26
+    },
+    "lighting": {
+      "keyColor": "#eee4c9",
+      "keyIntensity": 3.8,
+      "ambientColor": "#71836b",
+      "ambientIntensity": 2.05,
+      "fillColor": "#526d5b",
+      "fillIntensity": 0.95
+    },
+    "floor": {
+      "bumpScale": 0.025,
+      "roughness": 0.98,
+      "metalness": 0.0
+    }
+  },
+  "textures": {
+    "floor": "floor-undergrowth.webp"
+  },
+  "walls": {
+    "defaults": {
+      "boundary": "perimeter",
+      "interior": "cover"
+    },
+    "atlas": {
+      "columns": 16,
+      "contentPixels": 192,
+      "gutterPixels": 32
+    },
+    "families": {
+      "perimeter": {
+        "label": "Ancient tree line",
+        "material": "wall-perimeter-albedo.webp",
+        "edgeAtlas": "wall-perimeter-edges.webp",
+        "shadowAtlas": "wall-perimeter-shadows.webp",
+        "geometry3d": {
+          "height": 0.0,
+          "cornerRadius": 0.36,
+          "treeCover": {
+            "trunkHeight": 0.64,
+            "trunkRadius": 0.105,
+            "canopyRadius": 0.29,
+            "canopyHeight": 0.18,
+            "canopyLobes": 4,
+            "density": 1.35,
+            "rootSpread": 0.32,
+            "minHeightScale": 0.58,
+            "maxHeightScale": 1.45,
+            "minWidthScale": 0.68,
+            "maxWidthScale": 1.5,
+            "boundaryDepth": 1.45,
+            "trunkColor": "#493426",
+            "canopyColor": "#29482f",
+            "canopyAccentColor": "#647749"
+          }
+        },
+        "material3d": {
+          "normalMap": "pbr/wall-perimeter-normal.webp",
+          "roughnessMap": "pbr/wall-perimeter-roughness.webp",
+          "normalScale": 0.6,
+          "roughness": 0.96,
+          "metalness": 0.0
+        }
+      },
+      "cover": {
+        "label": "Young tree cover",
+        "material": "wall-cover-albedo.webp",
+        "edgeAtlas": "wall-cover-edges.webp",
+        "shadowAtlas": "wall-cover-shadows.webp",
+        "geometry3d": {
+          "height": 0.0,
+          "cornerRadius": 0.4,
+          "treeCover": {
+            "trunkHeight": 0.54,
+            "trunkRadius": 0.085,
+            "canopyRadius": 0.25,
+            "canopyHeight": 0.16,
+            "canopyLobes": 4,
+            "density": 0.86,
+            "rootSpread": 0.38,
+            "minHeightScale": 0.45,
+            "maxHeightScale": 1.55,
+            "minWidthScale": 0.54,
+            "maxWidthScale": 1.52,
+            "boundaryDepth": 0.0,
+            "trunkColor": "#67513a",
+            "canopyColor": "#536f3f",
+            "canopyAccentColor": "#83945c"
+          }
+        },
+        "material3d": {
+          "normalMap": "pbr/wall-cover-normal.webp",
+          "roughnessMap": "pbr/wall-cover-roughness.webp",
+          "normalScale": 0.45,
+          "roughness": 0.98,
+          "metalness": 0.0
+        }
+      }
+    }
+  },
+  "palette": {
+    "canvas": "#07100a",
+    "arena": "#405735",
+    "floorTint": "rgba(12, 24, 8, 0.08)",
+    "wallTint": "rgba(16, 20, 9, 0.12)",
+    "zone": "#e2bd69",
+    "frame": "#4c6544"
+  }
+}

@@ -63,18 +63,22 @@ const FOCUS_MARGIN_TILES = 1.5;
  */
 const MIN_SPAN_TILES = 6;
 
+/** Smallest authored body footprint the gameplay camera is allowed to present. */
+export const MINIMUM_BOT_RENDER_PIXELS = 63;
+
 /**
  * Mode-owned closest shot for the automatic director.
  *
- * Arc Relay is a team sport, not a portrait camera. Its closest shot holds the interaction,
- * the route around it, and enough of the neighbouring theater to understand a rotation.
+ * Arc Relay is a team sport, not a portrait camera. Its closest shot holds the interaction
+ * and enough of the neighbouring theater to understand a rotation, while keeping an
+ * ordinary body above the 63 px readability floor on the reference landscape phone.
  * This belongs beside the shared fit arithmetic: putting the value in a renderer made
  * Canvas2D and WebGL silently disagree about the same match.
  */
 export function directorMinSpan(replay: ReplayModel): number | undefined {
   return replay.contract.kind === 'v3-generic' &&
     replay.contract.modeKind === 'arc-relay'
-    ? 15
+    ? 7
     : undefined;
 }
 
@@ -100,6 +104,9 @@ export interface ArenaFraming {
   mapHeight: number;
   /** Viewport width ÷ height. */
   aspect: number;
+  /** CSS-pixel viewport dimensions, when a screen-readable shot depends on them. */
+  viewportWidth?: number;
+  viewportHeight?: number;
   /** Padding around the fitted lives, in tiles. */
   margin?: number;
   /** Never closer than this many tiles across. */
@@ -132,16 +139,10 @@ export function fullArenaFrame(framing: ArenaFraming): ArenaFrame {
  * Small on purpose. The overview's job is to show the board, and a board with a wide
  * frame of background around it is a board nobody can read the far side of.
  */
-const OVERVIEW_MARGIN_TILES = 0.5;
+const OVERVIEW_ANCHOR_MARGIN_TILES = 0.5;
 
 /**
- * How much room the strategic anchors keep around them before the overview refuses to
- * crop any further, in tiles.
- */
-const OVERVIEW_ANCHOR_MARGIN_TILES = 1.5;
-
-/**
- * Arc Relay's overview: **the map, filling the view**.
+ * Arc Relay's overview: **the strategic anchors, filling the view**.
  *
  * This used to be a fit of the three Wells, and before that `fullArenaFrame`, and both
  * had the same failure for the same reason — they CONTAIN rather than COVER. A frame is
@@ -151,14 +152,11 @@ const OVERVIEW_ANCHOR_MARGIN_TILES = 1.5;
  * which is what a viewer opens on, that reads as a camera parked much too far back
  * (owner review 2026-08).
  *
- * So the span is now taken from the *map's own bounds* plus a small margin, and where the
- * viewport's shape disagrees the LONG axis is cropped instead of the short one padded:
- * the warren meets the left and right edges of a landscape viewport, and only its outer
- * apron leaves the frame. Cropping is bounded — the frame widens back out until every
- * strategic anchor the mode names is inside it, which for Arc Relay is all three Wells
- * and both Reactors, the whole reason a strategic overview exists. It never exceeds
- * `fullArenaFrame`, so a portrait phone still gets the whole board rather than a
- * pathological zoom.
+ * The map bounds are deliberately not an anchor. Treating them as one made "overview" a
+ * synonym for maximum zoom-out even when every objective occupied a much smaller box. The
+ * frame now holds all three Wells with half a tile of breathing room. The distant home
+ * Reactors and unplayed apron may leave the shot; making them mandatory turns the useful
+ * central overview back into a near-whole-map view. It never exceeds `fullArenaFrame`.
  *
  * The anchors are read from the first causal mode state the replay carries rather than
  * reconstructed from a map id, so a later Arc Relay map gets the same behavior without a
@@ -172,18 +170,13 @@ export function strategicOverviewFrame(
   const mode = arcRelayModeState(replay, 0);
   const wells = mode?.wells ?? [];
   if (wells.length < 2) return fullArenaFrame(framing);
-  const anchors = [
-    ...wells.map((well) => well.position),
-    ...(mode?.reactors ?? []).map((reactor) => reactor.position),
-  ].map((position) => ({ x: position.x + 0.5, y: position.y + 0.5 }));
+  const anchors = wells.map((well) => ({
+    x: well.position.x + 0.5,
+    y: well.position.y + 0.5,
+  }));
 
   const full = fullArenaFrame(framing);
-  // Cover: the smaller of the two aspect-grown spans, which is the one that puts the map
-  // against the edges of the viewport instead of inside a border of background.
-  let width = Math.min(
-    framing.mapWidth + OVERVIEW_MARGIN_TILES * 2,
-    (framing.mapHeight + OVERVIEW_MARGIN_TILES * 2) * framing.aspect,
-  );
+  let width = framing.minSpan ?? MIN_SPAN_TILES;
   if (anchors.length > 0) {
     const left = Math.min(...anchors.map((point) => point.x));
     const right = Math.max(...anchors.map((point) => point.x));
@@ -329,40 +322,57 @@ export function frameEscapes(
 }
 
 /**
- * How much clear ground a deliberately followed body keeps around it, in tiles.
+ * How much clear ground a deliberately followed body may keep around it, in tiles.
  *
- * **The mid shot**, and the whole of what "follow this one" means as a number. A
- * selection is a question about one machine — where it is going, what it is about to run
- * into — and neither end of the existing range answers it. The strategic overview shows a
- * 31-tile warren, where a body is four percent of the width; the closest shot the fit will
- * ever take (`MIN_SPAN_TILES`) frames a duel and no arena at all. Four and a half tiles of
- * floor past the body on its tight axis leaves roughly a squad's worth of ground around
- * it: far enough to see what it is walking toward, close enough that the machine is the
- * subject rather than a dot the camera happens to contain.
- *
- * It reads as a margin rather than a span because that is what `focusFrame` takes, and
- * because the frame is then grown to the viewport's shape — a 16:10 window gets about
- * fourteen tiles across and nine down, which is the picture this number is chosen for.
+ * Nine and a half tiles on the viewport's tight axis is the context ceiling, not a fixed pad. A
+ * smaller screen closes further so the body does not become smaller merely because the
+ * canvas did. The resulting shot still shows the next wall or two beyond the selected
+ * machine, but the machine is now the subject rather than a dot inside a squad-wide view.
  */
-export const SELECTION_FOLLOW_MARGIN_TILES = 4.5;
+export const SELECTION_FOLLOW_MAX_MINOR_SPAN_TILES = 9.5;
 
 /**
- * The mid frame that follows one deliberately selected body.
+ * CSS pixels per ground tile reserved by the WebGL selection shot.
+ *
+ * A chassis' minimum plan span is 0.82 tile. Its raised, tilted projection and Woodland
+ * Grove's side-biased camera consume part of that nominal size, so 63 / 0.82 is not a safe
+ * camera density. 60 px/tile keeps the complete selected render — chassis plus its dashed
+ * ground marker — above 63×63 px in both reference phone orientations while opening the
+ * shot far enough to read the route and the next cover choice around the followed machine.
+ */
+const SELECTION_FOLLOW_PIXELS_PER_TILE = 60;
+
+/**
+ * The screen-readable frame that follows one deliberately selected body.
  *
  * Deliberately **not** the automatic director's shot. `directorMinSpan` is a mode's floor
- * for an *unattended* camera — Arc Relay keeps fifteen tiles so a rotation stays legible
- * to someone who asked for nothing in particular — and honouring it here would answer
- * "show me this one" with a frame barely tighter than the overview the viewer just left.
- * A selection is a request, and the request is for a closer look.
+ * for an *unattended* camera — Arc Relay keeps seven tiles so a rotation stays
+ * legible to someone who asked for nothing in particular — and honouring it here would
+ * answer "show me this one" with a frame barely tighter than the overview the viewer just
+ * left. A selection is a request, and the request is for a closer look.
  */
 export function selectionFollowFrame(
   point: { x: number; y: number },
   framing: ArenaFraming,
 ): ArenaFrame {
+  const viewportMinor =
+    framing.viewportWidth !== undefined && framing.viewportHeight !== undefined
+      ? Math.min(framing.viewportWidth, framing.viewportHeight)
+      : null;
+  const minorSpan = Math.min(
+    SELECTION_FOLLOW_MAX_MINOR_SPAN_TILES,
+    viewportMinor === null
+      ? SELECTION_FOLLOW_MAX_MINOR_SPAN_TILES
+      : Math.max(viewportMinor / SELECTION_FOLLOW_PIXELS_PER_TILE, 1),
+  );
+  // `focusFrame.minSpan` names the horizontal span. On a landscape hole the tight-axis
+  // readability budget belongs to height, so grow it by the aspect here; in portrait the
+  // horizontal axis is already the tight one.
+  const width = minorSpan * Math.max(1, framing.aspect);
   return focusFrame([point], {
     ...framing,
-    margin: SELECTION_FOLLOW_MARGIN_TILES,
-    minSpan: undefined,
+    margin: 0,
+    minSpan: width,
   });
 }
 
@@ -429,6 +439,25 @@ export function focusPointsAt(
   }));
 }
 
+/** The shared automatic-director shot, used for both its opening and every later aim. */
+export function directorFrameAt(
+  replay: ReplayModel,
+  time: number,
+  selectedUnitKey: ReplayStableUnitKey | null,
+  highlightedUnitKeys: readonly ReplayStableUnitKey[],
+  framing: ArenaFraming,
+): ArenaFrame {
+  return focusFrame(
+    focusPointsAt(
+      replay,
+      time,
+      selectedUnitKey,
+      highlightedUnitKeys,
+    ),
+    framing,
+  );
+}
+
 type DirectorPoint = { x: number; y: number };
 
 /**
@@ -468,7 +497,13 @@ function autoDirectorPoints(
       contactPlay.participants.map((participant) => participant.unitKey),
     );
     const anchors = active.filter((pose) => claimed.has(pose.unitKey));
-    if (anchors.length > 0) return includeNearby(active, anchors, 5);
+    if (anchors.length > 0) {
+      const centre = {
+        x: anchors.reduce((sum, pose) => sum + pose.x, 0) / anchors.length,
+        y: anchors.reduce((sum, pose) => sum + pose.y, 0) / anchors.length,
+      };
+      return includeNearby(active, [centre], 3.25);
+    }
   }
 
   const combat = combatFocus(replay, tickIndex, active);
@@ -520,7 +555,7 @@ function autoDirectorPoints(
     return includeNearby(
       active,
       [threatenedCarrier.carrier, threatenedCarrier.threat],
-      4.25,
+      3.25,
     );
   }
 
@@ -551,7 +586,7 @@ function autoDirectorPoints(
     return includeNearby(
       active,
       [looseContest.core.position, ...looseContest.sides.map((side) => side.pose)],
-      4.5,
+      3.25,
     );
 
   const nextWell = [...mode.wells]
@@ -574,19 +609,69 @@ function autoDirectorPoints(
     }
   }
   if (closest && closestDistance <= 9)
-    return includeNearby(active, closest, 4.25);
+    return includeNearby(active, closest, 3.25);
 
-  // A birth about to create a meeting is worth establishing. A distant scheduled birth is
-  // not: during quiet setup the three-theater overview is more informative than an empty
-  // Well close-up.
+  // A birth about to create a meeting is worth establishing.
   if (
     nextWell &&
     nextWell.nextScheduledBirthTick! - tickIndex <= 8
   ) {
-    return includeNearby(active, [nextWell.position], 5);
+    return includeNearby(active, [nextWell.position], 3.5);
   }
 
-  return mode.wells.map((well) => well.position);
+  // Quiet play still belongs to ONE theater. Returning every Well here made the director
+  // indistinguishable from overview for most of a match: it spent quiet traversal on the
+  // whole board, then often had too little real time to finish easing into the next fight.
+  // Prefer a Well where bodies are already gathering, with cross-team presence and the
+  // next birth breaking ties. If the board is between theaters, stay with the nearest
+  // local formation rather than cutting to an empty wide establishing shot.
+  const theater = [...mode.wells]
+    .map((well) => {
+      const nearby = active.filter(
+        (pose) =>
+          Math.max(
+            Math.abs(pose.x - well.position.x),
+            Math.abs(pose.y - well.position.y),
+          ) <= 5,
+      );
+      const teams = new Set(nearby.map((pose) => pose.teamId)).size;
+      const untilBirth = well.nextScheduledBirthTick === null
+        ? Infinity
+        : Math.max(0, well.nextScheduledBirthTick - tickIndex);
+      return {
+        well,
+        nearby,
+        score:
+          Number(teams >= 2) * 100 +
+          nearby.length * 10 +
+          (Number.isFinite(untilBirth) ? Math.max(0, 12 - untilBirth) : 0),
+      };
+    })
+    .sort(
+      (left, right) =>
+        right.score - left.score ||
+        (left.well.nextScheduledBirthTick ?? Infinity) -
+          (right.well.nextScheduledBirthTick ?? Infinity) ||
+        left.well.wellId.localeCompare(right.well.wellId),
+    )[0];
+  if (theater && theater.nearby.length > 0)
+    return includeNearby(
+      active,
+      [theater.well.position, ...theater.nearby],
+      3,
+    );
+
+  const anchor = theater?.well.position ?? nextWell?.position;
+  const nearest = anchor
+    ? [...active].sort(
+        (left, right) =>
+          Math.hypot(left.x - anchor.x, left.y - anchor.y) -
+            Math.hypot(right.x - anchor.x, right.y - anchor.y) ||
+          left.y - right.y ||
+          left.x - right.x,
+      )[0]
+    : active[0];
+  return nearest ? includeNearby(active, [nearest], 3) : anchor ? [anchor] : [];
 }
 
 type ArcRelayModeState = Extract<
@@ -687,7 +772,13 @@ function combatFocus(
       left.y - right.y ||
       left.x - right.x,
   )[0];
-  return chosen ? includeNearby(active, chosen.points, 4.25) : [];
+  // The cluster's historical points can describe several exchanges over seven ticks. They
+  // establish the winning beat, but fitting every old source/target made one local fight
+  // grow back into a board-wide shot. Aim at the weighted contact centre and the bodies
+  // currently close enough to be part of that exchange.
+  return chosen
+    ? includeNearby(active, [{ x: chosen.x, y: chosen.y }], 3.25)
+    : [];
 }
 
 function includeNearby(
@@ -981,7 +1072,7 @@ export class ArenaCamera {
     this.release();
     const full = fullArenaFrame(framing);
     // **The hand's floor is the arena's, not the mode's.** `directorMinSpan` is a floor
-    // for the *automatic* camera — Arc Relay holds fifteen tiles so an unattended shot
+    // for the *automatic* camera — Arc Relay holds its own wider span so an unattended shot
     // stays legible — and it used to bound a wheel as well, which said two wrong things at
     // once. A person turning a wheel is asking for a closer look than the director would
     // ever choose, and inside a selection follow, which is legitimately tighter than that

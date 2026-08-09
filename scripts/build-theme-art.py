@@ -68,10 +68,16 @@ def scaled_geometry(geometry: Dict[str, Any], scale: int) -> Dict[str, Any]:
         "insetPixels",
         "outsetPixels",
         "bevelPixels",
-        "hardwareRadius",
     ):
         if key in scaled:
             scaled[key] = max(1, int(round(float(scaled[key]) * scale)))
+    if "hardwareRadius" in scaled:
+        # Organic families can opt out of seam hardware entirely. For every
+        # positive value the historical at-least-one-pixel behaviour remains.
+        radius = float(scaled["hardwareRadius"])
+        scaled["hardwareRadius"] = (
+            0 if radius == 0 else max(1, int(round(radius * scale)))
+        )
     scaled["shadowBlur"] = float(scaled["shadowBlur"]) * scale
     scaled["shadowOffset"] = [
         int(round(float(offset) * scale))
@@ -225,13 +231,13 @@ def bake_variant(
     draw = ImageDraw.Draw(detail, "RGBA")
     origin = gutter + content
     hardware = ImageColor.getrgb(geometry["hardwareColour"])
-    radius = max(1, int(geometry.get("hardwareRadius", 2)))
-    if not mask & (1 << CARDINAL_BITS["north"]):
+    radius = max(0, int(geometry.get("hardwareRadius", 2)))
+    if radius > 0 and not mask & (1 << CARDINAL_BITS["north"]):
         for fraction in (0.28, 0.72):
             x = origin + round(content * fraction)
             y = origin + inset
             draw.ellipse((x - radius, y - radius, x + radius, y + radius), fill=(*hardware, 205))
-    if not mask & (1 << CARDINAL_BITS["south"]):
+    if radius > 0 and not mask & (1 << CARDINAL_BITS["south"]):
         for fraction in (0.28, 0.72):
             x = origin + round(content * fraction)
             y = origin + content - inset

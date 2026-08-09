@@ -23,7 +23,11 @@ import {
 } from '../replayPresentation';
 import type { ViewerEntrantPresentation } from '../components/Viewer';
 import { buildArcRelayEffects } from './arcRelayEffects';
-import { teamVisionAt, teamVisionSeesActor } from '../render/teamVision';
+import {
+  allUnitVisibleTilesAt,
+  teamVisionAt,
+  teamVisionSeesActor,
+} from '../render/teamVision';
 import { playsAt } from '../presentation/playAwareness';
 import { ARC_CORE_NEUTRAL_PALETTE } from '../presentation/arcCorePalette';
 
@@ -37,8 +41,8 @@ import { ARC_CORE_NEUTRAL_PALETTE } from '../presentation/arcCorePalette';
  * and in one place a compromise, noted where it happens.
  */
 
-/** How dark an unseen tile goes. Matches the flat renderer's fog composite. */
-const FOG_STRENGTH = 0.82;
+/** How dark unseen terrain goes: subdued, but still readable as known map geometry. */
+const FOG_STRENGTH = 0.58;
 
 /** How far the camera is thrown by a direct kill, in tiles. */
 const SHAKE_REACH = 0.045;
@@ -60,6 +64,7 @@ export interface ArenaOverlays {
 export function buildOverlays(
   replay: ReplayModel,
   entrants?: readonly ViewerEntrantPresentation[],
+  terrain?: THREE.Object3D,
 ): ArenaOverlays {
   const mapWidth = replay.map.width;
   const mapHeight = replay.map.height;
@@ -69,6 +74,7 @@ export function buildOverlays(
 
   const fog = buildFog(mapWidth, mapHeight, disposables);
   group.add(fog.mesh);
+  if (terrain) applyTerrainFog(terrain, fog);
 
   const spawnPads = buildSpawnPads(replay, disposables);
   group.add(spawnPads.group);
@@ -136,18 +142,27 @@ export function buildOverlays(
       showVisibility,
     );
 
+    // With no selected perspective, the whole terrain follows the union of every unit's
+    // published sight. Selecting a body narrows that same mask to its team; neither path
+    // invents visibility geometry in the renderer.
+    const terrainVision = teamVision?.visibleTiles ??
+      allUnitVisibleTilesAt(replay.ticks[tick]);
+
     // Repainting the mask is a loop over every tile on the map, and the playhead crosses
     // dozens of frames per tick — so it only happens when the answer can have changed.
-    const signature = `${teamVision ? tick : -1}:${teamVision?.teamId ?? -1}`;
+    const signature = terrainVision === null
+      ? 'unpublished'
+      : `${tick}:${teamVision ? `team-${teamVision.teamId}` : 'all-units'}`;
     if (signature !== painted) {
       painted = signature;
       fog.paint(
-        teamVision
-          ? [...teamVision.visibleTiles].map((key) => {
+        terrainVision
+          ? [...terrainVision].map((key) => {
               const [x, y] = key.split(',').map(Number);
               return { x: x!, y: y! };
             })
           : undefined,
+        terrainVision !== null,
       );
     }
 
@@ -393,18 +408,17 @@ function buildPlayAwareness(
 }
 
 /**
- * Fog as a mask over the floor.
+ * Fog as one shared texture with two spectator scopes.
  *
  * One texture with a texel per tile, laid over the arena and resampled smoothly, rather
  * than a quad per hidden tile — the whole mask is one draw call and one upload per tick,
  * and the linear filter gives the soft boundary the flat renderer gets from a blur.
  *
- * **It darkens the floor, not the walls.** A horizontal plane can only be positioned to
- * align with one height, and putting it above the walls would slide it off the floor
- * beneath by most of a tile at this camera pitch. The floor is the right choice: walls are
- * static terrain that both players have always known about, whereas the floor is where the
- * information actually is — and unseen *bots* and *bolts* are hidden by the actors
- * themselves, which is the part that would otherwise be a lie.
+ * With a unit selected, the plane darkens the floor and raised terrain samples the same
+ * team mask from fragment world position. Without a selection, both sample the cross-team
+ * union: any active unit can light terrain, while unseen ground remains substantially
+ * fogged. This cannot be done with a second horizontal plane: lifting one above the trees
+ * shifts its mask by most of a tile through the MOBA camera and slices the wrong terrain.
  */
 function buildFog(
   mapWidth: number,
@@ -412,7 +426,13 @@ function buildFog(
   disposables: { dispose: () => void }[],
 ): {
   mesh: THREE.Mesh;
-  paint: (visible: readonly ReplayPosition[] | undefined) => void;
+  paint: (
+    visible: readonly ReplayPosition[] | undefined,
+    floorFogged: boolean,
+  ) => void;
+  texture: THREE.DataTexture;
+  enabled: { value: number };
+  mapSize: THREE.Vector2;
 } {
   const data = new Uint8Array(mapWidth * mapHeight * 4);
   const texture = new THREE.DataTexture(data, mapWidth, mapHeight, THREE.RGBAFormat);
@@ -432,9 +452,15 @@ function buildFog(
   mesh.position.y = 0.03;
   mesh.visible = false;
   disposables.push(geometry, material, texture);
+  const enabled = { value: 0 };
+  const mapSize = new THREE.Vector2(mapWidth, mapHeight);
 
-  const paint = (visible: readonly ReplayPosition[] | undefined) => {
-    mesh.visible = visible !== undefined;
+  const paint = (
+    visible: readonly ReplayPosition[] | undefined,
+    floorFogged: boolean,
+  ) => {
+    mesh.visible = floorFogged && visible !== undefined;
+    enabled.value = visible === undefined ? 0 : 1;
     if (!visible) return;
 
     const seen = new Set(
@@ -453,7 +479,94 @@ function buildFog(
     texture.needsUpdate = true;
   };
 
-  return { mesh, paint };
+  return { mesh, paint, texture, enabled, mapSize };
+}
+
+type FogMask = ReturnType<typeof buildFog>;
+
+/** Raised terrain roots whose descendants receive the team-vision mask. */
+function isFoggedTerrain(node: THREE.Object3D): boolean {
+  const kind = node.userData.kind;
+  return typeof kind === 'string' &&
+    (kind.startsWith('arena-wall-') || kind.startsWith('arena-woodland-'));
+}
+
+/**
+ * Teach every raised-terrain material to read the same one-texel-per-tile mask as the
+ * floor plane. Instanced trees need their instance transform applied before world-space
+ * sampling; sampling object coordinates would fog every tree from the origin tile.
+ */
+function applyTerrainFog(root: THREE.Object3D, fog: FogMask): void {
+  const materials = new Set<THREE.Material>();
+  const visit = (node: THREE.Object3D, inherited: boolean) => {
+    const fogged = inherited || isFoggedTerrain(node);
+    if (fogged && node instanceof THREE.Mesh) {
+      const nodeMaterials = Array.isArray(node.material)
+        ? node.material
+        : [node.material];
+      for (const material of nodeMaterials) materials.add(material);
+    }
+    for (const child of node.children) visit(child, fogged);
+  };
+  visit(root, false);
+
+  for (const material of materials) {
+    const beforeCompile = material.onBeforeCompile.bind(material);
+    const priorCacheKey = material.customProgramCacheKey.bind(material);
+    material.onBeforeCompile = (shader, renderer) => {
+      beforeCompile(shader, renderer);
+      shader.uniforms.arenaVisionFogMap = { value: fog.texture };
+      shader.uniforms.arenaVisionFogEnabled = fog.enabled;
+      shader.uniforms.arenaVisionFogMapSize = { value: fog.mapSize };
+      shader.vertexShader = shader.vertexShader
+        .replace(
+          'void main() {',
+          'varying vec3 vArenaVisionFogWorldPosition;\nvoid main() {',
+        )
+        .replace(
+          '#include <project_vertex>',
+          `vec4 arenaVisionFogPosition = vec4( transformed, 1.0 );
+#ifdef USE_BATCHING
+  arenaVisionFogPosition = batchingMatrix * arenaVisionFogPosition;
+#endif
+#ifdef USE_INSTANCING
+  arenaVisionFogPosition = instanceMatrix * arenaVisionFogPosition;
+#endif
+vArenaVisionFogWorldPosition = ( modelMatrix * arenaVisionFogPosition ).xyz;
+#include <project_vertex>`,
+        );
+      shader.fragmentShader = shader.fragmentShader
+        .replace(
+          'void main() {',
+          `uniform sampler2D arenaVisionFogMap;
+uniform float arenaVisionFogEnabled;
+uniform vec2 arenaVisionFogMapSize;
+varying vec3 vArenaVisionFogWorldPosition;
+void main() {`,
+        )
+        .replace(
+          '#include <opaque_fragment>',
+          `#include <opaque_fragment>
+vec2 arenaVisionFogUv = clamp(
+  vec2(
+    vArenaVisionFogWorldPosition.x / arenaVisionFogMapSize.x,
+    1.0 - vArenaVisionFogWorldPosition.z / arenaVisionFogMapSize.y
+  ),
+  vec2(0.0),
+  vec2(1.0)
+);
+float arenaVisionFogAlpha = texture2D(
+  arenaVisionFogMap,
+  arenaVisionFogUv
+).a * arenaVisionFogEnabled;
+gl_FragColor.rgb *= 1.0 - arenaVisionFogAlpha;`,
+        );
+    };
+    material.customProgramCacheKey = () =>
+      `${priorCacheKey()}:arena-vision-fog-v1`;
+    material.userData.arenaVisionFog = fog;
+    material.needsUpdate = true;
+  }
 }
 
 /**

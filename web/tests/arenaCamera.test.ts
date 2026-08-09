@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import test from 'node:test';
+import * as THREE from 'three';
 import type {
   ReplayModel,
   ReplayStableUnitKey,
@@ -13,6 +14,7 @@ import type {
 import { loadReplayJson } from '../src/replayIngress.ts';
 import {
   ARENA_MARGIN_TILES,
+  MINIMUM_BOT_RENDER_PIXELS,
   ArenaCamera,
   arenaViewport,
   directorMinSpan,
@@ -52,6 +54,87 @@ const FRAMING = { mapWidth: 40, mapHeight: 24, aspect: 16 / 10 };
  */
 const PHONE_LANDSCAPE = { width: 852, height: 393 };
 const PHONE_PORTRAIT = { width: 393, height: 852 };
+
+/**
+ * The smallest runtime body through Woodland Grove's shipped WebGL camera.
+ *
+ * This is the renderer's actual perspective fit, including its yaw compensation and the
+ * 0.82-tile fallback body with real hull height. A flat pixels-per-tile assertion misses
+ * both perspective losses and is exactly how a nominally close shot previously shipped at
+ * roughly 41 px on the desktop review canvas.
+ */
+function projectedWebglBotFootprint(
+  frame: ArenaFrame,
+  viewport: { width: number; height: number },
+  includeSelectionMarker = false,
+): { width: number; height: number } {
+  const yaw = (12 * Math.PI) / 180;
+  const pitch = (52 * Math.PI) / 180;
+  const camera = new THREE.PerspectiveCamera(
+    26,
+    viewport.width / viewport.height,
+    0.1,
+    300,
+  );
+  const projectedWidth =
+    Math.abs(Math.cos(yaw)) * frame.width +
+    Math.abs(Math.sin(yaw)) * frame.height;
+  const projectedDepth =
+    Math.abs(Math.sin(yaw)) * frame.width +
+    Math.abs(Math.cos(yaw)) * frame.height;
+  const span = Math.max(projectedWidth / camera.aspect, projectedDepth);
+  const distance = (span / 2) / Math.tan((camera.fov * Math.PI) / 360);
+  const horizontalDistance = Math.cos(pitch) * distance * 1.02;
+  camera.position.set(
+    frame.x + Math.sin(yaw) * horizontalDistance,
+    Math.sin(pitch) * distance * 1.02,
+    frame.y + Math.cos(yaw) * horizontalDistance,
+  );
+  camera.lookAt(frame.x, 0, frame.y);
+  camera.updateMatrixWorld();
+  camera.updateProjectionMatrix();
+
+  let left = Infinity;
+  let right = -Infinity;
+  let top = Infinity;
+  let bottom = -Infinity;
+  for (const x of [-0.41, 0.41]) {
+    for (const y of [0, 0.26]) {
+      for (const z of [-0.41, 0.41]) {
+        const corner = new THREE.Vector3(
+          frame.x + x,
+          y,
+          frame.y + z,
+        ).project(camera);
+        left = Math.min(left, corner.x);
+        right = Math.max(right, corner.x);
+        top = Math.min(top, corner.y);
+        bottom = Math.max(bottom, corner.y);
+      }
+    }
+  }
+  if (includeSelectionMarker) {
+    // The selected render includes the dashed marker at 1.2 chassis widths. It is part of
+    // the interaction footprint on narrow screens, where preserving more terrain makes an
+    // intentionally slender authored hull smaller than its nominal square normalization.
+    for (let sample = 0; sample < 64; sample += 1) {
+      const angle = (sample / 64) * Math.PI * 2;
+      const corner = new THREE.Vector3(
+        frame.x + Math.cos(angle) * 0.82 * 1.2,
+        0.034,
+        frame.y + Math.sin(angle) * 0.82 * 1.2,
+      ).project(camera);
+      left = Math.min(left, corner.x);
+      right = Math.max(right, corner.x);
+      top = Math.min(top, corner.y);
+      bottom = Math.max(bottom, corner.y);
+    }
+  }
+  return {
+    width: ((right - left) * viewport.width) / 2,
+    height: ((bottom - top) * viewport.height) / 2,
+  };
+}
 
 /** The middle of a bounding box, which is what "the action" means to the camera. */
 function centreOf(points: readonly { x: number; y: number }[]): {
@@ -164,7 +247,7 @@ test('it never gets closer than about six tiles, and never wider than the arena'
   assert.deepEqual(everywhere, full, 'the full arena is the zoom-out floor');
 });
 
-test('Arc Relay gives both renderers the same wider fifteen-tile closest shot', () => {
+test('Arc Relay gives both renderers the same readable seven-tile closest shot', () => {
   const arc = loadReplayJson(
     readFileSync(join(here, 'fixtures', 'generic-mind-replay-v3.json'), 'utf8'),
   ).replay;
@@ -173,15 +256,22 @@ test('Arc Relay gives both renderers the same wider fifteen-tile closest shot', 
   arc.contract.modeKind = 'arc-relay';
 
   const minSpan = directorMinSpan(arc);
-  assert.equal(minSpan, 15);
+  assert.equal(minSpan, 7);
   assert.equal(directorShotHoldTicks(arc), 7);
   assert.equal(directorMinSpan(frontline), undefined);
   assert.equal(directorShotHoldTicks(frontline), 0);
   const close = focusFrame([{ x: 20, y: 12 }], {
     ...FRAMING,
+    aspect: PHONE_LANDSCAPE.width / PHONE_LANDSCAPE.height,
     minSpan,
   });
-  assert.ok(close.width >= 15, `Arc Relay close-up held at ${close.width} tiles`);
+  assert.ok(close.width >= 7, `Arc Relay close-up held at ${close.width} tiles`);
+  const footprint = projectedWebglBotFootprint(close, PHONE_LANDSCAPE);
+  assert.ok(
+    footprint.width >= MINIMUM_BOT_RENDER_PIXELS &&
+      footprint.height >= MINIMUM_BOT_RENDER_PIXELS,
+    `closest director body is ${footprint.width.toFixed(1)}×${footprint.height.toFixed(1)} px`,
+  );
 });
 
 test('Arc Relay overview frames all three theaters closer than the whole map', () => {
@@ -199,7 +289,10 @@ test('Arc Relay overview frames all three theaters closer than the whole map', (
       { wellId: 'well-centre', position: { x: 15, y: 11 }, nextScheduledBirthTick: 20, outstandingCoreId: null, pendingCharge: false, rearmCompletesAtTick: null },
       { wellId: 'well-south', position: { x: 15, y: 18 }, nextScheduledBirthTick: 30, outstandingCoreId: null, pendingCharge: false, rearmCompletesAtTick: null },
     ],
-    reactors: [],
+    reactors: [
+      { teamId: 0, position: { x: 1, y: 11 }, pulseProgress: 0 },
+      { teamId: 1, position: { x: 29, y: 11 }, pulseProgress: 0 },
+    ],
     visibleCores: [],
     visibleSignatures: [],
     latestPulseTeamId: null,
@@ -212,14 +305,16 @@ test('Arc Relay overview frames all three theaters closer than the whole map', (
   for (const y of [4.5, 11.5, 18.5])
     assert.ok(Math.abs(y - overview.y) < overview.height / 2, `theater ${y} remains visible`);
 
-  // The overview COVERS the map rather than containing it: a 31-wide warren reaches both
-  // edges of a landscape viewport, give or take the margin, instead of sitting inside a
-  // third of a screen of background — which is what `fullArenaFrame` asks for and what an
-  // opening frame used to look like (owner review 2026-08).
+  // The overview frames the strategic anchors rather than treating the map boundary as
+  // one. The unplayed apron may leave the shot instead of making overview synonymous with
+  // maximum zoom-out (owner review 2026-08).
   assert.ok(
-    overview.width >= framing.mapWidth &&
-      overview.width <= framing.mapWidth + 2,
-    `a ${framing.mapWidth}-wide map fills a ${overview.width}-tile overview`,
+    overview.width < framing.mapWidth,
+    `the ${overview.width}-tile overview crops a ${framing.mapWidth}-wide map`,
+  );
+  assert.ok(
+    overview.width <= 24 + 1e-9,
+    'distant home Reactors do not turn the central overview back into a whole-map shot',
   );
   assert.ok(
     Math.abs(overview.x - framing.mapWidth / 2) < 1e-9 &&
@@ -287,10 +382,15 @@ test('a camera opened in overview holds it, with no intro zoom', () => {
     camera.aim(focusFrame(focusPointsAt(arc, step / 6, null), framing), step / 6);
     camera.advance(1 / 60);
   }
-  assert.deepEqual(camera.frame, overview, 'and stays there while the match runs');
+  for (const coordinate of ['x', 'y', 'width', 'height'] as const) {
+    assert.ok(
+      Math.abs(camera.frame[coordinate] - overview[coordinate]) < 1e-9,
+      `and ${coordinate} stays there while the match runs`,
+    );
+  }
 });
 
-test('an unthreatened bank run does not outrank cross-team play', () => {
+test('a quiet Arc Relay director stays with one active theater', () => {
   const arc = loadReplayJson(
     readFileSync(join(here, 'fixtures', 'generic-mind-replay-v3.json'), 'utf8'),
   ).replay;
@@ -337,10 +437,20 @@ test('an unthreatened bank run does not outrank cross-team play', () => {
   tick.after.mode = mode;
   tick.before.mode = mode;
   const quiet = focusPointsAt(arc, 0, null);
-  assert.deepEqual(
-    quiet.map((point) => point.y),
-    [4.5, 11.5, 18.5],
-    'the director establishes all theaters instead of following the free carrier',
+  assert.ok(quiet.length > 0);
+  assert.ok(
+    new Set(quiet.map((point) => point.y)).size <= 2,
+    'quiet play is a local theater, not all three Wells presented as director',
+  );
+  const quietFrame = focusFrame(quiet, {
+    mapWidth: 31,
+    mapHeight: 23,
+    aspect: 16 / 10,
+    minSpan: 7,
+  });
+  assert.ok(
+    quietFrame.width < 16,
+    `quiet director is a tactical shot (${quietFrame.width}), not overview`,
   );
 
   opponent.position = { x: 8, y: 11 };
@@ -834,39 +944,62 @@ test('camera targets consume continuous rendered poses rather than snapped tiles
  * screenshot: the shot is genuinely between the overview and the closest the fit will go,
  * it pans without breathing, and the hand still wins.
  */
-test('a selection follow is the mid shot, between the overview and the closest', () => {
+test('a selection follow keeps context while its complete render clears 63×63 CSS pixels', () => {
   const framing = {
     mapWidth: 31,
     mapHeight: 23,
     aspect: 16 / 10,
+    viewportWidth: 926,
+    viewportHeight: 578,
     // Arc Relay's director floor. A follow deliberately ignores it: that number exists so
     // an UNATTENDED camera keeps a rotation legible, and honouring it here would answer
     // "show me this one" with a frame barely tighter than the board.
-    minSpan: 15,
+    minSpan: 7,
   };
   const body = { x: 10.5, y: 8.5 };
   const follow = selectionFollowFrame(body, framing);
   const full = fullArenaFrame(framing);
-  const closest = focusFrame([body], { ...framing, minSpan: undefined });
-
   assert.ok(
     follow.width < full.width * 0.5,
     `clearly closer than the board (${follow.width.toFixed(1)} of ${full.width.toFixed(1)})`,
   );
   assert.ok(
-    follow.width > closest.width * 1.5,
-    `and clearly wider than point blank (${follow.width.toFixed(1)} of ${closest.width.toFixed(1)})`,
-  );
-  // A handful of tiles of floor past the body on the tight axis, which is what the shot
-  // is chosen for — enough to see what it is walking into.
-  assert.ok(
-    follow.height / 2 > 4 && follow.height / 2 < 6,
-    `a handful of tiles of clear ground (${(follow.height / 2).toFixed(1)})`,
+    follow.height <= 9.5,
+    `at most nine and a half tiles on the tight axis (${follow.height.toFixed(1)})`,
   );
   assert.ok(
     Math.abs(follow.x - body.x) < 1e-9 && Math.abs(follow.y - body.y) < 1e-9,
     'centred on the body, not on the map',
   );
+  const desktopFootprint = projectedWebglBotFootprint(
+    follow,
+    {
+      width: framing.viewportWidth,
+      height: framing.viewportHeight,
+    },
+    true,
+  );
+  assert.ok(
+    desktopFootprint.width >= MINIMUM_BOT_RENDER_PIXELS &&
+      desktopFootprint.height >= MINIMUM_BOT_RENDER_PIXELS,
+    `desktop selection is ${desktopFootprint.width.toFixed(1)}×${desktopFootprint.height.toFixed(1)} px`,
+  );
+
+  for (const viewport of [PHONE_LANDSCAPE, PHONE_PORTRAIT]) {
+    const phoneFraming = {
+      ...framing,
+      aspect: viewport.width / viewport.height,
+      viewportWidth: viewport.width,
+      viewportHeight: viewport.height,
+    };
+    const phoneFollow = selectionFollowFrame(body, phoneFraming);
+    const footprint = projectedWebglBotFootprint(phoneFollow, viewport, true);
+    assert.ok(
+      footprint.width >= MINIMUM_BOT_RENDER_PIXELS &&
+        footprint.height >= MINIMUM_BOT_RENDER_PIXELS,
+      `${viewport.width}×${viewport.height}: ${footprint.width.toFixed(1)}×${footprint.height.toFixed(1)} px`,
+    );
+  }
 });
 
 test('a followed body keeps the camera until a hand takes it', () => {
@@ -874,7 +1007,7 @@ test('a followed body keeps the camera until a hand takes it', () => {
     mapWidth: 31,
     mapHeight: 23,
     aspect: 16 / 10,
-    minSpan: 15,
+    minSpan: 7,
   };
   const camera = new ArenaCamera(framing);
   const opening = selectionFollowFrame({ x: 5.5, y: 5.5 }, framing);
@@ -923,9 +1056,8 @@ test('a followed body keeps the camera until a hand takes it', () => {
     'and it is given back the moment the body stops',
   );
 
-  // The mode's director floor (15) is wider than the follow (14.4). Bounding a gesture by
-  // it made the first zoom-IN out of a follow come back as a zoom-out — a hand asking for
-  // a closer look is not the automatic camera and is not held to its floor.
+  // A hand asking for a closer look is not the automatic camera and is not held to its
+  // mode-owned floor.
   camera.zoom(1.4, framing);
   assert.ok(
     camera.aimed.width < opening.width - 1e-9,
