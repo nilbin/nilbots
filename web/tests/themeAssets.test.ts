@@ -17,6 +17,7 @@ type ThemeManifest = {
   environment3d?: {
     fog?: {
       unseenTerrainDarkness?: number;
+      visibleTerrainLift?: number;
     };
     camera?: {
       yawDegrees?: number;
@@ -35,6 +36,7 @@ type ThemeManifest = {
       bumpScale?: number;
       roughness?: number;
       metalness?: number;
+      albedoContrast?: number;
       colorMultiplier?: string;
     };
   };
@@ -65,6 +67,9 @@ type ThemeManifest = {
           bastionCover?: {
             shoulderEvery: number;
             towerEvery: number;
+            hallEvery: number | null;
+            chimneyEvery: number | null;
+            furnaceEvery: number | null;
             minRise: number;
             maxRise: number;
             boundaryDepth: number;
@@ -147,6 +152,9 @@ function assertCompletePackage(root: string, expectedId: string) {
         const bastion = family.geometry3d.bastionCover;
         assert.ok(Number.isInteger(bastion.shoulderEvery));
         assert.ok(Number.isInteger(bastion.towerEvery));
+        assert.ok(
+          bastion.hallEvery === null || Number.isInteger(bastion.hallEvery),
+        );
         assert.ok(bastion.minRise < bastion.maxRise);
         assert.ok(bastion.boundaryDepth >= 0 && bastion.boundaryDepth <= 2);
         for (const color of [
@@ -252,13 +260,15 @@ test('Ember Forge carries the approved living-bastion profiles', () => {
     manifest.environment3d?.floor?.colorMultiplier,
     '#c7c7c7',
   );
+  assert.equal(manifest.environment3d?.floor?.albedoContrast, 1);
   assert.equal(manifest.environment3d?.camera?.yawDegrees, 12);
   assert.equal(manifest.environment3d?.camera?.pitchDegrees, 52);
   assert.equal(manifest.environment3d?.camera?.fovDegrees, 28);
   assert.equal(
     manifest.environment3d?.fog?.unseenTerrainDarkness,
-    0.2,
+    0.5,
   );
+  assert.equal(manifest.environment3d?.fog?.visibleTerrainLift, 0.45);
   assert.equal(
     manifest.walls.families.perimeter.geometry3d?.bastionCover
       ?.boundaryDepth,
@@ -276,6 +286,11 @@ test('Ember Forge carries the approved living-bastion profiles', () => {
   );
   assert.equal(
     manifest.walls.families.perimeter.geometry3d?.bastionCover
+      ?.hallEvery,
+    null,
+  );
+  assert.equal(
+    manifest.walls.families.perimeter.geometry3d?.bastionCover
       ?.accentColor,
     '#9b3043',
   );
@@ -288,6 +303,14 @@ test('Ember Forge carries the approved living-bastion profiles', () => {
     manifest.walls.families.cover.geometry3d?.bastionCover
       ?.chimneyEvery,
     null,
+  );
+  assert.equal(
+    manifest.walls.families.perimeter.geometry3d?.bastionCover?.maxRise,
+    0.52,
+  );
+  assert.equal(
+    manifest.walls.families.cover.geometry3d?.bastionCover?.maxRise,
+    0.55,
   );
   assert.equal(
     manifest.walls.families.perimeter.material3d?.normalMap,

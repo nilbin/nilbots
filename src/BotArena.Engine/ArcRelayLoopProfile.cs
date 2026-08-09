@@ -34,10 +34,12 @@ public sealed record ArcRelayLoopProfile
         bool seedPhasedResolutionOrder = false,
         bool rotationalSpawnAssignment = false,
         bool seedPhasedWellLead = false,
+        bool chiralWellBirths = false,
         int strikeWindupTicks = 0)
     {
         RotationalSpawnAssignment = rotationalSpawnAssignment;
         SeedPhasedWellLead = seedPhasedWellLead;
+        ChiralWellBirths = chiralWellBirths;
         StrikeWindupTicks = strikeWindupTicks;
         SeedPhasedResolutionOrder = seedPhasedResolutionOrder;
         RearArcDamageMultiplier = rearArcDamageMultiplier;
@@ -91,6 +93,8 @@ public sealed record ArcRelayLoopProfile
     internal bool SeedPhasedResolutionOrder { get; }
     internal bool RotationalSpawnAssignment { get; }
     internal bool SeedPhasedWellLead { get; }
+
+    internal bool ChiralWellBirths { get; }
 
     /// <summary>
     /// Positional combat (DECISIONS #212): when positive, every class gun is
@@ -620,6 +624,58 @@ public sealed record ArcRelayLoopProfile
         strikeWindupTicks: 1);
 
     /// <summary>
+    /// Crucible (owner map direction 2026-08-09): the -11 positional stack
+    /// on a diagonal arena. Bases sit in opposite corners, so the contested
+    /// line runs north-west to south-east and the map finally has TERRITORY
+    /// - a near half, a far half, and a middle - instead of one mirrored
+    /// axis on which every Well is equally neutral.
+    ///
+    /// Three structural departures from the warren line, each aimed at a
+    /// behaviour the warren could not produce:
+    ///
+    /// 1. Tiered Wells. Each side owns a near Well seven steps from its
+    ///    reactor; the centre Well is thirteen from both and the enemy's
+    ///    near Well is twenty. Safe income and contested income are now
+    ///    different decisions rather than the same scramble.
+    /// 2. The delivery zone is NOT the spawn pad. Scoring happens on an
+    ///    open shoulder four steps forward of the corner; the protected
+    ///    pad behind it holds the reactor and the respawns. Camping a
+    ///    spawn no longer camps the objective, and defending the objective
+    ///    means standing outside protection.
+    /// 3. Heal tiles sit on the CROSS diagonal, six from the centre Well
+    ///    and off the main lane, so withdrawing to heal concedes position
+    ///    and can be contested.
+    ///
+    /// The canvas is exactly 180-degree chiral by construction: only the
+    /// upper half and a self-symmetric middle row are authored and the
+    /// lower half is their rotation, so the existing rotational spawn
+    /// assignment stays exact. 501 open tiles, all mutually reachable.
+    /// Experimental only.
+    /// </summary>
+    public static ArcRelayLoopProfile Crucible1 { get; } = new(
+        "crucible-1",
+        "arc-relay-crucible-01",
+        "arc-relay-crucible-01",
+        ArcRelayMapGeometry.CrucibleDiagonal,
+        30,
+        75,
+        25,
+        7,
+        directionalCombat: true,
+        signatureGrammarVersion: 2,
+        wellBirthJitterTicks: 6,
+        alternatingResolutionOrder: true,
+        rearArcDamageMultiplier: 2,
+        omniProximityRange: 0,
+        veterancyXpPerLevel: 2,
+        veterancyMaxLevel: 5,
+        healZoneTicksPerHp: 3,
+        seedPhasedResolutionOrder: true,
+        rotationalSpawnAssignment: true,
+        chiralWellBirths: true,
+        strikeWindupTicks: 1);
+
+    /// <summary>
     /// Owner-selected product line. Kept separate from H0 and every historical
     /// hosted playlist so advancing the product never rewrites old contracts or
     /// golden replays.
@@ -693,6 +749,7 @@ public sealed record ArcRelayLoopProfile
         AmbushWarren9,
         AmbushWarren10,
         AmbushWarren11,
+        Crucible1,
         Return16,
         Return24,
         Hot60,
@@ -723,4 +780,5 @@ internal enum ArcRelayMapGeometry
     AmbushWarrenDense,
     AmbushWarrenSerpentine,
     AmbushWarrenDeep,
+    CrucibleDiagonal,
 }

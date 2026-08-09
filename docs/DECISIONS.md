@@ -6783,7 +6783,10 @@ Owner direction (2026-08-09): Ember Forge's deep graphite and crimson materials
 lose too much structural detail under the shared terrain fog. The WebGL theme
 environment therefore owns `fog.unseenTerrainDarkness`, with the established
 58% treatment retained as the validated fallback for every theme that omits it.
-Ember Forge sets 20% after review of the first 42% pass.
+Ember Forge first tried 42%, then 20% with an ash-smoke target. The latter lifted
+unseen midtones enough that entering vision no longer felt brighter. The current
+comparison therefore restores the neutral-black treatment at 50%, retaining a
+clear light-up transition while remaining lighter than the 58% default.
 
 This changes only the presentation multiplier on unseen terrain. The
 authoritative vision tiles, unselected all-unit union, selected team mask,
@@ -7040,3 +7043,69 @@ branch stack has not landed on `main`, so its first deployment may encounter an
 open v8 ladder with no v9 row ever registered. That one absence may continue
 the same book directly from v8 to v10; once any v9 ladder exists, skipping it is
 a hard error.
+## 262. Ember vision actively lights terrain
+
+Owner correction (2026-08-09): even at 50% fog darkness, merely removing the
+mask from Ember's already-dark graphite floor and walls does not read as the
+environment lighting up. WebGL fog therefore also exposes the validated,
+theme-owned `visibleTerrainLift`. Ember sets 45%; every other theme defaults to
+zero and retains its prior response.
+
+The one authoritative mask now grades both sides of the boundary in the terrain
+shader: unseen fragments receive the 50% reduction and seen fragments receive
+the lift. The floor joins wall, tree, and foundry materials in that shader, so a
+second horizontal fog plane cannot double-darken it. The plane remains a
+fallback only for overlay tests/callers without a terrain root. Vision tiles,
+spectator/team scope, actor visibility, collision, and Canvas2D remain unchanged.
+
+## 263. Ember Forge becomes a district-scale foundry with rule-owned landmarks
+
+Owner direction (2026-08-09): take the strongest Ember concept pass, reduce its
+remaining tile repetition, and make Arc Relay's spawn points, Wells, healing
+tiles, and Reactors belong to the theme. The floor now supports a validated
+theme-owned albedo-contrast multiplier; Ember uses 68% so seams and wear remain
+material detail rather than a competing tile grid. Bastion placement becomes
+sparser and introduces rare three-cell foundry halls with unequal clustered
+stacks. A hall claims its straight wall run before ordinary modules are placed,
+creating large, medium, and small silhouettes without changing blocker truth.
+
+Arc home regions remain low non-colliding service aprons, but each exact
+contract spawn anchor now has an octagonal casting socket with a live team seal.
+Healing tiles become raised coolant stations with a dark faceted housing,
+recessed green reservoir, crimson clamps, and a compact cross. Wells and
+Reactors use the same graphite/crimson faceted machinery language. Each Well
+adds an outer partial ring calculated from the published
+`nextScheduledBirthTick` and declared cadence, or from the published rearm clock
+and `pendingRearmTicks`; it does not accumulate renderer state and therefore
+remains exact through pause, seek, and reverse scrubbing.
+
+All additions are procedural WebGL presentation. They do not change map tiles,
+spawn assignments, healing rules, Well schedules, Core state, Reactors,
+collision, vision, replay fingerprints, or Canvas2D fallback behavior.
+
+## 264. Restore Ember's established balance and keep only the successful landmarks
+
+Owner correction (2026-08-09): the district-scale hall and oversized crimson-cap
+pass regressed the theme. Retain the thematic Wells, their deterministic birth
+progress, and the coolant healing stations, but restore Ember's prior floor,
+palette, and denser small-module rhythm. Disable foundry halls, return perimeter
+chimney/furnace cadence to the established composition, and keep the increase in
+wall height modest: the cover rise may reach 0.55 tiles so some structures clear
+a bot without turning every wall into a tower.
+
+Arc Relay home regions no longer receive a broad service-bed outline. Exact
+return anchors instead use low dark octagonal sockets with one small
+team-colour directional signal, avoiding the dropped-item appearance of the
+previous bright rings. Raised-module top trim is inset within the body footprint
+and decorative in-map modules do not cast their own shadow map, removing the
+heavy black lip while retaining ordinary material lighting and terrain fog.
+The remaining full burgundy rectangles are replaced by rough graphite service
+plates with recessed slots, corner fasteners, and two small edge clamps; raised
+module bodies share the same deterministic forged micro-surface.
+The repeated low-poly crimson torus crowns are also removed. Round towers now
+finish in dark layered collars and recessed lids with deterministic
+bump/roughness texture, directional vent slots, and only small burgundy clamps;
+chimney top plates use the same dark forged response. Orange functional light
+remains unchanged.
+These are presentation-only corrections; gameplay and replay identity remain
+unchanged.

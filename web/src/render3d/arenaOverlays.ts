@@ -10,6 +10,7 @@ import { isAttackEvent, isDestructionEvent } from '../replayModel';
 import { frontlineCaptureVisual } from '../render/frontlineCaptureVisual';
 import {
   arrivalsAt,
+  directionAngle,
   posesAt,
   spentBoltsAt,
   strikeAimsAt,
@@ -75,18 +76,24 @@ export function buildOverlays(
     mapWidth,
     mapHeight,
     theme.environment3d.fog.unseenTerrainDarkness,
+    theme.environment3d.fog.visibleTerrainLift,
     disposables,
   );
   group.add(fog.mesh);
   if (terrain) applyTerrainFog(terrain, fog);
 
-  const spawnPads = buildSpawnPads(replay, disposables);
+  const spawnPads = buildSpawnPads(replay, theme.id, disposables);
   group.add(spawnPads.group);
 
   const objective = buildObjective(replay, disposables);
   group.add(objective.group);
 
-  const arcRelay = buildArcRelayStory(replay, disposables, entrants);
+  const arcRelay = buildArcRelayStory(
+    replay,
+    theme.id,
+    disposables,
+    entrants,
+  );
   group.add(arcRelay.group);
 
   const arcRelayEffects = buildArcRelayEffects(replay, disposables);
@@ -411,6 +418,29 @@ function buildPlayAwareness(
   return { group, update };
 }
 
+/** Arc Relay names broad home regions instead of carrying Frontline's home-pad view. */
+function arcRelayHomes(
+  replay: ReplayModel,
+): NonNullable<ReplayModel['map']['frontline']>['teamHomes'] {
+  if (replay.contract.kind !== 'v3-generic' ||
+    replay.contract.modeKind !== 'arc-relay')
+    return [];
+  return replay.map.regions
+    .filter((region) => region.regionId.startsWith('home-'))
+    .flatMap((region) => {
+      const keys = new Set(region.tiles.map((tile) => `${tile.x}:${tile.y}`));
+      const spawn = replay.contract.map.spawns.find((candidate) =>
+        keys.has(`${candidate.position.x}:${candidate.position.y}`),
+      );
+      if (!spawn) return [];
+      return [{
+        teamId: spawn.teamId,
+        primeSpawn: { ...spawn.position, facing: spawn.facing },
+        protectedSpawnPad: region.tiles,
+      }];
+    });
+}
+
 /**
  * Fog as one shared texture with two spectator scopes.
  *
@@ -418,16 +448,17 @@ function buildPlayAwareness(
  * than a quad per hidden tile — the whole mask is one draw call and one upload per tick,
  * and the linear filter gives the soft boundary the flat renderer gets from a blur.
  *
- * With a unit selected, the plane darkens the floor and raised terrain samples the same
- * team mask from fragment world position. Without a selection, both sample the cross-team
- * union: any active unit can light terrain, while unseen ground remains substantially
- * fogged. This cannot be done with a second horizontal plane: lifting one above the trees
- * shifts its mask by most of a tile through the MOBA camera and slices the wrong terrain.
+ * With a unit selected, floor and raised terrain sample the same team mask from fragment
+ * world position. Without a selection, both sample the cross-team union: any active unit
+ * can light terrain, while unseen ground remains substantially fogged. The horizontal
+ * plane remains only as a fallback for callers that do not supply terrain; lifting it
+ * above walls would shift its mask through the MOBA camera and slice the wrong geometry.
  */
 function buildFog(
   mapWidth: number,
   mapHeight: number,
   unseenTerrainDarkness: number,
+  visibleTerrainLift: number,
   disposables: { dispose: () => void }[],
 ): {
   mesh: THREE.Mesh;
@@ -438,6 +469,9 @@ function buildFog(
   texture: THREE.DataTexture;
   enabled: { value: number };
   mapSize: THREE.Vector2;
+  darkness: { value: number };
+  visibleLift: { value: number };
+  floorCovered: { value: boolean };
 } {
   const data = new Uint8Array(mapWidth * mapHeight * 4);
   const texture = new THREE.DataTexture(data, mapWidth, mapHeight, THREE.RGBAFormat);
@@ -450,6 +484,7 @@ function buildFog(
   geometry.translate(mapWidth / 2, 0, mapHeight / 2);
   const material = new THREE.MeshBasicMaterial({
     map: texture,
+    opacity: unseenTerrainDarkness,
     transparent: true,
     depthWrite: false,
   });
@@ -459,12 +494,16 @@ function buildFog(
   disposables.push(geometry, material, texture);
   const enabled = { value: 0 };
   const mapSize = new THREE.Vector2(mapWidth, mapHeight);
+  const darkness = { value: unseenTerrainDarkness };
+  const visibleLift = { value: visibleTerrainLift };
+  const floorCovered = { value: false };
 
   const paint = (
     visible: readonly ReplayPosition[] | undefined,
     floorFogged: boolean,
   ) => {
-    mesh.visible = floorFogged && visible !== undefined;
+    mesh.visible =
+      !floorCovered.value && floorFogged && visible !== undefined;
     enabled.value = visible === undefined ? 0 : 1;
     if (!visible) return;
 
@@ -478,15 +517,24 @@ function buildFog(
         data[texel] = 0;
         data[texel + 1] = 0;
         data[texel + 2] = 0;
-        data[texel + 3] = seen.has(`${x},${y}`)
-          ? 0
-          : Math.round(unseenTerrainDarkness * 255);
+        // Alpha is the authoritative unseen fraction, independent of presentation
+        // strength. The plane and terrain shader apply the theme-owned darkness.
+        data[texel + 3] = seen.has(`${x},${y}`) ? 0 : 255;
       }
     }
     texture.needsUpdate = true;
   };
 
-  return { mesh, paint, texture, enabled, mapSize };
+  return {
+    mesh,
+    paint,
+    texture,
+    enabled,
+    mapSize,
+    darkness,
+    visibleLift,
+    floorCovered,
+  };
 }
 
 type FogMask = ReturnType<typeof buildFog>;
@@ -495,7 +543,9 @@ type FogMask = ReturnType<typeof buildFog>;
 function isFoggedTerrain(node: THREE.Object3D): boolean {
   const kind = node.userData.kind;
   return typeof kind === 'string' &&
-    (kind.startsWith('arena-wall-') || kind.startsWith('arena-woodland-'));
+    (kind === 'arena-floor' ||
+      kind.startsWith('arena-wall-') ||
+      kind.startsWith('arena-woodland-'));
 }
 
 /**
@@ -508,6 +558,7 @@ function applyTerrainFog(root: THREE.Object3D, fog: FogMask): void {
   const visit = (node: THREE.Object3D, inherited: boolean) => {
     const fogged = inherited || isFoggedTerrain(node);
     if (fogged && node instanceof THREE.Mesh) {
+      if (node.userData.kind === 'arena-floor') fog.floorCovered.value = true;
       const nodeMaterials = Array.isArray(node.material)
         ? node.material
         : [node.material];
@@ -525,6 +576,8 @@ function applyTerrainFog(root: THREE.Object3D, fog: FogMask): void {
       shader.uniforms.arenaVisionFogMap = { value: fog.texture };
       shader.uniforms.arenaVisionFogEnabled = fog.enabled;
       shader.uniforms.arenaVisionFogMapSize = { value: fog.mapSize };
+      shader.uniforms.arenaVisionFogDarkness = fog.darkness;
+      shader.uniforms.arenaVisionVisibleLift = fog.visibleLift;
       shader.vertexShader = shader.vertexShader
         .replace(
           'void main() {',
@@ -548,6 +601,8 @@ vArenaVisionFogWorldPosition = ( modelMatrix * arenaVisionFogPosition ).xyz;
           `uniform sampler2D arenaVisionFogMap;
 uniform float arenaVisionFogEnabled;
 uniform vec2 arenaVisionFogMapSize;
+uniform float arenaVisionFogDarkness;
+uniform float arenaVisionVisibleLift;
 varying vec3 vArenaVisionFogWorldPosition;
 void main() {`,
         )
@@ -562,15 +617,20 @@ vec2 arenaVisionFogUv = clamp(
   vec2(0.0),
   vec2(1.0)
 );
-float arenaVisionFogAlpha = texture2D(
+float arenaVisionFogMask = texture2D(
   arenaVisionFogMap,
   arenaVisionFogUv
-).a * arenaVisionFogEnabled;
-gl_FragColor.rgb *= 1.0 - arenaVisionFogAlpha;`,
+).a;
+float arenaVisionFogUnseen = arenaVisionFogMask * arenaVisionFogEnabled;
+float arenaVisionFogSeen =
+  (1.0 - arenaVisionFogMask) * arenaVisionFogEnabled;
+gl_FragColor.rgb *=
+  (1.0 - arenaVisionFogDarkness * arenaVisionFogUnseen) *
+  (1.0 + arenaVisionVisibleLift * arenaVisionFogSeen);`,
         );
     };
     material.customProgramCacheKey = () =>
-      `${priorCacheKey()}:arena-vision-fog-v1`;
+      `${priorCacheKey()}:arena-vision-fog-v2`;
     material.userData.arenaVisionFog = fog;
     material.needsUpdate = true;
   }
@@ -586,31 +646,60 @@ gl_FragColor.rgb *= 1.0 - arenaVisionFogAlpha;`,
  */
 function buildSpawnPads(
   replay: ReplayModel,
+  themeId: string,
   disposables: { dispose: () => void }[],
 ): {
   group: THREE.Group;
   update: (presentation: TickPresentation, time: number) => void;
 } {
   const group = new THREE.Group();
-  group.userData.kind = 'frontline-spawn-pads';
-  const homes = replay.map.frontline?.teamHomes ?? [];
+  const arcRelayPad = replay.map.frontline === null &&
+    replay.contract.kind === 'v3-generic' &&
+    replay.contract.modeKind === 'arc-relay';
+  group.userData.kind = arcRelayPad
+    ? 'arc-relay-spawn-pads'
+    : 'frontline-spawn-pads';
+  const homes = replay.map.frontline?.teamHomes ?? arcRelayHomes(replay);
+  const emberForge = themeId === 'ember-forge';
+  const spawnSocketGeometry = arcRelayPad && emberForge
+    ? new THREE.CylinderGeometry(0.25, 0.32, 0.065, 8)
+    : null;
+  const spawnSocketPlateGeometry = arcRelayPad && emberForge
+    ? new THREE.CylinderGeometry(0.19, 0.22, 0.024, 8)
+    : null;
+  const spawnSocketSignalGeometry = arcRelayPad && emberForge
+    ? new THREE.BoxGeometry(0.16, 0.018, 0.035)
+    : null;
+  if (
+    spawnSocketGeometry &&
+    spawnSocketPlateGeometry &&
+    spawnSocketSignalGeometry
+  )
+    disposables.push(
+      spawnSocketGeometry,
+      spawnSocketPlateGeometry,
+      spawnSocketSignalGeometry,
+    );
   const entries = homes
     .filter((home) => home.protectedSpawnPad.length > 0)
     .map((home) => {
       const pad = new THREE.Group();
-      pad.userData.kind = 'frontline-spawn-pad';
+      pad.userData.kind = arcRelayPad
+        ? 'arc-relay-spawn-pad'
+        : 'frontline-spawn-pad';
+      pad.userData.themeId = themeId;
       pad.userData.teamId = home.teamId;
 
       const bedGeometry = tiledInsetGeometry(home.protectedSpawnPad, 0.055);
       const bedMaterial = new THREE.MeshBasicMaterial({
-        color: '#211b18',
+        color: emberForge ? '#241d20' : '#211b18',
         transparent: true,
-        opacity: 0.34,
+        opacity: emberForge ? 0.56 : 0.34,
         depthWrite: false,
       });
       const bed = new THREE.Mesh(bedGeometry, bedMaterial);
       bed.position.y = 0.012;
-      pad.add(bed);
+      if (!arcRelayPad) pad.add(bed);
 
       const sealGeometry = tileBoundaryGeometry(
         home.protectedSpawnPad,
@@ -618,27 +707,94 @@ function buildSpawnPads(
         0.045,
       );
       const sealMaterial = new THREE.MeshBasicMaterial({
-        color: '#b27a43',
+        color: emberForge ? '#a63b4b' : '#b27a43',
         transparent: true,
-        opacity: 0.23,
+        opacity: emberForge ? 0.34 : 0.23,
         depthWrite: false,
         blending: THREE.AdditiveBlending,
       });
       const seal = new THREE.Mesh(sealGeometry, sealMaterial);
       seal.position.y = 0.018;
-      pad.add(seal);
+      if (!arcRelayPad) pad.add(seal);
 
       const hatchGeometry = serviceHatchGeometry(home.protectedSpawnPad);
       const hatchMaterial = new THREE.MeshBasicMaterial({
-        color: '#b27a43',
+        color: emberForge ? '#d08b54' : '#b27a43',
         transparent: true,
-        opacity: 0.14,
+        opacity: emberForge ? 0.23 : 0.14,
         depthWrite: false,
         blending: THREE.AdditiveBlending,
       });
       const hatches = new THREE.Mesh(hatchGeometry, hatchMaterial);
       hatches.position.y = 0.02;
-      pad.add(hatches);
+      if (!arcRelayPad) pad.add(hatches);
+
+      // Arc Relay returns each stable slot to an authored anchor within its
+      // broader home. Ember makes those exact anchors physical: low octagonal
+      // casting sockets without outlining the broad home region. A dark
+      // octagonal lift plate and one small directional status lamp replace
+      // the previous bright ring, which read as a dropped-item tile.
+      let socketSignalMaterial: THREE.MeshStandardMaterial | null = null;
+      if (
+        spawnSocketGeometry &&
+        spawnSocketPlateGeometry &&
+        spawnSocketSignalGeometry
+      ) {
+        const homeKeys = new Set(
+          home.protectedSpawnPad.map((tile) => `${tile.x}:${tile.y}`),
+        );
+        const socketBodyMaterial = new THREE.MeshStandardMaterial({
+          color: '#2c2c31',
+          roughness: 0.64,
+          metalness: 0.72,
+        });
+        const socketPlateMaterial = new THREE.MeshStandardMaterial({
+          color: '#494348',
+          roughness: 0.72,
+          metalness: 0.58,
+        });
+        socketSignalMaterial = new THREE.MeshStandardMaterial({
+          color: '#a63b4b',
+          emissive: '#a63b4b',
+          emissiveIntensity: 0.72,
+          roughness: 0.48,
+          metalness: 0.68,
+        });
+        for (const spawn of replay.contract.map.spawns.filter(
+          (candidate) => candidate.teamId === home.teamId &&
+            homeKeys.has(`${candidate.position.x}:${candidate.position.y}`),
+        )) {
+          const socket = new THREE.Group();
+          socket.userData.kind = 'arc-relay-spawn-socket';
+          socket.userData.teamId = home.teamId;
+          socket.position.set(
+            spawn.position.x + 0.5,
+            0.058,
+            spawn.position.y + 0.5,
+          );
+          const body = new THREE.Mesh(spawnSocketGeometry, socketBodyMaterial);
+          body.castShadow = true;
+          body.receiveShadow = true;
+          const plate = new THREE.Mesh(
+            spawnSocketPlateGeometry,
+            socketPlateMaterial,
+          );
+          plate.position.y = 0.043;
+          const signal = new THREE.Mesh(
+            spawnSocketSignalGeometry,
+            socketSignalMaterial,
+          );
+          signal.position.set(0, 0.062, -0.12);
+          socket.rotation.y = directionAngle(spawn.facing);
+          socket.add(body, plate, signal);
+          pad.add(socket);
+        }
+        disposables.push(
+          socketBodyMaterial,
+          socketPlateMaterial,
+          socketSignalMaterial,
+        );
+      }
 
       // The purchase beat. A tier is bought out of the bank and applied to the
       // team's Prime lives, so the honest place to say it is the ground those
@@ -676,6 +832,7 @@ function buildSpawnPads(
         pad,
         sealMaterial,
         hatchMaterial,
+        socketSignalMaterial,
         forge,
         forgeMaterial,
       };
@@ -688,6 +845,10 @@ function buildSpawnPads(
           ?.accent ?? '#b27a43';
       entry.sealMaterial.color.set(accent);
       entry.hatchMaterial.color.set(accent);
+      if (entry.socketSignalMaterial) {
+        entry.socketSignalMaterial.color.set(accent);
+        entry.socketSignalMaterial.emissive.set(accent);
+      }
       entry.pad.userData.accent = accent;
 
       const purchase = presentation.economy?.purchases.find(
@@ -1840,6 +2001,7 @@ function buildAbsorptions(
 /** Arc Relay's objective objects and the unmistakable carrier beacon. */
 function buildArcRelayStory(
   replay: ReplayModel,
+  themeId: string,
   disposables: { dispose: () => void }[],
   entrants?: readonly ViewerEntrantPresentation[],
 ): {
@@ -1848,11 +2010,31 @@ function buildArcRelayStory(
 } {
   const group = new THREE.Group();
   group.userData.kind = 'arc-relay-story';
+  const emberForge = themeId === 'ember-forge';
+  const arcRules =
+    replay.contract.kind === 'v3-generic' &&
+    replay.contract.rawContract.rules.gameMode.kind === 'arc-relay'
+      ? replay.contract.rawContract.rules.gameMode
+      : null;
 
-  const wellGeometry = new THREE.CylinderGeometry(0.31, 0.38, 0.09, 24);
-  const wellRingGeometry = new THREE.RingGeometry(0.39, 0.47, 32);
+  const wellGeometry = new THREE.CylinderGeometry(
+    emberForge ? 0.28 : 0.31,
+    emberForge ? 0.4 : 0.38,
+    emberForge ? 0.14 : 0.09,
+    emberForge ? 12 : 24,
+  );
+  const wellRingGeometry = new THREE.RingGeometry(
+    emberForge ? 0.4 : 0.39,
+    emberForge ? 0.49 : 0.47,
+    emberForge ? 16 : 32,
+  );
   wellRingGeometry.rotateX(-Math.PI / 2);
-  const reactorGeometry = new THREE.CylinderGeometry(0.38, 0.46, 0.18, 28);
+  const reactorGeometry = new THREE.CylinderGeometry(
+    0.38,
+    0.46,
+    emberForge ? 0.22 : 0.18,
+    emberForge ? 12 : 28,
+  );
   const reactorRingGeometry = new THREE.TorusGeometry(0.49, 0.035, 8, 36);
   reactorRingGeometry.rotateX(Math.PI / 2);
   const crestGeometry = new THREE.CircleGeometry(0.2, 32);
@@ -1868,7 +2050,12 @@ function buildArcRelayStory(
   sourceDiamondGeometry.rotateY(Math.PI / 4);
   const sourceCircleGeometry = new THREE.TorusGeometry(0.13, 0.028, 7, 24);
   sourceCircleGeometry.rotateX(Math.PI / 2);
-  const reactorPylonGeometry = new THREE.BoxGeometry(0.09, 0.38, 0.09);
+  const reactorPylonGeometry = emberForge
+    ? new THREE.CylinderGeometry(0.055, 0.1, 0.38, 6)
+    : new THREE.BoxGeometry(0.09, 0.38, 0.09);
+  const forgeWellClampGeometry = new THREE.BoxGeometry(0.13, 0.15, 0.11);
+  const forgeWellRimGeometry = new THREE.TorusGeometry(0.31, 0.045, 6, 12);
+  forgeWellRimGeometry.rotateX(Math.PI / 2);
   disposables.push(
     wellGeometry,
     wellRingGeometry,
@@ -1882,6 +2069,8 @@ function buildArcRelayStory(
     sourceDiamondGeometry,
     sourceCircleGeometry,
     reactorPylonGeometry,
+    forgeWellClampGeometry,
+    forgeWellRimGeometry,
   );
   if (coreGlowTexture) disposables.push(coreGlowTexture);
 
@@ -1889,46 +2078,126 @@ function buildArcRelayStory(
   // a soft green plate with a cross, dim enough to read as ground rather
   // than pickup. The channel itself is announced on the bot (its heal ring),
   // so the pad only has to say "this is where that happens".
-  const healPulseMaterials: THREE.MeshBasicMaterial[] = [];
+  const healPulseMaterials: THREE.Material[] = [];
   {
-    const padGeometry = new THREE.CircleGeometry(0.34, 28);
-    padGeometry.rotateX(-Math.PI / 2);
-    const padRingGeometry = new THREE.RingGeometry(0.36, 0.43, 28);
-    padRingGeometry.rotateX(-Math.PI / 2);
-    const crossBarGeometry = new THREE.BoxGeometry(0.3, 0.012, 0.09);
+    const padGeometry = emberForge
+      ? new THREE.CylinderGeometry(0.34, 0.43, 0.1, 12)
+      : new THREE.CircleGeometry(0.34, 28).rotateX(-Math.PI / 2);
+    const padRingGeometry = emberForge
+      ? new THREE.TorusGeometry(0.3, 0.035, 6, 16).rotateX(Math.PI / 2)
+      : new THREE.RingGeometry(0.36, 0.43, 28).rotateX(-Math.PI / 2);
+    const coolantGeometry = emberForge
+      ? new THREE.CylinderGeometry(0.235, 0.255, 0.035, 12)
+      : null;
+    const healClampGeometry = emberForge
+      ? new THREE.BoxGeometry(0.12, 0.1, 0.13)
+      : null;
+    const crossBarGeometry = new THREE.BoxGeometry(
+      emberForge ? 0.25 : 0.3,
+      emberForge ? 0.035 : 0.012,
+      emberForge ? 0.075 : 0.09,
+    );
     disposables.push(padGeometry, padRingGeometry, crossBarGeometry);
+    if (coolantGeometry && healClampGeometry)
+      disposables.push(coolantGeometry, healClampGeometry);
     for (const tile of replay.map.regions
       .filter((region) => region.regionId.startsWith('heal-'))
       .flatMap((region) => region.tiles)) {
-      const padMaterial = new THREE.MeshBasicMaterial({
-        color: new THREE.Color('#166534'),
-        transparent: true,
-        opacity: 0.55,
-        depthWrite: false,
-      });
-      const ringMaterial = new THREE.MeshBasicMaterial({
-        color: new THREE.Color('#4ade80'),
-        transparent: true,
-        opacity: 0.5,
-        depthWrite: false,
-      });
+      const padMaterial = emberForge
+        ? new THREE.MeshStandardMaterial({
+            color: '#242a2b',
+            emissive: '#123e2b',
+            emissiveIntensity: 0.34,
+            roughness: 0.62,
+            metalness: 0.48,
+            transparent: true,
+            opacity: 0.92,
+            depthWrite: false,
+          })
+        : new THREE.MeshBasicMaterial({
+            color: '#166534',
+            transparent: true,
+            opacity: 0.55,
+            depthWrite: false,
+          });
+      const ringMaterial = emberForge
+        ? new THREE.MeshStandardMaterial({
+            color: '#4ade80',
+            emissive: '#35a85e',
+            emissiveIntensity: 0.8,
+            roughness: 0.5,
+            metalness: 0.36,
+            transparent: true,
+            opacity: 0.5,
+            depthWrite: false,
+          })
+        : new THREE.MeshBasicMaterial({
+            color: '#4ade80',
+            transparent: true,
+            opacity: 0.5,
+            depthWrite: false,
+          });
       const crossMaterial = new THREE.MeshBasicMaterial({
-        color: new THREE.Color('#86efac'),
+        color: new THREE.Color(emberForge ? '#b7f2c8' : '#86efac'),
         transparent: true,
-        opacity: 0.8,
+        opacity: emberForge ? 0.86 : 0.8,
         depthWrite: false,
       });
+      const coolantMaterial = emberForge
+        ? new THREE.MeshStandardMaterial({
+            color: '#173e2c',
+            emissive: '#35a85e',
+            emissiveIntensity: 0.72,
+            roughness: 0.34,
+            metalness: 0.32,
+          })
+        : null;
+      const clampMaterial = emberForge
+        ? new THREE.MeshStandardMaterial({
+            color: '#6b2a35',
+            roughness: 0.58,
+            metalness: 0.7,
+          })
+        : null;
       disposables.push(padMaterial, ringMaterial, crossMaterial);
+      if (coolantMaterial && clampMaterial)
+        disposables.push(coolantMaterial, clampMaterial);
       healPulseMaterials.push(ringMaterial);
       const pad = new THREE.Group();
+      pad.userData.kind = 'arc-relay-heal-pad';
+      pad.userData.themeId = themeId;
       pad.position.set(tile.x + 0.5, 0.018, tile.y + 0.5);
       pad.add(new THREE.Mesh(padGeometry, padMaterial));
-      pad.add(new THREE.Mesh(padRingGeometry, ringMaterial));
+      const collar = new THREE.Mesh(padRingGeometry, ringMaterial);
+      collar.position.y = emberForge ? 0.102 : 0;
+      pad.add(collar);
+      if (
+        coolantGeometry &&
+        coolantMaterial &&
+        healClampGeometry &&
+        clampMaterial
+      ) {
+        const coolant = new THREE.Mesh(coolantGeometry, coolantMaterial);
+        coolant.position.y = 0.088;
+        coolant.userData.kind = 'arc-relay-heal-coolant';
+        pad.add(coolant);
+        for (let clamp = 0; clamp < 4; clamp++) {
+          const angle = clamp * Math.PI / 2;
+          const brace = new THREE.Mesh(healClampGeometry, clampMaterial);
+          brace.position.set(
+            Math.cos(angle) * 0.365,
+            0.075,
+            Math.sin(angle) * 0.365,
+          );
+          brace.rotation.y = -angle;
+          pad.add(brace);
+        }
+      }
       const alongX = new THREE.Mesh(crossBarGeometry, crossMaterial);
-      alongX.position.y = 0.012;
+      alongX.position.y = emberForge ? 0.125 : 0.012;
       const alongZ = new THREE.Mesh(crossBarGeometry, crossMaterial);
       alongZ.rotation.y = Math.PI / 2;
-      alongZ.position.y = 0.012;
+      alongZ.position.y = emberForge ? 0.125 : 0.012;
       pad.add(alongX);
       pad.add(alongZ);
       group.add(pad);
@@ -1941,21 +2210,26 @@ function buildArcRelayStory(
     ring: THREE.Mesh;
     bodyMaterial: THREE.MeshStandardMaterial;
     ringMaterial: THREE.MeshBasicMaterial;
+    progress: THREE.Mesh;
+    progressGeometry: THREE.RingGeometry;
+    progressMaterial: THREE.MeshBasicMaterial;
     sourceGlyphs: THREE.Mesh[];
   };
   const wells: WellRig[] = [];
   const well = (index: number): WellRig => {
     while (wells.length <= index) {
       const rig = new THREE.Group();
+      rig.userData.kind = 'arc-relay-well';
+      rig.userData.themeId = themeId;
       const bodyMaterial = new THREE.MeshStandardMaterial({
-        color: '#1b2732',
-        emissive: '#dceaf2',
-        emissiveIntensity: 0.35,
-        roughness: 0.45,
-        metalness: 0.65,
+        color: emberForge ? '#2b2629' : '#1b2732',
+        emissive: emberForge ? '#a63b2f' : '#dceaf2',
+        emissiveIntensity: emberForge ? 0.24 : 0.35,
+        roughness: emberForge ? 0.62 : 0.45,
+        metalness: emberForge ? 0.72 : 0.65,
       });
       const ringMaterial = new THREE.MeshBasicMaterial({
-        color: '#e5f1f7',
+        color: emberForge ? '#ff9d68' : '#e5f1f7',
         transparent: true,
         opacity: 0.65,
         depthWrite: false,
@@ -1963,9 +2237,23 @@ function buildArcRelayStory(
         side: THREE.DoubleSide,
       });
       const body = new THREE.Mesh(wellGeometry, bodyMaterial);
-      body.position.y = 0.045;
+      body.position.y = emberForge ? 0.07 : 0.045;
       const ring = new THREE.Mesh(wellRingGeometry, ringMaterial);
       ring.position.y = 0.025;
+      const progressGeometry = captureProgressGeometry(0.51, 0.575);
+      const progressMaterial = new THREE.MeshBasicMaterial({
+        color: emberForge ? '#ffb078' : '#edf5fb',
+        transparent: true,
+        opacity: 0,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+        side: THREE.DoubleSide,
+      });
+      const progress = new THREE.Mesh(progressGeometry, progressMaterial);
+      progress.position.y = 0.035;
+      progress.rotation.y = -Math.PI / 2;
+      progress.userData.kind = 'arc-relay-well-birth-progress';
+      progress.userData.progress = 0;
       const sourceGlyphs = [
         sourceTriangleGeometry,
         sourceDiamondGeometry,
@@ -1976,7 +2264,29 @@ function buildArcRelayStory(
         rig.add(mesh);
         return mesh;
       });
-      rig.add(body, ring);
+      rig.add(body, ring, progress);
+      if (emberForge) {
+        const trimMaterial = new THREE.MeshStandardMaterial({
+          color: '#a63b4b',
+          roughness: 0.55,
+          metalness: 0.68,
+        });
+        const rim = new THREE.Mesh(forgeWellRimGeometry, trimMaterial);
+        rim.position.y = 0.145;
+        rig.add(rim);
+        for (let clamp = 0; clamp < 4; clamp++) {
+          const angle = clamp * Math.PI / 2;
+          const mesh = new THREE.Mesh(forgeWellClampGeometry, trimMaterial);
+          mesh.position.set(
+            Math.cos(angle) * 0.36,
+            0.075,
+            Math.sin(angle) * 0.36,
+          );
+          mesh.rotation.y = -angle;
+          rig.add(mesh);
+        }
+        disposables.push(trimMaterial);
+      }
       rig.visible = false;
       group.add(rig);
       wells.push({
@@ -1985,9 +2295,17 @@ function buildArcRelayStory(
         ring,
         bodyMaterial,
         ringMaterial,
+        progress,
+        progressGeometry,
+        progressMaterial,
         sourceGlyphs,
       });
-      disposables.push(bodyMaterial, ringMaterial);
+      disposables.push(
+        bodyMaterial,
+        ringMaterial,
+        progressGeometry,
+        progressMaterial,
+      );
     }
     return wells[index]!;
   };
@@ -2006,12 +2324,14 @@ function buildArcRelayStory(
   const reactor = (index: number): ReactorRig => {
     while (reactors.length <= index) {
       const rig = new THREE.Group();
+      rig.userData.kind = 'arc-relay-reactor';
+      rig.userData.themeId = themeId;
       const material = new THREE.MeshStandardMaterial({
-        color: '#101820',
-        emissive: '#64748b',
-        emissiveIntensity: 0.45,
-        roughness: 0.38,
-        metalness: 0.72,
+        color: emberForge ? '#2a2529' : '#101820',
+        emissive: emberForge ? '#8f3241' : '#64748b',
+        emissiveIntensity: emberForge ? 0.34 : 0.45,
+        roughness: emberForge ? 0.58 : 0.38,
+        metalness: emberForge ? 0.78 : 0.72,
       });
       const ringMaterial = new THREE.MeshBasicMaterial({
         transparent: true,
@@ -2020,7 +2340,7 @@ function buildArcRelayStory(
         blending: THREE.AdditiveBlending,
       });
       const body = new THREE.Mesh(reactorGeometry, material);
-      body.position.y = 0.09;
+      body.position.y = emberForge ? 0.11 : 0.09;
       const ring = new THREE.Mesh(reactorRingGeometry, ringMaterial);
       ring.position.y = 0.12;
       const crestMaterial = new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false });
@@ -2180,10 +2500,60 @@ function buildArcRelayStory(
       rig.group.visible = true;
       rig.group.position.set(state.position.x + 0.5, 0, state.position.y + 0.5);
       const pulse = 0.5 + 0.5 * Math.sin(time * Math.PI * 1.6 + index);
+      const sourceAccent = arcOriginAccent(state.wellId);
+      if (emberForge)
+        rig.ringMaterial.color
+          .set(sourceAccent)
+          .lerp(new THREE.Color('#ff9560'), 0.48);
       rig.ring.rotation.y = time * 0.35 * (index % 2 === 0 ? 1 : -1);
       rig.ring.scale.setScalar(1 + pulse * 0.08);
       rig.ringMaterial.opacity = state.outstanding ? 0.28 : 0.55 + pulse * 0.28;
-      rig.bodyMaterial.emissiveIntensity = state.outstanding ? 0.15 : 0.38;
+      rig.bodyMaterial.emissiveIntensity = state.outstanding
+        ? emberForge ? 0.12 : 0.15
+        : emberForge ? 0.42 : 0.38;
+      const schedule = arcRules?.wells?.find(
+        (candidate) => candidate.wellId === state.wellId,
+      );
+      const scheduledProgress =
+        state.nextBirthTick !== null && schedule
+          ? Math.max(
+              0,
+              Math.min(
+                1,
+                1 -
+                  Math.max(0, state.nextBirthTick - time) /
+                    Math.max(1, schedule.cadenceTicks),
+              ),
+            )
+          : 0;
+      const rearmProgress =
+        state.rearmCompletesAtTick !== null
+          ? Math.max(
+              0,
+              Math.min(
+                1,
+                1 -
+                  Math.max(0, state.rearmCompletesAtTick - time) /
+                    Math.max(1, arcRules?.pendingRearmTicks ?? 1),
+              ),
+            )
+          : 0;
+      const birthProgress = Math.max(scheduledProgress, rearmProgress);
+      setCaptureArcFraction(rig.progressGeometry, birthProgress);
+      rig.progressMaterial.opacity = birthProgress > 0
+        ? 0.68 + pulse * 0.24
+        : 0;
+      if (emberForge)
+        rig.progressMaterial.color
+          .set(sourceAccent)
+          .lerp(new THREE.Color('#ffd0a5'), 0.62);
+      rig.progress.userData.progress = birthProgress;
+      rig.progress.userData.nextBirthTick = state.nextBirthTick;
+      rig.progress.userData.phase = scheduledProgress > 0
+        ? 'scheduled-birth'
+        : rearmProgress > 0 || state.pendingCharge
+          ? 'rearming'
+          : 'idle';
       const glyphIndex = state.wellId.includes('north')
         ? 0
         : state.wellId.includes('south')

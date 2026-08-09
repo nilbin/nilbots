@@ -294,8 +294,29 @@ test('Ember builds its approved raised perimeter and cover profiles', () => {
       'round foundry stacks break the rectangular-box repetition',
     );
     assert.ok(
-      objectByKind(arena.scene, 'arena-wall-bastion-crucible-crowns'),
-      'round towers finish as crimson-crowned crucibles',
+      objectByKind(arena.scene, 'arena-wall-bastion-crucible-collars'),
+      'round towers finish as layered foundry collars instead of red rings',
+    );
+    const crucibleLid = objectByKind(
+      arena.scene,
+      'arena-wall-bastion-crucible-lids',
+    ) as THREE.InstancedMesh;
+    assert.ok(crucibleLid, 'round towers carry recessed forged-metal lids');
+    assert.equal(crucibleLid.castShadow, false);
+    assert.ok(!Array.isArray(crucibleLid.material));
+    const crucibleLidMaterial =
+      crucibleLid.material as THREE.MeshStandardMaterial;
+    assert.ok(
+      crucibleLidMaterial.bumpMap && crucibleLidMaterial.roughnessMap,
+      'the lid has real micro-surface response rather than a flat colour',
+    );
+    assert.ok(
+      objectByKind(arena.scene, 'arena-wall-bastion-crucible-clamps'),
+      'small burgundy clamps replace the repeated circular accent',
+    );
+    assert.ok(
+      objectByKind(arena.scene, 'arena-wall-bastion-crucible-vents'),
+      'recessed slots give the cap an industrial working face',
     );
     const crucibleCore = objectByKind(
       arena.scene,
@@ -307,6 +328,39 @@ test('Ember builds its approved raised perimeter and cover profiles', () => {
     assert.ok(
       objectByKind(arena.scene, 'arena-wall-bastion-split-towers'),
       'paired unequal towers break the one-module-per-tile silhouette',
+    );
+    assert.equal(
+      objectByKind(arena.scene, 'arena-wall-bastion-foundry-halls'),
+      null,
+      'Ember avoids the oversized hall caps that flattened wall runs',
+    );
+    const topPlate = objectByKind(
+      arena.scene,
+      'arena-wall-bastion-top-plates',
+    ) as THREE.InstancedMesh;
+    assert.ok(topPlate, 'raised modules finish in forged service plates');
+    assert.equal(
+      topPlate.castShadow,
+      false,
+      'thin plates must not paint a heavy black lip across wall tops',
+    );
+    assert.ok(!Array.isArray(topPlate.material));
+    const topPlateMaterial = topPlate.material as THREE.MeshStandardMaterial;
+    assert.ok(
+      topPlateMaterial.bumpMap && topPlateMaterial.roughnessMap,
+      'rectangular wall tops use the forged micro-surface too',
+    );
+    assert.ok(
+      objectByKind(arena.scene, 'arena-wall-bastion-top-plate-clamps'),
+      'small clamps replace the full burgundy top slab',
+    );
+    assert.ok(
+      objectByKind(arena.scene, 'arena-wall-bastion-top-plate-vents'),
+      'service plates include a recessed slot',
+    );
+    assert.ok(
+      objectByKind(arena.scene, 'arena-wall-bastion-top-plate-fasteners'),
+      'service plates carry corner fasteners at follow scale',
     );
     assert.ok(
       objectByKind(arena.scene, 'arena-wall-bastion-apron-outer-rails'),
@@ -388,7 +442,10 @@ test('Ember builds its approved raised perimeter and cover profiles', () => {
     assert.ok(
       bastionFamilies.get('perimeter')!.userData.maximumHeight > 0.84,
     );
-    assert.ok(bastionFamilies.get('cover')!.userData.maximumHeight > 0.58);
+    assert.ok(
+      bastionFamilies.get('cover')!.userData.maximumHeight > 0.9,
+      'some inner-wall structures must rise clearly above a bot chassis',
+    );
 
     const matrix = new THREE.Matrix4();
     const position = new THREE.Vector3();
@@ -424,6 +481,10 @@ test('Ember builds its approved raised perimeter and cover profiles', () => {
     assert.ok(!Array.isArray(bastionMaterial));
     const emberFog = bastionMaterial.userData.arenaVisionFog as {
       texture: THREE.DataTexture;
+      mesh: THREE.Mesh;
+      darkness: { value: number };
+      visibleLift: { value: number };
+      floorCovered: { value: boolean };
     };
     assert.ok(
       emberFog,
@@ -431,12 +492,34 @@ test('Ember builds its approved raised perimeter and cover profiles', () => {
     );
     const selected = source.units.find((unit) => unit.teamId === 0)!;
     overlays.update(0, selected.unitKey, true);
+    assert.equal(emberFog.darkness.value, 0.5);
+    assert.equal(emberFog.visibleLift.value, 0.45);
+    assert.equal(emberFog.floorCovered.value, true);
+    assert.equal(
+      emberFog.mesh.visible,
+      false,
+      'the terrain shader grades the floor without a second darkening plane',
+    );
+    const arenaFloor = objectByKind(arena.scene, 'arena-floor') as THREE.Mesh;
+    assert.ok(arenaFloor);
+    assert.equal(
+      arenaFloor.material.userData.albedoContrast,
+      undefined,
+      'the restored authored floor albedo needs no runtime contrast patch',
+    );
+    const floorMaterial = arenaFloor.material;
+    assert.ok(!Array.isArray(floorMaterial));
+    assert.equal(
+      floorMaterial.userData.arenaVisionFog,
+      emberFog,
+      'floor and walls share one authoritative light-up mask',
+    );
     const emberMask = emberFog.texture.image.data as Uint8Array;
     assert.ok(
       emberMask.some(
-        (value, index) => index % 4 === 3 && value === Math.round(0.2 * 255),
+        (value, index) => index % 4 === 3 && value === 255,
       ),
-      'Ember uses its lighter theme-owned unseen-terrain darkness',
+      'the shared texture records unseen terrain independently of theme strength',
     );
     overlays.dispose();
 
@@ -665,12 +748,20 @@ test('Woodland roots remain authoritative while organic foliage overhangs', () =
       enabled: { value: number };
       mesh: THREE.Mesh;
       texture: THREE.DataTexture;
+      darkness: { value: number };
+      visibleLift: { value: number };
     };
     assert.ok(fog, 'living wall materials receive the team-vision mask');
     const selected = source.units.find((unit) => unit.teamId === 0)!;
     overlays.update(0, selected.unitKey, true);
     assert.equal(fog.enabled.value, 1);
-    assert.equal(fog.mesh.visible, true, 'selection fog also covers the floor');
+    assert.equal(fog.darkness.value, 0.58);
+    assert.equal(fog.visibleLift.value, 0);
+    assert.equal(
+      fog.mesh.visible,
+      false,
+      'the floor receives the same shader mask without double fog',
+    );
     const mask = fog.texture.image.data as Uint8Array;
     const selectedVisible = mask.filter(
       (value, index) => index % 4 === 3 && value === 0,
@@ -678,9 +769,9 @@ test('Woodland roots remain authoritative while organic foliage overhangs', () =
     assert.ok(mask.some((value, index) => index % 4 === 3 && value === 0));
     assert.ok(
       mask.some(
-        (value, index) => index % 4 === 3 && value === Math.round(0.58 * 255),
+        (value, index) => index % 4 === 3 && value === 255,
       ),
-      'themes without an override retain the established 58% terrain fog',
+      'the mask retains authoritative unseen tiles at full signal',
     );
 
     const shader = {
@@ -692,9 +783,11 @@ test('Woodland roots remain authoritative while organic foliage overhangs', () =
     assert.match(shader.vertexShader, /instanceMatrix/);
     assert.match(shader.fragmentShader, /arenaVisionFogMap/);
     assert.ok('arenaVisionFogEnabled' in shader.uniforms);
+    assert.ok('arenaVisionFogDarkness' in shader.uniforms);
+    assert.ok('arenaVisionVisibleLift' in shader.uniforms);
     overlays.update(0, null, false);
     assert.equal(fog.enabled.value, 1, 'unselected walls retain all-unit vision');
-    assert.equal(fog.mesh.visible, true, 'the floor uses the same all-unit union');
+    assert.equal(fog.mesh.visible, false, 'the floor shader uses the all-unit union');
     const allUnitVisible = mask.filter(
       (value, index) => index % 4 === 3 && value === 0,
     ).length;

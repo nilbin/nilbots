@@ -32,7 +32,8 @@ public sealed record ArcRelayGameModeDefinition : GameModeDefinition
         int veterancyMaxLevel = 0,
         int healZoneTicksPerHp = 0,
         bool seedPhasedResolutionOrder = false,
-        bool seedPhasedWellLead = false)
+        bool seedPhasedWellLead = false,
+        bool chiralWellBirths = false)
         : base(modeId, victory, scoreCatalog)
     {
         if (signatureGrammarVersion is not (1 or 2))
@@ -85,6 +86,14 @@ public sealed record ArcRelayGameModeDefinition : GameModeDefinition
         }
         _seedPhasedResolutionOrder = seedPhasedResolutionOrder;
         SeedPhasedWellLead = seedPhasedWellLead;
+        if (chiralWellBirths && seedPhasedWellLead)
+        {
+            throw new ArgumentException(
+                "Chiral well births already give a rotation pair one "
+                + "schedule, so there is no lead left to phase.",
+                nameof(chiralWellBirths));
+        }
+        ChiralWellBirths = chiralWellBirths;
         ArgumentNullException.ThrowIfNull(wells);
         ArgumentNullException.ThrowIfNull(signatures);
         ArcRelayWellScheduleDefinition[] wellSnapshot = [.. wells];
@@ -273,6 +282,15 @@ public sealed record ArcRelayGameModeDefinition : GameModeDefinition
     /// only when set.
     /// </summary>
     public bool SeedPhasedWellLead { get; }
+
+    /// <summary>
+    /// Whether wells whose positions are mutual 180-degree rotations share
+    /// one birth schedule -- base tick AND jitter draw. On a chiral map
+    /// where each side OWNS its near Well, staggering that pair hands one
+    /// player income first; a seed coin only launders that across matches,
+    /// it never removes it from one. Neutral flank wells do not need this.
+    /// </summary>
+    public bool ChiralWellBirths { get; }
 
     public override ImmutableArray<string> ModeOwnedAttackProfileIds =>
         SignatureGrammarVersion >= 2

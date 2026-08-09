@@ -3,7 +3,8 @@
   "label": "Ember Forge",
   "environment3d": {
     "fog": {
-      "unseenTerrainDarkness": 0.2
+      "unseenTerrainDarkness": 0.5,
+      "visibleTerrainLift": 0.45
     },
     "camera": {
       "yawDegrees": 12,
@@ -22,6 +23,7 @@
       "bumpScale": 0.028,
       "roughness": 0.98,
       "metalness": 0.12,
+      "albedoContrast": 1,
       "colorMultiplier": "#c7c7c7"
     }
   },
@@ -63,10 +65,11 @@
           "bastionCover": {
             "shoulderEvery": 3,
             "towerEvery": 7,
+            "hallEvery": null,
             "chimneyEvery": 6,
             "furnaceEvery": 5,
             "minRise": 0.1,
-            "maxRise": 0.34,
+            "maxRise": 0.52,
             "boundaryDepth": 1.8,
             "bodyColor": "#222429",
             "trimColor": "#612832",
@@ -107,10 +110,11 @@
           "bastionCover": {
             "shoulderEvery": 3,
             "towerEvery": 7,
+            "hallEvery": null,
             "chimneyEvery": null,
             "furnaceEvery": null,
             "minRise": 0.08,
-            "maxRise": 0.28,
+            "maxRise": 0.55,
             "boundaryDepth": 0,
             "bodyColor": "#292a2f",
             "trimColor": "#57252f",
