@@ -27,19 +27,6 @@
     "objectiveProgressTicks": 90,
     "formationStableTicks": 3
   },
-  "arbitration": {
-    "mode": "first-legal",
-    "channels": [
-      "custody-emergency",
-      "self-preservation",
-      "repair",
-      "signature",
-      "focus-fire",
-      "movement",
-      "facing",
-      "hold"
-    ]
-  },
   "roles": [
     {
       "roleId": "anchor",
@@ -704,9 +691,6 @@
   "custodyPolicies": [
     {
       "custodyId": "farm-north",
-      "authorizedCarrierRoles": [
-        "runner"
-      ],
       "escortGroups": [
         "farm-group"
       ],
@@ -723,9 +707,6 @@
     },
     {
       "custodyId": "farm-south",
-      "authorizedCarrierRoles": [
-        "runner"
-      ],
       "escortGroups": [
         "farm-group"
       ],
@@ -742,13 +723,6 @@
     },
     {
       "custodyId": "incidental-delivery",
-      "authorizedCarrierRoles": [
-        "runner",
-        "anchor",
-        "medic",
-        "eyes",
-        "hook"
-      ],
       "escortGroups": [
         "farm-group"
       ],
@@ -1220,5 +1194,73 @@
         ]
       }
     ]
+  },
+  "doctrines": {
+    "anchor-custody": {
+      "role": "anchor",
+      "custody": "incidental-delivery",
+      "modes": [
+        {
+          "fetch": "incidental-delivery"
+        },
+        {
+          "squad": true
+        }
+      ]
+    },
+    "medic-custody": {
+      "role": "medic",
+      "custody": "incidental-delivery",
+      "modes": [
+        {
+          "fetch": "incidental-delivery"
+        },
+        {
+          "squad": true
+        }
+      ]
+    },
+    "eyes-custody": {
+      "role": "eyes",
+      "custody": "incidental-delivery",
+      "modes": [
+        {
+          "fetch": "incidental-delivery"
+        },
+        {
+          "squad": true
+        }
+      ]
+    },
+    "hook-custody": {
+      "role": "hook",
+      "custody": "incidental-delivery",
+      "modes": [
+        {
+          "fetch": "incidental-delivery"
+        },
+        {
+          "squad": true
+        }
+      ]
+    },
+    "runner-custody": {
+      "role": "runner",
+      "custody": "farm-north",
+      "modes": [
+        {
+          "fetch": "farm-north"
+        },
+        {
+          "fetch": "farm-south"
+        },
+        {
+          "fetch": "incidental-delivery"
+        },
+        {
+          "squad": true
+        }
+      ]
+    }
   }
 }

@@ -24,15 +24,16 @@ navigation, help, errors, and authoring UI use the terms below.
 - **Mode** — one conditional behavior inside a doctrine. Modes are evaluated in order;
   the first active mode wins and the last mode is the safe floor.
 - **Verb** — the one action family a mode performs: `patrol`, `intercept`, `assault`,
-  `recover`, `muster`, or `squad`.
+  `recover`, `muster`, `fetch`, or `squad`.
 - **Condition** — a named comparison over an observed fact. Conditions combine with
   `and` and `or` to open or close modes; they do not reveal hidden information.
 - **Fight block** — the doctrine or mode settings for target preference, engagement,
   chase, break-off, defense, healing, and loose-Core priority.
 - **Escort call** — an assault mode's request for one or more assignments. A called
   assignment joins only when its own doctrine has a matching `muster` mode.
-- **Custody policy** — who may carry a Core and how pickup, delivery, recovery, passing,
-  accidental pickup, and unreachable routes are handled.
+- **Custody policy** — the shared pickup, delivery, recovery, passing, accidental-pickup,
+  and unreachable-route protocol. Each assignment volunteers through its own ordered
+  `fetch` mode; the policy does not keep a second carrier roster.
 - **Layout** — the map-native zones, routes, anchors, and side bindings used by a sheet.
 - **Zone** — an inclusive map rectangle used by conditions, Core collection, and custody.
 - **Route** — ordered map waypoints plus a corridor width.

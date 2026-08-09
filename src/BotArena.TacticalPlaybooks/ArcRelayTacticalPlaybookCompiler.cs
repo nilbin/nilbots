@@ -238,6 +238,14 @@ public static class ArcRelayTacticalPlaybookCompiler
     {
         parameterRanges = new Dictionary<string, (int, int)>(
             StringComparer.Ordinal);
+        bool frozenHomeSiegeV2 = IsFrozenHomeSiegeV2(source);
+        if (source.TryGetProperty("fetchRungs", out _)
+            || source.TryGetProperty("modeRungs", out _))
+        {
+            throw Error(path,
+                "fetchRungs and modeRungs are compiler-owned runtime IR; "
+                + "author courier priority with doctrine 'fetch' modes.");
+        }
         bool hasOrders = source.TryGetProperty("orders", out _);
         bool hasAuthoring = source.TryGetProperty("authoring", out _);
         if (hasOrders == hasAuthoring)
@@ -247,7 +255,7 @@ public static class ArcRelayTacticalPlaybookCompiler
                 + "'authoring'.");
         }
         if (hasOrders)
-            return JsonDocument.Parse(source.GetRawText());
+            return NormalizeFixedSections(source, path, frozenHomeSiegeV2);
 
         using JsonDocument? libraryMerged = MergeAuthoringLibrary(source, path);
         if (libraryMerged is not null)
@@ -261,10 +269,15 @@ public static class ArcRelayTacticalPlaybookCompiler
         if (doctrineDesugared is not null)
             source = doctrineDesugared.RootElement;
 
+        using JsonDocument fixedSections = NormalizeFixedSections(
+            source, path, frozenHomeSiegeV2);
+        source = fixedSections.RootElement;
+
         Object(source, path,
             [
                 "schema", "playbookId", "auditStatus", "composition",
-                "layout", "perspective", "memory", "arbitration", "roles",
+                "layout", "perspective", "memory", "roles", "fetchRungs",
+                "modeRungs",
                 "groups", "formations", "engagements", "supportPolicies",
                 "custodyPolicies", "authoring", "coordination",
             ]);
@@ -860,14 +873,7 @@ public static class ArcRelayTacticalPlaybookCompiler
             // This byte-frozen evidence control is named by an immutable
             // freeze ledger. It remains executable as history; every live
             // authoring surface uses the consolidated DSL below.
-            if (string.Equals(
-                    root["playbookId"]?.GetValue<string>(),
-                    "home-siege-v2",
-                    StringComparison.Ordinal)
-                && string.Equals(
-                    Sha256(Encoding.UTF8.GetBytes(source.GetRawText())),
-                    "4e0578e863d0611790375c8f3ad816398351a6c96ddab335047d9576113794bf",
-                    StringComparison.Ordinal))
+            if (IsFrozenHomeSiegeV2(source))
             {
                 return JsonDocument.Parse(root.ToJsonString());
             }
@@ -1211,6 +1217,17 @@ public static class ArcRelayTacticalPlaybookCompiler
                     Preferred: role["preferred"]!.GetValue<int>(),
                     Maximum: role["maximum"]!.GetValue<int>()),
                 StringComparer.Ordinal);
+        string[] roleOrder = root["roles"]!.AsArray()
+            .Select(node => node!["roleId"]!.GetValue<string>())
+            .ToArray();
+        JsonArray custodyPolicies = root["custodyPolicies"]!.AsArray();
+        HashSet<string> custodyIds = custodyPolicies
+            .Select(node => node!["custodyId"]!.GetValue<string>())
+            .ToHashSet(StringComparer.Ordinal);
+        var fetchRungs = new List<(string Role, string Custody, int Priority,
+            string At)>();
+        var modeRungs = new List<(string Task, string Role, int Priority)>();
+        var doctrineRoles = new HashSet<string>(StringComparer.Ordinal);
 
         // The two sides of the muster contract, collected across every
         // doctrine and joined after the loop: a recruit's muster mode may be
@@ -1229,6 +1246,19 @@ public static class ArcRelayTacticalPlaybookCompiler
                 ["fight", "conceal", "scavenge"]);
             string role = value.GetProperty("role").GetString()!;
             string custody = value.GetProperty("custody").GetString()!;
+            if (!roleBounds.ContainsKey(role))
+                throw Error(at, $"doctrine references unknown role '{role}'.");
+            if (!doctrineRoles.Add(role))
+            {
+                throw Error(at,
+                    $"role '{role}' has more than one doctrine; one ordered "
+                    + "mode list must own its priority.");
+            }
+            if (!custodyIds.Contains(custody))
+            {
+                throw Error(at,
+                    $"doctrine references unknown custody policy '{custody}'.");
+            }
             // Concealment micro (slip out of seen facing cones, skip the
             // flank walk, long ambush patience) is the doctrine's default
             // character; `"conceal": false` turns the ghost into an open
@@ -1467,6 +1497,29 @@ public static class ArcRelayTacticalPlaybookCompiler
                         mode.GetProperty("muster").GetString()!, rung, modeAt));
                     continue;
                 }
+                if (verb == "fetch")
+                {
+                    string fetchCustody = mode.GetProperty("fetch").GetString()!;
+                    if (!custodyIds.Contains(fetchCustody))
+                    {
+                        throw Error(modeAt,
+                            $"fetch references unknown custody policy "
+                            + $"'{fetchCustody}'.");
+                    }
+                    if (fetchRungs.Any(value => string.Equals(
+                            value.Role, role, StringComparison.Ordinal)
+                        && string.Equals(
+                            value.Custody, fetchCustody,
+                            StringComparison.Ordinal)))
+                    {
+                        throw Error(modeAt,
+                            $"role '{role}' fetches custody '{fetchCustody}' "
+                            + "twice; list position cannot distinguish two "
+                            + "identical duties.");
+                    }
+                    fetchRungs.Add((role, fetchCustody, rung, modeAt));
+                    continue;
+                }
                 ResolvedFight fight = ResolveFight(
                     doctrineFight,
                     mode.TryGetProperty("fight", out JsonElement modeFight)
@@ -1631,8 +1684,57 @@ public static class ArcRelayTacticalPlaybookCompiler
                         ["timeoutTicks"] = 0,
                     },
                 });
+                modeRungs.Add((name, role, rung));
             }
         }
+        // `fetch` is the authored consent to courier duty. The exhaustive IR
+        // keeps the old per-policy roster because delivery, handoff and
+        // accidental-pickup code need a fast policy membership test; unlike
+        // the former source field, this roster is DERIVED once from the
+        // ordered rungs and cannot contradict them.
+        foreach (JsonNode? policyNode in custodyPolicies)
+        {
+            JsonObject policy = policyNode!.AsObject();
+            string custodyId = policy["custodyId"]!.GetValue<string>();
+            string[] derived = roleOrder.Where(role => fetchRungs.Any(rung =>
+                    string.Equals(rung.Role, role, StringComparison.Ordinal)
+                    && string.Equals(
+                        rung.Custody, custodyId, StringComparison.Ordinal)))
+                .ToArray();
+            if (derived.Length == 0)
+            {
+                throw Error(path,
+                    $"custody policy '{custodyId}' has no consenting "
+                    + "courier; add a doctrine 'fetch' rung.");
+            }
+            if (policy["authorizedCarrierRoles"] is JsonArray legacy)
+            {
+                string[] authored = legacy.Select(node =>
+                        node!.GetValue<string>())
+                    .ToArray();
+                if (!authored.ToHashSet(StringComparer.Ordinal)
+                        .SetEquals(derived))
+                {
+                    throw Error(path,
+                        $"custody policy '{custodyId}' has conflicting "
+                        + "authorizedCarrierRoles and doctrine fetch rungs; "
+                        + "the roster is retired, so migrate the missing "
+                        + "role before removing it.");
+                }
+            }
+            policy["authorizedCarrierRoles"] = new JsonArray(
+                derived.Select(role => (JsonNode)role).ToArray());
+        }
+        root["fetchRungs"] = new JsonArray(fetchRungs
+            .OrderBy(rung => Array.IndexOf(roleOrder, rung.Role))
+            .ThenBy(rung => rung.Priority)
+            .Select(rung => (JsonNode)new JsonObject
+            {
+                ["roleId"] = rung.Role,
+                ["custodyId"] = rung.Custody,
+                ["priority"] = rung.Priority,
+            })
+            .ToArray());
         // Join the two sides of the muster contract. One task per (recruit,
         // call) pair: the task sits at the RECRUIT's rung, so its own mode
         // list decides whether answering outranks whatever else it might be
@@ -1718,6 +1820,10 @@ public static class ArcRelayTacticalPlaybookCompiler
                         ["timeoutTicks"] = 0,
                     },
                 });
+                modeRungs.Add((
+                    $"{doctrineId}-muster-{callerPriority}-{orderId}",
+                    role,
+                    rung));
             }
         }
         // The other direction of strict: a call nobody may answer is a
@@ -1741,6 +1847,16 @@ public static class ArcRelayTacticalPlaybookCompiler
                     + "recruitable. Give it one, or drop the call.");
             }
         }
+        root["modeRungs"] = new JsonArray(modeRungs
+            .OrderBy(rung => rung.Priority)
+            .ThenBy(rung => rung.Task, StringComparer.Ordinal)
+            .Select(rung => (JsonNode)new JsonObject
+            {
+                ["taskId"] = rung.Task,
+                ["roleId"] = rung.Role,
+                ["priority"] = rung.Priority,
+            })
+            .ToArray());
         return JsonDocument.Parse(root.ToJsonString());
     }
 
@@ -1749,14 +1865,18 @@ public static class ArcRelayTacticalPlaybookCompiler
     private static string DoctrineVerb(JsonElement mode, string path)
     {
         string[] present = new[]
-            { "patrol", "intercept", "assault", "recover", "muster", "squad" }
+            {
+                "patrol", "intercept", "assault", "recover", "muster",
+                "fetch", "squad",
+            }
             .Where(verb => mode.TryGetProperty(verb, out _))
             .ToArray();
         if (present.Length != 1)
         {
             throw Error(path,
                 "each doctrine mode must carry exactly one of 'patrol', "
-                + "'intercept', 'assault', 'recover', 'muster', or 'squad'.");
+                + "'intercept', 'assault', 'recover', 'muster', 'fetch', "
+                + "or 'squad'.");
         }
         return present[0];
     }
@@ -1789,6 +1909,10 @@ public static class ArcRelayTacticalPlaybookCompiler
             // activates when a leader calls but may lose to some other mode
             // if the unit has something better to do").
             "muster" => ["fight"],
+            // Fetch is availability-driven internally: the rung volunteers
+            // this body for this custody policy. A visible, eligible Core is
+            // the call; without one the body falls through immediately.
+            "fetch" => [],
             // The squad floor takes nothing: it IS "no doctrine here".
             "squad" => [],
             _ => ["while", "until", "fight", "escort"],
@@ -1835,7 +1959,7 @@ public static class ArcRelayTacticalPlaybookCompiler
         {
             throw Error(path, "'until' must be a boolean condition string.");
         }
-        if (!isFloor && verb is not ("recover" or "muster")
+        if (!isFloor && verb is not ("recover" or "muster" or "fetch")
             && !mode.TryGetProperty("while", out _))
         {
             throw Error(path,
@@ -1846,6 +1970,62 @@ public static class ArcRelayTacticalPlaybookCompiler
         if (mode.TryGetProperty("fight", out JsonElement fight))
             ValidateDoctrineFight(fight, path);
     }
+
+    /// <summary>
+    /// Executor channel precedence is a game rule, not sheet configuration.
+    /// During the migration an exact historical section is accepted and
+    /// discarded so byte-frozen source evidence remains compilable; any
+    /// reordered or incomplete version is rejected rather than normalized.
+    /// </summary>
+    private static JsonDocument NormalizeFixedSections(
+        JsonElement source,
+        string path,
+        bool frozenHomeSiegeV2)
+    {
+        JsonObject root = JsonNode.Parse(source.GetRawText())!.AsObject();
+        if (root["arbitration"] is JsonObject arbitration)
+        {
+            if (!frozenHomeSiegeV2)
+            {
+                throw Error($"{path}.arbitration",
+                    "'arbitration' is no longer authored; executor channel "
+                    + "precedence is a fixed game rule.");
+            }
+            string[] expected =
+            [
+                "custody-emergency", "self-preservation", "repair",
+                "signature", "focus-fire", "movement", "facing", "hold",
+            ];
+            string mode = arbitration["mode"]?.GetValue<string>() ?? "";
+            string[] channels = arbitration["channels"]?.AsArray()
+                .Select(node => node!.GetValue<string>())
+                .ToArray() ?? [];
+            if (mode != "first-legal"
+                || !channels.SequenceEqual(expected, StringComparer.Ordinal))
+            {
+                throw Error($"{path}.arbitration",
+                    "executor precedence is fixed; the historical section "
+                    + "must match the canonical channel order exactly.");
+            }
+            root.Remove("arbitration");
+        }
+        // Only the byte-frozen historical control reaches here without
+        // doctrines. It keeps its old runtime roster semantics and has no
+        // authored fetch rungs; live sheets must derive a non-empty list.
+        root["fetchRungs"] ??= new JsonArray();
+        root["modeRungs"] ??= new JsonArray();
+        return JsonDocument.Parse(root.ToJsonString());
+    }
+
+    private static bool IsFrozenHomeSiegeV2(JsonElement source) =>
+        string.Equals(
+            source.GetProperty("playbookId").GetString(),
+            "home-siege-v2",
+            StringComparison.Ordinal)
+        && string.Equals(
+            Sha256(Encoding.UTF8.GetBytes(source.GetRawText())),
+            "4e0578e863d0611790375c8f3ad816398351a6c96ddab335047d9576113794bf",
+            StringComparison.Ordinal);
 
     /// <summary>
     /// Boolean condition strings compile to the legacy condition-set groups
@@ -3226,7 +3406,8 @@ public static class ArcRelayTacticalPlaybookCompiler
         Object(root, path,
             [
                 "schema", "playbookId", "auditStatus", "composition",
-                "layout", "perspective", "memory", "arbitration", "roles",
+                "layout", "perspective", "memory", "roles", "fetchRungs",
+                "modeRungs",
                 "groups", "formations", "engagements", "supportPolicies",
                 "custodyPolicies", "orders", "coordination",
             ]);
@@ -3242,7 +3423,6 @@ public static class ArcRelayTacticalPlaybookCompiler
         Hash(layout, "sha256", $"{path}.layout");
 
         ValidateMemory(root.GetProperty("memory"), path);
-        ValidateArbitration(root.GetProperty("arbitration"), path);
 
         JsonElement[] roles = BoundedArray(
             root.GetProperty("roles"), $"{path}.roles", 1, 16);
@@ -3368,6 +3548,11 @@ public static class ArcRelayTacticalPlaybookCompiler
             custody, "custodyId", $"{path}.custodyPolicies");
         foreach (JsonElement policy in custody)
             ValidateCustody(policy, roleIds, groupIds, orderIds, path);
+        ValidateFetchRungs(
+            root.GetProperty("fetchRungs"), roleIds, custodyIds, path);
+        ValidateModeRungs(
+            root.GetProperty("modeRungs"), roleIds,
+            root.GetProperty("coordination"), path);
         HashSet<string> custodyCarrierRoles = custody
             .SelectMany(policy => policy
                 .GetProperty("authorizedCarrierRoles")
@@ -3656,26 +3841,65 @@ public static class ArcRelayTacticalPlaybookCompiler
         Range(value, "formationStableTicks", path, 1, 120);
     }
 
-    private static void ValidateArbitration(JsonElement value, string path)
+    private static void ValidateFetchRungs(
+        JsonElement value,
+        IReadOnlySet<string> roleIds,
+        IReadOnlySet<string> custodyIds,
+        string path)
     {
-        Object(value, $"{path}.arbitration",
-            ["mode", "channels"]);
-        Exact(value, "mode", "first-legal", $"{path}.arbitration");
-        string[] channels = StringArray(
-            value.GetProperty("channels"), $"{path}.arbitration.channels",
-            1, 16);
-        string[] required =
-        [
-            "custody-emergency", "self-preservation", "repair", "signature",
-            "focus-fire", "movement", "facing", "hold",
-        ];
-        if (channels.Length != required.Length
-            || channels.Distinct(StringComparer.Ordinal).Count()
-                != channels.Length
-            || required.Except(channels, StringComparer.Ordinal).Any())
+        JsonElement[] rungs = BoundedArray(
+            value, $"{path}.fetchRungs", 0, 64);
+        var seen = new HashSet<(string Role, string Custody)>();
+        foreach (JsonElement rung in rungs)
         {
-            throw Error(path,
-                "arbitration.channels must declare each executable channel once.");
+            Object(rung, $"{path}.fetchRungs",
+                ["roleId", "custodyId", "priority"]);
+            string role = Identifier(rung, "roleId", $"{path}.fetchRungs");
+            string custody = Identifier(
+                rung, "custodyId", $"{path}.fetchRungs");
+            if (!roleIds.Contains(role))
+                throw Error(path, $"fetch rung references unknown role '{role}'.");
+            if (!custodyIds.Contains(custody))
+            {
+                throw Error(path,
+                    $"fetch rung references unknown custody '{custody}'.");
+            }
+            Range(rung, "priority", $"{path}.fetchRungs", 0, 7);
+            if (!seen.Add((role, custody)))
+            {
+                throw Error(path,
+                    $"fetch rung repeats role '{role}' and custody "
+                    + $"'{custody}'.");
+            }
+        }
+    }
+
+    private static void ValidateModeRungs(
+        JsonElement value,
+        IReadOnlySet<string> roleIds,
+        JsonElement coordination,
+        string path)
+    {
+        JsonElement[] rungs = BoundedArray(
+            value, $"{path}.modeRungs", 0, 128);
+        HashSet<string> taskIds = coordination.GetProperty("tasks")
+            .EnumerateArray()
+            .Select(task => task.GetProperty("taskId").GetString()!)
+            .ToHashSet(StringComparer.Ordinal);
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (JsonElement rung in rungs)
+        {
+            Object(rung, $"{path}.modeRungs",
+                ["taskId", "roleId", "priority"]);
+            string task = Identifier(rung, "taskId", $"{path}.modeRungs");
+            string role = Identifier(rung, "roleId", $"{path}.modeRungs");
+            if (!taskIds.Contains(task))
+                throw Error(path, $"mode rung references unknown task '{task}'.");
+            if (!roleIds.Contains(role))
+                throw Error(path, $"mode rung references unknown role '{role}'.");
+            Range(rung, "priority", $"{path}.modeRungs", 0, 7);
+            if (!seen.Add(task))
+                throw Error(path, $"mode rung repeats task '{task}'.");
         }
     }
 

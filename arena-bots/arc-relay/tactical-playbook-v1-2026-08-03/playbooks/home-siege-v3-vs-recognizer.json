@@ -27,19 +27,6 @@
     "objectiveProgressTicks": 90,
     "formationStableTicks": 3
   },
-  "arbitration": {
-    "mode": "first-legal",
-    "channels": [
-      "custody-emergency",
-      "self-preservation",
-      "repair",
-      "signature",
-      "focus-fire",
-      "movement",
-      "facing",
-      "hold"
-    ]
-  },
   "roles": [
     {
       "roleId": "runner",
@@ -881,9 +868,6 @@
   "custodyPolicies": [
     {
       "custodyId": "secured-conversion",
-      "authorizedCarrierRoles": [
-        "runner"
-      ],
       "escortGroups": [
         "medic-group",
         "line-group"
@@ -901,11 +885,6 @@
     },
     {
       "custodyId": "surge-harvest",
-      "authorizedCarrierRoles": [
-        "runner",
-        "medic",
-        "line"
-      ],
       "escortGroups": [
         "runner-group",
         "medic-group",
@@ -942,11 +921,6 @@
     },
     {
       "custodyId": "incidental-delivery",
-      "authorizedCarrierRoles": [
-        "runner",
-        "medic",
-        "line"
-      ],
       "escortGroups": [],
       "sourceWells": [
         "north",
@@ -2171,5 +2145,55 @@
         ]
       }
     ]
+  },
+  "doctrines": {
+    "runner-custody": {
+      "role": "runner",
+      "custody": "secured-conversion",
+      "modes": [
+        {
+          "fetch": "secured-conversion"
+        },
+        {
+          "fetch": "surge-harvest"
+        },
+        {
+          "fetch": "incidental-delivery"
+        },
+        {
+          "squad": true
+        }
+      ]
+    },
+    "medic-custody": {
+      "role": "medic",
+      "custody": "surge-harvest",
+      "modes": [
+        {
+          "fetch": "surge-harvest"
+        },
+        {
+          "fetch": "incidental-delivery"
+        },
+        {
+          "squad": true
+        }
+      ]
+    },
+    "line-custody": {
+      "role": "line",
+      "custody": "surge-harvest",
+      "modes": [
+        {
+          "fetch": "surge-harvest"
+        },
+        {
+          "fetch": "incidental-delivery"
+        },
+        {
+          "squad": true
+        }
+      ]
+    }
   }
 }

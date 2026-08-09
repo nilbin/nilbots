@@ -27,19 +27,6 @@
     "objectiveProgressTicks": 90,
     "formationStableTicks": 3
   },
-  "arbitration": {
-    "mode": "first-legal",
-    "channels": [
-      "custody-emergency",
-      "self-preservation",
-      "repair",
-      "signature",
-      "focus-fire",
-      "movement",
-      "facing",
-      "hold"
-    ]
-  },
   "roles": [
     {
       "roleId": "anchor",
@@ -496,13 +483,6 @@
   "custodyPolicies": [
     {
       "custodyId": "orchard-custody",
-      "authorizedCarrierRoles": [
-        "anchor",
-        "sharp",
-        "hook",
-        "eyes",
-        "runner"
-      ],
       "escortGroups": [
         "orchard-group"
       ],
@@ -519,9 +499,6 @@
     },
     {
       "custodyId": "farm-outer",
-      "authorizedCarrierRoles": [
-        "runner"
-      ],
       "escortGroups": [
         "farm-group"
       ],
@@ -789,5 +766,70 @@
         "transitions": []
       }
     ]
+  },
+  "doctrines": {
+    "anchor-custody": {
+      "role": "anchor",
+      "custody": "orchard-custody",
+      "modes": [
+        {
+          "fetch": "orchard-custody"
+        },
+        {
+          "squad": true
+        }
+      ]
+    },
+    "sharp-custody": {
+      "role": "sharp",
+      "custody": "orchard-custody",
+      "modes": [
+        {
+          "fetch": "orchard-custody"
+        },
+        {
+          "squad": true
+        }
+      ]
+    },
+    "hook-custody": {
+      "role": "hook",
+      "custody": "orchard-custody",
+      "modes": [
+        {
+          "fetch": "orchard-custody"
+        },
+        {
+          "squad": true
+        }
+      ]
+    },
+    "eyes-custody": {
+      "role": "eyes",
+      "custody": "orchard-custody",
+      "modes": [
+        {
+          "fetch": "orchard-custody"
+        },
+        {
+          "squad": true
+        }
+      ]
+    },
+    "runner-custody": {
+      "role": "runner",
+      "custody": "orchard-custody",
+      "modes": [
+        {
+          "fetch": "orchard-custody"
+        },
+        {
+          "fetch": "farm-outer"
+        },
+        {
+          "squad": true
+        }
+      ]
+    }
   }
 }

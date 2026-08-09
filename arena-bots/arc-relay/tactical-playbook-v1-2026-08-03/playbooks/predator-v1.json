@@ -27,19 +27,6 @@
     "objectiveProgressTicks": 90,
     "formationStableTicks": 3
   },
-  "arbitration": {
-    "mode": "first-legal",
-    "channels": [
-      "custody-emergency",
-      "self-preservation",
-      "repair",
-      "signature",
-      "focus-fire",
-      "movement",
-      "facing",
-      "hold"
-    ]
-  },
   "roles": [
     {
       "roleId": "anchor",
@@ -499,9 +486,6 @@
   "custodyPolicies": [
     {
       "custodyId": "farm-custody",
-      "authorizedCarrierRoles": [
-        "runner"
-      ],
       "escortGroups": [
         "farm-group",
         "orchard-group"
@@ -754,5 +738,19 @@
         "transitions": []
       }
     ]
+  },
+  "doctrines": {
+    "runner-custody": {
+      "role": "runner",
+      "custody": "farm-custody",
+      "modes": [
+        {
+          "fetch": "farm-custody"
+        },
+        {
+          "squad": true
+        }
+      ]
+    }
   }
 }

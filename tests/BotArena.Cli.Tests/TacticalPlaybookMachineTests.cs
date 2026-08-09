@@ -64,7 +64,6 @@ public sealed class TacticalPlaybookMachineTests
             Layout = new TacticalPlaybookPackage.LayoutReference("", ""),
             Perspective = "team-causal",
             Memory = new TacticalPlaybookPackage.MemoryPolicy(0, 0, 0, 0, 0),
-            Arbitration = new TacticalPlaybookPackage.ArbitrationPolicy("", []),
             Roles = [],
             Groups = [group],
             Formations = [],

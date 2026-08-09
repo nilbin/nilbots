@@ -27,19 +27,6 @@
   "objectiveProgressTicks": 90,
   "formationStableTicks": 3
  },
- "arbitration": {
-  "mode": "first-legal",
-  "channels": [
-   "custody-emergency",
-   "self-preservation",
-   "repair",
-   "signature",
-   "focus-fire",
-   "movement",
-   "facing",
-   "hold"
-  ]
- },
  "roles": [
   {
    "roleId": "hauler",
@@ -766,12 +753,6 @@
  "custodyPolicies": [
   {
    "custodyId": "farm-custody",
-   "authorizedCarrierRoles": [
-    "hauler",
-    "runner",
-    "escort",
-    "reserve"
-   ],
    "escortGroups": [
     "haul-group",
     "reserve-group"
@@ -1215,5 +1196,55 @@
     "transitions": []
    }
   ]
+ },
+ "doctrines": {
+  "hauler-custody": {
+   "role": "hauler",
+   "custody": "farm-custody",
+   "modes": [
+    {
+     "fetch": "farm-custody"
+    },
+    {
+     "squad": true
+    }
+   ]
+  },
+  "runner-custody": {
+   "role": "runner",
+   "custody": "farm-custody",
+   "modes": [
+    {
+     "fetch": "farm-custody"
+    },
+    {
+     "squad": true
+    }
+   ]
+  },
+  "escort-custody": {
+   "role": "escort",
+   "custody": "farm-custody",
+   "modes": [
+    {
+     "fetch": "farm-custody"
+    },
+    {
+     "squad": true
+    }
+   ]
+  },
+  "reserve-custody": {
+   "role": "reserve",
+   "custody": "farm-custody",
+   "modes": [
+    {
+     "fetch": "farm-custody"
+    },
+    {
+     "squad": true
+    }
+   ]
+  }
  }
 }

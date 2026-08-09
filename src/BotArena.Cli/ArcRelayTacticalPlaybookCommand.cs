@@ -130,7 +130,11 @@ public static class ArcRelayTacticalPlaybookCommand
             ["engagements"] = playbook["engagements"]!.DeepClone(),
             ["supportPolicies"] = playbook["supportPolicies"]!.DeepClone(),
             ["custodyPolicies"] = playbook["custodyPolicies"]!.DeepClone(),
-            ["arbitration"] = playbook["arbitration"]!.DeepClone(),
+            ["fetchRungs"] = playbook["fetchRungs"]!.DeepClone(),
+            ["modeRungs"] = playbook["modeRungs"]!.DeepClone(),
+            ["executorPrecedence"] = new JsonArray(
+                "custody-emergency", "self-preservation", "repair",
+                "signature", "focus-fire", "movement", "facing", "hold"),
             ["phases"] = phases,
             ["tasks"] = tasks,
             ["commandProvenance"] =

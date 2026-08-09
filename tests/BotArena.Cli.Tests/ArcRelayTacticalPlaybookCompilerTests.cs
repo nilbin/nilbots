@@ -96,7 +96,7 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
         using JsonDocument playbookDocument = JsonDocument.Parse(
             canonicalPlaybook);
         using JsonDocument layoutDocument = JsonDocument.Parse(canonicalLayout);
-        Assert.Equal("arbitration", playbookDocument.RootElement
+        Assert.Equal("auditStatus", playbookDocument.RootElement
             .EnumerateObject().First().Name);
         Assert.Equal("anchors", layoutDocument.RootElement
             .EnumerateObject().First().Name);
@@ -1551,6 +1551,11 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
     {
         if (node is JsonObject value)
         {
+            // Compiler-owned links from the authored doctrine plane into the
+            // runtime IR are not valid direct-source fields. These fixtures
+            // deliberately turn normalized IR back into legacy direct input.
+            value.Remove("fetchRungs");
+            value.Remove("modeRungs");
             if (value.ContainsKey("fact"))
             {
                 if (value["subject"]?.GetValue<string>() == "")
@@ -1757,6 +1762,151 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
             .GetProperty("priority").GetInt32();
         Assert.True(recover < muster,
             $"recover ({recover}) must outrank muster ({muster})");
+    }
+
+    [Fact]
+    public void FetchRungsDeriveCustodyConsentAndLeaveNoAuthoredArbiter()
+    {
+        TacticalPlaybookCompilation compilation =
+            ArcRelayTacticalPlaybookCompiler.Compile(HunterV1());
+        using JsonDocument playbook = JsonDocument.Parse(
+            compilation.NormalizedPlaybook);
+        JsonElement root = playbook.RootElement;
+        Assert.False(root.TryGetProperty("arbitration", out _));
+
+        JsonElement[] rungs = root.GetProperty("fetchRungs")
+            .EnumerateArray().ToArray();
+        Assert.Equal(
+            ["hauler", "carrier", "lancer", "eyes", "reserve"],
+            rungs.Select(rung => rung.GetProperty("roleId").GetString()!)
+                .ToArray());
+        Assert.All(rungs, rung => Assert.Equal(
+            "well-custody",
+            rung.GetProperty("custodyId").GetString()));
+
+        JsonElement custody = Assert.Single(root
+            .GetProperty("custodyPolicies").EnumerateArray());
+        Assert.Equal(
+            rungs.Select(rung => rung.GetProperty("roleId").GetString()!),
+            custody.GetProperty("authorizedCarrierRoles")
+                .EnumerateArray().Select(role => role.GetString()!));
+
+        // Fetch was inserted above lancer's pre-existing muster/squad list.
+        // Its old muster priority remains 6; only the new fetch sits at 5.
+        Assert.Equal(5, rungs.Single(rung =>
+                rung.GetProperty("roleId").GetString() == "lancer")
+            .GetProperty("priority").GetInt32());
+        JsonElement lancerMuster = root.GetProperty("modeRungs")
+            .EnumerateArray().Single(rung => rung.GetProperty("roleId")
+                .GetString() == "lancer");
+        Assert.Equal(6, lancerMuster.GetProperty("priority").GetInt32());
+    }
+
+    [Fact]
+    public void FetchMayNameTwoCustodiesAtTwoPriorities()
+    {
+        string root = FindRepoRoot();
+        string path = Path.Combine(
+            root,
+            "arena-bots",
+            "arc-relay",
+            "tactical-playbook-v1-2026-08-03",
+            "playbooks",
+            "ripen-harvest-v1.json");
+        TacticalPlaybookCompilation compilation =
+            ArcRelayTacticalPlaybookCompiler.Compile(path);
+        using JsonDocument playbook = JsonDocument.Parse(
+            compilation.NormalizedPlaybook);
+        JsonElement[] runner = playbook.RootElement.GetProperty("fetchRungs")
+            .EnumerateArray()
+            .Where(rung => rung.GetProperty("roleId").GetString() == "runner")
+            .ToArray();
+        Assert.Equal(2, runner.Length);
+        Assert.Equal(
+            ["orchard-custody", "farm-outer"],
+            runner.Select(rung => rung.GetProperty("custodyId").GetString()!)
+                .ToArray());
+        Assert.Equal(
+            [5, 6],
+            runner.Select(rung => rung.GetProperty("priority").GetInt32())
+                .ToArray());
+    }
+
+    [Fact]
+    public void RetiredCustodyAndArbitrationFieldsAreRejected()
+    {
+        JsonObject source = JsonNode.Parse(
+            File.ReadAllBytes(HunterV1()))!.AsObject();
+        source["arbitration"] = new JsonObject
+        {
+            ["mode"] = "first-legal",
+            ["channels"] = new JsonArray(
+                "custody-emergency", "self-preservation", "repair",
+                "signature", "focus-fire", "movement", "facing", "hold"),
+        };
+        string arbitrationPath = Write(source);
+        try
+        {
+            InvalidDataException failure = Assert.Throws<InvalidDataException>(
+                () => ArcRelayTacticalPlaybookCompiler.Compile(
+                    arbitrationPath));
+            Assert.Contains("no longer authored", failure.Message);
+        }
+        finally
+        {
+            File.Delete(arbitrationPath);
+        }
+
+        source = JsonNode.Parse(File.ReadAllBytes(HunterV1()))!.AsObject();
+        source["custodyPolicies"]![0]!["authorizedCarrierRoles"] =
+            new JsonArray("hauler");
+        string rosterPath = Write(source);
+        try
+        {
+            InvalidDataException failure = Assert.Throws<InvalidDataException>(
+                () => ArcRelayTacticalPlaybookCompiler.Compile(rosterPath));
+            Assert.Contains("conflicting", failure.Message);
+        }
+        finally
+        {
+            File.Delete(rosterPath);
+        }
+    }
+
+    [Fact]
+    public void FetchRejectsAnUnknownOrRepeatedCustody()
+    {
+        JsonObject source = JsonNode.Parse(
+            File.ReadAllBytes(HunterV1()))!.AsObject();
+        JsonArray modes = source["doctrines"]!["lancer-support"]!["modes"]!
+            .AsArray();
+        modes[0]!["fetch"] = "missing-custody";
+        string unknownPath = Write(source);
+        try
+        {
+            InvalidDataException failure = Assert.Throws<InvalidDataException>(
+                () => ArcRelayTacticalPlaybookCompiler.Compile(unknownPath));
+            Assert.Contains("unknown custody", failure.Message);
+        }
+        finally
+        {
+            File.Delete(unknownPath);
+        }
+
+        source = JsonNode.Parse(File.ReadAllBytes(HunterV1()))!.AsObject();
+        modes = source["doctrines"]!["lancer-support"]!["modes"]!.AsArray();
+        modes.Insert(1, new JsonObject { ["fetch"] = "well-custody" });
+        string repeatedPath = Write(source);
+        try
+        {
+            InvalidDataException failure = Assert.Throws<InvalidDataException>(
+                () => ArcRelayTacticalPlaybookCompiler.Compile(repeatedPath));
+            Assert.Contains("twice", failure.Message);
+        }
+        finally
+        {
+            File.Delete(repeatedPath);
+        }
     }
 
     /// <summary>The owner's explicit default: no muster mode means not

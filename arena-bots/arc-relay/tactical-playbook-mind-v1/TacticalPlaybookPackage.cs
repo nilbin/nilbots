@@ -367,7 +367,10 @@ internal sealed class TacticalPlaybookPackage
         public required LayoutReference Layout { get; init; }
         public required string Perspective { get; init; }
         public required MemoryPolicy Memory { get; init; }
-        public required ArbitrationPolicy Arbitration { get; init; }
+        // Empty only for the byte-frozen pre-DSL evidence control. Live
+        // sheets derive these executor rungs from doctrine `fetch` modes.
+        public FetchRung[] FetchRungs { get; init; } = [];
+        public ModeRung[] ModeRungs { get; init; } = [];
         public required Role[] Roles { get; init; }
         public required Group[] Groups { get; init; }
         public required Formation[] Formations { get; init; }
@@ -391,7 +394,19 @@ internal sealed class TacticalPlaybookPackage
         int ObjectiveProgressTicks,
         int FormationStableTicks);
 
-    internal sealed record ArbitrationPolicy(string Mode, string[] Channels);
+    internal sealed record FetchRung(
+        string RoleId,
+        string CustodyId,
+        int Priority);
+
+    /// <summary>Compiler-owned bridge from a generated task back to the
+    /// author's doctrine list. Legacy squad-plane tasks intentionally do not
+    /// appear here; they all sit below the `squad` floor regardless of their
+    /// old internal task number.</summary>
+    internal sealed record ModeRung(
+        string TaskId,
+        string RoleId,
+        int Priority);
 
     internal sealed record Role(
         string RoleId,

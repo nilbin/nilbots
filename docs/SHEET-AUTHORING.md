@@ -53,7 +53,7 @@ projection only: the JSON keys and compiler grammar remain unchanged.
 ### 2.1 Playbook root
 
 Required keys: `schema`, `playbookId`, `auditStatus`, `composition`, `layout`,
-`perspective`, `memory`, `arbitration`, `roles`, `groups`, `formations`,
+`perspective`, `memory`, `roles`, `groups`, `formations`,
 `engagements`, `supportPolicies`, `custodyPolicies`, `coordination`, `authoring`
 and `doctrines`.
 
@@ -67,6 +67,10 @@ strict source contract accepts exactly one of root `orders` (the frozen packed
 format) or `authoring` (the current source format), then generates the packed
 orders during desugaring. `doctrines` and the `authoring` block are source-only
 keys and do not appear in `normalized-playbook.json`.
+
+Executor channel precedence is a fixed game rule. There is no authored
+`arbitration` section. `fetchRungs` and `modeRungs` may appear in compiler
+output and `--explain`; they are derived IR and are rejected in source.
 
 ### 2.2 Doctrines
 
@@ -139,6 +143,7 @@ floor. Each mode carries **exactly one verb**:
 | `assault` | route id | press an attack along a route |
 | `recover` | `"auto"` | go heal; condition-driven internally |
 | `muster` | `"escort"` or an order id | answer a leader's escort call |
+| `fetch` | custody policy id | volunteer to fetch an eligible loose Core |
 | `squad` | `true` | do the ordinary squad-plane job; emits nothing |
 
 Per-verb optional keys:
@@ -150,10 +155,12 @@ Per-verb optional keys:
 - `recover`: `fight` only — authoring `while`/`until` is an error, because its
   window is this body's own health and the beacon picture
 - `muster`: `fight` only — same reason; its window is "a leader is calling"
+- `fetch`: no optional keys — a fetchable Core under the named custody policy
+  is the call; without one the body immediately falls through
 - `squad`: nothing at all
 
 `while` and `until` are **condition strings** (§2.5). Every mode above the
-floor needs a `while` except `recover` and `muster`, which are conditioned
+floor needs a `while` except `recover`, `muster`, and `fetch`, which are conditioned
 internally. A `while` without an `until` is a lint warning, not an error: once
 active such a mode only yields to a stronger one, never back to a weaker.
 
@@ -222,8 +229,8 @@ Order subject: `movement-complete`.
 
 ### 2.6 Custody policies
 
-Required: `custodyId`, `authorizedCarrierRoles` (1..8 role ids), `escortGroups`
-(0..8 group ids), `sourceWells` (1..3 of `north`/`centre`/`south`),
+Required: `custodyId`, `escortGroups` (0..8 group ids), `sourceWells` (1..3 of
+`north`/`centre`/`south`),
 `pickupReservationTicks` (1..120), `transferTimeoutTicks` (1..120),
 `deliveryTimeoutTicks` (1..1200), `accidentalPickup`
 (`transfer`/`deliver`/`drop-safe`), `dropRecovery`
@@ -238,6 +245,13 @@ inside this zone walks that route home instead of the shortest line*;
 dropped Core left as a trap in that zone until the reclaim conditions hold.
 `forwardPass` is `"none"` or `"relay-catcher"`. The remaining
 `emergency*` keys are an advanced cluster and may be left out entirely.
+
+There is no carrier roster on a custody policy. A role consents by placing
+`{ "fetch": "<custodyId>" }` in its own ordered doctrine modes. One role may
+name several policies at different priorities. Once a reserved Core is picked
+up, the executor remembers the policy that made the assignment for the whole
+delivery/handoff run; an accidental pickup still uses the doctrine/order's
+ordinary `custody` contract.
 
 ### 2.7 Layout
 
@@ -270,21 +284,24 @@ enforcing live in the editor, because they are the ones an author trips:
    `squad` — no `while`, no `until`. `squad` may only be the floor.
 3. **`squad` must be literally `true`.**
 4. **Conditioned modes.** Every non-floor mode needs a `while`, except
-   `recover` and `muster`.
+   `recover`, `muster`, and `fetch`.
 5. **The muster/call two-way check.** A `muster` mode that matches no call is
    an error ("answers no call"); a call whose role has no `muster` mode is an
    error ("not recruitable"). *No muster mode means not recruitable* — this is
    the deliberate default, so adding an escort call to a leader obliges the
    editor to offer adding a `muster` mode to the recruit.
-6. **Escort lists**: 1..8, no duplicate roles, no self-escort.
-7. **`traffic` floor + any `breakOff` trigger** is an error: a computed
+6. **Fetch consent.** The named custody policy must exist; the same role may
+   name it only once; every custody policy needs at least one consenting role;
+   a role with `carrierPreference: "forbid"` may not fetch.
+7. **Escort lists**: 1..8, no duplicate roles, no self-escort.
+8. **`traffic` floor + any `breakOff` trigger** is an error: a computed
    traffic patrol is not a place a break-off can rally to.
-8. **Every id is a reference.** Roles, groups, zones, routes, anchors, wells,
+9. **Every id is a reference.** Roles, groups, zones, routes, anchors, wells,
    custody ids and condition subjects are all checked against their
    declarations; identifiers are lowercase ASCII, digits and hyphens.
-9. **Ranges** as tabulated in §2.3 and §2.6.
-10. **Layout pin.** `layout.sha256` must match the layout file's bytes.
-11. **Self facts are body-only.** They take no `subject`, `zone`, or freshness,
+10. **Ranges** as tabulated in §2.3 and §2.6.
+11. **Layout pin.** `layout.sha256` must match the layout file's bytes.
+12. **Self facts are body-only.** They take no `subject`, `zone`, or freshness,
     and a self predicate referenced by a team/task/custody condition is an
     error. The compiler's body-mode latch preserves `while`/`until` hysteresis
     even while a stronger rung temporarily owns that body.

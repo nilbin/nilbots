@@ -525,7 +525,6 @@ public sealed class TacticalTaskMachineTests
             Layout = new("", ""),
             Perspective = "team-relative",
             Memory = new(1, 1, 1, 1, 1),
-            Arbitration = new("first-legal", []),
             Roles = [],
             Groups = [],
             Formations = [],

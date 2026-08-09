@@ -27,19 +27,6 @@
   "objectiveProgressTicks": 90,
   "formationStableTicks": 3
  },
- "arbitration": {
-  "mode": "first-legal",
-  "channels": [
-   "custody-emergency",
-   "self-preservation",
-   "repair",
-   "signature",
-   "focus-fire",
-   "movement",
-   "facing",
-   "hold"
-  ]
- },
  "roles": [
   {
    "roleId": "hunter",
@@ -1155,13 +1142,6 @@
  "custodyPolicies": [
   {
    "custodyId": "well-custody",
-   "authorizedCarrierRoles": [
-    "hauler",
-    "carrier",
-    "lancer",
-    "eyes",
-    "reserve"
-   ],
    "escortGroups": [
     "well-group",
     "reserve-group"
@@ -2304,7 +2284,58 @@
    "custody": "well-custody",
    "modes": [
     {
+     "fetch": "well-custody"
+    },
+    {
      "muster": "escort"
+    },
+    {
+     "squad": true
+    }
+   ]
+  },
+  "hauler-custody": {
+   "role": "hauler",
+   "custody": "well-custody",
+   "modes": [
+    {
+     "fetch": "well-custody"
+    },
+    {
+     "squad": true
+    }
+   ]
+  },
+  "carrier-custody": {
+   "role": "carrier",
+   "custody": "well-custody",
+   "modes": [
+    {
+     "fetch": "well-custody"
+    },
+    {
+     "squad": true
+    }
+   ]
+  },
+  "eyes-custody": {
+   "role": "eyes",
+   "custody": "well-custody",
+   "modes": [
+    {
+     "fetch": "well-custody"
+    },
+    {
+     "squad": true
+    }
+   ]
+  },
+  "reserve-custody": {
+   "role": "reserve",
+   "custody": "well-custody",
+   "modes": [
+    {
+     "fetch": "well-custody"
     },
     {
      "squad": true

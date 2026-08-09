@@ -6841,3 +6841,44 @@ roles may declare many set tags, and facts/protocol references resolve a role or
 tag without a separate group catalog. The deletion and source migration happen
 atomically with Phase 3's replacement of formations, engagements and coordination,
 when group cardinality and local-state behavior have an explicit doctrine home.
+
+## 263. Core fetching is an ordered doctrine rung, while custody remains a shared protocol
+
+Sheet-language ruling (2026-08-09). A role volunteers for coordinated Core
+pickup with `{ "fetch": "<custodyId>" }` in its own ordered doctrine modes.
+No fetchable Core means the rung is inactive and the body falls through. The
+former `custodyPolicies[].authorizedCarrierRoles` roster is retired; the
+compiler derives the runtime membership index from fetch rungs, so consent and
+priority are stated once. Multiple fetch rungs may name different policies at
+different priorities.
+
+Fetch is implemented as a movement-only doctrine overlay, not a generic task
+lease. A generic lease would replace the lower mode's fight, facing and
+formation order even though fetch only answers whether its march yields to a
+Core. It therefore compares against compiler-recorded doctrine rung priority
+and leaves the active order's other planes intact. Legacy squad-plane task
+numbers are deliberately not compared: they live beneath the explicit
+`squad` floor even where their old internal numbers overlap doctrine rungs.
+The policy that reserved a Core is retained across its delivery and handoff,
+which makes two-policy doctrines deterministic rather than accidentally using
+the lower order's default custody.
+
+The migration inserts fetch modes before existing modes. Because both list
+length and every old index increase together, existing doctrine priorities do
+not move. Thin `{ fetch, ..., squad }` doctrines make old courier behavior
+explicit until Phase 3 replaces the rest of the squad plane. The six canonical
+Hunter-vs-Wellwright state digests remain byte-identical.
+
+## 264. Executor channel precedence is fixed and absent from sheet source
+
+Sheet-language ruling (2026-08-09). `arbitration.channels` is a game rule, not
+configuration. The executor owns one fixed first-legal order: custody emergency,
+self-preservation, repair, signature, focus fire, movement, facing, hold. Live
+sheet source carrying an `arbitration` section is rejected, even when it repeats
+that order; compiler output and `--explain` may describe the fixed precedence
+but cannot accept an authored override.
+
+The exact byte-frozen `home-siege-v2` evidence source is the sole compatibility
+exception: its historical section must match the canonical order and is then
+discarded during normalization. This keeps the evidence executable without
+teaching current authors a dead configuration surface.

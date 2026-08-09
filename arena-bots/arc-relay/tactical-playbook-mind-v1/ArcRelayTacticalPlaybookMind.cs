@@ -8,6 +8,14 @@ using BotArena.Sdk;
 /// </summary>
 public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
 {
+    // Hard game-rule precedence. A sheet may rank intentions inside the
+    // movement/fight planes, but it cannot reorder the executor itself.
+    private static readonly string[] ExecutableChannels =
+    [
+        "custody-emergency", "self-preservation", "repair", "signature",
+        "focus-fire", "movement", "facing", "hold",
+    ];
+
     private readonly Dictionary<int, string> _stableRoles = [];
     private readonly Dictionary<int, int> _enemyUnavailableUntil = [];
     private readonly Dictionary<int, LastSeenEnemy> _lastSeenEnemies = [];
@@ -381,7 +389,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             _baitCores.Keys.ToHashSet(StringComparer.Ordinal);
         Dictionary<int, GenericActorContext.ArcRelayCoreState> pickupAssignments =
             AllocateCorePickups(
-                mind, package, snapshot, roles, orders,
+                mind, package, tasks, snapshot, roles, orders,
                 loose.Where(core => !activeBaitKeys.Contains(
                         CoreKey(core.CoreId)))
                     .ToArray(),
@@ -653,7 +661,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 Provenance(machine, group, order, "make-way"));
             if (acted)
                 _makeWays++;
-            foreach (string channel in package.Source.Arbitration.Channels)
+            foreach (string channel in ExecutableChannels)
             {
                 if (acted)
                     break;
@@ -1125,7 +1133,13 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             string coreKey = CoreKey(core.CoreId);
             CustodyProgress prior = _custodyProgress.GetValueOrDefault(actorId)
                 ?? new CustodyProgress(
-                    actorId, coreKey, tick, body.Position, 0, body.Position);
+                    actorId, coreKey, tick, body.Position, 0,
+                    _coreReservations.TryGetValue(
+                            coreKey, out CoreReservation? reservation)
+                        && reservation.ActorId == actorId
+                        ? reservation.CustodyId
+                        : "",
+                    body.Position);
             bool sameCustody = string.Equals(
                 prior.CoreKey, coreKey, StringComparison.Ordinal);
             _custodyProgress[actorId] = new CustodyProgress(
@@ -1136,6 +1150,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 sameCustody && prior.Position == body.Position
                     ? prior.StagnantTicks + 1
                     : 0,
+                sameCustody ? prior.CustodyId : "",
                 sameCustody ? prior.PickupPosition : body.Position,
                 // The walked corridor survives the tick; a new Core is a new
                 // run and starts its route from scratch.
@@ -3774,7 +3789,10 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         }
         TacticalPlaybookPackage.CustodyPolicy custody = package.Source
             .CustodyPolicies.Single(value =>
-                value.CustodyId == order.CustodyId);
+                value.CustodyId == (_custodyProgress.GetValueOrDefault(
+                        body.ActorId)?.CustodyId is { Length: > 0 } committed
+                    ? committed
+                    : order.CustodyId));
         CustodyProgress progress = _custodyProgress.GetValueOrDefault(
                 body.ActorId)
             ?? new CustodyProgress(
@@ -3782,7 +3800,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 CoreKey(carried[body.ActorId].CoreId),
                 mind.Tick,
                 body.Position,
-                0);
+                0,
+                custody.CustodyId);
         string carriedCoreKey = CoreKey(carried[body.ActorId].CoreId);
         if (_emergencyRecoveries.TryGetValue(
                 carriedCoreKey, out EmergencyRecovery? emergency)
@@ -4693,9 +4712,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             {
                 return true;
             }
-            if (policy.AuthorizedCarrierRoles.Contains(role,
-                    StringComparer.Ordinal)
-                && pickupAssignments.TryGetValue(
+            if (pickupAssignments.TryGetValue(
                     body.UnitId,
                     out GenericActorContext.ArcRelayCoreState? assignedCore)
                 && TryCollectCore(
@@ -5125,6 +5142,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         AllocateCorePickups(
             MindContext mind,
             TacticalPlaybookPackage package,
+            TacticalTaskMachine tasks,
             TacticalSnapshot snapshot,
             IReadOnlyDictionary<int, string> roles,
             IReadOnlyDictionary<int, TacticalPlaybookPackage.Order> orders,
@@ -5155,37 +5173,92 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         foreach (MindBody body in mind.Bodies.OrderBy(body => body.UnitId))
         {
             TacticalPlaybookPackage.Order order = orders[body.UnitId];
-            if (string.IsNullOrEmpty(order.CustodyId))
-                continue;
             TacticalPlaybookPackage.Role role = package.Source.Roles.Single(
                 value => value.RoleId == roles[body.UnitId]);
             int carrierRank = TacticalCustodyPrimitives
                 .CarrierPreferenceRank(role.CarrierPreference);
             if (carrierRank == int.MaxValue)
                 continue;
-            TacticalPlaybookPackage.CustodyPolicy policy = package.Source
-                .CustodyPolicies.Single(value => value.CustodyId
-                    == order.CustodyId);
-            bool safeConversion = policy.SafeConversionAll.Any(group =>
-                TacticalPlaybookMachine.Matches(group,
-                    condition => Evaluate(condition, snapshot, package)));
-            bool emergencyRecovery = policy.EmergencyRecoveryAll is
-                    { Length: > 0 } emergencyConditions
-                && policy.EmergencyRecoveryRoles is
-                    { Length: > 0 } emergencyRoles
-                && emergencyRoles.Contains(
-                    roles[body.UnitId], StringComparer.Ordinal)
-                && emergencyConditions.Any(group =>
+            IEnumerable<TacticalPlaybookPackage.CustodyPolicy> candidates;
+            if (package.Source.FetchRungs.Length == 0)
+            {
+                // Exact compatibility for the byte-frozen evidence control:
+                // its source predates doctrine fetch rungs, so the normalized
+                // historical roster retains its old meaning.
+                if (string.IsNullOrEmpty(order.CustodyId))
+                    continue;
+                TacticalPlaybookPackage.CustodyPolicy legacy = package.Source
+                    .CustodyPolicies.Single(value => value.CustodyId
+                        == order.CustodyId);
+                candidates = legacy.AuthorizedCarrierRoles.Contains(
+                        roles[body.UnitId], StringComparer.Ordinal)
+                    ? [legacy]
+                    : [];
+            }
+            else
+            {
+                int activePriority = tasks.DirectiveFor(body.UnitId) is
+                        { TaskId: string taskId }
+                    && package.Source.ModeRungs.FirstOrDefault(rung =>
+                        string.Equals(
+                            rung.TaskId, taskId, StringComparison.Ordinal)
+                        && string.Equals(
+                            rung.RoleId, roles[body.UnitId],
+                            StringComparison.Ordinal)) is { } modeRung
+                    ? modeRung.Priority
+                    : 8;
+                // A fetch is a movement-only rung. It competes with this
+                // body's current mode by list priority, but deliberately
+                // leaves that mode's fight, facing and formation order in
+                // place. The generic task lease cannot express that overlay
+                // without silently replacing the rest of the mode.
+                candidates = package.Source.FetchRungs
+                    .Where(rung => string.Equals(
+                            rung.RoleId, roles[body.UnitId],
+                            StringComparison.Ordinal)
+                        && rung.Priority < activePriority)
+                    .OrderBy(rung => rung.Priority)
+                    .Select(rung => package.Source.CustodyPolicies.Single(
+                        policy => string.Equals(
+                            policy.CustodyId, rung.CustodyId,
+                            StringComparison.Ordinal)));
+            }
+
+            foreach (TacticalPlaybookPackage.CustodyPolicy policy in candidates)
+            {
+                bool safeConversion = policy.SafeConversionAll.Any(group =>
                     TacticalPlaybookMachine.Matches(group,
                         condition => Evaluate(condition, snapshot, package)));
-            if (!policy.AuthorizedCarrierRoles.Contains(
-                    roles[body.UnitId], StringComparer.Ordinal)
-                || !safeConversion && !emergencyRecovery)
-            {
-                continue;
+                bool emergencyRecovery = policy.EmergencyRecoveryAll is
+                        { Length: > 0 } emergencyConditions
+                    && policy.EmergencyRecoveryRoles is
+                        { Length: > 0 } emergencyRoles
+                    && emergencyRoles.Contains(
+                        roles[body.UnitId], StringComparer.Ordinal)
+                    && emergencyConditions.Any(group =>
+                        TacticalPlaybookMachine.Matches(group,
+                            condition => Evaluate(
+                                condition, snapshot, package)));
+                if (!safeConversion && !emergencyRecovery)
+                    continue;
+                // The first rung with a real call wins. A policy whose wells
+                // have nothing fetchable does not shadow a lower fetch rung.
+                bool hasCall = targets.Any(core =>
+                    MayUseSourceWell(
+                        core, policy, safeConversion, emergencyRecovery)
+                    && MayAssignCore(
+                        package, core, body, policy,
+                        safeConversion, emergencyRecovery)
+                    && MayRecoverCore(
+                        CoreKey(core.CoreId), policy, body.ActorId,
+                        safeConversion || emergencyRecovery));
+                if (!hasCall)
+                    continue;
+                eligible[body.UnitId] = (
+                    body, policy, carrierRank,
+                    safeConversion, emergencyRecovery);
+                break;
             }
-            eligible[body.UnitId] = (
-                body, policy, carrierRank, safeConversion, emergencyRecovery);
         }
         openSourceWells = new HashSet<string>(StringComparer.Ordinal);
         foreach (var value in eligible.Values)
@@ -6140,6 +6213,10 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         int StartedTick,
         Position Position,
         int StagnantTicks,
+        /// <summary>The policy that reserved this Core. Empty means an
+        /// accidental pickup, in which case the body's active order supplies
+        /// the default custody contract.</summary>
+        string CustodyId,
         /// <summary>Where this custody BEGAN — the tile the Core was lifted
         /// from. The delivery-route rules key off it, so a Core taken deep on
         /// the enemy half keeps its safe way home for the whole run.</summary>
