@@ -258,9 +258,29 @@ test('Ember Forge carries the approved living-bastion profiles', () => {
     1.8,
   );
   assert.equal(
+    manifest.walls.families.perimeter.geometry3d?.bastionCover
+      ?.chimneyEvery,
+    6,
+  );
+  assert.equal(
+    manifest.walls.families.perimeter.geometry3d?.bastionCover
+      ?.furnaceEvery,
+    5,
+  );
+  assert.equal(
+    manifest.walls.families.perimeter.geometry3d?.bastionCover
+      ?.accentColor,
+    '#9b3043',
+  );
+  assert.equal(
     manifest.walls.families.cover.geometry3d?.bastionCover
       ?.boundaryDepth,
     0,
+  );
+  assert.equal(
+    manifest.walls.families.cover.geometry3d?.bastionCover
+      ?.chimneyEvery,
+    null,
   );
   assert.equal(
     manifest.walls.families.perimeter.material3d?.normalMap,

@@ -6752,3 +6752,27 @@ towers increase silhouette variety. The outside perimeter depth grows from 1.2
 to 1.8 tiles, with a visible low apron, broader pylons, and a raised outer rail.
 These are renderer and theme changes only: replay rules, map topology,
 collision, vision, objectives, and fingerprints do not change.
+
+## 260. Ember Forge gets a structural crimson vocabulary
+
+Owner direction (2026-08-09): improve the current crimson/default theme beyond
+the first living-bastion pass. The weakness was thematic legibility, not camera
+or collision geometry: matte blocks and orange service lights still read as a
+generic dark industrial arena, while simply lighting every new round tower made
+a review draft repeat one bright red dot across the board.
+
+`bastionCover` therefore gains manifest-owned `accentColor`, `chimneyEvery`, and
+`furnaceEvery` fields. Ember shifts brown trim toward a deep non-emissive
+burgundy/crimson hierarchy. Round towers receive dark torus crowns, but only a
+sparse hash-selected subset exposes an emissive crucible core. The non-playable
+perimeter gains varied-height banded chimneys and layered furnace mouths; their
+heat faces are physically offset from their recesses and neither cast nor
+receive shadows. The continuous outer rail stays subdued so the map does not
+become a glowing rectangle. All additions are instanced and derived from the
+existing family/coordinate/topology hash.
+
+Lighting receives a modest neutral lift and crimson fill, while broad cyan and
+orange team pools remain the strongest allegiance fields. Floor treatment,
+camera presets, fog semantics, replay identity, rules, map topology, collision,
+vision, objectives, and fingerprints are unchanged. This adds no bitmap source,
+provider mesh, authored whole-map mesh, or per-tile prop contract.

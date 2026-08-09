@@ -92,11 +92,14 @@ export interface TreeCover3d {
 export interface BastionCover3d {
   shoulderEvery: number;
   towerEvery: number;
+  chimneyEvery: number | null;
+  furnaceEvery: number | null;
   minRise: number;
   maxRise: number;
   boundaryDepth: number;
   bodyColor: string;
   trimColor: string;
+  accentColor: string;
   heatColor: string;
 }
 
@@ -629,12 +632,21 @@ function wallGeometry3d(
       !Number.isInteger(bastionCover.towerEvery) ||
       bastionCover.towerEvery < 1 ||
       bastionCover.towerEvery > 16 ||
+      (bastionCover.chimneyEvery !== null &&
+        (!Number.isInteger(bastionCover.chimneyEvery) ||
+          bastionCover.chimneyEvery < 2 ||
+          bastionCover.chimneyEvery > 16)) ||
+      (bastionCover.furnaceEvery !== null &&
+        (!Number.isInteger(bastionCover.furnaceEvery) ||
+          bastionCover.furnaceEvery < 2 ||
+          bastionCover.furnaceEvery > 16)) ||
       !finiteRange(bastionCover.minRise, 0.04, 0.4) ||
       !finiteRange(bastionCover.maxRise, 0.08, 0.55) ||
       bastionCover.minRise >= bastionCover.maxRise ||
       !finiteRange(bastionCover.boundaryDepth, 0, 2) ||
       !validHex(bastionCover.bodyColor) ||
       !validHex(bastionCover.trimColor) ||
+      !validHex(bastionCover.accentColor) ||
       !validHex(bastionCover.heatColor))
   )
     throw new Error(

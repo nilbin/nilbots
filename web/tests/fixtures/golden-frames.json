@@ -1,11 +1,11 @@
 {
   "darwin-arm64": {
-    "tick 0": "8488c1dbc7fd33f9",
-    "tick 40": "2860fda0e7344bf0",
-    "tick 95": "1f345ac129354866",
-    "tick 96": "92d5fd773f9b5b83",
-    "fog slot 0 @ 20": "e9076f883e1f0595",
-    "fog slot 1 @ 60": "15f5484a5ccf452f"
+    "tick 0": "b4b3df1126fd9f6a",
+    "tick 40": "db2cf60b59d69e05",
+    "tick 95": "5f2e9fc094403bba",
+    "tick 96": "f62aeba94b53aad5",
+    "fog slot 0 @ 20": "47e5272002301f9b",
+    "fog slot 1 @ 60": "cc3d03034be98f19"
   },
   "linux-x64": {
     "tick 0": "2478f4223ba005a8",

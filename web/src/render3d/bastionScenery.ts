@@ -71,12 +71,20 @@ function buildFamily(
   const shoulders: Placement[] = [];
   const towers: Placement[] = [];
   const roundTowers: Placement[] = [];
+  const crucibleCrowns: Placement[] = [];
+  const crucibleCores: Placement[] = [];
   const splitTowers: Placement[] = [];
   const trims: Placement[] = [];
   const heatSeams: Placement[] = [];
   const faceRibs: Placement[] = [];
   const boundaryPylons: Placement[] = [];
   const boundaryLinks: Placement[] = [];
+  const chimneyStacks: Placement[] = [];
+  const chimneyCaps: Placement[] = [];
+  const chimneyBands: Placement[] = [];
+  const furnaceHoods: Placement[] = [];
+  const furnaceRecesses: Placement[] = [];
+  const furnaceCores: Placement[] = [];
   const cornerPylons: Placement[] = [];
   let maximumHeight = family.geometry3d.height;
 
@@ -159,6 +167,26 @@ function buildFamily(
           scale: new THREE.Vector3(roundSpan, roundRise, roundSpan),
         };
         roundTowers.push(placement);
+        const top = moduleBase + roundRise;
+        crucibleCrowns.push({
+          position: new THREE.Vector3(centre.x, top + 0.012, centre.z),
+          rotationY,
+          scale: new THREE.Vector3(
+            roundSpan * 1.12,
+            0.058,
+            roundSpan * 1.12,
+          ),
+        });
+        if ((seed >>> 12) % 5 === 0)
+          crucibleCores.push({
+            position: new THREE.Vector3(centre.x, top + 0.024, centre.z),
+            rotationY,
+            scale: new THREE.Vector3(
+              roundSpan * 0.27,
+              0.012,
+              roundSpan * 0.27,
+            ),
+          });
         maximumHeight = Math.max(maximumHeight, moduleBase + roundRise);
       } else {
         const gap = span * (0.3 + unitByte(seed, 0) * 0.14);
@@ -253,7 +281,6 @@ function buildFamily(
         wall.mask,
         sideIndex + 71,
       );
-      if (sideSeed % 2 !== 0) continue;
       const outsideDistance =
         0.5 +
         config.boundaryDepth *
@@ -265,24 +292,116 @@ function buildFamily(
         (0.68 + unitByte(sideSeed, 0) * 0.72);
       const x = wall.x + 0.5 + side.dx * outsideDistance;
       const z = wall.y + 0.5 + side.dy * outsideDistance;
-      boundaryPylons.push({
-        position: new THREE.Vector3(x, 0.018, z),
-        rotationY: side.inwardRotationY,
-        scale: new THREE.Vector3(tangent, height, radial),
-      });
-      boundaryLinks.push({
-        position: new THREE.Vector3(
-          wall.x + 0.5 + side.dx * outsideDistance * 0.48,
-          0.045,
-          wall.y + 0.5 + side.dy * outsideDistance * 0.48,
-        ),
-        rotationY: side.inwardRotationY,
-        scale: new THREE.Vector3(
-          tangent * 0.52,
-          0.12 + unitByte(sideSeed, 16) * 0.08,
-          outsideDistance * 0.9,
-        ),
-      });
+      if (sideSeed % 2 === 0) {
+        boundaryPylons.push({
+          position: new THREE.Vector3(x, 0.018, z),
+          rotationY: side.inwardRotationY,
+          scale: new THREE.Vector3(tangent, height, radial),
+        });
+        boundaryLinks.push({
+          position: new THREE.Vector3(
+            wall.x + 0.5 + side.dx * outsideDistance * 0.48,
+            0.045,
+            wall.y + 0.5 + side.dy * outsideDistance * 0.48,
+          ),
+          rotationY: side.inwardRotationY,
+          scale: new THREE.Vector3(
+            tangent * 0.52,
+            0.12 + unitByte(sideSeed, 16) * 0.08,
+            outsideDistance * 0.9,
+          ),
+        });
+      }
+
+      if (
+        config.chimneyEvery !== null &&
+        sideSeed % config.chimneyEvery === 0
+      ) {
+        const chimneyDistance =
+          0.5 +
+          config.boundaryDepth *
+            (0.58 + unitByte(sideSeed, 16) * 0.26);
+        const chimneyHeight =
+          family.geometry3d.height *
+          (1.2 + unitByte(sideSeed, 8) * 0.92);
+        const chimneyRadius = 0.18 + unitByte(sideSeed, 24) * 0.1;
+        const chimneyX =
+          wall.x + 0.5 + side.dx * chimneyDistance;
+        const chimneyZ =
+          wall.y + 0.5 + side.dy * chimneyDistance;
+        chimneyStacks.push({
+          position: new THREE.Vector3(
+            chimneyX,
+            0.04 + chimneyHeight / 2,
+            chimneyZ,
+          ),
+          rotationY: side.inwardRotationY,
+          scale: new THREE.Vector3(
+            chimneyRadius,
+            chimneyHeight,
+            chimneyRadius,
+          ),
+        });
+        chimneyCaps.push({
+          position: new THREE.Vector3(
+            chimneyX,
+            0.07 + chimneyHeight,
+            chimneyZ,
+          ),
+          rotationY: side.inwardRotationY,
+          scale: new THREE.Vector3(
+            chimneyRadius * 1.34,
+            0.13,
+            chimneyRadius * 1.34,
+          ),
+        });
+        chimneyBands.push({
+          position: new THREE.Vector3(
+            chimneyX,
+            0.04 + chimneyHeight * (0.58 + unitByte(sideSeed, 0) * 0.12),
+            chimneyZ,
+          ),
+          rotationY: side.inwardRotationY,
+          scale: new THREE.Vector3(
+            chimneyRadius * 1.12,
+            0.07,
+            chimneyRadius * 1.12,
+          ),
+        });
+        maximumHeight = Math.max(maximumHeight, chimneyHeight + 0.135);
+      }
+
+      if (
+        config.furnaceEvery !== null &&
+        sideSeed % config.furnaceEvery === 0
+      ) {
+        const faceDistance = 0.5 + 0.055;
+        const faceX = wall.x + 0.5 + side.dx * faceDistance;
+        const faceZ = wall.y + 0.5 + side.dy * faceDistance;
+        furnaceHoods.push({
+          position: new THREE.Vector3(faceX, 0.06, faceZ),
+          rotationY: side.inwardRotationY,
+          scale: new THREE.Vector3(0.48, 0.46, 0.13),
+        });
+        furnaceRecesses.push({
+          position: new THREE.Vector3(
+            faceX + side.dx * 0.075,
+            0.29,
+            faceZ + side.dy * 0.075,
+          ),
+          rotationY: side.inwardRotationY,
+          scale: new THREE.Vector3(0.34, 0.27, 0.042),
+        });
+        furnaceCores.push({
+          position: new THREE.Vector3(
+            faceX + side.dx * 0.101,
+            0.29,
+            faceZ + side.dy * 0.101,
+          ),
+          rotationY: side.inwardRotationY,
+          scale: new THREE.Vector3(0.22, 0.13, 0.018),
+        });
+      }
     }
   }
 
@@ -332,6 +451,22 @@ function buildFamily(
   );
   addInstances(
     familyGroup,
+    new THREE.TorusGeometry(0.38, 0.1, 6, 12).rotateX(Math.PI / 2),
+    matteMaterial(config.trimColor, 0.4),
+    crucibleCrowns,
+    'crucible-crowns',
+    disposables,
+  );
+  addInstances(
+    familyGroup,
+    new THREE.CylinderGeometry(0.5, 0.5, 1, 12, 1),
+    heatMaterial(config.heatColor, 1.05),
+    crucibleCores,
+    'crucible-cores',
+    disposables,
+  );
+  addInstances(
+    familyGroup,
     roundedPrismGeometry(0.08, 0.035),
     matteMaterial(config.bodyColor, 0.34),
     splitTowers,
@@ -357,13 +492,7 @@ function buildFamily(
   addInstances(
     familyGroup,
     new THREE.BoxGeometry(1, 1, 1),
-    new THREE.MeshStandardMaterial({
-      color: config.heatColor,
-      emissive: config.heatColor,
-      emissiveIntensity: 1.35,
-      roughness: 0.76,
-      metalness: 0.08,
-    }),
+    heatMaterial(config.heatColor, 1.35),
     heatSeams,
     'heat-seams',
     disposables,
@@ -390,6 +519,54 @@ function buildFamily(
     matteMaterial(config.trimColor, 0.42),
     boundaryLinks,
     'boundary-links',
+    disposables,
+  );
+  addInstances(
+    familyGroup,
+    new THREE.CylinderGeometry(0.48, 0.56, 1, 12, 1),
+    matteMaterial(config.bodyColor, 0.38),
+    chimneyStacks,
+    'chimney-stacks',
+    disposables,
+  );
+  addInstances(
+    familyGroup,
+    new THREE.CylinderGeometry(0.58, 0.5, 1, 12, 1),
+    matteMaterial(config.trimColor, 0.46),
+    chimneyCaps,
+    'chimney-caps',
+    disposables,
+  );
+  addInstances(
+    familyGroup,
+    new THREE.CylinderGeometry(0.52, 0.52, 1, 12, 1),
+    matteMaterial(config.accentColor, 0.42),
+    chimneyBands,
+    'chimney-bands',
+    disposables,
+  );
+  addInstances(
+    familyGroup,
+    roundedPrismGeometry(0.14, 0.035),
+    matteMaterial(config.accentColor, 0.36),
+    furnaceHoods,
+    'furnace-hoods',
+    disposables,
+  );
+  addInstances(
+    familyGroup,
+    new THREE.BoxGeometry(1, 1, 1),
+    matteMaterial(config.bodyColor, 0.18),
+    furnaceRecesses,
+    'furnace-recesses',
+    disposables,
+  );
+  addInstances(
+    familyGroup,
+    new THREE.BoxGeometry(1, 1, 1),
+    heatMaterial(config.heatColor, 1.65),
+    furnaceCores,
+    'furnace-cores',
     disposables,
   );
   addInstances(
@@ -628,9 +805,13 @@ function addInstances(
   mesh.instanceMatrix.needsUpdate = true;
   mesh.userData.kind = `arena-wall-bastion-${kind}`;
   mesh.userData.instanceCount = placements.length;
-  mesh.castShadow = !kind.startsWith('apron') && kind !== 'heat-seams';
-  mesh.receiveShadow = kind !== 'heat-seams';
-  if (kind === 'heat-seams') mesh.renderOrder = 4;
+  const emissive =
+    kind === 'heat-seams' ||
+    kind === 'crucible-cores' ||
+    kind === 'furnace-cores';
+  mesh.castShadow = !kind.startsWith('apron') && !emissive;
+  mesh.receiveShadow = !emissive;
+  if (emissive) mesh.renderOrder = 4;
   group.add(mesh);
   disposables.push(geometry, material);
 }
@@ -711,6 +892,19 @@ function matteMaterial(
     color,
     roughness: 0.92,
     metalness,
+  });
+}
+
+function heatMaterial(
+  color: string,
+  emissiveIntensity: number,
+): THREE.MeshStandardMaterial {
+  return new THREE.MeshStandardMaterial({
+    color,
+    emissive: color,
+    emissiveIntensity,
+    roughness: 0.76,
+    metalness: 0.08,
   });
 }
 

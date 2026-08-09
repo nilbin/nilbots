@@ -294,6 +294,17 @@ test('Ember builds its approved raised perimeter and cover profiles', () => {
       'round foundry stacks break the rectangular-box repetition',
     );
     assert.ok(
+      objectByKind(arena.scene, 'arena-wall-bastion-crucible-crowns'),
+      'round towers finish as crimson-crowned crucibles',
+    );
+    const crucibleCore = objectByKind(
+      arena.scene,
+      'arena-wall-bastion-crucible-cores',
+    ) as THREE.InstancedMesh;
+    assert.ok(crucibleCore, 'crucibles retain a sparse visible heat source');
+    assert.equal(crucibleCore.castShadow, false);
+    assert.equal(crucibleCore.receiveShadow, false);
+    assert.ok(
       objectByKind(arena.scene, 'arena-wall-bastion-split-towers'),
       'paired unequal towers break the one-module-per-tile silhouette',
     );
@@ -301,6 +312,43 @@ test('Ember builds its approved raised perimeter and cover profiles', () => {
       objectByKind(arena.scene, 'arena-wall-bastion-apron-outer-rails'),
       'the widened perimeter finishes in a raised outer rail',
     );
+    assert.ok(
+      objectByKind(arena.scene, 'arena-wall-bastion-chimney-stacks'),
+      'the outer foundry carries sparse tall chimney silhouettes',
+    );
+    assert.ok(
+      objectByKind(arena.scene, 'arena-wall-bastion-chimney-caps'),
+    );
+    assert.ok(
+      objectByKind(arena.scene, 'arena-wall-bastion-chimney-bands'),
+    );
+    assert.ok(
+      objectByKind(arena.scene, 'arena-wall-bastion-furnace-hoods'),
+      'the perimeter carries recognizable furnace structures',
+    );
+    const furnaceRecess = objectByKind(
+      arena.scene,
+      'arena-wall-bastion-furnace-recesses',
+    ) as THREE.InstancedMesh;
+    const furnaceCore = objectByKind(
+      arena.scene,
+      'arena-wall-bastion-furnace-cores',
+    ) as THREE.InstancedMesh;
+    assert.ok(furnaceRecess && furnaceCore);
+    const furnaceRecessMatrix = new THREE.Matrix4();
+    const furnaceCoreMatrix = new THREE.Matrix4();
+    const furnaceRecessPosition = new THREE.Vector3();
+    const furnaceCorePosition = new THREE.Vector3();
+    furnaceRecess.getMatrixAt(0, furnaceRecessMatrix);
+    furnaceCore.getMatrixAt(0, furnaceCoreMatrix);
+    furnaceRecessPosition.setFromMatrixPosition(furnaceRecessMatrix);
+    furnaceCorePosition.setFromMatrixPosition(furnaceCoreMatrix);
+    assert.ok(
+      furnaceRecessPosition.distanceTo(furnaceCorePosition) >= 0.02,
+      'furnace light is physically separated from its recess',
+    );
+    assert.equal(furnaceCore.castShadow, false);
+    assert.equal(furnaceCore.receiveShadow, false);
     const heatSeams = objectByKind(
       arena.scene,
       'arena-wall-bastion-heat-seams',

@@ -8,12 +8,12 @@
       "fovDegrees": 28
     },
     "lighting": {
-      "keyColor": "#e7ded7",
-      "keyIntensity": 3.25,
-      "ambientColor": "#52606a",
-      "ambientIntensity": 1.65,
-      "fillColor": "#744936",
-      "fillIntensity": 0.58
+      "keyColor": "#eadfe2",
+      "keyIntensity": 3.45,
+      "ambientColor": "#4e5d68",
+      "ambientIntensity": 1.78,
+      "fillColor": "#7b2635",
+      "fillIntensity": 0.62
     },
     "floor": {
       "bumpScale": 0.028,
@@ -53,19 +53,22 @@
             "panelEvery": 3,
             "ventEvery": 7,
             "clampEvery": 5,
-            "panelColor": "#4f4b48",
-            "clampColor": "#805239",
-            "ventColor": "#dc682c"
+            "panelColor": "#48474b",
+            "clampColor": "#812d3b",
+            "ventColor": "#f05536"
           },
           "bastionCover": {
             "shoulderEvery": 3,
             "towerEvery": 7,
+            "chimneyEvery": 6,
+            "furnaceEvery": 5,
             "minRise": 0.1,
             "maxRise": 0.34,
             "boundaryDepth": 1.8,
-            "bodyColor": "#242526",
-            "trimColor": "#73503c",
-            "heatColor": "#e56d2d"
+            "bodyColor": "#222429",
+            "trimColor": "#612832",
+            "accentColor": "#9b3043",
+            "heatColor": "#ff5838"
           }
         },
         "material3d": {
@@ -94,19 +97,22 @@
             "panelEvery": 3,
             "ventEvery": 9,
             "clampEvery": 7,
-            "panelColor": "#57524e",
-            "clampColor": "#744b37",
-            "ventColor": "#ce5e28"
+            "panelColor": "#505055",
+            "clampColor": "#702a36",
+            "ventColor": "#e84934"
           },
           "bastionCover": {
             "shoulderEvery": 3,
             "towerEvery": 7,
+            "chimneyEvery": null,
+            "furnaceEvery": null,
             "minRise": 0.08,
             "maxRise": 0.28,
             "boundaryDepth": 0,
-            "bodyColor": "#292a2b",
-            "trimColor": "#684937",
-            "heatColor": "#d45f28"
+            "bodyColor": "#292a2f",
+            "trimColor": "#57252f",
+            "accentColor": "#812c3b",
+            "heatColor": "#ec4c35"
           }
         },
         "material3d": {
@@ -121,11 +127,11 @@
     }
   },
   "palette": {
-    "canvas": "#090504",
-    "arena": "#15100d",
-    "floorTint": "rgba(24, 10, 4, 0.18)",
-    "wallTint": "rgba(12, 5, 2, 0.14)",
+    "canvas": "#080305",
+    "arena": "#150b0e",
+    "floorTint": "rgba(40, 5, 12, 0.12)",
+    "wallTint": "rgba(35, 2, 10, 0.12)",
     "zone": "#38d9c5",
-    "frame": "#684229"
+    "frame": "#702a38"
   }
 }

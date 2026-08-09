@@ -11,27 +11,28 @@ and retain the theme ID written into their own headers.
 The WebGL scene still traces the exact `WallLayout` into one continuous solid
 per family. Ember's optional `geometry3d.bastionCover` layer adds sparse raised
 shoulders, rectangular and round towers, paired unequal-height towers, sloped
-face ribs, heat seams, and outside-map foundry supports from stable
-family/coordinate/topology hashes. This gives a wall run multiple widths and
-heights without replacing it with a frozen arena mesh or moving its
+face ribs, heat seams, ringed crucible crowns, and outside-map foundry supports
+from stable family/coordinate/topology hashes. This gives a wall run multiple
+widths and heights without replacing it with a frozen arena mesh or moving its
 authoritative open edge.
 
 In-map modules remain inside blocked footprints and the existing live-chassis
 clearance. The perimeter alone receives a 1.8-tile outside-map foundation:
 visible low matte apron bands, a raised outer rail, rounded corner plates,
-irregular pylons, and links make the border read as a broad foundry shell
-rather than an isolated row of wall tiles. None of that surface is walkable or
-used by gameplay.
+irregular pylons, banded chimney stacks, recessed furnace mouths, and links make
+the border read as a broad working foundry shell rather than an isolated row of
+wall tiles. None of that surface is walkable or used by gameplay.
 
 The base profiles are now 0.84 tiles for perimeter and 0.58 for cover, with
 deterministic rises above them. Matte graphite modules and cooler neutral light
-replace the prior brown/glossy response; worn copper is limited to sparse trim
-and recessed heat seams. Emissive vents are sparse and physically separated
-from their recesses so mobile depth precision cannot make them flicker. The
-topology cap is darkened and partially blended so it contributes panel rhythm
-without flattening every raised profile into a tan rectangle. The floor remains
-one arena-wide material field, with quieter 0.028 bump and 0.98 roughness rather
-than per-tile repetition.
+replace the prior brown/glossy response. Deep burgundy trim and a brighter but
+sparse crimson tier now identify structure; orange-red emission is reserved for
+functional vents, occasional live crucibles, and furnace cores. Emissive faces
+are physically separated from their recesses so mobile depth precision cannot
+make them flicker. The topology cap is darkened and partially blended so it
+contributes panel rhythm without flattening every raised profile into a tan
+rectangle. The floor remains one arena-wide material field, with quieter 0.028
+bump and 0.98 roughness rather than per-tile repetition.
 
 Ember Forge owns the same restrained MOBA camera family proven on Woodland:
 12° yaw and 52° pitch, with a slightly wider 28° lens. Follow allows up to 9.5
@@ -46,8 +47,9 @@ team.
 
 The existing canonical Ember material sources and deterministic bake remain in
 `art.json` and `walls/`. This pass adds no generated whole-map image, provider
-mesh, or new bitmap source. Geometry is procedural and instanced; the four lazy
-wall normal/roughness maps remain the only WebGL-only raster additions.
+mesh, or new bitmap source. Crucibles, furnace mouths, and chimneys are
+procedural instanced geometry; the four lazy wall normal/roughness maps remain
+the only WebGL-only raster additions.
 
 The current review images come from a fresh native Hunter-versus-Wellwright
 Arc Relay exhibition. Sample 01 is seed 9001 on Ambush Warren, ends at tick 348,
