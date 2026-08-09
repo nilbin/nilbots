@@ -194,6 +194,11 @@ routes.update({
     "outer-rush-opposite":  (leg((6, 6), (11, 6), (20, 6), (24, 16)), 2),
     "short-breach":         (leg((6, 6), (15, 11), (24, 16)), 1),
     "short-breach-opposite": (leg((6, 6), (14, 10), (16, 12), (24, 16)), 1),
+    # the direct-DSL Hunter's shadow lane: a long prowl of the near half that
+    # touches your Well, the centre lip and the near heal without committing
+    # across the diagonal.
+    "shadow-hunt-loop":     (leg((8, 5), (9, 3), (11, 5), (14, 10),
+                                 (11, 13), (11, 16), (6, 12), (8, 5)), 2),
 })
 
 layout = {
