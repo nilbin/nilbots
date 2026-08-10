@@ -182,6 +182,33 @@ Visible in traces (reason string in parentheses), policy hard-coded:
     command reason exposes `route-commit`, `route-held`, `route-advance`,
     `route-rejoin`, `route-replan-impossible`, or
     `route-bypass-(unreachable|stuck)`; route hysteresis never acts silently.
+11. **Carrier reachability and cascading clearance**: body occupancy is
+    transient traffic, never terrain. A stagnant loaded carrier may enter its
+    authored unreachable fallback only when the static terrain graph cannot
+    reach its reactor. A reachable carrier continues requesting delivery; a
+    genuinely disconnected carrier re-tests the objective at a fixed eight-
+    tick cadence instead of retiring into a terminal guard/hold state. The
+    same terrain-only gate now protects an ordinary doctrine's `onNoPath`
+    fallback from current body, projectile, lane, or same-tick reservations.
+
+    A loaded carrier already has the strongest rank in the movement plane. If
+    its next tile is occupied by a yielding ally whose own exits are occupied,
+    that one request propagates through the shortest allied chain to the
+    nearest legal vacancy (unit id breaks equal-length choices). The outer
+    body clears first and the vacancy travels inward over subsequent ticks;
+    no simultaneous swap is assumed. A closed component with no vacancy is
+    left alone. Reasons name both cause and depth as
+    `make-way:chain-N:u<carrier>`.
+
+    The reachability audit found no other occupancy-sensitive terminal path.
+    Authored-route `NoPath` already uses persistent terrain obstacles; focus
+    contribution already uses static terrain distance. `HasExitStep` does
+    include bodies, but only to suspend combat disengagement while cornered
+    and is re-evaluated every tick. `MotionProgress` reacts to observed
+    stagnation rather than claiming a terrain destination is unreachable.
+    Existing deterministic traffic tickets remain the general mutual-block
+    escape; cascading displacement is deliberately limited to a loaded
+    carrier's semantic objective priority.
 
 ## What to do about it
 
