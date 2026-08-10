@@ -2880,6 +2880,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             IReadOnlyDictionary<int, Position> targets)
     {
         var result = new Dictionary<int, TacticalRouteGovernor.CourseStep>();
+        var obstaclesByTeam = new Dictionary<int, HashSet<Position>>();
         foreach (MindBody body in mind.Bodies.OrderBy(value => value.UnitId))
         {
             TacticalPlaybookPackage.Order order = orders[body.UnitId];
@@ -2892,11 +2893,14 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             }
 
             Position destination = targets[body.UnitId];
-            HashSet<Position> impossible =
-                ArenaBasics.PersistentRouteObstacles(
+            if (!obstaclesByTeam.TryGetValue(
+                    body.ActorId.TeamId,
+                    out HashSet<Position>? impossible))
+            {
+                impossible = ArenaBasics.PersistentRouteObstacles(
                     contract, mind, body.ActorId.TeamId);
-            impossible.Remove(body.Position);
-            impossible.Remove(destination);
+                obstaclesByTeam.Add(body.ActorId.TeamId, impossible);
+            }
             result[body.UnitId] = _routeGovernor.Resolve(
                 body.ActorId,
                 order.OrderId,
@@ -2906,8 +2910,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 body.Position,
                 destination,
                 () => ArenaBasics.StaticRouteCourse(
-                    contract, mind, body, destination),
-                tile => impossible.Contains(tile)
+                    contract, body, destination, impossible, _mirrored),
+                tile => (tile != destination && impossible.Contains(tile))
                     || !ArenaBasics.IsLegalTerrainStep(
                         contract.Map, body.Position, tile));
         }

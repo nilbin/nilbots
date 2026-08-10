@@ -635,44 +635,62 @@ internal static class ArenaBasics
     /// </summary>
     internal static Position[]? StaticRouteCourse(
         GenericActorResolvedMatchContract contract,
-        MindContext mind,
         MindBody body,
-        Position goal)
+        Position goal,
+        IReadOnlySet<Position> persistentObstacles,
+        bool mirrored)
     {
         if (body.Position == goal)
             return [body.Position];
 
-        HashSet<Position> blocked = PersistentRouteObstacles(
-            contract, mind, body.ActorId.TeamId);
+        var blocked = new HashSet<Position>(persistentObstacles);
         blocked.Remove(body.Position);
         blocked.Remove(goal);
         ProjectileHeading[] preference = PreferredHeadings(
-            body, [goal], MirroredFrame(contract, mind));
+            body, [goal], mirrored);
         IReadOnlyCollection<ProjectileHeading> allowed = RouteHeadings(
             contract, body);
 
-        var parents = new Dictionary<Position, Position>();
-        var visited = new HashSet<Position> { body.Position };
-        var queue = new Queue<Position>();
-        queue.Enqueue(body.Position);
-        while (queue.Count > 0)
+        int width = contract.Map.Width;
+        int area = width * contract.Map.Height;
+        var parents = new int[area];
+        Array.Fill(parents, -1);
+        var visited = new bool[area];
+        var queue = new int[area];
+        var allowedHeadings = new bool[8];
+        foreach (ProjectileHeading heading in allowed)
+            allowedHeadings[(int)heading] = true;
+        int startIndex = body.Position.Y * width + body.Position.X;
+        int goalIndex = goal.Y * width + goal.X;
+        int read = 0;
+        int write = 1;
+        queue[0] = startIndex;
+        visited[startIndex] = true;
+        while (read < write)
         {
-            Position current = queue.Dequeue();
+            int currentIndex = queue[read++];
+            var current = new Position(
+                currentIndex % width,
+                currentIndex / width);
             foreach (ProjectileHeading heading in preference)
             {
-                if (!allowed.Contains(heading))
+                if (!allowedHeadings[(int)heading])
                     continue;
                 Position next = Step(current, heading);
                 if (!CanStep(contract.Map, current, next, heading)
-                    || blocked.Contains(next)
-                    || !visited.Add(next))
+                    || blocked.Contains(next))
                 {
                     continue;
                 }
-                parents[next] = current;
-                if (next == goal)
-                    return ReconstructCourse(body.Position, goal, parents);
-                queue.Enqueue(next);
+                int nextIndex = next.Y * width + next.X;
+                if (visited[nextIndex])
+                    continue;
+                visited[nextIndex] = true;
+                parents[nextIndex] = currentIndex;
+                if (nextIndex == goalIndex)
+                    return ReconstructCourse(
+                        startIndex, goalIndex, parents, width);
+                queue[write++] = nextIndex;
             }
         }
         return null;
@@ -730,17 +748,19 @@ internal static class ArenaBasics
     }
 
     private static Position[] ReconstructCourse(
-        Position start,
-        Position goal,
-        IReadOnlyDictionary<Position, Position> parents)
+        int start,
+        int goal,
+        IReadOnlyList<int> parents,
+        int width)
     {
-        var reverse = new List<Position> { goal };
-        Position cursor = goal;
+        var reverse = new List<Position>();
+        int cursor = goal;
         while (cursor != start)
         {
+            reverse.Add(new Position(cursor % width, cursor / width));
             cursor = parents[cursor];
-            reverse.Add(cursor);
         }
+        reverse.Add(new Position(start % width, start / width));
         reverse.Reverse();
         return reverse.ToArray();
     }

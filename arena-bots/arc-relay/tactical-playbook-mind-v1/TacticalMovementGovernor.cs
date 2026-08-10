@@ -63,7 +63,7 @@ public sealed class TacticalRouteGovernor
         else
         {
             state = prior;
-            int current = Array.IndexOf(state.Course, position);
+            int current = CourseIndex(state, position);
             if (current < 0 || current + 1 < state.NextIndex)
             {
                 reason = "route-rejoin";
@@ -108,6 +108,23 @@ public sealed class TacticalRouteGovernor
     /// tick and explicitly releases that old commitment here.
     /// </summary>
     public void Reset(int unitId) => _states.Remove(unitId);
+
+    private static int CourseIndex(State state, Position position)
+    {
+        int heldIndex = state.NextIndex - 1;
+        if (heldIndex >= 0
+            && heldIndex < state.Course.Length
+            && state.Course[heldIndex] == position)
+        {
+            return heldIndex;
+        }
+        if (state.NextIndex < state.Course.Length
+            && state.Course[state.NextIndex] == position)
+        {
+            return state.NextIndex;
+        }
+        return Array.IndexOf(state.Course, position);
+    }
 
     private static State Start(
         ActorIdentity actor,
