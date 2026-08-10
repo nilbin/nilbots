@@ -1,0 +1,525 @@
+using BotArena.Sdk;
+
+public enum TacticalMovementAuthority
+{
+    Tactical,
+    Safety,
+    Clearance,
+}
+
+/// <summary>
+/// Bounded episode semantics for the executor-owned <c>recover</c> verb.
+/// The sheet decides where recover sits in the ladder; this governor only
+/// prevents one unchanged injury from holding that rung forever.
+/// </summary>
+public sealed class RecoveryEpisodeGovernor
+{
+    /// <summary>
+    /// Eight tiles is the recover admission radius and ground healing costs
+    /// three stationary ticks per health. Twenty-four ticks therefore pays
+    /// for a full approach plus a substantial channel without becoming an
+    /// indefinite tactical mode.
+    /// </summary>
+    public const int EpisodeTicks = 24;
+
+    /// <summary>
+    /// The same injury may try again after a bounded pause. A fresh health
+    /// loss advances the injury revision and bypasses this gate immediately.
+    /// </summary>
+    public const int RetryCooldownTicks = 24;
+
+    private readonly Dictionary<int, State> _states = [];
+
+    public Admission Observe(
+        ActorIdentity actor,
+        int tick,
+        int health,
+        int maximumHealth,
+        bool otherwiseEligible,
+        Position? candidateTarget = null)
+    {
+        State state = _states.GetValueOrDefault(actor.UnitId)
+            ?? State.For(actor, health);
+        if (state.Actor != actor)
+            state = State.For(actor, health);
+
+        int injuryRevision = state.InjuryRevision
+            + (health < state.LastHealth ? 1 : 0);
+        state = state with
+        {
+            LastHealth = health,
+            InjuryRevision = injuryRevision,
+        };
+
+        if (health >= maximumHealth)
+        {
+            state = state with
+            {
+                ActiveSince = null,
+                CooldownUntil = 0,
+                BlockedInjuryRevision = -1,
+                LastStop = "whole",
+                Target = null,
+            };
+            _states[actor.UnitId] = state;
+            return new Admission(false, "whole", null);
+        }
+
+        if (state.ActiveSince is int started
+            && tick - started >= EpisodeTicks)
+        {
+            state = Stop(state, tick, "timeout");
+        }
+        else if (state.ActiveSince is not null && !otherwiseEligible)
+        {
+            state = Stop(state, tick, "unsafe");
+        }
+
+        if (!otherwiseEligible)
+        {
+            _states[actor.UnitId] = state;
+            return new Admission(
+                false, state.LastStop ?? "ineligible", null);
+        }
+
+        bool sameInjuryCooling = tick < state.CooldownUntil
+            && state.BlockedInjuryRevision == state.InjuryRevision;
+        if (sameInjuryCooling)
+        {
+            _states[actor.UnitId] = state;
+            return new Admission(
+                false,
+                $"cooldown-{state.LastStop ?? "retry"}@{state.CooldownUntil}",
+                null);
+        }
+
+        if (state.ActiveSince is null)
+        {
+            state = state with
+            {
+                ActiveSince = tick,
+                LastStop = null,
+                Target = candidateTarget,
+            };
+        }
+        _states[actor.UnitId] = state;
+        return new Admission(
+            true, $"episode@{state.ActiveSince}", state.Target);
+    }
+
+    /// <summary>
+    /// An actual higher-precedence safety displacement proves that the
+    /// current beacon attempt and the body's threat picture disagree. End
+    /// that attempt; do not let the next tick walk straight back into it.
+    /// </summary>
+    public void Interrupt(ActorIdentity actor, int tick, string reason)
+    {
+        if (!_states.TryGetValue(actor.UnitId, out State? state)
+            || state.Actor != actor
+            || state.ActiveSince is null)
+        {
+            return;
+        }
+        _states[actor.UnitId] = Stop(state, tick, reason);
+    }
+
+    internal bool IsActive(ActorIdentity actor) =>
+        _states.TryGetValue(actor.UnitId, out State? state)
+        && state.Actor == actor
+        && state.ActiveSince is not null;
+
+    public Position? Target(ActorIdentity actor) =>
+        _states.TryGetValue(actor.UnitId, out State? state)
+        && state.Actor == actor
+        && state.ActiveSince is not null
+            ? state.Target
+            : null;
+
+    internal int InjuryRevision(ActorIdentity actor) =>
+        _states.TryGetValue(actor.UnitId, out State? state)
+        && state.Actor == actor
+            ? state.InjuryRevision
+            : 0;
+
+    private static State Stop(State state, int tick, string reason) =>
+        state with
+        {
+            ActiveSince = null,
+            CooldownUntil = tick + RetryCooldownTicks,
+            BlockedInjuryRevision = state.InjuryRevision,
+            LastStop = reason,
+            Target = null,
+        };
+
+    public sealed record Admission(
+        bool Admitted,
+        string Reason,
+        Position? Target);
+
+    private sealed record State(
+        ActorIdentity Actor,
+        int LastHealth,
+        int InjuryRevision,
+        int? ActiveSince,
+        int CooldownUntil,
+        int BlockedInjuryRevision,
+        string? LastStop,
+        Position? Target)
+    {
+        internal static State For(ActorIdentity actor, int health) =>
+            new(actor, health, 0, null, 0, -1, null, null);
+    }
+}
+
+/// <summary>
+/// Persistent right-of-way aging for high-level movement intents. A sheet
+/// chooses the intent and destination. This governor observes only whether
+/// the body makes strict map progress toward that stable destination and
+/// grants a bounded traffic ticket when allied traffic keeps it from doing
+/// so. It never invents participation, destinations, or tactics.
+/// </summary>
+public sealed class TacticalTrafficGovernor
+{
+    public const int AlliedBlocksBeforeTicket = 2;
+    public const int ProgressStepsToRelease = 2;
+    public const int TicketTicks = 12;
+    public const int StrongestProtectedRank = ArenaBasics.Claims.FighterRank;
+    public const int FirstTicketRank = ArenaBasics.Claims.TrafficRank;
+    public const int FreeTrafficRank = ArenaBasics.Claims.RestRank;
+
+    private readonly Dictionary<int, State> _states = [];
+
+    public void Observe(int tick, IReadOnlyCollection<Sample> samples)
+    {
+        HashSet<int> live = samples.Select(sample => sample.Actor.UnitId)
+            .ToHashSet();
+        foreach (int stale in _states.Keys.Where(unit => !live.Contains(unit))
+                     .ToArray())
+        {
+            _states.Remove(stale);
+        }
+
+        foreach (Sample sample in samples.OrderBy(value => value.Actor.UnitId))
+        {
+            State state = _states.GetValueOrDefault(sample.Actor.UnitId)
+                ?? State.For(sample);
+            if (state.Actor != sample.Actor
+                || !string.Equals(
+                    state.IntentId, sample.IntentId, StringComparison.Ordinal)
+                || state.Goal != sample.Goal)
+            {
+                state = State.For(sample);
+            }
+
+            if (!sample.MayAge || sample.Distance is null)
+            {
+                _states[sample.Actor.UnitId] = State.For(sample);
+                continue;
+            }
+
+            bool progressed = sample.Distance < state.LastDistance;
+            int noProgressMoves = progressed
+                ? 0
+                : state.NoProgressMoves + (sample.AttemptedMove ? 1 : 0);
+            int alliedBlocks = progressed
+                ? 0
+                : state.AlliedBlocks + (sample.BlockedByAlly ? 1 : 0);
+            int progressAfterTicket = state.TicketSince is null
+                ? 0
+                : progressed
+                    ? state.ProgressAfterTicket + 1
+                    : state.ProgressAfterTicket;
+            int? ticketSince = state.TicketSince;
+
+            // A ticket is traffic arbitration, never an idle breaker. Three
+            // non-progressing moves are diagnostic context, but only repeated
+            // observation of an ALLY on the terrain-shortest next step may
+            // promote the body. This preserves authored holding/patrolling
+            // while bounding the exact choke-denial class.
+            if (ticketSince is null
+                && alliedBlocks >= AlliedBlocksBeforeTicket)
+            {
+                ticketSince = tick;
+                progressAfterTicket = 0;
+            }
+            if (ticketSince is not null
+                && (sample.Distance == 0
+                    || progressAfterTicket >= ProgressStepsToRelease
+                    || tick - ticketSince >= TicketTicks))
+            {
+                ticketSince = null;
+                noProgressMoves = 0;
+                alliedBlocks = 0;
+                progressAfterTicket = 0;
+            }
+
+            _states[sample.Actor.UnitId] = new State(
+                sample.Actor,
+                sample.IntentId,
+                sample.Goal,
+                sample.Distance.Value,
+                noProgressMoves,
+                alliedBlocks,
+                ticketSince,
+                progressAfterTicket);
+        }
+    }
+
+    public bool HasTicket(int unitId) =>
+        _states.TryGetValue(unitId, out State? state)
+        && state.TicketSince is not null;
+
+    /// <summary>
+    /// Traffic tickets are stronger than free traffic and weaker than every
+    /// protected channel. Earlier tickets go first; stable unit id breaks a
+    /// simultaneous tie. Distinct ranks preserve the global rule that equal
+    /// ranks never yield.
+    /// </summary>
+    public int Rank(int unitId)
+    {
+        State state = _states[unitId];
+        return FirstTicketRank
+            + _states.Values
+                .Where(value => value.TicketSince is not null)
+                .OrderBy(value => value.TicketSince)
+                .ThenBy(value => value.Actor.UnitId)
+                .TakeWhile(value => value.Actor.UnitId != unitId)
+                .Count();
+    }
+
+    internal string TraceSummary
+    {
+        get
+        {
+            string[] active = _states.Values
+                .Where(state => state.TicketSince is not null)
+                .OrderBy(state => state.TicketSince)
+                .ThenBy(state => state.Actor.UnitId)
+                .Select(state => $"{state.Actor.UnitId}@{state.TicketSince}"
+                    + $"/m{state.NoProgressMoves}/b{state.AlliedBlocks}")
+                .ToArray();
+            return active.Length == 0
+                ? "traffic=clear"
+                : "traffic=" + string.Join(",", active);
+        }
+    }
+
+    public sealed record Sample(
+        ActorIdentity Actor,
+        string IntentId,
+        Position Goal,
+        int? Distance,
+        bool AttemptedMove,
+        bool BlockedByAlly,
+        bool MayAge);
+
+    private sealed record State(
+        ActorIdentity Actor,
+        string IntentId,
+        Position Goal,
+        int LastDistance,
+        int NoProgressMoves,
+        int AlliedBlocks,
+        int? TicketSince,
+        int ProgressAfterTicket)
+    {
+        internal static State For(Sample sample) => new(
+            sample.Actor,
+            sample.IntentId,
+            sample.Goal,
+            sample.Distance ?? int.MaxValue,
+            0,
+            0,
+            null,
+            0);
+    }
+}
+
+/// <summary>
+/// A deterministic circuit breaker for repeated A-B-A-B motion. One reversal
+/// can be a sensible response to a moving target; an unbounded sequence is two
+/// executor authorities arguing. After the second consecutive reversal, the
+/// just-vacated tile is unavailable to every movement authority for a short,
+/// fixed window. A first safety or make-way displacement remains soft: it
+/// lends its origin only against ordinary tactical snap-back. If that same
+/// authority also reverses repeatedly, the hard circuit breaker applies.
+/// </summary>
+public sealed class TacticalOscillationGovernor
+{
+    public const int ReversalsBeforeYield = 2;
+    public const int YieldTicks = 3;
+
+    private readonly Dictionary<int, State> _states = [];
+    private readonly List<string> _denials = [];
+
+    public void Observe(int tick, IReadOnlyCollection<Sample> samples)
+    {
+        _denials.Clear();
+        HashSet<int> live = samples.Select(sample => sample.Actor.UnitId)
+            .ToHashSet();
+        foreach (int stale in _states.Keys.Where(unit => !live.Contains(unit))
+                     .ToArray())
+        {
+            _states.Remove(stale);
+        }
+
+        foreach (Sample sample in samples.OrderBy(value => value.Actor.UnitId))
+        {
+            State state = _states.GetValueOrDefault(sample.Actor.UnitId)
+                ?? State.For(sample.Actor);
+            if (state.Actor != sample.Actor)
+                state = State.For(sample.Actor);
+
+            if (sample.MovedLastTick
+                && sample.PreviousPosition is Position from
+                && from != sample.Position)
+            {
+                bool reversal = state.LastFrom == sample.Position
+                    && state.LastTo == from;
+                int reversals = reversal ? state.Reversals + 1 : 0;
+                Position? hardBlockedReturn = state.HardBlockedReturn;
+                int hardBlockedUntil = state.HardBlockedUntil;
+                if (reversals >= ReversalsBeforeYield)
+                {
+                    hardBlockedReturn = from;
+                    hardBlockedUntil = tick + YieldTicks;
+                    reversals = 0;
+                }
+                state = state with
+                {
+                    LastFrom = from,
+                    LastTo = sample.Position,
+                    Reversals = reversals,
+                    HardBlockedReturn = hardBlockedReturn,
+                    HardBlockedUntil = hardBlockedUntil,
+                };
+            }
+            else
+            {
+                state = state with { Reversals = 0 };
+            }
+
+            if (tick >= state.SoftBlockedUntil)
+            {
+                state = state with
+                {
+                    SoftBlockedReturn = null,
+                    SoftBlockedUntil = 0,
+                };
+            }
+            if (tick >= state.HardBlockedUntil)
+            {
+                state = state with
+                {
+                    HardBlockedReturn = null,
+                    HardBlockedUntil = 0,
+                };
+            }
+            _states[sample.Actor.UnitId] = state;
+        }
+    }
+
+    public Admission Admit(
+        ActorIdentity actor,
+        int tick,
+        Position destination,
+        TacticalMovementAuthority authority)
+    {
+        if (!_states.TryGetValue(actor.UnitId, out State? state)
+            || state.Actor != actor)
+        {
+            return new Admission(true, "clear");
+        }
+
+        string? reason = state.HardBlockedReturn == destination
+            && tick < state.HardBlockedUntil
+                ? $"oscillation-yield@{state.HardBlockedUntil}"
+                    + $"-avoid-{destination.X}-{destination.Y}"
+                : authority == TacticalMovementAuthority.Tactical
+                    && state.SoftBlockedReturn == destination
+                    && tick < state.SoftBlockedUntil
+                        ? $"movement-lease@{state.SoftBlockedUntil}"
+                            + $"-avoid-{destination.X}-{destination.Y}"
+                        : null;
+        if (reason is null)
+            return new Admission(true, "clear");
+        _denials.Add($"{actor.UnitId}:{reason}");
+        return new Admission(false, reason);
+    }
+
+    /// <summary>
+    /// A successful make-way step lends the vacated tile to its requester;
+    /// a safety step lends it to the danger just escaped. Both use the same
+    /// short window as the reversal breaker. Without this, the body's
+    /// unchanged formation target can pull it straight back on the next tick,
+    /// turning politeness or evasion into A-B-A-B churn.
+    /// </summary>
+    public void NoteCommitted(
+        ActorIdentity actor,
+        int tick,
+        Position from,
+        TacticalMovementAuthority authority)
+    {
+        if (authority is not (TacticalMovementAuthority.Clearance
+                or TacticalMovementAuthority.Safety)
+            || !_states.TryGetValue(actor.UnitId, out State? state)
+            || state.Actor != actor)
+        {
+            return;
+        }
+        _states[actor.UnitId] = state with
+        {
+            SoftBlockedReturn = from,
+            SoftBlockedUntil = Math.Max(
+                state.SoftBlockedUntil, tick + YieldTicks),
+        };
+    }
+
+    public string TraceSummary
+    {
+        get
+        {
+            string[] active = _states.Values
+                .Where(state => state.SoftBlockedReturn is not null
+                    || state.HardBlockedReturn is not null)
+                .OrderBy(state => state.Actor.UnitId)
+                .Select(state => $"{state.Actor.UnitId}:"
+                    + (state.SoftBlockedReturn is Position soft
+                        ? $"s{soft.X}-{soft.Y}@{state.SoftBlockedUntil}"
+                        : "s-")
+                    + "/"
+                    + (state.HardBlockedReturn is Position hard
+                        ? $"h{hard.X}-{hard.Y}@{state.HardBlockedUntil}"
+                        : "h-"))
+                .ToArray();
+            string holds = active.Length == 0
+                ? "motion=clear"
+                : "motion=" + string.Join(",", active);
+            return _denials.Count == 0
+                ? holds
+                : holds + "/denied=" + string.Join(",", _denials);
+        }
+    }
+
+    public sealed record Sample(
+        ActorIdentity Actor,
+        Position Position,
+        Position? PreviousPosition,
+        bool MovedLastTick);
+
+    public sealed record Admission(bool Admitted, string Reason);
+
+    private sealed record State(
+        ActorIdentity Actor,
+        Position? LastFrom,
+        Position? LastTo,
+        int Reversals,
+        Position? SoftBlockedReturn,
+        int SoftBlockedUntil,
+        Position? HardBlockedReturn,
+        int HardBlockedUntil)
+    {
+        internal static State For(ActorIdentity actor) =>
+            new(actor, null, null, 0, null, 0, null, 0);
+    }
+}

@@ -128,6 +128,12 @@ Visible in traces (reason string in parentheses), policy hard-coded:
    heal priority is settled by mode order like everything else. A sheet
    with no recover mode simply never detours. NOTE: the medic's beam is
    the separate `repair` channel and is untouched.
+   A recover activation is now executor-bounded: 24 ticks at one latched
+   beacon, then a 24-tick retry cooldown for the same injury. Unsafe or
+   preempted movement ends it early. A fresh health loss advances the injury
+   revision and bypasses the cooldown. The debug surface says `ready@x-y`,
+   `stop-movement-preempted`, `cooldown-unsafe@T`, or `cooldown-timeout@T`;
+   this policy no longer acts silently.
 6. **Opportunistic signatures** (`signature-heading`, `signature-idle`).
 7. **Formation micro** (`formation-move`, `turn for ...`, reflow).
 8. **The v3 desugar constants**: shrinking. `targetPriorities` is now
@@ -139,12 +145,25 @@ Visible in traces (reason string in parentheses), policy hard-coded:
    new fight) and `fight.heal` (yield | first - does an ARMED recover).
    `fight.breakOff.health` trips the existing timed break-off latch off
    a health threshold, reusing the sticky rally and unconditional
-   expiry rather than inventing a second disengager. Still invisible:
+   expiry. An unchanged injury cannot immediately re-arm that latch; a fresh
+   health loss can. Still invisible:
    `lockTicks 4, lockPreemption urgent-carrier,
    maximumAttackersPerTarget 2, tieBreakers, release, selfDefense`.
    Two executor-owned floors are deliberate and outrank every knob: hp
-   <= 1 arms recover regardless of caution, and a body that broke off
-   to heal takes no new fight until whole.
+   <= 1 bypasses beacon caution when a recover episode is otherwise ready,
+   and a body that broke off to heal takes no new fight until whole.
+9. **Allied traffic and oscillation**: two observations of the same stable
+   intent being denied by an ally on its terrain-shortest next step grant a
+   deterministic, at-most-12-tick traffic ticket. Earlier tickets win; unit id
+   breaks a simultaneous tie. A ticket never outranks a carrier, escort leader,
+   active fight, repair, follower, or recovery channel, and it releases after
+   two strict progress steps. Separately, two consecutive A-B reversals make
+   the just-vacated tile unavailable to every movement authority for three
+   ticks. A first safety or make-way step lends its origin only against an
+   ordinary tactical snap-back; repeated safety or clearance reversals trip the
+   hard breaker too. Neither mechanism invents a destination or participation
+   decision. Both publish `traffic=` or `motion=` state and every denied
+   command says `movement-lease@T` or `oscillation-yield@T`.
 
 ## What to do about it
 

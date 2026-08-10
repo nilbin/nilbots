@@ -407,9 +407,12 @@ public static class ToolchainInfo
     /// direct-ladder state keys from semantic intent ids, so spectator traces
     /// say what a body is doing without changing gameplay-state behavior, and
     /// pins hosted playlist v10 to the rebuilt immutable stock artifact.
+    /// 0.9.40 adds finite same-injury recovery episodes, deterministic
+    /// allied-traffic tickets, and a bounded two-tile oscillation breaker to
+    /// the tactical executor, then pins hosted playlist v11 to those bytes.
     /// Keep in lockstep with BotArena.Cli.csproj's
     /// Version — PackagedCliVersionTests pins them together.</summary>
-    public const string CliVersion = "0.9.39";
+    public const string CliVersion = "0.9.40";
     // 0.2.0: BotContext.Slot + documented event semantics (DECISIONS #46).
     // 0.3.0: BotContext.Energy for the energy-shot rules candidate (DECISIONS #47).
     // 0.4.0: strafe actions + map dims + zone-control fields for the rules 0.3 slate

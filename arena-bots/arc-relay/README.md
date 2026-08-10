@@ -16,6 +16,10 @@ manifest hashes are opened to evaluation.
 - `ambush-warren-11-stock-v4/` — immutable hosted playlist-v10 tactical mind
   and receipt. It gives direct ladder intents semantic spectator names while
   preserving v9 gameplay behavior; v1/v2/v3 remain historical bytes.
+- `ambush-warren-11-stock-v5/` — immutable hosted playlist-v11 tactical mind
+  and receipt. It adds bounded recovery episodes, deterministic allied-traffic
+  tickets, and the short oscillation circuit breaker; v1/v2/v3/v4 remain
+  historical bytes.
 - `stock-mind-v3/` — unfrozen intelligent-gambit vertical-slice mind. It keeps
   the complete v2 baseline executor and reads provisional v2 operation data;
   it is evidence for an owner decision, not a launch artifact.

@@ -11,7 +11,7 @@ namespace BotArena.App.Tests;
 public sealed class ArcRelayPlaylistDefinitionTests
 {
     [Fact]
-    public void Entrant_v10_names_direct_intents_while_v2_through_v9_remain_executable()
+    public void Entrant_v11_bounds_movement_while_v2_through_v10_remain_executable()
     {
         ArcRelayEntrantPlaylistDefinition current =
             ArcRelayEntrantPlaylistDefinition.Create();
@@ -31,8 +31,10 @@ public sealed class ArcRelayPlaylistDefinitionTests
             ArcRelayEntrantPlaylistDefinition.CreateHistoricalV8();
         ArcRelayEntrantPlaylistDefinition directV9 =
             ArcRelayEntrantPlaylistDefinition.CreateHistoricalV9();
+        ArcRelayEntrantPlaylistDefinition semanticV10 =
+            ArcRelayEntrantPlaylistDefinition.CreateHistoricalV10();
 
-        Assert.Equal(10, current.PlaylistVersion);
+        Assert.Equal(11, current.PlaylistVersion);
         Assert.Equal(ArcRelayLoopProfile.AmbushWarren11.MapId, current.Match.Map.Id);
         Assert.Equal(
             ArcRelayLoopProfile.AmbushWarren11.RulesetId,
@@ -49,14 +51,28 @@ public sealed class ArcRelayPlaylistDefinitionTests
             current.CanonicalDefinition);
         Assert.Contains("consolidatedDirectSheetDsl", current.Provenance);
         Assert.Contains("semanticIntentLabels", current.Provenance);
+        Assert.Contains("boundedRecoveryEpisodes", current.Provenance);
+        Assert.Contains("deterministicTrafficTickets", current.Provenance);
+        Assert.Contains("boundedOscillationYield", current.Provenance);
         using (JsonDocument provenance = JsonDocument.Parse(current.Provenance))
         {
             Assert.Equal(
-                [8, 9],
+                [8, 9, 10],
                 provenance.RootElement
                     .GetProperty("ratingContinuityFromVersions")
                     .EnumerateArray().Select(value => value.GetInt32()));
         }
+        Assert.Equal(10, semanticV10.PlaylistVersion);
+        Assert.Contains(
+            ArcRelayEntrantPlaylistDefinition
+                .SemanticIntentTacticalArtifactHash,
+            semanticV10.CanonicalDefinition);
+        Assert.Contains(
+            ArcRelayEntrantPlaylistDefinition
+                .SemanticIntentTacticalBuildInputHash,
+            semanticV10.CanonicalDefinition);
+        Assert.Contains("semanticIntentLabels", semanticV10.Provenance);
+        Assert.DoesNotContain("boundedRecoveryEpisodes", semanticV10.Provenance);
         Assert.Equal(9, directV9.PlaylistVersion);
         Assert.Contains(
             ArcRelayEntrantPlaylistDefinition
@@ -114,7 +130,7 @@ public sealed class ArcRelayPlaylistDefinitionTests
         var registry = new HostedGenericMatchDefinitionRegistry(
             [ArcRelayPlaylistDefinition.Create(), historicalV2, counterflow,
                 forward, recoveredStock, tacticalCounterflow, ambushV7,
-                wasmRepairV8, directV9, current]);
+                wasmRepairV8, directV9, semanticV10, current]);
         Assert.Same(historicalV2, registry.Resolve(
             ArcRelayEntrantPlaylistDefinition.PlaylistKey,
             ArcRelayEntrantPlaylistDefinition.HistoricalVersion));
@@ -139,6 +155,9 @@ public sealed class ArcRelayPlaylistDefinitionTests
         Assert.Same(directV9, registry.Resolve(
             ArcRelayEntrantPlaylistDefinition.PlaylistKey,
             ArcRelayEntrantPlaylistDefinition.DirectLadderVersion));
+        Assert.Same(semanticV10, registry.Resolve(
+            ArcRelayEntrantPlaylistDefinition.PlaylistKey,
+            ArcRelayEntrantPlaylistDefinition.SemanticIntentVersion));
         Assert.Same(current, registry.Resolve(
             ArcRelayEntrantPlaylistDefinition.PlaylistKey,
             ArcRelayEntrantPlaylistDefinition.Version));
@@ -318,7 +337,7 @@ public sealed class ArcRelayPlaylistDefinitionTests
     }
 
     [Fact]
-    public void Frozen_ambush_stocks_pin_v7_through_current_v10_bytes()
+    public void Frozen_ambush_stocks_pin_v7_through_current_v11_bytes()
     {
         string root = RepoPaths.FindUpward("BotArena.sln") is { } solution
             ? Path.GetDirectoryName(solution)!
@@ -335,6 +354,9 @@ public sealed class ArcRelayPlaylistDefinitionTests
         string semanticArtifact = Path.Combine(
             root, "arena-bots", "arc-relay", "ambush-warren-11-stock-v4",
             "bot.wasm");
+        string movementArtifact = Path.Combine(
+            root, "arena-bots", "arc-relay", "ambush-warren-11-stock-v5",
+            "bot.wasm");
         string playbook = Path.Combine(
             root, "arena-bots", "arc-relay",
             "tactical-playbook-v1-2026-08-03", "playbooks",
@@ -346,6 +368,10 @@ public sealed class ArcRelayPlaylistDefinitionTests
 
         Assert.Equal(
             ArcRelayEntrantPlaylistDefinition.TacticalArtifactHash,
+            BotBuilder.Sha256File(movementArtifact));
+        Assert.Equal(
+            ArcRelayEntrantPlaylistDefinition
+                .SemanticIntentTacticalArtifactHash,
             BotBuilder.Sha256File(semanticArtifact));
         Assert.Equal(
             ArcRelayEntrantPlaylistDefinition

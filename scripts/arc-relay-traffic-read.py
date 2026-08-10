@@ -36,6 +36,13 @@ Plus the shapes that read as bad pathing on screen:
            A->B->C that doubles back counts), and the aggregate the
            dance shows up in first. Also a share of body-ticks.
 
+  long-flaps
+           maximal A-B-A-B... runs of at least five observed frames.
+           Unlike `chokes`, these moves all SUCCEEDED; this is the detector
+           for a body visibly dancing while still denying a corridor. The
+           worst run is reported in frames so an 18-frame loop cannot hide
+           behind a zero blocked-move count.
+
 Both dance measures skip any pair of frames that is not a legal single
 step, so a respawn teleport is never counted as movement.
 
@@ -153,14 +160,19 @@ def read(path: Path, only_team):
             for body in turn['observation']['bodies']:
                 accepted = (body.get('previousActionResolution')
                             or {}).get('acceptedAction') or {}
-                history[(turn['teamId'], body['actorId']['unitId'])].append((
+                history[(
+                    turn['teamId'],
+                    body['actorId']['unitId'],
+                    body['actorId']['lifeId'],
+                )].append((
+                    tick['tick'],
                     (body['position']['x'], body['position']['y']),
                     accepted.get('actionId') in moves))
 
-    for (team, _unit), frames in history.items():
+    for (team, _unit, _life), frames in history.items():
         run = 0
-        for index, (position, commanded) in enumerate(frames):
-            if index and commanded and position == frames[index - 1][0]:
+        for index, (_tick, position, commanded) in enumerate(frames):
+            if index and commanded and position == frames[index - 1][1]:
                 run += 1
                 if run == STALL_RUN:
                     stats[team]['chokes'] += 1
@@ -170,27 +182,45 @@ def read(path: Path, only_team):
             for back in range(2, CYCLE_WINDOW + 1):
                 if index - back < 0:
                     break
-                if (frames[index][0] == frames[index - back][0]
-                        and frames[index][0] != frames[index - 1][0]):
+                if (frames[index][1] == frames[index - back][1]
+                        and frames[index][1] != frames[index - 1][1]):
                     stats[team]['cycles'] += 1
                     break
         stats[team]['body-ticks'] += len(frames)
+        flap_run_start = None
         for index in range(2, len(frames)):
-            here = frames[index][0]
-            last = frames[index - 1][0]
-            before = frames[index - 2][0]
+            tick, here, _commanded = frames[index]
+            last_tick, last, _last_commanded = frames[index - 1]
+            before_tick, before, _before_commanded = frames[index - 2]
             first = (last[0] - before[0], last[1] - before[1])
             second = (here[0] - last[0], here[1] - last[1])
-            if max(abs(first[0]), abs(first[1])) > 1:
-                continue
-            if max(abs(second[0]), abs(second[1])) > 1:
-                continue
-            if here == before and here != last:
+            legal_pair = (tick == last_tick + 1 == before_tick + 2
+                          and max(abs(first[0]), abs(first[1])) <= 1
+                          and max(abs(second[0]), abs(second[1])) <= 1)
+            flap = legal_pair and here == before and here != last
+            if flap:
                 stats[team]['flaps'] += 1
+                if flap_run_start is None:
+                    flap_run_start = index - 2
+            elif flap_run_start is not None:
+                flap_frames = index - flap_run_start
+                if flap_frames >= 5:
+                    stats[team]['long-flap-runs'] += 1
+                    stats[team]['max-flap-frames'] = max(
+                        stats[team]['max-flap-frames'], flap_frames)
+                flap_run_start = None
+            if not legal_pair:
+                continue
             if first == (0, 0) or second == (0, 0):
                 continue
             if first[0] * second[0] + first[1] * second[1] < 0:
                 stats[team]['reverse'] += 1
+        if flap_run_start is not None:
+            flap_frames = len(frames) - flap_run_start
+            if flap_frames >= 5:
+                stats[team]['long-flap-runs'] += 1
+                stats[team]['max-flap-frames'] = max(
+                    stats[team]['max-flap-frames'], flap_frames)
     return stats
 
 
@@ -207,7 +237,9 @@ def line(label, row):
         f'occupied {row["occupied"]}, other {row["other"]}] '
         f'chokes {row["chokes"]} cycles {row["cycles"]} '
         f'flaps {row["flaps"]}/{ticks} ({flap:.2f}%) '
-        f'reverse {row["reverse"]} ({reverse:.2f}%)')
+        f'reverse {row["reverse"]} ({reverse:.2f}%) '
+        f'long-flaps {row["long-flap-runs"]} '
+        f'worst {row["max-flap-frames"]}f')
 
 
 def main() -> None:
@@ -223,7 +255,10 @@ def main() -> None:
         for team in sorted(stats):
             print(line(f'{path.parent.name or path.name} t{team}', stats[team]))
             for key, value in stats[team].items():
-                totals[team][key] += value
+                if key == 'max-flap-frames':
+                    totals[team][key] = max(totals[team][key], value)
+                else:
+                    totals[team][key] += value
 
     if len(args.replays) > 1:
         print()

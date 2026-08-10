@@ -375,6 +375,15 @@ public sealed class ArcRelayPlaylistSeeder(
             cancellationToken);
         await SeedAmbushTacticalPlaybookMindVersionAsync(
             "ambush-warren-11-stock-v4",
+            ArcRelayEntrantPlaylistDefinition
+                .SemanticIntentTacticalArtifactHash,
+            ArcRelayEntrantPlaylistDefinition.StockPlaybookSourceHash,
+            ArcRelayEntrantPlaylistDefinition
+                .SemanticIntentTacticalBuildInputHash,
+            active: false,
+            cancellationToken);
+        await SeedAmbushTacticalPlaybookMindVersionAsync(
+            "ambush-warren-11-stock-v5",
             ArcRelayEntrantPlaylistDefinition.TacticalArtifactHash,
             ArcRelayEntrantPlaylistDefinition.StockPlaybookSourceHash,
             ArcRelayEntrantPlaylistDefinition.TacticalBuildInputHash,

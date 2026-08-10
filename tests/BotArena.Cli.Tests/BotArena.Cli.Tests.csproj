@@ -56,9 +56,6 @@
       Include="../../arena-bots/arc-relay/tactical-playbook-mind-v1/TacticalTaskMachine.cs"
       Link="TacticalPlaybook/TacticalTaskMachine.cs" />
     <Compile
-      Include="../../arena-bots/arc-relay/tactical-playbook-mind-v1/TacticalPlaybookJsonContext.cs"
-      Link="TacticalPlaybook/TacticalPlaybookJsonContext.cs" />
-    <Compile
       Include="../../arena-bots/arc-relay/tactical-playbook-mind-v1/TacticalCoordinationPrimitives.cs"
       Link="TacticalPlaybook/TacticalCoordinationPrimitives.cs" />
     <Compile

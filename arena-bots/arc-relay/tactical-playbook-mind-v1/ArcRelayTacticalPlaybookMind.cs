@@ -65,6 +65,12 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     private int _makeWays;
     private readonly Dictionary<int, (int LifeId, int UntilTick)>
         _disengaging = [];
+    /// <summary>Same-injury retry gate for health-triggered combat breaks.
+    /// A fresh damage event advances the recovery governor's injury revision
+    /// and bypasses it; one body remaining at the threshold cannot re-arm a
+    /// 24-tick withdraw every tick forever.</summary>
+    private readonly Dictionary<int, (ActorIdentity Actor, int InjuryRevision,
+        int RetryAtTick)> _healthBreakRetries = [];
     private readonly Dictionary<int, (int LifeId, Position Rally)>
         _withdrawRallies = [];
     /// <summary>Get-behind positioning budgets (commit.approach): when the
@@ -129,9 +135,19 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     /// gates on its size and its assignment row selects from its members.
     /// </summary>
     private readonly HashSet<int> _recovering = [];
+    /// <summary>Finite recover attempts keyed to one exact injury event.
+    /// </summary>
+    private readonly RecoveryEpisodeGovernor _recoveryEpisodes = new();
     /// <summary>Why each hurt body did or did not qualify, for the debug
     /// line — a gate nobody can see is a gate nobody can tune.</summary>
     private readonly List<string> _recoverTrace = [];
+
+    /// <summary>Persistent allied-traffic progress shared by the greedy and
+    /// coordinated steppers. The stepper chooses a tile; this ledger decides
+    /// when a repeatedly denied high-level intent earns temporary passage.
+    /// </summary>
+    private readonly TacticalTrafficGovernor _traffic = new();
+    private readonly TacticalOscillationGovernor _oscillation = new();
 
     /// <summary>Units that held their ground on a lit tile this tick because
     /// a teammate is on the firing line ahead of them. Rebuilt every tick —
@@ -414,7 +430,82 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                         CoreKey(core.CoreId)))
                     .ToArray(),
                 out HashSet<string> openSourceWells);
-        var claims = ArenaBasics.Claims.ForTick(contract, mind, _stepper);
+
+        // High-level intents stay in the sheet; bounded allied traffic is an
+        // executor responsibility. Publish each body's ACTUAL movement goal
+        // to one persistent progress ledger before either stepper plans. A
+        // collector points at its assigned Core, a carrier at its delivery
+        // destination, and everybody else at the resolved doctrine target.
+        // Recovering/withdrawing/following bodies never earn a ticket: those
+        // are yielding movements, not a reason to own a choke.
+        var trafficSteps = new Dictionary<int, Position>();
+        var yieldingTraffic = new HashSet<int>();
+        var trafficSamples = new List<TacticalTrafficGovernor.Sample>();
+        foreach (MindBody body in mind.Bodies.OrderBy(value => value.UnitId))
+        {
+            TacticalPlaybookPackage.Order order = orders[body.UnitId];
+            bool carrying = carried.ContainsKey(body.ActorId);
+            bool yielding = string.Equals(
+                    order.Movement.Kind, "heal-beacon", StringComparison.Ordinal)
+                || DisengageLatched(mind, body)
+                || order.Follow is not null;
+            if (yielding)
+                yieldingTraffic.Add(body.UnitId);
+
+            Position goal;
+            string intentId = order.OrderId;
+            if (carrying)
+            {
+                goal = CarrierDestination(package, orders, body);
+                intentId += ":delivery";
+            }
+            else if (pickupAssignments.TryGetValue(
+                         body.UnitId,
+                         out GenericActorContext.ArcRelayCoreState? pickup))
+            {
+                goal = pickup.Position;
+                intentId += $":pickup:{CoreKey(pickup.CoreId)}";
+            }
+            else
+            {
+                goal = targets[body.UnitId];
+            }
+            Position? first = ArenaBasics.StaticFirstStep(
+                contract, mind, body, goal);
+            if (first is Position step)
+                trafficSteps[body.UnitId] = step;
+            bool blockedByAlly = first is Position wanted
+                && mind.Bodies.Any(other =>
+                    other.UnitId != body.UnitId
+                    && other.Position == wanted);
+            bool protectedChannel = carrying
+                || escortRank.ContainsKey(body.UnitId)
+                || focus.ContainsKey(body.UnitId)
+                || repairs.ContainsKey(body.UnitId)
+                || mind.Enemies.Any(enemy =>
+                    enemy.Position.ChebyshevDistance(body.Position) <= 2);
+            trafficSamples.Add(new TacticalTrafficGovernor.Sample(
+                body.ActorId,
+                intentId,
+                goal,
+                ArenaBasics.StaticDistance(
+                    contract.Map, body.Position, goal),
+                AttemptedMovementLastTick(contract, body),
+                blockedByAlly,
+                MayAge: !yielding && !protectedChannel && body.Position != goal));
+        }
+        _traffic.Observe(mind.Tick, trafficSamples);
+        _oscillation.Observe(
+            mind.Tick,
+            mind.Bodies
+                .Select(body => new TacticalOscillationGovernor.Sample(
+                    body.ActorId,
+                    body.Position,
+                    body.PreviousPosition,
+                    body.MovedLastTick))
+                .ToArray());
+        var claims = ArenaBasics.Claims.ForTick(
+            contract, mind, _stepper, _oscillation);
         // Rooted shooter, committed unless disengage triggers (owner ruling
         // 2026-08-07). A body winding up its OWN declared strike does not
         // move — any move abandons the declare, so a dodge, a formation
@@ -477,11 +568,16 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     ? ArenaBasics.Claims.LeaderRank
                     : ArenaBasics.Claims.FollowerRank + escort - 1;
             }
-            else if (focus.ContainsKey(body.UnitId)
-                || mind.Enemies.Any(enemy =>
-                    enemy.Position.ChebyshevDistance(body.Position) <= 2))
+            else if (!yieldingTraffic.Contains(body.UnitId)
+                && (focus.ContainsKey(body.UnitId)
+                    || mind.Enemies.Any(enemy =>
+                        enemy.Position.ChebyshevDistance(body.Position) <= 2)))
             {
                 rank = ArenaBasics.Claims.FighterRank;
+            }
+            else if (_traffic.HasTicket(body.UnitId))
+            {
+                rank = _traffic.Rank(body.UnitId);
             }
             else
                 rank = ArenaBasics.Claims.RestRank;
@@ -554,12 +650,12 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         // parked body aside — instead of the mover curving around a teammate
         // with open ground beside it.
         //
-        // Parked is read off the body, not inferred: `MovedLastTick` is
-        // false. That covers every way of standing still — on post, holding
-        // a duel, sweeping a facing, stuck — without the mind having to
-        // predict which channel a body is about to take, and it is one tick
-        // of history the observation already carries rather than a counter
-        // the mind keeps.
+        // Ordinary politeness still asks only a PARKED body, read directly
+        // from `MovedLastTick`. The one deliberate widening is a traffic
+        // ticket: after a stable intent has repeatedly failed to make map
+        // progress, it may ask a LOWER-precedence moving body too. That is
+        // the bounded answer to two bodies trading the same choke forever;
+        // carriers, leaders and active fighters remain above every ticket.
         //
         // Request-driven and nothing else: a parked body nobody needs is
         // never touched, which is what keeps this from becoming the no-idle
@@ -568,27 +664,19 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         // asked, because its tile clears within the tick anyway and the
         // cheap answer is for the mover to wait one tick rather than for a
         // third body to be moved.
-        var wants = new Dictionary<int, Position>();
-        foreach (MindBody body in mind.Bodies)
-        {
-            Position? step = carrierSteps.TryGetValue(
-                body.UnitId, out Position carrierStep)
-                ? carrierStep
-                : ArenaBasics.StaticFirstStep(
-                    contract, mind, body, targets[body.UnitId]);
-            if (step is Position tile)
-                wants[body.UnitId] = tile;
-        }
+        var wants = new Dictionary<int, Position>(trafficSteps);
+        foreach ((int unitId, Position carrierStep) in carrierSteps)
+            wants[unitId] = carrierStep;
         foreach (MindBody body in mind.Bodies.OrderBy(body => body.UnitId))
         {
             if (!wants.TryGetValue(body.UnitId, out Position wanted))
                 continue;
-            MindBody? parked = mind.Bodies.FirstOrDefault(other =>
+            MindBody? blocker = mind.Bodies.FirstOrDefault(other =>
                 other.UnitId != body.UnitId
                 && other.Position == wanted
-                && !other.MovedLastTick
+                && (!other.MovedLastTick || _traffic.HasTicket(body.UnitId))
                 && claims.YieldsTo(other.UnitId, body.UnitId));
-            if (parked is not null)
+            if (blocker is not null)
                 claims.Demand(wanted, body.UnitId);
         }
         foreach (MindBody body in mind.Bodies
@@ -794,6 +882,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             }
             if (!acted)
                 Hold(body, Provenance(machine, group, order, "exhausted"));
+            ReconcileRecoveryMovement(
+                contract, mind, body, order, claims);
         }
 
         mind.Debug.Write(
@@ -817,6 +907,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 .Select(value => $"{value.Key}:{value.Value}")) + "; "
             + "recover=" + (_recoverTrace.Count == 0
                 ? "-" : string.Join(",", _recoverTrace)) + "; "
+            + _traffic.TraceSummary + "; "
+            + _oscillation.TraceSummary + "; "
             + $"make-ways={_makeWays}; "
             + "covered=" + (_covered.Count == 0
                 ? "-" : string.Join(",", _covered.Order())) + "; "
@@ -1534,10 +1626,10 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     /// tick for every own body. A body qualifies when it is HURT, a heal
     /// beacon is COLD, and either that beacon is within
     /// <see cref="RecoverReach"/> or the body is one hit from dead - which is
-    /// worth any walk. There is no separate "stop" rule: healing to full
-    /// clears the first clause and an enemy arriving clears the second, so
-    /// "hold until full or enemy contact" falls out of the predicate itself
-    /// and the generated recover task fails the tick it empties.
+    /// worth any walk. The qualifying fact enters a bounded recovery episode:
+    /// healing to full ends it, an unsafe/preempted attempt stops it, and one
+    /// unchanged injury cannot immediately re-enter. A fresh health loss is a
+    /// new trigger and bypasses that same-injury cooldown.
     /// </summary>
     private void UpdateRecovering(
         GenericActorResolvedMatchContract contract,
@@ -1547,9 +1639,34 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         _recoverTrace.Clear();
         foreach (MindBody body in mind.Bodies)
         {
-            if (body.Health >= MaxHealth(contract, body))
+            int maximumHealth = MaxHealth(contract, body);
+            if (body.Health >= maximumHealth)
+            {
+                _recoveryEpisodes.Observe(
+                    body.ActorId,
+                    mind.Tick,
+                    body.Health,
+                    maximumHealth,
+                    otherwiseEligible: false);
                 continue;
-            if (RecoverBeacon(mind, body) is not Position beacon)
+            }
+
+            Position? chosen = _recoveryEpisodes.Target(body.ActorId)
+                ?? RecoverBeacon(mind, body);
+            bool inReach = chosen is Position beacon
+                && (body.Position.ChebyshevDistance(beacon) <= RecoverReach
+                    || body.Health <= 1);
+            bool eligible = chosen is Position recoverTarget
+                && RecoverTargetEligible(mind, body, recoverTarget);
+            RecoveryEpisodeGovernor.Admission admission =
+                _recoveryEpisodes.Observe(
+                    body.ActorId,
+                    mind.Tick,
+                    body.Health,
+                    maximumHealth,
+                    otherwiseEligible: inReach && eligible,
+                    candidateTarget: chosen);
+            if (chosen is null)
             {
                 _recoverTrace.Add($"{body.UnitId}:"
                     + (mind.Enemies.Any(enemy =>
@@ -1558,10 +1675,19 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                         ? "contact" : "watched"));
                 continue;
             }
-            if (body.Position.ChebyshevDistance(beacon) > RecoverReach
-                && body.Health > 1)
+            if (!inReach)
             {
                 _recoverTrace.Add($"{body.UnitId}:far");
+                continue;
+            }
+            if (!admission.Admitted)
+            {
+                _recoverTrace.Add($"{body.UnitId}:{admission.Reason}");
+                continue;
+            }
+            if (admission.Target is not Position target)
+            {
+                _recoverTrace.Add($"{body.UnitId}:no-target");
                 continue;
             }
             _recovering.Add(body.UnitId);
@@ -1569,8 +1695,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             // choice nobody can check, and this exact line is the evidence
             // that a desperate body still walks to the COLD one.
             _recoverTrace.Add(
-                $"{body.UnitId}:ready@{beacon.X}-{beacon.Y}"
-                + $"h{BeaconHeat(mind, beacon)}"
+                $"{body.UnitId}:ready@{target.X}-{target.Y}"
+                + $"h{BeaconHeat(mind, target)}"
                 + $"/{string.Join("|", _healTiles
                     .Select(tile => $"{tile.X}-{tile.Y}h{BeaconHeat(mind, tile)}"))}");
         }
@@ -1623,6 +1749,64 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             .ThenBy(candidate => ArenaBasics.FrameX(candidate.Tile, _mirrored))
             .Select(candidate => (Position?)candidate.Tile)
             .FirstOrDefault();
+    }
+
+    private bool RecoverTargetEligible(
+        MindContext mind,
+        MindBody body,
+        Position target)
+    {
+        if (_contract is not { } contract)
+            return false;
+        bool desperate = body.Health <= 1;
+        return ArenaBasics.StaticDistance(
+                contract.Map, body.Position, target) is not null
+            && (desperate || BeaconHeat(mind, target) == 0)
+            && (desperate || mind.Enemies.All(enemy =>
+                enemy.Position.ChebyshevDistance(body.Position)
+                    > RecoverContact));
+    }
+
+    /// <summary>
+    /// Recovery is one attempt at one latched beacon, not a standing excuse
+    /// for two movement authorities to pull the body in opposite directions.
+    /// Every movement command passes through Claims.Commit, so a committed
+    /// step that does not strictly reduce terrain distance to that beacon is
+    /// concrete evidence that safety, combat, or traffic preempted the
+    /// attempt. End it and let the same-injury retry clock run; a later fresh
+    /// hit still bypasses that clock through the injury revision.
+    /// </summary>
+    private void ReconcileRecoveryMovement(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind,
+        MindBody body,
+        TacticalPlaybookPackage.Order order,
+        ArenaBasics.Claims claims)
+    {
+        if (!string.Equals(
+                order.Movement.Kind, "heal-beacon", StringComparison.Ordinal)
+            || !claims.CommittedDestination(
+                body.UnitId, out Position destination)
+            || _recoveryEpisodes.Target(body.ActorId) is not Position target)
+        {
+            return;
+        }
+
+        int? before = ArenaBasics.StaticDistance(
+            contract.Map, body.Position, target);
+        int? after = ArenaBasics.StaticDistance(
+            contract.Map, destination, target);
+        if (before is int current
+            && after is int next
+            && next < current)
+        {
+            return;
+        }
+
+        _recoveryEpisodes.Interrupt(
+            body.ActorId, mind.Tick, "movement-preempted");
+        _recovering.Remove(body.UnitId);
+        _recoverTrace.Add($"{body.UnitId}:stop-movement-preempted");
     }
 
     /// <summary>
@@ -2013,7 +2197,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 contract, mind, package, order, body),
             "secured-core" => SecuredCoreTarget(
                 package, order),
-            "heal-beacon" => RecoverBeacon(mind, body) ?? body.Position,
+            "heal-beacon" => _recoveryEpisodes.Target(body.ActorId)
+                ?? body.Position,
             "hold" => body.Position,
             _ => throw new InvalidDataException(
                 $"Unknown movement kind '{order.Movement.Kind}'."),
@@ -3718,21 +3903,46 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         (int LifeId, int UntilTick) latch =
             _disengaging.GetValueOrDefault(body.UnitId);
         bool active = DisengageLatched(mind, body);
+        TacticalPlaybookPackage.CommitDisengageWhen? disengageWhen =
+            commit.DisengageWhen;
+        bool threatTriggered = disengageWhen is not null
+            && disengageWhen.Threats > 0
+            && threats >= disengageWhen.Threats;
+        bool healthTriggered = disengageWhen is not null
+            && disengageWhen.Health > 0
+            && body.Health <= disengageWhen.Health;
+        int injuryRevision = _recoveryEpisodes.InjuryRevision(body.ActorId);
+        (ActorIdentity Actor, int InjuryRevision, int RetryAtTick) healthRetry =
+            _healthBreakRetries.GetValueOrDefault(body.UnitId);
+        bool sameInjuryCooling = healthTriggered
+            && healthRetry.Actor == body.ActorId
+            && healthRetry.InjuryRevision == injuryRevision
+            && mind.Tick < healthRetry.RetryAtTick;
         // Disengagement is a BREAK, never a retirement (the ab70 lesson:
         // a while-threats-persist latch parked the ghost for 250 ticks at
         // a hot home front, because a losing side's home always has
         // threats). The latch runs a fixed recovery window and expires
-        // unconditionally; it can re-trip only after expiry.
+        // unconditionally. A health-triggered break then observes the same
+        // finite retry gate as recovery itself: remaining at one health is
+        // one trigger, while healing and taking a fresh hit is a new trigger
+        // and may break immediately.
         if (!active
-            && commit.DisengageWhen is { } disengage
-            && (disengage.Threats > 0 && threats >= disengage.Threats
-                || disengage.Health > 0 && body.Health <= disengage.Health)
+            && disengageWhen is { } disengage
+            && (threatTriggered || healthTriggered && !sameInjuryCooling)
             && latch.UntilTick != mind.Tick)
         {
             active = true;
             _disengaging[body.UnitId] = (
                 body.ActorId.LifeId,
                 mind.Tick + disengage.RecoverTicks);
+            if (healthTriggered)
+            {
+                _healthBreakRetries[body.UnitId] = (
+                    body.ActorId,
+                    injuryRevision,
+                    mind.Tick + disengage.RecoverTicks
+                        + RecoveryEpisodeGovernor.RetryCooldownTicks);
+            }
         }
         // Cornered (owner design 2026-08-07): "fighting until there's an
         // exit path is the way." A latched body with nowhere to step is not
@@ -4673,7 +4883,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         {
             if (ArenaBasics.TryMoveDirect(
                     contract, mind, body, candidate, claims,
-                    "strike-evacuation"))
+                    "strike-evacuation",
+                    TacticalMovementAuthority.Safety))
             {
                 return true;
             }
@@ -4764,7 +4975,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 body,
                 [_ownReactor],
                 claims,
-                "support:survival-regroup"),
+                "support:survival-regroup",
+                TacticalMovementAuthority.Safety),
             "hold" => Hold(body, "support:survival-hold"),
             "self-defense" => false,
             _ => throw new InvalidDataException(
@@ -5100,7 +5312,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                         package.AnchorPosition(order.Movement.Target))
                     <= order.Movement.ChaseLeash),
         "secured-core" => SecuredCoreAvailable(package, order),
-        "heal-beacon" => RecoverBeacon(mind, body) is not null,
+        "heal-beacon" => _recovering.Contains(body.UnitId),
         _ => true,
     };
 
@@ -6187,6 +6399,19 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     {
         body.Hold(reason);
         return true;
+    }
+
+    private static bool AttemptedMovementLastTick(
+        GenericActorResolvedMatchContract contract,
+        MindBody body)
+    {
+        string? actionId = body.PreviousActionResolution
+            ?.AcceptedAction.ActionId;
+        return actionId is not null
+            && contract.Rules.Actions.Any(action =>
+                string.Equals(action.Id, actionId, StringComparison.Ordinal)
+                && action.Kind
+                    == GenericActorRulesContract.ActionKind.Movement);
     }
 
     /// <summary>

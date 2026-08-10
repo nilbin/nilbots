@@ -241,8 +241,15 @@ A plain patrol/assault string names a route. The object form names exactly one
 route or zone. A route literally named `traffic` selects the executor's enemy-
 traffic shadowing movement and must still exist in the layout.
 
-`recover` is active only while that body needs and can use recovery. `fetch` is
-a movement-only overlay: when an eligible loose Core exists, a fetch rung may
+`recover` is active only while that body needs and can use recovery. One
+activation is a 24-tick attempt at one latched beacon. Healing to full ends it;
+an unsafe beacon, a timeout, or actual movement away from that beacon ends the
+attempt and starts a 24-tick cooldown for that same injury. A fresh health loss
+is a new trigger and bypasses the remaining cooldown. These are fixed executor
+semantics, not authored timing fields: ladder position still decides whether
+recovery outranks the body's other eligible modes.
+
+`fetch` is a movement-only overlay: when an eligible loose Core exists, a fetch rung may
 pre-empt the selected ordinary rung only if it appears earlier in the list.
 The ordinary rung's fight and facing behavior remain in force during the fetch.
 
@@ -467,7 +474,7 @@ The layout has exactly:
 schema  layoutId  mapId  bindings  zones  routes  anchors
 ```
 
-Current hosted v10 accepts the native Warren map only:
+Current hosted v11 accepts the native Warren map only:
 `arc-relay-ambush-warren-06` (31×27). Coordinates are absolute canonical map
 tiles. The same authored geometry serves both teams through side bindings.
 

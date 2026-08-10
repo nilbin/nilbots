@@ -7109,3 +7109,43 @@ chimney top plates use the same dark forged response. Orange functional light
 remains unchanged.
 These are presentation-only corrections; gameplay and replay identity remain
 unchanged.
+
+## 274. Tactical movement has bounded episodes and persistent right-of-way
+
+Executor ruling (2026-08-10). A high-level doctrine chooses what a body is
+trying to do; the executor must keep two local authorities from converting that
+intent into an unbounded A-B loop or an allied choke denial. This is a generic
+movement invariant. It names no Hunter role, route, map coordinate, class, or
+sheet.
+
+`recover` runs as a 24-tick exact-life episode at one latched beacon. Full
+health completes it. An unsafe beacon, timeout, or committed movement that does
+not strictly reduce terrain distance to that beacon ends it and starts a
+24-tick cooldown for the same injury. Any fresh health loss advances the injury
+revision and may trigger recovery immediately. Health-triggered combat
+break-off uses the same same-injury retry rule, so an unchanged one-health body
+cannot alternate recovery and withdrawal forever.
+
+Ordinary stable intents earn a deterministic traffic ticket only after two
+ally-blocked observations on their terrain-shortest next step. Tickets last at
+most 12 ticks, release after two strict progress steps, and are ordered by
+activation tick then unit id. They never outrank a carrier, leader, active
+fight, repair, recovery, or follower. Two consecutive successful A-B reversals
+also block the just-vacated tile from every movement authority for three ticks.
+A first safety or explicit make-way displacement lends its origin only against
+ordinary tactical snap-back; repeated safety, carrier, or clearance reversals
+trip the hard breaker too. Every action keeps a nonempty causal reason; traffic
+and oscillation state are present in the mind trace.
+
+The successful-motion diagnostic now reports maximal `long-flaps` separately
+from blocked-move `chokes`. On the owner-caught Hunter/Wellwright seed 9001,
+the old west team had 38 long-flap runs with an 18-frame worst run. With this
+policy the same cell has none under either stepper, and both complete six-cell
+exhibits have none on either team; these are mechanism reads, not a balance
+claim. Greedy in-process and WASM execution have the same gameplay-state digest
+`d4062e2bdf99a3ef56eae45bd95e10a7c45e659060c31c30eacbd2865f7e0794`.
+
+The WASM bytes change, so playlist v10 and frozen stock v4 remain immutable.
+Playlist v11 pins frozen stock v5. Rules, map, sheets, and sheet grammar are
+unchanged, so the open Season 1 rating book continues from the most recent
+registered v8-v10 ladder and may never skip a registered intermediate version.

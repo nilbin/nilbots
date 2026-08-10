@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
 using BotArena.Sdk;
 
 internal sealed class TacticalPlaybookPackage
@@ -898,3 +899,10 @@ internal sealed class TacticalPlaybookPackage
 
     internal sealed record Anchor(string AnchorId, int[] Position);
 }
+
+[JsonSourceGenerationOptions(
+    PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
+    UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow)]
+[JsonSerializable(typeof(TacticalPlaybookPackage.Playbook))]
+[JsonSerializable(typeof(TacticalPlaybookPackage.Layout))]
+internal sealed partial class TacticalPlaybookJsonContext : JsonSerializerContext;
