@@ -56,10 +56,17 @@
 # Timing on the reference machine: ~2s per match, ~10s per broadcast
 # (parallel), one gallery build ~20s. Six cells land in ~1 minute.
 #
-# Cache rule: this script deliberately reuses $BATTERY_OUT/botarena-pub.
-# After changing src/ (engine, CLI, or compiler), remove that directory
-# before running again. Changes under arena-bots/ need no republish: minds
-# compile in-process per match.
+# Cache rule: this script deliberately reuses $BATTERY_OUT/botarena-pub, but
+# republishes by itself when src/ (engine, CLI, or compiler) is newer than
+# the cached binary, so a stale engine cannot silently produce the exhibit.
+# Changes under arena-bots/ need no republish: minds compile in-process per
+# match.
+#
+# The same rule applies to the VIEWER, and it is easier to miss: the gallery
+# serves `web/dist`, which is gitignored and only ever copied, never built
+# here. After changing web/src, run `npm run build` in web/ or the gallery
+# ships the old viewer and your change looks like it was never made. The
+# gallery builder now refuses a stale bundle rather than serving one.
 #
 # This is an EXHIBIT, not a battery. Its outcomes describe these six games
 # and are not a balance verdict.
@@ -80,8 +87,22 @@ PUB=$OUTDIR/botarena-pub
 LOOP_PROFILE=${EXHIBIT_LOOP_PROFILE:-ambush-warren-11}
 mkdir -p "$OUTDIR"
 
+# Republish when the cache predates src/, not only when it is absent. The
+# reuse is a real saving and worth keeping, but "remove the directory
+# yourself after changing src/" is a rule that gets forgotten exactly when
+# it matters: an exhibit was handed over showing all six cells grinding to
+# max-ticks on an engine five hours behind the fixes under review, which is
+# a wrong answer that looks like a finding rather than like a mistake.
+# Slow and right beats fast and stale — the check costs one `find`.
 if [ ! -x "$PUB/botarena" ]; then
   echo "publishing CLI (first run only)..."
+  dotnet publish "$REPO/src/BotArena.Cli" -c Release -o "$PUB" >/dev/null
+# `obj/` and `bin/` are pruned because publish writes them after the binary
+# it just produced, so an unpruned search always matches and the cache would
+# republish every run — a check that never passes is as useless as none.
+elif [ -n "$(find "$REPO/src" \( -type d \( -name obj -o -name bin \) -prune \) -o \
+             \( -type f -newer "$PUB/botarena" -print -quit \) 2>/dev/null)" ]; then
+  echo "src/ is newer than the published binary — republishing..."
   dotnet publish "$REPO/src/BotArena.Cli" -c Release -o "$PUB" >/dev/null
 fi
 

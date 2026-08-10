@@ -465,6 +465,42 @@ def enforce_arc_relay_eligibility(
         )
 
 
+def require_fresh_viewer(template_path: Path) -> None:
+    """Refuse to ship a hosted bundle older than the viewer source.
+
+    `web/dist` is gitignored and this builder only ever *copies* it — nothing
+    in the exhibit path builds it. So a viewer change lands in `web/src`,
+    every test passes, the branch is clean, and the gallery still serves
+    whatever bundle happened to be on that machine. The failure is silent and
+    reads exactly like the feature was never written: a fog-of-war toggle was
+    reported missing from galleries when the source, the commit and the branch
+    all had it, and only the bundle was three hours stale.
+
+    mtime, not content hash, because a `git checkout` legitimately makes the
+    old bundle suspect even when the bytes would match — after a branch switch
+    the honest answer is "rebuild", and rebuilding is seconds.
+    """
+    src = REPO / "web" / "src"
+    if not src.is_dir():
+        return
+    built = template_path.stat().st_mtime
+    newer = [path for path in src.rglob("*")
+             if path.is_file() and path.stat().st_mtime > built]
+    if not newer:
+        return
+    newest = max(newer, key=lambda path: path.stat().st_mtime)
+    raise SystemExit(
+        f"{template_path.parent} is older than the viewer source "
+        f"({len(newer)} file(s) newer, most recently "
+        f"{newest.relative_to(REPO)}).\n"
+        "The gallery would serve a stale viewer and the change would look "
+        "like it was never made. Run `npm run build` in web/ "
+        "(or `npx vite build` for the hosted bundle alone), then rebuild the "
+        "gallery. Pass --allow-stale-viewer only if the stale bundle is the "
+        "point."
+    )
+
+
 def build(args: argparse.Namespace) -> None:
     # Multiple --sample manifests merge into one blind sequence. The order
     # is a deterministic hash shuffle: concatenation order would otherwise
@@ -507,6 +543,8 @@ def build(args: argparse.Namespace) -> None:
         if not template_path.exists():
             raise SystemExit(
                 f"{template_path} missing — build the selected hosted viewer")
+        if not args.allow_stale_viewer:
+            require_fresh_viewer(template_path)
         # Everything `web/dist` ships beside the entry point comes along,
         # DIRECTORIES INCLUDED. Copying `assets/` plus the loose files was
         # the whole gallery's audio bug: Vite bundles the three sound-effect
@@ -678,6 +716,10 @@ def main() -> int:
                         help="hosted viewer build directory (default: web/dist)")
     parser.add_argument("--theme", default="control-room",
                         help="dist-cli theme for self-contained mode")
+    parser.add_argument("--allow-stale-viewer", action="store_true",
+                        help="ship a hosted bundle older than web/src instead "
+                             "of failing (only when the stale viewer is the "
+                             "point, e.g. a before/after comparison)")
     parser.add_argument("--review-panel", action="store_true")
     parser.add_argument("--review-protocol", default="outcome-blind-review-v1",
                         help="protocol id stamped into the exported record")
