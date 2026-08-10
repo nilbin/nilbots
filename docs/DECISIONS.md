@@ -7206,5 +7206,6 @@ to
 `3cd9cfdb58e758eb5aa2437e64c7f718e8ddb9a84502cbb5a73852cdcfeb0496`.
 The open v12 rating book therefore does not continue: v13 starts every opted-in
 entrant at the default rating and preserves v12 ratings and matches as readable
-history. Rules, map, sheets, grammar, and their contract fingerprints do not
-change.
+history. Hosted rules, map, Wellwright sheet, grammar, and their contract
+fingerprints do not change; only the Drawbench evaluation route is restored as
+the adversarial exhibit fixture.
