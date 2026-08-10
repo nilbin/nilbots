@@ -3064,7 +3064,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         string cause,
         out Position destination,
         out TacticalRouteGovernor.CourseStep step,
-        out string trace)
+        out string trace,
+        bool requireOpenCandidate = false)
     {
         destination = body.Position;
         step = new TacticalRouteGovernor.CourseStep(
@@ -3098,6 +3099,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         foreach ((int to, int lap) in candidates)
         {
             Position candidate = route[to];
+            if (requireOpenCandidate && impossible.Contains(candidate))
+                continue;
             Position[]? course = ArenaBasics.StaticRouteCourse(
                 contract, body, candidate, impossible, _mirrored);
             // Reaching a point already underfoot does not solve a move order;
@@ -5437,6 +5440,119 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 : 0;
         _motion[body.UnitId] = new MotionProgress(
             body.ActorId, order.OrderId, body.Position, motion.Position, stuck);
+        // Route hysteresis owns direction, not the occupied ground in front
+        // of it. After the authored recovery window, ordinary traffic gets
+        // one bounded local bypass that rejoins the SAME held terrain course
+        // ahead. A same-course detour leaves cursor, lap and waypoint intact;
+        // a detour around an occupied endpoint may advance only to a later
+        // waypoint in the same direction. The ordinary arbiter first treats
+        // same-tick claims as a queue; reaching
+        // this bounded window proves that waiting did not clear it, so the
+        // held route may now route around every occupied/claimed tile.
+        if (stuck >= order.Movement.StuckTicks
+            && string.Equals(
+                order.Movement.Kind, "route", StringComparison.Ordinal)
+            && _routeSteps.TryGetValue(
+                body.UnitId,
+                out TacticalRouteGovernor.CourseStep? blockedRoute)
+            && blockedRoute.Next is Position occupiedStep)
+        {
+            bool occupiedByTraffic = mind.Bodies.Any(candidate =>
+                    candidate.UnitId != body.UnitId
+                    && candidate.Position == occupiedStep)
+                || mind.Allies.Any(candidate =>
+                    candidate.ActorId != body.ActorId
+                    && candidate.Position == occupiedStep)
+                || mind.Enemies.Any(candidate =>
+                    candidate.Position == occupiedStep)
+                || claims.Committed.Contains(occupiedStep)
+                || claims.Lanes.ContainsKey(occupiedStep);
+            if (occupiedByTraffic)
+            {
+                HashSet<Position> blockedNow = ArenaBasics.BlockedNow(
+                    contract,
+                    mind,
+                    body,
+                    claims,
+                    avoidHostileProjectiles: false);
+                blockedNow.UnionWith(ArenaBasics.PersistentRouteObstacles(
+                    contract, mind, body.ActorId.TeamId));
+                blockedNow.Remove(body.Position);
+                TacticalRouteGovernor.CourseStep detour =
+                    _routeGovernor.TryTrafficDetour(
+                        body.ActorId,
+                        body.Position,
+                        package.RouteCorridorWidth(order.Movement.Target),
+                        rejoin => blockedNow.Contains(rejoin)
+                            ? null
+                            : ArenaBasics.StaticRouteCourse(
+                                contract,
+                                body,
+                                rejoin,
+                                blockedNow,
+                                _mirrored));
+                _routeSteps[body.UnitId] = detour;
+                string detourReason = MovementProvenance(
+                    machine, group, order, detour.Trace, target);
+                if (detour.Trace.StartsWith(
+                        "route-detour-commit-",
+                        StringComparison.Ordinal)
+                    && detour.Next is Position detourStep
+                    && ArenaBasics.TryMoveDirect(
+                        contract,
+                        mind,
+                        body,
+                        detourStep,
+                        claims,
+                        detourReason))
+                {
+                    return true;
+                }
+                // The held terrain course ends at the current authored
+                // waypoint. If traffic occupies that endpoint there is no
+                // later tile in this course to rejoin, so continue FORWARD
+                // to the next authored waypoint while treating the same
+                // traffic as transient walls. The cursor and lap remain
+                // monotonic; this cannot choose the other way around a loop.
+                if (TryPlanLaterRouteWaypoint(
+                        contract,
+                        package,
+                        order,
+                        body,
+                        blockedNow,
+                        "traffic",
+                        out Position later,
+                        out TacticalRouteGovernor.CourseStep replacement,
+                        out string bypass,
+                        requireOpenCandidate: true))
+                {
+                    replacement = replacement with
+                    {
+                        Trace = bypass.Replace(
+                            "route-bypass-traffic",
+                            "route-detour-waypoint",
+                            StringComparison.Ordinal)
+                            + $":{replacement.Trace}",
+                    };
+                    _routeSteps[body.UnitId] = replacement;
+                    string replacementReason = MovementProvenance(
+                        machine, group, order, replacement.Trace, later);
+                    if (replacement.Next is Position replacementStep
+                        && ArenaBasics.TryMoveDirect(
+                            contract,
+                            mind,
+                            body,
+                            replacementStep,
+                            claims,
+                            replacementReason))
+                    {
+                        return true;
+                    }
+                    return Hold(body, $"{replacementReason}:blocked");
+                }
+                return Hold(body, $"{detourReason}:blocked");
+            }
+        }
         if (stuck >= order.Movement.StuckTicks)
         {
             switch (order.Movement.StuckRecovery)

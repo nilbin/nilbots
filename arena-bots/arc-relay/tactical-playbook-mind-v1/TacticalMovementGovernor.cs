@@ -130,6 +130,48 @@ public sealed class TacticalRouteGovernor
                 actor, orderId, routeId, lap, waypoint,
                 position, destination, plan);
         }
+        else if (prior.Detour.Length > 0)
+        {
+            state = prior;
+            Position rejoin = state.Course[state.DetourRejoinIndex];
+            if (position == rejoin)
+            {
+                reason = "route-detour-rejoined";
+                state = state with
+                {
+                    NextIndex = Math.Max(
+                        state.NextIndex,
+                        state.DetourRejoinIndex + 1),
+                    Detour = [],
+                    DetourNextIndex = 0,
+                    DetourRejoinIndex = -1,
+                };
+            }
+            else
+            {
+                int current = CourseIndex(
+                    state.Detour,
+                    state.DetourNextIndex,
+                    position);
+                if (current < 0 || current + 1 < state.DetourNextIndex)
+                {
+                    reason = "route-rejoin";
+                    state = Start(
+                        actor, orderId, routeId, lap, waypoint,
+                        position, destination, plan);
+                }
+                else
+                {
+                    reason = "route-detour-held";
+                    state = state with
+                    {
+                        DetourNextIndex = Math.Max(
+                            state.DetourNextIndex,
+                            current + 1),
+                    };
+                }
+            }
+        }
         else
         {
             state = prior;
@@ -149,18 +191,14 @@ public sealed class TacticalRouteGovernor
             }
         }
 
-        Position? next = state.NextIndex < state.Course.Length
-            ? state.Course[state.NextIndex]
-            : null;
+        Position? next = Next(state);
         if (next is Position blocked && impossible(blocked))
         {
             reason = "route-replan-impossible";
             state = Start(
                 actor, orderId, routeId, lap, waypoint,
                 position, destination, plan);
-            next = state.NextIndex < state.Course.Length
-                ? state.Course[state.NextIndex]
-                : null;
+            next = Next(state);
         }
 
         _states[actor.UnitId] = state;
@@ -175,6 +213,86 @@ public sealed class TacticalRouteGovernor
                 ? $"{reason}-no-path"
                 : $"{reason}-arrived";
         return new CourseStep(next, trace, disposition);
+    }
+
+    /// <summary>
+    /// Tries one bounded traffic detour without changing the held route,
+    /// waypoint, lap, or terrain course. A successful detour rejoins a later
+    /// tile of that exact course; a failed attempt returns the held step with
+    /// an explicit wait trace. The caller owns the transient-obstacle view and
+    /// the authored corridor budget.
+    /// </summary>
+    public CourseStep TryTrafficDetour(
+        ActorIdentity actor,
+        Position position,
+        int maximumExtraSteps,
+        Func<Position, Position[]?> plan)
+    {
+        State? state = _states.GetValueOrDefault(actor.UnitId);
+        if (state is null || state.Actor != actor || state.Course.Length == 0)
+        {
+            return new CourseStep(
+                null,
+                "route-detour-considered-wait-no-course",
+                CourseDisposition.NoPath);
+        }
+
+        Position? held = Next(state);
+        if (state.Detour.Length > 0)
+        {
+            return Step(
+                state,
+                "route-detour-considered-wait-active");
+        }
+
+        int current = CourseIndex(state, position);
+        if (current < 0)
+        {
+            return Step(
+                state,
+                "route-detour-considered-wait-off-course");
+        }
+
+        int firstRejoin = Math.Max(state.NextIndex + 1, current + 2);
+        for (int rejoinIndex = firstRejoin;
+             rejoinIndex < state.Course.Length;
+             rejoinIndex++)
+        {
+            Position rejoin = state.Course[rejoinIndex];
+            Position[]? detour = plan(rejoin);
+            if (detour is not { Length: > 1 }
+                || detour[0] != position
+                || detour[^1] != rejoin)
+            {
+                continue;
+            }
+
+            int heldSteps = rejoinIndex - current;
+            int detourSteps = detour.Length - 1;
+            if (detourSteps > heldSteps + Math.Max(0, maximumExtraSteps))
+                continue;
+
+            State committed = state with
+            {
+                Detour = detour,
+                DetourNextIndex = 1,
+                DetourRejoinIndex = rejoinIndex,
+            };
+            _states[actor.UnitId] = committed;
+            Position next = detour[1];
+            return new CourseStep(
+                next,
+                $"route-detour-commit-rejoin-{rejoin.X}-{rejoin.Y}"
+                    + $"-next-{next.X}-{next.Y}",
+                CourseDisposition.Course);
+        }
+
+        return held is Position tile
+            ? new CourseStep(
+                tile,
+                $"route-detour-considered-wait-next-{tile.X}-{tile.Y}",
+                CourseDisposition.Course)
+            : Step(state, "route-detour-considered-wait");
     }
 
     /// <summary>
@@ -216,20 +334,51 @@ public sealed class TacticalRouteGovernor
     public void Reset(int unitId) => _states.Remove(unitId);
 
     private static int CourseIndex(State state, Position position)
+        => CourseIndex(state.Course, state.NextIndex, position);
+
+    private static int CourseIndex(
+        Position[] course,
+        int nextIndex,
+        Position position)
     {
-        int heldIndex = state.NextIndex - 1;
+        int heldIndex = nextIndex - 1;
         if (heldIndex >= 0
-            && heldIndex < state.Course.Length
-            && state.Course[heldIndex] == position)
+            && heldIndex < course.Length
+            && course[heldIndex] == position)
         {
             return heldIndex;
         }
-        if (state.NextIndex < state.Course.Length
-            && state.Course[state.NextIndex] == position)
+        if (nextIndex < course.Length
+            && course[nextIndex] == position)
         {
-            return state.NextIndex;
+            return nextIndex;
         }
-        return Array.IndexOf(state.Course, position);
+        return Array.IndexOf(course, position);
+    }
+
+    private static Position? Next(State state) =>
+        state.Detour.Length > 0
+            && state.DetourNextIndex < state.Detour.Length
+                ? state.Detour[state.DetourNextIndex]
+                : state.NextIndex < state.Course.Length
+                    ? state.Course[state.NextIndex]
+                    : null;
+
+    private static CourseStep Step(State state, string reason)
+    {
+        Position? next = Next(state);
+        return new CourseStep(
+            next,
+            next is Position tile
+                ? $"{reason}-next-{tile.X}-{tile.Y}"
+                : state.Course.Length == 0
+                    ? $"{reason}-no-path"
+                    : $"{reason}-arrived",
+            next is not null
+                ? CourseDisposition.Course
+                : state.Course.Length == 0
+                    ? CourseDisposition.NoPath
+                    : CourseDisposition.Arrived);
     }
 
     private static State Start(
@@ -253,7 +402,10 @@ public sealed class TacticalRouteGovernor
             waypoint,
             destination,
             course,
-            course.Length > 1 ? 1 : course.Length);
+            course.Length > 1 ? 1 : course.Length,
+            Detour: [],
+            DetourNextIndex: 0,
+            DetourRejoinIndex: -1);
     }
 
     public sealed record CourseStep(
@@ -276,7 +428,10 @@ public sealed class TacticalRouteGovernor
         int Waypoint,
         Position Destination,
         Position[] Course,
-        int NextIndex);
+        int NextIndex,
+        Position[] Detour,
+        int DetourNextIndex,
+        int DetourRejoinIndex);
 }
 
 /// <summary>

@@ -115,8 +115,14 @@ def read(path: Path, team_filter: int | None, reason_filter: str | None) -> dict
             "routeNoPath": 0,
             "routeArrived": 0,
             "routeBlocked": 0,
+            "routeDetourCourse": 0,
+            "routeDetourWaypoint": 0,
+            "routeDetourWait": 0,
             "oscillationYield": 0,
             "deliveryTimeoutTicks": 0,
+            "comparableBodyTicks": 0,
+            "stationaryBodyTicks": 0,
+            "trafficBlockedStationaryTicks": 0,
         }
         for team in teams
     }
@@ -148,6 +154,12 @@ def read(path: Path, team_filter: int | None, reason_filter: str | None) -> dict
                     summary["routeArrived"] += 1
                 if "route-" in reason and ":blocked" in reason:
                     summary["routeBlocked"] += 1
+                if "route-detour-commit" in reason:
+                    summary["routeDetourCourse"] += 1
+                if "route-detour-waypoint" in reason:
+                    summary["routeDetourWaypoint"] += 1
+                if "route-detour-considered-wait" in reason:
+                    summary["routeDetourWait"] += 1
                 if "oscillation-yield" in reason:
                     summary["oscillationYield"] += 1
                 if "custody:delivery-timeout-" in reason:
@@ -185,6 +197,20 @@ def read(path: Path, team_filter: int | None, reason_filter: str | None) -> dict
         tick_number = tick["tick"]
         lives = (tick.get("tickStart") or {}).get("state", {}).get(
             "activeLives", []) or []
+        post_lives = {
+            (life["actorId"]["teamId"], life["actorId"]["unitId"],
+             life["actorId"]["lifeId"]): life
+            for life in (tick.get("postState") or {}).get("activeLives", []) or []
+        }
+        commands: dict[tuple[int, int, int], dict] = {}
+        resolutions: dict[tuple[int, int, int], dict] = {}
+        for turn in tick.get("mindTurns", []) or []:
+            team = turn["teamId"]
+            for command in turn.get("commands", []) or []:
+                commands[(team, command["unitId"], command["lifeId"])] = command
+            for resolution in turn.get("resolutions", []) or []:
+                resolutions[(team, resolution["unitId"],
+                             resolution["lifeId"])] = resolution
         seen: set[tuple[int, int, int]] = set()
         for life in lives:
             actor = life["actorId"]
@@ -194,6 +220,21 @@ def read(path: Path, team_filter: int | None, reason_filter: str | None) -> dict
             key = (team, actor["unitId"], actor["lifeId"])
             seen.add(key)
             position = (life["position"]["x"], life["position"]["y"])
+            post = post_lives.get(key)
+            if post is not None:
+                summaries[team]["comparableBodyTicks"] += 1
+                post_position = (
+                    post["position"]["x"], post["position"]["y"])
+                if post_position == position:
+                    summaries[team]["stationaryBodyTicks"] += 1
+                    command = commands.get(key, {})
+                    reason = command.get("debugMessage") or ""
+                    resolution = (resolutions.get(key, {})
+                                  .get("actionResolution") or {})
+                    if (resolution.get("outcome") == "blocked"
+                            or ":blocked" in reason
+                            or "route-detour-considered-wait" in reason):
+                        summaries[team]["trafficBlockedStationaryTicks"] += 1
             prior = runs.get(key)
             if (prior is None or prior["position"] != position
                     or prior["lastTick"] != tick_number - 1):
@@ -227,6 +268,11 @@ def read(path: Path, team_filter: int | None, reason_filter: str | None) -> dict
             summary["movementCommands"], total)
         summary["successfulMovementPercent"] = percentage(
             summary["successfulMovementCommands"], total)
+        summary["stationaryBodyPercent"] = percentage(
+            summary["stationaryBodyTicks"], summary["comparableBodyTicks"])
+        summary["trafficBlockedStationaryPercent"] = percentage(
+            summary["trafficBlockedStationaryTicks"],
+            summary["stationaryBodyTicks"])
         summary["nearestStartingWell"] = list(wells[team]) \
             if team in wells else None
         summary["closestWellDistance"] = closest[team]
@@ -251,11 +297,27 @@ def read(path: Path, team_filter: int | None, reason_filter: str | None) -> dict
             summary["longestSingleTileStallPosition"] = None
             summary["bodiesOver100Stationary"] = 0
 
+    aggregate_body_ticks = sum(
+        summary["comparableBodyTicks"] for summary in summaries.values())
+    aggregate_stationary = sum(
+        summary["stationaryBodyTicks"] for summary in summaries.values())
+    aggregate_blocked = sum(
+        summary["trafficBlockedStationaryTicks"]
+        for summary in summaries.values())
     return {
         "replay": str(path),
         "mapId": replay["header"]["contract"]["map"]["mapId"],
         "endTick": replay.get("ticks", [{}])[-1].get("tick", -1),
         "reasonContains": reason_filter,
+        "aggregateTraffic": {
+            "comparableBodyTicks": aggregate_body_ticks,
+            "stationaryBodyTicks": aggregate_stationary,
+            "stationaryBodyPercent": percentage(
+                aggregate_stationary, aggregate_body_ticks),
+            "trafficBlockedStationaryTicks": aggregate_blocked,
+            "trafficBlockedStationaryPercent": percentage(
+                aggregate_blocked, aggregate_stationary),
+        },
         "teams": {str(team): summaries[team] for team in teams},
     }
 
@@ -265,6 +327,15 @@ def print_human(result: dict) -> None:
     print(
         f"{Path(result['replay']).parent.name or Path(result['replay']).name} "
         f"map={result['mapId']} end={result['endTick']} filter={selector!r}")
+    aggregate = result["aggregateTraffic"]
+    print(
+        "  aggregate traffic "
+        f"stationary={aggregate['stationaryBodyTicks']}/"
+        f"{aggregate['comparableBodyTicks']} "
+        f"({aggregate['stationaryBodyPercent']:.1f}%) "
+        f"blocked/stationary={aggregate['trafficBlockedStationaryTicks']}/"
+        f"{aggregate['stationaryBodyTicks']} "
+        f"({aggregate['trafficBlockedStationaryPercent']:.1f}%)")
     for team, summary in result["teams"].items():
         total = summary["selectedBodyTicks"]
         well = summary["nearestStartingWell"]
@@ -285,7 +356,18 @@ def print_human(result: dict) -> None:
             f"no-path={summary['routeNoPath']} "
             f"arrived={summary['routeArrived']} "
             f"blocked={summary['routeBlocked']} "
+            f"detour-course={summary['routeDetourCourse']} "
+            f"detour-waypoint={summary['routeDetourWaypoint']} "
+            f"detour-wait={summary['routeDetourWait']} "
             f"oscillation-yield={summary['oscillationYield']}")
+        print(
+            "      traffic "
+            f"stationary={summary['stationaryBodyTicks']}/"
+            f"{summary['comparableBodyTicks']} "
+            f"({summary['stationaryBodyPercent']:.1f}%) "
+            f"blocked/stationary={summary['trafficBlockedStationaryTicks']}/"
+            f"{summary['stationaryBodyTicks']} "
+            f"({summary['trafficBlockedStationaryPercent']:.1f}%)")
         unit = summary["longestSingleTileStallUnit"]
         unit_text = "n/a" if unit is None else f"u{unit}"
         print(

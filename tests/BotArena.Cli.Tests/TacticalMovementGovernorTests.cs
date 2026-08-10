@@ -111,6 +111,93 @@ public sealed class TacticalMovementGovernorTests
     }
 
     [Fact]
+    public void TrafficDetourRejoinsHeldCourseWithoutReplanningDirection()
+    {
+        var governor = new TacticalRouteGovernor();
+        ActorIdentity actor = new(1, 0, 0);
+        var start = new Position(10, 10);
+        var blocked = new Position(11, 10);
+        var rejoin = new Position(12, 10);
+        var after = new Position(13, 10);
+        var goal = new Position(14, 10);
+        var north = new Position(10, 9);
+        var northEast = new Position(11, 9);
+        int originalPlans = 0;
+
+        Position[] Original()
+        {
+            originalPlans++;
+            return [start, blocked, rejoin, after, goal];
+        }
+
+        Assert.Equal(blocked, governor.Resolve(
+            actor, "patrol", "loop", 0, 0, start, goal,
+            Original, _ => false).Next);
+
+        TacticalRouteGovernor.CourseStep detour = governor.TryTrafficDetour(
+            actor,
+            start,
+            maximumExtraSteps: 1,
+            candidate => candidate == rejoin
+                ? [start, north, northEast, rejoin]
+                : null);
+        Assert.Equal(north, detour.Next);
+        Assert.Contains("route-detour-commit-rejoin-12-10", detour.Trace);
+
+        Assert.Equal(northEast, governor.Resolve(
+            actor, "patrol", "loop", 0, 0, north, goal,
+            () => throw new InvalidOperationException(
+                "a detour must not reselect route direction"),
+            _ => false).Next);
+        Assert.Equal(rejoin, governor.Resolve(
+            actor, "patrol", "loop", 0, 0, northEast, goal,
+            () => throw new InvalidOperationException(
+                "a detour must remain sticky"),
+            _ => false).Next);
+
+        TacticalRouteGovernor.CourseStep resumed = governor.Resolve(
+            actor, "patrol", "loop", 0, 0, rejoin, goal,
+            () => throw new InvalidOperationException(
+                "rejoining must resume the original course"),
+            _ => false);
+        Assert.Equal(after, resumed.Next);
+        Assert.Contains("route-detour-rejoined", resumed.Trace);
+        Assert.Equal(1, originalPlans);
+    }
+
+    [Fact]
+    public void TrafficDetourThatExceedsCorridorBudgetChoosesToWait()
+    {
+        var governor = new TacticalRouteGovernor();
+        ActorIdentity actor = new(0, 2, 0);
+        var start = new Position(4, 4);
+        var blocked = new Position(5, 4);
+        var rejoin = new Position(6, 4);
+        var goal = new Position(7, 4);
+
+        governor.Resolve(
+            actor, "march", "route", 0, 0, start, goal,
+            () => [start, blocked, rejoin, goal], _ => false);
+        TacticalRouteGovernor.CourseStep result =
+            governor.TryTrafficDetour(
+                actor,
+                start,
+                maximumExtraSteps: 1,
+                candidate => candidate == rejoin
+                    ? [
+                        start,
+                        new Position(4, 3),
+                        new Position(5, 3),
+                        new Position(6, 3),
+                        rejoin,
+                    ]
+                    : null);
+
+        Assert.Equal(blocked, result.Next);
+        Assert.Contains("route-detour-considered-wait", result.Trace);
+    }
+
+    [Fact]
     public void WaypointArrivalRingCannotSwallowAShortRouteLeg()
     {
         var waypoint = new Position(8, 8);
