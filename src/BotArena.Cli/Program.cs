@@ -281,8 +281,8 @@ static int CommandHelp(string command)
             registered id is listed in the error text when one is misspelled.
             The default is `ambush-warren-11`: rules `arc-relay-ambush-11`,
             declared strikes, veterancy, rear-arc damage and the deep Warren.
-            The hosted v17 ladder pins that same profile and the loose-Core-memory
-            stock artifact immutably; v7 through v16 remain exact history, and all
+            The hosted v18 ladder pins that same profile and the claimable-drop
+            stock artifact immutably; v7 through v17 remain exact history, and all
             historical profiles and playlist versions stay explicitly
             selectable and byte-verifiable.
 

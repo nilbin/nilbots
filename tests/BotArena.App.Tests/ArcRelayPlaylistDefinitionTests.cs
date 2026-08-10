@@ -11,7 +11,7 @@ namespace BotArena.App.Tests;
 public sealed class ArcRelayPlaylistDefinitionTests
 {
     [Fact]
-    public void Entrant_v17_remembers_loose_cores_while_v2_through_v16_remain_executable()
+    public void Entrant_v18_repairs_claimable_drops_while_v2_through_v17_remain_executable()
     {
         ArcRelayEntrantPlaylistDefinition current =
             ArcRelayEntrantPlaylistDefinition.Create();
@@ -45,8 +45,10 @@ public sealed class ArcRelayPlaylistDefinitionTests
             ArcRelayEntrantPlaylistDefinition.CreateHistoricalV15();
         ArcRelayEntrantPlaylistDefinition stableCarrierV16 =
             ArcRelayEntrantPlaylistDefinition.CreateHistoricalV16();
+        ArcRelayEntrantPlaylistDefinition looseCoreMemoryV17 =
+            ArcRelayEntrantPlaylistDefinition.CreateHistoricalV17();
 
-        Assert.Equal(17, current.PlaylistVersion);
+        Assert.Equal(18, current.PlaylistVersion);
         Assert.Equal(ArcRelayLoopProfile.AmbushWarren11.MapId, current.Match.Map.Id);
         Assert.Equal(
             ArcRelayLoopProfile.AmbushWarren11.RulesetId,
@@ -82,8 +84,22 @@ public sealed class ArcRelayPlaylistDefinitionTests
         Assert.Contains("boundedLooseCoreMemory", current.Provenance);
         Assert.Contains("authoredPickupSelection", current.Provenance);
         Assert.Contains("nearestDropRecoveryDistanceFirst", current.Provenance);
+        Assert.Contains("uncommittedDropsRemainClaimable", current.Provenance);
+        Assert.Contains("currentCarriersCannotReservePickups", current.Provenance);
         Assert.Contains("freshRatingEra", current.Provenance);
         Assert.DoesNotContain("ratingContinuityFromVersions", current.Provenance);
+        Assert.Equal(17, looseCoreMemoryV17.PlaylistVersion);
+        Assert.Contains(
+            ArcRelayEntrantPlaylistDefinition
+                .LooseCoreMemoryTacticalArtifactHash,
+            looseCoreMemoryV17.CanonicalDefinition);
+        Assert.Contains(
+            ArcRelayEntrantPlaylistDefinition
+                .LooseCoreMemoryTacticalBuildInputHash,
+            looseCoreMemoryV17.CanonicalDefinition);
+        Assert.Contains("boundedLooseCoreMemory", looseCoreMemoryV17.Provenance);
+        Assert.DoesNotContain(
+            "uncommittedDropsRemainClaimable", looseCoreMemoryV17.Provenance);
         Assert.Equal(16, stableCarrierV16.PlaylistVersion);
         Assert.Contains(
             ArcRelayEntrantPlaylistDefinition
@@ -460,7 +476,7 @@ public sealed class ArcRelayPlaylistDefinitionTests
     }
 
     [Fact]
-    public void Frozen_ambush_stocks_pin_v7_through_current_v17_bytes()
+    public void Frozen_ambush_stocks_pin_v7_through_current_v18_bytes()
     {
         string root = RepoPaths.FindUpward("BotArena.sln") is { } solution
             ? Path.GetDirectoryName(solution)!
@@ -498,6 +514,9 @@ public sealed class ArcRelayPlaylistDefinitionTests
         string looseCoreMemoryArtifact = Path.Combine(
             root, "arena-bots", "arc-relay", "ambush-warren-11-stock-v11",
             "bot.wasm");
+        string claimableDropArtifact = Path.Combine(
+            root, "arena-bots", "arc-relay", "ambush-warren-11-stock-v12",
+            "bot.wasm");
         string playbook = Path.Combine(
             root, "arena-bots", "arc-relay",
             "tactical-playbook-v1-2026-08-03", "playbooks",
@@ -509,6 +528,10 @@ public sealed class ArcRelayPlaylistDefinitionTests
 
         Assert.Equal(
             ArcRelayEntrantPlaylistDefinition.TacticalArtifactHash,
+            BotBuilder.Sha256File(claimableDropArtifact));
+        Assert.Equal(
+            ArcRelayEntrantPlaylistDefinition
+                .LooseCoreMemoryTacticalArtifactHash,
             BotBuilder.Sha256File(looseCoreMemoryArtifact));
         Assert.Equal(
             ArcRelayEntrantPlaylistDefinition

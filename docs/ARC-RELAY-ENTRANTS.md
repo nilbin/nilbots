@@ -14,7 +14,7 @@ crest, eight-slot composition, and exact-compatible Elo rating. A sheet save or
 mind resubmission advances its revision without resetting rating. Save-as-copy
 or a new submission creates a new identity and starts at the default rating.
 
-The current hosted identity is immutable entrant playlist v17: rules
+The current hosted identity is immutable entrant playlist v18: rules
 `arc-relay-ambush-11` on the 31x27 `arc-relay-ambush-warren-06` map, matching
 the default local `nilbots arc-relay` command. v7 began the Warren development
 rating era; v8 repaired its frozen WASM artifact. Public Season 1 began at 1200
@@ -43,7 +43,10 @@ rather than copying v15 Elo. v17 retains seen loose Cores at their last-known
 tile for the authored Core-memory window, makes nearest-authorized friendly
 drop recovery distance-first, and adds an optional custody pickup-selection
 policy for ordinary Wells. The registered stock digest moves, so v17 starts
-fresh rather than copying v16 Elo.
+fresh rather than copying v16 Elo. v18 keeps an accidental carrier's later
+drop claimable when it never committed to a custody policy, and excludes
+already-loaded bodies from pickup reservations. The registered stock digest
+moves again, so v18 starts fresh rather than copying v17 Elo.
 ForwardCombat/Counterflow v6
 ratings and matches remain readable history but were not copied.
 
@@ -61,9 +64,9 @@ and anchors. The server stores the exact playbook and layout sources, validates
 every save with the same compiler as the CLI, and snapshots the compiled package
 into a match. Saving enters the sheet into the ladder by default, with an
 explicit opt-out. A trial runs the current revision against a tracked stock
-sheet and opens it in the ordinary replay viewer. v16's stock sheet is frozen
+sheet and opens it in the ordinary replay viewer. v18's stock sheet is frozen
 Wellwright v1. New layouts are authored directly on the Warren export;
-Counterflow-era sheets are shown as legacy and cannot enter v16 until replotted.
+Counterflow-era sheets are shown as legacy and cannot enter v18 until replotted.
 The server never projects coordinates between maps.
 
 A custom mind must complete one hosted validation match without a runtime fault

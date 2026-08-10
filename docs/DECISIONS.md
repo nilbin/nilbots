@@ -7401,3 +7401,39 @@ identically in-process and in sandboxed WASM. Playlist v17 therefore starts a
 fresh rating book; v16 ratings and matches remain readable history. Rules, map,
 current sheet bytes, and gameplay contract fingerprints do not change; the
 sheet grammar expands additively by one optional custody field.
+
+## 280. Uncommitted drops remain claimable; loaded bodies cannot reserve another Core; hosted v18 starts fresh
+
+Executor ruling (2026-08-10). An unauthorized accidental carrier records no
+committed custody policy. Its runtime progress used the empty string as that
+sentinel, but friendly-drop recovery treated the sentinel as a real policy id.
+No authored custody could match it, making the later drop unclaimable until an
+opportunistic body happened to rediscover and step onto it. Empty and null
+custody now have the same meaning at the drop boundary: no committed policy,
+so a compatible policy may claim the Core.
+
+Pickup allocation also excludes every body already carrying a Core. A loaded
+body cannot collect a second Core, and therefore cannot hold or renew a pickup
+reservation while available authorized couriers pass it. Distance-first and
+carrier-preference selection still apply unchanged among bodies that can
+actually accept the pickup; stable unit id remains the final deterministic
+tie-break. No sheet, role, class, map, side, or coordinate is named.
+
+In the exact Tapline west-9002 correction cell, the reproduced near-home drop
+waited 32 ticks while the nearest loaded body repeatedly retained the unusable
+reservation. With loaded bodies excluded, comparable friendly near-home drops
+in the rerun were recovered in 1-3 ticks. The standard six-cell exhibit is a
+mechanism review, not a balance result.
+
+The WASM bytes change, so playlist v17 and frozen stock v11 remain immutable.
+Playlist v18 pins frozen stock v12 (artifact
+`d63ffb4829a6875573232d3cb8822beb8c77c96708bc2e9bbdd39d0aeb42ca96`,
+build input
+`1229c727f38e78599dbc228e2f8a86117d64a50fced3d155c7398dcf2a02a6f3`).
+The registered Wellwright-vs-Wellwright seed-9001 digest changes from
+`e38b5adbd693dffe0200d8481c34bad60205917dbc6c46c93534f33d53abc18f`
+to
+`b844d14c1eea12b576e06324ae9554bddaca3963aa3de95fa8f4b9bd4cc88296`,
+identically in-process and in sandboxed WASM. Playlist v18 therefore starts a
+fresh rating book; v17 ratings and matches remain readable history. Rules,
+map, sheet bytes, grammar, and gameplay contract fingerprints do not change.

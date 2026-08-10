@@ -70,3 +70,29 @@ and starts a fresh rating book. v16 and stock v10 remain immutable.
 The full repository suite, PostgreSQL integration half, and any balance battery
 were intentionally omitted in this fast iteration. `publish-cli` owes
 `cli-v0.9.45` and `cli-v0.9.46` before deployment.
+
+## Claimability follow-up
+
+Phone review initially appeared to show the same west-9002 Core still lying
+unclaimed. The standing tunnel was in fact serving the prior gallery directory;
+the public sample ended at tick 488 while the rebuilt local sample ended at 479.
+The served directory was corrected in place and public/local uncompressed hashes
+were verified equal.
+
+Tracing the scene still found two real allocator defects. An accidental carrier's
+empty custody sentinel was treated as a committed custody id, so no real policy
+could claim its drop. After that repair, the exact rerun exposed a loaded body
+repeatedly reserving a second Core it could not pick up. Empty custody now means
+uncommitted at the drop boundary, and current carriers are not pickup candidates.
+In west-9002, the reproduced 32-tick near-home delay becomes 1-3 ticks for
+comparable friendly drops; the worst single-body stall remains 18 ticks.
+
+The rebuilt six-cell exhibit at the URL above uses the corrected files. Focused
+custody tests pass (33 tests). Controlled stock v12 is
+`d63ffb4829a6875573232d3cb8822beb8c77c96708bc2e9bbdd39d0aeb42ca96`
+with build input
+`1229c727f38e78599dbc228e2f8a86117d64a50fced3d155c7398dcf2a02a6f3`.
+The registered stock digest is
+`b844d14c1eea12b576e06324ae9554bddaca3963aa3de95fa8f4b9bd4cc88296`
+in-process and in WASM, so immutable playlist v18 starts a fresh rating book.
+`publish-cli` also owes `cli-v0.9.47` before deployment.

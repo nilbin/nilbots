@@ -139,7 +139,7 @@ public sealed class MindToolchainSurfaceTests
     }
 
     [Fact]
-    public void FrozenAmbushV17ArtifactMatchesTheCurrentLooseCoreMemoryBuild()
+    public void FrozenAmbushV18ArtifactMatchesTheCurrentClaimableDropBuild()
     {
         string root = FindRepoRoot();
         string projectDirectory = Path.Combine(
@@ -151,7 +151,7 @@ public sealed class MindToolchainSurfaceTests
             root,
             "arena-bots",
             "arc-relay",
-            "ambush-warren-11-stock-v11");
+            "ambush-warren-11-stock-v12");
         TrackedBuildReceipt current = ReadReceipt(Path.Combine(
             projectDirectory,
             "bot.build-receipt.json"));
