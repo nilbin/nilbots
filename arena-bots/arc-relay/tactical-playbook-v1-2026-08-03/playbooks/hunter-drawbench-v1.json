@@ -17,7 +17,7 @@
   ],
   "layout": {
     "path": "../layouts/drawbench-base-v1.json",
-    "sha256": "9b0e86f34b10f6ddb8b2e2879dcad57ff13f79e59529cc9b222d72f4bf6d0b35"
+    "sha256": "0d4eb3b43f5588bf356f04f174723e20ac0c6cb0dcf96633cb29eb0d57cf72c5"
   },
   "memory": {
     "enemyUnavailableTicks": 21,
