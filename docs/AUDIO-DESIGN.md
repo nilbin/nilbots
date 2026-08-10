@@ -70,7 +70,8 @@ node scripts/build-audio-sound-lab-site.mjs
 
 The soundboard at `art/audio/sound-lab/index.html` works from a static host and
 supports direct A/B/C/D comparison, context demo sequences, volume control,
-keyboard shortcuts, and a browser-local favorite marker.
+keyboard shortcuts, a browser-local favorite marker, and independent playback
+of the V5 ambient bed.
 
 ### Arc Relay space / ambient reconcept (V4 review)
 
@@ -129,14 +130,28 @@ hashes, and measurements while deliberately omitting returned URLs and user
 IDs.
 
 Provider output is decoded to 48 kHz stereo signed 16-bit PCM, DC-corrected,
-endpoint-faded, and peak-normalized; no procedural layers are added. SFX Engine
-returned the attack wind-up as effectively mono and returned Core pickup and
-beam deflection as dual-mono. The review retains that result rather than
-manufacturing width. Technical validation therefore requires two channels but
-does not require nonzero stereo difference for V5.
+endpoint-faded, and peak-normalized; no procedural layers are added. Following
+owner review, Core pickup, Core stolen, ally handoff, fizzle, and beam
+deflection were regenerated as targeted second takes. The generation record
+retains each rejected prompt, request, provider result, hash, and measurement
+under the cue's `attempts` array. The replacement Core cues explicitly share
+the existing birth / drop / bank / Pulse language, fizzle is one second, and
+the new deflection is shaped as a rounded low-mid field bend without a piercing
+transient. The attack wind-up remains effectively mono; the review preserves
+provider channel behavior rather than manufacturing width. Technical
+validation therefore requires two channels but does not require nonzero stereo
+difference for V5.
 
-V5 remains review-only. It changes neither the approved Obsidian Foundry
-runtime package nor the Neon Protocol soundtrack.
+V5 also adds the review-only **Astral arena ambience** beneath the comparison
+pack. It is deliberately non-musical and has an independent sound-lab control
+so effects can be judged both dry and in context. The provider's 32-second
+source is converted into a 30-second loop with a two-second circular
+equal-power tail/head crossfade instead of endpoint silence. Its prompt,
+provider provenance, processing, hashes, and measurements live in the same V5
+generation record.
+
+V5 and its ambient bed remain review-only. They change neither the approved
+Obsidian Foundry runtime package nor the Neon Protocol soundtrack.
 
 ### Arc Relay tactile reconcept (V3 archive)
 

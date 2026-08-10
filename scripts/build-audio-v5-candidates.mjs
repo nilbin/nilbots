@@ -28,10 +28,20 @@ const apiSpecPath = path.join(
 const baseManifest = JSON.parse(await readFile(baseManifestPath, "utf8"));
 const generation = JSON.parse(await readFile(generationPath, "utf8"));
 const expectedIds = baseManifest.packs[0].cues.map((cue) => cue.id);
-const actualIds = generation.cues.map((cue) => cue.id);
+const comparisonGenerationCues = generation.cues.filter(
+  (cue) => cue.role !== "background-loop",
+);
+const backgroundGenerationCues = generation.cues.filter(
+  (cue) => cue.role === "background-loop",
+);
+const actualIds = comparisonGenerationCues.map((cue) => cue.id);
 assert(
   JSON.stringify(actualIds) === JSON.stringify(expectedIds),
   "SFX Engine cue order must exactly match the V4 comparison vocabulary.",
+);
+assert(
+  backgroundGenerationCues.length === 1,
+  "V5 must contain exactly one SFX Engine background loop.",
 );
 assert(generation.provider === "sfx-engine", "Unexpected audio provider.");
 assert(
@@ -46,7 +56,7 @@ assert(
 );
 
 const cues = [];
-for (const generatedCue of generation.cues) {
+for (const generatedCue of comparisonGenerationCues) {
   const baseline = baseManifest.packs[0].cues.find(
     (cue) => cue.id === generatedCue.id,
   );
@@ -84,6 +94,49 @@ for (const generatedCue of generation.cues) {
   });
 }
 
+const backgroundLoops = [];
+for (const generatedCue of backgroundGenerationCues) {
+  const result = generatedCue.result;
+  assert(result?.status === "generated", `${generatedCue.id} is not generated.`);
+  assert(result.metrics?.sampleRate === 48_000, `${generatedCue.id} is not 48 kHz.`);
+  assert(result.metrics?.channels === 2, `${generatedCue.id} is not stereo.`);
+  assert(
+    result.metrics?.bitsPerSample === 16,
+    `${generatedCue.id} is not signed 16-bit PCM.`,
+  );
+  assert(
+    result.processing?.endpointTreatment ===
+      "circular-equal-power-crossfade",
+    `${generatedCue.id} does not carry the required circular crossfade.`,
+  );
+  const wavPath = path.join(outputRoot, generatedCue.file);
+  const wav = await readFile(wavPath);
+  assert(
+    sha256(wav) === result.outputSha256,
+    `${generatedCue.id} WAV hash differs from its provider provenance.`,
+  );
+  assert(
+    wav.length === result.outputBytes,
+    `${generatedCue.id} WAV size differs from its provider provenance.`,
+  );
+  backgroundLoops.push({
+    id: generatedCue.id,
+    label: generatedCue.label,
+    category: generatedCue.category,
+    status: generatedCue.status,
+    description: generatedCue.description,
+    mapping: generatedCue.mapping,
+    file: `./v5/${generation.outputDirectory}/${generatedCue.file}`,
+    durationSeconds: result.metrics.durationSeconds,
+    peak: result.metrics.peak,
+    rms: result.metrics.rms,
+    stereoDifferenceRms: result.metrics.stereoDifferenceRms,
+    dcOffset: result.metrics.dcOffset,
+    loop: true,
+    loopCrossfadeSeconds: result.processing.loopCrossfadeSeconds,
+  });
+}
+
 const manifest = {
   version: 5,
   generation: "arc-relay-space-ambient-sfx-engine-addition",
@@ -96,6 +149,7 @@ const manifest = {
   channels: 2,
   format: "pcm-s16le-wav",
   reviewScope: baseManifest.reviewScope,
+  backgroundLoops,
   packs: [
     {
       ...generation.pack,
@@ -114,7 +168,8 @@ await writeFile(
   `window.SOUND_LAB_V5_MANIFEST = ${JSON.stringify(manifest)};\n`,
 );
 console.log(
-  `Built V5 SFX Engine addition with ${cues.length} cues in ${labRoot}.`,
+  `Built V5 SFX Engine addition with ${cues.length} cues and ` +
+    `${backgroundLoops.length} ambience loop in ${labRoot}.`,
 );
 
 function sha256(value) {

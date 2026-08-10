@@ -10,6 +10,9 @@
     version: 5,
     packs: [...baseManifest.packs, ...additionalManifest.packs],
   };
+  const ambientLoop = additionalManifest.backgroundLoops?.[0];
+  if (!ambientLoop || !ambientLoop.loop)
+    throw new Error('V5 SFX Engine ambient loop did not load.');
 
   const packTemplate = document.querySelector('#pack-template');
   const cueTemplate = document.querySelector('#cue-template');
@@ -21,8 +24,11 @@
   const status = document.querySelector('[data-audio-status]');
   const volumeInput = document.querySelector('[data-volume]');
   const volumeLabel = document.querySelector('[data-volume-label]');
+  const ambientToggle = document.querySelector('[data-ambient-toggle]');
+  const ambientLabel = document.querySelector('[data-ambient-label]');
   const activeAudio = new Set();
   const timers = new Set();
+  const ambientGain = 0.32;
 
   const attackSentenceIds = [
     'attack-windup',
@@ -105,8 +111,9 @@
   let volume = Number(volumeInput.value);
   let selectedGroup = 'attack';
   let selectedCue = 'attack-windup';
-  let selectedPack = manifest.packs[0];
   let favorite = readFavorite();
+  let selectedPack = manifest.packs.find((pack) => pack.id === favorite) ?? manifest.packs.at(-1);
+  let ambientAudio = null;
 
   function readFavorite() {
     try {
@@ -162,7 +169,22 @@
       .forEach((element) => element.classList.remove('is-playing'));
   }
 
-  function stopAll({ announce = true } = {}) {
+  function updateAmbientControl(isPlaying) {
+    ambientToggle.classList.toggle('is-playing', isPlaying);
+    ambientToggle.setAttribute('aria-pressed', String(isPlaying));
+    ambientLabel.textContent = isPlaying ? 'Stop ambient loop' : 'Play ambient loop';
+  }
+
+  function stopAmbient() {
+    if (ambientAudio) {
+      ambientAudio.pause();
+      ambientAudio.currentTime = 0;
+      ambientAudio = null;
+    }
+    updateAmbientControl(false);
+  }
+
+  function stopAll({ announce = true, includeAmbient = true } = {}) {
     for (const timer of timers) window.clearTimeout(timer);
     timers.clear();
     for (const audio of activeAudio) {
@@ -171,14 +193,52 @@
     }
     activeAudio.clear();
     document
-      .querySelectorAll('.is-playing')
+      .querySelectorAll(
+        '[data-audio-key].is-playing, [data-sequence].is-playing, [data-pack-demo].is-playing',
+      )
       .forEach((element) => element.classList.remove('is-playing'));
+    if (includeAmbient) stopAmbient();
     if (announce) setStatus('Stopped.');
+  }
+
+  function toggleAmbient() {
+    if (ambientAudio) {
+      stopAmbient();
+      setStatus('Astral arena ambience stopped.');
+      return;
+    }
+
+    const audio = new Audio(ambientLoop.file);
+    audio.preload = 'auto';
+    audio.loop = true;
+    audio.volume = volume * ambientGain;
+    ambientAudio = audio;
+    audio.addEventListener(
+      'error',
+      () => {
+        if (ambientAudio === audio) ambientAudio = null;
+        updateAmbientControl(false);
+        setStatus('Could not load the Astral arena ambience.');
+      },
+      { once: true },
+    );
+    void audio.play().then(
+      () => {
+        if (ambientAudio !== audio) return;
+        updateAmbientControl(true);
+        setStatus('Astral arena ambience · looping beneath review audio');
+      },
+      () => {
+        if (ambientAudio === audio) ambientAudio = null;
+        updateAmbientControl(false);
+        setStatus('Playback was blocked. Tap the ambient control once to enable audio.');
+      },
+    );
   }
 
   function play(pack, cue, { overlap = false } = {}) {
     if (!cue) return;
-    if (!overlap) stopAll({ announce: false });
+    if (!overlap) stopAll({ announce: false, includeAmbient: false });
     selectedPack = pack;
     updateSequencePack();
     const key = audioKey(pack, cue);
@@ -215,7 +275,7 @@
   }
 
   function playSequence(pack, sequenceId, trigger) {
-    stopAll({ announce: false });
+    stopAll({ announce: false, includeAmbient: false });
     selectedPack = pack;
     updateSequencePack();
     trigger?.classList.add('is-playing');
@@ -448,7 +508,10 @@
     volume = Number(volumeInput.value);
     volumeLabel.textContent = `${Math.round(volume * 100)}%`;
     for (const audio of activeAudio) audio.volume = volume;
+    if (ambientAudio) ambientAudio.volume = volume * ambientGain;
   });
+
+  ambientToggle.addEventListener('click', toggleAmbient);
 
   document
     .querySelectorAll('[data-action="stop"]')

@@ -56,6 +56,9 @@ for (const cue of config.cues) {
     }
   }
 
+  const previousAttempt = forced && cue.result
+    ? snapshotAttempt(cue)
+    : null;
   console.log(`Generating ${cue.id} (${cue.requestLengthSeconds}s)...`);
   const created = await requestJson(`${config.apiBase}/sound-effect`, {
     method: "POST",
@@ -71,7 +74,18 @@ for (const cue of config.cues) {
     }),
   });
   assertSoundEffect(created, `${cue.id}: create response`);
-  cue.result = sanitizeResult(created, cue.result);
+  if (previousAttempt) {
+    cue.attempts ??= [];
+    cue.attempts.push({
+      ...previousAttempt,
+      supersededAt: new Date().toISOString(),
+      reason: cue.revisionReason ?? "Explicit forced regeneration",
+    });
+  }
+  cue.result = {
+    ...sanitizeResult(created),
+    request: snapshotRequest(cue),
+  };
   await saveConfig();
 
   const completed = await waitForSoundEffect(
@@ -95,6 +109,7 @@ for (const cue of config.cues) {
     apiKey,
     outputPath,
     targetPeak: cue.targetPeak ?? 0.82,
+    loopCrossfadeSeconds: cue.loopCrossfadeSeconds,
   });
   cue.result = {
     ...sanitizeResult(completed, cue.result),
@@ -103,6 +118,7 @@ for (const cue of config.cues) {
     sourceSha256: processed.sourceSha256,
     outputSha256: processed.outputSha256,
     outputBytes: processed.outputBytes,
+    processing: processed.processing,
     metrics: processed.metrics,
   };
   await saveConfig();
@@ -147,6 +163,7 @@ async function downloadAndStandardize({
   apiKey,
   outputPath,
   targetPeak,
+  loopCrossfadeSeconds,
 }) {
   const audioUrl = new URL(url);
   const apiOrigin = new URL(apiBase).origin;
@@ -189,7 +206,10 @@ async function downloadAndStandardize({
       );
     }
     const converted = await readFile(convertedPath);
-    const standardized = standardizeWav(converted, targetPeak);
+    const standardized = standardizeWav(converted, {
+      targetPeak,
+      loopCrossfadeSeconds,
+    });
     await mkdir(path.dirname(outputPath), { recursive: true });
     await writeFile(outputPath, standardized.bytes);
     return {
@@ -197,6 +217,7 @@ async function downloadAndStandardize({
       sourceSha256: sha256(sourceBytes),
       outputSha256: sha256(standardized.bytes),
       outputBytes: standardized.bytes.length,
+      processing: standardized.processing,
       metrics: standardized.metrics,
     };
   } finally {
@@ -204,7 +225,7 @@ async function downloadAndStandardize({
   }
 }
 
-function standardizeWav(bytes, targetPeak) {
+function standardizeWav(bytes, { targetPeak, loopCrossfadeSeconds }) {
   const wav = parsePcm16Wav(bytes);
   if (wav.sampleRate !== 48_000 || wav.channels !== 2) {
     throw new Error(
@@ -212,33 +233,48 @@ function standardizeWav(bytes, targetPeak) {
         `${wav.sampleRate} Hz and ${wav.channels} channel(s).`,
     );
   }
-  const samples = new Float64Array(wav.sampleCount);
-  const channelMeans = new Float64Array(wav.channels);
+  let samples = new Float64Array(wav.sampleCount);
   for (let index = 0; index < wav.sampleCount; index++) {
     const value = bytes.readInt16LE(wav.dataOffset + index * 2) / 32_768;
     samples[index] = value;
-    channelMeans[index % wav.channels] += value;
   }
-  const frames = wav.sampleCount / wav.channels;
-  for (let channel = 0; channel < wav.channels; channel++) {
-    channelMeans[channel] /= frames;
-  }
+  let frames = wav.sampleCount / wav.channels;
+  removeDc(samples, frames, wav.channels);
 
-  const fadeInFrames = Math.min(frames, Math.round(wav.sampleRate * 0.005));
-  const fadeOutFrames = Math.min(frames, Math.round(wav.sampleRate * 0.04));
-  let peak = 0;
-  for (let frame = 0; frame < frames; frame++) {
-    const fadeIn = fadeInFrames === 0 ? 1 : Math.min(1, frame / fadeInFrames);
-    const remaining = frames - 1 - frame;
-    const fadeOut = fadeOutFrames === 0
-      ? 1
-      : Math.min(1, remaining / fadeOutFrames);
-    const fade = Math.sin(Math.min(fadeIn, fadeOut) * Math.PI * 0.5);
-    for (let channel = 0; channel < wav.channels; channel++) {
-      const index = frame * wav.channels + channel;
-      samples[index] = (samples[index] - channelMeans[channel]) * fade;
-      peak = Math.max(peak, Math.abs(samples[index]));
+  let processing;
+  if (loopCrossfadeSeconds !== undefined) {
+    const crossfadeFrames = Math.round(loopCrossfadeSeconds * wav.sampleRate);
+    samples = circularCrossfade(samples, frames, wav.channels, crossfadeFrames);
+    frames -= crossfadeFrames;
+    processing = {
+      endpointTreatment: "circular-equal-power-crossfade",
+      loopCrossfadeSeconds,
+    };
+  } else {
+    const fadeInFrames = Math.min(frames, Math.round(wav.sampleRate * 0.005));
+    const fadeOutFrames = Math.min(frames, Math.round(wav.sampleRate * 0.04));
+    for (let frame = 0; frame < frames; frame++) {
+      const fadeIn = fadeInFrames === 0 ? 1 : Math.min(1, frame / fadeInFrames);
+      const remaining = frames - 1 - frame;
+      const fadeOut = fadeOutFrames === 0
+        ? 1
+        : Math.min(1, remaining / fadeOutFrames);
+      const fade = Math.sin(Math.min(fadeIn, fadeOut) * Math.PI * 0.5);
+      for (let channel = 0; channel < wav.channels; channel++) {
+        samples[frame * wav.channels + channel] *= fade;
+      }
     }
+    processing = {
+      endpointTreatment: "short-fades",
+      fadeInSeconds: 0.005,
+      fadeOutSeconds: 0.04,
+    };
+  }
+  removeDc(samples, frames, wav.channels);
+
+  let peak = 0;
+  for (const sample of samples) {
+    peak = Math.max(peak, Math.abs(sample));
   }
   if (peak < 0.0001) throw new Error("Converted audio is effectively silent.");
   const gain = targetPeak / peak;
@@ -263,6 +299,7 @@ function standardizeWav(bytes, targetPeak) {
   const output = writePcm16Wav(pcm, wav.sampleRate, wav.channels);
   return {
     bytes: output,
+    processing,
     metrics: {
       durationSeconds: frames / wav.sampleRate,
       sampleRate: wav.sampleRate,
@@ -278,6 +315,46 @@ function standardizeWav(bytes, targetPeak) {
       clippedSamples: 0,
     },
   };
+}
+
+function removeDc(samples, frames, channels) {
+  const means = new Float64Array(channels);
+  for (let index = 0; index < samples.length; index++) {
+    means[index % channels] += samples[index];
+  }
+  for (let channel = 0; channel < channels; channel++) {
+    means[channel] /= frames;
+  }
+  for (let index = 0; index < samples.length; index++) {
+    samples[index] -= means[index % channels];
+  }
+}
+
+function circularCrossfade(samples, frames, channels, crossfadeFrames) {
+  if (crossfadeFrames <= 0 || crossfadeFrames * 2 >= frames) {
+    throw new Error("Loop crossfade must be positive and shorter than half the audio.");
+  }
+  const outputFrames = frames - crossfadeFrames;
+  const output = new Float64Array(outputFrames * channels);
+  for (let frame = 0; frame < crossfadeFrames; frame++) {
+    const progress = crossfadeFrames === 1
+      ? 1
+      : frame / (crossfadeFrames - 1);
+    const tailGain = Math.cos(progress * Math.PI * 0.5);
+    const headGain = Math.sin(progress * Math.PI * 0.5);
+    for (let channel = 0; channel < channels; channel++) {
+      const tailIndex = (frames - crossfadeFrames + frame) * channels + channel;
+      const headIndex = frame * channels + channel;
+      output[frame * channels + channel] =
+        samples[tailIndex] * tailGain + samples[headIndex] * headGain;
+    }
+  }
+  for (let frame = crossfadeFrames; frame < outputFrames; frame++) {
+    for (let channel = 0; channel < channels; channel++) {
+      output[frame * channels + channel] = samples[frame * channels + channel];
+    }
+  }
+  return output;
 }
 
 function parsePcm16Wav(bytes) {
@@ -369,6 +446,26 @@ function sanitizeResult(sound, previous = {}) {
   };
 }
 
+function snapshotAttempt(cue) {
+  const request = cue.result?.request ?? snapshotRequest(cue);
+  return {
+    ...request,
+    result: cue.result,
+  };
+}
+
+function snapshotRequest(cue) {
+  return {
+    prompt: cue.prompt,
+    requestLengthSeconds: cue.requestLengthSeconds,
+    secondsToStart: cue.secondsToStart ?? 0,
+    targetPeak: cue.targetPeak ?? 0.82,
+    ...(cue.loopCrossfadeSeconds === undefined
+      ? {}
+      : { loopCrossfadeSeconds: cue.loopCrossfadeSeconds }),
+  };
+}
+
 function assertSoundEffect(value, label) {
   if (!value || typeof value !== "object" || typeof value.id !== "string" ||
       !["generated", "processing", "failed"].includes(value.status)) {
@@ -437,10 +534,22 @@ function validateConfig(value) {
     if (typeof cue.file !== "string" || path.extname(cue.file) !== ".wav") {
       throw new Error(`${cue.id}: file must be a relative .wav path.`);
     }
+    const minimumPeak = cue.loopCrossfadeSeconds === undefined ? 0.7 : 0.3;
     if (cue.targetPeak !== undefined &&
-        (typeof cue.targetPeak !== "number" || cue.targetPeak < 0.7 ||
+        (typeof cue.targetPeak !== "number" || cue.targetPeak < minimumPeak ||
          cue.targetPeak > 0.9)) {
-      throw new Error(`${cue.id}: targetPeak must be between 0.7 and 0.9.`);
+      throw new Error(
+        `${cue.id}: targetPeak must be between ${minimumPeak} and 0.9.`,
+      );
+    }
+    if (cue.loopCrossfadeSeconds !== undefined &&
+        (typeof cue.loopCrossfadeSeconds !== "number" ||
+         cue.loopCrossfadeSeconds <= 0 ||
+         cue.loopCrossfadeSeconds * 2 >= cue.requestLengthSeconds)) {
+      throw new Error(
+        `${cue.id}: loopCrossfadeSeconds must be positive and shorter than ` +
+          `half requestLengthSeconds.`,
+      );
     }
   }
   for (const id of options.forceIds) {

@@ -112,7 +112,8 @@ validated.push(
     channels: 2,
     packCount: 1,
     cueCount: 15,
-    fileCount: 15,
+    fileCount: 16,
+    backgroundLoopCount: 1,
     minStereoDifference: 0,
     expectedPackIds: ["astral-relay"],
     expectedCueIds: [
@@ -233,6 +234,39 @@ async function validateCandidateSet(specification) {
     }
   }
 
+  if (specification.backgroundLoopCount !== undefined) {
+    assert(
+      Array.isArray(manifest.backgroundLoops) &&
+        manifest.backgroundLoops.length === specification.backgroundLoopCount,
+      `${specification.label}: expected ${specification.backgroundLoopCount} ` +
+        `background loop(s)`,
+    );
+    for (const loop of manifest.backgroundLoops) {
+      assert(loop.loop === true, `${loop.id}: background ambience must loop`);
+      assert(
+        loop.loopCrossfadeSeconds === 2,
+        `${loop.id}: expected a two-second circular crossfade`,
+      );
+      assert(
+        Math.abs(loop.durationSeconds - 30) < 0.002,
+        `${loop.id}: expected a 30-second review loop`,
+      );
+      const wav = await validateCueFile(loop, manifest, {
+        ...specification,
+        minPeak: 0.3,
+        maxPeak: 0.65,
+        minRms: 0.005,
+        maxRms: 0.3,
+        minStereoDifference: 0,
+      });
+      assert(
+        wav.boundaryDelta <= Math.max(0.025, wav.derivativeRms * 4),
+        `${loop.id}: loop boundary delta ${wav.boundaryDelta} risks an audible click`,
+      );
+      setFileCount++;
+    }
+  }
+
   assert(
     setFileCount === specification.fileCount,
     `${specification.label}: expected ${specification.fileCount} unique WAV files, ` +
@@ -272,11 +306,18 @@ async function validateCueFile(cue, manifest, specification) {
     `${cue.file}: manifest duration differs from WAV`,
   );
   assert(
-    wav.peak >= 0.7 && wav.peak <= 0.9,
+    wav.peak >= (specification.minPeak ?? 0.7) &&
+      wav.peak <= (specification.maxPeak ?? 0.9),
     `${cue.file}: peak ${wav.peak} is out of range`,
   );
-  assert(wav.rms >= 0.018, `${cue.file}: cue is effectively silent`);
-  assert(wav.rms <= 0.42, `${cue.file}: cue is excessively dense`);
+  assert(
+    wav.rms >= (specification.minRms ?? 0.018),
+    `${cue.file}: cue is effectively silent`,
+  );
+  assert(
+    wav.rms <= (specification.maxRms ?? 0.42),
+    `${cue.file}: cue is excessively dense`,
+  );
   assert(
     wav.clippedSamples === 0,
     `${cue.file}: contains clipped samples`,
@@ -295,6 +336,7 @@ async function validateCueFile(cue, manifest, specification) {
       `${cue.file}: rendered stereo measurement differs from manifest`,
     );
   }
+  return wav;
 }
 
 function parseWav(bytes, filename) {
@@ -330,7 +372,10 @@ function parseWav(bytes, filename) {
   let peak = 0;
   let sumSquares = 0;
   let differenceSquares = 0;
+  let derivativeSquares = 0;
   let clippedSamples = 0;
+  let firstFrameSamples;
+  let previousFrameSamples;
   for (let frame = 0; frame < frameCount; frame++) {
     const frameSamples = [];
     for (let channel = 0; channel < channels; channel++) {
@@ -346,6 +391,14 @@ function parseWav(bytes, filename) {
     if (channels === 2) {
       differenceSquares += (frameSamples[0] - frameSamples[1]) ** 2;
     }
+    if (frame === 0) firstFrameSamples = frameSamples;
+    else {
+      for (let channel = 0; channel < channels; channel++) {
+        derivativeSquares +=
+          (frameSamples[channel] - previousFrameSamples[channel]) ** 2;
+      }
+    }
+    previousFrameSamples = frameSamples;
   }
   return {
     channels,
@@ -358,6 +411,14 @@ function parseWav(bytes, filename) {
       channels === 2 ? Math.sqrt(differenceSquares / frameCount) : 0,
     dcOffset: Math.max(
       ...channelSums.map((sum) => Math.abs(sum / frameCount)),
+    ),
+    boundaryDelta: Math.max(
+      ...firstFrameSamples.map((sample, channel) =>
+        Math.abs(sample - previousFrameSamples[channel]),
+      ),
+    ),
+    derivativeRms: Math.sqrt(
+      derivativeSquares / ((frameCount - 1) * channels),
     ),
     clippedSamples,
   };

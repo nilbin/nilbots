@@ -43,6 +43,9 @@ origin. Do not forward that header to a cross-origin generated-audio URL.
   `false`.
 - Generate sequentially. Save each completed job before starting the next so a
   failed or interrupted run can resume without spending duplicate credits.
+- Before replacing a generated cue, preserve its prompt, request settings, and
+  result under that cue's `attempts` array. The bundled generator does this
+  automatically for completed results regenerated with `--force`.
 - Treat `processing` as asynchronous and poll `GET /sound-effect/{id}` until
   `generated` or `failed`. Do not blindly retry an ambiguous failed POST.
 - Preserve the provider ID, generation timestamp, prompt, request duration,
@@ -63,9 +66,12 @@ another credit for that specific cue.
 ## Audio delivery
 
 The generator uses macOS `afconvert` to decode provider output to 48 kHz stereo
-PCM, then removes DC, applies short endpoint fades, and peak-normalizes without
-adding synthesized layers. Keep the original download hash in provenance even
-when only the standardized WAV is retained.
+PCM, then removes DC and peak-normalizes without adding synthesized layers.
+Ordinary cues receive short endpoint fades. A cue with `loopCrossfadeSeconds`
+instead receives a circular equal-power tail/head crossfade and no silence
+fade, producing a shorter loop whose duration is the requested duration minus
+the overlap. Keep the original download hash in provenance even when only the
+standardized WAV is retained.
 
 After generation, run the owning project's validators. Inspect duration,
 channels, sample rate, peak, RMS, DC offset, clipping, stereo difference, file

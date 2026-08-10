@@ -34,6 +34,24 @@
       "arrival"
     ]
   },
+  "backgroundLoops": [
+    {
+      "id": "arena-ambience",
+      "label": "Astral arena ambience",
+      "category": "AMBIENCE",
+      "status": "proposed",
+      "description": "A non-musical deep-space field designed to sit quietly beneath the arena, effects, and unchanged soundtrack.",
+      "mapping": "Optional arena ambience layer (review-only; no runtime mapping)",
+      "file": "./v5/packs/astral-relay/arena-ambience.wav",
+      "durationSeconds": 30,
+      "peak": 0.55,
+      "rms": 0.129,
+      "stereoDifferenceRms": 0.1065,
+      "dcOffset": 0,
+      "loop": true,
+      "loopCrossfadeSeconds": 2
+    }
+  ],
   "packs": [
     {
       "id": "astral-relay",
@@ -94,11 +112,11 @@
           "description": "The charged field loses coherence at resolution and disperses without a beam.",
           "mapping": "pending strike reaches resolveAtTick without a matching attack traversal",
           "file": "./v5/packs/astral-relay/attack-fizzle.wav",
-          "durationSeconds": 2,
-          "peak": 0.76,
-          "rms": 0.2039,
-          "stereoDifferenceRms": 0.2577,
-          "dcOffset": 0.000014
+          "durationSeconds": 1,
+          "peak": 0.72,
+          "rms": 0.1112,
+          "stereoDifferenceRms": 0.1534,
+          "dcOffset": 0
         },
         {
           "id": "attack-cancel",
@@ -164,10 +182,10 @@
           "description": "A small ascending halo marks clean possession without becoming a UI confirmation beep.",
           "mapping": "core-picked-up fact without an ownership reversal",
           "file": "./v5/packs/astral-relay/arc-pickup.wav",
-          "durationSeconds": 1,
+          "durationSeconds": 2,
           "peak": 0.8,
-          "rms": 0.1061,
-          "stereoDifferenceRms": 0.0001,
+          "rms": 0.0729,
+          "stereoDifferenceRms": 0.0195,
           "dcOffset": 0
         },
         {
@@ -180,9 +198,9 @@
           "file": "./v5/packs/astral-relay/arc-steal.wav",
           "durationSeconds": 2,
           "peak": 0.84,
-          "rms": 0.0981,
-          "stereoDifferenceRms": 0.0873,
-          "dcOffset": 0.000002
+          "rms": 0.0829,
+          "stereoDifferenceRms": 0.1342,
+          "dcOffset": 0
         },
         {
           "id": "arc-drop",
@@ -236,9 +254,9 @@
           "file": "./v5/packs/astral-relay/arc-handoff.wav",
           "durationSeconds": 2,
           "peak": 0.8,
-          "rms": 0.1236,
-          "stereoDifferenceRms": 0.191,
-          "dcOffset": 0.000001
+          "rms": 0.0929,
+          "stereoDifferenceRms": 0.0849,
+          "dcOffset": 0
         },
         {
           "id": "deflect",
@@ -249,10 +267,10 @@
           "mapping": "projectile-deflected event (currently visual-only)",
           "file": "./v5/packs/astral-relay/deflect.wav",
           "durationSeconds": 1,
-          "peak": 0.82,
-          "rms": 0.1537,
-          "stereoDifferenceRms": 0.0001,
-          "dcOffset": 0.000001
+          "peak": 0.74,
+          "rms": 0.1025,
+          "stereoDifferenceRms": 0.1113,
+          "dcOffset": 0
         },
         {
           "id": "arrival",
