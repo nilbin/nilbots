@@ -62,6 +62,7 @@ Regenerate and validate:
 node scripts/generate-audio-candidates.mjs
 node scripts/generate-audio-v2-candidates.mjs
 node scripts/generate-audio-v3-candidates.mjs
+node scripts/generate-audio-v4-candidates.mjs
 node scripts/validate-audio-candidates.mjs
 node scripts/build-audio-sound-lab-site.mjs
 ```
@@ -70,11 +71,48 @@ The soundboard at `art/audio/sound-lab/index.html` works from a static host and
 supports direct A/B/C comparison, context demo sequences, volume control,
 keyboard shortcuts, and a browser-local favorite marker.
 
-### Arc Relay SFX reconcept (V3 review)
+### Arc Relay space / ambient reconcept (V4 review)
 
-The current review round is a complete Arc Relay vocabulary pass rather than
-another four-cue vertical slice. Three new directions each cover the same nine
-currently mapped effects plus three replay-backed proposals:
+V4 is the current owner-review round. It replaces the tactile V3 brief with
+three fully spacey, ambient directions while keeping the same nine mapped
+effects and adding six replay-backed proposals:
+
+- **Halo Drift** — luminous air, weightless orbital motion, and the widest
+  diffusion.
+- **Deep Array** — controlled sub pressure, eclipsed harmonics, and distant
+  deep-space signal.
+- **Solar Bloom** — warm plasma motion, iridescent harmonics, and the brightest
+  objective hierarchy.
+
+The runtime cue ID remains **projectile** for compatibility, but V4 presents it
+as the **beam resolve** inside a larger attack sentence. A new entry in public
+**pendingStrikes** starts the wind-up. At resolution, a matching attack
+traversal produces the focused beam; a strike that reaches its resolve tick
+without one gets the fizzle / interrupt / miss cue; a strike that disappears
+before its resolve tick gets the shorter cancel cue. This vocabulary follows
+authoritative replay state and traversal facts rather than camera timing.
+Nothing audibly travels like a bolt.
+
+The proposed deflection follows the same rule; its underlying replay fact is
+still named **projectile-deflected**, while its reviewed sound is a beam bending
+rather than a ricochet.
+
+All three directions use smooth spectral glides, dynamically filtered air,
+seeded stereo micro-motion, damped diffusion, and linked mastering. V4 renders
+at 96 kHz before anti-aliased downsampling to 48 kHz stereo PCM. Frequent
+combat cues receive less space than objective events; Core birth, bank, and
+Pulse are allowed to bloom. If a direction is promoted, retune the viewer's
+existing arena convolution so the intentional master tails are not stacked
+with a second full room.
+
+The proposed wind-up, fizzle, cancel, handoff, deflection, and arrival cues
+remain audition material only. V4 does not alter the approved runtime pack,
+effect mappings, preferences, or Neon Protocol soundtrack.
+
+### Arc Relay tactile reconcept (V3 archive)
+
+The previous complete-vocabulary round remains available for provenance and
+comparison:
 
 - **Servo League** — compact motors, polymer armor, ceramic pucks, and positive
   relay latches; the robot-sport interpretation.
@@ -83,11 +121,11 @@ currently mapped effects plus three replay-backed proposals:
 - **Field Resonance** — spring steel, composite knocks, hollow vessels, and
   charged air; the material arena-world interpretation.
 
-The mapped set is projectile, impact, destruction, Core birth, pickup, steal,
+The mapped set is attack, impact, destruction, Core birth, pickup, steal,
 drop, bank, and Pulse. The proposed set is ally handoff
 (`core-handed-off`), projectile deflection (`projectile-deflected`), and unit
 arrival (`life-spawned` / historical respawn and fabrication aliases). Those
-proposals are audition material only. V3 does not alter the approved runtime
+proposals are audition material only. V3 did not alter the approved runtime
 pack, effect mappings, preferences, or Neon Protocol soundtrack.
 
 V3 renders deterministically at 96 kHz and downsamples to 48 kHz stereo PCM.

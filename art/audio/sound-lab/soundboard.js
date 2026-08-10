@@ -1,7 +1,7 @@
 (() => {
-  const manifest = window.SOUND_LAB_V3_MANIFEST;
-  if (!manifest || manifest.version !== 3)
-    throw new Error('V3 SFX review manifest did not load.');
+  const manifest = window.SOUND_LAB_V4_MANIFEST;
+  if (!manifest || manifest.version !== 4)
+    throw new Error('V4 SFX review manifest did not load.');
 
   const packTemplate = document.querySelector('#pack-template');
   const cueTemplate = document.querySelector('#cue-template');
@@ -16,7 +16,20 @@
   const activeAudio = new Set();
   const timers = new Set();
 
+  const attackSentenceIds = [
+    'attack-windup',
+    'projectile',
+    'attack-fizzle',
+    'attack-cancel',
+  ];
+  const combatConsequenceIds = ['impact', 'destroyed'];
+  const otherProposalIds = ['arc-handoff', 'deflect', 'arrival'];
   const groups = [
+    {
+      id: 'attack',
+      label: 'Attack sentence',
+      cueIds: [...attackSentenceIds, ...combatConsequenceIds],
+    },
     {
       id: 'core',
       label: 'Arc Core loop',
@@ -30,63 +43,66 @@
       ],
     },
     {
-      id: 'combat',
-      label: 'Combat',
-      cueIds: ['projectile', 'impact', 'destroyed'],
-    },
-    {
-      id: 'proposed',
-      label: 'Proposed additions',
-      cueIds: ['arc-handoff', 'deflect', 'arrival'],
+      id: 'other',
+      label: 'Other additions',
+      cueIds: otherProposalIds,
     },
   ];
 
   const sequences = {
     possession: [
       [0, 'arc-birth'],
-      [920, 'arc-pickup'],
-      [1_540, 'arc-handoff'],
-      [2_230, 'arc-steal'],
-      [3_050, 'arc-drop'],
-      [3_720, 'arc-pickup'],
-      [4_420, 'arc-bank'],
-      [5_600, 'arc-pulse'],
+      [1_380, 'arc-pickup'],
+      [2_180, 'arc-handoff'],
+      [3_060, 'arc-steal'],
+      [4_100, 'arc-drop'],
+      [5_020, 'arc-pickup'],
+      [5_850, 'arc-bank'],
+      [7_350, 'arc-pulse'],
     ],
     combat: [
-      [0, 'projectile'],
-      [185, 'projectile'],
-      [445, 'impact'],
-      [890, 'deflect'],
-      [1_270, 'projectile'],
-      [1_530, 'impact'],
-      [1_990, 'destroyed'],
-      [3_420, 'arrival'],
+      [0, 'attack-windup'],
+      [360, 'projectile'],
+      [920, 'impact'],
+      [1_720, 'attack-windup'],
+      [2_080, 'attack-fizzle'],
+      [3_220, 'attack-windup'],
+      [3_550, 'attack-cancel'],
+      [4_400, 'attack-windup'],
+      [4_760, 'projectile'],
+      [5_360, 'destroyed'],
+      [7_080, 'arrival'],
     ],
     full: [
       [0, 'arc-birth'],
-      [900, 'arc-pickup'],
-      [1_480, 'arc-handoff'],
-      [2_070, 'projectile'],
-      [2_310, 'impact'],
-      [2_880, 'arc-steal'],
-      [3_620, 'arc-drop'],
-      [4_300, 'arc-pickup'],
-      [5_030, 'arc-bank'],
-      [6_190, 'arc-pulse'],
-      [7_900, 'destroyed'],
-      [9_250, 'arrival'],
+      [1_360, 'arc-pickup'],
+      [2_130, 'arc-handoff'],
+      [3_030, 'attack-windup'],
+      [3_390, 'projectile'],
+      [3_950, 'impact'],
+      [4_720, 'attack-windup'],
+      [5_080, 'attack-fizzle'],
+      [6_150, 'arc-steal'],
+      [7_220, 'arc-drop'],
+      [8_150, 'arc-pickup'],
+      [8_980, 'arc-bank'],
+      [10_500, 'arc-pulse'],
+      [13_180, 'attack-windup'],
+      [13_520, 'attack-cancel'],
+      [14_420, 'destroyed'],
+      [16_250, 'arrival'],
     ],
   };
 
   let volume = Number(volumeInput.value);
-  let selectedGroup = 'core';
-  let selectedCue = 'arc-steal';
+  let selectedGroup = 'attack';
+  let selectedCue = 'attack-windup';
   let selectedPack = manifest.packs[0];
   let favorite = readFavorite();
 
   function readFavorite() {
     try {
-      return window.localStorage.getItem('nilbots.audio.v3.favorite') ?? '';
+      return window.localStorage.getItem('nilbots.audio.v4.favorite') ?? '';
     } catch {
       return '';
     }
@@ -94,8 +110,8 @@
 
   function writeFavorite(value) {
     try {
-      if (value) window.localStorage.setItem('nilbots.audio.v3.favorite', value);
-      else window.localStorage.removeItem('nilbots.audio.v3.favorite');
+      if (value) window.localStorage.setItem('nilbots.audio.v4.favorite', value);
+      else window.localStorage.removeItem('nilbots.audio.v4.favorite');
     } catch {
       // A file URL or privacy setting can deny storage. Audio review still works.
     }
@@ -296,10 +312,10 @@
 
   function appendAxes(container, pack) {
     const labels = {
-      physical: 'Physical',
-      coded: 'Coded',
-      sport: 'Sport',
-      atmospheric: 'World',
+      luminous: 'Light',
+      depth: 'Depth',
+      motion: 'Motion',
+      diffusion: 'Space',
     };
     for (const [axis, value] of Object.entries(pack.axes)) {
       const element = document.createElement('div');
@@ -367,9 +383,30 @@
       });
 
       const cueGroups = article.querySelector('.pack__cue-groups');
-      appendCueGroup(cueGroups, pack, 'COMBAT · MAPPED NOW', groups[1].cueIds);
-      appendCueGroup(cueGroups, pack, 'ARC CORE LOOP · MAPPED NOW', groups[0].cueIds);
-      appendCueGroup(cueGroups, pack, 'PROPOSED ADDITIONS', groups[2].cueIds);
+      appendCueGroup(
+        cueGroups,
+        pack,
+        'ATTACK SENTENCE · ONE LIVE + THREE PROPOSED',
+        attackSentenceIds,
+      );
+      appendCueGroup(
+        cueGroups,
+        pack,
+        'COMBAT CONSEQUENCES · MAPPED NOW',
+        combatConsequenceIds,
+      );
+      appendCueGroup(
+        cueGroups,
+        pack,
+        'ARC CORE LOOP · MAPPED NOW',
+        groupById('core').cueIds,
+      );
+      appendCueGroup(
+        cueGroups,
+        pack,
+        'OTHER PROPOSED ADDITIONS',
+        otherProposalIds,
+      );
       packsContainer.append(article);
     }
   }

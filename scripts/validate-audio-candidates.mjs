@@ -69,12 +69,47 @@ validated.push(
     },
   }),
 );
+validated.push(
+  await validateCandidateSet({
+    label: "V4 space / ambient reconcept",
+    manifestName: "manifest-v4.json",
+    version: 4,
+    sampleRate: 48_000,
+    channels: 2,
+    packCount: 3,
+    cueCount: 15,
+    fileCount: 45,
+    minStereoDifference: 0.015,
+    expectedCueIds: [
+      "attack-windup",
+      "projectile",
+      "attack-fizzle",
+      "attack-cancel",
+      "impact",
+      "destroyed",
+      "arc-birth",
+      "arc-pickup",
+      "arc-steal",
+      "arc-drop",
+      "arc-bank",
+      "arc-pulse",
+      "arc-handoff",
+      "deflect",
+      "arrival",
+    ],
+    expectedStatuses: {
+      mapped: 9,
+      proposed: 6,
+    },
+  }),
+);
 
 for (const filename of [
   "index.html",
   "manifest.js",
   "manifest-v2.js",
   "manifest-v3.js",
+  "manifest-v4.js",
   "soundboard.css",
   "soundboard.js",
 ]) {
