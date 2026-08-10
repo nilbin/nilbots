@@ -199,61 +199,163 @@
       "id": "impact",
       "file": "impact.wav",
       "requestLengthSeconds": 1,
-      "targetPeak": 0.84,
-      "prompt": "Isolated premium sci-fi game SFX: armor struck by a continuous energy beam, rounded electromagnetic pressure bloom with crystalline shield distortion and a compact spacey tail. No bullet, metal clank, explosion, gunshot, retro beep, or music.",
+      "targetPeak": 0.8,
+      "prompt": "Premium sci-fi game SFX: a continuous energy beam contacts armor as one weighty low-mid electromagnetic compression, blooming briefly then folding inward. Compact, rounded, ear-safe; no crack, clank, harsh highs, explosion, gunshot, voice, or music.",
+      "revisionReason": "Owner review: infer a more suitable Engine-theme armor impact from the accepted continuous-beam and ambient vocabulary.",
       "result": {
-        "apiSoundEffectId": "se_biab5iefgmlews75",
+        "apiSoundEffectId": "se_6r3i3iubff5dg2iq",
         "status": "generated",
-        "providerCreatedAt": "2026-08-10 22:06:47.135",
+        "providerCreatedAt": "2026-08-10 23:31:28.602",
         "providerLengthSeconds": 1,
         "providerFileSize": 176444,
-        "recordedAt": "2026-08-10T22:07:06.420Z",
+        "recordedAt": "2026-08-10T23:32:16.044Z",
+        "request": {
+          "prompt": "Premium sci-fi game SFX: a continuous energy beam contacts armor as one weighty low-mid electromagnetic compression, blooming briefly then folding inward. Compact, rounded, ear-safe; no crack, clank, harsh highs, explosion, gunshot, voice, or music.",
+          "requestLengthSeconds": 1,
+          "secondsToStart": 0,
+          "targetPeak": 0.8
+        },
         "downloadedContentType": "audio/wav",
-        "sourceSha256": "f3fad72eeef285baac9e618326fdb1a95fe4e6f096140c673ff8f32559a6bb6d",
-        "outputSha256": "53c8df9f4f6ae5ff1702831cc37ab26abb88c327585252c083b1acfad88da107",
+        "sourceSha256": "e739e53bb3a907dce6b2d75b81a556682c58b9c8f1bc408553b22d1c91d8ffe0",
+        "outputSha256": "ff0e120a696c3a6bbd0c7288c930c965097e20a76c46cc89733d77e7488ebe31",
         "outputBytes": 192044,
+        "processing": {
+          "endpointTreatment": "short-fades",
+          "fadeInSeconds": 0.005,
+          "fadeOutSeconds": 0.04
+        },
         "metrics": {
           "durationSeconds": 1,
           "sampleRate": 48000,
           "channels": 2,
           "bitsPerSample": 16,
-          "peak": 0.84,
-          "rms": 0.1435,
-          "stereoDifferenceRms": 0.1349,
-          "dcOffset": 0.000006,
+          "peak": 0.8,
+          "rms": 0.1977,
+          "stereoDifferenceRms": 0.3239,
+          "dcOffset": 0,
           "clippedSamples": 0
         }
-      }
+      },
+      "attempts": [
+        {
+          "prompt": "Isolated premium sci-fi game SFX: armor struck by a continuous energy beam, rounded electromagnetic pressure bloom with crystalline shield distortion and a compact spacey tail. No bullet, metal clank, explosion, gunshot, retro beep, or music.",
+          "requestLengthSeconds": 1,
+          "secondsToStart": 0,
+          "targetPeak": 0.84,
+          "result": {
+            "apiSoundEffectId": "se_biab5iefgmlews75",
+            "status": "generated",
+            "providerCreatedAt": "2026-08-10 22:06:47.135",
+            "providerLengthSeconds": 1,
+            "providerFileSize": 176444,
+            "recordedAt": "2026-08-10T22:07:06.420Z",
+            "request": {
+              "prompt": "Isolated premium sci-fi game SFX: armor struck by a continuous energy beam, rounded electromagnetic pressure bloom with crystalline shield distortion and a compact spacey tail. No bullet, metal clank, explosion, gunshot, retro beep, or music.",
+              "requestLengthSeconds": 1,
+              "secondsToStart": 0,
+              "targetPeak": 0.84
+            },
+            "downloadedContentType": "audio/wav",
+            "sourceSha256": "f3fad72eeef285baac9e618326fdb1a95fe4e6f096140c673ff8f32559a6bb6d",
+            "outputSha256": "53c8df9f4f6ae5ff1702831cc37ab26abb88c327585252c083b1acfad88da107",
+            "outputBytes": 192044,
+            "metrics": {
+              "durationSeconds": 1,
+              "sampleRate": 48000,
+              "channels": 2,
+              "bitsPerSample": 16,
+              "peak": 0.84,
+              "rms": 0.1435,
+              "stereoDifferenceRms": 0.1349,
+              "dcOffset": 0.000006,
+              "clippedSamples": 0
+            }
+          },
+          "supersededAt": "2026-08-10T23:31:28.942Z",
+          "reason": "Owner review: infer a more suitable Engine-theme armor impact from the accepted continuous-beam and ambient vocabulary."
+        }
+      ]
     },
     {
       "id": "destroyed",
       "file": "destroyed.wav",
-      "requestLengthSeconds": 3,
+      "requestLengthSeconds": 2,
       "targetPeak": 0.84,
-      "prompt": "Isolated premium sci-fi game SFX: an autonomous robot's energy systems collapse, broad spectral power-down and fragments of light falling out of orbit into a spacious tail. Not an explosion; no metal crash, voice, alarm, lo-fi, or music.",
+      "prompt": "Premium sci-fi SFX: an autonomous bot’s stable energy field fails; its low luminous core folds inward, then releases one broad airy orbital collapse into silence. Weighty, spacious, non-explosive; no debris, metal crash, alarm, glitch, voice, or music.",
+      "revisionReason": "Owner review: infer a more suitable Engine-theme destruction as a compact field collapse rather than an explosion or long debris tail.",
       "result": {
-        "apiSoundEffectId": "se_ri7eif5fchqsufbx",
+        "apiSoundEffectId": "se_uvzlbaag3qd2fmzx",
         "status": "generated",
-        "providerCreatedAt": "2026-08-10 22:07:08.507",
-        "providerLengthSeconds": 3,
-        "providerFileSize": 529244,
-        "recordedAt": "2026-08-10T22:07:27.900Z",
+        "providerCreatedAt": "2026-08-10 23:32:18.756",
+        "providerLengthSeconds": 2,
+        "providerFileSize": 352844,
+        "recordedAt": "2026-08-10T23:32:37.706Z",
+        "request": {
+          "prompt": "Premium sci-fi SFX: an autonomous bot’s stable energy field fails; its low luminous core folds inward, then releases one broad airy orbital collapse into silence. Weighty, spacious, non-explosive; no debris, metal crash, alarm, glitch, voice, or music.",
+          "requestLengthSeconds": 2,
+          "secondsToStart": 0,
+          "targetPeak": 0.84
+        },
         "downloadedContentType": "audio/wav",
-        "sourceSha256": "e87590770967b70a2f6c5095d42704595268e42de614a7bed469c5468b00c51a",
-        "outputSha256": "5317f0592aafdf1f1f020006359faf26eace5c0fe1c847f9bfa4b6a1cd5bcbc9",
-        "outputBytes": 576044,
+        "sourceSha256": "29c178dbd53e21640e37d86cf5d07907ec95787e350ef98dd1e9d3dab2a07eae",
+        "outputSha256": "ab34c2e1692a866d8af8749cc9c33a0b06323f5e2d4d3ff970caaa867c46bae3",
+        "outputBytes": 384044,
+        "processing": {
+          "endpointTreatment": "short-fades",
+          "fadeInSeconds": 0.005,
+          "fadeOutSeconds": 0.04
+        },
         "metrics": {
-          "durationSeconds": 3,
+          "durationSeconds": 2,
           "sampleRate": 48000,
           "channels": 2,
           "bitsPerSample": 16,
           "peak": 0.84,
-          "rms": 0.1744,
-          "stereoDifferenceRms": 0.1675,
-          "dcOffset": 0.000001,
+          "rms": 0.1521,
+          "stereoDifferenceRms": 0.1756,
+          "dcOffset": 0,
           "clippedSamples": 0
         }
-      }
+      },
+      "attempts": [
+        {
+          "prompt": "Isolated premium sci-fi game SFX: an autonomous robot's energy systems collapse, broad spectral power-down and fragments of light falling out of orbit into a spacious tail. Not an explosion; no metal crash, voice, alarm, lo-fi, or music.",
+          "requestLengthSeconds": 3,
+          "secondsToStart": 0,
+          "targetPeak": 0.84,
+          "result": {
+            "apiSoundEffectId": "se_ri7eif5fchqsufbx",
+            "status": "generated",
+            "providerCreatedAt": "2026-08-10 22:07:08.507",
+            "providerLengthSeconds": 3,
+            "providerFileSize": 529244,
+            "recordedAt": "2026-08-10T22:07:27.900Z",
+            "request": {
+              "prompt": "Isolated premium sci-fi game SFX: an autonomous robot's energy systems collapse, broad spectral power-down and fragments of light falling out of orbit into a spacious tail. Not an explosion; no metal crash, voice, alarm, lo-fi, or music.",
+              "requestLengthSeconds": 3,
+              "secondsToStart": 0,
+              "targetPeak": 0.84
+            },
+            "downloadedContentType": "audio/wav",
+            "sourceSha256": "e87590770967b70a2f6c5095d42704595268e42de614a7bed469c5468b00c51a",
+            "outputSha256": "5317f0592aafdf1f1f020006359faf26eace5c0fe1c847f9bfa4b6a1cd5bcbc9",
+            "outputBytes": 576044,
+            "metrics": {
+              "durationSeconds": 3,
+              "sampleRate": 48000,
+              "channels": 2,
+              "bitsPerSample": 16,
+              "peak": 0.84,
+              "rms": 0.1744,
+              "stereoDifferenceRms": 0.1675,
+              "dcOffset": 0.000001,
+              "clippedSamples": 0
+            }
+          },
+          "supersededAt": "2026-08-10T23:32:19.093Z",
+          "reason": "Owner review: infer a more suitable Engine-theme destruction as a compact field collapse rather than an explosion or long debris tail."
+        }
+      ]
     },
     {
       "id": "arc-birth",
@@ -288,9 +390,9 @@
     {
       "id": "arc-pickup",
       "file": "arc-pickup.wav",
-      "requestLengthSeconds": 2,
-      "targetPeak": 0.8,
-      "prompt": "Premium sci-fi SFX from one coherent Core family: the luminous orbital halo heard in Core birth, drop, bank and Pulse gently locks around a carrier in a rounded rising bloom with a spacious tail. No chirp, UI beep, jingle, impact, voice, or music.",
+      "requestLengthSeconds": 1,
+      "targetPeak": 0.78,
+      "prompt": "Premium sci-fi game SFX: a floating energy Core meets a carrier; its loose low orbital field rises and closes into a stable luminous halo, echoing Core birth, drop and bank. Small, spacious, pristine; no chime, chirp, UI beep, impact, voice, or music.",
       "attempts": [
         {
           "prompt": "Isolated premium sci-fi game SFX: a robot acquires a floating energy Core, small halo locks into orbit with a clean ascending spectral gesture and soft wide tail. No reward jingle, coin, UI beep, voice, retro, lo-fi, or music.",
@@ -322,39 +424,81 @@
           },
           "supersededAt": "2026-08-10T22:56:59.185Z",
           "reason": "Owner review: the first pickup does not belong to the accepted Core sound family."
-        }
-      ],
-      "revisionReason": "Owner review: the first pickup does not belong to the accepted Core sound family.",
-      "result": {
-        "apiSoundEffectId": "se_ataopwfzcupzun25",
-        "status": "generated",
-        "providerCreatedAt": "2026-08-10 22:59:40.998",
-        "providerLengthSeconds": 2,
-        "providerFileSize": 352844,
-        "recordedAt": "2026-08-10T23:00:00.210Z",
-        "request": {
+        },
+        {
           "prompt": "Premium sci-fi SFX from one coherent Core family: the luminous orbital halo heard in Core birth, drop, bank and Pulse gently locks around a carrier in a rounded rising bloom with a spacious tail. No chirp, UI beep, jingle, impact, voice, or music.",
           "requestLengthSeconds": 2,
           "secondsToStart": 0,
-          "targetPeak": 0.8
+          "targetPeak": 0.8,
+          "result": {
+            "apiSoundEffectId": "se_ataopwfzcupzun25",
+            "status": "generated",
+            "providerCreatedAt": "2026-08-10 22:59:40.998",
+            "providerLengthSeconds": 2,
+            "providerFileSize": 352844,
+            "recordedAt": "2026-08-10T23:00:00.210Z",
+            "request": {
+              "prompt": "Premium sci-fi SFX from one coherent Core family: the luminous orbital halo heard in Core birth, drop, bank and Pulse gently locks around a carrier in a rounded rising bloom with a spacious tail. No chirp, UI beep, jingle, impact, voice, or music.",
+              "requestLengthSeconds": 2,
+              "secondsToStart": 0,
+              "targetPeak": 0.8
+            },
+            "downloadedContentType": "audio/wav",
+            "sourceSha256": "286a28515e678612a72103af92db812714e4d22595369ad2bfb91d31dbf2031a",
+            "outputSha256": "24f8e886ce1e3a6c2d85066f6e3931e2a9c1606fd9237c251e175e3a1a60d030",
+            "outputBytes": 384044,
+            "processing": {
+              "endpointTreatment": "short-fades",
+              "fadeInSeconds": 0.005,
+              "fadeOutSeconds": 0.04
+            },
+            "metrics": {
+              "durationSeconds": 2,
+              "sampleRate": 48000,
+              "channels": 2,
+              "bitsPerSample": 16,
+              "peak": 0.8,
+              "rms": 0.0729,
+              "stereoDifferenceRms": 0.0195,
+              "dcOffset": 0,
+              "clippedSamples": 0
+            }
+          },
+          "supersededAt": "2026-08-10T23:32:40.009Z",
+          "reason": "Owner review: infer a third pickup take as the compact audible inverse of the accepted Core drop, below birth and bank in hierarchy."
+        }
+      ],
+      "revisionReason": "Owner review: infer a third pickup take as the compact audible inverse of the accepted Core drop, below birth and bank in hierarchy.",
+      "result": {
+        "apiSoundEffectId": "se_ko6nfvpvvsclng2u",
+        "status": "generated",
+        "providerCreatedAt": "2026-08-10 23:32:39.671",
+        "providerLengthSeconds": 1,
+        "providerFileSize": 176444,
+        "recordedAt": "2026-08-10T23:32:58.689Z",
+        "request": {
+          "prompt": "Premium sci-fi game SFX: a floating energy Core meets a carrier; its loose low orbital field rises and closes into a stable luminous halo, echoing Core birth, drop and bank. Small, spacious, pristine; no chime, chirp, UI beep, impact, voice, or music.",
+          "requestLengthSeconds": 1,
+          "secondsToStart": 0,
+          "targetPeak": 0.78
         },
         "downloadedContentType": "audio/wav",
-        "sourceSha256": "286a28515e678612a72103af92db812714e4d22595369ad2bfb91d31dbf2031a",
-        "outputSha256": "24f8e886ce1e3a6c2d85066f6e3931e2a9c1606fd9237c251e175e3a1a60d030",
-        "outputBytes": 384044,
+        "sourceSha256": "9e091917d2a31b429f44658a469492655fab4306f721950a55b0c422fde67a89",
+        "outputSha256": "b94abdf9f542007c337326db1c1f99446779377cb021f47d686625277217a1c5",
+        "outputBytes": 192044,
         "processing": {
           "endpointTreatment": "short-fades",
           "fadeInSeconds": 0.005,
           "fadeOutSeconds": 0.04
         },
         "metrics": {
-          "durationSeconds": 2,
+          "durationSeconds": 1,
           "sampleRate": 48000,
           "channels": 2,
           "bitsPerSample": 16,
-          "peak": 0.8,
-          "rms": 0.0729,
-          "stereoDifferenceRms": 0.0195,
+          "peak": 0.78,
+          "rms": 0.1024,
+          "stereoDifferenceRms": 0,
           "dcOffset": 0,
           "clippedSamples": 0
         }

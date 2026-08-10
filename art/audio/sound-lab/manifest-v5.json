@@ -141,10 +141,10 @@
           "mapping": "Damage event",
           "file": "./v5/packs/astral-relay/impact.wav",
           "durationSeconds": 1,
-          "peak": 0.84,
-          "rms": 0.1435,
-          "stereoDifferenceRms": 0.1349,
-          "dcOffset": 0.000006
+          "peak": 0.8,
+          "rms": 0.1977,
+          "stereoDifferenceRms": 0.3239,
+          "dcOffset": 0
         },
         {
           "id": "destroyed",
@@ -154,11 +154,11 @@
           "description": "Energy disperses and falls out of orbit—a spacious systems failure, not an explosion.",
           "mapping": "Destroyed / disqualified event",
           "file": "./v5/packs/astral-relay/destroyed.wav",
-          "durationSeconds": 3,
+          "durationSeconds": 2,
           "peak": 0.84,
-          "rms": 0.1744,
-          "stereoDifferenceRms": 0.1675,
-          "dcOffset": 0.000001
+          "rms": 0.1521,
+          "stereoDifferenceRms": 0.1756,
+          "dcOffset": 0
         },
         {
           "id": "arc-birth",
@@ -182,10 +182,10 @@
           "description": "A small ascending halo marks clean possession without becoming a UI confirmation beep.",
           "mapping": "core-picked-up fact without an ownership reversal",
           "file": "./v5/packs/astral-relay/arc-pickup.wav",
-          "durationSeconds": 2,
-          "peak": 0.8,
-          "rms": 0.0729,
-          "stereoDifferenceRms": 0.0195,
+          "durationSeconds": 1,
+          "peak": 0.78,
+          "rms": 0.1024,
+          "stereoDifferenceRms": 0,
           "dcOffset": 0
         },
         {

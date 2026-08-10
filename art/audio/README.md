@@ -67,16 +67,18 @@ does not. Rebuild its manifest with `scripts/build-audio-v5-candidates.mjs`.
 Generate or replace provider cues only through the skill workflow because each
 new request spends account credits.
 
-SFX Engine returned WAV sources for all fifteen cues. After owner review, Core
-pickup, Core stolen, ally handoff, fizzle, and beam deflection received targeted
-second takes; each rejected prompt, request, provider result, hash, and metric
-set remains archived under the cue's `attempts` array. The current Core takes
-explicitly share the birth / drop / bank / Pulse family, fizzle is one second,
-and deflection avoids the first take's piercing transient. The attack wind-up
-remains effectively mono; provider channel characteristics are retained instead
-of adding synthetic widening. All one-shot masters are standardized to 48 kHz,
-two-channel signed 16-bit PCM with DC correction, endpoint fades, and transparent
-peak normalization.
+SFX Engine returned WAV sources for all fifteen cues. Successive owner reviews
+gave armor impact, bot destruction, Core pickup, Core stolen, ally handoff,
+fizzle, and beam deflection targeted follow-up takes; Core pickup is now on its
+third take. Every rejected prompt, request, provider result, hash, and metric
+set remains archived under the cue's `attempts` array. The latest impact is a
+one-second low-mid beam-pressure contact, destruction is a two-second orbital
+field collapse, and pickup is the compact audible inverse of Core drop. Fizzle
+is one second, and deflection avoids the first take's piercing transient. The
+attack wind-up and current pickup remain effectively mono; provider channel
+characteristics are retained instead of adding synthetic widening. All
+one-shot masters are standardized to 48 kHz, two-channel signed 16-bit PCM with
+DC correction, endpoint fades, and transparent peak normalization.
 
 V5 also includes a review-only **Astral arena ambience**. SFX Engine supplied a
 32-second non-musical source; the workflow applies a two-second circular

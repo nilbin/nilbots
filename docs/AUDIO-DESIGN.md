@@ -131,14 +131,16 @@ IDs.
 
 Provider output is decoded to 48 kHz stereo signed 16-bit PCM, DC-corrected,
 endpoint-faded, and peak-normalized; no procedural layers are added. Following
-owner review, Core pickup, Core stolen, ally handoff, fizzle, and beam
-deflection were regenerated as targeted second takes. The generation record
-retains each rejected prompt, request, provider result, hash, and measurement
-under the cue's `attempts` array. The replacement Core cues explicitly share
-the existing birth / drop / bank / Pulse language, fizzle is one second, and
-the new deflection is shaped as a rounded low-mid field bend without a piercing
-transient. The attack wind-up remains effectively mono; the review preserves
-provider channel behavior rather than manufacturing width. Technical
+successive owner reviews, armor impact, bot destruction, Core pickup, Core
+stolen, ally handoff, fizzle, and beam deflection received targeted follow-up
+takes; Core pickup is now on its third take. The generation record retains each
+rejected prompt, request, provider result, hash, and measurement under the
+cue's `attempts` array. The latest impact is a one-second low-mid beam-pressure
+contact, destruction is a two-second orbital field collapse, and pickup is the
+compact audible inverse of Core drop. Fizzle remains one second and deflection
+is a rounded low-mid field bend without the first take's piercing transient.
+The attack wind-up and current pickup are effectively mono; the review
+preserves provider channel behavior rather than manufacturing width. Technical
 validation therefore requires two channels but does not require nonzero stereo
 difference for V5.
 
