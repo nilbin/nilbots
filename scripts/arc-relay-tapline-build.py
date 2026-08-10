@@ -71,6 +71,31 @@ BLOCKS = [
 # middle row (y = 13) must equal its own reversal
 MIDDLE_WALLS = [3, 4, 8, 9, 12, 18, 21, 22, 26, 27]
 
+# Carved back out after the blocks are painted, upper half only.
+#
+# Movement is corner-strict: a diagonal step needs both orthogonal companions
+# open, exactly as LOS and the strike cone have always required. Two wall
+# clusters that touch only at a corner therefore do NOT form a passage -- but
+# they read like one, and the first draft of this map had fourteen of them.
+# That is a lie to the player, and it also stretched the map badly: under the
+# real rule, reactor to reactor was 38 steps rather than 28, and the centre
+# Well 19 rather than 14, because every planner correctly refused shortcuts
+# the geometry appeared to offer.
+#
+# These seven openings (fourteen tiles with their rotation partners) remove
+# every corner-touch. Each was chosen by search for the largest reduction in
+# defects, not by taste. With no corner-touch left, the permissive and
+# corner-strict rules agree everywhere here, so the map plays identically
+# under either -- and it plays at the distances it was drawn for.
+#
+# The search may not touch the shadow corridor's seal (y = 1 and y = 2). Row 1
+# runs the full width and row 2 admits exactly three gaps per side; that is the
+# authored flank, and an earlier pass that opened (1, 2) and (29, 2) bought two
+# fewer nooks by quietly turning the committed flank into a highway.
+OPENINGS = [
+    (12, 13), (8, 3), (21, 5), (5, 3), (5, 9), (12, 10), (17, 9),
+]
+
 
 def build():
     g = [['.'] * W for _ in range(H)]
@@ -91,7 +116,31 @@ def build():
         for xx in (x, W - 1 - x):
             if (xx, MID) not in PROTECTED:
                 g[MID][xx] = '#'
+    for (x, y) in OPENINGS:
+        assert y <= MID, f"opening {(x, y)} is not in the authored half"
+        for (ax, ay) in ((x, y), rot((x, y))):
+            assert 0 < ax < W - 1 and 0 < ay < H - 1, f"opening {(ax, ay)} on the border"
+            g[ay][ax] = '.'
     return [''.join(r) for r in g]
+
+
+def step_ok(rows, a, b):
+    """The engine's corner-strict movement rule, and the mind's CanStep."""
+    op = lambda p: (0 <= p[0] < W and 0 <= p[1] < H and rows[p[1]][p[0]] != '#')
+    dx, dy = b[0] - a[0], b[1] - a[1]
+    if not op(b):
+        return False
+    return dx == 0 or dy == 0 or (op((a[0] + dx, a[1])) and op((a[0], a[1] + dy)))
+
+
+def neighbours(rows, p):
+    for dx in (-1, 0, 1):
+        for dy in (-1, 0, 1):
+            if not (dx or dy):
+                continue
+            q = (p[0] + dx, p[1] + dy)
+            if 0 <= q[0] < W and 0 <= q[1] < H and step_ok(rows, p, q):
+                yield q
 
 
 def analyse(rows):
@@ -108,27 +157,54 @@ def analyse(rows):
     s0 = next(iter(op)); seen, q = {s0}, deque([s0])
     while q:
         c = q.popleft()
-        for dx in (-1, 0, 1):
-            for dy in (-1, 0, 1):
-                n = (c[0] + dx, c[1] + dy)
-                if n in op and n not in seen:
-                    seen.add(n); q.append(n)
+        for n in neighbours(rows, c):
+            if n not in seen:
+                seen.add(n); q.append(n)
     if len(seen) != len(op):
         errs.append(f"unreachable {len(op) - len(seen)}")
+
+    # No wall corner may pretend to be a passage: if two floor tiles touch
+    # only diagonally, corner-strict movement cannot cross between them.
+    inb = lambda p: 0 <= p[0] < W and 0 <= p[1] < H
+    for (x, y) in op:
+        for dx, dy in ((1, 1), (1, -1)):
+            d = (x + dx, y + dy)
+            if (d in op and inb(d)
+                    and (x + dx, y) not in op and (x, y + dy) not in op):
+                errs.append(f"corner-touch {(x, y)}-{d} reads open but is not")
+
+    # No body standing still may sever a meaningful piece of the map -- that is
+    # what makes routing around traffic possible. Severity is the measure, not
+    # mere existence: the shadow corridor's four ends are two-tile stubs beyond
+    # the outermost seal gap, so a body there cuts off a corner nook. That
+    # follows from the authored flank (row 1 full width, three gaps in row 2)
+    # and is harmless. A body that severs more than that is not.
+    STUB = 2
+    for p in op:
+        rest = op - {p}
+        parts, saw = [], set()
+        for s in rest:
+            if s in saw: continue
+            n, qq = 0, deque([s]); saw.add(s)
+            while qq:
+                c = qq.popleft(); n += 1
+                for q in neighbours(rows, c):
+                    if q in rest and q not in saw:
+                        saw.add(q); qq.append(q)
+            parts.append(n)
+        if len(parts) > 1 and min(parts) > STUB:
+            errs.append(f"cut vertex {p}: severs {min(parts)} tiles")
     return errs, len(op)
 
 
 def path_len(rows, a, b):
-    op = {(x, y) for y in range(H) for x in range(W) if rows[y][x] == '.'}
     q, seen = deque([(a, 0)]), {a}
     while q:
         (x, y), d = q.popleft()
         if (x, y) == b: return d
-        for dx in (-1, 0, 1):
-            for dy in (-1, 0, 1):
-                n = (x + dx, y + dy)
-                if n in op and n not in seen:
-                    seen.add(n); q.append((n, d + 1))
+        for n in neighbours(rows, (x, y)):
+            if n not in seen:
+                seen.add(n); q.append((n, d + 1))
     return None
 
 

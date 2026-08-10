@@ -13,6 +13,137 @@ public sealed class ArcRelayTaplineTests
     private static ActorMapDefinition Map() => ArcRelayH0Definition
         .Create(loopProfile: ArcRelayLoopProfile.Tapline1).Map;
 
+    /// <summary>
+    /// Movement is corner-strict -- a diagonal step needs both orthogonal
+    /// companions open, the same rule LOS and the strike cone already apply.
+    /// Two consequences have to be authored in, because neither shows up as a
+    /// failure: a wall corner that reads like an opening is a lie to the
+    /// player, and a tile whose occupant splits the map is a congestion
+    /// generator on a map built around contested traffic. The first draft had
+    /// fourteen of the former and sixteen of the latter.
+    /// </summary>
+    private static bool CanStep(ActorMapDefinition map, Position from, Position to)
+    {
+        if (to.X < 0 || to.Y < 0 || to.X >= map.Width || to.Y >= map.Height
+            || map.IsWall(to))
+        {
+            return false;
+        }
+        int dx = to.X - from.X;
+        int dy = to.Y - from.Y;
+        return dx == 0 || dy == 0
+            || (!map.IsWall(new Position(from.X + dx, from.Y))
+                && !map.IsWall(new Position(from.X, from.Y + dy)));
+    }
+
+    private static List<Position> Floor(ActorMapDefinition map)
+    {
+        var tiles = new List<Position>();
+        for (int y = 0; y < map.Height; y++)
+        {
+            for (int x = 0; x < map.Width; x++)
+            {
+                var p = new Position(x, y);
+                if (!map.IsWall(p))
+                {
+                    tiles.Add(p);
+                }
+            }
+        }
+        return tiles;
+    }
+
+    private static int ReachableCount(
+        ActorMapDefinition map, Position start, Position? without)
+    {
+        var seen = new HashSet<Position> { start };
+        var queue = new Queue<Position>();
+        queue.Enqueue(start);
+        int count = 0;
+        while (queue.Count > 0)
+        {
+            Position p = queue.Dequeue();
+            count++;
+            for (int dx = -1; dx <= 1; dx++)
+            {
+                for (int dy = -1; dy <= 1; dy++)
+                {
+                    if (dx == 0 && dy == 0)
+                    {
+                        continue;
+                    }
+                    var n = new Position(p.X + dx, p.Y + dy);
+                    if (n == without || !CanStep(map, p, n) || !seen.Add(n))
+                    {
+                        continue;
+                    }
+                    queue.Enqueue(n);
+                }
+            }
+        }
+        return count;
+    }
+
+    [Fact]
+    public void NoWallCornerPretendsToBeAPassage()
+    {
+        ActorMapDefinition map = Map();
+        var lies = new List<string>();
+        foreach (Position p in Floor(map))
+        {
+            foreach ((int dx, int dy) in new[] { (1, 1), (1, -1) })
+            {
+                var d = new Position(p.X + dx, p.Y + dy);
+                if (d.X < 0 || d.Y < 0 || d.X >= map.Width || d.Y >= map.Height
+                    || map.IsWall(d))
+                {
+                    continue;
+                }
+                if (map.IsWall(new Position(p.X + dx, p.Y))
+                    && map.IsWall(new Position(p.X, p.Y + dy)))
+                {
+                    lies.Add($"({p.X},{p.Y})-({d.X},{d.Y})");
+                }
+            }
+        }
+        Assert.True(lies.Count == 0,
+            "corner-touching tiles read as open but cannot be crossed: "
+                + string.Join(", ", lies));
+    }
+
+    [Fact]
+    public void NoSingleBodyStandingStillCanSeverMoreThanACornerNook()
+    {
+        // Severity is the measure, not mere existence. The shadow corridor's
+        // four ends are two-tile stubs past the outermost seal gap, so a body
+        // there cuts off a nook -- that follows from the authored flank (row 1
+        // full width, exactly three gaps in row 2) and costs nothing. A body
+        // that severs more than a nook is a different animal: it is a traffic
+        // jam that no amount of executor re-routing can dissolve.
+        const int Nook = 2;
+        ActorMapDefinition map = Map();
+        List<Position> floor = Floor(map);
+        Assert.Equal(floor.Count, ReachableCount(map, floor[0], without: null));
+
+        var severe = new List<string>();
+        foreach (Position blocker in floor)
+        {
+            Position start = floor.First(t => t != blocker);
+            int reached = ReachableCount(map, start, without: blocker);
+            // `start` may itself sit in the cut-off piece, so the severed side
+            // is the smaller of the two -- not whatever this walk happened to
+            // reach from the top-left tile.
+            int severed = Math.Min(reached, floor.Count - 1 - reached);
+            if (severed > Nook)
+            {
+                severe.Add($"({blocker.X},{blocker.Y}) severs {severed}");
+            }
+        }
+        Assert.True(severe.Count == 0,
+            "one body standing on these tiles severs more than a nook: "
+                + string.Join(", ", severe));
+    }
+
     [Fact]
     public void TheCanvasIsExactlyOneHundredEightyDegreeChiral()
     {
@@ -53,9 +184,12 @@ public sealed class ArcRelayTaplineTests
         int far = Distance(map, west, south);
         Assert.True(own < middle && middle < far,
             $"expected tiering, got own {own}, centre {middle}, enemy {far}");
-        Assert.Equal(10, own);
+        // Corner-strict distances. The earlier 10 / 14 / 18 were measured with
+        // a permissive walk that cut wall corners no body may cut; the map has
+        // since been opened so the honest numbers land back near them.
+        Assert.Equal(12, own);
         Assert.Equal(14, middle);
-        Assert.Equal(18, far);
+        Assert.Equal(21, far);
     }
 
     [Fact]
@@ -157,15 +291,18 @@ public sealed class ArcRelayTaplineTests
         Position Rotate(Position v) =>
             new(map.Width - 1 - v.X, map.Height - 1 - v.Y);
         Position west = new(2, 5);
+        // Corner-strict steps: what a body actually walks. The mirror is the
+        // property under test; the absolute values are pinned so a density
+        // pass cannot quietly stretch or shorten the map.
         (Position Target, int Steps)[] expected =
         [
-            (new Position(7, 7), 5),
-            (new Position(11, 6), 10),
-            (new Position(9, 19), 14),
-            (new Position(15, 13), 14),
-            (new Position(19, 20), 18),
-            (new Position(21, 7), 19),
-            (Rotate(west), 27),
+            (new Position(7, 7), 5),     // own delivery
+            (new Position(11, 6), 12),   // own Well, up-line
+            (new Position(9, 19), 16),   // own heal
+            (new Position(15, 13), 14),  // centre Well
+            (new Position(19, 20), 21),  // enemy Well, down-line
+            (new Position(21, 7), 21),   // enemy heal
+            (Rotate(west), 28),          // enemy reactor
         ];
         foreach ((Position target, int steps) in expected)
         {
@@ -187,9 +324,11 @@ public sealed class ArcRelayTaplineTests
             for (int dx = -1; dx <= 1; dx++)
             for (int dy = -1; dy <= 1; dy++)
             {
+                // Corner-strict, because that is how a body actually travels.
+                // Measuring with a permissive walk reports distances no body
+                // can achieve and hides geometry that only looks passable.
                 var n = new Position(p.X + dx, p.Y + dy);
-                if (n.X < 0 || n.Y < 0 || n.X >= map.Width || n.Y >= map.Height
-                    || map.IsWall(n) || !seen.Add(n))
+                if (!CanStep(map, p, n) || !seen.Add(n))
                 {
                     continue;
                 }
