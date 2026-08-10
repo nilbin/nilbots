@@ -38,11 +38,43 @@ validated.push(
     minStereoDifference: 0.015,
   }),
 );
+validated.push(
+  await validateCandidateSet({
+    label: "V3 Arc Relay reconcept",
+    manifestName: "manifest-v3.json",
+    version: 3,
+    sampleRate: 48_000,
+    channels: 2,
+    packCount: 3,
+    cueCount: 12,
+    fileCount: 36,
+    minStereoDifference: 0.015,
+    expectedCueIds: [
+      "projectile",
+      "impact",
+      "destroyed",
+      "arc-birth",
+      "arc-pickup",
+      "arc-steal",
+      "arc-drop",
+      "arc-bank",
+      "arc-pulse",
+      "arc-handoff",
+      "deflect",
+      "arrival",
+    ],
+    expectedStatuses: {
+      mapped: 9,
+      proposed: 3,
+    },
+  }),
+);
 
 for (const filename of [
   "index.html",
   "manifest.js",
   "manifest-v2.js",
+  "manifest-v3.js",
   "soundboard.css",
   "soundboard.js",
 ]) {
@@ -82,6 +114,24 @@ async function validateCandidateSet(specification) {
     `${specification.label}: each direction must contain ` +
       `${specification.cueCount} review cues`,
   );
+  if (specification.expectedCueIds) {
+    assert(
+      JSON.stringify(referenceIds) ===
+        JSON.stringify(specification.expectedCueIds),
+      `${specification.label}: cue IDs do not match the reviewed runtime vocabulary`,
+    );
+  }
+  if (specification.expectedStatuses) {
+    for (const [status, count] of Object.entries(
+      specification.expectedStatuses,
+    )) {
+      assert(
+        manifest.packs[0].cues.filter((cue) => cue.status === status).length ===
+          count,
+        `${specification.label}: expected ${count} ${status} cues`,
+      );
+    }
+  }
   let setFileCount = 0;
 
   for (const pack of manifest.packs) {

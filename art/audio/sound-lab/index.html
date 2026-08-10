@@ -6,201 +6,254 @@
     <meta name="color-scheme" content="dark" />
     <meta
       name="description"
-      content="Three original audio directions for the nilbots arena."
+      content="Three new complete sound-effect directions for the nilbots Arc Relay arena."
     />
-    <title>nilbots — arena sound lab</title>
+    <title>nilbots — SFX reconcept</title>
     <link
       rel="icon"
-      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%230b1016'/%3E%3Ccircle cx='18' cy='32' r='6' fill='%2347e6db'/%3E%3Ccircle cx='32' cy='32' r='6' fill='%2347e6db'/%3E%3Ccircle cx='46' cy='32' r='6' fill='%2347e6db'/%3E%3C/svg%3E"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23090808'/%3E%3Ccircle cx='18' cy='32' r='6' fill='%23ffb765'/%3E%3Ccircle cx='32' cy='32' r='6' fill='%2362e6ff'/%3E%3Ccircle cx='46' cy='32' r='6' fill='%23a7dd77'/%3E%3C/svg%3E"
     />
     <link rel="stylesheet" href="./soundboard.css" />
   </head>
   <body>
-    <div class="ambient ambient--cyan"></div>
-    <div class="ambient ambient--amber"></div>
+    <div class="grain" aria-hidden="true"></div>
     <header class="topbar">
-      <a class="brand" href="#top" aria-label="nilbots sound lab">
-        <span class="brand__mark" aria-hidden="true">
-          <i></i><i></i><i></i>
-        </span>
-        <span>nilbots</span>
+      <a class="brand" href="#top" aria-label="nilbots SFX review">
+        <span class="brand__word">nilbots</span>
+        <span class="brand__mode">SFX / 03</span>
       </a>
-      <div class="topbar__label">
-        AUDIO R&amp;D <span>·</span> HIGH-FIDELITY REVIEW 02
+      <div class="topbar__scope">
+        <span class="status-light" aria-hidden="true"></span>
+        ARC RELAY · OWNER REVIEW
       </div>
-      <button class="quiet-button" type="button" data-action="stop">
-        <span class="stop-icon" aria-hidden="true"></span>
+      <button class="stop-button" type="button" data-action="stop">
+        <span aria-hidden="true"></span>
         Stop audio
       </button>
     </header>
 
     <main id="top">
       <section class="hero">
-        <div class="eyebrow">
-          <span class="live-dot"></span>
-          V2 VERTICAL SLICE · HEADPHONES RECOMMENDED
-        </div>
-        <h1>How should the<br /><em>arena sound?</em></h1>
-        <p>
-          Four production-grade directions. Four identical showcase moments.
-          Layered stereo synthesis, physical resonance, spatial diffusion, and
-          disciplined mastering—still original and reproducible from source.
-        </p>
-        <div class="hero__meta">
-          <div>
-            <strong>16</strong>
-            <span>V2 showcase cues</span>
-          </div>
-          <div>
-            <strong>48</strong>
-            <span>kHz stereo PCM</span>
-          </div>
-          <div>
-            <strong>2×</strong>
-            <span>oversampled render</span>
+        <div class="hero__title">
+          <p class="eyebrow">THREE NEW DIRECTIONS · SAME COMPLETE VOCABULARY</p>
+          <h1>Small machines.<br /><em>Big possession stories.</em></h1>
+          <p class="hero__lede">
+            A full SFX rethink for nilbots: short enough to leave the existing
+            <strong>Neon Protocol</strong> score alone, distinctive enough that a Core
+            steal, bank, or Pulse reads without UI narration.
+          </p>
+          <div class="hero__actions">
+            <a class="primary-link" href="#compare">Start A/B/C comparison</a>
+            <span>Headphones recommended · speakers still matter</span>
           </div>
         </div>
+
+        <aside class="brief-card" aria-label="Game audio brief">
+          <div class="brief-card__head">
+            <span>THE GAME I DESIGNED FOR</span>
+            <strong>ARC RELAY</strong>
+          </div>
+          <ol class="brief-list">
+            <li>
+              <span>01</span>
+              <p><strong>Programming sport</strong>Autonomous team tactics, not a military simulator.</p>
+            </li>
+            <li>
+              <span>02</span>
+              <p><strong>Physical objective</strong>Cores move through pickups, handoffs, steals, drops, and banks.</p>
+            </li>
+            <li>
+              <span>03</span>
+              <p><strong>Premium miniatures</strong>Distinct machines fighting across forge, woodland, vault, and lab arenas.</p>
+            </li>
+            <li>
+              <span>04</span>
+              <p><strong>Music has priority</strong>Frequent cues stay compact; only objective peaks open up.</p>
+            </li>
+          </ol>
+        </aside>
       </section>
 
-      <section class="compare-panel" aria-labelledby="compare-title">
-        <div class="section-number">A—D</div>
-        <div class="compare-panel__body">
-          <div class="section-heading">
-            <div>
-              <p class="overline">FAST COMPARISON</p>
-              <h2 id="compare-title">One moment, four directions</h2>
-            </div>
-            <label class="volume">
-              <span>VOLUME</span>
-              <input
-                type="range"
-                min="0"
-                max="1"
-                step="0.01"
-                value="0.72"
-                data-volume
-              />
-              <output data-volume-label>72%</output>
-            </label>
+      <section class="scope-rail" aria-label="Review scope">
+        <div><strong>3</strong><span>new themes</span></div>
+        <div><strong>9</strong><span>live mappings covered</span></div>
+        <div><strong>3</strong><span>new cues proposed</span></div>
+        <div><strong>48k</strong><span>stereo PCM masters</span></div>
+        <div class="scope-rail__protected"><strong>UNCHANGED</strong><span>music + runtime pack</span></div>
+      </section>
+
+      <section class="compare" id="compare" aria-labelledby="compare-title">
+        <div class="section-heading">
+          <div class="section-index">01</div>
+          <div>
+            <p class="eyebrow">FAST COMPARISON</p>
+            <h2 id="compare-title">Hold the event. Change the language.</h2>
+            <p>Pick one gameplay fact, then switch A/B/C. Loudness is mastered to the same peak.</p>
           </div>
+          <label class="volume">
+            <span>REVIEW VOLUME</span>
+            <input type="range" min="0" max="1" step="0.01" value="0.68" data-volume />
+            <output data-volume-label>68%</output>
+          </label>
+        </div>
+
+        <div class="compare__body">
+          <div class="compare-groups" data-compare-groups></div>
           <div class="compare-cues" data-compare-cues></div>
           <div class="compare-players" data-compare-players></div>
+          <div class="sequence-bar">
+            <div>
+              <span>CONTEXT TESTS</span>
+              <p data-sequence-pack>Using A · Servo League. Tap a theme above to switch.</p>
+            </div>
+            <button type="button" data-sequence="possession">
+              <i aria-hidden="true"></i>
+              Play possession story
+              <small>birth → pickup → handoff → steal → bank → Pulse</small>
+            </button>
+            <button type="button" data-sequence="combat">
+              <i aria-hidden="true"></i>
+              Play combat burst
+              <small>fire → impact → deflect → destruction → arrival</small>
+            </button>
+          </div>
           <p class="keyboard-hint">
-            Keyboard: <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> <kbd>4</kbd>
-            compare the selected cue · <kbd>space</kbd> stops
+            <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> play A/B/C ·
+            <kbd>←</kbd> <kbd>→</kbd> change cue · <kbd>space</kbd> stop
           </p>
         </div>
       </section>
 
-      <section class="packs-section" aria-labelledby="packs-title">
-        <div class="section-intro">
+      <section class="directions" aria-labelledby="directions-title">
+        <div class="section-heading section-heading--simple">
+          <div class="section-index">02</div>
           <div>
-            <p class="overline">FULL DIRECTIONS</p>
-            <h2 id="packs-title">Listen for character, not loudness</h2>
+            <p class="eyebrow">THE THREE THEMES</p>
+            <h2 id="directions-title">Choose the product personality.</h2>
+            <p>Each direction covers all twelve cues. The difference is the world they imply.</p>
           </div>
-          <p>
-            Candidate D combines the strongest language from A, B, and C
-            across the complete sample set. Compare transient quality,
-            physical material, stereo depth, and reward character.
-          </p>
         </div>
         <div class="pack-list" data-packs></div>
       </section>
 
-      <section class="archive-section">
-        <details>
-          <summary>
-            <span>
-              <small>REFERENCE ONLY</small>
-              Open the procedural V1 archive
-            </span>
-            <i aria-hidden="true"></i>
-          </summary>
-          <div class="archive__body">
-            <p>
-              The original mono candidates remain here for honest comparison.
-              They are not part of the V2 vote.
-            </p>
-            <div class="archive__controls" data-v1-archive></div>
+      <section class="recommendations" aria-labelledby="recommendations-title">
+        <div class="section-heading section-heading--simple">
+          <div class="section-index">03</div>
+          <div>
+            <p class="eyebrow">WHAT IS MISSING</p>
+            <h2 id="recommendations-title">Three safe additions worth hearing.</h2>
+            <p>These are suggestions, not runtime changes. Each is backed by an explicit public replay fact.</p>
           </div>
-        </details>
+        </div>
+
+        <div class="recommendation-grid">
+          <article>
+            <div class="recommendation__meta"><span>HIGH CONFIDENCE</span><b>10</b></div>
+            <h3>Ally handoff</h3>
+            <p>
+              Handoffs are the most specifically “relay” play in Arc Relay, yet
+              <code>core-handed-off</code> is silent. A compact two-part transfer sound
+              rewards authored coordination without reading as a score.
+            </p>
+            <button type="button" data-jump-cue="arc-handoff">Compare handoff across A/B/C</button>
+          </article>
+          <article>
+            <div class="recommendation__meta"><span>HIGH CONFIDENCE</span><b>11</b></div>
+            <h3>Projectile deflection</h3>
+            <p>
+              The timeline already distinguishes a deflection, and replay v3 carries
+              <code>projectile-deflected</code>. Its bright glancing voice would make
+              successful defensive geometry legible without adding more impact noise.
+            </p>
+            <button type="button" data-jump-cue="deflect">Compare deflection across A/B/C</button>
+          </article>
+          <article>
+            <div class="recommendation__meta"><span>USE SPARINGLY</span><b>12</b></div>
+            <h3>Unit arrival</h3>
+            <p>
+              Destruction already speaks; the opposite beat does not. One quiet online
+              cue can cover respawn and fabrication from their explicit lifecycle events,
+              with a low voice cap so team wipes do not become a startup chorus.
+            </p>
+            <button type="button" data-jump-cue="arrival">Compare arrival across A/B/C</button>
+          </article>
+        </div>
       </section>
 
-      <section class="notes">
-        <div class="section-number">SYS</div>
-        <div>
-          <p class="overline">IMPLEMENTATION NOTES</p>
-          <h2>Designed for deterministic replay playback</h2>
-          <div class="notes__grid">
-            <p>
-              <strong>Replay-safe.</strong> Sounds will be scheduled from
-              authoritative tick events, never from canvas animation guesses.
-            </p>
-            <p>
-              <strong>Cosmetic only.</strong> Projectile audio can follow the
-              projectile manifest without changing damage, timing, or visibility.
-            </p>
-            <p>
-              <strong>Voice-limited.</strong> Repeated fire and impacts will use
-              priorities and small deterministic variations instead of stacking noise.
-            </p>
-            <p>
-              <strong>Bundle-conscious.</strong> These candidates stay in
-              <code>art/</code>; only the chosen runtime set enters the viewer.
-            </p>
+      <section class="coverage" aria-labelledby="coverage-title">
+        <div class="section-heading section-heading--simple">
+          <div class="section-index">04</div>
+          <div>
+            <p class="eyebrow">COVERAGE CHECK</p>
+            <h2 id="coverage-title">Nothing quietly disappeared.</h2>
+            <p>Every direction uses the same ordered event vocabulary for an honest comparison.</p>
           </div>
+        </div>
+        <div class="coverage-table" data-coverage></div>
+      </section>
+
+      <section class="guardrails">
+        <div>
+          <span>INTENTIONALLY NOT ADDED</span>
+          <h2>Restraint is part of the sound.</h2>
+        </div>
+        <div class="guardrails__grid">
+          <p><strong>No movement loop.</strong> Sixteen bodies moving every tick would turn music into background noise.</p>
+          <p><strong>No generic win jingle.</strong> The soundtrack already owns resolve; a second musical verdict would fight it.</p>
+          <p><strong>No sixteen-signature pack yet.</strong> Pick the foundational grammar first, then author class identity inside it.</p>
+          <p><strong>No state inference.</strong> Future mappings stay attached to public replay facts, never camera timing or guessed score.</p>
         </div>
       </section>
     </main>
 
     <footer>
-      <span>nilbots audio lab / high-fidelity vertical slice v2</span>
-      <span data-audio-status>Ready. Select a cue.</span>
+      <span>nilbots / Arc Relay SFX reconcept 03</span>
+      <span data-audio-status>Ready. Choose a gameplay fact.</span>
     </footer>
 
     <template id="pack-template">
       <article class="pack">
         <header class="pack__header">
-          <div class="pack__number"></div>
-          <div class="pack__title">
-            <p class="pack__kicker"></p>
-            <h3></h3>
-            <p class="pack__description"></p>
+          <div class="pack__identity">
+            <span class="pack__number"></span>
+            <div>
+              <p class="pack__kicker"></p>
+              <h3></h3>
+            </div>
           </div>
+          <p class="pack__description"></p>
+          <p class="pack__thesis"></p>
           <div class="pack__actions">
             <button class="demo-button" type="button" data-pack-demo>
-              <span class="play-triangle" aria-hidden="true"></span>
-              Play 7s demo
+              <i aria-hidden="true"></i>
+              Play full story
             </button>
-            <button class="pick-button" type="button" data-pick>
-              Mark as favorite
-            </button>
+            <button class="pick-button" type="button" data-pick>Mark favorite</button>
           </div>
         </header>
-        <div class="cue-grid"></div>
+        <div class="pack__listen-for"></div>
+        <div class="axis-grid"></div>
+        <div class="pack__cue-groups"></div>
       </article>
     </template>
 
     <template id="cue-template">
       <button class="cue" type="button">
-        <span class="cue__topline">
+        <span class="cue__meta">
           <span class="cue__category"></span>
           <span class="cue__duration"></span>
         </span>
         <strong class="cue__label"></strong>
         <span class="cue__description"></span>
-        <span class="cue__playline">
-          <span class="cue__icon" aria-hidden="true"></span>
-          <span class="cue__action">Play cue</span>
-          <span class="cue__meter" aria-hidden="true">
-            <i></i><i></i><i></i><i></i><i></i>
-          </span>
+        <span class="cue__play">
+          <i aria-hidden="true"></i>
+          <span>Play cue</span>
+          <span class="cue__bars" aria-hidden="true"><b></b><b></b><b></b><b></b><b></b></span>
         </span>
       </button>
     </template>
 
-    <script src="./manifest.js"></script>
-    <script src="./manifest-v2.js"></script>
+    <script src="./manifest-v3.js"></script>
     <script src="./soundboard.js" defer></script>
   </body>
 </html>

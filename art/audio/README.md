@@ -7,6 +7,7 @@ Run:
 ```bash
 node scripts/generate-audio-candidates.mjs
 node scripts/generate-audio-v2-candidates.mjs
+node scripts/generate-audio-v3-candidates.mjs
 node scripts/validate-audio-candidates.mjs
 node scripts/build-audio-sound-lab-site.mjs
 node scripts/export-runtime-sound-effects.mjs
@@ -33,6 +34,18 @@ four directions:
 - **Obsidian Foundry** — physical, dense, and cinematic.
 - **Aurora Core** — luminous, energetic, and modern.
 - **Nilbots Signature** — Aegis clarity, Obsidian weight, and Aurora lift.
+
+V3 is the current Arc Relay SFX reconcept. It presents three entirely new
+directions with identical coverage of all nine runtime mappings and three
+explicit-replay proposals:
+
+- **Servo League** — tactile, fast, sporting miniature robotics.
+- **Signal Grid** — coded, clean, intelligent machine language.
+- **Field Resonance** — textured, grounded, map-friendly physical resonance.
+
+The proposed handoff, deflection, and arrival cues are review material only.
+Generating or opening the V3 artifact does not replace the approved runtime
+pack and does not touch the Neon Protocol soundtrack.
 
 V2 renders at 96 kHz before anti-aliased downsampling to 48 kHz stereo. Its
 layers include separate transients, tonal bodies, modal material resonance,

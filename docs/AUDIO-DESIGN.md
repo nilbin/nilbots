@@ -61,13 +61,39 @@ Regenerate and validate:
 ```bash
 node scripts/generate-audio-candidates.mjs
 node scripts/generate-audio-v2-candidates.mjs
+node scripts/generate-audio-v3-candidates.mjs
 node scripts/validate-audio-candidates.mjs
 node scripts/build-audio-sound-lab-site.mjs
 ```
 
 The soundboard at `art/audio/sound-lab/index.html` works from a static host and
-supports direct A/B/C comparison, full-pack demo sequences, volume control,
+supports direct A/B/C comparison, context demo sequences, volume control,
 keyboard shortcuts, and a browser-local favorite marker.
+
+### Arc Relay SFX reconcept (V3 review)
+
+The current review round is a complete Arc Relay vocabulary pass rather than
+another four-cue vertical slice. Three new directions each cover the same nine
+currently mapped effects plus three replay-backed proposals:
+
+- **Servo League** — compact motors, polymer armor, ceramic pucks, and positive
+  relay latches; the robot-sport interpretation.
+- **Signal Grid** — phase-coded packets, restrained FM motion, and glass-alloy
+  transients; the submitted-machine-intelligence interpretation.
+- **Field Resonance** — spring steel, composite knocks, hollow vessels, and
+  charged air; the material arena-world interpretation.
+
+The mapped set is projectile, impact, destruction, Core birth, pickup, steal,
+drop, bank, and Pulse. The proposed set is ally handoff
+(`core-handed-off`), projectile deflection (`projectile-deflected`), and unit
+arrival (`life-spawned` / historical respawn and fabrication aliases). Those
+proposals are audition material only. V3 does not alter the approved runtime
+pack, effect mappings, preferences, or Neon Protocol soundtrack.
+
+V3 renders deterministically at 96 kHz and downsamples to 48 kHz stereo PCM.
+The comparison artifact states the game brief, keeps identical cue order and
+timing across themes, offers possession/combat context sequences, and records
+a local favorite without turning that preference into product state.
 
 ## Approved runtime package
 
