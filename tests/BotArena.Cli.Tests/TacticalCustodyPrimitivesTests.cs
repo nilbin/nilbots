@@ -16,6 +16,19 @@ public sealed class TacticalCustodyPrimitivesTests
             TacticalCustodyPrimitives.CarrierPreferenceRank(preference));
 
     [Theory]
+    [InlineData("prefer", false, 1)]
+    [InlineData("allow", false, 2)]
+    [InlineData("require", true, int.MaxValue)]
+    public void ACurrentCarrierCannotReserveAnotherCore(
+        string preference,
+        bool alreadyCarrying,
+        int expected) => Assert.Equal(
+            expected,
+            TacticalCustodyPrimitives.PickupCarrierRank(
+                preference,
+                alreadyCarrying));
+
+    [Theory]
     [InlineData("same-carrier", true, true, true)]
     [InlineData("same-carrier", false, true, false)]
     [InlineData("nearest-authorized", false, false, true)]
@@ -35,6 +48,17 @@ public sealed class TacticalCustodyPrimitivesTests
         Assert.Equal(expected, TacticalCustodyPrimitives.MayRecoverDrop(
             policy, candidate, source, safe));
     }
+
+    [Theory]
+    [InlineData(null, null)]
+    [InlineData("", null)]
+    [InlineData("well-custody", "well-custody")]
+    public void AccidentalCarrierWithoutCommittedCustodyLeavesDropClaimable(
+        string? progressCustodyId,
+        string? expected) => Assert.Equal(
+            expected,
+            TacticalCustodyPrimitives.CommittedCustodyOrNull(
+                progressCustodyId));
 
     [Fact]
     public void NearestAuthorizedDropRanksDistanceBeforeCarrierPreference()

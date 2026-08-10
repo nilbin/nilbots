@@ -482,6 +482,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         Dictionary<int, GenericActorContext.ArcRelayCoreState> pickupAssignments =
             AllocateCorePickups(
                 mind, package, tasks, snapshot, roles, orders,
+                carried.Keys.ToHashSet(),
                 loose.Where(core => !activeBaitKeys.Contains(
                         CoreKey(core.CoreId)))
                     .ToArray(),
@@ -1191,7 +1192,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                         string? custodyId = _custodyProgress.TryGetValue(
                                 drop.SourceActorId,
                                 out CustodyProgress? droppedProgress)
-                            ? droppedProgress.CustodyId
+                            ? TacticalCustodyPrimitives.CommittedCustodyOrNull(
+                                droppedProgress.CustodyId)
                             : null;
                         _friendlyDroppedCores[droppedKey] =
                             new FriendlyDroppedCore(
@@ -6402,6 +6404,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             TacticalSnapshot snapshot,
             IReadOnlyDictionary<int, string> roles,
             IReadOnlyDictionary<int, TacticalPlaybookPackage.Order> orders,
+            IReadOnlySet<ActorIdentity> currentCarriers,
             IReadOnlyCollection<GenericActorContext.ArcRelayCoreState> loose,
             out HashSet<string> openSourceWells)
     {
@@ -6432,7 +6435,9 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             TacticalPlaybookPackage.Role role = package.Source.Roles.Single(
                 value => value.RoleId == roles[body.UnitId]);
             int carrierRank = TacticalCustodyPrimitives
-                .CarrierPreferenceRank(role.CarrierPreference);
+                .PickupCarrierRank(
+                    role.CarrierPreference,
+                    currentCarriers.Contains(body.ActorId));
             if (carrierRank == int.MaxValue)
                 continue;
             IEnumerable<TacticalPlaybookPackage.CustodyPolicy> candidates;

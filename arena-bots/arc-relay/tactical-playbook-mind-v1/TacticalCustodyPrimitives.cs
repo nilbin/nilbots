@@ -25,6 +25,16 @@ internal static class TacticalCustodyPrimitives
                 $"Unknown carrier preference '{preference}'."),
         };
 
+    /// <summary>
+    /// A body can carry only one Core. It must never reserve a second pickup
+    /// while delivering the first, regardless of its authored preference.
+    /// </summary>
+    internal static int PickupCarrierRank(
+        string preference,
+        bool alreadyCarrying) => alreadyCarrying
+            ? int.MaxValue
+            : CarrierPreferenceRank(preference);
+
     internal static bool MayRecoverDrop(
         string recoveryPolicy,
         ActorIdentity candidate,
@@ -37,6 +47,15 @@ internal static class TacticalCustodyPrimitives
         _ => throw new InvalidDataException(
             $"Unknown drop recovery policy '{recoveryPolicy}'."),
     };
+
+    /// <summary>
+    /// An accidental carrier can hold a Core without ever committing to a
+    /// custody policy. Runtime progress represents that state with an empty
+    /// id; a later drop must remain claimable instead of treating the empty
+    /// sentinel as a real, impossible custody id.
+    /// </summary>
+    internal static string? CommittedCustodyOrNull(string? custodyId) =>
+        string.IsNullOrEmpty(custodyId) ? null : custodyId;
 
     /// <summary>
     /// A custody policy states whether distance or authored carrier preference
