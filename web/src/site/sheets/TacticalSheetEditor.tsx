@@ -67,6 +67,14 @@ import {
   type SheetTrialRun,
   type UnitTrack,
 } from './sheetTrials';
+import {
+  mapRegionPresentation,
+  nearestSpawnTeam,
+  relationForPhysicalSide,
+  relationForSpawn,
+  relationForTeam,
+  type MapTeamRelation,
+} from './sheetMapPresentation';
 
 interface TacticalSheetEditorProps {
   catalog: TacticalSheetCatalog;
@@ -476,9 +484,10 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
               <input className="field min-h-11 font-mono" inputMode="numeric" value={seed}
                 onChange={(event) => setSeed(event.target.value)} />
             </label>
-            <button ref={practiceActionRef} type="button" className="btn btn-primary min-h-11"
+            <button ref={practiceActionRef} type="button" className="btn btn-secondary min-h-11 gap-2"
               disabled={blocking.length > 0 || save.isPending || trial.isPending || !stockId}
               onClick={() => void runTrial()}>
+              <span className="btn-secondary-symbol" aria-hidden="true">▶</span>
               {trial.isPending ? 'Starting practice…' : runsForSheet.length ? 'Practice again & watch' : 'Practice & watch'}
             </button>
           </div>
@@ -526,10 +535,11 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
       </section>
       {practiceActionSeen && !practiceActionVisible && (
         <button type="button"
-          className="btn btn-primary fixed right-3 bottom-[calc(3.5rem+env(safe-area-inset-bottom)+10px)] z-30 min-h-12 px-5 shadow-xl min-[640px]:hidden"
+          className="btn btn-secondary fixed right-3 bottom-[calc(3.5rem+env(safe-area-inset-bottom)+10px)] z-30 min-h-12 gap-2 px-5 shadow-xl min-[640px]:hidden"
           disabled={blocking.length > 0 || save.isPending || trial.isPending || !stockId}
           onClick={() => void runTrial()}>
-          {trial.isPending ? 'Starting…' : runsForSheet.length ? '▶ Practice again' : '▶ Practice'}
+          <span className="btn-secondary-symbol" aria-hidden="true">▶</span>
+          {trial.isPending ? 'Starting…' : runsForSheet.length ? 'Practice again' : 'Practice'}
         </button>
       )}
       {doctrineTool === 'conditions' && (
@@ -2180,6 +2190,29 @@ function TokenField({ label, value, values, path, issues, onChange }: {
   );
 }
 
+const MAP_OWN = '#22d3ee';
+const MAP_ENEMY = '#fb7185';
+const MAP_NEUTRAL = '#d3b56f';
+
+function mapRelationColor(relation: MapTeamRelation): string {
+  if (relation === 'own') return MAP_OWN;
+  if (relation === 'enemy') return MAP_ENEMY;
+  return MAP_NEUTRAL;
+}
+
+function MapLegendItem({ symbol, label, color }: {
+  symbol: string;
+  label: string;
+  color: string;
+}) {
+  return (
+    <span className="flex min-h-8 items-center gap-1.5 rounded-sm border border-arena-edge bg-arena-deep/25 px-2 t-micro">
+      <span className="font-mono text-[15px]" style={{ color }} aria-hidden="true">{symbol}</span>
+      {label}
+    </span>
+  );
+}
+
 function MapPlotter({ catalog, layout, issues, tracks, trackLabel, onChange }: {
   catalog: TacticalSheetCatalog;
   layout: LayoutDocument;
@@ -2312,6 +2345,11 @@ function MapPlotter({ catalog, layout, issues, tracks, trackLabel, onChange }: {
   const previewRoute = selectedRoute && side === 'east'
     ? eastBinding?.routeAliases?.[selectedRoute.routeId] ?? selectedRoute.routeId
     : selectedRoute?.routeId;
+  const relationForPadTile = (point: { x: number; y: number }) =>
+    relationForTeam(
+      nearestSpawnTeam(point, catalog.map.spawnAnchors),
+      side,
+    );
 
   return (
     <section className="panel min-w-0 pad" data-sheet-path="layout">
@@ -2409,14 +2447,32 @@ function MapPlotter({ catalog, layout, issues, tracks, trackLabel, onChange }: {
                   fill={tile === '#' ? '#35404a' : (x + y) % 2 ? '#0c151c' : '#101a22'}
                   stroke="#17232c" strokeWidth={0.035} />
               )))}
+              {catalog.map.tileTags
+                .filter((tag) => tag.kind === 'SpawnProtected')
+                .flatMap((tag) => tag.tiles.map((point) => {
+                  const [x, y] = transform([point.x, point.y]);
+                  const color = mapRelationColor(relationForPadTile(point));
+                  return <rect key={`${tag.id}:${x}:${y}`} x={x + 0.05} y={y + 0.05}
+                    width={0.9} height={0.9} rx={0.08}
+                    fill={`${color}13`} stroke={`${color}45`} strokeWidth={0.055}
+                    strokeDasharray="0.18 0.12" />;
+                }))}
               {catalog.map.regions.flatMap((region) => region.tiles.map((point) => {
                 const [x, y] = transform([point.x, point.y]);
-                const fill = region.id.includes('reactor') ? '#f0b94f55'
-                  : region.id.includes('well') ? '#a78bfa3d'
-                    : region.id.includes('home-west') ? '#22d3ee1f'
-                      : region.id.includes('home-east') ? '#fb71851f' : '#64748b1f';
-                return <rect key={`${region.id}:${x}:${y}`} x={x + 0.12} y={y + 0.12} width={0.76} height={0.76}
-                  rx={0.14} fill={fill} />;
+                const presentation = mapRegionPresentation(region.id);
+                const relation = relationForPhysicalSide(
+                  presentation.physicalSide, side,
+                );
+                const color = presentation.kind === 'well' ? '#b49cff'
+                  : presentation.kind === 'heal' ? '#62d6a5'
+                    : mapRelationColor(relation);
+                const inset = presentation.kind === 'delivery' ? 0.08 : 0.14;
+                return <rect key={`${region.id}:${x}:${y}`} x={x + inset} y={y + inset}
+                  width={1 - inset * 2} height={1 - inset * 2}
+                  rx={presentation.kind === 'delivery' ? 0.08 : 0.18}
+                  fill={`${color}${presentation.kind === 'delivery' ? '20' : '18'}`}
+                  stroke={`${color}${presentation.kind === 'delivery' ? '8a' : '55'}`}
+                  strokeWidth={presentation.kind === 'delivery' ? 0.075 : 0.05} />;
               }))}
               {zones.map((zone) => {
                 const [a, b] = zonePreview && zone.zoneId === selectedZone?.zoneId
@@ -2469,13 +2525,78 @@ function MapPlotter({ catalog, layout, issues, tracks, trackLabel, onChange }: {
                 return <circle cx={x + 0.5} cy={y + 0.5} r={0.55} fill="transparent"
                   onPointerDown={(event) => startHandleDrag(event, { kind: 'anchor', id: selectedAnchor.anchorId, index: 0 })} />;
               })()}
+              {catalog.map.regions.map((region) => {
+                const presentation = mapRegionPresentation(region.id);
+                if (presentation.kind === 'objective' || region.tiles.length === 0) return null;
+                const points = region.tiles.map((point) => transform([point.x, point.y]));
+                const cx = points.reduce((sum, point) => sum + point[0] + 0.5, 0) / points.length;
+                const cy = points.reduce((sum, point) => sum + point[1] + 0.5, 0) / points.length;
+                const relation = relationForPhysicalSide(presentation.physicalSide, side);
+                const color = mapRelationColor(relation);
+                return <g key={`landmark:${region.id}`} pointerEvents="none">
+                  <title>{presentation.label}{relation === 'neutral' ? '' : ` · ${relation}`}</title>
+                  {presentation.kind === 'well' && <>
+                    <circle cx={cx} cy={cy} r={0.42} fill="#33254f" stroke="#c8b2ff" strokeWidth={0.1} />
+                    <circle cx={cx} cy={cy} r={0.2} fill="#aa8dff" stroke="#f2ecff" strokeWidth={0.055} />
+                    <text x={cx} y={cy + 0.015} textAnchor="middle" dominantBaseline="middle"
+                      fill="#120d1b" fontSize={0.22} fontWeight={800}>{presentation.symbol}</text>
+                  </>}
+                  {presentation.kind === 'heal' && <>
+                    <rect x={cx - 0.36} y={cy - 0.36} width={0.72} height={0.72} rx={0.16}
+                      fill="#173f36" stroke="#8ff0cd" strokeWidth={0.09} />
+                    <path d={`M ${cx - 0.2} ${cy} H ${cx + 0.2} M ${cx} ${cy - 0.2} V ${cy + 0.2}`}
+                      fill="none" stroke="#b9ffe6" strokeWidth={0.13} strokeLinecap="round" />
+                  </>}
+                  {presentation.kind === 'reactor' && <>
+                    <path d={`M ${cx} ${cy - 0.43} L ${cx + 0.43} ${cy} L ${cx} ${cy + 0.43} L ${cx - 0.43} ${cy} Z`}
+                      fill="#0a0e12" stroke={color} strokeWidth={0.11} />
+                    <circle cx={cx} cy={cy} r={0.19} fill={color} stroke="#f4f7f8" strokeWidth={0.055} />
+                  </>}
+                  {presentation.kind === 'delivery' && <>
+                    <circle cx={cx} cy={cy} r={0.37} fill="#0a0e12" stroke={color} strokeWidth={0.1} />
+                    <path d={`M ${cx} ${cy - 0.2} V ${cy + 0.13} M ${cx - 0.14} ${cy} L ${cx} ${cy + 0.16} L ${cx + 0.14} ${cy}`}
+                      fill="none" stroke={color} strokeWidth={0.1} strokeLinecap="round" strokeLinejoin="round" />
+                  </>}
+                </g>;
+              })}
               {catalog.map.spawnAnchors.map((spawn) => {
                 const [x, y] = transform([spawn.position.x, spawn.position.y]);
-                return <path key={spawn.id} d={`M ${x + 0.18} ${y + 0.18} L ${x + 0.82} ${y + 0.5} L ${x + 0.18} ${y + 0.82} Z`}
-                  fill={spawn.id.startsWith('team-0-') ? '#22d3ee' : '#fb7185'} opacity={0.9} />;
+                const relation = relationForSpawn(spawn.id, side);
+                const color = mapRelationColor(relation);
+                const facing = side === 'east'
+                  ? spawn.facing === 'East' ? 'West' : spawn.facing === 'West' ? 'East' : spawn.facing
+                  : spawn.facing;
+                const shape = facing === 'West'
+                  ? `M ${x + 0.82} ${y + 0.18} L ${x + 0.18} ${y + 0.5} L ${x + 0.82} ${y + 0.82} Z`
+                  : `M ${x + 0.18} ${y + 0.18} L ${x + 0.82} ${y + 0.5} L ${x + 0.18} ${y + 0.82} Z`;
+                return <g key={spawn.id} pointerEvents="none">
+                  <title>{relation} body spawn</title>
+                  <path d={shape}
+                    fill={color} stroke="#071017" strokeWidth={0.055} opacity={0.95} />
+                </g>;
               })}
+              {catalog.map.tileTags
+                .filter((tag) => tag.kind === 'SignaturePlacementForbidden')
+                .flatMap((tag) => tag.tiles.map((point) => {
+                  const [x, y] = transform([point.x, point.y]);
+                  return <g key={`${tag.id}:${x}:${y}`} pointerEvents="none">
+                    <title>Signature placement blocked</title>
+                    <path d={`M ${x + 0.69} ${y + 0.1} L ${x + 0.9} ${y + 0.31} M ${x + 0.9} ${y + 0.1} L ${x + 0.69} ${y + 0.31}`}
+                      stroke="#dc8a4d" strokeWidth={0.075} strokeLinecap="round" />
+                  </g>;
+                }))}
             </svg>
           </div>
+          <div className="mt-2 grid grid-cols-2 gap-1.5 sm:flex sm:flex-wrap" aria-label="Map landmark legend">
+            <MapLegendItem symbol="◉" label="Well" color="#b49cff" />
+            <MapLegendItem symbol="+" label="Healing tile" color="#62d6a5" />
+            <MapLegendItem symbol="◆" label="Reactor" color={MAP_OWN} />
+            <MapLegendItem symbol="↓" label="Delivery zone" color={MAP_OWN} />
+            <MapLegendItem symbol="▦" label="Protected spawn pad" color={MAP_OWN} />
+            <MapLegendItem symbol="▶" label="Body spawn" color={MAP_OWN} />
+            <MapLegendItem symbol="×" label="Signature blocked" color="#dc8a4d" />
+          </div>
+          <p className="t-micro mt-1.5">Cyan is own · coral is enemy · landmarks rotate and relabel with the side preview.</p>
           <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 t-micro">
             <span>Tap empty map · add point</span>
             <span>Pink · anchor</span>

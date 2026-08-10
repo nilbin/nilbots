@@ -85,9 +85,16 @@ test('the phone shortcut reruns the configured practice without duplicating setu
   assert.equal(workshop.match(/'Practice & watch'/g)?.length, 1);
   assert.match(workshop, /practiceActionSeen && !practiceActionVisible/);
   assert.match(workshop, /onClick=\{\(\) => void runTrial\(\)\}/);
-  assert.match(workshop, /▶ Practice again/);
+  assert.match(workshop, /btn btn-secondary fixed/);
+  assert.match(workshop, /Practice again/);
   assert.doesNotMatch(workshop, /Practice setup/);
   assert.doesNotMatch(workshop, /Import JSON pair|Export pinned pair|layout sha256/);
+});
+
+test('practice is a secondary game action rather than a competing primary', () => {
+  assert.match(workshop, /practiceActionRef.*?btn btn-secondary/s);
+  assert.match(styles, /\.btn-secondary\s*\{[^}]*background:/s);
+  assert.match(styles, /\.btn-secondary-symbol\s*\{[^}]*color:\s*var\(--color-arena-material\)/s);
 });
 
 test('conditions and custody are focused doctrine tools rather than top-level steps', () => {
@@ -137,4 +144,14 @@ test('the controlled browser review opens the current Tapline workshop', () => {
   assert.match(siteReview, /tapline-base-v1\.json/);
   assert.match(siteReview, /\/api\/sheets\/catalog/);
   assert.match(siteShots, /\['sheet-workshop', '\/entrants\/sheets\/new'\]/);
+});
+
+test('the tactics map names every authoritative Arc Relay landmark', () => {
+  assert.match(workshop, /Map landmark legend/);
+  assert.match(workshop, /Healing tile/);
+  assert.match(workshop, /Delivery zone/);
+  assert.match(workshop, /Protected spawn pad/);
+  assert.match(workshop, /Signature blocked/);
+  assert.match(workshop, /relationForSpawn/);
+  assert.match(workshop, /nearestSpawnTeam/);
 });

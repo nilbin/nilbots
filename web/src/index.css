@@ -324,6 +324,49 @@ html[data-arena-mode='viewer'] #root {
     box-shadow: none;
   }
 
+  /* Secondary game action: strong enough for run/watch loops without competing
+     with the one filled forge-orange commitment on the screen. */
+  .btn-secondary {
+    border-color: color-mix(
+      in oklab,
+      var(--color-arena-material) 54%,
+      var(--color-arena-edge2)
+    );
+    background:
+      linear-gradient(
+        180deg,
+        color-mix(in oklab, var(--color-arena-material) 7%, var(--color-arena-raise)),
+        var(--color-arena-panel)
+      );
+    color: var(--color-arena-text);
+    font-weight: 620;
+    box-shadow:
+      inset 3px 0 0 color-mix(in oklab, var(--color-arena-material) 76%, transparent),
+      inset 0 1px 0 color-mix(in oklab, white 6%, transparent);
+  }
+  .btn-secondary:hover:not(:disabled) {
+    border-color: var(--color-arena-material);
+    background: color-mix(
+      in oklab,
+      var(--color-arena-material) 11%,
+      var(--color-arena-raise)
+    );
+    transform: translateY(-1px);
+  }
+  .btn-secondary:active:not(:disabled) {
+    transform: translateY(1px);
+  }
+  .btn-secondary:disabled {
+    border-color: var(--color-arena-edge);
+    background: var(--color-arena-panel);
+    color: var(--color-arena-dim);
+    box-shadow: none;
+  }
+  .btn-secondary-symbol {
+    color: var(--color-arena-material);
+    font-size: 0.86em;
+  }
+
   /* Actions should not read like document controls. These surfaces are reserved for
      choosing, deploying and buying; records and navigation keep the quieter `.btn`.
      A bright achromatic edge and shallow lift make the target feel tactile without
