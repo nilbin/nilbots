@@ -362,11 +362,11 @@ public static class ArcRelayH0Definition
         [
             "###############################",
             "#....#......#....#..#......#..#",
-            "#.....#..#..#....#....##......#",
-            "#.##......#..##....###.....#..#",
-            "#....#..#.#....#.....#..##....#",
-            "#........#.....#.....##.......#",
-            "#........#....#...#......###..#",
+            "#.....#.....#....###..##......#",
+            "#.##.........##..#.........#..#",
+            "#....#.........#.#..##..##....#",
+            "#........#.....#....#.#.......#",
+            "#........#....#...#.#....###..#",
             "#...........#.....#...........#",
             "###..#.......#.........###....#",
             "#.....##...#..#.#..#........#.#",
@@ -376,11 +376,11 @@ public static class ArcRelayH0Definition
             "#.#........#..#.#..#...##.....#",
             "#....###.........#.......#..###",
             "#...........#.....#...........#",
-            "#..###......#...#....#........#",
-            "#.......##.....#.....#........#",
-            "#....##..#.....#....#.#..#....#",
-            "#..#.....###....##..#......##.#",
-            "#......##....#....#..#..#.....#",
+            "#..###....#.#...#....#........#",
+            "#.......#.#....#.....#........#",
+            "#....##..##..#.#.........#....#",
+            "#..#.........#..##.........##.#",
+            "#......##..###....#.....#.....#",
             "#..#......#..#....#......#....#",
             "###############################",
         ];
@@ -394,18 +394,21 @@ public static class ArcRelayH0Definition
         Position reactorWest = new(2, 6);
         Position reactorEast = Rotate(reactorWest);
 
-        // Tiered exactly as on Crucible: seven steps to your own Well,
-        // thirteen to the centre, nineteen to theirs. The ids keep their
-        // north/centre/south spelling so existing sheets still bind, and
-        // chiral births give the two owned Wells one shared cadence.
-        Position wellNear = new(9, 3);
+        // Each side's owned Well sits on the OPPOSITE height from the spawn
+        // that owns it: west enters high and farms low, east enters low and
+        // farms high. That makes owned income a trip worth defending rather
+        // than a seven-step formality -- eleven steps to yours, thirteen to
+        // the centre, twenty to theirs -- while the pocket still OPENS toward
+        // its owner, so a raider has to come the long way round its mouths.
+        // The pair is a rotation, so chiral births give them one cadence.
+        Position wellNorth = new(21, 5);
         Position wellCentre = new(15, 11);
-        Position wellFar = Rotate(wellNear);
+        Position wellSouth = Rotate(wellNorth);
 
-        // Heals sit off the lane on the cross axis, seven from the centre
-        // Well. Yours is twelve out and theirs eighteen, so withdrawing to
-        // heal concedes the lane and can be followed.
-        Position healNorth = new(20, 4);
+        // Each heal shares its owner's far quarter with that Well, five steps
+        // from it: the ground you have to hold is one place, and it is not
+        // where you spawn.
+        Position healNorth = new(18, 3);
         Position healSouth = Rotate(healNorth);
 
         // The protected corner pad holds the reactor and the respawns; the
@@ -435,7 +438,7 @@ public static class ArcRelayH0Definition
 
         Position[] forbidden =
         [
-            wellNear, wellCentre, wellFar, reactorWest, reactorEast,
+            wellNorth, wellCentre, wellSouth, reactorWest, reactorEast,
         ];
         return new ActorMapDefinition(
             loopProfile.MapId,
@@ -450,9 +453,9 @@ public static class ArcRelayH0Definition
                         Region("heal-south", healSouth),
                     }
                     : System.Array.Empty<ActorMapRegionDefinition>(),
-                Region("well-north", wellNear),
+                Region("well-north", wellNorth),
                 Region("well-centre", wellCentre),
-                Region("well-south", wellFar),
+                Region("well-south", wellSouth),
                 Region("reactor-west", reactorWest),
                 Region("reactor-east", reactorEast),
                 new ActorMapRegionDefinition(

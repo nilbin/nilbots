@@ -61,6 +61,52 @@ public sealed class ArcRelayDrawbenchTests
     }
 
     [Fact]
+    public void EachOwnedWellSitsOppositeItsOwnSpawnAndOpensTowardIt()
+    {
+        // The point of the rework: your income is NOT beside your spawn. West
+        // enters high and farms low; east enters low and farms high. The
+        // pocket still opens toward its owner, so the mouths a raider must
+        // reach are the ones furthest from the raider's approach.
+        ActorMapDefinition map = Map();
+        Position westWell = new(9, 17);
+        Position eastWell = new(21, 5);
+
+        Assert.Equal(
+            eastWell,
+            new Position(
+                map.Width - 1 - westWell.X, map.Height - 1 - westWell.Y));
+        Assert.True(westWell.Y > 11, "west farms below the middle row");
+        Assert.True(eastWell.Y < 11, "east farms above the middle row");
+
+        Position[] westMouths = [.. Neighbours(map, westWell)];
+        Assert.Equal(3, westMouths.Length);
+        Assert.All(westMouths, mouth =>
+            Assert.True(mouth.X <= westWell.X, "west's Well opens westward"));
+        Position[] eastMouths = [.. Neighbours(map, eastWell)];
+        Assert.Equal(3, eastMouths.Length);
+        Assert.All(eastMouths, mouth =>
+            Assert.True(mouth.X >= eastWell.X, "east's Well opens eastward"));
+    }
+
+    private static IEnumerable<Position> Neighbours(
+        ActorMapDefinition map,
+        Position tile)
+    {
+        for (int dx = -1; dx <= 1; dx++)
+        for (int dy = -1; dy <= 1; dy++)
+        {
+            if (dx == 0 && dy == 0)
+                continue;
+            var next = new Position(tile.X + dx, tile.Y + dy);
+            if (next.X >= 0 && next.Y >= 0 && next.X < map.Width
+                && next.Y < map.Height && !map.IsWall(next))
+            {
+                yield return next;
+            }
+        }
+    }
+
+    [Fact]
     public void TheScoringShoulderIsNotTheSpawnPad()
     {
         // Delivery sits forward of the pad and carries no spawn protection,
@@ -107,14 +153,17 @@ public sealed class ArcRelayDrawbenchTests
         Position west = new(2, 6);
         Position east = Rotate(west);
 
+        // Owned income sits on the OPPOSITE height from the spawn that owns
+        // it, so it is a trip rather than a formality -- and still nearer to
+        // its owner than to the raider by nine steps.
         (string Label, Position Target, int Steps)[] expected =
         [
             ("own delivery", new Position(7, 6), 5),
-            ("own near Well", new Position(9, 3), 7),
-            ("near heal", new Position(10, 18), 12),
+            ("own Well, low", new Position(9, 17), 11),
+            ("own heal", new Position(12, 19), 13),
             ("centre Well", new Position(15, 11), 13),
-            ("far heal", new Position(20, 4), 18),
-            ("enemy near Well", new Position(21, 19), 19),
+            ("enemy heal", new Position(18, 3), 17),
+            ("enemy Well, high", new Position(21, 5), 20),
             ("enemy reactor", east, 26),
         ];
         foreach ((string label, Position target, int steps) in expected)

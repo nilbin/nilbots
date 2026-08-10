@@ -19,12 +19,17 @@ rot = lambda p: (W - 1 - p[0], H - 1 - p[1])
 REACTOR0 = (2, 6)
 PAD0 = [(x, y) for x in range(1, 5) for y in range(4, 8)]
 DELIVER0 = [(x, y) for x in range(6, 9) for y in range(5, 8)]
-WELL_NEAR0 = (9, 3)
+# The owned Wells sit on the OPPOSITE height from the spawn that owns them:
+# west spawns high and farms low, east spawns low and farms high. Authored as
+# the upper member of the rotation pair; its partner comes free.
+WELL_NORTH = (21, 5)          # east's own Well, high on their side
+WELL_SOUTH = rot(WELL_NORTH)  # west's own Well, low on ours -> (9, 17)
 WELL_CENTRE = (15, 11)
-HEAL_A = (20, 4)
+HEAL_A = (18, 3)              # east's, beside their Well; rot -> (12, 19)
 
-PROTECTED = ([REACTOR0, WELL_NEAR0, WELL_CENTRE, HEAL_A] + PAD0 + DELIVER0
-             + [rot(REACTOR0), rot(WELL_NEAR0), rot(HEAL_A)]
+PROTECTED = ([REACTOR0, WELL_NORTH, WELL_SOUTH, WELL_CENTRE, HEAL_A]
+             + PAD0 + DELIVER0
+             + [rot(REACTOR0), rot(HEAL_A)]
              + [rot(p) for p in PAD0] + [rot(p) for p in DELIVER0])
 
 UPPER_WALLS = [
@@ -36,9 +41,11 @@ UPPER_WALLS = [
     # these give a defender cover without standing inside spawn protection.
     (9, 5), (9, 6), (6, 9), (7, 9),
 
-    # near-Well pocket at (9,3): walled from the north edge and the east, so
-    # the short mouth is from your own side and the long one from the south.
-    (9, 2), (10, 3), (10, 4), (8, 4),
+    # The owned Well pocket at (21,5) -- east's. It is far from the spawn that
+    # owns it, so it is OPENED toward that owner instead: the mouths face east
+    # and south, its own side, while the west face a raider must come through
+    # is walled. Rotation gives west the same deal at (9,17), facing west.
+    (20, 4), (20, 5), (20, 6), (21, 4),
 
     # the north run: break the y1-2 corridor twice so the top edge is not a
     # free highway between the two halves.
@@ -52,9 +59,8 @@ UPPER_WALLS = [
     # separate mouths rather than one open face.
     (13, 10), (16, 9), (17, 10),
 
-    # heal at (20,4): shoulders on three sides, mouths west (19,4) and
-    # south (20,5).
-    (19, 3), (20, 3), (21, 3), (21, 4), (21, 5),
+    # heal at (18,3), beside the Well it shares a quarter with
+    (17, 2), (18, 2), (19, 2), (17, 3), (17, 4),
 
     # east approach texture so the far half is rooms, not one hall
     (24, 4), (25, 4), (26, 6), (27, 6), (24, 8), (25, 8), (28, 9),
@@ -140,8 +146,8 @@ def path_len(rows, a, b):
 if __name__ == '__main__':
     rows = build()
     errs, opens = check(rows)
-    marks = {REACTOR0: 'R', rot(REACTOR0): 'R', WELL_NEAR0: 'N',
-             rot(WELL_NEAR0): 'S', WELL_CENTRE: 'C',
+    marks = {REACTOR0: 'R', rot(REACTOR0): 'R', WELL_NORTH: 'N',
+             WELL_SOUTH: 'S', WELL_CENTRE: 'C',
              HEAL_A: 'h', rot(HEAL_A): 'h'}
     for p in DELIVER0 + [rot(q) for q in DELIVER0]:
         marks.setdefault(p, 'd')
@@ -153,13 +159,14 @@ if __name__ == '__main__':
     print(f'\nopen tiles: {opens}')
     print('errors:', errs or 'none')
     b0, b1 = REACTOR0, rot(REACTOR0)
-    for label, tgt in [('own near Well', WELL_NEAR0), ('centre Well', WELL_CENTRE),
-                       ('enemy near Well', rot(WELL_NEAR0)), ('own delivery', (7, 6)),
-                       ('near heal', rot(HEAL_A)), ('far heal', HEAL_A),
+    for label, tgt in [('own delivery', (7, 6)), ('own Well (low)', WELL_SOUTH),
+                       ('own heal', rot(HEAL_A)), ('centre Well', WELL_CENTRE),
+                       ('enemy heal', HEAL_A), ('enemy Well (high)', WELL_NORTH),
                        ('enemy reactor', b1)]:
         d0, d1 = path_len(rows, b0, tgt), path_len(rows, b1, rot(tgt))
         flag = '' if d0 == d1 else '   <-- ASYMMETRIC'
         print(f'  team0 base -> {label:17} {d0:3}   (team1 mirror {d1}){flag}')
-    print(f"  centre -> own near Well:  {path_len(rows, WELL_CENTRE, WELL_NEAR0)}")
-    print(f"  centre -> near heal:      {path_len(rows, WELL_CENTRE, rot(HEAL_A))}")
-    print(f"  centre -> far heal:       {path_len(rows, WELL_CENTRE, HEAL_A)}")
+    print(f"  centre -> own Well:   {path_len(rows, WELL_CENTRE, WELL_SOUTH)}")
+    print(f"  centre -> enemy Well: {path_len(rows, WELL_CENTRE, WELL_NORTH)}")
+    print(f"  centre -> own heal:   {path_len(rows, WELL_CENTRE, rot(HEAL_A))}")
+    print(f"  own Well -> own heal: {path_len(rows, WELL_SOUTH, rot(HEAL_A))}")
