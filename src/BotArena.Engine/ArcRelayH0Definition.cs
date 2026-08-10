@@ -552,11 +552,16 @@ public static class ArcRelayH0Definition
             .OrderBy(value => value.Y).ThenBy(value => value.X)];
 
         // Clustered at the TOP of the west pad, so the rotation puts the east
-        // cluster at the bottom of theirs.
+        // cluster at the bottom of theirs -- but ONE row down from the pad's
+        // edge. On the top row the shadow-corridor seam sits directly above
+        // and a wall column beside, which left the corner anchor a single
+        // diagonal exit: that body spent whole matches caged at its spawn by
+        // its own siblings' reservations. Every anchor now has at least two
+        // ways out that a sibling does not already own.
         Position[] west =
         [
-            new(1, 3), new(2, 3), new(3, 3), new(4, 3),
-            new(1, 4), new(3, 4), new(4, 4), new(1, 5),
+            new(1, 4), new(2, 4), new(3, 4), new(4, 4),
+            new(1, 5), new(3, 5), new(4, 5), new(1, 6),
         ];
         var anchors = ImmutableArray.CreateBuilder<ActorMapSpawnAnchorDefinition>();
         for (int unitId = 0; unitId < west.Length; unitId++)
