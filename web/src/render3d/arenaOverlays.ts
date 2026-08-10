@@ -22,6 +22,7 @@ import {
   createPresenter,
   type TickPresentation,
 } from '../replayPresentation';
+import { settledStateTick } from '../render/tickClock';
 import type { ViewerEntrantPresentation } from '../components/Viewer';
 import { buildArcRelayEffects } from './arcRelayEffects';
 import {
@@ -148,6 +149,13 @@ export function buildOverlays(
     const tick = Math.max(0, Math.min(Math.floor(time), replay.ticks.length - 1));
     const fraction = Math.max(0, Math.min(time - tick, 1));
     const presentation = presenter.at(tick);
+    // Possession is the one part of this that rides a moving hull, so it is the one part
+    // that needs the hull's clock: end-of-tick state read at the start of a glide hands a
+    // Core over before its carrier has arrived. Static furniture -- pads, objective,
+    // lifecycle marks -- is not attached to anything in flight and stays on this tick.
+    const settled = presenter.at(
+      settledStateTick(tick, fraction, replay.ticks.length),
+    );
 
     const teamVision = teamVisionAt(
       replay,
@@ -191,7 +199,7 @@ export function buildOverlays(
 
     spawnPads.update(presentation, time);
     objective.update(presentation, time);
-    arcRelay.update(presentation, time);
+    arcRelay.update(settled, time);
     arcRelayEffects.update(time);
     playAwareness.update(
       time,
