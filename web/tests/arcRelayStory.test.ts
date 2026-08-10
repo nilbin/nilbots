@@ -297,7 +297,12 @@ test('a slow carrier glides through its forced relocation hold without predictin
 
 test('the carried Core is a sphere levitating on the interpolated carrier pose', () => {
   const replay = arcRelayReplay();
-  const time = 1.5;
+  // Late in tick 1 rather than half way through it. Possession is end-of-tick state and
+  // the carrier is drawn gliding across the tick that took it, so a Core handed over at
+  // the *start* of that glide arrives in the hull before the hull arrives at the Core --
+  // four tiles early for a Kestrel's vector-dash (owner review 2026-08-10). The sphere
+  // rides the interpolated pose, which is what this pins; it just may not board early.
+  const time = 1.9;
   const story = createPresenter(replay).at(1).arcRelay;
   assert.ok(story);
   const core = story.cores[0];
@@ -350,6 +355,19 @@ test('the carried Core is a sphere levitating on the interpolated carrier pose',
     (glow.material as THREE.SpriteMaterial).color.getHexString(),
     new THREE.Color(accent).getHexString(),
     'the carried glow keeps its origin-lane colour',
+  );
+
+  // ...and the other half of the same rule: half way through the tick that takes it, the
+  // Core is still where it was, not already in transit inside the carrier.
+  overlays.update(1.5, null, false);
+  const midGlide: THREE.Object3D[] = [];
+  overlays.group.traverse((node) => midGlide.push(node));
+  const midRig = midGlide.find((node) => node.userData.kind === 'arc-relay-core');
+  assert.ok(midRig);
+  assert.notEqual(
+    midRig.position.x,
+    carrier.x + 0.5,
+    'possession must not transfer before the carrier has finished moving',
   );
 
   overlays.dispose();
