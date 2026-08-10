@@ -394,6 +394,20 @@ Web (`web/`) is one Vite/React build with two modes chosen at runtime in
   final commit SHA. An uncommitted delivery is an incomplete delivery,
   whatever the report says. (Owner rule — this has been forgotten more than
   once; it is a completion criterion, not a courtesy.)
+- **Do not mint a worktree per task.** They accumulate: 67 of them reached
+  93 GB before the first cleanup, most of it build output in branches whose
+  work had already landed. Default to working in the main checkout. Create a
+  worktree only when you genuinely need isolation from another agent running
+  concurrently, reuse one per WORKSTREAM rather than one per task, and treat
+  removing it as part of finishing — a landed branch whose worktree is still
+  on disk is not tidied up. Reading, diagnosing, running matches and building
+  galleries need no worktree at all.
+- **Never delete a worktree on the merge test alone.** A branch forked from
+  `main` that has not committed yet is indistinguishable from one whose work
+  has landed: both report zero commits ahead. Require merged AND a clean tree
+  AND no recent activity, re-checked at the moment of deletion, and never pass
+  `--force` without reading what the untracked files are. (Owner catch — the
+  naive test would have deleted a goal an agent had started minutes earlier.)
 - **Owner reviews are delivered as public tunnel URLs.** The owner reviews
   galleries and report evidence from his phone. Serving on localhost is not
   delivery: serve the review directory (scripts/serve-gallery.py), expose the
