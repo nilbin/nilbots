@@ -35,6 +35,9 @@ const backgroundGenerationCues = generation.cues.filter(
   (cue) => cue.role === "background-loop",
 );
 const actualIds = comparisonGenerationCues.map((cue) => cue.id);
+const locallyDerivedCues = comparisonGenerationCues.filter(
+  (cue) => cue.result?.status === "derived",
+);
 assert(
   JSON.stringify(actualIds) === JSON.stringify(expectedIds),
   "SFX Engine cue order must exactly match the V4 comparison vocabulary.",
@@ -61,7 +64,27 @@ for (const generatedCue of comparisonGenerationCues) {
     (cue) => cue.id === generatedCue.id,
   );
   const result = generatedCue.result;
-  assert(result?.status === "generated", `${generatedCue.id} is not generated.`);
+  assert(
+    ["generated", "derived"].includes(result?.status),
+    `${generatedCue.id} is neither generated nor locally derived.`,
+  );
+  if (result.status === "derived") {
+    const source = generation.cues.find(
+      (cue) => cue.id === result.derivation?.sourceCueId,
+    );
+    assert(
+      generatedCue.generationMode === "local-derivation" && source,
+      `${generatedCue.id} lacks local-derivation provenance.`,
+    );
+    assert(
+      source.result?.outputSha256 === result.derivation.sourceOutputSha256,
+      `${generatedCue.id} derivation source hash is stale.`,
+    );
+    assert(
+      result.derivation?.derivedBy === "scripts/derive-audio-v5-revisions.mjs",
+      `${generatedCue.id} names an unexpected derivation workflow.`,
+    );
+  }
   assert(result.metrics?.sampleRate === 48_000, `${generatedCue.id} is not 48 kHz.`);
   assert(result.metrics?.channels === 2, `${generatedCue.id} is not stereo.`);
   assert(
@@ -72,11 +95,11 @@ for (const generatedCue of comparisonGenerationCues) {
   const wav = await readFile(wavPath);
   assert(
     sha256(wav) === result.outputSha256,
-    `${generatedCue.id} WAV hash differs from its provider provenance.`,
+    `${generatedCue.id} WAV hash differs from its saved provenance.`,
   );
   assert(
     wav.length === result.outputBytes,
-    `${generatedCue.id} WAV size differs from its provider provenance.`,
+    `${generatedCue.id} WAV size differs from its saved provenance.`,
   );
   cues.push({
     id: baseline.id,
@@ -91,6 +114,10 @@ for (const generatedCue of comparisonGenerationCues) {
     rms: result.metrics.rms,
     stereoDifferenceRms: result.metrics.stereoDifferenceRms,
     dcOffset: result.metrics.dcOffset,
+    origin: result.status === "derived" ? "local-derivation" : "provider-generation",
+    ...(result.status === "derived"
+      ? { derivedFromCueId: result.derivation.sourceCueId }
+      : {}),
   });
 }
 
@@ -142,6 +169,9 @@ const manifest = {
   generation: "arc-relay-space-ambient-sfx-engine-addition",
   generatedBy: [
     ".claude/skills/sfx-engine/scripts/generate-pack.mjs",
+    ...(locallyDerivedCues.length === 0
+      ? []
+      : ["scripts/derive-audio-v5-revisions.mjs"]),
     "scripts/build-audio-v5-candidates.mjs",
   ],
   additiveTo: "manifest-v4.json",
@@ -149,11 +179,17 @@ const manifest = {
   channels: 2,
   format: "pcm-s16le-wav",
   reviewScope: baseManifest.reviewScope,
+  sourceComposition: {
+    providerGeneratedCues: comparisonGenerationCues.length - locallyDerivedCues.length,
+    locallyDerivedCues: locallyDerivedCues.length,
+  },
   backgroundLoops,
   packs: [
     {
       ...generation.pack,
-      provider: generation.providerDisplayName,
+      provider: locallyDerivedCues.length === 0
+        ? generation.providerDisplayName
+        : `${generation.providerDisplayName} sources + local derivation`,
       provenance: "./v5/sfx-engine-generation.json",
       apiSpecSha256: generation.apiSpecSha256,
       cues,
@@ -169,7 +205,8 @@ await writeFile(
 );
 console.log(
   `Built V5 SFX Engine addition with ${cues.length} cues and ` +
-    `${backgroundLoops.length} ambience loop in ${labRoot}.`,
+    `${backgroundLoops.length} ambience loop; ${locallyDerivedCues.length} ` +
+    `cue(s) are locally derived. Output: ${labRoot}.`,
 );
 
 function sha256(value) {

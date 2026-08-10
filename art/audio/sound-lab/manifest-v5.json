@@ -3,6 +3,7 @@
   "generation": "arc-relay-space-ambient-sfx-engine-addition",
   "generatedBy": [
     ".claude/skills/sfx-engine/scripts/generate-pack.mjs",
+    "scripts/derive-audio-v5-revisions.mjs",
     "scripts/build-audio-v5-candidates.mjs"
   ],
   "additiveTo": "manifest-v4.json",
@@ -33,6 +34,10 @@
       "deflect",
       "arrival"
     ]
+  },
+  "sourceComposition": {
+    "providerGeneratedCues": 12,
+    "locallyDerivedCues": 3
   },
   "backgroundLoops": [
     {
@@ -72,7 +77,7 @@
         "motion": 73,
         "diffusion": 88
       },
-      "provider": "SFX Engine",
+      "provider": "SFX Engine sources + local derivation",
       "provenance": "./v5/sfx-engine-generation.json",
       "apiSpecSha256": "c09974c0f70344251844c00e029bcdc5e543106c8cdc315afa8bc6ef5722f116",
       "cues": [
@@ -88,7 +93,8 @@
           "peak": 0.78,
           "rms": 0.2224,
           "stereoDifferenceRms": 0.0001,
-          "dcOffset": 0.000002
+          "dcOffset": 0.000002,
+          "origin": "provider-generation"
         },
         {
           "id": "projectile",
@@ -102,7 +108,8 @@
           "peak": 0.84,
           "rms": 0.0641,
           "stereoDifferenceRms": 0.1032,
-          "dcOffset": 0.000002
+          "dcOffset": 0.000002,
+          "origin": "provider-generation"
         },
         {
           "id": "attack-fizzle",
@@ -116,7 +123,8 @@
           "peak": 0.72,
           "rms": 0.1112,
           "stereoDifferenceRms": 0.1534,
-          "dcOffset": 0
+          "dcOffset": 0,
+          "origin": "provider-generation"
         },
         {
           "id": "attack-cancel",
@@ -130,7 +138,8 @@
           "peak": 0.72,
           "rms": 0.1158,
           "stereoDifferenceRms": 0.1815,
-          "dcOffset": 0.000001
+          "dcOffset": 0.000001,
+          "origin": "provider-generation"
         },
         {
           "id": "impact",
@@ -144,7 +153,8 @@
           "peak": 0.8,
           "rms": 0.1977,
           "stereoDifferenceRms": 0.3239,
-          "dcOffset": 0
+          "dcOffset": 0,
+          "origin": "provider-generation"
         },
         {
           "id": "destroyed",
@@ -155,10 +165,12 @@
           "mapping": "Destroyed / disqualified event",
           "file": "./v5/packs/astral-relay/destroyed.wav",
           "durationSeconds": 2,
-          "peak": 0.84,
-          "rms": 0.1521,
-          "stereoDifferenceRms": 0.1756,
-          "dcOffset": 0
+          "peak": 0.82,
+          "rms": 0.1497,
+          "stereoDifferenceRms": 0.0878,
+          "dcOffset": 0,
+          "origin": "local-derivation",
+          "derivedFromCueId": "arrival"
         },
         {
           "id": "arc-birth",
@@ -172,7 +184,8 @@
           "peak": 0.82,
           "rms": 0.084,
           "stereoDifferenceRms": 0.0842,
-          "dcOffset": 0.000001
+          "dcOffset": 0.000001,
+          "origin": "provider-generation"
         },
         {
           "id": "arc-pickup",
@@ -186,7 +199,8 @@
           "peak": 0.78,
           "rms": 0.1024,
           "stereoDifferenceRms": 0,
-          "dcOffset": 0
+          "dcOffset": 0,
+          "origin": "provider-generation"
         },
         {
           "id": "arc-steal",
@@ -200,7 +214,8 @@
           "peak": 0.84,
           "rms": 0.0829,
           "stereoDifferenceRms": 0.1342,
-          "dcOffset": 0
+          "dcOffset": 0,
+          "origin": "provider-generation"
         },
         {
           "id": "arc-drop",
@@ -210,11 +225,13 @@
           "description": "The possession field descends and remains deliberately unresolved.",
           "mapping": "core-dropped fact",
           "file": "./v5/packs/astral-relay/arc-drop.wav",
-          "durationSeconds": 2,
-          "peak": 0.8,
-          "rms": 0.359,
-          "stereoDifferenceRms": 0.2346,
-          "dcOffset": 0.000006
+          "durationSeconds": 1,
+          "peak": 0.78,
+          "rms": 0.1014,
+          "stereoDifferenceRms": 0,
+          "dcOffset": 0.000004,
+          "origin": "local-derivation",
+          "derivedFromCueId": "arc-pickup"
         },
         {
           "id": "arc-bank",
@@ -228,7 +245,8 @@
           "peak": 0.84,
           "rms": 0.1089,
           "stereoDifferenceRms": 0.126,
-          "dcOffset": 0.000003
+          "dcOffset": 0.000003,
+          "origin": "provider-generation"
         },
         {
           "id": "arc-pulse",
@@ -242,7 +260,8 @@
           "peak": 0.88,
           "rms": 0.1708,
           "stereoDifferenceRms": 0.1725,
-          "dcOffset": 0.000065
+          "dcOffset": 0.000065,
+          "origin": "provider-generation"
         },
         {
           "id": "arc-handoff",
@@ -256,7 +275,8 @@
           "peak": 0.8,
           "rms": 0.0929,
           "stereoDifferenceRms": 0.0849,
-          "dcOffset": 0
+          "dcOffset": 0,
+          "origin": "provider-generation"
         },
         {
           "id": "deflect",
@@ -266,11 +286,13 @@
           "description": "A fast spectral bend distinguishes a successful guard from ordinary damage.",
           "mapping": "projectile-deflected event (currently visual-only)",
           "file": "./v5/packs/astral-relay/deflect.wav",
-          "durationSeconds": 1,
-          "peak": 0.74,
-          "rms": 0.1025,
-          "stereoDifferenceRms": 0.1113,
-          "dcOffset": 0
+          "durationSeconds": 0.8,
+          "peak": 0.7,
+          "rms": 0.1084,
+          "stereoDifferenceRms": 0.0987,
+          "dcOffset": 0,
+          "origin": "local-derivation",
+          "derivedFromCueId": "projectile"
         },
         {
           "id": "arrival",
@@ -284,7 +306,8 @@
           "peak": 0.8,
           "rms": 0.1469,
           "stereoDifferenceRms": 0.0881,
-          "dcOffset": 0.000001
+          "dcOffset": 0.000001,
+          "origin": "provider-generation"
         }
       ]
     }

@@ -280,39 +280,49 @@
       "id": "destroyed",
       "file": "destroyed.wav",
       "requestLengthSeconds": 2,
-      "targetPeak": 0.84,
+      "targetPeak": 0.82,
       "prompt": "Premium sci-fi SFX: an autonomous bot’s stable energy field fails; its low luminous core folds inward, then releases one broad airy orbital collapse into silence. Weighty, spacious, non-explosive; no debris, metal crash, alarm, glitch, voice, or music.",
-      "revisionReason": "Owner review: infer a more suitable Engine-theme destruction as a compact field collapse rather than an explosion or long debris tail.",
+      "revisionReason": "Owner review: derive bot destruction locally as the audible inverse of the accepted unit arrival; no new provider request.",
       "result": {
-        "apiSoundEffectId": "se_uvzlbaag3qd2fmzx",
-        "status": "generated",
-        "providerCreatedAt": "2026-08-10 23:32:18.756",
-        "providerLengthSeconds": 2,
-        "providerFileSize": 352844,
-        "recordedAt": "2026-08-10T23:32:37.706Z",
-        "request": {
-          "prompt": "Premium sci-fi SFX: an autonomous bot’s stable energy field fails; its low luminous core folds inward, then releases one broad airy orbital collapse into silence. Weighty, spacious, non-explosive; no debris, metal crash, alarm, glitch, voice, or music.",
-          "requestLengthSeconds": 2,
-          "secondsToStart": 0,
-          "targetPeak": 0.84
+        "status": "derived",
+        "recordedAt": "2026-08-10T23:46:51.670Z",
+        "derivation": {
+          "derivedBy": "scripts/derive-audio-v5-revisions.mjs",
+          "sourceCueId": "arrival",
+          "sourceOutputSha256": "22736b9d867d3dbd0df3594de536466b2db89aec10a84f4f474ab52ee9d2038e",
+          "operations": [
+            {
+              "type": "reverse-frames"
+            },
+            {
+              "type": "remove-dc"
+            },
+            {
+              "type": "endpoint-fades",
+              "fadeInSeconds": 0.015,
+              "fadeOutSeconds": 0.32
+            },
+            {
+              "type": "peak-normalize",
+              "targetPeak": 0.82
+            }
+          ]
         },
-        "downloadedContentType": "audio/wav",
-        "sourceSha256": "29c178dbd53e21640e37d86cf5d07907ec95787e350ef98dd1e9d3dab2a07eae",
-        "outputSha256": "ab34c2e1692a866d8af8749cc9c33a0b06323f5e2d4d3ff970caaa867c46bae3",
+        "outputSha256": "e0a2f03f017053f6943f72037afa7b50008e644f4eeb0b923eb984c3ef64c1d9",
         "outputBytes": 384044,
         "processing": {
           "endpointTreatment": "short-fades",
-          "fadeInSeconds": 0.005,
-          "fadeOutSeconds": 0.04
+          "fadeInSeconds": 0.015,
+          "fadeOutSeconds": 0.32
         },
         "metrics": {
           "durationSeconds": 2,
           "sampleRate": 48000,
           "channels": 2,
           "bitsPerSample": 16,
-          "peak": 0.84,
-          "rms": 0.1521,
-          "stereoDifferenceRms": 0.1756,
+          "peak": 0.82,
+          "rms": 0.1497,
+          "stereoDifferenceRms": 0.0878,
           "dcOffset": 0,
           "clippedSamples": 0
         }
@@ -354,8 +364,73 @@
           },
           "supersededAt": "2026-08-10T23:32:19.093Z",
           "reason": "Owner review: infer a more suitable Engine-theme destruction as a compact field collapse rather than an explosion or long debris tail."
+        },
+        {
+          "prompt": "Premium sci-fi SFX: an autonomous bot’s stable energy field fails; its low luminous core folds inward, then releases one broad airy orbital collapse into silence. Weighty, spacious, non-explosive; no debris, metal crash, alarm, glitch, voice, or music.",
+          "requestLengthSeconds": 2,
+          "secondsToStart": 0,
+          "targetPeak": 0.84,
+          "result": {
+            "apiSoundEffectId": "se_uvzlbaag3qd2fmzx",
+            "status": "generated",
+            "providerCreatedAt": "2026-08-10 23:32:18.756",
+            "providerLengthSeconds": 2,
+            "providerFileSize": 352844,
+            "recordedAt": "2026-08-10T23:32:37.706Z",
+            "request": {
+              "prompt": "Premium sci-fi SFX: an autonomous bot’s stable energy field fails; its low luminous core folds inward, then releases one broad airy orbital collapse into silence. Weighty, spacious, non-explosive; no debris, metal crash, alarm, glitch, voice, or music.",
+              "requestLengthSeconds": 2,
+              "secondsToStart": 0,
+              "targetPeak": 0.84
+            },
+            "downloadedContentType": "audio/wav",
+            "sourceSha256": "29c178dbd53e21640e37d86cf5d07907ec95787e350ef98dd1e9d3dab2a07eae",
+            "outputSha256": "ab34c2e1692a866d8af8749cc9c33a0b06323f5e2d4d3ff970caaa867c46bae3",
+            "outputBytes": 384044,
+            "processing": {
+              "endpointTreatment": "short-fades",
+              "fadeInSeconds": 0.005,
+              "fadeOutSeconds": 0.04
+            },
+            "metrics": {
+              "durationSeconds": 2,
+              "sampleRate": 48000,
+              "channels": 2,
+              "bitsPerSample": 16,
+              "peak": 0.84,
+              "rms": 0.1521,
+              "stereoDifferenceRms": 0.1756,
+              "dcOffset": 0,
+              "clippedSamples": 0
+            }
+          },
+          "supersededAt": "2026-08-10T23:46:51.670Z",
+          "reason": "Owner review: derive bot destruction locally as the audible inverse of the accepted unit arrival; no new provider request."
         }
-      ]
+      ],
+      "generationMode": "local-derivation",
+      "derivation": {
+        "derivedBy": "scripts/derive-audio-v5-revisions.mjs",
+        "sourceCueId": "arrival",
+        "sourceOutputSha256": "22736b9d867d3dbd0df3594de536466b2db89aec10a84f4f474ab52ee9d2038e",
+        "operations": [
+          {
+            "type": "reverse-frames"
+          },
+          {
+            "type": "remove-dc"
+          },
+          {
+            "type": "endpoint-fades",
+            "fadeInSeconds": 0.015,
+            "fadeOutSeconds": 0.32
+          },
+          {
+            "type": "peak-normalize",
+            "targetPeak": 0.82
+          }
+        ]
+      }
     },
     {
       "id": "arc-birth",
@@ -582,31 +657,109 @@
     {
       "id": "arc-drop",
       "file": "arc-drop.wav",
-      "requestLengthSeconds": 2,
-      "targetPeak": 0.8,
+      "requestLengthSeconds": 1,
+      "targetPeak": 0.78,
       "prompt": "Isolated premium sci-fi game SFX: a floating energy Core loses its carrier, its stable halo releases and descends into an unresolved low orbital field. Spacious, restrained, pristine; no impact, failure buzzer, voice, retro, lo-fi, or music.",
       "result": {
-        "apiSoundEffectId": "se_b3m7pqlckmalnj5z",
-        "status": "generated",
-        "providerCreatedAt": "2026-08-10 22:08:44.929",
-        "providerLengthSeconds": 2,
-        "providerFileSize": 352844,
-        "recordedAt": "2026-08-10T22:09:07.810Z",
-        "downloadedContentType": "audio/wav",
-        "sourceSha256": "68e84b54570fd139628724de41dfedf0d479b6127de3922b26267859fafffb54",
-        "outputSha256": "c88069a8c18f0fa2053e5c542428c4ff871270ccde2a1e1fc3132fced05652ab",
-        "outputBytes": 384044,
+        "status": "derived",
+        "recordedAt": "2026-08-10T23:46:51.674Z",
+        "derivation": {
+          "derivedBy": "scripts/derive-audio-v5-revisions.mjs",
+          "sourceCueId": "arc-pickup",
+          "sourceOutputSha256": "b94abdf9f542007c337326db1c1f99446779377cb021f47d686625277217a1c5",
+          "operations": [
+            {
+              "type": "reverse-frames"
+            },
+            {
+              "type": "remove-dc"
+            },
+            {
+              "type": "endpoint-fades",
+              "fadeInSeconds": 0.01,
+              "fadeOutSeconds": 0.18
+            },
+            {
+              "type": "peak-normalize",
+              "targetPeak": 0.78
+            }
+          ]
+        },
+        "outputSha256": "c2999fb4e5d1bd760c055e74329656e5f5c135e6872b528989a8aab57bcb5eab",
+        "outputBytes": 192044,
+        "processing": {
+          "endpointTreatment": "short-fades",
+          "fadeInSeconds": 0.01,
+          "fadeOutSeconds": 0.18
+        },
         "metrics": {
-          "durationSeconds": 2,
+          "durationSeconds": 1,
           "sampleRate": 48000,
           "channels": 2,
           "bitsPerSample": 16,
-          "peak": 0.8,
-          "rms": 0.359,
-          "stereoDifferenceRms": 0.2346,
-          "dcOffset": 0.000006,
+          "peak": 0.78,
+          "rms": 0.1014,
+          "stereoDifferenceRms": 0,
+          "dcOffset": 0.000004,
           "clippedSamples": 0
         }
+      },
+      "attempts": [
+        {
+          "prompt": "Isolated premium sci-fi game SFX: a floating energy Core loses its carrier, its stable halo releases and descends into an unresolved low orbital field. Spacious, restrained, pristine; no impact, failure buzzer, voice, retro, lo-fi, or music.",
+          "requestLengthSeconds": 2,
+          "secondsToStart": 0,
+          "targetPeak": 0.8,
+          "result": {
+            "apiSoundEffectId": "se_b3m7pqlckmalnj5z",
+            "status": "generated",
+            "providerCreatedAt": "2026-08-10 22:08:44.929",
+            "providerLengthSeconds": 2,
+            "providerFileSize": 352844,
+            "recordedAt": "2026-08-10T22:09:07.810Z",
+            "downloadedContentType": "audio/wav",
+            "sourceSha256": "68e84b54570fd139628724de41dfedf0d479b6127de3922b26267859fafffb54",
+            "outputSha256": "c88069a8c18f0fa2053e5c542428c4ff871270ccde2a1e1fc3132fced05652ab",
+            "outputBytes": 384044,
+            "metrics": {
+              "durationSeconds": 2,
+              "sampleRate": 48000,
+              "channels": 2,
+              "bitsPerSample": 16,
+              "peak": 0.8,
+              "rms": 0.359,
+              "stereoDifferenceRms": 0.2346,
+              "dcOffset": 0.000006,
+              "clippedSamples": 0
+            }
+          },
+          "supersededAt": "2026-08-10T23:46:51.674Z",
+          "reason": "Owner review: derive Core drop locally as the audible inverse of the current Core pickup; no new provider request."
+        }
+      ],
+      "generationMode": "local-derivation",
+      "revisionReason": "Owner review: derive Core drop locally as the audible inverse of the current Core pickup; no new provider request.",
+      "derivation": {
+        "derivedBy": "scripts/derive-audio-v5-revisions.mjs",
+        "sourceCueId": "arc-pickup",
+        "sourceOutputSha256": "b94abdf9f542007c337326db1c1f99446779377cb021f47d686625277217a1c5",
+        "operations": [
+          {
+            "type": "reverse-frames"
+          },
+          {
+            "type": "remove-dc"
+          },
+          {
+            "type": "endpoint-fades",
+            "fadeInSeconds": 0.01,
+            "fadeOutSeconds": 0.18
+          },
+          {
+            "type": "peak-normalize",
+            "targetPeak": 0.78
+          }
+        ]
       }
     },
     {
@@ -748,7 +901,7 @@
       "id": "deflect",
       "file": "deflect.wav",
       "requestLengthSeconds": 1,
-      "targetPeak": 0.74,
+      "targetPeak": 0.7,
       "prompt": "Gentle sci-fi SFX: a continuous energy beam bends through a soft magnetic field as a broad low-mid spectral curve with quiet airy release. Rounded and ear-safe; no piercing tone, squeal, chirp, scrape, ricochet, sharp transient, noise blast, or music.",
       "attempts": [
         {
@@ -781,42 +934,139 @@
           },
           "supersededAt": "2026-08-10T22:56:59.185Z",
           "reason": "Owner review: the first beam deflection is harsh and painful to hear."
-        }
-      ],
-      "revisionReason": "Owner review: the first beam deflection is harsh and painful to hear.",
-      "result": {
-        "apiSoundEffectId": "se_ghlsbk4pr7unesnx",
-        "status": "generated",
-        "providerCreatedAt": "2026-08-10 23:00:44.933",
-        "providerLengthSeconds": 1,
-        "providerFileSize": 176444,
-        "recordedAt": "2026-08-10T23:01:03.849Z",
-        "request": {
+        },
+        {
           "prompt": "Gentle sci-fi SFX: a continuous energy beam bends through a soft magnetic field as a broad low-mid spectral curve with quiet airy release. Rounded and ear-safe; no piercing tone, squeal, chirp, scrape, ricochet, sharp transient, noise blast, or music.",
           "requestLengthSeconds": 1,
           "secondsToStart": 0,
-          "targetPeak": 0.74
+          "targetPeak": 0.74,
+          "result": {
+            "apiSoundEffectId": "se_ghlsbk4pr7unesnx",
+            "status": "generated",
+            "providerCreatedAt": "2026-08-10 23:00:44.933",
+            "providerLengthSeconds": 1,
+            "providerFileSize": 176444,
+            "recordedAt": "2026-08-10T23:01:03.849Z",
+            "request": {
+              "prompt": "Gentle sci-fi SFX: a continuous energy beam bends through a soft magnetic field as a broad low-mid spectral curve with quiet airy release. Rounded and ear-safe; no piercing tone, squeal, chirp, scrape, ricochet, sharp transient, noise blast, or music.",
+              "requestLengthSeconds": 1,
+              "secondsToStart": 0,
+              "targetPeak": 0.74
+            },
+            "downloadedContentType": "audio/wav",
+            "sourceSha256": "757c5dabaef72cf9837609aa79d3aca7a024dddabaff0ae42985d04b94bca3e4",
+            "outputSha256": "edea38d39ea607e7344b6332afa236255dce1bcd82e79ac90fed9623928703d2",
+            "outputBytes": 192044,
+            "processing": {
+              "endpointTreatment": "short-fades",
+              "fadeInSeconds": 0.005,
+              "fadeOutSeconds": 0.04
+            },
+            "metrics": {
+              "durationSeconds": 1,
+              "sampleRate": 48000,
+              "channels": 2,
+              "bitsPerSample": 16,
+              "peak": 0.74,
+              "rms": 0.1025,
+              "stereoDifferenceRms": 0.1113,
+              "dcOffset": 0,
+              "clippedSamples": 0
+            }
+          },
+          "supersededAt": "2026-08-10T23:46:51.678Z",
+          "reason": "Owner review: derive beam deflection locally from the accepted beam body with its ignition removed and highs softened; no new provider request."
+        }
+      ],
+      "revisionReason": "Owner review: derive beam deflection locally from the accepted beam body with its ignition removed and highs softened; no new provider request.",
+      "result": {
+        "status": "derived",
+        "recordedAt": "2026-08-10T23:46:51.678Z",
+        "derivation": {
+          "derivedBy": "scripts/derive-audio-v5-revisions.mjs",
+          "sourceCueId": "projectile",
+          "sourceOutputSha256": "1db4c38d9eb4eef7645b399b80ee5c5c7d2d3dbf8c0804319588026c081fb60c",
+          "operations": [
+            {
+              "type": "extract-beam-body",
+              "startSeconds": 0.08,
+              "durationSeconds": 0.8
+            },
+            {
+              "type": "zero-phase-low-pass",
+              "cutoffHz": 3200
+            },
+            {
+              "type": "stereo-bend",
+              "direction": "center-to-right",
+              "maximumPan": 0.23
+            },
+            {
+              "type": "remove-dc"
+            },
+            {
+              "type": "endpoint-fades",
+              "fadeInSeconds": 0.015,
+              "fadeOutSeconds": 0.18
+            },
+            {
+              "type": "peak-normalize",
+              "targetPeak": 0.7
+            }
+          ]
         },
-        "downloadedContentType": "audio/wav",
-        "sourceSha256": "757c5dabaef72cf9837609aa79d3aca7a024dddabaff0ae42985d04b94bca3e4",
-        "outputSha256": "edea38d39ea607e7344b6332afa236255dce1bcd82e79ac90fed9623928703d2",
-        "outputBytes": 192044,
+        "outputSha256": "9a00fe1bbaf1ee7413c9359a7e3049ee4dd0a8820e0705168578a1fc25acc893",
+        "outputBytes": 153644,
         "processing": {
           "endpointTreatment": "short-fades",
-          "fadeInSeconds": 0.005,
-          "fadeOutSeconds": 0.04
+          "fadeInSeconds": 0.015,
+          "fadeOutSeconds": 0.18
         },
         "metrics": {
-          "durationSeconds": 1,
+          "durationSeconds": 0.8,
           "sampleRate": 48000,
           "channels": 2,
           "bitsPerSample": 16,
-          "peak": 0.74,
-          "rms": 0.1025,
-          "stereoDifferenceRms": 0.1113,
+          "peak": 0.7,
+          "rms": 0.1084,
+          "stereoDifferenceRms": 0.0987,
           "dcOffset": 0,
           "clippedSamples": 0
         }
+      },
+      "generationMode": "local-derivation",
+      "derivation": {
+        "derivedBy": "scripts/derive-audio-v5-revisions.mjs",
+        "sourceCueId": "projectile",
+        "sourceOutputSha256": "1db4c38d9eb4eef7645b399b80ee5c5c7d2d3dbf8c0804319588026c081fb60c",
+        "operations": [
+          {
+            "type": "extract-beam-body",
+            "startSeconds": 0.08,
+            "durationSeconds": 0.8
+          },
+          {
+            "type": "zero-phase-low-pass",
+            "cutoffHz": 3200
+          },
+          {
+            "type": "stereo-bend",
+            "direction": "center-to-right",
+            "maximumPan": 0.23
+          },
+          {
+            "type": "remove-dc"
+          },
+          {
+            "type": "endpoint-fades",
+            "fadeInSeconds": 0.015,
+            "fadeOutSeconds": 0.18
+          },
+          {
+            "type": "peak-normalize",
+            "targetPeak": 0.7
+          }
+        ]
       }
     },
     {
@@ -897,5 +1147,9 @@
         }
       }
     }
-  ]
+  ],
+  "localDerivation": {
+    "script": "scripts/derive-audio-v5-revisions.mjs",
+    "policy": "Deterministic transformations of hash-pinned SFX Engine source cues; no provider API request or synthesized layer."
+  }
 }

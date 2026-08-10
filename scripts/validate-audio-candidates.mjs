@@ -114,6 +114,11 @@ validated.push(
     cueCount: 15,
     fileCount: 16,
     backgroundLoopCount: 1,
+    expectedDerivations: {
+      destroyed: "arrival",
+      "arc-drop": "arc-pickup",
+      deflect: "projectile",
+    },
     minStereoDifference: 0,
     expectedPackIds: ["astral-relay"],
     expectedCueIds: [
@@ -208,6 +213,30 @@ async function validateCandidateSet(specification) {
         manifest.packs[0].cues.filter((cue) => cue.status === status).length ===
           count,
         `${specification.label}: expected ${count} ${status} cues`,
+      );
+    }
+  }
+  if (specification.expectedDerivations) {
+    const expectedEntries = Object.entries(specification.expectedDerivations);
+    const derivedCues = manifest.packs[0].cues.filter(
+      (cue) => cue.origin === "local-derivation",
+    );
+    assert(
+      manifest.sourceComposition?.locallyDerivedCues === expectedEntries.length &&
+        manifest.sourceComposition?.providerGeneratedCues ===
+          specification.cueCount - expectedEntries.length,
+      `${specification.label}: source composition is incorrect`,
+    );
+    assert(
+      JSON.stringify(derivedCues.map((cue) => cue.id)) ===
+        JSON.stringify(expectedEntries.map(([id]) => id)),
+      `${specification.label}: locally derived cue IDs are incorrect`,
+    );
+    for (const [id, sourceId] of expectedEntries) {
+      const cue = derivedCues.find((candidate) => candidate.id === id);
+      assert(
+        cue?.derivedFromCueId === sourceId,
+        `${id}: expected local derivation from ${sourceId}`,
       );
     }
   }

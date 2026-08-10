@@ -46,6 +46,8 @@ origin. Do not forward that header to a cross-origin generated-audio URL.
 - Before replacing a generated cue, preserve its prompt, request settings, and
   result under that cue's `attempts` array. The bundled generator does this
   automatically for completed results regenerated with `--force`.
+- Treat a saved `derived` result as completed. The bundled generator skips it
+  unless an explicit `--force` authorizes a new provider request.
 - Treat `processing` as asynchronous and poll `GET /sound-effect/{id}` until
   `generated` or `failed`. Do not blindly retry an ambiguous failed POST.
 - Preserve the provider ID, generation timestamp, prompt, request duration,
@@ -72,6 +74,12 @@ instead receives a circular equal-power tail/head crossfade and no silence
 fade, producing a shorter loop whose duration is the requested duration minus
 the overlap. Keep the original download hash in provenance even when only the
 standardized WAV is retained.
+
+When an owner explicitly requests no new provider call, derive only from
+hash-pinned accepted sources through a checked-in deterministic project script.
+Archive the displaced provider take, record the source cue and hash plus every
+operation, and mark the current result `derived`; never describe it as a fresh
+SFX Engine generation.
 
 After generation, run the owning project's validators. Inspect duration,
 channels, sample rate, peak, RMS, DC offset, clipping, stereo difference, file

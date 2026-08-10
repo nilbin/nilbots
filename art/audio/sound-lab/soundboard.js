@@ -366,7 +366,7 @@
       const name = document.createElement('strong');
       name.textContent = pack.label;
       const detail = document.createElement('small');
-      detail.textContent = cue.description;
+      detail.textContent = cueReviewDescription(pack, cue);
       const wave = document.createElement('span');
       wave.className = 'compare-player__wave';
       wave.append(waveformBars(pack, cue));
@@ -374,6 +374,13 @@
       button.addEventListener('click', () => play(pack, cue));
       comparePlayers.append(button);
     }
+  }
+
+  function cueReviewDescription(pack, cue) {
+    if (cue.origin !== 'local-derivation') return cue.description;
+    const source = cueById(pack, cue.derivedFromCueId);
+    const sourceLabel = source?.label ?? cue.derivedFromCueId;
+    return `${cue.description} Locally derived from ${sourceLabel}; no new API call.`;
   }
 
   function renderComparison() {
@@ -407,7 +414,7 @@
     button.querySelector('.cue__category').dataset.status = cue.status;
     button.querySelector('.cue__duration').textContent = `${cue.durationSeconds.toFixed(2)}s`;
     button.querySelector('.cue__label').textContent = cue.label;
-    button.querySelector('.cue__description').textContent = cue.description;
+    button.querySelector('.cue__description').textContent = cueReviewDescription(pack, cue);
     button
       .querySelectorAll('.cue__bars b')
       .forEach((bar, index) => bar.style.setProperty('--bar-delay', `${index * -71}ms`));

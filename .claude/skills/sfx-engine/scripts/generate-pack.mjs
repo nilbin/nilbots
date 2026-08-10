@@ -43,7 +43,7 @@ if (options.dryRun) {
 for (const cue of config.cues) {
   const outputPath = resolveInside(outputDirectory, cue.file, `${cue.id}.file`);
   const forced = options.forceIds.has(cue.id);
-  if (cue.result?.status === "generated" && !forced) {
+  if (["generated", "derived"].includes(cue.result?.status) && !forced) {
     try {
       await readFile(outputPath);
       console.log(`Skipping ${cue.id}; completed output already exists.`);

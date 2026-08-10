@@ -63,6 +63,7 @@ node scripts/generate-audio-candidates.mjs
 node scripts/generate-audio-v2-candidates.mjs
 node scripts/generate-audio-v3-candidates.mjs
 node scripts/generate-audio-v4-candidates.mjs
+node scripts/derive-audio-v5-revisions.mjs
 node scripts/build-audio-v5-candidates.mjs
 node scripts/validate-audio-candidates.mjs
 node scripts/build-audio-sound-lab-site.mjs
@@ -113,11 +114,12 @@ effect mappings, preferences, or Neon Protocol soundtrack.
 
 ### SFX Engine addition (V5 review)
 
-V5 adds **Astral Relay** as direction D alongside the three V4 directions. It
-uses SFX Engine for all fifteen matching cues, with prompts written around the
-same space / ambient brief and the same wind-up → beam / fizzle / cancel attack
-grammar. It is an additional provider comparison, not a replacement or a
-runtime promotion.
+V5 adds **Astral Relay** as direction D alongside the three V4 directions. SFX
+Engine supplied all fifteen matching source cues, with prompts written around
+the same space / ambient brief and the same wind-up → beam / fizzle / cancel
+attack grammar. Three current variants are deterministic local derivations of
+accepted Engine sources. It is an additional comparison, not a replacement or
+a runtime promotion.
 
 The reusable workflow is `.claude/skills/sfx-engine/SKILL.md`, and its saved
 OpenAPI 3.0 contract is
@@ -126,23 +128,29 @@ key from `SFXENGINE_API_KEY` or macOS Keychain service
 `com.nilbots.sfxengine.api-key`; no credential is stored in the repository.
 Every request is private. The committed generation record preserves prompts,
 provider IDs and timestamps, request lengths, download types, source/output
-hashes, and measurements while deliberately omitting returned URLs and user
-IDs.
+hashes, local operations, and measurements while deliberately omitting returned
+URLs and user IDs.
 
 Provider output is decoded to 48 kHz stereo signed 16-bit PCM, DC-corrected,
-endpoint-faded, and peak-normalized; no procedural layers are added. Following
-successive owner reviews, armor impact, bot destruction, Core pickup, Core
-stolen, ally handoff, fizzle, and beam deflection received targeted follow-up
-takes; Core pickup is now on its third take. The generation record retains each
-rejected prompt, request, provider result, hash, and measurement under the
-cue's `attempts` array. The latest impact is a one-second low-mid beam-pressure
-contact, destruction is a two-second orbital field collapse, and pickup is the
-compact audible inverse of Core drop. Fizzle remains one second and deflection
-is a rounded low-mid field bend without the first take's piercing transient.
-The attack wind-up and current pickup are effectively mono; the review
-preserves provider channel behavior rather than manufacturing width. Technical
-validation therefore requires two channels but does not require nonzero stereo
-difference for V5.
+endpoint-faded, and peak-normalized; no procedural layers are added. Successive
+owner reviews requested targeted provider follow-up takes for armor impact, bot
+destruction, Core pickup, Core stolen, ally handoff, fizzle, and beam
+deflection; Core pickup reached its third take. The generation record retains
+each rejected prompt, request, provider result, hash, and measurement under the
+cue's `attempts` array.
+
+The current no-API pass derives three cues locally through
+`scripts/derive-audio-v5-revisions.mjs`. Bot destruction reverses Unit arrival
+and gives its dispersal a longer exit. Core drop reverses the current Core
+pickup, making acquisition and release one timbral pair. Beam deflection takes
+the accepted beam body after its ignition, applies a 3.2 kHz zero-phase
+low-pass, and bends it modestly from center to right. Each result pins its
+source cue and SHA-256 plus every operation, carries status `derived`, and
+archives the displaced provider take. These transformations add no synthesized
+layer and make no provider request. The other twelve cues remain direct SFX
+Engine outputs. The attack wind-up, current pickup, and derived drop are
+effectively mono; technical validation requires two channels but not nonzero
+stereo difference for V5.
 
 V5 also adds the review-only **Astral arena ambience** beneath the comparison
 pack. It is deliberately non-musical and has an independent sound-lab control
