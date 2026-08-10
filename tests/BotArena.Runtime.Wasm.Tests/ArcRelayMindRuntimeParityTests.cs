@@ -14,8 +14,13 @@ namespace BotArena.Runtime.Wasm.Tests;
 /// </summary>
 public sealed class ArcRelayMindRuntimeParityTests
 {
-    [Fact]
-    public void TacticalMindProducesByteIdenticalReplayInProcessAndInWasm()
+    [Theory]
+    [InlineData("hunter-v1.json", "wellwright-v1.json", false)]
+    [InlineData("wellwright-drawbench-v1.json", "hunter-drawbench-v1.json", true)]
+    public void TacticalMindProducesByteIdenticalReplayInProcessAndInWasm(
+        string firstSheet,
+        string secondSheet,
+        bool drawbench)
     {
         string root = FindRepoRoot();
         string artifact = Path.Combine(
@@ -24,14 +29,16 @@ public sealed class ArcRelayMindRuntimeParityTests
             "arc-relay",
             "tactical-playbook-mind-v1",
             "bot.wasm");
-        TacticalPlaybookCompilation hunter = Compile(root, "hunter-v1.json");
-        TacticalPlaybookCompilation wellwright = Compile(
-            root,
-            "wellwright-v1.json");
+        TacticalPlaybookCompilation firstSheetCompilation = Compile(
+            root, firstSheet);
+        TacticalPlaybookCompilation secondSheetCompilation = Compile(
+            root, secondSheet);
         ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create(
-            hunter.Composition,
-            wellwright.Composition,
-            loopProfile: ArcRelayLoopProfile.AmbushWarren11);
+            firstSheetCompilation.Composition,
+            secondSheetCompilation.Composition,
+            loopProfile: drawbench
+                ? ArcRelayLoopProfile.Drawbench1
+                : ArcRelayLoopProfile.AmbushWarren11);
         GenericActorReplayPresentation presentation =
             ArcRelayH0ReplayPresentation.Create(definition);
 
@@ -44,8 +51,8 @@ public sealed class ArcRelayMindRuntimeParityTests
             viaWasm = Run(
                 definition,
                 presentation,
-                hunter,
-                wellwright,
+                firstSheetCompilation,
+                secondSheetCompilation,
                 first,
                 second);
             Assert.All(
@@ -56,8 +63,8 @@ public sealed class ArcRelayMindRuntimeParityTests
         string inProcess = Run(
             definition,
             presentation,
-            hunter,
-            wellwright,
+            firstSheetCompilation,
+            secondSheetCompilation,
             new InProcessGenericMindRuntimeFactory(
                 static () => new global::ArcRelayTacticalPlaybookMind()),
             new InProcessGenericMindRuntimeFactory(

@@ -164,6 +164,14 @@ Visible in traces (reason string in parentheses), policy hard-coded:
    hard breaker too. Neither mechanism invents a destination or participation
    decision. Both publish `traffic=` or `motion=` state and every denied
    command says `movement-lease@T` or `oscillation-yield@T`.
+10. **Authored-route course ownership**: a patrol or other authored route
+    commits to one deterministic terrain course around durable blockers. That
+    course survives ordinary ticks and transient body/projectile traffic; it
+    resets when the exact life, ordered rung, route, lap, waypoint, or reachable
+    course changes. This keeps equal-distance alternatives from being
+    re-selected in opposite directions every tick. The command reason exposes
+    `route-commit`, `route-held`, `route-advance`, `route-rejoin`, or
+    `route-replan-impossible`; route hysteresis never acts silently.
 
 ## What to do about it
 

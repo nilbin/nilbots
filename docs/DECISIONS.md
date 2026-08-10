@@ -7149,3 +7149,38 @@ The WASM bytes change, so playlist v10 and frozen stock v4 remain immutable.
 Playlist v11 pins frozen stock v5. Rules, map, sheets, and sheet grammar are
 unchanged, so the open Season 1 rating book continues from the most recent
 registered v8-v10 ladder and may never skip a registered intermediate version.
+
+## 275. Authored routes own a persistent terrain course; hosted v13 starts a fresh rating book
+
+Executor ruling (2026-08-10). An authored route is high-level intent, not a
+request to rediscover an unrelated shortest-path tie every tick. Once an exact
+life selects a deterministic terrain course toward its current route waypoint,
+it keeps that course until the ordered rung, route, lap, waypoint, or reachable
+course genuinely changes. Durable map reservations participate in the course;
+transient bodies and projectiles remain traffic. The route trace identifies
+commit, hold, advance, rejoin, and impossible-course replans explicitly.
+
+The Drawbench catch was not actually a bidirectional patrol-selector bug: ATL1
+routes advance in authored order. Ordinary movement instead treated a visible
+spawn reservation on only the first breadth-first-search step, so adjacent
+positions alternated between equally short North/South approaches to the same
+waypoint. The existing oscillation governor correctly rejected the resulting
+A-B circuit but could not remember the underlying course. Persistent route
+courses fix that generic ownership gap without naming Hunter, a route, a map,
+a side, or a coordinate.
+
+The original Drawbench route is restored. On seed 9001, team 1 unit 0 moves
+from 3 distinct tiles and 59.4% oscillation-yield to 97 tiles and 0%; the
+in-process and sandboxed-WASM gameplay-state digest is identical at
+`bdbfbd6a59a6dc088f5118444dbe9a2636fa076350c804eb9c57a6cf74af05cf`.
+
+The WASM bytes change, so playlist v12 and frozen stock v6 remain immutable.
+Playlist v13 pins frozen stock v7. The registered Wellwright-vs-Wellwright
+seed-9001 stock digest changes from
+`c763b012c0b94077d661723a5036b361e7c18b1ea386c76c70c86ad89bc526a6`
+to
+`b7e974028d1235dced3f10845527eaade0b7b44018757391f9f3beb77368e702`.
+The open v12 rating book therefore does not continue: v13 starts every opted-in
+entrant at the default rating and preserves v12 ratings and matches as readable
+history. Rules, map, sheets, grammar, and their contract fingerprints do not
+change.

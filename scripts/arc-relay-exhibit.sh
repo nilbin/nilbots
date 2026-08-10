@@ -47,6 +47,11 @@
 #                   `experiment arc-relay` invocation, e.g.
 #                   "--mind-stepper coordinated". Word-split, so keep
 #                   each token space-separated and unquoted.
+#   EXHIBIT_LOOP_PROFILE
+#                   registered loop profile for every cell (default:
+#                   ambush-warren-11). The gallery manifest derives its
+#                   actual rules/map ids from each replay, so Drawbench and
+#                   future registered arenas remain honest exhibits.
 #
 # Timing on the reference machine: ~2s per match, ~10s per broadcast
 # (parallel), one gallery build ~20s. Six cells land in ~1 minute.
@@ -72,6 +77,7 @@ OUTDIR=${BATTERY_OUT:-/tmp/arc-batteries}
 REPO=$(cd "$(dirname "$0")/.." && pwd)
 MIND=$REPO/arena-bots/arc-relay/tactical-playbook-mind-v1
 PUB=$OUTDIR/botarena-pub
+LOOP_PROFILE=${EXHIBIT_LOOP_PROFILE:-ambush-warren-11}
 mkdir -p "$OUTDIR"
 
 if [ ! -x "$PUB/botarena" ]; then
@@ -89,7 +95,7 @@ for cell in "${CELLS[@]}"; do
   rm -rf "$OUT"
   "$PUB/botarena" experiment arc-relay \
     --bot "$MIND" --opponent "$MIND" --runtime in-process \
-    --loop-profile ambush-warren-11 --seed "$seed" \
+    --loop-profile "$LOOP_PROFILE" --seed "$seed" \
     --sheet0 "$S0" --sheet1 "$S1" --out "$OUT" \
     ${MATCH_ARGS[@]+"${MATCH_ARGS[@]}"} \
     > "$OUTDIR/$NAME-$cell.log" 2>&1 &
@@ -132,6 +138,10 @@ manifest = {
 cards = []
 for i, cell in enumerate(cells, 1):
     run = json.load(open(f'{outdir}/{name}-{cell}/run.json'))
+    with gzip.open(
+            f'{outdir}/{name}-{cell}/replay.json.gz',
+            'rt', encoding='utf-8') as raw_stream:
+        contract = json.load(raw_stream)['header']['contract']
     team = next(p['TeamId'] for p in run['Participants']
                 if sheet_key in (p.get('SheetPath') or ''))
     opponent = next(
@@ -165,8 +175,8 @@ for i, cell in enumerate(cells, 1):
         'id': f'sample-{i:02d}',
         'source': f'{bcast}/{cell}.json.gz',
         'replayVersion': 3,
-        'rules': 'arc-relay-ambush-11',
-        'map': 'arc-relay-ambush-warren-06',
+        'rules': contract['rules']['rulesetId'],
+        'map': contract['map']['mapId'],
         'matchSeed': cell.split('-')[1],
         'participants': [sheet_key, opponent],
     })

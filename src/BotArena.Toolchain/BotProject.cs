@@ -410,9 +410,12 @@ public static class ToolchainInfo
     /// 0.9.40 adds finite same-injury recovery episodes, deterministic
     /// allied-traffic tickets, and a bounded two-tile oscillation breaker to
     /// the tactical executor, then pins hosted playlist v11 to those bytes.
+    /// 0.9.41 adds team-relative Well subjects and pins hosted playlist v12.
+    /// 0.9.42 gives authored routes deterministic persistent terrain courses,
+    /// exposes their held/replan reasons, and pins hosted playlist v13.
     /// Keep in lockstep with BotArena.Cli.csproj's
     /// Version — PackagedCliVersionTests pins them together.</summary>
-    public const string CliVersion = "0.9.41";
+    public const string CliVersion = "0.9.42";
     // 0.2.0: BotContext.Slot + documented event semantics (DECISIONS #46).
     // 0.3.0: BotContext.Energy for the energy-shot rules candidate (DECISIONS #47).
     // 0.4.0: strafe actions + map dims + zone-control fields for the rules 0.3 slate

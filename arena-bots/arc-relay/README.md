@@ -21,10 +21,14 @@ manifest hashes are opened to evaluation.
   tickets, and the short oscillation circuit breaker; v1/v2/v3/v4 remain
   historical bytes.
 - `ambush-warren-11-stock-v6/` — immutable tactical mind and receipt, minted
-  but not yet pinned by a hosted playlist. It adds the team-relative Well
+  for hosted playlist v12. It adds the team-relative Well
   subjects `own` and `enemy` so one sheet can name its own income on a map
   where each side owns a Well; movement, arbitration, and the ladder are
   unchanged from v5, and v1–v5 remain historical bytes.
+- `ambush-warren-11-stock-v7/` — immutable hosted playlist-v13 tactical mind
+  and receipt. It gives authored route traversal a persistent terrain course;
+  because the registered stock-cell gameplay digest moves, v13 starts a fresh
+  rating book and v1–v6 remain historical bytes.
 - `stock-mind-v3/` — unfrozen intelligent-gambit vertical-slice mind. It keeps
   the complete v2 baseline executor and reads provisional v2 operation data;
   it is evidence for an owner decision, not a launch artifact.

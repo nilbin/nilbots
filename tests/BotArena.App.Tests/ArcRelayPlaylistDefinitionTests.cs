@@ -11,7 +11,7 @@ namespace BotArena.App.Tests;
 public sealed class ArcRelayPlaylistDefinitionTests
 {
     [Fact]
-    public void Entrant_v12_relates_wells_while_v2_through_v11_remain_executable()
+    public void Entrant_v13_sticks_routes_while_v2_through_v12_remain_executable()
     {
         ArcRelayEntrantPlaylistDefinition current =
             ArcRelayEntrantPlaylistDefinition.Create();
@@ -35,8 +35,10 @@ public sealed class ArcRelayPlaylistDefinitionTests
             ArcRelayEntrantPlaylistDefinition.CreateHistoricalV10();
         ArcRelayEntrantPlaylistDefinition movementV11 =
             ArcRelayEntrantPlaylistDefinition.CreateHistoricalV11();
+        ArcRelayEntrantPlaylistDefinition relativeWellV12 =
+            ArcRelayEntrantPlaylistDefinition.CreateHistoricalV12();
 
-        Assert.Equal(12, current.PlaylistVersion);
+        Assert.Equal(13, current.PlaylistVersion);
         Assert.Equal(ArcRelayLoopProfile.AmbushWarren11.MapId, current.Match.Map.Id);
         Assert.Equal(
             ArcRelayLoopProfile.AmbushWarren11.RulesetId,
@@ -56,7 +58,19 @@ public sealed class ArcRelayPlaylistDefinitionTests
         Assert.Contains("boundedRecoveryEpisodes", current.Provenance);
         Assert.Contains("deterministicTrafficTickets", current.Provenance);
         Assert.Contains("boundedOscillationYield", current.Provenance);
-        using (JsonDocument provenance = JsonDocument.Parse(current.Provenance))
+        Assert.Contains("stickyAuthoredRouteCourses", current.Provenance);
+        Assert.Contains("freshRatingEra", current.Provenance);
+        Assert.DoesNotContain("ratingContinuityFromVersions", current.Provenance);
+        Assert.Equal(12, relativeWellV12.PlaylistVersion);
+        Assert.Contains(
+            ArcRelayEntrantPlaylistDefinition
+                .RelativeWellTacticalArtifactHash,
+            relativeWellV12.CanonicalDefinition);
+        Assert.Contains("relativeWellSubjects", relativeWellV12.Provenance);
+        Assert.DoesNotContain(
+            "stickyAuthoredRouteCourses", relativeWellV12.Provenance);
+        using (JsonDocument provenance = JsonDocument.Parse(
+            relativeWellV12.Provenance))
         {
             Assert.Equal(
                 [8, 9, 10, 11],
@@ -148,7 +162,8 @@ public sealed class ArcRelayPlaylistDefinitionTests
         var registry = new HostedGenericMatchDefinitionRegistry(
             [ArcRelayPlaylistDefinition.Create(), historicalV2, counterflow,
                 forward, recoveredStock, tacticalCounterflow, ambushV7,
-                wasmRepairV8, directV9, semanticV10, movementV11, current]);
+                wasmRepairV8, directV9, semanticV10, movementV11,
+                relativeWellV12, current]);
         Assert.Same(historicalV2, registry.Resolve(
             ArcRelayEntrantPlaylistDefinition.PlaylistKey,
             ArcRelayEntrantPlaylistDefinition.HistoricalVersion));
@@ -179,6 +194,9 @@ public sealed class ArcRelayPlaylistDefinitionTests
         Assert.Same(movementV11, registry.Resolve(
             ArcRelayEntrantPlaylistDefinition.PlaylistKey,
             ArcRelayEntrantPlaylistDefinition.BoundedMovementVersion));
+        Assert.Same(relativeWellV12, registry.Resolve(
+            ArcRelayEntrantPlaylistDefinition.PlaylistKey,
+            ArcRelayEntrantPlaylistDefinition.RelativeWellVersion));
         Assert.Same(current, registry.Resolve(
             ArcRelayEntrantPlaylistDefinition.PlaylistKey,
             ArcRelayEntrantPlaylistDefinition.Version));
@@ -358,7 +376,7 @@ public sealed class ArcRelayPlaylistDefinitionTests
     }
 
     [Fact]
-    public void Frozen_ambush_stocks_pin_v7_through_current_v11_bytes()
+    public void Frozen_ambush_stocks_pin_v7_through_current_v13_bytes()
     {
         string root = RepoPaths.FindUpward("BotArena.sln") is { } solution
             ? Path.GetDirectoryName(solution)!
@@ -381,6 +399,9 @@ public sealed class ArcRelayPlaylistDefinitionTests
         string relativeWellArtifact = Path.Combine(
             root, "arena-bots", "arc-relay", "ambush-warren-11-stock-v6",
             "bot.wasm");
+        string stickyRouteArtifact = Path.Combine(
+            root, "arena-bots", "arc-relay", "ambush-warren-11-stock-v7",
+            "bot.wasm");
         string playbook = Path.Combine(
             root, "arena-bots", "arc-relay",
             "tactical-playbook-v1-2026-08-03", "playbooks",
@@ -392,6 +413,10 @@ public sealed class ArcRelayPlaylistDefinitionTests
 
         Assert.Equal(
             ArcRelayEntrantPlaylistDefinition.TacticalArtifactHash,
+            BotBuilder.Sha256File(stickyRouteArtifact));
+        Assert.Equal(
+            ArcRelayEntrantPlaylistDefinition
+                .RelativeWellTacticalArtifactHash,
             BotBuilder.Sha256File(relativeWellArtifact));
         Assert.Equal(
             ArcRelayEntrantPlaylistDefinition

@@ -7,12 +7,10 @@ using Microsoft.EntityFrameworkCore;
 namespace BotArena.App.Competition;
 
 /// <summary>
-/// Seeds the current immutable entrant lane. Season 1 began on repaired v8,
-/// continued through direct-ladder v9, semantic-intent v10 and bounded
-/// movement v11, and keeps the same rating book when v12 adds team-relative
-/// Well subjects: they are inert on this map, whose flank Wells are neutral,
-/// and the stock cell's gameplay-state digest is byte-identical across the
-/// two artifacts.
+/// Seeds the current immutable entrant lane. Season 1 began on repaired v8
+/// and continued through v12. Playlist v13 deliberately starts a fresh rating
+/// book because its sticky authored-route course changes the registered stock
+/// cell's gameplay-state digest; immutable v8-v12 ladders remain readable.
 /// </summary>
 public sealed class ArcRelayEntrantPlaylistSeeder(
     AppDbContext db,
@@ -104,6 +102,16 @@ public sealed class ArcRelayEntrantPlaylistSeeder(
         {
             ArcRelayEntrantPlaylistDefinition.CreateHistoricalV11()
                 .Validate(playlist, boundedMovementVersion);
+        }
+        PlaylistVersion? relativeWellVersion = await db.PlaylistVersions
+            .SingleOrDefaultAsync(value => value.PlaylistId == playlist.Id &&
+                value.Version ==
+                    ArcRelayEntrantPlaylistDefinition.RelativeWellVersion,
+                cancellationToken);
+        if (relativeWellVersion is not null)
+        {
+            ArcRelayEntrantPlaylistDefinition.CreateHistoricalV12()
+                .Validate(playlist, relativeWellVersion);
         }
         PlaylistVersion? recoveryVersion = await db.PlaylistVersions
             .SingleOrDefaultAsync(value => value.PlaylistId == playlist.Id &&
@@ -217,7 +225,7 @@ public sealed class ArcRelayEntrantPlaylistSeeder(
         if (season.Status == SeasonStatus.Open &&
             ladder.Status == LadderStatus.Draft)
         {
-            await ContinueOpenSeasonRatingBookAsync(
+            await StartFreshOpenRatingBookAsync(
                 playlist, season, ladder, cancellationToken);
         }
 
@@ -228,7 +236,7 @@ public sealed class ArcRelayEntrantPlaylistSeeder(
         return new ArcRelayEntrantSeedResult(version, ladder);
     }
 
-    private async Task ContinueOpenSeasonRatingBookAsync(
+    private async Task StartFreshOpenRatingBookAsync(
         Playlist playlist,
         Season season,
         Ladder current,
@@ -239,14 +247,10 @@ public sealed class ArcRelayEntrantPlaylistSeeder(
             join version in db.PlaylistVersions
                 on ladder.PlaylistVersionId equals version.Id
             where version.PlaylistId == playlist.Id &&
-                (version.Version ==
-                    ArcRelayEntrantPlaylistDefinition.BoundedMovementVersion ||
-                 version.Version ==
-                    ArcRelayEntrantPlaylistDefinition.SemanticIntentVersion ||
-                 version.Version ==
-                    ArcRelayEntrantPlaylistDefinition.DirectLadderVersion ||
-                 version.Version ==
-                    ArcRelayEntrantPlaylistDefinition.WasmRepairVersion) &&
+                version.Version >=
+                    ArcRelayEntrantPlaylistDefinition.WasmRepairVersion &&
+                version.Version <=
+                    ArcRelayEntrantPlaylistDefinition.RelativeWellVersion &&
                 ladder.SeasonId == season.Id
             select new { Ladder = ladder, version.Version })
             .ToArrayAsync(cancellationToken);
@@ -256,42 +260,29 @@ public sealed class ArcRelayEntrantPlaylistSeeder(
         if (open.Length != 1)
         {
             throw new InvalidOperationException(
-                "An open Arc Relay Season 1 can advance to v12 only from " +
-                "one open immutable v8, v9, v10, or v11 ladder.");
+                "An open Arc Relay Season 1 can start the fresh v13 rating " +
+                "book only from one open immutable v8-v12 ladder.");
         }
-        var predecessor = open[0];
-        int? skipped = candidates
-            .Where(value => value.Version > predecessor.Version)
-            .Select(value => (int?)value.Version)
-            .OrderBy(value => value)
-            .FirstOrDefault();
-        if (skipped is int skippedVersion)
-        {
-            throw new InvalidOperationException(
-                $"Arc Relay Season 1 cannot skip a registered v{skippedVersion} " +
-                $"ladder and continue from v{predecessor.Version}.");
-        }
-        Ladder previous = predecessor.Ladder;
+        Ladder previous = open[0].Ladder;
         if (await db.ArcRelayEntrantRatings.AnyAsync(
                 value => value.LadderId == current.Id,
                 cancellationToken))
         {
             throw new InvalidOperationException(
-                "The draft Arc Relay v11 ladder already contains ratings.");
+                "The draft Arc Relay v13 ladder already contains ratings.");
         }
 
-        ArcRelayEntrantRating[] ratings = await db.ArcRelayEntrantRatings
-            .Where(value => value.LadderId == previous.Id)
-            .OrderBy(value => value.EntrantId)
+        Guid[] entrants = await db.ArcRelayEntrants
+            .Where(value => value.LadderOptedIn)
+            .OrderBy(value => value.Id)
+            .Select(value => value.Id)
             .ToArrayAsync(cancellationToken);
-        foreach (ArcRelayEntrantRating rating in ratings)
+        foreach (Guid entrantId in entrants)
         {
             db.ArcRelayEntrantRatings.Add(new ArcRelayEntrantRating
             {
-                EntrantId = rating.EntrantId,
+                EntrantId = entrantId,
                 LadderId = current.Id,
-                Rating = rating.Rating,
-                RankedMatches = rating.RankedMatches,
             });
         }
 
