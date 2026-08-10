@@ -664,7 +664,9 @@ function CompositionEditor({ draft, catalog, issues, mutate }: {
                   onClick={() => mutate((next) => { next.playbook.composition[activeSlot] = entry.id; })}>
                   <span className="flex items-start gap-2">
                     <ClassIcon classId={entry.id} label={entry.name} size={34} />
-                    <span className="pill ml-auto">{counts.get(entry.id) ?? 0}/2</span>
+                    <span className={clsx('pill ml-auto', !entry.unlocked && 'text-arena-material')}>
+                      {entry.unlocked ? `${counts.get(entry.id) ?? 0}/2` : 'locked'}
+                    </span>
                   </span>
                   <span className="type-display mt-1 block truncate text-[14px]">{entry.name}</span>
                   <span className="t-micro block truncate text-arena-material">✦ {entry.signatureName}</span>

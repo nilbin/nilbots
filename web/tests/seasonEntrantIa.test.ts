@@ -123,6 +123,7 @@ test('composition turns compiler roles into editable player assignments', () => 
   assert.match(workshop, /AssignmentNameEditor/);
   assert.match(workshop, /Eligible chassis · priority order/);
   assert.match(workshop, /Normal staffing target/);
+  assert.match(workshop, /entry\.unlocked \? `\$\{counts\.get\(entry\.id\) \?\? 0\}\/2` : 'locked'/);
   assert.match(workshop, /Advanced allocation rules/);
 });
 
