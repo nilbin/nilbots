@@ -7314,3 +7314,49 @@ to
 identically in-process and in sandboxed WASM. The v14 rating book therefore
 does not continue: v15 starts every opted-in entrant at the default rating and
 preserves v14 ratings and matches as readable history.
+
+## 278. Launch clearance is bounded; carrier delivery is planned once per tick; hosted v16 starts fresh
+
+Executor ruling (2026-08-10). Owner replay review exposed two distinct faults
+after the traffic-detour pass: opening routes queued through the friendly
+reactor, while loaded carriers could repeatedly re-derive conflicting delivery
+courses and dance beside their bank. A rejected broad experiment treated the
+reactor as an obstacle throughout route traversal; it cleared the spawn but
+degraded later pathing. That policy is not shipped.
+
+The shipped launch policy is deliberately narrow. During only the first two
+ticks of a body's life, an authored route prefers a terrain course that avoids
+the friendly reactor. If no such course is usable, the normal course is used
+immediately. A bounded two-tile clearance handshake also lets a reactor occupant
+finish exiting rather than exchange the same claimed tile with its queue. The
+reactor is not a permanent obstacle and no map coordinate, role, class, sheet,
+or side is named.
+
+Custody planning now resolves each carrier's destination and terrain course once
+per tick and shares that result across traffic arbitration and action selection.
+A loaded carrier that is temporarily denied holds that stable course instead of
+falling through to a newly derived homeward step. Loaded carriers receive a
+deterministic precedence ordered by static terrain distance to their own reactor,
+then unit id; this breaks equal-rank carrier face-offs without randomness.
+Every move, hold, clearance, and fallback retains a causal debug reason.
+
+On the six-cell Tapline exhibit, all 16 bodies in every cell leave their initial
+tile by observation tick 7 or earlier; the two bodies that take until tick 7 are
+facing-locked and have one legal initial exit, while 14 of 16 leave by tick 3 in
+the checked cell. No cell has a body stationary for more than 100 ticks, the
+worst single-tile run is 49 ticks, and there are zero
+`custody:delivery-timeout-*` ticks. These are mechanism reads from an exhibit,
+not balance claims.
+
+The WASM bytes change, so playlist v15 and frozen stock v9 remain immutable.
+Playlist v16 pins frozen stock v10 (artifact
+`2554509e0af31b18b6ccbaf94efe5b7e6d0ce4b8ec50e4bdd4b47b1a97039f07`,
+build input
+`e18085e2fbcdcf6d37eb4bf44c71a2dbeb54a2c04f232345ae5069179012ce62`).
+The registered Wellwright-vs-Wellwright seed-9001 stock digest changes from
+`c356c5882fcd86c3646365b15147f18d8c8b494b33bc7e5b3a505f6ab91068a6`
+to
+`5964c536be8598ea9d51f7bcc3b7e4f0a6e25ab67dee04da168da94e90c509c2`,
+identically in-process and in sandboxed WASM. Playlist v16 therefore starts a
+fresh rating book; v15 ratings and matches remain readable history. Rules, map,
+sheets, grammar, and their contract fingerprints do not change.

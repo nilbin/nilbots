@@ -67,7 +67,10 @@ internal static class ArenaBasics
         /// </description></item>
         /// </list>
         ///
-        /// Equal ranks never yield. Where a traffic deadlock needs one
+        /// Equal ranks never yield. Loaded carriers occupy the 0..7 band in
+        /// remaining-distance / unit-id order, so two Cores meeting in a
+        /// one-body throat have one deterministic winner instead of forming
+        /// a permanent equal-rank wall. Where ordinary traffic needs one
         /// winner, the persistent ticket plane gives the pair distinct ranks
         /// in activation-tick / unit-id order. The fighter tier reaches the
         /// executor's plan ORDER only under a stepper that asks for it
@@ -75,9 +78,9 @@ internal static class ArenaBasics
         /// always reads the full list.
         /// </summary>
         public const int CarrierRank = 0;
-        public const int LeaderRank = 1;
-        public const int FighterRank = 2;
-        public const int TrafficRank = 3;
+        public const int LeaderRank = 16;
+        public const int FighterRank = 17;
+        public const int TrafficRank = 18;
         public const int RestRank = 32;
         public const int FollowerRank = 64;
 
@@ -150,16 +153,19 @@ internal static class ArenaBasics
         public int RankOf(int unitId) =>
             _ranks.TryGetValue(unitId, out int rank) ? rank : RestRank;
 
+        public static bool IsCarrierRank(int rank) =>
+            rank >= CarrierRank && rank < LeaderRank;
+
         /// <summary>
         /// Whether <paramref name="unitId"/> gives way to
         /// <paramref name="otherUnitId"/>: STRICTLY better rank, nothing
         /// else. Every yield in the mind asks exactly this question.
         ///
-        /// <para>Equal weight never yields. Two carriers walking the same
-        /// corridor are settled by the plan order and the tile claims — a
-        /// mutual yield between equals is how a second carrier ends up
-        /// walled out of its own bank by the first one's lane, which is a
-        /// stalemate rather than a courtesy.</para>
+        /// <para>Equal weight never yields. Carriers are therefore assigned
+        /// distinct ranks before lanes are published; closest to the bank
+        /// wins, unit id breaks an exact tie. The lower-ranked carrier makes
+        /// way like any other body instead of trusting equal tile claims to
+        /// settle a head-on course (they cannot).</para>
         /// </summary>
         public bool YieldsTo(int unitId, int otherUnitId) =>
             unitId != otherUnitId
@@ -258,7 +264,7 @@ internal static class ArenaBasics
                 body.ActorId,
                 _tick,
                 destination,
-                RankOf(body.UnitId) == CarrierRank
+                IsCarrierRank(RankOf(body.UnitId))
                     ? TacticalMovementAuthority.Safety
                     : authority);
 
@@ -623,7 +629,7 @@ internal static class ArenaBasics
         Position wanted,
         Claims claims)
     {
-        if (claims.RankOf(carrier.UnitId) != Claims.CarrierRank)
+        if (!Claims.IsCarrierRank(claims.RankOf(carrier.UnitId)))
             return 0;
         MindBody? first = mind.Bodies.FirstOrDefault(body =>
             body.UnitId != carrier.UnitId
@@ -784,6 +790,70 @@ internal static class ArenaBasics
                 if (nextIndex == goalIndex)
                     return ReconstructCourse(
                         startIndex, goalIndex, parents, width);
+                queue[write++] = nextIndex;
+            }
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// Static shortest distance under the same movement profile and durable
+    /// obstacles as <see cref="StaticRouteCourse"/>, from an arbitrary tile.
+    /// Delivery corridors use this to ask whether their next waypoint really
+    /// shortens the traversable trip to the reactor; geometric distance alone
+    /// mistakes the inside of a cul-de-sac for progress.
+    /// </summary>
+    internal static int? StaticRouteDistance(
+        GenericActorResolvedMatchContract contract,
+        MindBody body,
+        Position start,
+        Position goal,
+        IReadOnlySet<Position> persistentObstacles)
+    {
+        if (start == goal)
+            return 0;
+        var blocked = new HashSet<Position>(persistentObstacles);
+        blocked.Remove(start);
+        blocked.Remove(goal);
+        IReadOnlyCollection<ProjectileHeading> allowed = RouteHeadings(
+            contract, body);
+        int width = contract.Map.Width;
+        int area = width * contract.Map.Height;
+        var distances = new int[area];
+        Array.Fill(distances, -1);
+        var queue = new int[area];
+        var allowedHeadings = new bool[8];
+        foreach (ProjectileHeading heading in allowed)
+            allowedHeadings[(int)heading] = true;
+        int startIndex = start.Y * width + start.X;
+        int goalIndex = goal.Y * width + goal.X;
+        int read = 0;
+        int write = 1;
+        queue[0] = startIndex;
+        distances[startIndex] = 0;
+        while (read < write)
+        {
+            int currentIndex = queue[read++];
+            var current = new Position(
+                currentIndex % width,
+                currentIndex / width);
+            int nextDistance = distances[currentIndex] + 1;
+            foreach (ProjectileHeading heading in EightWay)
+            {
+                if (!allowedHeadings[(int)heading])
+                    continue;
+                Position next = Step(current, heading);
+                if (!CanStep(contract.Map, current, next, heading)
+                    || blocked.Contains(next))
+                {
+                    continue;
+                }
+                int nextIndex = next.Y * width + next.X;
+                if (distances[nextIndex] >= 0)
+                    continue;
+                if (nextIndex == goalIndex)
+                    return nextDistance;
+                distances[nextIndex] = nextDistance;
                 queue[write++] = nextIndex;
             }
         }

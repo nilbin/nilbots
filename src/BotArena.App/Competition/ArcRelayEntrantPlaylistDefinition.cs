@@ -14,7 +14,8 @@ public sealed class ArcRelayEntrantPlaylistDefinition : IHostedGenericMatchDefin
 {
     public const string PlaylistKey = ArcRelayPlaylistDefinition.PlaylistKey;
     public const string DisplayName = ArcRelayPlaylistDefinition.DisplayName;
-    public const int Version = 15;
+    public const int Version = 16;
+    public const int TrafficDetourVersion = 15;
     public const int CarrierClearanceVersion = 14;
     public const int StickyRouteVersion = 13;
     public const int RelativeWellVersion = 12;
@@ -32,8 +33,12 @@ public sealed class ArcRelayEntrantPlaylistDefinition : IHostedGenericMatchDefin
     public const string MatchmakingPolicyId = "passive-elo-proximity-v1";
     public const string Visibility = PlaylistVisibilityIds.Public;
     public const string TacticalArtifactHash =
-        "4443b18bf718114db764a440604c7987751a7ad1c28fbe092862b4d4a7fa8af5";
+        "2554509e0af31b18b6ccbaf94efe5b7e6d0ce4b8ec50e4bdd4b47b1a97039f07";
     public const string TacticalBuildInputHash =
+        "e18085e2fbcdcf6d37eb4bf44c71a2dbeb54a2c04f232345ae5069179012ce62";
+    public const string TrafficDetourTacticalArtifactHash =
+        "4443b18bf718114db764a440604c7987751a7ad1c28fbe092862b4d4a7fa8af5";
+    public const string TrafficDetourTacticalBuildInputHash =
         "cf7edee8cf6c3239c0b3989ac20eea30bbddd8acf806ba46a032340e307d2e77";
     public const string CarrierClearanceTacticalArtifactHash =
         "08205cfdb2da34cbd894a51be89c4b638e6cc40ca16020741602d4739fb2344a";
@@ -109,8 +114,15 @@ public sealed class ArcRelayEntrantPlaylistDefinition : IHostedGenericMatchDefin
     public static ArcRelayEntrantPlaylistDefinition Create() => Create(
         Version,
         ArcRelayLoopProfile.AmbushWarren11,
-        source: "arc-relay-traffic-detours-corner-strict",
+        source: "arc-relay-stable-carrier-launch-clearance",
         canonicalGameplayUnchangedFromVersion1: false);
+
+    public static ArcRelayEntrantPlaylistDefinition CreateHistoricalV15() =>
+        Create(
+            TrafficDetourVersion,
+            ArcRelayLoopProfile.AmbushWarren11,
+            source: "arc-relay-traffic-detours-corner-strict",
+            canonicalGameplayUnchangedFromVersion1: false);
 
     public static ArcRelayEntrantPlaylistDefinition CreateHistoricalV14() =>
         Create(
@@ -232,6 +244,8 @@ public sealed class ArcRelayEntrantPlaylistDefinition : IHostedGenericMatchDefin
                 version switch
                 {
                     Version => TacticalArtifactHash,
+                    TrafficDetourVersion =>
+                        TrafficDetourTacticalArtifactHash,
                     CarrierClearanceVersion =>
                         CarrierClearanceTacticalArtifactHash,
                     StickyRouteVersion => StickyRouteTacticalArtifactHash,
@@ -254,7 +268,8 @@ public sealed class ArcRelayEntrantPlaylistDefinition : IHostedGenericMatchDefin
             writer.WriteString("sheetSchema", version >= TacticalVersion
                 ? "arc-relay-tactical-playbook-v1"
                 : ArcRelayLegacySnapshotCodec.SchemaId);
-            if (version is Version or CarrierClearanceVersion
+            if (version is Version or TrafficDetourVersion
+                or CarrierClearanceVersion
                 or StickyRouteVersion or RelativeWellVersion
                 or SemanticIntentVersion
                 or DirectLadderVersion
@@ -263,7 +278,8 @@ public sealed class ArcRelayEntrantPlaylistDefinition : IHostedGenericMatchDefin
                 writer.WriteString("stockSheetId", StockSheetId);
                 writer.WriteString(
                     "stockPlaybookSourceHash",
-                    version is Version or CarrierClearanceVersion
+                    version is Version or TrafficDetourVersion
+                        or CarrierClearanceVersion
                         or StickyRouteVersion
                         or RelativeWellVersion
                         or SemanticIntentVersion
@@ -273,7 +289,8 @@ public sealed class ArcRelayEntrantPlaylistDefinition : IHostedGenericMatchDefin
                 writer.WriteString(
                     "stockLayoutSourceHash", StockLayoutSourceHash);
             }
-            if (version is Version or CarrierClearanceVersion
+            if (version is Version or TrafficDetourVersion
+                or CarrierClearanceVersion
                 or StickyRouteVersion or RelativeWellVersion
                 or SemanticIntentVersion
                 or DirectLadderVersion
@@ -284,6 +301,8 @@ public sealed class ArcRelayEntrantPlaylistDefinition : IHostedGenericMatchDefin
                     version switch
                     {
                         Version => TacticalBuildInputHash,
+                        TrafficDetourVersion =>
+                            TrafficDetourTacticalBuildInputHash,
                         CarrierClearanceVersion =>
                             CarrierClearanceTacticalBuildInputHash,
                         StickyRouteVersion =>
@@ -320,6 +339,39 @@ public sealed class ArcRelayEntrantPlaylistDefinition : IHostedGenericMatchDefin
                 canonicalGameplayUnchangedFromVersion1);
             if (version == Version)
             {
+                writer.WriteBoolean("ownerApprovedAmbushWarren11", true);
+                writer.WriteBoolean("warrenNativeLayoutsOnly", true);
+                writer.WriteBoolean("frozenWellwrightStock", true);
+                writer.WriteBoolean("tacticalPlaybookCompilerShared", true);
+                writer.WriteBoolean("portableTwoFileSheets", true);
+                writer.WriteBoolean("staleWasmArtifactRepaired", true);
+                writer.WriteBoolean("pendingStrikeWireParity", true);
+                writer.WriteBoolean("consolidatedDirectSheetDsl", true);
+                writer.WriteBoolean("semanticIntentLabels", true);
+                writer.WriteBoolean("boundedRecoveryEpisodes", true);
+                writer.WriteBoolean("deterministicTrafficTickets", true);
+                writer.WriteBoolean("boundedOscillationYield", true);
+                writer.WriteBoolean("relativeWellSubjects", true);
+                writer.WriteBoolean("stickyAuthoredRouteCourses", true);
+                writer.WriteBoolean("progressAwareRouteHints", true);
+                writer.WriteBoolean("terrainOnlyGiveUpReachability", true);
+                writer.WriteBoolean("boundedCustodyFallbackRetest", true);
+                writer.WriteBoolean("cascadingCarrierClearance", true);
+                writer.WriteBoolean("boundedTrafficDetours", true);
+                writer.WriteBoolean("stickyRouteDetourRejoin", true);
+                writer.WriteBoolean("authoritativeCornerStrictMovement", true);
+                writer.WriteBoolean("stableCarrierDeliveryCourses", true);
+                writer.WriteBoolean("singleTickCustodyPlan", true);
+                writer.WriteBoolean("deterministicCarrierPrecedence", true);
+                writer.WriteBoolean("boundedFreshLifeReactorAvoidance", true);
+                writer.WriteBoolean("boundedReactorExitClearance", true);
+                writer.WriteBoolean("freshRatingEra", true);
+                writer.WriteBoolean("priorStockGameplayDigestChanged", true);
+                writer.WriteString("linkedDataFormat", "ATL1");
+            }
+            else if (version == TrafficDetourVersion)
+            {
+                // Preserve v15's immutable provenance bytes exactly.
                 writer.WriteBoolean("ownerApprovedAmbushWarren11", true);
                 writer.WriteBoolean("warrenNativeLayoutsOnly", true);
                 writer.WriteBoolean("frozenWellwrightStock", true);

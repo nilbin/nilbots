@@ -420,9 +420,11 @@ public static class ToolchainInfo
     /// 0.9.44 adds bounded same-course traffic detours without surrendering
     /// sticky route direction, makes authoritative actor movement wall-corner
     /// strict, and pins hosted playlist v15.
+    /// 0.9.45 makes delivery-route completion sticky and keeps the reactor
+    /// clear for loaded carriers, pinning hosted playlist v16.
     /// Keep in lockstep with BotArena.Cli.csproj's
     /// Version — PackagedCliVersionTests pins them together.</summary>
-    public const string CliVersion = "0.9.44";
+    public const string CliVersion = "0.9.45";
     // 0.2.0: BotContext.Slot + documented event semantics (DECISIONS #46).
     // 0.3.0: BotContext.Energy for the energy-shot rules candidate (DECISIONS #47).
     // 0.4.0: strafe actions + map dims + zone-control fields for the rules 0.3 slate
