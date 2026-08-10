@@ -87,6 +87,8 @@ public static class ArcRelayH0Definition
             return CreateCrucibleMap(loopProfile);
         if (loopProfile.Geometry == ArcRelayMapGeometry.DrawbenchHorizontal)
             return CreateDrawbenchMap(loopProfile);
+        if (loopProfile.Geometry == ArcRelayMapGeometry.TaplineWellLine)
+            return CreateTaplineMap(loopProfile);
         ImmutableArray<string> rows = loopProfile.Geometry
             == ArcRelayMapGeometry.DepthLarger
             ? CreateLargerRows()
@@ -456,6 +458,133 @@ public static class ArcRelayH0Definition
                 Region("well-north", wellNorth),
                 Region("well-centre", wellCentre),
                 Region("well-south", wellSouth),
+                Region("reactor-west", reactorWest),
+                Region("reactor-east", reactorEast),
+                new ActorMapRegionDefinition(
+                    "home-west",
+                    ActorMapRegionDefinition.RegionKind.Objective,
+                    deliverWest),
+                new ActorMapRegionDefinition(
+                    "home-east",
+                    ActorMapRegionDefinition.RegionKind.Objective,
+                    deliverEast),
+            ],
+            [
+                new ActorMapTileTagDefinition(
+                    "home-pads",
+                    ActorMapTileTagDefinition.TileTagKind.SpawnProtected,
+                    [.. padWest, .. padEast]),
+                new ActorMapTileTagDefinition(
+                    "arc-required-tiles",
+                    ActorMapTileTagDefinition.TileTagKind
+                        .SignaturePlacementForbidden,
+                    [.. forbidden]),
+            ]);
+    }
+
+    /// <summary>
+    /// Tapline keeps the well-line warren's grammar and tiers what it could
+    /// not: the three Wells sit on the chiral line through the centre, so
+    /// yours is ten steps up-line, the contested one fourteen, and theirs
+    /// eighteen down-line. Only the upper half and the self-symmetric middle
+    /// row are authored; the lower half IS the 180-degree rotation.
+    /// </summary>
+    private static ActorMapDefinition CreateTaplineMap(
+        ArcRelayLoopProfile loopProfile)
+    {
+        ImmutableArray<string> rows =
+        [
+            "###############################",
+            "#.............................#",
+            "###.###########.###########.###",
+            "#....#.##.....................#",
+            "#....#...#..###.###.##..###...#",
+            "#....#...#...#...#..##...#....#",
+            "#........#...#...#..#.##.#....#",
+            "#........#.......#.......#....#",
+            "#....#...####...##....#.......#",
+            "###..#.......##.##.........##.#",
+            "#.....###.###.....###..##.....#",
+            "#.##.......#.......#....#.....#",
+            "#.....###..#.......#....#.....#",
+            "#..##...##..#.....#..##...##..#",
+            "#.....#....#.......#..###.....#",
+            "#.....#....#.......#.......##.#",
+            "#.....##..###.....###.###.....#",
+            "#.##.........##.##.......#..###",
+            "#.......#....##...####...#....#",
+            "#....#.......#.......#........#",
+            "#....#.##.#..#...#...#........#",
+            "#....#...##..#...#...#...#....#",
+            "#...###..##.###.###..#...#....#",
+            "#.....................##.#....#",
+            "###.###########.###########.###",
+            "#.............................#",
+            "###############################",
+        ];
+        int maximumX = rows[0].Length - 1;
+        int maximumY = rows.Length - 1;
+        Position Rotate(Position value) =>
+            new(maximumX - value.X, maximumY - value.Y);
+
+        // West enters high and east low, so the Well line runs along the axis
+        // of play instead of across it.
+        Position reactorWest = new(2, 5);
+        Position reactorEast = Rotate(reactorWest);
+
+        // Collinear and a rotation pair, so chiral births give the two owned
+        // Wells one shared cadence and the centre stays neutral.
+        Position wellNear = new(11, 6);
+        Position wellCentre = new(15, 13);
+        Position wellFar = Rotate(wellNear);
+
+        // Off the line, in the quarter each side has to hold.
+        Position healNorth = new(21, 7);
+        Position healSouth = Rotate(healNorth);
+
+        // The protected pad holds the reactor and the respawns; the scoring
+        // shoulder in front of it does not.
+        ImmutableArray<Position> padWest = Rectangle(1, 4, 3, 8);
+        ImmutableArray<Position> padEast = [.. padWest.Select(Rotate)
+            .OrderBy(value => value.Y).ThenBy(value => value.X)];
+        ImmutableArray<Position> deliverWest = Rectangle(6, 8, 6, 8);
+        ImmutableArray<Position> deliverEast = [.. deliverWest.Select(Rotate)
+            .OrderBy(value => value.Y).ThenBy(value => value.X)];
+
+        // Clustered at the TOP of the west pad, so the rotation puts the east
+        // cluster at the bottom of theirs.
+        Position[] west =
+        [
+            new(1, 3), new(2, 3), new(3, 3), new(4, 3),
+            new(1, 4), new(3, 4), new(4, 4), new(1, 5),
+        ];
+        var anchors = ImmutableArray.CreateBuilder<ActorMapSpawnAnchorDefinition>();
+        for (int unitId = 0; unitId < west.Length; unitId++)
+        {
+            anchors.Add(Anchor(0, unitId, west[unitId], Direction.East));
+            anchors.Add(Anchor(1, unitId, Rotate(west[unitId]), Direction.West));
+        }
+
+        Position[] forbidden =
+        [
+            wellNear, wellCentre, wellFar, reactorWest, reactorEast,
+        ];
+        return new ActorMapDefinition(
+            loopProfile.MapId,
+            version: 1,
+            rows,
+            anchors.ToImmutable(),
+            [
+                .. loopProfile.HealZoneTicksPerHp > 0
+                    ? new[]
+                    {
+                        Region("heal-north", healNorth),
+                        Region("heal-south", healSouth),
+                    }
+                    : System.Array.Empty<ActorMapRegionDefinition>(),
+                Region("well-north", wellNear),
+                Region("well-centre", wellCentre),
+                Region("well-south", wellFar),
                 Region("reactor-west", reactorWest),
                 Region("reactor-east", reactorEast),
                 new ActorMapRegionDefinition(

@@ -707,6 +707,40 @@ public sealed record ArcRelayLoopProfile
         strikeWindupTicks: 1);
 
     /// <summary>
+    /// The owner's verdict after Crucible and Drawbench: the well-line warren
+    /// had the better geometry. Tapline keeps that grammar -- the 31x27
+    /// canvas, an outer shadow corridor with three ways in per side, chunky
+    /// wall clusters, corridors four to six wide -- and changes only what the
+    /// warren could not express. The three Wells sit on the chiral line
+    /// through the centre, so they are TIERED rather than all thirteen steps
+    /// from both bases; the scoring shoulder is not the spawn pad; and west
+    /// enters high while east enters low, so the Well line runs along the
+    /// axis of play with yours up-line and theirs down-line.
+    /// </summary>
+    public static ArcRelayLoopProfile Tapline1 { get; } = new(
+        "tapline-1",
+        "arc-relay-tapline-01",
+        "arc-relay-tapline-01",
+        ArcRelayMapGeometry.TaplineWellLine,
+        30,
+        75,
+        25,
+        7,
+        directionalCombat: true,
+        signatureGrammarVersion: 2,
+        wellBirthJitterTicks: 6,
+        alternatingResolutionOrder: true,
+        rearArcDamageMultiplier: 2,
+        omniProximityRange: 0,
+        veterancyXpPerLevel: 2,
+        veterancyMaxLevel: 5,
+        healZoneTicksPerHp: 3,
+        seedPhasedResolutionOrder: true,
+        rotationalSpawnAssignment: true,
+        chiralWellBirths: true,
+        strikeWindupTicks: 1);
+
+    /// <summary>
     /// Owner-selected product line. Kept separate from H0 and every historical
     /// hosted playlist so advancing the product never rewrites old contracts or
     /// golden replays.
@@ -782,6 +816,7 @@ public sealed record ArcRelayLoopProfile
         AmbushWarren11,
         Crucible1,
         Drawbench1,
+        Tapline1,
         Return16,
         Return24,
         Hot60,
@@ -814,4 +849,5 @@ internal enum ArcRelayMapGeometry
     AmbushWarrenDeep,
     CrucibleDiagonal,
     DrawbenchHorizontal,
+    TaplineWellLine,
 }
