@@ -123,45 +123,8 @@ internal sealed class CoordinatedArenaStepper : IArenaStepper
         GenericActorResolvedMatchContract contract,
         MindContext mind)
     {
-        var blocked = mind.VisibleTiles
-            .Where(tile => tile.SpawnReservation is not null)
-            .Select(tile => tile.Position)
-            .ToHashSet();
         int team = mind.Bodies.FirstOrDefault()?.ActorId.TeamId ?? -1;
-        if (mind.Mode is GenericActorContext.ModeObservationState.ArcRelay arc)
-        {
-            blocked.UnionWith(arc.VisibleSignatures
-                .Where(signature => string.Equals(
-                        signature.SignatureId, "trip-node",
-                        StringComparison.Ordinal)
-                    && signature.OwnerTeamId != team
-                    && !signature.Suppressed
-                    && signature.Phase
-                        == GenericActorContext.ArcRelaySignaturePhase.Active)
-                .SelectMany(signature => signature.Positions));
-        }
-        if (contract.ModeMapBinding
-            is GenericActorResolvedMatchContract.ArcRelayModeMapBinding binding)
-        {
-            HashSet<int> hostileParticipants = contract.Topology.Participants
-                .Where(participant => participant.TeamId != team)
-                .Select(participant => participant.ParticipantId)
-                .ToHashSet();
-            HashSet<string> protectedRegions = contract
-                .ParticipantRegionAssignments
-                .Where(assignment =>
-                    hostileParticipants.Contains(assignment.ParticipantId)
-                    && string.Equals(
-                        assignment.RegionRoleId,
-                        binding.HomePadRegionRoleId,
-                        StringComparison.Ordinal))
-                .Select(assignment => assignment.MapRegionId)
-                .ToHashSet(StringComparer.Ordinal);
-            blocked.UnionWith(contract.Map.Regions
-                .Where(region => protectedRegions.Contains(region.RegionId))
-                .SelectMany(region => region.Tiles));
-        }
-        return blocked;
+        return ArenaBasics.PersistentRouteObstacles(contract, mind, team);
     }
 
     public Position? Step(StepRequest request)

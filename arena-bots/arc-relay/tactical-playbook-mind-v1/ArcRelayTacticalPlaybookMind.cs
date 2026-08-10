@@ -26,6 +26,10 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     private readonly HashSet<string> _processedEvents =
         new(StringComparer.Ordinal);
     private readonly Dictionary<int, RouteProgress> _routes = [];
+    private readonly Dictionary<int, (ActorIdentity Actor, string OrderId)>
+        _selectedOrders = [];
+    private readonly TacticalRouteGovernor _routeGovernor = new();
+    private Dictionary<int, TacticalRouteGovernor.CourseStep> _routeSteps = [];
     private readonly Dictionary<int, MotionProgress> _motion = [];
     private readonly Dictionary<string, FocusLock> _focusLocks =
         new(StringComparer.Ordinal);
@@ -325,6 +329,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                             leaf, candidate, modeTicks, snapshot, package)))
             ?? ActiveOrders(
                 mind, package.Source, machine, tasks, roles, groups);
+        ReconcileRouteSelections(mind, orders);
         snapshot = Snapshot(
             mind, arc, package, machine, roles, groups,
             _directLadder is null ? tasks.LeasedUnitIds : priorTaskLeases,
@@ -367,6 +372,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             roles,
             orders,
             authoredTargets);
+        _routeSteps = ResolveRouteCourses(
+            contract, mind, orders, targets);
         RefreshSelfDefenseReturns(mind, orders, targets);
         UpdateOrderCompletion(mind, package, orders, targets);
         HashSet<int> carrierUnitIds = mind.Bodies
@@ -470,8 +477,14 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             {
                 goal = targets[body.UnitId];
             }
-            Position? first = ArenaBasics.StaticFirstStep(
-                contract, mind, body, goal);
+            Position? first = !carrying
+                    && !pickupAssignments.ContainsKey(body.UnitId)
+                    && _routeSteps.TryGetValue(
+                        body.UnitId,
+                        out TacticalRouteGovernor.CourseStep? routeStep)
+                ? routeStep.Next
+                : ArenaBasics.StaticFirstStep(
+                    contract, mind, body, goal);
             if (first is Position step)
                 trafficSteps[body.UnitId] = step;
             bool blockedByAlly = first is Position wanted
@@ -2823,6 +2836,84 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         return candidates[0].Position;
     }
 
+    /// <summary>
+    /// Route memory belongs to one exact selected rung. Merely not calling
+    /// <see cref="RouteTarget"/> while a higher rung runs is not enough: if
+    /// the old rung returns later its order id is the same, but the tactical
+    /// interruption was real and its old course must not silently resume.
+    /// </summary>
+    private void ReconcileRouteSelections(
+        MindContext mind,
+        IReadOnlyDictionary<int, TacticalPlaybookPackage.Order> orders)
+    {
+        HashSet<int> live = mind.Bodies.Select(body => body.UnitId).ToHashSet();
+        foreach (int stale in _selectedOrders.Keys
+                     .Where(unitId => !live.Contains(unitId)).ToArray())
+        {
+            _selectedOrders.Remove(stale);
+            _routes.Remove(stale);
+            _routeGovernor.Reset(stale);
+        }
+
+        foreach (MindBody body in mind.Bodies)
+        {
+            TacticalPlaybookPackage.Order order = orders[body.UnitId];
+            if (!_selectedOrders.TryGetValue(
+                    body.UnitId,
+                    out (ActorIdentity Actor, string OrderId) selected)
+                || selected.Actor != body.ActorId
+                || !string.Equals(
+                    selected.OrderId, order.OrderId, StringComparison.Ordinal))
+            {
+                _routes.Remove(body.UnitId);
+                _routeGovernor.Reset(body.UnitId);
+            }
+            _selectedOrders[body.UnitId] = (body.ActorId, order.OrderId);
+        }
+    }
+
+    private Dictionary<int, TacticalRouteGovernor.CourseStep>
+        ResolveRouteCourses(
+            GenericActorResolvedMatchContract contract,
+            MindContext mind,
+            IReadOnlyDictionary<int, TacticalPlaybookPackage.Order> orders,
+            IReadOnlyDictionary<int, Position> targets)
+    {
+        var result = new Dictionary<int, TacticalRouteGovernor.CourseStep>();
+        foreach (MindBody body in mind.Bodies.OrderBy(value => value.UnitId))
+        {
+            TacticalPlaybookPackage.Order order = orders[body.UnitId];
+            if (!string.Equals(
+                    order.Movement.Kind, "route", StringComparison.Ordinal)
+                || !_routes.TryGetValue(
+                    body.UnitId, out RouteProgress? progress))
+            {
+                continue;
+            }
+
+            Position destination = targets[body.UnitId];
+            HashSet<Position> impossible =
+                ArenaBasics.PersistentRouteObstacles(
+                    contract, mind, body.ActorId.TeamId);
+            impossible.Remove(body.Position);
+            impossible.Remove(destination);
+            result[body.UnitId] = _routeGovernor.Resolve(
+                body.ActorId,
+                order.OrderId,
+                order.Movement.Target,
+                progress.Lap,
+                progress.Index,
+                body.Position,
+                destination,
+                () => ArenaBasics.StaticRouteCourse(
+                    contract, mind, body, destination),
+                tile => impossible.Contains(tile)
+                    || !ArenaBasics.IsLegalTerrainStep(
+                        contract.Map, body.Position, tile));
+        }
+        return result;
+    }
+
     private Position RouteTarget(
         GenericActorResolvedMatchContract contract,
         TacticalPlaybookPackage package,
@@ -2837,14 +2928,16 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         RouteProgress state = _routes.GetValueOrDefault(body.UnitId)
             ?? new RouteProgress(
                 body.ActorId, order.OrderId,
-                RejoinWaypoint(contract, route, body));
+                RejoinWaypoint(contract, route, body),
+                Lap: 0);
         if (state.ActorId != body.ActorId
             || !string.Equals(state.OrderId, order.OrderId,
                 StringComparison.Ordinal))
         {
             state = new RouteProgress(
                 body.ActorId, order.OrderId,
-                RejoinWaypoint(contract, route, body));
+                RejoinWaypoint(contract, route, body),
+                Lap: 0);
         }
         int index = Math.Min(state.Index, route.Length - 1);
         // A route is a corridor, not a sequence of single-tile queues. A body
@@ -2898,6 +2991,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         // The same nearness test on the seam. `route[^1]` IS `route[0]`, so the
         // waypoint after it is `route[1]`; comparing against the duplicate
         // would compare a tile with itself and re-arm the loop from anywhere.
+        int lap = state.Lap;
         if (index == route.Length - 1
             && route.Length > 2
             && route[0] == route[^1]
@@ -2906,8 +3000,9 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 < body.Position.ChebyshevDistance(route[1]))
         {
             index = 0;
+            lap++;
         }
-        _routes[body.UnitId] = state with { Index = index };
+        _routes[body.UnitId] = state with { Index = index, Lap = lap };
         return route[index];
     }
 
@@ -5265,13 +5360,47 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             formation.Reflow.BlockedSlot);
         if (TryAdvanceSignature(contract, body, target))
             return true;
-        if (ArenaBasics.TryMoveToward(
-            contract, mind, body, goals, claims,
-            MovementProvenance(machine, group, order,
-                stuck >= order.Movement.StuckTicks
-                    ? $"{order.Movement.StuckRecovery}-reflow"
-                    : moveChannel,
-                target)))
+        string movementChannel = stuck >= order.Movement.StuckTicks
+            ? $"{order.Movement.StuckRecovery}-reflow"
+            : moveChannel;
+        if (string.Equals(
+                order.Movement.Kind, "route", StringComparison.Ordinal)
+            && _routeSteps.TryGetValue(
+                body.UnitId,
+                out TacticalRouteGovernor.CourseStep? routeStep))
+        {
+            string routeReason = MovementProvenance(
+                machine,
+                group,
+                order,
+                $"{movementChannel}:{routeStep.Trace}",
+                target);
+            if (routeStep.Next is Position committed)
+            {
+                return ArenaBasics.TryMoveDirect(
+                        contract,
+                        mind,
+                        body,
+                        committed,
+                        claims,
+                        routeReason)
+                    || Hold(body, MovementProvenance(
+                        machine,
+                        group,
+                        order,
+                        $"{movementChannel}:{routeStep.Trace}:blocked",
+                        target));
+            }
+            if (routeStep.Trace.EndsWith(
+                    "-arrived", StringComparison.Ordinal))
+            {
+                return Hold(body, routeReason);
+            }
+        }
+        else if (ArenaBasics.TryMoveToward(
+                     contract, mind, body, goals, claims,
+                     MovementProvenance(
+                         machine, group, order, movementChannel, target)))
         {
             return true;
         }
@@ -6586,7 +6715,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     private sealed record RouteProgress(
         ActorIdentity ActorId,
         string OrderId,
-        int Index);
+        int Index,
+        int Lap);
 
     /// <summary>
     /// A body's recent ground, and how long it has failed to make any.

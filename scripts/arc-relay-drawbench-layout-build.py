@@ -158,14 +158,12 @@ routes = {
     "own-home-patrol": (leg((5, 5), (9, 7), (7, 9), (3, 8), (5, 5)), 2),
     "score-return":    (leg((15, 11), (11, 8), (7, 6)), 2),
     "strike-line":     (leg((5, 11), (10, 11), (14, 11), (15, 11)), 1),
-    # The hunt loop must have ONE obviously nearest way on from home. The
-    # first draft looped back through the owned Well behind the spawn, which
-    # left both directions round it the same distance from the pad -- the
-    # body then flipped direction every tick and the oscillation breaker sat
-    # it down. This one runs out along the midfield and back, so joining it
-    # is a decision with one answer.
-    "shadow-hunt-loop": (leg((10, 8), (15, 8), (20, 9), (20, 14),
-                             (15, 14), (10, 13), (10, 8)), 2),
+    # Deliberately returns through the owned Well. Route geometry is authored
+    # tactics; executor-owned course hysteresis makes an equally short join
+    # deterministic and sticky, so authors do not have to draw around a
+    # pathfinder's per-tick tie behavior.
+    "shadow-hunt-loop": (leg((9, 7), (13, 10), (11, 14), (9, 17),
+                             (6, 13), (9, 7)), 2),
     "shadow-north-long": (leg((9, 7), (14, 4), (19, 4), (18, 3),
                               (16, 7), (11, 6), (9, 7)), 2),
     "shadow-south-long": (leg((6, 10), (4, 13), (8, 17), (12, 19),

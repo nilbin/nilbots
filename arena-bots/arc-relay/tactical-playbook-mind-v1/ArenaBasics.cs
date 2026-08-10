@@ -628,6 +628,124 @@ internal static class ArenaBasics
     }
 
     /// <summary>
+    /// One deterministic terrain course for an authored route target. Unlike
+    /// ordinary chase movement, persistent obstacles are walls for the whole
+    /// search and the resulting path is returned in full so the route governor
+    /// can hold it across ticks.
+    /// </summary>
+    internal static Position[]? StaticRouteCourse(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind,
+        MindBody body,
+        Position goal)
+    {
+        if (body.Position == goal)
+            return [body.Position];
+
+        HashSet<Position> blocked = PersistentRouteObstacles(
+            contract, mind, body.ActorId.TeamId);
+        blocked.Remove(body.Position);
+        blocked.Remove(goal);
+        ProjectileHeading[] preference = PreferredHeadings(
+            body, [goal], MirroredFrame(contract, mind));
+        IReadOnlyCollection<ProjectileHeading> allowed = RouteHeadings(
+            contract, body);
+
+        var parents = new Dictionary<Position, Position>();
+        var visited = new HashSet<Position> { body.Position };
+        var queue = new Queue<Position>();
+        queue.Enqueue(body.Position);
+        while (queue.Count > 0)
+        {
+            Position current = queue.Dequeue();
+            foreach (ProjectileHeading heading in preference)
+            {
+                if (!allowed.Contains(heading))
+                    continue;
+                Position next = Step(current, heading);
+                if (!CanStep(contract.Map, current, next, heading)
+                    || blocked.Contains(next)
+                    || !visited.Add(next))
+                {
+                    continue;
+                }
+                parents[next] = current;
+                if (next == goal)
+                    return ReconstructCourse(body.Position, goal, parents);
+                queue.Enqueue(next);
+            }
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// Obstacles that outlive one movement tick and therefore may invalidate
+    /// a held route course. Allies, enemies and projectiles are deliberately
+    /// absent: those are traffic or reactions, not reasons to silently choose
+    /// the other way around an authored patrol.
+    /// </summary>
+    internal static HashSet<Position> PersistentRouteObstacles(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind,
+        int teamId)
+    {
+        var blocked = mind.VisibleTiles
+            .Where(tile => tile.SpawnReservation is not null)
+            .Select(tile => tile.Position)
+            .ToHashSet();
+        if (mind.Mode is GenericActorContext.ModeObservationState.ArcRelay arc)
+        {
+            blocked.UnionWith(arc.VisibleSignatures
+                .Where(signature => string.Equals(
+                        signature.SignatureId, "trip-node",
+                        StringComparison.Ordinal)
+                    && signature.OwnerTeamId != teamId
+                    && !signature.Suppressed
+                    && signature.Phase
+                        == GenericActorContext.ArcRelaySignaturePhase.Active)
+                .SelectMany(signature => signature.Positions));
+        }
+        if (contract.ModeMapBinding
+            is GenericActorResolvedMatchContract.ArcRelayModeMapBinding binding)
+        {
+            HashSet<int> hostileParticipants = contract.Topology.Participants
+                .Where(participant => participant.TeamId != teamId)
+                .Select(participant => participant.ParticipantId)
+                .ToHashSet();
+            HashSet<string> protectedRegions = contract
+                .ParticipantRegionAssignments
+                .Where(assignment =>
+                    hostileParticipants.Contains(assignment.ParticipantId)
+                    && string.Equals(
+                        assignment.RegionRoleId,
+                        binding.HomePadRegionRoleId,
+                        StringComparison.Ordinal))
+                .Select(assignment => assignment.MapRegionId)
+                .ToHashSet(StringComparer.Ordinal);
+            blocked.UnionWith(contract.Map.Regions
+                .Where(region => protectedRegions.Contains(region.RegionId))
+                .SelectMany(region => region.Tiles));
+        }
+        return blocked;
+    }
+
+    private static Position[] ReconstructCourse(
+        Position start,
+        Position goal,
+        IReadOnlyDictionary<Position, Position> parents)
+    {
+        var reverse = new List<Position> { goal };
+        Position cursor = goal;
+        while (cursor != start)
+        {
+            cursor = parents[cursor];
+            reverse.Add(cursor);
+        }
+        reverse.Reverse();
+        return reverse.ToArray();
+    }
+
+    /// <summary>
     /// Static eight-way walk distance with the contract's strict diagonal
     /// corner rule. Carrier progress uses map distance rather than Chebyshev
     /// distance so moving around cover cannot masquerade as home progress.

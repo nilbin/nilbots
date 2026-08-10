@@ -14,7 +14,7 @@ command reasons. Units whose confinement exceeds --flag-ticks (default
 60) are marked CONFINED - those are the replays to open in the viewer.
 
 Usage: arc-relay-unit-audit.py REPLAY.json.gz [more...] [--flag-ticks N]
-       [--team N] [--verbose]
+       [--team N] [--verbose] [--side-summary]
 
 Reads RAW replays (mindTurns command stream), not broadcast projections.
 """
@@ -65,6 +65,8 @@ def audit(replay: dict, team_filter: int | None) -> dict:
                 "loneContacts": 0,
                 "loneStruck": 0,
                 "contactActive": False,
+                "commandCount": 0,
+                "oscillationYields": 0,
             },
         )
 
@@ -75,6 +77,7 @@ def audit(replay: dict, team_filter: int | None) -> dict:
                 continue
             for command in turn.get("commands", []) or []:
                 entry = unit(team, command["unitId"])
+                entry["commandCount"] += 1
                 if command.get("roleTag"):
                     entry["roles"][command["roleTag"]] += 1
                 entry["actions"][command["actionId"]] += 1
@@ -83,7 +86,10 @@ def audit(replay: dict, team_filter: int | None) -> dict:
                         and not entry.get("struckThisContact")):
                     entry["loneStruck"] += 1
                     entry["struckThisContact"] = True
-                reason = (command.get("debugMessage") or "")[:64]
+                full_reason = command.get("debugMessage") or ""
+                if "oscillation-yield" in full_reason:
+                    entry["oscillationYields"] += 1
+                reason = full_reason[:64]
                 if reason:
                     entry["reasons"][reason] += 1
         state = tick.get("tickStart", {}).get("state", {})
@@ -177,6 +183,7 @@ def audit(replay: dict, team_filter: int | None) -> dict:
                 paired += 2 * min(fwd, rev)
             pendulum = paired / total_edges
         halves_total = sum(entry["halves"].values()) or 1
+        command_total = entry["commandCount"] or 1
         report[key] = {
             "pendulum": round(pendulum, 2),
             "territory": {
@@ -191,6 +198,10 @@ def audit(replay: dict, team_filter: int | None) -> dict:
             "confinementAnchor": anchor,
             "actions": dict(entry["actions"]),
             "topReasons": entry["reasons"].most_common(5),
+            "distinctTiles": len(entry["dwell"]),
+            "commandCount": entry["commandCount"],
+            "oscillationYields": entry["oscillationYields"],
+            "oscillationYieldRate": entry["oscillationYields"] / command_total,
         }
     return report
 
@@ -201,6 +212,12 @@ def main() -> None:
     parser.add_argument("--flag-ticks", type=int, default=60)
     parser.add_argument("--team", type=int, default=None)
     parser.add_argument("--verbose", action="store_true")
+    parser.add_argument(
+        "--side-summary",
+        action="store_true",
+        help="print the least-travelled body and worst oscillation-yield rate "
+             "for each team side",
+    )
     args = parser.parse_args()
 
     for path in args.replays:
@@ -236,6 +253,8 @@ def main() -> None:
                 f"confined {entry['confinementTicks']:3d}t"
                 f" @ {entry['confinementAnchor']}"
                 f" | moves {moves:3d} shots {shots:3d}"
+                f" tiles {entry['distinctTiles']:3d}"
+                f" yield {entry['oscillationYieldRate']:.1%}"
                 f" | pend {entry['pendulum']:.2f}"
                 f" own/mid/enemy {terr['own']:.2f}/{terr['mid']:.2f}"
                 f"/{terr['enemy']:.2f}{opp}{flag}"
@@ -243,6 +262,33 @@ def main() -> None:
             if args.verbose or flag:
                 for reason, count in entry["topReasons"]:
                     print(f"        {count:4d}  {reason}")
+        if args.side_summary:
+            teams = sorted({team for team, _ in report})
+            for team in teams:
+                side = [
+                    (unit_id, entry)
+                    for (entry_team, unit_id), entry in report.items()
+                    if entry_team == team
+                ]
+                least_id, least = min(
+                    side,
+                    key=lambda row: (row[1]["distinctTiles"], row[0]),
+                )
+                worst_id, worst = max(
+                    side,
+                    key=lambda row: (
+                        row[1]["oscillationYieldRate"],
+                        -row[0],
+                    ),
+                )
+                print(
+                    f"  SIDE t{team}: least u{least_id} "
+                    f"{least['distinctTiles']} tiles; worst u{worst_id} "
+                    f"{worst['oscillationYields']}/"
+                    f"{worst['commandCount']} "
+                    f"({worst['oscillationYieldRate']:.1%}) "
+                    "oscillation-yield"
+                )
 
 
 if __name__ == "__main__":

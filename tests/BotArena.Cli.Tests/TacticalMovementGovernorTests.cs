@@ -5,6 +5,74 @@ namespace BotArena.Cli.Tests;
 public sealed class TacticalMovementGovernorTests
 {
     [Fact]
+    public void RouteCourseStaysChosenAcrossATemptingReplan()
+    {
+        var governor = new TacticalRouteGovernor();
+        ActorIdentity actor = new(1, 0, 0);
+        var start = new Position(29, 18);
+        var north = new Position(28, 17);
+        var west = new Position(27, 16);
+        var goal = new Position(23, 11);
+        int plans = 0;
+
+        Position[] Plan()
+        {
+            plans++;
+            return [start, north, west, goal];
+        }
+
+        TacticalRouteGovernor.CourseStep chosen = governor.Resolve(
+            actor, "hunter-shadow-hunt", "shadow-hunt-loop",
+            lap: 0, waypoint: 3, start, goal, Plan, _ => false);
+        Assert.Equal(north, chosen.Next);
+        Assert.Contains("route-commit", chosen.Trace);
+
+        // Were the route derived again here, the planner could choose the
+        // opposite fork. It is not consulted: reaching the committed tile
+        // advances the held course instead.
+        TacticalRouteGovernor.CourseStep held = governor.Resolve(
+            actor, "hunter-shadow-hunt", "shadow-hunt-loop",
+            lap: 0, waypoint: 3, north, goal,
+            () => throw new InvalidOperationException("must stay sticky"),
+            _ => false);
+        Assert.Equal(west, held.Next);
+        Assert.Contains("route-held", held.Trace);
+        Assert.Equal(1, plans);
+    }
+
+    [Fact]
+    public void RouteCourseResetsOnRungLapAndImpossibleStep()
+    {
+        var governor = new TacticalRouteGovernor();
+        ActorIdentity actor = new(1, 0, 0);
+        var a = new Position(10, 10);
+        var b = new Position(11, 10);
+        var c = new Position(10, 11);
+        var goal = new Position(12, 10);
+
+        Assert.Equal(b, governor.Resolve(
+            actor, "patrol", "loop", 0, 0, a, goal,
+            () => [a, b, goal], _ => false).Next);
+        TacticalRouteGovernor.CourseStep replanned = governor.Resolve(
+            actor, "patrol", "loop", 0, 0, a, goal,
+            () => [a, c, goal], tile => tile == b);
+        Assert.Equal(c, replanned.Next);
+        Assert.Contains("route-replan-impossible", replanned.Trace);
+
+        TacticalRouteGovernor.CourseStep newLap = governor.Resolve(
+            actor, "patrol", "loop", 1, 0, a, goal,
+            () => [a, b, goal], _ => false);
+        Assert.Contains("route-commit", newLap.Trace);
+
+        governor.Reset(actor.UnitId);
+        TacticalRouteGovernor.CourseStep afterRung = governor.Resolve(
+            actor, "patrol", "loop", 1, 0, a, goal,
+            () => [a, c, goal], _ => false);
+        Assert.Equal(c, afterRung.Next);
+        Assert.Contains("route-commit", afterRung.Trace);
+    }
+
+    [Fact]
     public void RecoverInterruptionCoolsOnlyTheSameInjury()
     {
         var governor = new RecoveryEpisodeGovernor();

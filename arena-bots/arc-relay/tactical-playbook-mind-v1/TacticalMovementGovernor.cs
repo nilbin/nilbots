@@ -8,6 +8,145 @@ public enum TacticalMovementAuthority
 }
 
 /// <summary>
+/// Cross-tick ownership of an authored route's terrain course. The sheet owns
+/// the route and the ordered rung; this governor owns only the deterministic
+/// way from the body's current tile to the rung's current route target.
+/// </summary>
+/// <remarks>
+/// A terrain-shortest path can have two equally good ways around a durable
+/// obstacle. Re-running that choice from the next tile is not hysteresis: a
+/// body can take one step south, discover that north is now cheaper, and undo
+/// the step forever. The selected course therefore survives until the body
+/// consumes it, the authored route cursor changes, the rung/route/life changes,
+/// a real displacement takes the body off it, or the next tile becomes a
+/// durable impossibility.
+/// </remarks>
+public sealed class TacticalRouteGovernor
+{
+    private readonly Dictionary<int, State> _states = [];
+
+    public CourseStep Resolve(
+        ActorIdentity actor,
+        string orderId,
+        string routeId,
+        int lap,
+        int waypoint,
+        Position position,
+        Position destination,
+        Func<Position[]?> plan,
+        Func<Position, bool> impossible)
+    {
+        State? prior = _states.GetValueOrDefault(actor.UnitId);
+        string reason;
+        State state;
+        if (prior is null
+            || prior.Actor != actor
+            || !string.Equals(prior.OrderId, orderId,
+                StringComparison.Ordinal)
+            || !string.Equals(prior.RouteId, routeId,
+                StringComparison.Ordinal)
+            || prior.Lap != lap)
+        {
+            reason = "route-commit";
+            state = Start(
+                actor, orderId, routeId, lap, waypoint,
+                position, destination, plan);
+        }
+        else if (prior.Waypoint != waypoint
+            || prior.Destination != destination)
+        {
+            reason = "route-advance";
+            state = Start(
+                actor, orderId, routeId, lap, waypoint,
+                position, destination, plan);
+        }
+        else
+        {
+            state = prior;
+            int current = Array.IndexOf(state.Course, position);
+            if (current < 0 || current + 1 < state.NextIndex)
+            {
+                reason = "route-rejoin";
+                state = Start(
+                    actor, orderId, routeId, lap, waypoint,
+                    position, destination, plan);
+            }
+            else
+            {
+                int nextIndex = Math.Max(state.NextIndex, current + 1);
+                state = state with { NextIndex = nextIndex };
+                reason = "route-held";
+            }
+        }
+
+        Position? next = state.NextIndex < state.Course.Length
+            ? state.Course[state.NextIndex]
+            : null;
+        if (next is Position blocked && impossible(blocked))
+        {
+            reason = "route-replan-impossible";
+            state = Start(
+                actor, orderId, routeId, lap, waypoint,
+                position, destination, plan);
+            next = state.NextIndex < state.Course.Length
+                ? state.Course[state.NextIndex]
+                : null;
+        }
+
+        _states[actor.UnitId] = state;
+        string trace = next is Position tile
+            ? $"{reason}-next-{tile.X}-{tile.Y}"
+            : state.Course.Length == 0
+                ? $"{reason}-no-path"
+                : $"{reason}-arrived";
+        return new CourseStep(next, trace);
+    }
+
+    /// <summary>
+    /// A rung change is a semantic interruption even when the body later
+    /// returns to the same route. The caller observes the selected rung every
+    /// tick and explicitly releases that old commitment here.
+    /// </summary>
+    public void Reset(int unitId) => _states.Remove(unitId);
+
+    private static State Start(
+        ActorIdentity actor,
+        string orderId,
+        string routeId,
+        int lap,
+        int waypoint,
+        Position position,
+        Position destination,
+        Func<Position[]?> plan)
+    {
+        Position[] course = plan() ?? [];
+        if (course.Length > 0 && course[0] != position)
+            course = [];
+        return new State(
+            actor,
+            orderId,
+            routeId,
+            lap,
+            waypoint,
+            destination,
+            course,
+            course.Length > 1 ? 1 : course.Length);
+    }
+
+    public sealed record CourseStep(Position? Next, string Trace);
+
+    private sealed record State(
+        ActorIdentity Actor,
+        string OrderId,
+        string RouteId,
+        int Lap,
+        int Waypoint,
+        Position Destination,
+        Position[] Course,
+        int NextIndex);
+}
+
+/// <summary>
 /// Bounded episode semantics for the executor-owned <c>recover</c> verb.
 /// The sheet decides where recover sits in the ladder; this governor only
 /// prevents one unchanged injury from holding that rung forever.
