@@ -35,7 +35,7 @@ export interface CommandReason {
   /**
    * The tile this body is walking toward, when the action names one.
    *
-   * Only the route/formation movement plane publishes it (`formation-move@12,7`)
+   * Only the route/march movement plane publishes it (`march@12,7`)
    * — a body closing on a fight is walking at something the standing order's
    * target is not. Null everywhere else, and the arena simply draws nothing.
    */

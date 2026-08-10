@@ -220,10 +220,10 @@ def command_reason(
     taught is not worth showing.
 
     A movement action additionally carries the RESOLVED destination as an
-    ``@x,y`` tail (``formation-move@12,7``). It is split off here rather than
+    ``@x,y`` tail (``march@12,7``). It is split off here rather than
     shown, because "where is it going" is a place on the map and belongs on the
     map — the viewer draws it for the selected body while the order chip keeps
-    reading ``formation-move``.
+    reading ``march``.
     """
     if not isinstance(message, str):
         return None

@@ -1604,7 +1604,7 @@ export interface ReplayPublishedTeamVision {
  *
  * `orderId` is the mind's own name for the job — `race-north`, `ghost-patrol` —
  * and is null where the reason names no order. `action` is the tail of the same
- * sentence: `formation-move`, `duel-stand`, `idle-break/streak`.
+ * sentence: `march`, `duel-stand`, `idle-break/streak`.
  */
 export interface ReplayPublishedUnitOrder {
   teamId: number;

@@ -873,11 +873,11 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                             role, group, order, engagement, target, targets,
                             groups, orders,
                             pickupAssignments, focus, claims,
-                            // A follower is not marching a formation; it is
-                            // following someone. The trace says which.
+                            // A follower is not taking an ordinary march; it
+                            // is following someone. The trace says which.
                             escortRank.GetValueOrDefault(body.UnitId) > 0
                                 ? "escort-follow"
-                                : "formation-move"),
+                                : "march"),
                     "facing" => TryScanSweep(
                             contract, mind, body, order, target,
                             Provenance(machine, group, order, "scan"))
@@ -3016,7 +3016,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     /// focus-locked statues standing at satisfied formation slots while
     /// their gates veto the shot were the last measured stuck-carrier wall.
     /// Runs after the skirmish step (kite cadence keeps its say) and before
-    /// formation movement (a hunt outranks a slot).
+    /// the ordinary march (a hunt outranks its authored destination).
     /// </summary>
     /// <summary>
     /// A body in a live duel stands its ground while the gun cycles.
@@ -3024,7 +3024,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     /// the body drifted toward its slot mid-fight - the owner watched a
     /// "fully committed" ghost walk away from an adjacent enemy between
     /// strikes (exhibition trace 2026-08-08: 60-70% of all turn-away
-    /// moments were formation-move on cooldown). Declared-cone evacuation
+    /// moments were the then-named formation-move on cooldown).
+    /// Declared-cone evacuation
     /// and self-preservation still outrank this: stepping out of a
     /// telegraphed strike is dodging, not disengagement.
     /// </summary>
@@ -6585,7 +6586,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     /// </summary>
     /// <remarks>
     /// Owner review 2026-08-09: "I still see a lot of pathing mistakes but
-    /// can't put a finger on it." A reason that says <c>formation-move via
+    /// can't put a finger on it." A reason that says <c>march via
     /// West</c> answers which way the body stepped and never answers where it
     /// believed it was going — so a body walking confidently at the wrong tile
     /// and a body oscillating between two tiles read identically. Naming the
@@ -6599,7 +6600,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     /// <c>via</c> because both reason parsers cut the string at <c>' via '</c>
     /// and would drop anything behind it.
     ///
-    /// Only the route/formation movement plane carries it. A body closing on a
+    /// Only the route/march movement plane carries it. A body closing on a
     /// focus or slipping into ambush cover is walking at something this
     /// destination is not, and publishing the order's target there would be a
     /// confident lie.

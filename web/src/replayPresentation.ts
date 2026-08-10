@@ -325,7 +325,7 @@ export interface UnitPresentation {
    * standing job title that is sticky for many ticks and is drawn under the
    * chassis. This is the live half: the order the reason names and the action
    * tail of the reason itself, so a selected body reads
-   * `race-north · formation-move` rather than only `race-north`.
+   * `race-north · march` rather than only `race-north`.
    *
    * Read from the broadcast's published order table where there is one, and
    * split out of the turn's own debug message where the replay is canonical —
@@ -348,7 +348,7 @@ export interface UnitPresentation {
   /**
    * The tile this body is walking toward, when its order names one.
    *
-   * The pathing lens. Only route/formation movement publishes a destination; a
+   * The pathing lens. Only route/march movement publishes a destination; a
    * body fighting, holding or carrying reads null and the arena draws nothing.
    */
   destination: ReplayPosition | null;

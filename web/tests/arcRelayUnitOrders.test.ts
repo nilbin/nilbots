@@ -61,16 +61,16 @@ test('a mind diagnostic splits into the order it names and what it is doing', ()
   // broadcast and a canonical replay of the same match must read identically,
   // so these cases are the contract between the two implementations.
   assert.deepEqual(
-    parseCommandReason('tp:prowl:shadow-group:ghost-patrol:formation-move via East'),
-    { orderId: 'ghost-patrol', action: 'formation-move', destination: null },
+    parseCommandReason('tp:prowl:shadow-group:ghost-patrol:march via East'),
+    { orderId: 'ghost-patrol', action: 'march', destination: null },
   );
   assert.deepEqual(
     parseCommandReason('idle-break:tp:prowl:well-group:race-north:streak via North'),
     { orderId: 'race-north', action: 'idle-break/streak', destination: null },
   );
   assert.deepEqual(
-    parseCommandReason('turn for tp:prowl:well-group:well-watch:formation-move'),
-    { orderId: 'well-watch', action: 'turn/formation-move', destination: null },
+    parseCommandReason('turn for tp:prowl:well-group:well-watch:march'),
+    { orderId: 'well-watch', action: 'turn/march', destination: null },
   );
   // Unrecognised vocabulary is carried whole rather than discarded: a reader
   // must not decide that a word it was not taught is not worth showing.
@@ -80,14 +80,14 @@ test('a mind diagnostic splits into the order it names and what it is doing', ()
     destination: null,
   });
   // The movement plane names where it is going. The coordinates come OFF the
-  // action — the chip keeps reading `formation-move`, and the map gets the tile.
+  // action — the chip keeps reading `march`, and the map gets the tile.
   assert.deepEqual(
     parseCommandReason(
-      'tp:prowl:well-group:well-watch:formation-move@12,7 via West',
+      'tp:prowl:well-group:well-watch:march@12,7 via West',
     ),
     {
       orderId: 'well-watch',
-      action: 'formation-move',
+      action: 'march',
       destination: { x: 12, y: 7 },
     },
   );
@@ -134,7 +134,7 @@ test('an engaged body is the one with a live fight, not the one near one', () =>
     assert.ok(isEngagedAction(action), action);
   }
   for (const action of [
-    'formation-move',
+    'march',
     'escort-follow',
     'hold',
     'signature',
@@ -143,7 +143,7 @@ test('an engaged body is the one with a live fight, not the one near one', () =>
     'withdraw',
     'scan',
     'custody:committed-delivery',
-    'turn/formation-move',
+    'turn/march',
     'focusing-elsewhere',
   ]) {
     assert.ok(!isEngagedAction(action), action);
@@ -159,19 +159,19 @@ test('the published order column is a delta the viewer carries forward', () => {
     broadcast.turns[0]![0]![0][1],
   ];
   broadcast.orders = [
-    [[teamId, unitId, 'race-north', 'formation-move']],
+    [[teamId, unitId, 'race-north', 'march']],
     [],
     [[teamId, unitId, 'race-north', 'duel-stand']],
   ];
 
   const { replay } = loadReplayObject(broadcast);
   assert.deepEqual(replay.ticks[0]!.publishedUnitOrders, [
-    { teamId, unitId, orderId: 'race-north', action: 'formation-move' },
+    { teamId, unitId, orderId: 'race-north', action: 'march' },
   ]);
   // The silent tick keeps the order rather than clearing it — which is the
   // whole reason the column can afford to be a delta.
   assert.deepEqual(replay.ticks[1]!.publishedUnitOrders, [
-    { teamId, unitId, orderId: 'race-north', action: 'formation-move' },
+    { teamId, unitId, orderId: 'race-north', action: 'march' },
   ]);
   assert.deepEqual(replay.ticks[2]!.publishedUnitOrders, [
     { teamId, unitId, orderId: 'race-north', action: 'duel-stand' },

@@ -135,7 +135,12 @@ Visible in traces (reason string in parentheses), policy hard-coded:
    `stop-movement-preempted`, `cooldown-unsafe@T`, or `cooldown-timeout@T`;
    this policy no longer acts silently.
 6. **Opportunistic signatures** (`signature-heading`, `signature-idle`).
-7. **Formation micro** (`formation-move`, `turn for ...`, reflow).
+7. **March micro** (`march`, `turn for ...`, reflow). Direct sheets carry no
+   authored formation plane; their no-formation movement still reuses the
+   terrain, completion, facing, and reflow helpers in
+   `TacticalFormationPrimitives`. The class is therefore reachable by current
+   direct sheets, not only by frozen `home-siege-v2`, even though its slot and
+   shape branches remain legacy-only.
 8. **The v3 desugar constants**: shrinking. `targetPriorities` is now
    authorable as `fight.targets.prefer` (carrier / weakest / closest /
    strongest-threat / freshest, order = priority, default

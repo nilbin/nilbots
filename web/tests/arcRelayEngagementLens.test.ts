@@ -130,9 +130,9 @@ test('the engaged mark lights for the body in a fight, and for nobody else', () 
 
 test('walking is not fighting: the mark stays dark for a movement order', () => {
   // The whole value of the cue is that it separates committed from passing-by.
-  // A mark that lit for `formation-move` would light for the entire team all
+  // A mark that lit for `march` would light for the entire team all
   // match and mean nothing at all.
-  const { replay } = loadedWithOrder('formation-move');
+  const { replay } = loadedWithOrder('march');
   const actors = buildActors(replay);
   try {
     actors.update(1, null, false);
