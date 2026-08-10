@@ -45,6 +45,11 @@ manifest hashes are opened to evaluation.
   uses bounded launch-only reactor avoidance with an immediate normal-route
   fallback. The stock digest moves, so v16 starts fresh and v1–v9 remain
   historical bytes.
+- `ambush-warren-11-stock-v11/` — immutable hosted playlist-v17 tactical mind
+  and receipt. It remembers every observed loose Core through bounded fog,
+  clears last-known objectives on conclusive evidence, and makes
+  nearest-authorized friendly-drop recovery distance-first. The stock digest
+  moves, so v17 starts fresh and v1–v10 remain historical bytes.
 - `stock-mind-v3/` — unfrozen intelligent-gambit vertical-slice mind. It keeps
   the complete v2 baseline executor and reads provisional v2 operation data;
   it is evidence for an owner decision, not a launch artifact.

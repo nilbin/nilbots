@@ -7360,3 +7360,44 @@ to
 identically in-process and in sandboxed WASM. Playlist v16 therefore starts a
 fresh rating book; v15 ratings and matches remain readable history. Rules, map,
 sheets, grammar, and their contract fingerprints do not change.
+
+## 279. Seen loose Cores remain bounded objectives; pickup allocation is authored; hosted v17 starts fresh
+
+Executor and sheet-language ruling (2026-08-10). Fog closing over a loose Core
+does not erase team knowledge of that objective. Every observed loose Core is
+retained at its last-confirmed position for the sheet's authored Core-memory
+window. A body with an eligible fetch rung may continue toward that position.
+Seeing the remembered tile empty, observing the Core carried or banked, or
+reaching the memory limit clears both the memory and its reservation. Traces
+name the uncertainty as `custody:last-known-pickup`; the executor never presents
+the remembered position as current vision.
+
+`dropRecovery: nearest-authorized` now means its words: distance is the primary
+allocation key among eligible bodies, carrier preference breaks that tie, and
+stable unit id breaks the final tie. Ordinary Well pickup allocation remains
+carrier-preference first by default. Custody policies gain the optional
+`pickupSelection` field so an author may instead select `nearest-authorized`
+for ordinary pickups. The only values are `carrier-preference` and
+`nearest-authorized`; there is no random allocator.
+
+In the exact Tapline west-9002 replay that motivated the change, fog previously
+erased a friendly transfer drop at tick 319 and it lay unclaimed until tick 411.
+The corrected cell changes earlier because allocation is causal, but its
+friendly voluntary drops are recovered in 3, 19, 3, and 2 ticks; the repeated
+near-Well transfers are recovered in 2-3 ticks. The six-cell exhibit retains
+longer contested and stale-memory cases for honest review and is not a balance
+read.
+
+The WASM bytes change, so playlist v16 and frozen stock v10 remain immutable.
+Playlist v17 pins frozen stock v11 (artifact
+`68182fd208eee987898b42069d97c300fd41aec76c90f42f7c58001c40c10348`,
+build input
+`5fee8282e71be3ece6f50f01c1095e363560e06d23d64a6e2ec80ddaf009c86c`).
+The registered Wellwright-vs-Wellwright seed-9001 stock digest changes from
+`5964c536be8598ea9d51f7bcc3b7e4f0a6e25ab67dee04da168da94e90c509c2`
+to
+`e38b5adbd693dffe0200d8481c34bad60205917dbc6c46c93534f33d53abc18f`,
+identically in-process and in sandboxed WASM. Playlist v17 therefore starts a
+fresh rating book; v16 ratings and matches remain readable history. Rules, map,
+current sheet bytes, and gameplay contract fingerprints do not change; the
+sheet grammar expands additively by one optional custody field.

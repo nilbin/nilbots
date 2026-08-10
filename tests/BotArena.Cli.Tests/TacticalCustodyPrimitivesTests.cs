@@ -37,6 +37,45 @@ public sealed class TacticalCustodyPrimitivesTests
     }
 
     [Fact]
+    public void NearestAuthorizedDropRanksDistanceBeforeCarrierPreference()
+    {
+        var preferredButFar = TacticalCustodyPrimitives.PickupPriority(
+            "nearest-authorized", carrierPreference: 1, distance: 5, unitId: 2);
+        var allowedButNear = TacticalCustodyPrimitives.PickupPriority(
+            "nearest-authorized", carrierPreference: 2, distance: 1, unitId: 5);
+
+        Assert.True(allowedButNear.CompareTo(preferredButFar) < 0);
+    }
+
+    [Fact]
+    public void CarrierPreferenceSelectionRanksPreferenceBeforeDistance()
+    {
+        var preferredButFar = TacticalCustodyPrimitives.PickupPriority(
+            "carrier-preference", carrierPreference: 1, distance: 5, unitId: 2);
+        var allowedButNear = TacticalCustodyPrimitives.PickupPriority(
+            "carrier-preference", carrierPreference: 2, distance: 1, unitId: 5);
+
+        Assert.True(preferredButFar.CompareTo(allowedButNear) < 0);
+    }
+
+    [Theory]
+    [InlineData(40, false, false, true)]
+    [InlineData(41, false, false, false)]
+    [InlineData(1, true, false, false)]
+    [InlineData(1, true, true, true)]
+    public void LooseCoreMemoryIsBoundedAndClearedByVisibleAbsence(
+        int age,
+        bool tileVisible,
+        bool coreVisible,
+        bool expected) => Assert.Equal(expected,
+            TacticalCustodyPrimitives.LooseCoreMemoryActive(
+                tick: 100,
+                lastConfirmedTick: 100 - age,
+                memoryTicks: 40,
+                tileVisible,
+                coreVisible));
+
+    [Fact]
     public void EscortChoosesNearestCarrierThenStableActorIdentity()
     {
         var escort = new Position(5, 5);

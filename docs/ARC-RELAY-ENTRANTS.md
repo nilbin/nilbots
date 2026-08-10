@@ -14,7 +14,7 @@ crest, eight-slot composition, and exact-compatible Elo rating. A sheet save or
 mind resubmission advances its revision without resetting rating. Save-as-copy
 or a new submission creates a new identity and starts at the default rating.
 
-The current hosted identity is immutable entrant playlist v16: rules
+The current hosted identity is immutable entrant playlist v17: rules
 `arc-relay-ambush-11` on the 31x27 `arc-relay-ambush-warren-06` map, matching
 the default local `nilbots arc-relay` command. v7 began the Warren development
 rating era; v8 repaired its frozen WASM artifact. Public Season 1 began at 1200
@@ -39,7 +39,11 @@ whole tick, orders loaded carriers deterministically by distance to their own
 reactor and unit id, and lets newly spawned bodies prefer a non-reactor route
 for only their first two life ticks. If no such route exists, the ordinary
 planner is the immediate fallback. Its stock digest moves, so v16 starts fresh
-rather than copying v15 Elo.
+rather than copying v15 Elo. v17 retains seen loose Cores at their last-known
+tile for the authored Core-memory window, makes nearest-authorized friendly
+drop recovery distance-first, and adds an optional custody pickup-selection
+policy for ordinary Wells. The registered stock digest moves, so v17 starts
+fresh rather than copying v16 Elo.
 ForwardCombat/Counterflow v6
 ratings and matches remain readable history but were not copied.
 

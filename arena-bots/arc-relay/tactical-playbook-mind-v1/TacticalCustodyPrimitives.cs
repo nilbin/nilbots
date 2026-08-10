@@ -38,6 +38,33 @@ internal static class TacticalCustodyPrimitives
             $"Unknown drop recovery policy '{recoveryPolicy}'."),
     };
 
+    /// <summary>
+    /// A custody policy states whether distance or authored carrier preference
+    /// is the primary allocation key. Stable unit id always breaks the final
+    /// tie, so both policies are deterministic.
+    /// </summary>
+    internal static (int Primary, int Secondary, int UnitId) PickupPriority(
+        string pickupSelection,
+        int carrierPreference,
+        int distance,
+        int unitId) => string.Equals(
+            pickupSelection, "nearest-authorized", StringComparison.Ordinal)
+        ? (distance, carrierPreference, unitId)
+        : (carrierPreference, distance, unitId);
+
+    /// <summary>
+    /// A last-confirmed loose Core remains actionable through fog for the
+    /// authored Core-memory window. Seeing its tile without seeing the Core is
+    /// conclusive negative evidence and clears it immediately.
+    /// </summary>
+    internal static bool LooseCoreMemoryActive(
+        int tick,
+        int lastConfirmedTick,
+        int memoryTicks,
+        bool tileVisible,
+        bool coreVisible) => tick - lastConfirmedTick <= memoryTicks
+        && (!tileVisible || coreVisible);
+
     internal static int CompareEscortCandidate(
         Position escortPosition,
         (ActorIdentity ActorId, Position Position) left,

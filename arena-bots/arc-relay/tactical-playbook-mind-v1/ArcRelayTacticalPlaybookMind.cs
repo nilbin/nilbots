@@ -102,6 +102,13 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         _reactorClearances = [];
     private readonly Dictionary<string, FriendlyDroppedCore>
         _friendlyDroppedCores = new(StringComparer.Ordinal);
+    /// <summary>Last confirmed positions of loose Cores. A loose objective
+    /// does not cease to exist merely because fog closes over its tile; this
+    /// bounded memory lets an already-authored fetch continue toward the last
+    /// known position until the tile is seen empty or the Core is observed in
+    /// another disposition.</summary>
+    private readonly Dictionary<string, KnownLooseCore>
+        _knownLooseCores = new(StringComparer.Ordinal);
     private readonly Dictionary<string, int> _formationStableTicks =
         new(StringComparer.Ordinal);
     private readonly Dictionary<string, TacticalFormationPrimitives.Lifecycle>
@@ -417,9 +424,32 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         Dictionary<int, FocusAssignment> focus =
             AllocateFocus(contract, mind, arc, package.Source, package,
                 snapshot, roles, orders, targets, unavailableAttackers);
+        HashSet<string> observedCoreKeys = arc.VisibleCores
+            .Select(core => CoreKey(core.CoreId))
+            .ToHashSet(StringComparer.Ordinal);
+        // A seen loose Core remains team knowledge through fog for the sheet's
+        // authored Core-memory window. Seeing the tile empty, observing the
+        // Core carried/banked, or expiry clears this last-known objective.
+        GenericActorContext.ArcRelayCoreState[] rememberedLooseCores =
+            _knownLooseCores
+                .Where(value => !observedCoreKeys.Contains(value.Key))
+                .OrderBy(value => value.Key, StringComparer.Ordinal)
+                .Select(value => new GenericActorContext.ArcRelayCoreState(
+                    value.Value.CoreId,
+                    value.Value.Position,
+                    GenericActorContext.ArcRelayCoreDisposition.Loose,
+                    null,
+                    value.Value.LastConfirmedTick,
+                    null,
+                    null)
+                {
+                    ChargeValue = value.Value.ChargeValue,
+                })
+                .ToArray();
         GenericActorContext.ArcRelayCoreState[] loose = arc.VisibleCores
             .Where(core => core.Disposition
                 == GenericActorContext.ArcRelayCoreDisposition.Loose)
+            .Concat(rememberedLooseCores)
             .OrderBy(core => core.CoreId.SourceWellId, StringComparer.Ordinal)
             .ThenBy(core => core.CoreId.SourceOrdinal)
             .ToArray();
@@ -1135,40 +1165,62 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                         (level.ActorId.LifeId, level.Level);
                     break;
                 case GenericActorContext.ArcRelayEvent.CoreDropped drop:
-                    _emergencyRecoveries.Remove(CoreKey(drop.CoreId));
+                    string droppedKey = CoreKey(drop.CoreId);
+                    _emergencyRecoveries.Remove(droppedKey);
+                    int droppedChargeValue = arc.VisibleCores.FirstOrDefault(
+                            core => string.Equals(
+                                CoreKey(core.CoreId),
+                                droppedKey,
+                                StringComparison.Ordinal))
+                        ?.ChargeValue ?? 1;
+                    _knownLooseCores[droppedKey] = new KnownLooseCore(
+                        drop.CoreId,
+                        drop.Position,
+                        observed.SourceTick,
+                        droppedChargeValue);
                     if (drop.SourceActorId.TeamId != _teamId)
                     {
                         ClearRememberedCarrier(drop.SourceActorId);
-                        _securedCores[CoreKey(drop.CoreId)] = new SecuredCore(
+                        _securedCores[droppedKey] = new SecuredCore(
                             drop.CoreId.SourceWellId,
                             drop.Position,
                             observed.SourceTick);
                     }
                     else
                     {
-                        _friendlyDroppedCores[CoreKey(drop.CoreId)] =
+                        string? custodyId = _custodyProgress.TryGetValue(
+                                drop.SourceActorId,
+                                out CustodyProgress? droppedProgress)
+                            ? droppedProgress.CustodyId
+                            : null;
+                        _friendlyDroppedCores[droppedKey] =
                             new FriendlyDroppedCore(
                                 drop.SourceActorId,
-                                drop.Position,
-                                observed.SourceTick);
+                                custodyId);
                         _custodyProgress.Remove(drop.SourceActorId);
                     }
                     break;
                 case GenericActorContext.ArcRelayEvent.CoreBanked banked:
-                    _emergencyRecoveries.Remove(CoreKey(banked.CoreId));
+                    string bankedKey = CoreKey(banked.CoreId);
+                    _emergencyRecoveries.Remove(bankedKey);
                     ClearRememberedCarrier(banked.CarrierActorId);
-                    _securedCores.Remove(CoreKey(banked.CoreId));
-                    _friendlyDroppedCores.Remove(CoreKey(banked.CoreId));
+                    _securedCores.Remove(bankedKey);
+                    _friendlyDroppedCores.Remove(bankedKey);
+                    _knownLooseCores.Remove(bankedKey);
+                    _coreReservations.Remove(bankedKey);
                     _custodyProgress.Remove(banked.CarrierActorId);
                     if (banked.TeamId == _teamId)
                         _lastObjectiveProgressTick = observed.SourceTick;
                     break;
                 case GenericActorContext.ArcRelayEvent.CorePickedUp pickup:
-                    _friendlyDroppedCores.Remove(CoreKey(pickup.CoreId));
+                    string pickedUpKey = CoreKey(pickup.CoreId);
+                    _friendlyDroppedCores.Remove(pickedUpKey);
+                    _knownLooseCores.Remove(pickedUpKey);
+                    _coreReservations.Remove(pickedUpKey);
                     if (pickup.CarrierActorId.TeamId != _teamId)
                     {
-                        _emergencyRecoveries.Remove(CoreKey(pickup.CoreId));
-                        _securedCores.Remove(CoreKey(pickup.CoreId));
+                        _emergencyRecoveries.Remove(pickedUpKey);
+                        _securedCores.Remove(pickedUpKey);
                         MarkRememberedCarrier(
                             pickup.CarrierActorId,
                             pickup.Position,
@@ -1214,6 +1266,21 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     LastConfirmedTick = mind.Tick,
                 };
             }
+            if (core.Disposition
+                == GenericActorContext.ArcRelayCoreDisposition.Loose)
+            {
+                _knownLooseCores[key] = new KnownLooseCore(
+                    core.CoreId,
+                    core.Position,
+                    mind.Tick,
+                    core.ChargeValue);
+            }
+            else
+            {
+                _friendlyDroppedCores.Remove(key);
+                _knownLooseCores.Remove(key);
+                _coreReservations.Remove(key);
+            }
         }
         HashSet<Position> visibleTiles = mind.VisibleTiles
             .Select(tile => tile.Position).ToHashSet();
@@ -1228,6 +1295,20 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                      .Select(value => value.Key).ToArray())
         {
             _securedCores.Remove(stale);
+        }
+        foreach (string stale in _knownLooseCores
+                     .Where(value => !TacticalCustodyPrimitives
+                         .LooseCoreMemoryActive(
+                             mind.Tick,
+                             value.Value.LastConfirmedTick,
+                             memory.SecuredCoreTicks,
+                             visibleTiles.Contains(value.Value.Position),
+                             visibleCoreIds.Contains(value.Key)))
+                     .Select(value => value.Key).ToArray())
+        {
+            _knownLooseCores.Remove(stale);
+            _friendlyDroppedCores.Remove(stale);
+            _coreReservations.Remove(stale);
         }
         foreach (int stale in _enemyUnavailableUntil
                      .Where(value => mind.Tick >= value.Value)
@@ -5687,7 +5768,18 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     body.UnitId,
                     out GenericActorContext.ArcRelayCoreState? assignedCore)
                 && TryCollectCore(
-                    contract, mind, body, assignedCore, claims))
+                    contract,
+                    mind,
+                    body,
+                    assignedCore,
+                    claims,
+                    remembered: !arc.VisibleCores.Any(core =>
+                        core.Disposition
+                            == GenericActorContext.ArcRelayCoreDisposition.Loose
+                        && string.Equals(
+                            CoreKey(core.CoreId),
+                            CoreKey(assignedCore.CoreId),
+                            StringComparison.Ordinal))))
                 return true;
         }
 
@@ -6260,14 +6352,17 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         MindContext mind,
         MindBody body,
         GenericActorContext.ArcRelayCoreState core,
-        ArenaBasics.Claims claims)
+        ArenaBasics.Claims claims,
+        bool remembered)
     {
         Position destination = core.Position;
         if (TryAdvanceSignature(contract, body, destination))
             return true;
         return ArenaBasics.TryMoveToward(
             contract, mind, body, [destination], claims,
-            "custody:authorized-pickup");
+            remembered
+                ? "custody:last-known-pickup"
+                : "custody:authorized-pickup");
     }
 
     private bool TryCollectEmergencyCore(
@@ -6513,10 +6608,20 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                             value.Value.Body.ActorId,
                             value.Value.SafeConversion
                                 || value.Value.EmergencyRecovery))
-                    .OrderBy(value => value.Value.CarrierRank)
-                    .ThenBy(value => value.Value.Body.Position
-                        .ChebyshevDistance(core.Position))
-                    .ThenBy(value => value.Key)
+                    .OrderBy(value => TacticalCustodyPrimitives
+                        .PickupPriority(
+                            _friendlyDroppedCores.ContainsKey(
+                                CoreKey(core.CoreId))
+                            && string.Equals(
+                                value.Value.Policy.DropRecovery,
+                                "nearest-authorized",
+                                StringComparison.Ordinal)
+                                ? "nearest-authorized"
+                                : value.Value.Policy.PickupSelection,
+                            value.Value.CarrierRank,
+                            value.Value.Body.Position.ChebyshevDistance(
+                                core.Position),
+                            value.Key))
                     .FirstOrDefault();
             if (selected.Value.Body is null)
                 continue;
@@ -6581,7 +6686,12 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         ActorIdentity candidate,
         bool safeConversion) => !_friendlyDroppedCores.TryGetValue(
             coreKey, out FriendlyDroppedCore? dropped)
-        || TacticalCustodyPrimitives.MayRecoverDrop(
+        || (dropped.CustodyId is null
+            || string.Equals(
+                dropped.CustodyId,
+                policy.CustodyId,
+                StringComparison.Ordinal))
+        && TacticalCustodyPrimitives.MayRecoverDrop(
             policy.DropRecovery,
             candidate,
             dropped.SourceCarrier,
@@ -7428,8 +7538,13 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
 
     private sealed record FriendlyDroppedCore(
         ActorIdentity SourceCarrier,
+        string? CustodyId);
+
+    private sealed record KnownLooseCore(
+        GenericActorContext.ArcRelayCoreId CoreId,
         Position Position,
-        int DroppedTick);
+        int LastConfirmedTick,
+        int ChargeValue);
 
     private sealed record TacticalSnapshot(
         int Tick,

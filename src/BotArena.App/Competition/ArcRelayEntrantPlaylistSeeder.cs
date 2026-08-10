@@ -7,10 +7,10 @@ using Microsoft.EntityFrameworkCore;
 namespace BotArena.App.Competition;
 
 /// <summary>
-/// Seeds the current immutable entrant lane. Playlist v16 deliberately starts
-/// a fresh rating book because stable carrier delivery and bounded launch
-/// clearance change the registered stock cell's gameplay-state digest;
-/// immutable v8-v15 ladders remain readable.
+/// Seeds the current immutable entrant lane. Playlist v17 deliberately starts
+/// a fresh rating book because loose-Core memory and distance-first friendly
+/// drop recovery change the registered stock cell's gameplay-state digest;
+/// immutable v8-v16 ladders remain readable.
 /// </summary>
 public sealed class ArcRelayEntrantPlaylistSeeder(
     AppDbContext db,
@@ -142,6 +142,16 @@ public sealed class ArcRelayEntrantPlaylistSeeder(
         {
             ArcRelayEntrantPlaylistDefinition.CreateHistoricalV15()
                 .Validate(playlist, trafficDetourVersion);
+        }
+        PlaylistVersion? stableCarrierVersion = await db.PlaylistVersions
+            .SingleOrDefaultAsync(value => value.PlaylistId == playlist.Id &&
+                value.Version ==
+                    ArcRelayEntrantPlaylistDefinition.StableCarrierVersion,
+                cancellationToken);
+        if (stableCarrierVersion is not null)
+        {
+            ArcRelayEntrantPlaylistDefinition.CreateHistoricalV16()
+                .Validate(playlist, stableCarrierVersion);
         }
         PlaylistVersion? recoveryVersion = await db.PlaylistVersions
             .SingleOrDefaultAsync(value => value.PlaylistId == playlist.Id &&
@@ -278,7 +288,7 @@ public sealed class ArcRelayEntrantPlaylistSeeder(
                 on ladder.PlaylistVersionId equals version.Id
             where version.PlaylistId == playlist.Id &&
                 version.Version == ArcRelayEntrantPlaylistDefinition
-                    .TrafficDetourVersion &&
+                    .StableCarrierVersion &&
                 ladder.SeasonId == season.Id
             select new { Ladder = ladder, version.Version })
             .ToArrayAsync(cancellationToken);
@@ -288,8 +298,8 @@ public sealed class ArcRelayEntrantPlaylistSeeder(
         if (open.Length != 1)
         {
             throw new InvalidOperationException(
-                "An open Arc Relay Season 1 can start the fresh v16 rating " +
-                "book only from one open immutable v15 ladder.");
+                "An open Arc Relay Season 1 can start the fresh v17 rating " +
+                "book only from one open immutable v16 ladder.");
         }
         Ladder previous = open[0].Ladder;
         if (await db.ArcRelayEntrantRatings.AnyAsync(
@@ -297,7 +307,7 @@ public sealed class ArcRelayEntrantPlaylistSeeder(
                 cancellationToken))
         {
             throw new InvalidOperationException(
-                "The draft Arc Relay v16 ladder already contains ratings.");
+                "The draft Arc Relay v17 ladder already contains ratings.");
         }
 
         Guid[] entrants = await db.ArcRelayEntrants

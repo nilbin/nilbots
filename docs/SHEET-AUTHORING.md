@@ -443,6 +443,7 @@ so a dead role does not look injured.
 | `deliveryTimeoutTicks` | `1..1200` |
 | `accidentalPickup` | `transfer`, `deliver`, or `drop-safe` |
 | `dropRecovery` | `same-carrier`, `nearest-authorized`, or `guard-until-safe` |
+| `pickupSelection` | optional `carrier-preference` (default) or `nearest-authorized`; selects the primary allocation key for ordinary Well pickups |
 | `unreachableFallback` | `hold`, `guard`, `alternate-core`, or `regroup` |
 | `safeConversion` | condition expression without self facts |
 
@@ -454,6 +455,9 @@ handoff, delivery, and recovery.
 
 Optional surface:
 
+- `pickupSelection`: `carrier-preference` (default) assigns eligible bodies by
+  role preference and then distance; `nearest-authorized` assigns by distance
+  and then preference. Stable unit id breaks the final tie in both cases.
 - `deliveryRoutes`: `1..8` `{ "zone", "route" }` rules. The Core's pickup
   zone chooses the side-bound delivery route.
 - `forwardPass`: `none` or `relay-catcher`.
@@ -474,7 +478,7 @@ The layout has exactly:
 schema  layoutId  mapId  bindings  zones  routes  anchors
 ```
 
-Current hosted v16 accepts the native Warren map only:
+Current hosted v17 accepts the native Warren map only:
 `arc-relay-ambush-warren-06` (31×27). Coordinates are absolute canonical map
 tiles. The same authored geometry serves both teams through side bindings.
 
