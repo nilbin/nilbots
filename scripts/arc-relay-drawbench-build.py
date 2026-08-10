@@ -60,7 +60,10 @@ UPPER_WALLS = [
     (13, 10), (17, 10),
 
     # heal at (18,3), beside the Well it shares a quarter with
-    (17, 2), (18, 2), (19, 2), (17, 3), (17, 4),
+    # (18,2) is deliberately NOT walled: closing it sealed (18,1)-(19,1) into
+    # a two-tile dead end on the top edge, and made (19,1)/(20,2) cut vertices.
+    # Open, it is the heal's northern approach instead of a pocket.
+    (17, 2), (17, 3), (17, 4),
 
     # east approach texture so the far half is rooms, not one hall
     (24, 4), (25, 4), (26, 6), (27, 6), (24, 8), (25, 8), (28, 9),

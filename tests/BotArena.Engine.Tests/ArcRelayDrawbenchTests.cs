@@ -136,6 +136,51 @@ public sealed class ArcRelayDrawbenchTests
     }
 
     [Fact]
+    public void NoBodyCanBeTrappedAndNoTileIsADeadEnd()
+    {
+        // A tile with two ways out is a tile one enemy can seal, and a tile
+        // with one is a pocket with no reason to exist. Neither belongs on a
+        // map where eight bodies a side share the routes.
+        ActorMapDefinition map = Map();
+        var trapped = new List<Position>();
+        var cuttable = new List<Position>();
+        var floor = new List<Position>();
+        for (int y = 1; y < map.Height - 1; y++)
+        for (int x = 1; x < map.Width - 1; x++)
+        {
+            var tile = new Position(x, y);
+            if (map.IsWall(tile))
+                continue;
+            floor.Add(tile);
+            if (Neighbours(map, tile).Count() <= 2)
+                trapped.Add(tile);
+        }
+
+        Assert.Empty(trapped);
+
+        // and no single body standing anywhere splits the map in two
+        foreach (Position blocker in floor)
+        {
+            var blocked = new HashSet<Position> { blocker };
+            Position start = floor.First(tile => tile != blocker);
+            var seen = new HashSet<Position> { start };
+            var queue = new Queue<Position>();
+            queue.Enqueue(start);
+            while (queue.Count > 0)
+            {
+                foreach (Position next in Neighbours(map, queue.Dequeue()))
+                {
+                    if (!blocked.Contains(next) && seen.Add(next))
+                        queue.Enqueue(next);
+                }
+            }
+            if (seen.Count != floor.Count - 1)
+                cuttable.Add(blocker);
+        }
+        Assert.Empty(cuttable);
+    }
+
+    [Fact]
     public void TheScoringShoulderIsNotTheSpawnPad()
     {
         // Delivery sits forward of the pad and carries no spawn protection,
