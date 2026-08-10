@@ -770,15 +770,17 @@ public sealed class ArcRelayEntrantProductIntegrationTests
 
     [SkippableFact]
     [Trait("Category", PostgreSqlDatabaseFixture.Category)]
-    public async Task Semantic_intent_v10_continues_the_open_v8_or_v9_rating_book()
+    public async Task Movement_v11_continues_the_open_v8_v9_or_v10_rating_book()
     {
-        await AssertSemanticIntentContinuityAsync(
+        await AssertMovementContinuityAsync(
             ArcRelayEntrantPlaylistDefinition.WasmRepairVersion);
-        await AssertSemanticIntentContinuityAsync(
+        await AssertMovementContinuityAsync(
             ArcRelayEntrantPlaylistDefinition.DirectLadderVersion);
+        await AssertMovementContinuityAsync(
+            ArcRelayEntrantPlaylistDefinition.SemanticIntentVersion);
     }
 
-    private static async Task AssertSemanticIntentContinuityAsync(
+    private static async Task AssertMovementContinuityAsync(
         int predecessorVersion)
     {
         await using var database = await PostgreSqlDatabaseFixture.CreateAsync();
@@ -810,6 +812,8 @@ public sealed class ArcRelayEntrantProductIntegrationTests
                         ArcRelayEntrantPlaylistDefinition.CreateHistoricalV8(),
                     ArcRelayEntrantPlaylistDefinition.DirectLadderVersion =>
                         ArcRelayEntrantPlaylistDefinition.CreateHistoricalV9(),
+                    ArcRelayEntrantPlaylistDefinition.SemanticIntentVersion =>
+                        ArcRelayEntrantPlaylistDefinition.CreateHistoricalV10(),
                     _ => throw new ArgumentOutOfRangeException(
                         nameof(predecessorVersion)),
                 };
@@ -888,17 +892,17 @@ public sealed class ArcRelayEntrantProductIntegrationTests
                 value.Id == predecessorLadderId);
             Assert.Equal(LadderStatus.Closed, predecessorLadder.Status);
             Assert.False(predecessorLadder.IsListed);
-            Ladder v10Ladder = await (
+            Ladder v11Ladder = await (
                 from ladder in db.Ladders
                 join version in db.PlaylistVersions
                     on ladder.PlaylistVersionId equals version.Id
                 where version.Version == ArcRelayEntrantPlaylistDefinition.Version
                 select ladder).SingleAsync();
-            Assert.Equal(LadderStatus.Open, v10Ladder.Status);
-            Assert.True(v10Ladder.IsListed);
+            Assert.Equal(LadderStatus.Open, v11Ladder.Status);
+            Assert.True(v11Ladder.IsListed);
             ArcRelayEntrantRating continued = await db.ArcRelayEntrantRatings
                 .SingleAsync(value => value.EntrantId == entrantId &&
-                    value.LadderId == v10Ladder.Id);
+                    value.LadderId == v11Ladder.Id);
             Assert.Equal(1473, continued.Rating);
             Assert.Equal(19, continued.RankedMatches);
         }

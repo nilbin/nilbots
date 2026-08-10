@@ -54,34 +54,52 @@ internal static class ArenaBasics
         /// <item><description><b>2 fighters</b> — a body holding a focus
         /// assignment or standing in contact. Its tile is the one everyone
         /// else must route around, so it settles first.</description></item>
-        /// <item><description><b>3 rest</b> — free traffic.</description>
+        /// <item><description><b>3..10 traffic tickets</b> — a body whose
+        /// stable authored destination has made no progress through allied
+        /// traffic. Earlier ticket first, unit id on a simultaneous tie.
+        /// Tickets never outrank a carrier, leader, or active fight.</description>
         /// </item>
-        /// <item><description><b>4 + ordinal followers</b> — escort
+        /// <item><description><b>32 rest</b> — free traffic.</description>
+        /// </item>
+        /// <item><description><b>64 + ordinal followers</b> — escort
         /// followers, in their order's declared list order. Last, and among
         /// themselves ordered, so a file walks a corridor as a file.
         /// </description></item>
         /// </list>
         ///
-        /// Equal ranks resolve by lower unit id, so exactly one of a mutual
-        /// pair ever moves. The fighter tier reaches the executor's plan
-        /// ORDER only under a stepper that asks for it
+        /// Equal ranks never yield. Where a traffic deadlock needs one
+        /// winner, the persistent ticket plane gives the pair distinct ranks
+        /// in activation-tick / unit-id order. The fighter tier reaches the
+        /// executor's plan ORDER only under a stepper that asks for it
         /// (<see cref="IArenaStepper.WantsFightPrecedence"/>) — right-of-way
         /// always reads the full list.
         /// </summary>
         public const int CarrierRank = 0;
         public const int LeaderRank = 1;
         public const int FighterRank = 2;
-        public const int RestRank = 3;
-        public const int FollowerRank = 4;
+        public const int TrafficRank = 3;
+        public const int RestRank = 32;
+        public const int FollowerRank = 64;
 
         private readonly HashSet<Position> _tiles = [];
         private readonly HashSet<Position> _committed = [];
+        private readonly Dictionary<int, Position> _committedByUnit = [];
         private readonly Dictionary<Position, int> _lanes = [];
         private readonly Dictionary<Position, int> _demands = [];
         private readonly Dictionary<int, int> _ranks = [];
         private readonly HashSet<int> _rooted = [];
+        private readonly TacticalOscillationGovernor _oscillation;
+        private readonly int _tick;
 
-        private Claims(IArenaStepper stepper) => Stepper = stepper;
+        private Claims(
+            IArenaStepper stepper,
+            TacticalOscillationGovernor oscillation,
+            int tick)
+        {
+            Stepper = stepper;
+            _oscillation = oscillation;
+            _tick = tick;
+        }
 
         /// <summary>
         /// The mind's movement arbiter for this tick. It rides on the plane
@@ -200,20 +218,42 @@ internal static class ArenaBasics
         /// <summary>Claim a tile a body is actually stepping onto, and tell
         /// the arbiter so its own reservations match the executor's.
         /// </summary>
-        public void Commit(MindBody body, Position tile)
+        public void Commit(
+            MindBody body,
+            Position tile,
+            TacticalMovementAuthority authority)
         {
             Reserve(tile);
             _committed.Add(tile);
+            _committedByUnit[body.UnitId] = tile;
+            _oscillation.NoteCommitted(
+                body.ActorId, _tick, body.Position, authority);
             Stepper.NoteCommitted(body, tile);
         }
+
+        public bool CommittedDestination(int unitId, out Position destination) =>
+            _committedByUnit.TryGetValue(unitId, out destination);
+
+        public TacticalOscillationGovernor.Admission AdmitMovement(
+            MindBody body,
+            Position destination,
+            TacticalMovementAuthority authority) =>
+            _oscillation.Admit(
+                body.ActorId,
+                _tick,
+                destination,
+                RankOf(body.UnitId) == CarrierRank
+                    ? TacticalMovementAuthority.Safety
+                    : authority);
 
         public static Claims ForTick(
             GenericActorResolvedMatchContract contract,
             MindContext mind,
-            IArenaStepper stepper)
+            IArenaStepper stepper,
+            TacticalOscillationGovernor oscillation)
         {
             stepper.BeginTick(contract, mind);
-            var claims = new Claims(stepper);
+            var claims = new Claims(stepper, oscillation, mind.Tick);
             foreach (MindBody body in mind.Bodies)
                 claims.Reserve(body.Position);
             return claims;
@@ -425,7 +465,9 @@ internal static class ArenaBasics
         MindBody body,
         IReadOnlyCollection<Position> goals,
         Claims claims,
-        string reason) =>
+        string reason,
+        TacticalMovementAuthority authority =
+            TacticalMovementAuthority.Tactical) =>
         Submit(
             contract,
             mind,
@@ -433,7 +475,8 @@ internal static class ArenaBasics
             ChooseStep(new StepRequest(
                 StepIntent.Toward, contract, mind, body, goals, claims)),
             claims,
-            reason);
+            reason,
+            authority);
 
     /// <summary>
     /// Submit the arbiter's answer. The ONE place a movement command is
@@ -449,10 +492,19 @@ internal static class ArenaBasics
         MindBody body,
         Position? chosen,
         Claims claims,
-        string reason)
+        string reason,
+        TacticalMovementAuthority authority =
+            TacticalMovementAuthority.Tactical)
     {
         if (chosen is not Position destination)
             return false;
+        TacticalOscillationGovernor.Admission admission =
+            claims.AdmitMovement(body, destination, authority);
+        if (!admission.Admitted)
+        {
+            body.Hold($"{reason}:{admission.Reason}");
+            return true;
+        }
         ProjectileHeading heading = FromVector(
             destination.X - body.Position.X,
             destination.Y - body.Position.Y);
@@ -483,7 +535,7 @@ internal static class ArenaBasics
             && headings is not null
             && headings.AllowedValues.Contains(heading))
         {
-            claims.Commit(body, destination);
+            claims.Commit(body, destination, authority);
             body.Command(
                 move.ActionId,
                 move.ActionCode,
@@ -503,7 +555,7 @@ internal static class ArenaBasics
             && directions is not null
             && directions.AllowedValues.Contains(direction))
         {
-            claims.Commit(body, destination);
+            claims.Commit(body, destination, authority);
             body.Command(
                 move.ActionId,
                 move.ActionCode,
@@ -730,7 +782,8 @@ internal static class ArenaBasics
                 body,
                 destination,
                 claims,
-                reason);
+                reason,
+                TacticalMovementAuthority.Safety);
     }
 
     /// <summary>
@@ -755,7 +808,8 @@ internal static class ArenaBasics
             ChooseStep(new StepRequest(
                 StepIntent.Routed, contract, mind, body, [goal], claims)),
             claims,
-            reason);
+            reason,
+            TacticalMovementAuthority.Safety);
 
     /// <summary>
     /// THE POLITENESS RULE, and the movement plane's only displacement:
@@ -819,7 +873,8 @@ internal static class ArenaBasics
                 StepIntent.MakeWay, contract, mind, body, owed, claims,
                 mover?.Position)),
             claims,
-            $"{reason}:u{moverUnitId}");
+            $"{reason}:u{moverUnitId}",
+            TacticalMovementAuthority.Clearance);
     }
 
     /// <summary>
@@ -842,7 +897,13 @@ internal static class ArenaBasics
                 StepIntent.Away, contract, mind, body, threats, claims))
                 is Position destination
             && TryMoveDirect(
-                contract, mind, body, destination, claims, reason);
+                contract,
+                mind,
+                body,
+                destination,
+                claims,
+                reason,
+                TacticalMovementAuthority.Safety);
     }
 
     public static bool TryMoveDirect(
@@ -851,7 +912,9 @@ internal static class ArenaBasics
         MindBody body,
         Position destination,
         Claims claims,
-        string reason) =>
+        string reason,
+        TacticalMovementAuthority authority =
+            TacticalMovementAuthority.Tactical) =>
         Submit(
             contract,
             mind,
@@ -859,7 +922,8 @@ internal static class ArenaBasics
             ChooseStep(new StepRequest(
                 StepIntent.Direct, contract, mind, body, [destination], claims)),
             claims,
-            reason);
+            reason,
+            authority);
 
     public static bool TryEvade(
         GenericActorResolvedMatchContract contract,
@@ -895,7 +959,8 @@ internal static class ArenaBasics
             body,
             safe,
             claims,
-            "evading carrier-lane fire");
+            "evading carrier-lane fire",
+            TacticalMovementAuthority.Safety);
     }
 
     /// <summary>
