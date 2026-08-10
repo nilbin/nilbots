@@ -85,6 +85,8 @@ public static class ArcRelayH0Definition
         ArgumentNullException.ThrowIfNull(loopProfile);
         if (loopProfile.Geometry == ArcRelayMapGeometry.CrucibleDiagonal)
             return CreateCrucibleMap(loopProfile);
+        if (loopProfile.Geometry == ArcRelayMapGeometry.DrawbenchHorizontal)
+            return CreateDrawbenchMap(loopProfile);
         ImmutableArray<string> rows = loopProfile.Geometry
             == ArcRelayMapGeometry.DepthLarger
             ? CreateLargerRows()
@@ -292,6 +294,137 @@ public static class ArcRelayH0Definition
         [
             new(1, 1), new(2, 1), new(3, 1), new(4, 1),
             new(1, 2), new(3, 2), new(4, 2), new(1, 3),
+        ];
+        var anchors = ImmutableArray.CreateBuilder<ActorMapSpawnAnchorDefinition>();
+        for (int unitId = 0; unitId < west.Length; unitId++)
+        {
+            anchors.Add(Anchor(0, unitId, west[unitId], Direction.East));
+            anchors.Add(Anchor(1, unitId, Rotate(west[unitId]), Direction.West));
+        }
+
+        Position[] forbidden =
+        [
+            wellNear, wellCentre, wellFar, reactorWest, reactorEast,
+        ];
+        return new ActorMapDefinition(
+            loopProfile.MapId,
+            version: 1,
+            rows,
+            anchors.ToImmutable(),
+            [
+                .. loopProfile.HealZoneTicksPerHp > 0
+                    ? new[]
+                    {
+                        Region("heal-north", healNorth),
+                        Region("heal-south", healSouth),
+                    }
+                    : System.Array.Empty<ActorMapRegionDefinition>(),
+                Region("well-north", wellNear),
+                Region("well-centre", wellCentre),
+                Region("well-south", wellFar),
+                Region("reactor-west", reactorWest),
+                Region("reactor-east", reactorEast),
+                new ActorMapRegionDefinition(
+                    "home-west",
+                    ActorMapRegionDefinition.RegionKind.Objective,
+                    deliverWest),
+                new ActorMapRegionDefinition(
+                    "home-east",
+                    ActorMapRegionDefinition.RegionKind.Objective,
+                    deliverEast),
+            ],
+            [
+                new ActorMapTileTagDefinition(
+                    "home-pads",
+                    ActorMapTileTagDefinition.TileTagKind.SpawnProtected,
+                    [.. padWest, .. padEast]),
+                new ActorMapTileTagDefinition(
+                    "arc-required-tiles",
+                    ActorMapTileTagDefinition.TileTagKind
+                        .SignaturePlacementForbidden,
+                    [.. forbidden]),
+            ]);
+    }
+
+    /// <summary>
+    /// Drawbench: Crucible's tiering on a horizontal frame. The reactors sit
+    /// on the west and east edges at OPPOSITE heights, so the lane runs across
+    /// the map while each side still has ground to give up vertically. As on
+    /// Crucible, only the upper half and the self-symmetric middle row are
+    /// authored and the lower half is their exact 180-degree rotation, so the
+    /// chirality that makes rotational spawn assignment fair is a property of
+    /// the construction rather than of inspection.
+    /// </summary>
+    private static ActorMapDefinition CreateDrawbenchMap(
+        ArcRelayLoopProfile loopProfile)
+    {
+        ImmutableArray<string> rows =
+        [
+            "###############################",
+            "#....#......#....#..#......#..#",
+            "#.....#..#..#....#....##......#",
+            "#.##......#..##....###.....#..#",
+            "#....#..#.#....#.....#..##....#",
+            "#........#.....#.....##.......#",
+            "#........#....#...#......###..#",
+            "#...........#.....#...........#",
+            "###..#.......#.........###....#",
+            "#.....##...#..#.#..#........#.#",
+            "#..##..##....#...#..##..#.#...#",
+            "#...#.#.....#.#.#.#.....#.#...#",
+            "#...#.#..##..#...#....##..##..#",
+            "#.#........#..#.#..#...##.....#",
+            "#....###.........#.......#..###",
+            "#...........#.....#...........#",
+            "#..###......#...#....#........#",
+            "#.......##.....#.....#........#",
+            "#....##..#.....#....#.#..#....#",
+            "#..#.....###....##..#......##.#",
+            "#......##....#....#..#..#.....#",
+            "#..#......#..#....#......#....#",
+            "###############################",
+        ];
+        int maximumX = rows[0].Length - 1;
+        int maximumY = rows.Length - 1;
+        Position Rotate(Position value) =>
+            new(maximumX - value.X, maximumY - value.Y);
+
+        // West high, east low. The pair is still a 180-degree rotation, so
+        // every distance below is identical measured from either corner.
+        Position reactorWest = new(2, 6);
+        Position reactorEast = Rotate(reactorWest);
+
+        // Tiered exactly as on Crucible: seven steps to your own Well,
+        // thirteen to the centre, nineteen to theirs. The ids keep their
+        // north/centre/south spelling so existing sheets still bind, and
+        // chiral births give the two owned Wells one shared cadence.
+        Position wellNear = new(9, 3);
+        Position wellCentre = new(15, 11);
+        Position wellFar = Rotate(wellNear);
+
+        // Heals sit off the lane on the cross axis, seven from the centre
+        // Well. Yours is twelve out and theirs eighteen, so withdrawing to
+        // heal concedes the lane and can be followed.
+        Position healNorth = new(20, 4);
+        Position healSouth = Rotate(healNorth);
+
+        // The protected corner pad holds the reactor and the respawns; the
+        // scoring shoulder five steps forward of it does not. Camping a spawn
+        // does not camp the objective.
+        ImmutableArray<Position> padWest = Rectangle(1, 4, 4, 7);
+        ImmutableArray<Position> padEast = [.. padWest.Select(Rotate)
+            .OrderBy(value => value.Y).ThenBy(value => value.X)];
+        ImmutableArray<Position> deliverWest = Rectangle(6, 8, 5, 7);
+        ImmutableArray<Position> deliverEast = [.. deliverWest.Select(Rotate)
+            .OrderBy(value => value.Y).ThenBy(value => value.X)];
+
+        // The west cluster sits at the TOP of its pad, so its rotation puts
+        // the east cluster at the bottom of theirs: one team enters the map
+        // high and the other low.
+        Position[] west =
+        [
+            new(1, 4), new(2, 4), new(3, 4), new(4, 4),
+            new(1, 5), new(3, 5), new(4, 5), new(1, 6),
         ];
         var anchors = ImmutableArray.CreateBuilder<ActorMapSpawnAnchorDefinition>();
         for (int unitId = 0; unitId < west.Length; unitId++)

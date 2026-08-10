@@ -676,6 +676,37 @@ public sealed record ArcRelayLoopProfile
         strikeWindupTicks: 1);
 
     /// <summary>
+    /// Crucible's tiering on a HORIZONTAL frame. Corner-to-corner made every
+    /// route a diagonal; here the reactors sit on the west and east edges but
+    /// at opposite heights, so the main lane runs across the map while still
+    /// asking each side to give up ground vertically. Same skeleton: an owned
+    /// near Well, a contested centre, a scoring shoulder that is not the
+    /// spawn pad, and one spawn cluster high with the other low.
+    /// </summary>
+    public static ArcRelayLoopProfile Drawbench1 { get; } = new(
+        "drawbench-1",
+        "arc-relay-drawbench-01",
+        "arc-relay-drawbench-01",
+        ArcRelayMapGeometry.DrawbenchHorizontal,
+        30,
+        75,
+        25,
+        7,
+        directionalCombat: true,
+        signatureGrammarVersion: 2,
+        wellBirthJitterTicks: 6,
+        alternatingResolutionOrder: true,
+        rearArcDamageMultiplier: 2,
+        omniProximityRange: 0,
+        veterancyXpPerLevel: 2,
+        veterancyMaxLevel: 5,
+        healZoneTicksPerHp: 3,
+        seedPhasedResolutionOrder: true,
+        rotationalSpawnAssignment: true,
+        chiralWellBirths: true,
+        strikeWindupTicks: 1);
+
+    /// <summary>
     /// Owner-selected product line. Kept separate from H0 and every historical
     /// hosted playlist so advancing the product never rewrites old contracts or
     /// golden replays.
@@ -750,6 +781,7 @@ public sealed record ArcRelayLoopProfile
         AmbushWarren10,
         AmbushWarren11,
         Crucible1,
+        Drawbench1,
         Return16,
         Return24,
         Hot60,
@@ -781,4 +813,5 @@ internal enum ArcRelayMapGeometry
     AmbushWarrenSerpentine,
     AmbushWarrenDeep,
     CrucibleDiagonal,
+    DrawbenchHorizontal,
 }
