@@ -7437,3 +7437,39 @@ to
 identically in-process and in sandboxed WASM. Playlist v18 therefore starts a
 fresh rating book; v17 ratings and matches remain readable history. Rules,
 map, sheet bytes, grammar, and gameplay contract fingerprints do not change.
+
+## 281. Tapline is the Arc Relay product map; hosted v19 starts a fresh rating era
+
+Owner-directed product ruling (2026-08-10). `tapline-1` replaces
+`ambush-warren-11` as the default local and hosted Arc Relay line. The CLI,
+sheet catalog, starter Hunter, stock Wellwright, editor plotter, trials, and
+ranked admission all use the native 31x27 `arc-relay-tapline-01` export. Sheet
+geometry is never projected between maps: older-map sheets remain readable
+history and are not admissible until deliberately replotted on Tapline.
+
+Entrant playlist v18 remains immutable Warren history, pinned by definition
+fingerprint
+`704ac64263b602a426b1b37302581c5197de16b5370d5955c21726ac40429506`.
+Playlist v19 pins the existing claimable-Core tactical algorithm artifact
+`d63ffb4829a6875573232d3cb8822beb8c77c96708bc2e9bbdd39d0aeb42ca96`
+and build input
+`1229c727f38e78599dbc228e2f8a86117d64a50fced3d155c7398dcf2a02a6f3`,
+but changes the map and stock sheet inputs to Tapline-native Wellwright
+(`c161502325758601b68b43c7a5e270bf2a8415b7259d26e7f66fd77641f78b48`)
+and layout
+(`45cbd126f22631f7a530620fd7c1edf1bd0a8e5da0dd43f98b5b13df226958b8`).
+Because the competitive map changed, v19 starts a fresh rating book at the
+default rating; no v18 Elo carries forward.
+
+The generic executor bytes are reused by hash, but v19 admits them through a
+distinct Tapline stock identity whose immutable receipt pins the Tapline rules,
+Wellwright source and layout. The ambush-11 stock identity and its versions are
+left untouched for historical work; current match provenance must not describe
+Tapline participants as Warren artifacts merely because the algorithm bytes
+are equal.
+
+The player editor emits only the consolidated ten-key direct sheet DSL. Its
+primary surface is a game-like roster, one ordered battle-plan ladder per
+assignment, focused trigger/Core/coordination tools, and direct plotting on
+Tapline. Raw JSON and layout hashes remain portable compiler facts rather than
+primary player controls.

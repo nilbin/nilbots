@@ -8,21 +8,17 @@ paragraphs as one fact each, because they are the two things that get confused.
 **Locally it is first-class.** `nilbots arc-relay` is a top-level command with
 its own help. `nilbots experiment arc-relay` remains a permanent alias, so
 every script, brief and report that already spells it that way keeps working.
-The command defaults to `--loop-profile ambush-warren-11` (rules
-`arc-relay-ambush-11` on map `arc-relay-ambush-warren-06`): declared strikes,
-veterancy, rear-arc damage, the deep Warren. `h0` and every historical profile
+The command defaults to `--loop-profile tapline-1` (rules and map
+`arc-relay-tapline-01`): declared strikes, veterancy, rear-arc damage, and the
+tiered chiral Tapline Well line. `h0` and every historical profile
 remain explicit immutable compatibility selections.
 
-**Hosted, entrant playlist v9 is the same line.** It pins ambush-warren-11,
+**Hosted, entrant playlist v19 is the same line.** It pins Tapline,
 the `arc-relay-tactical-playbook-v1` sheet format, and the frozen Wellwright v1
-stock participant on the direct-ladder ATL1 executor. v7 began the Warren
-development rating era: ForwardCombat Elo did not carry across games. v8
-repaired the v7 WASM artifact and began public Season 1 on a fresh 1200 ladder;
-v9 continues that Season book because the DSL representation changed without
-changing a game fact. Playlist v6 and its ratings/matches remain
-readable and executable on `arc-relay-threefold-depth-counterflow-01`; v6
-sheets are marked legacy until re-authored on the Warren, never geometrically
-projected. Historical v7 and v8 definitions and artifacts remain immutable.
+stock participant on the direct-ladder ATL1 executor. The map transition starts
+a fresh rating book; v18's Warren ratings and matches remain readable history.
+Earlier playlist definitions and artifacts remain immutable, and geometry is
+never projected between maps.
 
 ## Match shape
 
@@ -49,8 +45,8 @@ facts and causal observations; they cannot fetch an opponent's sheet.
 
 ## Objective
 
-Three public Wells stand at north `(15,6)`, centre `(15,13)`, and south
-`(15,20)`. Their nominal first beats are centre 25, north 50, and south 75;
+Three public Wells stand at north `(11,6)`, centre `(15,13)`, and south
+`(19,20)`. Their nominal first beats are centre 25, north 50, and south 75;
 the seed-phased lead and ±6-tick birth jitter below choose the exact order and
 tick. Each then repeats on the 75-tick schedule through the horizon. A Well has at most one unresolved
 Core and one visible pending charge, so at most three Cores are live.
@@ -61,8 +57,9 @@ clock belongs to the Core and survives possession changes. A carrier cannot
 use its basic gun. It may wait, turn, drop, or use a legal non-movement
 signature while the Core recovers.
 
-Bring a surviving carrier to its own reactor socket—west `(2,13)`, east
-`(28,13)`—to deliver. Three deliveries create one arena-wide Pulse. The third
+Bring a surviving carrier to its own delivery shoulder—west `(6..8,6..8)`,
+east `(22..24,18..20)`—to deliver. The reactor itself sits at west `(2,5)` or
+east `(28,21)`. Three deliveries create one arena-wide Pulse. The third
 Pulse destroys the opposing reactor and wins. A delivery grants score only.
 
 `handoff-core` names an adjacent allied unit. The receiver must remain alive,
@@ -70,19 +67,20 @@ carry no Core, and submit `Wait`; the source spends its action. `drop-core`
 leaves the Core neutral on the carrier's tile. Pickup, delivery, handoff, drop,
 flight, and recovery are all authoritative replay facts.
 
-## Deep Warren
+## Tapline
 
 Coordinates are zero-based. The 31×27 map is fair under exact 180-degree
 rotation `(x,y) -> (30-x,26-y)`, but deliberately not under north/south or
-east/west reflection. Its serpentine interior has pockets, broken sightlines
-and single-tile return chokes, then a top and bottom shadow corridor behind
-three-gate screen walls. That is what makes route concealment and rear
-interception possible without giving either side better geometry.
+east/west reflection. Its three Wells lie on a diagonal axis of play: west's
+near Well, the contested centre, and east's near Well are progressively farther
+from west and exactly rotate for east. Chunky interior cover and the top/bottom
+shadow corridors keep multiple approaches and rear interception legible.
 
-West spawns by unit are `(1,10)`, `(2,10)`, `(3,11)`, `(1,12)`, `(1,14)`,
-`(3,15)`, `(1,16)`, `(2,16)`; east spawns are exact 180-degree rotations. The home-pad
-rectangles are spawn-protected against hostile ground entry, not damage.
-Wells and reactor sockets refuse placed constructs.
+West spawns by unit are `(1,4)`, `(2,4)`, `(3,4)`, `(4,4)`, `(1,5)`,
+`(3,5)`, `(4,5)`, `(1,6)`; east spawns are exact 180-degree rotations. The
+reactor pads are spawn-protected against hostile ground entry, not damage, while
+the separate scoring shoulders are not protected. Wells and reactor sockets
+refuse placed constructs.
 
 The authoritative tile rows are exported by the engine in every replay header
 and by `/api/sheets/catalog`; the sheet editor plots that export directly.

@@ -6,7 +6,7 @@ namespace BotArena.Cli.Tests;
 public sealed class ArcRelayExperimentCommandTests
 {
     [Fact]
-    public void Default_is_the_ambush_warren_11_product_line()
+    public void Default_is_the_Tapline_product_line()
     {
         TextWriter stdout = Console.Out;
         using var output = new StringWriter();
@@ -22,11 +22,11 @@ public sealed class ArcRelayExperimentCommandTests
 
         using JsonDocument document = JsonDocument.Parse(output.ToString());
         Assert.Equal(
-            "arc-relay-ambush-11",
+            "arc-relay-tapline-01",
             document.RootElement.GetProperty("rules").GetProperty("rulesetId")
                 .GetString());
         Assert.Equal(
-            "arc-relay-ambush-warren-06",
+            "arc-relay-tapline-01",
             document.RootElement.GetProperty("map").GetProperty("mapId")
                 .GetString());
     }

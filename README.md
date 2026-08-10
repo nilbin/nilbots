@@ -11,9 +11,9 @@ C# source ──▶ NativeAOT-LLVM ──▶ WASI core module ──▶ Wasmtime
 limits) ──▶ deterministic match engine ──▶ replay + hash ──▶ visual viewer
 ```
 
-The current local and hosted line is `ambush-warren-11` on the deep Warren map.
-Hosted entrant playlist v8 pins that game and its repaired frozen stock artifact.
-Season 1 is the first public eight-week competition: its v8 ratings start fresh at
+The current local and hosted line is `tapline-1` on the tiered Tapline map.
+Hosted entrant playlist v19 pins that game, its native sheets, and the frozen
+stock algorithm. Season 1's v19 Tapline ratings start fresh at
 1200 with zero matches. Historical Duel and Frontline code remains for exact replay compatibility and the
 labelled read-only archive; neither describes the product front door. See
 [`docs/ARC-RELAY-GLOSSARY.md`](docs/ARC-RELAY-GLOSSARY.md) for current vocabulary,
@@ -31,8 +31,8 @@ bash scripts/setup.sh        # platform-aware, idempotent bootstrap
 nilbots arc-relay \
   --bot arena-bots/arc-relay/tactical-playbook-mind-v1 \
   --opponent arena-bots/arc-relay/tactical-playbook-mind-v1 \
-  --sheet0 arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/playbooks/hunter-v1.json \
-  --sheet1 arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/playbooks/wellwright-v1.json \
+  --sheet0 arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/playbooks/hunter-tapline-v1.json \
+  --sheet1 arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/playbooks/wellwright-tapline-v1.json \
   --seed 42
 ```
 
@@ -41,7 +41,7 @@ through the same shared compiler used by the hosted editor:
 
 ```bash
 nilbots experiment arc-relay-playbook \
-  --playbook arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/playbooks/hunter-v1.json
+  --playbook arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/playbooks/hunter-tapline-v1.json
 ```
 
 For a custom mind, start from `templates/botarena-generic-mind` and use it as the

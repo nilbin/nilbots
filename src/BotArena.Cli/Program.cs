@@ -279,10 +279,10 @@ static int CommandHelp(string command)
 
             Loop profile. --loop-profile selects the ruleset/map pair; every
             registered id is listed in the error text when one is misspelled.
-            The default is `ambush-warren-11`: rules `arc-relay-ambush-11`,
-            declared strikes, veterancy, rear-arc damage and the deep Warren.
-            The hosted v18 ladder pins that same profile and the claimable-drop
-            stock artifact immutably; v7 through v17 remain exact history, and all
+            The default is `tapline-1`: directional combat, declared strikes,
+            veterancy and the tiered, chiral Tapline Well line.
+            The hosted v19 ladder pins that same profile and Tapline-native
+            sheets immutably; v7 through v18 remain exact history, and all
             historical profiles and playlist versions stay explicitly
             selectable and byte-verifiable.
 

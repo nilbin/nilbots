@@ -76,28 +76,12 @@ html[data-arena-mode='viewer'] {
 }
 
 html[data-arena-mode='site'] {
-  color-scheme: dark light;
+  color-scheme: dark;
 }
 
-/* The match viewer stays dark because darkness is part of the arena's lighting.
-   The document/workbench surface follows the device. These are the same semantic
-   roles rather than a second component theme, so every existing panel, field and
-   state treatment changes coherently. */
-@media (prefers-color-scheme: light) {
-  html[data-arena-mode='site'] {
-    --color-arena-bg: #f4efe9;
-    --color-arena-panel: #fffaf4;
-    --color-arena-raise: #ebe1d7;
-    --color-arena-edge: #c8b7a8;
-    --color-arena-edge2: #8c6f5a;
-    --color-arena-text: #241a15;
-    --color-arena-dim: #68584c;
-    --color-arena-material: #98491f;
-    --color-arena-ok: #087c74;
-    --color-arena-hot: #b92543;
-    --color-arena-on-material: #fffaf4;
-  }
-}
+/* The arena and its tactical workbench share one dark graphite/forge field.
+   Following a device's light preference made the sheet workshop resemble a
+   document form and severed it visually from the game it controls. */
 
 a:focus-visible,
 summary:focus-visible,

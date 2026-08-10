@@ -28,6 +28,7 @@ const shots = resolve(
 );
 const healthUrl = `${base}/__site-review/health`;
 const pages = [
+  ['sheet-workshop', '/entrants/sheets/new'],
   ['rankings', '/'],
   [
     'arena-global',

@@ -14,9 +14,9 @@ crest, eight-slot composition, and exact-compatible Elo rating. A sheet save or
 mind resubmission advances its revision without resetting rating. Save-as-copy
 or a new submission creates a new identity and starts at the default rating.
 
-The current hosted identity is immutable entrant playlist v18: rules
-`arc-relay-ambush-11` on the 31x27 `arc-relay-ambush-warren-06` map, matching
-the default local `nilbots arc-relay` command. v7 began the Warren development
+The current hosted identity is immutable entrant playlist v19: rules and map
+`arc-relay-tapline-01` on the 31x27 Tapline, matching the default local
+`nilbots arc-relay` command. v7 began the Warren development
 rating era; v8 repaired its frozen WASM artifact. Public Season 1 began at 1200
 on a separate v8 ladder. v9 moves the stock participant to the consolidated
 direct-ladder sheet representation; v10-v12 retained that rating book for
@@ -46,7 +46,10 @@ policy for ordinary Wells. The registered stock digest moves, so v17 starts
 fresh rather than copying v16 Elo. v18 keeps an accidental carrier's later
 drop claimable when it never committed to a custody policy, and excludes
 already-loaded bodies from pickup reservations. The registered stock digest
-moves again, so v18 starts fresh rather than copying v17 Elo.
+moves again, so v18 starts fresh rather than copying v17 Elo. v19 promotes the
+Tapline map and its native Hunter/Wellwright layouts. A different map is a
+different competitive era, so v19 starts every opted-in entrant at the default
+rating while retaining v18 as readable, executable history.
 ForwardCombat/Counterflow v6
 ratings and matches remain readable history but were not copied.
 
@@ -64,9 +67,9 @@ and anchors. The server stores the exact playbook and layout sources, validates
 every save with the same compiler as the CLI, and snapshots the compiled package
 into a match. Saving enters the sheet into the ladder by default, with an
 explicit opt-out. A trial runs the current revision against a tracked stock
-sheet and opens it in the ordinary replay viewer. v18's stock sheet is frozen
-Wellwright v1. New layouts are authored directly on the Warren export;
-Counterflow-era sheets are shown as legacy and cannot enter v18 until replotted.
+sheet and opens it in the ordinary replay viewer. v19's stock sheet is the
+Tapline-native Wellwright v1. New layouts are authored directly on the Tapline
+export; earlier-map sheets are shown as legacy and cannot enter v19 until replotted.
 The server never projects coordinates between maps.
 
 A custom mind must complete one hosted validation match without a runtime fault

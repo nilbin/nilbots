@@ -27,10 +27,9 @@ import {
   TACTICAL_VERBS,
   UI_STATE_KEY,
   assignmentIdFromName,
-  doctrineOrderIds,
+  destinationOf,
   freshMode,
   loadLocalDraft,
-  normalizeEscorts,
   parseDraft,
   pinDraft,
   predicateSubjectKind,
@@ -41,14 +40,18 @@ import {
   validateDraft,
   verbOf,
   type CustodyPolicy,
+  type CohortDefinition,
   type Doctrine,
   type FightBlock,
+  type FocusDefinition,
   type JsonObject,
   type LayoutAnchor,
   type LayoutDocument,
   type LayoutRoute,
   type LayoutZone,
   type Point,
+  type Predicate,
+  type RepairBlock,
   type RoleDefinition,
   type SheetDraft,
   type SheetIssue,
@@ -73,7 +76,7 @@ interface TacticalSheetEditorProps {
 type PlotKind = 'route' | 'zone' | 'anchor';
 type Side = 'west' | 'east';
 type EditorSection = 'composition' | 'doctrines' | 'map';
-type DoctrineTool = 'conditions' | 'custody' | null;
+type DoctrineTool = 'conditions' | 'custody' | 'coordination' | 'memory' | null;
 
 export default function TacticalSheetEditor({ catalog, initialSheetId = null }: TacticalSheetEditorProps) {
   const navigate = useNavigate();
@@ -93,6 +96,7 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
   // Assume the configured action is visible until the observer proves otherwise.
   // This avoids flashing a duplicate mobile shortcut while the editor hydrates.
   const [practiceActionVisible, setPracticeActionVisible] = useState(true);
+  const [practiceActionSeen, setPracticeActionSeen] = useState(false);
   const practiceActionRef = useRef<HTMLButtonElement | null>(null);
   const save = useSaveTacticalSheet();
   const remove = useDeleteTacticalSheet();
@@ -107,7 +111,9 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
     let live = true;
     void loadLocalDraft().then((local) => {
       if (!live) return;
-      setDraft(local ?? parseDraft(
+      const currentLocal = local?.playbook?.doctrines?.roles
+        && local.layout.mapId === catalog.map.id ? local : null;
+      setDraft(currentLocal ?? parseDraft(
         'Untitled tactical sheet',
         null,
         null,
@@ -117,7 +123,7 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
       // Keep an unsaved local draft authoritative on restore. Selecting its
       // server row explicitly is what replaces it with the saved revision.
       setActiveId(null);
-      setRestored(local !== null);
+      setRestored(currentLocal !== null);
     }).catch(() => {
       if (!live) return;
       setDraft(parseDraft(
@@ -138,7 +144,10 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
     const action = practiceActionRef.current;
     if (!action || typeof IntersectionObserver === 'undefined') return;
     const observer = new IntersectionObserver(
-      ([entry]) => setPracticeActionVisible(entry.isIntersecting),
+      ([entry]) => {
+        setPracticeActionVisible(entry.isIntersecting);
+        if (entry.isIntersecting) setPracticeActionSeen(true);
+      },
       { threshold: 0.25 },
     );
     observer.observe(action);
@@ -309,8 +318,8 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
   if (!draft) return <section className="panel pad"><p className="t-meta">Restoring local draft…</p></section>;
 
   return (
-    <div className="grid min-w-0 gap-4 xl:grid-cols-[290px_minmax(0,1fr)]">
-      <aside className="panel h-fit xl:sticky xl:top-4">
+    <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-[250px_minmax(0,1fr)]">
+      <aside className="panel h-fit lg:sticky lg:top-4">
         <div className="pad flex items-center gap-2 border-b border-arena-edge">
           <div className="mr-auto">
             <p className="lab">Saved sheets</p>
@@ -323,7 +332,7 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
             Restored the last local draft from this device.
           </p>
         )}
-        <div className="flex gap-2 overflow-x-auto p-2 xl:block xl:max-h-[300px] xl:overflow-y-auto">
+        <div className="flex gap-2 overflow-x-auto p-2 lg:block lg:max-h-[300px] lg:overflow-y-auto">
           {sheetsQuery.isPending && <p className="t-micro p-2">Loading…</p>}
           {sheetsQuery.isError && <p className="t-micro p-2 text-arena-hot">Could not load saved sheets.</p>}
           {sheetsQuery.data?.map((sheet) => (
@@ -331,7 +340,7 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
               key={sheet.id}
               type="button"
               className={clsx(
-                'min-h-12 min-w-[190px] rounded-sm border px-2.5 py-2 text-left xl:mb-1 xl:w-full xl:min-w-0',
+                'min-h-12 min-w-[190px] rounded-sm border px-2.5 py-2 text-left lg:mb-1 lg:w-full lg:min-w-0',
                 draft.sheetId === sheet.id
                   ? 'border-arena-ok/60 bg-arena-ok/10'
                   : 'border-transparent active:border-arena-edge',
@@ -343,7 +352,7 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
               }}
             >
               <span className="t-body block truncate">{sheet.name}</span>
-              <span className="t-micro block">r{sheet.revision} · {sheet.contentHash.slice(0, 10)}</span>
+              <span className="t-micro block">Revision {sheet.revision}</span>
             </button>
           ))}
           {sheetsQuery.data?.length === 0 && (
@@ -355,10 +364,10 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
           {runsForSheet.length === 0 ? (
             <p className="t-micro px-1 pb-1">Practice with this draft once to compare revisions and plot its actual tracks.</p>
           ) : (
-            <div className="flex gap-2 overflow-x-auto xl:block xl:max-h-[260px] xl:overflow-y-auto">
+            <div className="flex gap-2 overflow-x-auto lg:block lg:max-h-[260px] lg:overflow-y-auto">
               {runsForSheet.slice(0, 8).map((run) => (
                 <article key={run.matchId} className={clsx(
-                  'min-w-[220px] rounded-sm border p-2 xl:mb-2 xl:min-w-0',
+                  'min-w-[220px] rounded-sm border p-2 lg:mb-2 lg:min-w-0',
                   selectedRun?.matchId === run.matchId
                     ? 'border-arena-ok/60 bg-arena-ok/10'
                     : 'border-arena-edge',
@@ -434,7 +443,7 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
           {(save.isError || remove.isError) && (
             <p className="t-micro mt-2 text-arena-hot">{(save.error ?? remove.error)?.message}</p>
           )}
-          {save.isSuccess && <p className="t-micro mt-2 text-arena-ok">Compiled, hash-pinned and saved on the server.</p>}
+          {save.isSuccess && <p className="t-micro mt-2 text-arena-ok">Battle plan checked and saved.</p>}
         </section>
 
         <IssueSummary issues={issues} onNavigate={(issue) => {
@@ -503,7 +512,9 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
         {section === 'doctrines' && (
           <DoctrineEditor draft={draft} catalog={catalog} issues={issues} mutate={mutate}
             openConditions={() => setDoctrineTool('conditions')}
-            openCustody={() => setDoctrineTool('custody')} />
+            openCustody={() => setDoctrineTool('custody')}
+            openCoordination={() => setDoctrineTool('coordination')}
+            openMemory={() => setDoctrineTool('memory')} />
         )}
         {section === 'map' && (
           <MapPlotter catalog={catalog} layout={draft.layout} issues={issues} tracks={selectedTracks}
@@ -513,13 +524,13 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
             onChange={(layout) => mutate((next) => { next.layout = layout; })} />
         )}
       </section>
-      {!practiceActionVisible && (
-        <div className="fixed inset-x-3 bottom-[calc(3.5rem+env(safe-area-inset-bottom)+8px)] z-30 rounded-sm border border-arena-edge bg-arena-panel p-2 min-[640px]:hidden">
-          <button type="button" className="btn min-h-12 w-full" onClick={() =>
-            document.getElementById('trial-run')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
-            Practice setup
-          </button>
-        </div>
+      {practiceActionSeen && !practiceActionVisible && (
+        <button type="button"
+          className="btn btn-primary fixed right-3 bottom-[calc(3.5rem+env(safe-area-inset-bottom)+10px)] z-30 min-h-12 px-5 shadow-xl min-[640px]:hidden"
+          disabled={blocking.length > 0 || save.isPending || trial.isPending || !stockId}
+          onClick={() => void runTrial()}>
+          {trial.isPending ? 'Starting…' : runsForSheet.length ? '▶ Practice again' : '▶ Practice'}
+        </button>
       )}
       {doctrineTool === 'conditions' && (
         <SheetSubEditorModal title="Doctrine triggers"
@@ -535,6 +546,20 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
           <CustodyEditor draft={draft} issues={issues} mutate={mutate} />
         </SheetSubEditorModal>
       )}
+      {doctrineTool === 'coordination' && (
+        <SheetSubEditorModal title="Coordination limits"
+          description="Small shared caps. Assignments still own every behavior in their own ladders."
+          onClose={() => setDoctrineTool(null)}>
+          <CoordinationEditor draft={draft} issues={issues} mutate={mutate} />
+        </SheetSubEditorModal>
+      )}
+      {doctrineTool === 'memory' && (
+        <SheetSubEditorModal title="Team memory"
+          description="How long sightings and objective events remain useful to triggers."
+          onClose={() => setDoctrineTool(null)}>
+          <MemoryEditor draft={draft} issues={issues} mutate={mutate} />
+        </SheetSubEditorModal>
+      )}
     </div>
   );
 }
@@ -548,6 +573,7 @@ function CompositionEditor({ draft, catalog, issues, mutate }: {
   const counts = new Map<string, number>();
   draft.playbook.composition.forEach((id) => counts.set(id, (counts.get(id) ?? 0) + 1));
   const assignments = draft.playbook.roles ?? [];
+  const [activeSlot, setActiveSlot] = useState(0);
   const [activeAssignmentId, setActiveAssignmentId] = useState(assignments[0]?.roleId ?? '');
   const activeIndex = assignments.findIndex((entry) => entry.roleId === activeAssignmentId);
   const activeAssignment = assignments[activeIndex] ?? assignments[0];
@@ -580,28 +606,63 @@ function CompositionEditor({ draft, catalog, issues, mutate }: {
             ))}
           </div>
         </div>
-        <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-8">
+        <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-8" aria-label="Fielded bodies">
           {Array.from({ length: catalog.slotCount }, (_, index) => {
             const current = draft.playbook.composition[index] ?? '';
+            const classInfo = catalog.classes.find((entry) => entry.id === current);
             return (
-              <label key={index} data-sheet-path={`composition.${index}`}>
-                <span className="t-micro mb-1 block">body {index + 1}</span>
-                <select className="field min-h-11 px-2" value={current}
-                  onChange={(event) => mutate((next) => {
-                    next.playbook.composition[index] = event.target.value;
-                  })}>
-                  {catalog.classes.map((entry) => (
-                    <option key={entry.id} value={entry.id}
-                      disabled={!entry.unlocked || (entry.id !== current
-                        && (counts.get(entry.id) ?? 0) >= catalog.maximumCopiesPerClass)}>
-                      {entry.name}{entry.unlocked ? '' : ' · locked'}
-                    </option>
-                  ))}
-                </select>
-                <FieldIssues issues={issues} path={`composition.${index}`} />
-              </label>
+              <button key={index} type="button" data-sheet-path={'composition.' + index}
+                aria-pressed={activeSlot === index}
+                className={clsx(
+                  'relative min-h-[104px] overflow-hidden rounded-sm border p-2 text-left transition',
+                  activeSlot === index
+                    ? 'border-arena-material bg-arena-material/10 shadow-[inset_0_-3px_0_var(--color-arena-material)]'
+                    : 'border-arena-edge bg-arena-deep/25',
+                )}
+                onClick={() => setActiveSlot(index)}>
+                <span className="absolute right-1.5 top-1.5 font-mono text-[10px] text-arena-dim">#{index + 1}</span>
+                <ClassIcon classId={current} label={classInfo?.name ?? current} size={42} />
+                <span className="type-display mt-1 block truncate text-[14px]">{classInfo?.name ?? humanizeToken(current)}</span>
+                <span className="t-micro block truncate text-arena-material">✦ {classInfo?.signatureName ?? 'Unknown'}</span>
+                <FieldIssues issues={issues} path={'composition.' + index} />
+              </button>
             );
           })}
+        </div>
+        <div className="mt-3 rounded-sm border border-arena-edge bg-arena-deep/20 p-3">
+          <div className="flex items-end gap-2">
+            <div className="mr-auto">
+              <p className="lab text-arena-material">Choose body {activeSlot + 1}</p>
+              <p className="t-micro mt-1">Signature hardware is class identity. The sheet decides how it is used.</p>
+            </div>
+            <span className="pill">two-copy cap</span>
+          </div>
+          <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-8">
+            {catalog.classes.map((entry) => {
+              const current = draft.playbook.composition[activeSlot] ?? '';
+              const unavailable = !entry.unlocked || (entry.id !== current
+                && (counts.get(entry.id) ?? 0) >= catalog.maximumCopiesPerClass);
+              const selected = entry.id === current;
+              return (
+                <button key={entry.id} type="button" disabled={unavailable} aria-pressed={selected}
+                  className={clsx(
+                    'min-h-[108px] rounded-sm border p-2 text-left transition disabled:opacity-35',
+                    selected
+                      ? 'border-arena-material bg-arena-material/15'
+                      : 'border-arena-edge bg-arena-panel/35 active:border-arena-material',
+                  )}
+                  onClick={() => mutate((next) => { next.playbook.composition[activeSlot] = entry.id; })}>
+                  <span className="flex items-start gap-2">
+                    <ClassIcon classId={entry.id} label={entry.name} size={34} />
+                    <span className="pill ml-auto">{counts.get(entry.id) ?? 0}/2</span>
+                  </span>
+                  <span className="type-display mt-1 block truncate text-[14px]">{entry.name}</span>
+                  <span className="t-micro block truncate text-arena-material">✦ {entry.signatureName}</span>
+                  <span className="t-micro mt-1 block line-clamp-2">{entry.fantasy}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </section>
 
@@ -756,14 +817,14 @@ function CompositionEditor({ draft, catalog, issues, mutate }: {
                           </button>
                           {selected && activeAssignment.candidateClasses.length > 1 && (
                             <div className="mt-1 flex gap-1 border-t border-arena-edge pt-1">
-                              <button type="button" className="btn min-h-9 flex-1" aria-label={`Prefer ${entry.name} earlier`}
+                              <button type="button" className="btn min-h-11 flex-1" aria-label={`Prefer ${entry.name} earlier`}
                                 disabled={priority === 0}
                                 onClick={() => updateAssignment(activeAssignment.roleId, (next) => {
                                   const at = next.candidateClasses.indexOf(entry.id);
                                   [next.candidateClasses[at - 1], next.candidateClasses[at]] =
                                     [next.candidateClasses[at], next.candidateClasses[at - 1]];
                                 })}>↑ earlier</button>
-                              <button type="button" className="btn min-h-9 flex-1" aria-label={`Prefer ${entry.name} later`}
+                              <button type="button" className="btn min-h-11 flex-1" aria-label={`Prefer ${entry.name} later`}
                                 disabled={priority === activeAssignment.candidateClasses.length - 1}
                                 onClick={() => updateAssignment(activeAssignment.roleId, (next) => {
                                   const at = next.candidateClasses.indexOf(entry.id);
@@ -826,6 +887,43 @@ function CompositionEditor({ draft, catalog, issues, mutate }: {
                         path={`roles.${roleIndex}.overflowRoleId`}
                         onChange={(value) => updateAssignment(activeAssignment.roleId, (next) => { next.overflowRoleId = value; })} />
                     </div>
+                    <fieldset className="mt-3 rounded-sm border border-arena-edge p-3">
+                      <legend className="lab px-1">Upgrade path</legend>
+                      <p className="t-micro">Ordered picks earned by this assignment. Repeated upgrades are intentional.</p>
+                      <div className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                        {(activeAssignment.build ?? []).map((upgrade, slot) => (
+                          <div key={slot} className="rounded-sm border border-arena-edge bg-arena-panel/35 p-2">
+                            <p className="t-micro">Level {slot + 1}</p>
+                            <div className="mt-1 grid grid-cols-2 gap-1">
+                              {['damage', 'vision', 'reach', 'vitality'].map((candidate) => (
+                                <button key={candidate} type="button" aria-pressed={upgrade === candidate}
+                                  className={clsx(
+                                    'min-h-11 rounded-sm border px-1 t-micro',
+                                    upgrade === candidate
+                                      ? 'border-arena-material bg-arena-material/15 text-arena-text'
+                                      : 'border-arena-edge text-arena-dim',
+                                  )}
+                                  onClick={() => updateAssignment(activeAssignment.roleId, (next) => {
+                                    if (!next.build) next.build = [];
+                                    next.build[slot] = candidate;
+                                  })}>{upgradeGlyph(candidate)} {humanizeToken(candidate)}</button>
+                              ))}
+                            </div>
+                            <button type="button" className="btn mt-1 min-h-11 w-full text-arena-hot"
+                              onClick={() => updateAssignment(activeAssignment.roleId, (next) => {
+                                next.build?.splice(slot, 1);
+                                if (!next.build?.length) delete next.build;
+                              })}>Remove level</button>
+                          </div>
+                        ))}
+                      </div>
+                      {(activeAssignment.build?.length ?? 0) < 8 && (
+                        <button type="button" className="btn mt-2 min-h-11"
+                          onClick={() => updateAssignment(activeAssignment.roleId, (next) => {
+                            next.build = [...(next.build ?? []), 'vitality'];
+                          })}>＋ Add upgrade level</button>
+                      )}
+                    </fieldset>
                   </div>
                 </details>
                 <InlineIssues issues={issues} prefix={`roles.${roleIndex}`} />
@@ -927,30 +1025,51 @@ function SheetSubEditorModal({ title, description, onClose, children }: {
   children: ReactNode;
 }) {
   const titleId = useId();
+  const dialog = useRef<HTMLDivElement>(null);
   const closeButton = useRef<HTMLButtonElement>(null);
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
   useEffect(() => {
+    const previouslyFocused = document.activeElement instanceof HTMLElement
+      ? document.activeElement : null;
     const priorOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     closeButton.current?.focus();
     const closeOnEscape = (event: globalThis.KeyboardEvent) => {
-      if (event.key === 'Escape') onCloseRef.current();
+      if (event.key === 'Escape') {
+        onCloseRef.current();
+        return;
+      }
+      if (event.key !== 'Tab') return;
+      const focusable = [...(dialog.current?.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), input:not([disabled]), select:not([disabled]), summary, [tabindex]:not([tabindex="-1"])',
+      ) ?? [])].filter((entry) => entry.getClientRects().length > 0);
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable.at(-1)!;
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
     };
     window.addEventListener('keydown', closeOnEscape);
     return () => {
       document.body.style.overflow = priorOverflow;
       window.removeEventListener('keydown', closeOnEscape);
+      previouslyFocused?.focus();
     };
   }, []);
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-end bg-black/70 sm:items-center sm:justify-center sm:p-5"
+    <div ref={dialog} className="fixed inset-0 z-[70] flex items-end bg-black/70 sm:items-center sm:justify-center sm:p-5"
       role="dialog" aria-modal="true" aria-labelledby={titleId}
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}>
-      <section className="flex max-h-[94dvh] w-full flex-col overflow-hidden rounded-t-md border border-arena-edge bg-arena-panel shadow-2xl sm:max-w-5xl sm:rounded-md">
+      <section className="flex max-h-[94dvh] min-w-0 w-full flex-col overflow-hidden rounded-t-md border border-arena-edge bg-arena-panel shadow-2xl sm:max-w-5xl sm:rounded-md">
         <header className="flex items-start gap-3 border-b border-arena-edge px-4 py-3">
           <div className="mr-auto">
             <h2 id={titleId} className="type-display text-[21px]">{title}</h2>
@@ -960,89 +1079,73 @@ function SheetSubEditorModal({ title, description, onClose, children }: {
             Done
           </button>
         </header>
-        <div className="min-h-0 overflow-y-auto p-3 sm:p-4">{children}</div>
+        <div className="min-h-0 min-w-0 overflow-y-auto p-3 sm:p-4">{children}</div>
       </section>
     </div>
   );
 }
 
-function DoctrineEditor({ draft, catalog, issues, mutate, openConditions, openCustody }: {
+function DoctrineEditor({ draft, catalog, issues, mutate, openConditions, openCustody, openCoordination, openMemory }: {
   draft: SheetDraft;
   catalog: TacticalSheetCatalog;
   issues: SheetIssue[];
   mutate: Mutate;
   openConditions: () => void;
   openCustody: () => void;
+  openCoordination: () => void;
+  openMemory: () => void;
 }) {
-  const doctrines = Object.entries(draft.playbook.doctrines ?? {});
-  const roleIds = draft.playbook.roles.map((role) => role.roleId);
+  const doctrines = Object.entries(draft.playbook.doctrines.roles ?? {});
   const roleById = new Map(draft.playbook.roles.map((role) => [role.roleId, role]));
+  const roleIds = [...roleById.keys()];
   const custodyIds = draft.playbook.custodyPolicies.map((policy) => policy.custodyId);
   const routeIds = draft.layout.routes.map((route) => route.routeId);
-  const anchorIds = draft.layout.anchors.map((anchor) => anchor.anchorId);
   const zoneIds = draft.layout.zones.map((zone) => zone.zoneId);
-  const orderIds = doctrineOrderIds(draft.playbook);
-  const predicateIds = Object.keys(draft.playbook.authoring.predicates ?? {});
-  const [activeDoctrineId, setActiveDoctrineId] = useState(doctrines[0]?.[0] ?? '');
-  const activeEntry = doctrines.find(([id]) => id === activeDoctrineId) ?? doctrines[0];
+  const anchorIds = draft.layout.anchors.map((anchor) => anchor.anchorId);
+  const predicateIds = Object.keys(draft.playbook.conditions ?? {});
+  const focusIds = Object.keys(draft.playbook.doctrines.focus ?? {});
+  const cohortIds = Object.keys(draft.playbook.doctrines.cohorts ?? {});
+  const [activeRoleId, setActiveRoleId] = useState(doctrines[0]?.[0] ?? '');
+  const activeEntry = doctrines.find(([id]) => id === activeRoleId) ?? doctrines[0];
 
   useEffect(() => {
-    if (activeEntry && activeEntry[0] !== activeDoctrineId)
-      setActiveDoctrineId(activeEntry[0]);
-  }, [activeDoctrineId, activeEntry]);
+    if (activeEntry && activeEntry[0] !== activeRoleId) setActiveRoleId(activeEntry[0]);
+  }, [activeEntry, activeRoleId]);
 
-  const updateDoctrine = (id: string, change: (doctrine: Doctrine) => void) =>
-    mutate((next) => change(next.playbook.doctrines[id]));
-  const renameDoctrine = (id: string, nextId: string) => {
-    mutate((next) => {
-      const entries = Object.entries(next.playbook.doctrines);
-      next.playbook.doctrines = Object.fromEntries(entries.map(([key, value]) =>
-        key === id ? [nextId, value] : [key, value]));
-    });
-    setActiveDoctrineId(nextId);
-  };
-  const addDoctrine = () => {
-    const id = uniqueId('doctrine', Object.keys(draft.playbook.doctrines));
-    mutate((next) => {
-      next.playbook.doctrines[id] = {
-        role: roleIds.find((role) => !Object.values(next.playbook.doctrines)
-          .some((doctrine) => doctrine.role === role)) ?? roleIds[0] ?? '',
-        custody: custodyIds[0] ?? '',
-        conceal: true,
-        modes: [{ patrol: routeIds[0] ?? 'traffic' }],
-      };
-    });
-    setActiveDoctrineId(id);
-  };
+  const updateDoctrine = (roleId: string, change: (doctrine: Doctrine) => void) =>
+    mutate((next) => change(next.playbook.doctrines.roles[roleId]));
 
   return (
     <section className="panel overflow-hidden">
-      <header className="border-b border-arena-edge bg-[linear-gradient(115deg,rgba(210,110,45,.10),transparent_45%)] p-4">
-        <p className="lab text-arena-material">Tactical command board</p>
+      <header className="border-b border-arena-edge bg-[radial-gradient(circle_at_12%_0%,rgba(210,110,45,.18),transparent_38%),linear-gradient(115deg,rgba(210,110,45,.08),transparent_60%)] p-4">
+        <p className="lab text-arena-material">Battle plan</p>
         <div className="mt-1 flex flex-wrap items-end gap-3">
-          <div className="mr-auto">
-            <h2 className="type-display text-[24px]">Give every assignment its orders</h2>
-            <p className="t-meta mt-1">The first valid command wins. The final card is always the fallback.</p>
+          <div className="mr-auto max-w-3xl">
+            <h2 className="type-display text-[25px]">Give every assignment its own playbook</h2>
+            <p className="t-meta mt-1">
+              Read top to bottom. The first live play takes command; the green patrol is the safe fallback.
+            </p>
           </div>
-          <button type="button" className="btn min-h-11" onClick={addDoctrine}>Add command plan</button>
+          <span className="pill">Six tactical verbs · one ordered ladder</span>
         </div>
       </header>
 
-      <div className="grid min-w-0 grid-cols-1 lg:grid-cols-[230px_minmax(0,1fr)]">
+      <div className="grid min-w-0 grid-cols-1 lg:grid-cols-[240px_minmax(0,1fr)]">
         <aside className="border-b border-arena-edge bg-arena-deep/30 p-2 lg:border-b-0 lg:border-r">
-          <p className="lab px-2 py-1">Squad assignments</p>
+          <p className="lab px-2 py-1">Assignments</p>
           <div className="mt-1 flex gap-2 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible">
-            {doctrines.map(([id, doctrine]) => {
-              const role = roleById.get(doctrine.role);
-              const classIds = role?.candidateClasses?.length
-                ? role.candidateClasses : [draft.playbook.composition[0] ?? 'kestrel'];
-              const classInfos = classIds
-                .map((classId) => catalog.classes.find((entry) => entry.id === classId))
-                .filter((entry) => entry !== undefined);
-              const doctrineIssues = issues.filter((issue) => issue.path.startsWith(`doctrines.${id}`)).length;
-              const selected = activeEntry?.[0] === id;
+            {doctrines.map(([roleId, doctrine]) => {
+              const role = roleById.get(roleId);
+              const classIds = role?.candidateClasses ?? [];
+              const classInfos = classIds.flatMap((id) => {
+                const found = catalog.classes.find((entry) => entry.id === id);
+                return found ? [found] : [];
+              });
+              const doctrineIssues = issues.filter((issue) =>
+                issue.path.startsWith('doctrines.roles.' + roleId)).length;
+              const selected = activeEntry?.[0] === roleId;
               return (
-                <button key={id} type="button" data-doctrine-select={id}
+                <button key={roleId} type="button" data-doctrine-select={roleId}
                   aria-selected={selected}
                   className={clsx(
                     'min-w-[215px] rounded-sm border px-2.5 py-2 text-left transition lg:min-w-0',
@@ -1050,21 +1153,21 @@ function DoctrineEditor({ draft, catalog, issues, mutate, openConditions, openCu
                       ? 'border-arena-material bg-arena-material/10 shadow-[inset_3px_0_0_var(--color-arena-material)]'
                       : 'border-transparent bg-arena-panel/40 active:border-arena-edge',
                   )}
-                  onClick={() => setActiveDoctrineId(id)}>
+                  onClick={() => setActiveRoleId(roleId)}>
                   <span className="flex items-center gap-2">
                     <AssignmentClassStack classIds={classIds} size={30} />
-                    <span className="min-w-0">
-                      <span className="type-display block truncate text-[16px]">{humanizeToken(doctrine.role)}</span>
-                      <span className="t-micro block truncate">
-                        {classInfos.map((entry) => entry.name).join(' · ') || classIds.map(humanizeToken).join(' · ')}
-                      </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="type-display block truncate text-[16px]">{humanizeToken(roleId)}</span>
+                      <span className="t-micro block truncate">{classInfos.map((entry) => entry.name).join(' · ')}</span>
                     </span>
-                    {doctrineIssues > 0 && <span className="pill ml-auto text-arena-hot">{doctrineIssues}</span>}
+                    {doctrineIssues > 0 && <span className="pill text-arena-hot">{doctrineIssues}</span>}
                   </span>
                   <span className="mt-2 flex items-center gap-1">
-                    {(doctrine.modes ?? []).map((_, index) => (
-                      <span key={index} className={clsx('h-1.5 flex-1 rounded-full',
-                        index === doctrine.modes.length - 1 ? 'bg-arena-ok/60' : 'bg-arena-material/55')} />
+                    {doctrine.modes.map((_, index) => (
+                      <span key={index} className={clsx(
+                        'h-1.5 flex-1 rounded-full',
+                        index === doctrine.modes.length - 1 ? 'bg-arena-ok/70' : 'bg-arena-material/60',
+                      )} />
                     ))}
                     <span className="t-micro ml-1">{doctrine.modes.length}</span>
                   </span>
@@ -1078,328 +1181,410 @@ function DoctrineEditor({ draft, catalog, issues, mutate, openConditions, openCu
             })}
           </div>
           <div className="mt-2 grid grid-cols-2 gap-2 lg:grid-cols-1">
-            <DoctrineToolButton
-              title="Triggers"
-              detail={`${predicateIds.length} reusable conditions`}
-              issueCount={issues.filter((issue) => issue.path.startsWith('authoring')).length}
-              onClick={openConditions}
-            />
-            <DoctrineToolButton
-              title="Core custody"
-              detail={`${draft.playbook.custodyPolicies.length} carry plans`}
+            <DoctrineToolButton title="Triggers" detail={predicateIds.length + ' named moments'}
+              issueCount={issues.filter((issue) => issue.path.startsWith('conditions')).length}
+              onClick={openConditions} />
+            <DoctrineToolButton title="Core play" detail={draft.playbook.custodyPolicies.length + ' custody plans'}
               issueCount={issues.filter((issue) => issue.path.startsWith('custodyPolicies')).length}
-              onClick={openCustody}
-            />
+              onClick={openCustody} />
+            <DoctrineToolButton title="Coordination" detail={focusIds.length + ' focus · ' + cohortIds.length + ' cohorts'}
+              issueCount={issues.filter((issue) =>
+                issue.path.startsWith('doctrines.focus') || issue.path.startsWith('doctrines.cohorts')).length}
+              onClick={openCoordination} />
+            <DoctrineToolButton title="Intel memory" detail="Four team memory windows"
+              issueCount={issues.filter((issue) => issue.path.startsWith('memory')).length}
+              onClick={openMemory} />
           </div>
         </aside>
 
         {activeEntry ? (() => {
-          const [id, doctrine] = activeEntry;
-          const role = roleById.get(doctrine.role);
-          const classIds = role?.candidateClasses?.length
-            ? role.candidateClasses : [draft.playbook.composition[0] ?? 'kestrel'];
-          const classInfos = classIds
-            .map((classId) => catalog.classes.find((entry) => entry.id === classId))
-            .filter((entry) => entry !== undefined);
+          const [roleId, doctrine] = activeEntry;
+          const role = roleById.get(roleId);
+          const classIds = role?.candidateClasses ?? [];
+          const classInfos = classIds.flatMap((id) => {
+            const found = catalog.classes.find((entry) => entry.id === id);
+            return found ? [found] : [];
+          });
           return (
-            <div className="min-w-0 p-3 sm:p-4" data-sheet-path={`doctrines.${id}`}>
+            <div className="min-w-0 p-3 sm:p-4" data-sheet-path={'doctrines.roles.' + roleId}>
               <div className="flex items-center gap-3 border-b border-arena-edge pb-3">
-                <AssignmentClassStack classIds={classIds} size={42} />
-                <div className="min-w-0">
-                  <p className="lab">{humanizeToken(doctrine.role)} assignment</p>
-                  <h3 className="type-display truncate text-[22px]">{humanizeToken(id)}</h3>
+                <AssignmentClassStack classIds={classIds} size={44} />
+                <div className="min-w-0 flex-1">
+                  <p className="lab">Assignment battle plan</p>
+                  <h3 className="type-display truncate text-[24px]">{humanizeToken(roleId)}</h3>
                   <p className="t-micro">
-                    {typeof role?.preferred === 'number' ? role.preferred : 0} target ·{' '}
-                    {classInfos.map((entry) => entry.name).join(' · ') || classIds.map(humanizeToken).join(' · ')}
+                    {role?.preferred ?? 0} target bodies · {classInfos.map((entry) => entry.name).join(' · ')}
                   </p>
                 </div>
-                <span className="pill ml-auto">{doctrine.modes.length} commands</span>
+                <span className="pill">{doctrine.modes.length} plays</span>
               </div>
 
               {classInfos.length > 0 && (
                 <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                  {classInfos.map((classInfo) => (
-                    <div key={classInfo.id} className="rounded-sm border border-arena-material/35 bg-arena-material/10 p-3">
-                      <p className="lab text-arena-material">{classInfo.name} · {classInfo.signatureName}</p>
-                      <p className="t-meta mt-1">{classInfo.fantasy}</p>
+                  {classInfos.map((entry) => (
+                    <div key={entry.id}
+                      className="rounded-sm border border-arena-material/35 bg-[linear-gradient(120deg,rgba(210,110,45,.14),transparent)] p-3">
+                      <p className="lab text-arena-material">{entry.name} · {entry.signatureName}</p>
+                      <p className="t-meta mt-1">{entry.fantasy}</p>
                     </div>
                   ))}
                 </div>
               )}
 
               <div className="mt-3 flex flex-col gap-2">
-                {(doctrine.modes ?? []).map((mode, index) => (
-                  <ModeEditor
-                    key={index}
-                    doctrineId={id}
-                    doctrine={doctrine}
-                    mode={mode}
-                    index={index}
-                    routeIds={routeIds}
-                    anchorIds={anchorIds}
-                    roleIds={roleIds}
-                    orderIds={orderIds}
-                    predicateIds={predicateIds}
+                {doctrine.modes.map((mode, index) => (
+                  <ModeEditor key={index}
+                    roleId={roleId} doctrine={doctrine} mode={mode} index={index}
+                    routeIds={routeIds} zoneIds={zoneIds} anchorIds={anchorIds}
+                    roleIds={roleIds} custodyIds={custodyIds} predicateIds={predicateIds}
+                    focus={draft.playbook.doctrines.focus} cohorts={draft.playbook.doctrines.cohorts}
                     issues={issues}
-                    onChange={(nextMode) => updateDoctrine(id, (next) => { next.modes[index] = nextMode; })}
-                    onMove={(delta) => updateDoctrine(id, (next) => {
+                    onChange={(nextMode) => updateDoctrine(roleId, (next) => { next.modes[index] = nextMode; })}
+                    onMove={(delta) => updateDoctrine(roleId, (next) => {
                       const [moving] = next.modes.splice(index, 1);
                       next.modes.splice(index + delta, 0, moving);
                     })}
-                    onRemove={() => updateDoctrine(id, (next) => { next.modes.splice(index, 1); })}
-                    makeRecruitable={(recruitRole) => mutate((next) => {
-                      const target = Object.values(next.playbook.doctrines).find((value) => value.role === recruitRole);
-                      if (!target || target.modes.some((value) => verbOf(value) === 'muster')) return;
-                      target.modes.splice(Math.max(0, target.modes.length - 1), 0, { muster: 'escort' });
-                    })}
-                  />
+                    onRemove={() => updateDoctrine(roleId, (next) => { next.modes.splice(index, 1); })} />
                 ))}
-                <button type="button" className="btn min-h-11 self-start" disabled={doctrine.modes.length >= 8}
-                  onClick={() => updateDoctrine(id, (next) => {
+                <button type="button" className="btn min-h-11 self-start border-arena-material/45"
+                  disabled={doctrine.modes.length >= 8}
+                  onClick={() => updateDoctrine(roleId, (next) => {
                     const floor = next.modes.pop();
-                    next.modes.push(freshMode('intercept', routeIds, anchorIds));
+                    const mode = freshMode(
+                      'intercept', routeIds, anchorIds, zoneIds, custodyIds,
+                      roleIds.filter((id) => id !== roleId),
+                    );
+                    mode.while = predicateIds[0] ?? '';
+                    next.modes.push(mode);
                     if (floor) next.modes.push(floor);
-                  })}>+ Add command before fallback</button>
+                  })}>＋ Add a higher-priority play</button>
               </div>
 
               <details className="mt-3 rounded-sm border border-arena-edge bg-arena-deep/20">
-                <summary className="flex min-h-11 cursor-pointer items-center px-3 t-body">Advanced command-plan settings</summary>
+                <summary className="flex min-h-11 cursor-pointer items-center px-3 t-body">
+                  Assignment instincts <span className="t-micro ml-auto">custody · scavenging · combat</span>
+                </summary>
                 <div className="border-t border-arena-edge p-3">
-                  <div className="grid gap-2 sm:grid-cols-3">
-                    <TextField label="plan id" value={id} issues={issues} path={`doctrines.${id}`}
-                      onChange={(value) => renameDoctrine(id, value)} />
-                    <SelectField label="assignment" value={doctrine.role} values={roleIds}
-                      issues={issues} path={`doctrines.${id}.role`}
-                      onChange={(value) => updateDoctrine(id, (next) => { next.role = value; })} />
-                    <SelectField label="Core custody plan" value={doctrine.custody} values={custodyIds}
-                      issues={issues} path={`doctrines.${id}.custody`}
-                      onChange={(value) => updateDoctrine(id, (next) => { next.custody = value; })} />
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <SelectField label="Default Core plan" value={doctrine.custody} values={custodyIds}
+                      issues={issues} path={'doctrines.roles.' + roleId + '.custody'}
+                      onChange={(value) => updateDoctrine(roleId, (next) => { next.custody = value; })} />
+                    <ChoiceCard label="Concealment" active={doctrine.conceal ?? true}
+                      activeLabel="Seek ambush cover" inactiveLabel="Fight in the open"
+                      onChange={(value) => updateDoctrine(roleId, (next) => { next.conceal = value; })} />
                   </div>
-                  <div className="mt-3 flex flex-wrap items-center gap-3">
-                    <Check label="use concealment micro" checked={doctrine.conceal ?? true}
-                      onChange={(value) => updateDoctrine(id, (next) => { next.conceal = value; })} />
-                    <button type="button" className="btn ml-auto min-h-11 text-arena-hot"
-                      onClick={() => {
-                        const nextActive = doctrines.find(([candidate]) => candidate !== id)?.[0] ?? '';
-                        mutate((next) => { delete next.playbook.doctrines[id]; });
-                        setActiveDoctrineId(nextActive);
-                      }}>Remove command plan</button>
-                  </div>
-                  <fieldset className="mt-3 rounded-sm border border-arena-edge p-3">
-                    <legend className="t-micro px-1">Collect loose Cores when crossing</legend>
-                    <div className="grid grid-cols-2 gap-1 sm:grid-cols-3 lg:grid-cols-5">
-                      {zoneIds.map((zone) => {
-                        const selected = typeof doctrine.collect === 'string'
-                          ? [doctrine.collect] : doctrine.collect ?? [];
-                        return <Check key={zone} label={humanizeToken(zone)} checked={selected.includes(zone)} onChange={(checked) =>
-                          updateDoctrine(id, (next) => {
-                            const values = typeof next.collect === 'string' ? [next.collect] : next.collect ?? [];
-                            next.collect = checked ? [...values, zone] : values.filter((value) => value !== zone);
-                          })} />;
-                      })}
-                    </div>
-                  </fieldset>
-                  <FightEditor fight={doctrine.fight} label="Default fight style"
-                    onChange={(fight) => updateDoctrine(id, (next) => { next.fight = fight; })} />
+                  <ChoiceGrid label="Pick up loose Cores while crossing these zones" values={zoneIds}
+                    selected={typeof doctrine.scavenge === 'string' ? [doctrine.scavenge] : doctrine.scavenge ?? []}
+                    issues={issues} path={'doctrines.roles.' + roleId + '.scavenge'}
+                    onChange={(value) => updateDoctrine(roleId, (next) => {
+                      next.scavenge = value.length ? value : undefined;
+                    })} />
+                  <FightEditor fight={doctrine.fight} label="Default combat instincts"
+                    onChange={(fight) => updateDoctrine(roleId, (next) => { next.fight = fight; })} />
+                  <RepairEditor repair={doctrine.repair}
+                    onChange={(repair) => updateDoctrine(roleId, (next) => { next.repair = repair; })} />
                 </div>
               </details>
-              <InlineIssues issues={issues} prefix={`doctrines.${id}`} />
+              <InlineIssues issues={issues} prefix={'doctrines.roles.' + roleId} />
             </div>
           );
-        })() : (
-          <div className="pad"><p className="t-meta">Add a command plan to start issuing orders.</p></div>
-        )}
+        })() : <div className="pad"><p className="t-meta">Every assignment needs a battle plan.</p></div>}
       </div>
     </section>
   );
 }
 
 function ModeEditor({
-  doctrineId,
-  doctrine,
-  mode,
-  index,
-  routeIds,
-  anchorIds,
-  roleIds,
-  orderIds,
-  predicateIds,
-  issues,
-  onChange,
-  onMove,
-  onRemove,
-  makeRecruitable,
+  roleId, doctrine, mode, index, routeIds, zoneIds, anchorIds, roleIds,
+  custodyIds, predicateIds, focus, cohorts, issues, onChange, onMove, onRemove,
 }: {
-  doctrineId: string;
+  roleId: string;
   doctrine: Doctrine;
   mode: TacticalMode;
   index: number;
   routeIds: string[];
+  zoneIds: string[];
   anchorIds: string[];
   roleIds: string[];
-  orderIds: string[];
+  custodyIds: string[];
   predicateIds: string[];
+  focus: Record<string, FocusDefinition>;
+  cohorts: Record<string, CohortDefinition>;
   issues: SheetIssue[];
   onChange: (mode: TacticalMode) => void;
   onMove: (delta: number) => void;
   onRemove: () => void;
-  makeRecruitable: (role: string) => void;
 }) {
   const verb = verbOf(mode) ?? 'patrol';
   const floor = index === doctrine.modes.length - 1;
+  const issuePrefix = 'doctrines.roles.' + roleId + '.modes.' + index;
   const set = (patch: Partial<TacticalMode>) => onChange({ ...mode, ...patch });
   const changeVerb = (nextVerb: TacticalVerb) => {
-    const next = freshMode(nextVerb, routeIds, anchorIds);
-    if (!floor && !['recover', 'muster'].includes(nextVerb)) {
+    const next = freshMode(
+      nextVerb, routeIds, anchorIds, zoneIds, custodyIds,
+      roleIds.filter((id) => id !== roleId),
+    );
+    if (!floor && nextVerb !== 'recover' && nextVerb !== 'fetch')
       next.while = mode.while ?? predicateIds[0] ?? '';
-      next.until = mode.until ?? predicateIds[1] ?? predicateIds[0] ?? '';
-    }
-    if (mode.fight) next.fight = mode.fight;
+    if (!floor && mode.until && nextVerb !== 'recover' && nextVerb !== 'fetch')
+      next.until = mode.until;
+    if (mode.fight && nextVerb !== 'fetch') next.fight = mode.fight;
     onChange(next);
   };
-  const escorts = normalizeEscorts(mode.escort);
-  const issuePrefix = `doctrines.${doctrineId}.modes.${index}`;
+  const selectableVerbs = floor ? TACTICAL_VERBS.filter((entry) => entry === 'patrol') : TACTICAL_VERBS;
+  const destination = destinationOf(mode);
 
   return (
-    <article data-sheet-path={issuePrefix}
-      className={clsx(
-        'overflow-hidden rounded-sm border bg-arena-deep/25',
-        floor ? 'border-arena-ok/45' : 'border-arena-edge',
-      )}>
+    <article data-sheet-path={issuePrefix} className={clsx(
+      'overflow-hidden rounded-sm border bg-arena-deep/25',
+      floor ? 'border-arena-ok/50' : 'border-arena-edge',
+    )}>
       <header className="flex items-start gap-3 p-3">
         <span className={clsx(
-          'flex size-10 shrink-0 items-center justify-center rounded-sm border font-mono text-lg',
+          'flex size-11 shrink-0 items-center justify-center rounded-sm border font-mono text-xl',
           floor
             ? 'border-arena-ok/50 bg-arena-ok/10 text-arena-ok'
             : 'border-arena-material/45 bg-arena-material/10 text-arena-material',
         )} aria-hidden="true">{commandGlyph(verb)}</span>
         <div className="min-w-0 flex-1">
-          <p className="lab">{floor ? 'Fallback' : `Priority ${index + 1}`}</p>
-          <h4 className="type-display mt-0.5 text-[19px]">{humanizeToken(verb)}</h4>
+          <p className="lab">{floor ? 'Fallback patrol' : 'Priority ' + (index + 1)}</p>
+          <h4 className="type-display mt-0.5 text-[20px]">{humanizeToken(verb)}</h4>
           <p className="t-meta mt-0.5">{modeCommandSummary(mode)}</p>
-          {!floor && verb !== 'recover' && verb !== 'muster' && (
+          {!floor && verb !== 'recover' && verb !== 'fetch' && (
             <div className="mt-2 flex flex-wrap gap-1.5">
-              {mode.while && <span className="pill border-arena-material/35 text-arena-material">WHEN {humanizeToken(mode.while)}</span>}
+              {mode.while && <span className="pill border-arena-material/35 text-arena-material">
+                WHEN {humanizeToken(mode.while)}
+              </span>}
               {mode.until && <span className="pill">UNTIL {humanizeToken(mode.until)}</span>}
             </div>
           )}
         </div>
         <div className="flex shrink-0 gap-1">
-          <button type="button" aria-label="Move mode up" className="btn min-h-11 min-w-11"
+          <button type="button" aria-label="Move play up" className="btn min-h-11 min-w-11"
             disabled={index === 0} onClick={() => onMove(-1)}>↑</button>
-          <button type="button" aria-label="Move mode down" className="btn min-h-11 min-w-11"
+          <button type="button" aria-label="Move play down" className="btn min-h-11 min-w-11"
             disabled={floor} onClick={() => onMove(1)}>↓</button>
         </div>
       </header>
 
       <details className="border-t border-arena-edge">
         <summary className="flex min-h-11 cursor-pointer items-center px-3 t-body">
-          Configure command
-          <span className="t-micro ml-auto">action · triggers · engagement</span>
+          Tune this play <span className="t-micro ml-auto">action · moment · combat</span>
         </summary>
         <div className="border-t border-arena-edge p-3">
           <fieldset>
-            <legend className="lab mb-2">Choose action</legend>
+            <legend className="lab mb-2">Tactical action</legend>
             <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-6">
-              {TACTICAL_VERBS.map((candidate) => (
-                <button key={candidate} type="button"
+              {selectableVerbs.map((candidate) => (
+                <button key={candidate} type="button" aria-pressed={candidate === verb}
                   className={clsx(
-                    'min-h-12 rounded-sm border px-2 py-1.5 text-center',
+                    'min-h-14 rounded-sm border px-2 py-1.5 text-center transition',
                     candidate === verb
-                      ? 'border-arena-material bg-arena-material/15 text-arena-text'
+                      ? 'border-arena-material bg-arena-material/15 text-arena-text shadow-[inset_0_-2px_0_var(--color-arena-material)]'
                       : 'border-arena-edge bg-arena-panel/40 text-arena-dim',
                   )}
-                  aria-pressed={candidate === verb}
                   onClick={() => changeVerb(candidate)}>
-                  <span className="font-mono text-base text-arena-material" aria-hidden="true">{commandGlyph(candidate)}</span>
+                  <span className="font-mono text-lg text-arena-material" aria-hidden="true">{commandGlyph(candidate)}</span>
                   <span className="t-micro mt-0.5 block">{humanizeToken(candidate)}</span>
                 </button>
               ))}
             </div>
           </fieldset>
 
-      <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-        {verb === 'patrol' && (
-          <SelectField label="patrol route" value={mode.patrol ?? ''} values={[...routeIds, 'traffic']}
-            issues={issues} path={`${issuePrefix}.patrol`}
-            onChange={(value) => set({ patrol: value })} />
-        )}
-        {verb === 'intercept' && <>
-          <SelectField label="intercept" value={mode.intercept ?? 'enemy-carriers'}
-            issues={issues} path={`${issuePrefix}.intercept`}
-            values={['enemy-carriers', 'inbound']} onChange={(value) => set({ intercept: value })} />
-          <SelectField label="stage from anchor" value={mode.from ?? ''} values={['', ...anchorIds]}
-            issues={issues} path={`${issuePrefix}.from`}
-            onChange={(value) => set({ from: value || undefined })} />
-          <OptionalNumber label="patience ticks · inert compatibility" value={mode.patienceTicks} min={2} max={120}
-            issues={issues} path={`${issuePrefix}.patienceTicks`}
-            onChange={(value) => set({ patienceTicks: value })} />
-        </>}
-        {verb === 'assault' && (
-          <SelectField label="assault route" value={mode.assault ?? ''} values={routeIds}
-            issues={issues} path={`${issuePrefix}.assault`}
-            onChange={(value) => set({ assault: value })} />
-        )}
-        {verb === 'recover' && <ReadOnlyField label="recovery" value="automatic health/beacon window" />}
-        {verb === 'muster' && (
-          <SelectField label="answer call" value={mode.muster ?? 'escort'} values={['escort', ...orderIds]}
-            issues={issues} path={`${issuePrefix}.muster`}
-            onChange={(value) => set({ muster: value })} />
-        )}
-        {verb === 'squad' && <ReadOnlyField label="fallback" value="ordinary squad-plane job" />}
-        {!floor && verb !== 'recover' && verb !== 'muster' && <>
-          <ConditionField label="while" value={mode.while ?? ''} predicates={predicateIds}
-            issues={issues} path={`${issuePrefix}.while`}
-            onChange={(value) => set({ while: value })} />
-          <ConditionField label="until" value={mode.until ?? ''} predicates={predicateIds}
-            issues={issues} path={`${issuePrefix}.until`}
-            onChange={(value) => set({ until: value || undefined })} />
-        </>}
-      </div>
+          {(verb === 'patrol' || verb === 'assault') && (
+            <DestinationPicker verb={verb} destination={destination} routeIds={routeIds} zoneIds={zoneIds}
+              path={issuePrefix + '.' + verb} issues={issues}
+              onChange={(kind, id) => set({ [verb]: kind === 'route' ? id : { zone: id } })} />
+          )}
+          {verb === 'intercept' && (
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              <SegmentedField label="Intercept" value={mode.intercept ?? 'enemy-carriers'}
+                values={['enemy-carriers', 'inbound']}
+                onChange={(value) => set({ intercept: value })} />
+              <TokenField label="Stage from" value={mode.from ?? ''} values={anchorIds}
+                path={issuePrefix + '.from'} issues={issues}
+                onChange={(value) => set({ from: value })} />
+            </div>
+          )}
+          {verb === 'recover' && (
+            <div className="mt-3 rounded-sm border border-arena-ok/35 bg-arena-ok/5 p-3">
+              <p className="lab text-arena-ok">Automatic recovery window</p>
+              <p className="t-meta mt-1">A hurt body commits to a safe beacon for a bounded attempt, then cools down until its health changes again.</p>
+            </div>
+          )}
+          {verb === 'fetch' && (
+            <TokenField label="Core custody plan" value={mode.fetch ?? ''} values={custodyIds}
+              path={issuePrefix + '.fetch'} issues={issues}
+              onChange={(value) => set({ fetch: value })} />
+          )}
+          {verb === 'follow' && (
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              <TokenField label="Follow assignment" value={mode.follow ?? ''}
+                values={roleIds.filter((id) => id !== roleId)}
+                path={issuePrefix + '.follow'} issues={issues}
+                onChange={(value) => set({ follow: value })} />
+              <SegmentedField label="Posture" value={mode.posture ?? 'trail'}
+                values={['trail', 'screen']} onChange={(value) => set({ posture: value })} />
+            </div>
+          )}
 
-      {verb === 'assault' && (
-        <fieldset className="mt-3 rounded-sm border border-arena-edge p-3">
-          <legend className="t-micro px-1">Escort calls</legend>
-          <div className="flex flex-col gap-2">
-            {escorts.map((escort, escortIndex) => (
-              <div key={escortIndex} className="grid gap-2 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
-                <SelectField label="escort assignment" value={escort.role}
-                  values={roleIds.filter((role) => role !== doctrine.role)}
-                  onChange={(role) => {
-                    const next = [...escorts]; next[escortIndex] = { ...escort, role }; set({ escort: next });
-                  }} />
-                <SelectField label="posture" value={escort.posture ?? 'trail'} values={['trail', 'screen']}
-                  onChange={(posture) => {
-                    const next = [...escorts]; next[escortIndex] = { ...escort, posture }; set({ escort: next });
-                  }} />
-                <button type="button" className="btn min-h-11" onClick={() =>
-                  set({ escort: escorts.filter((_, position) => position !== escortIndex) })}>Remove</button>
-              </div>
-            ))}
-          </div>
-          <button type="button" className="btn mt-2 min-h-11" disabled={escorts.length >= 8}
-            onClick={() => set({ escort: [...escorts, { role: roleIds.find((role) => role !== doctrine.role) ?? '', posture: 'trail' }] })}>
-            Add escort
-          </button>
-          {escorts.map((escort) => ({
-            role: escort.role,
-            recruitable: false,
-          })).filter(({ role }) => issues.some((issue) => issue.path.startsWith(issuePrefix)
-            && issue.message.includes(`'${role}' is not recruitable`))).map(({ role }) => (
-              <button key={role} type="button" className="btn ml-2 mt-2 min-h-11 border-arena-material/50"
-                onClick={() => makeRecruitable(role)}>Make {humanizeToken(role)} recruitable</button>
-            ))}
-        </fieldset>
-      )}
-      <FightEditor fight={mode.fight} label="Mode fight override" onChange={(fight) => set({ fight })} />
-      <InlineIssues issues={issues} prefix={issuePrefix} />
-          <div className="mt-3 flex justify-end">
-            <button type="button" className="btn min-h-11 text-arena-hot" disabled={doctrine.modes.length <= 1}
-              onClick={onRemove}>Remove command</button>
-          </div>
+          {(verb === 'patrol' || verb === 'assault') && (
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              <SegmentedField label="Position in the push" value={mode.posture ?? ''}
+                values={['', 'front', 'core', 'rear']} emptyLabel="Natural"
+                onChange={(value) => set({ posture: value || undefined })} />
+              {!floor && <CohortField value={mode.cohort} cohorts={cohorts}
+                path={issuePrefix + '.cohort'} issues={issues}
+                onChange={(value) => set({ cohort: value })} />}
+            </div>
+          )}
+
+          {!floor && verb !== 'recover' && verb !== 'fetch' && (
+            <div className="mt-3 grid gap-2 lg:grid-cols-2">
+              <ConditionField label="Start when" value={mode.while ?? ''} predicates={predicateIds}
+                issues={issues} path={issuePrefix + '.while'}
+                onChange={(value) => set({ while: value })} />
+              <ConditionField label="Release when" value={mode.until ?? ''} predicates={predicateIds}
+                issues={issues} path={issuePrefix + '.until'}
+                onChange={(value) => set({ until: value || undefined })} />
+            </div>
+          )}
+
+          {verb !== 'fetch' && <FocusField value={mode.focus} focus={focus}
+            path={issuePrefix + '.focus'} issues={issues}
+            onChange={(value) => set({ focus: value })} />}
+          {verb !== 'fetch' && <FightEditor fight={mode.fight} label="Combat override for this play"
+            onChange={(fightBlock) => set({ fight: fightBlock })} />}
+          <InlineIssues issues={issues} prefix={issuePrefix} />
+          {!floor && (
+            <div className="mt-3 flex justify-end">
+              <button type="button" className="btn min-h-11 text-arena-hot" onClick={onRemove}>Remove play</button>
+            </div>
+          )}
         </div>
       </details>
     </article>
+  );
+}
+
+function DestinationPicker({ verb, destination, routeIds, zoneIds, path, issues, onChange }: {
+  verb: 'patrol' | 'assault';
+  destination: { kind: 'route' | 'zone'; id: string } | null;
+  routeIds: string[];
+  zoneIds: string[];
+  path: string;
+  issues: SheetIssue[];
+  onChange: (kind: 'route' | 'zone', id: string) => void;
+}) {
+  const kind = destination?.kind ?? 'route';
+  const values = kind === 'route' ? routeIds : zoneIds;
+  return (
+    <fieldset className="mt-3 rounded-sm border border-arena-edge bg-arena-panel/30 p-3" data-sheet-path={path}>
+      <legend className="lab px-1">{humanizeToken(verb)} destination</legend>
+      <div className="flex gap-1">
+        {(['route', 'zone'] as const).map((candidate) => (
+          <button key={candidate} type="button" className={clsx(
+            'min-h-11 flex-1 rounded-sm border px-3 t-micro',
+            candidate === kind
+              ? 'border-arena-material bg-arena-material/15 text-arena-material'
+              : 'border-arena-edge text-arena-dim',
+          )} aria-pressed={candidate === kind}
+          onClick={() => onChange(candidate, (candidate === 'route' ? routeIds : zoneIds)[0] ?? '')}>
+            {candidate === 'route' ? 'Follow a route' : 'Control a zone'}
+          </button>
+        ))}
+      </div>
+      <div className="mt-2 flex flex-wrap gap-1.5">
+        {values.map((id) => (
+          <button key={id} type="button" aria-pressed={destination?.id === id}
+            className={clsx(
+              'min-h-11 rounded-full border px-3 t-micro',
+              destination?.id === id
+                ? 'border-arena-material bg-arena-material/15 text-arena-text'
+                : 'border-arena-edge bg-arena-deep/20 text-arena-dim',
+            )}
+            onClick={() => onChange(kind, id)}>{humanizeToken(id)}</button>
+        ))}
+      </div>
+      <FieldIssues issues={issues} path={path} />
+    </fieldset>
+  );
+}
+
+function FocusField({ value, focus, path, issues, onChange }: {
+  value: TacticalMode['focus'];
+  focus: Record<string, FocusDefinition>;
+  path: string;
+  issues: SheetIssue[];
+  onChange: (value: string | FocusDefinition) => void;
+}) {
+  const shared = typeof value === 'string' ? value : null;
+  const inline = typeof value === 'object' ? value : null;
+  return (
+    <fieldset className="mt-3 rounded-sm border border-arena-edge p-3" data-sheet-path={path}>
+      <legend className="lab px-1">Focus-fire ceiling</legend>
+      <p className="t-micro">How many consumers of this scope may attack the same enemy.</p>
+      <div className="mt-2 flex flex-wrap gap-1.5">
+        {Object.entries(focus).map(([id, definition]) => (
+          <button key={id} type="button" aria-pressed={shared === id}
+            className={clsx('min-h-11 rounded-full border px-3 t-micro',
+              shared === id ? 'border-arena-material bg-arena-material/15' : 'border-arena-edge')}
+            onClick={() => onChange(id)}>
+            {humanizeToken(id)} · {definition.maximumAttackers}
+          </button>
+        ))}
+        <button type="button" aria-pressed={Boolean(inline)}
+          className={clsx('min-h-11 rounded-full border px-3 t-micro',
+            inline ? 'border-arena-material bg-arena-material/15' : 'border-arena-edge')}
+          onClick={() => onChange({ maximumAttackers: inline?.maximumAttackers ?? 1 })}>
+          This play only
+        </button>
+      </div>
+      {inline && <div className="mt-2 max-w-[220px]">
+        <NumberField label="maximum attackers" value={inline.maximumAttackers} min={1} max={8}
+          onChange={(maximumAttackers) => onChange({ maximumAttackers })} />
+      </div>}
+      <FieldIssues issues={issues} path={path} />
+    </fieldset>
+  );
+}
+
+function CohortField({ value, cohorts, path, issues, onChange }: {
+  value: TacticalMode['cohort'];
+  cohorts: Record<string, CohortDefinition>;
+  path: string;
+  issues: SheetIssue[];
+  onChange: (value: string | CohortDefinition | undefined) => void;
+}) {
+  const shared = typeof value === 'string' ? value : null;
+  const inline = typeof value === 'object' ? value : null;
+  return (
+    <fieldset className="rounded-sm border border-arena-edge p-3" data-sheet-path={path}>
+      <legend className="lab px-1">Who joins this play?</legend>
+      <div className="flex flex-wrap gap-1.5">
+        <button type="button" aria-pressed={value === undefined} className={clsx(
+          'min-h-11 rounded-full border px-3 t-micro',
+          value === undefined ? 'border-arena-material bg-arena-material/15' : 'border-arena-edge',
+        )} onClick={() => onChange(undefined)}>Everyone eligible</button>
+        {Object.entries(cohorts).map(([id, definition]) => (
+          <button key={id} type="button" aria-pressed={shared === id} className={clsx(
+            'min-h-11 rounded-full border px-3 t-micro',
+            shared === id ? 'border-arena-material bg-arena-material/15' : 'border-arena-edge',
+          )} onClick={() => onChange(id)}>
+            {humanizeToken(id)} · nearest {definition.take}
+          </button>
+        ))}
+        <button type="button" aria-pressed={Boolean(inline)} className={clsx(
+          'min-h-11 rounded-full border px-3 t-micro',
+          inline ? 'border-arena-material bg-arena-material/15' : 'border-arena-edge',
+        )} onClick={() => onChange({ take: inline?.take ?? 1, select: 'nearest' })}>Nearest…</button>
+      </div>
+      {inline && <div className="mt-2 max-w-[220px]">
+        <NumberField label="bodies admitted" value={inline.take} min={1} max={8}
+          onChange={(take) => onChange({ take, select: 'nearest' })} />
+      </div>}
+      <FieldIssues issues={issues} path={path} />
+    </fieldset>
   );
 }
 
@@ -1408,153 +1593,121 @@ function PredicateEditor({ draft, issues, mutate }: {
   issues: SheetIssue[];
   mutate: Mutate;
 }) {
-  const predicates = draft.playbook.authoring.predicates ?? {};
-  const predicateEntries = Object.entries(predicates);
+  const predicates = draft.playbook.conditions ?? {};
+  const entries = Object.entries(predicates);
   const roles = draft.playbook.roles.map((role) => role.roleId);
-  const groups = draft.playbook.groups.map((group) => group.groupId);
   const zones = draft.layout.zones.map((zone) => zone.zoneId);
-  const orders = doctrineOrderIds(draft.playbook);
-  const [activePredicateId, setActivePredicateId] = useState(predicateEntries[0]?.[0] ?? '');
-  const activeEntry = predicateEntries.find(([id]) => id === activePredicateId) ?? predicateEntries[0];
+  const [activeId, setActiveId] = useState(entries[0]?.[0] ?? '');
+  const activeEntry = entries.find(([id]) => id === activeId) ?? entries[0];
 
   useEffect(() => {
-    if (activeEntry && activeEntry[0] !== activePredicateId)
-      setActivePredicateId(activeEntry[0]);
-  }, [activeEntry, activePredicateId]);
+    if (activeEntry && activeEntry[0] !== activeId) setActiveId(activeEntry[0]);
+  }, [activeEntry, activeId]);
 
-  const rename = (id: string, nextId: string) => {
+  const rename = (previous: string, nextId: string) => mutate((next) => {
+    if (!nextId || previous === nextId) return;
+    next.playbook.conditions = Object.fromEntries(
+      Object.entries(next.playbook.conditions).map(([key, value]) =>
+        [key === previous ? nextId : key, value]),
+    );
+    rewriteConditionReferences(next.playbook, previous, nextId);
+    setActiveId(nextId);
+  });
+  const add = () => {
+    const id = uniqueId('trigger', Object.keys(predicates));
     mutate((next) => {
-      const current = next.playbook.authoring.predicates;
-      next.playbook.authoring.predicates = Object.fromEntries(Object.entries(current)
-        .map(([key, value]) => key === id ? [nextId, value] : [key, value]));
+      next.playbook.conditions[id] = { fact: 'tick', operator: 'at-least', value: 1 };
     });
-    setActivePredicateId(nextId);
-  };
-  const addPredicate = () => {
-    const id = uniqueId('condition', Object.keys(draft.playbook.authoring.predicates));
-    mutate((next) => {
-      next.playbook.authoring.predicates[id] = { fact: 'always', operator: 'equals', value: 1 };
-    });
-    setActivePredicateId(id);
+    setActiveId(id);
   };
 
   return (
-    <section className="panel overflow-hidden">
-      <header className="flex flex-wrap items-end gap-3 border-b border-arena-edge p-3">
-        <div className="mr-auto">
-          <p className="lab">Trigger library</p>
-          <p className="t-meta mt-1">Name a battlefield fact once, then reuse it on command cards.</p>
+    <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-3 lg:grid-cols-[240px_minmax(0,1fr)]">
+      <aside>
+        <button type="button" className="btn btn-primary min-h-11 w-full" onClick={add}>＋ New trigger</button>
+        <div className="mt-2 flex gap-2 overflow-x-auto lg:flex-col">
+          {entries.map(([id, predicate]) => (
+            <button key={id} type="button" data-predicate-select={id}
+              aria-selected={activeEntry?.[0] === id}
+              className={clsx(
+                'min-w-[210px] rounded-sm border p-3 text-left lg:min-w-0',
+                activeEntry?.[0] === id
+                  ? 'border-arena-material bg-arena-material/10'
+                  : 'border-arena-edge bg-arena-deep/25',
+              )}
+              onClick={() => setActiveId(id)}>
+              <span className="type-display block truncate text-[16px]">{humanizeToken(id)}</span>
+              <span className="t-micro mt-1 block line-clamp-2">{predicateSentence(predicate)}</span>
+            </button>
+          ))}
         </div>
-        <button type="button" className="btn min-h-11" onClick={addPredicate}>+ New trigger</button>
-      </header>
-      <div className="grid min-w-0 grid-cols-1 lg:grid-cols-[230px_minmax(0,1fr)]">
-        <aside className="border-b border-arena-edge bg-arena-deep/25 p-2 lg:max-h-[65dvh] lg:overflow-y-auto lg:border-b-0 lg:border-r">
-          <div className="flex gap-2 overflow-x-auto lg:flex-col">
-            {predicateEntries.map(([id, predicate]) => {
-              const selected = activeEntry?.[0] === id;
-              const count = issues.filter((issue) => issue.path.startsWith(`authoring.predicates.${id}`)).length;
-              return (
-                <button key={id} type="button" data-predicate-select={id}
-                  aria-selected={selected}
-                  className={clsx(
-                    'min-w-[180px] rounded-sm border px-2.5 py-2 text-left lg:min-w-0',
-                    selected ? 'border-arena-material bg-arena-material/10' : 'border-transparent bg-arena-panel/40',
-                  )}
-                  onClick={() => setActivePredicateId(id)}>
-                  <span className="flex items-center gap-2">
-                    <span className="type-display truncate text-[15px]">{humanizeToken(id)}</span>
-                    {count > 0 && <span className="pill ml-auto text-arena-hot">{count}</span>}
-                  </span>
-                  <span className="t-micro mt-1 block line-clamp-2">{predicateSentence(predicate)}</span>
-                </button>
-              );
-            })}
-          </div>
-        </aside>
-
-        {activeEntry ? (() => {
-          const [id, predicate] = activeEntry;
-          const kind = predicateSubjectKind(predicate.fact);
-          const options = kind === 'zone' ? zones
-            : kind === 'group' ? groups
-              : kind === 'role' ? roles
-                : kind === 'well' ? ['north', 'centre', 'south']
-                  : kind === 'order' ? orders : [];
-          return (
-            <article data-sheet-path={`authoring.predicates.${id}`} className="min-w-0 p-3 sm:p-4">
-              <p className="lab text-arena-material">Reusable trigger</p>
-              <h3 className="type-display mt-1 text-[22px]">{humanizeToken(id)}</h3>
-              <div className="mt-3 rounded-sm border border-arena-material/40 bg-arena-material/10 p-3">
-                <p className="lab">Command reads</p>
-                <p className="type-display mt-1 min-w-0 max-w-full whitespace-normal break-words text-[16px] leading-snug [overflow-wrap:anywhere] sm:text-[18px]">
-                  WHEN {predicateSentence(predicate)}
-                </p>
-              </div>
-
-              <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-                <SelectField label="battlefield fact" value={predicate.fact} values={[...CONDITION_FACTS]}
-                  issues={issues} path={`authoring.predicates.${id}.fact`}
-                  onChange={(fact) => mutate((next) => {
-                    const target = next.playbook.authoring.predicates[id];
-                    target.fact = fact;
-                    delete target.subject;
-                    delete target.zone;
-                    delete target.freshnessTicks;
+      </aside>
+      {activeEntry ? (() => {
+        const [id, predicate] = activeEntry;
+        const kind = predicateSubjectKind(predicate.fact);
+        const path = 'conditions.' + id;
+        const update = (change: (target: Predicate) => void) => mutate((next) =>
+          change(next.playbook.conditions[id]));
+        return (
+          <article className="rounded-sm border border-arena-edge bg-arena-deep/20 p-3 sm:p-4"
+            data-sheet-path={path}>
+            <p className="lab text-arena-material">Named moment</p>
+            <p className="type-display mt-1 text-[22px]">{predicateSentence(predicate)}</p>
+            <p className="t-micro mt-1">Use this trigger on any play. The sentence updates as you tune the fact.</p>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <TextField label="Trigger name" value={id} issues={issues} path={path}
+                onChange={(value) => rename(id, assignmentIdFromName(value))} />
+              <SelectField label="Observed fact" value={predicate.fact}
+                values={[...CONDITION_FACTS]} issues={issues} path={path + '.fact'}
+                onChange={(fact) => update((target) => {
+                  target.fact = fact;
+                  delete target.subject;
+                  delete target.zone;
+                  delete target.freshnessTicks;
+                })} />
+              {(kind === 'role' || kind === 'optional-role' || kind === 'role-zone') && (
+                <SelectField label={kind === 'optional-role' ? 'Assignment (optional)' : 'Assignment'}
+                  value={predicate.subject ?? ''} values={kind === 'optional-role' ? ['', ...roles] : roles}
+                  issues={issues} path={path + '.subject'}
+                  onChange={(subject) => update((target) => {
+                    if (subject) target.subject = subject; else delete target.subject;
                   })} />
-                {kind && kind !== 'group-zone' && <SelectField label={kind === 'role' ? 'assignment' : humanizeToken(kind)} value={kind === 'zone' ? predicate.zone ?? '' : predicate.subject ?? ''}
-                  issues={issues} path={`authoring.predicates.${id}.${kind === 'zone' ? 'zone' : 'subject'}`}
-                  values={options} onChange={(value) => mutate((next) => {
-                    const target = next.playbook.authoring.predicates[id];
-                    if (kind === 'zone') target.zone = value;
-                    else target.subject = value;
-                  })} />}
-                {kind === 'group-zone' && <>
-                  <SelectField label="Group" value={predicate.subject ?? ''} values={groups}
-                    issues={issues} path={`authoring.predicates.${id}.subject`}
-                    onChange={(value) => mutate((next) => { next.playbook.authoring.predicates[id].subject = value; })} />
-                  <SelectField label="Zone" value={predicate.zone ?? ''} values={zones}
-                    issues={issues} path={`authoring.predicates.${id}.zone`}
-                    onChange={(value) => mutate((next) => { next.playbook.authoring.predicates[id].zone = value; })} />
-                </>}
-                <SelectField label="comparison" value={predicate.operator} values={[...CONDITION_OPERATORS]}
-                  issues={issues} path={`authoring.predicates.${id}.operator`}
-                  onChange={(operator) => mutate((next) => { next.playbook.authoring.predicates[id].operator = operator; })} />
-                <NumberField label="threshold" value={predicate.value} min={0} max={100000}
-                  issues={issues} path={`authoring.predicates.${id}.value`}
-                  onChange={(value) => mutate((next) => { next.playbook.authoring.predicates[id].value = value; })} />
-              </div>
-
-              <details className="mt-3 rounded-sm border border-arena-edge bg-arena-deep/20">
-                <summary className="flex min-h-11 cursor-pointer items-center px-3 t-body">Advanced trigger tuning</summary>
-                <div className="grid gap-2 border-t border-arena-edge p-3 sm:grid-cols-2">
-                  <TextField label="trigger id" value={id} issues={issues}
-                    path={`authoring.predicates.${id}`} onChange={(value) => rename(id, value)} />
-                  {(predicate.fact === 'remembered-enemies-in-zone' || predicate.fact === 'secured-cores') && (
-                    <OptionalNumber label="memory window in ticks" value={predicate.freshnessTicks} min={1} max={600}
-                      issues={issues} path={`authoring.predicates.${id}.freshnessTicks`}
-                      onChange={(value) => mutate((next) => {
-                        const target = next.playbook.authoring.predicates[id];
-                        if (value === undefined) delete target.freshnessTicks;
-                        else target.freshnessTicks = value;
-                      })} />
-                  )}
-                </div>
-              </details>
-              <InlineIssues issues={issues} prefix={`authoring.predicates.${id}`} />
-              <div className="mt-3 flex justify-end">
-                <button type="button" className="btn min-h-11 text-arena-hot" onClick={() => {
-                  const nextActive = predicateEntries.find(([candidate]) => candidate !== id)?.[0] ?? '';
-                  mutate((next) => { delete next.playbook.authoring.predicates[id]; });
-                  setActivePredicateId(nextActive);
-                }}>Remove trigger</button>
-              </div>
-            </article>
-          );
-        })() : (
-          <div className="pad"><p className="t-meta">Create a trigger to use it on a command card.</p></div>
-        )}
-      </div>
-    </section>
+              )}
+              {(kind === 'zone' || kind === 'role-zone') && (
+                <SelectField label="Map zone" value={predicate.zone ?? ''} values={zones}
+                  issues={issues} path={path + '.zone'}
+                  onChange={(zone) => update((target) => { target.zone = zone; })} />
+              )}
+              {kind === 'well' && (
+                <SegmentedField label="Well" value={predicate.subject ?? 'centre'}
+                  values={['own', 'centre', 'enemy', 'north', 'south']}
+                  onChange={(subject) => update((target) => { target.subject = subject; })} />
+              )}
+              <SegmentedField label="Comparison" value={predicate.operator}
+                values={[...CONDITION_OPERATORS]}
+                onChange={(operator) => update((target) => { target.operator = operator; })} />
+              <NumberField label="Threshold" value={predicate.value} min={-2147483648} max={2147483647}
+                issues={issues} path={path + '.value'}
+                onChange={(value) => update((target) => { target.value = value; })} />
+              {(predicate.fact === 'remembered-enemies-in-zone' || predicate.fact === 'secured-cores') && (
+                <OptionalNumber label="Fresh for ticks" value={predicate.freshnessTicks} min={1} max={600}
+                  issues={issues} path={path + '.freshnessTicks'}
+                  onChange={(value) => update((target) => {
+                    if (value === undefined) delete target.freshnessTicks; else target.freshnessTicks = value;
+                  })} />
+              )}
+            </div>
+            <InlineIssues issues={issues} prefix={path} />
+            <button type="button" className="btn mt-4 min-h-11 text-arena-hot"
+              onClick={() => {
+                const nextActive = entries.find(([candidate]) => candidate !== id)?.[0] ?? '';
+                mutate((next) => { delete next.playbook.conditions[id]; });
+                setActiveId(nextActive);
+              }}>Remove trigger</button>
+          </article>
+        );
+      })() : <p className="t-meta">Add a trigger when a play needs a specific moment.</p>}
+    </div>
   );
 }
 
@@ -1564,10 +1717,10 @@ function CustodyFlowStep({ label, value, className }: {
   className?: string;
 }) {
   return (
-    <div className={clsx('rounded-sm border border-arena-edge bg-arena-deep/30 p-2 text-center', className)}>
+    <span className={clsx('min-w-0 flex-1 rounded-sm border border-arena-edge bg-arena-deep/35 p-2', className)}>
       <span className="lab block">{label}</span>
-      <span className="t-body mt-1 block text-[12px]">{value}</span>
-    </div>
+      <span className="t-micro mt-1 block truncate">{humanizeToken(value)}</span>
+    </span>
   );
 }
 
@@ -1576,140 +1729,454 @@ function CustodyEditor({ draft, issues, mutate }: {
   issues: SheetIssue[];
   mutate: Mutate;
 }) {
+  const policies = draft.playbook.custodyPolicies;
+  const policyIds = policies.map((policy) => policy.custodyId);
   const roles = draft.playbook.roles.map((role) => role.roleId);
-  const groups = draft.playbook.groups.map((group) => group.groupId);
   const zones = draft.layout.zones.map((zone) => zone.zoneId);
   const routes = draft.layout.routes.map((route) => route.routeId);
-  const predicates = Object.keys(draft.playbook.authoring.predicates ?? {});
-  const update = (index: number, change: (policy: CustodyPolicy) => void) => mutate((next) =>
-    change(next.playbook.custodyPolicies[index]));
+  const anchors = draft.layout.anchors.map((anchor) => anchor.anchorId);
+  const predicateIds = Object.keys(draft.playbook.conditions);
+  const [activeId, setActiveId] = useState(policyIds[0] ?? '');
+  const activeIndex = Math.max(0, policies.findIndex((policy) => policy.custodyId === activeId));
+  const policy = policies[activeIndex];
+  const mutatePolicy = (change: (target: CustodyPolicy) => void) =>
+    mutate((next) => change(next.playbook.custodyPolicies[activeIndex]));
+  const fetchers = policy ? Object.entries(draft.playbook.doctrines.roles)
+    .filter(([, doctrine]) => doctrine.modes.some((mode) => mode.fetch === policy.custodyId))
+    .map(([role]) => role) : [];
+
+  useEffect(() => {
+    if (policy && policy.custodyId !== activeId) setActiveId(policy.custodyId);
+  }, [activeId, policy]);
+
+  const add = () => {
+    const custodyId = uniqueId('core-plan', policyIds);
+    mutate((next) => next.playbook.custodyPolicies.push({
+      custodyId,
+      sourceWells: ['north', 'centre', 'south'],
+      pickupReservationTicks: 8,
+      transferTimeoutTicks: 8,
+      deliveryTimeoutTicks: 120,
+      accidentalPickup: 'deliver',
+      dropRecovery: 'nearest-authorized',
+      pickupSelection: 'nearest-authorized',
+      unreachableFallback: 'guard',
+      safeConversion: 'always',
+    }));
+    setActiveId(custodyId);
+  };
+
   return (
-    <section className="panel overflow-hidden">
-        <header className="border-b border-arena-edge bg-[linear-gradient(115deg,rgba(210,110,45,.10),transparent_45%)] p-3">
-          <p className="lab text-arena-material">Core relay plans</p>
-          <h3 className="type-display mt-1 text-[21px]">From Well to home pad</h3>
-          <p className="t-meta mt-1">Choose who takes custody, who screens them, and how the handoff survives trouble.</p>
-        </header>
-        <div className="mt-3 flex flex-col gap-3">
-          {draft.playbook.custodyPolicies.map((policy, index) => (
-            <article key={`${policy.custodyId}:${index}`} data-sheet-path={`custodyPolicies.${index}`}
-              className="border-b border-arena-edge p-3 last:border-b-0 sm:p-4">
-              <div className="flex flex-wrap items-center gap-2">
-                <div className="mr-auto">
-                  <p className="lab">Custody plan {index + 1}</p>
-                  <h4 className="type-display mt-1 text-[20px]">{humanizeToken(policy.custodyId)}</h4>
-                </div>
-                <span className="pill">{policy.deliveryRoutes?.length ?? 0} delivery routes</span>
-              </div>
+    <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-3 lg:grid-cols-[240px_minmax(0,1fr)]">
+      <aside>
+        <button type="button" className="btn btn-primary min-h-11 w-full" onClick={add}>＋ New Core plan</button>
+        <div className="mt-2 flex gap-2 overflow-x-auto lg:flex-col">
+          {policies.map((entry, index) => {
+            const consumers = Object.values(draft.playbook.doctrines.roles)
+              .filter((doctrine) => doctrine.modes.some((mode) => mode.fetch === entry.custodyId)).length;
+            return (
+              <button key={entry.custodyId} type="button" aria-selected={policy === entry}
+                className={clsx(
+                  'min-w-[210px] rounded-sm border p-3 text-left lg:min-w-0',
+                  policy === entry ? 'border-arena-material bg-arena-material/10' : 'border-arena-edge',
+                )} onClick={() => setActiveId(entry.custodyId)}>
+                <span className="type-display block truncate text-[16px]">{humanizeToken(entry.custodyId)}</span>
+                <span className="t-micro mt-1 block">{consumers} fetch assignment{consumers === 1 ? '' : 's'}</span>
+                {issues.some((issue) => issue.path.startsWith('custodyPolicies.' + index)) &&
+                  <span className="pill mt-2 text-arena-hot">Needs attention</span>}
+              </button>
+            );
+          })}
+        </div>
+      </aside>
+      {policy ? (
+        <article className="min-w-0" data-sheet-path={'custodyPolicies.' + activeIndex}>
+          <div className="rounded-sm border border-arena-material/35 bg-[linear-gradient(120deg,rgba(210,110,45,.13),transparent)] p-3">
+            <p className="lab text-arena-material">Core journey</p>
+            <div className="mt-2 flex items-stretch gap-1">
+              <CustodyFlowStep label="Claim" value={policy.pickupSelection ?? 'carrier-preference'} />
+              <span className="self-center text-arena-material">→</span>
+              <CustodyFlowStep label="Carry" value={policy.accidentalPickup} />
+              <span className="self-center text-arena-material">→</span>
+              <CustodyFlowStep label="Drop" value={policy.dropRecovery} />
+              <span className="self-center text-arena-material">→</span>
+              <CustodyFlowStep label="Blocked" value={policy.unreachableFallback} />
+            </div>
+            <p className="t-micro mt-2">
+              Fetchers: {fetchers.length ? fetchers.map(humanizeToken).join(' · ') : 'none yet — add a Fetch play to an assignment'}
+            </p>
+          </div>
 
-              <div className="mt-3 grid grid-cols-1 items-stretch gap-1 sm:grid-cols-[1fr_auto_1fr_auto_1fr_auto_1fr]">
-                <CustodyFlowStep label="Lift from" value={policy.sourceWells.map(humanizeToken).join(' · ') || 'Any Well'} />
-                <span className="rotate-90 self-center justify-self-center text-arena-material sm:rotate-0" aria-hidden="true">→</span>
-                <CustodyFlowStep label="Carrier assignment" value={policy.authorizedCarrierRoles.map(humanizeToken).join(' · ') || 'Unassigned'} />
-                <span className="rotate-90 self-center justify-self-center text-arena-material sm:rotate-0" aria-hidden="true">→</span>
-                <CustodyFlowStep label="Screen" value={policy.escortGroups.map(humanizeToken).join(' · ') || 'No escort'} />
-                <span className="rotate-90 self-center justify-self-center text-arena-material sm:rotate-0" aria-hidden="true">→</span>
-                <CustodyFlowStep label="If dropped" value={humanizeToken(policy.dropRecovery)} />
-              </div>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <TextField label="Plan name" value={policy.custodyId} issues={issues}
+              path={'custodyPolicies.' + activeIndex + '.custodyId'}
+              onChange={(value) => {
+                const nextId = assignmentIdFromName(value);
+                if (!nextId || nextId === policy.custodyId) return;
+                const previous = policy.custodyId;
+                mutate((next) => {
+                  next.playbook.custodyPolicies[activeIndex].custodyId = nextId;
+                  for (const doctrine of Object.values(next.playbook.doctrines.roles)) {
+                    if (doctrine.custody === previous) doctrine.custody = nextId;
+                    doctrine.modes.forEach((mode) => {
+                      if (mode.fetch === previous) mode.fetch = nextId;
+                    });
+                  }
+                });
+                setActiveId(nextId);
+              }} />
+            <SegmentedField label="Ordinary pickup priority" value={policy.pickupSelection ?? 'carrier-preference'}
+              values={['carrier-preference', 'nearest-authorized']}
+              onChange={(value) => mutatePolicy((target) => { target.pickupSelection = value; })} />
+          </div>
+          <ChoiceGrid label="Cores born at these Wells" values={['north', 'centre', 'south']}
+            selected={policy.sourceWells} issues={issues}
+            path={'custodyPolicies.' + activeIndex + '.sourceWells'}
+            onChange={(value) => mutatePolicy((target) => { target.sourceWells = value; })} />
 
-              <p className="lab mt-4">Contingency orders</p>
-              <div className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-                <SelectField label="Unexpected carrier" value={policy.accidentalPickup}
-                  issues={issues} path={`custodyPolicies.${index}.accidentalPickup`}
-                  values={['transfer', 'deliver', 'drop-safe']}
-                  onChange={(value) => update(index, (next) => { next.accidentalPickup = value; })} />
-                <SelectField label="Dropped Core" value={policy.dropRecovery}
-                  issues={issues} path={`custodyPolicies.${index}.dropRecovery`}
-                  values={['same-carrier', 'nearest-authorized', 'guard-until-safe']}
-                  onChange={(value) => update(index, (next) => { next.dropRecovery = value; })} />
-                <SelectField label="Route blocked" value={policy.unreachableFallback}
-                  issues={issues} path={`custodyPolicies.${index}.unreachableFallback`}
-                  values={['hold', 'guard', 'alternate-core', 'regroup']}
-                  onChange={(value) => update(index, (next) => { next.unreachableFallback = value; })} />
-                <SelectField label="Forward pass" value={policy.forwardPass ?? 'none'}
-                  issues={issues} path={`custodyPolicies.${index}.forwardPass`}
-                  values={['none', 'relay-catcher']}
-                  onChange={(value) => update(index, (next) => { next.forwardPass = value; })} />
+          <div className="mt-3 grid gap-3 sm:grid-cols-3">
+            <SegmentedField label="Accidental pickup" value={policy.accidentalPickup}
+              values={['transfer', 'deliver', 'drop-safe']}
+              onChange={(value) => mutatePolicy((target) => { target.accidentalPickup = value; })} />
+            <SegmentedField label="If dropped" value={policy.dropRecovery}
+              values={['same-carrier', 'nearest-authorized', 'guard-until-safe']}
+              onChange={(value) => mutatePolicy((target) => { target.dropRecovery = value; })} />
+            <SegmentedField label="If delivery is blocked" value={policy.unreachableFallback}
+              values={['hold', 'guard', 'alternate-core', 'regroup']}
+              onChange={(value) => mutatePolicy((target) => { target.unreachableFallback = value; })} />
+          </div>
+
+          <div className="mt-3">
+            <ConditionField label="Safe to bank when" value={policy.safeConversion} predicates={predicateIds}
+              issues={issues} path={'custodyPolicies.' + activeIndex + '.safeConversion'}
+              onChange={(value) => mutatePolicy((target) => { target.safeConversion = value; })} />
+          </div>
+
+          <details className="mt-3 rounded-sm border border-arena-edge bg-arena-deep/20">
+            <summary className="flex min-h-11 cursor-pointer items-center px-3 t-body">
+              Routes, passes and recovery <span className="t-micro ml-auto">advanced Core play</span>
+            </summary>
+            <div className="border-t border-arena-edge p-3">
+              <div className="grid gap-2 sm:grid-cols-3">
+                <NumberField label="pickup reservation" value={policy.pickupReservationTicks} min={1} max={120}
+                  onChange={(value) => mutatePolicy((target) => { target.pickupReservationTicks = value; })} />
+                <NumberField label="transfer timeout" value={policy.transferTimeoutTicks} min={1} max={120}
+                  onChange={(value) => mutatePolicy((target) => { target.transferTimeoutTicks = value; })} />
+                <NumberField label="delivery timeout" value={policy.deliveryTimeoutTicks} min={1} max={1200}
+                  onChange={(value) => mutatePolicy((target) => { target.deliveryTimeoutTicks = value; })} />
               </div>
-              <ChoiceGrid label="authorized carrier assignments" values={roles} selected={policy.authorizedCarrierRoles}
-                issues={issues} path={`custodyPolicies.${index}.authorizedCarrierRoles`}
-                onChange={(selected) => update(index, (next) => { next.authorizedCarrierRoles = selected; })} />
-              <ChoiceGrid label="escort groups" values={groups} selected={policy.escortGroups}
-                issues={issues} path={`custodyPolicies.${index}.escortGroups`}
-                onChange={(selected) => update(index, (next) => { next.escortGroups = selected; })} />
-              <ChoiceGrid label="source Wells" values={['north', 'centre', 'south']} selected={policy.sourceWells}
-                issues={issues} path={`custodyPolicies.${index}.sourceWells`}
-                onChange={(selected) => update(index, (next) => { next.sourceWells = selected; })} />
+              <SegmentedField label="Forward pass" value={policy.forwardPass ?? 'none'}
+                values={['none', 'relay-catcher']}
+                onChange={(value) => mutatePolicy((target) => { target.forwardPass = value; })} />
               <fieldset className="mt-3 rounded-sm border border-arena-edge p-3">
-                <legend className="t-micro px-1">Delivery geography</legend>
-                {(policy.deliveryRoutes ?? []).map((entry, routeIndex) => (
-                  <div key={routeIndex} className="mb-2 grid gap-2 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
-                    <SelectField label="Core lifted in zone" value={entry.zone} values={zones}
-                      onChange={(value) => update(index, (next) => { next.deliveryRoutes![routeIndex].zone = value; })} />
-                    <SelectField label="walks route" value={entry.route} values={routes}
-                      onChange={(value) => update(index, (next) => { next.deliveryRoutes![routeIndex].route = value; })} />
-                    <button type="button" className="btn min-h-11" onClick={() => update(index, (next) => {
-                      next.deliveryRoutes = next.deliveryRoutes?.filter((_, position) => position !== routeIndex);
-                    })}>Remove</button>
+                <legend className="lab px-1">Delivery routes by pickup zone</legend>
+                {(policy.deliveryRoutes ?? []).map((entry, index) => (
+                  <div key={index} className="mb-2 grid gap-2 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+                    <SelectField label="Pickup zone" value={entry.zone} values={zones}
+                      onChange={(zone) => mutatePolicy((target) => { target.deliveryRoutes![index].zone = zone; })} />
+                    <SelectField label="Delivery route" value={entry.route} values={routes}
+                      onChange={(route) => mutatePolicy((target) => { target.deliveryRoutes![index].route = route; })} />
+                    <button type="button" className="btn min-h-11" onClick={() =>
+                      mutatePolicy((target) => {
+                        target.deliveryRoutes = target.deliveryRoutes?.filter((_, at) => at !== index);
+                        if (!target.deliveryRoutes?.length) delete target.deliveryRoutes;
+                      })}>Remove</button>
                   </div>
                 ))}
-                <button type="button" className="btn min-h-11" disabled={(policy.deliveryRoutes?.length ?? 0) >= 8}
-                  onClick={() => update(index, (next) => {
-                    next.deliveryRoutes = [...(next.deliveryRoutes ?? []), { zone: zones[0] ?? '', route: routes[0] ?? '' }];
-                  })}>Add delivery route</button>
+                <button type="button" className="btn min-h-11"
+                  disabled={!zones.length || !routes.length || (policy.deliveryRoutes?.length ?? 0) >= 8}
+                  onClick={() => mutatePolicy((target) => {
+                    target.deliveryRoutes = [...(target.deliveryRoutes ?? []), {
+                      zone: zones[0] ?? '', route: routes[0] ?? '',
+                    }];
+                  })}>＋ Route rule</button>
               </fieldset>
               <fieldset className="mt-3 rounded-sm border border-arena-edge p-3">
-                <legend className="t-micro px-1">Optional bait drop</legend>
-                {policy.baitDrop ? <>
-                  <SelectField label="trap zone" value={policy.baitDrop.zone} values={zones}
-                    onChange={(value) => update(index, (next) => { next.baitDrop!.zone = value; })} />
-                  <ChoiceGrid label="reclaim when all" values={predicates}
-                    selected={baitPredicateIds(policy.baitDrop, draft.playbook.authoring)}
-                    onChange={(selected) => update(index, (next) => {
-                      next.baitDrop!.reclaimAll = directConditionGroups(
-                        selected,
-                        draft.playbook.authoring.predicates,
-                      );
-                      delete next.baitDrop!.reclaimConditionSetId;
-                    })} />
-                  <button type="button" className="btn min-h-11" onClick={() => update(index, (next) => { delete next.baitDrop; })}>
-                    Remove bait drop
-                  </button>
-                </> : (
-                  <button type="button" className="btn min-h-11" disabled={predicates.length === 0}
-                    onClick={() => update(index, (next) => {
-                    next.baitDrop = {
-                      zone: zones[0] ?? '',
-                      reclaimAll: directConditionGroups(
-                        predicates.slice(0, 1),
-                        draft.playbook.authoring.predicates,
-                      ),
-                    };
-                  })}>Add bait drop</button>
+                <legend className="lab px-1">Bait drop</legend>
+                {policy.baitDrop ? (
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <SelectField label="Drop zone" value={policy.baitDrop.zone} values={zones}
+                      onChange={(zone) => mutatePolicy((target) => { target.baitDrop!.zone = zone; })} />
+                    <ConditionField label="Reclaim when" value={policy.baitDrop.reclaim} predicates={predicateIds}
+                      onChange={(reclaim) => mutatePolicy((target) => { target.baitDrop!.reclaim = reclaim; })} />
+                    <button type="button" className="btn min-h-11 text-arena-hot"
+                      onClick={() => mutatePolicy((target) => { delete target.baitDrop; })}>Remove bait play</button>
+                  </div>
+                ) : (
+                  <button type="button" className="btn min-h-11" disabled={!zones.length}
+                    onClick={() => mutatePolicy((target) => {
+                      target.baitDrop = { zone: zones[0] ?? '', reclaim: 'always' };
+                    })}>＋ Add bait play</button>
                 )}
               </fieldset>
-              <details className="mt-3 rounded-sm border border-arena-edge bg-arena-deep/20">
-                <summary className="flex min-h-11 cursor-pointer items-center px-3 t-body">Advanced timing</summary>
-                <div className="grid gap-2 border-t border-arena-edge p-3 sm:grid-cols-2 lg:grid-cols-4">
-                  <TextField label="custody plan id" value={policy.custodyId}
-                    issues={issues} path={`custodyPolicies.${index}.custodyId`}
-                    onChange={(value) => update(index, (next) => { next.custodyId = value; })} />
-                  <NumberField label="pickup reservation" value={policy.pickupReservationTicks} min={1} max={120}
-                    issues={issues} path={`custodyPolicies.${index}.pickupReservationTicks`}
-                    onChange={(value) => update(index, (next) => { next.pickupReservationTicks = value; })} />
-                  <NumberField label="transfer timeout" value={policy.transferTimeoutTicks} min={1} max={120}
-                    issues={issues} path={`custodyPolicies.${index}.transferTimeoutTicks`}
-                    onChange={(value) => update(index, (next) => { next.transferTimeoutTicks = value; })} />
-                  <NumberField label="delivery timeout" value={policy.deliveryTimeoutTicks} min={1} max={1200}
-                    issues={issues} path={`custodyPolicies.${index}.deliveryTimeoutTicks`}
-                    onChange={(value) => update(index, (next) => { next.deliveryTimeoutTicks = value; })} />
-                </div>
-              </details>
-              <InlineIssues issues={issues} prefix={`custodyPolicies.${index}`} />
+              {policy.emergencyRecoveryZones && (
+                <fieldset className="mt-3 rounded-sm border border-arena-edge p-3">
+                  <legend className="lab px-1">Emergency recovery</legend>
+                  <ChoiceGrid label="Recovery zones" values={zones} selected={policy.emergencyRecoveryZones}
+                    onChange={(value) => mutatePolicy((target) => { target.emergencyRecoveryZones = value; })} />
+                  <ChoiceGrid label="Authorized assignments" values={roles}
+                    selected={policy.emergencyRecoveryRoles ?? []}
+                    onChange={(value) => mutatePolicy((target) => { target.emergencyRecoveryRoles = value; })} />
+                  <ConditionField label="Emergency when" value={policy.emergencyRecovery ?? ''}
+                    predicates={predicateIds}
+                    onChange={(value) => mutatePolicy((target) => { target.emergencyRecovery = value; })} />
+                  <div className="mt-2 grid gap-2 sm:grid-cols-3">
+                    <NumberField label="Pickup radius" value={policy.emergencyPickupRadius ?? 1} min={1} max={4}
+                      onChange={(value) => mutatePolicy((target) => { target.emergencyPickupRadius = value; })} />
+                    <SelectField label="Disposition" value={policy.emergencyRecoveryDisposition ?? 'deliver'}
+                      values={['deliver', 'displace']}
+                      onChange={(value) => mutatePolicy((target) => { target.emergencyRecoveryDisposition = value; })} />
+                    {policy.emergencyRecoveryDisposition === 'displace' &&
+                      <SelectField label="Displace to" value={policy.emergencyDisplacementTarget ?? ''}
+                        values={anchors}
+                        onChange={(value) => mutatePolicy((target) => { target.emergencyDisplacementTarget = value; })} />}
+                  </div>
+                </fieldset>
+              )}
+            </div>
+          </details>
+          <InlineIssues issues={issues} prefix={'custodyPolicies.' + activeIndex} />
+          {policies.length > 1 && (
+            <button type="button" className="btn mt-3 min-h-11 text-arena-hot"
+              onClick={() => {
+                const nextId = policies.find((_, index) => index !== activeIndex)?.custodyId ?? '';
+                mutate((next) => { next.playbook.custodyPolicies.splice(activeIndex, 1); });
+                setActiveId(nextId);
+              }}>Remove Core plan</button>
+          )}
+        </article>
+      ) : <p className="t-meta">Create a Core plan before assigning Fetch duty.</p>}
+    </div>
+  );
+}
+
+function CoordinationEditor({ draft, issues, mutate }: {
+  draft: SheetDraft;
+  issues: SheetIssue[];
+  mutate: Mutate;
+}) {
+  const focus = draft.playbook.doctrines.focus;
+  const cohorts = draft.playbook.doctrines.cohorts;
+  const focusConsumers = countModeReferences(draft, 'focus');
+  const cohortConsumers = countModeReferences(draft, 'cohort');
+  return (
+    <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-2">
+      <section>
+        <div className="flex items-end gap-2">
+          <div className="mr-auto">
+            <p className="lab text-arena-material">Focus scopes</p>
+            <p className="t-micro mt-1">One job only: cap attackers on the same target.</p>
+          </div>
+          <button type="button" className="btn min-h-11" onClick={() => mutate((next) => {
+            const id = uniqueId('focus', Object.keys(next.playbook.doctrines.focus));
+            next.playbook.doctrines.focus[id] = { maximumAttackers: 2 };
+          })}>＋ Focus</button>
+        </div>
+        <div className="mt-2 space-y-2">
+          {Object.entries(focus).map(([id, definition]) => (
+            <article key={id} className="rounded-sm border border-arena-edge bg-arena-deep/25 p-3"
+              data-sheet-path={'doctrines.focus.' + id}>
+              <div className="grid gap-2 sm:grid-cols-[1fr_140px_auto] sm:items-end">
+                <TextField label="Scope name" value={id} onChange={(value) => {
+                  const nextId = assignmentIdFromName(value);
+                  if (nextId) mutate((next) => renameSharedReference(next.playbook, 'focus', id, nextId));
+                }} />
+                <NumberField label="Maximum attackers" value={definition.maximumAttackers} min={1} max={8}
+                  onChange={(value) => mutate((next) => {
+                    next.playbook.doctrines.focus[id].maximumAttackers = value;
+                  })} />
+                <button type="button" className="btn min-h-11 text-arena-hot"
+                  onClick={() => mutate((next) => { delete next.playbook.doctrines.focus[id]; })}>Remove</button>
+              </div>
+              <p className="t-micro mt-2">{focusConsumers.get(id) ?? 0} play consumers · shared names require at least two</p>
+              <InlineIssues issues={issues} prefix={'doctrines.focus.' + id} />
             </article>
           ))}
         </div>
-    </section>
+      </section>
+      <section>
+        <div className="flex items-end gap-2">
+          <div className="mr-auto">
+            <p className="lab text-arena-material">Adaptive cohorts</p>
+            <p className="t-micro mt-1">One job only: admit the nearest N bodies to a shared destination.</p>
+          </div>
+          <button type="button" className="btn min-h-11" onClick={() => mutate((next) => {
+            const id = uniqueId('cohort', Object.keys(next.playbook.doctrines.cohorts));
+            next.playbook.doctrines.cohorts[id] = { take: 2, select: 'nearest' };
+          })}>＋ Cohort</button>
+        </div>
+        <div className="mt-2 space-y-2">
+          {Object.entries(cohorts).map(([id, definition]) => (
+            <article key={id} className="rounded-sm border border-arena-edge bg-arena-deep/25 p-3"
+              data-sheet-path={'doctrines.cohorts.' + id}>
+              <div className="grid gap-2 sm:grid-cols-[1fr_140px_auto] sm:items-end">
+                <TextField label="Cohort name" value={id} onChange={(value) => {
+                  const nextId = assignmentIdFromName(value);
+                  if (nextId) mutate((next) => renameSharedReference(next.playbook, 'cohort', id, nextId));
+                }} />
+                <NumberField label="Nearest bodies" value={definition.take} min={1} max={8}
+                  onChange={(value) => mutate((next) => {
+                    next.playbook.doctrines.cohorts[id].take = value;
+                  })} />
+                <button type="button" className="btn min-h-11 text-arena-hot"
+                  onClick={() => mutate((next) => { delete next.playbook.doctrines.cohorts[id]; })}>Remove</button>
+              </div>
+              <p className="t-micro mt-2">{cohortConsumers.get(id) ?? 0} play consumers · membership is recalculated every tick</p>
+              <InlineIssues issues={issues} prefix={'doctrines.cohorts.' + id} />
+            </article>
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function MemoryEditor({ draft, issues, mutate }: {
+  draft: SheetDraft;
+  issues: SheetIssue[];
+  mutate: Mutate;
+}) {
+  type MemoryKey = 'enemyUnavailableTicks' | 'lastSeenEnemyTicks' | 'securedCoreTicks' | 'objectiveProgressTicks';
+  const fields: Array<[MemoryKey, string, string]> = [
+    ['enemyUnavailableTicks', 'Enemy unavailable', 'How long a known disabled enemy remains unavailable.'],
+    ['lastSeenEnemyTicks', 'Last seen enemy', 'How long sightings inform pursuit and threat reads.'],
+    ['securedCoreTicks', 'Secured Core', 'How long a banked or controlled Core remains tactically relevant.'],
+    ['objectiveProgressTicks', 'No progress alarm', 'When the team considers objective progress stalled.'],
+  ];
+  return (
+    <div>
+      <p className="t-meta max-w-3xl">These clocks tune team knowledge. They never create a play; triggers decide what that knowledge means.</p>
+      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+        {fields.map(([key, label, description]) => (
+          <label key={key} className="rounded-sm border border-arena-edge bg-arena-deep/25 p-3"
+            data-sheet-path={'memory.' + key}>
+            <span className="lab text-arena-material">{label}</span>
+            <span className="t-micro mt-1 block">{description}</span>
+            <span className="mt-3 flex items-center gap-2">
+              <input type="range" className="min-w-0 flex-1" min={1} max={600}
+                value={draft.playbook.memory[key]}
+                onChange={(event) => mutate((next) => {
+                  next.playbook.memory[key] = Number(event.target.value);
+                })} />
+              <span className="pill min-w-16 justify-center">{draft.playbook.memory[key]} t</span>
+            </span>
+            <FieldIssues issues={issues} path={'memory.' + key} />
+          </label>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function RepairEditor({ repair, onChange }: {
+  repair: RepairBlock | undefined;
+  onChange: (repair: RepairBlock | undefined) => void;
+}) {
+  if (!repair) return (
+    <button type="button" className="btn mt-3 min-h-11"
+      onClick={() => onChange({
+        prefer: ['carrier', 'weakest', 'any'],
+        maximumProvidersPerTarget: 1,
+        minimumProviderSeparation: 2,
+        reserveHealthPercent: 30,
+        survivalFallback: 'evade',
+      })}>＋ Make this assignment a repair provider</button>
+  );
+  return (
+    <details className="mt-3 rounded-sm border border-arena-edge">
+      <summary className="flex min-h-11 cursor-pointer items-center px-3 t-body">Repair priorities</summary>
+      <div className="border-t border-arena-edge p-3">
+        <ChoiceGrid label="Repair target order" values={['weakest', 'carrier', 'medic', 'focus', 'anchor', 'any']}
+          selected={repair.prefer} onChange={(prefer) => onChange({ ...repair, prefer })} />
+        <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+          <NumberField label="Providers per target" value={repair.maximumProvidersPerTarget} min={1} max={8}
+            onChange={(value) => onChange({ ...repair, maximumProvidersPerTarget: value })} />
+          <NumberField label="Provider separation" value={repair.minimumProviderSeparation} min={0} max={8}
+            onChange={(value) => onChange({ ...repair, minimumProviderSeparation: value })} />
+          <NumberField label="Reserve health %" value={repair.reserveHealthPercent} min={0} max={100}
+            onChange={(value) => onChange({ ...repair, reserveHealthPercent: value })} />
+          <SelectField label="Survival fallback" value={repair.survivalFallback}
+            values={['evade', 'regroup', 'hold', 'self-defense']}
+            onChange={(value) => onChange({ ...repair, survivalFallback: value })} />
+        </div>
+        <button type="button" className="btn mt-3 min-h-11 text-arena-hot" onClick={() => onChange(undefined)}>
+          Remove repair duty
+        </button>
+      </div>
+    </details>
+  );
+}
+
+function ChoiceCard({ label, active, activeLabel, inactiveLabel, onChange }: {
+  label: string;
+  active: boolean;
+  activeLabel: string;
+  inactiveLabel: string;
+  onChange: (value: boolean) => void;
+}) {
+  return (
+    <button type="button" aria-pressed={active}
+      className={clsx(
+        'min-h-16 rounded-sm border p-3 text-left',
+        active ? 'border-arena-material bg-arena-material/10' : 'border-arena-edge bg-arena-deep/20',
+      )} onClick={() => onChange(!active)}>
+      <span className="lab block">{label}</span>
+      <span className="t-body mt-1 block">{active ? activeLabel : inactiveLabel}</span>
+    </button>
+  );
+}
+
+function SegmentedField({ label, value, values, emptyLabel, onChange }: {
+  label: string;
+  value: string;
+  values: string[];
+  emptyLabel?: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <fieldset>
+      <legend className="t-micro mb-1.5">{label}</legend>
+      <div className="flex flex-wrap gap-1">
+        {values.map((entry) => (
+          <button key={entry || '__empty'} type="button" aria-pressed={value === entry}
+            className={clsx(
+              'min-h-11 flex-1 rounded-sm border px-2 t-micro',
+              value === entry
+                ? 'border-arena-material bg-arena-material/15 text-arena-text'
+                : 'border-arena-edge bg-arena-deep/20 text-arena-dim',
+            )} onClick={() => onChange(entry)}>
+            {entry ? humanizeToken(entry) : emptyLabel ?? 'None'}
+          </button>
+        ))}
+      </div>
+    </fieldset>
+  );
+}
+
+function TokenField({ label, value, values, path, issues, onChange }: {
+  label: string;
+  value: string;
+  values: string[];
+  path?: string;
+  issues?: SheetIssue[];
+  onChange: (value: string) => void;
+}) {
+  return (
+    <fieldset className="mt-3" data-sheet-path={path}>
+      <legend className="t-micro mb-1.5">{label}</legend>
+      <div className="flex flex-wrap gap-1.5">
+        {values.map((entry) => (
+          <button key={entry} type="button" aria-pressed={value === entry}
+            className={clsx(
+              'min-h-11 rounded-full border px-3 t-micro',
+              value === entry
+                ? 'border-arena-material bg-arena-material/15 text-arena-text'
+                : 'border-arena-edge bg-arena-deep/20 text-arena-dim',
+            )} onClick={() => onChange(entry)}>{humanizeToken(entry)}</button>
+        ))}
+      </div>
+      {issues && path && <FieldIssues issues={issues} path={path} />}
+    </fieldset>
   );
 }
 
@@ -1847,7 +2314,7 @@ function MapPlotter({ catalog, layout, issues, tracks, trackLabel, onChange }: {
     : selectedRoute?.routeId;
 
   return (
-    <section className="panel pad" data-sheet-path="layout">
+    <section className="panel min-w-0 pad" data-sheet-path="layout">
       <div className="flex flex-wrap items-start gap-2">
         <div className="mr-auto">
           <p className="lab">Map plotting</p>
@@ -1861,8 +2328,8 @@ function MapPlotter({ catalog, layout, issues, tracks, trackLabel, onChange }: {
           ))}
         </div>
       </div>
-      <div className="mt-3 grid gap-3 lg:grid-cols-[220px_minmax(0,1fr)]">
-        <div>
+      <div className="mt-3 grid min-w-0 grid-cols-[minmax(0,1fr)] gap-3 lg:grid-cols-[220px_minmax(0,1fr)]">
+        <div className="order-2 min-w-0 lg:order-1">
           <div className="grid grid-cols-3 gap-1">
             {(['route', 'zone', 'anchor'] as const).map((value) => (
               <button key={value} type="button" className={clsx('btn min-h-11', kind === value && 'btn-on')}
@@ -1873,13 +2340,18 @@ function MapPlotter({ catalog, layout, issues, tracks, trackLabel, onChange }: {
                 }}>{value}</button>
             ))}
           </div>
-          <div className="mt-2 max-h-[310px] overflow-y-auto rounded-sm border border-arena-edge p-1">
+          <div className="mt-2 flex gap-1 overflow-x-auto rounded-sm border border-arena-edge p-1 lg:block lg:max-h-[310px] lg:overflow-y-auto">
             {(kind === 'route' ? routes : kind === 'zone' ? zones : anchors).map((entry) => {
               const id = kind === 'route' ? (entry as LayoutRoute).routeId
                 : kind === 'zone' ? (entry as LayoutZone).zoneId : (entry as LayoutAnchor).anchorId;
               return <button key={id} type="button"
-                className={clsx('mb-1 min-h-11 w-full rounded-sm px-2 text-left t-micro', selected === id && 'bg-arena-ok/15 text-arena-text')}
-                onClick={() => setSelectedId(id)}>{id}</button>;
+                className={clsx(
+                  'min-h-11 shrink-0 rounded-sm px-3 text-left t-micro lg:mb-1 lg:w-full',
+                  selected === id
+                    ? 'bg-arena-ok/15 text-arena-text'
+                    : 'bg-arena-deep/25 text-arena-dim',
+                )}
+                onClick={() => setSelectedId(id)}>{humanizeToken(id)}</button>;
             })}
           </div>
           <div className="mt-2 flex flex-col gap-2">
@@ -1901,7 +2373,7 @@ function MapPlotter({ catalog, layout, issues, tracks, trackLabel, onChange }: {
               setSelectedId('');
             })}>Remove selected</button>}
             {kind === 'route' && selectedRoute && <>
-              <NumberField label="corridor width" value={selectedRoute.corridorWidth} min={0} max={12}
+              <NumberField label="local reflow width" value={selectedRoute.corridorWidth} min={0} max={8}
                 onChange={(value) => commit((next) => { next.routes.find((entry) => entry.routeId === selectedRoute.routeId)!.corridorWidth = value; })} />
               <button type="button" className="btn min-h-11" disabled={selectedRoute.waypoints.length === 0}
                 onClick={() => commit((next) => { next.routes.find((entry) => entry.routeId === selectedRoute.routeId)!.waypoints.pop(); })}>
@@ -1910,7 +2382,12 @@ function MapPlotter({ catalog, layout, issues, tracks, trackLabel, onChange }: {
             </>}
           </div>
         </div>
-        <div>
+        <div className="order-1 min-w-0 lg:order-2">
+          <div className="mb-2 flex items-center gap-2">
+            <span className="lab text-arena-material">{humanizeToken(kind)}</span>
+            <span className="type-display truncate text-[16px]">{humanizeToken(selected ?? 'none selected')}</span>
+            <span className="pill ml-auto">{side} view</span>
+          </div>
           <div className="overflow-hidden rounded-sm border border-arena-edge bg-[#070b0f]">
             <svg
               ref={svg}
@@ -2083,7 +2560,7 @@ function FightEditor({ fight, label, onChange }: {
             <OptionalSelect label="defense · return" value={booleanString(object(fight.defense).return)} values={['true', 'false']}
               onChange={(value) => patch('defense', 'return', value === '' ? undefined : value === 'true')} />
           </div>
-          <ChoiceGrid label="target preference · ordered by selection" values={['carrier', 'weakest', 'closest', 'strongest-threat', 'freshest']}
+          <ChoiceGrid label="target preference · ordered by selection" values={['carrier', 'weakest', 'anchor', 'closest', 'strongest-threat', 'freshest']}
             selected={stringArray(object(fight.targets).prefer)}
             onChange={(value) => patch('targets', 'prefer', value.length ? value : undefined)} />
           <button type="button" className="btn mt-3 min-h-11" onClick={() => onChange(undefined)}>Use inherited/default fight</button>
@@ -2113,7 +2590,7 @@ function ConditionField({ label, value, predicates, issues, path, onChange }: {
         <div className="flex shrink-0 rounded-sm border border-arena-edge p-0.5" aria-label={`${label} connector`}>
           {(['and', 'or'] as const).map((value) => (
             <button key={value} type="button" aria-pressed={connector === value}
-              className={clsx('min-h-9 rounded-sm px-2 t-micro', connector === value && 'bg-arena-material/15 text-arena-material')}
+              className={clsx('min-h-11 rounded-sm px-2 t-micro', connector === value && 'bg-arena-material/15 text-arena-material')}
               onClick={() => setConnector(value)}>{value.toUpperCase()}</button>
           ))}
         </div>
@@ -2128,7 +2605,7 @@ function ConditionField({ label, value, predicates, issues, path, onChange }: {
           onClick={() => onChange('')}>Clear</button>}
       </div>
       <details className="mt-1">
-        <summary className="cursor-pointer t-micro">Advanced expression</summary>
+        <summary className="flex min-h-11 cursor-pointer items-center t-micro">Advanced expression</summary>
         <input className="field mt-1 min-h-11 font-mono text-xs" value={value}
           list={listId} onChange={(event) => onChange(event.target.value)} />
         <datalist id={listId}>{predicates.map((id) => <option key={id} value={id} />)}</datalist>
@@ -2144,11 +2621,7 @@ function IssueSummary({ issues, onNavigate }: {
 }) {
   const errors = issues.filter((issue) => issue.severity === 'error');
   const warnings = issues.filter((issue) => issue.severity === 'warning');
-  if (!issues.length) return (
-    <section className="rounded-sm border border-arena-ok/35 bg-arena-ok/5 px-3 py-2 t-body text-arena-ok">
-      Client checks pass. Save still runs the authoritative shared compiler.
-    </section>
-  );
+  if (!issues.length) return null;
   return (
     <section className="panel pad" aria-live="polite">
       <p className="lab">Draft checks · {errors.length} errors · {warnings.length} warnings</p>
@@ -2224,16 +2697,6 @@ function ChoiceGrid({ label, values, selected, issues, path, onChange }: {
   );
 }
 
-function Check({ label, checked, onChange }: {
-  label: string;
-  checked: boolean;
-  onChange: (value: boolean) => void;
-}) {
-  return <label className="flex min-h-11 items-center gap-2 t-micro">
-    <input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} />
-    {label}
-  </label>;
-}
 
 function TextField({ label, value, issues, path, onChange }: {
   label: string;
@@ -2310,11 +2773,6 @@ function OptionalNumber({ label, value, min, max, issues, path, onChange }: {
   </label>;
 }
 
-function ReadOnlyField({ label, value }: { label: string; value: string }) {
-  return <div><span className="t-micro mb-1 block">{label}</span>
-    <div className="field flex min-h-11 items-center text-arena-material">{value}</div>
-  </div>;
-}
 
 function fromServer(sheet: TacticalSheet): SheetDraft {
   return parseDraft(
@@ -2339,30 +2797,43 @@ function commandGlyph(verb: TacticalVerb): string {
     case 'intercept': return '⌖';
     case 'assault': return '⚔';
     case 'recover': return '✚';
-    case 'muster': return '◆';
-    case 'squad': return '◇';
+    case 'fetch': return '⬡';
+    case 'follow': return '➜';
+  }
+}
+
+function upgradeGlyph(upgrade: string): string {
+  switch (upgrade) {
+    case 'damage': return '✦';
+    case 'vision': return '◉';
+    case 'reach': return '↗';
+    case 'vitality': return '♥';
+    default: return '·';
   }
 }
 
 function modeCommandSummary(mode: TacticalMode): string {
   switch (verbOf(mode)) {
     case 'patrol':
-      return `Sweep ${humanizeToken(mode.patrol ?? 'traffic')} and hold the route.`;
+      return `Sweep ${destinationLabel(mode)} and hold the route.`;
     case 'intercept':
       return `${humanizeToken(mode.intercept ?? 'enemy-carriers')}${mode.from ? ` from ${humanizeToken(mode.from)}` : ''}.`;
-    case 'assault': {
-      const escorts = normalizeEscorts(mode.escort);
-      return `Push ${humanizeToken(mode.assault ?? 'assigned route')}${escorts.length > 0 ? ` with ${escorts.length} escort${escorts.length === 1 ? '' : 's'}` : ''}.`;
-    }
+    case 'assault':
+      return `Push ${destinationLabel(mode)} and take the fight there.`;
     case 'recover':
       return 'Break contact for the automatic health and beacon window.';
-    case 'muster':
-      return `Answer ${humanizeToken(mode.muster ?? 'escort')} calls.`;
-    case 'squad':
-      return 'Return to the ordinary squad-plane assignment.';
+    case 'fetch':
+      return `Claim an eligible Core under ${humanizeToken(mode.fetch ?? 'the Core plan')}.`;
+    case 'follow':
+      return `${humanizeToken(mode.posture ?? 'trail')} ${humanizeToken(mode.follow ?? 'the leader')} wherever that body goes.`;
     default:
       return 'Hold the safe fallback.';
   }
+}
+
+function destinationLabel(mode: TacticalMode): string {
+  const destination = destinationOf(mode);
+  return destination ? humanizeToken(destination.id) : 'the assigned ground';
 }
 
 function predicateSentence(predicate: {
@@ -2421,28 +2892,62 @@ function stringArray(value: unknown) {
   return Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === 'string') : [];
 }
 
-function directConditionGroups(
-  predicateIds: string[],
-  predicates: Record<string, PredicateShape>,
-): unknown[] {
-  return [{
-    all: predicateIds.map((id) => structuredClone(predicates[id])).filter(Boolean),
-  }];
+function rewriteConditionReferences(
+  playbook: SheetDraft['playbook'],
+  previous: string,
+  nextId: string,
+) {
+  const rewrite = (value: string | undefined) => value?.split(' ').map((token) =>
+    token === previous ? nextId : token).join(' ');
+  for (const doctrine of Object.values(playbook.doctrines.roles)) {
+    doctrine.modes.forEach((mode) => {
+      if (mode.while) mode.while = rewrite(mode.while);
+      if (mode.until) mode.until = rewrite(mode.until);
+    });
+  }
+  playbook.custodyPolicies.forEach((policy) => {
+    policy.safeConversion = rewrite(policy.safeConversion) ?? policy.safeConversion;
+    if (policy.baitDrop)
+      policy.baitDrop.reclaim = rewrite(policy.baitDrop.reclaim) ?? policy.baitDrop.reclaim;
+    if (policy.emergencyRecovery)
+      policy.emergencyRecovery = rewrite(policy.emergencyRecovery);
+  });
 }
 
-function baitPredicateIds(
-  bait: CustodyPolicy['baitDrop'],
-  authoring: SheetDraft['playbook']['authoring'],
-): string[] {
-  if (!bait) return [];
-  const first = Array.isArray(bait.reclaimAll) ? object(bait.reclaimAll[0]) : {};
-  const leaves = Array.isArray(first.all) ? first.all : [];
-  return leaves.flatMap((leaf) => {
-    const canonical = JSON.stringify(leaf);
-    const found = Object.entries(authoring.predicates)
-      .find(([, predicate]) => JSON.stringify(predicate) === canonical);
-    return found ? [found[0]] : [];
-  });
+function countModeReferences(draft: SheetDraft, key: 'focus' | 'cohort'): Map<string, number> {
+  const result = new Map<string, number>();
+  for (const doctrine of Object.values(draft.playbook.doctrines.roles)) {
+    doctrine.modes.forEach((mode) => {
+      const value = mode[key];
+      if (typeof value === 'string') result.set(value, (result.get(value) ?? 0) + 1);
+    });
+  }
+  return result;
+}
+
+function renameSharedReference(
+  playbook: SheetDraft['playbook'],
+  key: 'focus' | 'cohort',
+  previous: string,
+  nextId: string,
+) {
+  if (previous === nextId) return;
+  if (key === 'focus') {
+    playbook.doctrines.focus = Object.fromEntries(
+      Object.entries(playbook.doctrines.focus).map(([id, value]) =>
+        [id === previous ? nextId : id, value]),
+    );
+  } else {
+    playbook.doctrines.cohorts = Object.fromEntries(
+      Object.entries(playbook.doctrines.cohorts).map(([id, value]) =>
+        [id === previous ? nextId : id, value]),
+    );
+  }
+  for (const doctrine of Object.values(playbook.doctrines.roles)) {
+    doctrine.modes.forEach((mode) => {
+      if (mode[key] === previous) mode[key] = nextId;
+    });
+  }
 }
 
 function clamp(value: number, minimum: number, maximum: number) {
@@ -2469,9 +2974,9 @@ const EDITOR_SECTIONS: ReadonlyArray<{
   label: string;
   matches: (path: string) => boolean;
 }> = [
-  { id: 'composition', label: '1 Composition', matches: (path) => path === 'composition' || path.startsWith('composition.') || path.startsWith('roles') || path.startsWith('groups') },
-  { id: 'doctrines', label: '2 Doctrines', matches: (path) => path.startsWith('doctrines') || path.startsWith('authoring') || path.startsWith('custodyPolicies') },
-  { id: 'map', label: '3 Map', matches: (path) => path.startsWith('layout') || path.startsWith('playbook.layout') },
+  { id: 'composition', label: '1 Roster', matches: (path) => path === 'composition' || path.startsWith('composition.') || path.startsWith('roles') },
+  { id: 'doctrines', label: '2 Battle plan', matches: (path) => path.startsWith('doctrines') || path.startsWith('conditions') || path.startsWith('custodyPolicies') || path.startsWith('memory') },
+  { id: 'map', label: '3 Tactics map', matches: (path) => path.startsWith('layout') || path.startsWith('playbook.layout') },
 ];
 
 function sectionForIssue(path: string): EditorSection {
@@ -2479,14 +2984,16 @@ function sectionForIssue(path: string): EditorSection {
 }
 
 function doctrineToolForIssue(path: string): DoctrineTool {
-  if (path.startsWith('authoring')) return 'conditions';
+  if (path.startsWith('conditions')) return 'conditions';
   if (path.startsWith('custodyPolicies')) return 'custody';
+  if (path.startsWith('doctrines.focus') || path.startsWith('doctrines.cohorts')) return 'coordination';
+  if (path.startsWith('memory')) return 'memory';
   return null;
 }
 
 function scrollToIssue(path: string) {
-  const doctrineId = path.startsWith('doctrines.') ? path.split('.')[1] : null;
-  const predicateId = path.startsWith('authoring.predicates.') ? path.split('.')[2] : null;
+  const doctrineId = path.startsWith('doctrines.roles.') ? path.split('.')[2] : null;
+  const predicateId = path.startsWith('conditions.') ? path.split('.')[1] : null;
   const assignmentIndex = path.startsWith('roles.') ? path.split('.')[1] : null;
   const selector = assignmentIndex
     ? [...document.querySelectorAll<HTMLButtonElement>('[data-assignment-select]')]
@@ -2514,4 +3021,3 @@ function scrollToIssue(path: string) {
 
 type Mutate = (change: (next: SheetDraft) => void) => void;
 interface DragState { kind: PlotKind; id: string; index: number }
-type PredicateShape = SheetDraft['playbook']['authoring']['predicates'][string];

@@ -274,7 +274,7 @@ public sealed class ArcRelayMatchAdmissionService(
         CancellationToken cancellationToken)
     {
         Bot bot = await db.Bots.SingleAsync(value =>
-            value.Slug == ArcRelayPlaylistSeeder.AmbushTacticalPlaybookBotSlug,
+            value.Slug == ArcRelayPlaylistSeeder.TaplineTacticalPlaybookBotSlug,
             cancellationToken);
         BotVersion version = await db.BotVersions.SingleAsync(value =>
             value.BotId == bot.Id

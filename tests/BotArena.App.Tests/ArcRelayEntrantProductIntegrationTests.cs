@@ -770,7 +770,7 @@ public sealed class ArcRelayEntrantProductIntegrationTests
 
     [SkippableFact]
     [Trait("Category", PostgreSqlDatabaseFixture.Category)]
-    public async Task Claimable_drop_v18_starts_a_fresh_book_from_open_v17()
+    public async Task Tapline_v19_starts_a_fresh_book_from_open_v18()
     {
         await using var database = await PostgreSqlDatabaseFixture.CreateAsync();
         await using (AppDbContext migration =
@@ -785,7 +785,7 @@ public sealed class ArcRelayEntrantProductIntegrationTests
                 .SeedAsync();
         }
         UserResponse owner = await RegisterAsync(
-            client, "V18 Fresh Rating Entrant");
+            client, "V19 Tapline Rating Entrant");
         Guid entrantId = Guid.NewGuid();
         Guid predecessorLadderId;
 
@@ -794,12 +794,12 @@ public sealed class ArcRelayEntrantProductIntegrationTests
             Playlist playlist = await db.Playlists.SingleAsync(value =>
                 value.Key == ArcRelayEntrantPlaylistDefinition.PlaylistKey);
             ArcRelayEntrantPlaylistDefinition predecessor =
-                ArcRelayEntrantPlaylistDefinition.CreateHistoricalV17();
+                ArcRelayEntrantPlaylistDefinition.CreateHistoricalV18();
             var version = new PlaylistVersion
             {
                 PlaylistId = playlist.Id,
                 Version = ArcRelayEntrantPlaylistDefinition
-                    .LooseCoreMemoryVersion,
+                    .ClaimableCoreVersion,
                 GameModeId = predecessor.Match.Rules.GameMode.ModeId,
                 RulesetId = predecessor.Match.Rules.RulesetId,
                 MatchFormatId = predecessor.Match.Format.FormatId,
@@ -846,7 +846,7 @@ public sealed class ArcRelayEntrantProductIntegrationTests
                 Id = entrantId,
                 OwnerUserId = owner.Id,
                 Kind = ArcRelayEntrantKind.Sheet,
-                Name = "V17 rated entrant",
+                Name = "V18 rated entrant",
                 LadderOptedIn = true,
                 LadderOptedInAt = DateTime.UtcNow,
             });
@@ -873,17 +873,17 @@ public sealed class ArcRelayEntrantProductIntegrationTests
                 value.Id == predecessorLadderId);
             Assert.Equal(LadderStatus.Closed, predecessorLadder.Status);
             Assert.False(predecessorLadder.IsListed);
-            Ladder v18Ladder = await (
+            Ladder v19Ladder = await (
                 from ladder in db.Ladders
                 join version in db.PlaylistVersions
                     on ladder.PlaylistVersionId equals version.Id
                 where version.Version == ArcRelayEntrantPlaylistDefinition.Version
                 select ladder).SingleAsync();
-            Assert.Equal(LadderStatus.Open, v18Ladder.Status);
-            Assert.True(v18Ladder.IsListed);
+            Assert.Equal(LadderStatus.Open, v19Ladder.Status);
+            Assert.True(v19Ladder.IsListed);
             ArcRelayEntrantRating fresh = await db.ArcRelayEntrantRatings
                 .SingleAsync(value => value.EntrantId == entrantId &&
-                    value.LadderId == v18Ladder.Id);
+                    value.LadderId == v19Ladder.Id);
             Assert.Equal(BotRating.DefaultRating, fresh.Rating);
             Assert.Equal(0, fresh.RankedMatches);
             ArcRelayEntrantRating historical = await db.ArcRelayEntrantRatings

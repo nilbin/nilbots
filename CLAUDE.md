@@ -75,7 +75,7 @@ bash scripts/generate-api-clients.sh       # OpenAPI document + web/mobile/CLI c
 bash scripts/e2e.sh                        # full pipeline incl. player-bot build + cache assert
 dotnet run --project src/BotArena.Cli -- play --bot hunter --opponent coward --seed 7
 dotnet run --project src/BotArena.Cli -- arc-relay --bot <mind> --opponent <mind> \
-  --loop-profile ambush-warren-11                      # the current Arc Relay line
+  --loop-profile tapline-1                             # the current Arc Relay line
 dotnet run --project src/BotArena.Cli -- doctor        # toolchain status
 ```
 
@@ -198,8 +198,8 @@ Project boundaries that must not be violated:
 - **Arc Relay is a first-class command, not an experiment** (DECISIONS #247).
   `nilbots arc-relay` is top-level; `nilbots experiment arc-relay` is a
   permanent alias, so existing scripts and briefs keep their spelling.
-  `--loop-profile` defaults to `ambush-warren-11`, and immutable hosted entrant
-  playlist v18 pins that same rules/map line with Warren-native consolidated
+  `--loop-profile` defaults to `tapline-1`, and immutable hosted entrant
+  playlist v19 pins that same rules/map line with Tapline-native consolidated
   tactical sheets and the claimable-drop direct-ladder WASM artifact. v7
   began the fresh Warren
   development rating era and remains immutable; v8 carried those development
@@ -224,7 +224,8 @@ Project boundaries that must not be violated:
   move the registered stock digest; v16 ratings are never copied into v17.
   v18 starts fresh because accidental-carrier drops remain claimable and a
   loaded carrier can no longer reserve a second Core; v17 ratings are never
-  copied into v18.
+  copied into v18. v19 starts fresh because Tapline replaces the Warren map
+  line; v18 ratings are never copied into v19.
   Authoritative
   generic-actor movement is corner-strict from this line: diagonal movement
   requires both orthogonal companion terrain

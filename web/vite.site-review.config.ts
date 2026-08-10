@@ -23,6 +23,24 @@ const sourceReplay = readFileSync(
   new URL('./tests/fixtures/golden-replay.json', import.meta.url),
   'utf8',
 ).trim();
+const taplineTemplatePlaybook = readFileSync(
+  new URL(
+    '../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/playbooks/hunter-tapline-v1.json',
+    import.meta.url,
+  ),
+  'utf8',
+).trim();
+const taplineTemplateLayout = readFileSync(
+  new URL(
+    '../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/layouts/tapline-base-v1.json',
+    import.meta.url,
+  ),
+  'utf8',
+).trim();
+const taplineReviewCatalog = makeTaplineReviewCatalog(
+  taplineTemplatePlaybook,
+  taplineTemplateLayout,
+);
 const completedReviewReplays = new Map<string, string>(
   reviewSetGameSpecs.map((spec) => [
     `/api/matches/${spec.id}/replay`,
@@ -87,6 +105,12 @@ function siteReviewApi(): Plugin {
     }
     if (!url.pathname.startsWith('/api/')) {
       next();
+      return;
+    }
+
+    const sheetReview = sheetReviewResponse(request.method, url);
+    if (sheetReview !== undefined) {
+      sendJson(response, 200, sheetReview);
       return;
     }
 
@@ -162,6 +186,164 @@ function siteReviewApi(): Plugin {
     configurePreviewServer(server) {
       server.middlewares.use(middleware);
     },
+  };
+}
+
+function sheetReviewResponse(method: string | undefined, url: URL): unknown {
+  if (method?.toUpperCase() !== 'GET' || url.search !== '') return undefined;
+  if (url.pathname === '/api/sheets/catalog') return taplineReviewCatalog;
+  if (url.pathname === '/api/sheets') return [];
+  if (url.pathname === '/api/arc-relay/entrants') return [];
+  if (url.pathname === '/api/arc-relay/seasons/current') {
+    return {
+      seasonId: '71000000-0000-4000-8000-000000000001',
+      key: 'season-1',
+      number: 1,
+      name: 'Season 1',
+      status: 'open',
+      startsAt: '2026-07-28T00:00:00Z',
+      endsAt: '2026-09-01T00:00:00Z',
+      openedAt: '2026-07-28T00:00:00Z',
+      closedAt: null,
+      ladderId: '72000000-0000-4000-8000-000000000001',
+      ladderName: 'Tapline Season 1',
+      maximumFieldedPerAccount: 3,
+      baselineMatchesPerEntrantPerDay: 6,
+      standings: [],
+      recentMatches: [],
+    };
+  }
+  return undefined;
+}
+
+function makeTaplineReviewCatalog(
+  templatePlaybookJson: string,
+  templateLayoutJson: string,
+) {
+  const classes = [
+    ['kestrel', 'Kestrel', 'Vector Dash', 'Rapid interceptor built to abandon one lane and answer another.'],
+    ['palisade', 'Palisade', 'Prism Wall', 'Convoy shield whose projector face blanks a firing lane.'],
+    ['towline', 'Towline', 'Tractor Hook', 'Formation disruptor with a visible winch, cable and hook.'],
+    ['patchbay', 'Patchbay', 'Repair Beam', 'Field medic that trades its own gun tempo to preserve an ally.'],
+    ['lantern', 'Lantern', 'Survey Flare', 'Mobile sensor mast that buys certainty before a commitment.'],
+    ['mortar', 'Mortar', 'Falling Star', 'Lobbing artillery that punishes formations which stay put.'],
+    ['minesmith', 'Minesmith', 'Trip Node', 'Route controller carrying visible nodes for watched ground.'],
+    ['hush', 'Hush', 'Null Field', 'Dampener array that suppresses signatures instead of racing damage.'],
+    ['relay', 'Relay', 'Arc Toss', 'Core runner with a cradle and arms for one risky long handoff.'],
+    ['switchback', 'Switchback', 'Exchange', 'Paired mirrored frame that swaps which ally occupies danger.'],
+    ['longshot', 'Longshot', 'Rail Line', 'A body-length rail that turns a public corridor into a threat.'],
+    ['mason', 'Mason', 'Hardlight Block', 'Builder rig that bends a route with temporary cover.'],
+    ['sunder', 'Sunder', 'Target Paint', 'Designator optics that tell a team which target matters now.'],
+    ['repulsor', 'Repulsor', 'Kinetic Burst', 'Radial emitters that break a local formation from adjacency.'],
+    ['veil', 'Veil', 'Smoke Canister', 'Smoke-launcher skirmisher that authors uncertainty on the map.'],
+    ['nest', 'Nest', 'Sentinel Seed', 'Pod carrier that leaves one persistent, killable guard behind.'],
+  ].map(([id, name, signatureName, fantasy], index) => ({
+    id,
+    name,
+    signatureName,
+    fantasy,
+    starter: index < 5 || ['hush', 'relay', 'switchback'].includes(id),
+    // The review account owns the launch band so every composition interaction
+    // can be assessed without mixing entitlement states into the UX pass.
+    unlocked: true,
+  }));
+  return {
+    playlistKey: 'arc-relay-entrants',
+    playlistVersionId: '73000000-0000-4000-8000-000000000019',
+    map: makeTaplineReviewMap(),
+    slotCount: 8,
+    maximumCopiesPerClass: 2,
+    classes,
+    templatePlaybookJson,
+    templateLayoutJson,
+    stockOpponents: [{
+      id: 'wellwright-v1',
+      name: 'Wellwright v1',
+      description: 'The Tapline stock entrant: races all three Wells with independently authored hauler and support ladders.',
+      composition: ['kestrel', 'patchbay', 'relay', 'longshot', 'longshot', 'towline', 'towline', 'mason'],
+    }],
+  };
+}
+
+function makeTaplineReviewMap() {
+  const tileRows = [
+    '###############################',
+    '#.............................#',
+    '###.###########.###########.###',
+    '#......#......................#',
+    '#....#...#..###.###.##..###...#',
+    '#....#...#...#...#..#....#....#',
+    '#........#...#...#..#.##.#....#',
+    '#........#.......#.......#....#',
+    '#....#...###....##....#.......#',
+    '###..........##.#..........##.#',
+    '#.....###.##......###..##.....#',
+    '#.##.......#.......#....#.....#',
+    '#.....###..#.......#....#.....#',
+    '#..##...##...........##...##..#',
+    '#.....#....#.......#..###.....#',
+    '#.....#....#.......#.......##.#',
+    '#.....##..###......##.###.....#',
+    '#.##..........#.##..........###',
+    '#.......#....##....###...#....#',
+    '#....#.......#.......#........#',
+    '#....#.##.#..#...#...#........#',
+    '#....#....#..#...#...#...#....#',
+    '#...###..##.###.###..#...#....#',
+    '#......................#......#',
+    '###.###########.###########.###',
+    '#.............................#',
+    '###############################',
+  ];
+  const point = (x: number, y: number) => ({ x, y });
+  const rotate = ({ x, y }: { x: number; y: number }) => point(30 - x, 26 - y);
+  const rectangle = (minX: number, maxX: number, minY: number, maxY: number) =>
+    Array.from({ length: maxY - minY + 1 }, (_, dy) =>
+      Array.from({ length: maxX - minX + 1 }, (_, dx) => point(minX + dx, minY + dy)),
+    ).flat();
+  const westPad = rectangle(1, 4, 3, 8);
+  const eastPad = westPad.map(rotate).sort((a, b) => a.y - b.y || a.x - b.x);
+  const westHome = rectangle(6, 8, 6, 8);
+  const eastHome = westHome.map(rotate).sort((a, b) => a.y - b.y || a.x - b.x);
+  const westSpawns = [
+    point(1, 4), point(2, 4), point(3, 4), point(4, 4),
+    point(1, 5), point(3, 5), point(4, 5), point(1, 6),
+  ];
+  const objective = (id: string, tiles: { x: number; y: number }[]) => ({
+    id,
+    kind: 'Objective',
+    tiles,
+  });
+  return {
+    id: 'arc-relay-tapline-01',
+    version: 1,
+    formatVersion: 1,
+    width: 31,
+    height: 27,
+    tileRows,
+    regions: [
+      objective('heal-north', [point(21, 7)]),
+      objective('heal-south', [point(9, 19)]),
+      objective('well-north', [point(11, 6)]),
+      objective('well-centre', [point(15, 13)]),
+      objective('well-south', [point(19, 20)]),
+      objective('reactor-west', [point(2, 5)]),
+      objective('reactor-east', [point(28, 21)]),
+      objective('home-west', westHome),
+      objective('home-east', eastHome),
+    ],
+    spawnAnchors: westSpawns.flatMap((position, unitId) => [
+      { id: `team-0-unit-${unitId}`, position, facing: 'East' },
+      { id: `team-1-unit-${unitId}`, position: rotate(position), facing: 'West' },
+    ]),
+    tileTags: [
+      { id: 'home-pads', kind: 'SpawnProtected', tiles: [...westPad, ...eastPad] },
+      {
+        id: 'arc-required-tiles',
+        kind: 'SignaturePlacementForbidden',
+        tiles: [point(11, 6), point(15, 13), point(19, 20), point(2, 5), point(28, 21)],
+      },
+    ],
   };
 }
 
