@@ -411,8 +411,9 @@ public static class ToolchainInfo
     /// allied-traffic tickets, and a bounded two-tile oscillation breaker to
     /// the tactical executor, then pins hosted playlist v11 to those bytes.
     /// 0.9.41 adds team-relative Well subjects and pins hosted playlist v12.
-    /// 0.9.42 gives authored routes deterministic persistent terrain courses,
-    /// exposes their held/replan reasons, and pins hosted playlist v13.
+    /// 0.9.42 gives authored routes deterministic persistent terrain courses
+    /// and progress-aware waypoint hints, exposes their held/replan/bypass
+    /// reasons, and pins hosted playlist v13.
     /// Keep in lockstep with BotArena.Cli.csproj's
     /// Version — PackagedCliVersionTests pins them together.</summary>
     public const string CliVersion = "0.9.42";

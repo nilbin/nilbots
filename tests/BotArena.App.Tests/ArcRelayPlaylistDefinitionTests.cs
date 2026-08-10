@@ -59,6 +59,7 @@ public sealed class ArcRelayPlaylistDefinitionTests
         Assert.Contains("deterministicTrafficTickets", current.Provenance);
         Assert.Contains("boundedOscillationYield", current.Provenance);
         Assert.Contains("stickyAuthoredRouteCourses", current.Provenance);
+        Assert.Contains("progressAwareRouteHints", current.Provenance);
         Assert.Contains("freshRatingEra", current.Provenance);
         Assert.DoesNotContain("ratingContinuityFromVersions", current.Provenance);
         Assert.Equal(12, relativeWellV12.PlaylistVersion);

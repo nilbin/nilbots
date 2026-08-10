@@ -200,7 +200,7 @@ Project boundaries that must not be violated:
   permanent alias, so existing scripts and briefs keep their spelling.
   `--loop-profile` defaults to `ambush-warren-11`, and immutable hosted entrant
   playlist v13 pins that same rules/map line with Warren-native consolidated
-  tactical sheets and the sticky-route direct-ladder WASM artifact. v7
+  tactical sheets and the progress-aware-route direct-ladder WASM artifact. v7
   began the fresh Warren
   development rating era and remains immutable; v8 carried those development
   ratings because no game fact changed. Public Season 1 began on a separate,
@@ -210,8 +210,9 @@ Project boundaries that must not be violated:
   rules, and map, and v12 retained it again for team-relative Well subjects that
   are inert on this map — the stock cell's gameplay-state digest is
   byte-identical across the v11 and v12 artifacts. v13 starts a fresh rating
-  book because persistent authored-route courses change that registered stock
-  cell's gameplay-state digest; v12 ratings are never copied into v13. A first
+  book because persistent, progress-aware authored-route traversal changes that
+  registered stock cell's gameplay-state digest; v12 ratings are never copied
+  into v13. A first
   deployment of the historical v9-v12 stack may continue from the most recent
   registered v8-v11 ladder; it may never skip a registered intermediate ladder.
   Neither development population

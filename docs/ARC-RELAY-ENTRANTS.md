@@ -21,9 +21,11 @@ rating era; v8 repaired its frozen WASM artifact. Public Season 1 began at 1200
 on a separate v8 ladder. v9 moves the stock participant to the consolidated
 direct-ladder sheet representation; v10-v12 retained that rating book for
 semantic labels, bounded movement, and relative-Well subjects. v13 gives
-authored routes persistent terrain courses. Its registered stock-cell gameplay
-digest changed, so v13 starts a fresh rating book at the default rather than
-copying v12 Elo. ForwardCombat/Counterflow v6
+authored routes persistent terrain courses and progress-aware waypoint hints:
+arrival cannot lap a stationary body, and an unproductive point yields to a
+later reachable one. Its registered stock-cell gameplay digest changed, so v13
+starts a fresh rating book at the default rather than copying v12 Elo.
+ForwardCombat/Counterflow v6
 ratings and matches remain readable history but were not copied.
 
 ## Admission and composition

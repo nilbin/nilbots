@@ -7150,15 +7150,26 @@ Playlist v11 pins frozen stock v5. Rules, map, sheets, and sheet grammar are
 unchanged, so the open Season 1 rating book continues from the most recent
 registered v8-v10 ladder and may never skip a registered intermediate version.
 
-## 275. Authored routes own a persistent terrain course; hosted v13 starts a fresh rating book
+## 275. Authored routes own persistent courses and progress-aware hints; hosted v13 starts fresh
 
 Executor ruling (2026-08-10). An authored route is high-level intent, not a
 request to rediscover an unrelated shortest-path tie every tick. Once an exact
 life selects a deterministic terrain course toward its current route waypoint,
 it keeps that course until the ordered rung, route, lap, waypoint, or reachable
 course genuinely changes. Durable map reservations participate in the course;
-transient bodies and projectiles remain traffic. The route trace identifies
-commit, hold, advance, rejoin, and impossible-course replans explicitly.
+transient bodies and projectiles remain traffic.
+
+A waypoint is a directional hint, not a compulsory post. `corridorWidth`
+bounds local reflow around the route spine and never enlarges waypoint arrival.
+The arrival radius is clamped below the next leg's spacing, and proximity
+consumes a point only after newly measured approach. If durable terrain cannot
+reach the current point, or a body persistently fails to progress toward it,
+the executor deterministically tries later authored points without changing the
+rung, route, or traversal direction. Per-rung posture applies only on the final
+approach of an open route; shifting every intermediate point while measuring
+progress against the unshifted spine was itself a stationary-move-order bug.
+The trace identifies commit, hold, advance, rejoin, impossible-course replan,
+and unreachable/stuck waypoint bypass explicitly.
 
 The Drawbench catch was not actually a bidirectional patrol-selector bug: ATL1
 routes advance in authored order. Ordinary movement instead treated a visible
@@ -7170,16 +7181,29 @@ courses fix that generic ownership gap without naming Hunter, a route, a map,
 a side, or a coordinate.
 
 The original Drawbench route is restored. On seed 9001, team 1 unit 0 moves
-from 3 distinct tiles and 59.4% oscillation-yield to 97 tiles and 0%; the
-in-process and sandboxed-WASM gameplay-state digest is identical at
-`bdbfbd6a59a6dc088f5118444dbe9a2636fa076350c804eb9c57a6cf74af05cf`.
+from 3 distinct tiles and 59.4% oscillation-yield to 98 tiles and 1.7%, with
+228 movement commands and 9 shots. The in-process and sandboxed-WASM
+gameplay-state digest is identical at
+`40ba90209d1e10b549ea192b3b7002cb50de75c1ea09e8c24e3910b2b418ef2d`.
+
+Tapline's pre-workaround layout and sheets at `3a046bcc` remain the adversarial
+second fixture. Before this executor fix, neither team came closer than three
+tiles to its nearest starting Well; team 1's `centre-push` entered the movement
+channel on 27.9% of its selected body-ticks. With those three source files
+unchanged, both teams reach their Well exactly and that team-1 channel rises to
+60.4% (team 0: 39.7% to 93.0%). The in-process/WASM gameplay-state digest is
+identical at
+`40b9b4f2c73e59d2e209b6bcf8edcf048e419cf4b4017b523bc50feedbce66fb`.
+One initial body on each Tapline side remains physically caged by another
+body's permanent return reservation plus walls. That is a map/spawn finding,
+not route traversal, and is not hidden by relaxing reservation legality here.
 
 The WASM bytes change, so playlist v12 and frozen stock v6 remain immutable.
 Playlist v13 pins frozen stock v7. The registered Wellwright-vs-Wellwright
 seed-9001 stock digest changes from
 `c763b012c0b94077d661723a5036b361e7c18b1ea386c76c70c86ad89bc526a6`
 to
-`b7e974028d1235dced3f10845527eaade0b7b44018757391f9f3beb77368e702`.
+`3cd9cfdb58e758eb5aa2437e64c7f718e8ddb9a84502cbb5a73852cdcfeb0496`.
 The open v12 rating book therefore does not continue: v13 starts every opted-in
 entrant at the default rating and preserves v12 ratings and matches as readable
 history. Rules, map, sheets, grammar, and their contract fingerprints do not

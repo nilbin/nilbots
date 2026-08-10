@@ -139,7 +139,7 @@ public sealed class MindToolchainSurfaceTests
     }
 
     [Fact]
-    public void FrozenAmbushV13ArtifactMatchesTheCurrentStickyRouteBuild()
+    public void FrozenAmbushV13ArtifactMatchesTheCurrentProgressAwareRouteBuild()
     {
         string root = FindRepoRoot();
         string projectDirectory = Path.Combine(

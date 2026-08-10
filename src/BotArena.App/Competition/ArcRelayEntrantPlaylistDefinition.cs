@@ -30,9 +30,9 @@ public sealed class ArcRelayEntrantPlaylistDefinition : IHostedGenericMatchDefin
     public const string MatchmakingPolicyId = "passive-elo-proximity-v1";
     public const string Visibility = PlaylistVisibilityIds.Public;
     public const string TacticalArtifactHash =
-        "6dea59a7ee39d6291e6280f7f15c9dd8ed9706d377e7d3aad62b88336dd54abd";
+        "0db80102a2dbc902d2bc91dae434c729a39aa0788f8b691bc0ef3d11f5507e85";
     public const string TacticalBuildInputHash =
-        "32b69b5d79f3ac58263492be9fd570081e2ddb5213dd29d4ebfa07f83f27d9a6";
+        "f9a96665e9592b865f915c40115619c9f3068df848c0a8f5404c4034a642b129";
     public const string RelativeWellTacticalArtifactHash =
         "5e2995feb56dc480be28fdb2bde66879dc3f97d0a29ea338b11aa8a30eabaad7";
     public const string RelativeWellTacticalBuildInputHash =
@@ -99,7 +99,7 @@ public sealed class ArcRelayEntrantPlaylistDefinition : IHostedGenericMatchDefin
     public static ArcRelayEntrantPlaylistDefinition Create() => Create(
         Version,
         ArcRelayLoopProfile.AmbushWarren11,
-        source: "arc-relay-sticky-route-courses",
+        source: "arc-relay-progress-aware-routes",
         canonicalGameplayUnchangedFromVersion1: false);
 
     public static ArcRelayEntrantPlaylistDefinition CreateHistoricalV12() =>
@@ -299,6 +299,7 @@ public sealed class ArcRelayEntrantPlaylistDefinition : IHostedGenericMatchDefin
                 writer.WriteBoolean("boundedOscillationYield", true);
                 writer.WriteBoolean("relativeWellSubjects", true);
                 writer.WriteBoolean("stickyAuthoredRouteCourses", true);
+                writer.WriteBoolean("progressAwareRouteHints", true);
                 writer.WriteBoolean("freshRatingEra", true);
                 writer.WriteBoolean("priorStockGameplayDigestChanged", true);
                 writer.WriteString("linkedDataFormat", "ATL1");
