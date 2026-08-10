@@ -408,6 +408,16 @@ Web (`web/`) is one Vite/React build with two modes chosen at runtime in
   AND no recent activity, re-checked at the moment of deletion, and never pass
   `--force` without reading what the untracked files are. (Owner catch — the
   naive test would have deleted a goal an agent had started minutes earlier.)
+- **Get a branch name from the worktree, not from the ref path.** Branches here
+  are namespaced (`codex/x`, `agent/y`), so `refname.split('/')[-1]` yields `x`,
+  and `git log main..x` then fails as an unknown revision. Its stdout is empty,
+  which reads exactly like "no commits ahead" — a silent inversion that reports
+  every namespaced branch as merged. Use `git -C <path> branch --show-current`,
+  or `git merge-base --is-ancestor <branch> main`, which fails loudly instead.
+  Check the return code; never infer a fact from empty stdout. (This misfired
+  once: 21 worktrees on unmerged branches were removed as "merged". Nothing was
+  lost — the dirty check was path-based and sound, and `worktree remove` without
+  `--force` refuses a dirty tree — but only by luck of an unrelated safeguard.)
 - **Owner reviews are delivered as public tunnel URLs.** The owner reviews
   galleries and report evidence from his phone. Serving on localhost is not
   delivery: serve the review directory (scripts/serve-gallery.py), expose the
