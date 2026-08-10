@@ -30,9 +30,9 @@ public sealed class ArcRelayEntrantPlaylistDefinition : IHostedGenericMatchDefin
     public const string MatchmakingPolicyId = "passive-elo-proximity-v1";
     public const string Visibility = PlaylistVisibilityIds.Public;
     public const string TacticalArtifactHash =
-        "dd9d33421d4b5332bd0f5d74c50f3309dc8b5305e9c34eb481b359a8d2062ed8";
+        "6dea59a7ee39d6291e6280f7f15c9dd8ed9706d377e7d3aad62b88336dd54abd";
     public const string TacticalBuildInputHash =
-        "d91296f747c0b29aa202ae18f761efc76a3e0bd8c0ff17e8d7d4c8e684a2256b";
+        "32b69b5d79f3ac58263492be9fd570081e2ddb5213dd29d4ebfa07f83f27d9a6";
     public const string RelativeWellTacticalArtifactHash =
         "5e2995feb56dc480be28fdb2bde66879dc3f97d0a29ea338b11aa8a30eabaad7";
     public const string RelativeWellTacticalBuildInputHash =
