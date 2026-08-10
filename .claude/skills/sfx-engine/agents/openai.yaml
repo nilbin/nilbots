@@ -1,0 +1,4 @@
+interface:
+  display_name: "SFX Engine"
+  short_description: "Generate and package SFX Engine audio"
+  default_prompt: "Use $sfx-engine to generate a private sound-effect pack from prompts and preserve its provenance."

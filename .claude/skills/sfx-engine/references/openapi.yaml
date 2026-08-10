@@ -1,0 +1,369 @@
+openapi: 3.0.0
+info:
+  title: SFX Engine API
+  description: API for creating and managing sound effects and songs
+  version: 1.0.0
+servers:
+  - url: https://api.sfxengine.com/v1
+    description: Production server
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: Authorization
+      description: API key authentication. Format should be "Bearer YOUR_API_KEY"
+  schemas:
+    SoundEffect:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the sound effect
+        createdAt:
+          type: string
+          format: date-time
+          description: Creation timestamp
+        length:
+          type: number
+          description: Duration of the sound effect in seconds
+        userId:
+          type: string
+          description: ID of the user who created the sound effect
+        prompt:
+          type: string
+          description: Text prompt used to generate the sound effect
+        isPublic:
+          type: boolean
+          description: Whether the sound effect is publicly accessible
+        url:
+          type: string
+          description: URL to access the sound effect file
+        fileSize:
+          type: number
+          description: Size of the sound effect file in bytes
+        status:
+          type: string
+          enum: [generated, processing, failed]
+          description: Current status of the sound effect
+        imageUrl:
+          type: string
+          nullable: true
+          description: URL to the generated image for the sound effect
+      required:
+        - id
+        - createdAt
+        - length
+        - userId
+        - prompt
+        - isPublic
+        - url
+        - fileSize
+        - status
+    Song:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the song
+        createdAt:
+          type: string
+          format: date-time
+          description: Creation timestamp
+        length:
+          type: number
+          description: Duration of the song in seconds
+        userId:
+          type: string
+          description: ID of the user who created the song
+        prompt:
+          type: string
+          description: Text prompt used to generate the song
+        isPublic:
+          type: boolean
+          description: Whether the song is publicly accessible
+        url:
+          type: string
+          description: URL to access the song file
+        fileSize:
+          type: number
+          description: Size of the song file in bytes
+        status:
+          type: string
+          enum: [generated, processing, failed]
+          description: Current status of the song
+        imageUrl:
+          type: string
+          nullable: true
+          description: URL to the generated image for the song
+      required:
+        - id
+        - createdAt
+        - length
+        - userId
+        - prompt
+        - isPublic
+        - url
+        - fileSize
+        - status
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error message
+      required:
+        - error
+    PaginatedSoundEffects:
+      type: object
+      properties:
+        pageCount:
+          type: integer
+          description: Total number of pages available
+        sounds:
+          type: array
+          items:
+            $ref: '#/components/schemas/SoundEffect'
+          description: List of sound effects for the current page
+      required:
+        - pageCount
+        - sounds
+    PaginatedSongs:
+      type: object
+      properties:
+        pageCount:
+          type: integer
+          description: Total number of pages available
+        songs:
+          type: array
+          items:
+            $ref: '#/components/schemas/Song'
+          description: List of songs for the current page
+      required:
+        - pageCount
+        - songs
+  responses:
+    Unauthorized:
+      description: Unauthorized - Invalid or missing API key
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    BadRequest:
+      description: Bad Request - Invalid parameters
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Not Found - Resource does not exist
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    ServerError:
+      description: Internal Server Error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+security:
+  - ApiKeyAuth: []
+paths:
+  # Sound Effects Group
+  /sound-effect:
+    get:
+      summary: List all sound effects
+      description: Returns a paginated list of sound effects created by the authenticated user
+      operationId: listSoundEffects
+      parameters:
+        - name: page
+          in: query
+          required: false
+          description: Page number (zero-based)
+          schema:
+            type: string
+            default: '0'
+        - name: limit
+          in: query
+          required: false
+          description: Number of items per page (max 25)
+          schema:
+            type: string
+            default: '25'
+      responses:
+        '200':
+          description: A paginated list of sound effects
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedSoundEffects'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/ServerError'
+    post:
+      summary: Create a new sound effect
+      description: Creates a new sound effect based on the provided prompt
+      operationId: createSoundEffect
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                prompt:
+                  type: string
+                  description: Text prompt describing the sound to generate
+                  minLength: 1
+                  maxLength: 255
+                length:
+                  type: integer
+                  description: Desired length of the sound effect in seconds
+                  minimum: 1
+                  maximum: 47
+                secondsToStart:
+                  type: integer
+                  description: Number of seconds to skip at the beginning
+                  minimum: 0
+                  maximum: 47
+                  default: 0
+                isPublic:
+                  type: boolean
+                  description: Whether the sound effect should be publicly accessible
+                  default: false
+                webhookUrl:
+                  type: string
+                  format: uri
+                  description: URL to notify when the job completes
+              required:
+                - prompt
+                - length
+      responses:
+        '200':
+          description: Sound effect created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SoundEffect'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /sound-effect/{soundEffectId}:
+    get:
+      summary: Get a specific sound effect
+      description: Returns details for a specific sound effect
+      operationId: getSoundEffect
+      parameters:
+        - name: soundEffectId
+          in: path
+          required: true
+          description: ID of the sound effect to retrieve
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sound effect details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SoundEffect'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  # Songs Group
+  /song:
+    get:
+      summary: List all songs
+      description: Returns a paginated list of songs created by the authenticated user
+      operationId: listSongs
+      parameters:
+        - name: page
+          in: query
+          required: false
+          description: Page number (zero-based)
+          schema:
+            type: string
+            default: '0'
+        - name: limit
+          in: query
+          required: false
+          description: Number of items per page (max 25)
+          schema:
+            type: string
+            default: '25'
+      responses:
+        '200':
+          description: A paginated list of songs
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedSongs'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/ServerError'
+    post:
+      summary: Create a new song
+      description: Creates a new song based on the provided prompt
+      operationId: createSong
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                prompt:
+                  type: string
+                  description: Text prompt describing the song to generate
+                  minLength: 1
+                  maxLength: 255
+              required:
+                - prompt
+      responses:
+        '200':
+          description: Song created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Song'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /song/{songId}:
+    get:
+      summary: Get a specific song
+      description: Returns details for a specific song
+      operationId: getSong
+      parameters:
+        - name: songId
+          in: path
+          required: true
+          description: ID of the song to retrieve
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Song details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Song'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'

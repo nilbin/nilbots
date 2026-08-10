@@ -103,6 +103,41 @@ validated.push(
     },
   }),
 );
+validated.push(
+  await validateCandidateSet({
+    label: "V5 SFX Engine addition",
+    manifestName: "manifest-v5.json",
+    version: 5,
+    sampleRate: 48_000,
+    channels: 2,
+    packCount: 1,
+    cueCount: 15,
+    fileCount: 15,
+    minStereoDifference: 0,
+    expectedPackIds: ["astral-relay"],
+    expectedCueIds: [
+      "attack-windup",
+      "projectile",
+      "attack-fizzle",
+      "attack-cancel",
+      "impact",
+      "destroyed",
+      "arc-birth",
+      "arc-pickup",
+      "arc-steal",
+      "arc-drop",
+      "arc-bank",
+      "arc-pulse",
+      "arc-handoff",
+      "deflect",
+      "arrival",
+    ],
+    expectedStatuses: {
+      mapped: 9,
+      proposed: 6,
+    },
+  }),
+);
 
 for (const filename of [
   "index.html",
@@ -110,6 +145,7 @@ for (const filename of [
   "manifest-v2.js",
   "manifest-v3.js",
   "manifest-v4.js",
+  "manifest-v5.js",
   "soundboard.css",
   "soundboard.js",
 ]) {
@@ -142,6 +178,13 @@ async function validateCandidateSet(specification) {
     `${specification.label}: must contain exactly ` +
       `${specification.packCount} directions`,
   );
+  if (specification.expectedPackIds) {
+    assert(
+      JSON.stringify(manifest.packs.map((pack) => pack.id)) ===
+        JSON.stringify(specification.expectedPackIds),
+      `${specification.label}: pack IDs do not match`,
+    );
+  }
 
   const referenceIds = manifest.packs[0].cues.map((cue) => cue.id);
   assert(

@@ -1,0 +1,484 @@
+{
+  "schemaVersion": 1,
+  "provider": "sfx-engine",
+  "providerDisplayName": "SFX Engine",
+  "apiBase": "https://api.sfxengine.com/v1",
+  "apiSpec": ".claude/skills/sfx-engine/references/openapi.yaml",
+  "apiSpecSha256": "c09974c0f70344251844c00e029bcdc5e543106c8cdc315afa8bc6ef5722f116",
+  "keychainService": "com.nilbots.sfxengine.api-key",
+  "outputDirectory": "packs/astral-relay",
+  "privacy": "Every request sets isPublic to false.",
+  "processing": "Provider output decoded with macOS afconvert to 48 kHz stereo signed 16-bit PCM, then DC-corrected, endpoint-faded, and peak-normalized without synthesized layers.",
+  "pack": {
+    "id": "astral-relay",
+    "number": "D",
+    "label": "Astral Relay",
+    "kicker": "PRISTINE · SPECTRAL · CINEMATIC",
+    "accent": "#52f4c4",
+    "description": "SFX Engine's interpretation of one coherent arena vocabulary: clean electromagnetic gestures, quiet orbital scale, and continuous-beam combat.",
+    "thesis": "Best if the arena should feel like a precise autonomous system operating inside a vast living signal field.",
+    "watchFor": [
+      "generated spectral texture",
+      "continuous-beam identity",
+      "objective scale without music"
+    ],
+    "axes": {
+      "luminous": 78,
+      "depth": 84,
+      "motion": 73,
+      "diffusion": 88
+    }
+  },
+  "cues": [
+    {
+      "id": "attack-windup",
+      "file": "attack-windup.wav",
+      "requestLengthSeconds": 1,
+      "targetPeak": 0.78,
+      "prompt": "Isolated premium sci-fi game SFX: a clean airy electromagnetic field gathers and rises for one second, wide deep-space ambience, unresolved ending ready to join a beam. No gun, projectile, impact, retro beep, lo-fi, voice, or music.",
+      "result": {
+        "apiSoundEffectId": "se_65kz3jqgfh7eabzk",
+        "status": "generated",
+        "providerCreatedAt": "2026-08-10 22:04:45.681",
+        "providerLengthSeconds": 1,
+        "providerFileSize": 176444,
+        "recordedAt": "2026-08-10T22:05:29.786Z",
+        "downloadedContentType": "audio/wav",
+        "sourceSha256": "aca8aec334e75659f55055f93de7076765f381078cd39a8c589f3f905d5f152c",
+        "outputSha256": "42ca3576ebf2fc33f2297a4dd6cf3936be900b8397c3af0c610bf7c464f7e64b",
+        "outputBytes": 192044,
+        "metrics": {
+          "durationSeconds": 1,
+          "sampleRate": 48000,
+          "channels": 2,
+          "bitsPerSample": 16,
+          "peak": 0.78,
+          "rms": 0.2224,
+          "stereoDifferenceRms": 0.0001,
+          "dcOffset": 0.000002,
+          "clippedSamples": 0
+        }
+      }
+    },
+    {
+      "id": "projectile",
+      "file": "projectile.wav",
+      "requestLengthSeconds": 1,
+      "targetPeak": 0.84,
+      "prompt": "Isolated premium sci-fi game SFX: a continuous energy beam snaps into focus, smoothly sustains as a bright spectral line, then leaves a short ionized tail. No projectile flyby, gunshot, explosion, retro beep, lo-fi, voice, or music.",
+      "result": {
+        "apiSoundEffectId": "se_p5q22xni42dohzxs",
+        "status": "generated",
+        "providerCreatedAt": "2026-08-10 22:05:32.607",
+        "providerLengthSeconds": 1,
+        "providerFileSize": 176444,
+        "recordedAt": "2026-08-10T22:05:55.628Z",
+        "downloadedContentType": "audio/wav",
+        "sourceSha256": "e403e6c7fba5ad65c3ef82230a3cc0ed377df56284e164521342dd4c57d67d32",
+        "outputSha256": "1db4c38d9eb4eef7645b399b80ee5c5c7d2d3dbf8c0804319588026c081fb60c",
+        "outputBytes": 192044,
+        "metrics": {
+          "durationSeconds": 1,
+          "sampleRate": 48000,
+          "channels": 2,
+          "bitsPerSample": 16,
+          "peak": 0.84,
+          "rms": 0.0641,
+          "stereoDifferenceRms": 0.1032,
+          "dcOffset": 0.000002,
+          "clippedSamples": 0
+        }
+      }
+    },
+    {
+      "id": "attack-fizzle",
+      "file": "attack-fizzle.wav",
+      "requestLengthSeconds": 2,
+      "targetPeak": 0.76,
+      "prompt": "Isolated premium sci-fi game SFX: a charged electromagnetic field loses coherence without firing, airy phase collapse and downward spectral dispersion in deep space. No impact, explosion, gun, projectile, retro glitch, voice, or music.",
+      "result": {
+        "apiSoundEffectId": "se_nqvfspz4k4imjull",
+        "status": "generated",
+        "providerCreatedAt": "2026-08-10 22:05:58.103",
+        "providerLengthSeconds": 2,
+        "providerFileSize": 352844,
+        "recordedAt": "2026-08-10T22:06:20.765Z",
+        "downloadedContentType": "audio/wav",
+        "sourceSha256": "5256d4ec111660d72ca8747ddd030f08d3aa1d18773dac4f286c6a37e66b3005",
+        "outputSha256": "37cd87670c5854d62d4080d5baf13b450007613f125a24fe4c95ce0a08a4247e",
+        "outputBytes": 384044,
+        "metrics": {
+          "durationSeconds": 2,
+          "sampleRate": 48000,
+          "channels": 2,
+          "bitsPerSample": 16,
+          "peak": 0.76,
+          "rms": 0.2039,
+          "stereoDifferenceRms": 0.2577,
+          "dcOffset": 0.000014,
+          "clippedSamples": 0
+        }
+      }
+    },
+    {
+      "id": "attack-cancel",
+      "file": "attack-cancel.wav",
+      "requestLengthSeconds": 1,
+      "targetPeak": 0.72,
+      "prompt": "Isolated premium sci-fi game SFX: a deliberate charged field cleanly de-energizes, compact downward suction and calm shutdown in deep space. No failure crackle, impact, gun, projectile, retro beep, voice, or music.",
+      "result": {
+        "apiSoundEffectId": "se_lp5a2om2upzdikh2",
+        "status": "generated",
+        "providerCreatedAt": "2026-08-10 22:06:22.684",
+        "providerLengthSeconds": 1,
+        "providerFileSize": 176444,
+        "recordedAt": "2026-08-10T22:06:45.234Z",
+        "downloadedContentType": "audio/wav",
+        "sourceSha256": "4f4de5db0fdbd0cec7ebf388967790dbc5f0281f0057b42470ccefa7bc6e6170",
+        "outputSha256": "0bb09be6b507d10ef59c059906146f86ffbfdda2ec0fde5a4fcb5348d0f91515",
+        "outputBytes": 192044,
+        "metrics": {
+          "durationSeconds": 1,
+          "sampleRate": 48000,
+          "channels": 2,
+          "bitsPerSample": 16,
+          "peak": 0.72,
+          "rms": 0.1158,
+          "stereoDifferenceRms": 0.1815,
+          "dcOffset": 0.000001,
+          "clippedSamples": 0
+        }
+      }
+    },
+    {
+      "id": "impact",
+      "file": "impact.wav",
+      "requestLengthSeconds": 1,
+      "targetPeak": 0.84,
+      "prompt": "Isolated premium sci-fi game SFX: armor struck by a continuous energy beam, rounded electromagnetic pressure bloom with crystalline shield distortion and a compact spacey tail. No bullet, metal clank, explosion, gunshot, retro beep, or music.",
+      "result": {
+        "apiSoundEffectId": "se_biab5iefgmlews75",
+        "status": "generated",
+        "providerCreatedAt": "2026-08-10 22:06:47.135",
+        "providerLengthSeconds": 1,
+        "providerFileSize": 176444,
+        "recordedAt": "2026-08-10T22:07:06.420Z",
+        "downloadedContentType": "audio/wav",
+        "sourceSha256": "f3fad72eeef285baac9e618326fdb1a95fe4e6f096140c673ff8f32559a6bb6d",
+        "outputSha256": "53c8df9f4f6ae5ff1702831cc37ab26abb88c327585252c083b1acfad88da107",
+        "outputBytes": 192044,
+        "metrics": {
+          "durationSeconds": 1,
+          "sampleRate": 48000,
+          "channels": 2,
+          "bitsPerSample": 16,
+          "peak": 0.84,
+          "rms": 0.1435,
+          "stereoDifferenceRms": 0.1349,
+          "dcOffset": 0.000006,
+          "clippedSamples": 0
+        }
+      }
+    },
+    {
+      "id": "destroyed",
+      "file": "destroyed.wav",
+      "requestLengthSeconds": 3,
+      "targetPeak": 0.84,
+      "prompt": "Isolated premium sci-fi game SFX: an autonomous robot's energy systems collapse, broad spectral power-down and fragments of light falling out of orbit into a spacious tail. Not an explosion; no metal crash, voice, alarm, lo-fi, or music.",
+      "result": {
+        "apiSoundEffectId": "se_ri7eif5fchqsufbx",
+        "status": "generated",
+        "providerCreatedAt": "2026-08-10 22:07:08.507",
+        "providerLengthSeconds": 3,
+        "providerFileSize": 529244,
+        "recordedAt": "2026-08-10T22:07:27.900Z",
+        "downloadedContentType": "audio/wav",
+        "sourceSha256": "e87590770967b70a2f6c5095d42704595268e42de614a7bed469c5468b00c51a",
+        "outputSha256": "5317f0592aafdf1f1f020006359faf26eace5c0fe1c847f9bfa4b6a1cd5bcbc9",
+        "outputBytes": 576044,
+        "metrics": {
+          "durationSeconds": 3,
+          "sampleRate": 48000,
+          "channels": 2,
+          "bitsPerSample": 16,
+          "peak": 0.84,
+          "rms": 0.1744,
+          "stereoDifferenceRms": 0.1675,
+          "dcOffset": 0.000001,
+          "clippedSamples": 0
+        }
+      }
+    },
+    {
+      "id": "arc-birth",
+      "file": "arc-birth.wav",
+      "requestLengthSeconds": 2,
+      "targetPeak": 0.82,
+      "prompt": "Isolated premium sci-fi game SFX: a neutral energy Core is born from a cosmic Well, quiet vacuum opening into a luminous rising sphere and soft orbital bloom. Pristine and wondrous; no UI beep, impact, voice, retro, lo-fi, or music.",
+      "result": {
+        "apiSoundEffectId": "se_iqikxxdwkllvbeac",
+        "status": "generated",
+        "providerCreatedAt": "2026-08-10 22:07:29.848",
+        "providerLengthSeconds": 2,
+        "providerFileSize": 352844,
+        "recordedAt": "2026-08-10T22:07:53.206Z",
+        "downloadedContentType": "audio/wav",
+        "sourceSha256": "31a9c2b504547a0ae5c5a465f6043a8e39f12a638a96baec17abce10f1cc5d9b",
+        "outputSha256": "f80c01d0949d989b7408285aa4737db58eda643b3c4ae7e0c3e7736c61f4f9ff",
+        "outputBytes": 384044,
+        "metrics": {
+          "durationSeconds": 2,
+          "sampleRate": 48000,
+          "channels": 2,
+          "bitsPerSample": 16,
+          "peak": 0.82,
+          "rms": 0.084,
+          "stereoDifferenceRms": 0.0842,
+          "dcOffset": 0.000001,
+          "clippedSamples": 0
+        }
+      }
+    },
+    {
+      "id": "arc-pickup",
+      "file": "arc-pickup.wav",
+      "requestLengthSeconds": 1,
+      "targetPeak": 0.8,
+      "prompt": "Isolated premium sci-fi game SFX: a robot acquires a floating energy Core, small halo locks into orbit with a clean ascending spectral gesture and soft wide tail. No reward jingle, coin, UI beep, voice, retro, lo-fi, or music.",
+      "result": {
+        "apiSoundEffectId": "se_76vk4smpedneqbv2",
+        "status": "generated",
+        "providerCreatedAt": "2026-08-10 22:07:55.078",
+        "providerLengthSeconds": 1,
+        "providerFileSize": 176444,
+        "recordedAt": "2026-08-10T22:08:17.660Z",
+        "downloadedContentType": "audio/wav",
+        "sourceSha256": "ded2c5e8b91bb57658b7ce3ab62e9c509b88d4a2705dc9cf8aa4727e22fbfbfb",
+        "outputSha256": "45a84949038432a26bc87e11af8527f3bd7665be9252d2bdf490552bd9ec9347",
+        "outputBytes": 192044,
+        "metrics": {
+          "durationSeconds": 1,
+          "sampleRate": 48000,
+          "channels": 2,
+          "bitsPerSample": 16,
+          "peak": 0.8,
+          "rms": 0.1061,
+          "stereoDifferenceRms": 0.0001,
+          "dcOffset": 0,
+          "clippedSamples": 0
+        }
+      }
+    },
+    {
+      "id": "arc-steal",
+      "file": "arc-steal.wav",
+      "requestLengthSeconds": 2,
+      "targetPeak": 0.84,
+      "prompt": "Isolated premium sci-fi game SFX: possession of a floating energy Core reverses between rival robots, two orbital spectral paths cross and one sharply takes focus. Tense deep-space ambience; no alarm, impact, voice, retro, lo-fi, or music.",
+      "result": {
+        "apiSoundEffectId": "se_psbmutxr54eqlwp6",
+        "status": "generated",
+        "providerCreatedAt": "2026-08-10 22:08:20.157",
+        "providerLengthSeconds": 2,
+        "providerFileSize": 352844,
+        "recordedAt": "2026-08-10T22:08:43.008Z",
+        "downloadedContentType": "audio/wav",
+        "sourceSha256": "93c83de3173facb93630208f0bf8c3a770cc728c3b214c5fd40c1408e1b3ed6d",
+        "outputSha256": "b1de89fd153aea09ade80cb4eb36c61b3c1319819c13bb29a147a6e8728f69bf",
+        "outputBytes": 384044,
+        "metrics": {
+          "durationSeconds": 2,
+          "sampleRate": 48000,
+          "channels": 2,
+          "bitsPerSample": 16,
+          "peak": 0.84,
+          "rms": 0.0981,
+          "stereoDifferenceRms": 0.0873,
+          "dcOffset": 0.000002,
+          "clippedSamples": 0
+        }
+      }
+    },
+    {
+      "id": "arc-drop",
+      "file": "arc-drop.wav",
+      "requestLengthSeconds": 2,
+      "targetPeak": 0.8,
+      "prompt": "Isolated premium sci-fi game SFX: a floating energy Core loses its carrier, its stable halo releases and descends into an unresolved low orbital field. Spacious, restrained, pristine; no impact, failure buzzer, voice, retro, lo-fi, or music.",
+      "result": {
+        "apiSoundEffectId": "se_b3m7pqlckmalnj5z",
+        "status": "generated",
+        "providerCreatedAt": "2026-08-10 22:08:44.929",
+        "providerLengthSeconds": 2,
+        "providerFileSize": 352844,
+        "recordedAt": "2026-08-10T22:09:07.810Z",
+        "downloadedContentType": "audio/wav",
+        "sourceSha256": "68e84b54570fd139628724de41dfedf0d479b6127de3922b26267859fafffb54",
+        "outputSha256": "c88069a8c18f0fa2053e5c542428c4ff871270ccde2a1e1fc3132fced05652ab",
+        "outputBytes": 384044,
+        "metrics": {
+          "durationSeconds": 2,
+          "sampleRate": 48000,
+          "channels": 2,
+          "bitsPerSample": 16,
+          "peak": 0.8,
+          "rms": 0.359,
+          "stereoDifferenceRms": 0.2346,
+          "dcOffset": 0.000006,
+          "clippedSamples": 0
+        }
+      }
+    },
+    {
+      "id": "arc-bank",
+      "file": "arc-bank.wav",
+      "requestLengthSeconds": 2,
+      "targetPeak": 0.84,
+      "prompt": "Isolated premium sci-fi game SFX: a floating energy Core is drawn into a reactor, fast inward orbital suction resolves as a broad radiant power bloom. Meaningful but restrained; no cash register, win jingle, voice, retro, lo-fi, or music.",
+      "result": {
+        "apiSoundEffectId": "se_mzll35adst3u6frb",
+        "status": "generated",
+        "providerCreatedAt": "2026-08-10 22:09:09.73",
+        "providerLengthSeconds": 2,
+        "providerFileSize": 352844,
+        "recordedAt": "2026-08-10T22:09:32.454Z",
+        "downloadedContentType": "audio/wav",
+        "sourceSha256": "5c3038f7cfebdd1b45f274d91413c66a744c39724e5bac98113f4a1afae31694",
+        "outputSha256": "06ab6a5765349ba48a6cc2a662ff3ba92e4201423d0378253c1465b22acae787",
+        "outputBytes": 384044,
+        "metrics": {
+          "durationSeconds": 2,
+          "sampleRate": 48000,
+          "channels": 2,
+          "bitsPerSample": 16,
+          "peak": 0.84,
+          "rms": 0.1089,
+          "stereoDifferenceRms": 0.126,
+          "dcOffset": 0.000003,
+          "clippedSamples": 0
+        }
+      }
+    },
+    {
+      "id": "arc-pulse",
+      "file": "arc-pulse.wav",
+      "requestLengthSeconds": 4,
+      "targetPeak": 0.88,
+      "prompt": "Isolated premium sci-fi game SFX: a charged reactor releases an immense arena-scale energy Pulse, deep pressure wave opening into radiant spectral motion and a long celestial decay. Powerful, pristine, no explosion, drums, voice, retro, lo-fi, or music.",
+      "result": {
+        "apiSoundEffectId": "se_s5mk3q5sgq5xk6jv",
+        "status": "generated",
+        "providerCreatedAt": "2026-08-10 22:09:34.544",
+        "providerLengthSeconds": 4,
+        "providerFileSize": 705644,
+        "recordedAt": "2026-08-10T22:09:53.938Z",
+        "downloadedContentType": "audio/wav",
+        "sourceSha256": "4ccaed35f31546e549845b18a17adc4f347ad7a146cc861bfb9e733f376d1200",
+        "outputSha256": "156f81dc72edb46a119405e186c7faa379469038fb6150533de23d37b0bd320c",
+        "outputBytes": 768044,
+        "metrics": {
+          "durationSeconds": 4,
+          "sampleRate": 48000,
+          "channels": 2,
+          "bitsPerSample": 16,
+          "peak": 0.88,
+          "rms": 0.1708,
+          "stereoDifferenceRms": 0.1725,
+          "dcOffset": 0.000065,
+          "clippedSamples": 0
+        }
+      }
+    },
+    {
+      "id": "arc-handoff",
+      "file": "arc-handoff.wav",
+      "requestLengthSeconds": 2,
+      "targetPeak": 0.8,
+      "prompt": "Isolated premium sci-fi game SFX: allied robots smoothly hand off a floating energy Core, two soft orbital halos exchange sides and settle into one coherent field. Graceful deep-space motion; no reward jingle, UI beep, voice, retro, lo-fi, or music.",
+      "result": {
+        "apiSoundEffectId": "se_bszv62ee2mmetrkm",
+        "status": "generated",
+        "providerCreatedAt": "2026-08-10 22:09:55.821",
+        "providerLengthSeconds": 2,
+        "providerFileSize": 352844,
+        "recordedAt": "2026-08-10T22:10:19.078Z",
+        "downloadedContentType": "audio/wav",
+        "sourceSha256": "294d31d9c6f2b9d9ecef196d1d9c15fa3f33d23402a0483fddf26611cdea2c5e",
+        "outputSha256": "d0fee3b9d9701daf656eb510912248f97f919c36495e88bca26626d3a9fb5e5a",
+        "outputBytes": 384044,
+        "metrics": {
+          "durationSeconds": 2,
+          "sampleRate": 48000,
+          "channels": 2,
+          "bitsPerSample": 16,
+          "peak": 0.8,
+          "rms": 0.1236,
+          "stereoDifferenceRms": 0.191,
+          "dcOffset": 0.000001,
+          "clippedSamples": 0
+        }
+      }
+    },
+    {
+      "id": "deflect",
+      "file": "deflect.wav",
+      "requestLengthSeconds": 1,
+      "targetPeak": 0.82,
+      "prompt": "Isolated premium sci-fi game SFX: a continuous energy beam meets a defensive field and bends sharply away as a fast spectral curve with airy phase release. No bullet ricochet, metal, explosion, gunshot, retro beep, voice, or music.",
+      "result": {
+        "apiSoundEffectId": "se_uokoymhkqmhzxhkm",
+        "status": "generated",
+        "providerCreatedAt": "2026-08-10 22:10:20.967",
+        "providerLengthSeconds": 1,
+        "providerFileSize": 176444,
+        "recordedAt": "2026-08-10T22:10:43.640Z",
+        "downloadedContentType": "audio/wav",
+        "sourceSha256": "bf938b7818d53227647e180f7e1a532660b85c6c95b41b6594083277c30d4c35",
+        "outputSha256": "56a051d582c3ee064a93b23d9cc46187dbfd99dcd71a70f611bdf6cd9916474e",
+        "outputBytes": 192044,
+        "metrics": {
+          "durationSeconds": 1,
+          "sampleRate": 48000,
+          "channels": 2,
+          "bitsPerSample": 16,
+          "peak": 0.82,
+          "rms": 0.1537,
+          "stereoDifferenceRms": 0.0001,
+          "dcOffset": 0.000001,
+          "clippedSamples": 0
+        }
+      }
+    },
+    {
+      "id": "arrival",
+      "file": "arrival.wav",
+      "requestLengthSeconds": 2,
+      "targetPeak": 0.8,
+      "prompt": "Isolated premium sci-fi game SFX: an autonomous robot condenses into the arena from a quiet orbital field, diffuse particles focusing into a stable luminous presence. Calm deep-space arrival; no teleport zap, fanfare, voice, retro, lo-fi, or music.",
+      "result": {
+        "apiSoundEffectId": "se_mf27ldhhakaaewnb",
+        "status": "generated",
+        "providerCreatedAt": "2026-08-10 22:10:45.497",
+        "providerLengthSeconds": 2,
+        "providerFileSize": 352844,
+        "recordedAt": "2026-08-10T22:11:08.172Z",
+        "downloadedContentType": "audio/wav",
+        "sourceSha256": "5e19e5d081aa44e7a0f5c81e490fe21564a43635facb129a86875f5ea9f959ad",
+        "outputSha256": "22736b9d867d3dbd0df3594de536466b2db89aec10a84f4f474ab52ee9d2038e",
+        "outputBytes": 384044,
+        "metrics": {
+          "durationSeconds": 2,
+          "sampleRate": 48000,
+          "channels": 2,
+          "bitsPerSample": 16,
+          "peak": 0.8,
+          "rms": 0.1469,
+          "stereoDifferenceRms": 0.0881,
+          "dcOffset": 0.000001,
+          "clippedSamples": 0
+        }
+      }
+    }
+  ]
+}

@@ -63,12 +63,13 @@ node scripts/generate-audio-candidates.mjs
 node scripts/generate-audio-v2-candidates.mjs
 node scripts/generate-audio-v3-candidates.mjs
 node scripts/generate-audio-v4-candidates.mjs
+node scripts/build-audio-v5-candidates.mjs
 node scripts/validate-audio-candidates.mjs
 node scripts/build-audio-sound-lab-site.mjs
 ```
 
 The soundboard at `art/audio/sound-lab/index.html` works from a static host and
-supports direct A/B/C comparison, context demo sequences, volume control,
+supports direct A/B/C/D comparison, context demo sequences, volume control,
 keyboard shortcuts, and a browser-local favorite marker.
 
 ### Arc Relay space / ambient reconcept (V4 review)
@@ -108,6 +109,34 @@ with a second full room.
 The proposed wind-up, fizzle, cancel, handoff, deflection, and arrival cues
 remain audition material only. V4 does not alter the approved runtime pack,
 effect mappings, preferences, or Neon Protocol soundtrack.
+
+### SFX Engine addition (V5 review)
+
+V5 adds **Astral Relay** as direction D alongside the three V4 directions. It
+uses SFX Engine for all fifteen matching cues, with prompts written around the
+same space / ambient brief and the same wind-up → beam / fizzle / cancel attack
+grammar. It is an additional provider comparison, not a replacement or a
+runtime promotion.
+
+The reusable workflow is `.claude/skills/sfx-engine/SKILL.md`, and its saved
+OpenAPI 3.0 contract is
+`.claude/skills/sfx-engine/references/openapi.yaml`. Generation reads the API
+key from `SFXENGINE_API_KEY` or macOS Keychain service
+`com.nilbots.sfxengine.api-key`; no credential is stored in the repository.
+Every request is private. The committed generation record preserves prompts,
+provider IDs and timestamps, request lengths, download types, source/output
+hashes, and measurements while deliberately omitting returned URLs and user
+IDs.
+
+Provider output is decoded to 48 kHz stereo signed 16-bit PCM, DC-corrected,
+endpoint-faded, and peak-normalized; no procedural layers are added. SFX Engine
+returned the attack wind-up as effectively mono and returned Core pickup and
+beam deflection as dual-mono. The review retains that result rather than
+manufacturing width. Technical validation therefore requires two channels but
+does not require nonzero stereo difference for V5.
+
+V5 remains review-only. It changes neither the approved Obsidian Foundry
+runtime package nor the Neon Protocol soundtrack.
 
 ### Arc Relay tactile reconcept (V3 archive)
 
@@ -223,7 +252,7 @@ runs ahead of received ticks.
 
 For V2, add cue metadata once in `generate-audio-v2-candidates.mjs`, implement
 the same cue ID in every candidate renderer, regenerate, and run the validator.
-Every direction must retain identical cue coverage and order for honest A/B/C
+Every direction must retain identical cue coverage and order for honest A/B/C/D
 review. New synthesis primitives must receive the cue-scoped seeded generator
 instead of using `Math.random()`. Repeated combat cues should keep their dry
 signal prominent; richer tails belong primarily to destruction, match, and

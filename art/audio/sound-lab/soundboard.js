@@ -1,7 +1,15 @@
 (() => {
-  const manifest = window.SOUND_LAB_V4_MANIFEST;
-  if (!manifest || manifest.version !== 4)
+  const baseManifest = window.SOUND_LAB_V4_MANIFEST;
+  const additionalManifest = window.SOUND_LAB_V5_MANIFEST;
+  if (!baseManifest || baseManifest.version !== 4)
     throw new Error('V4 SFX review manifest did not load.');
+  if (!additionalManifest || additionalManifest.version !== 5)
+    throw new Error('V5 SFX Engine manifest did not load.');
+  const manifest = {
+    ...baseManifest,
+    version: 5,
+    packs: [...baseManifest.packs, ...additionalManifest.packs],
+  };
 
   const packTemplate = document.querySelector('#pack-template');
   const cueTemplate = document.querySelector('#cue-template');
@@ -102,7 +110,11 @@
 
   function readFavorite() {
     try {
-      return window.localStorage.getItem('nilbots.audio.v4.favorite') ?? '';
+      return (
+        window.localStorage.getItem('nilbots.audio.v5.favorite') ??
+        window.localStorage.getItem('nilbots.audio.v4.favorite') ??
+        ''
+      );
     } catch {
       return '';
     }
@@ -110,8 +122,8 @@
 
   function writeFavorite(value) {
     try {
-      if (value) window.localStorage.setItem('nilbots.audio.v4.favorite', value);
-      else window.localStorage.removeItem('nilbots.audio.v4.favorite');
+      if (value) window.localStorage.setItem('nilbots.audio.v5.favorite', value);
+      else window.localStorage.removeItem('nilbots.audio.v5.favorite');
     } catch {
       // A file URL or privacy setting can deny storage. Audio review still works.
     }
@@ -417,7 +429,7 @@
     head.className = 'coverage-row coverage-row--head';
     head.innerHTML =
       '<span>#</span><span>cue</span><span>authoritative mapping</span><span>status</span>' +
-      '<span data-label="A"></span><span data-label="B"></span><span data-label="C"></span>';
+      manifest.packs.map((pack) => `<span data-label="${pack.number}"></span>`).join('');
     coverage.append(head);
     manifest.packs[0].cues.forEach((cue, index) => {
       const row = document.createElement('div');
@@ -427,7 +439,7 @@
         `<span class="coverage__label">${cue.label}</span>` +
         `<span class="coverage__mapping">${cue.mapping}</span>` +
         `<span class="coverage__status" data-status="${cue.status}">${cue.status}</span>` +
-        '<span></span><span></span><span></span>';
+        manifest.packs.map(() => '<span></span>').join('');
       coverage.append(row);
     });
   }
