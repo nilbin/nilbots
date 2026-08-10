@@ -199,8 +199,8 @@ Project boundaries that must not be violated:
   `nilbots arc-relay` is top-level; `nilbots experiment arc-relay` is a
   permanent alias, so existing scripts and briefs keep their spelling.
   `--loop-profile` defaults to `ambush-warren-11`, and immutable hosted entrant
-  playlist v14 pins that same rules/map line with Warren-native consolidated
-  tactical sheets and the carrier-clearance direct-ladder WASM artifact. v7
+  playlist v15 pins that same rules/map line with Warren-native consolidated
+  tactical sheets and the traffic-detour direct-ladder WASM artifact. v7
   began the fresh Warren
   development rating era and remains immutable; v8 carried those development
   ratings because no game fact changed. Public Season 1 began on a separate,
@@ -215,7 +215,11 @@ Project boundaries that must not be violated:
   into v13. v14 starts another fresh book because loaded carriers now propagate
   right-of-way through allied queues and the same registered digest changes
   again; v13 ratings are never copied into v14. A deployment may never skip a
-  registered intermediate ladder.
+  registered intermediate ladder. v15 starts fresh again because bounded
+  traffic detours change the registered stock cell; v14 ratings are never
+  copied into v15. Authoritative generic-actor movement is corner-strict from
+  this line: diagonal movement requires both orthogonal companion terrain
+  tiles open, while body occupancy remains ordinary traffic.
   Neither development population
   is presented as Season history. v6 remains the readable/executable
   ForwardCombat on Counterflow history; never mutate it or migrate its sheet geometry. Sheets

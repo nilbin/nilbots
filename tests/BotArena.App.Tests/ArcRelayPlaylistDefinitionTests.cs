@@ -11,7 +11,7 @@ namespace BotArena.App.Tests;
 public sealed class ArcRelayPlaylistDefinitionTests
 {
     [Fact]
-    public void Entrant_v14_clears_carrier_traffic_while_v2_through_v13_remain_executable()
+    public void Entrant_v15_detours_traffic_while_v2_through_v14_remain_executable()
     {
         ArcRelayEntrantPlaylistDefinition current =
             ArcRelayEntrantPlaylistDefinition.Create();
@@ -39,8 +39,10 @@ public sealed class ArcRelayPlaylistDefinitionTests
             ArcRelayEntrantPlaylistDefinition.CreateHistoricalV12();
         ArcRelayEntrantPlaylistDefinition stickyRouteV13 =
             ArcRelayEntrantPlaylistDefinition.CreateHistoricalV13();
+        ArcRelayEntrantPlaylistDefinition carrierClearanceV14 =
+            ArcRelayEntrantPlaylistDefinition.CreateHistoricalV14();
 
-        Assert.Equal(14, current.PlaylistVersion);
+        Assert.Equal(15, current.PlaylistVersion);
         Assert.Equal(ArcRelayLoopProfile.AmbushWarren11.MapId, current.Match.Map.Id);
         Assert.Equal(
             ArcRelayLoopProfile.AmbushWarren11.RulesetId,
@@ -65,8 +67,24 @@ public sealed class ArcRelayPlaylistDefinitionTests
         Assert.Contains("terrainOnlyGiveUpReachability", current.Provenance);
         Assert.Contains("boundedCustodyFallbackRetest", current.Provenance);
         Assert.Contains("cascadingCarrierClearance", current.Provenance);
+        Assert.Contains("boundedTrafficDetours", current.Provenance);
+        Assert.Contains("stickyRouteDetourRejoin", current.Provenance);
+        Assert.Contains("authoritativeCornerStrictMovement", current.Provenance);
         Assert.Contains("freshRatingEra", current.Provenance);
         Assert.DoesNotContain("ratingContinuityFromVersions", current.Provenance);
+        Assert.Equal(14, carrierClearanceV14.PlaylistVersion);
+        Assert.Contains(
+            ArcRelayEntrantPlaylistDefinition
+                .CarrierClearanceTacticalArtifactHash,
+            carrierClearanceV14.CanonicalDefinition);
+        Assert.Contains(
+            ArcRelayEntrantPlaylistDefinition
+                .CarrierClearanceTacticalBuildInputHash,
+            carrierClearanceV14.CanonicalDefinition);
+        Assert.Contains(
+            "cascadingCarrierClearance", carrierClearanceV14.Provenance);
+        Assert.DoesNotContain(
+            "boundedTrafficDetours", carrierClearanceV14.Provenance);
         Assert.Equal(13, stickyRouteV13.PlaylistVersion);
         Assert.Contains(
             ArcRelayEntrantPlaylistDefinition
@@ -181,7 +199,8 @@ public sealed class ArcRelayPlaylistDefinitionTests
             [ArcRelayPlaylistDefinition.Create(), historicalV2, counterflow,
                 forward, recoveredStock, tacticalCounterflow, ambushV7,
                 wasmRepairV8, directV9, semanticV10, movementV11,
-                relativeWellV12, stickyRouteV13, current]);
+                relativeWellV12, stickyRouteV13, carrierClearanceV14,
+                current]);
         Assert.Same(historicalV2, registry.Resolve(
             ArcRelayEntrantPlaylistDefinition.PlaylistKey,
             ArcRelayEntrantPlaylistDefinition.HistoricalVersion));
@@ -218,6 +237,9 @@ public sealed class ArcRelayPlaylistDefinitionTests
         Assert.Same(stickyRouteV13, registry.Resolve(
             ArcRelayEntrantPlaylistDefinition.PlaylistKey,
             ArcRelayEntrantPlaylistDefinition.StickyRouteVersion));
+        Assert.Same(carrierClearanceV14, registry.Resolve(
+            ArcRelayEntrantPlaylistDefinition.PlaylistKey,
+            ArcRelayEntrantPlaylistDefinition.CarrierClearanceVersion));
         Assert.Same(current, registry.Resolve(
             ArcRelayEntrantPlaylistDefinition.PlaylistKey,
             ArcRelayEntrantPlaylistDefinition.Version));
@@ -397,7 +419,7 @@ public sealed class ArcRelayPlaylistDefinitionTests
     }
 
     [Fact]
-    public void Frozen_ambush_stocks_pin_v7_through_current_v14_bytes()
+    public void Frozen_ambush_stocks_pin_v7_through_current_v15_bytes()
     {
         string root = RepoPaths.FindUpward("BotArena.sln") is { } solution
             ? Path.GetDirectoryName(solution)!
@@ -426,6 +448,9 @@ public sealed class ArcRelayPlaylistDefinitionTests
         string carrierClearanceArtifact = Path.Combine(
             root, "arena-bots", "arc-relay", "ambush-warren-11-stock-v8",
             "bot.wasm");
+        string trafficDetourArtifact = Path.Combine(
+            root, "arena-bots", "arc-relay", "ambush-warren-11-stock-v9",
+            "bot.wasm");
         string playbook = Path.Combine(
             root, "arena-bots", "arc-relay",
             "tactical-playbook-v1-2026-08-03", "playbooks",
@@ -437,6 +462,10 @@ public sealed class ArcRelayPlaylistDefinitionTests
 
         Assert.Equal(
             ArcRelayEntrantPlaylistDefinition.TacticalArtifactHash,
+            BotBuilder.Sha256File(trafficDetourArtifact));
+        Assert.Equal(
+            ArcRelayEntrantPlaylistDefinition
+                .CarrierClearanceTacticalArtifactHash,
             BotBuilder.Sha256File(carrierClearanceArtifact));
         Assert.Equal(
             ArcRelayEntrantPlaylistDefinition

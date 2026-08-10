@@ -34,6 +34,11 @@ manifest hashes are opened to evaluation.
   fallback re-tests, and propagates loaded-carrier right-of-way through allied
   queues. The stock digest moves again, so v14 starts fresh and v1–v7 remain
   historical bytes.
+- `ambush-warren-11-stock-v9/` — immutable hosted playlist-v15 tactical mind
+  and receipt. It gives sticky authored courses bounded traffic detours that
+  rejoin ahead without reselecting direction or lap, and makes authoritative
+  actor movement wall-corner strict. The stock digest moves, so v15 starts
+  fresh and v1–v8 remain historical bytes.
 - `stock-mind-v3/` — unfrozen intelligent-gambit vertical-slice mind. It keeps
   the complete v2 baseline executor and reads provisional v2 operation data;
   it is evidence for an owner decision, not a launch artifact.

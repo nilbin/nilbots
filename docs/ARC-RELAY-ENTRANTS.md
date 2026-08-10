@@ -14,7 +14,7 @@ crest, eight-slot composition, and exact-compatible Elo rating. A sheet save or
 mind resubmission advances its revision without resetting rating. Save-as-copy
 or a new submission creates a new identity and starts at the default rating.
 
-The current hosted identity is immutable entrant playlist v14: rules
+The current hosted identity is immutable entrant playlist v15: rules
 `arc-relay-ambush-11` on the 31x27 `arc-relay-ambush-warren-06` map, matching
 the default local `nilbots arc-relay` command. v7 began the Warren development
 rating era; v8 repaired its frozen WASM artifact. Public Season 1 began at 1200
@@ -29,6 +29,12 @@ makes reachability-based give-up decisions terrain-only, bounds custody
 fallback re-tests, and propagates loaded-carrier right-of-way through allied
 queues to the nearest deterministic vacancy. That behavior changes the same
 registered stock cell, so v14 starts fresh again rather than copying v13 Elo.
+v15 adds bounded traffic detours to sticky authored courses: a body may rejoin
+ahead of a transient blockage without reselecting route direction or lap, and
+an attempt that cannot beat waiting remains a causal wait. It also makes the
+authoritative generic-actor movement gate wall-corner strict using terrain
+only. The registered stock digest changes again, so v15 starts fresh rather
+than copying v14 Elo.
 ForwardCombat/Counterflow v6
 ratings and matches remain readable history but were not copied.
 
@@ -46,9 +52,9 @@ and anchors. The server stores the exact playbook and layout sources, validates
 every save with the same compiler as the CLI, and snapshots the compiled package
 into a match. Saving enters the sheet into the ladder by default, with an
 explicit opt-out. A trial runs the current revision against a tracked stock
-sheet and opens it in the ordinary replay viewer. v14's stock sheet is frozen
+sheet and opens it in the ordinary replay viewer. v15's stock sheet is frozen
 Wellwright v1. New layouts are authored directly on the Warren export;
-Counterflow-era sheets are shown as legacy and cannot enter v14 until replotted.
+Counterflow-era sheets are shown as legacy and cannot enter v15 until replotted.
 The server never projects coordinates between maps.
 
 A custom mind must complete one hosted validation match without a runtime fault

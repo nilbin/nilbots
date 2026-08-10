@@ -7262,3 +7262,55 @@ The v13 rating book therefore does not continue: v14 starts every opted-in
 entrant at the default rating and preserves v13 ratings and matches as readable
 history. Rules, map, sheets, grammar, and their contract fingerprints do not
 change.
+
+## 277. Sticky routes may detour around traffic; actor movement is wall-corner strict; hosted v15 starts fresh
+
+Executor and engine ruling (2026-08-10). A persistent authored-route course
+owns direction and lap, not an occupied tile. Once the authored stuck window
+proves that ordinary waiting did not clear a transient body or same-tick claim,
+the executor tries one deterministic detour within the route's authored
+corridor budget. A successful detour rejoins a later tile of the exact held
+terrain course. If traffic occupies the course's terminal waypoint, it may
+advance only to a later authored waypoint in the same direction. Neither path
+reselects route direction or restarts the lap. A detour outside the budget, or
+with no open rejoin, remains a wait. Causal reasons distinguish commit, held,
+rejoin, later-waypoint advance, and considered-wait.
+
+The authoritative `GenericActorMatchSession` movement gate now rejects a
+diagonal step unless both orthogonal companion tiles are open terrain. Bodies
+on those companions do not block the diagonal; occupancy remains traffic and
+is resolved later. This makes movement agree with the tactical planners,
+visibility supercover, and strike cones rather than preserving a movement-only
+wall-corner exception. The rule is generic and names no mode, map, sheet,
+class, role, side, or coordinate.
+
+The premise that the registered ambush-warren-11 geometry had no
+corner-touching floor pairs was false. A shared corner-strict audit shows H0,
+Drawbench, and repaired Tapline satisfy both authoring invariants, while the
+immutable historical Warren family and candidate Crucible do not. Crucible has
+14 corner passages and no stationary-body cut larger than a two-tile nook. The
+maps are not re-authored in this executor/engine change; the failing profiles
+remain named in the test so new maps cannot silently inherit the defect.
+Rules, map, and aggregate contract fingerprints remain unchanged, but that is
+not presented as proof that every possible action stream is unchanged on the
+historical Warren geometry.
+
+On exact Tapline seeds 9001/9003, the tracked same-definition diagnostic moves
+aggregate stationary body-ticks from 50.8%/52.1% to 48.4%/46.3%, and physically
+blocked stationary ticks from 47.6%/46.1% of waits to 39.7%/39.8%. The worst
+single-tile run moves from 227/35 ticks to 30/30, bodies above 100 ticks from
+1/0 to 0/0, and neither after-cell contains a long A-B flap. These are mechanism
+reads, not balance claims.
+
+The WASM bytes change, so playlist v14 and frozen stock v8 remain immutable.
+Playlist v15 pins frozen stock v9 (artifact
+`4443b18bf718114db764a440604c7987751a7ad1c28fbe092862b4d4a7fa8af5`,
+build input
+`cf7edee8cf6c3239c0b3989ac20eea30bbddd8acf806ba46a032340e307d2e77`).
+The registered Wellwright-vs-Wellwright seed-9001 stock digest changes from
+`4afb253b831b8d50a2cd04591eedd8b56393961c4d13ba6e72d0656fa5150c5f`
+to
+`c356c5882fcd86c3646365b15147f18d8c8b494b33bc7e5b3a505f6ab91068a6`,
+identically in-process and in sandboxed WASM. The v14 rating book therefore
+does not continue: v15 starts every opted-in entrant at the default rating and
+preserves v14 ratings and matches as readable history.

@@ -474,7 +474,7 @@ The layout has exactly:
 schema  layoutId  mapId  bindings  zones  routes  anchors
 ```
 
-Current hosted v14 accepts the native Warren map only:
+Current hosted v15 accepts the native Warren map only:
 `arc-relay-ambush-warren-06` (31×27). Coordinates are absolute canonical map
 tiles. The same authored geometry serves both teams through side bindings.
 
