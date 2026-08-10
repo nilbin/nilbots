@@ -73,6 +73,67 @@ public sealed class TacticalMovementGovernorTests
     }
 
     [Fact]
+    public void WaypointArrivalRingCannotSwallowAShortRouteLeg()
+    {
+        var waypoint = new Position(8, 8);
+        var next = new Position(10, 8);
+
+        Assert.Equal(1, TacticalRouteGovernor.EffectiveArrivalRadius(
+            requested: 2, waypoint, next));
+        Assert.False(TacticalRouteGovernor.ReachedWaypoint(
+            distance: 2, previousBestDistance: 3,
+            effectiveArrivalRadius: 1));
+        Assert.True(TacticalRouteGovernor.ReachedWaypoint(
+            distance: 1, previousBestDistance: 2,
+            effectiveArrivalRadius: 1));
+
+        Assert.Equal(0, TacticalRouteGovernor.EffectiveArrivalRadius(
+            requested: 2,
+            waypoint: new Position(8, 8),
+            nextWaypoint: new Position(9, 8)));
+    }
+
+    [Fact]
+    public void ProximityWithoutNewApproachCannotLapTheRouteCursor()
+    {
+        var waypoint = new Position(8, 8);
+        var next = new Position(12, 8);
+        int arrival = TacticalRouteGovernor.EffectiveArrivalRadius(
+            requested: 2, waypoint, next);
+
+        Assert.False(TacticalRouteGovernor.ReachedWaypoint(
+            distance: 1, previousBestDistance: 1, arrival));
+        Assert.True(TacticalRouteGovernor.ReachedWaypoint(
+            distance: 0, previousBestDistance: 0, arrival));
+    }
+
+    [Fact]
+    public void MissingTerrainCourseIsReportedAsNoPath()
+    {
+        var governor = new TacticalRouteGovernor();
+        var actor = new ActorIdentity(0, 3, 0);
+        var start = new Position(7, 7);
+        var destination = new Position(8, 6);
+
+        TacticalRouteGovernor.CourseStep result = governor.Resolve(
+            actor,
+            "centre-push",
+            "own-well-run",
+            lap: 0,
+            waypoint: 1,
+            start,
+            destination,
+            plan: () => null,
+            impossible: _ => false);
+
+        Assert.Null(result.Next);
+        Assert.Equal(
+            TacticalRouteGovernor.CourseDisposition.NoPath,
+            result.Disposition);
+        Assert.Contains("route-commit-no-path", result.Trace);
+    }
+
+    [Fact]
     public void RecoverInterruptionCoolsOnlyTheSameInjury()
     {
         var governor = new RecoveryEpisodeGovernor();

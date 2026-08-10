@@ -373,7 +373,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             orders,
             authoredTargets);
         _routeSteps = ResolveRouteCourses(
-            contract, mind, orders, targets);
+            contract, mind, package, orders, targets);
         RefreshSelfDefenseReturns(mind, orders, targets);
         UpdateOrderCompletion(mind, package, orders, targets);
         HashSet<int> carrierUnitIds = mind.Bodies
@@ -2216,17 +2216,21 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             _ => throw new InvalidDataException(
                 $"Unknown movement kind '{order.Movement.Kind}'."),
         };
-        anchor = PostureTarget(package, orders, order, body, anchor);
         if (order.Movement.Kind == "route"
             && _routes.GetValueOrDefault(body.UnitId) is RouteProgress progress
-            && progress.Index < package.RoutePoints(order.Movement.Target).Length - 1)
+            && package.RoutePoints(order.Movement.Target) is Position[] points
+            && (progress.Index < points.Length - 1
+                || points.Length > 2 && points[0] == points[^1]))
         {
-            // A route is the shared marching spine. Relative formation slots
-            // engage only on its final approach; applying rear offsets to the
-            // first waypoint can legitimately point a rear body back through
-            // its own spawn instead of keeping the column together.
+            // A route is the shared marching spine. Per-rung posture is a
+            // destination formation offset, not a second shifted copy of
+            // every waypoint. Applying it while traversing left the course
+            // "arrived" two tiles from the point whose progress cursor was
+            // still waiting for an approach. A closed patrol has no final
+            // approach, so it never applies the destination offset.
             return anchor;
         }
+        anchor = PostureTarget(package, orders, order, body, anchor);
         if (order.Movement.Kind == "heal-beacon")
         {
             // The beacon is a single tile that heals; a formation offset
@@ -2876,8 +2880,9 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         ResolveRouteCourses(
             GenericActorResolvedMatchContract contract,
             MindContext mind,
+            TacticalPlaybookPackage package,
             IReadOnlyDictionary<int, TacticalPlaybookPackage.Order> orders,
-            IReadOnlyDictionary<int, Position> targets)
+            Dictionary<int, Position> targets)
     {
         var result = new Dictionary<int, TacticalRouteGovernor.CourseStep>();
         var obstaclesByTeam = new Dictionary<int, HashSet<Position>>();
@@ -2901,7 +2906,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     contract, mind, body.ActorId.TeamId);
                 obstaclesByTeam.Add(body.ActorId.TeamId, impossible);
             }
-            result[body.UnitId] = _routeGovernor.Resolve(
+            TacticalRouteGovernor.CourseStep step = _routeGovernor.Resolve(
                 body.ActorId,
                 order.OrderId,
                 order.Movement.Target,
@@ -2914,6 +2919,33 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 tile => (tile != destination && impossible.Contains(tile))
                     || !ArenaBasics.IsLegalTerrainStep(
                         contract.Map, body.Position, tile));
+
+            // A direct-sheet waypoint is a hint along the route, not a
+            // mandatory destination. If persistent terrain cannot reach it,
+            // advance deterministically to the next authored point and plan
+            // in the same tick. This is deliberately direct-ladder only: the
+            // byte-frozen legacy sheet keeps its historical executor path.
+            if (_directLadder is not null
+                && step.Disposition
+                    == TacticalRouteGovernor.CourseDisposition.NoPath
+                && TryPlanLaterRouteWaypoint(
+                    contract,
+                    package,
+                    order,
+                    body,
+                    impossible,
+                    "unreachable",
+                    out Position later,
+                    out TacticalRouteGovernor.CourseStep replacement,
+                    out string reason))
+            {
+                targets[body.UnitId] = later;
+                step = replacement with
+                {
+                    Trace = $"{reason}:{replacement.Trace}",
+                };
+            }
+            result[body.UnitId] = step;
         }
         return result;
     }
@@ -2929,65 +2961,45 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         // checkpoint behind a wall no longer looks close, and ties go
         // forward so a body finishing its circuit is never snapped back to
         // the start.
+        int rejoin = RejoinWaypoint(contract, route, body);
         RouteProgress state = _routes.GetValueOrDefault(body.UnitId)
             ?? new RouteProgress(
-                body.ActorId, order.OrderId,
-                RejoinWaypoint(contract, route, body),
-                Lap: 0);
+                body.ActorId, order.OrderId, rejoin, Lap: 0,
+                BestDistance: body.Position.ChebyshevDistance(route[rejoin]));
         if (state.ActorId != body.ActorId
             || !string.Equals(state.OrderId, order.OrderId,
                 StringComparison.Ordinal))
         {
             state = new RouteProgress(
-                body.ActorId, order.OrderId,
-                RejoinWaypoint(contract, route, body),
-                Lap: 0);
+                body.ActorId, order.OrderId, rejoin, Lap: 0,
+                BestDistance: body.Position.ChebyshevDistance(route[rejoin]));
         }
         int index = Math.Min(state.Index, route.Length - 1);
-        // A route is a corridor, not a sequence of single-tile queues. A body
-        // reflowed to the edge of the declared corridor has completed that
-        // waypoint just as surely as one standing on its centre tile. Using a
-        // fixed radius of one stranded rear members around crowded waypoints.
-        int arrival = Math.Max(
-            Math.Max(1, order.Movement.ArrivalRadius),
-            package.RouteCorridorWidth(order.Movement.Target));
-        // ONE waypoint per tick. Advancing greedily let a body "complete"
-        // waypoints it never approached: on a loop whose legs sit closer
-        // together than the arrival ring, a tile between two legs satisfies
-        // BOTH, so the index raced past the near corner and re-targeted the
-        // leg behind the body — which then walked back, satisfied that
-        // corner, and raced forward again. The measured shape was a
-        // six-tile pendulum on the west base's stage-loop, period 12, all
-        // match (owner catch 2026-08-09, w-9001 u7 at t297-t316). Catching
-        // up one waypoint per tick costs a displaced body a few ticks and
-        // cannot oscillate, because the index only ever moves forward.
-        // ...and NEARER to this waypoint than to the one after it. The `if`
-        // above stopped the index consuming several corners in a tick; it did
-        // not stop it consuming one every tick forever, which on this ring is
-        // the same disease one gear down. `stage-loop`'s legs are four tiles
-        // long and the arrival ring is two, so the MIDDLE of every leg sits
-        // inside both ends: the index advanced on each tick from a tile that
-        // had approached nothing, lapped the body, and handed it a different
-        // corner every few ticks. The body walked each one dutifully and the
-        // result was a closed eleven-tick circuit beside its own base — owner
-        // catch 2026-08-09 on the engagement-lens gallery, w-9001 team 0 u1,
-        // t150-t250, boxed in x 8..9, y 10..15, never once reaching a corner.
-        //
-        // The lens is what settled it: the STEPS were right every tick and the
-        // DESTINATION was wrong, so none of the blockade suspects (carrier lane
-        // reservations, step ties, ally-occupied tiles) were involved at all —
-        // the body was never blocked and moved every single tick.
-        //
-        // Comparing against the next waypoint rather than clamping the radius
-        // keeps the corridor generous where it was meant to be and still lets a
-        // body pass an unreachable waypoint: standing one tile off a walled
-        // corner is nearer to it than to the following one, so the index moves
-        // on exactly as it did before.
-        if (index < route.Length - 1
-            && body.Position.ChebyshevDistance(route[index]) <= arrival
-            && body.Position.ChebyshevDistance(route[index])
-                < body.Position.ChebyshevDistance(route[index + 1]))
+        int distance = body.Position.ChebyshevDistance(route[index]);
+        int bestDistance = Math.Min(state.BestDistance, distance);
+        bool closed = route.Length > 2 && route[0] == route[^1];
+        Position? nextWaypoint = index < route.Length - 1
+            ? route[index + 1]
+            : closed ? route[1] : null;
+        bool reached = nextWaypoint is Position next
+            && TacticalRouteGovernor.ReachedWaypoint(
+                distance,
+                state.BestDistance,
+                TacticalRouteGovernor.EffectiveArrivalRadius(
+                    order.Movement.ArrivalRadius, route[index], next));
+
+        // Corridor width remains a local reflow budget. It no longer expands
+        // the arrival ring: when that ring overlapped two short legs, the
+        // cursor could lap a body that had approached neither waypoint.
+        // Advancement now needs measured approach and a ring smaller than its
+        // next leg. Exactly one point may be consumed per tick.
+        int lap = state.Lap;
+        if (reached && index < route.Length - 1)
+        {
             index++;
+            bestDistance = body.Position.ChebyshevDistance(route[index]);
+            _motion.Remove(body.UnitId);
+        }
         // A route whose last waypoint is its first is a closed patrol loop:
         // reaching the end re-arms the start, so an authored post is a beat
         // to walk rather than a spot to stand (owner doctrine 2026-08-09 -
@@ -2995,19 +3007,107 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         // The same nearness test on the seam. `route[^1]` IS `route[0]`, so the
         // waypoint after it is `route[1]`; comparing against the duplicate
         // would compare a tile with itself and re-arm the loop from anywhere.
-        int lap = state.Lap;
-        if (index == route.Length - 1
-            && route.Length > 2
-            && route[0] == route[^1]
-            && body.Position.ChebyshevDistance(route[index]) <= arrival
-            && body.Position.ChebyshevDistance(route[index])
-                < body.Position.ChebyshevDistance(route[1]))
+        else if (reached && index == route.Length - 1 && closed)
         {
             index = 0;
             lap++;
+            bestDistance = body.Position.ChebyshevDistance(route[index]);
+            _motion.Remove(body.UnitId);
         }
-        _routes[body.UnitId] = state with { Index = index, Lap = lap };
+        _routes[body.UnitId] = state with
+        {
+            Index = index,
+            Lap = lap,
+            BestDistance = bestDistance,
+        };
         return route[index];
+    }
+
+    /// <summary>
+    /// Move one cursor forward without pretending the skipped point was
+    /// reached. This is the bounded escape hatch for a genuinely unreachable
+    /// or persistently blocked waypoint; the authored order, route and
+    /// direction remain unchanged.
+    /// </summary>
+    private bool TryPlanLaterRouteWaypoint(
+        GenericActorResolvedMatchContract contract,
+        TacticalPlaybookPackage package,
+        TacticalPlaybookPackage.Order order,
+        MindBody body,
+        IReadOnlySet<Position> impossible,
+        string cause,
+        out Position destination,
+        out TacticalRouteGovernor.CourseStep step,
+        out string trace)
+    {
+        destination = body.Position;
+        step = new TacticalRouteGovernor.CourseStep(
+            null,
+            "route-bypass-no-candidate",
+            TacticalRouteGovernor.CourseDisposition.NoPath);
+        trace = "";
+        if (!_routes.TryGetValue(body.UnitId, out RouteProgress? state))
+            return false;
+        Position[] route = package.RoutePoints(order.Movement.Target);
+        int from = Math.Min(state.Index, route.Length - 1);
+        var candidates = new List<(int Index, int Lap)>();
+        bool closed = route.Length > 2 && route[0] == route[^1];
+        if (closed)
+        {
+            int cycle = route.Length - 1;
+            int normalized = from == route.Length - 1 ? 0 : from;
+            int baseLap = state.Lap + (from == route.Length - 1 ? 1 : 0);
+            for (int offset = 1; offset < cycle; offset++)
+            {
+                int raw = normalized + offset;
+                candidates.Add((raw % cycle, baseLap + raw / cycle));
+            }
+        }
+        else
+        {
+            for (int index = from + 1; index < route.Length; index++)
+                candidates.Add((index, state.Lap));
+        }
+
+        foreach ((int to, int lap) in candidates)
+        {
+            Position candidate = route[to];
+            Position[]? course = ArenaBasics.StaticRouteCourse(
+                contract, body, candidate, impossible, _mirrored);
+            // Reaching a point already underfoot does not solve a move order;
+            // keep looking forward for the first candidate that can produce
+            // an actual step.
+            if (course is not { Length: > 1 })
+                continue;
+
+            Position plannedDestination = candidate;
+            destination = plannedDestination;
+            _routes[body.UnitId] = state with
+            {
+                Index = to,
+                Lap = lap,
+                BestDistance = body.Position.ChebyshevDistance(
+                    plannedDestination),
+            };
+            _routeGovernor.Reset(body.UnitId);
+            _motion.Remove(body.UnitId);
+            step = _routeGovernor.Resolve(
+                body.ActorId,
+                order.OrderId,
+                order.Movement.Target,
+                lap,
+                to,
+                body.Position,
+                plannedDestination,
+                () => course,
+                tile => (tile != plannedDestination
+                        && impossible.Contains(tile))
+                    || !ArenaBasics.IsLegalTerrainStep(
+                        contract.Map, body.Position, tile));
+            trace = $"route-bypass-{cause}-{from}-to-{to}";
+            return true;
+        }
+        return false;
     }
 
     /// <summary>
@@ -3295,9 +3395,11 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         int bestWalk = int.MaxValue;
         for (int index = 0; index < route.Length; index++)
         {
-            int walk = ArenaBasics.StaticDistance(
-                    contract.Map, body.Position, route[index])
-                ?? body.Position.ChebyshevDistance(route[index]);
+            int? walked = ArenaBasics.StaticDistance(
+                contract.Map, body.Position, route[index]);
+            if (walked is null)
+                continue;
+            int walk = walked.Value;
             if (walk <= bestWalk)
             {
                 bestWalk = walk;
@@ -5382,13 +5484,46 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 target);
             if (routeStep.Next is Position committed)
             {
-                return ArenaBasics.TryMoveDirect(
+                if (stuck >= order.Movement.StuckTicks
+                    && _directLadder is not null
+                    && TryPlanLaterRouteWaypoint(
                         contract,
-                        mind,
+                        package,
+                        order,
                         body,
-                        committed,
-                        claims,
-                        routeReason)
+                        ArenaBasics.PersistentRouteObstacles(
+                            contract, mind, body.ActorId.TeamId),
+                        "stuck",
+                        out Position later,
+                        out TacticalRouteGovernor.CourseStep replacement,
+                        out string bypass))
+                {
+                    string bypassReason = MovementProvenance(
+                        machine,
+                        group,
+                        order,
+                        $"{movementChannel}:{bypass}:{replacement.Trace}",
+                        later);
+                    if (replacement.Next is Position replacementStep
+                        && ArenaBasics.TryMoveDirect(
+                            contract,
+                            mind,
+                            body,
+                            replacementStep,
+                            claims,
+                            bypassReason))
+                    {
+                        return true;
+                    }
+                    return Hold(body, $"{bypassReason}:blocked");
+                }
+                return ArenaBasics.TryMoveDirect(
+                    contract,
+                    mind,
+                    body,
+                    committed,
+                    claims,
+                    routeReason)
                     || Hold(body, MovementProvenance(
                         machine,
                         group,
@@ -5396,8 +5531,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                         $"{movementChannel}:{routeStep.Trace}:blocked",
                         target));
             }
-            if (routeStep.Trace.EndsWith(
-                    "-arrived", StringComparison.Ordinal))
+            if (routeStep.Disposition
+                == TacticalRouteGovernor.CourseDisposition.Arrived)
             {
                 return Hold(body, routeReason);
             }
@@ -6721,7 +6856,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         ActorIdentity ActorId,
         string OrderId,
         int Index,
-        int Lap);
+        int Lap,
+        int BestDistance);
 
     /// <summary>
     /// A body's recent ground, and how long it has failed to make any.

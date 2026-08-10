@@ -94,13 +94,49 @@ public sealed class TacticalRouteGovernor
         }
 
         _states[actor.UnitId] = state;
+        CourseDisposition disposition = next is not null
+            ? CourseDisposition.Course
+            : state.Course.Length == 0
+                ? CourseDisposition.NoPath
+                : CourseDisposition.Arrived;
         string trace = next is Position tile
             ? $"{reason}-next-{tile.X}-{tile.Y}"
             : state.Course.Length == 0
                 ? $"{reason}-no-path"
                 : $"{reason}-arrived";
-        return new CourseStep(next, trace);
+        return new CourseStep(next, trace, disposition);
     }
+
+    /// <summary>
+    /// Bounds a waypoint's arrival ring below the length of the next leg. A
+    /// route corridor controls reflow around the line; it is not permission
+    /// to swallow the whole leg and consume the next point without moving.
+    /// Rings may overlap on a grid, but <see cref="ReachedWaypoint"/> still
+    /// requires newly measured approach before either point can advance.
+    /// </summary>
+    public static int EffectiveArrivalRadius(
+        int requested,
+        Position waypoint,
+        Position nextWaypoint)
+    {
+        int separation = waypoint.ChebyshevDistance(nextWaypoint);
+        int leavesOneStep = Math.Max(0, separation - 1);
+        return Math.Min(Math.Max(0, requested), leavesOneStep);
+    }
+
+    /// <summary>
+    /// Proximity alone never consumes a route point. The body must either
+    /// stand on it or have made new measured progress toward it since this
+    /// cursor was selected. This makes a route a directional hint rather
+    /// than an arrival ring that can lap a stationary body.
+    /// </summary>
+    public static bool ReachedWaypoint(
+        int distance,
+        int previousBestDistance,
+        int effectiveArrivalRadius) =>
+        distance == 0
+        || distance < previousBestDistance
+            && distance <= effectiveArrivalRadius;
 
     /// <summary>
     /// A rung change is a semantic interruption even when the body later
@@ -150,7 +186,17 @@ public sealed class TacticalRouteGovernor
             course.Length > 1 ? 1 : course.Length);
     }
 
-    public sealed record CourseStep(Position? Next, string Trace);
+    public sealed record CourseStep(
+        Position? Next,
+        string Trace,
+        CourseDisposition Disposition);
+
+    public enum CourseDisposition
+    {
+        Course,
+        Arrived,
+        NoPath,
+    }
 
     private sealed record State(
         ActorIdentity Actor,

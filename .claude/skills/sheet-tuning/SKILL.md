@@ -72,6 +72,7 @@ and tick window when one is supplied.
 ```bash
 scripts/arc-relay-fight-trace.py REPLAY --team N [--unit U] [--timeline]
 scripts/arc-relay-unit-audit.py REPLAY [--team N]
+scripts/arc-relay-route-read.py REPLAY [--team N] [--reason-contains INTENT]
 scripts/arc-relay-traffic-read.py REPLAY [--team N]
 scripts/arc-relay-declare-read.py REPLAY [--team N]
 scripts/arc-relay-strike-cancel-audit.py REPLAY
@@ -81,6 +82,10 @@ scripts/arc-relay-state-digest.py REPLAY
 - Use `fight-trace` for the reason timeline, fight interruptions, and
   `[allocation: reason]` declines.
 - Use `unit-audit` for confinement, territory, pendulum, and lone-kill ledgers.
+- Use `route-read` to separate selected move-order body-ticks, movement-channel
+  admission, submitted/successful movement, closest own-Well approach, and
+  explicit route bypass/no-path reasons. Filter by a semantic intent such as
+  `centre-push` when comparing the same order across maps.
 - Use `traffic-read` for flaps, reversals, chokes, and blockades.
 - Use `declare-read` for declaration latency and cancellation causes.
 - Use `strike-cancel-audit` to re-verify every strike cancellation against the

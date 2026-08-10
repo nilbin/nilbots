@@ -174,9 +174,14 @@ Visible in traces (reason string in parentheses), policy hard-coded:
     course survives ordinary ticks and transient body/projectile traffic; it
     resets when the exact life, ordered rung, route, lap, waypoint, or reachable
     course changes. This keeps equal-distance alternatives from being
-    re-selected in opposite directions every tick. The command reason exposes
-    `route-commit`, `route-held`, `route-advance`, `route-rejoin`, or
-    `route-replan-impossible`; route hysteresis never acts silently.
+    re-selected in opposite directions every tick. A waypoint is a progress
+    hint rather than a compulsory post: its arrival ring is always smaller
+    than its next leg and advances only after measured approach; an unreachable
+    or persistently stuck point yields to the next reachable authored point.
+    `corridorWidth` bounds local reflow only and never expands arrival. The
+    command reason exposes `route-commit`, `route-held`, `route-advance`,
+    `route-rejoin`, `route-replan-impossible`, or
+    `route-bypass-(unreachable|stuck)`; route hysteresis never acts silently.
 
 ## What to do about it
 

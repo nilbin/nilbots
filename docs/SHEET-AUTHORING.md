@@ -518,7 +518,12 @@ Validation:
 - `zones`: `1..64`; `rect` is inclusive `[x0,y0,x1,y1]`, ordered, with each
   coordinate in `0..255`.
 - `routes`: `1..64`; `1..128` waypoints, each `[x,y]` in `0..255`, and
-  `corridorWidth` in `0..8`.
+  `corridorWidth` in `0..8`. The corridor is the executor's bounded local
+  reflow allowance around the authored spine; it is not a waypoint-arrival
+  radius. Waypoints state travel direction rather than compulsory standing
+  tiles: traversal keeps one deterministic terrain course, consumes a point
+  only after measured approach, and may continue to a later point when the
+  current point is unreachable or persistently makes no progress.
 - `anchors`: `1..64`; each position is `[x,y]` in `0..255`.
 
 At runtime an exact match-contract binding wins; `any-composition` is the
