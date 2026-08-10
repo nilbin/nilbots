@@ -182,15 +182,15 @@
             "fetch": "farm-custody"
           },
           {
-            "patrol": "north-well-loop",
-            "while": "north-birth-soon",
-            "until": "north-birth-far",
+            "patrol": "own-well-run",
+            "while": "own-birth-soon",
+            "until": "own-birth-far",
             "focus": "haul",
             "posture": "core",
-            "cohort": "north-race"
+            "cohort": "own-race"
           },
           {
-            "patrol": "centre-well-loop",
+            "patrol": "centre-push",
             "while": "centre-birth-soon",
             "until": "centre-birth-far",
             "focus": "haul",
@@ -198,12 +198,12 @@
             "cohort": "centre-race"
           },
           {
-            "patrol": "south-well-loop",
-            "while": "south-birth-soon",
-            "until": "south-birth-far",
+            "patrol": "raid-run",
+            "while": "enemy-birth-soon",
+            "until": "enemy-birth-far",
             "focus": "haul",
             "posture": "core",
-            "cohort": "south-race"
+            "cohort": "enemy-race"
           },
           {
             "patrol": "farm-loop",
@@ -237,15 +237,15 @@
             "fetch": "farm-custody"
           },
           {
-            "patrol": "north-well-loop",
-            "while": "north-birth-soon",
-            "until": "north-birth-far",
+            "patrol": "own-well-run",
+            "while": "own-birth-soon",
+            "until": "own-birth-far",
             "focus": "haul",
             "posture": "core",
-            "cohort": "north-race"
+            "cohort": "own-race"
           },
           {
-            "patrol": "centre-well-loop",
+            "patrol": "centre-push",
             "while": "centre-birth-soon",
             "until": "centre-birth-far",
             "focus": "haul",
@@ -253,12 +253,12 @@
             "cohort": "centre-race"
           },
           {
-            "patrol": "south-well-loop",
-            "while": "south-birth-soon",
-            "until": "south-birth-far",
+            "patrol": "raid-run",
+            "while": "enemy-birth-soon",
+            "until": "enemy-birth-far",
             "focus": "haul",
             "posture": "core",
-            "cohort": "south-race"
+            "cohort": "enemy-race"
           },
           {
             "patrol": "farm-loop",
@@ -292,15 +292,15 @@
             "fetch": "farm-custody"
           },
           {
-            "patrol": "north-well-loop",
-            "while": "north-birth-soon",
-            "until": "north-birth-far",
+            "patrol": "own-well-run",
+            "while": "own-birth-soon",
+            "until": "own-birth-far",
             "focus": "haul",
             "posture": "front",
-            "cohort": "north-race"
+            "cohort": "own-race"
           },
           {
-            "patrol": "centre-well-loop",
+            "patrol": "centre-push",
             "while": "centre-birth-soon",
             "until": "centre-birth-far",
             "focus": "haul",
@@ -308,12 +308,12 @@
             "cohort": "centre-race"
           },
           {
-            "patrol": "south-well-loop",
-            "while": "south-birth-soon",
-            "until": "south-birth-far",
+            "patrol": "raid-run",
+            "while": "enemy-birth-soon",
+            "until": "enemy-birth-far",
             "focus": "haul",
             "posture": "front",
-            "cohort": "south-race"
+            "cohort": "enemy-race"
           },
           {
             "patrol": "farm-loop",
@@ -343,25 +343,28 @@
         },
         "modes": [
           {
-            "patrol": "north-well-loop",
-            "while": "north-birth-soon",
-            "until": "north-birth-far",
+            "patrol": "own-well-run",
+            "while": "own-birth-soon",
+            "until": "own-birth-far",
             "focus": "aid",
-            "posture": "core"
+            "posture": "core",
+            "cohort": "aid-own"
           },
           {
-            "patrol": "centre-well-loop",
+            "patrol": "centre-push",
             "while": "centre-birth-soon",
             "until": "centre-birth-far",
             "focus": "aid",
-            "posture": "core"
+            "posture": "core",
+            "cohort": "aid-centre"
           },
           {
-            "patrol": "south-well-loop",
-            "while": "south-birth-soon",
-            "until": "south-birth-far",
+            "patrol": "raid-run",
+            "while": "enemy-birth-soon",
+            "until": "enemy-birth-far",
             "focus": "aid",
-            "posture": "core"
+            "posture": "core",
+            "cohort": "aid-enemy"
           },
           {
             "patrol": "farm-loop",
@@ -402,25 +405,28 @@
         },
         "modes": [
           {
-            "patrol": "north-well-loop",
-            "while": "north-birth-soon",
-            "until": "north-birth-far",
+            "patrol": "own-well-run",
+            "while": "own-birth-soon",
+            "until": "own-birth-far",
             "focus": "aid",
-            "posture": "rear"
+            "posture": "rear",
+            "cohort": "aid-own"
           },
           {
-            "patrol": "centre-well-loop",
+            "patrol": "centre-push",
             "while": "centre-birth-soon",
             "until": "centre-birth-far",
             "focus": "aid",
-            "posture": "rear"
+            "posture": "rear",
+            "cohort": "aid-centre"
           },
           {
-            "patrol": "south-well-loop",
-            "while": "south-birth-soon",
-            "until": "south-birth-far",
+            "patrol": "raid-run",
+            "while": "enemy-birth-soon",
+            "until": "enemy-birth-far",
             "focus": "aid",
-            "posture": "rear"
+            "posture": "rear",
+            "cohort": "aid-enemy"
           },
           {
             "patrol": "farm-loop",
@@ -453,16 +459,16 @@
             "fetch": "farm-custody"
           },
           {
-            "patrol": "north-well-loop",
-            "while": "north-birth-soon",
-            "until": "north-birth-far",
+            "patrol": "own-well-run",
+            "while": "own-birth-soon",
+            "until": "own-birth-far",
             "focus": {
               "maximumAttackers": 2
             },
             "posture": "rear"
           },
           {
-            "patrol": "centre-well-loop",
+            "patrol": "centre-push",
             "while": "centre-birth-soon",
             "until": "centre-birth-far",
             "focus": {
@@ -471,9 +477,9 @@
             "posture": "rear"
           },
           {
-            "patrol": "south-well-loop",
-            "while": "south-birth-soon",
-            "until": "south-birth-far",
+            "patrol": "raid-run",
+            "while": "enemy-birth-soon",
+            "until": "enemy-birth-far",
             "focus": {
               "maximumAttackers": 2
             },
@@ -491,16 +497,28 @@
       }
     },
     "cohorts": {
-      "north-race": {
+      "own-race": {
         "take": 3,
         "select": "nearest"
       },
       "centre-race": {
-        "take": 3,
+        "take": 4,
         "select": "nearest"
       },
-      "south-race": {
-        "take": 3,
+      "enemy-race": {
+        "take": 1,
+        "select": "nearest"
+      },
+      "aid-own": {
+        "take": 1,
+        "select": "nearest"
+      },
+      "aid-centre": {
+        "take": 1,
+        "select": "nearest"
+      },
+      "aid-enemy": {
+        "take": 1,
         "select": "nearest"
       }
     },
@@ -514,17 +532,17 @@
     }
   },
   "conditions": {
-    "north-birth-soon": {
+    "own-birth-soon": {
       "fact": "well-ticks-until-birth",
       "operator": "at-most",
       "value": 18,
-      "subject": "north"
+      "subject": "own"
     },
-    "north-birth-far": {
+    "own-birth-far": {
       "fact": "well-ticks-until-birth",
       "operator": "at-least",
       "value": 45,
-      "subject": "north"
+      "subject": "own"
     },
     "centre-birth-soon": {
       "fact": "well-ticks-until-birth",
@@ -538,17 +556,17 @@
       "value": 45,
       "subject": "centre"
     },
-    "south-birth-soon": {
+    "enemy-birth-soon": {
       "fact": "well-ticks-until-birth",
       "operator": "at-most",
       "value": 18,
-      "subject": "south"
+      "subject": "enemy"
     },
-    "south-birth-far": {
+    "enemy-birth-far": {
       "fact": "well-ticks-until-birth",
       "operator": "at-least",
       "value": 45,
-      "subject": "south"
+      "subject": "enemy"
     }
   }
 }

@@ -215,8 +215,8 @@
             "recoverTicks": 24
           },
           "chase": {
-            "leash": 16,
-            "persistTicks": 30
+            "leash": 8,
+            "persistTicks": 12
           },
           "defense": {
             "radius": 2,
@@ -307,7 +307,7 @@
           },
           {
             "patrol": {
-              "zone": "own-home"
+              "zone": "own-delivery"
             },
             "while": "gate-threat or home-threat",
             "until": "approach-clear and home-clear",
@@ -332,7 +332,7 @@
             }
           },
           {
-            "patrol": "centre-well-loop",
+            "patrol": "centre-push",
             "while": "centre-birth-soon",
             "until": "centre-birth-far",
             "cohort": "centre-runners",
@@ -340,18 +340,18 @@
             "posture": "rear"
           },
           {
-            "patrol": "north-well-loop",
-            "while": "north-birth-soon",
-            "until": "north-birth-far",
-            "cohort": "north-runners",
+            "patrol": "own-well-run",
+            "while": "own-birth-soon",
+            "until": "own-birth-far",
+            "cohort": "own-runners",
             "focus": "well",
             "posture": "rear"
           },
           {
-            "patrol": "south-well-loop",
-            "while": "south-birth-soon",
-            "until": "south-birth-far",
-            "cohort": "south-runners",
+            "patrol": "raid-run",
+            "while": "enemy-birth-soon",
+            "until": "enemy-birth-far",
+            "cohort": "enemy-runners",
             "focus": "well",
             "posture": "rear"
           },
@@ -409,7 +409,7 @@
             }
           },
           {
-            "patrol": "centre-well-loop",
+            "patrol": "centre-push",
             "while": "centre-birth-soon",
             "until": "centre-birth-far",
             "cohort": "centre-runners",
@@ -417,18 +417,18 @@
             "posture": "core"
           },
           {
-            "patrol": "north-well-loop",
-            "while": "north-birth-soon",
-            "until": "north-birth-far",
-            "cohort": "north-runners",
+            "patrol": "own-well-run",
+            "while": "own-birth-soon",
+            "until": "own-birth-far",
+            "cohort": "own-runners",
             "focus": "well",
             "posture": "core"
           },
           {
-            "patrol": "south-well-loop",
-            "while": "south-birth-soon",
-            "until": "south-birth-far",
-            "cohort": "south-runners",
+            "patrol": "raid-run",
+            "while": "enemy-birth-soon",
+            "until": "enemy-birth-far",
+            "cohort": "enemy-runners",
             "focus": "well",
             "posture": "core"
           },
@@ -472,7 +472,7 @@
             "fetch": "well-custody"
           },
           {
-            "patrol": "centre-well-loop",
+            "patrol": "centre-push",
             "while": "centre-birth-soon",
             "until": "centre-birth-far",
             "cohort": "centre-runners",
@@ -480,18 +480,18 @@
             "posture": "core"
           },
           {
-            "patrol": "north-well-loop",
-            "while": "north-birth-soon",
-            "until": "north-birth-far",
-            "cohort": "north-runners",
+            "patrol": "own-well-run",
+            "while": "own-birth-soon",
+            "until": "own-birth-far",
+            "cohort": "own-runners",
             "focus": "well",
             "posture": "core"
           },
           {
-            "patrol": "south-well-loop",
-            "while": "south-birth-soon",
-            "until": "south-birth-far",
-            "cohort": "south-runners",
+            "patrol": "raid-run",
+            "while": "enemy-birth-soon",
+            "until": "enemy-birth-far",
+            "cohort": "enemy-runners",
             "focus": "well",
             "posture": "core"
           },
@@ -543,7 +543,7 @@
           },
           {
             "patrol": {
-              "zone": "own-home"
+              "zone": "own-delivery"
             },
             "while": "gate-threat or home-threat",
             "until": "approach-clear and home-clear",
@@ -598,7 +598,7 @@
           },
           {
             "patrol": {
-              "zone": "own-home"
+              "zone": "own-delivery"
             },
             "while": "gate-threat or home-threat",
             "until": "approach-clear and home-clear",
@@ -674,19 +674,19 @@
     },
     "cohorts": {
       "centre-runners": {
-        "take": 3,
+        "take": 4,
         "select": "nearest"
       },
-      "north-runners": {
-        "take": 3,
+      "own-runners": {
+        "take": 2,
         "select": "nearest"
       },
-      "south-runners": {
-        "take": 3,
+      "enemy-runners": {
+        "take": 1,
         "select": "nearest"
       },
       "home-guard": {
-        "take": 3,
+        "take": 2,
         "select": "nearest"
       },
       "well-surge": {
@@ -710,17 +710,17 @@
     }
   },
   "conditions": {
-    "north-birth-soon": {
+    "own-birth-soon": {
       "fact": "well-ticks-until-birth",
       "operator": "at-most",
       "value": 28,
-      "subject": "north"
+      "subject": "own"
     },
-    "north-birth-far": {
+    "own-birth-far": {
       "fact": "well-ticks-until-birth",
       "operator": "at-least",
       "value": 45,
-      "subject": "north"
+      "subject": "own"
     },
     "centre-birth-soon": {
       "fact": "well-ticks-until-birth",
@@ -734,17 +734,17 @@
       "value": 45,
       "subject": "centre"
     },
-    "south-birth-soon": {
+    "enemy-birth-soon": {
       "fact": "well-ticks-until-birth",
       "operator": "at-most",
       "value": 28,
-      "subject": "south"
+      "subject": "enemy"
     },
-    "south-birth-far": {
+    "enemy-birth-far": {
       "fact": "well-ticks-until-birth",
       "operator": "at-least",
       "value": 45,
-      "subject": "south"
+      "subject": "enemy"
     },
     "window-open": {
       "fact": "known-enemies-unavailable",

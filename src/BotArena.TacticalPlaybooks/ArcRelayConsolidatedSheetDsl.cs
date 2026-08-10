@@ -397,10 +397,16 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         }
         else if (WellSubjectFacts.Contains(fact))
         {
+            // 'own' and 'enemy' are TEAM-RELATIVE: the Well nearest and
+            // furthest from your own reactor. On a chiral map where each side
+            // owns a Well they are the only way to say "my income" in a sheet
+            // that plays either corner; the compass names stay for maps where
+            // both flanks are neutral and the distinction is meaningless.
             if (!hasSubject || subject.GetString() is not
-                    ("north" or "centre" or "south"))
+                    ("north" or "centre" or "south" or "own" or "enemy"))
             {
-                throw Error(path, $"'{fact}' needs a north/centre/south subject.");
+                throw Error(path,
+                    $"'{fact}' needs a north/centre/south/own/enemy subject.");
             }
         }
         else if (hasSubject)

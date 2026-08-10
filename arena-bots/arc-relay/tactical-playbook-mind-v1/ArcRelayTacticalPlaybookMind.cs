@@ -1394,16 +1394,48 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             reactor => reactor.TeamId == _teamId);
         GenericActorContext.ArcRelayReactorState enemyReactorState =
             arc.Reactors.Single(reactor => reactor.TeamId != _teamId);
+        // Team-relative Well subjects. The engine names Wells by compass, which
+        // is fine while both flanks are neutral ground; on a chiral map where
+        // each side OWNS its near Well, "north" means my safe income to one
+        // player and a twenty-step raid to the other, and one team-relative
+        // sheet cannot say which it wants. 'own' is the Well nearest my
+        // reactor, 'enemy' the one furthest; 'centre' keeps its own name.
+        string[] byDistance = [.. arc.Wells
+            .OrderBy(well => well.Position.ChebyshevDistance(_ownReactor))
+            .ThenBy(well => well.WellId, StringComparer.Ordinal)
+            .Select(well => well.WellId)];
+        void AddRelativeAliases(Dictionary<string, int> values)
+        {
+            if (byDistance.Length == 0)
+                return;
+            values["own"] = values[byDistance[0]];
+            values["enemy"] = values[byDistance[^1]];
+        }
+
         Dictionary<string, int> ownSocketFilled = arc.Wells.ToDictionary(
             well => well.WellId,
             well => own.FilledSocketWellIds.Contains(
                 well.WellId, StringComparer.Ordinal) ? 1 : 0,
             StringComparer.Ordinal);
+        AddRelativeAliases(ownSocketFilled);
         Dictionary<string, int> enemySocketFilled = arc.Wells.ToDictionary(
             well => well.WellId,
             well => enemyReactorState.FilledSocketWellIds.Contains(
                 well.WellId, StringComparer.Ordinal) ? 1 : 0,
             StringComparer.Ordinal);
+        AddRelativeAliases(enemySocketFilled);
+        Dictionary<string, int> wellOutstanding = arc.Wells.ToDictionary(
+            well => well.WellId,
+            well => well.OutstandingCoreId is null ? 0 : 1,
+            StringComparer.Ordinal);
+        AddRelativeAliases(wellOutstanding);
+        Dictionary<string, int> wellBirthIn = arc.Wells.ToDictionary(
+            well => well.WellId,
+            well => well.NextScheduledBirthTick is int birth
+                ? Math.Max(0, birth - mind.Tick)
+                : 9999,
+            StringComparer.Ordinal);
+        AddRelativeAliases(wellBirthIn);
         return new TacticalSnapshot(
             mind.Tick,
             machine.PhaseId,
@@ -1446,10 +1478,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 .DefaultIfEmpty(0)
                 .Max(),
             looseCoreValueByZone,
-            arc.Wells.ToDictionary(
-                well => well.WellId,
-                well => well.OutstandingCoreId is null ? 0 : 1,
-                StringComparer.Ordinal),
+            wellOutstanding,
             _formationStableTicks.ToDictionary(StringComparer.Ordinal),
             _formationLifecycles.ToDictionary(
                 value => value.Key,
@@ -1457,12 +1486,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 StringComparer.Ordinal),
             ownSocketFilled,
             enemySocketFilled,
-            arc.Wells.ToDictionary(
-                well => well.WellId,
-                well => well.NextScheduledBirthTick is int birth
-                    ? Math.Max(0, birth - mind.Tick)
-                    : 9999,
-                StringComparer.Ordinal),
+            wellBirthIn,
             // Highest current level among a group's LIVE bodies: level is a
             // per-life fact, so a body whose recorded level belongs to an
             // earlier life reads as 1, and an empty group reads as 0 - an
