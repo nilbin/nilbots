@@ -79,11 +79,11 @@ public sealed class ArcRelayDrawbenchTests
         Assert.True(eastWell.Y < 11, "east farms above the middle row");
 
         Position[] westMouths = [.. Neighbours(map, westWell)];
-        Assert.Equal(3, westMouths.Length);
+        Assert.Equal(5, westMouths.Length);
         Assert.All(westMouths, mouth =>
             Assert.True(mouth.X <= westWell.X, "west's Well opens westward"));
         Position[] eastMouths = [.. Neighbours(map, eastWell)];
-        Assert.Equal(3, eastMouths.Length);
+        Assert.Equal(5, eastMouths.Length);
         Assert.All(eastMouths, mouth =>
             Assert.True(mouth.X >= eastWell.X, "east's Well opens eastward"));
     }
@@ -157,6 +157,41 @@ public sealed class ArcRelayDrawbenchTests
         }
 
         Assert.Empty(trapped);
+
+        // A diagonal escape is not an exit you can see or hold. Every floor
+        // tile needs two ORTHOGONAL ways out (three on a landmark), and no
+        // two tiles may be joined only corner-to-corner -- that reads as a
+        // wall even though the engine lets a body slip through it.
+        var nooks = new List<Position>();
+        var squeezes = new List<Position>();
+        var landmarks = new HashSet<Position>
+        {
+            new(2, 6), new(28, 16), new(21, 5), new(9, 17), new(15, 11),
+            new(18, 3), new(12, 19),
+        };
+        foreach (Position tile in floor)
+        {
+            int orthogonal = 0;
+            foreach ((int dx, int dy) in new[] { (1, 0), (-1, 0), (0, 1), (0, -1) })
+            {
+                if (!map.IsWall(new Position(tile.X + dx, tile.Y + dy)))
+                    orthogonal++;
+            }
+            if (orthogonal < (landmarks.Contains(tile) ? 3 : 2))
+                nooks.Add(tile);
+            foreach ((int dx, int dy) in new[] { (1, 1), (1, -1), (-1, 1), (-1, -1) })
+            {
+                var corner = new Position(tile.X + dx, tile.Y + dy);
+                if (!map.IsWall(corner)
+                    && map.IsWall(new Position(tile.X + dx, tile.Y))
+                    && map.IsWall(new Position(tile.X, tile.Y + dy)))
+                {
+                    squeezes.Add(tile);
+                }
+            }
+        }
+        Assert.Empty(nooks);
+        Assert.Empty(squeezes);
 
         // and no single body standing anywhere splits the map in two
         foreach (Position blocker in floor)

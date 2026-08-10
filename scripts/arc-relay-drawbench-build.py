@@ -33,31 +33,41 @@ PROTECTED = ([REACTOR0, WELL_NORTH, WELL_SOUTH, WELL_CENTRE, HEAL_A]
              + [rot(p) for p in PAD0] + [rot(p) for p in DELIVER0])
 
 UPPER_WALLS = [
+    (10, 9),
+    (1, 9),
+    (23, 6),
+    (12, 3),
+    (11, 3),
+    (10, 3),
+    (1, 1),
+    (10, 2),
+    (8, 2),
+    (12, 6),
     # base shell: the pad opens east along y5-6 and south along x3-4, so a
     # camper cannot plug both mouths at once.
-    (5, 4), (1, 8), (2, 8), (5, 8),
+    (5, 4), (1, 8), (2, 8), 
 
     # the delivery shoulder sits forward of the pad and is NOT protected;
     # these give a defender cover without standing inside spawn protection.
-    (9, 5), (9, 6), (6, 9), (7, 9),
+    (9, 5), (9, 6), (6, 9), 
 
     # The owned Well pocket at (21,5) -- east's. It is far from the spawn that
     # owns it, so it is OPENED toward that owner instead: the mouths face east
     # and south, its own side, while the west face a raider must come through
     # is walled. Rotation gives west the same deal at (9,17), facing west.
-    (20, 4), (20, 5), (20, 6), (21, 4),
+    (20, 4), (20, 5), (20, 6), 
 
     # the north run: break the y1-2 corridor twice so the top edge is not a
     # free highway between the two halves.
-    (12, 1), (12, 2), (17, 1), (17, 2), (22, 2), (23, 2),
+    (12, 1), (17, 1), (17, 2), (22, 2), (23, 2),
 
     # the horizontal main lane bends: staggered blockers either side of the
     # west->centre line so the approach weaves instead of running straight.
-    (12, 7), (13, 8), (11, 9), (14, 9),
+    (11, 9), (14, 9),
 
     # centre-north lip: cover on the upper face of the centre Well, two
     # separate mouths rather than one open face.
-    (13, 10), (17, 10),
+    
 
     # heal at (18,3), beside the Well it shares a quarter with
     # (18,2) is deliberately NOT walled: closing it sealed (18,1)-(19,1) into
@@ -77,18 +87,18 @@ UPPER_WALLS = [
     # --- density pass ------------------------------------------------------
     # the two rows flanking the middle ARE the horizontal lane; they must
     # bend rather than run. Authoring y=10 mirrors y=12 for free.
-    (7, 10), (8, 10), (20, 10), (21, 10), (26, 10),
+    (8, 10), (21, 10), (26, 10),
     # the top edge is a 12-tile sprint otherwise (and mirrors to the bottom)
-    (5, 1), (20, 1), (27, 1),
+    (20, 1), (27, 1),
     # west and east midfield texture: rooms, not halls
-    (6, 2), (14, 6), (22, 5), (23, 8), (27, 3),
-    (2, 3), (3, 3), (13, 3), (14, 3),
+    (6, 2), (23, 8), (27, 3),
+    (2, 3), (3, 3), (13, 3), 
     # the far shoulder of the enemy approach
     (25, 6), (19, 9), (24, 10),
 ]
 
 # middle row must equal its own reversal
-MIDDLE_WALLS = [4, 6, 12, 18, 24, 26]
+MIDDLE_WALLS = [4, 6, 18, 24, 26]
 
 
 def build():
