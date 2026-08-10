@@ -1,8 +1,11 @@
 # Direct-ladder tactical movement invariant
 
-Date: 2026-08-10  
-Branch: `sheet-bulk`  
-Starting checkpoint: `bf670286`  
+Date: 2026-08-10
+
+Branch: `sheet-bulk`
+
+Starting checkpoint: `bf670286`
+
 Implementation checkpoint: `5ba25659`
 
 ## Result
@@ -256,4 +259,3 @@ The compatibility bump is CLI 0.9.40. No release or deploy workflow ran;
   safety or clearance move.
 - Six cells show the policy and its failure bounds. They do not establish
   class dominance, sheet strength, or player-facing balance.
-
