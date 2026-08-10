@@ -1,0 +1,572 @@
+{
+  "schema": "arc-relay-tactical-playbook-v1",
+  "playbookId": "wellwright-tapline-v1",
+  "auditStatus": {
+    "provisionalEvaluationOnly": true,
+    "playerFacingProductSchema": false
+  },
+  "composition": [
+    "relay",
+    "relay",
+    "switchback",
+    "switchback",
+    "towline",
+    "towline",
+    "lantern",
+    "patchbay"
+  ],
+  "layout": {
+    "path": "../layouts/tapline-base-v1.json",
+    "sha256": "eaa55f2dffbf8a443e25d3b7701c7e7fde8fa625edd2c37d86e4df462bca93ce"
+  },
+  "memory": {
+    "enemyUnavailableTicks": 21,
+    "lastSeenEnemyTicks": 30,
+    "securedCoreTicks": 40,
+    "objectiveProgressTicks": 90
+  },
+  "roles": [
+    {
+      "roleId": "hauler",
+      "candidateClasses": [
+        "relay"
+      ],
+      "minimum": 0,
+      "preferred": 2,
+      "maximum": 2,
+      "carrierPreference": "prefer",
+      "deathPolicy": "hold-vacancy",
+      "respawnPolicy": "rejoin",
+      "overflowRoleId": "reserve",
+      "build": [
+        "vitality",
+        "vitality",
+        "vision",
+        "vitality"
+      ]
+    },
+    {
+      "roleId": "runner",
+      "candidateClasses": [
+        "switchback"
+      ],
+      "minimum": 0,
+      "preferred": 2,
+      "maximum": 2,
+      "carrierPreference": "allow",
+      "deathPolicy": "hold-vacancy",
+      "respawnPolicy": "rejoin",
+      "overflowRoleId": "reserve",
+      "build": [
+        "damage",
+        "vitality",
+        "vitality",
+        "vitality"
+      ]
+    },
+    {
+      "roleId": "escort",
+      "candidateClasses": [
+        "towline"
+      ],
+      "minimum": 0,
+      "preferred": 2,
+      "maximum": 2,
+      "carrierPreference": "allow",
+      "deathPolicy": "hold-vacancy",
+      "respawnPolicy": "rejoin",
+      "overflowRoleId": "reserve",
+      "build": [
+        "damage",
+        "vision",
+        "vitality",
+        "vitality"
+      ]
+    },
+    {
+      "roleId": "eyes",
+      "candidateClasses": [
+        "lantern"
+      ],
+      "minimum": 0,
+      "preferred": 1,
+      "maximum": 1,
+      "carrierPreference": "allow",
+      "deathPolicy": "hold-vacancy",
+      "respawnPolicy": "rejoin",
+      "overflowRoleId": "reserve",
+      "build": [
+        "vision",
+        "vision",
+        "vitality",
+        "vitality"
+      ]
+    },
+    {
+      "roleId": "medic",
+      "candidateClasses": [
+        "patchbay"
+      ],
+      "minimum": 0,
+      "preferred": 1,
+      "maximum": 1,
+      "carrierPreference": "forbid",
+      "deathPolicy": "hold-vacancy",
+      "respawnPolicy": "rejoin",
+      "overflowRoleId": "reserve",
+      "build": [
+        "reach",
+        "vitality",
+        "vitality",
+        "reach"
+      ]
+    },
+    {
+      "roleId": "reserve",
+      "candidateClasses": [
+        "relay",
+        "switchback",
+        "towline",
+        "lantern",
+        "patchbay"
+      ],
+      "minimum": 0,
+      "preferred": 0,
+      "maximum": 8,
+      "carrierPreference": "allow",
+      "deathPolicy": "hold-vacancy",
+      "respawnPolicy": "rejoin",
+      "overflowRoleId": "reserve"
+    }
+  ],
+  "custodyPolicies": [
+    {
+      "custodyId": "farm-custody",
+      "sourceWells": [
+        "north",
+        "centre",
+        "south"
+      ],
+      "pickupReservationTicks": 8,
+      "transferTimeoutTicks": 8,
+      "deliveryTimeoutTicks": 120,
+      "accidentalPickup": "deliver",
+      "dropRecovery": "nearest-authorized",
+      "unreachableFallback": "guard",
+      "safeConversion": "always"
+    }
+  ],
+  "doctrines": {
+    "roles": {
+      "hauler": {
+        "custody": "farm-custody",
+        "fight": {
+          "targets": {
+            "prefer": [
+              "carrier",
+              "anchor",
+              "weakest"
+            ]
+          },
+          "chase": {
+            "leash": 1,
+            "persistTicks": 1
+          },
+          "defense": {
+            "radius": 3,
+            "return": true
+          }
+        },
+        "modes": [
+          {
+            "fetch": "farm-custody"
+          },
+          {
+            "patrol": "own-well-run",
+            "while": "own-birth-soon",
+            "until": "own-birth-far",
+            "focus": "haul",
+            "posture": "core",
+            "cohort": "own-race"
+          },
+          {
+            "patrol": "centre-push",
+            "while": "centre-birth-soon",
+            "until": "centre-birth-far",
+            "focus": "haul",
+            "posture": "core",
+            "cohort": "centre-race"
+          },
+          {
+            "patrol": "raid-run",
+            "while": "enemy-birth-soon",
+            "until": "enemy-birth-far",
+            "focus": "haul",
+            "posture": "core",
+            "cohort": "enemy-race"
+          },
+          {
+            "patrol": "farm-loop",
+            "focus": "haul",
+            "posture": "core"
+          }
+        ],
+        "conceal": false
+      },
+      "runner": {
+        "custody": "farm-custody",
+        "fight": {
+          "targets": {
+            "prefer": [
+              "carrier",
+              "anchor",
+              "weakest"
+            ]
+          },
+          "chase": {
+            "leash": 1,
+            "persistTicks": 1
+          },
+          "defense": {
+            "radius": 3,
+            "return": true
+          }
+        },
+        "modes": [
+          {
+            "fetch": "farm-custody"
+          },
+          {
+            "patrol": "own-well-run",
+            "while": "own-birth-soon",
+            "until": "own-birth-far",
+            "focus": "haul",
+            "posture": "core",
+            "cohort": "own-race"
+          },
+          {
+            "patrol": "centre-push",
+            "while": "centre-birth-soon",
+            "until": "centre-birth-far",
+            "focus": "haul",
+            "posture": "core",
+            "cohort": "centre-race"
+          },
+          {
+            "patrol": "raid-run",
+            "while": "enemy-birth-soon",
+            "until": "enemy-birth-far",
+            "focus": "haul",
+            "posture": "core",
+            "cohort": "enemy-race"
+          },
+          {
+            "patrol": "farm-loop",
+            "focus": "haul",
+            "posture": "core"
+          }
+        ],
+        "conceal": false
+      },
+      "escort": {
+        "custody": "farm-custody",
+        "fight": {
+          "targets": {
+            "prefer": [
+              "carrier",
+              "anchor",
+              "weakest"
+            ]
+          },
+          "chase": {
+            "leash": 1,
+            "persistTicks": 1
+          },
+          "defense": {
+            "radius": 3,
+            "return": true
+          }
+        },
+        "modes": [
+          {
+            "fetch": "farm-custody"
+          },
+          {
+            "patrol": "own-well-run",
+            "while": "own-birth-soon",
+            "until": "own-birth-far",
+            "focus": "haul",
+            "posture": "front",
+            "cohort": "own-race"
+          },
+          {
+            "patrol": "centre-push",
+            "while": "centre-birth-soon",
+            "until": "centre-birth-far",
+            "focus": "haul",
+            "posture": "front",
+            "cohort": "centre-race"
+          },
+          {
+            "patrol": "raid-run",
+            "while": "enemy-birth-soon",
+            "until": "enemy-birth-far",
+            "focus": "haul",
+            "posture": "front",
+            "cohort": "enemy-race"
+          },
+          {
+            "patrol": "farm-loop",
+            "focus": "haul",
+            "posture": "front"
+          }
+        ],
+        "conceal": false
+      },
+      "eyes": {
+        "custody": "farm-custody",
+        "fight": {
+          "targets": {
+            "prefer": [
+              "carrier",
+              "weakest"
+            ]
+          },
+          "chase": {
+            "leash": 0,
+            "persistTicks": 1
+          },
+          "defense": {
+            "radius": 3,
+            "return": true
+          }
+        },
+        "modes": [
+          {
+            "patrol": "own-well-run",
+            "while": "own-birth-soon",
+            "until": "own-birth-far",
+            "focus": "aid",
+            "posture": "core",
+            "cohort": "aid-own"
+          },
+          {
+            "patrol": "centre-push",
+            "while": "centre-birth-soon",
+            "until": "centre-birth-far",
+            "focus": "aid",
+            "posture": "core",
+            "cohort": "aid-centre"
+          },
+          {
+            "patrol": "raid-run",
+            "while": "enemy-birth-soon",
+            "until": "enemy-birth-far",
+            "focus": "aid",
+            "posture": "core",
+            "cohort": "aid-enemy"
+          },
+          {
+            "patrol": "farm-loop",
+            "focus": "aid",
+            "posture": "core"
+          }
+        ],
+        "conceal": false
+      },
+      "medic": {
+        "custody": "farm-custody",
+        "fight": {
+          "targets": {
+            "prefer": [
+              "carrier",
+              "weakest"
+            ]
+          },
+          "chase": {
+            "leash": 0,
+            "persistTicks": 1
+          },
+          "defense": {
+            "radius": 3,
+            "return": true
+          }
+        },
+        "repair": {
+          "prefer": [
+            "carrier",
+            "weakest",
+            "any"
+          ],
+          "maximumProvidersPerTarget": 1,
+          "minimumProviderSeparation": 2,
+          "reserveHealthPercent": 30,
+          "survivalFallback": "evade"
+        },
+        "modes": [
+          {
+            "patrol": "own-well-run",
+            "while": "own-birth-soon",
+            "until": "own-birth-far",
+            "focus": "aid",
+            "posture": "rear",
+            "cohort": "aid-own"
+          },
+          {
+            "patrol": "centre-push",
+            "while": "centre-birth-soon",
+            "until": "centre-birth-far",
+            "focus": "aid",
+            "posture": "rear",
+            "cohort": "aid-centre"
+          },
+          {
+            "patrol": "raid-run",
+            "while": "enemy-birth-soon",
+            "until": "enemy-birth-far",
+            "focus": "aid",
+            "posture": "rear",
+            "cohort": "aid-enemy"
+          },
+          {
+            "patrol": "farm-loop",
+            "focus": "aid",
+            "posture": "rear"
+          }
+        ],
+        "conceal": false
+      },
+      "reserve": {
+        "custody": "farm-custody",
+        "fight": {
+          "targets": {
+            "prefer": [
+              "carrier",
+              "weakest"
+            ]
+          },
+          "chase": {
+            "leash": 2,
+            "persistTicks": 1
+          },
+          "defense": {
+            "radius": 3,
+            "return": true
+          }
+        },
+        "modes": [
+          {
+            "fetch": "farm-custody"
+          },
+          {
+            "patrol": "own-well-run",
+            "while": "own-birth-soon",
+            "until": "own-birth-far",
+            "focus": {
+              "maximumAttackers": 2
+            },
+            "posture": "rear"
+          },
+          {
+            "patrol": "centre-push",
+            "while": "centre-birth-soon",
+            "until": "centre-birth-far",
+            "focus": {
+              "maximumAttackers": 2
+            },
+            "posture": "rear"
+          },
+          {
+            "patrol": "raid-run",
+            "while": "enemy-birth-soon",
+            "until": "enemy-birth-far",
+            "focus": {
+              "maximumAttackers": 2
+            },
+            "posture": "rear"
+          },
+          {
+            "patrol": "farm-loop",
+            "focus": {
+              "maximumAttackers": 2
+            },
+            "posture": "rear"
+          }
+        ],
+        "conceal": false
+      }
+    },
+    "cohorts": {
+      "own-race": {
+        "take": 3,
+        "select": "nearest"
+      },
+      "centre-race": {
+        "take": 4,
+        "select": "nearest"
+      },
+      "enemy-race": {
+        "take": 1,
+        "select": "nearest"
+      },
+      "aid-own": {
+        "take": 1,
+        "select": "nearest"
+      },
+      "aid-centre": {
+        "take": 1,
+        "select": "nearest"
+      },
+      "aid-enemy": {
+        "take": 1,
+        "select": "nearest"
+      }
+    },
+    "focus": {
+      "haul": {
+        "maximumAttackers": 3
+      },
+      "aid": {
+        "maximumAttackers": 2
+      }
+    }
+  },
+  "conditions": {
+    "own-birth-soon": {
+      "fact": "well-ticks-until-birth",
+      "operator": "at-most",
+      "value": 18,
+      "subject": "own"
+    },
+    "own-birth-far": {
+      "fact": "well-ticks-until-birth",
+      "operator": "at-least",
+      "value": 45,
+      "subject": "own"
+    },
+    "centre-birth-soon": {
+      "fact": "well-ticks-until-birth",
+      "operator": "at-most",
+      "value": 18,
+      "subject": "centre"
+    },
+    "centre-birth-far": {
+      "fact": "well-ticks-until-birth",
+      "operator": "at-least",
+      "value": 45,
+      "subject": "centre"
+    },
+    "enemy-birth-soon": {
+      "fact": "well-ticks-until-birth",
+      "operator": "at-most",
+      "value": 18,
+      "subject": "enemy"
+    },
+    "enemy-birth-far": {
+      "fact": "well-ticks-until-birth",
+      "operator": "at-least",
+      "value": 45,
+      "subject": "enemy"
+    }
+  }
+}
