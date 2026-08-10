@@ -25,7 +25,7 @@ ratings across changed executor behavior.
   backend selected by `scripts/run-wasm-publish.sh` on macOS
 - build input: see `bot.build-receipt.json`
 - artifact SHA-256:
-  `c005b1d52731e416f1e7766625af869398db662a1a201d55e21e19bdb826940b`
+  `dd9d33421d4b5332bd0f5d74c50f3309dc8b5305e9c34eb481b359a8d2062ed8`
 - stock sheet: `wellwright-v1`
 - loop profile: `ambush-warren-11`
 - linked-data format: `ATL1` direct ladder
