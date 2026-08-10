@@ -1,10 +1,10 @@
 # Traffic detours and corner-strict movement
 
-Date: 2026-08-10  
-Branch: `codex/traffic-detours-corner-strict`  
-Base: `main@d8526966`  
-Behavior commit: `6e89fbb6`  
-Hosted artifact/playlist commit: `cc856f42`  
+Date: 2026-08-10
+Branch: `codex/traffic-detours-corner-strict`
+Base: `main@d8526966`
+Behavior commit: `6e89fbb6`
+Hosted artifact/playlist commit: `cc856f42`
 Pre-existing built-in fixture refresh: `59b12f46`
 
 This is an executor/engine mechanism report, not a balance read. No battery or
