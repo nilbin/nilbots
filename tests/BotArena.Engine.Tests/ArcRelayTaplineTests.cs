@@ -93,6 +93,24 @@ public sealed class ArcRelayTaplineTests
             .Select(a => a.Spawn.Position).ToArray();
         Assert.Equal(8, west.Length);
         Assert.All(west, q => Assert.True(q.Y < 13));
+
+        // No anchor may be caged by its own siblings: every one needs at
+        // least two ways out that another spawn tile does not already own.
+        var cluster = west.ToHashSet();
+        foreach (Position anchor in west)
+        {
+            int ways = 0;
+            for (int dx = -1; dx <= 1; dx++)
+            for (int dy = -1; dy <= 1; dy++)
+            {
+                if (dx == 0 && dy == 0)
+                    continue;
+                var next = new Position(anchor.X + dx, anchor.Y + dy);
+                if (!map.IsWall(next) && !cluster.Contains(next))
+                    ways++;
+            }
+            Assert.True(ways >= 2, $"anchor {anchor} has {ways} free exits");
+        }
         Assert.All(east, q => Assert.True(q.Y > 13));
         for (int i = 0; i < west.Length; i++)
         {
