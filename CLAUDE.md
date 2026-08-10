@@ -199,17 +199,19 @@ Project boundaries that must not be violated:
   `nilbots arc-relay` is top-level; `nilbots experiment arc-relay` is a
   permanent alias, so existing scripts and briefs keep their spelling.
   `--loop-profile` defaults to `ambush-warren-11`, and immutable hosted entrant
-  playlist v11 pins that same rules/map line with Warren-native consolidated
-  tactical sheets and the bounded-movement direct-ladder WASM artifact. v7
+  playlist v12 pins that same rules/map line with Warren-native consolidated
+  tactical sheets and the relative-Well direct-ladder WASM artifact. v7
   began the fresh Warren
   development rating era and remains immutable; v8 carried those development
   ratings because no game fact changed. Public Season 1 began on a separate,
   fresh v8 ladder at 1200; v9 continued that rating book for the direct executor,
-  v10 continued it again because only spectator intent labels changed, and v11
-  retains it for a generic executor-traffic correction with unchanged sheets,
-  rules, and map. A first deployment of the unmerged v9/v10/v11 branch stack
-  may continue from the most recent registered v8-v10 ladder; it may never
-  skip a registered intermediate ladder. Neither development population
+  v10 continued it again because only spectator intent labels changed, v11
+  retained it for a generic executor-traffic correction with unchanged sheets,
+  rules, and map, and v12 retains it again for team-relative Well subjects that
+  are inert on this map — the stock cell's gameplay-state digest is
+  byte-identical across the v11 and v12 artifacts. A first deployment of the
+  unmerged v9-v12 branch stack may continue from the most recent registered
+  v8-v11 ladder; it may never skip a registered intermediate ladder. Neither development population
   is presented as Season history. v6 remains the readable/executable
   ForwardCombat on Counterflow history; never mutate it or migrate its sheet geometry. Sheets
   compile through

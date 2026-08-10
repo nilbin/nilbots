@@ -11,7 +11,7 @@ namespace BotArena.App.Tests;
 public sealed class ArcRelayPlaylistDefinitionTests
 {
     [Fact]
-    public void Entrant_v11_bounds_movement_while_v2_through_v10_remain_executable()
+    public void Entrant_v12_relates_wells_while_v2_through_v11_remain_executable()
     {
         ArcRelayEntrantPlaylistDefinition current =
             ArcRelayEntrantPlaylistDefinition.Create();
@@ -33,8 +33,10 @@ public sealed class ArcRelayPlaylistDefinitionTests
             ArcRelayEntrantPlaylistDefinition.CreateHistoricalV9();
         ArcRelayEntrantPlaylistDefinition semanticV10 =
             ArcRelayEntrantPlaylistDefinition.CreateHistoricalV10();
+        ArcRelayEntrantPlaylistDefinition movementV11 =
+            ArcRelayEntrantPlaylistDefinition.CreateHistoricalV11();
 
-        Assert.Equal(11, current.PlaylistVersion);
+        Assert.Equal(12, current.PlaylistVersion);
         Assert.Equal(ArcRelayLoopProfile.AmbushWarren11.MapId, current.Match.Map.Id);
         Assert.Equal(
             ArcRelayLoopProfile.AmbushWarren11.RulesetId,
@@ -55,6 +57,22 @@ public sealed class ArcRelayPlaylistDefinitionTests
         Assert.Contains("deterministicTrafficTickets", current.Provenance);
         Assert.Contains("boundedOscillationYield", current.Provenance);
         using (JsonDocument provenance = JsonDocument.Parse(current.Provenance))
+        {
+            Assert.Equal(
+                [8, 9, 10, 11],
+                provenance.RootElement
+                    .GetProperty("ratingContinuityFromVersions")
+                    .EnumerateArray().Select(value => value.GetInt32()));
+        }
+        Assert.Equal(11, movementV11.PlaylistVersion);
+        Assert.Contains(
+            ArcRelayEntrantPlaylistDefinition
+                .BoundedMovementTacticalArtifactHash,
+            movementV11.CanonicalDefinition);
+        Assert.Contains("boundedOscillationYield", movementV11.Provenance);
+        Assert.DoesNotContain("relativeWellSubjects", movementV11.Provenance);
+        using (JsonDocument provenance = JsonDocument.Parse(
+            movementV11.Provenance))
         {
             Assert.Equal(
                 [8, 9, 10],
@@ -130,7 +148,7 @@ public sealed class ArcRelayPlaylistDefinitionTests
         var registry = new HostedGenericMatchDefinitionRegistry(
             [ArcRelayPlaylistDefinition.Create(), historicalV2, counterflow,
                 forward, recoveredStock, tacticalCounterflow, ambushV7,
-                wasmRepairV8, directV9, semanticV10, current]);
+                wasmRepairV8, directV9, semanticV10, movementV11, current]);
         Assert.Same(historicalV2, registry.Resolve(
             ArcRelayEntrantPlaylistDefinition.PlaylistKey,
             ArcRelayEntrantPlaylistDefinition.HistoricalVersion));
@@ -158,6 +176,9 @@ public sealed class ArcRelayPlaylistDefinitionTests
         Assert.Same(semanticV10, registry.Resolve(
             ArcRelayEntrantPlaylistDefinition.PlaylistKey,
             ArcRelayEntrantPlaylistDefinition.SemanticIntentVersion));
+        Assert.Same(movementV11, registry.Resolve(
+            ArcRelayEntrantPlaylistDefinition.PlaylistKey,
+            ArcRelayEntrantPlaylistDefinition.BoundedMovementVersion));
         Assert.Same(current, registry.Resolve(
             ArcRelayEntrantPlaylistDefinition.PlaylistKey,
             ArcRelayEntrantPlaylistDefinition.Version));
@@ -357,6 +378,9 @@ public sealed class ArcRelayPlaylistDefinitionTests
         string movementArtifact = Path.Combine(
             root, "arena-bots", "arc-relay", "ambush-warren-11-stock-v5",
             "bot.wasm");
+        string relativeWellArtifact = Path.Combine(
+            root, "arena-bots", "arc-relay", "ambush-warren-11-stock-v6",
+            "bot.wasm");
         string playbook = Path.Combine(
             root, "arena-bots", "arc-relay",
             "tactical-playbook-v1-2026-08-03", "playbooks",
@@ -368,6 +392,10 @@ public sealed class ArcRelayPlaylistDefinitionTests
 
         Assert.Equal(
             ArcRelayEntrantPlaylistDefinition.TacticalArtifactHash,
+            BotBuilder.Sha256File(relativeWellArtifact));
+        Assert.Equal(
+            ArcRelayEntrantPlaylistDefinition
+                .BoundedMovementTacticalArtifactHash,
             BotBuilder.Sha256File(movementArtifact));
         Assert.Equal(
             ArcRelayEntrantPlaylistDefinition

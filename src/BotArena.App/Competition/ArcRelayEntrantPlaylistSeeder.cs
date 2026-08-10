@@ -8,8 +8,11 @@ namespace BotArena.App.Competition;
 
 /// <summary>
 /// Seeds the current immutable entrant lane. Season 1 began on repaired v8,
-/// continued through direct-ladder v9 and semantic-intent v10, and keeps the
-/// same rating book when v11 repairs executor-owned tactical movement.
+/// continued through direct-ladder v9, semantic-intent v10 and bounded
+/// movement v11, and keeps the same rating book when v12 adds team-relative
+/// Well subjects: they are inert on this map, whose flank Wells are neutral,
+/// and the stock cell's gameplay-state digest is byte-identical across the
+/// two artifacts.
 /// </summary>
 public sealed class ArcRelayEntrantPlaylistSeeder(
     AppDbContext db,
@@ -91,6 +94,16 @@ public sealed class ArcRelayEntrantPlaylistSeeder(
         {
             ArcRelayEntrantPlaylistDefinition.CreateHistoricalV10()
                 .Validate(playlist, semanticIntentVersion);
+        }
+        PlaylistVersion? boundedMovementVersion = await db.PlaylistVersions
+            .SingleOrDefaultAsync(value => value.PlaylistId == playlist.Id &&
+                value.Version ==
+                    ArcRelayEntrantPlaylistDefinition.BoundedMovementVersion,
+                cancellationToken);
+        if (boundedMovementVersion is not null)
+        {
+            ArcRelayEntrantPlaylistDefinition.CreateHistoricalV11()
+                .Validate(playlist, boundedMovementVersion);
         }
         PlaylistVersion? recoveryVersion = await db.PlaylistVersions
             .SingleOrDefaultAsync(value => value.PlaylistId == playlist.Id &&
@@ -227,6 +240,8 @@ public sealed class ArcRelayEntrantPlaylistSeeder(
                 on ladder.PlaylistVersionId equals version.Id
             where version.PlaylistId == playlist.Id &&
                 (version.Version ==
+                    ArcRelayEntrantPlaylistDefinition.BoundedMovementVersion ||
+                 version.Version ==
                     ArcRelayEntrantPlaylistDefinition.SemanticIntentVersion ||
                  version.Version ==
                     ArcRelayEntrantPlaylistDefinition.DirectLadderVersion ||
@@ -241,8 +256,8 @@ public sealed class ArcRelayEntrantPlaylistSeeder(
         if (open.Length != 1)
         {
             throw new InvalidOperationException(
-                "An open Arc Relay Season 1 can advance to v11 only from " +
-                "one open immutable v8, v9, or v10 ladder.");
+                "An open Arc Relay Season 1 can advance to v12 only from " +
+                "one open immutable v8, v9, v10, or v11 ladder.");
         }
         var predecessor = open[0];
         int? skipped = candidates

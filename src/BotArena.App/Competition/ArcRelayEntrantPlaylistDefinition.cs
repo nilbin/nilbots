@@ -14,7 +14,8 @@ public sealed class ArcRelayEntrantPlaylistDefinition : IHostedGenericMatchDefin
 {
     public const string PlaylistKey = ArcRelayPlaylistDefinition.PlaylistKey;
     public const string DisplayName = ArcRelayPlaylistDefinition.DisplayName;
-    public const int Version = 11;
+    public const int Version = 12;
+    public const int BoundedMovementVersion = 11;
     public const int SemanticIntentVersion = 10;
     public const int DirectLadderVersion = 9;
     public const int WasmRepairVersion = 8;
@@ -28,8 +29,12 @@ public sealed class ArcRelayEntrantPlaylistDefinition : IHostedGenericMatchDefin
     public const string MatchmakingPolicyId = "passive-elo-proximity-v1";
     public const string Visibility = PlaylistVisibilityIds.Public;
     public const string TacticalArtifactHash =
-        "50e932fe5a7e79791bfdc9959c868cb58f06925a73c170d4ce105c636dd0a060";
+        "5e2995feb56dc480be28fdb2bde66879dc3f97d0a29ea338b11aa8a30eabaad7";
     public const string TacticalBuildInputHash =
+        "dcfc79936f976f703d8705050f0618427f73e6bd4d770de986dc7027f13ab39e";
+    public const string BoundedMovementTacticalArtifactHash =
+        "50e932fe5a7e79791bfdc9959c868cb58f06925a73c170d4ce105c636dd0a060";
+    public const string BoundedMovementTacticalBuildInputHash =
         "21247aa1e49b5f46c11c8b93da02245f161d6fb8d3ad4234081a915fe053a9ff";
     public const string SemanticIntentTacticalArtifactHash =
         "c2b2f0a92f34d2d006bd4e7ecf8d68d0750df89300db7e23f33ef111d793a9a0";
@@ -89,8 +94,15 @@ public sealed class ArcRelayEntrantPlaylistDefinition : IHostedGenericMatchDefin
     public static ArcRelayEntrantPlaylistDefinition Create() => Create(
         Version,
         ArcRelayLoopProfile.AmbushWarren11,
-        source: "arc-relay-bounded-tactical-movement",
+        source: "arc-relay-relative-well-subjects",
         canonicalGameplayUnchangedFromVersion1: false);
+
+    public static ArcRelayEntrantPlaylistDefinition CreateHistoricalV11() =>
+        Create(
+            BoundedMovementVersion,
+            ArcRelayLoopProfile.AmbushWarren11,
+            source: "arc-relay-bounded-tactical-movement",
+            canonicalGameplayUnchangedFromVersion1: false);
 
     public static ArcRelayEntrantPlaylistDefinition CreateHistoricalV10() =>
         Create(
@@ -184,6 +196,8 @@ public sealed class ArcRelayEntrantPlaylistDefinition : IHostedGenericMatchDefin
                 version switch
                 {
                     Version => TacticalArtifactHash,
+                    BoundedMovementVersion =>
+                        BoundedMovementTacticalArtifactHash,
                     SemanticIntentVersion =>
                         SemanticIntentTacticalArtifactHash,
                     DirectLadderVersion =>
@@ -252,6 +266,30 @@ public sealed class ArcRelayEntrantPlaylistDefinition : IHostedGenericMatchDefin
                 canonicalGameplayUnchangedFromVersion1);
             if (version == Version)
             {
+                writer.WriteBoolean("ownerApprovedAmbushWarren11", true);
+                writer.WriteBoolean("warrenNativeLayoutsOnly", true);
+                writer.WriteBoolean("frozenWellwrightStock", true);
+                writer.WriteBoolean("tacticalPlaybookCompilerShared", true);
+                writer.WriteBoolean("portableTwoFileSheets", true);
+                writer.WriteBoolean("staleWasmArtifactRepaired", true);
+                writer.WriteBoolean("pendingStrikeWireParity", true);
+                writer.WriteBoolean("consolidatedDirectSheetDsl", true);
+                writer.WriteBoolean("semanticIntentLabels", true);
+                writer.WriteBoolean("boundedRecoveryEpisodes", true);
+                writer.WriteBoolean("deterministicTrafficTickets", true);
+                writer.WriteBoolean("boundedOscillationYield", true);
+                writer.WriteBoolean("relativeWellSubjects", true);
+                writer.WriteString("linkedDataFormat", "ATL1");
+                writer.WriteStartArray("ratingContinuityFromVersions");
+                writer.WriteNumberValue(WasmRepairVersion);
+                writer.WriteNumberValue(DirectLadderVersion);
+                writer.WriteNumberValue(SemanticIntentVersion);
+                writer.WriteNumberValue(BoundedMovementVersion);
+                writer.WriteEndArray();
+            }
+            else if (version == BoundedMovementVersion)
+            {
+                // Preserve v11's immutable provenance bytes exactly.
                 writer.WriteBoolean("ownerApprovedAmbushWarren11", true);
                 writer.WriteBoolean("warrenNativeLayoutsOnly", true);
                 writer.WriteBoolean("frozenWellwrightStock", true);

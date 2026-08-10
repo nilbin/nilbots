@@ -770,7 +770,7 @@ public sealed class ArcRelayEntrantProductIntegrationTests
 
     [SkippableFact]
     [Trait("Category", PostgreSqlDatabaseFixture.Category)]
-    public async Task Movement_v11_continues_the_open_v8_v9_or_v10_rating_book()
+    public async Task Relative_wells_v12_continue_the_open_v8_to_v11_rating_book()
     {
         await AssertMovementContinuityAsync(
             ArcRelayEntrantPlaylistDefinition.WasmRepairVersion);
@@ -778,6 +778,8 @@ public sealed class ArcRelayEntrantProductIntegrationTests
             ArcRelayEntrantPlaylistDefinition.DirectLadderVersion);
         await AssertMovementContinuityAsync(
             ArcRelayEntrantPlaylistDefinition.SemanticIntentVersion);
+        await AssertMovementContinuityAsync(
+            ArcRelayEntrantPlaylistDefinition.BoundedMovementVersion);
     }
 
     private static async Task AssertMovementContinuityAsync(
@@ -814,6 +816,8 @@ public sealed class ArcRelayEntrantProductIntegrationTests
                         ArcRelayEntrantPlaylistDefinition.CreateHistoricalV9(),
                     ArcRelayEntrantPlaylistDefinition.SemanticIntentVersion =>
                         ArcRelayEntrantPlaylistDefinition.CreateHistoricalV10(),
+                    ArcRelayEntrantPlaylistDefinition.BoundedMovementVersion =>
+                        ArcRelayEntrantPlaylistDefinition.CreateHistoricalV11(),
                     _ => throw new ArgumentOutOfRangeException(
                         nameof(predecessorVersion)),
                 };
