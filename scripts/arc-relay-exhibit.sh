@@ -61,6 +61,12 @@
 # before running again. Changes under arena-bots/ need no republish: minds
 # compile in-process per match.
 #
+# The same rule applies to the VIEWER, and it is easier to miss: the gallery
+# serves `web/dist`, which is gitignored and only ever copied, never built
+# here. After changing web/src, run `npm run build` in web/ or the gallery
+# ships the old viewer and your change looks like it was never made. The
+# gallery builder now refuses a stale bundle rather than serving one.
+#
 # This is an EXHIBIT, not a battery. Its outcomes describe these six games
 # and are not a balance verdict.
 set -euo pipefail
