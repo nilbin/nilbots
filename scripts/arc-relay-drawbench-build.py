@@ -57,7 +57,7 @@ UPPER_WALLS = [
 
     # centre-north lip: cover on the upper face of the centre Well, two
     # separate mouths rather than one open face.
-    (13, 10), (16, 9), (17, 10),
+    (13, 10), (17, 10),
 
     # heal at (18,3), beside the Well it shares a quarter with
     (17, 2), (18, 2), (19, 2), (17, 3), (17, 4),
@@ -85,7 +85,7 @@ UPPER_WALLS = [
 ]
 
 # middle row must equal its own reversal
-MIDDLE_WALLS = [4, 6, 12, 14, 16, 18, 24, 26]
+MIDDLE_WALLS = [4, 6, 12, 18, 24, 26]
 
 
 def build():

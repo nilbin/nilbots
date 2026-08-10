@@ -107,6 +107,35 @@ public sealed class ArcRelayDrawbenchTests
     }
 
     [Fact]
+    public void TheCentreWellHasRoomToFightOver()
+    {
+        // A prize you cannot manoeuvre around is a queue, not a contest. The
+        // Well keeps its whole eight-neighbourhood, and no tile within four
+        // of it is a squeeze -- the horizontal lane closes three tiles out
+        // instead of hard against the prize.
+        ActorMapDefinition map = Map();
+        Position centre = new(15, 11);
+
+        Assert.Equal(8, Neighbours(map, centre).Count());
+        int pinched = 0;
+        for (int y = centre.Y - 4; y <= centre.Y + 4; y++)
+        for (int x = centre.X - 4; x <= centre.X + 4; x++)
+        {
+            var tile = new Position(x, y);
+            if (x < 1 || y < 1 || x >= map.Width - 1 || y >= map.Height - 1
+                || map.IsWall(tile))
+            {
+                continue;
+            }
+            if (Neighbours(map, tile).Count() <= 4)
+                pinched++;
+        }
+        Assert.Equal(0, pinched);
+        Assert.True(map.IsWall(new Position(12, 11)));
+        Assert.True(map.IsWall(new Position(18, 11)));
+    }
+
+    [Fact]
     public void TheScoringShoulderIsNotTheSpawnPad()
     {
         // Delivery sits forward of the pad and carries no spawn protection,
