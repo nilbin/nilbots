@@ -79,4 +79,20 @@ public sealed class TacticalCustodyPrimitivesTests
             expected,
             TacticalCustodyPrimitives.DeliveryTimedOut(
                 stagnantTicks, timeout));
+
+    [Theory]
+    [InlineData(119, true, 0)]
+    [InlineData(120, true, 1)]
+    [InlineData(120, false, 1)]
+    [InlineData(121, false, 2)]
+    [InlineData(127, false, 2)]
+    [InlineData(128, false, 1)]
+    public void DeliveryFallbackIsTerrainBasedAndPeriodicallyRetested(
+        int stagnantTicks,
+        bool terrainReachable,
+        int expected) =>
+        Assert.Equal(
+            expected,
+            (int)TacticalCustodyPrimitives.StalledDelivery(
+                stagnantTicks, deliveryTimeoutTicks: 120, terrainReachable));
 }

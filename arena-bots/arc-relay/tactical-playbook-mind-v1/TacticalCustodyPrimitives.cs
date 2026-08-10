@@ -7,6 +7,13 @@ using BotArena.Sdk;
 /// </summary>
 internal static class TacticalCustodyPrimitives
 {
+    /// <summary>
+    /// A genuinely unreachable delivery fallback is an episode, not a
+    /// terminal state. Re-test the objective on this cadence while its static
+    /// terrain path remains absent.
+    /// </summary>
+    internal const int FallbackRetryTicks = 8;
+
     internal static int CarrierPreferenceRank(string preference) =>
         preference switch
         {
@@ -53,4 +60,25 @@ internal static class TacticalCustodyPrimitives
     internal static bool DeliveryTimedOut(
         int stagnantTicks,
         int deliveryTimeoutTicks) => stagnantTicks >= deliveryTimeoutTicks;
+
+    internal static StalledDeliveryDisposition StalledDelivery(
+        int stagnantTicks,
+        int deliveryTimeoutTicks,
+        bool terrainReachable)
+    {
+        if (!DeliveryTimedOut(stagnantTicks, deliveryTimeoutTicks))
+            return StalledDeliveryDisposition.Continue;
+        if (terrainReachable)
+            return StalledDeliveryDisposition.RetryObjective;
+        return (stagnantTicks - deliveryTimeoutTicks) % FallbackRetryTicks == 0
+            ? StalledDeliveryDisposition.RetryObjective
+            : StalledDeliveryDisposition.Fallback;
+    }
+
+    internal enum StalledDeliveryDisposition
+    {
+        Continue,
+        RetryObjective,
+        Fallback,
+    }
 }

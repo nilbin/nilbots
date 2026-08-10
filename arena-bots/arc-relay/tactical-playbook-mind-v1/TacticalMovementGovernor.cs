@@ -8,6 +8,76 @@ public enum TacticalMovementAuthority
 }
 
 /// <summary>
+/// Resolves a chain of lower-precedence allied bodies between a mover and the
+/// nearest body that can step into a real vacancy. The movement plane still
+/// owns every actual step; this only propagates one existing right-of-way
+/// request far enough for a vacancy to travel back through the queue.
+/// </summary>
+public static class TacticalClearancePlanner
+{
+    /// <summary>
+    /// The shortest deterministic chain from <paramref name="firstBlocker"/>
+    /// to a body with a free exit. Successor unit id breaks equal-length
+    /// choices. An empty result means that the occupied component has no
+    /// vacancy; no body is displaced speculatively in that case.
+    /// </summary>
+    public static int[] Resolve(
+        int firstBlocker,
+        IReadOnlyCollection<Node> nodes)
+    {
+        Dictionary<int, Node> byUnit = nodes.ToDictionary(
+            node => node.UnitId);
+        if (!byUnit.ContainsKey(firstBlocker))
+            return [];
+
+        var queue = new Queue<int>();
+        var previous = new Dictionary<int, int?>
+        {
+            [firstBlocker] = null,
+        };
+        queue.Enqueue(firstBlocker);
+        while (queue.Count > 0)
+        {
+            int unit = queue.Dequeue();
+            Node node = byUnit[unit];
+            if (node.HasExit)
+                return Reconstruct(unit, previous);
+
+            foreach (int successor in node.OccupiedSuccessors
+                         .Where(byUnit.ContainsKey)
+                         .Order())
+            {
+                if (previous.ContainsKey(successor))
+                    continue;
+                previous[successor] = unit;
+                queue.Enqueue(successor);
+            }
+        }
+        return [];
+    }
+
+    private static int[] Reconstruct(
+        int terminal,
+        IReadOnlyDictionary<int, int?> previous)
+    {
+        var reversed = new List<int>();
+        int? cursor = terminal;
+        while (cursor is int unit)
+        {
+            reversed.Add(unit);
+            cursor = previous[unit];
+        }
+        reversed.Reverse();
+        return [.. reversed];
+    }
+
+    public sealed record Node(
+        int UnitId,
+        bool HasExit,
+        IReadOnlyCollection<int> OccupiedSuccessors);
+}
+
+/// <summary>
 /// Cross-tick ownership of an authored route's terrain course. The sheet owns
 /// the route and the ordered rung; this governor owns only the deterministic
 /// way from the body's current tile to the rung's current route target.
