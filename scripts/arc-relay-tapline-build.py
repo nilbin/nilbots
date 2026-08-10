@@ -51,7 +51,10 @@ BLOCKS = [
 
     # the near-Well room: cover on three sides, mouths from the base side
     # and from below, so a raid has to commit down-line
-    (9, 4, 1, 2), (12, 4, 3, 1), (13, 5, 1, 2), (10, 8, 3, 1),
+    # the owner-facing side of the Well room must be a room mouth, not a
+    # single tile: sealing x9 from y4 to y8 left one gate at (9,3) and
+    # bodies could not get within three tiles of their own Well.
+    (9, 4, 1, 2), (12, 4, 3, 1), (13, 5, 1, 2), (10, 8, 2, 1),
 
     # north rooms between the base and the line
     (16, 4, 3, 1), (17, 5, 1, 3), (20, 4, 2, 2), (24, 4, 3, 1),

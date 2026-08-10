@@ -17,7 +17,7 @@
   ],
   "layout": {
     "path": "../layouts/tapline-base-v1.json",
-    "sha256": "eaa55f2dffbf8a443e25d3b7701c7e7fde8fa625edd2c37d86e4df462bca93ce"
+    "sha256": "e2f5c2554bc1af575b395344152b469ae6214e0aea4e421d95619961cbedef72"
   },
   "memory": {
     "enemyUnavailableTicks": 21,
