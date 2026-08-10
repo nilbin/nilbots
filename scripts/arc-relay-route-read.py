@@ -116,6 +116,7 @@ def read(path: Path, team_filter: int | None, reason_filter: str | None) -> dict
             "routeArrived": 0,
             "routeBlocked": 0,
             "oscillationYield": 0,
+            "deliveryTimeoutTicks": 0,
         }
         for team in teams
     }
@@ -149,6 +150,8 @@ def read(path: Path, team_filter: int | None, reason_filter: str | None) -> dict
                     summary["routeBlocked"] += 1
                 if "oscillation-yield" in reason:
                     summary["oscillationYield"] += 1
+                if "custody:delivery-timeout-" in reason:
+                    summary["deliveryTimeoutTicks"] += 1
 
                 if not is_movement(command["actionId"]):
                     continue
@@ -172,6 +175,50 @@ def read(path: Path, team_filter: int | None, reason_filter: str | None) -> dict
         prior = closest[team]
         closest[team] = distance if prior is None else min(prior, distance)
 
+    # Exact-life single-tile stalls. A death/respawn or observation gap ends a
+    # run; stable unit ids retain their worst exact-life run for the side
+    # summary. Tick difference matches replay vocabulary: t69 through t599 is
+    # a 530-tick stall.
+    runs: dict[tuple[int, int, int], dict] = {}
+    longest_by_unit: dict[tuple[int, int], dict] = {}
+    for tick in replay.get("ticks", []):
+        tick_number = tick["tick"]
+        lives = (tick.get("tickStart") or {}).get("state", {}).get(
+            "activeLives", []) or []
+        seen: set[tuple[int, int, int]] = set()
+        for life in lives:
+            actor = life["actorId"]
+            team = actor["teamId"]
+            if team not in summaries:
+                continue
+            key = (team, actor["unitId"], actor["lifeId"])
+            seen.add(key)
+            position = (life["position"]["x"], life["position"]["y"])
+            prior = runs.get(key)
+            if (prior is None or prior["position"] != position
+                    or prior["lastTick"] != tick_number - 1):
+                current = {
+                    "position": position,
+                    "startTick": tick_number,
+                    "lastTick": tick_number,
+                }
+            else:
+                current = prior
+                current["lastTick"] = tick_number
+            runs[key] = current
+            duration = current["lastTick"] - current["startTick"]
+            unit_key = (team, actor["unitId"])
+            best = longest_by_unit.get(unit_key)
+            if best is None or duration > best["ticks"]:
+                longest_by_unit[unit_key] = {
+                    "ticks": duration,
+                    "position": list(position),
+                    "lifeId": actor["lifeId"],
+                }
+        for key in list(runs):
+            if key[0] in summaries and key not in seen:
+                runs.pop(key)
+
     for team, summary in summaries.items():
         total = summary["selectedBodyTicks"]
         summary["movementChannelPercent"] = percentage(
@@ -183,6 +230,26 @@ def read(path: Path, team_filter: int | None, reason_filter: str | None) -> dict
         summary["nearestStartingWell"] = list(wells[team]) \
             if team in wells else None
         summary["closestWellDistance"] = closest[team]
+        stalls = {
+            unit: value
+            for (stall_team, unit), value in longest_by_unit.items()
+            if stall_team == team
+        }
+        if stalls:
+            worst_unit, worst = max(
+                stalls.items(),
+                key=lambda value: (value[1]["ticks"], -value[0]),
+            )
+            summary["longestSingleTileStallTicks"] = worst["ticks"]
+            summary["longestSingleTileStallUnit"] = worst_unit
+            summary["longestSingleTileStallPosition"] = worst["position"]
+            summary["bodiesOver100Stationary"] = sum(
+                value["ticks"] > 100 for value in stalls.values())
+        else:
+            summary["longestSingleTileStallTicks"] = 0
+            summary["longestSingleTileStallUnit"] = None
+            summary["longestSingleTileStallPosition"] = None
+            summary["bodiesOver100Stationary"] = 0
 
     return {
         "replay": str(path),
@@ -219,6 +286,14 @@ def print_human(result: dict) -> None:
             f"arrived={summary['routeArrived']} "
             f"blocked={summary['routeBlocked']} "
             f"oscillation-yield={summary['oscillationYield']}")
+        unit = summary["longestSingleTileStallUnit"]
+        unit_text = "n/a" if unit is None else f"u{unit}"
+        print(
+            "      stall "
+            f"longest={summary['longestSingleTileStallTicks']}t "
+            f"{unit_text}@{summary['longestSingleTileStallPosition']} "
+            f"bodies>100t={summary['bodiesOver100Stationary']} "
+            f"delivery-timeout={summary['deliveryTimeoutTicks']}")
 
 
 def main() -> None:

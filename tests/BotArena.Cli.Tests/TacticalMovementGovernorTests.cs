@@ -5,6 +5,44 @@ namespace BotArena.Cli.Tests;
 public sealed class TacticalMovementGovernorTests
 {
     [Fact]
+    public void ClearanceChainFindsNearestVacancyThroughAlliedQueue()
+    {
+        TacticalClearancePlanner.Node[] nodes =
+        [
+            new(1, HasExit: false, OccupiedSuccessors: [2]),
+            new(2, HasExit: false, OccupiedSuccessors: [1, 3]),
+            new(3, HasExit: true, OccupiedSuccessors: [2]),
+        ];
+
+        Assert.Equal([1, 2, 3], TacticalClearancePlanner.Resolve(1, nodes));
+    }
+
+    [Fact]
+    public void ClearanceChainUsesShortestPathThenStableUnitId()
+    {
+        TacticalClearancePlanner.Node[] nodes =
+        [
+            new(1, HasExit: false, OccupiedSuccessors: [4, 2]),
+            new(2, HasExit: true, OccupiedSuccessors: []),
+            new(4, HasExit: true, OccupiedSuccessors: []),
+        ];
+
+        Assert.Equal([1, 2], TacticalClearancePlanner.Resolve(1, nodes));
+    }
+
+    [Fact]
+    public void ClosedClearanceCycleDoesNotInventDisplacement()
+    {
+        TacticalClearancePlanner.Node[] nodes =
+        [
+            new(1, HasExit: false, OccupiedSuccessors: [2]),
+            new(2, HasExit: false, OccupiedSuccessors: [1]),
+        ];
+
+        Assert.Empty(TacticalClearancePlanner.Resolve(1, nodes));
+    }
+
+    [Fact]
     public void RouteCourseStaysChosenAcrossATemptingReplan()
     {
         var governor = new TacticalRouteGovernor();

@@ -29,6 +29,11 @@ manifest hashes are opened to evaluation.
   and receipt. It gives authored route traversal a persistent terrain course;
   because the registered stock-cell gameplay digest moves, v13 starts a fresh
   rating book and v1–v6 remain historical bytes.
+- `ambush-warren-11-stock-v8/` — immutable hosted playlist-v14 tactical mind
+  and receipt. It makes give-up reachability terrain-only, bounds custody
+  fallback re-tests, and propagates loaded-carrier right-of-way through allied
+  queues. The stock digest moves again, so v14 starts fresh and v1–v7 remain
+  historical bytes.
 - `stock-mind-v3/` — unfrozen intelligent-gambit vertical-slice mind. It keeps
   the complete v2 baseline executor and reads provisional v2 operation data;
   it is evidence for an owner decision, not a launch artifact.

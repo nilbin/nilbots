@@ -629,8 +629,18 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             claims.ReserveLane(step, carrierUnit);
         if (carrierSteps.Count > 0)
         {
-            int bankOwner = carrierSteps.Keys.Min();
-            claims.ReserveLane(_ownReactor, bankOwner);
+            // A reactor is owed only when it is the carrier's ACTUAL next
+            // step. Reserving it from across the map turned a transient queue
+            // into a permanent wall for bodies spawning beside the bank.
+            // Routed next steps and plug reservations protect every earlier
+            // link of the return lane.
+            int[] imminentBankers = carrierSteps
+                .Where(value => value.Value == _ownReactor)
+                .Select(value => value.Key)
+                .Order()
+                .ToArray();
+            if (imminentBankers.Length > 0)
+                claims.ReserveLane(_ownReactor, imminentBankers[0]);
             // The cost SPIKE, said as a reservation rather than as a
             // separate mover: ArenaBasics.PlugsCarrierRoute asks the
             // carrier's own movement policy its own question - is this body
@@ -691,6 +701,22 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 && claims.YieldsTo(other.UnitId, body.UnitId));
             if (blocker is not null)
                 claims.Demand(wanted, body.UnitId);
+        }
+        // A carrier's request must reach a VACANCY, not stop at the first
+        // ally in a packed queue. Each chain member independently owes its
+        // tile to the same carrier; the outer body clears first, and the
+        // vacancy travels back one legal step per tick. No simultaneous swap
+        // is assumed and a fully closed component is left untouched.
+        foreach (MindBody carrier in mind.Bodies
+                     .Where(body => carrierSteps.ContainsKey(body.UnitId))
+                     .OrderBy(body => body.UnitId))
+        {
+            ArenaBasics.DemandCarrierClearanceChain(
+                contract,
+                mind,
+                carrier,
+                carrierSteps[carrier.UnitId],
+                claims);
         }
         foreach (MindBody body in mind.Bodies
                      // The one list. Under greedy stepping the fighter tier
@@ -4448,12 +4474,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     claims);
                 return baitActed || Hold(body, "custody:bait-carry-wait");
             }
-            bool acted = TacticalCustodyPrimitives.DeliveryTimedOut(
-                    progress.StagnantTicks,
-                    custody.DeliveryTimeoutTicks)
-                ? ActUnreachableCustodyFallback(
-                    contract, mind, package, body, custody, claims)
-                : ActCarrier(contract, mind, package, body, custody, claims);
+            bool acted = ActCommittedCarrier(
+                contract, mind, package, body, custody, progress, claims);
             // Carrying is an exclusive tactical state. On movement-cooldown
             // ticks ActCarrier may have no legal action; falling through
             // would let the prior formation rotate or steer the carrier away
@@ -4464,12 +4486,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         if (string.Equals(custody.AccidentalPickup, "deliver",
                 StringComparison.Ordinal))
         {
-            bool acted = TacticalCustodyPrimitives.DeliveryTimedOut(
-                    progress.StagnantTicks,
-                    custody.DeliveryTimeoutTicks)
-                ? ActUnreachableCustodyFallback(
-                    contract, mind, package, body, custody, claims)
-                : ActCarrier(contract, mind, package, body, custody, claims);
+            bool acted = ActCommittedCarrier(
+                contract, mind, package, body, custody, progress, claims);
             return acted || Hold(body, "custody:committed-delivery-wait");
         }
 
@@ -4592,12 +4610,60 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         "hold" => Hold(body, "custody:delivery-timeout-hold"),
         "guard" => ArenaBasics.TryEvade(contract, mind, body, claims)
             || Hold(body, "custody:delivery-timeout-guard"),
-        "alternate-core" => IsSafeToDrop(mind, body) && TryDropCore(body)
+        "alternate-core" => IsSafeToDrop(mind, body) && TryDropCore(
+                body, "custody:delivery-timeout-alternate-core")
             || Hold(body, "custody:delivery-timeout-alternate-core"),
-        "regroup" => ActCarrier(contract, mind, package, body, custody, claims),
+        "regroup" => ActCarrier(
+                contract, mind, package, body, custody, claims,
+                forceObjective: true,
+                reasonOverride: "custody:delivery-timeout-regroup")
+            || Hold(body, "custody:delivery-timeout-regroup"),
         _ => throw new InvalidDataException(
             $"Unknown custody fallback '{custody.UnreachableFallback}'."),
     };
+
+    /// <summary>
+    /// A stagnant counter says only that the body did not move; it does not
+    /// prove its destination is unreachable. Terrain alone answers that
+    /// question. When terrain still connects the carrier to its reactor, the
+    /// executor keeps asking to deliver and lets the allied-traffic plane do
+    /// its job. A truly disconnected destination enters the authored fallback
+    /// only between bounded objective re-tests.
+    /// </summary>
+    private bool ActCommittedCarrier(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind,
+        TacticalPlaybookPackage package,
+        MindBody body,
+        TacticalPlaybookPackage.CustodyPolicy custody,
+        CustodyProgress progress,
+        ArenaBasics.Claims claims)
+    {
+        bool terrainReachable = ArenaBasics.StaticDistance(
+            contract.Map, body.Position, _ownReactor) is not null;
+        TacticalCustodyPrimitives.StalledDeliveryDisposition disposition =
+            TacticalCustodyPrimitives.StalledDelivery(
+                progress.StagnantTicks,
+                custody.DeliveryTimeoutTicks,
+                terrainReachable);
+        if (disposition
+            == TacticalCustodyPrimitives.StalledDeliveryDisposition.Fallback)
+        {
+            return ActUnreachableCustodyFallback(
+                contract, mind, package, body, custody, claims);
+        }
+        if (disposition
+            == TacticalCustodyPrimitives.StalledDeliveryDisposition
+                .RetryObjective)
+        {
+            return ActCarrier(
+                    contract, mind, package, body, custody, claims,
+                    forceObjective: true,
+                    reasonOverride: "custody:delivery-timeout-retest")
+                || Hold(body, "custody:delivery-timeout-retest-wait");
+        }
+        return ActCarrier(contract, mind, package, body, custody, claims);
+    }
 
     private static bool IsSafeToDrop(MindContext mind, MindBody carrier) =>
         mind.Enemies.All(enemy => enemy.Position.ChebyshevDistance(
@@ -4718,7 +4784,9 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         TacticalPlaybookPackage package,
         MindBody body,
         TacticalPlaybookPackage.CustodyPolicy custody,
-        ArenaBasics.Claims claims)
+        ArenaBasics.Claims claims,
+        bool forceObjective = false,
+        string? reasonOverride = null)
     {
         // A Relay carrier with a teammate meaningfully closer to the bank
         // throws instead of walking: the pass is the designed answer to a
@@ -4734,11 +4802,13 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         // instead of the shortest line - the ghost's ball found deep in enemy
         // ground comes back along the top corridor rather than straight
         // through the middle of their team.
-        Position destination = DeliveryDestination(package, custody, body)
-            ?? _ownReactor;
-        string reason = destination == _ownReactor
-            ? "custody:committed-delivery"
-            : "custody:delivery-route";
+        Position destination = forceObjective
+            ? _ownReactor
+            : DeliveryDestination(package, custody, body) ?? _ownReactor;
+        string reason = reasonOverride
+            ?? (destination == _ownReactor
+                ? "custody:committed-delivery"
+                : "custody:delivery-route");
         // The committed plan asks the ARBITER for its step rather than
         // computing one and handing it over: same tile under greedy
         // stepping, and under a cooperative planner the whole corridor
@@ -5543,6 +5613,16 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                          machine, group, order, movementChannel, target)))
         {
             return true;
+        }
+        // A transient occupant, projectile, lane or same-tick commitment is
+        // traffic, not proof that the authored destination has no path. Only
+        // the terrain graph may enter the give-up seam; traffic is re-tested
+        // next tick and keeps aging in the movement governor meanwhile.
+        if (goals.Any(goal => ArenaBasics.StaticDistance(
+                contract.Map, body.Position, goal) is not null))
+        {
+            return Hold(body, MovementProvenance(
+                machine, group, order, "transient-path-retry", target));
         }
         return order.Fallback.OnNoPath switch
         {

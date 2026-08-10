@@ -86,6 +86,7 @@ internal static class ArenaBasics
         private readonly Dictionary<int, Position> _committedByUnit = [];
         private readonly Dictionary<Position, int> _lanes = [];
         private readonly Dictionary<Position, int> _demands = [];
+        private readonly Dictionary<Position, int> _demandDepths = [];
         private readonly Dictionary<int, int> _ranks = [];
         private readonly HashSet<int> _rooted = [];
         private readonly TacticalOscillationGovernor _oscillation;
@@ -182,15 +183,30 @@ internal static class ArenaBasics
         /// ground produce one request with one author, and the body is not
         /// pulled in two directions.
         /// </summary>
-        public void Demand(Position tile, int moverUnitId)
+        public void Demand(
+            Position tile,
+            int moverUnitId,
+            int chainDepth = 0)
         {
             if (!_demands.TryGetValue(tile, out int held)
                 || RankOf(moverUnitId) < RankOf(held)
                 || (RankOf(moverUnitId) == RankOf(held) && moverUnitId < held))
             {
                 _demands[tile] = moverUnitId;
+                _demandDepths[tile] = chainDepth;
+            }
+            else if (held == moverUnitId
+                && chainDepth < _demandDepths.GetValueOrDefault(
+                    tile, int.MaxValue))
+            {
+                _demandDepths[tile] = chainDepth;
             }
         }
+
+        public int DemandDepth(Position tile, int moverUnitId) =>
+            _demands.GetValueOrDefault(tile, -1) == moverUnitId
+                ? _demandDepths.GetValueOrDefault(tile)
+                : 0;
 
         /// <summary>
         /// Whether the plane owes this body's tile to somebody, and to whom.
@@ -591,6 +607,84 @@ internal static class ArenaBasics
         return heading is ProjectileHeading step
             ? Step(body.Position, step)
             : null;
+    }
+
+    /// <summary>
+    /// Propagate a carrier's existing right-of-way request through an
+    /// occupied allied chain until it reaches the nearest body that can step
+    /// into a real vacancy. This does not invent a move or a destination:
+    /// every body in the returned chain already yields to the carrier, and
+    /// <see cref="TryMakeWay"/> remains the sole displacement authority.
+    /// </summary>
+    public static int DemandCarrierClearanceChain(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind,
+        MindBody carrier,
+        Position wanted,
+        Claims claims)
+    {
+        if (claims.RankOf(carrier.UnitId) != Claims.CarrierRank)
+            return 0;
+        MindBody? first = mind.Bodies.FirstOrDefault(body =>
+            body.UnitId != carrier.UnitId
+            && body.Position == wanted
+            && claims.YieldsTo(body.UnitId, carrier.UnitId)
+            && !claims.IsRooted(body.UnitId));
+        if (first is null)
+            return 0;
+
+        MindBody[] eligible = mind.Bodies
+            .Where(body => body.UnitId != carrier.UnitId
+                && claims.YieldsTo(body.UnitId, carrier.UnitId)
+                && !claims.IsRooted(body.UnitId))
+            .OrderBy(body => body.UnitId)
+            .ToArray();
+        Dictionary<Position, MindBody> byPosition = eligible.ToDictionary(
+            body => body.Position);
+        var nodes = new List<TacticalClearancePlanner.Node>(eligible.Length);
+        foreach (MindBody body in eligible)
+        {
+            HashSet<Position> blocked = BlockedNow(
+                contract,
+                mind,
+                body,
+                claims,
+                avoidHostileProjectiles: false);
+            bool hasExit = RouteHeadings(contract, body).Any(heading =>
+            {
+                Position next = Step(body.Position, heading);
+                return CanStep(contract.Map, body.Position, next, heading)
+                    && !blocked.Contains(next)
+                    && !claims.Demands.ContainsKey(next);
+            });
+            int[] successors = RouteHeadings(contract, body)
+                .Select(heading => (
+                    Heading: heading,
+                    Position: Step(body.Position, heading)))
+                .Where(candidate => CanStep(
+                    contract.Map,
+                    body.Position,
+                    candidate.Position,
+                    candidate.Heading))
+                .Select(candidate => byPosition.GetValueOrDefault(
+                    candidate.Position))
+                .Where(candidate => candidate is not null)
+                .Select(candidate => candidate!.UnitId)
+                .Distinct()
+                .Order()
+                .ToArray();
+            nodes.Add(new TacticalClearancePlanner.Node(
+                body.UnitId, hasExit, successors));
+        }
+
+        int[] chain = TacticalClearancePlanner.Resolve(first.UnitId, nodes);
+        for (int index = 0; index < chain.Length; index++)
+        {
+            MindBody body = eligible.Single(candidate =>
+                candidate.UnitId == chain[index]);
+            claims.Demand(body.Position, carrier.UnitId, index + 1);
+        }
+        return chain.Length;
     }
 
     /// <summary>
@@ -1003,6 +1097,11 @@ internal static class ArenaBasics
             owed.Add(tile);
         if (mover is not null)
             owed.Add(mover.Position);
+        int chainDepth = claims.DemandDepth(
+            body.Position, moverUnitId);
+        string trace = chainDepth > 0
+            ? $"{reason}:chain-{chainDepth}:u{moverUnitId}"
+            : $"{reason}:u{moverUnitId}";
         return Submit(
             contract,
             mind,
@@ -1011,7 +1110,7 @@ internal static class ArenaBasics
                 StepIntent.MakeWay, contract, mind, body, owed, claims,
                 mover?.Position)),
             claims,
-            $"{reason}:u{moverUnitId}",
+            trace,
             TacticalMovementAuthority.Clearance);
     }
 

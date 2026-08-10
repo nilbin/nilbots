@@ -7209,3 +7209,56 @@ entrant at the default rating and preserves v12 ratings and matches as readable
 history. Hosted rules, map, Wellwright sheet, grammar, and their contract
 fingerprints do not change; only the Drawbench evaluation route is restored as
 the adversarial exhibit fixture.
+
+## 276. Allies are traffic, and a loaded carrier's right-of-way reaches a vacancy; hosted v14 starts fresh
+
+Executor ruling (2026-08-10). A movement failure caused by a live body,
+projectile, lane, or same-tick claim does not prove a destination is
+unreachable. Only the static terrain graph may enter custody's authored
+`unreachableFallback` or a doctrine's `onNoPath` give-up seam. A reachable
+loaded carrier keeps requesting delivery. A genuinely terrain-disconnected
+delivery may use its fallback, but re-tests the objective every eight ticks;
+guard, hold, alternate-Core, and regroup are bounded episodes rather than
+terminal retirements.
+
+The movement plane's existing precedence remains the one authority: loaded
+carriers rank first. When a carrier's requested tile begins a packed chain of
+lower-precedence allies, the request propagates by shortest chain to the
+nearest body with a legal vacancy; unit id breaks equal-length choices. The
+outer body clears first and the vacancy moves back through the queue one legal
+step per tick. No simultaneous swap or invented destination is assumed, and a
+closed occupied component with no vacancy is left untouched. Causal reasons
+name the requester and depth as `make-way:chain-N:u<carrier>`. The reactor itself
+is reserved only when it is the carrier's actual next step; reserving it from
+across the map had permanently caged newly spawned bodies beside their bank.
+
+The broader reachability audit found no second occupancy-sensitive terminal
+path. Authored-route `NoPath` already reads persistent terrain obstacles, and
+focus contribution already reads static terrain distance. The body-aware
+cornered test suspends disengagement and re-evaluates every tick; motion-stuck
+policy reacts to observed stagnation rather than declaring terrain
+unreachable. General non-carrier mutual blocking remains governed by bounded
+deterministic traffic tickets. A second displacement system is not added.
+
+On the exact owner-caught Tapline seed 9001, before this change team 0/team 1
+had longest single-tile stalls of 540/530 ticks, 4/4 bodies above 100 ticks,
+and 421/407 `custody:delivery-timeout-*` body-ticks. With unchanged Tapline
+map and sheets those reads are 34/29 ticks, 0/0 bodies, and 0/0 timeout ticks.
+The in-process and sandboxed-WASM gameplay-state digest is identical at
+`21b242b16a1d982217cb639835594a180d3bf42d43abf784c4ae85816c96234f`.
+These are mechanism reads, not pacing or balance claims; Tapline's max-tick
+pacing remains outside this ruling.
+
+The WASM bytes change, so playlist v13 and frozen stock v7 remain immutable.
+Playlist v14 pins frozen stock v8 (artifact
+`08205cfdb2da34cbd894a51be89c4b638e6cc40ca16020741602d4739fb2344a`,
+build input
+`9b51321b31b38f3daab2e0f441916b5629635a5725fa31d5ee63660db25bbcb7`).
+The registered Wellwright-vs-Wellwright seed-9001 stock digest changes from
+`3cd9cfdb58e758eb5aa2437e64c7f718e8ddb9a84502cbb5a73852cdcfeb0496`
+to
+`4afb253b831b8d50a2cd04591eedd8b56393961c4d13ba6e72d0656fa5150c5f`.
+The v13 rating book therefore does not continue: v14 starts every opted-in
+entrant at the default rating and preserves v13 ratings and matches as readable
+history. Rules, map, sheets, grammar, and their contract fingerprints do not
+change.
