@@ -23,8 +23,11 @@ interface BotPanelProps {
   tick: number;
   selectedUnitKey: ReplayStableUnitKey | null;
   showVisibility: boolean;
+  /** Master fog switch, 3D only. Independent of whose sight the mask follows. */
+  showFog?: boolean;
   onSelectUnit: (unitKey: ReplayStableUnitKey | null) => void;
   onToggleVisibility: () => void;
+  onToggleFog?: () => void;
 }
 
 /**
@@ -159,8 +162,10 @@ export default function BotPanel({
   tick,
   selectedUnitKey,
   showVisibility,
+  showFog,
   onSelectUnit,
   onToggleVisibility,
+  onToggleFog,
 }: BotPanelProps) {
   const presenter = useMemo(() => createPresenter(replay), [replay]);
   const { objective, units, economy } = presenter.at(tick);
@@ -823,6 +828,18 @@ export default function BotPanel({
           ? "Show this mind's team vision"
           : "Show selected team's field of view"}
       </label>
+
+      {onToggleFog ? (
+        <label className="t-meta flex cursor-pointer items-center gap-2 px-1 select-none">
+          <input
+            type="checkbox"
+            checked={showFog ?? true}
+            onChange={onToggleFog}
+            className="accent-(--color-arena-text)"
+          />
+          Fog of war
+        </label>
+      ) : null}
     </div>
   );
 }

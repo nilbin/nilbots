@@ -351,6 +351,8 @@ export interface ArenaActors {
     time: number,
     selectedUnitKey: ReplayStableUnitKey | null,
     showVisibility: boolean,
+    /** Master fog switch. Off reveals the whole arena, bodies included. */
+    showFog?: boolean,
   ) => void;
   /** Which bot, if any, is under a ray cast from the camera. */
   pick: (raycaster: THREE.Raycaster) => ReplayStableUnitKey | null;
@@ -1721,6 +1723,7 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     time: number,
     selectedUnitKey: ReplayStableUnitKey | null,
     showVisibility: boolean,
+    showFog = true,
   ) => {
     const tick = Math.max(
       0,
@@ -1740,8 +1743,11 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       selectedUnitKey,
       showVisibility,
     );
+    // With fog switched off nothing is concealed, including bodies. Hiding actors while
+    // the terrain is fully lit would be the worst of both: the reviewer loses the mask
+    // that explains *why* a body is missing, and still cannot see it.
     const hidden = (pose: ReturnType<typeof posesAt>[number]) =>
-      !teamVisionSeesActor(teamVision, pose);
+      showFog && !teamVisionSeesActor(teamVision, pose);
 
     const events = currentTick?.events ?? [];
     const fraction = Math.max(0, Math.min(time - tick, 1));

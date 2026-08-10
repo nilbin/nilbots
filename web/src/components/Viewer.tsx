@@ -117,6 +117,10 @@ export default function Viewer({
     useState<ReplayStableUnitKey | null>(null);
   const [selectedPlayKey, setSelectedPlayKey] = useState<string | null>(null);
   const [showVisibility, setShowVisibility] = useState(true);
+  // Separate from showVisibility, which only chooses *whose* sight the mask follows.
+  // This asks whether the arena is masked at all — the reviewer's floodlight for reading
+  // geometry and traffic. It defaults on: the honest view is the one the bots had.
+  const [showFog, setShowFog] = useState(true);
   // The camera starts on the fixed plan view (owner ruling: a first watch reads
   // positions before it follows a fight); the transport toggle hands the director back,
   // and any pan or zoom gesture drops it again. Owned here rather than inside either
@@ -539,6 +543,7 @@ export default function Viewer({
                 selectedUnitKey={selectedUnitKey}
                 highlightedUnitKeys={highlightedUnitKeys}
                 showVisibility={showVisibility}
+                showFog={showFog}
                 onSelectUnit={selectFromArena}
                 onUnavailable={() => setDimensional(false)}
                 onReady={() => setSceneReady(true)}
@@ -772,6 +777,8 @@ export default function Viewer({
               showVisibility={showVisibility}
               onSelectUnit={selectUnit}
               onToggleVisibility={() => setShowVisibility((value) => !value)}
+              showFog={showFog}
+              onToggleFog={() => setShowFog((value) => !value)}
             />
             {!isArcRelay && (
               <EventFeed

@@ -42,6 +42,7 @@ export default function ArenaCanvas3D({
   selectedUnitKey,
   highlightedUnitKeys = [],
   showVisibility,
+  showFog = true,
   onSelectUnit,
   onUnavailable,
   onReady,
@@ -56,6 +57,8 @@ export default function ArenaCanvas3D({
   selectedUnitKey: ReplayStableUnitKey | null;
   highlightedUnitKeys?: readonly ReplayStableUnitKey[];
   showVisibility: boolean;
+  /** Master fog switch; off reveals the whole arena. */
+  showFog?: boolean;
   onSelectUnit: (unitKey: ReplayStableUnitKey | null) => void;
   onUnavailable: () => void;
   /**
@@ -84,6 +87,7 @@ export default function ArenaCanvas3D({
     selectedUnitKey,
     highlightedUnitKeys,
     showVisibility,
+    showFog,
     onSelectUnit,
     onUnavailable,
     onReady,
@@ -96,6 +100,7 @@ export default function ArenaCanvas3D({
     selectedUnitKey,
     highlightedUnitKeys,
     showVisibility,
+    showFog,
     onSelectUnit,
     onUnavailable,
     onReady,
@@ -359,14 +364,16 @@ export default function ArenaCanvas3D({
         time: now,
         selectedUnitKey: followed,
         showVisibility: fov,
+        showFog: fog,
         autoFit: fit,
       } = frameState.current;
-      actors.update(now, followed, fov);
+      actors.update(now, followed, fov, fog);
       overlays.update(
         now,
         followed,
         fov,
         frameState.current.highlightedUnitKeys,
+        fog,
       );
 
       if (camera) {
