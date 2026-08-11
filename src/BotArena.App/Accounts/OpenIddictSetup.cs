@@ -144,6 +144,12 @@ public static class OpenIddictSetup
             options.UseWebProviders().AddGoogle(google => google
                 .SetClientId(configuration[$"{GoogleAuthOptions.Section}:ClientId"]!)
                 .SetClientSecret(configuration[$"{GoogleAuthOptions.Section}:ClientSecret"]!)
+                // Without these Google grants `openid` alone, so userinfo carries `sub`
+                // and nothing else. The whole round trip then succeeds — token exchange,
+                // userinfo, the lot — and the callback rejects it at the last step
+                // because the email claim it requires to find or create an account is
+                // absent. Both scopes are non-sensitive and need no verification review.
+                .AddScopes(Scopes.Email, Scopes.Profile)
                 // Relative: OpenIddict resolves it against the current request's host, so
                 // the same configuration works behind Caddy in production and on
                 // 127.0.0.1:8080 locally. This exact path must be registered in the Google
