@@ -44,18 +44,21 @@ Official references:
 
 ## Approval and view plan
 
-`concept-sheet-v6.png` is the canonical owner-review artifact for this gate. It
+`concept-sheet-v7.png` is the canonical owner-review artifact for this gate. It
 removes the rejected eye lights, gun-like muzzles, and universal white segmented
 nose. The roster uses the pinned elevated 58-degree gameplay-oblique camera,
 bold top silhouettes, fewer micro-details, larger signature apparatus,
 class-owned prow geometry, and a flush leading-edge beam seam. Earlier sheets
 remain superseded evidence.
 
-V6 separates the three previously similar low bodies: Mortar is a faceted
+V7 retains the v6 silhouette corrections: Mortar is a faceted
 asymmetric launch hex, Hush is a notched four-lobed absorber, and Nest is a very
-wide open twin-rack carrier. Longshot is roughly forty percent thicker. A
-roster-wide authored-material pass lifts dominant hull planes into medium/light
-values for the dark arena, and Palisade uses a vivid bright royal cobalt.
+wide open twin-rack carrier. Longshot is roughly forty percent thicker. It
+replaces v6's bright, toy-like color treatment with muted industrial midtones,
+matte/satin powder-coated metal and ceramic, oxidized hardware, and restrained
+wear. Dominant planes remain readable in the dark arena without neon, pastel,
+glossy-plastic, or near-black hull treatment. Palisade uses a medium-bright
+workwear cobalt rather than electric or dark navy blue.
 
 The current sheet's shared 4x4 presentation intentionally makes family
 consistency, palette separation, silhouette variety, forward beam seams,
@@ -76,13 +79,13 @@ Meshy receives those four full-resolution files separately. The 4x4 concept
 sheet and its reduced proof are review evidence only and must never be
 submitted as input images.
 
-`concept-sheet-v6-48px-proof.png` is a deterministic 256x256 reduction of the
+`concept-sheet-v7-48px-proof.png` is a deterministic 256x256 reduction of the
 canonical sheet with no repainting. Each visible bot is roughly 48–50 pixels
 wide, matching the current runtime readability gate. At that size, class
 judgment is based on outer silhouette, top value blocks, signature hardware,
 and facing—not seams, labels, or decorative lights.
 
-The v6 proof keeps all sixteen outer silhouettes and their dominant signature
+The v7 proof keeps all sixteen outer silhouettes and their dominant signature
 anchors distinguishable. The idle emitter seam can disappear entirely at that
 size; a temporary renderer-owned teal/orange sweep across each bot's existing
 front edge owns the one-tick runtime wind-up read.
@@ -123,21 +126,21 @@ colors, arena lighting, movement, fog, and overlapping actors.
 
 | # | Class | Fresh silhouette | Signature-support hardware | Fixed palette |
 | ---: | --- | --- | --- | --- |
-| 1 | Kestrel | narrow split-delta dart | compression vanes and vector heat sinks for Vector Dash | porcelain, tangerine, midnight navy |
-| 2 | Palisade | broad vertical shield-slab | three-rib edge projector for Prism Wall | royal cobalt, antique gold, pale quartz |
-| 3 | Towline | squat horseshoe tug | captive winch drum and closed grapple-bolt throat | cadmium yellow, brushed steel, black |
-| 4 | Patchbay | rounded service capsule | dedicated articulated Repair Beam lens | seafoam, coral, pearl |
-| 5 | Lantern | gyroscopic survey eye | protected flare cell, halo scanner, calibration mast | ultraviolet, champagne gold, white |
-| 6 | Mortar | faceted asymmetric launch hex | closed Falling Star iris and polygonal recoil collar | light moss olive, warm brass, charcoal |
-| 7 | Minesmith | low triangular foundry pod | underside Trip Node carousel and one deployment door | terracotta, mustard, gunmetal |
-| 8 | Hush | notched four-lobed absorber | four attached absorber lobes around a Null Field core | medium indigo-plum, lavender, silver |
-| 9 | Relay | open U-shaped catcher | empty Core cradle and twin Arc Toss rails | crimson, brass, cream |
-| 10 | Switchback | mirrored twin-lobe frame | paired Exchange link coils around a strict center seam | white, black, amber |
-| 11 | Longshot | thickened long rail barge | body-length Rail Line spine and staged charge cells | bright glacier blue, navy, silver |
-| 12 | Mason | compact blocky forge | empty block bay and forked Hardlight emitters | golden ochre, blue-gray, burnt orange |
-| 13 | Sunder | faceted diamond/kite | designator optic and three-stage Target Paint brackets | magenta-plum, ivory, graphite |
-| 14 | Repulsor | heavy circular field-disc | concentric Kinetic Burst hub and radial coils | burgundy, rose gold, basalt |
-| 15 | Veil | shallow stealth crescent | paired sealed Smoke Canister pods | emerald, smoky teal, sand |
+| 1 | Kestrel | narrow split-delta dart | compression vanes and vector heat sinks for Vector Dash | warm bone, burnt ochre, desaturated navy |
+| 2 | Palisade | broad vertical shield-slab | three-rib edge projector for Prism Wall | workwear cobalt, antique gold, dark steel |
+| 3 | Towline | squat horseshoe tug | captive winch drum and closed grapple-bolt throat | mustard ochre, gunmetal, worn steel |
+| 4 | Patchbay | rounded service capsule | dedicated articulated Repair Beam lens | muted sage, dusty coral, warm bone |
+| 5 | Lantern | gyroscopic survey eye | protected flare cell, halo scanner, calibration mast | eggplant, aged ivory, tarnished brass |
+| 6 | Mortar | faceted asymmetric launch hex | closed Falling Star iris and polygonal recoil collar | field olive, aged brass, charcoal |
+| 7 | Minesmith | low triangular foundry pod | underside Trip Node carousel and one deployment door | oxide terracotta, muted mustard, gunmetal |
+| 8 | Hush | notched four-lobed absorber | four attached absorber lobes around a Null Field core | smoke-plum, lavender-gray, satin silver |
+| 9 | Relay | open U-shaped catcher | empty Core cradle and twin Arc Toss rails | oxide brick, warm cream, tarnished brass |
+| 10 | Switchback | mirrored twin-lobe frame | paired Exchange link coils around a strict center seam | aged ivory, charcoal, brass |
+| 11 | Longshot | thickened long rail barge | body-length Rail Line spine and staged charge cells | steel blue, desaturated navy, brushed silver |
+| 12 | Mason | compact blocky forge | empty block bay and forked Hardlight emitters | muted ochre, blue-gray, charcoal |
+| 13 | Sunder | faceted diamond/kite | designator optic and three-stage Target Paint brackets | mulberry, aged ivory, graphite |
+| 14 | Repulsor | heavy circular field-disc | concentric Kinetic Burst hub and radial coils | burgundy brick, oxidized rose-gold, basalt |
+| 15 | Veil | shallow stealth crescent | paired sealed Smoke Canister pods | medium jade-sage, sand, charcoal |
 | 16 | Nest | very wide open twin-rack carrier | six Sentinel Seed cells and a central deployment lane | pine-sage, warm umber, aubergine |
 
 ## Signature truth checklist
@@ -170,9 +173,12 @@ edits that established the camera and form hierarchy.
 Palisade signature restoration.
 `CONCEPT-SHEET-V6-PROMPTS.md` preserves the silhouette-separation,
 dark-arena-material, and bright-Palisade edits.
+`CONCEPT-SHEET-V7-PROMPT.md` preserves the mature industrial material
+correction that removes v6's toy-like brightness without sacrificing the
+gameplay-scale value hierarchy.
 `manifest.json` records the review order and file provenance.
-`concept-sheet-v6.png` is the approval index and is not a Meshy input. Future
-isolated/multiview prompts inherit the v6 no-eye, no-gun, no-shared-nose,
-neutral-emission, simplified-form, dark-arena value hierarchy, separated class
-silhouettes, and renderer-owned wind-up rules rather than superseded prompt
-language.
+`concept-sheet-v7.png` is the approval index and is not a Meshy input. Future
+isolated/multiview prompts inherit the v7 no-eye, no-gun, no-shared-nose,
+neutral-emission, simplified-form, mature industrial material hierarchy,
+separated class silhouettes, and renderer-owned wind-up rules rather than
+superseded prompt language.
