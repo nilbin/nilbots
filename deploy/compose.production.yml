@@ -16,6 +16,15 @@ x-application-environment: &application-environment
   BOTARENA_S3_ACCESS_KEY: "${BOTARENA_S3_ACCESS_KEY}"
   BOTARENA_S3_SECRET_KEY: "${BOTARENA_S3_SECRET_KEY}"
   BOTARENA_OBJECT_CACHE: "/cache"
+  # Google sign-in. Absent is a supported state, not a broken one: the app
+  # registers no OpenIddict client and hides the button, so a deployment
+  # without credentials serves password sign-in and nothing half-works.
+  # Both must be set for the provider to appear (GoogleAuthOptions.IsConfigured).
+  Authentication__Google__ClientId: "${GOOGLE_CLIENT_ID}"
+  Authentication__Google__ClientSecret: "${GOOGLE_CLIENT_SECRET}"
+  # Behind Caddy the app must read X-Forwarded-Proto, or it builds an http://
+  # redirect_uri under TLS and Google rejects it as a mismatch.
+  BOTARENA_TRUST_FORWARDED_HEADERS: "${BOTARENA_TRUST_FORWARDED_HEADERS:-true}"
 
 x-runtime-build: &runtime-build
   context: ..
