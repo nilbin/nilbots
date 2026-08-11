@@ -79,8 +79,10 @@ deflection), run the safety master once before deriving, then derive and run the
 safety master again so both the dependent WAV and final all-cue audit use the
 accepted master. The ordinary checked-in rebuild remains derive, master, build.
 
-SFX Engine returned WAV sources for the original sixteen cues and one later
-private generation for the shared ground-pad/medic Healing field. Successive
+SFX Engine returned WAV sources for the original sixteen cues and two later
+private generations for the shared ground-pad/medic Healing field; the first
+healing take remains archived after owner review found that it did not read as
+healing. Successive
 owner reviews requested provider follow-up takes for armor impact, bot destruction, Core
 pickup, Core stolen, ally handoff, fizzle, and beam deflection; Core pickup
 then reached a fourth, explicitly levitating take, while wind-up and beam each
@@ -142,7 +144,7 @@ archive, and **projectile-deflected** retains its separate spectral bend.
 
 Wind-up, projectile release, healing, handoff, deflection, arrival, and level up
 are runtime mappings. Both `zone-healed` and `signature-repair` use the same
-target-local restorative field cue.
+target-local warm intake, lift, and restorative-bloom cue.
 Every Core pickup, including a steal, uses the same levitation cue; drop is its
 audible inverse. Level up is one compact bot-local field lock, kept below Core
 scoring in the hierarchy and coalesced once per actor/tick when a bounty emits

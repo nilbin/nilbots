@@ -451,9 +451,11 @@ public static class ToolchainInfo
     /// release and aliases matured fizzles to the same presentation cue.
     /// 0.9.57 adds one positional healing-field cue for authoritative ground-pad
     /// and medic repair facts without changing either healing mechanic.
+    /// 0.9.58 replaces that cue with a clearly beneficial restorative bloom and
+    /// remasters its runtime delivery under the stricter decoded comfort bar.
     /// Keep in lockstep with BotArena.Cli.csproj's
     /// Version — PackagedCliVersionTests pins them together.</summary>
-    public const string CliVersion = "0.9.57";
+    public const string CliVersion = "0.9.58";
     // 0.2.0: BotContext.Slot + documented event semantics (DECISIONS #46).
     // 0.3.0: BotContext.Energy for the energy-shot rules candidate (DECISIONS #47).
     // 0.4.0: strafe actions + map dims + zone-control fields for the rules 0.3 slate

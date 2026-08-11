@@ -116,10 +116,10 @@
       },
       "healing": {
         "durationSeconds": 1,
-        "integratedLufs": -14.2,
-        "maxMomentaryLufs": -12.24,
-        "approximateTruePeakDbtp": -2.51,
-        "energyAbove12kPercent": 1.82
+        "integratedLufs": -8.88,
+        "maxMomentaryLufs": -7,
+        "approximateTruePeakDbtp": -2.37,
+        "energyAbove12kPercent": 0.01
       },
       "destroyed": {
         "durationSeconds": 2,
@@ -261,8 +261,8 @@
       },
       "combat": {
         "durationSeconds": 9.08,
-        "integratedLufs": -16.51,
-        "maxMomentaryLufs": -11.29,
+        "integratedLufs": -15.61,
+        "maxMomentaryLufs": -9.7,
         "approximateTruePeakDbtp": -3.35,
         "summaryMode": "worst metric across ambient alternatives",
         "ambientRelativeGains": {
@@ -276,22 +276,22 @@
         "ambientVariants": {
           "arena-ambience": {
             "durationSeconds": 9.08,
-            "integratedLufs": -16.51,
-            "maxMomentaryLufs": -11.35,
-            "approximateTruePeakDbtp": -4.57,
+            "integratedLufs": -15.65,
+            "maxMomentaryLufs": -9.7,
+            "approximateTruePeakDbtp": -4.48,
             "relativeGain": 0.32
           },
           "arena-ambience-ion-veil": {
             "durationSeconds": 9.08,
-            "integratedLufs": -16.78,
-            "maxMomentaryLufs": -11.29,
+            "integratedLufs": -15.67,
+            "maxMomentaryLufs": -9.72,
             "approximateTruePeakDbtp": -4.05,
             "relativeGain": 0.418
           },
           "arena-ambience-signal-lattice": {
             "durationSeconds": 9.08,
-            "integratedLufs": -16.64,
-            "maxMomentaryLufs": -11.4,
+            "integratedLufs": -15.61,
+            "maxMomentaryLufs": -9.74,
             "approximateTruePeakDbtp": -3.35,
             "relativeGain": 0.7
           }
@@ -299,8 +299,8 @@
       },
       "full": {
         "durationSeconds": 18.25,
-        "integratedLufs": -15.91,
-        "maxMomentaryLufs": -10.29,
+        "integratedLufs": -15.48,
+        "maxMomentaryLufs": -9.94,
         "approximateTruePeakDbtp": -3.17,
         "summaryMode": "worst metric across ambient alternatives",
         "ambientRelativeGains": {
@@ -314,23 +314,23 @@
         "ambientVariants": {
           "arena-ambience": {
             "durationSeconds": 18.25,
-            "integratedLufs": -15.95,
-            "maxMomentaryLufs": -10.41,
+            "integratedLufs": -15.55,
+            "maxMomentaryLufs": -9.94,
             "approximateTruePeakDbtp": -3.45,
             "relativeGain": 0.32
           },
           "arena-ambience-ion-veil": {
             "durationSeconds": 18.25,
-            "integratedLufs": -15.91,
-            "maxMomentaryLufs": -10.29,
+            "integratedLufs": -15.48,
+            "maxMomentaryLufs": -9.95,
             "approximateTruePeakDbtp": -3.17,
             "relativeGain": 0.418
           },
           "arena-ambience-signal-lattice": {
             "durationSeconds": 18.25,
-            "integratedLufs": -15.92,
-            "maxMomentaryLufs": -10.35,
-            "approximateTruePeakDbtp": -3.68,
+            "integratedLufs": -15.48,
+            "maxMomentaryLufs": -9.98,
+            "approximateTruePeakDbtp": -3.59,
             "relativeGain": 0.7
           }
         }
@@ -568,21 +568,21 @@
           "label": "Healing field",
           "category": "COMBAT SUPPORT",
           "status": "mapped",
-          "description": "One soft low-mid restorative field flows inward and seals into stable armor.",
+          "description": "Warm restorative energy draws inward, rises, and resolves as a healthy repair bloom.",
           "mapping": "zone-healed and signature-repair authoritative facts",
           "file": "./v5/packs/astral-relay/healing.wav",
           "durationSeconds": 1,
           "peak": 0.72,
-          "rms": 0.083,
-          "stereoDifferenceRms": 0.0482,
+          "rms": 0.1532,
+          "stereoDifferenceRms": 0.2023,
           "dcOffset": 0,
           "origin": "provider-generation",
           "safetyMastered": false,
           "energy": {
-            "integratedLufs": -14.2,
-            "maxMomentaryLufs": -12.24,
-            "approximateTruePeakDbtp": -2.51,
-            "energyAbove12kPercent": 1.82
+            "integratedLufs": -8.88,
+            "maxMomentaryLufs": -7,
+            "approximateTruePeakDbtp": -2.37,
+            "energyAbove12kPercent": 0.01
           }
         },
         {

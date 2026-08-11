@@ -1,5 +1,5 @@
 {
-  "version": 9,
+  "version": 10,
   "id": "astral-relay",
   "label": "Astral Relay",
   "approval": "approved",
@@ -16,7 +16,7 @@
     ],
     "exportedBy": "scripts/export-runtime-sound-effects.mjs",
     "generationRecord": "art/audio/sound-lab/v5/sfx-engine-generation.json",
-    "generationRecordSha256": "e244039bde77016eaa81d1dcd516968aeb699f976bf158c260bf0ccf8e2ec733",
+    "generationRecordSha256": "84aed4d0ecc95cdfad2bfa02f3305a8a902a50961531738816e501d4ec9de768",
     "deliveryEncoding": {
       "encoder": "macos-afconvert",
       "canonicalization": "zero-iso-bmff-creation-and-modification-times"
@@ -60,10 +60,10 @@
           "sourceStartSeconds": 0,
           "playbackRate": 1,
           "durationSeconds": 0.8,
-          "lowPassHz": 2000,
+          "lowPassHz": 900,
           "fadeInSeconds": 0.025,
           "fadeOutSeconds": 0.2,
-          "targetSamplePeak": 0.42
+          "targetSamplePeak": 0.38
         },
         "destroyed": {
           "channelTransform": "preserve-stereo",
@@ -163,7 +163,7 @@
         "roomSend": false
       },
       "healing": {
-        "gain": 0.3,
+        "gain": 0.28,
         "voiceLimit": 2,
         "panWidth": 0.55,
         "roomSend": true
@@ -336,27 +336,27 @@
       }
     },
     "healing": {
-      "sourceSha256": "7e4cb75bbc5968b267526635989ef3de24c877cbbb216059d6f5b5c5b94d4ba6",
-      "outputSha256": "8a01ba156aba6d3f59ed8b499952aa40f146728e91f6e14adc33eaf02d86eb3e",
-      "bytes": 11550,
+      "sourceSha256": "2083b6cd23ab077a913cee57fc2931620fb93dc30a4973436fb763cbe0d69521",
+      "outputSha256": "25ad9881aceacf61c8cbd089d73a0f6c2047be1dee5fd2e4756a3faeec6456fa",
+      "bytes": 19808,
       "bitrate": 192000,
       "deliveryMetrics": {
         "durationSeconds": 0.8,
-        "samplePeakDbfs": -7.51,
-        "rmsDbfs": -28.16,
-        "dominantFrequencyHz": 198,
-        "interchannelCorrelation": 0.5774,
-        "spectralCentroidHz": 932,
-        "energyAbove4kPercent": 1.77,
-        "energyAbove8kPercent": 0.1,
-        "energyAbove12kPercent": 0.04,
-        "maximumWindowAbove4kPercent": 7.36,
-        "maximumWindowAbove4kAtSeconds": 0,
-        "maximumWindowAbove4kRmsDbfs": -31.9,
-        "sourceInterchannelCorrelation": 0.8505,
-        "effectiveSamplePeakDbfs": -17.97,
-        "effectiveRmsDbfs": -38.62,
-        "effectiveMaximumWindowAbove4kRmsDbfs": -42.36
+        "samplePeakDbfs": -8.5,
+        "rmsDbfs": -22.91,
+        "dominantFrequencyHz": 220,
+        "interchannelCorrelation": 0.8205,
+        "spectralCentroidHz": 431,
+        "energyAbove4kPercent": 0.44,
+        "energyAbove8kPercent": 0,
+        "energyAbove12kPercent": 0,
+        "maximumWindowAbove4kPercent": 7.61,
+        "maximumWindowAbove4kAtSeconds": 0.384,
+        "maximumWindowAbove4kRmsDbfs": -29.76,
+        "sourceInterchannelCorrelation": 0.1338,
+        "effectiveSamplePeakDbfs": -19.56,
+        "effectiveRmsDbfs": -33.97,
+        "effectiveMaximumWindowAbove4kRmsDbfs": -40.82
       }
     },
     "destroyed": {

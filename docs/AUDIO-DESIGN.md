@@ -117,8 +117,9 @@ effect mappings, preferences, or Neon Protocol soundtrack.
 
 V5 adds **Astral Relay** as direction D alongside the three V4 directions. SFX
 Engine supplied the original sixteen matching source cues, with prompts written
-around the same space / ambient brief and attack grammar. A later private call
-added the shared Healing field for ground-pad and medic repair facts. Three
+around the same space / ambient brief and attack grammar. Two later private
+calls iterated the shared Healing field for ground-pad and medic repair facts;
+the owner-rejected first healing take remains preserved in provenance. Three
 current variants are deterministic local derivations of accepted Engine
 sources. Following owner comparison and revision, Astral Relay is the promoted
 runtime direction; the other V4/V5 candidates remain review references.
@@ -268,7 +269,8 @@ AAC decode; the untouched arrival remains inside the same pack-wide ceilings.
 The viewer derives projectile launch, impact, healing, destruction, deflection,
 arrival, veterancy, and every Core possession/scoring cue from authoritative
 replay facts. Both `zone-healed` and `signature-repair` emit the same
-target-local restorative field. A new pending strike emits the smooth wind-up;
+target-local warm restorative intake, lift, and resolved repair bloom. A new
+pending strike emits the smooth wind-up;
 in WebGL, a matching resolution emits a quiet neutral field release. In WebGL,
 that same resolution also shows the equipped projectile along the
 already-recorded traversal;

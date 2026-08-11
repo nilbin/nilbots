@@ -166,7 +166,7 @@ function loadSoundEffectPack(): SoundEffectPack {
   }
   const [manifestPath, manifest] = entries[0]!;
   if (
-    manifest.version !== 9 ||
+    manifest.version !== 10 ||
     manifest.id !== DEFAULT_SOUND_EFFECT_PACK_ID ||
     manifest.approval !== 'approved' ||
     manifest.format !== 'aac-lc-m4a' ||

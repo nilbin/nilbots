@@ -61,7 +61,7 @@ const cuePresentation = {
     category: "COMBAT SUPPORT",
     status: "mapped",
     description:
-      "One soft low-mid restorative field flows inward and seals into stable armor.",
+      "Warm restorative energy draws inward, rises, and resolves as a healthy repair bloom.",
     mapping: "zone-healed and signature-repair authoritative facts",
   },
   "attack-fizzle": {

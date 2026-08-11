@@ -90,7 +90,7 @@ const mix = {
       roomSend: false,
     },
     impact: { gain: 0.32, voiceLimit: 1, panWidth: 0.5, roomSend: false },
-    healing: { gain: 0.3, voiceLimit: 2, panWidth: 0.55, roomSend: true },
+    healing: { gain: 0.28, voiceLimit: 2, panWidth: 0.55, roomSend: true },
     destroyed: { gain: 0.3, voiceLimit: 1, panWidth: 0.4, roomSend: false },
     "level-up": { gain: 0.32, voiceLimit: 1, panWidth: 0.4, roomSend: false },
     "arc-birth": { gain: 0.4, voiceLimit: 2, panWidth: 0.7, roomSend: true },
@@ -143,10 +143,10 @@ const deliveryProcessing = {
     sourceStartSeconds: 0,
     playbackRate: 1,
     durationSeconds: 0.8,
-    lowPassHz: 2_000,
+    lowPassHz: 900,
     fadeInSeconds: 0.025,
     fadeOutSeconds: 0.2,
-    targetSamplePeak: 0.42,
+    targetSamplePeak: 0.38,
   },
   destroyed: {
     channelTransform: "preserve-stereo",
@@ -1022,7 +1022,7 @@ try {
     path.join(directory, "manifest.json"),
     `${JSON.stringify(
       {
-        version: 9,
+        version: 10,
         id: pack.id,
         label: pack.label,
         approval: "approved",

@@ -141,7 +141,7 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
     integrity: Record<string, Integrity>;
   };
 
-  assert.equal(manifest.version, 9);
+  assert.equal(manifest.version, 10);
   assert.equal(manifest.id, 'astral-relay');
   assert.equal(manifest.approval, 'approved');
   assert.equal(manifest.format, 'aac-lc-m4a');
@@ -158,7 +158,7 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
     exportedBy: 'scripts/export-runtime-sound-effects.mjs',
     generationRecord: 'art/audio/sound-lab/v5/sfx-engine-generation.json',
     generationRecordSha256:
-      'e244039bde77016eaa81d1dcd516968aeb699f976bf158c260bf0ccf8e2ec733',
+      '84aed4d0ecc95cdfad2bfa02f3305a8a902a50961531738816e501d4ec9de768',
     deliveryEncoding: {
       encoder: 'macos-afconvert',
       canonicalization: 'zero-iso-bmff-creation-and-modification-times',
@@ -205,10 +205,10 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
           sourceStartSeconds: 0,
           playbackRate: 1,
           durationSeconds: 0.8,
-          lowPassHz: 2_000,
+          lowPassHz: 900,
           fadeInSeconds: 0.025,
           fadeOutSeconds: 0.2,
-          targetSamplePeak: 0.42,
+          targetSamplePeak: 0.38,
         },
         destroyed: {
           channelTransform: 'preserve-stereo',
@@ -320,7 +320,7 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
     ),
     {
       impact: { gain: 0.32, voiceLimit: 1, panWidth: 0.5, roomSend: false },
-      healing: { gain: 0.3, voiceLimit: 2, panWidth: 0.55, roomSend: true },
+      healing: { gain: 0.28, voiceLimit: 2, panWidth: 0.55, roomSend: true },
       destroyed: { gain: 0.3, voiceLimit: 1, panWidth: 0.4, roomSend: false },
       'level-up': { gain: 0.32, voiceLimit: 1, panWidth: 0.4, roomSend: false },
       'arc-bank': { gain: 0.44, voiceLimit: 1, panWidth: 0.55, roomSend: true },

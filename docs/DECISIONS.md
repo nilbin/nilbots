@@ -7800,3 +7800,34 @@ all fourteen are represented without same-tick stacking. Runtime manifest
 version 9 carries fourteen one-shots (about 0.32 MiB); CLI/tool package version
 0.9.57 carries the addition. Neon Protocol and the no-ambience policy remain
 unchanged.
+
+## 292. Healing uses a recognizable restorative rise and bloom
+
+Owner refinement (2026-08-11), superseding #291 only for the Healing source
+and delivery. The first cue read as a soft energy seal rather than as restored
+health. A replacement therefore uses a more legible beneficial sequence: warm
+energy draws inward, lifts, resolves as a healthy repair bloom, and settles.
+Ground-pad and medic facts still share one cue at the healed body; healing
+rules, repair cadence, replay facts, visual effects, music, and the no-ambience
+policy are unchanged.
+
+One additional private SFX Engine request produced the one-second 48 kHz stereo
+master. Its prompt, provider ID/time, request settings, source hash
+`17c772a2201b06b1bc0e87a0a6f7631e41c2b7cd175d33ad8a7d7a58e922278e`,
+and standardized-output hash
+`2083b6cd23ab077a913cee57fc2931620fb93dc30a4973436fb763cbe0d69521`
+are pinned in the V5 generation record. The rejected #291 take remains in the
+cue's `attempts` history. No URL, user ID, or credential is recorded.
+
+The provider-normalized source is intentionally not shipped at its dense
+-8.88 LUFS level. Runtime delivery keeps the first 800 ms, applies a 900 Hz
+zero-phase low-pass with 25/200 ms endpoints and a 0.38 sample-peak target,
+then plays at 0.28 gain with the existing two-tail limit, 0.55 arena-horizontal
+pan width, and light room send. The decoded AAC is warm rather than sharp: 220
+Hz dominant frequency, 431 Hz spectral centroid, 0.44% energy above 4 kHz, 0%
+above 8/12 kHz, -19.56 dBFS effective peak, and -33.97 dBFS effective RMS. Even
+two perfectly aligned tails peak at -13.54 dBFS before the shared limiter.
+
+Pack-wide maxima remain 2.67% above 4 kHz, 0.03% above 12 kHz, -9.61 dBFS
+effective peak, and -26.07 dBFS effective RMS. Runtime manifest version 10 and
+CLI/tool package version 0.9.58 carry the replacement.
