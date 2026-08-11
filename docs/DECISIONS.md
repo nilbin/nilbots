@@ -7513,3 +7513,29 @@ move.
 
 The packaged viewer changes, so CLI/tool package version 0.9.49 carries the new
 default and stays lockstep-pinned by `PackagedCliVersionTests`.
+
+## 283. Attack audio is smooth and sparse; Core custody is levitation, not theft
+
+Owner refinement (2026-08-11), superseding #282 only for the affected runtime
+voices. Declared attacks retain the public wind-up and resolved beam, but both
+use new private SFX Engine takes explicitly prompted for a smooth low tonal
+body and minimal noise. The prior generated takes remain under `attempts` with
+their request and result provenance. Deterministic local mastering leaves the
+wind-up at -16.92 LUFS / -6.02 dBTP / 0.01% energy above 12 kHz and the rounded
+beam hit at -22.76 LUFS / -5.94 dBTP / 0.00% above 12 kHz before runtime gain.
+Fizzle, interruption, miss, and cancellation are visual-only for now; their
+review masters remain under `art/audio` but no longer ship in the viewer.
+
+Core custody uses one physical language. A new provider take describes the
+Core lifting weightlessly into a carrier's magnetic orbit. Every
+`core-picked-up` fact plays it, including a pickup that changes team ownership;
+there is no special steal sound. Core drop is the deterministic audible inverse
+of that same take. Their naturally full sources use 0.30 runtime gain rather
+than the former 0.42/0.48 hierarchy.
+
+The default package therefore contains thirteen mapped one-shots plus Tapline's
+unchanged Original dark field loop, roughly 0.96 MiB. The source sound lab still
+retains all sixteen comparison cues and labels fizzle, cancel, and special steal
+as review-only. Neon Protocol and the ambience selection are unchanged. The
+packaged viewer changes again, so CLI/tool package version 0.9.50 carries this
+refinement.

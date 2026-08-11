@@ -1,7 +1,7 @@
 # Audio design and asset workflow
 
 Status: Astral Relay is the approved default runtime sound-effect direction.
-All sixteen one-shot cues ship in the web and self-contained replay viewers;
+Thirteen one-shot voices ship in the web and self-contained replay viewers;
 Tapline also carries the quiet Original dark field ambience loop. Effects are
 enabled by default after the browser's first trusted user interaction. Neon
 Protocol music is unchanged.
@@ -138,23 +138,23 @@ Provider output is decoded to 48 kHz stereo signed 16-bit PCM, DC-corrected,
 endpoint-faded, and peak-normalized; no procedural layers are added. Successive
 owner reviews requested targeted provider follow-up takes for armor impact, bot
 destruction, Core pickup, Core stolen, ally handoff, fizzle, and beam
-deflection; Core pickup reached its third take. The generation record retains
-each rejected prompt, request, provider result, hash, and measurement under the
-cue's `attempts` array.
+deflection. Core pickup reached a fourth take explicitly shaped as levitation;
+wind-up and beam each received a smoother low-noise replacement. The generation
+record retains each rejected prompt, request, provider result, hash, and
+measurement under the cue's `attempts` array.
 
 The current no-API pass derives three cues locally through
 `scripts/derive-audio-v5-revisions.mjs`. Bot destruction reverses Unit arrival
 and gives its dispersal a longer exit. Core drop reverses the current Core
-pickup, making acquisition and release one timbral pair. Beam deflection takes
-the accepted beam body after its ignition, applies a 3.2 kHz zero-phase
+pickup, making levitation and release one timbral pair. Beam deflection takes
+the rounded hit from the accepted quiet beam, applies a 3.2 kHz zero-phase
 low-pass, and bends it modestly from center to right. Each result pins its
 source cue and SHA-256 plus every operation, carries status `derived`, and
 archives the displaced provider take. These transformations add no synthesized
 layer and make no provider request. The other thirteen remain SFX
-Engine-sourced rather than locally derived. The attack wind-up, current pickup,
-and derived drop are
-effectively mono; technical validation requires two channels but not nonzero
-stereo difference for V5.
+Engine-sourced rather than locally derived. The quiet beam hit is effectively
+mono; technical validation requires two channels but not nonzero stereo
+difference for V5.
 
 V5 also adds three ambience candidates beneath the comparison pack: **Original
 dark field**, **Ion veil**, and **Signal lattice**. They are
@@ -178,16 +178,23 @@ The selected Astral Relay one-shots and Original dark field loop are promoted;
 Ion veil and Signal lattice remain review-only alternatives. Neon Protocol is
 not regenerated, remixed, or otherwise changed by this promotion.
 
-An energy audit found that the current attack wind-up and fizzle concentrated
-too much power above 12 kHz, while the current armor impact reconstructed
-above full scale and level-up left only 0.52 dB of inter-sample headroom. Their
-original standardized provider masters are retained under
+An energy audit originally found excessive upper-band energy in wind-up and
+fizzle, while armor impact reconstructed above full scale and level-up left
+only 0.52 dB of inter-sample headroom. The smooth replacement wind-up and quiet
+beam are now safety-mastered to 0.01% and 0.00% measured energy above 12 kHz.
+Their original standardized provider masters are retained under
 `art/audio/sound-lab/v5/sources/astral-relay/` and pinned by
 hash. `scripts/master-audio-v5-energy.mjs` deterministically filters,
-dynamics-controls, and attenuates those four delivery masters, records
+dynamics-controls, and attenuates the five current delivery masters, records
 BS.1770-style loudness, approximate four-times-oversampled true peak, and
 upper-band energy, and makes no provider request. Re-run it after the local
 derivation script and before the V5 manifest builder.
+
+A forced provider replacement that feeds a derivation is the exception: master
+the new provider cue once, rebuild its dependent derivation, then run the master
+and audit again before building the manifest. This prevents a dependent cue
+from retaining the noisier pre-master source. Ordinary checked-in rebuilds use
+the documented derive, master, build order.
 
 The sound lab routes every cue and the selected optional ambience through one
 shared Web Audio compressor and then a fixed 3 dB safety gain. The deterministic
@@ -235,9 +242,11 @@ node scripts/export-runtime-sound-effects.mjs
 ```
 
 This verifies the hash-pinned V5 sources and exports Astral Relay to
-`web/src/assets/audio/effects/astral-relay/` as 48 kHz stereo AAC-LC: sixteen
-one-shots at 192 kbps and the 30-second Original dark field loop at 160 kbps,
-roughly 1.07 MiB together. The production manifest records the SFX Engine and
+`web/src/assets/audio/effects/astral-relay/` as 48 kHz stereo AAC-LC: thirteen
+mapped one-shots at 192 kbps and the 30-second Original dark field loop at
+160 kbps, roughly 0.96 MiB together. Fizzle, cancel, and the historical
+special-steal take remain lossless review references rather than runtime
+assets. The production manifest records the SFX Engine and
 local derivation lineage, source/output hashes, checked licensing basis,
 shipment approval, per-cue gain/voice limits, and Tapline's stable map ID.
 Automated tests reject any additional pack, missing cue, altered byte, unsafe
@@ -247,11 +256,13 @@ creation/modification timestamps, making repeated exports byte-identical.
 
 The viewer derives beam, impact, destruction, deflection, arrival, veterancy,
 and every Core possession/scoring cue from authoritative replay facts. A new
-pending strike emits wind-up; a matching resolution emits beam; disappearance
-at maturity without a resolution emits fizzle; voluntary pre-resolution
-abandonment emits cancel. Seeking is silent, playback above 2× suspends audio,
-and mute/volume persist locally under production keys. The entitlement-unlock
-master is not reused as a match-result cue.
+pending strike emits the smooth wind-up and a matching resolution emits the
+rounded beam hit. Fizzle, interruption, miss, and voluntary cancellation are
+silent for now. Every `core-picked-up` fact uses the same levitation cue even
+when ownership changes teams; drop is its derived inverse. Seeking is silent,
+playback above 2× suspends audio, and mute/volume persist locally under
+production keys. The entitlement-unlock master is not reused as a match-result
+cue.
 
 Browser autoplay policy still requires a user gesture. The first trusted click
 or non-modifier key resumes the viewer's shared audio session and arms enabled
@@ -292,16 +303,15 @@ current presented tick:
 
 - attack declare: a new authoritative pending strike;
 - beam resolve: an authoritative attack event/traversal;
-- fizzle or cancel: an authoritative pending strike leaving the table without
-  a resolution, distinguished by timing and public interruption reason;
+- fizzle, interruption, miss, or cancel: visual-only for now;
 - bot impact: authoritative damage to a bot;
 - beam deflection: authoritative `projectile-deflected` event;
 - wall impact: authoritative projectile termination against geometry;
 - destruction: transition from active to terminal bot state;
 - arrival: authoritative life spawn, respawn, or fabrication;
 - level up: highest authoritative `leveled-up` fact per actor and tick;
-- Core lifecycle: authoritative birth, pickup/steal, handoff, drop, bank, and
-  Pulse facts;
+- Core lifecycle: authoritative birth, pickup (including steal), handoff, drop,
+  bank, and Pulse facts; all pickups share one levitation voice;
 - zone shift: a meaningful control-owner transition, not every pressure tick;
 - countdown/start: presentation timeline, before tick zero;
 - match result: only after the public presentation reaches the terminal tick;

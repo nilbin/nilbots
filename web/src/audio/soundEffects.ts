@@ -1,14 +1,11 @@
 export const SOUND_EFFECT_CUE_IDS = [
   'attack-windup',
   'projectile',
-  'attack-fizzle',
-  'attack-cancel',
   'impact',
   'destroyed',
   'level-up',
   'arc-birth',
   'arc-pickup',
-  'arc-steal',
   'arc-drop',
   'arc-bank',
   'arc-pulse',
@@ -55,6 +52,10 @@ interface SoundEffectManifest {
   mix: {
     roomSend: number;
     cues: Record<SoundEffectCueId, SoundEffectCueMix>;
+  };
+  behavior: {
+    silentOutcomeCueIds: ['attack-fizzle', 'attack-cancel'];
+    cueAliases: { 'arc-steal': 'arc-pickup' };
   };
   cues: Record<SoundEffectCueId, string>;
   ambience: {
@@ -141,6 +142,9 @@ function loadSoundEffectPack(): SoundEffectPack {
       'personal-and-commercial-projects' ||
     manifest.provenance.license.standaloneRedistribution !== 'prohibited' ||
     manifest.provenance.shipApproval !== 'approved' ||
+    JSON.stringify(manifest.behavior?.silentOutcomeCueIds) !==
+      JSON.stringify(['attack-fizzle', 'attack-cancel']) ||
+    manifest.behavior?.cueAliases?.['arc-steal'] !== 'arc-pickup' ||
     !isUnitGain(manifest.mix?.roomSend) ||
     !isUnitGain(manifest.ambience?.gain) ||
     manifest.ambience?.loop !== true ||

@@ -127,6 +127,7 @@ validated.push(
     },
     expectedSafetyMasteredCueIds: [
       "attack-windup",
+      "projectile",
       "attack-fizzle",
       "impact",
       "level-up",
@@ -154,8 +155,29 @@ validated.push(
       "arrival",
     ],
     expectedStatuses: {
-      mapped: 9,
-      proposed: 7,
+      mapped: 13,
+      proposed: 3,
+    },
+    expectedReviewScope: {
+      mappedCueIds: [
+        "attack-windup",
+        "projectile",
+        "impact",
+        "destroyed",
+        "level-up",
+        "arc-birth",
+        "arc-pickup",
+        "arc-drop",
+        "arc-bank",
+        "arc-pulse",
+        "arc-handoff",
+        "deflect",
+        "arrival",
+      ],
+      proposedCueIds: [],
+      reviewOnlyCueIds: ["attack-fizzle", "attack-cancel", "arc-steal"],
+      silentOutcomeCueIds: ["attack-fizzle", "attack-cancel"],
+      runtimeAliases: { "arc-steal": "arc-pickup" },
     },
   }),
 );
@@ -228,6 +250,17 @@ async function validateCandidateSet(specification) {
         manifest.packs[0].cues.filter((cue) => cue.status === status).length ===
           count,
         `${specification.label}: expected ${count} ${status} cues`,
+      );
+    }
+  }
+  if (specification.expectedReviewScope) {
+    for (const [field, expected] of Object.entries(
+      specification.expectedReviewScope,
+    )) {
+      assert(
+        JSON.stringify(manifest.reviewScope?.[field]) ===
+          JSON.stringify(expected),
+        `${specification.label}: review scope ${field} is incorrect`,
       );
     }
   }

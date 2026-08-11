@@ -40,7 +40,7 @@ const backupRoot = `${destinationRoot}.backup-${exportSuffix}`;
 const backupPrefix = `${path.basename(destinationRoot)}.backup-`;
 const selectedPackId = "astral-relay";
 const selectedAmbienceId = "arena-ambience";
-const cueIds = [
+const sourceCueIds = [
   "attack-windup",
   "projectile",
   "attack-fizzle",
@@ -58,20 +58,32 @@ const cueIds = [
   "deflect",
   "arrival",
 ];
+const cueIds = [
+  "attack-windup",
+  "projectile",
+  "impact",
+  "destroyed",
+  "level-up",
+  "arc-birth",
+  "arc-pickup",
+  "arc-drop",
+  "arc-bank",
+  "arc-pulse",
+  "arc-handoff",
+  "deflect",
+  "arrival",
+];
 const mix = {
   roomSend: 0.06,
   cues: {
     "attack-windup": { gain: 0.39, voiceLimit: 3 },
-    projectile: { gain: 0.38, voiceLimit: 3 },
-    "attack-fizzle": { gain: 0.42, voiceLimit: 2 },
-    "attack-cancel": { gain: 0.3, voiceLimit: 2 },
+    projectile: { gain: 0.52, voiceLimit: 3 },
     impact: { gain: 0.38, voiceLimit: 2 },
     destroyed: { gain: 0.44, voiceLimit: 1 },
     "level-up": { gain: 0.46, voiceLimit: 2 },
     "arc-birth": { gain: 0.4, voiceLimit: 2 },
-    "arc-pickup": { gain: 0.42, voiceLimit: 2 },
-    "arc-steal": { gain: 0.48, voiceLimit: 1 },
-    "arc-drop": { gain: 0.42, voiceLimit: 2 },
+    "arc-pickup": { gain: 0.3, voiceLimit: 2 },
+    "arc-drop": { gain: 0.3, voiceLimit: 2 },
     "arc-bank": { gain: 0.5, voiceLimit: 1 },
     "arc-pulse": { gain: 0.54, voiceLimit: 1 },
     "arc-handoff": { gain: 0.38, voiceLimit: 2 },
@@ -293,7 +305,8 @@ if (generationRecord.pack?.id !== selectedPackId) {
   throw new Error("The SFX Engine generation record names a different pack.");
 }
 if (
-  JSON.stringify(pack.cues.map((cue) => cue.id)) !== JSON.stringify(cueIds)
+  JSON.stringify(pack.cues.map((cue) => cue.id)) !==
+  JSON.stringify(sourceCueIds)
 ) {
   throw new Error("Astral Relay runtime cue coverage differs from the approved set.");
 }
@@ -384,6 +397,10 @@ try {
           sourceComposition: sourceManifest.sourceComposition,
         },
         mix,
+        behavior: {
+          silentOutcomeCueIds: ["attack-fizzle", "attack-cancel"],
+          cueAliases: { "arc-steal": "arc-pickup" },
+        },
         cues,
         ambience,
         integrity,

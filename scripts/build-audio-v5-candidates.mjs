@@ -29,6 +29,54 @@ const apiSpecPath = path.join(
 const baseManifest = JSON.parse(await readFile(baseManifestPath, "utf8"));
 const generation = JSON.parse(await readFile(generationPath, "utf8"));
 const expectedIds = baseManifest.packs[0].cues.map((cue) => cue.id);
+const runtimeCueIds = [
+  "attack-windup",
+  "projectile",
+  "impact",
+  "destroyed",
+  "level-up",
+  "arc-birth",
+  "arc-pickup",
+  "arc-drop",
+  "arc-bank",
+  "arc-pulse",
+  "arc-handoff",
+  "deflect",
+  "arrival",
+];
+const cuePresentation = {
+  "attack-windup": {
+    description:
+      "A smooth low field gathers into one focused tone before a declared beam.",
+  },
+  projectile: {
+    description:
+      "A rounded locked-field hit confirms beam resolution without noisy travel.",
+  },
+  "attack-fizzle": {
+    status: "proposed",
+    mapping: "review reference only; fizzle / interrupt / miss is currently silent",
+  },
+  "attack-cancel": {
+    status: "proposed",
+    mapping: "review reference only; voluntary attack cancellation is currently silent",
+  },
+  "arc-pickup": {
+    description:
+      "The Core levitates weightlessly into a carrier's calm magnetic halo.",
+    mapping: "every core-picked-up fact, including an opposing-team pickup",
+  },
+  "arc-steal": {
+    status: "proposed",
+    description:
+      "Historical alternate retained for comparison; stealing is physically a pickup.",
+    mapping: "review reference only; runtime aliases an opposing pickup to arc-pickup",
+  },
+  "arc-drop": {
+    description:
+      "The levitation field releases as the Core settles back into free orbit.",
+  },
+};
 const comparisonGenerationCues = generation.cues.filter(
   (cue) => cue.role !== "background-loop",
 );
@@ -163,9 +211,12 @@ for (const generatedCue of comparisonGenerationCues) {
     id: baseline.id,
     label: baseline.label,
     category: baseline.category,
-    status: baseline.status,
-    description: baseline.description,
-    mapping: baseline.mapping,
+    status: runtimeCueIds.includes(baseline.id)
+      ? "mapped"
+      : cuePresentation[baseline.id]?.status ?? baseline.status,
+    description:
+      cuePresentation[baseline.id]?.description ?? baseline.description,
+    mapping: cuePresentation[baseline.id]?.mapping ?? baseline.mapping,
     file: `./v5/${generation.outputDirectory}/${generatedCue.file}`,
     durationSeconds: result.metrics.durationSeconds,
     peak: result.metrics.peak,
@@ -255,8 +306,11 @@ const manifest = {
     ...baseManifest.reviewScope,
     runtimePack: "astral-relay",
     runtimeStatus: "promoted as the sole/default gameplay SFX pack",
-    mappedCueIds: expectedIds,
+    mappedCueIds: runtimeCueIds,
     proposedCueIds: [],
+    reviewOnlyCueIds: ["attack-fizzle", "attack-cancel", "arc-steal"],
+    silentOutcomeCueIds: ["attack-fizzle", "attack-cancel"],
+    runtimeAliases: { "arc-steal": "arc-pickup" },
     selectedBackgroundLoop: {
       cueId: "arena-ambience",
       mapIds: ["arc-relay-tapline-01"],

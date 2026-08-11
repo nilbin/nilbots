@@ -1,5 +1,4 @@
 import type {
-  ReplayArcCoreId,
   ReplayArcRelayModeState,
   ReplayModel,
   ReplayTick,
@@ -32,9 +31,9 @@ export interface ReplayAudioEvent {
  *
  * Every cue is bound to an explicit public fact or an authoritative before/after
  * transition. In particular, declared strikes have a three-part grammar: entering the
- * pending-strike table winds up, an attack resolution emits the beam, and leaving the
- * table without one emits either a voluntary cancel or an interrupted fizzle. Nothing is
- * inferred from score changes or future world state, so seeking is deterministic.
+ * pending-strike table winds up and an attack resolution emits the beam. Unresolved and
+ * cancelled attacks are deliberately silent for now. Nothing is inferred from score
+ * changes or future world state, so seeking is deterministic.
  */
 export function replayAudioEventsAt(
   replay: ReplayModel,
@@ -84,20 +83,9 @@ export function replayAudioEventsAt(
       });
       continue;
     }
-    const interrupted =
-      signatureReason !== null && signatureReason !== 'abandoned-move';
-    scheduled.push({
-      cue:
-        interrupted || tick.tick >= strike.resolveAtTick
-          ? 'attack-fizzle'
-          : 'attack-cancel',
-      tickOffset: tick.tick >= strike.resolveAtTick ? 0.46 : 0.26,
-      priority: 2,
-      pan: panAt(strikePosition(strike, tick.before)?.x),
-    });
+    // Fizzles, interruptions, misses, and voluntary cancels remain visual-only.
   }
 
-  const coreOwners = coreOwnersBefore(replay, tickIndex);
   for (const event of authoritativeEvents) {
     // Events carry their origin tile; a beam is placed where it was fired from.
     const pan = panAt(event.from?.x ?? event.to?.x);
@@ -128,31 +116,17 @@ export function replayAudioEventsAt(
         });
         break;
       case 'core-picked-up': {
-        const key = coreKey(fact.coreId);
-        const previousTeam = coreOwners.get(key);
-        if (
-          previousTeam !== undefined &&
-          previousTeam !== fact.carrierActor.teamId
-        ) {
-          scheduled.push({
-            cue: 'arc-steal',
-            tickOffset: 0.34,
-            priority: 7,
-            pan: factPan,
-          });
-        } else {
-          scheduled.push({
-            cue: 'arc-pickup',
-            tickOffset: 0.28,
-            priority: 5,
-            pan: factPan,
-          });
-        }
-        coreOwners.set(key, fact.carrierActor.teamId);
+        // A steal is still the same physical event: the loose Core levitates into a
+        // carrier's field. Team ownership changes visually, not through a second sound.
+        scheduled.push({
+          cue: 'arc-pickup',
+          tickOffset: 0.28,
+          priority: 5,
+          pan: factPan,
+        });
         break;
       }
       case 'core-handed-off':
-        coreOwners.set(coreKey(fact.coreId), fact.targetActor.teamId);
         scheduled.push({
           cue: 'arc-handoff',
           tickOffset: 0.31,
@@ -161,11 +135,8 @@ export function replayAudioEventsAt(
         });
         break;
       case 'core-relocated':
-        if (fact.carrierActor)
-          coreOwners.set(coreKey(fact.coreId), fact.carrierActor.teamId);
         break;
       case 'core-dropped':
-        coreOwners.set(coreKey(fact.coreId), fact.sourceActor.teamId);
         scheduled.push({
           cue: 'arc-drop',
           tickOffset: 0.34,
@@ -174,7 +145,6 @@ export function replayAudioEventsAt(
         });
         break;
       case 'core-banked':
-        coreOwners.set(coreKey(fact.coreId), fact.teamId);
         scheduled.push({
           cue: 'arc-bank',
           tickOffset: 0.42,
@@ -303,42 +273,4 @@ function terminalSignatureReason(
     }
   }
   return null;
-}
-
-function coreKey(coreId: ReplayArcCoreId): string {
-  return `${coreId.sourceWellId}:${coreId.sourceOrdinal}`;
-}
-
-function coreOwnersBefore(
-  replay: ReplayModel,
-  tickIndex: number,
-): Map<string, number> {
-  const owners = new Map<string, number>();
-  for (let index = 0; index < tickIndex; index += 1) {
-    const tick = replay.ticks[index];
-    if (!tick) continue;
-    for (const event of [...tick.lifecycleEvents, ...tick.events]) {
-      const fact = event.arcRelayFact;
-      if (!fact) continue;
-      switch (fact.kind) {
-        case 'core-picked-up':
-          owners.set(coreKey(fact.coreId), fact.carrierActor.teamId);
-          break;
-        case 'core-handed-off':
-          owners.set(coreKey(fact.coreId), fact.targetActor.teamId);
-          break;
-        case 'core-relocated':
-          if (fact.carrierActor)
-            owners.set(coreKey(fact.coreId), fact.carrierActor.teamId);
-          break;
-        case 'core-dropped':
-          owners.set(coreKey(fact.coreId), fact.sourceActor.teamId);
-          break;
-        case 'core-banked':
-          owners.set(coreKey(fact.coreId), fact.teamId);
-          break;
-      }
-    }
-  }
-  return owners;
 }

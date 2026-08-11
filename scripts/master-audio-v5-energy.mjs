@@ -36,17 +36,34 @@ const masters = [
   {
     id: "attack-windup",
     providerTargetPeak: 0.78,
+    sourceFilename: "attack-windup.smooth-charge.pre-safety-master.wav",
     sourceOutputSha256:
-      "42ca3576ebf2fc33f2297a4dd6cf3936be900b8397c3af0c610bf7c464f7e64b",
-    lowPassHz: 7_000,
-    targetIntegratedLufs: -12,
-    peakCeiling: 0.56,
-    maximumEnergyAbove12kPercent: 25,
+      "43eef363baa60e10bdd1e2725c409aa2ed0bda73e01f786c0db16d451848064b",
+    lowPassHz: 6_000,
+    targetIntegratedLufs: -16,
+    peakCeiling: 0.5,
+    maximumEnergyAbove12kPercent: 12,
     fadeInSeconds: 0.008,
     fadeOutSeconds: 0.06,
     reason:
-      "Energy audit: retain the accepted wind-up gesture while removing its " +
-      "ultrasonic-heavy balance and lowering repeated combat energy.",
+      "Owner review: keep the new smooth charge restrained, low, and free of " +
+      "the noisy upper-band energy rejected in the previous wind-up.",
+  },
+  {
+    id: "projectile",
+    providerTargetPeak: 0.84,
+    sourceFilename: "projectile.quiet-beam-hit.pre-safety-master.wav",
+    sourceOutputSha256:
+      "2821b96623c38440c7b3dbf0c30c46d2aaa030d98e599fb75724cd1633e252f0",
+    lowPassHz: 6_000,
+    targetIntegratedLufs: -16,
+    peakCeiling: 0.5,
+    maximumEnergyAbove12kPercent: 12,
+    fadeInSeconds: 0.008,
+    fadeOutSeconds: 0.06,
+    reason:
+      "Owner review: retain the rounded beam hit while removing noisy treble " +
+      "and keeping repeated attack resolutions calm.",
   },
   {
     id: "attack-fizzle",
@@ -107,7 +124,7 @@ const reviewSequences = {
     [0, "arc-birth"],
     [1_380, "arc-pickup"],
     [2_180, "arc-handoff"],
-    [3_060, "arc-steal"],
+    [3_060, "arc-pickup"],
     [4_100, "arc-drop"],
     [5_020, "arc-pickup"],
     [5_850, "arc-bank"],
@@ -118,9 +135,7 @@ const reviewSequences = {
     [360, "projectile"],
     [920, "impact"],
     [1_720, "attack-windup"],
-    [2_080, "attack-fizzle"],
     [3_220, "attack-windup"],
-    [3_550, "attack-cancel"],
     [4_400, "attack-windup"],
     [4_760, "projectile"],
     [5_360, "destroyed"],
@@ -135,14 +150,12 @@ const reviewSequences = {
     [3_390, "projectile"],
     [3_950, "impact"],
     [4_720, "attack-windup"],
-    [5_080, "attack-fizzle"],
-    [6_150, "arc-steal"],
+    [6_150, "arc-pickup"],
     [7_220, "arc-drop"],
     [8_150, "arc-pickup"],
     [8_980, "arc-bank"],
     [10_500, "arc-pulse"],
     [13_180, "attack-windup"],
-    [13_520, "attack-cancel"],
     [14_420, "destroyed"],
     [14_420, "level-up"],
     [16_250, "arrival"],
@@ -159,7 +172,8 @@ for (const master of masters) {
   );
 
   const outputPath = safeOutputPath(cue.file);
-  const sourceFilename = `${cue.id}.pre-safety-master.wav`;
+  const sourceFilename =
+    master.sourceFilename ?? `${cue.id}.pre-safety-master.wav`;
   const sourcePath = path.join(sourceDirectory, sourceFilename);
   const sourceRelativePath = path.relative(generationDirectory, sourcePath);
   let sourceBytes;
@@ -180,7 +194,10 @@ for (const master of masters) {
     `${cue.id}: archived pre-safety master differs from its pinned hash.`,
   );
 
-  const sourceResult = cue.safetyMastering?.sourceResult ?? cue.result;
+  const sourceResult =
+    cue.result?.outputSha256 === master.sourceOutputSha256
+      ? cue.result
+      : cue.safetyMastering?.sourceResult;
   assert(
     sourceResult.outputSha256 === master.sourceOutputSha256,
     `${cue.id}: saved provider result differs from the safety source pin.`,
@@ -265,7 +282,9 @@ for (const master of masters) {
     sourceFile: sourceRelativePath,
     sourceOutputSha256: master.sourceOutputSha256,
     recordedAt:
-      cue.safetyMastering?.recordedAt ?? new Date().toISOString(),
+      cue.safetyMastering?.sourceOutputSha256 === master.sourceOutputSha256
+        ? cue.safetyMastering.recordedAt
+        : new Date().toISOString(),
     reason: master.reason,
     operations,
     sourceResult,

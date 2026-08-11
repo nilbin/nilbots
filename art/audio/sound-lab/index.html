@@ -39,9 +39,9 @@
           <h1>Signal in the void.<br /><em>Every play leaves a field.</em></h1>
           <p class="hero__lede">
             Rebuilt from zero around broad spectral motion, deep spatial release, and
-            soft-edged transients. Regular attacks now form a complete sentence:
-            <strong>wind-up → beam, fizzle, or cancel</strong>. Objective cues open
-            into the arena. The existing
+            soft-edged transients. Regular attacks now speak only where they help:
+            <strong>wind-up → beam</strong>; fizzle and cancel remain visual. Objective
+            cues open into the arena. The existing
             <strong>Neon Protocol</strong> score remains untouched.
           </p>
           <div class="hero__actions">
@@ -62,11 +62,11 @@
             </li>
             <li>
               <span>02</span>
-              <p><strong>Possession is the story</strong>Cores move through birth, pickup, handoff, steal, drop, bank, and Pulse.</p>
+              <p><strong>Possession is the story</strong>Cores move through birth, levitation pickup, handoff, drop, bank, and Pulse; a steal is still a pickup.</p>
             </li>
             <li>
               <span>03</span>
-              <p><strong>Tell, then outcome</strong>A public wind-up must resolve as a beam, lose coherence, or shut down cleanly.</p>
+              <p><strong>Tell, then outcome</strong>A public wind-up speaks; only an actual beam gets an audible answer.</p>
             </li>
             <li>
               <span>04</span>
@@ -78,10 +78,10 @@
 
       <section class="scope-rail" aria-label="Review scope">
         <div><strong>4</strong><span>new themes</span></div>
-        <div><strong>9</strong><span>live mappings covered</span></div>
-        <div><strong>7</strong><span>new cues proposed</span></div>
+        <div><strong>13</strong><span>live cue voices</span></div>
+        <div><strong>3</strong><span>review-only references</span></div>
         <div><strong>3</strong><span>30s ambience variants</span></div>
-        <div class="scope-rail__protected"><strong>UNCHANGED</strong><span>music + runtime pack</span></div>
+        <div class="scope-rail__protected"><strong>UNCHANGED</strong><span>Neon Protocol music</span></div>
       </section>
 
       <section class="ambient-bed" aria-labelledby="ambient-bed-title">
@@ -89,7 +89,7 @@
           <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
         </div>
         <div class="ambient-bed__copy">
-          <p class="eyebrow">SFX ENGINE · OPTIONAL AMBIENT BED</p>
+          <p class="eyebrow">SFX ENGINE · TAPLINE BED + ALTERNATIVES</p>
           <h2 id="ambient-bed-title">Put the arena inside the signal.</h2>
           <p>
             Three non-musical deep-space fields for judging the effects in context.
@@ -97,7 +97,7 @@
           </p>
         </div>
         <div class="ambient-bed__controls">
-          <span>3 × 30 SEC · CIRCULAR CROSSFADE · REVIEW ONLY</span>
+          <span>3 × 30 SEC · A IS LIVE ON TAPLINE · B/C REVIEW ONLY</span>
           <div class="ambient-options" data-ambient-options aria-label="Ambient loop alternatives"></div>
           <button type="button" data-ambient-toggle aria-pressed="false">
             <i aria-hidden="true"></i>
@@ -135,7 +135,7 @@
             <button type="button" data-sequence="possession">
               <i aria-hidden="true"></i>
               Play possession story
-              <small>birth → pickup → handoff → steal → bank → Pulse</small>
+              <small>birth → pickup → handoff → rival pickup → bank → Pulse</small>
             </button>
             <button type="button" data-sequence="combat">
               <i aria-hidden="true"></i>
@@ -167,8 +167,8 @@
           <div class="section-index">03</div>
           <div>
             <p class="eyebrow">ATTACK GRAMMAR</p>
-            <h2 id="recommendations-title">One tell. Three honest answers.</h2>
-            <p>The live pack hears only the final attack event. Public pending-strike state makes the full sentence reviewable.</p>
+            <h2 id="recommendations-title">One tell. One audible answer.</h2>
+            <p>The live pack hears the public wind-up and the resolved beam. Failed or cancelled outcomes stay visual for now.</p>
           </div>
         </div>
 
@@ -184,22 +184,20 @@
             <button type="button" data-jump-cue="attack-windup">Compare wind-up across A/B/C/D</button>
           </article>
           <article>
-            <div class="recommendation__meta"><span>FOUNDATIONAL</span><b>11</b></div>
+            <div class="recommendation__meta"><span>REVIEW ONLY</span><b>11</b></div>
             <h3>Fizzle / interrupt / miss</h3>
             <p>
-              When a pending strike reaches <code>resolveAtTick</code> without a matching
-              attack traversal, its charged field disperses. This is unresolved and airy,
-              clearly different from the focused beam.
+              This candidate remains available for comparison, but a pending strike that
+              fails or misses is currently silent in the game.
             </p>
             <button type="button" data-jump-cue="attack-fizzle">Compare fizzle across A/B/C/D</button>
           </article>
           <article>
-            <div class="recommendation__meta"><span>FOUNDATIONAL</span><b>12</b></div>
+            <div class="recommendation__meta"><span>REVIEW ONLY</span><b>12</b></div>
             <h3>Attack cancelled</h3>
             <p>
-              A pending strike that disappears before its resolve tick is an abandoned
-              wind-up. Its answer is shorter and more deliberate than a fizzle: the field
-              simply powers down.
+              This candidate remains available for comparison, but an abandoned wind-up
+              currently ends without another sound in the game.
             </p>
             <button type="button" data-jump-cue="attack-cancel">Compare cancel across A/B/C/D</button>
           </article>
@@ -212,7 +210,7 @@
           <div>
             <p class="eyebrow">OTHER MISSING FACTS</p>
             <h2 id="other-recommendations-title">Four more gaps worth hearing.</h2>
-            <p>These suggestions remain backed by explicit public replay facts and state transitions.</p>
+            <p>These additions are backed by explicit public replay facts and are mapped in the current pack.</p>
           </div>
         </div>
 
@@ -221,8 +219,8 @@
             <div class="recommendation__meta"><span>HIGH CONFIDENCE</span><b>13</b></div>
             <h3>Ally handoff</h3>
             <p>
-              Handoffs are the most specifically “relay” play in Arc Relay, yet
-              <code>core-handed-off</code> is silent. A two-part orbital exchange
+              Handoffs are the most specifically “relay” play in Arc Relay. A two-part
+              orbital exchange on <code>core-handed-off</code>
               rewards authored coordination without reading as a score.
             </p>
             <button type="button" data-jump-cue="arc-handoff">Compare handoff across A/B/C/D</button>
@@ -254,7 +252,7 @@
               The authoritative <code>leveled-up</code> fact makes one surviving bot
               stronger at the destruction beat. A compact centered field-lock stays
               distinct from Core scoring; stacked levels for one actor and tick should
-              become one cue if this mapping reaches runtime.
+              become one cue in the runtime scheduler.
             </p>
             <button type="button" data-jump-cue="level-up">Compare level up across A/B/C/D</button>
           </article>
@@ -281,14 +279,14 @@
         <div class="guardrails__grid">
           <p><strong>No movement loop.</strong> Sixteen bodies moving every tick would turn the ambient score into background noise.</p>
           <p><strong>No generic win jingle.</strong> The soundtrack already owns resolve; a second musical verdict would fight it.</p>
-          <p><strong>No stacked room send yet.</strong> These review masters carry their own space; runtime promotion should retune the existing arena convolution.</p>
+          <p><strong>Only a light room send.</strong> These masters carry their own space; runtime convolution stays at 0.06.</p>
           <p><strong>No camera inference.</strong> Attack outcomes use authoritative pending state and traversals, never visual timing or a guessed hit.</p>
         </div>
       </section>
     </main>
 
     <footer>
-      <span>nilbots / Arc Relay ambient SFX reconcept 05</span>
+      <span>nilbots / Arc Relay ambient SFX reconcept 06</span>
       <span data-audio-status>Ready. Choose a gameplay fact.</span>
     </footer>
 

@@ -556,7 +556,7 @@ test('every Arc Relay possession beat drives its diegetic audio cue', () => {
       ['arc-birth'],
       ['arc-pickup'],
       ['arc-drop'],
-      ['arc-steal'],
+      ['arc-pickup'],
       ['arc-bank'],
       ['arc-pulse'],
     ],

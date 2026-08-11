@@ -62,12 +62,12 @@ const revisions = [
     targetPeak: 0.7,
     fallbackRequestLengthSeconds: 1,
     reason:
-      "Owner review: derive beam deflection locally from the accepted beam " +
-      "body with its ignition removed and highs softened; no new provider request.",
+      "Owner review: derive beam deflection locally from the accepted quiet " +
+      "beam hit with highs softened; no new provider request.",
     processing: {
-      transform: "beam-body-bend",
-      sourceStartSeconds: 0.08,
-      durationSeconds: 0.8,
+      transform: "beam-bend",
+      sourceStartSeconds: 0,
+      durationSeconds: 0.55,
       lowPassHz: 3_200,
       fadeInSeconds: 0.015,
       fadeOutSeconds: 0.18,
@@ -97,7 +97,7 @@ for (const revision of revisions) {
   let samples = decodeSamples(sourceBytes, sourceWav);
   if (revision.processing.transform === "reverse-source") {
     samples = reverseFrames(samples, sourceWav.channels);
-  } else if (revision.processing.transform === "beam-body-bend") {
+  } else if (revision.processing.transform === "beam-bend") {
     samples = sliceFrames(
       samples,
       sourceWav.channels,
@@ -133,13 +133,21 @@ for (const revision of revisions) {
   );
   const metrics = analyzeWav(outputBytes, revision.targetId);
 
-  if (target.result?.status !== "derived") {
+  const previousDerivedSourceHash =
+    target.result?.derivation?.sourceOutputSha256;
+  const derivedSourceChanged =
+    target.result?.status === "derived" &&
+    previousDerivedSourceHash !== source.result.outputSha256;
+  if (target.result?.status !== "derived" || derivedSourceChanged) {
     target.attempts ??= [];
     target.attempts.push({
       ...(target.result?.request ?? snapshotRequest(target)),
       result: target.result,
+      ...(target.derivation ? { derivation: target.derivation } : {}),
       supersededAt: new Date().toISOString(),
-      reason: revision.reason,
+      reason: derivedSourceChanged
+        ? `${revision.reason} The accepted source cue changed.`
+        : revision.reason,
     });
   }
 
@@ -149,7 +157,7 @@ for (const revision of revisions) {
     sourceOutputSha256: source.result.outputSha256,
     operations: operationsFor(revision),
   };
-  const recordedAt = target.result?.status === "derived"
+  const recordedAt = target.result?.status === "derived" && !derivedSourceChanged
     ? target.result.recordedAt
     : new Date().toISOString();
   target.generationMode = "local-derivation";
@@ -230,7 +238,7 @@ function operationsFor(revision) {
     operations.push({ type: "reverse-frames" });
   } else {
     operations.push({
-      type: "extract-beam-body",
+      type: "extract-beam-window",
       startSeconds: revision.processing.sourceStartSeconds,
       durationSeconds: revision.processing.durationSeconds,
     });

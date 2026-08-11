@@ -19,14 +19,11 @@
     "mappedCueIds": [
       "attack-windup",
       "projectile",
-      "attack-fizzle",
-      "attack-cancel",
       "impact",
       "destroyed",
       "level-up",
       "arc-birth",
       "arc-pickup",
-      "arc-steal",
       "arc-drop",
       "arc-bank",
       "arc-pulse",
@@ -36,6 +33,18 @@
     ],
     "proposedCueIds": [],
     "runtimeStatus": "promoted as the sole/default gameplay SFX pack",
+    "reviewOnlyCueIds": [
+      "attack-fizzle",
+      "attack-cancel",
+      "arc-steal"
+    ],
+    "silentOutcomeCueIds": [
+      "attack-fizzle",
+      "attack-cancel"
+    ],
+    "runtimeAliases": {
+      "arc-steal": "arc-pickup"
+    },
     "selectedBackgroundLoop": {
       "cueId": "arena-ambience",
       "mapIds": [
@@ -47,7 +56,7 @@
   "sourceComposition": {
     "providerGeneratedCues": 13,
     "locallyDerivedCues": 3,
-    "locallySafetyMasteredCues": 4
+    "locallySafetyMasteredCues": 5
   },
   "energyAudit": {
     "script": "scripts/master-audio-v5-energy.mjs",
@@ -77,17 +86,17 @@
     "cueResults": {
       "attack-windup": {
         "durationSeconds": 1,
-        "integratedLufs": -12.42,
-        "maxMomentaryLufs": -10.34,
-        "approximateTruePeakDbtp": -4.93,
-        "energyAbove12kPercent": 2.93
+        "integratedLufs": -16.92,
+        "maxMomentaryLufs": -16.14,
+        "approximateTruePeakDbtp": -6.02,
+        "energyAbove12kPercent": 0.01
       },
       "projectile": {
         "durationSeconds": 1,
-        "integratedLufs": -15.69,
-        "maxMomentaryLufs": -14.42,
-        "approximateTruePeakDbtp": -1.51,
-        "energyAbove12kPercent": 19.71
+        "integratedLufs": -22.76,
+        "maxMomentaryLufs": -22.76,
+        "approximateTruePeakDbtp": -5.94,
+        "energyAbove12kPercent": 0
       },
       "attack-fizzle": {
         "durationSeconds": 1,
@@ -133,8 +142,8 @@
       },
       "arc-pickup": {
         "durationSeconds": 1,
-        "integratedLufs": -17.59,
-        "maxMomentaryLufs": -15.4,
+        "integratedLufs": -10.29,
+        "maxMomentaryLufs": -9.13,
         "approximateTruePeakDbtp": -2.15,
         "energyAbove12kPercent": 0
       },
@@ -147,8 +156,8 @@
       },
       "arc-drop": {
         "durationSeconds": 1,
-        "integratedLufs": -17.6,
-        "maxMomentaryLufs": -15.41,
+        "integratedLufs": -10.63,
+        "maxMomentaryLufs": -9.68,
         "approximateTruePeakDbtp": -2.15,
         "energyAbove12kPercent": 0
       },
@@ -174,11 +183,11 @@
         "energyAbove12kPercent": 2.26
       },
       "deflect": {
-        "durationSeconds": 0.8,
-        "integratedLufs": -13.92,
-        "maxMomentaryLufs": -13.01,
-        "approximateTruePeakDbtp": -3.02,
-        "energyAbove12kPercent": 0.14
+        "durationSeconds": 0.55,
+        "integratedLufs": -20.19,
+        "maxMomentaryLufs": -20.19,
+        "approximateTruePeakDbtp": -3.01,
+        "energyAbove12kPercent": 0
       },
       "arrival": {
         "durationSeconds": 2,
@@ -212,8 +221,8 @@
     "sequenceResults": {
       "possession": {
         "durationSeconds": 11.35,
-        "integratedLufs": -16.99,
-        "maxMomentaryLufs": -11.4,
+        "integratedLufs": -15.29,
+        "maxMomentaryLufs": -10.4,
         "approximateTruePeakDbtp": -3.24,
         "summaryMode": "worst metric across ambient alternatives",
         "ambientRelativeGains": {
@@ -227,22 +236,22 @@
         "ambientVariants": {
           "arena-ambience": {
             "durationSeconds": 11.35,
-            "integratedLufs": -17.19,
-            "maxMomentaryLufs": -11.4,
+            "integratedLufs": -15.31,
+            "maxMomentaryLufs": -10.4,
             "approximateTruePeakDbtp": -3.24,
             "relativeGain": 0.32
           },
           "arena-ambience-ion-veil": {
             "durationSeconds": 11.35,
-            "integratedLufs": -17.3,
-            "maxMomentaryLufs": -11.47,
+            "integratedLufs": -15.33,
+            "maxMomentaryLufs": -10.47,
             "approximateTruePeakDbtp": -3.5,
             "relativeGain": 0.418
           },
           "arena-ambience-signal-lattice": {
             "durationSeconds": 11.35,
-            "integratedLufs": -16.99,
-            "maxMomentaryLufs": -11.51,
+            "integratedLufs": -15.29,
+            "maxMomentaryLufs": -10.48,
             "approximateTruePeakDbtp": -3.5,
             "relativeGain": 0.7
           }
@@ -250,9 +259,9 @@
       },
       "combat": {
         "durationSeconds": 9.08,
-        "integratedLufs": -14.86,
-        "maxMomentaryLufs": -10.89,
-        "approximateTruePeakDbtp": -1.04,
+        "integratedLufs": -17.04,
+        "maxMomentaryLufs": -11.29,
+        "approximateTruePeakDbtp": -3.35,
         "summaryMode": "worst metric across ambient alternatives",
         "ambientRelativeGains": {
           "arena-ambience": 0.32,
@@ -265,32 +274,32 @@
         "ambientVariants": {
           "arena-ambience": {
             "durationSeconds": 9.08,
-            "integratedLufs": -14.86,
-            "maxMomentaryLufs": -10.89,
-            "approximateTruePeakDbtp": -1.28,
+            "integratedLufs": -17.04,
+            "maxMomentaryLufs": -11.35,
+            "approximateTruePeakDbtp": -4.57,
             "relativeGain": 0.32
           },
           "arena-ambience-ion-veil": {
             "durationSeconds": 9.08,
-            "integratedLufs": -14.87,
-            "maxMomentaryLufs": -10.96,
-            "approximateTruePeakDbtp": -1.59,
+            "integratedLufs": -17.17,
+            "maxMomentaryLufs": -11.29,
+            "approximateTruePeakDbtp": -4.05,
             "relativeGain": 0.418
           },
           "arena-ambience-signal-lattice": {
             "durationSeconds": 9.08,
-            "integratedLufs": -14.92,
-            "maxMomentaryLufs": -10.95,
-            "approximateTruePeakDbtp": -1.04,
+            "integratedLufs": -17.05,
+            "maxMomentaryLufs": -11.4,
+            "approximateTruePeakDbtp": -3.35,
             "relativeGain": 0.7
           }
         }
       },
       "full": {
         "durationSeconds": 18.25,
-        "integratedLufs": -15.95,
-        "maxMomentaryLufs": -10.96,
-        "approximateTruePeakDbtp": -1.46,
+        "integratedLufs": -15.91,
+        "maxMomentaryLufs": -10.29,
+        "approximateTruePeakDbtp": -3.17,
         "summaryMode": "worst metric across ambient alternatives",
         "ambientRelativeGains": {
           "arena-ambience": 0.32,
@@ -303,23 +312,23 @@
         "ambientVariants": {
           "arena-ambience": {
             "durationSeconds": 18.25,
-            "integratedLufs": -16.06,
-            "maxMomentaryLufs": -10.96,
-            "approximateTruePeakDbtp": -1.59,
+            "integratedLufs": -15.92,
+            "maxMomentaryLufs": -10.41,
+            "approximateTruePeakDbtp": -3.45,
             "relativeGain": 0.32
           },
           "arena-ambience-ion-veil": {
             "durationSeconds": 18.25,
-            "integratedLufs": -15.96,
-            "maxMomentaryLufs": -10.99,
-            "approximateTruePeakDbtp": -1.61,
+            "integratedLufs": -15.91,
+            "maxMomentaryLufs": -10.29,
+            "approximateTruePeakDbtp": -3.17,
             "relativeGain": 0.418
           },
           "arena-ambience-signal-lattice": {
             "durationSeconds": 18.25,
-            "integratedLufs": -15.95,
-            "maxMomentaryLufs": -11.02,
-            "approximateTruePeakDbtp": -1.46,
+            "integratedLufs": -15.92,
+            "maxMomentaryLufs": -10.35,
+            "approximateTruePeakDbtp": -3.68,
             "relativeGain": 0.7
           }
         }
@@ -425,6 +434,7 @@
         "policy": "Deterministic filtering, linked dynamics, and attenuation of hash-pinned provider masters; no provider API request or synthesized layer.",
         "cueIds": [
           "attack-windup",
+          "projectile",
           "attack-fizzle",
           "impact",
           "level-up"
@@ -432,7 +442,8 @@
         "thresholds": {
           "maximumApproximateTruePeakDbtp": -3,
           "maximumEnergyAbove12kPercent": {
-            "attack-windup": 25,
+            "attack-windup": 12,
+            "projectile": 12,
             "attack-fizzle": 25,
             "impact": 20,
             "level-up": 15
@@ -444,22 +455,22 @@
           "id": "attack-windup",
           "label": "Attack wind-up",
           "category": "ATTACK STATE",
-          "status": "proposed",
-          "description": "A rising field establishes public intent and is designed to flow directly into any outcome.",
+          "status": "mapped",
+          "description": "A smooth low field gathers into one focused tone before a declared beam.",
           "mapping": "pendingStrikes entry appears in authoritative Arc Relay mode state",
           "file": "./v5/packs/astral-relay/attack-windup.wav",
           "durationSeconds": 1,
-          "peak": 0.56,
-          "rms": 0.1601,
-          "stereoDifferenceRms": 0.0002,
-          "dcOffset": 0,
+          "peak": 0.5,
+          "rms": 0.0493,
+          "stereoDifferenceRms": 0.0986,
+          "dcOffset": 0.000002,
           "origin": "provider-generation",
           "safetyMastered": true,
           "energy": {
-            "integratedLufs": -12.42,
-            "maxMomentaryLufs": -10.34,
-            "approximateTruePeakDbtp": -4.93,
-            "energyAbove12kPercent": 2.93
+            "integratedLufs": -16.92,
+            "maxMomentaryLufs": -16.14,
+            "approximateTruePeakDbtp": -6.02,
+            "energyAbove12kPercent": 0.01
           }
         },
         {
@@ -467,21 +478,21 @@
           "label": "Beam resolve",
           "category": "COMBAT",
           "status": "mapped",
-          "description": "A focused field ignites, holds as a spectral line, then leaves a short ionized tail.",
+          "description": "A rounded locked-field hit confirms beam resolution without noisy travel.",
           "mapping": "Shot / attack event (legacy runtime cue ID: projectile)",
           "file": "./v5/packs/astral-relay/projectile.wav",
           "durationSeconds": 1,
-          "peak": 0.84,
-          "rms": 0.0641,
-          "stereoDifferenceRms": 0.1032,
+          "peak": 0.5,
+          "rms": 0.0224,
+          "stereoDifferenceRms": 0,
           "dcOffset": 0.000002,
           "origin": "provider-generation",
-          "safetyMastered": false,
+          "safetyMastered": true,
           "energy": {
-            "integratedLufs": -15.69,
-            "maxMomentaryLufs": -14.42,
-            "approximateTruePeakDbtp": -1.51,
-            "energyAbove12kPercent": 19.71
+            "integratedLufs": -22.76,
+            "maxMomentaryLufs": -22.76,
+            "approximateTruePeakDbtp": -5.94,
+            "energyAbove12kPercent": 0
           }
         },
         {
@@ -490,7 +501,7 @@
           "category": "ATTACK STATE",
           "status": "proposed",
           "description": "The charged field loses coherence at resolution and disperses without a beam.",
-          "mapping": "pending strike reaches resolveAtTick without a matching attack traversal",
+          "mapping": "review reference only; fizzle / interrupt / miss is currently silent",
           "file": "./v5/packs/astral-relay/attack-fizzle.wav",
           "durationSeconds": 1,
           "peak": 0.5,
@@ -512,7 +523,7 @@
           "category": "ATTACK STATE",
           "status": "proposed",
           "description": "A deliberate, compact de-energize closes the wind-up before resolution.",
-          "mapping": "pending strike disappears before resolveAtTick (wind-up abandonment)",
+          "mapping": "review reference only; voluntary attack cancellation is currently silent",
           "file": "./v5/packs/astral-relay/attack-cancel.wav",
           "durationSeconds": 1,
           "peak": 0.72,
@@ -577,7 +588,7 @@
           "id": "level-up",
           "label": "Level up",
           "category": "PROGRESSION",
-          "status": "proposed",
+          "status": "mapped",
           "description": "A compact bot-local field rises and locks after earned veterancy, clear through a destruction tail without becoming a victory sting.",
           "mapping": "leveled-up Arc Relay fact (currently silent; coalesce stacked facts per actor and tick)",
           "file": "./v5/packs/astral-relay/level-up.wav",
@@ -622,19 +633,19 @@
           "label": "Core pickup",
           "category": "ARC CORE",
           "status": "mapped",
-          "description": "A small ascending halo marks clean possession without becoming a UI confirmation beep.",
-          "mapping": "core-picked-up fact without an ownership reversal",
+          "description": "The Core levitates weightlessly into a carrier's calm magnetic halo.",
+          "mapping": "every core-picked-up fact, including an opposing-team pickup",
           "file": "./v5/packs/astral-relay/arc-pickup.wav",
           "durationSeconds": 1,
           "peak": 0.78,
-          "rms": 0.1024,
-          "stereoDifferenceRms": 0,
+          "rms": 0.1662,
+          "stereoDifferenceRms": 0.0529,
           "dcOffset": 0,
           "origin": "provider-generation",
           "safetyMastered": false,
           "energy": {
-            "integratedLufs": -17.59,
-            "maxMomentaryLufs": -15.4,
+            "integratedLufs": -10.29,
+            "maxMomentaryLufs": -9.13,
             "approximateTruePeakDbtp": -2.15,
             "energyAbove12kPercent": 0
           }
@@ -643,9 +654,9 @@
           "id": "arc-steal",
           "label": "Core stolen",
           "category": "ARC CORE",
-          "status": "mapped",
-          "description": "Two spectral paths cross as possession reverses between teams.",
-          "mapping": "core-picked-up fact after opposing ownership",
+          "status": "proposed",
+          "description": "Historical alternate retained for comparison; stealing is physically a pickup.",
+          "mapping": "review reference only; runtime aliases an opposing pickup to arc-pickup",
           "file": "./v5/packs/astral-relay/arc-steal.wav",
           "durationSeconds": 2,
           "peak": 0.84,
@@ -666,19 +677,19 @@
           "label": "Core dropped",
           "category": "ARC CORE",
           "status": "mapped",
-          "description": "The possession field descends and remains deliberately unresolved.",
+          "description": "The levitation field releases as the Core settles back into free orbit.",
           "mapping": "core-dropped fact",
           "file": "./v5/packs/astral-relay/arc-drop.wav",
           "durationSeconds": 1,
           "peak": 0.78,
-          "rms": 0.1014,
-          "stereoDifferenceRms": 0,
-          "dcOffset": 0.000004,
+          "rms": 0.156,
+          "stereoDifferenceRms": 0.0514,
+          "dcOffset": 0.000003,
           "origin": "local-derivation",
           "safetyMastered": false,
           "energy": {
-            "integratedLufs": -17.6,
-            "maxMomentaryLufs": -15.41,
+            "integratedLufs": -10.63,
+            "maxMomentaryLufs": -9.68,
             "approximateTruePeakDbtp": -2.15,
             "energyAbove12kPercent": 0
           },
@@ -732,7 +743,7 @@
           "id": "arc-handoff",
           "label": "Ally handoff",
           "category": "PROPOSED",
-          "status": "proposed",
+          "status": "mapped",
           "description": "Two soft orbits exchange sides, making authored relay play audible without fanfare.",
           "mapping": "core-handed-off fact (currently silent)",
           "file": "./v5/packs/astral-relay/arc-handoff.wav",
@@ -754,22 +765,22 @@
           "id": "deflect",
           "label": "Beam deflected",
           "category": "PROPOSED",
-          "status": "proposed",
+          "status": "mapped",
           "description": "A fast spectral bend distinguishes a successful guard from ordinary damage.",
           "mapping": "projectile-deflected event (currently visual-only)",
           "file": "./v5/packs/astral-relay/deflect.wav",
-          "durationSeconds": 0.8,
+          "durationSeconds": 0.55,
           "peak": 0.7,
-          "rms": 0.1084,
-          "stereoDifferenceRms": 0.0987,
-          "dcOffset": 0,
+          "rms": 0.0407,
+          "stereoDifferenceRms": 0.0014,
+          "dcOffset": 0.000001,
           "origin": "local-derivation",
           "safetyMastered": false,
           "energy": {
-            "integratedLufs": -13.92,
-            "maxMomentaryLufs": -13.01,
-            "approximateTruePeakDbtp": -3.02,
-            "energyAbove12kPercent": 0.14
+            "integratedLufs": -20.19,
+            "maxMomentaryLufs": -20.19,
+            "approximateTruePeakDbtp": -3.01,
+            "energyAbove12kPercent": 0
           },
           "derivedFromCueId": "projectile"
         },
@@ -777,7 +788,7 @@
           "id": "arrival",
           "label": "Unit arrival",
           "category": "PROPOSED",
-          "status": "proposed",
+          "status": "mapped",
           "description": "A quiet field condenses into focus for respawn or fabrication.",
           "mapping": "life-spawned / respawned / fabricated event (currently silent)",
           "file": "./v5/packs/astral-relay/arrival.wav",

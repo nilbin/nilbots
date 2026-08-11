@@ -13,10 +13,7 @@ const expectedCues = [
   'arc-handoff',
   'arc-pickup',
   'arc-pulse',
-  'arc-steal',
   'arrival',
-  'attack-cancel',
-  'attack-fizzle',
   'attack-windup',
   'deflect',
   'destroyed',
@@ -73,6 +70,10 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
       roomSend: number;
       cues: Record<string, { gain: number; voiceLimit: number }>;
     };
+    behavior: {
+      silentOutcomeCueIds: string[];
+      cueAliases: Record<string, string>;
+    };
     cues: Record<string, string>;
     ambience: {
       id: string;
@@ -103,7 +104,7 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
     exportedBy: 'scripts/export-runtime-sound-effects.mjs',
     generationRecord: 'art/audio/sound-lab/v5/sfx-engine-generation.json',
     generationRecordSha256:
-      '731ec6fa95ed472334c9f606594373e14cfb77d9c48fc0f0a8233b36733c130d',
+      '567aafb292054d28136020ea784105bb6a888cc4279fafa4984e340e014064f5',
     deliveryEncoding: {
       encoder: 'macos-afconvert',
       canonicalization: 'zero-iso-bmff-creation-and-modification-times',
@@ -119,7 +120,7 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
     sourceComposition: {
       providerGeneratedCues: 13,
       locallyDerivedCues: 3,
-      locallySafetyMasteredCues: 4,
+      locallySafetyMasteredCues: 5,
     },
   });
   const generationRecord = readFileSync(
@@ -132,6 +133,10 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
 
   assert.deepEqual(Object.keys(manifest.cues).sort(), expectedCues);
   assert.deepEqual(Object.keys(manifest.mix.cues).sort(), expectedCues);
+  assert.deepEqual(manifest.behavior, {
+    silentOutcomeCueIds: ['attack-fizzle', 'attack-cancel'],
+    cueAliases: { 'arc-steal': 'arc-pickup' },
+  });
   assert.equal(manifest.mix.roomSend, 0.06);
   assert.ok(manifest.mix.roomSend <= 0.08, 'provider tails get only a light room send');
 

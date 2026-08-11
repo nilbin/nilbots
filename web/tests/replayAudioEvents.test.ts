@@ -48,7 +48,7 @@ test('draws and non-events do not invent audio from replay state', () => {
   assert.deepEqual(replayAudioEventsAt(replay, 99), []);
 });
 
-test('declared attacks speak wind-up, beam, fizzle, and voluntary cancel distinctly', () => {
+test('declared attacks speak wind-up and beam while unresolved outcomes stay silent', () => {
   const declaring = replayWithEvents([]);
   const declarationTick = declaring.ticks[0]!;
   const shooter = declarationTick.before.actors[0]!.identity;
@@ -87,7 +87,8 @@ test('declared attacks speak wind-up, beam, fizzle, and voluntary cancel distinc
   fizzleTick.after.mode = arcMode([]);
   assert.deepEqual(
     replayAudioEventsAt(fizzled, 0).map((event) => event.cue),
-    ['attack-fizzle'],
+    [],
+    'a fizzle or miss remains visual-only for now',
   );
 
   const cancelled = replayWithEvents([]);
@@ -98,7 +99,8 @@ test('declared attacks speak wind-up, beam, fizzle, and voluntary cancel distinc
   cancelTick.after.mode = arcMode([]);
   assert.deepEqual(
     replayAudioEventsAt(cancelled, 0).map((event) => event.cue),
-    ['attack-cancel'],
+    [],
+    'a voluntary cancellation remains visual-only for now',
   );
 });
 

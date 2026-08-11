@@ -35,44 +35,37 @@
       "file": "attack-windup.wav",
       "requestLengthSeconds": 1,
       "targetPeak": 0.78,
-      "prompt": "Isolated premium sci-fi game SFX: a clean airy electromagnetic field gathers and rises for one second, wide deep-space ambience, unresolved ending ready to join a beam. No gun, projectile, impact, retro beep, lo-fi, voice, or music.",
+      "prompt": "Isolated premium sci-fi game SFX: a smooth low electromagnetic charge gathers into one focused tone, restrained and clean, ending unresolved for a beam. Soft spectral body, minimal noise; no whoosh, zap, gun, impact, beep, voice, or music.",
+      "revisionReason": "Owner review: replace the noisy attack charge with a smoother, lower, more focused wind-up.",
       "result": {
-        "apiSoundEffectId": "se_65kz3jqgfh7eabzk",
+        "apiSoundEffectId": "se_zaytltu3kaenxzi6",
         "status": "generated",
-        "providerCreatedAt": "2026-08-10 22:04:45.681",
+        "providerCreatedAt": "2026-08-11 08:13:01.768",
         "providerLengthSeconds": 1,
         "providerFileSize": 176444,
-        "recordedAt": "2026-08-10T22:05:29.786Z",
-        "downloadedContentType": "audio/wav",
-        "sourceSha256": "aca8aec334e75659f55055f93de7076765f381078cd39a8c589f3f905d5f152c",
-        "outputSha256": "5360d6573cb3c8cf86552130e02a011cc0caad4e5206bd3f51faf4c6769f1a65",
-        "outputBytes": 192044,
-        "metrics": {
-          "durationSeconds": 1,
-          "sampleRate": 48000,
-          "channels": 2,
-          "bitsPerSample": 16,
-          "peak": 0.56,
-          "rms": 0.1601,
-          "stereoDifferenceRms": 0.0002,
-          "dcOffset": 0,
-          "clippedSamples": 0,
-          "energy": {
-            "integratedLufs": -12.42,
-            "maxMomentaryLufs": -10.34,
-            "approximateTruePeakDbtp": -4.93,
-            "energyAbove12kPercent": 2.93
-          }
+        "recordedAt": "2026-08-11T08:13:46.143Z",
+        "request": {
+          "prompt": "Isolated premium sci-fi game SFX: a smooth low electromagnetic charge gathers into one focused tone, restrained and clean, ending unresolved for a beam. Soft spectral body, minimal noise; no whoosh, zap, gun, impact, beep, voice, or music.",
+          "requestLengthSeconds": 1,
+          "secondsToStart": 0,
+          "targetPeak": 0.78
         },
+        "downloadedContentType": "audio/wav",
+        "sourceSha256": "c720e66e7b6f9f65ad28cdd38eb9b79e5e6ac3e3b7225a36938c4baff78675aa",
+        "outputSha256": "82f8c4fd229396a435634b8900cd1b405d58f8fedd14d654140c5d1f9d079453",
+        "outputBytes": 192044,
         "processing": {
+          "endpointTreatment": "short-fades",
+          "fadeInSeconds": 0.005,
+          "fadeOutSeconds": 0.04,
           "safetyMastering": {
             "masteredBy": "scripts/master-audio-v5-energy.mjs",
-            "sourceFile": "sources/astral-relay/attack-windup.pre-safety-master.wav",
-            "sourceOutputSha256": "42ca3576ebf2fc33f2297a4dd6cf3936be900b8397c3af0c610bf7c464f7e64b",
+            "sourceFile": "sources/astral-relay/attack-windup.smooth-charge.pre-safety-master.wav",
+            "sourceOutputSha256": "43eef363baa60e10bdd1e2725c409aa2ed0bda73e01f786c0db16d451848064b",
             "operations": [
               {
                 "type": "zero-phase-butterworth-low-pass",
-                "cutoffHz": 7000,
+                "cutoffHz": 6000,
                 "orderPerDirection": 2
               },
               {
@@ -82,24 +75,41 @@
               },
               {
                 "type": "loudness-fit-with-sample-peak-ceiling",
-                "targetIntegratedLufs": -12,
-                "samplePeakCeiling": 0.56
+                "targetIntegratedLufs": -16,
+                "samplePeakCeiling": 0.5
               }
             ]
           }
+        },
+        "metrics": {
+          "durationSeconds": 1,
+          "sampleRate": 48000,
+          "channels": 2,
+          "bitsPerSample": 16,
+          "peak": 0.5,
+          "rms": 0.0493,
+          "stereoDifferenceRms": 0.0986,
+          "dcOffset": 0.000002,
+          "clippedSamples": 0,
+          "energy": {
+            "integratedLufs": -16.92,
+            "maxMomentaryLufs": -16.14,
+            "approximateTruePeakDbtp": -6.02,
+            "energyAbove12kPercent": 0.01
+          }
         }
       },
-      "safetyRevisionReason": "Energy audit: retain the accepted wind-up gesture while removing its ultrasonic-heavy balance and lowering repeated combat energy.",
+      "safetyRevisionReason": "Owner review: keep the new smooth charge restrained, low, and free of the noisy upper-band energy rejected in the previous wind-up.",
       "safetyMastering": {
         "masteredBy": "scripts/master-audio-v5-energy.mjs",
-        "sourceFile": "sources/astral-relay/attack-windup.pre-safety-master.wav",
-        "sourceOutputSha256": "42ca3576ebf2fc33f2297a4dd6cf3936be900b8397c3af0c610bf7c464f7e64b",
-        "recordedAt": "2026-08-11T00:25:54.707Z",
-        "reason": "Energy audit: retain the accepted wind-up gesture while removing its ultrasonic-heavy balance and lowering repeated combat energy.",
+        "sourceFile": "sources/astral-relay/attack-windup.smooth-charge.pre-safety-master.wav",
+        "sourceOutputSha256": "43eef363baa60e10bdd1e2725c409aa2ed0bda73e01f786c0db16d451848064b",
+        "recordedAt": "2026-08-11T08:17:43.884Z",
+        "reason": "Owner review: keep the new smooth charge restrained, low, and free of the noisy upper-band energy rejected in the previous wind-up.",
         "operations": [
           {
             "type": "zero-phase-butterworth-low-pass",
-            "cutoffHz": 7000,
+            "cutoffHz": 6000,
             "orderPerDirection": 2
           },
           {
@@ -109,67 +119,273 @@
           },
           {
             "type": "loudness-fit-with-sample-peak-ceiling",
-            "targetIntegratedLufs": -12,
-            "samplePeakCeiling": 0.56
+            "targetIntegratedLufs": -16,
+            "samplePeakCeiling": 0.5
           }
         ],
         "sourceResult": {
-          "apiSoundEffectId": "se_65kz3jqgfh7eabzk",
+          "apiSoundEffectId": "se_zaytltu3kaenxzi6",
           "status": "generated",
-          "providerCreatedAt": "2026-08-10 22:04:45.681",
+          "providerCreatedAt": "2026-08-11 08:13:01.768",
           "providerLengthSeconds": 1,
           "providerFileSize": 176444,
-          "recordedAt": "2026-08-10T22:05:29.786Z",
+          "recordedAt": "2026-08-11T08:13:46.143Z",
+          "request": {
+            "prompt": "Isolated premium sci-fi game SFX: a smooth low electromagnetic charge gathers into one focused tone, restrained and clean, ending unresolved for a beam. Soft spectral body, minimal noise; no whoosh, zap, gun, impact, beep, voice, or music.",
+            "requestLengthSeconds": 1,
+            "secondsToStart": 0,
+            "targetPeak": 0.78
+          },
           "downloadedContentType": "audio/wav",
-          "sourceSha256": "aca8aec334e75659f55055f93de7076765f381078cd39a8c589f3f905d5f152c",
-          "outputSha256": "42ca3576ebf2fc33f2297a4dd6cf3936be900b8397c3af0c610bf7c464f7e64b",
+          "sourceSha256": "c720e66e7b6f9f65ad28cdd38eb9b79e5e6ac3e3b7225a36938c4baff78675aa",
+          "outputSha256": "43eef363baa60e10bdd1e2725c409aa2ed0bda73e01f786c0db16d451848064b",
           "outputBytes": 192044,
+          "processing": {
+            "endpointTreatment": "short-fades",
+            "fadeInSeconds": 0.005,
+            "fadeOutSeconds": 0.04
+          },
           "metrics": {
             "durationSeconds": 1,
             "sampleRate": 48000,
             "channels": 2,
             "bitsPerSample": 16,
             "peak": 0.78,
-            "rms": 0.2224,
-            "stereoDifferenceRms": 0.0001,
-            "dcOffset": 0.000002,
+            "rms": 0.0624,
+            "stereoDifferenceRms": 0.1246,
+            "dcOffset": 0,
             "clippedSamples": 0
           }
         }
-      }
+      },
+      "attempts": [
+        {
+          "prompt": "Isolated premium sci-fi game SFX: a smooth low electromagnetic charge gathers into one focused tone, restrained and clean, ending unresolved for a beam. Soft spectral body, minimal noise; no whoosh, zap, gun, impact, beep, voice, or music.",
+          "requestLengthSeconds": 1,
+          "secondsToStart": 0,
+          "targetPeak": 0.78,
+          "result": {
+            "apiSoundEffectId": "se_65kz3jqgfh7eabzk",
+            "status": "generated",
+            "providerCreatedAt": "2026-08-10 22:04:45.681",
+            "providerLengthSeconds": 1,
+            "providerFileSize": 176444,
+            "recordedAt": "2026-08-10T22:05:29.786Z",
+            "downloadedContentType": "audio/wav",
+            "sourceSha256": "aca8aec334e75659f55055f93de7076765f381078cd39a8c589f3f905d5f152c",
+            "outputSha256": "5360d6573cb3c8cf86552130e02a011cc0caad4e5206bd3f51faf4c6769f1a65",
+            "outputBytes": 192044,
+            "metrics": {
+              "durationSeconds": 1,
+              "sampleRate": 48000,
+              "channels": 2,
+              "bitsPerSample": 16,
+              "peak": 0.56,
+              "rms": 0.1601,
+              "stereoDifferenceRms": 0.0002,
+              "dcOffset": 0,
+              "clippedSamples": 0,
+              "energy": {
+                "integratedLufs": -12.42,
+                "maxMomentaryLufs": -10.34,
+                "approximateTruePeakDbtp": -4.93,
+                "energyAbove12kPercent": 2.93
+              }
+            },
+            "processing": {
+              "safetyMastering": {
+                "masteredBy": "scripts/master-audio-v5-energy.mjs",
+                "sourceFile": "sources/astral-relay/attack-windup.pre-safety-master.wav",
+                "sourceOutputSha256": "42ca3576ebf2fc33f2297a4dd6cf3936be900b8397c3af0c610bf7c464f7e64b",
+                "operations": [
+                  {
+                    "type": "zero-phase-butterworth-low-pass",
+                    "cutoffHz": 7000,
+                    "orderPerDirection": 2
+                  },
+                  {
+                    "type": "endpoint-fades",
+                    "fadeInSeconds": 0.008,
+                    "fadeOutSeconds": 0.06
+                  },
+                  {
+                    "type": "loudness-fit-with-sample-peak-ceiling",
+                    "targetIntegratedLufs": -12,
+                    "samplePeakCeiling": 0.56
+                  }
+                ]
+              }
+            }
+          },
+          "supersededAt": "2026-08-11T08:13:02.134Z",
+          "reason": "Owner review: replace the noisy attack charge with a smoother, lower, more focused wind-up."
+        }
+      ]
     },
     {
       "id": "projectile",
       "file": "projectile.wav",
       "requestLengthSeconds": 1,
       "targetPeak": 0.84,
-      "prompt": "Isolated premium sci-fi game SFX: a continuous energy beam snaps into focus, smoothly sustains as a bright spectral line, then leaves a short ionized tail. No projectile flyby, gunshot, explosion, retro beep, lo-fi, voice, or music.",
+      "prompt": "Isolated premium sci-fi game SFX: a focused beam locks on with one rounded pulse and a smooth tonal body, then cleanly releases. Quiet, weighty, minimal texture and treble noise; no projectile, flyby, gun, explosion, zap, beep, voice, or music.",
+      "revisionReason": "Owner review: replace the noisy beam resolve with a smoother, quieter locked-field hit.",
       "result": {
-        "apiSoundEffectId": "se_p5q22xni42dohzxs",
+        "apiSoundEffectId": "se_artsykedrs4i3mvb",
         "status": "generated",
-        "providerCreatedAt": "2026-08-10 22:05:32.607",
+        "providerCreatedAt": "2026-08-11 08:13:48.374",
         "providerLengthSeconds": 1,
         "providerFileSize": 176444,
-        "recordedAt": "2026-08-10T22:05:55.628Z",
+        "recordedAt": "2026-08-11T08:14:07.428Z",
+        "request": {
+          "prompt": "Isolated premium sci-fi game SFX: a focused beam locks on with one rounded pulse and a smooth tonal body, then cleanly releases. Quiet, weighty, minimal texture and treble noise; no projectile, flyby, gun, explosion, zap, beep, voice, or music.",
+          "requestLengthSeconds": 1,
+          "secondsToStart": 0,
+          "targetPeak": 0.84
+        },
         "downloadedContentType": "audio/wav",
-        "sourceSha256": "e403e6c7fba5ad65c3ef82230a3cc0ed377df56284e164521342dd4c57d67d32",
-        "outputSha256": "1db4c38d9eb4eef7645b399b80ee5c5c7d2d3dbf8c0804319588026c081fb60c",
+        "sourceSha256": "f151fdc6795b1da7e7f447a4b391c00a34c30e86a8a886d4a6f19d623b069cc4",
+        "outputSha256": "df5d574657ebb56fed0b165715b1b0e42634910c6ca0c921102c6612c037158a",
         "outputBytes": 192044,
+        "processing": {
+          "endpointTreatment": "short-fades",
+          "fadeInSeconds": 0.005,
+          "fadeOutSeconds": 0.04,
+          "safetyMastering": {
+            "masteredBy": "scripts/master-audio-v5-energy.mjs",
+            "sourceFile": "sources/astral-relay/projectile.quiet-beam-hit.pre-safety-master.wav",
+            "sourceOutputSha256": "2821b96623c38440c7b3dbf0c30c46d2aaa030d98e599fb75724cd1633e252f0",
+            "operations": [
+              {
+                "type": "zero-phase-butterworth-low-pass",
+                "cutoffHz": 6000,
+                "orderPerDirection": 2
+              },
+              {
+                "type": "endpoint-fades",
+                "fadeInSeconds": 0.008,
+                "fadeOutSeconds": 0.06
+              },
+              {
+                "type": "loudness-fit-with-sample-peak-ceiling",
+                "targetIntegratedLufs": -16,
+                "samplePeakCeiling": 0.5
+              }
+            ]
+          }
+        },
         "metrics": {
           "durationSeconds": 1,
           "sampleRate": 48000,
           "channels": 2,
           "bitsPerSample": 16,
-          "peak": 0.84,
-          "rms": 0.0641,
-          "stereoDifferenceRms": 0.1032,
+          "peak": 0.5,
+          "rms": 0.0224,
+          "stereoDifferenceRms": 0,
           "dcOffset": 0.000002,
           "clippedSamples": 0,
           "energy": {
-            "integratedLufs": -15.69,
-            "maxMomentaryLufs": -14.42,
-            "approximateTruePeakDbtp": -1.51,
-            "energyAbove12kPercent": 19.71
+            "integratedLufs": -22.76,
+            "maxMomentaryLufs": -22.76,
+            "approximateTruePeakDbtp": -5.94,
+            "energyAbove12kPercent": 0
+          }
+        }
+      },
+      "attempts": [
+        {
+          "prompt": "Isolated premium sci-fi game SFX: a focused beam locks on with one rounded pulse and a smooth tonal body, then cleanly releases. Quiet, weighty, minimal texture and treble noise; no projectile, flyby, gun, explosion, zap, beep, voice, or music.",
+          "requestLengthSeconds": 1,
+          "secondsToStart": 0,
+          "targetPeak": 0.84,
+          "result": {
+            "apiSoundEffectId": "se_p5q22xni42dohzxs",
+            "status": "generated",
+            "providerCreatedAt": "2026-08-10 22:05:32.607",
+            "providerLengthSeconds": 1,
+            "providerFileSize": 176444,
+            "recordedAt": "2026-08-10T22:05:55.628Z",
+            "downloadedContentType": "audio/wav",
+            "sourceSha256": "e403e6c7fba5ad65c3ef82230a3cc0ed377df56284e164521342dd4c57d67d32",
+            "outputSha256": "1db4c38d9eb4eef7645b399b80ee5c5c7d2d3dbf8c0804319588026c081fb60c",
+            "outputBytes": 192044,
+            "metrics": {
+              "durationSeconds": 1,
+              "sampleRate": 48000,
+              "channels": 2,
+              "bitsPerSample": 16,
+              "peak": 0.84,
+              "rms": 0.0641,
+              "stereoDifferenceRms": 0.1032,
+              "dcOffset": 0.000002,
+              "clippedSamples": 0,
+              "energy": {
+                "integratedLufs": -15.69,
+                "maxMomentaryLufs": -14.42,
+                "approximateTruePeakDbtp": -1.51,
+                "energyAbove12kPercent": 19.71
+              }
+            }
+          },
+          "supersededAt": "2026-08-11T08:13:48.853Z",
+          "reason": "Owner review: replace the noisy beam resolve with a smoother, quieter locked-field hit."
+        }
+      ],
+      "safetyRevisionReason": "Owner review: retain the rounded beam hit while removing noisy treble and keeping repeated attack resolutions calm.",
+      "safetyMastering": {
+        "masteredBy": "scripts/master-audio-v5-energy.mjs",
+        "sourceFile": "sources/astral-relay/projectile.quiet-beam-hit.pre-safety-master.wav",
+        "sourceOutputSha256": "2821b96623c38440c7b3dbf0c30c46d2aaa030d98e599fb75724cd1633e252f0",
+        "recordedAt": "2026-08-11T08:17:43.941Z",
+        "reason": "Owner review: retain the rounded beam hit while removing noisy treble and keeping repeated attack resolutions calm.",
+        "operations": [
+          {
+            "type": "zero-phase-butterworth-low-pass",
+            "cutoffHz": 6000,
+            "orderPerDirection": 2
+          },
+          {
+            "type": "endpoint-fades",
+            "fadeInSeconds": 0.008,
+            "fadeOutSeconds": 0.06
+          },
+          {
+            "type": "loudness-fit-with-sample-peak-ceiling",
+            "targetIntegratedLufs": -16,
+            "samplePeakCeiling": 0.5
+          }
+        ],
+        "sourceResult": {
+          "apiSoundEffectId": "se_artsykedrs4i3mvb",
+          "status": "generated",
+          "providerCreatedAt": "2026-08-11 08:13:48.374",
+          "providerLengthSeconds": 1,
+          "providerFileSize": 176444,
+          "recordedAt": "2026-08-11T08:14:07.428Z",
+          "request": {
+            "prompt": "Isolated premium sci-fi game SFX: a focused beam locks on with one rounded pulse and a smooth tonal body, then cleanly releases. Quiet, weighty, minimal texture and treble noise; no projectile, flyby, gun, explosion, zap, beep, voice, or music.",
+            "requestLengthSeconds": 1,
+            "secondsToStart": 0,
+            "targetPeak": 0.84
+          },
+          "downloadedContentType": "audio/wav",
+          "sourceSha256": "f151fdc6795b1da7e7f447a4b391c00a34c30e86a8a886d4a6f19d623b069cc4",
+          "outputSha256": "2821b96623c38440c7b3dbf0c30c46d2aaa030d98e599fb75724cd1633e252f0",
+          "outputBytes": 192044,
+          "processing": {
+            "endpointTreatment": "short-fades",
+            "fadeInSeconds": 0.005,
+            "fadeOutSeconds": 0.04
+          },
+          "metrics": {
+            "durationSeconds": 1,
+            "sampleRate": 48000,
+            "channels": 2,
+            "bitsPerSample": 16,
+            "peak": 0.84,
+            "rms": 0.0808,
+            "stereoDifferenceRms": 0,
+            "dcOffset": 0,
+            "clippedSamples": 0
           }
         }
       }
@@ -885,7 +1101,7 @@
       "file": "arc-pickup.wav",
       "requestLengthSeconds": 1,
       "targetPeak": 0.78,
-      "prompt": "Premium sci-fi game SFX: a floating energy Core meets a carrier; its loose low orbital field rises and closes into a stable luminous halo, echoing Core birth, drop and bank. Small, spacious, pristine; no chime, chirp, UI beep, impact, voice, or music.",
+      "prompt": "Isolated premium sci-fi game SFX: a luminous Core lifts weightlessly into magnetic orbit around a carrier, a soft low gravitic rise settling into a calm halo. Levitation, not reward or contact; no chime, coin, UI beep, impact, alarm, voice, or music.",
       "attempts": [
         {
           "prompt": "Isolated premium sci-fi game SFX: a robot acquires a floating energy Core, small halo locks into orbit with a clean ascending spectral gesture and soft wide tail. No reward jingle, coin, UI beep, voice, retro, lo-fi, or music.",
@@ -959,25 +1175,73 @@
           },
           "supersededAt": "2026-08-10T23:32:40.009Z",
           "reason": "Owner review: infer a third pickup take as the compact audible inverse of the accepted Core drop, below birth and bank in hierarchy."
+        },
+        {
+          "prompt": "Premium sci-fi game SFX: a floating energy Core meets a carrier; its loose low orbital field rises and closes into a stable luminous halo, echoing Core birth, drop and bank. Small, spacious, pristine; no chime, chirp, UI beep, impact, voice, or music.",
+          "requestLengthSeconds": 1,
+          "secondsToStart": 0,
+          "targetPeak": 0.78,
+          "result": {
+            "apiSoundEffectId": "se_ko6nfvpvvsclng2u",
+            "status": "generated",
+            "providerCreatedAt": "2026-08-10 23:32:39.671",
+            "providerLengthSeconds": 1,
+            "providerFileSize": 176444,
+            "recordedAt": "2026-08-10T23:32:58.689Z",
+            "request": {
+              "prompt": "Premium sci-fi game SFX: a floating energy Core meets a carrier; its loose low orbital field rises and closes into a stable luminous halo, echoing Core birth, drop and bank. Small, spacious, pristine; no chime, chirp, UI beep, impact, voice, or music.",
+              "requestLengthSeconds": 1,
+              "secondsToStart": 0,
+              "targetPeak": 0.78
+            },
+            "downloadedContentType": "audio/wav",
+            "sourceSha256": "9e091917d2a31b429f44658a469492655fab4306f721950a55b0c422fde67a89",
+            "outputSha256": "b94abdf9f542007c337326db1c1f99446779377cb021f47d686625277217a1c5",
+            "outputBytes": 192044,
+            "processing": {
+              "endpointTreatment": "short-fades",
+              "fadeInSeconds": 0.005,
+              "fadeOutSeconds": 0.04
+            },
+            "metrics": {
+              "durationSeconds": 1,
+              "sampleRate": 48000,
+              "channels": 2,
+              "bitsPerSample": 16,
+              "peak": 0.78,
+              "rms": 0.1024,
+              "stereoDifferenceRms": 0,
+              "dcOffset": 0,
+              "clippedSamples": 0,
+              "energy": {
+                "integratedLufs": -17.59,
+                "maxMomentaryLufs": -15.4,
+                "approximateTruePeakDbtp": -2.15,
+                "energyAbove12kPercent": 0
+              }
+            }
+          },
+          "supersededAt": "2026-08-11T08:14:10.372Z",
+          "reason": "Owner review: make pickup explicitly feel like weightless Core levitation; steal will reuse this cue and drop will be its inverse."
         }
       ],
-      "revisionReason": "Owner review: infer a third pickup take as the compact audible inverse of the accepted Core drop, below birth and bank in hierarchy.",
+      "revisionReason": "Owner review: make pickup explicitly feel like weightless Core levitation; steal will reuse this cue and drop will be its inverse.",
       "result": {
-        "apiSoundEffectId": "se_ko6nfvpvvsclng2u",
+        "apiSoundEffectId": "se_i4g3cjmfie5gbbbo",
         "status": "generated",
-        "providerCreatedAt": "2026-08-10 23:32:39.671",
+        "providerCreatedAt": "2026-08-11 08:14:10.03",
         "providerLengthSeconds": 1,
         "providerFileSize": 176444,
-        "recordedAt": "2026-08-10T23:32:58.689Z",
+        "recordedAt": "2026-08-11T08:14:29.047Z",
         "request": {
-          "prompt": "Premium sci-fi game SFX: a floating energy Core meets a carrier; its loose low orbital field rises and closes into a stable luminous halo, echoing Core birth, drop and bank. Small, spacious, pristine; no chime, chirp, UI beep, impact, voice, or music.",
+          "prompt": "Isolated premium sci-fi game SFX: a luminous Core lifts weightlessly into magnetic orbit around a carrier, a soft low gravitic rise settling into a calm halo. Levitation, not reward or contact; no chime, coin, UI beep, impact, alarm, voice, or music.",
           "requestLengthSeconds": 1,
           "secondsToStart": 0,
           "targetPeak": 0.78
         },
         "downloadedContentType": "audio/wav",
-        "sourceSha256": "9e091917d2a31b429f44658a469492655fab4306f721950a55b0c422fde67a89",
-        "outputSha256": "b94abdf9f542007c337326db1c1f99446779377cb021f47d686625277217a1c5",
+        "sourceSha256": "b2e98c5201a14e5bcd9c907b930f3097ccf9a78a4bfea622c9228c5b9ca62d6f",
+        "outputSha256": "053e102de16bdfb1c84b0662f07456bf682119e58afabe0031c695453de288fa",
         "outputBytes": 192044,
         "processing": {
           "endpointTreatment": "short-fades",
@@ -990,13 +1254,13 @@
           "channels": 2,
           "bitsPerSample": 16,
           "peak": 0.78,
-          "rms": 0.1024,
-          "stereoDifferenceRms": 0,
+          "rms": 0.1662,
+          "stereoDifferenceRms": 0.0529,
           "dcOffset": 0,
           "clippedSamples": 0,
           "energy": {
-            "integratedLufs": -17.59,
-            "maxMomentaryLufs": -15.4,
+            "integratedLufs": -10.29,
+            "maxMomentaryLufs": -9.13,
             "approximateTruePeakDbtp": -2.15,
             "energyAbove12kPercent": 0
           }
@@ -1092,11 +1356,11 @@
       "prompt": "Isolated premium sci-fi game SFX: a floating energy Core loses its carrier, its stable halo releases and descends into an unresolved low orbital field. Spacious, restrained, pristine; no impact, failure buzzer, voice, retro, lo-fi, or music.",
       "result": {
         "status": "derived",
-        "recordedAt": "2026-08-10T23:46:51.674Z",
+        "recordedAt": "2026-08-11T08:16:04.203Z",
         "derivation": {
           "derivedBy": "scripts/derive-audio-v5-revisions.mjs",
           "sourceCueId": "arc-pickup",
-          "sourceOutputSha256": "b94abdf9f542007c337326db1c1f99446779377cb021f47d686625277217a1c5",
+          "sourceOutputSha256": "053e102de16bdfb1c84b0662f07456bf682119e58afabe0031c695453de288fa",
           "operations": [
             {
               "type": "reverse-frames"
@@ -1115,7 +1379,7 @@
             }
           ]
         },
-        "outputSha256": "c2999fb4e5d1bd760c055e74329656e5f5c135e6872b528989a8aab57bcb5eab",
+        "outputSha256": "e8ef840b1ff4a7d6e0d0bdd1461a41a7a9272d7ab8dd53b4ff51d967011f783e",
         "outputBytes": 192044,
         "processing": {
           "endpointTreatment": "short-fades",
@@ -1128,13 +1392,13 @@
           "channels": 2,
           "bitsPerSample": 16,
           "peak": 0.78,
-          "rms": 0.1014,
-          "stereoDifferenceRms": 0,
-          "dcOffset": 0.000004,
+          "rms": 0.156,
+          "stereoDifferenceRms": 0.0514,
+          "dcOffset": 0.000003,
           "clippedSamples": 0,
           "energy": {
-            "integratedLufs": -17.6,
-            "maxMomentaryLufs": -15.41,
+            "integratedLufs": -10.63,
+            "maxMomentaryLufs": -9.68,
             "approximateTruePeakDbtp": -2.15,
             "energyAbove12kPercent": 0
           }
@@ -1171,6 +1435,86 @@
           },
           "supersededAt": "2026-08-10T23:46:51.674Z",
           "reason": "Owner review: derive Core drop locally as the audible inverse of the current Core pickup; no new provider request."
+        },
+        {
+          "prompt": "Isolated premium sci-fi game SFX: a floating energy Core loses its carrier, its stable halo releases and descends into an unresolved low orbital field. Spacious, restrained, pristine; no impact, failure buzzer, voice, retro, lo-fi, or music.",
+          "requestLengthSeconds": 1,
+          "secondsToStart": 0,
+          "targetPeak": 0.78,
+          "result": {
+            "status": "derived",
+            "recordedAt": "2026-08-10T23:46:51.674Z",
+            "derivation": {
+              "derivedBy": "scripts/derive-audio-v5-revisions.mjs",
+              "sourceCueId": "arc-pickup",
+              "sourceOutputSha256": "b94abdf9f542007c337326db1c1f99446779377cb021f47d686625277217a1c5",
+              "operations": [
+                {
+                  "type": "reverse-frames"
+                },
+                {
+                  "type": "remove-dc"
+                },
+                {
+                  "type": "endpoint-fades",
+                  "fadeInSeconds": 0.01,
+                  "fadeOutSeconds": 0.18
+                },
+                {
+                  "type": "peak-normalize",
+                  "targetPeak": 0.78
+                }
+              ]
+            },
+            "outputSha256": "c2999fb4e5d1bd760c055e74329656e5f5c135e6872b528989a8aab57bcb5eab",
+            "outputBytes": 192044,
+            "processing": {
+              "endpointTreatment": "short-fades",
+              "fadeInSeconds": 0.01,
+              "fadeOutSeconds": 0.18
+            },
+            "metrics": {
+              "durationSeconds": 1,
+              "sampleRate": 48000,
+              "channels": 2,
+              "bitsPerSample": 16,
+              "peak": 0.78,
+              "rms": 0.1014,
+              "stereoDifferenceRms": 0,
+              "dcOffset": 0.000004,
+              "clippedSamples": 0,
+              "energy": {
+                "integratedLufs": -17.6,
+                "maxMomentaryLufs": -15.41,
+                "approximateTruePeakDbtp": -2.15,
+                "energyAbove12kPercent": 0
+              }
+            }
+          },
+          "derivation": {
+            "derivedBy": "scripts/derive-audio-v5-revisions.mjs",
+            "sourceCueId": "arc-pickup",
+            "sourceOutputSha256": "b94abdf9f542007c337326db1c1f99446779377cb021f47d686625277217a1c5",
+            "operations": [
+              {
+                "type": "reverse-frames"
+              },
+              {
+                "type": "remove-dc"
+              },
+              {
+                "type": "endpoint-fades",
+                "fadeInSeconds": 0.01,
+                "fadeOutSeconds": 0.18
+              },
+              {
+                "type": "peak-normalize",
+                "targetPeak": 0.78
+              }
+            ]
+          },
+          "supersededAt": "2026-08-11T08:16:04.202Z",
+          "reason": "Owner review: derive Core drop locally as the audible inverse of the current Core pickup; no new provider request. The accepted source cue changed."
         }
       ],
       "generationMode": "local-derivation",
@@ -1178,7 +1522,7 @@
       "derivation": {
         "derivedBy": "scripts/derive-audio-v5-revisions.mjs",
         "sourceCueId": "arc-pickup",
-        "sourceOutputSha256": "b94abdf9f542007c337326db1c1f99446779377cb021f47d686625277217a1c5",
+        "sourceOutputSha256": "053e102de16bdfb1c84b0662f07456bf682119e58afabe0031c695453de288fa",
         "operations": [
           {
             "type": "reverse-frames"
@@ -1430,21 +1774,225 @@
           },
           "supersededAt": "2026-08-10T23:46:51.678Z",
           "reason": "Owner review: derive beam deflection locally from the accepted beam body with its ignition removed and highs softened; no new provider request."
+        },
+        {
+          "prompt": "Gentle sci-fi SFX: a continuous energy beam bends through a soft magnetic field as a broad low-mid spectral curve with quiet airy release. Rounded and ear-safe; no piercing tone, squeal, chirp, scrape, ricochet, sharp transient, noise blast, or music.",
+          "requestLengthSeconds": 1,
+          "secondsToStart": 0,
+          "targetPeak": 0.7,
+          "result": {
+            "status": "derived",
+            "recordedAt": "2026-08-10T23:46:51.678Z",
+            "derivation": {
+              "derivedBy": "scripts/derive-audio-v5-revisions.mjs",
+              "sourceCueId": "projectile",
+              "sourceOutputSha256": "1db4c38d9eb4eef7645b399b80ee5c5c7d2d3dbf8c0804319588026c081fb60c",
+              "operations": [
+                {
+                  "type": "extract-beam-body",
+                  "startSeconds": 0.08,
+                  "durationSeconds": 0.8
+                },
+                {
+                  "type": "zero-phase-low-pass",
+                  "cutoffHz": 3200
+                },
+                {
+                  "type": "stereo-bend",
+                  "direction": "center-to-right",
+                  "maximumPan": 0.23
+                },
+                {
+                  "type": "remove-dc"
+                },
+                {
+                  "type": "endpoint-fades",
+                  "fadeInSeconds": 0.015,
+                  "fadeOutSeconds": 0.18
+                },
+                {
+                  "type": "peak-normalize",
+                  "targetPeak": 0.7
+                }
+              ]
+            },
+            "outputSha256": "9a00fe1bbaf1ee7413c9359a7e3049ee4dd0a8820e0705168578a1fc25acc893",
+            "outputBytes": 153644,
+            "processing": {
+              "endpointTreatment": "short-fades",
+              "fadeInSeconds": 0.015,
+              "fadeOutSeconds": 0.18
+            },
+            "metrics": {
+              "durationSeconds": 0.8,
+              "sampleRate": 48000,
+              "channels": 2,
+              "bitsPerSample": 16,
+              "peak": 0.7,
+              "rms": 0.1084,
+              "stereoDifferenceRms": 0.0987,
+              "dcOffset": 0,
+              "clippedSamples": 0,
+              "energy": {
+                "integratedLufs": -13.92,
+                "maxMomentaryLufs": -13.01,
+                "approximateTruePeakDbtp": -3.02,
+                "energyAbove12kPercent": 0.14
+              }
+            }
+          },
+          "derivation": {
+            "derivedBy": "scripts/derive-audio-v5-revisions.mjs",
+            "sourceCueId": "projectile",
+            "sourceOutputSha256": "1db4c38d9eb4eef7645b399b80ee5c5c7d2d3dbf8c0804319588026c081fb60c",
+            "operations": [
+              {
+                "type": "extract-beam-body",
+                "startSeconds": 0.08,
+                "durationSeconds": 0.8
+              },
+              {
+                "type": "zero-phase-low-pass",
+                "cutoffHz": 3200
+              },
+              {
+                "type": "stereo-bend",
+                "direction": "center-to-right",
+                "maximumPan": 0.23
+              },
+              {
+                "type": "remove-dc"
+              },
+              {
+                "type": "endpoint-fades",
+                "fadeInSeconds": 0.015,
+                "fadeOutSeconds": 0.18
+              },
+              {
+                "type": "peak-normalize",
+                "targetPeak": 0.7
+              }
+            ]
+          },
+          "supersededAt": "2026-08-11T08:16:04.206Z",
+          "reason": "Owner review: derive beam deflection locally from the accepted quiet beam hit with highs softened; no new provider request. The accepted source cue changed."
+        },
+        {
+          "prompt": "Gentle sci-fi SFX: a continuous energy beam bends through a soft magnetic field as a broad low-mid spectral curve with quiet airy release. Rounded and ear-safe; no piercing tone, squeal, chirp, scrape, ricochet, sharp transient, noise blast, or music.",
+          "requestLengthSeconds": 1,
+          "secondsToStart": 0,
+          "targetPeak": 0.7,
+          "result": {
+            "status": "derived",
+            "recordedAt": "2026-08-11T08:16:04.206Z",
+            "derivation": {
+              "derivedBy": "scripts/derive-audio-v5-revisions.mjs",
+              "sourceCueId": "projectile",
+              "sourceOutputSha256": "2821b96623c38440c7b3dbf0c30c46d2aaa030d98e599fb75724cd1633e252f0",
+              "operations": [
+                {
+                  "type": "extract-beam-window",
+                  "startSeconds": 0,
+                  "durationSeconds": 0.55
+                },
+                {
+                  "type": "zero-phase-low-pass",
+                  "cutoffHz": 3200
+                },
+                {
+                  "type": "stereo-bend",
+                  "direction": "center-to-right",
+                  "maximumPan": 0.23
+                },
+                {
+                  "type": "remove-dc"
+                },
+                {
+                  "type": "endpoint-fades",
+                  "fadeInSeconds": 0.015,
+                  "fadeOutSeconds": 0.18
+                },
+                {
+                  "type": "peak-normalize",
+                  "targetPeak": 0.7
+                }
+              ]
+            },
+            "outputSha256": "4f73f0173de04f778f3ce3845bbd2b0893552a0a8720718c6f36c841db93b132",
+            "outputBytes": 105644,
+            "processing": {
+              "endpointTreatment": "short-fades",
+              "fadeInSeconds": 0.015,
+              "fadeOutSeconds": 0.18
+            },
+            "metrics": {
+              "durationSeconds": 0.55,
+              "sampleRate": 48000,
+              "channels": 2,
+              "bitsPerSample": 16,
+              "peak": 0.7,
+              "rms": 0.0439,
+              "stereoDifferenceRms": 0.0015,
+              "dcOffset": 0,
+              "clippedSamples": 0,
+              "energy": {
+                "integratedLufs": -19.52,
+                "maxMomentaryLufs": -19.52,
+                "approximateTruePeakDbtp": -3.08,
+                "energyAbove12kPercent": 0.01
+              }
+            }
+          },
+          "derivation": {
+            "derivedBy": "scripts/derive-audio-v5-revisions.mjs",
+            "sourceCueId": "projectile",
+            "sourceOutputSha256": "2821b96623c38440c7b3dbf0c30c46d2aaa030d98e599fb75724cd1633e252f0",
+            "operations": [
+              {
+                "type": "extract-beam-window",
+                "startSeconds": 0,
+                "durationSeconds": 0.55
+              },
+              {
+                "type": "zero-phase-low-pass",
+                "cutoffHz": 3200
+              },
+              {
+                "type": "stereo-bend",
+                "direction": "center-to-right",
+                "maximumPan": 0.23
+              },
+              {
+                "type": "remove-dc"
+              },
+              {
+                "type": "endpoint-fades",
+                "fadeInSeconds": 0.015,
+                "fadeOutSeconds": 0.18
+              },
+              {
+                "type": "peak-normalize",
+                "targetPeak": 0.7
+              }
+            ]
+          },
+          "supersededAt": "2026-08-11T08:21:43.244Z",
+          "reason": "Owner review: derive beam deflection locally from the accepted quiet beam hit with highs softened; no new provider request. The accepted source cue changed."
         }
       ],
-      "revisionReason": "Owner review: derive beam deflection locally from the accepted beam body with its ignition removed and highs softened; no new provider request.",
+      "revisionReason": "Owner review: derive beam deflection locally from the accepted quiet beam hit with highs softened; no new provider request.",
       "result": {
         "status": "derived",
-        "recordedAt": "2026-08-10T23:46:51.678Z",
+        "recordedAt": "2026-08-11T08:21:43.244Z",
         "derivation": {
           "derivedBy": "scripts/derive-audio-v5-revisions.mjs",
           "sourceCueId": "projectile",
-          "sourceOutputSha256": "1db4c38d9eb4eef7645b399b80ee5c5c7d2d3dbf8c0804319588026c081fb60c",
+          "sourceOutputSha256": "df5d574657ebb56fed0b165715b1b0e42634910c6ca0c921102c6612c037158a",
           "operations": [
             {
-              "type": "extract-beam-body",
-              "startSeconds": 0.08,
-              "durationSeconds": 0.8
+              "type": "extract-beam-window",
+              "startSeconds": 0,
+              "durationSeconds": 0.55
             },
             {
               "type": "zero-phase-low-pass",
@@ -1469,28 +2017,28 @@
             }
           ]
         },
-        "outputSha256": "9a00fe1bbaf1ee7413c9359a7e3049ee4dd0a8820e0705168578a1fc25acc893",
-        "outputBytes": 153644,
+        "outputSha256": "fe746af20bad5584ccf435ead7108f74be0b0f8de41830ae58df1ee2dcf75ce1",
+        "outputBytes": 105644,
         "processing": {
           "endpointTreatment": "short-fades",
           "fadeInSeconds": 0.015,
           "fadeOutSeconds": 0.18
         },
         "metrics": {
-          "durationSeconds": 0.8,
+          "durationSeconds": 0.55,
           "sampleRate": 48000,
           "channels": 2,
           "bitsPerSample": 16,
           "peak": 0.7,
-          "rms": 0.1084,
-          "stereoDifferenceRms": 0.0987,
-          "dcOffset": 0,
+          "rms": 0.0407,
+          "stereoDifferenceRms": 0.0014,
+          "dcOffset": 0.000001,
           "clippedSamples": 0,
           "energy": {
-            "integratedLufs": -13.92,
-            "maxMomentaryLufs": -13.01,
-            "approximateTruePeakDbtp": -3.02,
-            "energyAbove12kPercent": 0.14
+            "integratedLufs": -20.19,
+            "maxMomentaryLufs": -20.19,
+            "approximateTruePeakDbtp": -3.01,
+            "energyAbove12kPercent": 0
           }
         }
       },
@@ -1498,12 +2046,12 @@
       "derivation": {
         "derivedBy": "scripts/derive-audio-v5-revisions.mjs",
         "sourceCueId": "projectile",
-        "sourceOutputSha256": "1db4c38d9eb4eef7645b399b80ee5c5c7d2d3dbf8c0804319588026c081fb60c",
+        "sourceOutputSha256": "df5d574657ebb56fed0b165715b1b0e42634910c6ca0c921102c6612c037158a",
         "operations": [
           {
-            "type": "extract-beam-body",
-            "startSeconds": 0.08,
-            "durationSeconds": 0.8
+            "type": "extract-beam-window",
+            "startSeconds": 0,
+            "durationSeconds": 0.55
           },
           {
             "type": "zero-phase-low-pass",
@@ -1737,6 +2285,7 @@
     "policy": "Deterministic filtering, linked dynamics, and attenuation of hash-pinned provider masters; no provider API request or synthesized layer.",
     "cueIds": [
       "attack-windup",
+      "projectile",
       "attack-fizzle",
       "impact",
       "level-up"
@@ -1744,7 +2293,8 @@
     "thresholds": {
       "maximumApproximateTruePeakDbtp": -3,
       "maximumEnergyAbove12kPercent": {
-        "attack-windup": 25,
+        "attack-windup": 12,
+        "projectile": 12,
         "attack-fizzle": 25,
         "impact": 20,
         "level-up": 15
@@ -1779,17 +2329,17 @@
     "cueResults": {
       "attack-windup": {
         "durationSeconds": 1,
-        "integratedLufs": -12.42,
-        "maxMomentaryLufs": -10.34,
-        "approximateTruePeakDbtp": -4.93,
-        "energyAbove12kPercent": 2.93
+        "integratedLufs": -16.92,
+        "maxMomentaryLufs": -16.14,
+        "approximateTruePeakDbtp": -6.02,
+        "energyAbove12kPercent": 0.01
       },
       "projectile": {
         "durationSeconds": 1,
-        "integratedLufs": -15.69,
-        "maxMomentaryLufs": -14.42,
-        "approximateTruePeakDbtp": -1.51,
-        "energyAbove12kPercent": 19.71
+        "integratedLufs": -22.76,
+        "maxMomentaryLufs": -22.76,
+        "approximateTruePeakDbtp": -5.94,
+        "energyAbove12kPercent": 0
       },
       "attack-fizzle": {
         "durationSeconds": 1,
@@ -1835,8 +2385,8 @@
       },
       "arc-pickup": {
         "durationSeconds": 1,
-        "integratedLufs": -17.59,
-        "maxMomentaryLufs": -15.4,
+        "integratedLufs": -10.29,
+        "maxMomentaryLufs": -9.13,
         "approximateTruePeakDbtp": -2.15,
         "energyAbove12kPercent": 0
       },
@@ -1849,8 +2399,8 @@
       },
       "arc-drop": {
         "durationSeconds": 1,
-        "integratedLufs": -17.6,
-        "maxMomentaryLufs": -15.41,
+        "integratedLufs": -10.63,
+        "maxMomentaryLufs": -9.68,
         "approximateTruePeakDbtp": -2.15,
         "energyAbove12kPercent": 0
       },
@@ -1876,11 +2426,11 @@
         "energyAbove12kPercent": 2.26
       },
       "deflect": {
-        "durationSeconds": 0.8,
-        "integratedLufs": -13.92,
-        "maxMomentaryLufs": -13.01,
-        "approximateTruePeakDbtp": -3.02,
-        "energyAbove12kPercent": 0.14
+        "durationSeconds": 0.55,
+        "integratedLufs": -20.19,
+        "maxMomentaryLufs": -20.19,
+        "approximateTruePeakDbtp": -3.01,
+        "energyAbove12kPercent": 0
       },
       "arrival": {
         "durationSeconds": 2,
@@ -1914,8 +2464,8 @@
     "sequenceResults": {
       "possession": {
         "durationSeconds": 11.35,
-        "integratedLufs": -16.99,
-        "maxMomentaryLufs": -11.4,
+        "integratedLufs": -15.29,
+        "maxMomentaryLufs": -10.4,
         "approximateTruePeakDbtp": -3.24,
         "summaryMode": "worst metric across ambient alternatives",
         "ambientRelativeGains": {
@@ -1929,22 +2479,22 @@
         "ambientVariants": {
           "arena-ambience": {
             "durationSeconds": 11.35,
-            "integratedLufs": -17.19,
-            "maxMomentaryLufs": -11.4,
+            "integratedLufs": -15.31,
+            "maxMomentaryLufs": -10.4,
             "approximateTruePeakDbtp": -3.24,
             "relativeGain": 0.32
           },
           "arena-ambience-ion-veil": {
             "durationSeconds": 11.35,
-            "integratedLufs": -17.3,
-            "maxMomentaryLufs": -11.47,
+            "integratedLufs": -15.33,
+            "maxMomentaryLufs": -10.47,
             "approximateTruePeakDbtp": -3.5,
             "relativeGain": 0.418
           },
           "arena-ambience-signal-lattice": {
             "durationSeconds": 11.35,
-            "integratedLufs": -16.99,
-            "maxMomentaryLufs": -11.51,
+            "integratedLufs": -15.29,
+            "maxMomentaryLufs": -10.48,
             "approximateTruePeakDbtp": -3.5,
             "relativeGain": 0.7
           }
@@ -1952,9 +2502,9 @@
       },
       "combat": {
         "durationSeconds": 9.08,
-        "integratedLufs": -14.86,
-        "maxMomentaryLufs": -10.89,
-        "approximateTruePeakDbtp": -1.04,
+        "integratedLufs": -17.04,
+        "maxMomentaryLufs": -11.29,
+        "approximateTruePeakDbtp": -3.35,
         "summaryMode": "worst metric across ambient alternatives",
         "ambientRelativeGains": {
           "arena-ambience": 0.32,
@@ -1967,32 +2517,32 @@
         "ambientVariants": {
           "arena-ambience": {
             "durationSeconds": 9.08,
-            "integratedLufs": -14.86,
-            "maxMomentaryLufs": -10.89,
-            "approximateTruePeakDbtp": -1.28,
+            "integratedLufs": -17.04,
+            "maxMomentaryLufs": -11.35,
+            "approximateTruePeakDbtp": -4.57,
             "relativeGain": 0.32
           },
           "arena-ambience-ion-veil": {
             "durationSeconds": 9.08,
-            "integratedLufs": -14.87,
-            "maxMomentaryLufs": -10.96,
-            "approximateTruePeakDbtp": -1.59,
+            "integratedLufs": -17.17,
+            "maxMomentaryLufs": -11.29,
+            "approximateTruePeakDbtp": -4.05,
             "relativeGain": 0.418
           },
           "arena-ambience-signal-lattice": {
             "durationSeconds": 9.08,
-            "integratedLufs": -14.92,
-            "maxMomentaryLufs": -10.95,
-            "approximateTruePeakDbtp": -1.04,
+            "integratedLufs": -17.05,
+            "maxMomentaryLufs": -11.4,
+            "approximateTruePeakDbtp": -3.35,
             "relativeGain": 0.7
           }
         }
       },
       "full": {
         "durationSeconds": 18.25,
-        "integratedLufs": -15.95,
-        "maxMomentaryLufs": -10.96,
-        "approximateTruePeakDbtp": -1.46,
+        "integratedLufs": -15.91,
+        "maxMomentaryLufs": -10.29,
+        "approximateTruePeakDbtp": -3.17,
         "summaryMode": "worst metric across ambient alternatives",
         "ambientRelativeGains": {
           "arena-ambience": 0.32,
@@ -2005,23 +2555,23 @@
         "ambientVariants": {
           "arena-ambience": {
             "durationSeconds": 18.25,
-            "integratedLufs": -16.06,
-            "maxMomentaryLufs": -10.96,
-            "approximateTruePeakDbtp": -1.59,
+            "integratedLufs": -15.92,
+            "maxMomentaryLufs": -10.41,
+            "approximateTruePeakDbtp": -3.45,
             "relativeGain": 0.32
           },
           "arena-ambience-ion-veil": {
             "durationSeconds": 18.25,
-            "integratedLufs": -15.96,
-            "maxMomentaryLufs": -10.99,
-            "approximateTruePeakDbtp": -1.61,
+            "integratedLufs": -15.91,
+            "maxMomentaryLufs": -10.29,
+            "approximateTruePeakDbtp": -3.17,
             "relativeGain": 0.418
           },
           "arena-ambience-signal-lattice": {
             "durationSeconds": 18.25,
-            "integratedLufs": -15.95,
-            "maxMomentaryLufs": -11.02,
-            "approximateTruePeakDbtp": -1.46,
+            "integratedLufs": -15.92,
+            "maxMomentaryLufs": -10.35,
+            "approximateTruePeakDbtp": -3.68,
             "relativeGain": 0.7
           }
         }
