@@ -1,0 +1,200 @@
+{
+  "schemaVersion": 1,
+  "id": "meshy7-kestrel-review-v1",
+  "status": "owner-review",
+  "generator": "scripts/class-models/build-meshy7-kestrel-review-tiers.mjs",
+  "source": {
+    "taskId": "019fefdd-ac96-7dc8-a61e-f0760b4ae407",
+    "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-retexture/kestrel/019fefdd-ac96-7dc8-a61e-f0760b4ae407/raw-model.glb",
+    "bytes": 64337428,
+    "sha256": "6daeca9df3f60fd9e7260b3fd7ec3dd5ecba15505a440da4c36700cc98ae31b3",
+    "provider": "Meshy",
+    "providerModel": "meshy-7",
+    "endpoint": "retexture"
+  },
+  "toolchain": {
+    "gltfTransform": "4.4.2",
+    "simplifier": "meshoptimizer through glTF-Transform",
+    "textureEncoding": "WebP review tier; KTX2 is required before shipping"
+  },
+  "normalization": {
+    "orientation": "identity",
+    "facing": "+x",
+    "up": "+y",
+    "floorY": 0,
+    "facingYawDegrees": 180,
+    "targetPlanformSpan": 0.99
+  },
+  "contract": {
+    "purpose": "Reversible in-renderer comparison only; does not replace the approved runtime Kestrel",
+    "geometry": "lossy review simplification from the pinned retextured provider master",
+    "materials": "one fused authored material; team ownership remains renderer-owned",
+    "tangentSpace": "normal-mapped without authored tangents; Three.js derivative tangent-space review required"
+  },
+  "profiles": [
+    {
+      "id": "lean",
+      "settings": {
+        "simplifyRatio": 0.04,
+        "simplifyError": 0.0025,
+        "lockBorder": false,
+        "textureSize": 512,
+        "geometryCompression": "quantize",
+        "textureEncoding": "WebP"
+      },
+      "budgets": {
+        "transferBytes": 4000000,
+        "triangles": 100000
+      },
+      "artifact": {
+        "file": "art/class-models/runtime-tiers/arc-relay/meshy7-kestrel-review-v1/arc-kestrel-lean.glb",
+        "bytes": 1674640,
+        "sha256": "f7eb5c3f8e9ecb4037a60f9751dfb89467459c86dacd414804de2f2bd1dc8ced"
+      },
+      "triangles": 79064,
+      "positionVertices": 54384,
+      "meshes": 1,
+      "primitives": 1,
+      "materials": 1,
+      "textures": 3,
+      "geometrySha256": "9b4ff3c20827dc1ead0a00588682553a45b6311d3b2f23fd862f68b3af851b7b",
+      "memory": {
+        "transferBytes": 1674640,
+        "geometryGpuBytes": 1562064,
+        "textureGpuBytesCompressedTarget": 4194300,
+        "textureGpuBytesRgba8Fallback": 4194300,
+        "modelGpuBytesCompressedTarget": 5756364,
+        "modelGpuBytesRgba8Fallback": 5756364,
+        "textures": [
+          {
+            "imageIndex": 0,
+            "name": null,
+            "slots": [
+              "baseColorTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 56594,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          },
+          {
+            "imageIndex": 1,
+            "name": null,
+            "slots": [
+              "metallicRoughnessTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 43892,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          },
+          {
+            "imageIndex": 2,
+            "name": null,
+            "slots": [
+              "normalTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 9802,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          }
+        ]
+      }
+    },
+    {
+      "id": "rich",
+      "settings": {
+        "simplifyRatio": 0.08,
+        "simplifyError": 0.001,
+        "lockBorder": false,
+        "textureSize": 1024,
+        "geometryCompression": "quantize",
+        "textureEncoding": "WebP"
+      },
+      "budgets": {
+        "transferBytes": 8000000,
+        "triangles": 180000
+      },
+      "artifact": {
+        "file": "art/class-models/runtime-tiers/arc-relay/meshy7-kestrel-review-v1/arc-kestrel-rich.glb",
+        "bytes": 4240344,
+        "sha256": "b012c61dd41d36a4f9a6f890a5c47b7b066ee01cd18f007bf343093e0af13dd6"
+      },
+      "triangles": 158130,
+      "positionVertices": 99645,
+      "meshes": 1,
+      "primitives": 1,
+      "materials": 1,
+      "textures": 3,
+      "geometrySha256": "4160d73a1be9b713a70cbc10df2a3a1a26b5dde65774705ed62aa7b80408342e",
+      "memory": {
+        "transferBytes": 4240344,
+        "geometryGpuBytes": 3890460,
+        "textureGpuBytesCompressedTarget": 16777212,
+        "textureGpuBytesRgba8Fallback": 16777212,
+        "modelGpuBytesCompressedTarget": 20667672,
+        "modelGpuBytesRgba8Fallback": 20667672,
+        "textures": [
+          {
+            "imageIndex": 0,
+            "name": null,
+            "slots": [
+              "baseColorTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 1024,
+            "height": 1024,
+            "mipLevels": 11,
+            "transferBytes": 176428,
+            "gpuBytesCompressedTarget": 5592404,
+            "gpuBytesRgba8Fallback": 5592404
+          },
+          {
+            "imageIndex": 1,
+            "name": null,
+            "slots": [
+              "metallicRoughnessTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 1024,
+            "height": 1024,
+            "mipLevels": 11,
+            "transferBytes": 110834,
+            "gpuBytesCompressedTarget": 5592404,
+            "gpuBytesRgba8Fallback": 5592404
+          },
+          {
+            "imageIndex": 2,
+            "name": null,
+            "slots": [
+              "normalTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 1024,
+            "height": 1024,
+            "mipLevels": 11,
+            "transferBytes": 60268,
+            "gpuBytesCompressedTarget": 5592404,
+            "gpuBytesRgba8Fallback": 5592404
+          }
+        ]
+      }
+    }
+  ]
+}

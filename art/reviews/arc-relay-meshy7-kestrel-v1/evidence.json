@@ -1,0 +1,892 @@
+{
+  "schemaVersion": 1,
+  "replay": "web/dist-review/replay.json",
+  "replaySource": "arena-bots/arc-relay/stock-mind-v0/preflight/broadcast.json.gz",
+  "replayHash": "79577c3d46c3bc88d5ad9be29a6e709cf1ead134ec26f7243600ac004633325a",
+  "browser": "chromium",
+  "lookId": "arc-kestrel",
+  "formId": "arc-body-kestrel",
+  "authoritativePosition": {
+    "x": 1,
+    "y": 8
+  },
+  "builtModel": "web/dist-review/assets/model-uupyDywt.glb",
+  "variantDifferences": {
+    "desktop": {
+      "threshold": 3,
+      "focusPixel": {
+        "x": 711.5,
+        "y": 431.5
+      },
+      "renderedBounds": {
+        "x": 1,
+        "y": 0,
+        "width": 1422,
+        "height": 864
+      },
+      "metrics": [
+        {
+          "variant": "lean",
+          "changedPixels": 12400,
+          "meanAbsoluteDifference": 0.595596450617284,
+          "rootMeanSquareDifference": 7.542934873929754
+        },
+        {
+          "variant": "rich",
+          "changedPixels": 15202,
+          "meanAbsoluteDifference": 0.6534382716049383,
+          "rootMeanSquareDifference": 7.569680832190652
+        }
+      ]
+    },
+    "phone": {
+      "threshold": 3,
+      "focusPixel": {
+        "x": 487,
+        "y": 190
+      },
+      "renderedBounds": {
+        "x": 131,
+        "y": 0,
+        "width": 713,
+        "height": 381
+      },
+      "metrics": [
+        {
+          "variant": "lean",
+          "changedPixels": 1542,
+          "meanAbsoluteDifference": 0.3070391299064285,
+          "rootMeanSquareDifference": 5.295277647714723
+        },
+        {
+          "variant": "rich",
+          "changedPixels": 2086,
+          "meanAbsoluteDifference": 0.3354629967189209,
+          "rootMeanSquareDifference": 5.352637302363668
+        }
+      ]
+    }
+  },
+  "inspectionZoom": 5,
+  "inspectionDifferences": {
+    "desktop": {
+      "threshold": 3,
+      "focusPixel": {
+        "x": 687.5,
+        "y": 449
+      },
+      "renderedBounds": {
+        "x": 2,
+        "y": 0,
+        "width": 1372,
+        "height": 899
+      },
+      "metrics": [
+        {
+          "variant": "lean",
+          "changedPixels": 15930,
+          "meanAbsoluteDifference": 0.9014753086419753,
+          "rootMeanSquareDifference": 10.153514717136678
+        },
+        {
+          "variant": "rich",
+          "changedPixels": 18012,
+          "meanAbsoluteDifference": 0.9368981481481482,
+          "rootMeanSquareDifference": 10.185847116537802
+        }
+      ]
+    }
+  },
+  "variants": [
+    {
+      "label": "current",
+      "file": "web/src/assets/class-looks/arc-kestrel/model.glb",
+      "bytes": 594448,
+      "sha256": "2cd3e1a79a7e32e047aa60890a9aa91ffd05b305365894e7288860e05a9d1a5c"
+    },
+    {
+      "label": "lean",
+      "file": "art/class-models/runtime-tiers/arc-relay/meshy7-kestrel-review-v1/arc-kestrel-lean.glb",
+      "bytes": 1674640,
+      "sha256": "f7eb5c3f8e9ecb4037a60f9751dfb89467459c86dacd414804de2f2bd1dc8ced"
+    },
+    {
+      "label": "rich",
+      "file": "art/class-models/runtime-tiers/arc-relay/meshy7-kestrel-review-v1/arc-kestrel-rich.glb",
+      "bytes": 4240344,
+      "sha256": "b012c61dd41d36a4f9a6f890a5c47b7b066ee01cd18f007bf343093e0af13dd6"
+    }
+  ],
+  "captures": [
+    {
+      "variant": "current",
+      "viewport": "desktop",
+      "mode": "real-scale",
+      "viewportPixels": {
+        "width": 1440,
+        "height": 900
+      },
+      "arenaPixels": {
+        "width": 1440,
+        "height": 900
+      },
+      "browserScale": {
+        "devicePixelRatio": 1,
+        "visualViewportScale": 1
+      },
+      "readyMilliseconds": 5197,
+      "canvasKind": "webgl",
+      "gpu": {
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (LLVM 10.0.0) (0x0000C0DE)), SwiftShader driver)",
+        "webgl2": true,
+        "astc": true,
+        "etc2": true,
+        "s3tc": true,
+        "pvrtc": false
+      },
+      "modelResponses": [
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/model-uupyDywt.glb",
+          "status": 200
+        }
+      ],
+      "glbResponses": [
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/model-uupyDywt.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/model-oyJ8nOvT.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/model-DAfg9L4p.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/model-PKHypWlD.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/model-DYbhJxfS.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/model-Y_-YmgFT.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/model-DZa4iM7J.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/model-BolcEWxB.glb",
+          "status": 200
+        }
+      ],
+      "decoderResponses": [
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/basis_transcoder-o4Hde_L7.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/basis_transcoder-VXdx5NbI.wasm",
+          "status": 200
+        }
+      ],
+      "arenaScreenshot": "art/reviews/arc-relay-meshy7-kestrel-v1/desktop-current-arena.png",
+      "arenaSha256": "538e769c49f49b6abe8476f69c876f9e3ce233f7d4b987b07d14ad4f95845339",
+      "pageErrors": [],
+      "consoleErrors": [],
+      "failedRequests": [],
+      "cropScreenshot": "art/reviews/arc-relay-meshy7-kestrel-v1/desktop-current-arc-kestrel.png",
+      "cropSha256": "4393bd504edce844200f5ced66ef594c4b73a35a258aa8381f5533c89d4fd333"
+    },
+    {
+      "variant": "current",
+      "viewport": "phone",
+      "mode": "real-scale",
+      "viewportPixels": {
+        "width": 844,
+        "height": 390
+      },
+      "arenaPixels": {
+        "width": 844,
+        "height": 390
+      },
+      "browserScale": {
+        "devicePixelRatio": 1,
+        "visualViewportScale": 1
+      },
+      "readyMilliseconds": 4391,
+      "canvasKind": "webgl",
+      "gpu": {
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (LLVM 10.0.0) (0x0000C0DE)), SwiftShader driver)",
+        "webgl2": true,
+        "astc": true,
+        "etc2": true,
+        "s3tc": true,
+        "pvrtc": false
+      },
+      "modelResponses": [
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/model-uupyDywt.glb",
+          "status": 200
+        }
+      ],
+      "glbResponses": [
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/model-uupyDywt.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/model-oyJ8nOvT.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/model-DAfg9L4p.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/model-PKHypWlD.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/model-DYbhJxfS.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/model-Y_-YmgFT.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/model-DZa4iM7J.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/model-BolcEWxB.glb",
+          "status": 200
+        }
+      ],
+      "decoderResponses": [
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/basis_transcoder-o4Hde_L7.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/basis_transcoder-VXdx5NbI.wasm",
+          "status": 200
+        }
+      ],
+      "arenaScreenshot": "art/reviews/arc-relay-meshy7-kestrel-v1/phone-current-arena.png",
+      "arenaSha256": "812ec7da22ffda8bb17ea19cdc6d9b7e69f3f57488b3f90a9f2f193583dfe07a",
+      "pageErrors": [],
+      "consoleErrors": [],
+      "failedRequests": [],
+      "cropScreenshot": "art/reviews/arc-relay-meshy7-kestrel-v1/phone-current-arc-kestrel.png",
+      "cropSha256": "58563a927852c054ae2e038eb3671df5a1cd72d7555fbacd7cb07b8e3562d975"
+    },
+    {
+      "variant": "lean",
+      "viewport": "desktop",
+      "mode": "real-scale",
+      "viewportPixels": {
+        "width": 1440,
+        "height": 900
+      },
+      "arenaPixels": {
+        "width": 1440,
+        "height": 900
+      },
+      "browserScale": {
+        "devicePixelRatio": 1,
+        "visualViewportScale": 1
+      },
+      "readyMilliseconds": 5380,
+      "canvasKind": "webgl",
+      "gpu": {
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (LLVM 10.0.0) (0x0000C0DE)), SwiftShader driver)",
+        "webgl2": true,
+        "astc": true,
+        "etc2": true,
+        "s3tc": true,
+        "pvrtc": false
+      },
+      "modelResponses": [
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/model-uupyDywt.glb",
+          "status": 200
+        }
+      ],
+      "glbResponses": [
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/model-uupyDywt.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/model-oyJ8nOvT.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/model-DAfg9L4p.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/model-PKHypWlD.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/model-DYbhJxfS.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/model-Y_-YmgFT.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/model-DZa4iM7J.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/model-BolcEWxB.glb",
+          "status": 200
+        }
+      ],
+      "decoderResponses": [
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/basis_transcoder-o4Hde_L7.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/basis_transcoder-VXdx5NbI.wasm",
+          "status": 200
+        }
+      ],
+      "arenaScreenshot": "art/reviews/arc-relay-meshy7-kestrel-v1/desktop-lean-arena.png",
+      "arenaSha256": "958aa41d8442bfa629c19166673f3ba1b71107669783f6b926d7e1bf17a83b38",
+      "pageErrors": [],
+      "consoleErrors": [],
+      "failedRequests": [],
+      "cropScreenshot": "art/reviews/arc-relay-meshy7-kestrel-v1/desktop-lean-arc-kestrel.png",
+      "cropSha256": "c4aa145bda06032172d0c8eaefdaa466669ccfb9d7c48a550df423a5acc9c90a"
+    },
+    {
+      "variant": "lean",
+      "viewport": "phone",
+      "mode": "real-scale",
+      "viewportPixels": {
+        "width": 844,
+        "height": 390
+      },
+      "arenaPixels": {
+        "width": 844,
+        "height": 390
+      },
+      "browserScale": {
+        "devicePixelRatio": 1,
+        "visualViewportScale": 1
+      },
+      "readyMilliseconds": 5773,
+      "canvasKind": "webgl",
+      "gpu": {
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (LLVM 10.0.0) (0x0000C0DE)), SwiftShader driver)",
+        "webgl2": true,
+        "astc": true,
+        "etc2": true,
+        "s3tc": true,
+        "pvrtc": false
+      },
+      "modelResponses": [
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/model-uupyDywt.glb",
+          "status": 200
+        }
+      ],
+      "glbResponses": [
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/model-uupyDywt.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/model-oyJ8nOvT.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/model-DAfg9L4p.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/model-PKHypWlD.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/model-DYbhJxfS.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/model-Y_-YmgFT.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/model-DZa4iM7J.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/model-BolcEWxB.glb",
+          "status": 200
+        }
+      ],
+      "decoderResponses": [
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/basis_transcoder-o4Hde_L7.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/basis_transcoder-VXdx5NbI.wasm",
+          "status": 200
+        }
+      ],
+      "arenaScreenshot": "art/reviews/arc-relay-meshy7-kestrel-v1/phone-lean-arena.png",
+      "arenaSha256": "7e89d8e3e568567391b8354b382a525c4b25155b318e8e7f52a553da551629f9",
+      "pageErrors": [],
+      "consoleErrors": [],
+      "failedRequests": [],
+      "cropScreenshot": "art/reviews/arc-relay-meshy7-kestrel-v1/phone-lean-arc-kestrel.png",
+      "cropSha256": "6b9cdabe055d7607151f0ec5be8bc0cf0b43bccfb3efad27dd44f4aab1de9b25"
+    },
+    {
+      "variant": "rich",
+      "viewport": "desktop",
+      "mode": "real-scale",
+      "viewportPixels": {
+        "width": 1440,
+        "height": 900
+      },
+      "arenaPixels": {
+        "width": 1440,
+        "height": 900
+      },
+      "browserScale": {
+        "devicePixelRatio": 1,
+        "visualViewportScale": 1
+      },
+      "readyMilliseconds": 6824,
+      "canvasKind": "webgl",
+      "gpu": {
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (LLVM 10.0.0) (0x0000C0DE)), SwiftShader driver)",
+        "webgl2": true,
+        "astc": true,
+        "etc2": true,
+        "s3tc": true,
+        "pvrtc": false
+      },
+      "modelResponses": [
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/model-uupyDywt.glb",
+          "status": 200
+        }
+      ],
+      "glbResponses": [
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/model-uupyDywt.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/model-oyJ8nOvT.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/model-DAfg9L4p.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/model-PKHypWlD.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/model-DYbhJxfS.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/model-Y_-YmgFT.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/model-DZa4iM7J.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/model-BolcEWxB.glb",
+          "status": 200
+        }
+      ],
+      "decoderResponses": [
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/basis_transcoder-VXdx5NbI.wasm",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/basis_transcoder-o4Hde_L7.js",
+          "status": 200
+        }
+      ],
+      "arenaScreenshot": "art/reviews/arc-relay-meshy7-kestrel-v1/desktop-rich-arena.png",
+      "arenaSha256": "4ce5e5373f85d3b45977a944581e5f064fa1ce3535428436a59bd9cf1f826597",
+      "pageErrors": [],
+      "consoleErrors": [],
+      "failedRequests": [],
+      "cropScreenshot": "art/reviews/arc-relay-meshy7-kestrel-v1/desktop-rich-arc-kestrel.png",
+      "cropSha256": "073e3618de3671c78ff7c1b2e46e93cb774da0b3dd871b6c787b9ff92e050832"
+    },
+    {
+      "variant": "rich",
+      "viewport": "phone",
+      "mode": "real-scale",
+      "viewportPixels": {
+        "width": 844,
+        "height": 390
+      },
+      "arenaPixels": {
+        "width": 844,
+        "height": 390
+      },
+      "browserScale": {
+        "devicePixelRatio": 1,
+        "visualViewportScale": 1
+      },
+      "readyMilliseconds": 6737,
+      "canvasKind": "webgl",
+      "gpu": {
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (LLVM 10.0.0) (0x0000C0DE)), SwiftShader driver)",
+        "webgl2": true,
+        "astc": true,
+        "etc2": true,
+        "s3tc": true,
+        "pvrtc": false
+      },
+      "modelResponses": [
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/model-uupyDywt.glb",
+          "status": 200
+        }
+      ],
+      "glbResponses": [
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/model-uupyDywt.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/model-oyJ8nOvT.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/model-DAfg9L4p.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/model-PKHypWlD.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/model-DYbhJxfS.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/model-Y_-YmgFT.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/model-DZa4iM7J.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/model-BolcEWxB.glb",
+          "status": 200
+        }
+      ],
+      "decoderResponses": [
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/basis_transcoder-o4Hde_L7.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/basis_transcoder-VXdx5NbI.wasm",
+          "status": 200
+        }
+      ],
+      "arenaScreenshot": "art/reviews/arc-relay-meshy7-kestrel-v1/phone-rich-arena.png",
+      "arenaSha256": "ca66d601559c73895429456b11f26e7844f5361d98b797f7def99d52accef067",
+      "pageErrors": [],
+      "consoleErrors": [],
+      "failedRequests": [],
+      "cropScreenshot": "art/reviews/arc-relay-meshy7-kestrel-v1/phone-rich-arc-kestrel.png",
+      "cropSha256": "d2bca6b951462ab741e91ddb0891f323a5bbcea2932787bcfe205cfa72cfb84f"
+    }
+  ],
+  "inspectionCaptures": [
+    {
+      "variant": "current",
+      "viewport": "desktop",
+      "mode": "inspection",
+      "viewportPixels": {
+        "width": 1440,
+        "height": 900
+      },
+      "arenaPixels": {
+        "width": 1440,
+        "height": 900
+      },
+      "browserScale": {
+        "devicePixelRatio": 1,
+        "visualViewportScale": 1
+      },
+      "cameraInput": {
+        "kind": "arena-pan-and-wheel",
+        "requestedZoomFactor": 5
+      },
+      "readyMilliseconds": 5353,
+      "canvasKind": "webgl",
+      "gpu": {
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (LLVM 10.0.0) (0x0000C0DE)), SwiftShader driver)",
+        "webgl2": true,
+        "astc": true,
+        "etc2": true,
+        "s3tc": true,
+        "pvrtc": false
+      },
+      "modelResponses": [
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/model-uupyDywt.glb",
+          "status": 200
+        }
+      ],
+      "glbResponses": [
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/model-uupyDywt.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/model-oyJ8nOvT.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/model-DAfg9L4p.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/model-PKHypWlD.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/model-DYbhJxfS.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/model-Y_-YmgFT.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/model-DZa4iM7J.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/model-BolcEWxB.glb",
+          "status": 200
+        }
+      ],
+      "decoderResponses": [
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/basis_transcoder-o4Hde_L7.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/basis_transcoder-VXdx5NbI.wasm",
+          "status": 200
+        }
+      ],
+      "arenaScreenshot": "art/reviews/arc-relay-meshy7-kestrel-v1/desktop-inspection-current-arena.png",
+      "arenaSha256": "47823281ed318dd90ea06f8e109e581b475cdc1c4bedd834177b2b19f78e5ce1",
+      "pageErrors": [],
+      "consoleErrors": [],
+      "failedRequests": [],
+      "cropScreenshot": "art/reviews/arc-relay-meshy7-kestrel-v1/desktop-inspection-current-arc-kestrel.png",
+      "cropSha256": "4d3faee8de0b4eb242ec039279564578768c9a78fe479f1c536a7dc59f9c1ad5"
+    },
+    {
+      "variant": "lean",
+      "viewport": "desktop",
+      "mode": "inspection",
+      "viewportPixels": {
+        "width": 1440,
+        "height": 900
+      },
+      "arenaPixels": {
+        "width": 1440,
+        "height": 900
+      },
+      "browserScale": {
+        "devicePixelRatio": 1,
+        "visualViewportScale": 1
+      },
+      "cameraInput": {
+        "kind": "arena-pan-and-wheel",
+        "requestedZoomFactor": 5
+      },
+      "readyMilliseconds": 6488,
+      "canvasKind": "webgl",
+      "gpu": {
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (LLVM 10.0.0) (0x0000C0DE)), SwiftShader driver)",
+        "webgl2": true,
+        "astc": true,
+        "etc2": true,
+        "s3tc": true,
+        "pvrtc": false
+      },
+      "modelResponses": [
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/model-uupyDywt.glb",
+          "status": 200
+        }
+      ],
+      "glbResponses": [
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/model-uupyDywt.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/model-oyJ8nOvT.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/model-DAfg9L4p.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/model-PKHypWlD.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/model-DYbhJxfS.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/model-Y_-YmgFT.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/model-DZa4iM7J.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/model-BolcEWxB.glb",
+          "status": 200
+        }
+      ],
+      "decoderResponses": [
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/basis_transcoder-o4Hde_L7.js",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/basis_transcoder-VXdx5NbI.wasm",
+          "status": 200
+        }
+      ],
+      "arenaScreenshot": "art/reviews/arc-relay-meshy7-kestrel-v1/desktop-inspection-lean-arena.png",
+      "arenaSha256": "fdadcde52742d8fc5a9dfbbff64e4c3f9a23e632e5486af15f3f55e78d895b7e",
+      "pageErrors": [],
+      "consoleErrors": [],
+      "failedRequests": [],
+      "cropScreenshot": "art/reviews/arc-relay-meshy7-kestrel-v1/desktop-inspection-lean-arc-kestrel.png",
+      "cropSha256": "7572a00bc7b94ba012a5f203fc4ee7936b810049c6cf585b89fed657ea85c3f0"
+    },
+    {
+      "variant": "rich",
+      "viewport": "desktop",
+      "mode": "inspection",
+      "viewportPixels": {
+        "width": 1440,
+        "height": 900
+      },
+      "arenaPixels": {
+        "width": 1440,
+        "height": 900
+      },
+      "browserScale": {
+        "devicePixelRatio": 1,
+        "visualViewportScale": 1
+      },
+      "cameraInput": {
+        "kind": "arena-pan-and-wheel",
+        "requestedZoomFactor": 5
+      },
+      "readyMilliseconds": 7091,
+      "canvasKind": "webgl",
+      "gpu": {
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (LLVM 10.0.0) (0x0000C0DE)), SwiftShader driver)",
+        "webgl2": true,
+        "astc": true,
+        "etc2": true,
+        "s3tc": true,
+        "pvrtc": false
+      },
+      "modelResponses": [
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/model-uupyDywt.glb",
+          "status": 200
+        }
+      ],
+      "glbResponses": [
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/model-uupyDywt.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/model-oyJ8nOvT.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/model-DAfg9L4p.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/model-PKHypWlD.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/model-DYbhJxfS.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/model-Y_-YmgFT.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/model-DZa4iM7J.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/model-BolcEWxB.glb",
+          "status": 200
+        }
+      ],
+      "decoderResponses": [
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/basis_transcoder-VXdx5NbI.wasm",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:8932/web/dist-review/assets/basis_transcoder-o4Hde_L7.js",
+          "status": 200
+        }
+      ],
+      "arenaScreenshot": "art/reviews/arc-relay-meshy7-kestrel-v1/desktop-inspection-rich-arena.png",
+      "arenaSha256": "92720cf0ef8432394876615850646f863b265c0dec8d9ae1bccccf2cb81036ab",
+      "pageErrors": [],
+      "consoleErrors": [],
+      "failedRequests": [],
+      "cropScreenshot": "art/reviews/arc-relay-meshy7-kestrel-v1/desktop-inspection-rich-arc-kestrel.png",
+      "cropSha256": "a4d0e0aa3a4df25969f5568ad4cb36dd4a3f0cda566cf70e409ae90014934416"
+    }
+  ]
+}

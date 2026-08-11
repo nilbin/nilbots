@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Nilbots — Meshy 7 Kestrel in game</title>
+    <style>
+      :root { color-scheme: dark; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+      * { box-sizing: border-box; }
+      body { margin: 0; background: #080b0f; color: #dce7ee; }
+      main { width: min(1180px, calc(100% - 32px)); margin: 0 auto; padding: 42px 0 72px; }
+      .eyebrow { color: #8aa0ae; font-size: 12px; letter-spacing: .18em; text-transform: uppercase; }
+      h1 { margin: 10px 0 12px; font: 600 clamp(28px, 5vw, 52px)/1.02 system-ui, sans-serif; }
+      .lede { max-width: 780px; color: #aabac4; font: 17px/1.55 system-ui, sans-serif; }
+      .actions { display: flex; flex-wrap: wrap; gap: 12px; margin: 26px 0 34px; }
+      a.button { padding: 12px 16px; border: 1px solid #d9aa67; border-radius: 5px; color: #f3d5a5; text-decoration: none; background: #21190f; }
+      a.button.secondary { border-color: #40515c; color: #bac9d2; background: #11171c; }
+      .stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 0 0 32px; }
+      .stat { border: 1px solid #26333b; border-radius: 6px; padding: 15px; background: #0e1419; }
+      .stat strong { display: block; color: #f1c17e; font-size: 21px; margin-bottom: 5px; }
+      .stat span { color: #8499a6; font-size: 12px; }
+      figure { margin: 0 0 22px; border: 1px solid #26333b; border-radius: 7px; padding: 9px; background: #0c1116; overflow: auto; }
+      figure img { width: 100%; min-width: 720px; height: auto; display: block; }
+      figcaption { color: #8499a6; font-size: 12px; padding: 10px 4px 2px; }
+      .note { color: #8da0aa; font: 14px/1.55 system-ui, sans-serif; }
+      @media (max-width: 640px) { .stats { grid-template-columns: 1fr; } main { width: min(100% - 20px, 1180px); padding-top: 24px; } }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="eyebrow">nilbots / arc relay / review only</div>
+      <h1>Meshy 7 Kestrel, trimmed and in game.</h1>
+      <p class="lede">The lean candidate keeps the approved pale, angular read at actual camera scale. It is 97.4% smaller and 96.0% lighter in geometry than the provider master; the current shipping Kestrel is still untouched.</p>
+      <div class="actions">
+        <a class="button" href="/sandbox/meshy7-pilot/kestrel-game-review/interactive-lean/?standalone&amp;audio=off">Play the lean Kestrel replay</a>
+        <a class="button secondary" href="desktop-inspection-game-camera-comparison.png">Open full comparison</a>
+      </div>
+      <section class="stats" aria-label="Lean candidate statistics">
+        <div class="stat"><strong>1.67 MB</strong><span>down from 64.34 MB</span></div>
+        <div class="stat"><strong>79,064 tris</strong><span>down from 1,976,674</span></div>
+        <div class="stat"><strong>3 × 512</strong><span>review WebP maps</span></div>
+      </section>
+      <figure>
+        <img src="desktop-inspection-game-camera-comparison.png" alt="Current, lean, and rich Kestrels shown side by side in the same Arc Relay game camera" />
+        <figcaption>Current shipping look, lean Meshy 7 candidate, rich Meshy 7 candidate — same replay, tick, WebGL renderer, and in-engine camera.</figcaption>
+      </figure>
+      <figure>
+        <img src="desktop-comparison.png" alt="Desktop crops comparing current, lean, and rich Kestrels" />
+        <figcaption>Desktop footprint. Lean and rich read the same at play scale.</figcaption>
+      </figure>
+      <figure>
+        <img src="phone-comparison.png" alt="Phone landscape crops comparing current, lean, and rich Kestrels" />
+        <figcaption>Phone landscape. The extra rich-tier detail does not earn its cost here.</figcaption>
+      </figure>
+      <p class="note">Review tier only. KTX2 compression and the recorded normal-map tangent warning must be resolved before this replaces the shipping Kestrel.</p>
+    </main>
+  </body>
+</html>

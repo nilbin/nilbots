@@ -19,6 +19,9 @@ const sharp = requireFromWeb('sharp');
 const options = parseOptions(process.argv.slice(2));
 const builtModelPath = absolute(required('built-model'));
 const replayPath = absolute(required('replay'));
+const replaySourcePath = options['replay-source']?.[0]
+  ? absolute(options['replay-source'][0])
+  : replayPath;
 const lookId = required('look');
 const outputDirectory = absolute(required('output-directory'));
 const reviewUrl = options.url?.[0] ?? 'http://127.0.0.1:4173/?standalone&audio=off';
@@ -33,16 +36,34 @@ if (inspectionZoom !== 0 && (!Number.isFinite(inspectionZoom) || inspectionZoom 
 
 const replay = JSON.parse(readFileSync(replayPath, 'utf8'));
 const look = replay.header?.presentation?.forms?.find((form) => form.lookId === lookId);
-const life = replay.initialFrame?.state?.activeLives?.find(
+const completeReplayLife = replay.initialFrame?.state?.activeLives?.find(
   (candidate) => candidate.formId === look?.formId,
 );
+const compactBroadcastLife = replay.initial?.[4]?.find(
+  (candidate) => candidate?.[5] === look?.formId,
+);
+const authoritativePosition = completeReplayLife?.position ??
+  (compactBroadcastLife
+    ? { x: compactBroadcastLife[6], y: compactBroadcastLife[7] }
+    : undefined);
+const activeFormIds = new Set(
+  replay.initialFrame?.state?.activeLives?.map((candidate) => candidate.formId) ??
+    replay.initial?.[4]?.map((candidate) => candidate?.[5]) ??
+    [],
+);
+const expectedFleetGlbs = new Set(
+  (replay.header?.presentation?.forms ?? [])
+    .filter((form) => activeFormIds.has(form.formId))
+    .map((form) => form.lookId)
+    .filter(Boolean),
+).size;
 if (
   replay.header?.replayVersion !== 3 ||
   replay.header?.contract?.rules?.gameMode?.kind !== 'arc-relay' ||
   !look ||
-  !life
+  !authoritativePosition
 )
-  throw new Error(`Replay must be a complete Arc Relay v3 replay containing ${lookId}.`);
+  throw new Error(`Replay must be an Arc Relay v3 replay or compact broadcast containing ${lookId}.`);
 
 const viewports = [
   { id: 'desktop', width: 1440, height: 900, crop: 320 },
@@ -112,11 +133,12 @@ writeFileSync(
   `${JSON.stringify({
     schemaVersion: 1,
     replay: path.relative(repository, replayPath),
-    replayHash: replay.replayHash,
+    replaySource: path.relative(repository, replaySourcePath),
+    replayHash: replay.replayHash ?? replay.canonicalReplayHash,
     browser: browserName,
     lookId,
     formId: look.formId,
-    authoritativePosition: life.position,
+    authoritativePosition,
     builtModel: path.relative(repository, builtModelPath),
     variantDifferences,
     ...(inspectionZoom > 1 ? { inspectionZoom, inspectionDifferences } : {}),
@@ -183,7 +205,10 @@ async function capture(browser, variant, viewport, captureOptions = {}) {
     ),
   );
   await page.getByRole('button', { name: 'Pause' }).evaluate((button) => button.click());
-  for (let attempts = 0; attempts < 3 && (await readTick(page)) > 0; attempts += 1)
+  // Slow-loading review candidates can advance several ticks between the restart and
+  // the pause click, especially at the phone viewport. Rewind to the authoritative
+  // opening frame instead of treating normal asset-decode latency as evidence drift.
+  for (let attempts = 0; attempts < 120 && (await readTick(page)) > 0; attempts += 1)
     await page
       .getByRole('button', { name: 'Step back one tick' })
       .evaluate((button) => button.click());
@@ -263,9 +288,12 @@ async function capture(browser, variant, viewport, captureOptions = {}) {
     };
   });
   const uniqueGlbs = new Set(glbResponses.map((response) => response.url));
-  if (uniqueGlbs.size !== 16 || glbResponses.some((response) => response.status !== 200))
+  if (
+    uniqueGlbs.size !== expectedFleetGlbs ||
+    glbResponses.some((response) => response.status !== 200)
+  )
     throw new Error(
-      `${variant.label}/${viewport.id} loaded ${uniqueGlbs.size}/16 fleet GLBs successfully.`,
+      `${variant.label}/${viewport.id} loaded ${uniqueGlbs.size}/${expectedFleetGlbs} fleet GLBs successfully.`,
     );
   if (pageErrors.length || consoleErrors.length || failedRequests.length)
     throw new Error(
