@@ -44,7 +44,7 @@ Official references:
 
 ## Approval and view plan
 
-`concept-sheet-v7.png` is the canonical owner-review artifact for this gate. It
+`concept-sheet-v7.png` is the owner-approved identity artifact for this gate. It
 removes the rejected eye lights, gun-like muzzles, and universal white segmented
 nose. The roster uses the pinned elevated 58-degree gameplay-oblique camera,
 bold top silhouettes, fewer micro-details, larger signature apparatus,
@@ -66,9 +66,9 @@ and signature apparatus easy to compare at a glance. The four full-size files
 currently in `drafts/` are generation references used to establish the sheet's
 shared rendering language; they are not a partial approval requirement.
 
-After owner approval, each approved sheet identity will be rebuilt as a clean,
-isolated front-right three-quarter anchor, then receive separately generated and
-approved matching views:
+Each approved sheet identity is rebuilt as a clean, isolated front-right
+three-quarter anchor, then receives separately generated and approved matching
+views:
 
 1. strict front — first/primary Meshy 7 input;
 2. strict right side — depth, prow, and hardware profile;
@@ -92,6 +92,26 @@ front edge owns the one-tick runtime wind-up read.
 
 This proof does not replace the later pinned real-replay review with both team
 colors, arena lighting, movement, fog, and overlapping actors.
+
+## Meshy 7 Kestrel pilot
+
+The first vertical slice used Kestrel only. Its four separate candidate inputs
+are recorded under `meshy7-input-candidates/kestrel-v1/`: strict front first,
+then strict right, strict back, and front-right three-quarter. The review gate
+also retains a construction-only top inference and a rejected narrow rear
+attempt.
+
+Meshy task `019feeaa-c573-78ed-bfc8-a6630d8ae4f3` succeeded with Meshy 7,
+2K PBR, remesh off, and image enhancement off. It consumed exactly 30 credits,
+reducing the balance from 220 to 190. No other class was submitted and
+auto-rigging remains out of scope.
+
+The raw model provisionally passes the geometry identity: broad split-delta
+planform, shallow wedge, paired rear louvered heat exchangers, and no
+legs/guns/eyes. It fails authored materials: warm bone and muted ochre became
+dominant near-black/navy and vivid orange. The raw 61 MB / 1,976,738-triangle
+master is source evidence, not runtime art. A separately authorized 10-credit
+multiview retexture is the next narrow option; do not start a fleet batch.
 
 ## Shared gameplay truth
 

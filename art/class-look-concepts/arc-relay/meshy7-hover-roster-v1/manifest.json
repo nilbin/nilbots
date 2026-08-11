@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "status": "owner-review",
+  "status": "owner-approved-meshy-pilot",
   "canonicalReviewArtifact": "concept-sheet-v7.png",
   "canonicalReviewArtifactSha256": "3d60322ef767283da55dc3710af9ef097ed989bdd40cc597883925989af486d5",
   "gameplayScaleProof": {
@@ -107,5 +107,18 @@
   ],
   "meshyInput": false,
   "meshyGenerationAuthorized": false,
-  "nextGate": "owner approval of the shared 4x4 identities"
+  "meshyPilot": {
+    "classId": "kestrel",
+    "inputManifest": "meshy7-input-candidates/kestrel-v1/manifest.json",
+    "taskId": "019feeaa-c573-78ed-bfc8-a6630d8ae4f3",
+    "status": "SUCCEEDED",
+    "consumedCredits": 30,
+    "balanceBefore": 220,
+    "balanceAfter": 190,
+    "geometryGate": "provisional-pass",
+    "materialGate": "fail",
+    "fleetBatchStarted": false,
+    "autoRigging": false
+  },
+  "nextGate": "owner decision on one separately capped 10-credit Kestrel multiview retexture"
 }

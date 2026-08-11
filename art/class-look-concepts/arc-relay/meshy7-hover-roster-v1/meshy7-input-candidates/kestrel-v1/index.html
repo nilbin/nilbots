@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Kestrel · Meshy 7 input gate</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+        background: #111315;
+        color: #ece8de;
+      }
+      body { margin: 0; padding: 18px; }
+      main { width: min(1160px, 100%); margin: auto; }
+      h1 { margin: 0 0 8px; font-size: clamp(24px, 5vw, 42px); }
+      p { color: #b9b7b0; line-height: 1.5; }
+      .notice {
+        padding: 12px 14px;
+        margin: 16px 0;
+        border: 1px solid #61573e;
+        border-radius: 10px;
+        background: #272318;
+        color: #eee2ba;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+      figure {
+        margin: 0;
+        overflow: hidden;
+        border: 1px solid #33383c;
+        border-radius: 12px;
+        background: #1a1d20;
+      }
+      img { display: block; width: 100%; height: auto; background: #eee; }
+      figcaption { padding: 10px 12px; color: #d4d0c6; }
+      .secondary { margin-top: 20px; }
+      .secondary figure { max-width: 560px; }
+      @media (max-width: 720px) { .grid { grid-template-columns: 1fr; } }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Kestrel · Meshy 7 input gate</h1>
+      <p>
+        Four separate, camera-consistent views of the approved v7 identity.
+        Review them as one physical object; the first image is Meshy's primary
+        front view.
+      </p>
+      <div class="notice">
+        Kestrel pilot succeeded · 30 credits spent · balance 190 · no fleet batch started
+      </div>
+      <section class="grid" aria-label="Proposed Meshy inputs">
+        <figure><img src="01-front.png" alt="Kestrel strict front" /><figcaption>1 · Strict front · primary</figcaption></figure>
+        <figure><img src="02-right.png" alt="Kestrel strict right" /><figcaption>2 · Strict right · prow points left</figcaption></figure>
+        <figure><img src="03-back.png" alt="Kestrel strict back" /><figcaption>3 · Strict back</figcaption></figure>
+        <figure><img src="04-front-right-three-quarter.png" alt="Kestrel front-right three-quarter" /><figcaption>4 · Front-right three-quarter</figcaption></figure>
+      </section>
+      <section class="secondary">
+        <h2>Construction evidence only</h2>
+        <p>This inferred top view is deliberately excluded from the API input set.</p>
+        <figure><img src="construction-top.png" alt="Kestrel top construction reference" /><figcaption>Top construction reference · not submitted</figcaption></figure>
+      </section>
+      <section class="secondary">
+        <h2>Raw Meshy 7 result</h2>
+        <p>
+          Geometry is promising, but the dark navy/vivid orange material result
+          fails the approved warm-bone/muted-ochre identity.
+        </p>
+        <figure>
+          <img src="../../../../../class-models/provider-runs/meshy/arc-relay-meshy7-pilot/kestrel/019feeaa-c573-78ed-bfc8-a6630d8ae4f3/provider-six-view-review.png" alt="Six rendered views of the raw Meshy Kestrel" />
+          <figcaption>Raw generated base mesh · six-view review · not runtime art</figcaption>
+        </figure>
+      </section>
+    </main>
+  </body>
+</html>
