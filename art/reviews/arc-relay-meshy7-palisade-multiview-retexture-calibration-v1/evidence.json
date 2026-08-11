@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "retextureTaskId": "019ff0d7-b4d8-759a-ae34-6bb6fe42e0a9",
+  "sourceAudit": "art/class-models/runtime-tiers/arc-relay/meshy7-palisade-multiview-retexture-calibration-v1/audit.json",
+  "comparison": {
+    "file": "art/reviews/arc-relay-meshy7-palisade-multiview-retexture-calibration-v1/comparison.png",
+    "sha256": "1b0af4769b448b98786c0b4fe3f1c5f21c605951da977d9235fbe9302d19153a"
+  },
+  "panels": [
+    {
+      "id": "approved-2d",
+      "label": "APPROVED 2D AUTHORITY",
+      "source": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/palisade-v1/04-front-right-three-quarter.png",
+      "sourceSha256": "c7bda5c90a14ff66553f5429c84f363ba779b86d6b452f50d54016343b99ae9e",
+      "tile": "sandbox/meshy7-pilot/palisade-multiview-retexture-calibration-v1/approved-2d.png",
+      "tileSha256": "a61f6861dd2fd4da4965eb89ad79d946cdec1b7ce6b4bcd47e77093ee92d4eb1",
+      "render": "approved source image"
+    },
+    {
+      "id": "original-v1",
+      "label": "ORIGINAL 3D TEXTURE",
+      "source": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v1/arc-palisade-lean.glb",
+      "sourceSha256": "025884b4bec1a53176450b6854da550e1e5d4ff511ae6c3c0e32228192908b3f",
+      "tile": "sandbox/meshy7-pilot/palisade-multiview-retexture-calibration-v1/original-v1.png",
+      "tileSha256": "362a5ecd4f5faf5260ea7a27751796108e797eea283f27a851a5e8f09c1153ee",
+      "render": "neutral WebGL turntable",
+      "camera": "+x/+y/-z front-right three-quarter",
+      "facing": "+x",
+      "canvasKind": "webgl",
+      "modelResponse": {
+        "url": "http://127.0.0.1:9074/art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v1/arc-palisade-lean.glb",
+        "status": 200
+      }
+    },
+    {
+      "id": "text-v2-rejected",
+      "label": "TEXT V2 · REJECTED",
+      "source": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v2/arc-palisade-lean.glb",
+      "sourceSha256": "bc7d3eda0c9f4064fcd6f11c0221168dbe161e0d791438d1f5b07ebd11366b18",
+      "tile": "sandbox/meshy7-pilot/palisade-multiview-retexture-calibration-v1/text-v2-rejected.png",
+      "tileSha256": "dc50c29e0e0290c10934bfcd8f7bcf06e58e06fc41cfb04e6cd20661b696fbfc",
+      "render": "neutral WebGL turntable",
+      "camera": "+x/+y/-z front-right three-quarter",
+      "facing": "+x",
+      "canvasKind": "webgl",
+      "modelResponse": {
+        "url": "http://127.0.0.1:9074/art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v2/arc-palisade-lean.glb",
+        "status": 200
+      }
+    },
+    {
+      "id": "multiview-v3",
+      "label": "MULTIVIEW V3 · CALIBRATION",
+      "source": "art/class-models/runtime-tiers/arc-relay/meshy7-palisade-multiview-retexture-calibration-v1/arc-palisade-lean.glb",
+      "sourceSha256": "90764f332e398fba8612e0d801eeeed00a00bdf31d14e2d260a6a25c7135c3f3",
+      "tile": "sandbox/meshy7-pilot/palisade-multiview-retexture-calibration-v1/multiview-v3.png",
+      "tileSha256": "62ef9011dc536f4fba0b2a3c8a5412b74d53ad6a12bf5c9dd2f997939c08ddba",
+      "render": "neutral WebGL turntable",
+      "camera": "+x/+y/-z front-right three-quarter",
+      "facing": "+x",
+      "canvasKind": "webgl",
+      "modelResponse": {
+        "url": "http://127.0.0.1:9074/art/class-models/runtime-tiers/arc-relay/meshy7-palisade-multiview-retexture-calibration-v1/arc-palisade-lean.glb",
+        "status": 200
+      }
+    }
+  ],
+  "runtimeAssetsPromoted": false
+}
