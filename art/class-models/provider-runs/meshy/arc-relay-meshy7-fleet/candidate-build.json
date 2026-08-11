@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "builtAt": "2026-08-11T10:47:03.438Z",
+  "builtAt": "2026-08-11T11:20:13.047Z",
   "purpose": "Unapproved Meshy 7 Arc Relay fleet review build",
   "runtimeAssetsPromoted": false,
   "tierAudit": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v1/audit.json",
@@ -42,16 +42,16 @@
       "lookId": "arc-lantern",
       "candidate": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v1/arc-lantern-lean.glb",
       "runtimeSha256Before": "e6bf4157fac080466c9888fb3d42cccf67d137593a64976cd7aab3c3cda2d6f7",
-      "candidateSha256": "f7b63b353e8b9733fb454179f02bc408d1d4a7d37f6c23e9f5f49c8470ea7941",
-      "candidateBytes": 1628260,
+      "candidateSha256": "ebde6a1e246d7fea759970f1649928422e13d7e920470efe5f3f40ec890b764d",
+      "candidateBytes": 1628296,
       "runtimeSha256After": "e6bf4157fac080466c9888fb3d42cccf67d137593a64976cd7aab3c3cda2d6f7"
     },
     {
       "lookId": "arc-mortar",
       "candidate": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v1/arc-mortar-lean.glb",
       "runtimeSha256Before": "fc0d7e85df8d1befe53e78d28ea2234abbf450d9ee761075d4fbfad221a3d7a4",
-      "candidateSha256": "3a2b0fd3d9d9ac6fdf45eee8e841319da242e339c9a3c17be7761cb9d2b72013",
-      "candidateBytes": 1605056,
+      "candidateSha256": "0c5bcecd64f25922aa37f31429aff3c00de423f774e8635b340498822d741f3b",
+      "candidateBytes": 1605088,
       "runtimeSha256After": "fc0d7e85df8d1befe53e78d28ea2234abbf450d9ee761075d4fbfad221a3d7a4"
     },
     {
@@ -74,8 +74,8 @@
       "lookId": "arc-relay",
       "candidate": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v1/arc-relay-lean.glb",
       "runtimeSha256Before": "dcc5035b8693ee47a15545888bbf001317dcc000c2d25dbf4dc1df8e6ab02068",
-      "candidateSha256": "3eb8f77740149a5787b86b7bb4ae5a470f903065a17c6b15b0e00a5d41213746",
-      "candidateBytes": 1682732,
+      "candidateSha256": "21f78ad54a908d8343f2c560b1a206e7ea7380252e89bc0f9ee3444eede7af7f",
+      "candidateBytes": 1682728,
       "runtimeSha256After": "dcc5035b8693ee47a15545888bbf001317dcc000c2d25dbf4dc1df8e6ab02068"
     },
     {
@@ -106,8 +106,8 @@
       "lookId": "arc-sunder",
       "candidate": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v1/arc-sunder-lean.glb",
       "runtimeSha256Before": "52786bd6bf8732dae8ba60807814c7e3d581ea96217775c0940bdf2d4a07ea45",
-      "candidateSha256": "2686bcfccd5c84b2ba2d2dc68bcf9b76cec5f9706c4a0f8a38d22c0d674f0ce1",
-      "candidateBytes": 7941300,
+      "candidateSha256": "5f40908374c391c883bf7e3c05906100ec884af1b02e3c106067532e8dbcfc3f",
+      "candidateBytes": 7941332,
       "runtimeSha256After": "52786bd6bf8732dae8ba60807814c7e3d581ea96217775c0940bdf2d4a07ea45"
     },
     {
@@ -122,8 +122,8 @@
       "lookId": "arc-veil",
       "candidate": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v1/arc-veil-lean.glb",
       "runtimeSha256Before": "525e97a2cdd9c29e24ffcd06fe6cd42c0c99a799fb81e835975cb8014a3c78c6",
-      "candidateSha256": "9c84ff942afe042deef85c7d991c202bbc2fde52d5deea25c5d2580d4fd97da8",
-      "candidateBytes": 1650116,
+      "candidateSha256": "d23cb10384523455375e99057622372d7262a9abe0605d5cef413a9b920f63e1",
+      "candidateBytes": 1650144,
       "runtimeSha256After": "525e97a2cdd9c29e24ffcd06fe6cd42c0c99a799fb81e835975cb8014a3c78c6"
     },
     {

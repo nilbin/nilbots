@@ -41,7 +41,88 @@ const kestrelTierPath = path.join(
   'art/class-models/runtime-tiers/arc-relay/meshy7-kestrel-review-v1/arc-kestrel-lean.glb',
 );
 const targetPlanformSpan = 0.99;
-const facingYawDegrees = 180;
+const facingCorrections = new Map([
+  ['kestrel', {
+    sourceFacing: '-x',
+    yawDegrees: 180,
+    evidence: '+X camera matches the tapered beam face; -X shows the paired rear exhaust blocks.',
+  }],
+  ['palisade', {
+    sourceFacing: '-x',
+    yawDegrees: 180,
+    evidence: '+X camera matches the broad blue shield/front; -X shows the gold-and-black rear block.',
+  }],
+  ['towline', {
+    sourceFacing: '-x',
+    yawDegrees: 180,
+    evidence: '+X camera exposes the cable spool and forward beam face; -X is the closed rear plate.',
+  }],
+  ['patchbay', {
+    sourceFacing: '-x',
+    yawDegrees: 180,
+    evidence: '+X camera matches the orange patch face and lateral repair arm; -X is the rear block.',
+  }],
+  ['lantern', {
+    sourceFacing: '+z',
+    yawDegrees: 90,
+    evidence: 'Before correction, the -Z camera matches the circular black beam aperture and +Z shows the rectangular back pack.',
+  }],
+  ['mortar', {
+    sourceFacing: '+z',
+    yawDegrees: 90,
+    evidence: 'Before correction, the -Z camera reveals the forward emitter below the launch deck and +Z is the boxed rear.',
+  }],
+  ['minesmith', {
+    sourceFacing: '-x',
+    yawDegrees: 180,
+    evidence: '+X camera shows the twin mine canisters and open front bay; -X is the closed rear shell.',
+  }],
+  ['hush', {
+    sourceFacing: 'fourfold-radial',
+    yawDegrees: 180,
+    evidence: 'The provider output is fourfold rotationally symmetric with no unique front; the ordered-source lobe registration is retained.',
+  }],
+  ['relay', {
+    sourceFacing: '+x',
+    yawDegrees: 0,
+    evidence: 'Before correction, the +X axis looks into the open U throat from the source front; -X is the closed crossbar/back.',
+  }],
+  ['switchback', {
+    sourceFacing: '-x',
+    yawDegrees: 180,
+    evidence: 'The provider output made the two axial ends visually equivalent; the ordered-source registration is retained.',
+  }],
+  ['longshot', {
+    sourceFacing: '-x',
+    yawDegrees: 180,
+    evidence: '+X camera matches the low beam slit; -X shows the orange-outlined rear cells.',
+  }],
+  ['mason', {
+    sourceFacing: '-x',
+    yawDegrees: 180,
+    evidence: '+X camera matches the twin prongs and open forward work bay; -X is the closed rear.',
+  }],
+  ['sunder', {
+    sourceFacing: '+z',
+    yawDegrees: 90,
+    evidence: 'Before correction, the -Z camera matches the circular beam face and +Z shows the closed rear panel.',
+  }],
+  ['repulsor', {
+    sourceFacing: 'twelvefold-radial',
+    yawDegrees: 180,
+    evidence: 'The provider output is twelvefold rotationally symmetric with no unique front; the ordered-source segment registration is retained.',
+  }],
+  ['veil', {
+    sourceFacing: '+z',
+    yawDegrees: 90,
+    evidence: 'Before correction, the -Z camera matches the concave open front and +Z shows the closed rear.',
+  }],
+  ['nest', {
+    sourceFacing: '-x',
+    yawDegrees: 180,
+    evidence: '+X camera matches the open center lane and forward pod caps; -X shows the rear plates.',
+  }],
+]);
 const toolVersion = '4.4.2';
 const profile = {
   simplifyRatio: 0.04,
@@ -65,6 +146,7 @@ const outputTextureCountOverrides = new Map([
 ]);
 const entries = sourceAudit.entries.map((entry) => ({
   ...entry,
+  facingCorrection: facingCorrections.get(entry.classId),
   sourcePath: path.join(repository, entry.rawModel.file),
   outputPath: entry.classId === 'kestrel'
     ? kestrelTierPath
@@ -74,6 +156,8 @@ const entries = sourceAudit.entries.map((entry) => ({
 
 if (entries.length !== 16 || new Set(entries.map((entry) => entry.classId)).size !== 16)
   throw new Error('Meshy 7 fleet audit must contain exactly 16 unique Arc Relay classes.');
+if (entries.some((entry) => !entry.facingCorrection) || facingCorrections.size !== entries.length)
+  throw new Error('Every Arc Relay class must have one source-facing correction.');
 if (classArgumentIndex !== -1 && !entries.some((entry) => entry.classId === classFilter))
   throw new Error(`Unknown --class ${classFilter ?? 'value'}.`);
 for (const entry of entries) validateSource(entry);
@@ -104,14 +188,12 @@ const audit = {
   },
   normalization: {
     orientation: 'identity',
-    sourceFacing: '-x',
+    sourceFacing: 'per-class audited from pinned strict-front and strict-back inputs',
     facing: '+x',
     up: '+y',
     floorY: 0,
-    facingYawDegrees,
     targetPlanformSpan,
-    facingEvidence:
-      'Fixed front camera at source -X, matching the ordered front/right/back Meshy inputs; corrected by 180 degrees for the Nilbots +X contract.',
+    facingCorrections: Object.fromEntries(facingCorrections),
   },
   profile: {
     id: 'lean',
@@ -214,7 +296,7 @@ function buildProfiles() {
         path.join(repository, 'scripts/class-models/correct-provider-facing.mjs'),
         optimized,
         entry.outputPath,
-        String(facingYawDegrees),
+        String(entry.facingCorrection.yawDegrees),
       ]);
     }
   } finally {
@@ -250,7 +332,8 @@ function inspectEntry(entry) {
     normalization?.floorY !== 0 ||
     normalization?.orientation !== 'identity' ||
     normalization?.targetPlanformSpan !== targetPlanformSpan ||
-    normalization?.facingYawDegrees !== facingYawDegrees
+    normalization?.facingYawDegrees !== entry.facingCorrection.yawDegrees ||
+    normalization?.facingCorrectionVersion !== 1
   )
     throw new Error(`${entry.classId}: review artifact normalization drifted.`);
   if (
@@ -276,6 +359,12 @@ function inspectEntry(entry) {
       sha256: entry.rawModel.sha256,
     },
     reusedReviewedKestrel: entry.reused,
+    facing: {
+      sourceFacing: entry.facingCorrection.sourceFacing,
+      targetFacing: '+x',
+      yawDegrees: entry.facingCorrection.yawDegrees,
+      evidence: entry.facingCorrection.evidence,
+    },
     profileOverrides: profileOverrides.get(entry.classId) ?? null,
     budgets,
     artifact: {

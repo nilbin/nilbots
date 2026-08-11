@@ -44,6 +44,7 @@
 
       const modelUrl = new URLSearchParams(location.search).get('model');
       if (!modelUrl) throw new Error('Missing ?model URL.');
+      const view = new URLSearchParams(location.search).get('view') ?? 'front-three-quarter';
       const gltf = await new GLTFLoader().loadAsync(modelUrl);
       const model = gltf.scene;
       scene.add(model);
@@ -58,9 +59,18 @@
       const target = finalBounds.getCenter(new THREE.Vector3());
 
       const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.01, 20);
-      // Every asset has already been corrected to face +X. Keeping this vector fixed makes
-      // every cell a front-right three-quarter view instead of provider-selected framing.
-      camera.position.copy(new THREE.Vector3(1, 0.72, -1).normalize().multiplyScalar(4));
+      const cameraVectors = {
+        'front-three-quarter': new THREE.Vector3(1, 0.72, -1),
+        'positive-x': new THREE.Vector3(1, 0.12, 0),
+        'negative-x': new THREE.Vector3(-1, 0.12, 0),
+        'positive-z': new THREE.Vector3(0, 0.12, 1),
+        'negative-z': new THREE.Vector3(0, 0.12, -1),
+      };
+      const cameraVector = cameraVectors[view];
+      if (!cameraVector) throw new Error(`Unknown ?view=${view}.`);
+      // The default is the fleet's canonical +X-front review camera. Cardinal views are
+      // diagnostic: they let the raw provider output be compared with its pinned source.
+      camera.position.copy(cameraVector.normalize().multiplyScalar(4));
       camera.lookAt(target);
       camera.updateMatrixWorld();
 

@@ -72,6 +72,9 @@ try {
     records.push({
       classId: entry.classId,
       artifact: entry.artifact.file,
+      sourceFacing: entry.facing.sourceFacing,
+      facingYawDegrees: entry.facing.yawDegrees,
+      facingEvidence: entry.facing.evidence,
       facing: '+x',
       camera: '+x/+y/-z front-right three-quarter',
       canvasKind,

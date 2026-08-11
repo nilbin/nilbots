@@ -11,13 +11,93 @@
   },
   "normalization": {
     "orientation": "identity",
-    "sourceFacing": "-x",
+    "sourceFacing": "per-class audited from pinned strict-front and strict-back inputs",
     "facing": "+x",
     "up": "+y",
     "floorY": 0,
-    "facingYawDegrees": 180,
     "targetPlanformSpan": 0.99,
-    "facingEvidence": "Fixed front camera at source -X, matching the ordered front/right/back Meshy inputs; corrected by 180 degrees for the Nilbots +X contract."
+    "facingCorrections": {
+      "kestrel": {
+        "sourceFacing": "-x",
+        "yawDegrees": 180,
+        "evidence": "+X camera matches the tapered beam face; -X shows the paired rear exhaust blocks."
+      },
+      "palisade": {
+        "sourceFacing": "-x",
+        "yawDegrees": 180,
+        "evidence": "+X camera matches the broad blue shield/front; -X shows the gold-and-black rear block."
+      },
+      "towline": {
+        "sourceFacing": "-x",
+        "yawDegrees": 180,
+        "evidence": "+X camera exposes the cable spool and forward beam face; -X is the closed rear plate."
+      },
+      "patchbay": {
+        "sourceFacing": "-x",
+        "yawDegrees": 180,
+        "evidence": "+X camera matches the orange patch face and lateral repair arm; -X is the rear block."
+      },
+      "lantern": {
+        "sourceFacing": "+z",
+        "yawDegrees": 90,
+        "evidence": "Before correction, the -Z camera matches the circular black beam aperture and +Z shows the rectangular back pack."
+      },
+      "mortar": {
+        "sourceFacing": "+z",
+        "yawDegrees": 90,
+        "evidence": "Before correction, the -Z camera reveals the forward emitter below the launch deck and +Z is the boxed rear."
+      },
+      "minesmith": {
+        "sourceFacing": "-x",
+        "yawDegrees": 180,
+        "evidence": "+X camera shows the twin mine canisters and open front bay; -X is the closed rear shell."
+      },
+      "hush": {
+        "sourceFacing": "fourfold-radial",
+        "yawDegrees": 180,
+        "evidence": "The provider output is fourfold rotationally symmetric with no unique front; the ordered-source lobe registration is retained."
+      },
+      "relay": {
+        "sourceFacing": "+x",
+        "yawDegrees": 0,
+        "evidence": "Before correction, the +X axis looks into the open U throat from the source front; -X is the closed crossbar/back."
+      },
+      "switchback": {
+        "sourceFacing": "-x",
+        "yawDegrees": 180,
+        "evidence": "The provider output made the two axial ends visually equivalent; the ordered-source registration is retained."
+      },
+      "longshot": {
+        "sourceFacing": "-x",
+        "yawDegrees": 180,
+        "evidence": "+X camera matches the low beam slit; -X shows the orange-outlined rear cells."
+      },
+      "mason": {
+        "sourceFacing": "-x",
+        "yawDegrees": 180,
+        "evidence": "+X camera matches the twin prongs and open forward work bay; -X is the closed rear."
+      },
+      "sunder": {
+        "sourceFacing": "+z",
+        "yawDegrees": 90,
+        "evidence": "Before correction, the -Z camera matches the circular beam face and +Z shows the closed rear panel."
+      },
+      "repulsor": {
+        "sourceFacing": "twelvefold-radial",
+        "yawDegrees": 180,
+        "evidence": "The provider output is twelvefold rotationally symmetric with no unique front; the ordered-source segment registration is retained."
+      },
+      "veil": {
+        "sourceFacing": "+z",
+        "yawDegrees": 90,
+        "evidence": "Before correction, the -Z camera matches the concave open front and +Z shows the closed rear."
+      },
+      "nest": {
+        "sourceFacing": "-x",
+        "yawDegrees": 180,
+        "evidence": "+X camera matches the open center lane and forward pod caps; -X shows the rear plates."
+      }
+    }
   },
   "profile": {
     "id": "lean",
@@ -51,7 +131,7 @@
     "tangentSpace": "normal-mapped without authored tangents; Three.js derivative tangent-space review required"
   },
   "totals": {
-    "transferBytes": 33309644,
+    "transferBytes": 33309768,
     "triangles": 1392822,
     "modelGpuBytesRgba8Fallback": 118506828
   },
@@ -66,6 +146,12 @@
         "sha256": "6daeca9df3f60fd9e7260b3fd7ec3dd5ecba15505a440da4c36700cc98ae31b3"
       },
       "reusedReviewedKestrel": true,
+      "facing": {
+        "sourceFacing": "-x",
+        "targetFacing": "+x",
+        "yawDegrees": 180,
+        "evidence": "+X camera matches the tapered beam face; -X shows the paired rear exhaust blocks."
+      },
       "profileOverrides": null,
       "budgets": {
         "transferBytes": 4000000,
@@ -149,6 +235,12 @@
         "sha256": "aa933383aa4f698fca2d56b5ff81e6975df9f620d91c02824a7cf3ed81799ede"
       },
       "reusedReviewedKestrel": false,
+      "facing": {
+        "sourceFacing": "-x",
+        "targetFacing": "+x",
+        "yawDegrees": 180,
+        "evidence": "+X camera matches the broad blue shield/front; -X shows the gold-and-black rear block."
+      },
       "profileOverrides": null,
       "budgets": {
         "transferBytes": 4000000,
@@ -247,6 +339,12 @@
         "sha256": "bf2f9f9c2e1fccb7f4c8700c8fb3b6c3427c2de60ac0be6169c0b6a2b1e2ae61"
       },
       "reusedReviewedKestrel": false,
+      "facing": {
+        "sourceFacing": "-x",
+        "targetFacing": "+x",
+        "yawDegrees": 180,
+        "evidence": "+X camera exposes the cable spool and forward beam face; -X is the closed rear plate."
+      },
       "profileOverrides": null,
       "budgets": {
         "transferBytes": 4000000,
@@ -345,6 +443,12 @@
         "sha256": "fb125c8e07f5c327e5b5b50ae649d14e5bd76c35bd9394f2899569ed4e346d1d"
       },
       "reusedReviewedKestrel": false,
+      "facing": {
+        "sourceFacing": "-x",
+        "targetFacing": "+x",
+        "yawDegrees": 180,
+        "evidence": "+X camera matches the orange patch face and lateral repair arm; -X is the rear block."
+      },
       "profileOverrides": null,
       "budgets": {
         "transferBytes": 4000000,
@@ -443,6 +547,12 @@
         "sha256": "c9891d073356acef06c4c918adda902867282c4ba63f7d08e08e16f1c315e0cc"
       },
       "reusedReviewedKestrel": false,
+      "facing": {
+        "sourceFacing": "+z",
+        "targetFacing": "+x",
+        "yawDegrees": 90,
+        "evidence": "Before correction, the -Z camera matches the circular black beam aperture and +Z shows the rectangular back pack."
+      },
       "profileOverrides": null,
       "budgets": {
         "transferBytes": 4000000,
@@ -450,8 +560,8 @@
       },
       "artifact": {
         "file": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v1/arc-lantern-lean.glb",
-        "bytes": 1628260,
-        "sha256": "f7b63b353e8b9733fb454179f02bc408d1d4a7d37f6c23e9f5f49c8470ea7941"
+        "bytes": 1628296,
+        "sha256": "ebde6a1e246d7fea759970f1649928422e13d7e920470efe5f3f40ec890b764d"
       },
       "triangles": 78288,
       "positionVertices": 53761,
@@ -461,7 +571,7 @@
       "textures": 4,
       "geometrySha256": "23bab836bdd287728db9259f3f2b64e58687260025baefdcbdca73ef404449ba",
       "memory": {
-        "transferBytes": 1628260,
+        "transferBytes": 1628296,
         "geometryGpuBytes": 1544948,
         "textureGpuBytesCompressedTarget": 5592400,
         "textureGpuBytesRgba8Fallback": 5592400,
@@ -541,6 +651,12 @@
         "sha256": "89200842ce905440158ad8d7f9c1036f7fb27348e231945315e4b05dfd81adf5"
       },
       "reusedReviewedKestrel": false,
+      "facing": {
+        "sourceFacing": "+z",
+        "targetFacing": "+x",
+        "yawDegrees": 90,
+        "evidence": "Before correction, the -Z camera reveals the forward emitter below the launch deck and +Z is the boxed rear."
+      },
       "profileOverrides": null,
       "budgets": {
         "transferBytes": 4000000,
@@ -548,8 +664,8 @@
       },
       "artifact": {
         "file": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v1/arc-mortar-lean.glb",
-        "bytes": 1605056,
-        "sha256": "3a2b0fd3d9d9ac6fdf45eee8e841319da242e339c9a3c17be7761cb9d2b72013"
+        "bytes": 1605088,
+        "sha256": "0c5bcecd64f25922aa37f31429aff3c00de423f774e8635b340498822d741f3b"
       },
       "triangles": 79838,
       "positionVertices": 53780,
@@ -559,7 +675,7 @@
       "textures": 3,
       "geometrySha256": "85684c330c2771426401e1e80108293467fc092734a24326ef5745d2e2a1ce15",
       "memory": {
-        "transferBytes": 1605056,
+        "transferBytes": 1605088,
         "geometryGpuBytes": 1554628,
         "textureGpuBytesCompressedTarget": 4194300,
         "textureGpuBytesRgba8Fallback": 4194300,
@@ -624,6 +740,12 @@
         "sha256": "13cdebba6db47bf210e752e8a9f5d8b85fc27cb97d9d9dda82ab112f308e1a63"
       },
       "reusedReviewedKestrel": false,
+      "facing": {
+        "sourceFacing": "-x",
+        "targetFacing": "+x",
+        "yawDegrees": 180,
+        "evidence": "+X camera shows the twin mine canisters and open front bay; -X is the closed rear shell."
+      },
       "profileOverrides": null,
       "budgets": {
         "transferBytes": 4000000,
@@ -722,6 +844,12 @@
         "sha256": "9b824a5dff44bc00e3e8c20fa89a7f785f98cc6ae55aad68a62268b7b3b39d69"
       },
       "reusedReviewedKestrel": false,
+      "facing": {
+        "sourceFacing": "fourfold-radial",
+        "targetFacing": "+x",
+        "yawDegrees": 180,
+        "evidence": "The provider output is fourfold rotationally symmetric with no unique front; the ordered-source lobe registration is retained."
+      },
       "profileOverrides": null,
       "budgets": {
         "transferBytes": 4000000,
@@ -820,6 +948,12 @@
         "sha256": "4b551066767b24cc8d657b60fabacc81e92265f1c863bd38b9ae6f380d42ce75"
       },
       "reusedReviewedKestrel": false,
+      "facing": {
+        "sourceFacing": "+x",
+        "targetFacing": "+x",
+        "yawDegrees": 0,
+        "evidence": "Before correction, the +X axis looks into the open U throat from the source front; -X is the closed crossbar/back."
+      },
       "profileOverrides": null,
       "budgets": {
         "transferBytes": 4000000,
@@ -827,8 +961,8 @@
       },
       "artifact": {
         "file": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v1/arc-relay-lean.glb",
-        "bytes": 1682732,
-        "sha256": "3eb8f77740149a5787b86b7bb4ae5a470f903065a17c6b15b0e00a5d41213746"
+        "bytes": 1682728,
+        "sha256": "21f78ad54a908d8343f2c560b1a206e7ea7380252e89bc0f9ee3444eede7af7f"
       },
       "triangles": 79908,
       "positionVertices": 55762,
@@ -838,7 +972,7 @@
       "textures": 4,
       "geometrySha256": "ea9d52c8dfc993a54ca736adf23a1081dc23029c135e65e9715fcfab62d2d8b8",
       "memory": {
-        "transferBytes": 1682732,
+        "transferBytes": 1682728,
         "geometryGpuBytes": 1594688,
         "textureGpuBytesCompressedTarget": 5592400,
         "textureGpuBytesRgba8Fallback": 5592400,
@@ -918,6 +1052,12 @@
         "sha256": "f8a1dd792658e23462d7d3c73c836535c35cf564e3bce0a88c1a15c4fd555827"
       },
       "reusedReviewedKestrel": false,
+      "facing": {
+        "sourceFacing": "-x",
+        "targetFacing": "+x",
+        "yawDegrees": 180,
+        "evidence": "The provider output made the two axial ends visually equivalent; the ordered-source registration is retained."
+      },
       "profileOverrides": null,
       "budgets": {
         "transferBytes": 4000000,
@@ -1016,6 +1156,12 @@
         "sha256": "1443dba60ed1e827dfc96d553c9cfbaf55a73ba0872f129c992d93b598ea552e"
       },
       "reusedReviewedKestrel": false,
+      "facing": {
+        "sourceFacing": "-x",
+        "targetFacing": "+x",
+        "yawDegrees": 180,
+        "evidence": "+X camera matches the low beam slit; -X shows the orange-outlined rear cells."
+      },
       "profileOverrides": null,
       "budgets": {
         "transferBytes": 4000000,
@@ -1114,6 +1260,12 @@
         "sha256": "36e90dbc35293f188da9eb0b366216d9e2bb8a99b5596b93c2e35f50c636b977"
       },
       "reusedReviewedKestrel": false,
+      "facing": {
+        "sourceFacing": "-x",
+        "targetFacing": "+x",
+        "yawDegrees": 180,
+        "evidence": "+X camera matches the twin prongs and open forward work bay; -X is the closed rear."
+      },
       "profileOverrides": null,
       "budgets": {
         "transferBytes": 4000000,
@@ -1212,6 +1364,12 @@
         "sha256": "592e106d378c4a4a557a0b73b9712d3e46bc5b7e0ccbda0fe23e134eb79fa37e"
       },
       "reusedReviewedKestrel": false,
+      "facing": {
+        "sourceFacing": "+z",
+        "targetFacing": "+x",
+        "yawDegrees": 90,
+        "evidence": "Before correction, the -Z camera matches the circular beam face and +Z shows the closed rear panel."
+      },
       "profileOverrides": {
         "simplifyError": 0.01,
         "budgets": {
@@ -1226,8 +1384,8 @@
       },
       "artifact": {
         "file": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v1/arc-sunder-lean.glb",
-        "bytes": 7941300,
-        "sha256": "2686bcfccd5c84b2ba2d2dc68bcf9b76cec5f9706c4a0f8a38d22c0d674f0ce1"
+        "bytes": 7941332,
+        "sha256": "5f40908374c391c883bf7e3c05906100ec884af1b02e3c106067532e8dbcfc3f"
       },
       "triangles": 205096,
       "positionVertices": 269125,
@@ -1237,7 +1395,7 @@
       "textures": 4,
       "geometrySha256": "dbbd7346e69d21b41212932939b2abd53f60820bfb658c4422c859a6a69c5ae9",
       "memory": {
-        "transferBytes": 7941300,
+        "transferBytes": 7941332,
         "geometryGpuBytes": 7843652,
         "textureGpuBytesCompressedTarget": 5592400,
         "textureGpuBytesRgba8Fallback": 5592400,
@@ -1317,6 +1475,12 @@
         "sha256": "93c76060bd9a00fe5c8ba836fe60bfff99875fca365e1113b8cfaf12a34c3596"
       },
       "reusedReviewedKestrel": false,
+      "facing": {
+        "sourceFacing": "twelvefold-radial",
+        "targetFacing": "+x",
+        "yawDegrees": 180,
+        "evidence": "The provider output is twelvefold rotationally symmetric with no unique front; the ordered-source segment registration is retained."
+      },
       "profileOverrides": null,
       "budgets": {
         "transferBytes": 4000000,
@@ -1415,6 +1579,12 @@
         "sha256": "3c9b7ab70a232d1a85045e6e966cb6049aa45b1f39cb68c22ee03925fd87ca35"
       },
       "reusedReviewedKestrel": false,
+      "facing": {
+        "sourceFacing": "+z",
+        "targetFacing": "+x",
+        "yawDegrees": 90,
+        "evidence": "Before correction, the -Z camera matches the concave open front and +Z shows the closed rear."
+      },
       "profileOverrides": null,
       "budgets": {
         "transferBytes": 4000000,
@@ -1422,8 +1592,8 @@
       },
       "artifact": {
         "file": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v1/arc-veil-lean.glb",
-        "bytes": 1650116,
-        "sha256": "9c84ff942afe042deef85c7d991c202bbc2fde52d5deea25c5d2580d4fd97da8"
+        "bytes": 1650144,
+        "sha256": "d23cb10384523455375e99057622372d7262a9abe0605d5cef413a9b920f63e1"
       },
       "triangles": 78408,
       "positionVertices": 54130,
@@ -1433,7 +1603,7 @@
       "textures": 4,
       "geometrySha256": "b08c069ab711419978a21153adef2b3c72fdd79321e18d6d090ea3bd8f09177a",
       "memory": {
-        "transferBytes": 1650116,
+        "transferBytes": 1650144,
         "geometryGpuBytes": 1553048,
         "textureGpuBytesCompressedTarget": 5592400,
         "textureGpuBytesRgba8Fallback": 5592400,
@@ -1513,6 +1683,12 @@
         "sha256": "3e6874d5d1da75592169654802d3a052d9aa67a73881a799791f4f89199d05a2"
       },
       "reusedReviewedKestrel": false,
+      "facing": {
+        "sourceFacing": "-x",
+        "targetFacing": "+x",
+        "yawDegrees": 180,
+        "evidence": "+X camera matches the open center lane and forward pod caps; -X shows the rear plates."
+      },
       "profileOverrides": null,
       "budgets": {
         "transferBytes": 4000000,

@@ -5,7 +5,7 @@ Status: **owner review only**. These files have not replaced the approved runtim
 This tier applies the already reviewed Kestrel lean profile to all sixteen Meshy 7 concepts:
 
 - upright `+Y`, grounded at `Y=0`, and normalized to a `0.99`-tile planform;
-- source front inspected at `-X`, then corrected by 180 degrees to the Nilbots `+X` contract;
+- each source front audited independently against its pinned strict-front/back inputs, then corrected from raw `-X`, `+X`, or `+Z` to the Nilbots `+X` contract;
 - quantized review geometry and embedded 512 px WebP maps;
 - one fused authored material per bot, with renderer-owned team presentation left intact.
 

@@ -24,20 +24,20 @@
     "arc-veil"
   ],
   "expectedCandidateModels": [
-    "model-51KiNKIh.glb",
+    "model-6FghbvnN.glb",
+    "model-9rcbaI08.glb",
     "model-BBE9_548.glb",
-    "model-BuiUz_Am.glb",
     "model-C47RZKDb.glb",
     "model-C7X4hY-I.glb",
-    "model-CT0eID2s.glb",
+    "model-CdPsZRcW.glb",
     "model-Cjyl9rMn.glb",
+    "model-CqzOhjaa.glb",
     "model-CzugOR3s.glb",
     "model-D-nHDNEl.glb",
     "model-D39Gp2La.glb",
-    "model-DKlbd3R4.glb",
-    "model-DPEBVMOr.glb",
     "model-DPpODPx9.glb",
     "model-DRA63Fw7.glb",
+    "model-DvEayaug.glb",
     "model-NcvbIMX0.glb",
     "model-qWKkqqet.glb"
   ],
@@ -52,23 +52,23 @@
         "width": 1440,
         "height": 900
       },
-      "readyMilliseconds": 11922,
+      "readyMilliseconds": 11255,
       "canvasKind": "webgl",
       "loadedCandidateModels": [
-        "model-51KiNKIh.glb",
+        "model-6FghbvnN.glb",
+        "model-9rcbaI08.glb",
         "model-BBE9_548.glb",
-        "model-BuiUz_Am.glb",
         "model-C47RZKDb.glb",
         "model-C7X4hY-I.glb",
-        "model-CT0eID2s.glb",
+        "model-CdPsZRcW.glb",
         "model-Cjyl9rMn.glb",
+        "model-CqzOhjaa.glb",
         "model-CzugOR3s.glb",
         "model-D-nHDNEl.glb",
         "model-D39Gp2La.glb",
-        "model-DKlbd3R4.glb",
-        "model-DPEBVMOr.glb",
         "model-DPpODPx9.glb",
         "model-DRA63Fw7.glb",
+        "model-DvEayaug.glb",
         "model-NcvbIMX0.glb",
         "model-qWKkqqet.glb"
       ],
@@ -90,11 +90,11 @@
           "status": 200
         },
         {
-          "url": "http://127.0.0.1:9073/assets/model-CT0eID2s.glb",
+          "url": "http://127.0.0.1:9073/assets/model-CdPsZRcW.glb",
           "status": 200
         },
         {
-          "url": "http://127.0.0.1:9073/assets/model-DKlbd3R4.glb",
+          "url": "http://127.0.0.1:9073/assets/model-9rcbaI08.glb",
           "status": 200
         },
         {
@@ -106,7 +106,7 @@
           "status": 200
         },
         {
-          "url": "http://127.0.0.1:9073/assets/model-DPEBVMOr.glb",
+          "url": "http://127.0.0.1:9073/assets/model-CqzOhjaa.glb",
           "status": 200
         },
         {
@@ -122,7 +122,7 @@
           "status": 200
         },
         {
-          "url": "http://127.0.0.1:9073/assets/model-51KiNKIh.glb",
+          "url": "http://127.0.0.1:9073/assets/model-DvEayaug.glb",
           "status": 200
         },
         {
@@ -130,7 +130,7 @@
           "status": 200
         },
         {
-          "url": "http://127.0.0.1:9073/assets/model-BuiUz_Am.glb",
+          "url": "http://127.0.0.1:9073/assets/model-6FghbvnN.glb",
           "status": 200
         },
         {
@@ -139,7 +139,7 @@
         }
       ],
       "screenshot": "art/reviews/arc-relay-meshy7-fleet-v1/desktop-arena.png",
-      "screenshotSha256": "6b84e78fadd090b0d681fba82f886abc727eaf32d02fdbf43a2e5ad661a6c19b",
+      "screenshotSha256": "6a019ecc332ae7bb0cd05aaf729448da64bf6f9264bd20eb41fafdea502bd31a",
       "pageErrors": [],
       "consoleErrors": [],
       "failedRequests": []
@@ -154,23 +154,23 @@
         "width": 844,
         "height": 390
       },
-      "readyMilliseconds": 11506,
+      "readyMilliseconds": 8883,
       "canvasKind": "webgl",
       "loadedCandidateModels": [
-        "model-51KiNKIh.glb",
+        "model-6FghbvnN.glb",
+        "model-9rcbaI08.glb",
         "model-BBE9_548.glb",
-        "model-BuiUz_Am.glb",
         "model-C47RZKDb.glb",
         "model-C7X4hY-I.glb",
-        "model-CT0eID2s.glb",
+        "model-CdPsZRcW.glb",
         "model-Cjyl9rMn.glb",
+        "model-CqzOhjaa.glb",
         "model-CzugOR3s.glb",
         "model-D-nHDNEl.glb",
         "model-D39Gp2La.glb",
-        "model-DKlbd3R4.glb",
-        "model-DPEBVMOr.glb",
         "model-DPpODPx9.glb",
         "model-DRA63Fw7.glb",
+        "model-DvEayaug.glb",
         "model-NcvbIMX0.glb",
         "model-qWKkqqet.glb"
       ],
@@ -192,11 +192,11 @@
           "status": 200
         },
         {
-          "url": "http://127.0.0.1:9073/assets/model-CT0eID2s.glb",
+          "url": "http://127.0.0.1:9073/assets/model-CdPsZRcW.glb",
           "status": 200
         },
         {
-          "url": "http://127.0.0.1:9073/assets/model-DKlbd3R4.glb",
+          "url": "http://127.0.0.1:9073/assets/model-9rcbaI08.glb",
           "status": 200
         },
         {
@@ -208,7 +208,7 @@
           "status": 200
         },
         {
-          "url": "http://127.0.0.1:9073/assets/model-DPEBVMOr.glb",
+          "url": "http://127.0.0.1:9073/assets/model-CqzOhjaa.glb",
           "status": 200
         },
         {
@@ -224,7 +224,7 @@
           "status": 200
         },
         {
-          "url": "http://127.0.0.1:9073/assets/model-51KiNKIh.glb",
+          "url": "http://127.0.0.1:9073/assets/model-DvEayaug.glb",
           "status": 200
         },
         {
@@ -232,7 +232,7 @@
           "status": 200
         },
         {
-          "url": "http://127.0.0.1:9073/assets/model-BuiUz_Am.glb",
+          "url": "http://127.0.0.1:9073/assets/model-6FghbvnN.glb",
           "status": 200
         },
         {
@@ -241,7 +241,7 @@
         }
       ],
       "screenshot": "art/reviews/arc-relay-meshy7-fleet-v1/phone-arena.png",
-      "screenshotSha256": "ac7d977323c74dcf38f45750a1195048e7f611b97cc41e8e723f2501dfe7714a",
+      "screenshotSha256": "6dd6c0a44bb1d3d9fd19f8d611d39479ae0eb921a0f7711d50400368f8c7bb9e",
       "pageErrors": [],
       "consoleErrors": [],
       "failedRequests": []
@@ -249,6 +249,6 @@
   ],
   "overview": {
     "file": "art/reviews/arc-relay-meshy7-fleet-v1/gameplay-overview.png",
-    "sha256": "e2c9e21c34c4c1715696532320d84d9a1903ee0853a6da2e997d48dbb4429e7b"
+    "sha256": "035300af797931d9ce6e2e4c6a73c6bfa31e47fa6fe0a45fad3caeddd548567c"
   }
 }
