@@ -169,6 +169,8 @@ export interface LayoutDocument extends JsonObject {
 }
 
 export interface SheetDraft {
+  /** Editor identity only. This never enters playbook.json or layout.json. */
+  localId: string;
   name: string;
   sheetId: string | null;
   revision: number | null;
@@ -240,6 +242,7 @@ const CONDITION = /^[a-z0-9-]+(?: (?:and|or) [a-z0-9-]+)*$/;
 const DRAFT_DB = 'nilbots-sheet-authoring-v1';
 const DRAFT_STORE = 'drafts';
 export const ACTIVE_DRAFT_KEY = 'active';
+const LOCAL_DRAFT_PREFIX = 'draft:';
 export const UI_STATE_KEY = 'nilbots-sheet-authoring-ui-v1';
 
 export function parseDraft(
@@ -249,6 +252,7 @@ export function parseDraft(
   playbookJson: string,
   layoutJson: string,
   enterLadder = true,
+  localId = sheetId ? `sheet:${sheetId}` : newLocalDraftId(),
 ): SheetDraft {
   const playbook = JSON.parse(playbookJson) as PlaybookDocument;
   const layout = JSON.parse(layoutJson) as LayoutDocument;
@@ -256,7 +260,13 @@ export function parseDraft(
     throw new Error('playbook.json must contain one JSON object.');
   if (!layout || typeof layout !== 'object' || Array.isArray(layout))
     throw new Error('layout.json must contain one JSON object.');
-  return { name, sheetId, revision, enterLadder, playbook, layout };
+  return { localId, name, sheetId, revision, enterLadder, playbook, layout };
+}
+
+function newLocalDraftId(): string {
+  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto)
+    return `local:${crypto.randomUUID()}`;
+  return `local:${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
 }
 
 /** Player-facing assignments compile to role ids. Keep every role reference
@@ -290,6 +300,157 @@ export function setAssignmentTarget(
   role.preferred = nextPreferred;
   role.minimum = Math.min(role.minimum ?? 0, nextPreferred);
   role.maximum = Math.max(role.maximum ?? nextPreferred, nextPreferred);
+}
+
+/** Add a deliberately unstaffed assignment. The player moves part of the
+ * existing eight-body target into it; adding the record itself never silently
+ * steals a body from another job. */
+export function addAssignment(
+  playbook: PlaybookDocument,
+  roleId: string,
+  candidateClass: string,
+  fallbackRoute: string,
+): void {
+  if (playbook.roles.some((role) => role.roleId === roleId))
+    throw new Error(`Assignment '${roleId}' already exists.`);
+  const custody = playbook.custodyPolicies[0]?.custodyId ?? '';
+  playbook.roles.push({
+    roleId,
+    candidateClasses: [candidateClass],
+    minimum: 0,
+    preferred: 0,
+    maximum: 8,
+    carrierPreference: 'allow',
+    deathPolicy: 'hold-vacancy',
+    respawnPolicy: 'rejoin',
+    overflowRoleId: playbook.roles[0]?.roleId ?? roleId,
+    build: ['vitality'],
+  });
+  playbook.doctrines.roles[roleId] = {
+    custody,
+    conceal: true,
+    modes: [{
+      patrol: fallbackRoute,
+      focus: { maximumAttackers: 2 },
+    }],
+  };
+}
+
+/** Duplicate authored behavior without duplicating its staffing claim. */
+export function duplicateAssignment(
+  playbook: PlaybookDocument,
+  sourceRoleId: string,
+  nextRoleId: string,
+): void {
+  const source = playbook.roles.find((role) => role.roleId === sourceRoleId);
+  const doctrine = playbook.doctrines.roles[sourceRoleId];
+  if (!source || !doctrine) throw new Error(`Unknown assignment '${sourceRoleId}'.`);
+  if (playbook.roles.some((role) => role.roleId === nextRoleId))
+    throw new Error(`Assignment '${nextRoleId}' already exists.`);
+  playbook.roles.push({
+    ...structuredClone(source),
+    roleId: nextRoleId,
+    minimum: 0,
+    preferred: 0,
+  });
+  playbook.doctrines.roles[nextRoleId] = structuredClone(doctrine);
+}
+
+export function moveAssignment(
+  playbook: PlaybookDocument,
+  roleId: string,
+  delta: -1 | 1,
+): void {
+  const index = playbook.roles.findIndex((role) => role.roleId === roleId);
+  const destination = index + delta;
+  if (index < 0 || destination < 0 || destination >= playbook.roles.length) return;
+  const [moving] = playbook.roles.splice(index, 1);
+  playbook.roles.splice(destination, 0, moving);
+}
+
+/** References that must be deliberately redirected before an assignment can
+ * disappear. Self-overflow is ignored because it disappears with the role. */
+export function assignmentRemovalBlockers(
+  playbook: PlaybookDocument,
+  roleId: string,
+): string[] {
+  const blockers: string[] = [];
+  for (const role of playbook.roles) {
+    if (role.roleId !== roleId && role.overflowRoleId === roleId)
+      blockers.push(`${role.roleId} overflows here`);
+  }
+  for (const [owner, doctrine] of Object.entries(playbook.doctrines.roles)) {
+    if (owner === roleId) continue;
+    if (doctrine.modes.some((mode) => mode.follow === roleId))
+      blockers.push(`${owner} follows this assignment`);
+  }
+  for (const [conditionId, condition] of Object.entries(playbook.conditions)) {
+    if (condition.subject === roleId
+        && ([...ROLE_FACTS, ...OPTIONAL_ROLE_FACTS, ...ROLE_ZONE_FACTS] as readonly string[])
+          .includes(condition.fact))
+      blockers.push(`trigger ${conditionId} observes it`);
+  }
+  for (const policy of playbook.custodyPolicies) {
+    if (policy.emergencyRecoveryRoles?.includes(roleId))
+      blockers.push(`${policy.custodyId} authorizes it for emergency recovery`);
+    const fetchers = Object.entries(playbook.doctrines.roles)
+      .filter(([, doctrine]) => doctrine.modes.some((mode) => mode.fetch === policy.custodyId))
+      .map(([owner]) => owner);
+    if (fetchers.length === 1 && fetchers[0] === roleId)
+      blockers.push(`${policy.custodyId} has no other Fetch assignment`);
+  }
+  return [...new Set(blockers)];
+}
+
+export function removeAssignment(
+  playbook: PlaybookDocument,
+  roleId: string,
+): void {
+  if (playbook.roles.length <= 1)
+    throw new Error('A sheet needs at least one assignment.');
+  const blockers = assignmentRemovalBlockers(playbook, roleId);
+  if (blockers.length > 0)
+    throw new Error(`Assignment '${roleId}' is still referenced.`);
+  playbook.roles = playbook.roles.filter((role) => role.roleId !== roleId);
+  delete playbook.doctrines.roles[roleId];
+  normalizeSharedCoordination(playbook);
+  removeOrphanConditions(playbook);
+}
+
+function normalizeSharedCoordination(playbook: PlaybookDocument): void {
+  for (const [modeKey, catalogKey] of [
+    ['focus', 'focus'],
+    ['cohort', 'cohorts'],
+  ] as const) {
+    const catalog = playbook.doctrines[catalogKey];
+    for (const [id, definition] of Object.entries(catalog)) {
+      const consumers = Object.values(playbook.doctrines.roles)
+        .flatMap((doctrine) => doctrine.modes)
+        .filter((mode) => mode[modeKey] === id);
+      if (consumers.length === 1)
+        consumers[0][modeKey] = structuredClone(definition);
+      if (consumers.length < 2) delete catalog[id];
+    }
+  }
+}
+
+function removeOrphanConditions(playbook: PlaybookDocument): void {
+  const used = new Set<string>();
+  const collect = (expression: string | undefined) => expression
+    ?.split(/ (?:and|or) /).forEach((token) => used.add(token));
+  for (const doctrine of Object.values(playbook.doctrines.roles)) {
+    doctrine.modes.forEach((mode) => {
+      collect(mode.while);
+      collect(mode.until);
+    });
+  }
+  for (const policy of playbook.custodyPolicies) {
+    collect(policy.safeConversion);
+    collect(policy.baitDrop?.reclaim);
+    collect(policy.emergencyRecovery);
+  }
+  for (const id of Object.keys(playbook.conditions))
+    if (!used.has(id)) delete playbook.conditions[id];
 }
 
 export function assignmentIdFromName(value: string): string {
@@ -970,9 +1131,15 @@ export async function saveLocalDraft(draft: SheetDraft): Promise<void> {
   const db = await openDraftDatabase();
   await new Promise<void>((resolve, reject) => {
     const transaction = db.transaction(DRAFT_STORE, 'readwrite');
-    transaction.objectStore(DRAFT_STORE).put({
-      key: ACTIVE_DRAFT_KEY,
+    const store = transaction.objectStore(DRAFT_STORE);
+    store.put({
+      key: `${LOCAL_DRAFT_PREFIX}${draft.localId}`,
       value: draft,
+      updatedAt: Date.now(),
+    });
+    store.put({
+      key: ACTIVE_DRAFT_KEY,
+      localId: draft.localId,
       updatedAt: Date.now(),
     });
     transaction.oncomplete = () => resolve();
@@ -981,16 +1148,74 @@ export async function saveLocalDraft(draft: SheetDraft): Promise<void> {
   db.close();
 }
 
-export async function loadLocalDraft(): Promise<SheetDraft | null> {
+export async function loadLocalDraft(localId?: string): Promise<SheetDraft | null> {
   if (typeof indexedDB === 'undefined') return null;
   const db = await openDraftDatabase();
-  const result = await new Promise<{ value?: SheetDraft } | undefined>((resolve, reject) => {
-    const request = db.transaction(DRAFT_STORE).objectStore(DRAFT_STORE).get(ACTIVE_DRAFT_KEY);
-    request.onsuccess = () => resolve(request.result as { value?: SheetDraft } | undefined);
+  const active = localId ? undefined : await readLocalRecord(db, ACTIVE_DRAFT_KEY);
+  // v1 stored the whole draft in the active record. Read it once and let the
+  // next autosave migrate it to the multi-draft layout.
+  if (!localId && active?.value) {
+    db.close();
+    return normalizeLocalDraft(active.value);
+  }
+  const resolvedId = localId ?? active?.localId;
+  if (!resolvedId) {
+    db.close();
+    return null;
+  }
+  const result = await readLocalRecord(db, `${LOCAL_DRAFT_PREFIX}${resolvedId}`);
+  db.close();
+  return result?.value ? normalizeLocalDraft(result.value) : null;
+}
+
+export async function listLocalDrafts(): Promise<SheetDraft[]> {
+  if (typeof indexedDB === 'undefined') return [];
+  const db = await openDraftDatabase();
+  const records = await new Promise<LocalDraftRecord[]>((resolve, reject) => {
+    const request = db.transaction(DRAFT_STORE).objectStore(DRAFT_STORE).getAll();
+    request.onsuccess = () => resolve(request.result as LocalDraftRecord[]);
     request.onerror = () => reject(request.error);
   });
   db.close();
-  return result?.value ?? null;
+  return records
+    .filter((record) => record.key.startsWith(LOCAL_DRAFT_PREFIX) && record.value)
+    .sort((a, b) => b.updatedAt - a.updatedAt)
+    .map((record) => normalizeLocalDraft(record.value!));
+}
+
+export async function deleteLocalDraft(localId: string): Promise<void> {
+  if (typeof indexedDB === 'undefined') return;
+  const db = await openDraftDatabase();
+  await new Promise<void>((resolve, reject) => {
+    const transaction = db.transaction(DRAFT_STORE, 'readwrite');
+    transaction.objectStore(DRAFT_STORE).delete(`${LOCAL_DRAFT_PREFIX}${localId}`);
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error);
+  });
+  db.close();
+}
+
+interface LocalDraftRecord {
+  key: string;
+  value?: SheetDraft;
+  localId?: string;
+  updatedAt: number;
+}
+
+function readLocalRecord(db: IDBDatabase, key: string): Promise<LocalDraftRecord | undefined> {
+  return new Promise((resolve, reject) => {
+    const request = db.transaction(DRAFT_STORE).objectStore(DRAFT_STORE).get(key);
+    request.onsuccess = () => resolve(request.result as LocalDraftRecord | undefined);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+function normalizeLocalDraft(draft: SheetDraft): SheetDraft {
+  if (draft.localId) return draft;
+  return {
+    ...draft,
+    localId: draft.sheetId ? `sheet:${draft.sheetId}` : newLocalDraftId(),
+  };
 }
 
 /** Convert the shared compiler's path-bearing diagnostic into the editor path model. */

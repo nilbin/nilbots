@@ -1,4 +1,5 @@
 import {
+  useCallback,
   useEffect,
   useId,
   useMemo,
@@ -26,14 +27,21 @@ import {
   CONDITION_OPERATORS,
   TACTICAL_VERBS,
   UI_STATE_KEY,
+  addAssignment,
+  assignmentRemovalBlockers,
   assignmentIdFromName,
+  deleteLocalDraft,
   destinationOf,
+  duplicateAssignment,
   freshMode,
+  listLocalDrafts,
   loadLocalDraft,
+  moveAssignment,
   parseDraft,
   pinDraft,
   predicateSubjectKind,
   renameAssignment,
+  removeAssignment,
   saveLocalDraft,
   setAssignmentTarget,
   sheetIssueFromCompilerError,
@@ -92,6 +100,11 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
   const [activeId, setActiveId] = useState<string | null>(initialSheetId);
   const sheetQuery = useTacticalSheet(activeId);
   const [draft, setDraft] = useState<SheetDraft | null>(null);
+  const draftRef = useRef<SheetDraft | null>(null);
+  const undoStack = useRef<SheetDraft[]>([]);
+  const redoStack = useRef<SheetDraft[]>([]);
+  const [, setHistoryVersion] = useState(0);
+  const [localDrafts, setLocalDrafts] = useState<SheetDraft[]>([]);
   const [layoutHash, setLayoutHash] = useState<string | null>(null);
   const [stockId, setStockId] = useState(catalog.stockOpponents[0]?.id ?? '');
   const [seed, setSeed] = useState('104729');
@@ -109,6 +122,14 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
   const remove = useDeleteTacticalSheet();
   const trial = useTrialTacticalSheet();
 
+  const replaceDraft = useCallback((next: SheetDraft | null) => {
+    draftRef.current = next;
+    undoStack.current = [];
+    redoStack.current = [];
+    setHistoryVersion((value) => value + 1);
+    setDraft(next);
+  }, []);
+
   useEffect(() => {
     if (initialSheetId) {
       setActiveId(initialSheetId);
@@ -116,11 +137,12 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
       return;
     }
     let live = true;
-    void loadLocalDraft().then((local) => {
+    void Promise.all([loadLocalDraft(), listLocalDrafts()]).then(([local, locals]) => {
       if (!live) return;
+      setLocalDrafts(locals);
       const currentLocal = local?.playbook?.doctrines?.roles
         && local.layout.mapId === catalog.map.id ? local : null;
-      setDraft(currentLocal ?? parseDraft(
+      replaceDraft(currentLocal ?? parseDraft(
         'Untitled tactical sheet',
         null,
         null,
@@ -133,19 +155,32 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
       setRestored(currentLocal !== null);
     }).catch(() => {
       if (!live) return;
-      setDraft(parseDraft(
+      replaceDraft(parseDraft(
         'Untitled tactical sheet', null, null,
         catalog.templatePlaybookJson, catalog.templateLayoutJson,
       ));
     });
     return () => { live = false; };
-  }, [catalog.templateLayoutJson, catalog.templatePlaybookJson, initialSheetId]);
+  }, [catalog.map.id, catalog.templateLayoutJson, catalog.templatePlaybookJson, initialSheetId, replaceDraft]);
 
   useEffect(() => {
     if (!sheetQuery.data) return;
-    setDraft(fromServer(sheetQuery.data));
-    setRestored(false);
-  }, [sheetQuery.data]);
+    let live = true;
+    const serverDraft = fromServer(sheetQuery.data);
+    void loadLocalDraft(serverDraft.localId).then((local) => {
+      if (!live) return;
+      const usable = local?.layout.mapId === catalog.map.id
+        && (local.revision ?? 0) >= (serverDraft.revision ?? 0)
+        ? local : serverDraft;
+      replaceDraft(usable);
+      setRestored(usable === local);
+    }).catch(() => {
+      if (!live) return;
+      replaceDraft(serverDraft);
+      setRestored(false);
+    });
+    return () => { live = false; };
+  }, [catalog.map.id, replaceDraft, sheetQuery.data]);
 
   useEffect(() => {
     const action = practiceActionRef.current;
@@ -164,7 +199,12 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
     if (!draft) return;
     let live = true;
     const timer = window.setTimeout(() => {
-      void saveLocalDraft(draft);
+      void saveLocalDraft(draft).then(() => {
+        setLocalDrafts((current) => [
+          draft,
+          ...current.filter((entry) => entry.localId !== draft.localId),
+        ]);
+      });
       void pinDraft(draft).then((prepared) => {
         if (live) setLayoutHash(prepared.layoutSha256);
       });
@@ -206,7 +246,7 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
       catalog.templatePlaybookJson, catalog.templateLayoutJson,
     );
     setActiveId(null);
-    setDraft(next);
+    replaceDraft(next);
     setRestored(false);
     setCompilerIssue(null);
     resetMutations();
@@ -220,6 +260,7 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
     setCompilerIssue(null);
     const prepared = await pinDraft(draft);
     const targetId = asCopy ? null : prepared.draft.sheetId;
+    const previousLocalId = draft.localId;
     try {
       const saved = await save.mutateAsync({
         sheetId: targetId ?? undefined,
@@ -233,8 +274,15 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
       });
       const persisted = fromServer(saved);
       await saveLocalDraft(persisted);
+      if (previousLocalId !== persisted.localId)
+        await deleteLocalDraft(previousLocalId);
       setActiveId(saved.id);
-      setDraft(persisted);
+      replaceDraft(persisted);
+      setLocalDrafts((current) => [
+        persisted,
+        ...current.filter((entry) => entry.localId !== previousLocalId
+          && entry.localId !== persisted.localId),
+      ]);
       setLayoutHash(prepared.layoutSha256);
       setRestored(false);
       if (!targetId)
@@ -295,17 +343,41 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
     if (!draft?.sheetId) return;
     if (!window.confirm(`Delete “${draft.name}”? Ranked-history sheets cannot be deleted.`)) return;
     await remove.mutateAsync(draft.sheetId);
+    await deleteLocalDraft(draft.localId);
     startNew();
   };
 
   const mutate = (change: (next: SheetDraft) => void) => {
-    setDraft((current) => {
-      if (!current) return current;
-      const next = structuredClone(current);
-      change(next);
-      return next;
-    });
+    const current = draftRef.current;
+    if (!current) return;
+    const next = structuredClone(current);
+    change(next);
+    undoStack.current = [...undoStack.current.slice(-79), structuredClone(current)];
+    redoStack.current = [];
+    draftRef.current = next;
+    setDraft(next);
+    setHistoryVersion((value) => value + 1);
   };
+
+  const undo = useCallback(() => {
+    const previous = undoStack.current.pop();
+    const current = draftRef.current;
+    if (!previous || !current) return;
+    redoStack.current.push(structuredClone(current));
+    draftRef.current = previous;
+    setDraft(previous);
+    setHistoryVersion((value) => value + 1);
+  }, []);
+
+  const redo = useCallback(() => {
+    const next = redoStack.current.pop();
+    const current = draftRef.current;
+    if (!next || !current) return;
+    undoStack.current.push(structuredClone(current));
+    draftRef.current = next;
+    setDraft(next);
+    setHistoryVersion((value) => value + 1);
+  }, []);
 
   const resetMutations = () => {
     save.reset();
@@ -313,6 +385,33 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
     remove.reset();
     setCompilerIssue(null);
   };
+
+  useEffect(() => {
+    const shortcut = (event: globalThis.KeyboardEvent) => {
+      if (!(event.metaKey || event.ctrlKey)) return;
+      const target = event.target;
+      const editingText = target instanceof HTMLInputElement
+        || target instanceof HTMLTextAreaElement
+        || target instanceof HTMLSelectElement
+        || target instanceof HTMLElement && target.isContentEditable;
+      if (event.key.toLowerCase() === 'z' && !editingText) {
+        event.preventDefault();
+        if (event.shiftKey) redo(); else undo();
+      }
+      if (event.key.toLowerCase() === 's') {
+        event.preventDefault();
+        if (!save.isPending && blocking.length === 0)
+          void saveDraft(false).catch(() => undefined);
+      }
+      if (event.key === 'Enter' && !editingText) {
+        event.preventDefault();
+        if (!trial.isPending && !save.isPending && blocking.length === 0 && stockId)
+          void runTrial();
+      }
+    };
+    window.addEventListener('keydown', shortcut);
+    return () => window.removeEventListener('keydown', shortcut);
+  });
 
   if (initialSheetId && sheetQuery.isError) return (
     <section className="panel pad" role="alert">
@@ -338,6 +437,32 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
             Restored the last local draft from this device.
           </p>
         )}
+        {localDrafts.some((entry) => !entry.sheetId) && (
+          <div className="border-b border-arena-edge p-2">
+            <p className="lab px-1 pb-2">Device drafts</p>
+            <div className="flex gap-2 overflow-x-auto lg:block">
+              {localDrafts.filter((entry) => !entry.sheetId).map((local) => (
+                <button key={local.localId} type="button"
+                  className={clsx(
+                    'min-h-12 min-w-[190px] rounded-sm border px-2.5 py-2 text-left lg:mb-1 lg:w-full lg:min-w-0',
+                    draft.localId === local.localId
+                      ? 'border-arena-material/60 bg-arena-material/10'
+                      : 'border-transparent bg-arena-deep/25 active:border-arena-edge',
+                  )}
+                  onClick={() => {
+                    setActiveId(null);
+                    replaceDraft(local);
+                    setRestored(true);
+                    resetMutations();
+                    navigate('/entrants/sheets/new');
+                  }}>
+                  <span className="t-body block truncate">{local.name}</span>
+                  <span className="t-micro block">Unsaved · safe on this device</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
         <div className="flex gap-2 overflow-x-auto p-2 lg:block lg:max-h-[300px] lg:overflow-y-auto">
           {sheetsQuery.isPending && <p className="t-micro p-2">Loading…</p>}
           {sheetsQuery.isError && <p className="t-micro p-2 text-arena-hot">Could not load saved sheets.</p>}
@@ -354,6 +479,12 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
               onClick={() => {
                 setActiveId(sheet.id);
                 resetMutations();
+                void loadLocalDraft(`sheet:${sheet.id}`).then((local) => {
+                  if (local?.layout.mapId === catalog.map.id) {
+                    replaceDraft(local);
+                    setRestored(true);
+                  }
+                });
                 navigate(`/entrants/sheets/${sheet.id}/edit`);
               }}
             >
@@ -419,6 +550,12 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
               />
             </label>
             <div className="flex flex-wrap gap-2">
+              <button type="button" className="btn min-h-11 min-w-11" onClick={undo}
+                disabled={undoStack.current.length === 0} aria-label="Undo last sheet change"
+                title="Undo (⌘/Ctrl+Z)">↶</button>
+              <button type="button" className="btn min-h-11 min-w-11" onClick={redo}
+                disabled={redoStack.current.length === 0} aria-label="Redo last sheet change"
+                title="Redo (⌘/Ctrl+Shift+Z)">↷</button>
               <button
                 type="button"
                 className="btn btn-primary min-h-11 flex-1"
@@ -437,6 +574,10 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
               )}
             </div>
           </div>
+          <p className="t-micro mt-2">
+            Draft {draft.sheetId ? `based on revision ${draft.revision}` : 'has not been saved to the server yet'} ·
+            {' '}every change is also kept under this sheet on this device.
+          </p>
           <label className="mt-3 flex min-h-11 items-center gap-2 rounded-sm border border-arena-edge px-3 t-body">
             <input
               type="checkbox"
@@ -598,6 +739,16 @@ function CompositionEditor({ draft, catalog, issues, mutate }: {
       const target = next.playbook.roles.find((entry) => entry.roleId === roleId);
       if (target) change(target);
     });
+  const createAssignment = () => {
+    const roleId = uniqueId('assignment', assignments.map((entry) => entry.roleId));
+    mutate((next) => addAssignment(
+      next.playbook,
+      roleId,
+      next.playbook.composition[0] ?? catalog.classes[0]?.id ?? '',
+      next.layout.routes[0]?.routeId ?? '',
+    ));
+    setActiveAssignmentId(roleId);
+  };
 
   return (
     <div className="flex flex-col gap-4">
@@ -683,13 +834,16 @@ function CompositionEditor({ draft, catalog, issues, mutate }: {
             <div className="mr-auto max-w-2xl">
               <h2 className="type-display text-[23px]">Turn chassis into jobs</h2>
               <p className="t-meta mt-1">
-                A class says what a body can do. An assignment says what it should do in this sheet.
-                Several classes—or several copies of one class—can answer the same assignment.
+                Each body holds exactly one assignment at a time and reads only that assignment’s commands.
+                A chassis may qualify for several jobs, but staffing chooses one.
               </p>
             </div>
             <span className={clsx('pill', totalTargets > catalog.slotCount && 'text-arena-hot')}>
-              {totalTargets}/{catalog.slotCount} target bodies
+              {totalTargets}/{catalog.slotCount} bodies allocated
             </span>
+            <button type="button" className="btn btn-secondary min-h-11" onClick={createAssignment}>
+              ＋ New assignment
+            </button>
           </div>
         </header>
 
@@ -723,7 +877,7 @@ function CompositionEditor({ draft, catalog, issues, mutate }: {
                     </span>
                     <span className="mt-2 flex items-center gap-2">
                       <AssignmentMeter count={assignment.preferred ?? 0} total={catalog.slotCount} />
-                      <span className="t-micro ml-auto">{assignment.preferred ?? 0} target</span>
+                      <span className="t-micro ml-auto">priority {index + 1} · aims for {assignment.preferred ?? 0}</span>
                     </span>
                   </button>
                 );
@@ -746,6 +900,9 @@ function CompositionEditor({ draft, catalog, issues, mutate }: {
             const signatureClasses = activeAssignment.candidateClasses
               .map((id) => classById.get(id)).filter((entry) => entry !== undefined);
             const target = activeAssignment.preferred ?? 0;
+            const removalBlockers = assignmentRemovalBlockers(
+              draft.playbook, activeAssignment.roleId,
+            );
             return (
               <article className="min-w-0 p-3 sm:p-4" data-sheet-path={`roles.${roleIndex}`}>
                 <div className="flex items-center gap-3 border-b border-arena-edge pb-3">
@@ -753,8 +910,26 @@ function CompositionEditor({ draft, catalog, issues, mutate }: {
                   <div className="min-w-0 flex-1">
                     <p className="lab">Selected assignment</p>
                     <h3 className="type-display truncate text-[22px]">{humanizeToken(activeAssignment.roleId)}</h3>
-                    <p className="t-micro">Commands, triggers and custody follow this assignment.</p>
+                    <p className="t-micro">One body gets one assignment. Commands, triggers and Core duty then come from it.</p>
                   </div>
+                  <div className="flex flex-wrap justify-end gap-1">
+                    <button type="button" className="btn min-h-11 min-w-11"
+                      aria-label={`Move ${humanizeToken(activeAssignment.roleId)} earlier in staffing priority`}
+                      title="Earlier staffing priority" disabled={roleIndex === 0}
+                      onClick={() => mutate((next) => moveAssignment(next.playbook, activeAssignment.roleId, -1))}>↑</button>
+                    <button type="button" className="btn min-h-11 min-w-11"
+                      aria-label={`Move ${humanizeToken(activeAssignment.roleId)} later in staffing priority`}
+                      title="Later staffing priority" disabled={roleIndex === assignments.length - 1}
+                      onClick={() => mutate((next) => moveAssignment(next.playbook, activeAssignment.roleId, 1))}>↓</button>
+                  </div>
+                </div>
+
+                <div className="mt-3 rounded-sm border border-arena-material/30 bg-arena-material/8 p-3">
+                  <p className="lab text-arena-material">Staffing priority {roleIndex + 1}</p>
+                  <p className="t-micro mt-1">
+                    If assignments compete for the same eligible body, earlier assignments are staffed first.
+                    This does not change command priority; plays are ordered separately inside the assignment.
+                  </p>
                 </div>
 
                 <div className="mt-3 grid gap-3 xl:grid-cols-[minmax(0,1fr)_220px]">
@@ -957,6 +1132,34 @@ function CompositionEditor({ draft, catalog, issues, mutate }: {
                     </fieldset>
                   </div>
                 </details>
+                <div className="mt-3 flex flex-wrap gap-2 border-t border-arena-edge pt-3">
+                  <button type="button" className="btn min-h-11"
+                    onClick={() => {
+                      const nextId = uniqueId(
+                        `${activeAssignment.roleId}-copy`,
+                        assignments.map((entry) => entry.roleId),
+                      );
+                      mutate((next) => duplicateAssignment(
+                        next.playbook, activeAssignment.roleId, nextId,
+                      ));
+                      setActiveAssignmentId(nextId);
+                    }}>Duplicate assignment</button>
+                  <button type="button" className="btn min-h-11 text-arena-hot"
+                    disabled={assignments.length <= 1 || removalBlockers.length > 0}
+                    title={removalBlockers.join('; ') || undefined}
+                    onClick={() => {
+                      if (!window.confirm(`Remove “${humanizeToken(activeAssignment.roleId)}” and its commands?`)) return;
+                      const nextActive = assignments[roleIndex - 1]?.roleId
+                        ?? assignments[roleIndex + 1]?.roleId ?? '';
+                      mutate((next) => removeAssignment(next.playbook, activeAssignment.roleId));
+                      setActiveAssignmentId(nextActive);
+                    }}>Remove assignment</button>
+                  {removalBlockers.length > 0 && (
+                    <p className="t-micro basis-full text-arena-material">
+                      Redirect before removing: {removalBlockers.join(' · ')}.
+                    </p>
+                  )}
+                </div>
                 <InlineIssues issues={issues} prefix={`roles.${roleIndex}`} />
               </article>
             );

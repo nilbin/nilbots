@@ -6,10 +6,15 @@ import { gunzipSync } from 'node:zlib';
 import { loadReplayObject } from '../src/replayIngress';
 import type { TacticalSheetCatalog } from '../src/site/api';
 import {
+  addAssignment,
+  assignmentRemovalBlockers,
   assignmentIdFromName,
+  duplicateAssignment,
+  moveAssignment,
   parseDraft,
   pinDraft,
   renameAssignment,
+  removeAssignment,
   setAssignmentTarget,
   sheetIssueFromCompilerError,
   stringifyDocument,
@@ -150,6 +155,39 @@ test('assignment staffing targets change only the role-owned staffing band', () 
   assert.equal(source.roles[0].preferred, 3);
   assert.equal(source.roles[0].maximum, 3);
   assert.equal('groups' in source, false);
+});
+
+test('assignment authoring preserves one doctrine per role and explicit staffing order', () => {
+  const source = structuredClone(playbook);
+  addAssignment(source, 'scout', 'kestrel', 'floor-route');
+
+  assert.deepEqual(source.roles.map((role) => role.roleId), ['line', 'scout']);
+  assert.equal(source.roles[1].preferred, 0);
+  assert.equal(source.doctrines.roles.scout.modes.at(-1)?.patrol, 'floor-route');
+
+  duplicateAssignment(source, 'scout', 'screen');
+  assert.equal(source.roles[2].preferred, 0);
+  assert.notEqual(source.doctrines.roles.scout, source.doctrines.roles.screen);
+
+  moveAssignment(source, 'screen', -1);
+  assert.deepEqual(source.roles.map((role) => role.roleId), ['line', 'screen', 'scout']);
+});
+
+test('assignment removal reports semantic references and cleans one-consumer coordination', () => {
+  const source = structuredClone(playbook);
+  addAssignment(source, 'scout', 'kestrel', 'floor-route');
+  source.roles[0].overflowRoleId = 'scout';
+  assert.deepEqual(assignmentRemovalBlockers(source, 'scout'), ['line overflows here']);
+
+  source.roles[0].overflowRoleId = 'line';
+  source.doctrines.focus.shared = { maximumAttackers: 2 };
+  source.doctrines.roles.line.modes[1].focus = 'shared';
+  source.doctrines.roles.scout.modes[0].focus = 'shared';
+  removeAssignment(source, 'scout');
+
+  assert.deepEqual(source.roles.map((role) => role.roleId), ['line']);
+  assert.deepEqual(source.doctrines.roles.line.modes[1].focus, { maximumAttackers: 2 });
+  assert.equal(source.doctrines.focus.shared, undefined);
 });
 
 test('export hashes the exact emitted layout bytes and updates only the layout pin', async () => {
