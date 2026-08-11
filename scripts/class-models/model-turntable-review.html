@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Nilbots fixed-orientation model review</title>
+    <style>
+      html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #17191c; }
+      canvas { display: block; width: 100%; height: 100%; }
+    </style>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "../../web/node_modules/three/build/three.module.js",
+          "three/addons/": "../../web/node_modules/three/examples/jsm/"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <script type="module">
+      import * as THREE from 'three';
+      import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+      const width = innerWidth;
+      const height = innerHeight;
+      const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+      renderer.setPixelRatio(1);
+      renderer.setSize(width, height);
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.05;
+      document.body.append(renderer.domElement);
+
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color('#17191c');
+      scene.add(new THREE.HemisphereLight('#fffaf0', '#343a43', 2.8));
+      const key = new THREE.DirectionalLight('#fff2d5', 3.4);
+      key.position.set(3, 5, -4);
+      scene.add(key);
+      const fill = new THREE.DirectionalLight('#dce8ff', 1.6);
+      fill.position.set(-4, 2, 3);
+      scene.add(fill);
+
+      const modelUrl = new URLSearchParams(location.search).get('model');
+      if (!modelUrl) throw new Error('Missing ?model URL.');
+      const gltf = await new GLTFLoader().loadAsync(modelUrl);
+      const model = gltf.scene;
+      scene.add(model);
+
+      const bounds = new THREE.Box3().setFromObject(model);
+      const centre = bounds.getCenter(new THREE.Vector3());
+      model.position.x -= centre.x;
+      model.position.z -= centre.z;
+      const grounded = new THREE.Box3().setFromObject(model);
+      model.position.y -= grounded.min.y;
+      const finalBounds = new THREE.Box3().setFromObject(model);
+      const target = finalBounds.getCenter(new THREE.Vector3());
+
+      const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.01, 20);
+      // Every asset has already been corrected to face +X. Keeping this vector fixed makes
+      // every cell a front-right three-quarter view instead of provider-selected framing.
+      camera.position.copy(new THREE.Vector3(1, 0.72, -1).normalize().multiplyScalar(4));
+      camera.lookAt(target);
+      camera.updateMatrixWorld();
+
+      const corners = [];
+      for (const x of [finalBounds.min.x, finalBounds.max.x])
+        for (const y of [finalBounds.min.y, finalBounds.max.y])
+          for (const z of [finalBounds.min.z, finalBounds.max.z])
+            corners.push(new THREE.Vector3(x, y, z));
+      let maximum = 0;
+      for (const corner of corners) {
+        const projected = corner.clone().project(camera);
+        maximum = Math.max(maximum, Math.abs(projected.x), Math.abs(projected.y));
+      }
+      const half = Math.max(maximum, 0.01) * 1.16;
+      camera.left = -half;
+      camera.right = half;
+      camera.top = half;
+      camera.bottom = -half;
+      camera.updateProjectionMatrix();
+      renderer.render(scene, camera);
+      window.__modelTurntableReady = true;
+    </script>
+  </body>
+</html>

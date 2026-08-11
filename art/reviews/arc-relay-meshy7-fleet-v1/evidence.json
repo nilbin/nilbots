@@ -1,0 +1,254 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Unapproved Meshy 7 complete-fleet real-game owner review",
+  "url": "http://127.0.0.1:9073/?standalone&audio=off",
+  "canonicalReplay": "sandbox/meshy7-pilot/fleet-game-review/match/replay.json.gz",
+  "canonicalReplayHash": "7614425d216e6be8c6a074fe1cfc482a8398e07d76f73a8fe023591c32d6b57d",
+  "tick": 0,
+  "activeLookIds": [
+    "arc-hush",
+    "arc-kestrel",
+    "arc-lantern",
+    "arc-longshot",
+    "arc-mason",
+    "arc-minesmith",
+    "arc-mortar",
+    "arc-nest",
+    "arc-palisade",
+    "arc-patchbay",
+    "arc-relay",
+    "arc-repulsor",
+    "arc-sunder",
+    "arc-switchback",
+    "arc-towline",
+    "arc-veil"
+  ],
+  "expectedCandidateModels": [
+    "model-51KiNKIh.glb",
+    "model-BBE9_548.glb",
+    "model-BuiUz_Am.glb",
+    "model-C47RZKDb.glb",
+    "model-C7X4hY-I.glb",
+    "model-CT0eID2s.glb",
+    "model-Cjyl9rMn.glb",
+    "model-CzugOR3s.glb",
+    "model-D-nHDNEl.glb",
+    "model-D39Gp2La.glb",
+    "model-DKlbd3R4.glb",
+    "model-DPEBVMOr.glb",
+    "model-DPpODPx9.glb",
+    "model-DRA63Fw7.glb",
+    "model-NcvbIMX0.glb",
+    "model-qWKkqqet.glb"
+  ],
+  "captures": [
+    {
+      "viewport": "desktop",
+      "viewportPixels": {
+        "width": 1440,
+        "height": 900
+      },
+      "arenaPixels": {
+        "width": 1440,
+        "height": 900
+      },
+      "readyMilliseconds": 11922,
+      "canvasKind": "webgl",
+      "loadedCandidateModels": [
+        "model-51KiNKIh.glb",
+        "model-BBE9_548.glb",
+        "model-BuiUz_Am.glb",
+        "model-C47RZKDb.glb",
+        "model-C7X4hY-I.glb",
+        "model-CT0eID2s.glb",
+        "model-Cjyl9rMn.glb",
+        "model-CzugOR3s.glb",
+        "model-D-nHDNEl.glb",
+        "model-D39Gp2La.glb",
+        "model-DKlbd3R4.glb",
+        "model-DPEBVMOr.glb",
+        "model-DPpODPx9.glb",
+        "model-DRA63Fw7.glb",
+        "model-NcvbIMX0.glb",
+        "model-qWKkqqet.glb"
+      ],
+      "glbResponses": [
+        {
+          "url": "http://127.0.0.1:9073/assets/model-BBE9_548.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:9073/assets/model-D39Gp2La.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:9073/assets/model-C7X4hY-I.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:9073/assets/model-NcvbIMX0.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:9073/assets/model-CT0eID2s.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:9073/assets/model-DKlbd3R4.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:9073/assets/model-CzugOR3s.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:9073/assets/model-DPpODPx9.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:9073/assets/model-DPEBVMOr.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:9073/assets/model-DRA63Fw7.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:9073/assets/model-C47RZKDb.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:9073/assets/model-Cjyl9rMn.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:9073/assets/model-51KiNKIh.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:9073/assets/model-D-nHDNEl.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:9073/assets/model-BuiUz_Am.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:9073/assets/model-qWKkqqet.glb",
+          "status": 200
+        }
+      ],
+      "screenshot": "art/reviews/arc-relay-meshy7-fleet-v1/desktop-arena.png",
+      "screenshotSha256": "6b84e78fadd090b0d681fba82f886abc727eaf32d02fdbf43a2e5ad661a6c19b",
+      "pageErrors": [],
+      "consoleErrors": [],
+      "failedRequests": []
+    },
+    {
+      "viewport": "phone",
+      "viewportPixels": {
+        "width": 844,
+        "height": 390
+      },
+      "arenaPixels": {
+        "width": 844,
+        "height": 390
+      },
+      "readyMilliseconds": 11506,
+      "canvasKind": "webgl",
+      "loadedCandidateModels": [
+        "model-51KiNKIh.glb",
+        "model-BBE9_548.glb",
+        "model-BuiUz_Am.glb",
+        "model-C47RZKDb.glb",
+        "model-C7X4hY-I.glb",
+        "model-CT0eID2s.glb",
+        "model-Cjyl9rMn.glb",
+        "model-CzugOR3s.glb",
+        "model-D-nHDNEl.glb",
+        "model-D39Gp2La.glb",
+        "model-DKlbd3R4.glb",
+        "model-DPEBVMOr.glb",
+        "model-DPpODPx9.glb",
+        "model-DRA63Fw7.glb",
+        "model-NcvbIMX0.glb",
+        "model-qWKkqqet.glb"
+      ],
+      "glbResponses": [
+        {
+          "url": "http://127.0.0.1:9073/assets/model-BBE9_548.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:9073/assets/model-D39Gp2La.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:9073/assets/model-C7X4hY-I.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:9073/assets/model-NcvbIMX0.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:9073/assets/model-CT0eID2s.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:9073/assets/model-DKlbd3R4.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:9073/assets/model-CzugOR3s.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:9073/assets/model-DPpODPx9.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:9073/assets/model-DPEBVMOr.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:9073/assets/model-DRA63Fw7.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:9073/assets/model-C47RZKDb.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:9073/assets/model-Cjyl9rMn.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:9073/assets/model-51KiNKIh.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:9073/assets/model-D-nHDNEl.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:9073/assets/model-BuiUz_Am.glb",
+          "status": 200
+        },
+        {
+          "url": "http://127.0.0.1:9073/assets/model-qWKkqqet.glb",
+          "status": 200
+        }
+      ],
+      "screenshot": "art/reviews/arc-relay-meshy7-fleet-v1/phone-arena.png",
+      "screenshotSha256": "ac7d977323c74dcf38f45750a1195048e7f611b97cc41e8e723f2501dfe7714a",
+      "pageErrors": [],
+      "consoleErrors": [],
+      "failedRequests": []
+    }
+  ],
+  "overview": {
+    "file": "art/reviews/arc-relay-meshy7-fleet-v1/gameplay-overview.png",
+    "sha256": "e2c9e21c34c4c1715696532320d84d9a1903ee0853a6da2e997d48dbb4429e7b"
+  }
+}

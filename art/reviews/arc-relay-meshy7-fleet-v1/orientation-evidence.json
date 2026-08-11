@@ -1,0 +1,222 @@
+{
+  "schemaVersion": 1,
+  "sourceAudit": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v1/audit.json",
+  "facing": "+x",
+  "up": "+y",
+  "floorY": 0,
+  "camera": "+x/+y/-z front-right three-quarter",
+  "sheet": {
+    "file": "art/reviews/arc-relay-meshy7-fleet-v1/fixed-orientation-sheet.png",
+    "sha256": "117deca31753b07c6fb4b71579cb08df2cc110554225dee269b9514803e4d183"
+  },
+  "captures": [
+    {
+      "classId": "kestrel",
+      "artifact": "art/class-models/runtime-tiers/arc-relay/meshy7-kestrel-review-v1/arc-kestrel-lean.glb",
+      "facing": "+x",
+      "camera": "+x/+y/-z front-right three-quarter",
+      "canvasKind": "webgl",
+      "modelResponse": {
+        "url": "http://127.0.0.1:9074/art/class-models/runtime-tiers/arc-relay/meshy7-kestrel-review-v1/arc-kestrel-lean.glb",
+        "status": 200
+      },
+      "tile": "sandbox/meshy7-pilot/fleet-game-review/fixed-orientation/kestrel.png",
+      "tileSha256": "88957bb99c8b53c4e8cbfe02766555a5d60857f1cb52407cc0c8e32669c9737a"
+    },
+    {
+      "classId": "palisade",
+      "artifact": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v1/arc-palisade-lean.glb",
+      "facing": "+x",
+      "camera": "+x/+y/-z front-right three-quarter",
+      "canvasKind": "webgl",
+      "modelResponse": {
+        "url": "http://127.0.0.1:9074/art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v1/arc-palisade-lean.glb",
+        "status": 200
+      },
+      "tile": "sandbox/meshy7-pilot/fleet-game-review/fixed-orientation/palisade.png",
+      "tileSha256": "362a5ecd4f5faf5260ea7a27751796108e797eea283f27a851a5e8f09c1153ee"
+    },
+    {
+      "classId": "towline",
+      "artifact": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v1/arc-towline-lean.glb",
+      "facing": "+x",
+      "camera": "+x/+y/-z front-right three-quarter",
+      "canvasKind": "webgl",
+      "modelResponse": {
+        "url": "http://127.0.0.1:9074/art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v1/arc-towline-lean.glb",
+        "status": 200
+      },
+      "tile": "sandbox/meshy7-pilot/fleet-game-review/fixed-orientation/towline.png",
+      "tileSha256": "2fbdf4f67c026c4677f03a3eb058ed4948003e0e1d2e55b2ba82627c9c87ba6c"
+    },
+    {
+      "classId": "patchbay",
+      "artifact": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v1/arc-patchbay-lean.glb",
+      "facing": "+x",
+      "camera": "+x/+y/-z front-right three-quarter",
+      "canvasKind": "webgl",
+      "modelResponse": {
+        "url": "http://127.0.0.1:9074/art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v1/arc-patchbay-lean.glb",
+        "status": 200
+      },
+      "tile": "sandbox/meshy7-pilot/fleet-game-review/fixed-orientation/patchbay.png",
+      "tileSha256": "3e91bd27baabb431ae731ce55f4fd29b9c17467ef0616f4ccde3a85d236ac0e2"
+    },
+    {
+      "classId": "lantern",
+      "artifact": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v1/arc-lantern-lean.glb",
+      "facing": "+x",
+      "camera": "+x/+y/-z front-right three-quarter",
+      "canvasKind": "webgl",
+      "modelResponse": {
+        "url": "http://127.0.0.1:9074/art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v1/arc-lantern-lean.glb",
+        "status": 200
+      },
+      "tile": "sandbox/meshy7-pilot/fleet-game-review/fixed-orientation/lantern.png",
+      "tileSha256": "e2f6e57b69d42b9fdcb9f45d885cd1dbdf5ecac9dca2524f7061fdf12fb0eee5"
+    },
+    {
+      "classId": "mortar",
+      "artifact": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v1/arc-mortar-lean.glb",
+      "facing": "+x",
+      "camera": "+x/+y/-z front-right three-quarter",
+      "canvasKind": "webgl",
+      "modelResponse": {
+        "url": "http://127.0.0.1:9074/art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v1/arc-mortar-lean.glb",
+        "status": 200
+      },
+      "tile": "sandbox/meshy7-pilot/fleet-game-review/fixed-orientation/mortar.png",
+      "tileSha256": "65137dbbdc22eceff1e031af029a49ed2294312b3a68fd99dbb75dc03c333695"
+    },
+    {
+      "classId": "minesmith",
+      "artifact": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v1/arc-minesmith-lean.glb",
+      "facing": "+x",
+      "camera": "+x/+y/-z front-right three-quarter",
+      "canvasKind": "webgl",
+      "modelResponse": {
+        "url": "http://127.0.0.1:9074/art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v1/arc-minesmith-lean.glb",
+        "status": 200
+      },
+      "tile": "sandbox/meshy7-pilot/fleet-game-review/fixed-orientation/minesmith.png",
+      "tileSha256": "337a0c2f1ea60056ceba6f2f09f5b3b25f5e5dadffe453bdebe97cd83b55101a"
+    },
+    {
+      "classId": "hush",
+      "artifact": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v1/arc-hush-lean.glb",
+      "facing": "+x",
+      "camera": "+x/+y/-z front-right three-quarter",
+      "canvasKind": "webgl",
+      "modelResponse": {
+        "url": "http://127.0.0.1:9074/art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v1/arc-hush-lean.glb",
+        "status": 200
+      },
+      "tile": "sandbox/meshy7-pilot/fleet-game-review/fixed-orientation/hush.png",
+      "tileSha256": "4ee0a60010e1556f5eafc40e9c0d001005e19dcb64f657e347a179718f622216"
+    },
+    {
+      "classId": "relay",
+      "artifact": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v1/arc-relay-lean.glb",
+      "facing": "+x",
+      "camera": "+x/+y/-z front-right three-quarter",
+      "canvasKind": "webgl",
+      "modelResponse": {
+        "url": "http://127.0.0.1:9074/art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v1/arc-relay-lean.glb",
+        "status": 200
+      },
+      "tile": "sandbox/meshy7-pilot/fleet-game-review/fixed-orientation/relay.png",
+      "tileSha256": "bebf3169dbcde43d14da314037343a67718176ae12133c6d3fa4a9e0870963e3"
+    },
+    {
+      "classId": "switchback",
+      "artifact": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v1/arc-switchback-lean.glb",
+      "facing": "+x",
+      "camera": "+x/+y/-z front-right three-quarter",
+      "canvasKind": "webgl",
+      "modelResponse": {
+        "url": "http://127.0.0.1:9074/art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v1/arc-switchback-lean.glb",
+        "status": 200
+      },
+      "tile": "sandbox/meshy7-pilot/fleet-game-review/fixed-orientation/switchback.png",
+      "tileSha256": "793156986cf661ad9550f87027fc70593ada6262061377110b4f7e0d7cf02e67"
+    },
+    {
+      "classId": "longshot",
+      "artifact": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v1/arc-longshot-lean.glb",
+      "facing": "+x",
+      "camera": "+x/+y/-z front-right three-quarter",
+      "canvasKind": "webgl",
+      "modelResponse": {
+        "url": "http://127.0.0.1:9074/art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v1/arc-longshot-lean.glb",
+        "status": 200
+      },
+      "tile": "sandbox/meshy7-pilot/fleet-game-review/fixed-orientation/longshot.png",
+      "tileSha256": "4162755ad6c4631127b91aa2890752f7444534ab656236a83ad6b7e7fea02448"
+    },
+    {
+      "classId": "mason",
+      "artifact": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v1/arc-mason-lean.glb",
+      "facing": "+x",
+      "camera": "+x/+y/-z front-right three-quarter",
+      "canvasKind": "webgl",
+      "modelResponse": {
+        "url": "http://127.0.0.1:9074/art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v1/arc-mason-lean.glb",
+        "status": 200
+      },
+      "tile": "sandbox/meshy7-pilot/fleet-game-review/fixed-orientation/mason.png",
+      "tileSha256": "e385456b56b1228a5c6805a01dfbb4a9c99a92a9a9539dfbd663c62da8e3d2c5"
+    },
+    {
+      "classId": "sunder",
+      "artifact": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v1/arc-sunder-lean.glb",
+      "facing": "+x",
+      "camera": "+x/+y/-z front-right three-quarter",
+      "canvasKind": "webgl",
+      "modelResponse": {
+        "url": "http://127.0.0.1:9074/art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v1/arc-sunder-lean.glb",
+        "status": 200
+      },
+      "tile": "sandbox/meshy7-pilot/fleet-game-review/fixed-orientation/sunder.png",
+      "tileSha256": "59822574c589efc382f0356b71200525e7bf86c757c649d5ea63a420e6a94665"
+    },
+    {
+      "classId": "repulsor",
+      "artifact": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v1/arc-repulsor-lean.glb",
+      "facing": "+x",
+      "camera": "+x/+y/-z front-right three-quarter",
+      "canvasKind": "webgl",
+      "modelResponse": {
+        "url": "http://127.0.0.1:9074/art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v1/arc-repulsor-lean.glb",
+        "status": 200
+      },
+      "tile": "sandbox/meshy7-pilot/fleet-game-review/fixed-orientation/repulsor.png",
+      "tileSha256": "9d02586f342e526db18e1b0ba58bb18843dff2ba32f9e996224344f1d044b2f0"
+    },
+    {
+      "classId": "veil",
+      "artifact": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v1/arc-veil-lean.glb",
+      "facing": "+x",
+      "camera": "+x/+y/-z front-right three-quarter",
+      "canvasKind": "webgl",
+      "modelResponse": {
+        "url": "http://127.0.0.1:9074/art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v1/arc-veil-lean.glb",
+        "status": 200
+      },
+      "tile": "sandbox/meshy7-pilot/fleet-game-review/fixed-orientation/veil.png",
+      "tileSha256": "d26943c57f64f98b97bc64a7f54b82fb99faac5bdb56a948871fa00c0e5ae51a"
+    },
+    {
+      "classId": "nest",
+      "artifact": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v1/arc-nest-lean.glb",
+      "facing": "+x",
+      "camera": "+x/+y/-z front-right three-quarter",
+      "canvasKind": "webgl",
+      "modelResponse": {
+        "url": "http://127.0.0.1:9074/art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v1/arc-nest-lean.glb",
+        "status": 200
+      },
+      "tile": "sandbox/meshy7-pilot/fleet-game-review/fixed-orientation/nest.png",
+      "tileSha256": "cae3f20606ed7d263380075bda5ff0fa1cb2c68312f74d246daf99a8b33410f0"
+    }
+  ]
+}
