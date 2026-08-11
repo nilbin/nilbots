@@ -36,12 +36,11 @@ public sealed class TacticalSheetTemplateCatalog
     public TacticalSheetTemplateCatalog()
     {
         Template = Resolve(
-            "starter-hunter",
-            "Starter hunter",
-            "A Tapline-native battle plan: an open hunter, follower-owned support, and a patrol floor.",
-            Resource("BotArena.Sheets.hunter-v1.playbook.json"),
-            Resource("BotArena.Sheets.tapline-base-v1.layout.json"),
-            starterOnly: true);
+            "starter-v1",
+            "Starter sheet",
+            "A small Tapline plan: two Core runners, a midfield line, and one field medic.",
+            Resource("BotArena.Sheets.starter-v1.playbook.json"),
+            Resource("BotArena.Sheets.starter-v1.layout.json"));
         TacticalSheetSource[] opponents =
         [
             Resolve(
@@ -69,15 +68,12 @@ public sealed class TacticalSheetTemplateCatalog
         string name,
         string description,
         string playbookJson,
-        string layoutJson,
-        bool starterOnly = false)
+        string layoutJson)
     {
         JsonObject playbook = JsonNode.Parse(playbookJson)?.AsObject()
             ?? throw new InvalidDataException($"Embedded playbook '{id}' is empty.");
         JsonObject layout = JsonNode.Parse(layoutJson)?.AsObject()
             ?? throw new InvalidDataException($"Embedded layout '{id}' is empty.");
-        if (starterOnly)
-            MakeStarterComposition(playbook);
         layout["layoutId"] = id;
         string mapId = layout["mapId"]?.GetValue<string>()
             ?? throw new InvalidDataException(
@@ -124,31 +120,6 @@ public sealed class TacticalSheetTemplateCatalog
             compilation.Composition,
             compilation.LinkedData,
             Convert.ToHexStringLower(SHA256.HashData(compilation.LinkedData)));
-    }
-
-    private static void MakeStarterComposition(JsonObject playbook)
-    {
-        playbook["composition"] = new JsonArray(
-            "kestrel", "patchbay", "relay", "hush",
-            "hush", "towline", "towline", "palisade");
-        foreach (JsonNode? node in playbook["roles"]!.AsArray())
-        {
-            JsonObject role = node!.AsObject();
-            switch (role["roleId"]!.GetValue<string>())
-            {
-                case "carrier":
-                    role["candidateClasses"] = new JsonArray("hush");
-                    break;
-                case "eyes":
-                    role["candidateClasses"] = new JsonArray("palisade");
-                    break;
-                case "reserve":
-                    role["candidateClasses"] = new JsonArray(
-                        "kestrel", "patchbay", "relay", "hush",
-                        "towline", "palisade", "lantern", "switchback");
-                    break;
-            }
-        }
     }
 
     private static void NormalizeBindings(JsonObject layout, string id)

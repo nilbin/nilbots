@@ -7831,3 +7831,19 @@ two perfectly aligned tails peak at -13.54 dBFS before the shared limiter.
 Pack-wide maxima remain 2.67% above 4 kHz, 0.03% above 12 kHz, -9.61 dBFS
 effective peak, and -26.07 dBFS effective RMS. Runtime manifest version 10 and
 CLI/tool package version 0.9.58 carry the replacement.
+
+## 293. New sheets start from a small native Tapline plan, not Hunter
+
+Owner-directed product ruling (2026-08-11). Hunter is a strategy reference, not
+a suitable blank canvas for a new player. The hosted sheet template is now a
+separate Tapline-native source pair with three readable assignments: two Core
+runners, a five-body midfield line, and one field medic. Its authored geography
+is exactly one zone, one route and one anchor, and every item has a consumer.
+The template uses each currently granted starter class once.
+
+The App no longer embeds or mutates Hunter to manufacture a starter
+composition. Hunter stays tracked and playable; frozen Wellwright stays the
+practice and hosted stock source. The six standard exhibit cells all completed,
+which establishes that the small plan acts coherently but is not a balance
+claim. Template and layout changes do not alter the DSL, compiler, executor,
+Tapline rules, playlist, rating book, canonical replay, or frozen artifacts.

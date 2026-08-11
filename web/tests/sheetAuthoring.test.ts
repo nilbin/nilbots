@@ -263,13 +263,17 @@ test('required root and custody keys fail live validation before save', async ()
   assert.ok(messages.some((message) => message.includes('carrier may convert')));
 });
 
-test('the player validator accepts both tracked Tapline authoring templates', async () => {
+test('the player validator accepts the starter and tracked Tapline reference sheets', async () => {
   const root = new URL(
     '../../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/',
     import.meta.url,
   );
-  const layoutJson = readFileSync(new URL('layouts/tapline-base-v1.json', root), 'utf8');
-  for (const name of ['hunter-tapline-v1', 'wellwright-tapline-v1']) {
+  for (const [name, layoutName] of [
+    ['starter-tapline-v1', 'starter-tapline-v1'],
+    ['hunter-tapline-v1', 'tapline-base-v1'],
+    ['wellwright-tapline-v1', 'tapline-base-v1'],
+  ]) {
+    const layoutJson = readFileSync(new URL(`layouts/${layoutName}.json`, root), 'utf8');
     const playbookJson = readFileSync(new URL(`playbooks/${name}.json`, root), 'utf8');
     const source = JSON.parse(playbookJson) as PlaybookDocument;
     const classIds = [...new Set([

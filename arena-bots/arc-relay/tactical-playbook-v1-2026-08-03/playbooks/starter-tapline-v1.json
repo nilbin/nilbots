@@ -1,0 +1,224 @@
+{
+  "schema": "arc-relay-tactical-playbook-v1",
+  "playbookId": "starter-tapline-v1",
+  "auditStatus": {
+    "provisionalEvaluationOnly": true,
+    "playerFacingProductSchema": false
+  },
+  "composition": [
+    "relay",
+    "switchback",
+    "kestrel",
+    "palisade",
+    "towline",
+    "lantern",
+    "hush",
+    "patchbay"
+  ],
+  "layout": {
+    "path": "../layouts/starter-tapline-v1.json",
+    "sha256": "f30aa266194bafb2e9ba2109cb7a8bd1da43c7abd8c460ac3b2331a47ad901bf"
+  },
+  "memory": {
+    "enemyUnavailableTicks": 21,
+    "lastSeenEnemyTicks": 30,
+    "securedCoreTicks": 40,
+    "objectiveProgressTicks": 90
+  },
+  "roles": [
+    {
+      "roleId": "runner",
+      "candidateClasses": [
+        "relay",
+        "switchback"
+      ],
+      "minimum": 2,
+      "preferred": 2,
+      "maximum": 2,
+      "carrierPreference": "require",
+      "deathPolicy": "hold-vacancy",
+      "respawnPolicy": "rejoin",
+      "overflowRoleId": ""
+    },
+    {
+      "roleId": "line",
+      "candidateClasses": [
+        "kestrel",
+        "palisade",
+        "towline",
+        "lantern",
+        "hush"
+      ],
+      "minimum": 5,
+      "preferred": 5,
+      "maximum": 5,
+      "carrierPreference": "forbid",
+      "deathPolicy": "hold-vacancy",
+      "respawnPolicy": "rejoin",
+      "overflowRoleId": ""
+    },
+    {
+      "roleId": "medic",
+      "candidateClasses": [
+        "patchbay"
+      ],
+      "minimum": 1,
+      "preferred": 1,
+      "maximum": 1,
+      "carrierPreference": "forbid",
+      "deathPolicy": "hold-vacancy",
+      "respawnPolicy": "rejoin",
+      "overflowRoleId": ""
+    }
+  ],
+  "custodyPolicies": [
+    {
+      "custodyId": "core-run",
+      "sourceWells": [
+        "north",
+        "centre",
+        "south"
+      ],
+      "pickupReservationTicks": 8,
+      "transferTimeoutTicks": 8,
+      "deliveryTimeoutTicks": 120,
+      "accidentalPickup": "deliver",
+      "dropRecovery": "nearest-authorized",
+      "pickupSelection": "nearest-authorized",
+      "unreachableFallback": "guard",
+      "safeConversion": "always"
+    }
+  ],
+  "doctrines": {
+    "roles": {
+      "runner": {
+        "custody": "core-run",
+        "conceal": false,
+        "fight": {
+          "targets": {
+            "prefer": [
+              "carrier",
+              "weakest"
+            ]
+          },
+          "chase": {
+            "leash": 1,
+            "persistTicks": 4
+          },
+          "defense": {
+            "radius": 2,
+            "return": true
+          }
+        },
+        "modes": [
+          {
+            "fetch": "core-run"
+          },
+          {
+            "patrol": "home-circuit",
+            "posture": "core",
+            "focus": {
+              "maximumAttackers": 2
+            }
+          }
+        ]
+      },
+      "line": {
+        "custody": "core-run",
+        "conceal": false,
+        "fight": {
+          "targets": {
+            "prefer": [
+              "carrier",
+              "weakest"
+            ]
+          },
+          "chase": {
+            "leash": 3,
+            "persistTicks": 12
+          },
+          "defense": {
+            "radius": 4,
+            "return": true
+          }
+        },
+        "modes": [
+          {
+            "intercept": "enemy-carriers",
+            "from": "home-gate",
+            "while": "carrier-seen",
+            "until": "carrier-clear",
+            "focus": {
+              "maximumAttackers": 5
+            }
+          },
+          {
+            "patrol": {
+              "zone": "midfield"
+            },
+            "posture": "core",
+            "focus": {
+              "maximumAttackers": 4
+            }
+          }
+        ]
+      },
+      "medic": {
+        "custody": "core-run",
+        "conceal": false,
+        "fight": {
+          "targets": {
+            "prefer": [
+              "carrier",
+              "weakest"
+            ]
+          },
+          "chase": {
+            "leash": 0,
+            "persistTicks": 1
+          },
+          "defense": {
+            "radius": 3,
+            "return": true
+          }
+        },
+        "repair": {
+          "prefer": [
+            "carrier",
+            "weakest",
+            "any"
+          ],
+          "maximumProvidersPerTarget": 1,
+          "minimumProviderSeparation": 2,
+          "reserveHealthPercent": 30,
+          "survivalFallback": "evade"
+        },
+        "modes": [
+          {
+            "patrol": {
+              "zone": "midfield"
+            },
+            "posture": "rear",
+            "focus": {
+              "maximumAttackers": 1
+            }
+          }
+        ]
+      }
+    },
+    "cohorts": {},
+    "focus": {}
+  },
+  "conditions": {
+    "carrier-seen": {
+      "fact": "visible-enemy-carriers",
+      "operator": "at-least",
+      "value": 1
+    },
+    "carrier-clear": {
+      "fact": "visible-enemy-carriers",
+      "operator": "equals",
+      "value": 0
+    }
+  }
+}

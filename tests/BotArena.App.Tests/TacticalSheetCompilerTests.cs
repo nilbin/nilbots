@@ -49,7 +49,7 @@ public sealed class TacticalSheetCompilerTests
     }
 
     [Fact]
-    public void Starter_template_is_doctrine_only_and_plotted_on_the_current_map()
+    public void Starter_template_is_minimal_doctrine_only_and_plotted_on_the_current_map()
     {
         var templates = new TacticalSheetTemplateCatalog();
         using JsonDocument playbook = JsonDocument.Parse(
@@ -57,19 +57,47 @@ public sealed class TacticalSheetCompilerTests
         using JsonDocument layout = JsonDocument.Parse(
             templates.Template.LayoutJson);
 
+        Assert.Equal("starter-v1", templates.Template.Id);
         Assert.False(playbook.RootElement.TryGetProperty("orders", out _));
+        string[] composition = playbook.RootElement.GetProperty("composition")
+            .EnumerateArray()
+            .Select(value => value.GetString()!)
+            .ToArray();
+        Assert.Equal(8, composition.Length);
+        Assert.Equal(
+            ArcRelayClassCatalog.Default.StarterIds.Order(StringComparer.Ordinal),
+            composition.Order(StringComparer.Ordinal));
         string[] roles = playbook.RootElement.GetProperty("roles")
             .EnumerateArray()
             .Select(value => value.GetProperty("roleId").GetString()!)
-            .Order(StringComparer.Ordinal)
             .ToArray();
+        Assert.Equal(new[] { "runner", "line", "medic" }, roles);
         string[] doctrineRoles = playbook.RootElement.GetProperty("doctrines")
             .GetProperty("roles")
             .EnumerateObject()
             .Select(value => value.Name)
             .Order(StringComparer.Ordinal)
             .ToArray();
-        Assert.Equal(roles, doctrineRoles);
+        Assert.Equal(roles.Order(StringComparer.Ordinal), doctrineRoles);
+
+        JsonElement zones = layout.RootElement.GetProperty("zones");
+        JsonElement routes = layout.RootElement.GetProperty("routes");
+        JsonElement anchors = layout.RootElement.GetProperty("anchors");
+        Assert.Single(zones.EnumerateArray());
+        Assert.Single(routes.EnumerateArray());
+        Assert.Single(anchors.EnumerateArray());
+        foreach ((JsonElement collection, string idProperty) in new[]
+                 {
+                     (zones, "zoneId"),
+                     (routes, "routeId"),
+                     (anchors, "anchorId"),
+                 })
+        foreach (JsonElement geometry in collection.EnumerateArray())
+        {
+            string id = geometry.GetProperty(idProperty).GetString()!;
+            Assert.Contains($"\"{id}\"", templates.Template.PlaybookJson,
+                StringComparison.Ordinal);
+        }
 
         ActorMapDefinition map = ArcRelayH0Definition.CreateMap(
             ArcRelayLoopProfile.Current);

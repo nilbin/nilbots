@@ -40,7 +40,7 @@ page.on('response', (response) => {
 
 try {
   const suffix = Date.now().toString(36);
-  const sheetName = `Coherence smoke ${suffix}`;
+  const sheetName = `Split screen ${suffix}`;
   await page.emulateMedia({ colorScheme: 'dark' });
   await page.goto(
     `${base}/login?mode=register&returnUrl=${encodeURIComponent('/entrants/sheets/new')}`,
@@ -84,35 +84,55 @@ try {
   }
   await page.screenshot({ path: join(output, 'sheet-workshop-desktop.png'), fullPage: true });
 
-  // Author a real variant rather than merely running the starter unchanged. Body eight
-  // becomes a Lantern, its assignment follows it, and the rename must rewrite every
-  // doctrine/condition reference rather than exposing internal ids to the player.
+  // Author a genuinely different plan rather than merely running the starter unchanged.
+  // Split the starter's five-body line into three home guards and two far-side raiders,
+  // then draw each group's territory on the tactical map. Every mutation below goes
+  // through visible editor controls; the smoke never posts authored JSON directly.
   await page.getByRole('button', { name: 'Squad', exact: true }).click();
-  await page.locator('[aria-label="Fielded bodies"] button').nth(7).click();
-  await page.locator('button').filter({ hasText: /^0\/2Lantern/ }).click();
-  await page.locator('[data-assignment-select="5"]').click();
-  const assignmentPanel = page.locator('[data-sheet-path="roles.5"]');
-  await assignmentPanel.locator('button').filter({ hasText: /^Lantern1 fielded/ }).click();
-  await assignmentPanel.locator('button').filter({ hasText: /^Palisade0 fielded/ }).click();
+  await page.locator('[data-assignment-select="1"]').click();
+  let assignmentPanel = page.locator('[data-sheet-path="roles.1"]');
   const assignmentName = page.getByLabel('Assignment name');
-  await assignmentName.fill('Scout');
+  await assignmentName.fill('Home guard');
   await assignmentName.press('Enter');
-  await page.getByRole('heading', { name: 'Scout', exact: true }).waitFor();
-  if (await assignmentPanel.locator('button').filter({ hasText: /^Lantern1 fielded · choice 1/ })
-    .getAttribute('aria-pressed') !== 'true') {
-    throw new Error('Roster chassis did not follow the renamed assignment.');
-  }
+  await page.getByRole('heading', { name: 'Home Guard', exact: true }).waitFor();
+  await page.getByRole('button', { name: 'Decrease Home Guard target' }).click();
+  await page.getByRole('button', { name: 'Decrease Home Guard target' }).click();
+  await assignmentPanel.getByRole('button', { name: 'Duplicate assignment' }).click();
+  assignmentPanel = page.locator('[data-sheet-path="roles.3"]');
+  await page.getByLabel('Assignment name').fill('Far raiders');
+  await page.getByLabel('Assignment name').press('Enter');
+  await page.getByRole('heading', { name: 'Far Raiders', exact: true }).waitFor();
+  await page.getByRole('button', { name: 'Increase Far Raiders target' }).click();
+  await page.getByRole('button', { name: 'Increase Far Raiders target' }).click();
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({ path: join(output, 'assignments-desktop.png'), fullPage: true });
 
+  await page.getByRole('button', { name: 'Map', exact: true }).click();
+  await page.getByLabel('Map landmark legend').waitFor();
+  await page.getByRole('button', { name: 'zone', exact: true }).click();
+  await page.getByRole('button', { name: 'Add zone', exact: true }).click();
+  await drawMapRectangle(page, [4, 7], [10, 19]);
+  await page.getByRole('button', { name: 'Add zone', exact: true }).click();
+  await drawMapRectangle(page, [20, 7], [26, 19]);
+
   await page.getByRole('button', { name: 'Commands', exact: true }).click();
-  await page.locator('[data-doctrine-select="scout"]').click();
-  const scoutDoctrine = page.locator('[data-sheet-path="doctrines.roles.scout"]');
-  const scoutFallback = scoutDoctrine
-    .locator('details[data-sheet-path^="doctrines.roles.scout.modes."]').last();
-  await scoutFallback.locator(':scope > summary').click();
-  await scoutFallback.getByRole('group', { name: 'Position in the push' })
+  await page.locator('[data-doctrine-select="home-guard"]').click();
+  const guardDoctrine = page.locator('[data-sheet-path="doctrines.roles.home-guard"]');
+  const guardFallback = guardDoctrine
+    .locator('details[data-sheet-path^="doctrines.roles.home-guard.modes."]').last();
+  await guardFallback.locator(':scope > summary').click();
+  await guardFallback.locator('button').filter({ hasText: /^Zone 1(?: · same area)?$/ }).click();
+  await guardFallback.getByRole('group', { name: 'Position in the push' })
     .getByRole('button', { name: 'Rear', exact: true }).click();
+
+  await page.locator('[data-doctrine-select="far-raiders"]').click();
+  const raiderDoctrine = page.locator('[data-sheet-path="doctrines.roles.far-raiders"]');
+  const raiderFallback = raiderDoctrine
+    .locator('details[data-sheet-path^="doctrines.roles.far-raiders.modes."]').last();
+  await raiderFallback.locator(':scope > summary').click();
+  await raiderFallback.locator('button').filter({ hasText: /^Zone 2(?: · same area)?$/ }).click();
+  await raiderFallback.getByRole('group', { name: 'Position in the push' })
+    .getByRole('button', { name: 'Front', exact: true }).click();
 
   await page.setViewportSize({ width: 390, height: 844 });
   const phoneOverflow = await page.evaluate(() =>
@@ -146,6 +166,7 @@ try {
   await page.getByLabel('Map landmark legend').waitFor();
   await page.getByRole('button', { name: 'east side', exact: true }).click();
   await page.getByRole('button', { name: 'west side', exact: true }).click();
+  await page.getByRole('button', { name: 'route', exact: true }).click();
   const reflowWidth = page.getByLabel('local reflow width');
   await reflowWidth.fill('2');
   await page.screenshot({ path: join(output, 'tactics-map-phone.png'), fullPage: true });
@@ -182,9 +203,12 @@ try {
   if (returnOverflow > 1) throw new Error(`Returned editor overflows phone viewport by ${returnOverflow}px.`);
   await page.screenshot({ path: join(output, 'trial-tracks-phone.png'), fullPage: true });
 
-  // Close the loop: change the authored map, rerun with one action, watch again and
-  // return to two comparable run cards. This catches draft loss and revision conflicts.
-  await page.getByLabel('local reflow width').fill('1');
+  // Close the loop: move the far-side assignment's authored territory, rerun with one
+  // action, watch again and return to two comparable run cards. This catches draft loss,
+  // geometry persistence and revision conflicts.
+  await page.getByRole('button', { name: 'zone', exact: true }).click();
+  await page.getByRole('button', { name: 'Zone 2', exact: true }).click();
+  await page.getByRole('img', { name: /binding tactical map editor/ }).press('ArrowUp');
   await page.setViewportSize({ width: 1440, height: 1050 });
   const second = await launchPractice(page, context, base, runButton);
   await page.reload({ waitUntil: 'networkidle' });
@@ -222,6 +246,11 @@ try {
 
   console.log(JSON.stringify({
     sheetName,
+    authoredPlan: {
+      assignments: ['runner:2', 'home-guard:3', 'medic:1', 'far-raiders:2'],
+      territories: ['zone-1', 'zone-2'],
+      authoringTransport: 'visible editor controls only',
+    },
     matchIds: [first.created.id, second.created.id],
     revisions: [1, 2],
     statuses: [first.status, second.status],
@@ -297,4 +326,27 @@ async function visibleCount(locator) {
     if (await candidate.isVisible()) count += 1;
   }
   return count;
+}
+
+async function drawMapRectangle(page, from, to) {
+  await page.getByRole('button', { name: 'Draw zone', exact: true }).click();
+  const map = page.getByRole('img', { name: /binding tactical map editor/ });
+  const box = await map.boundingBox();
+  if (!box) throw new Error('Tactical map has no drawable bounds.');
+  const viewBox = await map.getAttribute('viewBox');
+  const parts = viewBox?.split(/\s+/).map(Number) ?? [];
+  if (parts.length !== 4 || parts.some((value) => !Number.isFinite(value)))
+    throw new Error(`Unexpected tactical map viewBox '${viewBox}'.`);
+  const [, , width, height] = parts;
+  const point = ([x, y]) => ({
+    x: box.x + ((x + 0.5) / width) * box.width,
+    y: box.y + ((y + 0.5) / height) * box.height,
+  });
+  const start = point(from);
+  const end = point(to);
+  await page.mouse.move(start.x, start.y);
+  await page.mouse.down();
+  await page.mouse.move(end.x, end.y, { steps: 8 });
+  await page.mouse.up();
+  await page.getByRole('button', { name: 'Select & pan', exact: true }).click();
 }

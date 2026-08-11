@@ -86,15 +86,17 @@ executor never manufactures hidden facts or game state.
 
 ## Hosted use
 
-The App embeds the current Hunter starter and frozen Wellwright opponent as
-native Warren source pairs. It validates saved sheets through the shared
+The App embeds a deliberately small Tapline starter and the frozen Wellwright
+opponent as separate native source pairs. The starter has three assignments,
+one route, one zone and one anchor; Hunter remains a tracked reference sheet but
+is not the player template. The App validates saved sheets through the shared
 compiler, snapshots the linked package into admitted matches, and runs the
-registered first-party direct-ladder mind. Playlist v9 pins the exact frozen
-mind artifact and Wellwright source hash. Historical v7/v8 playlist definitions
-and artifacts remain immutable.
+registered first-party direct-ladder mind. Playlist v19 pins the current
+Tapline stock identity, exact frozen mind artifact and Wellwright source pair.
+Historical playlist definitions and artifacts remain immutable.
 
 The supported authoring loop is edit → practice → watch → edit. The map editor
-draws the engine-exported Warren; practice uses the same compiler and runtime
+draws the engine-exported Tapline map; practice uses the same compiler and runtime
 path as hosted admission. Raw JSON and hashes remain portable operator tools,
 not the primary player interface.
 
