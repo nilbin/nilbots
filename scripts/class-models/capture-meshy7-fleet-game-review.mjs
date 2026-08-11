@@ -128,8 +128,41 @@ async function capture(viewport) {
       modelResponses.push({ url: response.url(), status: response.status() });
   });
 
+  const replayIndexResponsePromise = page.waitForResponse(
+    (response) => new URL(response.url()).pathname.endsWith('/replays.json'),
+    { timeout: 120_000 },
+  );
+  const replayPayloadResponsePromise = page.waitForResponse(
+    (response) => {
+      const pathname = new URL(response.url()).pathname;
+      return (
+        pathname.endsWith('/replay.json') ||
+        (pathname.includes('/replays/') && pathname.endsWith('.json'))
+      );
+    },
+    { timeout: 120_000 },
+  );
+
   const started = Date.now();
   await page.goto(reviewUrl, { waitUntil: 'domcontentloaded' });
+  const replayResponses = await Promise.all(
+    [await replayIndexResponsePromise, await replayPayloadResponsePromise].map(
+      async (response) => ({
+        url: response.url(),
+        status: response.status(),
+        contentEncoding: await response.headerValue('content-encoding'),
+      }),
+    ),
+  );
+  if (
+    replayResponses.some(
+      (response) => response.status !== 200 || response.contentEncoding !== 'gzip',
+    )
+  )
+    throw new Error(
+      `${viewport.id}: replay index and payload must both arrive gzip-encoded: ` +
+        JSON.stringify(replayResponses),
+    );
   await page.locator('[data-play-overlay="ready"]').waitFor({ timeout: 120_000 });
   const readyMilliseconds = Date.now() - started;
   await page.getByRole('button', { name: 'Play match' }).click();
@@ -201,6 +234,7 @@ async function capture(viewport) {
     canvasKind,
     loadedCandidateModels: [...expectedModelFiles].sort(),
     glbResponses: modelResponses,
+    replayResponses,
     screenshot: path.relative(repository, framePath),
     screenshotSha256: sha256(readFileSync(framePath)),
     pageErrors,

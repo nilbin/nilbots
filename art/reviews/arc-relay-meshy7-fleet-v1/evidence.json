@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "purpose": "Unapproved Meshy 7 complete-fleet real-game owner review",
-  "url": "http://127.0.0.1:9073/?standalone&audio=off",
+  "url": "https://latinas-highways-taxes-jones.trycloudflare.com/?standalone&audio=off",
   "canonicalReplay": "sandbox/meshy7-pilot/fleet-game-review/match/replay.json.gz",
   "canonicalReplayHash": "7614425d216e6be8c6a074fe1cfc482a8398e07d76f73a8fe023591c32d6b57d",
   "tick": 0,
@@ -52,7 +52,7 @@
         "width": 1440,
         "height": 900
       },
-      "readyMilliseconds": 11255,
+      "readyMilliseconds": 28494,
       "canvasKind": "webgl",
       "loadedCandidateModels": [
         "model-6FghbvnN.glb",
@@ -74,72 +74,84 @@
       ],
       "glbResponses": [
         {
-          "url": "http://127.0.0.1:9073/assets/model-BBE9_548.glb",
+          "url": "https://latinas-highways-taxes-jones.trycloudflare.com/assets/model-D39Gp2La.glb",
           "status": 200
         },
         {
-          "url": "http://127.0.0.1:9073/assets/model-D39Gp2La.glb",
+          "url": "https://latinas-highways-taxes-jones.trycloudflare.com/assets/model-BBE9_548.glb",
           "status": 200
         },
         {
-          "url": "http://127.0.0.1:9073/assets/model-C7X4hY-I.glb",
+          "url": "https://latinas-highways-taxes-jones.trycloudflare.com/assets/model-C7X4hY-I.glb",
           "status": 200
         },
         {
-          "url": "http://127.0.0.1:9073/assets/model-NcvbIMX0.glb",
+          "url": "https://latinas-highways-taxes-jones.trycloudflare.com/assets/model-9rcbaI08.glb",
           "status": 200
         },
         {
-          "url": "http://127.0.0.1:9073/assets/model-CdPsZRcW.glb",
+          "url": "https://latinas-highways-taxes-jones.trycloudflare.com/assets/model-CdPsZRcW.glb",
           "status": 200
         },
         {
-          "url": "http://127.0.0.1:9073/assets/model-9rcbaI08.glb",
+          "url": "https://latinas-highways-taxes-jones.trycloudflare.com/assets/model-CzugOR3s.glb",
           "status": 200
         },
         {
-          "url": "http://127.0.0.1:9073/assets/model-CzugOR3s.glb",
+          "url": "https://latinas-highways-taxes-jones.trycloudflare.com/assets/model-NcvbIMX0.glb",
           "status": 200
         },
         {
-          "url": "http://127.0.0.1:9073/assets/model-DPpODPx9.glb",
+          "url": "https://latinas-highways-taxes-jones.trycloudflare.com/assets/model-CqzOhjaa.glb",
           "status": 200
         },
         {
-          "url": "http://127.0.0.1:9073/assets/model-CqzOhjaa.glb",
+          "url": "https://latinas-highways-taxes-jones.trycloudflare.com/assets/model-DPpODPx9.glb",
           "status": 200
         },
         {
-          "url": "http://127.0.0.1:9073/assets/model-DRA63Fw7.glb",
+          "url": "https://latinas-highways-taxes-jones.trycloudflare.com/assets/model-C47RZKDb.glb",
           "status": 200
         },
         {
-          "url": "http://127.0.0.1:9073/assets/model-C47RZKDb.glb",
+          "url": "https://latinas-highways-taxes-jones.trycloudflare.com/assets/model-Cjyl9rMn.glb",
           "status": 200
         },
         {
-          "url": "http://127.0.0.1:9073/assets/model-Cjyl9rMn.glb",
+          "url": "https://latinas-highways-taxes-jones.trycloudflare.com/assets/model-D-nHDNEl.glb",
           "status": 200
         },
         {
-          "url": "http://127.0.0.1:9073/assets/model-DvEayaug.glb",
+          "url": "https://latinas-highways-taxes-jones.trycloudflare.com/assets/model-qWKkqqet.glb",
           "status": 200
         },
         {
-          "url": "http://127.0.0.1:9073/assets/model-D-nHDNEl.glb",
+          "url": "https://latinas-highways-taxes-jones.trycloudflare.com/assets/model-DRA63Fw7.glb",
           "status": 200
         },
         {
-          "url": "http://127.0.0.1:9073/assets/model-6FghbvnN.glb",
+          "url": "https://latinas-highways-taxes-jones.trycloudflare.com/assets/model-6FghbvnN.glb",
           "status": 200
         },
         {
-          "url": "http://127.0.0.1:9073/assets/model-qWKkqqet.glb",
+          "url": "https://latinas-highways-taxes-jones.trycloudflare.com/assets/model-DvEayaug.glb",
           "status": 200
         }
       ],
+      "replayResponses": [
+        {
+          "url": "https://latinas-highways-taxes-jones.trycloudflare.com/replays.json",
+          "status": 200,
+          "contentEncoding": "gzip"
+        },
+        {
+          "url": "https://latinas-highways-taxes-jones.trycloudflare.com/replay.json",
+          "status": 200,
+          "contentEncoding": "gzip"
+        }
+      ],
       "screenshot": "art/reviews/arc-relay-meshy7-fleet-v1/desktop-arena.png",
-      "screenshotSha256": "6a019ecc332ae7bb0cd05aaf729448da64bf6f9264bd20eb41fafdea502bd31a",
+      "screenshotSha256": "f42c3f4fe1d47e38cb08c08261c07f276057b7f28a868808687724935b84906c",
       "pageErrors": [],
       "consoleErrors": [],
       "failedRequests": []
@@ -154,7 +166,7 @@
         "width": 844,
         "height": 390
       },
-      "readyMilliseconds": 8883,
+      "readyMilliseconds": 21017,
       "canvasKind": "webgl",
       "loadedCandidateModels": [
         "model-6FghbvnN.glb",
@@ -176,72 +188,84 @@
       ],
       "glbResponses": [
         {
-          "url": "http://127.0.0.1:9073/assets/model-BBE9_548.glb",
+          "url": "https://latinas-highways-taxes-jones.trycloudflare.com/assets/model-CdPsZRcW.glb",
           "status": 200
         },
         {
-          "url": "http://127.0.0.1:9073/assets/model-D39Gp2La.glb",
+          "url": "https://latinas-highways-taxes-jones.trycloudflare.com/assets/model-CzugOR3s.glb",
           "status": 200
         },
         {
-          "url": "http://127.0.0.1:9073/assets/model-C7X4hY-I.glb",
+          "url": "https://latinas-highways-taxes-jones.trycloudflare.com/assets/model-NcvbIMX0.glb",
           "status": 200
         },
         {
-          "url": "http://127.0.0.1:9073/assets/model-NcvbIMX0.glb",
+          "url": "https://latinas-highways-taxes-jones.trycloudflare.com/assets/model-BBE9_548.glb",
           "status": 200
         },
         {
-          "url": "http://127.0.0.1:9073/assets/model-CdPsZRcW.glb",
+          "url": "https://latinas-highways-taxes-jones.trycloudflare.com/assets/model-C7X4hY-I.glb",
           "status": 200
         },
         {
-          "url": "http://127.0.0.1:9073/assets/model-9rcbaI08.glb",
+          "url": "https://latinas-highways-taxes-jones.trycloudflare.com/assets/model-9rcbaI08.glb",
           "status": 200
         },
         {
-          "url": "http://127.0.0.1:9073/assets/model-CzugOR3s.glb",
+          "url": "https://latinas-highways-taxes-jones.trycloudflare.com/assets/model-DRA63Fw7.glb",
           "status": 200
         },
         {
-          "url": "http://127.0.0.1:9073/assets/model-DPpODPx9.glb",
+          "url": "https://latinas-highways-taxes-jones.trycloudflare.com/assets/model-D39Gp2La.glb",
           "status": 200
         },
         {
-          "url": "http://127.0.0.1:9073/assets/model-CqzOhjaa.glb",
+          "url": "https://latinas-highways-taxes-jones.trycloudflare.com/assets/model-C47RZKDb.glb",
           "status": 200
         },
         {
-          "url": "http://127.0.0.1:9073/assets/model-DRA63Fw7.glb",
+          "url": "https://latinas-highways-taxes-jones.trycloudflare.com/assets/model-CqzOhjaa.glb",
           "status": 200
         },
         {
-          "url": "http://127.0.0.1:9073/assets/model-C47RZKDb.glb",
+          "url": "https://latinas-highways-taxes-jones.trycloudflare.com/assets/model-DvEayaug.glb",
           "status": 200
         },
         {
-          "url": "http://127.0.0.1:9073/assets/model-Cjyl9rMn.glb",
+          "url": "https://latinas-highways-taxes-jones.trycloudflare.com/assets/model-Cjyl9rMn.glb",
           "status": 200
         },
         {
-          "url": "http://127.0.0.1:9073/assets/model-DvEayaug.glb",
+          "url": "https://latinas-highways-taxes-jones.trycloudflare.com/assets/model-6FghbvnN.glb",
           "status": 200
         },
         {
-          "url": "http://127.0.0.1:9073/assets/model-D-nHDNEl.glb",
+          "url": "https://latinas-highways-taxes-jones.trycloudflare.com/assets/model-DPpODPx9.glb",
           "status": 200
         },
         {
-          "url": "http://127.0.0.1:9073/assets/model-6FghbvnN.glb",
+          "url": "https://latinas-highways-taxes-jones.trycloudflare.com/assets/model-qWKkqqet.glb",
           "status": 200
         },
         {
-          "url": "http://127.0.0.1:9073/assets/model-qWKkqqet.glb",
+          "url": "https://latinas-highways-taxes-jones.trycloudflare.com/assets/model-D-nHDNEl.glb",
           "status": 200
         }
       ],
+      "replayResponses": [
+        {
+          "url": "https://latinas-highways-taxes-jones.trycloudflare.com/replays.json",
+          "status": 200,
+          "contentEncoding": "gzip"
+        },
+        {
+          "url": "https://latinas-highways-taxes-jones.trycloudflare.com/replay.json",
+          "status": 200,
+          "contentEncoding": "gzip"
+        }
+      ],
       "screenshot": "art/reviews/arc-relay-meshy7-fleet-v1/phone-arena.png",
-      "screenshotSha256": "6dd6c0a44bb1d3d9fd19f8d611d39479ae0eb921a0f7711d50400368f8c7bb9e",
+      "screenshotSha256": "f4730f2b21eb44a5f40d201d3d9da97e1ed68d8f19c7101f9c4ee264505727bb",
       "pageErrors": [],
       "consoleErrors": [],
       "failedRequests": []
@@ -249,6 +273,6 @@
   ],
   "overview": {
     "file": "art/reviews/arc-relay-meshy7-fleet-v1/gameplay-overview.png",
-    "sha256": "035300af797931d9ce6e2e4c6a73c6bfa31e47fa6fe0a45fad3caeddd548567c"
+    "sha256": "d8f47aa192538e896a7f2bfcf8d2aac8362c9273aadd8e6e78bae383dae05712"
   }
 }

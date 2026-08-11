@@ -5,6 +5,7 @@ This is a reversible review of all sixteen unapproved Meshy 7 concepts in the re
 - The canonical 600-tick replay fields eight distinct blue classes and eight distinct orange classes, so all sixteen models are active at tick 000.
 - Desktop and phone evidence use the same authoritative opening tick, strategic overview camera, browser scale 1, and WebGL renderer.
 - Every emitted review-build GLB is hash-matched to its candidate tier artifact.
+- The public viewer is installed through the standard replay-gallery pipeline. Its canonical replay remains hash evidence; phones receive a compact Arc Relay broadcast with a pre-compressed sibling.
 - The fixed-orientation sheet replaces Meshy's provider-camera contact sheet for comparison. Every cell uses the same front-right three-quarter camera after its independently audited source front is corrected to Nilbots `+X`.
 - The facing audit found raw fronts on `-X`, `+X`, and `+Z`; Hush and Repulsor are rotationally symmetric. The exact per-class evidence and yaw live in the review-tier audit.
 - Approved runtime models were restored byte-for-byte after the review build. Nothing here promotes or ships the candidates.
@@ -21,4 +22,6 @@ node scripts/class-models/build-meshy7-fleet-game-review.mjs
 node scripts/class-models/install-meshy7-fleet-game-review.mjs
 node scripts/class-models/capture-meshy7-fleet-game-review.mjs --url 'http://127.0.0.1:9073/?standalone&audio=off'
 node scripts/class-models/capture-meshy7-fleet-fixed-orientation.mjs http://127.0.0.1:9074
+node scripts/class-models/publish-meshy7-fleet-game-review.mjs
+python3 scripts/serve-gallery.py 9073 --bind 127.0.0.1 --directory sandbox/meshy7-pilot/fleet-game-review/public
 ```
