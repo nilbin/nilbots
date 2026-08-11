@@ -39,10 +39,10 @@
       "arc-steal"
     ],
     "silentOutcomeCueIds": [
-      "attack-fizzle",
       "attack-cancel"
     ],
     "runtimeAliases": {
+      "attack-fizzle": "projectile",
       "arc-steal": "arc-pickup"
     },
     "selectedBackgroundLoop": null
@@ -495,7 +495,7 @@
           "category": "ATTACK STATE",
           "status": "proposed",
           "description": "The charged field loses coherence at resolution and disperses without a beam.",
-          "mapping": "review reference only; fizzle / interrupt / miss is currently silent",
+          "mapping": "review reference only; runtime fizzle / interrupt / miss aliases projectile",
           "file": "./v5/packs/astral-relay/attack-fizzle.wav",
           "durationSeconds": 1,
           "peak": 0.5,

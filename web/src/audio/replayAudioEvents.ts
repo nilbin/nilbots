@@ -31,14 +31,14 @@ export interface ReplayAudioEvent {
  *
  * Every cue is bound to an explicit public fact or an authoritative before/after
  * transition. In particular, declared strikes have a three-part grammar: entering the
- * pending-strike table winds up and an attack resolution launches the presented
- * projectile. Unresolved and
- * cancelled attacks are deliberately silent for now. Audio reports one occurrence of a
- * cue category per tick rather than turning a simultaneous volley into several stacked
- * copies. A projectile launch remains one quiet cue per tick even when its recorded
- * traversal ends in an impact, deflection, or destruction; the outcome keeps its own
- * later cue. Any foreground event masks a concurrent wind-up. Nothing is inferred from
- * score changes or future world state, so seeking is deterministic.
+ * pending-strike table winds up, then both a presented projectile and a matured fizzle
+ * emit the same neutral release cue. A concrete armor contact adds the separate impact
+ * voice; an early cancellation remains silent. Non-projectile categories report one
+ * occurrence per tick, while up to four distinct projectile releases retain individual
+ * quiet voices so the audio agrees with the visible volley. A recorded traversal can
+ * still end in an impact, deflection, or destruction; that outcome keeps its own later
+ * cue. Any foreground event masks a concurrent wind-up. Nothing is inferred from score
+ * changes or future world state, so seeking is deterministic.
  */
 export function replayAudioEventsAt(
   replay: ReplayModel,
@@ -55,6 +55,20 @@ export function replayAudioEventsAt(
   };
 
   const scheduled: ReplayAudioEvent[] = [];
+  const projectileReleaseActors = new Set<string>();
+  const scheduleProjectileRelease = (
+    actorKey: string,
+    pan: number | null,
+  ) => {
+    if (projectileReleaseActors.has(actorKey)) return;
+    projectileReleaseActors.add(actorKey);
+    scheduled.push({
+      cue: 'projectile',
+      tickOffset: 0.08,
+      priority: 3,
+      pan,
+    });
+  };
   const authoritativeEvents = [...tick.lifecycleEvents, ...tick.events];
   const beforeStrikes = pendingStrikes(tick.before);
   const afterStrikeKeys = new Set(
@@ -75,12 +89,10 @@ export function replayAudioEventsAt(
     ) {
       continue;
     }
-    scheduled.push({
-      cue: 'projectile',
-      tickOffset: 0.08,
-      priority: 3,
-      pan: panAt(traversal.from.x),
-    });
+    scheduleProjectileRelease(
+      traversal.ownerActorKey,
+      panAt(traversal.from.x),
+    );
   }
 
   for (const strike of pendingStrikes(tick.after)) {
@@ -101,22 +113,32 @@ export function replayAudioEventsAt(
       signatureReason === 'completed' || signatureReason === 'launched';
     if (projectileResolved) continue;
     if (signatureResolved) {
-      scheduled.push({
-        cue: 'projectile',
-        tickOffset: 0.08,
-        priority: 3,
-        pan: panAt(strikePosition(strike, tick.before)?.x),
-      });
+      scheduleProjectileRelease(
+        strike.shooter.actorKey,
+        panAt(strikePosition(strike, tick.before)?.x),
+      );
       continue;
     }
-    // Fizzles, interruptions, misses, and voluntary cancels remain visual-only.
+    if (strike.resolveAtTick <= tick.tick) {
+      // The declared release matured without a traversal or hit. Give a fizzle,
+      // interruption, or miss the same neutral release as an ordinary projectile;
+      // armor impact remains the audible evidence that contact actually happened.
+      scheduleProjectileRelease(
+        strike.shooter.actorKey,
+        panAt(strikePosition(strike, tick.before)?.x),
+      );
+    }
+    // A strike removed before resolveAtTick is a voluntary cancellation and stays silent.
   }
 
   for (const event of authoritativeEvents) {
     // Events carry their origin tile; the projectile cue starts where it was fired.
     const pan = panAt(event.from?.x ?? event.to?.x);
     if (isAttackEvent(event.type)) {
-      scheduled.push({ cue: 'projectile', tickOffset: 0.08, priority: 3, pan });
+      scheduleProjectileRelease(
+        event.sourceActor?.actorKey ?? event.eventId,
+        pan,
+      );
     } else if (event.type === 'projectile-deflected') {
       scheduled.push({ cue: 'deflect', tickOffset: 0.52, priority: 4, pan });
     } else if (event.type === 'damage') {
@@ -263,14 +285,27 @@ function sparseTickMix(
       !(event.cue === 'attack-windup' && windupHasForegroundEvent),
   );
 
+  // Tapline can show up to four distinct ordinary releases on one tick. Keep
+  // every one audible, but offset their starts by 16 ms at normal speed so
+  // identical buffers do not sum into one phase-locked transient. The hard cap
+  // remains a comfort boundary for future larger formats.
+  const projectileReleases = audible
+    .filter((event) => event.cue === 'projectile')
+    .slice(0, MAX_PROJECTILE_RELEASES_PER_TICK)
+    .map((event, index) => ({
+      ...event,
+      tickOffset: event.tickOffset + index * PROJECTILE_RELEASE_STAGGER_TICKS,
+    }));
+
   const byCue = new Map<SoundEffectCueId, ReplayAudioEvent[]>();
   for (const event of audible) {
+    if (event.cue === 'projectile') continue;
     const batch = byCue.get(event.cue);
     if (batch) batch.push(event);
     else byCue.set(event.cue, [event]);
   }
 
-  return [...byCue.values()].map((batch) => {
+  const coalesced = [...byCue.values()].map((batch) => {
     const pans = batch
       .map((event) => event.pan)
       .filter((pan): pan is number => pan !== null);
@@ -284,7 +319,11 @@ function sparseTickMix(
           : pans.reduce((sum, pan) => sum + pan, 0) / pans.length,
     };
   });
+  return [...projectileReleases, ...coalesced];
 }
+
+const MAX_PROJECTILE_RELEASES_PER_TICK = 4;
+const PROJECTILE_RELEASE_STAGGER_TICKS = 0.04;
 
 type PendingStrike = ReplayArcRelayModeState['pendingStrikes'][number];
 

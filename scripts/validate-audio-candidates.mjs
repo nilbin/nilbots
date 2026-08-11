@@ -176,8 +176,11 @@ validated.push(
       ],
       proposedCueIds: [],
       reviewOnlyCueIds: ["attack-fizzle", "attack-cancel", "arc-steal"],
-      silentOutcomeCueIds: ["attack-fizzle", "attack-cancel"],
-      runtimeAliases: { "arc-steal": "arc-pickup" },
+      silentOutcomeCueIds: ["attack-cancel"],
+      runtimeAliases: {
+        "attack-fizzle": "projectile",
+        "arc-steal": "arc-pickup",
+      },
       selectedBackgroundLoop: null,
     },
     expectedMappedBackgroundLoopId: null,

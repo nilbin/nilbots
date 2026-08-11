@@ -79,6 +79,7 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
         cues: Record<
           string,
           {
+            sourceCueId?: string;
             channelTransform: string;
             sourceStartSeconds: number;
             playbackRate: number;
@@ -117,7 +118,9 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
       silentOutcomeCueIds: string[];
       cueAliases: Record<string, string>;
       tickMix: {
-        coalesceSameCue: boolean;
+        coalesceNonProjectileCues: boolean;
+        projectileReleasesPerTick: number;
+        projectileStaggerTicks: number;
         suppressWindupUnderForegroundEvents: boolean;
         projectileWithConcreteOutcomes: string;
       };
@@ -126,7 +129,7 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
     integrity: Record<string, Integrity>;
   };
 
-  assert.equal(manifest.version, 7);
+  assert.equal(manifest.version, 8);
   assert.equal(manifest.id, 'astral-relay');
   assert.equal(manifest.approval, 'approved');
   assert.equal(manifest.format, 'aac-lc-m4a');
@@ -150,9 +153,9 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
     },
     deliveryProcessing: {
       policy:
-        'Deterministic resampling, low-pass, endpoint, and peak treatment for ' +
-        'frequent or spectrally sharp cues; no synthesized layer and no ' +
-        'provider request.',
+        'Deterministic hash-pinned source selection, resampling, low-pass, ' +
+        'endpoint, and peak treatment for frequent or spectrally sharp cues; ' +
+        'no synthesized layer and no provider request.',
       cues: {
         'attack-windup': {
           channelTransform: 'side-to-dual-mono',
@@ -165,15 +168,15 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
           targetSamplePeak: 0.24,
         },
         projectile: {
+          sourceCueId: 'attack-fizzle',
           channelTransform: 'mid-to-dual-mono',
-          sourceStartSeconds: 0.005,
-          playbackRate: 0.18,
-          playbackRateEnd: 0.1,
-          durationSeconds: 0.18,
-          lowPassHz: 650,
-          fadeInSeconds: 0.012,
-          fadeOutSeconds: 0.08,
-          targetSamplePeak: 0.18,
+          sourceStartSeconds: 0,
+          playbackRate: 0.65,
+          durationSeconds: 0.14,
+          lowPassHz: 900,
+          fadeInSeconds: 0.01,
+          fadeOutSeconds: 0.06,
+          targetSamplePeak: 0.2,
         },
         impact: {
           channelTransform: 'preserve-stereo',
@@ -272,12 +275,17 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
   assert.deepEqual(Object.keys(manifest.cues).sort(), expectedCues);
   assert.deepEqual(Object.keys(manifest.mix.cues).sort(), expectedCues);
   assert.deepEqual(manifest.behavior, {
-    silentOutcomeCueIds: ['attack-fizzle', 'attack-cancel'],
-    cueAliases: { 'arc-steal': 'arc-pickup' },
+    silentOutcomeCueIds: ['attack-cancel'],
+    cueAliases: {
+      'attack-fizzle': 'projectile',
+      'arc-steal': 'arc-pickup',
+    },
     tickMix: {
-      coalesceSameCue: true,
+      coalesceNonProjectileCues: true,
+      projectileReleasesPerTick: 4,
+      projectileStaggerTicks: 0.04,
       suppressWindupUnderForegroundEvents: true,
-      projectileWithConcreteOutcomes: 'layer-once-per-tick',
+      projectileWithConcreteOutcomes: 'layer-per-release-up-to-limit',
     },
   });
   assert.equal(manifest.mix.roomSend, 0.06);
@@ -317,7 +325,9 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
     assert.ok(bytes.length <= 90_000, `${cue} is unexpectedly large`);
     assert.ok(mix.gain >= 0 && mix.gain <= 0.55, `${cue} gain is unsafe`);
     assert.ok(
-      Number.isInteger(mix.voiceLimit) && mix.voiceLimit >= 1 && mix.voiceLimit <= 3,
+      Number.isInteger(mix.voiceLimit) &&
+        mix.voiceLimit >= 1 &&
+        mix.voiceLimit <= (cue === 'projectile' ? 4 : 3),
       `${cue} voice limit is unsafe`,
     );
     assert.ok(mix.panWidth >= 0 && mix.panWidth <= 0.7, `${cue} pan is unsafe`);
@@ -360,7 +370,7 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
   for (const cue of ['attack-windup', 'projectile'] as const) {
     const mix = manifest.mix.cues[cue]!;
     const metrics = manifest.integrity[cue]!.deliveryMetrics!;
-    assert.equal(mix.voiceLimit, 1);
+    assert.equal(mix.voiceLimit, cue === 'projectile' ? 4 : 1);
     assert.equal(mix.roomSend, false);
     assert.ok(mix.panWidth <= 0.2);
     assert.ok(mix.gain <= 0.2);
@@ -380,8 +390,8 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
     );
   }
   assert.deepEqual(manifest.mix.cues.projectile, {
-    gain: 0.14,
-    voiceLimit: 1,
+    gain: 0.16,
+    voiceLimit: 4,
     panWidth: 0.16,
     roomSend: false,
   });
@@ -389,6 +399,12 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
     manifest.integrity.projectile!.deliveryMetrics!.effectiveSamplePeakDbfs <=
       -28,
     'the newly layered common projectile cue must stay well below outcomes',
+  );
+  assert.ok(
+    manifest.integrity.projectile!.deliveryMetrics!.effectiveSamplePeakDbfs +
+      20 * Math.log10(manifest.mix.cues.projectile!.voiceLimit) <=
+      -15,
+    'even a phase-aligned four-release stack must retain conservative peak headroom',
   );
   assert.ok(
     manifest.integrity['attack-windup']!.deliveryMetrics!

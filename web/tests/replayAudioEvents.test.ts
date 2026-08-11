@@ -22,6 +22,24 @@ test('a projectile launch remains distinct from its concrete outcomes', () => {
   );
 });
 
+test('distinct simultaneous projectile releases stay audible and receive tiny start offsets', () => {
+  const replay = replayWithEvents([
+    { type: 'Shot', slot: 3 },
+    { type: 'Shot', slot: 9 },
+  ]);
+  const releases = replayAudioEventsAt(replay, 0);
+
+  assert.deepEqual(
+    releases.map((event) => event.cue),
+    ['projectile', 'projectile'],
+  );
+  assert.deepEqual(
+    releases.map((event) => event.tickOffset),
+    [0.08, 0.12],
+    'a volley keeps both voices without phase-locking identical buffers',
+  );
+});
+
 test('a simultaneous volley becomes one calm cue per category', () => {
   const replay = replayWithEvents([
     { type: 'Damage', targetSlot: 9, amount: 1, newHealth: 1 },
@@ -135,7 +153,7 @@ test('draws and non-events do not invent audio from replay state', () => {
   assert.deepEqual(replayAudioEventsAt(replay, 99), []);
 });
 
-test('declared attacks speak wind-up and projectile while unresolved outcomes stay silent', () => {
+test('declared attacks share one release cue for projectile and fizzle while cancellation stays silent', () => {
   const declaring = replayWithEvents([]);
   const declarationTick = declaring.ticks[0]!;
   const shooter = declarationTick.before.actors[0]!.identity;
@@ -178,8 +196,8 @@ test('declared attacks speak wind-up and projectile while unresolved outcomes st
   fizzleTick.after.mode = arcMode([]);
   assert.deepEqual(
     replayAudioEventsAt(fizzled, 0).map((event) => event.cue),
-    [],
-    'a fizzle or miss remains visual-only for now',
+    ['projectile'],
+    'a matured fizzle or miss uses the same neutral release as a projectile',
   );
 
   const cancelled = replayWithEvents([]);

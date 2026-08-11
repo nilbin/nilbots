@@ -82,8 +82,8 @@ const mix = {
       roomSend: false,
     },
     projectile: {
-      gain: 0.14,
-      voiceLimit: 1,
+      gain: 0.16,
+      voiceLimit: 4,
       panWidth: 0.16,
       roomSend: false,
     },
@@ -112,18 +112,18 @@ const deliveryProcessing = {
     targetSamplePeak: 0.24,
   },
   projectile: {
+    // A neutral release has to work before both a concrete armor hit and a
+    // no-contact fizzle. Reuse the compact failed-field provider master rather
+    // than pitching the tonal beam-hit source into another recognizable note.
+    sourceCueId: "attack-fizzle",
     channelTransform: "mid-to-dual-mono",
-    sourceStartSeconds: 0.005,
-    // Turn the accepted Engine pulse into a low descending projectile pass:
-    // variable-rate resampling moves from roughly 670 Hz toward 370 Hz without
-    // adding a synthesized layer or making another provider request.
-    playbackRate: 0.18,
-    playbackRateEnd: 0.1,
-    durationSeconds: 0.18,
-    lowPassHz: 650,
-    fadeInSeconds: 0.012,
-    fadeOutSeconds: 0.08,
-    targetSamplePeak: 0.18,
+    sourceStartSeconds: 0,
+    playbackRate: 0.65,
+    durationSeconds: 0.14,
+    lowPassHz: 900,
+    fadeInSeconds: 0.01,
+    fadeOutSeconds: 0.06,
+    targetSamplePeak: 0.2,
   },
   impact: {
     channelTransform: "preserve-stereo",
@@ -980,9 +980,12 @@ const integrity = {};
 try {
   await mkdir(directory, { recursive: true });
   for (const cueId of cueIds) {
-    const sourceCue = pack.cues.find((candidate) => candidate.id === cueId);
+    const sourceCueId = deliveryProcessing[cueId]?.sourceCueId ?? cueId;
+    const sourceCue = pack.cues.find(
+      (candidate) => candidate.id === sourceCueId,
+    );
     const generationCue = generationRecord.cues.find(
-      (candidate) => candidate.id === cueId,
+      (candidate) => candidate.id === sourceCueId,
     );
     if (!sourceCue || !generationCue?.result?.outputSha256) {
       throw new Error(`${cueId}: source manifest and generation record disagree.`);
@@ -1006,7 +1009,7 @@ try {
     path.join(directory, "manifest.json"),
     `${JSON.stringify(
       {
-        version: 7,
+        version: 8,
         id: pack.id,
         label: pack.label,
         approval: "approved",
@@ -1027,9 +1030,9 @@ try {
           },
           deliveryProcessing: {
             policy:
-              "Deterministic resampling, low-pass, endpoint, and peak treatment for " +
-              "frequent or spectrally sharp cues; no synthesized layer and no " +
-              "provider request.",
+              "Deterministic hash-pinned source selection, resampling, low-pass, " +
+              "endpoint, and peak treatment for frequent or spectrally sharp cues; " +
+              "no synthesized layer and no provider request.",
             cues: deliveryProcessing,
           },
           rightsStatus: "rights-cleared",
@@ -1044,12 +1047,17 @@ try {
         },
         mix,
         behavior: {
-          silentOutcomeCueIds: ["attack-fizzle", "attack-cancel"],
-          cueAliases: { "arc-steal": "arc-pickup" },
+          silentOutcomeCueIds: ["attack-cancel"],
+          cueAliases: {
+            "attack-fizzle": "projectile",
+            "arc-steal": "arc-pickup",
+          },
           tickMix: {
-            coalesceSameCue: true,
+            coalesceNonProjectileCues: true,
+            projectileReleasesPerTick: 4,
+            projectileStaggerTicks: 0.04,
             suppressWindupUnderForegroundEvents: true,
-            projectileWithConcreteOutcomes: "layer-once-per-tick",
+            projectileWithConcreteOutcomes: "layer-per-release-up-to-limit",
           },
         },
         cues,

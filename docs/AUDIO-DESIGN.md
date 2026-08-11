@@ -240,11 +240,12 @@ node scripts/export-runtime-sound-effects.mjs
 
 This verifies the hash-pinned V5 sources and exports Astral Relay to
 `web/src/assets/audio/effects/astral-relay/` as 48 kHz stereo AAC-LC: thirteen
-mapped one-shots at 192 kbps, roughly 0.31 MiB together. Fizzle, cancel, and
-the historical special-steal take remain lossless review references rather than runtime
-assets. The production manifest records the SFX Engine and
-local derivation lineage, source/output hashes, checked licensing basis,
-shipment approval, and per-cue gain/voice limits.
+mapped one-shots at 192 kbps, roughly 0.31 MiB together. The unique fizzle,
+cancel, and historical special-steal takes remain lossless review references;
+runtime fizzle aliases the projectile release instead of shipping a fourteenth
+voice. The production manifest records the SFX Engine and local derivation
+lineage, source/output hashes, checked licensing basis, shipment approval, and
+per-cue gain/voice limits.
 Automated tests reject any additional pack, missing cue, altered byte, unsafe
 mix bound, or untraceable generation record. Lossless WAVs remain the source
 of truth in the sound lab. The exporter also zeros the three standard M4A
@@ -266,15 +267,23 @@ AAC decode; the untouched arrival remains inside the same pack-wide ceilings.
 The viewer derives projectile launch, impact, destruction, deflection, arrival,
 veterancy, and every Core possession/scoring cue from authoritative replay
 facts. A new pending strike emits the smooth wind-up; in WebGL, a matching
-resolution emits a quiet descending low-mid pass. In WebGL, that same
-resolution also shows the equipped projectile along the already-recorded
-traversal; Canvas retains its prior visual fallback. The underlying instant-ray
-rule, hit timing, damage, and replay facts do not change. Fizzle, interruption,
-miss, and voluntary cancellation are silent for now. Every `core-picked-up`
-fact uses the same levitation cue even when ownership changes teams; drop is
-its derived inverse. Seeking is silent, playback above 2× suspends audio, and
-mute/volume persist locally under production keys. The entitlement-unlock
-master is not reused as a match-result cue.
+resolution emits a quiet neutral field release. In WebGL, that same resolution
+also shows the equipped projectile along the already-recorded traversal;
+Canvas retains its prior visual fallback. A matured fizzle, interruption, or
+miss emits the same release, while a concrete damage fact adds the separate
+armor-impact voice and an early voluntary cancellation remains silent. The
+underlying instant-ray rule, hit timing, damage, and replay facts do not change.
+Every `core-picked-up` fact uses the same levitation cue even when ownership
+changes teams; drop is its derived inverse. Seeking is silent, playback above
+2× suspends audio, and mute/volume persist locally under production keys. The
+entitlement-unlock master is not reused as a match-result cue.
+
+Non-projectile categories continue to coalesce once per tick. The scheduler
+retains up to four distinct projectile/fizzle releases, matching the maximum
+observed simultaneous Tapline presentation, and separates their starts by 0.04
+presentation ticks (16 ms at normal speed). Each keeps its own authoritative
+pan. The four-voice hard limit bounds future formats, and even a theoretical
+phase-aligned stack remains below -15 dBFS before the shared limiter.
 
 Browser autoplay policy still requires a user gesture. The first trusted click
 or non-modifier key resumes the viewer's shared audio session and arms enabled
@@ -315,7 +324,8 @@ current presented tick:
 
 - attack declare: a new authoritative pending strike;
 - projectile presentation: an authoritative attack event/traversal;
-- fizzle, interruption, miss, or cancel: visual-only for now;
+- matured fizzle, interruption, or miss: alias the projectile release;
+- voluntary cancel before the resolve tick: silent;
 - bot impact: authoritative damage to a bot;
 - projectile deflection: authoritative `projectile-deflected` event;
 - wall impact: authoritative projectile termination against geometry;

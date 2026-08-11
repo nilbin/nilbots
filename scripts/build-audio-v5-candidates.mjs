@@ -55,7 +55,8 @@ const cuePresentation = {
   },
   "attack-fizzle": {
     status: "proposed",
-    mapping: "review reference only; fizzle / interrupt / miss is currently silent",
+    mapping:
+      "review reference only; runtime fizzle / interrupt / miss aliases projectile",
   },
   "attack-cancel": {
     status: "proposed",
@@ -309,8 +310,11 @@ const manifest = {
     mappedCueIds: runtimeCueIds,
     proposedCueIds: [],
     reviewOnlyCueIds: ["attack-fizzle", "attack-cancel", "arc-steal"],
-    silentOutcomeCueIds: ["attack-fizzle", "attack-cancel"],
-    runtimeAliases: { "arc-steal": "arc-pickup" },
+    silentOutcomeCueIds: ["attack-cancel"],
+    runtimeAliases: {
+      "attack-fizzle": "projectile",
+      "arc-steal": "arc-pickup",
+    },
     selectedBackgroundLoop: null,
   },
   sourceComposition: {

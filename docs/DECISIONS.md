@@ -7724,3 +7724,44 @@ maxima remain 2.67% above 4 kHz, 0.03% above 12 kHz, -9.61 dBFS effective peak,
 and -26.07 dBFS effective RMS. Manifest version 7 pins the visual/audio
 presentation policy and delivery recipe; CLI/tool package version 0.9.55
 carries the combined projectile and synchronized-destruction pass.
+
+## 290. Projectile release is outcome-neutral; armor contact supplies the hit
+
+Owner refinement (2026-08-11), superseding #289 only for the projectile
+delivery and matured-fizzle scheduling. The descending low tone read as its own
+effect rather than as the common release shared by hit and no-hit attacks. A
+regular resolved attack and a matured fizzle, interruption, or miss now emit
+the exact same `projectile` cue. Only an authoritative damage fact adds the
+separate armor-impact voice, so contact is the audible difference between the
+two outcomes. A strike removed before `resolveAtTick` remains a voluntary
+cancellation and stays silent. Mechanics, damage, replay facts, and both
+renderers' visuals are unchanged.
+
+No provider credit, synthesized layer, or lossless-master replacement is used.
+The deterministic runtime export selects the hash-pinned compact failed-field
+Engine master as a neutral source, takes its mid channel at 0.65 playback rate,
+and applies a 900 Hz low-pass plus 10/60 ms endpoint fades. The old variable
+0.18x -> 0.10x pitch sweep is gone. The delivery is 140 ms, dry, 0.16 pan
+width, and 0.16 runtime gain per voice. Its final AAC decodes to 546 Hz
+dominant frequency and a 590 Hz spectral centroid, with 0.01% energy above 4
+kHz, 0% above 8/12 kHz, -29.98 dBFS effective peak, and -42.46 dBFS effective
+RMS.
+
+Projectile releases are the exception to category coalescing: up to four
+distinct releases retain their authoritative pan and start 0.04 presentation
+ticks apart, avoiding a phase-locked identical-buffer transient. Four is both a
+hard future-format comfort boundary and the maximum seen in the retained
+Tapline replay. The cue's four-voice limit agrees with that scheduler bound; a
+theoretical perfectly aligned four-copy peak is still only -17.94 dBFS before
+the shared limiter.
+
+Across the 473-tick review, 155 ticks contain releases: 85 carry one, 39 carry
+two, 22 carry three, and nine carry four, for 265 audible projectile/fizzle
+voices. Together with 73 wind-ups, 89 impacts, and 48 destructions, that is 475
+combat voices, 6.5% below the original 508-copy mix while audibly representing
+every ordinary release in this Tapline sample. Non-projectile coalescing stays
+active. All thirteen AACs continue to pass #287's decoded-delivery ceilings:
+pack maxima remain 2.67% above 4 kHz, 0.03% above 12 kHz, -9.61 dBFS effective
+peak, and -26.07 dBFS effective RMS. Manifest version 8 pins the source alias,
+bounded polyphony, delivery recipe, and fizzle policy; CLI/tool package version
+0.9.56 carries the change.

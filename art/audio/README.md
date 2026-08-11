@@ -129,13 +129,14 @@ gain during an earlier round. All three now remain sound-lab comparisons only:
 Tapline selects no ambience loop and the runtime exporter ships none. None
 replace or modify Neon Protocol.
 
-The internal **projectile** cue ID is retained for runtime compatibility, but
-its artifact label is **Beam resolve**. Runtime attacks now speak only as
-wind-up then beam: the wind-up comes from a new public **pendingStrikes** entry
-and a matching authoritative attack/traversal emits the rounded beam hit.
-Fizzle, interruption, miss, and cancel remain visual-only for now; their WAVs
-stay in the comparison archive. The beam is a focused field, not an audible
-moving bolt. The **projectile-deflected** fact is presented as a beam bend.
+The internal **projectile** cue ID is retained for runtime compatibility.
+Runtime attacks now speak as wind-up then neutral field release: the wind-up
+comes from a public **pendingStrikes** entry, and a matching authoritative
+attack/traversal emits the release while WebGL carries the equipped projectile
+look over the recorded line. A matured fizzle, interruption, or miss emits that
+same release; only a real damage fact adds the armor-impact voice. Voluntary
+cancel remains silent. The unique fizzle/cancel WAVs stay in the comparison
+archive, and **projectile-deflected** retains its separate spectral bend.
 
 Wind-up, beam, handoff, deflection, arrival, and level up are runtime mappings.
 Every Core pickup, including a steal, uses the same levitation cue; drop is its
@@ -148,14 +149,21 @@ two full spaces.
 
 The runtime exporter also applies a deterministic comfort treatment to every
 frequent or spectrally sharp delivery: impact, destruction, level up, Core
-bank, Core Pulse, handoff, and arrival, in addition to wind-up and beam. It
-preserves the accepted stereo sources, uses only low-pass filtering, endpoint
-fades, and conservative peak normalization, then audits the decoded AAC that
-the browser actually hears. Across all thirteen one-shots, decoded energy is
-at most 3% above 4 kHz and 0.05% above 12 kHz, effective peaks stay at or below
--9 dBFS, effective whole-cue RMS stays at or below -25 dBFS, and any window
-with more than 10% upper-mid energy must sit below -28 dBFS RMS after runtime
-gain. No provider request or synthesized layer is involved.
+bank, Core Pulse, handoff, and arrival, in addition to wind-up and projectile
+release. It selects only hash-pinned accepted sources and uses deterministic
+resampling, low-pass filtering, endpoint fades, and conservative peak
+normalization, then audits the decoded AAC that the browser actually hears.
+Across all thirteen one-shots, decoded energy is at most 3% above 4 kHz and
+0.05% above 12 kHz, effective peaks stay at or below -9 dBFS, effective
+whole-cue RMS stays at or below -25 dBFS, and any window with more than 10%
+upper-mid energy must sit below -28 dBFS RMS after runtime gain. No provider
+request or synthesized layer is involved.
+
+Non-projectile categories still coalesce once per tick. Projectile/fizzle
+releases retain up to four positional voices—the observed Tapline maximum—and
+start 0.04 presentation ticks apart so identical buffers do not phase-lock.
+The projectile's four-voice limit and very low individual delivery keep even a
+theoretical perfectly aligned stack below -15 dBFS.
 
 V2 renders at 96 kHz before anti-aliased downsampling to 48 kHz stereo. Its
 layers include separate transients, tonal bodies, modal material resonance,
@@ -168,10 +176,11 @@ The lossless masters for every direction stay under `art/`. Astral Relay is the
 approved runtime direction; `scripts/export-runtime-sound-effects.mjs` verifies
 the V5 source hashes and exports thirteen mapped one-shots to
 `web/src/assets/audio/effects/astral-relay/` as 48 kHz stereo AAC-LC.
-Fizzle, cancel, and the historical special-steal take stay review-only. The
-checked-in delivery assets total roughly 0.34 MiB. No ambience file, mapping,
-fetch, or playback path ships. The entitlement cue remains a sound-lab master
-until a real entitlement notification owns it; it is not a match-result sound.
+The unique fizzle, cancel, and historical special-steal takes stay review-only;
+runtime fizzle aliases the shipped projectile release. The checked-in delivery
+assets total roughly 0.31 MiB. No ambience file, mapping, fetch, or playback
+path ships. The entitlement cue remains a sound-lab master until a real
+entitlement notification owns it; it is not a match-result sound.
 
 The export requires macOS `afconvert`. Checked-in delivery assets keep normal
 builds platform-independent, while their production manifest records SFX

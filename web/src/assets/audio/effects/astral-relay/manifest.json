@@ -1,5 +1,5 @@
 {
-  "version": 7,
+  "version": 8,
   "id": "astral-relay",
   "label": "Astral Relay",
   "approval": "approved",
@@ -22,7 +22,7 @@
       "canonicalization": "zero-iso-bmff-creation-and-modification-times"
     },
     "deliveryProcessing": {
-      "policy": "Deterministic resampling, low-pass, endpoint, and peak treatment for frequent or spectrally sharp cues; no synthesized layer and no provider request.",
+      "policy": "Deterministic hash-pinned source selection, resampling, low-pass, endpoint, and peak treatment for frequent or spectrally sharp cues; no synthesized layer and no provider request.",
       "cues": {
         "attack-windup": {
           "channelTransform": "side-to-dual-mono",
@@ -35,15 +35,15 @@
           "targetSamplePeak": 0.24
         },
         "projectile": {
+          "sourceCueId": "attack-fizzle",
           "channelTransform": "mid-to-dual-mono",
-          "sourceStartSeconds": 0.005,
-          "playbackRate": 0.18,
-          "playbackRateEnd": 0.1,
-          "durationSeconds": 0.18,
-          "lowPassHz": 650,
-          "fadeInSeconds": 0.012,
-          "fadeOutSeconds": 0.08,
-          "targetSamplePeak": 0.18
+          "sourceStartSeconds": 0,
+          "playbackRate": 0.65,
+          "durationSeconds": 0.14,
+          "lowPassHz": 900,
+          "fadeInSeconds": 0.01,
+          "fadeOutSeconds": 0.06,
+          "targetSamplePeak": 0.2
         },
         "impact": {
           "channelTransform": "preserve-stereo",
@@ -141,8 +141,8 @@
         "roomSend": false
       },
       "projectile": {
-        "gain": 0.14,
-        "voiceLimit": 1,
+        "gain": 0.16,
+        "voiceLimit": 4,
         "panWidth": 0.16,
         "roomSend": false
       },
@@ -216,16 +216,18 @@
   },
   "behavior": {
     "silentOutcomeCueIds": [
-      "attack-fizzle",
       "attack-cancel"
     ],
     "cueAliases": {
+      "attack-fizzle": "projectile",
       "arc-steal": "arc-pickup"
     },
     "tickMix": {
-      "coalesceSameCue": true,
+      "coalesceNonProjectileCues": true,
+      "projectileReleasesPerTick": 4,
+      "projectileStaggerTicks": 0.04,
       "suppressWindupUnderForegroundEvents": true,
-      "projectileWithConcreteOutcomes": "layer-once-per-tick"
+      "projectileWithConcreteOutcomes": "layer-per-release-up-to-limit"
     }
   },
   "cues": {
@@ -269,27 +271,27 @@
       }
     },
     "projectile": {
-      "sourceSha256": "df5d574657ebb56fed0b165715b1b0e42634910c6ca0c921102c6612c037158a",
-      "outputSha256": "629fd9cd1ecefcd09d11554d6f9eb8f7240acafde8227b02d793c95dd20bf024",
-      "bytes": 5309,
+      "sourceSha256": "108324d521236e804c0b0301b0c5a389ab7d13a392e97aebca89ab254a9e9f19",
+      "outputSha256": "4a6e4baf9e0a5c585368fc8aedb1dfc26c4bbce1f77e3152d90206597d67f527",
+      "bytes": 5667,
       "bitrate": 192000,
       "deliveryMetrics": {
-        "durationSeconds": 0.18,
-        "samplePeakDbfs": -14.9,
-        "rmsDbfs": -25.43,
-        "dominantFrequencyHz": 442,
+        "durationSeconds": 0.14,
+        "samplePeakDbfs": -14.06,
+        "rmsDbfs": -26.54,
+        "dominantFrequencyHz": 546,
         "interchannelCorrelation": 1,
-        "spectralCentroidHz": 456,
-        "energyAbove4kPercent": 0,
+        "spectralCentroidHz": 590,
+        "energyAbove4kPercent": 0.01,
         "energyAbove8kPercent": 0,
         "energyAbove12kPercent": 0,
-        "maximumWindowAbove4kPercent": 0,
+        "maximumWindowAbove4kPercent": 0.02,
         "maximumWindowAbove4kAtSeconds": 0.043,
-        "maximumWindowAbove4kRmsDbfs": -29.86,
-        "sourceInterchannelCorrelation": 1,
-        "effectiveSamplePeakDbfs": -31.98,
-        "effectiveRmsDbfs": -42.51,
-        "effectiveMaximumWindowAbove4kRmsDbfs": -46.94
+        "maximumWindowAbove4kRmsDbfs": -25.21,
+        "sourceInterchannelCorrelation": -0.1681,
+        "effectiveSamplePeakDbfs": -29.98,
+        "effectiveRmsDbfs": -42.46,
+        "effectiveMaximumWindowAbove4kRmsDbfs": -41.13
       }
     },
     "impact": {

@@ -59,6 +59,7 @@ interface SoundEffectManifest {
       cues: Record<
         DeliveryProcessedCueId,
         {
+          sourceCueId?: 'attack-fizzle';
           channelTransform:
             | 'side-to-dual-mono'
             | 'mid-to-dual-mono'
@@ -88,12 +89,17 @@ interface SoundEffectManifest {
     cues: Record<SoundEffectCueId, SoundEffectCueMix>;
   };
   behavior: {
-    silentOutcomeCueIds: ['attack-fizzle', 'attack-cancel'];
-    cueAliases: { 'arc-steal': 'arc-pickup' };
+    silentOutcomeCueIds: ['attack-cancel'];
+    cueAliases: {
+      'attack-fizzle': 'projectile';
+      'arc-steal': 'arc-pickup';
+    };
     tickMix: {
-      coalesceSameCue: true;
+      coalesceNonProjectileCues: true;
+      projectileReleasesPerTick: 4;
+      projectileStaggerTicks: 0.04;
       suppressWindupUnderForegroundEvents: true;
-      projectileWithConcreteOutcomes: 'layer-once-per-tick';
+      projectileWithConcreteOutcomes: 'layer-per-release-up-to-limit';
     };
   };
   cues: Record<SoundEffectCueId, string>;
@@ -158,7 +164,7 @@ function loadSoundEffectPack(): SoundEffectPack {
   }
   const [manifestPath, manifest] = entries[0]!;
   if (
-    manifest.version !== 7 ||
+    manifest.version !== 8 ||
     manifest.id !== DEFAULT_SOUND_EFFECT_PACK_ID ||
     manifest.approval !== 'approved' ||
     manifest.format !== 'aac-lc-m4a' ||
@@ -184,12 +190,15 @@ function loadSoundEffectPack(): SoundEffectPack {
     manifest.provenance.license.standaloneRedistribution !== 'prohibited' ||
     manifest.provenance.shipApproval !== 'approved' ||
     JSON.stringify(manifest.behavior?.silentOutcomeCueIds) !==
-      JSON.stringify(['attack-fizzle', 'attack-cancel']) ||
+      JSON.stringify(['attack-cancel']) ||
+    manifest.behavior?.cueAliases?.['attack-fizzle'] !== 'projectile' ||
     manifest.behavior?.cueAliases?.['arc-steal'] !== 'arc-pickup' ||
-    manifest.behavior?.tickMix?.coalesceSameCue !== true ||
+    manifest.behavior?.tickMix?.coalesceNonProjectileCues !== true ||
+    manifest.behavior.tickMix.projectileReleasesPerTick !== 4 ||
+    manifest.behavior.tickMix.projectileStaggerTicks !== 0.04 ||
     manifest.behavior.tickMix.suppressWindupUnderForegroundEvents !== true ||
     manifest.behavior.tickMix.projectileWithConcreteOutcomes !==
-      'layer-once-per-tick' ||
+      'layer-per-release-up-to-limit' ||
     !isUnitGain(manifest.mix?.roomSend) ||
     !/^[a-f0-9]{64}$/.test(manifest.provenance.generationRecordSha256)
   ) {
@@ -269,8 +278,10 @@ function validDeliveryProcessing(
   ) {
     return false;
   }
-  return Object.values(cues).every(
-    (cue) =>
+  return Object.entries(cues).every(
+    ([id, cue]) =>
+      (cue.sourceCueId === undefined ||
+        (id === 'projectile' && cue.sourceCueId === 'attack-fizzle')) &&
       ['side-to-dual-mono', 'mid-to-dual-mono', 'preserve-stereo'].includes(
         cue.channelTransform,
       ) &&
