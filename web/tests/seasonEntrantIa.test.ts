@@ -78,45 +78,45 @@ test('ranked enrollment and immediate practice have different visible verbs', ()
   assert.match(entrants, /There is no ranked queue button/);
   assert.match(entrants, /Field for ranked/);
   assert.match(workshop, /Practice (?:&amp;|&) watch/);
-  assert.match(workshop, /Practice is immediate and unranked/);
+  assert.match(workshop, /Practice is immediate, unranked/);
 });
 
-test('the floating shortcut reruns the configured practice without duplicating setup', () => {
-  assert.equal(workshop.match(/'Practice & watch'/g)?.length, 1);
-  assert.match(workshop, /!practiceActionVisible/);
-  assert.doesNotMatch(workshop, /practiceActionSeen/);
+test('the workspace has one persistent practice action and separates scenario setup', () => {
+  assert.equal(workshop.match(/onClick=\{\(\) => void runTrial\(\)\}/g)?.length, 1);
   assert.match(workshop, /onClick=\{\(\) => void runTrial\(\)\}/);
-  assert.match(workshop, /btn btn-secondary fixed/);
-  assert.doesNotMatch(workshop, /btn btn-secondary fixed[^\n]*min-\[640px\]:hidden/);
+  assert.match(workshop, /aria-label="Choose practice opponent and scenario"/);
+  assert.match(workshop, /single Practice action in the workspace bar/);
   assert.match(workshop, /Practice again/);
-  assert.doesNotMatch(workshop, /Practice setup/);
+  assert.doesNotMatch(workshop, /btn btn-secondary fixed/);
   assert.doesNotMatch(workshop, /Import JSON pair|Export pinned pair|layout sha256/);
 });
 
 test('practice is a secondary game action rather than a competing primary', () => {
-  assert.match(workshop, /practiceActionRef.*?btn btn-secondary/s);
+  assert.match(workshop, /btn btn-secondary min-h-11 shrink-0 gap-2/);
   assert.match(styles, /\.btn-secondary\s*\{[^}]*background:/s);
   assert.match(styles, /\.btn-secondary-symbol\s*\{[^}]*color:\s*var\(--color-arena-material\)/s);
 });
 
-test('conditions and custody are focused doctrine tools rather than top-level steps', () => {
+test('the editor uses Squad, Commands and Map while team tactics stay contextual', () => {
   assert.doesNotMatch(workshop, /id: 'conditions'|id: 'custody'/);
-  assert.match(workshop, /id: 'doctrines'.*path\.startsWith\('conditions'\).*path\.startsWith\('custodyPolicies'\)/s);
+  assert.match(workshop, /id: 'squad'.*id: 'commands'.*id: 'map'/s);
+  assert.match(workshop, /Shared triggers, Core plans, coordination caps and memory/);
   assert.match(workshop, /title="Doctrine triggers"/);
   assert.match(workshop, /title="Core custody"/);
-  assert.match(workshop, /label: '3 Tactics map'/);
+  assert.match(workshop, /label: 'Map'/);
 });
 
 test('doctrine authoring presents a battle-plan board over the compiler schema', () => {
-  assert.match(workshop, /Give every assignment its own playbook/);
+  assert.match(workshop, /Order every assignment’s plays/);
   assert.match(workshop, /Six tactical verbs · one ordered ladder/);
   assert.match(workshop, /data-doctrine-select/);
   assert.match(workshop, /entry\.name} · \{entry\.signatureName/);
   assert.match(workshop, /Tactical action/);
+  assert.match(workshop, /Team tactics/);
   assert.match(workshop, /Doctrine triggers/);
   assert.match(workshop, /predicateSentence\(predicate\)/);
-  assert.match(workshop, /Core play/);
-  assert.match(workshop, /Coordination limits/);
+  assert.match(workshop, /Core plans/);
+  assert.match(workshop, /Coordination/);
   assert.match(workshop, /Combat baseline for this assignment/);
   assert.match(workshop, /game standard/);
   assert.match(workshop, /Adaptive participation cap/);
@@ -126,6 +126,8 @@ test('doctrine authoring presents a battle-plan board over the compiler schema',
   assert.match(workshop, /This is an\s+opportunistic exception, not planned courier duty/);
   assert.match(workshop, /＋ Add condition/);
   assert.match(workshop, /TacticalGeometryPreview/);
+  assert.match(workshop, /Edit \{humanizeToken\(destination\.id\)\} on the tactical map/);
+  assert.match(workshop, /Duplicate play/);
   assert.match(workshop, /Exact same footprint/);
   assert.match(workshop, /expandedModeKey/);
   assert.match(workshop, /open=\{expanded\}/);

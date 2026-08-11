@@ -12,7 +12,7 @@ import {
 import { Link, useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
 import ClassIcon from '../../components/ClassIcon';
-import type { TacticalSheet, TacticalSheetCatalog } from '../api';
+import type { TacticalSheet, TacticalSheetCatalog, TacticalSheetSummary } from '../api';
 import {
   useDeleteTacticalSheet,
   useMatchLive,
@@ -90,8 +90,9 @@ interface TacticalSheetEditorProps {
 }
 
 type PlotKind = 'route' | 'zone' | 'anchor';
+type PlotTool = 'select' | 'draw';
 type Side = 'west' | 'east';
-type EditorSection = 'composition' | 'doctrines' | 'map';
+type EditorSection = 'squad' | 'commands' | 'map';
 type DoctrineTool = 'conditions' | 'custody' | 'coordination' | 'memory' | null;
 
 export default function TacticalSheetEditor({ catalog, initialSheetId = null }: TacticalSheetEditorProps) {
@@ -109,15 +110,16 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
   const [stockId, setStockId] = useState(catalog.stockOpponents[0]?.id ?? '');
   const [seed, setSeed] = useState('104729');
   const [restored, setRestored] = useState(false);
-  const [section, setSection] = useState<EditorSection>('doctrines');
+  const [section, setSection] = useState<EditorSection>('commands');
   const [doctrineTool, setDoctrineTool] = useState<DoctrineTool>(null);
+  const [conditionSelection, setConditionSelection] = useState<string | null>(null);
+  const [mapReturn, setMapReturn] = useState<{ roleId: string; play: number } | null>(null);
+  const [practiceSetupOpen, setPracticeSetupOpen] = useState(false);
+  const [libraryOpen, setLibraryOpen] = useState(false);
+  const [scenarioMode, setScenarioMode] = useState<'same' | 'new' | 'advanced'>('same');
   const [compilerIssue, setCompilerIssue] = useState<SheetIssue | null>(null);
   const [trialHistory, setTrialHistory] = useState<SheetTrialRun[]>(() => loadTrialHistory());
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
-  // Assume the configured action is visible until the observer proves otherwise.
-  // This avoids flashing a duplicate mobile shortcut while the editor hydrates.
-  const [practiceActionVisible, setPracticeActionVisible] = useState(true);
-  const practiceActionRef = useRef<HTMLButtonElement | null>(null);
   const save = useSaveTacticalSheet();
   const remove = useDeleteTacticalSheet();
   const trial = useTrialTacticalSheet();
@@ -181,19 +183,6 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
     });
     return () => { live = false; };
   }, [catalog.map.id, replaceDraft, sheetQuery.data]);
-
-  useEffect(() => {
-    const action = practiceActionRef.current;
-    if (!action || typeof IntersectionObserver === 'undefined') return;
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setPracticeActionVisible(entry.isIntersecting);
-      },
-      { threshold: 0.25 },
-    );
-    observer.observe(action);
-    return () => observer.disconnect();
-  }, [draft?.sheetId]);
 
   useEffect(() => {
     if (!draft) return;
@@ -302,7 +291,9 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
       const snapshot = snapshotForTrial(draft);
       const saved = await saveDraft(false);
       const parsedSeed = seed.trim() === '' ? null : Number(seed);
-      const resolvedSeed = Number.isSafeInteger(parsedSeed) ? parsedSeed : null;
+      const resolvedSeed = scenarioMode === 'new'
+        ? null
+        : Number.isSafeInteger(parsedSeed) ? parsedSeed : null;
       const match = await trial.mutateAsync({
         sheetId: saved.id,
         body: {
@@ -386,6 +377,30 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
     setCompilerIssue(null);
   };
 
+  const openDeviceDraft = (local: SheetDraft) => {
+    setActiveId(local.sheetId);
+    replaceDraft(local);
+    setRestored(true);
+    resetMutations();
+    setLibraryOpen(false);
+    navigate(local.sheetId
+      ? `/entrants/sheets/${local.sheetId}/edit`
+      : '/entrants/sheets/new');
+  };
+
+  const openSavedSheet = (sheetId: string) => {
+    setActiveId(sheetId);
+    resetMutations();
+    setLibraryOpen(false);
+    void loadLocalDraft(`sheet:${sheetId}`).then((local) => {
+      if (local?.layout.mapId === catalog.map.id) {
+        replaceDraft(local);
+        setRestored(true);
+      }
+    });
+    navigate(`/entrants/sheets/${sheetId}/edit`);
+  };
+
   useEffect(() => {
     const shortcut = (event: globalThis.KeyboardEvent) => {
       if (!(event.metaKey || event.ctrlKey)) return;
@@ -424,7 +439,7 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
 
   return (
     <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-[250px_minmax(0,1fr)]">
-      <aside className="panel h-fit lg:sticky lg:top-4">
+      <aside className="panel hidden h-fit lg:sticky lg:top-4 lg:block">
         <div className="pad flex items-center gap-2 border-b border-arena-edge">
           <div className="mr-auto">
             <p className="lab">Saved sheets</p>
@@ -449,13 +464,7 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
                       ? 'border-arena-material/60 bg-arena-material/10'
                       : 'border-transparent bg-arena-deep/25 active:border-arena-edge',
                   )}
-                  onClick={() => {
-                    setActiveId(null);
-                    replaceDraft(local);
-                    setRestored(true);
-                    resetMutations();
-                    navigate('/entrants/sheets/new');
-                  }}>
+                  onClick={() => openDeviceDraft(local)}>
                   <span className="t-body block truncate">{local.name}</span>
                   <span className="t-micro block">Unsaved · safe on this device</span>
                 </button>
@@ -476,17 +485,7 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
                   ? 'border-arena-ok/60 bg-arena-ok/10'
                   : 'border-transparent active:border-arena-edge',
               )}
-              onClick={() => {
-                setActiveId(sheet.id);
-                resetMutations();
-                void loadLocalDraft(`sheet:${sheet.id}`).then((local) => {
-                  if (local?.layout.mapId === catalog.map.id) {
-                    replaceDraft(local);
-                    setRestored(true);
-                  }
-                });
-                navigate(`/entrants/sheets/${sheet.id}/edit`);
-              }}
+              onClick={() => openSavedSheet(sheet.id)}
             >
               <span className="t-body block truncate">{sheet.name}</span>
               <span className="t-micro block">Revision {sheet.revision}</span>
@@ -550,6 +549,8 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
               />
             </label>
             <div className="flex flex-wrap gap-2">
+              <button type="button" className="btn min-h-11 lg:hidden"
+                onClick={() => setLibraryOpen(true)}>Sheets &amp; runs</button>
               <button type="button" className="btn min-h-11 min-w-11" onClick={undo}
                 disabled={undoStack.current.length === 0} aria-label="Undo last sheet change"
                 title="Undo (⌘/Ctrl+Z)">↶</button>
@@ -596,49 +597,7 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
         <IssueSummary issues={issues} onNavigate={(issue) => {
           revealIssue(issue.path);
         }} />
-        <section id="trial-run" className="panel panel-feature pad scroll-mt-16">
-          <div className="flex flex-wrap items-start gap-3">
-            <div className="mr-auto max-w-2xl">
-              <p className="lab text-arena-material">Change → practice → watch → change</p>
-              <h2 className="type-display mt-1 text-[22px]">Practice with this draft</h2>
-              <p className="t-meta mt-1">
-                Practice is immediate and unranked. The draft is saved locally first,
-                compiled on the server, then opened in the replay viewer. Return here to
-                compare the run and overlay its actual movement on your map.
-              </p>
-            </div>
-            <span className="pill">local draft safe</span>
-          </div>
-          <div className="mt-3 grid gap-3 sm:grid-cols-[minmax(0,1fr)_150px_auto] sm:items-end">
-            <label>
-              <span className="t-micro mb-1 block">Practice opponent</span>
-              <select className="field min-h-11" value={stockId} onChange={(event) => setStockId(event.target.value)}>
-                {catalog.stockOpponents.map((stock) => (
-                  <option key={stock.id} value={stock.id}>{stock.name}</option>
-                ))}
-              </select>
-            </label>
-            <label>
-              <span className="t-micro mb-1 block">Seed</span>
-              <input className="field min-h-11 font-mono" inputMode="numeric" value={seed}
-                onChange={(event) => setSeed(event.target.value)} />
-            </label>
-            <button ref={practiceActionRef} type="button" className="btn btn-secondary min-h-11 gap-2"
-              disabled={blocking.length > 0 || save.isPending || trial.isPending || !stockId}
-              onClick={() => void runTrial()}>
-              <span className="btn-secondary-symbol" aria-hidden="true">▶</span>
-              {trial.isPending ? 'Starting practice…' : runsForSheet.length ? 'Practice again & watch' : 'Practice & watch'}
-            </button>
-          </div>
-          {catalog.stockOpponents.find((stock) => stock.id === stockId) && (
-            <p className="t-micro mt-2">
-              {catalog.stockOpponents.find((stock) => stock.id === stockId)!.description}
-            </p>
-          )}
-          {trial.isError && <p className="t-micro mt-2 text-arena-hot">{trial.error.message}</p>}
-        </section>
-
-        <nav className="panel sticky top-0 z-20 flex gap-1 overflow-x-auto p-1.5"
+        <nav className="panel sticky top-0 z-30 flex items-center gap-1 overflow-x-auto p-1.5"
           aria-label="Sheet editor sections">
           {EDITOR_SECTIONS.map((entry) => {
             const count = issues.filter((issue) => entry.matches(issue.path)).length;
@@ -648,44 +607,111 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
               onClick={() => {
                 setSection(entry.id);
                 setDoctrineTool(null);
+                if (entry.id !== 'map') setMapReturn(null);
               }}>
               {entry.label}{count > 0 ? ` · ${count}` : ''}
             </button>;
           })}
+          <span className="mx-1 h-7 w-px shrink-0 bg-arena-edge" aria-hidden="true" />
+          <button type="button" className="btn min-h-11 shrink-0"
+            onClick={() => setPracticeSetupOpen(true)} aria-label="Choose practice opponent and scenario">
+            Scenario
+          </button>
+          <button type="button" className="btn btn-secondary min-h-11 shrink-0 gap-2"
+            disabled={blocking.length > 0 || save.isPending || trial.isPending || !stockId}
+            title="Practice & watch (⌘/Ctrl+Enter)"
+            onClick={() => void runTrial()}>
+            <span className="btn-secondary-symbol" aria-hidden="true">▶</span>
+            {trial.isPending ? 'Starting…' : runsForSheet.length ? 'Practice again' : 'Practice'}
+          </button>
         </nav>
 
-        {section === 'composition' && (
+        <div className="-mt-2 flex flex-wrap items-center gap-2 px-1 t-micro">
+          <span>Practice vs {catalog.stockOpponents.find((stock) => stock.id === stockId)?.name ?? stockId}</span>
+          <span aria-hidden="true">·</span>
+          <span>{scenarioMode === 'new' ? 'new scenario' : `scenario ${seed || 'automatic'}`}</span>
+          <span aria-hidden="true">·</span>
+          <span>unranked</span>
+          {trial.isError && <span className="text-arena-hot">{trial.error.message}</span>}
+        </div>
+
+        {section === 'squad' && (
           <CompositionEditor draft={draft} catalog={catalog} issues={issues} mutate={mutate} />
         )}
-        {section === 'doctrines' && (
+        {section === 'commands' && (
           <DoctrineEditor draft={draft} catalog={catalog} issues={issues} mutate={mutate}
-            openConditions={() => setDoctrineTool('conditions')}
+            openConditions={() => {
+              setConditionSelection(null);
+              setDoctrineTool('conditions');
+            }}
+            openCondition={(id) => {
+              setConditionSelection(id);
+              setDoctrineTool('conditions');
+            }}
             openCustody={() => setDoctrineTool('custody')}
             openCoordination={() => setDoctrineTool('coordination')}
-            openMemory={() => setDoctrineTool('memory')} />
+            openMemory={() => setDoctrineTool('memory')}
+            editGeometry={(kind, id, roleId, play) => {
+              localStorage.setItem(UI_STATE_KEY, JSON.stringify({
+                kind, side: 'west', selectedId: id,
+              }));
+              setMapReturn({ roleId, play });
+              setSection('map');
+            }} />
         )}
         {section === 'map' && (
-          <MapPlotter catalog={catalog} layout={draft.layout} issues={issues} tracks={selectedTracks}
-            trackLabel={selectedRun
-              ? `r${selectedRun.revision} vs ${selectedRun.stockName}, seed ${selectedRun.seed ?? 'auto'}`
-              : null}
-            onChange={(layout) => mutate((next) => { next.layout = layout; })} />
+          <>
+            {mapReturn && (
+              <button type="button" className="btn btn-secondary min-h-11 self-start"
+                onClick={() => {
+                  setSection('commands');
+                  window.setTimeout(() => scrollToIssue(
+                    `doctrines.roles.${mapReturn.roleId}.modes.${mapReturn.play}`,
+                  ), 0);
+                  setMapReturn(null);
+                }}>← Return to {humanizeToken(mapReturn.roleId)} play {mapReturn.play + 1}</button>
+            )}
+            <MapPlotter catalog={catalog} layout={draft.layout} issues={issues} tracks={selectedTracks}
+              trackLabel={selectedRun
+                ? `r${selectedRun.revision} vs ${selectedRun.stockName}, seed ${selectedRun.seed ?? 'auto'}`
+                : null}
+              onChange={(layout) => mutate((next) => { next.layout = layout; })} />
+          </>
         )}
       </section>
-      {!practiceActionVisible && (
-        <button type="button"
-          className="btn btn-secondary fixed right-3 bottom-[calc(3.5rem+env(safe-area-inset-bottom)+10px)] z-30 min-h-12 gap-2 px-5 shadow-xl sm:bottom-5 sm:right-5"
-          disabled={blocking.length > 0 || save.isPending || trial.isPending || !stockId}
-          onClick={() => void runTrial()}>
-          <span className="btn-secondary-symbol" aria-hidden="true">▶</span>
-          {trial.isPending ? 'Starting…' : runsForSheet.length ? 'Practice again' : 'Practice'}
-        </button>
+      {practiceSetupOpen && (
+        <SheetSubEditorModal title="Practice scenario"
+          description="Practice is immediate, unranked, and always uses the current locally protected draft."
+          onClose={() => setPracticeSetupOpen(false)}>
+          <PracticeSetup catalog={catalog} stockId={stockId} setStockId={setStockId}
+            seed={seed} setSeed={setSeed} scenarioMode={scenarioMode}
+            setScenarioMode={setScenarioMode} />
+        </SheetSubEditorModal>
+      )}
+      {libraryOpen && (
+        <SheetSubEditorModal title="Sheets and practice runs"
+          description="Switch safely: every draft keeps its own local autosave."
+          onClose={() => setLibraryOpen(false)}>
+          <MobileSheetLibrary current={draft} localDrafts={localDrafts}
+            savedSheets={sheetsQuery.data ?? []} runs={runsForSheet}
+            selectedRunId={selectedRun?.matchId ?? null}
+            onNew={() => {
+              setLibraryOpen(false);
+              startNew();
+            }} onOpenLocal={openDeviceDraft} onOpenSaved={openSavedSheet}
+            onPlotRun={(matchId) => {
+              setSelectedRunId(matchId);
+              setSection('map');
+              setLibraryOpen(false);
+            }} />
+        </SheetSubEditorModal>
       )}
       {doctrineTool === 'conditions' && (
         <SheetSubEditorModal title="Doctrine triggers"
           description="Reusable facts that decide when priority modes start and stop."
           onClose={() => setDoctrineTool(null)}>
-          <PredicateEditor draft={draft} catalog={catalog} issues={issues} mutate={mutate} />
+          <PredicateEditor draft={draft} catalog={catalog} issues={issues} mutate={mutate}
+            initialId={conditionSelection} />
         </SheetSubEditorModal>
       )}
       {doctrineTool === 'custody' && (
@@ -1319,15 +1345,173 @@ function SheetSubEditorModal({ title, description, onClose, children }: {
   );
 }
 
-function DoctrineEditor({ draft, catalog, issues, mutate, openConditions, openCustody, openCoordination, openMemory }: {
+function PracticeSetup({
+  catalog, stockId, setStockId, seed, setSeed, scenarioMode, setScenarioMode,
+}: {
+  catalog: TacticalSheetCatalog;
+  stockId: string;
+  setStockId: (value: string) => void;
+  seed: string;
+  setSeed: (value: string) => void;
+  scenarioMode: 'same' | 'new' | 'advanced';
+  setScenarioMode: (value: 'same' | 'new' | 'advanced') => void;
+}) {
+  const stock = catalog.stockOpponents.find((entry) => entry.id === stockId);
+  return (
+    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(280px,.7fr)]">
+      <section>
+        <p className="lab text-arena-material">Opponent</p>
+        <div className="mt-2 grid gap-2 sm:grid-cols-2">
+          {catalog.stockOpponents.map((entry) => (
+            <button key={entry.id} type="button" aria-pressed={stockId === entry.id}
+              className={clsx(
+                'choice-card min-h-24',
+                stockId === entry.id && 'border-arena-material bg-arena-material/10',
+              )}
+              onClick={() => setStockId(entry.id)}>
+              <span className="type-display block text-[17px]">{entry.name}</span>
+              <span className="t-micro mt-1 block">{entry.description}</span>
+            </button>
+          ))}
+        </div>
+        {stock && <p className="t-micro mt-2 text-arena-material">Selected: {stock.name}</p>}
+      </section>
+      <section>
+        <p className="lab text-arena-material">Scenario</p>
+        <div className="mt-2 grid gap-2">
+          <button type="button" className="choice-card min-h-16"
+            aria-pressed={scenarioMode === 'same'} onClick={() => setScenarioMode('same')}>
+            <span className="type-display block text-[16px]">Same scenario</span>
+            <span className="t-micro mt-1 block">Replay seed {seed || 'automatic'} after every edit.</span>
+          </button>
+          <button type="button" className="choice-card min-h-16"
+            aria-pressed={scenarioMode === 'new'} onClick={() => setScenarioMode('new')}>
+            <span className="type-display block text-[16px]">New scenario</span>
+            <span className="t-micro mt-1 block">Let the server choose a fresh seed for the next run.</span>
+          </button>
+          <button type="button" className="choice-card min-h-16"
+            aria-pressed={scenarioMode === 'advanced'} onClick={() => setScenarioMode('advanced')}>
+            <span className="type-display block text-[16px]">Advanced seed</span>
+            <span className="t-micro mt-1 block">Enter the exact deterministic seed yourself.</span>
+          </button>
+        </div>
+        {scenarioMode === 'advanced' && (
+          <label className="mt-3 block">
+            <span className="t-micro mb-1 block">Exact seed</span>
+            <input className="field min-h-11 font-mono" inputMode="numeric" value={seed}
+              onChange={(event) => setSeed(event.target.value)} />
+          </label>
+        )}
+        <p className="t-micro mt-3">Close this panel, then use the single Practice action in the workspace bar.</p>
+      </section>
+    </div>
+  );
+}
+
+function MobileSheetLibrary({
+  current, localDrafts, savedSheets, runs, selectedRunId,
+  onNew, onOpenLocal, onOpenSaved, onPlotRun,
+}: {
+  current: SheetDraft;
+  localDrafts: SheetDraft[];
+  savedSheets: TacticalSheetSummary[];
+  runs: SheetTrialRun[];
+  selectedRunId: string | null;
+  onNew: () => void;
+  onOpenLocal: (draft: SheetDraft) => void;
+  onOpenSaved: (sheetId: string) => void;
+  onPlotRun: (matchId: string) => void;
+}) {
+  const deviceOnly = localDrafts.filter((entry) => !entry.sheetId);
+  return (
+    <div className="grid gap-5 lg:grid-cols-2">
+      <section>
+        <div className="flex items-center gap-2">
+          <div className="mr-auto">
+            <p className="lab text-arena-material">Your sheets</p>
+            <p className="t-micro mt-1">Saved revisions and device-only drafts.</p>
+          </div>
+          <button type="button" className="btn btn-primary min-h-11" onClick={onNew}>New sheet</button>
+        </div>
+        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+          {deviceOnly.map((local) => (
+            <button key={local.localId} type="button" className="choice-card min-h-16"
+              aria-pressed={current.localId === local.localId}
+              onClick={() => onOpenLocal(local)}>
+              <span className="type-display block truncate text-[16px]">{local.name}</span>
+              <span className="t-micro mt-1 block">Device draft · not yet on server</span>
+            </button>
+          ))}
+          {savedSheets.map((sheet) => (
+            <button key={sheet.id} type="button" className="choice-card min-h-16"
+              aria-pressed={current.sheetId === sheet.id}
+              onClick={() => onOpenSaved(sheet.id)}>
+              <span className="type-display block truncate text-[16px]">{sheet.name}</span>
+              <span className="t-micro mt-1 block">Saved revision {sheet.revision}</span>
+            </button>
+          ))}
+        </div>
+        {deviceOnly.length === 0 && savedSheets.length === 0 && (
+          <p className="t-meta mt-3 rounded-sm border border-arena-edge p-3">
+            This is your first sheet. Its draft is already protected on this device.
+          </p>
+        )}
+      </section>
+      <section>
+        <p className="lab text-arena-material">Recent practice</p>
+        <p className="t-micro mt-1">Watch the result or plot its authoritative tracks on the map.</p>
+        <div className="mt-3 grid gap-2">
+          {runs.slice(0, 8).map((run) => (
+            <article key={run.matchId} className={clsx(
+              'rounded-sm border p-3',
+              selectedRunId === run.matchId
+                ? 'border-arena-ok/60 bg-arena-ok/10'
+                : 'border-arena-edge bg-arena-deep/25',
+            )}>
+              <div className="flex items-center gap-2">
+                <span className="type-display truncate text-[15px]">r{run.revision} vs {run.stockName}</span>
+                <span className="val ml-auto">{run.seed ?? 'auto'}</span>
+              </div>
+              <p className="t-micro mt-1">Changed: {run.changes.join(', ')}</p>
+              <div className="mt-2 flex gap-2">
+                <button type="button" className="btn min-h-11 flex-1"
+                  onClick={() => onPlotRun(run.matchId)}>Plot tracks</button>
+                <Link to={`/matches/${run.matchId}`}
+                  state={{
+                    returnTo: current.sheetId
+                      ? `/entrants/sheets/${current.sheetId}/edit`
+                      : '/entrants/sheets/new',
+                    returnLabel: current.name,
+                  }}
+                  className="btn min-h-11 flex-1">Watch</Link>
+              </div>
+            </article>
+          ))}
+          {runs.length === 0 && (
+            <p className="t-meta rounded-sm border border-arena-edge p-3">
+              Run this sheet once and its comparison appears here.
+            </p>
+          )}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function DoctrineEditor({
+  draft, catalog, issues, mutate, openConditions, openCondition, openCustody,
+  openCoordination, openMemory, editGeometry,
+}: {
   draft: SheetDraft;
   catalog: TacticalSheetCatalog;
   issues: SheetIssue[];
   mutate: Mutate;
   openConditions: () => void;
+  openCondition: (id: string) => void;
   openCustody: () => void;
   openCoordination: () => void;
   openMemory: () => void;
+  editGeometry: (kind: 'route' | 'zone', id: string, roleId: string, play: number) => void;
 }) {
   const doctrines = Object.entries(draft.playbook.doctrines.roles ?? {});
   const roleById = new Map(draft.playbook.roles.map((role) => [role.roleId, role]));
@@ -1359,10 +1543,10 @@ function DoctrineEditor({ draft, catalog, issues, mutate, openConditions, openCu
   return (
     <section className="panel overflow-hidden">
       <header className="border-b border-arena-edge bg-[radial-gradient(circle_at_12%_0%,rgba(210,110,45,.18),transparent_38%),linear-gradient(115deg,rgba(210,110,45,.08),transparent_60%)] p-4">
-        <p className="lab text-arena-material">Battle plan</p>
+        <p className="lab text-arena-material">Commands</p>
         <div className="mt-1 flex flex-wrap items-end gap-3">
           <div className="mr-auto max-w-3xl">
-            <h2 className="type-display text-[25px]">Give every assignment its own playbook</h2>
+            <h2 className="type-display text-[25px]">Order every assignment’s plays</h2>
             <p className="t-meta mt-1">
               Read top to bottom. The first live play takes command; the green patrol is the safe fallback.
             </p>
@@ -1370,6 +1554,34 @@ function DoctrineEditor({ draft, catalog, issues, mutate, openConditions, openCu
           <span className="pill">Six tactical verbs · one ordered ladder</span>
         </div>
       </header>
+
+      <section className="border-b border-arena-edge bg-arena-deep/20 p-3 sm:p-4">
+        <div className="flex flex-wrap items-end gap-2">
+          <div className="mr-auto max-w-2xl">
+            <p className="lab text-arena-material">Team tactics</p>
+            <p className="t-micro mt-1">
+              Shared triggers, Core plans, coordination caps and memory support every assignment.
+              They do not belong to the selected assignment.
+            </p>
+          </div>
+          <span className="pill">shared by the squad</span>
+        </div>
+        <div className="mt-3 grid grid-cols-2 gap-2 xl:grid-cols-4">
+          <DoctrineToolButton title="Triggers" detail={predicateIds.length + ' named moments'}
+            issueCount={issues.filter((issue) => issue.path.startsWith('conditions')).length}
+            onClick={openConditions} />
+          <DoctrineToolButton title="Core plans" detail={draft.playbook.custodyPolicies.length + ' carrying plans'}
+            issueCount={issues.filter((issue) => issue.path.startsWith('custodyPolicies')).length}
+            onClick={openCustody} />
+          <DoctrineToolButton title="Coordination" detail={focusIds.length + ' focus · ' + cohortIds.length + ' cohorts'}
+            issueCount={issues.filter((issue) =>
+              issue.path.startsWith('doctrines.focus') || issue.path.startsWith('doctrines.cohorts')).length}
+            onClick={openCoordination} />
+          <DoctrineToolButton title="Memory" detail="Four shared knowledge windows"
+            issueCount={issues.filter((issue) => issue.path.startsWith('memory')).length}
+            onClick={openMemory} />
+        </div>
+      </section>
 
       <div className="grid min-w-0 grid-cols-1 lg:grid-cols-[240px_minmax(0,1fr)]">
         <aside className="border-b border-arena-edge bg-arena-deep/30 p-2 lg:border-b-0 lg:border-r">
@@ -1423,21 +1635,6 @@ function DoctrineEditor({ draft, catalog, issues, mutate, openConditions, openCu
                 </button>
               );
             })}
-          </div>
-          <div className="mt-2 grid grid-cols-2 gap-2 lg:grid-cols-1">
-            <DoctrineToolButton title="Triggers" detail={predicateIds.length + ' named moments'}
-              issueCount={issues.filter((issue) => issue.path.startsWith('conditions')).length}
-              onClick={openConditions} />
-            <DoctrineToolButton title="Core play" detail={draft.playbook.custodyPolicies.length + ' custody plans'}
-              issueCount={issues.filter((issue) => issue.path.startsWith('custodyPolicies')).length}
-              onClick={openCustody} />
-            <DoctrineToolButton title="Coordination" detail={focusIds.length + ' focus · ' + cohortIds.length + ' cohorts'}
-              issueCount={issues.filter((issue) =>
-                issue.path.startsWith('doctrines.focus') || issue.path.startsWith('doctrines.cohorts')).length}
-              onClick={openCoordination} />
-            <DoctrineToolButton title="Intel memory" detail="Four team memory windows"
-              issueCount={issues.filter((issue) => issue.path.startsWith('memory')).length}
-              onClick={openMemory} />
           </div>
         </aside>
 
@@ -1544,6 +1741,22 @@ function DoctrineEditor({ draft, catalog, issues, mutate, openConditions, openCu
                       const [moving] = next.modes.splice(index, 1);
                       next.modes.splice(index + delta, 0, moving);
                     })}
+                    onDuplicate={() => updateDoctrine(roleId, (next) => {
+                      next.modes.splice(index + 1, 0, structuredClone(next.modes[index]));
+                    })}
+                    onCreateCondition={(field) => {
+                      const id = uniqueId('trigger', Object.keys(draft.playbook.conditions));
+                      mutate((next) => {
+                        next.playbook.conditions[id] = {
+                          fact: 'tick', operator: 'at-least', value: 1,
+                        };
+                        const selected = next.playbook.doctrines.roles[roleId].modes[index];
+                        selected[field] = selected[field]
+                          ? `${selected[field]} and ${id}` : id;
+                      });
+                      openCondition(id);
+                    }}
+                    onEditGeometry={(kind, id) => editGeometry(kind, id, roleId, index)}
                     onRemove={() => updateDoctrine(roleId, (next) => { next.modes.splice(index, 1); })} />
                 ))}
                 <button type="button" className="btn min-h-11 self-start border-arena-material/45"
@@ -1575,7 +1788,7 @@ function DoctrineEditor({ draft, catalog, issues, mutate, openConditions, openCu
 function ModeEditor({
   roleId, doctrine, mode, index, catalog, layout, routeIds, zoneIds, anchorIds, roleIds,
   custodyIds, predicateIds, focus, cohorts, issues, expanded, onExpandedChange,
-  onChange, onMove, onRemove,
+  onChange, onMove, onDuplicate, onCreateCondition, onEditGeometry, onRemove,
 }: {
   roleId: string;
   doctrine: Doctrine;
@@ -1596,6 +1809,9 @@ function ModeEditor({
   onExpandedChange: (open: boolean) => void;
   onChange: (mode: TacticalMode) => void;
   onMove: (delta: number) => void;
+  onDuplicate: () => void;
+  onCreateCondition: (field: 'while' | 'until') => void;
+  onEditGeometry: (kind: 'route' | 'zone', id: string) => void;
   onRemove: () => void;
 }) {
   const verb = verbOf(mode) ?? 'patrol';
@@ -1683,6 +1899,7 @@ function ModeEditor({
             <DestinationPicker verb={verb} destination={destination} catalog={catalog} layout={layout}
               routeIds={routeIds} zoneIds={zoneIds}
               path={issuePrefix + '.' + verb} issues={issues}
+              onEditMap={onEditGeometry}
               onChange={(kind, id) => set({ [verb]: kind === 'route' ? id : { zone: id } })} />
           )}
           {verb === 'intercept' && (
@@ -1733,10 +1950,12 @@ function ModeEditor({
               <ConditionField label="Start when" value={mode.while ?? ''} predicates={predicateIds}
                 emptyLabel="No start condition selected"
                 issues={issues} path={issuePrefix + '.while'}
+                onCreate={() => onCreateCondition('while')}
                 onChange={(value) => set({ while: value })} />
               <ConditionField label="Release when" value={mode.until ?? ''} predicates={predicateIds}
                 emptyLabel="Once started, this play stays active for this body life"
                 issues={issues} path={issuePrefix + '.until'}
+                onCreate={() => onCreateCondition('until')}
                 onChange={(value) => set({ until: value || undefined })} />
             </div>
           )}
@@ -1749,7 +1968,9 @@ function ModeEditor({
             onChange={(fightBlock) => set({ fight: fightBlock })} />}
           <InlineIssues issues={issues} prefix={issuePrefix} />
           {!floor && (
-            <div className="mt-3 flex justify-end">
+            <div className="mt-3 flex justify-end gap-2">
+              <button type="button" className="btn min-h-11" disabled={doctrine.modes.length >= 8}
+                onClick={onDuplicate}>Duplicate play</button>
               <button type="button" className="btn min-h-11 text-arena-hot" onClick={onRemove}>Remove play</button>
             </div>
           )}
@@ -1758,7 +1979,10 @@ function ModeEditor({
   );
 }
 
-function DestinationPicker({ verb, destination, catalog, layout, routeIds, zoneIds, path, issues, onChange }: {
+function DestinationPicker({
+  verb, destination, catalog, layout, routeIds, zoneIds, path, issues,
+  onChange, onEditMap,
+}: {
   verb: 'patrol' | 'assault';
   destination: { kind: 'route' | 'zone'; id: string } | null;
   catalog: TacticalSheetCatalog;
@@ -1768,6 +1992,7 @@ function DestinationPicker({ verb, destination, catalog, layout, routeIds, zoneI
   path: string;
   issues: SheetIssue[];
   onChange: (kind: 'route' | 'zone', id: string) => void;
+  onEditMap: (kind: 'route' | 'zone', id: string) => void;
 }) {
   const kind = destination?.kind ?? 'route';
   const values = kind === 'route' ? routeIds : zoneIds;
@@ -1788,8 +2013,14 @@ function DestinationPicker({ verb, destination, catalog, layout, routeIds, zoneI
         ))}
       </div>
       {destination?.id && (
-        <TacticalGeometryPreview catalog={catalog} layout={layout}
-          kind={kind} id={destination.id} />
+        <div>
+          <TacticalGeometryPreview catalog={catalog} layout={layout}
+            kind={kind} id={destination.id} />
+          <button type="button" className="btn btn-secondary mt-2 min-h-11"
+            onClick={() => onEditMap(kind, destination.id)}>
+            Edit {humanizeToken(destination.id)} on the tactical map →
+          </button>
+        </div>
       )}
       <p className="t-micro mt-3">Choose another {kind}</p>
       <div className="mt-1.5 grid max-h-44 grid-cols-2 gap-1.5 overflow-y-auto pr-1 sm:grid-cols-3 xl:grid-cols-4">
@@ -1969,22 +2200,27 @@ function CohortField({ value, cohorts, path, issues, onChange }: {
   );
 }
 
-function PredicateEditor({ draft, catalog, issues, mutate }: {
+function PredicateEditor({ draft, catalog, issues, mutate, initialId }: {
   draft: SheetDraft;
   catalog: TacticalSheetCatalog;
   issues: SheetIssue[];
   mutate: Mutate;
+  initialId: string | null;
 }) {
   const predicates = draft.playbook.conditions ?? {};
   const entries = Object.entries(predicates);
   const roles = draft.playbook.roles.map((role) => role.roleId);
   const zones = draft.layout.zones.map((zone) => zone.zoneId);
-  const [activeId, setActiveId] = useState(entries[0]?.[0] ?? '');
+  const [activeId, setActiveId] = useState(initialId ?? entries[0]?.[0] ?? '');
   const activeEntry = entries.find(([id]) => id === activeId) ?? entries[0];
 
   useEffect(() => {
+    if (initialId && predicates[initialId]) {
+      setActiveId(initialId);
+      return;
+    }
     if (activeEntry && activeEntry[0] !== activeId) setActiveId(activeEntry[0]);
-  }, [activeEntry, activeId]);
+  }, [activeEntry, activeId, initialId, predicates]);
 
   const rename = (previous: string, nextId: string) => mutate((next) => {
     if (!nextId || previous === nextId) return;
@@ -2232,10 +2468,14 @@ function CustodyEditor({ draft, issues, mutate }: {
               onChange={(value) => mutatePolicy((target) => { target.unreachableFallback = value; })} />
           </div>
 
-          <div className="mt-3">
-            <ConditionField label="Safe to bank when" value={policy.safeConversion} predicates={predicateIds}
+          <div className="mt-3 rounded-sm border border-arena-edge bg-arena-deep/20 p-3">
+            <ConditionField label="Claim Cores while" value={policy.safeConversion} predicates={predicateIds}
               issues={issues} path={'custodyPolicies.' + activeIndex + '.safeConversion'}
               onChange={(value) => mutatePolicy((target) => { target.safeConversion = value; })} />
+            <p className="t-micro mt-2">
+              This activates the whole Core plan: reserving, assigning, carrying and banking.
+              It is not merely a safety check at the delivery zone.
+            </p>
           </div>
 
           <details className="mt-3 rounded-sm border border-arena-edge bg-arena-deep/20">
@@ -2346,6 +2586,8 @@ function CoordinationEditor({ draft, issues, mutate }: {
   const cohorts = draft.playbook.doctrines.cohorts;
   const focusConsumers = countModeReferences(draft, 'focus');
   const cohortConsumers = countModeReferences(draft, 'cohort');
+  const focusConsumerLabels = describeModeReferences(draft, 'focus');
+  const cohortConsumerLabels = describeModeReferences(draft, 'cohort');
   return (
     <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-2">
       <section>
@@ -2376,6 +2618,11 @@ function CoordinationEditor({ draft, issues, mutate }: {
                   onClick={() => mutate((next) => { delete next.playbook.doctrines.focus[id]; })}>Remove</button>
               </div>
               <p className="t-micro mt-2">{focusConsumers.get(id) ?? 0} play consumers · shared names require at least two</p>
+              <div className="mt-2 flex flex-wrap gap-1">
+                {(focusConsumerLabels.get(id) ?? []).map((label) => (
+                  <span key={label} className="pill normal-case tracking-normal">{label}</span>
+                ))}
+              </div>
               <InlineIssues issues={issues} prefix={'doctrines.focus.' + id} />
             </article>
           ))}
@@ -2409,6 +2656,11 @@ function CoordinationEditor({ draft, issues, mutate }: {
                   onClick={() => mutate((next) => { delete next.playbook.doctrines.cohorts[id]; })}>Remove</button>
               </div>
               <p className="t-micro mt-2">{cohortConsumers.get(id) ?? 0} play consumers · membership is recalculated every tick</p>
+              <div className="mt-2 flex flex-wrap gap-1">
+                {(cohortConsumerLabels.get(id) ?? []).map((label) => (
+                  <span key={label} className="pill normal-case tracking-normal">{label}</span>
+                ))}
+              </div>
               <InlineIssues issues={issues} prefix={'doctrines.cohorts.' + id} />
             </article>
           ))}
@@ -2606,6 +2858,11 @@ function MapPlotter({ catalog, layout, issues, tracks, trackLabel, onChange }: {
   const [kind, setKind] = useState<PlotKind>(ui.kind);
   const [side, setSide] = useState<Side>(ui.side);
   const [selectedId, setSelectedId] = useState(ui.selectedId);
+  const [tool, setTool] = useState<PlotTool>('select');
+  const [zoom, setZoom] = useState(1);
+  const [expanded, setExpanded] = useState(false);
+  const [selectedWaypoint, setSelectedWaypoint] = useState<number | null>(null);
+  const [trackFilter, setTrackFilter] = useState<'all' | 'own' | 'enemy'>('all');
   const [drag, setDrag] = useState<DragState | null>(null);
   const [zonePreview, setZonePreview] = useState<[Point, Point] | null>(null);
   const routes = layout.routes ?? [];
@@ -2620,6 +2877,13 @@ function MapPlotter({ catalog, layout, issues, tracks, trackLabel, onChange }: {
   useEffect(() => {
     localStorage.setItem(UI_STATE_KEY, JSON.stringify({ kind, side, selectedId: selected ?? '' }));
   }, [kind, selected, side]);
+
+  useEffect(() => {
+    if (!expanded) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = previous; };
+  }, [expanded]);
 
   const commit = (change: (next: LayoutDocument) => void) => {
     const next = structuredClone(layout);
@@ -2636,7 +2900,7 @@ function MapPlotter({ catalog, layout, issues, tracks, trackLabel, onChange }: {
     return side === 'east' ? [catalog.map.width - 1 - x, catalog.map.height - 1 - y] : [x, y];
   };
   const pointerDown = (event: ReactPointerEvent<SVGSVGElement>) => {
-    if (event.button !== 0 || side === 'east') return;
+    if (event.button !== 0 || side === 'east' || tool !== 'draw') return;
     const point = sourcePoint(event);
     if (!point) return;
     event.currentTarget.setPointerCapture(event.pointerId);
@@ -2646,6 +2910,7 @@ function MapPlotter({ catalog, layout, issues, tracks, trackLabel, onChange }: {
     } else if (kind === 'route' && selectedRoute) {
       commit((next) => next.routes.find((entry) => entry.routeId === selectedRoute.routeId)!.waypoints.push(point));
       setDrag({ kind: 'route', id: selectedRoute.routeId, index: selectedRoute.waypoints.length });
+      setSelectedWaypoint(selectedRoute.waypoints.length);
     } else if (kind === 'anchor' && selectedAnchor) {
       commit((next) => { next.anchors.find((entry) => entry.anchorId === selectedAnchor.anchorId)!.position = point; });
       setDrag({ kind: 'anchor', id: selectedAnchor.anchorId, index: 0 });
@@ -2694,7 +2959,8 @@ function MapPlotter({ catalog, layout, issues, tracks, trackLabel, onChange }: {
     commit((next) => {
       if (kind === 'route' && selectedRoute) {
         const route = next.routes.find((entry) => entry.routeId === selectedRoute.routeId);
-        if (route?.waypoints.length) route.waypoints[route.waypoints.length - 1] = move(route.waypoints.at(-1)!);
+        const index = selectedWaypoint ?? (route?.waypoints.length ?? 1) - 1;
+        if (route?.waypoints[index]) route.waypoints[index] = move(route.waypoints[index]);
       } else if (kind === 'anchor' && selectedAnchor) {
         const anchor = next.anchors.find((entry) => entry.anchorId === selectedAnchor.anchorId);
         if (anchor) anchor.position = move(anchor.position);
@@ -2716,6 +2982,7 @@ function MapPlotter({ catalog, layout, issues, tracks, trackLabel, onChange }: {
   ) => {
     event.stopPropagation();
     svg.current?.setPointerCapture(event.pointerId);
+    if (value.kind === 'route') setSelectedWaypoint(value.index);
     setDrag(value);
   };
   const transform = (point: Point): Point => side === 'east'
@@ -2730,9 +2997,15 @@ function MapPlotter({ catalog, layout, issues, tracks, trackLabel, onChange }: {
       nearestSpawnTeam(point, catalog.map.spawnAnchors),
       side,
     );
+  const visibleTracks = tracks.filter((track) => trackFilter === 'all'
+    || relationForTeam(track.teamId === 0 ? 0 : track.teamId === 1 ? 1 : null, side)
+      === trackFilter);
 
   return (
-    <section className="panel min-w-0 pad" data-sheet-path="layout">
+    <section className={clsx(
+      'panel min-w-0 pad',
+      expanded && 'fixed inset-0 z-[65] overflow-y-auto rounded-none border-0 bg-arena-bg',
+    )} data-sheet-path="layout">
       <div className="flex flex-wrap items-start gap-2">
         <div className="mr-auto">
           <p className="lab">Map plotting</p>
@@ -2745,14 +3018,22 @@ function MapPlotter({ catalog, layout, issues, tracks, trackLabel, onChange }: {
               onClick={() => setSide(value)}>{value} side</button>
           ))}
         </div>
+        <button type="button" className="btn min-h-11" onClick={() => setExpanded((value) => !value)}>
+          {expanded ? 'Close full-screen map' : 'Full-screen map'}
+        </button>
       </div>
-      <div className="mt-3 grid min-w-0 grid-cols-[minmax(0,1fr)] gap-3 lg:grid-cols-[220px_minmax(0,1fr)]">
+      <div className={clsx(
+        'mt-3 grid min-w-0 grid-cols-[minmax(0,1fr)] gap-3',
+        expanded ? 'xl:grid-cols-[250px_minmax(0,1fr)]' : 'lg:grid-cols-[220px_minmax(0,1fr)]',
+      )}>
         <div className="order-2 min-w-0 lg:order-1">
           <div className="grid grid-cols-3 gap-1">
             {(['route', 'zone', 'anchor'] as const).map((value) => (
               <button key={value} type="button" className={clsx('btn min-h-11', kind === value && 'btn-on')}
                 onClick={() => {
                   setKind(value);
+                  setTool('select');
+                  setSelectedWaypoint(null);
                   setSelectedId(value === 'route' ? routes[0]?.routeId ?? ''
                     : value === 'zone' ? zones[0]?.zoneId ?? '' : anchors[0]?.anchorId ?? '');
                 }}>{value}</button>
@@ -2795,8 +3076,18 @@ function MapPlotter({ catalog, layout, issues, tracks, trackLabel, onChange }: {
                 onChange={(value) => commit((next) => { next.routes.find((entry) => entry.routeId === selectedRoute.routeId)!.corridorWidth = value; })} />
               <button type="button" className="btn min-h-11" disabled={selectedRoute.waypoints.length === 0}
                 onClick={() => commit((next) => { next.routes.find((entry) => entry.routeId === selectedRoute.routeId)!.waypoints.pop(); })}>
-                Undo waypoint
+                Remove last waypoint
               </button>
+              <button type="button" className="btn min-h-11"
+                disabled={selectedWaypoint === null || selectedRoute.waypoints.length <= 1}
+                onClick={() => {
+                  const removing = selectedWaypoint;
+                  commit((next) => {
+                    next.routes.find((entry) => entry.routeId === selectedRoute.routeId)!
+                      .waypoints.splice(removing!, 1);
+                  });
+                  setSelectedWaypoint(null);
+                }}>Remove selected waypoint</button>
             </>}
           </div>
         </div>
@@ -2806,13 +3097,44 @@ function MapPlotter({ catalog, layout, issues, tracks, trackLabel, onChange }: {
             <span className="type-display truncate text-[16px]">{humanizeToken(selected ?? 'none selected')}</span>
             <span className="pill ml-auto">{side} view</span>
           </div>
-          <div className="overflow-hidden rounded-sm border border-arena-edge bg-[#070b0f]">
+          <div className="mb-2 flex flex-wrap items-center gap-2">
+            <div className="flex rounded-sm border border-arena-edge p-1" aria-label="Map editing mode">
+              <button type="button" className={clsx('btn min-h-11', tool === 'select' && 'btn-on')}
+                aria-pressed={tool === 'select'} onClick={() => setTool('select')}>Select &amp; pan</button>
+              <button type="button" className={clsx('btn min-h-11', tool === 'draw' && 'btn-secondary')}
+                aria-pressed={tool === 'draw'} disabled={side === 'east'} onClick={() => setTool('draw')}>
+                {kind === 'route' ? 'Add waypoints' : kind === 'zone' ? 'Draw zone' : 'Place anchor'}
+              </button>
+            </div>
+            <div className="ml-auto flex items-center rounded-sm border border-arena-edge p-1">
+              <button type="button" className="btn min-h-11 min-w-11" aria-label="Zoom map out"
+                disabled={zoom <= 1} onClick={() => setZoom((value) => Math.max(1, value - 0.25))}>−</button>
+              <span className="pill mx-1">{Math.round(zoom * 100)}%</span>
+              <button type="button" className="btn min-h-11 min-w-11" aria-label="Zoom map in"
+                disabled={zoom >= 2.5} onClick={() => setZoom((value) => Math.min(2.5, value + 0.25))}>＋</button>
+            </div>
+          </div>
+          {tracks.length > 0 && (
+            <div className="mb-2 flex flex-wrap items-center gap-1.5">
+              <span className="t-micro mr-1">Practice tracks</span>
+              {(['all', 'own', 'enemy'] as const).map((value) => (
+                <button key={value} type="button" className={clsx('btn min-h-11', trackFilter === value && 'btn-on')}
+                  aria-pressed={trackFilter === value} onClick={() => setTrackFilter(value)}>
+                  {humanizeToken(value)}
+                </button>
+              ))}
+            </div>
+          )}
+          <div className="max-h-[72dvh] overflow-auto rounded-sm border border-arena-edge bg-[#070b0f]">
             <svg
               ref={svg}
               viewBox={`0 0 ${catalog.map.width} ${catalog.map.height}`}
               preserveAspectRatio="xMidYMid meet"
-              className="block w-full touch-none select-none"
-              style={{ aspectRatio: `${catalog.map.width} / ${catalog.map.height}` }}
+              className={clsx('block max-w-none select-none', tool === 'draw' ? 'touch-none' : 'touch-auto')}
+              style={{
+                aspectRatio: `${catalog.map.width} / ${catalog.map.height}`,
+                width: `${zoom * 100}%`,
+              }}
               role="img"
               tabIndex={0}
               aria-label={`${side} binding tactical map editor. Arrow keys move the selected ${kind}.`}
@@ -2865,7 +3187,7 @@ function MapPlotter({ catalog, layout, issues, tracks, trackLabel, onChange }: {
                   stroke={zone.zoneId === selectedZone?.zoneId && kind === 'zone' ? '#f0c965' : '#64748b55'}
                   strokeWidth={zone.zoneId === selectedZone?.zoneId && kind === 'zone' ? 0.16 : 0.07} />;
               })}
-              {tracks.map((track) => {
+              {visibleTracks.map((track) => {
                 const points = track.points.map((point) => transform([point.x, point.y]));
                 if (points.length < 2) return null;
                 const color = track.teamId === 0 ? '#4de7ff' : '#ff806f';
@@ -2896,9 +3218,13 @@ function MapPlotter({ catalog, layout, issues, tracks, trackLabel, onChange }: {
               })}
               {side === 'west' && kind === 'route' && selectedRoute?.waypoints.map((point, index) => {
                 const [x, y] = transform(point);
-                return <circle key={index} cx={x + 0.5} cy={y + 0.5} r={0.32}
-                  fill="#39d7f2" stroke="#e6fbff" strokeWidth={0.11}
-                  onPointerDown={(event) => startHandleDrag(event, { kind: 'route', id: selectedRoute.routeId, index })} />;
+                return <g key={index}>
+                  <circle cx={x + 0.5} cy={y + 0.5} r={0.78} fill="transparent"
+                    onPointerDown={(event) => startHandleDrag(event, { kind: 'route', id: selectedRoute.routeId, index })} />
+                  <circle cx={x + 0.5} cy={y + 0.5} r={selectedWaypoint === index ? 0.4 : 0.32}
+                    fill="#39d7f2" stroke={selectedWaypoint === index ? '#f0b94f' : '#e6fbff'}
+                    strokeWidth={selectedWaypoint === index ? 0.16 : 0.11} pointerEvents="none" />
+                </g>;
               })}
               {side === 'west' && kind === 'anchor' && selectedAnchor && (() => {
                 const [x, y] = transform(selectedAnchor.position);
@@ -2978,7 +3304,8 @@ function MapPlotter({ catalog, layout, issues, tracks, trackLabel, onChange }: {
           </div>
           <p className="t-micro mt-1.5">Cyan is own · coral is enemy · landmarks rotate and relabel with the side preview.</p>
           <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 t-micro">
-            <span>Tap empty map · add point</span>
+            <span>Select &amp; pan never changes geometry</span>
+            <span>Choose an edit mode before drawing</span>
             <span>Pink · anchor</span>
             <span>Drag · zone rectangle</span>
             <span>Arrow keys · nudge selected geometry</span>
@@ -3028,10 +3355,19 @@ function FightEditor({ fight, label, inheritedLabel, onChange }: {
         <span className="pill ml-auto shrink-0">{enabled ? 'custom' : 'inherited'}</span>
       </summary>
       <div className="mt-2">
+        <div className="grid gap-1.5 sm:grid-cols-2 xl:grid-cols-4" aria-label="Combat behavior presets">
+          {FIGHT_PRESETS.map((preset) => (
+            <button key={preset.label} type="button" className="choice-card min-h-16"
+              onClick={() => onChange(preset.value ? structuredClone(preset.value) : undefined)}>
+              <span className="type-display block text-[14px]">{preset.label}</span>
+              <span className="t-micro mt-1 block">{preset.description}</span>
+            </button>
+          ))}
+        </div>
         {!enabled ? (
-          <button type="button" className="btn min-h-11" onClick={() => onChange({})}>Customize combat</button>
+          <button type="button" className="btn mt-2 min-h-11" onClick={() => onChange({})}>Tune individual fields</button>
         ) : <>
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
             <OptionalSelect label="loose Core priority" value={string(fight.collect)} values={['yield', 'first']}
               onChange={(value) => patch(null, 'collect', value)} />
             <OptionalSelect label="heal priority" value={string(fight.heal)} values={['yield', 'first']}
@@ -3079,7 +3415,48 @@ function FightEditor({ fight, label, inheritedLabel, onChange }: {
   );
 }
 
-function ConditionField({ label, value, predicates, emptyLabel = 'No condition selected', issues, path, onChange }: {
+const FIGHT_PRESETS: ReadonlyArray<{
+  label: string;
+  description: string;
+  value: FightBlock | undefined;
+}> = [
+  {
+    label: 'Inherit standard',
+    description: 'Use the assignment baseline or game standard unchanged.',
+    value: undefined,
+  },
+  {
+    label: 'Hunt carriers',
+    description: 'Prioritize carriers and pursue them within a bounded leash.',
+    value: {
+      targets: { prefer: ['carrier', 'weakest'] },
+      engage: { within: 8, else: 'strike' },
+      chase: { leash: 6, persistTicks: 24 },
+    },
+  },
+  {
+    label: 'Set an ambush',
+    description: 'Seek a rear position, then disengage if the setup fails.',
+    value: {
+      targets: { prefer: ['carrier', 'weakest'] },
+      engage: { from: 'behind', positionTicks: 16, else: 'breakOff' },
+      breakOff: { health: 2, recoverTicks: 24 },
+    },
+  },
+  {
+    label: 'Hold this ground',
+    description: 'Fight near the assigned point and keep the chase short.',
+    value: {
+      defense: { radius: 3, return: true },
+      chase: { leash: 2, persistTicks: 12 },
+    },
+  },
+];
+
+function ConditionField({
+  label, value, predicates, emptyLabel = 'No condition selected', issues, path,
+  onChange, onCreate,
+}: {
   label: string;
   value: string;
   predicates: string[];
@@ -3087,6 +3464,7 @@ function ConditionField({ label, value, predicates, emptyLabel = 'No condition s
   issues?: SheetIssue[];
   path?: string;
   onChange: (value: string) => void;
+  onCreate?: () => void;
 }) {
   const [connector, setConnector] = useState<'and' | 'or'>('and');
   const [pendingPredicate, setPendingPredicate] = useState('');
@@ -3133,7 +3511,7 @@ function ConditionField({ label, value, predicates, emptyLabel = 'No condition s
             </div>
           </fieldset>
         )}
-        <div className="grid min-w-0 gap-1.5">
+        <div className="grid min-w-0 gap-1.5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
           <label className="min-w-0">
             <span className="t-micro mb-1 block">Named condition</span>
             <select aria-label={`Condition to add to ${label}`} className="field min-h-11 min-w-0 px-2 py-1 text-xs"
@@ -3144,6 +3522,10 @@ function ConditionField({ label, value, predicates, emptyLabel = 'No condition s
           </label>
           <button type="button" className="btn min-h-11 justify-self-start" disabled={!pendingPredicate}
             onClick={addCondition}>＋ Add condition</button>
+          {onCreate && (
+            <button type="button" className="btn btn-secondary min-h-11 sm:col-span-2"
+              onClick={onCreate}>＋ Create a new trigger for this play</button>
+          )}
         </div>
       </div>
       <details className="mt-1 border-t border-arena-edge/70 pt-1">
@@ -3475,6 +3857,23 @@ function countModeReferences(draft: SheetDraft, key: 'focus' | 'cohort'): Map<st
   return result;
 }
 
+function describeModeReferences(
+  draft: SheetDraft,
+  key: 'focus' | 'cohort',
+): Map<string, string[]> {
+  const result = new Map<string, string[]>();
+  for (const [roleId, doctrine] of Object.entries(draft.playbook.doctrines.roles)) {
+    doctrine.modes.forEach((mode, index) => {
+      const value = mode[key];
+      if (typeof value !== 'string') return;
+      const labels = result.get(value) ?? [];
+      labels.push(`${humanizeToken(roleId)} · ${humanizeToken(verbOf(mode) ?? 'play')} ${index + 1}`);
+      result.set(value, labels);
+    });
+  }
+  return result;
+}
+
 function renameSharedReference(
   playbook: SheetDraft['playbook'],
   key: 'focus' | 'cohort',
@@ -3524,13 +3923,13 @@ const EDITOR_SECTIONS: ReadonlyArray<{
   label: string;
   matches: (path: string) => boolean;
 }> = [
-  { id: 'composition', label: '1 Roster', matches: (path) => path === 'composition' || path.startsWith('composition.') || path.startsWith('roles') },
-  { id: 'doctrines', label: '2 Battle plan', matches: (path) => path.startsWith('doctrines') || path.startsWith('conditions') || path.startsWith('custodyPolicies') || path.startsWith('memory') },
-  { id: 'map', label: '3 Tactics map', matches: (path) => path.startsWith('layout') || path.startsWith('playbook.layout') },
+  { id: 'squad', label: 'Squad', matches: (path) => path === 'composition' || path.startsWith('composition.') || path.startsWith('roles') },
+  { id: 'commands', label: 'Commands', matches: (path) => path.startsWith('doctrines') || path.startsWith('conditions') || path.startsWith('custodyPolicies') || path.startsWith('memory') },
+  { id: 'map', label: 'Map', matches: (path) => path.startsWith('layout') || path.startsWith('playbook.layout') },
 ];
 
 function sectionForIssue(path: string): EditorSection {
-  return EDITOR_SECTIONS.find((entry) => entry.matches(path))?.id ?? 'doctrines';
+  return EDITOR_SECTIONS.find((entry) => entry.matches(path))?.id ?? 'commands';
 }
 
 function doctrineToolForIssue(path: string): DoctrineTool {
