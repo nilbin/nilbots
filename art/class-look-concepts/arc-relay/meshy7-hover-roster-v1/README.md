@@ -110,8 +110,16 @@ The raw model provisionally passes the geometry identity: broad split-delta
 planform, shallow wedge, paired rear louvered heat exchangers, and no
 legs/guns/eyes. It fails authored materials: warm bone and muted ochre became
 dominant near-black/navy and vivid orange. The raw 61 MB / 1,976,738-triangle
-master is source evidence, not runtime art. A separately authorized 10-credit
-multiview retexture is the next narrow option; do not start a fleet batch.
+master is source evidence, not runtime art.
+
+The separately authorized Meshy 7 multiview retexture task
+`019fefdd-ac96-7dc8-a61e-f0760b4ae407` then consumed 10 credits and reduced
+the balance from 190 to 180. Its 2K result provisionally restores the approved
+warm-bone, muted-ochre, and subordinate-graphite hierarchy without fixed teal,
+vivid team orange, glow, eyes, or guns. Meshy did uniformly rescale/recenter
+and minimally re-export the mesh (238 more position vertices and 64 fewer
+triangles), so geometry is visually near-equivalent but not byte-identical.
+The owner review is the next gate; do not start a fleet batch.
 
 ## Shared gameplay truth
 

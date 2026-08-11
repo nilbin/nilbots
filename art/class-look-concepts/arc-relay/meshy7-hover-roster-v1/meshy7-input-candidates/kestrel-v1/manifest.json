@@ -101,5 +101,44 @@
     "rawModelSha256": "04b4d86e85ee7cb172db4dfa7934e2d28fab045460a8de06b643c65d8076517b",
     "sixViewReviewSha256": "d3823a6f6fecf7fbf0397d74b75b37c6aac875e19a697d32e0b0dfd958d20ef4"
   },
-  "nextGate": "owner decision on a separately capped 10-credit multiview retexture; no fleet batch"
+  "retexturePlan": {
+    "endpoint": "/openapi/v1/retexture",
+    "sourceTaskId": "019feeaa-c573-78ed-bfc8-a6630d8ae4f3",
+    "sourceRawModelSha256": "04b4d86e85ee7cb172db4dfa7934e2d28fab045460a8de06b643c65d8076517b",
+    "styleAuthority": "same four ordered Meshy multiview inputs; strict front first",
+    "ai_model": "meshy-7",
+    "enable_original_uv": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "alpha_thumbnail": true,
+    "target_formats": [
+      "glb"
+    ],
+    "creditCap": 10,
+    "authorized": false,
+    "authorization": "Owner approved the separately capped Kestrel retexture with: Try it.",
+    "authorizationConsumed": true,
+    "completedTaskId": "019fefdd-ac96-7dc8-a61e-f0760b4ae407",
+    "consumedCredits": 10
+  },
+  "retextureRun": {
+    "taskId": "019fefdd-ac96-7dc8-a61e-f0760b4ae407",
+    "directory": "../../../../../class-models/provider-runs/meshy/arc-relay-meshy7-retexture/kestrel/019fefdd-ac96-7dc8-a61e-f0760b4ae407",
+    "status": "SUCCEEDED",
+    "consumedCredits": 10,
+    "balanceBefore": 190,
+    "balanceAfter": 180,
+    "rawModelSha256": "6daeca9df3f60fd9e7260b3fd7ec3dd5ecba15505a440da4c36700cc98ae31b3",
+    "sixViewReviewSha256": "1df52491d642aab84a3b179505b65513369638b4e47cb87b6099bbcd54209977",
+    "materialGate": "provisional-pass",
+    "exactGeometryPreservation": false
+  },
+  "creditCheckAfterRetexture": {
+    "checkedAt": "2026-08-11",
+    "balance": 180,
+    "remainingFleetGenerationCredits": 450,
+    "shortfall": 270,
+    "autoRigging": false
+  },
+  "nextGate": "owner approval of the retextured Kestrel material identity; no fleet batch"
 }

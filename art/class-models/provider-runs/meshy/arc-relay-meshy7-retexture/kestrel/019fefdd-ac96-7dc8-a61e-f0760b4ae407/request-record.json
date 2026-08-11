@@ -1,0 +1,73 @@
+{
+  "version": 1,
+  "provider": "Meshy",
+  "endpoint": "retexture",
+  "providerModel": "meshy-7",
+  "classId": "kestrel",
+  "taskId": "019fefdd-ac96-7dc8-a61e-f0760b4ae407",
+  "submittedAt": "2026-08-11T08:08:29.236Z",
+  "balanceBefore": 190,
+  "authorizedCreditCap": 10,
+  "sourceManifest": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/kestrel-v1/manifest.json",
+  "sourceTaskId": "019feeaa-c573-78ed-bfc8-a6630d8ae4f3",
+  "sourceModel": {
+    "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-pilot/kestrel/019feeaa-c573-78ed-bfc8-a6630d8ae4f3/raw-model.glb",
+    "bytes": 63573812,
+    "sha256": "04b4d86e85ee7cb172db4dfa7934e2d28fab045460a8de06b643c65d8076517b"
+  },
+  "inputs": [
+    {
+      "order": 1,
+      "view": "strict-front",
+      "primary": true,
+      "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/kestrel-v1/01-front.png",
+      "bytes": 1646958,
+      "sha256": "03f9c58f61db90b3414dc5d0a9646947e0376f6f44b3898606e1b8bfa2371441",
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "order": 2,
+      "view": "strict-right",
+      "primary": false,
+      "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/kestrel-v1/02-right.png",
+      "bytes": 1619950,
+      "sha256": "b98c57bd5886b4daafd5bb6e3a80ed8e598b9b09148a3bf11496f6c6fa6cda84",
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "order": 3,
+      "view": "strict-back",
+      "primary": false,
+      "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/kestrel-v1/03-back.png",
+      "bytes": 1617316,
+      "sha256": "0d1f328e5aceafae0e30bfe5937c6fb0e79815e78c62068361537a521dc8d883",
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "order": 4,
+      "view": "front-right-three-quarter",
+      "primary": false,
+      "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/kestrel-v1/04-front-right-three-quarter.png",
+      "bytes": 1842649,
+      "sha256": "ed596ed27719bfeea14c4264a1ab7c63003bd6e9f41c0a29ddb5f27e2ff98df8",
+      "width": 1536,
+      "height": 1024
+    }
+  ],
+  "settings": {
+    "model_url": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019feeaa-c573-78ed-bfc8-a6630d8ae4f3/output/model.glb",
+    "ai_model": "meshy-7",
+    "enable_original_uv": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "alpha_thumbnail": true,
+    "target_formats": [
+      "glb"
+    ]
+  },
+  "pricingSource": "https://docs.meshy.ai/en/api/pricing",
+  "licenseTerms": "https://www.meshy.ai/terms"
+}

@@ -1,9 +1,12 @@
 # Kestrel Meshy 7 multiview candidate v1
 
 This directory records the approved inputs for the first Meshy 7 vertical
-slice. One Kestrel task was submitted after the four-view check:
+slice. One Kestrel generation task was submitted after the four-view check:
 `019feeaa-c573-78ed-bfc8-a6630d8ae4f3`. It succeeded and consumed exactly 30
-credits, reducing the balance from 220 to 190. No other class was submitted.
+credits, reducing the balance from 220 to 190. The owner then approved one
+separately capped retexture task, `019fefdd-ac96-7dc8-a61e-f0760b4ae407`.
+It consumed exactly 10 credits and reduced the balance to 180. No other class
+was submitted.
 
 The four proposed API inputs, in submission order, are:
 
@@ -36,12 +39,20 @@ near-black/navy hull and vivid orange regions, including a fixed color that
 would collide with the orange runtime team. See the provider run's
 `ASSESSMENT.md` and `provider-six-view-review.png`.
 
-The next paid option is a separately capped 10-credit Meshy 7 multiview
-retexture that reuses the generated UVs and the same four source images. It is
-not yet authorized.
+The Meshy 7 multiview retexture reused the generated model, requested original
+UVs, and used the same four source images as style authority. The corrected
+materials provisionally pass: warm bone dominates again, the center spine is
+muted ochre rather than vivid team orange, graphite is subordinate, and there
+is no teal, eye glow, or gun treatment. See its provider `ASSESSMENT.md` and
+six-view review.
+
+The retexture did not preserve geometry byte-for-byte. Meshy uniformly scaled
+and recentered the source, added 238 position vertices, and removed 64 of
+1,976,738 triangles. Quantized surface-position overlap remains above 99.99%
+at 0.001 source units and there is no visible silhouette change, but it is a
+near-equivalent re-export rather than a texture-only binary change.
 
 The live balance check on 2026-08-11 returned 220 credits. Meshy's live API
-pricing listed a textured 2K Meshy 7 multi-image task at 30 credits. The full
-sixteen-model fleet therefore requires 480 credits; the current account is 260
-credits short before the pilot and still 260 credits short after it. Auto-rigging is
-out of scope.
+pricing listed a textured 2K Meshy 7 multi-image task at 30 credits. The
+remaining fifteen generation tasks require 450 credits; after the retexture,
+the 180-credit balance is 270 credits short. Auto-rigging is out of scope.
