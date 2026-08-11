@@ -1,0 +1,240 @@
+{
+  "version": 2,
+  "id": "astral-relay",
+  "label": "Astral Relay",
+  "approval": "approved",
+  "format": "aac-lc-m4a",
+  "sampleRate": 48000,
+  "channels": 2,
+  "provenance": {
+    "provider": "sfx-engine",
+    "generatedBy": [
+      ".claude/skills/sfx-engine/scripts/generate-pack.mjs",
+      "scripts/derive-audio-v5-revisions.mjs",
+      "scripts/master-audio-v5-energy.mjs",
+      "scripts/build-audio-v5-candidates.mjs"
+    ],
+    "exportedBy": "scripts/export-runtime-sound-effects.mjs",
+    "generationRecord": "art/audio/sound-lab/v5/sfx-engine-generation.json",
+    "generationRecordSha256": "731ec6fa95ed472334c9f606594373e14cfb77d9c48fc0f0a8233b36733c130d",
+    "deliveryEncoding": {
+      "encoder": "macos-afconvert",
+      "canonicalization": "zero-iso-bmff-creation-and-modification-times"
+    },
+    "rightsStatus": "rights-cleared",
+    "license": {
+      "termsUrl": "https://sfxengine.com/terms-of-service",
+      "checkedAt": "2026-08-11",
+      "permittedUse": "personal-and-commercial-projects",
+      "standaloneRedistribution": "prohibited"
+    },
+    "shipApproval": "approved",
+    "sourceComposition": {
+      "providerGeneratedCues": 13,
+      "locallyDerivedCues": 3,
+      "locallySafetyMasteredCues": 4
+    }
+  },
+  "mix": {
+    "roomSend": 0.06,
+    "cues": {
+      "attack-windup": {
+        "gain": 0.39,
+        "voiceLimit": 3
+      },
+      "projectile": {
+        "gain": 0.38,
+        "voiceLimit": 3
+      },
+      "attack-fizzle": {
+        "gain": 0.42,
+        "voiceLimit": 2
+      },
+      "attack-cancel": {
+        "gain": 0.3,
+        "voiceLimit": 2
+      },
+      "impact": {
+        "gain": 0.38,
+        "voiceLimit": 2
+      },
+      "destroyed": {
+        "gain": 0.44,
+        "voiceLimit": 1
+      },
+      "level-up": {
+        "gain": 0.46,
+        "voiceLimit": 2
+      },
+      "arc-birth": {
+        "gain": 0.4,
+        "voiceLimit": 2
+      },
+      "arc-pickup": {
+        "gain": 0.42,
+        "voiceLimit": 2
+      },
+      "arc-steal": {
+        "gain": 0.48,
+        "voiceLimit": 1
+      },
+      "arc-drop": {
+        "gain": 0.42,
+        "voiceLimit": 2
+      },
+      "arc-bank": {
+        "gain": 0.5,
+        "voiceLimit": 1
+      },
+      "arc-pulse": {
+        "gain": 0.54,
+        "voiceLimit": 1
+      },
+      "arc-handoff": {
+        "gain": 0.38,
+        "voiceLimit": 2
+      },
+      "deflect": {
+        "gain": 0.34,
+        "voiceLimit": 2
+      },
+      "arrival": {
+        "gain": 0.38,
+        "voiceLimit": 3
+      }
+    }
+  },
+  "cues": {
+    "attack-windup": "attack-windup.m4a",
+    "projectile": "projectile.m4a",
+    "attack-fizzle": "attack-fizzle.m4a",
+    "attack-cancel": "attack-cancel.m4a",
+    "impact": "impact.m4a",
+    "destroyed": "destroyed.m4a",
+    "level-up": "level-up.m4a",
+    "arc-birth": "arc-birth.m4a",
+    "arc-pickup": "arc-pickup.m4a",
+    "arc-steal": "arc-steal.m4a",
+    "arc-drop": "arc-drop.m4a",
+    "arc-bank": "arc-bank.m4a",
+    "arc-pulse": "arc-pulse.m4a",
+    "arc-handoff": "arc-handoff.m4a",
+    "deflect": "deflect.m4a",
+    "arrival": "arrival.m4a"
+  },
+  "ambience": {
+    "id": "original-dark-field",
+    "sourceCueId": "arena-ambience",
+    "file": "arena-ambience.m4a",
+    "loop": true,
+    "durationSeconds": 30,
+    "gain": 0.21,
+    "mapIds": [
+      "arc-relay-tapline-01"
+    ]
+  },
+  "integrity": {
+    "attack-windup": {
+      "sourceSha256": "5360d6573cb3c8cf86552130e02a011cc0caad4e5206bd3f51faf4c6769f1a65",
+      "outputSha256": "e0ea82b5dfbdf2920eed719f2a1535efcf7852c5075dc4b5685f997cfbe930dc",
+      "bytes": 17306,
+      "bitrate": 192000
+    },
+    "projectile": {
+      "sourceSha256": "1db4c38d9eb4eef7645b399b80ee5c5c7d2d3dbf8c0804319588026c081fb60c",
+      "outputSha256": "547b7c42c2951dd69766e37299c47bc2b78cd74cf7d0436e128b9065db17c53f",
+      "bytes": 23806,
+      "bitrate": 192000
+    },
+    "attack-fizzle": {
+      "sourceSha256": "108324d521236e804c0b0301b0c5a389ab7d13a392e97aebca89ab254a9e9f19",
+      "outputSha256": "c4c9bba84e9c05939a053005022113f379813e0b4ff5154deebe349445958700",
+      "bytes": 24777,
+      "bitrate": 192000
+    },
+    "attack-cancel": {
+      "sourceSha256": "0bb09be6b507d10ef59c059906146f86ffbfdda2ec0fde5a4fcb5348d0f91515",
+      "outputSha256": "f2bd6bef15940a258467b84d9e0c007f7ad117d095efb4f7aaa7057089617626",
+      "bytes": 25219,
+      "bitrate": 192000
+    },
+    "impact": {
+      "sourceSha256": "ab6260948b7e928038d636ff4f826c7d1c7efdd8ef75b8b6f311512f946240de",
+      "outputSha256": "9531e51e92f1dfbca32e8f0b6c99549085fd6ca36c79002f365f33bd4b4dd7dc",
+      "bytes": 16975,
+      "bitrate": 192000
+    },
+    "destroyed": {
+      "sourceSha256": "e0a2f03f017053f6943f72037afa7b50008e644f4eeb0b923eb984c3ef64c1d9",
+      "outputSha256": "8d748be55a2b2fa020f585b3b364cd7a63142c260b7e45c5d3509fc93c2f7071",
+      "bytes": 63388,
+      "bitrate": 192000
+    },
+    "level-up": {
+      "sourceSha256": "1c81b99619f335eaeed2c6126c56c3edbcb440f9863a393d83fcaeebbc3d1cf6",
+      "outputSha256": "b9453d1f1740267b54ce41d58a3f0b9456084c4f91fe2a259968d5f367f68dd2",
+      "bytes": 13188,
+      "bitrate": 192000
+    },
+    "arc-birth": {
+      "sourceSha256": "f80c01d0949d989b7408285aa4737db58eda643b3c4ae7e0c3e7736c61f4f9ff",
+      "outputSha256": "983969e2904ee657ad0faa33b9f382cc294e199a5cae9e3e8f309ea360a9777f",
+      "bytes": 23063,
+      "bitrate": 192000
+    },
+    "arc-pickup": {
+      "sourceSha256": "b94abdf9f542007c337326db1c1f99446779377cb021f47d686625277217a1c5",
+      "outputSha256": "817ab8d09bf118e752a8ef76f9ff6d761793b4c1af520f721f526cf1118c5d80",
+      "bytes": 12193,
+      "bitrate": 192000
+    },
+    "arc-steal": {
+      "sourceSha256": "00fb1e3d665aac3ad2a758cb9246626ede9ac442e17bd8622e15f1b8f2fd0edb",
+      "outputSha256": "3353cbfce1f897940d453b61b0537671d471ea602d9b951b7c7f9e41af385bd6",
+      "bytes": 30564,
+      "bitrate": 192000
+    },
+    "arc-drop": {
+      "sourceSha256": "c2999fb4e5d1bd760c055e74329656e5f5c135e6872b528989a8aab57bcb5eab",
+      "outputSha256": "94910945061638ce17890256059569d72626c2df2d2952c4a31d68567eb56785",
+      "bytes": 12792,
+      "bitrate": 192000
+    },
+    "arc-bank": {
+      "sourceSha256": "06ab6a5765349ba48a6cc2a662ff3ba92e4201423d0378253c1465b22acae787",
+      "outputSha256": "93d9098af33b00c51b7813318e4be5670eb01bc9533e2764780d81d24fc28424",
+      "bytes": 45064,
+      "bitrate": 192000
+    },
+    "arc-pulse": {
+      "sourceSha256": "156f81dc72edb46a119405e186c7faa379469038fb6150533de23d37b0bd320c",
+      "outputSha256": "49c3ce6c328f6eeca2e71c135e150aaa4d18dfd4576a541c3a86fd98d8fcb769",
+      "bytes": 74600,
+      "bitrate": 192000
+    },
+    "arc-handoff": {
+      "sourceSha256": "6e9888670947684dda24fa9740cb7112bcd2a644bafee76b42613fddb4d6d1d4",
+      "outputSha256": "2f6b44936d1547e8946c63ffd49e8e0f4223150e792b226d9e735b13b7bb8fea",
+      "bytes": 43680,
+      "bitrate": 192000
+    },
+    "deflect": {
+      "sourceSha256": "9a00fe1bbaf1ee7413c9359a7e3049ee4dd0a8820e0705168578a1fc25acc893",
+      "outputSha256": "54307498f81de86b5b9404882143cf624a54cd0b30f5d51709f9f4e5fadff615",
+      "bytes": 19476,
+      "bitrate": 192000
+    },
+    "arrival": {
+      "sourceSha256": "22736b9d867d3dbd0df3594de536466b2db89aec10a84f4f474ab52ee9d2038e",
+      "outputSha256": "c8302ec89b6b21978bb0c9f40a3ff1bee2d49610797893ea66df69a87b632816",
+      "bytes": 48879,
+      "bitrate": 192000
+    },
+    "arena-ambience": {
+      "sourceSha256": "f9e5395c88a852e9ea2da6b55e31ff49276fcabf8cb5baeebeeca3c6458fa118",
+      "outputSha256": "52873301935a6686645fa3efd5a19fe8ee5ee6f847bc6d4d5a72066cd3cb2a25",
+      "bytes": 622116,
+      "bitrate": 160000
+    }
+  }
+}

@@ -251,7 +251,19 @@ const manifest = {
   sampleRate: 48_000,
   channels: 2,
   format: "pcm-s16le-wav",
-  reviewScope: baseManifest.reviewScope,
+  reviewScope: {
+    ...baseManifest.reviewScope,
+    runtimePack: "astral-relay",
+    runtimeStatus: "promoted as the sole/default gameplay SFX pack",
+    mappedCueIds: expectedIds,
+    proposedCueIds: [],
+    selectedBackgroundLoop: {
+      cueId: "arena-ambience",
+      mapIds: ["arc-relay-tapline-01"],
+      runtimeFile:
+        "web/src/assets/audio/effects/astral-relay/arena-ambience.m4a",
+    },
+  },
   sourceComposition: {
     providerGeneratedCues: comparisonGenerationCues.length - locallyDerivedCues.length,
     locallyDerivedCues: locallyDerivedCues.length,

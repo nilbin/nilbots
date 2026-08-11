@@ -136,6 +136,7 @@ function arcRelayReplay(): ReplayModel {
       visibleSignatures: [],
       latestPulseTeamId: index >= 5 ? 1 : null,
       latestPulseTick: index >= 5 ? 5 : null,
+      pendingStrikes: [],
     };
     replay.ticks[index]!.before.mode = mode;
     replay.ticks[index]!.after.mode = mode;
@@ -559,5 +560,40 @@ test('every Arc Relay possession beat drives its diegetic audio cue', () => {
       ['arc-bank'],
       ['arc-pulse'],
     ],
+  );
+});
+
+test('an allied Core handoff has its own family-matched possession cue', () => {
+  const replay = arcRelayReplay();
+  const actors = replay.ticks[0]!.after.actors.map((actor) => actor.identity);
+  const born = replay.ticks[0]!.events[0]!.arcRelayFact;
+  assert.equal(born?.kind, 'core-born');
+  if (born?.kind !== 'core-born') return;
+  replay.ticks[1]!.events = [
+    arcEvent(1, {
+      kind: 'core-handed-off',
+      coreId: born.coreId,
+      sourceActor: actors[0]!,
+      targetActor: actors[1]!,
+      position: { x: 9, y: 7 },
+      nextRelocationTick: 4,
+    }),
+  ];
+
+  assert.deepEqual(
+    replayAudioEventsAt(replay, 1).map((event) => event.cue),
+    ['arc-handoff'],
+  );
+});
+
+test('Core lifecycle facts sound when the broadcast places them at tick start', () => {
+  const replay = arcRelayReplay();
+  const birth = replay.ticks[0]!.events.shift();
+  assert.ok(birth);
+  replay.ticks[0]!.lifecycleEvents.push(birth);
+
+  assert.deepEqual(
+    replayAudioEventsAt(replay, 0).map((event) => event.cue),
+    ['arc-birth'],
   );
 });

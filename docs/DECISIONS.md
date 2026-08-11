@@ -7473,3 +7473,43 @@ primary surface is a game-like roster, one ordered battle-plan ladder per
 assignment, focused trigger/Core/coordination tools, and direct plotting on
 Tapline. Raw JSON and layout hashes remain portable compiler facts rather than
 primary player controls.
+
+## 282. Astral Relay is the default SFX language; Tapline carries Original dark field
+
+Owner selection (2026-08-11). Astral Relay replaces Obsidian Foundry as the
+sole runtime sound-effect pack. The viewer and self-contained CLI artifact ship
+all sixteen 48 kHz stereo one-shots: wind-up, beam resolve (the compatibility
+ID remains `projectile`), fizzle, cancel, impact, destruction, level up, Core
+birth/pickup/steal/drop/bank/Pulse/handoff, deflection, and arrival. Obsidian
+remains historical review source under `art/audio`; it is no longer a runtime
+choice. Neon Protocol music is unchanged.
+
+Scheduling reads only normalized public replay facts. A new `pendingStrikes`
+entry winds up. A matching attack event or traversal resolves as a beam. A
+strike that leaves the table at maturity without a resolution fizzles; an
+explicit interruption also fizzles, while voluntary pre-resolution movement
+cancels. `projectile-deflected`, life arrival aliases, and Core facts own their
+named cues. Several `leveled-up` facts for the same actor and tick coalesce at
+the highest level. Seeking never backfills audio, and playback above 2× or a
+hidden page suspends the pack.
+
+Tapline (`arc-relay-tapline-01`) alone selects the 30-second Original dark field
+loop. It is a non-musical ambience bed, starts and stops with active playback,
+and does not enter the arena convolution. Ion veil and Signal lattice remain
+sound-lab comparisons. The checked-in package is roughly 1.07 MiB.
+
+The manifest pins SFX Engine request lineage, deterministic local derivations,
+safety mastering, source and output SHA-256 values, and the generation record.
+The exporter canonicalizes ISO-media creation/modification timestamps so the
+same masters and recipe reproduce the exact delivery hashes.
+The SFX Engine terms checked on 2026-08-11 permit use in personal and commercial
+projects while prohibiting standalone asset redistribution; the delivery files
+ship only as part of nilbots. Four flagged masters retain their deterministic
+high-frequency/true-peak correction. Runtime gains top out at 0.54, per-cue
+voice limits top out at three, the old room send falls from 0.16 to 0.06, and
+the ambience gain is 0.21. The existing shared −4 dB compressor/limiter remains
+the final music-plus-effects boundary; the soundtrack bus and assets do not
+move.
+
+The packaged viewer changes, so CLI/tool package version 0.9.49 carries the new
+default and stays lockstep-pinned by `PackagedCliVersionTests`.

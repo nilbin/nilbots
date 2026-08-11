@@ -16,9 +16,6 @@
 /** Long enough to hear the space, short enough not to smear a five-per-second cue rate. */
 const SECONDS = 1.1;
 
-/** How much of the wet signal reaches the master. An arena, not a cathedral. */
-export const ROOM_MIX = 0.16;
-
 /**
  * Build the arena's impulse response.
  *

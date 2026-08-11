@@ -429,9 +429,12 @@ public static class ToolchainInfo
     /// carriers from reserving a second Core, and pins hosted playlist v18.
     /// 0.9.48 promotes Tapline as the local and hosted Arc Relay default,
     /// pins Tapline-native tactical templates, and adds the direct-DSL editor.
+    /// 0.9.49 promotes Astral Relay as the default viewer SFX pack, maps the
+    /// full declared-beam and Arc Relay event vocabulary, and adds Tapline's
+    /// quiet non-musical ambient field without changing the soundtrack.
     /// Keep in lockstep with BotArena.Cli.csproj's
     /// Version — PackagedCliVersionTests pins them together.</summary>
-    public const string CliVersion = "0.9.48";
+    public const string CliVersion = "0.9.49";
     // 0.2.0: BotContext.Slot + documented event semantics (DECISIONS #46).
     // 0.3.0: BotContext.Energy for the energy-shot rules candidate (DECISIONS #47).
     // 0.4.0: strafe actions + map dims + zone-control fields for the rules 0.3 slate

@@ -15,27 +15,34 @@
     "game": "Arc Relay",
     "direction": "spacey / ambient",
     "soundtrack": "Neon Protocol unchanged",
-    "runtimePack": "unchanged pending owner selection",
+    "runtimePack": "astral-relay",
     "mappedCueIds": [
+      "attack-windup",
       "projectile",
+      "attack-fizzle",
+      "attack-cancel",
       "impact",
       "destroyed",
+      "level-up",
       "arc-birth",
       "arc-pickup",
       "arc-steal",
       "arc-drop",
       "arc-bank",
-      "arc-pulse"
-    ],
-    "proposedCueIds": [
-      "attack-windup",
-      "attack-fizzle",
-      "attack-cancel",
-      "level-up",
+      "arc-pulse",
       "arc-handoff",
       "deflect",
       "arrival"
-    ]
+    ],
+    "proposedCueIds": [],
+    "runtimeStatus": "promoted as the sole/default gameplay SFX pack",
+    "selectedBackgroundLoop": {
+      "cueId": "arena-ambience",
+      "mapIds": [
+        "arc-relay-tapline-01"
+      ],
+      "runtimeFile": "web/src/assets/audio/effects/astral-relay/arena-ambience.m4a"
+    }
   },
   "sourceComposition": {
     "providerGeneratedCues": 13,

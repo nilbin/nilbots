@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ReplayModel } from '../replayModel';
 import {
+  SOUND_EFFECT_CUE_IDS,
   soundEffectPack,
   type SoundEffectCueId,
 } from './soundEffects';
 import { ArenaAudioSession } from './ArenaAudioSession';
 import { beginAsset } from '../render/assetReadiness';
-import { createArenaImpulse, ROOM_MIX } from './arenaRoom';
+import { createArenaImpulse } from './arenaRoom';
 import { replayAudioEventsAt } from './replayAudioEvents';
 import { PRESENTATION_TICKS_PER_SECOND } from '../playback';
 import {
@@ -25,42 +26,6 @@ const MAX_CROSSED_TICKS = 3;
  */
 const PAN_WIDTH = 0.7;
 
-const cueGain: Record<SoundEffectCueId, number> = {
-  projectile: 0.36,
-  impact: 0.48,
-  destroyed: 0.56,
-  'arc-birth': 0.44,
-  'arc-pickup': 0.38,
-  'arc-steal': 0.56,
-  'arc-drop': 0.44,
-  'arc-bank': 0.62,
-  'arc-pulse': 0.72,
-};
-const cueVoiceLimit: Record<SoundEffectCueId, number> = {
-  projectile: 3,
-  impact: 2,
-  destroyed: 1,
-  'arc-birth': 2,
-  'arc-pickup': 2,
-  'arc-steal': 1,
-  'arc-drop': 2,
-  'arc-bank': 1,
-  'arc-pulse': 1,
-};
-
-/** The cues a match cannot start without. Same set `preloadEffects` decodes. */
-const PRELOADED_CUES = [
-  'projectile',
-  'impact',
-  'destroyed',
-  'arc-birth',
-  'arc-pickup',
-  'arc-steal',
-  'arc-drop',
-  'arc-bank',
-  'arc-pulse',
-] as const;
-
 interface AudioGraph {
   context: AudioContext;
   master: GainNode;
@@ -78,6 +43,12 @@ interface Voice {
   cue: SoundEffectCueId;
   priority: number;
   startedAt: number;
+}
+
+interface AmbienceVoice {
+  source: AudioBufferSourceNode;
+  gain: GainNode;
+  id: string;
 }
 
 export interface ReplaySoundEffectsController {
@@ -125,6 +96,9 @@ export function useReplaySoundEffects({
   }
   const audioSession = session ?? fallbackSession.current!;
   const ownsSession = session === undefined;
+  const mapAmbience = soundEffectPack.ambience.mapIds.includes(replay.map.mapId)
+    ? soundEffectPack.ambience
+    : null;
   useEffect(
     () => (ownsSession ? audioSession.retainOwner() : undefined),
     [audioSession, ownsSession],
@@ -142,11 +116,13 @@ export function useReplaySoundEffects({
     if (!available || typeof fetch !== 'function') return;
     let cancelled = false;
     const release = beginAsset();
+    const urls = SOUND_EFFECT_CUE_IDS.map((cue) => soundEffectPack.cues[cue]);
+    if (mapAmbience) urls.push(mapAmbience.url);
     void Promise.all(
-      PRELOADED_CUES.map((cue) =>
+      urls.map((url) =>
         // A cue that will not download is not a reason to hold the viewer shut; the
         // arena plays silent and the control says so.
-        fetch(soundEffectPack.cues[cue]).catch(() => null),
+        fetch(url).catch(() => null),
       ),
     ).finally(() => {
       if (!cancelled) release();
@@ -155,7 +131,7 @@ export function useReplaySoundEffects({
       cancelled = true;
       release();
     };
-  }, [available]);
+  }, [available, mapAmbience]);
 
   const [volume, setVolumeState] = useState(
     readSoundEffectsVolumePreference,
@@ -166,12 +142,17 @@ export function useReplaySoundEffects({
   const [enabled, setEnabled] = useState(false);
   const [activating, setActivating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [documentVisible, setDocumentVisible] = useState(
+    () => typeof document === 'undefined' || !document.hidden,
+  );
   const graph = useRef<AudioGraph | null>(null);
   const buffers = useRef(new Map<string, Promise<AudioBuffer>>());
   const voices = useRef<Voice[]>([]);
+  const ambienceVoice = useRef<AmbienceVoice | null>(null);
   /** Panner per source, so a finished voice disconnects the node it created. */
   const panners = useRef(new Map<AudioBufferSourceNode, StereoPannerNode>());
   const generation = useRef(0);
+  const ambienceGeneration = useRef(0);
   const previousTick = useRef<number | null>(null);
   const activation = useRef<Promise<void> | null>(null);
   const enabledRef = useRef(enabled);
@@ -200,7 +181,9 @@ export function useReplaySoundEffects({
       convolver = context.createConvolver();
       convolver.buffer = createArenaImpulse(context);
       room = context.createGain();
-      room.gain.value = ROOM_MIX;
+      // Astral Relay already carries deliberate space in its tails. The pack owns this
+      // small send so promotion cannot accidentally stack the old, much wetter room on it.
+      room.gain.value = soundEffectPack.mix.roomSend;
       // Into master, not the limiter, so the volume control governs wet and dry together
       // and muting actually mutes.
       room.connect(convolver).connect(master);
@@ -227,16 +210,27 @@ export function useReplaySoundEffects({
     voices.current = [];
   }, []);
 
-  const loadCue = useCallback(
-    (cue: SoundEffectCueId): Promise<AudioBuffer> => {
-      const key = `${soundEffectPack.id}/${cue}`;
+  const stopAmbience = useCallback(() => {
+    ambienceGeneration.current++;
+    const voice = ambienceVoice.current;
+    ambienceVoice.current = null;
+    if (!voice) return;
+    try {
+      voice.source.stop();
+    } catch {
+      // A loop stopped between the read and stop is already harmless.
+    }
+  }, []);
+
+  const loadAsset = useCallback(
+    (key: string, url: string): Promise<AudioBuffer> => {
       const cached = buffers.current.get(key);
       if (cached) return cached;
       const { context } = ensureGraph();
-      const url = soundEffectPack.cues[cue];
       const loading = fetch(url)
         .then((response) => {
-          if (!response.ok) throw new Error(`Audio asset returned ${response.status}.`);
+          if (!response.ok)
+            throw new Error(`Audio asset returned ${response.status}.`);
           return response.arrayBuffer();
         })
         .then((bytes) => context.decodeAudioData(bytes));
@@ -247,13 +241,80 @@ export function useReplaySoundEffects({
     [ensureGraph],
   );
 
-  const preloadEffects = useCallback(
-    () =>
-      Promise.all(
-        PRELOADED_CUES.map((cue) => loadCue(cue)),
+  const loadCue = useCallback(
+    (cue: SoundEffectCueId): Promise<AudioBuffer> =>
+      loadAsset(
+        `${soundEffectPack.id}/cue/${cue}`,
+        soundEffectPack.cues[cue],
       ),
-    [loadCue],
+    [loadAsset],
   );
+
+  const preloadEffects = useCallback(
+    () => {
+      const loading = SOUND_EFFECT_CUE_IDS.map((cue) => loadCue(cue));
+      if (mapAmbience) {
+        loading.push(
+          loadAsset(
+            `${soundEffectPack.id}/ambience/${mapAmbience.id}`,
+            mapAmbience.url,
+          ),
+        );
+      }
+      return Promise.all(loading);
+    },
+    [loadAsset, loadCue, mapAmbience],
+  );
+
+  const startAmbience = useCallback(() => {
+    if (!mapAmbience) return;
+    if (ambienceVoice.current?.id === mapAmbience.id) return;
+    stopAmbience();
+    const expectedGeneration = ambienceGeneration.current;
+    void loadAsset(
+      `${soundEffectPack.id}/ambience/${mapAmbience.id}`,
+      mapAmbience.url,
+    )
+      .then((buffer) => {
+        if (
+          expectedGeneration !== ambienceGeneration.current ||
+          ambienceVoice.current ||
+          !graph.current ||
+          graph.current.context.state !== 'running'
+        ) {
+          return;
+        }
+        const { context, master } = graph.current;
+        const source = context.createBufferSource();
+        const gain = context.createGain();
+        source.buffer = buffer;
+        source.loop = mapAmbience.loop;
+        gain.gain.value = mapAmbience.gain;
+        // The field is the bed, not another event in the hall: keep it dry and centred.
+        // The shared master still governs mute, user volume and the final safety limiter.
+        source.connect(gain).connect(master);
+        const voice = { source, gain, id: mapAmbience.id };
+        ambienceVoice.current = voice;
+        source.addEventListener(
+          'ended',
+          () => {
+            if (ambienceVoice.current === voice) ambienceVoice.current = null;
+            source.disconnect();
+            gain.disconnect();
+          },
+          { once: true },
+        );
+        source.start(context.currentTime);
+      })
+      .catch((reason: unknown) => {
+        if (expectedGeneration !== ambienceGeneration.current) return;
+        setError(
+          reason instanceof Error
+            ? reason.message
+            : 'Arena ambience could not start in this browser.',
+        );
+      });
+  }, [loadAsset, mapAmbience, stopAmbience]);
 
   const scheduleCue = useCallback(
     (
@@ -275,7 +336,9 @@ export function useReplaySoundEffects({
         const activeForCue = voices.current
           .filter((voice) => voice.cue === cue)
           .sort((left, right) => left.startedAt - right.startedAt);
-        while (activeForCue.length >= cueVoiceLimit[cue]) {
+        while (
+          activeForCue.length >= soundEffectPack.mix.cues[cue].voiceLimit
+        ) {
           stopVoice(activeForCue.shift()!);
         }
         while (voices.current.length >= MAX_ACTIVE_VOICES) {
@@ -290,7 +353,7 @@ export function useReplaySoundEffects({
         const source = context.createBufferSource();
         const gain = context.createGain();
         source.buffer = buffer;
-        gain.gain.value = cueGain[cue];
+        gain.gain.value = soundEffectPack.mix.cues[cue].gain;
 
         // Place the cue across the arena. Stereo panning rather than a 3D panner: this is
         // a flat plan view heard on a phone speaker or laptop, where left/right is the
@@ -405,7 +468,7 @@ export function useReplaySoundEffects({
       previousTick.current = currentTick;
       return;
     }
-    if (document.hidden) {
+    if (!documentVisible) {
       stopAll();
       previousTick.current = currentTick;
       return;
@@ -467,6 +530,7 @@ export function useReplaySoundEffects({
   }, [
     atEnd,
     currentTick,
+    documentVisible,
     enabled,
     following,
     playing,
@@ -479,6 +543,28 @@ export function useReplaySoundEffects({
   ]);
 
   useEffect(() => {
+    const active =
+      available &&
+      enabled &&
+      documentVisible &&
+      speed <= 2 &&
+      (following || (playing && !atEnd));
+    if (active) startAmbience();
+    else stopAmbience();
+  }, [
+    atEnd,
+    available,
+    documentVisible,
+    enabled,
+    following,
+    mapAmbience,
+    playing,
+    speed,
+    startAmbience,
+    stopAmbience,
+  ]);
+
+  useEffect(() => {
     if (!activationGranted || !available || enabled) return;
     void enable().catch(() => {
       // The compact control exposes the error and gives the user an explicit retry.
@@ -487,15 +573,21 @@ export function useReplaySoundEffects({
 
   useEffect(() => {
     const onVisibility = () => {
-      if (document.hidden) stopAll();
+      const visible = !document.hidden;
+      setDocumentVisible(visible);
+      if (!visible) {
+        stopAll();
+        stopAmbience();
+      }
     };
     document.addEventListener('visibilitychange', onVisibility);
     return () => document.removeEventListener('visibilitychange', onVisibility);
-  }, [stopAll]);
+  }, [stopAll, stopAmbience]);
 
   useEffect(
     () => () => {
       stopAll();
+      stopAmbience();
       const current = graph.current;
       graph.current = null;
       buffers.current.clear();
@@ -503,7 +595,7 @@ export function useReplaySoundEffects({
       current?.convolver?.disconnect();
       current?.master.disconnect();
     },
-    [audioSession, stopAll],
+    [audioSession, stopAll, stopAmbience],
   );
 
   return {

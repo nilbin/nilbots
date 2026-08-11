@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 
 /**
- * Deterministic, rights-cleared Arc Relay event cues for the approved Obsidian Foundry
- * runtime pack. Every sample is synthesized here; no recordings or provider assets enter
- * the build. Run from anywhere with `node scripts/generate-arc-relay-sfx.mjs`.
+ * Historical deterministic Obsidian Foundry Arc Relay cues. Every sample is synthesized
+ * here; no recordings or provider assets enter the build. Output stays under `art/` so
+ * regenerating this archived direction cannot create a second runtime pack.
  */
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -15,8 +15,9 @@ const SAMPLE_RATE = 48_000;
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const OUTPUT = path.join(
   ROOT,
-  'web/src/assets/audio/effects/obsidian-foundry',
+  'art/audio/archive/obsidian-foundry-arc-relay',
 );
+mkdirSync(OUTPUT, { recursive: true });
 const scratch = mkdtempSync(path.join(tmpdir(), 'nilbots-arc-sfx-'));
 
 const definitions = [

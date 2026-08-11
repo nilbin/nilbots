@@ -1,6 +1,7 @@
 # nilbots audio candidates
 
-This directory contains review-stage audio, not runtime viewer assets.
+This directory contains lossless source and review audio. Approved delivery
+copies are exported separately into the runtime viewer assets.
 
 Run:
 
@@ -53,13 +54,13 @@ proposals:
 - **Signal Grid** — coded, clean, intelligent machine language.
 - **Field Resonance** — textured, grounded, map-friendly physical resonance.
 
-V4 is the current space / ambient reset:
+V4 is the procedural space / ambient reset:
 
 - **Halo Drift** — luminous, weightless, and extremely wide.
 - **Deep Array** — dark, distant, and immense.
 - **Solar Bloom** — warm, iridescent, and celestial.
 
-V5 adds one provider-sourced direction without replacing V4:
+V5 adds the provider-sourced direction selected for runtime promotion:
 
 - **Astral Relay** — SFX Engine's pristine, spectral, cinematic reading of the
   same sixteen-cue vocabulary.
@@ -108,17 +109,17 @@ three sound-lab timelines against every loop choice. Review playback uses one
 shared compressor followed by a fixed 3 dB safety gain; the uncompressed
 sequence sums must remain at or below -1 dBTP after that fixed gain.
 
-V5 also includes three review-only ambience candidates: **Original dark
-field**, **Ion veil**, and **Signal lattice**. SFX Engine supplied a 32-second
+V5 also includes three ambience candidates: **Original dark field**, **Ion
+veil**, and **Signal lattice**. SFX Engine supplied a 32-second
 non-musical source for each; the workflow applies a two-second circular
 equal-power tail/head crossfade to produce each 30-second looping master. The
 sound lab exposes them as A/B/C alternatives and adjusts their review gains
 toward A only while exact combat-overlap headroom remains safe. The original is
 the steadiest and remains the strongest technical match; the two follow-up
 calls produced a wider but still darker veil and a much quieter, sparser
-lattice rather than the requested brighter spectral bridge. All three run
-quietly beneath cue and sequence playback and do not replace or modify Neon
-Protocol.
+lattice rather than the requested brighter spectral bridge. Original dark
+field is the Tapline runtime selection; the other two remain review-only. None
+replace or modify Neon Protocol.
 
 The internal **projectile** cue ID is retained for runtime compatibility, but
 its V4 sound and artifact label are **Beam resolve**. The full proposed attack
@@ -129,16 +130,13 @@ gets the deliberate cancel voice. The beam is a focused spectral field, not an
 audible moving bolt. The proposed **projectile-deflected** fact is likewise
 presented as a beam bend.
 
-The proposed wind-up, fizzle, cancel, handoff, deflection, arrival, and ambient
-beds are review material only. Level up is also proposed from the authoritative
-`leveled-up` fact: one compact bot-local field lock, kept below Core scoring in
-the hierarchy and reviewed simultaneously with the destruction tail that can
-cause it. A future runtime scheduler should coalesce multiple level facts for
-the same actor and tick into one cue at the highest reached level.
-Generating or opening the V4/V5 artifact does not replace the approved runtime
-pack and does not touch the Neon Protocol soundtrack. The ambient masters
-already contain deliberate diffusion; runtime promotion should retune the
-existing arena convolution rather than stack two full spaces.
+Wind-up, beam/fizzle/cancel, handoff, deflection, arrival, and level up are now
+runtime mappings. Level up is one compact bot-local field lock, kept below Core
+scoring in the hierarchy and coalesced once per actor/tick when a bounty emits
+several level facts. Exporting the V5 artifact does not touch the Neon Protocol
+soundtrack. Because the masters already contain deliberate diffusion, the
+runtime manifest reduces the arena convolution send to 0.06 instead of stacking
+two full spaces.
 
 V2 renders at 96 kHz before anti-aliased downsampling to 48 kHz stereo. Its
 layers include separate transients, tonal bodies, modal material resonance,
@@ -147,14 +145,16 @@ debris, stereo movement, feedback-delay diffusion, and dynamics processing.
 projectile, impact, destruction, and unlock sample set. V1 remains in the
 sound lab as a collapsed reference archive.
 
-The lossless masters for every direction stay under `art/`. Obsidian Foundry
-is the approved runtime direction; `scripts/export-runtime-sound-effects.mjs`
-exports only its projectile, impact, and destruction cues to
-`web/src/assets/audio/effects/obsidian-foundry/` as 48 kHz stereo AAC-LC. The
-three checked-in delivery assets total roughly 0.07 MiB. The entitlement cue
-remains a sound-lab master until a real entitlement notification owns it; it
-is not a match-result sound.
+The lossless masters for every direction stay under `art/`. Astral Relay is the
+approved runtime direction; `scripts/export-runtime-sound-effects.mjs` verifies
+the V5 source hashes and exports all sixteen one-shots plus Original dark field
+to `web/src/assets/audio/effects/astral-relay/` as 48 kHz stereo AAC-LC. The
+checked-in delivery assets total roughly 1.07 MiB. The loop is selected only by
+Tapline's stable `arc-relay-tapline-01` map ID. The entitlement cue remains a
+sound-lab master until a real entitlement notification owns it; it is not a
+match-result sound.
 
 The export requires macOS `afconvert`. Checked-in delivery assets keep normal
-builds platform-independent, while their production manifest records the
-generator, cleared rights, and explicit shipment approval.
+builds platform-independent, while their production manifest records SFX
+Engine provenance, deterministic local processing, integrity hashes, the
+checked terms basis, conservative mix limits, and explicit shipment approval.

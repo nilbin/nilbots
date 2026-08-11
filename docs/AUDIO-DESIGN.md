@@ -1,9 +1,10 @@
 # Audio design and asset workflow
 
-Status: Obsidian Foundry is the approved runtime sound-effect direction.
-Projectile launch, armor impact, and bot destruction cues ship in the web and
-self-contained standalone replay viewers. Effects are enabled by default after
-the browser's first trusted user interaction.
+Status: Astral Relay is the approved default runtime sound-effect direction.
+All sixteen one-shot cues ship in the web and self-contained replay viewers;
+Tapline also carries the quiet Original dark field ambience loop. Effects are
+enabled by default after the browser's first trusted user interaction. Neon
+Protocol music is unchanged.
 
 ## Product principles
 
@@ -75,11 +76,11 @@ supports direct A/B/C/D comparison, context demo sequences, volume control,
 keyboard shortcuts, a browser-local favorite marker, and independent playback
 of the three V5 ambient alternatives.
 
-### Arc Relay space / ambient reconcept (V4 review)
+### Arc Relay space / ambient reconcept (V4 archive)
 
-V4 is the current owner-review round. It replaces the tactile V3 brief with
-three fully spacey, ambient directions while keeping the same nine mapped
-effects and adding seven replay-backed proposals:
+V4 was the procedural owner-review round and remains a comparison archive. It
+replaced the tactile V3 brief with three fully spacey, ambient directions while
+keeping the same nine mapped effects and adding seven replay-backed proposals:
 
 - **Halo Drift** — luminous air, weightless orbital motion, and the widest
   diffusion.
@@ -113,14 +114,15 @@ The proposed wind-up, fizzle, cancel, handoff, deflection, arrival, and level-up
 remain audition material only. V4 does not alter the approved runtime pack,
 effect mappings, preferences, or Neon Protocol soundtrack.
 
-### SFX Engine addition (V5 review)
+### SFX Engine addition (V5 source and promoted runtime)
 
 V5 adds **Astral Relay** as direction D alongside the three V4 directions. SFX
 Engine supplied all sixteen matching source cues, with prompts written around
 the same space / ambient brief and the same wind-up → beam / fizzle / cancel
 attack grammar. Three current variants are deterministic local derivations of
-accepted Engine sources. It is an additional comparison, not a replacement or
-a runtime promotion.
+accepted Engine sources. Following owner comparison and revision, Astral Relay
+is the promoted runtime direction; the other V4/V5 candidates remain review
+references.
 
 The reusable workflow is `.claude/skills/sfx-engine/SKILL.md`, and its saved
 OpenAPI 3.0 contract is
@@ -154,8 +156,8 @@ and derived drop are
 effectively mono; technical validation requires two channels but not nonzero
 stereo difference for V5.
 
-V5 also adds three review-only ambience candidates beneath the comparison
-pack: **Original dark field**, **Ion veil**, and **Signal lattice**. They are
+V5 also adds three ambience candidates beneath the comparison pack: **Original
+dark field**, **Ion veil**, and **Signal lattice**. They are
 deliberately non-musical and share an independent A/B/C sound-lab control so
 effects can be judged both dry and in context. Each provider 32-second source
 is converted into a 30-second loop with a two-second circular equal-power
@@ -172,8 +174,9 @@ darker than requested; the second rendered substantially quieter and sparser.
 They remain useful listening alternatives, but neither is an automatic
 replacement for the original.
 
-V5 and its ambient alternatives remain review-only. They change neither the
-approved Obsidian Foundry runtime package nor the Neon Protocol soundtrack.
+The selected Astral Relay one-shots and Original dark field loop are promoted;
+Ion veil and Signal lattice remain review-only alternatives. Neon Protocol is
+not regenerated, remixed, or otherwise changed by this promotion.
 
 An energy audit found that the current attack wind-up and fizzle concentrated
 too much power above 12 kHz, while the current armor impact reconstructed
@@ -196,8 +199,8 @@ Level up maps to the authoritative `leveled-up` Arc Relay fact. It is a
 bot-local veterancy reward, not a Core or team-score event, so its cue is a
 compact centered field rise that locks beneath the Core hierarchy and remains
 legible when it coincides with the victim's destruction tail. If one bounty
-emits several levels for the same actor on one tick, a future runtime scheduler
-should coalesce them into one cue at the highest reached level.
+emits several levels for the same actor on one tick, the runtime scheduler
+coalesces them into one cue at the highest reached level.
 
 ### Arc Relay tactile reconcept (V3 archive)
 
@@ -231,27 +234,33 @@ Run:
 node scripts/export-runtime-sound-effects.mjs
 ```
 
-This exports Obsidian Foundry's projectile, impact, and destruction masters to
-`web/src/assets/audio/effects/obsidian-foundry/` as 48 kHz stereo AAC-LC. The
-three delivery files total roughly 0.07 MiB. The production manifest records
-the deterministic generator, cleared rights, and shipment approval; automated
-tests reject any additional or unapproved runtime pack. The lossless WAVs
-remain the source of truth, and all four candidate directions remain in the
-sound lab for future reference.
+This verifies the hash-pinned V5 sources and exports Astral Relay to
+`web/src/assets/audio/effects/astral-relay/` as 48 kHz stereo AAC-LC: sixteen
+one-shots at 192 kbps and the 30-second Original dark field loop at 160 kbps,
+roughly 1.07 MiB together. The production manifest records the SFX Engine and
+local derivation lineage, source/output hashes, checked licensing basis,
+shipment approval, per-cue gain/voice limits, and Tapline's stable map ID.
+Automated tests reject any additional pack, missing cue, altered byte, unsafe
+mix bound, or untraceable generation record. Lossless WAVs remain the source
+of truth in the sound lab. The exporter also zeros the three standard M4A
+creation/modification timestamps, making repeated exports byte-identical.
 
-The viewer derives projectile, impact, and destruction cues from authoritative
-`Shot`, `Damage`, and `Destroyed`/`Disqualified` replay events. Seeking is
-silent, playback above 2× suspends effects, and mute/volume persist locally
-under production keys so old review choices cannot alter the shipped default.
-The entitlement-unlock master is not reused as a match-result cue; those are
-separate product events and need separately approved mappings.
+The viewer derives beam, impact, destruction, deflection, arrival, veterancy,
+and every Core possession/scoring cue from authoritative replay facts. A new
+pending strike emits wind-up; a matching resolution emits beam; disappearance
+at maturity without a resolution emits fizzle; voluntary pre-resolution
+abandonment emits cancel. Seeking is silent, playback above 2× suspends audio,
+and mute/volume persist locally under production keys. The entitlement-unlock
+master is not reused as a match-result cue.
 
 Browser autoplay policy still requires a user gesture. The first trusted click
 or non-modifier key resumes the viewer's shared audio session and arms enabled
 music and effects together; there is no second sound-effects prompt. A compact
 control exposes independent SFX mute and volume, and `?audio=off` remains an
-explicit diagnostic opt-out. The CLI includes the small approved SFX package
-but continues to omit the network-fetched soundtrack.
+explicit diagnostic opt-out. The Original dark field loop starts only on
+`arc-relay-tapline-01`, runs dry beneath the cues at gain 0.21, and stops on
+pause, hide, end, or playback above 2×. The CLI includes this approved audio
+package but continues to omit the network-fetched soundtrack.
 
 The native hosted viewer remains silent. Giving its WebView a trusted
 activation through native controls requires a deliberate mobile bridge change
@@ -260,7 +269,7 @@ and is separate from approving the web/standalone pack.
 ## Runtime package shape
 
 1. Keep all candidate WAV files as lossless source masters under `art/audio`.
-2. Ship only Obsidian Foundry's approved compressed combat cues.
+2. Ship only Astral Relay's approved compressed cues and selected Tapline loop.
 3. Keep shared gameplay cues in one rights- and approval-bearing runtime
    manifest.
 4. Let a projectile-look manifest optionally reference a stable sound-profile
@@ -281,10 +290,18 @@ an old replay or retired cosmetic lacks one.
 The mixer should consume changes between the previously presented tick and the
 current presented tick:
 
-- fire: an authoritative shot/projectile-created event;
+- attack declare: a new authoritative pending strike;
+- beam resolve: an authoritative attack event/traversal;
+- fizzle or cancel: an authoritative pending strike leaving the table without
+  a resolution, distinguished by timing and public interruption reason;
 - bot impact: authoritative damage to a bot;
+- beam deflection: authoritative `projectile-deflected` event;
 - wall impact: authoritative projectile termination against geometry;
 - destruction: transition from active to terminal bot state;
+- arrival: authoritative life spawn, respawn, or fabrication;
+- level up: highest authoritative `leveled-up` fact per actor and tick;
+- Core lifecycle: authoritative birth, pickup/steal, handoff, drop, bank, and
+  Pulse facts;
 - zone shift: a meaningful control-owner transition, not every pressure tick;
 - countdown/start: presentation timeline, before tick zero;
 - match result: only after the public presentation reaches the terminal tick;
