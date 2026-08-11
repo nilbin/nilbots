@@ -1,17 +1,21 @@
 {
   "schemaVersion": 1,
   "status": "owner-review",
-  "canonicalReviewArtifact": "concept-sheet-v4.png",
-  "canonicalReviewArtifactSha256": "6f776e1d6db3ce43c961c2d8143e0b6576ea10e19fa5ccdb24076c59fb2431f5",
+  "canonicalReviewArtifact": "concept-sheet-v5.png",
+  "canonicalReviewArtifactSha256": "a4abccc65f471aac9e804bb207d3e68948f128cb0d8d14f1435c6defcdae8062",
   "gameplayScaleProof": {
-    "file": "concept-sheet-v4-48px-proof.png",
-    "sha256": "b67d3a39a76c256cc9dba3478af70d4d87902d869157016dd8c0308819d1478c",
+    "file": "concept-sheet-v5-48px-proof.png",
+    "sha256": "c274909b58cfdca30a568170b40e44c584e0a1096e006bb36631b7bd25dec8c7",
     "width": 256,
     "height": 256,
     "approximateVisibleBotWidthPx": "48-50",
     "transform": "deterministic sips downscale from canonical artifact; no repaint"
   },
   "supersededReviewArtifacts": [
+    {
+      "file": "concept-sheet-v4.png",
+      "sha256": "6f776e1d6db3ce43c961c2d8143e0b6576ea10e19fa5ccdb24076c59fb2431f5"
+    },
     {
       "file": "concept-sheet-v3.png",
       "sha256": "31188936fdff59d04fcb4da20492ad51eb812264c274cbbfbcb2746197f861c0"
@@ -55,7 +59,8 @@
     "CONCEPT-SHEET-PROMPT.md",
     "CONCEPT-SHEET-V2-PROMPTS.md",
     "CONCEPT-SHEET-V3-PROMPTS.md",
-    "CONCEPT-SHEET-V4-PROMPT.md"
+    "CONCEPT-SHEET-V4-PROMPT.md",
+    "CONCEPT-SHEET-V5-PROMPTS.md"
   ],
   "classPromptSpecs": "prompt-specs.json",
   "identityRevision": {
@@ -67,8 +72,9 @@
     "eyeMotifs": "prohibited",
     "gameplayCameraDegrees": 58,
     "targetVisibleBotWidthPx": "48-96",
-    "sharedChargePlateCount": 3,
-    "chargePlates": "neutral and unlit; runtime teal/orange team tint",
+    "visibleSharedNoseHardware": "prohibited",
+    "windupPresentation": "renderer-owned temporary teal/orange sweep across existing front-edge material mask",
+    "teamAccentMaskInStaticConcept": "invisible",
     "beamEmitter": "thin dark seam flush with leading edge",
     "gunLikeCues": "prohibited",
     "beamEmitterMustRemainSeparate": true,

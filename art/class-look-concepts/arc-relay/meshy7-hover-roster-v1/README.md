@@ -44,11 +44,11 @@ Official references:
 
 ## Approval and view plan
 
-`concept-sheet-v4.png` is the canonical owner-review artifact for this gate. It
-removes both the rejected eye-light direction and the gun-like muzzle pass. The
-roster uses the pinned elevated 58-degree gameplay-oblique camera, bold top
-silhouettes, fewer micro-details, larger signature apparatus, an unlit
-three-plate wind-up band, and a flush leading-edge beam seam. Earlier sheets
+`concept-sheet-v5.png` is the canonical owner-review artifact for this gate. It
+removes the rejected eye lights, gun-like muzzles, and universal white segmented
+nose. The roster uses the pinned elevated 58-degree gameplay-oblique camera,
+bold top silhouettes, fewer micro-details, larger signature apparatus,
+class-owned prow geometry, and a flush leading-edge beam seam. Earlier sheets
 remain superseded evidence.
 
 The current sheet's shared 4x4 presentation intentionally makes family
@@ -70,15 +70,16 @@ Meshy receives those four full-resolution files separately. The 4x4 concept
 sheet and its reduced proof are review evidence only and must never be
 submitted as input images.
 
-`concept-sheet-v4-48px-proof.png` is a deterministic 256x256 reduction of the
+`concept-sheet-v5-48px-proof.png` is a deterministic 256x256 reduction of the
 canonical sheet with no repainting. Each visible bot is roughly 48–50 pixels
 wide, matching the current runtime readability gate. At that size, class
 judgment is based on outer silhouette, top value blocks, signature hardware,
 and facing—not seams, labels, or decorative lights.
 
-The v4 proof keeps all sixteen outer silhouettes and their dominant signature
+The v5 proof keeps all sixteen outer silhouettes and their dominant signature
 anchors distinguishable. The idle emitter seam can disappear entirely at that
-size while the larger three-plate band owns the one-tick runtime wind-up read.
+size; a temporary renderer-owned teal/orange sweep across each bot's existing
+front edge owns the one-tick runtime wind-up read.
 
 This proof does not replace the later pinned real-replay review with both team
 colors, arena lighting, movement, fog, and overlapping actors.
@@ -92,23 +93,23 @@ colors, arena lighting, movement, fog, and overlapping actors.
   silhouette.
 - Every class has a basic attack that winds up for one replay tick and then
   emits an instant straight energy beam. Each bot therefore has one thin dark
-  emitter seam recessed flush into the leading edge plus one broad three-plate
-  top-front charge band. The band is neutral/unlit in concept art and can light
-  sequentially at runtime.
+  emitter seam recessed flush into its own leading-edge armor. There is no
+  shared visible nose or charge module; a semantic renderer mask supplies the
+  temporary team-colored wind-up sweep at runtime.
 - The basic beam hardware is visually separate from the class signature. The
   signature apparatus remains readable while the shared beam is idle.
 - Teal and orange are the opposing runtime team colors. Neither is baked into
   fixed emission. Semantic team-accent surfaces remain neutral/unlit in the
   source concept so the renderer can own teal/orange tint and bloom.
 - Eye motifs are prohibited. Facing comes from the outer silhouette, prow
-  wedge, charge band, and emitter seam; necessary sensors remain asymmetric,
+  wedge, signature hardware, and emitter seam; necessary sensors remain asymmetric,
   recessed industrial optics rather than a face.
 - Gun-like cues are prohibited. No standard or signature system uses a barrel,
   muzzle ring, bore, rifle profile, cannon tube, or open nozzle. Mortar uses a
   closed dorsal launch iris; Longshot uses a chisel rail; Patchbay uses a flat
   service projector; Veil uses sealed canisters.
-- The three-plate charge band, flush forward beam seam, and larger
-  class-signature apparatus remain independently readable systems.
+- The renderer-owned wind-up sweep, flush forward beam seam, and larger
+  class-signature apparatus remain independently authored systems.
 - Concepts show one connected bot only. No Core, mine, sentry, projectile,
   wall, flare, smoke, beam, or other spawned effect appears beside it.
 
@@ -159,8 +160,10 @@ prompts verbatim. `CONCEPT-SHEET-V2-PROMPTS.md` preserves the rejected eye pass,
 and `CONCEPT-SHEET-V3-PROMPTS.md` preserves the two accepted gameplay-scale
 edits that established the camera and form hierarchy.
 `CONCEPT-SHEET-V4-PROMPT.md` preserves the accepted gunless correction.
+`CONCEPT-SHEET-V5-PROMPTS.md` preserves the accepted shared-nose removal and
+Palisade signature restoration.
 `manifest.json` records the review order and file provenance.
-`concept-sheet-v4.png` is the approval index and is not a Meshy input. Future
-isolated/multiview prompts inherit the v4 no-eye, no-gun, neutral-emission,
-simplified-form, and three-plate charge-band rules rather than superseded
-prompt language.
+`concept-sheet-v5.png` is the approval index and is not a Meshy input. Future
+isolated/multiview prompts inherit the v5 no-eye, no-gun, no-shared-nose,
+neutral-emission, simplified-form, and renderer-owned wind-up rules rather than
+superseded prompt language.
