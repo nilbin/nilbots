@@ -1,5 +1,12 @@
 # Local/pilot deployment: `docker compose up -d --build`, then open :8080.
 # Internet-facing production uses deploy/compose.production.yml.
+#
+# For Google sign-in, pass the credential file so the values interpolate:
+#   docker compose --env-file deploy/.env up -d --build
+# Without it both variables resolve empty, which is a supported state rather
+# than a broken one: the app registers no OpenIddict client and hides the
+# button, so plain `docker compose up` still gives a working site with
+# password sign-in only.
 services:
   db:
     image: postgres:16
@@ -25,6 +32,13 @@ services:
     environment:
       BOTARENA_DB: "Host=db;Database=botarena;Username=botarena;Password=botarena"
       BOTARENA_ROLE: "all"
+      Authentication__Google__ClientId: "${GOOGLE_CLIENT_ID:-}"
+      Authentication__Google__ClientSecret: "${GOOGLE_CLIENT_SECRET:-}"
+      # This site is http://127.0.0.1:8080, and OpenIddict will not start a
+      # sign-in challenge over plain HTTP without being told to. Local only —
+      # deploy/compose.production.yml deliberately does not set this, and
+      # production serves HTTPS through Caddy.
+      BOTARENA_ALLOW_INSECURE_AUTH: "true"
     volumes:
       - appdata:/data
       - buildcache:/root/.botarena

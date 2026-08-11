@@ -124,9 +124,22 @@ public static class OpenIddictSetup
             options.AddSigningCertificate(signing);
 
             options.UseSystemNetHttp();
-            options.UseAspNetCore()
+            var aspNetCore = options.UseAspNetCore()
                    .EnableRedirectionEndpointPassthrough()
                    .EnablePostLogoutRedirectionEndpointPassthrough();
+
+            // OpenIddict refuses to start a challenge over plain HTTP, which is right:
+            // SameSite=None cookies need HTTPS in most browsers. But the local
+            // `docker compose` site is http://127.0.0.1:8080, so sign-in throws there
+            // and cannot be exercised before deploying.
+            //
+            // Opt-in rather than inferred. Deciding by IsDevelopment() or by the
+            // request's scheme would silently disable the requirement in production
+            // the first time the app ran behind a misconfigured proxy — the exact
+            // shape of mistake this check exists to catch. An explicit flag that
+            // nothing but the local compose file sets cannot drift that way.
+            if (configuration.GetValue<bool>("BOTARENA_ALLOW_INSECURE_AUTH"))
+                aspNetCore.DisableTransportSecurityRequirement();
 
             options.UseWebProviders().AddGoogle(google => google
                 .SetClientId(configuration[$"{GoogleAuthOptions.Section}:ClientId"]!)

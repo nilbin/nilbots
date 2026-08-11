@@ -16,7 +16,21 @@ import tailwindcss from '@tailwindcss/vite';
 export default defineConfig({
   plugins: [docsSourceHash(), react(), tailwindcss()],
   server: {
-    proxy: { '/api': 'http://127.0.0.1:8080' },
+    // `/callback` is not an API route but must be proxied all the same: Google
+    // returns the browser to /callback/login/google, which is mapped at the root
+    // (app.MapExternalAuth), and OpenIddict derives that redirect URI from the
+    // *request's* host. Proxying only /api meant the sign-in left from :5173 and
+    // came back to :5173, where the dev server answered with the SPA fallback —
+    // so the round trip ended on a blank app instead of a session, and looked
+    // like Google had rejected it.
+    //
+    // changeOrigin stays at its default false on purpose: preserving the Host
+    // header is what makes the app build a :5173 redirect URI in the first
+    // place, keeping the whole flow same-origin so the session cookie sticks.
+    proxy: {
+      '/api': 'http://127.0.0.1:8080',
+      '/callback': 'http://127.0.0.1:8080',
+    },
   },
 });
 

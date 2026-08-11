@@ -82,9 +82,23 @@ RUN mkdir -p /opt/botarena/toolchain-libs /opt/botarena/nuget-feed \
     && chmod -R a+rX /root/.nuget /opt/botarena
 
 FROM toolchain AS compiler
-RUN mkdir -p /compiler-ipc /work \
-    && chown botbuild:botbuild /compiler-ipc /work
+# `/data` is owned here for the same reason the runtime stage owns it: this
+# stage also serves the app (see CMD below), and without a writable data root
+# BOTARENA_DATA falls back to <cwd>/var — /app/var, which this non-root user
+# cannot create, so the container died on startup generating its OpenIddict
+# development certificate. Creating it in the image also fixes ownership of
+# the named volume mounted over it, which Docker seeds from the image path.
+RUN mkdir -p /compiler-ipc /work /data \
+    && chown botbuild:botbuild /compiler-ipc /work /data
+# The site, not just the API. This stage serves the app for the local
+# `docker compose` path, and the SPA lookup fails *silently* when the files
+# are absent — index.html simply is not there, so no static middleware is
+# registered and every page 404s while /api keeps answering. Only the runtime
+# stage used to copy this, which made the single-container local deployment
+# look like a broken backend rather than a missing frontend.
+COPY --from=web /src/web/dist /app/web/dist
 ENV BOTARENA_ROOT=/app \
+    BOTARENA_DATA=/data \
     BOTARENA_HOME=/work \
     BOTARENA_TOOLCHAIN_LIBS=/opt/botarena/toolchain-libs \
     BOTARENA_NUGET_CONFIG=/app/docker/nuget.offline.config \
