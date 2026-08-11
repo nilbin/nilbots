@@ -81,11 +81,13 @@ test('ranked enrollment and immediate practice have different visible verbs', ()
   assert.match(workshop, /Practice is immediate and unranked/);
 });
 
-test('the phone shortcut reruns the configured practice without duplicating setup', () => {
+test('the floating shortcut reruns the configured practice without duplicating setup', () => {
   assert.equal(workshop.match(/'Practice & watch'/g)?.length, 1);
-  assert.match(workshop, /practiceActionSeen && !practiceActionVisible/);
+  assert.match(workshop, /!practiceActionVisible/);
+  assert.doesNotMatch(workshop, /practiceActionSeen/);
   assert.match(workshop, /onClick=\{\(\) => void runTrial\(\)\}/);
   assert.match(workshop, /btn btn-secondary fixed/);
+  assert.doesNotMatch(workshop, /btn btn-secondary fixed[^\n]*min-\[640px\]:hidden/);
   assert.match(workshop, /Practice again/);
   assert.doesNotMatch(workshop, /Practice setup/);
   assert.doesNotMatch(workshop, /Import JSON pair|Export pinned pair|layout sha256/);
@@ -115,6 +117,19 @@ test('doctrine authoring presents a battle-plan board over the compiler schema',
   assert.match(workshop, /predicateSentence\(predicate\)/);
   assert.match(workshop, /Core play/);
   assert.match(workshop, /Coordination limits/);
+  assert.match(workshop, /Combat baseline for this assignment/);
+  assert.match(workshop, /game standard/);
+  assert.match(workshop, /Adaptive participation cap/);
+  assert.match(workshop, /This play calls nobody/);
+  assert.doesNotMatch(workshop, /Who joins this play/);
+  assert.match(workshop, /Opportunistic loose-Core pickup/);
+  assert.match(workshop, /This is an\s+opportunistic exception, not planned courier duty/);
+  assert.match(workshop, /＋ Add condition/);
+  assert.match(workshop, /TacticalGeometryPreview/);
+  assert.match(workshop, /Exact same footprint/);
+  assert.match(workshop, /expandedModeKey/);
+  assert.match(workshop, /open=\{expanded\}/);
+  assert.match(styles, /details\[open\] > summary \.disclosure-chevron/);
 });
 
 test('composition turns compiler roles into editable player assignments', () => {
@@ -124,7 +139,8 @@ test('composition turns compiler roles into editable player assignments', () => 
   assert.match(workshop, /Eligible chassis · priority order/);
   assert.match(workshop, /Normal staffing target/);
   assert.match(workshop, /entry\.unlocked \? `\$\{counts\.get\(entry\.id\) \?\? 0\}\/2` : 'locked'/);
-  assert.match(workshop, /Advanced allocation rules/);
+  assert.match(workshop, /Staffing &amp; replacement rules/);
+  assert.match(workshop, /These rules allocate bodies to this assignment/);
 });
 
 test('custom-mind authoring is dormant on the launch web surface', () => {

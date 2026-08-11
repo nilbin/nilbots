@@ -104,7 +104,6 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
   // Assume the configured action is visible until the observer proves otherwise.
   // This avoids flashing a duplicate mobile shortcut while the editor hydrates.
   const [practiceActionVisible, setPracticeActionVisible] = useState(true);
-  const [practiceActionSeen, setPracticeActionSeen] = useState(false);
   const practiceActionRef = useRef<HTMLButtonElement | null>(null);
   const save = useSaveTacticalSheet();
   const remove = useDeleteTacticalSheet();
@@ -154,7 +153,6 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
     const observer = new IntersectionObserver(
       ([entry]) => {
         setPracticeActionVisible(entry.isIntersecting);
-        if (entry.isIntersecting) setPracticeActionSeen(true);
       },
       { threshold: 0.25 },
     );
@@ -533,9 +531,9 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
             onChange={(layout) => mutate((next) => { next.layout = layout; })} />
         )}
       </section>
-      {practiceActionSeen && !practiceActionVisible && (
+      {!practiceActionVisible && (
         <button type="button"
-          className="btn btn-secondary fixed right-3 bottom-[calc(3.5rem+env(safe-area-inset-bottom)+10px)] z-30 min-h-12 gap-2 px-5 shadow-xl min-[640px]:hidden"
+          className="btn btn-secondary fixed right-3 bottom-[calc(3.5rem+env(safe-area-inset-bottom)+10px)] z-30 min-h-12 gap-2 px-5 shadow-xl sm:bottom-5 sm:right-5"
           disabled={blocking.length > 0 || save.isPending || trial.isPending || !stockId}
           onClick={() => void runTrial()}>
           <span className="btn-secondary-symbol" aria-hidden="true">▶</span>
@@ -546,7 +544,7 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
         <SheetSubEditorModal title="Doctrine triggers"
           description="Reusable facts that decide when priority modes start and stop."
           onClose={() => setDoctrineTool(null)}>
-          <PredicateEditor draft={draft} issues={issues} mutate={mutate} />
+          <PredicateEditor draft={draft} catalog={catalog} issues={issues} mutate={mutate} />
         </SheetSubEditorModal>
       )}
       {doctrineTool === 'custody' && (
@@ -867,38 +865,59 @@ function CompositionEditor({ draft, catalog, issues, mutate }: {
                 )}
 
                 <details className="mt-3 rounded-sm border border-arena-edge bg-arena-deep/20">
-                  <summary className="flex min-h-11 cursor-pointer items-center px-3 t-body">Advanced allocation rules</summary>
+                  <summary className="flex min-h-11 cursor-pointer items-center gap-2 px-3 t-body">
+                    <span className="disclosure-chevron" aria-hidden="true">›</span>
+                    <span>
+                      <span className="block">Staffing &amp; replacement rules</span>
+                      <span className="t-micro block">Who fills this assignment when the squad changes</span>
+                    </span>
+                    <span className="pill ml-auto">optional tuning</span>
+                  </summary>
                   <div className="border-t border-arena-edge p-3">
-                    <div className="grid gap-2 sm:grid-cols-3">
-                      <NumberField label="minimum bodies" value={activeAssignment.minimum ?? 0} min={0} max={target}
-                        issues={issues} path={`roles.${roleIndex}.minimum`}
-                        onChange={(value) => updateAssignment(activeAssignment.roleId, (next) => { next.minimum = value; })} />
-                      <div>
-                        <span className="t-micro mb-1 block">target bodies</span>
-                        <div className="field flex min-h-11 items-center tabular">{target}</div>
+                    <p className="t-meta max-w-3xl">
+                      These rules allocate bodies to this assignment. They never create a tactical play or command another assignment.
+                    </p>
+                    <fieldset className="mt-3 rounded-sm border border-arena-edge p-3">
+                      <legend className="lab px-1">Staffing band</legend>
+                      <p className="t-micro">Aim for the target, tolerate this minimum and maximum as bodies are lost or reassigned.</p>
+                      <div className="mt-2 grid gap-2 sm:grid-cols-3">
+                        <NumberField label="Minimum bodies" value={activeAssignment.minimum ?? 0} min={0} max={target}
+                          issues={issues} path={`roles.${roleIndex}.minimum`}
+                          onChange={(value) => updateAssignment(activeAssignment.roleId, (next) => { next.minimum = value; })} />
+                        <div>
+                          <span className="t-micro mb-1 block">Normal target</span>
+                          <div className="field flex min-h-11 items-center tabular">{target}</div>
+                        </div>
+                        <NumberField label="Maximum bodies" value={activeAssignment.maximum ?? target} min={target} max={8}
+                          issues={issues} path={`roles.${roleIndex}.maximum`}
+                          onChange={(value) => updateAssignment(activeAssignment.roleId, (next) => { next.maximum = value; })} />
                       </div>
-                      <NumberField label="maximum bodies" value={activeAssignment.maximum ?? target} min={target} max={8}
-                        issues={issues} path={`roles.${roleIndex}.maximum`}
-                        onChange={(value) => updateAssignment(activeAssignment.roleId, (next) => { next.maximum = value; })} />
-                    </div>
-                    <div className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-                      <SelectField label="Core carrier" value={activeAssignment.carrierPreference ?? 'allow'}
-                        values={['forbid', 'allow', 'prefer', 'require']} issues={issues}
-                        path={`roles.${roleIndex}.carrierPreference`}
-                        onChange={(value) => updateAssignment(activeAssignment.roleId, (next) => { next.carrierPreference = value; })} />
-                      <SelectField label="On casualty" value={activeAssignment.deathPolicy ?? 'hold-vacancy'}
-                        values={['hold-vacancy', 'promote-best', 'rebalance']} issues={issues}
-                        path={`roles.${roleIndex}.deathPolicy`}
-                        onChange={(value) => updateAssignment(activeAssignment.roleId, (next) => { next.deathPolicy = value; })} />
-                      <SelectField label="On respawn" value={activeAssignment.respawnPolicy ?? 'rejoin'}
-                        values={['resume', 'rejoin', 'rally', 'replace']} issues={issues}
-                        path={`roles.${roleIndex}.respawnPolicy`}
-                        onChange={(value) => updateAssignment(activeAssignment.roleId, (next) => { next.respawnPolicy = value; })} />
-                      <SelectField label="Overflow assignment" value={activeAssignment.overflowRoleId ?? ''}
-                        values={assignments.map((entry) => entry.roleId)} issues={issues}
-                        path={`roles.${roleIndex}.overflowRoleId`}
-                        onChange={(value) => updateAssignment(activeAssignment.roleId, (next) => { next.overflowRoleId = value; })} />
-                    </div>
+                    </fieldset>
+                    <fieldset className="mt-3 rounded-sm border border-arena-edge p-3">
+                      <legend className="lab px-1">Squad changes</legend>
+                      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                        <SelectField label="Core-carrying eligibility" value={activeAssignment.carrierPreference ?? 'allow'}
+                          description="Whether custody may choose bodies in this assignment."
+                          values={['forbid', 'allow', 'prefer', 'require']} issues={issues}
+                          path={`roles.${roleIndex}.carrierPreference`}
+                          onChange={(value) => updateAssignment(activeAssignment.roleId, (next) => { next.carrierPreference = value; })} />
+                        <SelectField label="When a body is destroyed" value={activeAssignment.deathPolicy ?? 'hold-vacancy'}
+                          description="Keep its slot, promote a replacement, or rebalance live bodies."
+                          values={['hold-vacancy', 'promote-best', 'rebalance']} issues={issues}
+                          path={`roles.${roleIndex}.deathPolicy`}
+                          onChange={(value) => updateAssignment(activeAssignment.roleId, (next) => { next.deathPolicy = value; })} />
+                        <SelectField label="When that body returns" value={activeAssignment.respawnPolicy ?? 'rejoin'}
+                          description="How the returning body resumes assignment duty."
+                          values={['resume', 'rejoin', 'rally', 'replace']} issues={issues}
+                          path={`roles.${roleIndex}.respawnPolicy`}
+                          onChange={(value) => updateAssignment(activeAssignment.roleId, (next) => { next.respawnPolicy = value; })} />
+                        <SelectField label="If this assignment is full" value={activeAssignment.overflowRoleId ?? ''}
+                          description="The next assignment an otherwise eligible body may fill."
+                          values={['', ...assignments.map((entry) => entry.roleId)]} issues={issues}
+                          path={`roles.${roleIndex}.overflowRoleId`}
+                          onChange={(value) => updateAssignment(activeAssignment.roleId, (next) => { next.overflowRoleId = value; })} />
+                      </div>
+                    </fieldset>
                     <fieldset className="mt-3 rounded-sm border border-arena-edge p-3">
                       <legend className="lab px-1">Upgrade path</legend>
                       <p className="t-micro">Ordered picks earned by this assignment. Repeated upgrades are intentional.</p>
@@ -1118,10 +1137,17 @@ function DoctrineEditor({ draft, catalog, issues, mutate, openConditions, openCu
   const focusIds = Object.keys(draft.playbook.doctrines.focus ?? {});
   const cohortIds = Object.keys(draft.playbook.doctrines.cohorts ?? {});
   const [activeRoleId, setActiveRoleId] = useState(doctrines[0]?.[0] ?? '');
+  const [expandedModeKey, setExpandedModeKey] = useState(
+    doctrines[0]?.[0] ? `${doctrines[0][0]}:0` : '',
+  );
   const activeEntry = doctrines.find(([id]) => id === activeRoleId) ?? doctrines[0];
 
   useEffect(() => {
-    if (activeEntry && activeEntry[0] !== activeRoleId) setActiveRoleId(activeEntry[0]);
+    if (!activeEntry) return;
+    if (activeEntry[0] !== activeRoleId) {
+      setActiveRoleId(activeEntry[0]);
+      setExpandedModeKey(`${activeEntry[0]}:0`);
+    }
   }, [activeEntry, activeRoleId]);
 
   const updateDoctrine = (roleId: string, change: (doctrine: Doctrine) => void) =>
@@ -1165,7 +1191,10 @@ function DoctrineEditor({ draft, catalog, issues, mutate, openConditions, openCu
                       ? 'border-arena-material bg-arena-material/10 shadow-[inset_3px_0_0_var(--color-arena-material)]'
                       : 'border-transparent bg-arena-panel/40 active:border-arena-edge',
                   )}
-                  onClick={() => setActiveRoleId(roleId)}>
+                  onClick={() => {
+                    setActiveRoleId(roleId);
+                    setExpandedModeKey(`${roleId}:0`);
+                  }}>
                   <span className="flex items-center gap-2">
                     <AssignmentClassStack classIds={classIds} size={30} />
                     <span className="min-w-0 flex-1">
@@ -1228,7 +1257,10 @@ function DoctrineEditor({ draft, catalog, issues, mutate, openConditions, openCu
                     {role?.preferred ?? 0} target bodies · {classInfos.map((entry) => entry.name).join(' · ')}
                   </p>
                 </div>
-                <span className="pill">{doctrine.modes.length} plays</span>
+                <div className="flex flex-col items-end gap-1">
+                  <span className="pill">{doctrine.modes.length} plays</span>
+                  <span className="t-micro">combat · {doctrine.fight ? 'assignment baseline' : 'game standard'}</span>
+                </div>
               </div>
 
               {classInfos.length > 0 && (
@@ -1243,14 +1275,67 @@ function DoctrineEditor({ draft, catalog, issues, mutate, openConditions, openCu
                 </div>
               )}
 
+              <section className="mt-3 rounded-sm border border-arena-edge bg-arena-deep/20">
+                <header className="border-b border-arena-edge px-3 py-3">
+                  <p className="lab text-arena-material">Assignment defaults</p>
+                  <p className="t-micro mt-1">
+                    Applied to every {humanizeToken(roleId)} play. A play may override only the combat fields it needs.
+                  </p>
+                </header>
+                <div className="p-3">
+                  <FightEditor fight={doctrine.fight} label="Combat baseline for this assignment"
+                    inheritedLabel="Game standard: target carriers, then weakest enemies; ordinary strike and return behavior."
+                    onChange={(fight) => updateDoctrine(roleId, (next) => { next.fight = fight; })} />
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <SelectField label="Default Core plan" value={doctrine.custody} values={custodyIds}
+                      issues={issues} path={'doctrines.roles.' + roleId + '.custody'}
+                      onChange={(value) => updateDoctrine(roleId, (next) => { next.custody = value; })} />
+                    <ChoiceCard label="Concealment" active={doctrine.conceal ?? true}
+                      activeLabel="Seek ambush cover" inactiveLabel="Fight in the open"
+                      onChange={(value) => updateDoctrine(roleId, (next) => { next.conceal = value; })} />
+                  </div>
+                  <details className="mt-3 rounded-sm border border-arena-edge">
+                    <summary className="flex min-h-11 cursor-pointer items-center gap-2 px-3 t-body">
+                      <span className="disclosure-chevron" aria-hidden="true">›</span>
+                      Opportunistic loose-Core pickup
+                      <span className="pill ml-auto">
+                        {(typeof doctrine.scavenge === 'string' ? 1 : doctrine.scavenge?.length ?? 0)} zones
+                      </span>
+                    </summary>
+                    <div className="border-t border-arena-edge p-3">
+                      <p className="mb-3 t-meta text-ink-muted">
+                        Break the current play for a nearby visible loose Core in these zones. This is an
+                        opportunistic exception, not planned courier duty; use a Fetch play to authorize and
+                        prioritize normal Core collection through a custody policy.
+                      </p>
+                      <ChoiceGrid label="Break route for loose Cores in these zones" values={zoneIds}
+                        selected={typeof doctrine.scavenge === 'string' ? [doctrine.scavenge] : doctrine.scavenge ?? []}
+                        bounded issues={issues} path={'doctrines.roles.' + roleId + '.scavenge'}
+                        onChange={(value) => updateDoctrine(roleId, (next) => {
+                          next.scavenge = value.length ? value : undefined;
+                        })} />
+                    </div>
+                  </details>
+                  <RepairEditor repair={doctrine.repair}
+                    onChange={(repair) => updateDoctrine(roleId, (next) => { next.repair = repair; })} />
+                </div>
+              </section>
+
               <div className="mt-3 flex flex-col gap-2">
                 {doctrine.modes.map((mode, index) => (
                   <ModeEditor key={index}
                     roleId={roleId} doctrine={doctrine} mode={mode} index={index}
+                    catalog={catalog} layout={draft.layout}
                     routeIds={routeIds} zoneIds={zoneIds} anchorIds={anchorIds}
                     roleIds={roleIds} custodyIds={custodyIds} predicateIds={predicateIds}
                     focus={draft.playbook.doctrines.focus} cohorts={draft.playbook.doctrines.cohorts}
                     issues={issues}
+                    expanded={expandedModeKey === `${roleId}:${index}`}
+                    onExpandedChange={(open) => setExpandedModeKey((current) => {
+                      const key = `${roleId}:${index}`;
+                      if (open) return key;
+                      return current === key ? '' : current;
+                    })}
                     onChange={(nextMode) => updateDoctrine(roleId, (next) => { next.modes[index] = nextMode; })}
                     onMove={(delta) => updateDoctrine(roleId, (next) => {
                       const [moving] = next.modes.splice(index, 1);
@@ -1260,43 +1345,21 @@ function DoctrineEditor({ draft, catalog, issues, mutate, openConditions, openCu
                 ))}
                 <button type="button" className="btn min-h-11 self-start border-arena-material/45"
                   disabled={doctrine.modes.length >= 8}
-                  onClick={() => updateDoctrine(roleId, (next) => {
-                    const floor = next.modes.pop();
-                    const mode = freshMode(
-                      'intercept', routeIds, anchorIds, zoneIds, custodyIds,
-                      roleIds.filter((id) => id !== roleId),
-                    );
-                    mode.while = predicateIds[0] ?? '';
-                    next.modes.push(mode);
-                    if (floor) next.modes.push(floor);
-                  })}>＋ Add a higher-priority play</button>
+                  onClick={() => {
+                    setExpandedModeKey(`${roleId}:${Math.max(0, doctrine.modes.length - 1)}`);
+                    updateDoctrine(roleId, (next) => {
+                      const floor = next.modes.pop();
+                      const mode = freshMode(
+                        'intercept', routeIds, anchorIds, zoneIds, custodyIds,
+                        roleIds.filter((id) => id !== roleId),
+                      );
+                      mode.while = predicateIds[0] ?? '';
+                      next.modes.push(mode);
+                      if (floor) next.modes.push(floor);
+                    });
+                  }}>＋ Add a higher-priority play</button>
               </div>
 
-              <details className="mt-3 rounded-sm border border-arena-edge bg-arena-deep/20">
-                <summary className="flex min-h-11 cursor-pointer items-center px-3 t-body">
-                  Assignment instincts <span className="t-micro ml-auto">custody · scavenging · combat</span>
-                </summary>
-                <div className="border-t border-arena-edge p-3">
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    <SelectField label="Default Core plan" value={doctrine.custody} values={custodyIds}
-                      issues={issues} path={'doctrines.roles.' + roleId + '.custody'}
-                      onChange={(value) => updateDoctrine(roleId, (next) => { next.custody = value; })} />
-                    <ChoiceCard label="Concealment" active={doctrine.conceal ?? true}
-                      activeLabel="Seek ambush cover" inactiveLabel="Fight in the open"
-                      onChange={(value) => updateDoctrine(roleId, (next) => { next.conceal = value; })} />
-                  </div>
-                  <ChoiceGrid label="Pick up loose Cores while crossing these zones" values={zoneIds}
-                    selected={typeof doctrine.scavenge === 'string' ? [doctrine.scavenge] : doctrine.scavenge ?? []}
-                    issues={issues} path={'doctrines.roles.' + roleId + '.scavenge'}
-                    onChange={(value) => updateDoctrine(roleId, (next) => {
-                      next.scavenge = value.length ? value : undefined;
-                    })} />
-                  <FightEditor fight={doctrine.fight} label="Default combat instincts"
-                    onChange={(fight) => updateDoctrine(roleId, (next) => { next.fight = fight; })} />
-                  <RepairEditor repair={doctrine.repair}
-                    onChange={(repair) => updateDoctrine(roleId, (next) => { next.repair = repair; })} />
-                </div>
-              </details>
               <InlineIssues issues={issues} prefix={'doctrines.roles.' + roleId} />
             </div>
           );
@@ -1307,13 +1370,16 @@ function DoctrineEditor({ draft, catalog, issues, mutate, openConditions, openCu
 }
 
 function ModeEditor({
-  roleId, doctrine, mode, index, routeIds, zoneIds, anchorIds, roleIds,
-  custodyIds, predicateIds, focus, cohorts, issues, onChange, onMove, onRemove,
+  roleId, doctrine, mode, index, catalog, layout, routeIds, zoneIds, anchorIds, roleIds,
+  custodyIds, predicateIds, focus, cohorts, issues, expanded, onExpandedChange,
+  onChange, onMove, onRemove,
 }: {
   roleId: string;
   doctrine: Doctrine;
   mode: TacticalMode;
   index: number;
+  catalog: TacticalSheetCatalog;
+  layout: LayoutDocument;
   routeIds: string[];
   zoneIds: string[];
   anchorIds: string[];
@@ -1323,6 +1389,8 @@ function ModeEditor({
   focus: Record<string, FocusDefinition>;
   cohorts: Record<string, CohortDefinition>;
   issues: SheetIssue[];
+  expanded: boolean;
+  onExpandedChange: (open: boolean) => void;
   onChange: (mode: TacticalMode) => void;
   onMove: (delta: number) => void;
   onRemove: () => void;
@@ -1347,11 +1415,15 @@ function ModeEditor({
   const destination = destinationOf(mode);
 
   return (
-    <article data-sheet-path={issuePrefix} className={clsx(
+    <details data-sheet-path={issuePrefix} open={expanded}
+      onToggle={(event) => {
+        if (event.currentTarget.open !== expanded) onExpandedChange(event.currentTarget.open);
+      }}
+      className={clsx(
       'overflow-hidden rounded-sm border bg-arena-deep/25',
       floor ? 'border-arena-ok/50' : 'border-arena-edge',
     )}>
-      <header className="flex items-start gap-3 p-3">
+      <summary className="flex min-h-[86px] cursor-pointer list-none items-start gap-3 p-3">
         <span className={clsx(
           'flex size-11 shrink-0 items-center justify-center rounded-sm border font-mono text-xl',
           floor
@@ -1359,7 +1431,7 @@ function ModeEditor({
             : 'border-arena-material/45 bg-arena-material/10 text-arena-material',
         )} aria-hidden="true">{commandGlyph(verb)}</span>
         <div className="min-w-0 flex-1">
-          <p className="lab">{floor ? 'Fallback patrol' : 'Priority ' + (index + 1)}</p>
+          <p className="lab">{humanizeToken(roleId)} → {floor ? 'fallback patrol' : 'play ' + (index + 1)}</p>
           <h4 className="type-display mt-0.5 text-[20px]">{humanizeToken(verb)}</h4>
           <p className="t-meta mt-0.5">{modeCommandSummary(mode)}</p>
           {!floor && verb !== 'recover' && verb !== 'fetch' && (
@@ -1371,19 +1443,20 @@ function ModeEditor({
             </div>
           )}
         </div>
-        <div className="flex shrink-0 gap-1">
-          <button type="button" aria-label="Move play up" className="btn min-h-11 min-w-11"
-            disabled={index === 0} onClick={() => onMove(-1)}>↑</button>
-          <button type="button" aria-label="Move play down" className="btn min-h-11 min-w-11"
-            disabled={floor} onClick={() => onMove(1)}>↓</button>
-        </div>
-      </header>
+        <span className="mt-1 flex shrink-0 items-center gap-2">
+          <span className="t-micro hidden sm:inline">{expanded ? 'Close editor' : 'Edit play'}</span>
+          <span className="disclosure-chevron text-xl" aria-hidden="true">›</span>
+        </span>
+      </summary>
 
-      <details className="border-t border-arena-edge">
-        <summary className="flex min-h-11 cursor-pointer items-center px-3 t-body">
-          Tune this play <span className="t-micro ml-auto">action · moment · combat</span>
-        </summary>
-        <div className="border-t border-arena-edge p-3">
+      <div className="border-t border-arena-edge p-3">
+          <div className="mb-3 flex items-center gap-2 rounded-sm border border-arena-edge bg-arena-panel/30 p-2">
+            <span className="t-micro mr-auto">Priority is its position in this ladder.</span>
+            <button type="button" aria-label="Move play up" className="btn min-h-11 min-w-11"
+              disabled={index === 0} onClick={() => onMove(-1)}>↑</button>
+            <button type="button" aria-label="Move play down" className="btn min-h-11 min-w-11"
+              disabled={floor} onClick={() => onMove(1)}>↓</button>
+          </div>
           <fieldset>
             <legend className="lab mb-2">Tactical action</legend>
             <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-6">
@@ -1404,7 +1477,8 @@ function ModeEditor({
           </fieldset>
 
           {(verb === 'patrol' || verb === 'assault') && (
-            <DestinationPicker verb={verb} destination={destination} routeIds={routeIds} zoneIds={zoneIds}
+            <DestinationPicker verb={verb} destination={destination} catalog={catalog} layout={layout}
+              routeIds={routeIds} zoneIds={zoneIds}
               path={issuePrefix + '.' + verb} issues={issues}
               onChange={(kind, id) => set({ [verb]: kind === 'route' ? id : { zone: id } })} />
           )}
@@ -1454,9 +1528,11 @@ function ModeEditor({
           {!floor && verb !== 'recover' && verb !== 'fetch' && (
             <div className="mt-3 grid gap-2 lg:grid-cols-2">
               <ConditionField label="Start when" value={mode.while ?? ''} predicates={predicateIds}
+                emptyLabel="No start condition selected"
                 issues={issues} path={issuePrefix + '.while'}
                 onChange={(value) => set({ while: value })} />
               <ConditionField label="Release when" value={mode.until ?? ''} predicates={predicateIds}
+                emptyLabel="Once started, this play stays active for this body life"
                 issues={issues} path={issuePrefix + '.until'}
                 onChange={(value) => set({ until: value || undefined })} />
             </div>
@@ -1466,6 +1542,7 @@ function ModeEditor({
             path={issuePrefix + '.focus'} issues={issues}
             onChange={(value) => set({ focus: value })} />}
           {verb !== 'fetch' && <FightEditor fight={mode.fight} label="Combat override for this play"
+            inheritedLabel="Inherits the assignment combat baseline, then the game standard."
             onChange={(fightBlock) => set({ fight: fightBlock })} />}
           <InlineIssues issues={issues} prefix={issuePrefix} />
           {!floor && (
@@ -1473,15 +1550,16 @@ function ModeEditor({
               <button type="button" className="btn min-h-11 text-arena-hot" onClick={onRemove}>Remove play</button>
             </div>
           )}
-        </div>
-      </details>
-    </article>
+      </div>
+    </details>
   );
 }
 
-function DestinationPicker({ verb, destination, routeIds, zoneIds, path, issues, onChange }: {
+function DestinationPicker({ verb, destination, catalog, layout, routeIds, zoneIds, path, issues, onChange }: {
   verb: 'patrol' | 'assault';
   destination: { kind: 'route' | 'zone'; id: string } | null;
+  catalog: TacticalSheetCatalog;
+  layout: LayoutDocument;
   routeIds: string[];
   zoneIds: string[];
   path: string;
@@ -1506,20 +1584,105 @@ function DestinationPicker({ verb, destination, routeIds, zoneIds, path, issues,
           </button>
         ))}
       </div>
-      <div className="mt-2 flex flex-wrap gap-1.5">
-        {values.map((id) => (
-          <button key={id} type="button" aria-pressed={destination?.id === id}
+      {destination?.id && (
+        <TacticalGeometryPreview catalog={catalog} layout={layout}
+          kind={kind} id={destination.id} />
+      )}
+      <p className="t-micro mt-3">Choose another {kind}</p>
+      <div className="mt-1.5 grid max-h-44 grid-cols-2 gap-1.5 overflow-y-auto pr-1 sm:grid-cols-3 xl:grid-cols-4">
+        {values.map((id) => {
+          const aliases = kind === 'zone' ? matchingZoneAliases(layout, id) : [];
+          return <button key={id} type="button" aria-pressed={destination?.id === id}
+            title={aliases.length ? `Same map footprint as ${aliases.join(', ')}` : undefined}
             className={clsx(
-              'min-h-11 rounded-full border px-3 t-micro',
+              'min-h-11 rounded-sm border px-2 py-1.5 text-left t-micro',
               destination?.id === id
-                ? 'border-arena-material bg-arena-material/15 text-arena-text'
+                ? 'border-arena-material bg-arena-material/15 text-arena-text shadow-[inset_3px_0_0_var(--color-arena-material)]'
                 : 'border-arena-edge bg-arena-deep/20 text-arena-dim',
             )}
-            onClick={() => onChange(kind, id)}>{humanizeToken(id)}</button>
-        ))}
+            onClick={() => onChange(kind, id)}>
+            {humanizeToken(id)}{aliases.length ? ' · same area' : ''}
+          </button>;
+        })}
       </div>
       <FieldIssues issues={issues} path={path} />
     </fieldset>
+  );
+}
+
+function matchingZoneAliases(layout: LayoutDocument, zoneId: string): string[] {
+  const selected = layout.zones.find((zone) => zone.zoneId === zoneId);
+  if (!selected) return [];
+  const footprint = selected.rect.join(':');
+  return layout.zones
+    .filter((zone) => zone.zoneId !== zoneId && zone.rect.join(':') === footprint)
+    .map((zone) => zone.zoneId);
+}
+
+function TacticalGeometryPreview({ catalog, layout, kind, id }: {
+  catalog: TacticalSheetCatalog;
+  layout: LayoutDocument;
+  kind: 'route' | 'zone';
+  id: string;
+}) {
+  const route = kind === 'route' ? layout.routes.find((entry) => entry.routeId === id) : undefined;
+  const zone = kind === 'zone' ? layout.zones.find((entry) => entry.zoneId === id) : undefined;
+  const aliases = zone ? matchingZoneAliases(layout, zone.zoneId) : [];
+  return (
+    <figure className="mt-3 grid min-w-0 gap-2 rounded-sm border border-arena-edge bg-[#070b0f] p-2 sm:grid-cols-[minmax(0,1fr)_180px] sm:items-center">
+      <svg viewBox={`0 0 ${catalog.map.width} ${catalog.map.height}`}
+        preserveAspectRatio="xMidYMid meet"
+        className="block max-h-[230px] w-full rounded-sm border border-arena-edge bg-[#0c151c]"
+        role="img" aria-label={`${humanizeToken(id)} ${kind} on the Tapline map`}>
+        <rect width={catalog.map.width} height={catalog.map.height} fill="#0c151c" />
+        {catalog.map.tileRows.flatMap((row, y) => [...row].map((tile, x) => tile === '#' && (
+          <rect key={`wall:${x}:${y}`} x={x} y={y} width={1} height={1}
+            fill="#35404a" stroke="#17232c" strokeWidth={0.045} />
+        )))}
+        {catalog.map.regions.map((region) => {
+          if (region.tiles.length === 0) return null;
+          const presentation = mapRegionPresentation(region.id);
+          if (presentation.kind === 'objective') return null;
+          const cx = region.tiles.reduce((sum, point) => sum + point.x + 0.5, 0) / region.tiles.length;
+          const cy = region.tiles.reduce((sum, point) => sum + point.y + 0.5, 0) / region.tiles.length;
+          const color = presentation.kind === 'well' ? '#b49cff'
+            : presentation.kind === 'heal' ? '#62d6a5'
+              : presentation.physicalSide === 'west' ? MAP_OWN : MAP_ENEMY;
+          return <g key={`preview-landmark:${region.id}`} pointerEvents="none">
+            <title>{presentation.label}</title>
+            <circle cx={cx} cy={cy} r={0.32} fill="#081017" stroke={color} strokeWidth={0.12} />
+            <text x={cx} y={cy + 0.02} textAnchor="middle" dominantBaseline="middle"
+              fill={color} fontSize={0.28} fontWeight={800}>{presentation.symbol}</text>
+          </g>;
+        })}
+        {zone && (() => {
+          const [x0, y0, x1, y1] = zone.rect;
+          return <rect x={x0} y={y0} width={x1 - x0 + 1} height={y1 - y0 + 1}
+            fill="#d26e2d35" stroke="#f0b94f" strokeWidth={0.2} />;
+        })()}
+        {route && <>
+          <polyline points={route.waypoints.map(([x, y]) => `${x + 0.5},${y + 0.5}`).join(' ')}
+            fill="none" stroke="#030609" strokeWidth={0.6} strokeLinejoin="round" />
+          <polyline points={route.waypoints.map(([x, y]) => `${x + 0.5},${y + 0.5}`).join(' ')}
+            fill="none" stroke="#39d7f2" strokeWidth={0.24} strokeLinecap="round" strokeLinejoin="round" />
+          {route.waypoints.map(([x, y], index) => (
+            <circle key={`preview-point:${index}`} cx={x + 0.5} cy={y + 0.5} r={0.27}
+              fill="#39d7f2" stroke="#e6fbff" strokeWidth={0.08} />
+          ))}
+        </>}
+      </svg>
+      <figcaption className="min-w-0 p-1">
+        <p className="lab text-arena-material">{humanizeToken(kind)} preview</p>
+        <p className="type-display mt-1 break-words text-[17px]">{humanizeToken(id)}</p>
+        {route && <p className="t-micro mt-1">{route.waypoints.length} waypoints · local reflow {route.corridorWidth}</p>}
+        {zone && <p className="t-micro mt-1">Tiles {zone.rect.join(', ')}</p>}
+        {aliases.length > 0 && (
+          <p className="t-micro mt-2 rounded-sm border border-arena-material/35 bg-arena-material/10 p-2 text-arena-material">
+            Exact same footprint as {aliases.map(humanizeToken).join(', ')}. These are semantic aliases in the current template.
+          </p>
+        )}
+      </figcaption>
+    </figure>
   );
 }
 
@@ -1572,12 +1735,15 @@ function CohortField({ value, cohorts, path, issues, onChange }: {
   const inline = typeof value === 'object' ? value : null;
   return (
     <fieldset className="rounded-sm border border-arena-edge p-3" data-sheet-path={path}>
-      <legend className="lab px-1">Who joins this play?</legend>
+      <legend className="lab px-1">Adaptive participation cap</legend>
+      <p className="t-micro mb-2">
+        This play calls nobody. Bodies qualify only because this rung is in their own ladder; a cohort limits which of those bodies proceed.
+      </p>
       <div className="flex flex-wrap gap-1.5">
         <button type="button" aria-pressed={value === undefined} className={clsx(
           'min-h-11 rounded-full border px-3 t-micro',
           value === undefined ? 'border-arena-material bg-arena-material/15' : 'border-arena-edge',
-        )} onClick={() => onChange(undefined)}>Everyone eligible</button>
+        )} onClick={() => onChange(undefined)}>No cap</button>
         {Object.entries(cohorts).map(([id, definition]) => (
           <button key={id} type="button" aria-pressed={shared === id} className={clsx(
             'min-h-11 rounded-full border px-3 t-micro',
@@ -1589,7 +1755,7 @@ function CohortField({ value, cohorts, path, issues, onChange }: {
         <button type="button" aria-pressed={Boolean(inline)} className={clsx(
           'min-h-11 rounded-full border px-3 t-micro',
           inline ? 'border-arena-material bg-arena-material/15' : 'border-arena-edge',
-        )} onClick={() => onChange({ take: inline?.take ?? 1, select: 'nearest' })}>Nearest…</button>
+        )} onClick={() => onChange({ take: inline?.take ?? 1, select: 'nearest' })}>Limit this rung…</button>
       </div>
       {inline && <div className="mt-2 max-w-[220px]">
         <NumberField label="bodies admitted" value={inline.take} min={1} max={8}
@@ -1600,8 +1766,9 @@ function CohortField({ value, cohorts, path, issues, onChange }: {
   );
 }
 
-function PredicateEditor({ draft, issues, mutate }: {
+function PredicateEditor({ draft, catalog, issues, mutate }: {
   draft: SheetDraft;
+  catalog: TacticalSheetCatalog;
   issues: SheetIssue[];
   mutate: Mutate;
 }) {
@@ -1686,9 +1853,13 @@ function PredicateEditor({ draft, issues, mutate }: {
                   })} />
               )}
               {(kind === 'zone' || kind === 'role-zone') && (
-                <SelectField label="Map zone" value={predicate.zone ?? ''} values={zones}
-                  issues={issues} path={path + '.zone'}
-                  onChange={(zone) => update((target) => { target.zone = zone; })} />
+                <div className="sm:col-span-2">
+                  <SelectField label="Map zone" value={predicate.zone ?? ''} values={zones}
+                    issues={issues} path={path + '.zone'}
+                    onChange={(zone) => update((target) => { target.zone = zone; })} />
+                  {predicate.zone && <TacticalGeometryPreview catalog={catalog} layout={draft.layout}
+                    kind="zone" id={predicate.zone} />}
+                </div>
               )}
               {kind === 'well' && (
                 <SegmentedField label="Well" value={predicate.subject ?? 'centre'}
@@ -1865,7 +2036,8 @@ function CustodyEditor({ draft, issues, mutate }: {
           </div>
 
           <details className="mt-3 rounded-sm border border-arena-edge bg-arena-deep/20">
-            <summary className="flex min-h-11 cursor-pointer items-center px-3 t-body">
+            <summary className="flex min-h-11 cursor-pointer items-center gap-2 px-3 t-body">
+              <span className="disclosure-chevron" aria-hidden="true">›</span>
               Routes, passes and recovery <span className="t-micro ml-auto">advanced Core play</span>
             </summary>
             <div className="border-t border-arena-edge p-3">
@@ -2096,7 +2268,10 @@ function RepairEditor({ repair, onChange }: {
   );
   return (
     <details className="mt-3 rounded-sm border border-arena-edge">
-      <summary className="flex min-h-11 cursor-pointer items-center px-3 t-body">Repair priorities</summary>
+      <summary className="flex min-h-11 cursor-pointer items-center gap-2 px-3 t-body">
+        <span className="disclosure-chevron" aria-hidden="true">›</span>
+        Repair priorities
+      </summary>
       <div className="border-t border-arena-edge p-3">
         <ChoiceGrid label="Repair target order" values={['weakest', 'carrier', 'medic', 'focus', 'anchor', 'any']}
           selected={repair.prefer} onChange={(prefer) => onChange({ ...repair, prefer })} />
@@ -2616,9 +2791,10 @@ function MapPlotter({ catalog, layout, issues, tracks, trackLabel, onChange }: {
   );
 }
 
-function FightEditor({ fight, label, onChange }: {
+function FightEditor({ fight, label, inheritedLabel, onChange }: {
   fight: FightBlock | undefined;
   label: string;
+  inheritedLabel: string;
   onChange: (fight: FightBlock | undefined) => void;
 }) {
   const enabled = fight !== undefined;
@@ -2638,12 +2814,19 @@ function FightEditor({ fight, label, onChange }: {
   };
   return (
     <details className="mt-3 rounded-sm border border-arena-edge p-3">
-      <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 t-micro">
-        {label}<span className="pill ml-auto">{enabled ? 'custom' : 'inherit/default'}</span>
+      <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2">
+        <span className="disclosure-chevron" aria-hidden="true">›</span>
+        <span className="min-w-0">
+          <span className="t-body block">{label}</span>
+          <span className="t-micro mt-0.5 block">{enabled
+            ? 'Only the fields set here replace inherited combat behavior.'
+            : inheritedLabel}</span>
+        </span>
+        <span className="pill ml-auto shrink-0">{enabled ? 'custom' : 'inherited'}</span>
       </summary>
       <div className="mt-2">
         {!enabled ? (
-          <button type="button" className="btn min-h-11" onClick={() => onChange({})}>Customize fight</button>
+          <button type="button" className="btn min-h-11" onClick={() => onChange({})}>Customize combat</button>
         ) : <>
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
             <OptionalSelect label="loose Core priority" value={string(fight.collect)} values={['yield', 'first']}
@@ -2686,52 +2869,90 @@ function FightEditor({ fight, label, onChange }: {
           <ChoiceGrid label="target preference · ordered by selection" values={['carrier', 'weakest', 'anchor', 'closest', 'strongest-threat', 'freshest']}
             selected={stringArray(object(fight.targets).prefer)}
             onChange={(value) => patch('targets', 'prefer', value.length ? value : undefined)} />
-          <button type="button" className="btn mt-3 min-h-11" onClick={() => onChange(undefined)}>Use inherited/default fight</button>
+          <button type="button" className="btn mt-3 min-h-11" onClick={() => onChange(undefined)}>Use inherited combat</button>
         </>}
       </div>
     </details>
   );
 }
 
-function ConditionField({ label, value, predicates, issues, path, onChange }: {
+function ConditionField({ label, value, predicates, emptyLabel = 'No condition selected', issues, path, onChange }: {
   label: string;
   value: string;
   predicates: string[];
+  emptyLabel?: string;
   issues?: SheetIssue[];
   path?: string;
   onChange: (value: string) => void;
 }) {
   const [connector, setConnector] = useState<'and' | 'or'>('and');
+  const [pendingPredicate, setPendingPredicate] = useState('');
   const listId = useId();
+  const parts = value.trim() ? value.trim().split(/\s+/) : [];
+  const removeCondition = (partIndex: number) => {
+    const next = [...parts];
+    if (partIndex === 0) next.splice(0, Math.min(2, next.length));
+    else next.splice(partIndex - 1, 2);
+    onChange(next.join(' '));
+  };
+  const addCondition = () => {
+    if (!pendingPredicate) return;
+    onChange(`${value ? `${value} ${connector} ` : ''}${pendingPredicate}`);
+    setPendingPredicate('');
+  };
   return (
     <div className="rounded-sm border border-arena-edge bg-arena-deep/20 p-2" data-sheet-path={path}>
       <span className="lab block">{label}</span>
       <p className={clsx('t-body mt-1 min-h-5', value ? 'text-arena-text' : 'text-arena-dim')}>
-        {value ? conditionExpressionSummary(value) : 'No trigger selected'}
+        {value ? conditionExpressionSummary(value) : emptyLabel}
       </p>
-      <div className="mt-2 flex gap-1">
-        <div className="flex shrink-0 rounded-sm border border-arena-edge p-0.5" aria-label={`${label} connector`}>
-          {(['and', 'or'] as const).map((value) => (
-            <button key={value} type="button" aria-pressed={connector === value}
-              className={clsx('min-h-11 rounded-sm px-2 t-micro', connector === value && 'bg-arena-material/15 text-arena-material')}
-              onClick={() => setConnector(value)}>{value.toUpperCase()}</button>
+      {parts.length > 0 && (
+        <div className="mt-2 flex flex-wrap items-center gap-1" aria-label={`${label} condition expression`}>
+          {parts.map((part, index) => index % 2 === 1 ? (
+            <span key={`${part}:${index}`} className="pill border-arena-material/35 text-arena-material">{part.toUpperCase()}</span>
+          ) : (
+            <button key={`${part}:${index}`} type="button" className="min-h-9 rounded-full border border-arena-edge bg-arena-panel/45 px-3 t-micro"
+              aria-label={`Remove ${humanizeToken(part)} from ${label}`}
+              onClick={() => removeCondition(index)}>{humanizeToken(part)} ×</button>
           ))}
         </div>
-        <select aria-label={`Add predicate to ${label}`} className="field min-h-11 min-w-0 flex-1 px-2 py-1 text-xs"
-          value="" onChange={(event) => {
-            if (event.target.value) onChange(`${value ? `${value} ${connector} ` : ''}${event.target.value}`);
-          }}>
-          <option value="">add trigger…</option>
-          {predicates.map((id) => <option key={id} value={id}>{humanizeToken(id)}</option>)}
-        </select>
-        {value && <button type="button" className="btn min-h-11" aria-label={`Clear ${label}`}
-          onClick={() => onChange('')}>Clear</button>}
+      )}
+      <div className="mt-2 grid gap-1.5">
+        {value && (
+          <fieldset className="max-w-[230px]">
+            <legend className="t-micro mb-1">Join the next condition with</legend>
+            <div className="flex rounded-sm border border-arena-edge p-0.5" aria-label={`${label} connector`}>
+              {(['and', 'or'] as const).map((candidate) => (
+                <button key={candidate} type="button" aria-pressed={connector === candidate}
+                  className={clsx('min-h-11 flex-1 rounded-sm px-3 t-micro', connector === candidate && 'bg-arena-material/15 text-arena-material')}
+                  onClick={() => setConnector(candidate)}>{candidate.toUpperCase()}</button>
+              ))}
+            </div>
+          </fieldset>
+        )}
+        <div className="grid min-w-0 gap-1.5">
+          <label className="min-w-0">
+            <span className="t-micro mb-1 block">Named condition</span>
+            <select aria-label={`Condition to add to ${label}`} className="field min-h-11 min-w-0 px-2 py-1 text-xs"
+              value={pendingPredicate} onChange={(event) => setPendingPredicate(event.target.value)}>
+            <option value="">Choose a condition…</option>
+            {predicates.map((id) => <option key={id} value={id}>{humanizeToken(id)}</option>)}
+            </select>
+          </label>
+          <button type="button" className="btn min-h-11 justify-self-start" disabled={!pendingPredicate}
+            onClick={addCondition}>＋ Add condition</button>
+        </div>
       </div>
-      <details className="mt-1">
-        <summary className="flex min-h-11 cursor-pointer items-center t-micro">Advanced expression</summary>
+      <details className="mt-1 border-t border-arena-edge/70 pt-1">
+        <summary className="flex min-h-11 cursor-pointer items-center gap-2 t-micro">
+          <span className="disclosure-chevron" aria-hidden="true">›</span>
+          Raw condition expression
+        </summary>
         <input className="field mt-1 min-h-11 font-mono text-xs" value={value}
           list={listId} onChange={(event) => onChange(event.target.value)} />
         <datalist id={listId}>{predicates.map((id) => <option key={id} value={id} />)}</datalist>
+        {value && <button type="button" className="btn mt-2 min-h-11"
+          onClick={() => onChange('')}>Clear all conditions</button>}
       </details>
       {issues && path && <FieldIssues issues={issues} path={path} />}
     </div>
@@ -2787,10 +3008,11 @@ function FieldIssues({ issues, path }: { issues: SheetIssue[]; path: string }) {
   </span>;
 }
 
-function ChoiceGrid({ label, values, selected, issues, path, onChange }: {
+function ChoiceGrid({ label, values, selected, bounded = false, issues, path, onChange }: {
   label: string;
   values: string[];
   selected: string[];
+  bounded?: boolean;
   issues?: SheetIssue[];
   path?: string;
   onChange: (selected: string[]) => void;
@@ -2798,7 +3020,7 @@ function ChoiceGrid({ label, values, selected, issues, path, onChange }: {
   return (
     <fieldset className="mt-3" data-sheet-path={path}>
       <legend className="t-micro">{label}</legend>
-      <div className="mt-1.5 flex flex-wrap gap-1.5">
+      <div className={clsx('mt-1.5 flex flex-wrap gap-1.5', bounded && 'max-h-44 overflow-y-auto pr-1')}>
         {values.map((value) => {
           const active = selected.includes(value);
           return <button key={value} type="button" aria-pressed={active}
@@ -2834,8 +3056,9 @@ function TextField({ label, value, issues, path, onChange }: {
   </label>;
 }
 
-function SelectField({ label, value, values, issues, path, onChange }: {
+function SelectField({ label, description, value, values, issues, path, onChange }: {
   label: string;
+  description?: string;
   value: string;
   values: string[];
   issues?: SheetIssue[];
@@ -2846,6 +3069,7 @@ function SelectField({ label, value, values, issues, path, onChange }: {
     <select className="field min-h-11" value={value} onChange={(event) => onChange(event.target.value)}>
       {values.map((entry) => <option key={entry} value={entry}>{humanizeToken(entry || 'none')}</option>)}
     </select>
+    {description && <span className="t-micro mt-1 block">{description}</span>}
     {issues && path && <FieldIssues issues={issues} path={path} />}
   </label>;
 }
