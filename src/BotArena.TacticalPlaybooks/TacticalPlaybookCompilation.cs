@@ -13,4 +13,4 @@ public sealed record TacticalPlaybookCompilation(
     byte[] NormalizedPlaybook,
     byte[] NormalizedLayout,
     byte[] LinkedData,
-    bool UsesDirectLadder);
+    bool UsesOrderTree);

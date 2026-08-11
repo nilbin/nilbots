@@ -135,8 +135,11 @@ A shared reference has exactly one key:
 { "shared": "carry-core-home" }
 ```
 
-`sharedOrders` maps ids to complete branch or leaf definitions. Reuse is exact:
-no parameters, overrides, inheritance, aliases, or shared-to-shared references.
+`sharedOrders` maps ids to complete branch or leaf definitions; the map key is
+the definition's id, so the definition does not repeat an `id` field. Reuse is
+exact: no parameters, overrides, inheritance, aliases, or shared-to-shared
+references. Every shared order needs at least two expanded consumers; otherwise
+it belongs inline.
 Each expansion receives independent per-body lifecycle state. A shared
 reference occupies one priority position in the role that references it.
 
@@ -166,9 +169,10 @@ Rules:
    the node. Cooldown starts on exit, not on temporary pre-emption.
 3. A higher-priority sibling may pre-empt a node without resetting it. Its
    wall-clock timeout continues, and it resumes if still active.
-4. `move.to` succeeds on arrival. `move.patrol`, `move.follow`, and `fight` are
-   ongoing. `use`, `handoff`, and `drop` succeed only when the engine accepts
-   the action.
+4. `move`, `fight`, and branches are ongoing until their lifecycle exits.
+   A `move.to` leaf holds at its destination, so zone defence and healing do
+   not repeatedly exit and re-enter. `use`, `handoff`, and `drop` succeed only
+   when the engine accepts the action.
 5. An active leaf that has no legal/resolved target is unavailable for that
    tick; selection continues with the next sibling. It does not silently change
    action or invent movement.
@@ -293,8 +297,8 @@ an explicit empty-handed condition on combat orders.
 ```
 
 `skill` is the exact signature skill of every class in the role. `target` is
-one of `self`, `move-target`, `own-reactor`, `nearest-enemy`, `weakest-enemy`,
-`enemy-carrier`, `nearest-ally`, `weakest-ally`, or `followed-body`. The
+one of `self`, `own-reactor`, `nearest-enemy`, `weakest-enemy`,
+`enemy-carrier`, `nearest-ally`, or `weakest-ally`. The
 compiler validates the selector against the signature's parameter kind. The
 executor deterministically converts the resolved target to the engine's unit,
 position, heading, or parameterless argument.
@@ -382,10 +386,12 @@ Geometry is keyed by id, not repeated arrays of objects:
 ```
 
 Rects are inclusive `[x1,y1,x2,y2]` and normalized. Routes contain 2–32
-waypoints. Coordinates must be in bounds and on traversable terrain. The
-compiler rejects duplicate geometry under different ids and rejects map-plan
-objects with no sheet consumer. There are no aliases, bindings, corridor widths,
-formation anchors, fingerprints, or authored hashes.
+waypoints. The pure shared compiler checks structure and references. Runtime
+binding checks that coordinates are in bounds and on traversable terrain against
+the resolved engine-generated map; the App and CLI surface that binding failure
+before a trial starts. The compiler rejects duplicate geometry under different
+ids and rejects map-plan objects with no sheet consumer. There are no aliases,
+bindings, corridor widths, formation anchors, fingerprints, or authored hashes.
 
 The editor plots these objects on the actual `contract.map` export for
 `mapId`. Text coordinates are an import/export detail, never the primary UI.

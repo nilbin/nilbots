@@ -1,0 +1,864 @@
+using System.Text.Json;
+
+namespace BotArena.TacticalPlaybooks;
+
+/// <summary>
+/// Validation for the Arc Relay Orders v2 source language. This is the only
+/// authored grammar: validation walks shared-order expansions directly and
+/// never constructs the retired doctrine/custody IR.
+/// </summary>
+public static partial class ArcRelayTacticalPlaybookCompiler
+{
+    private static readonly HashSet<string> LaunchClasses =
+        new(StringComparer.Ordinal)
+        {
+            "kestrel", "palisade", "towline", "patchbay", "lantern",
+            "mortar", "minesmith", "hush", "relay", "switchback",
+            "longshot", "mason", "sunder", "repulsor", "veil", "nest",
+        };
+
+    private static readonly HashSet<string> UpgradeTracks =
+        new(StringComparer.Ordinal) { "damage", "vision", "reach", "vitality" };
+
+    private static readonly Dictionary<string, string> ClassSkills =
+        new(StringComparer.Ordinal)
+        {
+            ["kestrel"] = "vector-dash",
+            ["palisade"] = "prism-wall",
+            ["towline"] = "tractor-hook",
+            ["patchbay"] = "repair-beam",
+            ["lantern"] = "survey-flare",
+            ["mortar"] = "falling-star",
+            ["minesmith"] = "trip-node",
+            ["hush"] = "null-field",
+            ["relay"] = "arc-toss",
+            ["switchback"] = "exchange",
+            ["longshot"] = "rail-line",
+            ["mason"] = "hardlight-block",
+            ["sunder"] = "target-paint",
+            ["repulsor"] = "kinetic-burst",
+            ["veil"] = "smoke-canister",
+            ["nest"] = "sentinel-seed",
+        };
+
+    private static readonly HashSet<string> ConditionFacts =
+        new(StringComparer.Ordinal)
+        {
+            "self-health-percent", "self-level", "self-carrying",
+            "self-stuck-ticks", "self-order-ticks", "signature-ready",
+            "role-live-count", "role-lowest-health-percent",
+            "role-in-zone-count", "live-friendlies", "friendly-carriers",
+            "known-enemy-carriers", "visible-enemy-carriers",
+            "known-loose-cores", "visible-loose-cores", "secured-cores",
+            "reactor-integrity", "reactor-charge",
+            "ticks-without-objective-progress", "friendlies-in-zone",
+            "visible-enemies-in-zone", "remembered-enemies-in-zone",
+            "known-loose-cores-in-zone", "well-has-outstanding-core",
+            "well-ticks-until-birth", "well-socket-filled",
+        };
+
+    private static readonly HashSet<string> RoleFacts =
+        new(StringComparer.Ordinal)
+        {
+            "role-live-count", "role-lowest-health-percent",
+            "role-in-zone-count",
+        };
+
+    private static readonly HashSet<string> ZoneFacts =
+        new(StringComparer.Ordinal)
+        {
+            "role-in-zone-count", "friendlies-in-zone",
+            "visible-enemies-in-zone", "remembered-enemies-in-zone",
+            "known-loose-cores-in-zone",
+        };
+
+    private static readonly HashSet<string> WellFacts =
+        new(StringComparer.Ordinal)
+        {
+            "well-has-outstanding-core", "well-ticks-until-birth",
+            "well-socket-filled",
+        };
+
+    private static readonly HashSet<string> FreshnessFacts =
+        new(StringComparer.Ordinal)
+        {
+            "known-enemy-carriers", "remembered-enemies-in-zone",
+        };
+
+    private static readonly HashSet<string> UseTargets =
+        new(StringComparer.Ordinal)
+        {
+            "self", "own-reactor", "nearest-enemy", "weakest-enemy",
+            "enemy-carrier", "nearest-ally", "weakest-ally",
+        };
+
+    private static SheetValidation ValidateOrdersSheet(
+        JsonElement root,
+        string path)
+    {
+        Object(root, path,
+            [
+                "schema", "sheetId", "mapPlan", "roles", "sharedOrders",
+                "capacities", "conditions",
+            ]);
+        Exact(root, "schema", PlaybookSchema, path);
+        Identifier(root, "sheetId", path);
+        NonEmptyString(root, "mapPlan", path);
+
+        JsonElement[] roleValues = BoundedArray(
+            root.GetProperty("roles"), $"{path}.roles", 1, 8);
+        var roles = new Dictionary<string, RoleInfo>(StringComparer.Ordinal);
+        var composition = new List<string>(8);
+        for (int index = 0; index < roleValues.Length; index++)
+        {
+            JsonElement role = roleValues[index];
+            string at = $"{path}.roles[{index}]";
+            Object(role, at, ["id", "classes", "upgradePath", "orders"]);
+            string id = Identifier(role, "id", at);
+            if (id.Length > 24)
+                throw Error($"{at}.id", "role id exceeds 24 characters.");
+            if (roles.ContainsKey(id))
+                throw Error(at, $"duplicate role '{id}'.");
+            string[] classes = StringValues(
+                role.GetProperty("classes"), $"{at}.classes", 1, 8);
+            foreach (string classId in classes)
+            {
+                if (!LaunchClasses.Contains(classId))
+                    throw Error($"{at}.classes", $"unknown class '{classId}'.");
+                composition.Add(classId);
+            }
+            string[] upgrades = StringValues(
+                role.GetProperty("upgradePath"), $"{at}.upgradePath", 1, 4);
+            foreach (string upgrade in upgrades)
+            {
+                if (!UpgradeTracks.Contains(upgrade))
+                    throw Error($"{at}.upgradePath",
+                        $"unknown upgrade track '{upgrade}'.");
+            }
+            roles.Add(id, new RoleInfo(id, classes, role.GetProperty("orders")));
+        }
+        if (composition.Count != 8
+            || composition.GroupBy(value => value, StringComparer.Ordinal)
+                .Any(group => group.Count() > 2))
+        {
+            throw Error($"{path}.roles",
+                "flattened role classes must contain exactly eight bodies "
+                + "under the two-copy class cap.");
+        }
+
+        Dictionary<string, int> capacities = ValidateCapacities(
+            root.GetProperty("capacities"), path);
+        Dictionary<string, ConditionInfo> conditions = ValidateConditions(
+            root.GetProperty("conditions"), roles.Keys.ToHashSet(
+                StringComparer.Ordinal), path);
+        Dictionary<string, JsonElement> sharedOrders = ValidateSharedOrderTable(
+            root.GetProperty("sharedOrders"), path);
+
+        var consumers = new ConsumerLedger(
+            sharedOrders.Keys, capacities.Keys, conditions.Keys);
+        foreach ((string roleId, RoleInfo role) in roles)
+        {
+            var orderIds = new HashSet<string>(StringComparer.Ordinal);
+            JsonElement[] orders = BoundedArray(
+                role.Orders, $"{path}.roles.{roleId}.orders", 1, 16);
+            for (int index = 0; index < orders.Length; index++)
+            {
+                ValidateOrder(
+                    orders[index],
+                    $"{path}.roles.{roleId}.orders[{index}]",
+                    role,
+                    roles,
+                    sharedOrders,
+                    capacities,
+                    conditions,
+                    consumers,
+                    orderIds,
+                    branchDepth: 0,
+                    externalId: null,
+                    allowSharedReference: true);
+            }
+        }
+
+        foreach ((string id, int count) in consumers.SharedOrders)
+        {
+            if (count < 2)
+                throw Error($"{path}.sharedOrders.{id}",
+                    "a shared order needs at least two expanded consumers; "
+                    + "inline a one-off order.");
+        }
+        foreach ((string id, int count) in consumers.Capacities)
+        {
+            if (count < 2)
+                throw Error($"{path}.capacities.{id}",
+                    "a named capacity needs at least two expanded consumers; "
+                    + "use an inline capacity for one leaf.");
+        }
+        foreach ((string id, int count) in consumers.Conditions)
+        {
+            if (count == 0)
+                throw Error($"{path}.conditions.{id}",
+                    "condition has no order consumer.");
+        }
+
+        return new SheetValidation(
+            [.. composition], consumers.Zones, consumers.Routes,
+            consumers.Anchors);
+    }
+
+    private static Dictionary<string, int> ValidateCapacities(
+        JsonElement value,
+        string path)
+    {
+        if (value.ValueKind != JsonValueKind.Object)
+            throw Error($"{path}.capacities", "expected object.");
+        var result = new Dictionary<string, int>(StringComparer.Ordinal);
+        foreach (JsonProperty property in value.EnumerateObject())
+        {
+            IdentifierValue(property.Name, $"{path}.capacities", "capacity");
+            if (property.Value.ValueKind != JsonValueKind.Number
+                || !property.Value.TryGetInt32(out int capacity)
+                || capacity is < 1 or > 8)
+            {
+                throw Error($"{path}.capacities.{property.Name}",
+                    "capacity must be an integer in [1, 8].");
+            }
+            if (!result.TryAdd(property.Name, capacity))
+                throw Error($"{path}.capacities", "duplicate capacity.");
+        }
+        return result;
+    }
+
+    private static Dictionary<string, ConditionInfo> ValidateConditions(
+        JsonElement value,
+        IReadOnlySet<string> roles,
+        string path)
+    {
+        if (value.ValueKind != JsonValueKind.Object)
+            throw Error($"{path}.conditions", "expected object.");
+        var result = new Dictionary<string, ConditionInfo>(StringComparer.Ordinal);
+        foreach (JsonProperty property in value.EnumerateObject())
+        {
+            string id = property.Name;
+            IdentifierValue(id, $"{path}.conditions", "condition");
+            if (id == "always")
+                throw Error($"{path}.conditions", "'always' is reserved.");
+            string at = $"{path}.conditions.{id}";
+            Object(property.Value, at,
+                ["fact", "operator", "value"],
+                ["role", "zone", "well", "freshnessTicks"]);
+            string fact = RequiredString(property.Value, "fact", at);
+            if (!ConditionFacts.Contains(fact))
+                throw Error(at, $"unknown condition fact '{fact}'.");
+            OneOf(property.Value, "operator", at,
+                "at-least", "at-most", "equals", "less-than", "greater-than");
+            int comparison = RequiredInt(property.Value, "value", at);
+            if ((fact is "self-health-percent" or
+                    "role-lowest-health-percent")
+                && comparison is < 0 or > 100)
+            {
+                throw Error(at, "health percentages must be in [0, 100].");
+            }
+            if ((fact is "self-carrying" or "signature-ready")
+                && comparison is not (0 or 1))
+            {
+                throw Error(at, $"'{fact}' compares against 0 or 1.");
+            }
+
+            bool hasRole = property.Value.TryGetProperty("role", out JsonElement role);
+            bool hasZone = property.Value.TryGetProperty("zone", out JsonElement zone);
+            bool hasWell = property.Value.TryGetProperty("well", out JsonElement well);
+            bool hasFreshness = property.Value.TryGetProperty(
+                "freshnessTicks", out JsonElement freshness);
+            if (RoleFacts.Contains(fact))
+            {
+                if (!hasRole || role.ValueKind != JsonValueKind.String
+                    || !roles.Contains(role.GetString()!))
+                {
+                    throw Error(at, $"'{fact}' needs a declared role.");
+                }
+            }
+            else if (hasRole)
+                throw Error(at, $"'{fact}' does not take role.");
+            if (ZoneFacts.Contains(fact))
+            {
+                if (!hasZone || zone.ValueKind != JsonValueKind.String)
+                    throw Error(at, $"'{fact}' needs a zone.");
+                IdentifierValue(zone.GetString()!, at, "zone");
+            }
+            else if (hasZone)
+                throw Error(at, $"'{fact}' does not take zone.");
+            if (WellFacts.Contains(fact))
+            {
+                if (!hasWell || well.ValueKind != JsonValueKind.String
+                    || well.GetString() is not
+                        ("north" or "centre" or "south" or "own" or "enemy"))
+                {
+                    throw Error(at,
+                        $"'{fact}' needs north/centre/south/own/enemy well.");
+                }
+            }
+            else if (hasWell)
+                throw Error(at, $"'{fact}' does not take well.");
+            if (FreshnessFacts.Contains(fact))
+            {
+                if (!hasFreshness || freshness.ValueKind != JsonValueKind.Number
+                    || !freshness.TryGetInt32(out int ticks)
+                    || ticks is < 1 or > 600)
+                {
+                    throw Error(at, $"'{fact}' needs freshnessTicks in [1, 600].");
+                }
+            }
+            else if (hasFreshness)
+                throw Error(at, $"'{fact}' does not take freshnessTicks.");
+
+            result.Add(id, new ConditionInfo(
+                fact,
+                hasZone ? zone.GetString() : null));
+        }
+        return result;
+    }
+
+    private static Dictionary<string, JsonElement> ValidateSharedOrderTable(
+        JsonElement value,
+        string path)
+    {
+        if (value.ValueKind != JsonValueKind.Object)
+            throw Error($"{path}.sharedOrders", "expected object.");
+        var result = new Dictionary<string, JsonElement>(StringComparer.Ordinal);
+        foreach (JsonProperty property in value.EnumerateObject())
+        {
+            IdentifierValue(property.Name, $"{path}.sharedOrders", "shared order");
+            if (property.Value.ValueKind != JsonValueKind.Object)
+                throw Error($"{path}.sharedOrders.{property.Name}",
+                    "expected order object.");
+            if (property.Value.TryGetProperty("id", out _)
+                || property.Value.TryGetProperty("shared", out _))
+            {
+                throw Error($"{path}.sharedOrders.{property.Name}",
+                    "the map key is the id and shared orders cannot reference "
+                    + "another shared order.");
+            }
+            result.Add(property.Name, property.Value);
+        }
+        return result;
+    }
+
+    private static void ValidateOrder(
+        JsonElement value,
+        string path,
+        RoleInfo role,
+        IReadOnlyDictionary<string, RoleInfo> roles,
+        IReadOnlyDictionary<string, JsonElement> sharedOrders,
+        IReadOnlyDictionary<string, int> capacities,
+        IReadOnlyDictionary<string, ConditionInfo> conditions,
+        ConsumerLedger consumers,
+        HashSet<string> orderIds,
+        int branchDepth,
+        string? externalId,
+        bool allowSharedReference)
+    {
+        if (value.ValueKind != JsonValueKind.Object)
+            throw Error(path, "expected order object.");
+        if (value.TryGetProperty("shared", out JsonElement shared))
+        {
+            if (!allowSharedReference)
+                throw Error(path, "shared orders cannot reference shared orders.");
+            Object(value, path, ["shared"]);
+            string sharedId = StringValue(shared, $"{path}.shared");
+            if (!sharedOrders.TryGetValue(sharedId, out JsonElement definition))
+                throw Error(path, $"unknown shared order '{sharedId}'.");
+            consumers.SharedOrders[sharedId]++;
+            ValidateOrder(
+                definition, $"{path}.shared({sharedId})", role, roles, sharedOrders,
+                capacities, conditions, consumers, orderIds, branchDepth,
+                externalId: sharedId, allowSharedReference: false);
+            return;
+        }
+
+        string id;
+        if (externalId is string supplied)
+        {
+            if (value.TryGetProperty("id", out _))
+                throw Error(path, "a shared definition does not repeat its id.");
+            id = supplied;
+        }
+        else
+        {
+            id = Identifier(value, "id", path);
+        }
+        if (!orderIds.Add(id))
+            throw Error(path, $"duplicate expanded order id '{id}' in role '{role.Id}'.");
+
+        string[] actionKeys = ["orders", "move", "fight", "use", "handoff", "drop"];
+        string[] found = actionKeys.Where(name => value.TryGetProperty(name, out _))
+            .ToArray();
+        if (found.Length != 1)
+            throw Error(path, "an order needs exactly one branch or action.");
+        var required = externalId is null
+            ? new[] { "id", found[0] }
+            : new[] { found[0] };
+        var optional = new[] { "when", "until", "timeout", "cooldown", "capacity" };
+        Object(value, path, required, optional);
+        ValidateLifecycle(value, path, conditions, consumers);
+
+        if (found[0] == "orders")
+        {
+            if (value.TryGetProperty("capacity", out _))
+                throw Error(path, "capacity belongs on an action leaf, not a branch.");
+            if (branchDepth >= 2)
+                throw Error(path, "orders may contain at most two branch levels.");
+            JsonElement[] children = BoundedArray(
+                value.GetProperty("orders"), $"{path}.orders", 1, 16);
+            for (int index = 0; index < children.Length; index++)
+            {
+                ValidateOrder(
+                    children[index], $"{path}.orders[{index}]", role, roles,
+                    sharedOrders, capacities, conditions, consumers, orderIds,
+                    branchDepth + 1, externalId: null,
+                    allowSharedReference: true);
+            }
+            return;
+        }
+
+        ValidateCapacity(value, path, capacities, consumers);
+        switch (found[0])
+        {
+            case "move":
+                ValidateMove(value.GetProperty("move"), path, role, roles, consumers);
+                break;
+            case "fight":
+                ValidateFight(value.GetProperty("fight"), path);
+                break;
+            case "use":
+                ValidateUse(value.GetProperty("use"), path, role);
+                break;
+            case "handoff":
+                ValidateHandoff(value.GetProperty("handoff"), path, roles);
+                break;
+            case "drop":
+                if (value.GetProperty("drop").ValueKind != JsonValueKind.True)
+                    throw Error($"{path}.drop", "drop must be true.");
+                break;
+        }
+    }
+
+    private static void ValidateLifecycle(
+        JsonElement value,
+        string path,
+        IReadOnlyDictionary<string, ConditionInfo> conditions,
+        ConsumerLedger consumers)
+    {
+        foreach (string name in new[] { "when", "until" })
+        {
+            if (value.TryGetProperty(name, out JsonElement expression))
+                ValidateConditionExpression(
+                    expression, $"{path}.{name}", conditions, consumers);
+        }
+        if (value.TryGetProperty("timeout", out JsonElement timeout)
+            && (timeout.ValueKind != JsonValueKind.Number
+                || !timeout.TryGetInt32(out int timeoutTicks)
+                || timeoutTicks is < 1 or > 1200))
+        {
+            throw Error(path, "timeout must be in [1, 1200].");
+        }
+        if (value.TryGetProperty("cooldown", out JsonElement cooldown)
+            && (cooldown.ValueKind != JsonValueKind.Number
+                || !cooldown.TryGetInt32(out int cooldownTicks)
+                || cooldownTicks is < 0 or > 1200))
+        {
+            throw Error(path, "cooldown must be in [0, 1200].");
+        }
+    }
+
+    private static void ValidateConditionExpression(
+        JsonElement value,
+        string path,
+        IReadOnlyDictionary<string, ConditionInfo> conditions,
+        ConsumerLedger consumers)
+    {
+        if (value.ValueKind == JsonValueKind.String)
+        {
+            string id = value.GetString()!;
+            if (id == "always")
+                return;
+            if (!conditions.ContainsKey(id))
+                throw Error(path, $"unknown condition '{id}'.");
+            consumers.Conditions[id]++;
+            if (conditions[id].Zone is string zone)
+                consumers.ReferenceZone(zone, path);
+            return;
+        }
+        if (value.ValueKind != JsonValueKind.Object)
+            throw Error(path, "expected condition name or all/any object.");
+        string[] operators = ["all", "any"];
+        string[] found = operators.Where(name => value.TryGetProperty(name, out _))
+            .ToArray();
+        if (found.Length != 1)
+            throw Error(path, "condition combination needs exactly one of all/any.");
+        Object(value, path, [found[0]]);
+        string[] names = StringArray(
+            value.GetProperty(found[0]), $"{path}.{found[0]}", 2, 8);
+        foreach (string name in names)
+        {
+            if (name == "always" || !conditions.ContainsKey(name))
+                throw Error(path, $"unknown condition '{name}'.");
+            consumers.Conditions[name]++;
+            if (conditions[name].Zone is string zone)
+                consumers.ReferenceZone(zone, path);
+        }
+    }
+
+    private static void ValidateCapacity(
+        JsonElement value,
+        string path,
+        IReadOnlyDictionary<string, int> capacities,
+        ConsumerLedger consumers)
+    {
+        if (!value.TryGetProperty("capacity", out JsonElement capacity))
+            return;
+        if (capacity.ValueKind == JsonValueKind.Number
+            && capacity.TryGetInt32(out int local)
+            && local is >= 1 and <= 8)
+        {
+            return;
+        }
+        if (capacity.ValueKind != JsonValueKind.String
+            || !capacities.ContainsKey(capacity.GetString()!))
+        {
+            throw Error($"{path}.capacity",
+                "capacity must be an inline integer in [1, 8] or a declared name.");
+        }
+        consumers.Capacities[capacity.GetString()!]++;
+    }
+
+    private static void ValidateMove(
+        JsonElement value,
+        string path,
+        RoleInfo role,
+        IReadOnlyDictionary<string, RoleInfo> roles,
+        ConsumerLedger consumers)
+    {
+        if (value.ValueKind != JsonValueKind.Object)
+            throw Error($"{path}.move", "expected object.");
+        string[] kinds = ["to", "patrol", "follow"];
+        string[] found = kinds.Where(name => value.TryGetProperty(name, out _))
+            .ToArray();
+        if (found.Length != 1)
+            throw Error($"{path}.move", "move needs exactly one of to/patrol/follow.");
+        Object(value, $"{path}.move", [found[0]], ["via", "posture"]);
+        if (value.TryGetProperty("posture", out _))
+            OneOf(value, "posture", $"{path}.move", "front", "line", "rear");
+        if (value.TryGetProperty("via", out JsonElement via))
+        {
+            if (found[0] == "follow")
+                throw Error($"{path}.move", "follow cannot have an ingress route.");
+            string route = StringValue(via, $"{path}.move.via");
+            IdentifierValue(route, $"{path}.move.via", "route");
+            consumers.ReferenceRoute(route, path);
+        }
+        if (found[0] == "patrol")
+        {
+            string route = StringValue(value.GetProperty("patrol"),
+                $"{path}.move.patrol");
+            IdentifierValue(route, $"{path}.move.patrol", "route");
+            consumers.ReferenceRoute(route, path);
+            return;
+        }
+        if (found[0] == "follow")
+        {
+            string targetRole = StringValue(value.GetProperty("follow"),
+                $"{path}.move.follow");
+            if (!roles.ContainsKey(targetRole) || targetRole == role.Id)
+                throw Error($"{path}.move.follow", "follow another declared role.");
+            return;
+        }
+        ValidateMoveTarget(value.GetProperty("to"), $"{path}.move.to", consumers);
+    }
+
+    private static void ValidateMoveTarget(
+        JsonElement value,
+        string path,
+        ConsumerLedger consumers)
+    {
+        if (value.ValueKind == JsonValueKind.String)
+        {
+            if (value.GetString() is not
+                ("own-reactor" or "nearest-heal-zone" or
+                 "nearest-known-loose-core"))
+            {
+                throw Error(path, "unknown dynamic move target.");
+            }
+            return;
+        }
+        if (value.ValueKind != JsonValueKind.Object)
+            throw Error(path, "expected dynamic target or map target object.");
+        string[] keys = ["zone", "anchor", "well"];
+        string[] found = keys.Where(name => value.TryGetProperty(name, out _))
+            .ToArray();
+        if (found.Length != 1)
+            throw Error(path, "move target needs exactly one of zone/anchor/well.");
+        Object(value, path, [found[0]]);
+        string id = StringValue(value.GetProperty(found[0]), $"{path}.{found[0]}");
+        if (found[0] == "well")
+        {
+            if (id is not ("north" or "centre" or "south" or "own" or "enemy"))
+                throw Error(path, "well must be north/centre/south/own/enemy.");
+            return;
+        }
+        IdentifierValue(id, path, found[0]);
+        if (found[0] == "zone")
+            consumers.ReferenceZone(id, path);
+        else
+            consumers.ReferenceAnchor(id, path);
+    }
+
+    private static void ValidateFight(JsonElement value, string path)
+    {
+        Object(value, $"{path}.fight", ["targets", "style", "chaseLimit"]);
+        string[] targets = StringArray(
+            value.GetProperty("targets"), $"{path}.fight.targets", 1, 6);
+        foreach (string target in targets)
+        {
+            if (target is not ("carrier" or "weakest" or "nearest" or
+                "medic" or "marked"))
+                throw Error($"{path}.fight.targets", $"unknown target '{target}'.");
+        }
+        OneOf(value, "style", $"{path}.fight", "advance", "hold", "kite");
+        Range(value, "chaseLimit", $"{path}.fight", 0, 12);
+    }
+
+    private static void ValidateUse(
+        JsonElement value,
+        string path,
+        RoleInfo role)
+    {
+        Object(value, $"{path}.use", ["skill", "target"]);
+        string skill = RequiredString(value, "skill", $"{path}.use");
+        string target = RequiredString(value, "target", $"{path}.use");
+        if (!UseTargets.Contains(target))
+            throw Error($"{path}.use.target", $"unknown target '{target}'.");
+        foreach (string classId in role.Classes)
+        {
+            if (!string.Equals(ClassSkills[classId], skill, StringComparison.Ordinal))
+                throw Error($"{path}.use.skill",
+                    $"class '{classId}' owns '{ClassSkills[classId]}', not '{skill}'.");
+        }
+        if (skill is "null-field" or "kinetic-burst")
+        {
+            if (target != "self")
+                throw Error($"{path}.use.target", $"'{skill}' targets self.");
+        }
+        else if (skill == "repair-beam"
+            && target is not ("nearest-ally" or "weakest-ally"))
+        {
+            throw Error($"{path}.use.target", "repair-beam targets an ally.");
+        }
+        else if (skill == "exchange"
+            && target is not ("nearest-ally" or "weakest-ally"))
+        {
+            throw Error($"{path}.use.target", "exchange targets an ally.");
+        }
+        else if (skill == "target-paint"
+            && target is not ("nearest-enemy" or "weakest-enemy" or
+                "enemy-carrier"))
+        {
+            throw Error($"{path}.use.target", "target-paint targets an enemy.");
+        }
+    }
+
+    private static void ValidateHandoff(
+        JsonElement value,
+        string path,
+        IReadOnlyDictionary<string, RoleInfo> roles)
+    {
+        Object(value, $"{path}.handoff", ["target"]);
+        JsonElement target = value.GetProperty("target");
+        if (target.ValueKind == JsonValueKind.String)
+        {
+            if (target.GetString() is not
+                ("nearest-ally-toward-own-reactor" or
+                 "nearest-empty-handed-ally"))
+                throw Error($"{path}.handoff.target", "unknown handoff target.");
+            return;
+        }
+        if (target.ValueKind != JsonValueKind.Object)
+            throw Error($"{path}.handoff.target", "expected selector or role object.");
+        Object(target, $"{path}.handoff.target", ["role"]);
+        string role = RequiredString(target, "role", $"{path}.handoff.target");
+        if (!roles.ContainsKey(role))
+            throw Error($"{path}.handoff.target", $"unknown role '{role}'.");
+    }
+
+    private static MapPlanValidation ValidateMapPlan(
+        JsonElement root,
+        string path)
+    {
+        Object(root, path,
+            ["schema", "mapPlanId", "mapId", "zones", "routes", "anchors"]);
+        Exact(root, "schema", LayoutSchema, path);
+        Identifier(root, "mapPlanId", path);
+        NonEmptyString(root, "mapId", path);
+
+        Dictionary<string, JsonElement> zones = ObjectEntries(
+            root.GetProperty("zones"), $"{path}.zones", 0, 64, "zone");
+        var zoneShapes = new HashSet<string>(StringComparer.Ordinal);
+        foreach ((string id, JsonElement zone) in zones)
+        {
+            Object(zone, $"{path}.zones.{id}", ["rect"]);
+            JsonElement rect = zone.GetProperty("rect");
+            Rectangle(rect, $"{path}.zones.{id}.rect");
+            int[] points = rect.EnumerateArray().Select(value => value.GetInt32())
+                .ToArray();
+            if (points[0] > points[2] || points[1] > points[3])
+                throw Error($"{path}.zones.{id}.rect", "rectangle must be normalized.");
+            if (!zoneShapes.Add(string.Join(',', points)))
+                throw Error($"{path}.zones.{id}", "duplicate zone geometry.");
+        }
+
+        Dictionary<string, JsonElement> routes = ObjectEntries(
+            root.GetProperty("routes"), $"{path}.routes", 0, 64, "route");
+        var routeShapes = new HashSet<string>(StringComparer.Ordinal);
+        foreach ((string id, JsonElement route) in routes)
+        {
+            Object(route, $"{path}.routes.{id}", ["waypoints"]);
+            JsonElement[] waypoints = BoundedArray(
+                route.GetProperty("waypoints"),
+                $"{path}.routes.{id}.waypoints", 2, 32);
+            foreach (JsonElement point in waypoints)
+                Point(point, $"{path}.routes.{id}.waypoints");
+            string shape = string.Join(';', waypoints.Select(point =>
+                string.Join(',', point.EnumerateArray().Select(value =>
+                    value.GetInt32()))));
+            if (!routeShapes.Add(shape))
+                throw Error($"{path}.routes.{id}", "duplicate route geometry.");
+        }
+
+        Dictionary<string, JsonElement> anchors = ObjectEntries(
+            root.GetProperty("anchors"), $"{path}.anchors", 0, 64, "anchor");
+        var anchorShapes = new HashSet<string>(StringComparer.Ordinal);
+        foreach ((string id, JsonElement anchor) in anchors)
+        {
+            Point(anchor, $"{path}.anchors.{id}");
+            string shape = string.Join(',', anchor.EnumerateArray().Select(value =>
+                value.GetInt32()));
+            if (!anchorShapes.Add(shape))
+                throw Error($"{path}.anchors.{id}", "duplicate anchor geometry.");
+        }
+        return new MapPlanValidation(
+            zones.Keys.ToHashSet(StringComparer.Ordinal),
+            routes.Keys.ToHashSet(StringComparer.Ordinal),
+            anchors.Keys.ToHashSet(StringComparer.Ordinal));
+    }
+
+    private static void ValidateMapReferences(
+        SheetValidation sheet,
+        MapPlanValidation mapPlan,
+        string sheetPath,
+        string mapPlanPath)
+    {
+        ValidateReferenceSet(sheet.Zones, mapPlan.Zones,
+            sheetPath, mapPlanPath, "zone");
+        ValidateReferenceSet(sheet.Routes, mapPlan.Routes,
+            sheetPath, mapPlanPath, "route");
+        ValidateReferenceSet(sheet.Anchors, mapPlan.Anchors,
+            sheetPath, mapPlanPath, "anchor");
+    }
+
+    private static void ValidateReferenceSet(
+        IReadOnlyDictionary<string, int> used,
+        IReadOnlySet<string> declared,
+        string sheetPath,
+        string mapPlanPath,
+        string kind)
+    {
+        foreach (string id in used.Keys)
+        {
+            if (!declared.Contains(id))
+                throw Error(sheetPath, $"unknown {kind} '{id}'.");
+        }
+        foreach (string id in declared)
+        {
+            if (!used.ContainsKey(id))
+                throw Error(mapPlanPath, $"{kind} '{id}' has no sheet consumer.");
+        }
+    }
+
+    private static Dictionary<string, JsonElement> ObjectEntries(
+        JsonElement value,
+        string path,
+        int minimum,
+        int maximum,
+        string kind)
+    {
+        if (value.ValueKind != JsonValueKind.Object)
+            throw Error(path, "expected object.");
+        JsonProperty[] properties = value.EnumerateObject().ToArray();
+        if (properties.Length < minimum || properties.Length > maximum)
+            throw Error(path, $"expected {minimum}..{maximum} entries.");
+        var result = new Dictionary<string, JsonElement>(StringComparer.Ordinal);
+        foreach (JsonProperty property in properties)
+        {
+            IdentifierValue(property.Name, path, kind);
+            if (!result.TryAdd(property.Name, property.Value))
+                throw Error(path, $"duplicate {kind} '{property.Name}'.");
+        }
+        return result;
+    }
+
+    private sealed record RoleInfo(string Id, string[] Classes, JsonElement Orders);
+
+    private sealed record ConditionInfo(string Fact, string? Zone);
+
+    private sealed record SheetValidation(
+        string[] Composition,
+        IReadOnlyDictionary<string, int> Zones,
+        IReadOnlyDictionary<string, int> Routes,
+        IReadOnlyDictionary<string, int> Anchors);
+
+    private sealed record MapPlanValidation(
+        IReadOnlySet<string> Zones,
+        IReadOnlySet<string> Routes,
+        IReadOnlySet<string> Anchors);
+
+    private sealed class ConsumerLedger
+    {
+        public ConsumerLedger(
+            IEnumerable<string> sharedOrders,
+            IEnumerable<string> capacities,
+            IEnumerable<string> conditions)
+        {
+            SharedOrders = sharedOrders.ToDictionary(
+                value => value, _ => 0, StringComparer.Ordinal);
+            Capacities = capacities.ToDictionary(
+                value => value, _ => 0, StringComparer.Ordinal);
+            Conditions = conditions.ToDictionary(
+                value => value, _ => 0, StringComparer.Ordinal);
+        }
+
+        public Dictionary<string, int> SharedOrders { get; }
+        public Dictionary<string, int> Capacities { get; }
+        public Dictionary<string, int> Conditions { get; }
+        public Dictionary<string, int> Zones { get; } = new(StringComparer.Ordinal);
+        public Dictionary<string, int> Routes { get; } = new(StringComparer.Ordinal);
+        public Dictionary<string, int> Anchors { get; } = new(StringComparer.Ordinal);
+
+        public void ReferenceZone(string id, string path) =>
+            Reference(Zones, id, path, "zone");
+
+        public void ReferenceRoute(string id, string path) =>
+            Reference(Routes, id, path, "route");
+
+        public void ReferenceAnchor(string id, string path) =>
+            Reference(Anchors, id, path, "anchor");
+
+        private static void Reference(
+            Dictionary<string, int> values,
+            string id,
+            string path,
+            string kind)
+        {
+            IdentifierValue(id, path, kind);
+            values[id] = values.GetValueOrDefault(id) + 1;
+        }
+    }
+}

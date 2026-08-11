@@ -1,0 +1,127 @@
+{
+  "schema": "arc-relay-orders-v2",
+  "sheetId": "hunter-tapline-v2",
+  "mapPlan": "../map-plans/hunter-tapline-v2.json",
+  "roles": [
+    {
+      "id": "hunter",
+      "classes": ["kestrel"],
+      "upgradePath": ["damage", "vision", "vitality"],
+      "orders": [
+        { "shared": "score-a-core" },
+        { "shared": "recover-health" },
+        { "shared": "collect-loose-core" },
+        { "shared": "fight-visible-enemy" },
+        { "id": "shadow-hunt", "move": { "patrol": "shadow-hunt-loop", "posture": "front" } }
+      ]
+    },
+    {
+      "id": "medic",
+      "classes": ["patchbay"],
+      "upgradePath": ["reach", "vitality"],
+      "orders": [
+        { "shared": "score-a-core" },
+        { "shared": "recover-health" },
+        { "shared": "collect-loose-core" },
+        {
+          "id": "repair-hunter",
+          "when": { "all": ["hunter-hurt", "signature-ready"] },
+          "cooldown": 2,
+          "use": { "skill": "repair-beam", "target": "weakest-ally" }
+        },
+        { "shared": "fight-visible-enemy" },
+        { "id": "shadow-hunter", "move": { "follow": "hunter", "posture": "rear" } }
+      ]
+    },
+    {
+      "id": "hauler",
+      "classes": ["relay"],
+      "upgradePath": ["vitality", "vision"],
+      "orders": [
+        { "shared": "score-a-core" },
+        { "shared": "recover-health" },
+        { "shared": "collect-loose-core" },
+        { "shared": "fight-visible-enemy" },
+        { "id": "work-centre-well", "move": { "to": { "well": "centre" }, "posture": "line" } }
+      ]
+    },
+    {
+      "id": "home-runners",
+      "classes": ["longshot", "longshot"],
+      "upgradePath": ["damage", "vision", "vitality"],
+      "orders": [
+        { "shared": "score-a-core" },
+        { "shared": "recover-health" },
+        { "shared": "collect-loose-core" },
+        { "shared": "fight-visible-enemy" },
+        { "id": "work-home-well", "move": { "to": { "well": "own" }, "posture": "rear" } }
+      ]
+    },
+    {
+      "id": "far-runners",
+      "classes": ["towline", "towline"],
+      "upgradePath": ["damage", "vision", "vitality"],
+      "orders": [
+        { "shared": "score-a-core" },
+        { "shared": "recover-health" },
+        { "shared": "collect-loose-core" },
+        { "shared": "fight-visible-enemy" },
+        { "id": "work-far-well", "move": { "to": { "well": "enemy" }, "posture": "front" } }
+      ]
+    },
+    {
+      "id": "builder",
+      "classes": ["mason"],
+      "upgradePath": ["vitality", "vision"],
+      "orders": [
+        { "shared": "score-a-core" },
+        { "shared": "recover-health" },
+        { "shared": "collect-loose-core" },
+        { "shared": "fight-visible-enemy" },
+        { "id": "hold-centre", "move": { "to": { "well": "centre" }, "posture": "rear" } }
+      ]
+    }
+  ],
+  "sharedOrders": {
+    "score-a-core": {
+      "when": "carrying-core",
+      "until": "empty-handed",
+      "timeout": 180,
+      "cooldown": 2,
+      "orders": [
+        { "id": "return-to-reactor", "move": { "to": "own-reactor" } }
+      ]
+    },
+    "recover-health": {
+      "when": "hurt",
+      "until": "healthy",
+      "timeout": 75,
+      "cooldown": 18,
+      "orders": [
+        { "id": "reach-healing", "move": { "to": "nearest-heal-zone", "posture": "rear" } }
+      ]
+    },
+    "collect-loose-core": {
+      "when": { "all": ["empty-handed", "loose-core-known"] },
+      "capacity": "two-per-core",
+      "move": { "to": "nearest-known-loose-core" }
+    },
+    "fight-visible-enemy": {
+      "when": { "all": ["empty-handed", "enemy-visible"] },
+      "fight": { "targets": ["carrier", "weakest", "nearest"], "style": "advance", "chaseLimit": 4 }
+    }
+  },
+  "capacities": {
+    "two-per-core": 2
+  },
+  "conditions": {
+    "carrying-core": { "fact": "self-carrying", "operator": "equals", "value": 1 },
+    "empty-handed": { "fact": "self-carrying", "operator": "equals", "value": 0 },
+    "hurt": { "fact": "self-health-percent", "operator": "at-most", "value": 35 },
+    "healthy": { "fact": "self-health-percent", "operator": "at-least", "value": 75 },
+    "loose-core-known": { "fact": "known-loose-cores", "operator": "at-least", "value": 1 },
+    "enemy-visible": { "fact": "visible-enemies-in-zone", "operator": "at-least", "value": 1, "zone": "battlefield" },
+    "hunter-hurt": { "fact": "role-lowest-health-percent", "operator": "at-most", "value": 70, "role": "hunter" },
+    "signature-ready": { "fact": "signature-ready", "operator": "equals", "value": 1 }
+  }
+}

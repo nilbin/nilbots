@@ -1774,9 +1774,6 @@ public sealed class GenericActorMatchSession : IDisposable
     {
         if (_mode is not ArcRelayActorMatchModeDriver arcRelay)
             return;
-        Dictionary<ActorIdentity, GenericActorWorldSnapshot.LifeSnapshot>
-            tickStartLives = _preparedChronologyTick!.State.ActiveLives
-                .ToDictionary(value => value.ActorId);
         foreach (ActionState resolution in resolutions.Values
                      .OrderBy(value => value.ActorId))
         {
@@ -1816,22 +1813,11 @@ public sealed class GenericActorMatchSession : IDisposable
                 LifeState? targetLife = _lives.Values.SingleOrDefault(value =>
                     value.ActorId.TeamId == target.TeamId
                     && value.ActorId.UnitId == target.UnitId);
-                bool receiverWaited = targetLife is not null
-                    && resolutions.TryGetValue(
-                        targetLife.ActorId,
-                        out ActionState? targetResolution)
-                    && targetResolution.Outcome
-                        == GenericActorRuntimeActionResolution.ActionOutcome
-                            .Success
-                    && _actions[targetResolution.ValidatedAction.ActionId].Kind
-                        == ActorActionKind.Wait
-                    && tickStartLives[targetLife.ActorId].Position
-                        == targetLife.Position;
-                if (!receiverWaited
+                if (targetLife is null
                     || !arcRelay.TryHandoff(
                         Tick,
                         resolution.ActorId,
-                        targetLife!.ActorId,
+                        targetLife.ActorId,
                         _lives[resolution.ActorId].Position,
                         targetLife.Position,
                         out modeEvent))

@@ -1,4 +1,4 @@
-using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
@@ -8,35 +8,31 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
 {
     private static readonly string[] CurrentSheets =
     [
-        "breakwater-v1",
-        "home-siege-v3",
-        "hunter-v1",
-        "predator-v2",
-        "ripen-harvest-v1",
-        "trifold-balanced-v1",
-        "wellwright-v1",
+        "hunter-tapline-v2",
+        "wellwright-tapline-v2",
+        "starter-tapline-v2",
     ];
 
     [Fact]
-    public void EveryCurrentSheetCompilesDirectlyToAtl1()
+    public void EveryCurrentSheetCompilesDirectlyToAtl2()
     {
         foreach (string name in CurrentSheets)
         {
             TacticalPlaybookCompilation compilation =
                 ArcRelayTacticalPlaybookCompiler.Compile(Playbook(name));
 
-            Assert.True(compilation.UsesDirectLadder);
+            Assert.True(compilation.UsesOrderTree);
             Assert.Equal(
                 ArcRelayTacticalPlaybookCompiler.DirectEnvelopeMagic,
                 BitConverter.ToInt32(compilation.LinkedData));
             Assert.InRange(compilation.LinkedData.Length, 1, 65_535);
+            Assert.Equal(8, compilation.Composition.Length);
             using JsonDocument normalized = JsonDocument.Parse(
                 compilation.NormalizedPlaybook);
             Assert.Equal(
                 [
-                    "auditStatus", "composition", "conditions",
-                    "custodyPolicies", "doctrines", "layout", "memory",
-                    "playbookId", "roles", "schema",
+                    "capacities", "conditions", "mapPlan", "roles", "schema",
+                    "sharedOrders", "sheetId",
                 ],
                 normalized.RootElement.EnumerateObject()
                     .Select(value => value.Name)
@@ -45,37 +41,22 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
     }
 
     [Fact]
-    public void FrozenHomeSiegeV2BytesRemainArchivedButAreNotCompilerInput()
+    public void FileAndInMemoryCompilationUseTheSamePath()
     {
-        string path = Playbook("home-siege-v2");
-        byte[] bytes = File.ReadAllBytes(path);
-
-        Assert.Equal(49_566, bytes.Length);
-        Assert.Equal(
-            "1812b16d03ff9a70c3f9e66e6a4f0b0a9293b9543925281e9df2657ed25e5fdb",
-            Sha256(bytes));
-        InvalidDataException error = Assert.Throws<InvalidDataException>(
-            () => ArcRelayTacticalPlaybookCompiler.Compile(path));
-        Assert.Contains("unknown field 'perspective'", error.Message);
-    }
-
-    [Fact]
-    public void FileAndInMemoryCompilationUseTheSameDirectPath()
-    {
-        string playbookPath = Playbook("hunter-v1");
-        JsonObject source = JsonNode.Parse(File.ReadAllBytes(playbookPath))!
-            .AsObject();
-        string layoutPath = Path.GetFullPath(Path.Combine(
-            Path.GetDirectoryName(playbookPath)!,
-            source["layout"]!["path"]!.GetValue<string>()));
-        byte[] playbook = File.ReadAllBytes(playbookPath);
-        byte[] layout = File.ReadAllBytes(layoutPath);
+        string sheetPath = Playbook("hunter-tapline-v2");
+        JsonObject source = Source("hunter-tapline-v2");
+        string mapPath = Path.GetFullPath(Path.Combine(
+            Path.GetDirectoryName(sheetPath)!,
+            source["mapPlan"]!.GetValue<string>()));
 
         TacticalPlaybookCompilation fromFile =
-            ArcRelayTacticalPlaybookCompiler.Compile(playbookPath);
+            ArcRelayTacticalPlaybookCompiler.Compile(sheetPath);
         TacticalPlaybookCompilation inMemory =
             ArcRelayTacticalPlaybookCompiler.Compile(
-                playbook, layout, playbookPath, layoutPath);
+                File.ReadAllBytes(sheetPath),
+                File.ReadAllBytes(mapPath),
+                sheetPath,
+                mapPath);
 
         Assert.Equal(fromFile.LinkedData, inMemory.LinkedData);
         Assert.Equal(fromFile.NormalizedPlaybook, inMemory.NormalizedPlaybook);
@@ -83,242 +64,101 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
     }
 
     [Fact]
-    public void LayoutHashIsARealBinding()
+    public void RetiredDoctrineGrammarIsRejectedInsteadOfTranslated()
     {
-        JsonObject source = HunterSource();
-        source["layout"]!["sha256"] = new string('0', 64);
-        string path = WriteBesideHunter(source);
-        try
-        {
-            InvalidDataException error = Assert.Throws<InvalidDataException>(
-                () => ArcRelayTacticalPlaybookCompiler.Compile(path));
-            Assert.Contains("layout hash mismatch", error.Message);
-        }
-        finally
-        {
-            File.Delete(path);
-        }
+        JsonObject source = Source("starter-tapline-v2");
+        source["doctrines"] = new JsonObject();
+
+        InvalidDataException error = Assert.Throws<InvalidDataException>(() =>
+            Compile(source, MapPlan("starter-tapline-v2")));
+
+        Assert.Contains("unknown field 'doctrines'", error.Message);
     }
 
     [Fact]
-    public void LegacyPlanesAreRejectedInsteadOfDesugared()
+    public void CompositionComesOnlyFromExactRoleClasses()
     {
-        JsonObject source = HunterSource();
-        source["groups"] = new JsonArray();
-        string path = WriteBesideHunter(source);
-        try
-        {
-            InvalidDataException error = Assert.Throws<InvalidDataException>(
-                () => ArcRelayTacticalPlaybookCompiler.Compile(path));
-            Assert.Contains("unknown field 'groups'", error.Message);
-        }
-        finally
-        {
-            File.Delete(path);
-        }
+        JsonObject source = Source("starter-tapline-v2");
+        source["roles"]![0]!["classes"]!.AsArray().RemoveAt(0);
+
+        InvalidDataException error = Assert.Throws<InvalidDataException>(() =>
+            Compile(source, MapPlan("starter-tapline-v2")));
+
+        Assert.Contains("exactly eight bodies", error.Message);
+        Assert.Null(source["composition"]);
     }
 
     [Fact]
-    public void ConditionTyposAndGlobalSelfFactsFailAtCompileTime()
+    public void SharedOrdersAndCapacitiesRequireHonestReuse()
     {
-        JsonObject source = HunterSource();
-        source["doctrines"]!["roles"]!["hunter"]!["modes"]![1]!["while"] =
-            "shdaow-op";
-        string typo = WriteBesideHunter(source);
-        try
+        JsonObject source = Source("starter-tapline-v2");
+        foreach (JsonObject role in source["roles"]!.AsArray()
+                     .Skip(1).Select(value => value!.AsObject()))
         {
-            InvalidDataException error = Assert.Throws<InvalidDataException>(
-                () => ArcRelayTacticalPlaybookCompiler.Compile(typo));
-            Assert.Contains("unknown condition 'shdaow-op'", error.Message);
-        }
-        finally
-        {
-            File.Delete(typo);
+            JsonArray orders = role["orders"]!.AsArray();
+            JsonNode? reference = orders.Single(value =>
+                value!["shared"]?.GetValue<string>() == "collect-loose-core");
+            orders.Remove(reference);
         }
 
-        source = HunterSource();
-        source["custodyPolicies"]![0]!["safeConversion"] = "ghost-hurt";
-        string self = WriteBesideHunter(source);
-        try
-        {
-            InvalidDataException error = Assert.Throws<InvalidDataException>(
-                () => ArcRelayTacticalPlaybookCompiler.Compile(self));
-            Assert.Contains("legal only in a doctrine mode", error.Message);
-        }
-        finally
-        {
-            File.Delete(self);
-        }
+        InvalidDataException error = Assert.Throws<InvalidDataException>(() =>
+            Compile(source, MapPlan("starter-tapline-v2")));
+
+        Assert.Contains("shared order needs at least two", error.Message);
     }
 
     [Fact]
-    public void SharedCoordinationNamesNeedMultipleHonestConsumers()
+    public void ConditionTyposFailAtTheAuthoredOrder()
     {
-        JsonObject source = HunterSource();
-        JsonObject roles = source["doctrines"]!["roles"]!.AsObject();
-        foreach (string role in new[] { "hauler", "carrier" })
-        {
-            roles[role]!["modes"]!.AsArray()
-                .Select(value => value!.AsObject())
-                .Single(value => value["cohort"]?.GetValue<string>()
-                    == "centre-runners")
-                .Remove("cohort");
-        }
-        string cohort = WriteBesideHunter(source);
-        try
-        {
-            InvalidDataException error = Assert.Throws<InvalidDataException>(
-                () => ArcRelayTacticalPlaybookCompiler.Compile(cohort));
-            Assert.Contains("cohort needs at least two", error.Message);
-        }
-        finally
-        {
-            File.Delete(cohort);
-        }
+        JsonObject source = Source("starter-tapline-v2");
+        source["sharedOrders"]!["score-a-core"]!["when"] = "carying-core";
 
-        source = HunterSource();
-        source["doctrines"]!["focus"]!["one-off"] = new JsonObject
-        {
-            ["maximumAttackers"] = 1,
-        };
-        source["doctrines"]!["roles"]!["hunter"]!["modes"]!.AsArray()
-            .Select(value => value!.AsObject())
-            .Single(value => value.ContainsKey("assault"))["focus"] = "one-off";
-        string focus = WriteBesideHunter(source);
-        try
-        {
-            InvalidDataException error = Assert.Throws<InvalidDataException>(
-                () => ArcRelayTacticalPlaybookCompiler.Compile(focus));
-            Assert.Contains("focus scope needs at least two", error.Message);
-        }
-        finally
-        {
-            File.Delete(focus);
-        }
+        InvalidDataException error = Assert.Throws<InvalidDataException>(() =>
+            Compile(source, MapPlan("starter-tapline-v2")));
+
+        Assert.Contains("unknown condition 'carying-core'", error.Message);
     }
 
     [Fact]
-    public void FollowAndFetchStayFollowerAndCourierOwned()
+    public void MapPlansRejectDecorativeUnusedGeometry()
     {
-        JsonObject source = HunterSource();
-        JsonObject medicFollow = source["doctrines"]!["roles"]!["medic"]![
-                "modes"]!.AsArray()
-            .Select(value => value!.AsObject())
-            .Single(value => value.ContainsKey("follow"));
-        medicFollow["follow"] = "medic";
-        string selfFollow = WriteBesideHunter(source);
-        try
-        {
-            InvalidDataException error = Assert.Throws<InvalidDataException>(
-                () => ArcRelayTacticalPlaybookCompiler.Compile(selfFollow));
-            Assert.Contains("cannot follow itself", error.Message);
-        }
-        finally
-        {
-            File.Delete(selfFollow);
-        }
+        JsonObject map = MapPlan("starter-tapline-v2");
+        map["anchors"]!["unused-pin"] = new JsonArray(6, 8);
 
-        source = HunterSource();
-        source["doctrines"]!["roles"]!["lancer"]!["modes"]![0]!["fetch"] =
-            "missing-custody";
-        string unknownCustody = WriteBesideHunter(source);
-        try
-        {
-            InvalidDataException error = Assert.Throws<InvalidDataException>(
-                () => ArcRelayTacticalPlaybookCompiler.Compile(unknownCustody));
-            Assert.Contains("unknown custody", error.Message);
-        }
-        finally
-        {
-            File.Delete(unknownCustody);
-        }
+        InvalidDataException error = Assert.Throws<InvalidDataException>(() =>
+            Compile(Source("starter-tapline-v2"), map));
+
+        Assert.Contains("anchor 'unused-pin' has no sheet consumer", error.Message);
     }
 
     [Fact]
-    public void CustodyPickupSelectionIsOptionalAndValidated()
-    {
-        JsonObject source = HunterSource();
-        source["custodyPolicies"]![0]!["pickupSelection"] =
-            "nearest-authorized";
-        string nearest = WriteBesideHunter(source);
-        try
-        {
-            TacticalPlaybookCompilation compilation =
-                ArcRelayTacticalPlaybookCompiler.Compile(nearest);
-            using JsonDocument normalized = JsonDocument.Parse(
-                compilation.NormalizedPlaybook);
-            DirectLadderRuntime runtime = DirectLadderRuntime.Create(
-                normalized.RootElement);
-            Assert.Equal("nearest-authorized", runtime.RuntimePlaybook
-                .CustodyPolicies[0].PickupSelection);
-        }
-        finally
-        {
-            File.Delete(nearest);
-        }
-
-        source = HunterSource();
-        source["custodyPolicies"]![0]!["pickupSelection"] = "random";
-        string invalid = WriteBesideHunter(source);
-        try
-        {
-            InvalidDataException error = Assert.Throws<InvalidDataException>(
-                () => ArcRelayTacticalPlaybookCompiler.Compile(invalid));
-            Assert.Contains("pickupSelection", error.Message);
-        }
-        finally
-        {
-            File.Delete(invalid);
-        }
-    }
-
-    [Fact]
-    public void ExplainNamesAuthoredRungsAndAtl1()
+    public void ExplainPreservesAuthoredOrdersAndAtl2()
     {
         string output = Directory.CreateTempSubdirectory(
-            "arc-relay-direct-explain").FullName;
+            "arc-relay-orders-explain").FullName;
         try
         {
             Assert.Equal(0, ArcRelayTacticalPlaybookCommand.Run(
-                ["--playbook", Playbook("hunter-v1"), "--out", output]));
+            [
+                "--playbook", Playbook("hunter-tapline-v2"),
+                "--out", output,
+            ]));
             using JsonDocument explain = JsonDocument.Parse(
                 File.ReadAllBytes(Path.Combine(output, "explain.json")));
 
-            Assert.Equal("ATL1", explain.RootElement
+            Assert.Equal("arc-relay-orders-explain-v2",
+                explain.RootElement.GetProperty("schema").GetString());
+            Assert.Equal("ATL2", explain.RootElement
                 .GetProperty("runtimePackage").GetProperty("envelope")
                 .GetString());
-            Assert.Contains(explain.RootElement.GetProperty("ladders")
-                .EnumerateArray(), ladder => ladder.GetProperty("roleId")
+            Assert.Contains(explain.RootElement.GetProperty("roles")
+                .EnumerateArray(), role => role.GetProperty("id")
                 .GetString() == "hunter");
-            JsonElement hunter = explain.RootElement.GetProperty("ladders")
-                .EnumerateArray().Single(ladder => ladder.GetProperty(
-                    "roleId").GetString() == "hunter");
-            Assert.Contains(hunter.GetProperty("modes").EnumerateArray(),
-                rung => rung.GetProperty("intentId").GetString()
-                    == "hunter-shadow-hunt");
             Assert.Equal(
-                "tp:steady:<role>:<semantic-intent-id>:<channel>",
-                explain.RootElement.GetProperty("commandProvenance")
-                    .GetString());
-
-            TacticalPlaybookCompilation compilation =
-                ArcRelayTacticalPlaybookCompiler.Compile(
-                    Playbook("hunter-v1"));
-            using JsonDocument source = JsonDocument.Parse(
-                compilation.NormalizedPlaybook);
-            DirectLadderRuntime runtime = DirectLadderRuntime.Create(
-                source.RootElement);
-            string[] explainedIntents = explain.RootElement
-                .GetProperty("ladders").EnumerateArray()
-                .SelectMany(ladder => ladder.GetProperty("modes")
-                    .EnumerateArray())
-                .Where(rung => !rung.TryGetProperty("fetch", out _))
-                .Select(rung => rung.GetProperty("intentId").GetString()!)
-                .Order(StringComparer.Ordinal).ToArray();
-            Assert.Equal(
-                runtime.RuntimePlaybook.Orders.Select(order => order.OrderId)
-                    .Order(StringComparer.Ordinal),
-                explainedIntents);
+                "orders:<role>:<authored-order-path>:<action>:<reason>",
+                explain.RootElement.GetProperty("commandProvenance").GetString());
+            Assert.True(File.Exists(Path.Combine(
+                output, "normalized-map-plan.json")));
         }
         finally
         {
@@ -326,38 +166,32 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
         }
     }
 
-    private static JsonObject HunterSource() => JsonNode.Parse(
-        File.ReadAllBytes(Playbook("hunter-v1")))!.AsObject();
+    private static TacticalPlaybookCompilation Compile(
+        JsonObject source,
+        JsonObject mapPlan) => ArcRelayTacticalPlaybookCompiler.Compile(
+        Encoding.UTF8.GetBytes(source.ToJsonString()),
+        Encoding.UTF8.GetBytes(mapPlan.ToJsonString()));
 
-    private static string WriteBesideHunter(JsonObject source)
-    {
-        string path = Path.Combine(
-            Path.GetDirectoryName(Playbook("hunter-v1"))!,
-            $"hunter-compiler-case-{Guid.NewGuid():N}.json");
-        File.WriteAllText(path, source.ToJsonString());
-        return path;
-    }
+    private static JsonObject Source(string name) => JsonNode.Parse(
+        File.ReadAllBytes(Playbook(name)))!.AsObject();
+
+    private static JsonObject MapPlan(string name) => JsonNode.Parse(
+        File.ReadAllBytes(Path.Combine(
+            Root(), "arena-bots", "arc-relay",
+            "tactical-playbook-v1-2026-08-03", "map-plans",
+            $"{name}.json")))!.AsObject();
 
     private static string Playbook(string name) => Path.Combine(
-        FindRepoRoot(),
-        "arena-bots",
-        "arc-relay",
-        "tactical-playbook-v1-2026-08-03",
-        "playbooks",
-        $"{name}.json");
+        Root(), "arena-bots", "arc-relay",
+        "tactical-playbook-v1-2026-08-03", "playbooks", $"{name}.json");
 
-    private static string FindRepoRoot()
+    private static string Root()
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
         while (directory is not null
                && !File.Exists(Path.Combine(directory.FullName, "BotArena.sln")))
-        {
             directory = directory.Parent;
-        }
         return directory?.FullName
             ?? throw new InvalidOperationException("Repository root not found.");
     }
-
-    private static string Sha256(byte[] value) =>
-        Convert.ToHexStringLower(SHA256.HashData(value));
 }

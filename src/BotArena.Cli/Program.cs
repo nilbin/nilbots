@@ -164,10 +164,10 @@ static int Help(int exitCode = 1)
           nilbots experiment arc-relay-playbook
                         --playbook <json> [--out <dir>]
                                                   validate and compile a typed
-                                                  tactical playbook; emit its
-                                                  canonical sheet, bound layout,
-                                                  ATL1 direct package and an
-                                                  authored-rung explain view
+                                                  Orders v2 sheet; emit its
+                                                  canonical sheet, map plan,
+                                                  ATL2 direct package and an
+                                                  authored-order explain view
           nilbots experiment frontline-labs qualify
                         --bot <generic-spec> [--runtime wasm|in-process]
                         [--suite frontline-qualification-1|frontline-qualification-2|frontline-qualification-3|frontline-qualification-4|frontline-qualification-5]
@@ -265,16 +265,15 @@ static int CommandHelp(string command)
             `nilbots experiment arc-relay` is a permanent alias for this command
             and takes the same options.
 
-            Sheets. --sheet0/--sheet1 take a tactical playbook
-            (`arc-relay-tactical-playbook-v1`), which this command compiles
-            in place — its `layout` names a layout file and pins that file's
-            sha256, so editing a layout without repinning is a hard error.
-            Frozen `arc-relay-evaluation-sheet-v0..v3` documents still load.
+            Sheets. --sheet0/--sheet1 take an Orders v2 sheet
+            (`arc-relay-orders-v2`), which this command compiles in place — its
+            `mapPlan` names a Tapline-native map-plan document. Hashes are
+            compiler output rather than authored configuration.
             Compilation is the only authority on whether a sheet is valid;
             `nilbots experiment arc-relay-playbook --playbook <json>` runs the
-            same compiler on its own and writes the canonical sheet, its bound
-            layout, the ATL1 direct package, and an explain view whose rungs
-            retain the authored vocabulary. Without
+            same compiler on its own and writes the canonical sheet, its map
+            plan, the ATL2 direct package, and an explain view whose order tree
+            retains the authored vocabulary. Without
             a sheet a team uses --classes0/--classes1 (or the default eight).
 
             Loop profile. --loop-profile selects the ruleset/map pair; every

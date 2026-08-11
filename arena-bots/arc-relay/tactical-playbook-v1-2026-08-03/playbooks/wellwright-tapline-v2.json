@@ -1,0 +1,80 @@
+{
+  "schema": "arc-relay-orders-v2",
+  "sheetId": "wellwright-tapline-v2",
+  "mapPlan": "../map-plans/wellwright-tapline-v2.json",
+  "roles": [
+    {
+      "id": "home-haulers",
+      "classes": ["relay", "relay"],
+      "upgradePath": ["vitality", "vision"],
+      "orders": [
+        { "shared": "score-a-core" }, { "shared": "recover-health" },
+        { "shared": "collect-loose-core" }, { "shared": "fight-visible-enemy" },
+        { "id": "farm-home-well", "move": { "to": { "well": "own" }, "posture": "rear" } }
+      ]
+    },
+    {
+      "id": "centre-runners",
+      "classes": ["switchback", "switchback"],
+      "upgradePath": ["damage", "vitality"],
+      "orders": [
+        { "shared": "score-a-core" }, { "shared": "recover-health" },
+        { "shared": "collect-loose-core" }, { "shared": "fight-visible-enemy" },
+        { "id": "farm-centre-well", "move": { "to": { "well": "centre" }, "posture": "line" } }
+      ]
+    },
+    {
+      "id": "far-haulers",
+      "classes": ["towline", "towline"],
+      "upgradePath": ["damage", "vision", "vitality"],
+      "orders": [
+        { "shared": "score-a-core" }, { "shared": "recover-health" },
+        { "shared": "collect-loose-core" }, { "shared": "fight-visible-enemy" },
+        { "id": "farm-far-well", "move": { "to": { "well": "enemy" }, "posture": "front" } }
+      ]
+    },
+    {
+      "id": "scout",
+      "classes": ["lantern"],
+      "upgradePath": ["vision", "vitality"],
+      "orders": [
+        { "shared": "score-a-core" }, { "shared": "recover-health" },
+        { "shared": "collect-loose-core" }, { "shared": "fight-visible-enemy" },
+        { "id": "watch-centre", "move": { "to": { "well": "centre" }, "posture": "front" } }
+      ]
+    },
+    {
+      "id": "medic",
+      "classes": ["patchbay"],
+      "upgradePath": ["reach", "vitality"],
+      "orders": [
+        { "shared": "score-a-core" }, { "shared": "recover-health" },
+        { "shared": "collect-loose-core" },
+        { "id": "repair-home-haulers", "when": { "all": ["home-hauler-hurt", "signature-ready"] }, "cooldown": 2, "use": { "skill": "repair-beam", "target": "weakest-ally" } },
+        { "shared": "fight-visible-enemy" },
+        { "id": "support-home-haulers", "move": { "follow": "home-haulers", "posture": "rear" } }
+      ]
+    }
+  ],
+  "sharedOrders": {
+    "score-a-core": { "when": "carrying-core", "until": "empty-handed", "timeout": 180, "cooldown": 2, "orders": [
+      { "id": "return-to-reactor", "move": { "to": "own-reactor" } }
+    ] },
+    "recover-health": { "when": "hurt", "until": "healthy", "timeout": 75, "cooldown": 18, "orders": [
+      { "id": "reach-healing", "move": { "to": "nearest-heal-zone", "posture": "rear" } }
+    ] },
+    "collect-loose-core": { "when": { "all": ["empty-handed", "loose-core-known"] }, "capacity": "two-per-core", "move": { "to": "nearest-known-loose-core" } },
+    "fight-visible-enemy": { "when": { "all": ["empty-handed", "enemy-visible"] }, "fight": { "targets": ["carrier", "weakest", "nearest"], "style": "advance", "chaseLimit": 3 } }
+  },
+  "capacities": { "two-per-core": 2 },
+  "conditions": {
+    "carrying-core": { "fact": "self-carrying", "operator": "equals", "value": 1 },
+    "empty-handed": { "fact": "self-carrying", "operator": "equals", "value": 0 },
+    "hurt": { "fact": "self-health-percent", "operator": "at-most", "value": 35 },
+    "healthy": { "fact": "self-health-percent", "operator": "at-least", "value": 75 },
+    "loose-core-known": { "fact": "known-loose-cores", "operator": "at-least", "value": 1 },
+    "enemy-visible": { "fact": "visible-enemies-in-zone", "operator": "at-least", "value": 1, "zone": "battlefield" },
+    "home-hauler-hurt": { "fact": "role-lowest-health-percent", "operator": "at-most", "value": 70, "role": "home-haulers" },
+    "signature-ready": { "fact": "signature-ready", "operator": "equals", "value": 1 }
+  }
+}
