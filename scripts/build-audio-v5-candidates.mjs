@@ -35,6 +35,11 @@ const comparisonGenerationCues = generation.cues.filter(
 const backgroundGenerationCues = generation.cues.filter(
   (cue) => cue.role === "background-loop",
 );
+const expectedBackgroundIds = [
+  "arena-ambience",
+  "arena-ambience-ion-veil",
+  "arena-ambience-signal-lattice",
+];
 const actualIds = comparisonGenerationCues.map((cue) => cue.id);
 const locallyDerivedCues = comparisonGenerationCues.filter(
   (cue) => cue.result?.status === "derived",
@@ -47,8 +52,9 @@ assert(
   "SFX Engine cue order must exactly match the V4 comparison vocabulary.",
 );
 assert(
-  backgroundGenerationCues.length === 1,
-  "V5 must contain exactly one SFX Engine background loop.",
+  JSON.stringify(backgroundGenerationCues.map((cue) => cue.id)) ===
+    JSON.stringify(expectedBackgroundIds),
+  "V5 background-loop alternatives differ from the reviewed set.",
 );
 assert(generation.provider === "sfx-engine", "Unexpected audio provider.");
 assert(
@@ -57,6 +63,8 @@ assert(
 );
 assert(
   generation.energyAudit?.script === "scripts/master-audio-v5-energy.mjs" &&
+    JSON.stringify(generation.energyAudit.ambientLoopIds) ===
+      JSON.stringify(expectedBackgroundIds) &&
     Object.values(generation.energyAudit.sequenceResults ?? {}).every(
       (result) =>
         result.approximateTruePeakDbtp <=
@@ -198,6 +206,14 @@ for (const generatedCue of backgroundGenerationCues) {
     wav.length === result.outputBytes,
     `${generatedCue.id} WAV size differs from its provider provenance.`,
   );
+  const reviewRelativeGain =
+    generation.energyAudit.ambientRelativeGains[generatedCue.id];
+  assert(
+    Number.isFinite(reviewRelativeGain) &&
+      reviewRelativeGain > 0 &&
+      reviewRelativeGain <= generation.energyAudit.maximumAmbientReviewGain,
+    `${generatedCue.id} lacks a safe audited review gain.`,
+  );
   backgroundLoops.push({
     id: generatedCue.id,
     label: generatedCue.label,
@@ -212,6 +228,7 @@ for (const generatedCue of backgroundGenerationCues) {
     stereoDifferenceRms: result.metrics.stereoDifferenceRms,
     dcOffset: result.metrics.dcOffset,
     ...(result.metrics.energy ? { energy: result.metrics.energy } : {}),
+    reviewRelativeGain,
     loop: true,
     loopCrossfadeSeconds: result.processing.loopCrossfadeSeconds,
   });
@@ -268,7 +285,7 @@ await writeFile(
 );
 console.log(
   `Built V5 SFX Engine addition with ${cues.length} cues and ` +
-    `${backgroundLoops.length} ambience loop; ${locallyDerivedCues.length} ` +
+    `${backgroundLoops.length} ambience loops; ${locallyDerivedCues.length} ` +
     `cue(s) are locally derived and ${locallySafetyMasteredCues.length} ` +
     `cue(s) are locally safety-mastered. Output: ${labRoot}.`,
 );

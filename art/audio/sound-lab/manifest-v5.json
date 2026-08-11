@@ -44,8 +44,8 @@
   },
   "energyAudit": {
     "script": "scripts/master-audio-v5-energy.mjs",
-    "recordedAt": "2026-08-11T00:31:30.102Z",
-    "method": "ITU-R BS.1770 K-weighted loudness, four-times windowed-sinc true-peak estimate, FFT upper-band energy, and exact sound-lab sequence sums.",
+    "recordedAt": "2026-08-11T01:19:30.000Z",
+    "method": "ITU-R BS.1770 K-weighted loudness, four-times windowed-sinc true-peak estimate, FFT upper-band energy, and exact sound-lab sequence sums against every background-loop alternative.",
     "individualMaximumApproximateTruePeakDbtp": -0.75,
     "reviewOutputSafetyGainDb": -3,
     "reviewSequenceMaximumApproximateTruePeakDbtp": -1,
@@ -55,6 +55,17 @@
       "ratio": 20,
       "attackSeconds": 0.001,
       "releaseSeconds": 0.12
+    },
+    "ambientLoopIds": [
+      "arena-ambience",
+      "arena-ambience-ion-veil",
+      "arena-ambience-signal-lattice"
+    ],
+    "maximumAmbientReviewGain": 0.7,
+    "ambientRelativeGains": {
+      "arena-ambience": 0.32,
+      "arena-ambience-ion-veil": 0.418,
+      "arena-ambience-signal-lattice": 0.7
     },
     "cueResults": {
       "attack-windup": {
@@ -175,49 +186,147 @@
         "maxMomentaryLufs": -13.62,
         "approximateTruePeakDbtp": -5.19,
         "energyAbove12kPercent": 0
+      },
+      "arena-ambience-ion-veil": {
+        "durationSeconds": 30,
+        "integratedLufs": -18.25,
+        "maxMomentaryLufs": -13.67,
+        "approximateTruePeakDbtp": -6.02,
+        "energyAbove12kPercent": 0
+      },
+      "arena-ambience-signal-lattice": {
+        "durationSeconds": 30,
+        "integratedLufs": -27.88,
+        "maxMomentaryLufs": -24.57,
+        "approximateTruePeakDbtp": -6.02,
+        "energyAbove12kPercent": 0.03
       }
     },
     "sequenceResults": {
       "possession": {
         "durationSeconds": 11.35,
-        "integratedLufs": -17.19,
+        "integratedLufs": -16.99,
         "maxMomentaryLufs": -11.4,
         "approximateTruePeakDbtp": -3.24,
-        "includesAmbientAtRelativeGain": 0.32,
+        "summaryMode": "worst metric across ambient alternatives",
+        "ambientRelativeGains": {
+          "arena-ambience": 0.32,
+          "arena-ambience-ion-veil": 0.418,
+          "arena-ambience-signal-lattice": 0.7
+        },
         "reviewVolume": 1,
         "fixedOutputSafetyGainDb": -3,
-        "compressorAttenuationModeled": false
+        "compressorAttenuationModeled": false,
+        "ambientVariants": {
+          "arena-ambience": {
+            "durationSeconds": 11.35,
+            "integratedLufs": -17.19,
+            "maxMomentaryLufs": -11.4,
+            "approximateTruePeakDbtp": -3.24,
+            "relativeGain": 0.32
+          },
+          "arena-ambience-ion-veil": {
+            "durationSeconds": 11.35,
+            "integratedLufs": -17.3,
+            "maxMomentaryLufs": -11.47,
+            "approximateTruePeakDbtp": -3.5,
+            "relativeGain": 0.418
+          },
+          "arena-ambience-signal-lattice": {
+            "durationSeconds": 11.35,
+            "integratedLufs": -16.99,
+            "maxMomentaryLufs": -11.51,
+            "approximateTruePeakDbtp": -3.5,
+            "relativeGain": 0.7
+          }
+        }
       },
       "combat": {
         "durationSeconds": 9.08,
         "integratedLufs": -14.86,
         "maxMomentaryLufs": -10.89,
-        "approximateTruePeakDbtp": -1.28,
-        "includesAmbientAtRelativeGain": 0.32,
+        "approximateTruePeakDbtp": -1.04,
+        "summaryMode": "worst metric across ambient alternatives",
+        "ambientRelativeGains": {
+          "arena-ambience": 0.32,
+          "arena-ambience-ion-veil": 0.418,
+          "arena-ambience-signal-lattice": 0.7
+        },
         "reviewVolume": 1,
         "fixedOutputSafetyGainDb": -3,
-        "compressorAttenuationModeled": false
+        "compressorAttenuationModeled": false,
+        "ambientVariants": {
+          "arena-ambience": {
+            "durationSeconds": 9.08,
+            "integratedLufs": -14.86,
+            "maxMomentaryLufs": -10.89,
+            "approximateTruePeakDbtp": -1.28,
+            "relativeGain": 0.32
+          },
+          "arena-ambience-ion-veil": {
+            "durationSeconds": 9.08,
+            "integratedLufs": -14.87,
+            "maxMomentaryLufs": -10.96,
+            "approximateTruePeakDbtp": -1.59,
+            "relativeGain": 0.418
+          },
+          "arena-ambience-signal-lattice": {
+            "durationSeconds": 9.08,
+            "integratedLufs": -14.92,
+            "maxMomentaryLufs": -10.95,
+            "approximateTruePeakDbtp": -1.04,
+            "relativeGain": 0.7
+          }
+        }
       },
       "full": {
         "durationSeconds": 18.25,
-        "integratedLufs": -16.06,
+        "integratedLufs": -15.95,
         "maxMomentaryLufs": -10.96,
-        "approximateTruePeakDbtp": -1.59,
-        "includesAmbientAtRelativeGain": 0.32,
+        "approximateTruePeakDbtp": -1.46,
+        "summaryMode": "worst metric across ambient alternatives",
+        "ambientRelativeGains": {
+          "arena-ambience": 0.32,
+          "arena-ambience-ion-veil": 0.418,
+          "arena-ambience-signal-lattice": 0.7
+        },
         "reviewVolume": 1,
         "fixedOutputSafetyGainDb": -3,
-        "compressorAttenuationModeled": false
+        "compressorAttenuationModeled": false,
+        "ambientVariants": {
+          "arena-ambience": {
+            "durationSeconds": 18.25,
+            "integratedLufs": -16.06,
+            "maxMomentaryLufs": -10.96,
+            "approximateTruePeakDbtp": -1.59,
+            "relativeGain": 0.32
+          },
+          "arena-ambience-ion-veil": {
+            "durationSeconds": 18.25,
+            "integratedLufs": -15.96,
+            "maxMomentaryLufs": -10.99,
+            "approximateTruePeakDbtp": -1.61,
+            "relativeGain": 0.418
+          },
+          "arena-ambience-signal-lattice": {
+            "durationSeconds": 18.25,
+            "integratedLufs": -15.95,
+            "maxMomentaryLufs": -11.02,
+            "approximateTruePeakDbtp": -1.46,
+            "relativeGain": 0.7
+          }
+        }
       }
     }
   },
   "backgroundLoops": [
     {
       "id": "arena-ambience",
-      "label": "Astral arena ambience",
+      "label": "Original dark field",
       "category": "AMBIENCE",
       "status": "proposed",
-      "description": "A non-musical deep-space field designed to sit quietly beneath the arena, effects, and unchanged soundtrack.",
-      "mapping": "Optional arena ambience layer (review-only; no runtime mapping)",
+      "description": "The steady original: a dark sub-and-mid electromagnetic bed with the least foreground motion.",
+      "mapping": "Optional arena ambience alternative A (review-only; no runtime mapping)",
       "file": "./v5/packs/astral-relay/arena-ambience.wav",
       "durationSeconds": 30,
       "peak": 0.55,
@@ -230,6 +339,53 @@
         "approximateTruePeakDbtp": -5.19,
         "energyAbove12kPercent": 0
       },
+      "reviewRelativeGain": 0.32,
+      "loop": true,
+      "loopCrossfadeSeconds": 2
+    },
+    {
+      "id": "arena-ambience-ion-veil",
+      "label": "Ion veil",
+      "category": "AMBIENCE",
+      "status": "proposed",
+      "description": "A wide, low-frequency orbital veil with stronger lateral motion than A; despite its brief, it rendered darker rather than brighter.",
+      "mapping": "Optional arena ambience alternative B (review-only; no runtime mapping)",
+      "file": "./v5/packs/astral-relay/arena-ambience-ion-veil.wav",
+      "durationSeconds": 30,
+      "peak": 0.5,
+      "rms": 0.1011,
+      "stereoDifferenceRms": 0.1648,
+      "dcOffset": 0,
+      "energy": {
+        "integratedLufs": -18.25,
+        "maxMomentaryLufs": -13.67,
+        "approximateTruePeakDbtp": -6.02,
+        "energyAbove12kPercent": 0
+      },
+      "reviewRelativeGain": 0.418,
+      "loop": true,
+      "loopCrossfadeSeconds": 2
+    },
+    {
+      "id": "arena-ambience-signal-lattice",
+      "label": "Signal lattice",
+      "category": "AMBIENCE",
+      "status": "proposed",
+      "description": "The quietest, sparsest alternative: a low signal lattice with the most negative space beneath combat.",
+      "mapping": "Optional arena ambience alternative C (review-only; no runtime mapping)",
+      "file": "./v5/packs/astral-relay/arena-ambience-signal-lattice.wav",
+      "durationSeconds": 30,
+      "peak": 0.5,
+      "rms": 0.0563,
+      "stereoDifferenceRms": 0.0365,
+      "dcOffset": 0,
+      "energy": {
+        "integratedLufs": -27.88,
+        "maxMomentaryLufs": -24.57,
+        "approximateTruePeakDbtp": -6.02,
+        "energyAbove12kPercent": 0.03
+      },
+      "reviewRelativeGain": 0.7,
       "loop": true,
       "loopCrossfadeSeconds": 2
     }

@@ -10,9 +10,9 @@
     version: 5,
     packs: [...baseManifest.packs, ...additionalManifest.packs],
   };
-  const ambientLoop = additionalManifest.backgroundLoops?.[0];
-  if (!ambientLoop || !ambientLoop.loop)
-    throw new Error('V5 SFX Engine ambient loop did not load.');
+  const ambientLoops = additionalManifest.backgroundLoops ?? [];
+  if (ambientLoops.length !== 3 || ambientLoops.some((loop) => !loop.loop))
+    throw new Error('V5 SFX Engine ambient alternatives did not load.');
 
   const packTemplate = document.querySelector('#pack-template');
   const cueTemplate = document.querySelector('#cue-template');
@@ -26,9 +26,10 @@
   const volumeLabel = document.querySelector('[data-volume-label]');
   const ambientToggle = document.querySelector('[data-ambient-toggle]');
   const ambientLabel = document.querySelector('[data-ambient-label]');
+  const ambientOptions = document.querySelector('[data-ambient-options]');
+  const ambientDescription = document.querySelector('[data-ambient-description]');
   const activeAudio = new Map();
   const timers = new Set();
-  const ambientGain = 0.32;
   const outputSafetyGain = 10 ** (-3 / 20);
 
   const attackSentenceIds = [
@@ -117,6 +118,7 @@
   let favorite = readFavorite();
   let selectedPack = manifest.packs.find((pack) => pack.id === favorite) ?? manifest.packs.at(-1);
   let audioGraph = null;
+  let selectedAmbientLoop = ambientLoops[0];
   let ambientAudio = null;
   let ambientVoice = null;
 
@@ -237,6 +239,30 @@
     ambientLabel.textContent = isPlaying ? 'Stop ambient loop' : 'Play ambient loop';
   }
 
+  function renderAmbientOptions() {
+    ambientOptions.replaceChildren();
+    ambientLoops.forEach((loop, index) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.textContent = `${String.fromCharCode(65 + index)} · ${loop.label}`;
+      button.classList.toggle('is-selected', loop.id === selectedAmbientLoop.id);
+      button.setAttribute('aria-pressed', String(loop.id === selectedAmbientLoop.id));
+      button.addEventListener('click', () => selectAmbientLoop(loop));
+      ambientOptions.append(button);
+    });
+    ambientDescription.textContent = selectedAmbientLoop.description;
+  }
+
+  function selectAmbientLoop(loop) {
+    if (loop.id === selectedAmbientLoop.id) return;
+    const resume = Boolean(ambientAudio);
+    stopAmbient();
+    selectedAmbientLoop = loop;
+    renderAmbientOptions();
+    if (resume) playAmbient();
+    else setStatus(`${loop.label} selected.`);
+  }
+
   function stopAmbient() {
     if (ambientAudio) {
       ambientAudio.pause();
@@ -269,24 +295,30 @@
   function toggleAmbient() {
     if (ambientAudio) {
       stopAmbient();
-      setStatus('Astral arena ambience stopped.');
+      setStatus(`${selectedAmbientLoop.label} stopped.`);
       return;
     }
 
-    const audio = new Audio(ambientLoop.file);
+    playAmbient();
+  }
+
+  function playAmbient() {
+    const loop = selectedAmbientLoop;
+    const audio = new Audio(loop.file);
     audio.preload = 'auto';
     audio.loop = true;
-    const voice = connectAudio(audio, ambientGain);
+    const voice = connectAudio(audio, loop.reviewRelativeGain);
     ambientAudio = audio;
     ambientVoice = voice;
     audio.addEventListener(
       'error',
       () => {
         disconnectVoice(voice);
-        if (ambientAudio === audio) ambientAudio = null;
+        if (ambientAudio !== audio) return;
+        ambientAudio = null;
         if (ambientVoice === voice) ambientVoice = null;
         updateAmbientControl(false);
-        setStatus('Could not load the Astral arena ambience.');
+        setStatus(`Could not load ${loop.label}.`);
       },
       { once: true },
     );
@@ -294,11 +326,12 @@
       () => {
         if (ambientAudio !== audio) return;
         updateAmbientControl(true);
-        setStatus('Astral arena ambience · looping beneath review audio');
+        setStatus(`${loop.label} · looping beneath review audio`);
       },
       () => {
         disconnectVoice(voice);
-        if (ambientAudio === audio) ambientAudio = null;
+        if (ambientAudio !== audio) return;
+        ambientAudio = null;
         if (ambientVoice === voice) ambientVoice = null;
         updateAmbientControl(false);
         setStatus('Playback was blocked. Tap the ambient control once to enable audio.');
@@ -646,6 +679,7 @@
   });
 
   renderComparison();
+  renderAmbientOptions();
   renderPacks();
   renderCoverage();
   updateSequencePack();

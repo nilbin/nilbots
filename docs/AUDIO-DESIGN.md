@@ -73,7 +73,7 @@ node scripts/build-audio-sound-lab-site.mjs
 The soundboard at `art/audio/sound-lab/index.html` works from a static host and
 supports direct A/B/C/D comparison, context demo sequences, volume control,
 keyboard shortcuts, a browser-local favorite marker, and independent playback
-of the V5 ambient bed.
+of the three V5 ambient alternatives.
 
 ### Arc Relay space / ambient reconcept (V4 review)
 
@@ -154,16 +154,26 @@ and derived drop are
 effectively mono; technical validation requires two channels but not nonzero
 stereo difference for V5.
 
-V5 also adds the review-only **Astral arena ambience** beneath the comparison
-pack. It is deliberately non-musical and has an independent sound-lab control
-so effects can be judged both dry and in context. The provider's 32-second
-source is converted into a 30-second loop with a two-second circular
-equal-power tail/head crossfade instead of endpoint silence. Its prompt,
-provider provenance, processing, hashes, and measurements live in the same V5
-generation record.
+V5 also adds three review-only ambience candidates beneath the comparison
+pack: **Original dark field**, **Ion veil**, and **Signal lattice**. They are
+deliberately non-musical and share an independent A/B/C sound-lab control so
+effects can be judged both dry and in context. Each provider 32-second source
+is converted into a 30-second loop with a two-second circular equal-power
+tail/head crossfade instead of endpoint silence. The selector adjusts each
+loop toward the original's review loudness but caps gain where the exact combat
+sum would lose the pre-limiter safety margin. Their prompts, provider
+provenance, processing, hashes, and measurements live in the same V5 generation
+record.
 
-V5 and its ambient bed remain review-only. They change neither the approved
-Obsidian Foundry runtime package nor the Neon Protocol soundtrack.
+The original remains the strongest technical match: it is steady and leaves
+the least foreground motion. Two additional private Engine calls tested a
+brighter ion veil and a sparse signal lattice. The first rendered wider but
+darker than requested; the second rendered substantially quieter and sparser.
+They remain useful listening alternatives, but neither is an automatic
+replacement for the original.
+
+V5 and its ambient alternatives remain review-only. They change neither the
+approved Obsidian Foundry runtime package nor the Neon Protocol soundtrack.
 
 An energy audit found that the current attack wind-up and fizzle concentrated
 too much power above 12 kHz, while the current armor impact reconstructed
@@ -176,11 +186,11 @@ BS.1770-style loudness, approximate four-times-oversampled true peak, and
 upper-band energy, and makes no provider request. Re-run it after the local
 derivation script and before the V5 manifest builder.
 
-The sound lab routes every cue and its optional ambience through one shared
-Web Audio compressor and then a fixed 3 dB safety gain. The deterministic audit
-checks all seventeen WAVs and the exact possession, combat, and full-story sums;
-each sequence must remain at or below -1 dBTP after the fixed gain even before
-compressor attenuation is credited.
+The sound lab routes every cue and the selected optional ambience through one
+shared Web Audio compressor and then a fixed 3 dB safety gain. The deterministic
+audit checks all nineteen V5 WAVs and every ambience variant of the exact
+possession, combat, and full-story sums; each sequence must remain at or below
+-1 dBTP after the fixed gain even before compressor attenuation is credited.
 
 Level up maps to the authoritative `leveled-up` Arc Relay fact. It is a
 bot-local veterancy reward, not a Core or team-score event, so its cue is a

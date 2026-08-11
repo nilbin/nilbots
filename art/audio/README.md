@@ -21,7 +21,7 @@ Then open `sound-lab/index.html` or serve `art/audio/sound-lab` from any static
 server. V1 through V4 are deterministic: the same script revision produces the
 same signed 16-bit PCM WAV files. V1 is 44.1 kHz mono; V2 through V4 render at
 96 kHz and downsample to 48 kHz stereo. V5 keeps saved provider lineage for
-sixteen matched cues plus one optional ambient loop. The derivation script
+sixteen matched cues plus three optional ambient loops. The derivation script
 deterministically rebuilds three current variants from their accepted source
 masters without contacting SFX Engine. The safety-master script then rebuilds
 four high-energy provider cues from archived, hash-pinned pre-master WAVs
@@ -103,16 +103,22 @@ ceilings. It removes the first two cues' excessive energy above 12 kHz and the
 impact and level-up inter-sample risk without synthesizing a replacement or
 contacting the API. The generation record pins both the archived source and mastered output hashes,
 operations, loudness, approximate true peak, and upper-band energy.
-The same script audits all sixteen cues, the ambient loop, and the exact three
-sound-lab timelines. Review playback uses one shared compressor followed by a
-fixed 3 dB safety gain; the uncompressed sequence sums must remain at or below
--1 dBTP after that fixed gain.
+The same script audits all sixteen cues, all three ambient loops, and the exact
+three sound-lab timelines against every loop choice. Review playback uses one
+shared compressor followed by a fixed 3 dB safety gain; the uncompressed
+sequence sums must remain at or below -1 dBTP after that fixed gain.
 
-V5 also includes a review-only **Astral arena ambience**. SFX Engine supplied a
-32-second non-musical source; the workflow applies a two-second circular
-equal-power tail/head crossfade to produce the 30-second looping master. It has
-its own sound-lab control, runs quietly beneath cue and sequence playback, and
-does not replace or modify Neon Protocol.
+V5 also includes three review-only ambience candidates: **Original dark
+field**, **Ion veil**, and **Signal lattice**. SFX Engine supplied a 32-second
+non-musical source for each; the workflow applies a two-second circular
+equal-power tail/head crossfade to produce each 30-second looping master. The
+sound lab exposes them as A/B/C alternatives and adjusts their review gains
+toward A only while exact combat-overlap headroom remains safe. The original is
+the steadiest and remains the strongest technical match; the two follow-up
+calls produced a wider but still darker veil and a much quieter, sparser
+lattice rather than the requested brighter spectral bridge. All three run
+quietly beneath cue and sequence playback and do not replace or modify Neon
+Protocol.
 
 The internal **projectile** cue ID is retained for runtime compatibility, but
 its V4 sound and artifact label are **Beam resolve**. The full proposed attack
@@ -124,7 +130,7 @@ audible moving bolt. The proposed **projectile-deflected** fact is likewise
 presented as a beam bend.
 
 The proposed wind-up, fizzle, cancel, handoff, deflection, arrival, and ambient
-bed are review material only. Level up is also proposed from the authoritative
+beds are review material only. Level up is also proposed from the authoritative
 `leveled-up` fact: one compact bot-local field lock, kept below Core scoring in
 the hierarchy and reviewed simultaneously with the destruction tail that can
 cause it. A future runtime scheduler should coalesce multiple level facts for

@@ -101,6 +101,7 @@ const masters = [
   },
 ];
 const reviewOutputSafetyGainDb = -3;
+const maximumAmbientReviewGain = 0.7;
 const reviewSequences = {
   possession: [
     [0, "arc-birth"],
@@ -324,7 +325,8 @@ generation.energyAudit = {
     generation.energyAudit?.recordedAt ?? new Date().toISOString(),
   method:
     "ITU-R BS.1770 K-weighted loudness, four-times windowed-sinc true-peak " +
-    "estimate, FFT upper-band energy, and exact sound-lab sequence sums.",
+    "estimate, FFT upper-band energy, and exact sound-lab sequence sums " +
+    "against every background-loop alternative.",
   individualMaximumApproximateTruePeakDbtp: -0.75,
   reviewOutputSafetyGainDb,
   reviewSequenceMaximumApproximateTruePeakDbtp: -1,
@@ -335,6 +337,9 @@ generation.energyAudit = {
     attackSeconds: 0.001,
     releaseSeconds: 0.12,
   },
+  ambientLoopIds: energyAudit.ambientLoopIds,
+  maximumAmbientReviewGain,
+  ambientRelativeGains: energyAudit.ambientRelativeGains,
   cueResults: energyAudit.cueResults,
   sequenceResults: energyAudit.sequenceResults,
 };
@@ -394,33 +399,101 @@ async function auditCurrentPack() {
     });
   }
 
+  const ambientLoopIds = generation.cues
+    .filter((cue) => cue.role === "background-loop")
+    .map((cue) => cue.id);
+  assert(ambientLoopIds.length > 0, "The energy audit requires ambience.");
+  const referenceAmbientLufs =
+    cueResults[ambientLoopIds[0]].integratedLufs;
+  const ambientRelativeGains = Object.fromEntries(
+    ambientLoopIds.map((ambientLoopId) => [
+      ambientLoopId,
+      round(
+        Math.min(
+          maximumAmbientReviewGain,
+          0.32 *
+            10 **
+              ((referenceAmbientLufs -
+                cueResults[ambientLoopId].integratedLufs) /
+                20),
+        ),
+        4,
+      ),
+    ]),
+  );
+  assert(
+    Object.values(ambientRelativeGains).every(
+      (gain) => gain > 0 && gain <= maximumAmbientReviewGain,
+    ),
+    "An ambience alternative cannot be level-adjusted within safe gain bounds.",
+  );
   const sequenceResults = {};
   for (const [name, timeline] of Object.entries(reviewSequences)) {
-    const samples = mixReviewSequence(wavs, timeline);
-    const bytes = encodePcm16Wav(samples, 48_000, 2);
-    const metrics = analyzeWav(bytes, `${name} review sequence`, {
-      includeSpectrum: false,
-    });
-    assert(
-      metrics.energy.approximateTruePeakDbtp <= -1,
-      `${name}: ${metrics.energy.approximateTruePeakDbtp} dBTP exceeds the ` +
-        `limited review-sequence ceiling.`,
-    );
+    const ambientVariants = {};
+    for (const ambientLoopId of ambientLoopIds) {
+      const relativeGain = ambientRelativeGains[ambientLoopId];
+      const samples = mixReviewSequence(
+        wavs,
+        timeline,
+        ambientLoopId,
+        relativeGain,
+      );
+      const bytes = encodePcm16Wav(samples, 48_000, 2);
+      const metrics = analyzeWav(
+        bytes,
+        `${name} review sequence with ${ambientLoopId}`,
+        { includeSpectrum: false },
+      );
+      assert(
+        metrics.energy.approximateTruePeakDbtp <= -1,
+        `${name} with ${ambientLoopId}: ` +
+          `${metrics.energy.approximateTruePeakDbtp} dBTP exceeds the ` +
+          `limited review-sequence ceiling.`,
+      );
+      ambientVariants[ambientLoopId] = {
+        durationSeconds: metrics.durationSeconds,
+        integratedLufs: metrics.energy.integratedLufs,
+        maxMomentaryLufs: metrics.energy.maxMomentaryLufs,
+        approximateTruePeakDbtp: metrics.energy.approximateTruePeakDbtp,
+        relativeGain,
+      };
+    }
+    const variants = Object.values(ambientVariants);
     sequenceResults[name] = {
-      durationSeconds: metrics.durationSeconds,
-      integratedLufs: metrics.energy.integratedLufs,
-      maxMomentaryLufs: metrics.energy.maxMomentaryLufs,
-      approximateTruePeakDbtp: metrics.energy.approximateTruePeakDbtp,
-      includesAmbientAtRelativeGain: 0.32,
+      durationSeconds: Math.max(
+        ...variants.map((variant) => variant.durationSeconds),
+      ),
+      integratedLufs: Math.max(
+        ...variants.map((variant) => variant.integratedLufs),
+      ),
+      maxMomentaryLufs: Math.max(
+        ...variants.map((variant) => variant.maxMomentaryLufs),
+      ),
+      approximateTruePeakDbtp: Math.max(
+        ...variants.map((variant) => variant.approximateTruePeakDbtp),
+      ),
+      summaryMode: "worst metric across ambient alternatives",
+      ambientRelativeGains,
       reviewVolume: 1,
       fixedOutputSafetyGainDb: reviewOutputSafetyGainDb,
       compressorAttenuationModeled: false,
+      ambientVariants,
     };
   }
-  return { cueResults, sequenceResults };
+  return {
+    ambientLoopIds,
+    ambientRelativeGains,
+    cueResults,
+    sequenceResults,
+  };
 }
 
-function mixReviewSequence(wavs, timeline) {
+function mixReviewSequence(
+  wavs,
+  timeline,
+  ambientLoopId,
+  ambientRelativeGain,
+) {
   const sampleRate = 48_000;
   const channels = 2;
   const lastFrame = Math.max(
@@ -442,8 +515,8 @@ function mixReviewSequence(wavs, timeline) {
       }
     }
   }
-  const ambience = wavs.get("arena-ambience");
-  assert(ambience, "The review energy audit requires arena ambience.");
+  const ambience = wavs.get(ambientLoopId);
+  assert(ambience, `Unknown review ambience: ${ambientLoopId}`);
   const ambienceFrames = ambience.sampleCount / channels;
   const safetyGain = 10 ** (reviewOutputSafetyGainDb / 20);
   for (let frame = 0; frame < lastFrame; frame++) {
@@ -454,7 +527,7 @@ function mixReviewSequence(wavs, timeline) {
           ambience.samples[
             (frame % ambienceFrames) * channels + channel
           ] *
-            0.32) *
+            ambientRelativeGain) *
         safetyGain;
     }
   }

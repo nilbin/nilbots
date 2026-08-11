@@ -519,6 +519,43 @@ h1 em {
   background: currentColor;
 }
 
+.ambient-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.ambient-options button {
+  justify-content: center;
+  min-height: 34px;
+  margin: 0;
+  padding: 8px 7px;
+  border-color: var(--line-strong);
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.025);
+  font-size: 8px;
+  letter-spacing: 0.045em;
+}
+
+.ambient-options button:hover,
+.ambient-options button.is-selected {
+  color: #04110d;
+  border-color: #52f4c4;
+  background: #52f4c4;
+}
+
+.ambient-options + [data-ambient-toggle] {
+  margin-top: 8px;
+}
+
+[data-ambient-description] {
+  margin-bottom: 4px;
+  color: var(--muted) !important;
+  line-height: 1.45;
+  text-transform: none !important;
+}
+
 .compare,
 .directions,
 .recommendations,

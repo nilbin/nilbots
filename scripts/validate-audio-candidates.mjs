@@ -113,8 +113,13 @@ validated.push(
     channels: 2,
     packCount: 1,
     cueCount: 16,
-    fileCount: 17,
-    backgroundLoopCount: 1,
+    fileCount: 19,
+    backgroundLoopCount: 3,
+    expectedBackgroundLoopIds: [
+      "arena-ambience",
+      "arena-ambience-ion-veil",
+      "arena-ambience-signal-lattice",
+    ],
     expectedDerivations: {
       destroyed: "arrival",
       "arc-drop": "arc-pickup",
@@ -287,12 +292,60 @@ async function validateCandidateSet(specification) {
         audit.reviewSequenceMaximumApproximateTruePeakDbtp === -1,
       `${specification.label}: energy audit contract is missing`,
     );
-    for (const result of Object.values(audit.sequenceResults ?? {})) {
+    const backgroundLoopIds = (manifest.backgroundLoops ?? []).map(
+      (loop) => loop.id,
+    );
+    assert(
+      JSON.stringify(audit.ambientLoopIds) ===
+        JSON.stringify(backgroundLoopIds),
+      `${specification.label}: energy audit ambience coverage is incorrect`,
+    );
+    assert(
+      Number.isFinite(audit.maximumAmbientReviewGain) &&
+        audit.maximumAmbientReviewGain > 0 &&
+        audit.maximumAmbientReviewGain <= 1,
+      `${specification.label}: ambience review-gain ceiling is invalid`,
+    );
+    for (const loop of manifest.backgroundLoops ?? []) {
+      const relativeGain = audit.ambientRelativeGains?.[loop.id];
+      assert(
+        Number.isFinite(relativeGain) &&
+          relativeGain > 0 &&
+          relativeGain <= audit.maximumAmbientReviewGain &&
+          loop.reviewRelativeGain === relativeGain,
+        `${loop.id}: review gain differs from the energy audit`,
+      );
+    }
+    assert(
+      JSON.stringify(Object.keys(audit.sequenceResults ?? {})) ===
+        JSON.stringify(["possession", "combat", "full"]),
+      `${specification.label}: exact review-sequence coverage is incorrect`,
+    );
+    for (const result of Object.values(audit.sequenceResults)) {
       assert(
         result.approximateTruePeakDbtp <=
           audit.reviewSequenceMaximumApproximateTruePeakDbtp,
         `${specification.label}: a review sequence exceeds its true-peak ceiling`,
       );
+      assert(
+        JSON.stringify(Object.keys(result.ambientVariants ?? {})) ===
+          JSON.stringify(backgroundLoopIds),
+        `${specification.label}: a review sequence omits an ambience alternative`,
+      );
+      for (const [ambientLoopId, variant] of Object.entries(
+        result.ambientVariants,
+      )) {
+        assert(
+          variant.approximateTruePeakDbtp <=
+            audit.reviewSequenceMaximumApproximateTruePeakDbtp,
+          `${specification.label}: an ambience variant exceeds its sequence ceiling`,
+        );
+        assert(
+          variant.relativeGain ===
+            audit.ambientRelativeGains[ambientLoopId],
+          `${specification.label}: a sequence uses an unaudited ambience gain`,
+        );
+      }
     }
     for (const cue of manifest.packs[0].cues) {
       assert(
@@ -343,6 +396,13 @@ async function validateCandidateSet(specification) {
       `${specification.label}: expected ${specification.backgroundLoopCount} ` +
         `background loop(s)`,
     );
+    if (specification.expectedBackgroundLoopIds) {
+      assert(
+        JSON.stringify(manifest.backgroundLoops.map((loop) => loop.id)) ===
+          JSON.stringify(specification.expectedBackgroundLoopIds),
+        `${specification.label}: background loop IDs are incorrect`,
+      );
+    }
     for (const loop of manifest.backgroundLoops) {
       assert(loop.loop === true, `${loop.id}: background ambience must loop`);
       assert(
