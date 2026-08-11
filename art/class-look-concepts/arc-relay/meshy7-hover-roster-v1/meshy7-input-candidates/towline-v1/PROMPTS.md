@@ -1,0 +1,13 @@
+# Towline Meshy 7 input prompt
+
+The generated `turnaround-sheet.png` used the prompt below with two references: the approved Towline V7 identity crop first, and the approved Palisade turnaround second as presentation-only guidance. The four numbered PNGs are deterministic crops made by `scripts/class-models/split-meshy7-turnaround.mjs`.
+
+```text
+Create one high-resolution 2x2 orthographic character turnaround sheet for the TOWLINE Arc Relay bot, intended as four consistent source views for Meshy 7 multi-image-to-3D. The FIRST reference is the authoritative Towline identity and palette; preserve its distinctive squat horseshoe-shaped levitating tug chassis, broad readable silhouette, captive central winch drum, and closed grapple throat. The SECOND reference is presentation-only: match its mature industrial hard-surface rendering, view arrangement, neutral background, consistent scale, camera height, and restrained material finish, but do not copy Palisade's anatomy or colors.
+
+Arrange exactly: TOP LEFT strict front at mid-height; TOP RIGHT strict right-side profile with the bot's front pointing toward image-left; BOTTOM LEFT strict rear; BOTTOM RIGHT front-right three-quarter at about 35 degrees yaw with a mildly elevated camera. Show the identical object in the identical neutral hovering pose, scale, proportions, parts, wear pattern, materials, and lighting in every panel. Center each view with ample margin and no cropping. No perspective exaggeration.
+
+Towline design: mustard ochre painted armor, gunmetal inner frame, worn unpainted steel winch and edge hardware; medium-light values that remain readable in a dark zoomed-out game; large simple massing and very few small details. Make the central captive winch drum and closed grapple throat mechanically credible from every angle. Include only a narrow flush recessed beam-emitter seam integrated into the front hull, capable of charging and firing the standard beam without resembling a gun, barrel, cannon, muzzle, or white nose. Mature utilitarian construction, matte/satin paint, restrained wear, subtle panel seams, no toy-like gloss.
+
+Use a uniform light neutral warm-gray background in all four panels. No floor, horizon, cast shadow, text, labels, borders, dividers, diagrams, arrows, effects, glow, particles, or scenery. No teal or orange team colors. No eyes, face, cockpit, windshield, white nose, gun, weapon barrel, legs, feet, wheels, tracks, wings, arms, humanoid anatomy, antenna clutter, floating accessories, or detached parts. Keep it entirely legless and levitating. Output only the four-view sheet.
+```

@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "status": "paid-generation-authorized",
+  "classId": "switchback",
+  "identitySource": {
+    "file": "../../concept-sheet-v7.png",
+    "sha256": "3d60322ef767283da55dc3710af9ef097ed989bdd40cc597883925989af486d5"
+  },
+  "turnaroundSource": {
+    "file": "turnaround-sheet.png",
+    "sha256": "850e58b18e403880a9aaabeedcc84c235d851a27fb40223622b7d808c7baeb65",
+    "promptLog": "PROMPTS.md",
+    "promptLogSha256": "54a31153570e4d884cd97273f4389fecdb8b1217c69ec802ccc1068a02a14015"
+  },
+  "meshyInputs": [
+    {
+      "order": 1,
+      "view": "strict-front",
+      "file": "01-front.png",
+      "sha256": "5676cfa15cbf106beabc4071e2057ace53f674c30e09f964a7cb6e26b7ce4ac4",
+      "width": 1536,
+      "height": 1024,
+      "primary": true
+    },
+    {
+      "order": 2,
+      "view": "strict-right",
+      "file": "02-right.png",
+      "sha256": "c9798d6ee974c8d3e40bfa0a2537fa73fe4fa65b901f11ad12c55a78b42cadb7",
+      "width": 1536,
+      "height": 1024,
+      "primary": false
+    },
+    {
+      "order": 3,
+      "view": "strict-back",
+      "file": "03-back.png",
+      "sha256": "c5dd0fcc5178219a5dbe4506dcc034bbffa21424f0a57f3ddb2689ef399248ab",
+      "width": 1536,
+      "height": 1024,
+      "primary": false
+    },
+    {
+      "order": 4,
+      "view": "front-right-three-quarter",
+      "file": "04-front-right-three-quarter.png",
+      "sha256": "857c3f64843cedd0720c05e363af54720c7ddbf0318ee644350757cca699b6ab",
+      "width": 1536,
+      "height": 1024,
+      "primary": false
+    }
+  ],
+  "generationPromptLog": "PROMPTS.md",
+  "providerRunCollection": "arc-relay-meshy7-fleet",
+  "meshyRequestPlan": {
+    "endpoint": "/openapi/v1/multi-image-to-3d",
+    "ai_model": "meshy-7",
+    "should_texture": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "should_remesh": false,
+    "image_enhancement": false,
+    "remove_lighting": true,
+    "pose_mode": "",
+    "texture_prompt": "Mature industrial switchback levitating Arc Relay bot. One aged-ivory satin lobe and one charcoal satin lobe, tarnished-brass protected link coils, dark-steel underside, restrained edge wear and recess grime. Preserve crisp bounded material regions, broad silhouette, signature-skill hardware, and the flush front beam-emitter seam. No text, logos, decals, eyes, face, guns, barrels, white nose, legs, teal/orange team color, glow, bloom, exhaust, or baked lighting.",
+    "target_formats": [
+      "glb"
+    ],
+    "pilotCreditCap": 30,
+    "authorized": true,
+    "authorization": "Owner approved the V7 identities, directed the remaining fleet to proceed after the Kestrel pilot, confirmed the available credits, and excluded auto-rigging.",
+    "authorizationConsumed": false,
+    "autoRigging": false
+  },
+  "creditCheck": {
+    "checkedAt": "2026-08-11",
+    "balance": 2180,
+    "texturedMeshy7MultiImagePerTask": 30,
+    "pendingFleetTaskCount": 15,
+    "authorizedFleetCredits": 450,
+    "expectedBalanceAfterFleet": 1730,
+    "autoRigging": false,
+    "pricingSource": "https://docs.meshy.ai/en/api/pricing"
+  },
+  "nextGate": "raw Meshy 7 first-pass download and owner review; no runtime promotion"
+}

@@ -12,6 +12,7 @@ const options = parseArgs(process.argv.slice(2));
 const manifestPath = resolve(repositoryRoot, options.manifest);
 const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
 const plan = manifest.meshyRequestPlan;
+const runCollection = manifest.providerRunCollection ?? 'arc-relay-meshy7-pilot';
 
 validateManifest(manifest, plan);
 
@@ -43,6 +44,14 @@ for (const input of [...manifest.meshyInputs].sort((left, right) => left.order -
 
 if (inputs[0]?.primary !== true || inputs[0]?.view !== 'strict-front')
   throw new Error('The first Meshy 7 input must be the primary strict-front view.');
+
+if (options.validateOnly) {
+  console.log(
+    `Validated ${manifest.classId}: ${inputs.length} ordered inputs, ` +
+      `${plan.texture_resolution} PBR, ${plan.pilotCreditCap}-credit cap, no auto-rigging.`,
+  );
+  process.exit(0);
+}
 
 const apiKey = readApiKey();
 const startedAt = new Date();
@@ -81,7 +90,8 @@ if (typeof taskId !== 'string' || taskId.length === 0)
 
 const runDirectory = resolve(
   repositoryRoot,
-  'art/class-models/provider-runs/meshy/arc-relay-meshy7-pilot',
+  'art/class-models/provider-runs/meshy',
+  runCollection,
   manifest.classId,
   taskId,
 );
@@ -125,6 +135,7 @@ const generationSeconds = elapsedSeconds(generationStart);
 await writeJson(join(runDirectory, 'task.sanitized.json'), sanitizeTask(task));
 
 if (task.status !== 'SUCCEEDED') {
+  const balanceAfter = await balance(apiKey);
   await writeJson(join(runDirectory, 'timing.json'), {
     submittedAt: startedAt.toISOString(),
     finishedAt: new Date().toISOString(),
@@ -134,8 +145,23 @@ if (task.status !== 'SUCCEEDED') {
     status: task.status,
     consumedCredits: task.consumed_credits ?? 0,
     balanceBefore,
-    balanceAfter: await balance(apiKey),
+    balanceAfter,
   });
+  plan.authorized = false;
+  plan.authorizationConsumed = true;
+  plan.completedTaskId = taskId;
+  plan.consumedCredits = task.consumed_credits ?? 0;
+  manifest.status = 'provider-generation-failed';
+  manifest.providerRun = {
+    taskId,
+    directory: relative(dirname(manifestPath), runDirectory),
+    status: task.status,
+    consumedCredits: task.consumed_credits ?? 0,
+    balanceBefore,
+    balanceAfter,
+  };
+  manifest.nextGate = 'inspect provider failure before any resubmission';
+  await writeJson(manifestPath, manifest);
   throw new Error(`Meshy task ${taskId} ended with ${task.status}.`);
 }
 
@@ -174,7 +200,7 @@ await writeJson(join(runDirectory, 'timing.json'), timing);
 await writeJson(join(runDirectory, 'artifacts.json'), artifacts);
 await writeFile(
   join(runDirectory, 'RUN.md'),
-  `# Meshy 7 multiview pilot: ${manifest.classId}\n\n` +
+  `# Meshy 7 multiview generation: ${manifest.classId}\n\n` +
     `- Task: \`${taskId}\`\n` +
     `- Endpoint: \`multi-image-to-3d\`\n` +
     `- Model: \`${plan.ai_model}\`\n` +
@@ -189,6 +215,24 @@ await writeFile(
     `This is a raw generated base-mesh candidate, not an accepted runtime look. ` +
     `Signed URLs, credentials, and input data URIs are not retained.\n`,
 );
+
+const rawModel = artifacts.find((artifact) => artifact.file === 'raw-model.glb');
+plan.authorized = false;
+plan.authorizationConsumed = true;
+plan.completedTaskId = taskId;
+plan.consumedCredits = task.consumed_credits;
+manifest.status = 'owner-review';
+manifest.providerRun = {
+  taskId,
+  directory: relative(dirname(manifestPath), runDirectory),
+  status: task.status,
+  consumedCredits: task.consumed_credits,
+  balanceBefore,
+  balanceAfter,
+  rawModelSha256: rawModel?.sha256,
+};
+manifest.nextGate = 'owner review of raw Meshy 7 first pass; no runtime promotion';
+await writeJson(manifestPath, manifest);
 
 console.log(`Downloaded ${artifacts.length} artifacts in ${downloadSeconds.toFixed(2)}s`);
 console.log(`Credits: ${task.consumed_credits}; balance after: ${balanceAfter}`);
@@ -271,8 +315,8 @@ function sanitizeTask(value, key = '') {
 }
 
 function validateManifest(value, requestPlan) {
-  if (value?.classId !== 'kestrel')
-    throw new Error('This first vertical-slice runner invocation is pinned to Kestrel.');
+  if (!/^[a-z][a-z0-9-]*$/.test(value?.classId ?? ''))
+    throw new Error('The manifest classId is missing or unsafe.');
   if (!Array.isArray(value.meshyInputs) || value.meshyInputs.length !== 4)
     throw new Error('Exactly four Meshy inputs are required.');
   if (!requestPlan?.authorized)
@@ -281,19 +325,21 @@ function validateManifest(value, requestPlan) {
     throw new Error('The paid Meshy authorization in this manifest has already been consumed.');
   if (requestPlan.ai_model !== 'meshy-7') throw new Error('ai_model must be meshy-7.');
   if (requestPlan.texture_resolution !== '2k')
-    throw new Error('The authorized pilot texture resolution is 2k.');
+    throw new Error('The authorized texture resolution is 2k.');
   if (requestPlan.should_texture !== true || requestPlan.enable_pbr !== true)
-    throw new Error('The authorized pilot requires PBR texturing.');
+    throw new Error('The authorized generation requires PBR texturing.');
   if (requestPlan.should_remesh !== false || requestPlan.image_enhancement !== false)
-    throw new Error('The authorized clean-input pilot disables remesh and image enhancement.');
+    throw new Error('The authorized clean-input generation disables remesh and image enhancement.');
   if (requestPlan.pilotCreditCap !== 30)
-    throw new Error('The authorized Kestrel pilot credit cap must be exactly 30.');
+    throw new Error('The authorized per-task credit cap must be exactly 30.');
+  if (requestPlan.autoRigging !== false)
+    throw new Error('Auto-rigging must be explicitly disabled.');
   if (
     !Array.isArray(requestPlan.target_formats) ||
     requestPlan.target_formats.length !== 1 ||
     requestPlan.target_formats[0] !== 'glb'
   )
-    throw new Error('The pilot requests GLB output only.');
+    throw new Error('The generation requests GLB output only.');
 }
 
 function parseArgs(args) {
@@ -303,7 +349,7 @@ function parseArgs(args) {
   const manifest = values.get('--manifest');
   if (!manifest)
     throw new Error('Usage: node scripts/class-models/run-meshy7-multiview.mjs --manifest <manifest.json>');
-  return { manifest };
+  return { manifest, validateOnly: args.includes('--validate-only') };
 }
 
 function pngDimensions(bytes) {
