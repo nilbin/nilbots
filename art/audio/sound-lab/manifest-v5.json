@@ -45,14 +45,7 @@
     "runtimeAliases": {
       "arc-steal": "arc-pickup"
     },
-    "selectedBackgroundLoop": {
-      "cueId": "arena-ambience-ion-veil",
-      "runtimeGain": 0.08,
-      "mapIds": [
-        "arc-relay-tapline-01"
-      ],
-      "runtimeFile": "web/src/assets/audio/effects/astral-relay/arena-ambience-ion-veil.m4a"
-    }
+    "selectedBackgroundLoop": null
   },
   "sourceComposition": {
     "providerGeneratedCues": 13,
@@ -364,9 +357,9 @@
       "id": "arena-ambience-ion-veil",
       "label": "Ion veil",
       "category": "AMBIENCE",
-      "status": "mapped",
+      "status": "proposed",
       "description": "A wide, low-frequency orbital veil with stronger lateral motion than A; despite its brief, it rendered darker rather than brighter.",
-      "mapping": "Tapline runtime ambience at gain 0.08",
+      "mapping": "Sound-lab comparison only; no runtime mapping",
       "file": "./v5/packs/astral-relay/arena-ambience-ion-veil.wav",
       "durationSeconds": 30,
       "peak": 0.5,
@@ -380,7 +373,6 @@
         "energyAbove12kPercent": 0
       },
       "reviewRelativeGain": 0.418,
-      "runtimeGain": 0.08,
       "loop": true,
       "loopCrossfadeSeconds": 2
     },

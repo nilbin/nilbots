@@ -38,12 +38,6 @@ interface Voice {
   startedAt: number;
 }
 
-interface AmbienceVoice {
-  source: AudioBufferSourceNode;
-  gain: GainNode;
-  id: string;
-}
-
 export interface ReplaySoundEffectsController {
   packLabel: string;
   enabled: boolean;
@@ -89,9 +83,6 @@ export function useReplaySoundEffects({
   }
   const audioSession = session ?? fallbackSession.current!;
   const ownsSession = session === undefined;
-  const mapAmbience = soundEffectPack.ambience.mapIds.includes(replay.map.mapId)
-    ? soundEffectPack.ambience
-    : null;
   useEffect(
     () => (ownsSession ? audioSession.retainOwner() : undefined),
     [audioSession, ownsSession],
@@ -110,7 +101,6 @@ export function useReplaySoundEffects({
     let cancelled = false;
     const release = beginAsset();
     const urls = SOUND_EFFECT_CUE_IDS.map((cue) => soundEffectPack.cues[cue]);
-    if (mapAmbience) urls.push(mapAmbience.url);
     void Promise.all(
       urls.map((url) =>
         // A cue that will not download is not a reason to hold the viewer shut; the
@@ -124,7 +114,7 @@ export function useReplaySoundEffects({
       cancelled = true;
       release();
     };
-  }, [available, mapAmbience]);
+  }, [available]);
 
   const [volume, setVolumeState] = useState(
     readSoundEffectsVolumePreference,
@@ -141,11 +131,9 @@ export function useReplaySoundEffects({
   const graph = useRef<AudioGraph | null>(null);
   const buffers = useRef(new Map<string, Promise<AudioBuffer>>());
   const voices = useRef<Voice[]>([]);
-  const ambienceVoice = useRef<AmbienceVoice | null>(null);
   /** Panner per source, so a finished voice disconnects the node it created. */
   const panners = useRef(new Map<AudioBufferSourceNode, StereoPannerNode>());
   const generation = useRef(0);
-  const ambienceGeneration = useRef(0);
   const previousTick = useRef<number | null>(null);
   const activation = useRef<Promise<void> | null>(null);
   const enabledRef = useRef(enabled);
@@ -203,18 +191,6 @@ export function useReplaySoundEffects({
     voices.current = [];
   }, []);
 
-  const stopAmbience = useCallback(() => {
-    ambienceGeneration.current++;
-    const voice = ambienceVoice.current;
-    ambienceVoice.current = null;
-    if (!voice) return;
-    try {
-      voice.source.stop();
-    } catch {
-      // A loop stopped between the read and stop is already harmless.
-    }
-  }, []);
-
   const loadAsset = useCallback(
     (key: string, url: string): Promise<AudioBuffer> => {
       const cached = buffers.current.get(key);
@@ -244,70 +220,9 @@ export function useReplaySoundEffects({
   );
 
   const preloadEffects = useCallback(
-    () => {
-      const loading = SOUND_EFFECT_CUE_IDS.map((cue) => loadCue(cue));
-      if (mapAmbience) {
-        loading.push(
-          loadAsset(
-            `${soundEffectPack.id}/ambience/${mapAmbience.id}`,
-            mapAmbience.url,
-          ),
-        );
-      }
-      return Promise.all(loading);
-    },
-    [loadAsset, loadCue, mapAmbience],
+    () => Promise.all(SOUND_EFFECT_CUE_IDS.map((cue) => loadCue(cue))),
+    [loadCue],
   );
-
-  const startAmbience = useCallback(() => {
-    if (!mapAmbience) return;
-    if (ambienceVoice.current?.id === mapAmbience.id) return;
-    stopAmbience();
-    const expectedGeneration = ambienceGeneration.current;
-    void loadAsset(
-      `${soundEffectPack.id}/ambience/${mapAmbience.id}`,
-      mapAmbience.url,
-    )
-      .then((buffer) => {
-        if (
-          expectedGeneration !== ambienceGeneration.current ||
-          ambienceVoice.current ||
-          !graph.current ||
-          graph.current.context.state !== 'running'
-        ) {
-          return;
-        }
-        const { context, master } = graph.current;
-        const source = context.createBufferSource();
-        const gain = context.createGain();
-        source.buffer = buffer;
-        source.loop = mapAmbience.loop;
-        gain.gain.value = mapAmbience.gain;
-        // The field is the bed, not another event in the hall: keep it dry and centred.
-        // The shared master still governs mute, user volume and the final safety limiter.
-        source.connect(gain).connect(master);
-        const voice = { source, gain, id: mapAmbience.id };
-        ambienceVoice.current = voice;
-        source.addEventListener(
-          'ended',
-          () => {
-            if (ambienceVoice.current === voice) ambienceVoice.current = null;
-            source.disconnect();
-            gain.disconnect();
-          },
-          { once: true },
-        );
-        source.start(context.currentTime);
-      })
-      .catch((reason: unknown) => {
-        if (expectedGeneration !== ambienceGeneration.current) return;
-        setError(
-          reason instanceof Error
-            ? reason.message
-            : 'Arena ambience could not start in this browser.',
-        );
-      });
-  }, [loadAsset, mapAmbience, stopAmbience]);
 
   const scheduleCue = useCallback(
     (
@@ -536,28 +451,6 @@ export function useReplaySoundEffects({
   ]);
 
   useEffect(() => {
-    const active =
-      available &&
-      enabled &&
-      documentVisible &&
-      speed <= 2 &&
-      (following || (playing && !atEnd));
-    if (active) startAmbience();
-    else stopAmbience();
-  }, [
-    atEnd,
-    available,
-    documentVisible,
-    enabled,
-    following,
-    mapAmbience,
-    playing,
-    speed,
-    startAmbience,
-    stopAmbience,
-  ]);
-
-  useEffect(() => {
     if (!activationGranted || !available || enabled) return;
     void enable().catch(() => {
       // The compact control exposes the error and gives the user an explicit retry.
@@ -570,17 +463,15 @@ export function useReplaySoundEffects({
       setDocumentVisible(visible);
       if (!visible) {
         stopAll();
-        stopAmbience();
       }
     };
     document.addEventListener('visibilitychange', onVisibility);
     return () => document.removeEventListener('visibilitychange', onVisibility);
-  }, [stopAll, stopAmbience]);
+  }, [stopAll]);
 
   useEffect(
     () => () => {
       stopAll();
-      stopAmbience();
       const current = graph.current;
       graph.current = null;
       buffers.current.clear();
@@ -588,7 +479,7 @@ export function useReplaySoundEffects({
       current?.convolver?.disconnect();
       current?.master.disconnect();
     },
-    [audioSession, stopAll, stopAmbience],
+    [audioSession, stopAll],
   );
 
   return {

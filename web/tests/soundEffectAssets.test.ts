@@ -33,9 +33,17 @@ interface Integrity {
     rmsDbfs: number;
     dominantFrequencyHz: number;
     interchannelCorrelation: number;
-    sourceInterchannelCorrelation: number;
+    sourceInterchannelCorrelation?: number;
+    spectralCentroidHz: number;
+    energyAbove4kPercent: number;
+    energyAbove8kPercent: number;
+    energyAbove12kPercent: number;
+    maximumWindowAbove4kPercent: number;
+    maximumWindowAbove4kAtSeconds: number;
+    maximumWindowAbove4kRmsDbfs: number;
     effectiveSamplePeakDbfs: number;
     effectiveRmsDbfs: number;
+    effectiveMaximumWindowAbove4kRmsDbfs: number;
   };
 }
 
@@ -114,19 +122,10 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
       };
     };
     cues: Record<string, string>;
-    ambience: {
-      id: string;
-      sourceCueId: string;
-      file: string;
-      loop: boolean;
-      durationSeconds: number;
-      gain: number;
-      mapIds: string[];
-    };
     integrity: Record<string, Integrity>;
   };
 
-  assert.equal(manifest.version, 4);
+  assert.equal(manifest.version, 5);
   assert.equal(manifest.id, 'astral-relay');
   assert.equal(manifest.approval, 'approved');
   assert.equal(manifest.format, 'aac-lc-m4a');
@@ -150,8 +149,8 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
     },
     deliveryProcessing: {
       policy:
-        'Short down-pitched dual-mono low-mid combat markers with soft endpoints; ' +
-        'no synthesized layer and no provider request.',
+        'Deterministic low-pass, endpoint, and peak treatment for frequent or ' +
+        'spectrally sharp cues; no synthesized layer and no provider request.',
       cues: {
         'attack-windup': {
           channelTransform: 'side-to-dual-mono',
@@ -172,6 +171,76 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
           fadeInSeconds: 0.025,
           fadeOutSeconds: 0.08,
           targetSamplePeak: 0.24,
+        },
+        impact: {
+          channelTransform: 'preserve-stereo',
+          sourceStartSeconds: 0,
+          playbackRate: 1,
+          durationSeconds: 1,
+          lowPassHz: 3_600,
+          fadeInSeconds: 0.02,
+          fadeOutSeconds: 0.14,
+          targetSamplePeak: 0.45,
+        },
+        destroyed: {
+          channelTransform: 'preserve-stereo',
+          sourceStartSeconds: 0,
+          playbackRate: 1,
+          durationSeconds: 2,
+          lowPassHz: 2_800,
+          fadeInSeconds: 0.08,
+          fadeOutSeconds: 0.45,
+          targetSamplePeak: 0.5,
+        },
+        'level-up': {
+          channelTransform: 'preserve-stereo',
+          sourceStartSeconds: 0,
+          playbackRate: 1,
+          durationSeconds: 1,
+          lowPassHz: 3_500,
+          fadeInSeconds: 0.12,
+          fadeOutSeconds: 0.18,
+          targetSamplePeak: 0.42,
+        },
+        'arc-bank': {
+          channelTransform: 'preserve-stereo',
+          sourceStartSeconds: 0,
+          playbackRate: 1,
+          durationSeconds: 2,
+          lowPassHz: 4_500,
+          fadeInSeconds: 0.04,
+          fadeOutSeconds: 0.5,
+          targetSamplePeak: 0.55,
+        },
+        'arc-pulse': {
+          channelTransform: 'preserve-stereo',
+          sourceStartSeconds: 0,
+          playbackRate: 1,
+          durationSeconds: 4,
+          lowPassHz: 3_000,
+          fadeInSeconds: 0.12,
+          fadeOutSeconds: 0.4,
+          targetSamplePeak: 0.55,
+        },
+        'arc-handoff': {
+          channelTransform: 'preserve-stereo',
+          sourceStartSeconds: 0,
+          playbackRate: 1,
+          durationSeconds: 2,
+          lowPassHz: 3_200,
+          fadeInSeconds: 0.04,
+          fadeOutSeconds: 0.5,
+          targetSamplePeak: 0.5,
+        },
+        arrival: {
+          channelTransform: 'preserve-stereo',
+          sourceStartSeconds: 0,
+          playbackRate: 1,
+          durationSeconds: 2,
+          lowPassHz: 2_800,
+          fadeInSeconds: 0.45,
+          fadeOutSeconds: 0.08,
+          targetSamplePeak: 0.5,
         },
       },
     },
@@ -196,19 +265,6 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
     sha256(generationRecord),
     manifest.provenance.generationRecordSha256,
   );
-  const generation = JSON.parse(generationRecord.toString('utf8')) as {
-    cues: Array<{
-      id: string;
-      result: {
-        metrics: {
-          energy?: {
-            integratedLufs: number;
-            maxMomentaryLufs: number;
-          };
-        };
-      };
-    }>;
-  };
 
   assert.deepEqual(Object.keys(manifest.cues).sort(), expectedCues);
   assert.deepEqual(Object.keys(manifest.mix.cues).sort(), expectedCues);
@@ -223,6 +279,22 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
   });
   assert.equal(manifest.mix.roomSend, 0.06);
   assert.ok(manifest.mix.roomSend <= 0.08, 'provider tails get only a light room send');
+  assert.deepEqual(
+    Object.fromEntries(
+      ['impact', 'destroyed', 'level-up', 'arc-bank', 'arc-pulse', 'arc-handoff', 'arrival'].map(
+        (cue) => [cue, manifest.mix.cues[cue]],
+      ),
+    ),
+    {
+      impact: { gain: 0.32, voiceLimit: 1, panWidth: 0.5, roomSend: false },
+      destroyed: { gain: 0.32, voiceLimit: 1, panWidth: 0.45, roomSend: false },
+      'level-up': { gain: 0.32, voiceLimit: 1, panWidth: 0.4, roomSend: false },
+      'arc-bank': { gain: 0.44, voiceLimit: 1, panWidth: 0.55, roomSend: true },
+      'arc-pulse': { gain: 0.32, voiceLimit: 1, panWidth: 0.55, roomSend: true },
+      'arc-handoff': { gain: 0.3, voiceLimit: 1, panWidth: 0.55, roomSend: false },
+      arrival: { gain: 0.28, voiceLimit: 1, panWidth: 0.45, roomSend: false },
+    },
+  );
 
   let totalBytes = 0;
   for (const cue of expectedCues) {
@@ -247,13 +319,44 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
     );
     assert.ok(mix.panWidth >= 0 && mix.panWidth <= 0.7, `${cue} pan is unsafe`);
     assert.equal(typeof mix.roomSend, 'boolean');
+    const metrics = integrity.deliveryMetrics;
+    assert.ok(metrics, `${cue} lacks its runtime delivery audit`);
+    assert.ok(metrics.durationSeconds > 0 && metrics.durationSeconds <= 4);
+    assert.ok(
+      metrics.spectralCentroidHz <= 3_700,
+      `${cue} spectral centre is unexpectedly sharp`,
+    );
+    assert.ok(
+      metrics.energyAbove4kPercent <= 3,
+      `${cue} carries too much upper-mid energy`,
+    );
+    assert.ok(
+      metrics.energyAbove12kPercent <= 0.05,
+      `${cue} carries too much extreme high-frequency energy`,
+    );
+    assert.ok(
+      metrics.maximumWindowAbove4kPercent <= 80,
+      `${cue} contains an overly concentrated bright window`,
+    );
+    assert.ok(
+      metrics.maximumWindowAbove4kPercent <= 10 ||
+        metrics.effectiveMaximumWindowAbove4kRmsDbfs <= -28,
+      `${cue} contains an audible concentrated bright window`,
+    );
+    assert.ok(
+      metrics.effectiveSamplePeakDbfs <= -9,
+      `${cue} is too hot after its runtime gain`,
+    );
+    assert.ok(
+      metrics.effectiveRmsDbfs <= -25,
+      `${cue} carries too much sustained runtime energy`,
+    );
     totalBytes += bytes.length;
   }
 
   for (const cue of ['attack-windup', 'projectile'] as const) {
     const mix = manifest.mix.cues[cue]!;
-    const metrics = manifest.integrity[cue]!.deliveryMetrics;
-    assert.ok(metrics, `${cue} lacks its delivery-shaping audit`);
+    const metrics = manifest.integrity[cue]!.deliveryMetrics!;
     assert.equal(mix.voiceLimit, 1);
     assert.equal(mix.roomSend, false);
     assert.ok(mix.panWidth <= 0.2);
@@ -275,49 +378,37 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
   }
   assert.ok(
     manifest.integrity['attack-windup']!.deliveryMetrics!
-      .sourceInterchannelCorrelation <= -0.99,
+      .sourceInterchannelCorrelation! <= -0.99,
     'the wind-up delivery must explicitly correct its anti-phase source',
   );
 
-  assert.deepEqual(manifest.ambience, {
-    id: 'ion-veil',
-    sourceCueId: 'arena-ambience-ion-veil',
-    file: 'arena-ambience-ion-veil.m4a',
-    loop: true,
-    durationSeconds: 30,
-    gain: 0.08,
-    mapIds: ['arc-relay-tapline-01'],
-  });
-  const ambience = readFileSync(join(directory, manifest.ambience.file));
-  const ambienceIntegrity = manifest.integrity[manifest.ambience.sourceCueId]!;
-  assert.equal(ambience.toString('ascii', 4, 8), 'ftyp');
-  assert.equal(ambience.length, ambienceIntegrity.bytes);
-  assert.equal(sha256(ambience), ambienceIntegrity.outputSha256);
-  assert.match(ambienceIntegrity.sourceSha256, /^[a-f0-9]{64}$/);
-  assert.equal(ambienceIntegrity.bitrate, 160_000);
-  assert.ok(ambience.length >= 500_000 && ambience.length <= 700_000);
-  assert.ok(manifest.ambience.gain <= 0.08, 'Ion veil remains an almost subliminal bed');
-  const sourceAmbience = generation.cues.find(
-    (cue) => cue.id === manifest.ambience.sourceCueId,
-  );
-  const sourceEnergy = sourceAmbience?.result.metrics.energy;
-  assert.ok(sourceEnergy, 'selected ambience is missing its loudness audit');
-  const gainDb = 20 * Math.log10(manifest.ambience.gain);
-  assert.ok(
-    sourceEnergy.integratedLufs + gainDb <= -40,
-    'runtime ambience must remain at or below -40 LUFS integrated',
-  );
-  assert.ok(
-    sourceEnergy.maxMomentaryLufs + gainDb <= -35.5,
-    'runtime ambience must remain below -35.5 LUFS maximum momentary',
-  );
-  totalBytes += ambience.length;
+  for (const cue of [
+    'impact',
+    'destroyed',
+    'level-up',
+    'arc-bank',
+    'arc-pulse',
+    'arc-handoff',
+    'arrival',
+  ]) {
+    const metrics = manifest.integrity[cue]!.deliveryMetrics!;
+    assert.ok(
+      metrics.energyAbove4kPercent <= 3,
+      `${cue} comfort treatment no longer controls upper-mid energy`,
+    );
+    assert.ok(
+      metrics.energyAbove12kPercent <= 0.05,
+      `${cue} comfort treatment no longer controls extreme highs`,
+    );
+  }
 
+  assert.deepEqual(Object.keys(manifest.integrity).sort(), expectedCues);
   assert.deepEqual(
-    Object.keys(manifest.integrity).sort(),
-    [...expectedCues, 'arena-ambience-ion-veil'].sort(),
+    readdirSync(directory).sort(),
+    ['manifest.json', ...expectedCues.map((cue) => `${cue}.m4a`)].sort(),
+    'runtime delivery must contain only the thirteen one-shots',
   );
-  assert.ok(totalBytes < 1_200_000, `runtime audio is ${totalBytes} bytes`);
+  assert.ok(totalBytes < 500_000, `runtime audio is ${totalBytes} bytes`);
 });
 
 function sha256(bytes: Buffer): string {

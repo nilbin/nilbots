@@ -125,8 +125,9 @@ the steadiest technical reference; the two follow-up calls produced a wider but
 still darker veil and a much quieter, sparser lattice rather than the requested
 brighter spectral bridge. Owner review selected Ion veil for Tapline, but at a
 near-subliminal 0.08 runtime gain rather than its 0.418 level-matched review
-gain. Original dark field and Signal lattice remain review-only. None replace
-or modify Neon Protocol.
+gain during an earlier round. All three now remain sound-lab comparisons only:
+Tapline selects no ambience loop and the runtime exporter ships none. None
+replace or modify Neon Protocol.
 
 The internal **projectile** cue ID is retained for runtime compatibility, but
 its artifact label is **Beam resolve**. Runtime attacks now speak only as
@@ -145,6 +146,17 @@ soundtrack. Because the masters already contain deliberate diffusion, the
 runtime manifest reduces the arena convolution send to 0.06 instead of stacking
 two full spaces.
 
+The runtime exporter also applies a deterministic comfort treatment to every
+frequent or spectrally sharp delivery: impact, destruction, level up, Core
+bank, Core Pulse, handoff, and arrival, in addition to wind-up and beam. It
+preserves the accepted stereo sources, uses only low-pass filtering, endpoint
+fades, and conservative peak normalization, then audits the decoded AAC that
+the browser actually hears. Across all thirteen one-shots, decoded energy is
+at most 3% above 4 kHz and 0.05% above 12 kHz, effective peaks stay at or below
+-9 dBFS, effective whole-cue RMS stays at or below -25 dBFS, and any window
+with more than 10% upper-mid energy must sit below -28 dBFS RMS after runtime
+gain. No provider request or synthesized layer is involved.
+
 V2 renders at 96 kHz before anti-aliased downsampling to 48 kHz stereo. Its
 layers include separate transients, tonal bodies, modal material resonance,
 debris, stereo movement, feedback-delay diffusion, and dynamics processing.
@@ -154,13 +166,12 @@ sound lab as a collapsed reference archive.
 
 The lossless masters for every direction stay under `art/`. Astral Relay is the
 approved runtime direction; `scripts/export-runtime-sound-effects.mjs` verifies
-the V5 source hashes and exports thirteen mapped one-shots plus Ion veil to
+the V5 source hashes and exports thirteen mapped one-shots to
 `web/src/assets/audio/effects/astral-relay/` as 48 kHz stereo AAC-LC.
 Fizzle, cancel, and the historical special-steal take stay review-only. The
-checked-in delivery assets total roughly 0.96 MiB. The loop is selected only by
-Tapline's stable `arc-relay-tapline-01` map ID. The entitlement cue remains a
-sound-lab master until a real entitlement notification owns it; it is not a
-match-result sound.
+checked-in delivery assets total roughly 0.34 MiB. No ambience file, mapping,
+fetch, or playback path ships. The entitlement cue remains a sound-lab master
+until a real entitlement notification owns it; it is not a match-result sound.
 
 The export requires macOS `afconvert`. Checked-in delivery assets keep normal
 builds platform-independent, while their production manifest records SFX

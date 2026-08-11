@@ -1,5 +1,5 @@
 {
-  "version": 4,
+  "version": 5,
   "id": "astral-relay",
   "label": "Astral Relay",
   "approval": "approved",
@@ -22,7 +22,7 @@
       "canonicalization": "zero-iso-bmff-creation-and-modification-times"
     },
     "deliveryProcessing": {
-      "policy": "Short down-pitched dual-mono low-mid combat markers with soft endpoints; no synthesized layer and no provider request.",
+      "policy": "Deterministic low-pass, endpoint, and peak treatment for frequent or spectrally sharp cues; no synthesized layer and no provider request.",
       "cues": {
         "attack-windup": {
           "channelTransform": "side-to-dual-mono",
@@ -43,6 +43,76 @@
           "fadeInSeconds": 0.025,
           "fadeOutSeconds": 0.08,
           "targetSamplePeak": 0.24
+        },
+        "impact": {
+          "channelTransform": "preserve-stereo",
+          "sourceStartSeconds": 0,
+          "playbackRate": 1,
+          "durationSeconds": 1,
+          "lowPassHz": 3600,
+          "fadeInSeconds": 0.02,
+          "fadeOutSeconds": 0.14,
+          "targetSamplePeak": 0.45
+        },
+        "destroyed": {
+          "channelTransform": "preserve-stereo",
+          "sourceStartSeconds": 0,
+          "playbackRate": 1,
+          "durationSeconds": 2,
+          "lowPassHz": 2800,
+          "fadeInSeconds": 0.08,
+          "fadeOutSeconds": 0.45,
+          "targetSamplePeak": 0.5
+        },
+        "level-up": {
+          "channelTransform": "preserve-stereo",
+          "sourceStartSeconds": 0,
+          "playbackRate": 1,
+          "durationSeconds": 1,
+          "lowPassHz": 3500,
+          "fadeInSeconds": 0.12,
+          "fadeOutSeconds": 0.18,
+          "targetSamplePeak": 0.42
+        },
+        "arc-bank": {
+          "channelTransform": "preserve-stereo",
+          "sourceStartSeconds": 0,
+          "playbackRate": 1,
+          "durationSeconds": 2,
+          "lowPassHz": 4500,
+          "fadeInSeconds": 0.04,
+          "fadeOutSeconds": 0.5,
+          "targetSamplePeak": 0.55
+        },
+        "arc-pulse": {
+          "channelTransform": "preserve-stereo",
+          "sourceStartSeconds": 0,
+          "playbackRate": 1,
+          "durationSeconds": 4,
+          "lowPassHz": 3000,
+          "fadeInSeconds": 0.12,
+          "fadeOutSeconds": 0.4,
+          "targetSamplePeak": 0.55
+        },
+        "arc-handoff": {
+          "channelTransform": "preserve-stereo",
+          "sourceStartSeconds": 0,
+          "playbackRate": 1,
+          "durationSeconds": 2,
+          "lowPassHz": 3200,
+          "fadeInSeconds": 0.04,
+          "fadeOutSeconds": 0.5,
+          "targetSamplePeak": 0.5
+        },
+        "arrival": {
+          "channelTransform": "preserve-stereo",
+          "sourceStartSeconds": 0,
+          "playbackRate": 1,
+          "durationSeconds": 2,
+          "lowPassHz": 2800,
+          "fadeInSeconds": 0.45,
+          "fadeOutSeconds": 0.08,
+          "targetSamplePeak": 0.5
         }
       }
     },
@@ -76,22 +146,22 @@
         "roomSend": false
       },
       "impact": {
-        "gain": 0.38,
-        "voiceLimit": 2,
-        "panWidth": 0.7,
-        "roomSend": true
+        "gain": 0.32,
+        "voiceLimit": 1,
+        "panWidth": 0.5,
+        "roomSend": false
       },
       "destroyed": {
-        "gain": 0.44,
+        "gain": 0.32,
         "voiceLimit": 1,
-        "panWidth": 0.7,
-        "roomSend": true
+        "panWidth": 0.45,
+        "roomSend": false
       },
       "level-up": {
-        "gain": 0.46,
-        "voiceLimit": 2,
-        "panWidth": 0.7,
-        "roomSend": true
+        "gain": 0.32,
+        "voiceLimit": 1,
+        "panWidth": 0.4,
+        "roomSend": false
       },
       "arc-birth": {
         "gain": 0.4,
@@ -112,22 +182,22 @@
         "roomSend": true
       },
       "arc-bank": {
-        "gain": 0.5,
+        "gain": 0.44,
         "voiceLimit": 1,
-        "panWidth": 0.7,
+        "panWidth": 0.55,
         "roomSend": true
       },
       "arc-pulse": {
-        "gain": 0.54,
+        "gain": 0.32,
         "voiceLimit": 1,
-        "panWidth": 0.7,
+        "panWidth": 0.55,
         "roomSend": true
       },
       "arc-handoff": {
-        "gain": 0.38,
-        "voiceLimit": 2,
-        "panWidth": 0.7,
-        "roomSend": true
+        "gain": 0.3,
+        "voiceLimit": 1,
+        "panWidth": 0.55,
+        "roomSend": false
       },
       "deflect": {
         "gain": 0.34,
@@ -136,10 +206,10 @@
         "roomSend": true
       },
       "arrival": {
-        "gain": 0.38,
-        "voiceLimit": 3,
-        "panWidth": 0.7,
-        "roomSend": true
+        "gain": 0.28,
+        "voiceLimit": 1,
+        "panWidth": 0.45,
+        "roomSend": false
       }
     }
   },
@@ -176,17 +246,6 @@
     "deflect": "deflect.m4a",
     "arrival": "arrival.m4a"
   },
-  "ambience": {
-    "id": "ion-veil",
-    "sourceCueId": "arena-ambience-ion-veil",
-    "file": "arena-ambience-ion-veil.m4a",
-    "loop": true,
-    "durationSeconds": 30,
-    "gain": 0.08,
-    "mapIds": [
-      "arc-relay-tapline-01"
-    ]
-  },
   "integrity": {
     "attack-windup": {
       "sourceSha256": "82f8c4fd229396a435634b8900cd1b405d58f8fedd14d654140c5d1f9d079453",
@@ -195,13 +254,21 @@
       "bitrate": 192000,
       "deliveryMetrics": {
         "durationSeconds": 0.24,
-        "samplePeakDbfs": -12.4,
-        "rmsDbfs": -22.8,
+        "samplePeakDbfs": -12.43,
+        "rmsDbfs": -22.81,
         "dominantFrequencyHz": 642,
         "interchannelCorrelation": 1,
+        "spectralCentroidHz": 507,
+        "energyAbove4kPercent": 0,
+        "energyAbove8kPercent": 0,
+        "energyAbove12kPercent": 0,
+        "maximumWindowAbove4kPercent": 0,
+        "maximumWindowAbove4kAtSeconds": 0.085,
+        "maximumWindowAbove4kRmsDbfs": -21.83,
         "sourceInterchannelCorrelation": -0.9983,
-        "effectiveSamplePeakDbfs": -27.29,
-        "effectiveRmsDbfs": -37.69
+        "effectiveSamplePeakDbfs": -27.32,
+        "effectiveRmsDbfs": -37.7,
+        "effectiveMaximumWindowAbove4kRmsDbfs": -36.72
       }
     },
     "projectile": {
@@ -211,86 +278,282 @@
       "bitrate": 192000,
       "deliveryMetrics": {
         "durationSeconds": 0.16,
-        "samplePeakDbfs": -12.4,
+        "samplePeakDbfs": -12.42,
         "rmsDbfs": -23.16,
         "dominantFrequencyHz": 598,
         "interchannelCorrelation": 1,
+        "spectralCentroidHz": 604,
+        "energyAbove4kPercent": 0,
+        "energyAbove8kPercent": 0,
+        "energyAbove12kPercent": 0,
+        "maximumWindowAbove4kPercent": 0,
+        "maximumWindowAbove4kAtSeconds": 0.043,
+        "maximumWindowAbove4kRmsDbfs": -23.54,
         "sourceInterchannelCorrelation": 1,
-        "effectiveSamplePeakDbfs": -26.38,
-        "effectiveRmsDbfs": -37.14
+        "effectiveSamplePeakDbfs": -26.4,
+        "effectiveRmsDbfs": -37.14,
+        "effectiveMaximumWindowAbove4kRmsDbfs": -37.52
       }
     },
     "impact": {
       "sourceSha256": "ab6260948b7e928038d636ff4f826c7d1c7efdd8ef75b8b6f311512f946240de",
-      "outputSha256": "9531e51e92f1dfbca32e8f0b6c99549085fd6ca36c79002f365f33bd4b4dd7dc",
-      "bytes": 16975,
-      "bitrate": 192000
+      "outputSha256": "1cfc6625abe9e59f82382a426790910f33be3ab4ea0b85afad092502f349bd2b",
+      "bytes": 16232,
+      "bitrate": 192000,
+      "deliveryMetrics": {
+        "durationSeconds": 1,
+        "samplePeakDbfs": -6.87,
+        "rmsDbfs": -22.73,
+        "dominantFrequencyHz": 1720,
+        "interchannelCorrelation": -0.4057,
+        "spectralCentroidHz": 1771,
+        "energyAbove4kPercent": 2.67,
+        "energyAbove8kPercent": 0.05,
+        "energyAbove12kPercent": 0,
+        "maximumWindowAbove4kPercent": 4.09,
+        "maximumWindowAbove4kAtSeconds": 0.043,
+        "maximumWindowAbove4kRmsDbfs": -27.8,
+        "sourceInterchannelCorrelation": -0.4754,
+        "effectiveSamplePeakDbfs": -16.77,
+        "effectiveRmsDbfs": -32.63,
+        "effectiveMaximumWindowAbove4kRmsDbfs": -37.7
+      }
     },
     "destroyed": {
       "sourceSha256": "e0a2f03f017053f6943f72037afa7b50008e644f4eeb0b923eb984c3ef64c1d9",
-      "outputSha256": "8d748be55a2b2fa020f585b3b364cd7a63142c260b7e45c5d3509fc93c2f7071",
-      "bytes": 63388,
-      "bitrate": 192000
+      "outputSha256": "7bdd586fd6f1f1d5f92a6c8e2534dd0162b5907ce64fbf2e6725734242f8367d",
+      "bytes": 60094,
+      "bitrate": 192000,
+      "deliveryMetrics": {
+        "durationSeconds": 2,
+        "samplePeakDbfs": -6.05,
+        "rmsDbfs": -20.77,
+        "dominantFrequencyHz": 102,
+        "interchannelCorrelation": 0.9769,
+        "spectralCentroidHz": 206,
+        "energyAbove4kPercent": 0.05,
+        "energyAbove8kPercent": 0.04,
+        "energyAbove12kPercent": 0.02,
+        "maximumWindowAbove4kPercent": 74.26,
+        "maximumWindowAbove4kAtSeconds": 1.877,
+        "maximumWindowAbove4kRmsDbfs": -58.57,
+        "sourceInterchannelCorrelation": 0.8288,
+        "effectiveSamplePeakDbfs": -15.95,
+        "effectiveRmsDbfs": -30.67,
+        "effectiveMaximumWindowAbove4kRmsDbfs": -68.47
+      }
     },
     "level-up": {
       "sourceSha256": "1c81b99619f335eaeed2c6126c56c3edbcb440f9863a393d83fcaeebbc3d1cf6",
-      "outputSha256": "b9453d1f1740267b54ce41d58a3f0b9456084c4f91fe2a259968d5f367f68dd2",
-      "bytes": 13188,
-      "bitrate": 192000
+      "outputSha256": "7e1c4b554cd10ee7cf88f1f8d6f4434b95481976cb4af6bdbbd3ea6ae9e7a81d",
+      "bytes": 11975,
+      "bitrate": 192000,
+      "deliveryMetrics": {
+        "durationSeconds": 1,
+        "samplePeakDbfs": -7.55,
+        "rmsDbfs": -26.26,
+        "dominantFrequencyHz": 566,
+        "interchannelCorrelation": 0.8473,
+        "spectralCentroidHz": 389,
+        "energyAbove4kPercent": 0.39,
+        "energyAbove8kPercent": 0.04,
+        "energyAbove12kPercent": 0.03,
+        "maximumWindowAbove4kPercent": 3.14,
+        "maximumWindowAbove4kAtSeconds": 0,
+        "maximumWindowAbove4kRmsDbfs": -27.92,
+        "sourceInterchannelCorrelation": 0.7577,
+        "effectiveSamplePeakDbfs": -17.45,
+        "effectiveRmsDbfs": -36.16,
+        "effectiveMaximumWindowAbove4kRmsDbfs": -37.82
+      }
     },
     "arc-birth": {
       "sourceSha256": "f80c01d0949d989b7408285aa4737db58eda643b3c4ae7e0c3e7736c61f4f9ff",
       "outputSha256": "983969e2904ee657ad0faa33b9f382cc294e199a5cae9e3e8f309ea360a9777f",
       "bytes": 23063,
-      "bitrate": 192000
+      "bitrate": 192000,
+      "deliveryMetrics": {
+        "durationSeconds": 2,
+        "samplePeakDbfs": -1.65,
+        "rmsDbfs": -21.51,
+        "dominantFrequencyHz": 556,
+        "interchannelCorrelation": 0.5019,
+        "spectralCentroidHz": 442,
+        "energyAbove4kPercent": 0,
+        "energyAbove8kPercent": 0,
+        "energyAbove12kPercent": 0,
+        "maximumWindowAbove4kPercent": 0.01,
+        "maximumWindowAbove4kAtSeconds": 0,
+        "maximumWindowAbove4kRmsDbfs": -52.47,
+        "effectiveSamplePeakDbfs": -9.61,
+        "effectiveRmsDbfs": -29.47,
+        "effectiveMaximumWindowAbove4kRmsDbfs": -60.43
+      }
     },
     "arc-pickup": {
       "sourceSha256": "053e102de16bdfb1c84b0662f07456bf682119e58afabe0031c695453de288fa",
       "outputSha256": "63c6282ef4aea50b43878a8a5a37ef6e107f099b776ca746fb297e8b610d52f1",
       "bytes": 15030,
-      "bitrate": 192000
+      "bitrate": 192000,
+      "deliveryMetrics": {
+        "durationSeconds": 1,
+        "samplePeakDbfs": -2.1,
+        "rmsDbfs": -15.61,
+        "dominantFrequencyHz": 570,
+        "interchannelCorrelation": 0.954,
+        "spectralCentroidHz": 598,
+        "energyAbove4kPercent": 0.01,
+        "energyAbove8kPercent": 0,
+        "energyAbove12kPercent": 0,
+        "maximumWindowAbove4kPercent": 0.33,
+        "maximumWindowAbove4kAtSeconds": 0.341,
+        "maximumWindowAbove4kRmsDbfs": -36.06,
+        "effectiveSamplePeakDbfs": -12.56,
+        "effectiveRmsDbfs": -26.07,
+        "effectiveMaximumWindowAbove4kRmsDbfs": -46.52
+      }
     },
     "arc-drop": {
       "sourceSha256": "e8ef840b1ff4a7d6e0d0bdd1461a41a7a9272d7ab8dd53b4ff51d967011f783e",
       "outputSha256": "cca2bd466274f98edd0873f555d5be87ab8c3b9b1ab36ee38fa612e5a3d03079",
       "bytes": 18558,
-      "bitrate": 192000
+      "bitrate": 192000,
+      "deliveryMetrics": {
+        "durationSeconds": 1,
+        "samplePeakDbfs": -2.16,
+        "rmsDbfs": -16.14,
+        "dominantFrequencyHz": 134,
+        "interchannelCorrelation": 0.9513,
+        "spectralCentroidHz": 597,
+        "energyAbove4kPercent": 0.01,
+        "energyAbove8kPercent": 0,
+        "energyAbove12kPercent": 0,
+        "maximumWindowAbove4kPercent": 0.24,
+        "maximumWindowAbove4kAtSeconds": 0.555,
+        "maximumWindowAbove4kRmsDbfs": -51.35,
+        "effectiveSamplePeakDbfs": -12.62,
+        "effectiveRmsDbfs": -26.6,
+        "effectiveMaximumWindowAbove4kRmsDbfs": -61.81
+      }
     },
     "arc-bank": {
       "sourceSha256": "06ab6a5765349ba48a6cc2a662ff3ba92e4201423d0378253c1465b22acae787",
-      "outputSha256": "93d9098af33b00c51b7813318e4be5670eb01bc9533e2764780d81d24fc28424",
-      "bytes": 45064,
-      "bitrate": 192000
+      "outputSha256": "7f7cdc892dd1e318706178beb984e378a264dfbb9732b4663320511060b19601",
+      "bytes": 42288,
+      "bitrate": 192000,
+      "deliveryMetrics": {
+        "durationSeconds": 2,
+        "samplePeakDbfs": -5.07,
+        "rmsDbfs": -22.91,
+        "dominantFrequencyHz": 1168,
+        "interchannelCorrelation": 0.3074,
+        "spectralCentroidHz": 755,
+        "energyAbove4kPercent": 0.98,
+        "energyAbove8kPercent": 0.16,
+        "energyAbove12kPercent": 0.03,
+        "maximumWindowAbove4kPercent": 29.47,
+        "maximumWindowAbove4kAtSeconds": 0.043,
+        "maximumWindowAbove4kRmsDbfs": -40.28,
+        "sourceInterchannelCorrelation": 0.3308,
+        "effectiveSamplePeakDbfs": -12.2,
+        "effectiveRmsDbfs": -30.04,
+        "effectiveMaximumWindowAbove4kRmsDbfs": -47.41
+      }
     },
     "arc-pulse": {
       "sourceSha256": "156f81dc72edb46a119405e186c7faa379469038fb6150533de23d37b0bd320c",
-      "outputSha256": "49c3ce6c328f6eeca2e71c135e150aaa4d18dfd4576a541c3a86fd98d8fcb769",
-      "bytes": 74600,
-      "bitrate": 192000
+      "outputSha256": "24732435abd07ae65f31b8a3238335952c1e394dd1ae7e76fed3a37d97dbcf97",
+      "bytes": 70758,
+      "bitrate": 192000,
+      "deliveryMetrics": {
+        "durationSeconds": 4,
+        "samplePeakDbfs": -5.08,
+        "rmsDbfs": -19.42,
+        "dominantFrequencyHz": 88,
+        "interchannelCorrelation": 0.4909,
+        "spectralCentroidHz": 219,
+        "energyAbove4kPercent": 0.2,
+        "energyAbove8kPercent": 0.01,
+        "energyAbove12kPercent": 0,
+        "maximumWindowAbove4kPercent": 1.59,
+        "maximumWindowAbove4kAtSeconds": 0.085,
+        "maximumWindowAbove4kRmsDbfs": -16.15,
+        "sourceInterchannelCorrelation": 0.4903,
+        "effectiveSamplePeakDbfs": -14.98,
+        "effectiveRmsDbfs": -29.32,
+        "effectiveMaximumWindowAbove4kRmsDbfs": -26.05
+      }
     },
     "arc-handoff": {
       "sourceSha256": "6e9888670947684dda24fa9740cb7112bcd2a644bafee76b42613fddb4d6d1d4",
-      "outputSha256": "2f6b44936d1547e8946c63ffd49e8e0f4223150e792b226d9e735b13b7bb8fea",
-      "bytes": 43680,
-      "bitrate": 192000
+      "outputSha256": "09b19bb2a64d8a1033683b2e414d2e7a43c9d3b0bc507959b8447c7784cac749",
+      "bytes": 37652,
+      "bitrate": 192000,
+      "deliveryMetrics": {
+        "durationSeconds": 2,
+        "samplePeakDbfs": -6.11,
+        "rmsDbfs": -22.65,
+        "dominantFrequencyHz": 828,
+        "interchannelCorrelation": 0.7528,
+        "spectralCentroidHz": 1012,
+        "energyAbove4kPercent": 1.46,
+        "energyAbove8kPercent": 0.02,
+        "energyAbove12kPercent": 0.02,
+        "maximumWindowAbove4kPercent": 35.52,
+        "maximumWindowAbove4kAtSeconds": 1.451,
+        "maximumWindowAbove4kRmsDbfs": -83.13,
+        "sourceInterchannelCorrelation": 0.5874,
+        "effectiveSamplePeakDbfs": -16.57,
+        "effectiveRmsDbfs": -33.11,
+        "effectiveMaximumWindowAbove4kRmsDbfs": -93.59
+      }
     },
     "deflect": {
       "sourceSha256": "fe746af20bad5584ccf435ead7108f74be0b0f8de41830ae58df1ee2dcf75ce1",
       "outputSha256": "d540cf3b32a3ecf7654f20e2123606e3f3ad8dd5beb6bfe87b688c647d3da9ab",
       "bytes": 8038,
-      "bitrate": 192000
+      "bitrate": 192000,
+      "deliveryMetrics": {
+        "durationSeconds": 0.55,
+        "samplePeakDbfs": -2.88,
+        "rmsDbfs": -27.79,
+        "dominantFrequencyHz": 1082,
+        "interchannelCorrelation": 1,
+        "spectralCentroidHz": 3633,
+        "energyAbove4kPercent": 0.33,
+        "energyAbove8kPercent": 0.01,
+        "energyAbove12kPercent": 0,
+        "maximumWindowAbove4kPercent": 2.53,
+        "maximumWindowAbove4kAtSeconds": 0.427,
+        "maximumWindowAbove4kRmsDbfs": -84.4,
+        "effectiveSamplePeakDbfs": -12.25,
+        "effectiveRmsDbfs": -37.16,
+        "effectiveMaximumWindowAbove4kRmsDbfs": -93.77
+      }
     },
     "arrival": {
       "sourceSha256": "22736b9d867d3dbd0df3594de536466b2db89aec10a84f4f474ab52ee9d2038e",
-      "outputSha256": "c8302ec89b6b21978bb0c9f40a3ff1bee2d49610797893ea66df69a87b632816",
-      "bytes": 48879,
-      "bitrate": 192000
-    },
-    "arena-ambience-ion-veil": {
-      "sourceSha256": "1d78c31f1565dc01de7e14e3ed0df6662b9faa00f7bf878330facaacaaceff10",
-      "outputSha256": "eb62d2457261acb28eef3faffd7ef9dbac13fa82bf605bacb98392686d95f65d",
-      "bytes": 617816,
-      "bitrate": 160000
+      "outputSha256": "550b94182cf3cbc50ffa896ad034c5b3d15b2c46b39c9427955e01e8ef21041d",
+      "bytes": 46922,
+      "bitrate": 192000,
+      "deliveryMetrics": {
+        "durationSeconds": 2,
+        "samplePeakDbfs": -6.05,
+        "rmsDbfs": -20.76,
+        "dominantFrequencyHz": 1560,
+        "interchannelCorrelation": 0.9769,
+        "spectralCentroidHz": 205,
+        "energyAbove4kPercent": 0.05,
+        "energyAbove8kPercent": 0.03,
+        "energyAbove12kPercent": 0.02,
+        "maximumWindowAbove4kPercent": 78.83,
+        "maximumWindowAbove4kAtSeconds": 0,
+        "maximumWindowAbove4kRmsDbfs": -61.12,
+        "sourceInterchannelCorrelation": 0.8211,
+        "effectiveSamplePeakDbfs": -17.11,
+        "effectiveRmsDbfs": -31.82,
+        "effectiveMaximumWindowAbove4kRmsDbfs": -72.18
+      }
     }
   }
 }

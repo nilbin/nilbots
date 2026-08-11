@@ -178,15 +178,9 @@ validated.push(
       reviewOnlyCueIds: ["attack-fizzle", "attack-cancel", "arc-steal"],
       silentOutcomeCueIds: ["attack-fizzle", "attack-cancel"],
       runtimeAliases: { "arc-steal": "arc-pickup" },
-      selectedBackgroundLoop: {
-        cueId: "arena-ambience-ion-veil",
-        runtimeGain: 0.08,
-        mapIds: ["arc-relay-tapline-01"],
-        runtimeFile:
-          "web/src/assets/audio/effects/astral-relay/arena-ambience-ion-veil.m4a",
-      },
+      selectedBackgroundLoop: null,
     },
-    expectedMappedBackgroundLoopId: "arena-ambience-ion-veil",
+    expectedMappedBackgroundLoopId: null,
   }),
 );
 
@@ -467,6 +461,11 @@ async function validateCandidateSet(specification) {
         assert(
           loop.status === "proposed" && loop.runtimeGain === undefined,
           `${loop.id}: non-selected ambience must remain review-only`,
+        );
+      } else {
+        assert(
+          loop.status === "proposed" && loop.runtimeGain === undefined,
+          `${loop.id}: ambience must remain review-only when runtime ambience is disabled`,
         );
       }
       const wav = await validateCueFile(loop, manifest, {

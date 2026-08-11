@@ -2,9 +2,8 @@
 
 Status: Astral Relay is the approved default runtime sound-effect direction.
 Thirteen one-shot voices ship in the web and self-contained replay viewers;
-Tapline also carries Ion veil as a near-subliminal ambience loop. Effects are
-enabled by default after the browser's first trusted user interaction. Neon
-Protocol music is unchanged.
+no ambience loop ships or plays. Effects are enabled by default after the
+browser's first trusted user interaction. Neon Protocol music is unchanged.
 
 ## Product principles
 
@@ -171,10 +170,10 @@ The original remains the steadiest technical reference and leaves the least
 foreground motion. Two additional private Engine calls tested a brighter ion
 veil and a sparse signal lattice. The first rendered wider but darker than
 requested; the second rendered substantially quieter and sparser. Owner review
-now selects Ion veil for Tapline, deliberately reduced from its 0.418
-level-matched review gain to a 0.08 runtime gain. Original dark field and Signal
-lattice remain review-only alternatives. Neon Protocol is not regenerated,
-remixed, or otherwise changed by this selection.
+briefly selected Ion veil for Tapline at 0.08 runtime gain, then removed the
+ambient bed entirely. Original dark field, Ion veil, and Signal lattice are now
+review-only alternatives. Neon Protocol is not regenerated, remixed, or
+otherwise changed.
 
 An energy audit originally found excessive upper-band energy in wind-up and
 fizzle, while armor impact reconstructed above full scale and level-up left
@@ -194,7 +193,7 @@ and audit again before building the manifest. This prevents a dependent cue
 from retaining the noisier pre-master source. Ordinary checked-in rebuilds use
 the documented derive, master, build order.
 
-The sound lab routes every cue and the selected optional ambience through one
+The sound lab routes every cue and each optional ambience comparison through one
 shared Web Audio compressor and then a fixed 3 dB safety gain. The deterministic
 audit checks all nineteen V5 WAVs and every ambience variant of the exact
 possession, combat, and full-story sums; each sequence must remain at or below
@@ -241,16 +240,26 @@ node scripts/export-runtime-sound-effects.mjs
 
 This verifies the hash-pinned V5 sources and exports Astral Relay to
 `web/src/assets/audio/effects/astral-relay/` as 48 kHz stereo AAC-LC: thirteen
-mapped one-shots at 192 kbps and the 30-second Ion veil loop at
-160 kbps, roughly 0.96 MiB together. Fizzle, cancel, and the historical
+mapped one-shots at 192 kbps, roughly 0.34 MiB together. Fizzle, cancel, and the historical
 special-steal take remain lossless review references rather than runtime
 assets. The production manifest records the SFX Engine and
 local derivation lineage, source/output hashes, checked licensing basis,
-shipment approval, per-cue gain/voice limits, and Tapline's stable map ID.
+shipment approval, and per-cue gain/voice limits.
 Automated tests reject any additional pack, missing cue, altered byte, unsafe
 mix bound, or untraceable generation record. Lossless WAVs remain the source
 of truth in the sound lab. The exporter also zeros the three standard M4A
 creation/modification timestamps, making repeated exports byte-identical.
+
+Delivery processing now covers wind-up, beam, impact, destruction, level up,
+Core bank, Core Pulse, handoff, and arrival. It preserves accepted sources and
+uses only deterministic low-pass filtering, endpoint fades, and conservative
+peak normalization—no SFX Engine request and no synthesized layer. The export
+then decodes every AAC and audits what the browser will hear. Every one-shot
+must remain at or below 3% energy above 4 kHz, 0.05% above 12 kHz, -9 dBFS
+effective sample peak, and -25 dBFS whole-cue RMS. A window with more than 10%
+upper-mid energy must also fall below -28 dBFS RMS after its runtime gain. The
+destruction/arrival family that triggered this pass falls to 0.05% above 4 kHz
+and 0.02% above 12 kHz in decoded delivery.
 
 The viewer derives beam, impact, destruction, deflection, arrival, veterancy,
 and every Core possession/scoring cue from authoritative replay facts. A new
@@ -266,10 +275,9 @@ Browser autoplay policy still requires a user gesture. The first trusted click
 or non-modifier key resumes the viewer's shared audio session and arms enabled
 music and effects together; there is no second sound-effects prompt. A compact
 control exposes independent SFX mute and volume, and `?audio=off` remains an
-explicit diagnostic opt-out. Ion veil starts only on `arc-relay-tapline-01`,
-runs dry beneath the cues at gain 0.08, and stops on
-pause, hide, end, or playback above 2×. The CLI includes this approved audio
-package but continues to omit the network-fetched soundtrack.
+explicit diagnostic opt-out. There is no ambient source to preload or loop.
+The CLI includes this approved one-shot package but continues to omit the
+network-fetched soundtrack.
 
 The native hosted viewer remains silent. Giving its WebView a trusted
 activation through native controls requires a deliberate mobile bridge change
@@ -278,14 +286,15 @@ and is separate from approving the web/standalone pack.
 ## Runtime package shape
 
 1. Keep all candidate WAV files as lossless source masters under `art/audio`.
-2. Ship only Astral Relay's approved compressed cues and selected Tapline loop.
+2. Ship only Astral Relay's thirteen approved compressed one-shots; ambience
+   candidates remain sound-lab references.
 3. Keep shared gameplay cues in one rights- and approval-bearing runtime
    manifest.
 4. Let a projectile-look manifest optionally reference a stable sound-profile
    ID. Projectile visuals and sounds remain independently replaceable assets;
    neither stores gameplay values.
-5. Give map-theme manifests only subtle ambience references. A map selects its
-   theme and ambience; the viewer does not.
+5. Keep ambience opt-in at the package level if it returns; no current map or
+   viewer selects a loop.
 6. Validate every runtime manifest reference, file format, approval, rights
    status, and package-size ceiling in automated tests; validate the lossless
    masters with the sound-lab validator.

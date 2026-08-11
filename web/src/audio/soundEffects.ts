@@ -16,6 +16,16 @@ export const SOUND_EFFECT_CUE_IDS = [
 
 export type SoundEffectCueId = (typeof SOUND_EFFECT_CUE_IDS)[number];
 export type SoundEffectPackId = 'astral-relay';
+type DeliveryProcessedCueId =
+  | 'attack-windup'
+  | 'projectile'
+  | 'impact'
+  | 'destroyed'
+  | 'level-up'
+  | 'arc-bank'
+  | 'arc-pulse'
+  | 'arc-handoff'
+  | 'arrival';
 
 interface SoundEffectCueMix {
   gain: number;
@@ -47,9 +57,12 @@ interface SoundEffectManifest {
     deliveryProcessing: {
       policy: string;
       cues: Record<
-        'attack-windup' | 'projectile',
+        DeliveryProcessedCueId,
         {
-          channelTransform: 'side-to-dual-mono' | 'mid-to-dual-mono';
+          channelTransform:
+            | 'side-to-dual-mono'
+            | 'mid-to-dual-mono'
+            | 'preserve-stereo';
           sourceStartSeconds: number;
           playbackRate: number;
           durationSeconds: number;
@@ -83,33 +96,33 @@ interface SoundEffectManifest {
     };
   };
   cues: Record<SoundEffectCueId, string>;
-  ambience: {
-    id: string;
-    sourceCueId: string;
-    file: string;
-    loop: boolean;
-    durationSeconds: number;
-    gain: number;
-    mapIds: string[];
-  };
   integrity: Record<
-    string,
+    SoundEffectCueId,
     {
       sourceSha256: string;
       outputSha256: string;
       bytes: number;
       bitrate: number;
+      deliveryMetrics: {
+        durationSeconds: number;
+        samplePeakDbfs: number;
+        rmsDbfs: number;
+        dominantFrequencyHz: number;
+        interchannelCorrelation: number;
+        sourceInterchannelCorrelation?: number;
+        spectralCentroidHz: number;
+        energyAbove4kPercent: number;
+        energyAbove8kPercent: number;
+        energyAbove12kPercent: number;
+        maximumWindowAbove4kPercent: number;
+        maximumWindowAbove4kAtSeconds: number;
+        maximumWindowAbove4kRmsDbfs: number;
+        effectiveSamplePeakDbfs: number;
+        effectiveRmsDbfs: number;
+        effectiveMaximumWindowAbove4kRmsDbfs: number;
+      };
     }
   >;
-}
-
-export interface SoundEffectAmbience {
-  id: string;
-  url: string;
-  loop: boolean;
-  durationSeconds: number;
-  gain: number;
-  mapIds: readonly string[];
 }
 
 export interface SoundEffectPack {
@@ -120,7 +133,6 @@ export interface SoundEffectPack {
     roomSend: number;
     cues: Record<SoundEffectCueId, SoundEffectCueMix>;
   };
-  ambience: SoundEffectAmbience;
 }
 
 const manifests = import.meta.glob<SoundEffectManifest>(
@@ -145,7 +157,7 @@ function loadSoundEffectPack(): SoundEffectPack {
   }
   const [manifestPath, manifest] = entries[0]!;
   if (
-    manifest.version !== 4 ||
+    manifest.version !== 5 ||
     manifest.id !== DEFAULT_SOUND_EFFECT_PACK_ID ||
     manifest.approval !== 'approved' ||
     manifest.format !== 'aac-lc-m4a' ||
@@ -160,7 +172,7 @@ function loadSoundEffectPack(): SoundEffectPack {
     manifest.provenance.deliveryEncoding?.encoder !== 'macos-afconvert' ||
     manifest.provenance.deliveryEncoding.canonicalization !==
       'zero-iso-bmff-creation-and-modification-times' ||
-    !validCombatDeliveryProcessing(
+    !validDeliveryProcessing(
       manifest.provenance.deliveryProcessing?.cues,
     ) ||
     manifest.provenance.rightsStatus !== 'rights-cleared' ||
@@ -179,10 +191,6 @@ function loadSoundEffectPack(): SoundEffectPack {
       manifest.behavior.tickMix.suppressBeamUnderConcreteOutcomes,
     ) !== JSON.stringify(['impact', 'destroyed', 'deflect']) ||
     !isUnitGain(manifest.mix?.roomSend) ||
-    !isUnitGain(manifest.ambience?.gain) ||
-    manifest.ambience?.loop !== true ||
-    manifest.ambience.durationSeconds <= 0 ||
-    manifest.ambience.mapIds.length === 0 ||
     !/^[a-f0-9]{64}$/.test(manifest.provenance.generationRecordSha256)
   ) {
     throw new Error(`Invalid runtime sound-effect manifest '${manifestPath}'.`);
@@ -193,6 +201,12 @@ function loadSoundEffectPack(): SoundEffectPack {
     SOUND_EFFECT_CUE_IDS,
     manifestPath,
     'cue mix',
+  );
+  assertExactKeys(
+    manifest.integrity,
+    SOUND_EFFECT_CUE_IDS,
+    manifestPath,
+    'integrity records',
   );
 
   const directory = manifestPath.slice(0, manifestPath.lastIndexOf('/'));
@@ -223,33 +237,15 @@ function loadSoundEffectPack(): SoundEffectPack {
     }),
   ) as Record<SoundEffectCueId, string>;
 
-  const ambienceUrl = assetUrls[`${directory}/${manifest.ambience.file}`];
-  if (
-    !ambienceUrl ||
-    !validIntegrity(manifest.integrity?.[manifest.ambience.sourceCueId])
-  ) {
-    throw new Error(
-      `Sound-effect pack '${manifest.id}' references invalid ambience '${manifest.ambience.file}'.`,
-    );
-  }
-
   return {
     id: manifest.id,
     label: manifest.label,
     cues,
     mix: manifest.mix,
-    ambience: {
-      id: manifest.ambience.id,
-      url: ambienceUrl,
-      loop: manifest.ambience.loop,
-      durationSeconds: manifest.ambience.durationSeconds,
-      gain: manifest.ambience.gain,
-      mapIds: manifest.ambience.mapIds,
-    },
   };
 }
 
-function validCombatDeliveryProcessing(
+function validDeliveryProcessing(
   cues:
     | SoundEffectManifest['provenance']['deliveryProcessing']['cues']
     | undefined,
@@ -257,13 +253,25 @@ function validCombatDeliveryProcessing(
   if (!cues) return false;
   if (
     JSON.stringify(Object.keys(cues).sort()) !==
-    JSON.stringify(['attack-windup', 'projectile'])
+    JSON.stringify(
+      [
+        'arc-bank',
+        'arc-handoff',
+        'arc-pulse',
+        'arrival',
+        'attack-windup',
+        'destroyed',
+        'impact',
+        'level-up',
+        'projectile',
+      ],
+    )
   ) {
     return false;
   }
   return Object.values(cues).every(
     (cue) =>
-      ['side-to-dual-mono', 'mid-to-dual-mono'].includes(
+      ['side-to-dual-mono', 'mid-to-dual-mono', 'preserve-stereo'].includes(
         cue.channelTransform,
       ) &&
       Number.isFinite(cue.sourceStartSeconds) &&
@@ -271,19 +279,20 @@ function validCombatDeliveryProcessing(
       cue.sourceStartSeconds <= 0.25 &&
       Number.isFinite(cue.playbackRate) &&
       cue.playbackRate >= 0.1 &&
-      cue.playbackRate <= 0.25 &&
+      cue.playbackRate <= 1 &&
       Number.isFinite(cue.durationSeconds) &&
       cue.durationSeconds > 0 &&
-      cue.durationSeconds <= 0.25 &&
+      cue.durationSeconds <= 4 &&
       Number.isFinite(cue.lowPassHz) &&
       cue.lowPassHz >= 500 &&
-      cue.lowPassHz <= 1_000 &&
+      cue.lowPassHz <= 4_500 &&
       isUnitGain(cue.targetSamplePeak) &&
-      cue.targetSamplePeak <= 0.3 &&
+      cue.targetSamplePeak <= 0.55 &&
       Number.isFinite(cue.fadeInSeconds) &&
       cue.fadeInSeconds >= 0.01 &&
       Number.isFinite(cue.fadeOutSeconds) &&
-      cue.fadeOutSeconds >= 0.05,
+      cue.fadeOutSeconds >= 0.05 &&
+      cue.fadeOutSeconds <= 0.5,
   );
 }
 
@@ -303,6 +312,23 @@ function validIntegrity(
         outputSha256: string;
         bytes: number;
         bitrate: number;
+        deliveryMetrics: {
+          durationSeconds: number;
+          samplePeakDbfs: number;
+          rmsDbfs: number;
+          dominantFrequencyHz: number;
+          interchannelCorrelation: number;
+          spectralCentroidHz: number;
+          energyAbove4kPercent: number;
+          energyAbove8kPercent: number;
+          energyAbove12kPercent: number;
+          maximumWindowAbove4kPercent: number;
+          maximumWindowAbove4kAtSeconds: number;
+          maximumWindowAbove4kRmsDbfs: number;
+          effectiveSamplePeakDbfs: number;
+          effectiveRmsDbfs: number;
+          effectiveMaximumWindowAbove4kRmsDbfs: number;
+        };
       }
     | undefined,
 ): boolean {
@@ -313,7 +339,31 @@ function validIntegrity(
       Number.isInteger(value.bytes) &&
       value.bytes > 0 &&
       Number.isInteger(value.bitrate) &&
-      value.bitrate > 0,
+      value.bitrate > 0 &&
+      Number.isFinite(value.deliveryMetrics?.durationSeconds) &&
+      value.deliveryMetrics.durationSeconds > 0 &&
+      Number.isFinite(value.deliveryMetrics.samplePeakDbfs) &&
+      Number.isFinite(value.deliveryMetrics.rmsDbfs) &&
+      Number.isFinite(value.deliveryMetrics.dominantFrequencyHz) &&
+      Number.isFinite(value.deliveryMetrics.interchannelCorrelation) &&
+      Number.isFinite(value.deliveryMetrics.spectralCentroidHz) &&
+      Number.isFinite(value.deliveryMetrics.energyAbove4kPercent) &&
+      value.deliveryMetrics.energyAbove4kPercent <= 3 &&
+      Number.isFinite(value.deliveryMetrics.energyAbove8kPercent) &&
+      Number.isFinite(value.deliveryMetrics.energyAbove12kPercent) &&
+      value.deliveryMetrics.energyAbove12kPercent <= 0.05 &&
+      Number.isFinite(value.deliveryMetrics.maximumWindowAbove4kPercent) &&
+      Number.isFinite(value.deliveryMetrics.maximumWindowAbove4kAtSeconds) &&
+      Number.isFinite(value.deliveryMetrics.maximumWindowAbove4kRmsDbfs) &&
+      Number.isFinite(value.deliveryMetrics.effectiveSamplePeakDbfs) &&
+      value.deliveryMetrics.effectiveSamplePeakDbfs <= -9 &&
+      Number.isFinite(value.deliveryMetrics.effectiveRmsDbfs) &&
+      value.deliveryMetrics.effectiveRmsDbfs <= -25 &&
+      Number.isFinite(
+        value.deliveryMetrics.effectiveMaximumWindowAbove4kRmsDbfs,
+      ) &&
+      (value.deliveryMetrics.maximumWindowAbove4kPercent <= 10 ||
+        value.deliveryMetrics.effectiveMaximumWindowAbove4kRmsDbfs <= -28),
   );
 }
 

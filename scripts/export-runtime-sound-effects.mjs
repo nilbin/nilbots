@@ -39,7 +39,6 @@ const stagingRoot = `${destinationRoot}.staging-${exportSuffix}`;
 const backupRoot = `${destinationRoot}.backup-${exportSuffix}`;
 const backupPrefix = `${path.basename(destinationRoot)}.backup-`;
 const selectedPackId = "astral-relay";
-const selectedAmbienceId = "arena-ambience-ion-veil";
 const sourceCueIds = [
   "attack-windup",
   "projectile",
@@ -88,20 +87,20 @@ const mix = {
       panWidth: 0.2,
       roomSend: false,
     },
-    impact: { gain: 0.38, voiceLimit: 2, panWidth: 0.7, roomSend: true },
-    destroyed: { gain: 0.44, voiceLimit: 1, panWidth: 0.7, roomSend: true },
-    "level-up": { gain: 0.46, voiceLimit: 2, panWidth: 0.7, roomSend: true },
+    impact: { gain: 0.32, voiceLimit: 1, panWidth: 0.5, roomSend: false },
+    destroyed: { gain: 0.32, voiceLimit: 1, panWidth: 0.45, roomSend: false },
+    "level-up": { gain: 0.32, voiceLimit: 1, panWidth: 0.4, roomSend: false },
     "arc-birth": { gain: 0.4, voiceLimit: 2, panWidth: 0.7, roomSend: true },
     "arc-pickup": { gain: 0.3, voiceLimit: 2, panWidth: 0.7, roomSend: true },
     "arc-drop": { gain: 0.3, voiceLimit: 2, panWidth: 0.7, roomSend: true },
-    "arc-bank": { gain: 0.5, voiceLimit: 1, panWidth: 0.7, roomSend: true },
-    "arc-pulse": { gain: 0.54, voiceLimit: 1, panWidth: 0.7, roomSend: true },
-    "arc-handoff": { gain: 0.38, voiceLimit: 2, panWidth: 0.7, roomSend: true },
+    "arc-bank": { gain: 0.44, voiceLimit: 1, panWidth: 0.55, roomSend: true },
+    "arc-pulse": { gain: 0.32, voiceLimit: 1, panWidth: 0.55, roomSend: true },
+    "arc-handoff": { gain: 0.3, voiceLimit: 1, panWidth: 0.55, roomSend: false },
     deflect: { gain: 0.34, voiceLimit: 2, panWidth: 0.7, roomSend: true },
-    arrival: { gain: 0.38, voiceLimit: 3, panWidth: 0.7, roomSend: true },
+    arrival: { gain: 0.28, voiceLimit: 1, panWidth: 0.45, roomSend: false },
   },
 };
-const combatDeliveryProcessing = {
+const deliveryProcessing = {
   "attack-windup": {
     channelTransform: "side-to-dual-mono",
     sourceStartSeconds: 0.1,
@@ -122,15 +121,76 @@ const combatDeliveryProcessing = {
     fadeOutSeconds: 0.08,
     targetSamplePeak: 0.24,
   },
-};
-const ambience = {
-  id: "ion-veil",
-  sourceCueId: selectedAmbienceId,
-  file: "arena-ambience-ion-veil.m4a",
-  loop: true,
-  durationSeconds: 30,
-  gain: 0.08,
-  mapIds: ["arc-relay-tapline-01"],
+  impact: {
+    channelTransform: "preserve-stereo",
+    sourceStartSeconds: 0,
+    playbackRate: 1,
+    durationSeconds: 1,
+    lowPassHz: 3_600,
+    fadeInSeconds: 0.02,
+    fadeOutSeconds: 0.14,
+    targetSamplePeak: 0.45,
+  },
+  destroyed: {
+    channelTransform: "preserve-stereo",
+    sourceStartSeconds: 0,
+    playbackRate: 1,
+    durationSeconds: 2,
+    lowPassHz: 2_800,
+    fadeInSeconds: 0.08,
+    fadeOutSeconds: 0.45,
+    targetSamplePeak: 0.5,
+  },
+  "level-up": {
+    channelTransform: "preserve-stereo",
+    sourceStartSeconds: 0,
+    playbackRate: 1,
+    durationSeconds: 1,
+    lowPassHz: 3_500,
+    fadeInSeconds: 0.12,
+    fadeOutSeconds: 0.18,
+    targetSamplePeak: 0.42,
+  },
+  "arc-bank": {
+    channelTransform: "preserve-stereo",
+    sourceStartSeconds: 0,
+    playbackRate: 1,
+    durationSeconds: 2,
+    lowPassHz: 4_500,
+    fadeInSeconds: 0.04,
+    fadeOutSeconds: 0.5,
+    targetSamplePeak: 0.55,
+  },
+  "arc-pulse": {
+    channelTransform: "preserve-stereo",
+    sourceStartSeconds: 0,
+    playbackRate: 1,
+    durationSeconds: 4,
+    lowPassHz: 3_000,
+    fadeInSeconds: 0.12,
+    fadeOutSeconds: 0.4,
+    targetSamplePeak: 0.55,
+  },
+  "arc-handoff": {
+    channelTransform: "preserve-stereo",
+    sourceStartSeconds: 0,
+    playbackRate: 1,
+    durationSeconds: 2,
+    lowPassHz: 3_200,
+    fadeInSeconds: 0.04,
+    fadeOutSeconds: 0.5,
+    targetSamplePeak: 0.5,
+  },
+  arrival: {
+    channelTransform: "preserve-stereo",
+    sourceStartSeconds: 0,
+    playbackRate: 1,
+    durationSeconds: 2,
+    lowPassHz: 2_800,
+    fadeInSeconds: 0.45,
+    fadeOutSeconds: 0.08,
+    targetSamplePeak: 0.5,
+  },
 };
 
 async function pathExists(target) {
@@ -280,25 +340,14 @@ async function exportAsset({
     throw new Error(`${id}: source WAV differs from its generation record.`);
   }
   const temporaryWav = `${destination}.delivery.wav`;
+  const decodedWav = `${destination}.decoded.wav`;
   let encodingSource = sourceFile;
-  let deliveryMetrics;
+  let sourceInterchannelCorrelation;
   if (deliveryProcessing) {
-    const shaped = shapeCombatCue(sourceBytes, id, deliveryProcessing);
+    const shaped = shapeDeliveryCue(sourceBytes, id, deliveryProcessing);
     await writeFile(temporaryWav, shaped.bytes);
     encodingSource = temporaryWav;
-    deliveryMetrics = shaped.metrics;
-    const effectivePeakDbfs =
-      deliveryMetrics.samplePeakDbfs + 20 * Math.log10(mix.cues[id].gain);
-    const effectiveRmsDbfs =
-      deliveryMetrics.rmsDbfs + 20 * Math.log10(mix.cues[id].gain);
-    if (effectivePeakDbfs > -20) {
-      throw new Error(
-        `${id}: ${effectivePeakDbfs.toFixed(2)} dBFS effective delivery peak ` +
-          "exceeds the -20 dBFS combat-cue ceiling.",
-      );
-    }
-    deliveryMetrics.effectiveSamplePeakDbfs = round(effectivePeakDbfs, 2);
-    deliveryMetrics.effectiveRmsDbfs = round(effectiveRmsDbfs, 2);
+    sourceInterchannelCorrelation = shaped.sourceInterchannelCorrelation;
   }
   try {
     execFileSync(
@@ -332,19 +381,85 @@ async function exportAsset({
   ) {
     throw new Error(`Exported an invalid runtime cue: ${destination}`);
   }
+  let deliveryMetrics;
+  try {
+    execFileSync(
+      "afconvert",
+      [
+        destination,
+        decodedWav,
+        "-f",
+        "WAVE",
+        "-d",
+        "LEI16@48000",
+        "-c",
+        "2",
+        "-r",
+        "127",
+      ],
+      { stdio: "inherit" },
+    );
+    deliveryMetrics = analyzeDeliveryWav(await readFile(decodedWav), id);
+  } finally {
+    await rm(decodedWav, { force: true });
+  }
+  if (sourceInterchannelCorrelation !== undefined) {
+    deliveryMetrics.sourceInterchannelCorrelation = round(
+      sourceInterchannelCorrelation,
+      4,
+    );
+  }
+  const runtimeGainDb = 20 * Math.log10(mix.cues[id].gain);
+  const effectivePeakDbfs = deliveryMetrics.samplePeakDbfs + runtimeGainDb;
+  const effectiveRmsDbfs = deliveryMetrics.rmsDbfs + runtimeGainDb;
+  const effectivePeakCeiling =
+    id === "attack-windup" || id === "projectile" ? -20 : -9;
+  if (effectivePeakDbfs > effectivePeakCeiling) {
+    throw new Error(
+      `${id}: ${effectivePeakDbfs.toFixed(2)} dBFS effective delivery peak ` +
+        `exceeds its ${effectivePeakCeiling} dBFS ceiling.`,
+    );
+  }
+  if (
+    effectiveRmsDbfs > -25 ||
+    deliveryMetrics.energyAbove4kPercent > 3 ||
+    deliveryMetrics.energyAbove12kPercent > 0.05
+  ) {
+    throw new Error(
+      `${id}: decoded runtime audio exceeds a comfort ceiling ` +
+        `(${effectiveRmsDbfs.toFixed(2)} dBFS RMS, ` +
+        `${deliveryMetrics.energyAbove4kPercent.toFixed(2)}% above 4 kHz, ` +
+        `${deliveryMetrics.energyAbove12kPercent.toFixed(2)}% above 12 kHz).`,
+    );
+  }
+  deliveryMetrics.effectiveSamplePeakDbfs = round(effectivePeakDbfs, 2);
+  deliveryMetrics.effectiveRmsDbfs = round(effectiveRmsDbfs, 2);
+  deliveryMetrics.effectiveMaximumWindowAbove4kRmsDbfs = round(
+    deliveryMetrics.maximumWindowAbove4kRmsDbfs + runtimeGainDb,
+    2,
+  );
+  if (
+    deliveryMetrics.maximumWindowAbove4kPercent > 10 &&
+    deliveryMetrics.effectiveMaximumWindowAbove4kRmsDbfs > -28
+  ) {
+    throw new Error(
+      `${id}: a concentrated bright window remains audible above its ` +
+        "-28 dBFS RMS ceiling.",
+    );
+  }
   return {
     sourceSha256: sourceHash,
     outputSha256: sha256(outputBytes),
     bytes: outputBytes.length,
     bitrate,
-    ...(deliveryMetrics ? { deliveryMetrics } : {}),
+    deliveryMetrics,
   };
 }
 
-function shapeCombatCue(sourceBytes, id, processing) {
+function shapeDeliveryCue(sourceBytes, id, processing) {
   const wav = parsePcm16Wav(sourceBytes, id);
   if (wav.sampleRate !== 48_000 || wav.channels !== 2) {
-    throw new Error(`${id}: combat delivery shaping requires 48 kHz stereo PCM.`);
+    throw new Error(`${id}: delivery shaping requires 48 kHz stereo PCM.`);
   }
   const source = decodePcm16(sourceBytes, wav);
   const sourceInterchannelCorrelation = interchannelCorrelation(
@@ -364,7 +479,7 @@ function shapeCombatCue(sourceBytes, id, processing) {
     processing.playbackRate <= 0 ||
     finalSourcePosition > sourceFrameCount - 1
   ) {
-    throw new Error(`${id}: combat delivery window exceeds the source cue.`);
+    throw new Error(`${id}: delivery window exceeds the source cue.`);
   }
   const samples = new Float64Array(frameCount * wav.channels);
   for (let frame = 0; frame < frameCount; frame += 1) {
@@ -379,6 +494,11 @@ function shapeCombatCue(sourceBytes, id, processing) {
     const right =
       source[sourceFrame * 2 + 1] * (1 - fraction) +
       source[nextSourceFrame * 2 + 1] * fraction;
+    if (processing.channelTransform === "preserve-stereo") {
+      samples[frame * 2] = left;
+      samples[frame * 2 + 1] = right;
+      continue;
+    }
     const mono =
       processing.channelTransform === "side-to-dual-mono"
         ? (left - right) * 0.5
@@ -386,7 +506,7 @@ function shapeCombatCue(sourceBytes, id, processing) {
           ? (left + right) * 0.5
           : Number.NaN;
     if (!Number.isFinite(mono)) {
-      throw new Error(`${id}: unknown combat channel transform.`);
+      throw new Error(`${id}: unknown delivery channel transform.`);
     }
     samples[frame * 2] = mono;
     samples[frame * 2 + 1] = mono;
@@ -410,13 +530,7 @@ function shapeCombatCue(sourceBytes, id, processing) {
   const bytes = encodePcm16Wav(samples, wav.sampleRate, wav.channels);
   return {
     bytes,
-    metrics: {
-      ...analyzeDeliveryWav(bytes, id),
-      sourceInterchannelCorrelation: round(
-        sourceInterchannelCorrelation,
-        4,
-      ),
-    },
+    sourceInterchannelCorrelation,
   };
 }
 
@@ -441,6 +555,8 @@ function parsePcm16Wav(bytes, label) {
         channels: bytes.readUInt16LE(body + 2),
         sampleRate: bytes.readUInt32LE(body + 4),
         bitsPerSample: bytes.readUInt16LE(body + 14),
+        subFormat:
+          length >= 40 ? bytes.readUInt32LE(body + 24) : undefined,
       };
     } else if (chunkId === "data") {
       dataOffset = body;
@@ -452,7 +568,10 @@ function parsePcm16Wav(bytes, label) {
     !format ||
     dataOffset === undefined ||
     dataLength === undefined ||
-    format.audioFormat !== 1 ||
+    !(
+      format.audioFormat === 1 ||
+      (format.audioFormat === 0xfffe && format.subFormat === 1)
+    ) ||
     format.bitsPerSample !== 16 ||
     dataOffset + dataLength > bytes.length
   ) {
@@ -601,7 +720,149 @@ function analyzeDeliveryWav(bytes, label) {
     rmsDbfs: round(20 * Math.log10(rms), 2),
     dominantFrequencyHz: dominantFrequencyHz(mono, wav.sampleRate),
     interchannelCorrelation: round(correlation, 4),
+    ...analyzeSpectrum(bytes, wav),
   };
+}
+
+function analyzeSpectrum(bytes, wav) {
+  const frames = wav.sampleCount / wav.channels;
+  const fftSize = 4_096;
+  const hop = fftSize / 2;
+  const starts =
+    frames < fftSize
+      ? [0]
+      : Array.from(
+          { length: Math.floor((frames - fftSize) / hop) + 1 },
+          (_, index) => index * hop,
+        );
+  const spectrum = new Float64Array(fftSize / 2 + 1);
+  let maximumWindowAbove4kPercent = 0;
+  let maximumWindowAbove4kAtSeconds = 0;
+  let maximumWindowAbove4kRmsDbfs = -Infinity;
+
+  for (const start of starts) {
+    const windowSpectrum = new Float64Array(fftSize / 2 + 1);
+    let windowSquares = 0;
+    for (let channel = 0; channel < wav.channels; channel += 1) {
+      const real = new Float64Array(fftSize);
+      const imaginary = new Float64Array(fftSize);
+      for (let index = 0; index < fftSize; index += 1) {
+        const frame = start + index;
+        const sample =
+          frame < frames
+            ? bytes.readInt16LE(
+                wav.dataOffset + (frame * wav.channels + channel) * 2,
+              ) / 32_768
+            : 0;
+        windowSquares += sample * sample;
+        const window =
+          0.5 - 0.5 * Math.cos((2 * Math.PI * index) / (fftSize - 1));
+        real[index] = sample * window;
+      }
+      fft(real, imaginary);
+      for (let bin = 1; bin <= fftSize / 2; bin += 1) {
+        windowSpectrum[bin] += real[bin] ** 2 + imaginary[bin] ** 2;
+      }
+    }
+
+    let windowTotal = 0;
+    let windowAbove4k = 0;
+    for (let bin = 1; bin <= fftSize / 2; bin += 1) {
+      const power = windowSpectrum[bin];
+      spectrum[bin] += power;
+      windowTotal += power;
+      if ((bin * wav.sampleRate) / fftSize >= 4_000) {
+        windowAbove4k += power;
+      }
+    }
+    if (windowTotal > 0) {
+      const percentage = (100 * windowAbove4k) / windowTotal;
+      if (percentage > maximumWindowAbove4kPercent) {
+        maximumWindowAbove4kPercent = percentage;
+        maximumWindowAbove4kAtSeconds = start / wav.sampleRate;
+        maximumWindowAbove4kRmsDbfs =
+          20 *
+          Math.log10(
+            Math.sqrt(windowSquares / (fftSize * wav.channels)),
+          );
+      }
+    }
+  }
+
+  let total = 0;
+  let weightedFrequency = 0;
+  let above4k = 0;
+  let above8k = 0;
+  let above12k = 0;
+  for (let bin = 1; bin <= fftSize / 2; bin += 1) {
+    const frequency = (bin * wav.sampleRate) / fftSize;
+    const power = spectrum[bin];
+    total += power;
+    weightedFrequency += frequency * power;
+    if (frequency >= 4_000) above4k += power;
+    if (frequency >= 8_000) above8k += power;
+    if (frequency >= 12_000) above12k += power;
+  }
+  if (total <= 0) throw new Error("Delivery spectrum is effectively silent.");
+  if (!Number.isFinite(maximumWindowAbove4kRmsDbfs)) {
+    maximumWindowAbove4kRmsDbfs = -120;
+  }
+  return {
+    spectralCentroidHz: round(weightedFrequency / total, 0),
+    energyAbove4kPercent: round((100 * above4k) / total, 2),
+    energyAbove8kPercent: round((100 * above8k) / total, 2),
+    energyAbove12kPercent: round((100 * above12k) / total, 2),
+    maximumWindowAbove4kPercent: round(maximumWindowAbove4kPercent, 2),
+    maximumWindowAbove4kAtSeconds: round(
+      maximumWindowAbove4kAtSeconds,
+      3,
+    ),
+    maximumWindowAbove4kRmsDbfs: round(maximumWindowAbove4kRmsDbfs, 2),
+  };
+}
+
+function fft(real, imaginary) {
+  const length = real.length;
+  for (let index = 1, reversed = 0; index < length; index += 1) {
+    let bit = length >> 1;
+    for (; reversed & bit; bit >>= 1) reversed ^= bit;
+    reversed ^= bit;
+    if (index < reversed) {
+      [real[index], real[reversed]] = [real[reversed], real[index]];
+      [imaginary[index], imaginary[reversed]] = [
+        imaginary[reversed],
+        imaginary[index],
+      ];
+    }
+  }
+  for (let width = 2; width <= length; width <<= 1) {
+    const angle = (-2 * Math.PI) / width;
+    const rotationReal = Math.cos(angle);
+    const rotationImaginary = Math.sin(angle);
+    for (let start = 0; start < length; start += width) {
+      let phaseReal = 1;
+      let phaseImaginary = 0;
+      for (let index = 0; index < width / 2; index += 1) {
+        const even = start + index;
+        const odd = even + width / 2;
+        const oddReal =
+          real[odd] * phaseReal - imaginary[odd] * phaseImaginary;
+        const oddImaginary =
+          real[odd] * phaseImaginary + imaginary[odd] * phaseReal;
+        const evenReal = real[even];
+        const evenImaginary = imaginary[even];
+        real[even] = evenReal + oddReal;
+        imaginary[even] = evenImaginary + oddImaginary;
+        real[odd] = evenReal - oddReal;
+        imaginary[odd] = evenImaginary - oddImaginary;
+        const nextPhaseReal =
+          phaseReal * rotationReal - phaseImaginary * rotationImaginary;
+        phaseImaginary =
+          phaseReal * rotationImaginary + phaseImaginary * rotationReal;
+        phaseReal = nextPhaseReal;
+      }
+    }
+  }
 }
 
 function dominantFrequencyHz(samples, sampleRate) {
@@ -693,41 +954,8 @@ if (
 ) {
   throw new Error("Astral Relay runtime cue coverage differs from the approved set.");
 }
-const sourceAmbience = sourceManifest.backgroundLoops?.find(
-  (candidate) => candidate.id === selectedAmbienceId,
-);
-if (!sourceAmbience) {
-  throw new Error(`Missing selected runtime ambience: ${selectedAmbienceId}`);
-}
-const runtimeIntegratedLufs =
-  sourceAmbience.energy?.integratedLufs + 20 * Math.log10(ambience.gain);
-const runtimeMaximumMomentaryLufs =
-  sourceAmbience.energy?.maxMomentaryLufs + 20 * Math.log10(ambience.gain);
-if (
-  !Number.isFinite(runtimeIntegratedLufs) ||
-  !Number.isFinite(runtimeMaximumMomentaryLufs) ||
-  runtimeIntegratedLufs > -40 ||
-  runtimeMaximumMomentaryLufs > -35.5
-) {
-  throw new Error(
-    "The selected runtime ambience is not below the near-subliminal loudness ceilings.",
-  );
-}
-if (
-  JSON.stringify(sourceManifest.reviewScope?.selectedBackgroundLoop) !==
-  JSON.stringify({
-    cueId: ambience.sourceCueId,
-    runtimeGain: ambience.gain,
-    mapIds: ambience.mapIds,
-    runtimeFile: path.join(
-      "web/src/assets/audio/effects/astral-relay",
-      ambience.file,
-    ),
-  })
-) {
-  throw new Error(
-    "The runtime ambience export differs from the reviewed V5 selection.",
-  );
+if (sourceManifest.reviewScope?.selectedBackgroundLoop !== null) {
+  throw new Error("The V5 sound lab still selects a runtime ambience loop.");
 }
 
 let totalBytes = 0;
@@ -753,7 +981,7 @@ try {
       sourceHash: generationCue.result.outputSha256,
       destination: path.join(directory, filename),
       bitrate: 192_000,
-      deliveryProcessing: combatDeliveryProcessing[cueId],
+      deliveryProcessing: deliveryProcessing[cueId],
     });
     cues[cueId] = filename;
     integrity[cueId] = result;
@@ -761,27 +989,11 @@ try {
     fileCount += 1;
   }
 
-  const generationAmbience = generationRecord.cues.find(
-    (candidate) => candidate.id === selectedAmbienceId,
-  );
-  if (!generationAmbience?.result?.outputSha256) {
-    throw new Error(`${selectedAmbienceId}: generation provenance is missing.`);
-  }
-  integrity[selectedAmbienceId] = await exportAsset({
-    id: selectedAmbienceId,
-    sourceFile: safeSourcePath(sourceAmbience.file),
-    sourceHash: generationAmbience.result.outputSha256,
-    destination: path.join(directory, ambience.file),
-    bitrate: 160_000,
-  });
-  totalBytes += integrity[selectedAmbienceId].bytes;
-  fileCount += 1;
-
   await writeFile(
     path.join(directory, "manifest.json"),
     `${JSON.stringify(
       {
-        version: 4,
+        version: 5,
         id: pack.id,
         label: pack.label,
         approval: "approved",
@@ -802,9 +1014,9 @@ try {
           },
           deliveryProcessing: {
             policy:
-              "Short down-pitched dual-mono low-mid combat markers with soft endpoints; " +
-              "no synthesized layer and no provider request.",
-            cues: combatDeliveryProcessing,
+              "Deterministic low-pass, endpoint, and peak treatment for frequent or " +
+              "spectrally sharp cues; no synthesized layer and no provider request.",
+            cues: deliveryProcessing,
           },
           rightsStatus: "rights-cleared",
           license: {
@@ -831,7 +1043,6 @@ try {
           },
         },
         cues,
-        ambience,
         integrity,
       },
       null,

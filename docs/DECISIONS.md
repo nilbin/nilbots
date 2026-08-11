@@ -7623,3 +7623,45 @@ Tick coalescing, concrete-outcome suppression, every other one-shot, Ion veil,
 and Neon Protocol are unchanged. The manifest moves to version 4 to pin source
 offset, playback rate, low-mid filtering, dominant-frequency measurements, and
 mix limits. CLI/tool package version 0.9.53 carries this lower combat delivery.
+
+## 287. Runtime SFX use decoded-delivery comfort ceilings and no ambient bed
+
+Owner refinement (2026-08-11), superseding #284 and #286 only for ambience
+and the wider one-shot safety treatment. A pack-wide spectral audit found a
+stronger sharpness candidate than the newly lowered attack pair: the accepted
+destruction and arrival masters carried 8.25% and 7.56% of their energy above
+12 kHz, with brief endpoint windows dominated by upper-band energy. In the
+dense 473-tick Tapline review, destruction occurs 48 times; all 15 level-up
+cues coincide with a destruction tick, while armor impact occurs 89 times.
+The inverse arrival/destruction language can therefore sound like a respawn
+voice even when the authoritative event is destruction, and its stack with
+level up explains the intermittent report better than the sparse beam marker.
+
+No provider call, new synthesized layer, or lossless-master change is made.
+The runtime exporter now gives impact, destruction, level up, Core bank, Core
+Pulse, handoff, and arrival the same source-preserving class of deterministic
+delivery treatment already used for wind-up and beam: bounded source windows,
+zero-phase low-pass filtering, soft endpoint fades, and conservative peak
+normalization. The most frequent sharp voices fall to one voice at a time,
+use narrower pan, and skip the arena-reflection send; Core Pulse also falls
+from 0.54 in the original promoted mix to 0.32 after its bright-window audit.
+
+Safety measurements now come from a PCM decode of each final 192 kbps AAC, not
+only its pre-encode WAV. Every one-shot must remain at or below 3% energy above
+4 kHz, 0.05% above 12 kHz, -9 dBFS effective sample peak, and -25 dBFS
+effective whole-cue RMS. A time window with more than 10% energy above 4 kHz
+must also remain below -28 dBFS RMS after runtime gain, so a spectrally narrow
+but nearly silent tail is distinguished from an audible bright burst. The
+checked pack is tighter than those ceilings: 2.67% / 0.03% are its maximum
+whole-cue upper-band values, -9.61 dBFS is its hottest effective peak, and
+-26.07 dBFS is its hottest effective RMS. Decoded destruction and arrival each
+measure 0.05% above 4 kHz and 0.02% above 12 kHz; their high-ratio endpoint
+windows sit at -68.47 and -72.18 dBFS RMS after gain.
+
+Tapline no longer selects Ion veil. All three 30-second ambient candidates and
+their provider provenance remain in the sound lab, but the runtime manifest,
+asset directory, preload path, and playback graph contain no ambience. Neon
+Protocol is unchanged. The runtime package is thirteen one-shots only, about
+0.34 MiB; manifest version 5 pins the nine delivery recipes and decoded-audio
+metrics. CLI/tool package version 0.9.54 carries the comfort pass and ambience
+removal.

@@ -88,13 +88,6 @@ const expectedBackgroundIds = [
   "arena-ambience-ion-veil",
   "arena-ambience-signal-lattice",
 ];
-const runtimeAmbience = {
-  cueId: "arena-ambience-ion-veil",
-  runtimeGain: 0.08,
-  mapIds: ["arc-relay-tapline-01"],
-  runtimeFile:
-    "web/src/assets/audio/effects/astral-relay/arena-ambience-ion-veil.m4a",
-};
 const actualIds = comparisonGenerationCues.map((cue) => cue.id);
 const locallyDerivedCues = comparisonGenerationCues.filter(
   (cue) => cue.result?.status === "derived",
@@ -242,7 +235,6 @@ for (const generatedCue of comparisonGenerationCues) {
 const backgroundLoops = [];
 for (const generatedCue of backgroundGenerationCues) {
   const result = generatedCue.result;
-  const selectedForRuntime = generatedCue.id === runtimeAmbience.cueId;
   assert(result?.status === "generated", `${generatedCue.id} is not generated.`);
   assert(result.metrics?.sampleRate === 48_000, `${generatedCue.id} is not 48 kHz.`);
   assert(result.metrics?.channels === 2, `${generatedCue.id} is not stereo.`);
@@ -277,11 +269,9 @@ for (const generatedCue of backgroundGenerationCues) {
     id: generatedCue.id,
     label: generatedCue.label,
     category: generatedCue.category,
-    status: selectedForRuntime ? "mapped" : "proposed",
+    status: "proposed",
     description: generatedCue.description,
-    mapping: selectedForRuntime
-      ? `Tapline runtime ambience at gain ${runtimeAmbience.runtimeGain}`
-      : "Sound-lab comparison only; no runtime mapping",
+    mapping: "Sound-lab comparison only; no runtime mapping",
     file: `./v5/${generation.outputDirectory}/${generatedCue.file}`,
     durationSeconds: result.metrics.durationSeconds,
     peak: result.metrics.peak,
@@ -290,9 +280,6 @@ for (const generatedCue of backgroundGenerationCues) {
     dcOffset: result.metrics.dcOffset,
     ...(result.metrics.energy ? { energy: result.metrics.energy } : {}),
     reviewRelativeGain,
-    ...(selectedForRuntime
-      ? { runtimeGain: runtimeAmbience.runtimeGain }
-      : {}),
     loop: true,
     loopCrossfadeSeconds: result.processing.loopCrossfadeSeconds,
   });
@@ -324,7 +311,7 @@ const manifest = {
     reviewOnlyCueIds: ["attack-fizzle", "attack-cancel", "arc-steal"],
     silentOutcomeCueIds: ["attack-fizzle", "attack-cancel"],
     runtimeAliases: { "arc-steal": "arc-pickup" },
-    selectedBackgroundLoop: runtimeAmbience,
+    selectedBackgroundLoop: null,
   },
   sourceComposition: {
     providerGeneratedCues: comparisonGenerationCues.length - locallyDerivedCues.length,
