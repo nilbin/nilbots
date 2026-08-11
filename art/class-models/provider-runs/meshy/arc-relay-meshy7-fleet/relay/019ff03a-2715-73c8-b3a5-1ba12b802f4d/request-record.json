@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "provider": "Meshy",
+  "endpoint": "multi-image-to-3d",
+  "providerModel": "meshy-7",
+  "classId": "relay",
+  "taskId": "019ff03a-2715-73c8-b3a5-1ba12b802f4d",
+  "submittedAt": "2026-08-11T09:49:29.949Z",
+  "balanceBefore": 2030,
+  "authorizedCreditCap": 30,
+  "sourceManifest": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/relay-v1/manifest.json",
+  "inputs": [
+    {
+      "order": 1,
+      "view": "strict-front",
+      "primary": true,
+      "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/relay-v1/01-front.png",
+      "bytes": 1542133,
+      "sha256": "ff25c1a555aa2645e7edb57fb3014125a311913a9419efd0333d0e5801e149fd",
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "order": 2,
+      "view": "strict-right",
+      "primary": false,
+      "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/relay-v1/02-right.png",
+      "bytes": 1215705,
+      "sha256": "5875866226f426ca9fc327cae69942d8fc3da64cf16c3869c6b51c8ca6450887",
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "order": 3,
+      "view": "strict-back",
+      "primary": false,
+      "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/relay-v1/03-back.png",
+      "bytes": 1133897,
+      "sha256": "f6f380ad21bed64ed193efff4ecd0f5e91f3c8b8fd4d4ca1c721e57186cddb02",
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "order": 4,
+      "view": "front-right-three-quarter",
+      "primary": false,
+      "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/relay-v1/04-front-right-three-quarter.png",
+      "bytes": 1345237,
+      "sha256": "fa75426018aec068100642a99d1736f72ab6cfb3ab0243eacbd1aeb48e9de9c8",
+      "width": 1536,
+      "height": 1024
+    }
+  ],
+  "settings": {
+    "ai_model": "meshy-7",
+    "should_texture": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "should_remesh": false,
+    "image_enhancement": false,
+    "remove_lighting": true,
+    "pose_mode": "",
+    "texture_prompt": "Mature industrial relay levitating Arc Relay bot. Oxide-brick satin outer arms, warm-cream catcher tips, tarnished-brass guide-rail hardware, charcoal empty cradle and underside, restrained edge wear and recess grime. Preserve crisp bounded material regions, broad silhouette, signature-skill hardware, and the flush front beam-emitter seam. No text, logos, decals, eyes, face, guns, barrels, white nose, legs, teal/orange team color, glow, bloom, exhaust, or baked lighting.",
+    "target_formats": [
+      "glb"
+    ]
+  },
+  "pricingSource": "https://docs.meshy.ai/en/api/pricing",
+  "licenseTerms": "https://www.meshy.ai/terms"
+}

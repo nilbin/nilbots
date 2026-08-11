@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "provider": "Meshy",
+  "endpoint": "multi-image-to-3d",
+  "providerModel": "meshy-7",
+  "classId": "patchbay",
+  "taskId": "019ff036-52e1-7539-a8d4-c756b3e7a9dd",
+  "submittedAt": "2026-08-11T09:45:18.968Z",
+  "balanceBefore": 2180,
+  "authorizedCreditCap": 30,
+  "sourceManifest": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/patchbay-v1/manifest.json",
+  "inputs": [
+    {
+      "order": 1,
+      "view": "strict-front",
+      "primary": true,
+      "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/patchbay-v1/01-front.png",
+      "bytes": 1547605,
+      "sha256": "d58bd7dbbfccb78f73549880d41416af823597ef6f1c79bdb1e2dcf5d382e52f",
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "order": 2,
+      "view": "strict-right",
+      "primary": false,
+      "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/patchbay-v1/02-right.png",
+      "bytes": 1475387,
+      "sha256": "b7545705bd00abde3704ffe40f27111986108ad28d7a8b17f74f02204e3a233c",
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "order": 3,
+      "view": "strict-back",
+      "primary": false,
+      "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/patchbay-v1/03-back.png",
+      "bytes": 1296217,
+      "sha256": "cf3bcb2f889f46acfe92d5c3741cd2cdfa9c0bc62289922e9ccb35f98cb599af",
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "order": 4,
+      "view": "front-right-three-quarter",
+      "primary": false,
+      "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/patchbay-v1/04-front-right-three-quarter.png",
+      "bytes": 1491058,
+      "sha256": "8ee460146779817bf46f66c1550fe80336768275139a7a3ee2db1228b4f19772",
+      "width": 1536,
+      "height": 1024
+    }
+  ],
+  "settings": {
+    "ai_model": "meshy-7",
+    "should_texture": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "should_remesh": false,
+    "image_enhancement": false,
+    "remove_lighting": true,
+    "pose_mode": "",
+    "texture_prompt": "Mature industrial patchbay levitating Arc Relay bot. Muted-sage satin armor, dusty-coral repair panels, warm-bone repair arm and trim, charcoal joints, restrained edge wear and recess grime. Preserve crisp bounded material regions, broad silhouette, signature-skill hardware, and the flush front beam-emitter seam. No text, logos, decals, eyes, face, guns, barrels, white nose, legs, teal/orange team color, glow, bloom, exhaust, or baked lighting.",
+    "target_formats": [
+      "glb"
+    ]
+  },
+  "pricingSource": "https://docs.meshy.ai/en/api/pricing",
+  "licenseTerms": "https://www.meshy.ai/terms"
+}

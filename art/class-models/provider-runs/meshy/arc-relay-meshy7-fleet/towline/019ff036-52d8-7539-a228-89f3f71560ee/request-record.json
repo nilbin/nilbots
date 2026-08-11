@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "provider": "Meshy",
+  "endpoint": "multi-image-to-3d",
+  "providerModel": "meshy-7",
+  "classId": "towline",
+  "taskId": "019ff036-52d8-7539-a228-89f3f71560ee",
+  "submittedAt": "2026-08-11T09:45:18.969Z",
+  "balanceBefore": 2180,
+  "authorizedCreditCap": 30,
+  "sourceManifest": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/towline-v1/manifest.json",
+  "inputs": [
+    {
+      "order": 1,
+      "view": "strict-front",
+      "primary": true,
+      "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/towline-v1/01-front.png",
+      "bytes": 1455893,
+      "sha256": "f8883598b665c5f92c1f15f21dd40093babfade62d37e6d330939e3a0fd5b1e4",
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "order": 2,
+      "view": "strict-right",
+      "primary": false,
+      "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/towline-v1/02-right.png",
+      "bytes": 1106476,
+      "sha256": "d60f75d38c6fee1e54288fc82b08fce8c1ff3b045ace197e7d4f9b688e2a0494",
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "order": 3,
+      "view": "strict-back",
+      "primary": false,
+      "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/towline-v1/03-back.png",
+      "bytes": 1171183,
+      "sha256": "891c83f7404fd477a08867faad1b62b2155ac00a0532d39f37e7da15f49f9745",
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "order": 4,
+      "view": "front-right-three-quarter",
+      "primary": false,
+      "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/towline-v1/04-front-right-three-quarter.png",
+      "bytes": 1499323,
+      "sha256": "919c14fb680e979c9ad2a0a28aad6068b0f3b5629ab1d4358f7ba772a9384912",
+      "width": 1536,
+      "height": 1024
+    }
+  ],
+  "settings": {
+    "ai_model": "meshy-7",
+    "should_texture": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "should_remesh": false,
+    "image_enhancement": false,
+    "remove_lighting": true,
+    "pose_mode": "",
+    "texture_prompt": "Mature industrial towline levitating Arc Relay bot. Mustard-ochre satin armor, gunmetal inner frame, worn unpainted-steel captive winch and edge hardware, restrained edge wear and recess grime. Preserve crisp bounded material regions, broad silhouette, signature-skill hardware, and the flush front beam-emitter seam. No text, logos, decals, eyes, face, guns, barrels, white nose, legs, teal/orange team color, glow, bloom, exhaust, or baked lighting.",
+    "target_formats": [
+      "glb"
+    ]
+  },
+  "pricingSource": "https://docs.meshy.ai/en/api/pricing",
+  "licenseTerms": "https://www.meshy.ai/terms"
+}

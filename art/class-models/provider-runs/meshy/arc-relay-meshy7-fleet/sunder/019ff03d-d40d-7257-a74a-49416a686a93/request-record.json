@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "provider": "Meshy",
+  "endpoint": "multi-image-to-3d",
+  "providerModel": "meshy-7",
+  "classId": "sunder",
+  "taskId": "019ff03d-d40d-7257-a74a-49416a686a93",
+  "submittedAt": "2026-08-11T09:53:30.888Z",
+  "balanceBefore": 1850,
+  "authorizedCreditCap": 30,
+  "sourceManifest": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/sunder-v1/manifest.json",
+  "inputs": [
+    {
+      "order": 1,
+      "view": "strict-front",
+      "primary": true,
+      "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/sunder-v1/01-front.png",
+      "bytes": 1514916,
+      "sha256": "7c1912bbb0a7543bb49131531fb09e4403bc2a4b95ffdd0bdee7c6f2bbd5009e",
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "order": 2,
+      "view": "strict-right",
+      "primary": false,
+      "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/sunder-v1/02-right.png",
+      "bytes": 1368393,
+      "sha256": "e6b5f039016c7ecd736b485c5bed3c53705c1df26d982840f75c4d516cf9118e",
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "order": 3,
+      "view": "strict-back",
+      "primary": false,
+      "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/sunder-v1/03-back.png",
+      "bytes": 1365066,
+      "sha256": "1edb1327ad90bfe18b97595a0059d4f22092d1345d6bd91b1d756598d4f09167",
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "order": 4,
+      "view": "front-right-three-quarter",
+      "primary": false,
+      "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/sunder-v1/04-front-right-three-quarter.png",
+      "bytes": 1505352,
+      "sha256": "b7de5320bc5308a6cdf60ef257d5a876248e236851f9e494228b63c57cefe7ea",
+      "width": 1536,
+      "height": 1024
+    }
+  ],
+  "settings": {
+    "ai_model": "meshy-7",
+    "should_texture": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "should_remesh": false,
+    "image_enhancement": false,
+    "remove_lighting": true,
+    "pose_mode": "",
+    "texture_prompt": "Mature industrial sunder levitating Arc Relay bot. Medium mulberry satin faceted armor, aged-ivory designator housing and three brackets, graphite inset faces and underside, dull-brass hardware, restrained edge wear and recess grime. Preserve crisp bounded material regions, broad silhouette, signature-skill hardware, and the flush front beam-emitter seam. No text, logos, decals, eyes, face, guns, barrels, white nose, legs, teal/orange team color, glow, bloom, exhaust, or baked lighting.",
+    "target_formats": [
+      "glb"
+    ]
+  },
+  "pricingSource": "https://docs.meshy.ai/en/api/pricing",
+  "licenseTerms": "https://www.meshy.ai/terms"
+}

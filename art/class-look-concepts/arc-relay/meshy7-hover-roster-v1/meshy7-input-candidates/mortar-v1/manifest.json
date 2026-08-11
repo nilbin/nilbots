@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "status": "paid-generation-authorized",
+  "status": "owner-review",
   "classId": "mortar",
   "identitySource": {
     "file": "../../concept-sheet-v7.png",
@@ -67,10 +67,12 @@
       "glb"
     ],
     "pilotCreditCap": 30,
-    "authorized": true,
+    "authorized": false,
     "authorization": "Owner approved the V7 identities, directed the remaining fleet to proceed after the Kestrel pilot, confirmed the available credits, and excluded auto-rigging.",
-    "authorizationConsumed": false,
-    "autoRigging": false
+    "authorizationConsumed": true,
+    "autoRigging": false,
+    "completedTaskId": "019ff039-d5d4-73ae-9688-d68f53d66564",
+    "consumedCredits": 30
   },
   "creditCheck": {
     "checkedAt": "2026-08-11",
@@ -82,5 +84,14 @@
     "autoRigging": false,
     "pricingSource": "https://docs.meshy.ai/en/api/pricing"
   },
-  "nextGate": "raw Meshy 7 first-pass download and owner review; no runtime promotion"
+  "nextGate": "owner review of raw Meshy 7 first pass; no runtime promotion",
+  "providerRun": {
+    "taskId": "019ff039-d5d4-73ae-9688-d68f53d66564",
+    "directory": "../../../../../class-models/provider-runs/meshy/arc-relay-meshy7-fleet/mortar/019ff039-d5d4-73ae-9688-d68f53d66564",
+    "status": "SUCCEEDED",
+    "consumedCredits": 30,
+    "balanceBefore": 2060,
+    "balanceAfter": 1940,
+    "rawModelSha256": "89200842ce905440158ad8d7f9c1036f7fb27348e231945315e4b05dfd81adf5"
+  }
 }

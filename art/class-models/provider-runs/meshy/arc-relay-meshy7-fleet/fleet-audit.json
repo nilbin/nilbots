@@ -1,0 +1,401 @@
+{
+  "schemaVersion": 1,
+  "status": "owner-review",
+  "generatedAt": "2026-08-11T10:03:25.416Z",
+  "purpose": "Raw Meshy 7 fleet provider audit; no runtime assets promoted",
+  "fleet": {
+    "classes": 16,
+    "successfulTasks": 16,
+    "remainingFleetTasks": 15,
+    "remainingFleetCredits": 450,
+    "balanceBefore": 2180,
+    "balanceAfter": 1730,
+    "autoRigging": false
+  },
+  "entries": [
+    {
+      "classId": "kestrel",
+      "taskId": "019fefdd-ac96-7dc8-a61e-f0760b4ae407",
+      "endpoint": "retexture",
+      "status": "SUCCEEDED",
+      "consumedCredits": 10,
+      "balanceBefore": 190,
+      "balanceAfter": 180,
+      "totalSeconds": 189.710084375,
+      "runDirectory": "art/class-models/provider-runs/meshy/arc-relay-meshy7-retexture/kestrel/019fefdd-ac96-7dc8-a61e-f0760b4ae407",
+      "preview": "art/class-models/provider-runs/meshy/arc-relay-meshy7-retexture/kestrel/019fefdd-ac96-7dc8-a61e-f0760b4ae407/provider-preview.png",
+      "rawModel": {
+        "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-retexture/kestrel/019fefdd-ac96-7dc8-a61e-f0760b4ae407/raw-model.glb",
+        "bytes": 64337428,
+        "sha256": "6daeca9df3f60fd9e7260b3fd7ec3dd5ecba15505a440da4c36700cc98ae31b3",
+        "triangles": 1976674,
+        "meshes": 1,
+        "materials": 1,
+        "textures": 3,
+        "imageMimeTypes": [
+          "image/jpeg"
+        ]
+      }
+    },
+    {
+      "classId": "palisade",
+      "taskId": "019ff036-52d7-7e1c-898a-6d4eab146e93",
+      "endpoint": "multi-image-to-3d",
+      "status": "SUCCEEDED",
+      "consumedCredits": 30,
+      "balanceBefore": 2180,
+      "balanceAfter": 2030,
+      "totalSeconds": 250.936706,
+      "runDirectory": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/palisade/019ff036-52d7-7e1c-898a-6d4eab146e93",
+      "preview": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/palisade/019ff036-52d7-7e1c-898a-6d4eab146e93/provider-preview.png",
+      "rawModel": {
+        "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/palisade/019ff036-52d7-7e1c-898a-6d4eab146e93/raw-model.glb",
+        "bytes": 67171544,
+        "sha256": "aa933383aa4f698fca2d56b5ff81e6975df9f620d91c02824a7cf3ed81799ede",
+        "triangles": 1991570,
+        "meshes": 1,
+        "materials": 1,
+        "textures": 4,
+        "imageMimeTypes": [
+          "image/jpeg"
+        ]
+      }
+    },
+    {
+      "classId": "towline",
+      "taskId": "019ff036-52d8-7539-a228-89f3f71560ee",
+      "endpoint": "multi-image-to-3d",
+      "status": "SUCCEEDED",
+      "consumedCredits": 30,
+      "balanceBefore": 2180,
+      "balanceAfter": 2060,
+      "totalSeconds": 230.100970542,
+      "runDirectory": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/towline/019ff036-52d8-7539-a228-89f3f71560ee",
+      "preview": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/towline/019ff036-52d8-7539-a228-89f3f71560ee/provider-preview.png",
+      "rawModel": {
+        "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/towline/019ff036-52d8-7539-a228-89f3f71560ee/raw-model.glb",
+        "bytes": 64922012,
+        "sha256": "bf2f9f9c2e1fccb7f4c8700c8fb3b6c3427c2de60ac0be6169c0b6a2b1e2ae61",
+        "triangles": 1916932,
+        "meshes": 1,
+        "materials": 1,
+        "textures": 4,
+        "imageMimeTypes": [
+          "image/jpeg"
+        ]
+      }
+    },
+    {
+      "classId": "patchbay",
+      "taskId": "019ff036-52e1-7539-a8d4-c756b3e7a9dd",
+      "endpoint": "multi-image-to-3d",
+      "status": "SUCCEEDED",
+      "consumedCredits": 30,
+      "balanceBefore": 2180,
+      "balanceAfter": 2030,
+      "totalSeconds": 249.137093334,
+      "runDirectory": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/patchbay/019ff036-52e1-7539-a8d4-c756b3e7a9dd",
+      "preview": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/patchbay/019ff036-52e1-7539-a8d4-c756b3e7a9dd/provider-preview.png",
+      "rawModel": {
+        "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/patchbay/019ff036-52e1-7539-a8d4-c756b3e7a9dd/raw-model.glb",
+        "bytes": 65443392,
+        "sha256": "fb125c8e07f5c327e5b5b50ae649d14e5bd76c35bd9394f2899569ed4e346d1d",
+        "triangles": 1968740,
+        "meshes": 1,
+        "materials": 1,
+        "textures": 4,
+        "imageMimeTypes": [
+          "image/jpeg"
+        ]
+      }
+    },
+    {
+      "classId": "lantern",
+      "taskId": "019ff036-52c5-7313-8d54-a4dade5fc0cd",
+      "endpoint": "multi-image-to-3d",
+      "status": "SUCCEEDED",
+      "consumedCredits": 30,
+      "balanceBefore": 2180,
+      "balanceAfter": 2030,
+      "totalSeconds": 248.149358792,
+      "runDirectory": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/lantern/019ff036-52c5-7313-8d54-a4dade5fc0cd",
+      "preview": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/lantern/019ff036-52c5-7313-8d54-a4dade5fc0cd/provider-preview.png",
+      "rawModel": {
+        "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/lantern/019ff036-52c5-7313-8d54-a4dade5fc0cd/raw-model.glb",
+        "bytes": 64014016,
+        "sha256": "c9891d073356acef06c4c918adda902867282c4ba63f7d08e08e16f1c315e0cc",
+        "triangles": 1957232,
+        "meshes": 1,
+        "materials": 1,
+        "textures": 4,
+        "imageMimeTypes": [
+          "image/jpeg"
+        ]
+      }
+    },
+    {
+      "classId": "mortar",
+      "taskId": "019ff039-d5d4-73ae-9688-d68f53d66564",
+      "endpoint": "multi-image-to-3d",
+      "status": "SUCCEEDED",
+      "consumedCredits": 30,
+      "balanceBefore": 2060,
+      "balanceAfter": 1940,
+      "totalSeconds": 217.139295667,
+      "runDirectory": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/mortar/019ff039-d5d4-73ae-9688-d68f53d66564",
+      "preview": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/mortar/019ff039-d5d4-73ae-9688-d68f53d66564/provider-preview.png",
+      "rawModel": {
+        "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/mortar/019ff039-d5d4-73ae-9688-d68f53d66564/raw-model.glb",
+        "bytes": 64350320,
+        "sha256": "89200842ce905440158ad8d7f9c1036f7fb27348e231945315e4b05dfd81adf5",
+        "triangles": 1996038,
+        "meshes": 1,
+        "materials": 1,
+        "textures": 4,
+        "imageMimeTypes": [
+          "image/jpeg"
+        ]
+      }
+    },
+    {
+      "classId": "minesmith",
+      "taskId": "019ff03a-1c4d-73c6-abb6-569e7cb320f4",
+      "endpoint": "multi-image-to-3d",
+      "status": "SUCCEEDED",
+      "consumedCredits": 30,
+      "balanceBefore": 2030,
+      "balanceAfter": 1850,
+      "totalSeconds": 243.607639584,
+      "runDirectory": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/minesmith/019ff03a-1c4d-73c6-abb6-569e7cb320f4",
+      "preview": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/minesmith/019ff03a-1c4d-73c6-abb6-569e7cb320f4/provider-preview.png",
+      "rawModel": {
+        "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/minesmith/019ff03a-1c4d-73c6-abb6-569e7cb320f4/raw-model.glb",
+        "bytes": 67380476,
+        "sha256": "13cdebba6db47bf210e752e8a9f5d8b85fc27cb97d9d9dda82ab112f308e1a63",
+        "triangles": 1976960,
+        "meshes": 1,
+        "materials": 1,
+        "textures": 4,
+        "imageMimeTypes": [
+          "image/jpeg"
+        ]
+      }
+    },
+    {
+      "classId": "hush",
+      "taskId": "019ff03a-2140-7f10-bd41-2f3e6d27df58",
+      "endpoint": "multi-image-to-3d",
+      "status": "SUCCEEDED",
+      "consumedCredits": 30,
+      "balanceBefore": 2030,
+      "balanceAfter": 1910,
+      "totalSeconds": 210.293460166,
+      "runDirectory": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/hush/019ff03a-2140-7f10-bd41-2f3e6d27df58",
+      "preview": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/hush/019ff03a-2140-7f10-bd41-2f3e6d27df58/provider-preview.png",
+      "rawModel": {
+        "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/hush/019ff03a-2140-7f10-bd41-2f3e6d27df58/raw-model.glb",
+        "bytes": 63835840,
+        "sha256": "9b824a5dff44bc00e3e8c20fa89a7f785f98cc6ae55aad68a62268b7b3b39d69",
+        "triangles": 1992860,
+        "meshes": 1,
+        "materials": 1,
+        "textures": 4,
+        "imageMimeTypes": [
+          "image/jpeg"
+        ]
+      }
+    },
+    {
+      "classId": "relay",
+      "taskId": "019ff03a-2715-73c8-b3a5-1ba12b802f4d",
+      "endpoint": "multi-image-to-3d",
+      "status": "SUCCEEDED",
+      "consumedCredits": 30,
+      "balanceBefore": 2030,
+      "balanceAfter": 1880,
+      "totalSeconds": 235.828039875,
+      "runDirectory": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/relay/019ff03a-2715-73c8-b3a5-1ba12b802f4d",
+      "preview": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/relay/019ff03a-2715-73c8-b3a5-1ba12b802f4d/provider-preview.png",
+      "rawModel": {
+        "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/relay/019ff03a-2715-73c8-b3a5-1ba12b802f4d/raw-model.glb",
+        "bytes": 65006024,
+        "sha256": "4b551066767b24cc8d657b60fabacc81e92265f1c863bd38b9ae6f380d42ce75",
+        "triangles": 1997700,
+        "meshes": 1,
+        "materials": 1,
+        "textures": 4,
+        "imageMimeTypes": [
+          "image/jpeg"
+        ]
+      }
+    },
+    {
+      "classId": "switchback",
+      "taskId": "019ff03d-2677-76b5-b0b8-f9dec1aef11c",
+      "endpoint": "multi-image-to-3d",
+      "status": "SUCCEEDED",
+      "consumedCredits": 30,
+      "balanceBefore": 1940,
+      "balanceAfter": 1820,
+      "totalSeconds": 232.913081291,
+      "runDirectory": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/switchback/019ff03d-2677-76b5-b0b8-f9dec1aef11c",
+      "preview": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/switchback/019ff03d-2677-76b5-b0b8-f9dec1aef11c/provider-preview.png",
+      "rawModel": {
+        "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/switchback/019ff03d-2677-76b5-b0b8-f9dec1aef11c/raw-model.glb",
+        "bytes": 65660764,
+        "sha256": "f8a1dd792658e23462d7d3c73c836535c35cf564e3bce0a88c1a15c4fd555827",
+        "triangles": 1974122,
+        "meshes": 1,
+        "materials": 1,
+        "textures": 4,
+        "imageMimeTypes": [
+          "image/jpeg"
+        ]
+      }
+    },
+    {
+      "classId": "longshot",
+      "taskId": "019ff03d-55d7-7443-985f-81962a0d1b7b",
+      "endpoint": "multi-image-to-3d",
+      "status": "SUCCEEDED",
+      "consumedCredits": 30,
+      "balanceBefore": 1910,
+      "balanceAfter": 1820,
+      "totalSeconds": 218.14884525,
+      "runDirectory": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/longshot/019ff03d-55d7-7443-985f-81962a0d1b7b",
+      "preview": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/longshot/019ff03d-55d7-7443-985f-81962a0d1b7b/provider-preview.png",
+      "rawModel": {
+        "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/longshot/019ff03d-55d7-7443-985f-81962a0d1b7b/raw-model.glb",
+        "bytes": 65173408,
+        "sha256": "1443dba60ed1e827dfc96d553c9cfbaf55a73ba0872f129c992d93b598ea552e",
+        "triangles": 1989812,
+        "meshes": 1,
+        "materials": 1,
+        "textures": 4,
+        "imageMimeTypes": [
+          "image/jpeg"
+        ]
+      }
+    },
+    {
+      "classId": "mason",
+      "taskId": "019ff03d-c093-745f-95cc-437bae8cc0b0",
+      "endpoint": "multi-image-to-3d",
+      "status": "SUCCEEDED",
+      "consumedCredits": 30,
+      "balanceBefore": 1880,
+      "balanceAfter": 1760,
+      "totalSeconds": 230.60930825,
+      "runDirectory": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/mason/019ff03d-c093-745f-95cc-437bae8cc0b0",
+      "preview": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/mason/019ff03d-c093-745f-95cc-437bae8cc0b0/provider-preview.png",
+      "rawModel": {
+        "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/mason/019ff03d-c093-745f-95cc-437bae8cc0b0/raw-model.glb",
+        "bytes": 65329976,
+        "sha256": "36e90dbc35293f188da9eb0b366216d9e2bb8a99b5596b93c2e35f50c636b977",
+        "triangles": 1998792,
+        "meshes": 1,
+        "materials": 1,
+        "textures": 4,
+        "imageMimeTypes": [
+          "image/jpeg"
+        ]
+      }
+    },
+    {
+      "classId": "sunder",
+      "taskId": "019ff03d-d40d-7257-a74a-49416a686a93",
+      "endpoint": "multi-image-to-3d",
+      "status": "SUCCEEDED",
+      "consumedCredits": 30,
+      "balanceBefore": 1850,
+      "balanceAfter": 1730,
+      "totalSeconds": 276.287203208,
+      "runDirectory": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/sunder/019ff03d-d40d-7257-a74a-49416a686a93",
+      "preview": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/sunder/019ff03d-d40d-7257-a74a-49416a686a93/provider-preview.png",
+      "rawModel": {
+        "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/sunder/019ff03d-d40d-7257-a74a-49416a686a93/raw-model.glb",
+        "bytes": 80973476,
+        "sha256": "592e106d378c4a4a557a0b73b9712d3e46bc5b7e0ccbda0fe23e134eb79fa37e",
+        "triangles": 1967078,
+        "meshes": 1,
+        "materials": 1,
+        "textures": 4,
+        "imageMimeTypes": [
+          "image/jpeg"
+        ]
+      }
+    },
+    {
+      "classId": "repulsor",
+      "taskId": "019ff040-aa48-72f9-b49a-9c9043607b6a",
+      "endpoint": "multi-image-to-3d",
+      "status": "SUCCEEDED",
+      "consumedCredits": 30,
+      "balanceBefore": 1820,
+      "balanceAfter": 1730,
+      "totalSeconds": 239.054356291,
+      "runDirectory": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/repulsor/019ff040-aa48-72f9-b49a-9c9043607b6a",
+      "preview": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/repulsor/019ff040-aa48-72f9-b49a-9c9043607b6a/provider-preview.png",
+      "rawModel": {
+        "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/repulsor/019ff040-aa48-72f9-b49a-9c9043607b6a/raw-model.glb",
+        "bytes": 66153548,
+        "sha256": "93c76060bd9a00fe5c8ba836fe60bfff99875fca365e1113b8cfaf12a34c3596",
+        "triangles": 1999000,
+        "meshes": 1,
+        "materials": 1,
+        "textures": 4,
+        "imageMimeTypes": [
+          "image/jpeg"
+        ]
+      }
+    },
+    {
+      "classId": "veil",
+      "taskId": "019ff040-b455-77cf-a735-f53a83786a43",
+      "endpoint": "multi-image-to-3d",
+      "status": "SUCCEEDED",
+      "consumedCredits": 30,
+      "balanceBefore": 1820,
+      "balanceAfter": 1730,
+      "totalSeconds": 243.307509208,
+      "runDirectory": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/veil/019ff040-b455-77cf-a735-f53a83786a43",
+      "preview": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/veil/019ff040-b455-77cf-a735-f53a83786a43/provider-preview.png",
+      "rawModel": {
+        "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/veil/019ff040-b455-77cf-a735-f53a83786a43/raw-model.glb",
+        "bytes": 64618672,
+        "sha256": "3c9b7ab70a232d1a85045e6e966cb6049aa45b1f39cb68c22ee03925fd87ca35",
+        "triangles": 1960308,
+        "meshes": 1,
+        "materials": 1,
+        "textures": 4,
+        "imageMimeTypes": [
+          "image/jpeg"
+        ]
+      }
+    },
+    {
+      "classId": "nest",
+      "taskId": "019ff041-45de-77fd-9a69-756ea195da64",
+      "endpoint": "multi-image-to-3d",
+      "status": "SUCCEEDED",
+      "consumedCredits": 30,
+      "balanceBefore": 1760,
+      "balanceAfter": 1730,
+      "totalSeconds": 241.786543875,
+      "runDirectory": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/nest/019ff041-45de-77fd-9a69-756ea195da64",
+      "preview": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/nest/019ff041-45de-77fd-9a69-756ea195da64/provider-preview.png",
+      "rawModel": {
+        "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/nest/019ff041-45de-77fd-9a69-756ea195da64/raw-model.glb",
+        "bytes": 64835308,
+        "sha256": "3e6874d5d1da75592169654802d3a052d9aa67a73881a799791f4f89199d05a2",
+        "triangles": 1997498,
+        "meshes": 1,
+        "materials": 1,
+        "textures": 4,
+        "imageMimeTypes": [
+          "image/jpeg"
+        ]
+      }
+    }
+  ]
+}
