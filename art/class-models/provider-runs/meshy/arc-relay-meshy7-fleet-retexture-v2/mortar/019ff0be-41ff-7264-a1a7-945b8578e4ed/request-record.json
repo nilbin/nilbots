@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "provider": "Meshy",
+  "endpoint": "retexture",
+  "providerModel": "meshy-7",
+  "classId": "mortar",
+  "taskId": "019ff0be-41ff-7264-a1a7-945b8578e4ed",
+  "submittedAt": "2026-08-11T12:13:48.035Z",
+  "balanceBeforeBatch": 1730,
+  "authorizedCreditCap": 10,
+  "sourcePlan": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet-retexture-v2/plan.json",
+  "sourceTaskId": "019ff039-d5d4-73ae-9688-d68f53d66564",
+  "sourceModel": {
+    "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/mortar/019ff039-d5d4-73ae-9688-d68f53d66564/raw-model.glb",
+    "bytes": 64350320,
+    "sha256": "89200842ce905440158ad8d7f9c1036f7fb27348e231945315e4b05dfd81adf5",
+    "triangles": 1996038,
+    "meshes": 1,
+    "materials": 1,
+    "textures": 4,
+    "imageMimeTypes": [
+      "image/jpeg"
+    ]
+  },
+  "settings": {
+    "model_url": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ff039-d5d4-73ae-9688-d68f53d66564/output/model.glb",
+    "ai_model": "meshy-7",
+    "text_style_prompt": "Mature industrial mortar levitating Arc Relay bot. High-roughness matte powder-coated ceramic and painted metal: lichen-khaki armor, pale-limestone launch deck, muted-brass sealed iris. Soft diffuse finish, fine dry surface grain, restrained wear, metal only on mechanisms. Medium-light values readable in a dark arena; charcoal only in narrow recesses. Preserve every material boundary. No glossy plastic, clearcoat, lacquer, wet shine, broad highlights, saturated or neon color, black body, pure white, teal, cyan, orange, glow, text, decals, eyes, guns, or legs.",
+    "enable_original_uv": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "alpha_thumbnail": true,
+    "target_formats": [
+      "glb"
+    ]
+  },
+  "pricingSource": "https://docs.meshy.ai/en/api/pricing",
+  "licenseTerms": "https://www.meshy.ai/terms"
+}

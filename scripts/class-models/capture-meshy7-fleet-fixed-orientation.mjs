@@ -10,15 +10,29 @@ const repository = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '.
 const requireFromWeb = createRequire(path.join(repository, 'web/package.json'));
 const { chromium } = requireFromWeb('playwright');
 const sharp = requireFromWeb('sharp');
-const audit = JSON.parse(
-  readFileSync(
-    path.join(repository, 'art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v1/audit.json'),
-    'utf8',
+const auditPath = path.resolve(
+  repository,
+  option(
+    '--audit',
+    'art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v1/audit.json',
   ),
 );
-const baseUrl = process.argv[2] ?? 'http://127.0.0.1:9074';
-const reviewDirectory = path.join(repository, 'art/reviews/arc-relay-meshy7-fleet-v1');
-const tileDirectory = path.join(repository, 'sandbox/meshy7-pilot/fleet-game-review/fixed-orientation');
+const audit = JSON.parse(readFileSync(auditPath, 'utf8'));
+const baseUrl = process.argv[2] && !process.argv[2].startsWith('--')
+  ? process.argv[2]
+  : 'http://127.0.0.1:9074';
+const reviewDirectory = path.resolve(
+  repository,
+  option('--output-directory', 'art/reviews/arc-relay-meshy7-fleet-v1'),
+);
+const tileDirectory = path.resolve(
+  repository,
+  option(
+    '--tile-directory',
+    'sandbox/meshy7-pilot/fleet-game-review/fixed-orientation',
+  ),
+);
+const title = option('--title', 'MESHY 7 ARC RELAY FLEET · FIXED ORIENTATION');
 const viewerUrl = new URL('/scripts/class-models/model-turntable-review.html', baseUrl);
 const tileSize = 420;
 const labelHeight = 38;
@@ -98,7 +112,7 @@ const composites = [
       `<svg width="${width}" height="${titleHeight}" xmlns="http://www.w3.org/2000/svg">` +
         '<rect width="100%" height="100%" fill="#080d12"/>' +
         '<text x="18" y="31" fill="#e8eef2" font-size="20" font-family="monospace" font-weight="700">' +
-        'MESHY 7 ARC RELAY FLEET · FIXED ORIENTATION</text>' +
+        `${escapeXml(title)}</text>` +
         '<text x="18" y="56" fill="#9fb0bb" font-size="15" font-family="monospace">' +
         'same front-right 3/4 camera · every normalized chassis faces +X</text></svg>',
     ),
@@ -138,8 +152,7 @@ writeFileSync(
   path.join(reviewDirectory, 'orientation-evidence.json'),
   `${JSON.stringify({
     schemaVersion: 1,
-    sourceAudit:
-      'art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v1/audit.json',
+    sourceAudit: path.relative(repository, auditPath),
     facing: '+x',
     up: '+y',
     floorY: 0,
@@ -155,4 +168,21 @@ console.log(`Captured fixed-orientation sheet for ${records.length} classes.`);
 
 function sha256(value) {
   return createHash('sha256').update(value).digest('hex');
+}
+
+function option(name, fallback) {
+  const index = process.argv.indexOf(name);
+  if (index === -1) return fallback;
+  const value = process.argv[index + 1];
+  if (!value || value.startsWith('--')) throw new Error(`${name} requires a value.`);
+  return value;
+}
+
+function escapeXml(value) {
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&apos;');
 }

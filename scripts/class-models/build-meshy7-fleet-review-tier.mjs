@@ -24,12 +24,17 @@ const repository = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '.
 const check = process.argv.includes('--check');
 const classArgumentIndex = process.argv.indexOf('--class');
 const classFilter = classArgumentIndex === -1 ? null : process.argv[classArgumentIndex + 1];
-const sourceAuditPath = path.join(
+const sourceAuditPath = path.resolve(
   repository,
-  'art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/fleet-audit.json',
+  option(
+    '--source-audit',
+    'art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/fleet-audit.json',
+  ),
 );
 const sourceAudit = JSON.parse(readFileSync(sourceAuditPath, 'utf8'));
-const tierId = 'meshy7-fleet-review-v1';
+const tierId = option('--tier-id', 'meshy7-fleet-review-v1');
+if (!/^meshy7-fleet-review-v[1-9][0-9]*$/.test(tierId))
+  throw new Error(`Unsafe --tier-id ${tierId}.`);
 const tierDirectory = path.join(
   repository,
   'art/class-models/runtime-tiers/arc-relay',
@@ -148,6 +153,10 @@ const entries = sourceAudit.entries.map((entry) => ({
   ...entry,
   facingCorrection: facingCorrections.get(entry.classId),
   sourcePath: path.join(repository, entry.rawModel.file),
+  geometrySourcePath: path.join(
+    repository,
+    entry.retextured ? entry.source.rawModel.file : entry.rawModel.file,
+  ),
   outputPath: entry.classId === 'kestrel'
     ? kestrelTierPath
     : path.join(tierDirectory, `arc-${entry.classId}-lean.glb`),
@@ -213,6 +222,12 @@ const audit = {
       'Reversible in-renderer fleet review only; no approved runtime model is replaced or promoted.',
     geometry: 'lossy review simplification from pinned Meshy 7 provider masters',
     materials: 'one fused authored material; team ownership remains renderer-owned',
+    ...(entries.some((entry) => entry.retextured)
+      ? {
+          retexture:
+            'Meshy original-UV PBR maps transplanted onto pinned source geometry; provider rewritten vertex/index streams are not used',
+        }
+      : {}),
     tangentSpace:
       'normal-mapped without authored tangents; Three.js derivative tangent-space review required',
   },
@@ -237,6 +252,16 @@ function validateSource(entry) {
   const sourceSha256 = sha256(source);
   if (source.length !== entry.rawModel.bytes || sourceSha256 !== entry.rawModel.sha256)
     throw new Error(`${entry.classId}: source bytes or SHA-256 drifted from the fleet audit.`);
+  if (entry.geometrySourcePath !== entry.sourcePath) {
+    if (!existsSync(entry.geometrySourcePath))
+      throw new Error(`${entry.classId}: missing original-UV geometry source.`);
+    const geometrySource = readFileSync(entry.geometrySourcePath);
+    if (
+      geometrySource.length !== entry.source.rawModel.bytes ||
+      sha256(geometrySource) !== entry.source.rawModel.sha256
+    )
+      throw new Error(`${entry.classId}: original-UV geometry source drifted.`);
+  }
 }
 
 function buildProfiles() {
@@ -252,14 +277,23 @@ function buildProfiles() {
       }
       console.log(`Building ${entry.classId} lean review tier...`);
       const settings = { ...profile, ...profileOverrides.get(entry.classId) };
+      const materialized = path.join(temporary, `${entry.classId}-materialized.glb`);
       const normalized = path.join(temporary, `${entry.classId}-normalized.glb`);
       const optimized = path.join(temporary, `${entry.classId}-optimized.glb`);
+      if (entry.geometrySourcePath !== entry.sourcePath)
+        run(process.execPath, [
+          path.join(repository, 'scripts/class-models/transplant-meshy-retexture.mjs'),
+          entry.geometrySourcePath,
+          entry.sourcePath,
+          materialized,
+        ]);
       run(process.execPath, [
         path.join(repository, 'scripts/class-models/normalize-provider-glb.mjs'),
-        entry.sourcePath,
+        entry.geometrySourcePath === entry.sourcePath ? entry.sourcePath : materialized,
         normalized,
         String(targetPlanformSpan),
         'identity',
+        '--strip-authored-tangents',
       ]);
       run('npx', [
         '--yes',
@@ -353,11 +387,25 @@ function inspectEntry(entry) {
     classId: entry.classId,
     taskId: entry.taskId,
     endpoint: entry.endpoint,
-    source: {
-      file: path.relative(repository, entry.sourcePath),
-      bytes: entry.rawModel.bytes,
-      sha256: entry.rawModel.sha256,
-    },
+    source: entry.retextured
+      ? {
+          geometry: {
+            file: path.relative(repository, entry.geometrySourcePath),
+            bytes: entry.source.rawModel.bytes,
+            sha256: entry.source.rawModel.sha256,
+          },
+          textureDonor: {
+            file: path.relative(repository, entry.sourcePath),
+            bytes: entry.rawModel.bytes,
+            sha256: entry.rawModel.sha256,
+            preservedOriginalUvs: true,
+          },
+        }
+      : {
+          file: path.relative(repository, entry.sourcePath),
+          bytes: entry.rawModel.bytes,
+          sha256: entry.rawModel.sha256,
+        },
     reusedReviewedKestrel: entry.reused,
     facing: {
       sourceFacing: entry.facingCorrection.sourceFacing,
@@ -396,4 +444,12 @@ function run(command, arguments_) {
 
 function sha256(value) {
   return createHash('sha256').update(value).digest('hex');
+}
+
+function option(name, fallback) {
+  const index = process.argv.indexOf(name);
+  if (index === -1) return fallback;
+  const value = process.argv[index + 1];
+  if (!value || value.startsWith('--')) throw new Error(`${name} requires a value.`);
+  return value;
 }

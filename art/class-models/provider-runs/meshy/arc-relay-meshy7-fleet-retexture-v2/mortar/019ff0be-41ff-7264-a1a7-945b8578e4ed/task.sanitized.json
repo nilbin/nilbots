@@ -1,0 +1,35 @@
+{
+  "id": "019ff0be-41ff-7264-a1a7-945b8578e4ed",
+  "type": "retexture",
+  "name": "",
+  "art_style": "realistic",
+  "object_prompt": "",
+  "style_prompt": "",
+  "negative_prompt": "",
+  "texture_prompt": "",
+  "texture_image_url": "",
+  "text_style_prompt": "Mature industrial mortar levitating Arc Relay bot. High-roughness matte powder-coated ceramic and painted metal: lichen-khaki armor, pale-limestone launch deck, muted-brass sealed iris. Soft diffuse finish, fine dry surface grain, restrained wear, metal only on mechanisms. Medium-light values readable in a dark arena; charcoal only in narrow recesses. Preserve every material boundary. No glossy plastic, clearcoat, lacquer, wet shine, broad highlights, saturated or neon color, black body, pure white, teal, cyan, orange, glow, text, decals, eyes, guns, or legs.",
+  "image_style_url": "[redacted-input]",
+  "status": "SUCCEEDED",
+  "created_at": 1786450430998,
+  "progress": 100,
+  "started_at": 1786450431003,
+  "finished_at": 1786450596303,
+  "expires_at": 1786709796303,
+  "task_error": null,
+  "model_url": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ff0be-41ff-7264-a1a7-945b8578e4ed/output/model.glb",
+  "model_urls": {
+    "glb": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ff0be-41ff-7264-a1a7-945b8578e4ed/output/model.glb"
+  },
+  "thumbnail_url": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ff0be-41ff-7264-a1a7-945b8578e4ed/output/preview.png",
+  "alpha_thumbnail_url": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ff0be-41ff-7264-a1a7-945b8578e4ed/output/preview_alpha.png",
+  "texture_urls": [
+    {
+      "base_color": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ff0be-41ff-7264-a1a7-945b8578e4ed/output/texture_0.png",
+      "metallic": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ff0be-41ff-7264-a1a7-945b8578e4ed/output/texture_0_metallic.png",
+      "roughness": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ff0be-41ff-7264-a1a7-945b8578e4ed/output/texture_0_roughness.png",
+      "normal": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ff0be-41ff-7264-a1a7-945b8578e4ed/output/texture_0_normal.png"
+    }
+  ],
+  "consumed_credits": 10
+}

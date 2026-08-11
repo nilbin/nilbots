@@ -9,9 +9,10 @@ const inputPath = resolve(process.argv[2] ?? '');
 const outputPath = resolve(process.argv[3] ?? '');
 const targetSpan = Number(process.argv[4] ?? 0.9);
 const orientation = process.argv[5] ?? 'identity';
+const stripAuthoredTangents = process.argv.includes('--strip-authored-tangents');
 if (!process.argv[2] || !process.argv[3] || !Number.isFinite(targetSpan) || targetSpan <= 0)
   throw new Error(
-    'Usage: node scripts/class-models/normalize-provider-glb.mjs <input.glb> <output.glb> [target-planform-span] [identity|lay-flat-x]',
+    'Usage: node scripts/class-models/normalize-provider-glb.mjs <input.glb> <output.glb> [target-planform-span] [identity|lay-flat-x] [--strip-authored-tangents]',
   );
 if (!['identity', 'lay-flat-x'].includes(orientation))
   throw new Error('Orientation must be identity or lay-flat-x.');
@@ -21,6 +22,14 @@ const chunks = parseGlb(source);
 const jsonChunk = chunks.find((chunk) => chunk.type === JSON_CHUNK);
 if (!jsonChunk) throw new Error('GLB has no JSON chunk.');
 const document = JSON.parse(jsonChunk.data.toString('utf8').trim());
+let strippedTangentAttributes = 0;
+if (stripAuthoredTangents)
+  for (const mesh of document.meshes ?? [])
+    for (const primitive of mesh.primitives ?? [])
+      if (primitive.attributes?.TANGENT !== undefined) {
+        delete primitive.attributes.TANGENT;
+        strippedTangentAttributes += 1;
+      }
 const sceneIndex = document.scene ?? 0;
 const scene = document.scenes?.[sceneIndex];
 if (!scene || !Array.isArray(scene.nodes) || scene.nodes.length === 0)
@@ -84,6 +93,7 @@ console.log(
       orientation,
       scale,
       targetPlanformSpan: targetSpan,
+      strippedTangentAttributes,
       normalizedBounds: {
         min: [
           (orientedBounds.min[0] - centreX) * scale,

@@ -1,0 +1,889 @@
+{
+  "schemaVersion": 1,
+  "status": "owner-review",
+  "generatedAt": "2026-08-11T12:19:28.251Z",
+  "purpose": "Restrained matte Meshy 7 fleet retexture review; Kestrel retained, no runtime assets promoted",
+  "sourceAudit": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/fleet-audit.json",
+  "sourcePlan": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet-retexture-v2/plan.json",
+  "fleet": {
+    "classes": 16,
+    "retainedClasses": [
+      "kestrel"
+    ],
+    "retexturedClasses": 15,
+    "successfulTasks": 15,
+    "consumedCredits": 150,
+    "balanceBefore": 1730,
+    "balanceAfter": 1580,
+    "runtimeAssetsPromoted": false
+  },
+  "entries": [
+    {
+      "classId": "kestrel",
+      "taskId": "019fefdd-ac96-7dc8-a61e-f0760b4ae407",
+      "endpoint": "retexture",
+      "status": "SUCCEEDED",
+      "consumedCredits": 10,
+      "balanceBefore": 190,
+      "balanceAfter": 180,
+      "totalSeconds": 189.710084375,
+      "runDirectory": "art/class-models/provider-runs/meshy/arc-relay-meshy7-retexture/kestrel/019fefdd-ac96-7dc8-a61e-f0760b4ae407",
+      "preview": "art/class-models/provider-runs/meshy/arc-relay-meshy7-retexture/kestrel/019fefdd-ac96-7dc8-a61e-f0760b4ae407/provider-preview.png",
+      "rawModel": {
+        "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-retexture/kestrel/019fefdd-ac96-7dc8-a61e-f0760b4ae407/raw-model.glb",
+        "bytes": 64337428,
+        "sha256": "6daeca9df3f60fd9e7260b3fd7ec3dd5ecba15505a440da4c36700cc98ae31b3",
+        "triangles": 1976674,
+        "meshes": 1,
+        "materials": 1,
+        "textures": 3,
+        "imageMimeTypes": [
+          "image/jpeg"
+        ]
+      },
+      "retainedFrom": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/fleet-audit.json",
+      "retextured": false,
+      "materialDirection": "owner-approved Kestrel retained byte-for-byte"
+    },
+    {
+      "classId": "palisade",
+      "taskId": "019ff0be-0e7e-7044-89df-9b079eb20f13",
+      "endpoint": "retexture",
+      "status": "SUCCEEDED",
+      "consumedCredits": 10,
+      "runDirectory": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet-retexture-v2/palisade/019ff0be-0e7e-7044-89df-9b079eb20f13",
+      "preview": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet-retexture-v2/palisade/019ff0be-0e7e-7044-89df-9b079eb20f13/provider-preview.png",
+      "retextured": true,
+      "source": {
+        "taskId": "019ff036-52d7-7e1c-898a-6d4eab146e93",
+        "rawModel": {
+          "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/palisade/019ff036-52d7-7e1c-898a-6d4eab146e93/raw-model.glb",
+          "bytes": 67171544,
+          "sha256": "aa933383aa4f698fca2d56b5ff81e6975df9f620d91c02824a7cf3ed81799ede",
+          "triangles": 1991570,
+          "meshes": 1,
+          "materials": 1,
+          "textures": 4,
+          "imageMimeTypes": [
+            "image/jpeg"
+          ]
+        },
+        "geometrySha256": "80b0ae8d27bb29ecf39465f654d4ceb7c80984cdacea162023553989d49e4005"
+      },
+      "providerGeometryRewrite": {
+        "kind": "uniform provider rescale plus seam/tangent vertex rewrite",
+        "sourceTriangles": 1991570,
+        "outputTriangles": 1991312,
+        "triangleDelta": -258,
+        "sourcePositionVertices": 1054961,
+        "outputPositionVertices": 1068710,
+        "dimensionScales": [
+          1.0515379853413342,
+          1.0515372773871765,
+          1.0515383906561508
+        ],
+        "dimensionScaleSpread": 0.0000011132689743398316,
+        "normalizedReviewEnvelope": 0.99,
+        "exactGeometryFingerprintPreserved": false
+      },
+      "materialDirection": "Mature industrial palisade levitating Arc Relay bot. High-roughness matte powder-coated ceramic and painted metal: dusted denim-blue armor, putty-gray shield planes, aged-nickel projector ribs. Soft diffuse finish, fine dry surface grain, restrained wear, metal only on mechanisms. Medium-light values readable in a dark arena; charcoal only in narrow recesses. Preserve every material boundary. No glossy plastic, clearcoat, lacquer, wet shine, broad highlights, saturated or neon color, black body, pure white, teal, cyan, orange, glow, text, decals, eyes, guns, or legs.",
+      "rawModel": {
+        "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet-retexture-v2/palisade/019ff0be-0e7e-7044-89df-9b079eb20f13/raw-model.glb",
+        "bytes": 84833344,
+        "sha256": "e1fa182956792dce168431bddae400996c0629fab3e04e0465fce31e8e91d924",
+        "geometrySha256": "5e15be9828527e222979b40a26595f7e5c7ce46c4d417e5e2c421100799fb4cf",
+        "triangles": 1991312,
+        "meshes": 1,
+        "materials": 1,
+        "textures": 3,
+        "imageMimeTypes": [
+          "image/jpeg"
+        ]
+      }
+    },
+    {
+      "classId": "towline",
+      "taskId": "019ff0be-1cd2-7046-96be-859d1365b2fe",
+      "endpoint": "retexture",
+      "status": "SUCCEEDED",
+      "consumedCredits": 10,
+      "runDirectory": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet-retexture-v2/towline/019ff0be-1cd2-7046-96be-859d1365b2fe",
+      "preview": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet-retexture-v2/towline/019ff0be-1cd2-7046-96be-859d1365b2fe/provider-preview.png",
+      "retextured": true,
+      "source": {
+        "taskId": "019ff036-52d8-7539-a228-89f3f71560ee",
+        "rawModel": {
+          "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/towline/019ff036-52d8-7539-a228-89f3f71560ee/raw-model.glb",
+          "bytes": 64922012,
+          "sha256": "bf2f9f9c2e1fccb7f4c8700c8fb3b6c3427c2de60ac0be6169c0b6a2b1e2ae61",
+          "triangles": 1916932,
+          "meshes": 1,
+          "materials": 1,
+          "textures": 4,
+          "imageMimeTypes": [
+            "image/jpeg"
+          ]
+        },
+        "geometrySha256": "2c76d417ebb1a384666fb046674e2d167d4506c4a32f2c9371cbe1e8d5a45d5c"
+      },
+      "providerGeometryRewrite": {
+        "kind": "uniform provider rescale plus seam/tangent vertex rewrite",
+        "sourceTriangles": 1916932,
+        "outputTriangles": 1916852,
+        "triangleDelta": -80,
+        "sourcePositionVertices": 1008124,
+        "outputPositionVertices": 1016108,
+        "dimensionScales": [
+          1.0515772342884477,
+          1.0515762595257905,
+          1.0515769656945078
+        ],
+        "dimensionScaleSpread": 9.747626572575996e-7,
+        "normalizedReviewEnvelope": 0.99,
+        "exactGeometryFingerprintPreserved": false
+      },
+      "materialDirection": "Mature industrial towline levitating Arc Relay bot. High-roughness matte powder-coated ceramic and painted metal: muted flax armor, mushroom-taupe side panels, worn pewter winch and edge hardware. Soft diffuse finish, fine dry surface grain, restrained wear, metal only on mechanisms. Medium-light values readable in a dark arena; charcoal only in narrow recesses. Preserve every material boundary. No glossy plastic, clearcoat, lacquer, wet shine, broad highlights, saturated or neon color, black body, pure white, teal, cyan, orange, glow, text, decals, eyes, guns, or legs.",
+      "rawModel": {
+        "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet-retexture-v2/towline/019ff0be-1cd2-7046-96be-859d1365b2fe/raw-model.glb",
+        "bytes": 79974228,
+        "sha256": "d240f6a9073a8dc41dc0957749efc0eca8d080512ebc7cc220d39772e5480dee",
+        "geometrySha256": "7670ff5baedbdd002b6cc5cd26951a04f38d56045dbd3db35a83a6183c2298ed",
+        "triangles": 1916852,
+        "meshes": 1,
+        "materials": 1,
+        "textures": 3,
+        "imageMimeTypes": [
+          "image/jpeg"
+        ]
+      }
+    },
+    {
+      "classId": "patchbay",
+      "taskId": "019ff0be-2922-7261-a51c-38e5babdb7d4",
+      "endpoint": "retexture",
+      "status": "SUCCEEDED",
+      "consumedCredits": 10,
+      "runDirectory": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet-retexture-v2/patchbay/019ff0be-2922-7261-a51c-38e5babdb7d4",
+      "preview": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet-retexture-v2/patchbay/019ff0be-2922-7261-a51c-38e5babdb7d4/provider-preview.png",
+      "retextured": true,
+      "source": {
+        "taskId": "019ff036-52e1-7539-a8d4-c756b3e7a9dd",
+        "rawModel": {
+          "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/patchbay/019ff036-52e1-7539-a8d4-c756b3e7a9dd/raw-model.glb",
+          "bytes": 65443392,
+          "sha256": "fb125c8e07f5c327e5b5b50ae649d14e5bd76c35bd9394f2899569ed4e346d1d",
+          "triangles": 1968740,
+          "meshes": 1,
+          "materials": 1,
+          "textures": 4,
+          "imageMimeTypes": [
+            "image/jpeg"
+          ]
+        },
+        "geometrySha256": "aa364ae27f4d3ea70b27ee224ed3475cc76b99925f2f1cb6088d23bbfbe93900"
+      },
+      "providerGeometryRewrite": {
+        "kind": "uniform provider rescale plus seam/tangent vertex rewrite",
+        "sourceTriangles": 1968740,
+        "outputTriangles": 1968652,
+        "triangleDelta": -88,
+        "sourcePositionVertices": 1028964,
+        "outputPositionVertices": 1035126,
+        "dimensionScales": [
+          1.051968301907567,
+          1.0519678795749297,
+          1.051968398375352
+        ],
+        "dimensionScaleSpread": 5.188004223999343e-7,
+        "normalizedReviewEnvelope": 0.99,
+        "exactGeometryFingerprintPreserved": false
+      },
+      "materialDirection": "Mature industrial patchbay levitating Arc Relay bot. High-roughness matte powder-coated ceramic and painted metal: eucalyptus-sage armor, dusty-mauve repair panels, warm-stone repair trim. Soft diffuse finish, fine dry surface grain, restrained wear, metal only on mechanisms. Medium-light values readable in a dark arena; charcoal only in narrow recesses. Preserve every material boundary. No glossy plastic, clearcoat, lacquer, wet shine, broad highlights, saturated or neon color, black body, pure white, teal, cyan, orange, glow, text, decals, eyes, guns, or legs.",
+      "rawModel": {
+        "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet-retexture-v2/patchbay/019ff0be-2922-7261-a51c-38e5babdb7d4/raw-model.glb",
+        "bytes": 81444584,
+        "sha256": "f9c61891fd077e5a57cb7f0e07137466cc23901bc7103df8de97fcfca42b45ae",
+        "geometrySha256": "2a480f85900fb21496634c4191e900d67097bf6018f5ffef7780d4ab917101d1",
+        "triangles": 1968652,
+        "meshes": 1,
+        "materials": 1,
+        "textures": 3,
+        "imageMimeTypes": [
+          "image/jpeg"
+        ]
+      }
+    },
+    {
+      "classId": "lantern",
+      "taskId": "019ff0be-3502-7523-a5f5-22c830f4e90e",
+      "endpoint": "retexture",
+      "status": "SUCCEEDED",
+      "consumedCredits": 10,
+      "runDirectory": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet-retexture-v2/lantern/019ff0be-3502-7523-a5f5-22c830f4e90e",
+      "preview": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet-retexture-v2/lantern/019ff0be-3502-7523-a5f5-22c830f4e90e/provider-preview.png",
+      "retextured": true,
+      "source": {
+        "taskId": "019ff036-52c5-7313-8d54-a4dade5fc0cd",
+        "rawModel": {
+          "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/lantern/019ff036-52c5-7313-8d54-a4dade5fc0cd/raw-model.glb",
+          "bytes": 64014016,
+          "sha256": "c9891d073356acef06c4c918adda902867282c4ba63f7d08e08e16f1c315e0cc",
+          "triangles": 1957232,
+          "meshes": 1,
+          "materials": 1,
+          "textures": 4,
+          "imageMimeTypes": [
+            "image/jpeg"
+          ]
+        },
+        "geometrySha256": "0b077d9a4b6ea96cab2e9a70675790498cc9a03079efa2d4ae626921586933b5"
+      },
+      "providerGeometryRewrite": {
+        "kind": "uniform provider rescale plus seam/tangent vertex rewrite",
+        "sourceTriangles": 1957232,
+        "outputTriangles": 1957129,
+        "triangleDelta": -103,
+        "sourcePositionVertices": 1014192,
+        "outputPositionVertices": 1030058,
+        "dimensionScales": [
+          1.051631417417971,
+          1.0516314494494097,
+          1.0516310930773425
+        ],
+        "dimensionScaleSpread": 3.563720671895254e-7,
+        "normalizedReviewEnvelope": 0.99,
+        "exactGeometryFingerprintPreserved": false
+      },
+      "materialDirection": "Mature industrial lantern levitating Arc Relay bot. High-roughness matte powder-coated ceramic and painted metal: heather-lilac armor, parchment scanner casing, aged-pewter survey rings. Soft diffuse finish, fine dry surface grain, restrained wear, metal only on mechanisms. Medium-light values readable in a dark arena; charcoal only in narrow recesses. Preserve every material boundary. No glossy plastic, clearcoat, lacquer, wet shine, broad highlights, saturated or neon color, black body, pure white, teal, cyan, orange, glow, text, decals, eyes, guns, or legs.",
+      "rawModel": {
+        "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet-retexture-v2/lantern/019ff0be-3502-7523-a5f5-22c830f4e90e/raw-model.glb",
+        "bytes": 81321364,
+        "sha256": "4f62b5ed33370ee40147779c63a9ec290999fd22fa8199d0e99cc2e30231d875",
+        "geometrySha256": "e7ad9c93955128e523676bf64cdaa890530398cde61453a2a8d4c8306b5606e1",
+        "triangles": 1957129,
+        "meshes": 1,
+        "materials": 1,
+        "textures": 3,
+        "imageMimeTypes": [
+          "image/jpeg"
+        ]
+      }
+    },
+    {
+      "classId": "mortar",
+      "taskId": "019ff0be-41ff-7264-a1a7-945b8578e4ed",
+      "endpoint": "retexture",
+      "status": "SUCCEEDED",
+      "consumedCredits": 10,
+      "runDirectory": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet-retexture-v2/mortar/019ff0be-41ff-7264-a1a7-945b8578e4ed",
+      "preview": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet-retexture-v2/mortar/019ff0be-41ff-7264-a1a7-945b8578e4ed/provider-preview.png",
+      "retextured": true,
+      "source": {
+        "taskId": "019ff039-d5d4-73ae-9688-d68f53d66564",
+        "rawModel": {
+          "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/mortar/019ff039-d5d4-73ae-9688-d68f53d66564/raw-model.glb",
+          "bytes": 64350320,
+          "sha256": "89200842ce905440158ad8d7f9c1036f7fb27348e231945315e4b05dfd81adf5",
+          "triangles": 1996038,
+          "meshes": 1,
+          "materials": 1,
+          "textures": 4,
+          "imageMimeTypes": [
+            "image/jpeg"
+          ]
+        },
+        "geometrySha256": "3a7cba0e2f3c7279814e04b8636d6179985dae9448d456ecd2a511e9ce538264"
+      },
+      "providerGeometryRewrite": {
+        "kind": "uniform provider rescale plus seam/tangent vertex rewrite",
+        "sourceTriangles": 1996038,
+        "outputTriangles": 1995935,
+        "triangleDelta": -103,
+        "sourcePositionVertices": 1030950,
+        "outputPositionVertices": 1042963,
+        "dimensionScales": [
+          1.051282625677553,
+          1.0512834607233346,
+          1.0512822830531237
+        ],
+        "dimensionScaleSpread": 0.0000011776702109056458,
+        "normalizedReviewEnvelope": 0.99,
+        "exactGeometryFingerprintPreserved": false
+      },
+      "materialDirection": "Mature industrial mortar levitating Arc Relay bot. High-roughness matte powder-coated ceramic and painted metal: lichen-khaki armor, pale-limestone launch deck, muted-brass sealed iris. Soft diffuse finish, fine dry surface grain, restrained wear, metal only on mechanisms. Medium-light values readable in a dark arena; charcoal only in narrow recesses. Preserve every material boundary. No glossy plastic, clearcoat, lacquer, wet shine, broad highlights, saturated or neon color, black body, pure white, teal, cyan, orange, glow, text, decals, eyes, guns, or legs.",
+      "rawModel": {
+        "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet-retexture-v2/mortar/019ff0be-41ff-7264-a1a7-945b8578e4ed/raw-model.glb",
+        "bytes": 82801028,
+        "sha256": "b6a970beca35415493a2bda4d4c2c8467b7bc345fc4b39852c5343842e71220a",
+        "geometrySha256": "b8d720968a420bd7733f548fa3a8d5f13362cb5784ae6e788eb63e5d40617db4",
+        "triangles": 1995935,
+        "meshes": 1,
+        "materials": 1,
+        "textures": 3,
+        "imageMimeTypes": [
+          "image/jpeg"
+        ]
+      }
+    },
+    {
+      "classId": "minesmith",
+      "taskId": "019ff0be-4dbb-726b-be53-e6c8177febb6",
+      "endpoint": "retexture",
+      "status": "SUCCEEDED",
+      "consumedCredits": 10,
+      "runDirectory": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet-retexture-v2/minesmith/019ff0be-4dbb-726b-be53-e6c8177febb6",
+      "preview": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet-retexture-v2/minesmith/019ff0be-4dbb-726b-be53-e6c8177febb6/provider-preview.png",
+      "retextured": true,
+      "source": {
+        "taskId": "019ff03a-1c4d-73c6-abb6-569e7cb320f4",
+        "rawModel": {
+          "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/minesmith/019ff03a-1c4d-73c6-abb6-569e7cb320f4/raw-model.glb",
+          "bytes": 67380476,
+          "sha256": "13cdebba6db47bf210e752e8a9f5d8b85fc27cb97d9d9dda82ab112f308e1a63",
+          "triangles": 1976960,
+          "meshes": 1,
+          "materials": 1,
+          "textures": 4,
+          "imageMimeTypes": [
+            "image/jpeg"
+          ]
+        },
+        "geometrySha256": "3c95c6512249f102e064681a403c663bd08fb276d9671d14f84201bbe7eba160"
+      },
+      "providerGeometryRewrite": {
+        "kind": "uniform provider rescale plus seam/tangent vertex rewrite",
+        "sourceTriangles": 1976960,
+        "outputTriangles": 1976688,
+        "triangleDelta": -272,
+        "sourcePositionVertices": 1052601,
+        "outputPositionVertices": 1065927,
+        "dimensionScales": [
+          1.0515379853413342,
+          1.0515378315355692,
+          1.0515381728399118
+        ],
+        "dimensionScaleSpread": 3.413043425659623e-7,
+        "normalizedReviewEnvelope": 0.99,
+        "exactGeometryFingerprintPreserved": false
+      },
+      "materialDirection": "Mature industrial minesmith levitating Arc Relay bot. High-roughness matte powder-coated ceramic and painted metal: faded brick-red armor, biscuit-beige forge panels, worn-pewter rollers. Soft diffuse finish, fine dry surface grain, restrained wear, metal only on mechanisms. Medium-light values readable in a dark arena; charcoal only in narrow recesses. Preserve every material boundary. No glossy plastic, clearcoat, lacquer, wet shine, broad highlights, saturated or neon color, black body, pure white, teal, cyan, orange, glow, text, decals, eyes, guns, or legs.",
+      "rawModel": {
+        "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet-retexture-v2/minesmith/019ff0be-4dbb-726b-be53-e6c8177febb6/raw-model.glb",
+        "bytes": 84154016,
+        "sha256": "f25a4885396bd83a895ca6faa73fe48493ad306e098554a3d0d5f4084bc32940",
+        "geometrySha256": "6047f7e3d8113b9a5059a39d2fe90b90907899ec1c9d39a65db3a886da596906",
+        "triangles": 1976688,
+        "meshes": 1,
+        "materials": 1,
+        "textures": 3,
+        "imageMimeTypes": [
+          "image/jpeg"
+        ]
+      }
+    },
+    {
+      "classId": "hush",
+      "taskId": "019ff0be-5922-7274-ac4c-3aa6411838cc",
+      "endpoint": "retexture",
+      "status": "SUCCEEDED",
+      "consumedCredits": 10,
+      "runDirectory": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet-retexture-v2/hush/019ff0be-5922-7274-ac4c-3aa6411838cc",
+      "preview": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet-retexture-v2/hush/019ff0be-5922-7274-ac4c-3aa6411838cc/provider-preview.png",
+      "retextured": true,
+      "source": {
+        "taskId": "019ff03a-2140-7f10-bd41-2f3e6d27df58",
+        "rawModel": {
+          "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/hush/019ff03a-2140-7f10-bd41-2f3e6d27df58/raw-model.glb",
+          "bytes": 63835840,
+          "sha256": "9b824a5dff44bc00e3e8c20fa89a7f785f98cc6ae55aad68a62268b7b3b39d69",
+          "triangles": 1992860,
+          "meshes": 1,
+          "materials": 1,
+          "textures": 4,
+          "imageMimeTypes": [
+            "image/jpeg"
+          ]
+        },
+        "geometrySha256": "348235be573ddef8c81830ee1dc63dffd7b83568ec5a5fbea3ab078ab7f9100e"
+      },
+      "providerGeometryRewrite": {
+        "kind": "uniform provider rescale plus seam/tangent vertex rewrite",
+        "sourceTriangles": 1992860,
+        "outputTriangles": 1992756,
+        "triangleDelta": -104,
+        "sourcePositionVertices": 1027959,
+        "outputPositionVertices": 1041569,
+        "dimensionScales": [
+          1.052015301022869,
+          1.0520153803110757,
+          1.0520158148781364
+        ],
+        "dimensionScaleSpread": 5.138552674477381e-7,
+        "normalizedReviewEnvelope": 0.99,
+        "exactGeometryFingerprintPreserved": false
+      },
+      "materialDirection": "Mature industrial hush levitating Arc Relay bot. High-roughness matte powder-coated ceramic and painted metal: lavender-gray lobes, mushroom-beige armor bands, matte pewter structural channels. Soft diffuse finish, fine dry surface grain, restrained wear, metal only on mechanisms. Medium-light values readable in a dark arena; charcoal only in narrow recesses. Preserve every material boundary. No glossy plastic, clearcoat, lacquer, wet shine, broad highlights, saturated or neon color, black body, pure white, teal, cyan, orange, glow, text, decals, eyes, guns, or legs.",
+      "rawModel": {
+        "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet-retexture-v2/hush/019ff0be-5922-7274-ac4c-3aa6411838cc/raw-model.glb",
+        "bytes": 80305344,
+        "sha256": "58fa6d88c1dda7a6895c8e9a86dff5f901fb24e8f98fd74d4b1e245862534f70",
+        "geometrySha256": "66774b0d68aab30bf1aaa58c0e83196d90e9d4b6f4067b7850a516d746fcc0c9",
+        "triangles": 1992756,
+        "meshes": 1,
+        "materials": 1,
+        "textures": 3,
+        "imageMimeTypes": [
+          "image/jpeg"
+        ]
+      }
+    },
+    {
+      "classId": "relay",
+      "taskId": "019ff0be-6497-727c-9583-eababe572b14",
+      "endpoint": "retexture",
+      "status": "SUCCEEDED",
+      "consumedCredits": 10,
+      "runDirectory": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet-retexture-v2/relay/019ff0be-6497-727c-9583-eababe572b14",
+      "preview": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet-retexture-v2/relay/019ff0be-6497-727c-9583-eababe572b14/provider-preview.png",
+      "retextured": true,
+      "source": {
+        "taskId": "019ff03a-2715-73c8-b3a5-1ba12b802f4d",
+        "rawModel": {
+          "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/relay/019ff03a-2715-73c8-b3a5-1ba12b802f4d/raw-model.glb",
+          "bytes": 65006024,
+          "sha256": "4b551066767b24cc8d657b60fabacc81e92265f1c863bd38b9ae6f380d42ce75",
+          "triangles": 1997700,
+          "meshes": 1,
+          "materials": 1,
+          "textures": 4,
+          "imageMimeTypes": [
+            "image/jpeg"
+          ]
+        },
+        "geometrySha256": "f600f75bb6aac17dcbc4e66946e127ad46c91d358133412ea5eeceefa86fc44c"
+      },
+      "providerGeometryRewrite": {
+        "kind": "uniform provider rescale plus seam/tangent vertex rewrite",
+        "sourceTriangles": 1997700,
+        "outputTriangles": 1997658,
+        "triangleDelta": -42,
+        "sourcePositionVertices": 1034508,
+        "outputPositionVertices": 1040137,
+        "dimensionScales": [
+          1.0507049251855995,
+          1.0507046083490905,
+          1.0507044194786508
+        ],
+        "dimensionScaleSpread": 5.057069487612864e-7,
+        "normalizedReviewEnvelope": 0.99,
+        "exactGeometryFingerprintPreserved": false
+      },
+      "materialDirection": "Mature industrial relay levitating Arc Relay bot. High-roughness matte powder-coated ceramic and painted metal: desaturated periwinkle-gray arms, muted-flax catcher tips, aged-nickel guide rails. Soft diffuse finish, fine dry surface grain, restrained wear, metal only on mechanisms. Medium-light values readable in a dark arena; charcoal only in narrow recesses. Preserve every material boundary. No glossy plastic, clearcoat, lacquer, wet shine, broad highlights, saturated or neon color, black body, pure white, teal, cyan, orange, glow, text, decals, eyes, guns, or legs.",
+      "rawModel": {
+        "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet-retexture-v2/relay/019ff0be-6497-727c-9583-eababe572b14/raw-model.glb",
+        "bytes": 83023100,
+        "sha256": "afb20d196995dbd1df96c622a2c067b0f52ff57301aa5ff0f56727a79d592131",
+        "geometrySha256": "e44a9734e7272c984154934f1fb9eb1eb92cde01bdabedb45086e7baa918098c",
+        "triangles": 1997658,
+        "meshes": 1,
+        "materials": 1,
+        "textures": 3,
+        "imageMimeTypes": [
+          "image/jpeg"
+        ]
+      }
+    },
+    {
+      "classId": "switchback",
+      "taskId": "019ff0be-7046-7283-81a6-26dfb81eb479",
+      "endpoint": "retexture",
+      "status": "SUCCEEDED",
+      "consumedCredits": 10,
+      "runDirectory": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet-retexture-v2/switchback/019ff0be-7046-7283-81a6-26dfb81eb479",
+      "preview": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet-retexture-v2/switchback/019ff0be-7046-7283-81a6-26dfb81eb479/provider-preview.png",
+      "retextured": true,
+      "source": {
+        "taskId": "019ff03d-2677-76b5-b0b8-f9dec1aef11c",
+        "rawModel": {
+          "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/switchback/019ff03d-2677-76b5-b0b8-f9dec1aef11c/raw-model.glb",
+          "bytes": 65660764,
+          "sha256": "f8a1dd792658e23462d7d3c73c836535c35cf564e3bce0a88c1a15c4fd555827",
+          "triangles": 1974122,
+          "meshes": 1,
+          "materials": 1,
+          "textures": 4,
+          "imageMimeTypes": [
+            "image/jpeg"
+          ]
+        },
+        "geometrySha256": "dcb3869a7a1a95084c6d2328f0bd42d206ddba59e7a5cae842d9d873ff8bb407"
+      },
+      "providerGeometryRewrite": {
+        "kind": "uniform provider rescale plus seam/tangent vertex rewrite",
+        "sourceTriangles": 1974122,
+        "outputTriangles": 1973982,
+        "triangleDelta": -140,
+        "sourcePositionVertices": 1040354,
+        "outputPositionVertices": 1053882,
+        "dimensionScales": [
+          1.0514379154335054,
+          1.0514391969863939,
+          1.0514377663746624
+        ],
+        "dimensionScaleSpread": 0.000001430611731523257,
+        "normalizedReviewEnvelope": 0.99,
+        "exactGeometryFingerprintPreserved": false
+      },
+      "materialDirection": "Mature industrial switchback levitating Arc Relay bot. High-roughness matte powder-coated ceramic and painted metal: one pale-greige lobe and one soft moss-gray lobe, warm-nickel protected coils. Soft diffuse finish, fine dry surface grain, restrained wear, metal only on mechanisms. Medium-light values readable in a dark arena; charcoal only in narrow recesses. Preserve every material boundary. No glossy plastic, clearcoat, lacquer, wet shine, broad highlights, saturated or neon color, black body, pure white, teal, cyan, orange, glow, text, decals, eyes, guns, or legs.",
+      "rawModel": {
+        "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet-retexture-v2/switchback/019ff0be-7046-7283-81a6-26dfb81eb479/raw-model.glb",
+        "bytes": 82215484,
+        "sha256": "feb559384ce6bd780108c5627585beb2c012c11655ceab8f9d2c289fafaad04e",
+        "geometrySha256": "023709a4ddae5991456eb7f4908a51f62efa701d3b5906f6a9055867e9f2cf74",
+        "triangles": 1973982,
+        "meshes": 1,
+        "materials": 1,
+        "textures": 3,
+        "imageMimeTypes": [
+          "image/jpeg"
+        ]
+      }
+    },
+    {
+      "classId": "longshot",
+      "taskId": "019ff0be-7c7d-7290-ae66-3631e3728c6a",
+      "endpoint": "retexture",
+      "status": "SUCCEEDED",
+      "consumedCredits": 10,
+      "runDirectory": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet-retexture-v2/longshot/019ff0be-7c7d-7290-ae66-3631e3728c6a",
+      "preview": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet-retexture-v2/longshot/019ff0be-7c7d-7290-ae66-3631e3728c6a/provider-preview.png",
+      "retextured": true,
+      "source": {
+        "taskId": "019ff03d-55d7-7443-985f-81962a0d1b7b",
+        "rawModel": {
+          "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/longshot/019ff03d-55d7-7443-985f-81962a0d1b7b/raw-model.glb",
+          "bytes": 65173408,
+          "sha256": "1443dba60ed1e827dfc96d553c9cfbaf55a73ba0872f129c992d93b598ea552e",
+          "triangles": 1989812,
+          "meshes": 1,
+          "materials": 1,
+          "textures": 4,
+          "imageMimeTypes": [
+            "image/jpeg"
+          ]
+        },
+        "geometrySha256": "f5b7d2308bbbafecf466678ea19ba89192ed9cf354dc8786c9f20dc2c56b42a8"
+      },
+      "providerGeometryRewrite": {
+        "kind": "uniform provider rescale plus seam/tangent vertex rewrite",
+        "sourceTriangles": 1989812,
+        "outputTriangles": 1989450,
+        "triangleDelta": -362,
+        "sourcePositionVertices": 1052013,
+        "outputPositionVertices": 1062950,
+        "dimensionScales": [
+          1.0513920550514502,
+          1.051393900181089,
+          1.0513927449359364
+        ],
+        "dimensionScaleSpread": 0.000001845129638855525,
+        "normalizedReviewEnvelope": 0.99,
+        "exactGeometryFingerprintPreserved": false
+      },
+      "materialDirection": "Mature industrial longshot levitating Arc Relay bot. High-roughness matte powder-coated ceramic and painted metal: cool cement-gray armor, muted-burgundy staged cells, brushed-nickel dorsal spine. Soft diffuse finish, fine dry surface grain, restrained wear, metal only on mechanisms. Medium-light values readable in a dark arena; charcoal only in narrow recesses. Preserve every material boundary. No glossy plastic, clearcoat, lacquer, wet shine, broad highlights, saturated or neon color, black body, pure white, teal, cyan, orange, glow, text, decals, eyes, guns, or legs.",
+      "rawModel": {
+        "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet-retexture-v2/longshot/019ff0be-7c7d-7290-ae66-3631e3728c6a/raw-model.glb",
+        "bytes": 83427724,
+        "sha256": "2695bd37f7449564ea4025b40882c85898ed638e91c530cd63cb6c4d98a77221",
+        "geometrySha256": "3e2b3a9df71615d50835fc4c2438afe898df79d8e75ba5e83ba552e6127f9c86",
+        "triangles": 1989450,
+        "meshes": 1,
+        "materials": 1,
+        "textures": 3,
+        "imageMimeTypes": [
+          "image/jpeg"
+        ]
+      }
+    },
+    {
+      "classId": "mason",
+      "taskId": "019ff0be-87f5-7056-9233-40217e03375c",
+      "endpoint": "retexture",
+      "status": "SUCCEEDED",
+      "consumedCredits": 10,
+      "runDirectory": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet-retexture-v2/mason/019ff0be-87f5-7056-9233-40217e03375c",
+      "preview": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet-retexture-v2/mason/019ff0be-87f5-7056-9233-40217e03375c/provider-preview.png",
+      "retextured": true,
+      "source": {
+        "taskId": "019ff03d-c093-745f-95cc-437bae8cc0b0",
+        "rawModel": {
+          "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/mason/019ff03d-c093-745f-95cc-437bae8cc0b0/raw-model.glb",
+          "bytes": 65329976,
+          "sha256": "36e90dbc35293f188da9eb0b366216d9e2bb8a99b5596b93c2e35f50c636b977",
+          "triangles": 1998792,
+          "meshes": 1,
+          "materials": 1,
+          "textures": 4,
+          "imageMimeTypes": [
+            "image/jpeg"
+          ]
+        },
+        "geometrySha256": "d5bc3c89d2bc58fa771ed120ac6522b51ca4c8eccc66391be663200dc12013b4"
+      },
+      "providerGeometryRewrite": {
+        "kind": "uniform provider rescale plus seam/tangent vertex rewrite",
+        "sourceTriangles": 1998792,
+        "outputTriangles": 1998682,
+        "triangleDelta": -110,
+        "sourcePositionVertices": 1038935,
+        "outputPositionVertices": 1045908,
+        "dimensionScales": [
+          1.051762478767313,
+          1.0517623227090334,
+          1.0517617193447204
+        ],
+        "dimensionScaleSpread": 7.594225925888765e-7,
+        "normalizedReviewEnvelope": 0.99,
+        "exactGeometryFingerprintPreserved": false
+      },
+      "materialDirection": "Mature industrial mason levitating Arc Relay bot. High-roughness matte powder-coated ceramic and painted metal: muted clay-beige side armor, dusty slate-blue forge casing, worn-steel guide forks. Soft diffuse finish, fine dry surface grain, restrained wear, metal only on mechanisms. Medium-light values readable in a dark arena; charcoal only in narrow recesses. Preserve every material boundary. No glossy plastic, clearcoat, lacquer, wet shine, broad highlights, saturated or neon color, black body, pure white, teal, cyan, orange, glow, text, decals, eyes, guns, or legs.",
+      "rawModel": {
+        "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet-retexture-v2/mason/019ff0be-87f5-7056-9233-40217e03375c/raw-model.glb",
+        "bytes": 81220224,
+        "sha256": "5694d2a036471a8c0c45c6c9bfefa409164fe0f00c4f6b78fbbb8939101662f4",
+        "geometrySha256": "6a8b921ed39265c79a05588060a207213fec3de8ee97c8e3e4f6c14f72b2f3cb",
+        "triangles": 1998682,
+        "meshes": 1,
+        "materials": 1,
+        "textures": 3,
+        "imageMimeTypes": [
+          "image/jpeg"
+        ]
+      }
+    },
+    {
+      "classId": "sunder",
+      "taskId": "019ff0be-93f5-7058-959d-bf5bf269a500",
+      "endpoint": "retexture",
+      "status": "SUCCEEDED",
+      "consumedCredits": 10,
+      "runDirectory": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet-retexture-v2/sunder/019ff0be-93f5-7058-959d-bf5bf269a500",
+      "preview": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet-retexture-v2/sunder/019ff0be-93f5-7058-959d-bf5bf269a500/provider-preview.png",
+      "retextured": true,
+      "source": {
+        "taskId": "019ff03d-d40d-7257-a74a-49416a686a93",
+        "rawModel": {
+          "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/sunder/019ff03d-d40d-7257-a74a-49416a686a93/raw-model.glb",
+          "bytes": 80973476,
+          "sha256": "592e106d378c4a4a557a0b73b9712d3e46bc5b7e0ccbda0fe23e134eb79fa37e",
+          "triangles": 1967078,
+          "meshes": 1,
+          "materials": 1,
+          "textures": 4,
+          "imageMimeTypes": [
+            "image/jpeg"
+          ]
+        },
+        "geometrySha256": "41cb0ea5b34c15063a3556e60a70a762d6ae430d22b45ddb5c8ba54575bf5897"
+      },
+      "providerGeometryRewrite": {
+        "kind": "uniform provider rescale plus seam/tangent vertex rewrite",
+        "sourceTriangles": 1967078,
+        "outputTriangles": 1966809,
+        "triangleDelta": -269,
+        "sourcePositionVertices": 1489566,
+        "outputPositionVertices": 1609345,
+        "dimensionScales": [
+          1.0511925496551604,
+          1.0511930200853903,
+          1.0511923670898613
+        ],
+        "dimensionScaleSpread": 6.529955289824585e-7,
+        "normalizedReviewEnvelope": 0.99,
+        "exactGeometryFingerprintPreserved": false
+      },
+      "materialDirection": "Mature industrial sunder levitating Arc Relay bot. High-roughness matte powder-coated ceramic and painted metal: dusty-rose faceted armor, oatmeal designator brackets, medium-gray inset faces. Soft diffuse finish, fine dry surface grain, restrained wear, metal only on mechanisms. Medium-light values readable in a dark arena; charcoal only in narrow recesses. Preserve every material boundary. No glossy plastic, clearcoat, lacquer, wet shine, broad highlights, saturated or neon color, black body, pure white, teal, cyan, orange, glow, text, decals, eyes, guns, or legs.",
+      "rawModel": {
+        "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet-retexture-v2/sunder/019ff0be-93f5-7058-959d-bf5bf269a500/raw-model.glb",
+        "bytes": 110532704,
+        "sha256": "6d21593d32da70db9f43530e8de599989e4d83bd70f0585e32f58a3e2281c26b",
+        "geometrySha256": "8816cf514ad7c56371a819fda44a125e5a1fee6ca8ab0cccd9010b46ff03fc02",
+        "triangles": 1966809,
+        "meshes": 1,
+        "materials": 1,
+        "textures": 3,
+        "imageMimeTypes": [
+          "image/jpeg"
+        ]
+      }
+    },
+    {
+      "classId": "repulsor",
+      "taskId": "019ff0be-a2e7-729c-8997-c826928beefe",
+      "endpoint": "retexture",
+      "status": "SUCCEEDED",
+      "consumedCredits": 10,
+      "runDirectory": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet-retexture-v2/repulsor/019ff0be-a2e7-729c-8997-c826928beefe",
+      "preview": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet-retexture-v2/repulsor/019ff0be-a2e7-729c-8997-c826928beefe/provider-preview.png",
+      "retextured": true,
+      "source": {
+        "taskId": "019ff040-aa48-72f9-b49a-9c9043607b6a",
+        "rawModel": {
+          "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/repulsor/019ff040-aa48-72f9-b49a-9c9043607b6a/raw-model.glb",
+          "bytes": 66153548,
+          "sha256": "93c76060bd9a00fe5c8ba836fe60bfff99875fca365e1113b8cfaf12a34c3596",
+          "triangles": 1999000,
+          "meshes": 1,
+          "materials": 1,
+          "textures": 4,
+          "imageMimeTypes": [
+            "image/jpeg"
+          ]
+        },
+        "geometrySha256": "9ac64a437849684fb989b2b6f7c5587bb1d9e37ee60c17b15acb9988abcfcf75"
+      },
+      "providerGeometryRewrite": {
+        "kind": "uniform provider rescale plus seam/tangent vertex rewrite",
+        "sourceTriangles": 1999000,
+        "outputTriangles": 1998906,
+        "triangleDelta": -94,
+        "sourcePositionVertices": 1036212,
+        "outputPositionVertices": 1054128,
+        "dimensionScales": [
+          1.051554007627846,
+          1.051553380753518,
+          1.0515540009306357
+        ],
+        "dimensionScaleSpread": 6.26874328002458e-7,
+        "normalizedReviewEnvelope": 0.99,
+        "exactGeometryFingerprintPreserved": false
+      },
+      "materialDirection": "Mature industrial repulsor levitating Arc Relay bot. High-roughness matte powder-coated ceramic and painted metal: muted mulberry coil armor, pale-bronze hub rings, medium basalt-gray core. Soft diffuse finish, fine dry surface grain, restrained wear, metal only on mechanisms. Medium-light values readable in a dark arena; charcoal only in narrow recesses. Preserve every material boundary. No glossy plastic, clearcoat, lacquer, wet shine, broad highlights, saturated or neon color, black body, pure white, teal, cyan, orange, glow, text, decals, eyes, guns, or legs.",
+      "rawModel": {
+        "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet-retexture-v2/repulsor/019ff0be-a2e7-729c-8997-c826928beefe/raw-model.glb",
+        "bytes": 82505556,
+        "sha256": "bcbff3232e997c3888d7c5ea87c2df6922a1305e6a0d616c1ca406649717a35a",
+        "geometrySha256": "a6e192ce1e485841c869fe2750800b3df19abea66d7bae2455170e99c2082f77",
+        "triangles": 1998906,
+        "meshes": 1,
+        "materials": 1,
+        "textures": 3,
+        "imageMimeTypes": [
+          "image/jpeg"
+        ]
+      }
+    },
+    {
+      "classId": "veil",
+      "taskId": "019ff0be-b0c5-705b-8097-5443d10f471d",
+      "endpoint": "retexture",
+      "status": "SUCCEEDED",
+      "consumedCredits": 10,
+      "runDirectory": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet-retexture-v2/veil/019ff0be-b0c5-705b-8097-5443d10f471d",
+      "preview": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet-retexture-v2/veil/019ff0be-b0c5-705b-8097-5443d10f471d/provider-preview.png",
+      "retextured": true,
+      "source": {
+        "taskId": "019ff040-b455-77cf-a735-f53a83786a43",
+        "rawModel": {
+          "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/veil/019ff040-b455-77cf-a735-f53a83786a43/raw-model.glb",
+          "bytes": 64618672,
+          "sha256": "3c9b7ab70a232d1a85045e6e966cb6049aa45b1f39cb68c22ee03925fd87ca35",
+          "triangles": 1960308,
+          "meshes": 1,
+          "materials": 1,
+          "textures": 4,
+          "imageMimeTypes": [
+            "image/jpeg"
+          ]
+        },
+        "geometrySha256": "56bcb55f5da84e3d5a6cf49d3c49866815d5c814e0c6785e7660edf5793cb1ec"
+      },
+      "providerGeometryRewrite": {
+        "kind": "uniform provider rescale plus seam/tangent vertex rewrite",
+        "sourceTriangles": 1960308,
+        "outputTriangles": 1960185,
+        "triangleDelta": -123,
+        "sourcePositionVertices": 1022148,
+        "outputPositionVertices": 1028377,
+        "dimensionScales": [
+          1.0517033055103917,
+          1.0517020302993405,
+          1.051703036619746
+        ],
+        "dimensionScaleSpread": 0.0000012752110511993209,
+        "normalizedReviewEnvelope": 0.99,
+        "exactGeometryFingerprintPreserved": false
+      },
+      "materialDirection": "Mature industrial veil levitating Arc Relay bot. High-roughness matte powder-coated ceramic and painted metal: pale yellow-sage crescent armor, warm-sand canisters, aged-pewter hardware. Soft diffuse finish, fine dry surface grain, restrained wear, metal only on mechanisms. Medium-light values readable in a dark arena; charcoal only in narrow recesses. Preserve every material boundary. No glossy plastic, clearcoat, lacquer, wet shine, broad highlights, saturated or neon color, black body, pure white, teal, cyan, orange, glow, text, decals, eyes, guns, or legs.",
+      "rawModel": {
+        "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet-retexture-v2/veil/019ff0be-b0c5-705b-8097-5443d10f471d/raw-model.glb",
+        "bytes": 82370724,
+        "sha256": "7ae2686a76d73d19f3ac79026d0209fc5a72f47f89c2fa6cfdcbeea51e2fc907",
+        "geometrySha256": "152cb67222957995227a7f8bae8ebb3db9bb0f7ff9c1ca1e40964f111d3789c1",
+        "triangles": 1960185,
+        "meshes": 1,
+        "materials": 1,
+        "textures": 3,
+        "imageMimeTypes": [
+          "image/jpeg"
+        ]
+      }
+    },
+    {
+      "classId": "nest",
+      "taskId": "019ff0be-bc34-7547-bc1d-aee54af7284f",
+      "endpoint": "retexture",
+      "status": "SUCCEEDED",
+      "consumedCredits": 10,
+      "runDirectory": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet-retexture-v2/nest/019ff0be-bc34-7547-bc1d-aee54af7284f",
+      "preview": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet-retexture-v2/nest/019ff0be-bc34-7547-bc1d-aee54af7284f/provider-preview.png",
+      "retextured": true,
+      "source": {
+        "taskId": "019ff041-45de-77fd-9a69-756ea195da64",
+        "rawModel": {
+          "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/nest/019ff041-45de-77fd-9a69-756ea195da64/raw-model.glb",
+          "bytes": 64835308,
+          "sha256": "3e6874d5d1da75592169654802d3a052d9aa67a73881a799791f4f89199d05a2",
+          "triangles": 1997498,
+          "meshes": 1,
+          "materials": 1,
+          "textures": 4,
+          "imageMimeTypes": [
+            "image/jpeg"
+          ]
+        },
+        "geometrySha256": "839a4586e0fbff3d52e6e61b87be047f4749cf28941de2731361f86802579ea8"
+      },
+      "providerGeometryRewrite": {
+        "kind": "uniform provider rescale plus seam/tangent vertex rewrite",
+        "sourceTriangles": 1997498,
+        "outputTriangles": 1997415,
+        "triangleDelta": -83,
+        "sourcePositionVertices": 1038559,
+        "outputPositionVertices": 1046396,
+        "dimensionScales": [
+          1.0508638948966735,
+          1.0508656183734608,
+          1.050864229758443
+        ],
+        "dimensionScaleSpread": 0.0000017234767872853496,
+        "normalizedReviewEnvelope": 0.99,
+        "exactGeometryFingerprintPreserved": false
+      },
+      "materialDirection": "Mature industrial nest levitating Arc Relay bot. High-roughness matte powder-coated ceramic and painted metal: desaturated olive rack armor, faded-plum sealed lids, warm-gray rails and corners. Soft diffuse finish, fine dry surface grain, restrained wear, metal only on mechanisms. Medium-light values readable in a dark arena; charcoal only in narrow recesses. Preserve every material boundary. No glossy plastic, clearcoat, lacquer, wet shine, broad highlights, saturated or neon color, black body, pure white, teal, cyan, orange, glow, text, decals, eyes, guns, or legs.",
+      "rawModel": {
+        "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet-retexture-v2/nest/019ff0be-bc34-7547-bc1d-aee54af7284f/raw-model.glb",
+        "bytes": 83199600,
+        "sha256": "893f6138e57bcde1f959fc2870dbabc6a1dff5c73efc47bd384c117b8dc3c433",
+        "geometrySha256": "bbf603756fcf5abd52e5cc04d2770bcf41260689b238ccee4d636165cde28625",
+        "triangles": 1997415,
+        "meshes": 1,
+        "materials": 1,
+        "textures": 3,
+        "imageMimeTypes": [
+          "image/jpeg"
+        ]
+      }
+    }
+  ]
+}
