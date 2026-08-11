@@ -1,5 +1,5 @@
 {
-  "version": 8,
+  "version": 9,
   "id": "astral-relay",
   "label": "Astral Relay",
   "approval": "approved",
@@ -16,7 +16,7 @@
     ],
     "exportedBy": "scripts/export-runtime-sound-effects.mjs",
     "generationRecord": "art/audio/sound-lab/v5/sfx-engine-generation.json",
-    "generationRecordSha256": "567aafb292054d28136020ea784105bb6a888cc4279fafa4984e340e014064f5",
+    "generationRecordSha256": "e244039bde77016eaa81d1dcd516968aeb699f976bf158c260bf0ccf8e2ec733",
     "deliveryEncoding": {
       "encoder": "macos-afconvert",
       "canonicalization": "zero-iso-bmff-creation-and-modification-times"
@@ -54,6 +54,16 @@
           "fadeInSeconds": 0.02,
           "fadeOutSeconds": 0.14,
           "targetSamplePeak": 0.45
+        },
+        "healing": {
+          "channelTransform": "preserve-stereo",
+          "sourceStartSeconds": 0,
+          "playbackRate": 1,
+          "durationSeconds": 0.8,
+          "lowPassHz": 2000,
+          "fadeInSeconds": 0.025,
+          "fadeOutSeconds": 0.2,
+          "targetSamplePeak": 0.42
         },
         "destroyed": {
           "channelTransform": "preserve-stereo",
@@ -126,7 +136,7 @@
     },
     "shipApproval": "approved",
     "sourceComposition": {
-      "providerGeneratedCues": 13,
+      "providerGeneratedCues": 14,
       "locallyDerivedCues": 3,
       "locallySafetyMasteredCues": 5
     }
@@ -151,6 +161,12 @@
         "voiceLimit": 1,
         "panWidth": 0.5,
         "roomSend": false
+      },
+      "healing": {
+        "gain": 0.3,
+        "voiceLimit": 2,
+        "panWidth": 0.55,
+        "roomSend": true
       },
       "destroyed": {
         "gain": 0.3,
@@ -234,6 +250,7 @@
     "attack-windup": "attack-windup.m4a",
     "projectile": "projectile.m4a",
     "impact": "impact.m4a",
+    "healing": "healing.m4a",
     "destroyed": "destroyed.m4a",
     "level-up": "level-up.m4a",
     "arc-birth": "arc-birth.m4a",
@@ -316,6 +333,30 @@
         "effectiveSamplePeakDbfs": -16.77,
         "effectiveRmsDbfs": -32.63,
         "effectiveMaximumWindowAbove4kRmsDbfs": -37.7
+      }
+    },
+    "healing": {
+      "sourceSha256": "7e4cb75bbc5968b267526635989ef3de24c877cbbb216059d6f5b5c5b94d4ba6",
+      "outputSha256": "8a01ba156aba6d3f59ed8b499952aa40f146728e91f6e14adc33eaf02d86eb3e",
+      "bytes": 11550,
+      "bitrate": 192000,
+      "deliveryMetrics": {
+        "durationSeconds": 0.8,
+        "samplePeakDbfs": -7.51,
+        "rmsDbfs": -28.16,
+        "dominantFrequencyHz": 198,
+        "interchannelCorrelation": 0.5774,
+        "spectralCentroidHz": 932,
+        "energyAbove4kPercent": 1.77,
+        "energyAbove8kPercent": 0.1,
+        "energyAbove12kPercent": 0.04,
+        "maximumWindowAbove4kPercent": 7.36,
+        "maximumWindowAbove4kAtSeconds": 0,
+        "maximumWindowAbove4kRmsDbfs": -31.9,
+        "sourceInterchannelCorrelation": 0.8505,
+        "effectiveSamplePeakDbfs": -17.97,
+        "effectiveRmsDbfs": -38.62,
+        "effectiveMaximumWindowAbove4kRmsDbfs": -42.36
       }
     },
     "destroyed": {

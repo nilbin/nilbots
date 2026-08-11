@@ -40,6 +40,10 @@ export {
 } from '../../src/presentation/playAwareness';
 export { defaultPlaybackSpeed } from '../../src/playback';
 export {
+  SOUND_EFFECT_CUE_IDS,
+  soundEffectPack,
+} from '../../src/audio/soundEffects';
+export {
   DESKTOP_ARENA_RENDER_PROFILE,
   FULL_ARENA_RENDER_PROFILE,
   MOBILE_ARENA_RENDER_PROFILE,

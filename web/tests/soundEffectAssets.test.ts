@@ -3,6 +3,10 @@ import { createHash } from 'node:crypto';
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import test from 'node:test';
+import {
+  SOUND_EFFECT_CUE_IDS,
+  soundEffectPack,
+} from './.harness/harness.entry.js';
 
 const repoRoot = join(import.meta.dirname, '..', '..');
 const root = join(repoRoot, 'web', 'src', 'assets', 'audio', 'effects');
@@ -17,6 +21,7 @@ const expectedCues = [
   'attack-windup',
   'deflect',
   'destroyed',
+  'healing',
   'impact',
   'level-up',
   'projectile',
@@ -46,6 +51,13 @@ interface Integrity {
     effectiveMaximumWindowAbove4kRmsDbfs: number;
   };
 }
+
+test('the production sound-effect loader accepts the checked-in pack', () => {
+  assert.equal(soundEffectPack.id, 'astral-relay');
+  assert.deepEqual([...SOUND_EFFECT_CUE_IDS].sort(), expectedCues);
+  assert.deepEqual(Object.keys(soundEffectPack.cues).sort(), expectedCues);
+  assert.deepEqual(Object.keys(soundEffectPack.mix.cues).sort(), expectedCues);
+});
 
 test('the approved Astral Relay runtime pack is complete, restrained, and traceable', () => {
   const directories = readdirSync(root, { withFileTypes: true })
@@ -129,7 +141,7 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
     integrity: Record<string, Integrity>;
   };
 
-  assert.equal(manifest.version, 8);
+  assert.equal(manifest.version, 9);
   assert.equal(manifest.id, 'astral-relay');
   assert.equal(manifest.approval, 'approved');
   assert.equal(manifest.format, 'aac-lc-m4a');
@@ -146,7 +158,7 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
     exportedBy: 'scripts/export-runtime-sound-effects.mjs',
     generationRecord: 'art/audio/sound-lab/v5/sfx-engine-generation.json',
     generationRecordSha256:
-      '567aafb292054d28136020ea784105bb6a888cc4279fafa4984e340e014064f5',
+      'e244039bde77016eaa81d1dcd516968aeb699f976bf158c260bf0ccf8e2ec733',
     deliveryEncoding: {
       encoder: 'macos-afconvert',
       canonicalization: 'zero-iso-bmff-creation-and-modification-times',
@@ -187,6 +199,16 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
           fadeInSeconds: 0.02,
           fadeOutSeconds: 0.14,
           targetSamplePeak: 0.45,
+        },
+        healing: {
+          channelTransform: 'preserve-stereo',
+          sourceStartSeconds: 0,
+          playbackRate: 1,
+          durationSeconds: 0.8,
+          lowPassHz: 2_000,
+          fadeInSeconds: 0.025,
+          fadeOutSeconds: 0.2,
+          targetSamplePeak: 0.42,
         },
         destroyed: {
           channelTransform: 'preserve-stereo',
@@ -259,7 +281,7 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
     },
     shipApproval: 'approved',
     sourceComposition: {
-      providerGeneratedCues: 13,
+      providerGeneratedCues: 14,
       locallyDerivedCues: 3,
       locallySafetyMasteredCues: 5,
     },
@@ -292,12 +314,13 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
   assert.ok(manifest.mix.roomSend <= 0.08, 'provider tails get only a light room send');
   assert.deepEqual(
     Object.fromEntries(
-      ['impact', 'destroyed', 'level-up', 'arc-bank', 'arc-pulse', 'arc-handoff', 'arrival'].map(
+      ['impact', 'healing', 'destroyed', 'level-up', 'arc-bank', 'arc-pulse', 'arc-handoff', 'arrival'].map(
         (cue) => [cue, manifest.mix.cues[cue]],
       ),
     ),
     {
       impact: { gain: 0.32, voiceLimit: 1, panWidth: 0.5, roomSend: false },
+      healing: { gain: 0.3, voiceLimit: 2, panWidth: 0.55, roomSend: true },
       destroyed: { gain: 0.3, voiceLimit: 1, panWidth: 0.4, roomSend: false },
       'level-up': { gain: 0.32, voiceLimit: 1, panWidth: 0.4, roomSend: false },
       'arc-bank': { gain: 0.44, voiceLimit: 1, panWidth: 0.55, roomSend: true },
@@ -406,6 +429,16 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
       -15,
     'even a phase-aligned four-release stack must retain conservative peak headroom',
   );
+  const healingMetrics = manifest.integrity.healing!.deliveryMetrics!;
+  assert.equal(healingMetrics.durationSeconds, 0.8);
+  assert.ok(healingMetrics.dominantFrequencyHz <= 500);
+  assert.ok(healingMetrics.spectralCentroidHz <= 1_200);
+  assert.ok(
+    healingMetrics.effectiveSamplePeakDbfs +
+      20 * Math.log10(manifest.mix.cues.healing!.voiceLimit) <=
+      -11,
+    'two overlapping healing tails must retain conservative peak headroom',
+  );
   assert.ok(
     manifest.integrity['attack-windup']!.deliveryMetrics!
       .sourceInterchannelCorrelation! <= -0.99,
@@ -414,6 +447,7 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
 
   for (const cue of [
     'impact',
+    'healing',
     'destroyed',
     'level-up',
     'arc-bank',
@@ -436,7 +470,7 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
   assert.deepEqual(
     readdirSync(directory).sort(),
     ['manifest.json', ...expectedCues.map((cue) => `${cue}.m4a`)].sort(),
-    'runtime delivery must contain only the thirteen one-shots',
+    'runtime delivery must contain only the fourteen one-shots',
   );
   assert.ok(totalBytes < 500_000, `runtime audio is ${totalBytes} bytes`);
 });

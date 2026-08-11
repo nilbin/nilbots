@@ -20,6 +20,7 @@
       "attack-windup",
       "projectile",
       "impact",
+      "healing",
       "destroyed",
       "level-up",
       "arc-birth",
@@ -48,13 +49,13 @@
     "selectedBackgroundLoop": null
   },
   "sourceComposition": {
-    "providerGeneratedCues": 13,
+    "providerGeneratedCues": 14,
     "locallyDerivedCues": 3,
     "locallySafetyMasteredCues": 5
   },
   "energyAudit": {
     "script": "scripts/master-audio-v5-energy.mjs",
-    "recordedAt": "2026-08-11T01:19:30.000Z",
+    "recordedAt": "2026-08-11T13:50:10.260Z",
     "method": "ITU-R BS.1770 K-weighted loudness, four-times windowed-sinc true-peak estimate, FFT upper-band energy, and exact sound-lab sequence sums against every background-loop alternative.",
     "individualMaximumApproximateTruePeakDbtp": -0.75,
     "reviewOutputSafetyGainDb": -3,
@@ -112,6 +113,13 @@
         "maxMomentaryLufs": -11.78,
         "approximateTruePeakDbtp": -5.13,
         "energyAbove12kPercent": 0.04
+      },
+      "healing": {
+        "durationSeconds": 1,
+        "integratedLufs": -14.2,
+        "maxMomentaryLufs": -12.24,
+        "approximateTruePeakDbtp": -2.51,
+        "energyAbove12kPercent": 1.82
       },
       "destroyed": {
         "durationSeconds": 2,
@@ -253,7 +261,7 @@
       },
       "combat": {
         "durationSeconds": 9.08,
-        "integratedLufs": -17.04,
+        "integratedLufs": -16.51,
         "maxMomentaryLufs": -11.29,
         "approximateTruePeakDbtp": -3.35,
         "summaryMode": "worst metric across ambient alternatives",
@@ -268,21 +276,21 @@
         "ambientVariants": {
           "arena-ambience": {
             "durationSeconds": 9.08,
-            "integratedLufs": -17.04,
+            "integratedLufs": -16.51,
             "maxMomentaryLufs": -11.35,
             "approximateTruePeakDbtp": -4.57,
             "relativeGain": 0.32
           },
           "arena-ambience-ion-veil": {
             "durationSeconds": 9.08,
-            "integratedLufs": -17.17,
+            "integratedLufs": -16.78,
             "maxMomentaryLufs": -11.29,
             "approximateTruePeakDbtp": -4.05,
             "relativeGain": 0.418
           },
           "arena-ambience-signal-lattice": {
             "durationSeconds": 9.08,
-            "integratedLufs": -17.05,
+            "integratedLufs": -16.64,
             "maxMomentaryLufs": -11.4,
             "approximateTruePeakDbtp": -3.35,
             "relativeGain": 0.7
@@ -306,7 +314,7 @@
         "ambientVariants": {
           "arena-ambience": {
             "durationSeconds": 18.25,
-            "integratedLufs": -15.92,
+            "integratedLufs": -15.95,
             "maxMomentaryLufs": -10.41,
             "approximateTruePeakDbtp": -3.45,
             "relativeGain": 0.32
@@ -553,6 +561,28 @@
             "maxMomentaryLufs": -11.78,
             "approximateTruePeakDbtp": -5.13,
             "energyAbove12kPercent": 0.04
+          }
+        },
+        {
+          "id": "healing",
+          "label": "Healing field",
+          "category": "COMBAT SUPPORT",
+          "status": "mapped",
+          "description": "One soft low-mid restorative field flows inward and seals into stable armor.",
+          "mapping": "zone-healed and signature-repair authoritative facts",
+          "file": "./v5/packs/astral-relay/healing.wav",
+          "durationSeconds": 1,
+          "peak": 0.72,
+          "rms": 0.083,
+          "stereoDifferenceRms": 0.0482,
+          "dcOffset": 0,
+          "origin": "provider-generation",
+          "safetyMastered": false,
+          "energy": {
+            "integratedLufs": -14.2,
+            "maxMomentaryLufs": -12.24,
+            "approximateTruePeakDbtp": -2.51,
+            "energyAbove12kPercent": 1.82
           }
         },
         {

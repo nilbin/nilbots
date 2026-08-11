@@ -28,11 +28,14 @@ const apiSpecPath = path.join(
 
 const baseManifest = JSON.parse(await readFile(baseManifestPath, "utf8"));
 const generation = JSON.parse(await readFile(generationPath, "utf8"));
-const expectedIds = baseManifest.packs[0].cues.map((cue) => cue.id);
+const expectedIds = baseManifest.packs[0].cues.flatMap((cue) =>
+  cue.id === "impact" ? [cue.id, "healing"] : [cue.id],
+);
 const runtimeCueIds = [
   "attack-windup",
   "projectile",
   "impact",
+  "healing",
   "destroyed",
   "level-up",
   "arc-birth",
@@ -52,6 +55,14 @@ const cuePresentation = {
   projectile: {
     description:
       "A rounded locked-field hit confirms beam resolution without noisy travel.",
+  },
+  healing: {
+    label: "Healing field",
+    category: "COMBAT SUPPORT",
+    status: "mapped",
+    description:
+      "One soft low-mid restorative field flows inward and seals into stable armor.",
+    mapping: "zone-healed and signature-repair authoritative facts",
   },
   "attack-fizzle": {
     status: "proposed",
@@ -98,7 +109,7 @@ const locallySafetyMasteredCues = comparisonGenerationCues.filter(
 );
 assert(
   JSON.stringify(actualIds) === JSON.stringify(expectedIds),
-  "SFX Engine cue order must exactly match the V4 comparison vocabulary.",
+  "SFX Engine cue order must match the V4 vocabulary plus approved additions.",
 );
 assert(
   JSON.stringify(backgroundGenerationCues.map((cue) => cue.id)) ===
@@ -130,8 +141,13 @@ assert(
 
 const cues = [];
 for (const generatedCue of comparisonGenerationCues) {
-  const baseline = baseManifest.packs[0].cues.find(
-    (cue) => cue.id === generatedCue.id,
+  const baseline =
+    baseManifest.packs[0].cues.find(
+      (cue) => cue.id === generatedCue.id,
+    ) ?? cuePresentation[generatedCue.id];
+  assert(
+    baseline?.label && baseline?.category,
+    `${generatedCue.id} lacks review presentation metadata.`,
   );
   const result = generatedCue.result;
   assert(
@@ -209,15 +225,15 @@ for (const generatedCue of comparisonGenerationCues) {
     `${generatedCue.id} WAV size differs from its saved provenance.`,
   );
   cues.push({
-    id: baseline.id,
+    id: generatedCue.id,
     label: baseline.label,
     category: baseline.category,
-    status: runtimeCueIds.includes(baseline.id)
+    status: runtimeCueIds.includes(generatedCue.id)
       ? "mapped"
-      : cuePresentation[baseline.id]?.status ?? baseline.status,
+      : cuePresentation[generatedCue.id]?.status ?? baseline.status,
     description:
-      cuePresentation[baseline.id]?.description ?? baseline.description,
-    mapping: cuePresentation[baseline.id]?.mapping ?? baseline.mapping,
+      cuePresentation[generatedCue.id]?.description ?? baseline.description,
+    mapping: cuePresentation[generatedCue.id]?.mapping ?? baseline.mapping,
     file: `./v5/${generation.outputDirectory}/${generatedCue.file}`,
     durationSeconds: result.metrics.durationSeconds,
     peak: result.metrics.peak,

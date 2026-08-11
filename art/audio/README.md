@@ -22,7 +22,7 @@ Then open `sound-lab/index.html` or serve `art/audio/sound-lab` from any static
 server. V1 through V4 are deterministic: the same script revision produces the
 same signed 16-bit PCM WAV files. V1 is 44.1 kHz mono; V2 through V4 render at
 96 kHz and downsample to 48 kHz stereo. V5 keeps saved provider lineage for
-sixteen matched cues plus three optional ambient loops. The derivation script
+seventeen matched cues plus three optional ambient loops. The derivation script
 deterministically rebuilds three current variants from their accepted source
 masters without contacting SFX Engine. The safety-master script then rebuilds
 five high-energy provider cues from archived, hash-pinned pre-master WAVs
@@ -63,7 +63,7 @@ V4 is the procedural space / ambient reset:
 V5 adds the provider-sourced direction selected for runtime promotion:
 
 - **Astral Relay** — SFX Engine's pristine, spectral, cinematic reading of the
-  same sixteen-cue vocabulary.
+  original sixteen-cue vocabulary plus the post-promotion Healing field.
 
 Its exact prompts, private-request setting, provider IDs, timestamps, source
 and output hashes, local transformations, processing disclosure, and measured
@@ -79,8 +79,9 @@ deflection), run the safety master once before deriving, then derive and run the
 safety master again so both the dependent WAV and final all-cue audit use the
 accepted master. The ordinary checked-in rebuild remains derive, master, build.
 
-SFX Engine returned WAV sources for all sixteen cues. Successive owner reviews
-requested provider follow-up takes for armor impact, bot destruction, Core
+SFX Engine returned WAV sources for the original sixteen cues and one later
+private generation for the shared ground-pad/medic Healing field. Successive
+owner reviews requested provider follow-up takes for armor impact, bot destruction, Core
 pickup, Core stolen, ally handoff, fizzle, and beam deflection; Core pickup
 then reached a fourth, explicitly levitating take, while wind-up and beam each
 received a smoother low-noise replacement. Every rejected prompt, request,
@@ -94,7 +95,7 @@ timbral pair. Beam deflection extracts the rounded hit from the accepted quiet
 beam, softens it with a 3.2 kHz zero-phase low-pass, and bends it modestly from
 center to right. These are deterministic transformations of hash-pinned Engine
 sources—not fresh provider generations or synthesized layers. The manifest
-labels all three as `local-derivation`; the other thirteen remain
+labels all three as `local-derivation`; the other fourteen remain
 provider-sourced rather than locally derived. The quiet beam hit is effectively
 mono; no synthetic widening is added to any source. All one-shot masters are
 48 kHz two-channel signed 16-bit PCM with DC correction, endpoint fades, and
@@ -108,9 +109,10 @@ fades, linked dynamics where needed, loudness fitting, and conservative peak
 ceilings. The revised wind-up and beam measure 0.01% and 0.00% energy above
 12 kHz after mastering; the pass also retains the fizzle correction and removes
 impact and level-up inter-sample risk without synthesizing a replacement or
-contacting the API. The generation record pins both the archived source and mastered output hashes,
-operations, loudness, approximate true peak, and upper-band energy.
-The same script audits all sixteen cues, all three ambient loops, and the exact
+contacting the API. The generation record pins both the archived source and
+mastered output hashes, operations, loudness, approximate true peak, and
+upper-band energy.
+The same script audits all seventeen cues, all three ambient loops, and the exact
 three sound-lab timelines against every loop choice. Review playback uses one
 shared compressor followed by a fixed 3 dB safety gain; the uncompressed
 sequence sums must remain at or below -1 dBTP after that fixed gain.
@@ -138,7 +140,9 @@ same release; only a real damage fact adds the armor-impact voice. Voluntary
 cancel remains silent. The unique fizzle/cancel WAVs stay in the comparison
 archive, and **projectile-deflected** retains its separate spectral bend.
 
-Wind-up, beam, handoff, deflection, arrival, and level up are runtime mappings.
+Wind-up, projectile release, healing, handoff, deflection, arrival, and level up
+are runtime mappings. Both `zone-healed` and `signature-repair` use the same
+target-local restorative field cue.
 Every Core pickup, including a steal, uses the same levitation cue; drop is its
 audible inverse. Level up is one compact bot-local field lock, kept below Core
 scoring in the hierarchy and coalesced once per actor/tick when a bounty emits
@@ -148,22 +152,30 @@ runtime manifest reduces the arena convolution send to 0.06 instead of stacking
 two full spaces.
 
 The runtime exporter also applies a deterministic comfort treatment to every
-frequent or spectrally sharp delivery: impact, destruction, level up, Core
-bank, Core Pulse, handoff, and arrival, in addition to wind-up and projectile
+frequent or spectrally sharp delivery: impact, healing, destruction, level up,
+Core bank, Core Pulse, handoff, and arrival, in addition to wind-up and projectile
 release. It selects only hash-pinned accepted sources and uses deterministic
 resampling, low-pass filtering, endpoint fades, and conservative peak
 normalization, then audits the decoded AAC that the browser actually hears.
-Across all thirteen one-shots, decoded energy is at most 3% above 4 kHz and
+Across all fourteen one-shots, decoded energy is at most 3% above 4 kHz and
 0.05% above 12 kHz, effective peaks stay at or below -9 dBFS, effective
 whole-cue RMS stays at or below -25 dBFS, and any window with more than 10%
-upper-mid energy must sit below -28 dBFS RMS after runtime gain. No provider
-request or synthesized layer is involved.
+upper-mid energy must sit below -28 dBFS RMS after runtime gain. Delivery
+processing makes no provider request and adds no synthesized layer.
 
 Non-projectile categories still coalesce once per tick. Projectile/fizzle
 releases retain up to four positional voices—the observed Tapline maximum—and
 start 0.04 presentation ticks apart so identical buffers do not phase-lock.
 The projectile's four-voice limit and very low individual delivery keep even a
 theoretical perfectly aligned stack below -15 dBFS.
+
+Healing is an 800 ms low-mid field seal shared by the authoritative
+`zone-healed` and `signature-repair` facts. It pans from the healed target with
+a 0.55 edge width, allows at most two overlapping tails, and coalesces multiple
+same-tick heals like other non-projectile categories. Its decoded runtime asset
+centres at 932 Hz, carries 1.77% energy above 4 kHz and 0.04% above 12 kHz,
+and remains at -17.97 dBFS effective peak / -38.62 dBFS effective RMS. Even a
+perfectly aligned two-tail stack remains below -11 dBFS before the limiter.
 
 V2 renders at 96 kHz before anti-aliased downsampling to 48 kHz stereo. Its
 layers include separate transients, tonal bodies, modal material resonance,
@@ -174,11 +186,11 @@ sound lab as a collapsed reference archive.
 
 The lossless masters for every direction stay under `art/`. Astral Relay is the
 approved runtime direction; `scripts/export-runtime-sound-effects.mjs` verifies
-the V5 source hashes and exports thirteen mapped one-shots to
+the V5 source hashes and exports fourteen mapped one-shots to
 `web/src/assets/audio/effects/astral-relay/` as 48 kHz stereo AAC-LC.
 The unique fizzle, cancel, and historical special-steal takes stay review-only;
 runtime fizzle aliases the shipped projectile release. The checked-in delivery
-assets total roughly 0.31 MiB. No ambience file, mapping, fetch, or playback
+assets total roughly 0.32 MiB. No ambience file, mapping, fetch, or playback
 path ships. The entitlement cue remains a sound-lab master until a real
 entitlement notification owns it; it is not a match-result sound.
 

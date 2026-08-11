@@ -112,8 +112,8 @@ validated.push(
     sampleRate: 48_000,
     channels: 2,
     packCount: 1,
-    cueCount: 16,
-    fileCount: 19,
+    cueCount: 17,
+    fileCount: 20,
     backgroundLoopCount: 3,
     expectedBackgroundLoopIds: [
       "arena-ambience",
@@ -142,6 +142,7 @@ validated.push(
       "attack-fizzle",
       "attack-cancel",
       "impact",
+      "healing",
       "destroyed",
       "level-up",
       "arc-birth",
@@ -155,7 +156,7 @@ validated.push(
       "arrival",
     ],
     expectedStatuses: {
-      mapped: 13,
+      mapped: 14,
       proposed: 3,
     },
     expectedReviewScope: {
@@ -163,6 +164,7 @@ validated.push(
         "attack-windup",
         "projectile",
         "impact",
+        "healing",
         "destroyed",
         "level-up",
         "arc-birth",

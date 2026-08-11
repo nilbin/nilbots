@@ -134,6 +134,7 @@ const reviewSequences = {
     [0, "attack-windup"],
     [360, "projectile"],
     [920, "impact"],
+    [1_260, "healing"],
     [1_720, "attack-windup"],
     [3_220, "attack-windup"],
     [4_400, "attack-windup"],
@@ -150,6 +151,7 @@ const reviewSequences = {
     [3_390, "projectile"],
     [3_950, "impact"],
     [4_720, "attack-windup"],
+    [5_500, "healing"],
     [6_150, "arc-pickup"],
     [7_220, "arc-drop"],
     [8_150, "arc-pickup"],
@@ -322,6 +324,9 @@ for (const master of masters) {
 }
 
 const energyAudit = await auditCurrentPack();
+const previousAuditCoversCurrentCues =
+  JSON.stringify(Object.keys(generation.energyAudit?.cueResults ?? {})) ===
+  JSON.stringify(generation.cues.map((cue) => cue.id));
 generation.localSafetyMastering = {
   script: scriptPath,
   policy:
@@ -341,7 +346,9 @@ generation.localSafetyMastering = {
 generation.energyAudit = {
   script: scriptPath,
   recordedAt:
-    generation.energyAudit?.recordedAt ?? new Date().toISOString(),
+    previousAuditCoversCurrentCues && generation.energyAudit?.recordedAt
+      ? generation.energyAudit.recordedAt
+      : new Date().toISOString(),
   method:
     "ITU-R BS.1770 K-weighted loudness, four-times windowed-sinc true-peak " +
     "estimate, FFT upper-band energy, and exact sound-lab sequence sums " +

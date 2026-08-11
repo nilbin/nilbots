@@ -176,8 +176,8 @@ In rough order of feel per unit of effort:
   Cues send post-pan, so reflections inherit the cue's position instead of collapsing to
   the centre.
 
-Astral Relay is now the sole approved runtime SFX pack. Its thirteen mapped
-one-shots total roughly 0.31 MiB, arm with the first trusted viewer interaction,
+Astral Relay is now the sole approved runtime SFX pack. Its fourteen mapped
+one-shots total roughly 0.32 MiB, arm with the first trusted viewer interaction,
 and remain in the self-contained CLI artifact; no ambience loop ships or plays.
 Wind-up and ordinary attack traversal use restrained low-mid voices; WebGL
 presents the latter with the equipped projectile look instead of its slash,
@@ -186,6 +186,8 @@ miss aliases the same neutral projectile-release voice; a concrete hit adds
 armor impact, and an early cancellation stays silent. Up to four simultaneous
 projectile releases retain their positional voices with a 16 ms stagger instead
 of collapsing into one sound. A steal aliases the ordinary levitation pickup.
+Healing tiles and medic repair share one target-local restorative field cue;
+it keeps restrained arena-horizontal panning and at most two overlapping tails.
 Destruction is a compact low field fold aligned to the visible collapse.
 Provider-authored tails use at most a light 0.06 room send, and the shared
 limiter remains the final ear-safety boundary. The entitlement-unlock review

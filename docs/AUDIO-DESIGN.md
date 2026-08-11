@@ -1,7 +1,7 @@
 # Audio design and asset workflow
 
 Status: Astral Relay is the approved default runtime sound-effect direction.
-Thirteen one-shot voices ship in the web and self-contained replay viewers;
+Fourteen one-shot voices ship in the web and self-contained replay viewers;
 no ambience loop ships or plays. Effects are enabled by default after the
 browser's first trusted user interaction. Neon Protocol music is unchanged.
 
@@ -116,12 +116,12 @@ effect mappings, preferences, or Neon Protocol soundtrack.
 ### SFX Engine addition (V5 source and promoted runtime)
 
 V5 adds **Astral Relay** as direction D alongside the three V4 directions. SFX
-Engine supplied all sixteen matching source cues, with prompts written around
-the same space / ambient brief and the same wind-up → beam / fizzle / cancel
-attack grammar. Three current variants are deterministic local derivations of
-accepted Engine sources. Following owner comparison and revision, Astral Relay
-is the promoted runtime direction; the other V4/V5 candidates remain review
-references.
+Engine supplied the original sixteen matching source cues, with prompts written
+around the same space / ambient brief and attack grammar. A later private call
+added the shared Healing field for ground-pad and medic repair facts. Three
+current variants are deterministic local derivations of accepted Engine
+sources. Following owner comparison and revision, Astral Relay is the promoted
+runtime direction; the other V4/V5 candidates remain review references.
 
 The reusable workflow is `.claude/skills/sfx-engine/SKILL.md`, and its saved
 OpenAPI 3.0 contract is
@@ -150,7 +150,7 @@ the rounded hit from the accepted quiet beam, applies a 3.2 kHz zero-phase
 low-pass, and bends it modestly from center to right. Each result pins its
 source cue and SHA-256 plus every operation, carries status `derived`, and
 archives the displaced provider take. These transformations add no synthesized
-layer and make no provider request. The other thirteen remain SFX
+layer and make no provider request. The other fourteen remain SFX
 Engine-sourced rather than locally derived. The quiet beam hit is effectively
 mono; technical validation requires two channels but not nonzero stereo
 difference for V5.
@@ -195,7 +195,7 @@ the documented derive, master, build order.
 
 The sound lab routes every cue and each optional ambience comparison through one
 shared Web Audio compressor and then a fixed 3 dB safety gain. The deterministic
-audit checks all nineteen V5 WAVs and every ambience variant of the exact
+audit checks all twenty V5 WAVs and every ambience variant of the exact
 possession, combat, and full-story sums; each sequence must remain at or below
 -1 dBTP after the fixed gain even before compressor attenuation is credited.
 
@@ -239,10 +239,10 @@ node scripts/export-runtime-sound-effects.mjs
 ```
 
 This verifies the hash-pinned V5 sources and exports Astral Relay to
-`web/src/assets/audio/effects/astral-relay/` as 48 kHz stereo AAC-LC: thirteen
-mapped one-shots at 192 kbps, roughly 0.31 MiB together. The unique fizzle,
+`web/src/assets/audio/effects/astral-relay/` as 48 kHz stereo AAC-LC: fourteen
+mapped one-shots at 192 kbps, roughly 0.32 MiB together. The unique fizzle,
 cancel, and historical special-steal takes remain lossless review references;
-runtime fizzle aliases the projectile release instead of shipping a fourteenth
+runtime fizzle aliases the projectile release instead of shipping a fifteenth
 voice. The production manifest records the SFX Engine and local derivation
 lineage, source/output hashes, checked licensing basis, shipment approval, and
 per-cue gain/voice limits.
@@ -251,11 +251,12 @@ mix bound, or untraceable generation record. Lossless WAVs remain the source
 of truth in the sound lab. The exporter also zeros the three standard M4A
 creation/modification timestamps, making repeated exports byte-identical.
 
-Delivery processing now covers wind-up, projectile, impact, destruction, level
-up, Core bank, Core Pulse, handoff, and arrival. It preserves accepted sources
-and uses only deterministic resampling, low-pass filtering, endpoint fades, and
-conservative peak normalization—no SFX Engine request and no synthesized
-layer. The export then decodes every AAC and audits what the browser will hear.
+Delivery processing now covers wind-up, projectile, impact, healing,
+destruction, level up, Core bank, Core Pulse, handoff, and arrival. It preserves
+accepted sources and uses only deterministic resampling, low-pass filtering,
+endpoint fades, and conservative peak normalization—no SFX Engine request and
+no synthesized layer. The export then decodes every AAC and audits what the
+browser will hear.
 Every one-shot must remain at or below 3% energy above 4 kHz, 0.05% above 12
 kHz, -9 dBFS effective sample peak, and -25 dBFS whole-cue RMS. A window with
 more than 10% upper-mid energy must also fall below -28 dBFS RMS after its
@@ -264,11 +265,13 @@ near-silent pre-roll, compressed to 700 ms, and scheduled at the renderers'
 exact 0.55 collapse boundary. It measures 0% above both 4 kHz and 12 kHz after
 AAC decode; the untouched arrival remains inside the same pack-wide ceilings.
 
-The viewer derives projectile launch, impact, destruction, deflection, arrival,
-veterancy, and every Core possession/scoring cue from authoritative replay
-facts. A new pending strike emits the smooth wind-up; in WebGL, a matching
-resolution emits a quiet neutral field release. In WebGL, that same resolution
-also shows the equipped projectile along the already-recorded traversal;
+The viewer derives projectile launch, impact, healing, destruction, deflection,
+arrival, veterancy, and every Core possession/scoring cue from authoritative
+replay facts. Both `zone-healed` and `signature-repair` emit the same
+target-local restorative field. A new pending strike emits the smooth wind-up;
+in WebGL, a matching resolution emits a quiet neutral field release. In WebGL,
+that same resolution also shows the equipped projectile along the
+already-recorded traversal;
 Canvas retains its prior visual fallback. A matured fizzle, interruption, or
 miss emits the same release, while a concrete damage fact adds the separate
 armor-impact voice and an early voluntary cancellation remains silent. The
@@ -285,6 +288,14 @@ presentation ticks (16 ms at normal speed). Each keeps its own authoritative
 pan. The four-voice hard limit bounds future formats, and even a theoretical
 phase-aligned stack remains below -15 dBFS before the shared limiter.
 
+Every positioned cue uses the fact/event tile's map-x coordinate for restrained
+left/right `StereoPannerNode` placement. This is arena-horizontal direction,
+not camera-relative 3D audio: there is no front/back axis or distance falloff.
+Healing uses a 0.55 edge pan width, coalesces same-tick heals, and permits at
+most two overlapping tails. Its 800 ms runtime delivery is 198 Hz dominant /
+932 Hz spectral centroid, with 1.77% decoded energy above 4 kHz, 0.04% above
+12 kHz, -17.97 dBFS effective peak, and -38.62 dBFS effective RMS.
+
 Browser autoplay policy still requires a user gesture. The first trusted click
 or non-modifier key resumes the viewer's shared audio session and arms enabled
 music and effects together; there is no second sound-effects prompt. A compact
@@ -300,7 +311,7 @@ and is separate from approving the web/standalone pack.
 ## Runtime package shape
 
 1. Keep all candidate WAV files as lossless source masters under `art/audio`.
-2. Ship only Astral Relay's thirteen approved compressed one-shots; ambience
+2. Ship only Astral Relay's fourteen approved compressed one-shots; ambience
    candidates remain sound-lab references.
 3. Keep shared gameplay cues in one rights- and approval-bearing runtime
    manifest.
@@ -327,6 +338,7 @@ current presented tick:
 - matured fizzle, interruption, or miss: alias the projectile release;
 - voluntary cancel before the resolve tick: silent;
 - bot impact: authoritative damage to a bot;
+- healing: authoritative `zone-healed` or `signature-repair` at the healed target;
 - projectile deflection: authoritative `projectile-deflected` event;
 - wall impact: authoritative projectile termination against geometry;
 - destruction: transition from active to terminal bot state;

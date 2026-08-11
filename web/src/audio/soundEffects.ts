@@ -2,6 +2,7 @@ export const SOUND_EFFECT_CUE_IDS = [
   'attack-windup',
   'projectile',
   'impact',
+  'healing',
   'destroyed',
   'level-up',
   'arc-birth',
@@ -20,6 +21,7 @@ type DeliveryProcessedCueId =
   | 'attack-windup'
   | 'projectile'
   | 'impact'
+  | 'healing'
   | 'destroyed'
   | 'level-up'
   | 'arc-bank'
@@ -164,7 +166,7 @@ function loadSoundEffectPack(): SoundEffectPack {
   }
   const [manifestPath, manifest] = entries[0]!;
   if (
-    manifest.version !== 8 ||
+    manifest.version !== 9 ||
     manifest.id !== DEFAULT_SOUND_EFFECT_PACK_ID ||
     manifest.approval !== 'approved' ||
     manifest.format !== 'aac-lc-m4a' ||
@@ -270,6 +272,7 @@ function validDeliveryProcessing(
         'arrival',
         'attack-windup',
         'destroyed',
+        'healing',
         'impact',
         'level-up',
         'projectile',

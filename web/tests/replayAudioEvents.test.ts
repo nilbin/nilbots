@@ -251,6 +251,62 @@ test('foreground events mask concurrent wind-ups', () => {
   );
 });
 
+test('healing tiles and medic repairs share one positional healing cue', () => {
+  const replay = replayWithEvents([{ type: 'Shot', slot: 3 }]);
+  const tick = replay.ticks[0]!;
+  const template = tick.events[0]!;
+  const owner = tick.before.actors[0]!.identity;
+  const target = tick.before.actors[1]!.identity;
+  const zoneHeal = {
+    ...structuredClone(template),
+    eventId: 'zone-heal',
+    type: 'game-mode',
+    arcRelayFact: {
+      kind: 'zone-healed',
+      actor: target,
+      amount: 1,
+      newHealth: 2,
+      position: { x: 0, y: 1 },
+    },
+  } as ReplayCausalEvent;
+  const medicRepair = {
+    ...structuredClone(template),
+    eventId: 'medic-repair',
+    type: 'game-mode',
+    arcRelayFact: {
+      kind: 'signature-repair',
+      operationId: 'repair-operation',
+      signatureId: 'repair-beam',
+      ownerActor: owner,
+      targetActor: target,
+      amount: 1,
+      newHealth: 3,
+      position: { x: replay.map.width - 1, y: 1 },
+    },
+  } as ReplayCausalEvent;
+
+  tick.events = [zoneHeal];
+  assert.deepEqual(
+    replayAudioEventsAt(replay, 0).map((event) => [event.cue, event.pan]),
+    [['healing', -1]],
+    'a healing station sounds at the healed body',
+  );
+
+  tick.events = [medicRepair];
+  assert.deepEqual(
+    replayAudioEventsAt(replay, 0).map((event) => [event.cue, event.pan]),
+    [['healing', 1]],
+    'a medic repair uses the same cue at the repaired body',
+  );
+
+  tick.events = [zoneHeal, medicRepair];
+  assert.deepEqual(
+    replayAudioEventsAt(replay, 0).map((event) => [event.cue, event.pan]),
+    [['healing', 0]],
+    'simultaneous heals coalesce to one calm positional centre of energy',
+  );
+});
+
 test('arrival, deflection, and level-up use their own authoritative cues', () => {
   const replay = replayWithEvents([{ type: 'Shot', slot: 3 }]);
   const tick = replay.ticks[0]!;

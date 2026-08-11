@@ -757,6 +757,53 @@
       }
     },
     {
+      "id": "healing",
+      "file": "healing.wav",
+      "requestLengthSeconds": 1,
+      "targetPeak": 0.72,
+      "prompt": "Isolated premium sci-fi game SFX: a damaged combat robot receives one restorative field pulse, soft low-mid energy flowing inward and sealing into stable armor. Calm and brief; no chime, sparkle, UI beep, laser, impact, alarm, voice, or music.",
+      "result": {
+        "apiSoundEffectId": "se_ajdw6l7ukpaggrh3",
+        "status": "generated",
+        "providerCreatedAt": "2026-08-11 13:44:44.536",
+        "providerLengthSeconds": 1,
+        "providerFileSize": 176444,
+        "recordedAt": "2026-08-11T13:45:29.090Z",
+        "request": {
+          "prompt": "Isolated premium sci-fi game SFX: a damaged combat robot receives one restorative field pulse, soft low-mid energy flowing inward and sealing into stable armor. Calm and brief; no chime, sparkle, UI beep, laser, impact, alarm, voice, or music.",
+          "requestLengthSeconds": 1,
+          "secondsToStart": 0,
+          "targetPeak": 0.72
+        },
+        "downloadedContentType": "audio/wav",
+        "sourceSha256": "6e0944dd1a2ac8873899c6ce909248df9586087038ba3e9fdfc9fc60e501b787",
+        "outputSha256": "7e4cb75bbc5968b267526635989ef3de24c877cbbb216059d6f5b5c5b94d4ba6",
+        "outputBytes": 192044,
+        "processing": {
+          "endpointTreatment": "short-fades",
+          "fadeInSeconds": 0.005,
+          "fadeOutSeconds": 0.04
+        },
+        "metrics": {
+          "durationSeconds": 1,
+          "sampleRate": 48000,
+          "channels": 2,
+          "bitsPerSample": 16,
+          "peak": 0.72,
+          "rms": 0.083,
+          "stereoDifferenceRms": 0.0482,
+          "dcOffset": 0,
+          "clippedSamples": 0,
+          "energy": {
+            "integratedLufs": -14.2,
+            "maxMomentaryLufs": -12.24,
+            "approximateTruePeakDbtp": -2.51,
+            "energyAbove12kPercent": 1.82
+          }
+        }
+      }
+    },
+    {
       "id": "destroyed",
       "file": "destroyed.wav",
       "requestLengthSeconds": 2,
@@ -2303,7 +2350,7 @@
   },
   "energyAudit": {
     "script": "scripts/master-audio-v5-energy.mjs",
-    "recordedAt": "2026-08-11T01:19:30.000Z",
+    "recordedAt": "2026-08-11T13:50:10.260Z",
     "method": "ITU-R BS.1770 K-weighted loudness, four-times windowed-sinc true-peak estimate, FFT upper-band energy, and exact sound-lab sequence sums against every background-loop alternative.",
     "individualMaximumApproximateTruePeakDbtp": -0.75,
     "reviewOutputSafetyGainDb": -3,
@@ -2361,6 +2408,13 @@
         "maxMomentaryLufs": -11.78,
         "approximateTruePeakDbtp": -5.13,
         "energyAbove12kPercent": 0.04
+      },
+      "healing": {
+        "durationSeconds": 1,
+        "integratedLufs": -14.2,
+        "maxMomentaryLufs": -12.24,
+        "approximateTruePeakDbtp": -2.51,
+        "energyAbove12kPercent": 1.82
       },
       "destroyed": {
         "durationSeconds": 2,
@@ -2502,7 +2556,7 @@
       },
       "combat": {
         "durationSeconds": 9.08,
-        "integratedLufs": -17.04,
+        "integratedLufs": -16.51,
         "maxMomentaryLufs": -11.29,
         "approximateTruePeakDbtp": -3.35,
         "summaryMode": "worst metric across ambient alternatives",
@@ -2517,21 +2571,21 @@
         "ambientVariants": {
           "arena-ambience": {
             "durationSeconds": 9.08,
-            "integratedLufs": -17.04,
+            "integratedLufs": -16.51,
             "maxMomentaryLufs": -11.35,
             "approximateTruePeakDbtp": -4.57,
             "relativeGain": 0.32
           },
           "arena-ambience-ion-veil": {
             "durationSeconds": 9.08,
-            "integratedLufs": -17.17,
+            "integratedLufs": -16.78,
             "maxMomentaryLufs": -11.29,
             "approximateTruePeakDbtp": -4.05,
             "relativeGain": 0.418
           },
           "arena-ambience-signal-lattice": {
             "durationSeconds": 9.08,
-            "integratedLufs": -17.05,
+            "integratedLufs": -16.64,
             "maxMomentaryLufs": -11.4,
             "approximateTruePeakDbtp": -3.35,
             "relativeGain": 0.7
@@ -2555,7 +2609,7 @@
         "ambientVariants": {
           "arena-ambience": {
             "durationSeconds": 18.25,
-            "integratedLufs": -15.92,
+            "integratedLufs": -15.95,
             "maxMomentaryLufs": -10.41,
             "approximateTruePeakDbtp": -3.45,
             "relativeGain": 0.32

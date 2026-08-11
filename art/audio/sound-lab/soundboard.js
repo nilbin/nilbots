@@ -80,6 +80,7 @@
       [0, 'attack-windup'],
       [360, 'projectile'],
       [920, 'impact'],
+      [1_260, 'healing'],
       [1_720, 'attack-windup'],
       [3_220, 'attack-windup'],
       [4_400, 'attack-windup'],
@@ -96,6 +97,7 @@
       [3_390, 'projectile'],
       [3_950, 'impact'],
       [4_720, 'attack-windup'],
+      [5_500, 'healing'],
       [6_150, 'arc-pickup'],
       [7_220, 'arc-drop'],
       [8_150, 'arc-pickup'],
@@ -389,7 +391,9 @@
     updateSequencePack();
     trigger?.classList.add('is-playing');
     setStatus(`${pack.label} · ${sequenceId === 'full' ? 'full story' : `${sequenceId} context test`}`);
-    const timeline = sequences[sequenceId];
+    const timeline = sequences[sequenceId].filter(([, cueId]) =>
+      cueById(pack, cueId),
+    );
     for (const [delay, cueId] of timeline) {
       const timer = window.setTimeout(() => {
         timers.delete(timer);
@@ -544,7 +548,11 @@
     heading.textContent = title;
     const grid = document.createElement('div');
     grid.className = 'cue-grid';
-    for (const cueId of cueIds) appendCueButton(grid, pack, cueById(pack, cueId));
+    for (const cueId of cueIds) {
+      const cue = cueById(pack, cueId);
+      if (cue) appendCueButton(grid, pack, cue);
+    }
+    if (!grid.childElementCount) return;
     section.append(heading, grid);
     container.append(section);
   }
@@ -592,6 +600,12 @@
       appendCueGroup(
         cueGroups,
         pack,
+        'RESTORATIVE FIELD · RUNTIME ADDITION',
+        ['healing'],
+      );
+      appendCueGroup(
+        cueGroups,
+        pack,
         'ARC CORE LOOP · MAPPED NOW',
         groupById('core').cueIds,
       );
@@ -613,7 +627,16 @@
       '<span>#</span><span>cue</span><span>authoritative mapping</span><span>status</span>' +
       manifest.packs.map((pack) => `<span data-label="${pack.number}"></span>`).join('');
     coverage.append(head);
-    manifest.packs[0].cues.forEach((cue, index) => {
+    const coverageCues = [];
+    const coveredIds = new Set();
+    for (const pack of manifest.packs) {
+      for (const cue of pack.cues) {
+        if (coveredIds.has(cue.id)) continue;
+        coveredIds.add(cue.id);
+        coverageCues.push(cue);
+      }
+    }
+    coverageCues.forEach((cue, index) => {
       const row = document.createElement('div');
       row.className = 'coverage-row';
       row.innerHTML =

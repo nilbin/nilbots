@@ -7765,3 +7765,38 @@ pack maxima remain 2.67% above 4 kHz, 0.03% above 12 kHz, -9.61 dBFS effective
 peak, and -26.07 dBFS effective RMS. Manifest version 8 pins the source alias,
 bounded polyphony, delivery recipe, and fizzle policy; CLI/tool package version
 0.9.56 carries the change.
+
+## 291. Healing is one target-local restorative field
+
+Owner refinement (2026-08-11). Ground-pad healing and medic repair now share
+one presentation cue because both facts describe the same result at the same
+body. The scheduler reads only the authoritative public `zone-healed` and
+`signature-repair` facts and uses their exact target position. Health rules,
+repair cadence, eligibility, replay facts, and renderer effects are unchanged.
+
+One private SFX Engine request produced a one-second 48 kHz stereo restorative
+field source; its prompt, provider ID/time, request settings, and source/output
+hashes are pinned in the V5 generation record without a URL, user ID, or API
+credential. The runtime delivery keeps the first 800 ms, applies a 2 kHz
+low-pass with 25/200 ms endpoints and a 0.42 sample-peak target, then plays at
+0.30 gain with a two-voice tail limit, 0.55 pan width, and the existing light
+room send. A first 2.8 kHz delivery was rejected automatically for exceeding
+the decoded comfort ceilings; it never shipped.
+
+The accepted AAC decodes to a 198 Hz dominant frequency and 932 Hz spectral
+centroid, 1.77% energy above 4 kHz, 0.04% above 12 kHz, -17.97 dBFS effective
+peak, and -38.62 dBFS effective RMS. Even a perfectly aligned two-tail sum is
+-11.95 dBFS before the shared limiter. Pack-wide maxima remain 2.67% above
+4 kHz, -9.61 dBFS effective peak, and -26.07 dBFS effective RMS; Healing raises
+the pack maximum above 12 kHz only from 0.03% to 0.04%, still inside the 0.05%
+ceiling.
+
+Direction remains deliberately restrained arena-horizontal panning: a fact's
+map-x coordinate normalizes to -1..1, then the cue's pan width scales it before
+`StereoPannerNode`. It is not camera-relative 3D audio and adds neither
+front/back placement nor distance falloff. The retained 473-tick Tapline replay
+contains six tile heals and eight medic repairs on fourteen distinct ticks, so
+all fourteen are represented without same-tick stacking. Runtime manifest
+version 9 carries fourteen one-shots (about 0.32 MiB); CLI/tool package version
+0.9.57 carries the addition. Neon Protocol and the no-ambience policy remain
+unchanged.

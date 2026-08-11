@@ -158,6 +158,17 @@ export function replayAudioEventsAt(
     const factPan =
       'position' in fact ? panAt(fact.position.x) : pan;
     switch (fact.kind) {
+      case 'zone-healed':
+      case 'signature-repair':
+        // Ground stations and medic beams restore the same thing at the same body.
+        // Share one restrained field-seal voice and pan it from the healed target.
+        scheduled.push({
+          cue: 'healing',
+          tickOffset: 0.42,
+          priority: 5,
+          pan: factPan,
+        });
+        break;
       case 'core-born':
         scheduled.push({
           cue: 'arc-birth',
