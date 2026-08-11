@@ -44,6 +44,19 @@ COPY docs/PLAYER-GUIDE.md /src/docs/PLAYER-GUIDE.md
 COPY scripts/generate-atlas-variants.mjs scripts/build-cli-viewers.mjs /src/scripts/
 RUN npm run build
 
+# Just the frozen mind artifacts the seeders load, without the 400 MB of
+# sources, sheets, replays and preflight records beside them.
+#
+# Pruned by rule rather than by a list of directories. The playlist history is
+# immutable, so every ambush-warren-11-stock-v* ever minted stays referenced by
+# the seeder, and a hand-maintained COPY list would be one forgotten line away
+# from a migration that cannot find its own frozen artifact. `find` picks up
+# the next mint on its own.
+FROM ubuntu:24.04 AS arena-artifacts
+COPY arena-bots/arc-relay /prune/arena-bots/arc-relay
+RUN find /prune -type f ! -name bot.wasm -delete \
+    && find /prune -type d -empty -delete
+
 FROM ubuntu:24.04 AS toolchain
 RUN apt-get update && apt-get install -y --no-install-recommends \
       curl ca-certificates git util-linux clang-18 llvm-18 lld-18 wasi-libc \
@@ -138,6 +151,10 @@ COPY --from=toolchain /app/publish /app/publish
 COPY --from=toolchain /app/maps /app/maps
 COPY --from=toolchain /app/champions /app/champions
 COPY --from=toolchain /app/artifacts/wasm /app/artifacts/wasm
+# The frozen minds the Arc Relay seeder loads. This image runs BOTARENA_ROLE=migrate
+# in production, and that role seeds the immutable playlist, so without these the
+# migration aborts on "Frozen Arc Relay stock mind artifact is missing".
+COPY --from=arena-artifacts /prune/arena-bots /app/arena-bots
 COPY --from=web /src/web/dist /app/web/dist
 ENV BOTARENA_ROOT=/app \
     BOTARENA_DATA=/data \

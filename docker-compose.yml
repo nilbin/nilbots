@@ -26,7 +26,17 @@ services:
     platform: linux/amd64
     build:
       context: .
-      target: compiler
+      # `runtime` (215 MB) rather than `compiler` (9.7 GB). The compiler stage
+      # carries the .NET SDK, clang/LLVM and the wasi-sdk so it can build
+      # player-submitted code in a sandbox. Play is sheet-driven today: sheets
+      # are data interpreted by the built-in tactical mind, which ships as the
+      # committed artifacts/wasm/builtin-bots.wasm and is only rebuilt by
+      # scripts/build-wasm-guest.sh during development. Nothing compiles at
+      # request time, so the toolchain is 9.5 GB of unused weight locally.
+      #
+      # Override to bring code submissions back:
+      #   BOTARENA_COMPOSE_TARGET=compiler docker compose up -d --build
+      target: ${BOTARENA_COMPOSE_TARGET:-runtime}
     ports:
       - "8080:8080"
     environment:
