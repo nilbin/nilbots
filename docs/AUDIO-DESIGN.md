@@ -64,6 +64,7 @@ node scripts/generate-audio-v2-candidates.mjs
 node scripts/generate-audio-v3-candidates.mjs
 node scripts/generate-audio-v4-candidates.mjs
 node scripts/derive-audio-v5-revisions.mjs
+node scripts/master-audio-v5-energy.mjs
 node scripts/build-audio-v5-candidates.mjs
 node scripts/validate-audio-candidates.mjs
 node scripts/build-audio-sound-lab-site.mjs
@@ -162,6 +163,22 @@ generation record.
 
 V5 and its ambient bed remain review-only. They change neither the approved
 Obsidian Foundry runtime package nor the Neon Protocol soundtrack.
+
+An energy audit found that the accepted attack wind-up and fizzle concentrated
+too much power above 12 kHz, while the accepted armor impact reconstructed
+above full scale between samples. Their original standardized provider masters
+are retained under `art/audio/sound-lab/v5/sources/astral-relay/` and pinned by
+hash. `scripts/master-audio-v5-energy.mjs` deterministically low-passes and
+attenuates those three delivery masters, records BS.1770-style loudness,
+approximate four-times-oversampled true peak, and upper-band energy, and makes
+no provider request. Re-run it after the local derivation script and before the
+V5 manifest builder.
+
+The sound lab routes every cue and its optional ambience through one shared
+Web Audio compressor and then a fixed 3 dB safety gain. The deterministic audit
+checks all sixteen WAVs and the exact possession, combat, and full-story sums;
+each sequence must remain at or below -1 dBTP after the fixed gain even before
+compressor attenuation is credited.
 
 ### Arc Relay tactile reconcept (V3 archive)
 

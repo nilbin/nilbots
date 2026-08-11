@@ -16,6 +16,7 @@ const generationPath = path.join(
   "v5",
   "sfx-engine-generation.json",
 );
+const generationDirectory = path.dirname(generationPath);
 const apiSpecPath = path.join(
   repositoryRoot,
   ".claude",
@@ -38,6 +39,9 @@ const actualIds = comparisonGenerationCues.map((cue) => cue.id);
 const locallyDerivedCues = comparisonGenerationCues.filter(
   (cue) => cue.result?.status === "derived",
 );
+const locallySafetyMasteredCues = comparisonGenerationCues.filter(
+  (cue) => cue.result?.processing?.safetyMastering,
+);
 assert(
   JSON.stringify(actualIds) === JSON.stringify(expectedIds),
   "SFX Engine cue order must exactly match the V4 comparison vocabulary.",
@@ -51,10 +55,19 @@ assert(
   generation.apiSpecSha256 === sha256(await readFile(apiSpecPath)),
   "The saved OpenAPI document differs from the generation pin.",
 );
-
-const outputRoot = path.resolve(path.dirname(generationPath), generation.outputDirectory);
 assert(
-  outputRoot.startsWith(`${path.dirname(generationPath)}${path.sep}`),
+  generation.energyAudit?.script === "scripts/master-audio-v5-energy.mjs" &&
+    Object.values(generation.energyAudit.sequenceResults ?? {}).every(
+      (result) =>
+        result.approximateTruePeakDbtp <=
+        generation.energyAudit.reviewSequenceMaximumApproximateTruePeakDbtp,
+    ),
+  "The V5 sequence energy audit is missing or exceeds its ceiling.",
+);
+
+const outputRoot = path.resolve(generationDirectory, generation.outputDirectory);
+assert(
+  outputRoot.startsWith(`${generationDirectory}${path.sep}`),
   "The SFX Engine output directory escapes V5.",
 );
 
@@ -83,6 +96,43 @@ for (const generatedCue of comparisonGenerationCues) {
     assert(
       result.derivation?.derivedBy === "scripts/derive-audio-v5-revisions.mjs",
       `${generatedCue.id} names an unexpected derivation workflow.`,
+    );
+  }
+  const safetyMastering = result.processing?.safetyMastering;
+  if (safetyMastering) {
+    assert(
+      generatedCue.safetyMastering?.masteredBy ===
+        "scripts/master-audio-v5-energy.mjs" &&
+        safetyMastering.masteredBy ===
+          "scripts/master-audio-v5-energy.mjs",
+      `${generatedCue.id} names an unexpected safety-mastering workflow.`,
+    );
+    assert(
+      generatedCue.safetyMastering.sourceOutputSha256 ===
+          safetyMastering.sourceOutputSha256 &&
+        generatedCue.safetyMastering.sourceResult?.outputSha256 ===
+          safetyMastering.sourceOutputSha256,
+      `${generatedCue.id} lacks its pre-safety source result.`,
+    );
+    const safetySourcePath = path.resolve(
+      generationDirectory,
+      safetyMastering.sourceFile,
+    );
+    assert(
+      safetySourcePath.startsWith(`${generationDirectory}${path.sep}`),
+      `${generatedCue.id} safety source escapes V5.`,
+    );
+    assert(
+      sha256(await readFile(safetySourcePath)) ===
+        safetyMastering.sourceOutputSha256,
+      `${generatedCue.id} safety source differs from its saved provenance.`,
+    );
+    assert(
+      result.metrics?.energy?.approximateTruePeakDbtp <= -3 &&
+        result.metrics?.energy?.energyAbove12kPercent <=
+          generation.localSafetyMastering.thresholds
+            .maximumEnergyAbove12kPercent[generatedCue.id],
+      `${generatedCue.id} no longer satisfies its saved safety thresholds.`,
     );
   }
   assert(result.metrics?.sampleRate === 48_000, `${generatedCue.id} is not 48 kHz.`);
@@ -115,6 +165,8 @@ for (const generatedCue of comparisonGenerationCues) {
     stereoDifferenceRms: result.metrics.stereoDifferenceRms,
     dcOffset: result.metrics.dcOffset,
     origin: result.status === "derived" ? "local-derivation" : "provider-generation",
+    safetyMastered: Boolean(safetyMastering),
+    ...(result.metrics.energy ? { energy: result.metrics.energy } : {}),
     ...(result.status === "derived"
       ? { derivedFromCueId: result.derivation.sourceCueId }
       : {}),
@@ -159,6 +211,7 @@ for (const generatedCue of backgroundGenerationCues) {
     rms: result.metrics.rms,
     stereoDifferenceRms: result.metrics.stereoDifferenceRms,
     dcOffset: result.metrics.dcOffset,
+    ...(result.metrics.energy ? { energy: result.metrics.energy } : {}),
     loop: true,
     loopCrossfadeSeconds: result.processing.loopCrossfadeSeconds,
   });
@@ -172,6 +225,9 @@ const manifest = {
     ...(locallyDerivedCues.length === 0
       ? []
       : ["scripts/derive-audio-v5-revisions.mjs"]),
+    ...(locallySafetyMasteredCues.length === 0
+      ? []
+      : ["scripts/master-audio-v5-energy.mjs"]),
     "scripts/build-audio-v5-candidates.mjs",
   ],
   additiveTo: "manifest-v4.json",
@@ -182,16 +238,23 @@ const manifest = {
   sourceComposition: {
     providerGeneratedCues: comparisonGenerationCues.length - locallyDerivedCues.length,
     locallyDerivedCues: locallyDerivedCues.length,
+    locallySafetyMasteredCues: locallySafetyMasteredCues.length,
   },
+  energyAudit: generation.energyAudit,
   backgroundLoops,
   packs: [
     {
       ...generation.pack,
-      provider: locallyDerivedCues.length === 0
-        ? generation.providerDisplayName
-        : `${generation.providerDisplayName} sources + local derivation`,
+      provider: [
+        `${generation.providerDisplayName} sources`,
+        ...(locallyDerivedCues.length === 0 ? [] : ["local derivation"]),
+        ...(locallySafetyMasteredCues.length === 0
+          ? []
+          : ["local safety mastering"]),
+      ].join(" + "),
       provenance: "./v5/sfx-engine-generation.json",
       apiSpecSha256: generation.apiSpecSha256,
+      energySafety: generation.localSafetyMastering,
       cues,
     },
   ],
@@ -206,7 +269,8 @@ await writeFile(
 console.log(
   `Built V5 SFX Engine addition with ${cues.length} cues and ` +
     `${backgroundLoops.length} ambience loop; ${locallyDerivedCues.length} ` +
-    `cue(s) are locally derived. Output: ${labRoot}.`,
+    `cue(s) are locally derived and ${locallySafetyMasteredCues.length} ` +
+    `cue(s) are locally safety-mastered. Output: ${labRoot}.`,
 );
 
 function sha256(value) {

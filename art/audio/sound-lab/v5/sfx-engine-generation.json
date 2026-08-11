@@ -45,18 +45,96 @@
         "recordedAt": "2026-08-10T22:05:29.786Z",
         "downloadedContentType": "audio/wav",
         "sourceSha256": "aca8aec334e75659f55055f93de7076765f381078cd39a8c589f3f905d5f152c",
-        "outputSha256": "42ca3576ebf2fc33f2297a4dd6cf3936be900b8397c3af0c610bf7c464f7e64b",
+        "outputSha256": "5360d6573cb3c8cf86552130e02a011cc0caad4e5206bd3f51faf4c6769f1a65",
         "outputBytes": 192044,
         "metrics": {
           "durationSeconds": 1,
           "sampleRate": 48000,
           "channels": 2,
           "bitsPerSample": 16,
-          "peak": 0.78,
-          "rms": 0.2224,
-          "stereoDifferenceRms": 0.0001,
-          "dcOffset": 0.000002,
-          "clippedSamples": 0
+          "peak": 0.56,
+          "rms": 0.1601,
+          "stereoDifferenceRms": 0.0002,
+          "dcOffset": 0,
+          "clippedSamples": 0,
+          "energy": {
+            "integratedLufs": -12.42,
+            "maxMomentaryLufs": -10.34,
+            "approximateTruePeakDbtp": -4.93,
+            "energyAbove12kPercent": 2.93
+          }
+        },
+        "processing": {
+          "safetyMastering": {
+            "masteredBy": "scripts/master-audio-v5-energy.mjs",
+            "sourceFile": "sources/astral-relay/attack-windup.pre-safety-master.wav",
+            "sourceOutputSha256": "42ca3576ebf2fc33f2297a4dd6cf3936be900b8397c3af0c610bf7c464f7e64b",
+            "operations": [
+              {
+                "type": "zero-phase-butterworth-low-pass",
+                "cutoffHz": 7000,
+                "orderPerDirection": 2
+              },
+              {
+                "type": "endpoint-fades",
+                "fadeInSeconds": 0.008,
+                "fadeOutSeconds": 0.06
+              },
+              {
+                "type": "loudness-fit-with-sample-peak-ceiling",
+                "targetIntegratedLufs": -12,
+                "samplePeakCeiling": 0.56
+              }
+            ]
+          }
+        }
+      },
+      "safetyRevisionReason": "Energy audit: retain the accepted wind-up gesture while removing its ultrasonic-heavy balance and lowering repeated combat energy.",
+      "safetyMastering": {
+        "masteredBy": "scripts/master-audio-v5-energy.mjs",
+        "sourceFile": "sources/astral-relay/attack-windup.pre-safety-master.wav",
+        "sourceOutputSha256": "42ca3576ebf2fc33f2297a4dd6cf3936be900b8397c3af0c610bf7c464f7e64b",
+        "recordedAt": "2026-08-11T00:25:54.707Z",
+        "reason": "Energy audit: retain the accepted wind-up gesture while removing its ultrasonic-heavy balance and lowering repeated combat energy.",
+        "operations": [
+          {
+            "type": "zero-phase-butterworth-low-pass",
+            "cutoffHz": 7000,
+            "orderPerDirection": 2
+          },
+          {
+            "type": "endpoint-fades",
+            "fadeInSeconds": 0.008,
+            "fadeOutSeconds": 0.06
+          },
+          {
+            "type": "loudness-fit-with-sample-peak-ceiling",
+            "targetIntegratedLufs": -12,
+            "samplePeakCeiling": 0.56
+          }
+        ],
+        "sourceResult": {
+          "apiSoundEffectId": "se_65kz3jqgfh7eabzk",
+          "status": "generated",
+          "providerCreatedAt": "2026-08-10 22:04:45.681",
+          "providerLengthSeconds": 1,
+          "providerFileSize": 176444,
+          "recordedAt": "2026-08-10T22:05:29.786Z",
+          "downloadedContentType": "audio/wav",
+          "sourceSha256": "aca8aec334e75659f55055f93de7076765f381078cd39a8c589f3f905d5f152c",
+          "outputSha256": "42ca3576ebf2fc33f2297a4dd6cf3936be900b8397c3af0c610bf7c464f7e64b",
+          "outputBytes": 192044,
+          "metrics": {
+            "durationSeconds": 1,
+            "sampleRate": 48000,
+            "channels": 2,
+            "bitsPerSample": 16,
+            "peak": 0.78,
+            "rms": 0.2224,
+            "stereoDifferenceRms": 0.0001,
+            "dcOffset": 0.000002,
+            "clippedSamples": 0
+          }
         }
       }
     },
@@ -86,7 +164,13 @@
           "rms": 0.0641,
           "stereoDifferenceRms": 0.1032,
           "dcOffset": 0.000002,
-          "clippedSamples": 0
+          "clippedSamples": 0,
+          "energy": {
+            "integratedLufs": -15.69,
+            "maxMomentaryLufs": -14.42,
+            "approximateTruePeakDbtp": -1.51,
+            "energyAbove12kPercent": 19.71
+          }
         }
       }
     },
@@ -145,23 +229,110 @@
         },
         "downloadedContentType": "audio/wav",
         "sourceSha256": "a4c9e4fbf4514d3027fe69ba4fa8cbea0037c71f8c71cd1b2a0810fce4d125be",
-        "outputSha256": "a6b65c3560ade8f59f3aeea11201e923c2ad39fa710eefe777d328d241fff386",
+        "outputSha256": "108324d521236e804c0b0301b0c5a389ab7d13a392e97aebca89ab254a9e9f19",
         "outputBytes": 192044,
         "processing": {
           "endpointTreatment": "short-fades",
           "fadeInSeconds": 0.005,
-          "fadeOutSeconds": 0.04
+          "fadeOutSeconds": 0.04,
+          "safetyMastering": {
+            "masteredBy": "scripts/master-audio-v5-energy.mjs",
+            "sourceFile": "sources/astral-relay/attack-fizzle.pre-safety-master.wav",
+            "sourceOutputSha256": "a6b65c3560ade8f59f3aeea11201e923c2ad39fa710eefe777d328d241fff386",
+            "operations": [
+              {
+                "type": "zero-phase-butterworth-low-pass",
+                "cutoffHz": 8000,
+                "orderPerDirection": 2
+              },
+              {
+                "type": "endpoint-fades",
+                "fadeInSeconds": 0.008,
+                "fadeOutSeconds": 0.06
+              },
+              {
+                "type": "loudness-fit-with-sample-peak-ceiling",
+                "targetIntegratedLufs": -15,
+                "samplePeakCeiling": 0.5
+              }
+            ]
+          }
         },
         "metrics": {
           "durationSeconds": 1,
           "sampleRate": 48000,
           "channels": 2,
           "bitsPerSample": 16,
-          "peak": 0.72,
-          "rms": 0.1112,
-          "stereoDifferenceRms": 0.1534,
-          "dcOffset": 0,
-          "clippedSamples": 0
+          "peak": 0.5,
+          "rms": 0.0473,
+          "stereoDifferenceRms": 0.072,
+          "dcOffset": 0.000002,
+          "clippedSamples": 0,
+          "energy": {
+            "integratedLufs": -18.39,
+            "maxMomentaryLufs": -17.27,
+            "approximateTruePeakDbtp": -6.02,
+            "energyAbove12kPercent": 0.16
+          }
+        }
+      },
+      "safetyRevisionReason": "Energy audit: keep the compact failed-field gesture while removing the upper-band concentration that made it fatiguing.",
+      "safetyMastering": {
+        "masteredBy": "scripts/master-audio-v5-energy.mjs",
+        "sourceFile": "sources/astral-relay/attack-fizzle.pre-safety-master.wav",
+        "sourceOutputSha256": "a6b65c3560ade8f59f3aeea11201e923c2ad39fa710eefe777d328d241fff386",
+        "recordedAt": "2026-08-11T00:25:54.767Z",
+        "reason": "Energy audit: keep the compact failed-field gesture while removing the upper-band concentration that made it fatiguing.",
+        "operations": [
+          {
+            "type": "zero-phase-butterworth-low-pass",
+            "cutoffHz": 8000,
+            "orderPerDirection": 2
+          },
+          {
+            "type": "endpoint-fades",
+            "fadeInSeconds": 0.008,
+            "fadeOutSeconds": 0.06
+          },
+          {
+            "type": "loudness-fit-with-sample-peak-ceiling",
+            "targetIntegratedLufs": -15,
+            "samplePeakCeiling": 0.5
+          }
+        ],
+        "sourceResult": {
+          "apiSoundEffectId": "se_ncrj36ixyq7pdlff",
+          "status": "generated",
+          "providerCreatedAt": "2026-08-10 22:58:54.861",
+          "providerLengthSeconds": 1,
+          "providerFileSize": 176444,
+          "recordedAt": "2026-08-10T22:59:38.857Z",
+          "request": {
+            "prompt": "Isolated premium sci-fi game SFX: a charged beam field fails to cohere and disappears in one compact airy exhale, a brief soft spectral unravel with no tail. No impact, buzz, crackle, alarm, harsh highs, gun, projectile, voice, or music.",
+            "requestLengthSeconds": 1,
+            "secondsToStart": 0,
+            "targetPeak": 0.72
+          },
+          "downloadedContentType": "audio/wav",
+          "sourceSha256": "a4c9e4fbf4514d3027fe69ba4fa8cbea0037c71f8c71cd1b2a0810fce4d125be",
+          "outputSha256": "a6b65c3560ade8f59f3aeea11201e923c2ad39fa710eefe777d328d241fff386",
+          "outputBytes": 192044,
+          "processing": {
+            "endpointTreatment": "short-fades",
+            "fadeInSeconds": 0.005,
+            "fadeOutSeconds": 0.04
+          },
+          "metrics": {
+            "durationSeconds": 1,
+            "sampleRate": 48000,
+            "channels": 2,
+            "bitsPerSample": 16,
+            "peak": 0.72,
+            "rms": 0.1112,
+            "stereoDifferenceRms": 0.1534,
+            "dcOffset": 0,
+            "clippedSamples": 0
+          }
         }
       }
     },
@@ -191,7 +362,13 @@
           "rms": 0.1158,
           "stereoDifferenceRms": 0.1815,
           "dcOffset": 0.000001,
-          "clippedSamples": 0
+          "clippedSamples": 0,
+          "energy": {
+            "integratedLufs": -13.88,
+            "maxMomentaryLufs": -10.78,
+            "approximateTruePeakDbtp": -2.83,
+            "energyAbove12kPercent": 0.42
+          }
         }
       }
     },
@@ -217,23 +394,51 @@
         },
         "downloadedContentType": "audio/wav",
         "sourceSha256": "e739e53bb3a907dce6b2d75b81a556682c58b9c8f1bc408553b22d1c91d8ffe0",
-        "outputSha256": "ff0e120a696c3a6bbd0c7288c930c965097e20a76c46cc89733d77e7488ebe31",
+        "outputSha256": "ab6260948b7e928038d636ff4f826c7d1c7efdd8ef75b8b6f311512f946240de",
         "outputBytes": 192044,
         "processing": {
           "endpointTreatment": "short-fades",
           "fadeInSeconds": 0.005,
-          "fadeOutSeconds": 0.04
+          "fadeOutSeconds": 0.04,
+          "safetyMastering": {
+            "masteredBy": "scripts/master-audio-v5-energy.mjs",
+            "sourceFile": "sources/astral-relay/impact.pre-safety-master.wav",
+            "sourceOutputSha256": "ff0e120a696c3a6bbd0c7288c930c965097e20a76c46cc89733d77e7488ebe31",
+            "operations": [
+              {
+                "type": "zero-phase-butterworth-low-pass",
+                "cutoffHz": 7000,
+                "orderPerDirection": 2
+              },
+              {
+                "type": "endpoint-fades",
+                "fadeInSeconds": 0.008,
+                "fadeOutSeconds": 0.06
+              },
+              {
+                "type": "loudness-fit-with-sample-peak-ceiling",
+                "targetIntegratedLufs": -11,
+                "samplePeakCeiling": 0.55
+              }
+            ]
+          }
         },
         "metrics": {
           "durationSeconds": 1,
           "sampleRate": 48000,
           "channels": 2,
           "bitsPerSample": 16,
-          "peak": 0.8,
-          "rms": 0.1977,
-          "stereoDifferenceRms": 0.3239,
-          "dcOffset": 0,
-          "clippedSamples": 0
+          "peak": 0.55,
+          "rms": 0.0897,
+          "stereoDifferenceRms": 0.1541,
+          "dcOffset": 0.000003,
+          "clippedSamples": 0,
+          "energy": {
+            "integratedLufs": -13.31,
+            "maxMomentaryLufs": -11.78,
+            "approximateTruePeakDbtp": -5.13,
+            "energyAbove12kPercent": 0.04
+          }
         }
       },
       "attempts": [
@@ -274,7 +479,66 @@
           "supersededAt": "2026-08-10T23:31:28.942Z",
           "reason": "Owner review: infer a more suitable Engine-theme armor impact from the accepted continuous-beam and ambient vocabulary."
         }
-      ]
+      ],
+      "safetyRevisionReason": "Energy audit: round the accepted armor compression, remove its inter-sample overs, and lower it beneath the objective hierarchy.",
+      "safetyMastering": {
+        "masteredBy": "scripts/master-audio-v5-energy.mjs",
+        "sourceFile": "sources/astral-relay/impact.pre-safety-master.wav",
+        "sourceOutputSha256": "ff0e120a696c3a6bbd0c7288c930c965097e20a76c46cc89733d77e7488ebe31",
+        "recordedAt": "2026-08-11T00:25:54.821Z",
+        "reason": "Energy audit: round the accepted armor compression, remove its inter-sample overs, and lower it beneath the objective hierarchy.",
+        "operations": [
+          {
+            "type": "zero-phase-butterworth-low-pass",
+            "cutoffHz": 7000,
+            "orderPerDirection": 2
+          },
+          {
+            "type": "endpoint-fades",
+            "fadeInSeconds": 0.008,
+            "fadeOutSeconds": 0.06
+          },
+          {
+            "type": "loudness-fit-with-sample-peak-ceiling",
+            "targetIntegratedLufs": -11,
+            "samplePeakCeiling": 0.55
+          }
+        ],
+        "sourceResult": {
+          "apiSoundEffectId": "se_6r3i3iubff5dg2iq",
+          "status": "generated",
+          "providerCreatedAt": "2026-08-10 23:31:28.602",
+          "providerLengthSeconds": 1,
+          "providerFileSize": 176444,
+          "recordedAt": "2026-08-10T23:32:16.044Z",
+          "request": {
+            "prompt": "Premium sci-fi game SFX: a continuous energy beam contacts armor as one weighty low-mid electromagnetic compression, blooming briefly then folding inward. Compact, rounded, ear-safe; no crack, clank, harsh highs, explosion, gunshot, voice, or music.",
+            "requestLengthSeconds": 1,
+            "secondsToStart": 0,
+            "targetPeak": 0.8
+          },
+          "downloadedContentType": "audio/wav",
+          "sourceSha256": "e739e53bb3a907dce6b2d75b81a556682c58b9c8f1bc408553b22d1c91d8ffe0",
+          "outputSha256": "ff0e120a696c3a6bbd0c7288c930c965097e20a76c46cc89733d77e7488ebe31",
+          "outputBytes": 192044,
+          "processing": {
+            "endpointTreatment": "short-fades",
+            "fadeInSeconds": 0.005,
+            "fadeOutSeconds": 0.04
+          },
+          "metrics": {
+            "durationSeconds": 1,
+            "sampleRate": 48000,
+            "channels": 2,
+            "bitsPerSample": 16,
+            "peak": 0.8,
+            "rms": 0.1977,
+            "stereoDifferenceRms": 0.3239,
+            "dcOffset": 0,
+            "clippedSamples": 0
+          }
+        }
+      }
     },
     {
       "id": "destroyed",
@@ -324,7 +588,13 @@
           "rms": 0.1497,
           "stereoDifferenceRms": 0.0878,
           "dcOffset": 0,
-          "clippedSamples": 0
+          "clippedSamples": 0,
+          "energy": {
+            "integratedLufs": -12.01,
+            "maxMomentaryLufs": -8.43,
+            "approximateTruePeakDbtp": -1.59,
+            "energyAbove12kPercent": 8.25
+          }
         }
       },
       "attempts": [
@@ -458,7 +728,13 @@
           "rms": 0.084,
           "stereoDifferenceRms": 0.0842,
           "dcOffset": 0.000001,
-          "clippedSamples": 0
+          "clippedSamples": 0,
+          "energy": {
+            "integratedLufs": -15.05,
+            "maxMomentaryLufs": -12.66,
+            "approximateTruePeakDbtp": -1.72,
+            "energyAbove12kPercent": 0
+          }
         }
       }
     },
@@ -575,7 +851,13 @@
           "rms": 0.1024,
           "stereoDifferenceRms": 0,
           "dcOffset": 0,
-          "clippedSamples": 0
+          "clippedSamples": 0,
+          "energy": {
+            "integratedLufs": -17.59,
+            "maxMomentaryLufs": -15.4,
+            "approximateTruePeakDbtp": -2.15,
+            "energyAbove12kPercent": 0
+          }
         }
       }
     },
@@ -650,7 +932,13 @@
           "rms": 0.0829,
           "stereoDifferenceRms": 0.1342,
           "dcOffset": 0,
-          "clippedSamples": 0
+          "clippedSamples": 0,
+          "energy": {
+            "integratedLufs": -15.04,
+            "maxMomentaryLufs": -12.47,
+            "approximateTruePeakDbtp": -1.45,
+            "energyAbove12kPercent": 1.18
+          }
         }
       }
     },
@@ -701,7 +989,13 @@
           "rms": 0.1014,
           "stereoDifferenceRms": 0,
           "dcOffset": 0.000004,
-          "clippedSamples": 0
+          "clippedSamples": 0,
+          "energy": {
+            "integratedLufs": -17.6,
+            "maxMomentaryLufs": -15.41,
+            "approximateTruePeakDbtp": -2.15,
+            "energyAbove12kPercent": 0
+          }
         }
       },
       "attempts": [
@@ -788,7 +1082,13 @@
           "rms": 0.1089,
           "stereoDifferenceRms": 0.126,
           "dcOffset": 0.000003,
-          "clippedSamples": 0
+          "clippedSamples": 0,
+          "energy": {
+            "integratedLufs": -14.32,
+            "maxMomentaryLufs": -11.11,
+            "approximateTruePeakDbtp": -1.51,
+            "energyAbove12kPercent": 2.07
+          }
         }
       }
     },
@@ -818,7 +1118,13 @@
           "rms": 0.1708,
           "stereoDifferenceRms": 0.1725,
           "dcOffset": 0.000065,
-          "clippedSamples": 0
+          "clippedSamples": 0,
+          "energy": {
+            "integratedLufs": -12.64,
+            "maxMomentaryLufs": -8.37,
+            "approximateTruePeakDbtp": -1.08,
+            "energyAbove12kPercent": 0.11
+          }
         }
       }
     },
@@ -893,7 +1199,13 @@
           "rms": 0.0929,
           "stereoDifferenceRms": 0.0849,
           "dcOffset": 0,
-          "clippedSamples": 0
+          "clippedSamples": 0,
+          "energy": {
+            "integratedLufs": -13.4,
+            "maxMomentaryLufs": -11.83,
+            "approximateTruePeakDbtp": -1.9,
+            "energyAbove12kPercent": 2.26
+          }
         }
       }
     },
@@ -1031,7 +1343,13 @@
           "rms": 0.1084,
           "stereoDifferenceRms": 0.0987,
           "dcOffset": 0,
-          "clippedSamples": 0
+          "clippedSamples": 0,
+          "energy": {
+            "integratedLufs": -13.92,
+            "maxMomentaryLufs": -13.01,
+            "approximateTruePeakDbtp": -3.02,
+            "energyAbove12kPercent": 0.14
+          }
         }
       },
       "generationMode": "local-derivation",
@@ -1095,7 +1413,13 @@
           "rms": 0.1469,
           "stereoDifferenceRms": 0.0881,
           "dcOffset": 0.000001,
-          "clippedSamples": 0
+          "clippedSamples": 0,
+          "energy": {
+            "integratedLufs": -12.17,
+            "maxMomentaryLufs": -8.65,
+            "approximateTruePeakDbtp": -1.81,
+            "energyAbove12kPercent": 7.56
+          }
         }
       }
     },
@@ -1143,7 +1467,13 @@
           "rms": 0.129,
           "stereoDifferenceRms": 0.1065,
           "dcOffset": 0,
-          "clippedSamples": 0
+          "clippedSamples": 0,
+          "energy": {
+            "integratedLufs": -15.93,
+            "maxMomentaryLufs": -13.62,
+            "approximateTruePeakDbtp": -5.19,
+            "energyAbove12kPercent": 0
+          }
         }
       }
     }
@@ -1151,5 +1481,183 @@
   "localDerivation": {
     "script": "scripts/derive-audio-v5-revisions.mjs",
     "policy": "Deterministic transformations of hash-pinned SFX Engine source cues; no provider API request or synthesized layer."
+  },
+  "localSafetyMastering": {
+    "script": "scripts/master-audio-v5-energy.mjs",
+    "policy": "Deterministic filtering and attenuation of hash-pinned accepted provider masters; no provider API request or synthesized layer.",
+    "cueIds": [
+      "attack-windup",
+      "attack-fizzle",
+      "impact"
+    ],
+    "thresholds": {
+      "maximumApproximateTruePeakDbtp": -3,
+      "maximumEnergyAbove12kPercent": {
+        "attack-windup": 25,
+        "attack-fizzle": 25,
+        "impact": 20
+      }
+    }
+  },
+  "energyAudit": {
+    "script": "scripts/master-audio-v5-energy.mjs",
+    "recordedAt": "2026-08-11T00:31:30.102Z",
+    "method": "ITU-R BS.1770 K-weighted loudness, four-times windowed-sinc true-peak estimate, FFT upper-band energy, and exact sound-lab sequence sums.",
+    "individualMaximumApproximateTruePeakDbtp": -0.75,
+    "reviewOutputSafetyGainDb": -3,
+    "reviewSequenceMaximumApproximateTruePeakDbtp": -1,
+    "limiter": {
+      "thresholdDb": -8,
+      "kneeDb": 2,
+      "ratio": 20,
+      "attackSeconds": 0.001,
+      "releaseSeconds": 0.12
+    },
+    "cueResults": {
+      "attack-windup": {
+        "durationSeconds": 1,
+        "integratedLufs": -12.42,
+        "maxMomentaryLufs": -10.34,
+        "approximateTruePeakDbtp": -4.93,
+        "energyAbove12kPercent": 2.93
+      },
+      "projectile": {
+        "durationSeconds": 1,
+        "integratedLufs": -15.69,
+        "maxMomentaryLufs": -14.42,
+        "approximateTruePeakDbtp": -1.51,
+        "energyAbove12kPercent": 19.71
+      },
+      "attack-fizzle": {
+        "durationSeconds": 1,
+        "integratedLufs": -18.39,
+        "maxMomentaryLufs": -17.27,
+        "approximateTruePeakDbtp": -6.02,
+        "energyAbove12kPercent": 0.16
+      },
+      "attack-cancel": {
+        "durationSeconds": 1,
+        "integratedLufs": -13.88,
+        "maxMomentaryLufs": -10.78,
+        "approximateTruePeakDbtp": -2.83,
+        "energyAbove12kPercent": 0.42
+      },
+      "impact": {
+        "durationSeconds": 1,
+        "integratedLufs": -13.31,
+        "maxMomentaryLufs": -11.78,
+        "approximateTruePeakDbtp": -5.13,
+        "energyAbove12kPercent": 0.04
+      },
+      "destroyed": {
+        "durationSeconds": 2,
+        "integratedLufs": -12.01,
+        "maxMomentaryLufs": -8.43,
+        "approximateTruePeakDbtp": -1.59,
+        "energyAbove12kPercent": 8.25
+      },
+      "arc-birth": {
+        "durationSeconds": 2,
+        "integratedLufs": -15.05,
+        "maxMomentaryLufs": -12.66,
+        "approximateTruePeakDbtp": -1.72,
+        "energyAbove12kPercent": 0
+      },
+      "arc-pickup": {
+        "durationSeconds": 1,
+        "integratedLufs": -17.59,
+        "maxMomentaryLufs": -15.4,
+        "approximateTruePeakDbtp": -2.15,
+        "energyAbove12kPercent": 0
+      },
+      "arc-steal": {
+        "durationSeconds": 2,
+        "integratedLufs": -15.04,
+        "maxMomentaryLufs": -12.47,
+        "approximateTruePeakDbtp": -1.45,
+        "energyAbove12kPercent": 1.18
+      },
+      "arc-drop": {
+        "durationSeconds": 1,
+        "integratedLufs": -17.6,
+        "maxMomentaryLufs": -15.41,
+        "approximateTruePeakDbtp": -2.15,
+        "energyAbove12kPercent": 0
+      },
+      "arc-bank": {
+        "durationSeconds": 2,
+        "integratedLufs": -14.32,
+        "maxMomentaryLufs": -11.11,
+        "approximateTruePeakDbtp": -1.51,
+        "energyAbove12kPercent": 2.07
+      },
+      "arc-pulse": {
+        "durationSeconds": 4,
+        "integratedLufs": -12.64,
+        "maxMomentaryLufs": -8.37,
+        "approximateTruePeakDbtp": -1.08,
+        "energyAbove12kPercent": 0.11
+      },
+      "arc-handoff": {
+        "durationSeconds": 2,
+        "integratedLufs": -13.4,
+        "maxMomentaryLufs": -11.83,
+        "approximateTruePeakDbtp": -1.9,
+        "energyAbove12kPercent": 2.26
+      },
+      "deflect": {
+        "durationSeconds": 0.8,
+        "integratedLufs": -13.92,
+        "maxMomentaryLufs": -13.01,
+        "approximateTruePeakDbtp": -3.02,
+        "energyAbove12kPercent": 0.14
+      },
+      "arrival": {
+        "durationSeconds": 2,
+        "integratedLufs": -12.17,
+        "maxMomentaryLufs": -8.65,
+        "approximateTruePeakDbtp": -1.81,
+        "energyAbove12kPercent": 7.56
+      },
+      "arena-ambience": {
+        "durationSeconds": 30,
+        "integratedLufs": -15.93,
+        "maxMomentaryLufs": -13.62,
+        "approximateTruePeakDbtp": -5.19,
+        "energyAbove12kPercent": 0
+      }
+    },
+    "sequenceResults": {
+      "possession": {
+        "durationSeconds": 11.35,
+        "integratedLufs": -17.19,
+        "maxMomentaryLufs": -11.4,
+        "approximateTruePeakDbtp": -3.24,
+        "includesAmbientAtRelativeGain": 0.32,
+        "reviewVolume": 1,
+        "fixedOutputSafetyGainDb": -3,
+        "compressorAttenuationModeled": false
+      },
+      "combat": {
+        "durationSeconds": 9.08,
+        "integratedLufs": -14.75,
+        "maxMomentaryLufs": -10.89,
+        "approximateTruePeakDbtp": -1.28,
+        "includesAmbientAtRelativeGain": 0.32,
+        "reviewVolume": 1,
+        "fixedOutputSafetyGainDb": -3,
+        "compressorAttenuationModeled": false
+      },
+      "full": {
+        "durationSeconds": 18.25,
+        "integratedLufs": -15.99,
+        "maxMomentaryLufs": -10.96,
+        "approximateTruePeakDbtp": -1.59,
+        "includesAmbientAtRelativeGain": 0.32,
+        "reviewVolume": 1,
+        "fixedOutputSafetyGainDb": -3,
+        "compressorAttenuationModeled": false
+      }
+    }
   }
 }

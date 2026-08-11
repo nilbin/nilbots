@@ -119,6 +119,13 @@ validated.push(
       "arc-drop": "arc-pickup",
       deflect: "projectile",
     },
+    expectedSafetyMasteredCueIds: [
+      "attack-windup",
+      "attack-fizzle",
+      "impact",
+    ],
+    expectedEnergyAudit: true,
+    minPeak: 0.45,
     minStereoDifference: 0,
     expectedPackIds: ["astral-relay"],
     expectedCueIds: [
@@ -237,6 +244,69 @@ async function validateCandidateSet(specification) {
       assert(
         cue?.derivedFromCueId === sourceId,
         `${id}: expected local derivation from ${sourceId}`,
+      );
+    }
+  }
+  if (specification.expectedSafetyMasteredCueIds) {
+    const safetyCues = manifest.packs[0].cues.filter(
+      (cue) => cue.safetyMastered,
+    );
+    assert(
+      manifest.sourceComposition?.locallySafetyMasteredCues ===
+        specification.expectedSafetyMasteredCueIds.length,
+      `${specification.label}: safety-mastered source composition is incorrect`,
+    );
+    assert(
+      JSON.stringify(safetyCues.map((cue) => cue.id)) ===
+        JSON.stringify(specification.expectedSafetyMasteredCueIds),
+      `${specification.label}: safety-mastered cue IDs are incorrect`,
+    );
+    for (const cue of safetyCues) {
+      const maximumHighEnergy =
+        manifest.packs[0].energySafety?.thresholds
+          ?.maximumEnergyAbove12kPercent?.[cue.id];
+      assert(
+        cue.energy?.approximateTruePeakDbtp <= -3,
+        `${cue.id}: safety master exceeds -3 dBTP`,
+      );
+      assert(
+        Number.isFinite(maximumHighEnergy) &&
+          cue.energy?.energyAbove12kPercent <= maximumHighEnergy,
+        `${cue.id}: safety master exceeds its upper-band energy threshold`,
+      );
+    }
+  }
+  if (specification.expectedEnergyAudit) {
+    const audit = manifest.energyAudit;
+    assert(
+      audit?.script === "scripts/master-audio-v5-energy.mjs" &&
+        audit.reviewOutputSafetyGainDb === -3 &&
+        audit.reviewSequenceMaximumApproximateTruePeakDbtp === -1,
+      `${specification.label}: energy audit contract is missing`,
+    );
+    for (const result of Object.values(audit.sequenceResults ?? {})) {
+      assert(
+        result.approximateTruePeakDbtp <=
+          audit.reviewSequenceMaximumApproximateTruePeakDbtp,
+        `${specification.label}: a review sequence exceeds its true-peak ceiling`,
+      );
+    }
+    for (const cue of manifest.packs[0].cues) {
+      assert(
+        cue.energy?.approximateTruePeakDbtp ===
+            audit.cueResults?.[cue.id]?.approximateTruePeakDbtp &&
+          cue.energy.approximateTruePeakDbtp <=
+            audit.individualMaximumApproximateTruePeakDbtp,
+        `${cue.id}: cue energy does not match the all-cue audit`,
+      );
+    }
+    for (const loop of manifest.backgroundLoops ?? []) {
+      assert(
+        loop.energy?.approximateTruePeakDbtp ===
+            audit.cueResults?.[loop.id]?.approximateTruePeakDbtp &&
+          loop.energy.approximateTruePeakDbtp <=
+            audit.individualMaximumApproximateTruePeakDbtp,
+        `${loop.id}: ambience energy does not match the all-cue audit`,
       );
     }
   }

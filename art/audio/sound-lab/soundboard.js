@@ -26,9 +26,10 @@
   const volumeLabel = document.querySelector('[data-volume-label]');
   const ambientToggle = document.querySelector('[data-ambient-toggle]');
   const ambientLabel = document.querySelector('[data-ambient-label]');
-  const activeAudio = new Set();
+  const activeAudio = new Map();
   const timers = new Set();
   const ambientGain = 0.32;
+  const outputSafetyGain = 10 ** (-3 / 20);
 
   const attackSentenceIds = [
     'attack-windup',
@@ -113,7 +114,9 @@
   let selectedCue = 'attack-windup';
   let favorite = readFavorite();
   let selectedPack = manifest.packs.find((pack) => pack.id === favorite) ?? manifest.packs.at(-1);
+  let audioGraph = null;
   let ambientAudio = null;
+  let ambientVoice = null;
 
   function readFavorite() {
     try {
@@ -152,6 +155,63 @@
     status.textContent = message;
   }
 
+  function ensureAudioGraph() {
+    if (audioGraph) return audioGraph;
+    const AudioContextClass = window.AudioContext ?? window.webkitAudioContext;
+    if (!AudioContextClass) return null;
+    try {
+      const context = new AudioContextClass({ latencyHint: 'interactive' });
+      const input = context.createGain();
+      const limiter = context.createDynamicsCompressor();
+      const safety = context.createGain();
+      limiter.threshold.value = -8;
+      limiter.knee.value = 2;
+      limiter.ratio.value = 20;
+      limiter.attack.value = 0.001;
+      limiter.release.value = 0.12;
+      safety.gain.value = outputSafetyGain;
+      input.connect(limiter).connect(safety).connect(context.destination);
+      audioGraph = { context, input, limiter, safety };
+      return audioGraph;
+    } catch {
+      return null;
+    }
+  }
+
+  function connectAudio(audio, relativeGain) {
+    const graph = ensureAudioGraph();
+    if (!graph) {
+      audio.volume = volume * relativeGain * outputSafetyGain;
+      return { audio, relativeGain, source: null, gain: null };
+    }
+    try {
+      const source = graph.context.createMediaElementSource(audio);
+      const gain = graph.context.createGain();
+      audio.volume = 1;
+      gain.gain.value = volume * relativeGain;
+      source.connect(gain).connect(graph.input);
+      if (graph.context.state === 'suspended') void graph.context.resume();
+      return { audio, relativeGain, source, gain };
+    } catch {
+      audio.volume = volume * relativeGain * outputSafetyGain;
+      return { audio, relativeGain, source: null, gain: null };
+    }
+  }
+
+  function updateVoiceVolume(voice) {
+    const next = volume * voice.relativeGain;
+    if (voice.gain && audioGraph) {
+      voice.gain.gain.setTargetAtTime(next, audioGraph.context.currentTime, 0.01);
+    } else {
+      voice.audio.volume = next * outputSafetyGain;
+    }
+  }
+
+  function disconnectVoice(voice) {
+    voice.source?.disconnect();
+    voice.gain?.disconnect();
+  }
+
   function updateSequencePack() {
     const label = document.querySelector('[data-sequence-pack]');
     if (label)
@@ -179,7 +239,9 @@
     if (ambientAudio) {
       ambientAudio.pause();
       ambientAudio.currentTime = 0;
+      if (ambientVoice) disconnectVoice(ambientVoice);
       ambientAudio = null;
+      ambientVoice = null;
     }
     updateAmbientControl(false);
   }
@@ -187,9 +249,10 @@
   function stopAll({ announce = true, includeAmbient = true } = {}) {
     for (const timer of timers) window.clearTimeout(timer);
     timers.clear();
-    for (const audio of activeAudio) {
-      audio.pause();
-      audio.currentTime = 0;
+    for (const voice of activeAudio.values()) {
+      voice.audio.pause();
+      voice.audio.currentTime = 0;
+      disconnectVoice(voice);
     }
     activeAudio.clear();
     document
@@ -211,12 +274,15 @@
     const audio = new Audio(ambientLoop.file);
     audio.preload = 'auto';
     audio.loop = true;
-    audio.volume = volume * ambientGain;
+    const voice = connectAudio(audio, ambientGain);
     ambientAudio = audio;
+    ambientVoice = voice;
     audio.addEventListener(
       'error',
       () => {
+        disconnectVoice(voice);
         if (ambientAudio === audio) ambientAudio = null;
+        if (ambientVoice === voice) ambientVoice = null;
         updateAmbientControl(false);
         setStatus('Could not load the Astral arena ambience.');
       },
@@ -229,7 +295,9 @@
         setStatus('Astral arena ambience · looping beneath review audio');
       },
       () => {
+        disconnectVoice(voice);
         if (ambientAudio === audio) ambientAudio = null;
+        if (ambientVoice === voice) ambientVoice = null;
         updateAmbientControl(false);
         setStatus('Playback was blocked. Tap the ambient control once to enable audio.');
       },
@@ -244,15 +312,17 @@
     const key = audioKey(pack, cue);
     const audio = new Audio(cue.file);
     audio.preload = 'auto';
-    audio.volume = volume;
-    activeAudio.add(audio);
+    const voice = connectAudio(audio, 1);
+    activeAudio.set(audio, voice);
     document
       .querySelectorAll(`[data-audio-key="${CSS.escape(key)}"]`)
       .forEach((element) => element.classList.add('is-playing'));
 
     const finished = () => {
+      const activeVoice = activeAudio.get(audio);
       activeAudio.delete(audio);
-      if (![...activeAudio].some((candidate) => candidate.dataset.audioKey === key))
+      if (activeVoice) disconnectVoice(activeVoice);
+      if (![...activeAudio.keys()].some((candidate) => candidate.dataset.audioKey === key))
         clearPlayingState(key);
     };
     audio.dataset.audioKey = key;
@@ -377,10 +447,16 @@
   }
 
   function cueReviewDescription(pack, cue) {
-    if (cue.origin !== 'local-derivation') return cue.description;
-    const source = cueById(pack, cue.derivedFromCueId);
-    const sourceLabel = source?.label ?? cue.derivedFromCueId;
-    return `${cue.description} Locally derived from ${sourceLabel}; no new API call.`;
+    const details = [cue.description];
+    if (cue.origin === 'local-derivation') {
+      const source = cueById(pack, cue.derivedFromCueId);
+      const sourceLabel = source?.label ?? cue.derivedFromCueId;
+      details.push(`Locally derived from ${sourceLabel}; no new API call.`);
+    }
+    if (cue.safetyMastered) {
+      details.push('Locally safety-mastered for lower peak and upper-band energy; no new API call.');
+    }
+    return details.join(' ');
   }
 
   function renderComparison() {
@@ -514,8 +590,8 @@
   volumeInput.addEventListener('input', () => {
     volume = Number(volumeInput.value);
     volumeLabel.textContent = `${Math.round(volume * 100)}%`;
-    for (const audio of activeAudio) audio.volume = volume;
-    if (ambientAudio) ambientAudio.volume = volume * ambientGain;
+    for (const voice of activeAudio.values()) updateVoiceVolume(voice);
+    if (ambientVoice) updateVoiceVolume(ambientVoice);
   });
 
   ambientToggle.addEventListener('click', toggleAmbient);

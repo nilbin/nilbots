@@ -10,6 +10,7 @@ node scripts/generate-audio-v2-candidates.mjs
 node scripts/generate-audio-v3-candidates.mjs
 node scripts/generate-audio-v4-candidates.mjs
 node scripts/derive-audio-v5-revisions.mjs
+node scripts/master-audio-v5-energy.mjs
 node scripts/build-audio-v5-candidates.mjs
 node scripts/validate-audio-candidates.mjs
 node scripts/build-audio-sound-lab-site.mjs
@@ -22,7 +23,9 @@ same signed 16-bit PCM WAV files. V1 is 44.1 kHz mono; V2 through V4 render at
 96 kHz and downsample to 48 kHz stereo. V5 keeps saved provider lineage for
 fifteen matched cues plus one optional ambient loop. The derivation script
 deterministically rebuilds three current variants from their accepted source
-masters without contacting SFX Engine.
+masters without contacting SFX Engine. The safety-master script then rebuilds
+three high-energy provider cues from archived, hash-pinned pre-master WAVs
+without spending credits.
 
 The build command creates the static worker package used for the owner-only
 review site under the ignored `sandbox/audio-sound-lab-site` directory. It
@@ -66,7 +69,8 @@ and output hashes, local transformations, processing disclosure, and measured
 audio facts live in `sound-lab/v5/sfx-engine-generation.json`. The reusable
 workflow and saved OpenAPI 3.0 contract live under `.claude/skills/sfx-engine/`;
 the API credential does not. Rebuild the three local variants with
-`scripts/derive-audio-v5-revisions.mjs`, then rebuild the manifest with
+`scripts/derive-audio-v5-revisions.mjs`, run
+`scripts/master-audio-v5-energy.mjs`, then rebuild the manifest with
 `scripts/build-audio-v5-candidates.mjs`. Generate or replace provider cues only
 through the skill workflow because each new request spends account credits.
 
@@ -88,6 +92,19 @@ provider outputs. The attack wind-up, current pickup, and derived drop are
 effectively mono; no synthetic widening is added. All one-shot masters are
 48 kHz two-channel signed 16-bit PCM with DC correction, endpoint fades, and
 transparent peak normalization.
+
+The accepted attack wind-up, fizzle, and armor-impact provider masters are
+preserved byte-for-byte under `sound-lab/v5/sources/astral-relay/`. A
+deterministic local safety pass applies zero-phase low-pass filtering, endpoint
+fades, loudness fitting, and conservative peak ceilings. It removes the first
+two cues' excessive energy above 12 kHz and the impact's reconstructed
+inter-sample overs without synthesizing a replacement or contacting the API.
+The generation record pins both the archived source and mastered output hashes,
+operations, loudness, approximate true peak, and upper-band energy.
+The same script audits all fifteen cues, the ambient loop, and the exact three
+sound-lab timelines. Review playback uses one shared compressor followed by a
+fixed 3 dB safety gain; the uncompressed sequence sums must remain at or below
+-1 dBTP after that fixed gain.
 
 V5 also includes a review-only **Astral arena ambience**. SFX Engine supplied a
 32-second non-musical source; the workflow applies a two-second circular
