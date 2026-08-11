@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "buildInputSha256": "1229c727f38e78599dbc228e2f8a86117d64a50fced3d155c7398dcf2a02a6f3",
+  "artifactSha256": "d63ffb4829a6875573232d3cb8822beb8c77c96708bc2e9bbdd39d0aeb42ca96",
+  "sdkVersion": "0.10.13",
+  "guestAdapterVersion": "0.10.13",
+  "compilerVersion": "10.0.0-rc.1.26306.1",
+  "buildPipelineVersion": "5"
+}

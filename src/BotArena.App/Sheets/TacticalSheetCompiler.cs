@@ -44,13 +44,13 @@ public sealed class TacticalSheetCompiler(ArcRelayClassCatalog classCatalog)
         string mapId = LayoutMapId(compilation.NormalizedLayout);
         if (!string.Equals(
                 mapId,
-                ArcRelayLoopProfile.AmbushWarren11.MapId,
+                ArcRelayLoopProfile.Current.MapId,
                 StringComparison.Ordinal))
         {
             throw new InvalidDataException(
-                $"Layout targets '{mapId}'. Hosted Arc Relay v14 requires "
-                + $"the native '{ArcRelayLoopProfile.AmbushWarren11.MapId}' "
-                + "Warren layout; legacy Counterflow geometry is not migrated.");
+                $"Layout targets '{mapId}'. Hosted Arc Relay v19 requires "
+                + $"the native '{ArcRelayLoopProfile.Current.MapId}' "
+                + "Tapline layout; geometry from older maps is never migrated.");
         }
         ArcRelayCompositionCompilation composition = ArcRelayComposition.Compile(
             new ArcRelayCompositionDeclaration(compilation.Composition),
@@ -68,7 +68,7 @@ public sealed class TacticalSheetCompiler(ArcRelayClassCatalog classCatalog)
         {
             return string.Equals(
                 LayoutMapId(Encoding.UTF8.GetBytes(layoutJson)),
-                ArcRelayLoopProfile.AmbushWarren11.MapId,
+                ArcRelayLoopProfile.Current.MapId,
                 StringComparison.Ordinal);
         }
         catch (JsonException)

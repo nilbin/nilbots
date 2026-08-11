@@ -73,11 +73,11 @@ export default function ArcRelayPage({
           </h1>
           <p className="t-meta mt-2 max-w-3xl">
             {view === 'sheets'
-              ? 'Choose the composition, group bodies into assignments, issue ordered commands, plot the map and compare what actually happened.'
+              ? 'Choose the roster, give every assignment an ordered battle plan, draw it on Tapline and compare what actually happened.'
               : 'Each tactical sheet is a Season entrant with its own crest, composition, match history and rating.'}
           </p>
         </div>
-        <span className="pill">Deep Warren</span>
+        <span className="pill">Tapline · Season map</span>
       </header>
 
       {view === 'overview' ? (
@@ -166,8 +166,8 @@ function EntrantRoster({ entrants, baselineMatchesPerDay }: {
               </button>}
           </div>
           {entrant.status === 'legacy' && <p className="t-micro mt-3 border-t border-arena-edge pt-3 text-arena-material">
-            Counterflow layout — readable history, but not admissible to Season 1.
-            Open it in the workshop and replot routes, zones and anchors on the Warren;
+            Earlier-map layout — readable history, but not admissible to Season 1.
+            Open it in the workshop and replot routes, zones and anchors on Tapline;
             coordinates are never converted between maps.
           </p>}
           {crestOptions.data?.entrantId === entrant.id && (

@@ -677,7 +677,8 @@ internal sealed class TacticalPlaybookPackage
         /// sheet says is safe.</summary>
         DeliveryRoute[]? DeliveryRoutes = null,
         string ForwardPass = "none",
-        BaitDrop? BaitDrop = null);
+        BaitDrop? BaitDrop = null,
+        string PickupSelection = "carrier-preference");
 
     /// <summary>
     /// Bait delivery: instead of banking, the authorized carrier tosses its

@@ -38,11 +38,11 @@ export default function DocsPage() {
           and rating.
         </p>
         <p className="mt-2 text-arena-dim">
-          Hosted playlist v8 and the local <code>nilbots arc-relay</code> default
-          both run ambush-warren-11 on the deep Warren. Counterflow-era sheets
+          Hosted playlist v19 and the local <code>nilbots arc-relay</code> default
+          both run tapline-1 on Tapline. Sheets authored for earlier maps
           remain readable history but must be replotted natively before admission to the
           current Season; coordinates are never projected between maps. Season 1 is the
-          first public eight-week competition on v8: every entrant starts at 1200 with a
+          first public eight-week competition on v19: every entrant starts at 1200 with a
           zero-match record. Earlier development ladders are not presented as Season history.
         </p>
       </Doc>

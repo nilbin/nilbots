@@ -34,6 +34,26 @@ manifest hashes are opened to evaluation.
   fallback re-tests, and propagates loaded-carrier right-of-way through allied
   queues. The stock digest moves again, so v14 starts fresh and v1–v7 remain
   historical bytes.
+- `ambush-warren-11-stock-v9/` — immutable hosted playlist-v15 tactical mind
+  and receipt. It gives sticky authored courses bounded traffic detours that
+  rejoin ahead without reselecting direction or lap, and makes authoritative
+  actor movement wall-corner strict. The stock digest moves, so v15 starts
+  fresh and v1–v8 remain historical bytes.
+- `ambush-warren-11-stock-v10/` — immutable hosted playlist-v16 tactical mind
+  and receipt. It stabilizes a carrier's once-per-tick delivery course, gives
+  loaded carriers deterministic precedence by distance to their bank, and
+  uses bounded launch-only reactor avoidance with an immediate normal-route
+  fallback. The stock digest moves, so v16 starts fresh and v1–v9 remain
+  historical bytes.
+- `ambush-warren-11-stock-v11/` — immutable hosted playlist-v17 tactical mind
+  and receipt. It remembers every observed loose Core through bounded fog,
+  clears last-known objectives on conclusive evidence, and makes
+  nearest-authorized friendly-drop recovery distance-first. The stock digest
+  moves, so v17 starts fresh and v1–v10 remain historical bytes.
+- `ambush-warren-11-stock-v12/` — immutable hosted playlist-v18 tactical mind
+  and receipt. It keeps accidental-carrier drops claimable and prevents a
+  loaded body from reserving a second Core while available couriers pass. The
+  stock digest moves, so v18 starts fresh and v1–v11 remain historical bytes.
 - `stock-mind-v3/` — unfrozen intelligent-gambit vertical-slice mind. It keeps
   the complete v2 baseline executor and reads provisional v2 operation data;
   it is evidence for an owner decision, not a launch artifact.

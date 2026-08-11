@@ -22,6 +22,7 @@ import {
   createPresenter,
   type TickPresentation,
 } from '../replayPresentation';
+import { settledStateTick } from '../render/tickClock';
 import type { ViewerEntrantPresentation } from '../components/Viewer';
 import { buildArcRelayEffects } from './arcRelayEffects';
 import {
@@ -54,6 +55,8 @@ export interface ArenaOverlays {
     selectedUnitKey: ReplayStableUnitKey | null,
     showVisibility: boolean,
     highlightedUnitKeys?: readonly ReplayStableUnitKey[],
+    /** Master fog switch. Off leaves the arena unmasked entirely. */
+    showFog?: boolean,
   ) => void;
   /** Camera offset for the knock of an impact at this instant. */
   shake: (time: number) => { x: number; y: number };
@@ -141,10 +144,18 @@ export function buildOverlays(
     selectedUnitKey: ReplayStableUnitKey | null,
     showVisibility: boolean,
     highlightedUnitKeys: readonly ReplayStableUnitKey[] = [],
+    showFog = true,
   ) => {
     const tick = Math.max(0, Math.min(Math.floor(time), replay.ticks.length - 1));
     const fraction = Math.max(0, Math.min(time - tick, 1));
     const presentation = presenter.at(tick);
+    // Possession is the one part of this that rides a moving hull, so it is the one part
+    // that needs the hull's clock: end-of-tick state read at the start of a glide hands a
+    // Core over before its carrier has arrived. Static furniture -- pads, objective,
+    // lifecycle marks -- is not attached to anything in flight and stays on this tick.
+    const settled = presenter.at(
+      settledStateTick(tick, fraction, replay.ticks.length),
+    );
 
     const teamVision = teamVisionAt(
       replay,
@@ -156,12 +167,21 @@ export function buildOverlays(
     // With no selected perspective, the whole terrain follows the union of every unit's
     // published sight. Selecting a body narrows that same mask to its team; neither path
     // invents visibility geometry in the renderer.
-    const terrainVision = teamVision?.visibleTiles ??
-      allUnitVisibleTilesAt(replay.ticks[tick]);
+    //
+    // `showFog` is a master switch over both of those, not a third perspective: it asks
+    // whether the arena is masked at all. Turning it off is the reviewer's floodlight —
+    // useful for reading geometry and traffic, and deliberately not the default, because
+    // the honest view of a match is the one its bots actually had.
+    const terrainVision = !showFog
+      ? null
+      : teamVision?.visibleTiles ?? allUnitVisibleTilesAt(replay.ticks[tick]);
 
     // Repainting the mask is a loop over every tile on the map, and the playhead crosses
     // dozens of frames per tick — so it only happens when the answer can have changed.
-    const signature = terrainVision === null
+    // The switch is part of the signature: flipping it must repaint even mid-tick.
+    const signature = !showFog
+      ? 'no-fog'
+      : terrainVision === null
       ? 'unpublished'
       : `${tick}:${teamVision ? `team-${teamVision.teamId}` : 'all-units'}`;
     if (signature !== painted) {
@@ -179,7 +199,7 @@ export function buildOverlays(
 
     spawnPads.update(presentation, time);
     objective.update(presentation, time);
-    arcRelay.update(presentation, time);
+    arcRelay.update(settled, time);
     arcRelayEffects.update(time);
     playAwareness.update(
       time,

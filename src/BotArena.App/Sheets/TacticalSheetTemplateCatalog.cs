@@ -38,18 +38,18 @@ public sealed class TacticalSheetTemplateCatalog
         Template = Resolve(
             "starter-hunter",
             "Starter hunter",
-            "A readable doctrine-first draft: an open hunter, follower-owned support, and a patrol floor.",
+            "A Tapline-native battle plan: an open hunter, follower-owned support, and a patrol floor.",
             Resource("BotArena.Sheets.hunter-v1.playbook.json"),
-            Resource("BotArena.Sheets.hunter-v1.layout.json"),
+            Resource("BotArena.Sheets.tapline-base-v1.layout.json"),
             starterOnly: true);
         TacticalSheetSource[] opponents =
         [
             Resolve(
                 ArcRelayEntrantPlaylistDefinition.StockSheetId,
                 "Wellwright v1",
-                "The frozen ambush-warren-11 stock entrant: races all three Wells with independently authored hauler and support ladders.",
+                "The Tapline stock entrant: races all three Wells with independently authored hauler and support ladders.",
                 Resource("BotArena.Sheets.wellwright-v1.playbook.json"),
-                Resource("BotArena.Sheets.wellwright-v1.layout.json")),
+                Resource("BotArena.Sheets.tapline-base-v1.layout.json")),
         ];
         stock = opponents.ToDictionary(value => value.Id, StringComparer.Ordinal);
         Stock = opponents;
@@ -84,12 +84,12 @@ public sealed class TacticalSheetTemplateCatalog
                 $"Embedded layout '{id}' has no map id.");
         if (!string.Equals(
                 mapId,
-                ArcRelayLoopProfile.AmbushWarren11.MapId,
+                ArcRelayLoopProfile.Current.MapId,
                 StringComparison.Ordinal))
         {
             throw new InvalidDataException(
                 $"Embedded layout '{id}' targets '{mapId}', not the native "
-                + $"'{ArcRelayLoopProfile.AmbushWarren11.MapId}' Warren. "
+                + $"'{ArcRelayLoopProfile.Current.MapId}' Tapline. "
                 + "Template geometry is never projected between maps.");
         }
         NormalizeBindings(layout, id);

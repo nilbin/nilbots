@@ -12,8 +12,7 @@ const standalone =
   new URLSearchParams(window.location.search).has('standalone');
 
 // Lets CSS target the two products without duplicating the detection above. The
-// viewer deliberately keeps its cinematic dark field; the site follows the
-// reader's system appearance while retaining the same semantic colour roles.
+// viewer and tactical site deliberately share the game's dark forge field.
 document.documentElement.dataset.arenaMode = standalone ? 'viewer' : 'site';
 
 createRoot(document.getElementById('root')!).render(

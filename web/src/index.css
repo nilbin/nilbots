@@ -76,28 +76,12 @@ html[data-arena-mode='viewer'] {
 }
 
 html[data-arena-mode='site'] {
-  color-scheme: dark light;
+  color-scheme: dark;
 }
 
-/* The match viewer stays dark because darkness is part of the arena's lighting.
-   The document/workbench surface follows the device. These are the same semantic
-   roles rather than a second component theme, so every existing panel, field and
-   state treatment changes coherently. */
-@media (prefers-color-scheme: light) {
-  html[data-arena-mode='site'] {
-    --color-arena-bg: #f4efe9;
-    --color-arena-panel: #fffaf4;
-    --color-arena-raise: #ebe1d7;
-    --color-arena-edge: #c8b7a8;
-    --color-arena-edge2: #8c6f5a;
-    --color-arena-text: #241a15;
-    --color-arena-dim: #68584c;
-    --color-arena-material: #98491f;
-    --color-arena-ok: #087c74;
-    --color-arena-hot: #b92543;
-    --color-arena-on-material: #fffaf4;
-  }
-}
+/* The arena and its tactical workbench share one dark graphite/forge field.
+   Following a device's light preference made the sheet workshop resemble a
+   document form and severed it visually from the game it controls. */
 
 a:focus-visible,
 summary:focus-visible,
@@ -338,6 +322,49 @@ html[data-arena-mode='viewer'] #root {
     background: var(--color-arena-raise);
     color: var(--color-arena-dim);
     box-shadow: none;
+  }
+
+  /* Secondary game action: strong enough for run/watch loops without competing
+     with the one filled forge-orange commitment on the screen. */
+  .btn-secondary {
+    border-color: color-mix(
+      in oklab,
+      var(--color-arena-material) 54%,
+      var(--color-arena-edge2)
+    );
+    background:
+      linear-gradient(
+        180deg,
+        color-mix(in oklab, var(--color-arena-material) 7%, var(--color-arena-raise)),
+        var(--color-arena-panel)
+      );
+    color: var(--color-arena-text);
+    font-weight: 620;
+    box-shadow:
+      inset 3px 0 0 color-mix(in oklab, var(--color-arena-material) 76%, transparent),
+      inset 0 1px 0 color-mix(in oklab, white 6%, transparent);
+  }
+  .btn-secondary:hover:not(:disabled) {
+    border-color: var(--color-arena-material);
+    background: color-mix(
+      in oklab,
+      var(--color-arena-material) 11%,
+      var(--color-arena-raise)
+    );
+    transform: translateY(-1px);
+  }
+  .btn-secondary:active:not(:disabled) {
+    transform: translateY(1px);
+  }
+  .btn-secondary:disabled {
+    border-color: var(--color-arena-edge);
+    background: var(--color-arena-panel);
+    color: var(--color-arena-dim);
+    box-shadow: none;
+  }
+  .btn-secondary-symbol {
+    color: var(--color-arena-material);
+    font-size: 0.86em;
   }
 
   /* Actions should not read like document controls. These surfaces are reserved for

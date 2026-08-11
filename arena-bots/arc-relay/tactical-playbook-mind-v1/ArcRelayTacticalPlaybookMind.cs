@@ -30,6 +30,13 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         _selectedOrders = [];
     private readonly TacticalRouteGovernor _routeGovernor = new();
     private Dictionary<int, TacticalRouteGovernor.CourseStep> _routeSteps = [];
+    /// <summary>Custody destinations get the same hysteresis as authored
+    /// patrols. A return course is held across ticks; allied occupancy is
+    /// traffic on that course, never a reason to choose the other equal path
+    /// around the reactor on every observation.</summary>
+    private readonly TacticalRouteGovernor _carrierRouteGovernor = new();
+    private Dictionary<int, Position> _carrierDestinations = [];
+    private Dictionary<int, TacticalRouteGovernor.CourseStep> _carrierSteps = [];
     private readonly Dictionary<int, MotionProgress> _motion = [];
     private readonly Dictionary<string, FocusLock> _focusLocks =
         new(StringComparer.Ordinal);
@@ -86,8 +93,22 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     private Position[]? _trafficWaypoints;
     private readonly Dictionary<ActorIdentity, CustodyProgress>
         _custodyProgress = [];
+    /// <summary>A loaded carrier that yielded the only exit from its reactor
+    /// keeps yielding until the transiting body has advanced beyond BOTH the
+    /// reactor and that exit. Without this two-tile handshake, ordinary
+    /// right-of-way pushes the blocker straight back into the reactor on the
+    /// following tick.</summary>
+    private readonly Dictionary<ActorIdentity, ReactorClearance>
+        _reactorClearances = [];
     private readonly Dictionary<string, FriendlyDroppedCore>
         _friendlyDroppedCores = new(StringComparer.Ordinal);
+    /// <summary>Last confirmed positions of loose Cores. A loose objective
+    /// does not cease to exist merely because fog closes over its tile; this
+    /// bounded memory lets an already-authored fetch continue toward the last
+    /// known position until the tile is seen empty or the Core is observed in
+    /// another disposition.</summary>
+    private readonly Dictionary<string, KnownLooseCore>
+        _knownLooseCores = new(StringComparer.Ordinal);
     private readonly Dictionary<string, int> _formationStableTicks =
         new(StringComparer.Ordinal);
     private readonly Dictionary<string, TacticalFormationPrimitives.Lifecycle>
@@ -274,6 +295,11 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     && core.CarrierActorId is not null)
                 .ToDictionary(core => core.CarrierActorId!, core => core);
         UpdateCustodyProgress(mind.Tick, mind.Bodies, carried);
+        foreach (MindBody body in mind.Bodies)
+        {
+            if (!carried.ContainsKey(body.ActorId))
+                _carrierRouteGovernor.Reset(body.UnitId);
+        }
         snapshot = Snapshot(
             mind, arc, package, machine, roles, groups,
             priorTaskLeases,
@@ -398,9 +424,32 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         Dictionary<int, FocusAssignment> focus =
             AllocateFocus(contract, mind, arc, package.Source, package,
                 snapshot, roles, orders, targets, unavailableAttackers);
+        HashSet<string> observedCoreKeys = arc.VisibleCores
+            .Select(core => CoreKey(core.CoreId))
+            .ToHashSet(StringComparer.Ordinal);
+        // A seen loose Core remains team knowledge through fog for the sheet's
+        // authored Core-memory window. Seeing the tile empty, observing the
+        // Core carried/banked, or expiry clears this last-known objective.
+        GenericActorContext.ArcRelayCoreState[] rememberedLooseCores =
+            _knownLooseCores
+                .Where(value => !observedCoreKeys.Contains(value.Key))
+                .OrderBy(value => value.Key, StringComparer.Ordinal)
+                .Select(value => new GenericActorContext.ArcRelayCoreState(
+                    value.Value.CoreId,
+                    value.Value.Position,
+                    GenericActorContext.ArcRelayCoreDisposition.Loose,
+                    null,
+                    value.Value.LastConfirmedTick,
+                    null,
+                    null)
+                {
+                    ChargeValue = value.Value.ChargeValue,
+                })
+                .ToArray();
         GenericActorContext.ArcRelayCoreState[] loose = arc.VisibleCores
             .Where(core => core.Disposition
                 == GenericActorContext.ArcRelayCoreDisposition.Loose)
+            .Concat(rememberedLooseCores)
             .OrderBy(core => core.CoreId.SourceWellId, StringComparer.Ordinal)
             .ThenBy(core => core.CoreId.SourceOrdinal)
             .ToArray();
@@ -433,10 +482,32 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         Dictionary<int, GenericActorContext.ArcRelayCoreState> pickupAssignments =
             AllocateCorePickups(
                 mind, package, tasks, snapshot, roles, orders,
+                carried.Keys.ToHashSet(),
                 loose.Where(core => !activeBaitKeys.Contains(
                         CoreKey(core.CoreId)))
                     .ToArray(),
                 out HashSet<string> openSourceWells);
+
+        // Custody progress is stateful: selecting the next delivery waypoint
+        // can spend the current one. Resolve it ONCE per body and tick, then
+        // give traffic ranking, lane reservation and the eventual action the
+        // same destination and held course. Asking three times let those
+        // layers disagree at the corridor/reactor hand-off.
+        _carrierDestinations = mind.Bodies
+            .Where(body => carried.ContainsKey(body.ActorId))
+            .ToDictionary(
+                body => body.UnitId,
+                body => CarrierDestination(package, orders, mind, body));
+        _carrierSteps = mind.Bodies
+            .Where(body => _carrierDestinations.ContainsKey(body.UnitId))
+            .ToDictionary(
+                body => body.UnitId,
+                body => ResolveCarrierCourse(
+                    contract,
+                    mind,
+                    body,
+                    _carrierDestinations[body.UnitId],
+                    orders[body.UnitId].CustodyId));
 
         // High-level intents stay in the sheet; bounded allied traffic is an
         // executor responsibility. Publish each body's ACTUAL movement goal
@@ -463,7 +534,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             string intentId = order.OrderId;
             if (carrying)
             {
-                goal = CarrierDestination(package, orders, body);
+                goal = _carrierDestinations[body.UnitId];
                 intentId += ":delivery";
             }
             else if (pickupAssignments.TryGetValue(
@@ -477,8 +548,14 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             {
                 goal = targets[body.UnitId];
             }
-            Position? first = !carrying
-                    && !pickupAssignments.ContainsKey(body.UnitId)
+            bool yieldingReactorExit = carrying
+                && ReactorExitConflict(
+                    contract, mind, body, goal, out _, out _);
+            Position? first = yieldingReactorExit
+                ? null
+                : carrying
+                    ? _carrierSteps[body.UnitId].Next
+                    : !pickupAssignments.ContainsKey(body.UnitId)
                     && _routeSteps.TryGetValue(
                         body.UnitId,
                         out TacticalRouteGovernor.CourseStep? routeStep)
@@ -570,11 +647,22 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         // decide right-of-way with its own private ranking - the lane
         // relief's carrier/focus/idler triple, the escort's leader-beats-
         // follower rule, the executor's body order - now reads this one.
+        Dictionary<int, int> carrierRanks = mind.Bodies
+            .Where(body => carried.ContainsKey(body.ActorId))
+            .OrderBy(body => ArenaBasics.StaticDistance(
+                    contract.Map, body.Position, _ownReactor)
+                ?? int.MaxValue)
+            .ThenBy(body => body.UnitId)
+            .Select((body, index) => (body.UnitId, Rank: index))
+            .ToDictionary(value => value.UnitId, value => value.Rank);
         foreach (MindBody body in mind.Bodies)
         {
             int rank;
-            if (carried.ContainsKey(body.ActorId))
-                rank = ArenaBasics.Claims.CarrierRank;
+            if (carrierRanks.TryGetValue(
+                    body.UnitId, out int carrierOrdinal))
+            {
+                rank = ArenaBasics.Claims.CarrierRank + carrierOrdinal;
+            }
             else if (escortRank.TryGetValue(body.UnitId, out int escort))
             {
                 rank = escort == 0
@@ -612,12 +700,25 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         // routed deliveries included - a lane reserved toward the reactor
         // while the body walks a corridor is a lane nobody uses.
         Dictionary<int, Position> carrierSteps = mind.Bodies
-            .Where(body => carried.ContainsKey(body.ActorId))
+            .Where(body => _carrierDestinations.ContainsKey(body.UnitId))
             .Select(body => (
                 Body: body,
-                Step: ArenaBasics.StaticFirstStep(
-                    contract, mind, body,
-                    CarrierDestination(package, orders, body))))
+                Destination: _carrierDestinations[body.UnitId]))
+            // When an ordinary body is transiting the reactor and its only
+            // held exit lies on this carrier's approach, reserving that exit
+            // for the carrier recreates the closed cycle one tile farther
+            // out. The carrier pauses its lane claim until the reactor body
+            // has consumed the exit.
+            .Where(value => !ReactorExitConflict(
+                contract,
+                mind,
+                value.Body,
+                value.Destination,
+                out _,
+                out _))
+            .Select(value => (
+                value.Body,
+                Step: _carrierSteps[value.Body.UnitId].Next))
             .Where(value => value.Step is not null)
             .ToDictionary(value => value.Body.UnitId, value => value.Step!.Value);
         // Right-of-way: the carrier's next route step belongs to the
@@ -652,7 +753,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             foreach (MindBody carrier in mind.Bodies
                          .Where(body => carrierSteps.ContainsKey(body.UnitId)))
             {
-                Position bank = CarrierDestination(package, orders, carrier);
+                Position bank = _carrierDestinations[carrier.UnitId];
                 foreach (MindBody candidate in mind.Bodies)
                 {
                     if (candidate.UnitId != carrier.UnitId
@@ -1065,40 +1166,63 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                         (level.ActorId.LifeId, level.Level);
                     break;
                 case GenericActorContext.ArcRelayEvent.CoreDropped drop:
-                    _emergencyRecoveries.Remove(CoreKey(drop.CoreId));
+                    string droppedKey = CoreKey(drop.CoreId);
+                    _emergencyRecoveries.Remove(droppedKey);
+                    int droppedChargeValue = arc.VisibleCores.FirstOrDefault(
+                            core => string.Equals(
+                                CoreKey(core.CoreId),
+                                droppedKey,
+                                StringComparison.Ordinal))
+                        ?.ChargeValue ?? 1;
+                    _knownLooseCores[droppedKey] = new KnownLooseCore(
+                        drop.CoreId,
+                        drop.Position,
+                        observed.SourceTick,
+                        droppedChargeValue);
                     if (drop.SourceActorId.TeamId != _teamId)
                     {
                         ClearRememberedCarrier(drop.SourceActorId);
-                        _securedCores[CoreKey(drop.CoreId)] = new SecuredCore(
+                        _securedCores[droppedKey] = new SecuredCore(
                             drop.CoreId.SourceWellId,
                             drop.Position,
                             observed.SourceTick);
                     }
                     else
                     {
-                        _friendlyDroppedCores[CoreKey(drop.CoreId)] =
+                        string? custodyId = _custodyProgress.TryGetValue(
+                                drop.SourceActorId,
+                                out CustodyProgress? droppedProgress)
+                            ? TacticalCustodyPrimitives.CommittedCustodyOrNull(
+                                droppedProgress.CustodyId)
+                            : null;
+                        _friendlyDroppedCores[droppedKey] =
                             new FriendlyDroppedCore(
                                 drop.SourceActorId,
-                                drop.Position,
-                                observed.SourceTick);
+                                custodyId);
                         _custodyProgress.Remove(drop.SourceActorId);
                     }
                     break;
                 case GenericActorContext.ArcRelayEvent.CoreBanked banked:
-                    _emergencyRecoveries.Remove(CoreKey(banked.CoreId));
+                    string bankedKey = CoreKey(banked.CoreId);
+                    _emergencyRecoveries.Remove(bankedKey);
                     ClearRememberedCarrier(banked.CarrierActorId);
-                    _securedCores.Remove(CoreKey(banked.CoreId));
-                    _friendlyDroppedCores.Remove(CoreKey(banked.CoreId));
+                    _securedCores.Remove(bankedKey);
+                    _friendlyDroppedCores.Remove(bankedKey);
+                    _knownLooseCores.Remove(bankedKey);
+                    _coreReservations.Remove(bankedKey);
                     _custodyProgress.Remove(banked.CarrierActorId);
                     if (banked.TeamId == _teamId)
                         _lastObjectiveProgressTick = observed.SourceTick;
                     break;
                 case GenericActorContext.ArcRelayEvent.CorePickedUp pickup:
-                    _friendlyDroppedCores.Remove(CoreKey(pickup.CoreId));
+                    string pickedUpKey = CoreKey(pickup.CoreId);
+                    _friendlyDroppedCores.Remove(pickedUpKey);
+                    _knownLooseCores.Remove(pickedUpKey);
+                    _coreReservations.Remove(pickedUpKey);
                     if (pickup.CarrierActorId.TeamId != _teamId)
                     {
-                        _emergencyRecoveries.Remove(CoreKey(pickup.CoreId));
-                        _securedCores.Remove(CoreKey(pickup.CoreId));
+                        _emergencyRecoveries.Remove(pickedUpKey);
+                        _securedCores.Remove(pickedUpKey);
                         MarkRememberedCarrier(
                             pickup.CarrierActorId,
                             pickup.Position,
@@ -1144,6 +1268,21 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     LastConfirmedTick = mind.Tick,
                 };
             }
+            if (core.Disposition
+                == GenericActorContext.ArcRelayCoreDisposition.Loose)
+            {
+                _knownLooseCores[key] = new KnownLooseCore(
+                    core.CoreId,
+                    core.Position,
+                    mind.Tick,
+                    core.ChargeValue);
+            }
+            else
+            {
+                _friendlyDroppedCores.Remove(key);
+                _knownLooseCores.Remove(key);
+                _coreReservations.Remove(key);
+            }
         }
         HashSet<Position> visibleTiles = mind.VisibleTiles
             .Select(tile => tile.Position).ToHashSet();
@@ -1158,6 +1297,20 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                      .Select(value => value.Key).ToArray())
         {
             _securedCores.Remove(stale);
+        }
+        foreach (string stale in _knownLooseCores
+                     .Where(value => !TacticalCustodyPrimitives
+                         .LooseCoreMemoryActive(
+                             mind.Tick,
+                             value.Value.LastConfirmedTick,
+                             memory.SecuredCoreTicks,
+                             visibleTiles.Contains(value.Value.Position),
+                             visibleCoreIds.Contains(value.Key)))
+                     .Select(value => value.Key).ToArray())
+        {
+            _knownLooseCores.Remove(stale);
+            _friendlyDroppedCores.Remove(stale);
+            _coreReservations.Remove(stale);
         }
         foreach (int stale in _enemyUnavailableUntil
                      .Where(value => mind.Tick >= value.Value)
@@ -1306,7 +1459,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 // The walked corridor survives the tick; a new Core is a new
                 // run and starts its route from scratch.
                 sameCustody ? prior.RouteWaypoint : -1,
-                sameCustody ? prior.RouteForward : 0);
+                sameCustody ? prior.RouteForward : 0,
+                sameCustody && prior.DeliveryRouteCompleted);
         }
     }
 
@@ -2940,8 +3094,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 progress.Index,
                 body.Position,
                 destination,
-                () => ArenaBasics.StaticRouteCourse(
-                    contract, body, destination, impossible, _mirrored),
+                () => PlanFreshLifeRouteCourse(
+                    contract, mind, body, destination, impossible),
                 tile => (tile != destination && impossible.Contains(tile))
                     || !ArenaBasics.IsLegalTerrainStep(
                         contract.Map, body.Position, tile));
@@ -2974,6 +3128,38 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             result[body.UnitId] = step;
         }
         return result;
+    }
+
+    /// <summary>
+    /// A fresh body's first route may prefer not to funnel through its own
+    /// reactor. The preference is bounded to the first two life ticks and
+    /// falls back to the ordinary course when the movement profile has no
+    /// alternative, so a facing-locked body whose only exit crosses the bank
+    /// is never trapped. Once chosen, the route governor owns this course
+    /// normally; there is no per-tick launch steering.
+    /// </summary>
+    private Position[]? PlanFreshLifeRouteCourse(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind,
+        MindBody body,
+        Position destination,
+        IReadOnlySet<Position> impossible)
+    {
+        if (mind.Tick - body.LifeStartedTick <= 2
+            && body.Position != _ownReactor
+            && destination != _ownReactor)
+        {
+            var withoutReactor = new HashSet<Position>(impossible)
+            {
+                _ownReactor,
+            };
+            Position[]? preferred = ArenaBasics.StaticRouteCourse(
+                contract, body, destination, withoutReactor, _mirrored);
+            if (preferred is not null)
+                return preferred;
+        }
+        return ArenaBasics.StaticRouteCourse(
+            contract, body, destination, impossible, _mirrored);
     }
 
     private Position RouteTarget(
@@ -3064,7 +3250,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         string cause,
         out Position destination,
         out TacticalRouteGovernor.CourseStep step,
-        out string trace)
+        out string trace,
+        bool requireOpenCandidate = false)
     {
         destination = body.Position;
         step = new TacticalRouteGovernor.CourseStep(
@@ -3098,6 +3285,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         foreach ((int to, int lap) in candidates)
         {
             Position candidate = route[to];
+            if (requireOpenCandidate && impossible.Contains(candidate))
+                continue;
             Position[]? course = ArenaBasics.StaticRouteCourse(
                 contract, body, candidate, impossible, _mirrored);
             // Reaching a point already underfoot does not solve a move order;
@@ -4804,19 +4993,56 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         // through the middle of their team.
         Position destination = forceObjective
             ? _ownReactor
-            : DeliveryDestination(package, custody, body) ?? _ownReactor;
+            : _carrierDestinations.TryGetValue(
+                body.UnitId, out Position plannedDestination)
+                ? plannedDestination
+                : DeliveryDestination(package, custody, mind, body)
+                    ?? _ownReactor;
         string reason = reasonOverride
             ?? (destination == _ownReactor
                 ? "custody:committed-delivery"
                 : "custody:delivery-route");
-        // The committed plan asks the ARBITER for its step rather than
-        // computing one and handing it over: same tile under greedy
-        // stepping, and under a cooperative planner the whole corridor
-        // enters the space-time table so the rest of the team routes around
-        // where this Core is going instead of where it is.
-        if (ArenaBasics.TryMoveRouted(
-                contract, mind, body, destination, claims, reason))
+        // A loaded carrier can close the only exit of an ordinary body that
+        // is transiting the reactor. Carrier precedence alone cannot solve
+        // that two-body cycle: the blocker owes the reactor, but the tile it
+        // must enter is occupied or reserved by the carrier asking it to
+        // leave. Vacate that exit, then HOLD the carrier's lane claim until
+        // the ordinary route has consumed it. Normal right-of-way resumes as
+        // soon as the reactor is clear.
+        if (TryYieldReactorExit(
+                contract, mind, body, destination, claims))
+        {
             return true;
+        }
+        TacticalRouteGovernor.CourseStep course = !forceObjective
+            && _carrierSteps.TryGetValue(
+                body.UnitId,
+                out TacticalRouteGovernor.CourseStep? planned)
+            ? planned
+            : ResolveCarrierCourse(
+                contract, mind, body, destination, custody.CustodyId);
+        string routeReason = $"{reason}:{course.Trace}";
+        if (course.Next is Position committed)
+        {
+            if (ArenaBasics.TryMoveDirect(
+                    contract,
+                    mind,
+                    body,
+                    committed,
+                    claims,
+                    routeReason,
+                    TacticalMovementAuthority.Safety))
+            {
+                return true;
+            }
+            // A carrier's terrain course is a commitment. Traffic can delay
+            // its exact next tile, but must not make it recompute an equal
+            // path on the opposite side of the reactor next tick.
+            return Hold(body, $"{routeReason}:traffic-wait");
+        }
+        if (course.Disposition
+            == TacticalRouteGovernor.CourseDisposition.Arrived)
+            return Hold(body, $"{routeReason}:bank-wait");
         if (TryAdvanceSignature(contract, body, destination))
             return true;
         if (ArenaBasics.TryMoveHomeward(
@@ -4826,11 +5052,127 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         return false;
     }
 
+    private TacticalRouteGovernor.CourseStep ResolveCarrierCourse(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind,
+        MindBody body,
+        Position destination,
+        string custodyId)
+    {
+        HashSet<Position> impossible = ArenaBasics.PersistentRouteObstacles(
+            contract, mind, body.ActorId.TeamId);
+        string coreKey = _custodyProgress.TryGetValue(
+                body.ActorId, out CustodyProgress? progress)
+            ? progress.CoreKey
+            : "unknown-core";
+        return _carrierRouteGovernor.Resolve(
+            body.ActorId,
+            $"custody:{custodyId}:{coreKey}",
+            "delivery",
+            0,
+            0,
+            body.Position,
+            destination,
+            () => ArenaBasics.StaticRouteCourse(
+                contract, body, destination, impossible, _mirrored),
+            tile => (tile != destination && impossible.Contains(tile))
+                || !ArenaBasics.IsLegalTerrainStep(
+                    contract.Map, body.Position, tile));
+    }
+
+    private bool TryYieldReactorExit(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind,
+        MindBody carrier,
+        Position destination,
+        ArenaBasics.Claims claims)
+    {
+        if (!ReactorExitConflict(
+                contract,
+                mind,
+                carrier,
+                destination,
+                out MindBody? blocker,
+                out Position exit))
+        {
+            return false;
+        }
+        string reason = $"custody:yield-reactor-exit:u{blocker!.UnitId}";
+        if (carrier.Position != exit)
+            return Hold(carrier, $"{reason}:clearance-hold");
+        return ArenaBasics.TryStepAway(
+                contract,
+                mind,
+                carrier,
+                [_ownReactor],
+                claims,
+                reason)
+            || Hold(carrier, $"{reason}:no-vacancy");
+    }
+
+    private bool ReactorExitConflict(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind,
+        MindBody carrier,
+        Position destination,
+        out MindBody? blocker,
+        out Position exit)
+    {
+        blocker = null;
+        exit = default;
+        if (destination != _ownReactor)
+        {
+            _reactorClearances.Remove(carrier.ActorId);
+            return false;
+        }
+        if (_reactorClearances.TryGetValue(
+                carrier.ActorId,
+                out ReactorClearance? active))
+        {
+            MindBody? activeBlocker = mind.Bodies.FirstOrDefault(candidate =>
+                candidate.ActorId == active.Blocker);
+            if (activeBlocker is not null
+                && (activeBlocker.Position == _ownReactor
+                    || activeBlocker.Position == active.Exit))
+            {
+                blocker = activeBlocker;
+                exit = active.Exit;
+                return true;
+            }
+            _reactorClearances.Remove(carrier.ActorId);
+        }
+        blocker = mind.Bodies.FirstOrDefault(candidate =>
+            candidate.UnitId != carrier.UnitId
+            && candidate.Position == _ownReactor);
+        if (blocker is null
+            || !_routeSteps.TryGetValue(
+                blocker.UnitId,
+                out TacticalRouteGovernor.CourseStep? blockerCourse)
+            || blockerCourse.Next is not Position heldExit)
+        {
+            blocker = null;
+            return false;
+        }
+        exit = heldExit;
+        bool conflicts = carrier.Position == exit
+            || _carrierSteps.TryGetValue(
+                carrier.UnitId,
+                out TacticalRouteGovernor.CourseStep? carrierCourse)
+                && carrierCourse.Next == exit;
+        if (conflicts)
+        {
+            _reactorClearances[carrier.ActorId] = new ReactorClearance(
+                blocker.ActorId, exit);
+        }
+        return conflicts;
+    }
+
     /// <summary>Where this carrier is heading right now: its custody's
     /// delivery route when one applies, otherwise the reactor.</summary>
     private Position CarrierDestination(
         TacticalPlaybookPackage package,
         IReadOnlyDictionary<int, TacticalPlaybookPackage.Order> orders,
+        MindContext mind,
         MindBody body)
     {
         if (!orders.TryGetValue(
@@ -4842,7 +5184,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         TacticalPlaybookPackage.CustodyPolicy custody = package.Source
             .CustodyPolicies.Single(value =>
                 value.CustodyId == order.CustodyId);
-        return DeliveryDestination(package, custody, body) ?? _ownReactor;
+        return DeliveryDestination(package, custody, mind, body)
+            ?? _ownReactor;
     }
 
     /// <summary>How close a routed carrier has to get before a corridor
@@ -4871,6 +5214,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     private Position? DeliveryDestination(
         TacticalPlaybookPackage package,
         TacticalPlaybookPackage.CustodyPolicy custody,
+        MindContext mind,
         MindBody body)
     {
         if (custody.DeliveryRoutes is not { Length: > 0 } rules
@@ -4879,6 +5223,13 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         {
             return null;
         }
+        // Completing a delivery corridor is a one-way hand-off to the
+        // reactor. Re-initialising from the nearest waypoint after that
+        // hand-off can put a just-spent waypoint behind the carrier, making
+        // its destination alternate between the corridor and the reactor on
+        // successive ticks.
+        if (progress.DeliveryRouteCompleted)
+            return null;
         TacticalPlaybookPackage.DeliveryRoute? rule = rules.FirstOrDefault(
             value => package.Contains(value.Zone, progress.PickupPosition));
         if (rule is null)
@@ -4886,6 +5237,20 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         Position[] route = package.RoutePoints(rule.Route);
         if (route.Length < 2)
             return null;
+        GenericActorResolvedMatchContract contract = _contract
+            ?? throw new InvalidOperationException("Match has not started.");
+        HashSet<Position> deliveryObstacles =
+            ArenaBasics.PersistentRouteObstacles(
+                contract, mind, body.ActorId.TeamId);
+        int HomeDistance(Position position) =>
+            ArenaBasics.StaticRouteDistance(
+                contract,
+                body,
+                position,
+                _ownReactor,
+                deliveryObstacles) is int distance
+                    ? distance
+                    : int.MaxValue;
         int from;
         int forward;
         if (progress.RouteForward != 0
@@ -4905,20 +5270,24 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     nearest = index;
             }
             from = nearest;
-            forward = route[(nearest + 1) % route.Length]
-                    .ChebyshevDistance(_ownReactor)
-                <= route[(nearest - 1 + route.Length) % route.Length]
-                    .ChebyshevDistance(_ownReactor)
+            forward = HomeDistance(route[(nearest + 1) % route.Length])
+                <= HomeDistance(
+                    route[(nearest - 1 + route.Length) % route.Length])
                     ? 1
                     : -1;
         }
-        int homeDistance = body.Position.ChebyshevDistance(_ownReactor);
+        int homeDistance = HomeDistance(body.Position);
         for (int step = 0; step < route.Length; step++)
         {
             int index = ((from + (forward * step)) % route.Length
                 + route.Length) % route.Length;
             Position waypoint = route[index];
-            if (waypoint.ChebyshevDistance(_ownReactor) >= homeDistance)
+            // "Closer to home" is a terrain fact. Chebyshev distance said a
+            // waypoint one tile deeper into a cul-de-sac was progress, sent
+            // the carrier there, and then made its reactor course immediately
+            // walk back out. A corridor is only a hint while its waypoint
+            // shortens the real traversable route to the objective.
+            if (HomeDistance(waypoint) >= homeDistance)
                 continue;
             if (body.Position.ChebyshevDistance(waypoint)
                 <= DeliveryWaypointArrivalRadius)
@@ -4936,6 +5305,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         {
             RouteWaypoint = -1,
             RouteForward = 0,
+            DeliveryRouteCompleted = true,
         };
         return null;
     }
@@ -5400,7 +5770,18 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     body.UnitId,
                     out GenericActorContext.ArcRelayCoreState? assignedCore)
                 && TryCollectCore(
-                    contract, mind, body, assignedCore, claims))
+                    contract,
+                    mind,
+                    body,
+                    assignedCore,
+                    claims,
+                    remembered: !arc.VisibleCores.Any(core =>
+                        core.Disposition
+                            == GenericActorContext.ArcRelayCoreDisposition.Loose
+                        && string.Equals(
+                            CoreKey(core.CoreId),
+                            CoreKey(assignedCore.CoreId),
+                            StringComparison.Ordinal))))
                 return true;
         }
 
@@ -5437,6 +5818,119 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 : 0;
         _motion[body.UnitId] = new MotionProgress(
             body.ActorId, order.OrderId, body.Position, motion.Position, stuck);
+        // Route hysteresis owns direction, not the occupied ground in front
+        // of it. After the authored recovery window, ordinary traffic gets
+        // one bounded local bypass that rejoins the SAME held terrain course
+        // ahead. A same-course detour leaves cursor, lap and waypoint intact;
+        // a detour around an occupied endpoint may advance only to a later
+        // waypoint in the same direction. The ordinary arbiter first treats
+        // same-tick claims as a queue; reaching
+        // this bounded window proves that waiting did not clear it, so the
+        // held route may now route around every occupied/claimed tile.
+        if (stuck >= order.Movement.StuckTicks
+            && string.Equals(
+                order.Movement.Kind, "route", StringComparison.Ordinal)
+            && _routeSteps.TryGetValue(
+                body.UnitId,
+                out TacticalRouteGovernor.CourseStep? blockedRoute)
+            && blockedRoute.Next is Position occupiedStep)
+        {
+            bool occupiedByTraffic = mind.Bodies.Any(candidate =>
+                    candidate.UnitId != body.UnitId
+                    && candidate.Position == occupiedStep)
+                || mind.Allies.Any(candidate =>
+                    candidate.ActorId != body.ActorId
+                    && candidate.Position == occupiedStep)
+                || mind.Enemies.Any(candidate =>
+                    candidate.Position == occupiedStep)
+                || claims.Committed.Contains(occupiedStep)
+                || claims.Lanes.ContainsKey(occupiedStep);
+            if (occupiedByTraffic)
+            {
+                HashSet<Position> blockedNow = ArenaBasics.BlockedNow(
+                    contract,
+                    mind,
+                    body,
+                    claims,
+                    avoidHostileProjectiles: false);
+                blockedNow.UnionWith(ArenaBasics.PersistentRouteObstacles(
+                    contract, mind, body.ActorId.TeamId));
+                blockedNow.Remove(body.Position);
+                TacticalRouteGovernor.CourseStep detour =
+                    _routeGovernor.TryTrafficDetour(
+                        body.ActorId,
+                        body.Position,
+                        package.RouteCorridorWidth(order.Movement.Target),
+                        rejoin => blockedNow.Contains(rejoin)
+                            ? null
+                            : ArenaBasics.StaticRouteCourse(
+                                contract,
+                                body,
+                                rejoin,
+                                blockedNow,
+                                _mirrored));
+                _routeSteps[body.UnitId] = detour;
+                string detourReason = MovementProvenance(
+                    machine, group, order, detour.Trace, target);
+                if (detour.Trace.StartsWith(
+                        "route-detour-commit-",
+                        StringComparison.Ordinal)
+                    && detour.Next is Position detourStep
+                    && ArenaBasics.TryMoveDirect(
+                        contract,
+                        mind,
+                        body,
+                        detourStep,
+                        claims,
+                        detourReason))
+                {
+                    return true;
+                }
+                // The held terrain course ends at the current authored
+                // waypoint. If traffic occupies that endpoint there is no
+                // later tile in this course to rejoin, so continue FORWARD
+                // to the next authored waypoint while treating the same
+                // traffic as transient walls. The cursor and lap remain
+                // monotonic; this cannot choose the other way around a loop.
+                if (TryPlanLaterRouteWaypoint(
+                        contract,
+                        package,
+                        order,
+                        body,
+                        blockedNow,
+                        "traffic",
+                        out Position later,
+                        out TacticalRouteGovernor.CourseStep replacement,
+                        out string bypass,
+                        requireOpenCandidate: true))
+                {
+                    replacement = replacement with
+                    {
+                        Trace = bypass.Replace(
+                            "route-bypass-traffic",
+                            "route-detour-waypoint",
+                            StringComparison.Ordinal)
+                            + $":{replacement.Trace}",
+                    };
+                    _routeSteps[body.UnitId] = replacement;
+                    string replacementReason = MovementProvenance(
+                        machine, group, order, replacement.Trace, later);
+                    if (replacement.Next is Position replacementStep
+                        && ArenaBasics.TryMoveDirect(
+                            contract,
+                            mind,
+                            body,
+                            replacementStep,
+                            claims,
+                            replacementReason))
+                    {
+                        return true;
+                    }
+                    return Hold(body, $"{replacementReason}:blocked");
+                }
+                return Hold(body, $"{detourReason}:blocked");
+            }
+        }
         if (stuck >= order.Movement.StuckTicks)
         {
             switch (order.Movement.StuckRecovery)
@@ -5860,14 +6354,17 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         MindContext mind,
         MindBody body,
         GenericActorContext.ArcRelayCoreState core,
-        ArenaBasics.Claims claims)
+        ArenaBasics.Claims claims,
+        bool remembered)
     {
         Position destination = core.Position;
         if (TryAdvanceSignature(contract, body, destination))
             return true;
         return ArenaBasics.TryMoveToward(
             contract, mind, body, [destination], claims,
-            "custody:authorized-pickup");
+            remembered
+                ? "custody:last-known-pickup"
+                : "custody:authorized-pickup");
     }
 
     private bool TryCollectEmergencyCore(
@@ -5907,6 +6404,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             TacticalSnapshot snapshot,
             IReadOnlyDictionary<int, string> roles,
             IReadOnlyDictionary<int, TacticalPlaybookPackage.Order> orders,
+            IReadOnlySet<ActorIdentity> currentCarriers,
             IReadOnlyCollection<GenericActorContext.ArcRelayCoreState> loose,
             out HashSet<string> openSourceWells)
     {
@@ -5937,7 +6435,9 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             TacticalPlaybookPackage.Role role = package.Source.Roles.Single(
                 value => value.RoleId == roles[body.UnitId]);
             int carrierRank = TacticalCustodyPrimitives
-                .CarrierPreferenceRank(role.CarrierPreference);
+                .PickupCarrierRank(
+                    role.CarrierPreference,
+                    currentCarriers.Contains(body.ActorId));
             if (carrierRank == int.MaxValue)
                 continue;
             IEnumerable<TacticalPlaybookPackage.CustodyPolicy> candidates;
@@ -6113,10 +6613,20 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                             value.Value.Body.ActorId,
                             value.Value.SafeConversion
                                 || value.Value.EmergencyRecovery))
-                    .OrderBy(value => value.Value.CarrierRank)
-                    .ThenBy(value => value.Value.Body.Position
-                        .ChebyshevDistance(core.Position))
-                    .ThenBy(value => value.Key)
+                    .OrderBy(value => TacticalCustodyPrimitives
+                        .PickupPriority(
+                            _friendlyDroppedCores.ContainsKey(
+                                CoreKey(core.CoreId))
+                            && string.Equals(
+                                value.Value.Policy.DropRecovery,
+                                "nearest-authorized",
+                                StringComparison.Ordinal)
+                                ? "nearest-authorized"
+                                : value.Value.Policy.PickupSelection,
+                            value.Value.CarrierRank,
+                            value.Value.Body.Position.ChebyshevDistance(
+                                core.Position),
+                            value.Key))
                     .FirstOrDefault();
             if (selected.Value.Body is null)
                 continue;
@@ -6181,7 +6691,12 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         ActorIdentity candidate,
         bool safeConversion) => !_friendlyDroppedCores.TryGetValue(
             coreKey, out FriendlyDroppedCore? dropped)
-        || TacticalCustodyPrimitives.MayRecoverDrop(
+        || (dropped.CustodyId is null
+            || string.Equals(
+                dropped.CustodyId,
+                policy.CustodyId,
+                StringComparison.Ordinal))
+        && TacticalCustodyPrimitives.MayRecoverDrop(
             policy.DropRecovery,
             candidate,
             dropped.SourceCarrier,
@@ -7016,12 +7531,25 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         /// this only ever advances past waypoints the body has reached.
         /// <c>-1</c>/<c>0</c> mean nothing is committed yet.</summary>
         int RouteWaypoint = -1,
-        int RouteForward = 0);
+        int RouteForward = 0,
+        /// <summary>True after the corridor has handed this Core off to the
+        /// reactor objective. Sticky for the life of this carried Core: a
+        /// spent corridor must never be rediscovered behind the carrier.</summary>
+        bool DeliveryRouteCompleted = false);
+
+    private sealed record ReactorClearance(
+        ActorIdentity Blocker,
+        Position Exit);
 
     private sealed record FriendlyDroppedCore(
         ActorIdentity SourceCarrier,
+        string? CustodyId);
+
+    private sealed record KnownLooseCore(
+        GenericActorContext.ArcRelayCoreId CoreId,
         Position Position,
-        int DroppedTick);
+        int LastConfirmedTick,
+        int ChargeValue);
 
     private sealed record TacticalSnapshot(
         int Tick,

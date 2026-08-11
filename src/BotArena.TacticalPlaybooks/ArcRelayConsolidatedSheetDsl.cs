@@ -861,7 +861,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
                 "emergencyRecoveryDisposition",
                 "emergencyDisplacementTarget",
                 "emergencyDisplacementReleaseRadius", "forwardPass",
-                "baitDrop", "deliveryRoutes",
+                "baitDrop", "deliveryRoutes", "pickupSelection",
             ]);
         ValidateWells(value.GetProperty("sourceWells"), $"{at}.sourceWells");
         Range(value, "pickupReservationTicks", at, 1, 120);
@@ -871,6 +871,9 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             "transfer", "deliver", "drop-safe");
         OneOf(value, "dropRecovery", at,
             "same-carrier", "nearest-authorized", "guard-until-safe");
+        if (value.TryGetProperty("pickupSelection", out _))
+            OneOf(value, "pickupSelection", at,
+                "carrier-preference", "nearest-authorized");
         OneOf(value, "unreachableFallback", at,
             "hold", "guard", "alternate-core", "regroup");
         ValidateExpression(value.GetProperty("safeConversion"), false,

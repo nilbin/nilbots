@@ -43,41 +43,50 @@ const playbook: PlaybookDocument = {
   auditStatus: { provisionalEvaluationOnly: false, playerFacingProductSchema: true },
   composition: [...classes, ...classes],
   layout: { path: 'layout.json', sha256: '' },
-  perspective: 'team-relative',
-  memory: {},
-  arbitration: {},
-  roles: [{ roleId: 'line', candidateClasses: classes }],
-  groups: [{ groupId: 'line-group', roleIds: ['line'] }],
-  formations: [],
-  engagements: [],
-  supportPolicies: [],
-  coordination: { tasks: [] },
+  memory: {
+    enemyUnavailableTicks: 21,
+    lastSeenEnemyTicks: 30,
+    securedCoreTicks: 40,
+    objectiveProgressTicks: 90,
+  },
+  roles: [{
+    roleId: 'line',
+    candidateClasses: classes,
+    minimum: 0,
+    preferred: 8,
+    maximum: 8,
+    carrierPreference: 'allow',
+    deathPolicy: 'hold-vacancy',
+    respawnPolicy: 'rejoin',
+    overflowRoleId: 'line',
+    build: ['damage', 'vision', 'reach', 'vitality'],
+  }],
   custodyPolicies: [{
     custodyId: 'line-custody',
-    authorizedCarrierRoles: ['line'],
-    escortGroups: ['line-group'],
     sourceWells: ['north'],
     pickupReservationTicks: 8,
     transferTimeoutTicks: 8,
     deliveryTimeoutTicks: 120,
     accidentalPickup: 'deliver',
-    dropRecovery: 'same-carrier',
+    dropRecovery: 'nearest-authorized',
     unreachableFallback: 'regroup',
-    safeConversionAll: [{ all: [{ fact: 'always', operator: 'equals', value: 1 }] }],
+    safeConversion: 'always',
   }],
   doctrines: {
-    line: {
-      role: 'line',
-      custody: 'line-custody',
-      modes: [{ patrol: 'floor-route' }],
+    roles: {
+      line: {
+        custody: 'line-custody',
+        modes: [
+          { fetch: 'line-custody' },
+          { patrol: 'floor-route', focus: { maximumAttackers: 8 } },
+        ],
+        conceal: false,
+      },
     },
+    cohorts: {},
+    focus: {},
   },
-  authoring: {
-    predicates: {
-      'always-on': { fact: 'always', operator: 'equals', value: 1 },
-      'always-off': { fact: 'always', operator: 'equals', value: 0 },
-    },
-  },
+  conditions: {},
 };
 
 const catalog: TacticalSheetCatalog = {
@@ -108,18 +117,14 @@ test('assignment names stay compiler ids and renames follow every role reference
     maximum: 2,
     overflowRoleId: 'line',
   };
-  source.groups[0] = { ...source.groups[0], roleIds: ['line'] };
-  source.formations = [{ placements: [{ roleId: 'line' }] }];
-  source.engagements = [{ participants: ['line'], commit: { roles: ['line'] } }];
-  source.supportPolicies = [{ providers: ['line'] }];
-  source.custodyPolicies[0].authorizedCarrierRoles = ['line'];
   source.custodyPolicies[0].emergencyRecoveryRoles = ['line'];
-  source.doctrines.line.role = 'line';
-  source.doctrines.line.modes = [{
-    assault: 'floor-route',
-    escort: [{ role: 'line' }],
+  source.doctrines.roles.line.modes = [{
+    follow: 'line',
+    posture: 'trail',
+    focus: { maximumAttackers: 1 },
+    while: 'line-hurt',
   }];
-  source.authoring.predicates!['line-hurt'] = {
+  source.conditions['line-hurt'] = {
     fact: 'role-health', operator: 'at-most', value: 2, subject: 'line',
   };
 
@@ -128,31 +133,23 @@ test('assignment names stay compiler ids and renames follow every role reference
 
   assert.equal(source.roles[0].roleId, 'base-screen');
   assert.equal(source.roles[0].overflowRoleId, 'base-screen');
-  assert.deepEqual(source.groups[0].roleIds, ['base-screen']);
-  assert.equal((source.formations[0] as { placements: { roleId: string }[] }).placements[0].roleId, 'base-screen');
-  assert.deepEqual((source.engagements[0] as { participants: string[] }).participants, ['base-screen']);
-  assert.deepEqual((source.supportPolicies[0] as { providers: string[] }).providers, ['base-screen']);
-  assert.deepEqual(source.custodyPolicies[0].authorizedCarrierRoles, ['base-screen']);
-  assert.equal(source.doctrines.line.role, 'base-screen');
-  assert.equal((source.doctrines.line.modes[0].escort as { role: string }[])[0].role, 'base-screen');
-  assert.equal(source.authoring.predicates!['line-hurt'].subject, 'base-screen');
+  assert.deepEqual(source.custodyPolicies[0].emergencyRecoveryRoles, ['base-screen']);
+  assert.equal(source.doctrines.roles.line, undefined);
+  assert.equal(source.doctrines.roles['base-screen'].modes[0].follow, 'base-screen');
+  assert.equal(source.conditions['line-hurt'].subject, 'base-screen');
 });
 
-test('assignment staffing targets keep their stable group expressible', () => {
+test('assignment staffing targets change only the role-owned staffing band', () => {
   const source = structuredClone(playbook);
   source.roles[0] = {
     ...source.roles[0], minimum: 0, preferred: 1, maximum: 1,
-  };
-  source.groups[0] = {
-    ...source.groups[0], minimum: 0, preferred: 1, maximum: 1,
   };
 
   setAssignmentTarget(source, 'line', 3);
 
   assert.equal(source.roles[0].preferred, 3);
   assert.equal(source.roles[0].maximum, 3);
-  assert.equal(source.groups[0].preferred, 3);
-  assert.equal(source.groups[0].maximum, 3);
+  assert.equal('groups' in source, false);
 });
 
 test('export hashes the exact emitted layout bytes and updates only the layout pin', async () => {
@@ -169,7 +166,7 @@ test('export hashes the exact emitted layout bytes and updates only the layout p
   assert.deepEqual(prepared.draft.layout, draft.layout);
 });
 
-test('guided checks enforce verb/floor and muster-call contracts before server compile', async () => {
+test('guided checks enforce the six-verb ladder and its patrol floor before server compile', async () => {
   const valid = parseDraft(
     'Test', null, null,
     stringifyDocument(playbook), stringifyDocument(layout),
@@ -178,15 +175,24 @@ test('guided checks enforce verb/floor and muster-call contracts before server c
   assert.deepEqual(validateDraft(prepared.draft, catalog, prepared.layoutSha256), []);
 
   const broken = structuredClone(prepared.draft);
-  broken.playbook.doctrines.line.modes = [
-    { assault: 'floor-route', patrol: 'floor-route', while: 'always-on' },
-    { muster: 'escort' },
+  broken.playbook.doctrines.roles.line.modes = [
+    {
+      assault: 'floor-route',
+      patrol: 'floor-route',
+      while: 'always',
+      focus: { maximumAttackers: 2 },
+    },
+    {
+      follow: 'line',
+      posture: 'trail',
+      focus: { maximumAttackers: 2 },
+    },
   ];
   const messages = validateDraft(broken, catalog, prepared.layoutSha256)
     .map((issue) => issue.message);
   assert.ok(messages.some((message) => message.includes('exactly one mode verb')));
-  assert.ok(messages.some((message) => message.includes('floor must be')));
-  assert.ok(messages.some((message) => message.includes('answers no call')));
+  assert.ok(messages.some((message) => message.includes('fallback must be')));
+  assert.ok(messages.every((message) => !message.includes('muster')));
 });
 
 test('a traffic floor is rejected when any inherited fight block can break off', async () => {
@@ -194,8 +200,11 @@ test('a traffic floor is rejected when any inherited fight block can break off',
     'Test', null, null,
     stringifyDocument(playbook), stringifyDocument(layout),
   );
-  draft.playbook.doctrines.line.fight = { breakOff: { health: 2 } };
-  draft.playbook.doctrines.line.modes = [{ patrol: 'traffic' }];
+  draft.playbook.doctrines.roles.line.fight = { breakOff: { health: 2 } };
+  draft.playbook.doctrines.roles.line.modes = [
+    { fetch: 'line-custody' },
+    { patrol: 'traffic', focus: { maximumAttackers: 8 } },
+  ];
   const prepared = await pinDraft(draft);
   const messages = validateDraft(prepared.draft, catalog, prepared.layoutSha256)
     .map((issue) => issue.message);
@@ -208,12 +217,48 @@ test('required root and custody keys fail live validation before save', async ()
     stringifyDocument(playbook), stringifyDocument(layout),
   );
   delete draft.playbook.memory;
-  delete draft.playbook.custodyPolicies[0].safeConversionAll;
+  delete draft.playbook.custodyPolicies[0].safeConversion;
   const prepared = await pinDraft(draft);
   const messages = validateDraft(prepared.draft, catalog, prepared.layoutSha256)
     .map((issue) => issue.message);
   assert.ok(messages.some((message) => message.includes("Required playbook key 'memory'")));
-  assert.ok(messages.some((message) => message.includes('Safe conversion')));
+  assert.ok(messages.some((message) => message.includes('carrier may convert')));
+});
+
+test('the player validator accepts both tracked Tapline authoring templates', async () => {
+  const root = new URL(
+    '../../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/',
+    import.meta.url,
+  );
+  const layoutJson = readFileSync(new URL('layouts/tapline-base-v1.json', root), 'utf8');
+  for (const name of ['hunter-tapline-v1', 'wellwright-tapline-v1']) {
+    const playbookJson = readFileSync(new URL(`playbooks/${name}.json`, root), 'utf8');
+    const source = JSON.parse(playbookJson) as PlaybookDocument;
+    const classIds = [...new Set([
+      ...source.composition,
+      ...source.roles.flatMap((role) => role.candidateClasses),
+    ])];
+    const taplineCatalog: TacticalSheetCatalog = {
+      ...catalog,
+      map: {
+        ...catalog.map,
+        id: 'arc-relay-tapline-01',
+        width: 31,
+        height: 27,
+        tileRows: Array.from({ length: 27 }, () => '.'.repeat(31)),
+      },
+      classes: classIds.map((id) => ({
+        id, name: id, signatureName: id, fantasy: id, starter: true, unlocked: true,
+      })),
+    };
+    const draft = parseDraft(name, null, null, playbookJson, layoutJson);
+    const prepared = await pinDraft(draft);
+    assert.deepEqual(
+      validateDraft(prepared.draft, taplineCatalog, prepared.layoutSha256),
+      [],
+      `${name} should be editable without false client errors`,
+    );
+  }
 });
 
 test('trial summaries name only the authoring areas that changed', () => {
@@ -223,7 +268,7 @@ test('trial summaries name only the authoring areas that changed', () => {
   );
   const before = snapshotForTrial(draft);
   const changed = structuredClone(draft);
-  changed.playbook.doctrines.line.conceal = false;
+  changed.playbook.doctrines.roles.line.conceal = true;
   changed.layout.routes[0].waypoints.push([4, 3]);
   const after = snapshotForTrial(changed);
 

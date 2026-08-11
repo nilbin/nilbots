@@ -7262,3 +7262,214 @@ The v13 rating book therefore does not continue: v14 starts every opted-in
 entrant at the default rating and preserves v13 ratings and matches as readable
 history. Rules, map, sheets, grammar, and their contract fingerprints do not
 change.
+
+## 277. Sticky routes may detour around traffic; actor movement is wall-corner strict; hosted v15 starts fresh
+
+Executor and engine ruling (2026-08-10). A persistent authored-route course
+owns direction and lap, not an occupied tile. Once the authored stuck window
+proves that ordinary waiting did not clear a transient body or same-tick claim,
+the executor tries one deterministic detour within the route's authored
+corridor budget. A successful detour rejoins a later tile of the exact held
+terrain course. If traffic occupies the course's terminal waypoint, it may
+advance only to a later authored waypoint in the same direction. Neither path
+reselects route direction or restarts the lap. A detour outside the budget, or
+with no open rejoin, remains a wait. Causal reasons distinguish commit, held,
+rejoin, later-waypoint advance, and considered-wait.
+
+The authoritative `GenericActorMatchSession` movement gate now rejects a
+diagonal step unless both orthogonal companion tiles are open terrain. Bodies
+on those companions do not block the diagonal; occupancy remains traffic and
+is resolved later. This makes movement agree with the tactical planners,
+visibility supercover, and strike cones rather than preserving a movement-only
+wall-corner exception. The rule is generic and names no mode, map, sheet,
+class, role, side, or coordinate.
+
+The premise that the registered ambush-warren-11 geometry had no
+corner-touching floor pairs was false. A shared corner-strict audit shows H0,
+Drawbench, and repaired Tapline satisfy both authoring invariants, while the
+immutable historical Warren family and candidate Crucible do not. Crucible has
+14 corner passages and no stationary-body cut larger than a two-tile nook. The
+maps are not re-authored in this executor/engine change; the failing profiles
+remain named in the test so new maps cannot silently inherit the defect.
+Rules, map, and aggregate contract fingerprints remain unchanged, but that is
+not presented as proof that every possible action stream is unchanged on the
+historical Warren geometry.
+
+On exact Tapline seeds 9001/9003, the tracked same-definition diagnostic moves
+aggregate stationary body-ticks from 50.8%/52.1% to 48.4%/46.3%, and physically
+blocked stationary ticks from 47.6%/46.1% of waits to 39.7%/39.8%. The worst
+single-tile run moves from 227/35 ticks to 30/30, bodies above 100 ticks from
+1/0 to 0/0, and neither after-cell contains a long A-B flap. These are mechanism
+reads, not balance claims.
+
+The WASM bytes change, so playlist v14 and frozen stock v8 remain immutable.
+Playlist v15 pins frozen stock v9 (artifact
+`4443b18bf718114db764a440604c7987751a7ad1c28fbe092862b4d4a7fa8af5`,
+build input
+`cf7edee8cf6c3239c0b3989ac20eea30bbddd8acf806ba46a032340e307d2e77`).
+The registered Wellwright-vs-Wellwright seed-9001 stock digest changes from
+`4afb253b831b8d50a2cd04591eedd8b56393961c4d13ba6e72d0656fa5150c5f`
+to
+`c356c5882fcd86c3646365b15147f18d8c8b494b33bc7e5b3a505f6ab91068a6`,
+identically in-process and in sandboxed WASM. The v14 rating book therefore
+does not continue: v15 starts every opted-in entrant at the default rating and
+preserves v14 ratings and matches as readable history.
+
+## 278. Launch clearance is bounded; carrier delivery is planned once per tick; hosted v16 starts fresh
+
+Executor ruling (2026-08-10). Owner replay review exposed two distinct faults
+after the traffic-detour pass: opening routes queued through the friendly
+reactor, while loaded carriers could repeatedly re-derive conflicting delivery
+courses and dance beside their bank. A rejected broad experiment treated the
+reactor as an obstacle throughout route traversal; it cleared the spawn but
+degraded later pathing. That policy is not shipped.
+
+The shipped launch policy is deliberately narrow. During only the first two
+ticks of a body's life, an authored route prefers a terrain course that avoids
+the friendly reactor. If no such course is usable, the normal course is used
+immediately. A bounded two-tile clearance handshake also lets a reactor occupant
+finish exiting rather than exchange the same claimed tile with its queue. The
+reactor is not a permanent obstacle and no map coordinate, role, class, sheet,
+or side is named.
+
+Custody planning now resolves each carrier's destination and terrain course once
+per tick and shares that result across traffic arbitration and action selection.
+A loaded carrier that is temporarily denied holds that stable course instead of
+falling through to a newly derived homeward step. Loaded carriers receive a
+deterministic precedence ordered by static terrain distance to their own reactor,
+then unit id; this breaks equal-rank carrier face-offs without randomness.
+Every move, hold, clearance, and fallback retains a causal debug reason.
+
+On the six-cell Tapline exhibit, all 16 bodies in every cell leave their initial
+tile by observation tick 7 or earlier; the two bodies that take until tick 7 are
+facing-locked and have one legal initial exit, while 14 of 16 leave by tick 3 in
+the checked cell. No cell has a body stationary for more than 100 ticks, the
+worst single-tile run is 49 ticks, and there are zero
+`custody:delivery-timeout-*` ticks. These are mechanism reads from an exhibit,
+not balance claims.
+
+The WASM bytes change, so playlist v15 and frozen stock v9 remain immutable.
+Playlist v16 pins frozen stock v10 (artifact
+`2554509e0af31b18b6ccbaf94efe5b7e6d0ce4b8ec50e4bdd4b47b1a97039f07`,
+build input
+`e18085e2fbcdcf6d37eb4bf44c71a2dbeb54a2c04f232345ae5069179012ce62`).
+The registered Wellwright-vs-Wellwright seed-9001 stock digest changes from
+`c356c5882fcd86c3646365b15147f18d8c8b494b33bc7e5b3a505f6ab91068a6`
+to
+`5964c536be8598ea9d51f7bcc3b7e4f0a6e25ab67dee04da168da94e90c509c2`,
+identically in-process and in sandboxed WASM. Playlist v16 therefore starts a
+fresh rating book; v15 ratings and matches remain readable history. Rules, map,
+sheets, grammar, and their contract fingerprints do not change.
+
+## 279. Seen loose Cores remain bounded objectives; pickup allocation is authored; hosted v17 starts fresh
+
+Executor and sheet-language ruling (2026-08-10). Fog closing over a loose Core
+does not erase team knowledge of that objective. Every observed loose Core is
+retained at its last-confirmed position for the sheet's authored Core-memory
+window. A body with an eligible fetch rung may continue toward that position.
+Seeing the remembered tile empty, observing the Core carried or banked, or
+reaching the memory limit clears both the memory and its reservation. Traces
+name the uncertainty as `custody:last-known-pickup`; the executor never presents
+the remembered position as current vision.
+
+`dropRecovery: nearest-authorized` now means its words: distance is the primary
+allocation key among eligible bodies, carrier preference breaks that tie, and
+stable unit id breaks the final tie. Ordinary Well pickup allocation remains
+carrier-preference first by default. Custody policies gain the optional
+`pickupSelection` field so an author may instead select `nearest-authorized`
+for ordinary pickups. The only values are `carrier-preference` and
+`nearest-authorized`; there is no random allocator.
+
+In the exact Tapline west-9002 replay that motivated the change, fog previously
+erased a friendly transfer drop at tick 319 and it lay unclaimed until tick 411.
+The corrected cell changes earlier because allocation is causal, but its
+friendly voluntary drops are recovered in 3, 19, 3, and 2 ticks; the repeated
+near-Well transfers are recovered in 2-3 ticks. The six-cell exhibit retains
+longer contested and stale-memory cases for honest review and is not a balance
+read.
+
+The WASM bytes change, so playlist v16 and frozen stock v10 remain immutable.
+Playlist v17 pins frozen stock v11 (artifact
+`68182fd208eee987898b42069d97c300fd41aec76c90f42f7c58001c40c10348`,
+build input
+`5fee8282e71be3ece6f50f01c1095e363560e06d23d64a6e2ec80ddaf009c86c`).
+The registered Wellwright-vs-Wellwright seed-9001 stock digest changes from
+`5964c536be8598ea9d51f7bcc3b7e4f0a6e25ab67dee04da168da94e90c509c2`
+to
+`e38b5adbd693dffe0200d8481c34bad60205917dbc6c46c93534f33d53abc18f`,
+identically in-process and in sandboxed WASM. Playlist v17 therefore starts a
+fresh rating book; v16 ratings and matches remain readable history. Rules, map,
+current sheet bytes, and gameplay contract fingerprints do not change; the
+sheet grammar expands additively by one optional custody field.
+
+## 280. Uncommitted drops remain claimable; loaded bodies cannot reserve another Core; hosted v18 starts fresh
+
+Executor ruling (2026-08-10). An unauthorized accidental carrier records no
+committed custody policy. Its runtime progress used the empty string as that
+sentinel, but friendly-drop recovery treated the sentinel as a real policy id.
+No authored custody could match it, making the later drop unclaimable until an
+opportunistic body happened to rediscover and step onto it. Empty and null
+custody now have the same meaning at the drop boundary: no committed policy,
+so a compatible policy may claim the Core.
+
+Pickup allocation also excludes every body already carrying a Core. A loaded
+body cannot collect a second Core, and therefore cannot hold or renew a pickup
+reservation while available authorized couriers pass it. Distance-first and
+carrier-preference selection still apply unchanged among bodies that can
+actually accept the pickup; stable unit id remains the final deterministic
+tie-break. No sheet, role, class, map, side, or coordinate is named.
+
+In the exact Tapline west-9002 correction cell, the reproduced near-home drop
+waited 32 ticks while the nearest loaded body repeatedly retained the unusable
+reservation. With loaded bodies excluded, comparable friendly near-home drops
+in the rerun were recovered in 1-3 ticks. The standard six-cell exhibit is a
+mechanism review, not a balance result.
+
+The WASM bytes change, so playlist v17 and frozen stock v11 remain immutable.
+Playlist v18 pins frozen stock v12 (artifact
+`d63ffb4829a6875573232d3cb8822beb8c77c96708bc2e9bbdd39d0aeb42ca96`,
+build input
+`1229c727f38e78599dbc228e2f8a86117d64a50fced3d155c7398dcf2a02a6f3`).
+The registered Wellwright-vs-Wellwright seed-9001 digest changes from
+`e38b5adbd693dffe0200d8481c34bad60205917dbc6c46c93534f33d53abc18f`
+to
+`b844d14c1eea12b576e06324ae9554bddaca3963aa3de95fa8f4b9bd4cc88296`,
+identically in-process and in sandboxed WASM. Playlist v18 therefore starts a
+fresh rating book; v17 ratings and matches remain readable history. Rules,
+map, sheet bytes, grammar, and gameplay contract fingerprints do not change.
+
+## 281. Tapline is the Arc Relay product map; hosted v19 starts a fresh rating era
+
+Owner-directed product ruling (2026-08-10). `tapline-1` replaces
+`ambush-warren-11` as the default local and hosted Arc Relay line. The CLI,
+sheet catalog, starter Hunter, stock Wellwright, editor plotter, trials, and
+ranked admission all use the native 31x27 `arc-relay-tapline-01` export. Sheet
+geometry is never projected between maps: older-map sheets remain readable
+history and are not admissible until deliberately replotted on Tapline.
+
+Entrant playlist v18 remains immutable Warren history, pinned by definition
+fingerprint
+`704ac64263b602a426b1b37302581c5197de16b5370d5955c21726ac40429506`.
+Playlist v19 pins the existing claimable-Core tactical algorithm artifact
+`d63ffb4829a6875573232d3cb8822beb8c77c96708bc2e9bbdd39d0aeb42ca96`
+and build input
+`1229c727f38e78599dbc228e2f8a86117d64a50fced3d155c7398dcf2a02a6f3`,
+but changes the map and stock sheet inputs to Tapline-native Wellwright
+(`c161502325758601b68b43c7a5e270bf2a8415b7259d26e7f66fd77641f78b48`)
+and layout
+(`45cbd126f22631f7a530620fd7c1edf1bd0a8e5da0dd43f98b5b13df226958b8`).
+Because the competitive map changed, v19 starts a fresh rating book at the
+default rating; no v18 Elo carries forward.
+
+The generic executor bytes are reused by hash, but v19 admits them through a
+distinct Tapline stock identity whose immutable receipt pins the Tapline rules,
+Wellwright source and layout. The ambush-11 stock identity and its versions are
+left untouched for historical work; current match provenance must not describe
+Tapline participants as Warren artifacts merely because the algorithm bytes
+are equal.
+
+The player editor emits only the consolidated ten-key direct sheet DSL. Its
+primary surface is a game-like roster, one ordered battle-plan ladder per
+assignment, focused trigger/Core/coordination tools, and direct plotting on
+Tapline. Raw JSON and layout hashes remain portable compiler facts rather than
+primary player controls.

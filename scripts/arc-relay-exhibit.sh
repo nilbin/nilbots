@@ -168,7 +168,9 @@ for i, cell in enumerate(cells, 1):
     opponent = next(
         os.path.basename(p.get('SheetPath') or '?').removesuffix('.json')
         for p in run['Participants'] if p['TeamId'] != team)
-    win = run['Result'].get('WinnerTeamId') == team
+    winner = run['Result'].get('WinnerTeamId')
+    win = winner == team
+    outcome = 'win' if win else 'draw' if winner is None else 'loss'
     end = run['Result'].get('EndTick', '?')
     with gzip.open(f'{bcast}/{cell}.json.gz', 'rt', encoding='utf-8') as stream:
         result = json.load(stream)['result']
@@ -203,7 +205,7 @@ for i, cell in enumerate(cells, 1):
     })
     cards.append({
         'id': f'sample-{i:02d}',
-        'title': f'{cell} — {"win" if win else "loss"} at t{end}',
+        'title': f'{cell} — {outcome} at t{end}',
         'win': win,
         'opponent': opponent,
         'score': scoreline,

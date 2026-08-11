@@ -59,7 +59,7 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
                 await client.GetFromJsonAsync<TacticalSheetCatalogResponse>(
                     "/api/sheets/catalog"));
         Assert.Equal(ArcRelayComposition.SlotCount, catalog.SlotCount);
-        Assert.Equal(ArcRelayLoopProfile.AmbushWarren11.MapId, catalog.Map.Id);
+        Assert.Equal(ArcRelayLoopProfile.Tapline1.MapId, catalog.Map.Id);
         Assert.Equal(31, catalog.Map.Width);
         Assert.Equal(27, catalog.Map.Height);
         TacticalStockSheetResponse stock = Assert.Single(catalog.StockOpponents);
@@ -118,9 +118,9 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
                 .Include(value => value.TeamResults)
                 .SingleAsync(value => value.Id == created.Id);
             Assert.Equal(MatchStatus.Completed, match.Status);
-            Assert.Equal(ArcRelayLoopProfile.AmbushWarren11.MapId, match.MapId);
+            Assert.Equal(ArcRelayLoopProfile.Tapline1.MapId, match.MapId);
             Assert.Equal(
-                ArcRelayLoopProfile.AmbushWarren11.RulesetId,
+                ArcRelayLoopProfile.Tapline1.RulesetId,
                 match.GameRulesVersion);
             Assert.Equal(ArcRelayBroadcastDocument.FormatVersion, match.ReplayFormatVersion);
             Assert.Equal(1.25, match.PresentationTicksPerSecond);
@@ -142,6 +142,32 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
                 Assert.NotNull(participant.SheetLayoutJsonSnapshot);
                 Assert.NotEmpty(Assert.IsType<byte[]>(participant.MindDataSnapshot));
             });
+            Guid[] tacticalVersionIds = match.Participants
+                .Select(value => value.BotVersionId)
+                .Distinct()
+                .ToArray();
+            var tacticalVersions = await db.BotVersions
+                .Where(value => tacticalVersionIds.Contains(value.Id))
+                .Select(value => new
+                {
+                    value.BotId,
+                    value.GameRulesVersion,
+                })
+                .ToListAsync();
+            Assert.All(tacticalVersions, value => Assert.Equal(
+                ArcRelayLoopProfile.Tapline1.RulesetId,
+                value.GameRulesVersion));
+            Guid[] tacticalBotIds = tacticalVersions
+                .Select(value => value.BotId)
+                .Distinct()
+                .ToArray();
+            string tacticalSlug = Assert.Single(await db.Bots
+                .Where(value => tacticalBotIds.Contains(value.Id))
+                .Select(value => value.Slug)
+                .ToListAsync());
+            Assert.Equal(
+                ArcRelayPlaylistSeeder.TaplineTacticalPlaybookBotSlug,
+                tacticalSlug);
             Assert.Equal(first.ContentHash, match.Participants.Single(value => value.Slot == 0).SheetHashSnapshot);
             Assert.Equal(second.ContentHash, match.Participants.Single(value => value.Slot == 1).SheetHashSnapshot);
             replayKey = Assert.IsType<string>(match.ReplayKey);

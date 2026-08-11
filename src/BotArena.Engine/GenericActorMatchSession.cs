@@ -1603,7 +1603,8 @@ public sealed class GenericActorMatchSession : IDisposable
             var (dx, dy) = heading.Vector();
             Position target = life.Position.Offset(dx, dy);
             targets.Add(life.ActorId, target);
-            if (_definition.Map.IsWall(target)
+            if (!IsTerrainMovementStepLegal(
+                    _definition.Map, life.Position, target)
                 || _mode is ArcRelayActorMatchModeDriver arcMovement
                     && !arcMovement.CanEnter(life.ActorId, target)
                 || _mode is ArcRelayActorMatchModeDriver constructMode
@@ -1735,6 +1736,26 @@ public sealed class GenericActorMatchSession : IDisposable
                 // hidden space reveals no hidden destination.
                 target));
         }
+    }
+
+    /// <summary>
+    /// The authoritative terrain gate for voluntary movement. A diagonal may
+    /// not squeeze through two orthogonal wall faces that meet at a corner.
+    /// Companion occupancy is deliberately absent: bodies are traffic, not
+    /// terrain, and are resolved by the ordinary occupancy/claim phase.
+    /// </summary>
+    internal static bool IsTerrainMovementStepLegal(
+        ActorMapDefinition map,
+        Position from,
+        Position target)
+    {
+        if (map.IsWall(target))
+            return false;
+        int dx = target.X - from.X;
+        int dy = target.Y - from.Y;
+        return dx == 0 || dy == 0
+            || (!map.IsWall(from.X + dx, from.Y)
+                && !map.IsWall(from.X, from.Y + dy));
     }
 
     private static ProjectileHeading MovementHeading(

@@ -19,6 +19,8 @@ public sealed class ArcRelayPlaylistSeeder(
         "arc-relay-tactical-playbook-mind";
     public const string AmbushTacticalPlaybookBotSlug =
         "arc-relay-ambush-11-tactical-playbook-mind";
+    public const string TaplineTacticalPlaybookBotSlug =
+        "arc-relay-tapline-tactical-playbook-mind";
 
     public async Task<ArcRelaySeedResult> SeedAsync(
         CancellationToken cancellationToken = default)
@@ -71,6 +73,7 @@ public sealed class ArcRelayPlaylistSeeder(
         await SeedForwardStockMindAsync(cancellationToken);
         await SeedTacticalPlaybookMindAsync(cancellationToken);
         await SeedAmbushTacticalPlaybookMindAsync(cancellationToken);
+        await SeedTaplineTacticalPlaybookMindAsync(cancellationToken);
         if (await db.Ladders.AnyAsync(
                 ladder => ladder.PlaylistVersionId == version.Id,
                 cancellationToken))
@@ -411,6 +414,42 @@ public sealed class ArcRelayPlaylistSeeder(
             cancellationToken);
         await SeedAmbushTacticalPlaybookMindVersionAsync(
             "ambush-warren-11-stock-v8",
+            ArcRelayEntrantPlaylistDefinition
+                .CarrierClearanceTacticalArtifactHash,
+            ArcRelayEntrantPlaylistDefinition.StockPlaybookSourceHash,
+            ArcRelayEntrantPlaylistDefinition
+                .CarrierClearanceTacticalBuildInputHash,
+            active: false,
+            cancellationToken);
+        await SeedAmbushTacticalPlaybookMindVersionAsync(
+            "ambush-warren-11-stock-v9",
+            ArcRelayEntrantPlaylistDefinition
+                .TrafficDetourTacticalArtifactHash,
+            ArcRelayEntrantPlaylistDefinition.StockPlaybookSourceHash,
+            ArcRelayEntrantPlaylistDefinition
+                .TrafficDetourTacticalBuildInputHash,
+            active: false,
+            cancellationToken);
+        await SeedAmbushTacticalPlaybookMindVersionAsync(
+            "ambush-warren-11-stock-v10",
+            ArcRelayEntrantPlaylistDefinition
+                .StableCarrierTacticalArtifactHash,
+            ArcRelayEntrantPlaylistDefinition.StockPlaybookSourceHash,
+            ArcRelayEntrantPlaylistDefinition
+                .StableCarrierTacticalBuildInputHash,
+            active: false,
+            cancellationToken);
+        await SeedAmbushTacticalPlaybookMindVersionAsync(
+            "ambush-warren-11-stock-v11",
+            ArcRelayEntrantPlaylistDefinition
+                .LooseCoreMemoryTacticalArtifactHash,
+            ArcRelayEntrantPlaylistDefinition.StockPlaybookSourceHash,
+            ArcRelayEntrantPlaylistDefinition
+                .LooseCoreMemoryTacticalBuildInputHash,
+            active: false,
+            cancellationToken);
+        await SeedAmbushTacticalPlaybookMindVersionAsync(
+            "ambush-warren-11-stock-v12",
             ArcRelayEntrantPlaylistDefinition.TacticalArtifactHash,
             ArcRelayEntrantPlaylistDefinition.StockPlaybookSourceHash,
             ArcRelayEntrantPlaylistDefinition.TacticalBuildInputHash,
@@ -526,6 +565,109 @@ public sealed class ArcRelayPlaylistSeeder(
                 old.IsActive = old.Id == version.Id;
             version.IsActive = true;
         }
+        await db.SaveChangesAsync(cancellationToken);
+        return version;
+    }
+
+    private async Task<BotVersion> SeedTaplineTacticalPlaybookMindAsync(
+        CancellationToken cancellationToken)
+    {
+        string? wasmPath = RepoPaths.FindUpward(Path.Combine(
+            "arena-bots",
+            "arc-relay",
+            "tactical-playbook-mind-v1",
+            "bot.wasm"));
+        if (wasmPath is null)
+        {
+            throw new InvalidOperationException(
+                "Frozen Tapline tactical mind artifact is missing.");
+        }
+        string artifactHash = BotBuilder.Sha256File(wasmPath);
+        if (!string.Equals(
+                artifactHash,
+                ArcRelayEntrantPlaylistDefinition.TacticalArtifactHash,
+                StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                "Frozen Tapline tactical mind hash moved.");
+        }
+        string artifactKey = ObjectKeys.Artifact(artifactHash);
+        await using (var stream = File.OpenRead(wasmPath))
+        {
+            await objectStore.PutAsync(
+                artifactKey, stream, artifactHash, cancellationToken);
+        }
+
+        var system = await BuiltInBotSeeder.GetOrCreateSystemUser(
+            db, cancellationToken);
+        Bot? bot = await db.Bots.Include(value => value.Versions)
+            .SingleOrDefaultAsync(value =>
+                value.Slug == TaplineTacticalPlaybookBotSlug,
+                cancellationToken);
+        if (bot is null)
+        {
+            bot = new Bot
+            {
+                OwnerUserId = system.Id,
+                Name = "Arc Relay Tapline frozen Wellwright",
+                Slug = TaplineTacticalPlaybookBotSlug,
+                Accent = "#22d3ee",
+                LookId = "arc-relay",
+                ProjectileLookId =
+                    ArcRelayH0ReplayPresentation.ProjectileLookId,
+            };
+            db.Bots.Add(bot);
+        }
+        BotVersion? version = bot.Versions.SingleOrDefault(value =>
+            string.Equals(
+                value.ArtifactHash, artifactHash, StringComparison.Ordinal));
+        if (version is null)
+        {
+            foreach (BotVersion old in bot.Versions)
+                old.IsActive = false;
+            version = new BotVersion
+            {
+                BotId = bot.Id,
+                VersionNumber = bot.Versions.Count + 1,
+                EntryType = "ArcRelayTacticalPlaybookMind",
+                SourcesJson = "[]",
+                SourceHash = artifactHash,
+                Status = BuildStatus.Built,
+                ArtifactKey = artifactKey,
+                ArtifactHash = artifactHash,
+                BuildReceiptJson = JsonSerializer.Serialize(new
+                {
+                    schemaVersion = 1,
+                    kind = "frozen-first-party-tapline-stock",
+                    loopProfile = ArcRelayLoopProfile.Tapline1.Id,
+                    playbookSchema = "arc-relay-tactical-playbook-v1",
+                    stockSheetId =
+                        ArcRelayEntrantPlaylistDefinition.StockSheetId,
+                    stockPlaybookSourceHash = ArcRelayEntrantPlaylistDefinition
+                        .TaplineStockPlaybookSourceHash,
+                    stockLayoutSourceHash = ArcRelayEntrantPlaylistDefinition
+                        .TaplineStockLayoutSourceHash,
+                    buildInputSha256 = ArcRelayEntrantPlaylistDefinition
+                        .TacticalBuildInputHash,
+                    artifactSha256 = artifactHash,
+                }),
+                SupportedContractProfiles =
+                    [BotArenaVersions.GenericMindContractProfileId],
+                GuestBotName = "Arc Relay Tapline Wellwright",
+                GameRulesVersion = ArcRelayLoopProfile.Tapline1.RulesetId,
+                RuntimeProtocolVersion =
+                    BotArenaVersions.RuntimeProtocolVersion,
+                RuntimeConfigurationVersion =
+                    BotArenaVersions.GenericMindRuntimeConfigurationVersion,
+                BuiltAt = DateTime.UtcNow,
+                IsActive = true,
+            };
+            bot.Versions.Add(version);
+            db.BotVersions.Add(version);
+        }
+        foreach (BotVersion candidate in bot.Versions)
+            candidate.IsActive = candidate.Id == version.Id;
+        version.IsActive = true;
         await db.SaveChangesAsync(cancellationToken);
         return version;
     }

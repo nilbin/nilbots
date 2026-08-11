@@ -405,7 +405,7 @@ Every declared condition must be referenced at least once.
 | role + zone | `in-zone-count`; required role `subject` and `zone` |
 | optional role | `max-level`, `recover-ready-bodies`; optional role `subject` |
 | zone | `friendlies-in-zone-count`, `visible-enemies-in-zone`, `remembered-enemies-in-zone`, `visible-loose-cores-in-zone`, `visible-loose-core-value-in-zone`; required `zone` |
-| Well | `well-has-outstanding`, `own-socket-filled`, `enemy-socket-filled`, `well-ticks-until-birth`; `subject` is `north`, `centre`, or `south` |
+| Well | `well-has-outstanding`, `own-socket-filled`, `enemy-socket-filled`, `well-ticks-until-birth`; `subject` is `north`, `centre`, `south`, or team-relative `own` / `enemy` |
 | team/global | `always`, `tick`, `phase-state-ticks`, `live-friendlies`, `known-enemies-unavailable`, `visible-enemy-carriers`, `known-enemy-carriers`, `friendly-carriers`, `secured-cores`, `visible-loose-cores`, `visible-loose-core-value`, `outstanding-well-count`, `ticks-without-objective-progress`, `reactor-integrity`, `reactor-charge`, `custody-state-ticks`, `own-filled-sockets`, `enemy-filled-sockets` |
 
 Only `remembered-enemies-in-zone` and `secured-cores` accept
@@ -443,6 +443,7 @@ so a dead role does not look injured.
 | `deliveryTimeoutTicks` | `1..1200` |
 | `accidentalPickup` | `transfer`, `deliver`, or `drop-safe` |
 | `dropRecovery` | `same-carrier`, `nearest-authorized`, or `guard-until-safe` |
+| `pickupSelection` | optional `carrier-preference` (default) or `nearest-authorized`; selects the primary allocation key for ordinary Well pickups |
 | `unreachableFallback` | `hold`, `guard`, `alternate-core`, or `regroup` |
 | `safeConversion` | condition expression without self facts |
 
@@ -454,6 +455,9 @@ handoff, delivery, and recovery.
 
 Optional surface:
 
+- `pickupSelection`: `carrier-preference` (default) assigns eligible bodies by
+  role preference and then distance; `nearest-authorized` assigns by distance
+  and then preference. Stable unit id breaks the final tie in both cases.
 - `deliveryRoutes`: `1..8` `{ "zone", "route" }` rules. The Core's pickup
   zone chooses the side-bound delivery route.
 - `forwardPass`: `none` or `relay-catcher`.
@@ -474,15 +478,15 @@ The layout has exactly:
 schema  layoutId  mapId  bindings  zones  routes  anchors
 ```
 
-Current hosted v14 accepts the native Warren map only:
-`arc-relay-ambush-warren-06` (31×27). Coordinates are absolute canonical map
+Current hosted v19 accepts the native Tapline map only:
+`arc-relay-tapline-01` (31×27). Coordinates are absolute canonical map
 tiles. The same authored geometry serves both teams through side bindings.
 
 ```json
 {
   "schema": "arc-relay-tactical-layout-v1",
-  "layoutId": "example-warren6-v1",
-  "mapId": "arc-relay-ambush-warren-06",
+  "layoutId": "example-tapline-v1",
+  "mapId": "arc-relay-tapline-01",
   "bindings": [
     {
       "matchContractFingerprint": "any-composition",
@@ -528,7 +532,7 @@ Validation:
 
 At runtime an exact match-contract binding wins; `any-composition` is the
 fallback for that reactor side. Geometry is never projected between maps.
-The editor draws the Warren from `/api/sheets/catalog`; replay headers expose
+The editor draws Tapline from `/api/sheets/catalog`; replay headers expose
 the same `header.contract.map` (`width`, `height`, tile rows, regions, spawn
 anchors, and tile tags). Routes, zones, anchors, pickup geography, and
 delivery geography are plotted and dragged on that map, never entered as raw

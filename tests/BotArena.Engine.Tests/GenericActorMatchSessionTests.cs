@@ -1,7 +1,30 @@
+using System.Collections.Immutable;
+
 namespace BotArena.Engine.Tests;
 
 public sealed class GenericActorMatchSessionTests
 {
+    [Fact]
+    public void AuthoritativeMovementRejectsWallCornerSqueezing()
+    {
+        var from = new Position(2, 3);
+        var diagonal = new Position(3, 4);
+        ActorMapDefinition open = CornerMap();
+        ActorMapDefinition oneClosedCompanion = CornerMap(new Position(3, 3));
+        ActorMapDefinition bothClosedCompanions = CornerMap(
+            new Position(3, 3),
+            new Position(2, 4));
+
+        Assert.True(GenericActorMatchSession.IsTerrainMovementStepLegal(
+            open, from, diagonal));
+        Assert.False(GenericActorMatchSession.IsTerrainMovementStepLegal(
+            oneClosedCompanion, from, diagonal));
+        Assert.False(GenericActorMatchSession.IsTerrainMovementStepLegal(
+            bothClosedCompanions, from, diagonal));
+        Assert.True(GenericActorMatchSession.IsTerrainMovementStepLegal(
+            oneClosedCompanion, from, new Position(2, 4)));
+    }
+
     [Fact]
     public void Deathmatch_NeutralSessionAndCompatibilityFacadeHaveExactParity()
     {
@@ -83,5 +106,26 @@ public sealed class GenericActorMatchSessionTests
         string facadeReplay = ReplayV3Serializer.ToCanonicalJson(
             ReplayV3Projection.Project(facade.Chronology));
         Assert.Equal(neutralReplay, facadeReplay);
+    }
+
+    private static ActorMapDefinition CornerMap(params Position[] walls)
+    {
+        ActorMapDefinition source = GenericDeathmatchSessionTestFixture
+            .Definition("head-to-head").Map;
+        HashSet<Position> added = walls.ToHashSet();
+        ImmutableArray<string> rows = source.TileRows
+            .Select((row, y) => new string(row
+                .Select((tile, x) => added.Contains(new Position(x, y))
+                    ? '#'
+                    : tile)
+                .ToArray()))
+            .ToImmutableArray();
+        return new ActorMapDefinition(
+            "corner-movement-fixture",
+            1,
+            rows,
+            source.SpawnAnchors,
+            source.Regions,
+            source.TileTags);
     }
 }

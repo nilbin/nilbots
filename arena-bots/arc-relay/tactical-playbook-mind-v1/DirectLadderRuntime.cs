@@ -576,7 +576,8 @@ internal sealed class DirectLadderRuntime
             IntOr(value, "emergencyDisplacementReleaseRadius", 0),
             deliveryRoutes,
             StringOr(value, "forwardPass", "none"),
-            bait);
+            bait,
+            StringOr(value, "pickupSelection", "carrier-preference"));
     }
 
     private static TacticalPlaybookPackage.Order BuildOrder(

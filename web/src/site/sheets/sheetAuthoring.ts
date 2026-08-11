@@ -5,25 +5,37 @@ export type TacticalVerb =
   | 'intercept'
   | 'assault'
   | 'recover'
-  | 'muster'
-  | 'squad';
+  | 'fetch'
+  | 'follow';
 
 export type Point = [number, number];
 export type JsonObject = Record<string, unknown>;
 
 export interface TacticalMode extends JsonObject {
-  patrol?: string;
+  patrol?: TacticalDestination;
   intercept?: string;
-  assault?: string;
+  assault?: TacticalDestination;
   recover?: string;
-  muster?: string;
-  squad?: boolean;
+  fetch?: string;
+  follow?: string;
   while?: string;
   until?: string;
   from?: string;
-  patienceTicks?: number;
-  escort?: unknown;
+  focus?: string | FocusDefinition;
+  cohort?: string | CohortDefinition;
+  posture?: string;
   fight?: FightBlock;
+}
+
+export type TacticalDestination = string | { route: string } | { zone: string };
+
+export interface FocusDefinition extends JsonObject {
+  maximumAttackers: number;
+}
+
+export interface CohortDefinition extends JsonObject {
+  take: number;
+  select: 'nearest';
 }
 
 export interface FightBlock extends JsonObject {
@@ -37,12 +49,20 @@ export interface FightBlock extends JsonObject {
 }
 
 export interface Doctrine extends JsonObject {
-  role: string;
   custody: string;
   conceal?: boolean;
-  collect?: string | string[];
+  scavenge?: string | string[];
   fight?: FightBlock;
+  repair?: RepairBlock;
   modes: TacticalMode[];
+}
+
+export interface RepairBlock extends JsonObject {
+  prefer: string[];
+  maximumProvidersPerTarget: number;
+  minimumProviderSeparation: number;
+  reserveHealthPercent: number;
+  survivalFallback: string;
 }
 
 export interface Predicate extends JsonObject {
@@ -64,20 +84,11 @@ export interface RoleDefinition extends JsonObject {
   deathPolicy?: string;
   respawnPolicy?: string;
   overflowRoleId?: string;
-}
-
-export interface GroupDefinition extends JsonObject {
-  groupId: string;
-  roleIds: string[];
-  minimum?: number;
-  preferred?: number;
-  maximum?: number;
+  build?: string[];
 }
 
 export interface CustodyPolicy extends JsonObject {
   custodyId: string;
-  authorizedCarrierRoles: string[];
-  escortGroups: string[];
   sourceWells: string[];
   pickupReservationTicks: number;
   transferTimeoutTicks: number;
@@ -85,13 +96,25 @@ export interface CustodyPolicy extends JsonObject {
   accidentalPickup: string;
   dropRecovery: string;
   unreachableFallback: string;
-  safeConversionAll?: unknown[];
+  safeConversion: string;
+  pickupSelection?: string;
   deliveryRoutes?: { zone: string; route: string }[];
-  baitDrop?: ({
-    zone: string;
-    reclaimAll?: unknown[];
-  } & JsonObject);
+  baitDrop?: ({ zone: string; reclaim: string } & JsonObject);
   forwardPass?: string;
+  emergencyRecoveryZones?: string[];
+  emergencyPickupRadius?: number;
+  emergencyRecovery?: string;
+  emergencyRecoveryRoles?: string[];
+  emergencyRecoverySourceWells?: string[];
+  emergencyRecoveryDisposition?: string;
+  emergencyDisplacementTarget?: string;
+  emergencyDisplacementReleaseRadius?: number;
+}
+
+export interface DoctrinePlane extends JsonObject {
+  roles: Record<string, Doctrine>;
+  cohorts: Record<string, CohortDefinition>;
+  focus: Record<string, FocusDefinition>;
 }
 
 export interface PlaybookDocument extends JsonObject {
@@ -99,14 +122,16 @@ export interface PlaybookDocument extends JsonObject {
   playbookId: string;
   composition: string[];
   layout: { path: string; sha256: string } & JsonObject;
+  memory: {
+    enemyUnavailableTicks: number;
+    lastSeenEnemyTicks: number;
+    securedCoreTicks: number;
+    objectiveProgressTicks: number;
+  } & JsonObject;
   roles: RoleDefinition[];
-  groups: GroupDefinition[];
   custodyPolicies: CustodyPolicy[];
-  doctrines: Record<string, Doctrine>;
-  authoring: JsonObject & {
-    predicates: Record<string, Predicate>;
-    conditionSets?: Record<string, string[][]>;
-  };
+  doctrines: DoctrinePlane;
+  conditions: Record<string, Predicate>;
 }
 
 export interface LayoutZone extends JsonObject {
@@ -159,7 +184,7 @@ export interface SheetIssue {
 }
 
 export const TACTICAL_VERBS: readonly TacticalVerb[] = [
-  'patrol', 'intercept', 'assault', 'recover', 'muster', 'squad',
+  'patrol', 'intercept', 'assault', 'recover', 'fetch', 'follow',
 ];
 
 export const CONDITION_OPERATORS = [
@@ -167,7 +192,8 @@ export const CONDITION_OPERATORS = [
 ] as const;
 
 export const NO_SUBJECT_FACTS = [
-  'always', 'tick', 'phase-state-ticks', 'live-friendlies',
+  'self-health', 'self-level', 'self-carrying', 'self-stuck-ticks',
+  'self-mode-ticks', 'always', 'tick', 'phase-state-ticks', 'live-friendlies',
   'known-enemies-unavailable', 'visible-enemy-carriers',
   'known-enemy-carriers', 'friendly-carriers', 'secured-cores',
   'visible-loose-cores', 'visible-loose-core-value',
@@ -177,19 +203,22 @@ export const NO_SUBJECT_FACTS = [
 ] as const;
 
 export const ZONE_FACTS = [
-  'friendlies-in-zone-count', 'group-in-zone-count',
+  'friendlies-in-zone-count',
   'visible-enemies-in-zone', 'remembered-enemies-in-zone',
   'visible-loose-cores-in-zone', 'visible-loose-core-value-in-zone',
 ] as const;
 
-export const GROUP_FACTS = [
-  'group-live-count', 'group-joining-count', 'group-cohesion',
-  'group-stuck-ticks', 'formation-established-ticks',
-  'group-formation-broken', 'group-max-level',
+export const OPTIONAL_ROLE_FACTS = [
+  'max-level', 'recover-ready-bodies',
 ] as const;
 
 export const ROLE_FACTS = [
-  'role-live-count', 'recover-ready-bodies', 'role-health',
+  'live-count', 'joining-count', 'cohesion', 'stuck-ticks',
+  'role-live-count', 'role-health',
+] as const;
+
+export const ROLE_ZONE_FACTS = [
+  'in-zone-count',
 ] as const;
 
 export const WELL_FACTS = [
@@ -197,15 +226,13 @@ export const WELL_FACTS = [
   'well-ticks-until-birth',
 ] as const;
 
-export const ORDER_FACTS = ['movement-complete'] as const;
-
 export const CONDITION_FACTS = [
   ...NO_SUBJECT_FACTS,
   ...ZONE_FACTS,
-  ...GROUP_FACTS,
+  ...OPTIONAL_ROLE_FACTS,
   ...ROLE_FACTS,
+  ...ROLE_ZONE_FACTS,
   ...WELL_FACTS,
-  ...ORDER_FACTS,
 ] as const;
 
 const IDENTIFIER = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -241,11 +268,17 @@ export function renameAssignment(
   nextId: string,
 ): void {
   if (previousId === nextId) return;
+  const doctrine = playbook.doctrines.roles[previousId];
+  if (doctrine) {
+    playbook.doctrines.roles = Object.fromEntries(
+      Object.entries(playbook.doctrines.roles).map(([key, value]) =>
+        [key === previousId ? nextId : key, value]),
+    );
+  }
   rewriteRoleReferences(playbook, previousId, nextId);
 }
 
-/** Change the normal staffing target and keep the containing stable group's
- * preferred band able to express the edited role allocation. */
+/** Change the normal staffing target while preserving the authored band. */
 export function setAssignmentTarget(
   playbook: PlaybookDocument,
   roleId: string,
@@ -257,15 +290,6 @@ export function setAssignmentTarget(
   role.preferred = nextPreferred;
   role.minimum = Math.min(role.minimum ?? 0, nextPreferred);
   role.maximum = Math.max(role.maximum ?? nextPreferred, nextPreferred);
-
-  for (const group of playbook.groups.filter((entry) => entry.roleIds.includes(roleId))) {
-    const members = playbook.roles.filter((entry) => group.roleIds.includes(entry.roleId));
-    const memberPreferred = members.reduce((sum, entry) => sum + (entry.preferred ?? 0), 0);
-    const memberMinimum = members.reduce((sum, entry) => sum + (entry.minimum ?? 0), 0);
-    group.preferred = Math.min(8, memberPreferred);
-    group.minimum = Math.min(group.minimum ?? memberMinimum, group.preferred);
-    group.maximum = Math.max(group.maximum ?? group.preferred, group.preferred, group.minimum);
-  }
 }
 
 export function assignmentIdFromName(value: string): string {
@@ -279,11 +303,10 @@ export function assignmentIdFromName(value: string): string {
 }
 
 const ROLE_SCALAR_KEYS = new Set([
-  'role', 'roleId', 'leaderRole', 'overflowRoleId',
+  'roleId', 'overflowRoleId', 'follow',
 ]);
 const ROLE_ARRAY_KEYS = new Set([
-  'roleIds', 'roles', 'participants', 'providers',
-  'authorizedCarrierRoles', 'emergencyRecoveryRoles',
+  'emergencyRecoveryRoles',
 ]);
 
 function rewriteRoleReferences(
@@ -293,7 +316,7 @@ function rewriteRoleReferences(
   parentKey = '',
 ): void {
   if (Array.isArray(value)) {
-    if (ROLE_ARRAY_KEYS.has(parentKey) || parentKey === 'escort') {
+    if (ROLE_ARRAY_KEYS.has(parentKey)) {
       value.forEach((entry, index) => {
         if (entry === previousId) value[index] = nextId;
         else rewriteRoleReferences(entry, previousId, nextId, parentKey);
@@ -313,12 +336,9 @@ function rewriteRoleReferences(
       record[key] = nextId;
       continue;
     }
-    if (key === 'escort' && entry === previousId) {
-      record[key] = nextId;
-      continue;
-    }
     rewriteRoleReferences(entry, previousId, nextId, key);
   }
+
 }
 
 export function stringifyDocument(value: JsonObject): string {
@@ -360,50 +380,49 @@ export function verbOf(mode: TacticalMode): TacticalVerb | null {
   return verbs.length === 1 ? verbs[0] : null;
 }
 
-export function doctrineOrderIds(playbook: PlaybookDocument): string[] {
-  const result: string[] = [];
-  for (const [doctrineId, doctrine] of Object.entries(playbook.doctrines ?? {})) {
-    const counts = new Map<TacticalVerb, number>();
-    doctrine.modes.forEach((mode) => {
-      const verb = verbOf(mode);
-      if (verb) counts.set(verb, (counts.get(verb) ?? 0) + 1);
-    });
-    const seen = new Map<TacticalVerb, number>();
-    doctrine.modes.forEach((mode) => {
-      const verb = verbOf(mode);
-      if (!verb || verb === 'muster' || verb === 'squad') return;
-      const occurrence = (seen.get(verb) ?? 0) + 1;
-      seen.set(verb, occurrence);
-      result.push((counts.get(verb) ?? 0) > 1
-        ? `${doctrineId}-${verb}-${occurrence}`
-        : `${doctrineId}-${verb}`);
-    });
-  }
-  return result;
-}
-
 export function freshMode(
   verb: TacticalVerb,
   routes: string[],
   anchors: string[],
+  zones: string[] = [],
+  custodyIds: string[] = [],
+  roleIds: string[] = [],
 ): TacticalMode {
+  const focus: FocusDefinition = { maximumAttackers: 2 };
+  const firstDestination = routes[0]
+    ?? (zones[0] ? { zone: zones[0] } : '');
   switch (verb) {
-    case 'patrol': return { patrol: routes[0] ?? 'traffic' };
+    case 'patrol': return { patrol: firstDestination || 'traffic', focus };
     case 'intercept': return {
       intercept: 'enemy-carriers',
-      from: anchors[0] ?? undefined,
-      while: 'always-on',
-      until: 'always-off',
+      from: anchors[0] ?? '',
+      focus,
     };
     case 'assault': return {
-      assault: routes[0] ?? '',
-      while: 'always-on',
-      until: 'always-off',
+      assault: firstDestination,
+      focus,
+      posture: 'front',
     };
-    case 'recover': return { recover: 'auto' };
-    case 'muster': return { muster: 'escort' };
-    case 'squad': return { squad: true };
+    case 'recover': return { recover: 'auto', focus };
+    case 'fetch': return { fetch: custodyIds[0] ?? '' };
+    case 'follow': return {
+      follow: roleIds[0] ?? '',
+      posture: 'trail',
+      focus,
+    };
   }
+}
+
+export function destinationOf(mode: TacticalMode): {
+  kind: 'route' | 'zone'; id: string;
+} | null {
+  const value = mode.patrol ?? mode.assault;
+  if (typeof value === 'string') return { kind: 'route', id: value };
+  if (value && typeof value === 'object' && 'route' in value
+      && typeof value.route === 'string') return { kind: 'route', id: value.route };
+  if (value && typeof value === 'object' && 'zone' in value
+      && typeof value.zone === 'string') return { kind: 'zone', id: value.zone };
+  return null;
 }
 
 export function validateDraft(
@@ -418,15 +437,16 @@ export function validateDraft(
     issues.push({ path, message, severity: 'warning' });
   const { playbook, layout } = draft;
 
-  for (const key of [
-    'schema', 'playbookId', 'auditStatus', 'composition', 'layout',
-    'perspective', 'memory', 'arbitration', 'roles', 'groups', 'formations',
-    'engagements', 'supportPolicies', 'custodyPolicies',
-    'coordination', 'doctrines', 'authoring',
-  ]) {
+  const playbookKeys = [
+    'schema', 'playbookId', 'auditStatus', 'composition', 'layout', 'memory',
+    'roles', 'custodyPolicies', 'doctrines', 'conditions',
+  ];
+  for (const key of playbookKeys) {
     if (!Object.prototype.hasOwnProperty.call(playbook, key))
       error(`playbook.${key}`, `Required playbook key '${key}' is missing.`);
   }
+  Object.keys(playbook).filter((key) => !playbookKeys.includes(key)).forEach((key) =>
+    error(`playbook.${key}`, `'${key}' belongs to the retired sheet grammar.`));
   for (const key of [
     'schema', 'layoutId', 'mapId', 'bindings', 'zones', 'routes', 'anchors',
   ]) {
@@ -444,8 +464,6 @@ export function validateDraft(
     error('playbook.playbookId', 'Playbook id must use lowercase letters, digits and hyphens.');
   if (!IDENTIFIER.test(layout.layoutId ?? ''))
     error('layout.layoutId', 'Layout id must use lowercase letters, digits and hyphens.');
-  if (playbook.perspective !== 'team-relative')
-    error('playbook.perspective', 'Perspective must be team-relative.');
   if (layout.mapId !== catalog.map.id)
     error('layout.mapId', `This sheet must target ${catalog.map.id}.`);
   if (playbook.composition?.length !== catalog.slotCount)
@@ -464,24 +482,20 @@ export function validateDraft(
       error('composition', `${classId} appears ${count} times; the cap is ${catalog.maximumCopiesPerClass}.`);
 
   const roles = new Set((playbook.roles ?? []).map((role) => role.roleId));
-  const groups = new Set((playbook.groups ?? []).map((group) => group.groupId));
   const custody = new Set((playbook.custodyPolicies ?? []).map((policy) => policy.custodyId));
   const zones = new Set((layout.zones ?? []).map((zone) => zone.zoneId));
   const routes = new Set((layout.routes ?? []).map((route) => route.routeId));
   const anchors = new Set((layout.anchors ?? []).map((anchor) => anchor.anchorId));
-  const orders = new Set(doctrineOrderIds(playbook));
-  const predicates = playbook.authoring?.predicates ?? {};
+  const predicates = playbook.conditions ?? {};
   const predicateIds = new Set(Object.keys(predicates));
 
   validateIdentifiers('roles', roles, error);
-  validateIdentifiers('groups', groups, error);
   validateIdentifiers('custodyPolicies', custody, error);
   validateIdentifiers('layout.zones', zones, error);
   validateIdentifiers('layout.routes', routes, error);
   validateIdentifiers('layout.anchors', anchors, error);
-  validateIdentifiers('authoring.predicates', predicateIds, error);
+  validateIdentifiers('conditions', predicateIds, error);
   duplicates((playbook.roles ?? []).map((role) => role.roleId), 'roles', error);
-  duplicates((playbook.groups ?? []).map((group) => group.groupId), 'groups', error);
   duplicates((playbook.custodyPolicies ?? []).map((policy) => policy.custodyId),
     'custodyPolicies', error);
   duplicates((layout.zones ?? []).map((zone) => zone.zoneId), 'layout.zones', error);
@@ -505,41 +519,55 @@ export function validateDraft(
       if (preferred! > 0 && !role.candidateClasses.some((classId) => copies.has(classId)))
         error(`roles.${index}.candidateClasses`, 'No body in the current composition can fill this assignment.');
     }
-  }
-
-  const preferredBodies = (playbook.roles ?? [])
-    .reduce((sum, role) => sum + (role.preferred ?? 0), 0);
-  if (preferredBodies > catalog.slotCount)
-    error('roles', `Assignment targets claim ${preferredBodies} bodies; only ${catalog.slotCount} are fielded.`);
-
-  const groupCountByRole = new Map<string, number>();
-  for (const group of playbook.groups ?? []) {
-    duplicates(group.roleIds ?? [], `groups.${group.groupId}.roleIds`, error);
-    for (const role of group.roleIds ?? []) {
-      if (!roles.has(role)) error(`groups.${group.groupId}`, `Unknown assignment '${role}'.`);
-      groupCountByRole.set(role, (groupCountByRole.get(role) ?? 0) + 1);
+    if (!['forbid', 'allow', 'prefer', 'require'].includes(role.carrierPreference ?? ''))
+      error(`roles.${index}.carrierPreference`, 'Choose forbid, allow, prefer or require.');
+    if (!['hold-vacancy', 'promote-best', 'rebalance'].includes(role.deathPolicy ?? ''))
+      error(`roles.${index}.deathPolicy`, 'Choose a supported death policy.');
+    if (!['resume', 'rejoin', 'rally', 'replace'].includes(role.respawnPolicy ?? ''))
+      error(`roles.${index}.respawnPolicy`, 'Choose a supported respawn policy.');
+    if (role.overflowRoleId && !roles.has(role.overflowRoleId))
+      error(`roles.${index}.overflowRoleId`, `Unknown assignment '${role.overflowRoleId}'.`);
+    if (role.build !== undefined) {
+      list(role.build, 1, 8, `roles.${index}.build`, error);
+      role.build?.forEach((choice) => {
+        if (!['damage', 'vision', 'reach', 'vitality'].includes(choice))
+          error(`roles.${index}.build`, `Unknown upgrade '${choice}'.`);
+      });
     }
   }
 
-  const escortCalls = new Map<string, string[]>();
-  const musterRoles = new Set<string>();
-  const doctrineRoles = new Set<string>();
-  for (const [doctrineId, doctrine] of Object.entries(playbook.doctrines ?? {})) {
-    const path = `doctrines.${doctrineId}`;
-    if (!IDENTIFIER.test(doctrineId)) error(path, 'Doctrine ids use lowercase letters, digits and hyphens.');
-    if (!roles.has(doctrine.role)) error(`${path}.role`, `Unknown assignment '${doctrine.role}'.`);
-    if (doctrineRoles.has(doctrine.role)) error(`${path}.role`, `Assignment '${doctrine.role}' already has a doctrine.`);
-    doctrineRoles.add(doctrine.role);
-    if ((groupCountByRole.get(doctrine.role) ?? 0) !== 1)
-      error(`${path}.role`, `Assignment '${doctrine.role}' must belong to exactly one group.`);
+  const minimumBodies = (playbook.roles ?? []).reduce((sum, role) => sum + (role.minimum ?? 0), 0);
+  const preferredBodies = (playbook.roles ?? [])
+    .reduce((sum, role) => sum + (role.preferred ?? 0), 0);
+  const maximumBodies = (playbook.roles ?? []).reduce((sum, role) => sum + (role.maximum ?? 0), 0);
+  if (minimumBodies > catalog.slotCount)
+    error('roles', `Assignment minimums claim ${minimumBodies} bodies; only ${catalog.slotCount} are fielded.`);
+  if (preferredBodies > catalog.slotCount)
+    error('roles', `Assignment targets claim ${preferredBodies} bodies; only ${catalog.slotCount} are fielded.`);
+  if (maximumBodies < catalog.slotCount)
+    error('roles', `Assignment maximums cover only ${maximumBodies} of ${catalog.slotCount} bodies.`);
+
+  const doctrineKeys = Object.keys(playbook.doctrines ?? {});
+  if (doctrineKeys.length !== 3 || !['roles', 'cohorts', 'focus'].every((key) => doctrineKeys.includes(key)))
+    error('doctrines', 'Doctrines contain exactly roles, cohorts and focus.');
+  const doctrineRoles = new Set(Object.keys(playbook.doctrines?.roles ?? {}));
+  const focusConsumers = new Map<string, number>();
+  const cohortConsumers = new Map<string, { count: number; roles: Set<string>; destination: string }>();
+  const conditionConsumers = new Map<string, number>();
+  const fetchConsumers = new Map<string, number>();
+
+  for (const [roleId, doctrine] of Object.entries(playbook.doctrines?.roles ?? {})) {
+    const path = `doctrines.roles.${roleId}`;
+    if (!roles.has(roleId)) error(path, `Unknown assignment '${roleId}'.`);
     if (!custody.has(doctrine.custody)) error(`${path}.custody`, `Unknown custody policy '${doctrine.custody}'.`);
-    const collection = typeof doctrine.collect === 'string'
-      ? [doctrine.collect] : doctrine.collect ?? [];
-    if (collection.length > 8) error(`${path}.collect`, 'Collect accepts at most eight zones.');
+    const collection = typeof doctrine.scavenge === 'string'
+      ? [doctrine.scavenge] : doctrine.scavenge ?? [];
+    if (collection.length > 16) error(`${path}.scavenge`, 'Scavenge accepts at most sixteen zones.');
     collection.forEach((zone) => {
-      if (!zones.has(zone)) error(`${path}.collect`, `Unknown zone '${zone}'.`);
+      if (!zones.has(zone)) error(`${path}.scavenge`, `Unknown zone '${zone}'.`);
     });
     validateFight(doctrine.fight, `${path}.fight`, error);
+    validateRepair(doctrine.repair, `${path}.repair`, error);
     const modes = doctrine.modes ?? [];
     if (modes.length < 1 || modes.length > 8)
       error(`${path}.modes`, 'A doctrine needs 1–8 ordered modes.');
@@ -552,55 +580,66 @@ export function validateDraft(
       }
       const verb = verbs[0];
       const floor = index === modes.length - 1;
-      if (floor && verb !== 'patrol' && verb !== 'squad')
-        error(modePath, 'The floor must be an unconditioned patrol or squad.');
+      if (floor && verb !== 'patrol')
+        error(modePath, 'The fallback must be an unconditioned patrol.');
       if (floor && (mode.while || mode.until))
-        error(modePath, 'The floor cannot have while or until conditions.');
-      if (!floor && verb !== 'recover' && verb !== 'muster' && !mode.while)
+        error(modePath, 'The fallback patrol cannot have while or until conditions.');
+      if (!floor && verb !== 'recover' && verb !== 'fetch' && !mode.while)
         error(`${modePath}.while`, 'This mode needs a while condition.');
       if (mode.while && !mode.until)
         warning(`${modePath}.until`, 'Without until, this mode only yields to a stronger mode.');
-      if ((verb === 'recover' || verb === 'muster') && (mode.while || mode.until))
+      if ((verb === 'recover' || verb === 'fetch') && (mode.while || mode.until))
         error(modePath, `${verb} is internally conditioned and cannot use while or until.`);
-      if (verb === 'squad') {
-        if (mode.squad !== true) error(`${modePath}.squad`, 'Squad must be literally true.');
-        if (!floor) error(modePath, 'Squad may only be the floor.');
+      if (verb === 'patrol' || verb === 'assault') {
+        const destination = destinationOf(mode);
+        if (!destination || (destination.kind === 'route' && !routes.has(destination.id))
+            || (destination.kind === 'zone' && !zones.has(destination.id)))
+          error(`${modePath}.${verb}`, 'Choose a declared route or zone.');
+        if (mode.posture && !['front', 'core', 'rear'].includes(mode.posture))
+          error(`${modePath}.posture`, 'Choose front, core or rear.');
       }
-      if (verb === 'patrol' && mode.patrol !== 'traffic' && !routes.has(mode.patrol!))
-        error(`${modePath}.patrol`, `Unknown route '${mode.patrol}'.`);
-      if (verb === 'assault' && !routes.has(mode.assault!))
-        error(`${modePath}.assault`, `Unknown route '${mode.assault}'.`);
       if (verb === 'intercept') {
         if (!['enemy-carriers', 'inbound'].includes(mode.intercept!))
           error(`${modePath}.intercept`, 'Intercept must target enemy-carriers or inbound.');
-        if (mode.from && !anchors.has(mode.from))
+        if (!mode.from || !anchors.has(mode.from))
           error(`${modePath}.from`, `Unknown anchor '${mode.from}'.`);
-        range(mode.patienceTicks, 2, 120, `${modePath}.patienceTicks`, error);
       }
       if (verb === 'recover' && mode.recover !== 'auto')
         error(`${modePath}.recover`, 'Recover must be auto.');
-      if (verb === 'muster') {
-        musterRoles.add(doctrine.role);
-        if (mode.muster !== 'escort' && !orders.has(mode.muster!))
-          error(`${modePath}.muster`, `Unknown order '${mode.muster}'.`);
+      if (verb === 'fetch') {
+        if (!custody.has(mode.fetch ?? ''))
+          error(`${modePath}.fetch`, `Unknown custody policy '${mode.fetch}'.`);
+        else fetchConsumers.set(mode.fetch!, (fetchConsumers.get(mode.fetch!) ?? 0) + 1);
       }
-      if (verb === 'assault' && mode.escort !== undefined) {
-        const escorts = normalizeEscorts(mode.escort);
-        if (escorts.length < 1 || escorts.length > 8)
-          error(`${modePath}.escort`, 'Escort calls need 1–8 assignments.');
-        const seen = new Set<string>();
-        escorts.forEach(({ role, posture }) => {
-          if (!roles.has(role)) error(`${modePath}.escort`, `Unknown assignment '${role}'.`);
-          if (role === doctrine.role) error(`${modePath}.escort`, 'An assignment cannot escort itself.');
-          if (seen.has(role)) error(`${modePath}.escort`, `Duplicate escort assignment '${role}'.`);
-          seen.add(role);
-          if (posture && !['trail', 'screen'].includes(posture))
-            error(`${modePath}.escort`, `Unknown posture '${posture}'.`);
-          escortCalls.set(role, [...(escortCalls.get(role) ?? []), modePath]);
-        });
+      if (verb === 'follow') {
+        if (!roles.has(mode.follow ?? '') || mode.follow === roleId)
+          error(`${modePath}.follow`, 'Follow another declared assignment.');
+        if (!['trail', 'screen'].includes(mode.posture ?? ''))
+          error(`${modePath}.posture`, 'Follow posture is trail or screen.');
       }
-      validateCondition(mode.while, `${modePath}.while`, predicateIds, error);
-      validateCondition(mode.until, `${modePath}.until`, predicateIds, error);
+      validateCondition(mode.while, `${modePath}.while`, predicateIds, conditionConsumers, error);
+      validateCondition(mode.until, `${modePath}.until`, predicateIds, conditionConsumers, error);
+      if (verb !== 'fetch') {
+        if (typeof mode.focus === 'string') {
+          if (!playbook.doctrines.focus[mode.focus]) error(`${modePath}.focus`, `Unknown focus '${mode.focus}'.`);
+          focusConsumers.set(mode.focus, (focusConsumers.get(mode.focus) ?? 0) + 1);
+        } else validateFocus(mode.focus, `${modePath}.focus`, error);
+      } else if (mode.focus !== undefined) error(`${modePath}.focus`, 'Fetch has no focus field.');
+      if (mode.cohort !== undefined) {
+        if (!['patrol', 'assault'].includes(verb) || floor)
+          error(`${modePath}.cohort`, 'Cohorts only apply to non-fallback patrol or assault commands.');
+        if (typeof mode.cohort === 'string') {
+          if (!playbook.doctrines.cohorts[mode.cohort]) error(`${modePath}.cohort`, `Unknown cohort '${mode.cohort}'.`);
+          const destination = destinationOf(mode);
+          const destinationKey = destination ? `${destination.kind}:${destination.id}` : '';
+          const current = cohortConsumers.get(mode.cohort) ?? { count: 0, roles: new Set(), destination: destinationKey };
+          current.count++;
+          current.roles.add(roleId);
+          if (current.destination !== destinationKey)
+            error(`${modePath}.cohort`, 'Every shared cohort command must use the same destination.');
+          cohortConsumers.set(mode.cohort, current);
+        } else validateCohort(mode.cohort, `${modePath}.cohort`, error);
+      }
       validateFight(mode.fight, `${modePath}.fight`, error);
     });
     const floor = modes.at(-1);
@@ -609,27 +648,47 @@ export function validateDraft(
   }
 
   for (const role of roles) {
-    if ((groupCountByRole.get(role) ?? 0) !== 1)
-      error('groups', `Assignment '${role}' must belong to exactly one group.`);
     if (!doctrineRoles.has(role))
-      error('doctrines', `Assignment '${role}' needs exactly one doctrine.`);
+      error('doctrines.roles', `Assignment '${role}' needs exactly one battle plan.`);
   }
+  doctrineRoles.forEach((role) => {
+    if (!roles.has(role)) error(`doctrines.roles.${role}`, `No assignment named '${role}' exists.`);
+  });
 
-  for (const [role, paths] of escortCalls) {
-    if (!musterRoles.has(role))
-      paths.forEach((path) => error(`${path}.escort`, `Assignment '${role}' is not recruitable; add a muster mode to its doctrine.`));
+  for (const [id, focus] of Object.entries(playbook.doctrines?.focus ?? {})) {
+    validateFocus(focus, `doctrines.focus.${id}`, error);
+    if ((focusConsumers.get(id) ?? 0) < 2)
+      error(`doctrines.focus.${id}`, 'A shared focus needs at least two command consumers; inline a one-off cap.');
   }
-  for (const role of musterRoles)
-    if (!escortCalls.has(role)) error(`doctrines`, `Assignment '${role}' has a muster mode that answers no call.`);
-
+  for (const [id, cohort] of Object.entries(playbook.doctrines?.cohorts ?? {})) {
+    validateCohort(cohort, `doctrines.cohorts.${id}`, error);
+    const consumers = cohortConsumers.get(id);
+    if (!consumers || consumers.count < 2 || consumers.roles.size < 2)
+      error(`doctrines.cohorts.${id}`, 'A shared cohort needs commands on at least two assignments.');
+  }
   for (const [id, predicate] of Object.entries(predicates))
-    validatePredicate(id, predicate, { roles, groups, zones, orders }, error);
+    validatePredicate(id, predicate, { roles, zones }, error);
   for (const [index, policy] of (playbook.custodyPolicies ?? []).entries())
-    validateCustody(policy, index, { roles, groups, zones, routes, predicateIds }, error);
+    validateCustody(policy, index, { roles, zones, routes, anchors, predicateIds, conditionConsumers }, error);
+  for (const id of predicateIds) {
+    if ((conditionConsumers.get(id) ?? 0) === 0)
+      error(`conditions.${id}`, 'Every trigger must be used by a command or Core policy.');
+  }
+  for (const id of custody) {
+    if ((fetchConsumers.get(id) ?? 0) === 0)
+      error('custodyPolicies', `Core policy '${id}' needs at least one assignment with a fetch command.`);
+  }
+  for (const key of ['enemyUnavailableTicks', 'lastSeenEnemyTicks', 'securedCoreTicks', 'objectiveProgressTicks']) {
+    const value = playbook.memory?.[key];
+    if (typeof value !== 'number') error(`memory.${key}`, 'Choose a memory window from 1 to 600 ticks.');
+    else range(value, 1, 600, `memory.${key}`, error);
+  }
   validateLayout(layout, catalog, error);
 
-  if (currentLayoutHash && playbook.layout?.sha256 !== currentLayoutHash)
-    error('playbook.layout.sha256', 'Layout changed; save or export will repin it automatically.');
+  // The editor owns this internal pin and rewrites it immediately before
+  // every save or practice run. A transient hash mismatch is not a player
+  // error and must not make a healthy draft look broken while hashing settles.
+  void currentLayoutHash;
   return issues;
 }
 
@@ -659,6 +718,7 @@ function validateLayout(
     route.waypoints?.forEach(([x, y]) => {
       if (!inside(x, y, catalog)) error(`layout.routes.${index}.waypoints`, 'Every waypoint must be inside the map.');
     });
+    range(route.corridorWidth, 0, 8, `layout.routes.${index}.corridorWidth`, error);
   });
   layout.anchors?.forEach((anchor, index) => {
     if (!inside(anchor.position?.[0], anchor.position?.[1], catalog))
@@ -684,35 +744,32 @@ function validateLayout(
 function validatePredicate(
   id: string,
   predicate: Predicate,
-  refs: { roles: Set<string>; groups: Set<string>; zones: Set<string>; orders: Set<string> },
+  refs: { roles: Set<string>; zones: Set<string> },
   error: (path: string, message: string) => void,
 ) {
-  const path = `authoring.predicates.${id}`;
+  const path = `conditions.${id}`;
   if (!(CONDITION_FACTS as readonly string[]).includes(predicate.fact))
     error(`${path}.fact`, `Unknown fact '${predicate.fact}'.`);
   if (!(CONDITION_OPERATORS as readonly string[]).includes(predicate.operator))
     error(`${path}.operator`, `Unknown operator '${predicate.operator}'.`);
   range(predicate.value, 0, 100000, `${path}.value`, error);
-  if (predicate.fact === 'group-in-zone-count') {
+  if ((ROLE_ZONE_FACTS as readonly string[]).includes(predicate.fact)) {
     if (!predicate.zone || !refs.zones.has(predicate.zone))
       error(`${path}.zone`, 'Choose a declared zone.');
-    if (!predicate.subject || !refs.groups.has(predicate.subject))
-      error(`${path}.subject`, 'Choose a declared group.');
+    if (!predicate.subject || !refs.roles.has(predicate.subject))
+      error(`${path}.subject`, 'Choose a declared assignment.');
   } else if ((ZONE_FACTS as readonly string[]).includes(predicate.fact)) {
     if (!predicate.zone || !refs.zones.has(predicate.zone))
       error(`${path}.zone`, 'Choose a declared zone.');
-  } else if ((GROUP_FACTS as readonly string[]).includes(predicate.fact)) {
-    if (!predicate.subject || !refs.groups.has(predicate.subject))
-      error(`${path}.subject`, 'Choose a declared group.');
   } else if ((ROLE_FACTS as readonly string[]).includes(predicate.fact)) {
     if (!predicate.subject || !refs.roles.has(predicate.subject))
       error(`${path}.subject`, 'Choose a declared assignment.');
+  } else if ((OPTIONAL_ROLE_FACTS as readonly string[]).includes(predicate.fact)
+      && predicate.subject && !refs.roles.has(predicate.subject)) {
+    error(`${path}.subject`, 'Choose a declared assignment or leave it team-wide.');
   } else if ((WELL_FACTS as readonly string[]).includes(predicate.fact)) {
-    if (!predicate.subject || !['north', 'centre', 'south'].includes(predicate.subject))
-      error(`${path}.subject`, 'Choose north, centre or south.');
-  } else if ((ORDER_FACTS as readonly string[]).includes(predicate.fact)) {
-    if (!predicate.subject || !refs.orders.has(predicate.subject))
-      error(`${path}.subject`, 'Choose a declared order.');
+    if (!predicate.subject || !['north', 'centre', 'south', 'own', 'enemy'].includes(predicate.subject))
+      error(`${path}.subject`, 'Choose north, centre, south, own or enemy.');
   }
   const permitsFreshness = predicate.fact === 'remembered-enemies-in-zone'
     || predicate.fact === 'secured-cores';
@@ -726,20 +783,12 @@ function validateCustody(
   policy: CustodyPolicy,
   index: number,
   refs: {
-    roles: Set<string>; groups: Set<string>; zones: Set<string>;
-    routes: Set<string>; predicateIds: Set<string>;
+    roles: Set<string>; zones: Set<string>; routes: Set<string>; anchors: Set<string>;
+    predicateIds: Set<string>; conditionConsumers: Map<string, number>;
   },
   error: (path: string, message: string) => void,
 ) {
   const path = `custodyPolicies.${index}`;
-  list(policy.authorizedCarrierRoles, 1, 8, `${path}.authorizedCarrierRoles`, error);
-  policy.authorizedCarrierRoles?.forEach((role) => {
-    if (!refs.roles.has(role)) error(`${path}.authorizedCarrierRoles`, `Unknown assignment '${role}'.`);
-  });
-  list(policy.escortGroups, 0, 8, `${path}.escortGroups`, error);
-  policy.escortGroups?.forEach((group) => {
-    if (!refs.groups.has(group)) error(`${path}.escortGroups`, `Unknown group '${group}'.`);
-  });
   list(policy.sourceWells, 1, 3, `${path}.sourceWells`, error);
   policy.sourceWells?.forEach((well) => {
     if (!['north', 'centre', 'south'].includes(well)) error(`${path}.sourceWells`, `Unknown Well '${well}'.`);
@@ -753,9 +802,12 @@ function validateCustody(
     error(`${path}.dropRecovery`, 'Choose a supported drop recovery.');
   if (!['hold', 'guard', 'alternate-core', 'regroup'].includes(policy.unreachableFallback))
     error(`${path}.unreachableFallback`, 'Choose a supported unreachable fallback.');
-  if (policy.safeConversionAll === undefined)
-    error(`${path}.safeConversionAll`, 'Safe conversion needs 1–8 condition groups.');
-  validateConditionGroups(policy.safeConversionAll, `${path}.safeConversionAll`, error);
+  if (policy.pickupSelection !== undefined
+      && !['carrier-preference', 'nearest-authorized'].includes(policy.pickupSelection))
+    error(`${path}.pickupSelection`, 'Choose carrier preference or nearest authorized.');
+  if (!policy.safeConversion)
+    error(`${path}.safeConversion`, 'Choose when a carrier may convert a Core.');
+  validateCondition(policy.safeConversion, `${path}.safeConversion`, refs.predicateIds, refs.conditionConsumers, error);
   if (policy.deliveryRoutes !== undefined)
     list(policy.deliveryRoutes, 1, 8, `${path}.deliveryRoutes`, error);
   policy.deliveryRoutes?.forEach((entry) => {
@@ -765,30 +817,22 @@ function validateCustody(
   if (policy.baitDrop) {
     if (!refs.zones.has(policy.baitDrop.zone))
       error(`${path}.baitDrop.zone`, `Unknown zone '${policy.baitDrop.zone}'.`);
-    if (policy.baitDrop.reclaimAll !== undefined)
-      validateConditionGroups(policy.baitDrop.reclaimAll, `${path}.baitDrop.reclaimAll`, error);
-    else error(`${path}.baitDrop.reclaimAll`, 'Bait drop needs reclaim conditions.');
+    validateCondition(policy.baitDrop.reclaim, `${path}.baitDrop.reclaim`, refs.predicateIds, refs.conditionConsumers, error);
   }
   if (policy.forwardPass !== undefined
       && !['none', 'relay-catcher'].includes(policy.forwardPass))
     error(`${path}.forwardPass`, 'Choose none or relay-catcher.');
-}
-
-function validateConditionGroups(
-  value: unknown,
-  path: string,
-  error: (path: string, message: string) => void,
-) {
-  if (value === undefined) return;
-  if (!Array.isArray(value) || value.length < 1 || value.length > 8) {
-    error(path, 'Choose 1–8 condition groups.');
-    return;
+  if (policy.emergencyRecoveryZones !== undefined) {
+    policy.emergencyRecoveryZones.forEach((zone) => {
+      if (!refs.zones.has(zone)) error(`${path}.emergencyRecoveryZones`, `Unknown zone '${zone}'.`);
+    });
+    policy.emergencyRecoveryRoles?.forEach((role) => {
+      if (!refs.roles.has(role)) error(`${path}.emergencyRecoveryRoles`, `Unknown assignment '${role}'.`);
+    });
+    validateCondition(policy.emergencyRecovery, `${path}.emergencyRecovery`, refs.predicateIds, refs.conditionConsumers, error);
+    if (policy.emergencyDisplacementTarget && !refs.anchors.has(policy.emergencyDisplacementTarget))
+      error(`${path}.emergencyDisplacementTarget`, `Unknown anchor '${policy.emergencyDisplacementTarget}'.`);
   }
-  value.forEach((group, index) => {
-    const all = object(group).all;
-    if (!Array.isArray(all) || all.length < 1)
-      error(`${path}.${index}`, 'Each condition group needs at least one fact.');
-  });
 }
 
 function validateFight(
@@ -804,11 +848,11 @@ function validateFight(
   const targets = object(fight.targets);
   range(number(targets.lone), 0, 8, `${path}.targets.lone`, error);
   const prefer = readStringArray(targets.prefer);
-  if (prefer.length > 0 && (prefer.length < 1 || prefer.length > 5))
-    error(`${path}.targets.prefer`, 'Choose 1–5 target preferences.');
+  if (prefer.length > 0 && prefer.length > 6)
+    error(`${path}.targets.prefer`, 'Choose 1–6 target preferences.');
   duplicates(prefer, `${path}.targets.prefer`, error);
   prefer.forEach((value) => {
-    if (!['carrier', 'weakest', 'closest', 'strongest-threat', 'freshest'].includes(value))
+    if (!['carrier', 'weakest', 'anchor', 'closest', 'strongest-threat', 'freshest'].includes(value))
       error(`${path}.targets.prefer`, `Unknown target preference '${value}'.`);
   });
   const engage = object(fight.engage);
@@ -823,20 +867,51 @@ function validateFight(
   range(number(chase.leash), 0, 16, `${path}.chase.leash`, error);
   range(number(chase.persistTicks), 1, 120, `${path}.chase.persistTicks`, error);
   range(number(chase.executeBelowHealth), 0, 8, `${path}.chase.executeBelowHealth`, error);
+  if (chase.onlyCatchable !== undefined && typeof chase.onlyCatchable !== 'boolean')
+    error(`${path}.chase.onlyCatchable`, 'Only-catchable must be on or off.');
   const breakOff = object(fight.breakOff);
   range(number(breakOff.threats), 0, 8, `${path}.breakOff.threats`, error);
   range(number(breakOff.health), 0, 8, `${path}.breakOff.health`, error);
   range(number(breakOff.within), 2, 16, `${path}.breakOff.within`, error);
   range(number(breakOff.memoryTicks), 1, 120, `${path}.breakOff.memoryTicks`, error);
   range(number(breakOff.recoverTicks), 4, 120, `${path}.breakOff.recoverTicks`, error);
+  if (typeof breakOff.threats === 'number' && breakOff.threats > 0
+      && (breakOff.within === undefined || breakOff.memoryTicks === undefined))
+    error(`${path}.breakOff`, 'A threat break-off needs both range and memory.');
   const defense = object(fight.defense);
   range(number(defense.radius), 0, 16, `${path}.defense.radius`, error);
+  if (defense.return !== undefined && typeof defense.return !== 'boolean')
+    error(`${path}.defense.return`, 'Defense return must be on or off.');
+}
+
+function validateRepair(
+  repair: RepairBlock | undefined,
+  path: string,
+  error: (path: string, message: string) => void,
+) {
+  if (!repair) return;
+  const prefer = repair.prefer ?? [];
+  list(prefer, 1, 6, `${path}.prefer`, error);
+  duplicates(prefer, `${path}.prefer`, error);
+  prefer.forEach((value) => {
+    if (!['weakest', 'carrier', 'medic', 'focus', 'anchor', 'any'].includes(value))
+      error(`${path}.prefer`, `Unknown repair preference '${value}'.`);
+  });
+  range(repair.maximumProvidersPerTarget, 1, 8,
+    `${path}.maximumProvidersPerTarget`, error);
+  range(repair.minimumProviderSeparation, 0, 8,
+    `${path}.minimumProviderSeparation`, error);
+  range(repair.reserveHealthPercent, 0, 100,
+    `${path}.reserveHealthPercent`, error);
+  if (!['evade', 'regroup', 'hold', 'self-defense'].includes(repair.survivalFallback))
+    error(`${path}.survivalFallback`, 'Choose evade, regroup, hold or self-defense.');
 }
 
 function validateCondition(
   value: string | undefined,
   path: string,
   predicates: Set<string>,
+  consumers: Map<string, number>,
   error: (path: string, message: string) => void,
 ) {
   if (!value) return;
@@ -845,8 +920,35 @@ function validateCondition(
     return;
   }
   value.split(/ (?:and|or) /).forEach((id) => {
-    if (!predicates.has(id)) error(path, `Unknown predicate '${id}'.`);
+    if (id === 'always' || id === 'no-live-friendlies') return;
+    if (!predicates.has(id)) error(path, `Unknown trigger '${id}'.`);
+    else consumers.set(id, (consumers.get(id) ?? 0) + 1);
   });
+}
+
+function validateFocus(
+  focus: FocusDefinition | undefined,
+  path: string,
+  error: (path: string, message: string) => void,
+) {
+  if (!focus) {
+    error(path, 'Choose how many bodies may focus one target.');
+    return;
+  }
+  range(focus.maximumAttackers, 1, 8, `${path}.maximumAttackers`, error);
+}
+
+function validateCohort(
+  cohort: CohortDefinition | undefined,
+  path: string,
+  error: (path: string, message: string) => void,
+) {
+  if (!cohort) {
+    error(path, 'Choose a cohort size.');
+    return;
+  }
+  range(cohort.take, 1, 8, `${path}.take`, error);
+  if (cohort.select !== 'nearest') error(`${path}.select`, 'Cohorts select the nearest eligible bodies.');
 }
 
 function hasBreakOff(doctrine: Doctrine, modes: TacticalMode[]) {
@@ -854,20 +956,12 @@ function hasBreakOff(doctrine: Doctrine, modes: TacticalMode[]) {
   return modes.some((mode) => Object.keys(object(mode.fight?.breakOff)).length > 0);
 }
 
-export function normalizeEscorts(value: unknown): { role: string; posture?: string }[] {
-  const values = Array.isArray(value) ? value : value === undefined ? [] : [value];
-  return values.map((entry) => typeof entry === 'string'
-    ? { role: entry }
-    : { role: readString(entry, 'role'), posture: readOptionalString(entry, 'posture') });
-}
-
-export function predicateSubjectKind(fact: string): 'zone' | 'group' | 'group-zone' | 'role' | 'well' | 'order' | null {
-  if (fact === 'group-in-zone-count') return 'group-zone';
+export function predicateSubjectKind(fact: string): 'zone' | 'role-zone' | 'role' | 'optional-role' | 'well' | null {
+  if ((ROLE_ZONE_FACTS as readonly string[]).includes(fact)) return 'role-zone';
   if ((ZONE_FACTS as readonly string[]).includes(fact)) return 'zone';
-  if ((GROUP_FACTS as readonly string[]).includes(fact)) return 'group';
   if ((ROLE_FACTS as readonly string[]).includes(fact)) return 'role';
+  if ((OPTIONAL_ROLE_FACTS as readonly string[]).includes(fact)) return 'optional-role';
   if ((WELL_FACTS as readonly string[]).includes(fact)) return 'well';
-  if ((ORDER_FACTS as readonly string[]).includes(fact)) return 'order';
   return null;
 }
 
@@ -996,16 +1090,6 @@ function object(value: unknown): JsonObject {
 
 function number(value: unknown): number | undefined {
   return typeof value === 'number' ? value : undefined;
-}
-
-function readString(value: unknown, key: string): string {
-  const result = object(value)[key];
-  return typeof result === 'string' ? result : '';
-}
-
-function readOptionalString(value: unknown, key: string): string | undefined {
-  const result = object(value)[key];
-  return typeof result === 'string' ? result : undefined;
 }
 
 function readStringArray(value: unknown): string[] {

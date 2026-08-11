@@ -235,6 +235,44 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
     }
 
     [Fact]
+    public void CustodyPickupSelectionIsOptionalAndValidated()
+    {
+        JsonObject source = HunterSource();
+        source["custodyPolicies"]![0]!["pickupSelection"] =
+            "nearest-authorized";
+        string nearest = WriteBesideHunter(source);
+        try
+        {
+            TacticalPlaybookCompilation compilation =
+                ArcRelayTacticalPlaybookCompiler.Compile(nearest);
+            using JsonDocument normalized = JsonDocument.Parse(
+                compilation.NormalizedPlaybook);
+            DirectLadderRuntime runtime = DirectLadderRuntime.Create(
+                normalized.RootElement);
+            Assert.Equal("nearest-authorized", runtime.RuntimePlaybook
+                .CustodyPolicies[0].PickupSelection);
+        }
+        finally
+        {
+            File.Delete(nearest);
+        }
+
+        source = HunterSource();
+        source["custodyPolicies"]![0]!["pickupSelection"] = "random";
+        string invalid = WriteBesideHunter(source);
+        try
+        {
+            InvalidDataException error = Assert.Throws<InvalidDataException>(
+                () => ArcRelayTacticalPlaybookCompiler.Compile(invalid));
+            Assert.Contains("pickupSelection", error.Message);
+        }
+        finally
+        {
+            File.Delete(invalid);
+        }
+    }
+
+    [Fact]
     public void ExplainNamesAuthoredRungsAndAtl1()
     {
         string output = Directory.CreateTempSubdirectory(

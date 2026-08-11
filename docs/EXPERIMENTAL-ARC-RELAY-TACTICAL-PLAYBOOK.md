@@ -1,7 +1,7 @@
 # Arc Relay tactical playbook v1
 
 Status: **hosted source and direct runtime format**. Immutable entrant playlist
-v9 admits `arc-relay-tactical-playbook-v1` on the native Warren map. The exact
+v19 admits `arc-relay-tactical-playbook-v1` on the native Tapline map. The exact
 authoring and validation contract is [`SHEET-AUTHORING.md`](SHEET-AUTHORING.md);
 this page explains the implementation boundary.
 
@@ -16,7 +16,7 @@ native layout JSON ───┘
 ```
 
 The playbook contains composition, roles, custody policies, role doctrines,
-conditions, and four memory windows. The layout contains Warren-native zones,
+conditions, and four memory windows. The layout contains Tapline-native zones,
 routes, anchors, and side bindings. The playbook pins the layout's exact UTF-8
 bytes by SHA-256; geometry is never projected between maps.
 

@@ -30,6 +30,14 @@ const styles = readFileSync(
   new URL('../src/index.css', import.meta.url),
   'utf8',
 );
+const siteReview = readFileSync(
+  new URL('../vite.site-review.config.ts', import.meta.url),
+  'utf8',
+);
+const siteShots = readFileSync(
+  new URL('../../scripts/site-shots.mjs', import.meta.url),
+  'utf8',
+);
 
 test('primary navigation has one season-centred hierarchy on desktop and phone', () => {
   const desktop = [...shell.matchAll(/<TopLink to="([^"]+)">([^<]+)<\/TopLink>/g)]
@@ -73,29 +81,40 @@ test('ranked enrollment and immediate practice have different visible verbs', ()
   assert.match(workshop, /Practice is immediate and unranked/);
 });
 
-test('the phone shortcut navigates to one configured practice action', () => {
+test('the phone shortcut reruns the configured practice without duplicating setup', () => {
   assert.equal(workshop.match(/'Practice & watch'/g)?.length, 1);
-  assert.match(workshop, /Practice setup/);
+  assert.match(workshop, /practiceActionSeen && !practiceActionVisible/);
+  assert.match(workshop, /onClick=\{\(\) => void runTrial\(\)\}/);
+  assert.match(workshop, /btn btn-secondary fixed/);
+  assert.match(workshop, /Practice again/);
+  assert.doesNotMatch(workshop, /Practice setup/);
   assert.doesNotMatch(workshop, /Import JSON pair|Export pinned pair|layout sha256/);
+});
+
+test('practice is a secondary game action rather than a competing primary', () => {
+  assert.match(workshop, /practiceActionRef.*?btn btn-secondary/s);
+  assert.match(styles, /\.btn-secondary\s*\{[^}]*background:/s);
+  assert.match(styles, /\.btn-secondary-symbol\s*\{[^}]*color:\s*var\(--color-arena-material\)/s);
 });
 
 test('conditions and custody are focused doctrine tools rather than top-level steps', () => {
   assert.doesNotMatch(workshop, /id: 'conditions'|id: 'custody'/);
-  assert.match(workshop, /id: 'doctrines'.*path\.startsWith\('authoring'\).*path\.startsWith\('custodyPolicies'\)/s);
+  assert.match(workshop, /id: 'doctrines'.*path\.startsWith\('conditions'\).*path\.startsWith\('custodyPolicies'\)/s);
   assert.match(workshop, /title="Doctrine triggers"/);
   assert.match(workshop, /title="Core custody"/);
-  assert.match(workshop, /label: '3 Map'/);
+  assert.match(workshop, /label: '3 Tactics map'/);
 });
 
-test('doctrine authoring presents a tactical command board over the compiler schema', () => {
-  assert.match(workshop, /Tactical command board/);
+test('doctrine authoring presents a battle-plan board over the compiler schema', () => {
+  assert.match(workshop, /Give every assignment its own playbook/);
+  assert.match(workshop, /Six tactical verbs · one ordered ladder/);
   assert.match(workshop, /data-doctrine-select/);
-  assert.match(workshop, /classInfo\.signatureName/);
-  assert.match(workshop, /Choose action/);
-  assert.match(workshop, /Trigger library/);
-  assert.match(workshop, /WHEN \{predicateSentence\(predicate\)\}/);
-  assert.match(workshop, /Core relay plans/);
-  assert.match(workshop, /Advanced command-plan settings/);
+  assert.match(workshop, /entry\.name} · \{entry\.signatureName/);
+  assert.match(workshop, /Tactical action/);
+  assert.match(workshop, /Doctrine triggers/);
+  assert.match(workshop, /predicateSentence\(predicate\)/);
+  assert.match(workshop, /Core play/);
+  assert.match(workshop, /Coordination limits/);
 });
 
 test('composition turns compiler roles into editable player assignments', () => {
@@ -104,6 +123,7 @@ test('composition turns compiler roles into editable player assignments', () => 
   assert.match(workshop, /AssignmentNameEditor/);
   assert.match(workshop, /Eligible chassis · priority order/);
   assert.match(workshop, /Normal staffing target/);
+  assert.match(workshop, /entry\.unlocked \? `\$\{counts\.get\(entry\.id\) \?\? 0\}\/2` : 'locked'/);
   assert.match(workshop, /Advanced allocation rules/);
 });
 
@@ -115,5 +135,24 @@ test('custom-mind authoring is dormant on the launch web surface', () => {
 test('primary actions use the forge material and the dead site footer is gone', () => {
   assert.match(styles, /\.btn-primary\s*\{[^}]*background:\s*var\(--color-arena-material\)/s);
   assert.match(styles, /\.btn\s*\{[^}]*display:\s*inline-flex[^}]*line-height:\s*1\.15/s);
+  assert.match(styles, /html\[data-arena-mode='site'\]\s*\{\s*color-scheme:\s*dark;/s);
+  assert.doesNotMatch(styles, /prefers-color-scheme:\s*light/);
   assert.doesNotMatch(shell, /<footer|deterministic Arc Relay/);
+});
+
+test('the controlled browser review opens the current Tapline workshop', () => {
+  assert.match(siteReview, /hunter-tapline-v1\.json/);
+  assert.match(siteReview, /tapline-base-v1\.json/);
+  assert.match(siteReview, /\/api\/sheets\/catalog/);
+  assert.match(siteShots, /\['sheet-workshop', '\/entrants\/sheets\/new'\]/);
+});
+
+test('the tactics map names every authoritative Arc Relay landmark', () => {
+  assert.match(workshop, /Map landmark legend/);
+  assert.match(workshop, /Healing tile/);
+  assert.match(workshop, /Delivery zone/);
+  assert.match(workshop, /Protected spawn pad/);
+  assert.match(workshop, /Signature blocked/);
+  assert.match(workshop, /relationForSpawn/);
+  assert.match(workshop, /nearestSpawnTeam/);
 });

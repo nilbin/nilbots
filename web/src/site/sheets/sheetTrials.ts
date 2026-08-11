@@ -40,7 +40,7 @@ export function snapshotForTrial(draft: SheetDraft): TrialSnapshot {
   return {
     composition: JSON.stringify(draft.playbook.composition),
     doctrines: JSON.stringify(draft.playbook.doctrines),
-    conditions: JSON.stringify(draft.playbook.authoring?.predicates ?? {}),
+    conditions: JSON.stringify(draft.playbook.conditions ?? {}),
     custody: JSON.stringify(draft.playbook.custodyPolicies),
     geography: JSON.stringify({
       zones: draft.layout.zones,

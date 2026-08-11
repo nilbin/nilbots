@@ -7,10 +7,9 @@ using Microsoft.EntityFrameworkCore;
 namespace BotArena.App.Competition;
 
 /// <summary>
-/// Seeds the current immutable entrant lane. Playlist v13 started a fresh
-/// rating book for sticky authored routes. Playlist v14 deliberately starts
-/// another because loaded-carrier right-of-way changes the registered stock
-/// cell's gameplay-state digest; immutable v8-v13 ladders remain readable.
+/// Seeds the current immutable entrant lane. Playlist v19 deliberately starts
+/// a fresh rating book because Tapline replaces the Warren map line;
+/// immutable v8-v18 ladders remain readable.
 /// </summary>
 public sealed class ArcRelayEntrantPlaylistSeeder(
     AppDbContext db,
@@ -122,6 +121,56 @@ public sealed class ArcRelayEntrantPlaylistSeeder(
         {
             ArcRelayEntrantPlaylistDefinition.CreateHistoricalV13()
                 .Validate(playlist, stickyRouteVersion);
+        }
+        PlaylistVersion? carrierClearanceVersion = await db.PlaylistVersions
+            .SingleOrDefaultAsync(value => value.PlaylistId == playlist.Id &&
+                value.Version ==
+                    ArcRelayEntrantPlaylistDefinition.CarrierClearanceVersion,
+                cancellationToken);
+        if (carrierClearanceVersion is not null)
+        {
+            ArcRelayEntrantPlaylistDefinition.CreateHistoricalV14()
+                .Validate(playlist, carrierClearanceVersion);
+        }
+        PlaylistVersion? trafficDetourVersion = await db.PlaylistVersions
+            .SingleOrDefaultAsync(value => value.PlaylistId == playlist.Id &&
+                value.Version ==
+                    ArcRelayEntrantPlaylistDefinition.TrafficDetourVersion,
+                cancellationToken);
+        if (trafficDetourVersion is not null)
+        {
+            ArcRelayEntrantPlaylistDefinition.CreateHistoricalV15()
+                .Validate(playlist, trafficDetourVersion);
+        }
+        PlaylistVersion? stableCarrierVersion = await db.PlaylistVersions
+            .SingleOrDefaultAsync(value => value.PlaylistId == playlist.Id &&
+                value.Version ==
+                    ArcRelayEntrantPlaylistDefinition.StableCarrierVersion,
+                cancellationToken);
+        if (stableCarrierVersion is not null)
+        {
+            ArcRelayEntrantPlaylistDefinition.CreateHistoricalV16()
+                .Validate(playlist, stableCarrierVersion);
+        }
+        PlaylistVersion? looseCoreMemoryVersion = await db.PlaylistVersions
+            .SingleOrDefaultAsync(value => value.PlaylistId == playlist.Id &&
+                value.Version ==
+                    ArcRelayEntrantPlaylistDefinition.LooseCoreMemoryVersion,
+                cancellationToken);
+        if (looseCoreMemoryVersion is not null)
+        {
+            ArcRelayEntrantPlaylistDefinition.CreateHistoricalV17()
+                .Validate(playlist, looseCoreMemoryVersion);
+        }
+        PlaylistVersion? claimableCoreVersion = await db.PlaylistVersions
+            .SingleOrDefaultAsync(value => value.PlaylistId == playlist.Id &&
+                value.Version ==
+                    ArcRelayEntrantPlaylistDefinition.ClaimableCoreVersion,
+                cancellationToken);
+        if (claimableCoreVersion is not null)
+        {
+            ArcRelayEntrantPlaylistDefinition.CreateHistoricalV18()
+                .Validate(playlist, claimableCoreVersion);
         }
         PlaylistVersion? recoveryVersion = await db.PlaylistVersions
             .SingleOrDefaultAsync(value => value.PlaylistId == playlist.Id &&
@@ -257,8 +306,8 @@ public sealed class ArcRelayEntrantPlaylistSeeder(
             join version in db.PlaylistVersions
                 on ladder.PlaylistVersionId equals version.Id
             where version.PlaylistId == playlist.Id &&
-                version.Version ==
-                    ArcRelayEntrantPlaylistDefinition.StickyRouteVersion &&
+                version.Version == ArcRelayEntrantPlaylistDefinition
+                    .ClaimableCoreVersion &&
                 ladder.SeasonId == season.Id
             select new { Ladder = ladder, version.Version })
             .ToArrayAsync(cancellationToken);
@@ -268,8 +317,8 @@ public sealed class ArcRelayEntrantPlaylistSeeder(
         if (open.Length != 1)
         {
             throw new InvalidOperationException(
-                "An open Arc Relay Season 1 can start the fresh v14 rating " +
-                "book only from one open immutable v13 ladder.");
+                "An open Arc Relay Season 1 can start the fresh v19 Tapline " +
+                "rating book only from one open immutable v18 ladder.");
         }
         Ladder previous = open[0].Ladder;
         if (await db.ArcRelayEntrantRatings.AnyAsync(
@@ -277,7 +326,7 @@ public sealed class ArcRelayEntrantPlaylistSeeder(
                 cancellationToken))
         {
             throw new InvalidOperationException(
-                "The draft Arc Relay v14 ladder already contains ratings.");
+                "The draft Arc Relay v19 ladder already contains ratings.");
         }
 
         Guid[] entrants = await db.ArcRelayEntrants

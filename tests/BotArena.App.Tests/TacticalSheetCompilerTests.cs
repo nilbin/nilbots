@@ -72,7 +72,7 @@ public sealed class TacticalSheetCompilerTests
         Assert.Equal(roles, doctrineRoles);
 
         ActorMapDefinition map = ArcRelayH0Definition.CreateMap(
-            ArcRelayLoopProfile.AmbushWarren11);
+            ArcRelayLoopProfile.Current);
         Assert.Equal(map.Id,
             layout.RootElement.GetProperty("mapId").GetString());
         foreach (JsonElement zone in layout.RootElement.GetProperty("zones")
@@ -144,7 +144,7 @@ public sealed class TacticalSheetCompilerTests
                 legacyJson,
                 unlocked,
                 "legacy-counterflow"));
-        Assert.Contains("not migrated", legacyError.Message,
+        Assert.Contains("never migrated", legacyError.Message,
             StringComparison.OrdinalIgnoreCase);
         Assert.False(TacticalSheetCompiler.IsAdmissibleToCurrentPlaylist(legacyJson));
     }

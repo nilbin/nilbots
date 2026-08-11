@@ -40,6 +40,7 @@ import {
   replayMaxHealth,
 } from '../replayMetadata';
 import { createPresenter } from '../replayPresentation';
+import { settledStateTick } from '../render/tickClock';
 import { arcVeterancyFor } from '../replayArcVeterancy';
 import {
   isGenuineLookModel,
@@ -351,6 +352,8 @@ export interface ArenaActors {
     time: number,
     selectedUnitKey: ReplayStableUnitKey | null,
     showVisibility: boolean,
+    /** Master fog switch. Off reveals the whole arena, bodies included. */
+    showFog?: boolean,
   ) => void;
   /** Which bot, if any, is under a ray cast from the camera. */
   pick: (raycaster: THREE.Raycaster) => ReplayStableUnitKey | null;
@@ -1721,6 +1724,7 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     time: number,
     selectedUnitKey: ReplayStableUnitKey | null,
     showVisibility: boolean,
+    showFog = true,
   ) => {
     const tick = Math.max(
       0,
@@ -1732,6 +1736,16 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     // here, for the same reason the overlays take theirs from it: two
     // renderers deciding what "channelling" means is two answers.
     const presentation = presenter.at(tick);
+    // What a body is *carrying and doing* is end-of-tick state painted onto a hull that is
+    // still gliding across that tick, so it gets the hull's clock: a dash must not deliver
+    // its cargo before it lands. Everything else here is not attached to a body in flight.
+    const settledUnits = presenter.at(
+      settledStateTick(
+        tick,
+        Math.max(0, Math.min(time - tick, 1)),
+        replay.ticks.length,
+      ),
+    ).units;
     // Selection follows the team's collective recorded vision, shared with the flat
     // renderer. This reveals no omniscient state and avoids making the two views disagree.
     const teamVision = teamVisionAt(
@@ -1740,8 +1754,11 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       selectedUnitKey,
       showVisibility,
     );
+    // With fog switched off nothing is concealed, including bodies. Hiding actors while
+    // the terrain is fully lit would be the worst of both: the reviewer loses the mask
+    // that explains *why* a body is missing, and still cannot see it.
     const hidden = (pose: ReturnType<typeof posesAt>[number]) =>
-      !teamVisionSeesActor(teamVision, pose);
+      showFog && !teamVisionSeesActor(teamVision, pose);
 
     const events = currentTick?.events ?? [];
     const fraction = Math.max(0, Math.min(time - tick, 1));
@@ -1967,7 +1984,7 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       // What this body is doing about the two mechanics the arena now carries:
       // holding the point (or guarding whoever is), and whether it is worth
       // chasing across the map.
-      const mechanics = presentation.units.find(
+      const mechanics = settledUnits.find(
         (candidate) => candidate.unitKey === pose.unitKey,
       );
       const channelling =
