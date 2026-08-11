@@ -46,6 +46,7 @@ const kestrelTierPath = path.join(
   'art/class-models/runtime-tiers/arc-relay/meshy7-kestrel-review-v1/arc-kestrel-lean.glb',
 );
 const targetPlanformSpan = 0.99;
+const matteRoughnessFloor = 0.65;
 const facingCorrections = new Map([
   ['kestrel', {
     sourceFacing: '-x',
@@ -161,6 +162,7 @@ const entries = sourceAudit.entries.map((entry) => ({
     ? kestrelTierPath
     : path.join(tierDirectory, `arc-${entry.classId}-lean.glb`),
   reused: entry.classId === 'kestrel',
+  matteRoughnessFloor: entry.newInCurrentBatch ? matteRoughnessFloor : null,
 }));
 
 if (entries.length !== 16 || new Set(entries.map((entry) => entry.classId)).size !== 16)
@@ -228,6 +230,12 @@ const audit = {
             'Meshy original-UV PBR maps transplanted onto pinned source geometry; provider rewritten vertex/index streams are not used',
         }
       : {}),
+    ...(entries.some((entry) => entry.matteRoughnessFloor !== null)
+      ? {
+          matteFinish:
+            'Current-batch metallic-roughness green channel is deterministically floored at 0.65; raw provider artifacts, base color, metallic, normals, and retained approvals are unchanged',
+        }
+      : {}),
     tangentSpace:
       'normal-mapped without authored tangents; Three.js derivative tangent-space review required',
   },
@@ -278,6 +286,7 @@ function buildProfiles() {
       console.log(`Building ${entry.classId} lean review tier...`);
       const settings = { ...profile, ...profileOverrides.get(entry.classId) };
       const materialized = path.join(temporary, `${entry.classId}-materialized.glb`);
+      const matteMaterialized = path.join(temporary, `${entry.classId}-matte-materialized.glb`);
       const normalized = path.join(temporary, `${entry.classId}-normalized.glb`);
       const optimized = path.join(temporary, `${entry.classId}-optimized.glb`);
       if (entry.geometrySourcePath !== entry.sourcePath)
@@ -287,9 +296,21 @@ function buildProfiles() {
           entry.sourcePath,
           materialized,
         ]);
+      if (entry.matteRoughnessFloor !== null)
+        run(process.execPath, [
+          path.join(repository, 'scripts/class-models/enforce-matte-roughness.mjs'),
+          materialized,
+          matteMaterialized,
+          String(entry.matteRoughnessFloor),
+        ]);
+      const normalizationInput = entry.matteRoughnessFloor !== null
+        ? matteMaterialized
+        : entry.geometrySourcePath === entry.sourcePath
+          ? entry.sourcePath
+          : materialized;
       run(process.execPath, [
         path.join(repository, 'scripts/class-models/normalize-provider-glb.mjs'),
-        entry.geometrySourcePath === entry.sourcePath ? entry.sourcePath : materialized,
+        normalizationInput,
         normalized,
         String(targetPlanformSpan),
         'identity',
@@ -383,6 +404,16 @@ function inspectEntry(entry) {
       sum + (document.accessors?.[primitive.attributes?.POSITION]?.count ?? 0),
     0,
   );
+  const matteMetadata = document.asset?.extras?.nilbotsMatteRoughness;
+  if (
+    entry.matteRoughnessFloor !== null &&
+    (matteMetadata?.floor !== entry.matteRoughnessFloor ||
+      matteMetadata?.minimumAfter < entry.matteRoughnessFloor ||
+      matteMetadata?.baseColorChanged !== false ||
+      matteMetadata?.metallicChanged !== false ||
+      matteMetadata?.normalChanged !== false)
+  )
+    throw new Error(`${entry.classId}: matte roughness provenance is missing or invalid.`);
   return {
     classId: entry.classId,
     taskId: entry.taskId,
@@ -407,6 +438,9 @@ function inspectEntry(entry) {
           sha256: entry.rawModel.sha256,
         },
     reusedReviewedKestrel: entry.reused,
+    ...(entry.matteRoughnessFloor !== null
+      ? { matteRoughness: matteMetadata }
+      : {}),
     facing: {
       sourceFacing: entry.facingCorrection.sourceFacing,
       targetFacing: '+x',

@@ -22,9 +22,15 @@
       import * as THREE from 'three';
       import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
+      const search = new URLSearchParams(location.search);
+      const transparent = search.get('transparent') === '1';
       const width = innerWidth;
       const height = innerHeight;
-      const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+      const renderer = new THREE.WebGLRenderer({
+        antialias: true,
+        alpha: transparent,
+        preserveDrawingBuffer: transparent,
+      });
       renderer.setPixelRatio(1);
       renderer.setSize(width, height);
       renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -33,7 +39,8 @@
       document.body.append(renderer.domElement);
 
       const scene = new THREE.Scene();
-      scene.background = new THREE.Color('#17191c');
+      scene.background = transparent ? null : new THREE.Color('#17191c');
+      if (transparent) renderer.setClearColor(0x000000, 0);
       scene.add(new THREE.HemisphereLight('#fffaf0', '#343a43', 2.8));
       const key = new THREE.DirectionalLight('#fff2d5', 3.4);
       key.position.set(3, 5, -4);
@@ -42,9 +49,9 @@
       fill.position.set(-4, 2, 3);
       scene.add(fill);
 
-      const modelUrl = new URLSearchParams(location.search).get('model');
+      const modelUrl = search.get('model');
       if (!modelUrl) throw new Error('Missing ?model URL.');
-      const view = new URLSearchParams(location.search).get('view') ?? 'front-three-quarter';
+      const view = search.get('view') ?? 'front-three-quarter';
       const gltf = await new GLTFLoader().loadAsync(modelUrl);
       const model = gltf.scene;
       scene.add(model);
@@ -65,12 +72,14 @@
         'negative-x': new THREE.Vector3(-1, 0.12, 0),
         'positive-z': new THREE.Vector3(0, 0.12, 1),
         'negative-z': new THREE.Vector3(0, 0.12, -1),
+        'top-down': new THREE.Vector3(0, 1, 0),
       };
       const cameraVector = cameraVectors[view];
       if (!cameraVector) throw new Error(`Unknown ?view=${view}.`);
       // The default is the fleet's canonical +X-front review camera. Cardinal views are
       // diagnostic: they let the raw provider output be compared with its pinned source.
-      camera.position.copy(cameraVector.normalize().multiplyScalar(4));
+      if (view === 'top-down') camera.up.set(0, 0, -1);
+      camera.position.copy(target).add(cameraVector.normalize().multiplyScalar(4));
       camera.lookAt(target);
       camera.updateMatrixWorld();
 

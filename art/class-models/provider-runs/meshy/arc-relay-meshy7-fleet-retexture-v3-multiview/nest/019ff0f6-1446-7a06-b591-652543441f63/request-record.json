@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 1,
+  "provider": "Meshy",
+  "endpoint": "retexture",
+  "providerModel": "meshy-7",
+  "classId": "nest",
+  "taskId": "019ff0f6-1446-7a06-b591-652543441f63",
+  "submittedAt": "2026-08-11T13:14:49.937Z",
+  "balanceBeforeBatch": 1570,
+  "authorizedCreditCap": 10,
+  "sourcePlan": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet-retexture-v3-multiview/plan.json",
+  "sourceTaskId": "019ff041-45de-77fd-9a69-756ea195da64",
+  "sourceModel": {
+    "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/nest/019ff041-45de-77fd-9a69-756ea195da64/raw-model.glb",
+    "bytes": 64835308,
+    "sha256": "3e6874d5d1da75592169654802d3a052d9aa67a73881a799791f4f89199d05a2",
+    "triangles": 1997498,
+    "meshes": 1,
+    "materials": 1,
+    "textures": 4,
+    "imageMimeTypes": [
+      "image/jpeg"
+    ]
+  },
+  "styleAuthority": {
+    "kind": "ordered-multiview-brighter-v1",
+    "materialPolicy": {
+      "finish": "matte/satin high-roughness industrial surfaces",
+      "sourceDirection": "muted powder-coated metal and technical ceramic with satin roughness, oxidized hardware, restrained wear, and no toy gloss, neon, pastel, or near-black dominant hulls",
+      "promptLog": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/CONCEPT-SHEET-V7-PROMPT.md",
+      "promptLogSha256": "551114997dc2b8165a753864f3855e99c75bbeca55ca41add8d3634fb9aff3c8",
+      "prohibitedCues": [
+        "glossy plastic",
+        "clearcoat",
+        "lacquer",
+        "wet highlights",
+        "toy gloss"
+      ],
+      "transformEffect": "The deterministic value lift changes RGB tone only; it adds no saturation, synthetic highlight, reflection, or gloss cue.",
+      "enforcement": "Only the pinned four-view matte/satin V7 derivatives are submitted; the retexture request contains no competing text-style input."
+    },
+    "valueAudit": {
+      "sampledObjectPixels": 26283,
+      "medianLuminance": 77.91179999999999,
+      "upperQuartileLuminance": 116.31979999999999,
+      "meanLuminance": 88.1422923867136
+    },
+    "inputs": [
+      {
+        "order": 1,
+        "view": "strict-front",
+        "primary": true,
+        "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/nest/01-front.png",
+        "sha256": "f894765ac16919784663dc3936bf6dcd2394da2c6787969b98b67907ef6f431d",
+        "width": 1536,
+        "height": 1024,
+        "bytes": 1461505
+      },
+      {
+        "order": 2,
+        "view": "strict-right",
+        "primary": false,
+        "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/nest/02-right.png",
+        "sha256": "be51eec4a78a21248aab26e41a17da291b767a961cd82554c7e64cecc62120d4",
+        "width": 1536,
+        "height": 1024,
+        "bytes": 1008270
+      },
+      {
+        "order": 3,
+        "view": "strict-back",
+        "primary": false,
+        "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/nest/03-back.png",
+        "sha256": "ecbc1f1f5282f84e4803071baaa854f98ddf76785c92b1fcf107e49d4ed1e783",
+        "width": 1536,
+        "height": 1024,
+        "bytes": 1204107
+      },
+      {
+        "order": 4,
+        "view": "front-right-three-quarter",
+        "primary": false,
+        "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/nest/04-front-right-three-quarter.png",
+        "sha256": "0091094f2745ab4ba34c76d80c9b4eb76198450798f603ac6cf85b0c0d2e5c05",
+        "width": 1536,
+        "height": 1024,
+        "bytes": 1497814
+      }
+    ]
+  },
+  "settings": {
+    "model_url": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ff041-45de-77fd-9a69-756ea195da64/output/model.glb",
+    "ai_model": "meshy-7",
+    "enable_original_uv": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "alpha_thumbnail": true,
+    "target_formats": [
+      "glb"
+    ]
+  },
+  "pricingSource": "https://docs.meshy.ai/en/api/pricing",
+  "licenseTerms": "https://www.meshy.ai/terms"
+}

@@ -1,0 +1,1057 @@
+{
+  "schemaVersion": 1,
+  "status": "paid-retexture-inputs-authorized",
+  "purpose": "Ordered multiview texture authority for the fourteen non-Kestrel/non-Palisade Arc Relay retextures, with a restrained owner-directed value lift",
+  "materialPolicy": {
+    "finish": "matte/satin high-roughness industrial surfaces",
+    "sourceDirection": "muted powder-coated metal and technical ceramic with satin roughness, oxidized hardware, restrained wear, and no toy gloss, neon, pastel, or near-black dominant hulls",
+    "promptLog": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/CONCEPT-SHEET-V7-PROMPT.md",
+    "promptLogSha256": "551114997dc2b8165a753864f3855e99c75bbeca55ca41add8d3634fb9aff3c8",
+    "prohibitedCues": [
+      "glossy plastic",
+      "clearcoat",
+      "lacquer",
+      "wet highlights",
+      "toy gloss"
+    ],
+    "transformEffect": "The deterministic value lift changes RGB tone only; it adds no saturation, synthetic highlight, reflection, or gloss cue."
+  },
+  "transform": {
+    "operation": "per-channel linear tonal lift",
+    "multiplier": 0.88,
+    "offset": 25,
+    "rationale": "Lift shadows and midtones above approved Palisade while preserving near-white highlights and reducing contrast rather than increasing saturation."
+  },
+  "retainedUnchanged": [
+    "kestrel",
+    "palisade"
+  ],
+  "brightnessReference": {
+    "classId": "palisade",
+    "input": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/palisade-v1/04-front-right-three-quarter.png",
+    "sampledObjectPixels": 28555,
+    "medianLuminance": 73.3026,
+    "upperQuartileLuminance": 97.565,
+    "meanLuminance": 72.20737721589967
+  },
+  "valueAuditMethod": "384x256 RGB sample; retain pixels with luminance below 205 or HSV saturation above 0.14; compare median Rec.709 luminance",
+  "entries": [
+    {
+      "classId": "kestrel",
+      "retainedUnchanged": true,
+      "inputs": [
+        {
+          "order": 1,
+          "view": "strict-front",
+          "file": "01-front.png",
+          "sha256": "03f9c58f61db90b3414dc5d0a9646947e0376f6f44b3898606e1b8bfa2371441",
+          "width": 1536,
+          "height": 1024,
+          "primary": true,
+          "source": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/kestrel-v1/01-front.png",
+          "output": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/kestrel-v1/01-front.png",
+          "outputSha256": "03f9c58f61db90b3414dc5d0a9646947e0376f6f44b3898606e1b8bfa2371441",
+          "transformApplied": false
+        },
+        {
+          "order": 2,
+          "view": "strict-right",
+          "file": "02-right.png",
+          "sha256": "b98c57bd5886b4daafd5bb6e3a80ed8e598b9b09148a3bf11496f6c6fa6cda84",
+          "width": 1536,
+          "height": 1024,
+          "primary": false,
+          "source": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/kestrel-v1/02-right.png",
+          "output": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/kestrel-v1/02-right.png",
+          "outputSha256": "b98c57bd5886b4daafd5bb6e3a80ed8e598b9b09148a3bf11496f6c6fa6cda84",
+          "transformApplied": false
+        },
+        {
+          "order": 3,
+          "view": "strict-back",
+          "file": "03-back.png",
+          "sha256": "0d1f328e5aceafae0e30bfe5937c6fb0e79815e78c62068361537a521dc8d883",
+          "width": 1536,
+          "height": 1024,
+          "primary": false,
+          "source": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/kestrel-v1/03-back.png",
+          "output": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/kestrel-v1/03-back.png",
+          "outputSha256": "0d1f328e5aceafae0e30bfe5937c6fb0e79815e78c62068361537a521dc8d883",
+          "transformApplied": false
+        },
+        {
+          "order": 4,
+          "view": "front-right-three-quarter",
+          "file": "04-front-right-three-quarter.png",
+          "sha256": "ed596ed27719bfeea14c4264a1ab7c63003bd6e9f41c0a29ddb5f27e2ff98df8",
+          "width": 1536,
+          "height": 1024,
+          "primary": false,
+          "source": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/kestrel-v1/04-front-right-three-quarter.png",
+          "output": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/kestrel-v1/04-front-right-three-quarter.png",
+          "outputSha256": "ed596ed27719bfeea14c4264a1ab7c63003bd6e9f41c0a29ddb5f27e2ff98df8",
+          "transformApplied": false
+        }
+      ]
+    },
+    {
+      "classId": "palisade",
+      "retainedUnchanged": true,
+      "inputs": [
+        {
+          "order": 1,
+          "view": "strict-front",
+          "file": "01-front.png",
+          "sha256": "fd640f1dc45bebe8e594b5ceb40c8117adfa30f0169f18c4e70f09cb556c5aa7",
+          "width": 1536,
+          "height": 1024,
+          "primary": true,
+          "source": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/palisade-v1/01-front.png",
+          "output": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/palisade-v1/01-front.png",
+          "outputSha256": "fd640f1dc45bebe8e594b5ceb40c8117adfa30f0169f18c4e70f09cb556c5aa7",
+          "transformApplied": false
+        },
+        {
+          "order": 2,
+          "view": "strict-right",
+          "file": "02-right.png",
+          "sha256": "f7069cd8593f40de9f24472b29fde58f2bc69c90e3b38a3f865458053f51772b",
+          "width": 1536,
+          "height": 1024,
+          "primary": false,
+          "source": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/palisade-v1/02-right.png",
+          "output": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/palisade-v1/02-right.png",
+          "outputSha256": "f7069cd8593f40de9f24472b29fde58f2bc69c90e3b38a3f865458053f51772b",
+          "transformApplied": false
+        },
+        {
+          "order": 3,
+          "view": "strict-back",
+          "file": "03-back.png",
+          "sha256": "9f2b33f9d6fbc001053c2c5a303ba1102a75424c96b479428dc77b72baa4b027",
+          "width": 1536,
+          "height": 1024,
+          "primary": false,
+          "source": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/palisade-v1/03-back.png",
+          "output": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/palisade-v1/03-back.png",
+          "outputSha256": "9f2b33f9d6fbc001053c2c5a303ba1102a75424c96b479428dc77b72baa4b027",
+          "transformApplied": false
+        },
+        {
+          "order": 4,
+          "view": "front-right-three-quarter",
+          "file": "04-front-right-three-quarter.png",
+          "sha256": "c7bda5c90a14ff66553f5429c84f363ba779b86d6b452f50d54016343b99ae9e",
+          "width": 1536,
+          "height": 1024,
+          "primary": false,
+          "source": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/palisade-v1/04-front-right-three-quarter.png",
+          "output": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/palisade-v1/04-front-right-three-quarter.png",
+          "outputSha256": "c7bda5c90a14ff66553f5429c84f363ba779b86d6b452f50d54016343b99ae9e",
+          "transformApplied": false
+        }
+      ]
+    },
+    {
+      "classId": "towline",
+      "retainedUnchanged": false,
+      "inputs": [
+        {
+          "order": 1,
+          "view": "strict-front",
+          "file": "01-front.png",
+          "sha256": "f8883598b665c5f92c1f15f21dd40093babfade62d37e6d330939e3a0fd5b1e4",
+          "width": 1536,
+          "height": 1024,
+          "primary": true,
+          "source": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/towline-v1/01-front.png",
+          "output": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/towline/01-front.png",
+          "outputSha256": "400ac7f34c4d127ae31a5dad605453130a7eca43daf0c16c7f64c26f6442c8a8",
+          "transformApplied": true
+        },
+        {
+          "order": 2,
+          "view": "strict-right",
+          "file": "02-right.png",
+          "sha256": "d60f75d38c6fee1e54288fc82b08fce8c1ff3b045ace197e7d4f9b688e2a0494",
+          "width": 1536,
+          "height": 1024,
+          "primary": false,
+          "source": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/towline-v1/02-right.png",
+          "output": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/towline/02-right.png",
+          "outputSha256": "eea2df98233ab33faeedfefddc0b7d832432676bcc0d627b11e1033d2c76cbe2",
+          "transformApplied": true
+        },
+        {
+          "order": 3,
+          "view": "strict-back",
+          "file": "03-back.png",
+          "sha256": "891c83f7404fd477a08867faad1b62b2155ac00a0532d39f37e7da15f49f9745",
+          "width": 1536,
+          "height": 1024,
+          "primary": false,
+          "source": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/towline-v1/03-back.png",
+          "output": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/towline/03-back.png",
+          "outputSha256": "5f6dc6acf07c00180ab1169db2bdca287ffd9612107c5e5269abf85d0c24da5a",
+          "transformApplied": true
+        },
+        {
+          "order": 4,
+          "view": "front-right-three-quarter",
+          "file": "04-front-right-three-quarter.png",
+          "sha256": "919c14fb680e979c9ad2a0a28aad6068b0f3b5629ab1d4358f7ba772a9384912",
+          "width": 1536,
+          "height": 1024,
+          "primary": false,
+          "source": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/towline-v1/04-front-right-three-quarter.png",
+          "output": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/towline/04-front-right-three-quarter.png",
+          "outputSha256": "fb45e80f0e4ecd4a7a6b31b75ac277d11b1fafe9114225c08c69e5cb76180c14",
+          "transformApplied": true
+        }
+      ],
+      "valueAudit": {
+        "sampledObjectPixels": 27006,
+        "medianLuminance": 106.1278,
+        "upperQuartileLuminance": 154.6224,
+        "meanLuminance": 108.88286162334242
+      }
+    },
+    {
+      "classId": "patchbay",
+      "retainedUnchanged": false,
+      "inputs": [
+        {
+          "order": 1,
+          "view": "strict-front",
+          "file": "01-front.png",
+          "sha256": "d58bd7dbbfccb78f73549880d41416af823597ef6f1c79bdb1e2dcf5d382e52f",
+          "width": 1536,
+          "height": 1024,
+          "primary": true,
+          "source": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/patchbay-v1/01-front.png",
+          "output": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/patchbay/01-front.png",
+          "outputSha256": "6348794f5568cba5f196a6c3e945ff206b49b512dec0aeedfef62e2ed84023f1",
+          "transformApplied": true
+        },
+        {
+          "order": 2,
+          "view": "strict-right",
+          "file": "02-right.png",
+          "sha256": "b7545705bd00abde3704ffe40f27111986108ad28d7a8b17f74f02204e3a233c",
+          "width": 1536,
+          "height": 1024,
+          "primary": false,
+          "source": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/patchbay-v1/02-right.png",
+          "output": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/patchbay/02-right.png",
+          "outputSha256": "120ea8aae528b71d557b1bce2b3604cd38fc7db468c50f8abf72dc6b3a6b4234",
+          "transformApplied": true
+        },
+        {
+          "order": 3,
+          "view": "strict-back",
+          "file": "03-back.png",
+          "sha256": "cf3bcb2f889f46acfe92d5c3741cd2cdfa9c0bc62289922e9ccb35f98cb599af",
+          "width": 1536,
+          "height": 1024,
+          "primary": false,
+          "source": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/patchbay-v1/03-back.png",
+          "output": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/patchbay/03-back.png",
+          "outputSha256": "c2566d5c9767284b46ef543b7266e2c97fa7cb6593d2dae4c2ad67825e85de1e",
+          "transformApplied": true
+        },
+        {
+          "order": 4,
+          "view": "front-right-three-quarter",
+          "file": "04-front-right-three-quarter.png",
+          "sha256": "8ee460146779817bf46f66c1550fe80336768275139a7a3ee2db1228b4f19772",
+          "width": 1536,
+          "height": 1024,
+          "primary": false,
+          "source": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/patchbay-v1/04-front-right-three-quarter.png",
+          "output": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/patchbay/04-front-right-three-quarter.png",
+          "outputSha256": "c759d7af58aa78cbae587c20949f7272c5ef6fe305cad7569e2df28bc564f7ce",
+          "transformApplied": true
+        }
+      ],
+      "valueAudit": {
+        "sampledObjectPixels": 23215,
+        "medianLuminance": 121.7124,
+        "upperQuartileLuminance": 159.0746,
+        "meanLuminance": 119.57218840405271
+      }
+    },
+    {
+      "classId": "lantern",
+      "retainedUnchanged": false,
+      "inputs": [
+        {
+          "order": 1,
+          "view": "strict-front",
+          "file": "01-front.png",
+          "sha256": "eb6522db03c2d212f9ee376941510c55654b3e66541df74798e1a9f8d40b7281",
+          "width": 1536,
+          "height": 1024,
+          "primary": true,
+          "source": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/lantern-v1/01-front.png",
+          "output": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/lantern/01-front.png",
+          "outputSha256": "2fcbf419ce296b6c696e753980f1c298701403b99b7b461ef01ace991f56b014",
+          "transformApplied": true
+        },
+        {
+          "order": 2,
+          "view": "strict-right",
+          "file": "02-right.png",
+          "sha256": "52365e947dd37228b2f5296c7106e15f0c13c9d94cb2b1ac7d11bed6f129001b",
+          "width": 1536,
+          "height": 1024,
+          "primary": false,
+          "source": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/lantern-v1/02-right.png",
+          "output": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/lantern/02-right.png",
+          "outputSha256": "59e02a7c5283350a11fa0854ebf47c8c649280e788e241cff93b57bf62880fc7",
+          "transformApplied": true
+        },
+        {
+          "order": 3,
+          "view": "strict-back",
+          "file": "03-back.png",
+          "sha256": "fab1f7685ee66f91272a2407549f296a160d72d0684a5cd6505618e1ba8dc8aa",
+          "width": 1536,
+          "height": 1024,
+          "primary": false,
+          "source": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/lantern-v1/03-back.png",
+          "output": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/lantern/03-back.png",
+          "outputSha256": "a4b530e5ab3e9365541aa651a03b5db9626769040aa06d746277208eaf2d2ff7",
+          "transformApplied": true
+        },
+        {
+          "order": 4,
+          "view": "front-right-three-quarter",
+          "file": "04-front-right-three-quarter.png",
+          "sha256": "9b8d3ea404f58d7f9dd82b172280aee57da87042161cb7808c3afd0774413b6a",
+          "width": 1536,
+          "height": 1024,
+          "primary": false,
+          "source": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/lantern-v1/04-front-right-three-quarter.png",
+          "output": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/lantern/04-front-right-three-quarter.png",
+          "outputSha256": "d72c02fe8878a99ad6c6b9a99c5a0162cb749e655a81f511393e5e730b7a36ec",
+          "transformApplied": true
+        }
+      ],
+      "valueAudit": {
+        "sampledObjectPixels": 24342,
+        "medianLuminance": 80.408,
+        "upperQuartileLuminance": 121.0434,
+        "meanLuminance": 94.93060868457795
+      }
+    },
+    {
+      "classId": "mortar",
+      "retainedUnchanged": false,
+      "inputs": [
+        {
+          "order": 1,
+          "view": "strict-front",
+          "file": "01-front.png",
+          "sha256": "b8c353eafab5c8ac8e9447ec2d193080b8f732f1f5b677ad1cac8f2b22ddbe82",
+          "width": 1536,
+          "height": 1024,
+          "primary": true,
+          "source": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/mortar-v1/01-front.png",
+          "output": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/mortar/01-front.png",
+          "outputSha256": "8ba6517551a534d93fa6b1b025a3397ae5dfe075d76f299b11b01497a404bfac",
+          "transformApplied": true
+        },
+        {
+          "order": 2,
+          "view": "strict-right",
+          "file": "02-right.png",
+          "sha256": "39e3b6f7135e61be319c545fe6825683c32432af6edf150b445b2717905419df",
+          "width": 1536,
+          "height": 1024,
+          "primary": false,
+          "source": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/mortar-v1/02-right.png",
+          "output": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/mortar/02-right.png",
+          "outputSha256": "581c677f8a11073899882ddec66e5522a74801dcb170d7bfa6c4140a05bc4c16",
+          "transformApplied": true
+        },
+        {
+          "order": 3,
+          "view": "strict-back",
+          "file": "03-back.png",
+          "sha256": "e0e58c7974376e7888cfe6472419ee1247cdd18081ccc801306258402b96cb13",
+          "width": 1536,
+          "height": 1024,
+          "primary": false,
+          "source": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/mortar-v1/03-back.png",
+          "output": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/mortar/03-back.png",
+          "outputSha256": "436f95b0456c3aec985c511f104d298b4901355a7b58d37d0161e8dcb86c1db9",
+          "transformApplied": true
+        },
+        {
+          "order": 4,
+          "view": "front-right-three-quarter",
+          "file": "04-front-right-three-quarter.png",
+          "sha256": "af3b054792150964c86fe017d7de627980043df9756be305f5bee2cf5dc18ad4",
+          "width": 1536,
+          "height": 1024,
+          "primary": false,
+          "source": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/mortar-v1/04-front-right-three-quarter.png",
+          "output": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/mortar/04-front-right-three-quarter.png",
+          "outputSha256": "a4caf3a1a10ed3c1705c9d302345e3182132b919184297cbaf1457697871cb95",
+          "transformApplied": true
+        }
+      ],
+      "valueAudit": {
+        "sampledObjectPixels": 26923,
+        "medianLuminance": 86.8556,
+        "upperQuartileLuminance": 108.56,
+        "meanLuminance": 87.96081716004917
+      }
+    },
+    {
+      "classId": "minesmith",
+      "retainedUnchanged": false,
+      "inputs": [
+        {
+          "order": 1,
+          "view": "strict-front",
+          "file": "01-front.png",
+          "sha256": "98a3d6ca32d4b07e361991a075b03f84fc4ad604bed34a0e48608d3f440553a8",
+          "width": 1536,
+          "height": 1024,
+          "primary": true,
+          "source": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/minesmith-v1/01-front.png",
+          "output": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/minesmith/01-front.png",
+          "outputSha256": "7b536708c11c0bc4a2d257616ee22e78a2468d52c39c95f845d2b44090ea9829",
+          "transformApplied": true
+        },
+        {
+          "order": 2,
+          "view": "strict-right",
+          "file": "02-right.png",
+          "sha256": "d96224d65ae2e917bbcd07254b27e3f08025cb4ecbdf07ad7ebddfabb3e45710",
+          "width": 1536,
+          "height": 1024,
+          "primary": false,
+          "source": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/minesmith-v1/02-right.png",
+          "output": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/minesmith/02-right.png",
+          "outputSha256": "07205fc6f95d9f693f442b7b6c0f465214479a57fc5a1dbb8867400164154aea",
+          "transformApplied": true
+        },
+        {
+          "order": 3,
+          "view": "strict-back",
+          "file": "03-back.png",
+          "sha256": "6c5506e6f3a18282ffc316c40bb1b9527e013b7e687bc71ac2c1f36a9053a1d2",
+          "width": 1536,
+          "height": 1024,
+          "primary": false,
+          "source": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/minesmith-v1/03-back.png",
+          "output": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/minesmith/03-back.png",
+          "outputSha256": "f7851994769e191fe057be7cde913de423f0fa67002a898988a6cfe307b769ea",
+          "transformApplied": true
+        },
+        {
+          "order": 4,
+          "view": "front-right-three-quarter",
+          "file": "04-front-right-three-quarter.png",
+          "sha256": "d0a5978d1c616b51bf7cc02e47299f809d7ce33bd77096b26ed802dc3ba1862c",
+          "width": 1536,
+          "height": 1024,
+          "primary": false,
+          "source": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/minesmith-v1/04-front-right-three-quarter.png",
+          "output": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/minesmith/04-front-right-three-quarter.png",
+          "outputSha256": "61d73618ab7f3cbcbf0cc929dd492f15ec0db48dd7d3ec823d4edfff4a7a786b",
+          "transformApplied": true
+        }
+      ],
+      "valueAudit": {
+        "sampledObjectPixels": 27675,
+        "medianLuminance": 82.06819999999999,
+        "upperQuartileLuminance": 104.89479999999999,
+        "meanLuminance": 84.41881624570821
+      }
+    },
+    {
+      "classId": "hush",
+      "retainedUnchanged": false,
+      "inputs": [
+        {
+          "order": 1,
+          "view": "strict-front",
+          "file": "01-front.png",
+          "sha256": "54f2b2b5aafdd6eb5e82dd2c8195e0dad566d6f9e5360be0510e9aa63dad0160",
+          "width": 1536,
+          "height": 1024,
+          "primary": true,
+          "source": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/hush-v1/01-front.png",
+          "output": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/hush/01-front.png",
+          "outputSha256": "2d60d535e82089ec7fde7a9b85bbf2a2b4122d7bd1f8850fcb2d16927be2d615",
+          "transformApplied": true
+        },
+        {
+          "order": 2,
+          "view": "strict-right",
+          "file": "02-right.png",
+          "sha256": "ad9af913be7f62f0c6390ae25ed1f7b1103ef8feaaa05394de13d45e46e79ae6",
+          "width": 1536,
+          "height": 1024,
+          "primary": false,
+          "source": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/hush-v1/02-right.png",
+          "output": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/hush/02-right.png",
+          "outputSha256": "bd47101fd690142bf694261047acd5e91e2d7ececec3f87506367c9034ef9052",
+          "transformApplied": true
+        },
+        {
+          "order": 3,
+          "view": "strict-back",
+          "file": "03-back.png",
+          "sha256": "7c88be04da9a5ffd4020634fe79c5d3fefad50ed7b23c764e55f4124861616e5",
+          "width": 1536,
+          "height": 1024,
+          "primary": false,
+          "source": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/hush-v1/03-back.png",
+          "output": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/hush/03-back.png",
+          "outputSha256": "97a23c9893f9c4821817f473028c36d1b75d401e19dfdb7a98462a50afb9216d",
+          "transformApplied": true
+        },
+        {
+          "order": 4,
+          "view": "front-right-three-quarter",
+          "file": "04-front-right-three-quarter.png",
+          "sha256": "d499e989d113a71d7bf6715a42a5f3fe076b4f76a044c9c27edb5167de604a77",
+          "width": 1536,
+          "height": 1024,
+          "primary": false,
+          "source": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/hush-v1/04-front-right-three-quarter.png",
+          "output": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/hush/04-front-right-three-quarter.png",
+          "outputSha256": "cf561fc340a2ebaa38fd2dedafacafda2c6577430968983c303dfd1bfc6eed73",
+          "transformApplied": true
+        }
+      ],
+      "valueAudit": {
+        "sampledObjectPixels": 29342,
+        "medianLuminance": 94.2784,
+        "upperQuartileLuminance": 112.5684,
+        "meanLuminance": 97.56457741803634
+      }
+    },
+    {
+      "classId": "relay",
+      "retainedUnchanged": false,
+      "inputs": [
+        {
+          "order": 1,
+          "view": "strict-front",
+          "file": "01-front.png",
+          "sha256": "ff25c1a555aa2645e7edb57fb3014125a311913a9419efd0333d0e5801e149fd",
+          "width": 1536,
+          "height": 1024,
+          "primary": true,
+          "source": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/relay-v1/01-front.png",
+          "output": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/relay/01-front.png",
+          "outputSha256": "e2f666403f4808a2bd5a7081b1b06114f4bf729bb91fdc791ef0e9d0c793bae8",
+          "transformApplied": true
+        },
+        {
+          "order": 2,
+          "view": "strict-right",
+          "file": "02-right.png",
+          "sha256": "5875866226f426ca9fc327cae69942d8fc3da64cf16c3869c6b51c8ca6450887",
+          "width": 1536,
+          "height": 1024,
+          "primary": false,
+          "source": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/relay-v1/02-right.png",
+          "output": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/relay/02-right.png",
+          "outputSha256": "1cc09a18c636b4b7c11931faf803462aab5e8ae30361bd8e7d70d86b1543aae0",
+          "transformApplied": true
+        },
+        {
+          "order": 3,
+          "view": "strict-back",
+          "file": "03-back.png",
+          "sha256": "f6f380ad21bed64ed193efff4ecd0f5e91f3c8b8fd4d4ca1c721e57186cddb02",
+          "width": 1536,
+          "height": 1024,
+          "primary": false,
+          "source": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/relay-v1/03-back.png",
+          "output": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/relay/03-back.png",
+          "outputSha256": "4a965f6cfe4400de616a8a691aed444073818265bffc9b086baa25c790521df2",
+          "transformApplied": true
+        },
+        {
+          "order": 4,
+          "view": "front-right-three-quarter",
+          "file": "04-front-right-three-quarter.png",
+          "sha256": "fa75426018aec068100642a99d1736f72ab6cfb3ab0243eacbd1aeb48e9de9c8",
+          "width": 1536,
+          "height": 1024,
+          "primary": false,
+          "source": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/relay-v1/04-front-right-three-quarter.png",
+          "output": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/relay/04-front-right-three-quarter.png",
+          "outputSha256": "fdfd11827b93a8ae0fdec36374f74bbc2fff896e0ecfb1e8228d14bb09b9308b",
+          "transformApplied": true
+        }
+      ],
+      "valueAudit": {
+        "sampledObjectPixels": 21520,
+        "medianLuminance": 74.7728,
+        "upperQuartileLuminance": 102.28079999999999,
+        "meanLuminance": 80.15852026022235
+      }
+    },
+    {
+      "classId": "switchback",
+      "retainedUnchanged": false,
+      "inputs": [
+        {
+          "order": 1,
+          "view": "strict-front",
+          "file": "01-front.png",
+          "sha256": "5676cfa15cbf106beabc4071e2057ace53f674c30e09f964a7cb6e26b7ce4ac4",
+          "width": 1536,
+          "height": 1024,
+          "primary": true,
+          "source": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/switchback-v1/01-front.png",
+          "output": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/switchback/01-front.png",
+          "outputSha256": "eb7858100c7b2b781d059efa9766c9d258b117dbb2a125beb59502282f9d6cd4",
+          "transformApplied": true
+        },
+        {
+          "order": 2,
+          "view": "strict-right",
+          "file": "02-right.png",
+          "sha256": "c9798d6ee974c8d3e40bfa0a2537fa73fe4fa65b901f11ad12c55a78b42cadb7",
+          "width": 1536,
+          "height": 1024,
+          "primary": false,
+          "source": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/switchback-v1/02-right.png",
+          "output": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/switchback/02-right.png",
+          "outputSha256": "fe5f5528b41e5c1b546069369d686cb9edae75a14ccd624e567ea379b94d8994",
+          "transformApplied": true
+        },
+        {
+          "order": 3,
+          "view": "strict-back",
+          "file": "03-back.png",
+          "sha256": "c5dd0fcc5178219a5dbe4506dcc034bbffa21424f0a57f3ddb2689ef399248ab",
+          "width": 1536,
+          "height": 1024,
+          "primary": false,
+          "source": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/switchback-v1/03-back.png",
+          "output": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/switchback/03-back.png",
+          "outputSha256": "f3955661118d3ba53c8753ab9985a9aa74d5a0323d14e660102181870d5ad0ce",
+          "transformApplied": true
+        },
+        {
+          "order": 4,
+          "view": "front-right-three-quarter",
+          "file": "04-front-right-three-quarter.png",
+          "sha256": "857c3f64843cedd0720c05e363af54720c7ddbf0318ee644350757cca699b6ab",
+          "width": 1536,
+          "height": 1024,
+          "primary": false,
+          "source": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/switchback-v1/04-front-right-three-quarter.png",
+          "output": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/switchback/04-front-right-three-quarter.png",
+          "outputSha256": "7bddc118f1aa844b8041c6ce5b3599e9fe57820fc6f49c277785fefc8eb9732e",
+          "transformApplied": true
+        }
+      ],
+      "valueAudit": {
+        "sampledObjectPixels": 27762,
+        "medianLuminance": 92.643,
+        "upperQuartileLuminance": 137.0682,
+        "meanLuminance": 102.46306275484206
+      }
+    },
+    {
+      "classId": "longshot",
+      "retainedUnchanged": false,
+      "inputs": [
+        {
+          "order": 1,
+          "view": "strict-front",
+          "file": "01-front.png",
+          "sha256": "c5d53f284cf7fdc40712e64777234c5c6cab7a401a67fac5e57bb7dc7db6f8bf",
+          "width": 1536,
+          "height": 1024,
+          "primary": true,
+          "source": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/longshot-v1/01-front.png",
+          "output": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/longshot/01-front.png",
+          "outputSha256": "0b509287cf740bd91fbd46060be4790f52487e2726b65c58d76cbd639fef8f9a",
+          "transformApplied": true
+        },
+        {
+          "order": 2,
+          "view": "strict-right",
+          "file": "02-right.png",
+          "sha256": "540aeb857d05f9442853d1fb5b9a1c287978b4010cb9616999faeaffb5cda293",
+          "width": 1536,
+          "height": 1024,
+          "primary": false,
+          "source": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/longshot-v1/02-right.png",
+          "output": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/longshot/02-right.png",
+          "outputSha256": "e7f3de020591a2d6da3a96940e87f7a07333409ec65194ca1e34e6989e42f34a",
+          "transformApplied": true
+        },
+        {
+          "order": 3,
+          "view": "strict-back",
+          "file": "03-back.png",
+          "sha256": "351e12f3f03c53c2993b24d501417d5029f221e0913b2ca735d75bf0d45274a5",
+          "width": 1536,
+          "height": 1024,
+          "primary": false,
+          "source": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/longshot-v1/03-back.png",
+          "output": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/longshot/03-back.png",
+          "outputSha256": "fcf37d72b1d9c28a7e928b056adc259081f872940717db310f9e57177ad4dafe",
+          "transformApplied": true
+        },
+        {
+          "order": 4,
+          "view": "front-right-three-quarter",
+          "file": "04-front-right-three-quarter.png",
+          "sha256": "41701a89589e7f894261493cea8676a2bf7a2d0ff76e6af0bb9fe82a79251f9c",
+          "width": 1536,
+          "height": 1024,
+          "primary": false,
+          "source": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/longshot-v1/04-front-right-three-quarter.png",
+          "output": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/longshot/04-front-right-three-quarter.png",
+          "outputSha256": "5f4df174914f3e5b4bdc72b0f0a012e55fea6fe37bf67ad940bfd3d4a95a7968",
+          "transformApplied": true
+        }
+      ],
+      "valueAudit": {
+        "sampledObjectPixels": 25832,
+        "medianLuminance": 85.28479999999999,
+        "upperQuartileLuminance": 111.604,
+        "meanLuminance": 87.36846899969008
+      }
+    },
+    {
+      "classId": "mason",
+      "retainedUnchanged": false,
+      "inputs": [
+        {
+          "order": 1,
+          "view": "strict-front",
+          "file": "01-front.png",
+          "sha256": "ef56bfb17e3a007d910258f901afadb85f58176cad60576f0cce7de5867fdf6c",
+          "width": 1536,
+          "height": 1024,
+          "primary": true,
+          "source": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/mason-v1/01-front.png",
+          "output": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/mason/01-front.png",
+          "outputSha256": "68f9784c3a06eff9dcb4564d8db26f6f9bae9448968dbdd63c1f191187ab667d",
+          "transformApplied": true
+        },
+        {
+          "order": 2,
+          "view": "strict-right",
+          "file": "02-right.png",
+          "sha256": "aa421635560987434f0f05504b1d85e5931f7ca1d87b1b1c28e358ca1de8f8db",
+          "width": 1536,
+          "height": 1024,
+          "primary": false,
+          "source": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/mason-v1/02-right.png",
+          "output": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/mason/02-right.png",
+          "outputSha256": "2b2648673d13636b55b17574aad4ef9f6ba62f511a75eb00b2af4737b5c5c0e6",
+          "transformApplied": true
+        },
+        {
+          "order": 3,
+          "view": "strict-back",
+          "file": "03-back.png",
+          "sha256": "e4b769fa1fa2b80ed1eaac7dc125f72253d4aae232f24b6812bb0f491b5c4d88",
+          "width": 1536,
+          "height": 1024,
+          "primary": false,
+          "source": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/mason-v1/03-back.png",
+          "output": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/mason/03-back.png",
+          "outputSha256": "65e24d5e730a036aa69e9c2e8959219000a084d2c6df670dc5435542f1bdf0f9",
+          "transformApplied": true
+        },
+        {
+          "order": 4,
+          "view": "front-right-three-quarter",
+          "file": "04-front-right-three-quarter.png",
+          "sha256": "a861b5aca0c3025bf6e2e1ddff06fd666a44fa56cae3a413c1e9427c1c260692",
+          "width": 1536,
+          "height": 1024,
+          "primary": false,
+          "source": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/mason-v1/04-front-right-three-quarter.png",
+          "output": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/mason/04-front-right-three-quarter.png",
+          "outputSha256": "6d35bcbb54af56c50157425da4da2ae21ff7842c78197f0a4d897bfed8476cb9",
+          "transformApplied": true
+        }
+      ],
+      "valueAudit": {
+        "sampledObjectPixels": 24746,
+        "medianLuminance": 92.27680000000001,
+        "upperQuartileLuminance": 132.9152,
+        "meanLuminance": 97.88293755758365
+      }
+    },
+    {
+      "classId": "sunder",
+      "retainedUnchanged": false,
+      "inputs": [
+        {
+          "order": 1,
+          "view": "strict-front",
+          "file": "01-front.png",
+          "sha256": "7c1912bbb0a7543bb49131531fb09e4403bc2a4b95ffdd0bdee7c6f2bbd5009e",
+          "width": 1536,
+          "height": 1024,
+          "primary": true,
+          "source": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/sunder-v1/01-front.png",
+          "output": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/sunder/01-front.png",
+          "outputSha256": "8e028f3a70719e571bebccbf55f19a64e87ed76d3811ac0ce3779a4677b17cf1",
+          "transformApplied": true
+        },
+        {
+          "order": 2,
+          "view": "strict-right",
+          "file": "02-right.png",
+          "sha256": "e6b5f039016c7ecd736b485c5bed3c53705c1df26d982840f75c4d516cf9118e",
+          "width": 1536,
+          "height": 1024,
+          "primary": false,
+          "source": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/sunder-v1/02-right.png",
+          "output": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/sunder/02-right.png",
+          "outputSha256": "db9fc3a5fe0d06bb1ac299a92a893870d422a698a45e3e09c62acafd6cc71b89",
+          "transformApplied": true
+        },
+        {
+          "order": 3,
+          "view": "strict-back",
+          "file": "03-back.png",
+          "sha256": "1edb1327ad90bfe18b97595a0059d4f22092d1345d6bd91b1d756598d4f09167",
+          "width": 1536,
+          "height": 1024,
+          "primary": false,
+          "source": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/sunder-v1/03-back.png",
+          "output": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/sunder/03-back.png",
+          "outputSha256": "0f9c3ad404d1ee85c0679fe932b5e2585a917daf1f00b06c121aa55dd025e1ec",
+          "transformApplied": true
+        },
+        {
+          "order": 4,
+          "view": "front-right-three-quarter",
+          "file": "04-front-right-three-quarter.png",
+          "sha256": "b7de5320bc5308a6cdf60ef257d5a876248e236851f9e494228b63c57cefe7ea",
+          "width": 1536,
+          "height": 1024,
+          "primary": false,
+          "source": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/sunder-v1/04-front-right-three-quarter.png",
+          "output": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/sunder/04-front-right-three-quarter.png",
+          "outputSha256": "1615a689fff71734f00853d2593a6b3f6f6ce66417237172470eb70d8c73bf1f",
+          "transformApplied": true
+        }
+      ],
+      "valueAudit": {
+        "sampledObjectPixels": 23178,
+        "medianLuminance": 80.4726,
+        "upperQuartileLuminance": 104.31379999999999,
+        "meanLuminance": 90.24242022607494
+      }
+    },
+    {
+      "classId": "repulsor",
+      "retainedUnchanged": false,
+      "inputs": [
+        {
+          "order": 1,
+          "view": "strict-front",
+          "file": "01-front.png",
+          "sha256": "adabe80320490dfbc20c0d67692ccccaf3158d217f4ca4e187635243a3b4c15e",
+          "width": 1536,
+          "height": 1024,
+          "primary": true,
+          "source": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/repulsor-v1/01-front.png",
+          "output": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/repulsor/01-front.png",
+          "outputSha256": "638e26123757c6261b0a2d4e102c45997ac9a8a46b7b09f0bde4dfe1bd39ceef",
+          "transformApplied": true
+        },
+        {
+          "order": 2,
+          "view": "strict-right",
+          "file": "02-right.png",
+          "sha256": "3cfd8da4a3691592e7d68c07f0b77f96d8e788cd9ef960ac494a25922362142b",
+          "width": 1536,
+          "height": 1024,
+          "primary": false,
+          "source": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/repulsor-v1/02-right.png",
+          "output": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/repulsor/02-right.png",
+          "outputSha256": "4f0149b5b7ead9bdd660aa469a194eb7ed4d99e7b295c1f2f6bc911c9c0574cd",
+          "transformApplied": true
+        },
+        {
+          "order": 3,
+          "view": "strict-back",
+          "file": "03-back.png",
+          "sha256": "a921127c012ec3e87443c236f211af90ecce3474618cfef815ec0e272949e6ef",
+          "width": 1536,
+          "height": 1024,
+          "primary": false,
+          "source": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/repulsor-v1/03-back.png",
+          "output": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/repulsor/03-back.png",
+          "outputSha256": "a223c7dd92cc8914708f54cc8689c751ae84825060a636ef9dccd989a094206f",
+          "transformApplied": true
+        },
+        {
+          "order": 4,
+          "view": "front-right-three-quarter",
+          "file": "04-front-right-three-quarter.png",
+          "sha256": "ab18c34bdcd312a5e740127cfc430c240049dc65ad445b95c8b29467e2f9b6d9",
+          "width": 1536,
+          "height": 1024,
+          "primary": false,
+          "source": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/repulsor-v1/04-front-right-three-quarter.png",
+          "output": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/repulsor/04-front-right-three-quarter.png",
+          "outputSha256": "7c1b61abf30724ce04683374fcc62cbd800924f5c241f6628ffd022bfec578d9",
+          "transformApplied": true
+        }
+      ],
+      "valueAudit": {
+        "sampledObjectPixels": 30559,
+        "medianLuminance": 90.8148,
+        "upperQuartileLuminance": 107.5734,
+        "meanLuminance": 89.47069827546753
+      }
+    },
+    {
+      "classId": "veil",
+      "retainedUnchanged": false,
+      "inputs": [
+        {
+          "order": 1,
+          "view": "strict-front",
+          "file": "01-front.png",
+          "sha256": "a889ee7b93402875f5a53e26dcc6d3ecd586c53b2b9d9e6f29ade11686d14ead",
+          "width": 1536,
+          "height": 1024,
+          "primary": true,
+          "source": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/veil-v1/01-front.png",
+          "output": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/veil/01-front.png",
+          "outputSha256": "354927cbab0768abbe6c992b1ba3274453fc58b20a22c70cc79dd2b0ee69af03",
+          "transformApplied": true
+        },
+        {
+          "order": 2,
+          "view": "strict-right",
+          "file": "02-right.png",
+          "sha256": "400582f65c83ce2bba7e9325bd9d14f197100d41d1d298dbc0613f4a820b9429",
+          "width": 1536,
+          "height": 1024,
+          "primary": false,
+          "source": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/veil-v1/02-right.png",
+          "output": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/veil/02-right.png",
+          "outputSha256": "6bbc4e6a0d62dc9bacfea27197f3935e85fad23d7a412ef53571ba8edd803f40",
+          "transformApplied": true
+        },
+        {
+          "order": 3,
+          "view": "strict-back",
+          "file": "03-back.png",
+          "sha256": "24a2a37f5e3a5a452bb724d5bd46bad6ea81dd63bd02c7bc25ab519fb8632f8d",
+          "width": 1536,
+          "height": 1024,
+          "primary": false,
+          "source": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/veil-v1/03-back.png",
+          "output": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/veil/03-back.png",
+          "outputSha256": "7e9481c7e13351be2fe7c76d63a63afbef6b85f8ee3ba561d70aea127837c18c",
+          "transformApplied": true
+        },
+        {
+          "order": 4,
+          "view": "front-right-three-quarter",
+          "file": "04-front-right-three-quarter.png",
+          "sha256": "8c43b8a61ee3d500dccb1948ae7ed8049eeec870fb61418adbaa8caf4eca1d21",
+          "width": 1536,
+          "height": 1024,
+          "primary": false,
+          "source": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/veil-v1/04-front-right-three-quarter.png",
+          "output": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/veil/04-front-right-three-quarter.png",
+          "outputSha256": "fc113d2318eb328559322d2be90812f828c4d12589522b5755b75f9839647703",
+          "transformApplied": true
+        }
+      ],
+      "valueAudit": {
+        "sampledObjectPixels": 21903,
+        "medianLuminance": 124.92379999999999,
+        "upperQuartileLuminance": 162.2964,
+        "meanLuminance": 124.08869427019188
+      }
+    },
+    {
+      "classId": "nest",
+      "retainedUnchanged": false,
+      "inputs": [
+        {
+          "order": 1,
+          "view": "strict-front",
+          "file": "01-front.png",
+          "sha256": "9b666e47adfeccd9a6f45f33896d9ecd6ed94ba451b14b5206d5783bbd39a479",
+          "width": 1536,
+          "height": 1024,
+          "primary": true,
+          "source": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/nest-v1/01-front.png",
+          "output": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/nest/01-front.png",
+          "outputSha256": "f894765ac16919784663dc3936bf6dcd2394da2c6787969b98b67907ef6f431d",
+          "transformApplied": true
+        },
+        {
+          "order": 2,
+          "view": "strict-right",
+          "file": "02-right.png",
+          "sha256": "be028a1f03d75b0e6f4b1b39b618323c1f358d5aba02415e56a4a190053497a8",
+          "width": 1536,
+          "height": 1024,
+          "primary": false,
+          "source": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/nest-v1/02-right.png",
+          "output": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/nest/02-right.png",
+          "outputSha256": "be51eec4a78a21248aab26e41a17da291b767a961cd82554c7e64cecc62120d4",
+          "transformApplied": true
+        },
+        {
+          "order": 3,
+          "view": "strict-back",
+          "file": "03-back.png",
+          "sha256": "3abffea0cba69b090f072390b0502afbc7139a5c38fcddbe5f7cf0b5d09f4eee",
+          "width": 1536,
+          "height": 1024,
+          "primary": false,
+          "source": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/nest-v1/03-back.png",
+          "output": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/nest/03-back.png",
+          "outputSha256": "ecbc1f1f5282f84e4803071baaa854f98ddf76785c92b1fcf107e49d4ed1e783",
+          "transformApplied": true
+        },
+        {
+          "order": 4,
+          "view": "front-right-three-quarter",
+          "file": "04-front-right-three-quarter.png",
+          "sha256": "3c6ecf1bea0ba04054d936c358942eb90af09f7a5c73e0a56f1ce9483dca12f6",
+          "width": 1536,
+          "height": 1024,
+          "primary": false,
+          "source": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/nest-v1/04-front-right-three-quarter.png",
+          "output": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/nest/04-front-right-three-quarter.png",
+          "outputSha256": "0091094f2745ab4ba34c76d80c9b4eb76198450798f603ac6cf85b0c0d2e5c05",
+          "transformApplied": true
+        }
+      ],
+      "valueAudit": {
+        "sampledObjectPixels": 26283,
+        "medianLuminance": 77.91179999999999,
+        "upperQuartileLuminance": 116.31979999999999,
+        "meanLuminance": 88.1422923867136
+      }
+    }
+  ],
+  "approvalSheet": {
+    "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/texture-authority-sheet.png",
+    "sha256": "341aa8571b5374e6fe4bb1cd6d60f190d0714c9c0e909faea0fe775e34d2cfbb"
+  },
+  "runtimeAssetsPromoted": false
+}

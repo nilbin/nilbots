@@ -7,59 +7,26 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 const repository = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
-const looksRoot = join(repository, 'web', 'src', 'assets', 'class-looks');
-const auditPath = join(
+const looksRoot = join(repository, 'web/src/assets/class-looks');
+const reviewAuditPath = join(
   repository,
-  'art/class-models/provider-runs/meshy/arc-fleet-review/fleet-audit.json',
+  'art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v3/audit.json',
 );
-const tierAuditPath = join(
+const iconEvidencePath = join(
   repository,
-  'art/class-models/runtime-tiers/arc-relay/ktx2-selective-v1/audit.json',
+  'art/reviews/arc-relay-meshy7-fleet-retexture-v3/top-down-east-icons.json',
 );
-const audit = JSON.parse(readFileSync(auditPath, 'utf8')) as FleetAudit;
-const tier = JSON.parse(readFileSync(tierAuditPath, 'utf8')) as RuntimeTierAudit;
+const review = JSON.parse(readFileSync(reviewAuditPath, 'utf8')) as ReviewAudit;
 const ledger = JSON.parse(
   readFileSync(join(repository, 'art/class-models/arc-relay/ledger.json'), 'utf8'),
 ) as FleetLedger;
-const approved = [audit.pilot, ...audit.generated].sort((left, right) =>
-  left.lookId.localeCompare(right.lookId),
-);
-
-interface AuditEntry {
-  lookId: string;
-  taskId: string;
-  orientation: 'identity' | 'lay-flat-x';
-  facingYawDegrees?: number;
-  candidate: {
-    file: string;
-    bytes: number;
-    sha256: string;
-    triangles: number;
-    materials: number;
-    textures: number;
-  };
-}
-
-interface FleetAudit {
-  provider: string;
-  endpoint: string;
-  model: string;
-  modelType: string;
-  pilot: AuditEntry;
-  generated: AuditEntry[];
-  reviewContract: {
-    targetPlanformSpan: number;
-    modelOwnedTeamGlow: boolean;
-    meshContract: string;
-  };
-}
 
 interface TextureMemory {
   imageIndex: number;
   name: string | null;
   slots: string[];
   mimeType: string;
-  encoding: 'ETC1S' | 'UASTC';
+  encoding: string;
   width: number;
   height: number;
   mipLevels: number;
@@ -78,47 +45,49 @@ interface LookMemory {
   textures: TextureMemory[];
 }
 
-interface RuntimeTierLook {
-  id: string;
+interface ReviewEntry {
+  classId: string;
   taskId: string;
-  approvedCandidate: { file: string; bytes: number; sha256: string };
-  runtime: { file: string; bytes: number; sha256: string };
-  orientation: string;
-  facingYawDegrees: number;
+  endpoint: string;
+  artifact: { file: string; bytes: number; sha256: string };
   triangles: number;
-  materials: number;
-  textures: number;
   geometrySha256: string;
-  targetPlanformSpan: number;
-  floorY: number;
+  matteRoughness?: { floor: number };
+  facing: {
+    sourceFacing: string;
+    targetFacing: string;
+    yawDegrees: number;
+    evidence: string;
+  };
+  budgets: { transferBytes: number; triangles: number };
   memory: LookMemory;
 }
 
-interface RuntimeTierAudit {
+interface ReviewAudit {
   id: string;
-  generator: string;
+  status: string;
   sourceAudit: string;
-  budgets: {
-    perLookTransferBytes: number;
-    fleetTransferBytes: number;
-    compressedTextureGpuBytes: number;
-    rgba8FallbackTextureGpuBytes: number;
-    compressedModelGpuBytes: number;
-    rgba8FallbackModelGpuBytes: number;
+  normalization: {
+    facing: string;
+    up: string;
+    floorY: number;
+    targetPlanformSpan: number;
+  };
+  profile: {
+    budgets: { transferBytes: number; triangles: number };
+    classOverrides: Record<string, unknown>;
   };
   totals: {
-    runtimeTransferBytes: number;
-    geometryGpuBytes: number;
-    textureGpuBytesCompressedTarget: number;
-    textureGpuBytesRgba8Fallback: number;
-    modelGpuBytesCompressedTarget: number;
-    modelGpuBytesRgba8Fallback: number;
+    transferBytes: number;
     triangles: number;
+    modelGpuBytesRgba8Fallback: number;
   };
-  looks: RuntimeTierLook[];
+  classes: ReviewEntry[];
 }
 
 interface FleetLedger {
+  version: number;
+  status: string;
   sourceAudit: string;
   runtimeTier: string;
   textureTier: string;
@@ -126,10 +95,12 @@ interface FleetLedger {
   endpoint: string;
   model: string;
   modelType: string;
-  meshContract: string;
+  originalUV: boolean;
   modelOwnedTeamGlow: boolean;
-  budgetBytesPerLook: number;
-  budgets: RuntimeTierAudit['budgets'];
+  budgets: {
+    default: ReviewAudit['profile']['budgets'];
+    classOverrides: Record<string, unknown>;
+  };
   totals: {
     bytes: number;
     triangles: number;
@@ -143,18 +114,19 @@ interface FleetLedger {
   };
   looks: {
     id: string;
+    classId: string;
     taskId: string;
     artifact: string;
-    approvedArtifact: string;
-    orientation: string;
-    facingYawDegrees: number;
+    facing: ReviewEntry['facing'];
     bytes: number;
     sha256: string;
     triangles: number;
     materials: number;
     textures: number;
     geometrySha256: string;
+    matteRoughnessFloor: number | null;
     memory: LookMemory;
+    budgets: ReviewEntry['budgets'];
     targetPlanformSpan: number;
     floorY: number;
   }[];
@@ -170,7 +142,6 @@ interface GlbDocument {
   meshes?: { primitives?: { indices?: number; mode?: number }[] }[];
   nodes?: {
     name?: string;
-    rotation?: number[];
     camera?: number;
     skin?: number;
     extras?: {
@@ -182,13 +153,12 @@ interface GlbDocument {
         facingYawDegrees?: number;
         facingCorrectionVersion?: number;
         targetPlanformSpan?: number;
-        sourceBounds?: unknown;
       };
     };
   }[];
   scenes?: { nodes?: number[] }[];
   skins?: unknown[];
-  textures?: unknown[];
+  textures?: { extensions?: { EXT_texture_webp?: { source?: number } } }[];
 }
 
 function sha256(bytes: Buffer): string {
@@ -221,23 +191,17 @@ function triangles(document: GlbDocument): number {
   );
 }
 
-function assertVectorNear(actual: number[] | undefined, expected: number[], label: string): void {
-  assert.equal(actual?.length, expected.length, label);
-  for (let index = 0; index < expected.length; index += 1)
-    assert.ok(Math.abs(actual![index]! - expected[index]!) < 1e-9, `${label} component ${index}`);
-}
-
-test('the selective KTX2 tier is internally audited without regeneration tools', () => {
+test('the owner-approved Meshy 7 V3 promotion is deterministic', () => {
   const result = spawnSync(
     process.execPath,
-    [join(repository, 'scripts/class-models/build-arc-runtime-texture-tier.mjs'), '--check'],
+    [join(repository, 'scripts/class-models/promote-meshy7-fleet-v3.mjs'), '--check'],
     { cwd: repository, encoding: 'utf8' },
   );
   assert.equal(result.status, 0, `${result.stdout}${result.stderr}`);
-  assert.match(result.stdout, /Verified 16 selective KTX2 looks/);
+  assert.match(result.stdout, /Verified 16 Meshy 7 V3 Arc Relay models/);
 });
 
-test('WebGL configures KTX2 support before any actors request fleet models', () => {
+test('WebGL configures KTX2 support before actors request models from mixed asset tiers', () => {
   const canvasSource = readFileSync(
     join(repository, 'web/src/render3d/ArenaCanvas3D.tsx'),
     'utf8',
@@ -254,29 +218,34 @@ test('WebGL configures KTX2 support before any actors request fleet models', () 
   assert.match(loaderSource, /ktx2Loader\.detectSupport\(renderer\)/);
 });
 
-test('all runtime Arc Relay GLBs are the exact audited KTX2 derivatives', () => {
-  assert.equal(approved.length, 16);
-  assert.equal(tier.looks.length, 16);
-  assert.equal(ledger.looks.length, 16);
-  assert.equal(tier.sourceAudit, 'art/class-models/provider-runs/meshy/arc-fleet-review/fleet-audit.json');
-  assert.equal(ledger.runtimeTier, 'art/class-models/runtime-tiers/arc-relay/ktx2-selective-v1/audit.json');
-  assert.equal(ledger.textureTier, tier.id);
-  assert.equal(ledger.provider, audit.provider);
-  assert.equal(ledger.endpoint, audit.endpoint);
-  assert.equal(ledger.model, audit.model);
-  assert.equal(ledger.modelType, audit.modelType);
-  assert.equal(ledger.meshContract, audit.reviewContract.meshContract);
+test('all runtime Arc Relay GLBs are the exact approved matte WebP V3 artifacts', () => {
+  assert.equal(review.id, 'meshy7-fleet-review-v3');
+  assert.equal(review.status, 'owner-review');
+  assert.equal(review.classes.length, 16);
+  assert.equal(new Set(review.classes.map((entry) => entry.classId)).size, 16);
+  assert.equal(ledger.version, 4);
+  assert.equal(ledger.status, 'owner-approved');
+  assert.equal(ledger.runtimeTier, 'art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v3/audit.json');
+  assert.equal(ledger.sourceAudit, review.sourceAudit);
+  assert.equal(ledger.textureTier, 'meshy7-fleet-review-v3-webp');
+  assert.equal(ledger.provider, 'Meshy');
+  assert.equal(ledger.model, 'meshy-7');
+  assert.equal(ledger.endpoint, 'retexture');
+  assert.equal(ledger.modelType, 'original-uv-pbr-retexture');
+  assert.equal(ledger.originalUV, true);
   assert.equal(ledger.modelOwnedTeamGlow, false);
-  assert.deepEqual(ledger.budgets, tier.budgets);
+  assert.deepEqual(ledger.budgets, {
+    default: review.profile.budgets,
+    classOverrides: review.profile.classOverrides,
+  });
 
-  for (const entry of approved) {
-    const tierLook = tier.looks.find((look) => look.id === entry.lookId);
-    const fleetEntry = ledger.looks.find((look) => look.id === entry.lookId);
-    assert.ok(tierLook, entry.lookId);
-    assert.ok(fleetEntry, entry.lookId);
-    const directory = join(looksRoot, entry.lookId);
+  for (const entry of review.classes) {
+    const id = `arc-${entry.classId}`;
+    const fleetEntry = ledger.looks.find((look) => look.id === id);
+    assert.ok(fleetEntry, id);
+    const directory = join(looksRoot, id);
     const runtime = readGlb(join(directory, 'model.glb'));
-    const derivative = readFileSync(join(repository, tierLook.runtime.file));
+    const approved = readFileSync(join(repository, entry.artifact.file));
     const manifest = JSON.parse(readFileSync(join(directory, 'model3d.json'), 'utf8')) as {
       id: string;
       facing: string;
@@ -287,9 +256,9 @@ test('all runtime Arc Relay GLBs are the exact audited KTX2 derivatives', () => 
       source: {
         artifact: string;
         approvedArtifact: string;
-        approvedSha256: string;
         textureTier: string;
         sourceSha256: string;
+        approvedSha256: string;
         provider: string;
         model: string;
         endpoint: string;
@@ -297,6 +266,8 @@ test('all runtime Arc Relay GLBs are the exact audited KTX2 derivatives', () => 
         taskId: string;
         orientation: string;
         facingYawDegrees?: number;
+        originalUV: boolean;
+        matteRoughnessFloor?: number;
       };
       ledger: {
         bytes: number;
@@ -305,109 +276,173 @@ test('all runtime Arc Relay GLBs are the exact audited KTX2 derivatives', () => 
         materials: number;
         textureCount: number;
         geometrySha256: string;
-        geometryGpuBytes: number;
-        textureGpuBytesCompressedTarget: number;
-        textureGpuBytesRgba8Fallback: number;
-        modelGpuBytesCompressedTarget: number;
-        modelGpuBytesRgba8Fallback: number;
         textureTier: string;
       };
     };
 
-    assert.ok(runtime.bytes.equals(derivative), `${entry.lookId} differs from tier derivative`);
-    assert.equal(runtime.bytes.length, tierLook.runtime.bytes, entry.lookId);
-    assert.ok(runtime.bytes.length <= ledger.budgetBytesPerLook, entry.lookId);
-    assert.equal(sha256(runtime.bytes), tierLook.runtime.sha256, entry.lookId);
-    assert.equal(manifest.ledger.sha256, tierLook.runtime.sha256, entry.lookId);
-    assert.equal(manifest.source.sourceSha256, tierLook.runtime.sha256, entry.lookId);
-    assert.equal(tierLook.approvedCandidate.sha256, entry.candidate.sha256, entry.lookId);
-
-    assert.equal(manifest.id, entry.lookId);
+    assert.ok(runtime.bytes.equals(approved), `${id} differs from its approved V3 artifact`);
+    assert.equal(runtime.bytes.length, entry.artifact.bytes, id);
+    assert.ok(runtime.bytes.length <= entry.budgets.transferBytes, id);
+    assert.equal(sha256(runtime.bytes), entry.artifact.sha256, id);
+    assert.equal(manifest.id, id);
     assert.equal(manifest.facing, '+x');
     assert.equal(manifest.up, '+y');
-    assert.equal(manifest.nodes, undefined, `${entry.lookId} remains monolithic`);
-    assert.ok(manifest.motion, `${entry.lookId} keeps root-level motion tuning`);
-    assert.ok(manifest.signature, `${entry.lookId} keeps signature identity`);
-    assert.equal(manifest.source.artifact, tierLook.runtime.file);
-    assert.equal(manifest.source.approvedArtifact, entry.candidate.file);
-    assert.equal(manifest.source.approvedSha256, entry.candidate.sha256);
-    assert.equal(manifest.source.textureTier, tier.id);
-    assert.equal(manifest.source.provider, audit.provider);
-    assert.equal(manifest.source.model, audit.model);
-    assert.equal(manifest.source.endpoint, audit.endpoint);
-    assert.equal(manifest.source.modelType, audit.modelType);
+    assert.equal(manifest.nodes, undefined, `${id} remains monolithic`);
+    assert.ok(manifest.motion, `${id} keeps its existing movement tuning`);
+    assert.ok(manifest.signature, `${id} keeps its signature identity`);
+    assert.equal(manifest.source.artifact, entry.artifact.file);
+    assert.equal(manifest.source.approvedArtifact, entry.artifact.file);
+    assert.equal(manifest.source.sourceSha256, entry.artifact.sha256);
+    assert.equal(manifest.source.approvedSha256, entry.artifact.sha256);
+    assert.equal(manifest.source.textureTier, ledger.textureTier);
+    assert.equal(manifest.source.provider, 'Meshy');
+    assert.equal(manifest.source.model, 'meshy-7');
+    assert.equal(manifest.source.endpoint, 'retexture');
+    assert.equal(manifest.source.modelType, 'original-uv-pbr-retexture');
     assert.equal(manifest.source.taskId, entry.taskId);
-    assert.equal(manifest.source.orientation, entry.orientation);
-    assert.equal(manifest.source.facingYawDegrees ?? 0, entry.facingYawDegrees ?? 0);
+    assert.equal(manifest.source.orientation, 'identity');
+    assert.equal(manifest.source.facingYawDegrees ?? 0, entry.facing.yawDegrees);
+    assert.equal(manifest.source.originalUV, true);
+    assert.equal(manifest.source.matteRoughnessFloor, entry.matteRoughness?.floor);
 
     const document = runtime.document;
-    assert.equal(document.cameras, undefined, entry.lookId);
-    assert.equal(document.skins, undefined, entry.lookId);
-    assert.equal(document.animations, undefined, entry.lookId);
+    assert.equal(document.cameras, undefined, id);
+    assert.equal(document.skins, undefined, id);
+    assert.equal(document.animations, undefined, id);
     assert.ok(document.nodes?.every((node) => node.camera === undefined && node.skin === undefined));
-    assert.equal(document.materials?.length, 1, entry.lookId);
-    assert.equal(document.textures?.length, 4, entry.lookId);
-    assert.equal(document.images?.length, 4, entry.lookId);
-    assert.ok(document.images?.every((image) => image.mimeType === 'image/ktx2'), entry.lookId);
-    assert.ok(document.extensionsRequired?.includes('KHR_texture_basisu'), entry.lookId);
-    assert.ok(
-      document.materials?.every((material) => material.extras?.nilbotsRole !== 'team-accent'),
-      `${entry.lookId} must not manufacture model-owned team paint`,
-    );
-    assert.equal(triangles(document), entry.candidate.triangles, entry.lookId);
-    const root = document.nodes?.[document.scenes?.[0]?.nodes?.[0] ?? -1];
-    assert.equal(root?.name, 'chassis', entry.lookId);
-    assert.deepEqual(root?.extras?.nilbotsProviderNormalization, {
-      facing: '+x',
-      up: '+y',
-      floorY: 0,
-      orientation: entry.orientation,
-      ...(entry.facingYawDegrees ? { facingYawDegrees: entry.facingYawDegrees } : {}),
-      ...(entry.facingYawDegrees ? { facingCorrectionVersion: 1 } : {}),
-      targetPlanformSpan: audit.reviewContract.targetPlanformSpan,
-      sourceBounds: root?.extras?.nilbotsProviderNormalization?.sourceBounds,
-    });
-    if (entry.lookId === 'arc-kestrel')
-      assertVectorNear(root?.rotation, [0, Math.SQRT1_2, Math.SQRT1_2, 0], entry.lookId);
-    if (entry.lookId === 'arc-mortar')
-      assertVectorNear(root?.rotation, [0, 1, 0, 0], entry.lookId);
+    assert.equal(document.meshes?.length, 1, id);
+    assert.equal(document.meshes?.[0]?.primitives?.length, 1, id);
+    assert.equal(document.materials?.length, 1, id);
+    assert.equal(document.textures?.length, 3, id);
+    assert.equal(document.images?.length, 3, id);
+    assert.ok(document.images?.every((image) => image.mimeType === 'image/webp'), id);
+    assert.ok(document.textures?.every(
+      (texture) => texture.extensions?.EXT_texture_webp?.source !== undefined,
+    ), id);
+    assert.ok(document.extensionsRequired?.includes('EXT_texture_webp'), id);
+    assert.ok(document.extensionsRequired?.includes('KHR_mesh_quantization'), id);
+    assert.ok(document.materials?.every(
+      (material) => material.extras?.nilbotsRole !== 'team-accent',
+    ), `${id} must keep team color renderer-owned`);
+    assert.equal(triangles(document), entry.triangles, id);
+    assert.ok(entry.triangles <= entry.budgets.triangles, id);
 
-    assert.equal(manifest.ledger.bytes, tierLook.runtime.bytes);
-    assert.equal(manifest.ledger.triangles, entry.candidate.triangles);
-    assert.equal(manifest.ledger.materials, entry.candidate.materials);
-    assert.equal(manifest.ledger.textureCount, entry.candidate.textures);
-    assert.equal(manifest.ledger.geometrySha256, tierLook.geometrySha256);
-    assert.equal(manifest.ledger.geometryGpuBytes, tierLook.memory.geometryGpuBytes);
-    assert.equal(
-      manifest.ledger.textureGpuBytesCompressedTarget,
-      tierLook.memory.textureGpuBytesCompressedTarget,
-    );
-    assert.equal(
-      manifest.ledger.textureGpuBytesRgba8Fallback,
-      tierLook.memory.textureGpuBytesRgba8Fallback,
-    );
-    assert.equal(manifest.ledger.textureTier, tier.id);
-    assert.equal(fleetEntry.artifact, tierLook.runtime.file);
-    assert.equal(fleetEntry.approvedArtifact, entry.candidate.file);
-    assert.equal(fleetEntry.sha256, tierLook.runtime.sha256);
-    assert.equal(fleetEntry.geometrySha256, tierLook.geometrySha256);
-    assert.deepEqual(fleetEntry.memory, tierLook.memory);
+    const root = document.nodes?.[document.scenes?.[0]?.nodes?.[0] ?? -1];
+    const normalization = root?.extras?.nilbotsProviderNormalization;
+    assert.equal(root?.name, 'chassis', id);
+    assert.equal(normalization?.facing, '+x', id);
+    assert.equal(normalization?.up, '+y', id);
+    assert.equal(normalization?.floorY, 0, id);
+    assert.equal(normalization?.orientation, 'identity', id);
+    assert.equal(normalization?.targetPlanformSpan, review.normalization.targetPlanformSpan, id);
+    assert.equal(normalization?.facingYawDegrees ?? 0, entry.facing.yawDegrees, id);
+    if (entry.facing.yawDegrees !== 0)
+      assert.equal(normalization?.facingCorrectionVersion, 1, id);
+
+    assert.equal(manifest.ledger.bytes, entry.artifact.bytes);
+    assert.equal(manifest.ledger.sha256, entry.artifact.sha256);
+    assert.equal(manifest.ledger.triangles, entry.triangles);
+    assert.equal(manifest.ledger.materials, 1);
+    assert.equal(manifest.ledger.textureCount, 3);
+    assert.equal(manifest.ledger.geometrySha256, entry.geometrySha256);
+    assert.equal(manifest.ledger.textureTier, ledger.textureTier);
+    assert.equal(fleetEntry.artifact, entry.artifact.file);
+    assert.equal(fleetEntry.sha256, entry.artifact.sha256);
+    assert.equal(fleetEntry.geometrySha256, entry.geometrySha256);
+    assert.equal(fleetEntry.matteRoughnessFloor, entry.matteRoughness?.floor ?? null);
+    assert.deepEqual(fleetEntry.memory, entry.memory);
+    assert.deepEqual(fleetEntry.budgets, entry.budgets);
   }
 
   assert.deepEqual(ledger.totals, {
-    bytes: tier.totals.runtimeTransferBytes,
-    triangles: tier.totals.triangles,
+    bytes: review.totals.transferBytes,
+    triangles: review.totals.triangles,
     materials: 16,
-    textures: 64,
-    geometryGpuBytes: tier.totals.geometryGpuBytes,
-    textureGpuBytesCompressedTarget: tier.totals.textureGpuBytesCompressedTarget,
-    textureGpuBytesRgba8Fallback: tier.totals.textureGpuBytesRgba8Fallback,
-    modelGpuBytesCompressedTarget: tier.totals.modelGpuBytesCompressedTarget,
-    modelGpuBytesRgba8Fallback: tier.totals.modelGpuBytesRgba8Fallback,
+    textures: 48,
+    geometryGpuBytes: review.classes.reduce((sum, entry) => sum + entry.memory.geometryGpuBytes, 0),
+    textureGpuBytesCompressedTarget: review.classes.reduce(
+      (sum, entry) => sum + entry.memory.textureGpuBytesCompressedTarget,
+      0,
+    ),
+    textureGpuBytesRgba8Fallback: review.classes.reduce(
+      (sum, entry) => sum + entry.memory.textureGpuBytesRgba8Fallback,
+      0,
+    ),
+    modelGpuBytesCompressedTarget: review.classes.reduce(
+      (sum, entry) => sum + entry.memory.modelGpuBytesCompressedTarget,
+      0,
+    ),
+    modelGpuBytesRgba8Fallback: review.totals.modelGpuBytesRgba8Fallback,
   });
-  assert.ok(tier.totals.runtimeTransferBytes <= tier.budgets.fleetTransferBytes);
-  assert.ok(tier.totals.textureGpuBytesCompressedTarget <= tier.budgets.compressedTextureGpuBytes);
-  assert.ok(tier.totals.textureGpuBytesRgba8Fallback <= tier.budgets.rgba8FallbackTextureGpuBytes);
-  assert.ok(tier.totals.modelGpuBytesCompressedTarget <= tier.budgets.compressedModelGpuBytes);
-  assert.ok(tier.totals.modelGpuBytesRgba8Fallback <= tier.budgets.rgba8FallbackModelGpuBytes);
+});
+
+test('shared web icons are the exact transparent top-down east-facing V3 renders', () => {
+  const result = spawnSync(
+    process.execPath,
+    [join(repository, 'scripts/class-models/build-meshy7-fleet-web-icons.mjs'), '--check'],
+    { cwd: repository, encoding: 'utf8' },
+  );
+  assert.equal(result.status, 0, `${result.stdout}${result.stderr}`);
+  assert.match(result.stdout, /Verified 16 top-down east-facing Arc Relay web icons/);
+
+  const evidence = JSON.parse(readFileSync(iconEvidencePath, 'utf8')) as {
+    status: string;
+    sourceAudit: string;
+    contract: {
+      projection: string;
+      facing: string;
+      transparentBackground: boolean;
+      runtimePixels: { width: number; height: number };
+      frontBandPixels: number;
+    };
+    sheet: { file: string; sha256: string };
+    icons: {
+      classId: string;
+      source: { file: string; sha256: string; geometrySha256: string };
+      camera: string;
+      sprite: { file: string; bytes: number; sha256: string; width: number; height: number };
+      teamMask: { file: string; bytes: number; sha256: string; frontBandPixels: number; accentedPixels: number };
+    }[];
+  };
+  assert.equal(evidence.status, 'owner-approved-runtime-icon-tier');
+  assert.equal(evidence.sourceAudit, 'art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v3/audit.json');
+  assert.equal(evidence.contract.projection, 'strict orthographic top-down');
+  assert.equal(evidence.contract.facing, '+X maps to screen-right/east');
+  assert.equal(evidence.contract.transparentBackground, true);
+  assert.deepEqual(evidence.contract.runtimePixels, { width: 192, height: 192 });
+  assert.equal(evidence.icons.length, 16);
+  assert.equal(new Set(evidence.icons.map((icon) => icon.classId)).size, 16);
+  assert.equal(
+    sha256(readFileSync(join(repository, evidence.sheet.file))),
+    evidence.sheet.sha256,
+  );
+
+  for (const icon of evidence.icons) {
+    const entry = review.classes.find((candidate) => candidate.classId === icon.classId);
+    assert.ok(entry, icon.classId);
+    assert.equal(icon.source.file, entry.artifact.file);
+    assert.equal(icon.source.sha256, entry.artifact.sha256);
+    assert.equal(icon.source.geometrySha256, entry.geometrySha256);
+    assert.match(icon.camera, /top-down.*\+X maps screen-right\/east/);
+    assert.equal(icon.sprite.file, `web/src/assets/class-looks/arc-${icon.classId}/sprite.png`);
+    assert.equal(icon.teamMask.file, `web/src/assets/class-looks/arc-${icon.classId}/team-mask.png`);
+    assert.equal(icon.sprite.width, 192);
+    assert.equal(icon.sprite.height, 192);
+    assert.equal(icon.teamMask.frontBandPixels, evidence.contract.frontBandPixels);
+    assert.ok(icon.teamMask.accentedPixels > 0);
+
+    for (const artifact of [icon.sprite, icon.teamMask]) {
+      const bytes = readFileSync(join(repository, artifact.file));
+      assert.equal(bytes.length, artifact.bytes, artifact.file);
+      assert.equal(sha256(bytes), artifact.sha256, artifact.file);
+      assert.equal(bytes.toString('hex', 0, 8), '89504e470d0a1a0a', artifact.file);
+      assert.equal(bytes.readUInt32BE(16), 192, artifact.file);
+      assert.equal(bytes.readUInt32BE(20), 192, artifact.file);
+    }
+    const teamTemplate = readFileSync(
+      join(looksRoot, `arc-${icon.classId}`, 'team.svg'),
+      'utf8',
+    );
+    assert.match(teamTemplate, /facing East in a strict top-down projection/);
+  }
 });

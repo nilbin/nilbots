@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" data-runtime-art="raster-exception" aria-label="Lantern facing East in a shallow oblique projection">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" data-runtime-art="raster-exception" aria-label="Lantern facing East in a strict top-down projection">
   <defs>
     <mask id="team-light-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="512" height="512">
       <image href="__TEAM_MASK_URL__" x="0" y="0" width="512" height="512" preserveAspectRatio="none"/>
