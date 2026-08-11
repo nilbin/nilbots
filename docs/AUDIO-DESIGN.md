@@ -240,8 +240,8 @@ node scripts/export-runtime-sound-effects.mjs
 
 This verifies the hash-pinned V5 sources and exports Astral Relay to
 `web/src/assets/audio/effects/astral-relay/` as 48 kHz stereo AAC-LC: thirteen
-mapped one-shots at 192 kbps, roughly 0.34 MiB together. Fizzle, cancel, and the historical
-special-steal take remain lossless review references rather than runtime
+mapped one-shots at 192 kbps, roughly 0.31 MiB together. Fizzle, cancel, and
+the historical special-steal take remain lossless review references rather than runtime
 assets. The production manifest records the SFX Engine and
 local derivation lineage, source/output hashes, checked licensing basis,
 shipment approval, and per-cue gain/voice limits.
@@ -250,26 +250,31 @@ mix bound, or untraceable generation record. Lossless WAVs remain the source
 of truth in the sound lab. The exporter also zeros the three standard M4A
 creation/modification timestamps, making repeated exports byte-identical.
 
-Delivery processing now covers wind-up, beam, impact, destruction, level up,
-Core bank, Core Pulse, handoff, and arrival. It preserves accepted sources and
-uses only deterministic low-pass filtering, endpoint fades, and conservative
-peak normalization—no SFX Engine request and no synthesized layer. The export
-then decodes every AAC and audits what the browser will hear. Every one-shot
-must remain at or below 3% energy above 4 kHz, 0.05% above 12 kHz, -9 dBFS
-effective sample peak, and -25 dBFS whole-cue RMS. A window with more than 10%
-upper-mid energy must also fall below -28 dBFS RMS after its runtime gain. The
-destruction/arrival family that triggered this pass falls to 0.05% above 4 kHz
-and 0.02% above 12 kHz in decoded delivery.
+Delivery processing now covers wind-up, projectile, impact, destruction, level
+up, Core bank, Core Pulse, handoff, and arrival. It preserves accepted sources
+and uses only deterministic resampling, low-pass filtering, endpoint fades, and
+conservative peak normalization—no SFX Engine request and no synthesized
+layer. The export then decodes every AAC and audits what the browser will hear.
+Every one-shot must remain at or below 3% energy above 4 kHz, 0.05% above 12
+kHz, -9 dBFS effective sample peak, and -25 dBFS whole-cue RMS. A window with
+more than 10% upper-mid energy must also fall below -28 dBFS RMS after its
+runtime gain. The destruction delivery is cut past its source's 550 ms
+near-silent pre-roll, compressed to 700 ms, and scheduled at the renderers'
+exact 0.55 collapse boundary. It measures 0% above both 4 kHz and 12 kHz after
+AAC decode; the untouched arrival remains inside the same pack-wide ceilings.
 
-The viewer derives beam, impact, destruction, deflection, arrival, veterancy,
-and every Core possession/scoring cue from authoritative replay facts. A new
-pending strike emits the smooth wind-up and a matching resolution emits the
-rounded beam hit. Fizzle, interruption, miss, and voluntary cancellation are
-silent for now. Every `core-picked-up` fact uses the same levitation cue even
-when ownership changes teams; drop is its derived inverse. Seeking is silent,
-playback above 2× suspends audio, and mute/volume persist locally under
-production keys. The entitlement-unlock master is not reused as a match-result
-cue.
+The viewer derives projectile launch, impact, destruction, deflection, arrival,
+veterancy, and every Core possession/scoring cue from authoritative replay
+facts. A new pending strike emits the smooth wind-up; in WebGL, a matching
+resolution emits a quiet descending low-mid pass. In WebGL, that same
+resolution also shows the equipped projectile along the already-recorded
+traversal; Canvas retains its prior visual fallback. The underlying instant-ray
+rule, hit timing, damage, and replay facts do not change. Fizzle, interruption,
+miss, and voluntary cancellation are silent for now. Every `core-picked-up`
+fact uses the same levitation cue even when ownership changes teams; drop is
+its derived inverse. Seeking is silent, playback above 2× suspends audio, and
+mute/volume persist locally under production keys. The entitlement-unlock
+master is not reused as a match-result cue.
 
 Browser autoplay policy still requires a user gesture. The first trusted click
 or non-modifier key resumes the viewer's shared audio session and arms enabled
@@ -309,10 +314,10 @@ The mixer should consume changes between the previously presented tick and the
 current presented tick:
 
 - attack declare: a new authoritative pending strike;
-- beam resolve: an authoritative attack event/traversal;
+- projectile presentation: an authoritative attack event/traversal;
 - fizzle, interruption, miss, or cancel: visual-only for now;
 - bot impact: authoritative damage to a bot;
-- beam deflection: authoritative `projectile-deflected` event;
+- projectile deflection: authoritative `projectile-deflected` event;
 - wall impact: authoritative projectile termination against geometry;
 - destruction: transition from active to terminal bot state;
 - arrival: authoritative life spawn, respawn, or fabrication;

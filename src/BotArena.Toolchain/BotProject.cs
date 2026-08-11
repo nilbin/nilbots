@@ -444,9 +444,12 @@ public static class ToolchainInfo
     /// 0.9.54 removes runtime ambience and applies decoded-delivery comfort
     /// ceilings to every shipped one-shot, with extra treatment for the sharp
     /// destruction/arrival family and other dense objective/combat voices.
+    /// 0.9.55 aligns bot destruction with the visible collapse, restores ordinary
+    /// WebGL attack traversal as projectile presentation, and gives it a quiet
+    /// low pass.
     /// Keep in lockstep with BotArena.Cli.csproj's
     /// Version — PackagedCliVersionTests pins them together.</summary>
-    public const string CliVersion = "0.9.54";
+    public const string CliVersion = "0.9.55";
     // 0.2.0: BotContext.Slot + documented event semantics (DECISIONS #46).
     // 0.3.0: BotContext.Energy for the energy-shot rules candidate (DECISIONS #47).
     // 0.4.0: strafe actions + map dims + zone-control fields for the rules 0.3 slate

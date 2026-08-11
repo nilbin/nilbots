@@ -31,13 +31,14 @@ export interface ReplayAudioEvent {
  *
  * Every cue is bound to an explicit public fact or an authoritative before/after
  * transition. In particular, declared strikes have a three-part grammar: entering the
- * pending-strike table winds up and an attack resolution emits the beam. Unresolved and
+ * pending-strike table winds up and an attack resolution launches the presented
+ * projectile. Unresolved and
  * cancelled attacks are deliberately silent for now. Audio reports one occurrence of a
  * cue category per tick rather than turning a simultaneous volley into several stacked
- * copies. Concrete combat outcomes also outrank their setup: an impact, deflection, or
- * destruction replaces the redundant beam marker, while any foreground event masks a
- * concurrent wind-up. Nothing is inferred from score changes or future world state, so
- * seeking is deterministic.
+ * copies. A projectile launch remains one quiet cue per tick even when its recorded
+ * traversal ends in an impact, deflection, or destruction; the outcome keeps its own
+ * later cue. Any foreground event masks a concurrent wind-up. Nothing is inferred from
+ * score changes or future world state, so seeking is deterministic.
  */
 export function replayAudioEventsAt(
   replay: ReplayModel,
@@ -61,6 +62,27 @@ export function replayAudioEventsAt(
   );
   const beforeStrikeKeys = new Set(beforeStrikes.map(strikeKey));
 
+  // Tapline's ordinary instant-ray resolution is published as an authoritative
+  // traversal even when no separate `attack` event is present. WebGL now presents
+  // that same traversal with the equipped projectile look, so give it the quiet
+  // projectile pass too. Discrete projectiles are deliberately excluded: their
+  // later movement traversals are not fresh launches.
+  const presentedAttackProfiles = projectilePresentationProfileIds(replay);
+  for (const traversal of tick.projectileTraversals) {
+    if (
+      traversal.attackProfileId === undefined ||
+      !presentedAttackProfiles.has(traversal.attackProfileId)
+    ) {
+      continue;
+    }
+    scheduled.push({
+      cue: 'projectile',
+      tickOffset: 0.08,
+      priority: 3,
+      pan: panAt(traversal.from.x),
+    });
+  }
+
   for (const strike of pendingStrikes(tick.after)) {
     if (beforeStrikeKeys.has(strikeKey(strike))) continue;
     scheduled.push({
@@ -74,14 +96,14 @@ export function replayAudioEventsAt(
   for (const strike of beforeStrikes) {
     if (afterStrikeKeys.has(strikeKey(strike))) continue;
     const signatureReason = terminalSignatureReason(tick, strike);
-    const beamResolved = hasBeamResolution(tick, strike);
+    const projectileResolved = hasProjectileResolution(tick, strike);
     const signatureResolved =
       signatureReason === 'completed' || signatureReason === 'launched';
-    if (beamResolved) continue;
+    if (projectileResolved) continue;
     if (signatureResolved) {
       scheduled.push({
         cue: 'projectile',
-        tickOffset: 0.46,
+        tickOffset: 0.08,
         priority: 3,
         pan: panAt(strikePosition(strike, tick.before)?.x),
       });
@@ -91,10 +113,10 @@ export function replayAudioEventsAt(
   }
 
   for (const event of authoritativeEvents) {
-    // Events carry their origin tile; a beam is placed where it was fired from.
+    // Events carry their origin tile; the projectile cue starts where it was fired.
     const pan = panAt(event.from?.x ?? event.to?.x);
     if (isAttackEvent(event.type)) {
-      scheduled.push({ cue: 'projectile', tickOffset: 0.46, priority: 3, pan });
+      scheduled.push({ cue: 'projectile', tickOffset: 0.08, priority: 3, pan });
     } else if (event.type === 'projectile-deflected') {
       scheduled.push({ cue: 'deflect', tickOffset: 0.52, priority: 4, pan });
     } else if (event.type === 'damage') {
@@ -103,7 +125,10 @@ export function replayAudioEventsAt(
       isDestructionEvent(event.type) ||
       event.type === 'disqualified'
     ) {
-      scheduled.push({ cue: 'destroyed', tickOffset: 0.68, priority: 4, pan });
+      // Both renderers begin the body's field-collapse at 0.55. The destruction
+      // delivery is cut to an immediate onset, so schedule it on that same boundary
+      // rather than letting it read as an after-the-fact respawn gesture.
+      scheduled.push({ cue: 'destroyed', tickOffset: 0.55, priority: 4, pan });
     }
 
     const fact = event.arcRelayFact;
@@ -220,12 +245,6 @@ export function replayAudioEventsAt(
   return sparseTickMix(scheduled);
 }
 
-const BEAM_OUTCOME_CUES = new Set<SoundEffectCueId>([
-  'impact',
-  'destroyed',
-  'deflect',
-]);
-
 /**
  * A replay tick is an audible moment, not a mandate to play one copy per bot.
  * Preserve exact events visually while keeping the shared sound field calm enough for
@@ -234,9 +253,6 @@ const BEAM_OUTCOME_CUES = new Set<SoundEffectCueId>([
 function sparseTickMix(
   scheduled: readonly ReplayAudioEvent[],
 ): ReplayAudioEvent[] {
-  const beamHasConcreteOutcome = scheduled.some((event) =>
-    BEAM_OUTCOME_CUES.has(event.cue),
-  );
   const windupHasForegroundEvent = scheduled.some(
     (event) =>
       event.cue === 'projectile' ||
@@ -244,7 +260,6 @@ function sparseTickMix(
   );
   const audible = scheduled.filter(
     (event) =>
-      !(event.cue === 'projectile' && beamHasConcreteOutcome) &&
       !(event.cue === 'attack-windup' && windupHasForegroundEvent),
   );
 
@@ -273,6 +288,38 @@ function sparseTickMix(
 
 type PendingStrike = ReplayArcRelayModeState['pendingStrikes'][number];
 
+const projectilePresentationProfileCache = new WeakMap<
+  ReplayModel,
+  ReadonlySet<string>
+>();
+
+function projectilePresentationProfileIds(
+  replay: ReplayModel,
+): ReadonlySet<string> {
+  const cached = projectilePresentationProfileCache.get(replay);
+  if (cached) return cached;
+  const ids = new Set<string>();
+  if (replay.contract.kind === 'v3-generic') {
+    for (const profile of replay.contract.rawContract.rules.attackProfiles) {
+      const projectile = profile.projectile as {
+        mode?: unknown;
+        strikeWindupTicks?: unknown;
+        strikeSweep?: unknown;
+      };
+      if (
+        projectile.mode === 'instant-ray' &&
+        typeof projectile.strikeWindupTicks === 'number' &&
+        projectile.strikeWindupTicks > 0 &&
+        projectile.strikeSweep !== true
+      ) {
+        ids.add(profile.id);
+      }
+    }
+  }
+  projectilePresentationProfileCache.set(replay, ids);
+  return ids;
+}
+
 function pendingStrikes(
   snapshot: ReplayWorldSnapshot,
 ): readonly PendingStrike[] {
@@ -299,7 +346,10 @@ function strikePosition(
   );
 }
 
-function hasBeamResolution(tick: ReplayTick, strike: PendingStrike): boolean {
+function hasProjectileResolution(
+  tick: ReplayTick,
+  strike: PendingStrike,
+): boolean {
   return (
     [...tick.lifecycleEvents, ...tick.events].some(
       (event) =>

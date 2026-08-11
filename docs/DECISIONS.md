@@ -7665,3 +7665,62 @@ Protocol is unchanged. The runtime package is thirteen one-shots only, about
 0.34 MiB; manifest version 5 pins the nine delivery recipes and decoded-audio
 metrics. CLI/tool package version 0.9.54 carries the comfort pass and ambience
 removal.
+
+## 288. Bot destruction begins with the visible field collapse
+
+Owner refinement (2026-08-11), superseding #287 only for destruction delivery
+and timing. The destruction master was safe but poorly synchronized: because it
+is the inverse of Unit arrival, its first roughly 550 ms are near-silent. The
+viewer scheduled that source at 0.68 of the death tick and added an 80 ms fade,
+so its recognizable energy arrived after the body had mostly collapsed and
+could read as an aftermath or respawn voice.
+
+No provider request, synthesized layer, or lossless-master change is made. The
+runtime export starts 680 ms into the hash-pinned inverse-arrival source, plays
+the selected field fold at 1.25x, and gives it a 700 ms delivery with a 2.2 kHz
+low-pass, 10 ms onset, and 220 ms exit. Its runtime gain falls from 0.32 to
+0.30, pan narrows from 0.45 to 0.40, and it remains dry with one voice at a
+time. The scheduler moves from 0.68 to the exact 0.55 boundary where both the
+Canvas and WebGL renderers begin the destruction collapse.
+
+The final decoded AAC measures 184 Hz dominant frequency, 206 Hz spectral
+centroid, 0% energy above both 4 kHz and 12 kHz, -17.62 dBFS effective peak,
+and -28.97 dBFS effective RMS. Every other shipped one-shot is decoded and
+re-audited under the same #287 limits; the pack maxima remain 2.67% above
+4 kHz, 0.03% above 12 kHz, -9.61 dBFS effective peak, and -26.07 dBFS
+effective RMS. Runtime manifest version 6 pins the new crop and mix, and
+CLI/tool package version 0.9.55 carries the synchronized destruction cue.
+
+## 289. Ordinary attacks return to projectile presentation without changing mechanics
+
+Owner refinement (2026-08-11), superseding #285/#286 only for ordinary attack
+presentation and its resolved cue. Tapline's regular attacks remain exactly the
+same wind-up then instant-ray mechanic: targeting, resolution tick, hits,
+damage, interruption, and replay facts are untouched. The WebGL viewer now
+uses the replay's existing authoritative traversal to carry the equipped
+projectile look across the resolved line. Canvas retains its established
+strike/beam fallback. In WebGL, only an attack profile that explicitly authors
+`strikeSweep: true` retains the instantaneous slash grammar.
+
+The compatibility cue ID remains `projectile`, but its delivery is now a quiet
+180 ms descending pass rather than a beam hit. No provider request,
+synthesized layer, or lossless-master change is made: deterministic
+variable-rate resampling moves the accepted hash-pinned Engine pulse from 0.18x
+toward 0.10x, then a 650 Hz low-pass and soft 12/80 ms endpoints keep it in the
+low-mid field. Runtime gain is 0.14, pan width 0.16, voice limit one, and no
+room send. The final AAC decodes to a 442 Hz dominant frequency and 456 Hz
+spectral centroid, with 0% measured energy above 4/8/12 kHz, -31.98 dBFS
+effective peak, and -42.51 dBFS effective RMS.
+
+One projectile cue is coalesced per tick at offset 0.08 even when a later
+impact, deflection, or destruction states the outcome; that later voice remains
+separate. Instant-ray traversals provide the launch fact when no redundant
+`attack` event exists, while continuing discrete-projectile traversals are
+excluded. The 473-tick Tapline review schedules 88 wind-ups, 110 projectiles,
+89 impacts, and 48 destructions: 335 combat cues rather than the original 508,
+a 34.1% reduction, while restoring a readable launch to each attack tick. All
+thirteen final AACs remain under #287's decoded-delivery ceilings; the pack
+maxima remain 2.67% above 4 kHz, 0.03% above 12 kHz, -9.61 dBFS effective peak,
+and -26.07 dBFS effective RMS. Manifest version 7 pins the visual/audio
+presentation policy and delivery recipe; CLI/tool package version 0.9.55
+carries the combined projectile and synchronized-destruction pass.

@@ -82,6 +82,7 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
             channelTransform: string;
             sourceStartSeconds: number;
             playbackRate: number;
+            playbackRateEnd?: number;
             durationSeconds: number;
             lowPassHz: number;
             fadeInSeconds: number;
@@ -118,14 +119,14 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
       tickMix: {
         coalesceSameCue: boolean;
         suppressWindupUnderForegroundEvents: boolean;
-        suppressBeamUnderConcreteOutcomes: string[];
+        projectileWithConcreteOutcomes: string;
       };
     };
     cues: Record<string, string>;
     integrity: Record<string, Integrity>;
   };
 
-  assert.equal(manifest.version, 5);
+  assert.equal(manifest.version, 7);
   assert.equal(manifest.id, 'astral-relay');
   assert.equal(manifest.approval, 'approved');
   assert.equal(manifest.format, 'aac-lc-m4a');
@@ -149,8 +150,9 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
     },
     deliveryProcessing: {
       policy:
-        'Deterministic low-pass, endpoint, and peak treatment for frequent or ' +
-        'spectrally sharp cues; no synthesized layer and no provider request.',
+        'Deterministic resampling, low-pass, endpoint, and peak treatment for ' +
+        'frequent or spectrally sharp cues; no synthesized layer and no ' +
+        'provider request.',
       cues: {
         'attack-windup': {
           channelTransform: 'side-to-dual-mono',
@@ -165,12 +167,13 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
         projectile: {
           channelTransform: 'mid-to-dual-mono',
           sourceStartSeconds: 0.005,
-          playbackRate: 0.16,
-          durationSeconds: 0.16,
-          lowPassHz: 750,
-          fadeInSeconds: 0.025,
+          playbackRate: 0.18,
+          playbackRateEnd: 0.1,
+          durationSeconds: 0.18,
+          lowPassHz: 650,
+          fadeInSeconds: 0.012,
           fadeOutSeconds: 0.08,
-          targetSamplePeak: 0.24,
+          targetSamplePeak: 0.18,
         },
         impact: {
           channelTransform: 'preserve-stereo',
@@ -184,13 +187,13 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
         },
         destroyed: {
           channelTransform: 'preserve-stereo',
-          sourceStartSeconds: 0,
-          playbackRate: 1,
-          durationSeconds: 2,
-          lowPassHz: 2_800,
-          fadeInSeconds: 0.08,
-          fadeOutSeconds: 0.45,
-          targetSamplePeak: 0.5,
+          sourceStartSeconds: 0.68,
+          playbackRate: 1.25,
+          durationSeconds: 0.7,
+          lowPassHz: 2_200,
+          fadeInSeconds: 0.01,
+          fadeOutSeconds: 0.22,
+          targetSamplePeak: 0.44,
         },
         'level-up': {
           channelTransform: 'preserve-stereo',
@@ -274,7 +277,7 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
     tickMix: {
       coalesceSameCue: true,
       suppressWindupUnderForegroundEvents: true,
-      suppressBeamUnderConcreteOutcomes: ['impact', 'destroyed', 'deflect'],
+      projectileWithConcreteOutcomes: 'layer-once-per-tick',
     },
   });
   assert.equal(manifest.mix.roomSend, 0.06);
@@ -287,7 +290,7 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
     ),
     {
       impact: { gain: 0.32, voiceLimit: 1, panWidth: 0.5, roomSend: false },
-      destroyed: { gain: 0.32, voiceLimit: 1, panWidth: 0.45, roomSend: false },
+      destroyed: { gain: 0.3, voiceLimit: 1, panWidth: 0.4, roomSend: false },
       'level-up': { gain: 0.32, voiceLimit: 1, panWidth: 0.4, roomSend: false },
       'arc-bank': { gain: 0.44, voiceLimit: 1, panWidth: 0.55, roomSend: true },
       'arc-pulse': { gain: 0.32, voiceLimit: 1, panWidth: 0.55, roomSend: true },
@@ -376,6 +379,17 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
       `${cue} carries too much sustained runtime energy`,
     );
   }
+  assert.deepEqual(manifest.mix.cues.projectile, {
+    gain: 0.14,
+    voiceLimit: 1,
+    panWidth: 0.16,
+    roomSend: false,
+  });
+  assert.ok(
+    manifest.integrity.projectile!.deliveryMetrics!.effectiveSamplePeakDbfs <=
+      -28,
+    'the newly layered common projectile cue must stay well below outcomes',
+  );
   assert.ok(
     manifest.integrity['attack-windup']!.deliveryMetrics!
       .sourceInterchannelCorrelation! <= -0.99,

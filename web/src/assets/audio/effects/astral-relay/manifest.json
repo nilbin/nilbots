@@ -1,5 +1,5 @@
 {
-  "version": 5,
+  "version": 7,
   "id": "astral-relay",
   "label": "Astral Relay",
   "approval": "approved",
@@ -22,7 +22,7 @@
       "canonicalization": "zero-iso-bmff-creation-and-modification-times"
     },
     "deliveryProcessing": {
-      "policy": "Deterministic low-pass, endpoint, and peak treatment for frequent or spectrally sharp cues; no synthesized layer and no provider request.",
+      "policy": "Deterministic resampling, low-pass, endpoint, and peak treatment for frequent or spectrally sharp cues; no synthesized layer and no provider request.",
       "cues": {
         "attack-windup": {
           "channelTransform": "side-to-dual-mono",
@@ -37,12 +37,13 @@
         "projectile": {
           "channelTransform": "mid-to-dual-mono",
           "sourceStartSeconds": 0.005,
-          "playbackRate": 0.16,
-          "durationSeconds": 0.16,
-          "lowPassHz": 750,
-          "fadeInSeconds": 0.025,
+          "playbackRate": 0.18,
+          "playbackRateEnd": 0.1,
+          "durationSeconds": 0.18,
+          "lowPassHz": 650,
+          "fadeInSeconds": 0.012,
           "fadeOutSeconds": 0.08,
-          "targetSamplePeak": 0.24
+          "targetSamplePeak": 0.18
         },
         "impact": {
           "channelTransform": "preserve-stereo",
@@ -56,13 +57,13 @@
         },
         "destroyed": {
           "channelTransform": "preserve-stereo",
-          "sourceStartSeconds": 0,
-          "playbackRate": 1,
-          "durationSeconds": 2,
-          "lowPassHz": 2800,
-          "fadeInSeconds": 0.08,
-          "fadeOutSeconds": 0.45,
-          "targetSamplePeak": 0.5
+          "sourceStartSeconds": 0.68,
+          "playbackRate": 1.25,
+          "durationSeconds": 0.7,
+          "lowPassHz": 2200,
+          "fadeInSeconds": 0.01,
+          "fadeOutSeconds": 0.22,
+          "targetSamplePeak": 0.44
         },
         "level-up": {
           "channelTransform": "preserve-stereo",
@@ -140,9 +141,9 @@
         "roomSend": false
       },
       "projectile": {
-        "gain": 0.2,
+        "gain": 0.14,
         "voiceLimit": 1,
-        "panWidth": 0.2,
+        "panWidth": 0.16,
         "roomSend": false
       },
       "impact": {
@@ -152,9 +153,9 @@
         "roomSend": false
       },
       "destroyed": {
-        "gain": 0.32,
+        "gain": 0.3,
         "voiceLimit": 1,
-        "panWidth": 0.45,
+        "panWidth": 0.4,
         "roomSend": false
       },
       "level-up": {
@@ -224,11 +225,7 @@
     "tickMix": {
       "coalesceSameCue": true,
       "suppressWindupUnderForegroundEvents": true,
-      "suppressBeamUnderConcreteOutcomes": [
-        "impact",
-        "destroyed",
-        "deflect"
-      ]
+      "projectileWithConcreteOutcomes": "layer-once-per-tick"
     }
   },
   "cues": {
@@ -273,26 +270,26 @@
     },
     "projectile": {
       "sourceSha256": "df5d574657ebb56fed0b165715b1b0e42634910c6ca0c921102c6612c037158a",
-      "outputSha256": "4bda4106ab2489a0ad751470b96f3902907a61f1cf5e84ac391885ba804bb6e5",
-      "bytes": 5109,
+      "outputSha256": "629fd9cd1ecefcd09d11554d6f9eb8f7240acafde8227b02d793c95dd20bf024",
+      "bytes": 5309,
       "bitrate": 192000,
       "deliveryMetrics": {
-        "durationSeconds": 0.16,
-        "samplePeakDbfs": -12.42,
-        "rmsDbfs": -23.16,
-        "dominantFrequencyHz": 598,
+        "durationSeconds": 0.18,
+        "samplePeakDbfs": -14.9,
+        "rmsDbfs": -25.43,
+        "dominantFrequencyHz": 442,
         "interchannelCorrelation": 1,
-        "spectralCentroidHz": 604,
+        "spectralCentroidHz": 456,
         "energyAbove4kPercent": 0,
         "energyAbove8kPercent": 0,
         "energyAbove12kPercent": 0,
         "maximumWindowAbove4kPercent": 0,
         "maximumWindowAbove4kAtSeconds": 0.043,
-        "maximumWindowAbove4kRmsDbfs": -23.54,
+        "maximumWindowAbove4kRmsDbfs": -29.86,
         "sourceInterchannelCorrelation": 1,
-        "effectiveSamplePeakDbfs": -26.4,
-        "effectiveRmsDbfs": -37.14,
-        "effectiveMaximumWindowAbove4kRmsDbfs": -37.52
+        "effectiveSamplePeakDbfs": -31.98,
+        "effectiveRmsDbfs": -42.51,
+        "effectiveMaximumWindowAbove4kRmsDbfs": -46.94
       }
     },
     "impact": {
@@ -321,26 +318,26 @@
     },
     "destroyed": {
       "sourceSha256": "e0a2f03f017053f6943f72037afa7b50008e644f4eeb0b923eb984c3ef64c1d9",
-      "outputSha256": "7bdd586fd6f1f1d5f92a6c8e2534dd0162b5907ce64fbf2e6725734242f8367d",
-      "bytes": 60094,
+      "outputSha256": "db55fb60330624c7398c9da6eea198d534bfcb3c5cf44426b73f669cb7f9e91a",
+      "bytes": 23930,
       "bitrate": 192000,
       "deliveryMetrics": {
-        "durationSeconds": 2,
-        "samplePeakDbfs": -6.05,
-        "rmsDbfs": -20.77,
-        "dominantFrequencyHz": 102,
-        "interchannelCorrelation": 0.9769,
+        "durationSeconds": 0.7,
+        "samplePeakDbfs": -7.16,
+        "rmsDbfs": -18.51,
+        "dominantFrequencyHz": 184,
+        "interchannelCorrelation": 0.9938,
         "spectralCentroidHz": 206,
-        "energyAbove4kPercent": 0.05,
-        "energyAbove8kPercent": 0.04,
-        "energyAbove12kPercent": 0.02,
-        "maximumWindowAbove4kPercent": 74.26,
-        "maximumWindowAbove4kAtSeconds": 1.877,
-        "maximumWindowAbove4kRmsDbfs": -58.57,
+        "energyAbove4kPercent": 0,
+        "energyAbove8kPercent": 0,
+        "energyAbove12kPercent": 0,
+        "maximumWindowAbove4kPercent": 0.07,
+        "maximumWindowAbove4kAtSeconds": 0.384,
+        "maximumWindowAbove4kRmsDbfs": -24.08,
         "sourceInterchannelCorrelation": 0.8288,
-        "effectiveSamplePeakDbfs": -15.95,
-        "effectiveRmsDbfs": -30.67,
-        "effectiveMaximumWindowAbove4kRmsDbfs": -68.47
+        "effectiveSamplePeakDbfs": -17.62,
+        "effectiveRmsDbfs": -28.97,
+        "effectiveMaximumWindowAbove4kRmsDbfs": -34.54
       }
     },
     "level-up": {

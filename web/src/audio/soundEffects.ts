@@ -65,6 +65,7 @@ interface SoundEffectManifest {
             | 'preserve-stereo';
           sourceStartSeconds: number;
           playbackRate: number;
+          playbackRateEnd?: number;
           durationSeconds: number;
           lowPassHz: number;
           fadeInSeconds: number;
@@ -92,7 +93,7 @@ interface SoundEffectManifest {
     tickMix: {
       coalesceSameCue: true;
       suppressWindupUnderForegroundEvents: true;
-      suppressBeamUnderConcreteOutcomes: ['impact', 'destroyed', 'deflect'];
+      projectileWithConcreteOutcomes: 'layer-once-per-tick';
     };
   };
   cues: Record<SoundEffectCueId, string>;
@@ -157,7 +158,7 @@ function loadSoundEffectPack(): SoundEffectPack {
   }
   const [manifestPath, manifest] = entries[0]!;
   if (
-    manifest.version !== 5 ||
+    manifest.version !== 7 ||
     manifest.id !== DEFAULT_SOUND_EFFECT_PACK_ID ||
     manifest.approval !== 'approved' ||
     manifest.format !== 'aac-lc-m4a' ||
@@ -187,9 +188,8 @@ function loadSoundEffectPack(): SoundEffectPack {
     manifest.behavior?.cueAliases?.['arc-steal'] !== 'arc-pickup' ||
     manifest.behavior?.tickMix?.coalesceSameCue !== true ||
     manifest.behavior.tickMix.suppressWindupUnderForegroundEvents !== true ||
-    JSON.stringify(
-      manifest.behavior.tickMix.suppressBeamUnderConcreteOutcomes,
-    ) !== JSON.stringify(['impact', 'destroyed', 'deflect']) ||
+    manifest.behavior.tickMix.projectileWithConcreteOutcomes !==
+      'layer-once-per-tick' ||
     !isUnitGain(manifest.mix?.roomSend) ||
     !/^[a-f0-9]{64}$/.test(manifest.provenance.generationRecordSha256)
   ) {
@@ -276,10 +276,14 @@ function validDeliveryProcessing(
       ) &&
       Number.isFinite(cue.sourceStartSeconds) &&
       cue.sourceStartSeconds >= 0 &&
-      cue.sourceStartSeconds <= 0.25 &&
+      cue.sourceStartSeconds <= 1 &&
       Number.isFinite(cue.playbackRate) &&
       cue.playbackRate >= 0.1 &&
-      cue.playbackRate <= 1 &&
+      cue.playbackRate <= 1.5 &&
+      (cue.playbackRateEnd === undefined ||
+        (Number.isFinite(cue.playbackRateEnd) &&
+          cue.playbackRateEnd >= 0.1 &&
+          cue.playbackRateEnd <= 1.5)) &&
       Number.isFinite(cue.durationSeconds) &&
       cue.durationSeconds > 0 &&
       cue.durationSeconds <= 4 &&

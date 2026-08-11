@@ -12,6 +12,7 @@ import {
   boltsAt,
   buildActors,
   buildOverlays,
+  strikeSlashesAt,
 } from './.harness/harness.entry.js';
 
 /**
@@ -473,6 +474,64 @@ test('projectile interpolation keeps exact owner identity and all eight-way head
   assert.equal(bolt.ownerActor.actorKey, traversal.ownerActor.actorKey);
   assert.equal(bolt.x, traversal.from.x + 0.5);
   assert.equal(bolt.y, traversal.from.y - 0.5);
+});
+
+test('3D opts wind-up attacks into projectile presentation without changing Canvas', () => {
+  function attackPresentation(strikeSweep: boolean): ReplayModel {
+    const presentation = structuredClone(frontline) as ReplayModel;
+    const traversal = presentation.ticks[10]!.projectileTraversals[0]!;
+    traversal.attackProfileId = 'presentation-test';
+    presentation.contract = {
+      kind: 'v3-generic',
+      rawContract: {
+        rules: {
+          attackProfiles: [
+            {
+              id: 'presentation-test',
+              projectile: { strikeWindupTicks: 1, strikeSweep },
+            },
+          ],
+        },
+      },
+    } as unknown as ReplayModel['contract'];
+    return presentation;
+  }
+
+  const ordinary = attackPresentation(false);
+  const ordinaryTraversal = ordinary.ticks[10]!.projectileTraversals[0]!;
+  assert.equal(
+    boltsAt(ordinary, 10.5).some(
+      (bolt) => bolt.id === ordinaryTraversal.projectileId,
+    ),
+    false,
+    'the shared default preserves Canvas strike presentation',
+  );
+  assert.equal(strikeSlashesAt(ordinary, 10.5).length, 1);
+  assert.ok(
+    boltsAt(ordinary, 10.5, 'projectile-traversal').some(
+      (bolt) => bolt.id === ordinaryTraversal.projectileId,
+    ),
+    '3D carries the equipped projectile look over the recorded traversal',
+  );
+  assert.deepEqual(
+    strikeSlashesAt(ordinary, 10.5, 'projectile-traversal'),
+    [],
+    '3D does not layer its old slash over the restored projectile',
+  );
+
+  const sweep = attackPresentation(true);
+  const sweepTraversal = sweep.ticks[10]!.projectileTraversals[0]!;
+  assert.equal(
+    boltsAt(sweep, 10.5, 'projectile-traversal').some(
+      (bolt) => bolt.id === sweepTraversal.projectileId,
+    ),
+    false,
+    'an explicitly authored sweep remains visually distinct from a projectile',
+  );
+  assert.equal(
+    strikeSlashesAt(sweep, 10.5, 'projectile-traversal').length,
+    1,
+  );
 });
 
 test('3D overlays show the five-position Frontline and absent-unit lifecycle cues', () => {

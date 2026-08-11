@@ -664,7 +664,7 @@ Animations describe recorded events; they do not create events.
 | Movement | Consecutive replay states plus a declared Arc carrier relocation cadence | Monotone, causal tile-to-tile glide with boundary-speed continuity; carriers cross the tile edge on the resolved move boundary and keep travelling through relocation-locked ticks |
 | Turning | Recorded facings | Shortest-angle rotation with causal angular-velocity continuity |
 | Idle | Active status | Subtle hover and separate soft shadow |
-| Firing | `Shot` event | Brief chassis recoil and layered beam/muzzle glow |
+| Firing | Authoritative attack traversal | WebGL uses windup, brief chassis recoil, and the equipped projectile look travelling the recorded line; Canvas retains its established strike/beam fallback |
 | Projectile travel | Recorded traversal path | Substep interpolation, glow core, and trail |
 | Damage | `Damage` event | Short brightness flash, ring, and radial sparks |
 | Destruction | `Destroyed` event | Collapse/rotation plus expanding sparks |

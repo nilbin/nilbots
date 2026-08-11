@@ -176,13 +176,17 @@ In rough order of feel per unit of effort:
   Cues send post-pan, so reflections inherit the cue's position instead of collapsing to
   the centre.
 
-Astral Relay is now the sole approved runtime SFX pack. Its thirteen mapped one-shots plus
-the Tapline-only Ion veil loop total roughly 0.96 MiB, arm with the first
-trusted viewer interaction, and remain in the self-contained CLI artifact. Wind-up and
-beam use the smoother low-noise revisions; failed/cancelled attacks stay silent, and a
-steal aliases the ordinary levitation pickup. Provider-authored tails use a light 0.06
-room send; the loop sits near-subliminally behind play at gain 0.08 and the shared limiter remains the final
-ear-safety boundary. The entitlement-unlock review cue is not reused for a match result.
+Astral Relay is now the sole approved runtime SFX pack. Its thirteen mapped
+one-shots total roughly 0.31 MiB, arm with the first trusted viewer interaction,
+and remain in the self-contained CLI artifact; no ambience loop ships or plays.
+Wind-up and ordinary attack traversal use restrained low-mid voices; WebGL
+presents the latter with the equipped projectile look instead of its slash,
+while Canvas retains its existing fallback. Failed/cancelled attacks stay
+silent, and a steal aliases the ordinary levitation pickup. Destruction is a
+compact low field fold aligned to the visible collapse. Provider-authored tails
+use at most a light 0.06 room send, and the shared limiter remains the final
+ear-safety boundary. The entitlement-unlock review cue is not reused for a
+match result.
 
 Neon Protocol supplies the website soundtrack through content-addressed HTTP assets.
 Straight-through playback is the default; adaptive scoring remains an explicit

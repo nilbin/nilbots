@@ -414,6 +414,10 @@ export interface BoltPose {
   programmedPath: readonly ReplayPosition[] | null;
 }
 
+export type OrdinaryAttackPresentation =
+  | 'instant-slash'
+  | 'projectile-traversal';
+
 /**
  * Interpolated projectile poses at continuous playhead `time`.
  *
@@ -422,7 +426,11 @@ export interface BoltPose {
  * A to C could put a projectile somewhere the engine never did. This consumes only
  * the normalized ReplayModel, so replay-v1 and replay-v2 share the same derivation.
  */
-export function boltsAt(replay: ReplayModel, time: number): BoltPose[] {
+export function boltsAt(
+  replay: ReplayModel,
+  time: number,
+  ordinaryAttackPresentation: OrdinaryAttackPresentation = 'instant-slash',
+): BoltPose[] {
   const tickCount = replay.ticks.length;
   if (tickCount === 0) return [];
   const clamped = Math.max(0, Math.min(time, tickCount));
@@ -431,7 +439,10 @@ export function boltsAt(replay: ReplayModel, time: number): BoltPose[] {
   const current = replay.ticks[tick];
   const traversals = current.projectileTraversals;
   const bolts = current.after.projectiles ?? [];
-  const strikes = strikeAttackProfileIds(replay);
+  const slashProfiles = slashProfilesFor(
+    replay,
+    ordinaryAttackPresentation,
+  );
   const moving = new Set(
     traversals.map((traversal) => traversal.projectileId),
   );
@@ -439,12 +450,12 @@ export function boltsAt(replay: ReplayModel, time: number): BoltPose[] {
 
   for (const traversal of traversals) {
     if (traversal.path.length === 0) continue;
-    // A declared strike's resolution is drawn as a slash by
-    // strikeSlashesAt, never as a traveling bolt — a strike is a hit on
-    // the board, not a dodgeable object in flight.
+    // Canvas keeps the established slash grammar. The 3D renderer opts ordinary
+    // wind-up attacks into projectile traversal; an explicitly sweeping strike
+    // remains a slash in either renderer. This choice is presentation only.
     if (
       traversal.attackProfileId !== undefined &&
-      strikes.has(traversal.attackProfileId)
+      slashProfiles.has(traversal.attackProfileId)
     ) {
       continue;
     }
@@ -598,15 +609,11 @@ function sameIdentity(
 }
 
 const strikeProfileCache = new WeakMap<ReplayModel, ReadonlySet<string>>();
+const sweepProfileCache = new WeakMap<ReplayModel, ReadonlySet<string>>();
 
 /**
  * Attack profiles whose successful attack is a declared strike (positive
- * windup): the cone telegraphs during the windup and the resolution lands
- * in-place on the resolve tick. Their traversals must never be drawn as
- * traveling bolts — a strike is a hit on the board, not a dodgeable
- * object in flight — so boltsAt skips them and strikeSlashesAt owns the
- * visual. Only the v3 generic contract declares windup; every other
- * source yields the empty set and changes nothing.
+ * windup). Canvas keeps this established set for its slash presentation.
  */
 export function strikeAttackProfileIds(
   replay: ReplayModel,
@@ -627,6 +634,39 @@ export function strikeAttackProfileIds(
   return ids;
 }
 
+/** Special area strikes that retain the instantaneous slash in WebGL. */
+function sweepAttackProfileIds(replay: ReplayModel): ReadonlySet<string> {
+  const cached = sweepProfileCache.get(replay);
+  if (cached) return cached;
+  const ids = new Set<string>();
+  if (replay.contract.kind === 'v3-generic') {
+    for (const profile of replay.contract.rawContract.rules.attackProfiles) {
+      const projectile = profile.projectile as {
+        strikeWindupTicks?: unknown;
+        strikeSweep?: unknown;
+      };
+      if (
+        typeof projectile.strikeWindupTicks === 'number' &&
+        projectile.strikeWindupTicks > 0 &&
+        projectile.strikeSweep === true
+      ) {
+        ids.add(profile.id);
+      }
+    }
+  }
+  sweepProfileCache.set(replay, ids);
+  return ids;
+}
+
+function slashProfilesFor(
+  replay: ReplayModel,
+  ordinaryAttackPresentation: OrdinaryAttackPresentation,
+): ReadonlySet<string> {
+  return ordinaryAttackPresentation === 'projectile-traversal'
+    ? sweepAttackProfileIds(replay)
+    : strikeAttackProfileIds(replay);
+}
+
 export interface StrikeSlash {
   ownerActor: ReplayActorIdentity;
   /** The landed line: shooter's tile first, impact tile last. */
@@ -636,29 +676,30 @@ export interface StrikeSlash {
 }
 
 /**
- * Matured strike resolutions flashing at continuous playhead `time`.
- *
- * The whole line exists at once for the resolve tick and fades over it —
- * the visual is the cone collapsing into the one line that landed, not a
- * projectile traveling. Same tick/fraction derivation as boltsAt so the
- * two grammars can never overlap on a projectile.
+ * Strike resolutions flashing at continuous playhead `time`. Canvas uses the
+ * default for all wind-up attacks; WebGL opts ordinary attacks into projectile
+ * traversal and receives slashes only for explicitly authored sweeps.
  */
 export function strikeSlashesAt(
   replay: ReplayModel,
   time: number,
+  ordinaryAttackPresentation: OrdinaryAttackPresentation = 'instant-slash',
 ): StrikeSlash[] {
   const tickCount = replay.ticks.length;
   if (tickCount === 0) return [];
   const clamped = Math.max(0, Math.min(time, tickCount));
   const tick = Math.min(Math.floor(clamped), tickCount - 1);
   const fraction = Math.max(0, Math.min(clamped - tick, 1));
-  const strikes = strikeAttackProfileIds(replay);
-  if (strikes.size === 0) return [];
+  const slashProfiles = slashProfilesFor(
+    replay,
+    ordinaryAttackPresentation,
+  );
+  if (slashProfiles.size === 0) return [];
   const slashes: StrikeSlash[] = [];
   for (const traversal of replay.ticks[tick].projectileTraversals) {
     if (
       traversal.attackProfileId === undefined ||
-      !strikes.has(traversal.attackProfileId) ||
+      !slashProfiles.has(traversal.attackProfileId) ||
       traversal.path.length === 0
     ) {
       continue;
@@ -691,6 +732,7 @@ export interface SpentBolt {
 export function spentBoltsAt(
   replay: ReplayModel,
   time: number,
+  ordinaryAttackPresentation: OrdinaryAttackPresentation = 'instant-slash',
 ): SpentBolt[] {
   const tickCount = replay.ticks.length;
   if (tickCount === 0) return [];
@@ -718,13 +760,16 @@ export function spentBoltsAt(
       position: projectile.position,
     });
   }
-  const strikes = strikeAttackProfileIds(replay);
+  const slashProfiles = slashProfilesFor(
+    replay,
+    ordinaryAttackPresentation,
+  );
   for (const traversal of deathTick.projectileTraversals) {
-    // Strike resolutions end in their slash, not in a bolt's
-    // dissipation ring — the two grammars must stay unmistakable.
+    // The chosen renderer grammar decides whether this traversal ends in a
+    // slash or in a projectile dissipation ring.
     if (
       traversal.attackProfileId !== undefined &&
-      strikes.has(traversal.attackProfileId)
+      slashProfiles.has(traversal.attackProfileId)
     ) {
       continue;
     }

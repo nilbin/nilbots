@@ -82,13 +82,13 @@ const mix = {
       roomSend: false,
     },
     projectile: {
-      gain: 0.2,
+      gain: 0.14,
       voiceLimit: 1,
-      panWidth: 0.2,
+      panWidth: 0.16,
       roomSend: false,
     },
     impact: { gain: 0.32, voiceLimit: 1, panWidth: 0.5, roomSend: false },
-    destroyed: { gain: 0.32, voiceLimit: 1, panWidth: 0.45, roomSend: false },
+    destroyed: { gain: 0.3, voiceLimit: 1, panWidth: 0.4, roomSend: false },
     "level-up": { gain: 0.32, voiceLimit: 1, panWidth: 0.4, roomSend: false },
     "arc-birth": { gain: 0.4, voiceLimit: 2, panWidth: 0.7, roomSend: true },
     "arc-pickup": { gain: 0.3, voiceLimit: 2, panWidth: 0.7, roomSend: true },
@@ -114,12 +114,16 @@ const deliveryProcessing = {
   projectile: {
     channelTransform: "mid-to-dual-mono",
     sourceStartSeconds: 0.005,
-    playbackRate: 0.16,
-    durationSeconds: 0.16,
-    lowPassHz: 750,
-    fadeInSeconds: 0.025,
+    // Turn the accepted Engine pulse into a low descending projectile pass:
+    // variable-rate resampling moves from roughly 670 Hz toward 370 Hz without
+    // adding a synthesized layer or making another provider request.
+    playbackRate: 0.18,
+    playbackRateEnd: 0.1,
+    durationSeconds: 0.18,
+    lowPassHz: 650,
+    fadeInSeconds: 0.012,
     fadeOutSeconds: 0.08,
-    targetSamplePeak: 0.24,
+    targetSamplePeak: 0.18,
   },
   impact: {
     channelTransform: "preserve-stereo",
@@ -133,13 +137,16 @@ const deliveryProcessing = {
   },
   destroyed: {
     channelTransform: "preserve-stereo",
-    sourceStartSeconds: 0,
-    playbackRate: 1,
-    durationSeconds: 2,
-    lowPassHz: 2_800,
-    fadeInSeconds: 0.08,
-    fadeOutSeconds: 0.45,
-    targetSamplePeak: 0.5,
+    // The inverse-arrival master is effectively silent for its first 550 ms. Start
+    // inside the actual collapse and compact it so the low field fold peaks as the
+    // body finishes sinking, rather than arriving as a two-second aftermath.
+    sourceStartSeconds: 0.68,
+    playbackRate: 1.25,
+    durationSeconds: 0.7,
+    lowPassHz: 2_200,
+    fadeInSeconds: 0.01,
+    fadeOutSeconds: 0.22,
+    targetSamplePeak: 0.44,
   },
   "level-up": {
     channelTransform: "preserve-stereo",
@@ -470,21 +477,27 @@ function shapeDeliveryCue(sourceBytes, id, processing) {
     processing.durationSeconds * wav.sampleRate,
   );
   const sourceStartFrame = processing.sourceStartSeconds * wav.sampleRate;
-  const finalSourcePosition =
-    sourceStartFrame + (frameCount - 1) * processing.playbackRate;
+  const playbackRateEnd =
+    processing.playbackRateEnd ?? processing.playbackRate;
+  const sourcePositionAtFrame = (frame) =>
+    sourceStartFrame +
+    frame * processing.playbackRate +
+    ((playbackRateEnd - processing.playbackRate) * frame * (frame - 1)) /
+      (2 * Math.max(1, frameCount - 1));
+  const finalSourcePosition = sourcePositionAtFrame(frameCount - 1);
   const sourceFrameCount = source.length / wav.channels;
   if (
     frameCount <= 0 ||
     sourceStartFrame < 0 ||
     processing.playbackRate <= 0 ||
+    playbackRateEnd <= 0 ||
     finalSourcePosition > sourceFrameCount - 1
   ) {
     throw new Error(`${id}: delivery window exceeds the source cue.`);
   }
   const samples = new Float64Array(frameCount * wav.channels);
   for (let frame = 0; frame < frameCount; frame += 1) {
-    const sourcePosition =
-      sourceStartFrame + frame * processing.playbackRate;
+    const sourcePosition = sourcePositionAtFrame(frame);
     const sourceFrame = Math.floor(sourcePosition);
     const nextSourceFrame = Math.min(sourceFrame + 1, sourceFrameCount - 1);
     const fraction = sourcePosition - sourceFrame;
@@ -993,7 +1006,7 @@ try {
     path.join(directory, "manifest.json"),
     `${JSON.stringify(
       {
-        version: 5,
+        version: 7,
         id: pack.id,
         label: pack.label,
         approval: "approved",
@@ -1014,8 +1027,9 @@ try {
           },
           deliveryProcessing: {
             policy:
-              "Deterministic low-pass, endpoint, and peak treatment for frequent or " +
-              "spectrally sharp cues; no synthesized layer and no provider request.",
+              "Deterministic resampling, low-pass, endpoint, and peak treatment for " +
+              "frequent or spectrally sharp cues; no synthesized layer and no " +
+              "provider request.",
             cues: deliveryProcessing,
           },
           rightsStatus: "rights-cleared",
@@ -1035,11 +1049,7 @@ try {
           tickMix: {
             coalesceSameCue: true,
             suppressWindupUnderForegroundEvents: true,
-            suppressBeamUnderConcreteOutcomes: [
-              "impact",
-              "destroyed",
-              "deflect",
-            ],
+            projectileWithConcreteOutcomes: "layer-once-per-tick",
           },
         },
         cues,

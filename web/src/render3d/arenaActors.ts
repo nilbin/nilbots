@@ -1801,8 +1801,8 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       [previous, opening],
       [earlier, previous],
     ] as const;
-    // Beams and impacts land in the second half of the tick, after movement has settled —
-    // the same window the flat renderer uses, so a hit lands at the same instant in both.
+    // Recoil and impact reactions occupy the second half of the tick after movement has
+    // settled. The projectile itself follows the authoritative traversal through boltsAt.
     const shotProgress = Math.max(0, Math.min((fraction - 0.45) / 0.45, 1));
 
     // Stable slots can be absent while locked, rebuilding, ready, or queued for
@@ -2313,7 +2313,7 @@ export function buildActors(replay: ReplayModel): ArenaActors {
 
     const flying = arsenals.map(() => 0);
     const alive = new Set<string>();
-    for (const bolt of boltsAt(replay, time)) {
+    for (const bolt of boltsAt(replay, time, 'projectile-traversal')) {
       if (grouped.has(bolt.id)) continue;
       if (boltHidden(bolt.id, bolt.x, bolt.y)) continue;
       const arsenalIndex =

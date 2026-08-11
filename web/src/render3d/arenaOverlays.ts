@@ -2867,7 +2867,7 @@ function buildSpentBolts(
 
   const update = (time: number) => {
     let used = 0;
-    for (const bolt of spentBoltsAt(replay, time)) {
+    for (const bolt of spentBoltsAt(replay, time, 'projectile-traversal')) {
       const mesh = borrow(used++);
       mesh.visible = true;
       mesh.position.set(bolt.x + 0.5, PROJECTILE_HOVER, bolt.y + 0.5);
@@ -2885,16 +2885,15 @@ function buildSpentBolts(
 }
 
 /**
- * A matured strike landing — deliberately NOT a projectile (owner ruling:
- * strikes must never look like regular bolts).
+ * An explicitly sweeping strike landing — deliberately not a regular projectile.
  *
  * The whole line exists at once: a hot red blade from the shooter through
  * the impact tile, flashing on at the resolve instant and burning out over
  * the tick, plus a disc where it landed. It inherits the aim ray's red so
  * ray → slash reads as one sentence — the line that was tracking becoming
- * the line that landed — while bolts keep their team-accent spheres and
- * dissipation rings. Nothing here travels, because nothing here is
- * dodgeable.
+ * the line that landed — while ordinary wind-up attacks keep their
+ * team-accent projectile models and dissipation rings. Nothing here travels,
+ * because nothing here is dodgeable.
  */
 function buildStrikeSlashes(
   replay: ReplayModel,
@@ -2935,7 +2934,11 @@ function buildStrikeSlashes(
   const update = (time: number) => {
     let segmentsUsed = 0;
     let impactsUsed = 0;
-    for (const slash of strikeSlashesAt(replay, time)) {
+    for (const slash of strikeSlashesAt(
+      replay,
+      time,
+      'projectile-traversal',
+    )) {
       const heat = (1 - slash.age) ** 2;
       for (let index = 0; index < slash.points.length - 1; index++) {
         const from = slash.points[index];

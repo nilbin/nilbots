@@ -5,11 +5,12 @@ import { loadReplayObject } from '../src/replayIngress.ts';
 import type {
   ReplayArcRelayModeState,
   ReplayCausalEvent,
+  ReplayModel,
 } from '../src/replayModel.ts';
 import type { ReplayV1GameEvent } from '../src/replayWireV1.ts';
 import { replayV1FixtureInput } from './support/replayFixtureInputs.ts';
 
-test('concrete combat outcomes replace redundant beam markers', () => {
+test('a projectile launch remains distinct from its concrete outcomes', () => {
   const replay = replayWithEvents([
     { type: 'Shot', slot: 3 },
     { type: 'Damage', targetSlot: 9, amount: 1, newHealth: 1 },
@@ -17,7 +18,7 @@ test('concrete combat outcomes replace redundant beam markers', () => {
   ]);
   assert.deepEqual(
     replayAudioEventsAt(replay, 0).map((event) => event.cue),
-    ['impact', 'destroyed'],
+    ['projectile', 'impact', 'destroyed'],
   );
 });
 
@@ -50,6 +51,58 @@ test('a simultaneous volley becomes one calm cue per category', () => {
   );
 });
 
+test('the 3D instant-ray traversal gets one launch cue without retriggering discrete travel', () => {
+  function withTraversal(mode: 'instant-ray' | 'discrete'): ReplayModel {
+    const replay = replayWithEvents([]);
+    const tick = replay.ticks[0]!;
+    const owner = tick.before.actors[0]!.identity;
+    tick.projectileTraversals = [
+      {
+        projectileId: 'presentation-test',
+        ownerActor: owner,
+        ownerActorKey: owner.actorKey,
+        launchDirection: 'east',
+        from: { x: 0, y: 1 },
+        path: [{ x: 1, y: 1 }],
+        heading: 'east',
+        shotProgram: null,
+        programmedPath: null,
+        attackProfileId: 'presentation-test',
+      },
+    ];
+    replay.contract = {
+      kind: 'v3-generic',
+      rawContract: {
+        rules: {
+          attackProfiles: [
+            {
+              id: 'presentation-test',
+              projectile: {
+                mode,
+                strikeWindupTicks: mode === 'instant-ray' ? 1 : undefined,
+              },
+            },
+          ],
+        },
+      },
+    } as unknown as ReplayModel['contract'];
+    return replay;
+  }
+
+  assert.deepEqual(
+    replayAudioEventsAt(withTraversal('instant-ray'), 0).map(
+      (event) => event.cue,
+    ),
+    ['projectile'],
+    'the authoritative traversal speaks even without a separate attack event',
+  );
+  assert.deepEqual(
+    replayAudioEventsAt(withTraversal('discrete'), 0),
+    [],
+    'an advancing persistent projectile does not sound like a new launch',
+  );
+});
+
 test('match completion does not reuse the entitlement-unlock review cue', () => {
   const wire = replayV1FixtureInput();
   wire.ticks[0]!.events = [{ type: 'Destroyed', slot: 9 }];
@@ -62,6 +115,11 @@ test('match completion does not reuse the entitlement-unlock review cue', () => 
   assert.deepEqual(
     events.map((event) => event.cue),
     ['destroyed'],
+  );
+  assert.equal(
+    events[0]!.tickOffset,
+    0.55,
+    'destruction sounds on the exact boundary where both renderers begin collapse',
   );
 });
 
@@ -77,7 +135,7 @@ test('draws and non-events do not invent audio from replay state', () => {
   assert.deepEqual(replayAudioEventsAt(replay, 99), []);
 });
 
-test('declared attacks speak wind-up and beam while unresolved outcomes stay silent', () => {
+test('declared attacks speak wind-up and projectile while unresolved outcomes stay silent', () => {
   const declaring = replayWithEvents([]);
   const declarationTick = declaring.ticks[0]!;
   const shooter = declarationTick.before.actors[0]!.identity;
@@ -96,16 +154,20 @@ test('declared attacks speak wind-up and beam while unresolved outcomes stay sil
     ['attack-windup'],
   );
 
-  const beaming = replayWithEvents([{ type: 'Shot', slot: 3 }]);
-  const beamTick = beaming.ticks[0]!;
-  const beamShooter = beamTick.events[0]!.sourceActor!;
-  const beamStrike = { ...strike, shooter: beamShooter, resolveAtTick: beamTick.tick };
-  beamTick.before.mode = arcMode([beamStrike]);
-  beamTick.after.mode = arcMode([]);
+  const launching = replayWithEvents([{ type: 'Shot', slot: 3 }]);
+  const launchTick = launching.ticks[0]!;
+  const launchShooter = launchTick.events[0]!.sourceActor!;
+  const launchStrike = {
+    ...strike,
+    shooter: launchShooter,
+    resolveAtTick: launchTick.tick,
+  };
+  launchTick.before.mode = arcMode([launchStrike]);
+  launchTick.after.mode = arcMode([]);
   assert.deepEqual(
-    replayAudioEventsAt(beaming, 0).map((event) => event.cue),
+    replayAudioEventsAt(launching, 0).map((event) => event.cue),
     ['projectile'],
-    'a resolved declared attack emits one beam, not a fizzle plus a beam',
+    'a resolved declared attack emits one projectile, not a fizzle plus a launch',
   );
 
   const fizzled = replayWithEvents([]);
@@ -158,7 +220,7 @@ test('foreground events mask concurrent wind-ups', () => {
   assert.deepEqual(
     replayAudioEventsAt(replay, 0).map((event) => event.cue),
     ['projectile'],
-    'the resolved beam represents the tick instead of layering two new wind-ups over it',
+    'the resolved projectile represents the tick instead of layering two new wind-ups over it',
   );
 
   tick.events = [];
