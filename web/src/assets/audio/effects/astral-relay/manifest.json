@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "id": "astral-relay",
   "label": "Astral Relay",
   "approval": "approved",
@@ -21,6 +21,27 @@
       "encoder": "macos-afconvert",
       "canonicalization": "zero-iso-bmff-creation-and-modification-times"
     },
+    "deliveryProcessing": {
+      "policy": "Short dual-mono low-pass combat markers with soft endpoints; no synthesized layer and no provider request.",
+      "cues": {
+        "attack-windup": {
+          "channelTransform": "side-to-dual-mono",
+          "durationSeconds": 0.24,
+          "lowPassHz": 3200,
+          "fadeInSeconds": 0.03,
+          "fadeOutSeconds": 0.08,
+          "targetSamplePeak": 0.28
+        },
+        "projectile": {
+          "channelTransform": "mid-to-dual-mono",
+          "durationSeconds": 0.16,
+          "lowPassHz": 2600,
+          "fadeInSeconds": 0.018,
+          "fadeOutSeconds": 0.07,
+          "targetSamplePeak": 0.28
+        }
+      }
+    },
     "rightsStatus": "rights-cleared",
     "license": {
       "termsUrl": "https://sfxengine.com/terms-of-service",
@@ -39,56 +60,82 @@
     "roomSend": 0.06,
     "cues": {
       "attack-windup": {
-        "gain": 0.39,
-        "voiceLimit": 3
+        "gain": 0.24,
+        "voiceLimit": 1,
+        "panWidth": 0.28,
+        "roomSend": false
       },
       "projectile": {
-        "gain": 0.52,
-        "voiceLimit": 3
+        "gain": 0.28,
+        "voiceLimit": 1,
+        "panWidth": 0.28,
+        "roomSend": false
       },
       "impact": {
         "gain": 0.38,
-        "voiceLimit": 2
+        "voiceLimit": 2,
+        "panWidth": 0.7,
+        "roomSend": true
       },
       "destroyed": {
         "gain": 0.44,
-        "voiceLimit": 1
+        "voiceLimit": 1,
+        "panWidth": 0.7,
+        "roomSend": true
       },
       "level-up": {
         "gain": 0.46,
-        "voiceLimit": 2
+        "voiceLimit": 2,
+        "panWidth": 0.7,
+        "roomSend": true
       },
       "arc-birth": {
         "gain": 0.4,
-        "voiceLimit": 2
+        "voiceLimit": 2,
+        "panWidth": 0.7,
+        "roomSend": true
       },
       "arc-pickup": {
         "gain": 0.3,
-        "voiceLimit": 2
+        "voiceLimit": 2,
+        "panWidth": 0.7,
+        "roomSend": true
       },
       "arc-drop": {
         "gain": 0.3,
-        "voiceLimit": 2
+        "voiceLimit": 2,
+        "panWidth": 0.7,
+        "roomSend": true
       },
       "arc-bank": {
         "gain": 0.5,
-        "voiceLimit": 1
+        "voiceLimit": 1,
+        "panWidth": 0.7,
+        "roomSend": true
       },
       "arc-pulse": {
         "gain": 0.54,
-        "voiceLimit": 1
+        "voiceLimit": 1,
+        "panWidth": 0.7,
+        "roomSend": true
       },
       "arc-handoff": {
         "gain": 0.38,
-        "voiceLimit": 2
+        "voiceLimit": 2,
+        "panWidth": 0.7,
+        "roomSend": true
       },
       "deflect": {
         "gain": 0.34,
-        "voiceLimit": 2
+        "voiceLimit": 2,
+        "panWidth": 0.7,
+        "roomSend": true
       },
       "arrival": {
         "gain": 0.38,
-        "voiceLimit": 3
+        "voiceLimit": 3,
+        "panWidth": 0.7,
+        "roomSend": true
       }
     }
   },
@@ -99,6 +146,15 @@
     ],
     "cueAliases": {
       "arc-steal": "arc-pickup"
+    },
+    "tickMix": {
+      "coalesceSameCue": true,
+      "suppressWindupUnderForegroundEvents": true,
+      "suppressBeamUnderConcreteOutcomes": [
+        "impact",
+        "destroyed",
+        "deflect"
+      ]
     }
   },
   "cues": {
@@ -130,15 +186,33 @@
   "integrity": {
     "attack-windup": {
       "sourceSha256": "82f8c4fd229396a435634b8900cd1b405d58f8fedd14d654140c5d1f9d079453",
-      "outputSha256": "db2348b140acd7392f748711cde1c2e3bcd65b2a19315ab09702e35fa2e65ba8",
-      "bytes": 9398,
-      "bitrate": 192000
+      "outputSha256": "4a56465ade6698cffe8aa8bc95bf00167532f6205e8e09bcf0f1bdc797a18df4",
+      "bytes": 6945,
+      "bitrate": 192000,
+      "deliveryMetrics": {
+        "durationSeconds": 0.24,
+        "samplePeakDbfs": -11.06,
+        "rmsDbfs": -25.71,
+        "interchannelCorrelation": 1,
+        "sourceInterchannelCorrelation": -0.9983,
+        "effectiveSamplePeakDbfs": -23.46,
+        "effectiveRmsDbfs": -38.11
+      }
     },
     "projectile": {
       "sourceSha256": "df5d574657ebb56fed0b165715b1b0e42634910c6ca0c921102c6612c037158a",
-      "outputSha256": "0bc2df112718ed637034024fae89b194ca9e9f4dd76dd20ce9fdd2cb84bfa345",
-      "bytes": 8636,
-      "bitrate": 192000
+      "outputSha256": "f3b70cec88633ede89fb89f772f4834e115f696b4c152b61e1b59002fde0acee",
+      "bytes": 5197,
+      "bitrate": 192000,
+      "deliveryMetrics": {
+        "durationSeconds": 0.16,
+        "samplePeakDbfs": -11.06,
+        "rmsDbfs": -30.31,
+        "interchannelCorrelation": 1,
+        "sourceInterchannelCorrelation": 1,
+        "effectiveSamplePeakDbfs": -22.12,
+        "effectiveRmsDbfs": -41.37
+      }
     },
     "impact": {
       "sourceSha256": "ab6260948b7e928038d636ff4f826c7d1c7efdd8ef75b8b6f311512f946240de",

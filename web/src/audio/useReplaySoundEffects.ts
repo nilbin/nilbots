@@ -19,13 +19,6 @@ import {
 
 const MAX_ACTIVE_VOICES = 8;
 const MAX_CROSSED_TICKS = 3;
-/**
- * How far cues are allowed to move off centre. Full width puts an edge-of-map shot
- * entirely in one ear, which is disorienting on headphones for a view you are looking
- * straight at; this keeps the arena wide but coherent.
- */
-const PAN_WIDTH = 0.7;
-
 interface AudioGraph {
   context: AudioContext;
   master: GainNode;
@@ -336,9 +329,8 @@ export function useReplaySoundEffects({
         const activeForCue = voices.current
           .filter((voice) => voice.cue === cue)
           .sort((left, right) => left.startedAt - right.startedAt);
-        while (
-          activeForCue.length >= soundEffectPack.mix.cues[cue].voiceLimit
-        ) {
+        const cueMix = soundEffectPack.mix.cues[cue];
+        while (activeForCue.length >= cueMix.voiceLimit) {
           stopVoice(activeForCue.shift()!);
         }
         while (voices.current.length >= MAX_ACTIVE_VOICES) {
@@ -353,7 +345,7 @@ export function useReplaySoundEffects({
         const source = context.createBufferSource();
         const gain = context.createGain();
         source.buffer = buffer;
-        gain.gain.value = soundEffectPack.mix.cues[cue].gain;
+        gain.gain.value = cueMix.gain;
 
         // Place the cue across the arena. Stereo panning rather than a 3D panner: this is
         // a flat plan view heard on a phone speaker or laptop, where left/right is the
@@ -361,15 +353,16 @@ export function useReplaySoundEffects({
         // Centre-panned cues skip the node entirely rather than routing through a no-op.
         if (pan !== null && pan !== 0 && typeof context.createStereoPanner === 'function') {
           const panner = context.createStereoPanner();
-          panner.pan.value = Math.max(-1, Math.min(1, pan)) * PAN_WIDTH;
+          panner.pan.value =
+            Math.max(-1, Math.min(1, pan)) * cueMix.panWidth;
           source.connect(gain).connect(panner).connect(master);
           // Sent post-pan so the tail inherits the cue's position rather than collapsing
           // every reflection to the centre.
-          if (room) panner.connect(room);
+          if (room && cueMix.roomSend) panner.connect(room);
           panners.current.set(source, panner);
         } else {
           source.connect(gain).connect(master);
-          if (room) gain.connect(room);
+          if (room && cueMix.roomSend) gain.connect(room);
         }
         const voice: Voice = {
           source,

@@ -27,6 +27,15 @@ interface Integrity {
   outputSha256: string;
   bytes: number;
   bitrate: number;
+  deliveryMetrics?: {
+    durationSeconds: number;
+    samplePeakDbfs: number;
+    rmsDbfs: number;
+    interchannelCorrelation: number;
+    sourceInterchannelCorrelation: number;
+    effectiveSamplePeakDbfs: number;
+    effectiveRmsDbfs: number;
+  };
 }
 
 test('the approved Astral Relay runtime pack is complete, restrained, and traceable', () => {
@@ -56,6 +65,20 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
         encoder: string;
         canonicalization: string;
       };
+      deliveryProcessing: {
+        policy: string;
+        cues: Record<
+          string,
+          {
+            channelTransform: string;
+            durationSeconds: number;
+            lowPassHz: number;
+            fadeInSeconds: number;
+            fadeOutSeconds: number;
+            targetSamplePeak: number;
+          }
+        >;
+      };
       rightsStatus: string;
       license: {
         termsUrl: string;
@@ -68,11 +91,24 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
     };
     mix: {
       roomSend: number;
-      cues: Record<string, { gain: number; voiceLimit: number }>;
+      cues: Record<
+        string,
+        {
+          gain: number;
+          voiceLimit: number;
+          panWidth: number;
+          roomSend: boolean;
+        }
+      >;
     };
     behavior: {
       silentOutcomeCueIds: string[];
       cueAliases: Record<string, string>;
+      tickMix: {
+        coalesceSameCue: boolean;
+        suppressWindupUnderForegroundEvents: boolean;
+        suppressBeamUnderConcreteOutcomes: string[];
+      };
     };
     cues: Record<string, string>;
     ambience: {
@@ -87,7 +123,7 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
     integrity: Record<string, Integrity>;
   };
 
-  assert.equal(manifest.version, 2);
+  assert.equal(manifest.version, 3);
   assert.equal(manifest.id, 'astral-relay');
   assert.equal(manifest.approval, 'approved');
   assert.equal(manifest.format, 'aac-lc-m4a');
@@ -108,6 +144,29 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
     deliveryEncoding: {
       encoder: 'macos-afconvert',
       canonicalization: 'zero-iso-bmff-creation-and-modification-times',
+    },
+    deliveryProcessing: {
+      policy:
+        'Short dual-mono low-pass combat markers with soft endpoints; ' +
+        'no synthesized layer and no provider request.',
+      cues: {
+        'attack-windup': {
+          channelTransform: 'side-to-dual-mono',
+          durationSeconds: 0.24,
+          lowPassHz: 3_200,
+          fadeInSeconds: 0.03,
+          fadeOutSeconds: 0.08,
+          targetSamplePeak: 0.28,
+        },
+        projectile: {
+          channelTransform: 'mid-to-dual-mono',
+          durationSeconds: 0.16,
+          lowPassHz: 2_600,
+          fadeInSeconds: 0.018,
+          fadeOutSeconds: 0.07,
+          targetSamplePeak: 0.28,
+        },
+      },
     },
     rightsStatus: 'rights-cleared',
     license: {
@@ -149,6 +208,11 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
   assert.deepEqual(manifest.behavior, {
     silentOutcomeCueIds: ['attack-fizzle', 'attack-cancel'],
     cueAliases: { 'arc-steal': 'arc-pickup' },
+    tickMix: {
+      coalesceSameCue: true,
+      suppressWindupUnderForegroundEvents: true,
+      suppressBeamUnderConcreteOutcomes: ['impact', 'destroyed', 'deflect'],
+    },
   });
   assert.equal(manifest.mix.roomSend, 0.06);
   assert.ok(manifest.mix.roomSend <= 0.08, 'provider tails get only a light room send');
@@ -164,15 +228,45 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
     assert.equal(sha256(bytes), integrity.outputSha256);
     assert.match(integrity.sourceSha256, /^[a-f0-9]{64}$/);
     assert.equal(integrity.bitrate, 192_000);
-    assert.ok(bytes.length >= 8_000, `${cue} is unexpectedly small`);
+    assert.ok(
+      bytes.length >= (cue === 'attack-windup' || cue === 'projectile' ? 2_500 : 8_000),
+      `${cue} is unexpectedly small`,
+    );
     assert.ok(bytes.length <= 90_000, `${cue} is unexpectedly large`);
     assert.ok(mix.gain >= 0 && mix.gain <= 0.55, `${cue} gain is unsafe`);
     assert.ok(
       Number.isInteger(mix.voiceLimit) && mix.voiceLimit >= 1 && mix.voiceLimit <= 3,
       `${cue} voice limit is unsafe`,
     );
+    assert.ok(mix.panWidth >= 0 && mix.panWidth <= 0.7, `${cue} pan is unsafe`);
+    assert.equal(typeof mix.roomSend, 'boolean');
     totalBytes += bytes.length;
   }
+
+  for (const cue of ['attack-windup', 'projectile'] as const) {
+    const mix = manifest.mix.cues[cue]!;
+    const metrics = manifest.integrity[cue]!.deliveryMetrics;
+    assert.ok(metrics, `${cue} lacks its delivery-shaping audit`);
+    assert.equal(mix.voiceLimit, 1);
+    assert.equal(mix.roomSend, false);
+    assert.ok(mix.panWidth <= 0.28);
+    assert.ok(mix.gain <= 0.28);
+    assert.ok(metrics.durationSeconds <= 0.24);
+    assert.ok(metrics.interchannelCorrelation >= 0.999);
+    assert.ok(
+      metrics.effectiveSamplePeakDbfs <= -20,
+      `${cue} is too hot after its runtime gain`,
+    );
+    assert.ok(
+      metrics.effectiveRmsDbfs <= -30,
+      `${cue} carries too much sustained runtime energy`,
+    );
+  }
+  assert.ok(
+    manifest.integrity['attack-windup']!.deliveryMetrics!
+      .sourceInterchannelCorrelation <= -0.99,
+    'the wind-up delivery must explicitly correct its anti-phase source',
+  );
 
   assert.deepEqual(manifest.ambience, {
     id: 'ion-veil',

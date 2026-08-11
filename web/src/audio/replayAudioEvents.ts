@@ -32,8 +32,12 @@ export interface ReplayAudioEvent {
  * Every cue is bound to an explicit public fact or an authoritative before/after
  * transition. In particular, declared strikes have a three-part grammar: entering the
  * pending-strike table winds up and an attack resolution emits the beam. Unresolved and
- * cancelled attacks are deliberately silent for now. Nothing is inferred from score
- * changes or future world state, so seeking is deterministic.
+ * cancelled attacks are deliberately silent for now. Audio reports one occurrence of a
+ * cue category per tick rather than turning a simultaneous volley into several stacked
+ * copies. Concrete combat outcomes also outrank their setup: an impact, deflection, or
+ * destruction replaces the redundant beam marker, while any foreground event masks a
+ * concurrent wind-up. Nothing is inferred from score changes or future world state, so
+ * seeking is deterministic.
  */
 export function replayAudioEventsAt(
   replay: ReplayModel,
@@ -213,7 +217,58 @@ export function replayAudioEventsAt(
     });
   }
 
-  return scheduled;
+  return sparseTickMix(scheduled);
+}
+
+const BEAM_OUTCOME_CUES = new Set<SoundEffectCueId>([
+  'impact',
+  'destroyed',
+  'deflect',
+]);
+
+/**
+ * A replay tick is an audible moment, not a mandate to play one copy per bot.
+ * Preserve exact events visually while keeping the shared sound field calm enough for
+ * sixteen-body fights and headphones.
+ */
+function sparseTickMix(
+  scheduled: readonly ReplayAudioEvent[],
+): ReplayAudioEvent[] {
+  const beamHasConcreteOutcome = scheduled.some((event) =>
+    BEAM_OUTCOME_CUES.has(event.cue),
+  );
+  const windupHasForegroundEvent = scheduled.some(
+    (event) =>
+      event.cue === 'projectile' ||
+      (event.cue !== 'attack-windup' && event.priority >= 4),
+  );
+  const audible = scheduled.filter(
+    (event) =>
+      !(event.cue === 'projectile' && beamHasConcreteOutcome) &&
+      !(event.cue === 'attack-windup' && windupHasForegroundEvent),
+  );
+
+  const byCue = new Map<SoundEffectCueId, ReplayAudioEvent[]>();
+  for (const event of audible) {
+    const batch = byCue.get(event.cue);
+    if (batch) batch.push(event);
+    else byCue.set(event.cue, [event]);
+  }
+
+  return [...byCue.values()].map((batch) => {
+    const pans = batch
+      .map((event) => event.pan)
+      .filter((pan): pan is number => pan !== null);
+    return {
+      cue: batch[0]!.cue,
+      tickOffset: Math.min(...batch.map((event) => event.tickOffset)),
+      priority: Math.max(...batch.map((event) => event.priority)),
+      pan:
+        pans.length === 0
+          ? null
+          : pans.reduce((sum, pan) => sum + pan, 0) / pans.length,
+    };
+  });
 }
 
 type PendingStrike = ReplayArcRelayModeState['pendingStrikes'][number];

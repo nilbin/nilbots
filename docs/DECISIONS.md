@@ -7560,3 +7560,38 @@ The loop remains Tapline-only, dry, and coupled to active playback. Neon
 Protocol and every one-shot are unchanged. Because the self-contained replay
 viewer packages the selected ambience, CLI/tool package version 0.9.51 carries
 the replacement.
+
+## 285. Combat audio represents volleys, not individual weapons
+
+Owner refinement (2026-08-11), superseding #283 only for wind-up/beam delivery
+and tick-level mix behavior. Dense Arc Relay fights no longer stack one copy of
+the same cue for every bot. The viewer coalesces each cue category once per
+tick, masks wind-up beneath any foreground event, and omits the compatibility
+`projectile` marker when an impact, destruction, or deflection already states
+the beam's concrete outcome. Visuals and replay facts remain exact; only their
+audible summary becomes sparse.
+
+A 473-tick Tapline review replay previously scheduled 300 wind-ups, 19 beam
+markers, 140 impacts, and 49 destructions. The same facts now schedule 91, 3,
+89, and 48 respectively: 231 combat cues instead of 508, a 54.5% reduction.
+Resolved beams are not lost—the three remaining beam markers are resolutions
+without a stronger audible outcome.
+
+No provider request or synthesized layer was added. The accepted SFX Engine
+sources and lossless sound-lab comparisons stay intact, while the runtime
+export applies a deterministic delivery treatment to the two common combat
+markers. Wind-up becomes a 240 ms side-to-dual-mono, 3.2 kHz low-pass gesture;
+beam becomes a 160 ms mid-to-dual-mono, 2.6 kHz low-pass gesture. Both receive
+soft endpoint fades, a 0.28 sample-peak ceiling, one-voice limits, narrow 0.28
+positional pan, and no arena-reflection send. Runtime gains fall to 0.24 and
+0.28, yielding measured effective sample peaks of -23.46 and -22.12 dBFS.
+Whole-cue effective RMS is -38.11 and -41.37 dBFS respectively, so neither
+marker carries sustained pressure beneath its deliberately quiet peak.
+The wind-up correction also removes the accepted master's -0.9983 interchannel
+correlation from delivery; both exported cues measure 1.0 correlation before
+the viewer applies its deliberate positional pan.
+
+Ion veil, Neon Protocol, objective/Core cues, and their gains are unchanged.
+The manifest moves to version 3 to pin the delivery recipes, measurements, and
+tick-mix policy. Because the self-contained viewer changes, CLI/tool package
+version 0.9.52 carries this sparse combat mix.

@@ -20,6 +20,10 @@ export type SoundEffectPackId = 'astral-relay';
 interface SoundEffectCueMix {
   gain: number;
   voiceLimit: number;
+  /** Maximum absolute stereo pan applied to an edge-of-map event. */
+  panWidth: number;
+  /** Whether this cue enters the shared arena reflection send. */
+  roomSend: boolean;
 }
 
 interface SoundEffectManifest {
@@ -40,6 +44,20 @@ interface SoundEffectManifest {
       encoder: 'macos-afconvert';
       canonicalization: 'zero-iso-bmff-creation-and-modification-times';
     };
+    deliveryProcessing: {
+      policy: string;
+      cues: Record<
+        'attack-windup' | 'projectile',
+        {
+          channelTransform: 'side-to-dual-mono' | 'mid-to-dual-mono';
+          durationSeconds: number;
+          lowPassHz: number;
+          fadeInSeconds: number;
+          fadeOutSeconds: number;
+          targetSamplePeak: number;
+        }
+      >;
+    };
     rightsStatus: 'rights-cleared';
     license: {
       termsUrl: string;
@@ -56,6 +74,11 @@ interface SoundEffectManifest {
   behavior: {
     silentOutcomeCueIds: ['attack-fizzle', 'attack-cancel'];
     cueAliases: { 'arc-steal': 'arc-pickup' };
+    tickMix: {
+      coalesceSameCue: true;
+      suppressWindupUnderForegroundEvents: true;
+      suppressBeamUnderConcreteOutcomes: ['impact', 'destroyed', 'deflect'];
+    };
   };
   cues: Record<SoundEffectCueId, string>;
   ambience: {
@@ -120,7 +143,7 @@ function loadSoundEffectPack(): SoundEffectPack {
   }
   const [manifestPath, manifest] = entries[0]!;
   if (
-    manifest.version !== 2 ||
+    manifest.version !== 3 ||
     manifest.id !== DEFAULT_SOUND_EFFECT_PACK_ID ||
     manifest.approval !== 'approved' ||
     manifest.format !== 'aac-lc-m4a' ||
@@ -135,6 +158,9 @@ function loadSoundEffectPack(): SoundEffectPack {
     manifest.provenance.deliveryEncoding?.encoder !== 'macos-afconvert' ||
     manifest.provenance.deliveryEncoding.canonicalization !==
       'zero-iso-bmff-creation-and-modification-times' ||
+    !validCombatDeliveryProcessing(
+      manifest.provenance.deliveryProcessing?.cues,
+    ) ||
     manifest.provenance.rightsStatus !== 'rights-cleared' ||
     manifest.provenance.license?.termsUrl !==
       'https://sfxengine.com/terms-of-service' ||
@@ -145,6 +171,11 @@ function loadSoundEffectPack(): SoundEffectPack {
     JSON.stringify(manifest.behavior?.silentOutcomeCueIds) !==
       JSON.stringify(['attack-fizzle', 'attack-cancel']) ||
     manifest.behavior?.cueAliases?.['arc-steal'] !== 'arc-pickup' ||
+    manifest.behavior?.tickMix?.coalesceSameCue !== true ||
+    manifest.behavior.tickMix.suppressWindupUnderForegroundEvents !== true ||
+    JSON.stringify(
+      manifest.behavior.tickMix.suppressBeamUnderConcreteOutcomes,
+    ) !== JSON.stringify(['impact', 'destroyed', 'deflect']) ||
     !isUnitGain(manifest.mix?.roomSend) ||
     !isUnitGain(manifest.ambience?.gain) ||
     manifest.ambience?.loop !== true ||
@@ -178,6 +209,8 @@ function loadSoundEffectPack(): SoundEffectPack {
         !isUnitGain(mix?.gain) ||
         !Number.isInteger(mix.voiceLimit) ||
         mix.voiceLimit < 1 ||
+        !isUnitGain(mix.panWidth) ||
+        typeof mix.roomSend !== 'boolean' ||
         !validIntegrity(integrity)
       ) {
         throw new Error(
@@ -212,6 +245,38 @@ function loadSoundEffectPack(): SoundEffectPack {
       mapIds: manifest.ambience.mapIds,
     },
   };
+}
+
+function validCombatDeliveryProcessing(
+  cues:
+    | SoundEffectManifest['provenance']['deliveryProcessing']['cues']
+    | undefined,
+): boolean {
+  if (!cues) return false;
+  if (
+    JSON.stringify(Object.keys(cues).sort()) !==
+    JSON.stringify(['attack-windup', 'projectile'])
+  ) {
+    return false;
+  }
+  return Object.values(cues).every(
+    (cue) =>
+      ['side-to-dual-mono', 'mid-to-dual-mono'].includes(
+        cue.channelTransform,
+      ) &&
+      Number.isFinite(cue.durationSeconds) &&
+      cue.durationSeconds > 0 &&
+      cue.durationSeconds <= 0.25 &&
+      Number.isFinite(cue.lowPassHz) &&
+      cue.lowPassHz >= 1_000 &&
+      cue.lowPassHz <= 4_000 &&
+      isUnitGain(cue.targetSamplePeak) &&
+      cue.targetSamplePeak <= 0.3 &&
+      Number.isFinite(cue.fadeInSeconds) &&
+      cue.fadeInSeconds >= 0.01 &&
+      Number.isFinite(cue.fadeOutSeconds) &&
+      cue.fadeOutSeconds >= 0.05,
+  );
 }
 
 function isUnitGain(value: number | undefined): value is number {

@@ -76,19 +76,47 @@ const cueIds = [
 const mix = {
   roomSend: 0.06,
   cues: {
-    "attack-windup": { gain: 0.39, voiceLimit: 3 },
-    projectile: { gain: 0.52, voiceLimit: 3 },
-    impact: { gain: 0.38, voiceLimit: 2 },
-    destroyed: { gain: 0.44, voiceLimit: 1 },
-    "level-up": { gain: 0.46, voiceLimit: 2 },
-    "arc-birth": { gain: 0.4, voiceLimit: 2 },
-    "arc-pickup": { gain: 0.3, voiceLimit: 2 },
-    "arc-drop": { gain: 0.3, voiceLimit: 2 },
-    "arc-bank": { gain: 0.5, voiceLimit: 1 },
-    "arc-pulse": { gain: 0.54, voiceLimit: 1 },
-    "arc-handoff": { gain: 0.38, voiceLimit: 2 },
-    deflect: { gain: 0.34, voiceLimit: 2 },
-    arrival: { gain: 0.38, voiceLimit: 3 },
+    "attack-windup": {
+      gain: 0.24,
+      voiceLimit: 1,
+      panWidth: 0.28,
+      roomSend: false,
+    },
+    projectile: {
+      gain: 0.28,
+      voiceLimit: 1,
+      panWidth: 0.28,
+      roomSend: false,
+    },
+    impact: { gain: 0.38, voiceLimit: 2, panWidth: 0.7, roomSend: true },
+    destroyed: { gain: 0.44, voiceLimit: 1, panWidth: 0.7, roomSend: true },
+    "level-up": { gain: 0.46, voiceLimit: 2, panWidth: 0.7, roomSend: true },
+    "arc-birth": { gain: 0.4, voiceLimit: 2, panWidth: 0.7, roomSend: true },
+    "arc-pickup": { gain: 0.3, voiceLimit: 2, panWidth: 0.7, roomSend: true },
+    "arc-drop": { gain: 0.3, voiceLimit: 2, panWidth: 0.7, roomSend: true },
+    "arc-bank": { gain: 0.5, voiceLimit: 1, panWidth: 0.7, roomSend: true },
+    "arc-pulse": { gain: 0.54, voiceLimit: 1, panWidth: 0.7, roomSend: true },
+    "arc-handoff": { gain: 0.38, voiceLimit: 2, panWidth: 0.7, roomSend: true },
+    deflect: { gain: 0.34, voiceLimit: 2, panWidth: 0.7, roomSend: true },
+    arrival: { gain: 0.38, voiceLimit: 3, panWidth: 0.7, roomSend: true },
+  },
+};
+const combatDeliveryProcessing = {
+  "attack-windup": {
+    channelTransform: "side-to-dual-mono",
+    durationSeconds: 0.24,
+    lowPassHz: 3_200,
+    fadeInSeconds: 0.03,
+    fadeOutSeconds: 0.08,
+    targetSamplePeak: 0.28,
+  },
+  projectile: {
+    channelTransform: "mid-to-dual-mono",
+    durationSeconds: 0.16,
+    lowPassHz: 2_600,
+    fadeInSeconds: 0.018,
+    fadeOutSeconds: 0.07,
+    targetSamplePeak: 0.28,
   },
 };
 const ambience = {
@@ -241,29 +269,57 @@ async function exportAsset({
   sourceHash,
   destination,
   bitrate,
+  deliveryProcessing,
 }) {
   const sourceBytes = await readFile(sourceFile);
   if (sha256(sourceBytes) !== sourceHash) {
     throw new Error(`${id}: source WAV differs from its generation record.`);
   }
-  execFileSync(
-    "afconvert",
-    [
-      sourceFile,
-      "-o",
-      destination,
-      "-f",
-      "m4af",
-      "-d",
-      "aac",
-      "-b",
-      String(bitrate),
-      "-q",
-      "127",
-      "--no-filler",
-    ],
-    { stdio: "inherit" },
-  );
+  const temporaryWav = `${destination}.delivery.wav`;
+  let encodingSource = sourceFile;
+  let deliveryMetrics;
+  if (deliveryProcessing) {
+    const shaped = shapeCombatCue(sourceBytes, id, deliveryProcessing);
+    await writeFile(temporaryWav, shaped.bytes);
+    encodingSource = temporaryWav;
+    deliveryMetrics = shaped.metrics;
+    const effectivePeakDbfs =
+      deliveryMetrics.samplePeakDbfs + 20 * Math.log10(mix.cues[id].gain);
+    const effectiveRmsDbfs =
+      deliveryMetrics.rmsDbfs + 20 * Math.log10(mix.cues[id].gain);
+    if (effectivePeakDbfs > -20) {
+      throw new Error(
+        `${id}: ${effectivePeakDbfs.toFixed(2)} dBFS effective delivery peak ` +
+          "exceeds the -20 dBFS combat-cue ceiling.",
+      );
+    }
+    deliveryMetrics.effectiveSamplePeakDbfs = round(effectivePeakDbfs, 2);
+    deliveryMetrics.effectiveRmsDbfs = round(effectiveRmsDbfs, 2);
+  }
+  try {
+    execFileSync(
+      "afconvert",
+      [
+        encodingSource,
+        "-o",
+        destination,
+        "-f",
+        "m4af",
+        "-d",
+        "aac",
+        "-b",
+        String(bitrate),
+        "-q",
+        "127",
+        "--no-filler",
+      ],
+      { stdio: "inherit" },
+    );
+  } finally {
+    if (deliveryProcessing) {
+      await rm(temporaryWav, { force: true });
+    }
+  }
   const outputBytes = canonicalizeM4aTimestamps(await readFile(destination));
   await writeFile(destination, outputBytes);
   if (
@@ -277,7 +333,271 @@ async function exportAsset({
     outputSha256: sha256(outputBytes),
     bytes: outputBytes.length,
     bitrate,
+    ...(deliveryMetrics ? { deliveryMetrics } : {}),
   };
+}
+
+function shapeCombatCue(sourceBytes, id, processing) {
+  const wav = parsePcm16Wav(sourceBytes, id);
+  if (wav.sampleRate !== 48_000 || wav.channels !== 2) {
+    throw new Error(`${id}: combat delivery shaping requires 48 kHz stereo PCM.`);
+  }
+  const source = decodePcm16(sourceBytes, wav);
+  const sourceInterchannelCorrelation = interchannelCorrelation(
+    source,
+    wav.channels,
+  );
+  const frameCount = Math.round(
+    processing.durationSeconds * wav.sampleRate,
+  );
+  if (frameCount <= 0 || frameCount > source.length / wav.channels) {
+    throw new Error(`${id}: combat delivery window exceeds the source cue.`);
+  }
+  const samples = new Float64Array(frameCount * wav.channels);
+  for (let frame = 0; frame < frameCount; frame += 1) {
+    const left = source[frame * 2];
+    const right = source[frame * 2 + 1];
+    const mono =
+      processing.channelTransform === "side-to-dual-mono"
+        ? (left - right) * 0.5
+        : processing.channelTransform === "mid-to-dual-mono"
+          ? (left + right) * 0.5
+          : Number.NaN;
+    if (!Number.isFinite(mono)) {
+      throw new Error(`${id}: unknown combat channel transform.`);
+    }
+    samples[frame * 2] = mono;
+    samples[frame * 2 + 1] = mono;
+  }
+  removeDc(samples, wav.channels);
+  lowPassZeroPhase(
+    samples,
+    wav.channels,
+    wav.sampleRate,
+    processing.lowPassHz,
+  );
+  applyEndpointFades(
+    samples,
+    wav.channels,
+    wav.sampleRate,
+    processing.fadeInSeconds,
+    processing.fadeOutSeconds,
+  );
+  removeDc(samples, wav.channels);
+  normalizePeak(samples, processing.targetSamplePeak);
+  const bytes = encodePcm16Wav(samples, wav.sampleRate, wav.channels);
+  return {
+    bytes,
+    metrics: {
+      ...analyzeDeliveryWav(bytes, id),
+      sourceInterchannelCorrelation: round(
+        sourceInterchannelCorrelation,
+        4,
+      ),
+    },
+  };
+}
+
+function parsePcm16Wav(bytes, label) {
+  if (
+    bytes.toString("ascii", 0, 4) !== "RIFF" ||
+    bytes.toString("ascii", 8, 12) !== "WAVE"
+  ) {
+    throw new Error(`${label}: source is not RIFF/WAVE audio.`);
+  }
+  let offset = 12;
+  let format;
+  let dataOffset;
+  let dataLength;
+  while (offset + 8 <= bytes.length) {
+    const chunkId = bytes.toString("ascii", offset, offset + 4);
+    const length = bytes.readUInt32LE(offset + 4);
+    const body = offset + 8;
+    if (chunkId === "fmt ") {
+      format = {
+        audioFormat: bytes.readUInt16LE(body),
+        channels: bytes.readUInt16LE(body + 2),
+        sampleRate: bytes.readUInt32LE(body + 4),
+        bitsPerSample: bytes.readUInt16LE(body + 14),
+      };
+    } else if (chunkId === "data") {
+      dataOffset = body;
+      dataLength = length;
+    }
+    offset = body + length + (length % 2);
+  }
+  if (
+    !format ||
+    dataOffset === undefined ||
+    dataLength === undefined ||
+    format.audioFormat !== 1 ||
+    format.bitsPerSample !== 16 ||
+    dataOffset + dataLength > bytes.length
+  ) {
+    throw new Error(`${label}: source must be valid signed 16-bit PCM.`);
+  }
+  return {
+    ...format,
+    dataOffset,
+    sampleCount: dataLength / 2,
+  };
+}
+
+function decodePcm16(bytes, wav) {
+  const samples = new Float64Array(wav.sampleCount);
+  for (let index = 0; index < samples.length; index += 1) {
+    samples[index] =
+      bytes.readInt16LE(wav.dataOffset + index * 2) / 32_768;
+  }
+  return samples;
+}
+
+function removeDc(samples, channels) {
+  const frames = samples.length / channels;
+  const means = new Float64Array(channels);
+  for (let index = 0; index < samples.length; index += 1) {
+    means[index % channels] += samples[index];
+  }
+  for (let channel = 0; channel < channels; channel += 1) {
+    means[channel] /= frames;
+  }
+  for (let index = 0; index < samples.length; index += 1) {
+    samples[index] -= means[index % channels];
+  }
+}
+
+function lowPassZeroPhase(samples, channels, sampleRate, cutoffHz) {
+  const frames = samples.length / channels;
+  const alpha = 1 - Math.exp((-2 * Math.PI * cutoffHz) / sampleRate);
+  for (let channel = 0; channel < channels; channel += 1) {
+    let state = samples[channel];
+    for (let frame = 1; frame < frames; frame += 1) {
+      const index = frame * channels + channel;
+      state += alpha * (samples[index] - state);
+      samples[index] = state;
+    }
+    state = samples[(frames - 1) * channels + channel];
+    for (let frame = frames - 2; frame >= 0; frame -= 1) {
+      const index = frame * channels + channel;
+      state += alpha * (samples[index] - state);
+      samples[index] = state;
+    }
+  }
+}
+
+function applyEndpointFades(
+  samples,
+  channels,
+  sampleRate,
+  fadeInSeconds,
+  fadeOutSeconds,
+) {
+  const frames = samples.length / channels;
+  const fadeInFrames = Math.min(
+    frames,
+    Math.round(fadeInSeconds * sampleRate),
+  );
+  const fadeOutFrames = Math.min(
+    frames,
+    Math.round(fadeOutSeconds * sampleRate),
+  );
+  for (let frame = 0; frame < frames; frame += 1) {
+    const fadeIn =
+      fadeInFrames === 0 ? 1 : Math.min(1, frame / fadeInFrames);
+    const remaining = frames - 1 - frame;
+    const fadeOut =
+      fadeOutFrames === 0 ? 1 : Math.min(1, remaining / fadeOutFrames);
+    const gain = Math.sin(Math.min(fadeIn, fadeOut) * Math.PI * 0.5);
+    for (let channel = 0; channel < channels; channel += 1) {
+      samples[frame * channels + channel] *= gain;
+    }
+  }
+}
+
+function normalizePeak(samples, targetPeak) {
+  let peak = 0;
+  for (const sample of samples) peak = Math.max(peak, Math.abs(sample));
+  if (peak <= 0.0001) {
+    throw new Error("Combat delivery audio is effectively silent.");
+  }
+  const gain = targetPeak / peak;
+  for (let index = 0; index < samples.length; index += 1) {
+    samples[index] *= gain;
+  }
+}
+
+function encodePcm16Wav(samples, sampleRate, channels) {
+  const pcm = Buffer.alloc(samples.length * 2);
+  for (let index = 0; index < samples.length; index += 1) {
+    const sample = Math.max(-1, Math.min(1, samples[index]));
+    pcm.writeInt16LE(Math.round(sample * 32_767), index * 2);
+  }
+  const header = Buffer.alloc(44);
+  header.write("RIFF", 0, "ascii");
+  header.writeUInt32LE(36 + pcm.length, 4);
+  header.write("WAVE", 8, "ascii");
+  header.write("fmt ", 12, "ascii");
+  header.writeUInt32LE(16, 16);
+  header.writeUInt16LE(1, 20);
+  header.writeUInt16LE(channels, 22);
+  header.writeUInt32LE(sampleRate, 24);
+  header.writeUInt32LE(sampleRate * channels * 2, 28);
+  header.writeUInt16LE(channels * 2, 32);
+  header.writeUInt16LE(16, 34);
+  header.write("data", 36, "ascii");
+  header.writeUInt32LE(pcm.length, 40);
+  return Buffer.concat([header, pcm]);
+}
+
+function analyzeDeliveryWav(bytes, label) {
+  const wav = parsePcm16Wav(bytes, label);
+  const frames = wav.sampleCount / wav.channels;
+  let peak = 0;
+  let leftSquares = 0;
+  let rightSquares = 0;
+  let cross = 0;
+  for (let frame = 0; frame < frames; frame += 1) {
+    const left =
+      bytes.readInt16LE(wav.dataOffset + frame * wav.channels * 2) /
+      32_768;
+    const right =
+      bytes.readInt16LE(
+        wav.dataOffset + (frame * wav.channels + 1) * 2,
+      ) / 32_768;
+    peak = Math.max(peak, Math.abs(left), Math.abs(right));
+    leftSquares += left * left;
+    rightSquares += right * right;
+    cross += left * right;
+  }
+  const correlation = cross / Math.sqrt(leftSquares * rightSquares);
+  const rms = Math.sqrt((leftSquares + rightSquares) / (frames * 2));
+  return {
+    durationSeconds: round(frames / wav.sampleRate, 3),
+    samplePeakDbfs: round(20 * Math.log10(peak), 2),
+    rmsDbfs: round(20 * Math.log10(rms), 2),
+    interchannelCorrelation: round(correlation, 4),
+  };
+}
+
+function interchannelCorrelation(samples, channels) {
+  if (channels !== 2) {
+    throw new Error("Stereo correlation requires two channels.");
+  }
+  let leftSquares = 0;
+  let rightSquares = 0;
+  let cross = 0;
+  for (let frame = 0; frame < samples.length / channels; frame += 1) {
+    const left = samples[frame * channels];
+    const right = samples[frame * channels + 1];
+    leftSquares += left * left;
+    rightSquares += right * right;
+    cross += left * right;
+  }
+  return cross / Math.sqrt(leftSquares * rightSquares);
+}
+
+function round(value, decimals) {
+  return Number(value.toFixed(decimals));
 }
 
 await recoverInterruptedExport();
@@ -370,6 +690,7 @@ try {
       sourceHash: generationCue.result.outputSha256,
       destination: path.join(directory, filename),
       bitrate: 192_000,
+      deliveryProcessing: combatDeliveryProcessing[cueId],
     });
     cues[cueId] = filename;
     integrity[cueId] = result;
@@ -397,7 +718,7 @@ try {
     path.join(directory, "manifest.json"),
     `${JSON.stringify(
       {
-        version: 2,
+        version: 3,
         id: pack.id,
         label: pack.label,
         approval: "approved",
@@ -416,6 +737,12 @@ try {
             canonicalization:
               "zero-iso-bmff-creation-and-modification-times",
           },
+          deliveryProcessing: {
+            policy:
+              "Short dual-mono low-pass combat markers with soft endpoints; " +
+              "no synthesized layer and no provider request.",
+            cues: combatDeliveryProcessing,
+          },
           rightsStatus: "rights-cleared",
           license: {
             termsUrl: "https://sfxengine.com/terms-of-service",
@@ -430,6 +757,15 @@ try {
         behavior: {
           silentOutcomeCueIds: ["attack-fizzle", "attack-cancel"],
           cueAliases: { "arc-steal": "arc-pickup" },
+          tickMix: {
+            coalesceSameCue: true,
+            suppressWindupUnderForegroundEvents: true,
+            suppressBeamUnderConcreteOutcomes: [
+              "impact",
+              "destroyed",
+              "deflect",
+            ],
+          },
         },
         cues,
         ambience,

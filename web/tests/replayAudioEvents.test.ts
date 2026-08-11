@@ -9,7 +9,7 @@ import type {
 import type { ReplayV1GameEvent } from '../src/replayWireV1.ts';
 import { replayV1FixtureInput } from './support/replayFixtureInputs.ts';
 
-test('authoritative combat events schedule their matching presentation cues', () => {
+test('concrete combat outcomes replace redundant beam markers', () => {
   const replay = replayWithEvents([
     { type: 'Shot', slot: 3 },
     { type: 'Damage', targetSlot: 9, amount: 1, newHealth: 1 },
@@ -17,7 +17,36 @@ test('authoritative combat events schedule their matching presentation cues', ()
   ]);
   assert.deepEqual(
     replayAudioEventsAt(replay, 0).map((event) => event.cue),
-    ['projectile', 'impact', 'destroyed'],
+    ['impact', 'destroyed'],
+  );
+});
+
+test('a simultaneous volley becomes one calm cue per category', () => {
+  const replay = replayWithEvents([
+    { type: 'Damage', targetSlot: 9, amount: 1, newHealth: 1 },
+  ]);
+  const tick = replay.ticks[0]!;
+  const damage = tick.events[0]!;
+  tick.events = [
+    {
+      ...structuredClone(damage),
+      from: { x: 0, y: 1 },
+      to: { x: 0, y: 1 },
+    },
+    {
+      ...structuredClone(damage),
+      eventId: 'second-damage',
+      from: { x: replay.map.width - 1, y: 1 },
+      to: { x: replay.map.width - 1, y: 1 },
+    },
+  ];
+
+  const events = replayAudioEventsAt(replay, 0);
+  assert.deepEqual(events.map((event) => event.cue), ['impact']);
+  assert.equal(
+    events[0]!.pan,
+    0,
+    'the volley shares its left/right centre of energy',
   );
 });
 
@@ -101,6 +130,44 @@ test('declared attacks speak wind-up and beam while unresolved outcomes stay sil
     replayAudioEventsAt(cancelled, 0).map((event) => event.cue),
     [],
     'a voluntary cancellation remains visual-only for now',
+  );
+});
+
+test('foreground events mask concurrent wind-ups', () => {
+  const replay = replayWithEvents([{ type: 'Shot', slot: 3 }]);
+  const tick = replay.ticks[0]!;
+  const firstShooter = tick.before.actors[0]!.identity;
+  const secondShooter = tick.before.actors[1]!.identity;
+  const makeStrike = (
+    shooter: typeof firstShooter,
+    originX: number,
+  ): ReplayArcRelayModeState['pendingStrikes'][number] => ({
+    shooter,
+    resolveAtTick: tick.tick + 1,
+    origin: { x: originX, y: 1 },
+    centralHeading: 'east',
+    target: null,
+    tiles: [{ x: Math.min(replay.map.width - 1, originX + 1), y: 1 }],
+  });
+  tick.before.mode = arcMode([]);
+  tick.after.mode = arcMode([
+    makeStrike(firstShooter, 0),
+    makeStrike(secondShooter, replay.map.width - 1),
+  ]);
+
+  assert.deepEqual(
+    replayAudioEventsAt(replay, 0).map((event) => event.cue),
+    ['projectile'],
+    'the resolved beam represents the tick instead of layering two new wind-ups over it',
+  );
+
+  tick.events = [];
+  const [windup] = replayAudioEventsAt(replay, 0);
+  assert.equal(windup?.cue, 'attack-windup');
+  assert.equal(
+    windup?.pan,
+    0,
+    'two simultaneous declarations share one centred cue',
   );
 });
 
