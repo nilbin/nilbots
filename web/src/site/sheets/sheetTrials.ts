@@ -9,9 +9,11 @@ export const TRIAL_HISTORY_KEY = 'nilbots-sheet-trial-history-v1';
 
 export interface TrialSnapshot {
   composition: string;
+  assignments: string;
   doctrines: string;
   conditions: string;
   custody: string;
+  memory: string;
   geography: string;
 }
 
@@ -39,9 +41,11 @@ export interface UnitTrack {
 export function snapshotForTrial(draft: SheetDraft): TrialSnapshot {
   return {
     composition: JSON.stringify(draft.playbook.composition),
+    assignments: JSON.stringify(draft.playbook.roles),
     doctrines: JSON.stringify(draft.playbook.doctrines),
     conditions: JSON.stringify(draft.playbook.conditions ?? {}),
     custody: JSON.stringify(draft.playbook.custodyPolicies),
+    memory: JSON.stringify(draft.playbook.memory),
     geography: JSON.stringify({
       zones: draft.layout.zones,
       routes: draft.layout.routes,
@@ -52,19 +56,23 @@ export function snapshotForTrial(draft: SheetDraft): TrialSnapshot {
 }
 
 export function describeTrialChanges(
-  previous: TrialSnapshot | undefined,
+  previous: Partial<TrialSnapshot> | undefined,
   current: TrialSnapshot,
 ): string[] {
   if (!previous) return ['First recorded trial'];
   const labels: Array<[keyof TrialSnapshot, string]> = [
-    ['composition', 'Composition'],
-    ['doctrines', 'Doctrines'],
-    ['conditions', 'Conditions'],
-    ['custody', 'Core custody'],
+    ['composition', 'Bodies'],
+    ['assignments', 'Assignments'],
+    ['doctrines', 'Commands'],
+    ['conditions', 'Triggers'],
+    ['custody', 'Core plans'],
+    ['memory', 'Team memory'],
     ['geography', 'Map geometry'],
   ];
   const changed = labels
-    .filter(([key]) => previous[key] !== current[key])
+    // Older device histories predate some snapshot fields. Absence is unknown,
+    // not evidence that the player changed that authoring plane.
+    .filter(([key]) => previous[key] !== undefined && previous[key] !== current[key])
     .map(([, label]) => label);
   return changed.length > 0 ? changed : ['No tactical changes'];
 }

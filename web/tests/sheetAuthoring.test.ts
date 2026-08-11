@@ -310,9 +310,21 @@ test('trial summaries name only the authoring areas that changed', () => {
   changed.layout.routes[0].waypoints.push([4, 3]);
   const after = snapshotForTrial(changed);
 
-  assert.deepEqual(describeTrialChanges(before, after), ['Doctrines', 'Map geometry']);
+  assert.deepEqual(describeTrialChanges(before, after), ['Commands', 'Map geometry']);
   assert.deepEqual(describeTrialChanges(after, after), ['No tactical changes']);
   assert.deepEqual(describeTrialChanges(undefined, after), ['First recorded trial']);
+
+  const staffing = structuredClone(changed);
+  staffing.playbook.roles[0].preferred = 7;
+  staffing.playbook.memory.lastSeenEnemyTicks += 1;
+  assert.deepEqual(
+    describeTrialChanges(after, snapshotForTrial(staffing)),
+    ['Assignments', 'Team memory'],
+  );
+  const legacySnapshot = structuredClone(before) as Partial<typeof before>;
+  delete legacySnapshot.assignments;
+  delete legacySnapshot.memory;
+  assert.deepEqual(describeTrialChanges(legacySnapshot, before), ['No tactical changes']);
 });
 
 test('trial map tracks use recorded occupied tiles without inventing interpolation', () => {

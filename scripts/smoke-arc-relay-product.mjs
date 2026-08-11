@@ -77,7 +77,7 @@ try {
   await page.getByRole('heading', { name: 'Change. Run. Watch. Adjust.' }).waitFor();
   const nameField = page.getByLabel('Sheet name');
   await nameField.fill(sheetName);
-  const runButton = page.locator('#trial-run').getByRole('button', { name: 'Practice & watch' });
+  const runButton = page.getByTitle('Practice & watch (⌘/Ctrl+Enter)');
   if (await runButton.isDisabled()) {
     const issues = await page.locator('[data-sheet-issue]').allTextContents();
     throw new Error(`Initial template is not runnable: ${issues.join(' | ')}`);
@@ -87,7 +87,7 @@ try {
   // Author a real variant rather than merely running the starter unchanged. Body eight
   // becomes a Lantern, its assignment follows it, and the rename must rewrite every
   // doctrine/condition reference rather than exposing internal ids to the player.
-  await page.getByRole('button', { name: '1 Roster', exact: true }).click();
+  await page.getByRole('button', { name: 'Squad', exact: true }).click();
   await page.locator('[aria-label="Fielded bodies"] button').nth(7).click();
   await page.locator('button').filter({ hasText: /^0\/2Lantern/ }).click();
   await page.locator('[data-assignment-select="5"]').click();
@@ -105,12 +105,12 @@ try {
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({ path: join(output, 'assignments-desktop.png'), fullPage: true });
 
-  await page.getByRole('button', { name: '2 Battle plan', exact: true }).click();
+  await page.getByRole('button', { name: 'Commands', exact: true }).click();
   await page.locator('[data-doctrine-select="scout"]').click();
   const scoutDoctrine = page.locator('[data-sheet-path="doctrines.roles.scout"]');
   const scoutFallback = scoutDoctrine
-    .locator('article[data-sheet-path^="doctrines.roles.scout.modes."]').last();
-  await scoutFallback.locator(':scope > details > summary').click();
+    .locator('details[data-sheet-path^="doctrines.roles.scout.modes."]').last();
+  await scoutFallback.locator(':scope > summary').click();
   await scoutFallback.getByRole('group', { name: 'Position in the push' })
     .getByRole('button', { name: 'Rear', exact: true }).click();
 
@@ -119,14 +119,14 @@ try {
     document.documentElement.scrollWidth - document.documentElement.clientWidth);
   if (phoneOverflow > 1) throw new Error(`Sheet editor overflows phone viewport by ${phoneOverflow}px.`);
   await page.screenshot({ path: join(output, 'sheet-workshop-phone.png'), fullPage: true });
-  await page.getByRole('button', { name: '1 Roster', exact: true }).click();
+  await page.getByRole('button', { name: 'Squad', exact: true }).click();
   await page.getByText('Selected assignment', { exact: true }).evaluate((element) =>
     element.scrollIntoView({ block: 'start' }));
   await page.evaluate(() => window.scrollBy(0, -64));
   await page.waitForTimeout(150);
   await page.screenshot({ path: join(output, 'assignments-phone.png') });
-  await page.getByRole('button', { name: '2 Battle plan', exact: true }).click();
-  await page.getByRole('heading', { name: 'Give every assignment its own playbook' }).evaluate((element) =>
+  await page.getByRole('button', { name: 'Commands', exact: true }).click();
+  await page.getByRole('heading', { name: 'Order every assignment’s plays' }).evaluate((element) =>
     element.scrollIntoView({ block: 'start' }));
   await page.evaluate(() => window.scrollBy(0, -64));
   await page.waitForTimeout(150);
@@ -135,14 +135,14 @@ try {
   await page.getByRole('heading', { name: 'Doctrine triggers' }).waitFor();
   await page.screenshot({ path: join(output, 'doctrine-conditions-phone.png') });
   await page.getByRole('button', { name: 'Done' }).click();
-  await page.getByRole('button', { name: /^Core play/ }).click();
+  await page.getByRole('button', { name: /^Core plans/ }).click();
   await page.getByRole('heading', { name: 'Core custody' }).waitFor();
   await page.getByRole('group', { name: 'Ordinary pickup priority' })
     .getByRole('button', { name: 'Nearest Authorized', exact: true }).click();
   await page.screenshot({ path: join(output, 'doctrine-custody-phone.png') });
   await page.getByRole('button', { name: 'Done' }).click();
 
-  await page.getByRole('button', { name: '3 Tactics map', exact: true }).click();
+  await page.getByRole('button', { name: 'Map', exact: true }).click();
   await page.getByLabel('Map landmark legend').waitFor();
   await page.getByRole('button', { name: 'east side', exact: true }).click();
   await page.getByRole('button', { name: 'west side', exact: true }).click();
@@ -186,9 +186,7 @@ try {
   // return to two comparable run cards. This catches draft loss and revision conflicts.
   await page.getByLabel('local reflow width').fill('1');
   await page.setViewportSize({ width: 1440, height: 1050 });
-  const rerunButton = page.locator('#trial-run')
-    .getByRole('button', { name: 'Practice again & watch' });
-  const second = await launchPractice(page, context, base, rerunButton);
+  const second = await launchPractice(page, context, base, runButton);
   await page.reload({ waitUntil: 'networkidle' });
   await watchMatch(page);
   await page.screenshot({ path: join(output, 'trial-rerun-desktop.png'), fullPage: true });

@@ -597,12 +597,12 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
         <IssueSummary issues={issues} onNavigate={(issue) => {
           revealIssue(issue.path);
         }} />
-        <nav className="panel sticky top-0 z-30 flex items-center gap-1 overflow-x-auto p-1.5"
+        <nav className="panel sticky top-0 z-30 grid grid-cols-3 items-center gap-1 p-1.5 sm:flex sm:overflow-x-auto"
           aria-label="Sheet editor sections">
           {EDITOR_SECTIONS.map((entry) => {
             const count = issues.filter((issue) => entry.matches(issue.path)).length;
             return <button key={entry.id} type="button"
-              className={clsx('btn min-h-11 shrink-0 flex-1', section === entry.id && 'btn-on')}
+              className={clsx('btn min-h-11 min-w-0 flex-1', section === entry.id && 'btn-on')}
               aria-current={section === entry.id ? 'step' : undefined}
               onClick={() => {
                 setSection(entry.id);
@@ -612,12 +612,12 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
               {entry.label}{count > 0 ? ` · ${count}` : ''}
             </button>;
           })}
-          <span className="mx-1 h-7 w-px shrink-0 bg-arena-edge" aria-hidden="true" />
-          <button type="button" className="btn min-h-11 shrink-0"
+          <span className="mx-1 hidden h-7 w-px shrink-0 bg-arena-edge sm:block" aria-hidden="true" />
+          <button type="button" className="btn min-h-11 min-w-0 sm:shrink-0"
             onClick={() => setPracticeSetupOpen(true)} aria-label="Choose practice opponent and scenario">
             Scenario
           </button>
-          <button type="button" className="btn btn-secondary min-h-11 shrink-0 gap-2"
+          <button type="button" className="btn btn-secondary col-span-2 min-h-11 min-w-0 gap-2 sm:col-span-1 sm:shrink-0"
             disabled={blocking.length > 0 || save.isPending || trial.isPending || !stockId}
             title="Practice & watch (⌘/Ctrl+Enter)"
             onClick={() => void runTrial()}>

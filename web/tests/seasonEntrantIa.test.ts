@@ -92,7 +92,7 @@ test('the workspace has one persistent practice action and separates scenario se
 });
 
 test('practice is a secondary game action rather than a competing primary', () => {
-  assert.match(workshop, /btn btn-secondary min-h-11 shrink-0 gap-2/);
+  assert.match(workshop, /btn btn-secondary[^"\n]*gap-2/);
   assert.match(styles, /\.btn-secondary\s*\{[^}]*background:/s);
   assert.match(styles, /\.btn-secondary-symbol\s*\{[^}]*color:\s*var\(--color-arena-material\)/s);
 });
