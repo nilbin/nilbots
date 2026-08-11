@@ -44,10 +44,12 @@ Official references:
 
 ## Approval and view plan
 
-`concept-sheet.png` is the canonical owner-review artifact for this gate. Its
-shared 4x4 presentation intentionally makes family consistency, palette
-separation, silhouette variety, forward beam apertures, and signature apparatus
-easy to compare at a glance. The four full-size files currently in `drafts/`
+`concept-sheet-v2.png` is the canonical owner-review artifact for this gate.
+It removes fixed teal/orange emission and adds a readable mechanical eye-light
+motif to every bot. `concept-sheet.png` remains the superseded v1 evidence. The
+current sheet's shared 4x4 presentation intentionally makes family consistency,
+palette separation, silhouette variety, forward beam apertures, and signature
+apparatus easy to compare at a glance. The four full-size files currently in `drafts/`
 are generation references used to establish the sheet's shared rendering
 language; they are not a partial approval requirement.
 
@@ -66,8 +68,9 @@ sheet is review evidence only and must never be submitted as one input image.
 ## Shared gameplay truth
 
 - Every chassis levitates only a few centimeters above the ground. A tight
-  underbody glow and visible lift modules may support a gentle bob, but there
-  are no legs, feet, wheels, treads, skids, landing gear, wings, rotors, jets,
+  neutral-white underbody glow and visible lift modules may support a gentle
+  bob, but there are no legs, feet, wheels, treads, skids, landing gear, wings,
+  rotors, jets,
   altitude control, banking promise, or flight silhouette.
 - Every class has a basic attack that winds up for one replay tick and then
   emits an instant straight energy beam. Each bot therefore has one small,
@@ -75,9 +78,14 @@ sheet is review evidence only and must never be submitted as one input image.
   capacitors that can light sequentially.
 - The basic beam hardware is visually separate from the class signature. The
   signature apparatus remains readable while the shared beam is idle.
-- The fixed class palette dominates. Small, sharply bounded cyan team-light
-  surfaces occupy about five percent of the chassis and can later become
-  renderer-owned team tint.
+- Teal and orange are the opposing runtime team colors. Neither is baked into
+  fixed emission. Semantic team-accent surfaces remain neutral/unlit in the
+  source concept so the renderer can own teal/orange tint and bloom.
+- Every bot has a localized neutral-white eye-light motif with a subtle
+  pale-lavender core: paired lamps, slits, pixels, or a compact sensor cluster.
+  It suggests attention and facing without human or animal facial anatomy.
+- The eye motif, small forward basic-beam aperture, and larger class-signature
+  apparatus remain three independently readable systems.
 - Concepts show one connected bot only. No Core, mine, sentry, projectile,
   wall, flare, smoke, beam, or other spawned effect appears beside it.
 
@@ -123,7 +131,9 @@ sheet is review evidence only and must never be submitted as one input image.
 | Veil | Smoke Canister: range-six deployment, exact radius-two sight blocker |
 | Nest | Sentinel Seed: adjacent hull-two sentry with deterministic beam bolts |
 
-`prompt-specs.json` records the full per-class prompt assembly. The accepted
-shared-sheet generation prompt is preserved verbatim in
-`CONCEPT-SHEET-PROMPT.md`, and `manifest.json` records the review order and file
-provenance. `concept-sheet.png` is the approval index and is not a Meshy input.
+`prompt-specs.json` and `CONCEPT-SHEET-PROMPT.md` preserve the v1 generation
+prompts verbatim. The two v2 edit prompts are preserved verbatim in
+`CONCEPT-SHEET-V2-PROMPTS.md`, and `manifest.json` records the review order and
+file provenance. `concept-sheet-v2.png` is the approval index and is not a
+Meshy input. Future isolated/multiview prompts inherit the v2 neutral-emission
+and mechanical-eye rules rather than the superseded v1 cyan-inlay language.
