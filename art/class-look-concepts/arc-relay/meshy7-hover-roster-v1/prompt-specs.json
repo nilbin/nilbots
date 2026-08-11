@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 1,
+  "generator": "OpenAI built-in image generation",
+  "promptAssembly": "Join commonPrompt and classPrompt with a blank line.",
+  "commonPrompt": "Use case: stylized-concept\nAsset type: owner-review front-right three-quarter bot identity anchor and future fourth Meshy 7 Multi-Image source for the Nilbots Arc Relay game\nPrimary request: Create exactly one original legless low-hover hard-surface robot from the named gameplay facts. Invent a fresh silhouette and surface design; do not imitate an existing Nilbots bot, vehicle concept, franchise, artist, or named visual style.\nLocomotion: the machine levitates only a few centimeters above the ground using compact lift modules recessed in its underside. Show a narrow dark air gap and a restrained soft underbody glow attached to the chassis, with no cast/contact shadow. It may gently bob but must not look capable of player-controlled flight. Absolutely no legs, feet, humanoid anatomy, animal anatomy, wheels, treads, skids, landing gear, wings, fins that read as wings, propellers, rotors, exposed jet nozzles, or aircraft silhouette.\nShared combat hardware: every Arc Relay body has a basic attack that visibly winds up for one beat and then emits an instant straight energy beam. Give this bot one unmistakable small forward-facing beam aperture in the prow, with a concentric focusing lens and two or three adjacent capacitor segments that can light in sequence during the windup. This shared beam system must aim along the chassis facing and remain visually separate from the larger class-signature apparatus. Do not show it charged or firing.\nScene/backdrop: perfectly flat seamless light-neutral gray only; no floor plane, horizon, gradient, texture, scenery, reflection, cast shadow, or contact shadow.\nStyle/medium: premium polished 3D-like game concept render; stylized hard-surface science fiction; coherent family language across a roster; layered armor, dark recessed mechanisms, strong material separation, crisp panel seams, restrained edge wear, and controlled emissive inlays. Not photorealistic, not flat vector art, not a toy, not anime mecha.\nComposition/framing: square 1:1 canvas; one complete bot centered; generous empty margin; facing East/right in an exact front-right three-quarter camera around 25 degrees, showing the front, right side, top plane, and a little underside; minimal perspective distortion; full silhouette uncropped. This identity anchor will later be matched by separate strict front, strict right-side, and strict back views at identical scale, lighting, proportions, colors, and hardware.\nLighting/mood: soft, even, diffuse studio illumination that reveals geometry without dramatic highlights or baked shadows.\nTeam language: fixed class palette dominates; cyan appears only on two or three small, clean, sharply bounded semantic team-light inlays, about 5 percent of visible surface; do not recolor the whole chassis cyan.\nConstraints: exactly one connected bot; the basic beam aperture and signature apparatus must read independently; signature hardware remains stowed/idle but unmistakable; strong readable outer silhouette; large meaningful forms before microdetail; clean sharp subject/background separation; no thin floating parts, transparent materials, text, letters, numbers, symbols, logos, watermark, weapon fire, beam, projectile, Core, mine, sentry, wall, flare, smoke, fog, particles, bloom, or environmental effect. Do not imply a changed hitbox, collision, range, damage, or abilities beyond the named signature support.",
+  "classes": [
+    {
+      "id": "kestrel",
+      "label": "Kestrel",
+      "output": "drafts/kestrel.png",
+      "classPrompt": "Subject: Kestrel, swift rapid interceptor with Vector Dash: one-tick public tell, straight surge up to four tiles, carried Core drops. Create a narrow split-delta dart body with a sharp directional prow, two short compression vanes nested tightly against the rear shoulders, long vented vector heat sinks, and a visibly compressed forward-biased center of mass. The prow's small basic-beam lens and staged capacitors are separate from the dash vanes. Fixed palette: porcelain white armor, vivid tangerine panels, midnight-navy mechanisms, tiny cyan team inlays. Avoid aircraft wings, tail fins, cockpit, visible thrusters, missiles, or a literal bird."
+    },
+    {
+      "id": "palisade",
+      "label": "Palisade",
+      "output": "drafts/palisade.png",
+      "classPrompt": "Subject: Palisade, deliberate convoy shield with Prism Wall: three projectile-blocking, body-passable segments. Create a broad tall shield-slab hover body with a concave protected prow, three large vertical projector ribs along one forward edge, a massive armored rear counterweight, and a slow immovable visual stance. The small basic-beam lens sits low in the center prow and is clearly separate from the three-rib wall projector. Fixed palette: royal cobalt armor, antique-gold projector hardware, pale-quartz panels, tiny cyan team inlays. Avoid a handheld shield, literal wall beside the bot, tank, turtle, humanoid torso, or fortress building."
+    },
+    {
+      "id": "towline",
+      "label": "Towline",
+      "output": "drafts/towline.png",
+      "classPrompt": "Subject: Towline, formation-disrupting rescue tug with Tractor Hook: wound-up grapple bolt at range six pulls the first body up to three tiles. Create a squat horseshoe-shaped hover tug wrapped around one large captive horizontal winch drum, with thick cable guides, a fully wound cable, and a closed grapple-bolt throat under the forward arch. The small basic-beam lens sits above the clamp and remains separate. Fixed palette: cadmium-yellow work armor, brushed steel, black rubberized mechanisms, tiny cyan team inlays. Avoid loose cable, dangling hook, chain, wheels, tow truck, animal head, or a deployed grapple."
+    },
+    {
+      "id": "patchbay",
+      "label": "Patchbay",
+      "output": "drafts/patchbay.png",
+      "classPrompt": "Subject: Patchbay, field-repair support with Repair Beam: interruptible ally channel at range four, up to two hull. Create a rounded service-capsule hover body with one folded articulated repair boom integrated flush along the left side, a large warm repair lens at its tip, accessible diagnostic panels, and protected tool recesses. The small basic-beam aperture is centered in the prow and visually distinct from the larger repair lens. Fixed palette: seafoam-green ceramic, coral service panels, pearl-white armor, graphite mechanisms, tiny cyan team inlays. Avoid medical cross symbols, text, syringes, loose hoses, humanoid medic cues, or a second drone."
+    },
+    {
+      "id": "lantern",
+      "label": "Lantern",
+      "output": "drafts/lantern.png",
+      "classPrompt": "Subject: Lantern, swift information scout with Survey Flare: travelling flare reveals radius four through smoke. Create a compact gyroscopic hover eye: elliptical central body, one large protected halo scanner mounted around but connected to the upper hull, a small sealed flare cell in the rear shoulder, a short calibration mast, and layered optical rings. The small basic-beam aperture sits in the lower prow and is separate from the survey optic. Fixed palette: ultraviolet ceramic, champagne-gold optical hardware, satin white, graphite mechanisms, tiny cyan team inlays. Avoid floating rings, satellite-dish body, lamp, wings, antenna wires, or a deployed flare."
+    },
+    {
+      "id": "mortar",
+      "label": "Mortar",
+      "output": "drafts/mortar.png",
+      "classPrompt": "Subject: Mortar, deliberate displacement artillery with Falling Star: visible two-tick reticle then compact area hit. Create a low planted armored hexagonal hover puck with one unmistakable elevated dorsal launch tube angled upward and slightly rearward, a thick recoil collar, wide stabilizing armor shoulders with no contact hardware, and a small armored prow. The basic-beam lens is centered low in the prow and separate from the mortar tube. Fixed palette: forest-olive armor, weathered copper hardware, soot-black tube and recesses, tiny cyan team inlays. Avoid tank treads, multiple barrels, missiles, ammunition outside the hull, legs, or active firing."
+    },
+    {
+      "id": "minesmith",
+      "label": "Minesmith",
+      "output": "drafts/minesmith.png",
+      "classPrompt": "Subject: Minesmith, patient route trapper with Trip Node: one adjacent hull-one mine dealing two trigger damage. Create a low triangular foundry hover pod with a protected underside mine carousel visible only through one open service recess, three closed circular node cells under armored top shoulders, one forward deployment door, and compact foundry tooling integrated into the hull. The basic-beam lens sits high in the prow and is separate from the mine bay. Fixed palette: terracotta armor, mustard-yellow hardware, dark gunmetal mechanisms, tiny cyan team inlays. Avoid scattered mines, exposed bombs, spikes, legs, beetle anatomy, or a deployed node."
+    },
+    {
+      "id": "hush",
+      "label": "Hush",
+      "output": "drafts/hush.png",
+      "classPrompt": "Subject: Hush, signature-countering specialist with Null Field: one visible charge tick then radius-three suppression. Create a flattened obsidian ovoid hover chassis with a large concentric dampener core embedded in the center, four short broken-ring absorber fins attached tightly around the hull, smooth acoustic composite armor, and deeply recessed machinery. The small basic-beam lens sits at the narrow prow, separate from the central field core. Fixed palette: indigo-black composite, muted lavender baffles, brushed silver structure, tiny cyan team inlays. Avoid floating rings, speaker stack, supernatural void effects, humanoid face, or an active field."
+    },
+    {
+      "id": "relay",
+      "label": "Relay",
+      "output": "drafts/relay.png",
+      "classPrompt": "Subject: Relay, swift objective passer with Arc Toss: carrier throws the Core to a straight landing within five tiles. Create an open U-shaped catcher hover frame around one clearly empty spherical Core cradle, with twin forward throwing rails, a protective lower yoke, and athletic swept side armor. The small basic-beam aperture sits beneath the empty cradle and is separate from the throwing rails. Fixed palette: crimson lacquer, weathered brass cradle, warm cream armor, charcoal mechanisms, tiny cyan team inlays. Absolutely no Core or ball in the cradle; avoid sports motifs, hands, wings, or an active throw."
+    },
+    {
+      "id": "switchback",
+      "label": "Switchback",
+      "output": "drafts/switchback.png",
+      "classPrompt": "Subject: Switchback, emergency substitution support with Exchange: one-tick link tell swaps with one visible ally. Create one connected, perfectly bilateral twin-lobe hover frame joined by a strong narrow central bridge, with mirrored armor halves, paired link coils, and identical left/right emitter windows. The small basic-beam aperture is exactly on the centerline and separate from the two link coils. Fixed palette: one satin-white lobe and one near-black lobe balanced around the center, restrained amber mechanisms, tiny cyan team inlays. Avoid two separate bodies, two heads, teleport effects, energy ribbons, asymmetric equipment, or a butterfly/aircraft silhouette."
+    },
+    {
+      "id": "longshot",
+      "label": "Longshot",
+      "output": "drafts/longshot.png",
+      "classPrompt": "Subject: Longshot, deliberate corridor threat with Rail Line: fixed heading, two-tick charge, piercing range-twelve beam. Create an exceptionally long narrow needle-lance hover chassis built around one body-length dorsal rail, with three large staged charge cells along the spine, a precise rail muzzle at the extreme prow, and minimal side armor. Also include a smaller offset basic-beam aperture so ordinary fire and Rail Line read as separate systems. Fixed palette: glacier-blue armor, dark navy structure, brushed silver rail, tiny cyan team inlays. Avoid handheld rifle cues, sniper scope, cockpit, aircraft wings, ammunition, or firing effects."
+    },
+    {
+      "id": "mason",
+      "label": "Mason",
+      "output": "drafts/mason.png",
+      "classPrompt": "Subject: Mason, deliberate route builder with Hardlight Block: one adjacent temporary hull-three obstacle. Create a compact blocky forge hover body with one clearly empty square shaping bay in the center, two short forked hardlight emitters flanking the prow, thick layered construction armor, and deep cooling recesses. The small basic-beam aperture sits above the empty bay and is distinct from both shaping forks. Fixed palette: golden-ochre armor, concrete blue-gray tooling, burnt-orange heat panels, graphite mechanisms, tiny cyan team inlays. Avoid forklift, carried block, crane, wheels, legs, loose tools, or a visible wall."
+    },
+    {
+      "id": "sunder",
+      "label": "Sunder",
+      "output": "drafts/sunder.png",
+      "classPrompt": "Subject: Sunder, focus coordinator with Target Paint: marks one visible enemy for three empowered allied hits. Create a faceted diamond/kite hover chassis with one dominant designator optic, three attached bracket-like calibration vanes around it, a narrow rangefinder spine, and sharply directional prow armor. The small basic-beam aperture sits below the designator and is separate from the targeting optic. Fixed palette: saturated magenta-plum armor, warm ivory calibration surfaces, graphite mechanisms, tiny cyan team inlays. Avoid red team-color dominance, literal painted crosshairs, floating brackets, wings, or active targeting graphics."
+    },
+    {
+      "id": "repulsor",
+      "label": "Repulsor",
+      "output": "drafts/repulsor.png",
+      "classPrompt": "Subject: Repulsor, heavy local-space controller with Kinetic Burst: one-tick tell pushes every adjacent body. Create a thick circular field-disc hover chassis with a massive concentric kinetic hub in the center, eight short radial coil housings around the rim, a dense armored rear mass, and one clearly defined forward notch. The small basic-beam aperture sits inside the forward notch and is distinct from the central burst hub. Fixed palette: deep burgundy armor, rose-gold coil rings, basalt-black structure, tiny cyan team inlays. Avoid a wheel, tire, gyroscope, flying saucer, floating coils, or active energy ring."
+    },
+    {
+      "id": "veil",
+      "label": "Veil",
+      "output": "drafts/veil.png",
+      "classPrompt": "Subject: Veil, swift vision controller with Smoke Canister: range-six deployment creates exact radius-two sight blocker. Create a shallow stealth-crescent hover chassis with two sealed canister pods recessed symmetrically into the upper rear hull, compact forward launch ports, layered low-observable armor, and a narrow masked prow. The small basic-beam aperture sits at the prow center and is separate from the canister launch ports. Fixed palette: emerald-green armor, smoky-teal mechanisms, muted sand panels, charcoal recesses, tiny cyan team inlays. Avoid cloak, smoke, gas-mask face, grenades outside the hull, aircraft wings, or a second drone."
+    },
+    {
+      "id": "nest",
+      "label": "Nest",
+      "output": "drafts/nest.png",
+      "classPrompt": "Subject: Nest, persistent theater guard with Sentinel Seed: deploys one adjacent hull-two short-range sentry. Create a wide hexagonal carrier hover chassis with exactly six closed seed cells secured in two rows on two integrated dorsal launch rails, one empty deployment cradle under the rear center, a watchful compact prow, and broad stable armor. The small basic-beam aperture sits at the prow center and is separate from seed hardware. Fixed palette: pine-green armor, earthen-umber rails, aubergine pod caps, dark steel mechanisms, tiny cyan team inlays. Avoid eggs, organic plants, missiles, visible sentry, legs, insect anatomy, or loose cargo."
+    }
+  ]
+}

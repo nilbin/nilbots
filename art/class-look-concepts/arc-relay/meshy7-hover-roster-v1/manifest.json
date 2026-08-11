@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "status": "owner-review",
+  "canonicalReviewArtifact": "concept-sheet.png",
+  "canonicalReviewArtifactSha256": "868cbcf9336197ec2e87d73d2f8463f7def7823e2f555bf0433965a6c00e9868",
+  "dimensions": {
+    "width": 1254,
+    "height": 1254
+  },
+  "grid": {
+    "columns": 4,
+    "rows": 4,
+    "order": [
+      "kestrel",
+      "palisade",
+      "towline",
+      "patchbay",
+      "lantern",
+      "mortar",
+      "minesmith",
+      "hush",
+      "relay",
+      "switchback",
+      "longshot",
+      "mason",
+      "sunder",
+      "repulsor",
+      "veil",
+      "nest"
+    ]
+  },
+  "generationPrompt": "CONCEPT-SHEET-PROMPT.md",
+  "classPromptSpecs": "prompt-specs.json",
+  "styleReferences": [
+    "drafts/kestrel.png",
+    "drafts/palisade.png",
+    "drafts/towline.png",
+    "drafts/patchbay.png"
+  ],
+  "meshyInput": false,
+  "meshyGenerationAuthorized": false,
+  "nextGate": "owner approval of the shared 4x4 identities"
+}
