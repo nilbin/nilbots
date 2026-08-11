@@ -68,7 +68,7 @@ interface SoundEffectManifest {
     mapIds: string[];
   };
   integrity: Record<
-    SoundEffectCueId | 'arena-ambience',
+    string,
     {
       sourceSha256: string;
       outputSha256: string;
@@ -189,7 +189,10 @@ function loadSoundEffectPack(): SoundEffectPack {
   ) as Record<SoundEffectCueId, string>;
 
   const ambienceUrl = assetUrls[`${directory}/${manifest.ambience.file}`];
-  if (!ambienceUrl || !validIntegrity(manifest.integrity?.['arena-ambience'])) {
+  if (
+    !ambienceUrl ||
+    !validIntegrity(manifest.integrity?.[manifest.ambience.sourceCueId])
+  ) {
     throw new Error(
       `Sound-effect pack '${manifest.id}' references invalid ambience '${manifest.ambience.file}'.`,
     );

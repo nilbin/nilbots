@@ -114,7 +114,12 @@
   let favorite = readFavorite();
   let selectedPack = manifest.packs.find((pack) => pack.id === favorite) ?? manifest.packs.at(-1);
   let audioGraph = null;
-  let selectedAmbientLoop = ambientLoops[0];
+  let selectedAmbientLoop =
+    ambientLoops.find(
+      (loop) =>
+        loop.id ===
+        additionalManifest.reviewScope?.selectedBackgroundLoop?.cueId,
+    ) ?? ambientLoops[0];
   let ambientAudio = null;
   let ambientVoice = null;
 
@@ -303,7 +308,10 @@
     const audio = new Audio(loop.file);
     audio.preload = 'auto';
     audio.loop = true;
-    const voice = connectAudio(audio, loop.reviewRelativeGain);
+    const voice = connectAudio(
+      audio,
+      loop.runtimeGain ?? loop.reviewRelativeGain,
+    );
     ambientAudio = audio;
     ambientVoice = voice;
     audio.addEventListener(

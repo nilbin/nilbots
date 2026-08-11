@@ -46,11 +46,12 @@
       "arc-steal": "arc-pickup"
     },
     "selectedBackgroundLoop": {
-      "cueId": "arena-ambience",
+      "cueId": "arena-ambience-ion-veil",
+      "runtimeGain": 0.08,
       "mapIds": [
         "arc-relay-tapline-01"
       ],
-      "runtimeFile": "web/src/assets/audio/effects/astral-relay/arena-ambience.m4a"
+      "runtimeFile": "web/src/assets/audio/effects/astral-relay/arena-ambience-ion-veil.m4a"
     }
   },
   "sourceComposition": {
@@ -342,7 +343,7 @@
       "category": "AMBIENCE",
       "status": "proposed",
       "description": "The steady original: a dark sub-and-mid electromagnetic bed with the least foreground motion.",
-      "mapping": "Optional arena ambience alternative A (review-only; no runtime mapping)",
+      "mapping": "Sound-lab comparison only; no runtime mapping",
       "file": "./v5/packs/astral-relay/arena-ambience.wav",
       "durationSeconds": 30,
       "peak": 0.55,
@@ -363,9 +364,9 @@
       "id": "arena-ambience-ion-veil",
       "label": "Ion veil",
       "category": "AMBIENCE",
-      "status": "proposed",
+      "status": "mapped",
       "description": "A wide, low-frequency orbital veil with stronger lateral motion than A; despite its brief, it rendered darker rather than brighter.",
-      "mapping": "Optional arena ambience alternative B (review-only; no runtime mapping)",
+      "mapping": "Tapline runtime ambience at gain 0.08",
       "file": "./v5/packs/astral-relay/arena-ambience-ion-veil.wav",
       "durationSeconds": 30,
       "peak": 0.5,
@@ -379,6 +380,7 @@
         "energyAbove12kPercent": 0
       },
       "reviewRelativeGain": 0.418,
+      "runtimeGain": 0.08,
       "loop": true,
       "loopCrossfadeSeconds": 2
     },
@@ -388,7 +390,7 @@
       "category": "AMBIENCE",
       "status": "proposed",
       "description": "The quietest, sparsest alternative: a low signal lattice with the most negative space beneath combat.",
-      "mapping": "Optional arena ambience alternative C (review-only; no runtime mapping)",
+      "mapping": "Sound-lab comparison only; no runtime mapping",
       "file": "./v5/packs/astral-relay/arena-ambience-signal-lattice.wav",
       "durationSeconds": 30,
       "peak": 0.5,

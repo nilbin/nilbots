@@ -177,11 +177,11 @@ In rough order of feel per unit of effort:
   the centre.
 
 Astral Relay is now the sole approved runtime SFX pack. Its thirteen mapped one-shots plus
-the Tapline-only Original dark field loop total roughly 0.96 MiB, arm with the first
+the Tapline-only Ion veil loop total roughly 0.96 MiB, arm with the first
 trusted viewer interaction, and remain in the self-contained CLI artifact. Wind-up and
 beam use the smoother low-noise revisions; failed/cancelled attacks stay silent, and a
 steal aliases the ordinary levitation pickup. Provider-authored tails use a light 0.06
-room send; the loop sits behind play at gain 0.21 and the shared limiter remains the final
+room send; the loop sits near-subliminally behind play at gain 0.08 and the shared limiter remains the final
 ear-safety boundary. The entitlement-unlock review cue is not reused for a match result.
 
 Neon Protocol supplies the website soundtrack through content-addressed HTTP assets.

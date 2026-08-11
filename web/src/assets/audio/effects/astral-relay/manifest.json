@@ -117,12 +117,12 @@
     "arrival": "arrival.m4a"
   },
   "ambience": {
-    "id": "original-dark-field",
-    "sourceCueId": "arena-ambience",
-    "file": "arena-ambience.m4a",
+    "id": "ion-veil",
+    "sourceCueId": "arena-ambience-ion-veil",
+    "file": "arena-ambience-ion-veil.m4a",
     "loop": true,
     "durationSeconds": 30,
-    "gain": 0.21,
+    "gain": 0.08,
     "mapIds": [
       "arc-relay-tapline-01"
     ]
@@ -206,10 +206,10 @@
       "bytes": 48879,
       "bitrate": 192000
     },
-    "arena-ambience": {
-      "sourceSha256": "f9e5395c88a852e9ea2da6b55e31ff49276fcabf8cb5baeebeeca3c6458fa118",
-      "outputSha256": "52873301935a6686645fa3efd5a19fe8ee5ee6f847bc6d4d5a72066cd3cb2a25",
-      "bytes": 622116,
+    "arena-ambience-ion-veil": {
+      "sourceSha256": "1d78c31f1565dc01de7e14e3ed0df6662b9faa00f7bf878330facaacaaceff10",
+      "outputSha256": "eb62d2457261acb28eef3faffd7ef9dbac13fa82bf605bacb98392686d95f65d",
+      "bytes": 617816,
       "bitrate": 160000
     }
   }

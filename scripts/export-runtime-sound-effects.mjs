@@ -39,7 +39,7 @@ const stagingRoot = `${destinationRoot}.staging-${exportSuffix}`;
 const backupRoot = `${destinationRoot}.backup-${exportSuffix}`;
 const backupPrefix = `${path.basename(destinationRoot)}.backup-`;
 const selectedPackId = "astral-relay";
-const selectedAmbienceId = "arena-ambience";
+const selectedAmbienceId = "arena-ambience-ion-veil";
 const sourceCueIds = [
   "attack-windup",
   "projectile",
@@ -92,12 +92,12 @@ const mix = {
   },
 };
 const ambience = {
-  id: "original-dark-field",
+  id: "ion-veil",
   sourceCueId: selectedAmbienceId,
-  file: "arena-ambience.m4a",
+  file: "arena-ambience-ion-veil.m4a",
   loop: true,
   durationSeconds: 30,
-  gain: 0.21,
+  gain: 0.08,
   mapIds: ["arc-relay-tapline-01"],
 };
 
@@ -315,6 +315,36 @@ const sourceAmbience = sourceManifest.backgroundLoops?.find(
 );
 if (!sourceAmbience) {
   throw new Error(`Missing selected runtime ambience: ${selectedAmbienceId}`);
+}
+const runtimeIntegratedLufs =
+  sourceAmbience.energy?.integratedLufs + 20 * Math.log10(ambience.gain);
+const runtimeMaximumMomentaryLufs =
+  sourceAmbience.energy?.maxMomentaryLufs + 20 * Math.log10(ambience.gain);
+if (
+  !Number.isFinite(runtimeIntegratedLufs) ||
+  !Number.isFinite(runtimeMaximumMomentaryLufs) ||
+  runtimeIntegratedLufs > -40 ||
+  runtimeMaximumMomentaryLufs > -35.5
+) {
+  throw new Error(
+    "The selected runtime ambience is not below the near-subliminal loudness ceilings.",
+  );
+}
+if (
+  JSON.stringify(sourceManifest.reviewScope?.selectedBackgroundLoop) !==
+  JSON.stringify({
+    cueId: ambience.sourceCueId,
+    runtimeGain: ambience.gain,
+    mapIds: ambience.mapIds,
+    runtimeFile: path.join(
+      "web/src/assets/audio/effects/astral-relay",
+      ambience.file,
+    ),
+  })
+) {
+  throw new Error(
+    "The runtime ambience export differs from the reviewed V5 selection.",
+  );
 }
 
 let totalBytes = 0;

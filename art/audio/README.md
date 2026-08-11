@@ -121,11 +121,12 @@ non-musical source for each; the workflow applies a two-second circular
 equal-power tail/head crossfade to produce each 30-second looping master. The
 sound lab exposes them as A/B/C alternatives and adjusts their review gains
 toward A only while exact combat-overlap headroom remains safe. The original is
-the steadiest and remains the strongest technical match; the two follow-up
-calls produced a wider but still darker veil and a much quieter, sparser
-lattice rather than the requested brighter spectral bridge. Original dark
-field is the Tapline runtime selection; the other two remain review-only. None
-replace or modify Neon Protocol.
+the steadiest technical reference; the two follow-up calls produced a wider but
+still darker veil and a much quieter, sparser lattice rather than the requested
+brighter spectral bridge. Owner review selected Ion veil for Tapline, but at a
+near-subliminal 0.08 runtime gain rather than its 0.418 level-matched review
+gain. Original dark field and Signal lattice remain review-only. None replace
+or modify Neon Protocol.
 
 The internal **projectile** cue ID is retained for runtime compatibility, but
 its artifact label is **Beam resolve**. Runtime attacks now speak only as
@@ -153,8 +154,8 @@ sound lab as a collapsed reference archive.
 
 The lossless masters for every direction stay under `art/`. Astral Relay is the
 approved runtime direction; `scripts/export-runtime-sound-effects.mjs` verifies
-the V5 source hashes and exports thirteen mapped one-shots plus Original dark
-field to `web/src/assets/audio/effects/astral-relay/` as 48 kHz stereo AAC-LC.
+the V5 source hashes and exports thirteen mapped one-shots plus Ion veil to
+`web/src/assets/audio/effects/astral-relay/` as 48 kHz stereo AAC-LC.
 Fizzle, cancel, and the historical special-steal take stay review-only. The
 checked-in delivery assets total roughly 0.96 MiB. The loop is selected only by
 Tapline's stable `arc-relay-tapline-01` map ID. The entitlement cue remains a

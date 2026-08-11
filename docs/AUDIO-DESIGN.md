@@ -2,7 +2,7 @@
 
 Status: Astral Relay is the approved default runtime sound-effect direction.
 Thirteen one-shot voices ship in the web and self-contained replay viewers;
-Tapline also carries the quiet Original dark field ambience loop. Effects are
+Tapline also carries Ion veil as a near-subliminal ambience loop. Effects are
 enabled by default after the browser's first trusted user interaction. Neon
 Protocol music is unchanged.
 
@@ -167,16 +167,14 @@ sum would lose the pre-limiter safety margin. Their prompts, provider
 provenance, processing, hashes, and measurements live in the same V5 generation
 record.
 
-The original remains the strongest technical match: it is steady and leaves
-the least foreground motion. Two additional private Engine calls tested a
-brighter ion veil and a sparse signal lattice. The first rendered wider but
-darker than requested; the second rendered substantially quieter and sparser.
-They remain useful listening alternatives, but neither is an automatic
-replacement for the original.
-
-The selected Astral Relay one-shots and Original dark field loop are promoted;
-Ion veil and Signal lattice remain review-only alternatives. Neon Protocol is
-not regenerated, remixed, or otherwise changed by this promotion.
+The original remains the steadiest technical reference and leaves the least
+foreground motion. Two additional private Engine calls tested a brighter ion
+veil and a sparse signal lattice. The first rendered wider but darker than
+requested; the second rendered substantially quieter and sparser. Owner review
+now selects Ion veil for Tapline, deliberately reduced from its 0.418
+level-matched review gain to a 0.08 runtime gain. Original dark field and Signal
+lattice remain review-only alternatives. Neon Protocol is not regenerated,
+remixed, or otherwise changed by this selection.
 
 An energy audit originally found excessive upper-band energy in wind-up and
 fizzle, while armor impact reconstructed above full scale and level-up left
@@ -243,7 +241,7 @@ node scripts/export-runtime-sound-effects.mjs
 
 This verifies the hash-pinned V5 sources and exports Astral Relay to
 `web/src/assets/audio/effects/astral-relay/` as 48 kHz stereo AAC-LC: thirteen
-mapped one-shots at 192 kbps and the 30-second Original dark field loop at
+mapped one-shots at 192 kbps and the 30-second Ion veil loop at
 160 kbps, roughly 0.96 MiB together. Fizzle, cancel, and the historical
 special-steal take remain lossless review references rather than runtime
 assets. The production manifest records the SFX Engine and
@@ -268,8 +266,8 @@ Browser autoplay policy still requires a user gesture. The first trusted click
 or non-modifier key resumes the viewer's shared audio session and arms enabled
 music and effects together; there is no second sound-effects prompt. A compact
 control exposes independent SFX mute and volume, and `?audio=off` remains an
-explicit diagnostic opt-out. The Original dark field loop starts only on
-`arc-relay-tapline-01`, runs dry beneath the cues at gain 0.21, and stops on
+explicit diagnostic opt-out. Ion veil starts only on `arc-relay-tapline-01`,
+runs dry beneath the cues at gain 0.08, and stops on
 pause, hide, end, or playback above 2×. The CLI includes this approved audio
 package but continues to omit the network-fetched soundtrack.
 

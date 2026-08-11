@@ -434,9 +434,11 @@ public static class ToolchainInfo
     /// quiet non-musical ambient field without changing the soundtrack.
     /// 0.9.50 smooths the wind-up and beam voices, makes Core custody one
     /// levitation/release pair, and leaves failed or cancelled attacks silent.
+    /// 0.9.51 replaces Tapline's dark field with Ion veil at a deliberately
+    /// near-subliminal ambience gain while leaving Neon Protocol unchanged.
     /// Keep in lockstep with BotArena.Cli.csproj's
     /// Version — PackagedCliVersionTests pins them together.</summary>
-    public const string CliVersion = "0.9.50";
+    public const string CliVersion = "0.9.51";
     // 0.2.0: BotContext.Slot + documented event semantics (DECISIONS #46).
     // 0.3.0: BotContext.Energy for the energy-shot rules candidate (DECISIONS #47).
     // 0.4.0: strafe actions + map dims + zone-control fields for the rules 0.3 slate

@@ -7539,3 +7539,24 @@ retains all sixteen comparison cues and labels fizzle, cancel, and special steal
 as review-only. Neon Protocol and the ambience selection are unchanged. The
 packaged viewer changes again, so CLI/tool package version 0.9.50 carries this
 refinement.
+
+## 284. Tapline replaces Original dark field with near-subliminal Ion veil
+
+Owner selection (2026-08-11), superseding #282/#283 only for the Tapline
+ambience choice. The Original dark field loop no longer ships in the runtime
+package. Tapline instead selects the existing 30-second **Ion veil** candidate;
+no SFX Engine request or new credit was needed, and Signal lattice remains a
+sound-lab comparison.
+
+Ion veil measures -18.25 LUFS integrated and -13.67 LUFS maximum momentary as a
+lossless source. Runtime gain is deliberately limited to 0.08, yielding about
+-40.19 LUFS integrated and -35.61 LUFS maximum momentary before the user's SFX
+volume and shared final limiter. That is roughly 10.7 dB quieter than the
+outgoing Original dark field at gain 0.21. The existing energy audit already
+proves Ion veil safe at its much louder 0.418 review gain, so this selection
+does not remaster or alter the source loop.
+
+The loop remains Tapline-only, dry, and coupled to active playback. Neon
+Protocol and every one-shot are unchanged. Because the self-contained replay
+viewer packages the selected ambience, CLI/tool package version 0.9.51 carries
+the replacement.

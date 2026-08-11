@@ -130,6 +130,19 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
     sha256(generationRecord),
     manifest.provenance.generationRecordSha256,
   );
+  const generation = JSON.parse(generationRecord.toString('utf8')) as {
+    cues: Array<{
+      id: string;
+      result: {
+        metrics: {
+          energy?: {
+            integratedLufs: number;
+            maxMomentaryLufs: number;
+          };
+        };
+      };
+    }>;
+  };
 
   assert.deepEqual(Object.keys(manifest.cues).sort(), expectedCues);
   assert.deepEqual(Object.keys(manifest.mix.cues).sort(), expectedCues);
@@ -162,28 +175,42 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
   }
 
   assert.deepEqual(manifest.ambience, {
-    id: 'original-dark-field',
-    sourceCueId: 'arena-ambience',
-    file: 'arena-ambience.m4a',
+    id: 'ion-veil',
+    sourceCueId: 'arena-ambience-ion-veil',
+    file: 'arena-ambience-ion-veil.m4a',
     loop: true,
     durationSeconds: 30,
-    gain: 0.21,
+    gain: 0.08,
     mapIds: ['arc-relay-tapline-01'],
   });
   const ambience = readFileSync(join(directory, manifest.ambience.file));
-  const ambienceIntegrity = manifest.integrity['arena-ambience']!;
+  const ambienceIntegrity = manifest.integrity[manifest.ambience.sourceCueId]!;
   assert.equal(ambience.toString('ascii', 4, 8), 'ftyp');
   assert.equal(ambience.length, ambienceIntegrity.bytes);
   assert.equal(sha256(ambience), ambienceIntegrity.outputSha256);
   assert.match(ambienceIntegrity.sourceSha256, /^[a-f0-9]{64}$/);
   assert.equal(ambienceIntegrity.bitrate, 160_000);
   assert.ok(ambience.length >= 500_000 && ambience.length <= 700_000);
-  assert.ok(manifest.ambience.gain <= 0.22, 'ambient bed stays behind game cues');
+  assert.ok(manifest.ambience.gain <= 0.08, 'Ion veil remains an almost subliminal bed');
+  const sourceAmbience = generation.cues.find(
+    (cue) => cue.id === manifest.ambience.sourceCueId,
+  );
+  const sourceEnergy = sourceAmbience?.result.metrics.energy;
+  assert.ok(sourceEnergy, 'selected ambience is missing its loudness audit');
+  const gainDb = 20 * Math.log10(manifest.ambience.gain);
+  assert.ok(
+    sourceEnergy.integratedLufs + gainDb <= -40,
+    'runtime ambience must remain at or below -40 LUFS integrated',
+  );
+  assert.ok(
+    sourceEnergy.maxMomentaryLufs + gainDb <= -35.5,
+    'runtime ambience must remain below -35.5 LUFS maximum momentary',
+  );
   totalBytes += ambience.length;
 
   assert.deepEqual(
     Object.keys(manifest.integrity).sort(),
-    [...expectedCues, 'arena-ambience'].sort(),
+    [...expectedCues, 'arena-ambience-ion-veil'].sort(),
   );
   assert.ok(totalBytes < 1_200_000, `runtime audio is ${totalBytes} bytes`);
 });
