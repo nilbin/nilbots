@@ -703,6 +703,148 @@
       }
     },
     {
+      "id": "level-up",
+      "file": "level-up.wav",
+      "requestLengthSeconds": 1,
+      "targetPeak": 0.74,
+      "prompt": "Isolated premium sci-fi game SFX: a combat robot gains veterancy; one compact centered electromagnetic rise locks into a stronger stable field, clear over a destruction tail. No Core halo, score chime, fanfare, melody, UI beep, impact, voice, or music.",
+      "result": {
+        "apiSoundEffectId": "se_ik25mwpco4hz4qnd",
+        "status": "generated",
+        "providerCreatedAt": "2026-08-11 00:54:34.599",
+        "providerLengthSeconds": 1,
+        "providerFileSize": 176444,
+        "recordedAt": "2026-08-11T00:55:22.207Z",
+        "request": {
+          "prompt": "Isolated premium sci-fi game SFX: a combat robot gains veterancy; one compact centered electromagnetic rise locks into a stronger stable field, clear over a destruction tail. No Core halo, score chime, fanfare, melody, UI beep, impact, voice, or music.",
+          "requestLengthSeconds": 1,
+          "secondsToStart": 0,
+          "targetPeak": 0.74
+        },
+        "downloadedContentType": "audio/wav",
+        "sourceSha256": "1f3f02af21f3757230830fd0d5f81cae7ba233783fcac526cae1f2cdc234b329",
+        "outputSha256": "1c81b99619f335eaeed2c6126c56c3edbcb440f9863a393d83fcaeebbc3d1cf6",
+        "outputBytes": 192044,
+        "processing": {
+          "endpointTreatment": "short-fades",
+          "fadeInSeconds": 0.005,
+          "fadeOutSeconds": 0.04,
+          "safetyMastering": {
+            "masteredBy": "scripts/master-audio-v5-energy.mjs",
+            "sourceFile": "sources/astral-relay/level-up.pre-safety-master.wav",
+            "sourceOutputSha256": "2df43894876308a80ee871b10ae66767d21a79b0e7c973d4d05740d2bf8914c6",
+            "operations": [
+              {
+                "type": "zero-phase-butterworth-low-pass",
+                "cutoffHz": 8000,
+                "orderPerDirection": 2
+              },
+              {
+                "type": "linked-peak-compressor",
+                "thresholdDb": -24,
+                "ratio": 4,
+                "attackSeconds": 0.003,
+                "releaseSeconds": 0.08
+              },
+              {
+                "type": "endpoint-fades",
+                "fadeInSeconds": 0.008,
+                "fadeOutSeconds": 0.06
+              },
+              {
+                "type": "loudness-fit-with-sample-peak-ceiling",
+                "targetIntegratedLufs": -15,
+                "samplePeakCeiling": 0.5
+              }
+            ]
+          }
+        },
+        "metrics": {
+          "durationSeconds": 1,
+          "sampleRate": 48000,
+          "channels": 2,
+          "bitsPerSample": 16,
+          "peak": 0.5,
+          "rms": 0.0628,
+          "stereoDifferenceRms": 0.0445,
+          "dcOffset": 0.000006,
+          "clippedSamples": 0,
+          "energy": {
+            "integratedLufs": -19.17,
+            "maxMomentaryLufs": -17.83,
+            "approximateTruePeakDbtp": -6.02,
+            "energyAbove12kPercent": 5.44
+          }
+        }
+      },
+      "safetyRevisionReason": "Energy audit: retain the generated veterancy lift while removing its reconstructed overs and keeping it calm beneath overlapping destruction.",
+      "safetyMastering": {
+        "masteredBy": "scripts/master-audio-v5-energy.mjs",
+        "sourceFile": "sources/astral-relay/level-up.pre-safety-master.wav",
+        "sourceOutputSha256": "2df43894876308a80ee871b10ae66767d21a79b0e7c973d4d05740d2bf8914c6",
+        "recordedAt": "2026-08-11T00:56:33.096Z",
+        "reason": "Energy audit: retain the generated veterancy lift while removing its reconstructed overs and keeping it calm beneath overlapping destruction.",
+        "operations": [
+          {
+            "type": "zero-phase-butterworth-low-pass",
+            "cutoffHz": 8000,
+            "orderPerDirection": 2
+          },
+          {
+            "type": "linked-peak-compressor",
+            "thresholdDb": -24,
+            "ratio": 4,
+            "attackSeconds": 0.003,
+            "releaseSeconds": 0.08
+          },
+          {
+            "type": "endpoint-fades",
+            "fadeInSeconds": 0.008,
+            "fadeOutSeconds": 0.06
+          },
+          {
+            "type": "loudness-fit-with-sample-peak-ceiling",
+            "targetIntegratedLufs": -15,
+            "samplePeakCeiling": 0.5
+          }
+        ],
+        "sourceResult": {
+          "apiSoundEffectId": "se_ik25mwpco4hz4qnd",
+          "status": "generated",
+          "providerCreatedAt": "2026-08-11 00:54:34.599",
+          "providerLengthSeconds": 1,
+          "providerFileSize": 176444,
+          "recordedAt": "2026-08-11T00:55:22.207Z",
+          "request": {
+            "prompt": "Isolated premium sci-fi game SFX: a combat robot gains veterancy; one compact centered electromagnetic rise locks into a stronger stable field, clear over a destruction tail. No Core halo, score chime, fanfare, melody, UI beep, impact, voice, or music.",
+            "requestLengthSeconds": 1,
+            "secondsToStart": 0,
+            "targetPeak": 0.74
+          },
+          "downloadedContentType": "audio/wav",
+          "sourceSha256": "1f3f02af21f3757230830fd0d5f81cae7ba233783fcac526cae1f2cdc234b329",
+          "outputSha256": "2df43894876308a80ee871b10ae66767d21a79b0e7c973d4d05740d2bf8914c6",
+          "outputBytes": 192044,
+          "processing": {
+            "endpointTreatment": "short-fades",
+            "fadeInSeconds": 0.005,
+            "fadeOutSeconds": 0.04
+          },
+          "metrics": {
+            "durationSeconds": 1,
+            "sampleRate": 48000,
+            "channels": 2,
+            "bitsPerSample": 16,
+            "peak": 0.74,
+            "rms": 0.1358,
+            "stereoDifferenceRms": 0.1618,
+            "dcOffset": 0,
+            "clippedSamples": 0
+          }
+        }
+      }
+    },
+    {
       "id": "arc-birth",
       "file": "arc-birth.wav",
       "requestLengthSeconds": 2,
@@ -1484,18 +1626,20 @@
   },
   "localSafetyMastering": {
     "script": "scripts/master-audio-v5-energy.mjs",
-    "policy": "Deterministic filtering and attenuation of hash-pinned accepted provider masters; no provider API request or synthesized layer.",
+    "policy": "Deterministic filtering, linked dynamics, and attenuation of hash-pinned provider masters; no provider API request or synthesized layer.",
     "cueIds": [
       "attack-windup",
       "attack-fizzle",
-      "impact"
+      "impact",
+      "level-up"
     ],
     "thresholds": {
       "maximumApproximateTruePeakDbtp": -3,
       "maximumEnergyAbove12kPercent": {
         "attack-windup": 25,
         "attack-fizzle": 25,
-        "impact": 20
+        "impact": 20,
+        "level-up": 15
       }
     }
   },
@@ -1555,6 +1699,13 @@
         "maxMomentaryLufs": -8.43,
         "approximateTruePeakDbtp": -1.59,
         "energyAbove12kPercent": 8.25
+      },
+      "level-up": {
+        "durationSeconds": 1,
+        "integratedLufs": -19.17,
+        "maxMomentaryLufs": -17.83,
+        "approximateTruePeakDbtp": -6.02,
+        "energyAbove12kPercent": 5.44
       },
       "arc-birth": {
         "durationSeconds": 2,
@@ -1640,7 +1791,7 @@
       },
       "combat": {
         "durationSeconds": 9.08,
-        "integratedLufs": -14.75,
+        "integratedLufs": -14.86,
         "maxMomentaryLufs": -10.89,
         "approximateTruePeakDbtp": -1.28,
         "includesAmbientAtRelativeGain": 0.32,
@@ -1650,7 +1801,7 @@
       },
       "full": {
         "durationSeconds": 18.25,
-        "integratedLufs": -15.99,
+        "integratedLufs": -16.06,
         "maxMomentaryLufs": -10.96,
         "approximateTruePeakDbtp": -1.59,
         "includesAmbientAtRelativeGain": 0.32,

@@ -38,7 +38,7 @@
     'attack-cancel',
   ];
   const combatConsequenceIds = ['impact', 'destroyed'];
-  const otherProposalIds = ['arc-handoff', 'deflect', 'arrival'];
+  const otherProposalIds = ['level-up', 'arc-handoff', 'deflect', 'arrival'];
   const groups = [
     {
       id: 'attack',
@@ -86,6 +86,7 @@
       [4_400, 'attack-windup'],
       [4_760, 'projectile'],
       [5_360, 'destroyed'],
+      [5_360, 'level-up'],
       [7_080, 'arrival'],
     ],
     full: [
@@ -105,6 +106,7 @@
       [13_180, 'attack-windup'],
       [13_520, 'attack-cancel'],
       [14_420, 'destroyed'],
+      [14_420, 'level-up'],
       [16_250, 'arrival'],
     ],
   };

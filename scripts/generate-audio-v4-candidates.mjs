@@ -76,6 +76,15 @@ const cues = [
     mapping: "Destroyed / disqualified event",
   },
   {
+    id: "level-up",
+    label: "Level up",
+    category: "PROGRESSION",
+    status: "proposed",
+    duration: 1.16,
+    description: "A compact bot-local field rises and locks after earned veterancy, clear through a destruction tail without becoming a victory sting.",
+    mapping: "leveled-up Arc Relay fact (currently silent; coalesce stacked facts per actor and tick)",
+  },
+  {
     id: "arc-birth",
     label: "Core born",
     category: "ARC CORE",
@@ -782,6 +791,59 @@ function renderCue(theme, cue, output, random) {
       });
       break;
 
+    case "level-up":
+      addNoiseSweep(output, random, {
+        start: 0.015,
+        duration: 1.02,
+        amplitude: 0.105,
+        attack: 0.075,
+        release: 0.42,
+        lowpassFrom: theme.airLow * 0.42,
+        lowpassTo: theme.airHigh * 0.58,
+        highpassFrom: 180,
+        highpassTo: theme.airLow * 0.48,
+        pan: -0.12,
+        panTo: 0.12,
+        stereo: 0.72,
+      });
+      addUnison(output, {
+        start: 0.02,
+        duration: 0.96,
+        from: root * 0.78,
+        to: root * 1.54,
+        amplitude: 0.19,
+        attack: 0.055,
+        release: 0.38,
+        pan: -0.08,
+        panTo: 0.08,
+        partials: theme.partials,
+        width: 0.12,
+        pitchCurve: 0.66,
+      });
+      addSubWave(output, {
+        start: 0.025,
+        duration: 0.88,
+        from: theme.subRoot * 0.82,
+        to: theme.subRoot * 1.34,
+        amplitude: theme.identity === "deep" ? 0.15 : 0.085,
+        attack: 0.05,
+        release: 0.36,
+      });
+      addTone(output, {
+        start: 0.47,
+        duration: 0.57,
+        from: root * 1.46,
+        to: root * 1.5,
+        amplitude: 0.08,
+        attack: 0.08,
+        release: 0.34,
+        pan: 0,
+        partials: [[1, 1], [2.003, 0.13]],
+        amRate: 4.2,
+        amDepth: 0.08,
+      });
+      break;
+
     case "arc-birth":
       addNoiseSweep(output, random, {
         start: 0.04,
@@ -1287,6 +1349,7 @@ function addSpace(output, theme, cue) {
     "attack-fizzle",
     "attack-cancel",
     "impact",
+    "level-up",
     "arc-pickup",
     "deflect",
   ].includes(cue.id);
@@ -1534,7 +1597,9 @@ async function main() {
               ? 0.74
               : cue.id === "attack-cancel"
                 ? 0.7
-                : 0.84;
+                : cue.id === "level-up"
+                  ? 0.74
+                  : 0.84;
       const audio = finalize(
         output,
         pack,

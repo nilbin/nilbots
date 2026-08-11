@@ -77,8 +77,8 @@ validated.push(
     sampleRate: 48_000,
     channels: 2,
     packCount: 3,
-    cueCount: 15,
-    fileCount: 45,
+    cueCount: 16,
+    fileCount: 48,
     minStereoDifference: 0.015,
     expectedCueIds: [
       "attack-windup",
@@ -87,6 +87,7 @@ validated.push(
       "attack-cancel",
       "impact",
       "destroyed",
+      "level-up",
       "arc-birth",
       "arc-pickup",
       "arc-steal",
@@ -99,7 +100,7 @@ validated.push(
     ],
     expectedStatuses: {
       mapped: 9,
-      proposed: 6,
+      proposed: 7,
     },
   }),
 );
@@ -111,8 +112,8 @@ validated.push(
     sampleRate: 48_000,
     channels: 2,
     packCount: 1,
-    cueCount: 15,
-    fileCount: 16,
+    cueCount: 16,
+    fileCount: 17,
     backgroundLoopCount: 1,
     expectedDerivations: {
       destroyed: "arrival",
@@ -123,6 +124,7 @@ validated.push(
       "attack-windup",
       "attack-fizzle",
       "impact",
+      "level-up",
     ],
     expectedEnergyAudit: true,
     minPeak: 0.45,
@@ -135,6 +137,7 @@ validated.push(
       "attack-cancel",
       "impact",
       "destroyed",
+      "level-up",
       "arc-birth",
       "arc-pickup",
       "arc-steal",
@@ -147,7 +150,7 @@ validated.push(
     ],
     expectedStatuses: {
       mapped: 9,
-      proposed: 6,
+      proposed: 7,
     },
   }),
 );

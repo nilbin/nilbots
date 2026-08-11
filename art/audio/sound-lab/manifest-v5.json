@@ -31,15 +31,16 @@
       "attack-windup",
       "attack-fizzle",
       "attack-cancel",
+      "level-up",
       "arc-handoff",
       "deflect",
       "arrival"
     ]
   },
   "sourceComposition": {
-    "providerGeneratedCues": 12,
+    "providerGeneratedCues": 13,
     "locallyDerivedCues": 3,
-    "locallySafetyMasteredCues": 3
+    "locallySafetyMasteredCues": 4
   },
   "energyAudit": {
     "script": "scripts/master-audio-v5-energy.mjs",
@@ -97,6 +98,13 @@
         "maxMomentaryLufs": -8.43,
         "approximateTruePeakDbtp": -1.59,
         "energyAbove12kPercent": 8.25
+      },
+      "level-up": {
+        "durationSeconds": 1,
+        "integratedLufs": -19.17,
+        "maxMomentaryLufs": -17.83,
+        "approximateTruePeakDbtp": -6.02,
+        "energyAbove12kPercent": 5.44
       },
       "arc-birth": {
         "durationSeconds": 2,
@@ -182,7 +190,7 @@
       },
       "combat": {
         "durationSeconds": 9.08,
-        "integratedLufs": -14.75,
+        "integratedLufs": -14.86,
         "maxMomentaryLufs": -10.89,
         "approximateTruePeakDbtp": -1.28,
         "includesAmbientAtRelativeGain": 0.32,
@@ -192,7 +200,7 @@
       },
       "full": {
         "durationSeconds": 18.25,
-        "integratedLufs": -15.99,
+        "integratedLufs": -16.06,
         "maxMomentaryLufs": -10.96,
         "approximateTruePeakDbtp": -1.59,
         "includesAmbientAtRelativeGain": 0.32,
@@ -251,18 +259,20 @@
       "apiSpecSha256": "c09974c0f70344251844c00e029bcdc5e543106c8cdc315afa8bc6ef5722f116",
       "energySafety": {
         "script": "scripts/master-audio-v5-energy.mjs",
-        "policy": "Deterministic filtering and attenuation of hash-pinned accepted provider masters; no provider API request or synthesized layer.",
+        "policy": "Deterministic filtering, linked dynamics, and attenuation of hash-pinned provider masters; no provider API request or synthesized layer.",
         "cueIds": [
           "attack-windup",
           "attack-fizzle",
-          "impact"
+          "impact",
+          "level-up"
         ],
         "thresholds": {
           "maximumApproximateTruePeakDbtp": -3,
           "maximumEnergyAbove12kPercent": {
             "attack-windup": 25,
             "attack-fizzle": 25,
-            "impact": 20
+            "impact": 20,
+            "level-up": 15
           }
         }
       },
@@ -399,6 +409,28 @@
             "energyAbove12kPercent": 8.25
           },
           "derivedFromCueId": "arrival"
+        },
+        {
+          "id": "level-up",
+          "label": "Level up",
+          "category": "PROGRESSION",
+          "status": "proposed",
+          "description": "A compact bot-local field rises and locks after earned veterancy, clear through a destruction tail without becoming a victory sting.",
+          "mapping": "leveled-up Arc Relay fact (currently silent; coalesce stacked facts per actor and tick)",
+          "file": "./v5/packs/astral-relay/level-up.wav",
+          "durationSeconds": 1,
+          "peak": 0.5,
+          "rms": 0.0628,
+          "stereoDifferenceRms": 0.0445,
+          "dcOffset": 0.000006,
+          "origin": "provider-generation",
+          "safetyMastered": true,
+          "energy": {
+            "integratedLufs": -19.17,
+            "maxMomentaryLufs": -17.83,
+            "approximateTruePeakDbtp": -6.02,
+            "energyAbove12kPercent": 5.44
+          }
         },
         {
           "id": "arc-birth",

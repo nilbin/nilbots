@@ -79,7 +79,7 @@ of the V5 ambient bed.
 
 V4 is the current owner-review round. It replaces the tactile V3 brief with
 three fully spacey, ambient directions while keeping the same nine mapped
-effects and adding six replay-backed proposals:
+effects and adding seven replay-backed proposals:
 
 - **Halo Drift** — luminous air, weightless orbital motion, and the widest
   diffusion.
@@ -109,14 +109,14 @@ Pulse are allowed to bloom. If a direction is promoted, retune the viewer's
 existing arena convolution so the intentional master tails are not stacked
 with a second full room.
 
-The proposed wind-up, fizzle, cancel, handoff, deflection, and arrival cues
+The proposed wind-up, fizzle, cancel, handoff, deflection, arrival, and level-up cues
 remain audition material only. V4 does not alter the approved runtime pack,
 effect mappings, preferences, or Neon Protocol soundtrack.
 
 ### SFX Engine addition (V5 review)
 
 V5 adds **Astral Relay** as direction D alongside the three V4 directions. SFX
-Engine supplied all fifteen matching source cues, with prompts written around
+Engine supplied all sixteen matching source cues, with prompts written around
 the same space / ambient brief and the same wind-up → beam / fizzle / cancel
 attack grammar. Three current variants are deterministic local derivations of
 accepted Engine sources. It is an additional comparison, not a replacement or
@@ -148,8 +148,9 @@ the accepted beam body after its ignition, applies a 3.2 kHz zero-phase
 low-pass, and bends it modestly from center to right. Each result pins its
 source cue and SHA-256 plus every operation, carries status `derived`, and
 archives the displaced provider take. These transformations add no synthesized
-layer and make no provider request. The other twelve cues remain direct SFX
-Engine outputs. The attack wind-up, current pickup, and derived drop are
+layer and make no provider request. The other thirteen remain SFX
+Engine-sourced rather than locally derived. The attack wind-up, current pickup,
+and derived drop are
 effectively mono; technical validation requires two channels but not nonzero
 stereo difference for V5.
 
@@ -164,21 +165,29 @@ generation record.
 V5 and its ambient bed remain review-only. They change neither the approved
 Obsidian Foundry runtime package nor the Neon Protocol soundtrack.
 
-An energy audit found that the accepted attack wind-up and fizzle concentrated
-too much power above 12 kHz, while the accepted armor impact reconstructed
-above full scale between samples. Their original standardized provider masters
-are retained under `art/audio/sound-lab/v5/sources/astral-relay/` and pinned by
-hash. `scripts/master-audio-v5-energy.mjs` deterministically low-passes and
-attenuates those three delivery masters, records BS.1770-style loudness,
-approximate four-times-oversampled true peak, and upper-band energy, and makes
-no provider request. Re-run it after the local derivation script and before the
-V5 manifest builder.
+An energy audit found that the current attack wind-up and fizzle concentrated
+too much power above 12 kHz, while the current armor impact reconstructed
+above full scale and level-up left only 0.52 dB of inter-sample headroom. Their
+original standardized provider masters are retained under
+`art/audio/sound-lab/v5/sources/astral-relay/` and pinned by
+hash. `scripts/master-audio-v5-energy.mjs` deterministically filters,
+dynamics-controls, and attenuates those four delivery masters, records
+BS.1770-style loudness, approximate four-times-oversampled true peak, and
+upper-band energy, and makes no provider request. Re-run it after the local
+derivation script and before the V5 manifest builder.
 
 The sound lab routes every cue and its optional ambience through one shared
 Web Audio compressor and then a fixed 3 dB safety gain. The deterministic audit
-checks all sixteen WAVs and the exact possession, combat, and full-story sums;
+checks all seventeen WAVs and the exact possession, combat, and full-story sums;
 each sequence must remain at or below -1 dBTP after the fixed gain even before
 compressor attenuation is credited.
+
+Level up maps to the authoritative `leveled-up` Arc Relay fact. It is a
+bot-local veterancy reward, not a Core or team-score event, so its cue is a
+compact centered field rise that locks beneath the Core hierarchy and remains
+legible when it coincides with the victim's destruction tail. If one bounty
+emits several levels for the same actor on one tick, a future runtime scheduler
+should coalesce them into one cue at the highest reached level.
 
 ### Arc Relay tactile reconcept (V3 archive)
 

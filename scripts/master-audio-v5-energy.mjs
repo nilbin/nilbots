@@ -78,6 +78,27 @@ const masters = [
       "Energy audit: round the accepted armor compression, remove its " +
       "inter-sample overs, and lower it beneath the objective hierarchy.",
   },
+  {
+    id: "level-up",
+    providerTargetPeak: 0.74,
+    sourceOutputSha256:
+      "2df43894876308a80ee871b10ae66767d21a79b0e7c973d4d05740d2bf8914c6",
+    lowPassHz: 8_000,
+    targetIntegratedLufs: -15,
+    peakCeiling: 0.5,
+    maximumEnergyAbove12kPercent: 15,
+    compressor: {
+      thresholdDb: -24,
+      ratio: 4,
+      attackSeconds: 0.003,
+      releaseSeconds: 0.08,
+    },
+    fadeInSeconds: 0.008,
+    fadeOutSeconds: 0.06,
+    reason:
+      "Energy audit: retain the generated veterancy lift while removing its " +
+      "reconstructed overs and keeping it calm beneath overlapping destruction.",
+  },
 ];
 const reviewOutputSafetyGainDb = -3;
 const reviewSequences = {
@@ -102,6 +123,7 @@ const reviewSequences = {
     [4_400, "attack-windup"],
     [4_760, "projectile"],
     [5_360, "destroyed"],
+    [5_360, "level-up"],
     [7_080, "arrival"],
   ],
   full: [
@@ -121,6 +143,7 @@ const reviewSequences = {
     [13_180, "attack-windup"],
     [13_520, "attack-cancel"],
     [14_420, "destroyed"],
+    [14_420, "level-up"],
     [16_250, "arrival"],
   ],
 };
@@ -175,6 +198,14 @@ for (const master of masters) {
     wav.sampleRate,
     master.lowPassHz,
   );
+  if (master.compressor) {
+    compressLinkedPeaks(
+      samples,
+      wav.channels,
+      wav.sampleRate,
+      master.compressor,
+    );
+  }
   applyEndpointFades(
     samples,
     wav.channels,
@@ -214,6 +245,9 @@ for (const master of masters) {
       cutoffHz: master.lowPassHz,
       orderPerDirection: 2,
     },
+    ...(master.compressor
+      ? [{ type: "linked-peak-compressor", ...master.compressor }]
+      : []),
     {
       type: "endpoint-fades",
       fadeInSeconds: master.fadeInSeconds,
@@ -271,8 +305,8 @@ const energyAudit = await auditCurrentPack();
 generation.localSafetyMastering = {
   script: scriptPath,
   policy:
-    "Deterministic filtering and attenuation of hash-pinned accepted provider " +
-    "masters; no provider API request or synthesized layer.",
+    "Deterministic filtering, linked dynamics, and attenuation of hash-pinned " +
+    "provider masters; no provider API request or synthesized layer.",
   cueIds: masters.map((master) => master.id),
   thresholds: {
     maximumApproximateTruePeakDbtp: -3,
@@ -532,6 +566,37 @@ function removeDc(samples, channels) {
   for (let channel = 0; channel < channels; channel++) means[channel] /= frames;
   for (let index = 0; index < samples.length; index++) {
     samples[index] -= means[index % channels];
+  }
+}
+
+function compressLinkedPeaks(
+  samples,
+  channels,
+  sampleRate,
+  { thresholdDb, ratio, attackSeconds, releaseSeconds },
+) {
+  const attack = Math.exp(-1 / (attackSeconds * sampleRate));
+  const release = Math.exp(-1 / (releaseSeconds * sampleRate));
+  const frames = samples.length / channels;
+  let envelope = 0;
+  for (let frame = 0; frame < frames; frame++) {
+    let detector = 0;
+    for (let channel = 0; channel < channels; channel++) {
+      detector = Math.max(
+        detector,
+        Math.abs(samples[frame * channels + channel]),
+      );
+    }
+    const coefficient = detector > envelope ? attack : release;
+    envelope = coefficient * envelope + (1 - coefficient) * detector;
+    const envelopeDb = 20 * Math.log10(Math.max(envelope, 1e-12));
+    const gainDb = envelopeDb > thresholdDb
+      ? thresholdDb + (envelopeDb - thresholdDb) / ratio - envelopeDb
+      : 0;
+    const gain = 10 ** (gainDb / 20);
+    for (let channel = 0; channel < channels; channel++) {
+      samples[frame * channels + channel] *= gain;
+    }
   }
 }
 

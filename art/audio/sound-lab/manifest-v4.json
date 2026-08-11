@@ -26,6 +26,7 @@
       "attack-windup",
       "attack-fizzle",
       "attack-cancel",
+      "level-up",
       "arc-handoff",
       "deflect",
       "arrival"
@@ -135,6 +136,20 @@
           "rms": 0.1908,
           "stereoDifferenceRms": 0.1197,
           "dcOffset": 0.000028
+        },
+        {
+          "id": "level-up",
+          "label": "Level up",
+          "category": "PROGRESSION",
+          "status": "proposed",
+          "description": "A compact bot-local field rises and locks after earned veterancy, clear through a destruction tail without becoming a victory sting.",
+          "mapping": "leveled-up Arc Relay fact (currently silent; coalesce stacked facts per actor and tick)",
+          "file": "./v4/packs/halo-drift/level-up.wav",
+          "durationSeconds": 1.16,
+          "peak": 0.74,
+          "rms": 0.1676,
+          "stereoDifferenceRms": 0.0659,
+          "dcOffset": 0.00002
         },
         {
           "id": "arc-birth",
@@ -369,6 +384,20 @@
           "dcOffset": 0.000132
         },
         {
+          "id": "level-up",
+          "label": "Level up",
+          "category": "PROGRESSION",
+          "status": "proposed",
+          "description": "A compact bot-local field rises and locks after earned veterancy, clear through a destruction tail without becoming a victory sting.",
+          "mapping": "leveled-up Arc Relay fact (currently silent; coalesce stacked facts per actor and tick)",
+          "file": "./v4/packs/deep-array/level-up.wav",
+          "durationSeconds": 1.16,
+          "peak": 0.74,
+          "rms": 0.1945,
+          "stereoDifferenceRms": 0.0613,
+          "dcOffset": 0.000026
+        },
+        {
           "id": "arc-birth",
           "label": "Core born",
           "category": "ARC CORE",
@@ -599,6 +628,20 @@
           "rms": 0.2067,
           "stereoDifferenceRms": 0.1221,
           "dcOffset": 0.000047
+        },
+        {
+          "id": "level-up",
+          "label": "Level up",
+          "category": "PROGRESSION",
+          "status": "proposed",
+          "description": "A compact bot-local field rises and locks after earned veterancy, clear through a destruction tail without becoming a victory sting.",
+          "mapping": "leveled-up Arc Relay fact (currently silent; coalesce stacked facts per actor and tick)",
+          "file": "./v4/packs/solar-bloom/level-up.wav",
+          "durationSeconds": 1.16,
+          "peak": 0.74,
+          "rms": 0.1664,
+          "stereoDifferenceRms": 0.0724,
+          "dcOffset": 0.000014
         },
         {
           "id": "arc-birth",
