@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "status": "owner-review",
+  "classId": "palisade",
+  "identitySource": {
+    "file": "../../concept-sheet-v7.png",
+    "sha256": "3d60322ef767283da55dc3710af9ef097ed989bdd40cc597883925989af486d5"
+  },
+  "turnaroundSource": {
+    "file": "turnaround-sheet.png",
+    "sha256": "7cf957337803bd130e10bfd52cec0a6ba8e43b1b395e72572a7296d82a1611fd",
+    "promptLog": "PROMPTS.md",
+    "promptLogSha256": "8b338b56ad910005ffbfe0410a64c4c85ac2ff6cebd95115ee62ffc4006a8d28"
+  },
+  "meshyInputs": [
+    {
+      "order": 1,
+      "view": "strict-front",
+      "file": "01-front.png",
+      "sha256": "fd640f1dc45bebe8e594b5ceb40c8117adfa30f0169f18c4e70f09cb556c5aa7",
+      "width": 1536,
+      "height": 1024,
+      "primary": true
+    },
+    {
+      "order": 2,
+      "view": "strict-right",
+      "file": "02-right.png",
+      "sha256": "f7069cd8593f40de9f24472b29fde58f2bc69c90e3b38a3f865458053f51772b",
+      "width": 1536,
+      "height": 1024,
+      "primary": false
+    },
+    {
+      "order": 3,
+      "view": "strict-back",
+      "file": "03-back.png",
+      "sha256": "9f2b33f9d6fbc001053c2c5a303ba1102a75424c96b479428dc77b72baa4b027",
+      "width": 1536,
+      "height": 1024,
+      "primary": false
+    },
+    {
+      "order": 4,
+      "view": "front-right-three-quarter",
+      "file": "04-front-right-three-quarter.png",
+      "sha256": "c7bda5c90a14ff66553f5429c84f363ba779b86d6b452f50d54016343b99ae9e",
+      "width": 1536,
+      "height": 1024,
+      "primary": false
+    }
+  ],
+  "generationPromptLog": "PROMPTS.md",
+  "providerRunCollection": "arc-relay-meshy7-fleet",
+  "meshyRequestPlan": {
+    "endpoint": "/openapi/v1/multi-image-to-3d",
+    "ai_model": "meshy-7",
+    "should_texture": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "should_remesh": false,
+    "image_enhancement": false,
+    "remove_lighting": true,
+    "pose_mode": "",
+    "texture_prompt": "Mature industrial palisade levitating Arc Relay bot. Workwear-cobalt satin armor, antique-gold projector ribs and bounded trim, dark-steel structure, restrained edge wear and recess grime. Preserve crisp bounded material regions, broad silhouette, signature-skill hardware, and the flush front beam-emitter seam. No text, logos, decals, eyes, face, guns, barrels, white nose, legs, teal/orange team color, glow, bloom, exhaust, or baked lighting.",
+    "target_formats": [
+      "glb"
+    ],
+    "pilotCreditCap": 30,
+    "authorized": false,
+    "authorization": "Owner approved the V7 identities, directed the remaining fleet to proceed after the Kestrel pilot, confirmed the available credits, and excluded auto-rigging.",
+    "authorizationConsumed": true,
+    "autoRigging": false,
+    "completedTaskId": "019ff036-52d7-7e1c-898a-6d4eab146e93",
+    "consumedCredits": 30
+  },
+  "creditCheck": {
+    "checkedAt": "2026-08-11",
+    "balance": 2180,
+    "texturedMeshy7MultiImagePerTask": 30,
+    "pendingFleetTaskCount": 15,
+    "authorizedFleetCredits": 450,
+    "expectedBalanceAfterFleet": 1730,
+    "autoRigging": false,
+    "pricingSource": "https://docs.meshy.ai/en/api/pricing"
+  },
+  "nextGate": "owner review of raw Meshy 7 first pass; no runtime promotion",
+  "providerRun": {
+    "taskId": "019ff036-52d7-7e1c-898a-6d4eab146e93",
+    "directory": "../../../../../class-models/provider-runs/meshy/arc-relay-meshy7-fleet/palisade/019ff036-52d7-7e1c-898a-6d4eab146e93",
+    "status": "SUCCEEDED",
+    "consumedCredits": 30,
+    "balanceBefore": 2180,
+    "balanceAfter": 2030,
+    "rawModelSha256": "aa933383aa4f698fca2d56b5ff81e6975df9f620d91c02824a7cf3ed81799ede"
+  }
+}

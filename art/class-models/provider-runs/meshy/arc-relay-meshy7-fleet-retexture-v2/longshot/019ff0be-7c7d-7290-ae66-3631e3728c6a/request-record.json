@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "provider": "Meshy",
+  "endpoint": "retexture",
+  "providerModel": "meshy-7",
+  "classId": "longshot",
+  "taskId": "019ff0be-7c7d-7290-ae66-3631e3728c6a",
+  "submittedAt": "2026-08-11T12:14:03.009Z",
+  "balanceBeforeBatch": 1730,
+  "authorizedCreditCap": 10,
+  "sourcePlan": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet-retexture-v2/plan.json",
+  "sourceTaskId": "019ff03d-55d7-7443-985f-81962a0d1b7b",
+  "sourceModel": {
+    "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/longshot/019ff03d-55d7-7443-985f-81962a0d1b7b/raw-model.glb",
+    "bytes": 65173408,
+    "sha256": "1443dba60ed1e827dfc96d553c9cfbaf55a73ba0872f129c992d93b598ea552e",
+    "triangles": 1989812,
+    "meshes": 1,
+    "materials": 1,
+    "textures": 4,
+    "imageMimeTypes": [
+      "image/jpeg"
+    ]
+  },
+  "settings": {
+    "model_url": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ff03d-55d7-7443-985f-81962a0d1b7b/output/model.glb",
+    "ai_model": "meshy-7",
+    "text_style_prompt": "Mature industrial longshot levitating Arc Relay bot. High-roughness matte powder-coated ceramic and painted metal: cool cement-gray armor, muted-burgundy staged cells, brushed-nickel dorsal spine. Soft diffuse finish, fine dry surface grain, restrained wear, metal only on mechanisms. Medium-light values readable in a dark arena; charcoal only in narrow recesses. Preserve every material boundary. No glossy plastic, clearcoat, lacquer, wet shine, broad highlights, saturated or neon color, black body, pure white, teal, cyan, orange, glow, text, decals, eyes, guns, or legs.",
+    "enable_original_uv": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "alpha_thumbnail": true,
+    "target_formats": [
+      "glb"
+    ]
+  },
+  "pricingSource": "https://docs.meshy.ai/en/api/pricing",
+  "licenseTerms": "https://www.meshy.ai/terms"
+}

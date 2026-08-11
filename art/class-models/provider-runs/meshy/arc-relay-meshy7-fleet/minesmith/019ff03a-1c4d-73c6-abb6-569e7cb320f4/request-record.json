@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "provider": "Meshy",
+  "endpoint": "multi-image-to-3d",
+  "providerModel": "meshy-7",
+  "classId": "minesmith",
+  "taskId": "019ff03a-1c4d-73c6-abb6-569e7cb320f4",
+  "submittedAt": "2026-08-11T09:49:27.190Z",
+  "balanceBefore": 2030,
+  "authorizedCreditCap": 30,
+  "sourceManifest": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/minesmith-v1/manifest.json",
+  "inputs": [
+    {
+      "order": 1,
+      "view": "strict-front",
+      "primary": true,
+      "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/minesmith-v1/01-front.png",
+      "bytes": 1502906,
+      "sha256": "98a3d6ca32d4b07e361991a075b03f84fc4ad604bed34a0e48608d3f440553a8",
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "order": 2,
+      "view": "strict-right",
+      "primary": false,
+      "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/minesmith-v1/02-right.png",
+      "bytes": 1383329,
+      "sha256": "d96224d65ae2e917bbcd07254b27e3f08025cb4ecbdf07ad7ebddfabb3e45710",
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "order": 3,
+      "view": "strict-back",
+      "primary": false,
+      "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/minesmith-v1/03-back.png",
+      "bytes": 1328456,
+      "sha256": "6c5506e6f3a18282ffc316c40bb1b9527e013b7e687bc71ac2c1f36a9053a1d2",
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "order": 4,
+      "view": "front-right-three-quarter",
+      "primary": false,
+      "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/minesmith-v1/04-front-right-three-quarter.png",
+      "bytes": 1558211,
+      "sha256": "d0a5978d1c616b51bf7cc02e47299f809d7ce33bd77096b26ed802dc3ba1862c",
+      "width": 1536,
+      "height": 1024
+    }
+  ],
+  "settings": {
+    "ai_model": "meshy-7",
+    "should_texture": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "should_remesh": false,
+    "image_enhancement": false,
+    "remove_lighting": true,
+    "pose_mode": "",
+    "texture_prompt": "Mature industrial minesmith levitating Arc Relay bot. Oxide-terracotta satin armor, muted-mustard rim and forge accents, gunmetal underside and forge rollers, restrained edge wear and recess grime. Preserve crisp bounded material regions, broad silhouette, signature-skill hardware, and the flush front beam-emitter seam. No text, logos, decals, eyes, face, guns, barrels, white nose, legs, teal/orange team color, glow, bloom, exhaust, or baked lighting.",
+    "target_formats": [
+      "glb"
+    ]
+  },
+  "pricingSource": "https://docs.meshy.ai/en/api/pricing",
+  "licenseTerms": "https://www.meshy.ai/terms"
+}

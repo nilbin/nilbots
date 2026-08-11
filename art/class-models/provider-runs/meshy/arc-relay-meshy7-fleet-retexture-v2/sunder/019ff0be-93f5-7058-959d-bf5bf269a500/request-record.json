@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "provider": "Meshy",
+  "endpoint": "retexture",
+  "providerModel": "meshy-7",
+  "classId": "sunder",
+  "taskId": "019ff0be-93f5-7058-959d-bf5bf269a500",
+  "submittedAt": "2026-08-11T12:14:09.018Z",
+  "balanceBeforeBatch": 1730,
+  "authorizedCreditCap": 10,
+  "sourcePlan": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet-retexture-v2/plan.json",
+  "sourceTaskId": "019ff03d-d40d-7257-a74a-49416a686a93",
+  "sourceModel": {
+    "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/sunder/019ff03d-d40d-7257-a74a-49416a686a93/raw-model.glb",
+    "bytes": 80973476,
+    "sha256": "592e106d378c4a4a557a0b73b9712d3e46bc5b7e0ccbda0fe23e134eb79fa37e",
+    "triangles": 1967078,
+    "meshes": 1,
+    "materials": 1,
+    "textures": 4,
+    "imageMimeTypes": [
+      "image/jpeg"
+    ]
+  },
+  "settings": {
+    "model_url": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ff03d-d40d-7257-a74a-49416a686a93/output/model.glb",
+    "ai_model": "meshy-7",
+    "text_style_prompt": "Mature industrial sunder levitating Arc Relay bot. High-roughness matte powder-coated ceramic and painted metal: dusty-rose faceted armor, oatmeal designator brackets, medium-gray inset faces. Soft diffuse finish, fine dry surface grain, restrained wear, metal only on mechanisms. Medium-light values readable in a dark arena; charcoal only in narrow recesses. Preserve every material boundary. No glossy plastic, clearcoat, lacquer, wet shine, broad highlights, saturated or neon color, black body, pure white, teal, cyan, orange, glow, text, decals, eyes, guns, or legs.",
+    "enable_original_uv": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "alpha_thumbnail": true,
+    "target_formats": [
+      "glb"
+    ]
+  },
+  "pricingSource": "https://docs.meshy.ai/en/api/pricing",
+  "licenseTerms": "https://www.meshy.ai/terms"
+}

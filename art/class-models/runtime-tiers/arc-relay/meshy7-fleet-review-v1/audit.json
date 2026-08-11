@@ -1,0 +1,1781 @@
+{
+  "schemaVersion": 1,
+  "id": "meshy7-fleet-review-v1",
+  "status": "owner-review",
+  "generator": "scripts/class-models/build-meshy7-fleet-review-tier.mjs",
+  "sourceAudit": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/fleet-audit.json",
+  "toolchain": {
+    "gltfTransform": "4.4.2",
+    "simplifier": "meshoptimizer through glTF-Transform",
+    "textureEncoding": "WebP review tier; KTX2 is required before shipping"
+  },
+  "normalization": {
+    "orientation": "identity",
+    "sourceFacing": "per-class audited from pinned strict-front and strict-back inputs",
+    "facing": "+x",
+    "up": "+y",
+    "floorY": 0,
+    "targetPlanformSpan": 0.99,
+    "facingCorrections": {
+      "kestrel": {
+        "sourceFacing": "-x",
+        "yawDegrees": 180,
+        "evidence": "+X camera matches the tapered beam face; -X shows the paired rear exhaust blocks."
+      },
+      "palisade": {
+        "sourceFacing": "-x",
+        "yawDegrees": 180,
+        "evidence": "+X camera matches the broad blue shield/front; -X shows the gold-and-black rear block."
+      },
+      "towline": {
+        "sourceFacing": "-x",
+        "yawDegrees": 180,
+        "evidence": "+X camera exposes the cable spool and forward beam face; -X is the closed rear plate."
+      },
+      "patchbay": {
+        "sourceFacing": "-x",
+        "yawDegrees": 180,
+        "evidence": "+X camera matches the orange patch face and lateral repair arm; -X is the rear block."
+      },
+      "lantern": {
+        "sourceFacing": "+z",
+        "yawDegrees": 90,
+        "evidence": "Before correction, the -Z camera matches the circular black beam aperture and +Z shows the rectangular back pack."
+      },
+      "mortar": {
+        "sourceFacing": "+z",
+        "yawDegrees": 90,
+        "evidence": "Before correction, the -Z camera reveals the forward emitter below the launch deck and +Z is the boxed rear."
+      },
+      "minesmith": {
+        "sourceFacing": "-x",
+        "yawDegrees": 180,
+        "evidence": "+X camera shows the twin mine canisters and open front bay; -X is the closed rear shell."
+      },
+      "hush": {
+        "sourceFacing": "fourfold-radial",
+        "yawDegrees": 180,
+        "evidence": "The provider output is fourfold rotationally symmetric with no unique front; the ordered-source lobe registration is retained."
+      },
+      "relay": {
+        "sourceFacing": "+x",
+        "yawDegrees": 0,
+        "evidence": "Before correction, the +X axis looks into the open U throat from the source front; -X is the closed crossbar/back."
+      },
+      "switchback": {
+        "sourceFacing": "-x",
+        "yawDegrees": 180,
+        "evidence": "The provider output made the two axial ends visually equivalent; the ordered-source registration is retained."
+      },
+      "longshot": {
+        "sourceFacing": "-x",
+        "yawDegrees": 180,
+        "evidence": "+X camera matches the low beam slit; -X shows the orange-outlined rear cells."
+      },
+      "mason": {
+        "sourceFacing": "-x",
+        "yawDegrees": 180,
+        "evidence": "+X camera matches the twin prongs and open forward work bay; -X is the closed rear."
+      },
+      "sunder": {
+        "sourceFacing": "+z",
+        "yawDegrees": 90,
+        "evidence": "Before correction, the -Z camera matches the circular beam face and +Z shows the closed rear panel."
+      },
+      "repulsor": {
+        "sourceFacing": "twelvefold-radial",
+        "yawDegrees": 180,
+        "evidence": "The provider output is twelvefold rotationally symmetric with no unique front; the ordered-source segment registration is retained."
+      },
+      "veil": {
+        "sourceFacing": "+z",
+        "yawDegrees": 90,
+        "evidence": "Before correction, the -Z camera matches the concave open front and +Z shows the closed rear."
+      },
+      "nest": {
+        "sourceFacing": "-x",
+        "yawDegrees": 180,
+        "evidence": "+X camera matches the open center lane and forward pod caps; -X shows the rear plates."
+      }
+    }
+  },
+  "profile": {
+    "id": "lean",
+    "settings": {
+      "simplifyRatio": 0.04,
+      "simplifyError": 0.0025,
+      "lockBorder": false,
+      "textureSize": 512,
+      "geometryCompression": "quantize",
+      "textureEncoding": "WebP"
+    },
+    "classOverrides": {
+      "sunder": {
+        "simplifyError": 0.01,
+        "budgets": {
+          "transferBytes": 9000000,
+          "triangles": 220000
+        },
+        "reason": "The disconnected layered shell reaches its topology limit before the shared lean target; retained for owner review rather than applying a second destructive pass."
+      }
+    },
+    "budgets": {
+      "transferBytes": 4000000,
+      "triangles": 100000
+    }
+  },
+  "contract": {
+    "purpose": "Reversible in-renderer fleet review only; no approved runtime model is replaced or promoted.",
+    "geometry": "lossy review simplification from pinned Meshy 7 provider masters",
+    "materials": "one fused authored material; team ownership remains renderer-owned",
+    "tangentSpace": "normal-mapped without authored tangents; Three.js derivative tangent-space review required"
+  },
+  "totals": {
+    "transferBytes": 33309768,
+    "triangles": 1392822,
+    "modelGpuBytesRgba8Fallback": 118506828
+  },
+  "classes": [
+    {
+      "classId": "kestrel",
+      "taskId": "019fefdd-ac96-7dc8-a61e-f0760b4ae407",
+      "endpoint": "retexture",
+      "source": {
+        "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-retexture/kestrel/019fefdd-ac96-7dc8-a61e-f0760b4ae407/raw-model.glb",
+        "bytes": 64337428,
+        "sha256": "6daeca9df3f60fd9e7260b3fd7ec3dd5ecba15505a440da4c36700cc98ae31b3"
+      },
+      "reusedReviewedKestrel": true,
+      "facing": {
+        "sourceFacing": "-x",
+        "targetFacing": "+x",
+        "yawDegrees": 180,
+        "evidence": "+X camera matches the tapered beam face; -X shows the paired rear exhaust blocks."
+      },
+      "profileOverrides": null,
+      "budgets": {
+        "transferBytes": 4000000,
+        "triangles": 100000
+      },
+      "artifact": {
+        "file": "art/class-models/runtime-tiers/arc-relay/meshy7-kestrel-review-v1/arc-kestrel-lean.glb",
+        "bytes": 1674640,
+        "sha256": "f7eb5c3f8e9ecb4037a60f9751dfb89467459c86dacd414804de2f2bd1dc8ced"
+      },
+      "triangles": 79064,
+      "positionVertices": 54384,
+      "meshes": 1,
+      "primitives": 1,
+      "materials": 1,
+      "textures": 3,
+      "geometrySha256": "9b4ff3c20827dc1ead0a00588682553a45b6311d3b2f23fd862f68b3af851b7b",
+      "memory": {
+        "transferBytes": 1674640,
+        "geometryGpuBytes": 1562064,
+        "textureGpuBytesCompressedTarget": 4194300,
+        "textureGpuBytesRgba8Fallback": 4194300,
+        "modelGpuBytesCompressedTarget": 5756364,
+        "modelGpuBytesRgba8Fallback": 5756364,
+        "textures": [
+          {
+            "imageIndex": 0,
+            "name": null,
+            "slots": [
+              "baseColorTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 56594,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          },
+          {
+            "imageIndex": 1,
+            "name": null,
+            "slots": [
+              "metallicRoughnessTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 43892,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          },
+          {
+            "imageIndex": 2,
+            "name": null,
+            "slots": [
+              "normalTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 9802,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          }
+        ]
+      }
+    },
+    {
+      "classId": "palisade",
+      "taskId": "019ff036-52d7-7e1c-898a-6d4eab146e93",
+      "endpoint": "multi-image-to-3d",
+      "source": {
+        "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/palisade/019ff036-52d7-7e1c-898a-6d4eab146e93/raw-model.glb",
+        "bytes": 67171544,
+        "sha256": "aa933383aa4f698fca2d56b5ff81e6975df9f620d91c02824a7cf3ed81799ede"
+      },
+      "reusedReviewedKestrel": false,
+      "facing": {
+        "sourceFacing": "-x",
+        "targetFacing": "+x",
+        "yawDegrees": 180,
+        "evidence": "+X camera matches the broad blue shield/front; -X shows the gold-and-black rear block."
+      },
+      "profileOverrides": null,
+      "budgets": {
+        "transferBytes": 4000000,
+        "triangles": 100000
+      },
+      "artifact": {
+        "file": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v1/arc-palisade-lean.glb",
+        "bytes": 1790012,
+        "sha256": "025884b4bec1a53176450b6854da550e1e5d4ff511ae6c3c0e32228192908b3f"
+      },
+      "triangles": 79652,
+      "positionVertices": 60734,
+      "meshes": 1,
+      "primitives": 1,
+      "materials": 1,
+      "textures": 4,
+      "geometrySha256": "e1473078ada5ceaef3b4dad94146b044b28b877f9156180aa7e6bd89c7744a39",
+      "memory": {
+        "transferBytes": 1790012,
+        "geometryGpuBytes": 1692592,
+        "textureGpuBytesCompressedTarget": 5592400,
+        "textureGpuBytesRgba8Fallback": 5592400,
+        "modelGpuBytesCompressedTarget": 7284992,
+        "modelGpuBytesRgba8Fallback": 7284992,
+        "textures": [
+          {
+            "imageIndex": 0,
+            "name": null,
+            "slots": [
+              "baseColorTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 54688,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          },
+          {
+            "imageIndex": 1,
+            "name": null,
+            "slots": [
+              "metallicRoughnessTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 35932,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          },
+          {
+            "imageIndex": 2,
+            "name": null,
+            "slots": [
+              "normalTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 3604,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          },
+          {
+            "imageIndex": 3,
+            "name": null,
+            "slots": [
+              "emissiveTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 528,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          }
+        ]
+      }
+    },
+    {
+      "classId": "towline",
+      "taskId": "019ff036-52d8-7539-a228-89f3f71560ee",
+      "endpoint": "multi-image-to-3d",
+      "source": {
+        "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/towline/019ff036-52d8-7539-a228-89f3f71560ee/raw-model.glb",
+        "bytes": 64922012,
+        "sha256": "bf2f9f9c2e1fccb7f4c8700c8fb3b6c3427c2de60ac0be6169c0b6a2b1e2ae61"
+      },
+      "reusedReviewedKestrel": false,
+      "facing": {
+        "sourceFacing": "-x",
+        "targetFacing": "+x",
+        "yawDegrees": 180,
+        "evidence": "+X camera exposes the cable spool and forward beam face; -X is the closed rear plate."
+      },
+      "profileOverrides": null,
+      "budgets": {
+        "transferBytes": 4000000,
+        "triangles": 100000
+      },
+      "artifact": {
+        "file": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v1/arc-towline-lean.glb",
+        "bytes": 1708616,
+        "sha256": "8b4e36ced84630966db47c839a0696bd36aea21f54837883fe4083588f5f5c33"
+      },
+      "triangles": 76676,
+      "positionVertices": 55809,
+      "meshes": 1,
+      "primitives": 1,
+      "materials": 1,
+      "textures": 4,
+      "geometrySha256": "185e61e365e3335e6bd6e4939c6b898abd33bc7ed95add1ef1a947d5f40bba3f",
+      "memory": {
+        "transferBytes": 1708616,
+        "geometryGpuBytes": 1576236,
+        "textureGpuBytesCompressedTarget": 5592400,
+        "textureGpuBytesRgba8Fallback": 5592400,
+        "modelGpuBytesCompressedTarget": 7168636,
+        "modelGpuBytesRgba8Fallback": 7168636,
+        "textures": [
+          {
+            "imageIndex": 0,
+            "name": null,
+            "slots": [
+              "baseColorTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 81652,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          },
+          {
+            "imageIndex": 1,
+            "name": null,
+            "slots": [
+              "metallicRoughnessTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 34040,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          },
+          {
+            "imageIndex": 2,
+            "name": null,
+            "slots": [
+              "normalTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 13464,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          },
+          {
+            "imageIndex": 3,
+            "name": null,
+            "slots": [
+              "emissiveTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 558,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          }
+        ]
+      }
+    },
+    {
+      "classId": "patchbay",
+      "taskId": "019ff036-52e1-7539-a8d4-c756b3e7a9dd",
+      "endpoint": "multi-image-to-3d",
+      "source": {
+        "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/patchbay/019ff036-52e1-7539-a8d4-c756b3e7a9dd/raw-model.glb",
+        "bytes": 65443392,
+        "sha256": "fb125c8e07f5c327e5b5b50ae649d14e5bd76c35bd9394f2899569ed4e346d1d"
+      },
+      "reusedReviewedKestrel": false,
+      "facing": {
+        "sourceFacing": "-x",
+        "targetFacing": "+x",
+        "yawDegrees": 180,
+        "evidence": "+X camera matches the orange patch face and lateral repair arm; -X is the rear block."
+      },
+      "profileOverrides": null,
+      "budgets": {
+        "transferBytes": 4000000,
+        "triangles": 100000
+      },
+      "artifact": {
+        "file": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v1/arc-patchbay-lean.glb",
+        "bytes": 1685120,
+        "sha256": "375c6023ca9e2dbdeeff19965a6257519dcf9fa7ee3dc32ba9a5665ec6a30105"
+      },
+      "triangles": 78738,
+      "positionVertices": 55576,
+      "meshes": 1,
+      "primitives": 1,
+      "materials": 1,
+      "textures": 4,
+      "geometrySha256": "f0c46d703c86a77376fa7defd6f06e7e269756c13b1b7c552825b411a6175e9b",
+      "memory": {
+        "transferBytes": 1685120,
+        "geometryGpuBytes": 1583948,
+        "textureGpuBytesCompressedTarget": 5592400,
+        "textureGpuBytesRgba8Fallback": 5592400,
+        "modelGpuBytesCompressedTarget": 7176348,
+        "modelGpuBytesRgba8Fallback": 7176348,
+        "textures": [
+          {
+            "imageIndex": 0,
+            "name": null,
+            "slots": [
+              "baseColorTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 59106,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          },
+          {
+            "imageIndex": 1,
+            "name": null,
+            "slots": [
+              "metallicRoughnessTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 25092,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          },
+          {
+            "imageIndex": 2,
+            "name": null,
+            "slots": [
+              "normalTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 13776,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          },
+          {
+            "imageIndex": 3,
+            "name": null,
+            "slots": [
+              "emissiveTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 528,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          }
+        ]
+      }
+    },
+    {
+      "classId": "lantern",
+      "taskId": "019ff036-52c5-7313-8d54-a4dade5fc0cd",
+      "endpoint": "multi-image-to-3d",
+      "source": {
+        "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/lantern/019ff036-52c5-7313-8d54-a4dade5fc0cd/raw-model.glb",
+        "bytes": 64014016,
+        "sha256": "c9891d073356acef06c4c918adda902867282c4ba63f7d08e08e16f1c315e0cc"
+      },
+      "reusedReviewedKestrel": false,
+      "facing": {
+        "sourceFacing": "+z",
+        "targetFacing": "+x",
+        "yawDegrees": 90,
+        "evidence": "Before correction, the -Z camera matches the circular black beam aperture and +Z shows the rectangular back pack."
+      },
+      "profileOverrides": null,
+      "budgets": {
+        "transferBytes": 4000000,
+        "triangles": 100000
+      },
+      "artifact": {
+        "file": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v1/arc-lantern-lean.glb",
+        "bytes": 1628296,
+        "sha256": "ebde6a1e246d7fea759970f1649928422e13d7e920470efe5f3f40ec890b764d"
+      },
+      "triangles": 78288,
+      "positionVertices": 53761,
+      "meshes": 1,
+      "primitives": 1,
+      "materials": 1,
+      "textures": 4,
+      "geometrySha256": "23bab836bdd287728db9259f3f2b64e58687260025baefdcbdca73ef404449ba",
+      "memory": {
+        "transferBytes": 1628296,
+        "geometryGpuBytes": 1544948,
+        "textureGpuBytesCompressedTarget": 5592400,
+        "textureGpuBytesRgba8Fallback": 5592400,
+        "modelGpuBytesCompressedTarget": 7137348,
+        "modelGpuBytesRgba8Fallback": 7137348,
+        "textures": [
+          {
+            "imageIndex": 0,
+            "name": null,
+            "slots": [
+              "baseColorTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 49976,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          },
+          {
+            "imageIndex": 1,
+            "name": null,
+            "slots": [
+              "metallicRoughnessTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 24038,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          },
+          {
+            "imageIndex": 2,
+            "name": null,
+            "slots": [
+              "normalTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 6098,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          },
+          {
+            "imageIndex": 3,
+            "name": null,
+            "slots": [
+              "emissiveTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 528,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          }
+        ]
+      }
+    },
+    {
+      "classId": "mortar",
+      "taskId": "019ff039-d5d4-73ae-9688-d68f53d66564",
+      "endpoint": "multi-image-to-3d",
+      "source": {
+        "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/mortar/019ff039-d5d4-73ae-9688-d68f53d66564/raw-model.glb",
+        "bytes": 64350320,
+        "sha256": "89200842ce905440158ad8d7f9c1036f7fb27348e231945315e4b05dfd81adf5"
+      },
+      "reusedReviewedKestrel": false,
+      "facing": {
+        "sourceFacing": "+z",
+        "targetFacing": "+x",
+        "yawDegrees": 90,
+        "evidence": "Before correction, the -Z camera reveals the forward emitter below the launch deck and +Z is the boxed rear."
+      },
+      "profileOverrides": null,
+      "budgets": {
+        "transferBytes": 4000000,
+        "triangles": 100000
+      },
+      "artifact": {
+        "file": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v1/arc-mortar-lean.glb",
+        "bytes": 1605088,
+        "sha256": "0c5bcecd64f25922aa37f31429aff3c00de423f774e8635b340498822d741f3b"
+      },
+      "triangles": 79838,
+      "positionVertices": 53780,
+      "meshes": 1,
+      "primitives": 1,
+      "materials": 1,
+      "textures": 3,
+      "geometrySha256": "85684c330c2771426401e1e80108293467fc092734a24326ef5745d2e2a1ce15",
+      "memory": {
+        "transferBytes": 1605088,
+        "geometryGpuBytes": 1554628,
+        "textureGpuBytesCompressedTarget": 4194300,
+        "textureGpuBytesRgba8Fallback": 4194300,
+        "modelGpuBytesCompressedTarget": 5748928,
+        "modelGpuBytesRgba8Fallback": 5748928,
+        "textures": [
+          {
+            "imageIndex": 0,
+            "name": null,
+            "slots": [
+              "baseColorTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 35554,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          },
+          {
+            "imageIndex": 1,
+            "name": null,
+            "slots": [
+              "metallicRoughnessTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 9096,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          },
+          {
+            "imageIndex": 2,
+            "name": null,
+            "slots": [
+              "normalTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 3232,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          }
+        ]
+      }
+    },
+    {
+      "classId": "minesmith",
+      "taskId": "019ff03a-1c4d-73c6-abb6-569e7cb320f4",
+      "endpoint": "multi-image-to-3d",
+      "source": {
+        "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/minesmith/019ff03a-1c4d-73c6-abb6-569e7cb320f4/raw-model.glb",
+        "bytes": 67380476,
+        "sha256": "13cdebba6db47bf210e752e8a9f5d8b85fc27cb97d9d9dda82ab112f308e1a63"
+      },
+      "reusedReviewedKestrel": false,
+      "facing": {
+        "sourceFacing": "-x",
+        "targetFacing": "+x",
+        "yawDegrees": 180,
+        "evidence": "+X camera shows the twin mine canisters and open front bay; -X is the closed rear shell."
+      },
+      "profileOverrides": null,
+      "budgets": {
+        "transferBytes": 4000000,
+        "triangles": 100000
+      },
+      "artifact": {
+        "file": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v1/arc-minesmith-lean.glb",
+        "bytes": 1849600,
+        "sha256": "d6c56c6611f41ff41ee533ea95dfa4fba434506103f91cd78638bb7602ad4620"
+      },
+      "triangles": 79078,
+      "positionVertices": 61668,
+      "meshes": 1,
+      "primitives": 1,
+      "materials": 1,
+      "textures": 4,
+      "geometrySha256": "50f05de6a360410746131098556eb55b788fce0cfffa2a5eff223981f631e637",
+      "memory": {
+        "transferBytes": 1849600,
+        "geometryGpuBytes": 1707828,
+        "textureGpuBytesCompressedTarget": 5592400,
+        "textureGpuBytesRgba8Fallback": 5592400,
+        "modelGpuBytesCompressedTarget": 7300228,
+        "modelGpuBytesRgba8Fallback": 7300228,
+        "textures": [
+          {
+            "imageIndex": 0,
+            "name": null,
+            "slots": [
+              "baseColorTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 89146,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          },
+          {
+            "imageIndex": 1,
+            "name": null,
+            "slots": [
+              "metallicRoughnessTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 36948,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          },
+          {
+            "imageIndex": 2,
+            "name": null,
+            "slots": [
+              "normalTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 12474,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          },
+          {
+            "imageIndex": 3,
+            "name": null,
+            "slots": [
+              "emissiveTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 528,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          }
+        ]
+      }
+    },
+    {
+      "classId": "hush",
+      "taskId": "019ff03a-2140-7f10-bd41-2f3e6d27df58",
+      "endpoint": "multi-image-to-3d",
+      "source": {
+        "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/hush/019ff03a-2140-7f10-bd41-2f3e6d27df58/raw-model.glb",
+        "bytes": 63835840,
+        "sha256": "9b824a5dff44bc00e3e8c20fa89a7f785f98cc6ae55aad68a62268b7b3b39d69"
+      },
+      "reusedReviewedKestrel": false,
+      "facing": {
+        "sourceFacing": "fourfold-radial",
+        "targetFacing": "+x",
+        "yawDegrees": 180,
+        "evidence": "The provider output is fourfold rotationally symmetric with no unique front; the ordered-source lobe registration is retained."
+      },
+      "profileOverrides": null,
+      "budgets": {
+        "transferBytes": 4000000,
+        "triangles": 100000
+      },
+      "artifact": {
+        "file": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v1/arc-hush-lean.glb",
+        "bytes": 1591360,
+        "sha256": "f0b3ff4eb92cb866f16dacda7971c3b8e778dfc3e104c0767ba5d926e8e6b23e"
+      },
+      "triangles": 79714,
+      "positionVertices": 52803,
+      "meshes": 1,
+      "primitives": 1,
+      "materials": 1,
+      "textures": 4,
+      "geometrySha256": "b115cdca05cc3bec1e4f7b7a477657735601cd0f324b4268ddf4e656442bd2c8",
+      "memory": {
+        "transferBytes": 1591360,
+        "geometryGpuBytes": 1534344,
+        "textureGpuBytesCompressedTarget": 5592400,
+        "textureGpuBytesRgba8Fallback": 5592400,
+        "modelGpuBytesCompressedTarget": 7126744,
+        "modelGpuBytesRgba8Fallback": 7126744,
+        "textures": [
+          {
+            "imageIndex": 0,
+            "name": null,
+            "slots": [
+              "baseColorTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 35914,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          },
+          {
+            "imageIndex": 1,
+            "name": null,
+            "slots": [
+              "metallicRoughnessTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 12648,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          },
+          {
+            "imageIndex": 2,
+            "name": null,
+            "slots": [
+              "normalTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 5250,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          },
+          {
+            "imageIndex": 3,
+            "name": null,
+            "slots": [
+              "emissiveTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 528,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          }
+        ]
+      }
+    },
+    {
+      "classId": "relay",
+      "taskId": "019ff03a-2715-73c8-b3a5-1ba12b802f4d",
+      "endpoint": "multi-image-to-3d",
+      "source": {
+        "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/relay/019ff03a-2715-73c8-b3a5-1ba12b802f4d/raw-model.glb",
+        "bytes": 65006024,
+        "sha256": "4b551066767b24cc8d657b60fabacc81e92265f1c863bd38b9ae6f380d42ce75"
+      },
+      "reusedReviewedKestrel": false,
+      "facing": {
+        "sourceFacing": "+x",
+        "targetFacing": "+x",
+        "yawDegrees": 0,
+        "evidence": "Before correction, the +X axis looks into the open U throat from the source front; -X is the closed crossbar/back."
+      },
+      "profileOverrides": null,
+      "budgets": {
+        "transferBytes": 4000000,
+        "triangles": 100000
+      },
+      "artifact": {
+        "file": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v1/arc-relay-lean.glb",
+        "bytes": 1682728,
+        "sha256": "21f78ad54a908d8343f2c560b1a206e7ea7380252e89bc0f9ee3444eede7af7f"
+      },
+      "triangles": 79908,
+      "positionVertices": 55762,
+      "meshes": 1,
+      "primitives": 1,
+      "materials": 1,
+      "textures": 4,
+      "geometrySha256": "ea9d52c8dfc993a54ca736adf23a1081dc23029c135e65e9715fcfab62d2d8b8",
+      "memory": {
+        "transferBytes": 1682728,
+        "geometryGpuBytes": 1594688,
+        "textureGpuBytesCompressedTarget": 5592400,
+        "textureGpuBytesRgba8Fallback": 5592400,
+        "modelGpuBytesCompressedTarget": 7187088,
+        "modelGpuBytesRgba8Fallback": 7187088,
+        "textures": [
+          {
+            "imageIndex": 0,
+            "name": null,
+            "slots": [
+              "baseColorTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 54538,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          },
+          {
+            "imageIndex": 1,
+            "name": null,
+            "slots": [
+              "metallicRoughnessTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 23338,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          },
+          {
+            "imageIndex": 2,
+            "name": null,
+            "slots": [
+              "normalTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 6968,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          },
+          {
+            "imageIndex": 3,
+            "name": null,
+            "slots": [
+              "emissiveTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 528,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          }
+        ]
+      }
+    },
+    {
+      "classId": "switchback",
+      "taskId": "019ff03d-2677-76b5-b0b8-f9dec1aef11c",
+      "endpoint": "multi-image-to-3d",
+      "source": {
+        "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/switchback/019ff03d-2677-76b5-b0b8-f9dec1aef11c/raw-model.glb",
+        "bytes": 65660764,
+        "sha256": "f8a1dd792658e23462d7d3c73c836535c35cf564e3bce0a88c1a15c4fd555827"
+      },
+      "reusedReviewedKestrel": false,
+      "facing": {
+        "sourceFacing": "-x",
+        "targetFacing": "+x",
+        "yawDegrees": 180,
+        "evidence": "The provider output made the two axial ends visually equivalent; the ordered-source registration is retained."
+      },
+      "profileOverrides": null,
+      "budgets": {
+        "transferBytes": 4000000,
+        "triangles": 100000
+      },
+      "artifact": {
+        "file": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v1/arc-switchback-lean.glb",
+        "bytes": 1786544,
+        "sha256": "21fd890b489d77fb119fe926f78d9086af3a230f7353f129f32385f538110e6b"
+      },
+      "triangles": 78962,
+      "positionVertices": 59635,
+      "meshes": 1,
+      "primitives": 1,
+      "materials": 1,
+      "textures": 4,
+      "geometrySha256": "a055ec36ccf259cb69a513335df50405f97e30d317c5475f1deefae00fceb453",
+      "memory": {
+        "transferBytes": 1786544,
+        "geometryGpuBytes": 1666472,
+        "textureGpuBytesCompressedTarget": 5592400,
+        "textureGpuBytesRgba8Fallback": 5592400,
+        "modelGpuBytesCompressedTarget": 7258872,
+        "modelGpuBytesRgba8Fallback": 7258872,
+        "textures": [
+          {
+            "imageIndex": 0,
+            "name": null,
+            "slots": [
+              "baseColorTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 71434,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          },
+          {
+            "imageIndex": 1,
+            "name": null,
+            "slots": [
+              "metallicRoughnessTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 27662,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          },
+          {
+            "imageIndex": 2,
+            "name": null,
+            "slots": [
+              "normalTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 17772,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          },
+          {
+            "imageIndex": 3,
+            "name": null,
+            "slots": [
+              "emissiveTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 528,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          }
+        ]
+      }
+    },
+    {
+      "classId": "longshot",
+      "taskId": "019ff03d-55d7-7443-985f-81962a0d1b7b",
+      "endpoint": "multi-image-to-3d",
+      "source": {
+        "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/longshot/019ff03d-55d7-7443-985f-81962a0d1b7b/raw-model.glb",
+        "bytes": 65173408,
+        "sha256": "1443dba60ed1e827dfc96d553c9cfbaf55a73ba0872f129c992d93b598ea552e"
+      },
+      "reusedReviewedKestrel": false,
+      "facing": {
+        "sourceFacing": "-x",
+        "targetFacing": "+x",
+        "yawDegrees": 180,
+        "evidence": "+X camera matches the low beam slit; -X shows the orange-outlined rear cells."
+      },
+      "profileOverrides": null,
+      "budgets": {
+        "transferBytes": 4000000,
+        "triangles": 100000
+      },
+      "artifact": {
+        "file": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v1/arc-longshot-lean.glb",
+        "bytes": 1739956,
+        "sha256": "f97b812e80fc50cbd6895310a86c97a2db017a1e98a57ec88afe0a4ccc0db052"
+      },
+      "triangles": 79592,
+      "positionVertices": 59556,
+      "meshes": 1,
+      "primitives": 1,
+      "materials": 1,
+      "textures": 4,
+      "geometrySha256": "47fb05943f0d252a9b5d396237f8ab1498fa11976d95acfa3de41f5ee46e10f1",
+      "memory": {
+        "transferBytes": 1739956,
+        "geometryGpuBytes": 1668672,
+        "textureGpuBytesCompressedTarget": 5592400,
+        "textureGpuBytesRgba8Fallback": 5592400,
+        "modelGpuBytesCompressedTarget": 7261072,
+        "modelGpuBytesRgba8Fallback": 7261072,
+        "textures": [
+          {
+            "imageIndex": 0,
+            "name": null,
+            "slots": [
+              "baseColorTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 36880,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          },
+          {
+            "imageIndex": 1,
+            "name": null,
+            "slots": [
+              "metallicRoughnessTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 28222,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          },
+          {
+            "imageIndex": 2,
+            "name": null,
+            "slots": [
+              "normalTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 2992,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          },
+          {
+            "imageIndex": 3,
+            "name": null,
+            "slots": [
+              "emissiveTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 528,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          }
+        ]
+      }
+    },
+    {
+      "classId": "mason",
+      "taskId": "019ff03d-c093-745f-95cc-437bae8cc0b0",
+      "endpoint": "multi-image-to-3d",
+      "source": {
+        "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/mason/019ff03d-c093-745f-95cc-437bae8cc0b0/raw-model.glb",
+        "bytes": 65329976,
+        "sha256": "36e90dbc35293f188da9eb0b366216d9e2bb8a99b5596b93c2e35f50c636b977"
+      },
+      "reusedReviewedKestrel": false,
+      "facing": {
+        "sourceFacing": "-x",
+        "targetFacing": "+x",
+        "yawDegrees": 180,
+        "evidence": "+X camera matches the twin prongs and open forward work bay; -X is the closed rear."
+      },
+      "profileOverrides": null,
+      "budgets": {
+        "transferBytes": 4000000,
+        "triangles": 100000
+      },
+      "artifact": {
+        "file": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v1/arc-mason-lean.glb",
+        "bytes": 1658056,
+        "sha256": "cd68b75b51c1971576c4314386702d3ce952dcd3025ed1332fa2c2e77650587d"
+      },
+      "triangles": 79950,
+      "positionVertices": 55498,
+      "meshes": 1,
+      "primitives": 1,
+      "materials": 1,
+      "textures": 4,
+      "geometrySha256": "b4aab7bfe1aac26cee2a7535c13f786ebe7e5e7830b32f70fc9185ab475c6990",
+      "memory": {
+        "transferBytes": 1658056,
+        "geometryGpuBytes": 1589660,
+        "textureGpuBytesCompressedTarget": 5592400,
+        "textureGpuBytesRgba8Fallback": 5592400,
+        "modelGpuBytesCompressedTarget": 7182060,
+        "modelGpuBytesRgba8Fallback": 7182060,
+        "textures": [
+          {
+            "imageIndex": 0,
+            "name": null,
+            "slots": [
+              "baseColorTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 43708,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          },
+          {
+            "imageIndex": 1,
+            "name": null,
+            "slots": [
+              "metallicRoughnessTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 16202,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          },
+          {
+            "imageIndex": 2,
+            "name": null,
+            "slots": [
+              "normalTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 5276,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          },
+          {
+            "imageIndex": 3,
+            "name": null,
+            "slots": [
+              "emissiveTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 530,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          }
+        ]
+      }
+    },
+    {
+      "classId": "sunder",
+      "taskId": "019ff03d-d40d-7257-a74a-49416a686a93",
+      "endpoint": "multi-image-to-3d",
+      "source": {
+        "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/sunder/019ff03d-d40d-7257-a74a-49416a686a93/raw-model.glb",
+        "bytes": 80973476,
+        "sha256": "592e106d378c4a4a557a0b73b9712d3e46bc5b7e0ccbda0fe23e134eb79fa37e"
+      },
+      "reusedReviewedKestrel": false,
+      "facing": {
+        "sourceFacing": "+z",
+        "targetFacing": "+x",
+        "yawDegrees": 90,
+        "evidence": "Before correction, the -Z camera matches the circular beam face and +Z shows the closed rear panel."
+      },
+      "profileOverrides": {
+        "simplifyError": 0.01,
+        "budgets": {
+          "transferBytes": 9000000,
+          "triangles": 220000
+        },
+        "reason": "The disconnected layered shell reaches its topology limit before the shared lean target; retained for owner review rather than applying a second destructive pass."
+      },
+      "budgets": {
+        "transferBytes": 9000000,
+        "triangles": 220000
+      },
+      "artifact": {
+        "file": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v1/arc-sunder-lean.glb",
+        "bytes": 7941332,
+        "sha256": "5f40908374c391c883bf7e3c05906100ec884af1b02e3c106067532e8dbcfc3f"
+      },
+      "triangles": 205096,
+      "positionVertices": 269125,
+      "meshes": 1,
+      "primitives": 1,
+      "materials": 1,
+      "textures": 4,
+      "geometrySha256": "dbbd7346e69d21b41212932939b2abd53f60820bfb658c4422c859a6a69c5ae9",
+      "memory": {
+        "transferBytes": 7941332,
+        "geometryGpuBytes": 7843652,
+        "textureGpuBytesCompressedTarget": 5592400,
+        "textureGpuBytesRgba8Fallback": 5592400,
+        "modelGpuBytesCompressedTarget": 13436052,
+        "modelGpuBytesRgba8Fallback": 13436052,
+        "textures": [
+          {
+            "imageIndex": 0,
+            "name": null,
+            "slots": [
+              "baseColorTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 61186,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          },
+          {
+            "imageIndex": 1,
+            "name": null,
+            "slots": [
+              "metallicRoughnessTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 22980,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          },
+          {
+            "imageIndex": 2,
+            "name": null,
+            "slots": [
+              "normalTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 10278,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          },
+          {
+            "imageIndex": 3,
+            "name": null,
+            "slots": [
+              "emissiveTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 528,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          }
+        ]
+      }
+    },
+    {
+      "classId": "repulsor",
+      "taskId": "019ff040-aa48-72f9-b49a-9c9043607b6a",
+      "endpoint": "multi-image-to-3d",
+      "source": {
+        "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/repulsor/019ff040-aa48-72f9-b49a-9c9043607b6a/raw-model.glb",
+        "bytes": 66153548,
+        "sha256": "93c76060bd9a00fe5c8ba836fe60bfff99875fca365e1113b8cfaf12a34c3596"
+      },
+      "reusedReviewedKestrel": false,
+      "facing": {
+        "sourceFacing": "twelvefold-radial",
+        "targetFacing": "+x",
+        "yawDegrees": 180,
+        "evidence": "The provider output is twelvefold rotationally symmetric with no unique front; the ordered-source segment registration is retained."
+      },
+      "profileOverrides": null,
+      "budgets": {
+        "transferBytes": 4000000,
+        "triangles": 100000
+      },
+      "artifact": {
+        "file": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v1/arc-repulsor-lean.glb",
+        "bytes": 1663904,
+        "sha256": "c89aa86049cde06dbad2617d48bab17131b2cca39b5452f5fc5761153d0d604d"
+      },
+      "triangles": 79960,
+      "positionVertices": 54183,
+      "meshes": 1,
+      "primitives": 1,
+      "materials": 1,
+      "textures": 4,
+      "geometrySha256": "de9c349300098aa847734f06d54ba974ee5c7e3506727238c8d84a15cda9a5a0",
+      "memory": {
+        "transferBytes": 1663904,
+        "geometryGpuBytes": 1563420,
+        "textureGpuBytesCompressedTarget": 5592400,
+        "textureGpuBytesRgba8Fallback": 5592400,
+        "modelGpuBytesCompressedTarget": 7155820,
+        "modelGpuBytesRgba8Fallback": 7155820,
+        "textures": [
+          {
+            "imageIndex": 0,
+            "name": null,
+            "slots": [
+              "baseColorTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 63316,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          },
+          {
+            "imageIndex": 1,
+            "name": null,
+            "slots": [
+              "metallicRoughnessTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 24606,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          },
+          {
+            "imageIndex": 2,
+            "name": null,
+            "slots": [
+              "normalTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 9366,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          },
+          {
+            "imageIndex": 3,
+            "name": null,
+            "slots": [
+              "emissiveTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 528,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          }
+        ]
+      }
+    },
+    {
+      "classId": "veil",
+      "taskId": "019ff040-b455-77cf-a735-f53a83786a43",
+      "endpoint": "multi-image-to-3d",
+      "source": {
+        "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/veil/019ff040-b455-77cf-a735-f53a83786a43/raw-model.glb",
+        "bytes": 64618672,
+        "sha256": "3c9b7ab70a232d1a85045e6e966cb6049aa45b1f39cb68c22ee03925fd87ca35"
+      },
+      "reusedReviewedKestrel": false,
+      "facing": {
+        "sourceFacing": "+z",
+        "targetFacing": "+x",
+        "yawDegrees": 90,
+        "evidence": "Before correction, the -Z camera matches the concave open front and +Z shows the closed rear."
+      },
+      "profileOverrides": null,
+      "budgets": {
+        "transferBytes": 4000000,
+        "triangles": 100000
+      },
+      "artifact": {
+        "file": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v1/arc-veil-lean.glb",
+        "bytes": 1650144,
+        "sha256": "d23cb10384523455375e99057622372d7262a9abe0605d5cef413a9b920f63e1"
+      },
+      "triangles": 78408,
+      "positionVertices": 54130,
+      "meshes": 1,
+      "primitives": 1,
+      "materials": 1,
+      "textures": 4,
+      "geometrySha256": "b08c069ab711419978a21153adef2b3c72fdd79321e18d6d090ea3bd8f09177a",
+      "memory": {
+        "transferBytes": 1650144,
+        "geometryGpuBytes": 1553048,
+        "textureGpuBytesCompressedTarget": 5592400,
+        "textureGpuBytesRgba8Fallback": 5592400,
+        "modelGpuBytesCompressedTarget": 7145448,
+        "modelGpuBytesRgba8Fallback": 7145448,
+        "textures": [
+          {
+            "imageIndex": 0,
+            "name": null,
+            "slots": [
+              "baseColorTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 57936,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          },
+          {
+            "imageIndex": 1,
+            "name": null,
+            "slots": [
+              "metallicRoughnessTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 24618,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          },
+          {
+            "imageIndex": 2,
+            "name": null,
+            "slots": [
+              "normalTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 11308,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          },
+          {
+            "imageIndex": 3,
+            "name": null,
+            "slots": [
+              "emissiveTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 528,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          }
+        ]
+      }
+    },
+    {
+      "classId": "nest",
+      "taskId": "019ff041-45de-77fd-9a69-756ea195da64",
+      "endpoint": "multi-image-to-3d",
+      "source": {
+        "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/nest/019ff041-45de-77fd-9a69-756ea195da64/raw-model.glb",
+        "bytes": 64835308,
+        "sha256": "3e6874d5d1da75592169654802d3a052d9aa67a73881a799791f4f89199d05a2"
+      },
+      "reusedReviewedKestrel": false,
+      "facing": {
+        "sourceFacing": "-x",
+        "targetFacing": "+x",
+        "yawDegrees": 180,
+        "evidence": "+X camera matches the open center lane and forward pod caps; -X shows the rear plates."
+      },
+      "profileOverrides": null,
+      "budgets": {
+        "transferBytes": 4000000,
+        "triangles": 100000
+      },
+      "artifact": {
+        "file": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v1/arc-nest-lean.glb",
+        "bytes": 1654372,
+        "sha256": "9f46625630540aa052a6940a59ed5ed596aacff1020e16d7e97af549b7aaa6ca"
+      },
+      "triangles": 79898,
+      "positionVertices": 55452,
+      "meshes": 1,
+      "primitives": 1,
+      "materials": 1,
+      "textures": 4,
+      "geometrySha256": "3f321e9d9904dd86db219732e507c2fd6b4b6531c0d49006625f4afdaa6f74c9",
+      "memory": {
+        "transferBytes": 1654372,
+        "geometryGpuBytes": 1588428,
+        "textureGpuBytesCompressedTarget": 5592400,
+        "textureGpuBytesRgba8Fallback": 5592400,
+        "modelGpuBytesCompressedTarget": 7180828,
+        "modelGpuBytesRgba8Fallback": 7180828,
+        "textures": [
+          {
+            "imageIndex": 0,
+            "name": null,
+            "slots": [
+              "baseColorTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 43544,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          },
+          {
+            "imageIndex": 1,
+            "name": null,
+            "slots": [
+              "metallicRoughnessTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 13574,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          },
+          {
+            "imageIndex": 2,
+            "name": null,
+            "slots": [
+              "normalTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 5628,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          },
+          {
+            "imageIndex": 3,
+            "name": null,
+            "slots": [
+              "emissiveTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 528,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          }
+        ]
+      }
+    }
+  ]
+}

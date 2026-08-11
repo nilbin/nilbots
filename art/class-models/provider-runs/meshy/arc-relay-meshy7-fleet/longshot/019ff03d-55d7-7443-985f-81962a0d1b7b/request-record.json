@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "provider": "Meshy",
+  "endpoint": "multi-image-to-3d",
+  "providerModel": "meshy-7",
+  "classId": "longshot",
+  "taskId": "019ff03d-55d7-7443-985f-81962a0d1b7b",
+  "submittedAt": "2026-08-11T09:52:58.551Z",
+  "balanceBefore": 1910,
+  "authorizedCreditCap": 30,
+  "sourceManifest": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/longshot-v1/manifest.json",
+  "inputs": [
+    {
+      "order": 1,
+      "view": "strict-front",
+      "primary": true,
+      "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/longshot-v1/01-front.png",
+      "bytes": 1114593,
+      "sha256": "c5d53f284cf7fdc40712e64777234c5c6cab7a401a67fac5e57bb7dc7db6f8bf",
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "order": 2,
+      "view": "strict-right",
+      "primary": false,
+      "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/longshot-v1/02-right.png",
+      "bytes": 844868,
+      "sha256": "540aeb857d05f9442853d1fb5b9a1c287978b4010cb9616999faeaffb5cda293",
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "order": 3,
+      "view": "strict-back",
+      "primary": false,
+      "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/longshot-v1/03-back.png",
+      "bytes": 1026126,
+      "sha256": "351e12f3f03c53c2993b24d501417d5029f221e0913b2ca735d75bf0d45274a5",
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "order": 4,
+      "view": "front-right-three-quarter",
+      "primary": false,
+      "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/longshot-v1/04-front-right-three-quarter.png",
+      "bytes": 1297515,
+      "sha256": "41701a89589e7f894261493cea8676a2bf7a2d0ff76e6af0bb9fe82a79251f9c",
+      "width": 1536,
+      "height": 1024
+    }
+  ],
+  "settings": {
+    "ai_model": "meshy-7",
+    "should_texture": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "should_remesh": false,
+    "image_enhancement": false,
+    "remove_lighting": true,
+    "pose_mode": "",
+    "texture_prompt": "Mature industrial longshot levitating Arc Relay bot. Medium steel-blue satin side armor, desaturated-navy lower hull, brushed-silver embedded dorsal spine and staged cells, charcoal underside, restrained edge wear and recess grime. Preserve crisp bounded material regions, broad silhouette, signature-skill hardware, and the flush front beam-emitter seam. No text, logos, decals, eyes, face, guns, barrels, white nose, legs, teal/orange team color, glow, bloom, exhaust, or baked lighting.",
+    "target_formats": [
+      "glb"
+    ]
+  },
+  "pricingSource": "https://docs.meshy.ai/en/api/pricing",
+  "licenseTerms": "https://www.meshy.ai/terms"
+}

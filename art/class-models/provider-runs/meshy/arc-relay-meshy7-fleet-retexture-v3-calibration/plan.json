@@ -1,0 +1,119 @@
+{
+  "schemaVersion": 1,
+  "status": "owner-review",
+  "purpose": "Single Palisade calibration using the same ordered multiview texture-authority route that succeeded for Kestrel",
+  "classId": "palisade",
+  "sourceManifest": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/palisade-v1/manifest.json",
+  "source": {
+    "taskId": "019ff036-52d7-7e1c-898a-6d4eab146e93",
+    "endpoint": "multi-image-to-3d",
+    "rawModel": {
+      "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/palisade/019ff036-52d7-7e1c-898a-6d4eab146e93/raw-model.glb",
+      "bytes": 67171544,
+      "sha256": "aa933383aa4f698fca2d56b5ff81e6975df9f620d91c02824a7cf3ed81799ede"
+    }
+  },
+  "styleAuthority": {
+    "kind": "ordered-multiview",
+    "referenceRun": "art/class-models/provider-runs/meshy/arc-relay-meshy7-retexture/kestrel/019fefdd-ac96-7dc8-a61e-f0760b4ae407/request-record.json",
+    "inputs": [
+      {
+        "order": 1,
+        "view": "strict-front",
+        "file": "01-front.png",
+        "sha256": "fd640f1dc45bebe8e594b5ceb40c8117adfa30f0169f18c4e70f09cb556c5aa7",
+        "width": 1536,
+        "height": 1024,
+        "primary": true
+      },
+      {
+        "order": 2,
+        "view": "strict-right",
+        "file": "02-right.png",
+        "sha256": "f7069cd8593f40de9f24472b29fde58f2bc69c90e3b38a3f865458053f51772b",
+        "width": 1536,
+        "height": 1024,
+        "primary": false
+      },
+      {
+        "order": 3,
+        "view": "strict-back",
+        "file": "03-back.png",
+        "sha256": "9f2b33f9d6fbc001053c2c5a303ba1102a75424c96b479428dc77b72baa4b027",
+        "width": 1536,
+        "height": 1024,
+        "primary": false
+      },
+      {
+        "order": 4,
+        "view": "front-right-three-quarter",
+        "file": "04-front-right-three-quarter.png",
+        "sha256": "c7bda5c90a14ff66553f5429c84f363ba779b86d6b452f50d54016343b99ae9e",
+        "width": 1536,
+        "height": 1024,
+        "primary": false
+      }
+    ]
+  },
+  "request": {
+    "ai_model": "meshy-7",
+    "enable_original_uv": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "alpha_thumbnail": true,
+    "target_formats": [
+      "glb"
+    ]
+  },
+  "authorization": "Owner explicitly authorized the one-bot 10-credit Palisade calibration after being told API retries are unavailable and the current balance is 1580.",
+  "creditCap": 10,
+  "balanceBeforeExpected": 1580,
+  "authorized": false,
+  "runtimeAssetsPromoted": false,
+  "pricingSource": "https://docs.meshy.ai/en/api/pricing",
+  "settingsSource": "https://docs.meshy.ai/en/api/retexture",
+  "completedTaskId": "019ff0d7-b4d8-759a-ae34-6bb6fe42e0a9",
+  "submittedAt": "2026-08-11T12:41:35.972Z",
+  "authorizationConsumed": true,
+  "finishedAt": "2026-08-11T12:45:02.370Z",
+  "consumedCredits": 10,
+  "balanceBefore": 1580,
+  "balanceAfter": 1570,
+  "artifacts": [
+    {
+      "file": "raw-model.glb",
+      "bytes": 68595388,
+      "sha256": "1a6ac68ed495600504244e4232bb6bfb9d3b21435a33f35bee1881b9214b244d"
+    },
+    {
+      "file": "provider-preview.png",
+      "bytes": 198983,
+      "sha256": "b22764794ff16635744eeafcf08d7fe243f89e6c66f0a0572b8739e3e711f790"
+    },
+    {
+      "file": "provider-preview-alpha.png",
+      "bytes": 198983,
+      "sha256": "b22764794ff16635744eeafcf08d7fe243f89e6c66f0a0572b8739e3e711f790"
+    },
+    {
+      "file": "texture-0-base_color.png",
+      "bytes": 6864946,
+      "sha256": "7de7f35fe077a14ec66f0fdebc09954996646db1497f7cf916317740429e97f6"
+    },
+    {
+      "file": "texture-0-metallic.png",
+      "bytes": 3478655,
+      "sha256": "e916048b5c44e0ae3386194429284abc2e967215d2ec6f354738ab5650953336"
+    },
+    {
+      "file": "texture-0-roughness.png",
+      "bytes": 3635813,
+      "sha256": "b2c029e4241ee490a03ccee617c6e80655cde3581d1b319701c096f34b4f2f97"
+    },
+    {
+      "file": "texture-0-normal.png",
+      "bytes": 5396319,
+      "sha256": "a801636d48be7d440356a30184a64a8b157fa5ade60c7f7161979567cf705612"
+    }
+  ]
+}

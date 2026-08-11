@@ -1,0 +1,270 @@
+{
+  "schemaVersion": 1,
+  "sourceAudit": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v3/audit.json",
+  "facing": "+x",
+  "up": "+y",
+  "floorY": 0,
+  "camera": "+x/+y/-z front-right three-quarter",
+  "sheet": {
+    "file": "art/reviews/arc-relay-meshy7-fleet-retexture-v3/fixed-orientation-sheet.png",
+    "sha256": "0658899b93f442cafd47730aee003ac2a9bb5153ee7377b52aa18fd3756956d0"
+  },
+  "captures": [
+    {
+      "classId": "kestrel",
+      "artifact": "art/class-models/runtime-tiers/arc-relay/meshy7-kestrel-review-v1/arc-kestrel-lean.glb",
+      "sourceFacing": "-x",
+      "facingYawDegrees": 180,
+      "facingEvidence": "+X camera matches the tapered beam face; -X shows the paired rear exhaust blocks.",
+      "facing": "+x",
+      "camera": "+x/+y/-z front-right three-quarter",
+      "canvasKind": "webgl",
+      "modelResponse": {
+        "url": "http://127.0.0.1:9074/art/class-models/runtime-tiers/arc-relay/meshy7-kestrel-review-v1/arc-kestrel-lean.glb",
+        "status": 200
+      },
+      "tile": "sandbox/meshy7-pilot/fleet-retexture-v3/fixed-orientation/kestrel.png",
+      "tileSha256": "88957bb99c8b53c4e8cbfe02766555a5d60857f1cb52407cc0c8e32669c9737a"
+    },
+    {
+      "classId": "palisade",
+      "artifact": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v3/arc-palisade-lean.glb",
+      "sourceFacing": "-x",
+      "facingYawDegrees": 180,
+      "facingEvidence": "+X camera matches the broad blue shield/front; -X shows the gold-and-black rear block.",
+      "facing": "+x",
+      "camera": "+x/+y/-z front-right three-quarter",
+      "canvasKind": "webgl",
+      "modelResponse": {
+        "url": "http://127.0.0.1:9074/art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v3/arc-palisade-lean.glb",
+        "status": 200
+      },
+      "tile": "sandbox/meshy7-pilot/fleet-retexture-v3/fixed-orientation/palisade.png",
+      "tileSha256": "62ef9011dc536f4fba0b2a3c8a5412b74d53ad6a12bf5c9dd2f997939c08ddba"
+    },
+    {
+      "classId": "towline",
+      "artifact": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v3/arc-towline-lean.glb",
+      "sourceFacing": "-x",
+      "facingYawDegrees": 180,
+      "facingEvidence": "+X camera exposes the cable spool and forward beam face; -X is the closed rear plate.",
+      "facing": "+x",
+      "camera": "+x/+y/-z front-right three-quarter",
+      "canvasKind": "webgl",
+      "modelResponse": {
+        "url": "http://127.0.0.1:9074/art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v3/arc-towline-lean.glb",
+        "status": 200
+      },
+      "tile": "sandbox/meshy7-pilot/fleet-retexture-v3/fixed-orientation/towline.png",
+      "tileSha256": "7bf998b49a8ed3cce635cdcb1332ec140939d2db396160b001b21e38632d3f2a"
+    },
+    {
+      "classId": "patchbay",
+      "artifact": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v3/arc-patchbay-lean.glb",
+      "sourceFacing": "-x",
+      "facingYawDegrees": 180,
+      "facingEvidence": "+X camera matches the orange patch face and lateral repair arm; -X is the rear block.",
+      "facing": "+x",
+      "camera": "+x/+y/-z front-right three-quarter",
+      "canvasKind": "webgl",
+      "modelResponse": {
+        "url": "http://127.0.0.1:9074/art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v3/arc-patchbay-lean.glb",
+        "status": 200
+      },
+      "tile": "sandbox/meshy7-pilot/fleet-retexture-v3/fixed-orientation/patchbay.png",
+      "tileSha256": "e0dc118d05d77870e5215edd3380d145a423a66584f66b7fe2ef4d82e3abaa8e"
+    },
+    {
+      "classId": "lantern",
+      "artifact": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v3/arc-lantern-lean.glb",
+      "sourceFacing": "+z",
+      "facingYawDegrees": 90,
+      "facingEvidence": "Before correction, the -Z camera matches the circular black beam aperture and +Z shows the rectangular back pack.",
+      "facing": "+x",
+      "camera": "+x/+y/-z front-right three-quarter",
+      "canvasKind": "webgl",
+      "modelResponse": {
+        "url": "http://127.0.0.1:9074/art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v3/arc-lantern-lean.glb",
+        "status": 200
+      },
+      "tile": "sandbox/meshy7-pilot/fleet-retexture-v3/fixed-orientation/lantern.png",
+      "tileSha256": "097ce5a3e8ea6e7feea4b7d5cb9972ff6ae240c76596cd9ef37ef7689c8905c5"
+    },
+    {
+      "classId": "mortar",
+      "artifact": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v3/arc-mortar-lean.glb",
+      "sourceFacing": "+z",
+      "facingYawDegrees": 90,
+      "facingEvidence": "Before correction, the -Z camera reveals the forward emitter below the launch deck and +Z is the boxed rear.",
+      "facing": "+x",
+      "camera": "+x/+y/-z front-right three-quarter",
+      "canvasKind": "webgl",
+      "modelResponse": {
+        "url": "http://127.0.0.1:9074/art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v3/arc-mortar-lean.glb",
+        "status": 200
+      },
+      "tile": "sandbox/meshy7-pilot/fleet-retexture-v3/fixed-orientation/mortar.png",
+      "tileSha256": "5be9622dbd77ec22233844781bd6f746373fb268bf348827f3d13a9d04a41057"
+    },
+    {
+      "classId": "minesmith",
+      "artifact": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v3/arc-minesmith-lean.glb",
+      "sourceFacing": "-x",
+      "facingYawDegrees": 180,
+      "facingEvidence": "+X camera shows the twin mine canisters and open front bay; -X is the closed rear shell.",
+      "facing": "+x",
+      "camera": "+x/+y/-z front-right three-quarter",
+      "canvasKind": "webgl",
+      "modelResponse": {
+        "url": "http://127.0.0.1:9074/art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v3/arc-minesmith-lean.glb",
+        "status": 200
+      },
+      "tile": "sandbox/meshy7-pilot/fleet-retexture-v3/fixed-orientation/minesmith.png",
+      "tileSha256": "dfe83eb1941dfd21b974e553abf41d3519dd2a20a592ffd3826dc41c09f7c32f"
+    },
+    {
+      "classId": "hush",
+      "artifact": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v3/arc-hush-lean.glb",
+      "sourceFacing": "fourfold-radial",
+      "facingYawDegrees": 180,
+      "facingEvidence": "The provider output is fourfold rotationally symmetric with no unique front; the ordered-source lobe registration is retained.",
+      "facing": "+x",
+      "camera": "+x/+y/-z front-right three-quarter",
+      "canvasKind": "webgl",
+      "modelResponse": {
+        "url": "http://127.0.0.1:9074/art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v3/arc-hush-lean.glb",
+        "status": 200
+      },
+      "tile": "sandbox/meshy7-pilot/fleet-retexture-v3/fixed-orientation/hush.png",
+      "tileSha256": "66e0b8b150b6ff6d7ea7c4011d3f247f056c97e7b4a536ad391873f07046e05f"
+    },
+    {
+      "classId": "relay",
+      "artifact": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v3/arc-relay-lean.glb",
+      "sourceFacing": "+x",
+      "facingYawDegrees": 0,
+      "facingEvidence": "Before correction, the +X axis looks into the open U throat from the source front; -X is the closed crossbar/back.",
+      "facing": "+x",
+      "camera": "+x/+y/-z front-right three-quarter",
+      "canvasKind": "webgl",
+      "modelResponse": {
+        "url": "http://127.0.0.1:9074/art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v3/arc-relay-lean.glb",
+        "status": 200
+      },
+      "tile": "sandbox/meshy7-pilot/fleet-retexture-v3/fixed-orientation/relay.png",
+      "tileSha256": "bcf7c5a22ba7ddadd4e70c5138a6b7375b39f352cd2ca9384b2562cf1757ff8b"
+    },
+    {
+      "classId": "switchback",
+      "artifact": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v3/arc-switchback-lean.glb",
+      "sourceFacing": "-x",
+      "facingYawDegrees": 180,
+      "facingEvidence": "The provider output made the two axial ends visually equivalent; the ordered-source registration is retained.",
+      "facing": "+x",
+      "camera": "+x/+y/-z front-right three-quarter",
+      "canvasKind": "webgl",
+      "modelResponse": {
+        "url": "http://127.0.0.1:9074/art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v3/arc-switchback-lean.glb",
+        "status": 200
+      },
+      "tile": "sandbox/meshy7-pilot/fleet-retexture-v3/fixed-orientation/switchback.png",
+      "tileSha256": "9c863dc2a6aa0547205f6213270b036856dc7fc833e56d82871f5eaf312bdb49"
+    },
+    {
+      "classId": "longshot",
+      "artifact": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v3/arc-longshot-lean.glb",
+      "sourceFacing": "-x",
+      "facingYawDegrees": 180,
+      "facingEvidence": "+X camera matches the low beam slit; -X shows the orange-outlined rear cells.",
+      "facing": "+x",
+      "camera": "+x/+y/-z front-right three-quarter",
+      "canvasKind": "webgl",
+      "modelResponse": {
+        "url": "http://127.0.0.1:9074/art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v3/arc-longshot-lean.glb",
+        "status": 200
+      },
+      "tile": "sandbox/meshy7-pilot/fleet-retexture-v3/fixed-orientation/longshot.png",
+      "tileSha256": "2c9aee91847afbd970daf319e9b84710a3c5a2315d15daaa9638f8d3c6e4ba8b"
+    },
+    {
+      "classId": "mason",
+      "artifact": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v3/arc-mason-lean.glb",
+      "sourceFacing": "-x",
+      "facingYawDegrees": 180,
+      "facingEvidence": "+X camera matches the twin prongs and open forward work bay; -X is the closed rear.",
+      "facing": "+x",
+      "camera": "+x/+y/-z front-right three-quarter",
+      "canvasKind": "webgl",
+      "modelResponse": {
+        "url": "http://127.0.0.1:9074/art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v3/arc-mason-lean.glb",
+        "status": 200
+      },
+      "tile": "sandbox/meshy7-pilot/fleet-retexture-v3/fixed-orientation/mason.png",
+      "tileSha256": "9e8ee9839e04792fa42a48839666553361d66156c7c50dbd7b78eca624f9115d"
+    },
+    {
+      "classId": "sunder",
+      "artifact": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v3/arc-sunder-lean.glb",
+      "sourceFacing": "+z",
+      "facingYawDegrees": 90,
+      "facingEvidence": "Before correction, the -Z camera matches the circular beam face and +Z shows the closed rear panel.",
+      "facing": "+x",
+      "camera": "+x/+y/-z front-right three-quarter",
+      "canvasKind": "webgl",
+      "modelResponse": {
+        "url": "http://127.0.0.1:9074/art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v3/arc-sunder-lean.glb",
+        "status": 200
+      },
+      "tile": "sandbox/meshy7-pilot/fleet-retexture-v3/fixed-orientation/sunder.png",
+      "tileSha256": "f9c923206abdcc52c57742d9874acf03032893dc0f88d40c982cbaabc8c43662"
+    },
+    {
+      "classId": "repulsor",
+      "artifact": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v3/arc-repulsor-lean.glb",
+      "sourceFacing": "twelvefold-radial",
+      "facingYawDegrees": 180,
+      "facingEvidence": "The provider output is twelvefold rotationally symmetric with no unique front; the ordered-source segment registration is retained.",
+      "facing": "+x",
+      "camera": "+x/+y/-z front-right three-quarter",
+      "canvasKind": "webgl",
+      "modelResponse": {
+        "url": "http://127.0.0.1:9074/art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v3/arc-repulsor-lean.glb",
+        "status": 200
+      },
+      "tile": "sandbox/meshy7-pilot/fleet-retexture-v3/fixed-orientation/repulsor.png",
+      "tileSha256": "b1665028c5d0ef853b6022cdf6468e6c38d85cc5ddd0d83b02689a227d37777a"
+    },
+    {
+      "classId": "veil",
+      "artifact": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v3/arc-veil-lean.glb",
+      "sourceFacing": "+z",
+      "facingYawDegrees": 90,
+      "facingEvidence": "Before correction, the -Z camera matches the concave open front and +Z shows the closed rear.",
+      "facing": "+x",
+      "camera": "+x/+y/-z front-right three-quarter",
+      "canvasKind": "webgl",
+      "modelResponse": {
+        "url": "http://127.0.0.1:9074/art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v3/arc-veil-lean.glb",
+        "status": 200
+      },
+      "tile": "sandbox/meshy7-pilot/fleet-retexture-v3/fixed-orientation/veil.png",
+      "tileSha256": "c185cb2af8ab901f278b475de8677b6beb48bd14068e3180dfeb12d6f07f6509"
+    },
+    {
+      "classId": "nest",
+      "artifact": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v3/arc-nest-lean.glb",
+      "sourceFacing": "-x",
+      "facingYawDegrees": 180,
+      "facingEvidence": "+X camera matches the open center lane and forward pod caps; -X shows the rear plates.",
+      "facing": "+x",
+      "camera": "+x/+y/-z front-right three-quarter",
+      "canvasKind": "webgl",
+      "modelResponse": {
+        "url": "http://127.0.0.1:9074/art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v3/arc-nest-lean.glb",
+        "status": 200
+      },
+      "tile": "sandbox/meshy7-pilot/fleet-retexture-v3/fixed-orientation/nest.png",
+      "tileSha256": "278ba5efafcc669ddb1506d29efc90b20ceaeb05dddc768869f1d117b71c23dc"
+    }
+  ]
+}

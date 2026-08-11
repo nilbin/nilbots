@@ -82,3 +82,19 @@ The default `trident-spark` projectile has not been submitted to Meshy. It is a
 separate object, input review, task, and credit charge after this chassis
 landing; its trail, floor glow, travel, impact, hitbox, and team tint remain
 renderer-owned.
+
+## Arc Relay Meshy 7 Kestrel trial
+
+Arc Relay's Meshy 7 vertical slice remains art-side and owner-gated. Kestrel's
+four-view generation task `019feeaa-c573-78ed-bfc8-a6630d8ae4f3` consumed 30
+credits and produced a convincing split-delta hover mesh but failed the
+approved material hierarchy. The separately authorized multiview retexture
+task `019fefdd-ac96-7dc8-a61e-f0760b4ae407` consumed 10 credits and
+provisionally restores warm bone, muted ochre, and subordinate graphite.
+
+The retexture output is a near-equivalent re-export, not a texture-only binary
+change: it is uniformly recentered/rescaled, has 238 more position vertices,
+and has 64 fewer triangles. The raw 64 MB / 1.98-million-triangle GLB remains
+source evidence rather than runtime art. Balance after both Kestrel tasks is
+180 credits; the remaining fifteen 30-credit generation tasks require 450,
+leaving a 270-credit shortfall. No fleet batch or rigging task is authorized.

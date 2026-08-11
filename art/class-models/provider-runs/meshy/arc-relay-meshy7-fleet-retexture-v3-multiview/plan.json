@@ -1,0 +1,1757 @@
+{
+  "schemaVersion": 1,
+  "status": "owner-review",
+  "purpose": "Owner-approved Meshy 7 ordered-multiview fleet retexture using the successful Kestrel/Palisade route and brighter-than-Palisade tonal authority for the remaining fourteen classes",
+  "sourceAudit": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/fleet-audit.json",
+  "styleManifest": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/manifest.json",
+  "retained": {
+    "kestrel": {
+      "taskId": "019fefdd-ac96-7dc8-a61e-f0760b4ae407",
+      "reviewArtifact": "art/class-models/runtime-tiers/arc-relay/meshy7-kestrel-review-v1/arc-kestrel-lean.glb"
+    },
+    "palisade": {
+      "taskId": "019ff0d7-b4d8-759a-ae34-6bb6fe42e0a9",
+      "reviewArtifact": "art/class-models/runtime-tiers/arc-relay/meshy7-palisade-multiview-retexture-calibration-v1/arc-palisade-lean.glb"
+    }
+  },
+  "provider": "Meshy",
+  "endpoint": "/openapi/v1/retexture",
+  "createdAt": "2026-08-11",
+  "authorization": "Owner approved the Palisade multiview calibration and directed the remaining fleet to use brighter dominant values than Palisade blue.",
+  "materialPolicy": {
+    "finish": "matte/satin high-roughness industrial surfaces",
+    "sourceDirection": "muted powder-coated metal and technical ceramic with satin roughness, oxidized hardware, restrained wear, and no toy gloss, neon, pastel, or near-black dominant hulls",
+    "promptLog": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/CONCEPT-SHEET-V7-PROMPT.md",
+    "promptLogSha256": "551114997dc2b8165a753864f3855e99c75bbeca55ca41add8d3634fb9aff3c8",
+    "prohibitedCues": [
+      "glossy plastic",
+      "clearcoat",
+      "lacquer",
+      "wet highlights",
+      "toy gloss"
+    ],
+    "transformEffect": "The deterministic value lift changes RGB tone only; it adds no saturation, synthetic highlight, reflection, or gloss cue.",
+    "enforcement": "Only the pinned four-view matte/satin V7 derivatives are submitted; the retexture request contains no competing text-style input."
+  },
+  "brightnessPolicy": {
+    "referenceClass": "palisade",
+    "referenceMedianLuminance": 73.3026,
+    "transform": {
+      "operation": "per-channel linear tonal lift",
+      "multiplier": 0.88,
+      "offset": 25,
+      "rationale": "Lift shadows and midtones above approved Palisade while preserving near-white highlights and reducing contrast rather than increasing saturation."
+    },
+    "enforcement": "Every remaining front-right-oblique style derivative must have a measured object median above Palisade before submission."
+  },
+  "balanceCheck": {
+    "checkedAt": "2026-08-11",
+    "balance": 1570,
+    "creditsPerTask": 10,
+    "taskCount": 14,
+    "totalCreditCap": 140,
+    "expectedBalanceAfter": 1430,
+    "pricingSource": "https://docs.meshy.ai/en/api/pricing"
+  },
+  "settingsSource": "https://docs.meshy.ai/en/api/retexture",
+  "runtimeAssetsPromoted": false,
+  "entries": [
+    {
+      "classId": "towline",
+      "source": {
+        "taskId": "019ff036-52d8-7539-a228-89f3f71560ee",
+        "endpoint": "multi-image-to-3d",
+        "rawModel": {
+          "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/towline/019ff036-52d8-7539-a228-89f3f71560ee/raw-model.glb",
+          "bytes": 64922012,
+          "sha256": "bf2f9f9c2e1fccb7f4c8700c8fb3b6c3427c2de60ac0be6169c0b6a2b1e2ae61",
+          "triangles": 1916932,
+          "meshes": 1,
+          "materials": 1,
+          "textures": 4,
+          "imageMimeTypes": [
+            "image/jpeg"
+          ]
+        }
+      },
+      "styleAuthority": {
+        "kind": "ordered-multiview-brighter-v1",
+        "valueAudit": {
+          "sampledObjectPixels": 27006,
+          "medianLuminance": 106.1278,
+          "upperQuartileLuminance": 154.6224,
+          "meanLuminance": 108.88286162334242
+        },
+        "inputs": [
+          {
+            "order": 1,
+            "view": "strict-front",
+            "primary": true,
+            "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/towline/01-front.png",
+            "sha256": "400ac7f34c4d127ae31a5dad605453130a7eca43daf0c16c7f64c26f6442c8a8",
+            "width": 1536,
+            "height": 1024
+          },
+          {
+            "order": 2,
+            "view": "strict-right",
+            "primary": false,
+            "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/towline/02-right.png",
+            "sha256": "eea2df98233ab33faeedfefddc0b7d832432676bcc0d627b11e1033d2c76cbe2",
+            "width": 1536,
+            "height": 1024
+          },
+          {
+            "order": 3,
+            "view": "strict-back",
+            "primary": false,
+            "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/towline/03-back.png",
+            "sha256": "5f6dc6acf07c00180ab1169db2bdca287ffd9612107c5e5269abf85d0c24da5a",
+            "width": 1536,
+            "height": 1024
+          },
+          {
+            "order": 4,
+            "view": "front-right-three-quarter",
+            "primary": false,
+            "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/towline/04-front-right-three-quarter.png",
+            "sha256": "fb45e80f0e4ecd4a7a6b31b75ac277d11b1fafe9114225c08c69e5cb76180c14",
+            "width": 1536,
+            "height": 1024
+          }
+        ]
+      },
+      "request": {
+        "ai_model": "meshy-7",
+        "enable_original_uv": true,
+        "enable_pbr": true,
+        "texture_resolution": "2k",
+        "alpha_thumbnail": true,
+        "target_formats": [
+          "glb"
+        ]
+      },
+      "creditCap": 10,
+      "authorized": false,
+      "completedTaskId": "019ff0f5-571a-7d26-b99e-bc5efbf9b378",
+      "submittedAt": "2026-08-11T13:14:01.362Z",
+      "authorizationConsumed": true,
+      "status": "SUCCEEDED",
+      "consumedCredits": 10,
+      "finishedAt": "2026-08-11T13:15:57.094Z",
+      "artifacts": [
+        {
+          "file": "raw-model.glb",
+          "bytes": 66393224,
+          "sha256": "7b94da6249953e93df89800278e6effd2e75a244e31d37876a2aaf259b788b87"
+        },
+        {
+          "file": "provider-preview.png",
+          "bytes": 190810,
+          "sha256": "d7bae5f651caf96d25a80239b31320ab1b237995aeb661653164b0059af08baa"
+        },
+        {
+          "file": "provider-preview-alpha.png",
+          "bytes": 190810,
+          "sha256": "d7bae5f651caf96d25a80239b31320ab1b237995aeb661653164b0059af08baa"
+        },
+        {
+          "file": "texture-0-base_color.png",
+          "bytes": 7081465,
+          "sha256": "c1bf5330fda91df6a8307a8a1feba6373cdeddab33d9b07e5e14e5a5c0c74797"
+        },
+        {
+          "file": "texture-0-metallic.png",
+          "bytes": 2932659,
+          "sha256": "5de160f8996658bca6bb02c0aba52f24db8e8e3054bd92f55050d1a0a97c0f99"
+        },
+        {
+          "file": "texture-0-roughness.png",
+          "bytes": 3471776,
+          "sha256": "b29fb30999bc76a944f8e98e2107617a07f7bbb4a8f80d7b558f130a870e7a62"
+        },
+        {
+          "file": "texture-0-normal.png",
+          "bytes": 5735330,
+          "sha256": "2345fc9f7af0961fc661f21e2643d5c32bd9c368f0969bce33d4bb6f364c9cfd"
+        }
+      ]
+    },
+    {
+      "classId": "patchbay",
+      "source": {
+        "taskId": "019ff036-52e1-7539-a8d4-c756b3e7a9dd",
+        "endpoint": "multi-image-to-3d",
+        "rawModel": {
+          "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/patchbay/019ff036-52e1-7539-a8d4-c756b3e7a9dd/raw-model.glb",
+          "bytes": 65443392,
+          "sha256": "fb125c8e07f5c327e5b5b50ae649d14e5bd76c35bd9394f2899569ed4e346d1d",
+          "triangles": 1968740,
+          "meshes": 1,
+          "materials": 1,
+          "textures": 4,
+          "imageMimeTypes": [
+            "image/jpeg"
+          ]
+        }
+      },
+      "styleAuthority": {
+        "kind": "ordered-multiview-brighter-v1",
+        "valueAudit": {
+          "sampledObjectPixels": 23215,
+          "medianLuminance": 121.7124,
+          "upperQuartileLuminance": 159.0746,
+          "meanLuminance": 119.57218840405271
+        },
+        "inputs": [
+          {
+            "order": 1,
+            "view": "strict-front",
+            "primary": true,
+            "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/patchbay/01-front.png",
+            "sha256": "6348794f5568cba5f196a6c3e945ff206b49b512dec0aeedfef62e2ed84023f1",
+            "width": 1536,
+            "height": 1024
+          },
+          {
+            "order": 2,
+            "view": "strict-right",
+            "primary": false,
+            "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/patchbay/02-right.png",
+            "sha256": "120ea8aae528b71d557b1bce2b3604cd38fc7db468c50f8abf72dc6b3a6b4234",
+            "width": 1536,
+            "height": 1024
+          },
+          {
+            "order": 3,
+            "view": "strict-back",
+            "primary": false,
+            "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/patchbay/03-back.png",
+            "sha256": "c2566d5c9767284b46ef543b7266e2c97fa7cb6593d2dae4c2ad67825e85de1e",
+            "width": 1536,
+            "height": 1024
+          },
+          {
+            "order": 4,
+            "view": "front-right-three-quarter",
+            "primary": false,
+            "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/patchbay/04-front-right-three-quarter.png",
+            "sha256": "c759d7af58aa78cbae587c20949f7272c5ef6fe305cad7569e2df28bc564f7ce",
+            "width": 1536,
+            "height": 1024
+          }
+        ]
+      },
+      "request": {
+        "ai_model": "meshy-7",
+        "enable_original_uv": true,
+        "enable_pbr": true,
+        "texture_resolution": "2k",
+        "alpha_thumbnail": true,
+        "target_formats": [
+          "glb"
+        ]
+      },
+      "creditCap": 10,
+      "authorized": false,
+      "completedTaskId": "019ff0f5-6483-7d28-88b2-7a0c55ff9f03",
+      "submittedAt": "2026-08-11T13:14:05.016Z",
+      "authorizationConsumed": true,
+      "status": "SUCCEEDED",
+      "consumedCredits": 10,
+      "finishedAt": "2026-08-11T13:16:02.613Z",
+      "artifacts": [
+        {
+          "file": "raw-model.glb",
+          "bytes": 65661760,
+          "sha256": "3d759fc1607e3a3ba10c539fd1991d4176f3c45cc1bfca0cf225c5dd4ff0e866"
+        },
+        {
+          "file": "provider-preview.png",
+          "bytes": 185963,
+          "sha256": "0ef068437354798b61d0298963550fe3cd3bae5bf31ad80c56441f582a76a502"
+        },
+        {
+          "file": "provider-preview-alpha.png",
+          "bytes": 185963,
+          "sha256": "0ef068437354798b61d0298963550fe3cd3bae5bf31ad80c56441f582a76a502"
+        },
+        {
+          "file": "texture-0-base_color.png",
+          "bytes": 6434854,
+          "sha256": "4475915e32b3dfb630c19dd5aa698fdc13f9967509401439906f38836aaab63b"
+        },
+        {
+          "file": "texture-0-metallic.png",
+          "bytes": 1492188,
+          "sha256": "a31def9271a7e4d85b72850f86aaf960611a3bed58a29152e21724b1a769622b"
+        },
+        {
+          "file": "texture-0-roughness.png",
+          "bytes": 2937845,
+          "sha256": "461b1c0272a38c79f56cdaa9f22f537d6aaa79145298e8b5653345b49e152b3a"
+        },
+        {
+          "file": "texture-0-normal.png",
+          "bytes": 5042389,
+          "sha256": "38ac47dcb58f57392f10d4acd795e30e081960d273b16378f4ae56548a73f5c1"
+        }
+      ]
+    },
+    {
+      "classId": "lantern",
+      "source": {
+        "taskId": "019ff036-52c5-7313-8d54-a4dade5fc0cd",
+        "endpoint": "multi-image-to-3d",
+        "rawModel": {
+          "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/lantern/019ff036-52c5-7313-8d54-a4dade5fc0cd/raw-model.glb",
+          "bytes": 64014016,
+          "sha256": "c9891d073356acef06c4c918adda902867282c4ba63f7d08e08e16f1c315e0cc",
+          "triangles": 1957232,
+          "meshes": 1,
+          "materials": 1,
+          "textures": 4,
+          "imageMimeTypes": [
+            "image/jpeg"
+          ]
+        }
+      },
+      "styleAuthority": {
+        "kind": "ordered-multiview-brighter-v1",
+        "valueAudit": {
+          "sampledObjectPixels": 24342,
+          "medianLuminance": 80.408,
+          "upperQuartileLuminance": 121.0434,
+          "meanLuminance": 94.93060868457795
+        },
+        "inputs": [
+          {
+            "order": 1,
+            "view": "strict-front",
+            "primary": true,
+            "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/lantern/01-front.png",
+            "sha256": "2fcbf419ce296b6c696e753980f1c298701403b99b7b461ef01ace991f56b014",
+            "width": 1536,
+            "height": 1024
+          },
+          {
+            "order": 2,
+            "view": "strict-right",
+            "primary": false,
+            "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/lantern/02-right.png",
+            "sha256": "59e02a7c5283350a11fa0854ebf47c8c649280e788e241cff93b57bf62880fc7",
+            "width": 1536,
+            "height": 1024
+          },
+          {
+            "order": 3,
+            "view": "strict-back",
+            "primary": false,
+            "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/lantern/03-back.png",
+            "sha256": "a4b530e5ab3e9365541aa651a03b5db9626769040aa06d746277208eaf2d2ff7",
+            "width": 1536,
+            "height": 1024
+          },
+          {
+            "order": 4,
+            "view": "front-right-three-quarter",
+            "primary": false,
+            "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/lantern/04-front-right-three-quarter.png",
+            "sha256": "d72c02fe8878a99ad6c6b9a99c5a0162cb749e655a81f511393e5e730b7a36ec",
+            "width": 1536,
+            "height": 1024
+          }
+        ]
+      },
+      "request": {
+        "ai_model": "meshy-7",
+        "enable_original_uv": true,
+        "enable_pbr": true,
+        "texture_resolution": "2k",
+        "alpha_thumbnail": true,
+        "target_formats": [
+          "glb"
+        ]
+      },
+      "creditCap": 10,
+      "authorized": false,
+      "completedTaskId": "019ff0f5-72ad-7131-a959-f832ae5936d8",
+      "submittedAt": "2026-08-11T13:14:08.668Z",
+      "authorizationConsumed": true,
+      "status": "SUCCEEDED",
+      "consumedCredits": 10,
+      "finishedAt": "2026-08-11T13:16:13.666Z",
+      "artifacts": [
+        {
+          "file": "raw-model.glb",
+          "bytes": 64716480,
+          "sha256": "db0fd0f2d568cf25f5ea17cbf25e91ea28f9fa21a4b97005b5f5cd7017d3049f"
+        },
+        {
+          "file": "provider-preview.png",
+          "bytes": 249545,
+          "sha256": "e9ba2f8d0a21cd5c96bd64ee8a5c2a44804e01bce6bc13ee04330920945680ec"
+        },
+        {
+          "file": "provider-preview-alpha.png",
+          "bytes": 249545,
+          "sha256": "e9ba2f8d0a21cd5c96bd64ee8a5c2a44804e01bce6bc13ee04330920945680ec"
+        },
+        {
+          "file": "texture-0-base_color.png",
+          "bytes": 6355553,
+          "sha256": "b8653804e8acac5be99e3f3d6f80b319727c90cbd5c516a3f7c09e0d6c459505"
+        },
+        {
+          "file": "texture-0-metallic.png",
+          "bytes": 2835360,
+          "sha256": "2f4e08bc9d8f1e7d2080889f516daa76507037f4cffb8e3ca0177ba5ebbea3a8"
+        },
+        {
+          "file": "texture-0-roughness.png",
+          "bytes": 2827806,
+          "sha256": "84b272623d0d690f36b99d194b9df6c354a08911d6e40891236704c5f6ae2b30"
+        },
+        {
+          "file": "texture-0-normal.png",
+          "bytes": 4680502,
+          "sha256": "084f289985159035e5fd36b4f2b1be54c2a3f4570ea36fda73b274d9d1049bb8"
+        }
+      ]
+    },
+    {
+      "classId": "mortar",
+      "source": {
+        "taskId": "019ff039-d5d4-73ae-9688-d68f53d66564",
+        "endpoint": "multi-image-to-3d",
+        "rawModel": {
+          "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/mortar/019ff039-d5d4-73ae-9688-d68f53d66564/raw-model.glb",
+          "bytes": 64350320,
+          "sha256": "89200842ce905440158ad8d7f9c1036f7fb27348e231945315e4b05dfd81adf5",
+          "triangles": 1996038,
+          "meshes": 1,
+          "materials": 1,
+          "textures": 4,
+          "imageMimeTypes": [
+            "image/jpeg"
+          ]
+        }
+      },
+      "styleAuthority": {
+        "kind": "ordered-multiview-brighter-v1",
+        "valueAudit": {
+          "sampledObjectPixels": 26923,
+          "medianLuminance": 86.8556,
+          "upperQuartileLuminance": 108.56,
+          "meanLuminance": 87.96081716004917
+        },
+        "inputs": [
+          {
+            "order": 1,
+            "view": "strict-front",
+            "primary": true,
+            "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/mortar/01-front.png",
+            "sha256": "8ba6517551a534d93fa6b1b025a3397ae5dfe075d76f299b11b01497a404bfac",
+            "width": 1536,
+            "height": 1024
+          },
+          {
+            "order": 2,
+            "view": "strict-right",
+            "primary": false,
+            "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/mortar/02-right.png",
+            "sha256": "581c677f8a11073899882ddec66e5522a74801dcb170d7bfa6c4140a05bc4c16",
+            "width": 1536,
+            "height": 1024
+          },
+          {
+            "order": 3,
+            "view": "strict-back",
+            "primary": false,
+            "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/mortar/03-back.png",
+            "sha256": "436f95b0456c3aec985c511f104d298b4901355a7b58d37d0161e8dcb86c1db9",
+            "width": 1536,
+            "height": 1024
+          },
+          {
+            "order": 4,
+            "view": "front-right-three-quarter",
+            "primary": false,
+            "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/mortar/04-front-right-three-quarter.png",
+            "sha256": "a4caf3a1a10ed3c1705c9d302345e3182132b919184297cbaf1457697871cb95",
+            "width": 1536,
+            "height": 1024
+          }
+        ]
+      },
+      "request": {
+        "ai_model": "meshy-7",
+        "enable_original_uv": true,
+        "enable_pbr": true,
+        "texture_resolution": "2k",
+        "alpha_thumbnail": true,
+        "target_formats": [
+          "glb"
+        ]
+      },
+      "creditCap": 10,
+      "authorized": false,
+      "completedTaskId": "019ff0f5-8102-7d30-8e75-7897c81d187a",
+      "submittedAt": "2026-08-11T13:14:12.241Z",
+      "authorizationConsumed": true,
+      "status": "SUCCEEDED",
+      "consumedCredits": 10,
+      "finishedAt": "2026-08-11T13:16:13.666Z",
+      "artifacts": [
+        {
+          "file": "raw-model.glb",
+          "bytes": 67418428,
+          "sha256": "19cd8b1bc0da8342f377870e3992df66f70f6df8375152f00b5769f0b9705bfa"
+        },
+        {
+          "file": "provider-preview.png",
+          "bytes": 186690,
+          "sha256": "297e922380ebe7064851372bb7494dab5954ee5b6c749b0c55d8214a1cb7cc1c"
+        },
+        {
+          "file": "provider-preview-alpha.png",
+          "bytes": 186690,
+          "sha256": "297e922380ebe7064851372bb7494dab5954ee5b6c749b0c55d8214a1cb7cc1c"
+        },
+        {
+          "file": "texture-0-base_color.png",
+          "bytes": 6593502,
+          "sha256": "6d5df2d8729b41e122674d4306613cb5a3d8c12d7c93175f32c5494daab41794"
+        },
+        {
+          "file": "texture-0-metallic.png",
+          "bytes": 3795918,
+          "sha256": "8873d3975b9c2b7479f6ab7b2d475564f5610e2c15930477abb710de3acc4099"
+        },
+        {
+          "file": "texture-0-roughness.png",
+          "bytes": 3554899,
+          "sha256": "6510e7711bf95a52464b094e741ab853d73b27fb1b53acbd97d61fd6b49576a2"
+        },
+        {
+          "file": "texture-0-normal.png",
+          "bytes": 5421602,
+          "sha256": "33effd9ee48cf103d72d71bce63e00b1f8b3507770eb8af4a29a92ae63020ec5"
+        }
+      ]
+    },
+    {
+      "classId": "minesmith",
+      "source": {
+        "taskId": "019ff03a-1c4d-73c6-abb6-569e7cb320f4",
+        "endpoint": "multi-image-to-3d",
+        "rawModel": {
+          "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/minesmith/019ff03a-1c4d-73c6-abb6-569e7cb320f4/raw-model.glb",
+          "bytes": 67380476,
+          "sha256": "13cdebba6db47bf210e752e8a9f5d8b85fc27cb97d9d9dda82ab112f308e1a63",
+          "triangles": 1976960,
+          "meshes": 1,
+          "materials": 1,
+          "textures": 4,
+          "imageMimeTypes": [
+            "image/jpeg"
+          ]
+        }
+      },
+      "styleAuthority": {
+        "kind": "ordered-multiview-brighter-v1",
+        "valueAudit": {
+          "sampledObjectPixels": 27675,
+          "medianLuminance": 82.06819999999999,
+          "upperQuartileLuminance": 104.89479999999999,
+          "meanLuminance": 84.41881624570821
+        },
+        "inputs": [
+          {
+            "order": 1,
+            "view": "strict-front",
+            "primary": true,
+            "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/minesmith/01-front.png",
+            "sha256": "7b536708c11c0bc4a2d257616ee22e78a2468d52c39c95f845d2b44090ea9829",
+            "width": 1536,
+            "height": 1024
+          },
+          {
+            "order": 2,
+            "view": "strict-right",
+            "primary": false,
+            "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/minesmith/02-right.png",
+            "sha256": "07205fc6f95d9f693f442b7b6c0f465214479a57fc5a1dbb8867400164154aea",
+            "width": 1536,
+            "height": 1024
+          },
+          {
+            "order": 3,
+            "view": "strict-back",
+            "primary": false,
+            "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/minesmith/03-back.png",
+            "sha256": "f7851994769e191fe057be7cde913de423f0fa67002a898988a6cfe307b769ea",
+            "width": 1536,
+            "height": 1024
+          },
+          {
+            "order": 4,
+            "view": "front-right-three-quarter",
+            "primary": false,
+            "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/minesmith/04-front-right-three-quarter.png",
+            "sha256": "61d73618ab7f3cbcbf0cc929dd492f15ec0db48dd7d3ec823d4edfff4a7a786b",
+            "width": 1536,
+            "height": 1024
+          }
+        ]
+      },
+      "request": {
+        "ai_model": "meshy-7",
+        "enable_original_uv": true,
+        "enable_pbr": true,
+        "texture_resolution": "2k",
+        "alpha_thumbnail": true,
+        "target_formats": [
+          "glb"
+        ]
+      },
+      "creditCap": 10,
+      "authorized": false,
+      "completedTaskId": "019ff0f5-8ee4-79fa-94d3-6a6cffbaa95f",
+      "submittedAt": "2026-08-11T13:14:15.790Z",
+      "authorizationConsumed": true,
+      "status": "SUCCEEDED",
+      "consumedCredits": 10,
+      "finishedAt": "2026-08-11T13:16:29.752Z",
+      "artifacts": [
+        {
+          "file": "raw-model.glb",
+          "bytes": 67291696,
+          "sha256": "6053c93a8beaff2de0cbd9802b29df3f6b03f9e1db87c9358d23a96bb47090ca"
+        },
+        {
+          "file": "provider-preview.png",
+          "bytes": 207579,
+          "sha256": "90c44a55a485d60279eb2bab1ffe9691b3ae18e3989faaf6567ab71b02912b7f"
+        },
+        {
+          "file": "provider-preview-alpha.png",
+          "bytes": 207579,
+          "sha256": "90c44a55a485d60279eb2bab1ffe9691b3ae18e3989faaf6567ab71b02912b7f"
+        },
+        {
+          "file": "texture-0-base_color.png",
+          "bytes": 6118663,
+          "sha256": "0c4d9545b8b234dac5e7a8b714633b6f0d2f746dba100a272a340c3fd86758f3"
+        },
+        {
+          "file": "texture-0-metallic.png",
+          "bytes": 2513496,
+          "sha256": "6f38880b4eb1ad4f855a28ca7f74584d60285496691fead1d599592fa0481b56"
+        },
+        {
+          "file": "texture-0-roughness.png",
+          "bytes": 3430354,
+          "sha256": "ebff15a56cf7a22d9e10c793b27319eaaf1f699953e5032c0e418597d7bd067c"
+        },
+        {
+          "file": "texture-0-normal.png",
+          "bytes": 4734368,
+          "sha256": "fe99848dabb295e9d24b874cc91d1a469a71b9a38781dfc1c06e113eba827889"
+        }
+      ]
+    },
+    {
+      "classId": "hush",
+      "source": {
+        "taskId": "019ff03a-2140-7f10-bd41-2f3e6d27df58",
+        "endpoint": "multi-image-to-3d",
+        "rawModel": {
+          "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/hush/019ff03a-2140-7f10-bd41-2f3e6d27df58/raw-model.glb",
+          "bytes": 63835840,
+          "sha256": "9b824a5dff44bc00e3e8c20fa89a7f785f98cc6ae55aad68a62268b7b3b39d69",
+          "triangles": 1992860,
+          "meshes": 1,
+          "materials": 1,
+          "textures": 4,
+          "imageMimeTypes": [
+            "image/jpeg"
+          ]
+        }
+      },
+      "styleAuthority": {
+        "kind": "ordered-multiview-brighter-v1",
+        "valueAudit": {
+          "sampledObjectPixels": 29342,
+          "medianLuminance": 94.2784,
+          "upperQuartileLuminance": 112.5684,
+          "meanLuminance": 97.56457741803634
+        },
+        "inputs": [
+          {
+            "order": 1,
+            "view": "strict-front",
+            "primary": true,
+            "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/hush/01-front.png",
+            "sha256": "2d60d535e82089ec7fde7a9b85bbf2a2b4122d7bd1f8850fcb2d16927be2d615",
+            "width": 1536,
+            "height": 1024
+          },
+          {
+            "order": 2,
+            "view": "strict-right",
+            "primary": false,
+            "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/hush/02-right.png",
+            "sha256": "bd47101fd690142bf694261047acd5e91e2d7ececec3f87506367c9034ef9052",
+            "width": 1536,
+            "height": 1024
+          },
+          {
+            "order": 3,
+            "view": "strict-back",
+            "primary": false,
+            "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/hush/03-back.png",
+            "sha256": "97a23c9893f9c4821817f473028c36d1b75d401e19dfdb7a98462a50afb9216d",
+            "width": 1536,
+            "height": 1024
+          },
+          {
+            "order": 4,
+            "view": "front-right-three-quarter",
+            "primary": false,
+            "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/hush/04-front-right-three-quarter.png",
+            "sha256": "cf561fc340a2ebaa38fd2dedafacafda2c6577430968983c303dfd1bfc6eed73",
+            "width": 1536,
+            "height": 1024
+          }
+        ]
+      },
+      "request": {
+        "ai_model": "meshy-7",
+        "enable_original_uv": true,
+        "enable_pbr": true,
+        "texture_resolution": "2k",
+        "alpha_thumbnail": true,
+        "target_formats": [
+          "glb"
+        ]
+      },
+      "creditCap": 10,
+      "authorized": false,
+      "completedTaskId": "019ff0f5-9cc3-7fbd-8f69-6cf86e3c48fa",
+      "submittedAt": "2026-08-11T13:14:19.252Z",
+      "authorizationConsumed": true,
+      "status": "SUCCEEDED",
+      "consumedCredits": 10,
+      "finishedAt": "2026-08-11T13:16:51.151Z",
+      "artifacts": [
+        {
+          "file": "raw-model.glb",
+          "bytes": 65459832,
+          "sha256": "a60bc08db56ada06049317fc34ea507af4a6b3a32671af5234eb73296895725c"
+        },
+        {
+          "file": "provider-preview.png",
+          "bytes": 98019,
+          "sha256": "2c6213af16f3601cebe17657ecfdb3697bc5e1c3f3d531d7d269ecd5fe33c70b"
+        },
+        {
+          "file": "provider-preview-alpha.png",
+          "bytes": 98019,
+          "sha256": "2c6213af16f3601cebe17657ecfdb3697bc5e1c3f3d531d7d269ecd5fe33c70b"
+        },
+        {
+          "file": "texture-0-base_color.png",
+          "bytes": 6105642,
+          "sha256": "9f0dc67dc932eb7762bd9c622eb10178b27befddbfd3700296bc0b1e5eb086c8"
+        },
+        {
+          "file": "texture-0-metallic.png",
+          "bytes": 2095038,
+          "sha256": "0e31b3f1846d1d752542153d60185daf06d16c7d7c864716da2495345ca8b28b"
+        },
+        {
+          "file": "texture-0-roughness.png",
+          "bytes": 2870200,
+          "sha256": "de348e6f402cc6768d74968b2c500940ab17bf1b9ccf9b7ae978aebe7638b2c6"
+        },
+        {
+          "file": "texture-0-normal.png",
+          "bytes": 4596689,
+          "sha256": "effe354cdef0d88e1661a85e3d822a3712d64c891ef70e015f8f014e1ea50e1b"
+        }
+      ]
+    },
+    {
+      "classId": "relay",
+      "source": {
+        "taskId": "019ff03a-2715-73c8-b3a5-1ba12b802f4d",
+        "endpoint": "multi-image-to-3d",
+        "rawModel": {
+          "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/relay/019ff03a-2715-73c8-b3a5-1ba12b802f4d/raw-model.glb",
+          "bytes": 65006024,
+          "sha256": "4b551066767b24cc8d657b60fabacc81e92265f1c863bd38b9ae6f380d42ce75",
+          "triangles": 1997700,
+          "meshes": 1,
+          "materials": 1,
+          "textures": 4,
+          "imageMimeTypes": [
+            "image/jpeg"
+          ]
+        }
+      },
+      "styleAuthority": {
+        "kind": "ordered-multiview-brighter-v1",
+        "valueAudit": {
+          "sampledObjectPixels": 21520,
+          "medianLuminance": 74.7728,
+          "upperQuartileLuminance": 102.28079999999999,
+          "meanLuminance": 80.15852026022235
+        },
+        "inputs": [
+          {
+            "order": 1,
+            "view": "strict-front",
+            "primary": true,
+            "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/relay/01-front.png",
+            "sha256": "e2f666403f4808a2bd5a7081b1b06114f4bf729bb91fdc791ef0e9d0c793bae8",
+            "width": 1536,
+            "height": 1024
+          },
+          {
+            "order": 2,
+            "view": "strict-right",
+            "primary": false,
+            "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/relay/02-right.png",
+            "sha256": "1cc09a18c636b4b7c11931faf803462aab5e8ae30361bd8e7d70d86b1543aae0",
+            "width": 1536,
+            "height": 1024
+          },
+          {
+            "order": 3,
+            "view": "strict-back",
+            "primary": false,
+            "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/relay/03-back.png",
+            "sha256": "4a965f6cfe4400de616a8a691aed444073818265bffc9b086baa25c790521df2",
+            "width": 1536,
+            "height": 1024
+          },
+          {
+            "order": 4,
+            "view": "front-right-three-quarter",
+            "primary": false,
+            "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/relay/04-front-right-three-quarter.png",
+            "sha256": "fdfd11827b93a8ae0fdec36374f74bbc2fff896e0ecfb1e8228d14bb09b9308b",
+            "width": 1536,
+            "height": 1024
+          }
+        ]
+      },
+      "request": {
+        "ai_model": "meshy-7",
+        "enable_original_uv": true,
+        "enable_pbr": true,
+        "texture_resolution": "2k",
+        "alpha_thumbnail": true,
+        "target_formats": [
+          "glb"
+        ]
+      },
+      "creditCap": 10,
+      "authorized": false,
+      "completedTaskId": "019ff0f5-aa49-7fc0-b9b2-67e1bbeb2af4",
+      "submittedAt": "2026-08-11T13:14:22.577Z",
+      "authorizationConsumed": true,
+      "status": "SUCCEEDED",
+      "consumedCredits": 10,
+      "finishedAt": "2026-08-11T13:16:56.515Z",
+      "artifacts": [
+        {
+          "file": "raw-model.glb",
+          "bytes": 65705624,
+          "sha256": "5c3462e728e90122f6df485e1719d7b7af6d301b7309c746222198f3f7a67bb0"
+        },
+        {
+          "file": "provider-preview.png",
+          "bytes": 123981,
+          "sha256": "c0bd7d7b891d398eb561f1d3c64aa9b3d121349b845cad71295852a5054b3bb5"
+        },
+        {
+          "file": "provider-preview-alpha.png",
+          "bytes": 123981,
+          "sha256": "c0bd7d7b891d398eb561f1d3c64aa9b3d121349b845cad71295852a5054b3bb5"
+        },
+        {
+          "file": "texture-0-base_color.png",
+          "bytes": 5969271,
+          "sha256": "e04cd52d3bcc92121c880b770d8c403a542ab56d59eb014849380bc6ba9244b7"
+        },
+        {
+          "file": "texture-0-metallic.png",
+          "bytes": 2684279,
+          "sha256": "8990b33667abb44ece0a481dc7d38638855a57b4e26be40197886cc3cfb20ff9"
+        },
+        {
+          "file": "texture-0-roughness.png",
+          "bytes": 2817235,
+          "sha256": "82a80e1db8b7812e1b08571d6d82c52372ff130fac9a1a1a76853c441ccc2af5"
+        },
+        {
+          "file": "texture-0-normal.png",
+          "bytes": 4522659,
+          "sha256": "902cb9d31faa926db569bc9739dac799b88cef676e58f2af8c3a26ea27b305b6"
+        }
+      ]
+    },
+    {
+      "classId": "switchback",
+      "source": {
+        "taskId": "019ff03d-2677-76b5-b0b8-f9dec1aef11c",
+        "endpoint": "multi-image-to-3d",
+        "rawModel": {
+          "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/switchback/019ff03d-2677-76b5-b0b8-f9dec1aef11c/raw-model.glb",
+          "bytes": 65660764,
+          "sha256": "f8a1dd792658e23462d7d3c73c836535c35cf564e3bce0a88c1a15c4fd555827",
+          "triangles": 1974122,
+          "meshes": 1,
+          "materials": 1,
+          "textures": 4,
+          "imageMimeTypes": [
+            "image/jpeg"
+          ]
+        }
+      },
+      "styleAuthority": {
+        "kind": "ordered-multiview-brighter-v1",
+        "valueAudit": {
+          "sampledObjectPixels": 27762,
+          "medianLuminance": 92.643,
+          "upperQuartileLuminance": 137.0682,
+          "meanLuminance": 102.46306275484206
+        },
+        "inputs": [
+          {
+            "order": 1,
+            "view": "strict-front",
+            "primary": true,
+            "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/switchback/01-front.png",
+            "sha256": "eb7858100c7b2b781d059efa9766c9d258b117dbb2a125beb59502282f9d6cd4",
+            "width": 1536,
+            "height": 1024
+          },
+          {
+            "order": 2,
+            "view": "strict-right",
+            "primary": false,
+            "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/switchback/02-right.png",
+            "sha256": "fe5f5528b41e5c1b546069369d686cb9edae75a14ccd624e567ea379b94d8994",
+            "width": 1536,
+            "height": 1024
+          },
+          {
+            "order": 3,
+            "view": "strict-back",
+            "primary": false,
+            "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/switchback/03-back.png",
+            "sha256": "f3955661118d3ba53c8753ab9985a9aa74d5a0323d14e660102181870d5ad0ce",
+            "width": 1536,
+            "height": 1024
+          },
+          {
+            "order": 4,
+            "view": "front-right-three-quarter",
+            "primary": false,
+            "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/switchback/04-front-right-three-quarter.png",
+            "sha256": "7bddc118f1aa844b8041c6ce5b3599e9fe57820fc6f49c277785fefc8eb9732e",
+            "width": 1536,
+            "height": 1024
+          }
+        ]
+      },
+      "request": {
+        "ai_model": "meshy-7",
+        "enable_original_uv": true,
+        "enable_pbr": true,
+        "texture_resolution": "2k",
+        "alpha_thumbnail": true,
+        "target_formats": [
+          "glb"
+        ]
+      },
+      "creditCap": 10,
+      "authorized": false,
+      "completedTaskId": "019ff0f5-b75f-7fc0-ad04-177cbf06f9a4",
+      "submittedAt": "2026-08-11T13:14:26.442Z",
+      "authorizationConsumed": true,
+      "status": "SUCCEEDED",
+      "consumedCredits": 10,
+      "finishedAt": "2026-08-11T13:16:51.151Z",
+      "artifacts": [
+        {
+          "file": "raw-model.glb",
+          "bytes": 67322468,
+          "sha256": "617f3ada5a31808cdaf5e06b7f0bc05938d96904d9ef81409e03bbf666434f69"
+        },
+        {
+          "file": "provider-preview.png",
+          "bytes": 188062,
+          "sha256": "a324a1c739d8ec2487032c8c7b6ef071e94fa2e38fcc5793cbd0cdf5c4656f61"
+        },
+        {
+          "file": "provider-preview-alpha.png",
+          "bytes": 188062,
+          "sha256": "a324a1c739d8ec2487032c8c7b6ef071e94fa2e38fcc5793cbd0cdf5c4656f61"
+        },
+        {
+          "file": "texture-0-base_color.png",
+          "bytes": 6577532,
+          "sha256": "1e488cbadce85c3e8941f503bbdd28ca10a27d2537617a7fda2b628124448505"
+        },
+        {
+          "file": "texture-0-metallic.png",
+          "bytes": 3508804,
+          "sha256": "c43d4544bc17ac284da261c2758a71739870d46756e9a91d6b8aa0178a02306e"
+        },
+        {
+          "file": "texture-0-roughness.png",
+          "bytes": 3479410,
+          "sha256": "d4924c9b0f8007a83f4f9ca02a0d0db66bfc702c2ec7f5db2fec6088b80227ed"
+        },
+        {
+          "file": "texture-0-normal.png",
+          "bytes": 5231869,
+          "sha256": "99fc9b9397dc9e8fcee6203a3cdfef311e80ceb33bd51955353fa62efd2e34d9"
+        }
+      ]
+    },
+    {
+      "classId": "longshot",
+      "source": {
+        "taskId": "019ff03d-55d7-7443-985f-81962a0d1b7b",
+        "endpoint": "multi-image-to-3d",
+        "rawModel": {
+          "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/longshot/019ff03d-55d7-7443-985f-81962a0d1b7b/raw-model.glb",
+          "bytes": 65173408,
+          "sha256": "1443dba60ed1e827dfc96d553c9cfbaf55a73ba0872f129c992d93b598ea552e",
+          "triangles": 1989812,
+          "meshes": 1,
+          "materials": 1,
+          "textures": 4,
+          "imageMimeTypes": [
+            "image/jpeg"
+          ]
+        }
+      },
+      "styleAuthority": {
+        "kind": "ordered-multiview-brighter-v1",
+        "valueAudit": {
+          "sampledObjectPixels": 25832,
+          "medianLuminance": 85.28479999999999,
+          "upperQuartileLuminance": 111.604,
+          "meanLuminance": 87.36846899969008
+        },
+        "inputs": [
+          {
+            "order": 1,
+            "view": "strict-front",
+            "primary": true,
+            "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/longshot/01-front.png",
+            "sha256": "0b509287cf740bd91fbd46060be4790f52487e2726b65c58d76cbd639fef8f9a",
+            "width": 1536,
+            "height": 1024
+          },
+          {
+            "order": 2,
+            "view": "strict-right",
+            "primary": false,
+            "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/longshot/02-right.png",
+            "sha256": "e7f3de020591a2d6da3a96940e87f7a07333409ec65194ca1e34e6989e42f34a",
+            "width": 1536,
+            "height": 1024
+          },
+          {
+            "order": 3,
+            "view": "strict-back",
+            "primary": false,
+            "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/longshot/03-back.png",
+            "sha256": "fcf37d72b1d9c28a7e928b056adc259081f872940717db310f9e57177ad4dafe",
+            "width": 1536,
+            "height": 1024
+          },
+          {
+            "order": 4,
+            "view": "front-right-three-quarter",
+            "primary": false,
+            "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/longshot/04-front-right-three-quarter.png",
+            "sha256": "5f4df174914f3e5b4bdc72b0f0a012e55fea6fe37bf67ad940bfd3d4a95a7968",
+            "width": 1536,
+            "height": 1024
+          }
+        ]
+      },
+      "request": {
+        "ai_model": "meshy-7",
+        "enable_original_uv": true,
+        "enable_pbr": true,
+        "texture_resolution": "2k",
+        "alpha_thumbnail": true,
+        "target_formats": [
+          "glb"
+        ]
+      },
+      "creditCap": 10,
+      "authorized": false,
+      "completedTaskId": "019ff0f5-c65e-713c-a229-c581b2f852f3",
+      "submittedAt": "2026-08-11T13:14:30.179Z",
+      "authorizationConsumed": true,
+      "status": "SUCCEEDED",
+      "consumedCredits": 10,
+      "finishedAt": "2026-08-11T13:17:12.551Z",
+      "artifacts": [
+        {
+          "file": "raw-model.glb",
+          "bytes": 67138060,
+          "sha256": "09eceabdd2ebac740ca8875e84088f9c2d825e5ef56b28b3ce2faf9c346603ed"
+        },
+        {
+          "file": "provider-preview.png",
+          "bytes": 90173,
+          "sha256": "684835b3c380892d0fe7eb11da8bb819cf5a31791e1c254177e78322ea4a8644"
+        },
+        {
+          "file": "provider-preview-alpha.png",
+          "bytes": 90173,
+          "sha256": "684835b3c380892d0fe7eb11da8bb819cf5a31791e1c254177e78322ea4a8644"
+        },
+        {
+          "file": "texture-0-base_color.png",
+          "bytes": 6070475,
+          "sha256": "cff2f6a0cc1f88d445dbe0e554976f534fe03d9e5073fd5088dd88c3875955e9"
+        },
+        {
+          "file": "texture-0-metallic.png",
+          "bytes": 3092380,
+          "sha256": "274238994141644f801ea13393b6dd5e637900c7b046c223abcde5a46ee3e86a"
+        },
+        {
+          "file": "texture-0-roughness.png",
+          "bytes": 3190114,
+          "sha256": "782cfaf31d9ca20c8c949a2971861f90d4ed2d0479c9e3e2d718fb621415ab07"
+        },
+        {
+          "file": "texture-0-normal.png",
+          "bytes": 4800570,
+          "sha256": "302de9ad18eff696f0414910900e3ee45aafac8bf0c334a8241f1867117affe0"
+        }
+      ]
+    },
+    {
+      "classId": "mason",
+      "source": {
+        "taskId": "019ff03d-c093-745f-95cc-437bae8cc0b0",
+        "endpoint": "multi-image-to-3d",
+        "rawModel": {
+          "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/mason/019ff03d-c093-745f-95cc-437bae8cc0b0/raw-model.glb",
+          "bytes": 65329976,
+          "sha256": "36e90dbc35293f188da9eb0b366216d9e2bb8a99b5596b93c2e35f50c636b977",
+          "triangles": 1998792,
+          "meshes": 1,
+          "materials": 1,
+          "textures": 4,
+          "imageMimeTypes": [
+            "image/jpeg"
+          ]
+        }
+      },
+      "styleAuthority": {
+        "kind": "ordered-multiview-brighter-v1",
+        "valueAudit": {
+          "sampledObjectPixels": 24746,
+          "medianLuminance": 92.27680000000001,
+          "upperQuartileLuminance": 132.9152,
+          "meanLuminance": 97.88293755758365
+        },
+        "inputs": [
+          {
+            "order": 1,
+            "view": "strict-front",
+            "primary": true,
+            "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/mason/01-front.png",
+            "sha256": "68f9784c3a06eff9dcb4564d8db26f6f9bae9448968dbdd63c1f191187ab667d",
+            "width": 1536,
+            "height": 1024
+          },
+          {
+            "order": 2,
+            "view": "strict-right",
+            "primary": false,
+            "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/mason/02-right.png",
+            "sha256": "2b2648673d13636b55b17574aad4ef9f6ba62f511a75eb00b2af4737b5c5c0e6",
+            "width": 1536,
+            "height": 1024
+          },
+          {
+            "order": 3,
+            "view": "strict-back",
+            "primary": false,
+            "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/mason/03-back.png",
+            "sha256": "65e24d5e730a036aa69e9c2e8959219000a084d2c6df670dc5435542f1bdf0f9",
+            "width": 1536,
+            "height": 1024
+          },
+          {
+            "order": 4,
+            "view": "front-right-three-quarter",
+            "primary": false,
+            "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/mason/04-front-right-three-quarter.png",
+            "sha256": "6d35bcbb54af56c50157425da4da2ae21ff7842c78197f0a4d897bfed8476cb9",
+            "width": 1536,
+            "height": 1024
+          }
+        ]
+      },
+      "request": {
+        "ai_model": "meshy-7",
+        "enable_original_uv": true,
+        "enable_pbr": true,
+        "texture_resolution": "2k",
+        "alpha_thumbnail": true,
+        "target_formats": [
+          "glb"
+        ]
+      },
+      "creditCap": 10,
+      "authorized": false,
+      "completedTaskId": "019ff0f5-d4f8-7fc2-a5d6-602e90d80e3d",
+      "submittedAt": "2026-08-11T13:14:33.666Z",
+      "authorizationConsumed": true,
+      "status": "SUCCEEDED",
+      "consumedCredits": 10,
+      "finishedAt": "2026-08-11T13:17:22.903Z",
+      "artifacts": [
+        {
+          "file": "raw-model.glb",
+          "bytes": 66771208,
+          "sha256": "23b252c29981947cc03cd8efed14b107e97d7279daeb13658b80d8f85d207d08"
+        },
+        {
+          "file": "provider-preview.png",
+          "bytes": 129196,
+          "sha256": "1de41d22a17dae25ab3c23fd7f5757aff3a9adcce355a9df27932b9a81cedb57"
+        },
+        {
+          "file": "provider-preview-alpha.png",
+          "bytes": 129196,
+          "sha256": "1de41d22a17dae25ab3c23fd7f5757aff3a9adcce355a9df27932b9a81cedb57"
+        },
+        {
+          "file": "texture-0-base_color.png",
+          "bytes": 6014227,
+          "sha256": "8705bc2fcfd8fb3e8f7fe71bf2f5845d3f12f93e6f0bccce4a88c86d8b4c81f0"
+        },
+        {
+          "file": "texture-0-metallic.png",
+          "bytes": 3156208,
+          "sha256": "42fb49e9d133d85f682fd76fbfe62ddab736b36171f49a1ce6a5dcc8af846160"
+        },
+        {
+          "file": "texture-0-roughness.png",
+          "bytes": 3375768,
+          "sha256": "81892a6a1bde7c37dae830ef51e723d3cec86985552eecc350bb3777857e8f04"
+        },
+        {
+          "file": "texture-0-normal.png",
+          "bytes": 4671036,
+          "sha256": "30e82316f2676e3f3ab101f3bf315798284c00ed5a195d90fae6903a548b4bb6"
+        }
+      ]
+    },
+    {
+      "classId": "sunder",
+      "source": {
+        "taskId": "019ff03d-d40d-7257-a74a-49416a686a93",
+        "endpoint": "multi-image-to-3d",
+        "rawModel": {
+          "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/sunder/019ff03d-d40d-7257-a74a-49416a686a93/raw-model.glb",
+          "bytes": 80973476,
+          "sha256": "592e106d378c4a4a557a0b73b9712d3e46bc5b7e0ccbda0fe23e134eb79fa37e",
+          "triangles": 1967078,
+          "meshes": 1,
+          "materials": 1,
+          "textures": 4,
+          "imageMimeTypes": [
+            "image/jpeg"
+          ]
+        }
+      },
+      "styleAuthority": {
+        "kind": "ordered-multiview-brighter-v1",
+        "valueAudit": {
+          "sampledObjectPixels": 23178,
+          "medianLuminance": 80.4726,
+          "upperQuartileLuminance": 104.31379999999999,
+          "meanLuminance": 90.24242022607494
+        },
+        "inputs": [
+          {
+            "order": 1,
+            "view": "strict-front",
+            "primary": true,
+            "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/sunder/01-front.png",
+            "sha256": "8e028f3a70719e571bebccbf55f19a64e87ed76d3811ac0ce3779a4677b17cf1",
+            "width": 1536,
+            "height": 1024
+          },
+          {
+            "order": 2,
+            "view": "strict-right",
+            "primary": false,
+            "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/sunder/02-right.png",
+            "sha256": "db9fc3a5fe0d06bb1ac299a92a893870d422a698a45e3e09c62acafd6cc71b89",
+            "width": 1536,
+            "height": 1024
+          },
+          {
+            "order": 3,
+            "view": "strict-back",
+            "primary": false,
+            "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/sunder/03-back.png",
+            "sha256": "0f9c3ad404d1ee85c0679fe932b5e2585a917daf1f00b06c121aa55dd025e1ec",
+            "width": 1536,
+            "height": 1024
+          },
+          {
+            "order": 4,
+            "view": "front-right-three-quarter",
+            "primary": false,
+            "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/sunder/04-front-right-three-quarter.png",
+            "sha256": "1615a689fff71734f00853d2593a6b3f6f6ce66417237172470eb70d8c73bf1f",
+            "width": 1536,
+            "height": 1024
+          }
+        ]
+      },
+      "request": {
+        "ai_model": "meshy-7",
+        "enable_original_uv": true,
+        "enable_pbr": true,
+        "texture_resolution": "2k",
+        "alpha_thumbnail": true,
+        "target_formats": [
+          "glb"
+        ]
+      },
+      "creditCap": 10,
+      "authorized": false,
+      "completedTaskId": "019ff0f5-e29a-7fc4-91d3-6f5a7f246142",
+      "submittedAt": "2026-08-11T13:14:37.424Z",
+      "authorizationConsumed": true,
+      "status": "SUCCEEDED",
+      "consumedCredits": 10,
+      "finishedAt": "2026-08-11T13:17:28.093Z",
+      "artifacts": [
+        {
+          "file": "raw-model.glb",
+          "bytes": 81660208,
+          "sha256": "54fb4086f0e064c24234020efd780d3618b05e8bba657b80a90aadccd9a2edc7"
+        },
+        {
+          "file": "provider-preview.png",
+          "bytes": 252655,
+          "sha256": "74639744953e6e1d5c0649e82022f88cbf16d03545d25fb7b705c8319e20d1d9"
+        },
+        {
+          "file": "provider-preview-alpha.png",
+          "bytes": 252655,
+          "sha256": "74639744953e6e1d5c0649e82022f88cbf16d03545d25fb7b705c8319e20d1d9"
+        },
+        {
+          "file": "texture-0-base_color.png",
+          "bytes": 6163413,
+          "sha256": "14185f93fc307e399612856d11812eaf6c7cf6d4d550fa5d977c2c1ddea9e464"
+        },
+        {
+          "file": "texture-0-metallic.png",
+          "bytes": 3422733,
+          "sha256": "1638a18bcc8b17c4485c173b678323e6a21ad14842498a4b2f4fbade81aab092"
+        },
+        {
+          "file": "texture-0-roughness.png",
+          "bytes": 3405715,
+          "sha256": "df5b418d1e316d9520dcef153e13fcac4fbe7768f226b0b5a88359d48d128194"
+        },
+        {
+          "file": "texture-0-normal.png",
+          "bytes": 5037151,
+          "sha256": "1bc02bdf982282dc0acf145701e2171b46c596d6339804d4203aef8d140474bf"
+        }
+      ]
+    },
+    {
+      "classId": "repulsor",
+      "source": {
+        "taskId": "019ff040-aa48-72f9-b49a-9c9043607b6a",
+        "endpoint": "multi-image-to-3d",
+        "rawModel": {
+          "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/repulsor/019ff040-aa48-72f9-b49a-9c9043607b6a/raw-model.glb",
+          "bytes": 66153548,
+          "sha256": "93c76060bd9a00fe5c8ba836fe60bfff99875fca365e1113b8cfaf12a34c3596",
+          "triangles": 1999000,
+          "meshes": 1,
+          "materials": 1,
+          "textures": 4,
+          "imageMimeTypes": [
+            "image/jpeg"
+          ]
+        }
+      },
+      "styleAuthority": {
+        "kind": "ordered-multiview-brighter-v1",
+        "valueAudit": {
+          "sampledObjectPixels": 30559,
+          "medianLuminance": 90.8148,
+          "upperQuartileLuminance": 107.5734,
+          "meanLuminance": 89.47069827546753
+        },
+        "inputs": [
+          {
+            "order": 1,
+            "view": "strict-front",
+            "primary": true,
+            "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/repulsor/01-front.png",
+            "sha256": "638e26123757c6261b0a2d4e102c45997ac9a8a46b7b09f0bde4dfe1bd39ceef",
+            "width": 1536,
+            "height": 1024
+          },
+          {
+            "order": 2,
+            "view": "strict-right",
+            "primary": false,
+            "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/repulsor/02-right.png",
+            "sha256": "4f0149b5b7ead9bdd660aa469a194eb7ed4d99e7b295c1f2f6bc911c9c0574cd",
+            "width": 1536,
+            "height": 1024
+          },
+          {
+            "order": 3,
+            "view": "strict-back",
+            "primary": false,
+            "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/repulsor/03-back.png",
+            "sha256": "a223c7dd92cc8914708f54cc8689c751ae84825060a636ef9dccd989a094206f",
+            "width": 1536,
+            "height": 1024
+          },
+          {
+            "order": 4,
+            "view": "front-right-three-quarter",
+            "primary": false,
+            "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/repulsor/04-front-right-three-quarter.png",
+            "sha256": "7c1b61abf30724ce04683374fcc62cbd800924f5c241f6628ffd022bfec578d9",
+            "width": 1536,
+            "height": 1024
+          }
+        ]
+      },
+      "request": {
+        "ai_model": "meshy-7",
+        "enable_original_uv": true,
+        "enable_pbr": true,
+        "texture_resolution": "2k",
+        "alpha_thumbnail": true,
+        "target_formats": [
+          "glb"
+        ]
+      },
+      "creditCap": 10,
+      "authorized": false,
+      "completedTaskId": "019ff0f5-f145-7d45-b1e7-f5a21c1b77c3",
+      "submittedAt": "2026-08-11T13:14:40.640Z",
+      "authorizationConsumed": true,
+      "status": "SUCCEEDED",
+      "consumedCredits": 10,
+      "finishedAt": "2026-08-11T13:17:33.485Z",
+      "artifacts": [
+        {
+          "file": "raw-model.glb",
+          "bytes": 67021280,
+          "sha256": "c5aa8e2c22fae2651600e1f59270a633443827e5b0df2ea3f92bce73ba037e0f"
+        },
+        {
+          "file": "provider-preview.png",
+          "bytes": 141667,
+          "sha256": "6c9f47aa1e79127fe580f39394c4427c57a4ab3c99c2f1212142e8d9c50660dd"
+        },
+        {
+          "file": "provider-preview-alpha.png",
+          "bytes": 141667,
+          "sha256": "6c9f47aa1e79127fe580f39394c4427c57a4ab3c99c2f1212142e8d9c50660dd"
+        },
+        {
+          "file": "texture-0-base_color.png",
+          "bytes": 6431096,
+          "sha256": "459ac6e5249a85f843e431306a13c1a32e789879a3a731270a894d5caeae208b"
+        },
+        {
+          "file": "texture-0-metallic.png",
+          "bytes": 3358159,
+          "sha256": "bf55fdc63477f83a73a619e6d8ca2bdaa0f2b2c71de7e308f89c2f00f24ccbfc"
+        },
+        {
+          "file": "texture-0-roughness.png",
+          "bytes": 3291598,
+          "sha256": "10c732818dc8dee3ae7cfd7761d1e4a850b3a84adc57968b77dbf9bfba40c1fd"
+        },
+        {
+          "file": "texture-0-normal.png",
+          "bytes": 5082669,
+          "sha256": "f2f28df794d0bb116c4b4fce77a0f3cd3b5af65abfd4ae3f6a266d73a24c19e6"
+        }
+      ]
+    },
+    {
+      "classId": "veil",
+      "source": {
+        "taskId": "019ff040-b455-77cf-a735-f53a83786a43",
+        "endpoint": "multi-image-to-3d",
+        "rawModel": {
+          "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/veil/019ff040-b455-77cf-a735-f53a83786a43/raw-model.glb",
+          "bytes": 64618672,
+          "sha256": "3c9b7ab70a232d1a85045e6e966cb6049aa45b1f39cb68c22ee03925fd87ca35",
+          "triangles": 1960308,
+          "meshes": 1,
+          "materials": 1,
+          "textures": 4,
+          "imageMimeTypes": [
+            "image/jpeg"
+          ]
+        }
+      },
+      "styleAuthority": {
+        "kind": "ordered-multiview-brighter-v1",
+        "valueAudit": {
+          "sampledObjectPixels": 21903,
+          "medianLuminance": 124.92379999999999,
+          "upperQuartileLuminance": 162.2964,
+          "meanLuminance": 124.08869427019188
+        },
+        "inputs": [
+          {
+            "order": 1,
+            "view": "strict-front",
+            "primary": true,
+            "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/veil/01-front.png",
+            "sha256": "354927cbab0768abbe6c992b1ba3274453fc58b20a22c70cc79dd2b0ee69af03",
+            "width": 1536,
+            "height": 1024
+          },
+          {
+            "order": 2,
+            "view": "strict-right",
+            "primary": false,
+            "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/veil/02-right.png",
+            "sha256": "6bbc4e6a0d62dc9bacfea27197f3935e85fad23d7a412ef53571ba8edd803f40",
+            "width": 1536,
+            "height": 1024
+          },
+          {
+            "order": 3,
+            "view": "strict-back",
+            "primary": false,
+            "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/veil/03-back.png",
+            "sha256": "7e9481c7e13351be2fe7c76d63a63afbef6b85f8ee3ba561d70aea127837c18c",
+            "width": 1536,
+            "height": 1024
+          },
+          {
+            "order": 4,
+            "view": "front-right-three-quarter",
+            "primary": false,
+            "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/veil/04-front-right-three-quarter.png",
+            "sha256": "fc113d2318eb328559322d2be90812f828c4d12589522b5755b75f9839647703",
+            "width": 1536,
+            "height": 1024
+          }
+        ]
+      },
+      "request": {
+        "ai_model": "meshy-7",
+        "enable_original_uv": true,
+        "enable_pbr": true,
+        "texture_resolution": "2k",
+        "alpha_thumbnail": true,
+        "target_formats": [
+          "glb"
+        ]
+      },
+      "creditCap": 10,
+      "authorized": false,
+      "completedTaskId": "019ff0f5-fdd5-714c-972e-82159cf46c1c",
+      "submittedAt": "2026-08-11T13:14:46.376Z",
+      "authorizationConsumed": true,
+      "status": "SUCCEEDED",
+      "consumedCredits": 10,
+      "finishedAt": "2026-08-11T13:17:28.093Z",
+      "artifacts": [
+        {
+          "file": "raw-model.glb",
+          "bytes": 65794268,
+          "sha256": "0377c44f2fb35bf35bcef834dcd1aa22681794787230efb2abec9f2fd87daa7a"
+        },
+        {
+          "file": "provider-preview.png",
+          "bytes": 129916,
+          "sha256": "39af0b9ec120b2a6482818724ca901c874a5477af08c9a142847d90dcb5332bc"
+        },
+        {
+          "file": "provider-preview-alpha.png",
+          "bytes": 129916,
+          "sha256": "39af0b9ec120b2a6482818724ca901c874a5477af08c9a142847d90dcb5332bc"
+        },
+        {
+          "file": "texture-0-base_color.png",
+          "bytes": 6580118,
+          "sha256": "134771a01bf6055d3ab570ebd0f7de81e632ceb2ddc6b0a30bd80cbab2e6525f"
+        },
+        {
+          "file": "texture-0-metallic.png",
+          "bytes": 2586310,
+          "sha256": "4ad0f94c9b2cf5524691d2c79fd5673bc1b3cb35ff39b2642ed03bfc7551855f"
+        },
+        {
+          "file": "texture-0-roughness.png",
+          "bytes": 2940628,
+          "sha256": "168c28e2a62605d2441bee48e3c7d43040f855fd58ac711f611d87df7d9d0068"
+        },
+        {
+          "file": "texture-0-normal.png",
+          "bytes": 5299011,
+          "sha256": "9383c3863a855591b6f7ca759423412e1b8440861c7890919a40a3b309eac9a1"
+        }
+      ]
+    },
+    {
+      "classId": "nest",
+      "source": {
+        "taskId": "019ff041-45de-77fd-9a69-756ea195da64",
+        "endpoint": "multi-image-to-3d",
+        "rawModel": {
+          "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/nest/019ff041-45de-77fd-9a69-756ea195da64/raw-model.glb",
+          "bytes": 64835308,
+          "sha256": "3e6874d5d1da75592169654802d3a052d9aa67a73881a799791f4f89199d05a2",
+          "triangles": 1997498,
+          "meshes": 1,
+          "materials": 1,
+          "textures": 4,
+          "imageMimeTypes": [
+            "image/jpeg"
+          ]
+        }
+      },
+      "styleAuthority": {
+        "kind": "ordered-multiview-brighter-v1",
+        "valueAudit": {
+          "sampledObjectPixels": 26283,
+          "medianLuminance": 77.91179999999999,
+          "upperQuartileLuminance": 116.31979999999999,
+          "meanLuminance": 88.1422923867136
+        },
+        "inputs": [
+          {
+            "order": 1,
+            "view": "strict-front",
+            "primary": true,
+            "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/nest/01-front.png",
+            "sha256": "f894765ac16919784663dc3936bf6dcd2394da2c6787969b98b67907ef6f431d",
+            "width": 1536,
+            "height": 1024
+          },
+          {
+            "order": 2,
+            "view": "strict-right",
+            "primary": false,
+            "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/nest/02-right.png",
+            "sha256": "be51eec4a78a21248aab26e41a17da291b767a961cd82554c7e64cecc62120d4",
+            "width": 1536,
+            "height": 1024
+          },
+          {
+            "order": 3,
+            "view": "strict-back",
+            "primary": false,
+            "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/nest/03-back.png",
+            "sha256": "ecbc1f1f5282f84e4803071baaa854f98ddf76785c92b1fcf107e49d4ed1e783",
+            "width": 1536,
+            "height": 1024
+          },
+          {
+            "order": 4,
+            "view": "front-right-three-quarter",
+            "primary": false,
+            "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-brighter-texture-inputs-v1/nest/04-front-right-three-quarter.png",
+            "sha256": "0091094f2745ab4ba34c76d80c9b4eb76198450798f603ac6cf85b0c0d2e5c05",
+            "width": 1536,
+            "height": 1024
+          }
+        ]
+      },
+      "request": {
+        "ai_model": "meshy-7",
+        "enable_original_uv": true,
+        "enable_pbr": true,
+        "texture_resolution": "2k",
+        "alpha_thumbnail": true,
+        "target_formats": [
+          "glb"
+        ]
+      },
+      "creditCap": 10,
+      "authorized": false,
+      "completedTaskId": "019ff0f6-1446-7a06-b591-652543441f63",
+      "submittedAt": "2026-08-11T13:14:49.937Z",
+      "authorizationConsumed": true,
+      "status": "SUCCEEDED",
+      "consumedCredits": 10,
+      "finishedAt": "2026-08-11T13:17:38.708Z",
+      "artifacts": [
+        {
+          "file": "raw-model.glb",
+          "bytes": 67349456,
+          "sha256": "d80c05ce237611244845b0334d2cbbbe1d5d0a00f673f83c34e71867bee004ee"
+        },
+        {
+          "file": "provider-preview.png",
+          "bytes": 138836,
+          "sha256": "a5a973f145e17aa6a61018d9a9269a7e481238ef3f92980c3b2f2fa091159e39"
+        },
+        {
+          "file": "provider-preview-alpha.png",
+          "bytes": 138836,
+          "sha256": "a5a973f145e17aa6a61018d9a9269a7e481238ef3f92980c3b2f2fa091159e39"
+        },
+        {
+          "file": "texture-0-base_color.png",
+          "bytes": 6608470,
+          "sha256": "1ab3661f5c2d741a54b0db327a9b61f59f25a351cb87933b50da254fd2bd8328"
+        },
+        {
+          "file": "texture-0-metallic.png",
+          "bytes": 3527979,
+          "sha256": "c8181a50d6b7ae846022ae96fc2f8e7decebb8e471919770f6d6639bc1ac0857"
+        },
+        {
+          "file": "texture-0-roughness.png",
+          "bytes": 3423614,
+          "sha256": "42066d82c5cce77b2b5dab4c9dbd21fe99b7b2386af409f2ab75766233f0d8fa"
+        },
+        {
+          "file": "texture-0-normal.png",
+          "bytes": 5060416,
+          "sha256": "0f5363e158521d40a303e17a11fde737285c51b0e4eee81522f6cd62ac7cc5a2"
+        }
+      ]
+    }
+  ],
+  "balanceBefore": 1570,
+  "balanceAfter": 1430,
+  "totalConsumedCredits": 140
+}

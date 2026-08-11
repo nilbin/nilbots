@@ -1,0 +1,36 @@
+{
+  "id": "019ff036-52e1-7539-a8d4-c756b3e7a9dd",
+  "type": "multi-image-to-3d",
+  "name": "",
+  "art_style": "",
+  "object_prompt": "",
+  "style_prompt": "",
+  "negative_prompt": "",
+  "texture_prompt": "Mature industrial patchbay levitating Arc Relay bot. Muted-sage satin armor, dusty-coral repair panels, warm-bone repair arm and trim, charcoal joints, restrained edge wear and recess grime. Preserve crisp bounded material regions, broad silhouette, signature-skill hardware, and the flush front beam-emitter seam. No text, logos, decals, eyes, face, guns, barrels, white nose, legs, teal/orange team color, glow, bloom, exhaust, or baked lighting.",
+  "texture_image_url": "[redacted-input]",
+  "text_style_prompt": "",
+  "image_style_url": "",
+  "status": "SUCCEEDED",
+  "created_at": 1786441524878,
+  "progress": 100,
+  "started_at": 1786441525473,
+  "finished_at": 1786441746019,
+  "expires_at": 1786700946019,
+  "task_error": null,
+  "model_url": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ff036-52e1-7539-a8d4-c756b3e7a9dd/output/model.glb",
+  "model_urls": {
+    "glb": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ff036-52e1-7539-a8d4-c756b3e7a9dd/output/model.glb"
+  },
+  "thumbnail_url": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ff036-52e1-7539-a8d4-c756b3e7a9dd/output/preview.png",
+  "texture_urls": [
+    {
+      "base_color": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ff036-52e1-7539-a8d4-c756b3e7a9dd/output/texture_0.png",
+      "metallic": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ff036-52e1-7539-a8d4-c756b3e7a9dd/output/texture_0_metallic.png",
+      "roughness": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ff036-52e1-7539-a8d4-c756b3e7a9dd/output/texture_0_roughness.png",
+      "normal": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ff036-52e1-7539-a8d4-c756b3e7a9dd/output/texture_0_normal.png",
+      "emission": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ff036-52e1-7539-a8d4-c756b3e7a9dd/output/texture_0_emission.png"
+    }
+  ],
+  "remove_lighting": true,
+  "consumed_credits": 30
+}

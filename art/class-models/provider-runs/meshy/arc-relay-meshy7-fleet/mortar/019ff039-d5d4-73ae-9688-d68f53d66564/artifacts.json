@@ -1,0 +1,37 @@
+[
+  {
+    "file": "raw-model.glb",
+    "bytes": 64350320,
+    "sha256": "89200842ce905440158ad8d7f9c1036f7fb27348e231945315e4b05dfd81adf5"
+  },
+  {
+    "file": "provider-preview.png",
+    "bytes": 152607,
+    "sha256": "7449d4064391fb788f8ff04e4534884b90741d59fa3ce9130bce6df51a714b53"
+  },
+  {
+    "file": "texture-0-base_color.png",
+    "bytes": 7264514,
+    "sha256": "3cfaddc9cca1416eedd4f7cff81aed05e0e2bf1781a651cfa4c70110f5fc5745"
+  },
+  {
+    "file": "texture-0-metallic.png",
+    "bytes": 334061,
+    "sha256": "ec1a0de2315705ebd57d78ae8b229a009ffedca633639a7cecd0a13e6f544b68"
+  },
+  {
+    "file": "texture-0-roughness.png",
+    "bytes": 1678151,
+    "sha256": "ab8e554d0a5280a14c0c3baae0b822d6ed7f67e55dde1840036ad1daf63339be"
+  },
+  {
+    "file": "texture-0-normal.png",
+    "bytes": 5066402,
+    "sha256": "298afcb287a717094b91efac7331c5f334a656fe7f87c0d66e4dddcb2d724fb9"
+  },
+  {
+    "file": "texture-0-emission.png",
+    "bytes": 55673,
+    "sha256": "6c7e0348da0088e6e2b5631789d5f38a22f4afd623dcbb07194102b248d924eb"
+  }
+]

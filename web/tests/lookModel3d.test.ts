@@ -61,11 +61,13 @@ test('the approved Striker and complete Arc Relay fleet resolve to authored GLBs
     assert.ok(spec?.signature);
     assert.equal(
       spec?.source?.generator,
-      'scripts/class-models/promote-meshy-arc-fleet.mjs',
+      'scripts/class-models/promote-meshy7-fleet-v3.mjs',
     );
     assert.equal(spec?.source?.provider, 'Meshy');
-    assert.equal(spec?.source?.model, 'meshy-t2');
-    assert.ok((spec?.ledger?.bytes ?? Number.POSITIVE_INFINITY) <= 1024 * 1024);
+    assert.equal(spec?.source?.model, 'meshy-7');
+    assert.equal(spec?.source?.endpoint, 'retexture');
+    assert.equal(spec?.source?.textureTier, 'meshy7-fleet-review-v3-webp');
+    assert.ok((spec?.ledger?.bytes ?? Number.POSITIVE_INFINITY) <= 9_000_000);
     assert.equal(lookModelSource(id), 'gltf');
     assert.equal(lookModelSource(id, 'front'), 'fallback');
   }

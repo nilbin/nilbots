@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "provider": "Meshy",
+  "endpoint": "retexture",
+  "providerModel": "meshy-7",
+  "classId": "repulsor",
+  "taskId": "019ff0be-a2e7-729c-8997-c826928beefe",
+  "submittedAt": "2026-08-11T12:14:12.842Z",
+  "balanceBeforeBatch": 1730,
+  "authorizedCreditCap": 10,
+  "sourcePlan": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet-retexture-v2/plan.json",
+  "sourceTaskId": "019ff040-aa48-72f9-b49a-9c9043607b6a",
+  "sourceModel": {
+    "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/repulsor/019ff040-aa48-72f9-b49a-9c9043607b6a/raw-model.glb",
+    "bytes": 66153548,
+    "sha256": "93c76060bd9a00fe5c8ba836fe60bfff99875fca365e1113b8cfaf12a34c3596",
+    "triangles": 1999000,
+    "meshes": 1,
+    "materials": 1,
+    "textures": 4,
+    "imageMimeTypes": [
+      "image/jpeg"
+    ]
+  },
+  "settings": {
+    "model_url": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ff040-aa48-72f9-b49a-9c9043607b6a/output/model.glb",
+    "ai_model": "meshy-7",
+    "text_style_prompt": "Mature industrial repulsor levitating Arc Relay bot. High-roughness matte powder-coated ceramic and painted metal: muted mulberry coil armor, pale-bronze hub rings, medium basalt-gray core. Soft diffuse finish, fine dry surface grain, restrained wear, metal only on mechanisms. Medium-light values readable in a dark arena; charcoal only in narrow recesses. Preserve every material boundary. No glossy plastic, clearcoat, lacquer, wet shine, broad highlights, saturated or neon color, black body, pure white, teal, cyan, orange, glow, text, decals, eyes, guns, or legs.",
+    "enable_original_uv": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "alpha_thumbnail": true,
+    "target_formats": [
+      "glb"
+    ]
+  },
+  "pricingSource": "https://docs.meshy.ai/en/api/pricing",
+  "licenseTerms": "https://www.meshy.ai/terms"
+}

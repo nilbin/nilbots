@@ -1,0 +1,144 @@
+{
+  "schemaVersion": 1,
+  "status": "owner-review",
+  "classId": "kestrel",
+  "identitySource": {
+    "file": "../../concept-sheet-v7.png",
+    "sha256": "3d60322ef767283da55dc3710af9ef097ed989bdd40cc597883925989af486d5"
+  },
+  "meshyInputs": [
+    {
+      "order": 1,
+      "view": "strict-front",
+      "file": "01-front.png",
+      "sha256": "03f9c58f61db90b3414dc5d0a9646947e0376f6f44b3898606e1b8bfa2371441",
+      "width": 1536,
+      "height": 1024,
+      "primary": true
+    },
+    {
+      "order": 2,
+      "view": "strict-right",
+      "file": "02-right.png",
+      "sha256": "b98c57bd5886b4daafd5bb6e3a80ed8e598b9b09148a3bf11496f6c6fa6cda84",
+      "width": 1536,
+      "height": 1024,
+      "primary": false
+    },
+    {
+      "order": 3,
+      "view": "strict-back",
+      "file": "03-back.png",
+      "sha256": "0d1f328e5aceafae0e30bfe5937c6fb0e79815e78c62068361537a521dc8d883",
+      "width": 1536,
+      "height": 1024,
+      "primary": false
+    },
+    {
+      "order": 4,
+      "view": "front-right-three-quarter",
+      "file": "04-front-right-three-quarter.png",
+      "sha256": "ed596ed27719bfeea14c4264a1ab7c63003bd6e9f41c0a29ddb5f27e2ff98df8",
+      "width": 1536,
+      "height": 1024,
+      "primary": false
+    }
+  ],
+  "constructionEvidence": {
+    "file": "construction-top.png",
+    "sha256": "053a4c19e99cd04226549a62f08ac1c122c4fda1f92a7387d2efd09d20be8ba8",
+    "meshyInput": false
+  },
+  "rejectedEvidence": [
+    {
+      "file": "rejected/rear-narrow.png",
+      "sha256": "b8d54f6d44e324c9f019b0b5b9fc335a781a924f7f027d142f93cc636a525b",
+      "reason": "rear inference narrowed the approved broad split-delta hull into a boxy pod"
+    }
+  ],
+  "generationPromptLog": "PROMPTS.md",
+  "meshyRequestPlan": {
+    "endpoint": "/openapi/v1/multi-image-to-3d",
+    "ai_model": "meshy-7",
+    "should_texture": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "should_remesh": false,
+    "image_enhancement": false,
+    "remove_lighting": true,
+    "pose_mode": "",
+    "texture_prompt": "Mature industrial Kestrel hovercraft: warm-bone satin technical ceramic, muted burnt-ochre center spine, desaturated navy and graphite structure, brushed dark metal, restrained edge wear and recess grime. Preserve crisp bounded material regions and panel seams. No text, logos, decals, eyes, weapons, teal/orange team color, glow, bloom, exhaust, or baked lighting.",
+    "target_formats": [
+      "glb"
+    ],
+    "pilotCreditCap": 30,
+    "authorized": false,
+    "authorization": "Owner approved the v7 identities, directed the Meshy phase to proceed, excluded auto-rigging, and confirmed continuation of the Kestrel pilot.",
+    "authorizationConsumed": true,
+    "completedTaskId": "019feeaa-c573-78ed-bfc8-a6630d8ae4f3",
+    "consumedCredits": 30
+  },
+  "creditCheck": {
+    "checkedAt": "2026-08-11",
+    "balance": 220,
+    "texturedMeshy7MultiImagePerTask": 30,
+    "fleetTaskCount": 16,
+    "fleetCredits": 480,
+    "shortfallBeforePilot": 260,
+    "balanceAfterPilot": 190,
+    "remainingFleetGenerationCredits": 450,
+    "shortfallAfterPilot": 260,
+    "autoRigging": false,
+    "pricingSource": "https://docs.meshy.ai/en/api/pricing"
+  },
+  "providerRun": {
+    "taskId": "019feeaa-c573-78ed-bfc8-a6630d8ae4f3",
+    "directory": "../../../../../class-models/provider-runs/meshy/arc-relay-meshy7-pilot/kestrel/019feeaa-c573-78ed-bfc8-a6630d8ae4f3",
+    "status": "SUCCEEDED",
+    "consumedCredits": 30,
+    "balanceBefore": 220,
+    "balanceAfter": 190,
+    "rawModelSha256": "04b4d86e85ee7cb172db4dfa7934e2d28fab045460a8de06b643c65d8076517b",
+    "sixViewReviewSha256": "d3823a6f6fecf7fbf0397d74b75b37c6aac875e19a697d32e0b0dfd958d20ef4"
+  },
+  "retexturePlan": {
+    "endpoint": "/openapi/v1/retexture",
+    "sourceTaskId": "019feeaa-c573-78ed-bfc8-a6630d8ae4f3",
+    "sourceRawModelSha256": "04b4d86e85ee7cb172db4dfa7934e2d28fab045460a8de06b643c65d8076517b",
+    "styleAuthority": "same four ordered Meshy multiview inputs; strict front first",
+    "ai_model": "meshy-7",
+    "enable_original_uv": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "alpha_thumbnail": true,
+    "target_formats": [
+      "glb"
+    ],
+    "creditCap": 10,
+    "authorized": false,
+    "authorization": "Owner approved the separately capped Kestrel retexture with: Try it.",
+    "authorizationConsumed": true,
+    "completedTaskId": "019fefdd-ac96-7dc8-a61e-f0760b4ae407",
+    "consumedCredits": 10
+  },
+  "retextureRun": {
+    "taskId": "019fefdd-ac96-7dc8-a61e-f0760b4ae407",
+    "directory": "../../../../../class-models/provider-runs/meshy/arc-relay-meshy7-retexture/kestrel/019fefdd-ac96-7dc8-a61e-f0760b4ae407",
+    "status": "SUCCEEDED",
+    "consumedCredits": 10,
+    "balanceBefore": 190,
+    "balanceAfter": 180,
+    "rawModelSha256": "6daeca9df3f60fd9e7260b3fd7ec3dd5ecba15505a440da4c36700cc98ae31b3",
+    "sixViewReviewSha256": "1df52491d642aab84a3b179505b65513369638b4e47cb87b6099bbcd54209977",
+    "materialGate": "provisional-pass",
+    "exactGeometryPreservation": false
+  },
+  "creditCheckAfterRetexture": {
+    "checkedAt": "2026-08-11",
+    "balance": 180,
+    "remainingFleetGenerationCredits": 450,
+    "shortfall": 270,
+    "autoRigging": false
+  },
+  "nextGate": "owner approval of the retextured Kestrel material identity; no fleet batch"
+}

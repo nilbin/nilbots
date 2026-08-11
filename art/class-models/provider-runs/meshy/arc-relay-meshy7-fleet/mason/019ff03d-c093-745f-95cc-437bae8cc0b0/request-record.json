@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "provider": "Meshy",
+  "endpoint": "multi-image-to-3d",
+  "providerModel": "meshy-7",
+  "classId": "mason",
+  "taskId": "019ff03d-c093-745f-95cc-437bae8cc0b0",
+  "submittedAt": "2026-08-11T09:53:25.858Z",
+  "balanceBefore": 1880,
+  "authorizedCreditCap": 30,
+  "sourceManifest": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/mason-v1/manifest.json",
+  "inputs": [
+    {
+      "order": 1,
+      "view": "strict-front",
+      "primary": true,
+      "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/mason-v1/01-front.png",
+      "bytes": 1495571,
+      "sha256": "ef56bfb17e3a007d910258f901afadb85f58176cad60576f0cce7de5867fdf6c",
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "order": 2,
+      "view": "strict-right",
+      "primary": false,
+      "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/mason-v1/02-right.png",
+      "bytes": 1231283,
+      "sha256": "aa421635560987434f0f05504b1d85e5931f7ca1d87b1b1c28e358ca1de8f8db",
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "order": 3,
+      "view": "strict-back",
+      "primary": false,
+      "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/mason-v1/03-back.png",
+      "bytes": 1315661,
+      "sha256": "e4b769fa1fa2b80ed1eaac7dc125f72253d4aae232f24b6812bb0f491b5c4d88",
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "order": 4,
+      "view": "front-right-three-quarter",
+      "primary": false,
+      "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/mason-v1/04-front-right-three-quarter.png",
+      "bytes": 1526779,
+      "sha256": "a861b5aca0c3025bf6e2e1ddff06fd666a44fa56cae3a413c1e9427c1c260692",
+      "width": 1536,
+      "height": 1024
+    }
+  ],
+  "settings": {
+    "ai_model": "meshy-7",
+    "should_texture": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "should_remesh": false,
+    "image_enhancement": false,
+    "remove_lighting": true,
+    "pose_mode": "",
+    "texture_prompt": "Mature industrial mason levitating Arc Relay bot. Muted-ochre satin side armor and guide forks, blue-gray forge casing, charcoal empty bay and underside, brushed-steel wear surfaces, restrained edge wear and recess grime. Preserve crisp bounded material regions, broad silhouette, signature-skill hardware, and the flush front beam-emitter seam. No text, logos, decals, eyes, face, guns, barrels, white nose, legs, teal/orange team color, glow, bloom, exhaust, or baked lighting.",
+    "target_formats": [
+      "glb"
+    ]
+  },
+  "pricingSource": "https://docs.meshy.ai/en/api/pricing",
+  "licenseTerms": "https://www.meshy.ai/terms"
+}

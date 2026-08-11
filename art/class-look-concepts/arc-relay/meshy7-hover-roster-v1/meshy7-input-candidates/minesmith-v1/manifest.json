@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "status": "owner-review",
+  "classId": "minesmith",
+  "identitySource": {
+    "file": "../../concept-sheet-v7.png",
+    "sha256": "3d60322ef767283da55dc3710af9ef097ed989bdd40cc597883925989af486d5"
+  },
+  "turnaroundSource": {
+    "file": "turnaround-sheet.png",
+    "sha256": "00745f90cff47beca0153a72483a9c09dc4c3d3eaffe58e4abdda1f71b3469ad",
+    "promptLog": "PROMPTS.md",
+    "promptLogSha256": "0eb38aebea02fb433d95d4f8b9dd57d2310cf0e955f31fff3b3f9c5651774825"
+  },
+  "meshyInputs": [
+    {
+      "order": 1,
+      "view": "strict-front",
+      "file": "01-front.png",
+      "sha256": "98a3d6ca32d4b07e361991a075b03f84fc4ad604bed34a0e48608d3f440553a8",
+      "width": 1536,
+      "height": 1024,
+      "primary": true
+    },
+    {
+      "order": 2,
+      "view": "strict-right",
+      "file": "02-right.png",
+      "sha256": "d96224d65ae2e917bbcd07254b27e3f08025cb4ecbdf07ad7ebddfabb3e45710",
+      "width": 1536,
+      "height": 1024,
+      "primary": false
+    },
+    {
+      "order": 3,
+      "view": "strict-back",
+      "file": "03-back.png",
+      "sha256": "6c5506e6f3a18282ffc316c40bb1b9527e013b7e687bc71ac2c1f36a9053a1d2",
+      "width": 1536,
+      "height": 1024,
+      "primary": false
+    },
+    {
+      "order": 4,
+      "view": "front-right-three-quarter",
+      "file": "04-front-right-three-quarter.png",
+      "sha256": "d0a5978d1c616b51bf7cc02e47299f809d7ce33bd77096b26ed802dc3ba1862c",
+      "width": 1536,
+      "height": 1024,
+      "primary": false
+    }
+  ],
+  "generationPromptLog": "PROMPTS.md",
+  "providerRunCollection": "arc-relay-meshy7-fleet",
+  "meshyRequestPlan": {
+    "endpoint": "/openapi/v1/multi-image-to-3d",
+    "ai_model": "meshy-7",
+    "should_texture": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "should_remesh": false,
+    "image_enhancement": false,
+    "remove_lighting": true,
+    "pose_mode": "",
+    "texture_prompt": "Mature industrial minesmith levitating Arc Relay bot. Oxide-terracotta satin armor, muted-mustard rim and forge accents, gunmetal underside and forge rollers, restrained edge wear and recess grime. Preserve crisp bounded material regions, broad silhouette, signature-skill hardware, and the flush front beam-emitter seam. No text, logos, decals, eyes, face, guns, barrels, white nose, legs, teal/orange team color, glow, bloom, exhaust, or baked lighting.",
+    "target_formats": [
+      "glb"
+    ],
+    "pilotCreditCap": 30,
+    "authorized": false,
+    "authorization": "Owner approved the V7 identities, directed the remaining fleet to proceed after the Kestrel pilot, confirmed the available credits, and excluded auto-rigging.",
+    "authorizationConsumed": true,
+    "autoRigging": false,
+    "completedTaskId": "019ff03a-1c4d-73c6-abb6-569e7cb320f4",
+    "consumedCredits": 30
+  },
+  "creditCheck": {
+    "checkedAt": "2026-08-11",
+    "balance": 2180,
+    "texturedMeshy7MultiImagePerTask": 30,
+    "pendingFleetTaskCount": 15,
+    "authorizedFleetCredits": 450,
+    "expectedBalanceAfterFleet": 1730,
+    "autoRigging": false,
+    "pricingSource": "https://docs.meshy.ai/en/api/pricing"
+  },
+  "nextGate": "owner review of raw Meshy 7 first pass; no runtime promotion",
+  "providerRun": {
+    "taskId": "019ff03a-1c4d-73c6-abb6-569e7cb320f4",
+    "directory": "../../../../../class-models/provider-runs/meshy/arc-relay-meshy7-fleet/minesmith/019ff03a-1c4d-73c6-abb6-569e7cb320f4",
+    "status": "SUCCEEDED",
+    "consumedCredits": 30,
+    "balanceBefore": 2030,
+    "balanceAfter": 1850,
+    "rawModelSha256": "13cdebba6db47bf210e752e8a9f5d8b85fc27cb97d9d9dda82ab112f308e1a63"
+  }
+}

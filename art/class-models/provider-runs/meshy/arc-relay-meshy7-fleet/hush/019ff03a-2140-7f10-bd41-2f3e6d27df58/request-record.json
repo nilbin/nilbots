@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "provider": "Meshy",
+  "endpoint": "multi-image-to-3d",
+  "providerModel": "meshy-7",
+  "classId": "hush",
+  "taskId": "019ff03a-2140-7f10-bd41-2f3e6d27df58",
+  "submittedAt": "2026-08-11T09:49:28.175Z",
+  "balanceBefore": 2030,
+  "authorizedCreditCap": 30,
+  "sourceManifest": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/hush-v1/manifest.json",
+  "inputs": [
+    {
+      "order": 1,
+      "view": "strict-front",
+      "primary": true,
+      "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/hush-v1/01-front.png",
+      "bytes": 1543984,
+      "sha256": "54f2b2b5aafdd6eb5e82dd2c8195e0dad566d6f9e5360be0510e9aa63dad0160",
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "order": 2,
+      "view": "strict-right",
+      "primary": false,
+      "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/hush-v1/02-right.png",
+      "bytes": 915662,
+      "sha256": "ad9af913be7f62f0c6390ae25ed1f7b1103ef8feaaa05394de13d45e46e79ae6",
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "order": 3,
+      "view": "strict-back",
+      "primary": false,
+      "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/hush-v1/03-back.png",
+      "bytes": 1515356,
+      "sha256": "7c88be04da9a5ffd4020634fe79c5d3fefad50ed7b23c764e55f4124861616e5",
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "order": 4,
+      "view": "front-right-three-quarter",
+      "primary": false,
+      "file": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/meshy7-input-candidates/hush-v1/04-front-right-three-quarter.png",
+      "bytes": 1514196,
+      "sha256": "d499e989d113a71d7bf6715a42a5f3fe076b4f76a044c9c27edb5167de604a77",
+      "width": 1536,
+      "height": 1024
+    }
+  ],
+  "settings": {
+    "ai_model": "meshy-7",
+    "should_texture": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "should_remesh": false,
+    "image_enhancement": false,
+    "remove_lighting": true,
+    "pose_mode": "",
+    "texture_prompt": "Mature industrial hush levitating Arc Relay bot. Medium smoke-plum satin lobes, lighter lavender-gray armor bands, satin-silver structural channels, medium-charcoal sealed Null core, restrained edge wear and recess grime. Preserve crisp bounded material regions, broad silhouette, signature-skill hardware, and the flush front beam-emitter seam. No text, logos, decals, eyes, face, guns, barrels, white nose, legs, teal/orange team color, glow, bloom, exhaust, or baked lighting.",
+    "target_formats": [
+      "glb"
+    ]
+  },
+  "pricingSource": "https://docs.meshy.ai/en/api/pricing",
+  "licenseTerms": "https://www.meshy.ai/terms"
+}

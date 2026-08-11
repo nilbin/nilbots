@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "status": "owner-review",
+  "classId": "hush",
+  "identitySource": {
+    "file": "../../concept-sheet-v7.png",
+    "sha256": "3d60322ef767283da55dc3710af9ef097ed989bdd40cc597883925989af486d5"
+  },
+  "turnaroundSource": {
+    "file": "turnaround-sheet.png",
+    "sha256": "d858b1038adc0df26c5787109fb7e4f1f778980d5bdf7ba212eaf621aebeea10",
+    "promptLog": "PROMPTS.md",
+    "promptLogSha256": "c9e16ec7bd0cf8330690b6779711217a7e4a2736ebcd2398aa4fbc91ce981423"
+  },
+  "meshyInputs": [
+    {
+      "order": 1,
+      "view": "strict-front",
+      "file": "01-front.png",
+      "sha256": "54f2b2b5aafdd6eb5e82dd2c8195e0dad566d6f9e5360be0510e9aa63dad0160",
+      "width": 1536,
+      "height": 1024,
+      "primary": true
+    },
+    {
+      "order": 2,
+      "view": "strict-right",
+      "file": "02-right.png",
+      "sha256": "ad9af913be7f62f0c6390ae25ed1f7b1103ef8feaaa05394de13d45e46e79ae6",
+      "width": 1536,
+      "height": 1024,
+      "primary": false
+    },
+    {
+      "order": 3,
+      "view": "strict-back",
+      "file": "03-back.png",
+      "sha256": "7c88be04da9a5ffd4020634fe79c5d3fefad50ed7b23c764e55f4124861616e5",
+      "width": 1536,
+      "height": 1024,
+      "primary": false
+    },
+    {
+      "order": 4,
+      "view": "front-right-three-quarter",
+      "file": "04-front-right-three-quarter.png",
+      "sha256": "d499e989d113a71d7bf6715a42a5f3fe076b4f76a044c9c27edb5167de604a77",
+      "width": 1536,
+      "height": 1024,
+      "primary": false
+    }
+  ],
+  "generationPromptLog": "PROMPTS.md",
+  "providerRunCollection": "arc-relay-meshy7-fleet",
+  "meshyRequestPlan": {
+    "endpoint": "/openapi/v1/multi-image-to-3d",
+    "ai_model": "meshy-7",
+    "should_texture": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "should_remesh": false,
+    "image_enhancement": false,
+    "remove_lighting": true,
+    "pose_mode": "",
+    "texture_prompt": "Mature industrial hush levitating Arc Relay bot. Medium smoke-plum satin lobes, lighter lavender-gray armor bands, satin-silver structural channels, medium-charcoal sealed Null core, restrained edge wear and recess grime. Preserve crisp bounded material regions, broad silhouette, signature-skill hardware, and the flush front beam-emitter seam. No text, logos, decals, eyes, face, guns, barrels, white nose, legs, teal/orange team color, glow, bloom, exhaust, or baked lighting.",
+    "target_formats": [
+      "glb"
+    ],
+    "pilotCreditCap": 30,
+    "authorized": false,
+    "authorization": "Owner approved the V7 identities, directed the remaining fleet to proceed after the Kestrel pilot, confirmed the available credits, and excluded auto-rigging.",
+    "authorizationConsumed": true,
+    "autoRigging": false,
+    "completedTaskId": "019ff03a-2140-7f10-bd41-2f3e6d27df58",
+    "consumedCredits": 30
+  },
+  "creditCheck": {
+    "checkedAt": "2026-08-11",
+    "balance": 2180,
+    "texturedMeshy7MultiImagePerTask": 30,
+    "pendingFleetTaskCount": 15,
+    "authorizedFleetCredits": 450,
+    "expectedBalanceAfterFleet": 1730,
+    "autoRigging": false,
+    "pricingSource": "https://docs.meshy.ai/en/api/pricing"
+  },
+  "nextGate": "owner review of raw Meshy 7 first pass; no runtime promotion",
+  "providerRun": {
+    "taskId": "019ff03a-2140-7f10-bd41-2f3e6d27df58",
+    "directory": "../../../../../class-models/provider-runs/meshy/arc-relay-meshy7-fleet/hush/019ff03a-2140-7f10-bd41-2f3e6d27df58",
+    "status": "SUCCEEDED",
+    "consumedCredits": 30,
+    "balanceBefore": 2030,
+    "balanceAfter": 1910,
+    "rawModelSha256": "9b824a5dff44bc00e3e8c20fa89a7f785f98cc6ae55aad68a62268b7b3b39d69"
+  }
+}

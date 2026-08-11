@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "status": "owner-review",
+  "classId": "veil",
+  "identitySource": {
+    "file": "../../concept-sheet-v7.png",
+    "sha256": "3d60322ef767283da55dc3710af9ef097ed989bdd40cc597883925989af486d5"
+  },
+  "turnaroundSource": {
+    "file": "turnaround-sheet.png",
+    "sha256": "2a467a3aaf62c430d2a739c9b120c43489290aa05f8b946bc538d59d77a98e4a",
+    "promptLog": "PROMPTS.md",
+    "promptLogSha256": "f9d60fa27b00d9efb669574cfbeaa8b336c3e8f9b4bbfa1493ce05dc2282cd13"
+  },
+  "meshyInputs": [
+    {
+      "order": 1,
+      "view": "strict-front",
+      "file": "01-front.png",
+      "sha256": "a889ee7b93402875f5a53e26dcc6d3ecd586c53b2b9d9e6f29ade11686d14ead",
+      "width": 1536,
+      "height": 1024,
+      "primary": true
+    },
+    {
+      "order": 2,
+      "view": "strict-right",
+      "file": "02-right.png",
+      "sha256": "400582f65c83ce2bba7e9325bd9d14f197100d41d1d298dbc0613f4a820b9429",
+      "width": 1536,
+      "height": 1024,
+      "primary": false
+    },
+    {
+      "order": 3,
+      "view": "strict-back",
+      "file": "03-back.png",
+      "sha256": "24a2a37f5e3a5a452bb724d5bd46bad6ea81dd63bd02c7bc25ab519fb8632f8d",
+      "width": 1536,
+      "height": 1024,
+      "primary": false
+    },
+    {
+      "order": 4,
+      "view": "front-right-three-quarter",
+      "file": "04-front-right-three-quarter.png",
+      "sha256": "8c43b8a61ee3d500dccb1948ae7ed8049eeec870fb61418adbaa8caf4eca1d21",
+      "width": 1536,
+      "height": 1024,
+      "primary": false
+    }
+  ],
+  "generationPromptLog": "PROMPTS.md",
+  "providerRunCollection": "arc-relay-meshy7-fleet",
+  "meshyRequestPlan": {
+    "endpoint": "/openapi/v1/multi-image-to-3d",
+    "ai_model": "meshy-7",
+    "should_texture": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "should_remesh": false,
+    "image_enhancement": false,
+    "remove_lighting": true,
+    "pose_mode": "",
+    "texture_prompt": "Mature industrial veil levitating Arc Relay bot. Medium jade-sage satin crescent armor, warm-sand sealed canisters and lower trim, charcoal nose, sockets, and underside, dull-brass hardware, restrained edge wear and recess grime. Preserve crisp bounded material regions, broad silhouette, signature-skill hardware, and the flush front beam-emitter seam. No text, logos, decals, eyes, face, guns, barrels, white nose, legs, teal/orange team color, glow, bloom, exhaust, or baked lighting.",
+    "target_formats": [
+      "glb"
+    ],
+    "pilotCreditCap": 30,
+    "authorized": false,
+    "authorization": "Owner approved the V7 identities, directed the remaining fleet to proceed after the Kestrel pilot, confirmed the available credits, and excluded auto-rigging.",
+    "authorizationConsumed": true,
+    "autoRigging": false,
+    "completedTaskId": "019ff040-b455-77cf-a735-f53a83786a43",
+    "consumedCredits": 30
+  },
+  "creditCheck": {
+    "checkedAt": "2026-08-11",
+    "balance": 2180,
+    "texturedMeshy7MultiImagePerTask": 30,
+    "pendingFleetTaskCount": 15,
+    "authorizedFleetCredits": 450,
+    "expectedBalanceAfterFleet": 1730,
+    "autoRigging": false,
+    "pricingSource": "https://docs.meshy.ai/en/api/pricing"
+  },
+  "nextGate": "owner review of raw Meshy 7 first pass; no runtime promotion",
+  "providerRun": {
+    "taskId": "019ff040-b455-77cf-a735-f53a83786a43",
+    "directory": "../../../../../class-models/provider-runs/meshy/arc-relay-meshy7-fleet/veil/019ff040-b455-77cf-a735-f53a83786a43",
+    "status": "SUCCEEDED",
+    "consumedCredits": 30,
+    "balanceBefore": 1820,
+    "balanceAfter": 1730,
+    "rawModelSha256": "3c9b7ab70a232d1a85045e6e966cb6049aa45b1f39cb68c22ee03925fd87ca35"
+  }
+}

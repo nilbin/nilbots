@@ -1,0 +1,13 @@
+# Patchbay Meshy 7 input prompt
+
+The generated `turnaround-sheet.png` used the prompt below with two references: the approved Patchbay V7 identity crop first, and the approved Palisade turnaround second as presentation-only guidance. The four numbered PNGs are deterministic crops made by `scripts/class-models/split-meshy7-turnaround.mjs`.
+
+```text
+Create one high-resolution 2x2 orthographic character turnaround sheet for the PATCHBAY Arc Relay bot, intended as four consistent source views for Meshy 7 multi-image-to-3D. The FIRST reference is the authoritative Patchbay identity and palette; preserve its distinctive rounded levitating service-capsule chassis, broad readable silhouette, and one folded articulated repair-lens arm integrated tightly against the side. The SECOND reference is presentation-only: match its mature industrial hard-surface rendering, view arrangement, neutral background, consistent scale, camera height, and restrained material finish, but do not copy Palisade's anatomy or colors.
+
+Arrange exactly: TOP LEFT strict front at mid-height; TOP RIGHT strict right-side profile with the bot's front pointing toward image-left; BOTTOM LEFT strict rear; BOTTOM RIGHT front-right three-quarter at about 35 degrees yaw with a mildly elevated camera. Show the identical object in the identical neutral hovering pose, scale, proportions, parts, arm position, wear pattern, materials, and lighting in every panel. Center each view with ample margin and no cropping. No perspective exaggeration.
+
+Patchbay design: muted sage painted armor, dusty coral repair panels, warm bone mechanical arm and trim, charcoal joints; medium-light values that remain readable in a dark zoomed-out game; large simple massing and very few small details. The repair lens must be a circular tool head on a short, chunky, believable articulated arm, folded close to the hull and clearly visible in at least the front and three-quarter views. Include only a narrow flush recessed beam-emitter seam integrated into the front hull, capable of charging and firing the standard beam without resembling a gun, barrel, cannon, muzzle, or white nose. Mature utilitarian construction, matte/satin paint, restrained wear, subtle panel seams, no toy-like gloss.
+
+Use a uniform light neutral warm-gray background in all four panels. No floor, horizon, cast shadow, text, labels, borders, dividers, diagrams, arrows, effects, glow, particles, or scenery. No teal or orange team colors. No eyes, face, cockpit, windshield, white nose, gun, weapon barrel, legs, feet, wheels, tracks, wings, humanoid anatomy, antenna clutter, floating accessories, or detached parts. Keep it entirely legless and levitating. Output only the four-view sheet.
+```

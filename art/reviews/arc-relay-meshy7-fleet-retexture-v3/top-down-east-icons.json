@@ -1,0 +1,584 @@
+{
+  "schemaVersion": 1,
+  "status": "owner-approved-runtime-icon-tier",
+  "generator": "scripts/class-models/build-meshy7-fleet-web-icons.mjs",
+  "sourceAudit": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v3/audit.json",
+  "contract": {
+    "projection": "strict orthographic top-down",
+    "facing": "+X maps to screen-right/east",
+    "up": "+Y",
+    "transparentBackground": true,
+    "runtimePixels": {
+      "width": 192,
+      "height": 192
+    },
+    "teamAccent": "renderer-owned narrow leading-edge mask derived from each east-facing silhouette",
+    "frontBandPixels": 6
+  },
+  "sheet": {
+    "file": "art/reviews/arc-relay-meshy7-fleet-retexture-v3/top-down-east-icons-sheet.png",
+    "sha256": "2d58eb8eddd15a12d72b5d366b828a9cfbf85990cfb0d9dd29748492af0dd6d5"
+  },
+  "icons": [
+    {
+      "classId": "kestrel",
+      "source": {
+        "file": "art/class-models/runtime-tiers/arc-relay/meshy7-kestrel-review-v1/arc-kestrel-lean.glb",
+        "bytes": 1674640,
+        "sha256": "f7eb5c3f8e9ecb4037a60f9751dfb89467459c86dacd414804de2f2bd1dc8ced",
+        "geometrySha256": "9b4ff3c20827dc1ead0a00588682553a45b6311d3b2f23fd862f68b3af851b7b"
+      },
+      "camera": "strict top-down; camera up -Z; +X maps screen-right/east",
+      "capture": {
+        "file": "art/reviews/arc-relay-meshy7-fleet-retexture-v3/top-down-east-icon-captures/kestrel-512.png",
+        "sha256": "eaa85ee9ee89bd67097de37002cc7eb536101ccccf480dd8092103f2fa0de93c"
+      },
+      "sprite": {
+        "file": "web/src/assets/class-looks/arc-kestrel/sprite.png",
+        "bytes": 27514,
+        "sha256": "0b36bcabed376c75b3954a90ac3232e52aa80f12f0f84835478ef824fa233d29",
+        "width": 192,
+        "height": 192,
+        "alphaBounds": {
+          "left": 13,
+          "top": 45,
+          "width": 166,
+          "height": 102
+        },
+        "opaquePixels": 10459
+      },
+      "teamMask": {
+        "file": "web/src/assets/class-looks/arc-kestrel/team-mask.png",
+        "bytes": 1615,
+        "sha256": "7a3de504a70f74c82fe73869ae4c44425886496d2cd8227d23fca9c21a30c3bd",
+        "frontBandPixels": 6,
+        "accentedPixels": 606
+      }
+    },
+    {
+      "classId": "palisade",
+      "source": {
+        "file": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v3/arc-palisade-lean.glb",
+        "bytes": 1868612,
+        "sha256": "90764f332e398fba8612e0d801eeeed00a00bdf31d14e2d260a6a25c7135c3f3",
+        "geometrySha256": "e1473078ada5ceaef3b4dad94146b044b28b877f9156180aa7e6bd89c7744a39"
+      },
+      "camera": "strict top-down; camera up -Z; +X maps screen-right/east",
+      "capture": {
+        "file": "art/reviews/arc-relay-meshy7-fleet-retexture-v3/top-down-east-icon-captures/palisade-512.png",
+        "sha256": "aba0f66e104cc3e3770375315020ede62e19e75e503c256fd501c0ff5d5c384f"
+      },
+      "sprite": {
+        "file": "web/src/assets/class-looks/arc-palisade/sprite.png",
+        "bytes": 43038,
+        "sha256": "26456c6915c8d10cf9261ebd924d4d8b64bd76ba5b5e049c941a4c6c462ba7cc",
+        "width": 192,
+        "height": 192,
+        "alphaBounds": {
+          "left": 13,
+          "top": 38,
+          "width": 166,
+          "height": 117
+        },
+        "opaquePixels": 16258
+      },
+      "teamMask": {
+        "file": "web/src/assets/class-looks/arc-palisade/team-mask.png",
+        "bytes": 1496,
+        "sha256": "a7146c69814cbed55c1eefb7587350039083701a183fe1008f428e3a4e9433cf",
+        "frontBandPixels": 6,
+        "accentedPixels": 690
+      }
+    },
+    {
+      "classId": "towline",
+      "source": {
+        "file": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v3/arc-towline-lean.glb",
+        "bytes": 1735724,
+        "sha256": "2053f3dfbedd4fc7d59188902a1a17451cbc178b5bbb94c3262c4b914d7bc1ca",
+        "geometrySha256": "185e61e365e3335e6bd6e4939c6b898abd33bc7ed95add1ef1a947d5f40bba3f"
+      },
+      "camera": "strict top-down; camera up -Z; +X maps screen-right/east",
+      "capture": {
+        "file": "art/reviews/arc-relay-meshy7-fleet-retexture-v3/top-down-east-icon-captures/towline-512.png",
+        "sha256": "928a023adc83fb0b88715c66e34eaf2c447ce2f9a3302ab1d164b263097f8133"
+      },
+      "sprite": {
+        "file": "web/src/assets/class-looks/arc-towline/sprite.png",
+        "bytes": 51865,
+        "sha256": "0b20a4486d482291a2f0adf82107669b216b5e7cd07bd5fc5f68ceec339ae24f",
+        "width": 192,
+        "height": 192,
+        "alphaBounds": {
+          "left": 13,
+          "top": 28,
+          "width": 166,
+          "height": 136
+        },
+        "opaquePixels": 19233
+      },
+      "teamMask": {
+        "file": "web/src/assets/class-looks/arc-towline/team-mask.png",
+        "bytes": 1594,
+        "sha256": "8a24db826548c696ea90514b9e73c17ff57fb078ff3b996e46baeb77a1dde0ed",
+        "frontBandPixels": 6,
+        "accentedPixels": 816
+      }
+    },
+    {
+      "classId": "patchbay",
+      "source": {
+        "file": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v3/arc-patchbay-lean.glb",
+        "bytes": 1690844,
+        "sha256": "b3dd4de73312edcac017cb46b1e30b7cf28e2bc30301cf4ceb47c89f9f74364d",
+        "geometrySha256": "f0c46d703c86a77376fa7defd6f06e7e269756c13b1b7c552825b411a6175e9b"
+      },
+      "camera": "strict top-down; camera up -Z; +X maps screen-right/east",
+      "capture": {
+        "file": "art/reviews/arc-relay-meshy7-fleet-retexture-v3/top-down-east-icon-captures/patchbay-512.png",
+        "sha256": "ac7095fc1f5d80e3357d7d4a954801e857a4b03c5947902ec890079efb0cb848"
+      },
+      "sprite": {
+        "file": "web/src/assets/class-looks/arc-patchbay/sprite.png",
+        "bytes": 40375,
+        "sha256": "bb1c04156b577b13bfb8414f6f496c1131078aa8a569d817cb90f479bcf46eaf",
+        "width": 192,
+        "height": 192,
+        "alphaBounds": {
+          "left": 13,
+          "top": 34,
+          "width": 166,
+          "height": 124
+        },
+        "opaquePixels": 16716
+      },
+      "teamMask": {
+        "file": "web/src/assets/class-looks/arc-patchbay/team-mask.png",
+        "bytes": 1572,
+        "sha256": "e68a46e7d6fb467568be83f596568859896fadfc4025ef07d3ee0d23f3a7d28a",
+        "frontBandPixels": 6,
+        "accentedPixels": 744
+      }
+    },
+    {
+      "classId": "lantern",
+      "source": {
+        "file": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v3/arc-lantern-lean.glb",
+        "bytes": 1628396,
+        "sha256": "1c6d4d4c928cb8d8c0e31ca10b803294a12e7c0b4d19aae6ab2de1ac2082f88d",
+        "geometrySha256": "23bab836bdd287728db9259f3f2b64e58687260025baefdcbdca73ef404449ba"
+      },
+      "camera": "strict top-down; camera up -Z; +X maps screen-right/east",
+      "capture": {
+        "file": "art/reviews/arc-relay-meshy7-fleet-retexture-v3/top-down-east-icon-captures/lantern-512.png",
+        "sha256": "6539297af9c2131c8b4b5cd7eb4e20fa889718199c48392dc195b75ebcc2fe86"
+      },
+      "sprite": {
+        "file": "web/src/assets/class-looks/arc-lantern/sprite.png",
+        "bytes": 50559,
+        "sha256": "46e5c67260c0f5a9a6be8115d3766aa4012ad729eec34cbdaa37991cff5a7601",
+        "width": 192,
+        "height": 192,
+        "alphaBounds": {
+          "left": 15,
+          "top": 13,
+          "width": 162,
+          "height": 166
+        },
+        "opaquePixels": 21105
+      },
+      "teamMask": {
+        "file": "web/src/assets/class-looks/arc-lantern/team-mask.png",
+        "bytes": 1649,
+        "sha256": "118e2c4cf65cf6030924418e97bd27b4adac9f843d47faf67c61ba78f20d24fa",
+        "frontBandPixels": 6,
+        "accentedPixels": 996
+      }
+    },
+    {
+      "classId": "mortar",
+      "source": {
+        "file": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v3/arc-mortar-lean.glb",
+        "bytes": 1687516,
+        "sha256": "0d0a5de14e7e35d5c954de0ba5e0b4bc1cb18fd3618fdbc6d067705b582bb6b7",
+        "geometrySha256": "85684c330c2771426401e1e80108293467fc092734a24326ef5745d2e2a1ce15"
+      },
+      "camera": "strict top-down; camera up -Z; +X maps screen-right/east",
+      "capture": {
+        "file": "art/reviews/arc-relay-meshy7-fleet-retexture-v3/top-down-east-icon-captures/mortar-512.png",
+        "sha256": "2c4f9879e6b68ee812c6d50f53bcabd901dd2875513798370b1ac684a474897e"
+      },
+      "sprite": {
+        "file": "web/src/assets/class-looks/arc-mortar/sprite.png",
+        "bytes": 55371,
+        "sha256": "973805210e82db72a1067de007b873a2586ce956ec37bec46eae8017ac8acbc8",
+        "width": 192,
+        "height": 192,
+        "alphaBounds": {
+          "left": 15,
+          "top": 13,
+          "width": 162,
+          "height": 166
+        },
+        "opaquePixels": 20380
+      },
+      "teamMask": {
+        "file": "web/src/assets/class-looks/arc-mortar/team-mask.png",
+        "bytes": 1633,
+        "sha256": "b6c6b767af6b84bc1ae171128a91c055c20dc86faba43cf5a3763eef131ba716",
+        "frontBandPixels": 6,
+        "accentedPixels": 990
+      }
+    },
+    {
+      "classId": "minesmith",
+      "source": {
+        "file": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v3/arc-minesmith-lean.glb",
+        "bytes": 1836924,
+        "sha256": "c68852594a1e12367d2d845d06a7b2b6cdc2206e7362ecd7634a170c7b44d897",
+        "geometrySha256": "50f05de6a360410746131098556eb55b788fce0cfffa2a5eff223981f631e637"
+      },
+      "camera": "strict top-down; camera up -Z; +X maps screen-right/east",
+      "capture": {
+        "file": "art/reviews/arc-relay-meshy7-fleet-retexture-v3/top-down-east-icon-captures/minesmith-512.png",
+        "sha256": "c03973c061182af89be00175b11caa171affc4dbda9adaa7869f76332d47956c"
+      },
+      "sprite": {
+        "file": "web/src/assets/class-looks/arc-minesmith/sprite.png",
+        "bytes": 52518,
+        "sha256": "b6170679b247e915f14e67f67c209a772191c647679849ace64db24417b67c95",
+        "width": 192,
+        "height": 192,
+        "alphaBounds": {
+          "left": 13,
+          "top": 20,
+          "width": 166,
+          "height": 152
+        },
+        "opaquePixels": 19877
+      },
+      "teamMask": {
+        "file": "web/src/assets/class-looks/arc-minesmith/team-mask.png",
+        "bytes": 1715,
+        "sha256": "7e75081de35190f0f5c6c74dac744257386165059eeec7460749564610c117ea",
+        "frontBandPixels": 6,
+        "accentedPixels": 912
+      }
+    },
+    {
+      "classId": "hush",
+      "source": {
+        "file": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v3/arc-hush-lean.glb",
+        "bytes": 1629028,
+        "sha256": "4fb10752600d4ffb04d1d88c1d5b77e41d6d6d8be509b657c1e0dd103a5b00d7",
+        "geometrySha256": "b115cdca05cc3bec1e4f7b7a477657735601cd0f324b4268ddf4e656442bd2c8"
+      },
+      "camera": "strict top-down; camera up -Z; +X maps screen-right/east",
+      "capture": {
+        "file": "art/reviews/arc-relay-meshy7-fleet-retexture-v3/top-down-east-icon-captures/hush-512.png",
+        "sha256": "c85a2af14de49030f570cd7ee6933bf80a651984d27efc4f255fe98ca275c14b"
+      },
+      "sprite": {
+        "file": "web/src/assets/class-looks/arc-hush/sprite.png",
+        "bytes": 52841,
+        "sha256": "7f690bd14ca56c25dee8383c591f1eb464009c5ee84d0862dfa08740a8425957",
+        "width": 192,
+        "height": 192,
+        "alphaBounds": {
+          "left": 13,
+          "top": 13,
+          "width": 166,
+          "height": 166
+        },
+        "opaquePixels": 19681
+      },
+      "teamMask": {
+        "file": "web/src/assets/class-looks/arc-hush/team-mask.png",
+        "bytes": 1760,
+        "sha256": "876a8091a504ca27471c314124f5df4fb4ff8f5f3b50d9c655d157a5c4283a81",
+        "frontBandPixels": 6,
+        "accentedPixels": 995
+      }
+    },
+    {
+      "classId": "relay",
+      "source": {
+        "file": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v3/arc-relay-lean.glb",
+        "bytes": 1706580,
+        "sha256": "2995e6ec26e2b52389867f8115d2cf48c963aee6360a0d4db87a9d36643cc229",
+        "geometrySha256": "ea9d52c8dfc993a54ca736adf23a1081dc23029c135e65e9715fcfab62d2d8b8"
+      },
+      "camera": "strict top-down; camera up -Z; +X maps screen-right/east",
+      "capture": {
+        "file": "art/reviews/arc-relay-meshy7-fleet-retexture-v3/top-down-east-icon-captures/relay-512.png",
+        "sha256": "d6836214248494f62cc20d0cc6b3e7778c56323fd43df5a46e47c7be44a5321b"
+      },
+      "sprite": {
+        "file": "web/src/assets/class-looks/arc-relay/sprite.png",
+        "bytes": 40876,
+        "sha256": "1c2023011feb2c67c7a02cca2a9a6afd83daf1bcaa6824836d4ea485acb67efe",
+        "width": 192,
+        "height": 192,
+        "alphaBounds": {
+          "left": 13,
+          "top": 32,
+          "width": 166,
+          "height": 128
+        },
+        "opaquePixels": 16618
+      },
+      "teamMask": {
+        "file": "web/src/assets/class-looks/arc-relay/team-mask.png",
+        "bytes": 1385,
+        "sha256": "76041f461e38ee806db8a724b7197d86f64d4643ec1b9bf9de6521c4af38d160",
+        "frontBandPixels": 6,
+        "accentedPixels": 755
+      }
+    },
+    {
+      "classId": "switchback",
+      "source": {
+        "file": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v3/arc-switchback-lean.glb",
+        "bytes": 1803236,
+        "sha256": "d3e71fe599aa6c56bda7e673fe8c5aae341bece7e11f688bb17fe84c12ce20d7",
+        "geometrySha256": "a055ec36ccf259cb69a513335df50405f97e30d317c5475f1deefae00fceb453"
+      },
+      "camera": "strict top-down; camera up -Z; +X maps screen-right/east",
+      "capture": {
+        "file": "art/reviews/arc-relay-meshy7-fleet-retexture-v3/top-down-east-icon-captures/switchback-512.png",
+        "sha256": "4283f83d2660f1be58d1e922c5ca3c39c4369f77423965ce0404677e52df6479"
+      },
+      "sprite": {
+        "file": "web/src/assets/class-looks/arc-switchback/sprite.png",
+        "bytes": 52751,
+        "sha256": "0fa6152a538c3791e61d06b6fd895dbb4eb1c9a0520d8f3bc573866a8110d150",
+        "width": 192,
+        "height": 192,
+        "alphaBounds": {
+          "left": 13,
+          "top": 24,
+          "width": 166,
+          "height": 144
+        },
+        "opaquePixels": 21587
+      },
+      "teamMask": {
+        "file": "web/src/assets/class-looks/arc-switchback/team-mask.png",
+        "bytes": 1488,
+        "sha256": "986168efa26bb3f528f719a8dac67c52a0869c9cacf769dae65d20bb7e48083a",
+        "frontBandPixels": 6,
+        "accentedPixels": 856
+      }
+    },
+    {
+      "classId": "longshot",
+      "source": {
+        "file": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v3/arc-longshot-lean.glb",
+        "bytes": 1802772,
+        "sha256": "9ea835fa2363843eeaacc02c69687eee1471ac44c4e1a703d05783c14e8cbe4a",
+        "geometrySha256": "47fb05943f0d252a9b5d396237f8ab1498fa11976d95acfa3de41f5ee46e10f1"
+      },
+      "camera": "strict top-down; camera up -Z; +X maps screen-right/east",
+      "capture": {
+        "file": "art/reviews/arc-relay-meshy7-fleet-retexture-v3/top-down-east-icon-captures/longshot-512.png",
+        "sha256": "69b220220e2274bb787849513b0cbebeb75f617659b72a8e9740860f2f57d116"
+      },
+      "sprite": {
+        "file": "web/src/assets/class-looks/arc-longshot/sprite.png",
+        "bytes": 28185,
+        "sha256": "9cdac06ab30b65102ebd7c554cddb250e8fe89dfa2e44ebc0fbe6157c38e2012",
+        "width": 192,
+        "height": 192,
+        "alphaBounds": {
+          "left": 13,
+          "top": 59,
+          "width": 166,
+          "height": 74
+        },
+        "opaquePixels": 11337
+      },
+      "teamMask": {
+        "file": "web/src/assets/class-looks/arc-longshot/team-mask.png",
+        "bytes": 1048,
+        "sha256": "127302d24a774375bf9440ef40fdc3a0739733994552724fad53b41f8c69046e",
+        "frontBandPixels": 6,
+        "accentedPixels": 444
+      }
+    },
+    {
+      "classId": "mason",
+      "source": {
+        "file": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v3/arc-mason-lean.glb",
+        "bytes": 1721956,
+        "sha256": "ca239a6bcae2b2872f4ddf95457639e59c075d5145e1b5ebc4e8e16022d18b12",
+        "geometrySha256": "b4aab7bfe1aac26cee2a7535c13f786ebe7e5e7830b32f70fc9185ab475c6990"
+      },
+      "camera": "strict top-down; camera up -Z; +X maps screen-right/east",
+      "capture": {
+        "file": "art/reviews/arc-relay-meshy7-fleet-retexture-v3/top-down-east-icon-captures/mason-512.png",
+        "sha256": "1fdd7800b7a23acd2a2d45aaf9f649333cdd66a6ccfd2d556a8ae44a9aa2f01d"
+      },
+      "sprite": {
+        "file": "web/src/assets/class-looks/arc-mason/sprite.png",
+        "bytes": 36341,
+        "sha256": "1823ba6cfb134bf184c197f00cd6de5e00e9a5e705e2b73cc690d73f3b349125",
+        "width": 192,
+        "height": 192,
+        "alphaBounds": {
+          "left": 13,
+          "top": 44,
+          "width": 166,
+          "height": 103
+        },
+        "opaquePixels": 14408
+      },
+      "teamMask": {
+        "file": "web/src/assets/class-looks/arc-mason/team-mask.png",
+        "bytes": 1165,
+        "sha256": "b6f3d86f756e68af196cf01ed6c3944a0e0685c5aecb8034e0f9ae7dd2f92fed",
+        "frontBandPixels": 6,
+        "accentedPixels": 606
+      }
+    },
+    {
+      "classId": "sunder",
+      "source": {
+        "file": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v3/arc-sunder-lean.glb",
+        "bytes": 7965584,
+        "sha256": "d50e03dc44f00b83329eb71350fc069b2fd01e87da7358c5b986680b699c135a",
+        "geometrySha256": "dbbd7346e69d21b41212932939b2abd53f60820bfb658c4422c859a6a69c5ae9"
+      },
+      "camera": "strict top-down; camera up -Z; +X maps screen-right/east",
+      "capture": {
+        "file": "art/reviews/arc-relay-meshy7-fleet-retexture-v3/top-down-east-icon-captures/sunder-512.png",
+        "sha256": "386295909f46cafbbcd2da9ba8cb00c705b85c926511efda7f9fd69f6ec906b4"
+      },
+      "sprite": {
+        "file": "web/src/assets/class-looks/arc-sunder/sprite.png",
+        "bytes": 40655,
+        "sha256": "f993e94b0a77837eccbff24c5b3261ba45ebf2b241249fa1087660442bb45bef",
+        "width": 192,
+        "height": 192,
+        "alphaBounds": {
+          "left": 39,
+          "top": 13,
+          "width": 114,
+          "height": 166
+        },
+        "opaquePixels": 15352
+      },
+      "teamMask": {
+        "file": "web/src/assets/class-looks/arc-sunder/team-mask.png",
+        "bytes": 1648,
+        "sha256": "d9882e2d5b81c80bbfb904af9afd5cd3d81312b8458f7211cf0f17f27d649696",
+        "frontBandPixels": 6,
+        "accentedPixels": 996
+      }
+    },
+    {
+      "classId": "repulsor",
+      "source": {
+        "file": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v3/arc-repulsor-lean.glb",
+        "bytes": 1699468,
+        "sha256": "4033c4e8c38d02d9f60d7a7875acfbe801ccec6f6b7ab94749a183c0bcc9c4dd",
+        "geometrySha256": "de9c349300098aa847734f06d54ba974ee5c7e3506727238c8d84a15cda9a5a0"
+      },
+      "camera": "strict top-down; camera up -Z; +X maps screen-right/east",
+      "capture": {
+        "file": "art/reviews/arc-relay-meshy7-fleet-retexture-v3/top-down-east-icon-captures/repulsor-512.png",
+        "sha256": "42e01cccbd90442d078e7d49f017073faa10b4ce77216a62d1272edf632b9620"
+      },
+      "sprite": {
+        "file": "web/src/assets/class-looks/arc-repulsor/sprite.png",
+        "bytes": 59877,
+        "sha256": "96560627a6f7de847446b5a24085494c2a34e0fe967470f38cf83605dc2ef7f2",
+        "width": 192,
+        "height": 192,
+        "alphaBounds": {
+          "left": 13,
+          "top": 13,
+          "width": 166,
+          "height": 166
+        },
+        "opaquePixels": 21604
+      },
+      "teamMask": {
+        "file": "web/src/assets/class-looks/arc-repulsor/team-mask.png",
+        "bytes": 1884,
+        "sha256": "5f53c629e8e714157535d709e565f188aac39ba94fa24aa110085437cd5e3410",
+        "frontBandPixels": 6,
+        "accentedPixels": 996
+      }
+    },
+    {
+      "classId": "veil",
+      "source": {
+        "file": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v3/arc-veil-lean.glb",
+        "bytes": 1690052,
+        "sha256": "31c1174201011e6e027d91367c7fcb02eebb81df8add240cf4169799bfa4cee9",
+        "geometrySha256": "b08c069ab711419978a21153adef2b3c72fdd79321e18d6d090ea3bd8f09177a"
+      },
+      "camera": "strict top-down; camera up -Z; +X maps screen-right/east",
+      "capture": {
+        "file": "art/reviews/arc-relay-meshy7-fleet-retexture-v3/top-down-east-icon-captures/veil-512.png",
+        "sha256": "4b6693a10c1aae95b4d98b3738c192cc2d3d2299ff6c198cfd614abe94213b38"
+      },
+      "sprite": {
+        "file": "web/src/assets/class-looks/arc-veil/sprite.png",
+        "bytes": 44518,
+        "sha256": "fcf6da4fc2a76c2c159adcbd0e2dc4712d84ba0e31a86d2997547d03d1c86867",
+        "width": 192,
+        "height": 192,
+        "alphaBounds": {
+          "left": 26,
+          "top": 13,
+          "width": 140,
+          "height": 166
+        },
+        "opaquePixels": 14817
+      },
+      "teamMask": {
+        "file": "web/src/assets/class-looks/arc-veil/team-mask.png",
+        "bytes": 1909,
+        "sha256": "34424d7a2600bb3280537a36e6ee8aecbe0ff72e21397abd5233c75087ac8b0c",
+        "frontBandPixels": 6,
+        "accentedPixels": 996
+      }
+    },
+    {
+      "classId": "nest",
+      "source": {
+        "file": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v3/arc-nest-lean.glb",
+        "bytes": 1719984,
+        "sha256": "9e993cd986f88491eebeeef9cea3b0379031cee3ca4e63eac188e2c18e60b803",
+        "geometrySha256": "3f321e9d9904dd86db219732e507c2fd6b4b6531c0d49006625f4afdaa6f74c9"
+      },
+      "camera": "strict top-down; camera up -Z; +X maps screen-right/east",
+      "capture": {
+        "file": "art/reviews/arc-relay-meshy7-fleet-retexture-v3/top-down-east-icon-captures/nest-512.png",
+        "sha256": "3ea95122bdbb1b85dd638e55907ea197ddf26e12a5ec3fcbfdafbdf4cd9573b8"
+      },
+      "sprite": {
+        "file": "web/src/assets/class-looks/arc-nest/sprite.png",
+        "bytes": 50107,
+        "sha256": "b4ff842ce03646a284858705f138765e50ffcb14ae3d496b541dc9408cc39759",
+        "width": 192,
+        "height": 192,
+        "alphaBounds": {
+          "left": 13,
+          "top": 33,
+          "width": 166,
+          "height": 126
+        },
+        "opaquePixels": 20177
+      },
+      "teamMask": {
+        "file": "web/src/assets/class-looks/arc-nest/team-mask.png",
+        "bytes": 1210,
+        "sha256": "b826263b03d4c5892d296f4c3a0a72aa8f2fc0e47f0362b685b204bba398faee",
+        "frontBandPixels": 6,
+        "accentedPixels": 756
+      }
+    }
+  ]
+}
