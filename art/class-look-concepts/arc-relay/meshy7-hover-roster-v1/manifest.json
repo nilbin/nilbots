@@ -1,17 +1,21 @@
 {
   "schemaVersion": 1,
   "status": "owner-review",
-  "canonicalReviewArtifact": "concept-sheet-v5.png",
-  "canonicalReviewArtifactSha256": "a4abccc65f471aac9e804bb207d3e68948f128cb0d8d14f1435c6defcdae8062",
+  "canonicalReviewArtifact": "concept-sheet-v6.png",
+  "canonicalReviewArtifactSha256": "06874056681193be2c09b5adb51c996d24a03e062f63750c6b85ff8a23c801f7",
   "gameplayScaleProof": {
-    "file": "concept-sheet-v5-48px-proof.png",
-    "sha256": "c274909b58cfdca30a568170b40e44c584e0a1096e006bb36631b7bd25dec8c7",
+    "file": "concept-sheet-v6-48px-proof.png",
+    "sha256": "654014ea6910dfdd5cbd848c73392d0023ba9002dbffb2faba36c4c86c93d754",
     "width": 256,
     "height": 256,
     "approximateVisibleBotWidthPx": "48-50",
     "transform": "deterministic sips downscale from canonical artifact; no repaint"
   },
   "supersededReviewArtifacts": [
+    {
+      "file": "concept-sheet-v5.png",
+      "sha256": "a4abccc65f471aac9e804bb207d3e68948f128cb0d8d14f1435c6defcdae8062"
+    },
     {
       "file": "concept-sheet-v4.png",
       "sha256": "6f776e1d6db3ce43c961c2d8143e0b6576ea10e19fa5ccdb24076c59fb2431f5"
@@ -60,7 +64,8 @@
     "CONCEPT-SHEET-V2-PROMPTS.md",
     "CONCEPT-SHEET-V3-PROMPTS.md",
     "CONCEPT-SHEET-V4-PROMPT.md",
-    "CONCEPT-SHEET-V5-PROMPTS.md"
+    "CONCEPT-SHEET-V5-PROMPTS.md",
+    "CONCEPT-SHEET-V6-PROMPTS.md"
   ],
   "classPromptSpecs": "prompt-specs.json",
   "identityRevision": {
@@ -77,6 +82,14 @@
     "teamAccentMaskInStaticConcept": "invisible",
     "beamEmitter": "thin dark seam flush with leading edge",
     "gunLikeCues": "prohibited",
+    "darkArenaReadability": "dominant hull planes use medium/light authored values; near-black is limited to recesses and gaps",
+    "silhouetteSeparation": {
+      "mortar": "faceted asymmetric launch hex",
+      "hush": "notched four-lobed absorber",
+      "longshot": "thickened long rail barge",
+      "nest": "very wide open twin-rack carrier"
+    },
+    "palisadeBlue": "bright saturated royal cobalt; not cyan, teal, or pastel",
     "beamEmitterMustRemainSeparate": true,
     "signatureHardwareMustRemainSeparate": true
   },
