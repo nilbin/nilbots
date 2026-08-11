@@ -1,12 +1,30 @@
 {
   "schemaVersion": 1,
   "status": "owner-review",
-  "canonicalReviewArtifact": "concept-sheet-v2.png",
-  "canonicalReviewArtifactSha256": "d5cd9abe60b40148445a3e8e5495b0a8c5c2a2e4d25c842cc57d5911fc0aeca5",
-  "supersededReviewArtifact": {
-    "file": "concept-sheet.png",
-    "sha256": "868cbcf9336197ec2e87d73d2f8463f7def7823e2f555bf0433965a6c00e9868"
+  "canonicalReviewArtifact": "concept-sheet-v4.png",
+  "canonicalReviewArtifactSha256": "6f776e1d6db3ce43c961c2d8143e0b6576ea10e19fa5ccdb24076c59fb2431f5",
+  "gameplayScaleProof": {
+    "file": "concept-sheet-v4-48px-proof.png",
+    "sha256": "b67d3a39a76c256cc9dba3478af70d4d87902d869157016dd8c0308819d1478c",
+    "width": 256,
+    "height": 256,
+    "approximateVisibleBotWidthPx": "48-50",
+    "transform": "deterministic sips downscale from canonical artifact; no repaint"
   },
+  "supersededReviewArtifacts": [
+    {
+      "file": "concept-sheet-v3.png",
+      "sha256": "31188936fdff59d04fcb4da20492ad51eb812264c274cbbfbcb2746197f861c0"
+    },
+    {
+      "file": "concept-sheet-v2.png",
+      "sha256": "d5cd9abe60b40148445a3e8e5495b0a8c5c2a2e4d25c842cc57d5911fc0aeca5"
+    },
+    {
+      "file": "concept-sheet.png",
+      "sha256": "868cbcf9336197ec2e87d73d2f8463f7def7823e2f555bf0433965a6c00e9868"
+    }
+  ],
   "dimensions": {
     "width": 1254,
     "height": 1254
@@ -35,7 +53,9 @@
   },
   "generationPrompts": [
     "CONCEPT-SHEET-PROMPT.md",
-    "CONCEPT-SHEET-V2-PROMPTS.md"
+    "CONCEPT-SHEET-V2-PROMPTS.md",
+    "CONCEPT-SHEET-V3-PROMPTS.md",
+    "CONCEPT-SHEET-V4-PROMPT.md"
   ],
   "classPromptSpecs": "prompt-specs.json",
   "identityRevision": {
@@ -43,9 +63,16 @@
       "teal",
       "orange"
     ],
-    "fixedEmission": "neutral soft white with a subtle pale-lavender core",
-    "mechanicalEyeMotifRequired": true,
-    "beamApertureMustRemainSeparate": true
+    "fixedEmission": "none in the owner-review concept",
+    "eyeMotifs": "prohibited",
+    "gameplayCameraDegrees": 58,
+    "targetVisibleBotWidthPx": "48-96",
+    "sharedChargePlateCount": 3,
+    "chargePlates": "neutral and unlit; runtime teal/orange team tint",
+    "beamEmitter": "thin dark seam flush with leading edge",
+    "gunLikeCues": "prohibited",
+    "beamEmitterMustRemainSeparate": true,
+    "signatureHardwareMustRemainSeparate": true
   },
   "styleReferences": [
     "drafts/kestrel.png",
