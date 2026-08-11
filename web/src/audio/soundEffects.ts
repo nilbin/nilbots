@@ -50,6 +50,8 @@ interface SoundEffectManifest {
         'attack-windup' | 'projectile',
         {
           channelTransform: 'side-to-dual-mono' | 'mid-to-dual-mono';
+          sourceStartSeconds: number;
+          playbackRate: number;
           durationSeconds: number;
           lowPassHz: number;
           fadeInSeconds: number;
@@ -143,7 +145,7 @@ function loadSoundEffectPack(): SoundEffectPack {
   }
   const [manifestPath, manifest] = entries[0]!;
   if (
-    manifest.version !== 3 ||
+    manifest.version !== 4 ||
     manifest.id !== DEFAULT_SOUND_EFFECT_PACK_ID ||
     manifest.approval !== 'approved' ||
     manifest.format !== 'aac-lc-m4a' ||
@@ -264,12 +266,18 @@ function validCombatDeliveryProcessing(
       ['side-to-dual-mono', 'mid-to-dual-mono'].includes(
         cue.channelTransform,
       ) &&
+      Number.isFinite(cue.sourceStartSeconds) &&
+      cue.sourceStartSeconds >= 0 &&
+      cue.sourceStartSeconds <= 0.25 &&
+      Number.isFinite(cue.playbackRate) &&
+      cue.playbackRate >= 0.1 &&
+      cue.playbackRate <= 0.25 &&
       Number.isFinite(cue.durationSeconds) &&
       cue.durationSeconds > 0 &&
       cue.durationSeconds <= 0.25 &&
       Number.isFinite(cue.lowPassHz) &&
-      cue.lowPassHz >= 1_000 &&
-      cue.lowPassHz <= 4_000 &&
+      cue.lowPassHz >= 500 &&
+      cue.lowPassHz <= 1_000 &&
       isUnitGain(cue.targetSamplePeak) &&
       cue.targetSamplePeak <= 0.3 &&
       Number.isFinite(cue.fadeInSeconds) &&

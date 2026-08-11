@@ -31,6 +31,7 @@ interface Integrity {
     durationSeconds: number;
     samplePeakDbfs: number;
     rmsDbfs: number;
+    dominantFrequencyHz: number;
     interchannelCorrelation: number;
     sourceInterchannelCorrelation: number;
     effectiveSamplePeakDbfs: number;
@@ -71,6 +72,8 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
           string,
           {
             channelTransform: string;
+            sourceStartSeconds: number;
+            playbackRate: number;
             durationSeconds: number;
             lowPassHz: number;
             fadeInSeconds: number;
@@ -123,7 +126,7 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
     integrity: Record<string, Integrity>;
   };
 
-  assert.equal(manifest.version, 3);
+  assert.equal(manifest.version, 4);
   assert.equal(manifest.id, 'astral-relay');
   assert.equal(manifest.approval, 'approved');
   assert.equal(manifest.format, 'aac-lc-m4a');
@@ -147,24 +150,28 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
     },
     deliveryProcessing: {
       policy:
-        'Short dual-mono low-pass combat markers with soft endpoints; ' +
+        'Short down-pitched dual-mono low-mid combat markers with soft endpoints; ' +
         'no synthesized layer and no provider request.',
       cues: {
         'attack-windup': {
           channelTransform: 'side-to-dual-mono',
+          sourceStartSeconds: 0.1,
+          playbackRate: 0.16,
           durationSeconds: 0.24,
-          lowPassHz: 3_200,
-          fadeInSeconds: 0.03,
-          fadeOutSeconds: 0.08,
-          targetSamplePeak: 0.28,
+          lowPassHz: 800,
+          fadeInSeconds: 0.045,
+          fadeOutSeconds: 0.09,
+          targetSamplePeak: 0.24,
         },
         projectile: {
           channelTransform: 'mid-to-dual-mono',
+          sourceStartSeconds: 0.005,
+          playbackRate: 0.16,
           durationSeconds: 0.16,
-          lowPassHz: 2_600,
-          fadeInSeconds: 0.018,
-          fadeOutSeconds: 0.07,
-          targetSamplePeak: 0.28,
+          lowPassHz: 750,
+          fadeInSeconds: 0.025,
+          fadeOutSeconds: 0.08,
+          targetSamplePeak: 0.24,
         },
       },
     },
@@ -249,9 +256,13 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
     assert.ok(metrics, `${cue} lacks its delivery-shaping audit`);
     assert.equal(mix.voiceLimit, 1);
     assert.equal(mix.roomSend, false);
-    assert.ok(mix.panWidth <= 0.28);
-    assert.ok(mix.gain <= 0.28);
+    assert.ok(mix.panWidth <= 0.2);
+    assert.ok(mix.gain <= 0.2);
     assert.ok(metrics.durationSeconds <= 0.24);
+    assert.ok(
+      metrics.dominantFrequencyHz <= 700,
+      `${cue} has crept out of the low-mid pitch band`,
+    );
     assert.ok(metrics.interchannelCorrelation >= 0.999);
     assert.ok(
       metrics.effectiveSamplePeakDbfs <= -20,

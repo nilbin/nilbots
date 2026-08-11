@@ -1,5 +1,5 @@
 {
-  "version": 3,
+  "version": 4,
   "id": "astral-relay",
   "label": "Astral Relay",
   "approval": "approved",
@@ -22,23 +22,27 @@
       "canonicalization": "zero-iso-bmff-creation-and-modification-times"
     },
     "deliveryProcessing": {
-      "policy": "Short dual-mono low-pass combat markers with soft endpoints; no synthesized layer and no provider request.",
+      "policy": "Short down-pitched dual-mono low-mid combat markers with soft endpoints; no synthesized layer and no provider request.",
       "cues": {
         "attack-windup": {
           "channelTransform": "side-to-dual-mono",
+          "sourceStartSeconds": 0.1,
+          "playbackRate": 0.16,
           "durationSeconds": 0.24,
-          "lowPassHz": 3200,
-          "fadeInSeconds": 0.03,
-          "fadeOutSeconds": 0.08,
-          "targetSamplePeak": 0.28
+          "lowPassHz": 800,
+          "fadeInSeconds": 0.045,
+          "fadeOutSeconds": 0.09,
+          "targetSamplePeak": 0.24
         },
         "projectile": {
           "channelTransform": "mid-to-dual-mono",
+          "sourceStartSeconds": 0.005,
+          "playbackRate": 0.16,
           "durationSeconds": 0.16,
-          "lowPassHz": 2600,
-          "fadeInSeconds": 0.018,
-          "fadeOutSeconds": 0.07,
-          "targetSamplePeak": 0.28
+          "lowPassHz": 750,
+          "fadeInSeconds": 0.025,
+          "fadeOutSeconds": 0.08,
+          "targetSamplePeak": 0.24
         }
       }
     },
@@ -60,15 +64,15 @@
     "roomSend": 0.06,
     "cues": {
       "attack-windup": {
-        "gain": 0.24,
+        "gain": 0.18,
         "voiceLimit": 1,
-        "panWidth": 0.28,
+        "panWidth": 0.2,
         "roomSend": false
       },
       "projectile": {
-        "gain": 0.28,
+        "gain": 0.2,
         "voiceLimit": 1,
-        "panWidth": 0.28,
+        "panWidth": 0.2,
         "roomSend": false
       },
       "impact": {
@@ -186,32 +190,34 @@
   "integrity": {
     "attack-windup": {
       "sourceSha256": "82f8c4fd229396a435634b8900cd1b405d58f8fedd14d654140c5d1f9d079453",
-      "outputSha256": "4a56465ade6698cffe8aa8bc95bf00167532f6205e8e09bcf0f1bdc797a18df4",
-      "bytes": 6945,
+      "outputSha256": "30cef24c05d8e08be51ed0299bb069ff5a7fd0944b56cffb320cedcfe7d1691a",
+      "bytes": 5919,
       "bitrate": 192000,
       "deliveryMetrics": {
         "durationSeconds": 0.24,
-        "samplePeakDbfs": -11.06,
-        "rmsDbfs": -25.71,
+        "samplePeakDbfs": -12.4,
+        "rmsDbfs": -22.8,
+        "dominantFrequencyHz": 642,
         "interchannelCorrelation": 1,
         "sourceInterchannelCorrelation": -0.9983,
-        "effectiveSamplePeakDbfs": -23.46,
-        "effectiveRmsDbfs": -38.11
+        "effectiveSamplePeakDbfs": -27.29,
+        "effectiveRmsDbfs": -37.69
       }
     },
     "projectile": {
       "sourceSha256": "df5d574657ebb56fed0b165715b1b0e42634910c6ca0c921102c6612c037158a",
-      "outputSha256": "f3b70cec88633ede89fb89f772f4834e115f696b4c152b61e1b59002fde0acee",
-      "bytes": 5197,
+      "outputSha256": "4bda4106ab2489a0ad751470b96f3902907a61f1cf5e84ac391885ba804bb6e5",
+      "bytes": 5109,
       "bitrate": 192000,
       "deliveryMetrics": {
         "durationSeconds": 0.16,
-        "samplePeakDbfs": -11.06,
-        "rmsDbfs": -30.31,
+        "samplePeakDbfs": -12.4,
+        "rmsDbfs": -23.16,
+        "dominantFrequencyHz": 598,
         "interchannelCorrelation": 1,
         "sourceInterchannelCorrelation": 1,
-        "effectiveSamplePeakDbfs": -22.12,
-        "effectiveRmsDbfs": -41.37
+        "effectiveSamplePeakDbfs": -26.38,
+        "effectiveRmsDbfs": -37.14
       }
     },
     "impact": {

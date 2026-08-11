@@ -7595,3 +7595,31 @@ Ion veil, Neon Protocol, objective/Core cues, and their gains are unchanged.
 The manifest moves to version 3 to pin the delivery recipes, measurements, and
 tick-mix policy. Because the self-contained viewer changes, CLI/tool package
 version 0.9.52 carries this sparse combat mix.
+
+## 286. Common combat cues occupy a low-mid field-pressure band
+
+Owner refinement (2026-08-11), superseding #285 only for the two common
+combat deliveries. The shortened wind-up and beam remained piercing because
+their accepted masters are dominated near 4.0 kHz and 3.7 kHz respectively;
+the prior low-pass treatment reduced brightness but did not move those tones.
+Filtering alone is therefore not the pitch treatment for these high-frequency
+sources.
+
+No provider request, synthesized layer, or lossless source change is added.
+The deterministic runtime export instead reads a short grain from each
+accepted master at 0.16 playback rate, roughly two and two-thirds octaves down,
+before applying the existing mono compatibility correction and new 800/750 Hz
+low-pass ceilings. The resulting delivery audit measures a 642 Hz dominant
+wind-up and 598 Hz dominant beam. Tests cap both at 700 Hz so a future export
+cannot silently return either frequent voice to the former high band.
+
+The cues remain brief and sparse: wind-up is 240 ms, beam is 160 ms, both have
+one-voice limits, no reflection send, and a narrower 0.20 positional pan.
+Runtime gains fall again to 0.18 and 0.20. Their measured effective peaks are
+-27.29 and -26.38 dBFS, with whole-cue effective RMS at -37.69 and -37.14 dBFS,
+keeping both lower voices deliberately restrained in dense fights.
+
+Tick coalescing, concrete-outcome suppression, every other one-shot, Ion veil,
+and Neon Protocol are unchanged. The manifest moves to version 4 to pin source
+offset, playback rate, low-mid filtering, dominant-frequency measurements, and
+mix limits. CLI/tool package version 0.9.53 carries this lower combat delivery.

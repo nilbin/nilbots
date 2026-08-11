@@ -77,15 +77,15 @@ const mix = {
   roomSend: 0.06,
   cues: {
     "attack-windup": {
-      gain: 0.24,
+      gain: 0.18,
       voiceLimit: 1,
-      panWidth: 0.28,
+      panWidth: 0.2,
       roomSend: false,
     },
     projectile: {
-      gain: 0.28,
+      gain: 0.2,
       voiceLimit: 1,
-      panWidth: 0.28,
+      panWidth: 0.2,
       roomSend: false,
     },
     impact: { gain: 0.38, voiceLimit: 2, panWidth: 0.7, roomSend: true },
@@ -104,19 +104,23 @@ const mix = {
 const combatDeliveryProcessing = {
   "attack-windup": {
     channelTransform: "side-to-dual-mono",
+    sourceStartSeconds: 0.1,
+    playbackRate: 0.16,
     durationSeconds: 0.24,
-    lowPassHz: 3_200,
-    fadeInSeconds: 0.03,
-    fadeOutSeconds: 0.08,
-    targetSamplePeak: 0.28,
+    lowPassHz: 800,
+    fadeInSeconds: 0.045,
+    fadeOutSeconds: 0.09,
+    targetSamplePeak: 0.24,
   },
   projectile: {
     channelTransform: "mid-to-dual-mono",
+    sourceStartSeconds: 0.005,
+    playbackRate: 0.16,
     durationSeconds: 0.16,
-    lowPassHz: 2_600,
-    fadeInSeconds: 0.018,
-    fadeOutSeconds: 0.07,
-    targetSamplePeak: 0.28,
+    lowPassHz: 750,
+    fadeInSeconds: 0.025,
+    fadeOutSeconds: 0.08,
+    targetSamplePeak: 0.24,
   },
 };
 const ambience = {
@@ -350,13 +354,31 @@ function shapeCombatCue(sourceBytes, id, processing) {
   const frameCount = Math.round(
     processing.durationSeconds * wav.sampleRate,
   );
-  if (frameCount <= 0 || frameCount > source.length / wav.channels) {
+  const sourceStartFrame = processing.sourceStartSeconds * wav.sampleRate;
+  const finalSourcePosition =
+    sourceStartFrame + (frameCount - 1) * processing.playbackRate;
+  const sourceFrameCount = source.length / wav.channels;
+  if (
+    frameCount <= 0 ||
+    sourceStartFrame < 0 ||
+    processing.playbackRate <= 0 ||
+    finalSourcePosition > sourceFrameCount - 1
+  ) {
     throw new Error(`${id}: combat delivery window exceeds the source cue.`);
   }
   const samples = new Float64Array(frameCount * wav.channels);
   for (let frame = 0; frame < frameCount; frame += 1) {
-    const left = source[frame * 2];
-    const right = source[frame * 2 + 1];
+    const sourcePosition =
+      sourceStartFrame + frame * processing.playbackRate;
+    const sourceFrame = Math.floor(sourcePosition);
+    const nextSourceFrame = Math.min(sourceFrame + 1, sourceFrameCount - 1);
+    const fraction = sourcePosition - sourceFrame;
+    const left =
+      source[sourceFrame * 2] * (1 - fraction) +
+      source[nextSourceFrame * 2] * fraction;
+    const right =
+      source[sourceFrame * 2 + 1] * (1 - fraction) +
+      source[nextSourceFrame * 2 + 1] * fraction;
     const mono =
       processing.channelTransform === "side-to-dual-mono"
         ? (left - right) * 0.5
@@ -556,6 +578,7 @@ function analyzeDeliveryWav(bytes, label) {
   let leftSquares = 0;
   let rightSquares = 0;
   let cross = 0;
+  const mono = new Float64Array(frames);
   for (let frame = 0; frame < frames; frame += 1) {
     const left =
       bytes.readInt16LE(wav.dataOffset + frame * wav.channels * 2) /
@@ -568,6 +591,7 @@ function analyzeDeliveryWav(bytes, label) {
     leftSquares += left * left;
     rightSquares += right * right;
     cross += left * right;
+    mono[frame] = (left + right) * 0.5;
   }
   const correlation = cross / Math.sqrt(leftSquares * rightSquares);
   const rms = Math.sqrt((leftSquares + rightSquares) / (frames * 2));
@@ -575,8 +599,47 @@ function analyzeDeliveryWav(bytes, label) {
     durationSeconds: round(frames / wav.sampleRate, 3),
     samplePeakDbfs: round(20 * Math.log10(peak), 2),
     rmsDbfs: round(20 * Math.log10(rms), 2),
+    dominantFrequencyHz: dominantFrequencyHz(mono, wav.sampleRate),
     interchannelCorrelation: round(correlation, 4),
   };
+}
+
+function dominantFrequencyHz(samples, sampleRate) {
+  const frameCount = Math.min(samples.length, 16_384);
+  const windowed = new Float64Array(frameCount);
+  for (let frame = 0; frame < frameCount; frame += 1) {
+    const window =
+      frameCount === 1
+        ? 1
+        : 0.5 -
+          0.5 * Math.cos((2 * Math.PI * frame) / (frameCount - 1));
+    windowed[frame] = samples[frame] * window;
+  }
+  let bestFrequency = 0;
+  let bestPower = -Infinity;
+  for (let frequency = 80; frequency <= 2_000; frequency += 2) {
+    const coefficient =
+      2 * Math.cos((2 * Math.PI * frequency) / sampleRate);
+    let previous = 0;
+    let previousPrevious = 0;
+    for (let frame = 0; frame < frameCount; frame += 1) {
+      const current =
+        windowed[frame] +
+        coefficient * previous -
+        previousPrevious;
+      previousPrevious = previous;
+      previous = current;
+    }
+    const power =
+      previous * previous +
+      previousPrevious * previousPrevious -
+      coefficient * previous * previousPrevious;
+    if (power > bestPower) {
+      bestPower = power;
+      bestFrequency = frequency;
+    }
+  }
+  return bestFrequency;
 }
 
 function interchannelCorrelation(samples, channels) {
@@ -718,7 +781,7 @@ try {
     path.join(directory, "manifest.json"),
     `${JSON.stringify(
       {
-        version: 3,
+        version: 4,
         id: pack.id,
         label: pack.label,
         approval: "approved",
@@ -739,7 +802,7 @@ try {
           },
           deliveryProcessing: {
             policy:
-              "Short dual-mono low-pass combat markers with soft endpoints; " +
+              "Short down-pitched dual-mono low-mid combat markers with soft endpoints; " +
               "no synthesized layer and no provider request.",
             cues: combatDeliveryProcessing,
           },
