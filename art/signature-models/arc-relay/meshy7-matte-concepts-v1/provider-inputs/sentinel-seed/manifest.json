@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "status": "concept-approved-provider-ready",
+  "status": "improvement-plan-awaiting-owner-approval",
   "classId": "arc-sentinel-seed",
   "signatureId": "sentinel-seed",
   "identitySource": {
@@ -77,10 +77,12 @@
       "glb"
     ],
     "pilotCreditCap": 30,
-    "authorized": true,
+    "authorized": false,
     "authorization": "Owner explicitly authorized this 30-credit paid Meshy 7 task on 2026-08-12T09:36:36Z as part of a 60-credit two-task batch.",
-    "authorizationConsumed": false,
-    "autoRigging": false
+    "authorizationConsumed": true,
+    "autoRigging": false,
+    "completedTaskId": "019ff559-5b88-781d-a5e0-6e73b653c3c3",
+    "consumedCredits": 30
   },
   "creditCheck": {
     "status": "verified-for-authorized-call",
@@ -90,5 +92,27 @@
     "proposedBatchCreditCap": 60,
     "pricingSource": "https://docs.meshy.ai/en/api/pricing"
   },
-  "nextGate": "owner explicitly authorizes this paid task after a live pricing and balance check"
+  "nextGate": "owner approves or rejects the bounded improvement proposal; no further provider call or runtime promotion",
+  "reviewAssessment": {
+    "file": "../../../../../class-models/provider-runs/meshy/arc-relay-meshy7-signature-props-v2/arc-sentinel-seed/019ff559-5b88-781d-a5e0-6e73b653c3c3/ASSESSMENT.md",
+    "verdict": "provisional geometry pass; material failure",
+    "additionalProviderCreditsProposed": 10,
+    "additionalProviderCreditsAuthorized": false
+  },
+  "providerRun": {
+    "taskId": "019ff559-5b88-781d-a5e0-6e73b653c3c3",
+    "directory": "../../../../../class-models/provider-runs/meshy/arc-relay-meshy7-signature-props-v2/arc-sentinel-seed/019ff559-5b88-781d-a5e0-6e73b653c3c3",
+    "status": "SUCCEEDED",
+    "consumedCredits": 30,
+    "balanceBefore": 1400,
+    "balanceAfter": 1370,
+    "rawModelSha256": "05a752e236739004d36afb36248ac4f02bb5bcbd575b62d34cc4f411588367bb",
+    "vertices": 1011617,
+    "triangles": 1950794,
+    "indexedConnectedComponents": 508,
+    "spatialConnectedComponents": 1,
+    "spatialNonManifoldEdges": 0,
+    "zeroAreaTriangles": 0,
+    "sixViewReviewSha256": "69648461a87a13132b0ece4230ade5f83336e96f944ae1a6637d7457da47c99e"
+  }
 }

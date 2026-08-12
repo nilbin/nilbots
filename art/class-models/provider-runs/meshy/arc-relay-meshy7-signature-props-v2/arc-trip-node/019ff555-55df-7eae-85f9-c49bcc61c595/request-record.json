@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "provider": "Meshy",
+  "endpoint": "multi-image-to-3d",
+  "providerModel": "meshy-7",
+  "classId": "arc-trip-node",
+  "taskId": "019ff555-55df-7eae-85f9-c49bcc61c595",
+  "submittedAt": "2026-08-12T09:37:17.394Z",
+  "balanceBefore": 1430,
+  "authorizedCreditCap": 30,
+  "sourceManifest": "art/signature-models/arc-relay/meshy7-matte-concepts-v1/provider-inputs/trip-node/manifest.json",
+  "inputs": [
+    {
+      "order": 1,
+      "view": "strict-front",
+      "primary": true,
+      "file": "art/signature-models/arc-relay/meshy7-matte-concepts-v1/provider-inputs/trip-node/02-front.png",
+      "bytes": 835902,
+      "sha256": "e00ff3c6361763bacfb5ad75d3182711a5d7b16c18b28d3d87924579a6343fe1",
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "order": 2,
+      "view": "strict-right",
+      "primary": false,
+      "file": "art/signature-models/arc-relay/meshy7-matte-concepts-v1/provider-inputs/trip-node/03-right.png",
+      "bytes": 796680,
+      "sha256": "15786606e82d3a6959bf33f71dfcb36bae6741d8976a2e57e73b7d6344d8e563",
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "order": 3,
+      "view": "strict-top",
+      "primary": false,
+      "file": "art/signature-models/arc-relay/meshy7-matte-concepts-v1/provider-inputs/trip-node/01-top.png",
+      "bytes": 1247367,
+      "sha256": "1ca9e5c2c6e080ca9e073d67e2c3c62c6df6d5e8328f4bf6c3f7d305ee7103ba",
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "order": 4,
+      "view": "front-right-three-quarter",
+      "primary": false,
+      "file": "art/signature-models/arc-relay/meshy7-matte-concepts-v1/provider-inputs/trip-node/04-front-right-three-quarter.png",
+      "bytes": 1103542,
+      "sha256": "3b22dd3c42ca0352f0a9e92f9a1c21b422d9e25a6d60be3ea7567531701cf09d",
+      "width": 1536,
+      "height": 1024
+    }
+  ],
+  "settings": {
+    "ai_model": "meshy-7",
+    "should_texture": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "should_remesh": false,
+    "image_enhancement": false,
+    "remove_lighting": true,
+    "pose_mode": "",
+    "texture_prompt": "Mature industrial Arc Relay Trip Node proximity mine. Oxide-terracotta high-roughness powder-coated armor, muted-mustard and dull-brass hinge collars, dark graphite center and underside, restrained edge wear and recess grime. Preserve the low three-lobed forge-clamp silhouette, flat triangular sensor aperture, tiny neutral slit, and subtle forward wedge. No text, logos, decals, sphere, dome, loose Core, wheels, legs, turret, barrel, teal/orange team color, glow, bloom, explosion, smoke, range ring, or baked lighting.",
+    "target_formats": [
+      "glb"
+    ]
+  },
+  "pricingSource": "https://docs.meshy.ai/en/api/pricing",
+  "licenseTerms": "https://www.meshy.ai/terms"
+}

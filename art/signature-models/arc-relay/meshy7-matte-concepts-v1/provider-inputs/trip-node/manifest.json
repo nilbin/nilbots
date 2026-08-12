@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "status": "concept-approved-provider-ready",
+  "status": "improvement-plan-awaiting-owner-approval",
   "classId": "arc-trip-node",
   "signatureId": "trip-node",
   "identitySource": {
@@ -68,10 +68,12 @@
       "glb"
     ],
     "pilotCreditCap": 30,
-    "authorized": true,
+    "authorized": false,
     "authorization": "Owner explicitly authorized this 30-credit paid Meshy 7 task on 2026-08-12T09:36:36Z as part of a 60-credit two-task batch.",
-    "authorizationConsumed": false,
-    "autoRigging": false
+    "authorizationConsumed": true,
+    "autoRigging": false,
+    "completedTaskId": "019ff555-55df-7eae-85f9-c49bcc61c595",
+    "consumedCredits": 30
   },
   "creditCheck": {
     "status": "verified-for-authorized-call",
@@ -81,5 +83,26 @@
     "proposedBatchCreditCap": 60,
     "pricingSource": "https://docs.meshy.ai/en/api/pricing"
   },
-  "nextGate": "owner explicitly authorizes this paid task after a live pricing and balance check"
+  "nextGate": "owner approves or rejects the bounded improvement proposal; no further provider call or runtime promotion",
+  "reviewAssessment": {
+    "file": "../../../../../class-models/provider-runs/meshy/arc-relay-meshy7-signature-props-v2/arc-trip-node/019ff555-55df-7eae-85f9-c49bcc61c595/ASSESSMENT.md",
+    "verdict": "provisional geometry and palette pass; local correction required",
+    "additionalProviderCreditsProposed": 0
+  },
+  "providerRun": {
+    "taskId": "019ff555-55df-7eae-85f9-c49bcc61c595",
+    "directory": "../../../../../class-models/provider-runs/meshy/arc-relay-meshy7-signature-props-v2/arc-trip-node/019ff555-55df-7eae-85f9-c49bcc61c595",
+    "status": "SUCCEEDED",
+    "consumedCredits": 30,
+    "balanceBefore": 1430,
+    "balanceAfter": 1400,
+    "rawModelSha256": "56e227a630f61f6659bf3373b85e642f6d0e07c2f526e342260094b88e939868",
+    "vertices": 1308891,
+    "triangles": 1978078,
+    "indexedConnectedComponents": 52464,
+    "spatialConnectedComponents": 1,
+    "spatialNonManifoldEdges": 2,
+    "zeroAreaTriangles": 2,
+    "sixViewReviewSha256": "03ff9f71e650db62a92c7fb35116148514ef710f42b5c79c7b29774499ae820e"
+  }
 }

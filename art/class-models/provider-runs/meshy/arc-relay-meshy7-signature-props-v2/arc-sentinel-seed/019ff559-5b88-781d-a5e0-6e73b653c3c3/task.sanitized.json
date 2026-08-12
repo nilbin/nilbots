@@ -1,0 +1,36 @@
+{
+  "id": "019ff559-5b88-781d-a5e0-6e73b653c3c3",
+  "type": "multi-image-to-3d",
+  "name": "",
+  "art_style": "",
+  "object_prompt": "",
+  "style_prompt": "",
+  "negative_prompt": "",
+  "texture_prompt": "Mature industrial Arc Relay Sentinel Seed stationary sentry. Pine-sage high-roughness powder-coated armor, warm-umber rails, one muted-aubergine seed-cell cap, charcoal yaw collar and underside, tiny dull-brass hardware, restrained edge wear and recess grime. Preserve the angular planted calyx, exposed unobstructed yaw bearing, compact wedge head, neutral sensor slit, and very short rectangular emitter. No text, logos, decals, tank or mobile chassis cues, long cannon, wheels, tracks, legs, teal/orange team color, glow, bloom, target line, muzzle flash, smoke, range ring, or baked lighting.",
+  "texture_image_url": "[redacted-input]",
+  "text_style_prompt": "",
+  "image_style_url": "",
+  "status": "SUCCEEDED",
+  "created_at": 1786527705343,
+  "progress": 100,
+  "started_at": 1786527705386,
+  "finished_at": 1786527915882,
+  "expires_at": 1786787115882,
+  "task_error": null,
+  "model_url": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ff559-5b88-781d-a5e0-6e73b653c3c3/output/model.glb",
+  "model_urls": {
+    "glb": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ff559-5b88-781d-a5e0-6e73b653c3c3/output/model.glb"
+  },
+  "thumbnail_url": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ff559-5b88-781d-a5e0-6e73b653c3c3/output/preview.png",
+  "texture_urls": [
+    {
+      "base_color": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ff559-5b88-781d-a5e0-6e73b653c3c3/output/texture_0.png",
+      "metallic": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ff559-5b88-781d-a5e0-6e73b653c3c3/output/texture_0_metallic.png",
+      "roughness": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ff559-5b88-781d-a5e0-6e73b653c3c3/output/texture_0_roughness.png",
+      "normal": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ff559-5b88-781d-a5e0-6e73b653c3c3/output/texture_0_normal.png",
+      "emission": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ff559-5b88-781d-a5e0-6e73b653c3c3/output/texture_0_emission.png"
+    }
+  ],
+  "remove_lighting": true,
+  "consumed_credits": 30
+}

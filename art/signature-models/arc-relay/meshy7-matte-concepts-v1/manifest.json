@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "status": "concept-approved-provider-inputs-ready",
+  "status": "provider-batch-complete-improvement-plan-awaiting-approval",
   "createdAt": "2026-08-12",
   "conceptApprovedAt": "2026-08-12",
   "conceptApproval": "Owner approved Trip Node and the drier Sentinel Seed matte v2 finish. Paid provider calls remain separately gated.",
   "sentinelFinishApprovedAt": "2026-08-12",
   "purpose": "Complete matte Arc Relay signature-model concept package",
-  "providerCallsAuthorized": true,
+  "providerCallsAuthorized": false,
   "providerBatchAuthorization": {
     "authorizedAt": "2026-08-12T09:36:36Z",
     "scope": [
@@ -17,12 +17,84 @@
     "totalCreditCap": 60,
     "balanceBefore": 1430,
     "pricingVerifiedAt": "2026-08-12T09:36:36Z",
-    "pricingSource": "https://docs.meshy.ai/en/api/pricing"
+    "pricingSource": "https://docs.meshy.ai/en/api/pricing",
+    "authorizationConsumed": true,
+    "completedAt": "2026-08-12T09:45:51Z",
+    "consumedCredits": 60,
+    "balanceAfter": 1370
+  },
+  "providerResults": [
+    {
+      "signatureId": "trip-node",
+      "taskId": "019ff555-55df-7eae-85f9-c49bcc61c595",
+      "status": "SUCCEEDED",
+      "consumedCredits": 30,
+      "rawModelBytes": 74653544,
+      "rawModelSha256": "56e227a630f61f6659bf3373b85e642f6d0e07c2f526e342260094b88e939868",
+      "vertices": 1308891,
+      "triangles": 1978078,
+      "indexedConnectedComponents": 52464,
+      "spatialTopology": {
+        "positionTolerance": 0.00001,
+        "connectedComponents": 1,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 2,
+        "zeroAreaTriangles": 2
+      },
+      "validator": {
+        "errors": 6,
+        "warnings": 1,
+        "errorCode": "ACCESSOR_VECTOR3_NON_UNIT",
+        "cause": "six zero-length normal entries"
+      },
+      "sixViewReview": {
+        "file": "trip-node-meshy7-six-view.png",
+        "bytes": 1172293,
+        "sha256": "03ff9f71e650db62a92c7fb35116148514ef710f42b5c79c7b29774499ae820e"
+      },
+      "visualVerdict": "provisional geometry and palette pass; local profile, topology, neutral-sensor, and roughness corrections required",
+      "assessment": "art/class-models/provider-runs/meshy/arc-relay-meshy7-signature-props-v2/arc-trip-node/019ff555-55df-7eae-85f9-c49bcc61c595/ASSESSMENT.md"
+    },
+    {
+      "signatureId": "sentinel-seed",
+      "taskId": "019ff559-5b88-781d-a5e0-6e73b653c3c3",
+      "status": "SUCCEEDED",
+      "consumedCredits": 30,
+      "rawModelBytes": 63566880,
+      "rawModelSha256": "05a752e236739004d36afb36248ac4f02bb5bcbd575b62d34cc4f411588367bb",
+      "vertices": 1011617,
+      "triangles": 1950794,
+      "indexedConnectedComponents": 508,
+      "spatialTopology": {
+        "positionTolerance": 0.00001,
+        "connectedComponents": 1,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "zeroAreaTriangles": 0
+      },
+      "validator": {
+        "errors": 0,
+        "warnings": 1
+      },
+      "sixViewReview": {
+        "file": "sentinel-seed-meshy7-six-view.png",
+        "bytes": 1457578,
+        "sha256": "69648461a87a13132b0ece4230ade5f83336e96f944ae1a6637d7457da47c99e"
+      },
+      "visualVerdict": "provisional geometry pass; material failure from glossy orange-gold palette",
+      "assessment": "art/class-models/provider-runs/meshy/arc-relay-meshy7-signature-props-v2/arc-sentinel-seed/019ff559-5b88-781d-a5e0-6e73b653c3c3/ASSESSMENT.md"
+    }
+  ],
+  "improvementProposal": {
+    "file": "IMPROVEMENT-PROPOSAL.md",
+    "status": "awaiting-owner-approval",
+    "additionalCreditCap": 10,
+    "authorized": false
   },
   "providerInputsReady": true,
   "providerInputReadiness": {
-    "trip-node": "ready-inactive",
-    "sentinel-seed": "ready-inactive"
+    "trip-node": "completed-inactive",
+    "sentinel-seed": "completed-inactive"
   },
   "providerManifests": [
     "provider-inputs/trip-node/manifest.json",

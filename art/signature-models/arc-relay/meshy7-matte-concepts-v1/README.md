@@ -1,12 +1,16 @@
 # Arc Relay matte signature concepts v1
 
-Status: **concept approved; provider inputs ready; no provider spend**. The
-owner approved Trip Node and the drier Sentinel Seed matte v2 finish on
-2026-08-12. The original Sentinel sheet remains beside v2 for provenance and
-comparison. This approval does not authorize a paid Meshy request, change a
-runtime asset, or alter game mechanics.
+Status: **provider batch complete; improvement plan awaiting approval**. The
+two authorized Meshy 7 tasks succeeded on 2026-08-12 for exactly 60 credits,
+leaving a 1370-credit balance. Both raw results are generated base meshes, not
+runtime assets. See `IMPROVEMENT-PROPOSAL.md` for the bounded next pass; it is
+not authorized by the completed generation approval.
 
 Open `index.html` for the complete visual review sheet.
+
+Raw provider evidence, hashes, timing, and individual assessments live under
+`art/class-models/provider-runs/meshy/arc-relay-meshy7-signature-props-v2/`.
+No runtime package or mechanics changed.
 
 ## Recommendation
 
@@ -73,21 +77,26 @@ metal hardware.
 | Veil / Smoke Canister | 2D travelling silhouette plus renderer smoke volume; no GLB for now. |
 | Nest / Sentinel Seed | **New Meshy 7 model candidate in this package.** |
 
-## Provider handoff gate
+## Provider result gate
 
-Both approved sheets are split into canonical views under
-`provider-inputs/trip-node/` and `provider-inputs/sentinel-seed/`. Sentinel's
-four inputs were regenerated from the approved matte v2 sheet; the earlier
-finish remains only as provenance. Both manifests keep the inactive
-30-credit-per-task safety cap; validation does not read the credential or call
-Meshy.
+Both approved sheets remain split into canonical views under
+`provider-inputs/trip-node/` and `provider-inputs/sentinel-seed/`. The completed
+task IDs are `019ff555-55df-7eae-85f9-c49bcc61c595` and
+`019ff559-5b88-781d-a5e0-6e73b653c3c3`; both paid authorizations are consumed
+and disabled.
 
-Do not upload either contact sheet directly. Submit one object per task only
-after the owner explicitly authorizes the paid calls. Immediately before that
-spend, re-check the live official Meshy API model, multi-image endpoint,
-pricing, account balance, and the proposed 60-credit total cap. Preserve
-request, response, task, timing, source hashes, raw outputs, and provider
-previews under `art/class-models/provider-runs/meshy/`.
+The next proposed provider step is one Sentinel-only 10-credit multiview
+retexture calibration after explicit approval. Trip Node needs no further paid
+call. Any later spend must repeat the live pricing and balance gate.
+
+The proposed local pass also repairs Trip's six invalid normals and two
+degenerate/non-manifold edge locations, reduces its excess height, and reviews
+both new props at measured presentation scales near `0.44` and `0.63`. A
+positional audit proves both raw meshes are one continuous closed surface; the
+large indexed-component counts come from seam duplication, not floating dust.
+The existing `0.60` / `0.95` renderer multipliers remain the current-asset
+control and must not be copied blindly to these differently proportioned
+candidates. This does not change collision, rules, or replay data.
 
 Any returned mesh is a base candidate. It must still pass normalization,
 orientation, one-tile bounds, gameplay-scale, performance, WebGL replay, and

@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "provider": "Meshy",
+  "endpoint": "multi-image-to-3d",
+  "providerModel": "meshy-7",
+  "classId": "arc-sentinel-seed",
+  "taskId": "019ff559-5b88-781d-a5e0-6e73b653c3c3",
+  "submittedAt": "2026-08-12T09:41:41.011Z",
+  "balanceBefore": 1400,
+  "authorizedCreditCap": 30,
+  "sourceManifest": "art/signature-models/arc-relay/meshy7-matte-concepts-v1/provider-inputs/sentinel-seed/manifest.json",
+  "inputs": [
+    {
+      "order": 1,
+      "view": "strict-front",
+      "primary": true,
+      "file": "art/signature-models/arc-relay/meshy7-matte-concepts-v1/provider-inputs/sentinel-seed/01-front.png",
+      "bytes": 1373736,
+      "sha256": "ff38b9e6816b832b35fa1f095da5a78e23b8ddaa712f318d2999eee13d2ae599",
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "order": 2,
+      "view": "strict-right",
+      "primary": false,
+      "file": "art/signature-models/arc-relay/meshy7-matte-concepts-v1/provider-inputs/sentinel-seed/02-right.png",
+      "bytes": 1427500,
+      "sha256": "0121a4707f19a7664c4f502bd19b17fbb2d5f48212e18e96e59104af7d1b303b",
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "order": 3,
+      "view": "strict-back",
+      "primary": false,
+      "file": "art/signature-models/arc-relay/meshy7-matte-concepts-v1/provider-inputs/sentinel-seed/03-back.png",
+      "bytes": 1382212,
+      "sha256": "6747e21f73910a01b17daf083a6692d08a4bfd869bb2ed9eb7165db1e298ff4c",
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "order": 4,
+      "view": "front-right-three-quarter",
+      "primary": false,
+      "file": "art/signature-models/arc-relay/meshy7-matte-concepts-v1/provider-inputs/sentinel-seed/04-front-right-three-quarter.png",
+      "bytes": 1434826,
+      "sha256": "cadf6b01ff7228603f8aa61bd82227f8fbb152adc44a0857de67af0abc2c4939",
+      "width": 1536,
+      "height": 1024
+    }
+  ],
+  "settings": {
+    "ai_model": "meshy-7",
+    "should_texture": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "should_remesh": false,
+    "image_enhancement": false,
+    "remove_lighting": true,
+    "pose_mode": "",
+    "texture_prompt": "Mature industrial Arc Relay Sentinel Seed stationary sentry. Pine-sage high-roughness powder-coated armor, warm-umber rails, one muted-aubergine seed-cell cap, charcoal yaw collar and underside, tiny dull-brass hardware, restrained edge wear and recess grime. Preserve the angular planted calyx, exposed unobstructed yaw bearing, compact wedge head, neutral sensor slit, and very short rectangular emitter. No text, logos, decals, tank or mobile chassis cues, long cannon, wheels, tracks, legs, teal/orange team color, glow, bloom, target line, muzzle flash, smoke, range ring, or baked lighting.",
+    "target_formats": [
+      "glb"
+    ]
+  },
+  "pricingSource": "https://docs.meshy.ai/en/api/pricing",
+  "licenseTerms": "https://www.meshy.ai/terms"
+}

@@ -64,11 +64,11 @@
   </head>
   <body>
     <main>
-      <div class="eyebrow">Owner approved · provider inputs ready · 2026-08-12</div>
+      <div class="eyebrow">Meshy batch complete · improvement approval gate · 2026-08-12</div>
       <h1>Arc Relay matte signature models</h1>
       <p class="lede">A deliberately small Meshy 7 round: two persistent world props, each redesigned to belong to its deploying bot. Every other signature remains an exact renderer-authored effect or a 2D projectile.</p>
 
-      <div class="gate"><strong>Trip Node and Sentinel matte v2 are approved; no provider spend yet.</strong> Their separate canonical inputs are ready and inactive. A second explicit authorization is required before either Meshy task; runtime promotion remains a later review gate.</div>
+      <div class="gate"><strong>Both Meshy 7 tasks succeeded for exactly 60 credits; neither raw model is runtime-ready.</strong> Trip Node’s geometry and palette are a provisional pass with local corrections. Sentinel’s geometry is a provisional pass, but its glossy orange-gold material is a clear failure. The concrete improvement pass below needs separate approval.</div>
 
       <div class="concepts">
         <article class="card">
@@ -91,6 +91,39 @@
           </div>
         </article>
       </div>
+
+      <section>
+        <div class="eyebrow">Raw Meshy 7 evidence</div>
+        <h2>Six-view geometry and material audit</h2>
+        <div class="finish-compare">
+          <figure>
+            <img src="trip-node-meshy7-six-view.png" alt="Six diagnostic views of the raw Meshy 7 Trip Node result" />
+            <figcaption><strong>Trip Node · provisional geometry pass.</strong> Three lobes, floor-locked profile, and forward triangle survived. It is too thick and busy, the teal lens is unauthorized, and its raw normals fail validation. 74.7 MB / 1.98M triangles.</figcaption>
+          </figure>
+          <figure>
+            <img src="sentinel-seed-meshy7-six-view.png" alt="Six diagnostic views of the raw Meshy 7 Sentinel Seed result" />
+            <figcaption><strong>Sentinel · geometry pass, material fail.</strong> Calyx, short emitter, compact head, and yaw clearance survived. Sage/aubergine became glossy orange-gold and collides with team color. 63.6 MB / 1.95M triangles.</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <section>
+        <div class="eyebrow">Approval requested</div>
+        <h2>Concrete improvement pass</h2>
+        <table>
+          <thead><tr><th>Work</th><th>Acceptance target</th></tr></thead>
+          <tbody>
+            <tr><td>Structure</td><td>Normalize +X/+Y/floor, repair Trip’s six bad normals plus two degenerate/non-manifold edge locations, and generate portable tangents. Spatial audit proves both meshes are one closed surface, not fragment clouds.</td></tr>
+            <tr><td>Fidelity</td><td>Same-scale top/side/front/rear/3⁄4 and 58° gameplay overlays against the approved sheets.</td></tr>
+            <tr><td>Live sizing</td><td>Start new review near 0.44 Trip / 0.63 Sentinel scale, not the current 0.60 / 0.95; hold the approved 0.44 / 0.62-tile footprints without changing hitboxes.</td></tr>
+            <tr><td>Trip correction</td><td>Lower excess vertical bulk about 20–25%, simplify noisy perimeter hardware, use a neutral sensor instead of teal, and restore matte terracotta/graphite/brass; no provider call.</td></tr>
+            <tr><td>Sentinel materials</td><td>One 10-credit maximum multiview retexture calibration restoring sage/umber/aubergine; stop if it fails.</td></tr>
+            <tr><td>Optimization</td><td>Lean 50–75k and rich 100–150k triangle tiers; KTX2 maps; ≤1 MiB per runtime GLB unless evidence earns an exception.</td></tr>
+            <tr><td>Tapline review</td><td>Pinned current/new A/B with both teams, many props, fog, suppression, damage, destruction, yaw truth, load failure, and Canvas fallback.</td></tr>
+            <tr><td>Promotion</td><td>None until a second owner review of the optimized Tapline gallery.</td></tr>
+          </tbody>
+        </table>
+      </section>
 
       <section>
         <div class="eyebrow">Finish check</div>
@@ -142,7 +175,7 @@
         </div>
       </section>
 
-      <footer>Exact prompts, ordered references, dimensions and SHA-256 hashes are stored beside this sheet in <code>PROMPTS.md</code> and <code>manifest.json</code>. The previous Sentinel sheet is retained as provenance. No game files, runtime manifests, or provider tasks changed; the paid-call gate remains closed.</footer>
+      <footer>Exact prompts, ordered references, hashes, task IDs, credit ledger, and the full scoped proposal are stored beside this sheet in <code>PROMPTS.md</code>, <code>manifest.json</code>, and <code>IMPROVEMENT-PROPOSAL.md</code>. Balance after the completed batch: 1370. No game files or runtime manifests changed.</footer>
     </main>
   </body>
 </html>

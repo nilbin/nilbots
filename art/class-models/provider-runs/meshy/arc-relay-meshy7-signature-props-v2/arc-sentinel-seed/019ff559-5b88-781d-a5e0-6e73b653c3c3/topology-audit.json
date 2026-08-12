@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "source": {
+    "file": "raw-model.glb",
+    "sha256": "05a752e236739004d36afb36248ac4f02bb5bcbd575b62d34cc4f411588367bb"
+  },
+  "method": "Union indexed POSITION vertices across every triangle edge in the model's single primitive; count disjoint index sets. This intentionally does not spatially weld duplicate seam vertices.",
+  "vertices": 1011617,
+  "triangles": 1950794,
+  "indexedConnectedComponents": 508,
+  "largestComponentTriangles": 28864,
+  "largestComponentTriangleShare": 0.0148,
+  "componentsCovering99PercentOfTriangles": 363,
+  "componentTriangleThresholds": {
+    "exactly1": 38,
+    "atMost4": 58,
+    "atMost16": 66,
+    "atMost64": 79
+  },
+  "spatialAudit": {
+    "positionTolerance": 0.00001,
+    "uniquePositionCells": 975383,
+    "duplicatePositionVertices": 36234,
+    "connectedComponents": 1,
+    "uniqueEdges": 2926191,
+    "boundaryEdges": 0,
+    "twoFaceEdges": 2926191,
+    "nonManifoldEdges": 0,
+    "maximumEdgeMultiplicity": 2,
+    "collapsedTriangles": 0,
+    "zeroAreaTriangles": 0
+  },
+  "interpretation": "The indexed fragmentation is seam duplication, not floating debris. The spatial topology is one closed two-manifold surface; preserve controlled UV and hard-normal seams in the optimized derivative."
+}

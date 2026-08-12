@@ -1,0 +1,36 @@
+{
+  "id": "019ff555-55df-7eae-85f9-c49bcc61c595",
+  "type": "multi-image-to-3d",
+  "name": "",
+  "art_style": "",
+  "object_prompt": "",
+  "style_prompt": "",
+  "negative_prompt": "",
+  "texture_prompt": "Mature industrial Arc Relay Trip Node proximity mine. Oxide-terracotta high-roughness powder-coated armor, muted-mustard and dull-brass hinge collars, dark graphite center and underside, restrained edge wear and recess grime. Preserve the low three-lobed forge-clamp silhouette, flat triangular sensor aperture, tiny neutral slit, and subtle forward wedge. No text, logos, decals, sphere, dome, loose Core, wheels, legs, turret, barrel, teal/orange team color, glow, bloom, explosion, smoke, range ring, or baked lighting.",
+  "texture_image_url": "[redacted-input]",
+  "text_style_prompt": "",
+  "image_style_url": "",
+  "status": "SUCCEEDED",
+  "created_at": 1786527442003,
+  "progress": 100,
+  "started_at": 1786527442093,
+  "finished_at": 1786527682051,
+  "expires_at": 1786786882051,
+  "task_error": null,
+  "model_url": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ff555-55df-7eae-85f9-c49bcc61c595/output/model.glb",
+  "model_urls": {
+    "glb": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ff555-55df-7eae-85f9-c49bcc61c595/output/model.glb"
+  },
+  "thumbnail_url": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ff555-55df-7eae-85f9-c49bcc61c595/output/preview.png",
+  "texture_urls": [
+    {
+      "base_color": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ff555-55df-7eae-85f9-c49bcc61c595/output/texture_0.png",
+      "metallic": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ff555-55df-7eae-85f9-c49bcc61c595/output/texture_0_metallic.png",
+      "roughness": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ff555-55df-7eae-85f9-c49bcc61c595/output/texture_0_roughness.png",
+      "normal": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ff555-55df-7eae-85f9-c49bcc61c595/output/texture_0_normal.png",
+      "emission": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ff555-55df-7eae-85f9-c49bcc61c595/output/texture_0_emission.png"
+    }
+  ],
+  "remove_lighting": true,
+  "consumed_credits": 30
+}

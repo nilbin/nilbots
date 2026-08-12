@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "source": {
+    "file": "raw-model.glb",
+    "sha256": "56e227a630f61f6659bf3373b85e642f6d0e07c2f526e342260094b88e939868"
+  },
+  "method": "Union indexed POSITION vertices across every triangle edge in the model's single primitive; count disjoint index sets. This intentionally does not spatially weld duplicate seam vertices.",
+  "vertices": 1308891,
+  "triangles": 1978078,
+  "indexedConnectedComponents": 52464,
+  "largestComponentTriangles": 63064,
+  "largestComponentTriangleShare": 0.03188,
+  "componentsCovering99PercentOfTriangles": 32684,
+  "componentTriangleThresholds": {
+    "exactly1": 34769,
+    "atMost4": 46954,
+    "atMost16": 50309,
+    "atMost64": 51233
+  },
+  "spatialAudit": {
+    "positionTolerance": 0.00001,
+    "uniquePositionCells": 988976,
+    "duplicatePositionVertices": 319915,
+    "connectedComponents": 1,
+    "uniqueEdges": 2967113,
+    "boundaryEdges": 0,
+    "twoFaceEdges": 2967111,
+    "nonManifoldEdges": 2,
+    "maximumEdgeMultiplicity": 8,
+    "collapsedTriangles": 2,
+    "zeroAreaTriangles": 2
+  },
+  "interpretation": "The indexed fragmentation is seam duplication, not floating debris. Repair the two degenerate/non-manifold locations without destructively welding intentional UV or hard-normal seams."
+}
