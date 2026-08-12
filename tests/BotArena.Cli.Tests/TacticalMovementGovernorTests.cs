@@ -450,6 +450,95 @@ public sealed class TacticalMovementGovernorTests
     }
 
     [Fact]
+    public void ProgressThroughAlliedDenialKeepsABoundedPassageOpening()
+    {
+        var governor = new TacticalTrafficGovernor();
+        ActorIdentity passageOwner = new(0, 3, 0);
+        ActorIdentity nextWaiter = new(0, 4, 0);
+
+        governor.Observe(0,
+        [
+            Sample(passageOwner, 5, blocked: true),
+            Sample(nextWaiter, 5, blocked: true),
+        ]);
+        governor.Observe(1,
+        [
+            Sample(passageOwner, 4),
+            Sample(nextWaiter, 5, blocked: true),
+        ]);
+
+        TacticalMovementPriority owner = governor.Priority(
+            passageOwner.UnitId);
+        Assert.Equal(TacticalTrafficGovernor.PassageLeaseTicks,
+            owner.PassageLeaseTicksRemaining);
+        Assert.Contains("+passage4", owner.Trace, StringComparison.Ordinal);
+        Assert.True(owner.Rank < governor.Priority(nextWaiter.UnitId).Rank);
+
+        // The next waiter continues aging, but cannot immediately eject the
+        // body which just crossed the contested tile. This is the three-body
+        // G3 failure in miniature: without hysteresis, debt payment rotated
+        // passage ownership on every successful step.
+        for (int tick = 2; tick < 5; tick++)
+        {
+            governor.Observe(tick,
+            [
+                Sample(passageOwner, 5 - tick),
+                Sample(nextWaiter, 5, blocked: true),
+            ]);
+            Assert.True(governor.Priority(passageOwner.UnitId).Rank
+                < governor.Priority(nextWaiter.UnitId).Rank);
+        }
+
+        governor.Observe(5,
+        [
+            Sample(passageOwner, 0),
+            Sample(nextWaiter, 5, blocked: true),
+        ]);
+        Assert.Equal(0, governor.Priority(
+            passageOwner.UnitId).PassageLeaseTicksRemaining);
+        Assert.True(governor.Priority(nextWaiter.UnitId).Rank
+            < governor.Priority(passageOwner.UnitId).Rank);
+    }
+
+    [Fact]
+    public void PassageLeaseEndsEarlyWhenItsOwnerStopsMakingProgress()
+    {
+        var governor = new TacticalTrafficGovernor();
+        ActorIdentity actor = new(0, 3, 0);
+
+        governor.Observe(0, [Sample(actor, 5, blocked: true)]);
+        governor.Observe(1, [Sample(actor, 4)]);
+        Assert.True(governor.Priority(actor.UnitId)
+            .PassageLeaseTicksRemaining > 0);
+
+        governor.Observe(2, [Sample(actor, 4)]);
+        Assert.True(governor.Priority(actor.UnitId)
+            .PassageLeaseTicksRemaining > 0);
+        governor.Observe(3, [Sample(actor, 4)]);
+        Assert.Equal(0, governor.Priority(actor.UnitId)
+            .PassageLeaseTicksRemaining);
+    }
+
+    [Fact]
+    public void NewIntentCannotInheritPassageOwnership()
+    {
+        var governor = new TacticalTrafficGovernor();
+        ActorIdentity actor = new(0, 3, 0);
+
+        governor.Observe(0, [Sample(actor, 5, blocked: true)]);
+        governor.Observe(1, [Sample(actor, 4)]);
+        Assert.True(governor.Priority(actor.UnitId)
+            .PassageLeaseTicksRemaining > 0);
+
+        governor.Observe(2,
+        [
+            Sample(actor, 4, attempted: false, intent: "other"),
+        ]);
+        Assert.Equal(0, governor.Priority(actor.UnitId)
+            .PassageLeaseTicksRemaining);
+    }
+
+    [Fact]
     public void ExactPriorityTiesUseActivationThenStableUnitId()
     {
         var governor = new TacticalTrafficGovernor();

@@ -43,6 +43,14 @@ Plus the shapes that read as bad pathing on screen:
            worst run is reported in frames so an 18-frame loop cannot hide
            behind a zero blocked-move count.
 
+  squad-loops
+           three nearby same-life bodies returning to the exact same assigned
+           positions at a constant 2-12 tick period, at least twice, while
+           make-way commands occur in both laps. This catches the subtler
+           successful-but-circular failure: several bodies rotate through an
+           opening, so no individual is stationary and every engine move may
+           succeed, but the squad makes zero net progress.
+
 Both dance measures skip any pair of frames that is not a legal single
 step, so a respawn teleport is never counted as movement.
 
@@ -55,12 +63,15 @@ Usage:
 """
 import argparse
 import gzip
+import itertools
 import json
 from collections import defaultdict
 from pathlib import Path
 
 STALL_RUN = 3
 CYCLE_WINDOW = 4
+SQUAD_LOOP_MAX_PERIOD = 12
+SQUAD_LOOP_RADIUS = 2
 
 HEADINGS = {
     'north': (0, -1), 'north-east': (1, -1), 'east': (1, 0),
@@ -125,6 +136,66 @@ def scan(replay, moves):
     return attempts, occupied
 
 
+def squad_loop_episodes(frames):
+    """Return sustained local three-body make-way circuits.
+
+    Exact actor lives and assigned positions form the state. Requiring three
+    occurrences at one constant period separates a circuit from an ordinary
+    one-off rejoin; requiring make-way in both laps ties the finding to allied
+    traffic arbitration. Nearby triples keep an unrelated patrol elsewhere on
+    the map from manufacturing a whole-team signature.
+    """
+    occurrences = defaultdict(list)
+    episodes = {}
+    for index, frame in enumerate(frames):
+        bodies = sorted(frame['bodies'].items())
+        for group in itertools.combinations(bodies, 3):
+            members = tuple(actor for actor, _position in group)
+            positions = tuple(position for _actor, position in group)
+            if max(
+                    max(abs(first[0] - second[0]),
+                        abs(first[1] - second[1]))
+                    for first, second in itertools.combinations(positions, 2)
+            ) > SQUAD_LOOP_RADIUS:
+                continue
+            signature = (members, positions)
+            visits = occurrences[signature]
+            visits.append(index)
+            if len(visits) < 3:
+                continue
+            first, middle, last = visits[-3:]
+            period = frames[middle]['tick'] - frames[first]['tick']
+            if (period < 2 or period > SQUAD_LOOP_MAX_PERIOD
+                    or frames[last]['tick'] - frames[middle]['tick'] != period):
+                continue
+            unit_ids = {actor[0] for actor in members}
+            first_lap_made_way = any(
+                unit_ids & frames[cursor]['makeway']
+                for cursor in range(first + 1, middle + 1))
+            second_lap_made_way = any(
+                unit_ids & frames[cursor]['makeway']
+                for cursor in range(middle + 1, last + 1))
+            if not first_lap_made_way or not second_lap_made_way:
+                continue
+
+            key = (members, period)
+            start_tick = frames[first]['tick']
+            end_tick = frames[last]['tick']
+            prior = episodes.get(key)
+            if prior is not None and start_tick <= prior['end'] + period:
+                prior['end'] = end_tick
+                prior['returns'] += 1
+            else:
+                episodes[key] = {
+                    'members': members,
+                    'period': period,
+                    'start': start_tick,
+                    'end': end_tick,
+                    'returns': 2,
+                }
+    return list(episodes.values())
+
+
 def read(path: Path, only_team):
     replay = load(path)
     moves = movement_actions(replay)
@@ -153,21 +224,34 @@ def read(path: Path, only_team):
                 stats[team]['other'] += 1
 
     history = defaultdict(list)
+    team_frames = defaultdict(list)
     for tick in replay['ticks']:
         for turn in tick.get('mindTurns') or []:
             if only_team is not None and turn['teamId'] != only_team:
                 continue
+            frame_bodies = {}
             for body in turn['observation']['bodies']:
-                accepted = (body.get('previousActionResolution')
-                            or {}).get('acceptedAction') or {}
-                history[(
-                    turn['teamId'],
+                actor = (
                     body['actorId']['unitId'],
                     body['actorId']['lifeId'],
-                )].append((
+                )
+                position = (body['position']['x'], body['position']['y'])
+                accepted = (body.get('previousActionResolution')
+                            or {}).get('acceptedAction') or {}
+                history[(turn['teamId'], *actor)].append((
                     tick['tick'],
-                    (body['position']['x'], body['position']['y']),
+                    position,
                     accepted.get('actionId') in moves))
+                frame_bodies[actor] = position
+            team_frames[turn['teamId']].append({
+                'tick': tick['tick'],
+                'bodies': frame_bodies,
+                'makeway': {
+                    command['unitId']
+                    for command in turn.get('commands') or []
+                    if ':make-way:' in (command.get('debugMessage') or '')
+                },
+            })
 
     for (team, _unit, _life), frames in history.items():
         run = 0
@@ -221,6 +305,15 @@ def read(path: Path, only_team):
                 stats[team]['long-flap-runs'] += 1
                 stats[team]['max-flap-frames'] = max(
                     stats[team]['max-flap-frames'], flap_frames)
+
+    for team, frames in team_frames.items():
+        episodes = squad_loop_episodes(frames)
+        stats[team]['squad-loop-runs'] = len(episodes)
+        stats[team]['squad-loop-returns'] = sum(
+            episode['returns'] for episode in episodes)
+        stats[team]['max-squad-loop-frames'] = max(
+            (episode['end'] - episode['start'] + 1 for episode in episodes),
+            default=0)
     return stats
 
 
@@ -239,7 +332,10 @@ def line(label, row):
         f'flaps {row["flaps"]}/{ticks} ({flap:.2f}%) '
         f'reverse {row["reverse"]} ({reverse:.2f}%) '
         f'long-flaps {row["long-flap-runs"]} '
-        f'worst {row["max-flap-frames"]}f')
+        f'worst {row["max-flap-frames"]}f '
+        f'squad-loops {row["squad-loop-runs"]} '
+        f'({row["squad-loop-returns"]} returns) '
+        f'worst {row["max-squad-loop-frames"]}f')
 
 
 def main() -> None:
@@ -255,7 +351,7 @@ def main() -> None:
         for team in sorted(stats):
             print(line(f'{path.parent.name or path.name} t{team}', stats[team]))
             for key, value in stats[team].items():
-                if key == 'max-flap-frames':
+                if key in {'max-flap-frames', 'max-squad-loop-frames'}:
                     totals[team][key] = max(totals[team][key], value)
                 else:
                     totals[team][key] += value

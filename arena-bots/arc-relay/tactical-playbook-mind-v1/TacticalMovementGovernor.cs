@@ -31,12 +31,16 @@ public sealed record TacticalMovementPriority(
     TacticalMovementUrgency AuthoredUrgency,
     TacticalMovementUrgency EffectiveUrgency,
     int AlliedBlockDebt,
+    int PassageLeaseTicksRemaining,
     int ActivatedTick,
     int? BlockedSince)
 {
     public string Trace =>
         $"{AuthoredUrgency.ToString().ToLowerInvariant()}"
         + $"+b{AlliedBlockDebt}"
+        + (PassageLeaseTicksRemaining > 0
+            ? $"+passage{PassageLeaseTicksRemaining}"
+            : "")
         + (EffectiveUrgency == AuthoredUrgency
             ? ""
             : $"=>{EffectiveUrgency.ToString().ToLowerInvariant()}");
@@ -686,6 +690,21 @@ public sealed class TacticalTrafficGovernor
 
     public const int MaximumDebt = 96;
 
+    /// <summary>
+    /// A mover that finally advances after allied denial keeps precedence
+    /// among otherwise equivalent traffic for this many observations. This
+    /// is deliberately short: it is enough to cross a body-width passage,
+    /// while debt aging still hands the next opening to a longer-starved body.
+    /// </summary>
+    public const int PassageLeaseTicks = 4;
+
+    /// <summary>
+    /// A passage lease is progress-backed, not ownership of a tile. Two
+    /// unsuccessful movement observations end it early so a stuck winner
+    /// cannot become the new head of a queue.
+    /// </summary>
+    public const int PassageLeaseNoProgressLimit = 2;
+
     private readonly Dictionary<int, State> _states = [];
 
     public void Observe(int tick, IReadOnlyCollection<Sample> samples)
@@ -701,7 +720,7 @@ public sealed class TacticalTrafficGovernor
         foreach (Sample sample in samples.OrderBy(value => value.Actor.UnitId))
         {
             State state = _states.GetValueOrDefault(sample.Actor.UnitId)
-                ?? State.For(sample);
+                ?? State.For(sample, tick);
             if (state.Actor != sample.Actor
                 || !string.Equals(
                     state.IntentId, sample.IntentId, StringComparison.Ordinal)
@@ -709,12 +728,12 @@ public sealed class TacticalTrafficGovernor
                 || state.Urgency != sample.Urgency
                 || state.ActivatedTick != sample.ActivatedTick)
             {
-                state = State.For(sample);
+                state = State.For(sample, tick);
             }
 
             if (!sample.MayAge || sample.Distance is null)
             {
-                _states[sample.Actor.UnitId] = State.For(sample);
+                _states[sample.Actor.UnitId] = State.For(sample, tick);
                 continue;
             }
 
@@ -732,6 +751,42 @@ public sealed class TacticalTrafficGovernor
                 : state.BlockedSince
                     ?? (sample.BlockedByAlly ? tick : null);
 
+            int? passageLeaseUntil = state.PassageLeaseUntil;
+            int passageLeaseNoProgress = state.PassageLeaseNoProgress;
+            bool leaseActive = passageLeaseUntil is int leaseUntil
+                && tick < leaseUntil;
+            if (leaseActive)
+            {
+                passageLeaseNoProgress = progressed
+                    ? 0
+                    : passageLeaseNoProgress
+                        + (sample.AttemptedMove ? 1 : 0);
+                if (passageLeaseNoProgress >= PassageLeaseNoProgressLimit)
+                {
+                    passageLeaseUntil = null;
+                    passageLeaseNoProgress = 0;
+                    leaseActive = false;
+                }
+            }
+            else
+            {
+                passageLeaseUntil = null;
+                passageLeaseNoProgress = 0;
+            }
+
+            // Denial arms one future passage. Progress consumes that arm and
+            // earns a bounded lease. A lease cannot renew itself: another
+            // observed allied denial is required after it expires.
+            bool passageLeaseArmed = state.PassageLeaseArmed;
+            if (!leaseActive && sample.BlockedByAlly)
+                passageLeaseArmed = true;
+            if (!leaseActive && progressed && passageLeaseArmed)
+            {
+                passageLeaseUntil = tick + PassageLeaseTicks;
+                passageLeaseNoProgress = 0;
+                passageLeaseArmed = false;
+            }
+
             _states[sample.Actor.UnitId] = new State(
                 sample.Actor,
                 sample.IntentId,
@@ -741,7 +796,11 @@ public sealed class TacticalTrafficGovernor
                 sample.Distance.Value,
                 noProgressMoves,
                 debt,
-                blockedSince);
+                blockedSince,
+                passageLeaseUntil,
+                passageLeaseNoProgress,
+                passageLeaseArmed,
+                tick);
         }
     }
 
@@ -756,6 +815,12 @@ public sealed class TacticalTrafficGovernor
         State state = _states[unitId];
         State[] ordered = _states.Values
             .OrderByDescending(EffectiveUrgency)
+            // A full debt tier is starvation evidence and remains stronger
+            // than a short passage lease. Within one tier, however, the body
+            // that just broke through keeps the opening instead of being
+            // immediately displaced by the next one-tick waiter.
+            .ThenByDescending(DebtTier)
+            .ThenByDescending(PassageLeaseActive)
             .ThenByDescending(value => value.AlliedBlockDebt)
             .ThenBy(value => value.BlockedSince ?? int.MaxValue)
             .ThenBy(value => value.ActivatedTick)
@@ -769,6 +834,7 @@ public sealed class TacticalTrafficGovernor
             state.Urgency,
             (TacticalMovementUrgency)EffectiveUrgency(state),
             state.AlliedBlockDebt,
+            PassageLeaseRemaining(state),
             state.ActivatedTick,
             state.BlockedSince);
     }
@@ -777,19 +843,35 @@ public sealed class TacticalTrafficGovernor
         (int)TacticalMovementUrgency.Urgent,
         (int)state.Urgency + state.AlliedBlockDebt / DebtPerUrgencyTier);
 
+    private static int DebtTier(State state) =>
+        state.AlliedBlockDebt / DebtPerUrgencyTier;
+
+    private static bool PassageLeaseActive(State state) =>
+        PassageLeaseRemaining(state) > 0;
+
+    private static int PassageLeaseRemaining(State state) => Math.Max(
+        0,
+        (state.PassageLeaseUntil ?? state.ObservedTick) - state.ObservedTick);
+
     internal string TraceSummary
     {
         get
         {
             string[] active = _states.Values
-                .Where(state => state.AlliedBlockDebt > 0)
+                .Where(state => state.AlliedBlockDebt > 0
+                    || PassageLeaseActive(state))
                 .OrderByDescending(EffectiveUrgency)
+                .ThenByDescending(DebtTier)
+                .ThenByDescending(PassageLeaseActive)
                 .ThenByDescending(state => state.AlliedBlockDebt)
                 .ThenBy(state => state.BlockedSince)
                 .ThenBy(state => state.Actor.UnitId)
                 .Select(state => $"{state.Actor.UnitId}@{state.BlockedSince}"
                     + $"/{state.Urgency.ToString().ToLowerInvariant()}"
-                    + $"/m{state.NoProgressMoves}/b{state.AlliedBlockDebt}")
+                    + $"/m{state.NoProgressMoves}/b{state.AlliedBlockDebt}"
+                    + (PassageLeaseRemaining(state) > 0
+                        ? $"/passage{PassageLeaseRemaining(state)}"
+                        : ""))
                 .ToArray();
             return active.Length == 0
                 ? "traffic=clear"
@@ -817,9 +899,13 @@ public sealed class TacticalTrafficGovernor
         int LastDistance,
         int NoProgressMoves,
         int AlliedBlockDebt,
-        int? BlockedSince)
+        int? BlockedSince,
+        int? PassageLeaseUntil,
+        int PassageLeaseNoProgress,
+        bool PassageLeaseArmed,
+        int ObservedTick)
     {
-        internal static State For(Sample sample) => new(
+        internal static State For(Sample sample, int tick) => new(
             sample.Actor,
             sample.IntentId,
             sample.Goal,
@@ -828,7 +914,11 @@ public sealed class TacticalTrafficGovernor
             sample.Distance ?? int.MaxValue,
             0,
             0,
-            null);
+            null,
+            null,
+            0,
+            false,
+            tick);
     }
 }
 

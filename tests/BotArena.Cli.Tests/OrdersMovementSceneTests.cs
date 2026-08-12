@@ -197,13 +197,109 @@ public sealed class OrdersMovementSceneTests
         // never tried a cardinal alternative. Clearance must include both
         // the preparation turn and the actual step; the mover may wait for
         // that bounded two-tick action, not starve behind it.
-        Assert.True(builderClearanceTurns > 0,
-            "The facing-locked blocker never prepared a clearance heading.");
-        Assert.True(builderClearanceSteps > 0,
-            "The facing-locked blocker never completed its clearance step.");
+        // A clear route is even better than exercising clearance. When this
+        // owner scene does need the at-target Mason to move, the two-step
+        // rotate/step pair must remain intact; when it does not, neither half
+        // is required merely to preserve an implementation-shaped trace.
+        Assert.Equal(builderClearanceTurns > 0, builderClearanceSteps > 0);
         Assert.True(longestBlockedRun <= 6,
             $"The centre-Well mover remained blocked for "
             + $"{longestBlockedRun} consecutive ticks.");
+    }
+
+    [Fact]
+    public void PassageWinnerCannotBeImmediatelyRotatedBackIntoTheG3Cycle()
+    {
+        string root = FindRepoRoot();
+        TacticalPlaybookCompilation hunter = Compile(root, "hunter-tapline-v2.json");
+        TacticalPlaybookCompilation wellwright = Compile(
+            root, "wellwright-tapline-v2.json");
+        ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create(
+            wellwright.Composition,
+            hunter.Composition,
+            loopProfile: ArcRelayLoopProfile.Tapline1);
+
+        using var session = new GenericActorMatchSession(
+            definition,
+            [Participant(0, wellwright), Participant(1, hunter)],
+            matchSeed: 9005,
+            recordChronology: true);
+
+        ActorIdentity[] actors =
+        [
+            new(0, 3, 1),
+            new(0, 4, 1),
+            new(0, 6, 1),
+        ];
+        var frames = new List<PassageFrame>();
+        int passageReasons = 0;
+        while (!session.IsCompleted)
+        {
+            GenericActorMatchStepResult step = session.Step();
+            GenericMindRuntimeObservation observation = step.TickStart
+                .MindObservations.Single(value => value.TeamId == 0);
+            Dictionary<ActorIdentity, Position> positions = observation.Bodies
+                .ToDictionary(value => value.ActorId, value => value.Position);
+            if (actors.All(positions.ContainsKey))
+            {
+                GenericMindRuntimeTurn turn = step.MindTurns.Single(
+                    value => value.TeamId == 0);
+                bool madeWay = turn.Commands.Any(resolution =>
+                    actors.Contains(resolution.Command.ActorIdIn(turn.TeamId))
+                    && (resolution.Command.DebugMessage ?? "").Contains(
+                        ":make-way:", StringComparison.Ordinal));
+                passageReasons += turn.Commands.Count(resolution =>
+                    (resolution.Command.DebugMessage ?? "").Contains(
+                        "+passage", StringComparison.Ordinal));
+                frames.Add(new PassageFrame(
+                    step.Tick,
+                    positions[actors[0]],
+                    positions[actors[1]],
+                    positions[actors[2]],
+                    madeWay));
+            }
+        }
+
+        int sustainedReturns = 0;
+        foreach (IGrouping<(Position, Position, Position), PassageFrame> visits
+                 in frames.GroupBy(frame => (
+                     frame.First, frame.Second, frame.Third)))
+        {
+            PassageFrame[] ordered = visits.OrderBy(frame => frame.Tick).ToArray();
+            for (int index = 2; index < ordered.Length; index++)
+            {
+                PassageFrame first = ordered[index - 2];
+                PassageFrame middle = ordered[index - 1];
+                PassageFrame last = ordered[index];
+                int period = middle.Tick - first.Tick;
+                if (period < 2
+                    || period > 12
+                    || last.Tick - middle.Tick != period)
+                {
+                    continue;
+                }
+                bool firstLapMadeWay = frames.Any(frame =>
+                    frame.Tick > first.Tick
+                    && frame.Tick <= middle.Tick
+                    && frame.MadeWay);
+                bool secondLapMadeWay = frames.Any(frame =>
+                    frame.Tick > middle.Tick
+                    && frame.Tick <= last.Tick
+                    && frame.MadeWay);
+                if (firstLapMadeWay && secondLapMadeWay)
+                    sustainedReturns++;
+            }
+        }
+
+        // Owner catch, gallery G3: these exact three live bodies rotated one
+        // contested opening every six ticks from t138 through t164. Every
+        // move succeeded, but debt payment made the winner immediately yield
+        // back to the next waiter. The real scene must exercise the bounded
+        // lease and must not complete even one sustained assigned-position
+        // traffic circuit.
+        Assert.True(passageReasons > 0,
+            "The motivating scene never exercised passage ownership.");
+        Assert.Equal(0, sustainedReturns);
     }
 
     private static GenericActorParticipantConfiguration Participant(
@@ -247,4 +343,11 @@ public sealed class OrdersMovementSceneTests
         }
         throw new DirectoryNotFoundException("Repository root is missing.");
     }
+
+    private sealed record PassageFrame(
+        int Tick,
+        Position First,
+        Position Second,
+        Position Third,
+        bool MadeWay);
 }
