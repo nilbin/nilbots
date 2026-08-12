@@ -1,7 +1,8 @@
 # Arc Relay presentation batch — concept approval v1
 
-This is an approval artifact, not a runtime asset drop. It sketches the next
-Tapline presentation pass before implementation begins.
+This directory began as the approval artifact for the Tapline presentation
+pass. The approved implementation and its retained real-game evidence now live
+in `runtime-proof/`; the concept boards remain the visual contract.
 
 Generated on 2026-08-12 from the `main` worktree at baseline `4aaf80cc`.
 
@@ -89,6 +90,9 @@ deliberate approximations, implementation seam, and capture acceptance gate.
 - `rejected/projectile-mini-bots-v1.png` — preserved rejected iteration; it
   read as miniature bots rather than attack heads and is not presented as a
   candidate.
+- `runtime-proof/README.md` — implemented grammar coverage, WASM provenance,
+  WebGL lifecycle sheet, phone/reduced-motion/seek proof, and performance
+  results.
 
 ## Local review
 

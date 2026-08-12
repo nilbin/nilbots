@@ -189,3 +189,9 @@ npm run build
 Run the model, audio, real-replay capture, and mobile profiling gates whenever
 the addition touches those surfaces. Generated clients and deterministic audio
 exports must be clean on a second run.
+
+The first complete implementation of this contract is retained in
+`art/reviews/arc-relay-presentation-batch-v1/runtime-proof`. Its two real
+Tapline WASM matches cover all sixteen grammar-3 signatures, all sixteen
+projectile identities, browser seek/reduced-motion/device evidence, and the
+mobile sustained-render budget.

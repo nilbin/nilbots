@@ -1,0 +1,98 @@
+{
+  "schema": "arc-relay-orders-v2",
+  "sheetId": "presentation-remaining-signatures",
+  "mapPlan": "./remaining-signatures-map-plan.json",
+  "roles": [
+    {
+      "id": "palisade-proof",
+      "classes": ["palisade"],
+      "upgradePath": ["vitality", "vision"],
+      "orders": [
+        { "id": "raise-prism-wall", "when": "signature-ready", "use": { "skill": "prism-wall", "target": "nearest-enemy" } },
+        { "shared": "fight-visible-enemy" },
+        { "id": "patrol-palisade", "move": { "patrol": "presentation-loop", "posture": "front" } }
+      ]
+    },
+    {
+      "id": "mortar-proof",
+      "classes": ["mortar"],
+      "upgradePath": ["damage", "reach"],
+      "orders": [
+        { "id": "call-falling-star", "when": "signature-ready", "use": { "skill": "falling-star", "target": "weakest-enemy" } },
+        { "shared": "fight-visible-enemy" },
+        { "id": "patrol-mortar", "move": { "patrol": "presentation-loop", "posture": "rear" } }
+      ]
+    },
+    {
+      "id": "minesmith-proof",
+      "classes": ["minesmith"],
+      "upgradePath": ["vision", "vitality"],
+      "orders": [
+        { "id": "plant-trip-node", "when": "signature-ready", "use": { "skill": "trip-node", "target": "nearest-enemy" } },
+        { "shared": "fight-visible-enemy" },
+        { "id": "patrol-minesmith", "move": { "patrol": "presentation-loop", "posture": "line" } }
+      ]
+    },
+    {
+      "id": "hush-proof",
+      "classes": ["hush"],
+      "upgradePath": ["vitality", "vision"],
+      "orders": [
+        { "id": "open-null-field", "when": "signature-ready", "use": { "skill": "null-field", "target": "self" } },
+        { "shared": "fight-visible-enemy" },
+        { "id": "patrol-hush", "move": { "patrol": "presentation-loop", "posture": "line" } }
+      ]
+    },
+    {
+      "id": "sunder-proof",
+      "classes": ["sunder"],
+      "upgradePath": ["damage", "vision"],
+      "orders": [
+        { "id": "paint-target", "when": "signature-ready", "use": { "skill": "target-paint", "target": "weakest-enemy" } },
+        { "shared": "fight-visible-enemy" },
+        { "id": "patrol-sunder", "move": { "patrol": "presentation-loop", "posture": "front" } }
+      ]
+    },
+    {
+      "id": "repulsor-proof",
+      "classes": ["repulsor"],
+      "upgradePath": ["vitality", "damage"],
+      "orders": [
+        { "id": "release-kinetic-burst", "when": "signature-ready", "use": { "skill": "kinetic-burst", "target": "self" } },
+        { "shared": "fight-visible-enemy" },
+        { "id": "patrol-repulsor", "move": { "patrol": "presentation-loop", "posture": "front" } }
+      ]
+    },
+    {
+      "id": "veil-proof",
+      "classes": ["veil"],
+      "upgradePath": ["vision", "vitality"],
+      "orders": [
+        { "id": "throw-smoke-canister", "when": "signature-ready", "use": { "skill": "smoke-canister", "target": "nearest-enemy" } },
+        { "shared": "fight-visible-enemy" },
+        { "id": "patrol-veil", "move": { "patrol": "presentation-loop", "posture": "line" } }
+      ]
+    },
+    {
+      "id": "nest-proof",
+      "classes": ["nest"],
+      "upgradePath": ["vision", "reach"],
+      "orders": [
+        { "id": "plant-sentinel-seed", "when": "signature-ready", "use": { "skill": "sentinel-seed", "target": "nearest-enemy" } },
+        { "shared": "fight-visible-enemy" },
+        { "id": "patrol-nest", "move": { "patrol": "presentation-loop", "posture": "rear" } }
+      ]
+    }
+  ],
+  "sharedOrders": {
+    "fight-visible-enemy": {
+      "when": "enemy-visible",
+      "fight": { "targets": ["carrier", "marked", "weakest", "nearest"], "style": "advance", "chaseLimit": 5 }
+    }
+  },
+  "capacities": {},
+  "conditions": {
+    "enemy-visible": { "fact": "visible-enemies-in-zone", "operator": "at-least", "value": 1, "zone": "battlefield" },
+    "signature-ready": { "fact": "signature-ready", "operator": "equals", "value": 1 }
+  }
+}

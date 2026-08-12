@@ -1,0 +1,43 @@
+{
+  "url": "http://127.0.0.1:8931/web/dist-review/?standalone&audio=off&render-profile=mobile",
+  "browser": "webkit",
+  "device": "phone",
+  "activity": "active",
+  "elapsedSeconds": 11.997,
+  "canvas": {
+    "kind": "webgl",
+    "width": 1266,
+    "height": 585,
+    "clientWidth": 844,
+    "clientHeight": 390,
+    "devicePixelRatio": 3,
+    "coarsePointer": true,
+    "renderProfile": "mobile",
+    "presentationRateLimited": true,
+    "activeFramesPerSecond": 30,
+    "idleFramesPerSecond": 12,
+    "pixelRatio": 1.5,
+    "shadowMapSize": 1024,
+    "renderer": "Apple GPU"
+  },
+  "counters": {
+    "rafCallbacks": 1336,
+    "webglClearPasses": 670,
+    "webglDrawCalls": 109962,
+    "webglTriangles": 815019530,
+    "canvas2dFrames": 76,
+    "canvas2dOperations": 228
+  },
+  "rates": {
+    "renderedFramesPerSecond": 27.923647578561308,
+    "rafCallbacksPerSecond": 111.36117362674003,
+    "webglDrawCallsPerSecond": 9165.791447861966,
+    "webglTrianglesPerSecond": 67935277.98616321,
+    "canvas2dOperationsPerSecond": 19.00475118779695,
+    "colorPixelsPerSecond": 20680532.63315829,
+    "shadowPixelsPerSecond": 29280066.683337502,
+    "weightedPixelsPerSecond": 49960599.31649579
+  },
+  "cpu": null,
+  "errors": []
+}

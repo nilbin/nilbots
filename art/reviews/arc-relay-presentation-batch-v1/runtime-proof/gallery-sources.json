@@ -1,0 +1,23 @@
+{
+  "archiveDirectory": "web/dist-review/replay-archive",
+  "entries": [
+    {
+      "broadcastOnly": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/replays/core-roster.broadcast.json.gz",
+      "displayBots": [
+        "hunter-tapline-v2",
+        "wellwright-tapline-v2"
+      ],
+      "id": "core-roster"
+    },
+    {
+      "broadcastOnly": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/replays/remaining-roster.broadcast.json.gz",
+      "displayBots": [
+        "remaining-signatures-orders",
+        "hunter-tapline-v2"
+      ],
+      "id": "remaining-roster"
+    }
+  ],
+  "outputDirectory": "web/dist-review",
+  "schemaVersion": 1
+}

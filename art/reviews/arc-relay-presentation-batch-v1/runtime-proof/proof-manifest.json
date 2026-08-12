@@ -1,0 +1,1478 @@
+{
+  "budgets": {
+    "actualBroadcastGzipBytes": 269416,
+    "broadcastGzipBytesPerMatch": 307200
+  },
+  "coverage": {
+    "levelUpFactCount": 44,
+    "projectileLookCount": 16,
+    "projectileLookIds": [
+      "arc-shot-hush",
+      "arc-shot-kestrel",
+      "arc-shot-lantern",
+      "arc-shot-longshot",
+      "arc-shot-mason",
+      "arc-shot-minesmith",
+      "arc-shot-mortar",
+      "arc-shot-nest",
+      "arc-shot-palisade",
+      "arc-shot-patchbay",
+      "arc-shot-relay",
+      "arc-shot-repulsor",
+      "arc-shot-sunder",
+      "arc-shot-switchback",
+      "arc-shot-towline",
+      "arc-shot-veil"
+    ],
+    "signatureCount": 16,
+    "signatureIds": [
+      "arc-toss",
+      "exchange",
+      "falling-star",
+      "hardlight-block",
+      "kinetic-burst",
+      "null-field",
+      "prism-wall",
+      "rail-line",
+      "repair-beam",
+      "sentinel-seed",
+      "smoke-canister",
+      "survey-flare",
+      "target-paint",
+      "tractor-hook",
+      "trip-node",
+      "vector-dash"
+    ]
+  },
+  "lifecycleEvidence": [
+    {
+      "capacityValues": [
+        0
+      ],
+      "captureTimes": {
+        "action": 295.45,
+        "resolve": 298.35,
+        "start": 294.35
+      },
+      "facts": [
+        {
+          "kind": "signature-changed",
+          "phase": "tell",
+          "reason": "started",
+          "tick": 294
+        },
+        {
+          "kind": "signature-changed",
+          "phase": "in-flight",
+          "reason": "launched",
+          "tick": 295
+        },
+        {
+          "kind": "signature-changed",
+          "phase": null,
+          "reason": "landed",
+          "tick": 298
+        }
+      ],
+      "matchId": "core-roster",
+      "operationId": "arc-signature-50",
+      "phases": [
+        {
+          "firstTick": 294,
+          "lastTick": 294,
+          "phase": "tell"
+        },
+        {
+          "firstTick": 295,
+          "lastTick": 297,
+          "phase": "in-flight"
+        }
+      ],
+      "signatureId": "arc-toss",
+      "suppressedObserved": false
+    },
+    {
+      "capacityValues": [
+        0
+      ],
+      "captureTimes": {
+        "action": 100.35,
+        "resolve": 100.75,
+        "start": 99.35
+      },
+      "facts": [
+        {
+          "kind": "signature-changed",
+          "phase": "tell",
+          "reason": "started",
+          "tick": 99
+        },
+        {
+          "kind": "signature-changed",
+          "phase": null,
+          "reason": "completed",
+          "tick": 100
+        },
+        {
+          "kind": "body-relocated",
+          "tick": 100
+        },
+        {
+          "kind": "body-relocated",
+          "tick": 100
+        }
+      ],
+      "matchId": "core-roster",
+      "operationId": "arc-signature-18",
+      "phases": [
+        {
+          "firstTick": 99,
+          "lastTick": 99,
+          "phase": "tell"
+        }
+      ],
+      "signatureId": "exchange",
+      "suppressedObserved": false
+    },
+    {
+      "capacityValues": [
+        0
+      ],
+      "captureTimes": {
+        "action": 173.45,
+        "resolve": 174.75,
+        "start": 172.35
+      },
+      "facts": [
+        {
+          "kind": "signature-changed",
+          "phase": "tell",
+          "reason": "started",
+          "tick": 172
+        },
+        {
+          "kind": "signature-changed",
+          "phase": null,
+          "reason": "completed",
+          "tick": 174
+        },
+        {
+          "kind": "signature-damage",
+          "tick": 174
+        },
+        {
+          "kind": "signature-damage",
+          "tick": 174
+        },
+        {
+          "kind": "signature-damage",
+          "tick": 174
+        }
+      ],
+      "matchId": "remaining-roster",
+      "operationId": "arc-signature-83",
+      "phases": [
+        {
+          "firstTick": 172,
+          "lastTick": 173,
+          "phase": "tell"
+        }
+      ],
+      "signatureId": "falling-star",
+      "suppressedObserved": false
+    },
+    {
+      "capacityValues": [
+        2,
+        3
+      ],
+      "captureTimes": {
+        "action": 63.45,
+        "resolve": 64.35,
+        "start": 52.35
+      },
+      "facts": [
+        {
+          "kind": "signature-changed",
+          "phase": "active",
+          "reason": "started",
+          "tick": 52
+        },
+        {
+          "kind": "signature-changed",
+          "phase": "active",
+          "reason": "projectile-contact",
+          "tick": 57
+        },
+        {
+          "kind": "signature-changed",
+          "phase": null,
+          "reason": "expired",
+          "tick": 64
+        }
+      ],
+      "matchId": "core-roster",
+      "operationId": "arc-signature-11",
+      "phases": [
+        {
+          "firstTick": 52,
+          "lastTick": 63,
+          "phase": "active"
+        }
+      ],
+      "signatureId": "hardlight-block",
+      "suppressedObserved": false
+    },
+    {
+      "capacityValues": [
+        0
+      ],
+      "captureTimes": {
+        "action": 48.35,
+        "resolve": 48.75,
+        "start": 47.35
+      },
+      "facts": [
+        {
+          "kind": "signature-changed",
+          "phase": "tell",
+          "reason": "started",
+          "tick": 47
+        },
+        {
+          "kind": "signature-changed",
+          "phase": null,
+          "reason": "completed",
+          "tick": 48
+        },
+        {
+          "kind": "body-relocated",
+          "tick": 48
+        },
+        {
+          "kind": "body-relocated",
+          "tick": 48
+        }
+      ],
+      "matchId": "remaining-roster",
+      "operationId": "arc-signature-27",
+      "phases": [
+        {
+          "firstTick": 47,
+          "lastTick": 47,
+          "phase": "tell"
+        }
+      ],
+      "signatureId": "kinetic-burst",
+      "suppressedObserved": false
+    },
+    {
+      "capacityValues": [
+        0
+      ],
+      "captureTimes": {
+        "action": 1.45,
+        "resolve": 6.35,
+        "start": 0.35
+      },
+      "facts": [
+        {
+          "kind": "signature-changed",
+          "phase": "tell",
+          "reason": "started",
+          "tick": 0
+        },
+        {
+          "kind": "signature-changed",
+          "phase": "active",
+          "reason": "activated",
+          "tick": 1
+        },
+        {
+          "kind": "signature-changed",
+          "phase": null,
+          "reason": "expired",
+          "tick": 6
+        }
+      ],
+      "matchId": "remaining-roster",
+      "operationId": "arc-signature-0",
+      "phases": [
+        {
+          "firstTick": 0,
+          "lastTick": 0,
+          "phase": "tell"
+        },
+        {
+          "firstTick": 1,
+          "lastTick": 5,
+          "phase": "active"
+        }
+      ],
+      "signatureId": "null-field",
+      "suppressedObserved": false
+    },
+    {
+      "capacityValues": [
+        3
+      ],
+      "captureTimes": {
+        "action": 21.45,
+        "resolve": 22.35,
+        "start": 14.35
+      },
+      "facts": [
+        {
+          "kind": "signature-changed",
+          "phase": "active",
+          "reason": "started",
+          "tick": 14
+        },
+        {
+          "kind": "signature-changed",
+          "phase": null,
+          "reason": "expired",
+          "tick": 22
+        }
+      ],
+      "matchId": "remaining-roster",
+      "operationId": "arc-signature-3",
+      "phases": [
+        {
+          "firstTick": 14,
+          "lastTick": 21,
+          "phase": "active"
+        }
+      ],
+      "signatureId": "prism-wall",
+      "suppressedObserved": false
+    },
+    {
+      "capacityValues": [
+        0
+      ],
+      "captureTimes": {
+        "action": 79.35,
+        "resolve": 79.75,
+        "start": 78.35
+      },
+      "facts": [
+        {
+          "kind": "signature-changed",
+          "phase": "tell",
+          "reason": "started",
+          "tick": 78
+        },
+        {
+          "kind": "signature-changed",
+          "phase": null,
+          "reason": "completed",
+          "tick": 79
+        },
+        {
+          "kind": "signature-damage",
+          "tick": 79
+        },
+        {
+          "kind": "signature-damage",
+          "tick": 79
+        }
+      ],
+      "matchId": "core-roster",
+      "operationId": "arc-signature-15",
+      "phases": [
+        {
+          "firstTick": 78,
+          "lastTick": 78,
+          "phase": "tell"
+        }
+      ],
+      "signatureId": "rail-line",
+      "suppressedObserved": false
+    },
+    {
+      "capacityValues": [
+        0
+      ],
+      "captureTimes": {
+        "action": 180.45,
+        "resolve": 181.35,
+        "start": 178.35
+      },
+      "facts": [
+        {
+          "kind": "signature-changed",
+          "phase": "channel",
+          "reason": "started",
+          "tick": 178
+        },
+        {
+          "kind": "signature-changed",
+          "phase": "channel",
+          "reason": "repair-tick",
+          "tick": 180
+        },
+        {
+          "kind": "signature-repair",
+          "tick": 180
+        },
+        {
+          "kind": "signature-changed",
+          "phase": null,
+          "reason": "channel-ended",
+          "tick": 181
+        }
+      ],
+      "matchId": "core-roster",
+      "operationId": "arc-signature-35",
+      "phases": [
+        {
+          "firstTick": 178,
+          "lastTick": 180,
+          "phase": "channel"
+        }
+      ],
+      "signatureId": "repair-beam",
+      "suppressedObserved": false
+    },
+    {
+      "capacityValues": [
+        2
+      ],
+      "captureTimes": {
+        "action": 69.45,
+        "resolve": 99.35,
+        "start": 68.35
+      },
+      "facts": [
+        {
+          "kind": "signature-changed",
+          "phase": "tell",
+          "reason": "started",
+          "tick": 68
+        },
+        {
+          "kind": "signature-changed",
+          "phase": "active",
+          "reason": "deployed",
+          "tick": 69
+        },
+        {
+          "kind": "signature-changed",
+          "phase": null,
+          "reason": "expired",
+          "tick": 99
+        }
+      ],
+      "matchId": "remaining-roster",
+      "operationId": "arc-signature-34",
+      "phases": [
+        {
+          "firstTick": 68,
+          "lastTick": 68,
+          "phase": "tell"
+        },
+        {
+          "firstTick": 69,
+          "lastTick": 98,
+          "phase": "active"
+        }
+      ],
+      "signatureId": "sentinel-seed",
+      "suppressedObserved": false
+    },
+    {
+      "capacityValues": [
+        0
+      ],
+      "captureTimes": {
+        "action": 104.45,
+        "resolve": 114.35,
+        "start": 102.35
+      },
+      "facts": [
+        {
+          "kind": "signature-changed",
+          "phase": "in-flight",
+          "reason": "started",
+          "tick": 102
+        },
+        {
+          "kind": "signature-changed",
+          "phase": "active",
+          "reason": "landed",
+          "tick": 104
+        },
+        {
+          "kind": "signature-changed",
+          "phase": null,
+          "reason": "expired",
+          "tick": 114
+        }
+      ],
+      "matchId": "remaining-roster",
+      "operationId": "arc-signature-50",
+      "phases": [
+        {
+          "firstTick": 102,
+          "lastTick": 103,
+          "phase": "in-flight"
+        },
+        {
+          "firstTick": 104,
+          "lastTick": 113,
+          "phase": "active"
+        }
+      ],
+      "signatureId": "smoke-canister",
+      "suppressedObserved": false
+    },
+    {
+      "capacityValues": [
+        0
+      ],
+      "captureTimes": {
+        "action": 14.45,
+        "resolve": 22.35,
+        "start": 10.35
+      },
+      "facts": [
+        {
+          "kind": "signature-changed",
+          "phase": "in-flight",
+          "reason": "started",
+          "tick": 10
+        },
+        {
+          "kind": "signature-changed",
+          "phase": "active",
+          "reason": "landed",
+          "tick": 14
+        },
+        {
+          "kind": "signature-changed",
+          "phase": null,
+          "reason": "expired",
+          "tick": 22
+        }
+      ],
+      "matchId": "core-roster",
+      "operationId": "arc-signature-1",
+      "phases": [
+        {
+          "firstTick": 10,
+          "lastTick": 13,
+          "phase": "in-flight"
+        },
+        {
+          "firstTick": 14,
+          "lastTick": 21,
+          "phase": "active"
+        }
+      ],
+      "signatureId": "survey-flare",
+      "suppressedObserved": false
+    },
+    {
+      "capacityValues": [
+        0,
+        3
+      ],
+      "captureTimes": {
+        "action": 193.45,
+        "resolve": 201.35,
+        "start": 192.35
+      },
+      "facts": [
+        {
+          "kind": "signature-changed",
+          "phase": "tell",
+          "reason": "started",
+          "tick": 192
+        },
+        {
+          "kind": "signature-changed",
+          "phase": "active",
+          "reason": "acquired",
+          "tick": 193
+        },
+        {
+          "kind": "signature-changed",
+          "phase": null,
+          "reason": "expired",
+          "tick": 201
+        }
+      ],
+      "matchId": "remaining-roster",
+      "operationId": "arc-signature-98",
+      "phases": [
+        {
+          "firstTick": 192,
+          "lastTick": 192,
+          "phase": "tell"
+        },
+        {
+          "firstTick": 193,
+          "lastTick": 200,
+          "phase": "active"
+        }
+      ],
+      "signatureId": "target-paint",
+      "suppressedObserved": false
+    },
+    {
+      "capacityValues": [
+        0
+      ],
+      "captureTimes": {
+        "action": 117.75,
+        "resolve": 118.35,
+        "start": 117.35
+      },
+      "facts": [
+        {
+          "kind": "signature-changed",
+          "phase": "tell",
+          "reason": "started",
+          "tick": 117
+        },
+        {
+          "kind": "signature-changed",
+          "phase": null,
+          "reason": "lock-lost",
+          "tick": 118
+        }
+      ],
+      "matchId": "core-roster",
+      "operationId": "arc-signature-23",
+      "phases": [
+        {
+          "firstTick": 117,
+          "lastTick": 117,
+          "phase": "tell"
+        }
+      ],
+      "signatureId": "tractor-hook",
+      "suppressedObserved": false
+    },
+    {
+      "capacityValues": [
+        1
+      ],
+      "captureTimes": {
+        "action": 101.45,
+        "resolve": 102.35,
+        "start": 89.35
+      },
+      "facts": [
+        {
+          "kind": "signature-changed",
+          "phase": "active",
+          "reason": "started",
+          "tick": 89
+        },
+        {
+          "kind": "signature-changed",
+          "phase": null,
+          "reason": "replaced",
+          "tick": 102
+        }
+      ],
+      "matchId": "remaining-roster",
+      "operationId": "arc-signature-42",
+      "phases": [
+        {
+          "firstTick": 89,
+          "lastTick": 101,
+          "phase": "active"
+        }
+      ],
+      "signatureId": "trip-node",
+      "suppressedObserved": false
+    },
+    {
+      "capacityValues": [
+        0
+      ],
+      "captureTimes": {
+        "action": 23.35,
+        "resolve": 23.75,
+        "start": 22.35
+      },
+      "facts": [
+        {
+          "kind": "signature-changed",
+          "phase": "tell",
+          "reason": "started",
+          "tick": 22
+        },
+        {
+          "kind": "signature-changed",
+          "phase": null,
+          "reason": "completed",
+          "tick": 23
+        },
+        {
+          "kind": "body-relocated",
+          "tick": 23
+        }
+      ],
+      "matchId": "core-roster",
+      "operationId": "arc-signature-2",
+      "phases": [
+        {
+          "firstTick": 22,
+          "lastTick": 22,
+          "phase": "tell"
+        }
+      ],
+      "signatureId": "vector-dash",
+      "suppressedObserved": false
+    }
+  ],
+  "loopProfile": "tapline-2",
+  "map": "arc-relay-tapline-01",
+  "matches": [
+    {
+      "broadcast": {
+        "file": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/replays/core-roster.broadcast.json.gz",
+        "gzipBytes": 138065,
+        "sha256": "a2ab58317d7c9da974d3e1c2ba25b1fc1430dad48f9345b6f54f3aaf14552eeb"
+      },
+      "canonicalReplay": {
+        "hash": "5cce40b750ef6a8ed0a6347c4895bc87edb525eee43644e6ecb5497f8125d0a5",
+        "sourceGzipBytes": 3827246,
+        "sourceGzipSha256": "5da7c7186a98d95014d6f4aaa5f8aa368edb88bea34393d9ad8fcc894c9a025b",
+        "ticks": 407
+      },
+      "id": "core-roster",
+      "levelUps": [
+        {
+          "actorId": {
+            "lifeId": 0,
+            "teamId": 1,
+            "unitId": 1
+          },
+          "level": 2,
+          "position": {
+            "x": 12,
+            "y": 11
+          },
+          "tick": 81
+        },
+        {
+          "actorId": {
+            "lifeId": 0,
+            "teamId": 1,
+            "unitId": 0
+          },
+          "level": 2,
+          "position": {
+            "x": 15,
+            "y": 12
+          },
+          "tick": 98
+        },
+        {
+          "actorId": {
+            "lifeId": 1,
+            "teamId": 0,
+            "unitId": 2
+          },
+          "level": 2,
+          "position": {
+            "x": 9,
+            "y": 19
+          },
+          "tick": 102
+        },
+        {
+          "actorId": {
+            "lifeId": 1,
+            "teamId": 0,
+            "unitId": 5
+          },
+          "level": 2,
+          "position": {
+            "x": 16,
+            "y": 13
+          },
+          "tick": 106
+        },
+        {
+          "actorId": {
+            "lifeId": 0,
+            "teamId": 1,
+            "unitId": 6
+          },
+          "level": 2,
+          "position": {
+            "x": 15,
+            "y": 11
+          },
+          "tick": 107
+        },
+        {
+          "actorId": {
+            "lifeId": 1,
+            "teamId": 0,
+            "unitId": 2
+          },
+          "level": 3,
+          "position": {
+            "x": 16,
+            "y": 11
+          },
+          "tick": 112
+        },
+        {
+          "actorId": {
+            "lifeId": 0,
+            "teamId": 1,
+            "unitId": 3
+          },
+          "level": 2,
+          "position": {
+            "x": 17,
+            "y": 10
+          },
+          "tick": 125
+        },
+        {
+          "actorId": {
+            "lifeId": 0,
+            "teamId": 1,
+            "unitId": 3
+          },
+          "level": 3,
+          "position": {
+            "x": 17,
+            "y": 10
+          },
+          "tick": 125
+        },
+        {
+          "actorId": {
+            "lifeId": 1,
+            "teamId": 1,
+            "unitId": 2
+          },
+          "level": 2,
+          "position": {
+            "x": 16,
+            "y": 10
+          },
+          "tick": 150
+        },
+        {
+          "actorId": {
+            "lifeId": 1,
+            "teamId": 0,
+            "unitId": 7
+          },
+          "level": 2,
+          "position": {
+            "x": 14,
+            "y": 12
+          },
+          "tick": 157
+        },
+        {
+          "actorId": {
+            "lifeId": 0,
+            "teamId": 1,
+            "unitId": 3
+          },
+          "level": 4,
+          "position": {
+            "x": 14,
+            "y": 12
+          },
+          "tick": 179
+        },
+        {
+          "actorId": {
+            "lifeId": 1,
+            "teamId": 0,
+            "unitId": 7
+          },
+          "level": 3,
+          "position": {
+            "x": 16,
+            "y": 12
+          },
+          "tick": 179
+        },
+        {
+          "actorId": {
+            "lifeId": 1,
+            "teamId": 1,
+            "unitId": 4
+          },
+          "level": 2,
+          "position": {
+            "x": 19,
+            "y": 13
+          },
+          "tick": 192
+        },
+        {
+          "actorId": {
+            "lifeId": 1,
+            "teamId": 1,
+            "unitId": 4
+          },
+          "level": 3,
+          "position": {
+            "x": 19,
+            "y": 13
+          },
+          "tick": 192
+        },
+        {
+          "actorId": {
+            "lifeId": 1,
+            "teamId": 0,
+            "unitId": 4
+          },
+          "level": 2,
+          "position": {
+            "x": 16,
+            "y": 11
+          },
+          "tick": 211
+        },
+        {
+          "actorId": {
+            "lifeId": 1,
+            "teamId": 0,
+            "unitId": 4
+          },
+          "level": 3,
+          "position": {
+            "x": 16,
+            "y": 12
+          },
+          "tick": 245
+        },
+        {
+          "actorId": {
+            "lifeId": 0,
+            "teamId": 1,
+            "unitId": 3
+          },
+          "level": 5,
+          "position": {
+            "x": 14,
+            "y": 13
+          },
+          "tick": 257
+        },
+        {
+          "actorId": {
+            "lifeId": 2,
+            "teamId": 0,
+            "unitId": 7
+          },
+          "level": 2,
+          "position": {
+            "x": 13,
+            "y": 15
+          },
+          "tick": 271
+        },
+        {
+          "actorId": {
+            "lifeId": 2,
+            "teamId": 0,
+            "unitId": 7
+          },
+          "level": 3,
+          "position": {
+            "x": 13,
+            "y": 15
+          },
+          "tick": 271
+        },
+        {
+          "actorId": {
+            "lifeId": 2,
+            "teamId": 0,
+            "unitId": 7
+          },
+          "level": 4,
+          "position": {
+            "x": 13,
+            "y": 15
+          },
+          "tick": 271
+        },
+        {
+          "actorId": {
+            "lifeId": 2,
+            "teamId": 1,
+            "unitId": 5
+          },
+          "level": 2,
+          "position": {
+            "x": 14,
+            "y": 11
+          },
+          "tick": 279
+        },
+        {
+          "actorId": {
+            "lifeId": 2,
+            "teamId": 1,
+            "unitId": 5
+          },
+          "level": 3,
+          "position": {
+            "x": 14,
+            "y": 12
+          },
+          "tick": 293
+        },
+        {
+          "actorId": {
+            "lifeId": 2,
+            "teamId": 1,
+            "unitId": 5
+          },
+          "level": 4,
+          "position": {
+            "x": 14,
+            "y": 12
+          },
+          "tick": 293
+        },
+        {
+          "actorId": {
+            "lifeId": 2,
+            "teamId": 1,
+            "unitId": 5
+          },
+          "level": 5,
+          "position": {
+            "x": 12,
+            "y": 9
+          },
+          "tick": 299
+        },
+        {
+          "actorId": {
+            "lifeId": 1,
+            "teamId": 1,
+            "unitId": 7
+          },
+          "level": 2,
+          "position": {
+            "x": 12,
+            "y": 11
+          },
+          "tick": 335
+        },
+        {
+          "actorId": {
+            "lifeId": 1,
+            "teamId": 1,
+            "unitId": 7
+          },
+          "level": 3,
+          "position": {
+            "x": 12,
+            "y": 9
+          },
+          "tick": 371
+        }
+      ],
+      "mapFingerprint": "058c97bf95bf7175a37952a4b3207199cad7e9c011cd1af50b4ed3a84781433a",
+      "mapId": "arc-relay-tapline-01",
+      "matchContractFingerprint": "d29d29db2acf540e972050b7b23e9f0d649dc325417031279599587b6001efb5",
+      "observedSignatureIds": [
+        "arc-toss",
+        "exchange",
+        "hardlight-block",
+        "rail-line",
+        "repair-beam",
+        "survey-flare",
+        "tractor-hook",
+        "vector-dash"
+      ],
+      "participants": [
+        {
+          "artifactHash": "c3f309d1ca0a4684e7cad4030a74efd957055d0a15fa63c40bf4b677c25db302",
+          "classes": [
+            "kestrel",
+            "patchbay",
+            "relay",
+            "longshot",
+            "longshot",
+            "towline",
+            "towline",
+            "mason"
+          ],
+          "name": "ArcRelayTacticalPlaybookMindV1",
+          "runtimeKind": "wasm",
+          "sheet": "arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/playbooks/hunter-tapline-v2.json",
+          "sheetHash": "f04d241760b4f310ea7635bc3060c1ca70ff08bd46dbaaa85465ddf0fe67cc27",
+          "teamId": 0
+        },
+        {
+          "artifactHash": "c3f309d1ca0a4684e7cad4030a74efd957055d0a15fa63c40bf4b677c25db302",
+          "classes": [
+            "relay",
+            "relay",
+            "switchback",
+            "switchback",
+            "towline",
+            "towline",
+            "lantern",
+            "patchbay"
+          ],
+          "name": "ArcRelayTacticalPlaybookMindV1",
+          "runtimeKind": "wasm",
+          "sheet": "arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/playbooks/wellwright-tapline-v2.json",
+          "sheetHash": "fe28c5e08704ac46473456c1c0ed367bc6ff516ab894bffbe0394d25bc50e94c",
+          "teamId": 1
+        }
+      ],
+      "result": {
+        "EligibleTeamIds": [
+          0,
+          1
+        ],
+        "EndTick": 406,
+        "Reason": "reactor-destroyed",
+        "WinnerTeamId": 1
+      },
+      "rulesFingerprint": "f3de81b0da2e68c93bd16ecec38421d55227e2eca49557289e193c8a4f6602e7",
+      "rulesetId": "arc-relay-tapline-02",
+      "seed": "9001"
+    },
+    {
+      "broadcast": {
+        "file": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/replays/remaining-roster.broadcast.json.gz",
+        "gzipBytes": 131351,
+        "sha256": "cad526ef484942e55f32f5f9b6e3dd5bb70118db119a7ccaf5a93df6a909ddb3"
+      },
+      "canonicalReplay": {
+        "hash": "71bb9e320c3cf2b863fd1d98ac69228d9b258fadf76c7698b23ead4523d1adfc",
+        "sourceGzipBytes": 3019730,
+        "sourceGzipSha256": "b5f753580c694fb76725b8961f084d5cba4b04d144f46767a4297f78ae79413b",
+        "ticks": 317
+      },
+      "id": "remaining-roster",
+      "levelUps": [
+        {
+          "actorId": {
+            "lifeId": 0,
+            "teamId": 0,
+            "unitId": 6
+          },
+          "level": 2,
+          "position": {
+            "x": 18,
+            "y": 14
+          },
+          "tick": 46
+        },
+        {
+          "actorId": {
+            "lifeId": 0,
+            "teamId": 1,
+            "unitId": 2
+          },
+          "level": 2,
+          "position": {
+            "x": 10,
+            "y": 13
+          },
+          "tick": 51
+        },
+        {
+          "actorId": {
+            "lifeId": 1,
+            "teamId": 1,
+            "unitId": 5
+          },
+          "level": 2,
+          "position": {
+            "x": 16,
+            "y": 14
+          },
+          "tick": 63
+        },
+        {
+          "actorId": {
+            "lifeId": 1,
+            "teamId": 0,
+            "unitId": 2
+          },
+          "level": 2,
+          "position": {
+            "x": 13,
+            "y": 15
+          },
+          "tick": 82
+        },
+        {
+          "actorId": {
+            "lifeId": 1,
+            "teamId": 1,
+            "unitId": 0
+          },
+          "level": 2,
+          "position": {
+            "x": 15,
+            "y": 10
+          },
+          "tick": 109
+        },
+        {
+          "actorId": {
+            "lifeId": 0,
+            "teamId": 1,
+            "unitId": 1
+          },
+          "level": 2,
+          "position": {
+            "x": 15,
+            "y": 10
+          },
+          "tick": 120
+        },
+        {
+          "actorId": {
+            "lifeId": 1,
+            "teamId": 1,
+            "unitId": 5
+          },
+          "level": 3,
+          "position": {
+            "x": 15,
+            "y": 8
+          },
+          "tick": 124
+        },
+        {
+          "actorId": {
+            "lifeId": 1,
+            "teamId": 1,
+            "unitId": 0
+          },
+          "level": 3,
+          "position": {
+            "x": 12,
+            "y": 9
+          },
+          "tick": 162
+        },
+        {
+          "actorId": {
+            "lifeId": 1,
+            "teamId": 1,
+            "unitId": 0
+          },
+          "level": 4,
+          "position": {
+            "x": 12,
+            "y": 9
+          },
+          "tick": 176
+        },
+        {
+          "actorId": {
+            "lifeId": 2,
+            "teamId": 0,
+            "unitId": 5
+          },
+          "level": 2,
+          "position": {
+            "x": 13,
+            "y": 15
+          },
+          "tick": 190
+        },
+        {
+          "actorId": {
+            "lifeId": 2,
+            "teamId": 0,
+            "unitId": 5
+          },
+          "level": 3,
+          "position": {
+            "x": 13,
+            "y": 15
+          },
+          "tick": 190
+        },
+        {
+          "actorId": {
+            "lifeId": 0,
+            "teamId": 1,
+            "unitId": 3
+          },
+          "level": 2,
+          "position": {
+            "x": 13,
+            "y": 12
+          },
+          "tick": 191
+        },
+        {
+          "actorId": {
+            "lifeId": 3,
+            "teamId": 0,
+            "unitId": 2
+          },
+          "level": 2,
+          "position": {
+            "x": 13,
+            "y": 16
+          },
+          "tick": 237
+        },
+        {
+          "actorId": {
+            "lifeId": 3,
+            "teamId": 0,
+            "unitId": 2
+          },
+          "level": 3,
+          "position": {
+            "x": 14,
+            "y": 12
+          },
+          "tick": 240
+        },
+        {
+          "actorId": {
+            "lifeId": 3,
+            "teamId": 0,
+            "unitId": 5
+          },
+          "level": 2,
+          "position": {
+            "x": 18,
+            "y": 20
+          },
+          "tick": 266
+        },
+        {
+          "actorId": {
+            "lifeId": 3,
+            "teamId": 0,
+            "unitId": 5
+          },
+          "level": 3,
+          "position": {
+            "x": 14,
+            "y": 16
+          },
+          "tick": 273
+        },
+        {
+          "actorId": {
+            "lifeId": 2,
+            "teamId": 1,
+            "unitId": 5
+          },
+          "level": 2,
+          "position": {
+            "x": 18,
+            "y": 12
+          },
+          "tick": 289
+        },
+        {
+          "actorId": {
+            "lifeId": 4,
+            "teamId": 0,
+            "unitId": 6
+          },
+          "level": 2,
+          "position": {
+            "x": 14,
+            "y": 10
+          },
+          "tick": 306
+        }
+      ],
+      "mapFingerprint": "058c97bf95bf7175a37952a4b3207199cad7e9c011cd1af50b4ed3a84781433a",
+      "mapId": "arc-relay-tapline-01",
+      "matchContractFingerprint": "7fea24dbc37c96b18f2222745752a466ab5ce853915630521c3e2b73607a11f7",
+      "observedSignatureIds": [
+        "arc-toss",
+        "falling-star",
+        "hardlight-block",
+        "kinetic-burst",
+        "null-field",
+        "prism-wall",
+        "rail-line",
+        "repair-beam",
+        "sentinel-seed",
+        "smoke-canister",
+        "target-paint",
+        "trip-node",
+        "vector-dash"
+      ],
+      "participants": [
+        {
+          "artifactHash": "c3f309d1ca0a4684e7cad4030a74efd957055d0a15fa63c40bf4b677c25db302",
+          "classes": [
+            "palisade",
+            "mortar",
+            "minesmith",
+            "hush",
+            "sunder",
+            "repulsor",
+            "veil",
+            "nest"
+          ],
+          "name": "ArcRelayTacticalPlaybookMindV1",
+          "runtimeKind": "wasm",
+          "sheet": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/sources/remaining-signatures-orders.json",
+          "sheetHash": "e978ff36d45eff0a044f697a058d743e8402ecf230bae7a3ada44833c3f770be",
+          "teamId": 0
+        },
+        {
+          "artifactHash": "c3f309d1ca0a4684e7cad4030a74efd957055d0a15fa63c40bf4b677c25db302",
+          "classes": [
+            "kestrel",
+            "patchbay",
+            "relay",
+            "longshot",
+            "longshot",
+            "towline",
+            "towline",
+            "mason"
+          ],
+          "name": "ArcRelayTacticalPlaybookMindV1",
+          "runtimeKind": "wasm",
+          "sheet": "arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/playbooks/hunter-tapline-v2.json",
+          "sheetHash": "f04d241760b4f310ea7635bc3060c1ca70ff08bd46dbaaa85465ddf0fe67cc27",
+          "teamId": 1
+        }
+      ],
+      "result": {
+        "EligibleTeamIds": [
+          0,
+          1
+        ],
+        "EndTick": 316,
+        "Reason": "reactor-destroyed",
+        "WinnerTeamId": 1
+      },
+      "rulesFingerprint": "f3de81b0da2e68c93bd16ecec38421d55227e2eca49557289e193c8a4f6602e7",
+      "rulesetId": "arc-relay-tapline-02",
+      "seed": "9003"
+    }
+  ],
+  "passed": true,
+  "runtime": "wasm",
+  "schema": "arc-relay-presentation-runtime-proof-v1",
+  "signatureGrammarVersion": 3,
+  "signaturePresentationId": "arc-relay-signatures-v1",
+  "sourceRevision": "48664e0937e599d2ecbced0acbdc6eda17668788"
+}

@@ -1,0 +1,26 @@
+{
+  "schema": "arc-relay-map-plan-v2",
+  "mapPlanId": "presentation-remaining-signatures",
+  "mapId": "arc-relay-tapline-01",
+  "zones": {
+    "battlefield": {
+      "rect": [1, 1, 29, 25]
+    }
+  },
+  "routes": {
+    "presentation-loop": {
+      "waypoints": [
+        [10, 9],
+        [13, 7],
+        [19, 13],
+        [20, 15],
+        [18, 12],
+        [14, 16],
+        [11, 13],
+        [8, 11],
+        [10, 9]
+      ]
+    }
+  },
+  "anchors": {}
+}

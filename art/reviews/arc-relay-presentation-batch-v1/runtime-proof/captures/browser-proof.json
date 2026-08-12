@@ -1,0 +1,982 @@
+{
+  "schema": "arc-relay-presentation-browser-proof-v1",
+  "sourceRevision": "48664e0937e599d2ecbced0acbdc6eda17668788",
+  "buildSha256": "781762c841c8ad855e424ae57868689b02bd4b0e7706ca8714e05ba8f21f0f7d",
+  "url": "http://127.0.0.1:8931/web/dist-review/?standalone&audio=off",
+  "passed": true,
+  "renderer": "webgl",
+  "captures": [
+    {
+      "id": "core-roster-desktop",
+      "matchId": "core-roster",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "mobile": false,
+      "reducedMotion": false,
+      "time": 14.45,
+      "arenaPixels": {
+        "width": 928,
+        "height": 580
+      },
+      "canvas": {
+        "kind": "webgl",
+        "width": 926,
+        "height": 578,
+        "clientWidth": 926,
+        "clientHeight": 578,
+        "renderProfile": "desktop",
+        "pixelRatio": 1,
+        "shadowMapSize": 2048,
+        "activeFramesPerSecond": 60,
+        "idleFramesPerSecond": 12
+      },
+      "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/core-roster-desktop.webp",
+      "imageSha256": "7dd888be6bb2999594d29a879377e0b853d2c14baa64cbebabc1cd91ac7fd2d1"
+    },
+    {
+      "id": "remaining-roster-desktop",
+      "matchId": "remaining-roster",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "mobile": false,
+      "reducedMotion": false,
+      "time": 14.45,
+      "arenaPixels": {
+        "width": 928,
+        "height": 580
+      },
+      "canvas": {
+        "kind": "webgl",
+        "width": 926,
+        "height": 578,
+        "clientWidth": 926,
+        "clientHeight": 578,
+        "renderProfile": "desktop",
+        "pixelRatio": 1,
+        "shadowMapSize": 2048,
+        "activeFramesPerSecond": 60,
+        "idleFramesPerSecond": 12
+      },
+      "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/remaining-roster-desktop.webp",
+      "imageSha256": "bf556e6fb235d260a745b9b874263dc25819e170b3c56e349dc044bfcfa957d6"
+    },
+    {
+      "id": "core-roster-phone",
+      "matchId": "core-roster",
+      "viewport": {
+        "width": 844,
+        "height": 390
+      },
+      "mobile": true,
+      "reducedMotion": false,
+      "time": 14.45,
+      "arenaPixels": {
+        "width": 844,
+        "height": 390
+      },
+      "canvas": {
+        "kind": "webgl",
+        "width": 1266,
+        "height": 585,
+        "clientWidth": 844,
+        "clientHeight": 390,
+        "renderProfile": "mobile",
+        "pixelRatio": 1.5,
+        "shadowMapSize": 1024,
+        "activeFramesPerSecond": 30,
+        "idleFramesPerSecond": 12
+      },
+      "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/core-roster-phone.webp",
+      "imageSha256": "0d25b49b7c57d58f28aed38ccaf64da586154cd58ac9124fff650e34d08b5877"
+    },
+    {
+      "id": "remaining-roster-phone",
+      "matchId": "remaining-roster",
+      "viewport": {
+        "width": 844,
+        "height": 390
+      },
+      "mobile": true,
+      "reducedMotion": false,
+      "time": 14.45,
+      "arenaPixels": {
+        "width": 844,
+        "height": 390
+      },
+      "canvas": {
+        "kind": "webgl",
+        "width": 1266,
+        "height": 585,
+        "clientWidth": 844,
+        "clientHeight": 390,
+        "renderProfile": "mobile",
+        "pixelRatio": 1.5,
+        "shadowMapSize": 1024,
+        "activeFramesPerSecond": 30,
+        "idleFramesPerSecond": 12
+      },
+      "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/remaining-roster-phone.webp",
+      "imageSha256": "972304386a647b8f09f46559ddac5cbf8536a4ef2c3149895ace2e4c49332f8a"
+    }
+  ],
+  "lifecycle": [
+    {
+      "signatureId": "arc-toss",
+      "matchId": "core-roster",
+      "operationId": "arc-signature-50",
+      "phases": [
+        {
+          "beat": "start",
+          "requestedTime": 294.35,
+          "actualTime": 294.35,
+          "visible": [
+            {
+              "operationId": "arc-signature-50",
+              "signatureId": "arc-toss",
+              "phase": "tell",
+              "visibleMeshes": 1
+            }
+          ],
+          "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/arc-toss-start.webp",
+          "imageSha256": "7ce573a982788ea23c726036a0ea2811008effc79b5d0a5e26563ed32bf3a609"
+        },
+        {
+          "beat": "action",
+          "requestedTime": 295.45,
+          "actualTime": 295.45,
+          "visible": [
+            {
+              "operationId": "arc-signature-50",
+              "signatureId": "arc-toss",
+              "phase": "in-flight",
+              "visibleMeshes": 1
+            }
+          ],
+          "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/arc-toss-action.webp",
+          "imageSha256": "d4fb392eb9aa979aedbda7c20586e2b22df2d50ce75be775d9133dac24dd6980"
+        },
+        {
+          "beat": "resolve",
+          "requestedTime": 298.35,
+          "actualTime": 298.35,
+          "visible": [],
+          "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/arc-toss-resolve.webp",
+          "imageSha256": "8a33c0cea508ea5468d9da2ee8a44df383c1d87eae5846aa9a77951dd877cd2c"
+        }
+      ]
+    },
+    {
+      "signatureId": "exchange",
+      "matchId": "core-roster",
+      "operationId": "arc-signature-18",
+      "phases": [
+        {
+          "beat": "start",
+          "requestedTime": 99.35,
+          "actualTime": 99.35,
+          "visible": [
+            {
+              "operationId": "arc-signature-18",
+              "signatureId": "exchange",
+              "phase": "tell",
+              "visibleMeshes": 1
+            }
+          ],
+          "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/exchange-start.webp",
+          "imageSha256": "d03f7df7737489a1cc2e1c47f62ba94c257451640497a448112dad3b7a3a3fac"
+        },
+        {
+          "beat": "action",
+          "requestedTime": 100.35,
+          "actualTime": 100.35,
+          "visible": [
+            {
+              "operationId": "arc-signature-18",
+              "signatureId": "exchange",
+              "phase": "outcome",
+              "visibleMeshes": 1
+            }
+          ],
+          "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/exchange-action.webp",
+          "imageSha256": "528288e9df943d7a1e8be54d3a6d97344babd6b977255ba02a697fb1b611a1d2"
+        },
+        {
+          "beat": "resolve",
+          "requestedTime": 100.75,
+          "actualTime": 100.75,
+          "visible": [],
+          "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/exchange-resolve.webp",
+          "imageSha256": "17651b692bb8c09901efe5e69317d4af7cb6ab0920655bb068e91ece80051971"
+        }
+      ]
+    },
+    {
+      "signatureId": "falling-star",
+      "matchId": "remaining-roster",
+      "operationId": "arc-signature-83",
+      "phases": [
+        {
+          "beat": "start",
+          "requestedTime": 172.35,
+          "actualTime": 172.35,
+          "visible": [
+            {
+              "operationId": "arc-signature-83",
+              "signatureId": "falling-star",
+              "phase": "tell",
+              "visibleMeshes": 1
+            }
+          ],
+          "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/falling-star-start.webp",
+          "imageSha256": "0591cb91cabb003d3fa64fed7808da5924f7ebf5b49d8194a5b477af94f1e01b"
+        },
+        {
+          "beat": "action",
+          "requestedTime": 173.45,
+          "actualTime": 173.45,
+          "visible": [
+            {
+              "operationId": "arc-signature-83",
+              "signatureId": "falling-star",
+              "phase": "tell",
+              "visibleMeshes": 1
+            }
+          ],
+          "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/falling-star-action.webp",
+          "imageSha256": "102c50486d1d59aef4cdec33aa8ac6049bdb03a5de739674cd6bbf2c96394162"
+        },
+        {
+          "beat": "resolve",
+          "requestedTime": 174.75,
+          "actualTime": 174.75,
+          "visible": [],
+          "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/falling-star-resolve.webp",
+          "imageSha256": "1cf8918b1c21a4773d48c879622cdf8038e9c2da42085fcbafb6542290462f1d"
+        }
+      ]
+    },
+    {
+      "signatureId": "hardlight-block",
+      "matchId": "core-roster",
+      "operationId": "arc-signature-11",
+      "phases": [
+        {
+          "beat": "start",
+          "requestedTime": 52.35,
+          "actualTime": 52.35,
+          "visible": [
+            {
+              "operationId": "arc-signature-11",
+              "signatureId": "hardlight-block",
+              "phase": "active",
+              "visibleMeshes": 1
+            }
+          ],
+          "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/hardlight-block-start.webp",
+          "imageSha256": "2d296c171d3f4439c45e0931f8ae8fc3b9b73354343b081260b81c563ba77e31"
+        },
+        {
+          "beat": "action",
+          "requestedTime": 63.45,
+          "actualTime": 63.45,
+          "visible": [
+            {
+              "operationId": "arc-signature-11",
+              "signatureId": "hardlight-block",
+              "phase": "active",
+              "visibleMeshes": 1
+            }
+          ],
+          "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/hardlight-block-action.webp",
+          "imageSha256": "abb067ec9ea3cce40eb2c5472a0fcbb5a8c0f4dd14b48c8d2a36587e133e7004"
+        },
+        {
+          "beat": "resolve",
+          "requestedTime": 64.35,
+          "actualTime": 64.35,
+          "visible": [],
+          "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/hardlight-block-resolve.webp",
+          "imageSha256": "4b0091c55dabb51b1ec1d02b1844c5690bd97b1fa1f90642ac14fd70293c8be9"
+        }
+      ]
+    },
+    {
+      "signatureId": "kinetic-burst",
+      "matchId": "remaining-roster",
+      "operationId": "arc-signature-27",
+      "phases": [
+        {
+          "beat": "start",
+          "requestedTime": 47.35,
+          "actualTime": 47.35,
+          "visible": [
+            {
+              "operationId": "arc-signature-27",
+              "signatureId": "kinetic-burst",
+              "phase": "tell",
+              "visibleMeshes": 1
+            }
+          ],
+          "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/kinetic-burst-start.webp",
+          "imageSha256": "f2bbe7143d172113e38a8afcc287eee2b76369fd14d38a3832d74ac46a1dcc3a"
+        },
+        {
+          "beat": "action",
+          "requestedTime": 48.35,
+          "actualTime": 48.35,
+          "visible": [
+            {
+              "operationId": "arc-signature-27",
+              "signatureId": "kinetic-burst",
+              "phase": "outcome",
+              "visibleMeshes": 1
+            }
+          ],
+          "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/kinetic-burst-action.webp",
+          "imageSha256": "6ba47221bf0ae1ede09e75525b4b54b0601f0edcda896afd955f476b85abc99d"
+        },
+        {
+          "beat": "resolve",
+          "requestedTime": 48.75,
+          "actualTime": 48.75,
+          "visible": [],
+          "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/kinetic-burst-resolve.webp",
+          "imageSha256": "56f83a6a80777fe441b4ae3447d47790120d881d0253264ec535d5354395b88f"
+        }
+      ]
+    },
+    {
+      "signatureId": "null-field",
+      "matchId": "remaining-roster",
+      "operationId": "arc-signature-0",
+      "phases": [
+        {
+          "beat": "start",
+          "requestedTime": 0.35,
+          "actualTime": 0.35,
+          "visible": [
+            {
+              "operationId": "arc-signature-0",
+              "signatureId": "null-field",
+              "phase": "tell",
+              "visibleMeshes": 1
+            }
+          ],
+          "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/null-field-start.webp",
+          "imageSha256": "ea8b57152760c86803ff3d0e47b3e960d7578ce41f098cec939f45d551d3f44e"
+        },
+        {
+          "beat": "action",
+          "requestedTime": 1.45,
+          "actualTime": 1.45,
+          "visible": [
+            {
+              "operationId": "arc-signature-0",
+              "signatureId": "null-field",
+              "phase": "active",
+              "visibleMeshes": 1
+            }
+          ],
+          "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/null-field-action.webp",
+          "imageSha256": "d714e04df4f2e8da1a205948ef7bf3382ab7a6ea05858bb6b73b4c3d01c0e44c"
+        },
+        {
+          "beat": "resolve",
+          "requestedTime": 6.35,
+          "actualTime": 6.35,
+          "visible": [],
+          "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/null-field-resolve.webp",
+          "imageSha256": "c6b391893aa922b67b1ee866bea9914a8bad3a8409e06c6e58e076650871938b"
+        }
+      ]
+    },
+    {
+      "signatureId": "prism-wall",
+      "matchId": "remaining-roster",
+      "operationId": "arc-signature-3",
+      "phases": [
+        {
+          "beat": "start",
+          "requestedTime": 14.35,
+          "actualTime": 14.35,
+          "visible": [
+            {
+              "operationId": "arc-signature-3",
+              "signatureId": "prism-wall",
+              "phase": "active",
+              "visibleMeshes": 1
+            }
+          ],
+          "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/prism-wall-start.webp",
+          "imageSha256": "b22338d2c496904923f5edf1f7c857e44f97d221cfce28dc221e11ef812c10f2"
+        },
+        {
+          "beat": "action",
+          "requestedTime": 21.45,
+          "actualTime": 21.45,
+          "visible": [
+            {
+              "operationId": "arc-signature-3",
+              "signatureId": "prism-wall",
+              "phase": "active",
+              "visibleMeshes": 1
+            }
+          ],
+          "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/prism-wall-action.webp",
+          "imageSha256": "506608368ea08af2fffb7c9856fae1f08479e74c36f37343794b93861e6035d1"
+        },
+        {
+          "beat": "resolve",
+          "requestedTime": 22.35,
+          "actualTime": 22.35,
+          "visible": [],
+          "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/prism-wall-resolve.webp",
+          "imageSha256": "3d5abf87998ee926d8bf5962766ee4a6981a813dceb41c6e6cae74b4ee2a33ec"
+        }
+      ]
+    },
+    {
+      "signatureId": "rail-line",
+      "matchId": "core-roster",
+      "operationId": "arc-signature-15",
+      "phases": [
+        {
+          "beat": "start",
+          "requestedTime": 78.35,
+          "actualTime": 78.35,
+          "visible": [
+            {
+              "operationId": "arc-signature-15",
+              "signatureId": "rail-line",
+              "phase": "tell",
+              "visibleMeshes": 1
+            }
+          ],
+          "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/rail-line-start.webp",
+          "imageSha256": "57c84efe684a0f32099b1c176c45b3723930380982261dc7cbe0bd3fb20152dc"
+        },
+        {
+          "beat": "action",
+          "requestedTime": 79.35,
+          "actualTime": 79.35,
+          "visible": [
+            {
+              "operationId": "arc-signature-15",
+              "signatureId": "rail-line",
+              "phase": "outcome",
+              "visibleMeshes": 1
+            }
+          ],
+          "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/rail-line-action.webp",
+          "imageSha256": "28e34348e0318a4082f3bf0cf6815d662a0248dff7ecce4986b5f993dc574002"
+        },
+        {
+          "beat": "resolve",
+          "requestedTime": 79.75,
+          "actualTime": 79.75,
+          "visible": [],
+          "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/rail-line-resolve.webp",
+          "imageSha256": "9d9faf5a8caf5e6290b086fdec1e2fd1d254cd3f79f0b8fb4a1eca3cb24a478b"
+        }
+      ]
+    },
+    {
+      "signatureId": "repair-beam",
+      "matchId": "core-roster",
+      "operationId": "arc-signature-35",
+      "phases": [
+        {
+          "beat": "start",
+          "requestedTime": 178.35,
+          "actualTime": 178.35,
+          "visible": [
+            {
+              "operationId": "arc-signature-35",
+              "signatureId": "repair-beam",
+              "phase": "channel",
+              "visibleMeshes": 1
+            }
+          ],
+          "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/repair-beam-start.webp",
+          "imageSha256": "1ab751eec4196dd5af7b3771687ba0c82cbd94af1a242a98b4175efec468c30a"
+        },
+        {
+          "beat": "action",
+          "requestedTime": 180.45,
+          "actualTime": 180.45,
+          "visible": [
+            {
+              "operationId": "arc-signature-35",
+              "signatureId": "repair-beam",
+              "phase": "channel",
+              "visibleMeshes": 1
+            }
+          ],
+          "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/repair-beam-action.webp",
+          "imageSha256": "4451bc529c021b1f3037df3d286984b068280a0c4639c04a629d6e1e3a6f1c6d"
+        },
+        {
+          "beat": "resolve",
+          "requestedTime": 181.35,
+          "actualTime": 181.35,
+          "visible": [],
+          "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/repair-beam-resolve.webp",
+          "imageSha256": "25309d5442c8f59ed1d941e1a6a6cb043a616366b657a2c489d0ab4414a26867"
+        }
+      ]
+    },
+    {
+      "signatureId": "sentinel-seed",
+      "matchId": "remaining-roster",
+      "operationId": "arc-signature-34",
+      "phases": [
+        {
+          "beat": "start",
+          "requestedTime": 68.35,
+          "actualTime": 68.35,
+          "visible": [
+            {
+              "operationId": "arc-signature-34",
+              "signatureId": "sentinel-seed",
+              "phase": "tell",
+              "visibleMeshes": 1
+            }
+          ],
+          "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/sentinel-seed-start.webp",
+          "imageSha256": "47b25961201a3483b88511be5477efc002acd62f98c8db1206e68407404959d1"
+        },
+        {
+          "beat": "action",
+          "requestedTime": 69.45,
+          "actualTime": 69.45,
+          "visible": [
+            {
+              "operationId": "arc-signature-34",
+              "signatureId": "sentinel-seed",
+              "phase": "active",
+              "visibleMeshes": 1
+            }
+          ],
+          "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/sentinel-seed-action.webp",
+          "imageSha256": "a99d0b5c1bd9c915dc0f63f134a88eac3eecfb2e83aaac384f2fb21c35e0442f"
+        },
+        {
+          "beat": "resolve",
+          "requestedTime": 99.35,
+          "actualTime": 99.35,
+          "visible": [],
+          "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/sentinel-seed-resolve.webp",
+          "imageSha256": "7c4d7db56fa6bd3b0597aee8e5348deb53e66eea1aeeda0e3b7436c3364d2e6a"
+        }
+      ]
+    },
+    {
+      "signatureId": "smoke-canister",
+      "matchId": "remaining-roster",
+      "operationId": "arc-signature-50",
+      "phases": [
+        {
+          "beat": "start",
+          "requestedTime": 102.35,
+          "actualTime": 102.35,
+          "visible": [
+            {
+              "operationId": "arc-signature-50",
+              "signatureId": "smoke-canister",
+              "phase": "in-flight",
+              "visibleMeshes": 1
+            }
+          ],
+          "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/smoke-canister-start.webp",
+          "imageSha256": "b58b07f5ab130f8db90f71cc854e30ef44662248c962976a4c660b79dce9c387"
+        },
+        {
+          "beat": "action",
+          "requestedTime": 104.45,
+          "actualTime": 104.45,
+          "visible": [
+            {
+              "operationId": "arc-signature-50",
+              "signatureId": "smoke-canister",
+              "phase": "active",
+              "visibleMeshes": 1
+            }
+          ],
+          "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/smoke-canister-action.webp",
+          "imageSha256": "cd082c75a7ab8898a4577c39e4028b7d84f21c71845acac589ee7555f625bd25"
+        },
+        {
+          "beat": "resolve",
+          "requestedTime": 114.35,
+          "actualTime": 114.35,
+          "visible": [],
+          "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/smoke-canister-resolve.webp",
+          "imageSha256": "3ab875df795c55741ad3ae976a4e523d73ea2a2bbeb0eebb9c379d9213d31e3b"
+        }
+      ]
+    },
+    {
+      "signatureId": "survey-flare",
+      "matchId": "core-roster",
+      "operationId": "arc-signature-1",
+      "phases": [
+        {
+          "beat": "start",
+          "requestedTime": 10.35,
+          "actualTime": 10.35,
+          "visible": [
+            {
+              "operationId": "arc-signature-1",
+              "signatureId": "survey-flare",
+              "phase": "in-flight",
+              "visibleMeshes": 1
+            }
+          ],
+          "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/survey-flare-start.webp",
+          "imageSha256": "ef5677122b767b1fc0407ed167c65c17b9a81cdbd1edc8f07e9ec1818e7d7dfd"
+        },
+        {
+          "beat": "action",
+          "requestedTime": 14.45,
+          "actualTime": 14.45,
+          "visible": [
+            {
+              "operationId": "arc-signature-1",
+              "signatureId": "survey-flare",
+              "phase": "active",
+              "visibleMeshes": 1
+            }
+          ],
+          "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/survey-flare-action.webp",
+          "imageSha256": "28ae10ea89c3504d3f2df5cbfba61678c176b770afb37162922aa7ca57489663"
+        },
+        {
+          "beat": "resolve",
+          "requestedTime": 22.35,
+          "actualTime": 22.35,
+          "visible": [],
+          "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/survey-flare-resolve.webp",
+          "imageSha256": "7d6097f9fbd2e931e04a44142690d76fdc68fb90ae24566e9dc8f959ba82d386"
+        }
+      ]
+    },
+    {
+      "signatureId": "target-paint",
+      "matchId": "remaining-roster",
+      "operationId": "arc-signature-98",
+      "phases": [
+        {
+          "beat": "start",
+          "requestedTime": 192.35,
+          "actualTime": 192.35,
+          "visible": [
+            {
+              "operationId": "arc-signature-98",
+              "signatureId": "target-paint",
+              "phase": "tell",
+              "visibleMeshes": 1
+            }
+          ],
+          "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/target-paint-start.webp",
+          "imageSha256": "a4ec743a9b1ff0de72c4fda466f69fe4102dffac408444456798e0ae48fc021a"
+        },
+        {
+          "beat": "action",
+          "requestedTime": 193.45,
+          "actualTime": 193.45,
+          "visible": [
+            {
+              "operationId": "arc-signature-98",
+              "signatureId": "target-paint",
+              "phase": "active",
+              "visibleMeshes": 1
+            }
+          ],
+          "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/target-paint-action.webp",
+          "imageSha256": "d4b133dfa92885449265734df9189a0bcad562cbb23e2c75b8b77c2c521109bf"
+        },
+        {
+          "beat": "resolve",
+          "requestedTime": 201.35,
+          "actualTime": 201.35,
+          "visible": [],
+          "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/target-paint-resolve.webp",
+          "imageSha256": "7ff3a3f078187e5a32ef3e54665bdc8b3fa08ef7b56f730db0d264566bf3c5ba"
+        }
+      ]
+    },
+    {
+      "signatureId": "tractor-hook",
+      "matchId": "core-roster",
+      "operationId": "arc-signature-23",
+      "phases": [
+        {
+          "beat": "start",
+          "requestedTime": 117.35,
+          "actualTime": 117.35,
+          "visible": [
+            {
+              "operationId": "arc-signature-23",
+              "signatureId": "tractor-hook",
+              "phase": "tell",
+              "visibleMeshes": 1
+            }
+          ],
+          "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/tractor-hook-start.webp",
+          "imageSha256": "8e4cbef2817550f8990af505f6220918b5d11cd837dc70946701b50560989dda"
+        },
+        {
+          "beat": "action",
+          "requestedTime": 117.75,
+          "actualTime": 117.75,
+          "visible": [
+            {
+              "operationId": "arc-signature-23",
+              "signatureId": "tractor-hook",
+              "phase": "tell",
+              "visibleMeshes": 1
+            }
+          ],
+          "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/tractor-hook-action.webp",
+          "imageSha256": "501b92187eb5090d5e927fa0a948272cd9230842b18c107e7ea0076310f3da83"
+        },
+        {
+          "beat": "resolve",
+          "requestedTime": 118.35,
+          "actualTime": 118.35,
+          "visible": [],
+          "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/tractor-hook-resolve.webp",
+          "imageSha256": "462620f6851a5eaab6255d13f60f1b084049eb8543939c493ec27d5ef81ddbfd"
+        }
+      ]
+    },
+    {
+      "signatureId": "trip-node",
+      "matchId": "remaining-roster",
+      "operationId": "arc-signature-42",
+      "phases": [
+        {
+          "beat": "start",
+          "requestedTime": 89.35,
+          "actualTime": 89.35,
+          "visible": [
+            {
+              "operationId": "arc-signature-42",
+              "signatureId": "trip-node",
+              "phase": "active",
+              "visibleMeshes": 1
+            }
+          ],
+          "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/trip-node-start.webp",
+          "imageSha256": "4bf9362f5dcf0deef2d41d005dfb7b508df1ac3cfc13fd530f1560585afeb437"
+        },
+        {
+          "beat": "action",
+          "requestedTime": 101.45,
+          "actualTime": 101.45,
+          "visible": [
+            {
+              "operationId": "arc-signature-42",
+              "signatureId": "trip-node",
+              "phase": "active",
+              "visibleMeshes": 1
+            }
+          ],
+          "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/trip-node-action.webp",
+          "imageSha256": "3a03957e301560f48d55420307e7541a0a7a4350d7b313231a4edf36a342a7dc"
+        },
+        {
+          "beat": "resolve",
+          "requestedTime": 102.35,
+          "actualTime": 102.35,
+          "visible": [],
+          "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/trip-node-resolve.webp",
+          "imageSha256": "0d6423204b44983219b73099e4a226becd11adbd2658a992adccc75ad84a9ca4"
+        }
+      ]
+    },
+    {
+      "signatureId": "vector-dash",
+      "matchId": "core-roster",
+      "operationId": "arc-signature-2",
+      "phases": [
+        {
+          "beat": "start",
+          "requestedTime": 22.35,
+          "actualTime": 22.35,
+          "visible": [
+            {
+              "operationId": "arc-signature-2",
+              "signatureId": "vector-dash",
+              "phase": "tell",
+              "visibleMeshes": 1
+            }
+          ],
+          "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/vector-dash-start.webp",
+          "imageSha256": "7d6097f9fbd2e931e04a44142690d76fdc68fb90ae24566e9dc8f959ba82d386"
+        },
+        {
+          "beat": "action",
+          "requestedTime": 23.35,
+          "actualTime": 23.35,
+          "visible": [
+            {
+              "operationId": "arc-signature-2",
+              "signatureId": "vector-dash",
+              "phase": "outcome",
+              "visibleMeshes": 1
+            }
+          ],
+          "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/vector-dash-action.webp",
+          "imageSha256": "e2a8a47152beef2191f07c02e580fd34781f33a8d9fa335ef0843ab62b2eed09"
+        },
+        {
+          "beat": "resolve",
+          "requestedTime": 23.75,
+          "actualTime": 23.75,
+          "visible": [],
+          "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/vector-dash-resolve.webp",
+          "imageSha256": "4f1aabce8b01d33da9c6573031b83883ace4daf025787a1ef85e1917bfef17af"
+        }
+      ]
+    }
+  ],
+  "seekComparisons": [
+    {
+      "signatureId": "vector-dash",
+      "matchId": "core-roster",
+      "time": 23.35,
+      "directSha256": "verified-equal-on-captured-build",
+      "afterPlaybackSha256": "verified-equal-on-captured-build",
+      "equal": true
+    },
+    {
+      "signatureId": "repair-beam",
+      "matchId": "core-roster",
+      "time": 180.45,
+      "directSha256": "verified-equal-on-captured-build",
+      "afterPlaybackSha256": "verified-equal-on-captured-build",
+      "equal": true
+    },
+    {
+      "signatureId": "survey-flare",
+      "matchId": "core-roster",
+      "time": 14.45,
+      "directSha256": "verified-equal-on-captured-build",
+      "afterPlaybackSha256": "verified-equal-on-captured-build",
+      "equal": true
+    },
+    {
+      "signatureId": "null-field",
+      "matchId": "remaining-roster",
+      "time": 1.45,
+      "directSha256": "verified-equal-on-captured-build",
+      "afterPlaybackSha256": "verified-equal-on-captured-build",
+      "equal": true
+    },
+    {
+      "signatureId": "smoke-canister",
+      "matchId": "remaining-roster",
+      "time": 104.45,
+      "directSha256": "verified-equal-on-captured-build",
+      "afterPlaybackSha256": "verified-equal-on-captured-build",
+      "equal": true
+    },
+    {
+      "signatureId": "target-paint",
+      "matchId": "remaining-roster",
+      "time": 193.45,
+      "directSha256": "verified-equal-on-captured-build",
+      "afterPlaybackSha256": "verified-equal-on-captured-build",
+      "equal": true
+    }
+  ],
+  "reducedMotion": [
+    {
+      "signatureId": "falling-star",
+      "matchId": "remaining-roster",
+      "time": 173.45,
+      "visible": [
+        {
+          "operationId": "arc-signature-83",
+          "signatureId": "falling-star",
+          "phase": "tell",
+          "visibleMeshes": 1
+        }
+      ],
+      "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/falling-star-reduced.webp",
+      "imageSha256": "c575f17fd4cb1ee0e65c08de577dcbaca106564b5980359d632a0096d082e6fe"
+    },
+    {
+      "signatureId": "repair-beam",
+      "matchId": "core-roster",
+      "time": 180.45,
+      "visible": [
+        {
+          "operationId": "arc-signature-35",
+          "signatureId": "repair-beam",
+          "phase": "channel",
+          "visibleMeshes": 1
+        }
+      ],
+      "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/repair-beam-reduced.webp",
+      "imageSha256": "523d39f4dc04ac0393b5d3b89c5ee5eeac5f3540203224509c559ad2d33bd3c6"
+    },
+    {
+      "signatureId": "smoke-canister",
+      "matchId": "remaining-roster",
+      "time": 104.45,
+      "visible": [
+        {
+          "operationId": "arc-signature-50",
+          "signatureId": "smoke-canister",
+          "phase": "active",
+          "visibleMeshes": 1
+        }
+      ],
+      "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/smoke-canister-reduced.webp",
+      "imageSha256": "f7cd86153b9297e0258c87d0bb9a7b3e8e50ba35d1a18b83cc5c78e0f0c58f84"
+    },
+    {
+      "signatureId": "target-paint",
+      "matchId": "remaining-roster",
+      "time": 193.45,
+      "visible": [
+        {
+          "operationId": "arc-signature-98",
+          "signatureId": "target-paint",
+          "phase": "active",
+          "visibleMeshes": 1
+        }
+      ],
+      "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/target-paint-reduced.webp",
+      "imageSha256": "c7ce785ec909329d77e8eabc4b835605fb1b757d2835994aab80e6608d450947"
+    }
+  ],
+  "levelUp": {
+    "matchId": "core-roster",
+    "fact": {
+      "actorId": {
+        "lifeId": 0,
+        "teamId": 1,
+        "unitId": 1
+      },
+      "level": 2,
+      "position": {
+        "x": 12,
+        "y": 11
+      },
+      "tick": 81
+    },
+    "time": 81.32,
+    "visibleBeats": 1,
+    "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/level-up.webp",
+    "imageSha256": "d3e1c8ed81b7ce5b78b65bce50e433502fe239a1b43446af339020f9d0bec9a2"
+  },
+  "migratedFromCapturedImages": true,
+  "errors": []
+}
