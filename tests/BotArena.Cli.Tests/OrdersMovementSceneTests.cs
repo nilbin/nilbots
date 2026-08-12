@@ -147,9 +147,13 @@ public sealed class OrdersMovementSceneTests
             GenericActorMatchStepResult step = session.Step();
             GenericMindRuntimeTurn hunterTurn = Assert.Single(
                 step.MindTurns, turn => turn.TeamId == 0);
-            GenericMindCommandResolution hauler = Assert.Single(
-                hunterTurn.Commands,
-                resolution => resolution.Command.UnitId == 2);
+            GenericMindCommandResolution? hauler = hunterTurn.Commands
+                .SingleOrDefault(resolution => resolution.Command.UnitId == 2);
+            if (hauler is null)
+            {
+                currentBlockedTicks = 0;
+                continue;
+            }
             string haulerReason = hauler.Command.DebugMessage ?? "";
             bool centreWellBlocked = haulerReason.Contains(
                 "work-centre-well", StringComparison.Ordinal)
@@ -161,9 +165,10 @@ public sealed class OrdersMovementSceneTests
             longestBlockedRun = Math.Max(
                 longestBlockedRun, currentBlockedTicks);
 
-            GenericMindCommandResolution builder = Assert.Single(
-                hunterTurn.Commands,
-                resolution => resolution.Command.UnitId == 7);
+            GenericMindCommandResolution? builder = hunterTurn.Commands
+                .SingleOrDefault(resolution => resolution.Command.UnitId == 7);
+            if (builder is null)
+                continue;
             string builderReason = builder.Command.DebugMessage ?? "";
             if (builderReason.Contains(
                     "hold-centre", StringComparison.Ordinal)

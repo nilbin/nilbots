@@ -88,7 +88,7 @@
         { "shared": "collect-loose-core" },
         { "id": "block-visible-threat", "when": { "all": ["empty-handed", "enemy-visible", "signature-ready"] }, "use": { "skill": "hardlight-block", "target": "nearest-enemy" } },
         { "shared": "fight-visible-enemy" },
-        { "id": "hold-centre", "move": { "to": { "well": "centre" }, "posture": "rear" } }
+        { "id": "hold-centre", "urgency": "routine", "move": { "to": { "well": "centre" }, "posture": "rear" } }
       ]
     }
   ],
