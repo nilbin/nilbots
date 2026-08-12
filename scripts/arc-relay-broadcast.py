@@ -200,7 +200,7 @@ def compact_turns(tick: dict, signature_ids: set[str]) -> list:
     return result
 
 
-DESTINATION_TAIL = re.compile(r"@(\d+),(\d+)$")
+DESTINATION = re.compile(r"@(\d+),(\d+)(?=:|$)")
 
 
 def command_reason(
@@ -278,10 +278,10 @@ def finish_command_reason(
     # Strip the destination BEFORE the length cap, so a long action tail can
     # never silently eat the coordinates off the end of the lens.
     destination = None
-    found = DESTINATION_TAIL.search(action)
+    found = DESTINATION.search(action)
     if found is not None:
         destination = (int(found.group(1)), int(found.group(2)))
-        action = action[: found.start()]
+        action = action[: found.start()] + action[found.end():]
     if qualifier:
         action = f"{qualifier}/{action}"
     return (order_id, action[:REASON_MAX_CHARS], destination)

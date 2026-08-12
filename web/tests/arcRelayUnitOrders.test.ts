@@ -119,6 +119,16 @@ test('a mind diagnostic splits into the order it names and what it is doing', ()
   );
   assert.deepEqual(
     parseCommandReason(
+      'orders:hunter > shadow-hunt:march@23,11:urgency-routine+b13=>normal:route-held-next-22-10 via NorthWest',
+    ),
+    {
+      orderId: 'shadow-hunt',
+      action: 'march:urgency-routine+b13=>normal:route-held-nex',
+      destination: { x: 23, y: 11 },
+    },
+  );
+  assert.deepEqual(
+    parseCommandReason(
       'turn for tp:prowl:well-group:well-watch:repath-reflow@0,0',
     ),
     {

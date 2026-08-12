@@ -852,13 +852,14 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         IReadOnlyDictionary<ActorIdentity,
             GenericActorContext.ArcRelayCoreState> carried)
     {
-        string reason = $"orders:{proposal.Leaf.Node.Path}"
-            + $":urgency-{claims.PriorityTrace(body.UnitId)}";
+        string reason = $"orders:{proposal.Leaf.Node.Path}";
+        string urgency = $"urgency-{claims.PriorityTrace(body.UnitId)}";
         switch (proposal.Leaf.Node.Action)
         {
             case OrdersPackage.MoveAction:
                 ExecuteMove(
-                    contract, mind, body, proposal, movePlan!, claims, reason,
+                    contract, mind, body, proposal, movePlan!, claims,
+                    reason, urgency,
                     carried.ContainsKey(body.ActorId));
                 return;
             case OrdersPackage.FightAction fight:
@@ -910,11 +911,14 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         MovePlan plan,
         ArenaBasics.Claims claims,
         string reason,
+        string urgency,
         bool carrying)
     {
+        string movement = $"{reason}:march@{plan.Goal.X},{plan.Goal.Y}"
+            + $":{urgency}";
         if (plan.Arrived || plan.Goals.Contains(body.Position))
         {
-            body.Hold($"{reason}:at-target:{proposal.Target.Key}");
+            body.Hold($"{movement}:at-target:{proposal.Target.Key}");
             return;
         }
         if (plan.Course?.Next is Position step)
@@ -941,28 +945,28 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                         "route-detour-commit-", StringComparison.Ordinal)
                     && ArenaBasics.TryMoveDirect(
                         contract, mind, body, alternate, claims,
-                        $"{reason}:{detour.Trace}"))
+                        $"{movement}:{detour.Trace}"))
                     return;
             }
             if (ArenaBasics.TryMoveDirect(
                     contract, mind, body, step, claims,
-                    $"{reason}:{plan.Course.Trace}",
+                    $"{movement}:{plan.Course.Trace}",
                     carrying
                         ? TacticalMovementAuthority.Safety
                         : TacticalMovementAuthority.Tactical))
                 return;
-            body.Hold($"{reason}:{plan.Course.Trace}:blocked");
+            body.Hold($"{movement}:{plan.Course.Trace}:blocked");
             return;
         }
         bool moved = carrying && proposal.Target.Key == "reactor:own"
             ? ArenaBasics.TryMoveRouted(
                 contract, mind, body, plan.Goal, claims,
-                $"{reason}:carry-home")
+                $"{movement}:carry-home")
             : ArenaBasics.TryMoveToward(
                 contract, mind, body, plan.Goals, claims,
-                $"{reason}:move:{proposal.Target.Key}");
+                $"{movement}:move:{proposal.Target.Key}");
         if (!moved)
-            body.Hold($"{reason}:move-blocked:{proposal.Target.Key}");
+            body.Hold($"{movement}:move-blocked:{proposal.Target.Key}");
     }
 
     private void ExecuteFight(

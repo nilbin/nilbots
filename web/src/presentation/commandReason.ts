@@ -44,8 +44,9 @@ export interface CommandReason {
   destination: { x: number; y: number } | null;
 }
 
-/** The `@x,y` tail a movement diagnostic carries; see `MovementProvenance`. */
-const DESTINATION_TAIL = /@(\d+),(\d+)$/;
+/** The `@x,y` suffix on the first movement-action segment. Later structured
+ * qualifiers (`:urgency-…`, route state, blockers) deliberately follow it. */
+const DESTINATION = /@(\d+),(\d+)(?=:|$)/;
 
 function finishReason(
   text: string,
@@ -62,11 +63,11 @@ function finishReason(
     .join('/');
   // Split the destination off BEFORE the length cap: a long action tail must
   // never silently eat the coordinates off the end of the lens.
-  const found = DESTINATION_TAIL.exec(tail);
+  const found = DESTINATION.exec(tail);
   const destination = found
     ? { x: Number(found[1]), y: Number(found[2]) }
     : null;
-  if (found) tail = tail.slice(0, found.index);
+  if (found) tail = tail.slice(0, found.index) + tail.slice(found.index + found[0].length);
   const action = qualifier.length > 0 ? `${qualifier}/${tail}` : tail;
   return {
     orderId,

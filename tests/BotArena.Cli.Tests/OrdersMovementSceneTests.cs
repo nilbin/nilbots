@@ -107,6 +107,8 @@ public sealed class OrdersMovementSceneTests
         Assert.Contains(reasons, reason => reason.Contains(
             "urgency-urgent", StringComparison.Ordinal));
         Assert.Contains(reasons, reason => reason.Contains(
+            ":march@", StringComparison.Ordinal));
+        Assert.Contains(reasons, reason => reason.Contains(
             "score-a-core", StringComparison.Ordinal));
         Assert.Contains(reasons, reason => reason.Contains(
             "recover-health", StringComparison.Ordinal));
