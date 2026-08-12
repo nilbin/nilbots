@@ -56,13 +56,13 @@ Proposed provider prompts, all within the API's 255-character limit:
 | Repair fact | existing `healing`; no channel loop |
 | Survey Flare `landed` | one `signature-survey` |
 | Falling Star damage resolve | existing `impact`, coalesced to one voice |
-| Null Field `activated` | one `signature-null`; no sustained voice |
+| Null Field `activated` | one `signature-null`; no sustained voice; cancelled charge stays silent |
 | Arc Toss | existing Core-family departure and landing outcome cues only |
 | Exchange terminal `completed` | one `signature-exchange` |
 | Rail Line resolve | existing wind-up and projectile; any signature damage adds one coalesced existing impact |
-| Target Paint `started` active | one `signature-target`; segment consumption stays silent |
+| Target Paint successful acquisition | one `signature-target`; cancelled acquisition and segment consumption stay silent |
 | Kinetic Burst terminal `completed` | one `signature-kinetic` |
-| Smoke Canister `started` active | one `signature-smoke` |
+| Smoke Canister `landed` | one `signature-smoke`; launch and flight stay silent |
 | Level-up fact | existing `level-up` |
 | Signature cancel/interruption/expiry/suppression | silent unless an existing concrete outcome fact already owns a cue |
 

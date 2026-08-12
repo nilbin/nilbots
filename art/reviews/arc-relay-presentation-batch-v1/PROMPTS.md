@@ -48,8 +48,9 @@ Prompt specification:
 > to field growth to stable coverage. Use class materials from the reference,
 > sparse low effects, no bright lasers, no text, no UI, no fantasy magic.
 
-Production flattens Null, lowers Smoke, and removes Smoke's generated travel
-arc because the replay has no smoke in-flight phase.
+Production flattens Null and lowers Smoke. The generated travel arc becomes
+valid only if the reviewed Tapline vNext `in-flight` mechanic is approved; it
+must never be invented for a historical grammar-2 replay.
 
 ## Board 03 — motion and objective
 

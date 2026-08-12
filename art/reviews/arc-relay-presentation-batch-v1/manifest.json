@@ -1,7 +1,7 @@
 {
   "version": 1,
   "id": "arc-relay-presentation-batch-v1",
-  "status": "awaiting-approval",
+  "status": "awaiting-presentation-and-mechanics-approval",
   "generatedAt": "2026-08-12",
   "branch": "main",
   "baselineCommit": "4aaf80cc",
@@ -19,7 +19,10 @@
       "trip-node",
       "sentinel-seed"
     ],
-    "mechanicsChanges": 0,
+    "currentExplicitSignatureTells": 9,
+    "currentImmediateActiveSignatures": 5,
+    "recommendedMechanicsChanges": 4,
+    "mechanicsProfile": "new-tapline-vnext-preserving-tapline-1",
     "ambientLoops": 0
   },
   "boards": [

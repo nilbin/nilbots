@@ -14,18 +14,25 @@ Generated on 2026-08-12 from the `main` worktree at baseline `4aaf80cc`.
   projectile models are required.
 - One fact-driven level-up animation around the already persistent brass
   chevron.
+- A full timing audit of all 16 signatures and a fingerprinted Tapline vNext
+  mechanics package for Null Field, Target Paint, Kinetic Burst, and Smoke
+  Canister.
 - A restrained signature SFX language made from at most six private SFX Engine
   source generations. No ambience and no changes to music.
 - Tapline is the primary review map; the implementation remains map-agnostic.
 
 Trip Node and Sentinel Seed are deliberately outside this batch because the 3D
 model agent has taken ownership of those two props. This batch will not edit
-their source models, materials, manifests, or renderer integration.
+their source models, materials, or manifests; it still verifies that their
+existing renderer integration follows the audited timing.
 
-## Non-negotiable presentation rules
+## Non-negotiable implementation rules
 
-- Game mechanics, simulation timing, targeting, collision, damage, healing,
-  Core custody, and replay data do not change.
+- Mechanics change only through the exact reviewed Tapline vNext package in
+  `SIGNATURE-TIMING-AUDIT.md`. Historical `tapline-1` rules, fingerprints,
+  stock artifacts, ratings, and hosted playlists remain immutable.
+- Outside that package, targeting, collision, damage, healing, Core custody,
+  and replay truth do not change.
 - A visual tell never begins before the replay publishes it. A visual resolve
   never survives past its authoritative end.
 - No skeletal or part animation is assumed. Effects use pooled renderer
@@ -48,8 +55,8 @@ corrections:
 - Hardlight and Prism surfaces are matte/rough with narrow emissive edges.
 - Null Field is a shallow floor lens, never a dome or bubble.
 - Smoke uses fewer, lower abstract volumes. It never becomes a cotton cloud.
-- Smoke has no fake travel phase: Tapline publishes it as an immediate field,
-  so production begins the field on the authoritative start frame.
+- Smoke travel is implemented only with the proposed grammar-3 `in-flight`
+  phase. The renderer never invents it while reading a grammar-2 replay.
 - Projectile colours in the sheet identify their class lineage. Runtime keeps
   the existing team-accent energy treatment and takes identity from silhouette
   and relief.
@@ -60,6 +67,8 @@ corrections:
 - `CONCEPT-SPEC.md` — exact signature, projectile, and level-up treatment.
 - `AUDIO-CUE-PROPOSAL.md` — event mapping, six-call provider cap, and comfort
   gates.
+- `SIGNATURE-TIMING-AUDIT.md` — current timing reality, actionable-window
+  analysis, and the exact four-change Tapline vNext recommendation.
 - `PROMPTS.md` — image-generation prompt and reference provenance.
 - `manifest.json` — dimensions, hashes, and status of every board.
 - `rejected/projectile-mini-bots-v1.png` — preserved rejected iteration; it
@@ -73,6 +82,7 @@ python3 scripts/serve-gallery.py 9093 --bind 127.0.0.1 \
   --directory art/reviews/arc-relay-presentation-batch-v1
 ```
 
-Approval of the whole batch authorizes the renderer work and exactly six
-private SFX Engine generation jobs. It does not authorize automatic rerolls.
-Any seventh provider call requires a separate approval.
+Approval of the whole batch authorizes the four-change Tapline vNext mechanics
+package, renderer work, and exactly six private SFX Engine generation jobs. It
+does not authorize automatic rerolls or deployment. Any seventh provider call
+requires a separate approval.

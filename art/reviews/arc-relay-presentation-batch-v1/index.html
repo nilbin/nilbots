@@ -98,7 +98,7 @@
     }
     .scope {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(5, 1fr);
       gap: 10px;
       margin-top: 38px;
     }
@@ -211,6 +211,67 @@
     }
     .principle h3 { margin: 0 0 7px; font-size: 18px; }
     .principle p { margin: 0; color: var(--muted); font-size: 14px; }
+    .timing-summary {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+    .timing-band {
+      padding: 21px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel);
+    }
+    .timing-band.good { border-color: rgba(149, 183, 159, .28); }
+    .timing-band.warn { border-color: rgba(210, 164, 92, .32); }
+    .timing-band.instant { border-color: rgba(207, 128, 105, .27); }
+    .timing-band small {
+      color: var(--dim);
+      font-weight: 800;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+    .timing-band h3 { margin: 8px 0 9px; font-size: 19px; }
+    .timing-band p { margin: 0; color: var(--muted); font-size: 13px; }
+    .timing-band ul { margin: 15px 0 0; padding-left: 18px; color: #c6ced0; font-size: 13px; }
+    .timing-band li + li { margin-top: 5px; }
+    .phase-note {
+      margin-top: 11px;
+      padding: 17px 18px;
+      border: 1px solid rgba(127, 201, 209, .24);
+      border-radius: var(--radius);
+      background: rgba(16, 42, 48, .34);
+      color: #bfd1d3;
+      font-size: 14px;
+    }
+    .mechanics-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-top: 25px;
+    }
+    .mechanic {
+      padding: 21px;
+      border: 1px solid rgba(210, 164, 92, .27);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(145deg, rgba(44, 33, 18, .34), transparent 70%),
+        var(--panel);
+    }
+    .mechanic .tag {
+      display: inline-block;
+      margin-bottom: 11px;
+      padding: 4px 8px;
+      border: 1px solid rgba(210, 164, 92, .35);
+      border-radius: 999px;
+      color: #e3bd7d;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    .mechanic h3 { margin: 0 0 7px; font-size: 18px; }
+    .mechanic p { margin: 0; color: var(--muted); font-size: 13px; }
     .projectile-order {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
@@ -348,7 +409,7 @@
       .metric { min-height: 104px; padding: 16px; }
       .section-head { grid-template-columns: 1fr; gap: 12px; }
       section { padding-top: 58px; }
-      .principles, .audio-voices { grid-template-columns: 1fr; }
+      .principles, .timing-summary, .mechanics-grid, .audio-voices { grid-template-columns: 1fr; }
       .voice, .voice:nth-child(3n), .voice:nth-last-child(-n + 3) {
         border-right: 0;
         border-bottom: 1px solid var(--line);
@@ -373,6 +434,7 @@
       <div class="brand">Nilbots / Tapline</div>
       <nav aria-label="Gallery sections">
         <a href="#language">Language</a>
+        <a href="#timing">Timing</a>
         <a href="#signatures">Signatures</a>
         <a href="#projectiles">Projectiles</a>
         <a href="#sound">Sound</a>
@@ -385,20 +447,22 @@
     <div class="eyebrow">Concept approval · presentation batch v1</div>
     <h1>Readable machinery in a quiet orbital arena.</h1>
     <p class="lede">A complete visual and audio direction for signature skills,
-      class attack heads, and level-up—built around Tapline’s public commitments,
-      not generic spectacle.</p>
+      class attack heads, level-up, and the mechanics timing needed to make
+      those commitments honest—not generic spectacle.</p>
 
     <div class="scope" aria-label="Batch scope">
       <div class="metric"><b>14</b><span>signature VFX owned by this batch</span></div>
       <div class="metric"><b>16</b><span>class-specific regular attack heads</span></div>
       <div class="metric"><b>1</b><span>fact-driven level-up animation</span></div>
+      <div class="metric"><b>4</b><span>proposed Tapline vNext timing changes</span></div>
       <div class="metric"><b>≤6</b><span>private SFX Engine source calls</span></div>
     </div>
     <div class="guardrail">
-      <strong>Cosmetic only.</strong>
-      <span>No mechanics, replay format, timing, targeting, collision, damage,
-        healing, custody, or music changes. No ambient loop. Trip Node and Sentinel
-        Seed remain with the 3D model agent.</span>
+      <strong>Versioned, not retroactive.</strong>
+      <span>Four exact signature timing changes mint a new Tapline profile.
+        Historical Tapline rules and replays remain immutable. No map, damage,
+        healing, Core custody, music, or ambience changes. Trip Node and Sentinel
+        Seed assets remain with the 3D model agent.</span>
     </div>
   </header>
 
@@ -429,6 +493,97 @@
             stay compact and share one quiet release voice when fights stack.</p>
         </article>
       </div>
+    </section>
+
+    <section id="timing">
+      <div class="section-head">
+        <h2>They don’t all wind up.</h2>
+        <p>Tapline presents one tick in roughly 400 ms. Nine signatures publish a
+          <code>tell</code>, but only Hook, Falling Star, and Rail currently give
+          an opponent a genuine response action before their immediate effect;
+          Sentinel Seed instead gives warning before a later-firing construct.</p>
+      </div>
+      <div class="timing-summary">
+        <article class="timing-band good">
+          <small>Actionable now</small>
+          <h3>Real response windows</h3>
+          <p>These resolve after a body has had a chance to answer the public commitment.</p>
+          <ul>
+            <li>Tractor Hook — 1 tick, then grapple travel</li>
+            <li>Falling Star — 2 ticks before impact</li>
+            <li>Rail Line — 1 tick before piercing resolve</li>
+          </ul>
+        </article>
+        <article class="timing-band warn">
+          <small>Animation time ≠ counterplay</small>
+          <h3>Readable, but not answerable</h3>
+          <p>These have a tell or pre-payoff motion, but their first timing beat is not always an enemy decision window.</p>
+          <ul>
+            <li>Vector Dash, Null Field, Exchange, Kinetic Burst</li>
+            <li>Arc Toss — tell plus real Core flight</li>
+            <li>Sentinel Seed — tell before a later-firing construct</li>
+            <li>Repair channel and Survey Flare flight provide payoff time</li>
+          </ul>
+        </article>
+        <article class="timing-band instant">
+          <small>Immediate active state</small>
+          <h3>No current wind-up</h3>
+          <p>These become mechanically active on the cast tick.</p>
+          <ul>
+            <li>Prism Wall and Hardlight Block</li>
+            <li>Trip Node</li>
+            <li>Target Paint</li>
+            <li>Smoke Canister</li>
+          </ul>
+        </article>
+      </div>
+      <div class="phase-note"><strong>The chronology matters:</strong> most
+        one-tick utility tells mature at the next tick start, before movement.
+        Hook and Rail deliberately mature after movement. A 400 ms tell can
+        therefore be excellent animation time and still provide zero gameplay
+        counterplay.</div>
+
+      <div class="section-head" style="margin-top: 42px">
+        <h2>Four mechanics changes</h2>
+        <p>This is the proposed Tapline vNext package. Reactive construction and
+          traps stay instant; the four mismatches between visual promise and rules
+          get new authoritative phases.</p>
+      </div>
+      <div class="mechanics-grid">
+        <article class="mechanic">
+          <div class="tag">Null Field</div>
+          <h3>Let the target move once</h3>
+          <p>Keep its one-tick charge and frozen radius, but activate after the
+            response movement phase instead of before it. A signature chosen by
+            a body that stayed inside is still blocked; duration, radius, and
+            cooldown stay unchanged.</p>
+        </article>
+        <article class="mechanic">
+          <div class="tag">Target Paint</div>
+          <h3>Acquire before amplifying</h3>
+          <p>Add a one-tick tracked acquisition that resolves after movement.
+            Range or sight loss cancels it; no allied hit receives the bonus on
+            the original cast tick.</p>
+        </article>
+        <article class="mechanic">
+          <div class="tag">Kinetic Burst</div>
+          <h3>Make adjacency answerable</h3>
+          <p>Keep its one-tick tell, but resolve after movement from the frozen
+            origin. The caster is rooted; bodies that leave escape, and bodies
+            that enter accept the risk.</p>
+        </article>
+        <article class="mechanic">
+          <div class="tag">Smoke Canister</div>
+          <h3>Actually throw the canister</h3>
+          <p>Add public ballistic flight at three tiles per tick, then begin the
+            full ten-tick field on landing. It arcs over walls and does not invent
+            projectile collision.</p>
+        </article>
+      </div>
+      <div class="note"><strong>Kept instant on purpose:</strong> Prism Wall and
+        Hardlight Block retain same-tick projectile response; Trip Node remains a
+        trap. Their first active frame must show the complete mechanical
+        silhouette even while cosmetic material settling continues.</div>
     </section>
 
     <section id="signatures">
@@ -472,8 +627,8 @@
             </div>
             <div class="note"><strong>Production correction:</strong> Null is a
               shallow floor lens, never a dome. Smoke uses fewer, lower abstract
-              volumes. Its generated travel arc is omitted because the replay
-              publishes no smoke in-flight phase.</div>
+              volumes. Its generated travel arc is used only by the new
+              authoritative Tapline vNext flight phase.</div>
           </div>
         </article>
 
@@ -547,12 +702,13 @@
           before the work is considered done.</p>
       </div>
       <div class="batch-grid">
-        <article class="batch-item"><div class="n">01</div><div><h3>Renderer primitives</h3><p>Pool low rings, brackets, pressure slabs, ribbons, panes, particles, and resolve beats. No per-frame asset churn.</p></div></article>
-        <article class="batch-item"><div class="n">02</div><div><h3>Fourteen signatures</h3><p>Replace generic rigs with the treatments above, bound to visible phases and exact replay facts.</p></div></article>
-        <article class="batch-item"><div class="n">03</div><div><h3>Class attack heads</h3><p>Add sixteen valid SVG look folders and map every Arc class away from the shared Arc Pulse.</p></div></article>
-        <article class="batch-item"><div class="n">04</div><div><h3>Level-up beat</h3><p>Add the short brass transient around the persistent chevron, driven only by the level-up fact.</p></div></article>
-        <article class="batch-item"><div class="n">05</div><div><h3>Signature audio</h3><p>Generate six private sources, derive restrained deliveries, coalesce busy ticks, and keep ordinary attacks shared.</p></div></article>
-        <article class="batch-item"><div class="n">06</div><div><h3>Tapline proof</h3><p>Normal overview, phone landscape, pause/seek, reduced motion, crowd performance, and whole-pack ear-safety audit.</p></div></article>
+        <article class="batch-item"><div class="n">01</div><div><h3>Mechanics chronology</h3><p>Implement the four versioned timing changes, fingerprint Tapline vNext, and prove response, cancel, cooldown, and replay boundaries.</p></div></article>
+        <article class="batch-item"><div class="n">02</div><div><h3>Renderer primitives</h3><p>Pool low rings, brackets, pressure slabs, ribbons, panes, particles, and resolve beats. No per-frame asset churn.</p></div></article>
+        <article class="batch-item"><div class="n">03</div><div><h3>Fourteen signatures</h3><p>Replace generic rigs with the treatments above, bound to exact phases and facts with honest grammar-2 compatibility.</p></div></article>
+        <article class="batch-item"><div class="n">04</div><div><h3>Class attack heads</h3><p>Add sixteen valid SVG look folders and map every Arc class away from the shared Arc Pulse.</p></div></article>
+        <article class="batch-item"><div class="n">05</div><div><h3>Level-up beat</h3><p>Add the short brass transient around the persistent chevron, driven only by the level-up fact.</p></div></article>
+        <article class="batch-item"><div class="n">06</div><div><h3>Signature audio</h3><p>Generate six private sources only after timing stabilizes, derive restrained deliveries, and keep ordinary attacks shared.</p></div></article>
+        <article class="batch-item"><div class="n">07</div><div><h3>Tapline proof</h3><p>Mechanics exhibits, overview, phone landscape, pause/seek, reduced motion, crowd performance, and whole-pack ear-safety audit.</p></div></article>
       </div>
     </section>
 
@@ -596,13 +752,14 @@
           seeking, reduced motion, performance, and the strict whole-pack audio audit are
           part of done.</p>
         <div class="approval-list">
-          <div><strong>Included:</strong> 14 signature treatments, 16 attack heads, level-up, signature SFX, tests, and review proof.</div>
+          <div><strong>Included:</strong> four versioned timing changes, 14 signature treatments, 16 attack heads, level-up, signature SFX, tests, and review proof.</div>
           <div><strong>Provider cap:</strong> exactly six private SFX Engine generations; no automatic rerolls.</div>
-          <div><strong>Held out:</strong> Trip Node and Sentinel Seed assets/integration, owned by the 3D model agent.</div>
-          <div><strong>Untouched:</strong> mechanics, replay contract, pathing, Core custody, music, and ambience.</div>
+          <div><strong>Held out:</strong> Trip Node and Sentinel Seed model assets and material work, owned by the 3D model agent; this batch still tests their timing compatibility.</div>
+          <div><strong>Untouched:</strong> historical Tapline, map/pathing, damage, healing, Core custody, music, ambience, and frozen deployment artifacts.</div>
         </div>
         <div class="docs">
           <a href="CONCEPT-SPEC.md">Full concept spec</a>
+          <a href="SIGNATURE-TIMING-AUDIT.md">Timing + mechanics audit</a>
           <a href="AUDIO-CUE-PROPOSAL.md">Audio cue proposal</a>
           <a href="PROMPTS.md">Prompt provenance</a>
           <a href="manifest.json">Artifact manifest</a>
