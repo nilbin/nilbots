@@ -66,6 +66,37 @@ public sealed class ArcRelayGrammar2Tests
     }
 
     [Fact]
+    public void EverySignatureKindHasExactlyOneTypedLifecycleHandler()
+    {
+        var registrations =
+            ArcRelaySignatureRuntime.RegisteredSignatureBehaviors;
+        ArcRelaySignatureDefinition.SignatureKind[] kinds =
+            Enum.GetValues<ArcRelaySignatureDefinition.SignatureKind>();
+
+        Assert.Equal(kinds.Length, registrations.Length);
+        Assert.Equal(kinds, registrations.Select(value => value.Kind));
+        Assert.Equal(
+            registrations.Length,
+            registrations.Select(value => value.HandlerType).Distinct().Count());
+        Assert.All(
+            registrations,
+            value => Assert.EndsWith(
+                "Behavior",
+                value.HandlerType.Name,
+                StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Tapline1FingerprintRemainsFrozenAcrossHandlerExtraction()
+    {
+        Assert.Equal(
+            "b1c38905a9c3ad4a653cf50f0cf4fd131bfaee42eb9e037c7c1c3ebbd6ed5872",
+            ActorContractFingerprint.ComputeRules(
+                ArcRelayH0Definition.CreateRules(
+                    ArcRelayLoopProfile.Tapline1)));
+    }
+
+    [Fact]
     public void Grammar2MintsANewRulesFingerprintAndLeavesGrammar1Alone()
     {
         string one = ActorContractFingerprint.ComputeRules(

@@ -8,7 +8,7 @@ namespace BotArena.Engine;
 /// signature cooldowns; the common session applies the returned body/combat
 /// effects so life and projectile chronology stays in one authority.
 /// </summary>
-internal sealed class ArcRelaySignatureRuntime
+internal sealed partial class ArcRelaySignatureRuntime
 {
     private readonly ActorMapDefinition _map;
     private readonly ImmutableDictionary<string, ArcRelaySignatureDefinition>
@@ -208,8 +208,7 @@ internal sealed class ArcRelaySignatureRuntime
     /// plain telegraph of DECISIONS #226 and locks nothing.
     /// </summary>
     internal static bool IsLineAttack(ArcRelaySignatureDefinition definition) =>
-        definition is ArcRelaySignatureDefinition.RailLine
-            or ArcRelaySignatureDefinition.TractorHook2;
+        BehaviorFor(definition.Kind).DeclaresLineLock;
 
     public ImmutableArray<GenericActorRuntimeActionArgument.UnitTarget>
         UnitTargets(
@@ -324,7 +323,7 @@ internal sealed class ArcRelaySignatureRuntime
             targetPosition = targetActor is null ? null : named!.Position;
         }
 
-        Operation operation = CreateOperation(
+        var start = new SignatureStartContext(
             operationId,
             definition,
             actor,
@@ -336,55 +335,17 @@ internal sealed class ArcRelaySignatureRuntime
             tick,
             declaresLock,
             coneTiles);
+        SignatureBehavior behavior = BehaviorFor(definition.Kind);
+        Operation operation = behavior.Create(this, start);
         var events = ImmutableArray.CreateBuilder<GenericActorModeEvent>();
         ReplaceOwnedConstruct(operation, events);
         _operations.Add(operationId, operation);
-        if (CooldownStartsAtActivation(definition))
+        if (behavior.CooldownStartsAtActivation)
             _readyAtTick[actor] = checked(tick + definition.CooldownTicks);
 
         events.Add(SignatureEvent(operation, "started"));
         var effects = ImmutableArray.CreateBuilder<Effect>();
-        if (definition is ArcRelaySignatureDefinition.TractorHook)
-        {
-            effects.Add(new Effect.TractorHook(
-                operationId,
-                actor,
-                heading!.Value));
-            Complete(operation, tick, "completed", events);
-        }
-        // A TELEGRAPHING declare has not happened yet: it rides the wire in
-        // Tell for its windup, and nothing leaves the muzzle until it
-        // matures. Only an instant cast resolves here. (The guard is what
-        // makes DECISIONS #226's windup real for the hook and the sentinel:
-        // both used to run their instant branch on the declare tick and
-        // spend the telegraph they had just published.)
-        else if (definition is ArcRelaySignatureDefinition.TractorHook2 hook2
-                 && operation.Phase
-                    != ArcRelaySignatureState.SignaturePhase.Tell)
-        {
-            effects.Add(new Effect.HookBolt(
-                operationId,
-                actor,
-                source,
-                heading!.Value,
-                hook2.Range,
-                hook2.MaxPullTiles,
-                hook2.BoltTilesPerAdvance));
-            Complete(operation, tick, "launched", events);
-        }
-        else if (operation.Phase
-                     != ArcRelaySignatureState.SignaturePhase.Tell
-                 && definition is ArcRelaySignatureDefinition.PrismWall
-                 or ArcRelaySignatureDefinition.TripNode
-                 or ArcRelaySignatureDefinition.NullField
-                 or ArcRelaySignatureDefinition.HardlightBlock
-                 or ArcRelaySignatureDefinition.TargetPaint
-                 or ArcRelaySignatureDefinition.SmokeCanister
-                 or ArcRelaySignatureDefinition.SentinelSeed
-                 or ArcRelaySignatureDefinition.SentinelSeed2)
-        {
-            operation.Phase = ArcRelaySignatureState.SignaturePhase.Active;
-        }
+        behavior.OnStarted(this, operation, tick, effects, events);
         return new TickResult(events.ToImmutable(), effects.ToImmutable());
     }
 
@@ -436,124 +397,13 @@ internal sealed class ArcRelaySignatureRuntime
                 continue;
             }
 
-            switch (operation.Definition)
-            {
-                case ArcRelaySignatureDefinition.VectorDash:
-                    effects.Add(new Effect.VectorDash(
-                        operation.OperationId,
-                        operation.OwnerActorId,
-                        operation.Heading!.Value));
-                    Complete(operation, tick, "completed", events);
-                    break;
-                case ArcRelaySignatureDefinition.FallingStar:
-                    effects.Add(new Effect.FallingStar(
-                        operation.OperationId,
-                        operation.OwnerActorId,
-                        operation.TargetPosition!.Value));
-                    Complete(operation, tick, "completed", events);
-                    break;
-                case ArcRelaySignatureDefinition.ArcToss toss
-                    when operation.Phase
-                        == ArcRelaySignatureState.SignaturePhase.Tell:
-                    operation.Phase = ArcRelaySignatureState.SignaturePhase
-                        .InFlight;
-                    operation.CompletesAtTick = checked(
-                        tick + Math.Max(
-                            1,
-                            (operation.SourcePosition.ChebyshevDistance(
-                                operation.TargetPosition!.Value)
-                             + toss.TravelTilesPerTick - 1)
-                            / toss.TravelTilesPerTick));
-                    effects.Add(new Effect.ArcTossLaunch(
-                        operation.OperationId,
-                        operation.OwnerActorId,
-                        operation.TargetPosition.Value,
-                        operation.CompletesAtTick.Value));
-                    _readyAtTick[operation.OwnerActorId] = checked(
-                        tick + toss.CooldownTicks);
-                    events.Add(SignatureEvent(operation, "launched"));
-                    break;
-                case ArcRelaySignatureDefinition.Exchange:
-                    effects.Add(new Effect.Exchange(
-                        operation.OperationId,
-                        operation.OwnerActorId,
-                        operation.TargetActorId!,
-                        operation.SourcePosition,
-                        operation.TargetPosition!.Value));
-                    Complete(operation, tick, "completed", events);
-                    break;
-                case ArcRelaySignatureDefinition.TractorHook2 hook
-                    when operation.Phase
-                        == ArcRelaySignatureState.SignaturePhase.Tell:
-                    // The windup matured: the grapple bolt leaves down the
-                    // line frozen at declare, and everything downstream is
-                    // the historical instant cast. (A LOCKED hook never
-                    // reaches here — it matures with the strikes.)
-                    effects.Add(new Effect.HookBolt(
-                        operation.OperationId,
-                        operation.OwnerActorId,
-                        operation.SourcePosition,
-                        operation.Heading!.Value,
-                        hook.Range,
-                        hook.MaxPullTiles,
-                        hook.BoltTilesPerAdvance));
-                    Complete(operation, tick, "launched", events);
-                    break;
-                case ArcRelaySignatureDefinition.SentinelSeed2 seed2
-                    when operation.Phase
-                        == ArcRelaySignatureState.SignaturePhase.Tell:
-                    operation.Phase = ArcRelaySignatureState.SignaturePhase
-                        .Active;
-                    operation.CompletesAtTick = null;
-                    operation.EndsAtTick = checked(
-                        tick + seed2.DurationTicks);
-                    events.Add(SignatureEvent(operation, "deployed"));
-                    break;
-                case ArcRelaySignatureDefinition.RailLine:
-                    effects.Add(new Effect.RailLine(
-                        operation.OperationId,
-                        operation.OwnerActorId,
-                        operation.Heading!.Value,
-                        []));
-                    Complete(operation, tick, "completed", events);
-                    break;
-                case ArcRelaySignatureDefinition.NullField2 field
-                    when operation.Phase
-                        == ArcRelaySignatureState.SignaturePhase.Tell:
-                    operation.Phase = ArcRelaySignatureState.SignaturePhase
-                        .Active;
-                    operation.CompletesAtTick = null;
-                    operation.EndsAtTick = checked(
-                        tick + field.DurationTicks);
-                    events.Add(SignatureEvent(operation, "activated"));
-                    break;
-                case ArcRelaySignatureDefinition.KineticBurst:
-                    effects.Add(new Effect.KineticBurst(
-                        operation.OperationId,
-                        operation.OwnerActorId,
-                        operation.SourcePosition));
-                    Complete(operation, tick, "completed", events);
-                    break;
-                case ArcRelaySignatureDefinition.SurveyFlare flare
-                    when operation.Phase
-                        == ArcRelaySignatureState.SignaturePhase.InFlight:
-                    operation.Phase = ArcRelaySignatureState.SignaturePhase
-                        .Active;
-                    operation.CompletesAtTick = null;
-                    operation.EndsAtTick = checked(tick + flare.DurationTicks);
-                    operation.Positions = Radius(
-                        operation.TargetPosition!.Value,
-                        flare.RevealRadius);
-                    events.Add(SignatureEvent(operation, "landed"));
-                    break;
-                case ArcRelaySignatureDefinition.ArcToss:
-                    effects.Add(new Effect.ArcTossLand(
-                        operation.OperationId,
-                        operation.OwnerActorId,
-                        operation.TargetPosition!.Value));
-                    Complete(operation, tick, "landed", events);
-                    break;
-            }
+            BehaviorFor(operation.Definition.Kind).AdvanceAtTickStart(
+                this,
+                operation,
+                tick,
+                world,
+                effects,
+                events);
         }
         return new TickResult(events.ToImmutable(), effects.ToImmutable());
     }
@@ -565,27 +415,16 @@ internal sealed class ArcRelaySignatureRuntime
         var events = ImmutableArray.CreateBuilder<GenericActorModeEvent>();
         var effects = ImmutableArray.CreateBuilder<Effect>();
         foreach (Operation operation in _operations.Values
-                     .Where(value => value.Definition
-                         is ArcRelaySignatureDefinition.TripNode
-                         && !value.Suppressed)
                      .OrderBy(value => value.OperationId, StringComparer.Ordinal)
                      .ToArray())
         {
-            Life? target = lives.Where(value =>
-                    value.ActorId.TeamId != operation.OwnerActorId.TeamId
-                    && value.Position == operation.Positions[0])
-                .OrderBy(value => value.ActorId)
-                .FirstOrDefault();
-            if (target is null)
-                continue;
-            int damage = ((ArcRelaySignatureDefinition.TripNode)
-                operation.Definition).TriggerDamage;
-            effects.Add(new Effect.TripNode(
-                operation.OperationId,
-                operation.OwnerActorId,
-                target.ActorId,
-                damage));
-            Remove(operation, "triggered", events);
+            BehaviorFor(operation.Definition.Kind).ResolvePostMovement(
+                this,
+                operation,
+                tick,
+                lives,
+                effects,
+                events);
         }
         return new TickResult(events.ToImmutable(), effects.ToImmutable());
     }
@@ -835,9 +674,7 @@ internal sealed class ArcRelaySignatureRuntime
     /// utility and stays instant and untelegraphed.
     /// </summary>
     internal static bool IsBoltClass(ArcRelaySignatureDefinition definition) =>
-        definition is ArcRelaySignatureDefinition.RailLine
-            or ArcRelaySignatureDefinition.TractorHook2
-            or ArcRelaySignatureDefinition.SentinelSeed2;
+        BehaviorFor(definition.Kind).RootsTellOnMove;
 
     public void NotifyMoved(
         int tick,
@@ -1025,198 +862,6 @@ internal sealed class ArcRelaySignatureRuntime
         return SignatureEvent(paint, "consumed");
     }
 
-    private Operation CreateOperation(
-        string operationId,
-        ArcRelaySignatureDefinition definition,
-        ActorIdentity actor,
-        Position source,
-        ActorIdentity? targetActor,
-        Position? targetPosition,
-        ProjectileHeading? heading,
-        Direction? direction,
-        int tick,
-        bool declaresLock,
-        ImmutableArray<Position> coneTiles)
-    {
-        ArcRelaySignatureState.SignaturePhase phase;
-        int? completes = null;
-        int? ends = null;
-        int capacity = 0;
-        ImmutableArray<Position> positions;
-        // A locked line attack publishes the LINE it would resolve on — to
-        // its lock when it has one, down its declared heading when it does
-        // not. The frozen wedge is the reach fact and rides the pending-strike
-        // wire beside it; painting the whole 90 degrees as ground is the
-        // blinking apology DECISIONS #220 removed.
-        if (declaresLock)
-        {
-            Position aim = targetPosition
-                ?? Ray(source, heading!.Value, LineAttackRange(definition))[^1];
-            ImmutableArray<Position> line = GenericActorStrikeCone.LineTo(
-                _map,
-                source,
-                aim,
-                _diagonalCornersMustBeClear);
-            return new Operation(
-                operationId,
-                definition,
-                actor,
-                source,
-                targetActor,
-                targetPosition,
-                heading,
-                ArcRelaySignatureState.SignaturePhase.Tell,
-                tick,
-                checked(tick + LineAttackWindup(definition)),
-                endsAtTick: null,
-                line.IsEmpty ? [source] : line,
-                remainingCapacity: 0)
-            {
-                DeclaresLock = true,
-                ConeTiles = coneTiles,
-            };
-        }
-        switch (definition)
-        {
-            case ArcRelaySignatureDefinition.VectorDash value:
-                phase = ArcRelaySignatureState.SignaturePhase.Tell;
-                completes = checked(tick + value.TellTicks);
-                positions = Ray(source, heading!.Value, value.MaxTiles);
-                break;
-            case ArcRelaySignatureDefinition.PrismWall value:
-                phase = ArcRelaySignatureState.SignaturePhase.Active;
-                ends = checked(tick + value.DurationTicks);
-                capacity = value.ContactCapacity;
-                positions = WallShape(source, direction!.Value, value.SegmentCount);
-                break;
-            case ArcRelaySignatureDefinition.TractorHook value:
-                phase = ArcRelaySignatureState.SignaturePhase.Active;
-                positions = Ray(source, heading!.Value, value.Range);
-                break;
-            case ArcRelaySignatureDefinition.TractorHook2 value:
-                // A declared grapple freezes its LINE and then fires
-                // (owner ruling 2026-08-08). No lock and no follow: a line
-                // attack is not target-locked, so stepping off the frozen
-                // tiles is the whole counterplay and stepping on is the
-                // block. Zero windup keeps the historical instant cast.
-                phase = value.WindupTicks > 0
-                    ? ArcRelaySignatureState.SignaturePhase.Tell
-                    : ArcRelaySignatureState.SignaturePhase.Active;
-                completes = value.WindupTicks > 0
-                    ? checked(tick + value.WindupTicks)
-                    : null;
-                positions = Ray(source, heading!.Value, value.Range);
-                break;
-            case ArcRelaySignatureDefinition.RepairBeam:
-                phase = ArcRelaySignatureState.SignaturePhase.Channel;
-                positions = Endpoints(source, targetPosition!.Value);
-                break;
-            case ArcRelaySignatureDefinition.SurveyFlare value:
-                phase = ArcRelaySignatureState.SignaturePhase.InFlight;
-                completes = checked(tick + Math.Max(
-                    1,
-                    (source.ChebyshevDistance(targetPosition!.Value)
-                     + value.TravelTilesPerTick - 1)
-                    / value.TravelTilesPerTick));
-                positions = Endpoints(source, targetPosition.Value);
-                break;
-            case ArcRelaySignatureDefinition.FallingStar value:
-                phase = ArcRelaySignatureState.SignaturePhase.Tell;
-                completes = checked(tick + value.TellTicks);
-                positions = Cross(targetPosition!.Value);
-                break;
-            case ArcRelaySignatureDefinition.TripNode value:
-                phase = ArcRelaySignatureState.SignaturePhase.Active;
-                capacity = value.Hull;
-                positions = [targetPosition!.Value];
-                break;
-            case ArcRelaySignatureDefinition.NullField value:
-                phase = ArcRelaySignatureState.SignaturePhase.Active;
-                ends = checked(tick + value.DurationTicks);
-                positions = Radius(source, value.Radius);
-                break;
-            case ArcRelaySignatureDefinition.NullField2 value:
-                phase = ArcRelaySignatureState.SignaturePhase.Tell;
-                completes = checked(tick + value.TellTicks);
-                positions = Radius(source, value.Radius);
-                break;
-            case ArcRelaySignatureDefinition.ArcToss value:
-                phase = ArcRelaySignatureState.SignaturePhase.Tell;
-                completes = checked(tick + value.TellTicks);
-                positions = Endpoints(source, targetPosition!.Value);
-                break;
-            case ArcRelaySignatureDefinition.Exchange value:
-                phase = ArcRelaySignatureState.SignaturePhase.Tell;
-                completes = checked(tick + value.TellTicks);
-                positions = Endpoints(source, targetPosition!.Value);
-                break;
-            case ArcRelaySignatureDefinition.RailLine value:
-                phase = ArcRelaySignatureState.SignaturePhase.Tell;
-                completes = checked(tick + value.WindupTicks);
-                positions = Ray(source, heading!.Value, value.Range);
-                break;
-            case ArcRelaySignatureDefinition.HardlightBlock value:
-                phase = ArcRelaySignatureState.SignaturePhase.Active;
-                ends = checked(tick + value.DurationTicks);
-                capacity = value.Hull;
-                positions = [targetPosition!.Value];
-                break;
-            case ArcRelaySignatureDefinition.TargetPaint value:
-                phase = ArcRelaySignatureState.SignaturePhase.Active;
-                ends = checked(tick + value.DurationTicks);
-                capacity = value.EnhancedHitCount;
-                positions = [targetPosition!.Value];
-                break;
-            case ArcRelaySignatureDefinition.KineticBurst value:
-                phase = ArcRelaySignatureState.SignaturePhase.Tell;
-                completes = checked(tick + value.TellTicks);
-                positions = Radius(source, 1);
-                break;
-            case ArcRelaySignatureDefinition.SmokeCanister value:
-                phase = ArcRelaySignatureState.SignaturePhase.Active;
-                ends = checked(tick + value.DurationTicks);
-                positions = Radius(targetPosition!.Value, value.Radius);
-                break;
-            case ArcRelaySignatureDefinition.SentinelSeed value:
-                phase = ArcRelaySignatureState.SignaturePhase.Active;
-                ends = checked(tick + value.DurationTicks);
-                capacity = value.Hull;
-                positions = [targetPosition!.Value];
-                break;
-            case ArcRelaySignatureDefinition.SentinelSeed2 value:
-                // The seed announces itself before it lands, on the tile it
-                // will occupy, and the declarer is rooted to it meanwhile.
-                phase = value.WindupTicks > 0
-                    ? ArcRelaySignatureState.SignaturePhase.Tell
-                    : ArcRelaySignatureState.SignaturePhase.Active;
-                completes = value.WindupTicks > 0
-                    ? checked(tick + value.WindupTicks)
-                    : null;
-                ends = value.WindupTicks > 0
-                    ? null
-                    : checked(tick + value.DurationTicks);
-                capacity = value.Hull;
-                positions = [targetPosition!.Value];
-                break;
-            default:
-                throw new ArgumentOutOfRangeException(nameof(definition));
-        }
-        return new Operation(
-            operationId,
-            definition,
-            actor,
-            source,
-            targetActor,
-            targetPosition,
-            heading,
-            phase,
-            tick,
-            completes,
-            ends,
-            positions,
-            capacity);
-    }
-
     private static ImmutableArray<Position> Endpoints(
         Position source,
         Position target) =>
@@ -1365,7 +1010,8 @@ internal sealed class ArcRelaySignatureRuntime
         string reason,
         ImmutableArray<GenericActorModeEvent>.Builder events)
     {
-        if (!CooldownStartsAtActivation(operation.Definition))
+        if (!BehaviorFor(operation.Definition.Kind)
+                .CooldownStartsAtActivation)
         {
             _readyAtTick[operation.OwnerActorId] = checked(
                 tick + operation.Definition.CooldownTicks);
@@ -1389,22 +1035,6 @@ internal sealed class ArcRelaySignatureRuntime
                     reason)),
             SpatialPosition: null));
     }
-
-    private static bool CooldownStartsAtActivation(
-        ArcRelaySignatureDefinition definition) =>
-        definition is ArcRelaySignatureDefinition.PrismWall
-            or ArcRelaySignatureDefinition.TractorHook
-            or ArcRelaySignatureDefinition.TractorHook2
-            or ArcRelaySignatureDefinition.SurveyFlare
-            or ArcRelaySignatureDefinition.FallingStar
-            or ArcRelaySignatureDefinition.TripNode
-            or ArcRelaySignatureDefinition.NullField
-            or ArcRelaySignatureDefinition.NullField2
-            or ArcRelaySignatureDefinition.HardlightBlock
-            or ArcRelaySignatureDefinition.TargetPaint
-            or ArcRelaySignatureDefinition.SmokeCanister
-            or ArcRelaySignatureDefinition.SentinelSeed
-            or ArcRelaySignatureDefinition.SentinelSeed2;
 
     private GenericActorModeEvent SignatureEvent(
         Operation operation,
@@ -1516,12 +1146,12 @@ internal sealed class ArcRelaySignatureRuntime
     private IEnumerable<Position> AllFloorTiles()
     {
         for (int y = 0; y < _map.Height; y++)
-        for (int x = 0; x < _map.Width; x++)
-        {
-            var position = new Position(x, y);
-            if (!_map.IsWall(position))
-                yield return position;
-        }
+            for (int x = 0; x < _map.Width; x++)
+            {
+                var position = new Position(x, y);
+                if (!_map.IsWall(position))
+                    yield return position;
+            }
     }
 
     private ImmutableArray<Position> Radius(Position centre, int radius) =>
@@ -1732,13 +1362,13 @@ internal sealed class ArcRelaySignatureRuntime
         /// declared-strike phase, against the body it named, under the
         /// strike's cancels (owner ruling 2026-08-09).
         /// </summary>
-        public bool DeclaresLock { get; init; }
+        public bool DeclaresLock { get; set; }
 
         /// <summary>
         /// The 90-degree wedge frozen at declare — reach, not a zone. The
         /// lock may be followed anywhere inside it and cancels the moment it
         /// steps out.
         /// </summary>
-        public ImmutableArray<Position> ConeTiles { get; init; } = [];
+        public ImmutableArray<Position> ConeTiles { get; set; } = [];
     }
 }
