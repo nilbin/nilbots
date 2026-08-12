@@ -56,6 +56,7 @@ internal static class ArenaBasics
         private readonly Dictionary<Position, int> _demandDepths = [];
         private readonly Dictionary<int, TacticalMovementPriority> _priorities = [];
         private readonly HashSet<int> _rooted = [];
+        private readonly Dictionary<Position, int> _servicePointOwners = [];
         private readonly TacticalOscillationGovernor _oscillation;
         private readonly int _tick;
 
@@ -104,6 +105,19 @@ internal static class ArenaBasics
         public void Root(int unitId) => _rooted.Add(unitId);
 
         public bool IsRooted(int unitId) => _rooted.Contains(unitId);
+
+        /// <summary>
+        /// Register the body currently using a one-body service point. This
+        /// is not a root and not general right-of-way: only another body
+        /// seeking this same service point queues behind its current owner.
+        /// An unrelated carrier or tactical mover still uses the ordinary
+        /// precedence plane and may ask the occupant to clear.
+        /// </summary>
+        public void OwnServicePoint(Position tile, int unitId) =>
+            _servicePointOwners[tile] = unitId;
+
+        public bool ServicePointOwner(Position tile, out int unitId) =>
+            _servicePointOwners.TryGetValue(tile, out unitId);
 
         /// <summary>Place a unit on the precedence list for this tick.
         /// </summary>

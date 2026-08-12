@@ -91,6 +91,39 @@ public static class TacticalPosturePlanner
 }
 
 /// <summary>
+/// Resolves the physical standoff around a followed body. A follower tracks
+/// the body, but the body's occupied tile is never its destination: following
+/// means staying beside the leader, not repeatedly asking the leader to leave
+/// its own ground. Posture may then select the front or rear edge of this ring
+/// through <see cref="TacticalPosturePlanner"/>.
+/// </summary>
+public static class TacticalFollowPlanner
+{
+    public static Position[] StandoffGoals(
+        Position leader,
+        Func<Position, bool> canStand)
+    {
+        ArgumentNullException.ThrowIfNull(canStand);
+        var result = new List<Position>(8);
+        for (int dy = -1; dy <= 1; dy++)
+        {
+            for (int dx = -1; dx <= 1; dx++)
+            {
+                if (dx == 0 && dy == 0)
+                    continue;
+                Position candidate = leader.Offset(dx, dy);
+                if (canStand(candidate))
+                    result.Add(candidate);
+            }
+        }
+        return result
+            .OrderBy(point => point.Y)
+            .ThenBy(point => point.X)
+            .ToArray();
+    }
+}
+
+/// <summary>
 /// Resolves a chain of lower-precedence allied bodies between a mover and the
 /// nearest body that can step into a real vacancy. The movement plane still
 /// owns every actual step; this only propagates one existing right-of-way

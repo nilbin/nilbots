@@ -271,7 +271,8 @@ Only leaves act. Their action key is exactly one of `move`, `fight`, `use`,
   `{ "well": "north|centre|south|own|enemy" }`.
 - `patrol` names a route and repeats it.
 - `follow` names a role and resolves the nearest live body by terrain path
-  distance, then unit id. It tracks the body, not another body's current order.
+  distance, then unit id. It tracks the body from a legal adjacent standoff
+  tile, not the leader's occupied tile or another body's current order.
 - `via` names an ingress route for `to` or `patrol`. It is traversed once on
   entry, then the main destination takes over. Combat pre-emption does not
   restart it. Exit, death, or an impossible route resets it.
@@ -284,6 +285,10 @@ visiting every waypoint. Route hysteresis, traffic detours, and corner legality
 remain executor/engine responsibilities.
 
 Walking onto a loose Core automatically picks it up when game rules allow.
+Holding (`Wait`) on a heal-zone tile activates its healing channel. An injured
+body already holding that service point under its selected recovery move is not
+displaced by another recovery seeker; other traffic keeps the ordinary
+right-of-way rules. No separate `activate` verb exists.
 Walking a carried Core into the owner's reactor automatically banks it. Those
 are physical game rules, not hidden `move` subverbs.
 

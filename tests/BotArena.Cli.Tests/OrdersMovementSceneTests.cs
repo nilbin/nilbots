@@ -233,6 +233,108 @@ public sealed class OrdersMovementSceneTests
         Assert.Equal(0, fightLeashHolds);
     }
 
+    [Fact]
+    public void G3FollowerLeavesLeaderRoomAndHealStationKeepsItsChannel()
+    {
+        string root = FindRepoRoot();
+        TacticalPlaybookCompilation hunter = Compile(root, "hunter-tapline-v2.json");
+        TacticalPlaybookCompilation wellwright = Compile(
+            root, "wellwright-tapline-v2.json");
+        ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create(
+            wellwright.Composition,
+            hunter.Composition,
+            loopProfile: ArcRelayLoopProfile.Tapline1);
+
+        using var session = new GenericActorMatchSession(
+            definition,
+            [Participant(0, wellwright), Participant(1, hunter)],
+            matchSeed: 9005,
+            recordChronology: false);
+
+        int leaderEvictionsByFollower = 0;
+        int longestLeaderEvictionRun = 0;
+        int currentLeaderEvictionRun = 0;
+        int healChannelEvictions = 0;
+        int protectedHealWaits = 0;
+        var healedHunterBodies = new HashSet<ActorIdentity>();
+        while (!session.IsCompleted)
+        {
+            GenericActorMatchStepResult step = session.Step();
+            GenericMindRuntimeTurn hunterTurn = Assert.Single(
+                step.MindTurns, turn => turn.TeamId == 1);
+            Dictionary<int, string> reasons = hunterTurn.Commands.ToDictionary(
+                resolution => resolution.Command.UnitId,
+                resolution => resolution.Command.DebugMessage ?? "");
+            if (step.Tick is >= 80 and <= 125
+                && (reasons.GetValueOrDefault(0) ?? "").Contains(
+                    ":make-way:u1", StringComparison.Ordinal)
+                && (reasons.GetValueOrDefault(1) ?? "").Contains(
+                    "shadow-hunter", StringComparison.Ordinal))
+            {
+                leaderEvictionsByFollower++;
+                currentLeaderEvictionRun++;
+            }
+            else
+                currentLeaderEvictionRun = 0;
+            longestLeaderEvictionRun = Math.Max(
+                longestLeaderEvictionRun, currentLeaderEvictionRun);
+            foreach ((int unitId, string reason) in reasons)
+            {
+                if (reason.Contains("recover-health", StringComparison.Ordinal)
+                    && TryMakeWayMover(reason, out int mover)
+                    && (reasons.GetValueOrDefault(mover) ?? "").Contains(
+                        "recover-health", StringComparison.Ordinal))
+                {
+                    healChannelEvictions++;
+                }
+                if (reason.Contains(
+                        ":channel-heal:traffic-owner", StringComparison.Ordinal))
+                {
+                    protectedHealWaits++;
+                }
+            }
+            foreach (GenericActorAuthoritativeEvent fact in
+                     step.AuthoritativeEvents)
+            {
+                if (fact.Payload is GenericActorRuntimeObservation.EventPayload
+                    .ArcRelay { Fact: ArcRelayEvent.ZoneHealed healed }
+                    && healed.ActorId.TeamId == 1)
+                {
+                    healedHunterBodies.Add(healed.ActorId);
+                }
+            }
+        }
+
+        // Owner catch, gallery G3 around t90: follower u1 requested the exact
+        // occupied tile of leader u0, so the routine patrol leader repeatedly
+        // stepped aside. Follow now resolves an adjacent standoff ring.
+        Assert.Equal(0, leaderEvictionsByFollower);
+        Assert.Equal(0, longestLeaderEvictionRun);
+
+        // The same replay later put two hurt allies into a courtesy swap on
+        // one heal tile. Wait is the physical activation action; the body
+        // already channelling owns that service point until recovery ends.
+        Assert.Equal(0, healChannelEvictions);
+        Assert.True(protectedHealWaits > 0,
+            "The G3 scene never exercised protected heal-channel ownership.");
+        Assert.True(healedHunterBodies.Count >= 2,
+            $"Only {healedHunterBodies.Count} Hunter body completed a heal pulse.");
+
+        static bool TryMakeWayMover(string reason, out int mover)
+        {
+            mover = -1;
+            const string marker = ":make-way:u";
+            int start = reason.IndexOf(marker, StringComparison.Ordinal);
+            if (start < 0)
+                return false;
+            start += marker.Length;
+            int end = start;
+            while (end < reason.Length && char.IsAsciiDigit(reason[end]))
+                end++;
+            return int.TryParse(reason[start..end], out mover);
+        }
+    }
+
     private static GenericActorParticipantConfiguration Participant(
         int participantId,
         TacticalPlaybookCompilation playbook) => new()

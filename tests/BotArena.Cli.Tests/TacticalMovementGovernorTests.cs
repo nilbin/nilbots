@@ -91,6 +91,21 @@ public sealed class TacticalMovementGovernorTests
     }
 
     [Fact]
+    public void FollowUsesAStandOffRingAndNeverTargetsTheLeaderTile()
+    {
+        var leader = new Position(10, 10);
+        Position[] goals = TacticalFollowPlanner.StandoffGoals(
+            leader,
+            point => point != new Position(9, 9));
+
+        Assert.Equal(7, goals.Length);
+        Assert.DoesNotContain(leader, goals);
+        Assert.DoesNotContain(new Position(9, 9), goals);
+        Assert.All(goals, point => Assert.Equal(
+            1, point.ChebyshevDistance(leader)));
+    }
+
+    [Fact]
     public void FightReachIsBoundedByTheEpisodeAnchorNotTheCurrentBodyTile()
     {
         // A range-five weapon may pursue a target eight episode-anchor steps

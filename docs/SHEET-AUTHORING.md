@@ -286,8 +286,9 @@ fact for a coordinated response to contact reported anywhere in a named zone.
 - `{ "well": "north|centre|south|own|enemy" }`.
 
 `patrol` repeats a route. `follow` tracks the nearest live body of the named
-role by terrain path distance, then unit id. `via` is an optional one-time
-ingress route for `to` or `patrol`; follow cannot use it. Combat pre-emption
+role by terrain path distance, then unit id, while standing on a legal adjacent
+tile rather than asking for the leader's occupied tile. `via` is an optional
+one-time ingress route for `to` or `patrol`; follow cannot use it. Combat pre-emption
 does not restart ingress. Exit, death, or an impossible route does.
 
 Optional posture is `front`, `line`, or `rear`. It is individual pre-combat
@@ -299,6 +300,11 @@ avoidance are deterministic executor/engine micro.
 
 Walking onto a legal loose Core picks it up. Walking a carried Core into the
 owner's reactor banks it. Those are physical rules, not hidden action verbs.
+Holding (`Wait`) on a heal-zone tile channels healing. A body actively holding
+that tile under its selected recovery move keeps the one-body service point
+against another recovery seeker until the order changes, it leaves, or it is
+fully healed. Other higher-precedence traffic and safety movement still use the
+ordinary movement plane. No separate `activate` action is authored.
 
 ### `fight`
 
