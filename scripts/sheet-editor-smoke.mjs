@@ -110,9 +110,23 @@ try {
     }
 
     await screenshot(page, join(shots, `orders-v2-restored-${run.name}.png`));
+    await page.getByRole('button', { name: 'Practice & watch' }).click();
+    await page.waitForURL(/\/matches\//);
+    await page.getByLabel('Arena').waitFor();
+    await screenshot(page, join(shots, `orders-v2-practice-${run.name}.png`));
+    await page.getByRole('link', {
+      name: new RegExp(`Tapline field test ${run.name}`),
+    }).first().click();
+    await page.getByLabel('Entrant name').waitFor();
+    const returnedName = await page.getByLabel('Entrant name').inputValue();
+    if (returnedName !== `Tapline field test ${run.name}`) {
+      failures.push(`viewer return lost the draft: ${returnedName}`);
+    }
+    await page.getByRole('button', { name: 'Practice again' }).waitFor();
+    await screenshot(page, join(shots, `orders-v2-returned-${run.name}.png`));
     await context.close();
     if (failures.length > 0) throw new Error(`${run.name}:\n${failures.join('\n')}`);
-    console.log(`${run.name}: author → nest → inspect conditions → map → reload passed`);
+    console.log(`${run.name}: author → nest → conditions → map → reload → run → watch → return passed`);
   }
   console.log(`Screenshots: ${shots}`);
 } finally {
