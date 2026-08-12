@@ -63,7 +63,7 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
         Assert.Equal(31, catalog.Map.Width);
         Assert.Equal(27, catalog.Map.Height);
         TacticalStockSheetResponse stock = Assert.Single(catalog.StockOpponents);
-        Assert.Equal(ArcRelayEntrantPlaylistDefinition.StockSheetId, stock.Id);
+        Assert.Equal(ArcRelayEntrantPlaylistDefinition.OrdersStockSheetId, stock.Id);
 
         TacticalSheetResponse first = await SaveAsync(
             client,
@@ -72,7 +72,7 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
             catalog.TemplateLayoutJson);
         JsonObject counterPlan = JsonNode.Parse(
             catalog.TemplatePlaybookJson)!.AsObject();
-        counterPlan["doctrines"]!["roles"]!["hunter"]!["conceal"] = true;
+        counterPlan["roles"]![0]!["upgradePath"]![0] = "reach";
         TacticalSheetResponse second = await SaveAsync(
             client,
             "Counter line",
@@ -131,7 +131,7 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
             {
                 Assert.Equal(owner.DisplayName, participant.OwnerDisplayNameSnapshot);
                 Assert.Equal(
-                    ArcRelayEntrantPlaylistDefinition.TacticalArtifactHash,
+                    ArcRelayEntrantPlaylistDefinition.OrdersTacticalArtifactHash,
                     participant.ArtifactHashSnapshot);
                 Assert.NotNull(participant.SheetIdSnapshot);
                 Assert.NotNull(participant.EntrantIdSnapshot);
@@ -197,7 +197,7 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
             value => Assert.Equal(first.ContentHash, value.GetProperty("mindDataHash").GetString()),
             value => Assert.Equal(second.ContentHash, value.GetProperty("mindDataHash").GetString()));
         Assert.All(provenance, value => Assert.Equal(
-            ArcRelayEntrantPlaylistDefinition.TacticalArtifactHash,
+            ArcRelayEntrantPlaylistDefinition.OrdersTacticalArtifactHash,
             value.GetProperty("artifactHash").GetString()));
         Assert.Equal(replayHash, replay.RootElement.GetProperty("replayHash").GetString());
 

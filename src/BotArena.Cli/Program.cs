@@ -280,8 +280,8 @@ static int CommandHelp(string command)
             registered id is listed in the error text when one is misspelled.
             The default is `tapline-1`: directional combat, declared strikes,
             veterancy and the tiered, chiral Tapline Well line.
-            The hosted v19 ladder pins that same profile and Tapline-native
-            sheets immutably; v7 through v18 remain exact history, and all
+            The hosted v20 ladder pins that same profile and Orders v2 sheets
+            immutably; v7 through v19 remain exact history, and all
             historical profiles and playlist versions stay explicitly
             selectable and byte-verifiable.
 

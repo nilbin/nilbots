@@ -249,7 +249,7 @@ function makeTaplineReviewCatalog(
   }));
   return {
     playlistKey: 'arc-relay-entrants',
-    playlistVersionId: '73000000-0000-4000-8000-000000000019',
+    playlistVersionId: '73000000-0000-4000-8000-000000000020',
     map: makeTaplineReviewMap(),
     slotCount: 8,
     maximumCopiesPerClass: 2,

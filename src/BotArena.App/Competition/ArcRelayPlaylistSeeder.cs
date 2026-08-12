@@ -274,7 +274,7 @@ public sealed class ArcRelayPlaylistSeeder(
         string artifactHash = BotBuilder.Sha256File(wasmPath);
         if (!string.Equals(
                 artifactHash,
-                ArcRelayEntrantPlaylistDefinition.TacticalArtifactHash,
+                ArcRelayEntrantPlaylistDefinition.OrdersTacticalArtifactHash,
                 StringComparison.Ordinal))
         {
             throw new InvalidOperationException(
@@ -327,15 +327,15 @@ public sealed class ArcRelayPlaylistSeeder(
                 {
                     schemaVersion = 1,
                     kind = "versioned-first-party-tactical-playbook-mind",
-                    playbookSchema = "arc-relay-tactical-playbook-v1",
+                    playbookSchema = "arc-relay-orders-v2",
                     buildInputSha256 = ArcRelayEntrantPlaylistDefinition
-                        .TacticalBuildInputHash,
+                        .OrdersTacticalBuildInputHash,
                     artifactSha256 = artifactHash,
                 }),
                 SupportedContractProfiles =
                     [BotArenaVersions.GenericMindContractProfileId],
                 GuestBotName = "Arc Relay tactical-playbook mind",
-                GameRulesVersion = ArcRelayLoopProfile.AmbushWarren11.RulesetId,
+                GameRulesVersion = ArcRelayLoopProfile.Tapline1.RulesetId,
                 RuntimeProtocolVersion =
                     BotArenaVersions.RuntimeProtocolVersion,
                 RuntimeConfigurationVersion =
@@ -572,10 +572,43 @@ public sealed class ArcRelayPlaylistSeeder(
     private async Task<BotVersion> SeedTaplineTacticalPlaybookMindAsync(
         CancellationToken cancellationToken)
     {
+        await SeedTaplineTacticalPlaybookMindVersionAsync(
+            "ambush-warren-11-stock-v12",
+            ArcRelayEntrantPlaylistDefinition.TacticalArtifactHash,
+            "arc-relay-tactical-playbook-v1",
+            ArcRelayEntrantPlaylistDefinition.StockSheetId,
+            ArcRelayEntrantPlaylistDefinition.TaplineStockPlaybookSourceHash,
+            ArcRelayEntrantPlaylistDefinition.TaplineStockLayoutSourceHash,
+            ArcRelayEntrantPlaylistDefinition.TacticalBuildInputHash,
+            active: false,
+            cancellationToken);
+        return await SeedTaplineTacticalPlaybookMindVersionAsync(
+            "tapline-1-stock-v1",
+            ArcRelayEntrantPlaylistDefinition.OrdersTacticalArtifactHash,
+            "arc-relay-orders-v2",
+            ArcRelayEntrantPlaylistDefinition.OrdersStockSheetId,
+            ArcRelayEntrantPlaylistDefinition.OrdersStockPlaybookSourceHash,
+            ArcRelayEntrantPlaylistDefinition.OrdersStockMapPlanSourceHash,
+            ArcRelayEntrantPlaylistDefinition.OrdersTacticalBuildInputHash,
+            active: true,
+            cancellationToken);
+    }
+
+    private async Task<BotVersion> SeedTaplineTacticalPlaybookMindVersionAsync(
+        string artifactDirectory,
+        string expectedArtifactHash,
+        string playbookSchema,
+        string stockSheetId,
+        string stockPlaybookSourceHash,
+        string stockMapPlanSourceHash,
+        string buildInputHash,
+        bool active,
+        CancellationToken cancellationToken)
+    {
         string? wasmPath = RepoPaths.FindUpward(Path.Combine(
             "arena-bots",
             "arc-relay",
-            "tactical-playbook-mind-v1",
+            artifactDirectory,
             "bot.wasm"));
         if (wasmPath is null)
         {
@@ -585,7 +618,7 @@ public sealed class ArcRelayPlaylistSeeder(
         string artifactHash = BotBuilder.Sha256File(wasmPath);
         if (!string.Equals(
                 artifactHash,
-                ArcRelayEntrantPlaylistDefinition.TacticalArtifactHash,
+                expectedArtifactHash,
                 StringComparison.Ordinal))
         {
             throw new InvalidOperationException(
@@ -623,8 +656,37 @@ public sealed class ArcRelayPlaylistSeeder(
                 value.ArtifactHash, artifactHash, StringComparison.Ordinal));
         if (version is null)
         {
-            foreach (BotVersion old in bot.Versions)
-                old.IsActive = false;
+            if (active)
+            {
+                foreach (BotVersion old in bot.Versions)
+                    old.IsActive = false;
+            }
+            string buildReceiptJson = string.Equals(
+                playbookSchema, "arc-relay-orders-v2", StringComparison.Ordinal)
+                ? JsonSerializer.Serialize(new
+                {
+                    schemaVersion = 1,
+                    kind = "frozen-first-party-tapline-stock",
+                    loopProfile = ArcRelayLoopProfile.Tapline1.Id,
+                    playbookSchema,
+                    stockSheetId,
+                    stockPlaybookSourceHash,
+                    stockMapPlanSourceHash,
+                    buildInputSha256 = buildInputHash,
+                    artifactSha256 = artifactHash,
+                })
+                : JsonSerializer.Serialize(new
+                {
+                    schemaVersion = 1,
+                    kind = "frozen-first-party-tapline-stock",
+                    loopProfile = ArcRelayLoopProfile.Tapline1.Id,
+                    playbookSchema,
+                    stockSheetId,
+                    stockPlaybookSourceHash,
+                    stockLayoutSourceHash = stockMapPlanSourceHash,
+                    buildInputSha256 = buildInputHash,
+                    artifactSha256 = artifactHash,
+                });
             version = new BotVersion
             {
                 BotId = bot.Id,
@@ -635,22 +697,7 @@ public sealed class ArcRelayPlaylistSeeder(
                 Status = BuildStatus.Built,
                 ArtifactKey = artifactKey,
                 ArtifactHash = artifactHash,
-                BuildReceiptJson = JsonSerializer.Serialize(new
-                {
-                    schemaVersion = 1,
-                    kind = "frozen-first-party-tapline-stock",
-                    loopProfile = ArcRelayLoopProfile.Tapline1.Id,
-                    playbookSchema = "arc-relay-tactical-playbook-v1",
-                    stockSheetId =
-                        ArcRelayEntrantPlaylistDefinition.StockSheetId,
-                    stockPlaybookSourceHash = ArcRelayEntrantPlaylistDefinition
-                        .TaplineStockPlaybookSourceHash,
-                    stockLayoutSourceHash = ArcRelayEntrantPlaylistDefinition
-                        .TaplineStockLayoutSourceHash,
-                    buildInputSha256 = ArcRelayEntrantPlaylistDefinition
-                        .TacticalBuildInputHash,
-                    artifactSha256 = artifactHash,
-                }),
+                BuildReceiptJson = buildReceiptJson,
                 SupportedContractProfiles =
                     [BotArenaVersions.GenericMindContractProfileId],
                 GuestBotName = "Arc Relay Tapline Wellwright",
@@ -660,14 +707,17 @@ public sealed class ArcRelayPlaylistSeeder(
                 RuntimeConfigurationVersion =
                     BotArenaVersions.GenericMindRuntimeConfigurationVersion,
                 BuiltAt = DateTime.UtcNow,
-                IsActive = true,
+                IsActive = active,
             };
             bot.Versions.Add(version);
             db.BotVersions.Add(version);
         }
-        foreach (BotVersion candidate in bot.Versions)
-            candidate.IsActive = candidate.Id == version.Id;
-        version.IsActive = true;
+        if (active)
+        {
+            foreach (BotVersion candidate in bot.Versions)
+                candidate.IsActive = candidate.Id == version.Id;
+            version.IsActive = true;
+        }
         await db.SaveChangesAsync(cancellationToken);
         return version;
     }

@@ -44,7 +44,7 @@ public sealed class TacticalSheetTemplateCatalog
         TacticalSheetSource[] opponents =
         [
             Resolve(
-                ArcRelayEntrantPlaylistDefinition.StockSheetId,
+                ArcRelayEntrantPlaylistDefinition.OrdersStockSheetId,
                 "Wellwright v2",
                 "The Tapline stock opponent: works all three Wells and explicitly returns every carried Core.",
                 Resource("BotArena.Sheets.wellwright-v2.sheet.json"),
