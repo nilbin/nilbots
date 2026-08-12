@@ -93,17 +93,22 @@ test('legacy looks without a genuine model remain on the SVG fallback path', () 
 });
 
 test('approved Arc Relay signature props resolve independently of bot looks', () => {
-  for (const [id, signature, orientation] of [
-    ['arc-trip-node', 'trip-node', 'lay-flat-x'],
-    ['arc-sentinel-seed', 'sentinel-seed', 'identity'],
+  for (const [id, signature, endpoint, facingYawDegrees] of [
+    ['arc-trip-node', 'trip-node', 'retexture', -90],
+    ['arc-sentinel-seed', 'sentinel-seed', 'multi-image-to-3d', undefined],
   ] as const) {
     const spec = modelSpec(id);
     assert.equal(spec?.kind, 'signature');
     assert.equal(spec?.part, 'whole');
     assert.equal(spec?.signature, signature);
-    assert.equal(spec?.source?.orientation, orientation);
-    assert.equal(spec?.source?.textureTier, 'arc-relay-signatures-ktx2-selective-v1');
-    assert.ok((spec?.ledger?.bytes ?? Number.POSITIVE_INFINITY) <= 1024 * 1024);
+    assert.equal(spec?.source?.generator, 'scripts/class-models/promote-meshy7-signature-props-v3.mjs');
+    assert.equal(spec?.source?.provider, 'Meshy');
+    assert.equal(spec?.source?.model, 'meshy-7');
+    assert.equal(spec?.source?.endpoint, endpoint);
+    assert.equal(spec?.source?.orientation, 'identity');
+    assert.equal(spec?.source?.facingYawDegrees, facingYawDegrees);
+    assert.equal(spec?.source?.textureTier, 'meshy7-signature-props-review-v3-webp');
+    assert.ok((spec?.ledger?.bytes ?? Number.POSITIVE_INFINITY) <= 2_000_000);
     assert.equal(spec?.nodes, undefined);
     assert.equal(spec?.motion, undefined);
   }

@@ -70,7 +70,7 @@ const audit = {
   toolchain: {
     gltfTransform: toolVersion,
     simplifier: 'meshoptimizer through glTF-Transform',
-    textureEncoding: 'WebP review tier; KTX2 is required before shipping',
+    textureEncoding: 'WebP lean tier; explicit owner approval is required before shipping',
   },
   normalization: {
     orientation: 'identity',
@@ -92,7 +92,8 @@ const audit = {
     budgets: profile.budgets,
   },
   contract: {
-    purpose: 'Owner review in the real renderer; approved runtime assets remain untouched.',
+    purpose:
+      'Owner review in the real renderer; promotion must copy the explicitly approved hashes byte-for-byte.',
     tripRetexture:
       'Meshy 7 original-UV PBR maps transplanted onto the pinned Trip geometry, then roughness deterministically floored at 0.72.',
     sentinelSplit:

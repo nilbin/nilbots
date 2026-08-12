@@ -1,0 +1,254 @@
+{
+  "version": 1,
+  "status": "owner-approved",
+  "approval": "Owner approved the larger Trip Node and split Sentinel Seed after review in the real renderer.",
+  "generator": "scripts/class-models/promote-meshy7-signature-props-v3.mjs",
+  "runtimeTier": "art/class-models/runtime-tiers/arc-relay/meshy7-signature-props-review-v3/audit.json",
+  "textureTier": "meshy7-signature-props-review-v3-webp",
+  "provider": "Meshy",
+  "model": "meshy-7",
+  "meshContract": "Trip is one matte original-UV mesh; Sentinel is a stationary base plus an independently yawing head.",
+  "modelOwnedTeamGlow": false,
+  "normalization": {
+    "orientation": "identity",
+    "facing": "+x",
+    "up": "+y",
+    "floorY": 0,
+    "targetPlanformSpan": 0.99
+  },
+  "runtimeScale": {
+    "trip-node": 0.75,
+    "sentinel-seed": 0.95
+  },
+  "budgets": {
+    "transferBytes": 2000000,
+    "triangles": 100000
+  },
+  "totals": {
+    "bytes": 3264816,
+    "triangles": 156769,
+    "materials": 2,
+    "textures": 7,
+    "geometryGpuBytes": 3171596,
+    "textureGpuBytesCompressedTarget": 9786700,
+    "textureGpuBytesRgba8Fallback": 9786700,
+    "modelGpuBytesCompressedTarget": 12958296,
+    "modelGpuBytesRgba8Fallback": 12958296
+  },
+  "models": [
+    {
+      "id": "arc-sentinel-seed",
+      "signatureId": "sentinel-seed",
+      "taskId": "019ff5c8-f17f-7083-a432-71f16c9f1c05",
+      "endpoint": "multi-image-to-3d",
+      "modelType": "component-split-pbr",
+      "artifact": "art/class-models/runtime-tiers/arc-relay/meshy7-signature-props-review-v3/arc-sentinel-seed-lean.glb",
+      "source": {
+        "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-signature-props-v3/arc-sentinel-seed-v3/019ff5c8-f17f-7083-a432-71f16c9f1c05/raw-model.glb",
+        "bytes": 63731588,
+        "sha256": "cc024f1659f2462ee796c09bde8072556a897739459b3f8df9d6f115efe1e1b1"
+      },
+      "facing": {
+        "sourceFacing": "radial/neutral",
+        "targetFacing": "+x",
+        "yawDegrees": 0
+      },
+      "bytes": 1605112,
+      "sha256": "3acf13c8031e0678981b49cc9b6788b224cb25c4ef44e77da8e36415d8a5c105",
+      "triangles": 77573,
+      "materials": 1,
+      "textures": 4,
+      "geometrySha256": "c62afe7eaa33aed2a562ba253066b60dbd359865eea11247db94c3dd2db787f9",
+      "matteRoughnessFloor": null,
+      "split": {
+        "version": 1,
+        "source": "model-normalized-identity-raw.glb",
+        "sourceSha256": "d2e3283a91c29d05af9f27f2b714246caf734d6f3e1c89b318f010d327f5f284",
+        "componentCentroidCutY": -0.02,
+        "componentCount": 548,
+        "stationaryComponents": 349,
+        "yawHeadComponents": 199,
+        "sourceTriangles": 1939406,
+        "stationaryTriangles": 1376083,
+        "yawHeadTriangles": 563323,
+        "partitionMembershipSha256": "eafbc48b229438ea21a5edc682b1c02cf26495a07e255ac25c5126fd590a22f3",
+        "partitionUnionVerified": true
+      },
+      "nodes": {
+        "stationary": "stationary-base",
+        "yawPivot": "yaw-head",
+        "yawMesh": "yaw-head-mesh"
+      },
+      "memory": {
+        "transferBytes": 1605112,
+        "geometryGpuBytes": 1542620,
+        "textureGpuBytesCompressedTarget": 5592400,
+        "textureGpuBytesRgba8Fallback": 5592400,
+        "modelGpuBytesCompressedTarget": 7135020,
+        "modelGpuBytesRgba8Fallback": 7135020,
+        "textures": [
+          {
+            "imageIndex": 0,
+            "name": null,
+            "slots": [
+              "baseColorTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 39564,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          },
+          {
+            "imageIndex": 1,
+            "name": null,
+            "slots": [
+              "metallicRoughnessTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 12580,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          },
+          {
+            "imageIndex": 2,
+            "name": null,
+            "slots": [
+              "normalTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 5320,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          },
+          {
+            "imageIndex": 3,
+            "name": null,
+            "slots": [
+              "emissiveTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 528,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          }
+        ]
+      },
+      "budgets": {
+        "transferBytes": 2000000,
+        "triangles": 100000
+      },
+      "targetPlanformSpan": 0.99,
+      "floorY": 0
+    },
+    {
+      "id": "arc-trip-node",
+      "signatureId": "trip-node",
+      "taskId": "019ff5eb-39a6-7432-bdb5-8efad5ef17d6",
+      "endpoint": "retexture",
+      "modelType": "original-uv-pbr-retexture",
+      "artifact": "art/class-models/runtime-tiers/arc-relay/meshy7-signature-props-review-v3/arc-trip-node-lean.glb",
+      "source": {
+        "geometry": {
+          "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-signature-props-v3/arc-trip-node-v3/019ff5c4-af6d-7bee-bfac-591b78b34c52/raw-model.glb",
+          "bytes": 65112900,
+          "sha256": "3c086868cdc4025f5db44d2622b986eba6b7c4897a184395223f2e5b79f6921a"
+        },
+        "textureDonor": {
+          "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-signature-props-retexture-v3/arc-trip-node-v3/019ff5eb-39a6-7432-bdb5-8efad5ef17d6/raw-model.glb",
+          "bytes": 80931284,
+          "sha256": "a2d71be750eca6ebcc024dcb0e341b799396887f814d0ec0b18ad515a1223345",
+          "preservedOriginalUvs": true
+        }
+      },
+      "facing": {
+        "sourceFacing": "+z",
+        "targetFacing": "+x",
+        "yawDegrees": -90
+      },
+      "bytes": 1659704,
+      "sha256": "7d628fb5ec70908c0133600d01fbb24bc8bc29477019b3c850f48ffef7398428",
+      "triangles": 79196,
+      "materials": 1,
+      "textures": 3,
+      "geometrySha256": "c826d86d3b062b18b4ec89731792aa685739d96ecdc5dcb835bcd2b0a19485d7",
+      "matteRoughnessFloor": 0.72,
+      "memory": {
+        "transferBytes": 1659704,
+        "geometryGpuBytes": 1628976,
+        "textureGpuBytesCompressedTarget": 4194300,
+        "textureGpuBytesRgba8Fallback": 4194300,
+        "modelGpuBytesCompressedTarget": 5823276,
+        "modelGpuBytesRgba8Fallback": 5823276,
+        "textures": [
+          {
+            "imageIndex": 0,
+            "name": "base_color",
+            "slots": [
+              "baseColorTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 25592,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          },
+          {
+            "imageIndex": 1,
+            "name": "metallic_roughness",
+            "slots": [
+              "metallicRoughnessTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 628,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          },
+          {
+            "imageIndex": 2,
+            "name": "normal",
+            "slots": [
+              "normalTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 1500,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          }
+        ]
+      },
+      "budgets": {
+        "transferBytes": 2000000,
+        "triangles": 100000
+      },
+      "targetPlanformSpan": 0.99,
+      "floorY": 0
+    }
+  ]
+}

@@ -520,10 +520,13 @@ sprite-derived WebGL fallback:
   `kind: "signature"` manifest. Trip Node and Sentinel Seed load only in the
   hosted WebGL signature layer; their existing procedural marker remains the
   telegraph, load-failure, and Canvas fallback. A finished prop never appears
-  during its authoritative tell. The mine keeps its audited lay-flat floor
-  transform, ownership is a restrained renderer-owned ground ring, and the
-  monolithic sentry may yaw only from an observed authoritative shot at or
-  before the playhead—never from a future target or inferred firing arc.
+  during its authoritative tell. The approved Meshy 7 props use quantized
+  geometry and embedded 512 px WebP PBR maps, with exact promotion enforced by
+  `scripts/class-models/promote-meshy7-signature-props-v3.mjs`. The mine keeps
+  its audited floor contact and matte roughness; ownership is a restrained
+  renderer-owned ground ring. The sentry's explicit `stationary-base` remains
+  fixed while `yaw-head` may turn only from an observed authoritative shot at
+  or before the playhead—never from a future target or inferred firing arc.
 - Broad flat colors are not a sufficient translation when the sprite depends
   on layered values, panel lines, material contrast, or surface wear. In that
   case use compact embedded base-color, normal, metallic/roughness, and

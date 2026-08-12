@@ -51,11 +51,11 @@ Node must not reuse the Core's luminous-sphere language.
 
 The angular seed-pod language is intentionally unlike both Trip Node and the
 similar dark spherical payload racks already visible on Minesmith and Nest.
-`+X` is only the canonical rest pose: the model has clear horizontal sweep so
-the renderer can yaw the whole monolithic prop from an authoritative shot
-heading without inventing a split turret node. The v1 source remains as
-rejected provenance because its tall side leaves falsely implied a forward-only
-casemate.
+`+X` is only the canonical rest pose. The approved Meshy 7 model has explicit
+`stationary-base`, `yaw-head`, and `yaw-head-mesh` nodes, so only the head turns
+toward the latest authoritative shot already present at the playhead. The v1
+source remains as rejected provenance because its tall side leaves falsely
+implied a forward-only casemate.
 
 ## Proposed provider settings
 
@@ -112,29 +112,31 @@ yaw bearing and clear horizontal gun sweep.
 
 ## Runtime promotion
 
-Both props ship through the same selective mipmapped KTX2 contract as the Arc
-body fleet: 512 ETC1S base color, 256 UASTC normal, 256 UASTC
-metallic/roughness, and 128 ETC1S emissive. Regenerate or verify the tier with:
+The owner approved the larger matte Trip Node and split Sentinel Seed reviewed
+in-game on 2026-08-12. The exact Meshy 7 review GLBs now ship as the defaults;
+verify the byte-for-byte promotion with:
 
 ```sh
-node scripts/class-models/build-arc-runtime-texture-tier.mjs \
-  --profile signatures --toktx /path/to/ktx-tools-4.4.2/bin/toktx
-node scripts/class-models/build-arc-runtime-texture-tier.mjs \
-  --profile signatures --check
+node scripts/class-models/promote-meshy7-signature-props-v3.mjs --check
 ```
 
-The audited derivatives total 1,096,832 transfer bytes and 1,434,248 bytes of
-compressed-target GPU residency (5,082,248 bytes on the RGBA8 fallback path),
-down from 45,452,424 bytes of model GPU residency for the two WebP review
-packages. Accessor geometry, topology, orientation, normalization, and floor
-contact remain byte-semantically identical to the approved candidates.
+The two runtime files total 3,264,816 transfer bytes: Trip Node is 1,659,704
+bytes and 79,196 triangles, while Sentinel Seed is 1,605,112 bytes and 77,573
+triangles. Both remain below the approved per-prop ceilings of 2 MB and 100,000
+triangles. They use quantized geometry and embedded 512 px WebP PBR maps—the
+same lean review profile used for the Meshy 7 bot fleet. The WebGL renderer
+loads a prop only when its signature appears; the mobile Canvas renderer does
+not import these GLBs.
 
-The renderer scales Trip Node to `0.46` and Sentinel Seed to `0.66` from their
-0.99-tile normalized planforms. The mine receives no runtime rotation, so its
-approved `lay-flat-x` transform stays on `Y=0`. Team ownership remains a subtle
-renderer-owned floor ring; neither mesh is repainted. Sentinel starts in its
-canonical +X rest pose and may turn only toward the latest authoritative shot
-already present at the playhead—never a future target.
+The renderer scales Trip Node to `0.75` and Sentinel Seed to `0.95` from their
+0.99-tile normalized planforms. Trip's Meshy 7 original-UV retexture has a
+deterministic roughness floor of `0.72`. Team ownership remains a subtle
+renderer-owned floor ring; neither mesh owns teal or orange team paint.
+Sentinel starts in its canonical +X rest pose and turns only its approved
+`yaw-head` node toward the latest authoritative shot—never a future target.
+
+The previous Meshy T2/KTX2 candidates and their audit remain in this directory
+as historical provenance; they are no longer the runtime defaults.
 
 `art/reviews/arc-relay-signature-props/evidence.json` records error-free WebGL
 captures from a 253-tick real replay at desktop and phone-landscape gameplay
