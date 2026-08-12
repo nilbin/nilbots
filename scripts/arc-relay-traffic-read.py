@@ -72,6 +72,7 @@ STALL_RUN = 3
 CYCLE_WINDOW = 4
 SQUAD_LOOP_MAX_PERIOD = 12
 SQUAD_LOOP_RADIUS = 2
+SQUAD_LOOP_MIN_FRAMES = 13
 
 HEADINGS = {
     'north': (0, -1), 'north-east': (1, -1), 'east': (1, 0),
@@ -193,7 +194,10 @@ def squad_loop_episodes(frames):
                     'end': end_tick,
                     'returns': 2,
                 }
-    return list(episodes.values())
+    return [
+        episode for episode in episodes.values()
+        if episode['end'] - episode['start'] + 1 >= SQUAD_LOOP_MIN_FRAMES
+    ]
 
 
 def read(path: Path, only_team):

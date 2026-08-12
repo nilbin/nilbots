@@ -39,6 +39,12 @@ class SquadLoopTests(unittest.TestCase):
             self.frame(4, a, [1]),
             self.frame(5, b, [2]),
             self.frame(6, a, [2]),
+            self.frame(7, c, [1]),
+            self.frame(8, a, [1]),
+            self.frame(9, b, [2]),
+            self.frame(10, a, [2]),
+            self.frame(11, c, [1]),
+            self.frame(12, a, [1]),
         ]
 
         episodes = TRAFFIC.squad_loop_episodes(frames)
@@ -46,7 +52,7 @@ class SquadLoopTests(unittest.TestCase):
         self.assertEqual(1, len(episodes))
         self.assertEqual(2, episodes[0]["period"])
         self.assertEqual(0, episodes[0]["start"])
-        self.assertEqual(6, episodes[0]["end"])
+        self.assertEqual(12, episodes[0]["end"])
 
     def test_stationary_or_linear_squad_is_not_a_successful_circuit(self) -> None:
         stationary = [
