@@ -13,6 +13,27 @@ namespace BotArena.Engine.Tests;
 public sealed class ArcRelayGrammar3Tests
 {
     [Fact]
+    public void EveryConcreteKindMapsToExactlyOneOfTheSixteenStableIds()
+    {
+        string[] stableIds = Enum
+            .GetValues<ArcRelaySignatureDefinition.SignatureKind>()
+            .Select(ArcRelaySignatureDefinition.StableIdFor)
+            .Distinct(StringComparer.Ordinal)
+            .Order(StringComparer.Ordinal)
+            .ToArray();
+
+        Assert.Equal(
+            [
+                "arc-toss", "exchange", "falling-star", "hardlight-block",
+                "kinetic-burst", "null-field", "prism-wall", "rail-line",
+                "repair-beam", "sentinel-seed", "smoke-canister",
+                "survey-flare", "target-paint", "tractor-hook", "trip-node",
+                "vector-dash",
+            ],
+            stableIds);
+    }
+
+    [Fact]
     public void Tapline2IsOneGrammar3RosterWithExactlyFourVersionedEnvelopes()
     {
         ActorResolvedMatchDefinition one = ArcRelayH0Definition.Create(

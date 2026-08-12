@@ -598,6 +598,39 @@ public abstract record ArcRelaySignatureDefinition
     }
 
     /// <summary>
+    /// Returns the stable player-facing signature ID for a concrete mechanics
+    /// kind. Definition-version variants deliberately collapse to the same ID:
+    /// the grammar/version selects chronology, while this ID selects the
+    /// signature's public meaning and presentation registration.
+    /// </summary>
+    public static string StableIdFor(SignatureKind kind) => kind switch
+    {
+        SignatureKind.VectorDash => "vector-dash",
+        SignatureKind.PrismWall => "prism-wall",
+        SignatureKind.TractorHook or SignatureKind.TractorHook2 =>
+            "tractor-hook",
+        SignatureKind.RepairBeam => "repair-beam",
+        SignatureKind.SurveyFlare => "survey-flare",
+        SignatureKind.FallingStar => "falling-star",
+        SignatureKind.TripNode => "trip-node",
+        SignatureKind.NullField or SignatureKind.NullField2
+            or SignatureKind.NullField3 => "null-field",
+        SignatureKind.ArcToss => "arc-toss",
+        SignatureKind.Exchange => "exchange",
+        SignatureKind.RailLine => "rail-line",
+        SignatureKind.HardlightBlock => "hardlight-block",
+        SignatureKind.TargetPaint or SignatureKind.TargetPaint2 =>
+            "target-paint",
+        SignatureKind.KineticBurst or SignatureKind.KineticBurst2 =>
+            "kinetic-burst",
+        SignatureKind.SmokeCanister or SignatureKind.SmokeCanister2 =>
+            "smoke-canister",
+        SignatureKind.SentinelSeed or SignatureKind.SentinelSeed2 =>
+            "sentinel-seed",
+        _ => throw new ArgumentOutOfRangeException(nameof(kind)),
+    };
+
+    /// <summary>
     /// Designed-role metadata, projected into grammar-2 and later contracts so
     /// executors can dispatch generically (category order, argument shape,
     /// sensible engagement distance) instead of hand-maintaining tables.

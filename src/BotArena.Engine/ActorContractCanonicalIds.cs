@@ -197,43 +197,8 @@ internal static class ActorContractCanonicalIds
         ActorMapTileTagDefinition.TileTagKind.SignaturePlacementForbidden =>
             "signature-placement-forbidden",
 
-        ArcRelaySignatureDefinition.SignatureKind.VectorDash => "vector-dash",
-        ArcRelaySignatureDefinition.SignatureKind.PrismWall => "prism-wall",
-        ArcRelaySignatureDefinition.SignatureKind.TractorHook => "tractor-hook",
-        ArcRelaySignatureDefinition.SignatureKind.RepairBeam => "repair-beam",
-        ArcRelaySignatureDefinition.SignatureKind.SurveyFlare => "survey-flare",
-        ArcRelaySignatureDefinition.SignatureKind.FallingStar => "falling-star",
-        ArcRelaySignatureDefinition.SignatureKind.TripNode => "trip-node",
-        ArcRelaySignatureDefinition.SignatureKind.NullField => "null-field",
-        ArcRelaySignatureDefinition.SignatureKind.ArcToss => "arc-toss",
-        ArcRelaySignatureDefinition.SignatureKind.Exchange => "exchange",
-        ArcRelaySignatureDefinition.SignatureKind.RailLine => "rail-line",
-        ArcRelaySignatureDefinition.SignatureKind.HardlightBlock =>
-            "hardlight-block",
-        ArcRelaySignatureDefinition.SignatureKind.TargetPaint => "target-paint",
-        ArcRelaySignatureDefinition.SignatureKind.KineticBurst =>
-            "kinetic-burst",
-        ArcRelaySignatureDefinition.SignatureKind.SmokeCanister =>
-            "smoke-canister",
-        ArcRelaySignatureDefinition.SignatureKind.SentinelSeed =>
-            "sentinel-seed",
-        // Grammar-2 forms share the player-facing id: the signature IS the
-        // sentinel/hook/field; the grammar version, carried on the mode,
-        // says which physics it obeys.
-        ArcRelaySignatureDefinition.SignatureKind.SentinelSeed2 =>
-            "sentinel-seed",
-        ArcRelaySignatureDefinition.SignatureKind.TractorHook2 =>
-            "tractor-hook",
-        ArcRelaySignatureDefinition.SignatureKind.NullField2 =>
-            "null-field",
-        ArcRelaySignatureDefinition.SignatureKind.NullField3 =>
-            "null-field",
-        ArcRelaySignatureDefinition.SignatureKind.TargetPaint2 =>
-            "target-paint",
-        ArcRelaySignatureDefinition.SignatureKind.KineticBurst2 =>
-            "kinetic-burst",
-        ArcRelaySignatureDefinition.SignatureKind.SmokeCanister2 =>
-            "smoke-canister",
+        ArcRelaySignatureDefinition.SignatureKind kind =>
+            ArcRelaySignatureDefinition.StableIdFor(kind),
 
         ActorRuntimeFaultDefinition.AccumulationScopeKind
                 .ParticipantAcrossAllSlotsLivesAndRuntimeStages =>

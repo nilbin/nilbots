@@ -699,43 +699,8 @@ internal static class GenericActorSdkModelMapper
         };
 
     private static string ArcRelaySignatureKindId(
-        ArcRelaySignatureDefinition.SignatureKind value) => value switch
-        {
-            ArcRelaySignatureDefinition.SignatureKind.VectorDash =>
-                "vector-dash",
-            ArcRelaySignatureDefinition.SignatureKind.PrismWall =>
-                "prism-wall",
-            ArcRelaySignatureDefinition.SignatureKind.TractorHook =>
-                "tractor-hook",
-            ArcRelaySignatureDefinition.SignatureKind.RepairBeam =>
-                "repair-beam",
-            ArcRelaySignatureDefinition.SignatureKind.SurveyFlare =>
-                "survey-flare",
-            ArcRelaySignatureDefinition.SignatureKind.FallingStar =>
-                "falling-star",
-            ArcRelaySignatureDefinition.SignatureKind.TripNode => "trip-node",
-            ArcRelaySignatureDefinition.SignatureKind.NullField => "null-field",
-            ArcRelaySignatureDefinition.SignatureKind.ArcToss => "arc-toss",
-            ArcRelaySignatureDefinition.SignatureKind.Exchange => "exchange",
-            ArcRelaySignatureDefinition.SignatureKind.RailLine => "rail-line",
-            ArcRelaySignatureDefinition.SignatureKind.HardlightBlock =>
-                "hardlight-block",
-            ArcRelaySignatureDefinition.SignatureKind.TargetPaint =>
-                "target-paint",
-            ArcRelaySignatureDefinition.SignatureKind.KineticBurst =>
-                "kinetic-burst",
-            ArcRelaySignatureDefinition.SignatureKind.SmokeCanister =>
-                "smoke-canister",
-            ArcRelaySignatureDefinition.SignatureKind.SentinelSeed =>
-                "sentinel-seed",
-            ArcRelaySignatureDefinition.SignatureKind.SentinelSeed2 =>
-                "sentinel-seed",
-            ArcRelaySignatureDefinition.SignatureKind.TractorHook2 =>
-                "tractor-hook",
-            ArcRelaySignatureDefinition.SignatureKind.NullField2 =>
-                "null-field",
-            _ => throw UnknownEnum(value),
-        };
+        ArcRelaySignatureDefinition.SignatureKind value) =>
+        ArcRelaySignatureDefinition.StableIdFor(value);
 
     internal static Sdk.GenericActorActionLegality ToSdk(
         GenericActorRuntimeActionLegality value) =>
