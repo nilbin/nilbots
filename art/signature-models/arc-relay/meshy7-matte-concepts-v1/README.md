@@ -1,24 +1,22 @@
 # Arc Relay matte signature concepts v1
 
-Status: **Sentinel finish revision in review; no provider spend**. The owner
-approved the overall model direction on 2026-08-12, then flagged residual
-glossiness on Sentinel Seed. `sentinel-seed-turnaround-matte-v2.png` is the
-finish-only correction candidate; the original sheet remains beside it for
-comparison. This review does not authorize a paid Meshy request, change a
+Status: **concept approved; provider inputs ready; no provider spend**. The
+owner approved Trip Node and the drier Sentinel Seed matte v2 finish on
+2026-08-12. The original Sentinel sheet remains beside v2 for provenance and
+comparison. This approval does not authorize a paid Meshy request, change a
 runtime asset, or alter game mechanics.
 
 Open `index.html` for the complete visual review sheet.
 
 ## Recommendation
 
-The proposed provider batch remains exactly two Meshy 7 multi-image-to-3D tasks:
+The approved provider batch is exactly two Meshy 7 multi-image-to-3D tasks:
 
 1. **Trip Node** — replace the current glossy generic mine with the
    Minesmith-family three-lobed forge clamp in `trip-node-turnaround.png`.
 2. **Sentinel Seed** — replace the current beige tank-like turret with the
-   Nest-family planted seed-pod sentry. The active review candidate is
-   `sentinel-seed-turnaround-matte-v2.png`; its drier finish needs owner
-   approval before new provider inputs are prepared.
+   Nest-family planted seed-pod sentry in
+   `sentinel-seed-turnaround-matte-v2.png`.
 
 No other launch signature needs a standalone GLB in this pass. Standard
 attacks and the travelling parts of Survey Flare, Falling Star, Arc Toss, and
@@ -77,12 +75,12 @@ metal hardware.
 
 ## Provider handoff gate
 
-Trip Node's approved sheet remains split into canonical views under
-`provider-inputs/trip-node/`. Sentinel Seed's earlier views remain under
-`provider-inputs/sentinel-seed/` as provenance, but are marked superseded and
-must not be submitted. After Sentinel v2 is approved, regenerate and validate
-its four canonical inputs. Both manifests keep the inactive 30-credit-per-task
-safety cap; validation does not read the credential or call Meshy.
+Both approved sheets are split into canonical views under
+`provider-inputs/trip-node/` and `provider-inputs/sentinel-seed/`. Sentinel's
+four inputs were regenerated from the approved matte v2 sheet; the earlier
+finish remains only as provenance. Both manifests keep the inactive
+30-credit-per-task safety cap; validation does not read the credential or call
+Meshy.
 
 Do not upload either contact sheet directly. Submit one object per task only
 after the owner explicitly authorizes the paid calls. Immediately before that

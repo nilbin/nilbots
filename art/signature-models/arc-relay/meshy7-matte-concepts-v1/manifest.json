@@ -1,15 +1,16 @@
 {
   "schemaVersion": 1,
-  "status": "sentinel-finish-revision-review",
+  "status": "concept-approved-provider-inputs-ready",
   "createdAt": "2026-08-12",
   "conceptApprovedAt": "2026-08-12",
-  "conceptApproval": "Owner approved the overall direction, then requested a drier Sentinel Seed finish. Trip Node remains approved; Sentinel matte v2 awaits review. Paid provider calls remain separately gated.",
+  "conceptApproval": "Owner approved Trip Node and the drier Sentinel Seed matte v2 finish. Paid provider calls remain separately gated.",
+  "sentinelFinishApprovedAt": "2026-08-12",
   "purpose": "Complete matte Arc Relay signature-model concept package",
   "providerCallsAuthorized": false,
-  "providerInputsReady": false,
+  "providerInputsReady": true,
   "providerInputReadiness": {
     "trip-node": "ready-inactive",
-    "sentinel-seed": "prior-inputs-superseded-awaiting-matte-v2-approval"
+    "sentinel-seed": "ready-inactive"
   },
   "providerManifests": [
     "provider-inputs/trip-node/manifest.json",
@@ -51,7 +52,7 @@
     {
       "signatureId": "sentinel-seed",
       "classId": "nest",
-      "status": "matte-v2-awaiting-owner-review",
+      "status": "matte-v2-approved",
       "file": "sentinel-seed-turnaround-matte-v2.png",
       "width": 1254,
       "height": 1254,

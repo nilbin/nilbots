@@ -1,30 +1,33 @@
 {
   "schemaVersion": 1,
-  "status": "superseded-awaiting-matte-v2-approval",
+  "status": "concept-approved-provider-ready",
   "classId": "arc-sentinel-seed",
   "signatureId": "sentinel-seed",
   "identitySource": {
-    "file": "../../sentinel-seed-turnaround.png",
-    "sha256": "4ca05ffc00b5661f3ace60e20f677fb251e3403bc58c242c1954bd28dedd20ae"
+    "file": "../../sentinel-seed-turnaround-matte-v2.png",
+    "sha256": "e44606819f0231e4908247e06f0166f28845ec4dfae3f1510d6bd7f7bf25a910"
   },
   "turnaroundSource": {
-    "file": "../../sentinel-seed-turnaround.png",
-    "sha256": "4ca05ffc00b5661f3ace60e20f677fb251e3403bc58c242c1954bd28dedd20ae",
+    "file": "../../sentinel-seed-turnaround-matte-v2.png",
+    "sha256": "e44606819f0231e4908247e06f0166f28845ec4dfae3f1510d6bd7f7bf25a910",
     "promptLog": "../../PROMPTS.md",
     "promptLogSha256": "2c4999b77b83f0c23596751baf67b8a83305b65d414eb3633a226f05f38495a1"
   },
-  "revisionCandidate": {
+  "approvedRevision": {
     "file": "../../sentinel-seed-turnaround-matte-v2.png",
     "sha256": "e44606819f0231e4908247e06f0166f28845ec4dfae3f1510d6bd7f7bf25a910",
-    "status": "awaiting-owner-review",
-    "note": "Do not submit the earlier split views; regenerate all four inputs from this candidate only after approval."
+    "approvedAt": "2026-08-12",
+    "supersedes": {
+      "file": "../../sentinel-seed-turnaround.png",
+      "sha256": "4ca05ffc00b5661f3ace60e20f677fb251e3403bc58c242c1954bd28dedd20ae"
+    }
   },
   "meshyInputs": [
     {
       "order": 1,
       "view": "strict-front",
       "file": "01-front.png",
-      "sha256": "d010912e68f1c797d2e89e8cf01e182245c25604c75051d2d14004bb3cee405b",
+      "sha256": "ff38b9e6816b832b35fa1f095da5a78e23b8ddaa712f318d2999eee13d2ae599",
       "width": 1536,
       "height": 1024,
       "primary": true
@@ -33,7 +36,7 @@
       "order": 2,
       "view": "strict-right",
       "file": "02-right.png",
-      "sha256": "6bbb5f5bc3380974e5a61368868b7a64ba6b8c5041fa6ab607c902cb2784e2c5",
+      "sha256": "0121a4707f19a7664c4f502bd19b17fbb2d5f48212e18e96e59104af7d1b303b",
       "width": 1536,
       "height": 1024,
       "primary": false
@@ -42,7 +45,7 @@
       "order": 3,
       "view": "strict-back",
       "file": "03-back.png",
-      "sha256": "b948dfc78cc23c67dfd670820687525a8b098f3edf6722c88a9c34c4d9480cc2",
+      "sha256": "6747e21f73910a01b17daf083a6692d08a4bfd869bb2ed9eb7165db1e298ff4c",
       "width": 1536,
       "height": 1024,
       "primary": false
@@ -51,7 +54,7 @@
       "order": 4,
       "view": "front-right-three-quarter",
       "file": "04-front-right-three-quarter.png",
-      "sha256": "7f2d563717e47eda20d150a0b643dcd703f7e0ce688f1d2bf7a78507f56d051a",
+      "sha256": "cadf6b01ff7228603f8aa61bd82227f8fbb152adc44a0857de67af0abc2c4939",
       "width": 1536,
       "height": 1024,
       "primary": false
@@ -75,7 +78,7 @@
     ],
     "pilotCreditCap": 30,
     "authorized": false,
-    "authorization": "The paid provider request remains explicitly unapproved, and these prior split views are superseded by a finish revision awaiting owner review.",
+    "authorization": "Owner approved Sentinel matte v2 and its regenerated separate views; the paid provider request remains explicitly unapproved.",
     "authorizationConsumed": false,
     "autoRigging": false
   },
@@ -87,5 +90,5 @@
     "proposedBatchCreditCap": 60,
     "pricingSource": "https://docs.meshy.ai/en/api/pricing"
   },
-  "nextGate": "owner approves Sentinel matte v2; regenerate and validate its views; then separately authorize the paid task after a live pricing and balance check"
+  "nextGate": "owner explicitly authorizes this paid task after a live pricing and balance check"
 }
