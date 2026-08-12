@@ -6,7 +6,19 @@
   "conceptApproval": "Owner approved Trip Node and the drier Sentinel Seed matte v2 finish. Paid provider calls remain separately gated.",
   "sentinelFinishApprovedAt": "2026-08-12",
   "purpose": "Complete matte Arc Relay signature-model concept package",
-  "providerCallsAuthorized": false,
+  "providerCallsAuthorized": true,
+  "providerBatchAuthorization": {
+    "authorizedAt": "2026-08-12T09:36:36Z",
+    "scope": [
+      "trip-node",
+      "sentinel-seed"
+    ],
+    "perTaskCreditCap": 30,
+    "totalCreditCap": 60,
+    "balanceBefore": 1430,
+    "pricingVerifiedAt": "2026-08-12T09:36:36Z",
+    "pricingSource": "https://docs.meshy.ai/en/api/pricing"
+  },
   "providerInputsReady": true,
   "providerInputReadiness": {
     "trip-node": "ready-inactive",

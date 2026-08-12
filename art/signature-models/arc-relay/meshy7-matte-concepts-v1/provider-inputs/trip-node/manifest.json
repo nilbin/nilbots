@@ -68,15 +68,15 @@
       "glb"
     ],
     "pilotCreditCap": 30,
-    "authorized": false,
-    "authorization": "Owner approved the concept and separate views; the paid provider request remains explicitly unapproved.",
+    "authorized": true,
+    "authorization": "Owner explicitly authorized this 30-credit paid Meshy 7 task on 2026-08-12T09:36:36Z as part of a 60-credit two-task batch.",
     "authorizationConsumed": false,
     "autoRigging": false
   },
   "creditCheck": {
-    "status": "pending-explicit-paid-call-authorization",
-    "checkedAt": null,
-    "balance": null,
+    "status": "verified-for-authorized-call",
+    "checkedAt": "2026-08-12T09:36:36Z",
+    "balance": 1430,
     "proposedPerTaskCreditCap": 30,
     "proposedBatchCreditCap": 60,
     "pricingSource": "https://docs.meshy.ai/en/api/pricing"
