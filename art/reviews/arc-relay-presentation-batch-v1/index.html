@@ -1,0 +1,618 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#080b10">
+  <title>Nilbots · Arc Relay presentation batch v1</title>
+  <style>
+    :root {
+      --ink: #eef3f5;
+      --muted: #9da9ad;
+      --dim: #6f7c81;
+      --page: #080b10;
+      --panel: #0d1219;
+      --raised: #121923;
+      --line: #25313a;
+      --cyan: #7fc9d1;
+      --cyan-dark: #102a30;
+      --brass: #d2a45c;
+      --brass-dark: #2c2112;
+      --violet: #a99acb;
+      --coral: #cf8069;
+      --green: #95b79f;
+      --radius: 18px;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+        "Segoe UI", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 8% 0%, rgba(76, 112, 119, .14), transparent 25rem),
+        radial-gradient(circle at 92% 5%, rgba(111, 87, 50, .12), transparent 24rem),
+        var(--page);
+      line-height: 1.5;
+    }
+    a { color: inherit; }
+    img { display: block; max-width: 100%; }
+    .shell { width: min(1220px, calc(100% - 32px)); margin: 0 auto; }
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      border-bottom: 1px solid rgba(127, 201, 209, .18);
+      background: rgba(8, 11, 16, .88);
+      backdrop-filter: blur(16px);
+    }
+    .topbar .shell {
+      display: flex;
+      align-items: center;
+      gap: 22px;
+      min-height: 56px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .topbar .shell::-webkit-scrollbar { display: none; }
+    .brand {
+      margin-right: auto;
+      white-space: nowrap;
+      color: var(--cyan);
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+    nav { display: flex; gap: 20px; }
+    nav a {
+      color: var(--muted);
+      font-size: 13px;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+    nav a:hover { color: var(--ink); }
+    header { padding: clamp(54px, 8vw, 105px) 0 42px; }
+    .eyebrow {
+      color: var(--brass);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+    }
+    h1 {
+      max-width: 920px;
+      margin: 14px 0 18px;
+      font-size: clamp(40px, 7.5vw, 88px);
+      line-height: .97;
+      letter-spacing: -.055em;
+      font-weight: 650;
+    }
+    .lede {
+      max-width: 760px;
+      margin: 0;
+      color: #bbc5c8;
+      font-size: clamp(17px, 2vw, 22px);
+    }
+    .scope {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-top: 38px;
+    }
+    .metric {
+      min-height: 118px;
+      padding: 19px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: linear-gradient(150deg, rgba(18, 25, 35, .96), rgba(10, 14, 20, .96));
+    }
+    .metric b {
+      display: block;
+      margin-bottom: 5px;
+      color: var(--cyan);
+      font-size: 31px;
+      line-height: 1;
+      font-weight: 650;
+    }
+    .metric span { color: var(--muted); font-size: 13px; }
+    .guardrail {
+      display: flex;
+      gap: 13px;
+      align-items: flex-start;
+      margin-top: 12px;
+      padding: 17px 18px;
+      border: 1px solid rgba(210, 164, 92, .32);
+      border-radius: var(--radius);
+      background: rgba(44, 33, 18, .42);
+      color: #d8c7aa;
+      font-size: 14px;
+    }
+    .guardrail strong { color: #f0d297; white-space: nowrap; }
+    main { padding-bottom: 110px; }
+    section { padding-top: 76px; }
+    .section-head {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(260px, 430px);
+      gap: 30px;
+      align-items: end;
+      margin-bottom: 24px;
+    }
+    h2 {
+      margin: 0;
+      font-size: clamp(30px, 4.5vw, 54px);
+      line-height: 1.02;
+      letter-spacing: -.035em;
+      font-weight: 620;
+    }
+    .section-head p, .body-copy { margin: 0; color: var(--muted); }
+    .board {
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: var(--panel);
+      box-shadow: 0 28px 70px rgba(0, 0, 0, .28);
+    }
+    .board > a { display: block; background: #05070a; }
+    .board img { width: 100%; height: auto; }
+    .board-meta { padding: 22px 24px 24px; }
+    .board-meta h3 {
+      margin: 0 0 8px;
+      font-size: 21px;
+      letter-spacing: -.02em;
+    }
+    .board-meta p { margin: 0; color: var(--muted); }
+    .row-key {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-top: 17px;
+    }
+    .row-key.three { grid-template-columns: repeat(3, 1fr); }
+    .row-key div {
+      min-height: 64px;
+      padding: 11px 12px;
+      border: 1px solid #202b33;
+      border-radius: 12px;
+      background: #0a0f15;
+      color: #c8d0d2;
+      font-size: 12px;
+    }
+    .row-key b { display: block; margin-bottom: 2px; color: var(--ink); font-size: 13px; }
+    .note {
+      margin-top: 15px;
+      padding: 13px 15px;
+      border-left: 3px solid var(--brass);
+      border-radius: 3px 12px 12px 3px;
+      background: rgba(210, 164, 92, .08);
+      color: #d4c7b2;
+      font-size: 13px;
+    }
+    .gallery-stack { display: grid; gap: 28px; }
+    .principles {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+    .principle {
+      padding: 21px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel);
+    }
+    .principle small {
+      display: block;
+      margin-bottom: 22px;
+      color: var(--dim);
+      font-weight: 800;
+      letter-spacing: .12em;
+    }
+    .principle h3 { margin: 0 0 7px; font-size: 18px; }
+    .principle p { margin: 0; color: var(--muted); font-size: 14px; }
+    .projectile-order {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 7px;
+      margin-top: 17px;
+      counter-reset: projectile;
+    }
+    .projectile-order span {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      padding: 9px 11px;
+      border: 1px solid #202b33;
+      border-radius: 11px;
+      background: #0a0f15;
+      color: #c8d0d2;
+      font-size: 12px;
+    }
+    .projectile-order span::before {
+      counter-increment: projectile;
+      content: counter(projectile, decimal-leading-zero);
+      color: var(--brass);
+      font-variant-numeric: tabular-nums;
+    }
+    .batch-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+    .batch-item {
+      display: grid;
+      grid-template-columns: 42px 1fr;
+      gap: 14px;
+      min-height: 115px;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel);
+    }
+    .batch-item .n {
+      color: var(--cyan);
+      font-size: 25px;
+      font-weight: 650;
+      font-variant-numeric: tabular-nums;
+    }
+    .batch-item h3 { margin: 1px 0 5px; font-size: 16px; }
+    .batch-item p { margin: 0; color: var(--muted); font-size: 13px; }
+    .audio-card {
+      overflow: hidden;
+      border: 1px solid rgba(169, 154, 203, .25);
+      border-radius: 24px;
+      background:
+        radial-gradient(circle at 100% 0%, rgba(169, 154, 203, .10), transparent 28rem),
+        var(--panel);
+    }
+    .audio-top { padding: 28px; border-bottom: 1px solid var(--line); }
+    .audio-top h3 { margin: 0 0 8px; font-size: 26px; }
+    .audio-top p { max-width: 760px; margin: 0; color: var(--muted); }
+    .audio-voices {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+    }
+    .voice { padding: 21px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+    .voice:nth-child(3n) { border-right: 0; }
+    .voice:nth-last-child(-n + 3) { border-bottom: 0; }
+    .voice b { display: block; margin-bottom: 5px; color: #c7bce2; }
+    .voice span { color: var(--muted); font-size: 13px; }
+    .comfort {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-top: 20px;
+    }
+    .comfort div {
+      padding: 13px;
+      border: 1px solid #202b33;
+      border-radius: 12px;
+      background: #0a0f15;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .comfort b { display: block; color: var(--green); font-size: 15px; }
+    .approval {
+      padding: clamp(26px, 5vw, 48px);
+      border: 1px solid rgba(127, 201, 209, .34);
+      border-radius: 26px;
+      background:
+        linear-gradient(135deg, rgba(16, 42, 48, .9), rgba(13, 18, 25, .96) 52%),
+        var(--panel);
+    }
+    .approval h2 { max-width: 850px; }
+    .approval > p { max-width: 810px; margin: 18px 0 0; color: #b9cacc; }
+    .approval-list {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-top: 26px;
+    }
+    .approval-list div {
+      padding: 14px 16px;
+      border: 1px solid rgba(127, 201, 209, .18);
+      border-radius: 13px;
+      background: rgba(4, 12, 16, .36);
+      color: #c3d1d3;
+      font-size: 14px;
+    }
+    .approval-list strong { color: var(--cyan); }
+    .docs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 9px;
+      margin-top: 24px;
+    }
+    .docs a {
+      padding: 9px 12px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 12px;
+    }
+    .docs a:hover { color: var(--ink); border-color: var(--cyan); }
+    footer {
+      padding: 24px 0 52px;
+      border-top: 1px solid var(--line);
+      color: var(--dim);
+      font-size: 12px;
+    }
+    @media (max-width: 780px) {
+      .shell { width: min(100% - 20px, 1220px); }
+      .topbar .shell { min-height: 51px; gap: 16px; }
+      nav { gap: 15px; }
+      header { padding-top: 48px; }
+      .scope { grid-template-columns: repeat(2, 1fr); }
+      .metric { min-height: 104px; padding: 16px; }
+      .section-head { grid-template-columns: 1fr; gap: 12px; }
+      section { padding-top: 58px; }
+      .principles, .audio-voices { grid-template-columns: 1fr; }
+      .voice, .voice:nth-child(3n), .voice:nth-last-child(-n + 3) {
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+      }
+      .voice:last-child { border-bottom: 0; }
+      .batch-grid, .approval-list { grid-template-columns: 1fr; }
+      .row-key, .row-key.three, .projectile-order { grid-template-columns: repeat(2, 1fr); }
+      .comfort { grid-template-columns: repeat(2, 1fr); }
+      .board { border-radius: 16px; }
+      .board-meta { padding: 18px 15px 20px; }
+      .guardrail { display: block; }
+      .guardrail strong { display: block; margin-bottom: 4px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="shell">
+      <div class="brand">Nilbots / Tapline</div>
+      <nav aria-label="Gallery sections">
+        <a href="#language">Language</a>
+        <a href="#signatures">Signatures</a>
+        <a href="#projectiles">Projectiles</a>
+        <a href="#sound">Sound</a>
+        <a href="#approve">Approve</a>
+      </nav>
+    </div>
+  </div>
+
+  <header class="shell">
+    <div class="eyebrow">Concept approval · presentation batch v1</div>
+    <h1>Readable machinery in a quiet orbital arena.</h1>
+    <p class="lede">A complete visual and audio direction for signature skills,
+      class attack heads, and level-up—built around Tapline’s public commitments,
+      not generic spectacle.</p>
+
+    <div class="scope" aria-label="Batch scope">
+      <div class="metric"><b>14</b><span>signature VFX owned by this batch</span></div>
+      <div class="metric"><b>16</b><span>class-specific regular attack heads</span></div>
+      <div class="metric"><b>1</b><span>fact-driven level-up animation</span></div>
+      <div class="metric"><b>≤6</b><span>private SFX Engine source calls</span></div>
+    </div>
+    <div class="guardrail">
+      <strong>Cosmetic only.</strong>
+      <span>No mechanics, replay format, timing, targeting, collision, damage,
+        healing, custody, or music changes. No ambient loop. Trip Node and Sentinel
+        Seed remain with the 3D model agent.</span>
+    </div>
+  </header>
+
+  <main class="shell">
+    <section id="language">
+      <div class="section-head">
+        <h2>The visual language</h2>
+        <p>Spacey and ambient in texture, but causal and disciplined in motion.
+          Every flourish has to explain a public game fact from overview scale.</p>
+      </div>
+      <div class="principles">
+        <article class="principle">
+          <small>01 / CAUSAL</small>
+          <h3>Tell → action → resolve</h3>
+          <p>Animation follows replay-authored phases and facts. Seeking directly
+            into a moment produces the same frame as continuous playback.</p>
+        </article>
+        <article class="principle">
+          <small>02 / MATERIAL</small>
+          <h3>Matte field machinery</h3>
+          <p>Dark solids, narrow edge energy, low pressure forms, sparse particles.
+            No glassy props, glossy toys, bloom blasts, or magic fog.</p>
+        </article>
+        <article class="principle">
+          <small>03 / RESTRAINED</small>
+          <h3>Fight-scale first</h3>
+          <p>Rare signatures can be distinct without shouting. Repeated attacks
+            stay compact and share one quiet release voice when fights stack.</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="signatures">
+      <div class="section-head">
+        <h2>Signature storyboards</h2>
+        <p>Each row reads left to right. Click any board for the source resolution.
+          Notes below the board are binding production corrections.</p>
+      </div>
+      <div class="gallery-stack">
+        <article class="board">
+          <a href="01-high-impact-signatures.png"><img loading="eager"
+            src="01-high-impact-signatures.png"
+            alt="Four three-frame storyboards for Tractor Hook, Falling Star, Rail Line, and Hardlight Block"></a>
+          <div class="board-meta">
+            <h3>High-impact signatures</h3>
+            <p>Declared lines, delayed ordnance, and honest blocking terrain.</p>
+            <div class="row-key">
+              <div><b>Tractor Hook</b>line narrows · grapple travels · cable pulls taut</div>
+              <div><b>Falling Star</b>cardinal mark · descent · low floor impact</div>
+              <div><b>Rail Line</b>charge notches · pressure slab · faint afterimage</div>
+              <div><b>Hardlight Block</b>floor frame · slabs rise · matte block settles</div>
+            </div>
+            <div class="note"><strong>Production correction:</strong> remove the
+              Falling Star light column, dim the Rail discharge, and make the
+              Hardlight surface rough/matte.</div>
+          </div>
+        </article>
+
+        <article class="board">
+          <a href="02-support-fields.png"><img loading="lazy"
+            src="02-support-fields.png"
+            alt="Four three-frame storyboards for Repair Beam, Survey Flare, Null Field, and Smoke Canister"></a>
+          <div class="board-meta">
+            <h3>Support and fields</h3>
+            <p>Low energy structures carry information without covering the bots.</p>
+            <div class="row-key">
+              <div><b>Repair Beam</b>link forms · packets travel · seam closes</div>
+              <div><b>Survey Flare</b>flare travels · calibrates · horizon opens</div>
+              <div><b>Null Field</b>boundary contracts · lens flattens · edge fades</div>
+              <div><b>Smoke Canister</b>target activates · low volumes roll · field holds</div>
+            </div>
+            <div class="note"><strong>Production correction:</strong> Null is a
+              shallow floor lens, never a dome. Smoke uses fewer, lower abstract
+              volumes. Its generated travel arc is omitted because the replay
+              publishes no smoke in-flight phase.</div>
+          </div>
+        </article>
+
+        <article class="board">
+          <a href="03-motion-objective.png"><img loading="lazy"
+            src="03-motion-objective.png"
+            alt="Three three-frame storyboards for Vector Dash, Prism Wall, and Arc Toss"></a>
+          <div class="board-meta">
+            <h3>Motion and objective handling</h3>
+            <p>The real body and the real Core do the moving—never a decorative duplicate.</p>
+            <div class="row-key three">
+              <div><b>Vector Dash</b>floor promise · one moving body · pressure clears</div>
+              <div><b>Prism Wall</b>contacts mark · panels rise · capacity persists</div>
+              <div><b>Arc Toss</b>landing tell · one Core flies · pickup or neutral settle</div>
+            </div>
+          </div>
+        </article>
+
+        <article class="board">
+          <a href="04-control-level-up.png"><img loading="lazy"
+            src="04-control-level-up.png"
+            alt="Four three-frame storyboards for Exchange, Target Paint, Kinetic Burst, and Level Up"></a>
+          <div class="board-meta">
+            <h3>Control and progression</h3>
+            <p>Persistent game state remains after the decorative energy is gone.</p>
+            <div class="row-key">
+              <div><b>Exchange</b>paired endpoints · ribbons fold · bodies settle</div>
+              <div><b>Target Paint</b>brackets close · three tallies · segments consume</div>
+              <div><b>Kinetic Burst</b>ring contracts · torus pushes · real wakes fade</div>
+              <div><b>Level Up</b>brass ring · facets converge · new chevron remains</div>
+            </div>
+            <div class="note"><strong>Production correction:</strong> no full-height
+              level-up column. Body exchange uses the exact authored relocations;
+              ribbons carry association, not physics.</div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section id="projectiles">
+      <div class="section-head">
+        <h2>Sixteen attack heads</h2>
+        <p>Compact munitions, not miniature bots. Each becomes an east-facing SVG
+          mask and a derived 3D extrusion—no Meshy projectile round and no GLB batch.</p>
+      </div>
+      <article class="board">
+        <a href="05-class-projectile-heads.png"><img loading="lazy"
+          src="05-class-projectile-heads.png"
+          alt="A four by four catalog of compact class-specific projectile heads"></a>
+        <div class="board-meta">
+          <h3>Roster order</h3>
+          <p>Silhouette and relief carry class identity. Runtime keeps the existing
+            team-accent energy paint so an opponent never mistakes class palette for team.</p>
+          <div class="projectile-order">
+            <span>Kestrel dart</span><span>Palisade wedge</span><span>Towline shackle</span><span>Patchbay seal</span>
+            <span>Lantern lens</span><span>Mortar slug</span><span>Minesmith clamp</span><span>Hush rotor</span>
+            <span>Relay cradle</span><span>Switchback shuttle</span><span>Longshot needle</span><span>Mason block</span>
+            <span>Sunder prism</span><span>Repulsor cog</span><span>Veil crescent</span><span>Nest cluster</span>
+          </div>
+          <div class="note">All sixteen keep the accepted shared projectile release
+            SFX. Miss/fizzle is the same launch voice; concrete impact and deflect remain
+            the audible outcome. Voluntary cancel remains silent.</div>
+        </div>
+      </article>
+    </section>
+
+    <section id="batch">
+      <div class="section-head">
+        <h2>The implementation batch</h2>
+        <p>One continuous goal after approval, with proof against real Tapline replays
+          before the work is considered done.</p>
+      </div>
+      <div class="batch-grid">
+        <article class="batch-item"><div class="n">01</div><div><h3>Renderer primitives</h3><p>Pool low rings, brackets, pressure slabs, ribbons, panes, particles, and resolve beats. No per-frame asset churn.</p></div></article>
+        <article class="batch-item"><div class="n">02</div><div><h3>Fourteen signatures</h3><p>Replace generic rigs with the treatments above, bound to visible phases and exact replay facts.</p></div></article>
+        <article class="batch-item"><div class="n">03</div><div><h3>Class attack heads</h3><p>Add sixteen valid SVG look folders and map every Arc class away from the shared Arc Pulse.</p></div></article>
+        <article class="batch-item"><div class="n">04</div><div><h3>Level-up beat</h3><p>Add the short brass transient around the persistent chevron, driven only by the level-up fact.</p></div></article>
+        <article class="batch-item"><div class="n">05</div><div><h3>Signature audio</h3><p>Generate six private sources, derive restrained deliveries, coalesce busy ticks, and keep ordinary attacks shared.</p></div></article>
+        <article class="batch-item"><div class="n">06</div><div><h3>Tapline proof</h3><p>Normal overview, phone landscape, pause/seek, reduced motion, crowd performance, and whole-pack ear-safety audit.</p></div></article>
+      </div>
+    </section>
+
+    <section id="sound">
+      <div class="section-head">
+        <h2>A small sound vocabulary</h2>
+        <p>Six source calls, reused by physical verb. Results remain short and quiet;
+          a bad source is rejected rather than forced into the game.</p>
+      </div>
+      <article class="audio-card">
+        <div class="audio-top">
+          <h3>Restrained orbital machinery</h3>
+          <p>No ambience, loops, high pings, electrical fizz, screeches, whip cracks,
+            explosions, or long reverb. Exactly six private jobs are authorized by
+            whole-batch approval; there are no automatic rerolls.</p>
+        </div>
+        <div class="audio-voices">
+          <div class="voice"><b>Materialize</b><span>Prism Wall + Hardlight Block</span></div>
+          <div class="voice"><b>Tether</b><span>Tractor Hook launch and latch body</span></div>
+          <div class="voice"><b>Field family</b><span>Survey, Null, and Smoke deliveries</span></div>
+          <div class="voice"><b>Transfer</b><span>Vector Dash + Exchange variants</span></div>
+          <div class="voice"><b>Target</b><span>One soft Target Paint confirmation</span></div>
+          <div class="voice"><b>Kinetic</b><span>One controlled Repulsor pressure push</span></div>
+        </div>
+      </article>
+      <div class="comfort" aria-label="Comfort limits">
+        <div><b>≤ 0.70 s</b>new cue duration</div>
+        <div><b>≤ 1.2 kHz</b>spectral centroid</div>
+        <div><b>≤ -22 dBFS</b>effective cue peak</div>
+        <div><b>≤ -6 dBTP</b>crowded mixed peak</div>
+      </div>
+    </section>
+
+    <section id="approve">
+      <div class="approval">
+        <div class="eyebrow">Approval gate</div>
+        <h2>Approve this direction, then the long-running implementation goal starts.</h2>
+        <p>Approval means the production corrections—not every literal generated
+          pixel—are the target. The implementation stays on <code>main</code>, commits
+          coherent checkpoints, and does not stop at “assets exist”: Tapline playback,
+          seeking, reduced motion, performance, and the strict whole-pack audio audit are
+          part of done.</p>
+        <div class="approval-list">
+          <div><strong>Included:</strong> 14 signature treatments, 16 attack heads, level-up, signature SFX, tests, and review proof.</div>
+          <div><strong>Provider cap:</strong> exactly six private SFX Engine generations; no automatic rerolls.</div>
+          <div><strong>Held out:</strong> Trip Node and Sentinel Seed assets/integration, owned by the 3D model agent.</div>
+          <div><strong>Untouched:</strong> mechanics, replay contract, pathing, Core custody, music, and ambience.</div>
+        </div>
+        <div class="docs">
+          <a href="CONCEPT-SPEC.md">Full concept spec</a>
+          <a href="AUDIO-CUE-PROPOSAL.md">Audio cue proposal</a>
+          <a href="PROMPTS.md">Prompt provenance</a>
+          <a href="manifest.json">Artifact manifest</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="shell">Arc Relay presentation batch v1 · approval artifact · main baseline 4aaf80cc · 2026-08-12</div>
+  </footer>
+</body>
+</html>
