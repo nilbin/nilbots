@@ -6,8 +6,10 @@
  * inside it: *what is this body doing right now*. A selected body that answers
  * that with nothing reads as a broken panel, not as a private thought.
  *
- * The tactical playbook writes `tp:<phase>:<group>:<order>:<action>`, often
- * behind a qualifier (`idle-break:tp:…`, `turn for tp:…`) and usually with a
+ * The current orders executor writes
+ * `orders:<role> > <order> [> <child>…]:<action>`, while frozen tactical
+ * artifacts write `tp:<phase>:<group>:<order>:<action>`. Both may sit behind a
+ * qualifier (`idle-break:tp:…`, `turn for orders:…`) and usually carry a
  * ` via <Direction>` suffix the arena already shows by pointing the body that
  * way. **Anything that does not match is carried whole as the action**: a
  * reader must not decide that a vocabulary it has not been taught is not worth
@@ -45,12 +47,65 @@ export interface CommandReason {
 /** The `@x,y` tail a movement diagnostic carries; see `MovementProvenance`. */
 const DESTINATION_TAIL = /@(\d+),(\d+)$/;
 
+function finishReason(
+  text: string,
+  marker: number,
+  orderId: string | null,
+  tail: string,
+): CommandReason {
+  // Stacked qualifiers and a preposition: keep the words, drop the grammar,
+  // and join them the way the tail already reads.
+  const qualifier = text
+    .slice(0, marker)
+    .split(/[\s:]+/)
+    .filter((word) => word.length > 0 && word !== 'for')
+    .join('/');
+  // Split the destination off BEFORE the length cap: a long action tail must
+  // never silently eat the coordinates off the end of the lens.
+  const found = DESTINATION_TAIL.exec(tail);
+  const destination = found
+    ? { x: Number(found[1]), y: Number(found[2]) }
+    : null;
+  if (found) tail = tail.slice(0, found.index);
+  const action = qualifier.length > 0 ? `${qualifier}/${tail}` : tail;
+  return {
+    orderId,
+    action: action.slice(0, REASON_MAX_CHARS),
+    destination,
+  };
+}
+
 export function parseCommandReason(
   message: string | null | undefined,
 ): CommandReason | null {
   if (typeof message !== 'string') return null;
   const text = message.split(' via ')[0]!.trim();
   if (text.length === 0) return null;
+
+  const ordersMarker = text.indexOf('orders:');
+  if (ordersMarker >= 0) {
+    const sentence = text.slice(ordersMarker + 'orders:'.length);
+    const actionMarker = sentence.indexOf(':');
+    if (actionMarker >= 0) {
+      const path = sentence
+        .slice(0, actionMarker)
+        .split('>')
+        .map((part) => part.trim())
+        .filter((part) => part.length > 0);
+      // A path containing only the role means no authored order was selected
+      // (upgrade/no-eligible-order). The presenter deliberately falls back to
+      // the role in that case. With an order, the leaf is the body's current
+      // objective; parent orders remain visible in the selected-body panel.
+      const orderId = path.length > 1 ? path.at(-1)! : null;
+      return finishReason(
+        text,
+        ordersMarker,
+        orderId,
+        sentence.slice(actionMarker + 1),
+      );
+    }
+  }
+
   const marker = text.indexOf('tp:');
   if (marker < 0) {
     return {
@@ -67,27 +122,12 @@ export function parseCommandReason(
       destination: null,
     };
   }
-  // Stacked qualifiers and a preposition: keep the words, drop the grammar,
-  // and join them the way the tail already reads.
-  const qualifier = text
-    .slice(0, marker)
-    .split(/[\s:]+/)
-    .filter((word) => word.length > 0 && word !== 'for')
-    .join('/');
-  let tail = parts.slice(4).join(':');
-  // Split the destination off BEFORE the length cap: a long action tail must
-  // never silently eat the coordinates off the end of the lens.
-  const found = DESTINATION_TAIL.exec(tail);
-  const destination = found
-    ? { x: Number(found[1]), y: Number(found[2]) }
-    : null;
-  if (found) tail = tail.slice(0, found.index);
-  const action = qualifier.length > 0 ? `${qualifier}/${tail}` : tail;
-  return {
-    orderId: parts[3]!.length > 0 ? parts[3]! : null,
-    action: action.slice(0, REASON_MAX_CHARS),
-    destination,
-  };
+  return finishReason(
+    text,
+    marker,
+    parts[3]!.length > 0 ? parts[3]! : null,
+    parts.slice(4).join(':'),
+  );
 }
 
 /**

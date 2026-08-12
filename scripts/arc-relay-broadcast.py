@@ -212,12 +212,14 @@ def command_reason(
     but "what is this body doing right now" is the one thing in it a spectator
     needs, and a selected body with no answer to that question reads as a bug.
 
-    The tactical playbook writes ``tp:<phase>:<group>:<order>:<action>``, often
-    behind a qualifier (``idle-break:tp:...``, ``turn for tp:...``) and usually
-    with a ``via <Direction>`` suffix the arena already shows by pointing the
-    body that way. Anything the shape does not match is carried WHOLE as the
-    action: a transport must not decide that a vocabulary it has not been
-    taught is not worth showing.
+    The current executor writes
+    ``orders:<role> > <order> [> <child>...]:<action>``. Frozen tactical
+    artifacts write ``tp:<phase>:<group>:<order>:<action>``. Both may sit
+    behind a qualifier (``idle-break:tp:...``, ``turn for orders:...``) and
+    usually carry a ``via <Direction>`` suffix the arena already shows by
+    pointing the body that way. Anything the shape does not match is carried
+    WHOLE as the action: a transport must not decide that a vocabulary it has
+    not been taught is not worth showing.
 
     A movement action additionally carries the RESOLVED destination as an
     ``@x,y`` tail (``march@12,7``). It is split off here rather than
@@ -230,12 +232,42 @@ def command_reason(
     text = message.split(" via ")[0].strip()
     if not text:
         return None
+
+    orders_marker = text.find("orders:")
+    if orders_marker >= 0:
+        sentence = text[orders_marker + len("orders:"):]
+        action_marker = sentence.find(":")
+        if action_marker >= 0:
+            path = [part.strip() for part in sentence[:action_marker].split(">")
+                    if part.strip()]
+            # A role-only path means upgrade/no-eligible-order; the presenter
+            # falls back to the sticky role. Otherwise the leaf is the body's
+            # current objective and parent orders remain panel context.
+            order_id = path[-1] if len(path) > 1 else None
+            return finish_command_reason(
+                text,
+                orders_marker,
+                order_id,
+                sentence[action_marker + 1:],
+            )
+
     marker = text.find("tp:")
     if marker < 0:
         return (None, text[:REASON_MAX_CHARS], None)
     parts = text[marker:].split(":")
     if len(parts) < 5:
         return (None, text[:REASON_MAX_CHARS], None)
+    return finish_command_reason(
+        text, marker, parts[3] or None, ":".join(parts[4:]))
+
+
+def finish_command_reason(
+    text: str,
+    marker: int,
+    order_id: str | None,
+    action: str,
+) -> tuple[str | None, str, tuple[int, int] | None]:
+    """Finish the qualifier/destination split shared by both mind grammars."""
     # "turn for idle-break:tp:..." is two stacked qualifiers and a preposition.
     # Keep the words, drop the grammar, and join them the way the tail reads.
     qualifier = "/".join(
@@ -243,7 +275,6 @@ def command_reason(
         for word in re.split(r"[\s:]+", text[:marker])
         if word and word != "for"
     )
-    action = ":".join(parts[4:])
     # Strip the destination BEFORE the length cap, so a long action tail can
     # never silently eat the coordinates off the end of the lens.
     destination = None
@@ -253,7 +284,7 @@ def command_reason(
         action = action[: found.start()]
     if qualifier:
         action = f"{qualifier}/{action}"
-    return (parts[3] or None, action[:REASON_MAX_CHARS], destination)
+    return (order_id, action[:REASON_MAX_CHARS], destination)
 
 
 def turn_reasons(

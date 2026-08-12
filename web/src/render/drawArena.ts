@@ -47,6 +47,7 @@ import {
   type BotPose,
 } from './interpolate';
 import { roleTagCaption, roleTagColor } from '../presentation/roleTag';
+import { bodyIntentLabel } from '../presentation/bodyIntent';
 import { arenaViewport, type ArenaFrame } from './arenaCamera';
 import { frontlineCaptureVisual } from './frontlineCaptureVisual';
 import { wallAtlasDestination } from './wallAtlasGeometry';
@@ -70,7 +71,7 @@ import {
   teamVisionSeesActor,
   teamVisionSeesProjectile,
 } from './teamVision';
-import { parsePlayRoleTag, playsAt } from '../presentation/playAwareness';
+import { playsAt } from '../presentation/playAwareness';
 
 const directionStep: Record<ReplayDirection, [number, number]> = {
   north: [0, -1],
@@ -1679,12 +1680,8 @@ export function drawArena(
     const unit = tickPresentation?.units.find(
       (candidate) => candidate.unitKey === pose.unitKey,
     );
-    const tag = unit?.roleTag;
+    const tag = bodyIntentLabel(unit?.order?.orderId, unit?.roleTag);
     if (!tag) return;
-    // Arc Relay tags carry the unit's live order now (race-north,
-    // guard-home, ghost-stalk) — suppressing them made authored guards
-    // unreadable from bugs (owner review), so they draw like any other.
-    if (parsePlayRoleTag(tag)) return;
     const caption = roleTagCaption(tag);
     // Camera close-ups must enlarge the machine, not turn sheet metadata into a billboard.
     const size = Math.min(13, Math.max(7, Math.round(tile * 0.24)));

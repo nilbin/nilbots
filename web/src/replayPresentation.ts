@@ -322,9 +322,9 @@ export interface UnitPresentation {
    * What this body is DOING: its live order, and what it is doing about it.
    *
    * `roleTag` beside it is the label the mind published *for the body* — a
-   * standing job title that is sticky for many ticks and is drawn under the
-   * chassis. This is the live half: the order the reason names and the action
-   * tail of the reason itself, so a selected body reads
+   * standing job title that is sticky for many ticks. This is the live half:
+   * the order the reason names and the action tail of the reason itself, so a
+   * selected body reads
    * `race-north · march` rather than only `race-north`.
    *
    * Read from the broadcast's published order table where there is one, and
@@ -643,8 +643,7 @@ function presentUnit(
   const roleTag = turn?.observation.self?.roleTag ?? null;
   // The published table first, because a broadcast has no debug text left to
   // read; the turn's own message otherwise, split the same way. Both fall back
-  // to the sticky role tag for the order id, which is what a mind publishes
-  // when the body's job outlives the sentence that set it.
+  // to the sticky role tag when no authored order is selected.
   const order: UnitOrderPresentation | null = publishedOrder
     ? { orderId: publishedOrder.orderId ?? roleTag, action: publishedOrder.action }
     : reason

@@ -433,11 +433,11 @@ export default function BotPanel({
         // race-north, guard-home, ghost-stalk. Suppressing it on Arc Relay
         // made authored guards unreadable from bugs (owner review): always
         // fall back to the raw tag.
-        const displayedRole = playRoleSummary(unit.roleTag) ?? unit.roleTag;
-        // A published order id outranks the sticky tag only when there is one:
-        // the tag is what a coordinated play summarises, and losing that
-        // summary would undo the play-awareness reading.
-        const orderTag = displayedRole ?? unit.order?.orderId ?? null;
+        const playRole = playRoleSummary(unit.roleTag);
+        const displayedRole = playRole ?? unit.roleTag;
+        // A coordinated-play summary keeps its special vocabulary. Otherwise
+        // the changing authored order is more useful than the sticky role.
+        const orderTag = playRole ?? unit.order?.orderId ?? displayedRole ?? null;
         const controllerName = replay.participants.find(
           (participant) => participant.participantId === unit.participantId,
         )?.name;
