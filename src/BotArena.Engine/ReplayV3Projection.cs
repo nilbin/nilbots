@@ -73,6 +73,9 @@ internal static class ReplayV3Projection
         ValidateOptionalPresentationId(
             presentation.ThemeId,
             nameof(presentation.ThemeId));
+        ValidateOptionalPresentationId(
+            presentation.SignaturePresentationId,
+            nameof(presentation.SignaturePresentationId));
         var formIds = new HashSet<string>(StringComparer.Ordinal);
         ImmutableArray<ReplayV3.FormPresentationMetadata> forms =
             (presentation.Forms.IsDefault
@@ -111,7 +114,8 @@ internal static class ReplayV3Projection
         return new ReplayV3.PresentationMetadata(
             presentation.ThemeId,
             map,
-            forms);
+            forms,
+            presentation.SignaturePresentationId);
     }
 
     private static ReplayV3.MapPresentationMetadata MapPresentation(

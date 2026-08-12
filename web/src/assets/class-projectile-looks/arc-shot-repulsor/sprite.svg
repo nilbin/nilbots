@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Repulsor Cog projectile">
+  <path fill="#fff" fill-opacity="0.18" d="M18 116h78l12-38 34 16 24-30 26 30 40-12 8 46-8 46-40-12-26 30-24-30-34 16-12-38H18Z"/>
+  <path fill="#fff" d="m98 128 28-42 30 18 28-24 20 34 36 14-36 14-20 34-28-24-30 18Z"/>
+  <circle fill="#fff" fill-opacity="0.3" cx="168" cy="128" r="28"/>
+  <circle fill="#fff" cx="168" cy="128" r="10"/>
+</svg>

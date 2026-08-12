@@ -3,8 +3,9 @@
   "label": "Repulsor",
   "sprite": "sprite.png",
   "suggestedAccent": "#38bdf8",
-  "defaultProjectile": "arc-pulse",
+  "defaultProjectile": "arc-shot-repulsor",
   "classId": "repulsor",
+  "classRole": "mobile",
   "locomotionCue": "treads",
   "scale": 1.08
 }

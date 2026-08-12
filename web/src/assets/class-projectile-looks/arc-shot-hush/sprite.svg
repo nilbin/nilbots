@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Hush Rotor projectile">
+  <path fill="#fff" fill-opacity="0.15" d="M18 118h76a54 54 0 0 1 108-12l38 22-38 22a54 54 0 0 1-108-12H18Z"/>
+  <path fill="#fff" d="m116 128 22-46 20 28 42-12-10 30 10 30-42-12-20 28Z"/>
+  <circle fill="#fff" fill-opacity="0.38" cx="158" cy="128" r="20"/>
+  <circle fill="#fff" cx="158" cy="128" r="8"/>
+</svg>

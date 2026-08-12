@@ -3,8 +3,9 @@
   "label": "Mason",
   "sprite": "sprite.png",
   "suggestedAccent": "#38bdf8",
-  "defaultProjectile": "arc-pulse",
+  "defaultProjectile": "arc-shot-mason",
   "classId": "mason",
+  "classRole": "mobile",
   "locomotionCue": "treads",
   "scale": 1.09
 }

@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Relay Cradle projectile">
+  <path fill="#fff" fill-opacity="0.2" d="M20 112h78a66 66 0 0 1 112-28l30 44-30 44a66 66 0 0 1-112-28H20Z"/>
+  <path fill="#fff" d="M92 128a54 54 0 0 1 108-4l40 4-40 4a54 54 0 0 1-108-4Zm28 0a26 26 0 1 0 52 0 26 26 0 0 0-52 0Z" fill-rule="evenodd"/>
+  <path fill="#fff" fill-opacity="0.38" d="m200 96 40 32-40 32Z"/>
+</svg>

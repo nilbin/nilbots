@@ -3,8 +3,9 @@
   "label": "Minesmith",
   "sprite": "sprite.png",
   "suggestedAccent": "#38bdf8",
-  "defaultProjectile": "arc-pulse",
+  "defaultProjectile": "arc-shot-minesmith",
   "classId": "minesmith",
+  "classRole": "mobile",
   "locomotionCue": "wheels",
   "scale": 1.06
 }

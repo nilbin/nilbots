@@ -3,8 +3,9 @@
   "label": "Relay",
   "sprite": "sprite.png",
   "suggestedAccent": "#38bdf8",
-  "defaultProjectile": "arc-pulse",
+  "defaultProjectile": "arc-shot-relay",
   "classId": "relay",
+  "classRole": "mobile",
   "locomotionCue": "skids",
   "scale": 1.05
 }

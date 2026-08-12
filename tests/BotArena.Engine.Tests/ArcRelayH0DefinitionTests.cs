@@ -226,7 +226,7 @@ public sealed class ArcRelayH0DefinitionTests
     }
 
     [Fact]
-    public void ReplayPresentation_AuthorsEveryClassLookAndSharedProjectile()
+    public void ReplayPresentation_AuthorsEveryClassLookAndProjectile()
     {
         ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create();
 
@@ -244,8 +244,23 @@ public sealed class ArcRelayH0DefinitionTests
             string classId = form.FormId[
                 ArcRelayH0Definition.FormPrefix.Length..];
             Assert.Equal($"arc-{classId}", form.LookId);
-            Assert.Equal("arc-pulse", form.ProjectileLookId);
+            Assert.Equal($"arc-shot-{classId}", form.ProjectileLookId);
         });
+        Assert.Null(presentation.SignaturePresentationId);
+    }
+
+    [Fact]
+    public void Grammar3ReplayPresentation_SnapshotsTheVersionedSignaturePackage()
+    {
+        ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create(
+            loopProfile: ArcRelayLoopProfile.Tapline2);
+
+        GenericActorReplayPresentation presentation =
+            ArcRelayH0ReplayPresentation.Create(definition);
+
+        Assert.Equal(
+            "arc-relay-signatures-v1",
+            presentation.SignaturePresentationId);
     }
 
     [Fact]

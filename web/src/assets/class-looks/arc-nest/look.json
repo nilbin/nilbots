@@ -3,8 +3,9 @@
   "label": "Nest",
   "sprite": "sprite.png",
   "suggestedAccent": "#38bdf8",
-  "defaultProjectile": "arc-pulse",
+  "defaultProjectile": "arc-shot-nest",
   "classId": "nest",
+  "classRole": "mobile",
   "locomotionCue": "wheels",
   "scale": 1.08
 }

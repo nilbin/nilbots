@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Lantern Lens projectile">
+  <path fill="#fff" fill-opacity="0.18" d="M20 112h70l28-52 78 18 44 50-44 50-78 18-28-52H20Z"/>
+  <path fill="#fff" d="m112 128 24-42 54 12 40 30-40 30-54 12Z"/>
+  <path fill="#fff" fill-opacity="0.24" d="m142 128 18-24 34 8 22 16-22 16-34 8Z"/>
+  <circle fill="#fff" cx="172" cy="128" r="12"/>
+</svg>

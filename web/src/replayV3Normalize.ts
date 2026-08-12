@@ -4467,13 +4467,32 @@ export function validateReplayV3(
   uint64(header.seed, 'replay.header.seed', fail);
   validateContract(header.contract, 'replay.header.contract', fail);
   if (header.presentation !== null) {
-    const presentation = exact(
+    const presentationSource = object(
       header.presentation,
       'replay.header.presentation',
-      ['themeId', 'map', 'forms'],
+      fail,
+    );
+    const presentation = exact(
+      presentationSource,
+      'replay.header.presentation',
+      [
+        'themeId',
+        ...(own(presentationSource, 'signaturePresentationId')
+          ? ['signaturePresentationId']
+          : []),
+        'map',
+        'forms',
+      ],
       fail,
     );
     nullable(presentation.themeId, 'replay.header.presentation.themeId', string, fail);
+    if (own(presentation, 'signaturePresentationId')) {
+      semanticId(
+        presentation.signaturePresentationId,
+        'replay.header.presentation.signaturePresentationId',
+        fail,
+      );
+    }
     if (presentation.map !== null) {
       const map = exact(
         presentation.map,
@@ -7301,6 +7320,8 @@ export function normalizeReplayV3(
     partial: document.partial,
     replayHash: document.replayHash,
     matchContractFingerprint: contract.matchContractFingerprint,
+    signaturePresentationId:
+      document.header.presentation?.signaturePresentationId ?? null,
     contract: contractFromV3(contract),
     map: mapFromV3(document.header),
     forms,

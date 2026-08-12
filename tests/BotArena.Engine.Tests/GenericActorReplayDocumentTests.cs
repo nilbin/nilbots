@@ -71,7 +71,8 @@ public sealed class GenericActorReplayDocumentTests
                     definition.Rules.Forms[0].Id,
                     "trident-wasp",
                     "trident-spark"),
-            ]);
+            ],
+            "arc-relay-signatures-v1");
         GenericActorReplayDocument themed =
             GenericActorReplayDocument.Create(session, presentation);
         using JsonDocument plainDocument =
@@ -105,6 +106,9 @@ public sealed class GenericActorReplayDocumentTests
             projected.GetProperty("forms")[0]
                 .GetProperty("lookId")
                 .GetString());
+        Assert.Equal(
+            "arc-relay-signatures-v1",
+            projected.GetProperty("signaturePresentationId").GetString());
         Assert.True(
             GenericActorReplayDocument.VerifyHash(
                 themed.CanonicalJson,

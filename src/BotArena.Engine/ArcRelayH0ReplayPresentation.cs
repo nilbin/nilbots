@@ -13,7 +13,14 @@ public static class ArcRelayH0ReplayPresentation
     public const string BoundaryWallFamily = "perimeter";
     public const string InteriorWallFamily = "cover";
     public const string LookPrefix = "arc-";
+    /// <summary>
+    /// Compatibility projectile used by participant snapshots and historical
+    /// Arc Relay replays. New replay forms own a class-specific projectile.
+    /// </summary>
     public const string ProjectileLookId = "arc-pulse";
+    public const string ProjectileLookPrefix = "arc-shot-";
+    public const string SignaturePresentationId =
+        "arc-relay-signatures-v1";
 
     public static GenericActorReplayPresentation Create(
         ActorResolvedMatchDefinition definition)
@@ -32,7 +39,7 @@ public static class ArcRelayH0ReplayPresentation
                     return new GenericActorReplayPresentation.FormPresentation(
                         form.Id,
                         LookPrefix + classId,
-                        ProjectileLookId);
+                        ProjectileLookPrefix + classId);
                 })
                 .OrderBy(form => form.FormId, StringComparer.Ordinal)
                 .ToImmutableArray();
@@ -43,6 +50,12 @@ public static class ArcRelayH0ReplayPresentation
                 BoundaryWallFamily,
                 InteriorWallFamily,
                 []),
-            forms);
+            forms,
+            definition.Rules.GameMode is ArcRelayGameModeDefinition
+            {
+                SignatureGrammarVersion: >= 3,
+            }
+                ? SignaturePresentationId
+                : null);
     }
 }

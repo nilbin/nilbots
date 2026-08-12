@@ -3,8 +3,9 @@
   "label": "Patchbay",
   "sprite": "sprite.png",
   "suggestedAccent": "#38bdf8",
-  "defaultProjectile": "arc-pulse",
+  "defaultProjectile": "arc-shot-patchbay",
   "classId": "patchbay",
+  "classRole": "mobile",
   "locomotionCue": "skids",
   "scale": 1.04
 }

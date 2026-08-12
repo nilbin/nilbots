@@ -620,7 +620,8 @@ public sealed class ReplayV3SerializerTests
             [
                 new("turret", "turret-look", null),
                 new("mobile", null, "pulse"),
-            ]);
+            ],
+            "signature-pack-v1");
         (ReplayV3 replay, ActorResolvedMatchDefinition definition) =
             CreateCompleteReplay(presentation);
         (ReplayV3 canonicalOrder, _) = CreateCompleteReplay(
@@ -640,7 +641,8 @@ public sealed class ReplayV3SerializerTests
                 [
                     new("mobile", null, "pulse"),
                     new("turret", "turret-look", null),
-                ]));
+                ],
+                "signature-pack-v1"));
         ReplayV3 withoutPresentation = replay with
         {
             Header = replay.Header with { Presentation = null },
@@ -683,6 +685,11 @@ public sealed class ReplayV3SerializerTests
             "nebula",
             header.GetProperty("presentation")
                 .GetProperty("themeId")
+                .GetString());
+        Assert.Equal(
+            "signature-pack-v1",
+            header.GetProperty("presentation")
+                .GetProperty("signaturePresentationId")
                 .GetString());
     }
 

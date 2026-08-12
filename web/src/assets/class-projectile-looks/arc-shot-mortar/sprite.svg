@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Mortar Slug projectile">
+  <path fill="#fff" fill-opacity="0.2" d="M18 98h56l28-24h78l58 54-58 54h-78l-28-24H18Z"/>
+  <path fill="#fff" d="M72 92h104l62 36-62 36H72l30-36Z"/>
+  <path fill="#fff" fill-opacity="0.38" d="M108 88h22v80h-22Zm46 0h18v80h-18Z"/>
+  <path fill="#fff" d="m194 102 44 26-44 26Z"/>
+</svg>

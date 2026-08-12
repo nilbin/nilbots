@@ -4,6 +4,7 @@ import {
   visualIndexForUnit,
 } from '../replayParticipants';
 import {
+  classPresentation,
   presentationAccent,
   presentationBotLook,
   presentationProjectileLook,
@@ -38,80 +39,6 @@ import {
  * apart is left exactly as authored, and the per-team palette is reached for only when
  * the accents in the document do not distinguish one team from another.
  */
-
-/**
- * Real class-owned presentation, separate from player cosmetics.
- *
- * The current Labs replay writer carries no per-form presentation block, so this is the
- * compatibility bridge from its exact form IDs to the selected class identities. The
- * assets live in the internal class roots: they can render without appearing in the
- * appearance editor or becoming equippable on an unrelated class. A future replay that
- * authors form presentation still wins at layer one above.
- *
- * Prime and child bodies deliberately share one chassis per class. Fabrication creates a
- * separate identical Lattice Loom; it never grows a child on the source body. Only
- * Bulwark owns an emplacement. The two directional stances are distinct third bodies:
- * Trident Wasp Volley carries the three launch lanes, and Aegis Tortoise Shell ends its
- * physical guard at the protected quadrant's exact ±45° edges.
- */
-const CLASS_FORM_PRESENTATION: ReadonlyMap<
-  string,
-  {
-    readonly mobile: string;
-    readonly projectile: string;
-    readonly emplaced?: string;
-    readonly stance?: string;
-  }
-> = new Map([
-  [
-    'striker',
-    {
-      mobile: 'trident-wasp',
-      projectile: 'trident-spark',
-      stance: 'trident-wasp-volley',
-    },
-  ],
-  [
-    'bulwark',
-    {
-      mobile: 'aegis-tortoise',
-      projectile: 'rebound-diamond',
-      emplaced: 'aegis-tortoise-turret',
-      stance: 'aegis-tortoise-shell',
-    },
-  ],
-  [
-    'fabricator',
-    {
-      mobile: 'lattice-loom',
-      projectile: 'lattice-rivet',
-    },
-  ],
-  ...[
-    'kestrel',
-    'palisade',
-    'towline',
-    'patchbay',
-    'lantern',
-    'mortar',
-    'minesmith',
-    'hush',
-    'relay',
-    'switchback',
-    'longshot',
-    'mason',
-    'sunder',
-    'repulsor',
-    'veil',
-    'nest',
-  ].map(
-    (classId) =>
-      [
-        classId,
-        { mobile: `arc-${classId}`, projectile: 'arc-pulse' },
-      ] as const,
-  ),
-]);
 
 const ARC_RELAY_FORM_PREFIX = 'arc-body-';
 
@@ -161,7 +88,7 @@ export function classFamilyForForm(
   const family = formId.startsWith(ARC_RELAY_FORM_PREFIX)
     ? formId.slice(ARC_RELAY_FORM_PREFIX.length)
     : formId.split('-', 1)[0];
-  return CLASS_FORM_PRESENTATION.has(family) ? family : null;
+  return classPresentation(family) !== null ? family : null;
 }
 
 /** Is this form ID one of the emplaced (turret) variants of a class family? */
@@ -190,12 +117,12 @@ export function fallbackLookIdForForm(
 ): string | null {
   const family = classFamilyForForm(formId);
   if (family === null) return null;
-  const looks = CLASS_FORM_PRESENTATION.get(family)!;
+  const looks = classPresentation(family)!;
   if (stanceKindForForm(formId) !== null)
-    return looks.stance ?? looks.mobile;
+    return (looks.stance ?? looks.mobile).id;
   return isEmplacedFormId(formId)
-    ? (looks.emplaced ?? looks.mobile)
-    : looks.mobile;
+    ? (looks.emplaced ?? looks.mobile).id
+    : looks.mobile.id;
 }
 
 /** The class family's emplaced look, whichever form was asked about. */
@@ -205,7 +132,7 @@ export function fallbackEmplacedLookIdForForm(
   const family = classFamilyForForm(formId);
   return family === null
     ? null
-    : (CLASS_FORM_PRESENTATION.get(family)!.emplaced ?? null);
+    : (classPresentation(family)!.emplaced?.id ?? null);
 }
 
 /** The class family's stance look, or null when it has no stance. */
@@ -215,7 +142,7 @@ export function fallbackStanceLookIdForForm(
   const family = classFamilyForForm(formId);
   return family === null
     ? null
-    : (CLASS_FORM_PRESENTATION.get(family)!.stance ?? null);
+    : (classPresentation(family)!.stance?.id ?? null);
 }
 
 /** The paired class-owned projectile, or null for a non-class form. */
@@ -225,7 +152,7 @@ export function fallbackProjectileLookIdForForm(
   const family = classFamilyForForm(formId);
   return family === null
     ? null
-    : CLASS_FORM_PRESENTATION.get(family)!.projectile;
+    : classPresentation(family)!.projectileLookId;
 }
 
 /** The look ID the replay itself authored for a form, when it authored one. */

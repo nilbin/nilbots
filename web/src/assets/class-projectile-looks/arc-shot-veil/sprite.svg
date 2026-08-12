@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Veil Crescent projectile">
+  <path fill="#fff" fill-opacity="0.16" d="M18 116h70C116 50 188 50 240 128c-52 78-124 78-152 12H18Z"/>
+  <path fill="#fff" d="M72 128c34-70 114-70 168 0-54 70-134 70-168 0Zm48 0c22 30 66 30 96 0-30-30-74-30-96 0Z" fill-rule="evenodd"/>
+  <path fill="#fff" fill-opacity="0.42" d="m198 96 42 32-42 32Z"/>
+</svg>

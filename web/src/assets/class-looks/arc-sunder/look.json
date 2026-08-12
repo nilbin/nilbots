@@ -3,8 +3,9 @@
   "label": "Sunder",
   "sprite": "sprite.png",
   "suggestedAccent": "#38bdf8",
-  "defaultProjectile": "arc-pulse",
+  "defaultProjectile": "arc-shot-sunder",
   "classId": "sunder",
+  "classRole": "mobile",
   "locomotionCue": "low-hover",
   "scale": 1.07
 }

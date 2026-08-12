@@ -1727,6 +1727,11 @@ export interface ReplayModel {
   partial: boolean;
   replayHash: string | null;
   matchContractFingerprint: string | null;
+  /**
+   * Replay-owned signature VFX/audio package. Null means the historical
+   * treatment; an unknown non-null ID must render a truthful generic marker.
+   */
+  signaturePresentationId?: string | null;
   contract: ReplayMatchContract;
   map: ReplayMap;
   forms: ReplayForm[];

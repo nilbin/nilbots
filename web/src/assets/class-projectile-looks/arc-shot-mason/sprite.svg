@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Mason Block projectile">
+  <path fill="#fff" fill-opacity="0.2" d="M18 92h72l24-26h78l48 62-48 62h-78l-24-26H18Z"/>
+  <path fill="#fff" d="M78 88h112l50 40-50 40H78l30-40Z"/>
+  <rect fill="#fff" fill-opacity="0.34" x="116" y="102" width="72" height="52" rx="6"/>
+  <path fill="#fff" d="m198 100 42 28-42 28Z"/>
+</svg>

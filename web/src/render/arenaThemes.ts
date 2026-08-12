@@ -1,27 +1,8 @@
 import { trackDecode } from './assetReadiness';
 import { preferredAtlasWidth } from './atlasResolution';
 
-export type BotLookClassId =
-  | 'striker'
-  | 'bulwark'
-  | 'fabricator'
-  | 'kestrel'
-  | 'palisade'
-  | 'towline'
-  | 'patchbay'
-  | 'lantern'
-  | 'mortar'
-  | 'minesmith'
-  | 'hush'
-  | 'relay'
-  | 'switchback'
-  | 'longshot'
-  | 'mason'
-  | 'sunder'
-  | 'repulsor'
-  | 'veil'
-  | 'nest';
 export type BotLocomotionCue = 'low-hover' | 'wheels' | 'treads' | 'skids';
+export type BotLookClassRole = 'mobile' | 'emplaced' | 'stance';
 
 export interface BotLook {
   id: string;
@@ -33,7 +14,9 @@ export interface BotLook {
    * this yet; class-owned defaults and future class cosmetics can still expose their
    * intended family to frontend consumers without parsing the look ID.
    */
-  classId: BotLookClassId | null;
+  classId: string | null;
+  /** Explicit form role inside a class-owned presentation package. */
+  classRole: BotLookClassRole | null;
   /**
    * Presentation-only motion language. This moves the rendered body, never the
    * authoritative actor position or gameplay layer.
@@ -262,7 +245,8 @@ interface BotLookManifest {
   sprite: string;
   suggestedAccent: string;
   defaultProjectile?: string;
-  classId?: BotLookClassId;
+  classId?: string;
+  classRole?: BotLookClassRole;
   locomotionCue?: BotLocomotionCue;
   scale: number;
 }
@@ -340,27 +324,6 @@ const classProjectileLookImages = import.meta.glob<string>(
   { eager: true, import: 'default', query: '?url' },
 );
 
-const classIds = new Set<BotLookClassId>([
-  'striker',
-  'bulwark',
-  'fabricator',
-  'kestrel',
-  'palisade',
-  'towline',
-  'patchbay',
-  'lantern',
-  'mortar',
-  'minesmith',
-  'hush',
-  'relay',
-  'switchback',
-  'longshot',
-  'mason',
-  'sunder',
-  'repulsor',
-  'veil',
-  'nest',
-]);
 const themes = buildThemes();
 const looks = buildLooks(lookManifests, lookImages, lookSvgSources);
 const classLooks = buildLooks(
@@ -377,6 +340,7 @@ const classProjectileLooks = buildProjectileLooks(
   classProjectileLookImages,
 );
 validateDefaultProjectiles();
+const classPresentations = buildClassPresentations();
 /**
  * Which theme stands in when a replay names one this build does not have.
  *
@@ -435,16 +399,22 @@ export function presentationBotLook(
  * than a rotatable world sprite. This deliberately stays out of cosmetic options.
  */
 export function classIconLook(classId: string): BotLook | null {
-  const preferredId =
-    classLooks.has(`arc-${classId}`)
-      ? `arc-${classId}`
-      : ({
-          striker: 'trident-wasp',
-          bulwark: 'aegis-tortoise',
-          fabricator: 'lattice-loom',
-        } as Record<string, string>)[classId];
-  if (preferredId) return classLooks.get(preferredId) ?? null;
-  return null;
+  return classPresentation(classId)?.mobile ?? null;
+}
+
+export interface ClassPresentation {
+  classId: string;
+  mobile: BotLook;
+  emplaced: BotLook | null;
+  stance: BotLook | null;
+  projectileLookId: string;
+}
+
+/** Manifest-derived class presentation; no renderer-owned class roster. */
+export function classPresentation(
+  classId: string,
+): ClassPresentation | null {
+  return classPresentations.get(classId) ?? null;
 }
 
 export function botLookOptions(): readonly BotLook[] {
@@ -825,9 +795,17 @@ function buildLooks(
       source?.includes('data-team-accent="true"') === true
         ? source
         : null;
-    if (manifest.classId !== undefined && !classIds.has(manifest.classId))
+    if (manifest.classRole !== undefined && manifest.classId === undefined)
       throw new Error(
-        `Bot look '${manifest.id}' has unknown class '${manifest.classId}'.`,
+        `Bot look '${manifest.id}' declares a classRole without a classId.`,
+      );
+    if (
+      manifest.classRole !== undefined &&
+      !['mobile', 'emplaced', 'stance'].includes(manifest.classRole)
+    )
+      throw new Error(
+        `Bot look '${manifest.id}' has unknown class role ` +
+          `'${String(manifest.classRole)}'.`,
       );
     if (
       manifest.locomotionCue !== undefined &&
@@ -847,6 +825,7 @@ function buildLooks(
       suggestedAccent: manifest.suggestedAccent,
       defaultProjectileLookId: manifest.defaultProjectile,
       classId: manifest.classId ?? null,
+      classRole: manifest.classRole ?? null,
       locomotionCue: manifest.locomotionCue ?? null,
       image: loadImage(imageUrl),
       imageUrl,
@@ -855,6 +834,49 @@ function buildLooks(
       effectTeamAccentSvg:
         svgSources[`${directory}/effect.svg`] ?? null,
       scale: manifest.scale,
+    });
+  }
+  return result;
+}
+
+function buildClassPresentations(): Map<string, ClassPresentation> {
+  const grouped = new Map<string, BotLook[]>();
+  for (const look of classLooks.values()) {
+    if (look.classId === null || look.classRole === null)
+      throw new Error(
+        `Class-owned look '${look.id}' must declare classId and classRole.`,
+      );
+    const entries = grouped.get(look.classId) ?? [];
+    entries.push(look);
+    grouped.set(look.classId, entries);
+  }
+
+  const result = new Map<string, ClassPresentation>();
+  for (const [classId, entries] of grouped) {
+    const forRole = (role: BotLookClassRole): BotLook | null => {
+      const matches = entries.filter((look) => look.classRole === role);
+      if (matches.length > 1)
+        throw new Error(
+          `Class '${classId}' has more than one '${role}' look.`,
+        );
+      return matches[0] ?? null;
+    };
+    const mobile = forRole('mobile');
+    if (mobile === null)
+      throw new Error(`Class '${classId}' has no mobile look.`);
+    const projectileIds = new Set(
+      entries.map((look) => look.defaultProjectileLookId),
+    );
+    if (projectileIds.size !== 1 || projectileIds.has(undefined))
+      throw new Error(
+        `Class '${classId}' must declare one shared default projectile.`,
+      );
+    result.set(classId, {
+      classId,
+      mobile,
+      emplaced: forRole('emplaced'),
+      stance: forRole('stance'),
+      projectileLookId: mobile.defaultProjectileLookId!,
     });
   }
   return result;

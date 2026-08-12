@@ -3,8 +3,9 @@
   "label": "Longshot",
   "sprite": "sprite.png",
   "suggestedAccent": "#38bdf8",
-  "defaultProjectile": "arc-pulse",
+  "defaultProjectile": "arc-shot-longshot",
   "classId": "longshot",
+  "classRole": "mobile",
   "locomotionCue": "skids",
   "scale": 1.1
 }

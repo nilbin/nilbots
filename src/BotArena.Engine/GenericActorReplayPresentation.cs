@@ -12,7 +12,8 @@ namespace BotArena.Engine;
 public sealed record GenericActorReplayPresentation(
     string? ThemeId,
     GenericActorReplayPresentation.MapPresentation? Map,
-    ImmutableArray<GenericActorReplayPresentation.FormPresentation> Forms)
+    ImmutableArray<GenericActorReplayPresentation.FormPresentation> Forms,
+    string? SignaturePresentationId = null)
 {
     /// <summary>Non-gameplay wall-family presentation for the replay map.</summary>
     public sealed record MapPresentation(

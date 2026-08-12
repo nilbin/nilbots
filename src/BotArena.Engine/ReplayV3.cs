@@ -53,7 +53,8 @@ internal sealed record ReplayV3(
     internal sealed record PresentationMetadata(
         string? ThemeId,
         MapPresentationMetadata? Map,
-        ImmutableArray<FormPresentationMetadata> Forms);
+        ImmutableArray<FormPresentationMetadata> Forms,
+        string? SignaturePresentationId = null);
 
     internal sealed record MapPresentationMetadata(
         string BoundaryWall,

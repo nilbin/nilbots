@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Patchbay Seal projectile">
+  <path fill="#fff" fill-opacity="0.2" d="M22 96h52l24-22h72l68 54-68 54H98l-24-22H22Z"/>
+  <path fill="#fff" d="M64 104h96l62 24-62 24H64l18-24Z"/>
+  <circle fill="#fff" fill-opacity="0.42" cx="132" cy="128" r="38"/>
+  <path fill="#fff" d="M122 104h20v14h14v20h-14v14h-20v-14h-14v-20h14Z"/>
+</svg>

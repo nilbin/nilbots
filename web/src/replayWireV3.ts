@@ -497,6 +497,11 @@ export interface ReplayV3RuntimeVersions {
 
 export interface ReplayV3Presentation {
   themeId: string | null;
+  /**
+   * Immutable renderer/audio package for public signature facts. Absent on
+   * historical replay-v3 documents, which retain the legacy treatment.
+   */
+  signaturePresentationId?: string;
   map: {
     boundaryWall: string;
     interiorWall: string;

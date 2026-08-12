@@ -128,7 +128,8 @@ public sealed record GenericActorReplayDocument
                         form.FormId,
                         form.LookId,
                         form.ProjectileLookId))
-                .ToImmutableArray());
+                .ToImmutableArray(),
+            presentation.SignaturePresentationId);
     }
 
     /// <summary>

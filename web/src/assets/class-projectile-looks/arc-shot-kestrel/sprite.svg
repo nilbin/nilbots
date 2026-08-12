@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Kestrel Dart projectile">
+  <path fill="#fff" fill-opacity="0.2" d="M18 128 104 84l-24 34h78v20H80l24 34Z"/>
+  <path fill="#fff" d="m76 128 76-52 86 52-86 52 22-40H76Z"/>
+  <path fill="#fff" fill-opacity="0.5" d="m118 128 48-20 58 20-58 20Z"/>
+</svg>

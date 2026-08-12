@@ -3,8 +3,9 @@
   "label": "Towline",
   "sprite": "sprite.png",
   "suggestedAccent": "#38bdf8",
-  "defaultProjectile": "arc-pulse",
+  "defaultProjectile": "arc-shot-towline",
   "classId": "towline",
+  "classRole": "mobile",
   "locomotionCue": "wheels",
   "scale": 1.07
 }

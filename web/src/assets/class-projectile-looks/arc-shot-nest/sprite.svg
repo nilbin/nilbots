@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Nest Cluster projectile">
+  <path fill="#fff" fill-opacity="0.18" d="M18 112h76l42-48 40 32 36-18 28 50-28 50-36-18-40 32-42-48H18Z"/>
+  <circle fill="#fff" cx="144" cy="104" r="26"/>
+  <circle fill="#fff" cx="144" cy="152" r="26"/>
+  <circle fill="#fff" cx="188" cy="104" r="26"/>
+  <circle fill="#fff" cx="188" cy="152" r="26"/>
+  <path fill="#fff" fill-opacity="0.46" d="m194 88 46 40-46 40Z"/>
+</svg>

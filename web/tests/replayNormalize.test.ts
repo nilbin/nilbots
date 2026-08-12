@@ -818,6 +818,7 @@ test('replay-v3 normalizes the Engine golden without collapsing unit and life id
 
   assert.equal(decoded.replayVersion, 3);
   assert.equal(replay.sourceVersion, 3);
+  assert.equal(replay.signaturePresentationId, null);
   assert.equal(JSON.stringify(decoded.wire), raw);
   assert.equal(decoded.rawJson, raw);
   assert.deepEqual(
@@ -884,6 +885,31 @@ test('replay-v3 normalizes the Engine golden without collapsing unit and life id
     assert.equal(replay.contract.modeKind, 'deathmatch');
     assert.equal(replay.contract.rawContract.format.participantCount, 2);
   }
+});
+
+test('replay-v3 accepts a versioned signature presentation without reinterpreting absence', () => {
+  const historical = replayV3FixtureInput();
+  assert.equal(
+    decodeReplay(historical).replay.signaturePresentationId,
+    null,
+  );
+
+  const versioned = replayV3FixtureInput();
+  assert.ok(versioned.header.presentation);
+  versioned.header.presentation.signaturePresentationId =
+    'arc-relay-signatures-v1';
+  assert.equal(
+    decodeReplay(versioned).replay.signaturePresentationId,
+    'arc-relay-signatures-v1',
+  );
+
+  const invalid = replayV3FixtureInput();
+  assert.ok(invalid.header.presentation);
+  invalid.header.presentation.signaturePresentationId = 'Unknown Package';
+  assert.throws(
+    () => decodeReplay(invalid),
+    /signaturePresentationId: expected a .*lowercase-kebab semantic ID/,
+  );
 });
 
 test('replay-v3 carries every automatic-return placement policy', () => {

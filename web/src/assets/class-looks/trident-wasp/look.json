@@ -5,6 +5,7 @@
   "suggestedAccent": "#f59e0b",
   "defaultProjectile": "trident-spark",
   "classId": "striker",
+  "classRole": "mobile",
   "locomotionCue": "low-hover",
   "scale": 1.18
 }

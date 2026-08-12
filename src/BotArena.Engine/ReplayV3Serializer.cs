@@ -449,6 +449,12 @@ internal static class ReplayV3Serializer
 
         writer.WriteStartObject();
         WriteNullableString(writer, "themeId", presentation.ThemeId);
+        if (presentation.SignaturePresentationId is not null)
+        {
+            writer.WriteString(
+                "signaturePresentationId",
+                presentation.SignaturePresentationId);
+        }
         writer.WritePropertyName("map");
         if (presentation.Map is not { } map)
         {
@@ -8328,6 +8334,9 @@ internal static class ReplayV3Serializer
         ValidateOptionalPresentationId(
             presentation.ThemeId,
             "themeId");
+        ValidateOptionalPresentationId(
+            presentation.SignaturePresentationId,
+            "signaturePresentationId");
         if (presentation.Forms.IsDefault)
         {
             throw new ArgumentException(

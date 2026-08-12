@@ -3,8 +3,9 @@
   "label": "Mortar",
   "sprite": "sprite.png",
   "suggestedAccent": "#38bdf8",
-  "defaultProjectile": "arc-pulse",
+  "defaultProjectile": "arc-shot-mortar",
   "classId": "mortar",
+  "classRole": "mobile",
   "locomotionCue": "treads",
   "scale": 1.09
 }

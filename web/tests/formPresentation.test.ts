@@ -285,7 +285,7 @@ test('class form IDs resolve to the selected class-owned looks and projectiles',
       fallbackLookIdForForm('arc-body-longshot'),
       fallbackProjectileLookIdForForm('arc-body-longshot'),
     ],
-    ['arc-longshot', 'arc-pulse'],
+    ['arc-longshot', 'arc-shot-longshot'],
   );
 
   // Legacy and Frontline form IDs are not class forms and must keep their pixels.

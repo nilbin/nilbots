@@ -49,7 +49,10 @@ const expectedLooks = new Map([
     'repulsor',
     'veil',
     'nest',
-  ].map((classId) => [`arc-${classId}`, [classId, 'arc-pulse']]),
+  ].map((classId) => [
+    `arc-${classId}`,
+    [classId, `arc-shot-${classId}`],
+  ]),
 ]);
 
 test('internal class looks are tagged SVG packages with explicit raster exceptions', () => {
@@ -66,6 +69,7 @@ test('internal class looks are tagged SVG packages with explicit raster exceptio
       label: string;
       sprite: string;
       classId: string;
+      classRole: string;
       defaultProjectile: string;
       locomotionCue?: string;
       scale: number;
@@ -81,6 +85,10 @@ test('internal class looks are tagged SVG packages with explicit raster exceptio
     assert.deepEqual(
       [manifest.classId, manifest.defaultProjectile],
       expectedLooks.get(manifest.id),
+    );
+    assert.ok(
+      ['mobile', 'emplaced', 'stance'].includes(manifest.classRole),
+      `${manifest.id} declares its class form role`,
     );
 
     const source = readFileSync(
@@ -147,6 +155,22 @@ test('internal class looks are tagged SVG packages with explicit raster exceptio
 test('internal class projectiles are compact white-alpha SVG masks', () => {
   const expected = [
     'arc-pulse',
+    'arc-shot-hush',
+    'arc-shot-kestrel',
+    'arc-shot-lantern',
+    'arc-shot-longshot',
+    'arc-shot-mason',
+    'arc-shot-minesmith',
+    'arc-shot-mortar',
+    'arc-shot-nest',
+    'arc-shot-palisade',
+    'arc-shot-patchbay',
+    'arc-shot-relay',
+    'arc-shot-repulsor',
+    'arc-shot-sunder',
+    'arc-shot-switchback',
+    'arc-shot-towline',
+    'arc-shot-veil',
     'lattice-rivet',
     'rebound-diamond',
     'trident-spark',

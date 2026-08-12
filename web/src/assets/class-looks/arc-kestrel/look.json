@@ -3,8 +3,9 @@
   "label": "Kestrel",
   "sprite": "sprite.png",
   "suggestedAccent": "#38bdf8",
-  "defaultProjectile": "arc-pulse",
+  "defaultProjectile": "arc-shot-kestrel",
   "classId": "kestrel",
+  "classRole": "mobile",
   "locomotionCue": "low-hover",
   "scale": 1.08
 }

@@ -3,8 +3,9 @@
   "label": "Switchback",
   "sprite": "sprite.png",
   "suggestedAccent": "#38bdf8",
-  "defaultProjectile": "arc-pulse",
+  "defaultProjectile": "arc-shot-switchback",
   "classId": "switchback",
+  "classRole": "mobile",
   "locomotionCue": "low-hover",
   "scale": 1.06
 }
