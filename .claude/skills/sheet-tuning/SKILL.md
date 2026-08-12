@@ -81,10 +81,12 @@ and atomically swaps it into `SITE_DIR`. Reuse that directory to update a live
 gallery without changing its URL. Expect roughly one minute for six cells on
 the reference machine.
 
-Set `EXHIBIT_MATCH_ARGS="--mind-stepper coordinated"` to exercise coordinated
-pathing. Set `EXHIBIT_CARDS=/path/to/cards.json` for curated explanations;
-otherwise the script writes honest minimal cards. The card schema is documented
-in the script header.
+Coordinated pathing is the product and exhibit default. Use
+`EXHIBIT_MATCH_ARGS="--mind-stepper greedy"` only for an explicitly labelled
+historical-control diagnostic; never use it for an owner review gallery unless
+the owner asks to compare steppers. Set `EXHIBIT_CARDS=/path/to/cards.json` for
+curated explanations; otherwise the script writes honest minimal cards. The
+card schema is documented in the script header.
 
 The published CLI is cached at `$BATTERY_OUT/botarena-pub`:
 

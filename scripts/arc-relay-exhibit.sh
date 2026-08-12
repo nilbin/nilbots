@@ -45,7 +45,9 @@
 #   EXHIBIT_MATCH_ARGS
 #                   extra flags passed verbatim to every cell's
 #                   `experiment arc-relay` invocation, e.g.
-#                   "--mind-stepper coordinated". Word-split, so keep
+#                   "--mind-stepper greedy" for the historical diagnostic
+#                   control. Coordinated planning is the product default.
+#                   Word-split, so keep
 #                   each token space-separated and unquoted.
 #   EXHIBIT_LOOP_PROFILE
 #                   registered loop profile for every cell (default:

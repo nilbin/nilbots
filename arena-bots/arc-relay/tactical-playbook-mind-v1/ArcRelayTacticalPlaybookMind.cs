@@ -28,7 +28,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
 
     private GenericActorResolvedMatchContract? _contract;
     private OrdersPackage? _package;
-    private IArenaStepper _stepper = new GreedyArenaStepper();
+    private IArenaStepper _stepper = new CoordinatedArenaStepper();
     private Position _ownReactor;
     private Position _enemyReactor;
     private Position[] _healTiles = [];
@@ -126,10 +126,9 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         }
         Dictionary<int, Proposal> selected = Allocate(package, cursors);
         ReconcileSelections(mind, selected);
-        Dictionary<Position, int> serviceOwners = ActiveServicePointOwners(
-            contract, selected);
         Dictionary<int, MovePlan> movePlans = PrepareMovePlans(
-            contract, mind, package, selected, serviceOwners);
+            contract, mind, package, selected);
+        KeepFollowersBehindLeaders(contract, movePlans, selected);
 
         _traffic.Observe(
             mind.Tick,
@@ -149,7 +148,6 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 claims.Root(strike.Shooter.UnitId);
         }
         RankBodies(mind, claims);
-        RegisterActiveServicePoints(serviceOwners, claims);
         PublishTrafficRequests(contract, mind, movePlans, claims);
 
         foreach (MindBody body in mind.Bodies
@@ -730,8 +728,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         GenericActorResolvedMatchContract contract,
         MindContext mind,
         OrdersPackage package,
-        IReadOnlyDictionary<int, Proposal> selected,
-        IReadOnlyDictionary<Position, int> serviceOwners)
+        IReadOnlyDictionary<int, Proposal> selected)
     {
         var result = new Dictionary<int, MovePlan>();
         foreach ((int unitId, Proposal proposal) in selected)
@@ -793,26 +790,56 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     proposal.Leaf.Node.Path, loop: true));
                 continue;
             }
-            Position[] targetGoals = proposal.Target.Goals;
-            if (move.Target == "nearest-heal-zone"
-                && serviceOwners.TryGetValue(
-                    proposal.Target.Position, out int serviceOwner)
-                && serviceOwner != unitId)
-            {
-                Position[] queue = TacticalFollowPlanner.StandoffGoals(
-                    proposal.Target.Position,
-                    tile => ArenaBasics.IsLegalTerrainStep(
-                        contract.Map, proposal.Target.Position, tile));
-                if (queue.Length > 0)
-                    targetGoals = queue;
-            }
-            Position[] goals = PostureGoals(targetGoals, move.Posture);
+            Position[] goals = PostureGoals(
+                proposal.Target.Goals, move.Posture);
             Position goal = Nearest(contract.Map, body.Position, goals);
             result.Add(unitId, new MovePlan(
                 proposal.Leaf.Node.Path, goal, goals, null,
                 goals.Contains(body.Position)));
         }
         return result;
+    }
+
+    /// <summary>
+    /// A follower consumes its leader's movement plan rather than competing
+    /// with it. ResolveTargets already excluded the occupied leader tile;
+    /// this second phase excludes the leader's committed next course tile.
+    /// The leader therefore owns the front of the file and the follower
+    /// plans against the remaining adjacent standoff goals.
+    /// </summary>
+    private static void KeepFollowersBehindLeaders(
+        GenericActorResolvedMatchContract contract,
+        Dictionary<int, MovePlan> movePlans,
+        IReadOnlyDictionary<int, Proposal> selected)
+    {
+        foreach ((int unitId, Proposal proposal) in selected.OrderBy(value =>
+                     value.Key))
+        {
+            if (proposal.Leaf.Node.Action is not OrdersPackage.MoveAction
+                    { Kind: "follow" }
+                || proposal.Target.Actor is not ActorIdentity leader
+                || !movePlans.TryGetValue(unitId, out MovePlan? follower)
+                || !movePlans.TryGetValue(leader.UnitId, out MovePlan? lead))
+            {
+                continue;
+            }
+            Position? leadNext = lead.Course?.Next;
+            if (leadNext is null || !follower.Goals.Contains(leadNext.Value))
+                continue;
+            Position[] goals = follower.Goals
+                .Where(goal => goal != leadNext.Value)
+                .ToArray();
+            if (goals.Length == 0)
+                continue;
+            Position goal = Nearest(
+                contract.Map, proposal.Body.Position, goals);
+            movePlans[unitId] = follower with
+            {
+                Goal = goal,
+                Goals = goals,
+                Arrived = goals.Contains(proposal.Body.Position),
+            };
+        }
     }
 
     private MovePlan RoutePlan(
@@ -924,41 +951,6 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             claims.Rank(_traffic.Priority(body.UnitId));
     }
 
-    /// <summary>
-    /// A heal tile is a one-body service point whose authoritative activation
-    /// is consecutive successful Wait actions. The current occupant owns the
-    /// service point; another recovery seeker approaches its legal adjacent
-    /// waiting ring instead of evicting it and resetting both channels.
-    /// Unrelated traffic keeps ordinary right-of-way. Ownership is recomputed
-    /// every tick.
-    /// </summary>
-    private static Dictionary<Position, int> ActiveServicePointOwners(
-        GenericActorResolvedMatchContract contract,
-        IReadOnlyDictionary<int, Proposal> selected)
-    {
-        var result = new Dictionary<Position, int>();
-        foreach ((int unitId, Proposal proposal) in selected)
-        {
-            if (proposal.Leaf.Node.Action is not OrdersPackage.MoveAction move
-                || move.Target != "nearest-heal-zone"
-                || proposal.Body.Position != proposal.Target.Position
-                || proposal.Body.Health >= MaxHealth(contract, proposal.Body))
-            {
-                continue;
-            }
-            result[proposal.Body.Position] = unitId;
-        }
-        return result;
-    }
-
-    private static void RegisterActiveServicePoints(
-        IReadOnlyDictionary<Position, int> serviceOwners,
-        ArenaBasics.Claims claims)
-    {
-        foreach ((Position tile, int owner) in serviceOwners)
-            claims.OwnServicePoint(tile, owner);
-    }
-
     private static void PublishTrafficRequests(
         GenericActorResolvedMatchContract contract,
         MindContext mind,
@@ -1061,22 +1053,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             + $":{urgency}";
         if (plan.Arrived || plan.Goals.Contains(body.Position))
         {
-            bool ownsService = claims.ServicePointOwner(
-                    body.Position, out int owner)
-                && owner == body.UnitId;
-            int serviceOwner = -1;
-            bool queuesForService = proposal.Leaf.Node.Action
-                    is OrdersPackage.MoveAction move
-                && move.Target == "nearest-heal-zone"
-                && claims.ServicePointOwner(
-                    proposal.Target.Position, out serviceOwner)
-                && serviceOwner != body.UnitId;
-            string service = ownsService
-                ? ":channel-heal:traffic-owner"
-                : queuesForService
-                    ? $":service-queue:u{serviceOwner}"
-                    : "";
-            body.Hold($"{movement}:at-target:{proposal.Target.Key}{service}");
+            body.Hold($"{movement}:at-target:{proposal.Target.Key}");
             return;
         }
         if (plan.Course?.Next is Position step)

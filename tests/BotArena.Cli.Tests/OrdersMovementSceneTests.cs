@@ -14,6 +14,8 @@ namespace BotArena.Cli.Tests;
 /// </summary>
 public sealed class OrdersMovementSceneTests
 {
+    private const int StepperOptionsMagic = 0x50455453; // STEP.
+
     [Fact]
     public void TaplineExercisesUrgencyAndClearsBothReactorDeployments()
     {
@@ -234,7 +236,7 @@ public sealed class OrdersMovementSceneTests
     }
 
     [Fact]
-    public void G3FollowerLeavesLeaderRoomAndHealStationKeepsItsChannel()
+    public void G3FollowerLeavesItsLeadersCourseClear()
     {
         string root = FindRepoRoot();
         TacticalPlaybookCompilation hunter = Compile(root, "hunter-tapline-v2.json");
@@ -254,9 +256,7 @@ public sealed class OrdersMovementSceneTests
         int leaderEvictionsByFollower = 0;
         int longestLeaderEvictionRun = 0;
         int currentLeaderEvictionRun = 0;
-        int healChannelEvictions = 0;
-        int protectedHealWaits = 0;
-        var healedHunterBodies = new HashSet<ActorIdentity>();
+        int leaderRouteSteps = 0;
         while (!session.IsCompleted)
         {
             GenericActorMatchStepResult step = session.Step();
@@ -265,7 +265,7 @@ public sealed class OrdersMovementSceneTests
             Dictionary<int, string> reasons = hunterTurn.Commands.ToDictionary(
                 resolution => resolution.Command.UnitId,
                 resolution => resolution.Command.DebugMessage ?? "");
-            if (step.Tick is >= 80 and <= 125
+            if (step.Tick is >= 0 and <= 45
                 && (reasons.GetValueOrDefault(0) ?? "").Contains(
                     ":make-way:u1", StringComparison.Ordinal)
                 && (reasons.GetValueOrDefault(1) ?? "").Contains(
@@ -278,61 +278,20 @@ public sealed class OrdersMovementSceneTests
                 currentLeaderEvictionRun = 0;
             longestLeaderEvictionRun = Math.Max(
                 longestLeaderEvictionRun, currentLeaderEvictionRun);
-            foreach ((int unitId, string reason) in reasons)
-            {
-                if (reason.Contains("recover-health", StringComparison.Ordinal)
-                    && TryMakeWayMover(reason, out int mover)
-                    && (reasons.GetValueOrDefault(mover) ?? "").Contains(
-                        "recover-health", StringComparison.Ordinal))
-                {
-                    healChannelEvictions++;
-                }
-                if (reason.Contains(
-                        ":channel-heal:traffic-owner", StringComparison.Ordinal))
-                {
-                    protectedHealWaits++;
-                }
-            }
-            foreach (GenericActorAuthoritativeEvent fact in
-                     step.AuthoritativeEvents)
-            {
-                if (fact.Payload is GenericActorRuntimeObservation.EventPayload
-                    .ArcRelay { Fact: ArcRelayEvent.ZoneHealed healed }
-                    && healed.ActorId.TeamId == 1)
-                {
-                    healedHunterBodies.Add(healed.ActorId);
-                }
-            }
+            if (step.Tick is >= 0 and <= 45
+                && (reasons.GetValueOrDefault(0) ?? "").Contains(
+                    "shadow-hunt:march", StringComparison.Ordinal))
+                leaderRouteSteps++;
         }
 
-        // Owner catch, gallery G3 around t90: follower u1 requested the exact
-        // occupied tile of leader u0, so the routine patrol leader repeatedly
-        // stepped aside. Follow now resolves an adjacent standoff ring.
+        // Owner catch, coordinated gallery G3 launch: follower u1 repeatedly
+        // requested the route tile leader u0 was about to enter. Follow now
+        // resolves an adjacent ring and excludes the leader's planned step.
         Assert.Equal(0, leaderEvictionsByFollower);
         Assert.Equal(0, longestLeaderEvictionRun);
-
-        // The same replay later put two hurt allies into a courtesy swap on
-        // one heal tile. Wait is the physical activation action; the body
-        // already channelling owns that service point until recovery ends.
-        Assert.Equal(0, healChannelEvictions);
-        Assert.True(protectedHealWaits > 0,
-            "The G3 scene never exercised protected heal-channel ownership.");
-        Assert.True(healedHunterBodies.Count >= 2,
-            $"Only {healedHunterBodies.Count} Hunter body completed a heal pulse.");
-
-        static bool TryMakeWayMover(string reason, out int mover)
-        {
-            mover = -1;
-            const string marker = ":make-way:u";
-            int start = reason.IndexOf(marker, StringComparison.Ordinal);
-            if (start < 0)
-                return false;
-            start += marker.Length;
-            int end = start;
-            while (end < reason.Length && char.IsAsciiDigit(reason[end]))
-                end++;
-            return int.TryParse(reason[start..end], out mover);
-        }
+        Assert.True(leaderRouteSteps > 0,
+            "The leader never advanced under its authored route in the "
+            + "opening scene.");
     }
 
     private static GenericActorParticipantConfiguration Participant(
@@ -348,11 +307,23 @@ public sealed class OrdersMovementSceneTests
         ArtifactHash = "orders-movement-scene",
         MindDataHash = Convert.ToHexStringLower(
             SHA256.HashData(playbook.LinkedData)),
-        MindEvaluationData = ImmutableArray.Create(playbook.LinkedData),
+        MindEvaluationData = CoordinatedData(playbook.LinkedData),
         Accent = participantId == 0 ? "#22d3ee" : "#fb5360",
         LookId = "arc-relay-sheet",
         ProjectileLookId = ArcRelayH0ReplayPresentation.ProjectileLookId,
     };
+
+    private static ImmutableArray<byte> CoordinatedData(byte[] linked)
+    {
+        using var stream = new MemoryStream();
+        stream.Write(linked);
+        using var writer = new BinaryWriter(
+            stream, System.Text.Encoding.UTF8, leaveOpen: true);
+        writer.Write(StepperOptionsMagic);
+        writer.Write("coordinated");
+        writer.Flush();
+        return ImmutableArray.Create(stream.ToArray());
+    }
 
     private static TacticalPlaybookCompilation Compile(
         string root,

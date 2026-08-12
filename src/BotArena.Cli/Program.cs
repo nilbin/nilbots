@@ -119,7 +119,7 @@ static int Help(int exitCode = 1)
                         [--classes0 a,b,... --classes1 a,b,...]
                         [--loop-profile <id>] [--seed <n>]
                         [--runtime wasm|in-process] [--out <dir>]
-                        [--screen] [--mind-stepper greedy|coordinated]
+                        [--screen] [--mind-stepper coordinated|greedy]
                                                   the Arc Relay match: eight bodies a
                                                   side, one mind per team, Wells and
                                                   Cores and reactors. Writes a gzip
@@ -263,13 +263,16 @@ static int CommandHelp(string command)
                    [--sheet0 <playbook.json> --sheet1 <playbook.json>]
                    [--classes0 a,b,... --classes1 a,b,...]
                    [--loop-profile <id>] [--seed <n>]
-                   [--runtime wasm|in-process] [--mind-stepper greedy|coordinated]
+                   [--runtime wasm|in-process] [--mind-stepper coordinated|greedy]
                    [--screen] [--print-contract] [--out <dir>]
 
             Runs one Arc Relay match. Each team is ONE mind driving eight bodies
             (the participant-scoped MIND profile), and the match is decided by
             Wells, Cores and reactor Pulses rather than by kills. It writes a
             gzip canonical replay plus a run receipt.
+
+            Movement planning defaults to coordinated. `--mind-stepper greedy`
+            retains the historical one-body-at-a-time diagnostic control.
 
             `nilbots experiment arc-relay` is a permanent alias for this command
             and takes the same options.

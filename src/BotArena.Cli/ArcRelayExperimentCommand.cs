@@ -352,13 +352,14 @@ public static class ArcRelayExperimentCommand
     /// compiled sheet rather than inside it. The authored sheet stays
     /// byte-identical under both steppers, which is the whole point when
     /// the two runs are meant to differ in one thing only. Absent, the
-    /// bytes are exactly what they always were and the mind defaults to
-    /// greedy.</para>
+    /// bytes are the product form and the mind defaults to coordinated.
+    /// The trailer is written only for the explicit greedy diagnostic
+    /// control.</para>
     /// </summary>
-    private static string MindStepper(
+    internal static string MindStepper(
         IReadOnlyDictionary<string, string> options)
     {
-        string value = options.GetValueOrDefault("mind-stepper", "greedy");
+        string value = options.GetValueOrDefault("mind-stepper", "coordinated");
         if (value is not ("greedy" or "coordinated"))
         {
             throw new InvalidOperationException(
@@ -368,9 +369,9 @@ public static class ArcRelayExperimentCommand
         return value;
     }
 
-    private static byte[] WithMindStepper(byte[] linked, string stepper)
+    internal static byte[] WithMindStepper(byte[] linked, string stepper)
     {
-        if (string.Equals(stepper, "greedy", StringComparison.Ordinal))
+        if (string.Equals(stepper, "coordinated", StringComparison.Ordinal))
             return linked;
         using var stream = new MemoryStream();
         stream.Write(linked);

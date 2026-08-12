@@ -300,11 +300,8 @@ avoidance are deterministic executor/engine micro.
 
 Walking onto a legal loose Core picks it up. Walking a carried Core into the
 owner's reactor banks it. Those are physical rules, not hidden action verbs.
-Holding (`Wait`) on a heal-zone tile channels healing. A body actively holding
-that tile under its selected recovery move keeps the one-body service point
-against another recovery seeker until the order changes, it leaves, or it is
-fully healed. Other higher-precedence traffic and safety movement still use the
-ordinary movement plane. No separate `activate` action is authored.
+Holding (`Wait`) on a heal-zone tile channels healing. No separate `activate`
+action is authored; contention for the tile remains executor movement micro.
 
 ### `fight`
 

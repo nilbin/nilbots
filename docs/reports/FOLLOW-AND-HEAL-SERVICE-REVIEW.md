@@ -1,72 +1,63 @@
-# Follow and heal-service review
+# Coordinated-default and follower-course correction
 
 Date: 2026-08-12  
 Branch: `codex/order-urgency`  
 Status: fast in-process design review; not a hosted promotion or balance read
 
-## Owner catches
+## Audit correction
 
-In the earlier Tapline G3 (`e-9005`), Hunter unit 0 returned a Core and then
-appeared stuck beside its reactor for roughly 40 ticks. Its medic follower was
-the cause: `follow` resolved the leader's exact occupied tile. The follower's
-normal movement urgency outranked the Hunter's routine shadow patrol, so allied
-traffic repeatedly made the Hunter yield its own position. The oscillation
-governor then correctly refused the resulting back-and-forth circuit, turning
-the bad target into a long visible hold.
+The first version of this report was wrong about its runtime. The exhibit and
+real-scene fixture passed untagged ATL2 data, whose historical default was the
+greedy stepper. They therefore did not establish behavior on coordinated
+planning.
 
-Later in the same replay, two injured allies sought one heal tile. Healing
-requires three consecutive successful `Wait` actions. Each incoming seeker
-asked the current channeler to make way, movement reset the channel, and the two
-bodies exchanged the tile without either completing the service.
+The product default is now coordinated in all four relevant layers:
 
-## Correction
+- untagged mind data selects `CoordinatedArenaStepper`;
+- the local Arc Relay command defaults to `coordinated`;
+- the exhibit harness documents greedy as an explicit diagnostic control; and
+- every real-scene regression appends an explicit coordinated option trailer.
 
-`follow` now targets the deterministic legal adjacent ring around its resolved
-leader. The existing posture filters that ring, so the follower still tracks
-the leader without asking the leader to leave its own tile.
+On Tapline seed 9005, unflagged and explicit-coordinated runs both end at tick
+505 with the identical replay hash
+`ede228a0e97fa224286e00955fa9eadf72f8c0f01230745786b0b7a7f9ffada7`.
 
-A hurt body already waiting on its selected heal tile owns that one-body service
-point against another recovery seeker for the current tick. Later seekers
-target its legal adjacent waiting ring and resume when the tile is free. This is
-deliberately narrower than rooting the healer: unrelated traffic retains the
-ordinary urgency and safety rules, and ownership disappears immediately when
-the body leaves, changes order, or reaches full health.
+## What survived the coordinated audit
 
-No `activate` action was added. `Wait` is already the engine's physical healing
-channel. Adding a sheet verb would expose executor micro without resolving the
-actual traffic-arbitration defect. Reasons now make the micro visible as
-`channel-heal:traffic-owner` and `service-queue:uN`.
+The follower defect is real on coordinated planning. Before the correction,
+Hunter follower u1 repeatedly selected the next tile on leader u0's committed
+route and requested that the leader make way nine times during ticks 0-45.
 
-## Decisive G3 comparison
+`follow` already uses the deterministic legal adjacent ring around its resolved
+leader. Once both plans are available, the follower now also excludes the
+leader's committed next route tile. The coordinated seed-9005 regression sees
+zero follower-requested leader evictions while the leader advances under its
+authored `shadow-hunt` route.
 
-The exact old and replacement `e-9005` replays report:
+## What was removed
 
-| Scene measure | Before | Candidate |
-| --- | ---: | ---: |
-| Hunter u0 evictions requested by follower u1, t80-125 | 39 | 0 |
-| recovery seeker evictions requested by another recovery seeker | 18 | 0 |
-| protected heal-channel waits | 0 | 93 |
-| explicit service-queue waits | 0 | 11 |
+The proposed heal-pad ownership/queue policy was supported only by the greedy
+replay. In the original coordinated seed-9005 replay, recovery seekers caused
+zero recovery-vs-recovery make-way events. The policy was therefore removed
+rather than promoted without product-path evidence.
 
-The real-scene regression also requires at least two distinct Hunter bodies to
-complete a heal pulse, so eliminating the visible swap cannot pass merely by
-making every seeker wait forever.
+No `activate` action was added. `Wait` remains the engine's physical healing
+channel, while any real coordinated contention defect remains a separate scene
+to reproduce before changing arbitration.
 
 ## Exhibit
 
 Public phone gallery:
-[Follower standoff and heal-pad queueing](https://performing-holdem-inns-florida.trycloudflare.com)
+[Coordinated movement — product default](https://performing-holdem-inns-florida.trycloudflare.com)
 
-G3 is sample 3 and carries the precise scene cue. The six disclosed results are
-Hunter wins at ticks 470, 458, 427, 387, 381, and 433. They are observations
-from an exhibit, not a balance claim.
-
-A 390x844 Chromium smoke loaded G3, its WebGL canvas and ready play control,
-then advanced playback with no page or console errors.
+The six matches use no `--mind-stepper` override. They are observations from an
+exhibit, not a balance claim.
 
 ## Validation and promotion boundary
 
-- focused movement-governor and real-scene tests: 39/39 passed;
+- four explicitly coordinated real-scene tests plus the product-default test:
+  5/5 passed;
+- unflagged/explicit-coordinated replay identity: passed;
 - `git diff --check`: passed;
 - gallery and replay generation: current source, in-process.
 

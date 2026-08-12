@@ -6,6 +6,30 @@ namespace BotArena.Cli.Tests;
 public sealed class ArcRelayExperimentCommandTests
 {
     [Fact]
+    public void CoordinatedMovementIsTheProductDefaultAndGreedyIsExplicit()
+    {
+        var noOptions = new Dictionary<string, string>();
+        Assert.Equal(
+            "coordinated",
+            ArcRelayExperimentCommand.MindStepper(noOptions));
+
+        byte[] linked = [1, 2, 3, 4];
+        Assert.Same(
+            linked,
+            ArcRelayExperimentCommand.WithMindStepper(
+                linked, "coordinated"));
+
+        byte[] greedy = ArcRelayExperimentCommand.WithMindStepper(
+            linked, "greedy");
+        Assert.True(greedy.Length > linked.Length);
+        using var reader = new BinaryReader(new MemoryStream(greedy));
+        Assert.Equal(linked, reader.ReadBytes(linked.Length));
+        Assert.Equal(0x50455453, reader.ReadInt32());
+        Assert.Equal("greedy", reader.ReadString());
+        Assert.Equal(reader.BaseStream.Length, reader.BaseStream.Position);
+    }
+
+    [Fact]
     public void Default_is_the_Tapline_product_line()
     {
         TextWriter stdout = Console.Out;

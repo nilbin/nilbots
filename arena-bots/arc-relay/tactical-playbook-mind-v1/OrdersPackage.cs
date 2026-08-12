@@ -90,7 +90,10 @@ internal sealed class OrdersPackage
         string mapPlanHash = ReadHash(reader, "map plan");
         byte[] sheetJson = ReadPayload(reader, "sheet");
         byte[] mapPlanJson = ReadPayload(reader, "map plan");
-        string stepperMode = "greedy";
+        // Untagged ATL2 is the product form. Coordinated planning is the
+        // product default; the STEP trailer now exists only to request the
+        // retained greedy diagnostic control explicitly.
+        string stepperMode = "coordinated";
         if (reader.BaseStream.Position != reader.BaseStream.Length)
         {
             if (reader.ReadInt32() != OptionsMagic)
