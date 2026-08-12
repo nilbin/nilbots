@@ -175,7 +175,10 @@ Visible in traces (reason string in parentheses), policy hard-coded:
    mechanism invents a destination or participation decision. Reasons expose
    `urgency-<authored>+b<debt>=><effective>` when debt promotes a tier,
    clearance names the priority being yielded to, and the governor publishes
-   `traffic=` / `motion=` state.
+   `traffic=` / `motion=` state. Clearance candidates are filtered through
+   the body's actual movement profile before ranking: a facing-locked body may
+   rotate and then make a cardinal clearance step, but an unavailable diagonal
+   may never suppress those legal alternatives.
 10. **Authored-route course ownership**: a patrol or other authored route
     commits to one deterministic terrain course around durable blockers. That
     course survives ordinary ticks and transient body/projectile traffic; it

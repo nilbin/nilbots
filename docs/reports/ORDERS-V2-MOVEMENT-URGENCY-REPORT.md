@@ -3,8 +3,7 @@
 Date: 2026-08-12  
 Branch: `codex/order-urgency`  
 Base: `main` at `4aaf80cc`  
-Implementation checkpoint: `9b43fe6c`  
-Final report commit: `FINAL_SHA`  
+Candidate code checkpoint: `a3252048`
 Review gallery: <https://scotland-legislature-define-except.trycloudflare.com>
 
 This is a fast in-process design review, not a hosted promotion or balance
@@ -26,19 +25,20 @@ after an order has been selected and only when allies compete for movement
 space. It never selects or reorders an order, changes a condition, target,
 capacity, fight, enemy, collision rule, or safety rule.
 
-The candidate Hunter marks `shadow-hunt` routine and the shared Core-return and
-recovery branches urgent. All omitted orders—including the unchanged
-Wellwright—remain normal. The editor presents four choices: inherit, routine,
-normal, urgent, with the movement-only boundary stated next to the control.
+The candidate Hunter marks shadow patrol and its passive centre hold routine;
+shared Core return and recovery are urgent. Active Well work and all other
+omitted orders remain normal. Wellwright is unchanged. The editor presents
+four choices—inherit, routine, normal, urgent—with the movement-only boundary
+stated beside the control.
 
 ## Executor policy
 
 The old hidden carrier/fighter/free-traffic tiers are gone. Every selected
 movement plan—including an advancing fight—publishes its intended next tile on
-one allied movement plane. Pending strikes are rooted before those requests are
-published. A stronger mover may cascade a clearance request through a chain of
-weaker allies to the nearest real vacancy; a closed component with no vacancy
-still refuses to invent a swap.
+one allied movement plane. Pending strikes are rooted before those requests
+are published. A stronger mover may cascade a clearance request through a
+chain of weaker allies to the nearest real vacancy; a closed component with no
+vacancy still refuses to invent a swap.
 
 Starvation prevention is executor-owned:
 
@@ -47,15 +47,15 @@ Starvation prevention is executor-owned:
 - strict progress pays four points down;
 - at equal effective urgency, greater debt, first blocked tick, activation
   tick, then stable unit id decide the deterministic order;
-- a changed order, goal, authored urgency, activation, or life resets the debt.
+- a changed order, goal, authored urgency, activation, or life resets debt.
 
 A routine mover therefore competes as urgent after 24 continuously denied
-ticks. It receives an opening without acquiring a permanent tactical
-promotion. Route direction hysteresis, bounded detour/rejoin, oscillation
-protection, terrain legality, and no-vacancy refusal remain separate policies.
+ticks without acquiring a permanent tactical promotion. Route direction
+hysteresis, bounded detour/rejoin, oscillation protection, terrain legality,
+and no-vacancy refusal remain separate policies.
 
 Reasons retain the established grammar and expose both the movement lens and
-the decision evidence, for example:
+decision evidence, for example:
 
 ```text
 orders:hunter > shadow-hunt:march@23,11:
@@ -66,9 +66,31 @@ The canonical replay parser, broadcast projector, viewer, and route diagnostic
 all agree on that shape: `march` remains the action, `(23,11)` is drawn on the
 map, and urgency/debt remain readable in the trace.
 
+## Replay-found clearance defect
+
+The first complete exhibit exposed a seam that the aggregate metrics hid. In
+w-9002, Hunter's normal centre hauler waited 39 ticks behind an at-target
+Mason. The traffic plane correctly requested clearance and promoted the
+hauler's debt, but the greedy clearance chooser proposed a diagonal step. A
+Mason is facing-locked and could perform only a cardinal move, so submission
+failed every tick without trying a valid alternative.
+
+The generic fix constrains every direct candidate to the body's actual route
+headings before ranking it. The Mason now rotates for the clearance heading,
+then takes the cardinal step. A focused real-executor regression pins both
+commands and caps this scene's consecutive centre-Well blocking at six ticks;
+the observed candidate run is four. No class, role, map, coordinate, or order
+name appears in the runtime fix.
+
+That repair revealed a separate authored conflict: an active hauler and the
+passive centre holder were both normal and both targeted the exact Well tile,
+so equal policy made them alternate. The candidate sheet now tells the truth:
+passive hold is routine, active Well work remains normal. This is authored
+intent, not another hidden executor precedence.
+
 ## Fast deterministic lab
 
-Focused command:
+Focused .NET command:
 
 ```text
 dotnet test tests/BotArena.Cli.Tests/BotArena.Cli.Tests.csproj --no-restore
@@ -77,80 +99,68 @@ dotnet test tests/BotArena.Cli.Tests/BotArena.Cli.Tests.csproj --no-restore
            FullyQualifiedName~ArcRelayTacticalPlaybookCompilerTests
 ```
 
-Result: **43/43 passed in about three seconds**.
+Result: **44/44 passed in about five seconds**.
 
-The pure scenes pin:
+The pure scenes pin route commitment/detour/rejoin, arrival rings,
+unreachable waypoints, unavoidable waits, posture and team rotation, vacancy
+chains and closed cycles, urgency/debt/progress/ties/resets, and oscillation
+loans. The real scenes run Tapline through the actual compiler, in-process
+mind, engine, and greedy stepper. They cover deployment, banking, Core return,
+recovery, fight approach, make-way, non-empty reasons, and the facing-locked
+clearance regression.
 
-- route commitment, impossible-step reset, detour and course rejoin;
-- arrival-ring clamping, unreachable waypoints, and correct unavoidable waits;
-- front/rear/line posture and 180-degree team rotation;
-- vacancy-chain resolution and closed-cycle refusal;
-- routine/normal/urgent precedence, block debt, progress repayment, bounded
-  starvation, activation/unit-id ties, input-order symmetry, and life/intent
-  reset;
-- oscillation refusal and bounded clearance/safety loans.
+Focused web result: **19/19 passed** for Orders authoring and canonical/
+broadcast reason parsing. `npm run build` passed. The broad web run remains
+**462/463**, with the one unrelated pre-existing failure being a missing Meshy
+sentinel-seed provenance source file; this branch neither changes nor repairs
+that art input.
 
-The real scene runs Tapline seed 9001 through the actual compiler, in-process
-mind, engine, and greedy stepper. It requires all 16 initial bodies to leave
-their deployment tile, both teams to bank, Core return/recovery/combat/make-way
-to occur, every command reason to be non-empty, and no single-tile run above
-100 ticks. It completes in about two seconds.
-
-Focused web result: **19/19 passed** across the Orders editor and canonical/
-broadcast reason parser. `npm run build` also passed. A previous broad web run
-had 462/463 passing with one unrelated missing Meshy provenance source file;
-the focused relevant tests and production build are green.
-
-## Six-cell exhibit
+## Final six-cell exhibit
 
 The standard fixed cells ran on `tapline-1`, candidate Hunter versus unchanged
 Wellwright:
 
 | Cell | Observed result |
 | --- | --- |
-| w-9001 | Hunter win, reactor destroyed at t442 |
-| w-9002 | Hunter win, reactor destroyed at t422 |
-| e-9005 | Hunter win, reactor destroyed at t423 |
-| e-9009 | Wellwright win, reactor destroyed at t476 |
-| w-9012 | Wellwright win, reactor destroyed at t401 |
-| e-9004 | Hunter win, reactor destroyed at t379 |
+| w-9001 | Hunter win, reactor destroyed at t390 |
+| w-9002 | Wellwright win, reactor destroyed at t480 |
+| e-9005 | Hunter win, reactor destroyed at t283 |
+| e-9009 | Hunter win, reactor destroyed at t366 |
+| w-9012 | Hunter win, reactor destroyed at t396 |
+| e-9004 | Hunter win, reactor destroyed at t281 |
 
-That is a **4–2 exhibition record**, not a balance claim.
+That is a **5–1 exhibition record**, not a balance claim.
 
 Across the twelve side-reads:
 
-- every side reached its nearest own Well (`closest = 0`);
-- every cell banked 12–17 Cores in total;
-- all 16 initial bodies moved by t3 in every cell;
+- all 16 initial bodies left deployment by t3 in every cell;
+- both sides reached their nearest own Well (`closest = 0`);
+- both teams banked in every cell;
 - no delivery-timeout tick occurred;
-- blocked traffic was 0.1–7.7% of stationary body-ticks;
-- movement-channel visibility was restored at 36.5–74.8%;
-- reasons contained routine, normal, urgent, make-way, and cascading clearance;
+- blocked traffic was 0.4–6.4% of stationary body-ticks;
+- the worst continuous blocked/yield run was 23 ticks;
 - all commands had non-empty reasons;
-- debt promotion occurred in three cells, reaching a maximum observed debt of
-  39 (`routine` therefore reached effective `urgent` in real play).
+- all three authored urgency words, make-way, and cascading clearance occur;
+- debt promotion occurred in four cells, reaching a maximum debt of 17.
 
-Ten of twelve side-reads had a longest single-tile run of 62 ticks or less.
-The two apparent exceptions in w-9002 were 195 and 204 ticks, but tracing them
-showed explicit successful `at-target` work: Hunter's builder held centre and
-Wellwright's home hauler held its assigned Well. Their blocked/stationary shares
-were 7.7% and 0.1%, respectively. They are intentional sheet positions, not
-traffic deadlocks. The route reader should eventually report a separate
-"longest blocked stall" so a legitimate hold cannot look like a jam.
-
-The trace-only follow-up from v1 to v2 changed replay bytes but not gameplay:
-the repeated w-9001 gameplay-state digest is byte-identical at
-`96f84506de0cf6171976f7dde5358bc0f1569c611ccad6d6ea8d76d9e37767fe`.
+The route reader's longest same-tile holds reached 91 ticks, but those are not
+continuous traffic stalls; the diagnostic's worst actual blocked sequence is
+23. The gallery cards expose actual outcomes and scores derived from their
+replays, plus the intended trigger, tactic, counterplay, fallback, and watch
+cue.
 
 ## Phone delivery
 
-The gallery index exposes six cards with the actual opposing sheet, result,
-trigger, tactic, counterplay, fallback, and a concrete watch cue. A real
-390×844 Chromium smoke loaded the public index, opened sample 1, mounted the
-real replay canvas, began loading all 21 arena assets, and reported no console
-or page errors. Evidence screenshot: `/tmp/orders-urgency-phone.png`.
+A real headless Chromium smoke at 390×844 loaded the public six-card index,
+opened sample 2, mounted the real replay canvas, and reported no page, console,
+or request errors. Screenshots are:
 
-The detached review sessions are:
+```text
+/tmp/orders-urgency-v4-phone-index.png
+/tmp/orders-urgency-v4-phone-sample.png
+```
+
+The detached review sessions remain:
 
 ```text
 nilbots-orders-urgency-server-9103
