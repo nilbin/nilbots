@@ -34,7 +34,11 @@ const rawModel = path.join(runDirectory, 'raw-model.glb');
 if (!existsSync(requestPath) || !existsSync(rawModel))
   throw new Error(`Meshy task ${lookId}/${taskId} is missing its request or raw GLB.`);
 const request = JSON.parse(readFileSync(requestPath, 'utf8'));
-if (request.lookId !== lookId || request.taskId !== taskId)
+const requestIdentity = request.lookId ?? request.classId;
+if (
+  ![lookId, path.basename(lookId)].includes(requestIdentity) ||
+  request.taskId !== taskId
+)
   throw new Error('Meshy request provenance does not match --look and --task.');
 
 const identity = orientation === 'identity';

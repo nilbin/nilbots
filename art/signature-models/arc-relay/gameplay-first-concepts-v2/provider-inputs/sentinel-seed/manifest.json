@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 1,
+  "status": "owner-review",
+  "classId": "arc-sentinel-seed-v3",
+  "signatureId": "sentinel-seed",
+  "identitySource": {
+    "file": "../../sentinel-seed-provider-views-v2.png",
+    "sha256": "e2b7fa350990c2a86917b751fb572288b6b34743b0baefd521dff35ad6c7d124"
+  },
+  "meshyInputs": [
+    {
+      "order": 1,
+      "view": "strict-front",
+      "file": "front.png",
+      "sha256": "522d73366e50a3f0fcff09be98d9db4afe8f95f5a94afa0e0b02b2a07bfb829b",
+      "width": 1040,
+      "height": 1040,
+      "primary": true
+    },
+    {
+      "order": 2,
+      "view": "strict-right",
+      "file": "right.png",
+      "sha256": "87dbf845d3b77e9cea0d1bc1c83957988014b3bee397c1e9d7d0e02ceaf7b719",
+      "width": 1040,
+      "height": 1040,
+      "primary": false
+    },
+    {
+      "order": 3,
+      "view": "strict-back",
+      "file": "back.png",
+      "sha256": "d26388116d7fad1294a3d420cf8d9f06cab4c5b1d3537bc85c7cae627318f0bc",
+      "width": 1040,
+      "height": 1040,
+      "primary": false
+    },
+    {
+      "order": 4,
+      "view": "front-right-three-quarter",
+      "file": "front-right-oblique.png",
+      "sha256": "da0f239a86fc7a95c14ecb40c29982fc5020d278a3f3ba53bb32b7fe4a1bfa87",
+      "width": 1040,
+      "height": 1040,
+      "primary": false
+    }
+  ],
+  "generationPromptLog": "../../PROMPTS.md",
+  "providerRunCollection": "arc-relay-meshy7-signature-props-v3",
+  "meshyRequestPlan": {
+    "endpoint": "/openapi/v1/multi-image-to-3d",
+    "ai_model": "meshy-7",
+    "should_texture": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "should_remesh": false,
+    "image_enhancement": false,
+    "remove_lighting": true,
+    "pose_mode": "",
+    "texture_prompt": "Dry matte Nilbots Sentinel Seed stationary guard. Medium-light weathered sage-taupe high-roughness armor, warm muted umber cross-frame, small muted aubergine seed-head inset, charcoal yaw bearing, tiny dull-brass hardware, restrained dry edge wear. Preserve the fixed four broad planted calyx lobes, open notches, exposed yaw collar, much smaller separate flattened seed-capsule head and nearly flush dark beam-emitter grille. No glossy plastic, clearcoat, wet highlights, text, logo, decal, tank, tracks, mobile chassis, eye, face, bullseye, barrel, protruding gun, wheels, legs, hover jets, teal, cyan, orange team paint, glow, beam, range ring or baked lighting.",
+    "target_formats": [
+      "glb"
+    ],
+    "pilotCreditCap": 30,
+    "authorized": false,
+    "authorization": "Owner approved the gameplay-first Sentinel Seed concept and authorized the Meshy 7 provider task on 2026-08-12.",
+    "authorizationConsumed": true,
+    "autoRigging": false,
+    "completedTaskId": "019ff5c8-f17f-7083-a432-71f16c9f1c05",
+    "consumedCredits": 30
+  },
+  "creditCheck": {
+    "status": "verified-for-authorized-call",
+    "checkedAt": "2026-08-12",
+    "balance": 1370,
+    "proposedPerTaskCreditCap": 30,
+    "proposedBatchCreditCap": 60,
+    "pricingSource": "https://docs.meshy.ai/en/api/pricing"
+  },
+  "productionContract": {
+    "runtimePartsRequired": [
+      "stationary-base",
+      "yaw-head"
+    ],
+    "providerOutputMayBeMonolithic": true,
+    "providerOutputIsBaseMeshOnly": true
+  },
+  "nextGate": "owner review of raw Meshy 7 first pass; no runtime promotion",
+  "assessment": "../../../../../class-models/provider-runs/meshy/arc-relay-meshy7-signature-props-v3/arc-sentinel-seed-v3/019ff5c8-f17f-7083-a432-71f16c9f1c05/ASSESSMENT.md",
+  "providerRun": {
+    "taskId": "019ff5c8-f17f-7083-a432-71f16c9f1c05",
+    "directory": "../../../../../class-models/provider-runs/meshy/arc-relay-meshy7-signature-props-v3/arc-sentinel-seed-v3/019ff5c8-f17f-7083-a432-71f16c9f1c05",
+    "status": "SUCCEEDED",
+    "consumedCredits": 30,
+    "balanceBefore": 1340,
+    "balanceAfter": 1310,
+    "rawModelSha256": "cc024f1659f2462ee796c09bde8072556a897739459b3f8df9d6f115efe1e1b1",
+    "sourceFacing": "+x",
+    "facingYawDegrees": 0,
+    "topSilhouetteIoU": 0.88783,
+    "semanticPartContractSatisfied": false,
+    "visualVerdict": "base-mesh and material pass; monolithic source requires stationary-base/yaw-head split"
+  }
+}

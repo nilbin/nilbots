@@ -1,0 +1,36 @@
+{
+  "id": "019ff5c4-af6d-7bee-bfac-591b78b34c52",
+  "type": "multi-image-to-3d",
+  "name": "",
+  "art_style": "",
+  "object_prompt": "",
+  "style_prompt": "",
+  "negative_prompt": "",
+  "texture_prompt": "Dry matte Nilbots Trip Node floor trap. Light desaturated dusty brick-rose high-roughness powder-coated armor, muted old-brass hinge blocks, charcoal graphite flexures and flat central pressure plate, restrained dry edge wear. Preserve the very low broken-triangle silhouette, three broad blunt jaws, large open centre and subtle directional jaw. No glossy plastic, clearcoat, wet highlights, text, logo, decal, eye, light, sphere, dome, spike, gun, barrel, turret, wheel, track, leg, hover jet, teal, cyan, orange team paint, glow, explosion, smoke, range ring or baked lighting.",
+  "texture_image_url": "[redacted-input]",
+  "text_style_prompt": "",
+  "image_style_url": "",
+  "status": "SUCCEEDED",
+  "created_at": 1786534738424,
+  "progress": 100,
+  "started_at": 1786534738433,
+  "finished_at": 1786534956012,
+  "expires_at": 1786794156012,
+  "task_error": null,
+  "model_url": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ff5c4-af6d-7bee-bfac-591b78b34c52/output/model.glb",
+  "model_urls": {
+    "glb": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ff5c4-af6d-7bee-bfac-591b78b34c52/output/model.glb"
+  },
+  "thumbnail_url": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ff5c4-af6d-7bee-bfac-591b78b34c52/output/preview.png",
+  "texture_urls": [
+    {
+      "base_color": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ff5c4-af6d-7bee-bfac-591b78b34c52/output/texture_0.png",
+      "metallic": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ff5c4-af6d-7bee-bfac-591b78b34c52/output/texture_0_metallic.png",
+      "roughness": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ff5c4-af6d-7bee-bfac-591b78b34c52/output/texture_0_roughness.png",
+      "normal": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ff5c4-af6d-7bee-bfac-591b78b34c52/output/texture_0_normal.png",
+      "emission": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ff5c4-af6d-7bee-bfac-591b78b34c52/output/texture_0_emission.png"
+    }
+  ],
+  "remove_lighting": true,
+  "consumed_credits": 30
+}

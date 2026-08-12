@@ -1,11 +1,28 @@
 {
   "schemaVersion": 1,
-  "status": "owner-review-no-provider-authorization",
+  "status": "provider-batch-complete-owner-review",
   "createdAt": "2026-08-12",
   "purpose": "Gameplay-first 2D restart for Arc Relay Trip Node and Sentinel Seed",
   "runtimeAssetsChanged": false,
-  "providerCallsMade": 0,
-  "providerCreditsConsumed": 0,
+  "ownerApprovedAt": "2026-08-12",
+  "providerBatchAuthorization": {
+    "authorizedAt": "2026-08-12",
+    "scope": [
+      "trip-node",
+      "sentinel-seed"
+    ],
+    "perTaskCreditCap": 30,
+    "totalCreditCap": 60,
+    "balanceBefore": 1370,
+    "pricingSource": "https://docs.meshy.ai/en/api/pricing",
+    "pricingVerifiedAt": "2026-08-12",
+    "autoRigging": false,
+    "authorizationConsumed": true,
+    "completedAt": "2026-08-12",
+    "balanceAfter": 1310
+  },
+  "providerCallsMade": 2,
+  "providerCreditsConsumed": 60,
   "generator": "OpenAI built-in image generation",
   "generatorModel": "not exposed by tool",
   "promptLog": "PROMPTS.md",
@@ -54,6 +71,22 @@
       "builtInArtifacts": {
         "conceptSheet": "/Users/sebastian.lind/.codex/generated_images/019fee2d-edd3-7723-8309-6a84e5627578/exec-aee825fd-30a2-4367-bf20-5b6839c0a05c.png",
         "strictTop": "/Users/sebastian.lind/.codex/generated_images/019fee2d-edd3-7723-8309-6a84e5627578/exec-f366e14b-d8b7-4d5a-b864-adf94434d35d.png"
+      },
+      "providerResult": {
+        "taskId": "019ff5c4-af6d-7bee-bfac-591b78b34c52",
+        "status": "SUCCEEDED",
+        "consumedCredits": 30,
+        "balanceBefore": 1370,
+        "balanceAfter": 1340,
+        "rawModelBytes": 65112900,
+        "rawModelSha256": "3c086868cdc4025f5db44d2622b986eba6b7c4897a184395223f2e5b79f6921a",
+        "triangles": 1979928,
+        "vertices": 1033479,
+        "sourceFacing": "+z",
+        "facingYawDegrees": -90,
+        "topSilhouetteIoU": 0.87784,
+        "visualVerdict": "geometry pass; fixed-orange material conflict blocks promotion",
+        "assessment": "art/class-models/provider-runs/meshy/arc-relay-meshy7-signature-props-v3/arc-trip-node-v3/019ff5c4-af6d-7bee-bfac-591b78b34c52/ASSESSMENT.md"
       }
     },
     {
@@ -100,6 +133,22 @@
         "acceptedConceptSheet": "/Users/sebastian.lind/.codex/generated_images/019fee2d-edd3-7723-8309-6a84e5627578/exec-7a0182d2-2e83-4c0e-b244-4a70b9c9f638.png",
         "northFacingTop": "/Users/sebastian.lind/.codex/generated_images/019fee2d-edd3-7723-8309-6a84e5627578/exec-272052a9-3010-4ddd-9a88-47d0f921b4e5.png",
         "acceptedEastFacingTop": "/Users/sebastian.lind/.codex/generated_images/019fee2d-edd3-7723-8309-6a84e5627578/exec-1da37eb6-1092-410a-8a41-d5ca1f6b51b5.png"
+      },
+      "providerResult": {
+        "taskId": "019ff5c8-f17f-7083-a432-71f16c9f1c05",
+        "status": "SUCCEEDED",
+        "consumedCredits": 30,
+        "balanceBefore": 1340,
+        "balanceAfter": 1310,
+        "rawModelBytes": 63731588,
+        "rawModelSha256": "cc024f1659f2462ee796c09bde8072556a897739459b3f8df9d6f115efe1e1b1",
+        "triangles": 1939406,
+        "vertices": 1005784,
+        "sourceFacing": "+x",
+        "facingYawDegrees": 0,
+        "topSilhouetteIoU": 0.88783,
+        "visualVerdict": "base-mesh and material pass; monolithic source fails required stationary-base/yaw-head production contract",
+        "assessment": "art/class-models/provider-runs/meshy/arc-relay-meshy7-signature-props-v3/arc-sentinel-seed-v3/019ff5c8-f17f-7083-a432-71f16c9f1c05/ASSESSMENT.md"
       }
     }
   ],
@@ -131,5 +180,15 @@
     ],
     "apiSource": "https://docs.meshy.ai/en/api/multi-image-to-3d",
     "apiImageCount": "1-4 images of the same object"
+  },
+  "providerReview": {
+    "renderRecord": "provider-render-review.json",
+    "tripSixView": "trip-node-meshy7-six-view.png",
+    "tripOverlay": "trip-node-top-silhouette-overlay.png",
+    "sentinelSixView": "sentinel-seed-meshy7-six-view.png",
+    "sentinelOverlay": "sentinel-seed-top-silhouette-overlay.png",
+    "runtimeAssetsChanged": false,
+    "realReplayApproved": false,
+    "nextGate": "owner decision on Trip material correction and Sentinel base/head split; no runtime promotion"
   }
 }

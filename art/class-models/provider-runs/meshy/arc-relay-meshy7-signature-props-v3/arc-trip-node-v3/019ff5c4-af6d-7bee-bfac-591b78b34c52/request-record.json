@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "provider": "Meshy",
+  "endpoint": "multi-image-to-3d",
+  "providerModel": "meshy-7",
+  "classId": "arc-trip-node-v3",
+  "taskId": "019ff5c4-af6d-7bee-bfac-591b78b34c52",
+  "submittedAt": "2026-08-12T11:38:54.940Z",
+  "balanceBefore": 1370,
+  "authorizedCreditCap": 30,
+  "sourceManifest": "art/signature-models/arc-relay/gameplay-first-concepts-v2/provider-inputs/trip-node/manifest.json",
+  "inputs": [
+    {
+      "order": 1,
+      "view": "strict-front",
+      "primary": true,
+      "file": "art/signature-models/arc-relay/gameplay-first-concepts-v2/provider-inputs/trip-node/front.png",
+      "bytes": 1257244,
+      "sha256": "8ddc1066efb47db4f088be084d3725bc24823148d20a976ebd9cc9dd2592a7a5",
+      "width": 1040,
+      "height": 1040
+    },
+    {
+      "order": 2,
+      "view": "strict-right",
+      "primary": false,
+      "file": "art/signature-models/arc-relay/gameplay-first-concepts-v2/provider-inputs/trip-node/right.png",
+      "bytes": 628013,
+      "sha256": "740aad008244511f36073f919150a50a8c84711f0bb11d60ffb06c8b40e180f8",
+      "width": 1040,
+      "height": 1040
+    },
+    {
+      "order": 3,
+      "view": "strict-top",
+      "primary": false,
+      "file": "art/signature-models/arc-relay/gameplay-first-concepts-v2/provider-inputs/trip-node/top.png",
+      "bytes": 1262944,
+      "sha256": "9b8e96e318e78ebf997d125e653c5e1e680cb072af10159434c369a83dce8cea",
+      "width": 1040,
+      "height": 1040
+    },
+    {
+      "order": 4,
+      "view": "front-right-three-quarter",
+      "primary": false,
+      "file": "art/signature-models/arc-relay/gameplay-first-concepts-v2/provider-inputs/trip-node/front-right-oblique.png",
+      "bytes": 1163305,
+      "sha256": "29e08a4573a79ec2ee8036a82b8bedeb61f622303457da9442f3c435673596a8",
+      "width": 1040,
+      "height": 1040
+    }
+  ],
+  "settings": {
+    "ai_model": "meshy-7",
+    "should_texture": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "should_remesh": false,
+    "image_enhancement": false,
+    "remove_lighting": true,
+    "pose_mode": "",
+    "texture_prompt": "Dry matte Nilbots Trip Node floor trap. Light desaturated dusty brick-rose high-roughness powder-coated armor, muted old-brass hinge blocks, charcoal graphite flexures and flat central pressure plate, restrained dry edge wear. Preserve the very low broken-triangle silhouette, three broad blunt jaws, large open centre and subtle directional jaw. No glossy plastic, clearcoat, wet highlights, text, logo, decal, eye, light, sphere, dome, spike, gun, barrel, turret, wheel, track, leg, hover jet, teal, cyan, orange team paint, glow, explosion, smoke, range ring or baked lighting.",
+    "target_formats": [
+      "glb"
+    ]
+  },
+  "pricingSource": "https://docs.meshy.ai/en/api/pricing",
+  "licenseTerms": "https://www.meshy.ai/terms"
+}

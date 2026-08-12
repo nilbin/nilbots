@@ -27,17 +27,28 @@
       .contract { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
       .contract article { padding:18px; border:1px solid var(--line); border-radius:10px; background:var(--panel); }
       .contract p { color:var(--dim); margin-bottom:0; }
+      .result { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:20px; }
+      figure { margin:0; overflow:hidden; border:1px solid var(--line); border-radius:10px; background:var(--panel); }
+      figure img { display:block; width:100%; height:auto; }
+      figcaption { padding:14px 16px 16px; color:var(--dim); }
+      figcaption strong { color:var(--text); }
+      .overlays { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:20px; }
+      .overlays figure { max-width:640px; }
+      table { width:100%; border-collapse:collapse; border:1px solid var(--line); background:var(--panel); }
+      th,td { padding:12px 14px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; }
+      th { color:var(--dim); font:700 11px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace; letter-spacing:.08em; text-transform:uppercase; }
+      tr:last-child td { border-bottom:0; }
       footer { margin-top:38px; padding-top:17px; border-top:1px solid var(--line); color:var(--dim); }
       code { color:#dbc3a8; }
-      @media(max-width:800px) { main{padding:22px 12px 42px}.grid,.contract{grid-template-columns:1fr} }
+      @media(max-width:800px) { main{padding:22px 12px 42px}.grid,.contract,.result,.overlays{grid-template-columns:1fr} }
     </style>
   </head>
   <body>
     <main>
-      <div class="eyebrow">2D restart · owner approval gate · 2026-08-12</div>
+      <div class="eyebrow">Meshy 7 batch complete · owner review gate · 2026-08-12</div>
       <h1>Trip Node + Sentinel Seed</h1>
-      <p class="lede">Two fresh signatures designed from their mechanics and parent-class identity, with the zoomed-out read checked before any Meshy task or runtime work.</p>
-      <div class="gate"><strong>No Meshy credits spent. No runtime assets changed.</strong> Approving these images authorizes only the next explicit provider gate—not automatic generation or promotion.</div>
+      <p class="lede">The approved gameplay-first concepts are now two normalized Meshy 7 base meshes, shown from fixed WebGL cameras and compared against their canonical top silhouettes.</p>
+      <div class="gate"><strong>Both tasks succeeded for exactly 60 credits; balance 1,310. No runtime assets changed.</strong> These are recoverable base meshes, not promoted game assets. Trip still needs a non-orange material correction; Sentinel still needs a real stationary-base / yaw-head split.</div>
 
       <img class="proof" src="gameplay-scale-proof.png" alt="Gameplay-scale silhouette proof for Trip Node and Sentinel Seed" />
 
@@ -64,6 +75,51 @@
       </div>
 
       <section>
+        <div class="eyebrow">Generated results</div>
+        <h2>Normalized six-view WebGL review</h2>
+        <div class="result">
+          <figure>
+            <img src="trip-node-meshy7-six-view.png" alt="Six normalized views of the generated Trip Node base mesh" />
+            <figcaption><strong>Trip Node · geometry pass, material hold.</strong> The broken triangle, three jaws, open centre, and very low side profile survived. It has no gun, eye, wheels, or legs. The fixed orange drift conflicts with a team color, so the surface is not approved.</figcaption>
+          </figure>
+          <figure>
+            <img src="sentinel-seed-meshy7-six-view.png" alt="Six normalized views of the generated Sentinel Seed base mesh" />
+            <figcaption><strong>Sentinel Seed · base-mesh pass, production split required.</strong> Four planted lobes, compact seed head, flush grille, and yaw collar survived. The pale sage/taupe finish reads well, but Meshy fused the whole asset into one node and surface.</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <section>
+        <div class="eyebrow">Top silhouette fidelity</div>
+        <h2>Canonical-only magenta · provider-only cyan · overlap light gray</h2>
+        <div class="overlays">
+          <figure>
+            <img src="trip-node-top-silhouette-overlay.png" alt="Trip Node canonical and provider top silhouette overlay" />
+            <figcaption><strong>Trip Node: 0.87784 IoU.</strong> The normalized review derivative uses a recorded −90° yaw so the provider's +Z front becomes the game's +X/East front.</figcaption>
+          </figure>
+          <figure>
+            <img src="sentinel-seed-top-silhouette-overlay.png" alt="Sentinel Seed canonical and provider top silhouette overlay" />
+            <figcaption><strong>Sentinel Seed: 0.88783 IoU.</strong> The provider result already uses +X front; the lobe spacing and compact central head remain legible at top-down scale.</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <section>
+        <div class="eyebrow">Measured gate</div>
+        <h2>What passes and what remains</h2>
+        <table>
+          <thead><tr><th>Check</th><th>Trip Node</th><th>Sentinel Seed</th></tr></thead>
+          <tbody>
+            <tr><td>Raw provider master</td><td>65.1 MB · 1.98M triangles</td><td>63.7 MB · 1.94M triangles</td></tr>
+            <tr><td>Raw glTF validation</td><td>0 errors · 1 generated-tangent warning</td><td>0 errors · 1 generated-tangent warning</td></tr>
+            <tr><td>Source structure</td><td>1 node · 1 mesh · 1 primitive · 1 material</td><td>1 node · 1 mesh · 1 primitive · 1 material</td></tr>
+            <tr><td>Live target</td><td>0.44 tile wide · about 0.107 tile high from measured proportions</td><td>0.62 tile wide · about 0.266 tile high from measured proportions</td></tr>
+            <tr><td>Decision</td><td>Retain geometry; correct orange surface before any in-game review.</td><td>Retain base mesh; split base/head before any aiming review.</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section>
         <div class="eyebrow">Production contract</div>
         <h2>What approval would lock</h2>
         <div class="contract">
@@ -72,7 +128,7 @@
         </div>
       </section>
 
-      <footer>Exact prompts, input order, hashes, references, and the zero-credit ledger are recorded in <code>PROMPTS.md</code>, <code>manifest.json</code>, and <code>README.md</code>.</footer>
+      <footer>Task IDs, exact prompts, ordered input hashes, sanitized receipts, structural audits, and the 60-credit ledger are recorded beside this review. The review GLBs use 1K WebP maps for inspection only; mobile shipping optimization and real-replay approval have not started.</footer>
     </main>
   </body>
 </html>

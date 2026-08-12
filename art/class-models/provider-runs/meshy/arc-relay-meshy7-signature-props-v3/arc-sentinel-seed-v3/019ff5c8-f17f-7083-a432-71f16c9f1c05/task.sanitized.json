@@ -1,0 +1,36 @@
+{
+  "id": "019ff5c8-f17f-7083-a432-71f16c9f1c05",
+  "type": "multi-image-to-3d",
+  "name": "",
+  "art_style": "",
+  "object_prompt": "",
+  "style_prompt": "",
+  "negative_prompt": "",
+  "texture_prompt": "Dry matte Nilbots Sentinel Seed stationary guard. Medium-light weathered sage-taupe high-roughness armor, warm muted umber cross-frame, small muted aubergine seed-head inset, charcoal yaw bearing, tiny dull-brass hardware, restrained dry edge wear. Preserve the fixed four broad planted calyx lobes, open notches, exposed yaw collar, much smaller separate flattened seed-capsule head and nearly flush dark beam-emitter grille. No glossy plastic, clearcoat, wet highlights, text, logo, decal, tank, tracks, mobile chassis, eye, face, bullseye, barrel, protruding gun, wheels, legs, hover jets, teal, cyan, orange team paint, glow, beam, range ring or baked lighting.",
+  "texture_image_url": "[redacted-input]",
+  "text_style_prompt": "",
+  "image_style_url": "",
+  "status": "SUCCEEDED",
+  "created_at": 1786535017689,
+  "progress": 100,
+  "started_at": 1786535054263,
+  "finished_at": 1786535250844,
+  "expires_at": 1786794450844,
+  "task_error": null,
+  "model_url": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ff5c8-f17f-7083-a432-71f16c9f1c05/output/model.glb",
+  "model_urls": {
+    "glb": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ff5c8-f17f-7083-a432-71f16c9f1c05/output/model.glb"
+  },
+  "thumbnail_url": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ff5c8-f17f-7083-a432-71f16c9f1c05/output/preview.png",
+  "texture_urls": [
+    {
+      "base_color": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ff5c8-f17f-7083-a432-71f16c9f1c05/output/texture_0.png",
+      "metallic": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ff5c8-f17f-7083-a432-71f16c9f1c05/output/texture_0_metallic.png",
+      "roughness": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ff5c8-f17f-7083-a432-71f16c9f1c05/output/texture_0_roughness.png",
+      "normal": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ff5c8-f17f-7083-a432-71f16c9f1c05/output/texture_0_normal.png",
+      "emission": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ff5c8-f17f-7083-a432-71f16c9f1c05/output/texture_0_emission.png"
+    }
+  ],
+  "remove_lighting": true,
+  "consumed_credits": 30
+}

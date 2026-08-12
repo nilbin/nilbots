@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 1,
+  "status": "owner-review",
+  "classId": "arc-trip-node-v3",
+  "signatureId": "trip-node",
+  "identitySource": {
+    "file": "../../trip-node-provider-views.png",
+    "sha256": "a73b00d69ef0cb1d553331cab2ca100d918de54c68ff6ec5f353c930a30215ce"
+  },
+  "meshyInputs": [
+    {
+      "order": 1,
+      "view": "strict-front",
+      "file": "front.png",
+      "sha256": "8ddc1066efb47db4f088be084d3725bc24823148d20a976ebd9cc9dd2592a7a5",
+      "width": 1040,
+      "height": 1040,
+      "primary": true
+    },
+    {
+      "order": 2,
+      "view": "strict-right",
+      "file": "right.png",
+      "sha256": "740aad008244511f36073f919150a50a8c84711f0bb11d60ffb06c8b40e180f8",
+      "width": 1040,
+      "height": 1040,
+      "primary": false
+    },
+    {
+      "order": 3,
+      "view": "strict-top",
+      "file": "top.png",
+      "sha256": "9b8e96e318e78ebf997d125e653c5e1e680cb072af10159434c369a83dce8cea",
+      "width": 1040,
+      "height": 1040,
+      "primary": false
+    },
+    {
+      "order": 4,
+      "view": "front-right-three-quarter",
+      "file": "front-right-oblique.png",
+      "sha256": "29e08a4573a79ec2ee8036a82b8bedeb61f622303457da9442f3c435673596a8",
+      "width": 1040,
+      "height": 1040,
+      "primary": false
+    }
+  ],
+  "generationPromptLog": "../../PROMPTS.md",
+  "providerRunCollection": "arc-relay-meshy7-signature-props-v3",
+  "meshyRequestPlan": {
+    "endpoint": "/openapi/v1/multi-image-to-3d",
+    "ai_model": "meshy-7",
+    "should_texture": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "should_remesh": false,
+    "image_enhancement": false,
+    "remove_lighting": true,
+    "pose_mode": "",
+    "texture_prompt": "Dry matte Nilbots Trip Node floor trap. Light desaturated dusty brick-rose high-roughness powder-coated armor, muted old-brass hinge blocks, charcoal graphite flexures and flat central pressure plate, restrained dry edge wear. Preserve the very low broken-triangle silhouette, three broad blunt jaws, large open centre and subtle directional jaw. No glossy plastic, clearcoat, wet highlights, text, logo, decal, eye, light, sphere, dome, spike, gun, barrel, turret, wheel, track, leg, hover jet, teal, cyan, orange team paint, glow, explosion, smoke, range ring or baked lighting.",
+    "target_formats": [
+      "glb"
+    ],
+    "pilotCreditCap": 30,
+    "authorized": false,
+    "authorization": "Owner approved the gameplay-first Trip Node concept and authorized the Meshy 7 provider task on 2026-08-12.",
+    "authorizationConsumed": true,
+    "autoRigging": false,
+    "completedTaskId": "019ff5c4-af6d-7bee-bfac-591b78b34c52",
+    "consumedCredits": 30
+  },
+  "creditCheck": {
+    "status": "verified-for-authorized-call",
+    "checkedAt": "2026-08-12",
+    "balance": 1370,
+    "proposedPerTaskCreditCap": 30,
+    "proposedBatchCreditCap": 60,
+    "pricingSource": "https://docs.meshy.ai/en/api/pricing"
+  },
+  "nextGate": "owner review of raw Meshy 7 first pass; no runtime promotion",
+  "assessment": "../../../../../class-models/provider-runs/meshy/arc-relay-meshy7-signature-props-v3/arc-trip-node-v3/019ff5c4-af6d-7bee-bfac-591b78b34c52/ASSESSMENT.md",
+  "providerRun": {
+    "taskId": "019ff5c4-af6d-7bee-bfac-591b78b34c52",
+    "directory": "../../../../../class-models/provider-runs/meshy/arc-relay-meshy7-signature-props-v3/arc-trip-node-v3/019ff5c4-af6d-7bee-bfac-591b78b34c52",
+    "status": "SUCCEEDED",
+    "consumedCredits": 30,
+    "balanceBefore": 1370,
+    "balanceAfter": 1340,
+    "rawModelSha256": "3c086868cdc4025f5db44d2622b986eba6b7c4897a184395223f2e5b79f6921a",
+    "sourceFacing": "+z",
+    "facingYawDegrees": -90,
+    "topSilhouetteIoU": 0.87784,
+    "visualVerdict": "geometry pass; fixed-orange material conflict blocks promotion"
+  }
+}

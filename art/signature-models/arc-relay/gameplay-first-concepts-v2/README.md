@@ -1,10 +1,12 @@
 # Arc Relay signature props — gameplay-first concepts V2
 
-Status: **owner review; no provider call and no runtime promotion**.
+Status: **Meshy 7 batch complete; generated base meshes awaiting owner review**.
 
-This package replaces the rejected salvage plan for the raw Meshy 7 Trip Node
-and Sentinel Seed results. It restarts both props at the two-dimensional
-silhouette gate and keeps the currently shipped signature models unchanged.
+This package replaces the rejected salvage plan for the earlier Trip Node and
+Sentinel Seed results. The restarted 2D concepts were approved, and two
+authorized Meshy 7 multi-image tasks succeeded on 2026-08-12 for 60 credits
+total. Balance after the batch is 1310. The currently shipped signature models
+remain unchanged.
 
 ## Review first
 
@@ -15,6 +17,39 @@ silhouette gate and keeps the currently shipped signature models unchanged.
   `sentinel-seed-provider-views-v2.png` are the owner-facing four-view sheets.
 - `trip-node-top-east.png` and `sentinel-seed-top-east.png` are canonical
   transparent top-down, East-facing identity images.
+- `trip-node-meshy7-six-view.png` and
+  `sentinel-seed-meshy7-six-view.png` show normalized WebGL renders of the
+  generated base meshes from six fixed cameras.
+- `trip-node-top-silhouette-overlay.png` and
+  `sentinel-seed-top-silhouette-overlay.png` compare the canonical and
+  generated planforms at the same normalized span. Light gray overlaps;
+  magenta is canonical-only; cyan is provider-only.
+
+## Provider result gate
+
+Both generated forms are worth retaining as base meshes, but neither is ready
+for runtime promotion.
+
+- Trip Node preserves the broken triangle, three jaws, open centre, and low
+  profile. Its top-silhouette IoU is `0.87784`. The source front followed `+Z`;
+  the review derivative uses a recorded `-90°` yaw to meet the `+X` contract.
+  Its texture drifted from dusty brick-rose toward fixed orange, so material
+  approval is withheld because orange is a team color.
+- Sentinel Seed preserves the four planted lobes, compact head, flush grille,
+  and visible yaw collar. Its top-silhouette IoU is `0.88783`, and its source
+  front already follows `+X`. The pale sage/taupe material is a substantial
+  improvement over the rejected pass. However, Meshy returned one fused node,
+  mesh, primitive, material, and spatially continuous surface. Production must
+  still split the stationary base from the yawing head.
+
+Both raw GLBs validate with zero errors. Each has the expected warning that a
+normal-mapped primitive has no authored tangents. Raw provider masters and 2K
+maps remain ignored art-side files; the 1K WebP normalized GLBs are review
+derivatives only, not mobile shipping tiers.
+
+Exact task receipts, downloaded-artifact hashes, credit ledgers, structural
+audits, and individual assessments live under
+`art/class-models/provider-runs/meshy/arc-relay-meshy7-signature-props-v3/`.
 
 ## Trip Node
 
@@ -49,7 +84,7 @@ Target live envelope remains approximately `0.62` tile wide and `0.55` tile
 high. Range, target line, windup, beam, hull, ownership, and expiry stay
 renderer-owned.
 
-## Meshy input plan
+## Completed Meshy input plan
 
 The official Meshy documentation currently accepts one to four images of the
 same object and recommends **Front + Side + Back + 3/4**. Those four views are
@@ -60,9 +95,12 @@ a floor planform and its rear differs only by rotational registration. Its
 ordered set is Front, Right, Top, Front-right 3/4 under
 `provider-inputs/trip-node/`.
 
-Every provider input is a separate 1040×1040 PNG. Do not upload either contact
-sheet as one image. Inputs remain inactive until the owner approves the
-concepts and explicitly authorizes provider use.
+Every provider input was a separate 1040×1040 PNG; neither contact sheet was
+uploaded as one image. The completed tasks are
+`019ff5c4-af6d-7bee-bfac-591b78b34c52` (Trip Node) and
+`019ff5c8-f17f-7083-a432-71f16c9f1c05` (Sentinel Seed). Both paid
+authorizations are consumed. The public API receipts expose no retry allowance;
+any free retry shown in Meshy's gallery remains a separate owner gate.
 
 ## Reproduction
 

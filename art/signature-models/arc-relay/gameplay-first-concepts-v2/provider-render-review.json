@@ -1,0 +1,127 @@
+{
+  "schemaVersion": 1,
+  "status": "owner-review",
+  "capturedAt": "2026-08-12",
+  "renderer": "Three.js WebGLRenderer through Playwright Chromium",
+  "sourceViewer": "scripts/class-models/model-turntable-review.html",
+  "normalizedContract": {
+    "up": "+Y",
+    "floorY": 0,
+    "planformSpan": 0.99,
+    "facing": "+X"
+  },
+  "records": [
+    {
+      "id": "trip-node",
+      "model": "art/class-models/provider-runs/meshy/arc-relay-meshy7-signature-props-v3/arc-trip-node-v3/019ff5c4-af6d-7bee-bfac-591b78b34c52/model-normalized-identity-facing-review.glb",
+      "modelSha256": "b6c63e4a468e3f58631db4c723ae6ccaebffc7321cce0d0b2d3a01826b7d6df5",
+      "sheet": "art/signature-models/arc-relay/gameplay-first-concepts-v2/trip-node-meshy7-six-view.png",
+      "sheetSha256": "ba8382978010fb47a47d96cc2747558a74132ac83b0dbfa46382b728a395d5a0",
+      "silhouette": {
+        "method": "Binary planform masks in canonical East/+X registration; each maximum span normalized to 420 px and centered.",
+        "legend": {
+          "overlap": "light gray",
+          "canonicalOnly": "magenta",
+          "providerOnly": "cyan"
+        },
+        "intersectionOverUnion": 0.87784,
+        "file": "art/signature-models/arc-relay/gameplay-first-concepts-v2/trip-node-top-silhouette-overlay.png",
+        "sha256": "dbd88eeb5805a43dbf91479a9469d9bd7b30e6d30a38b670e07c19ce3ad85b48"
+      },
+      "captures": [
+        {
+          "view": "front-three-quarter",
+          "label": "GAMEPLAY 3/4",
+          "file": "sandbox/arc-signature-provider-review-v3/trip-node-front-three-quarter.png",
+          "sha256": "b0ad32a9d8793d8471e16e9449761c3086edc2cc2a8ae575a1092e16ccb380f2"
+        },
+        {
+          "view": "positive-x",
+          "label": "+X CAMERA",
+          "file": "sandbox/arc-signature-provider-review-v3/trip-node-positive-x.png",
+          "sha256": "fe2bc4c3335dea283d6cb38b7cef7d0b2957a843f06c95b45e6ae33e53739dd0"
+        },
+        {
+          "view": "negative-x",
+          "label": "-X CAMERA",
+          "file": "sandbox/arc-signature-provider-review-v3/trip-node-negative-x.png",
+          "sha256": "253cadfa7a67f30904868af8fa18fb9e54a82427bde196c9a987bfc9f7294aaa"
+        },
+        {
+          "view": "positive-z",
+          "label": "+Z CAMERA",
+          "file": "sandbox/arc-signature-provider-review-v3/trip-node-positive-z.png",
+          "sha256": "582e9683ebbe4911e8a71b571e3fd9eff0d6fdd73f22bc727052ec4f4bc0115c"
+        },
+        {
+          "view": "negative-z",
+          "label": "-Z CAMERA",
+          "file": "sandbox/arc-signature-provider-review-v3/trip-node-negative-z.png",
+          "sha256": "55cd6602887de33eaf36f9862e9a97e66469f2e24287a2b5fff864588532bd80"
+        },
+        {
+          "view": "top-down",
+          "label": "STRICT TOP",
+          "file": "sandbox/arc-signature-provider-review-v3/trip-node-top-down.png",
+          "sha256": "328b74491012e93e16986f741c01aa81382f69afa43080baf1d0a14b25b03097"
+        }
+      ]
+    },
+    {
+      "id": "sentinel-seed",
+      "model": "art/class-models/provider-runs/meshy/arc-relay-meshy7-signature-props-v3/arc-sentinel-seed-v3/019ff5c8-f17f-7083-a432-71f16c9f1c05/model-normalized-identity-review.glb",
+      "modelSha256": "17eedff3e991edf6ebd5397756203219f18a4d5dad7363765cb558d788eeb149",
+      "sheet": "art/signature-models/arc-relay/gameplay-first-concepts-v2/sentinel-seed-meshy7-six-view.png",
+      "sheetSha256": "ff6fa96bc2eb9410fb65e3f0aaca1412cd9f67c2c674fe90832bb443f54706dd",
+      "silhouette": {
+        "method": "Binary planform masks in canonical East/+X registration; each maximum span normalized to 420 px and centered.",
+        "legend": {
+          "overlap": "light gray",
+          "canonicalOnly": "magenta",
+          "providerOnly": "cyan"
+        },
+        "intersectionOverUnion": 0.88783,
+        "file": "art/signature-models/arc-relay/gameplay-first-concepts-v2/sentinel-seed-top-silhouette-overlay.png",
+        "sha256": "ee6bbe4218edd305ca0388a805e1cb2870a4bc96d40bf84b86b8e6a998d60ffc"
+      },
+      "captures": [
+        {
+          "view": "front-three-quarter",
+          "label": "GAMEPLAY 3/4",
+          "file": "sandbox/arc-signature-provider-review-v3/sentinel-seed-front-three-quarter.png",
+          "sha256": "a4186f4edc061f235419e8634894cd9b04e86c61a9a6663d956546ba13f7627d"
+        },
+        {
+          "view": "positive-x",
+          "label": "+X CAMERA",
+          "file": "sandbox/arc-signature-provider-review-v3/sentinel-seed-positive-x.png",
+          "sha256": "cd28923e74850d63cccd768f0407058c07aa516cb525c7fb652470b460aa967e"
+        },
+        {
+          "view": "negative-x",
+          "label": "-X CAMERA",
+          "file": "sandbox/arc-signature-provider-review-v3/sentinel-seed-negative-x.png",
+          "sha256": "e874a5b54bcef1e41978d0b4d557a0ae911850140755a530d28d8806275d29b8"
+        },
+        {
+          "view": "positive-z",
+          "label": "+Z CAMERA",
+          "file": "sandbox/arc-signature-provider-review-v3/sentinel-seed-positive-z.png",
+          "sha256": "22be2a806660404b380fdb271ab161b0204e9b879bd554e9242ff0ae2f6a96ea"
+        },
+        {
+          "view": "negative-z",
+          "label": "-Z CAMERA",
+          "file": "sandbox/arc-signature-provider-review-v3/sentinel-seed-negative-z.png",
+          "sha256": "e6802f23160c3b4b8b428c95956704a02d2f9e0a101fc334908feb76ddb0c074"
+        },
+        {
+          "view": "top-down",
+          "label": "STRICT TOP",
+          "file": "sandbox/arc-signature-provider-review-v3/sentinel-seed-top-down.png",
+          "sha256": "8ed0e8a939b6f6cf9574f6bdec6d400257b87de7d3a8f95753c8f7021266e690"
+        }
+      ]
+    }
+  ]
+}
