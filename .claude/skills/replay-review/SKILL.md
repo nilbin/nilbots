@@ -27,6 +27,11 @@ and publish the permanent gallery only for a frozen promotion candidate or a
 change to viewer code/assets. Do not turn every replay refresh into a release
 gauntlet.
 
+The same boundary applies to gameplay artifacts: ordinary review runs mind
+sources in-process. Do not rebuild tracked WASM, mint a stock artifact or
+playlist, reset ratings, or bump release versions until the owner explicitly
+opens the promotion gate described by the `sheet-tuning` skill.
+
 For Arc Relay, a canonical replay is an audit input, never a runtime gallery
 payload. Project it first with `scripts/arc-relay-broadcast.py` (300 KiB gzip
 ceiling), then install it as `transport` alongside the hash-matched replay so

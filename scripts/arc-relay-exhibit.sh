@@ -70,6 +70,11 @@
 #
 # This is an EXHIBIT, not a battery. Its outcomes describe these six games
 # and are not a balance verdict.
+#
+# It is also NOT a promotion. Mind sources compile in-process on purpose. Do
+# not rebuild tracked WASM, mint a frozen stock/playlist version, reset ratings,
+# bump release versions, or run a release gauntlet just to produce this gallery.
+# Those belong to a separately owner-authorized promotion gate.
 set -euo pipefail
 
 NAME=${1:?exhibition name}

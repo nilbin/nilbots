@@ -455,7 +455,10 @@ Web (`web/`) is one Vite/React build with two modes chosen at runtime in
   a battery, sweep, or make a balance verdict unless the owner explicitly asks
   for one; an exhibit shows what a change looks like and proves nothing about
   balance. Never edit source or sheets while its matches are running, and
-  every executor action must carry a non-empty `debugMessage` reason.
+  every executor action must carry a non-empty `debugMessage` reason. A review
+  exhibit runs current mind sources in-process: it does not require tracked
+  WASM, frozen-stock, playlist/rating-era, compatibility-version, or release
+  work. Those happen only at an explicitly requested promotion gate.
 - **One top-level class per file**, named for it — tests included (one test
   class per file). Small records/DTOs tightly coupled to a main type may
   colocate (the `Replay.cs` pattern). Legacy grouped CLI files
