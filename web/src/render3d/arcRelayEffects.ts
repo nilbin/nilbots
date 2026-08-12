@@ -4,50 +4,55 @@ import type {
   ReplayModel,
   ReplayPosition,
 } from '../replayModel';
-import { posesAt } from '../render/interpolate';
+import { posesAt, type BotPose } from '../render/interpolate';
+import type { ArcVeterancyIndex } from '../replayArcVeterancy';
 import { unitAccent } from '../render/unitPresentation';
+import {
+  resolveArcSignaturePresentation,
+  type ArcSignatureCanvasMarker,
+} from '../render/arcSignaturePresentation';
 import { signatureModel } from './lookModel';
+import {
+  arcVeterancyFor,
+  LEVEL_UP_BEAT_TICKS,
+} from '../replayArcVeterancy';
+import {
+  arcSignatureWebGLPainter,
+  arcSignatureWebGLPainterIds,
+} from './signatures/registry';
+import type {
+  ArcSignatureEffectRig,
+  ArcSignatureOutcomeFact,
+  ArcSignatureWebGLPhase,
+} from './signatures/types';
 
 type Signature = ReplayArcRelayModeState['visibleSignatures'][number];
-type SignatureForm =
-  | 'dash'
-  | 'prism'
-  | 'hook'
-  | 'repair'
-  | 'survey'
-  | 'star'
-  | 'trip'
-  | 'null'
-  | 'arc'
-  | 'exchange'
-  | 'rail'
-  | 'block'
-  | 'target'
-  | 'burst'
-  | 'smoke'
-  | 'seed';
+const LEGACY_WEBGL_PAINTERS: Readonly<Record<string, ArcSignatureCanvasMarker>> =
+  Object.freeze({
+    'vector-dash': 'arrow',
+    'prism-wall': 'panels',
+    'tractor-hook': 'tether',
+    'repair-beam': 'braid',
+    'survey-flare': 'calibration-field',
+    'falling-star': 'cardinal-target',
+    'trip-node': 'prop',
+    'null-field': 'dark-field',
+    'arc-toss': 'objective-arc',
+    exchange: 'paired-fold',
+    'rail-line': 'pressure-lane',
+    'hardlight-block': 'block',
+    'target-paint': 'target-brackets',
+    'kinetic-burst': 'pressure-ring',
+    'smoke-canister': 'smoke-field',
+    'sentinel-seed': 'prop',
+  });
 
-export const ARC_SIGNATURE_STYLES = {
-  'vector-dash': { form: 'dash', polish: 'simple' },
-  'prism-wall': { form: 'prism', polish: 'standard' },
-  'tractor-hook': { form: 'hook', polish: 'standard' },
-  'repair-beam': { form: 'repair', polish: 'priority' },
-  'survey-flare': { form: 'survey', polish: 'priority' },
-  'falling-star': { form: 'star', polish: 'standard' },
-  'trip-node': { form: 'trip', polish: 'standard' },
-  'null-field': { form: 'null', polish: 'standard' },
-  'arc-toss': { form: 'arc', polish: 'standard' },
-  exchange: { form: 'exchange', polish: 'standard' },
-  'rail-line': { form: 'rail', polish: 'standard' },
-  'hardlight-block': { form: 'block', polish: 'standard' },
-  'target-paint': { form: 'target', polish: 'standard' },
-  'kinetic-burst': { form: 'burst', polish: 'simple' },
-  'smoke-canister': { form: 'smoke', polish: 'priority' },
-  'sentinel-seed': { form: 'seed', polish: 'standard' },
-} as const satisfies Record<
-  string,
-  { form: SignatureForm; polish: 'simple' | 'standard' | 'priority' }
->;
+/** Stable painter IDs exposed for conformance tests and capture tooling. */
+export const ARC_SIGNATURE_WEBGL_PAINTERS = Object.freeze(
+  Object.fromEntries(
+    arcSignatureWebGLPainterIds().map((id) => [id, id]),
+  ) as Readonly<Record<string, string>>,
+);
 
 export type ArcSignatureVisualPhase =
   | 'hidden'
@@ -73,20 +78,6 @@ export function arcSignatureVisualPhase(
     return 'tell';
   }
   return signature.phase;
-}
-
-interface EffectRig {
-  group: THREE.Group;
-  main: THREE.MeshBasicMaterial;
-  fill: THREE.MeshBasicMaterial;
-  smoke: THREE.MeshStandardMaterial;
-  disc: THREE.Mesh;
-  ring: THREE.Mesh;
-  beam: THREE.Mesh;
-  segments: THREE.Mesh[];
-  panels: THREE.Mesh[];
-  particles: THREE.Mesh[];
-  markers: THREE.Mesh[];
 }
 
 interface SignatureShotYaw {
@@ -140,15 +131,21 @@ export function buildArcRelayEffects(
   const group = new THREE.Group();
   group.userData.kind = 'arc-relay-signatures-and-beats';
   const signatureShotYaws = indexSignatureShotYaws(replay);
-  const propSlots = new Map<string, SignaturePropSlot>();
+  const veterancy = arcVeterancyFor(replay);
+  const reducedMotionQuery =
+    typeof window !== 'undefined' && window.matchMedia
+      ? window.matchMedia('(prefers-reduced-motion: reduce)')
+      : null;
+  const propPools = new Map<string, SignaturePropSlot[]>();
 
-  const propAt = (signature: Signature): SignaturePropSlot => {
-    const existing = propSlots.get(signature.operationId);
+  const propAt = (signature: Signature, poolIndex: number): SignaturePropSlot => {
+    const pool = propPools.get(signature.signatureId) ?? [];
+    propPools.set(signature.signatureId, pool);
+    const existing = pool[poolIndex];
     if (existing) return existing;
     const propGroup = new THREE.Group();
     propGroup.visible = false;
     propGroup.userData.kind = 'arc-relay-signature-prop';
-    propGroup.userData.operationId = signature.operationId;
     propGroup.userData.signatureId = signature.signatureId;
     group.add(propGroup);
     const pipGeometry = new THREE.SphereGeometry(0.09, 8, 8);
@@ -175,7 +172,7 @@ export function buildArcRelayEffects(
       ready: false,
       disposed: false,
     };
-    propSlots.set(signature.operationId, slot);
+    pool[poolIndex] = slot;
     disposables.push({
       dispose: () => {
         slot.disposed = true;
@@ -208,6 +205,9 @@ export function buildArcRelayEffects(
   const particleGeometry = new THREE.SphereGeometry(0.055, 8, 5);
   const markerGeometry = new THREE.TetrahedronGeometry(0.15, 0);
   const beamGeometry = new THREE.CylinderGeometry(0.035, 0.09, 1, 10, 1, true);
+  const torusGeometry = new THREE.TorusGeometry(0.42, 0.09, 8, 40);
+  torusGeometry.rotateX(Math.PI / 2);
+  const capsuleGeometry = new THREE.CapsuleGeometry(0.08, 0.22, 4, 8);
   disposables.push(
     discGeometry,
     ringGeometry,
@@ -216,9 +216,11 @@ export function buildArcRelayEffects(
     particleGeometry,
     markerGeometry,
     beamGeometry,
+    torusGeometry,
+    capsuleGeometry,
   );
 
-  const rigs: EffectRig[] = [];
+  const rigs: ArcSignatureEffectRig[] = [];
   const rigAt = (index: number) => {
     while (rigs.length <= index) {
       const rigGroup = new THREE.Group();
@@ -246,10 +248,22 @@ export function buildArcRelayEffects(
         roughness: 0.95,
         metalness: 0,
       });
+      const solid = new THREE.MeshStandardMaterial({
+        color: '#eef8fc',
+        emissive: '#14212a',
+        emissiveIntensity: 0.18,
+        transparent: true,
+        opacity: 0.82,
+        depthWrite: true,
+        roughness: 0.92,
+        metalness: 0.06,
+      });
       const disc = new THREE.Mesh(discGeometry, fill);
       const ring = new THREE.Mesh(ringGeometry, main);
       const beam = new THREE.Mesh(beamGeometry, main);
-      rigGroup.add(disc, ring, beam);
+      const torus = new THREE.Mesh(torusGeometry, main);
+      const capsule = new THREE.Mesh(capsuleGeometry, solid);
+      rigGroup.add(disc, ring, beam, torus, capsule);
       const segments = Array.from({ length: 24 }, () => {
         const mesh = new THREE.Mesh(segmentGeometry, main);
         rigGroup.add(mesh);
@@ -276,16 +290,19 @@ export function buildArcRelayEffects(
         group: rigGroup,
         main,
         fill,
+        solid,
         smoke,
         disc,
         ring,
+        torus,
+        capsule,
         beam,
         segments,
         panels,
         particles,
         markers,
       });
-      disposables.push(main, fill, smoke);
+      disposables.push(main, fill, solid, smoke);
     }
     return rigs[index]!;
   };
@@ -321,14 +338,50 @@ export function buildArcRelayEffects(
   });
   disposables.push(beatRingMaterial, beatRingGeometry);
 
+  const levelMaterial = new THREE.MeshStandardMaterial({
+    color: '#cda04a',
+    emissive: '#5c4218',
+    emissiveIntensity: 0.22,
+    transparent: true,
+    opacity: 0,
+    roughness: 0.88,
+    metalness: 0.08,
+    depthWrite: false,
+  });
+  const levelRingGeometry = new THREE.RingGeometry(0.26, 0.32, 40);
+  levelRingGeometry.rotateX(-Math.PI / 2);
+  const levelFacetGeometry = new THREE.ConeGeometry(0.12, 0.26, 3);
+  const levelBeats = Array.from({ length: 8 }, () => {
+    const beat = new THREE.Group();
+    beat.visible = false;
+    const ring = new THREE.Mesh(levelRingGeometry, levelMaterial.clone());
+    beat.add(ring);
+    const facets = Array.from({ length: 3 }, (_, index) => {
+      const facet = new THREE.Mesh(levelFacetGeometry, levelMaterial.clone());
+      facet.rotation.x = Math.PI;
+      facet.rotation.y = (index * Math.PI * 2) / 3;
+      beat.add(facet);
+      return facet;
+    });
+    group.add(beat);
+    disposables.push(
+      ring.material as THREE.Material,
+      ...facets.map((facet) => facet.material as THREE.Material),
+    );
+    return { group: beat, ring, facets };
+  });
+  disposables.push(levelMaterial, levelRingGeometry, levelFacetGeometry);
+
   const update = (time: number) => {
     for (const rig of rigs) rig.group.visible = false;
-    for (const slot of propSlots.values()) {
-      slot.group.visible = false;
-      slot.pipGroup.visible = false;
-    }
+    for (const pool of propPools.values())
+      for (const slot of pool) {
+        slot.group.visible = false;
+        slot.pipGroup.visible = false;
+      }
     pulse.visible = false;
     for (const ring of beatRings) ring.visible = false;
+    for (const beat of levelBeats) beat.group.visible = false;
 
     const tickIndex = Math.max(
       0,
@@ -342,13 +395,27 @@ export function buildArcRelayEffects(
         : null;
     if (!state) return;
     const poses = posesAt(replay, time);
+    const reducedMotion = reducedMotionQuery?.matches === true;
+    const usedPropSlots = new Map<string, number>();
     let used = 0;
     for (const signature of state.visibleSignatures) {
       const phase = arcSignatureVisualPhase(signature, time);
-      const style = ARC_SIGNATURE_STYLES[
-        signature.signatureId as keyof typeof ARC_SIGNATURE_STYLES
-      ];
-      if (phase === 'hidden' || !style) continue;
+      const resolution = resolveArcSignaturePresentation(
+        replay,
+        signature.signatureId,
+      );
+      const authoredPainter = resolution.kind === 'authored'
+        ? arcSignatureWebGLPainter(resolution.definition.webglPainterId)
+        : undefined;
+      const legacyPainter = resolution.kind === 'legacy'
+        ? LEGACY_WEBGL_PAINTERS[signature.signatureId]
+        : undefined;
+      const marker = resolution.kind === 'authored'
+        ? resolution.definition.canvasMarker
+        : resolution.kind === 'legacy'
+          ? legacyPainter
+          : undefined;
+      if (phase === 'hidden') continue;
       const rig = rigAt(used++);
       resetRig(rig);
       rig.group.visible = true;
@@ -360,18 +427,21 @@ export function buildArcRelayEffects(
       const suppressed = signature.suppressed;
       rig.main.color.copy(suppressed ? new THREE.Color('#dce5eb') : accent);
       rig.fill.color.copy(
-        style.form === 'null'
+        marker === 'dark-field'
           ? new THREE.Color('#17212a')
-          : style.form === 'smoke'
+          : marker === 'smoke-field'
             ? new THREE.Color('#64717c')
             : accent,
       );
+      rig.solid.color.copy(accent).lerp(new THREE.Color('#dbe7ea'), 0.3);
+      rig.solid.emissive.copy(accent).multiplyScalar(0.16);
+      rig.solid.opacity = suppressed ? 0.48 : 0.82;
       const pulsePhase = 0.5 + 0.5 * Math.sin(time * Math.PI * 3);
       rig.main.opacity =
         (phase === 'tell' ? 0.42 + pulsePhase * 0.2 : 0.72) *
         (suppressed ? 0.55 : 1);
       rig.fill.opacity =
-        (phase === 'tell' ? 0.055 : style.form === 'smoke' ? 0.2 : 0.13) *
+        (phase === 'tell' ? 0.055 : marker === 'smoke-field' ? 0.2 : 0.13) *
         (suppressed ? 0.5 : 1);
       const points = signature.positions.map(worldPoint);
       const ownerPose = poses.find(
@@ -391,12 +461,16 @@ export function buildArcRelayEffects(
       let persistentPropReady = false;
       if (
         phase === 'active' &&
+        resolution.kind !== 'generic' &&
         (signature.signatureId === 'trip-node' ||
           signature.signatureId === 'sentinel-seed') &&
         points[0]
       ) {
-        const slot = propAt(signature);
+        const poolIndex = usedPropSlots.get(signature.signatureId) ?? 0;
+        usedPropSlots.set(signature.signatureId, poolIndex + 1);
+        const slot = propAt(signature, poolIndex);
         slot.group.visible = true;
+        slot.group.userData.operationId = signature.operationId;
         slot.group.position.copy(points[0]).setY(0);
         slot.group.scale.setScalar(ARC_SIGNATURE_PROP_SCALE[signature.signatureId]);
         const propYaw =
@@ -424,17 +498,91 @@ export function buildArcRelayEffects(
         }
         persistentPropReady = slot.ready;
       }
-      paintSignature(
-        rig,
-        style.form,
-        points,
-        owner,
-        target,
-        time,
-        phase,
-        persistentPropReady,
-      );
+      if (authoredPainter)
+        authoredPainter.paint({
+          rig,
+          signature,
+          points,
+          owner,
+          target,
+          time,
+          phase: phase as ArcSignatureWebGLPhase,
+          persistentPropReady,
+          reducedMotion,
+        });
+      else if (legacyPainter)
+        paintLegacySignature(
+          rig,
+          legacyPainter,
+          points,
+          owner,
+          target,
+          time,
+          phase,
+          persistentPropReady,
+        );
+      else paintGenericSignature(rig, points, owner, target, phase);
     }
+
+    const priorState = arcStateBefore(replay, tickIndex);
+    const outcomeFacts = new Map<string, ArcSignatureOutcomeFact[]>();
+    for (const event of [...tick.lifecycleEvents, ...tick.events]) {
+      const fact = event.arcRelayFact;
+      if (!fact || !('operationId' in fact)) continue;
+      const facts = outcomeFacts.get(fact.operationId) ?? [];
+      facts.push(fact);
+      outcomeFacts.set(fact.operationId, facts);
+    }
+    for (const [operationId, facts] of outcomeFacts) {
+      const first = facts[0]!;
+      const resolution = resolveArcSignaturePresentation(
+        replay,
+        first.signatureId,
+      );
+      if (resolution.kind !== 'authored') continue;
+      const painter = arcSignatureWebGLPainter(
+        resolution.definition.webglPainterId,
+      );
+      if (!painter?.paintOutcome) continue;
+      const rig = rigAt(used++);
+      resetRig(rig);
+      rig.group.visible = true;
+      rig.group.userData.signatureId = first.signatureId;
+      rig.group.userData.operationId = operationId;
+      rig.group.userData.phase = 'outcome';
+      const accent = new THREE.Color(
+        unitAccent(replay, first.ownerActor.unitKey),
+      );
+      rig.main.color.copy(accent);
+      rig.fill.color.copy(accent);
+      rig.solid.color.copy(accent).lerp(new THREE.Color('#dbe7ea'), 0.3);
+      rig.solid.emissive.copy(accent).multiplyScalar(0.16);
+      rig.main.opacity = 0.72;
+      rig.fill.opacity = 0.12;
+      rig.solid.opacity = 0.82;
+      const ownerPose = poses.find(
+        (pose) => pose.actorKey === first.ownerActor.actorKey,
+      );
+      const priorSignature = priorState?.visibleSignatures.find(
+        (signature) => signature.operationId === operationId,
+      ) ?? null;
+      painter.paintOutcome({
+        rig,
+        signatureId: first.signatureId,
+        priorSignature,
+        facts,
+        owner: ownerPose
+          ? new THREE.Vector3(ownerPose.x + 0.5, 0.08, ownerPose.y + 0.5)
+          : priorSignature?.positions[0]
+            ? worldPoint(priorSignature.positions[0])
+            : undefined,
+        time,
+        fraction: time - tickIndex,
+        reducedMotion,
+      });
+    }
+
+    paintLevelUpBeats(veterancy, poses, time, levelBeats);
 
     paintStoryBeats(
       replay,
@@ -450,9 +598,11 @@ export function buildArcRelayEffects(
   return { group, update };
 }
 
-function resetRig(rig: EffectRig): void {
+function resetRig(rig: ArcSignatureEffectRig): void {
   rig.disc.visible = false;
   rig.ring.visible = false;
+  rig.torus.visible = false;
+  rig.capsule.visible = false;
   rig.beam.visible = false;
   for (const mesh of [
     ...rig.segments,
@@ -461,13 +611,14 @@ function resetRig(rig: EffectRig): void {
     ...rig.markers,
   ])
     mesh.visible = false;
+  for (const panel of rig.panels) panel.material = rig.fill;
   for (const particle of rig.particles) particle.material = rig.main;
   rig.smoke.opacity = 0;
 }
 
-function paintSignature(
-  rig: EffectRig,
-  form: SignatureForm,
+function paintLegacySignature(
+  rig: ArcSignatureEffectRig,
+  painter: ArcSignatureCanvasMarker,
   points: THREE.Vector3[],
   owner: THREE.Vector3 | undefined,
   target: THREE.Vector3 | undefined,
@@ -479,7 +630,11 @@ function paintSignature(
   if (!anchor) return;
   const tellScale = phase === 'tell' ? 0.92 + 0.08 * Math.sin(time * Math.PI * 3) : 1;
 
-  if (form === 'survey' || form === 'null' || form === 'smoke') {
+  if (
+    painter === 'calibration-field' ||
+    painter === 'dark-field' ||
+    painter === 'smoke-field'
+  ) {
     const area = areaBounds(points.length > 0 ? points : [anchor]);
     rig.disc.visible = true;
     rig.disc.position.copy(area.centre).setY(0.032);
@@ -487,8 +642,8 @@ function paintSignature(
     rig.ring.visible = true;
     rig.ring.position.copy(area.centre).setY(0.04);
     rig.ring.scale.set(area.width * tellScale, area.depth * tellScale, 1);
-    rig.ring.rotation.y = form === 'survey' ? time * 0.35 : -time * 0.12;
-    if (form === 'survey') {
+    rig.ring.rotation.y = painter === 'calibration-field' ? time * 0.35 : -time * 0.12;
+    if (painter === 'calibration-field') {
       rig.beam.visible = true;
       rig.beam.position.copy(area.centre).setY(0.75);
       rig.beam.scale.y = 1.4;
@@ -502,7 +657,7 @@ function paintSignature(
           area.centre.z + Math.sin(angle) * area.depth * 0.45,
         );
       }
-    } else if (form === 'null') {
+    } else if (painter === 'dark-field') {
       rig.fill.opacity *= 1.8;
       for (let index = 0; index < 8; index += 1) {
         const angle = (index / 8) * Math.PI * 2 - time * 0.18;
@@ -535,14 +690,14 @@ function paintSignature(
     return;
   }
 
-  if (form === 'prism' || form === 'block') {
+  if (painter === 'panels' || painter === 'block') {
     for (const [index, point] of points.entries()) {
       const panel = rig.panels[index];
       if (!panel) break;
       panel.visible = true;
-      panel.position.copy(point).setY(form === 'prism' ? 0.33 : 0.24);
-      panel.scale.setScalar(tellScale * (form === 'prism' ? 1 : 0.82));
-      if (form === 'prism' && points[index + 1])
+      panel.position.copy(point).setY(painter === 'panels' ? 0.33 : 0.24);
+      panel.scale.setScalar(tellScale * (painter === 'panels' ? 1 : 0.82));
+      if (painter === 'panels' && points[index + 1])
         panel.rotation.y = -Math.atan2(
           points[index + 1]!.z - point.z,
           points[index + 1]!.x - point.x,
@@ -551,7 +706,7 @@ function paintSignature(
     return;
   }
 
-  if (form === 'star') {
+  if (painter === 'cardinal-target') {
     targetRing(rig, anchor, tellScale);
     lineAt(rig.segments[0]!, anchor.clone().add(new THREE.Vector3(-0.42, 0, 0)), anchor.clone().add(new THREE.Vector3(0.42, 0, 0)), 0.055);
     lineAt(rig.segments[1]!, anchor.clone().add(new THREE.Vector3(0, 0, -0.42)), anchor.clone().add(new THREE.Vector3(0, 0, 0.42)), 0.055);
@@ -561,25 +716,24 @@ function paintSignature(
     return;
   }
 
-  if (form === 'trip' || form === 'seed') {
+  if (painter === 'prop') {
     if (!persistentPropReady) {
       for (const [index, point] of points.entries()) {
         const marker = rig.markers[index];
         if (!marker) break;
         marker.visible = true;
-        marker.position.copy(point).setY(form === 'seed' ? 0.17 : 0.12);
-        marker.rotation.y = time * (form === 'seed' ? 0.35 : -0.2) + index;
-        if (form === 'seed') marker.scale.set(0.82, 1.15, 0.82);
+        marker.position.copy(point).setY(0.14);
+        marker.rotation.y = time * 0.22 + index;
         if (index > 0)
           lineAt(rig.segments[index - 1]!, points[index - 1]!, point, 0.035);
       }
     }
-    targetRing(rig, anchor, tellScale * (form === 'seed' ? 0.72 : 0.54));
+    targetRing(rig, anchor, tellScale * 0.62);
     if (phase === 'active') rig.main.opacity *= 0.58;
     return;
   }
 
-  if (form === 'arc' && owner && target) {
+  if (painter === 'objective-arc' && owner && target) {
     for (let index = 0; index < 14; index += 1) {
       const progress = index / 13;
       const particle = rig.particles[index]!;
@@ -592,9 +746,14 @@ function paintSignature(
     return;
   }
 
-  if ((form === 'hook' || form === 'repair' || form === 'exchange') && owner && target) {
-    lineAt(rig.segments[0]!, owner, target, form === 'repair' ? 0.085 : 0.055);
-    if (form === 'repair') {
+  if (
+    (painter === 'tether' ||
+      painter === 'braid' ||
+      painter === 'paired-fold') &&
+    owner && target
+  ) {
+    lineAt(rig.segments[0]!, owner, target, painter === 'braid' ? 0.085 : 0.055);
+    if (painter === 'braid') {
       const offset = new THREE.Vector3(0, 0.04, 0.08);
       lineAt(rig.segments[1]!, owner.clone().add(offset), target.clone().add(offset), 0.025);
       for (let index = 0; index < 8; index += 1) {
@@ -604,7 +763,7 @@ function paintSignature(
         particle.position.lerpVectors(owner, target, progress).setY(0.16 + Math.sin(progress * Math.PI) * 0.12);
         particle.scale.setScalar(0.55);
       }
-    } else if (form === 'exchange') {
+    } else if (painter === 'paired-fold') {
       lineAt(rig.segments[1]!, target, owner, 0.025);
       targetRing(rig, owner, tellScale * 0.65);
     } else {
@@ -617,24 +776,24 @@ function paintSignature(
     return;
   }
 
-  if (form === 'rail') {
+  if (painter === 'pressure-lane') {
     const path = points.length > 1 ? points : owner && target ? [owner, target] : [anchor];
     for (let index = 1; index < path.length; index += 1)
       lineAt(rig.segments[index - 1]!, path[index - 1]!, path[index]!, 0.11);
     return;
   }
 
-  if (form === 'target') {
+  if (painter === 'target-brackets') {
     targetBrackets(rig, target ?? anchor, tellScale);
     return;
   }
 
-  if (form === 'burst') {
+  if (painter === 'pressure-ring') {
     targetRing(rig, anchor, tellScale * (phase === 'tell' ? 1 : 1.4));
     return;
   }
 
-  if (form === 'dash') {
+  if (painter === 'arrow') {
     const destination = points.at(-1) ?? target;
     if (owner && destination) lineAt(rig.segments[0]!, owner, destination, 0.07);
     for (let index = 0; index < Math.min(points.length, 5); index += 1) {
@@ -646,13 +805,42 @@ function paintSignature(
   }
 }
 
-function targetRing(rig: EffectRig, position: THREE.Vector3, scale: number): void {
+/** Truthful fallback for a package or signature this build cannot decorate. */
+function paintGenericSignature(
+  rig: ArcSignatureEffectRig,
+  points: THREE.Vector3[],
+  owner: THREE.Vector3 | undefined,
+  target: THREE.Vector3 | undefined,
+  phase: Exclude<ArcSignatureVisualPhase, 'hidden'>,
+): void {
+  const anchors = points.length > 0
+    ? points
+    : [target ?? owner].filter((point): point is THREE.Vector3 => point !== undefined);
+  for (const [index, point] of anchors.slice(0, rig.markers.length).entries()) {
+    const marker = rig.markers[index]!;
+    marker.visible = true;
+    marker.position.copy(point).setY(0.11);
+    marker.scale.setScalar(phase === 'tell' ? 0.75 : 0.58);
+  }
+  for (let index = 1; index < anchors.length && index <= rig.segments.length; index++)
+    lineAt(rig.segments[index - 1]!, anchors[index - 1]!, anchors[index]!, 0.04);
+}
+
+function targetRing(
+  rig: ArcSignatureEffectRig,
+  position: THREE.Vector3,
+  scale: number,
+): void {
   rig.ring.visible = true;
   rig.ring.position.copy(position).setY(0.045);
   rig.ring.scale.setScalar(scale);
 }
 
-function targetBrackets(rig: EffectRig, position: THREE.Vector3, scale: number): void {
+function targetBrackets(
+  rig: ArcSignatureEffectRig,
+  position: THREE.Vector3,
+  scale: number,
+): void {
   const inner = 0.28 * scale;
   const outer = 0.46 * scale;
   let segment = 0;
@@ -705,6 +893,19 @@ function areaBounds(points: THREE.Vector3[]): {
 
 function worldPoint(position: ReplayPosition): THREE.Vector3 {
   return new THREE.Vector3(position.x + 0.5, 0.065, position.y + 0.5);
+}
+
+function arcStateBefore(
+  replay: ReplayModel,
+  tickIndex: number,
+): ReplayArcRelayModeState | null {
+  const immediate = replay.ticks[tickIndex]?.before.mode;
+  if (immediate?.kind === 'arc-relay' && 'visibleSignatures' in immediate)
+    return immediate;
+  const previous = replay.ticks[tickIndex - 1]?.after.mode;
+  return previous?.kind === 'arc-relay' && 'visibleSignatures' in previous
+    ? previous
+    : null;
 }
 
 function indexSignatureShotYaws(
@@ -782,6 +983,52 @@ function disposeModelMaterials(model: THREE.Group): void {
       materials.add(material);
   });
   for (const material of materials) material.dispose();
+}
+
+interface LevelUpBeatRig {
+  group: THREE.Group;
+  ring: THREE.Mesh;
+  facets: THREE.Mesh[];
+}
+
+/** Pure playhead sampling: direct seek and continuous playback paint identically. */
+function paintLevelUpBeats(
+  veterancy: ArcVeterancyIndex,
+  poses: readonly BotPose[],
+  time: number,
+  rigs: readonly LevelUpBeatRig[],
+): void {
+  let used = 0;
+  for (const pose of poses) {
+    const event = veterancy.levelUpAt(
+      time,
+      pose.teamId,
+      pose.unitId,
+      pose.lifeId,
+    );
+    if (!event) continue;
+    const rig = rigs[used++];
+    if (!rig) break;
+    const progress = event.age / LEVEL_UP_BEAT_TICKS;
+    const ringProgress = Math.min(1, event.age / 0.18);
+    const facetProgress = Math.max(0, Math.min(1, (event.age - 0.12) / 0.36));
+    const alpha = Math.max(0, 1 - progress);
+    rig.group.visible = true;
+    rig.group.position.set(pose.x + 0.5, 0.09, pose.y + 0.5);
+    rig.ring.scale.setScalar(0.82 + ringProgress * 1.5);
+    (rig.ring.material as THREE.MeshStandardMaterial).opacity = alpha * 0.78;
+    for (const [index, facet] of rig.facets.entries()) {
+      const angle = -Math.PI / 2 + (index * Math.PI * 2) / 3;
+      const radius = 0.72 - facetProgress * 0.34;
+      facet.position.set(
+        Math.cos(angle) * radius,
+        0.12 + facetProgress * 0.22,
+        Math.sin(angle) * radius,
+      );
+      facet.rotation.y = -angle;
+      (facet.material as THREE.MeshStandardMaterial).opacity = alpha * 0.82;
+    }
+  }
 }
 
 function paintStoryBeats(

@@ -2,12 +2,19 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   ARC_SIGNATURE_PROP_SCALE,
-  ARC_SIGNATURE_STYLES,
+  ARC_SIGNATURE_PRESENTATION_ID,
+  ARC_SIGNATURE_WEBGL_PAINTERS,
+  arcSignaturePresentationDefinitions,
   arcSignatureVisualPhase,
   latestObservedSignatureYaw,
+  resolveArcSignaturePresentation,
   sentinelYawTarget,
+  buildArcVeterancy,
+  LEVEL_UP_BEAT_TICKS,
 } from './.harness/harness.entry.js';
 import * as THREE from 'three';
+import { readFileSync } from 'node:fs';
+import { loadReplayJson } from '../src/replayIngress.ts';
 
 const signatureIds = [
   'vector-dash',
@@ -28,14 +35,60 @@ const signatureIds = [
   'sentinel-seed',
 ] as const;
 
-test('the 3D Arc effect registry gives every signature a distinct authored form', () => {
-  assert.deepEqual(Object.keys(ARC_SIGNATURE_STYLES), signatureIds);
-  assert.equal(new Set(Object.values(ARC_SIGNATURE_STYLES).map((style) => style.form)).size, 16);
-  assert.equal(ARC_SIGNATURE_STYLES['survey-flare'].polish, 'priority');
-  assert.equal(ARC_SIGNATURE_STYLES['smoke-canister'].polish, 'priority');
-  assert.equal(ARC_SIGNATURE_STYLES['repair-beam'].polish, 'priority');
-  assert.equal(ARC_SIGNATURE_STYLES['vector-dash'].polish, 'simple');
-  assert.equal(ARC_SIGNATURE_STYLES['kinetic-burst'].polish, 'simple');
+test('the typed Arc package gives every signature an owned WebGL treatment', () => {
+  const definitions = arcSignaturePresentationDefinitions();
+  assert.deepEqual(
+    definitions.map((definition) => definition.signatureId).sort(),
+    [...signatureIds].sort(),
+  );
+  assert.deepEqual(
+    Object.keys(ARC_SIGNATURE_WEBGL_PAINTERS).sort(),
+    [...signatureIds].sort(),
+  );
+  assert.ok(
+    definitions.every(
+      (definition) =>
+        definition.packageId === ARC_SIGNATURE_PRESENTATION_ID &&
+        definition.audio.length > 0 &&
+        definition.budget.transparentLayers <= 3,
+    ),
+  );
+  assert.equal(
+    new Set(Object.values(ARC_SIGNATURE_WEBGL_PAINTERS)).size,
+    16,
+    'every signature owns a discoverable painter even when two compose the prop primitive',
+  );
+});
+
+test('signature package resolution preserves legacy and fails future packages truthfully', () => {
+  assert.deepEqual(
+    resolveArcSignaturePresentation(
+      { signaturePresentationId: null },
+      'null-field',
+    ).kind,
+    'legacy',
+  );
+  assert.equal(
+    resolveArcSignaturePresentation(
+      { signaturePresentationId: ARC_SIGNATURE_PRESENTATION_ID },
+      'null-field',
+    ).kind,
+    'authored',
+  );
+  assert.equal(
+    resolveArcSignaturePresentation(
+      { signaturePresentationId: 'future-package-v9' },
+      'null-field',
+    ).kind,
+    'generic',
+  );
+  assert.equal(
+    resolveArcSignaturePresentation(
+      { signaturePresentationId: ARC_SIGNATURE_PRESENTATION_ID },
+      'future-signature',
+    ).kind,
+    'generic',
+  );
 });
 
 test('signature anticipation never starts early or outlives its authoritative tell', () => {
@@ -98,4 +151,46 @@ test('sentinel yaw targets the authored head split and keeps legacy fallback', (
   assert.equal(sentinelYawTarget(propGroup, splitModel), yawHead);
   assert.equal(sentinelYawTarget(propGroup, new THREE.Group()), propGroup);
   assert.equal(sentinelYawTarget(propGroup, null), propGroup);
+});
+
+test('the level-up transient starts on its exact fact and is gone after 0.9 ticks', () => {
+  const replay = loadReplayJson(
+    readFileSync(
+      new URL('./fixtures/generic-mind-replay-v3.json', import.meta.url),
+      'utf8',
+    ),
+  ).replay;
+  const actor = replay.ticks[0]!.after.actors[0]!.identity;
+  replay.ticks[2]!.events.push({
+    ...replay.ticks[2]!.events[0]!,
+    eventId: 'arc:level-up:test',
+    arcRelayFact: {
+      kind: 'leveled-up',
+      actor,
+      level: 2,
+      position: { ...replay.ticks[2]!.after.actors[0]!.position },
+    },
+  });
+  const veterancy = buildArcVeterancy(replay);
+
+  assert.equal(LEVEL_UP_BEAT_TICKS, 0.9);
+  assert.equal(
+    veterancy.levelUpAt(1.999, actor.teamId, actor.unitId, actor.lifeId),
+    null,
+  );
+  assert.deepEqual(
+    veterancy.levelUpAt(2, actor.teamId, actor.unitId, actor.lifeId),
+    { level: 2, age: 0 },
+  );
+  assert.ok(
+    veterancy.levelUpAt(2.899, actor.teamId, actor.unitId, actor.lifeId),
+  );
+  assert.equal(
+    veterancy.levelUpAt(2.9, actor.teamId, actor.unitId, actor.lifeId),
+    null,
+  );
+  assert.equal(
+    veterancy.levelUpAt(2.2, actor.teamId, actor.unitId, actor.lifeId + 1),
+    null,
+  );
 });

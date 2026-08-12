@@ -105,9 +105,18 @@ export {
   createArcModelMotionRig,
 } from '../../src/render3d/arcModelMotion';
 export {
-  ARC_SIGNATURE_STYLES,
+  ARC_SIGNATURE_WEBGL_PAINTERS,
   ARC_SIGNATURE_PROP_SCALE,
   arcSignatureVisualPhase,
   latestObservedSignatureYaw,
   sentinelYawTarget,
 } from '../../src/render3d/arcRelayEffects';
+export {
+  ARC_SIGNATURE_PRESENTATION_ID,
+  arcSignaturePresentationDefinitions,
+  resolveArcSignaturePresentation,
+} from '../../src/render/arcSignaturePresentation';
+export {
+  buildArcVeterancy,
+  LEVEL_UP_BEAT_TICKS,
+} from '../../src/replayArcVeterancy';

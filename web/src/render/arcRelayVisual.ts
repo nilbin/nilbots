@@ -13,6 +13,14 @@ import { arcOriginAccent } from '../replayPresentation';
 import { teamAccentedEffectImage } from './arenaThemes';
 import type { CrestPresentation } from '../components/EntrantCrest';
 import { ARC_CORE_NEUTRAL_PALETTE } from '../presentation/arcCorePalette';
+import {
+  arcVeterancyFor,
+  LEVEL_UP_BEAT_TICKS,
+} from '../replayArcVeterancy';
+import {
+  resolveArcSignaturePresentation,
+  type ArcSignatureCanvasMarker,
+} from './arcSignaturePresentation';
 
 export interface ArcRelayVisualContext {
   ctx: CanvasRenderingContext2D;
@@ -58,6 +66,7 @@ export function drawArcRelayOverlay(input: ArcRelayVisualContext): void {
   drawCores(input, state, true);
   drawTransferEffects(input);
   drawDiegeticEvents(input, state);
+  drawLevelUpBeats(input);
   drawSignatureCombatEvents(input, state);
   drawSignatureReadiness(input, state);
 }
@@ -449,97 +458,385 @@ function drawSignatures(input: ArcRelayVisualContext, state: ArcState): void {
     ctx.fillStyle = withAlpha(accent, tell ? 0.055 : 0.12);
     ctx.lineWidth = Math.max(2, tile * (tell ? 0.045 : 0.07));
     if (tell) ctx.setLineDash([tile * 0.12, tile * 0.08]);
-
-    const areaField = ['survey-flare', 'null-field', 'smoke-canister']
-      .includes(signature.signatureId);
-    const deployed = signature.phase === 'active'
-      && ['sentinel-seed', 'trip-node'].includes(signature.signatureId);
-    if (deployed && points.length > 0) {
-      for (const point of points) {
-        if (signature.signatureId === 'sentinel-seed') {
-          drawSentinelTurret(input, signature, point, accent);
-        } else {
-          drawMine(ctx, point, tile, accent, time);
-        }
-        if (signature.suppressed) {
-          ctx.setLineDash([]);
-          ctx.strokeStyle = 'rgba(226, 232, 240, 0.8)';
-          ctx.lineWidth = Math.max(2, tile * 0.06);
-          ctx.beginPath();
-          ctx.moveTo(point.x - tile * 0.28, point.y - tile * 0.28);
-          ctx.lineTo(point.x + tile * 0.28, point.y + tile * 0.28);
-          ctx.moveTo(point.x + tile * 0.28, point.y - tile * 0.28);
-          ctx.lineTo(point.x - tile * 0.28, point.y + tile * 0.28);
-          ctx.stroke();
-        }
-      }
-      ctx.restore();
-      continue;
-    }
-    if (areaField && points.length > 0) {
-      const minX = Math.min(...points.map((point) => point.x));
-      const maxX = Math.max(...points.map((point) => point.x));
-      const minY = Math.min(...points.map((point) => point.y));
-      const maxY = Math.max(...points.map((point) => point.y));
-      ctx.beginPath();
-      ctx.ellipse(
-        (minX + maxX) / 2,
-        (minY + maxY) / 2,
-        (maxX - minX) / 2 + tile * 0.44,
-        (maxY - minY) / 2 + tile * 0.44,
-        0,
-        0,
-        Math.PI * 2,
-      );
-      ctx.fill();
-      ctx.stroke();
-    } else {
-      for (const point of points) {
-        ctx.fillRect(point.x - tile * 0.38, point.y - tile * 0.38, tile * 0.76, tile * 0.76);
-        ctx.strokeRect(point.x - tile * 0.38, point.y - tile * 0.38, tile * 0.76, tile * 0.76);
-      }
-      if (points.length > 1) {
-        ctx.beginPath();
-        ctx.moveTo(points[0]!.x, points[0]!.y);
-        for (const point of points.slice(1)) ctx.lineTo(point.x, point.y);
-        ctx.stroke();
-      }
-    }
-
-    const anchor = points[0] ?? actorCentre(input, signature.ownerActor);
-    if (anchor)
-      drawClassSignatureGlyph(
+    const resolution = resolveArcSignaturePresentation(
+      input.replay,
+      signature.signatureId,
+    );
+    if (resolution.kind === 'legacy')
+      drawLegacySignature(input, signature, points, accent);
+    else if (resolution.kind === 'authored')
+      drawAuthoredSignatureMarker(
         input,
-        signature.ownerActor,
-        signature.signatureId,
-        anchor.x,
-        anchor.y,
+        signature,
+        resolution.definition.canvasMarker,
+        points,
         accent,
       );
-    if (signature.targetActor) {
-      const target = actorCentre(input, signature.targetActor);
-      const owner = actorCentre(input, signature.ownerActor);
-      if (target) drawTargetBrackets(ctx, target.x, target.y, tile, accent);
-      if (target && owner && ['repair-beam', 'exchange', 'tractor-hook'].includes(signature.signatureId)) {
-        ctx.beginPath();
-        ctx.moveTo(owner.x, owner.y);
-        ctx.lineTo(target.x, target.y);
-        ctx.stroke();
-      }
-    }
-    if (signature.suppressed && anchor) {
-      ctx.setLineDash([]);
-      ctx.strokeStyle = 'rgba(226, 232, 240, 0.8)';
-      ctx.lineWidth = Math.max(2, tile * 0.06);
-      ctx.beginPath();
-      ctx.moveTo(anchor.x - tile * 0.28, anchor.y - tile * 0.28);
-      ctx.lineTo(anchor.x + tile * 0.28, anchor.y + tile * 0.28);
-      ctx.moveTo(anchor.x + tile * 0.28, anchor.y - tile * 0.28);
-      ctx.lineTo(anchor.x - tile * 0.28, anchor.y + tile * 0.28);
-      ctx.stroke();
-    }
+    else drawGenericSignatureMarker(input, signature, points, accent);
     ctx.restore();
   }
+}
+
+type CanvasSignature = ArcState['visibleSignatures'][number];
+type CanvasPoint = { x: number; y: number };
+
+/** Frozen compatibility renderer for replays without a presentation package. */
+function drawLegacySignature(
+  input: ArcRelayVisualContext,
+  signature: CanvasSignature,
+  points: CanvasPoint[],
+  accent: string,
+): void {
+  const { ctx, tile, time } = input;
+  const areaField = ['survey-flare', 'null-field', 'smoke-canister']
+    .includes(signature.signatureId);
+  const deployed = signature.phase === 'active'
+    && ['sentinel-seed', 'trip-node'].includes(signature.signatureId);
+  if (deployed && points.length > 0) {
+    for (const point of points) {
+      if (signature.signatureId === 'sentinel-seed')
+        drawSentinelTurret(input, signature, point, accent);
+      else drawMine(ctx, point, tile, accent, time);
+      if (signature.suppressed) drawSuppressionCross(ctx, point, tile);
+    }
+    return;
+  }
+  if (areaField && points.length > 0) drawAreaEllipse(ctx, points, tile);
+  else drawGenericFootprint(ctx, points, tile);
+
+  const anchor = points[0] ?? actorCentre(input, signature.ownerActor);
+  if (anchor)
+    drawClassSignatureGlyph(
+      input,
+      signature.ownerActor,
+      signature.signatureId,
+      anchor.x,
+      anchor.y,
+      accent,
+    );
+  if (signature.targetActor) {
+    const target = actorCentre(input, signature.targetActor);
+    const owner = actorCentre(input, signature.ownerActor);
+    if (target) drawTargetBrackets(ctx, target.x, target.y, tile, accent);
+    if (
+      target &&
+      owner &&
+      ['repair-beam', 'exchange', 'tractor-hook'].includes(signature.signatureId)
+    )
+      drawCanvasLine(ctx, owner, target);
+  }
+  if (signature.suppressed && anchor) drawSuppressionCross(ctx, anchor, tile);
+}
+
+/** Compact Canvas truth marker; WebGL owns the ornamental treatment. */
+function drawAuthoredSignatureMarker(
+  input: ArcRelayVisualContext,
+  signature: CanvasSignature,
+  marker: ArcSignatureCanvasMarker,
+  points: CanvasPoint[],
+  accent: string,
+): void {
+  const { ctx, tile, time } = input;
+  const owner = actorCentre(input, signature.ownerActor);
+  const target = signature.targetActor
+    ? actorCentre(input, signature.targetActor)
+    : null;
+  const anchor = points[0] ?? target ?? owner;
+  if (!anchor) return;
+
+  if (marker === 'prop' && signature.phase === 'active' && points.length > 0) {
+    for (const point of points) {
+      if (signature.signatureId === 'sentinel-seed')
+        drawSentinelTurret(input, signature, point, accent);
+      else drawMine(ctx, point, tile, accent, time);
+      if (signature.suppressed) drawSuppressionCross(ctx, point, tile);
+    }
+    return;
+  }
+
+  if (
+    marker === 'calibration-field' ||
+    marker === 'dark-field' ||
+    marker === 'smoke-field'
+  ) {
+    if (points.length > 0) drawAreaEllipse(ctx, points, tile);
+    if (marker === 'calibration-field') drawCalibrationTicks(ctx, points, tile);
+    else if (marker === 'smoke-field') drawSmokeLobes(ctx, points, tile, time);
+  } else if (marker === 'panels' || marker === 'block') {
+    drawConstructTiles(ctx, points, tile, marker === 'block');
+  } else if (marker === 'cardinal-target') {
+    drawCardinalTarget(ctx, anchor, tile);
+  } else if (marker === 'objective-arc') {
+    // drawCores owns the only in-flight Core; this is destination truth only.
+    const destination = points.at(-1) ?? target ?? anchor;
+    drawDestinationRing(ctx, destination, tile);
+  } else if (marker === 'tether' || marker === 'braid' || marker === 'paired-fold') {
+    const from = owner ?? points[0];
+    const to = target ?? points.at(-1);
+    if (from && to) {
+      drawCanvasLine(ctx, from, to);
+      if (marker === 'braid') drawBraidedCanvasLine(ctx, from, to, tile);
+      drawTargetBrackets(ctx, to.x, to.y, tile, accent);
+      if (marker === 'paired-fold')
+        drawTargetBrackets(ctx, from.x, from.y, tile, accent);
+    }
+  } else if (marker === 'pressure-lane') {
+    drawPressureLane(ctx, points.length > 1 ? points : [owner, target].filter(isCanvasPoint), tile);
+  } else if (marker === 'target-brackets') {
+    const bracketTarget = target ?? anchor;
+    drawTargetBrackets(ctx, bracketTarget.x, bracketTarget.y, tile, accent);
+    drawCapacityTallies(ctx, bracketTarget, tile, signature.remainingCapacity);
+  } else if (marker === 'pressure-ring') {
+    drawPressureRing(ctx, owner ?? anchor, tile, signature.phase === 'tell');
+  } else if (marker === 'arrow') {
+    drawPathArrow(ctx, owner ?? anchor, points, tile);
+  } else if (marker === 'prop') {
+    drawDestinationRing(ctx, anchor, tile * 0.78);
+  }
+
+  if (signature.suppressed) drawSuppressionCross(ctx, anchor, tile);
+}
+
+/** Unknown packages remain mechanically visible without borrowing current art. */
+function drawGenericSignatureMarker(
+  input: ArcRelayVisualContext,
+  signature: CanvasSignature,
+  points: CanvasPoint[],
+  accent: string,
+): void {
+  const { ctx, tile } = input;
+  const owner = actorCentre(input, signature.ownerActor);
+  const target = signature.targetActor
+    ? actorCentre(input, signature.targetActor)
+    : null;
+  const anchors = points.length > 0
+    ? points
+    : [target ?? owner].filter(isCanvasPoint);
+  drawGenericFootprint(ctx, anchors, tile);
+  if (target) drawTargetBrackets(ctx, target.x, target.y, tile, accent);
+  const anchor = anchors[0];
+  if (signature.suppressed && anchor) drawSuppressionCross(ctx, anchor, tile);
+}
+
+function isCanvasPoint(point: CanvasPoint | null | undefined): point is CanvasPoint {
+  return point !== null && point !== undefined;
+}
+
+function drawGenericFootprint(
+  ctx: CanvasRenderingContext2D,
+  points: readonly CanvasPoint[],
+  tile: number,
+): void {
+  for (const point of points) {
+    ctx.fillRect(point.x - tile * 0.38, point.y - tile * 0.38, tile * 0.76, tile * 0.76);
+    ctx.strokeRect(point.x - tile * 0.38, point.y - tile * 0.38, tile * 0.76, tile * 0.76);
+  }
+  if (points.length > 1) {
+    ctx.beginPath();
+    ctx.moveTo(points[0]!.x, points[0]!.y);
+    for (const point of points.slice(1)) ctx.lineTo(point.x, point.y);
+    ctx.stroke();
+  }
+}
+
+function drawAreaEllipse(
+  ctx: CanvasRenderingContext2D,
+  points: readonly CanvasPoint[],
+  tile: number,
+): void {
+  if (points.length === 0) return;
+  const minX = Math.min(...points.map((point) => point.x));
+  const maxX = Math.max(...points.map((point) => point.x));
+  const minY = Math.min(...points.map((point) => point.y));
+  const maxY = Math.max(...points.map((point) => point.y));
+  ctx.beginPath();
+  ctx.ellipse(
+    (minX + maxX) / 2,
+    (minY + maxY) / 2,
+    (maxX - minX) / 2 + tile * 0.44,
+    (maxY - minY) / 2 + tile * 0.44,
+    0,
+    0,
+    Math.PI * 2,
+  );
+  ctx.fill();
+  ctx.stroke();
+}
+
+function drawConstructTiles(
+  ctx: CanvasRenderingContext2D,
+  points: readonly CanvasPoint[],
+  tile: number,
+  block: boolean,
+): void {
+  const inset = block ? 0.16 : 0.1;
+  for (const point of points) {
+    const half = tile * (0.5 - inset);
+    ctx.fillRect(point.x - half, point.y - half, half * 2, half * 2);
+    ctx.strokeRect(point.x - half, point.y - half, half * 2, half * 2);
+  }
+}
+
+function drawCardinalTarget(
+  ctx: CanvasRenderingContext2D,
+  point: CanvasPoint,
+  tile: number,
+): void {
+  ctx.beginPath();
+  ctx.arc(point.x, point.y, tile * 0.34, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(point.x - tile * 0.52, point.y);
+  ctx.lineTo(point.x - tile * 0.18, point.y);
+  ctx.moveTo(point.x + tile * 0.18, point.y);
+  ctx.lineTo(point.x + tile * 0.52, point.y);
+  ctx.moveTo(point.x, point.y - tile * 0.52);
+  ctx.lineTo(point.x, point.y - tile * 0.18);
+  ctx.moveTo(point.x, point.y + tile * 0.18);
+  ctx.lineTo(point.x, point.y + tile * 0.52);
+  ctx.stroke();
+}
+
+function drawDestinationRing(
+  ctx: CanvasRenderingContext2D,
+  point: CanvasPoint,
+  tile: number,
+): void {
+  ctx.beginPath();
+  ctx.arc(point.x, point.y, tile * 0.38, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(point.x, point.y, tile * 0.13, 0, Math.PI * 2);
+  ctx.stroke();
+}
+
+function drawCanvasLine(
+  ctx: CanvasRenderingContext2D,
+  from: CanvasPoint,
+  to: CanvasPoint,
+): void {
+  ctx.beginPath();
+  ctx.moveTo(from.x, from.y);
+  ctx.lineTo(to.x, to.y);
+  ctx.stroke();
+}
+
+function drawBraidedCanvasLine(
+  ctx: CanvasRenderingContext2D,
+  from: CanvasPoint,
+  to: CanvasPoint,
+  tile: number,
+): void {
+  const length = Math.hypot(to.x - from.x, to.y - from.y) || 1;
+  const ox = (-(to.y - from.y) / length) * tile * 0.065;
+  const oy = ((to.x - from.x) / length) * tile * 0.065;
+  drawCanvasLine(ctx, { x: from.x + ox, y: from.y + oy }, { x: to.x + ox, y: to.y + oy });
+  drawCanvasLine(ctx, { x: from.x - ox, y: from.y - oy }, { x: to.x - ox, y: to.y - oy });
+}
+
+function drawPressureLane(
+  ctx: CanvasRenderingContext2D,
+  points: readonly CanvasPoint[],
+  tile: number,
+): void {
+  if (points.length < 2) return;
+  ctx.save();
+  ctx.setLineDash([]);
+  ctx.lineWidth = Math.max(4, tile * 0.22);
+  ctx.globalAlpha *= 0.38;
+  ctx.beginPath();
+  ctx.moveTo(points[0]!.x, points[0]!.y);
+  for (const point of points.slice(1)) ctx.lineTo(point.x, point.y);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawPressureRing(
+  ctx: CanvasRenderingContext2D,
+  point: CanvasPoint,
+  tile: number,
+  contracting: boolean,
+): void {
+  ctx.beginPath();
+  ctx.arc(point.x, point.y, tile * (contracting ? 0.48 : 0.72), 0, Math.PI * 2);
+  ctx.stroke();
+}
+
+function drawPathArrow(
+  ctx: CanvasRenderingContext2D,
+  owner: CanvasPoint,
+  points: readonly CanvasPoint[],
+  tile: number,
+): void {
+  const destination = points.at(-1) ?? owner;
+  drawCanvasLine(ctx, owner, destination);
+  const angle = Math.atan2(destination.y - owner.y, destination.x - owner.x);
+  for (const turn of [-0.7, 0.7]) {
+    ctx.beginPath();
+    ctx.moveTo(destination.x, destination.y);
+    ctx.lineTo(
+      destination.x - Math.cos(angle + turn) * tile * 0.34,
+      destination.y - Math.sin(angle + turn) * tile * 0.34,
+    );
+    ctx.stroke();
+  }
+}
+
+function drawCalibrationTicks(
+  ctx: CanvasRenderingContext2D,
+  points: readonly CanvasPoint[],
+  tile: number,
+): void {
+  for (const [index, point] of points.entries()) {
+    if (index % 2 !== 0) continue;
+    ctx.beginPath();
+    ctx.moveTo(point.x - tile * 0.12, point.y);
+    ctx.lineTo(point.x + tile * 0.12, point.y);
+    ctx.stroke();
+  }
+}
+
+function drawSmokeLobes(
+  ctx: CanvasRenderingContext2D,
+  points: readonly CanvasPoint[],
+  tile: number,
+  time: number,
+): void {
+  for (const [index, point] of points.entries()) {
+    const radius = tile * (0.2 + 0.025 * Math.sin(time + index));
+    ctx.beginPath();
+    ctx.arc(point.x, point.y, radius, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function drawCapacityTallies(
+  ctx: CanvasRenderingContext2D,
+  point: CanvasPoint,
+  tile: number,
+  remaining: number,
+): void {
+  ctx.setLineDash([]);
+  for (let index = 0; index < Math.min(3, remaining); index += 1) {
+    const x = point.x + (index - 1) * tile * 0.16;
+    ctx.fillRect(x - tile * 0.045, point.y + tile * 0.5, tile * 0.09, tile * 0.22);
+  }
+}
+
+function drawSuppressionCross(
+  ctx: CanvasRenderingContext2D,
+  point: CanvasPoint,
+  tile: number,
+): void {
+  ctx.setLineDash([]);
+  ctx.strokeStyle = 'rgba(226, 232, 240, 0.8)';
+  ctx.lineWidth = Math.max(2, tile * 0.06);
+  ctx.beginPath();
+  ctx.moveTo(point.x - tile * 0.28, point.y - tile * 0.28);
+  ctx.lineTo(point.x + tile * 0.28, point.y + tile * 0.28);
+  ctx.moveTo(point.x + tile * 0.28, point.y - tile * 0.28);
+  ctx.lineTo(point.x - tile * 0.28, point.y + tile * 0.28);
+  ctx.stroke();
 }
 
 /**
@@ -1201,6 +1498,57 @@ function drawDiegeticEvents(
       ctx.beginPath();
       ctx.arc(point.x, point.y, tile * (0.42 - fraction * 0.18), 0, Math.PI * 2);
       ctx.fill();
+    }
+    ctx.restore();
+  }
+}
+
+/** Fact-driven transient; the persistent chevron remains actor-renderer owned. */
+function drawLevelUpBeats(input: ArcRelayVisualContext): void {
+  const { ctx, tile, time } = input;
+  const veterancy = arcVeterancyFor(input.replay);
+  for (const pose of input.poses) {
+    const beat = veterancy.levelUpAt(
+      time,
+      pose.teamId,
+      pose.unitId,
+      pose.lifeId,
+    );
+    if (!beat) continue;
+    const progress = beat.age / LEVEL_UP_BEAT_TICKS;
+    const point = centre(input, { x: pose.x, y: pose.y });
+    const ringProgress = Math.min(1, beat.age / 0.18);
+    const facetProgress = Math.max(0, Math.min(1, (beat.age - 0.12) / 0.36));
+    const alpha = Math.max(0, 1 - progress);
+    ctx.save();
+    ctx.strokeStyle = `rgba(205, 160, 74, ${alpha * 0.82})`;
+    ctx.fillStyle = `rgba(205, 160, 74, ${alpha * 0.28})`;
+    ctx.lineWidth = Math.max(2, tile * 0.055);
+    ctx.beginPath();
+    ctx.arc(
+      point.x,
+      point.y,
+      tile * (0.3 + ringProgress * 0.55),
+      0,
+      Math.PI * 2,
+    );
+    ctx.stroke();
+    for (let index = 0; index < 3; index += 1) {
+      const angle = -Math.PI / 2 + (index * Math.PI * 2) / 3;
+      const radius = tile * (0.74 - facetProgress * 0.32);
+      const x = point.x + Math.cos(angle) * radius;
+      const y = point.y + Math.sin(angle) * radius;
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(angle + Math.PI / 2);
+      ctx.beginPath();
+      ctx.moveTo(0, -tile * 0.13);
+      ctx.lineTo(tile * 0.12, tile * 0.11);
+      ctx.lineTo(-tile * 0.12, tile * 0.11);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
     }
     ctx.restore();
   }

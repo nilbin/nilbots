@@ -21,6 +21,16 @@ export interface ArcVeterancyIndex {
   /** Highest level this exact life has reached at `time`; 1 when none. */
   levelAt(time: number, teamId: number, unitId: number, lifeId: number): number;
   /**
+   * The current fact-driven promotion beat, or null outside its 0.9-tick
+   * presentation window. The returned age is deterministic under seeking.
+   */
+  levelUpAt(
+    time: number,
+    teamId: number,
+    unitId: number,
+    lifeId: number,
+  ): { level: number; age: number } | null;
+  /**
    * 1 exactly when a zone-heal landed on this life at `time`, fading to 0
    * over the heal cadence — so a channelling bot glows continuously and the
    * glow dies within a couple of ticks of it stepping off or being hit.
@@ -56,6 +66,7 @@ export function arcVeterancyFor(replay: ReplayModel): ArcVeterancyIndex {
 
 /** Ticks a heal glow survives past its fact — the -05 lineage cadence. */
 const HEAL_GLOW_TICKS = 3;
+export const LEVEL_UP_BEAT_TICKS = 0.9;
 
 export function buildArcVeterancy(replay: ReplayModel): ArcVeterancyIndex {
   const levels = new Map<string, { tick: number; level: number }[]>();
@@ -108,6 +119,18 @@ export function buildArcVeterancy(replay: ReplayModel): ArcVeterancyIndex {
         level = Math.max(level, step.level);
       }
       return level;
+    },
+    levelUpAt(time, teamId, unitId, lifeId) {
+      const steps = levels.get(lifeKey(teamId, unitId, lifeId));
+      if (!steps) return null;
+      let active: { level: number; age: number } | null = null;
+      for (const step of steps) {
+        if (step.tick > time) break;
+        const age = time - step.tick;
+        if (age + Number.EPSILON < LEVEL_UP_BEAT_TICKS)
+          active = { level: step.level, age };
+      }
+      return active;
     },
     healGlowAt(time, teamId, unitId, lifeId) {
       const ticks = heals.get(lifeKey(teamId, unitId, lifeId));
