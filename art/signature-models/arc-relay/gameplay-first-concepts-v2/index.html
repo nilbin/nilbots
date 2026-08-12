@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Arc Relay · Gameplay-first Signature Concepts</title>
+    <style>
+      :root { color-scheme: dark; --field:#080d11; --panel:#11181d; --line:#29343b; --text:#e8edf0; --dim:#9ba8af; --accent:#d9a179; }
+      * { box-sizing:border-box; }
+      body { margin:0; background:var(--field); color:var(--text); font:15px/1.5 Inter,ui-sans-serif,system-ui,sans-serif; }
+      main { width:min(1480px,100%); margin:auto; padding:30px 20px 60px; }
+      h1,h2,p { margin-top:0; } h1 { margin-bottom:7px; font-size:clamp(28px,4vw,48px); letter-spacing:-.035em; }
+      h2 { margin-bottom:8px; font-size:22px; }
+      .eyebrow { color:var(--accent); font:700 12px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace; letter-spacing:.12em; text-transform:uppercase; }
+      .lede { max-width:900px; color:var(--dim); font-size:17px; }
+      .gate { margin:24px 0 30px; padding:15px 18px; border:1px solid #5e4a32; background:#18140f; }
+      .gate strong { color:#f2c98f; }
+      .proof { width:100%; display:block; border:1px solid var(--line); border-radius:10px; }
+      .grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:20px; margin-top:22px; }
+      .card { overflow:hidden; border:1px solid var(--line); border-radius:10px; background:var(--panel); }
+      .card img { display:block; width:100%; height:auto; background:#dedbd6; }
+      .copy { padding:17px 19px 20px; }
+      .copy p { margin-bottom:0; color:var(--dim); }
+      .chips { display:flex; flex-wrap:wrap; gap:7px; margin-top:12px; }
+      .chip { padding:4px 8px; border:1px solid var(--line); border-radius:999px; color:#c7d0d5; font:12px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace; }
+      section { margin-top:42px; }
+      .contract { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+      .contract article { padding:18px; border:1px solid var(--line); border-radius:10px; background:var(--panel); }
+      .contract p { color:var(--dim); margin-bottom:0; }
+      footer { margin-top:38px; padding-top:17px; border-top:1px solid var(--line); color:var(--dim); }
+      code { color:#dbc3a8; }
+      @media(max-width:800px) { main{padding:22px 12px 42px}.grid,.contract{grid-template-columns:1fr} }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="eyebrow">2D restart · owner approval gate · 2026-08-12</div>
+      <h1>Trip Node + Sentinel Seed</h1>
+      <p class="lede">Two fresh signatures designed from their mechanics and parent-class identity, with the zoomed-out read checked before any Meshy task or runtime work.</p>
+      <div class="gate"><strong>No Meshy credits spent. No runtime assets changed.</strong> Approving these images authorizes only the next explicit provider gate—not automatic generation or promotion.</div>
+
+      <img class="proof" src="gameplay-scale-proof.png" alt="Gameplay-scale silhouette proof for Trip Node and Sentinel Seed" />
+
+      <div class="grid">
+        <article class="card">
+          <img src="trip-node-provider-views.png" alt="Four-view sheet for a low broken-triangle Trip Node" />
+          <div class="copy">
+            <div class="eyebrow">Minesmith · Trip Node</div>
+            <h2>Broken-triangle route trap</h2>
+            <p>Three broad clamp jaws and a large open centre replace the round puck. The resting model has no gun, eye, dome, spike tell, or team paint.</p>
+            <div class="chips"><span class="chip">0.44 tile target</span><span class="chip">very low</span><span class="chip">matte pale clay</span><span class="chip">48 px checked</span></div>
+          </div>
+        </article>
+
+        <article class="card">
+          <img src="sentinel-seed-provider-views-v2.png" alt="Four-view sheet for a planted calyx Sentinel Seed" />
+          <div class="copy">
+            <div class="eyebrow">Nest · Sentinel Seed</div>
+            <h2>Planted calyx + yawing seed</h2>
+            <p>Four fixed anchor lobes carry a much smaller rotating seed head. Its flush grille produces the windup beam without becoming a gun barrel or tank turret.</p>
+            <div class="chips"><span class="chip">0.62 tile target</span><span class="chip">fixed base</span><span class="chip">separate yaw head</span><span class="chip">matte sage/umber</span></div>
+          </div>
+        </article>
+      </div>
+
+      <section>
+        <div class="eyebrow">Production contract</div>
+        <h2>What approval would lock</h2>
+        <div class="contract">
+          <article><h2>Meshy inputs</h2><p>Separate 1040×1040 PNGs—not a contact sheet. Sentinel uses the recommended Front + Side + Back + 3/4 set. Trip uses Front + Side + Top + 3/4 because its floor planform is the identity-bearing view.</p></article>
+          <article><h2>Sentinel runtime</h2><p>A monolithic result is insufficient. Production must expose a stationary base and a separately yawing head; otherwise the planted lobes rotate when the sentry aims.</p></article>
+        </div>
+      </section>
+
+      <footer>Exact prompts, input order, hashes, references, and the zero-credit ledger are recorded in <code>PROMPTS.md</code>, <code>manifest.json</code>, and <code>README.md</code>.</footer>
+    </main>
+  </body>
+</html>

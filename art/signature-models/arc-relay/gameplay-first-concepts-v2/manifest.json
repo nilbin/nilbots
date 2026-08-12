@@ -1,0 +1,135 @@
+{
+  "schemaVersion": 1,
+  "status": "owner-review-no-provider-authorization",
+  "createdAt": "2026-08-12",
+  "purpose": "Gameplay-first 2D restart for Arc Relay Trip Node and Sentinel Seed",
+  "runtimeAssetsChanged": false,
+  "providerCallsMade": 0,
+  "providerCreditsConsumed": 0,
+  "generator": "OpenAI built-in image generation",
+  "generatorModel": "not exposed by tool",
+  "promptLog": "PROMPTS.md",
+  "review": {
+    "file": "gameplay-scale-proof.png",
+    "sha256": "7b99aeac817b17f974af46084076cbc414d3a82705d6097c5fbc0a5abbb7d809",
+    "scope": "2D top-down 48 px and intended-footprint mockup only",
+    "realReplayApproved": false
+  },
+  "concepts": [
+    {
+      "signatureId": "trip-node",
+      "classId": "minesmith",
+      "status": "owner-review",
+      "identity": "very low broken triangle with three broad clamp jaws and a large open centre",
+      "liveEnvelopeTiles": {
+        "width": 0.44,
+        "height": 0.12
+      },
+      "conceptSheet": {
+        "file": "trip-node-provider-views.png",
+        "sha256": "a73b00d69ef0cb1d553331cab2ca100d918de54c68ff6ec5f353c930a30215ce"
+      },
+      "canonicalTopEast": {
+        "file": "trip-node-top-east.png",
+        "sha256": "aae3c3c5456eb8cee7c527963717ad16c23677cc1fba85111e3a2a5665d8af09"
+      },
+      "sourceTop": {
+        "file": "trip-node-top-source.png",
+        "sha256": "0e4e9eb5b97aa99936e0b1c77a3944668d13ef95dd2f840ada7bd10562a0084f",
+        "chromaFile": "trip-node-top-source-chroma.png",
+        "chromaSha256": "f48118d21011a469ae233d5e1b22ae64dfdcad745eddbfef01c8fe886da8b4d7"
+      },
+      "providerInputOrder": [
+        "provider-inputs/trip-node/front.png",
+        "provider-inputs/trip-node/right.png",
+        "provider-inputs/trip-node/top.png",
+        "provider-inputs/trip-node/front-right-oblique.png"
+      ],
+      "providerInputHashes": [
+        "8ddc1066efb47db4f088be084d3725bc24823148d20a976ebd9cc9dd2592a7a5",
+        "740aad008244511f36073f919150a50a8c84711f0bb11d60ffb06c8b40e180f8",
+        "9b8e96e318e78ebf997d125e653c5e1e680cb072af10159434c369a83dce8cea",
+        "29e08a4573a79ec2ee8036a82b8bedeb61f622303457da9442f3c435673596a8"
+      ],
+      "builtInArtifacts": {
+        "conceptSheet": "/Users/sebastian.lind/.codex/generated_images/019fee2d-edd3-7723-8309-6a84e5627578/exec-aee825fd-30a2-4367-bf20-5b6839c0a05c.png",
+        "strictTop": "/Users/sebastian.lind/.codex/generated_images/019fee2d-edd3-7723-8309-6a84e5627578/exec-f366e14b-d8b7-4d5a-b864-adf94434d35d.png"
+      }
+    },
+    {
+      "signatureId": "sentinel-seed",
+      "classId": "nest",
+      "status": "owner-review",
+      "identity": "fixed four-lobe planted calyx with a separate compact yawing seed-capsule head and flush beam grille",
+      "liveEnvelopeTiles": {
+        "width": 0.62,
+        "height": 0.55
+      },
+      "requiredProductionParts": [
+        "stationary-base",
+        "yaw-head"
+      ],
+      "conceptSheet": {
+        "file": "sentinel-seed-provider-views-v2.png",
+        "sha256": "e2b7fa350990c2a86917b751fb572288b6b34743b0baefd521dff35ad6c7d124"
+      },
+      "canonicalTopEast": {
+        "file": "sentinel-seed-top-east.png",
+        "sha256": "1f79999bcbbb77a52e8f53e4bd2e522de3be46619960ac4f34003c9cd2a72228"
+      },
+      "sourceTop": {
+        "file": "sentinel-seed-top-east-source.png",
+        "sha256": "fed58fc498d6e1af8c984dd2ab6d3a970b2ae999373af635cb097a84ae4c857f",
+        "chromaFile": "sentinel-seed-top-east-source-chroma.png",
+        "chromaSha256": "f870a7b8bc699de7547a4341f1f390a9c47a712d8e6cac9fdfc258313dffdcb2"
+      },
+      "providerInputOrder": [
+        "provider-inputs/sentinel-seed/front.png",
+        "provider-inputs/sentinel-seed/right.png",
+        "provider-inputs/sentinel-seed/back.png",
+        "provider-inputs/sentinel-seed/front-right-oblique.png"
+      ],
+      "providerInputHashes": [
+        "522d73366e50a3f0fcff09be98d9db4afe8f95f5a94afa0e0b02b2a07bfb829b",
+        "87dbf845d3b77e9cea0d1bc1c83957988014b3bee397c1e9d7d0e02ceaf7b719",
+        "d26388116d7fad1294a3d420cf8d9f06cab4c5b1d3537bc85c7cae627318f0bc",
+        "da0f239a86fc7a95c14ecb40c29982fc5020d278a3f3ba53bb32b7fe4a1bfa87"
+      ],
+      "builtInArtifacts": {
+        "rejectedInitialSheet": "/Users/sebastian.lind/.codex/generated_images/019fee2d-edd3-7723-8309-6a84e5627578/exec-c50fba89-3901-40ae-8d98-e027d553a788.png",
+        "acceptedConceptSheet": "/Users/sebastian.lind/.codex/generated_images/019fee2d-edd3-7723-8309-6a84e5627578/exec-7a0182d2-2e83-4c0e-b244-4a70b9c9f638.png",
+        "northFacingTop": "/Users/sebastian.lind/.codex/generated_images/019fee2d-edd3-7723-8309-6a84e5627578/exec-272052a9-3010-4ddd-9a88-47d0f921b4e5.png",
+        "acceptedEastFacingTop": "/Users/sebastian.lind/.codex/generated_images/019fee2d-edd3-7723-8309-6a84e5627578/exec-1da37eb6-1092-410a-8a41-d5ca1f6b51b5.png"
+      }
+    }
+  ],
+  "references": [
+    {
+      "role": "Minesmith parent material and palette reference",
+      "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet-retexture-v3-multiview/minesmith/019ff0f5-8ee4-79fa-94d3-6a6cffbaa95f/provider-preview.png",
+      "sha256": "90c44a55a485d60279eb2bab1ffe9691b3ae18e3989faaf6567ab71b02912b7f"
+    },
+    {
+      "role": "Nest parent material, palette, and seed-cell reference",
+      "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet-retexture-v3-multiview/nest/019ff0f6-1446-7a06-b591-652543441f63/provider-preview.png",
+      "sha256": "a5a973f145e17aa6a61018d9a9269a7e481238ef3f92980c3b2f2fa091159e39"
+    },
+    {
+      "role": "approved fleet scale and finish reference",
+      "file": "art/reviews/arc-relay-meshy7-fleet-retexture-v3/fixed-orientation-sheet.png",
+      "sha256": "0658899b93f442cafd47730aee003ac2a9bb5153ee7377b52aa18fd3756956d0"
+    }
+  ],
+  "providerGuidanceCheckedAt": "2026-08-12",
+  "providerGuidance": {
+    "source": "https://docs.meshy.ai/en/webapp/image-to-3d",
+    "recommendedViews": [
+      "front",
+      "side",
+      "back",
+      "three-quarter"
+    ],
+    "apiSource": "https://docs.meshy.ai/en/api/multi-image-to-3d",
+    "apiImageCount": "1-4 images of the same object"
+  }
+}
