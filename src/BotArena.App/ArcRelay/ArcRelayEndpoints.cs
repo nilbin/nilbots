@@ -53,7 +53,8 @@ public static class ArcRelayEndpoints
                 ArcRelayComposition.SlotCount,
                 ArcRelayComposition.MaximumCopiesPerClass,
                 catalog.All.Select(value => new ArcRelayClassResponse(
-                    value.Id, value.Name, value.SignatureName, value.Fantasy,
+                    value.Id, value.Name, value.SignatureId, value.ActionId,
+                    value.SignatureName, value.Fantasy,
                     value.Starter, unlocked.Contains(value.Id))).ToArray()));
         }).Produces<ArcRelayCatalogResponse>();
 

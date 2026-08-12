@@ -122,6 +122,14 @@ namespace BotArena.Cli.Generated
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Name { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("signatureId")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string SignatureId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("actionId")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string ActionId { get; set; } = default!;
+
         [System.Text.Json.Serialization.JsonPropertyName("signatureName")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string SignatureName { get; set; } = default!;
@@ -3216,6 +3224,14 @@ namespace BotArena.Cli.Generated
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Name { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("signatureId")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string SignatureId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("actionId")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string ActionId { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("signatureName")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]

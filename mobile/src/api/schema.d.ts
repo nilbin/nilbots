@@ -2316,6 +2316,8 @@ export interface components {
         ArcRelayClassResponse: {
             id: string;
             name: string;
+            signatureId: string;
+            actionId: string;
             signatureName: string;
             fantasy: string;
             starter: boolean;
@@ -3170,6 +3172,8 @@ export interface components {
         TacticalSheetClassResponse: {
             id: string;
             name: string;
+            signatureId: string;
+            actionId: string;
             signatureName: string;
             fantasy: string;
             starter: boolean;

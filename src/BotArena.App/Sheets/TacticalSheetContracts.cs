@@ -36,6 +36,8 @@ public sealed record TrialTacticalSheetRequest(
 public sealed record TacticalSheetClassResponse(
     string Id,
     string Name,
+    string SignatureId,
+    string ActionId,
     string SignatureName,
     string Fantasy,
     bool Starter,

@@ -3,6 +3,8 @@ namespace BotArena.App.ArcRelay;
 public sealed record ArcRelayClassResponse(
     string Id,
     string Name,
+    string SignatureId,
+    string ActionId,
     string SignatureName,
     string Fantasy,
     bool Starter,

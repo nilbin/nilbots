@@ -134,17 +134,11 @@ const DRAFT_STORE = 'drafts';
 const ACTIVE_DRAFT_KEY = 'active';
 const LOCAL_DRAFT_PREFIX = 'draft:';
 
-const CLASS_SKILLS: Record<string, string> = {
-  kestrel: 'vector-dash', palisade: 'prism-wall', towline: 'tractor-hook',
-  patchbay: 'repair-beam', lantern: 'survey-flare', mortar: 'falling-star',
-  minesmith: 'trip-node', hush: 'null-field', relay: 'arc-toss',
-  switchback: 'exchange', longshot: 'rail-line', mason: 'hardlight-block',
-  sunder: 'target-paint', repulsor: 'kinetic-burst', veil: 'smoke-canister',
-  nest: 'sentinel-seed',
-};
-
-export function skillForClass(classId: string): string | undefined {
-  return CLASS_SKILLS[classId];
+export function skillForClass(
+  catalog: Pick<TacticalSheetCatalog, 'classes'>,
+  classId: string,
+): string | undefined {
+  return catalog.classes.find((entry) => entry.id === classId)?.signatureId;
 }
 
 export function parseDraft(
@@ -313,7 +307,7 @@ export function validateDraft(
     if (role.orders.length < 1) error(`${base}.orders`, 'A role needs at least one order.');
     const ids = new Set<string>();
     role.orders.forEach((node, index) => validateOrder(
-      node, `${base}.orders.${index}`, role, orders, roles, ids, 0,
+      node, `${base}.orders.${index}`, role, orders, catalog, roles, ids, 0,
       sharedUse, capacityUse, conditionUse, usedZones, usedRoutes, usedAnchors,
       error, warning, index < role.orders.length - 1, undefined, true,
     ));
@@ -370,6 +364,7 @@ function validateOrder(
   path: string,
   role: RoleDefinition,
   orders: OrdersDocument,
+  catalog: Pick<TacticalSheetCatalog, 'classes'>,
   roles: ReadonlySet<string>,
   ids: Set<string>,
   depth: number,
@@ -396,7 +391,8 @@ function validateOrder(
     else {
       sharedUse.set(node.shared, (sharedUse.get(node.shared) ?? 0) + 1);
       validateOrder(
-        definition, `${path}.shared(${node.shared})`, role, orders, roles, ids,
+        definition, `${path}.shared(${node.shared})`, role, orders, catalog,
+        roles, ids,
         depth, sharedUse, capacityUse, conditionUse, usedZones, usedRoutes,
         usedAnchors, error, warning, hasLaterSibling, node.shared, false,
       );
@@ -432,7 +428,8 @@ function validateOrder(
     if (depth >= 2) error(path, 'Orders may nest through at most two branches.');
     if (!node.orders?.length) error(`${path}.orders`, 'A branch needs child orders.');
     node.orders?.forEach((child, index) => validateOrder(
-      child, `${path}.orders.${index}`, role, orders, roles, ids, depth + 1,
+      child, `${path}.orders.${index}`, role, orders, catalog, roles, ids,
+      depth + 1,
       sharedUse, capacityUse, conditionUse, usedZones, usedRoutes, usedAnchors,
       error, warning, index < node.orders!.length - 1, undefined, true,
     ));
@@ -459,7 +456,9 @@ function validateOrder(
       error(`${path}.fight.chaseLimit`, 'Chase limit is 0–12 tiles.');
   }
   if (action === 'use') {
-    const skills = new Set(role.classes.map((classId) => CLASS_SKILLS[classId]));
+    const skills = new Set(
+      role.classes.map((classId) => skillForClass(catalog, classId)),
+    );
     if (!skills.has(node.use!.skill))
       error(`${path}.use.skill`, 'At least one body in this role must own this signature skill.');
   }

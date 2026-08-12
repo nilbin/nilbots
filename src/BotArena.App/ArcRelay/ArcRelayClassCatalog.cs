@@ -5,6 +5,8 @@ namespace BotArena.App.ArcRelay;
 public sealed record ArcRelayClassDefinition(
     string Id,
     string Name,
+    string SignatureId,
+    string ActionId,
     string SignatureName,
     string Fantasy,
     bool Starter);
@@ -24,39 +26,47 @@ public sealed class ArcRelayClassCatalog
 
     private ArcRelayClassCatalog()
     {
+        var mode = (ArcRelayGameModeDefinition)ArcRelayH0Definition
+            .CreateRules(ArcRelayLoopProfile.Current)
+            .GameMode;
+        IReadOnlyDictionary<string, ArcRelaySignatureDefinition> mechanics =
+            mode.Signatures.ToDictionary(
+                value => value.ClassId,
+                StringComparer.Ordinal);
+
         All =
         [
-            Class(ArcRelayLaunchClassIds.Kestrel, "Kestrel", "Vector Dash",
+            Class(mechanics, ArcRelayLaunchClassIds.Kestrel, "Kestrel", "Vector Dash",
                 "Rapid interceptor built to abandon one lane and answer another.", true),
-            Class(ArcRelayLaunchClassIds.Palisade, "Palisade", "Prism Wall",
+            Class(mechanics, ArcRelayLaunchClassIds.Palisade, "Palisade", "Prism Wall",
                 "Convoy shield whose projector face blanks a firing lane.", true),
-            Class(ArcRelayLaunchClassIds.Towline, "Towline", "Tractor Hook",
+            Class(mechanics, ArcRelayLaunchClassIds.Towline, "Towline", "Tractor Hook",
                 "Formation disruptor with a visible winch, cable and hook.", true),
-            Class(ArcRelayLaunchClassIds.Patchbay, "Patchbay", "Repair Beam",
+            Class(mechanics, ArcRelayLaunchClassIds.Patchbay, "Patchbay", "Repair Beam",
                 "Field medic that trades its own gun tempo to preserve an ally.", true),
-            Class(ArcRelayLaunchClassIds.Lantern, "Lantern", "Survey Flare",
+            Class(mechanics, ArcRelayLaunchClassIds.Lantern, "Lantern", "Survey Flare",
                 "Mobile sensor mast that buys certainty before a commitment.", true),
-            Class(ArcRelayLaunchClassIds.Mortar, "Mortar", "Falling Star",
+            Class(mechanics, ArcRelayLaunchClassIds.Mortar, "Mortar", "Falling Star",
                 "Lobbing artillery that punishes formations which stay put.", false),
-            Class(ArcRelayLaunchClassIds.Minesmith, "Minesmith", "Trip Node",
+            Class(mechanics, ArcRelayLaunchClassIds.Minesmith, "Minesmith", "Trip Node",
                 "Route controller carrying visible nodes for watched ground.", false),
-            Class(ArcRelayLaunchClassIds.Hush, "Hush", "Null Field",
+            Class(mechanics, ArcRelayLaunchClassIds.Hush, "Hush", "Null Field",
                 "Dampener array that suppresses signatures instead of racing damage.", true),
-            Class(ArcRelayLaunchClassIds.Relay, "Relay", "Arc Toss",
+            Class(mechanics, ArcRelayLaunchClassIds.Relay, "Relay", "Arc Toss",
                 "Core runner with a cradle and arms for one risky long handoff.", true),
-            Class(ArcRelayLaunchClassIds.Switchback, "Switchback", "Exchange",
+            Class(mechanics, ArcRelayLaunchClassIds.Switchback, "Switchback", "Exchange",
                 "Paired mirrored frame that swaps which ally occupies danger.", true),
-            Class(ArcRelayLaunchClassIds.Longshot, "Longshot", "Rail Line",
+            Class(mechanics, ArcRelayLaunchClassIds.Longshot, "Longshot", "Rail Line",
                 "A body-length rail that turns a public corridor into a threat.", false),
-            Class(ArcRelayLaunchClassIds.Mason, "Mason", "Hardlight Block",
+            Class(mechanics, ArcRelayLaunchClassIds.Mason, "Mason", "Hardlight Block",
                 "Builder rig that bends a route with temporary cover.", false),
-            Class(ArcRelayLaunchClassIds.Sunder, "Sunder", "Target Paint",
+            Class(mechanics, ArcRelayLaunchClassIds.Sunder, "Sunder", "Target Paint",
                 "Designator optics that tell a team which target matters now.", false),
-            Class(ArcRelayLaunchClassIds.Repulsor, "Repulsor", "Kinetic Burst",
+            Class(mechanics, ArcRelayLaunchClassIds.Repulsor, "Repulsor", "Kinetic Burst",
                 "Radial emitters that break a local formation from adjacency.", false),
-            Class(ArcRelayLaunchClassIds.Veil, "Veil", "Smoke Canister",
+            Class(mechanics, ArcRelayLaunchClassIds.Veil, "Veil", "Smoke Canister",
                 "Smoke-launcher skirmisher that authors uncertainty on the map.", false),
-            Class(ArcRelayLaunchClassIds.Nest, "Nest", "Sentinel Seed",
+            Class(mechanics, ArcRelayLaunchClassIds.Nest, "Nest", "Sentinel Seed",
                 "Pod carrier that leaves one persistent, killable guard behind.", false),
         ];
         byId = All.ToDictionary(value => value.Id, StringComparer.Ordinal);
@@ -96,10 +106,26 @@ public sealed class ArcRelayClassCatalog
         EntitlementPrefix + classId;
 
     private static ArcRelayClassDefinition Class(
+        IReadOnlyDictionary<string, ArcRelaySignatureDefinition> mechanics,
         string id,
         string name,
         string signatureName,
         string fantasy,
-        bool starter) =>
-        new(id, name, signatureName, fantasy, starter);
+        bool starter)
+    {
+        ArcRelaySignatureDefinition signature = mechanics.TryGetValue(
+            id,
+            out ArcRelaySignatureDefinition? value)
+                ? value
+                : throw new InvalidOperationException(
+                    $"Arc Relay class '{id}' has no signature mechanics.");
+        return new(
+            id,
+            name,
+            signature.SignatureId,
+            signature.ActionId,
+            signatureName,
+            fantasy,
+            starter);
+    }
 }

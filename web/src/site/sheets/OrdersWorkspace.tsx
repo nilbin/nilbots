@@ -539,20 +539,21 @@ function FightEditor({ value, onChange }: { value: NonNullable<OrderNode['fight'
 }
 
 function UseEditor({ node, role, catalog, onChange }: { node: OrderNode; role: RoleDefinition; catalog: TacticalSheetCatalog; onChange: (next: NonNullable<OrderNode['use']>) => void }) {
-  const skills = [...new Set(role.classes.map(skillForClass)
+  const skills = [...new Set(role.classes.map((classId) =>
+    skillForClass(catalog, classId))
     .filter((value): value is string => Boolean(value)))];
   const authoredSkill = node.use?.skill;
   const skill = authoredSkill && skills.includes(authoredSkill)
     ? authoredSkill
     : skills[0] ?? '';
-  const classInfo = catalog.classes.find((entry) => skillForClass(entry.id) === skill);
+  const classInfo = catalog.classes.find((entry) => entry.signatureId === skill);
   const targets = useTargets(skill);
   return <div className="mt-4 rounded-sm border border-arena-material/30 bg-arena-material/5 p-3">
     <div className="flex items-center gap-3"><ClassIcon classId={classInfo?.id ?? role.classes[0]} size={46} /><div><p className="lab text-arena-material">{classInfo?.signatureName ?? humanize(skill)}</p><p className="t-meta mt-1">{classInfo?.fantasy}</p></div></div>
     {skills.length > 1 && <CardPicker label="Which class acts?" value={skill} values={skills}
-      labeler={(entry) => catalog.classes.find((candidate) => skillForClass(candidate.id) === entry)?.name ?? humanize(entry)}
+      labeler={(entry) => catalog.classes.find((candidate) => candidate.signatureId === entry)?.name ?? humanize(entry)}
       descriptions={Object.fromEntries(skills.map((entry) => [entry,
-        catalog.classes.find((candidate) => skillForClass(candidate.id) === entry)?.signatureName ?? humanize(entry)]))}
+        catalog.classes.find((candidate) => candidate.signatureId === entry)?.signatureName ?? humanize(entry)]))}
       onChange={(nextSkill) => onChange({ skill: nextSkill, target: useTargets(nextSkill)[0] ?? 'self' })} />}
     <CardPicker label="Skill target" value={node.use?.target ?? targets[0]} values={targets}
       onChange={(target) => onChange({ skill, target })} />

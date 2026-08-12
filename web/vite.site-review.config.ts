@@ -416,6 +416,8 @@ function makeTaplineReviewCatalog(
   ].map(([id, name, signatureName, fantasy], index) => ({
     id,
     name,
+    signatureId: signatureName.toLowerCase().replaceAll(' ', '-'),
+    actionId: signatureName.toLowerCase().replaceAll(' ', '-'),
     signatureName,
     fantasy,
     starter: index < 5 || ['hush', 'relay', 'switchback'].includes(id),

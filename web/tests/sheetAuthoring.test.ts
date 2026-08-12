@@ -11,6 +11,7 @@ import {
   pinDraft,
   renameRole,
   sheetIssueFromCompilerError,
+  skillForClass,
   stringifyDocument,
   validateDraft,
   type MapPlanDocument,
@@ -23,6 +24,24 @@ import {
 } from '../src/site/sheets/sheetTrials';
 
 const classIds = ['kestrel', 'patchbay', 'relay', 'hush', 'towline', 'lantern', 'palisade', 'switchback'];
+const signatureIdForClass: Record<string, string> = {
+  kestrel: 'vector-dash', palisade: 'prism-wall', towline: 'tractor-hook',
+  patchbay: 'repair-beam', lantern: 'survey-flare', mortar: 'falling-star',
+  minesmith: 'trip-node', hush: 'null-field', relay: 'arc-toss',
+  switchback: 'exchange', longshot: 'rail-line', mason: 'hardlight-block',
+  sunder: 'target-paint', repulsor: 'kinetic-burst', veil: 'smoke-canister',
+  nest: 'sentinel-seed',
+};
+const testClass = (id: string) => ({
+  id,
+  name: id,
+  signatureId: signatureIdForClass[id]!,
+  actionId: signatureIdForClass[id]!,
+  signatureName: id,
+  fantasy: id,
+  starter: true,
+  unlocked: true,
+});
 const mapPlan: MapPlanDocument = {
   schema: 'arc-relay-map-plan-v2',
   mapPlanId: 'test-map-plan',
@@ -63,9 +82,7 @@ const catalog: TacticalSheetCatalog = {
   },
   slotCount: 8,
   maximumCopiesPerClass: 2,
-  classes: classIds.map((id) => ({
-    id, name: id, signatureName: id, fantasy: id, starter: true, unlocked: true,
-  })),
+  classes: classIds.map(testClass),
   templateOrdersJson: '{}', templateMapPlanJson: '{}', stockOpponents: [],
 };
 
@@ -89,6 +106,11 @@ test('roles are the one source of composition and role renames follow semantic r
   assert.equal(source.roles[0].orders[0].handoff?.target && typeof source.roles[0].orders[0].handoff?.target === 'object'
     ? source.roles[0].orders[0].handoff?.target.role : '', 'field-support');
   assert.equal(source.roles[0].orders[1].move?.follow, 'field-support');
+});
+
+test('signature ownership comes from the catalog contract', () => {
+  assert.equal(skillForClass(catalog, 'kestrel'), 'vector-dash');
+  assert.equal(skillForClass(catalog, 'unknown'), undefined);
 });
 
 test('order action detection has only the five physical verbs plus branch and exact sharing', () => {
@@ -164,7 +186,7 @@ test('the player validator accepts every tracked Orders v2 Tapline sheet', async
     const taplineCatalog: TacticalSheetCatalog = {
       ...catalog,
       map: { ...catalog.map, id: 'arc-relay-tapline-01', width: 31, height: 27, tileRows: Array.from({ length: 27 }, () => '.'.repeat(31)) },
-      classes: ids.map((id) => ({ id, name: id, signatureName: id, fantasy: id, starter: true, unlocked: true })),
+      classes: ids.map(testClass),
     };
     const draft = parseDraft(name, null, null, playbookJson, mapPlanJson);
     const errors = validateDraft((await pinDraft(draft)).draft, taplineCatalog)

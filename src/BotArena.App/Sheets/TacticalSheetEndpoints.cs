@@ -56,6 +56,8 @@ public static class TacticalSheetEndpoints
                 classes.All.Select(value => new TacticalSheetClassResponse(
                     value.Id,
                     value.Name,
+                    value.SignatureId,
+                    value.ActionId,
                     value.SignatureName,
                     value.Fantasy,
                     value.Starter,

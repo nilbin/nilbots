@@ -1835,6 +1835,8 @@
         "required": [
           "id",
           "name",
+          "signatureId",
+          "actionId",
           "signatureName",
           "fantasy",
           "starter",
@@ -1846,6 +1848,12 @@
             "type": "string"
           },
           "name": {
+            "type": "string"
+          },
+          "signatureId": {
+            "type": "string"
+          },
+          "actionId": {
             "type": "string"
           },
           "signatureName": {
@@ -5051,6 +5059,8 @@
         "required": [
           "id",
           "name",
+          "signatureId",
+          "actionId",
           "signatureName",
           "fantasy",
           "starter",
@@ -5062,6 +5072,12 @@
             "type": "string"
           },
           "name": {
+            "type": "string"
+          },
+          "signatureId": {
+            "type": "string"
+          },
+          "actionId": {
             "type": "string"
           },
           "signatureName": {
