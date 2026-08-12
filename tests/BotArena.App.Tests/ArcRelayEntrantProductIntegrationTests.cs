@@ -187,10 +187,8 @@ public sealed class ArcRelayEntrantProductIntegrationTests
         TacticalSheetCatalogResponse catalog = (await client
             .GetFromJsonAsync<TacticalSheetCatalogResponse>(
                 "/api/sheets/catalog"))!;
-        using JsonDocument template = JsonDocument.Parse(
-            catalog.TemplateOrdersJson);
-        string[] classes = template.RootElement.GetProperty("composition")
-            .EnumerateArray().Select(value => value.GetString()!).ToArray();
+        string[] classes = TacticalSheetCompiler.ReadRoleClasses(
+            catalog.TemplateOrdersJson).ToArray();
 
         string[] invalidClasses = [.. classes];
         invalidClasses[0] = invalidClasses[1] = invalidClasses[2] = "kestrel";

@@ -81,6 +81,22 @@ public sealed class TacticalSheetCompiler(ArcRelayClassCatalog classCatalog)
         }
     }
 
+    /// <summary>
+    /// Reads the exact eight-body class row from an already validated Orders
+    /// document. Roles are the single composition source in Orders v2.
+    /// </summary>
+    public static IReadOnlyList<string> ReadRoleClasses(string ordersJson)
+    {
+        using JsonDocument document = JsonDocument.Parse(ordersJson);
+        return document.RootElement.GetProperty("roles")
+            .EnumerateArray()
+            .SelectMany(role => role.GetProperty("classes").EnumerateArray())
+            .Select(value => value.GetString()
+                ?? throw new InvalidDataException(
+                    "An Orders role contains a null class id."))
+            .ToArray();
+    }
+
     private static string MapPlanMapId(ReadOnlyMemory<byte> mapPlanJson)
     {
         using JsonDocument document = JsonDocument.Parse(mapPlanJson);

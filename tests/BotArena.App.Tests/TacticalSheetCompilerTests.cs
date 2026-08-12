@@ -82,6 +82,9 @@ public sealed class TacticalSheetCompilerTests
             ArcRelayLoopProfile.Current);
         Assert.Equal(map.Id,
             mapPlan.RootElement.GetProperty("mapId").GetString());
+        Assert.Equal(composition,
+            TacticalSheetCompiler.ReadRoleClasses(
+                templates.Template.OrdersJson));
     }
 
     [Fact]
