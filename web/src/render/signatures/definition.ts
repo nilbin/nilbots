@@ -1,13 +1,11 @@
 import type { ArcSignaturePresentationDefinition } from '../arcSignaturePresentation';
+import { ARC_SIGNATURE_PRESENTATION_ID } from '../arcSignaturePresentationId';
 
 export function defineArcSignature(
   definition: Omit<ArcSignaturePresentationDefinition, 'packageId'>,
 ): ArcSignaturePresentationDefinition {
   return Object.freeze({
-    // Keep this literal in the leaf helper: importing the registry's runtime
-    // constant from a module that the registry eagerly discovers creates an
-    // ESM initialization cycle. The return type keeps it exact and checked.
-    packageId: 'arc-relay-signatures-v1',
+    packageId: ARC_SIGNATURE_PRESENTATION_ID,
     ...definition,
   });
 }

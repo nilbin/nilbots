@@ -361,6 +361,174 @@ test('arrival, deflection, and level-up use their own authoritative cues', () =>
   assert.equal(events[0]!.pan, 1, 'the guard owns the deflection sound');
 });
 
+test('grammar-3 signatures schedule their co-located presentation bindings', () => {
+  const expected = [
+    ['vector-dash', 'completed', 'signature-motion'],
+    ['prism-wall', 'started', 'signature-construct'],
+    ['tractor-hook', 'launched', 'signature-tether'],
+    ['survey-flare', 'landed', 'signature-survey'],
+    ['null-field', 'activated', 'signature-null'],
+    ['exchange', 'completed', 'signature-exchange'],
+    ['hardlight-block', 'started', 'signature-construct'],
+    ['target-paint', 'acquired', 'signature-target'],
+    ['kinetic-burst', 'completed', 'signature-kinetic'],
+    ['smoke-canister', 'landed', 'signature-smoke'],
+  ] as const;
+
+  for (const [signatureId, reason, cue] of expected) {
+    const replay = replayWithEvents([{ type: 'Shot', slot: 3 }]);
+    replay.signaturePresentationId = 'arc-relay-signatures-v1';
+    const tick = replay.ticks[0]!;
+    const template = tick.events[0]!;
+    const owner = tick.before.actors[0]!.identity;
+    tick.events = [
+      {
+        ...structuredClone(template),
+        eventId: `signature:${signatureId}:${reason}`,
+        type: 'game-mode',
+        sourceActor: owner,
+        projectileId: null,
+        arcRelayFact: {
+          kind: 'signature-changed',
+          operationId: `operation:${signatureId}`,
+          signatureId,
+          ownerActor: owner,
+          phase: reason === 'started' ? 'active' : null,
+          reason,
+        },
+      } as ReplayCausalEvent,
+    ];
+
+    assert.deepEqual(
+      replayAudioEventsAt(replay, 0).map((event) => event.cue),
+      [cue],
+      `${signatureId} ${reason}`,
+    );
+  }
+});
+
+test('signature audio remains silent for legacy packages, cancellation, and maintenance', () => {
+  const replay = replayWithEvents([{ type: 'Shot', slot: 3 }]);
+  const tick = replay.ticks[0]!;
+  const template = tick.events[0]!;
+  const owner = tick.before.actors[0]!.identity;
+  const signatureEvent = (reason: string): ReplayCausalEvent =>
+    ({
+      ...structuredClone(template),
+      eventId: `signature:null-field:${reason}`,
+      type: 'game-mode',
+      sourceActor: owner,
+      projectileId: null,
+      arcRelayFact: {
+        kind: 'signature-changed',
+        operationId: 'operation:null-field',
+        signatureId: 'null-field',
+        ownerActor: owner,
+        phase: reason === 'activated' ? 'active' : null,
+        reason,
+      },
+    }) as ReplayCausalEvent;
+
+  tick.events = [signatureEvent('activated')];
+  replay.signaturePresentationId = null;
+  assert.deepEqual(replayAudioEventsAt(replay, 0), []);
+
+  replay.signaturePresentationId = 'future-signatures-v9';
+  assert.deepEqual(replayAudioEventsAt(replay, 0), []);
+
+  replay.signaturePresentationId = 'arc-relay-signatures-v1';
+  tick.events = [signatureEvent('target-out-of-range')];
+  assert.deepEqual(replayAudioEventsAt(replay, 0), []);
+  tick.events = [signatureEvent('expired')];
+  assert.deepEqual(replayAudioEventsAt(replay, 0), []);
+});
+
+test('Tractor Hook replaces the generic release and signature bursts cap at two voices', () => {
+  const replay = replayWithEvents([{ type: 'Shot', slot: 3 }]);
+  replay.signaturePresentationId = 'arc-relay-signatures-v1';
+  const tick = replay.ticks[0]!;
+  const template = tick.events[0]!;
+  const baseActors = tick.before.actors.map((actor) => actor.identity);
+  const actors = [
+    baseActors[0]!,
+    baseActors[1]!,
+    {
+      ...baseActors[0]!,
+      actorKey: `${baseActors[0]!.actorKey}:audio-third`,
+      unitKey: `${baseActors[0]!.unitKey}:audio-third`,
+      unitId: baseActors[0]!.unitId + 100,
+    },
+  ];
+  const signature = (
+    owner: (typeof actors)[number],
+    signatureId: string,
+    reason: string,
+    operationId: string,
+  ): ReplayCausalEvent =>
+    ({
+      ...structuredClone(template),
+      eventId: `signature:${operationId}`,
+      type: 'game-mode',
+      sourceActor: owner,
+      projectileId: null,
+      arcRelayFact: {
+        kind: 'signature-changed',
+        operationId,
+        signatureId,
+        ownerActor: owner,
+        phase: null,
+        reason,
+      },
+    }) as ReplayCausalEvent;
+
+  const hookOperation = 'hook-operation';
+  tick.events = [
+    signature(actors[0]!, 'tractor-hook', 'launched', hookOperation),
+  ];
+  tick.projectileTraversals = [
+    {
+      projectileId: hookOperation,
+      ownerActor: actors[0]!,
+      ownerActorKey: actors[0]!.actorKey,
+      launchDirection: 'east',
+      from: { x: 0, y: 1 },
+      path: [{ x: 1, y: 1 }],
+      heading: 'east',
+      shotProgram: null,
+      programmedPath: null,
+      attackProfileId: 'hook-bolt',
+    },
+  ];
+  replay.contract = {
+    kind: 'v3-generic',
+    rawContract: {
+      rules: {
+        attackProfiles: [
+          {
+            id: 'hook-bolt',
+            projectile: { mode: 'instant-ray', strikeWindupTicks: 1 },
+          },
+        ],
+      },
+    },
+  } as unknown as ReplayModel['contract'];
+  assert.deepEqual(
+    replayAudioEventsAt(replay, 0).map((event) => event.cue),
+    ['signature-tether'],
+    'the hook launch does not layer an ordinary projectile release',
+  );
+
+  tick.projectileTraversals = [];
+  tick.events = [
+    signature(actors[0]!, 'vector-dash', 'completed', 'dash'),
+    signature(actors[1]!, 'exchange', 'completed', 'exchange'),
+    signature(actors[2]!, 'kinetic-burst', 'completed', 'kinetic'),
+  ];
+  const voices = replayAudioEventsAt(replay, 0);
+  assert.equal(voices.length, 2);
+  assert.ok(voices.every((event) => event.cue.startsWith('signature-')));
+});
+
 function replayWithEvents(events: ReplayV1GameEvent[]) {
   const wire = replayV1FixtureInput();
   wire.ticks[0]!.events = events;

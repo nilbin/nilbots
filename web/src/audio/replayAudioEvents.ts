@@ -9,6 +9,7 @@ import {
   isAttackEvent,
   isDestructionEvent,
 } from '../replayModel';
+import { resolveArcSignatureAudioBinding } from '../render/arcSignatureAudio';
 import type { SoundEffectCueId } from './soundEffects';
 
 export interface ReplayAudioEvent {
@@ -70,6 +71,28 @@ export function replayAudioEventsAt(
     });
   };
   const authoritativeEvents = [...tick.lifecycleEvents, ...tick.events];
+  const hookLaunchActors = new Set(
+    authoritativeEvents.flatMap((event) => {
+      const fact = event.arcRelayFact;
+      return fact?.kind === 'signature-changed' &&
+        fact.signatureId === 'tractor-hook' &&
+        fact.phase === null &&
+        fact.reason === 'launched'
+        ? [fact.ownerActor.actorKey]
+        : [];
+    }),
+  );
+  const hookLaunchOperations = new Set(
+    authoritativeEvents.flatMap((event) => {
+      const fact = event.arcRelayFact;
+      return fact?.kind === 'signature-changed' &&
+        fact.signatureId === 'tractor-hook' &&
+        fact.phase === null &&
+        fact.reason === 'launched'
+        ? [fact.operationId]
+        : [];
+    }),
+  );
   const beforeStrikes = pendingStrikes(tick.before);
   const afterStrikeKeys = new Set(
     pendingStrikes(tick.after).map(strikeKey),
@@ -85,7 +108,10 @@ export function replayAudioEventsAt(
   for (const traversal of tick.projectileTraversals) {
     if (
       traversal.attackProfileId === undefined ||
-      !presentedAttackProfiles.has(traversal.attackProfileId)
+      !presentedAttackProfiles.has(traversal.attackProfileId) ||
+      (traversal.attackProfileId === 'hook-bolt' &&
+        (hookLaunchActors.has(traversal.ownerActorKey) ||
+          hookLaunchOperations.has(traversal.projectileId)))
     ) {
       continue;
     }
@@ -107,16 +133,25 @@ export function replayAudioEventsAt(
 
   for (const strike of beforeStrikes) {
     if (afterStrikeKeys.has(strikeKey(strike))) continue;
-    const signatureReason = terminalSignatureReason(tick, strike);
+    const signatureTerminal = terminalSignature(tick, strike);
     const projectileResolved = hasProjectileResolution(tick, strike);
     const signatureResolved =
-      signatureReason === 'completed' || signatureReason === 'launched';
+      signatureTerminal?.reason === 'completed' ||
+      signatureTerminal?.reason === 'launched';
     if (projectileResolved) continue;
     if (signatureResolved) {
-      scheduleProjectileRelease(
-        strike.shooter.actorKey,
-        panAt(strikePosition(strike, tick.before)?.x),
-      );
+      if (
+        !resolveArcSignatureAudioBinding(
+          replay,
+          signatureTerminal.signatureId,
+          signatureTerminal.reason,
+        )?.replacesGenericRelease
+      ) {
+        scheduleProjectileRelease(
+          strike.shooter.actorKey,
+          panAt(strikePosition(strike, tick.before)?.x),
+        );
+      }
       continue;
     }
     if (strike.resolveAtTick <= tick.tick) {
@@ -135,10 +170,17 @@ export function replayAudioEventsAt(
     // Events carry their origin tile; the projectile cue starts where it was fired.
     const pan = panAt(event.from?.x ?? event.to?.x);
     if (isAttackEvent(event.type)) {
-      scheduleProjectileRelease(
-        event.sourceActor?.actorKey ?? event.eventId,
-        pan,
-      );
+      const isHookLaunch =
+        (event.projectileId !== null &&
+          hookLaunchOperations.has(event.projectileId)) ||
+        (event.sourceActor !== null &&
+          hookLaunchActors.has(event.sourceActor.actorKey));
+      if (!isHookLaunch) {
+        scheduleProjectileRelease(
+          event.sourceActor?.actorKey ?? event.eventId,
+          pan,
+        );
+      }
     } else if (event.type === 'projectile-deflected') {
       scheduled.push({ cue: 'deflect', tickOffset: 0.52, priority: 4, pan });
     } else if (event.type === 'damage') {
@@ -157,6 +199,27 @@ export function replayAudioEventsAt(
     if (!fact) continue;
     const factPan =
       'position' in fact ? panAt(fact.position.x) : pan;
+    if (fact.kind === 'signature-changed') {
+      const binding = resolveArcSignatureAudioBinding(
+        replay,
+        fact.signatureId,
+        fact.reason,
+      );
+      if (binding && binding.cue !== 'silent') {
+        scheduled.push({
+          cue: binding.cue,
+          tickOffset: SIGNATURE_CUE_TICK_OFFSET,
+          priority: 5,
+          pan: panAt(
+            actorPosition(
+              fact.ownerActor.actorKey,
+              tick.after,
+              tick.before,
+            )?.x,
+          ),
+        });
+      }
+    }
     switch (fact.kind) {
       case 'zone-healed':
       case 'signature-repair':
@@ -296,6 +359,18 @@ function sparseTickMix(
       !(event.cue === 'attack-windup' && windupHasForegroundEvent),
   );
 
+  const signatureCueIds = new Set<SoundEffectCueId>([
+    'signature-motion',
+    'signature-construct',
+    'signature-tether',
+    'signature-survey',
+    'signature-null',
+    'signature-smoke',
+    'signature-exchange',
+    'signature-target',
+    'signature-kinetic',
+  ]);
+
   // Tapline can show up to four distinct ordinary releases on one tick. Keep
   // every one audible, but offset their starts by 16 ms at normal speed so
   // identical buffers do not sum into one phase-locked transient. The hard cap
@@ -330,11 +405,25 @@ function sparseTickMix(
           : pans.reduce((sum, pan) => sum + pan, 0) / pans.length,
     };
   });
-  return [...projectileReleases, ...coalesced];
+  const signatureVoices = coalesced
+    .filter((event) => signatureCueIds.has(event.cue))
+    .sort(
+      (left, right) =>
+        right.priority - left.priority ||
+        left.tickOffset - right.tickOffset ||
+        left.cue.localeCompare(right.cue),
+    )
+    .slice(0, MAX_SIGNATURE_VOICES_PER_TICK);
+  const otherVoices = coalesced.filter(
+    (event) => !signatureCueIds.has(event.cue),
+  );
+  return [...projectileReleases, ...otherVoices, ...signatureVoices];
 }
 
 const MAX_PROJECTILE_RELEASES_PER_TICK = 4;
 const PROJECTILE_RELEASE_STAGGER_TICKS = 0.04;
+const MAX_SIGNATURE_VOICES_PER_TICK = 2;
+const SIGNATURE_CUE_TICK_OFFSET = 0.34;
 
 type PendingStrike = ReplayArcRelayModeState['pendingStrikes'][number];
 
@@ -413,10 +502,10 @@ function hasProjectileResolution(
   );
 }
 
-function terminalSignatureReason(
+function terminalSignature(
   tick: ReplayTick,
   strike: PendingStrike,
-): string | null {
+): { signatureId: string; reason: string } | null {
   for (const event of [...tick.lifecycleEvents, ...tick.events]) {
     const fact = event.arcRelayFact;
     if (
@@ -424,8 +513,21 @@ function terminalSignatureReason(
       fact.phase === null &&
       fact.ownerActor.actorKey === strike.shooter.actorKey
     ) {
-      return fact.reason;
+      return { signatureId: fact.signatureId, reason: fact.reason };
     }
+  }
+  return null;
+}
+
+function actorPosition(
+  actorKey: string,
+  ...snapshots: readonly ReplayWorldSnapshot[]
+) {
+  for (const snapshot of snapshots) {
+    const actor = snapshot.actors.find(
+      (candidate) => candidate.actorKey === actorKey,
+    );
+    if (actor) return actor.position;
   }
   return null;
 }

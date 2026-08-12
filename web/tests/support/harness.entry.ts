@@ -117,6 +117,10 @@ export {
   resolveArcSignaturePresentation,
 } from '../../src/render/arcSignaturePresentation';
 export {
+  arcSignatureAudioDefinitionIds,
+  resolveArcSignatureAudioBinding,
+} from '../../src/render/arcSignatureAudio';
+export {
   buildArcVeterancy,
   LEVEL_UP_BEAT_TICKS,
 } from '../../src/replayArcVeterancy';

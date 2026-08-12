@@ -13,6 +13,15 @@ export const SOUND_EFFECT_CUE_IDS = [
   'arc-handoff',
   'deflect',
   'arrival',
+  'signature-motion',
+  'signature-construct',
+  'signature-tether',
+  'signature-survey',
+  'signature-null',
+  'signature-smoke',
+  'signature-exchange',
+  'signature-target',
+  'signature-kinetic',
 ] as const;
 
 export type SoundEffectCueId = (typeof SOUND_EFFECT_CUE_IDS)[number];
@@ -28,6 +37,10 @@ type DeliveryProcessedCueId =
   | 'arc-pulse'
   | 'arc-handoff'
   | 'arrival';
+type SignatureSoundEffectCueId = Extract<
+  SoundEffectCueId,
+  `signature-${string}`
+>;
 
 interface SoundEffectCueMix {
   gain: number;
@@ -52,6 +65,8 @@ interface SoundEffectManifest {
     exportedBy: string;
     generationRecord: string;
     generationRecordSha256: string;
+    signatureGenerationRecord: string;
+    signatureGenerationRecordSha256: string;
     deliveryEncoding: {
       encoder: 'macos-afconvert';
       canonicalization: 'zero-iso-bmff-creation-and-modification-times';
@@ -69,6 +84,24 @@ interface SoundEffectManifest {
           sourceStartSeconds: number;
           playbackRate: number;
           playbackRateEnd?: number;
+          durationSeconds: number;
+          lowPassHz: number;
+          fadeInSeconds: number;
+          fadeOutSeconds: number;
+          targetSamplePeak: number;
+        }
+      >;
+    };
+    signatureDeliveryProcessing: {
+      policy: string;
+      cues: Record<
+        SignatureSoundEffectCueId,
+        {
+          sourceCueId: string;
+          sourceOutputSha256: string;
+          channelTransform: 'mid-to-dual-mono' | 'side-to-dual-mono';
+          sourceStartSeconds: number;
+          playbackRate: number;
           durationSeconds: number;
           lowPassHz: number;
           fadeInSeconds: number;
@@ -103,6 +136,31 @@ interface SoundEffectManifest {
       suppressWindupUnderForegroundEvents: true;
       projectileWithConcreteOutcomes: 'layer-per-release-up-to-limit';
     };
+    crowdedMixAudit: {
+      method: string;
+      sampleRate: 48_000;
+      projectileVoices: 4;
+      projectileStaggerTicks: 0.04;
+      presentationTicksPerSecond: 2.5;
+      projectileStaggerSeconds: 0.016;
+      fixedCueIds: ['impact', 'destroyed', 'level-up'];
+      coreCueIds: ['arc-pickup', 'arc-drop', 'arc-handoff'];
+      signatureCueIds: SignatureSoundEffectCueId[];
+      signatureVoices: 2;
+      signaturePairCount: 36;
+      variantCount: 108;
+      maximumApproximateTruePeakDbtp: number;
+      worstVariant: {
+        coreCueId: 'arc-pickup' | 'arc-drop' | 'arc-handoff';
+        signatureCueIds: [
+          SignatureSoundEffectCueId,
+          SignatureSoundEffectCueId,
+        ];
+      };
+      ceilingDbtp: -6;
+      limiterAttenuationModeled: false;
+      roomSendModeled: false;
+    };
   };
   cues: Record<SoundEffectCueId, string>;
   integrity: Record<
@@ -126,9 +184,11 @@ interface SoundEffectManifest {
         maximumWindowAbove4kPercent: number;
         maximumWindowAbove4kAtSeconds: number;
         maximumWindowAbove4kRmsDbfs: number;
+        maximumHighBandWindowRmsDbfs: number;
         effectiveSamplePeakDbfs: number;
         effectiveRmsDbfs: number;
         effectiveMaximumWindowAbove4kRmsDbfs: number;
+        effectiveMaximumHighBandWindowRmsDbfs: number;
       };
     }
   >;
@@ -166,7 +226,7 @@ function loadSoundEffectPack(): SoundEffectPack {
   }
   const [manifestPath, manifest] = entries[0]!;
   if (
-    manifest.version !== 10 ||
+    manifest.version !== 12 ||
     manifest.id !== DEFAULT_SOUND_EFFECT_PACK_ID ||
     manifest.approval !== 'approved' ||
     manifest.format !== 'aac-lc-m4a' ||
@@ -183,6 +243,9 @@ function loadSoundEffectPack(): SoundEffectPack {
       'zero-iso-bmff-creation-and-modification-times' ||
     !validDeliveryProcessing(
       manifest.provenance.deliveryProcessing?.cues,
+    ) ||
+    !validSignatureDeliveryProcessing(
+      manifest.provenance.signatureDeliveryProcessing?.cues,
     ) ||
     manifest.provenance.rightsStatus !== 'rights-cleared' ||
     manifest.provenance.license?.termsUrl !==
@@ -201,8 +264,12 @@ function loadSoundEffectPack(): SoundEffectPack {
     manifest.behavior.tickMix.suppressWindupUnderForegroundEvents !== true ||
     manifest.behavior.tickMix.projectileWithConcreteOutcomes !==
       'layer-per-release-up-to-limit' ||
+    !validCrowdedMixAudit(manifest.behavior.crowdedMixAudit) ||
     !isUnitGain(manifest.mix?.roomSend) ||
-    !/^[a-f0-9]{64}$/.test(manifest.provenance.generationRecordSha256)
+    !/^[a-f0-9]{64}$/.test(manifest.provenance.generationRecordSha256) ||
+    !/^[a-f0-9]{64}$/.test(
+      manifest.provenance.signatureGenerationRecordSha256,
+    )
   ) {
     throw new Error(`Invalid runtime sound-effect manifest '${manifestPath}'.`);
   }
@@ -238,7 +305,7 @@ function loadSoundEffectPack(): SoundEffectPack {
         mix.voiceLimit < 1 ||
         !isUnitGain(mix.panWidth) ||
         typeof mix.roomSend !== 'boolean' ||
-        !validIntegrity(integrity)
+        !validIntegrity(integrity, cue)
       ) {
         throw new Error(
           `Sound-effect pack '${manifest.id}' has invalid metadata for '${cue}'.`,
@@ -254,6 +321,49 @@ function loadSoundEffectPack(): SoundEffectPack {
     cues,
     mix: manifest.mix,
   };
+}
+
+function validSignatureDeliveryProcessing(
+  cues:
+    | SoundEffectManifest['provenance']['signatureDeliveryProcessing']['cues']
+    | undefined,
+): boolean {
+  if (!cues) return false;
+  const signatureCueIds = SOUND_EFFECT_CUE_IDS.filter(
+    (cue): cue is SignatureSoundEffectCueId => cue.startsWith('signature-'),
+  );
+  if (
+    JSON.stringify(Object.keys(cues).sort()) !==
+    JSON.stringify([...signatureCueIds].sort())
+  ) {
+    return false;
+  }
+  return Object.values(cues).every(
+    (cue) =>
+      /^signature-source-[a-z0-9-]+$/.test(cue.sourceCueId) &&
+      /^[a-f0-9]{64}$/.test(cue.sourceOutputSha256) &&
+      ['mid-to-dual-mono', 'side-to-dual-mono'].includes(
+        cue.channelTransform,
+      ) &&
+      Number.isFinite(cue.sourceStartSeconds) &&
+      cue.sourceStartSeconds >= 0 &&
+      cue.sourceStartSeconds <= 2 &&
+      Number.isFinite(cue.playbackRate) &&
+      cue.playbackRate > 0 &&
+      cue.playbackRate <= 1 &&
+      Number.isFinite(cue.durationSeconds) &&
+      cue.durationSeconds > 0 &&
+      cue.durationSeconds <= 0.7 &&
+      Number.isFinite(cue.lowPassHz) &&
+      cue.lowPassHz >= 500 &&
+      cue.lowPassHz <= 1_000 &&
+      Number.isFinite(cue.fadeInSeconds) &&
+      cue.fadeInSeconds >= 0.008 &&
+      Number.isFinite(cue.fadeOutSeconds) &&
+      cue.fadeOutSeconds >= 0.1 &&
+      isUnitGain(cue.targetSamplePeak) &&
+      cue.targetSamplePeak <= 0.22,
+  );
 }
 
 function validDeliveryProcessing(
@@ -323,6 +433,43 @@ function isUnitGain(value: number | undefined): value is number {
   );
 }
 
+function validCrowdedMixAudit(
+  audit: SoundEffectManifest['behavior']['crowdedMixAudit'] | undefined,
+): boolean {
+  if (!audit) return false;
+  const signatureCueIds = SOUND_EFFECT_CUE_IDS.filter(
+    (cue): cue is SignatureSoundEffectCueId => cue.startsWith('signature-'),
+  );
+  const signatureSet = new Set(signatureCueIds);
+  return (
+    /decoded AAC deliveries/.test(audit.method) &&
+    audit.sampleRate === 48_000 &&
+    audit.projectileVoices === 4 &&
+    audit.projectileStaggerTicks === 0.04 &&
+    audit.presentationTicksPerSecond === 2.5 &&
+    audit.projectileStaggerSeconds === 0.016 &&
+    JSON.stringify(audit.fixedCueIds) ===
+      JSON.stringify(['impact', 'destroyed', 'level-up']) &&
+    JSON.stringify(audit.coreCueIds) ===
+      JSON.stringify(['arc-pickup', 'arc-drop', 'arc-handoff']) &&
+    JSON.stringify([...audit.signatureCueIds].sort()) ===
+      JSON.stringify([...signatureCueIds].sort()) &&
+    audit.signatureVoices === 2 &&
+    audit.signaturePairCount === 36 &&
+    audit.variantCount === 108 &&
+    Number.isFinite(audit.maximumApproximateTruePeakDbtp) &&
+    audit.maximumApproximateTruePeakDbtp <= -6 &&
+    audit.ceilingDbtp === -6 &&
+    audit.coreCueIds.includes(audit.worstVariant?.coreCueId) &&
+    audit.worstVariant.signatureCueIds.length === 2 &&
+    audit.worstVariant.signatureCueIds[0] !==
+      audit.worstVariant.signatureCueIds[1] &&
+    audit.worstVariant.signatureCueIds.every((cue) => signatureSet.has(cue)) &&
+    audit.limiterAttenuationModeled === false &&
+    audit.roomSendModeled === false
+  );
+}
+
 function validIntegrity(
   value:
     | {
@@ -343,12 +490,15 @@ function validIntegrity(
           maximumWindowAbove4kPercent: number;
           maximumWindowAbove4kAtSeconds: number;
           maximumWindowAbove4kRmsDbfs: number;
+          maximumHighBandWindowRmsDbfs: number;
           effectiveSamplePeakDbfs: number;
           effectiveRmsDbfs: number;
           effectiveMaximumWindowAbove4kRmsDbfs: number;
+          effectiveMaximumHighBandWindowRmsDbfs: number;
         };
       }
     | undefined,
+  cue: SoundEffectCueId,
 ): boolean {
   return Boolean(
     value &&
@@ -373,6 +523,7 @@ function validIntegrity(
       Number.isFinite(value.deliveryMetrics.maximumWindowAbove4kPercent) &&
       Number.isFinite(value.deliveryMetrics.maximumWindowAbove4kAtSeconds) &&
       Number.isFinite(value.deliveryMetrics.maximumWindowAbove4kRmsDbfs) &&
+      Number.isFinite(value.deliveryMetrics.maximumHighBandWindowRmsDbfs) &&
       Number.isFinite(value.deliveryMetrics.effectiveSamplePeakDbfs) &&
       value.deliveryMetrics.effectiveSamplePeakDbfs <= -9 &&
       Number.isFinite(value.deliveryMetrics.effectiveRmsDbfs) &&
@@ -380,8 +531,22 @@ function validIntegrity(
       Number.isFinite(
         value.deliveryMetrics.effectiveMaximumWindowAbove4kRmsDbfs,
       ) &&
+      Number.isFinite(
+        value.deliveryMetrics.effectiveMaximumHighBandWindowRmsDbfs,
+      ) &&
       (value.deliveryMetrics.maximumWindowAbove4kPercent <= 10 ||
-        value.deliveryMetrics.effectiveMaximumWindowAbove4kRmsDbfs <= -28),
+        value.deliveryMetrics.effectiveMaximumWindowAbove4kRmsDbfs <= -28) &&
+      (!cue.startsWith('signature-') ||
+        (value.deliveryMetrics.durationSeconds <= 0.7 &&
+          value.deliveryMetrics.spectralCentroidHz <= 1_200 &&
+          value.deliveryMetrics.energyAbove4kPercent <= 1 &&
+          value.deliveryMetrics.energyAbove8kPercent <= 0.05 &&
+          value.deliveryMetrics.energyAbove12kPercent <= 0.01 &&
+          value.deliveryMetrics.interchannelCorrelation >= 0.999 &&
+          value.deliveryMetrics.effectiveSamplePeakDbfs <= -22 &&
+          value.deliveryMetrics.effectiveRmsDbfs <= -34 &&
+          value.deliveryMetrics.effectiveMaximumHighBandWindowRmsDbfs <=
+            -42)),
   );
 }
 

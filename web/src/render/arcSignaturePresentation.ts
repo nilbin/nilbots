@@ -1,7 +1,6 @@
 import type { ReplayModel } from '../replayModel';
-
-export const ARC_SIGNATURE_PRESENTATION_ID =
-  'arc-relay-signatures-v1';
+import { ARC_SIGNATURE_PRESENTATION_ID } from './arcSignaturePresentationId';
+export { ARC_SIGNATURE_PRESENTATION_ID } from './arcSignaturePresentationId';
 
 export type ArcSignaturePublicPhase =
   | 'tell'

@@ -1,5 +1,5 @@
 {
-  "version": 10,
+  "version": 12,
   "id": "astral-relay",
   "label": "Astral Relay",
   "approval": "approved",
@@ -17,6 +17,8 @@
     "exportedBy": "scripts/export-runtime-sound-effects.mjs",
     "generationRecord": "art/audio/sound-lab/v5/sfx-engine-generation.json",
     "generationRecordSha256": "84aed4d0ecc95cdfad2bfa02f3305a8a902a50961531738816e501d4ec9de768",
+    "signatureGenerationRecord": "art/audio/sound-lab/v5/signature-sfx-engine-generation.json",
+    "signatureGenerationRecordSha256": "9d1dfef29c6d99f8156333d7d1bfd12e275547ce8bec3a9f2f5210d84504d82c",
     "deliveryEncoding": {
       "encoder": "macos-afconvert",
       "canonicalization": "zero-iso-bmff-creation-and-modification-times"
@@ -127,6 +129,119 @@
         }
       }
     },
+    "signatureDeliveryProcessing": {
+      "policy": "Hash-pinned source selection, channel fold, resampling, low-pass, endpoint fades, and conservative peak normalization only; no synthesized layer and no provider request.",
+      "cues": {
+        "signature-construct": {
+          "sourceCueId": "signature-source-materialize",
+          "sourceOutputSha256": "979a44a0213c8e25515e6e38e1ff7a5bd1ea634636dfc71ab354acfebcf5fc9f",
+          "channelTransform": "mid-to-dual-mono",
+          "sourceStartSeconds": 0.07,
+          "playbackRate": 0.75,
+          "durationSeconds": 0.58,
+          "lowPassHz": 850,
+          "fadeInSeconds": 0.012,
+          "fadeOutSeconds": 0.12,
+          "targetSamplePeak": 0.22
+        },
+        "signature-tether": {
+          "sourceCueId": "signature-source-tether",
+          "sourceOutputSha256": "beea309dd3d5922cb4574e0f50623a7a8a6dc81a4bb891905859feced89f8b6c",
+          "channelTransform": "mid-to-dual-mono",
+          "sourceStartSeconds": 0.12,
+          "playbackRate": 0.95,
+          "durationSeconds": 0.58,
+          "lowPassHz": 850,
+          "fadeInSeconds": 0.01,
+          "fadeOutSeconds": 0.14,
+          "targetSamplePeak": 0.22
+        },
+        "signature-survey": {
+          "sourceCueId": "signature-source-field",
+          "sourceOutputSha256": "46ac5971e0b4887e63a826d3551dfc8ed203bbbb81802646bbe263d34a3373bf",
+          "channelTransform": "mid-to-dual-mono",
+          "sourceStartSeconds": 0,
+          "playbackRate": 0.55,
+          "durationSeconds": 0.62,
+          "lowPassHz": 800,
+          "fadeInSeconds": 0.025,
+          "fadeOutSeconds": 0.16,
+          "targetSamplePeak": 0.22
+        },
+        "signature-null": {
+          "sourceCueId": "signature-source-field",
+          "sourceOutputSha256": "46ac5971e0b4887e63a826d3551dfc8ed203bbbb81802646bbe263d34a3373bf",
+          "channelTransform": "mid-to-dual-mono",
+          "sourceStartSeconds": 1.05,
+          "playbackRate": 0.65,
+          "durationSeconds": 0.62,
+          "lowPassHz": 650,
+          "fadeInSeconds": 0.04,
+          "fadeOutSeconds": 0.18,
+          "targetSamplePeak": 0.22
+        },
+        "signature-smoke": {
+          "sourceCueId": "signature-source-field",
+          "sourceOutputSha256": "46ac5971e0b4887e63a826d3551dfc8ed203bbbb81802646bbe263d34a3373bf",
+          "channelTransform": "side-to-dual-mono",
+          "sourceStartSeconds": 1.35,
+          "playbackRate": 0.7,
+          "durationSeconds": 0.68,
+          "lowPassHz": 700,
+          "fadeInSeconds": 0.035,
+          "fadeOutSeconds": 0.2,
+          "targetSamplePeak": 0.22
+        },
+        "signature-motion": {
+          "sourceCueId": "signature-source-transfer",
+          "sourceOutputSha256": "41c7385252fbcf1a6700ed98d17dd0f3742fa24f43e620609d25c95f5f18c489",
+          "channelTransform": "side-to-dual-mono",
+          "sourceStartSeconds": 0.05,
+          "playbackRate": 0.9,
+          "durationSeconds": 0.42,
+          "lowPassHz": 750,
+          "fadeInSeconds": 0.02,
+          "fadeOutSeconds": 0.13,
+          "targetSamplePeak": 0.22
+        },
+        "signature-exchange": {
+          "sourceCueId": "signature-source-transfer",
+          "sourceOutputSha256": "41c7385252fbcf1a6700ed98d17dd0f3742fa24f43e620609d25c95f5f18c489",
+          "channelTransform": "mid-to-dual-mono",
+          "sourceStartSeconds": 0.18,
+          "playbackRate": 0.7,
+          "durationSeconds": 0.66,
+          "lowPassHz": 750,
+          "fadeInSeconds": 0.025,
+          "fadeOutSeconds": 0.18,
+          "targetSamplePeak": 0.22
+        },
+        "signature-target": {
+          "sourceCueId": "signature-source-target",
+          "sourceOutputSha256": "fcc750b86bb5e56ac952be0b1ac163cc9c381241bbc81a9246851a9f4a966b0f",
+          "channelTransform": "side-to-dual-mono",
+          "sourceStartSeconds": 0,
+          "playbackRate": 0.65,
+          "durationSeconds": 0.45,
+          "lowPassHz": 750,
+          "fadeInSeconds": 0.015,
+          "fadeOutSeconds": 0.14,
+          "targetSamplePeak": 0.22
+        },
+        "signature-kinetic": {
+          "sourceCueId": "signature-source-kinetic",
+          "sourceOutputSha256": "5e7b84b908c2b741e732604dbdf49c87e12bdc8eea2fab7349dbbeccda6bbb71",
+          "channelTransform": "side-to-dual-mono",
+          "sourceStartSeconds": 0,
+          "playbackRate": 0.45,
+          "durationSeconds": 0.28,
+          "lowPassHz": 700,
+          "fadeInSeconds": 0.008,
+          "fadeOutSeconds": 0.11,
+          "targetSamplePeak": 0.22
+        }
+      }
+    },
     "rightsStatus": "rights-cleared",
     "license": {
       "termsUrl": "https://sfxengine.com/terms-of-service",
@@ -227,6 +342,60 @@
         "voiceLimit": 1,
         "panWidth": 0.45,
         "roomSend": false
+      },
+      "signature-motion": {
+        "gain": 0.16,
+        "voiceLimit": 1,
+        "panWidth": 0.45,
+        "roomSend": false
+      },
+      "signature-construct": {
+        "gain": 0.16,
+        "voiceLimit": 1,
+        "panWidth": 0.45,
+        "roomSend": false
+      },
+      "signature-tether": {
+        "gain": 0.16,
+        "voiceLimit": 1,
+        "panWidth": 0.45,
+        "roomSend": false
+      },
+      "signature-survey": {
+        "gain": 0.16,
+        "voiceLimit": 1,
+        "panWidth": 0.45,
+        "roomSend": false
+      },
+      "signature-null": {
+        "gain": 0.16,
+        "voiceLimit": 1,
+        "panWidth": 0.45,
+        "roomSend": false
+      },
+      "signature-smoke": {
+        "gain": 0.16,
+        "voiceLimit": 1,
+        "panWidth": 0.45,
+        "roomSend": false
+      },
+      "signature-exchange": {
+        "gain": 0.16,
+        "voiceLimit": 1,
+        "panWidth": 0.45,
+        "roomSend": false
+      },
+      "signature-target": {
+        "gain": 0.16,
+        "voiceLimit": 1,
+        "panWidth": 0.45,
+        "roomSend": false
+      },
+      "signature-kinetic": {
+        "gain": 0.16,
+        "voiceLimit": 1,
+        "panWidth": 0.45,
+        "roomSend": false
       }
     }
   },
@@ -244,6 +413,49 @@
       "projectileStaggerTicks": 0.04,
       "suppressWindupUnderForegroundEvents": true,
       "projectileWithConcreteOutcomes": "layer-per-release-up-to-limit"
+    },
+    "crowdedMixAudit": {
+      "method": "Four-times windowed-sinc true-peak estimate over decoded AAC deliveries at exact runtime gains; dry effects bus, centered sources.",
+      "sampleRate": 48000,
+      "projectileVoices": 4,
+      "projectileStaggerTicks": 0.04,
+      "presentationTicksPerSecond": 2.5,
+      "projectileStaggerSeconds": 0.016,
+      "fixedCueIds": [
+        "impact",
+        "destroyed",
+        "level-up"
+      ],
+      "coreCueIds": [
+        "arc-pickup",
+        "arc-drop",
+        "arc-handoff"
+      ],
+      "signatureCueIds": [
+        "signature-motion",
+        "signature-construct",
+        "signature-tether",
+        "signature-survey",
+        "signature-null",
+        "signature-smoke",
+        "signature-exchange",
+        "signature-target",
+        "signature-kinetic"
+      ],
+      "signatureVoices": 2,
+      "signaturePairCount": 36,
+      "variantCount": 108,
+      "maximumApproximateTruePeakDbtp": -7.43,
+      "worstVariant": {
+        "coreCueId": "arc-pickup",
+        "signatureCueIds": [
+          "signature-motion",
+          "signature-target"
+        ]
+      },
+      "ceilingDbtp": -6,
+      "limiterAttenuationModeled": false,
+      "roomSendModeled": false
     }
   },
   "cues": {
@@ -260,7 +472,16 @@
     "arc-pulse": "arc-pulse.m4a",
     "arc-handoff": "arc-handoff.m4a",
     "deflect": "deflect.m4a",
-    "arrival": "arrival.m4a"
+    "arrival": "arrival.m4a",
+    "signature-motion": "signature-motion.m4a",
+    "signature-construct": "signature-construct.m4a",
+    "signature-tether": "signature-tether.m4a",
+    "signature-survey": "signature-survey.m4a",
+    "signature-null": "signature-null.m4a",
+    "signature-smoke": "signature-smoke.m4a",
+    "signature-exchange": "signature-exchange.m4a",
+    "signature-target": "signature-target.m4a",
+    "signature-kinetic": "signature-kinetic.m4a"
   },
   "integrity": {
     "attack-windup": {
@@ -281,10 +502,12 @@
         "maximumWindowAbove4kPercent": 0,
         "maximumWindowAbove4kAtSeconds": 0.085,
         "maximumWindowAbove4kRmsDbfs": -21.83,
+        "maximumHighBandWindowRmsDbfs": -93.15,
         "sourceInterchannelCorrelation": -0.9983,
         "effectiveSamplePeakDbfs": -27.32,
         "effectiveRmsDbfs": -37.7,
-        "effectiveMaximumWindowAbove4kRmsDbfs": -36.72
+        "effectiveMaximumWindowAbove4kRmsDbfs": -36.72,
+        "effectiveMaximumHighBandWindowRmsDbfs": -108.04
       }
     },
     "projectile": {
@@ -305,10 +528,12 @@
         "maximumWindowAbove4kPercent": 0.02,
         "maximumWindowAbove4kAtSeconds": 0.043,
         "maximumWindowAbove4kRmsDbfs": -25.21,
+        "maximumHighBandWindowRmsDbfs": -63.3,
         "sourceInterchannelCorrelation": -0.1681,
         "effectiveSamplePeakDbfs": -29.98,
         "effectiveRmsDbfs": -42.46,
-        "effectiveMaximumWindowAbove4kRmsDbfs": -41.13
+        "effectiveMaximumWindowAbove4kRmsDbfs": -41.13,
+        "effectiveMaximumHighBandWindowRmsDbfs": -79.22
       }
     },
     "impact": {
@@ -329,10 +554,12 @@
         "maximumWindowAbove4kPercent": 4.09,
         "maximumWindowAbove4kAtSeconds": 0.043,
         "maximumWindowAbove4kRmsDbfs": -27.8,
+        "maximumHighBandWindowRmsDbfs": -41.68,
         "sourceInterchannelCorrelation": -0.4754,
         "effectiveSamplePeakDbfs": -16.77,
         "effectiveRmsDbfs": -32.63,
-        "effectiveMaximumWindowAbove4kRmsDbfs": -37.7
+        "effectiveMaximumWindowAbove4kRmsDbfs": -37.7,
+        "effectiveMaximumHighBandWindowRmsDbfs": -51.58
       }
     },
     "healing": {
@@ -353,10 +580,12 @@
         "maximumWindowAbove4kPercent": 7.61,
         "maximumWindowAbove4kAtSeconds": 0.384,
         "maximumWindowAbove4kRmsDbfs": -29.76,
+        "maximumHighBandWindowRmsDbfs": -40.95,
         "sourceInterchannelCorrelation": 0.1338,
         "effectiveSamplePeakDbfs": -19.56,
         "effectiveRmsDbfs": -33.97,
-        "effectiveMaximumWindowAbove4kRmsDbfs": -40.82
+        "effectiveMaximumWindowAbove4kRmsDbfs": -40.82,
+        "effectiveMaximumHighBandWindowRmsDbfs": -52.01
       }
     },
     "destroyed": {
@@ -377,10 +606,12 @@
         "maximumWindowAbove4kPercent": 0.07,
         "maximumWindowAbove4kAtSeconds": 0.384,
         "maximumWindowAbove4kRmsDbfs": -24.08,
+        "maximumHighBandWindowRmsDbfs": -55.44,
         "sourceInterchannelCorrelation": 0.8288,
         "effectiveSamplePeakDbfs": -17.62,
         "effectiveRmsDbfs": -28.97,
-        "effectiveMaximumWindowAbove4kRmsDbfs": -34.54
+        "effectiveMaximumWindowAbove4kRmsDbfs": -34.54,
+        "effectiveMaximumHighBandWindowRmsDbfs": -65.9
       }
     },
     "level-up": {
@@ -401,10 +632,12 @@
         "maximumWindowAbove4kPercent": 3.14,
         "maximumWindowAbove4kAtSeconds": 0,
         "maximumWindowAbove4kRmsDbfs": -27.92,
+        "maximumHighBandWindowRmsDbfs": -42.95,
         "sourceInterchannelCorrelation": 0.7577,
         "effectiveSamplePeakDbfs": -17.45,
         "effectiveRmsDbfs": -36.16,
-        "effectiveMaximumWindowAbove4kRmsDbfs": -37.82
+        "effectiveMaximumWindowAbove4kRmsDbfs": -37.82,
+        "effectiveMaximumHighBandWindowRmsDbfs": -52.85
       }
     },
     "arc-birth": {
@@ -425,9 +658,11 @@
         "maximumWindowAbove4kPercent": 0.01,
         "maximumWindowAbove4kAtSeconds": 0,
         "maximumWindowAbove4kRmsDbfs": -52.47,
+        "maximumHighBandWindowRmsDbfs": -93.89,
         "effectiveSamplePeakDbfs": -9.61,
         "effectiveRmsDbfs": -29.47,
-        "effectiveMaximumWindowAbove4kRmsDbfs": -60.43
+        "effectiveMaximumWindowAbove4kRmsDbfs": -60.43,
+        "effectiveMaximumHighBandWindowRmsDbfs": -101.85
       }
     },
     "arc-pickup": {
@@ -448,9 +683,11 @@
         "maximumWindowAbove4kPercent": 0.33,
         "maximumWindowAbove4kAtSeconds": 0.341,
         "maximumWindowAbove4kRmsDbfs": -36.06,
+        "maximumHighBandWindowRmsDbfs": -60.94,
         "effectiveSamplePeakDbfs": -12.56,
         "effectiveRmsDbfs": -26.07,
-        "effectiveMaximumWindowAbove4kRmsDbfs": -46.52
+        "effectiveMaximumWindowAbove4kRmsDbfs": -46.52,
+        "effectiveMaximumHighBandWindowRmsDbfs": -71.4
       }
     },
     "arc-drop": {
@@ -471,9 +708,11 @@
         "maximumWindowAbove4kPercent": 0.24,
         "maximumWindowAbove4kAtSeconds": 0.555,
         "maximumWindowAbove4kRmsDbfs": -51.35,
+        "maximumHighBandWindowRmsDbfs": -77.48,
         "effectiveSamplePeakDbfs": -12.62,
         "effectiveRmsDbfs": -26.6,
-        "effectiveMaximumWindowAbove4kRmsDbfs": -61.81
+        "effectiveMaximumWindowAbove4kRmsDbfs": -61.81,
+        "effectiveMaximumHighBandWindowRmsDbfs": -87.94
       }
     },
     "arc-bank": {
@@ -494,10 +733,12 @@
         "maximumWindowAbove4kPercent": 29.47,
         "maximumWindowAbove4kAtSeconds": 0.043,
         "maximumWindowAbove4kRmsDbfs": -40.28,
+        "maximumHighBandWindowRmsDbfs": -45.59,
         "sourceInterchannelCorrelation": 0.3308,
         "effectiveSamplePeakDbfs": -12.2,
         "effectiveRmsDbfs": -30.04,
-        "effectiveMaximumWindowAbove4kRmsDbfs": -47.41
+        "effectiveMaximumWindowAbove4kRmsDbfs": -47.41,
+        "effectiveMaximumHighBandWindowRmsDbfs": -52.72
       }
     },
     "arc-pulse": {
@@ -518,10 +759,12 @@
         "maximumWindowAbove4kPercent": 1.59,
         "maximumWindowAbove4kAtSeconds": 0.085,
         "maximumWindowAbove4kRmsDbfs": -16.15,
+        "maximumHighBandWindowRmsDbfs": -34.13,
         "sourceInterchannelCorrelation": 0.4903,
         "effectiveSamplePeakDbfs": -14.98,
         "effectiveRmsDbfs": -29.32,
-        "effectiveMaximumWindowAbove4kRmsDbfs": -26.05
+        "effectiveMaximumWindowAbove4kRmsDbfs": -26.05,
+        "effectiveMaximumHighBandWindowRmsDbfs": -44.03
       }
     },
     "arc-handoff": {
@@ -542,10 +785,12 @@
         "maximumWindowAbove4kPercent": 35.52,
         "maximumWindowAbove4kAtSeconds": 1.451,
         "maximumWindowAbove4kRmsDbfs": -83.13,
+        "maximumHighBandWindowRmsDbfs": -87.63,
         "sourceInterchannelCorrelation": 0.5874,
         "effectiveSamplePeakDbfs": -16.57,
         "effectiveRmsDbfs": -33.11,
-        "effectiveMaximumWindowAbove4kRmsDbfs": -93.59
+        "effectiveMaximumWindowAbove4kRmsDbfs": -93.59,
+        "effectiveMaximumHighBandWindowRmsDbfs": -98.09
       }
     },
     "deflect": {
@@ -566,9 +811,11 @@
         "maximumWindowAbove4kPercent": 2.53,
         "maximumWindowAbove4kAtSeconds": 0.427,
         "maximumWindowAbove4kRmsDbfs": -84.4,
+        "maximumHighBandWindowRmsDbfs": -100.37,
         "effectiveSamplePeakDbfs": -12.25,
         "effectiveRmsDbfs": -37.16,
-        "effectiveMaximumWindowAbove4kRmsDbfs": -93.77
+        "effectiveMaximumWindowAbove4kRmsDbfs": -93.77,
+        "effectiveMaximumHighBandWindowRmsDbfs": -109.74
       }
     },
     "arrival": {
@@ -589,10 +836,237 @@
         "maximumWindowAbove4kPercent": 78.83,
         "maximumWindowAbove4kAtSeconds": 0,
         "maximumWindowAbove4kRmsDbfs": -61.12,
+        "maximumHighBandWindowRmsDbfs": -62.16,
         "sourceInterchannelCorrelation": 0.8211,
         "effectiveSamplePeakDbfs": -17.11,
         "effectiveRmsDbfs": -31.82,
-        "effectiveMaximumWindowAbove4kRmsDbfs": -72.18
+        "effectiveMaximumWindowAbove4kRmsDbfs": -72.18,
+        "effectiveMaximumHighBandWindowRmsDbfs": -73.22
+      }
+    },
+    "signature-motion": {
+      "sourceSha256": "75a898cd4bacfe7a314ec6ef2d4dc659531c5c3186817cc11c7dcafdf2bd22f8",
+      "outputSha256": "57b9f90c1be53358fb0c44f2d1201654fa13e283cdb0c498e875c5225d9f6364",
+      "bytes": 7421,
+      "bitrate": 192000,
+      "deliveryMetrics": {
+        "durationSeconds": 0.42,
+        "samplePeakDbfs": -13.14,
+        "rmsDbfs": -25.03,
+        "dominantFrequencyHz": 90,
+        "interchannelCorrelation": 1,
+        "spectralCentroidHz": 111,
+        "energyAbove4kPercent": 0,
+        "energyAbove8kPercent": 0,
+        "energyAbove12kPercent": 0,
+        "maximumWindowAbove4kPercent": 0,
+        "maximumWindowAbove4kAtSeconds": 0.299,
+        "maximumWindowAbove4kRmsDbfs": -21.59,
+        "maximumHighBandWindowRmsDbfs": -80.75,
+        "effectiveSamplePeakDbfs": -29.06,
+        "effectiveRmsDbfs": -40.95,
+        "effectiveMaximumWindowAbove4kRmsDbfs": -37.51,
+        "effectiveMaximumHighBandWindowRmsDbfs": -96.67
+      }
+    },
+    "signature-construct": {
+      "sourceSha256": "b9dc97712dc7a3344a5d665b7260b2713759247cf1eb5e6d24c80475245ed16e",
+      "outputSha256": "03c8626851987dea84ef664f68ed5a87cbeee41d57b57c55ebcb4a325198d7ae",
+      "bytes": 11288,
+      "bitrate": 192000,
+      "deliveryMetrics": {
+        "durationSeconds": 0.58,
+        "samplePeakDbfs": -13.15,
+        "rmsDbfs": -19.33,
+        "dominantFrequencyHz": 1934,
+        "interchannelCorrelation": 1,
+        "spectralCentroidHz": 67,
+        "energyAbove4kPercent": 0.09,
+        "energyAbove8kPercent": 0,
+        "energyAbove12kPercent": 0,
+        "maximumWindowAbove4kPercent": 1.35,
+        "maximumWindowAbove4kAtSeconds": 0.427,
+        "maximumWindowAbove4kRmsDbfs": -39.29,
+        "maximumHighBandWindowRmsDbfs": -58,
+        "effectiveSamplePeakDbfs": -29.07,
+        "effectiveRmsDbfs": -35.25,
+        "effectiveMaximumWindowAbove4kRmsDbfs": -55.21,
+        "effectiveMaximumHighBandWindowRmsDbfs": -73.92
+      }
+    },
+    "signature-tether": {
+      "sourceSha256": "ef48b9145c69c77a85fff914ce6ef18e4dc037dd1fc9d683b2d29c429d9375be",
+      "outputSha256": "600572f50cb3a3455bc737cad0d683c63ff77e2f845b9f085681bee58fe5b5ea",
+      "bytes": 10612,
+      "bitrate": 192000,
+      "deliveryMetrics": {
+        "durationSeconds": 0.58,
+        "samplePeakDbfs": -13.23,
+        "rmsDbfs": -26.06,
+        "dominantFrequencyHz": 98,
+        "interchannelCorrelation": 1,
+        "spectralCentroidHz": 221,
+        "energyAbove4kPercent": 0.04,
+        "energyAbove8kPercent": 0,
+        "energyAbove12kPercent": 0,
+        "maximumWindowAbove4kPercent": 5.38,
+        "maximumWindowAbove4kAtSeconds": 0,
+        "maximumWindowAbove4kRmsDbfs": -48.08,
+        "maximumHighBandWindowRmsDbfs": -60.77,
+        "effectiveSamplePeakDbfs": -29.15,
+        "effectiveRmsDbfs": -41.98,
+        "effectiveMaximumWindowAbove4kRmsDbfs": -64,
+        "effectiveMaximumHighBandWindowRmsDbfs": -76.69
+      }
+    },
+    "signature-survey": {
+      "sourceSha256": "0e213c10b8e2aceea714fd986a1dfed658f3da05af2b8ff84fa1fb9cc8c0feaf",
+      "outputSha256": "a2e09072423b5e673de1f196d23cd6cb9c026070622da3edd493be48560ca0c8",
+      "bytes": 5976,
+      "bitrate": 192000,
+      "deliveryMetrics": {
+        "durationSeconds": 0.62,
+        "samplePeakDbfs": -13.17,
+        "rmsDbfs": -22.82,
+        "dominantFrequencyHz": 384,
+        "interchannelCorrelation": 1,
+        "spectralCentroidHz": 388,
+        "energyAbove4kPercent": 0,
+        "energyAbove8kPercent": 0,
+        "energyAbove12kPercent": 0,
+        "maximumWindowAbove4kPercent": 0,
+        "maximumWindowAbove4kAtSeconds": 0.469,
+        "maximumWindowAbove4kRmsDbfs": -29.09,
+        "maximumHighBandWindowRmsDbfs": -100.8,
+        "effectiveSamplePeakDbfs": -29.09,
+        "effectiveRmsDbfs": -38.74,
+        "effectiveMaximumWindowAbove4kRmsDbfs": -45.01,
+        "effectiveMaximumHighBandWindowRmsDbfs": -116.72
+      }
+    },
+    "signature-null": {
+      "sourceSha256": "a7d95c3852b07e69bd2eebca979967b37752cae5b135f45f30d34f97583eec89",
+      "outputSha256": "00dda301a692fbf18ae28086c6b122e59a3f38c483e1f0dbd3e570929c7227c7",
+      "bytes": 6040,
+      "bitrate": 192000,
+      "deliveryMetrics": {
+        "durationSeconds": 0.62,
+        "samplePeakDbfs": -13.13,
+        "rmsDbfs": -21.38,
+        "dominantFrequencyHz": 462,
+        "interchannelCorrelation": 1,
+        "spectralCentroidHz": 461,
+        "energyAbove4kPercent": 0,
+        "energyAbove8kPercent": 0,
+        "energyAbove12kPercent": 0,
+        "maximumWindowAbove4kPercent": 0,
+        "maximumWindowAbove4kAtSeconds": 0.512,
+        "maximumWindowAbove4kRmsDbfs": -29.82,
+        "maximumHighBandWindowRmsDbfs": -98.13,
+        "effectiveSamplePeakDbfs": -29.05,
+        "effectiveRmsDbfs": -37.3,
+        "effectiveMaximumWindowAbove4kRmsDbfs": -45.74,
+        "effectiveMaximumHighBandWindowRmsDbfs": -114.05
+      }
+    },
+    "signature-smoke": {
+      "sourceSha256": "90026b7cfce8e6e7a808993ab7816a977fa6ce1189ecebd7eaf618d2fe81770e",
+      "outputSha256": "5c0f77a9e56509f14687e1f84bd9c660cddf70159fdd18231994d8c41a4505de",
+      "bytes": 6030,
+      "bitrate": 192000,
+      "deliveryMetrics": {
+        "durationSeconds": 0.68,
+        "samplePeakDbfs": -13.16,
+        "rmsDbfs": -21.6,
+        "dominantFrequencyHz": 500,
+        "interchannelCorrelation": 1,
+        "spectralCentroidHz": 493,
+        "energyAbove4kPercent": 0,
+        "energyAbove8kPercent": 0,
+        "energyAbove12kPercent": 0,
+        "maximumWindowAbove4kPercent": 0,
+        "maximumWindowAbove4kAtSeconds": 0.555,
+        "maximumWindowAbove4kRmsDbfs": -27.76,
+        "maximumHighBandWindowRmsDbfs": -102.09,
+        "effectiveSamplePeakDbfs": -29.08,
+        "effectiveRmsDbfs": -37.52,
+        "effectiveMaximumWindowAbove4kRmsDbfs": -43.68,
+        "effectiveMaximumHighBandWindowRmsDbfs": -118.01
+      }
+    },
+    "signature-exchange": {
+      "sourceSha256": "0d064da1f87120ad221ed5bf927dd00aff6a357a0ef5c099f7985502fa277c45",
+      "outputSha256": "b2c663333c42a5f9085497edd2a96a08633c0282c824a2f84309be09770b7916",
+      "bytes": 10951,
+      "bitrate": 192000,
+      "deliveryMetrics": {
+        "durationSeconds": 0.66,
+        "samplePeakDbfs": -13.14,
+        "rmsDbfs": -25.86,
+        "dominantFrequencyHz": 174,
+        "interchannelCorrelation": 1,
+        "spectralCentroidHz": 137,
+        "energyAbove4kPercent": 0,
+        "energyAbove8kPercent": 0,
+        "energyAbove12kPercent": 0,
+        "maximumWindowAbove4kPercent": 0.01,
+        "maximumWindowAbove4kAtSeconds": 0.469,
+        "maximumWindowAbove4kRmsDbfs": -35.45,
+        "maximumHighBandWindowRmsDbfs": -77.34,
+        "effectiveSamplePeakDbfs": -29.06,
+        "effectiveRmsDbfs": -41.78,
+        "effectiveMaximumWindowAbove4kRmsDbfs": -51.37,
+        "effectiveMaximumHighBandWindowRmsDbfs": -93.26
+      }
+    },
+    "signature-target": {
+      "sourceSha256": "4883f274b9adf2d935c81635558daba56f45f0a7411c78cda7384c53c945e952",
+      "outputSha256": "44e8a8fc218b0eed56cbc6f26999e297aca4662676cb38d43c68a476586eab30",
+      "bytes": 5632,
+      "bitrate": 192000,
+      "deliveryMetrics": {
+        "durationSeconds": 0.45,
+        "samplePeakDbfs": -13.14,
+        "rmsDbfs": -20.87,
+        "dominantFrequencyHz": 82,
+        "interchannelCorrelation": 1,
+        "spectralCentroidHz": 25,
+        "energyAbove4kPercent": 0,
+        "energyAbove8kPercent": 0,
+        "energyAbove12kPercent": 0,
+        "maximumWindowAbove4kPercent": 0,
+        "maximumWindowAbove4kAtSeconds": 0.256,
+        "maximumWindowAbove4kRmsDbfs": -23.27,
+        "maximumHighBandWindowRmsDbfs": -95.42,
+        "effectiveSamplePeakDbfs": -29.06,
+        "effectiveRmsDbfs": -36.79,
+        "effectiveMaximumWindowAbove4kRmsDbfs": -39.19,
+        "effectiveMaximumHighBandWindowRmsDbfs": -111.34
+      }
+    },
+    "signature-kinetic": {
+      "sourceSha256": "9555ad6e64edc224205679f338d959da55084e30d8096cccb24584bdf67dda93",
+      "outputSha256": "710e95e86c07060db688b018c3939ab91739364fd83e2d12b4ee1a3d42d6eaf3",
+      "bytes": 5130,
+      "bitrate": 192000,
+      "deliveryMetrics": {
+        "durationSeconds": 0.28,
+        "samplePeakDbfs": -13.15,
+        "rmsDbfs": -21.41,
+        "dominantFrequencyHz": 80,
+        "interchannelCorrelation": 1,
+        "spectralCentroidHz": 16,
+        "energyAbove4kPercent": 0,
+        "energyAbove8kPercent": 0,
+        "energyAbove12kPercent": 0,
+        "maximumWindowAbove4kPercent": 0,
+        "maximumWindowAbove4kAtSeconds": 0.171,
+        "maximumWindowAbove4kRmsDbfs": -26.59,
+        "maximumHighBandWindowRmsDbfs": -96.64,
+        "effectiveSamplePeakDbfs": -29.07,
+        "effectiveRmsDbfs": -37.33,
+        "effectiveMaximumWindowAbove4kRmsDbfs": -42.51,
+        "effectiveMaximumHighBandWindowRmsDbfs": -112.56
       }
     }
   }

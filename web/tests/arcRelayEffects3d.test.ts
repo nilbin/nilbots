@@ -4,6 +4,7 @@ import {
   ARC_SIGNATURE_PROP_SCALE,
   ARC_SIGNATURE_PRESENTATION_ID,
   ARC_SIGNATURE_WEBGL_PAINTERS,
+  arcSignatureAudioDefinitionIds,
   arcSignaturePresentationDefinitions,
   arcSignatureVisualPhase,
   latestObservedSignatureYaw,
@@ -45,6 +46,11 @@ test('the typed Arc package gives every signature an owned WebGL treatment', () 
     Object.keys(ARC_SIGNATURE_WEBGL_PAINTERS).sort(),
     [...signatureIds].sort(),
   );
+  assert.deepEqual(
+    arcSignatureAudioDefinitionIds(),
+    [...signatureIds].sort(),
+    'the browser-independent replay audio registry must cover the same grammar',
+  );
   assert.ok(
     definitions.every(
       (definition) =>
@@ -57,6 +63,40 @@ test('the typed Arc package gives every signature an owned WebGL treatment', () 
     new Set(Object.values(ARC_SIGNATURE_WEBGL_PAINTERS)).size,
     16,
     'every signature owns a discoverable painter even when two compose the prop primitive',
+  );
+  const runtimeCueIds = new Set([
+    'attack-windup',
+    'projectile',
+    'impact',
+    'healing',
+    'signature-motion',
+    'signature-construct',
+    'signature-tether',
+    'signature-survey',
+    'signature-null',
+    'signature-smoke',
+    'signature-exchange',
+    'signature-target',
+    'signature-kinetic',
+    'core-family',
+    'silent',
+  ]);
+  assert.ok(
+    definitions.every((definition) =>
+      definition.audio.every((binding) => runtimeCueIds.has(binding.cue)),
+    ),
+    'presentation definitions cannot name an unowned audio intent',
+  );
+  const hook = definitions.find(
+    (definition) => definition.signatureId === 'tractor-hook',
+  );
+  assert.deepEqual(
+    hook?.audio.find((binding) => binding.trigger === 'launched'),
+    {
+      trigger: 'launched',
+      cue: 'signature-tether',
+      replacesGenericRelease: true,
+    },
   );
 });
 

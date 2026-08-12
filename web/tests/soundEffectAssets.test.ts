@@ -25,7 +25,19 @@ const expectedCues = [
   'impact',
   'level-up',
   'projectile',
+  'signature-construct',
+  'signature-exchange',
+  'signature-kinetic',
+  'signature-motion',
+  'signature-null',
+  'signature-smoke',
+  'signature-survey',
+  'signature-target',
+  'signature-tether',
 ];
+const signatureCues = expectedCues.filter((cue) =>
+  cue.startsWith('signature-'),
+);
 
 interface Integrity {
   sourceSha256: string;
@@ -46,9 +58,11 @@ interface Integrity {
     maximumWindowAbove4kPercent: number;
     maximumWindowAbove4kAtSeconds: number;
     maximumWindowAbove4kRmsDbfs: number;
+    maximumHighBandWindowRmsDbfs: number;
     effectiveSamplePeakDbfs: number;
     effectiveRmsDbfs: number;
     effectiveMaximumWindowAbove4kRmsDbfs: number;
+    effectiveMaximumHighBandWindowRmsDbfs: number;
   };
 }
 
@@ -82,6 +96,8 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
       exportedBy: string;
       generationRecord: string;
       generationRecordSha256: string;
+      signatureGenerationRecord: string;
+      signatureGenerationRecordSha256: string;
       deliveryEncoding: {
         encoder: string;
         canonicalization: string;
@@ -96,6 +112,24 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
             sourceStartSeconds: number;
             playbackRate: number;
             playbackRateEnd?: number;
+            durationSeconds: number;
+            lowPassHz: number;
+            fadeInSeconds: number;
+            fadeOutSeconds: number;
+            targetSamplePeak: number;
+          }
+        >;
+      };
+      signatureDeliveryProcessing: {
+        policy: string;
+        cues: Record<
+          string,
+          {
+            sourceCueId: string;
+            sourceOutputSha256: string;
+            channelTransform: string;
+            sourceStartSeconds: number;
+            playbackRate: number;
             durationSeconds: number;
             lowPassHz: number;
             fadeInSeconds: number;
@@ -136,18 +170,43 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
         suppressWindupUnderForegroundEvents: boolean;
         projectileWithConcreteOutcomes: string;
       };
+      crowdedMixAudit: {
+        method: string;
+        sampleRate: number;
+        projectileVoices: number;
+        projectileStaggerTicks: number;
+        presentationTicksPerSecond: number;
+        projectileStaggerSeconds: number;
+        fixedCueIds: string[];
+        coreCueIds: string[];
+        signatureCueIds: string[];
+        signatureVoices: number;
+        signaturePairCount: number;
+        variantCount: number;
+        maximumApproximateTruePeakDbtp: number;
+        worstVariant: { coreCueId: string; signatureCueIds: string[] };
+        ceilingDbtp: number;
+        limiterAttenuationModeled: boolean;
+        roomSendModeled: boolean;
+      };
     };
     cues: Record<string, string>;
     integrity: Record<string, Integrity>;
   };
 
-  assert.equal(manifest.version, 10);
+  assert.equal(manifest.version, 12);
   assert.equal(manifest.id, 'astral-relay');
   assert.equal(manifest.approval, 'approved');
   assert.equal(manifest.format, 'aac-lc-m4a');
   assert.equal(manifest.sampleRate, 48_000);
   assert.equal(manifest.channels, 2);
-  assert.deepEqual(manifest.provenance, {
+  assert.deepEqual(
+    {
+      ...manifest.provenance,
+      signatureGenerationRecordSha256: '<hash>',
+      signatureDeliveryProcessing: '<checked separately>',
+    },
+    {
     provider: 'sfx-engine',
     generatedBy: [
       '.claude/skills/sfx-engine/scripts/generate-pack.mjs',
@@ -159,6 +218,9 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
     generationRecord: 'art/audio/sound-lab/v5/sfx-engine-generation.json',
     generationRecordSha256:
       '84aed4d0ecc95cdfad2bfa02f3305a8a902a50961531738816e501d4ec9de768',
+    signatureGenerationRecord:
+      'art/audio/sound-lab/v5/signature-sfx-engine-generation.json',
+    signatureGenerationRecordSha256: '<hash>',
     deliveryEncoding: {
       encoder: 'macos-afconvert',
       canonicalization: 'zero-iso-bmff-creation-and-modification-times',
@@ -272,6 +334,7 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
         },
       },
     },
+    signatureDeliveryProcessing: '<checked separately>',
     rightsStatus: 'rights-cleared',
     license: {
       termsUrl: 'https://sfxengine.com/terms-of-service',
@@ -285,7 +348,8 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
       locallyDerivedCues: 3,
       locallySafetyMasteredCues: 5,
     },
-  });
+    },
+  );
   const generationRecord = readFileSync(
     join(repoRoot, manifest.provenance.generationRecord),
   );
@@ -293,10 +357,51 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
     sha256(generationRecord),
     manifest.provenance.generationRecordSha256,
   );
+  const signatureGenerationRecord = readFileSync(
+    join(repoRoot, manifest.provenance.signatureGenerationRecord),
+  );
+  assert.equal(
+    sha256(signatureGenerationRecord),
+    manifest.provenance.signatureGenerationRecordSha256,
+  );
+  const signatureProvenance = JSON.parse(
+    signatureGenerationRecord.toString('utf8'),
+  ) as {
+    batch: { maximumProviderJobs: number; automaticRerolls: boolean };
+    cues: Array<{
+      id: string;
+      result: { status: string; sourceSha256: string; outputSha256: string };
+    }>;
+    deliveries: Array<{ id: string; outputSha256: string }>;
+  };
+  assert.equal(signatureProvenance.batch.maximumProviderJobs, 6);
+  assert.equal(signatureProvenance.batch.automaticRerolls, false);
+  assert.equal(signatureProvenance.cues.length, 6);
+  assert.ok(
+    signatureProvenance.cues.every(
+      (cue) =>
+        cue.result.status === 'generated' &&
+        /^[a-f0-9]{64}$/.test(cue.result.sourceSha256) &&
+        /^[a-f0-9]{64}$/.test(cue.result.outputSha256),
+    ),
+  );
+  assert.deepEqual(
+    signatureProvenance.deliveries.map((delivery) => delivery.id).sort(),
+    signatureCues,
+  );
+  assert.deepEqual(
+    Object.keys(manifest.provenance.signatureDeliveryProcessing.cues).sort(),
+    signatureCues,
+  );
+  assert.match(
+    manifest.provenance.signatureDeliveryProcessing.policy,
+    /no synthesized layer and no provider request/i,
+  );
 
   assert.deepEqual(Object.keys(manifest.cues).sort(), expectedCues);
   assert.deepEqual(Object.keys(manifest.mix.cues).sort(), expectedCues);
-  assert.deepEqual(manifest.behavior, {
+  const { crowdedMixAudit, ...behavior } = manifest.behavior;
+  assert.deepEqual(behavior, {
     silentOutcomeCueIds: ['attack-cancel'],
     cueAliases: {
       'attack-fizzle': 'projectile',
@@ -310,6 +415,53 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
       projectileWithConcreteOutcomes: 'layer-per-release-up-to-limit',
     },
   });
+  assert.match(crowdedMixAudit.method, /decoded AAC deliveries/);
+  assert.deepEqual(
+    {
+      ...crowdedMixAudit,
+      maximumApproximateTruePeakDbtp: '<checked below>',
+      worstVariant: '<valid member combination>',
+    },
+    {
+      method:
+        'Four-times windowed-sinc true-peak estimate over decoded AAC deliveries ' +
+        'at exact runtime gains; dry effects bus, centered sources.',
+      sampleRate: 48_000,
+      projectileVoices: 4,
+      projectileStaggerTicks: 0.04,
+      presentationTicksPerSecond: 2.5,
+      projectileStaggerSeconds: 0.016,
+      fixedCueIds: ['impact', 'destroyed', 'level-up'],
+      coreCueIds: ['arc-pickup', 'arc-drop', 'arc-handoff'],
+      signatureCueIds: [
+        'signature-motion',
+        'signature-construct',
+        'signature-tether',
+        'signature-survey',
+        'signature-null',
+        'signature-smoke',
+        'signature-exchange',
+        'signature-target',
+        'signature-kinetic',
+      ],
+      signatureVoices: 2,
+      signaturePairCount: 36,
+      variantCount: 108,
+      maximumApproximateTruePeakDbtp: '<checked below>',
+      worstVariant: '<valid member combination>',
+      ceilingDbtp: -6,
+      limiterAttenuationModeled: false,
+      roomSendModeled: false,
+    },
+  );
+  assert.ok(crowdedMixAudit.maximumApproximateTruePeakDbtp <= -6);
+  assert.ok(crowdedMixAudit.coreCueIds.includes(crowdedMixAudit.worstVariant.coreCueId));
+  assert.equal(crowdedMixAudit.worstVariant.signatureCueIds.length, 2);
+  assert.ok(
+    crowdedMixAudit.worstVariant.signatureCueIds.every((cue) =>
+      signatureCues.includes(cue),
+    ),
+  );
   assert.equal(manifest.mix.roomSend, 0.06);
   assert.ok(manifest.mix.roomSend <= 0.08, 'provider tails get only a light room send');
   assert.deepEqual(
@@ -341,10 +493,13 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
     assert.equal(sha256(bytes), integrity.outputSha256);
     assert.match(integrity.sourceSha256, /^[a-f0-9]{64}$/);
     assert.equal(integrity.bitrate, 192_000);
-    assert.ok(
-      bytes.length >= (cue === 'attack-windup' || cue === 'projectile' ? 2_500 : 8_000),
-      `${cue} is unexpectedly small`,
-    );
+    const minimumBytes =
+      cue === 'attack-windup' || cue === 'projectile'
+        ? 2_500
+        : cue.startsWith('signature-')
+          ? 4_500
+          : 8_000;
+    assert.ok(bytes.length >= minimumBytes, `${cue} is unexpectedly small`);
     assert.ok(bytes.length <= 90_000, `${cue} is unexpectedly large`);
     assert.ok(mix.gain >= 0 && mix.gain <= 0.55, `${cue} gain is unsafe`);
     assert.ok(
@@ -423,6 +578,41 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
       -28,
     'the newly layered common projectile cue must stay well below outcomes',
   );
+
+  for (const cue of signatureCues) {
+    const mix = manifest.mix.cues[cue]!;
+    const metrics = manifest.integrity[cue]!.deliveryMetrics!;
+    const processing =
+      manifest.provenance.signatureDeliveryProcessing.cues[cue]!;
+    assert.deepEqual(mix, {
+      gain: 0.16,
+      voiceLimit: 1,
+      panWidth: 0.45,
+      roomSend: false,
+    });
+    assert.match(processing.sourceCueId, /^signature-source-/);
+    assert.match(processing.sourceOutputSha256, /^[a-f0-9]{64}$/);
+    assert.ok(
+      ['mid-to-dual-mono', 'side-to-dual-mono'].includes(
+        processing.channelTransform,
+      ),
+    );
+    assert.ok(processing.durationSeconds <= 0.7);
+    assert.ok(processing.lowPassHz <= 1_000);
+    assert.ok(processing.targetSamplePeak <= 0.22);
+    assert.ok(metrics.durationSeconds <= 0.7);
+    assert.ok(metrics.spectralCentroidHz <= 1_200);
+    assert.ok(metrics.energyAbove4kPercent <= 1);
+    assert.ok(metrics.energyAbove8kPercent <= 0.05);
+    assert.ok(metrics.energyAbove12kPercent <= 0.01);
+    assert.ok(metrics.interchannelCorrelation >= 0.999);
+    assert.ok(metrics.effectiveSamplePeakDbfs <= -22);
+    assert.ok(metrics.effectiveRmsDbfs <= -34);
+    assert.ok(
+      metrics.effectiveMaximumHighBandWindowRmsDbfs <= -42,
+      `${cue} has an audible concentrated high-band window`,
+    );
+  }
   assert.ok(
     manifest.integrity.projectile!.deliveryMetrics!.effectiveSamplePeakDbfs +
       20 * Math.log10(manifest.mix.cues.projectile!.voiceLimit) <=
@@ -470,7 +660,7 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
   assert.deepEqual(
     readdirSync(directory).sort(),
     ['manifest.json', ...expectedCues.map((cue) => `${cue}.m4a`)].sort(),
-    'runtime delivery must contain only the fourteen one-shots',
+    'runtime delivery must contain only the twenty-three approved one-shots',
   );
   assert.ok(totalBytes < 500_000, `runtime audio is ${totalBytes} bytes`);
 });

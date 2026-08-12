@@ -26,6 +26,11 @@ const generationRecordPath = path.join(
   "v5",
   "sfx-engine-generation.json",
 );
+const signatureGenerationRecordPath = path.join(
+  sourceRoot,
+  "v5",
+  "signature-sfx-engine-generation.json",
+);
 const destinationRoot = path.join(
   repositoryRoot,
   "web",
@@ -73,7 +78,17 @@ const cueIds = [
   "arc-handoff",
   "deflect",
   "arrival",
+  "signature-motion",
+  "signature-construct",
+  "signature-tether",
+  "signature-survey",
+  "signature-null",
+  "signature-smoke",
+  "signature-exchange",
+  "signature-target",
+  "signature-kinetic",
 ];
+const signatureCueIds = cueIds.filter((id) => id.startsWith("signature-"));
 const mix = {
   roomSend: 0.06,
   cues: {
@@ -101,8 +116,21 @@ const mix = {
     "arc-handoff": { gain: 0.3, voiceLimit: 1, panWidth: 0.55, roomSend: false },
     deflect: { gain: 0.34, voiceLimit: 2, panWidth: 0.7, roomSend: true },
     arrival: { gain: 0.28, voiceLimit: 1, panWidth: 0.45, roomSend: false },
+    "signature-motion": signatureMix(),
+    "signature-construct": signatureMix(),
+    "signature-tether": signatureMix(),
+    "signature-survey": signatureMix(),
+    "signature-null": signatureMix(),
+    "signature-smoke": signatureMix(),
+    "signature-exchange": signatureMix(),
+    "signature-target": signatureMix(),
+    "signature-kinetic": signatureMix(),
   },
 };
+
+function signatureMix() {
+  return { gain: 0.16, voiceLimit: 1, panWidth: 0.45, roomSend: false };
+}
 const deliveryProcessing = {
   "attack-windup": {
     channelTransform: "side-to-dual-mono",
@@ -402,6 +430,7 @@ async function exportAsset({
     throw new Error(`Exported an invalid runtime cue: ${destination}`);
   }
   let deliveryMetrics;
+  let decodedWavBytes;
   try {
     execFileSync(
       "afconvert",
@@ -419,7 +448,8 @@ async function exportAsset({
       ],
       { stdio: "inherit" },
     );
-    deliveryMetrics = analyzeDeliveryWav(await readFile(decodedWav), id);
+    decodedWavBytes = await readFile(decodedWav);
+    deliveryMetrics = analyzeDeliveryWav(decodedWavBytes, id);
   } finally {
     await rm(decodedWav, { force: true });
   }
@@ -433,17 +463,30 @@ async function exportAsset({
   const effectivePeakDbfs = deliveryMetrics.samplePeakDbfs + runtimeGainDb;
   const effectiveRmsDbfs = deliveryMetrics.rmsDbfs + runtimeGainDb;
   const effectivePeakCeiling =
-    id === "attack-windup" || id === "projectile" ? -20 : -9;
+    id.startsWith("signature-")
+      ? -22
+      : id === "attack-windup" || id === "projectile"
+        ? -20
+        : -9;
   if (effectivePeakDbfs > effectivePeakCeiling) {
     throw new Error(
       `${id}: ${effectivePeakDbfs.toFixed(2)} dBFS effective delivery peak ` +
         `exceeds its ${effectivePeakCeiling} dBFS ceiling.`,
     );
   }
+  const maximumEffectiveRmsDbfs = id.startsWith("signature-") ? -34 : -25;
+  const maximumEnergyAbove4kPercent = id.startsWith("signature-") ? 1 : 3;
+  const maximumEnergyAbove8kPercent = id.startsWith("signature-")
+    ? 0.05
+    : Number.POSITIVE_INFINITY;
+  const maximumEnergyAbove12kPercent = id.startsWith("signature-")
+    ? 0.01
+    : 0.05;
   if (
-    effectiveRmsDbfs > -25 ||
-    deliveryMetrics.energyAbove4kPercent > 3 ||
-    deliveryMetrics.energyAbove12kPercent > 0.05
+    effectiveRmsDbfs > maximumEffectiveRmsDbfs ||
+    deliveryMetrics.energyAbove4kPercent > maximumEnergyAbove4kPercent ||
+    deliveryMetrics.energyAbove8kPercent > maximumEnergyAbove8kPercent ||
+    deliveryMetrics.energyAbove12kPercent > maximumEnergyAbove12kPercent
   ) {
     throw new Error(
       `${id}: decoded runtime audio exceeds a comfort ceiling ` +
@@ -458,6 +501,22 @@ async function exportAsset({
     deliveryMetrics.maximumWindowAbove4kRmsDbfs + runtimeGainDb,
     2,
   );
+  deliveryMetrics.effectiveMaximumHighBandWindowRmsDbfs = round(
+    deliveryMetrics.maximumHighBandWindowRmsDbfs + runtimeGainDb,
+    2,
+  );
+  if (
+    id.startsWith("signature-") &&
+    (deliveryMetrics.durationSeconds > 0.7 ||
+      deliveryMetrics.spectralCentroidHz > 1_200 ||
+      deliveryMetrics.interchannelCorrelation < 0.999 ||
+      deliveryMetrics.effectiveMaximumHighBandWindowRmsDbfs > -42)
+  ) {
+    throw new Error(
+      `${id}: decoded signature delivery exceeds its strict gate: ` +
+        `${JSON.stringify(deliveryMetrics)}.`,
+    );
+  }
   if (
     deliveryMetrics.maximumWindowAbove4kPercent > 10 &&
     deliveryMetrics.effectiveMaximumWindowAbove4kRmsDbfs > -28
@@ -468,11 +527,14 @@ async function exportAsset({
     );
   }
   return {
-    sourceSha256: sourceHash,
-    outputSha256: sha256(outputBytes),
-    bytes: outputBytes.length,
-    bitrate,
-    deliveryMetrics,
+    integrity: {
+      sourceSha256: sourceHash,
+      outputSha256: sha256(outputBytes),
+      bytes: outputBytes.length,
+      bitrate,
+      deliveryMetrics,
+    },
+    decodedWavBytes,
   };
 }
 
@@ -617,6 +679,177 @@ function decodePcm16(bytes, wav) {
       bytes.readInt16LE(wav.dataOffset + index * 2) / 32_768;
   }
   return samples;
+}
+
+/**
+ * Audit the busiest approved one-tick combination against the decoded AAC
+ * deliveries and their exact runtime gains. This deliberately models neither
+ * the room send nor the final compressor: both are downstream safety nets, not
+ * permission to ship an intrinsically hot dry effects mix.
+ */
+function auditCrowdedRuntimeMix(decodedDeliveries) {
+  const sampleRate = 48_000;
+  const projectileStaggerTicks = 0.04;
+  const presentationTicksPerSecond = 2.5;
+  const projectileStaggerSeconds =
+    projectileStaggerTicks / presentationTicksPerSecond;
+  const coreCueIds = ["arc-pickup", "arc-drop", "arc-handoff"];
+  const signaturePairs = [];
+  for (let left = 0; left < signatureCueIds.length; left += 1) {
+    for (let right = left + 1; right < signatureCueIds.length; right += 1) {
+      signaturePairs.push([signatureCueIds[left], signatureCueIds[right]]);
+    }
+  }
+
+  const decoded = new Map();
+  for (const cueId of cueIds) {
+    const bytes = decodedDeliveries.get(cueId);
+    if (!bytes) throw new Error(`${cueId}: decoded delivery is missing from audit.`);
+    const wav = parsePcm16Wav(bytes, `${cueId} crowded-mix delivery`);
+    if (
+      wav.sampleRate !== sampleRate ||
+      wav.channels !== 2 ||
+      wav.sampleCount % 2 !== 0
+    ) {
+      throw new Error(`${cueId}: crowded-mix audit requires 48 kHz stereo.`);
+    }
+    decoded.set(cueId, {
+      channels: splitInterleavedChannels(decodePcm16(bytes, wav), 2),
+      frameCount: wav.sampleCount / 2,
+    });
+  }
+
+  let maximumTruePeak = 0;
+  let worstVariant = null;
+  for (const coreCueId of coreCueIds) {
+    for (const pair of signaturePairs) {
+      const events = [
+        ...Array.from({ length: 4 }, (_, index) => ({
+          cueId: "projectile",
+          atSeconds: projectileStaggerSeconds * index,
+        })),
+        { cueId: "impact", atSeconds: 0 },
+        { cueId: "destroyed", atSeconds: 0 },
+        { cueId: coreCueId, atSeconds: 0 },
+        { cueId: "level-up", atSeconds: 0 },
+        { cueId: pair[0], atSeconds: 0 },
+        { cueId: pair[1], atSeconds: 0 },
+      ];
+      const frameCount = Math.max(
+        ...events.map(({ cueId, atSeconds }) =>
+          Math.round(atSeconds * sampleRate) + decoded.get(cueId).frameCount,
+        ),
+      );
+      const mixed = [
+        new Float64Array(frameCount),
+        new Float64Array(frameCount),
+      ];
+      for (const { cueId, atSeconds } of events) {
+        const delivery = decoded.get(cueId);
+        const offset = Math.round(atSeconds * sampleRate);
+        const gain = mix.cues[cueId].gain;
+        for (let channel = 0; channel < 2; channel += 1) {
+          const source = delivery.channels[channel];
+          const destination = mixed[channel];
+          for (let frame = 0; frame < source.length; frame += 1) {
+            destination[offset + frame] += source[frame] * gain;
+          }
+        }
+      }
+      const truePeak = approximateTruePeak(mixed);
+      if (truePeak > maximumTruePeak) {
+        maximumTruePeak = truePeak;
+        worstVariant = {
+          coreCueId,
+          signatureCueIds: pair,
+        };
+      }
+    }
+  }
+  const maximumApproximateTruePeakDbtp = round(
+    20 * Math.log10(maximumTruePeak),
+    2,
+  );
+  const ceilingDbtp = -6;
+  if (maximumApproximateTruePeakDbtp > ceilingDbtp) {
+    throw new Error(
+      `Crowded runtime mix reaches ${maximumApproximateTruePeakDbtp} dBTP, ` +
+        `above its ${ceilingDbtp} dBTP ceiling: ${JSON.stringify(worstVariant)}.`,
+    );
+  }
+  return {
+    method:
+      "Four-times windowed-sinc true-peak estimate over decoded AAC deliveries " +
+      "at exact runtime gains; dry effects bus, centered sources.",
+    sampleRate,
+    projectileVoices: 4,
+    projectileStaggerTicks,
+    presentationTicksPerSecond,
+    projectileStaggerSeconds: round(projectileStaggerSeconds, 3),
+    fixedCueIds: ["impact", "destroyed", "level-up"],
+    coreCueIds,
+    signatureCueIds,
+    signatureVoices: 2,
+    signaturePairCount: signaturePairs.length,
+    variantCount: coreCueIds.length * signaturePairs.length,
+    maximumApproximateTruePeakDbtp,
+    worstVariant,
+    ceilingDbtp,
+    limiterAttenuationModeled: false,
+    roomSendModeled: false,
+  };
+}
+
+function splitInterleavedChannels(samples, channelCount) {
+  const frameCount = samples.length / channelCount;
+  const channels = Array.from(
+    { length: channelCount },
+    () => new Float64Array(frameCount),
+  );
+  for (let frame = 0; frame < frameCount; frame += 1) {
+    for (let channel = 0; channel < channelCount; channel += 1) {
+      channels[channel][frame] = samples[frame * channelCount + channel];
+    }
+  }
+  return channels;
+}
+
+function approximateTruePeak(channels) {
+  let peak = 0;
+  const phases = [0.25, 0.5, 0.75];
+  const halfWindow = 8;
+  for (const channel of channels) {
+    for (const sample of channel) peak = Math.max(peak, Math.abs(sample));
+    for (let index = 0; index + 1 < channel.length; index += 1) {
+      for (const phase of phases) {
+        const position = index + phase;
+        let value = 0;
+        let weightSum = 0;
+        for (
+          let sourceIndex = index - halfWindow + 1;
+          sourceIndex <= index + halfWindow;
+          sourceIndex += 1
+        ) {
+          if (sourceIndex < 0 || sourceIndex >= channel.length) continue;
+          const delta = position - sourceIndex;
+          const absolute = Math.abs(delta);
+          if (absolute >= halfWindow) continue;
+          const sinc =
+            absolute < 1e-12
+              ? 1
+              : Math.sin(Math.PI * delta) / (Math.PI * delta);
+          const window =
+            0.5 + 0.5 * Math.cos((Math.PI * delta) / halfWindow);
+          const weight = sinc * window;
+          value += channel[sourceIndex] * weight;
+          weightSum += weight;
+        }
+        if (weightSum !== 0) value /= weightSum;
+        peak = Math.max(peak, Math.abs(value));
+      }
+    }
+  }
+  return peak;
 }
 
 function removeDc(samples, channels) {
@@ -765,6 +998,7 @@ function analyzeSpectrum(bytes, wav) {
   let maximumWindowAbove4kPercent = 0;
   let maximumWindowAbove4kAtSeconds = 0;
   let maximumWindowAbove4kRmsDbfs = -Infinity;
+  let maximumHighBandWindowRmsDbfs = -Infinity;
 
   for (const start of starts) {
     const windowSpectrum = new Float64Array(fftSize / 2 + 1);
@@ -806,11 +1040,16 @@ function analyzeSpectrum(bytes, wav) {
       if (percentage > maximumWindowAbove4kPercent) {
         maximumWindowAbove4kPercent = percentage;
         maximumWindowAbove4kAtSeconds = start / wav.sampleRate;
-        maximumWindowAbove4kRmsDbfs =
+        const windowRmsDbfs =
           20 *
           Math.log10(
             Math.sqrt(windowSquares / (fftSize * wav.channels)),
           );
+        maximumWindowAbove4kRmsDbfs = windowRmsDbfs;
+        maximumHighBandWindowRmsDbfs =
+          windowAbove4k > 0
+            ? windowRmsDbfs + 10 * Math.log10(windowAbove4k / windowTotal)
+            : -120;
       }
     }
   }
@@ -833,6 +1072,9 @@ function analyzeSpectrum(bytes, wav) {
   if (!Number.isFinite(maximumWindowAbove4kRmsDbfs)) {
     maximumWindowAbove4kRmsDbfs = -120;
   }
+  if (!Number.isFinite(maximumHighBandWindowRmsDbfs)) {
+    maximumHighBandWindowRmsDbfs = -120;
+  }
   return {
     spectralCentroidHz: round(weightedFrequency / total, 0),
     energyAbove4kPercent: round((100 * above4k) / total, 2),
@@ -844,6 +1086,10 @@ function analyzeSpectrum(bytes, wav) {
       3,
     ),
     maximumWindowAbove4kRmsDbfs: round(maximumWindowAbove4kRmsDbfs, 2),
+    maximumHighBandWindowRmsDbfs: round(
+      maximumHighBandWindowRmsDbfs,
+      2,
+    ),
   };
 }
 
@@ -959,12 +1205,20 @@ if (process.platform !== "darwin") {
   );
 }
 
-const [sourceManifestBytes, generationRecordBytes] = await Promise.all([
+const [
+  sourceManifestBytes,
+  generationRecordBytes,
+  signatureGenerationRecordBytes,
+] = await Promise.all([
   readFile(sourceManifestPath),
   readFile(generationRecordPath),
+  readFile(signatureGenerationRecordPath),
 ]);
 const sourceManifest = JSON.parse(sourceManifestBytes);
 const generationRecord = JSON.parse(generationRecordBytes);
+const signatureGenerationRecord = JSON.parse(
+  signatureGenerationRecordBytes,
+);
 const pack = sourceManifest.packs?.find(
   (candidate) => candidate.id === selectedPackId,
 );
@@ -983,16 +1237,98 @@ if (
 if (sourceManifest.reviewScope?.selectedBackgroundLoop !== null) {
   throw new Error("The V5 sound lab still selects a runtime ambience loop.");
 }
+if (
+  signatureGenerationRecord.provider !== "sfx-engine" ||
+  signatureGenerationRecord.batch?.maximumProviderJobs !== 6 ||
+  signatureGenerationRecord.batch?.automaticRerolls !== false ||
+  signatureGenerationRecord.cues?.length !== 6 ||
+  signatureGenerationRecord.deliveries?.length !== signatureCueIds.length ||
+  signatureGenerationRecord.derivation?.script !==
+    "scripts/derive-audio-v5-signatures.mjs"
+) {
+  throw new Error("The signature generation record differs from the approved batch.");
+}
+
+const signatureDeliveryProcessing = Object.fromEntries(
+  signatureGenerationRecord.deliveries.map((delivery) => {
+    const lowPassHz = delivery.operations?.lowPass?.cutoffHz;
+    const processing = {
+      sourceCueId: delivery.sourceCueId,
+      sourceOutputSha256: delivery.sourceOutputSha256,
+      channelTransform: delivery.operations?.channelTransform,
+      sourceStartSeconds: delivery.operations?.sourceStartSeconds,
+      playbackRate: delivery.operations?.playbackRate,
+      durationSeconds: delivery.operations?.durationSeconds,
+      lowPassHz,
+      fadeInSeconds: delivery.operations?.fadeInSeconds,
+      fadeOutSeconds: delivery.operations?.fadeOutSeconds,
+      targetSamplePeak: delivery.operations?.targetSamplePeak,
+    };
+    if (
+      !signatureCueIds.includes(delivery.id) ||
+      delivery.status !== "derived" ||
+      delivery.derivedBy !== "scripts/derive-audio-v5-signatures.mjs" ||
+      delivery.intendedRuntimeMix?.gain !== 0.16 ||
+      delivery.intendedRuntimeMix?.voiceLimit !== 1 ||
+      delivery.intendedRuntimeMix?.roomSend !== false ||
+      !["mid-to-dual-mono", "side-to-dual-mono"].includes(
+        processing.channelTransform,
+      ) ||
+      processing.durationSeconds > 0.7 ||
+      lowPassHz > 1_000 ||
+      processing.targetSamplePeak > 0.22
+    ) {
+      throw new Error(`${delivery.id}: invalid signature delivery provenance.`);
+    }
+    return [delivery.id, processing];
+  }),
+);
+if (
+  JSON.stringify(Object.keys(signatureDeliveryProcessing).sort()) !==
+  JSON.stringify([...signatureCueIds].sort())
+) {
+  throw new Error("Signature delivery cue coverage is incomplete.");
+}
 
 let totalBytes = 0;
 let fileCount = 0;
 const directory = path.join(stagingRoot, selectedPackId);
 const cues = {};
 const integrity = {};
+const decodedDeliveries = new Map();
 
 try {
   await mkdir(directory, { recursive: true });
   for (const cueId of cueIds) {
+    if (signatureCueIds.includes(cueId)) {
+      const delivery = signatureGenerationRecord.deliveries.find(
+        (candidate) => candidate.id === cueId,
+      );
+      if (!delivery?.outputSha256) {
+        throw new Error(`${cueId}: missing signature delivery provenance.`);
+      }
+      const filename = `${cueId}.m4a`;
+      const result = await exportAsset({
+        id: cueId,
+        sourceFile: path.join(
+          sourceRoot,
+          "v5",
+          "packs",
+          selectedPackId,
+          delivery.file,
+        ),
+        sourceHash: delivery.outputSha256,
+        destination: path.join(directory, filename),
+        bitrate: 192_000,
+        deliveryProcessing: undefined,
+      });
+      cues[cueId] = filename;
+      integrity[cueId] = result.integrity;
+      decodedDeliveries.set(cueId, result.decodedWavBytes);
+      totalBytes += result.integrity.bytes;
+      fileCount += 1;
+      continue;
+    }
     const sourceCueId = deliveryProcessing[cueId]?.sourceCueId ?? cueId;
     const sourceCue = pack.cues.find(
       (candidate) => candidate.id === sourceCueId,
@@ -1013,16 +1349,18 @@ try {
       deliveryProcessing: deliveryProcessing[cueId],
     });
     cues[cueId] = filename;
-    integrity[cueId] = result;
-    totalBytes += result.bytes;
+    integrity[cueId] = result.integrity;
+    decodedDeliveries.set(cueId, result.decodedWavBytes);
+    totalBytes += result.integrity.bytes;
     fileCount += 1;
   }
 
+  const crowdedMixAudit = auditCrowdedRuntimeMix(decodedDeliveries);
   await writeFile(
     path.join(directory, "manifest.json"),
     `${JSON.stringify(
       {
-        version: 10,
+        version: 12,
         id: pack.id,
         label: pack.label,
         approval: "approved",
@@ -1036,6 +1374,11 @@ try {
           generationRecord:
             "art/audio/sound-lab/v5/sfx-engine-generation.json",
           generationRecordSha256: sha256(generationRecordBytes),
+          signatureGenerationRecord:
+            "art/audio/sound-lab/v5/signature-sfx-engine-generation.json",
+          signatureGenerationRecordSha256: sha256(
+            signatureGenerationRecordBytes,
+          ),
           deliveryEncoding: {
             encoder: "macos-afconvert",
             canonicalization:
@@ -1047,6 +1390,10 @@ try {
               "endpoint, and peak treatment for frequent or spectrally sharp cues; " +
               "no synthesized layer and no provider request.",
             cues: deliveryProcessing,
+          },
+          signatureDeliveryProcessing: {
+            policy: signatureGenerationRecord.derivation.policy,
+            cues: signatureDeliveryProcessing,
           },
           rightsStatus: "rights-cleared",
           license: {
@@ -1072,6 +1419,7 @@ try {
             suppressWindupUnderForegroundEvents: true,
             projectileWithConcreteOutcomes: "layer-per-release-up-to-limit",
           },
+          crowdedMixAudit,
         },
         cues,
         integrity,
