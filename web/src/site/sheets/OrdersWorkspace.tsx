@@ -22,6 +22,7 @@ import {
   type MoveTarget,
   type OrderAction,
   type OrderNode,
+  type OrderUrgency,
   type OrdersDocument,
   type RoleDefinition,
   type SheetIssue,
@@ -339,6 +340,7 @@ function OrderCard({ node, path, role, allOrders, mapPlan, catalog, issues, dept
           {action === 'branch' ? '⌘' : action === 'shared' ? '⧉' : meta?.glyph ?? '?'}
         </span>
         <span className="min-w-0 flex-1"><b className="type-display block truncate text-[16px]">{humanize(label)}</b><span className="t-micro mt-0.5 block truncate">{orderSummary(node, allOrders)}</span></span>
+        {node.urgency && <span className={clsx('pill shrink-0', node.urgency === 'urgent' && 'text-arena-hot', node.urgency === 'routine' && 'opacity-70')}>{node.urgency}</span>}
         {localIssues.length > 0 && <span className="pill shrink-0 text-arena-hot">{localIssues.length}</span>}
         <span className="disclosure-chevron shrink-0">›</span>
       </button>
@@ -419,6 +421,9 @@ function LifecycleEditor({ node, allOrders, onChange }: { node: OrderNode; allOr
   const change = (mutate: (next: OrderNode) => void) => { const next = structuredClone(node); mutate(next); onChange(next); };
   return <div className="mt-4 rounded-sm border border-arena-edge bg-arena-panel/45 p-3">
     <p className="lab">When this order owns the body</p>
+    <UrgencyEditor value={node.urgency} onChange={(value) => change((next) => {
+      if (value === undefined) delete next.urgency; else next.urgency = value;
+    })} />
     <div className="mt-2 grid gap-2 lg:grid-cols-2">
       <ConditionExpressionEditor label="Enter / remain while" value={node.when} conditions={allOrders.conditions}
         onChange={(value) => change((next) => { if (value === undefined) delete next.when; else next.when = value; })} />
@@ -433,6 +438,28 @@ function LifecycleEditor({ node, allOrders, onChange }: { node: OrderNode; allOr
     </div>
     <p className="t-micro mt-2">Without “until”, the entry condition stays live. With it, the order latches until that exit condition, timeout, success or death.</p>
   </div>;
+}
+
+const URGENCY_COPY: Array<{ value: OrderUrgency | undefined; label: string; description: string }> = [
+  { value: undefined, label: 'Inherit', description: 'Use the parent play; Normal at the top level.' },
+  { value: 'routine', label: 'Routine', description: 'Yields readily during ordinary positioning.' },
+  { value: 'normal', label: 'Normal', description: 'The default weight for squad traffic.' },
+  { value: 'urgent', label: 'Urgent', description: 'Gets scarce allied movement space first.' },
+];
+
+function UrgencyEditor({ value, onChange }: { value: OrderUrgency | undefined; onChange: (value: OrderUrgency | undefined) => void }) {
+  return <fieldset className="mt-3">
+    <legend className="t-micro">Movement urgency</legend>
+    <div className="mt-1.5 grid grid-cols-2 gap-1.5 lg:grid-cols-4">
+      {URGENCY_COPY.map((entry) => <button key={entry.value ?? 'inherit'} type="button"
+        className="choice-card min-h-[72px] text-left" data-selected={value === entry.value}
+        onClick={() => onChange(entry.value)}>
+        <b className="type-display block text-[14px]">{entry.label}</b>
+        <span className="t-micro mt-1 block">{entry.description}</span>
+      </button>)}
+    </div>
+    <p className="t-micro mt-2">Urgency never changes which order wins. It only decides allied right-of-way after this order is already active; sustained blocking still earns a turn.</p>
+  </fieldset>;
 }
 
 function ConditionExpressionEditor({ label, value, conditions, onChange }: {

@@ -10,8 +10,6 @@ using BotArena.Sdk;
 /// </summary>
 internal sealed class GreedyArenaStepper : IArenaStepper
 {
-    public bool WantsFightPrecedence => false;
-
     public void BeginTick(
         GenericActorResolvedMatchContract contract,
         MindContext mind)

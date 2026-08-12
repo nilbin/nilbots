@@ -128,7 +128,8 @@ internal sealed class OrdersPackage
             string[] upgrades = role.GetProperty("upgradePath").EnumerateArray()
                 .Select(value => value.GetString()!).ToArray();
             OrderNode[] orders = ParseOrders(
-                role.GetProperty("orders"), shared, id, id, branchDepth: 0);
+                role.GetProperty("orders"), shared, id, id, branchDepth: 0,
+                inheritedUrgency: TacticalMovementUrgency.Normal);
             roles.Add(new Role(id, classes, upgrades, orders));
         }
         Dictionary<string, int> capacities = sheet.GetProperty("capacities")
@@ -228,9 +229,11 @@ internal sealed class OrdersPackage
         IReadOnlyDictionary<string, JsonElement> shared,
         string roleId,
         string parentPath,
-        int branchDepth) => values.EnumerateArray()
+        int branchDepth,
+        TacticalMovementUrgency inheritedUrgency) => values.EnumerateArray()
         .Select(value => ParseOrder(
-            value, shared, roleId, parentPath, branchDepth, externalId: null))
+            value, shared, roleId, parentPath, branchDepth, externalId: null,
+            inheritedUrgency))
         .ToArray();
 
     private static OrderNode ParseOrder(
@@ -239,14 +242,15 @@ internal sealed class OrdersPackage
         string roleId,
         string parentPath,
         int branchDepth,
-        string? externalId)
+        string? externalId,
+        TacticalMovementUrgency inheritedUrgency)
     {
         if (value.TryGetProperty("shared", out JsonElement reference))
         {
             string sharedId = reference.GetString()!;
             return ParseOrder(
                 shared[sharedId], shared, roleId, parentPath, branchDepth,
-                sharedId);
+                sharedId, inheritedUrgency);
         }
         string id = externalId ?? value.GetProperty("id").GetString()!;
         string path = $"{parentPath} > {id}";
@@ -264,6 +268,10 @@ internal sealed class OrdersPackage
         int cooldown = value.TryGetProperty("cooldown", out JsonElement cooldownValue)
             ? cooldownValue.GetInt32()
             : 0;
+        TacticalMovementUrgency urgency = value.TryGetProperty(
+            "urgency", out JsonElement urgencyValue)
+                ? ParseUrgency(urgencyValue.GetString()!)
+                : inheritedUrgency;
         Capacity? capacity = value.TryGetProperty(
             "capacity", out JsonElement capacityValue)
                 ? capacityValue.ValueKind == JsonValueKind.String
@@ -274,8 +282,9 @@ internal sealed class OrdersPackage
         if (value.TryGetProperty("orders", out JsonElement children))
         {
             return new OrderNode(
-                id, path, when, until, timeout, cooldown, null,
-                ParseOrders(children, shared, roleId, path, branchDepth + 1),
+                id, path, when, until, timeout, cooldown, urgency, null,
+                ParseOrders(
+                    children, shared, roleId, path, branchDepth + 1, urgency),
                 null);
         }
         OrderAction action = value.TryGetProperty("move", out JsonElement move)
@@ -290,8 +299,18 @@ internal sealed class OrdersPackage
                         ? ParseHandoff(handoff)
                         : new DropAction();
         return new OrderNode(
-            id, path, when, until, timeout, cooldown, capacity, [], action);
+            id, path, when, until, timeout, cooldown, urgency, capacity, [], action);
     }
+
+    private static TacticalMovementUrgency ParseUrgency(string value) =>
+        value switch
+        {
+            "routine" => TacticalMovementUrgency.Routine,
+            "normal" => TacticalMovementUrgency.Normal,
+            "urgent" => TacticalMovementUrgency.Urgent,
+            _ => throw new InvalidDataException(
+                $"Unknown movement urgency '{value}'."),
+        };
 
     private static MoveAction ParseMove(JsonElement value)
     {
@@ -438,6 +457,7 @@ internal sealed class OrdersPackage
         ConditionExpression? Until,
         int? Timeout,
         int Cooldown,
+        TacticalMovementUrgency Urgency,
         Capacity? Capacity,
         OrderNode[] Children,
         OrderAction? Action);

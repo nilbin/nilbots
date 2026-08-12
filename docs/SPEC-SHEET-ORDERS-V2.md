@@ -127,7 +127,7 @@ An inline branch groups child priorities under one lifecycle:
 ```
 
 An inline leaf has an `id`, lifecycle fields, exactly one of the five action
-keys, and optionally `capacity`. It has no `orders`.
+keys, and optionally `capacity` and `urgency`. It has no `orders`.
 
 A shared reference has exactly one key:
 
@@ -160,6 +160,7 @@ Every branch and leaf uses the same optional fields:
 | `until` | once entered, latch until this expression becomes true |
 | `timeout` | maximum active match ticks, `1..1200` |
 | `cooldown` | match ticks before this same node may enter again, `0..1200` |
+| `urgency` | allied movement weight: `routine`, `normal`, or `urgent`; inherited, top-level default `normal` |
 
 Rules:
 
@@ -179,6 +180,27 @@ Rules:
 6. If no leaf is executable, the body waits with an explicit
    `no-eligible-order` reason. The compiler warns when a role has no
    unconditional fallback but does not invent one.
+
+### 4.2 Movement urgency is not order priority
+
+Source position still decides what a body does. `urgency` is consulted only
+after that choice, when two friendly bodies compete for movement space. It may
+be written on any branch or leaf; descendants inherit it and the nearest
+explicit value wins. Omission at the root means `normal`.
+
+- `routine`: background patrol, farming, and low-cost repositioning;
+- `normal`: ordinary tactical movement;
+- `urgent`: time-sensitive return, recovery, or authored intervention.
+
+Urgency does not reorder siblings, activate an order, select a target, reserve
+capacity, alter combat, or affect an enemy. Class, role, action kind, and Core
+possession do not manufacture a hidden tier. Within allied traffic the executor
+resolves one deterministic order from effective urgency, accumulated allied-
+block debt, first blocked tick, order activation tick, and unit id. Repeated
+denial raises debt until even routine traffic receives an opening; strict
+progress pays debt down. Physical legality, action roots, strike safety,
+oscillation protection, route commitment, detour/rejoin, and closed-cycle
+refusal remain executor invariants and cannot be overridden by `urgent`.
 
 ## 5. Conditions
 
@@ -438,8 +460,12 @@ orders:<role>:<order-path>:<action>:<reason>
 ```
 
 Every submitted action, decline, capacity loss, target miss, lifecycle exit,
-wait, and automatic micro decision has a non-empty reason. In-process and WASM
-must consume identical ATL2 bytes and produce the same gameplay-state digest.
+wait, and automatic micro decision has a non-empty reason. Movement reasons
+include the authored urgency and current block debt, for example
+`urgency-routine+b13=>normal`, and a clearance reason names the priority it
+yielded to.
+In-process and WASM must consume identical ATL2 bytes and produce the same
+gameplay-state digest.
 
 ## 11. Deletions and migration
 
@@ -459,11 +485,10 @@ class-aware. Raw JSON and hashes are not primary product controls.
 
 ## 12. Explicitly deferred
 
-Tomorrow's separate goal owns tactical pathfinding and squad coordination:
-choke negotiation, intent-aware right-of-way beyond existing rules, formation-
-like lane sharing, combat-space reservation, and coordinated path planning.
-This goal preserves and exercises the existing deterministic movement governor
-but does not hide a new squad planner inside the DSL rewrite.
+Urgency closes allied right-of-way, not tactical choreography. Formation-like
+lane sharing, authored offsets, combat-space reservation, and a different
+cooperative path planner remain separate design questions. They must not grow
+inside `urgency` or silently become order-selection rules.
 
 Competent Hunter and Wellwright behavior here means they follow their authored
 orders, collect and deliver Cores at a reasonable pace, and avoid max-tick

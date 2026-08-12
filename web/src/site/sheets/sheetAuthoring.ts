@@ -5,6 +5,7 @@ export interface Point { x: number; y: number }
 export type ConditionOperator = 'at-least' | 'at-most' | 'equals' | 'less-than' | 'greater-than';
 export type ConditionExpression = string | { all: string[] } | { any: string[] };
 export type OrderAction = 'move' | 'fight' | 'use' | 'handoff' | 'drop' | 'branch' | 'shared';
+export type OrderUrgency = 'routine' | 'normal' | 'urgent';
 
 export interface ConditionDefinition {
   fact: string;
@@ -50,6 +51,7 @@ export interface OrderNode {
   until?: ConditionExpression;
   timeout?: number;
   cooldown?: number;
+  urgency?: OrderUrgency;
   capacity?: number | string;
   orders?: OrderNode[];
   move?: MoveOrder;
@@ -409,13 +411,15 @@ function validateOrder(
   else ids.add(id);
   const expected = [...(externalId ? [] : ['id']), found[0]];
   exactKeys(node as unknown as JsonObject, expected,
-    path, error, ['when', 'until', 'timeout', 'cooldown', 'capacity']);
+    path, error, ['when', 'until', 'timeout', 'cooldown', 'capacity', 'urgency']);
   for (const expression of [['when', node.when], ['until', node.until]] as const)
     validateExpression(expression[1], `${path}.${expression[0]}`, orders, conditionUse, error);
   if (node.timeout !== undefined && (!Number.isInteger(node.timeout) || node.timeout < 1 || node.timeout > 1200))
     error(`${path}.timeout`, 'Timeout is 1–1200 ticks.');
   if (node.cooldown !== undefined && (!Number.isInteger(node.cooldown) || node.cooldown < 0 || node.cooldown > 1200))
     error(`${path}.cooldown`, 'Cooldown is 0–1200 ticks.');
+  if (node.urgency !== undefined && !(['routine', 'normal', 'urgent'] as const).includes(node.urgency))
+    error(`${path}.urgency`, 'Urgency is routine, normal, or urgent.');
   if (typeof node.capacity === 'number' && (!Number.isInteger(node.capacity) || node.capacity < 1 || node.capacity > 8))
     error(`${path}.capacity`, 'Inline capacity is one to eight bodies.');
   if (typeof node.capacity === 'string') {

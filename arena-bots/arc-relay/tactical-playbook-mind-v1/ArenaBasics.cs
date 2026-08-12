@@ -40,57 +40,21 @@ internal static class ArenaBasics
     internal sealed class Claims
     {
         /// <summary>
-        /// THE precedence list. One ordering, used for every contested tile
-        /// — lane ownership, who yields to whom, and the executor's per-tick
-        /// plan order:
-        ///
-        /// <list type="number">
-        /// <item><description><b>0 carriers</b> — a body holding a Core.
-        /// Its walk home is the match; nothing outranks it and it never
-        /// yields.</description></item>
-        /// <item><description><b>1 escort leaders</b> — a leader never
-        /// negotiates with its own escort for the ground it wants.
-        /// </description></item>
-        /// <item><description><b>2 fighters</b> — a body holding a focus
-        /// assignment or standing in contact. Its tile is the one everyone
-        /// else must route around, so it settles first.</description></item>
-        /// <item><description><b>3..10 traffic tickets</b> — a body whose
-        /// stable authored destination has made no progress through allied
-        /// traffic. Earlier ticket first, unit id on a simultaneous tie.
-        /// Tickets never outrank a carrier, leader, or active fight.</description>
-        /// </item>
-        /// <item><description><b>32 rest</b> — free traffic.</description>
-        /// </item>
-        /// <item><description><b>64 + ordinal followers</b> — escort
-        /// followers, in their order's declared list order. Last, and among
-        /// themselves ordered, so a file walks a corridor as a file.
-        /// </description></item>
-        /// </list>
-        ///
-        /// Equal ranks never yield. Loaded carriers occupy the 0..7 band in
-        /// remaining-distance / unit-id order, so two Cores meeting in a
-        /// one-body throat have one deterministic winner instead of forming
-        /// a permanent equal-rank wall. Where ordinary traffic needs one
-        /// winner, the persistent ticket plane gives the pair distinct ranks
-        /// in activation-tick / unit-id order. The fighter tier reaches the
-        /// executor's plan ORDER only under a stepper that asks for it
-        /// (<see cref="IArenaStepper.WantsFightPrecedence"/>) — right-of-way
-        /// always reads the full list.
+        /// THE precedence list. One ordering, used for every contested tile:
+        /// lane ownership, who yields to whom, and the executor's per-tick
+        /// plan order. It is resolved before movement from authored urgency,
+        /// accumulated allied-block debt, activation tick and stable unit id.
+        /// Carrier, class, action kind and role never manufacture a hidden
+        /// tier. Collision legality, action roots and oscillation protection
+        /// remain separate executor invariants.
         /// </summary>
-        public const int CarrierRank = 0;
-        public const int LeaderRank = 16;
-        public const int FighterRank = 17;
-        public const int TrafficRank = 18;
-        public const int RestRank = 32;
-        public const int FollowerRank = 64;
-
         private readonly HashSet<Position> _tiles = [];
         private readonly HashSet<Position> _committed = [];
         private readonly Dictionary<int, Position> _committedByUnit = [];
         private readonly Dictionary<Position, int> _lanes = [];
         private readonly Dictionary<Position, int> _demands = [];
         private readonly Dictionary<Position, int> _demandDepths = [];
-        private readonly Dictionary<int, int> _ranks = [];
+        private readonly Dictionary<int, TacticalMovementPriority> _priorities = [];
         private readonly HashSet<int> _rooted = [];
         private readonly TacticalOscillationGovernor _oscillation;
         private readonly int _tick;
@@ -120,14 +84,11 @@ internal static class ArenaBasics
         /// difference is what separates a queue from a wall.</summary>
         public IReadOnlySet<Position> Committed => _committed;
 
-        /// <summary>Right-of-way tiles, keyed to the owning unit. A loaded
-        /// carrier's next route step and an escort leader's next step are
-        /// reserved for that body alone: no LOWER-PRECEDENCE own body may
-        /// step into one this tick, so an orbiting escort can never steal
-        /// the lane the moment its blocker finally yields (owner direction
-        /// 2026-08: prioritize whose movement weighs most and adjust the
-        /// rest). A stronger body is never walled by a weaker body's lane —
-        /// that mutual wall was one of the fights.
+        /// <summary>Right-of-way tiles, keyed to the owning unit. Every
+        /// selected movement plan publishes its next step under the common
+        /// urgency/debt ordering: no lower-precedence own body may step into
+        /// that lane this tick. A stronger body is never walled by a weaker
+        /// body's lane — that mutual wall was one of the fights.
         /// </summary>
         public IReadOnlyDictionary<Position, int> Lanes => _lanes;
 
@@ -146,33 +107,45 @@ internal static class ArenaBasics
 
         /// <summary>Place a unit on the precedence list for this tick.
         /// </summary>
-        public void Rank(int unitId, int rank) => _ranks[unitId] = rank;
+        public void Rank(TacticalMovementPriority priority) =>
+            _priorities[priority.UnitId] = priority;
 
         /// <summary>Where a unit sits on the precedence list; anything the
         /// executor did not classify is free traffic.</summary>
         public int RankOf(int unitId) =>
-            _ranks.TryGetValue(unitId, out int rank) ? rank : RestRank;
+            _priorities.TryGetValue(unitId, out TacticalMovementPriority? value)
+                ? value.Rank
+                : int.MaxValue;
 
-        public static bool IsCarrierRank(int rank) =>
-            rank >= CarrierRank && rank < LeaderRank;
+        public string PriorityTrace(int unitId) =>
+            _priorities.TryGetValue(unitId, out TacticalMovementPriority? value)
+                ? value.Trace
+                : "normal+b0";
 
         /// <summary>
         /// Whether <paramref name="unitId"/> gives way to
         /// <paramref name="otherUnitId"/>: STRICTLY better rank, nothing
         /// else. Every yield in the mind asks exactly this question.
         ///
-        /// <para>Equal weight never yields. Carriers are therefore assigned
-        /// distinct ranks before lanes are published; closest to the bank
-        /// wins, unit id breaks an exact tie. The lower-ranked carrier makes
-        /// way like any other body instead of trusting equal tile claims to
-        /// settle a head-on course (they cannot).</para>
+        /// <para>Every body receives a distinct deterministic rank before
+        /// lanes are published, so exact tile claims always have one winner.
+        /// Authored urgency and accumulated block debt decide meaningful
+        /// precedence; activation and unit id settle remaining ties.</para>
         /// </summary>
         public bool YieldsTo(int unitId, int otherUnitId) =>
             unitId != otherUnitId
             && RankOf(otherUnitId) < RankOf(unitId);
 
-        public void ReserveLane(Position tile, int ownerUnitId) =>
-            _lanes[tile] = ownerUnitId;
+        public void ReserveLane(Position tile, int ownerUnitId)
+        {
+            if (!_lanes.TryGetValue(tile, out int held)
+                || RankOf(ownerUnitId) < RankOf(held)
+                || (RankOf(ownerUnitId) == RankOf(held)
+                    && ownerUnitId < held))
+            {
+                _lanes[tile] = ownerUnitId;
+            }
+        }
 
         /// <summary>
         /// Tiles a mover WANTS this tick that a parked teammate is sitting
@@ -264,9 +237,7 @@ internal static class ArenaBasics
                 body.ActorId,
                 _tick,
                 destination,
-                IsCarrierRank(RankOf(body.UnitId))
-                    ? TacticalMovementAuthority.Safety
-                    : authority);
+                authority);
 
         public static Claims ForTick(
             GenericActorResolvedMatchContract contract,
@@ -616,32 +587,30 @@ internal static class ArenaBasics
     }
 
     /// <summary>
-    /// Propagate a carrier's existing right-of-way request through an
+    /// Propagate a mover's existing right-of-way request through an
     /// occupied allied chain until it reaches the nearest body that can step
     /// into a real vacancy. This does not invent a move or a destination:
-    /// every body in the returned chain already yields to the carrier, and
+    /// every body in the returned chain already yields to the mover, and
     /// <see cref="TryMakeWay"/> remains the sole displacement authority.
     /// </summary>
-    public static int DemandCarrierClearanceChain(
+    public static int DemandClearanceChain(
         GenericActorResolvedMatchContract contract,
         MindContext mind,
-        MindBody carrier,
+        MindBody mover,
         Position wanted,
         Claims claims)
     {
-        if (!Claims.IsCarrierRank(claims.RankOf(carrier.UnitId)))
-            return 0;
         MindBody? first = mind.Bodies.FirstOrDefault(body =>
-            body.UnitId != carrier.UnitId
+            body.UnitId != mover.UnitId
             && body.Position == wanted
-            && claims.YieldsTo(body.UnitId, carrier.UnitId)
+            && claims.YieldsTo(body.UnitId, mover.UnitId)
             && !claims.IsRooted(body.UnitId));
         if (first is null)
             return 0;
 
         MindBody[] eligible = mind.Bodies
-            .Where(body => body.UnitId != carrier.UnitId
-                && claims.YieldsTo(body.UnitId, carrier.UnitId)
+            .Where(body => body.UnitId != mover.UnitId
+                && claims.YieldsTo(body.UnitId, mover.UnitId)
                 && !claims.IsRooted(body.UnitId))
             .OrderBy(body => body.UnitId)
             .ToArray();
@@ -688,7 +657,7 @@ internal static class ArenaBasics
         {
             MindBody body = eligible.Single(candidate =>
                 candidate.UnitId == chain[index]);
-            claims.Demand(body.Position, carrier.UnitId, index + 1);
+            claims.Demand(body.Position, mover.UnitId, index + 1);
         }
         return chain.Length;
     }
@@ -1121,8 +1090,7 @@ internal static class ArenaBasics
     /// <b>"that bot could just move out of the way"</b>.
     ///
     /// <para>Two things can owe the ground, and they are the same question
-    /// asked at two distances: a reserved right-of-way LANE (a carrier's
-    /// next route step, an escort leader's, a plugged homeward ring), and a
+    /// asked at two distances: a reserved next-step right-of-way LANE and a
     /// REQUEST from any mover whose own next step lands exactly on this
     /// tile. One precedence list decides both, equals never yield, and the
     /// reason string names the mover: <c>...:make-way:u&lt;mover&gt;</c>.</para>
@@ -1171,7 +1139,9 @@ internal static class ArenaBasics
             body.Position, moverUnitId);
         string trace = chainDepth > 0
             ? $"{reason}:chain-{chainDepth}:u{moverUnitId}"
-            : $"{reason}:u{moverUnitId}";
+                + $":to-{claims.PriorityTrace(moverUnitId)}"
+            : $"{reason}:u{moverUnitId}"
+                + $":to-{claims.PriorityTrace(moverUnitId)}";
         return Submit(
             contract,
             mind,
@@ -2293,8 +2263,8 @@ internal static class ArenaBasics
         foreach ((Position lane, int owner) in claims.Lanes)
         {
             // Right-of-way runs down ONE precedence list: a lane walls the
-            // bodies that yield to its owner and nobody else. A carrier is
-            // never routed around its own escort's reservation.
+            // bodies that yield to its owner and nobody else. A stronger
+            // movement intent is never routed around a weaker reservation.
             if (claims.YieldsTo(moving.UnitId, owner))
                 queued.Add(lane);
         }

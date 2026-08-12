@@ -154,6 +154,15 @@ test('guided validation mirrors exact roots, class cap, condition use, shared us
   assert.ok(messages.some((message) => message.includes('unused zone')));
 });
 
+test('movement urgency is a three-word optional node property', () => {
+  const valid = parseDraft('Test', null, null, stringifyDocument(orders), stringifyDocument(mapPlan));
+  valid.orders.roles[0].orders[0].urgency = 'urgent';
+  assert.deepEqual(validateDraft(valid, catalog), []);
+
+  (valid.orders.roles[0].orders[0] as { urgency?: string }).urgency = 'critical';
+  assert.ok(validateDraft(valid, catalog).some((issue) => issue.path.endsWith('.urgency')));
+});
+
 test('mixed-class roles may branch by owned skill and self-in-zone geography', () => {
   const draft = parseDraft('Test', null, null, stringifyDocument(orders), stringifyDocument(mapPlan));
   draft.mapPlan.zones['north-choke'] = { rect: [1, 0, 3, 2] };

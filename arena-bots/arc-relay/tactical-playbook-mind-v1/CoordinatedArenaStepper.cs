@@ -15,12 +15,9 @@ using BotArena.Sdk;
 /// wait one tick to follow a corridor rather than take a detour it will
 /// have to walk back.</para>
 ///
-/// <para>This is prioritized cooperative planning, which is exactly what
-/// the executor's body order already expresses: carriers first, then
-/// bodies standing on a carrier's lane, then order priority, then unit id.
-/// <see cref="WantsFightPrecedence"/> widens it with the tier the greedy
-/// order never needed — a body in contact settles its tile before free
-/// traffic claims it.</para>
+/// <para>This is prioritized cooperative planning, using the exact same
+/// authored-urgency and starvation-aged body order as greedy stepping. No
+/// action kind or class receives a private planning tier.</para>
 ///
 /// <para>The flow field (<see cref="ArenaBasics.StaticDistance"/>) is the
 /// heuristic and only the heuristic. Beyond the window the search stops
@@ -96,8 +93,6 @@ internal sealed class CoordinatedArenaStepper : IArenaStepper
     /// <summary>How many times a plan asked a polite body for its tile.
     /// </summary>
     public int Requests { get; private set; }
-
-    public bool WantsFightPrecedence => true;
 
     public void BeginTick(
         GenericActorResolvedMatchContract contract,

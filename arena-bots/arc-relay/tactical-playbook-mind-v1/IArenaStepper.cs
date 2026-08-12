@@ -29,17 +29,6 @@ using BotArena.Sdk;
 /// </summary>
 internal interface IArenaStepper
 {
-    /// <summary>
-    /// Whether the plane's precedence list carries its "in a fight" tier
-    /// into the executor's per-tick body order. Greedy stepping keeps the
-    /// historical order exactly (fighters collapse into <c>rest</c>); a
-    /// cooperative planner wants contact resolved before free traffic,
-    /// because a body in contact is the one whose tile everybody else must
-    /// route around. Right-of-way itself always reads the full list —
-    /// this knob is about plan ORDER, not about who yields.
-    /// </summary>
-    bool WantsFightPrecedence { get; }
-
     /// <summary>Reset per-tick planning state. Called once per Think.</summary>
     void BeginTick(
         GenericActorResolvedMatchContract contract,

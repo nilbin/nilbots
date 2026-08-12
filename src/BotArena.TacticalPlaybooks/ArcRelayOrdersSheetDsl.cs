@@ -400,9 +400,14 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         var required = externalId is null
             ? new[] { "id", found[0] }
             : new[] { found[0] };
-        var optional = new[] { "when", "until", "timeout", "cooldown", "capacity" };
+        var optional = new[]
+        {
+            "when", "until", "timeout", "cooldown", "capacity", "urgency",
+        };
         Object(value, path, required, optional);
         ValidateLifecycle(value, path, conditions, consumers);
+        if (value.TryGetProperty("urgency", out _))
+            OneOf(value, "urgency", path, "routine", "normal", "urgent");
 
         if (found[0] == "orders")
         {

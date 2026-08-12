@@ -141,16 +141,16 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 body.MovedLastTick)).ToArray());
         ArenaBasics.Claims claims = ArenaBasics.Claims.ForTick(
             contract, mind, _stepper, _oscillation);
-        RankBodies(contract, mind, arc, selected, claims, carried);
-        PublishTrafficRequests(contract, mind, movePlans, claims, carried);
         foreach (GenericActorContext.ArcRelayPendingStrike strike in arc.PendingStrikes)
         {
             if (strike.Shooter.TeamId == _teamId)
                 claims.Root(strike.Shooter.UnitId);
         }
+        RankBodies(mind, claims);
+        PublishTrafficRequests(contract, mind, movePlans, claims);
 
         foreach (MindBody body in mind.Bodies
-                     .OrderBy(value => PlanRank(claims, value))
+                     .OrderBy(value => claims.RankOf(value.UnitId))
                      .ThenBy(value => selected.GetValueOrDefault(value.UnitId)?.Priority
                          ?? int.MaxValue)
                      .ThenBy(value => value.UnitId))
@@ -161,8 +161,11 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             string prefix = selected.TryGetValue(body.UnitId, out Proposal? proposal)
                 ? $"orders:{proposal.Leaf.Node.Path}"
                 : $"orders:{role.Id}";
+            string movementPrefix = $"{prefix}"
+                + $":urgency-{claims.PriorityTrace(body.UnitId)}";
             if (ArenaBasics.TryMakeWay(
-                    contract, mind, body, claims, $"{prefix}:make-way"))
+                    contract, mind, body, claims,
+                    $"{movementPrefix}:make-way"))
                 continue;
             if (ArenaBasics.TryEvade(contract, mind, body, claims))
                 continue;
@@ -638,6 +641,36 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         var result = new Dictionary<int, MovePlan>();
         foreach ((int unitId, Proposal proposal) in selected)
         {
+            if (proposal.Leaf.Node.Action is OrdersPackage.FightAction fight)
+            {
+                GenericActorContext.ObservedEnemyState? target = mind.Enemies
+                    .FirstOrDefault(value => value.ActorId
+                        == proposal.Target.Actor);
+                if (target is null || fight.Style == "hold"
+                    || ArenaBasics.CanAimAt(contract, proposal.Body, target))
+                {
+                    continue;
+                }
+                (ActorIdentity, string) key = (
+                    proposal.Body.ActorId, proposal.Leaf.Node.Path);
+                Position anchor = _fightAnchors.GetValueOrDefault(
+                    key, proposal.Body.Position);
+                bool inLeash = fight.ChaseLimit == 0
+                    ? proposal.Body.Position == anchor
+                    : ArenaBasics.StaticDistance(
+                        contract.Map, proposal.Body.Position, anchor)
+                        <= fight.ChaseLimit;
+                if (inLeash && fight.Style == "advance")
+                {
+                    result.Add(unitId, new MovePlan(
+                        proposal.Leaf.Node.Path,
+                        target.Position,
+                        [target.Position],
+                        null,
+                        Arrived: false));
+                }
+                continue;
+            }
             if (proposal.Leaf.Node.Action is not OrdersPackage.MoveAction move)
                 continue;
             MindBody body = proposal.Body;
@@ -769,62 +802,41 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 ArenaBasics.StaticDistance(contract.Map, body.Position, goal),
                 AttemptedMovementLastTick(contract, body),
                 blocked,
-                MayAge: plan is not null && !plan.Arrived);
+                MayAge: plan is not null && !plan.Arrived,
+                Urgency: selected.GetValueOrDefault(body.UnitId)?.Leaf.Node.Urgency
+                    ?? TacticalMovementUrgency.Normal,
+                ActivatedTick: selected.GetValueOrDefault(body.UnitId)
+                    ?.Leaf.ActivatedTick ?? mind.Tick);
         }).ToArray();
     }
 
     private void RankBodies(
-        GenericActorResolvedMatchContract contract,
         MindContext mind,
-        GenericActorContext.ModeObservationState.ArcRelay arc,
-        IReadOnlyDictionary<int, Proposal> selected,
-        ArenaBasics.Claims claims,
-        IReadOnlyDictionary<ActorIdentity,
-            GenericActorContext.ArcRelayCoreState> carried)
+        ArenaBasics.Claims claims)
     {
-        Dictionary<int, int> carrierRanks = mind.Bodies
-            .Where(body => carried.ContainsKey(body.ActorId))
-            .OrderBy(body => ArenaBasics.StaticDistance(
-                    contract.Map, body.Position, _ownReactor) ?? int.MaxValue)
-            .ThenBy(body => body.UnitId)
-            .Select((body, index) => (body.UnitId, index))
-            .ToDictionary(value => value.UnitId, value => value.index);
         foreach (MindBody body in mind.Bodies)
-        {
-            int rank = carrierRanks.TryGetValue(body.UnitId, out int carrier)
-                ? ArenaBasics.Claims.CarrierRank + carrier
-                : selected.GetValueOrDefault(body.UnitId)?.Leaf.Node.Action
-                    is OrdersPackage.FightAction
-                    ? ArenaBasics.Claims.FighterRank
-                    : _traffic.HasTicket(body.UnitId)
-                        ? _traffic.Rank(body.UnitId)
-                        : ArenaBasics.Claims.RestRank;
-            claims.Rank(body.UnitId, rank);
-        }
+            claims.Rank(_traffic.Priority(body.UnitId));
     }
 
     private static void PublishTrafficRequests(
         GenericActorResolvedMatchContract contract,
         MindContext mind,
         IReadOnlyDictionary<int, MovePlan> movePlans,
-        ArenaBasics.Claims claims,
-        IReadOnlyDictionary<ActorIdentity,
-            GenericActorContext.ArcRelayCoreState> carried)
+        ArenaBasics.Claims claims)
     {
         foreach ((int unitId, MovePlan plan) in movePlans)
         {
             MindBody body = mind.Bodies.Single(value => value.UnitId == unitId);
+            if (claims.IsRooted(unitId))
+                continue;
             Position? first = plan.Course?.Next
                 ?? ArenaBasics.StaticFirstStep(contract, mind, body, plan.Goal);
             if (first is not Position wanted)
                 continue;
             claims.Demand(wanted, unitId);
-            if (carried.ContainsKey(body.ActorId))
-            {
-                claims.ReserveLane(wanted, unitId);
-                ArenaBasics.DemandCarrierClearanceChain(
-                    contract, mind, body, wanted, claims);
-            }
+            claims.ReserveLane(wanted, unitId);
+            ArenaBasics.DemandClearanceChain(
+                contract, mind, body, wanted, claims);
         }
     }
 
@@ -840,7 +852,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         IReadOnlyDictionary<ActorIdentity,
             GenericActorContext.ArcRelayCoreState> carried)
     {
-        string reason = $"orders:{proposal.Leaf.Node.Path}";
+        string reason = $"orders:{proposal.Leaf.Node.Path}"
+            + $":urgency-{claims.PriorityTrace(body.UnitId)}";
         switch (proposal.Leaf.Node.Action)
         {
             case OrdersPackage.MoveAction:
@@ -1379,18 +1392,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             && level.Actor == body.ActorId ? level.Level : 1;
 
     private Position[] PostureGoals(Position[] goals, string? posture)
-    {
-        if (goals.Length <= 1 || posture is null or "line")
-            return goals;
-        Func<Position, int> distance = posture == "front"
-            ? point => point.ChebyshevDistance(_enemyReactor)
-            : point => point.ChebyshevDistance(_ownReactor);
-        int best = goals.Min(distance);
-        return goals.Where(point => distance(point) == best)
-            .OrderBy(point => point.Y)
-            .ThenBy(point => point.X)
-            .ToArray();
-    }
+        => TacticalPosturePlanner.Resolve(
+            goals, posture, _ownReactor, _enemyReactor);
 
     private static Position Nearest(
         GenericActorMapContract map,
@@ -1431,15 +1434,6 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             && contract.Rules.Actions.Any(action =>
                 action.Id == actionId
                 && action.Kind == GenericActorRulesContract.ActionKind.Movement);
-    }
-
-    private int PlanRank(ArenaBasics.Claims claims, MindBody body)
-    {
-        int rank = claims.RankOf(body.UnitId);
-        return !_stepper.WantsFightPrecedence
-            && rank == ArenaBasics.Claims.FighterRank
-                ? ArenaBasics.Claims.RestRank
-                : rank;
     }
 
     private static void ValidateComposition(

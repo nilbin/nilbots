@@ -202,6 +202,23 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
     }
 
     [Fact]
+    public void UrgencyIsOptionalOnBranchesAndLeavesButHasOnlyThreeWords()
+    {
+        JsonObject source = Source("starter-tapline-v2");
+        JsonObject first = source["roles"]![0]!["orders"]!
+            .AsArray().Last()!.AsObject();
+        first["urgency"] = "urgent";
+
+        Assert.True(Compile(
+            source, MapPlan("starter-tapline-v2")).UsesOrderTree);
+
+        first["urgency"] = "critical";
+        InvalidDataException error = Assert.Throws<InvalidDataException>(() =>
+            Compile(source, MapPlan("starter-tapline-v2")));
+        Assert.Contains("urgency", error.Message);
+    }
+
+    [Fact]
     public void MapPlansRejectDecorativeUnusedGeometry()
     {
         JsonObject map = MapPlan("starter-tapline-v2");

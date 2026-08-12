@@ -157,18 +157,25 @@ Visible in traces (reason string in parentheses), policy hard-coded:
    Two executor-owned floors are deliberate and outrank every knob: hp
    <= 1 bypasses beacon caution when a recover episode is otherwise ready,
    and a body that broke off to heal takes no new fight until whole.
-9. **Allied traffic and oscillation**: two observations of the same stable
-   intent being denied by an ally on its terrain-shortest next step grant a
-   deterministic, at-most-12-tick traffic ticket. Earlier tickets win; unit id
-   breaks a simultaneous tie. A ticket never outranks a carrier, escort leader,
-   active fight, repair, follower, or recovery channel, and it releases after
-   two strict progress steps. Separately, two consecutive A-B reversals make
-   the just-vacated tile unavailable to every movement authority for three
-   ticks. A first safety or make-way step lends its origin only against an
-   ordinary tactical snap-back; repeated safety or clearance reversals trip the
-   hard breaker too. Neither mechanism invents a destination or participation
-   decision. Both publish `traffic=` or `motion=` state and every denied
-   command says `movement-lease@T` or `oscillation-yield@T`.
+9. **Allied traffic urgency, debt, and oscillation**: the selected Orders v2
+   node supplies one inherited `routine | normal | urgent` movement weight.
+   There is no hidden carrier, class, fighter, repair, follower, or recovery
+   tier. A stable intent denied by an ally on its next terrain step accrues
+   block debt. Every 12 denied ticks raises its effective urgency one tier; at
+   the urgent ceiling, greater debt then first blocked tick wins. Activation
+   tick and unit id are deterministic final ties. Strict progress pays four
+   debt points, so a routine body eventually gets an opening without keeping
+   permanent right-of-way afterwards. This plane never changes which order was
+   selected.
+
+   Separately, two consecutive A-B reversals make the just-vacated tile
+   unavailable to every movement authority for three ticks. A first safety or
+   make-way step lends its origin only against an ordinary tactical snap-back;
+   repeated safety or clearance reversals trip the hard breaker too. Neither
+   mechanism invents a destination or participation decision. Reasons expose
+   `urgency-<authored>+b<debt>=><effective>` when debt promotes a tier,
+   clearance names the priority being yielded to, and the governor publishes
+   `traffic=` / `motion=` state.
 10. **Authored-route course ownership**: a patrol or other authored route
     commits to one deterministic terrain course around durable blockers. That
     course survives ordinary ticks and transient body/projectile traffic; it
@@ -182,7 +189,7 @@ Visible in traces (reason string in parentheses), policy hard-coded:
     command reason exposes `route-commit`, `route-held`, `route-advance`,
     `route-rejoin`, `route-replan-impossible`, or
     `route-bypass-(unreachable|stuck)`; route hysteresis never acts silently.
-11. **Carrier reachability and cascading clearance**: body occupancy is
+11. **Reachability and cascading clearance**: body occupancy is
     transient traffic, never terrain. A stagnant loaded carrier may enter its
     authored unreachable fallback only when the static terrain graph cannot
     reach its reactor. A reachable carrier continues requesting delivery; a
@@ -191,14 +198,14 @@ Visible in traces (reason string in parentheses), policy hard-coded:
     same terrain-only gate now protects an ordinary doctrine's `onNoPath`
     fallback from current body, projectile, lane, or same-tick reservations.
 
-    A loaded carrier already has the strongest rank in the movement plane. If
-    its next tile is occupied by a yielding ally whose own exits are occupied,
-    that one request propagates through the shortest allied chain to the
-    nearest legal vacancy (unit id breaks equal-length choices). The outer
-    body clears first and the vacancy travels inward over subsequent ticks;
-    no simultaneous swap is assumed. A closed component with no vacancy is
-    left alone. Reasons name both cause and depth as
-    `make-way:chain-N:u<carrier>`.
+    Any selected movement plan publishes a request under the one urgency/debt
+    ordering. If its next tile is occupied by a yielding ally whose own exits
+    are occupied, that one request propagates through the shortest eligible
+    allied chain to the nearest legal vacancy (unit id breaks equal-length
+    choices). The outer body clears first and the vacancy travels inward over
+    subsequent ticks; no simultaneous swap is assumed. A closed component with
+    no vacancy is left alone. Reasons name cause, depth, mover, and resolved
+    weight as `make-way:chain-N:u<M>:to-urgent+bD`.
 
     The reachability audit found no other occupancy-sensitive terminal path.
     Authored-route `NoPath` already uses persistent terrain obstacles; focus
@@ -206,9 +213,9 @@ Visible in traces (reason string in parentheses), policy hard-coded:
     include bodies, but only to suspend combat disengagement while cornered
     and is re-evaluated every tick. `MotionProgress` reacts to observed
     stagnation rather than claiming a terrain destination is unreachable.
-    Existing deterministic traffic tickets remain the general mutual-block
-    escape; cascading displacement is deliberately limited to a loaded
-    carrier's semantic objective priority.
+    Authored urgency plus persistent block debt is the general mutual-block
+    escape. Core return and recovery are urgent in the current sheets because
+    the author says so, not because the executor recognizes those action kinds.
 
 ## What to do about it
 

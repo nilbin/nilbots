@@ -144,9 +144,10 @@ Example:
 }
 ```
 
-Branches and leaves may use `when`, `until`, `timeout`, and `cooldown`. Only a
-leaf may use `capacity`. A leaf has exactly one of `move`, `fight`, `use`,
-`handoff`, or `drop`. Two branch levels plus a leaf is the maximum depth.
+Branches and leaves may use `when`, `until`, `timeout`, `cooldown`, and
+`urgency`. Only a leaf may use `capacity`. A leaf has exactly one of `move`,
+`fight`, `use`, `handoff`, or `drop`. Two branch levels plus a leaf is the
+maximum depth.
 
 `sharedOrders` maps a name to a complete branch or leaf. The map key is its id,
 so the definition does not repeat `id`. Reuse is exact: no parameters,
@@ -162,6 +163,7 @@ priority position.
 | `until` | once entered, latches the node until this becomes true |
 | `timeout` | active wall-clock ticks, `1..1200` |
 | `cooldown` | ticks before this same node may enter again, `0..1200` |
+| `urgency` | allied movement weight: `routine`, `normal`, or `urgent` |
 
 - Without `until`, `when` remains the node's ongoing eligibility.
 - With `until`, `when` gates entry and `until` owns exit.
@@ -175,6 +177,38 @@ priority position.
 - A leaf with no legal target is skipped for that tick. The executor never
   invents a different action or hidden travel.
 - If no leaf is executable, the body waits with `no-eligible-order` evidence.
+
+### Movement urgency
+
+Order position answers **what this body does**. `urgency` answers **who gets
+scarce friendly movement space** after an order has already won. It is optional,
+inherits through nested orders, and defaults to `normal` at the top. The nearest
+explicit value wins.
+
+Use `routine` for work that may readily yield, `normal` for ordinary movement,
+and `urgent` for explicitly time-sensitive travel. Urgency never changes order
+selection, conditions, targets, capacities, combat, or enemy behavior. Sustained
+allied blocking accrues deterministic movement debt, so `routine` cannot starve
+behind an endless stream of fresh `urgent` traffic. Exact ties resolve by first
+blocked tick, activation tick, then stable unit id. The executor still owns
+collision legality, strike roots, safe movement, deadlock/cycle refusal,
+oscillation protection, and route detour/rejoin.
+
+Example inheritance:
+
+```json
+{
+  "id": "score-a-core",
+  "when": "carrying-core",
+  "urgency": "urgent",
+  "orders": [
+    { "id": "return-home", "move": { "to": "own-reactor" } }
+  ]
+}
+```
+
+`return-home` inherits `urgent`. Its source position still determines whether it
+runs; the value matters only if a friendly body contests its movement space.
 
 Traces use authored paths, for example
 `orders:runner:carry-core-home>return-home:move:...`. Generated rung or order

@@ -43,6 +43,54 @@ public sealed class TacticalMovementGovernorTests
     }
 
     [Fact]
+    public void PostureSelectsFrontRearOrWholeDestinationWithoutInventingOffsets()
+    {
+        Position[] zone =
+        [
+            new(10, 8),
+            new(11, 8),
+            new(12, 8),
+            new(10, 9),
+            new(11, 9),
+            new(12, 9),
+        ];
+        var own = new Position(2, 8);
+        var enemy = new Position(28, 8);
+
+        Assert.Equal(
+            [new Position(12, 8), new Position(12, 9)],
+            TacticalPosturePlanner.Resolve(zone, "front", own, enemy));
+        Assert.Equal(
+            [new Position(10, 8), new Position(10, 9)],
+            TacticalPosturePlanner.Resolve(zone, "rear", own, enemy));
+        Assert.Equal(
+            zone,
+            TacticalPosturePlanner.Resolve(zone, "line", own, enemy));
+    }
+
+    [Fact]
+    public void PostureRotatesWithTeamPerspective()
+    {
+        Position[] westZone =
+        [
+            new(10, 8),
+            new(11, 8),
+            new(12, 8),
+        ];
+        Position[] eastZone = westZone.Select(point =>
+            new Position(30 - point.X, 22 - point.Y)).ToArray();
+
+        Position westFront = Assert.Single(TacticalPosturePlanner.Resolve(
+            westZone, "front", new Position(2, 8), new Position(28, 14)));
+        Position eastFront = Assert.Single(TacticalPosturePlanner.Resolve(
+            eastZone, "front", new Position(28, 14), new Position(2, 8)));
+
+        Assert.Equal(
+            new Position(30 - westFront.X, 22 - westFront.Y),
+            eastFront);
+    }
+
+    [Fact]
     public void RouteCourseStaysChosenAcrossATemptingReplan()
     {
         var governor = new TacticalRouteGovernor();
@@ -371,43 +419,38 @@ public sealed class TacticalMovementGovernorTests
     }
 
     [Fact]
-    public void TwoAlliedBlocksGrantABoundedTrafficTicket()
+    public void AlliedBlocksAccruePersistentMovementDebt()
     {
         var governor = new TacticalTrafficGovernor();
         ActorIdentity actor = new(0, 2, 0);
 
         governor.Observe(0, [Sample(actor, 5, blocked: true)]);
-        Assert.False(governor.HasTicket(actor.UnitId));
+        Assert.Equal(1, governor.Priority(actor.UnitId).AlliedBlockDebt);
         governor.Observe(1, [Sample(actor, 5, blocked: true)]);
-        Assert.True(governor.HasTicket(actor.UnitId));
+        Assert.Equal(2, governor.Priority(actor.UnitId).AlliedBlockDebt);
 
-        for (int tick = 2; tick <= TacticalTrafficGovernor.TicketTicks + 1;
-             tick++)
-        {
+        for (int tick = 2; tick < 20; tick++)
             governor.Observe(tick, [Sample(actor, 5, blocked: true)]);
-        }
-        Assert.False(governor.HasTicket(actor.UnitId));
+        Assert.Equal(20, governor.Priority(actor.UnitId).AlliedBlockDebt);
     }
 
     [Fact]
-    public void TwoProgressStepsReleaseTicketEvenWithAHoldBetweenThem()
+    public void StrictProgressPaysDebtWithoutAnIncidentalHoldChangingIt()
     {
         var governor = new TacticalTrafficGovernor();
         ActorIdentity actor = new(0, 2, 0);
 
         governor.Observe(0, [Sample(actor, 5, blocked: true)]);
         governor.Observe(1, [Sample(actor, 5, blocked: true)]);
-        Assert.True(governor.HasTicket(actor.UnitId));
+        Assert.Equal(2, governor.Priority(actor.UnitId).AlliedBlockDebt);
 
         governor.Observe(2, [Sample(actor, 4)]);
         governor.Observe(3, [Sample(actor, 4, attempted: false)]);
-        Assert.True(governor.HasTicket(actor.UnitId));
-        governor.Observe(4, [Sample(actor, 3)]);
-        Assert.False(governor.HasTicket(actor.UnitId));
+        Assert.Equal(0, governor.Priority(actor.UnitId).AlliedBlockDebt);
     }
 
     [Fact]
-    public void OppositeDirectionTicketsHaveOneDeterministicWinner()
+    public void ExactPriorityTiesUseActivationThenStableUnitId()
     {
         var governor = new TacticalTrafficGovernor();
         ActorIdentity low = new(0, 1, 0);
@@ -424,17 +467,34 @@ public sealed class TacticalMovementGovernorTests
             Sample(low, 5, blocked: true),
         ]);
 
-        Assert.True(governor.HasTicket(low.UnitId));
-        Assert.True(governor.HasTicket(high.UnitId));
-        Assert.True(governor.Rank(low.UnitId) < governor.Rank(high.UnitId));
-        Assert.True(TacticalTrafficGovernor.StrongestProtectedRank
-            < governor.Rank(low.UnitId));
-        Assert.True(governor.Rank(high.UnitId)
-            < TacticalTrafficGovernor.FreeTrafficRank);
+        Assert.True(governor.Priority(low.UnitId).Rank
+            < governor.Priority(high.UnitId).Rank);
     }
 
     [Fact]
-    public void RecoveryAndFollowersNeverAgeButCustodyMovementCan()
+    public void OlderDenialOutranksUnitIdSoTieBreakCannotBecomeBias()
+    {
+        var governor = new TacticalTrafficGovernor();
+        ActorIdentity olderHighId = new(0, 7, 0);
+        ActorIdentity freshLowId = new(0, 0, 0);
+
+        governor.Observe(4,
+        [
+            Sample(olderHighId, 5, blocked: true),
+            Sample(freshLowId, 5),
+        ]);
+        governor.Observe(5,
+        [
+            Sample(olderHighId, 5, blocked: true),
+            Sample(freshLowId, 5, blocked: true),
+        ]);
+
+        Assert.True(governor.Priority(olderHighId.UnitId).Rank
+            < governor.Priority(freshLowId.UnitId).Rank);
+    }
+
+    [Fact]
+    public void OnlyARealMoveIntentCanAccrueDebt()
     {
         var governor = new TacticalTrafficGovernor();
         ActorIdentity recovery = new(0, 0, 0);
@@ -454,9 +514,9 @@ public sealed class TacticalMovementGovernorTests
             ]);
         }
 
-        Assert.False(governor.HasTicket(recovery.UnitId));
-        Assert.False(governor.HasTicket(follower.UnitId));
-        Assert.True(governor.HasTicket(collector.UnitId));
+        Assert.Equal(0, governor.Priority(recovery.UnitId).AlliedBlockDebt);
+        Assert.Equal(0, governor.Priority(follower.UnitId).AlliedBlockDebt);
+        Assert.Equal(3, governor.Priority(collector.UnitId).AlliedBlockDebt);
     }
 
     [Fact]
@@ -466,11 +526,11 @@ public sealed class TacticalMovementGovernorTests
         ActorIdentity actor = new(0, 2, 0);
         governor.Observe(0, [Sample(actor, 5, blocked: true)]);
         governor.Observe(1, [Sample(actor, 5, blocked: true)]);
-        Assert.True(governor.HasTicket(actor.UnitId));
+        Assert.Equal(2, governor.Priority(actor.UnitId).AlliedBlockDebt);
 
         governor.Observe(2, [Sample(actor, 5, blocked: false,
             intent: "other")]);
-        Assert.False(governor.HasTicket(actor.UnitId));
+        Assert.Equal(0, governor.Priority(actor.UnitId).AlliedBlockDebt);
 
         governor.Observe(3, [Sample(actor, 5, blocked: true,
             intent: "other")]);
@@ -479,7 +539,98 @@ public sealed class TacticalMovementGovernorTests
             Sample(new ActorIdentity(0, 2, 1), 5, blocked: true,
                 intent: "other"),
         ]);
-        Assert.False(governor.HasTicket(actor.UnitId));
+        Assert.Equal(1, governor.Priority(actor.UnitId).AlliedBlockDebt);
+    }
+
+    [Fact]
+    public void AuthoredUrgencyWinsFreshTrafficWithoutChangingSourcePriority()
+    {
+        var governor = new TacticalTrafficGovernor();
+        ActorIdentity routine = new(0, 0, 0);
+        ActorIdentity urgent = new(0, 7, 0);
+
+        governor.Observe(12,
+        [
+            Sample(routine, 4, urgency: TacticalMovementUrgency.Routine,
+                activatedTick: 1),
+            Sample(urgent, 4, urgency: TacticalMovementUrgency.Urgent,
+                activatedTick: 12),
+        ]);
+
+        Assert.True(governor.Priority(urgent.UnitId).Rank
+            < governor.Priority(routine.UnitId).Rank);
+    }
+
+    [Fact]
+    public void PersistentRoutineDenialEventuallyOutranksFreshUrgentTraffic()
+    {
+        var governor = new TacticalTrafficGovernor();
+        ActorIdentity routine = new(0, 7, 0);
+        ActorIdentity urgent = new(0, 0, 0);
+
+        for (int tick = 0; tick <= TacticalTrafficGovernor.DebtPerUrgencyTier * 2;
+             tick++)
+        {
+            governor.Observe(tick,
+            [
+                Sample(routine, 5, blocked: true,
+                    urgency: TacticalMovementUrgency.Routine,
+                    activatedTick: 0),
+                Sample(urgent, 5, urgency: TacticalMovementUrgency.Urgent,
+                    activatedTick: tick),
+            ]);
+        }
+
+        Assert.True(governor.Priority(routine.UnitId).Rank
+            < governor.Priority(urgent.UnitId).Rank);
+    }
+
+    [Fact]
+    public void RoutineGetsTheNextOpeningAfterUrgentTrafficMakesProgress()
+    {
+        var governor = new TacticalTrafficGovernor();
+        ActorIdentity routine = new(0, 7, 0);
+        ActorIdentity urgent = new(0, 0, 0);
+
+        for (int tick = 0; tick <= TacticalTrafficGovernor.DebtPerUrgencyTier * 2;
+             tick++)
+        {
+            governor.Observe(tick,
+            [
+                Sample(routine, 5, blocked: true,
+                    urgency: TacticalMovementUrgency.Routine),
+                Sample(urgent, 5, blocked: true,
+                    urgency: TacticalMovementUrgency.Urgent),
+            ]);
+        }
+
+        governor.Observe(TacticalTrafficGovernor.DebtPerUrgencyTier * 2 + 1,
+        [
+            Sample(routine, 5, blocked: true,
+                urgency: TacticalMovementUrgency.Routine),
+            Sample(urgent, 4, blocked: false,
+                urgency: TacticalMovementUrgency.Urgent),
+        ]);
+
+        Assert.True(governor.Priority(routine.UnitId).Rank
+            < governor.Priority(urgent.UnitId).Rank);
+    }
+
+    [Fact]
+    public void MirroringInputOrderCannotChangeResolvedPriority()
+    {
+        var first = new TacticalTrafficGovernor();
+        var second = new TacticalTrafficGovernor();
+        ActorIdentity low = new(0, 1, 0);
+        ActorIdentity high = new(0, 6, 0);
+        TacticalTrafficGovernor.Sample a = Sample(low, 5, blocked: true);
+        TacticalTrafficGovernor.Sample b = Sample(high, 5, blocked: true);
+
+        first.Observe(0, [a, b]);
+        second.Observe(0, [b, a]);
+
+        Assert.Equal(first.Priority(low.UnitId), second.Priority(low.UnitId));
+        Assert.Equal(first.Priority(high.UnitId), second.Priority(high.UnitId));
     }
 
     [Fact]
@@ -617,14 +768,18 @@ public sealed class TacticalMovementGovernorTests
         bool blocked = false,
         bool attempted = true,
         bool mayAge = true,
-        string intent = "north-well") => new(
+        string intent = "north-well",
+        TacticalMovementUrgency urgency = TacticalMovementUrgency.Normal,
+        int activatedTick = 0) => new(
         actor,
         intent,
         new Position(15, 6),
         distance,
         attempted,
         blocked,
-        mayAge);
+        mayAge,
+        urgency,
+        activatedTick);
 
     private static TacticalOscillationGovernor.Sample Motion(
         ActorIdentity actor,

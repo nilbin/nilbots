@@ -8,6 +8,70 @@ public enum TacticalMovementAuthority
 }
 
 /// <summary>
+/// Authored importance of one selected order when allied bodies compete for
+/// movement space. It never participates in order selection: source position
+/// has already selected the order before this value reaches the movement
+/// plane.
+/// </summary>
+public enum TacticalMovementUrgency
+{
+    Routine,
+    Normal,
+    Urgent,
+}
+
+/// <summary>
+/// One body's fully resolved position on the allied movement plane. Lower
+/// <see cref="Rank"/> moves first and receives right-of-way. The remaining
+/// fields are evidence, not additional policy hidden at a call site.
+/// </summary>
+public sealed record TacticalMovementPriority(
+    int UnitId,
+    int Rank,
+    TacticalMovementUrgency AuthoredUrgency,
+    TacticalMovementUrgency EffectiveUrgency,
+    int AlliedBlockDebt,
+    int ActivatedTick,
+    int? BlockedSince)
+{
+    public string Trace =>
+        $"{AuthoredUrgency.ToString().ToLowerInvariant()}"
+        + $"+b{AlliedBlockDebt}"
+        + (EffectiveUrgency == AuthoredUrgency
+            ? ""
+            : $"=>{EffectiveUrgency.ToString().ToLowerInvariant()}");
+}
+
+/// <summary>
+/// Resolves the compact pre-combat posture vocabulary against one authored
+/// destination. Posture changes which legal goal tile a body approaches; it
+/// never changes the body's order, fight policy, or any other body's position.
+/// Keeping this transform pure makes west/east rotation and tie-breaking
+/// independently testable from pathfinding.
+/// </summary>
+public static class TacticalPosturePlanner
+{
+    public static Position[] Resolve(
+        IReadOnlyCollection<Position> goals,
+        string? posture,
+        Position ownReactor,
+        Position enemyReactor)
+    {
+        Position[] values = [.. goals];
+        if (values.Length <= 1 || posture is null or "line")
+            return values;
+        Func<Position, int> distance = posture == "front"
+            ? point => point.ChebyshevDistance(enemyReactor)
+            : point => point.ChebyshevDistance(ownReactor);
+        int best = values.Min(distance);
+        return values.Where(point => distance(point) == best)
+            .OrderBy(point => point.Y)
+            .ThenBy(point => point.X)
+            .ToArray();
+    }
+}
+
+/// <summary>
 /// Resolves a chain of lower-precedence allied bodies between a mover and the
 /// nearest body that can step into a real vacancy. The movement plane still
 /// owns every actual step; this only propagates one existing right-of-way
@@ -600,19 +664,27 @@ public sealed class RecoveryEpisodeGovernor
 
 /// <summary>
 /// Persistent right-of-way aging for high-level movement intents. A sheet
-/// chooses the intent and destination. This governor observes only whether
-/// the body makes strict map progress toward that stable destination and
-/// grants a bounded traffic ticket when allied traffic keeps it from doing
-/// so. It never invents participation, destinations, or tactics.
+/// chooses the intent, destination and authored urgency. This governor
+/// observes only whether the body makes strict map progress toward that stable
+/// destination. A visible ally on the intended step is traffic denial;
+/// repeated denial accrues debt, which eventually lets even routine traffic
+/// pass a stream of fresh urgent traffic. It never invents participation,
+/// destinations, or tactics.
 /// </summary>
 public sealed class TacticalTrafficGovernor
 {
-    public const int AlliedBlocksBeforeTicket = 2;
-    public const int ProgressStepsToRelease = 2;
-    public const int TicketTicks = 12;
-    public const int StrongestProtectedRank = ArenaBasics.Claims.FighterRank;
-    public const int FirstTicketRank = ArenaBasics.Claims.TrafficRank;
-    public const int FreeTrafficRank = ArenaBasics.Claims.RestRank;
+    /// <summary>
+    /// Twelve denied ticks promote effective urgency by one tier. At the
+    /// urgent ceiling the oldest denial wins, so a routine mover denied for 24
+    /// ticks competes as urgent rather than remaining permanently subordinate.
+    /// </summary>
+    public const int DebtPerUrgencyTier = 12;
+
+    /// <summary>Strict progress pays traffic debt down quickly without making
+    /// one incidental step erase a long wait.</summary>
+    public const int ProgressDebtPayment = 4;
+
+    public const int MaximumDebt = 96;
 
     private readonly Dictionary<int, State> _states = [];
 
@@ -633,7 +705,9 @@ public sealed class TacticalTrafficGovernor
             if (state.Actor != sample.Actor
                 || !string.Equals(
                     state.IntentId, sample.IntentId, StringComparison.Ordinal)
-                || state.Goal != sample.Goal)
+                || state.Goal != sample.Goal
+                || state.Urgency != sample.Urgency
+                || state.ActivatedTick != sample.ActivatedTick)
             {
                 state = State.For(sample);
             }
@@ -648,82 +722,74 @@ public sealed class TacticalTrafficGovernor
             int noProgressMoves = progressed
                 ? 0
                 : state.NoProgressMoves + (sample.AttemptedMove ? 1 : 0);
-            int alliedBlocks = progressed
-                ? 0
-                : state.AlliedBlocks + (sample.BlockedByAlly ? 1 : 0);
-            int progressAfterTicket = state.TicketSince is null
-                ? 0
-                : progressed
-                    ? state.ProgressAfterTicket + 1
-                    : state.ProgressAfterTicket;
-            int? ticketSince = state.TicketSince;
-
-            // A ticket is traffic arbitration, never an idle breaker. Three
-            // non-progressing moves are diagnostic context, but only repeated
-            // observation of an ALLY on the terrain-shortest next step may
-            // promote the body. This preserves authored holding/patrolling
-            // while bounding the exact choke-denial class.
-            if (ticketSince is null
-                && alliedBlocks >= AlliedBlocksBeforeTicket)
-            {
-                ticketSince = tick;
-                progressAfterTicket = 0;
-            }
-            if (ticketSince is not null
-                && (sample.Distance == 0
-                    || progressAfterTicket >= ProgressStepsToRelease
-                    || tick - ticketSince >= TicketTicks))
-            {
-                ticketSince = null;
-                noProgressMoves = 0;
-                alliedBlocks = 0;
-                progressAfterTicket = 0;
-            }
+            int debt = progressed
+                ? Math.Max(0, state.AlliedBlockDebt - ProgressDebtPayment)
+                : sample.BlockedByAlly
+                    ? Math.Min(MaximumDebt, state.AlliedBlockDebt + 1)
+                    : state.AlliedBlockDebt;
+            int? blockedSince = debt == 0
+                ? null
+                : state.BlockedSince
+                    ?? (sample.BlockedByAlly ? tick : null);
 
             _states[sample.Actor.UnitId] = new State(
                 sample.Actor,
                 sample.IntentId,
                 sample.Goal,
+                sample.Urgency,
+                sample.ActivatedTick,
                 sample.Distance.Value,
                 noProgressMoves,
-                alliedBlocks,
-                ticketSince,
-                progressAfterTicket);
+                debt,
+                blockedSince);
         }
     }
 
-    public bool HasTicket(int unitId) =>
-        _states.TryGetValue(unitId, out State? state)
-        && state.TicketSince is not null;
-
     /// <summary>
-    /// Traffic tickets are stronger than free traffic and weaker than every
-    /// protected channel. Earlier tickets go first; stable unit id breaks a
-    /// simultaneous tie. Distinct ranks preserve the global rule that equal
-    /// ranks never yield.
+    /// Resolve the complete precedence list. Strength is authored tier plus
+    /// allied-block debt; an earlier denial, then order activation, then unit
+    /// id breaks exact ties. Every body receives a distinct rank so a contested
+    /// tile always has one deterministic winner.
     /// </summary>
-    public int Rank(int unitId)
+    public TacticalMovementPriority Priority(int unitId)
     {
         State state = _states[unitId];
-        return FirstTicketRank
-            + _states.Values
-                .Where(value => value.TicketSince is not null)
-                .OrderBy(value => value.TicketSince)
-                .ThenBy(value => value.Actor.UnitId)
-                .TakeWhile(value => value.Actor.UnitId != unitId)
-                .Count();
+        State[] ordered = _states.Values
+            .OrderByDescending(EffectiveUrgency)
+            .ThenByDescending(value => value.AlliedBlockDebt)
+            .ThenBy(value => value.BlockedSince ?? int.MaxValue)
+            .ThenBy(value => value.ActivatedTick)
+            .ThenBy(value => value.Actor.UnitId)
+            .ToArray();
+        int rank = Array.FindIndex(
+            ordered, value => value.Actor.UnitId == unitId);
+        return new TacticalMovementPriority(
+            unitId,
+            rank,
+            state.Urgency,
+            (TacticalMovementUrgency)EffectiveUrgency(state),
+            state.AlliedBlockDebt,
+            state.ActivatedTick,
+            state.BlockedSince);
     }
+
+    private static int EffectiveUrgency(State state) => Math.Min(
+        (int)TacticalMovementUrgency.Urgent,
+        (int)state.Urgency + state.AlliedBlockDebt / DebtPerUrgencyTier);
 
     internal string TraceSummary
     {
         get
         {
             string[] active = _states.Values
-                .Where(state => state.TicketSince is not null)
-                .OrderBy(state => state.TicketSince)
+                .Where(state => state.AlliedBlockDebt > 0)
+                .OrderByDescending(EffectiveUrgency)
+                .ThenByDescending(state => state.AlliedBlockDebt)
+                .ThenBy(state => state.BlockedSince)
                 .ThenBy(state => state.Actor.UnitId)
-                .Select(state => $"{state.Actor.UnitId}@{state.TicketSince}"
-                    + $"/m{state.NoProgressMoves}/b{state.AlliedBlocks}")
+                .Select(state => $"{state.Actor.UnitId}@{state.BlockedSince}"
+                    + $"/{state.Urgency.ToString().ToLowerInvariant()}"
+                    + $"/m{state.NoProgressMoves}/b{state.AlliedBlockDebt}")
                 .ToArray();
             return active.Length == 0
                 ? "traffic=clear"
@@ -738,27 +804,31 @@ public sealed class TacticalTrafficGovernor
         int? Distance,
         bool AttemptedMove,
         bool BlockedByAlly,
-        bool MayAge);
+        bool MayAge,
+        TacticalMovementUrgency Urgency,
+        int ActivatedTick);
 
     private sealed record State(
         ActorIdentity Actor,
         string IntentId,
         Position Goal,
+        TacticalMovementUrgency Urgency,
+        int ActivatedTick,
         int LastDistance,
         int NoProgressMoves,
-        int AlliedBlocks,
-        int? TicketSince,
-        int ProgressAfterTicket)
+        int AlliedBlockDebt,
+        int? BlockedSince)
     {
         internal static State For(Sample sample) => new(
             sample.Actor,
             sample.IntentId,
             sample.Goal,
+            sample.Urgency,
+            sample.ActivatedTick,
             sample.Distance ?? int.MaxValue,
             0,
             0,
-            null,
-            0);
+            null);
     }
 }
 

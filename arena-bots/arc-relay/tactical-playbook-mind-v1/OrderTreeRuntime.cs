@@ -78,7 +78,7 @@ internal sealed class OrderTreeRuntime
         int orderTicks = tick - state.StartedTick;
         if (node.Action is not null)
         {
-            result.Add(new EligibleLeaf(node, orderTicks));
+            result.Add(new EligibleLeaf(node, orderTicks, state.StartedTick));
             return;
         }
         foreach (OrdersPackage.OrderNode child in node.Children)
@@ -109,7 +109,8 @@ internal sealed class OrderTreeRuntime
 
     internal sealed record EligibleLeaf(
         OrdersPackage.OrderNode Node,
-        int OrderTicks);
+        int OrderTicks,
+        int ActivatedTick);
 
     private sealed record State(bool Active, int StartedTick, int ReadyTick);
 }

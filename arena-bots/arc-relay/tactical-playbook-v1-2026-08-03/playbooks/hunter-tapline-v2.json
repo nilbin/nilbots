@@ -14,7 +14,7 @@
         { "shared": "collect-loose-core" },
         { "id": "dash-into-contact", "when": { "all": ["empty-handed", "enemy-visible", "signature-ready"] }, "use": { "skill": "vector-dash", "target": "nearest-enemy" } },
         { "shared": "fight-visible-enemy" },
-        { "id": "shadow-hunt", "move": { "patrol": "shadow-hunt-loop", "posture": "front" } }
+        { "id": "shadow-hunt", "urgency": "routine", "move": { "patrol": "shadow-hunt-loop", "posture": "front" } }
       ]
     },
     {
@@ -99,6 +99,7 @@
     },
     "score-a-core": {
       "when": "carrying-core",
+      "urgency": "urgent",
       "until": "empty-handed",
       "timeout": 180,
       "cooldown": 2,
@@ -108,6 +109,7 @@
     },
     "recover-health": {
       "when": "hurt",
+      "urgency": "urgent",
       "until": "healthy",
       "timeout": 75,
       "cooldown": 18,
