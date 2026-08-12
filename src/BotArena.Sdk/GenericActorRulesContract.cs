@@ -399,7 +399,8 @@ public sealed class GenericActorRulesContract
         public int? TellTicks { get; init; }
         /// <summary>Ticks a bolt-class signature (rail, hook, sentinel)
         /// telegraphs before it resolves. Null or zero is an instant,
-        /// untelegraphed cast — every utility signature.
+        /// untelegraphed cast unless another typed lifecycle field (for
+        /// example grammar-3 acquisition or flight) says otherwise.
         /// <para>
         /// Where the action ALSO publishes a UnitTarget beside its heading,
         /// the line attack declares a LOCK: name the enemy you are shooting
@@ -431,15 +432,25 @@ public sealed class GenericActorRulesContract
         public int? PushTiles { get; init; }
         public int? FireCooldownTicks { get; init; }
         public int? BoltTilesPerAdvance { get; init; }
+        public int? AcquisitionTicks { get; init; }
 
         /// <summary>
-        /// Designed-role metadata, present only on grammar-2 contracts:
+        /// Designed-role metadata, present on grammar-2 and later contracts:
         /// executors dispatch by these instead of hand tables. Null on
         /// historical rulesets.
         /// </summary>
         public string? Category { get; init; }
         public string? ArgumentKind { get; init; }
         public int? EngagementRange { get; init; }
+
+        /// <summary>
+        /// Grammar-3 lifecycle vocabulary shared by every signature. These
+        /// are semantic IDs rather than renderer instructions: public replay
+        /// evidence remains authoritative for what actually exists now.
+        /// </summary>
+        public string? InitialPhase { get; init; }
+        public string? MaturityPhase { get; init; }
+        public string? CooldownAnchor { get; init; }
     }
 
     /// <summary>

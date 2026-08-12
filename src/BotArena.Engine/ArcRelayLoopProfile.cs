@@ -741,11 +741,41 @@ public sealed record ArcRelayLoopProfile
         strikeWindupTicks: 1);
 
     /// <summary>
+    /// The complete grammar-3 Tapline profile. All sixteen classes participate
+    /// in one grammar and retain the accepted Tapline geometry; four signature
+    /// envelopes are versioned where their historical chronology contradicted
+    /// their public presentation: Null Field, Target Paint, Kinetic Burst and
+    /// Smoke Canister. Tapline-1 remains frozen beside it.
+    /// </summary>
+    public static ArcRelayLoopProfile Tapline2 { get; } = new(
+        "tapline-2",
+        "arc-relay-tapline-02",
+        "arc-relay-tapline-01",
+        ArcRelayMapGeometry.TaplineWellLine,
+        30,
+        75,
+        25,
+        7,
+        directionalCombat: true,
+        signatureGrammarVersion: 3,
+        wellBirthJitterTicks: 6,
+        alternatingResolutionOrder: true,
+        rearArcDamageMultiplier: 2,
+        omniProximityRange: 0,
+        veterancyXpPerLevel: 2,
+        veterancyMaxLevel: 5,
+        healZoneTicksPerHp: 3,
+        seedPhasedResolutionOrder: true,
+        rotationalSpawnAssignment: true,
+        chiralWellBirths: true,
+        strikeWindupTicks: 1);
+
+    /// <summary>
     /// Owner-selected product line. Kept separate from H0 and every historical
     /// hosted playlist so advancing the product never rewrites old contracts or
     /// golden replays.
     /// </summary>
-    public static ArcRelayLoopProfile Current => Tapline1;
+    public static ArcRelayLoopProfile Current => Tapline2;
 
     public static ArcRelayLoopProfile Return16 { get; } = new(
         "return-16",
@@ -817,6 +847,7 @@ public sealed record ArcRelayLoopProfile
         Crucible1,
         Drawbench1,
         Tapline1,
+        Tapline2,
         Return16,
         Return24,
         Hot60,

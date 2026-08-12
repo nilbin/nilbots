@@ -36,7 +36,7 @@ public sealed record ArcRelayGameModeDefinition : GameModeDefinition
         bool chiralWellBirths = false)
         : base(modeId, victory, scoreCatalog)
     {
-        if (signatureGrammarVersion is not (1 or 2))
+        if (signatureGrammarVersion is not (1 or 2 or 3))
             throw new ArgumentOutOfRangeException(
                 nameof(signatureGrammarVersion));
         SignatureGrammarVersion = signatureGrammarVersion;
@@ -193,7 +193,10 @@ public sealed record ArcRelayGameModeDefinition : GameModeDefinition
     /// every enemy-affecting signature dodgeable — sentinel and hook fire
     /// real bolts, null-field telegraphs — and projects designed-role
     /// metadata into the public contract. Canonically written only when not
-    /// 1, so historical rules bytes are unchanged.
+    /// 1, so historical rules bytes are unchanged. 3 is the complete
+    /// Tapline-2 grammar: every class remains in the same public signature
+    /// vocabulary, while the four presence-versioned envelopes with new
+    /// chronology mature according to their own canonical fields.
     /// </summary>
     public int SignatureGrammarVersion { get; }
 

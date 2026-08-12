@@ -226,6 +226,14 @@ internal static class ActorContractCanonicalIds
             "tractor-hook",
         ArcRelaySignatureDefinition.SignatureKind.NullField2 =>
             "null-field",
+        ArcRelaySignatureDefinition.SignatureKind.NullField3 =>
+            "null-field",
+        ArcRelaySignatureDefinition.SignatureKind.TargetPaint2 =>
+            "target-paint",
+        ArcRelaySignatureDefinition.SignatureKind.KineticBurst2 =>
+            "kinetic-burst",
+        ArcRelaySignatureDefinition.SignatureKind.SmokeCanister2 =>
+            "smoke-canister",
 
         ActorRuntimeFaultDefinition.AccumulationScopeKind
                 .ParticipantAcrossAllSlotsLivesAndRuntimeStages =>

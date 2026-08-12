@@ -7925,3 +7925,30 @@ A later explicit promotion gate must build and verify WASM, decide rating
 continuity from the resulting stock-gameplay digest, mint immutable versions,
 and run the release-grade suites. Owner review or approval of a gameplay idea
 does not silently open that gate.
+
+## 296. Tapline-2 is one complete signature grammar; four envelopes change
+
+Owner-approved presentation/mechanics ruling (2026-08-12). The local Arc Relay
+product line advances to `tapline-2` / `arc-relay-tapline-02` on the unchanged
+`arc-relay-tapline-01` map. All sixteen launch classes participate in signature
+grammar 3 and every signature publishes canonical initial-phase,
+maturity-phase, and cooldown-anchor metadata. A mechanically unchanged
+signature keeps its established concrete definition; creating empty version
+aliases is not grammar coverage.
+
+Four signatures receive presence-versioned definitions because their existing
+chronology contradicted the player-visible promise. Null Field's frozen
+one-tick tell matures after response movement and immediately revalidates new
+signature starts, ends hostile maintained channels, and suppresses constructs.
+Target Paint acquires for one tick, confirms after movement only if its target
+is alive, within range, and in team vision, and gives no cast-tick damage bonus;
+a voluntary move abandons it for an 8-tick cooldown. Kinetic Burst resolves
+after response movement against the bodies then adjacent to its frozen origin;
+a voluntary move abandons it for 6 ticks. Smoke Canister travels publicly at 3
+tiles/tick without projectile collision, survives its caster, and begins its
+full 10-tick field on landing while its 18-tick cooldown remains launch-bound.
+
+`tapline-1` remains byte-frozen and explicitly selectable. Hosted entrant
+playlist v20, its stock artifacts, rules fingerprint, ratings, and historical
+matches remain pinned to Tapline-1; advancing the local `Current` profile does
+not deploy or mutate that playlist.

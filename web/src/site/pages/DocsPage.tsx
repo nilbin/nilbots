@@ -46,8 +46,9 @@ export default function DocsPage() {
           remain deterministic executor mechanics rather than repeated micro-orders.
         </p>
         <p className="mt-2 text-arena-dim">
-          Hosted playlist v20 and the local <code>nilbots arc-relay</code> default
-          both run tapline-1 on Tapline. Sheets authored for earlier maps
+          Hosted playlist v20 remains frozen on tapline-1; the local{' '}
+          <code>nilbots arc-relay</code> default runs tapline-2 on the same
+          accepted Tapline geometry with signature grammar 3. Sheets authored for earlier maps
           remain match history but are not accepted by the current Orders v2 workshop;
           coordinates are never projected between maps. Playlist v20 opens a fresh rating
           book at 1200 because the executable sheet language and stock gameplay changed.

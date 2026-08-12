@@ -8,12 +8,13 @@ paragraphs as one fact each, because they are the two things that get confused.
 **Locally it is first-class.** `nilbots arc-relay` is a top-level command with
 its own help. `nilbots experiment arc-relay` remains a permanent alias, so
 every script, brief and report that already spells it that way keeps working.
-The command defaults to `--loop-profile tapline-1` (rules and map
-`arc-relay-tapline-01`): declared strikes, veterancy, rear-arc damage, and the
-tiered chiral Tapline Well line. `h0` and every historical profile
-remain explicit immutable compatibility selections.
+The command defaults to `--loop-profile tapline-2` (rules
+`arc-relay-tapline-02`, map `arc-relay-tapline-01`): the accepted Tapline
+geometry, declared strikes, veterancy, rear-arc damage, and the complete
+signature grammar 3. `h0`, `tapline-1`, and every historical profile remain
+explicit immutable compatibility selections.
 
-**Hosted, entrant playlist v20 is the same line.** It pins Tapline,
+**Hosted, entrant playlist v20 remains frozen on Tapline-1.** It pins Tapline,
 the `arc-relay-orders-v2` sheet format, and the frozen Wellwright v2 stock
 participant on the direct ATL2 executor. The executable authoring-language and
 stock-gameplay transition starts a fresh rating book; v19's Tapline/ATL1 ratings
@@ -119,14 +120,14 @@ faceless Sentinel remains an omnidirectional automated exception.
 | Lantern | 3 | swift | short | **Survey Flare** — target within 8, travel 2/tick, reveal radius 4 through smoke for 8 ticks; cooldown 16. |
 | Mortar | 3 | deliberate | medium | **Falling Star** — visible target within 8, 2-tick reticle, 1 damage on centre and cardinal neighbours; cooldown 12. |
 | Minesmith | 4 | standard | short | **Trip Node** — adjacent node, hull 1, 2 trigger damage, proximity reveal; cooldown 12. |
-| Hush | 4 | standard | medium | **Null Field** — radius 3 for 5 ticks; blocks starts and suppresses hostile signatures; cooldown 18. |
+| Hush | 4 | standard | medium | **Null Field** — 1-tick actionable tell, then radius 3 for 5 ticks; blocks starts and suppresses hostile signatures; cooldown 18. |
 | Relay | 4 | swift | short | **Arc Toss** — carrier targets straight landing within 5; 1-tick tell, Core flies 2/tick; cooldown 12 from launch. |
 | Switchback | 3 | standard | medium | **Exchange** — visible ally within 6, 1-tick tell and target Wait; carrier drops first; cooldown 16. |
 | Longshot | 3 | deliberate | long | **Rail Line** — fixed heading, 2-tick charge, range 12, 2 damage through bodies; cooldown 18 (8 if interrupted). |
 | Mason | 5 | deliberate | short | **Hardlight Block** — adjacent hull-3 block for 12 ticks; one active; cooldown 14. |
-| Sunder | 4 | standard | medium | **Target Paint** — enemy within 7; 8 ticks or 3 allied hits, each +1 damage; cooldown 16. |
-| Repulsor | 5 | standard | short | **Kinetic Burst** — 1-tick tell, push every adjacent body one legal tile; cooldown 12. |
-| Veil | 3 | swift | short | **Smoke Canister** — target within 6, radius-2 sight blocker for 10 ticks; cooldown 18. |
+| Sunder | 4 | standard | medium | **Target Paint** — 1-tick tracked acquisition on enemy within 7; then 8 ticks or 3 allied hits, each +1 damage; cooldown 16 (8 on move-abandon). |
+| Repulsor | 5 | standard | short | **Kinetic Burst** — 1-tick actionable tell, then push bodies still adjacent after response movement; cooldown 12 (6 on move-abandon). |
+| Veil | 3 | swift | short | **Smoke Canister** — target within 6, public flight at 3 tiles/tick, then radius-2 sight blocker for a full 10 ticks; cooldown 18 from launch. |
 | Nest | 4 | deliberate | medium | **Sentinel Seed** — adjacent hull-2 sentry, range 4, 1 damage, fires every 3 ticks for up to 30; cooldown 18. |
 
 The action legality mask is authoritative. Read its typed constraints every
@@ -144,7 +145,7 @@ Run a native mind locally with:
 nilbots experiment arc-relay \
   --bot <project-or-wasm> --opponent <project-or-wasm> \
   --sheet0 <sheet.json> --sheet1 <sheet.json> \
-  --loop-profile tapline-1 --seed 42
+  --loop-profile tapline-2 --seed 42
 ```
 
 Current sheets pair an `arc-relay-orders-v2` Orders document with an
@@ -195,3 +196,31 @@ robust-play foundations (DECISIONS #210):
 Grammar-1 and grammar-2 contracts, fingerprints, and replays are
 unchanged. Under -03, evaluate strategies over a seed distribution: a
 single game is one draw, not a verdict.
+
+## Signature grammar 3 (`arc-relay-tapline-02`, 2026-08-12)
+
+`tapline-2` advances the complete sixteen-class Tapline roster to grammar 3 on
+the unchanged `arc-relay-tapline-01` map. Every signature contract now carries
+`initialPhase`, `maturityPhase`, and `cooldownAnchor`; four envelopes are
+versioned where the prior chronology contradicted their public read:
+
+- **Null Field** keeps its frozen radius-3 footprint and one-tick tell, but
+  activates after response movement. A body that leaves can act safely; one
+  that remains inside has its signature revalidated and blocked. Maintained
+  channels end and constructs suppress on that same boundary.
+- **Target Paint** has a one-tick tracked acquisition. It confirms after
+  response movement only while the target remains alive, within range 7, and
+  in team vision. No cast-tick attack receives the bonus. Moving Sunder
+  abandons acquisition and pays an 8-tick partial cooldown.
+- **Kinetic Burst** resolves after response movement against the bodies still
+  adjacent to its frozen origin. Moving Repulsor abandons it and pays a 6-tick
+  partial cooldown.
+- **Smoke Canister** publishes a 1–2 tick `in-flight` phase at 3 tiles/tick,
+  passes over walls without projectile collision, and begins its full
+  radius-2, 10-tick field on landing. The launch-anchored cooldown remains 18,
+  and a thrown canister survives its caster.
+
+The other twelve signatures keep their established mechanics inside the same
+grammar-3 profile. Only mechanically changed definitions receive a new
+concrete version. `tapline-1`, its rules fingerprint, hosted playlist v20,
+stock artifacts, and ratings remain immutable.

@@ -22,13 +22,19 @@ public sealed class ArcRelayExperimentCommandTests
 
         using JsonDocument document = JsonDocument.Parse(output.ToString());
         Assert.Equal(
-            "arc-relay-tapline-01",
+            "arc-relay-tapline-02",
             document.RootElement.GetProperty("rules").GetProperty("rulesetId")
                 .GetString());
         Assert.Equal(
             "arc-relay-tapline-01",
             document.RootElement.GetProperty("map").GetProperty("mapId")
                 .GetString());
+        Assert.Equal(
+            3,
+            document.RootElement.GetProperty("rules")
+                .GetProperty("gameMode")
+                .GetProperty("signatureGrammarVersion")
+                .GetInt32());
     }
 
     [Theory]

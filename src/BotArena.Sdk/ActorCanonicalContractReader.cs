@@ -893,6 +893,13 @@ public static class ActorCanonicalContractReader
         bool hasBolt = element.TryGetProperty("boltTilesPerAdvance", out _);
         bool hasFieldTell = element.TryGetProperty("tellTicks", out _);
         bool hasMetadata = element.TryGetProperty("category", out _);
+        bool hasTiming = element.TryGetProperty("initialPhase", out _);
+        bool hasAcquisition = element.TryGetProperty(
+            "acquisitionTicks", out _);
+        bool hasCancelCooldown = element.TryGetProperty(
+            "cancelCooldownTicks", out _);
+        bool hasTravel = element.TryGetProperty(
+            "travelTilesPerTick", out _);
         // The bolt-class telegraph windup (owner ruling 2026-08-08), written
         // only by a ruleset that authors one.
         bool hasWindup = element.TryGetProperty("windupTicks", out _);
@@ -924,11 +931,19 @@ public static class ActorCanonicalContractReader
             "rail-line" =>
                 ["tellTicks", "range", "damage", "cancelCooldownTicks"],
             "hardlight-block" => ["hull", "durationTicks"],
-            "target-paint" =>
-                ["range", "durationTicks", "enhancedHitCount",
+            "target-paint" => hasAcquisition
+                ? ["range", "acquisitionTicks", "durationTicks",
+                    "enhancedHitCount", "bonusDamage",
+                    "cancelCooldownTicks"]
+                : ["range", "durationTicks", "enhancedHitCount",
                     "bonusDamage"],
-            "kinetic-burst" => ["tellTicks", "pushTiles"],
-            "smoke-canister" => ["range", "radius", "durationTicks"],
+            "kinetic-burst" => hasCancelCooldown
+                ? ["tellTicks", "pushTiles", "cancelCooldownTicks"]
+                : ["tellTicks", "pushTiles"],
+            "smoke-canister" => hasTravel
+                ? ["range", "radius", "durationTicks",
+                    "travelTilesPerTick"]
+                : ["range", "radius", "durationTicks"],
             "sentinel-seed" => hasBolt
                 ? hasWindup
                     ? ["windupTicks", "hull", "range", "damage",
@@ -946,6 +961,12 @@ public static class ActorCanonicalContractReader
                 "cooldownTicks", .. specific,
                 .. hasMetadata
                     ? new[] { "category", "argumentKind", "engagementRange" }
+                    : [],
+                .. hasTiming
+                    ? new[]
+                    {
+                        "initialPhase", "maturityPhase", "cooldownAnchor",
+                    }
                     : []]);
 
         int? Optional(string name) => specific.Contains(name)
@@ -984,10 +1005,18 @@ public static class ActorCanonicalContractReader
             BoltTilesPerAdvance = specific.Contains("boltTilesPerAdvance")
                 ? Int(element, "boltTilesPerAdvance")
                 : null,
+            AcquisitionTicks = Optional("acquisitionTicks"),
             Category = hasMetadata ? Id(element, "category") : null,
             ArgumentKind = hasMetadata ? Id(element, "argumentKind") : null,
             EngagementRange = hasMetadata
                 ? Int(element, "engagementRange")
+                : null,
+            InitialPhase = hasTiming ? Semantic(element, "initialPhase") : null,
+            MaturityPhase = hasTiming
+                ? Semantic(element, "maturityPhase")
+                : null,
+            CooldownAnchor = hasTiming
+                ? Semantic(element, "cooldownAnchor")
                 : null,
         };
     }

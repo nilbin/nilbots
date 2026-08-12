@@ -872,11 +872,14 @@ public static class ArcRelayH0Definition
             chiralWellBirths: loopProfile.ChiralWellBirths);
 
     /// <summary>
-    /// Grammar 2 swaps exactly three envelopes for their dodgeable forms
+    /// Grammar 2 swaps exactly three envelopes for their dodgeable forms;
+    /// grammar 3 inherits that complete roster and versions the four Tapline
+    /// envelopes whose lifecycle chronology changes.
     /// (owner ruling 2026-08-05): the sentinel fires real bolts and fires
     /// faster (2-tick cadence as compensation), the hook becomes a grapple
     /// bolt, and null-field gains a one-tick tell. Hulls, handling, guns,
-    /// and every other signature are identical across grammars.
+    /// Every signature still belongs to the selected grammar even when its
+    /// concrete mechanics record is unchanged.
     /// </summary>
     private static ImmutableArray<LaunchClass> ClassesFor(
         ArcRelayLoopProfile loopProfile)
@@ -888,7 +891,8 @@ public static class ArcRelayH0Definition
         // as long as a gun that damages — and zero authors an instant cast,
         // which is what every utility signature keeps.
         int windup = loopProfile.StrikeWindupTicks;
-        return loopProfile.SignatureGrammarVersion == 1
+        ImmutableArray<LaunchClass> grammar2 =
+            loopProfile.SignatureGrammarVersion == 1
             ? Classes
             : [.. Classes.Select(entry => entry.Signature switch
                 {
@@ -947,6 +951,61 @@ public static class ArcRelayH0Definition
                         },
                     _ => entry,
                 })];
+        if (loopProfile.SignatureGrammarVersion < 3)
+            return grammar2;
+
+        return [.. grammar2.Select(entry => entry.Signature switch
+        {
+            ArcRelaySignatureDefinition.NullField2 field => entry with
+            {
+                Signature = new ArcRelaySignatureDefinition.NullField3(
+                    field.SignatureId,
+                    field.ClassId,
+                    field.ActionId,
+                    field.Radius,
+                    field.DurationTicks,
+                    field.TellTicks,
+                    field.CooldownTicks),
+            },
+            ArcRelaySignatureDefinition.TargetPaint paint => entry with
+            {
+                Signature = new ArcRelaySignatureDefinition.TargetPaint2(
+                    paint.SignatureId,
+                    paint.ClassId,
+                    paint.ActionId,
+                    paint.Range,
+                    acquisitionTicks: 1,
+                    paint.DurationTicks,
+                    paint.EnhancedHitCount,
+                    paint.BonusDamage,
+                    cancelCooldownTicks: 8,
+                    paint.CooldownTicks),
+            },
+            ArcRelaySignatureDefinition.KineticBurst burst => entry with
+            {
+                Signature = new ArcRelaySignatureDefinition.KineticBurst2(
+                    burst.SignatureId,
+                    burst.ClassId,
+                    burst.ActionId,
+                    burst.TellTicks,
+                    burst.PushTiles,
+                    cancelCooldownTicks: 6,
+                    burst.CooldownTicks),
+            },
+            ArcRelaySignatureDefinition.SmokeCanister smoke => entry with
+            {
+                Signature = new ArcRelaySignatureDefinition.SmokeCanister2(
+                    smoke.SignatureId,
+                    smoke.ClassId,
+                    smoke.ActionId,
+                    smoke.Range,
+                    smoke.Radius,
+                    smoke.DurationTicks,
+                    travelTilesPerTick: 3,
+                    smoke.CooldownTicks),
+            },
+            _ => entry,
+        })];
     }
 
     private static ImmutableArray<LaunchClass> CreateClasses() =>
@@ -1051,7 +1110,8 @@ public static class ArcRelayH0Definition
                 [ActorActionParameterKind.ProjectileHeading],
             ArcRelaySignatureDefinition.RepairBeam or
             ArcRelaySignatureDefinition.Exchange or
-            ArcRelaySignatureDefinition.TargetPaint =>
+            ArcRelaySignatureDefinition.TargetPaint or
+            ArcRelaySignatureDefinition.TargetPaint2 =>
                 [ActorActionParameterKind.UnitTarget],
             ArcRelaySignatureDefinition.SurveyFlare or
             ArcRelaySignatureDefinition.FallingStar or
@@ -1059,6 +1119,7 @@ public static class ArcRelayH0Definition
             ArcRelaySignatureDefinition.ArcToss or
             ArcRelaySignatureDefinition.HardlightBlock or
             ArcRelaySignatureDefinition.SmokeCanister or
+            ArcRelaySignatureDefinition.SmokeCanister2 or
             ArcRelaySignatureDefinition.SentinelSeed or
             ArcRelaySignatureDefinition.SentinelSeed2 =>
                 [ActorActionParameterKind.PositionTarget],
@@ -1066,7 +1127,9 @@ public static class ArcRelayH0Definition
                 [ActorActionParameterKind.Direction],
             ArcRelaySignatureDefinition.NullField or
             ArcRelaySignatureDefinition.NullField2 or
-            ArcRelaySignatureDefinition.KineticBurst => [],
+            ArcRelaySignatureDefinition.NullField3 or
+            ArcRelaySignatureDefinition.KineticBurst or
+            ArcRelaySignatureDefinition.KineticBurst2 => [],
             _ => throw new ArgumentOutOfRangeException(nameof(signature)),
         };
 

@@ -442,6 +442,120 @@ public abstract record ArcRelaySignatureDefinition
         public int TellTicks { get; }
     }
 
+    /// <summary>
+    /// Grammar-3 null field. Its footprint is still frozen at declaration,
+    /// but maturity belongs to the post-movement signature phase so the
+    /// published tell is an actual escape window.
+    /// </summary>
+    public sealed record NullField3 : ArcRelaySignatureDefinition
+    {
+        public NullField3(string signatureId, string classId, string actionId,
+            int radius, int durationTicks, int tellTicks, int cooldownTicks)
+            : base(signatureId, classId, actionId, cooldownTicks)
+        {
+            RequirePositive(radius, nameof(radius));
+            RequirePositive(durationTicks, nameof(durationTicks));
+            RequirePositive(tellTicks, nameof(tellTicks));
+            Radius = radius;
+            DurationTicks = durationTicks;
+            TellTicks = tellTicks;
+        }
+        public override SignatureKind Kind => SignatureKind.NullField3;
+        public int Radius { get; }
+        public int DurationTicks { get; }
+        public int TellTicks { get; }
+    }
+
+    /// <summary>
+    /// Grammar-3 target paint. The target is acquired after response movement
+    /// and a voluntary move abandons the acquisition for its authored partial
+    /// cooldown.
+    /// </summary>
+    public sealed record TargetPaint2 : ArcRelaySignatureDefinition
+    {
+        public TargetPaint2(string signatureId, string classId,
+            string actionId, int range, int acquisitionTicks,
+            int durationTicks, int enhancedHitCount, int bonusDamage,
+            int cancelCooldownTicks, int cooldownTicks)
+            : base(signatureId, classId, actionId, cooldownTicks)
+        {
+            RequirePositive(range, nameof(range));
+            RequirePositive(acquisitionTicks, nameof(acquisitionTicks));
+            RequirePositive(durationTicks, nameof(durationTicks));
+            RequirePositive(enhancedHitCount, nameof(enhancedHitCount));
+            RequirePositive(bonusDamage, nameof(bonusDamage));
+            RequirePositive(cancelCooldownTicks, nameof(cancelCooldownTicks));
+            if (cancelCooldownTicks >= cooldownTicks)
+                throw new ArgumentOutOfRangeException(nameof(cancelCooldownTicks));
+            Range = range;
+            AcquisitionTicks = acquisitionTicks;
+            DurationTicks = durationTicks;
+            EnhancedHitCount = enhancedHitCount;
+            BonusDamage = bonusDamage;
+            CancelCooldownTicks = cancelCooldownTicks;
+        }
+        public override SignatureKind Kind => SignatureKind.TargetPaint2;
+        public int Range { get; }
+        public int AcquisitionTicks { get; }
+        public int DurationTicks { get; }
+        public int EnhancedHitCount { get; }
+        public int BonusDamage { get; }
+        public int CancelCooldownTicks { get; }
+    }
+
+    /// <summary>
+    /// Grammar-3 kinetic burst. The frozen origin resolves after response
+    /// movement; leaving the charge spends an authored partial cooldown.
+    /// </summary>
+    public sealed record KineticBurst2 : ArcRelaySignatureDefinition
+    {
+        public KineticBurst2(string signatureId, string classId,
+            string actionId, int tellTicks, int pushTiles,
+            int cancelCooldownTicks, int cooldownTicks)
+            : base(signatureId, classId, actionId, cooldownTicks)
+        {
+            RequirePositive(tellTicks, nameof(tellTicks));
+            RequirePositive(pushTiles, nameof(pushTiles));
+            RequirePositive(cancelCooldownTicks, nameof(cancelCooldownTicks));
+            if (cancelCooldownTicks >= cooldownTicks)
+                throw new ArgumentOutOfRangeException(nameof(cancelCooldownTicks));
+            TellTicks = tellTicks;
+            PushTiles = pushTiles;
+            CancelCooldownTicks = cancelCooldownTicks;
+        }
+        public override SignatureKind Kind => SignatureKind.KineticBurst2;
+        public int TellTicks { get; }
+        public int PushTiles { get; }
+        public int CancelCooldownTicks { get; }
+    }
+
+    /// <summary>
+    /// Grammar-3 smoke canister. The selected tile receives a public
+    /// ballistic flight before the full-duration smoke field begins.
+    /// </summary>
+    public sealed record SmokeCanister2 : ArcRelaySignatureDefinition
+    {
+        public SmokeCanister2(string signatureId, string classId,
+            string actionId, int range, int radius, int durationTicks,
+            int travelTilesPerTick, int cooldownTicks)
+            : base(signatureId, classId, actionId, cooldownTicks)
+        {
+            RequirePositive(range, nameof(range));
+            RequirePositive(radius, nameof(radius));
+            RequirePositive(durationTicks, nameof(durationTicks));
+            RequirePositive(travelTilesPerTick, nameof(travelTilesPerTick));
+            Range = range;
+            Radius = radius;
+            DurationTicks = durationTicks;
+            TravelTilesPerTick = travelTilesPerTick;
+        }
+        public override SignatureKind Kind => SignatureKind.SmokeCanister2;
+        public int Range { get; }
+        public int Radius { get; }
+        public int DurationTicks { get; }
+        public int TravelTilesPerTick { get; }
+    }
+
     private static void RequirePositive(int value, string parameterName)
     {
         if (value <= 0)
@@ -477,10 +591,14 @@ public abstract record ArcRelaySignatureDefinition
         SentinelSeed2 = 16,
         TractorHook2 = 17,
         NullField2 = 18,
+        NullField3 = 19,
+        TargetPaint2 = 20,
+        KineticBurst2 = 21,
+        SmokeCanister2 = 22,
     }
 
     /// <summary>
-    /// Designed-role metadata, projected into grammar-2 contracts so
+    /// Designed-role metadata, projected into grammar-2 and later contracts so
     /// executors can dispatch generically (category order, argument shape,
     /// sensible engagement distance) instead of hand-maintaining tables.
     /// Grammar-1 contracts never carry it, so their bytes never move.
@@ -489,6 +607,18 @@ public abstract record ArcRelaySignatureDefinition
         string Category,
         string ArgumentKind,
         int EngagementRange);
+
+    /// <summary>
+    /// Grammar-3 lifecycle metadata shared by every signature. These stable
+    /// semantic IDs tell clients what the initial public operation means,
+    /// which authoritative chronology boundary may mature it, and where its
+    /// full cooldown is anchored. Type-specific numeric fields remain the
+    /// source of duration, travel, capacity, and cancellation values.
+    /// </summary>
+    public readonly record struct SignatureTimingMetadata(
+        string InitialPhase,
+        string MaturityPhase,
+        string CooldownAnchor);
 
     public static SignatureMetadata MetadataFor(SignatureKind kind) =>
         kind switch
@@ -499,13 +629,14 @@ public abstract record ArcRelaySignatureDefinition
                 new SignatureMetadata("damage", "position", 8),
             SignatureKind.SentinelSeed or SignatureKind.SentinelSeed2 =>
                 new SignatureMetadata("damage", "position", 6),
-            SignatureKind.KineticBurst =>
+            SignatureKind.KineticBurst or SignatureKind.KineticBurst2 =>
                 new SignatureMetadata("damage", "parameterless", 1),
-            SignatureKind.TargetPaint =>
+            SignatureKind.TargetPaint or SignatureKind.TargetPaint2 =>
                 new SignatureMetadata("control", "unit", 7),
             SignatureKind.TractorHook or SignatureKind.TractorHook2 =>
                 new SignatureMetadata("control", "heading", 6),
-            SignatureKind.NullField or SignatureKind.NullField2 =>
+            SignatureKind.NullField or SignatureKind.NullField2
+                or SignatureKind.NullField3 =>
                 new SignatureMetadata("control", "parameterless", 3),
             SignatureKind.TripNode =>
                 new SignatureMetadata("control", "position", 4),
@@ -513,7 +644,7 @@ public abstract record ArcRelaySignatureDefinition
                 new SignatureMetadata("control", "position", 12),
             SignatureKind.PrismWall =>
                 new SignatureMetadata("support", "direction", 6),
-            SignatureKind.SmokeCanister =>
+            SignatureKind.SmokeCanister or SignatureKind.SmokeCanister2 =>
                 new SignatureMetadata("support", "position", 6),
             SignatureKind.SurveyFlare =>
                 new SignatureMetadata("support", "position", 8),
@@ -525,6 +656,58 @@ public abstract record ArcRelaySignatureDefinition
                 new SignatureMetadata("movement", "heading", 4),
             SignatureKind.ArcToss =>
                 new SignatureMetadata("custody", "position", 5),
+            _ => throw new ArgumentOutOfRangeException(nameof(kind)),
+        };
+
+    public static SignatureTimingMetadata TimingFor(SignatureKind kind) =>
+        kind switch
+        {
+            SignatureKind.VectorDash =>
+                new("tell", "tick-start", "completion"),
+            SignatureKind.PrismWall =>
+                new("active", "immediate", "start"),
+            SignatureKind.TractorHook =>
+                new("active", "immediate", "start"),
+            SignatureKind.RepairBeam =>
+                new("channel", "maintained", "completion"),
+            SignatureKind.SurveyFlare =>
+                new("in-flight", "tick-start", "start"),
+            SignatureKind.FallingStar =>
+                new("tell", "tick-start", "completion"),
+            SignatureKind.TripNode =>
+                new("active", "post-movement-contact", "start"),
+            SignatureKind.NullField =>
+                new("active", "immediate", "start"),
+            SignatureKind.ArcToss =>
+                new("tell", "tick-start", "launch"),
+            SignatureKind.Exchange =>
+                new("tell", "tick-start", "completion"),
+            SignatureKind.RailLine =>
+                new("tell", "post-movement", "completion"),
+            SignatureKind.HardlightBlock =>
+                new("active", "immediate", "start"),
+            SignatureKind.TargetPaint =>
+                new("active", "immediate", "start"),
+            SignatureKind.KineticBurst =>
+                new("tell", "tick-start", "completion"),
+            SignatureKind.SmokeCanister =>
+                new("active", "immediate", "start"),
+            SignatureKind.SentinelSeed =>
+                new("active", "immediate", "start"),
+            SignatureKind.SentinelSeed2 =>
+                new("tell", "tick-start", "start"),
+            SignatureKind.TractorHook2 =>
+                new("tell", "post-movement", "start"),
+            SignatureKind.NullField2 =>
+                new("tell", "tick-start", "start"),
+            SignatureKind.NullField3 =>
+                new("tell", "post-movement", "start"),
+            SignatureKind.TargetPaint2 =>
+                new("tell", "post-movement", "start"),
+            SignatureKind.KineticBurst2 =>
+                new("tell", "post-movement", "completion"),
+            SignatureKind.SmokeCanister2 =>
+                new("in-flight", "tick-start", "start"),
             _ => throw new ArgumentOutOfRangeException(nameof(kind)),
         };
 }

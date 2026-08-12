@@ -645,10 +645,16 @@ public sealed class GenericActorMatchSession : IDisposable
                 movedActors,
                 movedSignatureEvents);
             EmitModeEvents(movedSignatureEvents, events);
+            // Action masks were projected before movement. Grammar-3 tracked
+            // acquisition resolves against the world after movement, so its
+            // team-vision check must not reuse those pre-move sensor caches.
+            ResetProjectionCaches();
             ArcRelaySignatureRuntime.TickResult postMovementSignatures =
                 arcRelayAfterMovement.Signatures.ResolvePostMovement(
                     Tick,
-                    ArcRelaySignatureLives());
+                    ArcRelaySignatureLives(),
+                    (teamId, position) =>
+                        TeamVisibleTiles(teamId).Contains(position));
             EmitModeEvents(postMovementSignatures.Events, events);
             ApplyArcRelaySignatureEffects(
                 arcRelayAfterMovement,
@@ -1950,6 +1956,20 @@ public sealed class GenericActorMatchSession : IDisposable
 
             ArcRelaySignatureDefinition signature =
                 mode.Signatures.DefinitionForAction(action.Id);
+            // Grammar-3 null fields mature after movement, after the action
+            // mask that admitted this command was published. Revalidate the
+            // exact body position now: staying inside blocks the requested
+            // signature; spending the response move to escape remains safe.
+            LifeState owner = _lives[resolution.ActorId];
+            if (!mode.Signatures.CanStart(
+                    owner.ActorId,
+                    action.Id,
+                    Tick,
+                    owner.Position))
+            {
+                Block(resolution);
+                continue;
+            }
             if (signature is ArcRelaySignatureDefinition.ArcToss
                 && (!mode.CarriesCore(resolution.ActorId)
                     || !mode.CanCarrierRelocate(resolution.ActorId, Tick)))
@@ -1983,7 +2003,6 @@ public sealed class GenericActorMatchSession : IDisposable
                 }
             }
 
-            LifeState owner = _lives[resolution.ActorId];
             ArcRelaySignatureRuntime.TickResult started = mode.Signatures.Start(
                 Tick,
                 owner.ActorId,
@@ -2369,7 +2388,7 @@ public sealed class GenericActorMatchSession : IDisposable
         ImmutableArray<GenericActorAuthoritativeEvent>.Builder events)
     {
         LifeState[] adjacent = _lives.Values.Where(value =>
-                value.ActorId != effect.Owner
+                effect.Targets.Contains(value.ActorId)
                 && value.Position.ChebyshevDistance(effect.Origin) == 1)
             .OrderBy(value => value.ActorId).ToArray();
         Dictionary<ActorIdentity, Position> requested = adjacent.ToDictionary(

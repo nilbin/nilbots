@@ -47,6 +47,10 @@ internal sealed partial class ArcRelaySignatureRuntime
             new SentinelSeed2Behavior(),
             new TractorHook2Behavior(),
             new NullField2Behavior(),
+            new NullField3Behavior(),
+            new TargetPaint2Behavior(),
+            new KineticBurst2Behavior(),
+            new SmokeCanister2Behavior(),
         ];
         var duplicateKinds = handlers.GroupBy(handler => handler.Kind)
             .Where(group => group.Count() != 1)
@@ -85,6 +89,15 @@ internal sealed partial class ArcRelaySignatureRuntime
         public virtual bool CooldownStartsAtActivation => false;
         public virtual bool DeclaresLineLock => false;
         public virtual bool RootsTellOnMove => false;
+        public virtual bool EstablishesPostMovementSuppression => false;
+
+        /// <summary>
+        /// A rooted tell may author a cheaper voluntary exit than its full
+        /// successful cooldown. Null means the historical abandonment rule:
+        /// remove the tell without changing whatever cooldown anchor it owns.
+        /// </summary>
+        public virtual int? MoveCancelCooldownTicks(
+            ArcRelaySignatureDefinition definition) => null;
 
         public Operation Create(
             ArcRelaySignatureRuntime runtime,
@@ -120,6 +133,7 @@ internal sealed partial class ArcRelaySignatureRuntime
             Operation operation,
             int tick,
             IReadOnlyCollection<Life> lives,
+            Func<int, Position, bool> teamCanSee,
             ImmutableArray<Effect>.Builder effects,
             ImmutableArray<GenericActorModeEvent>.Builder events)
         {
@@ -394,6 +408,7 @@ internal sealed partial class ArcRelaySignatureRuntime
             Operation operation,
             int tick,
             IReadOnlyCollection<Life> lives,
+            Func<int, Position, bool> teamCanSee,
             ImmutableArray<Effect>.Builder effects,
             ImmutableArray<GenericActorModeEvent>.Builder events)
         {
@@ -646,7 +661,13 @@ internal sealed partial class ArcRelaySignatureRuntime
             effects.Add(new Effect.KineticBurst(
                 operation.OperationId,
                 operation.OwnerActorId,
-                operation.SourcePosition));
+                operation.SourcePosition,
+                [.. lives.Values
+                    .Where(value => value.ActorId != operation.OwnerActorId
+                        && value.Position.ChebyshevDistance(
+                            operation.SourcePosition) == 1)
+                    .OrderBy(value => value.ActorId)
+                    .Select(value => value.ActorId)]));
             runtime.Complete(operation, tick, "completed", events);
         }
     }
@@ -840,6 +861,252 @@ internal sealed partial class ArcRelaySignatureRuntime
             operation.CompletesAtTick = null;
             operation.EndsAtTick = checked(tick + field.DurationTicks);
             events.Add(runtime.SignatureEvent(operation, "activated"));
+        }
+    }
+
+    /// <summary>
+    /// Grammar 3 keeps the grammar-2 public tell and frozen footprint, but
+    /// makes its maturity post-movement so the one-tick boundary can truly be
+    /// escaped before suppression begins.
+    /// </summary>
+    private sealed class NullField3Behavior : SignatureBehavior
+    {
+        public override ArcRelaySignatureDefinition.SignatureKind Kind =>
+            ArcRelaySignatureDefinition.SignatureKind.NullField3;
+        public override bool CooldownStartsAtActivation => true;
+        public override bool EstablishesPostMovementSuppression => true;
+
+        protected override Operation CreateUnlocked(
+            ArcRelaySignatureRuntime runtime,
+            SignatureStartContext start)
+        {
+            var value = (ArcRelaySignatureDefinition.NullField3)
+                start.Definition;
+            return NewOperation(
+                start,
+                ArcRelaySignatureState.SignaturePhase.Tell,
+                checked(start.Tick + value.TellTicks),
+                endsAtTick: null,
+                runtime.Radius(start.Source, value.Radius),
+                remainingCapacity: 0);
+        }
+
+        public override void ResolvePostMovement(
+            ArcRelaySignatureRuntime runtime,
+            Operation operation,
+            int tick,
+            IReadOnlyCollection<Life> lives,
+            Func<int, Position, bool> teamCanSee,
+            ImmutableArray<Effect>.Builder effects,
+            ImmutableArray<GenericActorModeEvent>.Builder events)
+        {
+            if (operation.Phase != ArcRelaySignatureState.SignaturePhase.Tell
+                || operation.CompletesAtTick > tick)
+            {
+                return;
+            }
+            var field = (ArcRelaySignatureDefinition.NullField3)
+                operation.Definition;
+            operation.Phase = ArcRelaySignatureState.SignaturePhase.Active;
+            operation.CompletesAtTick = null;
+            operation.EndsAtTick = checked(tick + field.DurationTicks);
+            events.Add(runtime.SignatureEvent(operation, "activated"));
+        }
+    }
+
+    /// <summary>
+    /// Grammar-3 paint is a tracked acquisition rather than an immediate
+    /// damage modifier. It confirms only after response movement and only if
+    /// the target remains alive, in range, and in team vision.
+    /// </summary>
+    private sealed class TargetPaint2Behavior : SignatureBehavior
+    {
+        public override ArcRelaySignatureDefinition.SignatureKind Kind =>
+            ArcRelaySignatureDefinition.SignatureKind.TargetPaint2;
+        public override bool CooldownStartsAtActivation => true;
+        public override bool RootsTellOnMove => true;
+
+        public override int? MoveCancelCooldownTicks(
+            ArcRelaySignatureDefinition definition) =>
+            ((ArcRelaySignatureDefinition.TargetPaint2)definition)
+                .CancelCooldownTicks;
+
+        protected override Operation CreateUnlocked(
+            ArcRelaySignatureRuntime runtime,
+            SignatureStartContext start)
+        {
+            var value = (ArcRelaySignatureDefinition.TargetPaint2)
+                start.Definition;
+            return NewOperation(
+                start,
+                ArcRelaySignatureState.SignaturePhase.Tell,
+                checked(start.Tick + value.AcquisitionTicks),
+                endsAtTick: null,
+                [start.TargetPosition!.Value],
+                remainingCapacity: 0);
+        }
+
+        public override void ResolvePostMovement(
+            ArcRelaySignatureRuntime runtime,
+            Operation operation,
+            int tick,
+            IReadOnlyCollection<Life> lives,
+            Func<int, Position, bool> teamCanSee,
+            ImmutableArray<Effect>.Builder effects,
+            ImmutableArray<GenericActorModeEvent>.Builder events)
+        {
+            if (operation.Phase != ArcRelaySignatureState.SignaturePhase.Tell
+                || operation.CompletesAtTick > tick)
+            {
+                return;
+            }
+            var paint = (ArcRelaySignatureDefinition.TargetPaint2)
+                operation.Definition;
+            Life? owner = lives.FirstOrDefault(value =>
+                value.ActorId == operation.OwnerActorId);
+            Life? target = operation.TargetActorId is ActorIdentity targetId
+                ? lives.FirstOrDefault(value => value.ActorId == targetId)
+                : null;
+            string? cancellation = owner is null
+                ? "owner-destroyed"
+                : target is null
+                    ? "target-destroyed"
+                    : owner.Position.ChebyshevDistance(target.Position)
+                        > paint.Range
+                        ? "target-out-of-range"
+                        : !teamCanSee(
+                            operation.OwnerActorId.TeamId,
+                            target.Position)
+                            ? "target-out-of-sight"
+                            : null;
+            if (cancellation is not null)
+            {
+                runtime.Remove(operation, cancellation, events);
+                return;
+            }
+
+            operation.Phase = ArcRelaySignatureState.SignaturePhase.Active;
+            operation.CompletesAtTick = null;
+            operation.EndsAtTick = checked(tick + paint.DurationTicks);
+            operation.Positions = [target!.Position];
+            operation.RemainingCapacity = paint.EnhancedHitCount;
+            // Preserve Target Paint's historical launch-anchored full
+            // cooldown. Only a voluntary move overwrites that reservation
+            // with the authored partial cooldown.
+            events.Add(runtime.SignatureEvent(operation, "acquired"));
+        }
+    }
+
+    /// <summary>
+    /// Grammar-3 burst resolves against the bodies that are actually adjacent
+    /// after response movement. The tell keeps its frozen origin.
+    /// </summary>
+    private sealed class KineticBurst2Behavior : SignatureBehavior
+    {
+        public override ArcRelaySignatureDefinition.SignatureKind Kind =>
+            ArcRelaySignatureDefinition.SignatureKind.KineticBurst2;
+        public override bool CooldownStartsAtActivation => true;
+        public override bool RootsTellOnMove => true;
+
+        public override int? MoveCancelCooldownTicks(
+            ArcRelaySignatureDefinition definition) =>
+            ((ArcRelaySignatureDefinition.KineticBurst2)definition)
+                .CancelCooldownTicks;
+
+        protected override Operation CreateUnlocked(
+            ArcRelaySignatureRuntime runtime,
+            SignatureStartContext start)
+        {
+            var value = (ArcRelaySignatureDefinition.KineticBurst2)
+                start.Definition;
+            return NewOperation(
+                start,
+                ArcRelaySignatureState.SignaturePhase.Tell,
+                checked(start.Tick + value.TellTicks),
+                endsAtTick: null,
+                runtime.Radius(start.Source, 1),
+                remainingCapacity: 0);
+        }
+
+        public override void ResolvePostMovement(
+            ArcRelaySignatureRuntime runtime,
+            Operation operation,
+            int tick,
+            IReadOnlyCollection<Life> lives,
+            Func<int, Position, bool> teamCanSee,
+            ImmutableArray<Effect>.Builder effects,
+            ImmutableArray<GenericActorModeEvent>.Builder events)
+        {
+            if (operation.Phase != ArcRelaySignatureState.SignaturePhase.Tell
+                || operation.CompletesAtTick > tick)
+            {
+                return;
+            }
+            var burst = (ArcRelaySignatureDefinition.KineticBurst2)
+                operation.Definition;
+            runtime._readyAtTick[operation.OwnerActorId] = checked(
+                tick + burst.CooldownTicks);
+            effects.Add(new Effect.KineticBurst(
+                operation.OperationId,
+                operation.OwnerActorId,
+                operation.SourcePosition,
+                [.. lives
+                    .Where(value => value.ActorId != operation.OwnerActorId
+                        && value.Position.ChebyshevDistance(
+                            operation.SourcePosition) == 1)
+                    .OrderBy(value => value.ActorId)
+                    .Select(value => value.ActorId)]));
+            runtime.Complete(operation, tick, "completed", events);
+        }
+    }
+
+    /// <summary>
+    /// Grammar-3 smoke has a real, public flight. It is utility ordnance, so
+    /// it crosses walls and bodies without inventing projectile contact.
+    /// </summary>
+    private sealed class SmokeCanister2Behavior : SignatureBehavior
+    {
+        public override ArcRelaySignatureDefinition.SignatureKind Kind =>
+            ArcRelaySignatureDefinition.SignatureKind.SmokeCanister2;
+        public override bool CooldownStartsAtActivation => true;
+
+        protected override Operation CreateUnlocked(
+            ArcRelaySignatureRuntime runtime,
+            SignatureStartContext start)
+        {
+            var value = (ArcRelaySignatureDefinition.SmokeCanister2)
+                start.Definition;
+            int travelTicks = Math.Max(
+                1,
+                (start.Source.ChebyshevDistance(start.TargetPosition!.Value)
+                 + value.TravelTilesPerTick - 1)
+                / value.TravelTilesPerTick);
+            return NewOperation(
+                start,
+                ArcRelaySignatureState.SignaturePhase.InFlight,
+                checked(start.Tick + travelTicks),
+                endsAtTick: null,
+                Endpoints(start.Source, start.TargetPosition.Value),
+                remainingCapacity: 0);
+        }
+
+        public override void AdvanceAtTickStart(
+            ArcRelaySignatureRuntime runtime,
+            Operation operation,
+            int tick,
+            IReadOnlyDictionary<ActorIdentity, Life> lives,
+            ImmutableArray<Effect>.Builder effects,
+            ImmutableArray<GenericActorModeEvent>.Builder events)
+        {
+            var smoke = (ArcRelaySignatureDefinition.SmokeCanister2)
+                operation.Definition;
+            operation.Phase = ArcRelaySignatureState.SignaturePhase.Active;
+            operation.CompletesAtTick = null;
+            operation.EndsAtTick = checked(tick + smoke.DurationTicks);
+            operation.Positions = runtime.Radius(
+                operation.TargetPosition!.Value,
+                smoke.Radius);
+            events.Add(runtime.SignatureEvent(operation, "landed"));
         }
     }
 }

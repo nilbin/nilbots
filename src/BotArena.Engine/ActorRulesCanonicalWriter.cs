@@ -339,14 +339,16 @@ internal static class ActorRulesCanonicalWriter
             WriteArcRelaySignature(
                 writer,
                 signature,
-                includeMetadata: mode.SignatureGrammarVersion >= 2);
+                includeMetadata: mode.SignatureGrammarVersion >= 2,
+                includeTiming: mode.SignatureGrammarVersion >= 3);
         writer.WriteEndArray();
     }
 
     private static void WriteArcRelaySignature(
         Utf8JsonWriter writer,
         ArcRelaySignatureDefinition signature,
-        bool includeMetadata)
+        bool includeMetadata,
+        bool includeTiming)
     {
         writer.WriteStartObject();
         writer.WriteString("kind", Id(signature.Kind));
@@ -483,6 +485,35 @@ internal static class ActorRulesCanonicalWriter
                 writer.WriteNumber("durationTicks", value.DurationTicks);
                 writer.WriteNumber("tellTicks", value.TellTicks);
                 break;
+            case ArcRelaySignatureDefinition.NullField3 value:
+                writer.WriteNumber("radius", value.Radius);
+                writer.WriteNumber("durationTicks", value.DurationTicks);
+                writer.WriteNumber("tellTicks", value.TellTicks);
+                break;
+            case ArcRelaySignatureDefinition.TargetPaint2 value:
+                writer.WriteNumber("range", value.Range);
+                writer.WriteNumber(
+                    "acquisitionTicks", value.AcquisitionTicks);
+                writer.WriteNumber("durationTicks", value.DurationTicks);
+                writer.WriteNumber(
+                    "enhancedHitCount", value.EnhancedHitCount);
+                writer.WriteNumber("bonusDamage", value.BonusDamage);
+                writer.WriteNumber(
+                    "cancelCooldownTicks", value.CancelCooldownTicks);
+                break;
+            case ArcRelaySignatureDefinition.KineticBurst2 value:
+                writer.WriteNumber("tellTicks", value.TellTicks);
+                writer.WriteNumber("pushTiles", value.PushTiles);
+                writer.WriteNumber(
+                    "cancelCooldownTicks", value.CancelCooldownTicks);
+                break;
+            case ArcRelaySignatureDefinition.SmokeCanister2 value:
+                writer.WriteNumber("range", value.Range);
+                writer.WriteNumber("radius", value.Radius);
+                writer.WriteNumber("durationTicks", value.DurationTicks);
+                writer.WriteNumber(
+                    "travelTilesPerTick", value.TravelTilesPerTick);
+                break;
             default:
                 throw Unsupported(signature);
         }
@@ -493,6 +524,14 @@ internal static class ActorRulesCanonicalWriter
             writer.WriteString("category", metadata.Category);
             writer.WriteString("argumentKind", metadata.ArgumentKind);
             writer.WriteNumber("engagementRange", metadata.EngagementRange);
+        }
+        if (includeTiming)
+        {
+            ArcRelaySignatureDefinition.SignatureTimingMetadata timing =
+                ArcRelaySignatureDefinition.TimingFor(signature.Kind);
+            writer.WriteString("initialPhase", timing.InitialPhase);
+            writer.WriteString("maturityPhase", timing.MaturityPhase);
+            writer.WriteString("cooldownAnchor", timing.CooldownAnchor);
         }
         writer.WriteEndObject();
     }

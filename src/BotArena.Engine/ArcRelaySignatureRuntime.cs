@@ -184,6 +184,9 @@ internal sealed partial class ArcRelaySignatureRuntime
             ArcRelaySignatureDefinition.SmokeCanister value =>
                 candidates.Where(target =>
                     source.ChebyshevDistance(target) <= value.Range),
+            ArcRelaySignatureDefinition.SmokeCanister2 value =>
+                candidates.Where(target =>
+                    source.ChebyshevDistance(target) <= value.Range),
             ArcRelaySignatureDefinition.SentinelSeed
                 or ArcRelaySignatureDefinition.SentinelSeed2 =>
                 PlacementTargets(source, lives, forbidTaggedTile: true),
@@ -240,6 +243,10 @@ internal sealed partial class ArcRelaySignatureRuntime
                     && source.ChebyshevDistance(target.Position) <= value.Range
                     && visibleTiles.Contains(target.Position),
                 ArcRelaySignatureDefinition.TargetPaint value =>
+                    target.ActorId.TeamId != actor.TeamId
+                    && source.ChebyshevDistance(target.Position) <= value.Range
+                    && visibleTiles.Contains(target.Position),
+                ArcRelaySignatureDefinition.TargetPaint2 value =>
                     target.ActorId.TeamId != actor.TeamId
                     && source.ChebyshevDistance(target.Position) <= value.Range
                     && visibleTiles.Contains(target.Position),
@@ -410,23 +417,78 @@ internal sealed partial class ArcRelaySignatureRuntime
 
     public TickResult ResolvePostMovement(
         int tick,
-        IReadOnlyCollection<Life> lives)
+        IReadOnlyCollection<Life> lives,
+        Func<int, Position, bool> teamCanSee)
     {
+        ArgumentNullException.ThrowIfNull(teamCanSee);
         var events = ImmutableArray.CreateBuilder<GenericActorModeEvent>();
         var effects = ImmutableArray.CreateBuilder<Effect>();
-        foreach (Operation operation in _operations.Values
-                     .OrderBy(value => value.OperationId, StringComparer.Ordinal)
-                     .ToArray())
+        Operation[] operations = [.. _operations.Values
+            .OrderBy(value => value.OperationId, StringComparer.Ordinal)];
+        // Suppression fields establish the post-movement world before traps
+        // and every other post-movement handler inspect it. This is a typed
+        // chronology trait, not an operation-id accident: a node under a
+        // newly active field is suppressed on the exact activation boundary.
+        foreach (Operation operation in operations.Where(value =>
+                     BehaviorFor(value.Definition.Kind)
+                         .EstablishesPostMovementSuppression))
         {
             BehaviorFor(operation.Definition.Kind).ResolvePostMovement(
                 this,
                 operation,
                 tick,
                 lives,
+                teamCanSee,
                 effects,
                 events);
         }
+        RefreshSuppressionAfterPostMovement(tick, events);
+        foreach (Operation operation in operations.Where(value =>
+                     !BehaviorFor(value.Definition.Kind)
+                         .EstablishesPostMovementSuppression
+                     && _operations.ContainsKey(value.OperationId)))
+        {
+            BehaviorFor(operation.Definition.Kind).ResolvePostMovement(
+                this,
+                operation,
+                tick,
+                lives,
+                teamCanSee,
+                effects,
+                events);
+        }
+        RefreshSuppressionAfterPostMovement(tick, events);
         return new TickResult(events.ToImmutable(), effects.ToImmutable());
+    }
+
+    /// <summary>
+    /// A grammar-3 null field activates after movement. Recompute maintained
+    /// operations on that same boundary so the newly active field ends a
+    /// channel and visibly suppresses a construct before this tick's new
+    /// signature declares are revalidated.
+    /// </summary>
+    private void RefreshSuppressionAfterPostMovement(
+        int tick,
+        ImmutableArray<GenericActorModeEvent>.Builder events)
+    {
+        foreach (Operation operation in _operations.Values
+                     .OrderBy(value => value.OperationId, StringComparer.Ordinal)
+                     .ToArray())
+        {
+            bool suppressed = SuppressedByHostileNullField(
+                operation.OwnerActorId.TeamId,
+                operation.Positions,
+                tick,
+                operation.OperationId);
+            if (suppressed
+                && operation.Phase
+                    == ArcRelaySignatureState.SignaturePhase.Channel)
+            {
+                Complete(operation, tick, "ended-null-field", events);
+                continue;
+            }
+            operation.Suppressed = suppressed;
+        }
     }
 
     /// <summary>
@@ -664,6 +726,14 @@ internal sealed partial class ArcRelaySignatureRuntime
                      .OrderBy(value => value.OperationId, StringComparer.Ordinal)
                      .ToArray())
         {
+            SignatureBehavior behavior = BehaviorFor(
+                operation.Definition.Kind);
+            if (behavior.MoveCancelCooldownTicks(operation.Definition)
+                    is int cancelTicks)
+            {
+                _readyAtTick[operation.OwnerActorId] = checked(
+                    tick + cancelTicks);
+            }
             Remove(operation, "abandoned-move", events);
         }
     }
@@ -746,6 +816,7 @@ internal sealed partial class ArcRelaySignatureRuntime
     public bool IsSmokeAt(Position position, int tick) =>
         _operations.Values.Any(value =>
             value.Definition is ArcRelaySignatureDefinition.SmokeCanister
+                or ArcRelaySignatureDefinition.SmokeCanister2
             && value.Phase == ArcRelaySignatureState.SignaturePhase.Active
             && value.EndsAtTick > tick
             && value.Positions.Contains(position));
@@ -768,7 +839,8 @@ internal sealed partial class ArcRelaySignatureRuntime
                 continue;
             }
             if (operation.Definition
-                    is ArcRelaySignatureDefinition.SmokeCanister)
+                    is ArcRelaySignatureDefinition.SmokeCanister
+                        or ArcRelaySignatureDefinition.SmokeCanister2)
             {
                 smoke.UnionWith(operation.Positions);
             }
@@ -841,14 +913,18 @@ internal sealed partial class ArcRelaySignatureRuntime
     {
         Operation? paint = _operations.Values.FirstOrDefault(value =>
             value.Definition is ArcRelaySignatureDefinition.TargetPaint
+                or ArcRelaySignatureDefinition.TargetPaint2
             && value.OwnerActorId.TeamId == attacker.TeamId
             && value.TargetActorId == target
             && value.EndsAtTick > tick
             && value.RemainingCapacity > 0);
         operationId = paint?.OperationId;
-        return paint?.Definition is ArcRelaySignatureDefinition.TargetPaint rule
-            ? rule.BonusDamage
-            : 0;
+        return paint?.Definition switch
+        {
+            ArcRelaySignatureDefinition.TargetPaint rule => rule.BonusDamage,
+            ArcRelaySignatureDefinition.TargetPaint2 rule => rule.BonusDamage,
+            _ => 0,
+        };
     }
 
     public GenericActorModeEvent? ConsumeTargetPaint(string operationId)
@@ -1062,6 +1138,7 @@ internal sealed partial class ArcRelaySignatureRuntime
             &&
             value.Definition is ArcRelaySignatureDefinition.NullField
                 or ArcRelaySignatureDefinition.NullField2
+                or ArcRelaySignatureDefinition.NullField3
             && value.OwnerActorId.TeamId != teamId
             && value.EndsAtTick > tick
             && value.Positions.Contains(position));
@@ -1286,7 +1363,8 @@ internal sealed partial class ArcRelaySignatureRuntime
         internal sealed record KineticBurst(
             string Id,
             ActorIdentity Actor,
-            Position Origin) : Effect(Id, Actor);
+            Position Origin,
+            ImmutableArray<ActorIdentity> Targets) : Effect(Id, Actor);
         internal sealed record SentinelFire(
             string Id,
             ActorIdentity Actor,
