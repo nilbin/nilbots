@@ -1,13 +1,14 @@
 # Arc Relay matte signature concepts v1
 
-Status: **owner review**. These images are concept inputs only. They do not
-authorize a Meshy request, change a runtime asset, or alter game mechanics.
+Status: **concept approved; provider inputs ready**. The owner approved both
+concepts on 2026-08-12. That approval does not authorize a paid Meshy request,
+change a runtime asset, or alter game mechanics.
 
 Open `index.html` for the complete visual review sheet.
 
 ## Recommendation
 
-Run exactly two Meshy 7 multi-image-to-3D tasks after owner approval:
+The approved provider batch is exactly two Meshy 7 multi-image-to-3D tasks:
 
 1. **Trip Node** — replace the current glossy generic mine with the
    Minesmith-family three-lobed forge clamp in `trip-node-turnaround.png`.
@@ -67,14 +68,20 @@ team colour or gameplay effect.
 | Veil / Smoke Canister | 2D travelling silhouette plus renderer smoke volume; no GLB for now. |
 | Nest / Sentinel Seed | **New Meshy 7 model candidate in this package.** |
 
-## Handoff after approval
+## Provider-ready handoff
 
-Do not upload either contact sheet directly. Split each approved sheet into
-its four canonical views, inspect consistency, and submit one object per Meshy
-task. Before spending credits, re-check the live official Meshy API model,
-multi-image endpoint, pricing, balance, and credit cap. Preserve request,
-response, task, timing, source hashes, raw outputs, and provider previews under
-`art/class-models/provider-runs/meshy/`.
+The approved sheets have been split into separate canonical views under
+`provider-inputs/trip-node/` and `provider-inputs/sentinel-seed/`. Their
+manifests pin order, dimensions, hashes, texture prompts, and an inactive
+30-credit-per-task safety cap. The existing runner validates both manifests in
+`--validate-only` mode without reading the credential or calling Meshy.
+
+Do not upload either contact sheet directly. Submit one object per task only
+after the owner explicitly authorizes the paid calls. Immediately before that
+spend, re-check the live official Meshy API model, multi-image endpoint,
+pricing, account balance, and the proposed 60-credit total cap. Preserve
+request, response, task, timing, source hashes, raw outputs, and provider
+previews under `art/class-models/provider-runs/meshy/`.
 
 Any returned mesh is a base candidate. It must still pass normalization,
 orientation, one-tile bounds, gameplay-scale, performance, WebGL replay, and

@@ -9,10 +9,22 @@ const repository = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '.
 const requireFromWeb = createRequire(path.join(repository, 'web', 'package.json'));
 const sharp = requireFromWeb('sharp');
 
-const [inputArgument, outputArgument] = process.argv.slice(2);
+const [inputArgument, outputArgument, viewLayoutArgument] = process.argv.slice(2);
 if (!inputArgument || !outputArgument)
   throw new Error(
-    'Usage: node scripts/class-models/split-meshy7-turnaround.mjs <sheet.png> <output-dir>',
+    'Usage: node scripts/class-models/split-meshy7-turnaround.mjs ' +
+      '<sheet.png> <output-dir> [comma-separated quadrant views]',
+  );
+
+const defaultViews = ['front', 'right', 'back', 'front-right-three-quarter'];
+const views = viewLayoutArgument?.split(',') ?? defaultViews;
+if (
+  views.length !== 4 ||
+  views.some((view) => !/^[a-z][a-z0-9-]*$/.test(view)) ||
+  new Set(views).size !== views.length
+)
+  throw new Error(
+    'The optional quadrant layout must contain four distinct safe comma-separated view names.',
   );
 
 const input = path.resolve(repository, inputArgument);
@@ -33,11 +45,14 @@ const outputWidth = 1536;
 const outputHeight = 1024;
 const background = '#eeeeee';
 const panels = [
-  { file: '01-front.png', left: 0, top: 0 },
-  { file: '02-right.png', left: size, top: 0 },
-  { file: '03-back.png', left: 0, top: size },
-  { file: '04-front-right-three-quarter.png', left: size, top: size },
-];
+  { left: 0, top: 0 },
+  { left: size, top: 0 },
+  { left: 0, top: size },
+  { left: size, top: size },
+].map((panel, index) => ({
+  ...panel,
+  file: `${String(index + 1).padStart(2, '0')}-${views[index]}.png`,
+}));
 
 await mkdir(outputDirectory, { recursive: true });
 for (const panel of panels) {

@@ -14,7 +14,7 @@ const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
 const plan = manifest.meshyRequestPlan;
 const runCollection = manifest.providerRunCollection ?? 'arc-relay-meshy7-pilot';
 
-validateManifest(manifest, plan);
+validateManifest(manifest, plan, { requireAuthorization: !options.validateOnly });
 
 const inputs = [];
 for (const input of [...manifest.meshyInputs].sort((left, right) => left.order - right.order)) {
@@ -314,14 +314,17 @@ function sanitizeTask(value, key = '') {
   return value;
 }
 
-function validateManifest(value, requestPlan) {
+function validateManifest(value, requestPlan, { requireAuthorization }) {
   if (!/^[a-z][a-z0-9-]*$/.test(value?.classId ?? ''))
     throw new Error('The manifest classId is missing or unsafe.');
   if (!Array.isArray(value.meshyInputs) || value.meshyInputs.length !== 4)
     throw new Error('Exactly four Meshy inputs are required.');
-  if (!requestPlan?.authorized)
+  if (requireAuthorization && !requestPlan?.authorized)
     throw new Error('The manifest does not authorize a paid Meshy request.');
-  if (requestPlan.completedTaskId || requestPlan.authorizationConsumed)
+  if (
+    requireAuthorization &&
+    (requestPlan.completedTaskId || requestPlan.authorizationConsumed)
+  )
     throw new Error('The paid Meshy authorization in this manifest has already been consumed.');
   if (requestPlan.ai_model !== 'meshy-7') throw new Error('ai_model must be meshy-7.');
   if (requestPlan.texture_resolution !== '2k')
