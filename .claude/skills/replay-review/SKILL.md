@@ -37,6 +37,15 @@ the profile so both pages share the HTTP cache. On a retry, capture only missing
 or failed frame IDs and retain already successful pinned frames. Never start a
 fresh browser context merely to capture another tick.
 
+A retained screenshot set is not yet a review gallery. When frames are part of
+the requested evidence, also provide a navigable, phone-friendly index that
+groups them by the comparison the reviewer is meant to make (for example
+start/action/resolve or desktop/phone), labels the pinned replay and tick, and
+links to the live replay when one exists. Deliver the exact public gallery URL;
+a capture directory, JSON index, README, or contact sheet by itself is not a
+review handoff. Prefer an index that reads the retained capture manifest so a
+partial retry cannot leave the gallery stale.
+
 The same boundary applies to gameplay artifacts: ordinary review runs mind
 sources in-process. Do not rebuild tracked WASM, mint a stock artifact or
 playlist, reset ratings, or bump release versions until the owner explicitly

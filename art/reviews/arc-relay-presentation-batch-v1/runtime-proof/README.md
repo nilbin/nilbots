@@ -30,6 +30,8 @@ actually rendered from real Tapline matches.
 
 ## Evidence map
 
+- `index.html` — phone-friendly visual gallery for the complete retained frame
+  set, with a link into the live two-replay viewer.
 - `proof-manifest.json` — canonical hashes, WASM provenance, exact class,
   projectile, signature, and level-up coverage.
 - `replays/*.broadcast.json.gz` — compact spectator projections, each below

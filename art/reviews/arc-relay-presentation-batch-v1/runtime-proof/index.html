@@ -1,0 +1,597 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#080c11">
+  <title>Nilbots · Arc Relay runtime gallery</title>
+  <style>
+    :root {
+      --page: #080c11;
+      --panel: #0d141b;
+      --raised: #121c25;
+      --line: #27343e;
+      --line-strong: #3b4b55;
+      --ink: #edf3f3;
+      --muted: #9eabad;
+      --dim: #6f7d81;
+      --cyan: #83c8cd;
+      --cyan-dark: #102a2f;
+      --brass: #d0a260;
+      --green: #9dbda5;
+      --radius: 17px;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system,
+        BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 8% 0%, rgba(79, 120, 124, .14), transparent 28rem),
+        radial-gradient(circle at 93% 3%, rgba(135, 101, 55, .09), transparent 25rem),
+        var(--page);
+      line-height: 1.5;
+    }
+    a { color: inherit; }
+    button { font: inherit; }
+    .shell { width: min(1460px, calc(100% - 34px)); margin: 0 auto; }
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      border-bottom: 1px solid rgba(131, 200, 205, .17);
+      background: rgba(8, 12, 17, .9);
+      backdrop-filter: blur(16px);
+    }
+    .topbar .shell {
+      display: flex;
+      align-items: center;
+      gap: 22px;
+      min-height: 56px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .topbar .shell::-webkit-scrollbar { display: none; }
+    .brand {
+      margin-right: auto;
+      color: var(--cyan);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .13em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    nav { display: flex; gap: 19px; }
+    nav a {
+      color: var(--muted);
+      font-size: 12px;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+    nav a:hover { color: var(--ink); }
+    header { padding: clamp(54px, 8vw, 108px) 0 52px; }
+    .eyebrow {
+      color: var(--brass);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: .15em;
+      text-transform: uppercase;
+    }
+    h1 {
+      max-width: 970px;
+      margin: 13px 0 18px;
+      font-size: clamp(42px, 7.2vw, 90px);
+      font-weight: 640;
+      letter-spacing: -.055em;
+      line-height: .97;
+    }
+    .lede {
+      max-width: 790px;
+      margin: 0;
+      color: #bbc6c8;
+      font-size: clamp(17px, 2vw, 22px);
+    }
+    .actions { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 28px; }
+    .button {
+      display: inline-flex;
+      align-items: center;
+      min-height: 42px;
+      padding: 0 16px;
+      border: 1px solid var(--line-strong);
+      border-radius: 999px;
+      color: var(--ink);
+      background: rgba(18, 28, 37, .72);
+      font-size: 13px;
+      font-weight: 700;
+      text-decoration: none;
+    }
+    .button.primary {
+      border-color: rgba(131, 200, 205, .45);
+      color: #dff5f5;
+      background: var(--cyan-dark);
+    }
+    .button:hover { border-color: var(--cyan); }
+    .status {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 9px;
+      margin-top: 38px;
+    }
+    .metric {
+      min-height: 108px;
+      padding: 17px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: linear-gradient(150deg, rgba(18, 28, 37, .96), rgba(10, 15, 21, .96));
+    }
+    .metric b {
+      display: block;
+      margin-bottom: 5px;
+      color: var(--cyan);
+      font-size: 28px;
+      font-weight: 650;
+      line-height: 1;
+    }
+    .metric span { color: var(--muted); font-size: 12px; }
+    .verified {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      margin-top: 10px;
+      padding: 15px 17px;
+      border: 1px solid rgba(157, 189, 165, .25);
+      border-radius: var(--radius);
+      color: #c1d1c5;
+      background: rgba(34, 57, 41, .3);
+      font-size: 13px;
+    }
+    .verified strong { color: var(--green); white-space: nowrap; }
+    main { padding-bottom: 100px; }
+    section { padding-top: 76px; }
+    .section-head {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(280px, 480px);
+      gap: 30px;
+      align-items: end;
+      margin-bottom: 24px;
+    }
+    h2 {
+      margin: 0;
+      font-size: clamp(31px, 4.6vw, 55px);
+      font-weight: 620;
+      letter-spacing: -.04em;
+      line-height: 1.02;
+    }
+    .section-head p { margin: 0; color: var(--muted); }
+    .overview-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+    .frame-card, .lifecycle-card, .proof-card {
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel);
+    }
+    .frame-button {
+      display: block;
+      width: 100%;
+      padding: 0;
+      border: 0;
+      color: inherit;
+      background: #05080b;
+      cursor: zoom-in;
+      text-align: left;
+    }
+    .frame-button img {
+      display: block;
+      width: 100%;
+      aspect-ratio: 16 / 10;
+      object-fit: cover;
+    }
+    .frame-button:focus-visible { outline: 2px solid var(--cyan); outline-offset: -2px; }
+    .frame-meta { padding: 15px 17px 17px; }
+    .frame-meta strong { display: block; font-size: 15px; }
+    .frame-meta span {
+      display: block;
+      margin-top: 3px;
+      color: var(--muted);
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 11px;
+    }
+    .lifecycle-list { display: grid; gap: 16px; }
+    .lifecycle-head {
+      display: flex;
+      gap: 18px;
+      align-items: baseline;
+      padding: 17px 18px 14px;
+      border-bottom: 1px solid var(--line);
+    }
+    .lifecycle-head .number {
+      color: var(--brass);
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 12px;
+    }
+    .lifecycle-head h3 { margin: 0; font-size: 19px; letter-spacing: -.02em; }
+    .lifecycle-head p {
+      margin: 0 0 0 auto;
+      color: var(--dim);
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 11px;
+    }
+    .phase-grid { display: grid; grid-template-columns: repeat(3, 1fr); }
+    .phase-grid figure { margin: 0; min-width: 0; }
+    .phase-grid figure + figure { border-left: 1px solid var(--line); }
+    .phase-grid img {
+      display: block;
+      width: 100%;
+      aspect-ratio: 16 / 10;
+      object-fit: cover;
+    }
+    .phase-grid figcaption {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 10px 12px 12px;
+      color: var(--muted);
+      font-size: 11px;
+      text-transform: capitalize;
+    }
+    .phase-grid figcaption b { color: var(--ink); }
+    .phase-grid figcaption code { color: var(--dim); font-size: 10px; }
+    .note {
+      margin-top: 14px;
+      padding: 14px 16px;
+      border-left: 3px solid var(--brass);
+      border-radius: 3px 12px 12px 3px;
+      color: #d2c4ae;
+      background: rgba(208, 162, 96, .08);
+      font-size: 13px;
+    }
+    .motion-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+    .level-card { margin-top: 12px; }
+    .proof-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+    .proof-card { padding: 20px; }
+    .proof-card small {
+      color: var(--dim);
+      font-weight: 800;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+    .proof-card h3 { margin: 9px 0 7px; font-size: 19px; }
+    .proof-card p { margin: 0; color: var(--muted); font-size: 13px; }
+    .proof-card b { color: var(--green); }
+    .proof-shot {
+      display: block;
+      width: 100%;
+      margin-top: 16px;
+      border: 1px solid var(--line);
+      border-radius: 11px;
+    }
+    .method {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+    .method article {
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel);
+    }
+    .method h3 { margin: 0 0 7px; font-size: 16px; }
+    .method p { margin: 0; color: var(--muted); font-size: 13px; }
+    footer {
+      padding: 24px 0 50px;
+      border-top: 1px solid var(--line);
+      color: var(--dim);
+      font-size: 11px;
+    }
+    dialog {
+      width: min(1500px, calc(100% - 22px));
+      max-width: none;
+      padding: 0;
+      border: 1px solid var(--line-strong);
+      border-radius: 16px;
+      color: var(--ink);
+      background: #05080b;
+      box-shadow: 0 40px 110px rgba(0, 0, 0, .7);
+    }
+    dialog::backdrop { background: rgba(0, 0, 0, .86); backdrop-filter: blur(8px); }
+    .lightbox-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+      background: var(--panel);
+    }
+    .lightbox-bar strong { margin-right: auto; font-size: 13px; }
+    .lightbox-bar button {
+      min-width: 38px;
+      min-height: 34px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      color: var(--ink);
+      background: var(--raised);
+      cursor: pointer;
+    }
+    #lightbox-image { display: block; width: 100%; max-height: calc(100dvh - 58px); object-fit: contain; }
+    .loading { padding: 40px; color: var(--muted); text-align: center; }
+    .error { color: #e1a18f; }
+    @media (max-width: 900px) {
+      .status { grid-template-columns: repeat(3, 1fr); }
+      .motion-grid { grid-template-columns: repeat(2, 1fr); }
+      .lifecycle-head { flex-wrap: wrap; gap: 7px 14px; }
+      .lifecycle-head p { width: 100%; margin-left: 30px; }
+    }
+    @media (max-width: 660px) {
+      .shell { width: min(100% - 20px, 1460px); }
+      .topbar .shell { min-height: 51px; gap: 16px; }
+      nav { gap: 15px; }
+      header { padding-top: 46px; }
+      .status { grid-template-columns: repeat(2, 1fr); }
+      .metric { min-height: 98px; padding: 15px; }
+      .section-head { grid-template-columns: 1fr; gap: 11px; }
+      section { padding-top: 58px; }
+      .overview-grid, .proof-grid, .method { grid-template-columns: 1fr; }
+      .phase-grid { grid-template-columns: 1fr; }
+      .phase-grid figure + figure { border-left: 0; border-top: 1px solid var(--line); }
+      .phase-grid img { aspect-ratio: 16 / 9; }
+      .verified { display: block; }
+      .verified strong { display: block; margin-bottom: 3px; }
+    }
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="shell">
+      <div class="brand">Nilbots / runtime proof</div>
+      <nav aria-label="Gallery sections">
+        <a href="#overviews">Overviews</a>
+        <a href="#lifecycles">16 signatures</a>
+        <a href="#motion">Reduced motion</a>
+        <a href="#performance">Performance</a>
+        <a href="../../../../web/dist-review/?standalone">Watch replay</a>
+      </nav>
+    </div>
+  </div>
+
+  <header class="shell">
+    <div class="eyebrow">Implemented · real Tapline frames</div>
+    <h1>Arc Relay, as the game actually renders it.</h1>
+    <p class="lede">The post-implementation gallery: two retained WASM matches,
+      all sixteen signature lifecycles, phone framing, reduced motion, level-up,
+      and renderer performance. Click any frame for the full capture.</p>
+    <div class="actions">
+      <a class="button primary" href="../../../../web/dist-review/?standalone">Watch the two live replays</a>
+      <a class="button" href="../">Compare with concept boards</a>
+      <a class="button" href="captures/signature-lifecycle-contact-sheet.webp">Open one-sheet overview</a>
+    </div>
+    <div class="status" aria-label="Proof scope">
+      <div class="metric"><b id="signature-count">16</b><span>signature lifecycle rows</span></div>
+      <div class="metric"><b id="frame-count">57</b><span>captured arena frames</span></div>
+      <div class="metric"><b id="match-count">2</b><span>real WASM matches</span></div>
+      <div class="metric"><b id="projectile-count">16</b><span>class projectile identities</span></div>
+      <div class="metric"><b id="level-count">44</b><span>real level-up facts covered</span></div>
+      <div class="metric"><b id="seek-count">6/6</b><span>direct-seek comparisons equal</span></div>
+    </div>
+    <div class="verified">
+      <strong>Browser proof passed.</strong>
+      <span>WebGL geometry was visible at every required start/action beat;
+        captured requests, console, and page errors: zero.</span>
+    </div>
+  </header>
+
+  <main class="shell">
+    <section id="overviews">
+      <div class="section-head">
+        <h2>Desktop and phone</h2>
+        <p>The same retained matches mounted under the desktop and mobile render
+          profiles. Phone proof is 844 × 390 landscape with the mobile geometry,
+          pixel-ratio, shadow, and frame-rate budgets active.</p>
+      </div>
+      <div id="overview-grid" class="overview-grid"><p class="loading">Loading retained frames…</p></div>
+    </section>
+
+    <section id="lifecycles">
+      <div class="section-head">
+        <h2>Sixteen complete stories</h2>
+        <p>Every shipping signature follows the shared grammar-3 envelope.
+          Start is the authored tell, action is the physical or active beat,
+          and resolve proves that expired geometry clears.</p>
+      </div>
+      <div id="lifecycle-list" class="lifecycle-list"><p class="loading">Loading lifecycle rows…</p></div>
+      <div class="note"><strong>Reading the resolve column:</strong> an empty
+        signature rig is the expected successful result once its authoritative
+        replay interval has ended—not a missing screenshot.</div>
+    </section>
+
+    <section id="motion">
+      <div class="section-head">
+        <h2>Motion floor and level-up</h2>
+        <p>Reduced motion preserves public truth while suppressing ornamental
+          motion. The level-up transient comes from an actual replay fact, not
+          a manually staged renderer state.</p>
+      </div>
+      <div id="motion-grid" class="motion-grid"><p class="loading">Loading reduced-motion frames…</p></div>
+      <div id="level-card" class="level-card"></div>
+    </section>
+
+    <section id="performance">
+      <div class="section-head">
+        <h2>Phone renderer evidence</h2>
+        <p>The Apple-GPU WebKit run is the credible host proxy. Chromium is kept
+          alongside it as an explicitly labelled SwiftShader diagnostic.</p>
+      </div>
+      <div id="performance-grid" class="proof-grid"><p class="loading">Loading performance records…</p></div>
+    </section>
+
+    <section id="method">
+      <div class="section-head">
+        <h2>What these frames prove</h2>
+        <p>The gallery is review evidence, not a substitute for taste on a real
+          phone and headphones. The live replay button is the final human gate.</p>
+      </div>
+      <div class="method">
+        <article><h3>Retained identity</h3><p>Every image is SHA-256 linked from the browser-proof record and tied to the immutable viewer build fingerprint.</p></article>
+        <article><h3>Truthful seeking</h3><p>Six representative signatures rendered identically after direct seek and continuous playback on the captured build.</p></article>
+        <article><h3>No ambience</h3><p>The live viewer carries the approved restrained SFX package and music; no ambient loop is shipped or played.</p></article>
+      </div>
+    </section>
+  </main>
+
+  <footer><div class="shell">Arc Relay presentation batch v1 · retained runtime gallery · <span id="build-id">loading build…</span></div></footer>
+
+  <dialog id="lightbox" aria-label="Full-size captured frame">
+    <div class="lightbox-bar">
+      <strong id="lightbox-title">Captured frame</strong>
+      <button id="previous-frame" type="button" aria-label="Previous frame">←</button>
+      <button id="next-frame" type="button" aria-label="Next frame">→</button>
+      <button id="close-lightbox" type="button" aria-label="Close full-size frame">×</button>
+    </div>
+    <img id="lightbox-image" alt="">
+  </dialog>
+
+  <script type="module">
+    const fetchJson = async (url) => {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`${url}: HTTP ${response.status}`);
+      return response.json();
+    };
+    const escapeHtml = (value) => String(value).replace(/[&<>"]/g, (character) => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;',
+    })[character]);
+    const titleCase = (value) => value.split('-')
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join(' ');
+    const localImage = (value) => {
+      const marker = '/runtime-proof/';
+      const index = value.indexOf(marker);
+      return index >= 0 ? value.slice(index + marker.length) : value;
+    };
+    const shortMatch = (value) => value === 'core-roster' ? 'Core roster' : 'Remaining roster';
+    const frame = (image, label) => `
+      <button class="frame-button" type="button" data-frame="${escapeHtml(localImage(image))}"
+        data-label="${escapeHtml(label)}" aria-label="Open ${escapeHtml(label)} full size">
+        <img loading="lazy" src="${escapeHtml(localImage(image))}" alt="${escapeHtml(label)}">
+      </button>`;
+    const countFrames = (proof) => proof.captures.length +
+      proof.lifecycle.reduce((total, row) => total + row.phases.length, 0) +
+      proof.reducedMotion.length + (proof.levelUp ? 1 : 0);
+
+    try {
+      const [proof, manifest, webkit, chromium] = await Promise.all([
+        fetchJson('captures/browser-proof.json'),
+        fetchJson('proof-manifest.json'),
+        fetchJson('performance/phone-webgl-webkit.json'),
+        fetchJson('performance/phone-webgl-chromium.json'),
+      ]);
+      if (!proof.passed || !manifest.passed) throw new Error('Retained proof is not marked passed.');
+
+      document.querySelector('#signature-count').textContent = proof.lifecycle.length;
+      document.querySelector('#frame-count').textContent = countFrames(proof);
+      document.querySelector('#match-count').textContent = manifest.matches.length;
+      document.querySelector('#projectile-count').textContent = manifest.coverage.projectileLookCount;
+      document.querySelector('#level-count').textContent = manifest.coverage.levelUpFactCount;
+      document.querySelector('#seek-count').textContent = `${proof.seekComparisons.filter((entry) => entry.equal).length}/${proof.seekComparisons.length}`;
+      document.querySelector('#build-id').textContent = `viewer ${proof.buildSha256.slice(0, 12)} · source ${proof.sourceRevision.slice(0, 8)}`;
+
+      document.querySelector('#overview-grid').innerHTML = proof.captures.map((entry) => {
+        const device = entry.mobile ? 'Phone landscape' : 'Desktop';
+        const label = `${shortMatch(entry.matchId)} · ${device}`;
+        return `<article class="frame-card">${frame(entry.image, label)}
+          <div class="frame-meta"><strong>${escapeHtml(label)}</strong>
+          <span>${entry.viewport.width}×${entry.viewport.height} · ${entry.canvas.renderProfile} · ${entry.canvas.pixelRatio}× render ratio · t${entry.time.toFixed(2)}</span></div></article>`;
+      }).join('');
+
+      document.querySelector('#lifecycle-list').innerHTML = proof.lifecycle.map((row, index) => `
+        <article class="lifecycle-card">
+          <div class="lifecycle-head"><span class="number">${String(index + 1).padStart(2, '0')}</span>
+            <h3>${escapeHtml(titleCase(row.signatureId))}</h3>
+            <p>${escapeHtml(shortMatch(row.matchId))} · ${escapeHtml(row.operationId)}</p></div>
+          <div class="phase-grid">${row.phases.map((phase) => {
+            const label = `${titleCase(row.signatureId)} · ${titleCase(phase.beat)} · t${phase.actualTime.toFixed(2)}`;
+            const state = phase.visible.length > 0 ? phase.visible.map((entry) => entry.phase).join(', ') : 'rig cleared';
+            return `<figure>${frame(phase.image, label)}<figcaption><b>${escapeHtml(phase.beat)}</b><code>t${phase.actualTime.toFixed(2)} · ${escapeHtml(state)}</code></figcaption></figure>`;
+          }).join('')}</div>
+        </article>`).join('');
+
+      document.querySelector('#motion-grid').innerHTML = proof.reducedMotion.map((entry) => {
+        const label = `${titleCase(entry.signatureId)} · reduced motion`;
+        return `<article class="frame-card">${frame(entry.image, label)}
+          <div class="frame-meta"><strong>${escapeHtml(label)}</strong><span>public phase retained · t${entry.time.toFixed(2)}</span></div></article>`;
+      }).join('');
+
+      const level = proof.levelUp;
+      document.querySelector('#level-card').innerHTML = `<article class="frame-card">
+        ${frame(level.image, `Level up · level ${level.fact.level}`)}
+        <div class="frame-meta"><strong>Fact-driven level up · level ${level.fact.level}</strong>
+        <span>${escapeHtml(shortMatch(level.matchId))} · tick ${level.fact.tick} · position ${level.fact.position.x},${level.fact.position.y}</span></div></article>`;
+
+      const performanceCard = (record, label, credible) => {
+        const fps = record.rates.renderedFramesPerSecond.toFixed(2);
+        const pixels = (record.rates.weightedPixelsPerSecond / 1_000_000).toFixed(2);
+        const image = record.browser === 'webkit' ? 'performance/phone-webgl-webkit.png' : 'performance/phone-webgl-chromium.png';
+        return `<article class="proof-card"><small>${escapeHtml(label)}</small>
+          <h3>${credible ? `<b>${fps} rendered fps</b> / 30 cap` : `${fps} rendered fps`}</h3>
+          <p>${escapeHtml(record.canvas.renderer)} · ${pixels}M weighted pixels/s${credible ? ' / 54M budget' : ' · software-only diagnostic, not a phone claim'}.</p>
+          <img class="proof-shot" loading="lazy" src="${image}" alt="${escapeHtml(label)} performance capture"></article>`;
+      };
+      document.querySelector('#performance-grid').innerHTML =
+        performanceCard(webkit, 'Credible WebKit host proxy', true) +
+        performanceCard(chromium, 'Chromium SwiftShader diagnostic', false);
+
+      const dialog = document.querySelector('#lightbox');
+      const dialogImage = document.querySelector('#lightbox-image');
+      const dialogTitle = document.querySelector('#lightbox-title');
+      let frames = [];
+      let activeFrame = 0;
+      const showFrame = (index) => {
+        if (frames.length === 0) return;
+        activeFrame = (index + frames.length) % frames.length;
+        const source = frames[activeFrame];
+        dialogImage.src = source.dataset.frame;
+        dialogImage.alt = source.dataset.label;
+        dialogTitle.textContent = `${source.dataset.label} · ${activeFrame + 1}/${frames.length}`;
+      };
+      frames = [...document.querySelectorAll('[data-frame]')];
+      document.addEventListener('click', (event) => {
+        const source = event.target.closest?.('[data-frame]');
+        if (!source) return;
+        showFrame(frames.indexOf(source));
+        dialog.showModal();
+      });
+      document.querySelector('#previous-frame').addEventListener('click', () => showFrame(activeFrame - 1));
+      document.querySelector('#next-frame').addEventListener('click', () => showFrame(activeFrame + 1));
+      document.querySelector('#close-lightbox').addEventListener('click', () => dialog.close());
+      dialog.addEventListener('click', (event) => {
+        if (event.target === dialog) dialog.close();
+      });
+      document.addEventListener('keydown', (event) => {
+        if (!dialog.open) return;
+        if (event.key === 'ArrowLeft') showFrame(activeFrame - 1);
+        if (event.key === 'ArrowRight') showFrame(activeFrame + 1);
+      });
+    } catch (error) {
+      for (const target of document.querySelectorAll('.loading')) {
+        target.classList.add('error');
+        target.textContent = `Gallery could not load: ${error.message}`;
+      }
+      console.error(error);
+    }
+  </script>
+</body>
+</html>

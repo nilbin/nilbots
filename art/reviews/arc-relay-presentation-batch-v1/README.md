@@ -93,13 +93,19 @@ deliberate approximations, implementation seam, and capture acceptance gate.
 - `runtime-proof/README.md` — implemented grammar coverage, WASM provenance,
   WebGL lifecycle sheet, phone/reduced-motion/seek proof, and performance
   results.
+- `runtime-proof/index.html` — mobile-friendly gallery for every retained
+  post-implementation frame, plus the live replay entry point.
 
 ## Local review
 
 ```sh
 python3 scripts/serve-gallery.py 9093 --bind 127.0.0.1 \
-  --directory art/reviews/arc-relay-presentation-batch-v1
+  --directory .
 ```
+
+Then open
+`/art/reviews/arc-relay-presentation-batch-v1/runtime-proof/` for the retained
+frame gallery or `/web/dist-review/?standalone` for the two live replays.
 
 Approval of the whole batch authorizes the framework/refactor, canonical
 documentation, four-change Tapline vNext mechanics package, renderer work, and
