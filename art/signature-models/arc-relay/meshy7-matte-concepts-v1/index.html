@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Arc Relay · Matte Signature Concepts</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --field: #090d11;
+        --panel: #11171c;
+        --line: #2a333a;
+        --text: #e9edf0;
+        --dim: #9aa6ae;
+        --model: #d7a565;
+        --effect: #74a8a8;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: var(--field);
+        color: var(--text);
+        font: 15px/1.5 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+      main { width: min(1440px, 100%); margin: 0 auto; padding: 34px 24px 64px; }
+      h1, h2, h3, p { margin-top: 0; }
+      h1 { margin-bottom: 6px; font-size: clamp(28px, 4vw, 48px); letter-spacing: -0.035em; }
+      h2 { margin-bottom: 14px; font-size: 22px; }
+      h3 { margin-bottom: 4px; font-size: 17px; }
+      .eyebrow { color: var(--model); font: 700 12px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 0.12em; text-transform: uppercase; }
+      .lede { max-width: 820px; color: var(--dim); font-size: 17px; }
+      .gate { margin: 26px 0 36px; padding: 16px 18px; border: 1px solid #5e4a32; background: #18140f; }
+      .gate strong { color: #f2c98f; }
+      .concepts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+      .card { overflow: hidden; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
+      .card img { display: block; width: 100%; height: auto; background: #d9d7d4; }
+      .copy { padding: 18px 20px 20px; }
+      .copy p { margin-bottom: 0; color: var(--dim); }
+      .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+      .chip { padding: 4px 8px; border: 1px solid var(--line); border-radius: 999px; color: #c7d0d5; font: 12px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; }
+      section { margin-top: 44px; }
+      table { width: 100%; border-collapse: collapse; background: var(--panel); border: 1px solid var(--line); }
+      th, td { padding: 11px 12px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+      th { color: var(--dim); font: 700 11px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 0.08em; text-transform: uppercase; }
+      tr:last-child td { border-bottom: 0; }
+      .model { color: var(--model); font-weight: 700; }
+      .effect { color: var(--effect); }
+      .outgoing { display: grid; grid-template-columns: minmax(0, 760px) 1fr; align-items: start; gap: 22px; }
+      .outgoing img { width: 100%; border: 1px solid var(--line); border-radius: 10px; }
+      .outgoing p { color: var(--dim); }
+      code { color: #d8c3a4; }
+      footer { margin-top: 42px; padding-top: 18px; border-top: 1px solid var(--line); color: var(--dim); }
+      @media (max-width: 820px) {
+        main { padding: 24px 14px 44px; }
+        .concepts, .outgoing { grid-template-columns: 1fr; }
+        th:nth-child(1), td:nth-child(1) { width: 37%; }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="eyebrow">Owner review · concept only · 2026-08-12</div>
+      <h1>Arc Relay matte signature models</h1>
+      <p class="lede">A deliberately small Meshy 7 round: two persistent world props, each redesigned to belong to its deploying bot. Every other signature remains an exact renderer-authored effect or a 2D projectile.</p>
+
+      <div class="gate"><strong>No provider spend yet.</strong> Approving this sheet authorizes preparation of separate canonical views; it does not itself authorize either Meshy task or runtime promotion.</div>
+
+      <div class="concepts">
+        <article class="card">
+          <img src="trip-node-turnaround.png" alt="Four-view turnaround sheet for the redesigned matte Trip Node mine" />
+          <div class="copy">
+            <div class="eyebrow">Minesmith · model candidate 01</div>
+            <h2>Trip Node</h2>
+            <p>Low three-lobed forge clamp, flat triangular sensor, and one subtle forward wedge. It trades the outgoing glossy concentric puck for Minesmith’s oxide-terracotta armor and broad matte massing.</p>
+            <div class="chips"><span class="chip">~0.44 tile wide</span><span class="chip">~0.12 tile high</span><span class="chip">lay-flat</span><span class="chip">renderer-owned team ring</span></div>
+          </div>
+        </article>
+
+        <article class="card">
+          <img src="sentinel-seed-turnaround.png" alt="Four-view turnaround sheet for the redesigned matte Sentinel Seed sentry" />
+          <div class="copy">
+            <div class="eyebrow">Nest · model candidate 02</div>
+            <h2>Sentinel Seed</h2>
+            <p>One planted seed pod unfolded into a calyx, with a compact head, very short emitter, and honest 360-degree yaw clearance. The pine-sage / umber / aubergine finish ties it directly to Nest.</p>
+            <div class="chips"><span class="chip">~0.62 tile wide</span><span class="chip">~0.55 tile high</span><span class="chip">+X rest pose</span><span class="chip">authoritative-shot yaw only</span></div>
+          </div>
+        </article>
+      </div>
+
+      <section>
+        <div class="eyebrow">Complete scope</div>
+        <h2>All 16 launch signatures</h2>
+        <table>
+          <thead><tr><th>Signature</th><th>Asset direction</th></tr></thead>
+          <tbody>
+            <tr><td>Vector Dash</td><td class="effect">Renderer surge, route and stop flare · no model</td></tr>
+            <tr><td>Prism Wall</td><td class="effect">Renderer translucent segments, contacts and cracks · no model</td></tr>
+            <tr><td>Tractor Hook</td><td class="effect">Renderer cable, latch and pull path · no model</td></tr>
+            <tr><td>Repair Beam</td><td class="effect">Renderer channel and body emitter · no model</td></tr>
+            <tr><td>Survey Flare</td><td class="effect">2D travelling silhouette + renderer scan field · no GLB for now</td></tr>
+            <tr><td>Falling Star</td><td class="effect">2D shell silhouette + renderer reticle, shadow and impact · no GLB for now</td></tr>
+            <tr><td>Trip Node</td><td class="model">Meshy 7 model candidate · new sheet above</td></tr>
+            <tr><td>Null Field</td><td class="effect">Renderer suppression volume · no model</td></tr>
+            <tr><td>Arc Toss</td><td class="effect">Existing Core geometry + renderer trajectory and landing · no duplicate model</td></tr>
+            <tr><td>Exchange</td><td class="effect">Renderer link and body motion · no model</td></tr>
+            <tr><td>Rail Line</td><td class="effect">Renderer charge line and shot · no model</td></tr>
+            <tr><td>Hardlight Block</td><td class="effect">Renderer rise, solid core, hull fractures and timer · no model</td></tr>
+            <tr><td>Target Paint</td><td class="effect">Renderer brackets and remaining-hit state · no model</td></tr>
+            <tr><td>Kinetic Burst</td><td class="effect">Renderer displacement ring · no model</td></tr>
+            <tr><td>Smoke Canister</td><td class="effect">2D travelling silhouette + renderer smoke volume · no GLB for now</td></tr>
+            <tr><td>Sentinel Seed</td><td class="model">Meshy 7 model candidate · new sheet above</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section>
+        <div class="eyebrow">Outgoing reference</div>
+        <h2>What this round replaces</h2>
+        <div class="outgoing">
+          <img src="outgoing-provider-review-v1.png" alt="Current Trip Node and Sentinel Seed provider models" />
+          <p>The existing Trip Node is glossy, generic graphite hardware and too mechanically dense beside the matte fleet. The existing Sentinel is a beige bunker turret with a long gun. Both read as assets from a different family; the new concepts preserve their gameplay identities while adopting their parent classes’ materials and proportions.</p>
+        </div>
+      </section>
+
+      <footer>Exact prompts, ordered references, dimensions and SHA-256 hashes are stored beside this sheet in <code>PROMPTS.md</code> and <code>manifest.json</code>. No game files or runtime manifests changed.</footer>
+    </main>
+  </body>
+</html>

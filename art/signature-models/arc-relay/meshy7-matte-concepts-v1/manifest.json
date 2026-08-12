@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "status": "owner-review",
+  "createdAt": "2026-08-12",
+  "purpose": "Complete matte Arc Relay signature-model concept package",
+  "providerCallsAuthorized": false,
+  "runtimeAssetsChanged": false,
+  "recommendedMeshyTaskCount": 2,
+  "comparison": {
+    "file": "outgoing-provider-review-v1.png",
+    "source": "art/signature-models/arc-relay/provider-review-v1.png",
+    "bytes": 388241,
+    "sha256": "da1c830073cdfcb9014712502d20fee454ebbccd3bef75b734cb3dc64c0645ac"
+  },
+  "concepts": [
+    {
+      "signatureId": "trip-node",
+      "classId": "minesmith",
+      "file": "trip-node-turnaround.png",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 1513046,
+      "sha256": "03bacf743609000775dd7cb4ea4dd109303c08ebde1510759ceed1e603a3f4aa",
+      "generator": "OpenAI built-in image generation",
+      "generatorModel": "not exposed by tool",
+      "localGeneratorArtifact": "/Users/sebastian.lind/.codex/generated_images/019fed6b-83f0-7282-a78e-11e92b794ab9/exec-880f9829-262c-445e-b9b6-0f071028d18a.png",
+      "references": [
+        {
+          "role": "authoritative current parent palette and matte material language",
+          "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet-retexture-v3-multiview/minesmith/019ff0f5-8ee4-79fa-94d3-6a6cffbaa95f/provider-preview.png",
+          "sha256": "90c44a55a485d60279eb2bab1ffe9691b3ae18e3989faaf6567ab71b02912b7f"
+        },
+        {
+          "role": "outgoing Trip Node identity boundary only",
+          "file": "art/signature-models/arc-relay/trip-node/concept-source-v1-chroma.png",
+          "sha256": "3ed19e11c1b2dadd01ae58e170dc76e35978649879423611ec510a3d8a11c217"
+        }
+      ]
+    },
+    {
+      "signatureId": "sentinel-seed",
+      "classId": "nest",
+      "file": "sentinel-seed-turnaround.png",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 1504106,
+      "sha256": "4ca05ffc00b5661f3ace60e20f677fb251e3403bc58c242c1954bd28dedd20ae",
+      "generator": "OpenAI built-in image generation",
+      "generatorModel": "not exposed by tool",
+      "localGeneratorArtifact": "/Users/sebastian.lind/.codex/generated_images/019fed6b-83f0-7282-a78e-11e92b794ab9/exec-0fe34b9e-01c7-4cb5-9e3a-9b421897dafa.png",
+      "references": [
+        {
+          "role": "authoritative current parent palette and matte material language",
+          "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet-retexture-v3-multiview/nest/019ff0f6-1446-7a06-b591-652543441f63/provider-preview.png",
+          "sha256": "a5a973f145e17aa6a61018d9a9269a7e481238ef3f92980c3b2f2fa091159e39"
+        },
+        {
+          "role": "outgoing Sentinel Seed identity boundary only",
+          "file": "art/signature-models/arc-relay/sentinel-seed/concept-source-v2-chroma.png",
+          "sha256": "c97ed3f7f6bf4b4a190e596c34d96b72a0e34a1f4fe10bbf7518bd67bd921f22"
+        }
+      ]
+    }
+  ]
+}
