@@ -119,6 +119,88 @@ public sealed class OrdersMovementSceneTests
         Assert.DoesNotContain(reasons, string.IsNullOrWhiteSpace);
     }
 
+    [Fact]
+    public void FacingLockedBodyAtDestinationClearsAStarvingMover()
+    {
+        string root = FindRepoRoot();
+        TacticalPlaybookCompilation hunter = Compile(root, "hunter-tapline-v2.json");
+        TacticalPlaybookCompilation wellwright = Compile(
+            root, "wellwright-tapline-v2.json");
+        ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create(
+            hunter.Composition,
+            wellwright.Composition,
+            loopProfile: ArcRelayLoopProfile.Tapline1);
+
+        using var session = new GenericActorMatchSession(
+            definition,
+            [Participant(0, hunter), Participant(1, wellwright)],
+            matchSeed: 9002,
+            recordChronology: true);
+
+        int currentBlockedTicks = 0;
+        int longestBlockedRun = 0;
+        int builderClearanceTurns = 0;
+        int builderClearanceSteps = 0;
+
+        while (!session.IsCompleted)
+        {
+            GenericActorMatchStepResult step = session.Step();
+            GenericMindRuntimeTurn hunterTurn = Assert.Single(
+                step.MindTurns, turn => turn.TeamId == 0);
+            GenericMindCommandResolution hauler = Assert.Single(
+                hunterTurn.Commands,
+                resolution => resolution.Command.UnitId == 2);
+            string haulerReason = hauler.Command.DebugMessage ?? "";
+            bool centreWellBlocked = haulerReason.Contains(
+                "work-centre-well", StringComparison.Ordinal)
+                && haulerReason.Contains(
+                    "move-blocked:well:centre", StringComparison.Ordinal);
+            currentBlockedTicks = centreWellBlocked
+                ? currentBlockedTicks + 1
+                : 0;
+            longestBlockedRun = Math.Max(
+                longestBlockedRun, currentBlockedTicks);
+
+            GenericMindCommandResolution builder = Assert.Single(
+                hunterTurn.Commands,
+                resolution => resolution.Command.UnitId == 7);
+            string builderReason = builder.Command.DebugMessage ?? "";
+            if (builderReason.Contains(
+                    "hold-centre", StringComparison.Ordinal)
+                && builderReason.Contains(
+                    ":make-way:u2:", StringComparison.Ordinal))
+            {
+                if (string.Equals(
+                        builder.Command.ActionId, "rotate",
+                        StringComparison.Ordinal))
+                {
+                    builderClearanceTurns++;
+                }
+                if (string.Equals(
+                        builder.Command.ActionId, "move-eight-way",
+                        StringComparison.Ordinal))
+                {
+                    builderClearanceSteps++;
+                }
+            }
+        }
+
+        // Owner-replay catch (Tapline seed 9002): a normal hauler trying to
+        // enter the centre Well accrued 39 debt ticks behind an at-target
+        // Mason. The plane asked the Mason to clear, but the greedy chooser
+        // proposed a diagonal that a facing-locked body cannot execute and
+        // never tried a cardinal alternative. Clearance must include both
+        // the preparation turn and the actual step; the mover may wait for
+        // that bounded two-tick action, not starve behind it.
+        Assert.True(builderClearanceTurns > 0,
+            "The facing-locked blocker never prepared a clearance heading.");
+        Assert.True(builderClearanceSteps > 0,
+            "The facing-locked blocker never completed its clearance step.");
+        Assert.True(longestBlockedRun <= 6,
+            $"The centre-Well mover remained blocked for "
+            + $"{longestBlockedRun} consecutive ticks.");
+    }
+
     private static GenericActorParticipantConfiguration Participant(
         int participantId,
         TacticalPlaybookCompilation playbook) => new()

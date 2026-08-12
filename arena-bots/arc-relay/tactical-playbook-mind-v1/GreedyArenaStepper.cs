@@ -354,6 +354,8 @@ internal sealed class GreedyArenaStepper : IArenaStepper
         ProjectileHeading heading = ArenaBasics.FromVector(dx, dy);
         if (!ArenaBasics.CanStep(
                 request.Contract.Map, body.Position, destination, heading)
+            || !ArenaBasics.RouteHeadings(request.Contract, body)
+                .Contains(heading)
             || ArenaBasics.BlockedNow(
                     request.Contract, request.Mind, body, request.Claims)
                 .Contains(destination))
