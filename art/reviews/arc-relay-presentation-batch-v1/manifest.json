@@ -1,0 +1,89 @@
+{
+  "version": 1,
+  "id": "arc-relay-presentation-batch-v1",
+  "status": "awaiting-presentation-and-mechanics-approval",
+  "generatedAt": "2026-08-12",
+  "branch": "main",
+  "baselineCommit": "4aaf80cc",
+  "reference": {
+    "path": "art/class-look-concepts/arc-relay/meshy7-hover-roster-v1/concept-sheet-v7.png",
+    "sha256": "3d60322ef767283da55dc3710af9ef097ed989bdd40cc597883925989af486d5",
+    "role": "class identity, materials, scale, camera, and arena floor only"
+  },
+  "scope": {
+    "ownedSignatureEffects": 14,
+    "typedMechanicsToPresentationFramework": true,
+    "canonicalClassAndSignatureExtensionGuide": true,
+    "endToEndCoverageGates": true,
+    "classProjectileHeads": 16,
+    "levelUpAnimations": 1,
+    "maximumPrivateSfxEngineGenerationsAfterApproval": 6,
+    "excludedExternalHandoffs": [
+      "trip-node",
+      "sentinel-seed"
+    ],
+    "currentExplicitSignatureTells": 9,
+    "currentImmediateActiveSignatures": 5,
+    "recommendedMechanicsChanges": 4,
+    "mechanicsProfile": "new-tapline-vnext-preserving-tapline-1",
+    "ambientLoops": 0
+  },
+  "documents": [
+    "README.md",
+    "CONCEPT-SPEC.md",
+    "PRESENTATION-FRAMEWORK.md",
+    "SIGNATURE-TIMING-AUDIT.md",
+    "AUDIO-CUE-PROPOSAL.md",
+    "PROMPTS.md"
+  ],
+  "boards": [
+    {
+      "file": "01-high-impact-signatures.png",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 2407036,
+      "sha256": "9afff5f0dc2721459fcd68f903143e673683edeb6c44d35705cecb1b21785229",
+      "status": "candidate-with-production-corrections"
+    },
+    {
+      "file": "02-support-fields.png",
+      "width": 1402,
+      "height": 1122,
+      "bytes": 2239571,
+      "sha256": "fa27811d75669bb6fa706310e9e8f87796c60de321b30919eedc9425ec6cfbc3",
+      "status": "candidate-with-production-corrections"
+    },
+    {
+      "file": "03-motion-objective.png",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 2553085,
+      "sha256": "14336a9867026736fa54ad2fa7d51ab4d72a44eaecd530a0d4bdc2a4db519be0",
+      "status": "candidate"
+    },
+    {
+      "file": "04-control-level-up.png",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 2335069,
+      "sha256": "0a60ad89d82888863f5c711a4b258f4bd3862d65471a9d38a3754f167956249e",
+      "status": "candidate-with-production-corrections"
+    },
+    {
+      "file": "05-class-projectile-heads.png",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 1645576,
+      "sha256": "a71dd22173c5f8d871e048aa3c17903f2ab6b7748a85b69813e67956e8ef4783",
+      "status": "candidate"
+    },
+    {
+      "file": "rejected/projectile-mini-bots-v1.png",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 2012950,
+      "sha256": "f561f98d991afb4c7dbd67a43f2fde0ebbbf7330fb093e4cf2164b4b104d759c",
+      "status": "rejected-miniature-bot-read"
+    }
+  ]
+}
