@@ -109,4 +109,5 @@ export {
   ARC_SIGNATURE_PROP_SCALE,
   arcSignatureVisualPhase,
   latestObservedSignatureYaw,
+  sentinelYawTarget,
 } from '../../src/render3d/arcRelayEffects';

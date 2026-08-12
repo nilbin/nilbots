@@ -5,7 +5,9 @@ import {
   ARC_SIGNATURE_STYLES,
   arcSignatureVisualPhase,
   latestObservedSignatureYaw,
+  sentinelYawTarget,
 } from './.harness/harness.entry.js';
+import * as THREE from 'three';
 
 const signatureIds = [
   'vector-dash',
@@ -72,8 +74,8 @@ test('signature anticipation never starts early or outlives its authoritative te
   );
 });
 
-test('approved persistent props stay inside their tiles and sentinel yaw never looks ahead', () => {
-  assert.equal(ARC_SIGNATURE_PROP_SCALE['trip-node'], 0.6);
+test('persistent props stay legible inside their tiles and sentinel yaw never looks ahead', () => {
+  assert.equal(ARC_SIGNATURE_PROP_SCALE['trip-node'], 0.75);
   assert.equal(ARC_SIGNATURE_PROP_SCALE['sentinel-seed'], 0.95);
 
   const shots = [
@@ -84,4 +86,16 @@ test('approved persistent props stay inside their tiles and sentinel yaw never l
   assert.equal(latestObservedSignatureYaw(shots, 12), Math.PI / 2);
   assert.equal(latestObservedSignatureYaw(shots, 17.999), Math.PI / 2);
   assert.equal(latestObservedSignatureYaw(shots, 18), -Math.PI / 2);
+});
+
+test('sentinel yaw targets the authored head split and keeps legacy fallback', () => {
+  const propGroup = new THREE.Group();
+  const splitModel = new THREE.Group();
+  const yawHead = new THREE.Group();
+  yawHead.name = 'yaw-head';
+  splitModel.add(yawHead);
+
+  assert.equal(sentinelYawTarget(propGroup, splitModel), yawHead);
+  assert.equal(sentinelYawTarget(propGroup, new THREE.Group()), propGroup);
+  assert.equal(sentinelYawTarget(propGroup, null), propGroup);
 });

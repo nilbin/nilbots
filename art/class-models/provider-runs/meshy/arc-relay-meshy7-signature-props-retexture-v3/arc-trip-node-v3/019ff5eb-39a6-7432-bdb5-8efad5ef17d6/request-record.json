@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "provider": "Meshy",
+  "endpoint": "retexture",
+  "providerModel": "meshy-7",
+  "classId": "arc-trip-node-v3",
+  "signatureId": "trip-node",
+  "taskId": "019ff5eb-39a6-7432-bdb5-8efad5ef17d6",
+  "submittedAt": "2026-08-12T12:21:01.394Z",
+  "balanceBefore": 1310,
+  "authorizedCreditCap": 10,
+  "sourcePlan": "art/class-models/provider-runs/meshy/arc-relay-meshy7-signature-props-retexture-v3/plan.json",
+  "sourceTaskId": "019ff5c4-af6d-7bee-bfac-591b78b34c52",
+  "sourceModel": {
+    "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-signature-props-v3/arc-trip-node-v3/019ff5c4-af6d-7bee-bfac-591b78b34c52/raw-model.glb",
+    "bytes": 65112900,
+    "sha256": "3c086868cdc4025f5db44d2622b986eba6b7c4897a184395223f2e5b79f6921a"
+  },
+  "settings": {
+    "model_url": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ff5c4-af6d-7bee-bfac-591b78b34c52/output/model.glb",
+    "ai_model": "meshy-7",
+    "text_style_prompt": "Nilbots Trip Node floor trap. High-roughness dry matte powder-coated armor in light desaturated rose-taupe and muted biscuit-clay; charcoal graphite flexures and pressure plate; tiny dull brass hinge hardware. Medium-light values readable in a dark arena. Preserve all UV regions and material boundaries. No orange, amber-orange, teal, cyan, neon, glow, black dominant body, pure white, glossy plastic, clearcoat, lacquer, wet shine, broad highlights, text, logo, decal, eye, face, gun, barrel, turret, wheel, leg, explosion, smoke, or baked lighting.",
+    "enable_original_uv": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "alpha_thumbnail": true,
+    "target_formats": [
+      "glb"
+    ]
+  },
+  "pricingSource": "https://docs.meshy.ai/en/api/pricing",
+  "licenseTerms": "https://www.meshy.ai/terms"
+}

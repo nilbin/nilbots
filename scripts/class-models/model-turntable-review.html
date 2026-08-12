@@ -55,6 +55,11 @@
       const gltf = await new GLTFLoader().loadAsync(modelUrl);
       const model = gltf.scene;
       scene.add(model);
+      const yawHeadDegrees = Number(search.get('yawHeadDegrees') ?? 0);
+      if (!Number.isFinite(yawHeadDegrees)) throw new Error('Invalid ?yawHeadDegrees value.');
+      const yawHead = model.getObjectByName('yaw-head');
+      if (yawHeadDegrees && !yawHead) throw new Error('Model has no yaw-head node.');
+      if (yawHead) yawHead.rotation.y = THREE.MathUtils.degToRad(yawHeadDegrees);
 
       const bounds = new THREE.Box3().setFromObject(model);
       const centre = bounds.getCenter(new THREE.Vector3());

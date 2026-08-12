@@ -15,7 +15,7 @@ const output = path.resolve(
   repository,
   process.env.REVIEW_OUTPUT ?? 'art/reviews/arc-relay-signature-props',
 );
-const captures = [
+const captureCatalog = [
   { id: 'desktop-overview-tick-60', viewport: { width: 1440, height: 900 }, tick: 60 },
   { id: 'desktop-overview-tick-90', viewport: { width: 1440, height: 900 }, tick: 90 },
   {
@@ -25,6 +25,14 @@ const captures = [
     mobile: true,
   },
 ];
+const requestedCaptures = new Set(
+  (process.env.REVIEW_CAPTURE_IDS ?? '').split(',').map((value) => value.trim()).filter(Boolean),
+);
+const captures = requestedCaptures.size
+  ? captureCatalog.filter((capture) => requestedCaptures.has(capture.id))
+  : captureCatalog;
+if (requestedCaptures.size && captures.length !== requestedCaptures.size)
+  throw new Error('REVIEW_CAPTURE_IDS contains an unknown capture ID.');
 
 mkdirSync(output, { recursive: true });
 const browser = await chromium.launch({ headless: true });
@@ -84,9 +92,12 @@ async function takeCapture(capture) {
   const pause = page.getByRole('button', { name: 'Pause match' });
   if (await pause.isVisible()) await pause.click();
 
-  const camera = page.getByRole('button', { name: /director|overview/i });
-  if ((await camera.textContent())?.toLowerCase().includes('overview')) await camera.click();
-  await page.getByRole('button', { name: /director/i }).waitFor();
+  // The review is intentionally captured at gameplay scale. Viewer starts in overview;
+  // keep it there rather than switching on the close-following director camera.
+  const camera = page.getByRole('button').filter({ hasText: /director|overview/i }).first();
+  if ((await camera.count()) && (await camera.getAttribute('aria-pressed')) === 'true') {
+    await camera.click();
+  }
 
   const timeline = page.locator('[aria-label^="Match timeline"]');
   const thumb = timeline.locator('[role="slider"]');
@@ -98,10 +109,10 @@ async function takeCapture(capture) {
     bounds.y + bounds.height / 2,
   );
   await page.waitForFunction(
-    (expected) =>
-      [...document.querySelectorAll('section[aria-label="Arena"] p')].some((node) =>
-        new RegExp(`^\\s*0*${expected}\\s*\\/`).test(node.textContent ?? ''),
-      ),
+    (expected) => {
+      const slider = document.querySelector('[aria-label^="Match timeline"] [role="slider"]');
+      return Math.round(Number(slider?.getAttribute('aria-valuenow'))) === expected;
+    },
     capture.tick,
   );
   const fullscreen = page.getByRole('button', { name: 'full screen' });

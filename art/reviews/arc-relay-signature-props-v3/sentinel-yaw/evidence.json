@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "renderer": "Three.js WebGL turntable",
+  "model": "art/class-models/runtime-tiers/arc-relay/meshy7-signature-props-review-v3/arc-sentinel-seed-lean.glb",
+  "yawAxis": "+y",
+  "captures": [
+    {
+      "file": "art/reviews/arc-relay-signature-props-v3/sentinel-yaw/rest.png",
+      "sha256": "8142cdac32d9736162560b2dc2ce7dfc07b0269b847216e10a24fc489f86ca3e"
+    },
+    {
+      "file": "art/reviews/arc-relay-signature-props-v3/sentinel-yaw/yaw-45.png",
+      "sha256": "4587b30725bd39fef3dd749c1fc8ae0195fccf0935b696a96dc8d862606fa0a2"
+    },
+    {
+      "file": "art/reviews/arc-relay-signature-props-v3/sentinel-yaw/yaw-90.png",
+      "sha256": "e9e3eabe174f9bf731db3277fb9ffee2ef9d6c1122336116e3d915d209078574"
+    },
+    {
+      "file": "art/reviews/arc-relay-signature-props-v3/sentinel-yaw/yaw-45-top.png",
+      "sha256": "33a4e43972831c42784f203e7a385fc9699b7e08f7c048e99234fa9ee000bf71"
+    }
+  ],
+  "contactSheet": {
+    "file": "art/reviews/arc-relay-signature-props-v3/sentinel-yaw/sentinel-yaw-proof.webp",
+    "sha256": "9e6b5411c0a30ce5391eee808972f58a87031dc108bcd8746c2b3233b0842506"
+  }
+}

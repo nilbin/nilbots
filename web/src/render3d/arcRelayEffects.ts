@@ -97,6 +97,7 @@ interface SignatureShotYaw {
 interface SignaturePropSlot {
   group: THREE.Group;
   model: THREE.Group | null;
+  yawHead: THREE.Object3D | null;
   emissives: { material: THREE.MeshStandardMaterial; base: number }[];
   /** Hull indicators hovering over the prop; visibility follows remainingCapacity. */
   pips: THREE.Mesh[];
@@ -107,7 +108,7 @@ interface SignaturePropSlot {
 }
 
 export const ARC_SIGNATURE_PROP_SCALE = {
-  'trip-node': 0.6,
+  'trip-node': 0.75,
   'sentinel-seed': 0.95,
 } as const;
 
@@ -122,6 +123,14 @@ export function latestObservedSignatureYaw(
     yaw = shot.yaw;
   }
   return yaw;
+}
+
+/** Prefer the Sentinel's authored bearing split, while retaining old-asset fallback. */
+export function sentinelYawTarget(
+  propGroup: THREE.Group,
+  model: THREE.Group | null,
+): THREE.Object3D {
+  return model?.getObjectByName('yaw-head') ?? propGroup;
 }
 
 export function buildArcRelayEffects(
@@ -159,6 +168,7 @@ export function buildArcRelayEffects(
     const slot: SignaturePropSlot = {
       group: propGroup,
       model: null,
+      yawHead: null,
       emissives: [],
       pips,
       pipGroup,
@@ -181,6 +191,7 @@ export function buildArcRelayEffects(
         return;
       }
       slot.model = model;
+      slot.yawHead = model.getObjectByName('yaw-head') ?? null;
       slot.emissives = signaturePropEmissives(model);
       slot.ready = true;
       propGroup.add(model);
@@ -388,13 +399,16 @@ export function buildArcRelayEffects(
         slot.group.visible = true;
         slot.group.position.copy(points[0]).setY(0);
         slot.group.scale.setScalar(ARC_SIGNATURE_PROP_SCALE[signature.signatureId]);
-        slot.group.rotation.y =
+        const propYaw =
           signature.signatureId === 'sentinel-seed'
             ? latestObservedSignatureYaw(
                 signatureShotYaws.get(signature.operationId) ?? [],
                 time,
               ) ?? 0
             : 0;
+        const yawTarget = sentinelYawTarget(slot.group, slot.model);
+        slot.group.rotation.y = yawTarget === slot.group ? propYaw : 0;
+        if (slot.yawHead) slot.yawHead.rotation.y = propYaw;
         paintSignaturePropBody(slot.emissives, signature.suppressed, time);
         slot.pipGroup.visible = true;
         slot.pipGroup.position.copy(points[0]).setY(0);

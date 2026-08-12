@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "status": "owner-review",
+  "purpose": "Owner-directed matte, team-neutral Trip Node texture correction while preserving the approved Meshy 7 geometry and original UVs",
+  "provider": "Meshy",
+  "endpoint": "/openapi/v1/retexture",
+  "createdAt": "2026-08-12",
+  "authorization": "Owner directed a Meshy retexture where needed on 2026-08-12; this plan contains exactly one Trip Node task capped at 10 credits.",
+  "balanceCheck": {
+    "checkedAt": "2026-08-12T12:21:01.393Z",
+    "balance": 1310,
+    "creditsPerTask": 10,
+    "taskCount": 1,
+    "totalCreditCap": 10,
+    "pricingSource": "https://docs.meshy.ai/en/api/pricing"
+  },
+  "settingsSource": "https://docs.meshy.ai/en/api/retexture",
+  "runtimeAssetsPromoted": false,
+  "entries": [
+    {
+      "classId": "arc-trip-node-v3",
+      "signatureId": "trip-node",
+      "source": {
+        "taskId": "019ff5c4-af6d-7bee-bfac-591b78b34c52",
+        "endpoint": "multi-image-to-3d",
+        "rawModel": {
+          "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-signature-props-v3/arc-trip-node-v3/019ff5c4-af6d-7bee-bfac-591b78b34c52/raw-model.glb",
+          "bytes": 65112900,
+          "sha256": "3c086868cdc4025f5db44d2622b986eba6b7c4897a184395223f2e5b79f6921a"
+        }
+      },
+      "request": {
+        "ai_model": "meshy-7",
+        "text_style_prompt": "Nilbots Trip Node floor trap. High-roughness dry matte powder-coated armor in light desaturated rose-taupe and muted biscuit-clay; charcoal graphite flexures and pressure plate; tiny dull brass hinge hardware. Medium-light values readable in a dark arena. Preserve all UV regions and material boundaries. No orange, amber-orange, teal, cyan, neon, glow, black dominant body, pure white, glossy plastic, clearcoat, lacquer, wet shine, broad highlights, text, logo, decal, eye, face, gun, barrel, turret, wheel, leg, explosion, smoke, or baked lighting.",
+        "enable_original_uv": true,
+        "enable_pbr": true,
+        "texture_resolution": "2k",
+        "alpha_thumbnail": true,
+        "target_formats": [
+          "glb"
+        ]
+      },
+      "creditCap": 10,
+      "authorized": false,
+      "completedTaskId": "019ff5eb-39a6-7432-bdb5-8efad5ef17d6",
+      "submittedAt": "2026-08-12T12:21:01.394Z",
+      "authorizationConsumed": true,
+      "status": "SUCCEEDED",
+      "consumedCredits": 10,
+      "finishedAt": "2026-08-12T12:22:58.170Z",
+      "artifacts": [
+        {
+          "file": "raw-model.glb",
+          "bytes": 80931284,
+          "sha256": "a2d71be750eca6ebcc024dcb0e341b799396887f814d0ec0b18ad515a1223345"
+        },
+        {
+          "file": "provider-preview.png",
+          "bytes": 65013,
+          "sha256": "2b07ae7f83aeccc9f8ecbb50035eb1339004bdf79645a495b51ed882be5ca967"
+        },
+        {
+          "file": "provider-preview-alpha.png",
+          "bytes": 65013,
+          "sha256": "2b07ae7f83aeccc9f8ecbb50035eb1339004bdf79645a495b51ed882be5ca967"
+        },
+        {
+          "file": "texture-0-base_color.png",
+          "bytes": 6597910,
+          "sha256": "045ada551d06d2c1f41b6a291d64bf25882e08af597eebd6fdf06358788108f5"
+        },
+        {
+          "file": "texture-0-metallic.png",
+          "bytes": 32390,
+          "sha256": "dc44b52cde4f5dfdb88af53a70958ad2128befd8c087d479c77da8a64ff45d3f"
+        },
+        {
+          "file": "texture-0-roughness.png",
+          "bytes": 1477516,
+          "sha256": "bcdfad6a030a6842e02416cc913d44f1b322c76294c489dc145e0bbf51bb05eb"
+        },
+        {
+          "file": "texture-0-normal.png",
+          "bytes": 5245152,
+          "sha256": "3e4771d1c87bc8df29cd0d83d3e24dde60cf1e0e718f70c0c1d4e736e9ec0af8"
+        }
+      ]
+    }
+  ],
+  "balanceAfter": 1300,
+  "totalConsumedCredits": 10
+}

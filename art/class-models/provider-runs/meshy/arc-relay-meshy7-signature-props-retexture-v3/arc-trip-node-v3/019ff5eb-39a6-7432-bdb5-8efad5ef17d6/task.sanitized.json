@@ -1,0 +1,35 @@
+{
+  "id": "019ff5eb-39a6-7432-bdb5-8efad5ef17d6",
+  "type": "retexture",
+  "name": "",
+  "art_style": "realistic",
+  "object_prompt": "",
+  "style_prompt": "",
+  "negative_prompt": "",
+  "texture_prompt": "",
+  "texture_image_url": "",
+  "text_style_prompt": "Nilbots Trip Node floor trap. High-roughness dry matte powder-coated armor in light desaturated rose-taupe and muted biscuit-clay; charcoal graphite flexures and pressure plate; tiny dull brass hinge hardware. Medium-light values readable in a dark arena. Preserve all UV regions and material boundaries. No orange, amber-orange, teal, cyan, neon, glow, black dominant body, pure white, glossy plastic, clearcoat, lacquer, wet shine, broad highlights, text, logo, decal, eye, face, gun, barrel, turret, wheel, leg, explosion, smoke, or baked lighting.",
+  "image_style_url": "",
+  "status": "SUCCEEDED",
+  "created_at": 1786537264103,
+  "progress": 100,
+  "started_at": 1786537264107,
+  "finished_at": 1786537377331,
+  "expires_at": 1786796577331,
+  "task_error": null,
+  "model_url": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ff5eb-39a6-7432-bdb5-8efad5ef17d6/output/model.glb",
+  "model_urls": {
+    "glb": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ff5eb-39a6-7432-bdb5-8efad5ef17d6/output/model.glb"
+  },
+  "thumbnail_url": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ff5eb-39a6-7432-bdb5-8efad5ef17d6/output/preview.png",
+  "alpha_thumbnail_url": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ff5eb-39a6-7432-bdb5-8efad5ef17d6/output/preview_alpha.png",
+  "texture_urls": [
+    {
+      "base_color": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ff5eb-39a6-7432-bdb5-8efad5ef17d6/output/texture_0.png",
+      "metallic": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ff5eb-39a6-7432-bdb5-8efad5ef17d6/output/texture_0_metallic.png",
+      "roughness": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ff5eb-39a6-7432-bdb5-8efad5ef17d6/output/texture_0_roughness.png",
+      "normal": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ff5eb-39a6-7432-bdb5-8efad5ef17d6/output/texture_0_normal.png"
+    }
+  ],
+  "consumed_credits": 10
+}

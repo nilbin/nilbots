@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "sourceUrl": "http://127.0.0.1:9090/?standalone&audio=off",
+  "replay": "web/dist-review/replay.json",
+  "captures": [
+    {
+      "id": "desktop-overview-tick-60",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "tick": 60,
+      "renderer": "webgl",
+      "canvasPixels": {
+        "width": 1440,
+        "height": 900,
+        "clientWidth": 1440,
+        "clientHeight": 900
+      },
+      "image": "art/reviews/arc-relay-signature-props-v3/desktop-overview-tick-60.png",
+      "imageBytes": 1281090,
+      "imageSha256": "aa6dcba468b043577eaa665b2568b3aa3f41264c7f5ab2062ea88f1dd58a8ff6",
+      "pageErrors": [],
+      "consoleErrors": []
+    },
+    {
+      "id": "desktop-overview-tick-90",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "tick": 90,
+      "renderer": "webgl",
+      "canvasPixels": {
+        "width": 1440,
+        "height": 900,
+        "clientWidth": 1440,
+        "clientHeight": 900
+      },
+      "image": "art/reviews/arc-relay-signature-props-v3/desktop-overview-tick-90.png",
+      "imageBytes": 1271897,
+      "imageSha256": "b18e09fb79aaa4ff84f9320f50b1403610a2adf9dc0ec15764f86185e9410038",
+      "pageErrors": [],
+      "consoleErrors": []
+    },
+    {
+      "id": "phone-landscape-overview-tick-60",
+      "viewport": {
+        "width": 844,
+        "height": 390
+      },
+      "tick": 60,
+      "mobile": true,
+      "renderer": "webgl",
+      "canvasPixels": {
+        "width": 844,
+        "height": 390,
+        "clientWidth": 844,
+        "clientHeight": 390
+      },
+      "image": "art/reviews/arc-relay-signature-props-v3/phone-landscape-overview-tick-60.png",
+      "imageBytes": 287124,
+      "imageSha256": "e5ab70f628f70d8cd958c25f5d4e7492374eaf83ce7cd1d45db08f2788a0d254",
+      "pageErrors": [],
+      "consoleErrors": []
+    }
+  ],
+  "contactSheet": "art/reviews/arc-relay-signature-props-v3/gameplay-scale-review.webp",
+  "contactSheetSha256": "5e2c9f3e121e246516434b3a3ea351d755d7907f17026ac36985750529a9671f"
+}
