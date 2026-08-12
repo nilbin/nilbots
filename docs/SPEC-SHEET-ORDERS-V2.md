@@ -277,7 +277,7 @@ are physical game rules, not hidden `move` subverbs.
 }
 ```
 
-- `targets` is 1–6 unique values from `carrier`, `weakest`, `nearest`,
+- `targets` is 1–5 unique values from `carrier`, `weakest`, `nearest`,
   `medic`, and `marked` in desired order.
 - `style` is `advance`, `hold`, or `kite`. It says how this body positions
   while executing the fight; the class's legal movement pattern still wins.

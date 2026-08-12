@@ -18,8 +18,9 @@ Playlist v19 and its ATL1 artifact remain immutable in
 - Controlled build: `nilbots build --no-cache`, through the platform-matched
   Docker backend selected by `scripts/run-wasm-publish.sh` on macOS
 
-On Tapline seed `9001`, Wellwright Orders v2 versus Hunter Orders v2 has the
-same gameplay-state digest in the in-process and WASM runtimes:
+On Tapline seed `9001`, Wellwright Orders v2 on the west versus Hunter Orders
+v2 on the east has the same gameplay-state digest in the in-process and WASM
+runtimes:
 `0aaccd6ed28a00ecfbc6d401915b0834b99c5ea9bb0116d7cedaf689f9cdc947`.
 The match ends by reactor destruction at tick 418 in both runtimes.
 

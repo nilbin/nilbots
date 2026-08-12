@@ -7880,7 +7880,8 @@ artifact
 `d9281f6abee1f5f5e3eeebbdc911dac091138199dea91feb7a8a0812d1549b88`.
 In-process and WASM produce gameplay-state digest
 `0aaccd6ed28a00ecfbc6d401915b0834b99c5ea9bb0116d7cedaf689f9cdc947`
-for the registered seed-9001 Wellwright/Hunter cell. Playlist v19 remains
+for the registered seed-9001 cell with Wellwright west and Hunter east.
+Playlist v19 remains
 immutable at fingerprint
 `b16b7d62bd0868371edd39b49fc3b6897ef49c44a033e5b91c46bd4a511463b1`.
 Because executable semantics, the stock sheet, and stock gameplay all change,

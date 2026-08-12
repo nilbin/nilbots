@@ -270,7 +270,7 @@ owner's reactor banks it. Those are physical rules, not hidden action verbs.
 }
 ```
 
-`targets` contains one to six unique values from `carrier`, `weakest`,
+`targets` contains one to five unique values from `carrier`, `weakest`,
 `nearest`, `medic`, and `marked`. `style` is `advance`, `hold`, or `kite`.
 `chaseLimit` is `0..12` tiles from the body's position when the fight node
 entered; zero means fight in place.

@@ -616,7 +616,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
     {
         Object(value, $"{path}.fight", ["targets", "style", "chaseLimit"]);
         string[] targets = StringArray(
-            value.GetProperty("targets"), $"{path}.fight.targets", 1, 6);
+            value.GetProperty("targets"), $"{path}.fight.targets", 1, 5);
         foreach (string target in targets)
         {
             if (target is not ("carrier" or "weakest" or "nearest" or
