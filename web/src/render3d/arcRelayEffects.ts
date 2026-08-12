@@ -354,6 +354,7 @@ export function buildArcRelayEffects(
   const levelBeats = Array.from({ length: 8 }, () => {
     const beat = new THREE.Group();
     beat.visible = false;
+    beat.userData.kind = 'arc-relay-level-up-beat';
     const ring = new THREE.Mesh(levelRingGeometry, levelMaterial.clone());
     beat.add(ring);
     const facets = Array.from({ length: 3 }, (_, index) => {
@@ -419,6 +420,7 @@ export function buildArcRelayEffects(
       const rig = rigAt(used++);
       resetRig(rig);
       rig.group.visible = true;
+      rig.group.userData.operationId = signature.operationId;
       rig.group.userData.signatureId = signature.signatureId;
       rig.group.userData.phase = phase;
       const accent = new THREE.Color(
@@ -522,6 +524,10 @@ export function buildArcRelayEffects(
           persistentPropReady,
         );
       else paintGenericSignature(rig, points, owner, target, phase);
+      // Some public events share an operation ID before they carry enough
+      // topology for a particular painter. Do not publish an empty effect
+      // group merely because the operation is present.
+      rig.group.visible = rig.group.children.some((child) => child.visible);
     }
 
     const priorState = arcStateBefore(replay, tickIndex);
@@ -580,6 +586,7 @@ export function buildArcRelayEffects(
         fraction: time - tickIndex,
         reducedMotion,
       });
+      rig.group.visible = rig.group.children.some((child) => child.visible);
     }
 
     paintLevelUpBeats(veterancy, poses, time, levelBeats);

@@ -156,6 +156,21 @@ export default function Viewer({
     playbackFrameCap,
   );
 
+  // Review capture needs an exact, read-only presentation clock without
+  // manufacturing pointer geometry. This bridge is exposed only when the
+  // explicit proof query is present; ordinary viewers keep no extra global.
+  useEffect(() => {
+    if (!new URLSearchParams(window.location.search).has('proof')) return;
+    window.__BOTARENA_REVIEW_CONTROL__ = {
+      play: playback.play,
+      pause: playback.pause,
+      seek: playback.seek,
+    };
+    return () => {
+      delete window.__BOTARENA_REVIEW_CONTROL__;
+    };
+  }, [playback.pause, playback.play, playback.seek]);
+
   const soundEffectsAvailable =
     new URLSearchParams(window.location.search).get('audio') !== 'off';
   const time = isLive ? liveTime : playback.time;

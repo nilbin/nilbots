@@ -7,6 +7,7 @@ import {
   arcSignatureAudioDefinitionIds,
   arcSignaturePresentationDefinitions,
   arcSignatureVisualPhase,
+  buildArcRelayEffects,
   latestObservedSignatureYaw,
   resolveArcSignaturePresentation,
   sentinelYawTarget,
@@ -15,6 +16,7 @@ import {
 } from './.harness/harness.entry.js';
 import * as THREE from 'three';
 import { readFileSync } from 'node:fs';
+import { gunzipSync } from 'node:zlib';
 import { loadReplayJson } from '../src/replayIngress.ts';
 
 const signatureIds = [
@@ -165,6 +167,40 @@ test('signature anticipation never starts early or outlives its authoritative te
     arcSignatureVisualPhase({ ...signature, phase: 'active' }, 15),
     'hidden',
   );
+});
+
+test('real exchange lifecycle never publishes an empty WebGL signature group', () => {
+  const replay = loadReplayJson(
+    gunzipSync(readFileSync(new URL(
+      '../../art/reviews/arc-relay-presentation-batch-v1/runtime-proof/replays/core-roster.broadcast.json.gz',
+      import.meta.url,
+    ))).toString('utf8'),
+  ).replay;
+  const disposables: { dispose: () => void }[] = [];
+  const effects = buildArcRelayEffects(replay, disposables);
+  try {
+    for (const [time, minimumMeshes] of [
+      [99.35, 18],
+      [100.35, 4],
+    ] as const) {
+      effects.update(time);
+      const exchangeGroups: THREE.Object3D[] = [];
+      effects.group.traverse((node) => {
+        if (node.visible && node.userData.signatureId === 'exchange')
+          exchangeGroups.push(node);
+      });
+      assert.ok(exchangeGroups.length > 0, `exchange is absent at ${time}`);
+      for (const group of exchangeGroups) {
+        let visibleMeshes = 0;
+        group.traverse((node) => {
+          if (node.visible && (node as THREE.Mesh).isMesh) visibleMeshes += 1;
+        });
+        assert.ok(visibleMeshes >= minimumMeshes);
+      }
+    }
+  } finally {
+    for (const disposable of disposables) disposable.dispose();
+  }
 });
 
 test('persistent props stay legible inside their tiles and sentinel yaw never looks ahead', () => {

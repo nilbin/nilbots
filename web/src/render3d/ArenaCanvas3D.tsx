@@ -167,6 +167,52 @@ export default function ArenaCanvas3D({
     const overlays = buildOverlays(replay, entrants, arena.scene);
     arena.scene.add(actors.group);
     arena.scene.add(overlays.group);
+    window.__BOTARENA_RENDER_PROOF__ = {
+      sample: () => {
+        const visibleSignatures: Array<{
+          operationId: string | null;
+          signatureId: string | null;
+          phase: string | null;
+          visibleMeshes: number;
+        }> = [];
+        let levelUpBeats = 0;
+        overlays.group.traverse((node) => {
+          if (!node.visible) return;
+          if (node.userData.phase && node.userData.signatureId) {
+            let visibleMeshes = 0;
+            node.traverse((child) => {
+              if (child.visible && (child as THREE.Mesh).isMesh)
+                visibleMeshes += 1;
+            });
+            visibleSignatures.push({
+              operationId:
+                typeof node.userData.operationId === 'string'
+                  ? node.userData.operationId
+                  : null,
+              signatureId:
+                typeof node.userData.signatureId === 'string'
+                  ? node.userData.signatureId
+                  : null,
+              phase:
+                typeof node.userData.phase === 'string'
+                  ? node.userData.phase
+                  : null,
+              visibleMeshes,
+            });
+          }
+          if (node.userData.kind === 'arc-relay-level-up-beat')
+            levelUpBeats += 1;
+        });
+        return {
+          time: frameState.current.time,
+          reducedMotion: window.matchMedia(
+            '(prefers-reduced-motion: reduce)',
+          ).matches,
+          visibleSignatures,
+          levelUpBeats,
+        };
+      },
+    };
 
     const mapWidth = replay.map.width;
     const mapHeight = replay.map.height;
@@ -450,6 +496,7 @@ export default function ArenaCanvas3D({
     animation = requestAnimationFrame(draw);
 
     return () => {
+      delete window.__BOTARENA_RENDER_PROOF__;
       cancelAnimationFrame(animation);
       observer.disconnect();
       gestures.detach();

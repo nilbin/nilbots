@@ -61,6 +61,9 @@ const context = await browser.newContext(
 );
 
 await context.addInitScript(({ forceCanvas2d }) => {
+  // Performance proof measures the arena renderer, not an unrelated media
+  // download or decoder. The normal viewer remains music-on by default.
+  localStorage.setItem('nilbots.soundtrack.enabled.v1', 'false');
   const counters = {
     rafCallbacks: 0,
     webglClearPasses: 0,

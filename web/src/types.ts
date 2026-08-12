@@ -292,6 +292,30 @@ declare global {
       selectUnit?: (unitKey: ReplayStableUnitKey | null) => void;
       setVisibility: (visible: boolean) => void;
     };
+    /**
+     * Read-only review instrumentation. Production presentation never reads
+     * this value; capture tooling uses it to compare the WebGL scene at one
+     * authoritative playhead without reaching into Three.js internals.
+     */
+    __BOTARENA_RENDER_PROOF__?: {
+      sample: () => {
+        time: number;
+        reducedMotion: boolean;
+        visibleSignatures: Array<{
+          operationId: string | null;
+          signatureId: string | null;
+          phase: string | null;
+          visibleMeshes: number;
+        }>;
+        levelUpBeats: number;
+      };
+    };
+    /** Exact transport used only by an explicit `?proof` review session. */
+    __BOTARENA_REVIEW_CONTROL__?: {
+      play: () => void;
+      pause: () => void;
+      seek: (tick: number) => void;
+    };
     /** Injected by react-native-webview when the page is embedded in the mobile app. */
     ReactNativeWebView?: { postMessage: (message: string) => void };
   }

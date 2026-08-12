@@ -108,6 +108,7 @@ export {
   ARC_SIGNATURE_WEBGL_PAINTERS,
   ARC_SIGNATURE_PROP_SCALE,
   arcSignatureVisualPhase,
+  buildArcRelayEffects,
   latestObservedSignatureYaw,
   sentinelYawTarget,
 } from '../../src/render3d/arcRelayEffects';
