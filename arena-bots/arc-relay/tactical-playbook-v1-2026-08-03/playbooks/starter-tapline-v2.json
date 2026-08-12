@@ -5,7 +5,7 @@
   "roles": [
     {
       "id": "home-team",
-      "classes": ["relay", "relay"],
+      "classes": ["relay", "palisade"],
       "upgradePath": ["vitality", "vision"],
       "orders": [
         { "shared": "score-a-core" }, { "shared": "collect-loose-core" },
@@ -15,7 +15,7 @@
     },
     {
       "id": "centre-team",
-      "classes": ["switchback", "switchback", "patchbay"],
+      "classes": ["switchback", "patchbay", "hush"],
       "upgradePath": ["damage", "vitality"],
       "orders": [
         { "shared": "score-a-core" }, { "shared": "collect-loose-core" },
@@ -25,7 +25,7 @@
     },
     {
       "id": "far-team",
-      "classes": ["towline", "towline", "lantern"],
+      "classes": ["towline", "lantern", "kestrel"],
       "upgradePath": ["damage", "vision", "vitality"],
       "orders": [
         { "shared": "score-a-core" }, { "shared": "collect-loose-core" },

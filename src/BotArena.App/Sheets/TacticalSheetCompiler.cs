@@ -48,9 +48,9 @@ public sealed class TacticalSheetCompiler(ArcRelayClassCatalog classCatalog)
                 StringComparison.Ordinal))
         {
             throw new InvalidDataException(
-                $"Layout targets '{mapId}'. Hosted Arc Relay v19 requires "
+                $"Map plan targets '{mapId}'. Hosted Arc Relay requires "
                 + $"the native '{ArcRelayLoopProfile.Current.MapId}' "
-                + "Tapline layout; geometry from older maps is never migrated.");
+                + "Tapline plan; geometry from older maps is never migrated.");
         }
         ArcRelayCompositionCompilation composition = ArcRelayComposition.Compile(
             new ArcRelayCompositionDeclaration(compilation.Composition),
@@ -90,7 +90,7 @@ public sealed class TacticalSheetCompiler(ArcRelayClassCatalog classCatalog)
             || mapId.ValueKind != JsonValueKind.String
             || string.IsNullOrWhiteSpace(mapId.GetString()))
         {
-            throw new InvalidDataException("Layout has no mapId.");
+            throw new InvalidDataException("Map plan has no mapId.");
         }
         return mapId.GetString()!;
     }

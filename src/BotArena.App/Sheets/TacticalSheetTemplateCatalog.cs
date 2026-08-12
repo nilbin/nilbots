@@ -21,8 +21,8 @@ public sealed record TacticalSheetSource(
     string ContentHash);
 
 /// <summary>
-/// Reproducible two-file product templates derived from tracked consolidated
-/// sheet sources.
+/// Reproducible two-file product templates derived from tracked Orders v2
+/// sources.
 /// </summary>
 public sealed class TacticalSheetTemplateCatalog
 {
@@ -36,19 +36,19 @@ public sealed class TacticalSheetTemplateCatalog
     public TacticalSheetTemplateCatalog()
     {
         Template = Resolve(
-            "starter-v1",
+            "starter-v2",
             "Starter sheet",
-            "A small Tapline plan: two Core runners, a midfield line, and one field medic.",
-            Resource("BotArena.Sheets.starter-v1.playbook.json"),
-            Resource("BotArena.Sheets.starter-v1.layout.json"));
+            "A readable Tapline plan: two bodies cover home, three take centre, and three contest far.",
+            Resource("BotArena.Sheets.starter-v2.sheet.json"),
+            Resource("BotArena.Sheets.starter-v2.map-plan.json"));
         TacticalSheetSource[] opponents =
         [
             Resolve(
                 ArcRelayEntrantPlaylistDefinition.StockSheetId,
-                "Wellwright v1",
-                "The Tapline stock entrant: races all three Wells with independently authored hauler and support ladders.",
-                Resource("BotArena.Sheets.wellwright-v1.playbook.json"),
-                Resource("BotArena.Sheets.tapline-base-v1.layout.json")),
+                "Wellwright v2",
+                "The Tapline stock opponent: works all three Wells and explicitly returns every carried Core.",
+                Resource("BotArena.Sheets.wellwright-v2.sheet.json"),
+                Resource("BotArena.Sheets.wellwright-v2.map-plan.json")),
         ];
         stock = opponents.ToDictionary(value => value.Id, StringComparer.Ordinal);
         Stock = opponents;
@@ -72,33 +72,25 @@ public sealed class TacticalSheetTemplateCatalog
     {
         JsonObject playbook = JsonNode.Parse(playbookJson)?.AsObject()
             ?? throw new InvalidDataException($"Embedded playbook '{id}' is empty.");
-        JsonObject layout = JsonNode.Parse(layoutJson)?.AsObject()
-            ?? throw new InvalidDataException($"Embedded layout '{id}' is empty.");
-        layout["layoutId"] = id;
-        string mapId = layout["mapId"]?.GetValue<string>()
+        JsonObject mapPlan = JsonNode.Parse(layoutJson)?.AsObject()
+            ?? throw new InvalidDataException($"Embedded map plan '{id}' is empty.");
+        mapPlan["mapPlanId"] = id;
+        string mapId = mapPlan["mapId"]?.GetValue<string>()
             ?? throw new InvalidDataException(
-                $"Embedded layout '{id}' has no map id.");
+                $"Embedded map plan '{id}' has no map id.");
         if (!string.Equals(
                 mapId,
                 ArcRelayLoopProfile.Current.MapId,
                 StringComparison.Ordinal))
         {
             throw new InvalidDataException(
-                $"Embedded layout '{id}' targets '{mapId}', not the native "
+                $"Embedded map plan '{id}' targets '{mapId}', not the native "
                 + $"'{ArcRelayLoopProfile.Current.MapId}' Tapline. "
                 + "Template geometry is never projected between maps.");
         }
-        NormalizeBindings(layout, id);
-
-        string resolvedLayout = layout.ToJsonString(Pretty);
-        string layoutHash = Convert.ToHexStringLower(SHA256.HashData(
-            Encoding.UTF8.GetBytes(resolvedLayout)));
-        JsonObject layoutReference = playbook["layout"]?.AsObject()
-            ?? throw new InvalidDataException(
-                $"Embedded playbook '{id}' has no layout reference.");
-        layoutReference["path"] = "layout.json";
-        layoutReference["sha256"] = layoutHash;
-        playbook["playbookId"] = id;
+        string resolvedLayout = mapPlan.ToJsonString(Pretty);
+        playbook["mapPlan"] = "map-plan.json";
+        playbook["sheetId"] = id;
         string resolvedPlaybook = playbook.ToJsonString(Pretty);
         var everyClass = ArcRelayLaunchClassIds.All.ToHashSet(
             StringComparer.Ordinal);
@@ -107,7 +99,7 @@ public sealed class TacticalSheetTemplateCatalog
                 Encoding.UTF8.GetBytes(resolvedPlaybook),
                 Encoding.UTF8.GetBytes(resolvedLayout),
                 $"templates/{id}/playbook.json",
-                $"templates/{id}/layout.json");
+                $"templates/{id}/map-plan.json");
         if (compilation.Composition.Any(value => !everyClass.Contains(value)))
             throw new InvalidDataException(
                 $"Embedded playbook '{id}' has an unknown class.");
@@ -120,35 +112,6 @@ public sealed class TacticalSheetTemplateCatalog
             compilation.Composition,
             compilation.LinkedData,
             Convert.ToHexStringLower(SHA256.HashData(compilation.LinkedData)));
-    }
-
-    private static void NormalizeBindings(JsonObject layout, string id)
-    {
-        JsonArray source = layout["bindings"]?.AsArray()
-            ?? throw new InvalidDataException(
-                $"Embedded layout '{id}' has no bindings.");
-        var normalized = new JsonArray();
-        foreach (string side in new[] { "west", "east" })
-        {
-            JsonObject? selected = source
-                .Select(value => value?.AsObject())
-                .Where(value => string.Equals(
-                    value?["ownReactorSide"]?.GetValue<string>(),
-                    side,
-                    StringComparison.Ordinal))
-                .OrderByDescending(value => string.Equals(
-                    value?["matchContractFingerprint"]?.GetValue<string>(),
-                    "any-composition",
-                    StringComparison.Ordinal))
-                .FirstOrDefault();
-            if (selected is null)
-                throw new InvalidDataException(
-                    $"Embedded layout '{id}' has no {side} binding.");
-            JsonObject portable = selected.DeepClone().AsObject();
-            portable["matchContractFingerprint"] = "any-composition";
-            normalized.Add(portable);
-        }
-        layout["bindings"] = normalized;
     }
 
     private static string Resource(string name)

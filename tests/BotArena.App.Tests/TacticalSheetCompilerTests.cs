@@ -1,5 +1,3 @@
-using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using BotArena.App.ArcRelay;
@@ -11,19 +9,13 @@ namespace BotArena.App.Tests;
 
 public sealed class TacticalSheetCompilerTests
 {
-    private static readonly JsonSerializerOptions Pretty = new()
-    {
-        WriteIndented = true,
-    };
-
     [Fact]
-    public void Embedded_authoring_template_and_stock_opponents_compile_reproducibly()
+    public void Embedded_orders_template_and_stock_compile_reproducibly()
     {
         var templates = new TacticalSheetTemplateCatalog();
         var compiler = new TacticalSheetCompiler(ArcRelayClassCatalog.Default);
         IReadOnlySet<string> unlocked = ArcRelayClassCatalog.Default.All
-            .Select(value => value.Id)
-            .ToHashSet(StringComparer.Ordinal);
+            .Select(value => value.Id).ToHashSet(StringComparer.Ordinal);
 
         TacticalSheetSource stock = Assert.Single(templates.Stock);
         Assert.Equal(ArcRelayEntrantPlaylistDefinition.StockSheetId, stock.Id);
@@ -38,142 +30,96 @@ public sealed class TacticalSheetCompilerTests
 
             Assert.Equal(source.ContentHash, compiled.ContentHash);
             Assert.Equal(source.LinkedData, compiled.Compilation.LinkedData);
-            using JsonDocument playbook = JsonDocument.Parse(source.PlaybookJson);
-            string pinned = playbook.RootElement.GetProperty("layout")
-                .GetProperty("sha256").GetString()!;
-            Assert.Equal(
-                Convert.ToHexStringLower(SHA256.HashData(
-                    Encoding.UTF8.GetBytes(source.LayoutJson))),
-                pinned);
+            using JsonDocument sheet = JsonDocument.Parse(source.PlaybookJson);
+            Assert.Equal("arc-relay-orders-v2",
+                sheet.RootElement.GetProperty("schema").GetString());
+            Assert.Equal("map-plan.json",
+                sheet.RootElement.GetProperty("mapPlan").GetString());
+            Assert.False(sheet.RootElement.TryGetProperty("layout", out _));
         }
     }
 
     [Fact]
-    public void Starter_template_is_minimal_doctrine_only_and_plotted_on_the_current_map()
+    public void Starter_is_a_small_readable_order_tree_on_current_tapline()
     {
         var templates = new TacticalSheetTemplateCatalog();
-        using JsonDocument playbook = JsonDocument.Parse(
+        using JsonDocument sheet = JsonDocument.Parse(
             templates.Template.PlaybookJson);
-        using JsonDocument layout = JsonDocument.Parse(
+        using JsonDocument mapPlan = JsonDocument.Parse(
             templates.Template.LayoutJson);
 
-        Assert.Equal("starter-v1", templates.Template.Id);
-        Assert.False(playbook.RootElement.TryGetProperty("orders", out _));
-        string[] composition = playbook.RootElement.GetProperty("composition")
+        Assert.Equal("starter-v2", templates.Template.Id);
+        Assert.Equal(
+            [
+                "capacities", "conditions", "mapPlan", "roles", "schema",
+                "sharedOrders", "sheetId",
+            ],
+            sheet.RootElement.EnumerateObject().Select(value => value.Name)
+                .Order(StringComparer.Ordinal));
+        string[] composition = sheet.RootElement.GetProperty("roles")
             .EnumerateArray()
+            .SelectMany(role => role.GetProperty("classes").EnumerateArray())
             .Select(value => value.GetString()!)
             .ToArray();
         Assert.Equal(8, composition.Length);
         Assert.Equal(
             ArcRelayClassCatalog.Default.StarterIds.Order(StringComparer.Ordinal),
             composition.Order(StringComparer.Ordinal));
-        string[] roles = playbook.RootElement.GetProperty("roles")
-            .EnumerateArray()
-            .Select(value => value.GetProperty("roleId").GetString()!)
-            .ToArray();
-        Assert.Equal(new[] { "runner", "line", "medic" }, roles);
-        string[] doctrineRoles = playbook.RootElement.GetProperty("doctrines")
-            .GetProperty("roles")
-            .EnumerateObject()
-            .Select(value => value.Name)
-            .Order(StringComparer.Ordinal)
-            .ToArray();
-        Assert.Equal(roles.Order(StringComparer.Ordinal), doctrineRoles);
+        Assert.Equal(
+            ["home-team", "centre-team", "far-team"],
+            sheet.RootElement.GetProperty("roles").EnumerateArray()
+                .Select(value => value.GetProperty("id").GetString()));
 
-        JsonElement zones = layout.RootElement.GetProperty("zones");
-        JsonElement routes = layout.RootElement.GetProperty("routes");
-        JsonElement anchors = layout.RootElement.GetProperty("anchors");
-        Assert.Single(zones.EnumerateArray());
-        Assert.Single(routes.EnumerateArray());
-        Assert.Single(anchors.EnumerateArray());
-        foreach ((JsonElement collection, string idProperty) in new[]
-                 {
-                     (zones, "zoneId"),
-                     (routes, "routeId"),
-                     (anchors, "anchorId"),
-                 })
-        foreach (JsonElement geometry in collection.EnumerateArray())
-        {
-            string id = geometry.GetProperty(idProperty).GetString()!;
-            Assert.Contains($"\"{id}\"", templates.Template.PlaybookJson,
-                StringComparison.Ordinal);
-        }
-
+        Assert.Single(mapPlan.RootElement.GetProperty("zones")
+            .EnumerateObject());
+        Assert.Empty(mapPlan.RootElement.GetProperty("routes")
+            .EnumerateObject());
+        Assert.Empty(mapPlan.RootElement.GetProperty("anchors")
+            .EnumerateObject());
         ActorMapDefinition map = ArcRelayH0Definition.CreateMap(
             ArcRelayLoopProfile.Current);
         Assert.Equal(map.Id,
-            layout.RootElement.GetProperty("mapId").GetString());
-        foreach (JsonElement zone in layout.RootElement.GetProperty("zones")
-                     .EnumerateArray())
-        {
-            int[] rect = zone.GetProperty("rect").EnumerateArray()
-                .Select(value => value.GetInt32()).ToArray();
-            Assert.InRange(rect[0], 0, map.Width - 1);
-            Assert.InRange(rect[2], 0, map.Width - 1);
-            Assert.InRange(rect[1], 0, map.Height - 1);
-            Assert.InRange(rect[3], 0, map.Height - 1);
-        }
-        foreach (JsonElement route in layout.RootElement.GetProperty("routes")
-                     .EnumerateArray())
-        foreach (JsonElement waypoint in route.GetProperty("waypoints")
-                     .EnumerateArray())
-        {
-            Assert.InRange(waypoint[0].GetInt32(), 0, map.Width - 1);
-            Assert.InRange(waypoint[1].GetInt32(), 0, map.Height - 1);
-        }
+            mapPlan.RootElement.GetProperty("mapId").GetString());
     }
 
     [Fact]
-    public void Hosted_compiler_rejects_stale_layout_pin_and_copy_cap_violation()
+    public void Hosted_compiler_rejects_retired_fields_copy_cap_and_wrong_map()
     {
         var templates = new TacticalSheetTemplateCatalog();
         var compiler = new TacticalSheetCompiler(ArcRelayClassCatalog.Default);
         IReadOnlySet<string> unlocked = ArcRelayClassCatalog.Default.All
-            .Select(value => value.Id)
-            .ToHashSet(StringComparer.Ordinal);
-        JsonObject stale = JsonNode.Parse(
-            templates.Template.PlaybookJson)!.AsObject();
-        stale["layout"]!["sha256"] = new string('0', 64);
+            .Select(value => value.Id).ToHashSet(StringComparer.Ordinal);
 
-        InvalidDataException staleError = Assert.Throws<InvalidDataException>(() =>
-            compiler.Compile(
-                stale.ToJsonString(Pretty),
-                templates.Template.LayoutJson,
-                unlocked,
-                "stale-layout"));
-        Assert.Contains("layout hash", staleError.Message, StringComparison.OrdinalIgnoreCase);
+        JsonObject retired = JsonNode.Parse(
+            templates.Template.PlaybookJson)!.AsObject();
+        retired["layout"] = new JsonObject();
+        InvalidDataException retiredError = Assert.Throws<InvalidDataException>(
+            () => compiler.Compile(
+                retired.ToJsonString(), templates.Template.LayoutJson,
+                unlocked, "retired-layout"));
+        Assert.Contains("unknown field 'layout'", retiredError.Message);
 
         JsonObject copies = JsonNode.Parse(
             templates.Template.PlaybookJson)!.AsObject();
-        copies["composition"] = new JsonArray(
-            "kestrel", "kestrel", "kestrel", "hush",
-            "relay", "towline", "palisade", "patchbay");
+        copies["roles"]![0]!["classes"] = new JsonArray(
+            "relay", "relay", "relay");
         InvalidDataException copyError = Assert.Throws<InvalidDataException>(() =>
             compiler.Compile(
-                copies.ToJsonString(Pretty),
-                templates.Template.LayoutJson,
-                unlocked,
-                "copy-cap"));
-        Assert.Contains("two-copy cap", copyError.Message,
-            StringComparison.OrdinalIgnoreCase);
+                copies.ToJsonString(), templates.Template.LayoutJson,
+                unlocked, "copy-cap"));
+        Assert.Contains("two-copy class cap", copyError.Message);
 
-        JsonObject legacyLayout = JsonNode.Parse(
+        JsonObject wrongMap = JsonNode.Parse(
             templates.Template.LayoutJson)!.AsObject();
-        legacyLayout["mapId"] = ArcRelayLoopProfile.ForwardCombat.MapId;
-        string legacyJson = legacyLayout.ToJsonString(Pretty);
-        JsonObject legacyPlaybook = JsonNode.Parse(
-            templates.Template.PlaybookJson)!.AsObject();
-        legacyPlaybook["layout"]!["sha256"] =
-            Convert.ToHexStringLower(SHA256.HashData(
-                Encoding.UTF8.GetBytes(legacyJson)));
-        InvalidDataException legacyError = Assert.Throws<InvalidDataException>(
-            () => compiler.Compile(
-                legacyPlaybook.ToJsonString(Pretty),
-                legacyJson,
-                unlocked,
-                "legacy-counterflow"));
-        Assert.Contains("never migrated", legacyError.Message,
+        wrongMap["mapId"] = ArcRelayLoopProfile.ForwardCombat.MapId;
+        string wrongMapJson = wrongMap.ToJsonString();
+        InvalidDataException mapError = Assert.Throws<InvalidDataException>(() =>
+            compiler.Compile(
+                templates.Template.PlaybookJson, wrongMapJson,
+                unlocked, "wrong-map"));
+        Assert.Contains("never migrated", mapError.Message,
             StringComparison.OrdinalIgnoreCase);
-        Assert.False(TacticalSheetCompiler.IsAdmissibleToCurrentPlaylist(legacyJson));
+        Assert.False(TacticalSheetCompiler.IsAdmissibleToCurrentPlaylist(
+            wrongMapJson));
     }
 }
