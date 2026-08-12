@@ -11,6 +11,7 @@ node scripts/generate-audio-v2-candidates.mjs
 node scripts/generate-audio-v3-candidates.mjs
 node scripts/generate-audio-v4-candidates.mjs
 node scripts/derive-audio-v5-revisions.mjs
+node scripts/derive-audio-v5-signatures.mjs
 node scripts/master-audio-v5-energy.mjs
 node scripts/build-audio-v5-candidates.mjs
 node scripts/validate-audio-candidates.mjs
@@ -22,11 +23,12 @@ Then open `sound-lab/index.html` or serve `art/audio/sound-lab` from any static
 server. V1 through V4 are deterministic: the same script revision produces the
 same signed 16-bit PCM WAV files. V1 is 44.1 kHz mono; V2 through V4 render at
 96 kHz and downsample to 48 kHz stereo. V5 keeps saved provider lineage for
-seventeen matched cues plus three optional ambient loops. The derivation script
-deterministically rebuilds three current variants from their accepted source
-masters without contacting SFX Engine. The safety-master script then rebuilds
-five high-energy provider cues from archived, hash-pinned pre-master WAVs
-without spending credits.
+seventeen matched cues plus three optional ambient loops, and a separate exact
+six-source private signature batch. The derivation scripts deterministically
+rebuild three current variants and nine signature deliveries from their accepted
+source masters without contacting SFX Engine. The safety-master script then
+rebuilds five high-energy provider cues from archived, hash-pinned pre-master
+WAVs without spending credits.
 
 The build command creates the static worker package used for the owner-only
 review site under the ignored `sandbox/audio-sound-lab-site` directory. It
@@ -119,6 +121,16 @@ three sound-lab timelines against every loop choice. Review playback uses one
 shared compressor followed by a fixed 3 dB safety gain; the uncompressed
 sequence sums must remain at or below -1 dBTP after that fixed gain.
 
+The signature package's generation record is
+`sound-lab/v5/signature-sfx-engine-generation.json`. Exactly six private
+provider jobs—with no rerolls and no ambience—supply low-mid materialize,
+tether, field, transfer, target, and kinetic source families. Run
+`scripts/derive-audio-v5-signatures.mjs` to reproduce the nine short, dry,
+dual-mono runtime deliveries. It verifies every source hash and applies only
+channel folding, resampling, low-pass filtering, endpoint fades, and peak
+fitting. Every signature delivery is at most 700 ms, uses 0.16 runtime gain,
+and adds no procedural or synthesized layer.
+
 V5 also includes three ambience candidates: **Original dark field**, **Ion
 veil**, and **Signal lattice**. SFX Engine supplied a 32-second
 non-musical source for each; the workflow applies a two-second circular
@@ -159,7 +171,7 @@ Core bank, Core Pulse, handoff, and arrival, in addition to wind-up and projecti
 release. It selects only hash-pinned accepted sources and uses deterministic
 resampling, low-pass filtering, endpoint fades, and conservative peak
 normalization, then audits the decoded AAC that the browser actually hears.
-Across all fourteen one-shots, decoded energy is at most 3% above 4 kHz and
+Across all 23 one-shots, decoded energy is at most 3% above 4 kHz and
 0.05% above 12 kHz, effective peaks stay at or below -9 dBFS, effective
 whole-cue RMS stays at or below -25 dBFS, and any window with more than 10%
 upper-mid energy must sit below -28 dBFS RMS after runtime gain. Delivery
@@ -169,15 +181,19 @@ Non-projectile categories still coalesce once per tick. Projectile/fizzle
 releases retain up to four positional voices—the observed Tapline maximum—and
 start 0.04 presentation ticks apart so identical buffers do not phase-lock.
 The projectile's four-voice limit and very low individual delivery keep even a
-theoretical perfectly aligned stack below -15 dBFS.
+theoretical perfectly aligned stack below -15 dBFS. Signature delivery permits
+at most two distinct voices per tick. The decoded 108-variant crowd audit adds
+that pair to four real-staggered projectiles, impact, destruction, level up, and
+one Core pickup/drop/handoff cue. Its worst dry centered sum is -7.43 dBTP
+against a -6 dBTP ceiling before limiter or room attenuation.
 
 Healing is an 800 ms low-mid field seal shared by the authoritative
 `zone-healed` and `signature-repair` facts. It pans from the healed target with
 a 0.55 edge width, allows at most two overlapping tails, and coalesces multiple
 same-tick heals like other non-projectile categories. Its decoded runtime asset
-centres at 932 Hz, carries 1.77% energy above 4 kHz and 0.04% above 12 kHz,
-and remains at -17.97 dBFS effective peak / -38.62 dBFS effective RMS. Even a
-perfectly aligned two-tail stack remains below -11 dBFS before the limiter.
+has a 220 Hz dominant frequency and 431 Hz spectral centroid, carries 0.44%
+energy above 4 kHz and 0% above 12 kHz, and remains at -19.56 dBFS effective
+peak / -33.97 dBFS effective RMS.
 
 V2 renders at 96 kHz before anti-aliased downsampling to 48 kHz stereo. Its
 layers include separate transients, tonal bodies, modal material resonance,
@@ -188,11 +204,11 @@ sound lab as a collapsed reference archive.
 
 The lossless masters for every direction stay under `art/`. Astral Relay is the
 approved runtime direction; `scripts/export-runtime-sound-effects.mjs` verifies
-the V5 source hashes and exports fourteen mapped one-shots to
+the V5 source hashes and exports 23 mapped one-shots to
 `web/src/assets/audio/effects/astral-relay/` as 48 kHz stereo AAC-LC.
 The unique fizzle, cancel, and historical special-steal takes stay review-only;
 runtime fizzle aliases the shipped projectile release. The checked-in delivery
-assets total roughly 0.32 MiB. No ambience file, mapping, fetch, or playback
+assets total 414,920 bytes. No ambience file, mapping, fetch, or playback
 path ships. The entitlement cue remains a sound-lab master until a real
 entitlement notification owns it; it is not a match-result sound.
 

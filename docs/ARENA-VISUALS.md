@@ -409,10 +409,11 @@ for Labs replays whose presentation metadata predates the art.
 Arc Relay follows the same internal-default route with one internal package
 for each launch class: Kestrel, Palisade, Towline, Patchbay, Lantern, Mortar,
 Minesmith, Hush, Relay, Switchback, Longshot, Mason, Sunder, Repulsor, Veil,
-and Nest. Their IDs are `arc-<class-id>` and their common basic projectile is
-the renderer-tinted `arc-pulse` class-projectile mask. The approved raster
-exception uses transparent 192 px top-down sprites rendered from the matching
-Meshy 7 models, with every +X front pointing screen-right/east. A narrow
+and Nest. Their IDs are `arc-<class-id>`. New grammar-3 replays snapshot one
+renderer-tinted `arc-shot-<class-id>` regular-attack head per form; `arc-pulse`
+remains the participant and historical-replay compatibility projectile. The
+approved raster exception uses transparent 192 px top-down sprites rendered
+from the matching Meshy 7 models, with every +X front pointing screen-right/east. A narrow
 leading-edge mask supplies renderer-owned team teal/orange without baking a
 team color into the source model. The deterministic icon recipe and exact
 hashes live in `scripts/class-models/build-meshy7-fleet-web-icons.mjs` and
@@ -440,6 +441,51 @@ The frontend keeps the two routes deliberately separate:
 - Canvas2D and WebGL both consume these shared unit resolvers and the same
   replay-resolved team accent. `classId` describes a cosmetic; it does not
   override the replay's authoritative form or team.
+
+### Arc Relay signature presentation package
+
+Tapline-2 snapshots `arc-relay-signatures-v1`, one grammar-complete package for
+all sixteen launch signatures. Grammar version and concrete mechanic version
+are deliberately different axes: every roster entry publishes grammar-3
+lifecycle timing, while only Null Field, Target Paint, Kinetic Burst, and Smoke
+Canister use new concrete definition records because only those mechanics
+changed.
+
+The shared, Three-free definition layer lives under
+`web/src/render/signatures/definitions`; every signature declares public phases,
+topology, a truthful Canvas marker, audio bindings or explicit silence, reduced-
+motion behavior, primitive budgets, and its fidelity reference. Equally named
+lazy WebGL painters live under `web/src/render3d/signatures/definitions` and
+compose pooled floor rings/lenses, lanes, panels, segmented lines, travelling
+heads, stylized volumes, and sparse particles. Per-frame paint only transforms
+that pool from replay state and playhead time. It never allocates narrative
+state or relies on prior frames, so direct seek remains deterministic.
+
+WebGL is the fidelity target; Canvas is the compatibility truth target. Canvas
+retains the authoritative tell, target or footprint, capacity/suppression, and
+outcome without importing Three.js. A replay with no package ID uses the frozen
+legacy treatment. An unknown package or signature receives a generic public
+phase/footprint marker rather than becoming invisible or borrowing the current
+art by accident.
+
+Persistent Trip Node and Sentinel Seed props use their separately promoted
+Meshy assets only after the replay says the construct is active. Their tell,
+load-failure, Canvas, and suppressed fallbacks remain procedural. The sentry's
+head may follow only an already observed authoritative shot. The other fourteen
+signatures use renderer primitives and need no skeletal or Meshy animation.
+
+An authoritative `leveled-up` fact also drives a bounded presentation beat: a
+thin brass floor ring, three short converging matte facets, then the persistent
+rules-owned chevron. Temporary geometry is gone by 0.9 presentation ticks; the
+effect has no white flash, full-height column, camera shake, or mesh mutation.
+
+The approval artifact and per-effect fidelity target live under
+`art/reviews/arc-relay-presentation-batch-v1`. A release capture uses a real
+Tapline replay and checks start/action/resolve at desktop, phone landscape, and
+reduced motion; direct seek must match continuous playback, and the sixteen-body
+scene must remain inside the declared primitive, transparent-layer, sustained-
+render, and comfort budgets. See
+`docs/ADDING-ARC-CLASS-AND-SIGNATURE.md` for the exact extension path.
 
 To create another look:
 
@@ -645,6 +691,12 @@ Trident Spark, Rebound Diamond, and Lattice Rivet are separate internal
 class-form projectile masks. They are resolved after an authored per-form
 `projectileLookId` and before a participant cosmetic only for class forms, so
 historical Duel playback keeps the snapshotted participant projectile.
+
+Arc Relay adds sixteen internal `arc-shot-<class-id>` masks. Grammar-3 replay
+forms snapshot the exact class projectile, so Kestrel through Nest retain their
+own small silhouette without a renderer-side class table. All share the same
+authoritative traversal, tint, wake, hit treatment, and quiet projectile cue;
+class identity changes no mechanic. `arc-pulse` remains the legacy Arc fallback.
 
 To create another projectile look:
 

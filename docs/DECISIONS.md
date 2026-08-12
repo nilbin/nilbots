@@ -7952,3 +7952,40 @@ full 10-tick field on landing while its 18-tick cooldown remains launch-bound.
 playlist v20, its stock artifacts, rules fingerprint, ratings, and historical
 matches remain pinned to Tapline-1; advancing the local `Current` profile does
 not deploy or mutate that playlist.
+
+## 297. Arc presentation is a grammar-complete, replay-owned package
+
+Owner-approved implementation ruling (2026-08-12), clarifying #296. The phrase
+“four new signatures” never meant that only four signatures enter the new
+grammar. All sixteen Tapline-2 signatures are grammar 3, have exact typed
+lifecycle handlers and metadata, and participate in one
+`arc-relay-signatures-v1` presentation package. Only the four mechanics whose
+chronology changed receive new concrete C# definition records. Empty aliases for
+the unchanged twelve would add compatibility surface without behavior.
+
+The replay snapshots the signature package plus one `arc-<class-id>` form look
+and `arc-shot-<class-id>` regular-attack projectile for every launch class.
+Package absence keeps the frozen legacy treatment; an unknown package or
+signature gets a generic truthful marker. Presentation changes replay identity,
+not rules, map, or match fingerprints. All sixteen definitions own a Canvas
+truth marker, discoverable pooled WebGL painter, reduced-motion policy, resource
+budget, fidelity reference, and fact-bound audio choice. Trip Node and Sentinel
+Seed use the separately promoted matte Meshy props; this package owns their
+truthful lifecycle treatment, not their model sources.
+
+The App catalog obtains stable signature/action IDs from the current typed
+engine rules and exposes them through both class catalog endpoints. The Orders
+editor consumes those IDs instead of a handwritten class-skill map. Exact-set
+tests require the launch roster, catalog, actions, replay forms, class looks,
+projectiles, signature definitions, WebGL painters, and audio definitions to
+stay complete. `docs/ADDING-ARC-CLASS-AND-SIGNATURE.md` is the canonical path
+for a future class or signature.
+
+Astral Relay runtime manifest v12 carries 23 one-shots: fourteen shared Arc
+cues plus nine short signature deliveries deterministically derived from exactly
+six private SFX Engine sources. Signature voices are dry, low-mid, capped at two
+per tick, and subordinate to Core and combat outcomes. The decoded 108-variant
+crowded audit combines four staggered projectiles, impact, destruction,
+level-up, one Core cue, and every distinct signature pair; its worst dry,
+centered sum is -7.43 dBTP against a -6 dBTP ceiling before limiter or room
+attenuation. No ambience ships or plays, and Neon Protocol music is unchanged.

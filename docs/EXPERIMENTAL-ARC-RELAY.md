@@ -224,3 +224,9 @@ The other twelve signatures keep their established mechanics inside the same
 grammar-3 profile. Only mechanically changed definitions receive a new
 concrete version. `tapline-1`, its rules fingerprint, hosted playlist v20,
 stock artifacts, and ratings remain immutable.
+
+This distinction is the repository extension rule, not a Tapline exception:
+grammar generations cover the complete roster, while concrete definition
+versions exist only for real mechanic or chronology changes. The end-to-end
+class/signature checklist is in
+[`ADDING-ARC-CLASS-AND-SIGNATURE.md`](ADDING-ARC-CLASS-AND-SIGNATURE.md).

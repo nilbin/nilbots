@@ -1,7 +1,7 @@
 # Audio design and asset workflow
 
 Status: Astral Relay is the approved default runtime sound-effect direction.
-Fourteen one-shot voices ship in the web and self-contained replay viewers;
+Twenty-three one-shot voices ship in the web and self-contained replay viewers;
 no ambience loop ships or plays. Effects are enabled by default after the
 browser's first trusted user interaction. Neon Protocol music is unchanged.
 
@@ -64,6 +64,7 @@ node scripts/generate-audio-v2-candidates.mjs
 node scripts/generate-audio-v3-candidates.mjs
 node scripts/generate-audio-v4-candidates.mjs
 node scripts/derive-audio-v5-revisions.mjs
+node scripts/derive-audio-v5-signatures.mjs
 node scripts/master-audio-v5-energy.mjs
 node scripts/build-audio-v5-candidates.mjs
 node scripts/validate-audio-candidates.mjs
@@ -207,6 +208,23 @@ legible when it coincides with the victim's destruction tail. If one bounty
 emits several levels for the same actor on one tick, the runtime scheduler
 coalesces them into one cue at the highest reached level.
 
+The grammar-3 signature package adds exactly six private SFX Engine source
+requests, with no automatic rerolls and no ambience. Their low-mid materialize,
+tether, field, transfer, target, and kinetic sources deterministically derive
+nine short deliveries: `signature-motion`, `signature-construct`,
+`signature-tether`, `signature-survey`, `signature-null`, `signature-smoke`,
+`signature-exchange`, `signature-target`, and `signature-kinetic`. Each is
+dual-mono, at most 700 ms, played at 0.16 gain, dry, and limited to one voice;
+the signature category permits at most two distinct voices per tick.
+
+Prompts, private request settings, provider IDs and times, source/delivery
+hashes, operations, and measurements are pinned in
+`art/audio/sound-lab/v5/signature-sfx-engine-generation.json`. URLs, user IDs,
+and credentials are omitted. `scripts/derive-audio-v5-signatures.mjs` performs
+only hash-pinned channel folding, resampling, low-pass filtering, endpoint
+fades, and conservative peak fitting. It adds no synthesized layer and makes no
+provider request.
+
 ### Arc Relay tactile reconcept (V3 archive)
 
 The previous complete-vocabulary round remains available for provenance and
@@ -240,10 +258,10 @@ node scripts/export-runtime-sound-effects.mjs
 ```
 
 This verifies the hash-pinned V5 sources and exports Astral Relay to
-`web/src/assets/audio/effects/astral-relay/` as 48 kHz stereo AAC-LC: fourteen
-mapped one-shots at 192 kbps, roughly 0.32 MiB together. The unique fizzle,
+`web/src/assets/audio/effects/astral-relay/` as 48 kHz stereo AAC-LC: 23 mapped
+one-shots at 192 kbps, 414,920 bytes together. The unique fizzle,
 cancel, and historical special-steal takes remain lossless review references;
-runtime fizzle aliases the projectile release instead of shipping a fifteenth
+runtime fizzle aliases the projectile release instead of shipping another
 voice. The production manifest records the SFX Engine and local derivation
 lineage, source/output hashes, checked licensing basis, shipment approval, and
 per-cue gain/voice limits.
@@ -253,11 +271,11 @@ of truth in the sound lab. The exporter also zeros the three standard M4A
 creation/modification timestamps, making repeated exports byte-identical.
 
 Delivery processing now covers wind-up, projectile, impact, healing,
-destruction, level up, Core bank, Core Pulse, handoff, and arrival. It preserves
-accepted sources and uses only deterministic resampling, low-pass filtering,
-endpoint fades, and conservative peak normalization—no SFX Engine request and
-no synthesized layer. The export then decodes every AAC and audits what the
-browser will hear.
+destruction, level up, Core bank, Core Pulse, handoff, arrival, and all nine
+signature voices. It preserves accepted sources and uses only deterministic
+channel folding, resampling, low-pass filtering, endpoint fades, and
+conservative peak normalization—no SFX Engine request and no synthesized layer.
+The export then decodes every AAC and audits what the browser will hear.
 Every one-shot must remain at or below 3% energy above 4 kHz, 0.05% above 12
 kHz, -9 dBFS effective sample peak, and -25 dBFS whole-cue RMS. A window with
 more than 10% upper-mid energy must also fall below -28 dBFS RMS after its
@@ -288,15 +306,24 @@ retains up to four distinct projectile/fizzle releases, matching the maximum
 observed simultaneous Tapline presentation, and separates their starts by 0.04
 presentation ticks (16 ms at normal speed). Each keeps its own authoritative
 pan. The four-voice hard limit bounds future formats, and even a theoretical
-phase-aligned stack remains below -15 dBFS before the shared limiter.
+phase-aligned stack remains below -15 dBFS before the shared limiter. Signature
+delivery retains at most two distinct voices on a tick.
+
+The strict decoded-runtime crowd audit checks 108 dry, centered variants. Every
+variant combines four projectiles at their real 16 ms staggering, impact,
+destruction, level up, one of pickup/drop/handoff, and one of all 36 distinct
+signature-cue pairs. The worst sum is -7.43 dBTP against a -6 dBTP ceiling,
+without credit for the shared limiter or room attenuation. This is automated
+headroom and spectral evidence; a normal-volume human headphone/speaker listen
+remains the final taste and comfort gate.
 
 Every positioned cue uses the fact/event tile's map-x coordinate for restrained
 left/right `StereoPannerNode` placement. This is arena-horizontal direction,
 not camera-relative 3D audio: there is no front/back axis or distance falloff.
 Healing uses a 0.55 edge pan width, coalesces same-tick heals, and permits at
-most two overlapping tails. Its 800 ms runtime delivery is 198 Hz dominant /
-932 Hz spectral centroid, with 1.77% decoded energy above 4 kHz, 0.04% above
-12 kHz, -17.97 dBFS effective peak, and -38.62 dBFS effective RMS.
+most two overlapping tails. Its 800 ms runtime delivery is 220 Hz dominant /
+431 Hz spectral centroid, with 0.44% decoded energy above 4 kHz, 0% above
+12 kHz, -19.56 dBFS effective peak, and -33.97 dBFS effective RMS.
 
 Browser autoplay policy still requires a user gesture. The first trusted click
 or non-modifier key resumes the viewer's shared audio session and arms enabled
@@ -313,7 +340,7 @@ and is separate from approving the web/standalone pack.
 ## Runtime package shape
 
 1. Keep all candidate WAV files as lossless source masters under `art/audio`.
-2. Ship only Astral Relay's fourteen approved compressed one-shots; ambience
+2. Ship only Astral Relay's 23 approved compressed one-shots; ambience
    candidates remain sound-lab references.
 3. Keep shared gameplay cues in one rights- and approval-bearing runtime
    manifest.
@@ -346,6 +373,10 @@ current presented tick:
 - destruction: transition from active to terminal bot state;
 - arrival: authoritative life spawn, respawn, or fabrication;
 - level up: highest authoritative `leveled-up` fact per actor and tick;
+- signature lifecycle: the binding on the replay-selected signature definition,
+  triggered only by its authoritative started/launched/landed/activated/acquired/
+  completed reason or discrete repair/damage/Core fact; declared maintenance and
+  cancellation may be explicitly silent;
 - Core lifecycle: authoritative birth, pickup (including steal), handoff, drop,
   bank, and Pulse facts; all pickups share one levitation voice;
 - zone shift: a meaningful control-owner transition, not every pressure tick;

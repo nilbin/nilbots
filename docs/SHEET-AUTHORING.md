@@ -407,7 +407,9 @@ on an order.
 The product loop is **change → practice → watch → change**.
 
 - `GET /api/sheets/catalog` supplies the Tapline map, class/signature catalog,
-  unlocks, starter pair, and stock opponents.
+  stable `signatureId`/`actionId` ownership, unlocks, starter pair, and stock
+  opponents. The workshop consumes those stable IDs; it does not maintain a
+  second class-to-signature table.
 - `GET/POST/PUT/DELETE /api/sheets` persists owner-scoped source pairs and
   optimistic revisions. Every save compiles on the server through the shared
   compiler. The stored source-size ceilings are 192 KiB for Orders and 96 KiB

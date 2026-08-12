@@ -65,6 +65,50 @@ fingerprints. Historical `play`, Duel admission, datasets, and ladders do not
 select it. Replay 1, the opened Frontline-alpha replay 2, and their hashes
 remain separate frozen generations.
 
+### Replay-v3 presentation identity
+
+Replay-v3 may carry an optional presentation object beside its immutable
+gameplay contract:
+
+```json
+{
+  "themeId": "ember-forge",
+  "map": {
+    "boundaryWall": "perimeter",
+    "interiorWall": "cover",
+    "wallGroups": []
+  },
+  "forms": [
+    {
+      "formId": "arc-body-kestrel",
+      "lookId": "arc-kestrel",
+      "projectileLookId": "arc-shot-kestrel"
+    }
+  ],
+  "signaturePresentationId": "arc-relay-signatures-v1"
+}
+```
+
+This object is replay-owned and included in the replay hash, but excluded from
+the rules, map, and match-contract fingerprints. Form entries bind exact chassis
+and regular-attack projectile identities. `signaturePresentationId` binds one
+immutable, roster-complete visual/audio treatment to the public signature
+operation grammar.
+
+Arc Relay writes `arc-relay-signatures-v1` only for grammar-3 rulesets. All
+sixteen signatures participate even though only four concrete mechanic records
+changed in Tapline-2. Historical replays with no field retain their legacy
+treatment. A viewer that does not recognize a package or signature must show a
+generic marker derived from the public phase, positions, target, capacity, and
+suppression fields; it must not hide the event or reinterpret it using the
+current package.
+
+A visual/audio revision mints another presentation package ID. It does not
+require a rules version unless mechanics or canonical gameplay fields also
+change. Conversely, a mechanic that cannot be truthfully represented by the
+generic operation envelope must add an explicit replay fact rather than rely on
+renderer inference.
+
 > For replay v1, a quick digest instead of raw JSON is available through
 > `botarena replay <file> --summary`. It prints a compact timeline (states,
 > shots, damage, debug lines) built on the conventions below.
