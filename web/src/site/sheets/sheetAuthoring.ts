@@ -108,7 +108,7 @@ export const CONDITION_OPERATORS: readonly ConditionOperator[] =
   ['at-least', 'at-most', 'equals', 'less-than', 'greater-than'];
 export const CONDITION_FACTS = [
   'self-health-percent', 'self-level', 'self-carrying', 'self-stuck-ticks',
-  'self-order-ticks', 'signature-ready', 'role-live-count',
+  'self-order-ticks', 'self-in-zone', 'signature-ready', 'role-live-count',
   'role-lowest-health-percent', 'role-in-zone-count', 'live-friendlies',
   'friendly-carriers', 'known-enemy-carriers', 'visible-enemy-carriers',
   'known-loose-cores', 'visible-loose-cores', 'secured-cores',
@@ -124,7 +124,7 @@ export const UI_STATE_KEY = 'nilbots-sheet-map-ui-v2';
 const IDENTIFIER = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const ROLE_FACTS = new Set(['role-live-count', 'role-lowest-health-percent', 'role-in-zone-count']);
 const ZONE_FACTS = new Set([
-  'role-in-zone-count', 'friendlies-in-zone', 'visible-enemies-in-zone',
+  'self-in-zone', 'role-in-zone-count', 'friendlies-in-zone', 'visible-enemies-in-zone',
   'remembered-enemies-in-zone', 'known-loose-cores-in-zone',
 ]);
 const WELL_FACTS = new Set(['well-has-outstanding-core', 'well-ticks-until-birth', 'well-socket-filled']);
@@ -460,8 +460,8 @@ function validateOrder(
   }
   if (action === 'use') {
     const skills = new Set(role.classes.map((classId) => CLASS_SKILLS[classId]));
-    if (skills.size !== 1 || !skills.has(node.use!.skill))
-      error(`${path}.use.skill`, 'Every body in this role must own this exact signature skill.');
+    if (!skills.has(node.use!.skill))
+      error(`${path}.use.skill`, 'At least one body in this role must own this signature skill.');
   }
   if (!node.when && !node.until && hasLaterSibling)
     warning(path, 'An unconditional order above later orders will always win when it has a target.');

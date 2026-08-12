@@ -539,14 +539,24 @@ function FightEditor({ value, onChange }: { value: NonNullable<OrderNode['fight'
 }
 
 function UseEditor({ node, role, catalog, onChange }: { node: OrderNode; role: RoleDefinition; catalog: TacticalSheetCatalog; onChange: (next: NonNullable<OrderNode['use']>) => void }) {
-  const skills = [...new Set(role.classes.map(skillForClass).filter(Boolean))];
-  const skill = skills.length === 1 ? skills[0]! : node.use?.skill ?? '';
-  const classInfo = catalog.classes.find((entry) => role.classes.includes(entry.id));
+  const skills = [...new Set(role.classes.map(skillForClass)
+    .filter((value): value is string => Boolean(value)))];
+  const authoredSkill = node.use?.skill;
+  const skill = authoredSkill && skills.includes(authoredSkill)
+    ? authoredSkill
+    : skills[0] ?? '';
+  const classInfo = catalog.classes.find((entry) => skillForClass(entry.id) === skill);
   const targets = useTargets(skill);
   return <div className="mt-4 rounded-sm border border-arena-material/30 bg-arena-material/5 p-3">
-    <div className="flex items-center gap-3"><ClassIcon classId={role.classes[0]} size={46} /><div><p className="lab text-arena-material">{classInfo?.signatureName ?? humanize(skill)}</p><p className="t-meta mt-1">{skills.length === 1 ? classInfo?.fantasy : 'Every body in one role must own the same skill.'}</p></div></div>
+    <div className="flex items-center gap-3"><ClassIcon classId={classInfo?.id ?? role.classes[0]} size={46} /><div><p className="lab text-arena-material">{classInfo?.signatureName ?? humanize(skill)}</p><p className="t-meta mt-1">{classInfo?.fantasy}</p></div></div>
+    {skills.length > 1 && <CardPicker label="Which class acts?" value={skill} values={skills}
+      labeler={(entry) => catalog.classes.find((candidate) => skillForClass(candidate.id) === entry)?.name ?? humanize(entry)}
+      descriptions={Object.fromEntries(skills.map((entry) => [entry,
+        catalog.classes.find((candidate) => skillForClass(candidate.id) === entry)?.signatureName ?? humanize(entry)]))}
+      onChange={(nextSkill) => onChange({ skill: nextSkill, target: useTargets(nextSkill)[0] ?? 'self' })} />}
     <CardPicker label="Skill target" value={node.use?.target ?? targets[0]} values={targets}
       onChange={(target) => onChange({ skill, target })} />
+    {skills.length > 1 && <p className="t-micro mt-2">Only bodies that own this skill take this order. Other classes in the role continue down the ladder.</p>}
   </div>;
 }
 
@@ -772,7 +782,7 @@ function normalizedCondition(fact: string, previous: ConditionDefinition, orders
   if (kind === 'zone' || kind === 'role-zone') next.zone = previous.zone ?? Object.keys(mapPlan.zones)[0];
   if (kind === 'well') next.well = previous.well ?? 'centre';
   if (['known-enemy-carriers', 'remembered-enemies-in-zone'].includes(fact)) next.freshnessTicks = previous.freshnessTicks ?? 60;
-  if (['self-carrying', 'signature-ready'].includes(fact)) next.value = previous.value === 0 ? 0 : 1;
+  if (['self-carrying', 'self-in-zone', 'signature-ready'].includes(fact)) next.value = previous.value === 0 ? 0 : 1;
   return next;
 }
 
@@ -802,7 +812,9 @@ function walk(orders: OrdersDocument, visit: (node: OrderNode) => void, includeS
 
 function useTargets(skill: string): string[] {
   if (skill === 'null-field' || skill === 'kinetic-burst') return ['self'];
-  if (skill === 'repair-beam' || skill === 'exchange') return ['weakest-ally', 'nearest-ally'];
+  if (skill === 'repair-beam') return ['weakest-ally', 'nearest-ally'];
+  if (skill === 'exchange') return ['healthiest-ally', 'nearest-ally', 'weakest-ally'];
+  if (skill === 'arc-toss') return ['nearest-ally-toward-own-reactor', 'nearest-ally', 'own-reactor'];
   if (skill === 'target-paint') return ['enemy-carrier', 'weakest-enemy', 'nearest-enemy'];
   return ['nearest-enemy', 'weakest-enemy', 'enemy-carrier', 'nearest-ally', 'weakest-ally', 'self', 'own-reactor'];
 }

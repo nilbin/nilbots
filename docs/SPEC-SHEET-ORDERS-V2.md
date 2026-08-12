@@ -217,7 +217,7 @@ The v2 fact catalog is intentionally finite:
 
 | scope | facts |
 | --- | --- |
-| body | `self-health-percent`, `self-level`, `self-carrying`, `self-stuck-ticks`, `self-order-ticks`, `signature-ready` |
+| body | `self-health-percent`, `self-level`, `self-carrying`, `self-stuck-ticks`, `self-order-ticks`, `self-in-zone`, `signature-ready` |
 | role | `role-live-count`, `role-lowest-health-percent`, `role-in-zone-count` |
 | team | `live-friendlies`, `friendly-carriers`, `known-enemy-carriers`, `visible-enemy-carriers`, `known-loose-cores`, `visible-loose-cores`, `secured-cores`, `reactor-integrity`, `reactor-charge`, `ticks-without-objective-progress` |
 | zone | `friendlies-in-zone`, `visible-enemies-in-zone`, `remembered-enemies-in-zone`, `known-loose-cores-in-zone` |
@@ -296,16 +296,20 @@ an explicit empty-handed condition on combat orders.
 { "use": { "skill": "repair-beam", "target": "weakest-ally" } }
 ```
 
-`skill` is the exact signature skill of every class in the role. `target` is
-one of `self`, `own-reactor`, `nearest-enemy`, `weakest-enemy`,
-`enemy-carrier`, `nearest-ally`, or `weakest-ally`. The
-compiler validates the selector against the signature's parameter kind. The
-executor deterministically converts the resolved target to the engine's unit,
-position, heading, or parameterless argument.
+At least one class in the role must own `skill`. In a mixed-class role, only a
+body that owns the named skill can take that leaf; other bodies continue down
+the same ordered list. `target` is one of `self`, `own-reactor`,
+`nearest-enemy`, `weakest-enemy`, `enemy-carrier`, `nearest-ally`,
+`weakest-ally`, `healthiest-ally`, or
+`nearest-ally-toward-own-reactor`. The compiler validates the selector against
+the signature's parameter kind. The executor deterministically converts the
+resolved target to the engine's unit, position, heading, or parameterless
+argument.
 
 `use` never implies travel, target search outside known information, or another
 order. If the skill is unavailable or the selector cannot resolve, lower
-priority continues.
+priority continues. Geographic use is composed from a `self-in-zone` condition
+on the skill leaf and an independently authored move to that zone.
 
 ### 6.4 `handoff`
 

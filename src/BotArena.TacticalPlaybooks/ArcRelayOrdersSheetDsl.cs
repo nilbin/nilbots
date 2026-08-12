@@ -45,7 +45,8 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         new(StringComparer.Ordinal)
         {
             "self-health-percent", "self-level", "self-carrying",
-            "self-stuck-ticks", "self-order-ticks", "signature-ready",
+            "self-stuck-ticks", "self-order-ticks", "self-in-zone",
+            "signature-ready",
             "role-live-count", "role-lowest-health-percent",
             "role-in-zone-count", "live-friendlies", "friendly-carriers",
             "known-enemy-carriers", "visible-enemy-carriers",
@@ -67,7 +68,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
     private static readonly HashSet<string> ZoneFacts =
         new(StringComparer.Ordinal)
         {
-            "role-in-zone-count", "friendlies-in-zone",
+            "self-in-zone", "role-in-zone-count", "friendlies-in-zone",
             "visible-enemies-in-zone", "remembered-enemies-in-zone",
             "known-loose-cores-in-zone",
         };
@@ -90,6 +91,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         {
             "self", "own-reactor", "nearest-enemy", "weakest-enemy",
             "enemy-carrier", "nearest-ally", "weakest-ally",
+            "healthiest-ally", "nearest-ally-toward-own-reactor",
         };
 
     private static SheetValidation ValidateOrdersSheet(
@@ -258,7 +260,8 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             {
                 throw Error(at, "health percentages must be in [0, 100].");
             }
-            if ((fact is "self-carrying" or "signature-ready")
+            if ((fact is "self-carrying" or "self-in-zone" or
+                    "signature-ready")
                 && comparison is not (0 or 1))
             {
                 throw Error(at, $"'{fact}' compares against 0 or 1.");
@@ -637,11 +640,11 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         string target = RequiredString(value, "target", $"{path}.use");
         if (!UseTargets.Contains(target))
             throw Error($"{path}.use.target", $"unknown target '{target}'.");
-        foreach (string classId in role.Classes)
+        if (!role.Classes.Any(classId => string.Equals(
+                ClassSkills[classId], skill, StringComparison.Ordinal)))
         {
-            if (!string.Equals(ClassSkills[classId], skill, StringComparison.Ordinal))
-                throw Error($"{path}.use.skill",
-                    $"class '{classId}' owns '{ClassSkills[classId]}', not '{skill}'.");
+            throw Error($"{path}.use.skill",
+                $"no body in role '{role.Id}' owns '{skill}'.");
         }
         if (skill is "null-field" or "kinetic-burst")
         {
@@ -654,7 +657,8 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             throw Error($"{path}.use.target", "repair-beam targets an ally.");
         }
         else if (skill == "exchange"
-            && target is not ("nearest-ally" or "weakest-ally"))
+            && target is not ("nearest-ally" or "weakest-ally" or
+                "healthiest-ally"))
         {
             throw Error($"{path}.use.target", "exchange targets an ally.");
         }

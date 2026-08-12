@@ -232,7 +232,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             case OrdersPackage.FightAction fight:
                 return ResolveEnemyTargets(contract, mind, arc, body, fight);
             case OrdersPackage.UseAction use:
-                return ResolveUseTargets(contract, mind, body, use);
+                return ResolveUseTargets(contract, mind, body, use, carried);
             case OrdersPackage.HandoffAction handoff:
                 return ResolveHandoffTargets(
                     contract, mind, body, handoff, package, carried);
@@ -396,7 +396,9 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         GenericActorResolvedMatchContract contract,
         MindContext mind,
         MindBody body,
-        OrdersPackage.UseAction use)
+        OrdersPackage.UseAction use,
+        IReadOnlyDictionary<ActorIdentity,
+            GenericActorContext.ArcRelayCoreState> carried)
     {
         GenericActorRulesContract.ArcRelaySignature? signature =
             ArenaBasics.ArcRules(contract)?.Signatures.FirstOrDefault(value =>
@@ -404,13 +406,24 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         if (signature is null
             || body.Action(signature.ActionId) is not { Available: true })
             return [];
+        // A mixed-class role may state one skill order for each class it casts.
+        // Applicability belongs to the body: an unrelated class falls through
+        // to its next authored order instead of forcing an artificial role split.
+        if (signature.ClassId != body.ClassId)
+            return [];
         if (use.Target == "self")
-            return [new ResolvedTarget(
+        {
+            var self = new ResolvedTarget(
                 $"body:{body.ActorId}", body.Position, [body.Position],
-                body.ActorId, null)];
+                body.ActorId, null);
+            return CanExecuteUse(contract, body, self, use) ? [self] : [];
+        }
         if (use.Target == "own-reactor")
-            return [new ResolvedTarget(
-                "reactor:own", _ownReactor, [_ownReactor], null, null)];
+        {
+            var reactor = new ResolvedTarget(
+                "reactor:own", _ownReactor, [_ownReactor], null, null);
+            return CanExecuteUse(contract, body, reactor, use) ? [reactor] : [];
+        }
         IEnumerable<(ActorIdentity Actor, Position Position, int Health)> values =
             use.Target switch
             {
@@ -425,6 +438,26 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 "weakest-ally" => mind.Bodies
                     .Where(candidate => candidate.UnitId != body.UnitId)
                     .OrderBy(candidate => candidate.Health)
+                    .ThenBy(candidate => candidate.UnitId)
+                    .Select(candidate => (candidate.ActorId,
+                        candidate.Position, candidate.Health)),
+                "healthiest-ally" => mind.Bodies
+                    .Where(candidate => candidate.UnitId != body.UnitId)
+                    .OrderByDescending(candidate => candidate.Health)
+                    .ThenBy(candidate => candidate.UnitId)
+                    .Select(candidate => (candidate.ActorId,
+                        candidate.Position, candidate.Health)),
+                "nearest-ally-toward-own-reactor" => mind.Bodies
+                    .Where(candidate => candidate.UnitId != body.UnitId
+                        && !carried.ContainsKey(candidate.ActorId)
+                        && (ArenaBasics.StaticDistance(
+                                contract.Map, candidate.Position, _ownReactor)
+                            ?? int.MaxValue) < (ArenaBasics.StaticDistance(
+                                contract.Map, body.Position, _ownReactor)
+                            ?? int.MaxValue))
+                    .OrderBy(candidate => ArenaBasics.StaticDistance(
+                            contract.Map, body.Position, candidate.Position)
+                        ?? int.MaxValue)
                     .ThenBy(candidate => candidate.UnitId)
                     .Select(candidate => (candidate.ActorId,
                         candidate.Position, candidate.Health)),
@@ -449,8 +482,64 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 _ => [],
             };
         return values.Select(value => new ResolvedTarget(
-            $"body:{value.Actor}", value.Position, [value.Position],
-            value.Actor, null)).ToArray();
+                $"body:{value.Actor}", value.Position, [value.Position],
+                value.Actor, null))
+            .Where(target => CanExecuteUse(contract, body, target, use))
+            .ToArray();
+    }
+
+    private static bool CanExecuteUse(
+        GenericActorResolvedMatchContract contract,
+        MindBody body,
+        ResolvedTarget target,
+        OrdersPackage.UseAction use)
+    {
+        GenericActorRulesContract.ArcRelaySignature? signature =
+            ArenaBasics.ArcRules(contract)?.Signatures.FirstOrDefault(value =>
+                value.SignatureId == use.Skill || value.Kind == use.Skill);
+        if (signature is null || signature.ClassId != body.ClassId)
+            return false;
+        GenericActorActionLegality? action = body.Action(signature.ActionId);
+        if (action is not { Available: true })
+            return false;
+        bool unit = action.Constraints.OfType<GenericActorActionLegality
+            .ArgumentConstraint.UnitTargetConstraint>().Any();
+        bool heading = action.Constraints.OfType<GenericActorActionLegality
+            .ArgumentConstraint.ProjectileHeadingConstraint>().Any();
+        bool direction = action.Constraints.OfType<GenericActorActionLegality
+            .ArgumentConstraint.DirectionConstraint>().Any();
+        bool position = action.Constraints.OfType<GenericActorActionLegality
+            .ArgumentConstraint.PositionTargetConstraint>().Any();
+        if (unit && heading && target.Actor is ActorIdentity locked)
+            return ArenaBasics.CanUseLockedLineSignature(
+                contract, body, signature.Kind, locked, target.Position);
+        if (unit && target.Actor is ActorIdentity actor)
+            return ArenaBasics.CanUseUnitSignature(
+                contract, body, signature.Kind, actor);
+        if (heading)
+            return ArenaBasics.CanUseHeadingSignature(
+                contract, body, signature.Kind, target.Position);
+        if (direction)
+            return ArenaBasics.CanUseDirectionSignature(
+                contract, body, signature.Kind);
+        if (position)
+        {
+            // Arc Toss is a pass, not a blind throw in an ally's general
+            // direction. A named receiver must be an exact legal landing tile
+            // so the engine can complete the catch authoritatively.
+            if (signature.Kind == "arc-toss"
+                && target.Actor is not null
+                && action.Constraints.OfType<GenericActorActionLegality
+                    .ArgumentConstraint.PositionTargetConstraint>()
+                    .Single().AllowedValues.Contains(target.Position) == false)
+            {
+                return false;
+            }
+            return ArenaBasics.CanUsePositionSignature(
+                contract, body, signature.Kind);
+        }
+        return ArenaBasics.CanUseParameterlessSignature(
+            contract, body, signature.Kind);
     }
 
     private ResolvedTarget[] ResolveHandoffTargets(
@@ -952,8 +1041,15 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             return ArenaBasics.TryDirectionSignature(
                 contract, body, signature.Kind, target.Position, trace);
         if (position)
+        {
+            Func<Position, bool>? exactReceiver = signature.Kind == "arc-toss"
+                && target.Actor is not null
+                ? candidate => candidate == target.Position
+                : null;
             return ArenaBasics.TryPositionSignature(
-                contract, body, signature.Kind, target.Position, trace);
+                contract, body, signature.Kind, target.Position, trace,
+                exactReceiver);
+        }
         return ArenaBasics.TryParameterlessSignature(
             contract, body, signature.Kind, trace);
     }
@@ -1009,6 +1105,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             return _stationaryTicks.GetValueOrDefault(body.UnitId);
         if (fact == "self-order-ticks")
             return orderTicks;
+        if (fact == "self-in-zone")
+            return package.Contains(condition.Zone!, body.Position) ? 1 : 0;
         if (fact == "signature-ready")
         {
             GenericActorRulesContract.ArcRelaySignature? signature =

@@ -208,7 +208,7 @@ The finite fact catalog is:
 
 | scope | facts |
 | --- | --- |
-| body | `self-health-percent`, `self-level`, `self-carrying`, `self-stuck-ticks`, `self-order-ticks`, `signature-ready` |
+| body | `self-health-percent`, `self-level`, `self-carrying`, `self-stuck-ticks`, `self-order-ticks`, `self-in-zone`, `signature-ready` |
 | role | `role-live-count`, `role-lowest-health-percent`, `role-in-zone-count` |
 | team | `live-friendlies`, `friendly-carriers`, `known-enemy-carriers`, `visible-enemy-carriers`, `known-loose-cores`, `visible-loose-cores`, `secured-cores`, `reactor-integrity`, `reactor-charge`, `ticks-without-objective-progress` |
 | zone | `friendlies-in-zone`, `visible-enemies-in-zone`, `remembered-enemies-in-zone`, `known-loose-cores-in-zone` |
@@ -285,10 +285,22 @@ carrying never implicitly drops the Core.
 { "use": { "skill": "repair-beam", "target": "weakest-ally" } }
 ```
 
-Every class in the role must own the exact named skill. Targets are `self`,
-`own-reactor`, `nearest-enemy`, `weakest-enemy`, `enemy-carrier`,
-`nearest-ally`, or `weakest-ally`; the compiler restricts them further for the
+At least one class in the role must own the named skill. A mixed-class role may
+state one `use` order per represented skill: only a body that owns the skill can
+take that leaf, while the other bodies continue down their same role ladder.
+Targets are `self`, `own-reactor`, `nearest-enemy`, `weakest-enemy`,
+`enemy-carrier`, `nearest-ally`, `weakest-ally`, `healthiest-ally`, or
+`nearest-ally-toward-own-reactor`; the compiler restricts them further for the
 skill's argument kind. Use never implies travel or an unseen target search.
+For `arc-toss`, the toward-home selector resolves only an empty-handed ally on
+an exact legal landing tile, so the authored pass cannot silently become a
+blind Core drop.
+
+Geographic intent stays compositional rather than hidden inside `use`:
+`self-in-zone` can guard a skill leaf, while a lower-priority `move` leaf in the
+same parent play gets the body into that authored zone. If the skill is not
+currently legal, the skill leaf has no target and ordinary priority falls
+through to movement.
 
 ### `handoff`
 
@@ -436,11 +448,11 @@ lifecycle exit, wait, and automatic micro decision carries a non-empty reason.
 In-process and WASM must produce the same gameplay-state digest for identical
 ATL2, map, rules, and seed.
 
-Hosted entrant playlist v20 pins Orders v2, Tapline, the frozen
-`wellwright-tapline-v2` stock sheet, and the matching WASM artifact. It starts a
-fresh rating book because both executable sheet semantics and stock gameplay
-changed. Playlist v19 and earlier remain immutable match history; they are not
-accepted by the current workshop.
+Hosted entrant playlist v20 remains the latest promoted Orders v2/Tapline line.
+The body-local signature refinements in working source are reviewed in-process
+and do not alter that immutable playlist, its frozen stock artifact, or its
+rating book. Promotion is a separate owner gate; only then are current source,
+WASM, stock, and a new playlist version frozen together.
 
 ## 12. Deliberately deferred
 

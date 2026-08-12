@@ -7893,3 +7893,35 @@ Tactical choke negotiation, intent-aware right-of-way, combat-space
 reservation, and richer coordinated path planning are explicitly deferred to a
 separate goal. Orders state intent; this replacement does not smuggle a squad
 planner into the authoring language.
+
+## 295. Signature orders are body-local; design review stays in-process
+
+Owner-directed refinement (2026-08-12). A role may cast several classes and may
+author the signature branches owned across that cast without splitting into one
+role per class. Applicability is body-local: a `use` leaf is eligible only for a
+body whose class owns the named skill; every other body falls through to the
+next authored priority. At least one class in the role must own the skill. The
+executor also rejects a semantically chosen but mechanically unusable skill
+target before selection, so an out-of-range or illegal proposal cannot hold the
+role at `use-unavailable` and starve its lower orders.
+
+Geography remains compositional rather than hidden in `use`: `self-in-zone` is
+a binary body-local condition fact, so an author says “use Mine at the northern
+choke” as a zone condition on the skill leaf and separately authors movement to
+that zone. No skill action secretly moves its body. `healthiest-ally` and
+`nearest-ally-toward-own-reactor` make explicit exchange and Arc Toss handoffs
+predictable; an Arc Toss catch must satisfy its exact landing constraint.
+
+The candidate Hunter and Wellwright sheets author explicit forward handoffs and exercise Arc
+Toss, Exchange, Hardlight Block, Rail Line, Repair Beam, Survey Flare, Tractor
+Hook, and Vector Dash. In the six-cell exhibit every named skill and handoff
+appeared, and no `use-unavailable` reason appeared. That exhibition is behavior
+evidence, not a balance read.
+
+This is deliberately not a hosted promotion. The review gallery compiles the
+current mind source in-process. Tracked WASM, its receipt, frozen stock,
+playlist v20, its rating book, and CLI compatibility version remain untouched.
+A later explicit promotion gate must build and verify WASM, decide rating
+continuity from the resulting stock-gameplay digest, mint immutable versions,
+and run the release-grade suites. Owner review or approval of a gameplay idea
+does not silently open that gate.

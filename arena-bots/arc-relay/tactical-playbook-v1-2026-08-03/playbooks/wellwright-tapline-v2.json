@@ -8,6 +8,8 @@
       "classes": ["relay", "relay"],
       "upgradePath": ["vitality", "vision"],
       "orders": [
+        { "shared": "handoff-core-forward" },
+        { "id": "arc-pass-forward", "when": { "all": ["carrying-core", "signature-ready"] }, "use": { "skill": "arc-toss", "target": "nearest-ally-toward-own-reactor" } },
         { "shared": "score-a-core" }, { "shared": "recover-health" },
         { "shared": "collect-loose-core" }, { "shared": "fight-visible-enemy" },
         { "id": "farm-home-well", "move": { "to": { "well": "own" }, "posture": "rear" } }
@@ -18,8 +20,11 @@
       "classes": ["switchback", "switchback"],
       "upgradePath": ["damage", "vitality"],
       "orders": [
-        { "shared": "score-a-core" }, { "shared": "recover-health" },
-        { "shared": "collect-loose-core" }, { "shared": "fight-visible-enemy" },
+        { "shared": "handoff-core-forward" },
+        { "shared": "score-a-core" },
+        { "id": "exchange-out-of-danger", "when": { "all": ["hurt", "signature-ready"] }, "use": { "skill": "exchange", "target": "healthiest-ally" } },
+        { "shared": "recover-health" }, { "shared": "collect-loose-core" },
+        { "shared": "fight-visible-enemy" },
         { "id": "farm-centre-well", "move": { "to": { "well": "centre" }, "posture": "line" } }
       ]
     },
@@ -28,8 +33,11 @@
       "classes": ["towline", "towline"],
       "upgradePath": ["damage", "vision", "vitality"],
       "orders": [
+        { "shared": "handoff-core-forward" },
         { "shared": "score-a-core" }, { "shared": "recover-health" },
-        { "shared": "collect-loose-core" }, { "shared": "fight-visible-enemy" },
+        { "shared": "collect-loose-core" },
+        { "id": "hook-enemy-carrier", "when": { "all": ["empty-handed", "enemy-visible", "signature-ready"] }, "use": { "skill": "tractor-hook", "target": "enemy-carrier" } },
+        { "shared": "fight-visible-enemy" },
         { "id": "farm-far-well", "move": { "to": { "well": "enemy" }, "posture": "front" } }
       ]
     },
@@ -38,8 +46,11 @@
       "classes": ["lantern"],
       "upgradePath": ["vision", "vitality"],
       "orders": [
+        { "shared": "handoff-core-forward" },
         { "shared": "score-a-core" }, { "shared": "recover-health" },
-        { "shared": "collect-loose-core" }, { "shared": "fight-visible-enemy" },
+        { "shared": "collect-loose-core" },
+        { "id": "flare-visible-contact", "when": { "all": ["empty-handed", "enemy-visible", "signature-ready"] }, "use": { "skill": "survey-flare", "target": "nearest-enemy" } },
+        { "shared": "fight-visible-enemy" },
         { "id": "watch-centre", "move": { "to": { "well": "centre" }, "posture": "front" } }
       ]
     },
@@ -48,15 +59,17 @@
       "classes": ["patchbay"],
       "upgradePath": ["reach", "vitality"],
       "orders": [
+        { "shared": "handoff-core-forward" },
         { "shared": "score-a-core" }, { "shared": "recover-health" },
         { "shared": "collect-loose-core" },
-        { "id": "repair-home-haulers", "when": { "all": ["home-hauler-hurt", "signature-ready"] }, "cooldown": 2, "use": { "skill": "repair-beam", "target": "weakest-ally" } },
+        { "id": "repair-home-haulers", "when": { "all": ["home-hauler-hurt", "signature-ready"] }, "use": { "skill": "repair-beam", "target": "weakest-ally" } },
         { "shared": "fight-visible-enemy" },
         { "id": "support-home-haulers", "move": { "follow": "home-haulers", "posture": "rear" } }
       ]
     }
   ],
   "sharedOrders": {
+    "handoff-core-forward": { "when": "carrying-core", "handoff": { "target": "nearest-ally-toward-own-reactor" } },
     "score-a-core": { "when": "carrying-core", "until": "empty-handed", "timeout": 180, "cooldown": 2, "orders": [
       { "id": "return-to-reactor", "move": { "to": "own-reactor" } }
     ] },

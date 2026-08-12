@@ -8,9 +8,11 @@
       "classes": ["kestrel"],
       "upgradePath": ["damage", "vision", "vitality"],
       "orders": [
+        { "shared": "handoff-core-forward" },
         { "shared": "score-a-core" },
         { "shared": "recover-health" },
         { "shared": "collect-loose-core" },
+        { "id": "dash-into-contact", "when": { "all": ["empty-handed", "enemy-visible", "signature-ready"] }, "use": { "skill": "vector-dash", "target": "nearest-enemy" } },
         { "shared": "fight-visible-enemy" },
         { "id": "shadow-hunt", "move": { "patrol": "shadow-hunt-loop", "posture": "front" } }
       ]
@@ -20,13 +22,13 @@
       "classes": ["patchbay"],
       "upgradePath": ["reach", "vitality"],
       "orders": [
+        { "shared": "handoff-core-forward" },
         { "shared": "score-a-core" },
         { "shared": "recover-health" },
         { "shared": "collect-loose-core" },
         {
           "id": "repair-hunter",
           "when": { "all": ["hunter-hurt", "signature-ready"] },
-          "cooldown": 2,
           "use": { "skill": "repair-beam", "target": "weakest-ally" }
         },
         { "shared": "fight-visible-enemy" },
@@ -38,6 +40,8 @@
       "classes": ["relay"],
       "upgradePath": ["vitality", "vision"],
       "orders": [
+        { "shared": "handoff-core-forward" },
+        { "id": "arc-pass-forward", "when": { "all": ["carrying-core", "signature-ready"] }, "use": { "skill": "arc-toss", "target": "nearest-ally-toward-own-reactor" } },
         { "shared": "score-a-core" },
         { "shared": "recover-health" },
         { "shared": "collect-loose-core" },
@@ -50,9 +54,11 @@
       "classes": ["longshot", "longshot"],
       "upgradePath": ["damage", "vision", "vitality"],
       "orders": [
+        { "shared": "handoff-core-forward" },
         { "shared": "score-a-core" },
         { "shared": "recover-health" },
         { "shared": "collect-loose-core" },
+        { "id": "rail-weakest-target", "when": { "all": ["empty-handed", "enemy-visible", "signature-ready"] }, "use": { "skill": "rail-line", "target": "weakest-enemy" } },
         { "shared": "fight-visible-enemy" },
         { "id": "work-home-well", "move": { "to": { "well": "own" }, "posture": "rear" } }
       ]
@@ -62,9 +68,11 @@
       "classes": ["towline", "towline"],
       "upgradePath": ["damage", "vision", "vitality"],
       "orders": [
+        { "shared": "handoff-core-forward" },
         { "shared": "score-a-core" },
         { "shared": "recover-health" },
         { "shared": "collect-loose-core" },
+        { "id": "hook-enemy-carrier", "when": { "all": ["empty-handed", "enemy-visible", "signature-ready"] }, "use": { "skill": "tractor-hook", "target": "enemy-carrier" } },
         { "shared": "fight-visible-enemy" },
         { "id": "work-far-well", "move": { "to": { "well": "enemy" }, "posture": "front" } }
       ]
@@ -74,15 +82,21 @@
       "classes": ["mason"],
       "upgradePath": ["vitality", "vision"],
       "orders": [
+        { "shared": "handoff-core-forward" },
         { "shared": "score-a-core" },
         { "shared": "recover-health" },
         { "shared": "collect-loose-core" },
+        { "id": "block-visible-threat", "when": { "all": ["empty-handed", "enemy-visible", "signature-ready"] }, "use": { "skill": "hardlight-block", "target": "nearest-enemy" } },
         { "shared": "fight-visible-enemy" },
         { "id": "hold-centre", "move": { "to": { "well": "centre" }, "posture": "rear" } }
       ]
     }
   ],
   "sharedOrders": {
+    "handoff-core-forward": {
+      "when": "carrying-core",
+      "handoff": { "target": "nearest-ally-toward-own-reactor" }
+    },
     "score-a-core": {
       "when": "carrying-core",
       "until": "empty-handed",

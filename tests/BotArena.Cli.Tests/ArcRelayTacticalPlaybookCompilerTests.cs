@@ -89,6 +89,88 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
     }
 
     [Fact]
+    public void MixedClassRoleMayAuthorOneUseOrderPerOwnedSkill()
+    {
+        JsonObject source = Source("starter-tapline-v2");
+        JsonObject home = source["roles"]![0]!.AsObject();
+        JsonArray orders = home["orders"]!.AsArray();
+        orders.Insert(0, new JsonObject
+        {
+            ["id"] = "relay-pass",
+            ["when"] = "signature-ready",
+            ["use"] = new JsonObject
+            {
+                ["skill"] = "arc-toss",
+                ["target"] = "own-reactor",
+            },
+        });
+        orders.Insert(1, new JsonObject
+        {
+            ["id"] = "palisade-wall",
+            ["when"] = "signature-ready",
+            ["use"] = new JsonObject
+            {
+                ["skill"] = "prism-wall",
+                ["target"] = "nearest-enemy",
+            },
+        });
+        source["conditions"]!["signature-ready"] = new JsonObject
+        {
+            ["fact"] = "signature-ready",
+            ["operator"] = "equals",
+            ["value"] = 1,
+        };
+
+        TacticalPlaybookCompilation compilation = Compile(
+            source, MapPlan("starter-tapline-v2"));
+
+        Assert.True(compilation.UsesOrderTree);
+    }
+
+    [Fact]
+    public void MixedClassRoleRejectsSkillOwnedByNoBodyInRole()
+    {
+        JsonObject source = Source("starter-tapline-v2");
+        JsonObject home = source["roles"]![0]!.AsObject();
+        home["orders"]!.AsArray().Insert(0, new JsonObject
+        {
+            ["id"] = "unowned-repair",
+            ["use"] = new JsonObject
+            {
+                ["skill"] = "repair-beam",
+                ["target"] = "weakest-ally",
+            },
+        });
+
+        InvalidDataException error = Assert.Throws<InvalidDataException>(() =>
+            Compile(source, MapPlan("starter-tapline-v2")));
+
+        Assert.Contains("no body in role 'home-team' owns 'repair-beam'",
+            error.Message);
+    }
+
+    [Fact]
+    public void SelfInZoneIsAnAuthoredBodyLocalSpatialCondition()
+    {
+        JsonObject source = Source("starter-tapline-v2");
+        source["conditions"]!["inside-battlefield"] = new JsonObject
+        {
+            ["fact"] = "self-in-zone",
+            ["operator"] = "equals",
+            ["value"] = 1,
+            ["zone"] = "battlefield",
+        };
+        JsonObject lastHomeOrder = source["roles"]![0]!["orders"]!
+            .AsArray().Last()!.AsObject();
+        lastHomeOrder["when"] = "inside-battlefield";
+
+        TacticalPlaybookCompilation compilation = Compile(
+            source, MapPlan("starter-tapline-v2"));
+
+        Assert.True(compilation.UsesOrderTree);
+    }
+
+    [Fact]
     public void SharedOrdersAndCapacitiesRequireHonestReuse()
     {
         JsonObject source = Source("starter-tapline-v2");

@@ -132,6 +132,28 @@ test('guided validation mirrors exact roots, class cap, condition use, shared us
   assert.ok(messages.some((message) => message.includes('unused zone')));
 });
 
+test('mixed-class roles may branch by owned skill and self-in-zone geography', () => {
+  const draft = parseDraft('Test', null, null, stringifyDocument(orders), stringifyDocument(mapPlan));
+  draft.mapPlan.zones['north-choke'] = { rect: [1, 0, 3, 2] };
+  draft.orders.conditions['at-north-choke'] = {
+    fact: 'self-in-zone', operator: 'equals', value: 1, zone: 'north-choke',
+  };
+  draft.orders.roles[0].orders.unshift({
+    id: 'dash-at-choke',
+    when: 'at-north-choke',
+    use: { skill: 'vector-dash', target: 'nearest-enemy' },
+  });
+
+  const issues = validateDraft(draft, catalog);
+  assert.deepEqual(issues.filter((issue) => issue.severity === 'error'), []);
+
+  draft.orders.roles[0].orders[0].use = {
+    skill: 'prism-wall', target: 'nearest-enemy',
+  };
+  assert.ok(validateDraft(draft, catalog).some((issue) =>
+    issue.message.includes('At least one body in this role must own')));
+});
+
 test('the player validator accepts every tracked Orders v2 Tapline sheet', async () => {
   const root = new URL('../../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/', import.meta.url);
   for (const name of ['starter-tapline-v2', 'hunter-tapline-v2', 'wellwright-tapline-v2']) {
