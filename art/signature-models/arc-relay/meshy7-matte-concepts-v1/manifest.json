@@ -1,12 +1,16 @@
 {
   "schemaVersion": 1,
-  "status": "concept-approved-provider-inputs-ready",
+  "status": "sentinel-finish-revision-review",
   "createdAt": "2026-08-12",
   "conceptApprovedAt": "2026-08-12",
-  "conceptApproval": "Owner approved both displayed concepts; paid provider calls remain separately gated.",
+  "conceptApproval": "Owner approved the overall direction, then requested a drier Sentinel Seed finish. Trip Node remains approved; Sentinel matte v2 awaits review. Paid provider calls remain separately gated.",
   "purpose": "Complete matte Arc Relay signature-model concept package",
   "providerCallsAuthorized": false,
-  "providerInputsReady": true,
+  "providerInputsReady": false,
+  "providerInputReadiness": {
+    "trip-node": "ready-inactive",
+    "sentinel-seed": "prior-inputs-superseded-awaiting-matte-v2-approval"
+  },
   "providerManifests": [
     "provider-inputs/trip-node/manifest.json",
     "provider-inputs/sentinel-seed/manifest.json"
@@ -47,24 +51,31 @@
     {
       "signatureId": "sentinel-seed",
       "classId": "nest",
-      "file": "sentinel-seed-turnaround.png",
+      "status": "matte-v2-awaiting-owner-review",
+      "file": "sentinel-seed-turnaround-matte-v2.png",
       "width": 1254,
       "height": 1254,
-      "bytes": 1504106,
-      "sha256": "4ca05ffc00b5661f3ace60e20f677fb251e3403bc58c242c1954bd28dedd20ae",
+      "bytes": 1986000,
+      "sha256": "e44606819f0231e4908247e06f0166f28845ec4dfae3f1510d6bd7f7bf25a910",
       "generator": "OpenAI built-in image generation",
       "generatorModel": "not exposed by tool",
-      "localGeneratorArtifact": "/Users/sebastian.lind/.codex/generated_images/019fed6b-83f0-7282-a78e-11e92b794ab9/exec-0fe34b9e-01c7-4cb5-9e3a-9b421897dafa.png",
+      "localGeneratorArtifact": "/Users/sebastian.lind/.codex/generated_images/019fed6b-83f0-7282-a78e-11e92b794ab9/exec-0c66ea95-b703-492a-a61f-3905699554a6.png",
+      "supersedes": {
+        "file": "sentinel-seed-turnaround.png",
+        "bytes": 1504106,
+        "sha256": "4ca05ffc00b5661f3ace60e20f677fb251e3403bc58c242c1954bd28dedd20ae",
+        "reason": "Residual showroom-like specular sheen on broad armor and top cap"
+      },
       "references": [
         {
-          "role": "authoritative current parent palette and matte material language",
-          "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet-retexture-v3-multiview/nest/019ff0f6-1446-7a06-b591-652543441f63/provider-preview.png",
-          "sha256": "a5a973f145e17aa6a61018d9a9269a7e481238ef3f92980c3b2f2fa091159e39"
+          "role": "edit target and geometry, layout, palette, and identity authority",
+          "file": "art/signature-models/arc-relay/meshy7-matte-concepts-v1/sentinel-seed-turnaround.png",
+          "sha256": "4ca05ffc00b5661f3ace60e20f677fb251e3403bc58c242c1954bd28dedd20ae"
         },
         {
-          "role": "outgoing Sentinel Seed identity boundary only",
-          "file": "art/signature-models/arc-relay/sentinel-seed/concept-source-v2-chroma.png",
-          "sha256": "c97ed3f7f6bf4b4a190e596c34d96b72a0e34a1f4fe10bbf7518bd67bd921f22"
+          "role": "current parent material-response reference only",
+          "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet-retexture-v3-multiview/nest/019ff0f6-1446-7a06-b591-652543441f63/provider-preview.png",
+          "sha256": "a5a973f145e17aa6a61018d9a9269a7e481238ef3f92980c3b2f2fa091159e39"
         }
       ]
     }

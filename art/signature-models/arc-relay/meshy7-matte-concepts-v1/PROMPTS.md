@@ -59,3 +59,42 @@ Use a uniform light neutral warm-gray background in all panels. Center each view
 
 Output only the four-view sheet. No text, labels, numbers, borders, panel dividers, arrows, floor plane, horizon, cast shadow, contact shadow, reflections, glow halo, range ring, target line, projectile, muzzle flash, smoke, particles, scenery, logo or watermark. Exactly one sentry repeated as four views; no alternate designs and no detached parts. Avoid wheels, tracks, hover jets, walking legs, humanoid anatomy, cockpit, full vehicle chassis, long barrel, artillery silhouette, missile, egg, organic plant, sphere, loose pod, circular mine/puck silhouette, tall antennae, or oversized gun.
 ```
+
+## Sentinel Seed matte finish revision v2
+
+Ordered references:
+
+1. `art/signature-models/arc-relay/meshy7-matte-concepts-v1/sentinel-seed-turnaround.png`
+2. `art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet-retexture-v3-multiview/nest/019ff0f6-1446-7a06-b591-652543441f63/provider-preview.png`
+
+The first reference is the edit target. The second is a material-response
+reference only. The built-in image-generation tool stored its source artifact
+at `/Users/sebastian.lind/.codex/generated_images/019fed6b-83f0-7282-a78e-11e92b794ab9/exec-0c66ea95-b703-492a-a61f-3905699554a6.png`.
+
+```text
+Use case: precise-object-edit
+Asset type: finish-only revision of the approved Nilbots Arc Relay “Sentinel Seed” four-view game-prop concept sheet.
+
+Input images:
+- Image 1 is the edit target and absolute authority for geometry, composition, palette, panel order, camera, and object identity.
+- Image 2 is a material-response reference only: use its dry, worn, high-roughness finish as guidance, not its geometry, silhouette, or layout.
+
+Primary request:
+Change only the Sentinel Seed’s surface finish and reflected-light response in all four panels. Remove the remaining showroom-like glossy, lacquered, wet, polished-plastic, and clear-coated sheen—especially from the broad pine-sage face plates and the dark aubergine top cap. The result must read as durable, dry, battlefield-used matte armor suited to Nilbots.
+
+Materials:
+- Pine-sage armor: very high-roughness powder-coated metal or technical ceramic; broad, soft, low-contrast diffuse highlights; fine dry abrasion and restrained wear already present.
+- Aubergine top cap: equally dry matte powder coat; no tight white hotspot, bright rim streak, or clearcoat.
+- Charcoal structural pieces: dry, low-sheen finish.
+- Small umber/brass hardware may retain only a subdued satin-metal response, never mirror-like or brightly polished.
+- The neutral-white sensor slit may remain illuminated but must have no bloom or glare.
+
+Lighting:
+Preserve the existing neutral studio illumination and readable form, but reduce specular intensity, broaden every highlight, and eliminate sharp reflective streaks. Avoid flattening the silhouette into unreadable values.
+
+Hard invariants:
+Preserve Image 1’s exact four views, viewpoint directions, geometry, silhouette, proportions, head/barrel, yaw collar, base, panel seams, fasteners, supports, placement, scale, spacing, off-white background, color family, wear locations, and sensor/emitter details as closely as possible. Do not redesign or replace any part. Do not add, remove, enlarge, or move components. No extra props, text, labels, logos, shadows, floor plane, scenery, glow, bloom, haze, or watermark.
+
+Output intent:
+A presentation-ready four-view concept sheet that differs from Image 1 only by having a convincingly dry, earthen, high-roughness matte finish consistent with Image 2’s material family.
+```

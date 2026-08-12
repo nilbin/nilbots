@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "status": "concept-approved-provider-ready",
+  "status": "superseded-awaiting-matte-v2-approval",
   "classId": "arc-sentinel-seed",
   "signatureId": "sentinel-seed",
   "identitySource": {
@@ -11,7 +11,13 @@
     "file": "../../sentinel-seed-turnaround.png",
     "sha256": "4ca05ffc00b5661f3ace60e20f677fb251e3403bc58c242c1954bd28dedd20ae",
     "promptLog": "../../PROMPTS.md",
-    "promptLogSha256": "0180b362ee255b68752f5422bf25d36156ff18a11bb1eedfe0a4a09476304159"
+    "promptLogSha256": "2c4999b77b83f0c23596751baf67b8a83305b65d414eb3633a226f05f38495a1"
+  },
+  "revisionCandidate": {
+    "file": "../../sentinel-seed-turnaround-matte-v2.png",
+    "sha256": "e44606819f0231e4908247e06f0166f28845ec4dfae3f1510d6bd7f7bf25a910",
+    "status": "awaiting-owner-review",
+    "note": "Do not submit the earlier split views; regenerate all four inputs from this candidate only after approval."
   },
   "meshyInputs": [
     {
@@ -69,7 +75,7 @@
     ],
     "pilotCreditCap": 30,
     "authorized": false,
-    "authorization": "Owner approved the concept and separate views; the paid provider request remains explicitly unapproved.",
+    "authorization": "The paid provider request remains explicitly unapproved, and these prior split views are superseded by a finish revision awaiting owner review.",
     "authorizationConsumed": false,
     "autoRigging": false
   },
@@ -81,5 +87,5 @@
     "proposedBatchCreditCap": 60,
     "pricingSource": "https://docs.meshy.ai/en/api/pricing"
   },
-  "nextGate": "owner explicitly authorizes this paid task after a live pricing and balance check"
+  "nextGate": "owner approves Sentinel matte v2; regenerate and validate its views; then separately authorize the paid task after a live pricing and balance check"
 }

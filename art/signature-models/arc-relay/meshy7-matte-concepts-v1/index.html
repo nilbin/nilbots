@@ -48,22 +48,27 @@
       .outgoing { display: grid; grid-template-columns: minmax(0, 760px) 1fr; align-items: start; gap: 22px; }
       .outgoing img { width: 100%; border: 1px solid var(--line); border-radius: 10px; }
       .outgoing p { color: var(--dim); }
+      .finish-compare { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+      .finish-compare figure { margin: 0; overflow: hidden; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
+      .finish-compare img { display: block; width: 100%; height: auto; background: #d9d7d4; }
+      .finish-compare figcaption { padding: 12px 14px; color: var(--dim); }
+      .finish-compare strong { color: var(--text); }
       code { color: #d8c3a4; }
       footer { margin-top: 42px; padding-top: 18px; border-top: 1px solid var(--line); color: var(--dim); }
       @media (max-width: 820px) {
         main { padding: 24px 14px 44px; }
-        .concepts, .outgoing { grid-template-columns: 1fr; }
+        .concepts, .finish-compare, .outgoing { grid-template-columns: 1fr; }
         th:nth-child(1), td:nth-child(1) { width: 37%; }
       }
     </style>
   </head>
   <body>
     <main>
-      <div class="eyebrow">Owner approved · provider inputs ready · 2026-08-12</div>
+      <div class="eyebrow">Sentinel finish revision · owner review · 2026-08-12</div>
       <h1>Arc Relay matte signature models</h1>
       <p class="lede">A deliberately small Meshy 7 round: two persistent world props, each redesigned to belong to its deploying bot. Every other signature remains an exact renderer-authored effect or a 2D projectile.</p>
 
-      <div class="gate"><strong>Concepts approved; no provider spend yet.</strong> The separate canonical inputs are ready. A second explicit authorization is required before either Meshy task; runtime promotion remains a later review gate.</div>
+      <div class="gate"><strong>Sentinel v2 is a finish-only review candidate; no provider spend.</strong> Trip Node remains approved. The earlier Sentinel inputs are intentionally inactive until this drier material pass is approved; a separate explicit authorization is still required before either Meshy task.</div>
 
       <div class="concepts">
         <article class="card">
@@ -77,15 +82,30 @@
         </article>
 
         <article class="card">
-          <img src="sentinel-seed-turnaround.png" alt="Four-view turnaround sheet for the redesigned matte Sentinel Seed sentry" />
+          <img src="sentinel-seed-turnaround-matte-v2.png" alt="Four-view turnaround sheet for the drier matte Sentinel Seed finish revision" />
           <div class="copy">
-            <div class="eyebrow">Nest · model candidate 02</div>
+            <div class="eyebrow">Nest · finish candidate v2</div>
             <h2>Sentinel Seed</h2>
-            <p>One planted seed pod unfolded into a calyx, with a compact head, very short emitter, and honest 360-degree yaw clearance. The pine-sage / umber / aubergine finish ties it directly to Nest.</p>
-            <div class="chips"><span class="chip">~0.62 tile wide</span><span class="chip">~0.55 tile high</span><span class="chip">+X rest pose</span><span class="chip">authoritative-shot yaw only</span></div>
+            <p>The same planted seed-pod sentry with a deliberately drier response: high-roughness pine-sage armor, a matte aubergine cap, charcoal mechanisms, and only subdued satin hardware.</p>
+            <div class="chips"><span class="chip">finish-only revision</span><span class="chip">high roughness</span><span class="chip">no clearcoat</span><span class="chip">pending approval</span></div>
           </div>
         </article>
       </div>
+
+      <section>
+        <div class="eyebrow">Finish check</div>
+        <h2>Sentinel Seed · previous vs matte v2</h2>
+        <div class="finish-compare">
+          <figure>
+            <img src="sentinel-seed-turnaround.png" alt="Previous Sentinel Seed concept with stronger specular sheen" />
+            <figcaption><strong>Previous finish.</strong> Geometry direction retained, but the broad face plates and aubergine cap catch a more showroom-like sheen.</figcaption>
+          </figure>
+          <figure>
+            <img src="sentinel-seed-turnaround-matte-v2.png" alt="Revised Sentinel Seed concept with dry high-roughness finish" />
+            <figcaption><strong>Matte v2 candidate.</strong> Softer diffuse highlights, dry armor response, and no lacquered cap; tiny umber hardware remains only faintly satin.</figcaption>
+          </figure>
+        </div>
+      </section>
 
       <section>
         <div class="eyebrow">Complete scope</div>
@@ -108,7 +128,7 @@
             <tr><td>Target Paint</td><td class="effect">Renderer brackets and remaining-hit state · no model</td></tr>
             <tr><td>Kinetic Burst</td><td class="effect">Renderer displacement ring · no model</td></tr>
             <tr><td>Smoke Canister</td><td class="effect">2D travelling silhouette + renderer smoke volume · no GLB for now</td></tr>
-            <tr><td>Sentinel Seed</td><td class="model">Meshy 7 model candidate · new sheet above</td></tr>
+            <tr><td>Sentinel Seed</td><td class="model">Meshy 7 model candidate · matte v2 finish under review</td></tr>
           </tbody>
         </table>
       </section>
@@ -122,7 +142,7 @@
         </div>
       </section>
 
-      <footer>Exact prompts, ordered references, dimensions and SHA-256 hashes are stored beside this sheet in <code>PROMPTS.md</code> and <code>manifest.json</code>. No game files or runtime manifests changed.</footer>
+      <footer>Exact prompts, ordered references, dimensions and SHA-256 hashes are stored beside this sheet in <code>PROMPTS.md</code> and <code>manifest.json</code>. The previous Sentinel sheet is retained as provenance. No game files, runtime manifests, or provider tasks changed.</footer>
     </main>
   </body>
 </html>

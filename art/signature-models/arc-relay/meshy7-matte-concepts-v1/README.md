@@ -1,19 +1,24 @@
 # Arc Relay matte signature concepts v1
 
-Status: **concept approved; provider inputs ready**. The owner approved both
-concepts on 2026-08-12. That approval does not authorize a paid Meshy request,
-change a runtime asset, or alter game mechanics.
+Status: **Sentinel finish revision in review; no provider spend**. The owner
+approved the overall model direction on 2026-08-12, then flagged residual
+glossiness on Sentinel Seed. `sentinel-seed-turnaround-matte-v2.png` is the
+finish-only correction candidate; the original sheet remains beside it for
+comparison. This review does not authorize a paid Meshy request, change a
+runtime asset, or alter game mechanics.
 
 Open `index.html` for the complete visual review sheet.
 
 ## Recommendation
 
-The approved provider batch is exactly two Meshy 7 multi-image-to-3D tasks:
+The proposed provider batch remains exactly two Meshy 7 multi-image-to-3D tasks:
 
 1. **Trip Node** — replace the current glossy generic mine with the
    Minesmith-family three-lobed forge clamp in `trip-node-turnaround.png`.
 2. **Sentinel Seed** — replace the current beige tank-like turret with the
-   Nest-family planted seed-pod sentry in `sentinel-seed-turnaround.png`.
+   Nest-family planted seed-pod sentry. The active review candidate is
+   `sentinel-seed-turnaround-matte-v2.png`; its drier finish needs owner
+   approval before new provider inputs are prepared.
 
 No other launch signature needs a standalone GLB in this pass. Standard
 attacks and the travelling parts of Survey Flare, Falling Star, Arc Toss, and
@@ -43,9 +48,11 @@ translucency carry more rule information than a baked mesh would.
 - Live target: about `0.62` tile wide and `0.55` tile high.
 - Renderer owns team ring, health, targeting, shot, suppression, and expiry.
 
-Both concepts use the approved Arc fleet's high-roughness matte / satin
+Both concepts target the approved Arc fleet's high-roughness matte / satin
 industrial finish, broad gameplay-scale masses, restrained wear, and no baked
-team colour or gameplay effect.
+team colour or gameplay effect. Sentinel v2 specifically removes the broad
+armor and top-cap sheen while retaining only subdued satin response on tiny
+metal hardware.
 
 ## Complete launch-signature asset sheet
 
@@ -68,13 +75,14 @@ team colour or gameplay effect.
 | Veil / Smoke Canister | 2D travelling silhouette plus renderer smoke volume; no GLB for now. |
 | Nest / Sentinel Seed | **New Meshy 7 model candidate in this package.** |
 
-## Provider-ready handoff
+## Provider handoff gate
 
-The approved sheets have been split into separate canonical views under
-`provider-inputs/trip-node/` and `provider-inputs/sentinel-seed/`. Their
-manifests pin order, dimensions, hashes, texture prompts, and an inactive
-30-credit-per-task safety cap. The existing runner validates both manifests in
-`--validate-only` mode without reading the credential or calling Meshy.
+Trip Node's approved sheet remains split into canonical views under
+`provider-inputs/trip-node/`. Sentinel Seed's earlier views remain under
+`provider-inputs/sentinel-seed/` as provenance, but are marked superseded and
+must not be submitted. After Sentinel v2 is approved, regenerate and validate
+its four canonical inputs. Both manifests keep the inactive 30-credit-per-task
+safety cap; validation does not read the credential or call Meshy.
 
 Do not upload either contact sheet directly. Submit one object per task only
 after the owner explicitly authorizes the paid calls. Immediately before that
