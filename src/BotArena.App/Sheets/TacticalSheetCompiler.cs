@@ -15,33 +15,33 @@ public sealed record ValidatedTacticalSheet(
 /// <summary>The only hosted validation path for tactical-sheet source.</summary>
 public sealed class TacticalSheetCompiler(ArcRelayClassCatalog classCatalog)
 {
-    public const int MaximumPlaybookBytes = 192 * 1024;
-    public const int MaximumLayoutBytes = 96 * 1024;
+    public const int MaximumOrdersBytes = 192 * 1024;
+    public const int MaximumMapPlanBytes = 96 * 1024;
 
     public ValidatedTacticalSheet Compile(
-        string playbookJson,
-        string layoutJson,
+        string ordersJson,
+        string mapPlanJson,
         IReadOnlySet<string> unlockedClassIds,
         string diagnosticName)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(playbookJson);
-        ArgumentException.ThrowIfNullOrWhiteSpace(layoutJson);
-        byte[] playbook = Encoding.UTF8.GetBytes(playbookJson);
-        byte[] layout = Encoding.UTF8.GetBytes(layoutJson);
-        if (playbook.Length > MaximumPlaybookBytes)
+        ArgumentException.ThrowIfNullOrWhiteSpace(ordersJson);
+        ArgumentException.ThrowIfNullOrWhiteSpace(mapPlanJson);
+        byte[] orders = Encoding.UTF8.GetBytes(ordersJson);
+        byte[] mapPlan = Encoding.UTF8.GetBytes(mapPlanJson);
+        if (orders.Length > MaximumOrdersBytes)
             throw new InvalidDataException(
-                $"Playbook exceeds {MaximumPlaybookBytes} UTF-8 bytes.");
-        if (layout.Length > MaximumLayoutBytes)
+                $"Orders document exceeds {MaximumOrdersBytes} UTF-8 bytes.");
+        if (mapPlan.Length > MaximumMapPlanBytes)
             throw new InvalidDataException(
-                $"Layout exceeds {MaximumLayoutBytes} UTF-8 bytes.");
+                $"Map plan exceeds {MaximumMapPlanBytes} UTF-8 bytes.");
 
         TacticalPlaybookCompilation compilation =
             ArcRelayTacticalPlaybookCompiler.Compile(
-                playbook,
-                layout,
-                $"{diagnosticName}/playbook.json",
-                $"{diagnosticName}/layout.json");
-        string mapId = LayoutMapId(compilation.NormalizedLayout);
+                orders,
+                mapPlan,
+                $"{diagnosticName}/orders.json",
+                $"{diagnosticName}/map-plan.json");
+        string mapId = MapPlanMapId(compilation.NormalizedLayout);
         if (!string.Equals(
                 mapId,
                 ArcRelayLoopProfile.Current.MapId,
@@ -62,12 +62,12 @@ public sealed class TacticalSheetCompiler(ArcRelayClassCatalog classCatalog)
             composition);
     }
 
-    public static bool IsAdmissibleToCurrentPlaylist(string layoutJson)
+    public static bool IsAdmissibleToCurrentPlaylist(string mapPlanJson)
     {
         try
         {
             return string.Equals(
-                LayoutMapId(Encoding.UTF8.GetBytes(layoutJson)),
+                MapPlanMapId(Encoding.UTF8.GetBytes(mapPlanJson)),
                 ArcRelayLoopProfile.Current.MapId,
                 StringComparison.Ordinal);
         }
@@ -81,9 +81,9 @@ public sealed class TacticalSheetCompiler(ArcRelayClassCatalog classCatalog)
         }
     }
 
-    private static string LayoutMapId(ReadOnlyMemory<byte> layoutJson)
+    private static string MapPlanMapId(ReadOnlyMemory<byte> mapPlanJson)
     {
-        using JsonDocument document = JsonDocument.Parse(layoutJson);
+        using JsonDocument document = JsonDocument.Parse(mapPlanJson);
         if (document.RootElement.ValueKind != JsonValueKind.Object
             || !document.RootElement.TryGetProperty(
                 "mapId", out JsonElement mapId)

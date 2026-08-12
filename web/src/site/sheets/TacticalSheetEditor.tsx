@@ -96,8 +96,8 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
 
   const templateDraft = useCallback(() => parseDraft(
     'Untitled tactical sheet', null, null,
-    catalog.templatePlaybookJson, catalog.templateLayoutJson,
-  ), [catalog.templateLayoutJson, catalog.templatePlaybookJson]);
+    catalog.templateOrdersJson, catalog.templateMapPlanJson,
+  ), [catalog.templateMapPlanJson, catalog.templateOrdersJson]);
 
   useEffect(() => {
     if (initialSheetId) {
@@ -208,8 +208,8 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
         body: {
           name: asCopy ? `${prepared.draft.name} copy` : prepared.draft.name,
           expectedRevision: targetId ? prepared.draft.revision : null,
-          playbookJson: prepared.playbookJson,
-          layoutJson: prepared.mapPlanJson,
+          ordersJson: prepared.ordersJson,
+          mapPlanJson: prepared.mapPlanJson,
           enterLadder: prepared.draft.enterLadder,
         },
       });
@@ -523,7 +523,7 @@ function Modal({ title, children, onClose }: { title: string; children: ReactNod
 }
 
 function fromServer(sheet: TacticalSheet): SheetDraft {
-  return parseDraft(sheet.name, sheet.id, sheet.revision, sheet.playbookJson, sheet.layoutJson, sheet.entrant.ladderOptedIn);
+  return parseDraft(sheet.name, sheet.id, sheet.revision, sheet.ordersJson, sheet.mapPlanJson, sheet.entrant.ladderOptedIn);
 }
 
 function isOrdersDraft(value: SheetDraft): boolean {

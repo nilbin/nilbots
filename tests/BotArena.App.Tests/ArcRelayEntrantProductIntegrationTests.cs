@@ -74,8 +74,8 @@ public sealed class ArcRelayEntrantProductIntegrationTests
         TacticalSheetResponse loaded = (await client
             .GetFromJsonAsync<TacticalSheetResponse>(
                 $"/api/sheets/{sheets[0].Id}"))!;
-        Assert.Equal(catalog.TemplatePlaybookJson, loaded.PlaybookJson);
-        Assert.Equal(catalog.TemplateLayoutJson, loaded.LayoutJson);
+        Assert.Equal(catalog.TemplateOrdersJson, loaded.OrdersJson);
+        Assert.Equal(catalog.TemplateMapPlanJson, loaded.MapPlanJson);
 
         using HttpClient otherClient = factory.CreateClient();
         await RegisterAsync(otherClient, "Other Sheet Owner");
@@ -87,7 +87,7 @@ public sealed class ArcRelayEntrantProductIntegrationTests
                 .StatusCode);
 
         JsonObject invalid = JsonNode.Parse(
-            catalog.TemplatePlaybookJson)!.AsObject();
+            catalog.TemplateOrdersJson)!.AsObject();
         invalid["schema"] = "arc-relay-commander-sheet-v1";
         HttpResponseMessage invalidSave = await client.PostAsJsonAsync(
             "/api/sheets",
@@ -95,7 +95,7 @@ public sealed class ArcRelayEntrantProductIntegrationTests
                 "Invalid legacy document",
                 null,
                 invalid.ToJsonString(),
-                catalog.TemplateLayoutJson,
+                catalog.TemplateMapPlanJson,
                 false));
         Assert.Equal(HttpStatusCode.BadRequest, invalidSave.StatusCode);
         HttpResponseMessage retiredSave = await client.PostAsJsonAsync(
@@ -112,8 +112,8 @@ public sealed class ArcRelayEntrantProductIntegrationTests
             new SaveTacticalSheetRequest(
                 "Sheet 1 revised",
                 sheets[0].Revision,
-                catalog.TemplatePlaybookJson,
-                catalog.TemplateLayoutJson,
+                catalog.TemplateOrdersJson,
+                catalog.TemplateMapPlanJson,
                 EnterLadder: true));
         revisedResponse.EnsureSuccessStatusCode();
         TacticalSheetResponse revised = (await revisedResponse.Content
@@ -126,8 +126,8 @@ public sealed class ArcRelayEntrantProductIntegrationTests
             new SaveTacticalSheetRequest(
                 "Stale revision",
                 sheets[0].Revision,
-                catalog.TemplatePlaybookJson,
-                catalog.TemplateLayoutJson,
+                catalog.TemplateOrdersJson,
+                catalog.TemplateMapPlanJson,
                 true));
         Assert.Equal(HttpStatusCode.Conflict, staleUpdate.StatusCode);
 
@@ -188,7 +188,7 @@ public sealed class ArcRelayEntrantProductIntegrationTests
             .GetFromJsonAsync<TacticalSheetCatalogResponse>(
                 "/api/sheets/catalog"))!;
         using JsonDocument template = JsonDocument.Parse(
-            catalog.TemplatePlaybookJson);
+            catalog.TemplateOrdersJson);
         string[] classes = template.RootElement.GetProperty("composition")
             .EnumerateArray().Select(value => value.GetString()!).ToArray();
 
@@ -294,14 +294,14 @@ public sealed class ArcRelayEntrantProductIntegrationTests
         TacticalSheetResponse first = await SaveSheetAsync(
             firstClient, "Alpha sheet", catalog, enterLadder: true);
         JsonObject alternate = JsonNode.Parse(
-            catalog.TemplatePlaybookJson)!.AsObject();
+            catalog.TemplateOrdersJson)!.AsObject();
         alternate["roles"]![0]!["upgradePath"]![0] = "reach";
         TacticalSheetResponse second = await SaveSheetAsync(
             secondClient,
             "Beta sheet",
             catalog,
             enterLadder: true,
-            playbookJson: alternate.ToJsonString(new JsonSerializerOptions
+            ordersJson: alternate.ToJsonString(new JsonSerializerOptions
             {
                 WriteIndented = true,
             }));
@@ -958,14 +958,14 @@ public sealed class ArcRelayEntrantProductIntegrationTests
         string name,
         TacticalSheetCatalogResponse catalog,
         bool? enterLadder,
-        string? playbookJson = null)
+        string? ordersJson = null)
     {
         HttpResponseMessage response = await client.PostAsJsonAsync("/api/sheets",
             new SaveTacticalSheetRequest(
                 name,
                 ExpectedRevision: null,
-                playbookJson ?? catalog.TemplatePlaybookJson,
-                catalog.TemplateLayoutJson,
+                ordersJson ?? catalog.TemplateOrdersJson,
+                catalog.TemplateMapPlanJson,
                 enterLadder));
         response.EnsureSuccessStatusCode();
         return (await response.Content.ReadFromJsonAsync<TacticalSheetResponse>())!;

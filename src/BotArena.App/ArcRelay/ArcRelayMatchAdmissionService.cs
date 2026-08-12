@@ -265,8 +265,8 @@ public sealed class ArcRelayMatchAdmissionService(
             fixtureId,
             1,
             source.ContentHash,
-            source.PlaybookJson,
-            source.LayoutJson,
+            source.OrdersJson,
+            source.MapPlanJson,
             source.LinkedData);
     }
 

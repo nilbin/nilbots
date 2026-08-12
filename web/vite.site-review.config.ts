@@ -217,8 +217,8 @@ function sheetReviewResponse(method: string | undefined, url: URL): unknown {
 }
 
 function makeTaplineReviewCatalog(
-  templatePlaybookJson: string,
-  templateLayoutJson: string,
+  templateOrdersJson: string,
+  templateMapPlanJson: string,
 ) {
   const classes = [
     ['kestrel', 'Kestrel', 'Vector Dash', 'Rapid interceptor built to abandon one lane and answer another.'],
@@ -254,8 +254,8 @@ function makeTaplineReviewCatalog(
     slotCount: 8,
     maximumCopiesPerClass: 2,
     classes,
-    templatePlaybookJson,
-    templateLayoutJson,
+    templateOrdersJson,
+    templateMapPlanJson,
     stockOpponents: [{
       id: 'wellwright-v2',
       name: 'Wellwright v2',

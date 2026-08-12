@@ -13,12 +13,12 @@ The command defaults to `--loop-profile tapline-1` (rules and map
 tiered chiral Tapline Well line. `h0` and every historical profile
 remain explicit immutable compatibility selections.
 
-**Hosted, entrant playlist v19 is the same line.** It pins Tapline,
-the `arc-relay-tactical-playbook-v1` sheet format, and the frozen Wellwright v1
-stock participant on the direct-ladder ATL1 executor. The map transition starts
-a fresh rating book; v18's Warren ratings and matches remain readable history.
-Earlier playlist definitions and artifacts remain immutable, and geometry is
-never projected between maps.
+**Hosted, entrant playlist v20 is the same line.** It pins Tapline,
+the `arc-relay-orders-v2` sheet format, and the frozen Wellwright v2 stock
+participant on the direct ATL2 executor. The executable authoring-language and
+stock-gameplay transition starts a fresh rating book; v19's Tapline/ATL1 ratings
+and matches remain readable history. Earlier playlist definitions and artifacts
+remain immutable, and geometry is never projected between maps.
 
 ## Match shape
 
@@ -144,12 +144,13 @@ Run a native mind locally with:
 nilbots experiment arc-relay \
   --bot <project-or-wasm> --opponent <project-or-wasm> \
   --sheet0 <sheet.json> --sheet1 <sheet.json> \
-  --loop-profile depth-counterflow --seed 42
+  --loop-profile tapline-1 --seed 42
 ```
 
-Evaluation sheets in Gate 3 use the provisional
-`arc-relay-evaluation-sheet-v0` audit format for coverage and reproducibility.
-That is deliberately not the future player-facing sheet schema or drawing UX.
+Current sheets pair an `arc-relay-orders-v2` Orders document with an
+`arc-relay-map-plan-v2` map plan. Roles cast the eight class bodies and carry
+one nested priority tree built only from move, fight, use, handoff, and drop.
+See `docs/SHEET-AUTHORING.md` for the complete authoring contract.
 
 ## Signature grammar 2 (`arc-relay-forward-combat-02`, 2026-08-05)
 

@@ -246,8 +246,7 @@ export function conditionExpressionNames(expression: ConditionExpression | undef
 
 export async function pinDraft(draft: SheetDraft): Promise<{
   draft: SheetDraft;
-  playbookJson: string;
-  layoutJson: string;
+  ordersJson: string;
   mapPlanJson: string;
 }> {
   const next = structuredClone(draft);
@@ -255,9 +254,9 @@ export async function pinDraft(draft: SheetDraft): Promise<{
   next.orders.sheetId = id;
   next.orders.mapPlan = 'map-plan.json';
   next.mapPlan.mapPlanId = `${id}-map`;
-  const playbookJson = stringifyDocument(next.orders);
+  const ordersJson = stringifyDocument(next.orders);
   const mapPlanJson = stringifyDocument(next.mapPlan);
-  return { draft: next, playbookJson, layoutJson: mapPlanJson, mapPlanJson };
+  return { draft: next, ordersJson, mapPlanJson };
 }
 
 export function stringifyDocument(value: unknown): string {
@@ -624,12 +623,12 @@ function openDraftDatabase(): Promise<IDBDatabase> {
 /** Map the shared compiler's path-bearing diagnostic onto the editor's panels. */
 export function sheetIssueFromCompilerError(cause: unknown): SheetIssue {
   const source = cause instanceof Error ? cause.message : 'The server compiler rejected this draft.';
-  const match = source.match(/(?:^|\/)(sheet|playbook|map-plan|layout)\.json(?:\.([^:]+))?:\s*(.+)$/s)
-    ?? source.match(/^(sheet|playbook|map-plan|layout)(?:\.([^:]+))?:\s*(.+)$/s);
+  const match = source.match(/(?:^|\/)(orders|map-plan)\.json(?:\.([^:]+))?:\s*(.+)$/s)
+    ?? source.match(/^(orders|map-plan)(?:\.([^:]+))?:\s*(.+)$/s);
   if (!match) return { path: 'server', message: `Compiler: ${source}`, severity: 'error' };
   const [, document, suffix, message] = match;
   return {
-    path: document === 'map-plan' || document === 'layout'
+    path: document === 'map-plan'
       ? `mapPlan${suffix ? `.${suffix}` : ''}`
       : `orders${suffix ? `.${suffix}` : ''}`,
     message: `Compiler: ${message.trim()}`,

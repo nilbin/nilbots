@@ -4765,8 +4765,8 @@
         "required": [
           "name",
           "expectedRevision",
-          "playbookJson",
-          "layoutJson"
+          "ordersJson",
+          "mapPlanJson"
         ],
         "type": "object",
         "properties": {
@@ -4780,10 +4780,10 @@
             ],
             "format": "int32"
           },
-          "playbookJson": {
+          "ordersJson": {
             "type": "string"
           },
-          "layoutJson": {
+          "mapPlanJson": {
             "type": "string"
           },
           "enterLadder": {
@@ -5003,8 +5003,8 @@
           "slotCount",
           "maximumCopiesPerClass",
           "classes",
-          "templatePlaybookJson",
-          "templateLayoutJson",
+          "templateOrdersJson",
+          "templateMapPlanJson",
           "stockOpponents"
         ],
         "type": "object",
@@ -5033,10 +5033,10 @@
               "$ref": "#/components/schemas/TacticalSheetClassResponse"
             }
           },
-          "templatePlaybookJson": {
+          "templateOrdersJson": {
             "type": "string"
           },
-          "templateLayoutJson": {
+          "templateMapPlanJson": {
             "type": "string"
           },
           "stockOpponents": {
@@ -5237,8 +5237,8 @@
           "contentHash",
           "createdAt",
           "updatedAt",
-          "playbookJson",
-          "layoutJson",
+          "ordersJson",
+          "mapPlanJson",
           "entrant"
         ],
         "type": "object",
@@ -5265,10 +5265,10 @@
             "type": "string",
             "format": "date-time"
           },
-          "playbookJson": {
+          "ordersJson": {
             "type": "string"
           },
-          "layoutJson": {
+          "mapPlanJson": {
             "type": "string"
           },
           "entrant": {

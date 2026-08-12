@@ -18,15 +18,15 @@ public sealed record TacticalSheetResponse(
     string ContentHash,
     DateTime CreatedAt,
     DateTime UpdatedAt,
-    string PlaybookJson,
-    string LayoutJson,
+    string OrdersJson,
+    string MapPlanJson,
     ArcRelayEntrantCardResponse Entrant);
 
 public sealed record SaveTacticalSheetRequest(
     string Name,
     int? ExpectedRevision,
-    string PlaybookJson,
-    string LayoutJson,
+    string OrdersJson,
+    string MapPlanJson,
     bool? EnterLadder = null);
 
 public sealed record TrialTacticalSheetRequest(
@@ -82,8 +82,8 @@ public sealed record TacticalSheetCatalogResponse(
     int SlotCount,
     int MaximumCopiesPerClass,
     IReadOnlyList<TacticalSheetClassResponse> Classes,
-    string TemplatePlaybookJson,
-    string TemplateLayoutJson,
+    string TemplateOrdersJson,
+    string TemplateMapPlanJson,
     IReadOnlyList<TacticalStockSheetResponse> StockOpponents);
 
 public sealed record TacticalSheetDeletedResponse(Guid Id);

@@ -3098,8 +3098,8 @@ export interface components {
             name: string;
             /** Format: int32 */
             expectedRevision: null | number;
-            playbookJson: string;
-            layoutJson: string;
+            ordersJson: string;
+            mapPlanJson: string;
             enterLadder?: null | boolean;
         };
         SetArcRelayCrestRequest: {
@@ -3163,8 +3163,8 @@ export interface components {
             /** Format: int32 */
             maximumCopiesPerClass: number;
             classes: components["schemas"]["TacticalSheetClassResponse"][];
-            templatePlaybookJson: string;
-            templateLayoutJson: string;
+            templateOrdersJson: string;
+            templateMapPlanJson: string;
             stockOpponents: components["schemas"]["TacticalStockSheetResponse"][];
         };
         TacticalSheetClassResponse: {
@@ -3226,8 +3226,8 @@ export interface components {
             createdAt: string;
             /** Format: date-time */
             updatedAt: string;
-            playbookJson: string;
-            layoutJson: string;
+            ordersJson: string;
+            mapPlanJson: string;
             entrant: components["schemas"]["ArcRelayEntrantCardResponse"];
         };
         TacticalSheetSummaryResponse: {

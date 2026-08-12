@@ -18,19 +18,21 @@ public sealed class TacticalSheetCompilerTests
             .Select(value => value.Id).ToHashSet(StringComparer.Ordinal);
 
         TacticalSheetSource stock = Assert.Single(templates.Stock);
-        Assert.Equal(ArcRelayEntrantPlaylistDefinition.StockSheetId, stock.Id);
+        Assert.Equal(
+            ArcRelayEntrantPlaylistDefinition.OrdersStockSheetId,
+            stock.Id);
         foreach (TacticalSheetSource source in
                  new[] { templates.Template }.Concat(templates.Stock))
         {
             ValidatedTacticalSheet compiled = compiler.Compile(
-                source.PlaybookJson,
-                source.LayoutJson,
+                source.OrdersJson,
+                source.MapPlanJson,
                 unlocked,
                 source.Id);
 
             Assert.Equal(source.ContentHash, compiled.ContentHash);
             Assert.Equal(source.LinkedData, compiled.Compilation.LinkedData);
-            using JsonDocument sheet = JsonDocument.Parse(source.PlaybookJson);
+            using JsonDocument sheet = JsonDocument.Parse(source.OrdersJson);
             Assert.Equal("arc-relay-orders-v2",
                 sheet.RootElement.GetProperty("schema").GetString());
             Assert.Equal("map-plan.json",
@@ -44,9 +46,9 @@ public sealed class TacticalSheetCompilerTests
     {
         var templates = new TacticalSheetTemplateCatalog();
         using JsonDocument sheet = JsonDocument.Parse(
-            templates.Template.PlaybookJson);
+            templates.Template.OrdersJson);
         using JsonDocument mapPlan = JsonDocument.Parse(
-            templates.Template.LayoutJson);
+            templates.Template.MapPlanJson);
 
         Assert.Equal("starter-v2", templates.Template.Id);
         Assert.Equal(
@@ -91,31 +93,31 @@ public sealed class TacticalSheetCompilerTests
             .Select(value => value.Id).ToHashSet(StringComparer.Ordinal);
 
         JsonObject retired = JsonNode.Parse(
-            templates.Template.PlaybookJson)!.AsObject();
+            templates.Template.OrdersJson)!.AsObject();
         retired["layout"] = new JsonObject();
         InvalidDataException retiredError = Assert.Throws<InvalidDataException>(
             () => compiler.Compile(
-                retired.ToJsonString(), templates.Template.LayoutJson,
+                retired.ToJsonString(), templates.Template.MapPlanJson,
                 unlocked, "retired-layout"));
         Assert.Contains("unknown field 'layout'", retiredError.Message);
 
         JsonObject copies = JsonNode.Parse(
-            templates.Template.PlaybookJson)!.AsObject();
+            templates.Template.OrdersJson)!.AsObject();
         copies["roles"]![0]!["classes"] = new JsonArray(
             "relay", "relay", "relay");
         InvalidDataException copyError = Assert.Throws<InvalidDataException>(() =>
             compiler.Compile(
-                copies.ToJsonString(), templates.Template.LayoutJson,
+                copies.ToJsonString(), templates.Template.MapPlanJson,
                 unlocked, "copy-cap"));
         Assert.Contains("two-copy class cap", copyError.Message);
 
         JsonObject wrongMap = JsonNode.Parse(
-            templates.Template.LayoutJson)!.AsObject();
+            templates.Template.MapPlanJson)!.AsObject();
         wrongMap["mapId"] = ArcRelayLoopProfile.ForwardCombat.MapId;
         string wrongMapJson = wrongMap.ToJsonString();
         InvalidDataException mapError = Assert.Throws<InvalidDataException>(() =>
             compiler.Compile(
-                templates.Template.PlaybookJson, wrongMapJson,
+                templates.Template.OrdersJson, wrongMapJson,
                 unlocked, "wrong-map"));
         Assert.Contains("never migrated", mapError.Message,
             StringComparison.OrdinalIgnoreCase);

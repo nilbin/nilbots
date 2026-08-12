@@ -7847,3 +7847,48 @@ practice and hosted stock source. The six standard exhibit cells all completed,
 which establishes that the small plan acts coherently but is not a balance
 claim. Template and layout changes do not alter the DSL, compiler, executor,
 Tapline rules, playlist, rating book, canonical replay, or frozen artifacts.
+
+## 294. Arc Relay sheets are direct Orders v2 trees; hosted v20 starts fresh
+
+Owner-directed replacement (2026-08-12). The consolidated ATL1 language still
+split intent across role ladders, custody, fight defaults, cohort/focus tables,
+and action-specific verbs. It is retired as active authoring input rather than
+kept behind a compatibility parser. A current sheet is exactly a seven-key
+`arc-relay-orders-v2` document plus a six-key `arc-relay-map-plan-v2` document.
+Roles cast the eight exact class bodies and contain nested positional-priority
+orders. Exact shared orders, named condition comparisons, and one target-scoped
+capacity primitive are the only reuse/coordination vocabulary. Leaves expose
+only `move`, `fight`, `use`, `handoff`, and `drop`; lifecycle always uses
+`when`, `until`, `timeout`, and `cooldown`.
+
+The shared compiler emits ATL2 containing that exact tree, and the mind executes
+ATL2 directly. It does not construct doctrine, custody, mode, rung, engagement,
+formation, cohort, focus, or other legacy IR records. Composition and hashes are
+derived. The current workshop authors the same pair with class/signature cards,
+nested order cards, reusable condition/capacity/shared-order libraries, and a
+Tapline map plotter; raw JSON is an advanced utility rather than the product
+surface.
+
+Core pickup and reactor banking remain physical movement rules. Voluntary
+handoff, drop, and Arc Toss share a rules-owned per-life/per-Core reclaim block,
+so explicit release cannot immediately become implicit pickup. Movement micro,
+aiming, route traversal, and collision handling remain deterministic executor
+or engine responsibilities, not hidden action verbs.
+
+Hosted entrant playlist v20 pins Tapline, ATL2, `wellwright-tapline-v2`, and
+artifact
+`d9281f6abee1f5f5e3eeebbdc911dac091138199dea91feb7a8a0812d1549b88`.
+In-process and WASM produce gameplay-state digest
+`0aaccd6ed28a00ecfbc6d401915b0834b99c5ea9bb0116d7cedaf689f9cdc947`
+for the registered seed-9001 Wellwright/Hunter cell. Playlist v19 remains
+immutable at fingerprint
+`b16b7d62bd0868371edd39b49fc3b6897ef49c44a033e5b91c46bd4a511463b1`.
+Because executable semantics, the stock sheet, and stock gameplay all change,
+v20 starts a fresh rating book; v19 ratings are not copied. CLI/package version
+0.9.59 carries the compiler, executor, editor-facing contract, and hosted lane;
+`publish-cli` owes a `cli-v0.9.59` tag before deployment.
+
+Tactical choke negotiation, intent-aware right-of-way, combat-space
+reservation, and richer coordinated path planning are explicitly deferred to a
+separate goal. Orders state intent; this replacement does not smuggle a squad
+planner into the authoring language.

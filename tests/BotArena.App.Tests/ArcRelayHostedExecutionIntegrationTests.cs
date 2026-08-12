@@ -68,10 +68,10 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
         TacticalSheetResponse first = await SaveAsync(
             client,
             "First line",
-            catalog.TemplatePlaybookJson,
-            catalog.TemplateLayoutJson);
+            catalog.TemplateOrdersJson,
+            catalog.TemplateMapPlanJson);
         JsonObject counterPlan = JsonNode.Parse(
-            catalog.TemplatePlaybookJson)!.AsObject();
+            catalog.TemplateOrdersJson)!.AsObject();
         counterPlan["roles"]![0]!["upgradePath"]![0] = "reach";
         TacticalSheetResponse second = await SaveAsync(
             client,
@@ -80,7 +80,7 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
             {
                 WriteIndented = true,
             }),
-            catalog.TemplateLayoutJson);
+            catalog.TemplateMapPlanJson);
         Assert.NotEqual(first.ContentHash, second.ContentHash);
 
         HttpResponseMessage queued = await client.PostAsJsonAsync(
@@ -359,16 +359,16 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
     private static async Task<TacticalSheetResponse> SaveAsync(
         HttpClient client,
         string name,
-        string playbookJson,
-        string layoutJson)
+        string ordersJson,
+        string mapPlanJson)
     {
         HttpResponseMessage response = await client.PostAsJsonAsync(
             "/api/sheets",
             new SaveTacticalSheetRequest(
                 name,
                 ExpectedRevision: null,
-                playbookJson,
-                layoutJson,
+                ordersJson,
+                mapPlanJson,
                 EnterLadder: true));
         response.EnsureSuccessStatusCode();
         return Assert.IsType<TacticalSheetResponse>(

@@ -14,8 +14,8 @@ public sealed record TacticalSheetSource(
     string Id,
     string Name,
     string Description,
-    string PlaybookJson,
-    string LayoutJson,
+    string OrdersJson,
+    string MapPlanJson,
     string[] Composition,
     byte[] LinkedData,
     string ContentHash);
@@ -67,12 +67,12 @@ public sealed class TacticalSheetTemplateCatalog
         string id,
         string name,
         string description,
-        string playbookJson,
-        string layoutJson)
+        string ordersJson,
+        string mapPlanJson)
     {
-        JsonObject playbook = JsonNode.Parse(playbookJson)?.AsObject()
-            ?? throw new InvalidDataException($"Embedded playbook '{id}' is empty.");
-        JsonObject mapPlan = JsonNode.Parse(layoutJson)?.AsObject()
+        JsonObject orders = JsonNode.Parse(ordersJson)?.AsObject()
+            ?? throw new InvalidDataException($"Embedded Orders sheet '{id}' is empty.");
+        JsonObject mapPlan = JsonNode.Parse(mapPlanJson)?.AsObject()
             ?? throw new InvalidDataException($"Embedded map plan '{id}' is empty.");
         mapPlan["mapPlanId"] = id;
         string mapId = mapPlan["mapId"]?.GetValue<string>()
@@ -88,27 +88,27 @@ public sealed class TacticalSheetTemplateCatalog
                 + $"'{ArcRelayLoopProfile.Current.MapId}' Tapline. "
                 + "Template geometry is never projected between maps.");
         }
-        string resolvedLayout = mapPlan.ToJsonString(Pretty);
-        playbook["mapPlan"] = "map-plan.json";
-        playbook["sheetId"] = id;
-        string resolvedPlaybook = playbook.ToJsonString(Pretty);
+        string resolvedMapPlan = mapPlan.ToJsonString(Pretty);
+        orders["mapPlan"] = "map-plan.json";
+        orders["sheetId"] = id;
+        string resolvedOrders = orders.ToJsonString(Pretty);
         var everyClass = ArcRelayLaunchClassIds.All.ToHashSet(
             StringComparer.Ordinal);
         TacticalPlaybookCompilation compilation =
             ArcRelayTacticalPlaybookCompiler.Compile(
-                Encoding.UTF8.GetBytes(resolvedPlaybook),
-                Encoding.UTF8.GetBytes(resolvedLayout),
-                $"templates/{id}/playbook.json",
+                Encoding.UTF8.GetBytes(resolvedOrders),
+                Encoding.UTF8.GetBytes(resolvedMapPlan),
+                $"templates/{id}/orders.json",
                 $"templates/{id}/map-plan.json");
         if (compilation.Composition.Any(value => !everyClass.Contains(value)))
             throw new InvalidDataException(
-                $"Embedded playbook '{id}' has an unknown class.");
+                $"Embedded Orders sheet '{id}' has an unknown class.");
         return new TacticalSheetSource(
             id,
             name,
             description,
-            resolvedPlaybook,
-            resolvedLayout,
+            resolvedOrders,
+            resolvedMapPlan,
             compilation.Composition,
             compilation.LinkedData,
             Convert.ToHexStringLower(SHA256.HashData(compilation.LinkedData)));

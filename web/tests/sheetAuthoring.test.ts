@@ -66,7 +66,7 @@ const catalog: TacticalSheetCatalog = {
   classes: classIds.map((id) => ({
     id, name: id, signatureName: id, fantasy: id, starter: true, unlocked: true,
   })),
-  templatePlaybookJson: '{}', templateLayoutJson: '{}', stockOpponents: [],
+  templateOrdersJson: '{}', templateMapPlanJson: '{}', stockOpponents: [],
 };
 
 test('roles are the one source of composition and role renames follow semantic references', () => {
@@ -102,13 +102,13 @@ test('order action detection has only the five physical verbs plus branch and ex
 test('export emits the exact authoring pair without authored hashes or geometry bindings', async () => {
   const draft = parseDraft('Test', null, null, stringifyDocument(orders), stringifyDocument(mapPlan));
   const prepared = await pinDraft(draft);
-  const parsedOrders = JSON.parse(prepared.playbookJson) as OrdersDocument;
+  const parsedOrders = JSON.parse(prepared.ordersJson) as OrdersDocument;
   const parsedPlan = JSON.parse(prepared.mapPlanJson) as MapPlanDocument;
 
   assert.equal(parsedOrders.mapPlan, 'map-plan.json');
   assert.equal(parsedOrders.sheetId, 'test');
   assert.equal(parsedPlan.mapPlanId, 'test-map');
-  assert.doesNotMatch(prepared.playbookJson, /sha256|binding|fingerprint/i);
+  assert.doesNotMatch(prepared.ordersJson, /sha256|binding|fingerprint/i);
   assert.doesNotMatch(prepared.mapPlanJson, /sha256|binding|fingerprint/i);
 });
 
@@ -186,7 +186,7 @@ test('trial tracks contain only authoritative occupied tiles', () => {
 
 test('compiler diagnostics map sheet and map-plan paths back onto the editor', () => {
   assert.deepEqual(sheetIssueFromCompilerError(new Error(
-    '/tmp/new-sheet/sheet.json.roles.runners.orders[0].when: unknown condition.',
+    '/tmp/new-sheet/orders.json.roles.runners.orders[0].when: unknown condition.',
   )), {
     path: 'orders.roles.runners.orders[0].when',
     message: 'Compiler: unknown condition.', severity: 'error',
