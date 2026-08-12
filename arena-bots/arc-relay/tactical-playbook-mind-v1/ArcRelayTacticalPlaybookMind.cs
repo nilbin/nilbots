@@ -19,7 +19,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     private readonly Dictionary<int, int> _pendingInvest = [];
     private readonly Dictionary<int, (ActorIdentity Actor, int Spent)> _invested = [];
     private readonly Dictionary<int, PendingOneShot> _pendingOneShots = [];
-    private readonly Dictionary<(ActorIdentity Actor, string Path), Position>
+    private readonly Dictionary<(ActorIdentity Actor, string Path), FightAnchor>
         _fightAnchors = [];
     private readonly Dictionary<string, KnownCore> _knownLooseCores =
         new(StringComparer.Ordinal);
@@ -194,11 +194,15 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             GenericActorContext.ArcRelayCoreState> carried)
     {
         var result = new List<Proposal>();
+        string? skippedFight = null;
         for (int priority = 0; priority < leaves.Count; priority++)
         {
             OrderTreeRuntime.EligibleLeaf leaf = leaves[priority];
             ResolvedTarget[] targets = ResolveTargets(
-                contract, mind, arc, package, body, role, leaf.Node, carried);
+                contract, mind, arc, package, body, role, leaf, carried,
+                out string? decline);
+            if (decline is not null)
+                skippedFight = decline;
             foreach (ResolvedTarget target in targets)
             {
                 string? scope = leaf.Node.Capacity?.Id;
@@ -210,7 +214,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                         contract.Map, body.Position, target.Position)
                     ?? int.MaxValue;
                 result.Add(new Proposal(
-                    body, role, leaf, priority, target, scope, limit, distance));
+                    body, role, leaf, priority, target, scope, limit, distance,
+                    skippedFight));
             }
         }
         return result;
@@ -223,17 +228,21 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         OrdersPackage package,
         MindBody body,
         OrdersPackage.Role role,
-        OrdersPackage.OrderNode node,
+        OrderTreeRuntime.EligibleLeaf leaf,
         IReadOnlyDictionary<ActorIdentity,
-            GenericActorContext.ArcRelayCoreState> carried)
+            GenericActorContext.ArcRelayCoreState> carried,
+        out string? decline)
     {
+        decline = null;
+        OrdersPackage.OrderNode node = leaf.Node;
         switch (node.Action)
         {
             case OrdersPackage.MoveAction move:
                 return ResolveMoveTargets(
                     contract, mind, arc, package, body, move, carried);
             case OrdersPackage.FightAction fight:
-                return ResolveEnemyTargets(contract, mind, arc, body, fight);
+                return ResolveEnemyTargets(
+                    contract, mind, arc, body, leaf, fight, out decline);
             case OrdersPackage.UseAction use:
                 return ResolveUseTargets(contract, mind, body, use, carried);
             case OrdersPackage.HandoffAction handoff:
@@ -348,8 +357,11 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         MindContext mind,
         GenericActorContext.ModeObservationState.ArcRelay arc,
         MindBody body,
-        OrdersPackage.FightAction fight)
+        OrderTreeRuntime.EligibleLeaf leaf,
+        OrdersPackage.FightAction fight,
+        out string? decline)
     {
+        decline = null;
         HashSet<ActorIdentity> carriers = arc.VisibleCores
             .Where(core => core.Disposition
                 == GenericActorContext.ArcRelayCoreDisposition.Carried
@@ -390,9 +402,84 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     ordered.Add(candidate);
             }
         }
-        return ordered.Select(enemy => new ResolvedTarget(
-            $"enemy:{enemy.ActorId}", enemy.Position, [enemy.Position],
-            enemy.ActorId, null)).ToArray();
+        if (ordered.Count == 0)
+            return [];
+
+        // A selector is a preference, not a command to stare at that target
+        // forever. Keep the authored order, but place targets this body can
+        // shoot or reach inside this fight episode ahead of targets outside
+        // its leash. If none is actionable, this leaf yields for the tick so
+        // the next authored order can run. Its lifecycle-owned anchor remains
+        // intact, so yielding cannot reset the leash and create an unbounded
+        // one-tile-at-a-time chase.
+        var classified = ordered.Select((enemy, index) => new
+        {
+            Enemy = enemy,
+            Index = index,
+            Actionable = CanActOnFightTarget(
+                contract, body, leaf, fight, enemy),
+        }).ToArray();
+        if (classified.All(value => !value.Actionable))
+        {
+            decline = $"after-{leaf.Node.Id}-no-actionable-target";
+            return [];
+        }
+        if (classified.All(value => value.Actionable))
+        {
+            return ordered.Select(enemy => new ResolvedTarget(
+                $"enemy:{enemy.ActorId}", enemy.Position, [enemy.Position],
+                enemy.ActorId, null)).ToArray();
+        }
+
+        ResolvedTarget[] actionable = classified
+            .Where(value => value.Actionable)
+            .Select(value =>
+            {
+                ActorIdentity? skipped = classified
+                    .Take(value.Index)
+                    .FirstOrDefault(candidate => !candidate.Actionable)
+                    ?.Enemy.ActorId;
+                return new ResolvedTarget(
+                    $"enemy:{value.Enemy.ActorId}",
+                    value.Enemy.Position,
+                    [value.Enemy.Position],
+                    value.Enemy.ActorId,
+                    null,
+                    skipped is ActorIdentity actor
+                        ? $"target-fallback-from-{actor}"
+                        : null);
+            })
+            .ToArray();
+        return actionable;
+    }
+
+    private bool CanActOnFightTarget(
+        GenericActorResolvedMatchContract contract,
+        MindBody body,
+        OrderTreeRuntime.EligibleLeaf leaf,
+        OrdersPackage.FightAction fight,
+        GenericActorContext.ObservedEnemyState enemy)
+    {
+        if (ArenaBasics.CanAimAt(contract, body, enemy))
+            return true;
+        if (fight.Style == "kite"
+            && body.Position.ChebyshevDistance(enemy.Position) <= 2)
+        {
+            return true;
+        }
+        if (fight.Style == "hold")
+            return false;
+
+        Position anchor = FightEpisodeAnchor(body, leaf);
+        int? bodyFromAnchor = ArenaBasics.StaticDistance(
+            contract.Map, body.Position, anchor);
+        bool insideLeash = fight.ChaseLimit == 0
+            ? body.Position == anchor
+            : bodyFromAnchor is int used && used <= fight.ChaseLimit;
+        if (!insideLeash)
+            return false;
+        return ArenaBasics.FightTargetWithinEpisodeReach(
+            contract, body, anchor, enemy.Position, fight.ChaseLimit);
     }
 
     private ResolvedTarget[] ResolveUseTargets(
@@ -651,10 +738,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 {
                     continue;
                 }
-                (ActorIdentity, string) key = (
-                    proposal.Body.ActorId, proposal.Leaf.Node.Path);
-                Position anchor = _fightAnchors.GetValueOrDefault(
-                    key, proposal.Body.Position);
+                Position anchor = FightEpisodeAnchor(
+                    proposal.Body, proposal.Leaf);
                 bool inLeash = fight.ChaseLimit == 0
                     ? proposal.Body.Position == anchor
                     : ArenaBasics.StaticDistance(
@@ -853,6 +938,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             GenericActorContext.ArcRelayCoreState> carried)
     {
         string reason = $"orders:{proposal.Leaf.Node.Path}";
+        if (proposal.SelectionTrace is string selectionTrace)
+            reason += $":{selectionTrace}";
         string urgency = $"urgency-{claims.PriorityTrace(body.UnitId)}";
         switch (proposal.Leaf.Node.Action)
         {
@@ -985,9 +1072,9 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             body.Hold($"{reason}:target-lost");
             return;
         }
-        (ActorIdentity, string) key = (body.ActorId, proposal.Leaf.Node.Path);
-        Position anchor = _fightAnchors.GetValueOrDefault(key, body.Position);
-        _fightAnchors[key] = anchor;
+        if (proposal.Target.Trace is string trace)
+            reason += $":{trace}";
+        Position anchor = FightEpisodeAnchor(body, proposal.Leaf);
         bool inLeash = fight.ChaseLimit == 0
             ? body.Position == anchor
             : ArenaBasics.StaticDistance(
@@ -1124,6 +1211,17 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             return orderTicks;
         if (fact == "self-in-zone")
             return package.Contains(condition.Zone!, body.Position) ? 1 : 0;
+        if (fact == "self-nearest-visible-enemy-distance")
+        {
+            int? nearest = mind.Enemies
+                .Select(enemy => (int?)body.Position.ChebyshevDistance(
+                    enemy.Position))
+                .Min();
+            // No team-visible contact must make ordinary upper-bound
+            // engagement tests false. The compiler caps authored thresholds
+            // below this sentinel, and the value remains deterministic.
+            return nearest ?? 32;
+        }
         if (fact == "signature-ready")
         {
             GenericActorRulesContract.ArcRelaySignature? signature =
@@ -1339,6 +1437,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         IReadOnlyDictionary<int, Proposal> selected)
     {
         HashSet<int> live = mind.Bodies.Select(body => body.UnitId).ToHashSet();
+        HashSet<ActorIdentity> liveActors = mind.Bodies
+            .Select(body => body.ActorId).ToHashSet();
         foreach (int stale in _selectedPaths.Keys.Where(value => !live.Contains(value))
                      .ToArray())
         {
@@ -1346,6 +1446,9 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             _routeCursors.Remove(stale);
             _routes.Reset(stale);
         }
+        foreach ((ActorIdentity actor, string path) in _fightAnchors.Keys
+                     .Where(key => !liveActors.Contains(key.Actor)).ToArray())
+            _fightAnchors.Remove((actor, path));
         foreach (MindBody body in mind.Bodies)
         {
             string path = selected.GetValueOrDefault(body.UnitId)?.Leaf.Node.Path
@@ -1355,10 +1458,22 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             {
                 _routeCursors.Remove(body.UnitId);
                 _routes.Reset(body.UnitId);
-                _fightAnchors.Remove((body.ActorId, prior ?? ""));
             }
             _selectedPaths[body.UnitId] = path;
         }
+    }
+
+    private Position FightEpisodeAnchor(
+        MindBody body,
+        OrderTreeRuntime.EligibleLeaf leaf)
+    {
+        (ActorIdentity, string) key = (body.ActorId, leaf.Node.Path);
+        FightAnchor state = _fightAnchors.GetValueOrDefault(key)
+            ?? new FightAnchor(body.Position, leaf.ActivatedTick);
+        if (state.ActivatedTick != leaf.ActivatedTick)
+            state = new FightAnchor(body.Position, leaf.ActivatedTick);
+        _fightAnchors[key] = state;
+        return state.Position;
     }
 
     private bool TryInvest(
@@ -1478,14 +1593,16 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         ResolvedTarget Target,
         string? CapacityScope,
         int CapacityLimit,
-        int Distance);
+        int Distance,
+        string? SelectionTrace);
 
     private sealed record ResolvedTarget(
         string Key,
         Position Position,
         Position[] Goals,
         ActorIdentity? Actor,
-        string? CoreKey);
+        string? CoreKey,
+        string? Trace = null);
 
     private sealed record MovePlan(
         string Path,
@@ -1518,6 +1635,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         ActorIdentity Actor,
         OrdersPackage.OrderNode Node,
         string ActionId);
+    private sealed record FightAnchor(Position Position, int ActivatedTick);
     private sealed record KnownCore(string Key, Position Position, int SeenTick);
     private sealed record RememberedEnemy(Position Position, int Tick, bool Carrier);
 }

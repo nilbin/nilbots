@@ -110,7 +110,8 @@ export const CONDITION_OPERATORS: readonly ConditionOperator[] =
   ['at-least', 'at-most', 'equals', 'less-than', 'greater-than'];
 export const CONDITION_FACTS = [
   'self-health-percent', 'self-level', 'self-carrying', 'self-stuck-ticks',
-  'self-order-ticks', 'self-in-zone', 'signature-ready', 'role-live-count',
+  'self-order-ticks', 'self-in-zone', 'self-nearest-visible-enemy-distance',
+  'signature-ready', 'role-live-count',
   'role-lowest-health-percent', 'role-in-zone-count', 'live-friendlies',
   'friendly-carriers', 'known-enemy-carriers', 'visible-enemy-carriers',
   'known-loose-cores', 'visible-loose-cores', 'secured-cores',
@@ -342,6 +343,9 @@ export function validateDraft(
     if (!(CONDITION_FACTS as readonly string[]).includes(condition.fact)) error(`${path}.fact`, 'Choose a published fact.');
     if (!CONDITION_OPERATORS.includes(condition.operator)) error(`${path}.operator`, 'Choose a comparison.');
     if (!Number.isInteger(condition.value)) error(`${path}.value`, 'Comparison value must be a whole number.');
+    if (condition.fact === 'self-nearest-visible-enemy-distance'
+      && (condition.value < 0 || condition.value > 31))
+      error(`${path}.value`, 'Visible-enemy distance is zero to 31 tiles.');
     if (ROLE_FACTS.has(condition.fact) && (!condition.role || !roles.has(condition.role)))
       error(`${path}.role`, 'This fact needs a declared role.');
     if (ZONE_FACTS.has(condition.fact)) {

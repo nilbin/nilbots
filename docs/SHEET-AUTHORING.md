@@ -242,7 +242,7 @@ The finite fact catalog is:
 
 | scope | facts |
 | --- | --- |
-| body | `self-health-percent`, `self-level`, `self-carrying`, `self-stuck-ticks`, `self-order-ticks`, `self-in-zone`, `signature-ready` |
+| body | `self-health-percent`, `self-level`, `self-carrying`, `self-stuck-ticks`, `self-order-ticks`, `self-in-zone`, `self-nearest-visible-enemy-distance`, `signature-ready` |
 | role | `role-live-count`, `role-lowest-health-percent`, `role-in-zone-count` |
 | team | `live-friendlies`, `friendly-carriers`, `known-enemy-carriers`, `visible-enemy-carriers`, `known-loose-cores`, `visible-loose-cores`, `secured-cores`, `reactor-integrity`, `reactor-charge`, `ticks-without-objective-progress` |
 | zone | `friendlies-in-zone`, `visible-enemies-in-zone`, `remembered-enemies-in-zone`, `known-loose-cores-in-zone` |
@@ -257,6 +257,14 @@ percent comparisons are `0..100`; boolean facts compare with `0` or `1`.
 Known loose Cores use the team's objective ledger. A Core remains known until
 a visible pickup, handoff, bank, drop, or new position updates it; leaving
 vision alone does not erase the fact.
+
+`self-nearest-visible-enemy-distance` is Chebyshev distance from this body to
+the nearest team-visible enemy. The sighting may come from any allied sensor,
+but distance is evaluated separately for every body, so one remote contact
+does not mobilize the whole team. Use an upper-bound comparison in `0..31`,
+normally `at-most`; no visible enemy fails every such upper bound.
+`visible-enemies-in-zone` remains the explicit non-distance team-perception
+fact for a coordinated response to contact reported anywhere in a named zone.
 
 ## 6. Five actions
 
@@ -305,7 +313,13 @@ owner's reactor banks it. Those are physical rules, not hidden action verbs.
 ```
 
 `targets` contains one to five unique values from `carrier`, `weakest`,
-`nearest`, `medic`, and `marked`. `style` is `advance`, `hold`, or `kite`.
+`nearest`, `medic`, and `marked`. They are ordered preferences among targets
+this body can shoot or reach within the current fight episode. An unavailable
+preference does not mask a later actionable one; if none is actionable, the
+fight order yields for that tick and the body's next eligible authored order
+runs. The episode remains active, so this yield never resets or advances its
+chase anchor.
+`style` is `advance`, `hold`, or `kite`.
 `chaseLimit` is `0..12` tiles from the body's position when the fight node
 entered; zero means fight in place.
 

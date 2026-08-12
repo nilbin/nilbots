@@ -153,21 +153,45 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
     public void SelfInZoneIsAnAuthoredBodyLocalSpatialCondition()
     {
         JsonObject source = Source("starter-tapline-v2");
+        JsonObject map = MapPlan("starter-tapline-v2");
+        map["zones"]!["test-area"] = new JsonObject
+        {
+            ["rect"] = new JsonArray(1, 1, 29, 25),
+        };
         source["conditions"]!["inside-battlefield"] = new JsonObject
         {
             ["fact"] = "self-in-zone",
             ["operator"] = "equals",
             ["value"] = 1,
-            ["zone"] = "battlefield",
+            ["zone"] = "test-area",
         };
         JsonObject lastHomeOrder = source["roles"]![0]!["orders"]!
             .AsArray().Last()!.AsObject();
         lastHomeOrder["when"] = "inside-battlefield";
 
         TacticalPlaybookCompilation compilation = Compile(
-            source, MapPlan("starter-tapline-v2"));
+            source, map);
 
         Assert.True(compilation.UsesOrderTree);
+    }
+
+    [Fact]
+    public void VisibleEnemyDistanceIsBodyLocalAndBoundedToTheMapScale()
+    {
+        JsonObject source = Source("starter-tapline-v2");
+        JsonObject condition = source["conditions"]!["enemy-nearby"]!
+            .AsObject();
+
+        Assert.Equal("self-nearest-visible-enemy-distance",
+            condition["fact"]!.GetValue<string>());
+        Assert.True(Compile(
+            source, MapPlan("starter-tapline-v2")).UsesOrderTree);
+
+        condition["value"] = 32;
+        InvalidDataException error = Assert.Throws<InvalidDataException>(() =>
+            Compile(source, MapPlan("starter-tapline-v2")));
+        Assert.Contains("visible-enemy distance must be in [0, 31]",
+            error.Message);
     }
 
     [Fact]

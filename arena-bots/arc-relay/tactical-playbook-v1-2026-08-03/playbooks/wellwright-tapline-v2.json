@@ -77,7 +77,7 @@
       { "id": "reach-healing", "move": { "to": "nearest-heal-zone", "posture": "rear" } }
     ] },
     "collect-loose-core": { "when": { "all": ["empty-handed", "loose-core-known"] }, "capacity": "two-per-core", "move": { "to": "nearest-known-loose-core" } },
-    "fight-visible-enemy": { "when": { "all": ["empty-handed", "enemy-visible"] }, "fight": { "targets": ["carrier", "weakest", "nearest"], "style": "advance", "chaseLimit": 3 } }
+    "fight-visible-enemy": { "when": { "all": ["empty-handed", "enemy-nearby"] }, "fight": { "targets": ["carrier", "weakest", "nearest"], "style": "advance", "chaseLimit": 3 } }
   },
   "capacities": { "two-per-core": 2 },
   "conditions": {
@@ -87,6 +87,7 @@
     "healthy": { "fact": "self-health-percent", "operator": "at-least", "value": 75 },
     "loose-core-known": { "fact": "known-loose-cores", "operator": "at-least", "value": 1 },
     "enemy-visible": { "fact": "visible-enemies-in-zone", "operator": "at-least", "value": 1, "zone": "battlefield" },
+    "enemy-nearby": { "fact": "self-nearest-visible-enemy-distance", "operator": "at-most", "value": 7 },
     "home-hauler-hurt": { "fact": "role-lowest-health-percent", "operator": "at-most", "value": 70, "role": "home-haulers" },
     "signature-ready": { "fact": "signature-ready", "operator": "equals", "value": 1 }
   }

@@ -91,6 +91,26 @@ public sealed class TacticalMovementGovernorTests
     }
 
     [Fact]
+    public void FightReachIsBoundedByTheEpisodeAnchorNotTheCurrentBodyTile()
+    {
+        // A range-five weapon may pursue a target eight episode-anchor steps
+        // away with a leash of three. Moving within that episode does not
+        // grant a ninth step: the anchor remains the reference point.
+        Assert.True(TacticalFightEpisode.TargetIsReachable(
+            anchorToTargetDistance: 8,
+            attackRange: 5,
+            chaseLimit: 3));
+        Assert.False(TacticalFightEpisode.TargetIsReachable(
+            anchorToTargetDistance: 9,
+            attackRange: 5,
+            chaseLimit: 3));
+        Assert.False(TacticalFightEpisode.TargetIsReachable(
+            anchorToTargetDistance: null,
+            attackRange: 5,
+            chaseLimit: 3));
+    }
+
+    [Fact]
     public void RouteCourseStaysChosenAcrossATemptingReplan()
     {
         var governor = new TacticalRouteGovernor();
@@ -878,4 +898,5 @@ public sealed class TacticalMovementGovernorTests
         position,
         previous,
         previous is not null);
+
 }

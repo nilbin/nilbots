@@ -46,7 +46,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         {
             "self-health-percent", "self-level", "self-carrying",
             "self-stuck-ticks", "self-order-ticks", "self-in-zone",
-            "signature-ready",
+            "self-nearest-visible-enemy-distance", "signature-ready",
             "role-live-count", "role-lowest-health-percent",
             "role-in-zone-count", "live-friendlies", "friendly-carriers",
             "known-enemy-carriers", "visible-enemy-carriers",
@@ -259,6 +259,12 @@ public static partial class ArcRelayTacticalPlaybookCompiler
                 && comparison is < 0 or > 100)
             {
                 throw Error(at, "health percentages must be in [0, 100].");
+            }
+            if (fact == "self-nearest-visible-enemy-distance"
+                && comparison is < 0 or > 31)
+            {
+                throw Error(at,
+                    "visible-enemy distance must be in [0, 31].");
             }
             if ((fact is "self-carrying" or "self-in-zone" or
                     "signature-ready")

@@ -239,7 +239,7 @@ The v2 fact catalog is intentionally finite:
 
 | scope | facts |
 | --- | --- |
-| body | `self-health-percent`, `self-level`, `self-carrying`, `self-stuck-ticks`, `self-order-ticks`, `self-in-zone`, `signature-ready` |
+| body | `self-health-percent`, `self-level`, `self-carrying`, `self-stuck-ticks`, `self-order-ticks`, `self-in-zone`, `self-nearest-visible-enemy-distance`, `signature-ready` |
 | role | `role-live-count`, `role-lowest-health-percent`, `role-in-zone-count` |
 | team | `live-friendlies`, `friendly-carriers`, `known-enemy-carriers`, `visible-enemy-carriers`, `known-loose-cores`, `visible-loose-cores`, `secured-cores`, `reactor-integrity`, `reactor-charge`, `ticks-without-objective-progress` |
 | zone | `friendlies-in-zone`, `visible-enemies-in-zone`, `remembered-enemies-in-zone`, `known-loose-cores-in-zone` |
@@ -300,7 +300,11 @@ are physical game rules, not hidden `move` subverbs.
 ```
 
 - `targets` is 1–5 unique values from `carrier`, `weakest`, `nearest`,
-  `medic`, and `marked` in desired order.
+  `medic`, and `marked` in desired order. The order applies among actionable
+  targets: an enemy this body cannot shoot or reach inside the current chase
+  leash does not mask a later actionable preference. If no target is
+  actionable, the fight order yields to the body's next eligible order for
+  that tick without resetting the active fight episode or its chase anchor.
 - `style` is `advance`, `hold`, or `kite`. It says how this body positions
   while executing the fight; the class's legal movement pattern still wins.
 - `chaseLimit` is `0..12` tiles from the position at which this fight node

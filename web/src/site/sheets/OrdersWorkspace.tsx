@@ -810,6 +810,10 @@ function normalizedCondition(fact: string, previous: ConditionDefinition, orders
   if (kind === 'zone' || kind === 'role-zone') next.zone = previous.zone ?? Object.keys(mapPlan.zones)[0];
   if (kind === 'well') next.well = previous.well ?? 'centre';
   if (['known-enemy-carriers', 'remembered-enemies-in-zone'].includes(fact)) next.freshnessTicks = previous.freshnessTicks ?? 60;
+  if (fact === 'self-nearest-visible-enemy-distance') {
+    next.operator = 'at-most';
+    next.value = previous.fact === fact ? previous.value : 7;
+  }
   if (['self-carrying', 'self-in-zone', 'signature-ready'].includes(fact)) next.value = previous.value === 0 ? 0 : 1;
   return next;
 }
@@ -848,6 +852,7 @@ function useTargets(skill: string): string[] {
 }
 
 function factScope(fact: string) {
+  if (fact === 'self-nearest-visible-enemy-distance') return 'Distance from this body';
   if (fact.startsWith('self-') || fact === 'signature-ready') return 'This body';
   if (fact.startsWith('role-')) return 'A named role';
   if (fact.includes('-in-zone')) return 'A plotted zone';

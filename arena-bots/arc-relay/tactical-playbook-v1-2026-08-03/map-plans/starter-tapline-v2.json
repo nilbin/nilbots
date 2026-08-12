@@ -2,9 +2,7 @@
   "schema": "arc-relay-map-plan-v2",
   "mapPlanId": "starter-tapline-v2",
   "mapId": "arc-relay-tapline-01",
-  "zones": {
-    "battlefield": { "rect": [1, 1, 29, 25] }
-  },
+  "zones": {},
   "routes": {},
   "anchors": {}
 }

@@ -39,13 +39,13 @@
       { "id": "return-to-reactor", "move": { "to": "own-reactor" } }
     ] },
     "collect-loose-core": { "when": { "all": ["empty-handed", "loose-core-known"] }, "capacity": "two-per-core", "move": { "to": "nearest-known-loose-core" } },
-    "fight-visible-enemy": { "when": { "all": ["empty-handed", "enemy-visible"] }, "fight": { "targets": ["carrier", "weakest", "nearest"], "style": "advance", "chaseLimit": 3 } }
+    "fight-visible-enemy": { "when": { "all": ["empty-handed", "enemy-nearby"] }, "fight": { "targets": ["carrier", "weakest", "nearest"], "style": "advance", "chaseLimit": 3 } }
   },
   "capacities": { "two-per-core": 2 },
   "conditions": {
     "carrying-core": { "fact": "self-carrying", "operator": "equals", "value": 1 },
     "empty-handed": { "fact": "self-carrying", "operator": "equals", "value": 0 },
     "loose-core-known": { "fact": "known-loose-cores", "operator": "at-least", "value": 1 },
-    "enemy-visible": { "fact": "visible-enemies-in-zone", "operator": "at-least", "value": 1, "zone": "battlefield" }
+    "enemy-nearby": { "fact": "self-nearest-visible-enemy-distance", "operator": "at-most", "value": 7 }
   }
 }

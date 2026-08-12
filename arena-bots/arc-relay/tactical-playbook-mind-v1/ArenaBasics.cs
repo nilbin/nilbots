@@ -1430,6 +1430,45 @@ internal static class ArenaBasics
         GenericActorContext.ObservedEnemyState target) =>
         CanAimAtPosition(contract, body, target.Position);
 
+    public static int AttackRange(
+        GenericActorResolvedMatchContract contract,
+        MindBody body) => AttackRange(contract, body.FormId);
+
+    public static int AttackRange(
+        GenericActorResolvedMatchContract contract,
+        string formId) => contract.Rules.Forms
+            .FirstOrDefault(candidate => candidate.Id == formId)
+            ?.AttackProfileId is string attackId
+                ? contract.Rules.AttackProfiles.FirstOrDefault(candidate =>
+                    candidate.Id == attackId)?.Projectile.MaxTravelTiles ?? 0
+                : 0;
+
+    /// <summary>
+    /// The authored fight preference can ask for a carrier or weakest body
+    /// before nearest. This pure lower-bound check says whether that target
+    /// can possibly be brought into this body's weapon range without leaving
+    /// the current fight episode's leash. Walls may make a nominally reachable
+    /// target harder, but a target beyond this bound is definitely not a reason
+    /// to mask a later preference or park at the leash edge.
+    /// </summary>
+    public static bool FightTargetWithinEpisodeReach(
+        GenericActorResolvedMatchContract contract,
+        MindBody body,
+        Position anchor,
+        Position target,
+        int chaseLimit) => FightTargetWithinEpisodeReach(
+            contract, body.FormId, anchor, target, chaseLimit);
+
+    public static bool FightTargetWithinEpisodeReach(
+        GenericActorResolvedMatchContract contract,
+        string formId,
+        Position anchor,
+        Position target,
+        int chaseLimit) => TacticalFightEpisode.TargetIsReachable(
+            StaticDistance(contract.Map, anchor, target),
+            AttackRange(contract, formId),
+            chaseLimit);
+
     public static bool CanAimAtPosition(
         GenericActorResolvedMatchContract contract,
         MindBody body,
