@@ -73,7 +73,7 @@ export default function ArcRelayPage({
           </h1>
           <p className="t-meta mt-2 max-w-3xl">
             {view === 'sheets'
-              ? 'Choose the roster, give every assignment an ordered battle plan, draw it on Tapline and compare what actually happened.'
+              ? 'Cast eight class bodies into roles, order each role’s plays, draw the named ground on Tapline and compare what actually happened.'
               : 'Each tactical sheet is a Season entrant with its own crest, composition, match history and rating.'}
           </p>
         </div>

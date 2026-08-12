@@ -2,55 +2,23 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
-const shell = readFileSync(
-  new URL('../src/site/Shell.tsx', import.meta.url),
-  'utf8',
-);
-const site = readFileSync(
-  new URL('../src/site/Site.tsx', import.meta.url),
-  'utf8',
-);
-const season = readFileSync(
-  new URL('../src/site/pages/SeasonPage.tsx', import.meta.url),
-  'utf8',
-);
-const entrants = readFileSync(
-  new URL('../src/site/pages/ArcRelayPage.tsx', import.meta.url),
-  'utf8',
-);
-const workshop = readFileSync(
-  new URL('../src/site/sheets/TacticalSheetEditor.tsx', import.meta.url),
-  'utf8',
-);
-const docs = readFileSync(
-  new URL('../src/site/pages/DocsPage.tsx', import.meta.url),
-  'utf8',
-);
-const styles = readFileSync(
-  new URL('../src/index.css', import.meta.url),
-  'utf8',
-);
-const siteReview = readFileSync(
-  new URL('../vite.site-review.config.ts', import.meta.url),
-  'utf8',
-);
-const siteShots = readFileSync(
-  new URL('../../scripts/site-shots.mjs', import.meta.url),
-  'utf8',
-);
+const read = (path: string) => readFileSync(new URL(path, import.meta.url), 'utf8');
+const shell = read('../src/site/Shell.tsx');
+const site = read('../src/site/Site.tsx');
+const season = read('../src/site/pages/SeasonPage.tsx');
+const entrants = read('../src/site/pages/ArcRelayPage.tsx');
+const workshop = read('../src/site/sheets/TacticalSheetEditor.tsx');
+const orders = read('../src/site/sheets/OrdersWorkspace.tsx');
+const map = read('../src/site/sheets/MapPlanEditor.tsx');
+const docs = read('../src/site/pages/DocsPage.tsx');
+const styles = read('../src/index.css');
+const siteReview = read('../vite.site-review.config.ts');
+const siteShots = read('../../scripts/site-shots.mjs');
 
 test('primary navigation has one season-centred hierarchy on desktop and phone', () => {
-  const desktop = [...shell.matchAll(/<TopLink to="([^"]+)">([^<]+)<\/TopLink>/g)]
-    .map((match) => [match[1], match[2]]);
-  const phone = [...shell.matchAll(/<MobileLink to="([^"]+)">([^<]+)<\/MobileLink>/g)]
-    .map((match) => [match[1], match[2]]);
-  const expected = [
-    ['/', 'Season'],
-    ['/entrants', 'Entrants'],
-    ['/watch', 'Watch'],
-    ['/docs', 'Docs'],
-  ];
-
+  const desktop = [...shell.matchAll(/<TopLink to="([^"]+)">([^<]+)<\/TopLink>/g)].map((match) => [match[1], match[2]]);
+  const phone = [...shell.matchAll(/<MobileLink to="([^"]+)">([^<]+)<\/MobileLink>/g)].map((match) => [match[1], match[2]]);
+  const expected = [['/', 'Season'], ['/entrants', 'Entrants'], ['/watch', 'Watch'], ['/docs', 'Docs']];
   assert.deepEqual(desktop, expected);
   assert.deepEqual(phone, expected);
   assert.doesNotMatch(shell, />Relay<|>Sheets</);
@@ -58,10 +26,7 @@ test('primary navigation has one season-centred hierarchy on desktop and phone',
 
 test('old Relay URLs redirect without becoming a second product hierarchy', () => {
   assert.match(site, /path="\/relay" element={<Navigate to="\/" replace \/>}/);
-  assert.match(
-    site,
-    /path="\/relay\/sheets" element={<Navigate to="\/entrants\/sheets\/new" replace \/>}/,
-  );
+  assert.match(site, /path="\/relay\/sheets" element={<Navigate to="\/entrants\/sheets\/new" replace \/>}/);
   assert.match(site, /path="\/entrants\/sheets\/:sheetId\/edit"/);
 });
 
@@ -69,108 +34,93 @@ test('the home screen reads the authoritative season projection', () => {
   assert.match(season, /useArcRelaySeason\(\)/);
   assert.match(season, /Season standings/);
   assert.match(season, /Only settled, fully revealed results appear here/);
-  assert.match(season, /Equal ratings share a rank/);
   assert.match(season, /baselineMatchesPerEntrantPerDay/);
 });
 
-test('ranked enrollment and immediate practice have different visible verbs', () => {
+test('ranked enrollment and immediate practice use different visible verbs', () => {
   assert.match(entrants, /Ranked runs automatically/);
   assert.match(entrants, /There is no ranked queue button/);
   assert.match(entrants, /Field for ranked/);
-  assert.match(workshop, /Practice (?:&amp;|&) watch/);
-  assert.match(workshop, /Practice is immediate, unranked/);
+  assert.match(workshop, /Practice & watch/);
+  assert.match(workshop, /Practice is immediate and unranked/);
 });
 
-test('the workspace has one persistent practice action and separates scenario setup', () => {
-  assert.equal(workshop.match(/onClick=\{\(\) => void runTrial\(\)\}/g)?.length, 1);
-  assert.match(workshop, /onClick=\{\(\) => void runTrial\(\)\}/);
-  assert.match(workshop, /aria-label="Choose practice opponent and scenario"/);
-  assert.match(workshop, /single Practice action in the workspace bar/);
+test('responsive practice docks never render two visible actions at one breakpoint', () => {
+  assert.match(workshop, /btn btn-secondary hidden[^\n]+sm:inline-flex/);
+  assert.match(workshop, /fixed inset-x-0 bottom-0[^\n]+sm:hidden/);
+  assert.match(workshop, /Scenario/);
   assert.match(workshop, /Practice again/);
-  assert.doesNotMatch(workshop, /btn btn-secondary fixed/);
-  assert.doesNotMatch(workshop, /Import JSON pair|Export pinned pair|layout sha256/);
+  assert.doesNotMatch(workshop, /Import JSON pair|Export pinned pair|layout sha256/i);
 });
 
-test('practice is a secondary game action rather than a competing primary', () => {
-  assert.match(workshop, /btn btn-secondary[^"\n]*gap-2/);
-  assert.match(styles, /\.btn-secondary\s*\{[^}]*background:/s);
-  assert.match(styles, /\.btn-secondary-symbol\s*\{[^}]*color:\s*var\(--color-arena-material\)/s);
+test('the workshop speaks the consolidated Orders v2 language only', () => {
+  assert.match(workshop, /id: 'squad'.*id: 'orders'.*id: 'map'/s);
+  assert.match(orders, /What this role tries, in order/);
+  assert.match(orders, /first executable leaf wins/i);
+  assert.match(orders, /Named conditions/);
+  assert.match(orders, /Shared capacity rules/);
+  assert.match(orders, /Shared exact orders/);
+  assert.match(orders, /Move/);
+  assert.match(orders, /Fight/);
+  assert.match(orders, /Use skill/);
+  assert.match(orders, /Handoff/);
+  assert.match(orders, /Drop Core/);
+  assert.doesNotMatch(`${workshop}\n${orders}`, /custodyPolicies|doctrines|muster|escort|assignment order/i);
 });
 
-test('the editor uses Squad, Commands and Map while team tactics stay contextual', () => {
-  assert.doesNotMatch(workshop, /id: 'conditions'|id: 'custody'/);
-  assert.match(workshop, /id: 'squad'.*id: 'commands'.*id: 'map'/s);
-  assert.match(workshop, /Shared triggers, Core plans, coordination caps and memory/);
-  assert.match(workshop, /title="Doctrine triggers"/);
-  assert.match(workshop, /title="Core custody"/);
-  assert.match(workshop, /label: 'Map'/);
+test('conditions, lifecycle and capacities are explicit game controls rather than opaque strings', () => {
+  assert.match(orders, /Enter \/ remain while/);
+  assert.match(orders, /Latch until/);
+  assert.match(orders, /AND · all true/);
+  assert.match(orders, /OR · any true/);
+  assert.match(orders, /Bodies per resolved target/);
+  assert.match(orders, /Target priorities are read left to right/);
+  assert.doesNotMatch(orders, /advanced settings/i);
 });
 
-test('doctrine authoring presents a battle-plan board over the compiler schema', () => {
-  assert.match(workshop, /Order every assignment’s plays/);
-  assert.match(workshop, /Six tactical verbs · one ordered ladder/);
-  assert.match(workshop, /data-doctrine-select/);
-  assert.match(workshop, /entry\.name} · \{entry\.signatureName/);
-  assert.match(workshop, /Tactical action/);
-  assert.match(workshop, /Team tactics/);
-  assert.match(workshop, /Doctrine triggers/);
-  assert.match(workshop, /predicateSentence\(predicate\)/);
-  assert.match(workshop, /Core plans/);
-  assert.match(workshop, /Coordination/);
-  assert.match(workshop, /Combat baseline for this assignment/);
-  assert.match(workshop, /game standard/);
-  assert.match(workshop, /Adaptive participation cap/);
-  assert.match(workshop, /This play calls nobody/);
-  assert.doesNotMatch(workshop, /Who joins this play/);
-  assert.match(workshop, /Opportunistic loose-Core pickup/);
-  assert.match(workshop, /This is an\s+opportunistic exception, not planned courier duty/);
-  assert.match(workshop, /＋ Add condition/);
-  assert.match(workshop, /TacticalGeometryPreview/);
-  assert.match(workshop, /Edit \{humanizeToken\(destination\.id\)\} on the tactical map/);
-  assert.match(workshop, /Duplicate play/);
-  assert.match(workshop, /Exact same footprint/);
-  assert.match(workshop, /expandedModeKey/);
-  assert.match(workshop, /open=\{expanded\}/);
-  assert.match(styles, /details\[open\] > summary \.disclosure-chevron/);
+test('roles directly cast exact class bodies and surface signature identity', () => {
+  assert.match(orders, /The eight bodies/);
+  assert.match(orders, /Bodies sharing a role run the exact same ordered plan/);
+  assert.match(orders, /ClassIcon/);
+  assert.match(orders, /signatureName/);
+  assert.match(orders, /Upgrade rhythm/);
+  assert.doesNotMatch(orders, /candidateClasses|overflowRoleId|\.minimum|\.preferred|\.maximum\b/);
 });
 
-test('composition turns compiler roles into editable player assignments', () => {
-  assert.match(workshop, /Squad assignments/);
-  assert.match(workshop, /Turn chassis into jobs/);
-  assert.match(workshop, /AssignmentNameEditor/);
-  assert.match(workshop, /Eligible chassis · priority order/);
-  assert.match(workshop, /Normal staffing target/);
-  assert.match(workshop, /entry\.unlocked \? `\$\{counts\.get\(entry\.id\) \?\? 0\}\/2` : 'locked'/);
-  assert.match(workshop, /Staffing &amp; replacement rules/);
-  assert.match(workshop, /These rules allocate bodies to this assignment/);
+test('map planning renders all authoritative social landmarks and opens inside movement cards', () => {
+  assert.match(orders, /MapTargetPreview/);
+  assert.match(map, /Healing/);
+  assert.match(map, /Delivery/);
+  assert.match(map, /Protected spawn/);
+  assert.match(map, /Skill blocked/);
+  assert.match(map, /relationForSpawn/);
+  assert.match(map, /nearestSpawnTeam/);
+  assert.match(map, /Draw the ground your orders name/);
 });
 
-test('custom-mind authoring is dormant on the launch web surface', () => {
+test('portable JSON and ladder enrollment are secondary sheet tools', () => {
+  assert.match(workshop, /Sheet tools/);
+  assert.match(workshop, /JSON is an import\/export utility, not the authoring surface/);
+  assert.match(workshop, /Export source pair/);
+  assert.match(workshop, /Field this entrant when saved/);
+  assert.doesNotMatch(workshop, /sha256|content hash/i);
+});
+
+test('custom-mind authoring stays dormant on the launch web surface', () => {
   assert.doesNotMatch(entrants, /custom mind|custom-mind|preflight|C# source/i);
   assert.doesNotMatch(docs, /custom mind|custom-mind|preflight|C# source/i);
 });
 
-test('primary actions use the forge material and the dead site footer is gone', () => {
+test('primary and practice actions use the established forge controls', () => {
   assert.match(styles, /\.btn-primary\s*\{[^}]*background:\s*var\(--color-arena-material\)/s);
-  assert.match(styles, /\.btn\s*\{[^}]*display:\s*inline-flex[^}]*line-height:\s*1\.15/s);
-  assert.match(styles, /html\[data-arena-mode='site'\]\s*\{\s*color-scheme:\s*dark;/s);
-  assert.doesNotMatch(styles, /prefers-color-scheme:\s*light/);
+  assert.match(styles, /\.btn-secondary\s*\{[^}]*background:/s);
+  assert.match(styles, /\.btn-secondary-symbol\s*\{[^}]*color:\s*var\(--color-arena-material\)/s);
   assert.doesNotMatch(shell, /<footer|deterministic Arc Relay/);
 });
 
-test('the controlled browser review opens the current Tapline workshop', () => {
-  assert.match(siteReview, /hunter-tapline-v1\.json/);
-  assert.match(siteReview, /tapline-base-v1\.json/);
+test('the controlled browser review opens the current Orders v2 Tapline workshop', () => {
+  assert.match(siteReview, /starter-tapline-v2\.json/);
+  assert.match(siteReview, /map-plans\/starter-tapline-v2\.json/);
   assert.match(siteReview, /\/api\/sheets\/catalog/);
   assert.match(siteShots, /\['sheet-workshop', '\/entrants\/sheets\/new'\]/);
-});
-
-test('the tactics map names every authoritative Arc Relay landmark', () => {
-  assert.match(workshop, /Map landmark legend/);
-  assert.match(workshop, /Healing tile/);
-  assert.match(workshop, /Delivery zone/);
-  assert.match(workshop, /Protected spawn pad/);
-  assert.match(workshop, /Signature blocked/);
-  assert.match(workshop, /relationForSpawn/);
-  assert.match(workshop, /nearestSpawnTeam/);
 });

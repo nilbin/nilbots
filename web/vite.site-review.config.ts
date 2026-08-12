@@ -25,14 +25,14 @@ const sourceReplay = readFileSync(
 ).trim();
 const taplineTemplatePlaybook = readFileSync(
   new URL(
-    '../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/playbooks/hunter-tapline-v1.json',
+    '../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/playbooks/starter-tapline-v2.json',
     import.meta.url,
   ),
   'utf8',
 ).trim();
 const taplineTemplateLayout = readFileSync(
   new URL(
-    '../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/layouts/tapline-base-v1.json',
+    '../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/map-plans/starter-tapline-v2.json',
     import.meta.url,
   ),
   'utf8',
@@ -257,9 +257,9 @@ function makeTaplineReviewCatalog(
     templatePlaybookJson,
     templateLayoutJson,
     stockOpponents: [{
-      id: 'wellwright-v1',
-      name: 'Wellwright v1',
-      description: 'The Tapline stock entrant: races all three Wells with independently authored hauler and support ladders.',
+      id: 'wellwright-v2',
+      name: 'Wellwright v2',
+      description: 'The Tapline stock opponent works all three Wells and explicitly returns every carried Core.',
       composition: ['kestrel', 'patchbay', 'relay', 'longshot', 'longshot', 'towline', 'towline', 'mason'],
     }],
   };

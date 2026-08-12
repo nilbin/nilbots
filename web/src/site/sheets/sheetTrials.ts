@@ -8,12 +8,11 @@ import type { SheetDraft } from './sheetAuthoring';
 export const TRIAL_HISTORY_KEY = 'nilbots-sheet-trial-history-v1';
 
 export interface TrialSnapshot {
-  composition: string;
-  assignments: string;
-  doctrines: string;
+  bodies: string;
+  orders: string;
+  sharedOrders: string;
   conditions: string;
-  custody: string;
-  memory: string;
+  capacities: string;
   geography: string;
 }
 
@@ -40,17 +39,17 @@ export interface UnitTrack {
 
 export function snapshotForTrial(draft: SheetDraft): TrialSnapshot {
   return {
-    composition: JSON.stringify(draft.playbook.composition),
-    assignments: JSON.stringify(draft.playbook.roles),
-    doctrines: JSON.stringify(draft.playbook.doctrines),
-    conditions: JSON.stringify(draft.playbook.conditions ?? {}),
-    custody: JSON.stringify(draft.playbook.custodyPolicies),
-    memory: JSON.stringify(draft.playbook.memory),
+    bodies: JSON.stringify(draft.orders.roles.map(({ id, classes, upgradePath }) => ({
+      id, classes, upgradePath,
+    }))),
+    orders: JSON.stringify(draft.orders.roles.map(({ id, orders }) => ({ id, orders }))),
+    sharedOrders: JSON.stringify(draft.orders.sharedOrders),
+    conditions: JSON.stringify(draft.orders.conditions),
+    capacities: JSON.stringify(draft.orders.capacities),
     geography: JSON.stringify({
-      zones: draft.layout.zones,
-      routes: draft.layout.routes,
-      anchors: draft.layout.anchors,
-      bindings: draft.layout.bindings,
+      zones: draft.mapPlan.zones,
+      routes: draft.mapPlan.routes,
+      anchors: draft.mapPlan.anchors,
     }),
   };
 }
@@ -61,12 +60,11 @@ export function describeTrialChanges(
 ): string[] {
   if (!previous) return ['First recorded trial'];
   const labels: Array<[keyof TrialSnapshot, string]> = [
-    ['composition', 'Bodies'],
-    ['assignments', 'Assignments'],
-    ['doctrines', 'Commands'],
-    ['conditions', 'Triggers'],
-    ['custody', 'Core plans'],
-    ['memory', 'Team memory'],
+    ['bodies', 'Bodies'],
+    ['orders', 'Orders'],
+    ['sharedOrders', 'Shared orders'],
+    ['conditions', 'Conditions'],
+    ['capacities', 'Capacity rules'],
     ['geography', 'Map geometry'],
   ];
   const changed = labels
