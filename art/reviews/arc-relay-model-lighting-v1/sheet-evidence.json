@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "pinnedCamera": "overview",
+  "frames": [
+    {
+      "id": "desktop-overview-tick-60",
+      "label": "Desktop · overview · tick 60",
+      "baselineSha256": "aa6dcba468b043577eaa665b2568b3aa3f41264c7f5ab2062ea88f1dd58a8ff6",
+      "candidateSha256": "42369773f1d7f9026d6ebe49c83b5dfeb6d2a7f9373ca8698b16126b4011116a"
+    },
+    {
+      "id": "desktop-overview-tick-90",
+      "label": "Desktop · overview · tick 90",
+      "baselineSha256": "737bd028eba9d4855855e3f42953cd39c37e1221687d1cfbb278ecb9dc8f670a",
+      "candidateSha256": "7c4e5c7f5deab3a8ad69a55e83011d06d5326dceb7a3aeedb8d5402ddb9c19b8"
+    },
+    {
+      "id": "phone-landscape-overview-tick-60",
+      "label": "Phone landscape · overview · tick 60",
+      "baselineSha256": "a7fe743241a6fff2c1519a2186d5935d71459637e8eb79584eaf1946f718e19d",
+      "candidateSha256": "243ead4a0772e15026c4896933b7c50fab31a5aa1e04644a152e6dd728315fb2"
+    }
+  ],
+  "sheet": "gameplay-scale-ab.png",
+  "sheetSha256": "00dd9c969c6f62123741743aecf89a3b86d2e4d93b93295f6f07119607dbef77"
+}

@@ -3,6 +3,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { KTX2Loader } from 'three/examples/jsm/loaders/KTX2Loader.js';
 import { beginAsset } from '../render/assetReadiness';
 import { chassisModel } from './chassisModel';
+import { applyModelLighting } from './modelLighting';
 
 /**
  * The small, renderer-only contract beside an authored GLB.
@@ -247,7 +248,12 @@ export async function lookModel(
     return fallbackModel(look.imageUrl, paint, sector, teamAccent);
 
   try {
-    const model = instantiate(raw, paint, teamAccent);
+    const model = instantiate(
+      raw,
+      paint,
+      teamAccent,
+      registered.spec.kind === 'bot',
+    );
     markModelSource(model, 'gltf');
     return model;
   } catch {
@@ -268,7 +274,7 @@ export async function signatureModel(signatureId: string): Promise<THREE.Group |
   const raw = await rawModel(registered.url);
   if (!raw) return null;
   try {
-    const model = instantiate(raw);
+    const model = instantiate(raw, undefined, undefined, true);
     markModelSource(model, 'gltf');
     return model;
   } catch {
@@ -329,6 +335,7 @@ function instantiate(
   source: THREE.Group,
   paint?: THREE.Color,
   teamAccent?: THREE.Color,
+  readableModelLighting = false,
 ): THREE.Group {
   // Object3D.clone(true) recursively clones transforms and nodes while leaving BufferGeometry
   // shared. That is the intended split: vertices are immutable and expensive, materials
@@ -343,9 +350,21 @@ function instantiate(
     mesh.receiveShadow = true;
     mesh.material = Array.isArray(mesh.material)
       ? mesh.material.map((material) =>
-          instanceMaterial(material, materials, paint, teamAccent),
+          instanceMaterial(
+            material,
+            materials,
+            paint,
+            teamAccent,
+            readableModelLighting,
+          ),
         )
-      : instanceMaterial(mesh.material, materials, paint, teamAccent);
+      : instanceMaterial(
+          mesh.material,
+          materials,
+          paint,
+          teamAccent,
+          readableModelLighting,
+        );
   });
 
   return instance;
@@ -356,6 +375,7 @@ function instanceMaterial(
   materials: Map<THREE.Material, THREE.Material>,
   paint?: THREE.Color,
   teamAccent?: THREE.Color,
+  readableModelLighting = false,
 ): THREE.Material {
   const existing = materials.get(source);
   if (existing) return existing;
@@ -380,6 +400,7 @@ function instanceMaterial(
     material.emissive.copy(teamAccent);
     material.emissiveIntensity = Math.max(material.emissiveIntensity, 1.2);
   }
+  if (readableModelLighting) applyModelLighting(material);
 
   return material;
 }
