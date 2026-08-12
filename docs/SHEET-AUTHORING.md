@@ -1,576 +1,462 @@
 # Arc Relay sheet authoring
 
-This is the source and validation contract for the current Arc Relay tactical
-sheet editor. The compiler is authoritative; a frontend mirrors these rules
-for immediate feedback and sends the same two documents to the App for final
-validation.
+This is the current product contract for Arc Relay sheets, the shared compiler,
+and the sheet workshop. `docs/SPEC-SHEET-ORDERS-V2.md` records the design
+rationale; this document is the authoring reference.
 
-The format is evaluation-grade, not the eventual player-facing UX schema. That
-status is explicit in every playbook. The visual editor may use friendlier
-labels, cards, map tools, and conditional controls, but it must produce exactly
-the grammar below.
+Only Orders v2 is current. There is no compatibility parser or desugaring path
+for doctrines, custody policies, modes, rungs, cohorts, focus scopes,
+formations, engagements, patrol verbs, or authored hashes. Historical source
+and frozen artifacts remain evidence, not valid editor input.
 
 ## 1. One sheet, two documents
 
-A sheet consists of:
+A sheet is exactly:
 
-- a playbook with schema `arc-relay-tactical-playbook-v1`; and
-- a layout with schema `arc-relay-tactical-layout-v1`.
+- an Orders document with schema `arc-relay-orders-v2`; and
+- a map-plan document with schema `arc-relay-map-plan-v2`.
 
-The playbook says who the eight bodies are and gives every role one ordered
-ladder. The layout holds all authored geography. The playbook's `layout.path`
-locates the file in a file workflow and `layout.sha256` pins the layout's exact
-UTF-8 bytes. Hosted compilation receives the same pair in memory and verifies
-the same hash.
+The Orders document says which eight class bodies exist and what each role
+tries in priority order. The map plan names the zones, routes, and anchors those
+orders reference. Both documents are authored from west's perspective; the
+executor rotates the map plan 180 degrees for east.
 
 The shared compiler is
-`BotArena.TacticalPlaybooks.ArcRelayTacticalPlaybookCompiler`. Both the CLI and
-the App call it. It validates the authored documents, property-canonicalizes
-them without reordering arrays, and links them into one bounded `ATL1` direct
-ladder payload. There is no expanded intermediate playbook.
+`BotArena.TacticalPlaybooks.ArcRelayTacticalPlaybookCompiler`. The CLI and App
+call that same compiler. It validates both documents and emits one bounded
+`ATL2` package that the mind executes directly. The package contains the
+authored order tree; it contains no legacy intermediate representation. It may
+not exceed 65,536 bytes.
 
 Compile a file-backed sheet with:
 
 ```sh
 nilbots experiment arc-relay-playbook \
-  --playbook path/to/playbook.json \
-  --out out/arc-relay-playbook
+  --playbook path/to/orders.json \
+  --out out/arc-relay-sheet
 ```
 
-The output file is still named `playbook.atp` for command compatibility, but
-its envelope is `ATL1`. `normalized-playbook.json` and
-`normalized-layout.json` are canonical versions of the authored documents;
-`explain.json` lists the authored rungs as `role[position]/verb` rather than
-inventing order ids. The linked payload may not exceed 65,536 bytes.
+The command accepts `--playbook` as a historical CLI spelling, but the input is
+an Orders v2 document. It writes the normalized source pair, `playbook.atp`
+(the ATL2 package), and an explain view whose paths use authored role and order
+names.
 
-## 2. Playbook root
+## 2. Exact roots
 
-The root has exactly these ten keys:
-
-```text
-schema
-playbookId
-auditStatus
-composition
-layout
-memory
-roles
-custodyPolicies
-doctrines
-conditions
-```
-
-Unknown or missing keys are errors. A minimal shape is:
+The Orders root has exactly seven keys:
 
 ```json
 {
-  "schema": "arc-relay-tactical-playbook-v1",
-  "playbookId": "example-v1",
-  "auditStatus": {
-    "provisionalEvaluationOnly": true,
-    "playerFacingProductSchema": false
-  },
-  "composition": [
-    "relay", "relay", "switchback", "switchback",
-    "towline", "towline", "lantern", "patchbay"
-  ],
-  "layout": {
-    "path": "../layouts/example-v1.json",
-    "sha256": "<64 lowercase hex characters>"
-  },
-  "memory": {
-    "enemyUnavailableTicks": 21,
-    "lastSeenEnemyTicks": 30,
-    "securedCoreTicks": 40,
-    "objectiveProgressTicks": 90
-  },
+  "schema": "arc-relay-orders-v2",
+  "sheetId": "starter-tapline-v2",
+  "mapPlan": "../map-plans/starter-tapline-v2.json",
   "roles": [],
-  "custodyPolicies": [],
-  "doctrines": {
-    "roles": {},
-    "cohorts": {},
-    "focus": {}
-  },
+  "sharedOrders": {},
+  "capacities": {},
   "conditions": {}
 }
 ```
 
-Identifiers are 1–64 lowercase ASCII letters, digits, or hyphens.
-`playbookId` is an identifier. The four memory windows are required integers
-in `1..600`; they tune remembered enemy unavailability, last-seen enemies,
-secured Cores, and absence of objective progress.
+The map-plan root has exactly six keys:
 
-### Composition
+```json
+{
+  "schema": "arc-relay-map-plan-v2",
+  "mapPlanId": "starter-tapline-v2",
+  "mapId": "arc-relay-tapline-01",
+  "zones": {},
+  "routes": {},
+  "anchors": {}
+}
+```
 
-`composition` is exactly eight class ids, with at most two copies of a class.
-The launch ids are:
+Unknown or missing keys are errors. Identifiers are lowercase kebab-case,
+unique in their scope, and at most 48 characters (role ids at most 24). Every
+declared condition and every map object needs a consumer. A shared order or
+named capacity needs at least two expanded consumers; otherwise inline it.
+Empty libraries are legal.
+
+Hashes, bindings, perspective, memory windows, allocation policies, and a
+separate composition list are not authored. The compiler derives composition,
+normalizes the pair, and computes identity.
+
+## 3. Roles cast the eight bodies
+
+`roles` is an ordered list of one to eight entries:
+
+```json
+{
+  "id": "runner",
+  "classes": ["relay", "switchback"],
+  "upgradePath": ["reach", "vision", "vitality"],
+  "orders": []
+}
+```
+
+Flattening every `classes` list in source order assigns unit ids 0–7. The
+flattened list must contain exactly eight launch classes, with at most two
+copies of any class. A body keeps its role across death and respawn. There is
+no candidate pool, allocator, vacancy, promotion, overflow, or reassignment.
+
+`upgradePath` contains one to four values from `damage`, `vision`, `reach`, and
+`vitality`. A body invests along the list and repeats the final entry once the
+list is exhausted. Bodies may share a role only when their complete order tree
+and upgrade path are the same.
+
+The launch class ids are:
 
 ```text
 kestrel  palisade  towline  patchbay  lantern  mortar  minesmith  hush
 relay    switchback  longshot  mason  sunder  repulsor  veil  nest
 ```
 
-The hosted App additionally checks that every selected class is unlocked for
-the account.
+The hosted App additionally validates class unlocks.
 
-## 3. Roles
+## 4. One nested priority tree
 
-`roles` contains `1..16` entries. A role is an assignment, not a class: it
-states which chassis may fill a job and how many bodies should fill it.
+`orders` is a priority list. The executor walks it top to bottom and the first
+executable leaf wins. An entry is one of:
+
+- an inline branch with child `orders`;
+- an inline leaf with one action; or
+- `{ "shared": "name" }`, an exact shared-order reference.
+
+Example:
 
 ```json
 {
-  "roleId": "runner",
-  "candidateClasses": ["switchback", "relay"],
-  "minimum": 1,
-  "preferred": 2,
-  "maximum": 2,
-  "carrierPreference": "prefer",
-  "deathPolicy": "hold-vacancy",
-  "respawnPolicy": "rejoin",
-  "overflowRoleId": "reserve",
-  "build": ["damage", "vitality", "reach", "vision"]
-}
-```
-
-| field | contract |
-| --- | --- |
-| `roleId` | unique role identifier |
-| `candidateClasses` | `1..16` unique launch class ids; earlier entries are preferred when several bodies qualify |
-| `minimum`, `preferred`, `maximum` | integers `0..8`, with `minimum <= preferred <= maximum` |
-| `carrierPreference` | `forbid`, `allow`, `prefer`, or `require` |
-| `deathPolicy` | `hold-vacancy`, `promote-best`, or `rebalance` |
-| `respawnPolicy` | `resume`, `rejoin`, `rally`, or `replace` |
-| `overflowRoleId` | empty string or a declared role id |
-| `build` | optional ordered `1..8` entries from `damage`, `vision`, `reach`, `vitality`; duplicates are meaningful |
-
-Across all roles, the minimum sum must be at most eight, the preferred sum at
-most eight, and the maximum sum at least eight. Every class in the composition
-must be eligible for at least one role, and a role's minimum must be satisfiable
-by the composition.
-
-Allocation is deterministic. Eligible surviving bodies keep a stable role
-unless that role asks to rebalance. The allocator fills role minima, then
-preferences, in authored role order; candidate-class order, health, and stable
-unit id break selection ties. `hold-vacancy` reserves a dead body's stable
-slot, `promote-best` permits an eligible replacement, and `rebalance` permits
-live reassignment. Remaining bodies first use their prior role's
-`overflowRoleId` when legal, then the least-filled eligible role. `replace`
-does not reserve the returning body's old assignment.
-
-`carrierPreference` guides custody selection. A `forbid` role may not contain
-a `fetch` rung. A `require` role must contain at least one.
-
-## 4. Doctrines and ordered ladders
-
-`doctrines` has exactly three objects:
-
-```json
-"doctrines": {
-  "roles": { "runner": { "custody": "farm", "modes": [] } },
-  "cohorts": {},
-  "focus": {}
-}
-```
-
-`doctrines.roles` must have exactly one entry keyed by each declared role id.
-A role doctrine requires `custody` and `modes`, and may contain `fight`,
-`repair`, `conceal`, and `scavenge`:
-
-```json
-"runner": {
-  "custody": "farm",
-  "conceal": false,
-  "scavenge": ["north-farm", "midfield"],
-  "fight": { "targets": { "prefer": ["carrier", "weakest"] } },
-  "modes": [
-    { "fetch": "farm" },
+  "id": "carry-core-home",
+  "when": "carrying-core",
+  "until": "empty-handed",
+  "timeout": 160,
+  "cooldown": 8,
+  "orders": [
     {
-      "patrol": "north-well-loop",
-      "while": "north-soon",
-      "until": "north-far",
-      "cohort": "well-runners",
-      "posture": "core",
-      "focus": "well"
+      "id": "pass-forward",
+      "when": "safe-pass-exists",
+      "handoff": { "target": "nearest-ally-toward-own-reactor" }
     },
     {
-      "patrol": "farm-loop",
-      "posture": "core",
-      "focus": { "maximumAttackers": 2 }
+      "id": "return-home",
+      "move": { "to": "own-reactor", "via": "safe-home-run" }
     }
   ]
 }
 ```
 
-`custody` is this role's default carrying policy. `conceal` defaults to `true`;
-`false` makes an open fighter rather than an ambush-seeking one. `scavenge` is
-one zone id or `1..16` unique zone ids in which a nearby visible loose Core may
-interrupt ordinary movement. `fight` supplies role defaults; a rung's `fight`
-overrides it key by key. `repair` makes bodies in this role repair providers.
+Branches and leaves may use `when`, `until`, `timeout`, and `cooldown`. Only a
+leaf may use `capacity`. A leaf has exactly one of `move`, `fight`, `use`,
+`handoff`, or `drop`. Two branch levels plus a leaf is the maximum depth.
 
-### 4.1 Ladder selection and latching
+`sharedOrders` maps a name to a complete branch or leaf. The map key is its id,
+so the definition does not repeat `id`. Reuse is exact: no parameters,
+overrides, inheritance, aliases, or shared-to-shared references. Each expanded
+copy has independent per-body lifecycle state and occupies the reference's
+priority position.
 
-`modes` has `1..8` rungs. Position is priority: index 0 is strongest. On every
-tick, each body evaluates its own role's ladder and takes its highest active
-rung, subject only to cohort admission.
-
-`while` opens a rung. Once opened, the rung stays latched for that exact body
-life until its `until` expression becomes true; a later-false `while` does not
-close it. A stronger active rung may temporarily hide it without resetting it.
-Death creates a new life and clears the latch. A conditioned rung without
-`until` therefore remains active for that life and normally shadows weaker
-rungs once triggered.
-
-The last rung must be an unconditioned `patrol` floor. Every rung above it
-needs `while`, except `recover` and `fetch`, whose availability is implicit.
-
-### 4.2 Six verbs
-
-Every rung has exactly one verb.
-
-| verb | value | required alongside it | optional alongside it |
-| --- | --- | --- | --- |
-| `patrol` | route destination, or `{ "route": id }` / `{ "zone": id }` | `focus`; `while` above the floor | `until`, `fight`, `posture`, `cohort` |
-| `intercept` | `enemy-carriers` or `inbound` | anchor `from`, `focus`, `while` | `until`, `fight` |
-| `assault` | route/zone destination | `focus`, `while` | `until`, `fight`, `posture`, `cohort` |
-| `recover` | exactly `auto` | `focus` | `fight` |
-| `fetch` | custody-policy id | nothing else | nothing else |
-| `follow` | another role id | `posture` (`trail` or `screen`), `focus`, `while` | `until`, `fight` |
-
-A plain patrol/assault string names a route. The object form names exactly one
-route or zone. A route literally named `traffic` selects the executor's enemy-
-traffic shadowing movement and must still exist in the layout.
-
-`recover` is active only while that body needs and can use recovery. One
-activation is a 24-tick attempt at one latched beacon. Healing to full ends it;
-an unsafe beacon, a timeout, or actual movement away from that beacon ends the
-attempt and starts a 24-tick cooldown for that same injury. A fresh health loss
-is a new trigger and bypasses the remaining cooldown. These are fixed executor
-semantics, not authored timing fields: ladder position still decides whether
-recovery outranks the body's other eligible modes.
-
-`fetch` is a movement-only overlay: when an eligible loose Core exists, a fetch rung may
-pre-empt the selected ordinary rung only if it appears earlier in the list.
-The ordinary rung's fight and facing behavior remain in force during the fetch.
-
-`follow` belongs entirely to the follower. It names a role, never a particular
-unit and never a caller-owned operation. The body follows the nearest live body
-of that role by Chebyshev distance; stable unit id breaks a tie. The rung becomes
-ineligible if no such leader exists. `trail` follows behind the leader's current
-motion/facing. `screen` places the follower between the leader and its nearest
-known threat, falling back to trail when no usable threat line exists.
-
-Patrol/assault `posture` is a compact per-rung spacing cue:
-
-- `front`: two canonical tiles ahead of the destination spine;
-- `core`: on the spine; and
-- `rear`: two canonical tiles behind it.
-
-Peers sharing a posture and destination spread alternately across the spine by
-stable unit id. The offset applies on the route's final approach, not while
-marching between earlier waypoints.
-
-### 4.3 Cohorts: one shared count
-
-A cohort coordinates adaptive participation without owning behavior:
-
-```json
-"cohorts": {
-  "well-runners": { "take": 3, "select": "nearest" }
-}
-```
-
-A shared cohort must be referenced by at least two rungs on different roles;
-one role may reference it at most once. Every consumer must be a non-floor
-patrol/assault rung, have a posture, and name the same route or zone. Membership
-is derived—there is no role list.
-
-On each tick, bodies whose current highest eligible rung names the cohort form
-the pool. They are ordered by Chebyshev distance to the side-bound destination
-(nearest route waypoint or nearest tile of a zone), then stable unit id. The
-first `take` bodies run their own rungs; rejected bodies continue down their own
-ladders. Membership is recalculated each tick and has no lease, timeout, state,
-or hidden cooldown.
-
-A one-rung cohort is inline instead of named:
-
-```json
-"cohort": { "take": 2, "select": "nearest" }
-```
-
-Both shared and inline `take` are `1..8`; `select` is exactly `nearest`.
-
-### 4.4 Focus: one shared attacker cap
-
-A focus scope shares only a maximum-attacker count:
-
-```json
-"focus": {
-  "well": { "maximumAttackers": 3 }
-}
-```
-
-A shared focus name needs at least two rung consumers. A one-rung cap is
-inline: `{ "maximumAttackers": 1 }`. The value is `1..8`. Every non-fetch
-rung must choose a shared or inline focus.
-
-The cap is applied per enemy target across its consumers. It does not share a
-target lock, target preferences, fight policy, order, or lifecycle. Bodies with
-the same global preference list naturally converge on facts such as `carrier`
-or `weakest`; focus only limits how many may be allocated.
-
-## 5. Fight and repair
-
-Every fight field is optional. A rung-level block overrides the doctrine block
-one leaf at a time.
-
-| field | legal value |
-| --- | --- |
-| `collect` | `yield` or `first` |
-| `heal` | `yield` or `first` |
-| `targets.lone` | `0..8` |
-| `targets.prefer` | `1..6` unique values from `carrier`, `weakest`, `anchor`, `closest`, `strongest-threat`, `freshest` |
-| `engage.within` | `0..12` |
-| `engage.killableTicks` | `0..60` |
-| `engage.from` | exactly `behind` |
-| `engage.positionTicks` | `1..64` |
-| `engage.else` | `strike` or `breakOff` |
-| `chase.leash` | `0..16` |
-| `chase.onlyCatchable` | boolean |
-| `chase.executeBelowHealth` | `0..8` |
-| `chase.persistTicks` | `1..120` |
-| `breakOff.threats` | `0..8` |
-| `breakOff.within` | `2..16` |
-| `breakOff.memoryTicks` | `1..120` |
-| `breakOff.recoverTicks` | `4..120` |
-| `breakOff.health` | `0..8` |
-| `defense.radius` | `0..16` |
-| `defense.return` | boolean |
-
-Positive `breakOff.threats` requires both `within` and `memoryTicks`.
-Executor defaults are: target `carrier, weakest`; collect/heal `yield`; no
-isolation, hold-fire, commit, chase, or break-off gate; engage fallback
-`strike`; position budget 16; defense radius 2 with return enabled; break-off
-recovery 24 ticks.
-
-A repair provider declares exactly:
-
-```json
-"repair": {
-  "prefer": ["carrier", "weakest", "any"],
-  "maximumProvidersPerTarget": 1,
-  "minimumProviderSeparation": 2,
-  "reserveHealthPercent": 30,
-  "survivalFallback": "evade"
-}
-```
-
-`prefer` is `1..6` unique values from `weakest`, `carrier`, `medic`, `focus`,
-`anchor`, `any`; the two numeric provider fields are `1..8` and `0..8`,
-reserve health is `0..100`, and fallback is `evade`, `regroup`, `hold`, or
-`self-defense`.
-
-## 6. Conditions
-
-`conditions` maps a name to one typed comparison:
-
-```json
-"north-soon": {
-  "fact": "well-ticks-until-birth",
-  "subject": "north",
-  "operator": "at-most",
-  "value": 20
-}
-```
-
-Required fields are `fact`, `operator`, and a 32-bit integer `value`.
-Operators are `at-least`, `at-most`, `equals`, `less-than`, and
-`greater-than`. `subject`, `zone`, and `freshnessTicks` are legal only where
-the fact table requires them.
-
-A condition expression is a string:
-
-```text
-north-soon and enemy-thin or core-loose
-```
-
-`and` binds tighter than `or`. There are no parentheses or negation. `always`
-and `no-live-friendlies` are built-in expression names and may not be declared.
-Every declared condition must be referenced at least once.
-
-| fact family | facts and required qualifiers |
-| --- | --- |
-| body-local | `self-health`, `self-level`, `self-carrying`, `self-stuck-ticks`, `self-mode-ticks`; no subject/zone |
-| role | `live-count`, `joining-count`, `cohesion`, `stuck-ticks`, `role-live-count`, `role-health`; required role `subject` |
-| role + zone | `in-zone-count`; required role `subject` and `zone` |
-| optional role | `max-level`, `recover-ready-bodies`; optional role `subject` |
-| zone | `friendlies-in-zone-count`, `visible-enemies-in-zone`, `remembered-enemies-in-zone`, `visible-loose-cores-in-zone`, `visible-loose-core-value-in-zone`; required `zone` |
-| Well | `well-has-outstanding`, `own-socket-filled`, `enemy-socket-filled`, `well-ticks-until-birth`; `subject` is `north`, `centre`, `south`, or team-relative `own` / `enemy` |
-| team/global | `always`, `tick`, `phase-state-ticks`, `live-friendlies`, `known-enemies-unavailable`, `visible-enemy-carriers`, `known-enemy-carriers`, `friendly-carriers`, `secured-cores`, `visible-loose-cores`, `visible-loose-core-value`, `outstanding-well-count`, `ticks-without-objective-progress`, `reactor-integrity`, `reactor-charge`, `custody-state-ticks`, `own-filled-sockets`, `enemy-filled-sockets` |
-
-Only `remembered-enemies-in-zone` and `secured-cores` accept
-`freshnessTicks` (`1..600`).
-
-Self facts refer to the exact body/life evaluating a rung and are legal only in
-mode `while`/`until`. `self-mode-ticks` is time since that rung latched. Team,
-custody, and bait conditions may not use self facts. `role-health` means the
-lowest health among live bodies in that role and reads as 9999 when none live,
-so a dead role does not look injured.
-
-## 7. Custody policies
-
-`custodyPolicies` contains `1..16` policies. Required fields are:
-
-```json
-{
-  "custodyId": "farm",
-  "sourceWells": ["north", "centre", "south"],
-  "pickupReservationTicks": 8,
-  "transferTimeoutTicks": 8,
-  "deliveryTimeoutTicks": 120,
-  "accidentalPickup": "deliver",
-  "dropRecovery": "nearest-authorized",
-  "unreachableFallback": "guard",
-  "safeConversion": "always"
-}
-```
+### Lifecycle
 
 | field | contract |
 | --- | --- |
-| `sourceWells` | `1..3` unique values from `north`, `centre`, `south` |
-| `pickupReservationTicks` | `1..120` |
-| `transferTimeoutTicks` | `1..120` |
-| `deliveryTimeoutTicks` | `1..1200` |
-| `accidentalPickup` | `transfer`, `deliver`, or `drop-safe` |
-| `dropRecovery` | `same-carrier`, `nearest-authorized`, or `guard-until-safe` |
-| `pickupSelection` | optional `carrier-preference` (default) or `nearest-authorized`; selects the primary allocation key for ordinary Well pickups |
-| `unreachableFallback` | `hold`, `guard`, `alternate-core`, or `regroup` |
-| `safeConversion` | condition expression without self facts |
+| `when` | permits entry; absent means `always` |
+| `until` | once entered, latches the node until this becomes true |
+| `timeout` | active wall-clock ticks, `1..1200` |
+| `cooldown` | ticks before this same node may enter again, `0..1200` |
 
-There is no carrier roster in a custody policy. Roles declare eligibility and
-priority by placing `{ "fetch": "farm" }` in their own ladders. Each policy
-must have at least one fetch consumer; a role may reference a policy only once.
-The policy that reserved a Core remains attached throughout pickup, carrying,
-handoff, delivery, and recovery.
+- Without `until`, `when` remains the node's ongoing eligibility.
+- With `until`, `when` gates entry and `until` owns exit.
+- Timeout, successful one-shot action, death, or ancestor exit ends the node.
+  Cooldown starts on exit.
+- Higher-priority work may pre-empt an active node without resetting it; its
+  timeout continues and it may resume.
+- `move`, `fight`, and branches are ongoing. A `move.to` holds at its resolved
+  destination until lifecycle exit. `use`, `handoff`, and `drop` complete only
+  when the engine accepts the action.
+- A leaf with no legal target is skipped for that tick. The executor never
+  invents a different action or hidden travel.
+- If no leaf is executable, the body waits with `no-eligible-order` evidence.
 
-Optional surface:
+Traces use authored paths, for example
+`orders:runner:carry-core-home>return-home:move:...`. Generated rung or order
+ids never appear on product surfaces.
 
-- `pickupSelection`: `carrier-preference` (default) assigns eligible bodies by
-  role preference and then distance; `nearest-authorized` assigns by distance
-  and then preference. Stable unit id breaks the final tie in both cases.
-- `deliveryRoutes`: `1..8` `{ "zone", "route" }` rules. The Core's pickup
-  zone chooses the side-bound delivery route.
-- `forwardPass`: `none` or `relay-catcher`.
-- `baitDrop`: `{ "zone", "reclaim" }`, with a non-self reclaim expression.
-- emergency recovery: an all-or-nothing six-field bundle of
-  `emergencyRecoveryZones` (`1..8` zones), `emergencyPickupRadius` (`1..4`),
-  `emergencyRecovery` (non-self expression), `emergencyRecoveryRoles`
-  (`1..8` roles), `emergencyRecoverySourceWells` (`1..3` Wells), and
-  `emergencyRecoveryDisposition` (`deliver` or `displace`). `displace` also
-  requires `emergencyDisplacementTarget` (anchor) and
-  `emergencyDisplacementReleaseRadius` (`0..4`); `deliver` forbids them.
+## 5. Conditions
 
-## 8. Layout contract
-
-The layout has exactly:
-
-```text
-schema  layoutId  mapId  bindings  zones  routes  anchors
-```
-
-Current hosted v19 accepts the native Tapline map only:
-`arc-relay-tapline-01` (31×27). Coordinates are absolute canonical map
-tiles. The same authored geometry serves both teams through side bindings.
+Conditions are named once:
 
 ```json
-{
-  "schema": "arc-relay-tactical-layout-v1",
-  "layoutId": "example-tapline-v1",
-  "mapId": "arc-relay-tapline-01",
-  "bindings": [
-    {
-      "matchContractFingerprint": "any-composition",
-      "ownReactorSide": "west",
-      "transform": "identity",
-      "routeAliases": {}
-    },
-    {
-      "matchContractFingerprint": "any-composition",
-      "ownReactorSide": "east",
-      "transform": "rotate-180",
-      "routeAliases": {}
-    }
-  ],
-  "zones": [{ "zoneId": "midfield", "rect": [10, 8, 20, 18] }],
-  "routes": [{
-    "routeId": "farm-loop",
-    "corridorWidth": 2,
-    "waypoints": [[4, 13], [15, 13], [4, 13]]
-  }],
-  "anchors": [{ "anchorId": "home", "position": [3, 13] }]
+"hurt": {
+  "fact": "self-health-percent",
+  "operator": "at-most",
+  "value": 35
 }
 ```
 
-Validation:
+Operators are `at-least`, `at-most`, `equals`, `less-than`, and
+`greater-than`. An order's `when` or `until` is a condition name or one flat
+combination:
 
-- `bindings`: `2..16`, unique by fingerprint + side, and at least one west
-  and one east. A fingerprint is `any-composition` or a lowercase SHA-256.
-  Transform is `identity`, `mirror-x`, or `rotate-180`.
-  `routeAliases` has at most 32 string entries and both sides of every alias
-  must name declared routes. The obsolete optional `formationAliases` is
-  accepted only as an empty object; new editors omit it.
-- `zones`: `1..64`; `rect` is inclusive `[x0,y0,x1,y1]`, ordered, with each
-  coordinate in `0..255`.
-- `routes`: `1..64`; `1..128` waypoints, each `[x,y]` in `0..255`, and
-  `corridorWidth` in `0..8`. The corridor is the executor's bounded local
-  reflow allowance around the authored spine; it is not a waypoint-arrival
-  radius. Waypoints state travel direction rather than compulsory standing
-  tiles: traversal keeps one deterministic terrain course, consumes a point
-  only after measured approach, and may continue to a later point when the
-  current point is unreachable or persistently makes no progress.
-- `anchors`: `1..64`; each position is `[x,y]` in `0..255`.
+```json
+{ "all": ["hurt", "heal-zone-known"] }
+{ "any": ["carrier-visible", "reactor-threatened"] }
+```
 
-At runtime an exact match-contract binding wins; `any-composition` is the
-fallback for that reactor side. Geometry is never projected between maps.
-The editor draws Tapline from `/api/sheets/catalog`; replay headers expose
-the same `header.contract.map` (`width`, `height`, tile rows, regions, spawn
-anchors, and tile tags). Routes, zones, anchors, pickup geography, and
-delivery geography are plotted and dragged on that map, never entered as raw
-coordinate text in the primary UI.
+`all` and `any` contain two to eight unique declared names and do not nest.
+`always` is the sole built-in name and cannot be declared.
 
-## 9. Frontend and hosted integration
+The finite fact catalog is:
 
-The product loop is edit → practice → watch → edit.
+| scope | facts |
+| --- | --- |
+| body | `self-health-percent`, `self-level`, `self-carrying`, `self-stuck-ticks`, `self-order-ticks`, `self-in-zone`, `signature-ready` |
+| role | `role-live-count`, `role-lowest-health-percent`, `role-in-zone-count` |
+| team | `live-friendlies`, `friendly-carriers`, `known-enemy-carriers`, `visible-enemy-carriers`, `known-loose-cores`, `visible-loose-cores`, `secured-cores`, `reactor-integrity`, `reactor-charge`, `ticks-without-objective-progress` |
+| zone | `friendlies-in-zone`, `visible-enemies-in-zone`, `remembered-enemies-in-zone`, `known-loose-cores-in-zone` |
+| Well | `well-has-outstanding-core`, `well-ticks-until-birth`, `well-socket-filled` |
 
-- `GET /api/sheets/catalog` supplies the current map export, class catalog,
+Role facts require `role`; zone facts require `zone`; Well facts require
+`well` (`north`, `centre`, `south`, `own`, or `enemy`).
+`known-enemy-carriers` and `remembered-enemies-in-zone` require
+`freshnessTicks` in `1..600`. Qualifiers on other facts are errors. Health
+percent comparisons are `0..100`; boolean facts compare with `0` or `1`.
+
+Known loose Cores use the team's objective ledger. A Core remains known until
+a visible pickup, handoff, bank, drop, or new position updates it; leaving
+vision alone does not erase the fact.
+
+## 6. Five actions
+
+### `move`
+
+`move` has exactly one motion kind:
+
+```json
+{ "move": { "to": "nearest-known-loose-core", "via": "north-ingress", "posture": "front" } }
+{ "move": { "patrol": "north-loop", "posture": "line" } }
+{ "move": { "follow": "runner", "posture": "rear" } }
+```
+
+`to` accepts:
+
+- `own-reactor`, `nearest-heal-zone`, or `nearest-known-loose-core`;
+- `{ "zone": "id" }`;
+- `{ "anchor": "id" }`; or
+- `{ "well": "north|centre|south|own|enemy" }`.
+
+`patrol` repeats a route. `follow` tracks the nearest live body of the named
+role by terrain path distance, then unit id. `via` is an optional one-time
+ingress route for `to` or `patrol`; follow cannot use it. Combat pre-emption
+does not restart ingress. Exit, death, or an impossible route does.
+
+Optional posture is `front`, `line`, or `rear`. It is individual pre-combat
+positioning relative to the destination, not a formation or combat behavior.
+
+Routes guide intent. Reaching the destination outranks blindly visiting every
+waypoint. Route hysteresis, traffic detours, legal corners, and collision
+avoidance are deterministic executor/engine micro.
+
+Walking onto a legal loose Core picks it up. Walking a carried Core into the
+owner's reactor banks it. Those are physical rules, not hidden action verbs.
+
+### `fight`
+
+```json
+{
+  "fight": {
+    "targets": ["carrier", "weakest", "nearest"],
+    "style": "advance",
+    "chaseLimit": 5
+  }
+}
+```
+
+`targets` contains one to five unique values from `carrier`, `weakest`,
+`nearest`, `medic`, and `marked`. `style` is `advance`, `hold`, or `kite`.
+`chaseLimit` is `0..12` tiles from the body's position when the fight node
+entered; zero means fight in place.
+
+There is no hidden engage or disengage condition. Lifecycle fields own entry
+and exit. An unresolved target falls through to the next order. Fighting while
+carrying never implicitly drops the Core.
+
+### `use`
+
+```json
+{ "use": { "skill": "repair-beam", "target": "weakest-ally" } }
+```
+
+At least one class in the role must own the named skill. A mixed-class role may
+state one `use` order per represented skill: only a body that owns the skill can
+take that leaf, while the other bodies continue down their same role ladder.
+Targets are `self`, `own-reactor`, `nearest-enemy`, `weakest-enemy`,
+`enemy-carrier`, `nearest-ally`, `weakest-ally`, `healthiest-ally`, or
+`nearest-ally-toward-own-reactor`; the compiler restricts them further for the
+skill's argument kind. Use never implies travel or an unseen target search.
+For `arc-toss`, the toward-home selector resolves only an empty-handed ally on
+an exact legal landing tile, so the authored pass cannot silently become a
+blind Core drop.
+
+Geographic intent stays compositional rather than hidden inside `use`:
+`self-in-zone` can guard a skill leaf, while a lower-priority `move` leaf in the
+same parent play gets the body into that authored zone. If the skill is not
+currently legal, the skill leaf has no target and ordinary priority falls
+through to movement.
+
+### `handoff`
+
+```json
+{ "handoff": { "target": "nearest-ally-toward-own-reactor" } }
+```
+
+Targets are `nearest-ally-toward-own-reactor`,
+`nearest-empty-handed-ally`, or `{ "role": "id" }`. Resolution uses terrain
+path distance, then unit id. The receiver must be alive, empty-handed,
+adjacent, and eligible to reclaim that Core. Handoff moves neither body and
+does not require a matching receiver order.
+
+### `drop`
+
+```json
+{ "drop": true }
+```
+
+Drop chooses the legal adjacent tile with shortest terrain distance toward the
+owner's reactor, then canonical coordinate tie-break. It never drops beneath
+the carrier. If no adjacent tile is legal, the action declines.
+
+## 7. Universal target capacity
+
+A leaf may use an inline integer or shared name:
+
+```json
+"capacities": { "two-per-core": 2 }
+
+{
+  "id": "collect",
+  "capacity": "two-per-core",
+  "move": { "to": "nearest-known-loose-core" }
+}
+```
+
+Capacity means: at most N bodies may concurrently claim the same resolved
+target through leaves sharing this capacity. N is `1..8`.
+
+The target is the resolved Core, enemy, ally, followed body, Well, zone,
+anchor, route, placement tile, or carried Core. Eligible bodies resolve target
+candidates first; terrain path distance and then unit id choose winners. A
+loser tries its next target and then its next order. Claims recompute every
+tick and are not reservations.
+
+An inline capacity is scoped to that expanded leaf identity. A named capacity
+spans every consuming leaf. Capacity has one job only: participation count. It
+has no selectors, lifecycle, behavior, or per-role overrides.
+
+## 8. Map plan
+
+Geometry is keyed by id:
+
+```json
+{
+  "zones": {
+    "midfield": { "rect": [9, 8, 21, 18] }
+  },
+  "routes": {
+    "north-loop": {
+      "waypoints": [[7, 9], [12, 9], [12, 5], [7, 5]]
+    }
+  },
+  "anchors": {
+    "home-gate": [7, 9]
+  }
+}
+```
+
+Rectangles are inclusive and normalized. Routes contain 2–32 waypoints.
+Zones, routes, and anchors each allow at most 64 entries. Duplicate geometry
+under different names is an error. Every map object must be referenced from
+the Orders document.
+
+The current hosted map is Tapline: `arc-relay-tapline-01`, 31×27. Runtime
+binding validates bounds and traversable terrain against the engine-generated
+map. Geometry is never projected between maps.
+
+The workshop draws the exact map export from `GET /api/sheets/catalog`,
+including walls, Wells, heal tiles, delivery shoulders, reactor pads, and
+spawns. Routes, zones, and anchors are plotted and dragged on that map; raw
+coordinates are only an import/export detail. The west/east preview shows the
+exact 180-degree binding.
+
+## 9. Core reclaim invariant
+
+After a voluntary `drop`, `handoff`, or Arc Toss, the source body cannot pick
+up that same Core until the existing rules-owned relocation interval expires.
+The key is body life plus Core id.
+
+- Allies and enemies may collect it immediately.
+- Death clears the source body's block.
+- A blocked receiver is not a legal handoff target.
+- Automatic pickup checks the block before attaching the Core.
+- A decline emits `core-reclaim-cooldown` evidence.
+
+This is a game-contract invariant that prevents physical ping-pong. It is not
+configurable sheet micro. An author may still put a longer tactical cooldown
+on an order.
+
+## 10. Workshop and hosted loop
+
+The product loop is **change → practice → watch → change**.
+
+- `GET /api/sheets/catalog` supplies the Tapline map, class/signature catalog,
   unlocks, starter pair, and stock opponents.
-- `GET/POST/PUT/DELETE /api/sheets` is owner-scoped persistence. The App stores
-  exact playbook/layout JSON, validates every save through the shared compiler,
-  and uses optimistic revisions. Server limits are 192 KiB playbook source and
-  96 KiB layout source, in addition to the 64 KiB linked limit.
-- `POST /api/sheets/{id}/trial` runs the saved draft against a stock opponent
-  and returns a replay-viewer target. Compile errors retain JSON paths and must
-  be attached to the corresponding visual control.
-- Creating or updating a sheet fields its entrant in the current ladder by
-  default, subject to the account cap; opting out is explicit.
+- `GET/POST/PUT/DELETE /api/sheets` persists owner-scoped source pairs and
+  optimistic revisions. Every save compiles on the server through the shared
+  compiler. The stored source-size ceilings are 192 KiB for Orders and 96 KiB
+  for the map plan.
+- `POST /api/sheets/{id}/trial` runs the saved draft against a selected frozen
+  stock sheet and opens the replay viewer.
+- Saving fields a sheet in the current ladder by default, subject to the
+  account cap; opting out is deliberate.
 
-The browser autosaves the working draft locally before navigation or trial
-admission, so a failed compile, run, or phone-tab eviction cannot lose edits.
-Raw JSON import/export and SHA display are operator utilities, not primary
-player controls. The editor manipulates composition, assignments, ladders,
-conditions, custody, focus/cohorts, and map geometry through guided controls;
-the emitted documents remain the portable truth.
+The browser keeps a local draft before save, trial, or navigation, so compile
+failure, match failure, and phone-tab eviction do not erase work. Compiler
+diagnostics retain source paths and attach to the card, condition, capacity, or
+map object that caused them.
 
-## 10. Editor migration note
+The primary workshop is card-and-map based:
 
-The current compiler accepts only the ten-key direct grammar in this document.
-An editor based on the previous contract must remove controls and serializers
-for `perspective`, `groups`, `formations`, `engagements`, `coordination`,
-`authoring`, `supportPolicies`, `tempo`, `operations`, `staff`, `escort`,
-`muster`, and `squad`. Conditions are the top-level `conditions` object;
-coordination is role-local ladders plus the narrow `cohorts` count and `focus`
-cap; following is the follower's `follow` rung; fetching is the courier's
-`fetch` rung.
+- class/signature cards cast the eight bodies into exact roles;
+- each role shows a nested, draggable priority tree;
+- only the selected node and its ancestor chain are expanded;
+- map-referencing orders open beside the map;
+- conditions, capacities, and exact shared orders use reusable libraries;
+- one persistent Practice action opens setup rather than duplicating actions;
+- the last replay's actual tracks can overlay authored geometry;
+- all controls are reachable by keyboard and touch at 390 px without
+  hover-only behavior.
 
-`home-siege-v2.json` is retained only as byte-frozen historical evidence. Its
-source is intentionally not valid input to the current compiler or editor.
+Raw JSON import/export is an advanced utility. Authored hashes are not shown or
+edited. The workshop never exposes retired vocabulary.
+
+## 11. Runtime and determinism
+
+ATL2 contains the exact role/class/upgrade assignment, expanded order tree
+with source paths, compiled conditions, capacities, and normalized map
+geometry. The direct executor evaluates those bytes in both hosts.
+
+Every submitted action and every decline, capacity loss, target miss,
+lifecycle exit, wait, and automatic micro decision carries a non-empty reason.
+In-process and WASM must produce the same gameplay-state digest for identical
+ATL2, map, rules, and seed.
+
+Hosted entrant playlist v20 remains the latest promoted Orders v2/Tapline line.
+The body-local signature refinements in working source are reviewed in-process
+and do not alter that immutable playlist, its frozen stock artifact, or its
+rating book. Promotion is a separate owner gate; only then are current source,
+WASM, stock, and a new playlist version frozen together.
+
+## 12. Deliberately deferred
+
+Orders state tactical intent, not squad micro. A separate follow-up owns choke
+negotiation, intent-aware right-of-way, combat-space reservation, and richer
+coordinated path planning. Do not smuggle those policies into author-visible
+orders or add route-defense fields to compensate for executor behavior.

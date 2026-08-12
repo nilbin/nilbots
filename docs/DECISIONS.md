@@ -7831,3 +7831,97 @@ two perfectly aligned tails peak at -13.54 dBFS before the shared limiter.
 Pack-wide maxima remain 2.67% above 4 kHz, 0.03% above 12 kHz, -9.61 dBFS
 effective peak, and -26.07 dBFS effective RMS. Runtime manifest version 10 and
 CLI/tool package version 0.9.58 carry the replacement.
+
+## 293. New sheets start from a small native Tapline plan, not Hunter
+
+Owner-directed product ruling (2026-08-11). Hunter is a strategy reference, not
+a suitable blank canvas for a new player. The hosted sheet template is now a
+separate Tapline-native source pair with three readable assignments: two Core
+runners, a five-body midfield line, and one field medic. Its authored geography
+is exactly one zone, one route and one anchor, and every item has a consumer.
+The template uses each currently granted starter class once.
+
+The App no longer embeds or mutates Hunter to manufacture a starter
+composition. Hunter stays tracked and playable; frozen Wellwright stays the
+practice and hosted stock source. The six standard exhibit cells all completed,
+which establishes that the small plan acts coherently but is not a balance
+claim. Template and layout changes do not alter the DSL, compiler, executor,
+Tapline rules, playlist, rating book, canonical replay, or frozen artifacts.
+
+## 294. Arc Relay sheets are direct Orders v2 trees; hosted v20 starts fresh
+
+Owner-directed replacement (2026-08-12). The consolidated ATL1 language still
+split intent across role ladders, custody, fight defaults, cohort/focus tables,
+and action-specific verbs. It is retired as active authoring input rather than
+kept behind a compatibility parser. A current sheet is exactly a seven-key
+`arc-relay-orders-v2` document plus a six-key `arc-relay-map-plan-v2` document.
+Roles cast the eight exact class bodies and contain nested positional-priority
+orders. Exact shared orders, named condition comparisons, and one target-scoped
+capacity primitive are the only reuse/coordination vocabulary. Leaves expose
+only `move`, `fight`, `use`, `handoff`, and `drop`; lifecycle always uses
+`when`, `until`, `timeout`, and `cooldown`.
+
+The shared compiler emits ATL2 containing that exact tree, and the mind executes
+ATL2 directly. It does not construct doctrine, custody, mode, rung, engagement,
+formation, cohort, focus, or other legacy IR records. Composition and hashes are
+derived. The current workshop authors the same pair with class/signature cards,
+nested order cards, reusable condition/capacity/shared-order libraries, and a
+Tapline map plotter; raw JSON is an advanced utility rather than the product
+surface.
+
+Core pickup and reactor banking remain physical movement rules. Voluntary
+handoff, drop, and Arc Toss share a rules-owned per-life/per-Core reclaim block,
+so explicit release cannot immediately become implicit pickup. Movement micro,
+aiming, route traversal, and collision handling remain deterministic executor
+or engine responsibilities, not hidden action verbs.
+
+Hosted entrant playlist v20 pins Tapline, ATL2, `wellwright-tapline-v2`, and
+artifact
+`d9281f6abee1f5f5e3eeebbdc911dac091138199dea91feb7a8a0812d1549b88`.
+In-process and WASM produce gameplay-state digest
+`0aaccd6ed28a00ecfbc6d401915b0834b99c5ea9bb0116d7cedaf689f9cdc947`
+for the registered seed-9001 cell with Wellwright west and Hunter east.
+Playlist v19 remains
+immutable at fingerprint
+`b16b7d62bd0868371edd39b49fc3b6897ef49c44a033e5b91c46bd4a511463b1`.
+Because executable semantics, the stock sheet, and stock gameplay all change,
+v20 starts a fresh rating book; v19 ratings are not copied. CLI/package version
+0.9.59 carries the compiler, executor, editor-facing contract, and hosted lane;
+`publish-cli` owes a `cli-v0.9.59` tag before deployment.
+
+Tactical choke negotiation, intent-aware right-of-way, combat-space
+reservation, and richer coordinated path planning are explicitly deferred to a
+separate goal. Orders state intent; this replacement does not smuggle a squad
+planner into the authoring language.
+
+## 295. Signature orders are body-local; design review stays in-process
+
+Owner-directed refinement (2026-08-12). A role may cast several classes and may
+author the signature branches owned across that cast without splitting into one
+role per class. Applicability is body-local: a `use` leaf is eligible only for a
+body whose class owns the named skill; every other body falls through to the
+next authored priority. At least one class in the role must own the skill. The
+executor also rejects a semantically chosen but mechanically unusable skill
+target before selection, so an out-of-range or illegal proposal cannot hold the
+role at `use-unavailable` and starve its lower orders.
+
+Geography remains compositional rather than hidden in `use`: `self-in-zone` is
+a binary body-local condition fact, so an author says “use Mine at the northern
+choke” as a zone condition on the skill leaf and separately authors movement to
+that zone. No skill action secretly moves its body. `healthiest-ally` and
+`nearest-ally-toward-own-reactor` make explicit exchange and Arc Toss handoffs
+predictable; an Arc Toss catch must satisfy its exact landing constraint.
+
+The candidate Hunter and Wellwright sheets author explicit forward handoffs and exercise Arc
+Toss, Exchange, Hardlight Block, Rail Line, Repair Beam, Survey Flare, Tractor
+Hook, and Vector Dash. In the six-cell exhibit every named skill and handoff
+appeared, and no `use-unavailable` reason appeared. That exhibition is behavior
+evidence, not a balance read.
+
+This is deliberately not a hosted promotion. The review gallery compiles the
+current mind source in-process. Tracked WASM, its receipt, frozen stock,
+playlist v20, its rating book, and CLI compatibility version remain untouched.
+A later explicit promotion gate must build and verify WASM, decide rating
+continuity from the resulting stock-gameplay digest, mint immutable versions,
+and run the release-grade suites. Owner review or approval of a gameplay idea
+does not silently open that gate.

@@ -29,21 +29,29 @@ export default function DocsPage() {
 
       <Doc title="Tactical sheets">
         <p>
-          A sheet is two hash-pinned JSON documents: eight unlocked classes under the
-          two-copy cap, editable squad assignments, ordered command doctrines, named
-          conditions, custody policy and map-plotted routes, zones and anchors. Saving
-          compiles through the same shared
-          compiler as the CLI and fields the sheet in the current Season by default. A revision
-          preserves entrant identity and rating; <b>save as copy</b> starts a new entrant
-          and rating.
+          A sheet is an Orders document plus a Tapline map plan. Exact class bodies live
+          inside roles under the two-copy cap. Each role reads one nested priority list
+          made from five physical actions: move, fight, use a signature skill, handoff a
+          Core, or drop it. Named conditions control entry, exit, timeout and cooldown;
+          one capacity rule limits bodies claiming the same resolved target. Routes,
+          zones and anchors are plotted directly on the map. Saving compiles through the
+          same shared compiler as the CLI and fields the sheet in the current Season by
+          default. A revision preserves entrant identity and rating; <b>save as copy</b>
+          starts a new entrant and rating.
         </p>
         <p className="mt-2 text-arena-dim">
-          Hosted playlist v19 and the local <code>nilbots arc-relay</code> default
+          Core pickup and reactor banking happen when a body physically reaches the tile.
+          A voluntary handoff or drop prevents that same body from immediately reclaiming
+          that same Core. Path traversal, legal movement, aiming and collision avoidance
+          remain deterministic executor mechanics rather than repeated micro-orders.
+        </p>
+        <p className="mt-2 text-arena-dim">
+          Hosted playlist v20 and the local <code>nilbots arc-relay</code> default
           both run tapline-1 on Tapline. Sheets authored for earlier maps
-          remain readable history but must be replotted natively before admission to the
-          current Season; coordinates are never projected between maps. Season 1 is the
-          first public eight-week competition on v19: every entrant starts at 1200 with a
-          zero-match record. Earlier development ladders are not presented as Season history.
+          remain match history but are not accepted by the current Orders v2 workshop;
+          coordinates are never projected between maps. Playlist v20 opens a fresh rating
+          book at 1200 because the executable sheet language and stock gameplay changed.
+          Earlier ladder records remain readable but are not carried into v20.
         </p>
       </Doc>
 

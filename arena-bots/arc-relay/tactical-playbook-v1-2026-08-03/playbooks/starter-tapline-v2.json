@@ -1,0 +1,51 @@
+{
+  "schema": "arc-relay-orders-v2",
+  "sheetId": "starter-tapline-v2",
+  "mapPlan": "../map-plans/starter-tapline-v2.json",
+  "roles": [
+    {
+      "id": "home-team",
+      "classes": ["relay", "palisade"],
+      "upgradePath": ["vitality", "vision"],
+      "orders": [
+        { "shared": "score-a-core" }, { "shared": "collect-loose-core" },
+        { "shared": "fight-visible-enemy" },
+        { "id": "hold-home-well", "move": { "to": { "well": "own" }, "posture": "rear" } }
+      ]
+    },
+    {
+      "id": "centre-team",
+      "classes": ["switchback", "patchbay", "hush"],
+      "upgradePath": ["damage", "vitality"],
+      "orders": [
+        { "shared": "score-a-core" }, { "shared": "collect-loose-core" },
+        { "shared": "fight-visible-enemy" },
+        { "id": "hold-centre-well", "move": { "to": { "well": "centre" }, "posture": "line" } }
+      ]
+    },
+    {
+      "id": "far-team",
+      "classes": ["towline", "lantern", "kestrel"],
+      "upgradePath": ["damage", "vision", "vitality"],
+      "orders": [
+        { "shared": "score-a-core" }, { "shared": "collect-loose-core" },
+        { "shared": "fight-visible-enemy" },
+        { "id": "hold-far-well", "move": { "to": { "well": "enemy" }, "posture": "front" } }
+      ]
+    }
+  ],
+  "sharedOrders": {
+    "score-a-core": { "when": "carrying-core", "until": "empty-handed", "timeout": 180, "cooldown": 2, "orders": [
+      { "id": "return-to-reactor", "move": { "to": "own-reactor" } }
+    ] },
+    "collect-loose-core": { "when": { "all": ["empty-handed", "loose-core-known"] }, "capacity": "two-per-core", "move": { "to": "nearest-known-loose-core" } },
+    "fight-visible-enemy": { "when": { "all": ["empty-handed", "enemy-visible"] }, "fight": { "targets": ["carrier", "weakest", "nearest"], "style": "advance", "chaseLimit": 3 } }
+  },
+  "capacities": { "two-per-core": 2 },
+  "conditions": {
+    "carrying-core": { "fact": "self-carrying", "operator": "equals", "value": 1 },
+    "empty-handed": { "fact": "self-carrying", "operator": "equals", "value": 0 },
+    "loose-core-known": { "fact": "known-loose-cores", "operator": "at-least", "value": 1 },
+    "enemy-visible": { "fact": "visible-enemies-in-zone", "operator": "at-least", "value": 1, "zone": "battlefield" }
+  }
+}

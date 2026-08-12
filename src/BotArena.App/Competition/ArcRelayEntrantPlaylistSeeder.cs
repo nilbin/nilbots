@@ -7,9 +7,9 @@ using Microsoft.EntityFrameworkCore;
 namespace BotArena.App.Competition;
 
 /// <summary>
-/// Seeds the current immutable entrant lane. Playlist v19 deliberately starts
-/// a fresh rating book because Tapline replaces the Warren map line;
-/// immutable v8-v18 ladders remain readable.
+/// Seeds the current immutable entrant lane. Playlist v20 deliberately starts
+/// a fresh rating book because Orders v2 replaces the ATL1 executor and stock
+/// sheet; immutable v8-v19 ladders remain readable.
 /// </summary>
 public sealed class ArcRelayEntrantPlaylistSeeder(
     AppDbContext db,
@@ -172,6 +172,16 @@ public sealed class ArcRelayEntrantPlaylistSeeder(
             ArcRelayEntrantPlaylistDefinition.CreateHistoricalV18()
                 .Validate(playlist, claimableCoreVersion);
         }
+        PlaylistVersion? taplineV1Version = await db.PlaylistVersions
+            .SingleOrDefaultAsync(value => value.PlaylistId == playlist.Id &&
+                value.Version ==
+                    ArcRelayEntrantPlaylistDefinition.TaplineV1Version,
+                cancellationToken);
+        if (taplineV1Version is not null)
+        {
+            ArcRelayEntrantPlaylistDefinition.CreateHistoricalV19()
+                .Validate(playlist, taplineV1Version);
+        }
         PlaylistVersion? recoveryVersion = await db.PlaylistVersions
             .SingleOrDefaultAsync(value => value.PlaylistId == playlist.Id &&
                 value.Version == ArcRelayEntrantPlaylistDefinition.RecoveryVersion,
@@ -307,7 +317,7 @@ public sealed class ArcRelayEntrantPlaylistSeeder(
                 on ladder.PlaylistVersionId equals version.Id
             where version.PlaylistId == playlist.Id &&
                 version.Version == ArcRelayEntrantPlaylistDefinition
-                    .ClaimableCoreVersion &&
+                    .TaplineV1Version &&
                 ladder.SeasonId == season.Id
             select new { Ladder = ladder, version.Version })
             .ToArrayAsync(cancellationToken);
@@ -317,8 +327,8 @@ public sealed class ArcRelayEntrantPlaylistSeeder(
         if (open.Length != 1)
         {
             throw new InvalidOperationException(
-                "An open Arc Relay Season 1 can start the fresh v19 Tapline " +
-                "rating book only from one open immutable v18 ladder.");
+                "An open Arc Relay Season 1 can start the fresh v20 Orders " +
+                "rating book only from one open immutable v19 ladder.");
         }
         Ladder previous = open[0].Ladder;
         if (await db.ArcRelayEntrantRatings.AnyAsync(
@@ -326,7 +336,7 @@ public sealed class ArcRelayEntrantPlaylistSeeder(
                 cancellationToken))
         {
             throw new InvalidOperationException(
-                "The draft Arc Relay v19 ladder already contains ratings.");
+                "The draft Arc Relay v20 ladder already contains ratings.");
         }
 
         Guid[] entrants = await db.ArcRelayEntrants

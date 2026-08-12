@@ -1618,38 +1618,11 @@ internal static class ArenaBasics
         Position target,
         string reason)
     {
-        GenericActorRulesContract.ArcRelaySignature? signature = Signature(
-            contract,
-            signatureKind);
-        GenericActorActionLegality? action = signature is null
-            ? null
-            : body.Action(signature.ActionId);
-        GenericActorActionLegality.ArgumentConstraint.ProjectileHeadingConstraint?
-            headings = action?.Constraints
-                .OfType<GenericActorActionLegality.ArgumentConstraint
-                    .ProjectileHeadingConstraint>()
-                .SingleOrDefault();
-        GenericActorActionLegality.ArgumentConstraint.UnitTargetConstraint?
-            targets = action?.Constraints
-                .OfType<GenericActorActionLegality.ArgumentConstraint
-                    .UnitTargetConstraint>()
-                .SingleOrDefault();
-        var named = new GenericActorActionArgument.UnitTarget(
-            targetActor.TeamId,
-            targetActor.UnitId);
-        if (action is not { Available: true }
-            || headings is null
-            || targets is null
-            || !targets.AllowedValues.Contains(named)
-            || signature?.Range is not int reach
-            || !TryWedgeSolution(
-                contract.Map,
-                body.Position,
-                target,
-                headings.AllowedValues,
-                reach,
-                strictCorners: true,
-                out ProjectileHeading heading))
+        if (!TryResolveLockedLineSignature(
+                contract, body, signatureKind, targetActor, target,
+                out GenericActorActionLegality? action,
+                out ProjectileHeading heading,
+                out GenericActorActionArgument.UnitTarget named))
         {
             return false;
         }
@@ -1662,6 +1635,66 @@ internal static class ArenaBasics
                 new GenericActorActionArgument.UnitTargetArgument(named),
             ],
             reason);
+        return true;
+    }
+
+    public static bool CanUseLockedLineSignature(
+        GenericActorResolvedMatchContract contract,
+        MindBody body,
+        string signatureKind,
+        ActorIdentity targetActor,
+        Position target) => TryResolveLockedLineSignature(
+            contract, body, signatureKind, targetActor, target,
+            out _, out _, out _);
+
+    private static bool TryResolveLockedLineSignature(
+        GenericActorResolvedMatchContract contract,
+        MindBody body,
+        string signatureKind,
+        ActorIdentity targetActor,
+        Position target,
+        out GenericActorActionLegality action,
+        out ProjectileHeading heading,
+        out GenericActorActionArgument.UnitTarget named)
+    {
+        GenericActorRulesContract.ArcRelaySignature? signature = Signature(
+            contract,
+            signatureKind);
+        GenericActorActionLegality? candidateAction = signature is null
+            ? null
+            : body.Action(signature.ActionId);
+        GenericActorActionLegality.ArgumentConstraint.ProjectileHeadingConstraint?
+            headings = candidateAction?.Constraints
+                .OfType<GenericActorActionLegality.ArgumentConstraint
+                    .ProjectileHeadingConstraint>()
+                .SingleOrDefault();
+        GenericActorActionLegality.ArgumentConstraint.UnitTargetConstraint?
+            targets = candidateAction?.Constraints
+                .OfType<GenericActorActionLegality.ArgumentConstraint
+                    .UnitTargetConstraint>()
+                .SingleOrDefault();
+        named = new GenericActorActionArgument.UnitTarget(
+            targetActor.TeamId,
+            targetActor.UnitId);
+        heading = default;
+        action = null!;
+        if (candidateAction is not { Available: true }
+            || headings is null
+            || targets is null
+            || !targets.AllowedValues.Contains(named)
+            || signature?.Range is not int reach
+            || !TryWedgeSolution(
+                contract.Map,
+                body.Position,
+                target,
+                headings.AllowedValues,
+                reach,
+                strictCorners: true,
+                out heading))
+        {
+            return false;
+        }
+        action = candidateAction;
         return true;
     }
 
@@ -1694,24 +1727,10 @@ internal static class ArenaBasics
         Position target,
         string reason)
     {
-        GenericActorRulesContract.ArcRelaySignature? signature = Signature(
-            contract,
-            signatureKind);
-        GenericActorActionLegality? action = signature is null
-            ? null
-            : body.Action(signature.ActionId);
-        GenericActorActionLegality.ArgumentConstraint.ProjectileHeadingConstraint?
-            headings = action?.Constraints
-                .OfType<GenericActorActionLegality.ArgumentConstraint
-                    .ProjectileHeadingConstraint>()
-                .SingleOrDefault();
-        if (action is not { Available: true }
-            || headings is null
-            || !TryRay(body.Position, target, out ProjectileHeading heading,
-                out int distance)
-            || signature?.Range is int range && distance > range
-            || !headings.AllowedValues.Contains(heading)
-            || !ClearRay(contract.Map, body.Position, target, true))
+        if (!TryResolveHeadingSignature(
+                contract, body, signatureKind, target,
+                out GenericActorActionLegality? action,
+                out ProjectileHeading heading))
         {
             return false;
         }
@@ -1721,6 +1740,93 @@ internal static class ArenaBasics
             [new GenericActorActionArgument.ProjectileHeadingArgument(heading)],
             reason);
         return true;
+    }
+
+    public static bool CanUseHeadingSignature(
+        GenericActorResolvedMatchContract contract,
+        MindBody body,
+        string signatureKind,
+        Position target) => TryResolveHeadingSignature(
+            contract, body, signatureKind, target, out _, out _);
+
+    private static bool TryResolveHeadingSignature(
+        GenericActorResolvedMatchContract contract,
+        MindBody body,
+        string signatureKind,
+        Position target,
+        out GenericActorActionLegality action,
+        out ProjectileHeading heading)
+    {
+        GenericActorRulesContract.ArcRelaySignature? signature = Signature(
+            contract,
+            signatureKind);
+        GenericActorActionLegality? candidateAction = signature is null
+            ? null
+            : body.Action(signature.ActionId);
+        GenericActorActionLegality.ArgumentConstraint.ProjectileHeadingConstraint?
+            headings = candidateAction?.Constraints
+                .OfType<GenericActorActionLegality.ArgumentConstraint
+                    .ProjectileHeadingConstraint>()
+                .SingleOrDefault();
+        action = null!;
+        heading = default;
+        if (candidateAction is not { Available: true }
+            || headings is null
+            || !TryRay(body.Position, target, out heading,
+                out int distance)
+            || signature?.Range is int range && distance > range
+            || !headings.AllowedValues.Contains(heading)
+            || !ClearRay(contract.Map, body.Position, target, true))
+        {
+            return false;
+        }
+        action = candidateAction;
+        return true;
+    }
+
+    public static bool CanUseDirectionSignature(
+        GenericActorResolvedMatchContract contract,
+        MindBody body,
+        string signatureKind)
+    {
+        GenericActorRulesContract.ArcRelaySignature? signature = Signature(
+            contract, signatureKind);
+        GenericActorActionLegality? action = signature is null
+            ? null
+            : body.Action(signature.ActionId);
+        return action is { Available: true }
+            && action.Constraints.OfType<GenericActorActionLegality
+                .ArgumentConstraint.DirectionConstraint>()
+                .SingleOrDefault()?.AllowedValues.Length > 0;
+    }
+
+    public static bool CanUsePositionSignature(
+        GenericActorResolvedMatchContract contract,
+        MindBody body,
+        string signatureKind)
+    {
+        GenericActorRulesContract.ArcRelaySignature? signature = Signature(
+            contract, signatureKind);
+        GenericActorActionLegality? action = signature is null
+            ? null
+            : body.Action(signature.ActionId);
+        return action is { Available: true }
+            && action.Constraints.OfType<GenericActorActionLegality
+                .ArgumentConstraint.PositionTargetConstraint>()
+                .SingleOrDefault()?.AllowedValues.Length > 0;
+    }
+
+    public static bool CanUseParameterlessSignature(
+        GenericActorResolvedMatchContract contract,
+        MindBody body,
+        string signatureKind)
+    {
+        GenericActorRulesContract.ArcRelaySignature? signature = Signature(
+            contract, signatureKind);
+        GenericActorActionLegality? action = signature is null
+            ? null
+            : body.Action(signature.ActionId);
+        return action is { Available: true } && action.Constraints.IsEmpty;
     }
 
     public static bool TryDirectionSignature(

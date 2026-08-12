@@ -46,6 +46,8 @@ internal sealed class ArcRelayActorMatchModeDriver
     /// </summary>
     private readonly Dictionary<string, string> _jitterKeys;
     private readonly Dictionary<ArcRelayCoreId, CoreRuntime> _cores = [];
+    private readonly Dictionary<(ActorIdentity ActorId, ArcRelayCoreId CoreId),
+        int> _coreReclaimBlockedUntil = [];
     private readonly Dictionary<int, ReactorRuntime> _reactors;
     private readonly ImmutableDictionary<int, ImmutableHashSet<Position>>
         _homePads;
@@ -212,6 +214,7 @@ internal sealed class ArcRelayActorMatchModeDriver
         core.ResumeDebt = _gameMode.RipenResumeTicks;
         core.FlightTarget = target;
         core.FlightCompletesAtTick = completesAtTick;
+        BlockReclaim(actorId, core.CoreId, tick);
         return
         [
             Spatial(
@@ -256,7 +259,9 @@ internal sealed class ArcRelayActorMatchModeDriver
         GenericActorModeActiveLife? catcher = world.ActiveLives
             .Where(value => value.ActorId.TeamId == ownerActorId.TeamId
                 && value.Position == landing
-                && !CarriesCore(value.ActorId))
+                && !CarriesCore(value.ActorId)
+                && !IsReclaimBlocked(
+                    value.ActorId, core.CoreId, tick))
             .OrderBy(value => value.ActorId)
             .FirstOrDefault();
         if (catcher is not null)
@@ -458,6 +463,9 @@ internal sealed class ArcRelayActorMatchModeDriver
         core.CarrierActorId = null;
         core.LooseTicks = 0;
         core.ResumeDebt = _gameMode.RipenResumeTicks;
+        core.NextRelocationTick = checked(
+            tick + _gameMode.CoreRelocationIntervalTicks);
+        BlockReclaim(sourceActorId, core.CoreId, tick);
         modeEvent = Spatial(
             new ArcRelayEvent.CoreDropped(
                 core.CoreId,
@@ -555,10 +563,20 @@ internal sealed class ArcRelayActorMatchModeDriver
         // the Core lands on their side. Walls and the map edge are excluded;
         // if a body is somehow sealed in, the old underfoot behavior is the
         // only remaining answer.
-        core.Position = VoluntaryDropTile(sourceActorId, core.Position);
+        Position? destination = VoluntaryDropTile(
+            sourceActorId, core.Position);
+        if (destination is null)
+        {
+            modeEvent = null;
+            return false;
+        }
+        core.Position = destination.Value;
         core.CarrierActorId = null;
         core.LooseTicks = 0;
         core.ResumeDebt = _gameMode.RipenResumeTicks;
+        core.NextRelocationTick = checked(
+            tick + _gameMode.CoreRelocationIntervalTicks);
+        BlockReclaim(sourceActorId, core.CoreId, tick);
         modeEvent = Spatial(
             new ArcRelayEvent.CoreDropped(
                 core.CoreId,
@@ -573,10 +591,11 @@ internal sealed class ArcRelayActorMatchModeDriver
     /// <summary>
     /// Where a voluntary drop puts the Core: the adjacent (8-way) in-bounds
     /// non-wall tile nearest the dropper's own reactor, ties broken
-    /// canonically so both orientations of a map behave alike. Falls back to
-    /// the dropper's own tile only when every neighbour is a wall.
+    /// canonically so both orientations of a map behave alike. A sealed body
+    /// cannot drop: returning null lets the action resolve as blocked instead
+    /// of placing a Core under its source.
     /// </summary>
-    private Position VoluntaryDropTile(
+    private Position? VoluntaryDropTile(
         ActorIdentity sourceActorId,
         Position from)
     {
@@ -603,7 +622,7 @@ internal sealed class ArcRelayActorMatchModeDriver
                 best = candidate;
             }
         }
-        return best ?? from;
+        return best;
     }
 
     /// <summary>Neighbour scan order — canonical, so a distance tie always
@@ -629,7 +648,8 @@ internal sealed class ArcRelayActorMatchModeDriver
             || tick < core.NextRelocationTick
             || sourceActorId.TeamId != targetActorId.TeamId
             || sourcePosition.ChebyshevDistance(targetPosition) != 1
-            || CarriesCore(targetActorId))
+            || CarriesCore(targetActorId)
+            || IsReclaimBlocked(targetActorId, core.CoreId, tick))
         {
             modeEvent = null;
             return false;
@@ -638,6 +658,7 @@ internal sealed class ArcRelayActorMatchModeDriver
         core.Position = targetPosition;
         core.NextRelocationTick = checked(
             tick + _gameMode.CoreRelocationIntervalTicks);
+        BlockReclaim(sourceActorId, core.CoreId, tick);
         modeEvent = Spatial(
             new ArcRelayEvent.CoreHandedOff(
                 core.CoreId,
@@ -866,7 +887,8 @@ internal sealed class ArcRelayActorMatchModeDriver
     {
         GenericActorModeActiveLife? picker = world.ActiveLives
             .Where(value => value.Position == core.Position
-                && !CarriesCore(value.ActorId))
+                && !CarriesCore(value.ActorId)
+                && !IsReclaimBlocked(value.ActorId, core.CoreId, tick))
             .OrderBy(value => value.ActorId)
             .FirstOrDefault();
         if (picker is null)
@@ -905,6 +927,21 @@ internal sealed class ArcRelayActorMatchModeDriver
             }
         }
     }
+
+    private void BlockReclaim(
+        ActorIdentity actorId,
+        ArcRelayCoreId coreId,
+        int tick) =>
+        _coreReclaimBlockedUntil[(actorId, coreId)] = checked(
+            tick + _gameMode.CoreRelocationIntervalTicks);
+
+    private bool IsReclaimBlocked(
+        ActorIdentity actorId,
+        ArcRelayCoreId coreId,
+        int tick) =>
+        _coreReclaimBlockedUntil.TryGetValue(
+            (actorId, coreId), out int blockedUntil)
+        && tick < blockedUntil;
 
     private void Bank(
         int tick,

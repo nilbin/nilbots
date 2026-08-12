@@ -139,7 +139,7 @@ public sealed class MindToolchainSurfaceTests
     }
 
     [Fact]
-    public void FrozenAmbushV18ArtifactMatchesTheCurrentClaimableDropBuild()
+    public void OrdersV20ArtifactMatchesCurrentBuildWhileTaplineV19StaysFrozen()
     {
         string root = FindRepoRoot();
         string projectDirectory = Path.Combine(
@@ -147,22 +147,34 @@ public sealed class MindToolchainSurfaceTests
             "arena-bots",
             "arc-relay",
             "tactical-playbook-mind-v1");
-        string frozenDirectory = Path.Combine(
+        string historicalDirectory = Path.Combine(
             root,
             "arena-bots",
             "arc-relay",
             "ambush-warren-11-stock-v12");
+        string currentFrozenDirectory = Path.Combine(
+            root,
+            "arena-bots",
+            "arc-relay",
+            "tapline-1-stock-v1");
         TrackedBuildReceipt current = ReadReceipt(Path.Combine(
             projectDirectory,
             "bot.build-receipt.json"));
-        TrackedBuildReceipt frozen = ReadReceipt(Path.Combine(
-            frozenDirectory,
+        TrackedBuildReceipt historical = ReadReceipt(Path.Combine(
+            historicalDirectory,
+            "bot.build-receipt.json"));
+        TrackedBuildReceipt currentFrozen = ReadReceipt(Path.Combine(
+            currentFrozenDirectory,
             "bot.build-receipt.json"));
 
-        Assert.Equal(current, frozen);
+        Assert.Equal(current, currentFrozen);
         Assert.Equal(
             Sha256(Path.Combine(projectDirectory, "bot.wasm")),
-            Sha256(Path.Combine(frozenDirectory, "bot.wasm")));
+            Sha256(Path.Combine(currentFrozenDirectory, "bot.wasm")));
+        Assert.NotEqual(current.ArtifactSha256, historical.ArtifactSha256);
+        Assert.Equal(
+            historical.ArtifactSha256,
+            Sha256(Path.Combine(historicalDirectory, "bot.wasm")));
     }
 
     /// <summary>The version notes live beside the constants they explain.</summary>

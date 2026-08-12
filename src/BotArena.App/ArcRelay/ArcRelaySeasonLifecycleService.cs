@@ -277,13 +277,11 @@ public sealed class ArcRelaySeasonLifecycleService(
         IReadOnlyList<string> classes;
         if (entrant.Kind == ArcRelayEntrantKind.Sheet)
         {
-            string playbookJson = sheetPlaybookJsonOverride ??
+            string ordersJson = sheetPlaybookJsonOverride ??
                 await db.TacticalSheets.Where(value => value.Id == entrant.Id)
                     .Select(value => value.PlaybookJson)
                     .SingleAsync(cancellationToken);
-            using JsonDocument playbook = JsonDocument.Parse(playbookJson);
-            classes = playbook.RootElement.GetProperty("composition")
-                .EnumerateArray().Select(value => value.GetString()!).ToArray();
+            classes = TacticalSheetCompiler.ReadRoleClasses(ordersJson);
         }
         else
         {

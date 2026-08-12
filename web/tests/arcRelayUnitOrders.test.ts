@@ -11,6 +11,7 @@ import {
   isEngagedAction,
   parseCommandReason,
 } from '../src/presentation/commandReason.ts';
+import { bodyIntentLabel } from '../src/presentation/bodyIntent.ts';
 
 /**
  * What a selected body is DOING, across the two documents that can carry it.
@@ -72,6 +73,31 @@ test('a mind diagnostic splits into the order it names and what it is doing', ()
     parseCommandReason('turn for tp:prowl:well-group:well-watch:march'),
     { orderId: 'well-watch', action: 'turn/march', destination: null },
   );
+  assert.deepEqual(
+    parseCommandReason(
+      'orders:hunter > shadow-hunt:route-held-next-3-6 via North',
+    ),
+    {
+      orderId: 'shadow-hunt',
+      action: 'route-held-next-3-6',
+      destination: null,
+    },
+  );
+  assert.deepEqual(
+    parseCommandReason(
+      'turn for orders:builder > score-a-core > return-to-reactor:move@12,7 via West',
+    ),
+    {
+      orderId: 'return-to-reactor',
+      action: 'turn/move',
+      destination: { x: 12, y: 7 },
+    },
+  );
+  assert.deepEqual(parseCommandReason('orders:medic:upgrade:reach'), {
+    orderId: null,
+    action: 'upgrade:reach',
+    destination: null,
+  });
   // Unrecognised vocabulary is carried whole rather than discarded: a reader
   // must not decide that a word it was not taught is not worth showing.
   assert.deepEqual(parseCommandReason('custody:committed-delivery-wait'), {
@@ -116,6 +142,12 @@ test('a mind diagnostic splits into the order it names and what it is doing', ()
     )?.destination,
     { x: 3, y: 4 },
   );
+});
+
+test('the floor caption prefers the live order over the sticky role', () => {
+  assert.equal(bodyIntentLabel('shadow-hunt', 'hunter'), 'shadow-hunt');
+  assert.equal(bodyIntentLabel(null, 'hunter'), 'hunter');
+  assert.equal(bodyIntentLabel(null, 'g-rh-c-scr'), null);
 });
 
 test('an engaged body is the one with a live fight, not the one near one', () => {

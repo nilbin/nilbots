@@ -90,6 +90,26 @@ summary:focus-visible,
   outline-offset: 3px;
 }
 
+summary::-webkit-details-marker {
+  display: none;
+}
+summary::marker {
+  content: '';
+}
+.disclosure-chevron {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-arena-material);
+  font-family: var(--font-mono);
+  transition: transform 150ms ease;
+  transform-origin: center;
+}
+details[open] > summary .disclosure-chevron {
+  transform: rotate(90deg);
+}
+
 /* Standalone mode fills the dynamic viewport and may still grow beyond it. A percentage
    min-height is not definite when the ancestor's own height is `auto`, so `100%` left a
    tall viewer content-sized. `100dvh` follows mobile browser chrome without pinning a

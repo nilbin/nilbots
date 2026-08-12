@@ -2880,13 +2880,13 @@ namespace BotArena.Cli.Generated
         [System.Text.Json.Serialization.JsonPropertyName("expectedRevision")]
         public int? ExpectedRevision { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("playbookJson")]
+        [System.Text.Json.Serialization.JsonPropertyName("ordersJson")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        public string PlaybookJson { get; set; } = default!;
+        public string OrdersJson { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("layoutJson")]
+        [System.Text.Json.Serialization.JsonPropertyName("mapPlanJson")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        public string LayoutJson { get; set; } = default!;
+        public string MapPlanJson { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("enterLadder")]
         public bool? EnterLadder { get; set; } = default!;
@@ -3182,13 +3182,13 @@ namespace BotArena.Cli.Generated
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.IReadOnlyList<TacticalSheetClassResponse> Classes { get; set; } = new System.Collections.Generic.List<TacticalSheetClassResponse>();
 
-        [System.Text.Json.Serialization.JsonPropertyName("templatePlaybookJson")]
+        [System.Text.Json.Serialization.JsonPropertyName("templateOrdersJson")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        public string TemplatePlaybookJson { get; set; } = default!;
+        public string TemplateOrdersJson { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("templateLayoutJson")]
+        [System.Text.Json.Serialization.JsonPropertyName("templateMapPlanJson")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        public string TemplateLayoutJson { get; set; } = default!;
+        public string TemplateMapPlanJson { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("stockOpponents")]
         [System.ComponentModel.DataAnnotations.Required]
@@ -3437,13 +3437,13 @@ namespace BotArena.Cli.Generated
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.DateTimeOffset UpdatedAt { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("playbookJson")]
+        [System.Text.Json.Serialization.JsonPropertyName("ordersJson")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        public string PlaybookJson { get; set; } = default!;
+        public string OrdersJson { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("layoutJson")]
+        [System.Text.Json.Serialization.JsonPropertyName("mapPlanJson")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        public string LayoutJson { get; set; } = default!;
+        public string MapPlanJson { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("entrant")]
         [System.ComponentModel.DataAnnotations.Required]

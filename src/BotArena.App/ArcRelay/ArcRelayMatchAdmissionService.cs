@@ -180,7 +180,7 @@ public sealed class ArcRelayMatchAdmissionService(
                     entrant.Id, entrant.CrestVariant),
                 bot.Id,
                 version.Id,
-                ArcRelayEntrantPlaylistDefinition.TacticalArtifactHash,
+                ArcRelayEntrantPlaylistDefinition.OrdersTacticalArtifactHash,
                 compiled.Compilation.Composition,
                 compiled.Composition.CanonicalJson,
                 compiled.Composition.ContentHash,
@@ -234,7 +234,7 @@ public sealed class ArcRelayMatchAdmissionService(
     {
         Guid fixtureId = source.Id switch
         {
-            ArcRelayEntrantPlaylistDefinition.StockSheetId => new Guid(
+            ArcRelayEntrantPlaylistDefinition.OrdersStockSheetId => new Guid(
                 "5aee9e75-6595-4fb9-a6df-c76abcf1a663"),
             "home-siege-v3" => new Guid(
                 "d7ed7a58-a59e-42d4-98f8-b6216711f188"),
@@ -258,15 +258,15 @@ public sealed class ArcRelayMatchAdmissionService(
             ArcRelayCrestGenerator.Snapshot(fixtureId, 0),
             bot.Id,
             version.Id,
-            ArcRelayEntrantPlaylistDefinition.TacticalArtifactHash,
+            ArcRelayEntrantPlaylistDefinition.OrdersTacticalArtifactHash,
             source.Composition,
             composition.CanonicalJson,
             composition.ContentHash,
             fixtureId,
             1,
             source.ContentHash,
-            source.PlaybookJson,
-            source.LayoutJson,
+            source.OrdersJson,
+            source.MapPlanJson,
             source.LinkedData);
     }
 
@@ -280,7 +280,7 @@ public sealed class ArcRelayMatchAdmissionService(
             value.BotId == bot.Id
             && value.IsActive
             && value.ArtifactHash
-                == ArcRelayEntrantPlaylistDefinition.TacticalArtifactHash,
+                == ArcRelayEntrantPlaylistDefinition.OrdersTacticalArtifactHash,
             cancellationToken);
         return (bot, version);
     }

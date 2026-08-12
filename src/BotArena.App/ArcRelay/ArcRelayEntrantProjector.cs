@@ -97,10 +97,8 @@ public sealed class ArcRelayEntrantProjector(
                 TacticalSheet sheet = sheets[entrant.Id];
                 revision = sheet.Revision;
                 contentHash = sheet.ContentHash;
-                using System.Text.Json.JsonDocument playbook =
-                    System.Text.Json.JsonDocument.Parse(sheet.PlaybookJson);
-                classes = playbook.RootElement.GetProperty("composition")
-                    .EnumerateArray().Select(value => value.GetString()!).ToArray();
+                classes = TacticalSheetCompiler.ReadRoleClasses(
+                    sheet.PlaybookJson);
                 status = !TacticalSheetCompiler.IsAdmissibleToCurrentPlaylist(
                         sheet.LayoutJson)
                     ? "legacy"

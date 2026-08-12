@@ -238,6 +238,42 @@ public sealed class ArcRelayCoreInvariantTests
             "a drop should nudge the Core homeward");
     }
 
+    [Fact]
+    public void VoluntaryDropBlocksOnlyTheSourceLifeFromImmediateReclaim()
+    {
+        var driver = new ArcRelayActorMatchModeDriver(
+            ArcRelayH0Definition.Create(), matchSeed: 0);
+        driver.PrepareTick(25, World(Life(Carrier, CentreWell)));
+        Assert.True(driver.TryDrop(27, Carrier, out _));
+        Position droppedAt = State(driver).VisibleCores.Single().Position;
+
+        driver.PrepareTick(28, World(Life(Carrier, droppedAt)));
+        Assert.Null(State(driver).VisibleCores.Single().CarrierActorId);
+
+        driver.PrepareTick(29, World(Life(Carrier, droppedAt)));
+        Assert.Equal(
+            Carrier,
+            State(driver).VisibleCores.Single().CarrierActorId);
+    }
+
+    [Fact]
+    public void VoluntaryDropRemainsImmediatelyAvailableToAnotherBody()
+    {
+        var driver = new ArcRelayActorMatchModeDriver(
+            ArcRelayH0Definition.Create(), matchSeed: 0);
+        driver.PrepareTick(25, World(Life(Carrier, CentreWell)));
+        Assert.True(driver.TryDrop(27, Carrier, out _));
+        Position droppedAt = State(driver).VisibleCores.Single().Position;
+
+        driver.PrepareTick(28, World(
+            Life(Carrier, droppedAt),
+            Life(Receiver, droppedAt)));
+
+        Assert.Equal(
+            Receiver,
+            State(driver).VisibleCores.Single().CarrierActorId);
+    }
+
     private static ArcRelayEvent[] Facts(
         IEnumerable<GenericActorModeEvent> events) =>
         events.Select(value => Assert.IsType<

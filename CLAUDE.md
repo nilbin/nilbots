@@ -199,8 +199,8 @@ Project boundaries that must not be violated:
   `nilbots arc-relay` is top-level; `nilbots experiment arc-relay` is a
   permanent alias, so existing scripts and briefs keep their spelling.
   `--loop-profile` defaults to `tapline-1`, and immutable hosted entrant
-  playlist v19 pins that same rules/map line with Tapline-native consolidated
-  tactical sheets and the claimable-drop direct-ladder WASM artifact. v7
+  playlist v20 pins that same rules/map line with Tapline-native Orders v2
+  sheets and the direct ATL2 WASM artifact. v7
   began the fresh Warren
   development rating era and remains immutable; v8 carried those development
   ratings because no game fact changed. Public Season 1 began on a separate,
@@ -225,7 +225,10 @@ Project boundaries that must not be violated:
   v18 starts fresh because accidental-carrier drops remain claimable and a
   loaded carrier can no longer reserve a second Core; v17 ratings are never
   copied into v18. v19 starts fresh because Tapline replaces the Warren map
-  line; v18 ratings are never copied into v19.
+  line; v18 ratings are never copied into v19. v20 starts fresh because the
+  executable authoring language, linked package, stock sheet, and registered
+  stock gameplay change from ATL1 doctrines/custody to the direct Orders v2
+  tree; v19 ratings are never copied into v20.
   Authoritative
   generic-actor movement is corner-strict from this line: diagonal movement
   requires both orthogonal companion terrain
@@ -234,7 +237,9 @@ Project boundaries that must not be violated:
   is presented as Season history. v6 remains the readable/executable
   ForwardCombat on Counterflow history; never mutate it or migrate its sheet geometry. Sheets
   compile through
-  `BotArena.TacticalPlaybooks`, the one shared compiler: the CLI's
+  `BotArena.TacticalPlaybooks`, the one shared compiler: the current seven-key
+  Orders document plus six-key map plan compile directly to ATL2, with no
+  compatibility parser or legacy IR. The CLI's
   `experiment arc-relay-playbook` and the App's `/api/sheets` saves both call
   it, and **the App must never reach into BotArena.Cli** for it. The remaining
   `experiment arc-relay-h0-smoke`, `-screen-batch` and `-playbook` commands
@@ -450,7 +455,10 @@ Web (`web/`) is one Vite/React build with two modes chosen at runtime in
   a battery, sweep, or make a balance verdict unless the owner explicitly asks
   for one; an exhibit shows what a change looks like and proves nothing about
   balance. Never edit source or sheets while its matches are running, and
-  every executor action must carry a non-empty `debugMessage` reason.
+  every executor action must carry a non-empty `debugMessage` reason. A review
+  exhibit runs current mind sources in-process: it does not require tracked
+  WASM, frozen-stock, playlist/rating-era, compatibility-version, or release
+  work. Those happen only at an explicitly requested promotion gate.
 - **One top-level class per file**, named for it — tests included (one test
   class per file). Small records/DTOs tightly coupled to a main type may
   colocate (the `Replay.cs` pattern). Legacy grouped CLI files

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { SCRAP_ACCENT } from '../presentation/scrapAccent';
 import { roleTagCaption, roleTagColor } from '../presentation/roleTag';
-import { parsePlayRoleTag } from '../presentation/playAwareness';
+import { bodyIntentLabel } from '../presentation/bodyIntent';
 
 /** Rasterised role-caption size; generous, because it is read at gameplay scale. */
 const ROLE_LABEL_WIDTH = 256;
@@ -2047,20 +2047,16 @@ export function buildActors(replay: ReplayModel): ArenaActors {
         bot.upgradeMaterial.opacity = purchase.strength ** 1.4 * 0.85;
       }
 
-      // The mind's own word for what this body is doing, drawn for VISIBLE
-      // ENEMIES too — half the drama of a set-piece is seeing both sides'
-      // assignments and knowing one of them is wrong. An absent tag draws
-      // nothing at all: an unlabelled body should look unlabelled.
-      // Arc Relay tags were suppressed here once — and a guard near base
-      // read as a bug because its intent was invisible (owner review). The
-      // tag now IS the unit's live order, so it always draws when present.
-      const roleTag = mechanics?.roleTag ?? null;
-      const visibleRoleTag = roleTag && !parsePlayRoleTag(roleTag)
-        ? roleTag
-        : null;
-      bot.paintRole(visibleRoleTag);
+      // The authored order is the live objective; roleTag is only the sticky
+      // role fallback. Draw it for visible enemies too — half the drama of a
+      // set-piece is seeing both sides' assignments and knowing one is wrong.
+      const visibleIntent = bodyIntentLabel(
+        mechanics?.order?.orderId,
+        mechanics?.roleTag,
+      );
+      bot.paintRole(visibleIntent);
       bot.roleLabel.visible =
-        bot.chassis.visible && visibleRoleTag !== null;
+        bot.chassis.visible && visibleIntent !== null;
       // Every rig piece here carries ABSOLUTE world coordinates, because the bots share
       // one container rather than each owning a group that moves. The caption was the
       // one piece that never got its x/z — it was built with a Y offset and nothing else

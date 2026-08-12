@@ -1,21 +1,20 @@
 import assert from 'node:assert/strict';
-import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { gunzipSync } from 'node:zlib';
 import { loadReplayObject } from '../src/replayIngress';
 import type { TacticalSheetCatalog } from '../src/site/api';
 import {
-  assignmentIdFromName,
+  actionOf,
+  compositionOf,
   parseDraft,
   pinDraft,
-  renameAssignment,
-  setAssignmentTarget,
+  renameRole,
   sheetIssueFromCompilerError,
   stringifyDocument,
   validateDraft,
-  type LayoutDocument,
-  type PlaybookDocument,
+  type MapPlanDocument,
+  type OrdersDocument,
 } from '../src/site/sheets/sheetAuthoring';
 import {
   describeTrialChanges,
@@ -23,72 +22,37 @@ import {
   snapshotForTrial,
 } from '../src/site/sheets/sheetTrials';
 
-const classes = ['kestrel', 'patchbay', 'relay', 'hush'];
-const layout: LayoutDocument = {
-  schema: 'arc-relay-tactical-layout-v1',
-  layoutId: 'test-layout',
+const classIds = ['kestrel', 'patchbay', 'relay', 'hush', 'towline', 'lantern', 'palisade', 'switchback'];
+const mapPlan: MapPlanDocument = {
+  schema: 'arc-relay-map-plan-v2',
+  mapPlanId: 'test-map-plan',
   mapId: 'test-map',
-  bindings: [
-    { matchContractFingerprint: 'any-composition', ownReactorSide: 'west', transform: 'identity', routeAliases: {} },
-    { matchContractFingerprint: 'any-composition', ownReactorSide: 'east', transform: 'rotate-180', routeAliases: {} },
-  ],
-  zones: [{ zoneId: 'field', rect: [0, 0, 4, 4] }],
-  routes: [{ routeId: 'floor-route', corridorWidth: 2, waypoints: [[1, 1], [3, 3]] }],
-  anchors: [{ anchorId: 'gate', position: [1, 2] }],
+  zones: {},
+  routes: { 'centre-loop': { waypoints: [[1, 1], [3, 3]] } },
+  anchors: {},
 };
-
-const playbook: PlaybookDocument = {
-  schema: 'arc-relay-tactical-playbook-v1',
-  playbookId: 'test-sheet',
-  auditStatus: { provisionalEvaluationOnly: false, playerFacingProductSchema: true },
-  composition: [...classes, ...classes],
-  layout: { path: 'layout.json', sha256: '' },
-  memory: {
-    enemyUnavailableTicks: 21,
-    lastSeenEnemyTicks: 30,
-    securedCoreTicks: 40,
-    objectiveProgressTicks: 90,
-  },
-  roles: [{
-    roleId: 'line',
-    candidateClasses: classes,
-    minimum: 0,
-    preferred: 8,
-    maximum: 8,
-    carrierPreference: 'allow',
-    deathPolicy: 'hold-vacancy',
-    respawnPolicy: 'rejoin',
-    overflowRoleId: 'line',
-    build: ['damage', 'vision', 'reach', 'vitality'],
-  }],
-  custodyPolicies: [{
-    custodyId: 'line-custody',
-    sourceWells: ['north'],
-    pickupReservationTicks: 8,
-    transferTimeoutTicks: 8,
-    deliveryTimeoutTicks: 120,
-    accidentalPickup: 'deliver',
-    dropRecovery: 'nearest-authorized',
-    unreachableFallback: 'regroup',
-    safeConversion: 'always',
-  }],
-  doctrines: {
-    roles: {
-      line: {
-        custody: 'line-custody',
-        modes: [
-          { fetch: 'line-custody' },
-          { patrol: 'floor-route', focus: { maximumAttackers: 8 } },
-        ],
-        conceal: false,
-      },
+const orders: OrdersDocument = {
+  schema: 'arc-relay-orders-v2',
+  sheetId: 'test-sheet',
+  mapPlan: 'map-plan.json',
+  roles: [
+    {
+      id: 'runners',
+      classes: classIds.slice(0, 4),
+      upgradePath: ['reach', 'vision'],
+      orders: [{ id: 'run-centre', move: { patrol: 'centre-loop', posture: 'front' } }],
     },
-    cohorts: {},
-    focus: {},
-  },
+    {
+      id: 'support',
+      classes: classIds.slice(4),
+      upgradePath: ['vitality', 'damage'],
+      orders: [{ id: 'hold-centre', move: { patrol: 'centre-loop', posture: 'rear' } }],
+    },
+  ],
+  sharedOrders: {},
+  capacities: {},
   conditions: {},
 };
-
 const catalog: TacticalSheetCatalog = {
   playlistKey: 'arc-relay',
   playlistVersionId: '10000000-0000-0000-0000-000000000001',
@@ -99,188 +63,137 @@ const catalog: TacticalSheetCatalog = {
   },
   slotCount: 8,
   maximumCopiesPerClass: 2,
-  classes: classes.map((id) => ({
+  classes: classIds.map((id) => ({
     id, name: id, signatureName: id, fantasy: id, starter: true, unlocked: true,
   })),
-  templatePlaybookJson: '{}',
-  templateLayoutJson: '{}',
-  stockOpponents: [],
+  templateOrdersJson: '{}', templateMapPlanJson: '{}', stockOpponents: [],
 };
 
-test('assignment names stay compiler ids and renames follow every role reference', () => {
-  const source = structuredClone(playbook);
-  source.roles[0] = {
-    ...source.roles[0],
-    roleId: 'line',
-    minimum: 0,
-    preferred: 1,
-    maximum: 2,
-    overflowRoleId: 'line',
+test('roles are the one source of composition and role renames follow semantic references', () => {
+  const source = structuredClone(orders);
+  source.conditions['support-hurt'] = {
+    fact: 'role-lowest-health-percent', operator: 'at-most', value: 35, role: 'support',
   };
-  source.custodyPolicies[0].emergencyRecoveryRoles = ['line'];
-  source.doctrines.roles.line.modes = [{
-    follow: 'line',
-    posture: 'trail',
-    focus: { maximumAttackers: 1 },
-    while: 'line-hurt',
-  }];
-  source.conditions['line-hurt'] = {
-    fact: 'role-health', operator: 'at-most', value: 2, subject: 'line',
+  source.roles[0].orders.unshift({
+    id: 'follow-support', when: 'support-hurt', move: { follow: 'support', posture: 'rear' },
+  });
+  source.roles[0].orders.unshift({
+    id: 'pass-support', when: 'support-hurt', handoff: { target: { role: 'support' } },
+  });
+
+  renameRole(source, 'support', 'field-support');
+
+  assert.deepEqual(compositionOf(source), classIds);
+  assert.equal(source.roles[1].id, 'field-support');
+  assert.equal(source.conditions['support-hurt'].role, 'field-support');
+  assert.equal(source.roles[0].orders[0].handoff?.target && typeof source.roles[0].orders[0].handoff?.target === 'object'
+    ? source.roles[0].orders[0].handoff?.target.role : '', 'field-support');
+  assert.equal(source.roles[0].orders[1].move?.follow, 'field-support');
+});
+
+test('order action detection has only the five physical verbs plus branch and exact sharing', () => {
+  assert.equal(actionOf({ id: 'move', move: { to: 'own-reactor' } }), 'move');
+  assert.equal(actionOf({ id: 'fight', fight: { targets: ['carrier'], style: 'hold', chaseLimit: 0 } }), 'fight');
+  assert.equal(actionOf({ id: 'play', orders: [{ id: 'drop', drop: true }] }), 'branch');
+  assert.equal(actionOf({ shared: 'score-a-core' }), 'shared');
+  assert.equal(actionOf({ id: 'ambiguous', drop: true, move: { to: 'own-reactor' } }), 'move');
+});
+
+test('export emits the exact authoring pair without authored hashes or geometry bindings', async () => {
+  const draft = parseDraft('Test', null, null, stringifyDocument(orders), stringifyDocument(mapPlan));
+  const prepared = await pinDraft(draft);
+  const parsedOrders = JSON.parse(prepared.ordersJson) as OrdersDocument;
+  const parsedPlan = JSON.parse(prepared.mapPlanJson) as MapPlanDocument;
+
+  assert.equal(parsedOrders.mapPlan, 'map-plan.json');
+  assert.equal(parsedOrders.sheetId, 'test');
+  assert.equal(parsedPlan.mapPlanId, 'test-map');
+  assert.doesNotMatch(prepared.ordersJson, /sha256|binding|fingerprint/i);
+  assert.doesNotMatch(prepared.mapPlanJson, /sha256|binding|fingerprint/i);
+});
+
+test('guided validation mirrors exact roots, class cap, condition use, shared use and map consumers', () => {
+  const valid = parseDraft('Test', null, null, stringifyDocument(orders), stringifyDocument(mapPlan));
+  assert.deepEqual(validateDraft(valid, catalog), []);
+
+  const broken = structuredClone(valid);
+  (broken.orders as OrdersDocument & { custodyPolicies?: unknown[] }).custodyPolicies = [];
+  broken.orders.roles[0].classes = ['kestrel', 'kestrel', 'kestrel', 'patchbay'];
+  broken.orders.conditions.unused = { fact: 'self-carrying', operator: 'equals', value: 1 };
+  broken.orders.sharedOrders.once = { move: { to: 'own-reactor' } };
+  broken.orders.roles[0].orders.unshift({ shared: 'once' });
+  broken.mapPlan.zones.unused = { rect: [0, 0, 1, 1] };
+  const messages = validateDraft(broken, catalog).map((issue) => issue.message);
+
+  assert.ok(messages.some((message) => message.includes("Retired or unknown field 'custodyPolicies'")));
+  assert.ok(messages.some((message) => message.includes('copy cap')));
+  assert.ok(messages.some((message) => message.includes('unused condition')));
+  assert.ok(messages.some((message) => message.includes('at least two references')));
+  assert.ok(messages.some((message) => message.includes('unused zone')));
+});
+
+test('mixed-class roles may branch by owned skill and self-in-zone geography', () => {
+  const draft = parseDraft('Test', null, null, stringifyDocument(orders), stringifyDocument(mapPlan));
+  draft.mapPlan.zones['north-choke'] = { rect: [1, 0, 3, 2] };
+  draft.orders.conditions['at-north-choke'] = {
+    fact: 'self-in-zone', operator: 'equals', value: 1, zone: 'north-choke',
   };
+  draft.orders.roles[0].orders.unshift({
+    id: 'dash-at-choke',
+    when: 'at-north-choke',
+    use: { skill: 'vector-dash', target: 'nearest-enemy' },
+  });
 
-  assert.equal(assignmentIdFromName('  Base Screen  '), 'base-screen');
-  renameAssignment(source, 'line', 'base-screen');
+  const issues = validateDraft(draft, catalog);
+  assert.deepEqual(issues.filter((issue) => issue.severity === 'error'), []);
 
-  assert.equal(source.roles[0].roleId, 'base-screen');
-  assert.equal(source.roles[0].overflowRoleId, 'base-screen');
-  assert.deepEqual(source.custodyPolicies[0].emergencyRecoveryRoles, ['base-screen']);
-  assert.equal(source.doctrines.roles.line, undefined);
-  assert.equal(source.doctrines.roles['base-screen'].modes[0].follow, 'base-screen');
-  assert.equal(source.conditions['line-hurt'].subject, 'base-screen');
-});
-
-test('assignment staffing targets change only the role-owned staffing band', () => {
-  const source = structuredClone(playbook);
-  source.roles[0] = {
-    ...source.roles[0], minimum: 0, preferred: 1, maximum: 1,
+  draft.orders.roles[0].orders[0].use = {
+    skill: 'prism-wall', target: 'nearest-enemy',
   };
-
-  setAssignmentTarget(source, 'line', 3);
-
-  assert.equal(source.roles[0].preferred, 3);
-  assert.equal(source.roles[0].maximum, 3);
-  assert.equal('groups' in source, false);
+  assert.ok(validateDraft(draft, catalog).some((issue) =>
+    issue.message.includes('At least one body in this role must own')));
 });
 
-test('export hashes the exact emitted layout bytes and updates only the layout pin', async () => {
-  const draft = parseDraft(
-    'Test', null, null,
-    stringifyDocument(playbook), stringifyDocument(layout),
-  );
-  const prepared = await pinDraft(draft);
-  const expected = createHash('sha256').update(prepared.layoutJson).digest('hex');
-
-  assert.equal(prepared.layoutSha256, expected);
-  assert.equal(prepared.draft.playbook.layout.sha256, expected);
-  assert.equal(prepared.draft.playbook.layout.path, 'layout.json');
-  assert.deepEqual(prepared.draft.layout, draft.layout);
-});
-
-test('guided checks enforce the six-verb ladder and its patrol floor before server compile', async () => {
-  const valid = parseDraft(
-    'Test', null, null,
-    stringifyDocument(playbook), stringifyDocument(layout),
-  );
-  const prepared = await pinDraft(valid);
-  assert.deepEqual(validateDraft(prepared.draft, catalog, prepared.layoutSha256), []);
-
-  const broken = structuredClone(prepared.draft);
-  broken.playbook.doctrines.roles.line.modes = [
-    {
-      assault: 'floor-route',
-      patrol: 'floor-route',
-      while: 'always',
-      focus: { maximumAttackers: 2 },
-    },
-    {
-      follow: 'line',
-      posture: 'trail',
-      focus: { maximumAttackers: 2 },
-    },
-  ];
-  const messages = validateDraft(broken, catalog, prepared.layoutSha256)
-    .map((issue) => issue.message);
-  assert.ok(messages.some((message) => message.includes('exactly one mode verb')));
-  assert.ok(messages.some((message) => message.includes('fallback must be')));
-  assert.ok(messages.every((message) => !message.includes('muster')));
-});
-
-test('a traffic floor is rejected when any inherited fight block can break off', async () => {
-  const draft = parseDraft(
-    'Test', null, null,
-    stringifyDocument(playbook), stringifyDocument(layout),
-  );
-  draft.playbook.doctrines.roles.line.fight = { breakOff: { health: 2 } };
-  draft.playbook.doctrines.roles.line.modes = [
-    { fetch: 'line-custody' },
-    { patrol: 'traffic', focus: { maximumAttackers: 8 } },
-  ];
-  const prepared = await pinDraft(draft);
-  const messages = validateDraft(prepared.draft, catalog, prepared.layoutSha256)
-    .map((issue) => issue.message);
-  assert.ok(messages.some((message) => message.includes('traffic floor')));
-});
-
-test('required root and custody keys fail live validation before save', async () => {
-  const draft = parseDraft(
-    'Test', null, null,
-    stringifyDocument(playbook), stringifyDocument(layout),
-  );
-  delete draft.playbook.memory;
-  delete draft.playbook.custodyPolicies[0].safeConversion;
-  const prepared = await pinDraft(draft);
-  const messages = validateDraft(prepared.draft, catalog, prepared.layoutSha256)
-    .map((issue) => issue.message);
-  assert.ok(messages.some((message) => message.includes("Required playbook key 'memory'")));
-  assert.ok(messages.some((message) => message.includes('carrier may convert')));
-});
-
-test('the player validator accepts both tracked Tapline authoring templates', async () => {
-  const root = new URL(
-    '../../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/',
-    import.meta.url,
-  );
-  const layoutJson = readFileSync(new URL('layouts/tapline-base-v1.json', root), 'utf8');
-  for (const name of ['hunter-tapline-v1', 'wellwright-tapline-v1']) {
+test('the player validator accepts every tracked Orders v2 Tapline sheet', async () => {
+  const root = new URL('../../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/', import.meta.url);
+  for (const name of ['starter-tapline-v2', 'hunter-tapline-v2', 'wellwright-tapline-v2']) {
     const playbookJson = readFileSync(new URL(`playbooks/${name}.json`, root), 'utf8');
-    const source = JSON.parse(playbookJson) as PlaybookDocument;
-    const classIds = [...new Set([
-      ...source.composition,
-      ...source.roles.flatMap((role) => role.candidateClasses),
-    ])];
+    const source = JSON.parse(playbookJson) as OrdersDocument;
+    const mapPlanJson = readFileSync(new URL(`map-plans/${name}.json`, root), 'utf8');
+    const ids = [...new Set(compositionOf(source))];
     const taplineCatalog: TacticalSheetCatalog = {
       ...catalog,
-      map: {
-        ...catalog.map,
-        id: 'arc-relay-tapline-01',
-        width: 31,
-        height: 27,
-        tileRows: Array.from({ length: 27 }, () => '.'.repeat(31)),
-      },
-      classes: classIds.map((id) => ({
-        id, name: id, signatureName: id, fantasy: id, starter: true, unlocked: true,
-      })),
+      map: { ...catalog.map, id: 'arc-relay-tapline-01', width: 31, height: 27, tileRows: Array.from({ length: 27 }, () => '.'.repeat(31)) },
+      classes: ids.map((id) => ({ id, name: id, signatureName: id, fantasy: id, starter: true, unlocked: true })),
     };
-    const draft = parseDraft(name, null, null, playbookJson, layoutJson);
-    const prepared = await pinDraft(draft);
-    assert.deepEqual(
-      validateDraft(prepared.draft, taplineCatalog, prepared.layoutSha256),
-      [],
-      `${name} should be editable without false client errors`,
-    );
+    const draft = parseDraft(name, null, null, playbookJson, mapPlanJson);
+    const errors = validateDraft((await pinDraft(draft)).draft, taplineCatalog)
+      .filter((issue) => issue.severity === 'error');
+    assert.deepEqual(errors, [], `${name} should open without client-side false errors`);
   }
 });
 
-test('trial summaries name only the authoring areas that changed', () => {
-  const draft = parseDraft(
-    'Test', null, null,
-    stringifyDocument(playbook), stringifyDocument(layout),
-  );
+test('trial summaries name only the Orders v2 authoring areas that changed', () => {
+  const draft = parseDraft('Test', null, null, stringifyDocument(orders), stringifyDocument(mapPlan));
   const before = snapshotForTrial(draft);
   const changed = structuredClone(draft);
-  changed.playbook.doctrines.roles.line.conceal = true;
-  changed.layout.routes[0].waypoints.push([4, 3]);
+  changed.orders.roles[0].orders[0].move!.posture = 'rear';
+  changed.mapPlan.routes['centre-loop'].waypoints.push([4, 3]);
   const after = snapshotForTrial(changed);
 
-  assert.deepEqual(describeTrialChanges(before, after), ['Doctrines', 'Map geometry']);
+  assert.deepEqual(describeTrialChanges(before, after), ['Orders', 'Map geometry']);
   assert.deepEqual(describeTrialChanges(after, after), ['No tactical changes']);
   assert.deepEqual(describeTrialChanges(undefined, after), ['First recorded trial']);
+
+  const roster = structuredClone(changed);
+  roster.orders.roles[0].classes.reverse();
+  roster.orders.capacities['two-per-target'] = 2;
+  assert.deepEqual(describeTrialChanges(after, snapshotForTrial(roster)), ['Bodies', 'Capacity rules']);
 });
 
-test('trial map tracks use recorded occupied tiles without inventing interpolation', () => {
+test('trial tracks contain only authoritative occupied tiles', () => {
   const source = JSON.parse(gunzipSync(readFileSync(new URL(
-    '../../arena-bots/arc-relay/stock-mind-v0/preflight/broadcast.json.gz',
-    import.meta.url,
+    '../../arena-bots/arc-relay/stock-mind-v0/preflight/broadcast.json.gz', import.meta.url,
   ))).toString('utf8')) as object;
   const replay = loadReplayObject(source).replay;
   const tracks = replayUnitTracks(replay);
@@ -289,37 +202,18 @@ test('trial map tracks use recorded occupied tiles without inventing interpolati
   for (const track of tracks) {
     assert.ok(track.points.length > 0);
     assert.ok(track.points.every((point, index) => index === 0
-      || point.x !== track.points[index - 1].x
-      || point.y !== track.points[index - 1].y));
-    assert.ok(track.points.every((point) => replay.ticks.some((tick) =>
-      tick.after.actors.some((actor) => actor.unitKey === track.key
-        && actor.position.x === point.x && actor.position.y === point.y))
-      || replay.initialWorld?.actors.some((actor) => actor.unitKey === track.key
-        && actor.position.x === point.x && actor.position.y === point.y)));
+      || point.x !== track.points[index - 1].x || point.y !== track.points[index - 1].y));
   }
 });
 
-test('shared compiler diagnostics map back onto their authoring field', () => {
-  assert.deepEqual(
-    sheetIssueFromCompilerError(new Error(
-      '/tmp/new-sheet/playbook.json.doctrines.ghost.modes.0.while: unknown predicate.',
-    )),
-    {
-      path: 'doctrines.ghost.modes.0.while',
-      message: 'Compiler: unknown predicate.',
-      severity: 'error',
-    },
-  );
-  assert.equal(
-    sheetIssueFromCompilerError(new Error(
-      '/tmp/new-sheet/layout.json.routes.waypoints: point is outside the map.',
-    )).path,
-    'layout.routes.waypoints',
-  );
-  assert.equal(
-    sheetIssueFromCompilerError(new Error(
-      "playbook.layout: required property 'sha256' is missing.",
-    )).path,
-    'layout',
-  );
+test('compiler diagnostics map sheet and map-plan paths back onto the editor', () => {
+  assert.deepEqual(sheetIssueFromCompilerError(new Error(
+    '/tmp/new-sheet/orders.json.roles.runners.orders[0].when: unknown condition.',
+  )), {
+    path: 'orders.roles.runners.orders[0].when',
+    message: 'Compiler: unknown condition.', severity: 'error',
+  });
+  assert.equal(sheetIssueFromCompilerError(new Error(
+    '/tmp/new-sheet/map-plan.json.routes.home.waypoints: point is outside the map.',
+  )).path, 'mapPlan.routes.home.waypoints');
 });

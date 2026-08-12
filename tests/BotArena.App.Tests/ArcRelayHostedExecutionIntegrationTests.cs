@@ -63,16 +63,16 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
         Assert.Equal(31, catalog.Map.Width);
         Assert.Equal(27, catalog.Map.Height);
         TacticalStockSheetResponse stock = Assert.Single(catalog.StockOpponents);
-        Assert.Equal(ArcRelayEntrantPlaylistDefinition.StockSheetId, stock.Id);
+        Assert.Equal(ArcRelayEntrantPlaylistDefinition.OrdersStockSheetId, stock.Id);
 
         TacticalSheetResponse first = await SaveAsync(
             client,
             "First line",
-            catalog.TemplatePlaybookJson,
-            catalog.TemplateLayoutJson);
+            catalog.TemplateOrdersJson,
+            catalog.TemplateMapPlanJson);
         JsonObject counterPlan = JsonNode.Parse(
-            catalog.TemplatePlaybookJson)!.AsObject();
-        counterPlan["doctrines"]!["roles"]!["hunter"]!["conceal"] = true;
+            catalog.TemplateOrdersJson)!.AsObject();
+        counterPlan["roles"]![0]!["upgradePath"]![0] = "reach";
         TacticalSheetResponse second = await SaveAsync(
             client,
             "Counter line",
@@ -80,7 +80,7 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
             {
                 WriteIndented = true,
             }),
-            catalog.TemplateLayoutJson);
+            catalog.TemplateMapPlanJson);
         Assert.NotEqual(first.ContentHash, second.ContentHash);
 
         HttpResponseMessage queued = await client.PostAsJsonAsync(
@@ -131,7 +131,7 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
             {
                 Assert.Equal(owner.DisplayName, participant.OwnerDisplayNameSnapshot);
                 Assert.Equal(
-                    ArcRelayEntrantPlaylistDefinition.TacticalArtifactHash,
+                    ArcRelayEntrantPlaylistDefinition.OrdersTacticalArtifactHash,
                     participant.ArtifactHashSnapshot);
                 Assert.NotNull(participant.SheetIdSnapshot);
                 Assert.NotNull(participant.EntrantIdSnapshot);
@@ -197,7 +197,7 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
             value => Assert.Equal(first.ContentHash, value.GetProperty("mindDataHash").GetString()),
             value => Assert.Equal(second.ContentHash, value.GetProperty("mindDataHash").GetString()));
         Assert.All(provenance, value => Assert.Equal(
-            ArcRelayEntrantPlaylistDefinition.TacticalArtifactHash,
+            ArcRelayEntrantPlaylistDefinition.OrdersTacticalArtifactHash,
             value.GetProperty("artifactHash").GetString()));
         Assert.Equal(replayHash, replay.RootElement.GetProperty("replayHash").GetString());
 
@@ -359,16 +359,16 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
     private static async Task<TacticalSheetResponse> SaveAsync(
         HttpClient client,
         string name,
-        string playbookJson,
-        string layoutJson)
+        string ordersJson,
+        string mapPlanJson)
     {
         HttpResponseMessage response = await client.PostAsJsonAsync(
             "/api/sheets",
             new SaveTacticalSheetRequest(
                 name,
                 ExpectedRevision: null,
-                playbookJson,
-                layoutJson,
+                ordersJson,
+                mapPlanJson,
                 EnterLadder: true));
         response.EnsureSuccessStatusCode();
         return Assert.IsType<TacticalSheetResponse>(

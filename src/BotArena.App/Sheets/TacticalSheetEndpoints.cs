@@ -60,8 +60,8 @@ public static class TacticalSheetEndpoints
                     value.Fantasy,
                     value.Starter,
                     unlocked.Contains(value.Id))).ToArray(),
-                templates.Template.PlaybookJson,
-                templates.Template.LayoutJson,
+                templates.Template.OrdersJson,
+                templates.Template.MapPlanJson,
                 templates.Stock.Select(value => new TacticalStockSheetResponse(
                     value.Id,
                     value.Name,
@@ -143,8 +143,8 @@ public static class TacticalSheetEndpoints
             try
             {
                 compiled = compiler.Compile(
-                    request.PlaybookJson,
-                    request.LayoutJson,
+                    request.OrdersJson,
+                    request.MapPlanJson,
                     await entitlements.UnlockedAsync(userId, cancellationToken),
                     "new-sheet");
             }
@@ -184,8 +184,8 @@ public static class TacticalSheetEndpoints
                 Id = id,
                 OwnerUserId = userId,
                 Name = name,
-                PlaybookJson = request.PlaybookJson,
-                LayoutJson = request.LayoutJson,
+                PlaybookJson = request.OrdersJson,
+                LayoutJson = request.MapPlanJson,
                 ContentHash = compiled.ContentHash,
                 CreatedAt = now,
                 UpdatedAt = now,
@@ -262,8 +262,8 @@ public static class TacticalSheetEndpoints
             try
             {
                 compiled = compiler.Compile(
-                    request.PlaybookJson,
-                    request.LayoutJson,
+                    request.OrdersJson,
+                    request.MapPlanJson,
                     await entitlements.UnlockedAsync(userId, cancellationToken),
                     $"{sheet.Id}:r{sheet.Revision + 1}");
             }
@@ -295,8 +295,8 @@ public static class TacticalSheetEndpoints
             DateTime now = timeProvider.GetUtcNow().UtcDateTime;
             sheet.Name = entrant.Name = name;
             sheet.Revision++;
-            sheet.PlaybookJson = request.PlaybookJson;
-            sheet.LayoutJson = request.LayoutJson;
+            sheet.PlaybookJson = request.OrdersJson;
+            sheet.LayoutJson = request.MapPlanJson;
             sheet.ContentHash = compiled.ContentHash;
             sheet.UpdatedAt = entrant.UpdatedAt = now;
             entrant.LadderOptedIn = enterLadder;

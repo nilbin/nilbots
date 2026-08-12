@@ -24,6 +24,38 @@ what a change does, never as a balance measurement.
 - Commit as work stabilizes. Finish with a clean tree and cite the final SHA.
 - Deliver review through a public Cloudflare URL. Localhost is not delivery.
 
+## Keep review and promotion separate
+
+The default workflow is a **design review**, not a hosted promotion. A public
+gallery is disposable evidence and does not need release-grade packaging.
+
+During the fast design loop:
+
+- run mind sources in-process through `scripts/arc-relay-exhibit.sh`;
+- do **not** build or copy `bot.wasm`, update a build receipt, mint a frozen
+  stock directory, bump a playlist/rating era/CLI version, regenerate clients,
+  or run a release workflow;
+- leave tracked WASM and immutable playlist definitions untouched. A branch
+  whose mind source has moved is a review candidate, not merge-ready product;
+- run focused compiler/runtime tests for the mechanism under review. Do not run
+  the full solution, WASM parity, PostgreSQL, production web build, or release
+  gauntlet merely to refresh gameplay replays;
+- use one or two targeted exhibit cells while diagnosing. Build the standard
+  six-cell exhibit once the behavior is ready for the owner to watch;
+- reuse the published CLI and existing viewer. The exhibit script republishes
+  its local CLI cache when `src/` is newer; that is a local iteration build,
+  not a product release. Rebuild the viewer only when viewer code/assets moved.
+
+Enter the **promotion gate** only when the owner explicitly asks to merge,
+promote, host, rank, freeze, or release the candidate, or when the task itself
+is about WASM/determinism. Then reconcile tracked artifacts through the
+controlled WASM build, prove in-process/WASM gameplay parity, mint immutable
+artifact and playlist versions as required, decide rating continuity from
+evidence, bump compatibility versions, and run the applicable full suites.
+
+Do not infer promotion from “show me,” “try it,” “gallery,” or approval of the
+gameplay idea. Promotion approval is a separate product decision.
+
 ## Fast exhibit loop
 
 Use the standard review cells in this order:
@@ -60,6 +92,9 @@ The published CLI is cached at `$BATTERY_OUT/botarena-pub`:
   before the next exhibit;
 - after changing only `arena-bots/`, keep it—the mind compiles in-process per
   match.
+
+That in-process compilation is intentional. Never replace it with a controlled
+WASM build merely to make a review gallery.
 
 Never edit inputs while the script is between `running ...` and completion.
 

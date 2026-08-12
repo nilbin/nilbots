@@ -1,0 +1,83 @@
+{
+  "schema": "arc-relay-tactical-layout-v1",
+  "layoutId": "starter-tapline-v1",
+  "mapId": "arc-relay-tapline-01",
+  "bindings": [
+    {
+      "matchContractFingerprint": "any-composition",
+      "ownReactorSide": "west",
+      "transform": "identity",
+      "routeAliases": {}
+    },
+    {
+      "matchContractFingerprint": "any-composition",
+      "ownReactorSide": "east",
+      "transform": "rotate-180",
+      "routeAliases": {}
+    }
+  ],
+  "zones": [
+    {
+      "zoneId": "midfield",
+      "rect": [
+        9,
+        8,
+        21,
+        18
+      ]
+    }
+  ],
+  "routes": [
+    {
+      "routeId": "home-circuit",
+      "waypoints": [
+        [
+          7,
+          9
+        ],
+        [
+          9,
+          9
+        ],
+        [
+          12,
+          9
+        ],
+        [
+          12,
+          12
+        ],
+        [
+          10,
+          14
+        ],
+        [
+          7,
+          13
+        ],
+        [
+          5,
+          13
+        ],
+        [
+          4,
+          11
+        ],
+        [
+          7,
+          9
+        ]
+      ],
+      "corridorWidth": 1
+    }
+  ],
+  "anchors": [
+    {
+      "anchorId": "home-gate",
+      "position": [
+        7,
+        9
+      ]
+    }
+  ]
+}

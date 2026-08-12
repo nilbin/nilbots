@@ -19,20 +19,21 @@ import {
 } from './src/site/review/routes';
 
 const SITE_REVIEW_HEADER = 'x-nilbots-site-review';
+const REVIEW_SHEET_ID = '74000000-0000-4000-8000-000000000001';
 const sourceReplay = readFileSync(
   new URL('./tests/fixtures/golden-replay.json', import.meta.url),
   'utf8',
 ).trim();
 const taplineTemplatePlaybook = readFileSync(
   new URL(
-    '../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/playbooks/hunter-tapline-v1.json',
+    '../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/playbooks/starter-tapline-v2.json',
     import.meta.url,
   ),
   'utf8',
 ).trim();
 const taplineTemplateLayout = readFileSync(
   new URL(
-    '../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/layouts/tapline-base-v1.json',
+    '../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/map-plans/starter-tapline-v2.json',
     import.meta.url,
   ),
   'utf8',
@@ -81,6 +82,7 @@ const launchedMatchReplay = makeLiveReviewReplay(sourceReplay, [
  * browser entry point imports it, so a production build cannot silently acquire fixtures.
  */
 function siteReviewApi(): Plugin {
+  let savedSheet: ReviewSheet | null = null;
   const middleware: Connect.NextHandleFunction = (request, response, next) => {
     const requestUrl = request.url ?? '/';
     const url = new URL(requestUrl, 'http://nilbots.site-review');
@@ -108,7 +110,19 @@ function siteReviewApi(): Plugin {
       return;
     }
 
-    const sheetReview = sheetReviewResponse(request.method, url);
+    const sheetMutation = sheetReviewMutation(request.method, url);
+    if (sheetMutation !== null) {
+      void handleSheetReviewMutation(
+        request,
+        response,
+        sheetMutation,
+        savedSheet,
+        (sheet) => { savedSheet = sheet; },
+      );
+      return;
+    }
+
+    const sheetReview = sheetReviewResponse(request.method, url, savedSheet);
     if (sheetReview !== undefined) {
       sendJson(response, 200, sheetReview);
       return;
@@ -189,10 +203,172 @@ function siteReviewApi(): Plugin {
   };
 }
 
-function sheetReviewResponse(method: string | undefined, url: URL): unknown {
+interface ReviewSheet {
+  id: string;
+  name: string;
+  revision: number;
+  contentHash: string;
+  createdAt: string;
+  updatedAt: string;
+  ordersJson: string;
+  mapPlanJson: string;
+  entrant: Record<string, unknown>;
+}
+
+type SheetReviewMutation = 'create' | 'update' | 'trial';
+
+function sheetReviewMutation(
+  method: string | undefined,
+  url: URL,
+): SheetReviewMutation | null {
+  if (url.search !== '') return null;
+  const verb = method?.toUpperCase();
+  if (verb === 'POST' && url.pathname === '/api/sheets') return 'create';
+  if (verb === 'PUT' && url.pathname === `/api/sheets/${REVIEW_SHEET_ID}`) {
+    return 'update';
+  }
+  if (
+    verb === 'POST' &&
+    url.pathname === `/api/sheets/${REVIEW_SHEET_ID}/trial`
+  ) {
+    return 'trial';
+  }
+  return null;
+}
+
+async function handleSheetReviewMutation(
+  request: Parameters<Connect.NextHandleFunction>[0],
+  response: Parameters<Connect.NextHandleFunction>[1],
+  mutation: SheetReviewMutation,
+  savedSheet: ReviewSheet | null,
+  save: (sheet: ReviewSheet) => void,
+) {
+  try {
+    const body = await readJsonRequest(request);
+    if (mutation === 'trial') {
+      if (savedSheet === null || !isRecord(body)) {
+        throw new Error('A saved review sheet and trial body are required.');
+      }
+      response.setHeader('x-nilbots-site-review-simulated', 'sheet-trial');
+      sendJson(response, 200, { id: REVIEW_LAUNCHED_MATCH_ID });
+      return;
+    }
+    if (!isRecord(body)) throw new Error('The sheet body must be an object.');
+    const name = body.name;
+    const ordersJson = body.ordersJson;
+    const mapPlanJson = body.mapPlanJson;
+    if (
+      typeof name !== 'string' ||
+      typeof ordersJson !== 'string' ||
+      typeof mapPlanJson !== 'string'
+    ) {
+      throw new Error('Name, ordersJson and mapPlanJson are required.');
+    }
+    const now = new Date().toISOString();
+    const revision = mutation === 'update' ? (savedSheet?.revision ?? 0) + 1 : 1;
+    const contentHash = createHash('sha256')
+      .update(ordersJson)
+      .update('\0')
+      .update(mapPlanJson)
+      .digest('hex');
+    const next: ReviewSheet = {
+      id: REVIEW_SHEET_ID,
+      name,
+      revision,
+      contentHash,
+      createdAt: savedSheet?.createdAt ?? now,
+      updatedAt: now,
+      ordersJson,
+      mapPlanJson,
+      entrant: reviewSheetEntrant(
+        name,
+        revision,
+        contentHash,
+        ordersJson,
+        body.enterLadder !== false,
+      ),
+    };
+    save(next);
+    response.setHeader('x-nilbots-site-review-simulated', 'sheet-save');
+    sendJson(response, 200, next);
+  } catch (error) {
+    response.setHeader('x-nilbots-site-review-error', 'invalid-sheet-review-body');
+    sendJson(response, 400, {
+      type: 'about:blank',
+      title: 'Invalid review sheet request',
+      status: 400,
+      detail: error instanceof Error ? error.message : 'Invalid request.',
+    });
+  }
+}
+
+function reviewSheetEntrant(
+  name: string,
+  revision: number,
+  contentHash: string,
+  ordersJson: string,
+  ladderOptedIn: boolean,
+): Record<string, unknown> {
+  const source = JSON.parse(ordersJson) as {
+    roles?: Array<{ classes?: string[] }>;
+  };
+  const classIds = source.roles?.flatMap((role) => role.classes ?? []) ?? [];
+  const classNames = new Map(
+    taplineReviewCatalog.classes.map((entry) => [entry.id, entry.name]),
+  );
+  return {
+    id: REVIEW_SHEET_ID,
+    kind: 'sheet',
+    name,
+    ownerDisplayName: 'you',
+    revision,
+    crest: {
+      key: 'review-orders-v2',
+      variant: 0,
+      shape: 'shield',
+      pattern: 'split',
+      mark: 'relay',
+      primary: '#d47a39',
+      secondary: '#241914',
+      detail: '#efc08f',
+    },
+    composition: classIds.map((classId, slot) => ({
+      slot,
+      classId,
+      className: classNames.get(classId) ?? classId,
+      lookId: `arc-${classId}`,
+    })),
+    rating: 1000,
+    rankedMatches: 0,
+    ladderOptedIn,
+    status: 'ready',
+    suspensionReason: null,
+    suspensionMatchId: null,
+    artifactHash: null,
+    contentHash,
+    isOwner: true,
+  };
+}
+
+function sheetReviewResponse(
+  method: string | undefined,
+  url: URL,
+  savedSheet: ReviewSheet | null,
+): unknown {
   if (method?.toUpperCase() !== 'GET' || url.search !== '') return undefined;
   if (url.pathname === '/api/sheets/catalog') return taplineReviewCatalog;
-  if (url.pathname === '/api/sheets') return [];
+  if (url.pathname === '/api/sheets') {
+    return savedSheet === null ? [] : [{
+      id: savedSheet.id,
+      name: savedSheet.name,
+      revision: savedSheet.revision,
+      contentHash: savedSheet.contentHash,
+      createdAt: savedSheet.createdAt,
+      updatedAt: savedSheet.updatedAt,
+      entrant: savedSheet.entrant,
+    }];
+  }
+  if (url.pathname === `/api/sheets/${REVIEW_SHEET_ID}`) return savedSheet;
   if (url.pathname === '/api/arc-relay/entrants') return [];
   if (url.pathname === '/api/arc-relay/seasons/current') {
     return {
@@ -217,8 +393,8 @@ function sheetReviewResponse(method: string | undefined, url: URL): unknown {
 }
 
 function makeTaplineReviewCatalog(
-  templatePlaybookJson: string,
-  templateLayoutJson: string,
+  templateOrdersJson: string,
+  templateMapPlanJson: string,
 ) {
   const classes = [
     ['kestrel', 'Kestrel', 'Vector Dash', 'Rapid interceptor built to abandon one lane and answer another.'],
@@ -249,17 +425,17 @@ function makeTaplineReviewCatalog(
   }));
   return {
     playlistKey: 'arc-relay-entrants',
-    playlistVersionId: '73000000-0000-4000-8000-000000000019',
+    playlistVersionId: '73000000-0000-4000-8000-000000000020',
     map: makeTaplineReviewMap(),
     slotCount: 8,
     maximumCopiesPerClass: 2,
     classes,
-    templatePlaybookJson,
-    templateLayoutJson,
+    templateOrdersJson,
+    templateMapPlanJson,
     stockOpponents: [{
-      id: 'wellwright-v1',
-      name: 'Wellwright v1',
-      description: 'The Tapline stock entrant: races all three Wells with independently authored hauler and support ladders.',
+      id: 'wellwright-v2',
+      name: 'Wellwright v2',
+      description: 'The Tapline stock opponent works all three Wells and explicitly returns every carried Core.',
       composition: ['kestrel', 'patchbay', 'relay', 'longshot', 'longshot', 'towline', 'towline', 'mason'],
     }],
   };
