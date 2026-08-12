@@ -27,6 +27,16 @@ and publish the permanent gallery only for a frozen promotion candidate or a
 change to viewer code/assets. Do not turn every replay refresh into a release
 gauntlet.
 
+For repeated screenshots of one build and replay, group frames by render
+profile. Load one page per profile, wait for all models once, pause, then seek
+and capture every required tick without reloading the page. Keep baseline and
+candidate inputs pinned to the same replay, viewport, camera, renderer, and
+ticks. Mount desktop and mobile separately because the render profile is fixed
+at viewer startup; reuse one browser context when a query override can select
+the profile so both pages share the HTTP cache. On a retry, capture only missing
+or failed frame IDs and retain already successful pinned frames. Never start a
+fresh browser context merely to capture another tick.
+
 The same boundary applies to gameplay artifacts: ordinary review runs mind
 sources in-process. Do not rebuild tracked WASM, mint a stock artifact or
 playlist, reset ratings, or bump release versions until the owner explicitly
