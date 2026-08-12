@@ -13,6 +13,14 @@ The implementation target is the WebGL 3D renderer. It does not animate bones
 or infer movable mesh parts. It animates reusable renderer primitives, material
 parameters, and whole bodies only where the replay already changes their pose.
 
+At the normal Tapline camera, every owned row is expected to read as the same
+effect shown here: the same dominant silhouette, spatial hierarchy, three-beat
+story, matte material family, and controlled emission. Offline-rendered
+volumetrics and micro-surface detail are not the target. Smoke is the largest
+approximation; it becomes a small set of stylized low volumes rather than a
+ray-traced cloud. The complete effect-by-effect fidelity and capture gate lives
+in `PRESENTATION-FRAMEWORK.md`.
+
 The current timing is not uniformly ready for these storyboards. The batch now
 starts with the full audit in `SIGNATURE-TIMING-AUDIT.md`: four signatures get
 new, fingerprinted Tapline vNext timing before presentation is finalized, while
@@ -104,30 +112,44 @@ The accepted `level-up` SFX remains unchanged.
 
 ## Implementation shape after approval
 
-1. Implement and prove the four-change Tapline vNext mechanics package in
+1. Establish the typed extension framework in `PRESENTATION-FRAMEWORK.md`:
+   extract signature handlers without changing historical behavior, split the
+   renderer into shared primitives and discoverable presentation modules,
+   version replay presentation, and add end-to-end coverage tests.
+2. Implement and prove the four-change Tapline vNext mechanics package in
    `SIGNATURE-TIMING-AUDIT.md`, minting new grammar/profile fingerprints while
    preserving historical Tapline bytes.
-2. Split the current generic signature rig into shared pooled primitives and
-   per-signature painters. Add a replay-fact index for discrete resolve beats.
 3. Implement the fourteen treatments above and compact Canvas truth markers,
    including honest compatibility behavior for grammar-2 replays.
-4. Add sixteen class-projectile look folders and map every Arc class away from
-   the shared `arc-pulse` fallback.
+4. Add sixteen class-projectile look folders and snapshot every Arc form's exact
+   projectile identity instead of maintaining a renderer fallback table.
 5. Add the fact-driven level-up transient beside the existing chevron system.
 6. Generate and integrate the approved six-source signature audio set, then
    apply sparse tick mixing and the strict comfort gate.
 7. Exercise real Tapline replays at normal overview, phone landscape, pause,
-   seek, and reduced-motion settings; update tests and capture proof.
+   seek, and reduced-motion settings; capture every start/action/resolve row
+   beside its concept reference.
+8. Promote the approved framework and mechanics decisions into the canonical
+   visual, Arc Relay, audio, replay, and class/signature extension docs.
 
-Engine and replay-contract work is limited to the reviewed four-change vNext
-package. The implementation will not change map geometry, music, historical
-profiles, frozen hosted artifacts, or the model agent's Trip Node/Sentinel Seed
-model/material files.
+Gameplay-changing Engine work is limited to the reviewed four-change vNext
+package. The batch also includes a behavior-preserving signature-handler
+extraction and optional replay presentation-package metadata; those must leave
+historical mechanics and component fingerprints unchanged. The implementation
+will not change map geometry, music, historical profiles, frozen hosted
+artifacts, or the model agent's Trip Node/Sentinel Seed model/material files.
 
 ## Verification gates
 
 - Every one of the 14 owned signature IDs has an explicit renderer treatment
   and an authoritative trigger test.
+- Every engine launch class has exactly one catalog record, signature, action,
+  replay form presentation, class look, and regular-attack projectile.
+- Every signature kind has exactly one typed mechanics handler, metadata entry,
+  canonical writer/reader path, WebGL presentation definition, and audio
+  binding or explicit silence.
+- A deliberately unknown presentation package/signature produces a truthful
+  generic phase/footprint marker and never crashes playback.
 - Historical grammar-2 replays retain byte-compatible rules and render without
   invented vNext anticipation or travel.
 - Null Field, Target Paint, and Kinetic Burst each expose a real response move;
@@ -146,5 +168,7 @@ model/material files.
   sixteen-body Tapline fight.
 - Reduced motion shortens wakes/arcs and removes decorative drift while keeping
   telegraphs, targets, capacity, and outcomes readable.
+- Fixed-camera real-replay captures retain every board row's dominant
+  silhouette and three-beat story at thumbnail and gameplay scale.
 - The complete audio pack passes the comfort and crowded-mix checks in
   `AUDIO-CUE-PROPOSAL.md`.

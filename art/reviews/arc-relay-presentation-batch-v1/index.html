@@ -98,7 +98,7 @@
     }
     .scope {
       display: grid;
-      grid-template-columns: repeat(5, 1fr);
+      grid-template-columns: repeat(6, 1fr);
       gap: 10px;
       margin-top: 38px;
     }
@@ -211,6 +211,85 @@
     }
     .principle h3 { margin: 0 0 7px; font-size: 18px; }
     .principle p { margin: 0; color: var(--muted); font-size: 14px; }
+    .fidelity-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+    .fidelity-card {
+      min-height: 185px;
+      padding: 22px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel);
+    }
+    .fidelity-card.guaranteed { border-color: rgba(149, 183, 159, .3); }
+    .fidelity-card.approximate { border-color: rgba(210, 164, 92, .34); }
+    .fidelity-card.forbidden { border-color: rgba(207, 128, 105, .3); }
+    .fidelity-card small {
+      color: var(--dim);
+      font-weight: 800;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+    .fidelity-card h3 { margin: 9px 0 8px; font-size: 19px; }
+    .fidelity-card p { margin: 0; color: var(--muted); font-size: 13px; }
+    .fidelity-verdict {
+      margin-top: 11px;
+      padding: 18px;
+      border: 1px solid rgba(127, 201, 209, .25);
+      border-radius: var(--radius);
+      background: rgba(16, 42, 48, .34);
+      color: #c4d5d7;
+      font-size: 14px;
+    }
+    .contract-flow {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 9px;
+    }
+    .flow-step {
+      position: relative;
+      min-height: 150px;
+      padding: 19px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(145deg, rgba(16, 42, 48, .23), transparent 62%),
+        var(--panel);
+    }
+    .flow-step:not(:last-child)::after {
+      content: '→';
+      position: absolute;
+      z-index: 2;
+      right: -15px;
+      top: 64px;
+      width: 20px;
+      color: var(--brass);
+      text-align: center;
+      font-size: 19px;
+    }
+    .flow-step small {
+      color: var(--brass);
+      font-weight: 800;
+      letter-spacing: .1em;
+    }
+    .flow-step h3 { margin: 12px 0 7px; font-size: 16px; }
+    .flow-step p { margin: 0; color: var(--muted); font-size: 12px; }
+    .framework-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-top: 20px;
+    }
+    .framework-card {
+      padding: 20px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel);
+    }
+    .framework-card h3 { margin: 0 0 7px; font-size: 17px; }
+    .framework-card p { margin: 0; color: var(--muted); font-size: 13px; }
     .timing-summary {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -409,7 +488,16 @@
       .metric { min-height: 104px; padding: 16px; }
       .section-head { grid-template-columns: 1fr; gap: 12px; }
       section { padding-top: 58px; }
-      .principles, .timing-summary, .mechanics-grid, .audio-voices { grid-template-columns: 1fr; }
+      .principles, .fidelity-grid, .timing-summary, .mechanics-grid,
+      .contract-flow, .framework-grid, .audio-voices { grid-template-columns: 1fr; }
+      .flow-step { min-height: auto; }
+      .flow-step:not(:last-child)::after {
+        content: '↓';
+        right: auto;
+        left: 24px;
+        top: auto;
+        bottom: -17px;
+      }
       .voice, .voice:nth-child(3n), .voice:nth-last-child(-n + 3) {
         border-right: 0;
         border-bottom: 1px solid var(--line);
@@ -434,7 +522,9 @@
       <div class="brand">Nilbots / Tapline</div>
       <nav aria-label="Gallery sections">
         <a href="#language">Language</a>
+        <a href="#fidelity">Fidelity</a>
         <a href="#timing">Timing</a>
+        <a href="#framework">Framework</a>
         <a href="#signatures">Signatures</a>
         <a href="#projectiles">Projectiles</a>
         <a href="#sound">Sound</a>
@@ -447,22 +537,25 @@
     <div class="eyebrow">Concept approval · presentation batch v1</div>
     <h1>Readable machinery in a quiet orbital arena.</h1>
     <p class="lede">A complete visual and audio direction for signature skills,
-      class attack heads, level-up, and the mechanics timing needed to make
-      those commitments honest—not generic spectacle.</p>
+      class attack heads, level-up, and the mechanics timing and extension
+      framework needed to make those commitments honest—not generic spectacle.</p>
 
     <div class="scope" aria-label="Batch scope">
       <div class="metric"><b>14</b><span>signature VFX owned by this batch</span></div>
       <div class="metric"><b>16</b><span>class-specific regular attack heads</span></div>
       <div class="metric"><b>1</b><span>fact-driven level-up animation</span></div>
+      <div class="metric"><b>1</b><span>typed class/signature extension path</span></div>
       <div class="metric"><b>4</b><span>proposed Tapline vNext timing changes</span></div>
       <div class="metric"><b>≤6</b><span>private SFX Engine source calls</span></div>
     </div>
     <div class="guardrail">
       <strong>Versioned, not retroactive.</strong>
       <span>Four exact signature timing changes mint a new Tapline profile.
-        Historical Tapline rules and replays remain immutable. No map, damage,
-        healing, Core custody, music, or ambience changes. Trip Node and Sentinel
-        Seed assets remain with the 3D model agent.</span>
+        Historical Tapline rules and replays remain immutable. The framework
+        consolidates registration and proof; it does not turn unique mechanics
+        into loose data. No map, damage, healing, Core custody, music, or
+        ambience changes. Trip Node and Sentinel Seed assets remain with the 3D
+        model agent.</span>
     </div>
   </header>
 
@@ -493,6 +586,43 @@
             stay compact and share one quiet release voice when fights stack.</p>
         </article>
       </div>
+    </section>
+
+    <section id="fidelity">
+      <div class="section-head">
+        <h2>Close where it counts.</h2>
+        <p>Yes: the WebGL renderer can make every owned row recognizably the same
+          effect at the Tapline gameplay camera. The promise is perceptual and
+          testable, not pixel-identical to an offline illustration.</p>
+      </div>
+      <div class="fidelity-grid">
+        <article class="fidelity-card guaranteed">
+          <small>Held exact</small>
+          <h3>The gameplay read</h3>
+          <p>Dominant silhouette, direction, exact footprint, target hierarchy,
+            start/action/resolve timing, matte material family, and controlled
+            colour/emission survive into the runtime capture.</p>
+        </article>
+        <article class="fidelity-card approximate">
+          <small>Approximated deliberately</small>
+          <h3>The cinematic finish</h3>
+          <p>Smoke softness, cable curvature, very soft shadowing, bloom, and tiny
+            surface detail use efficient pooled geometry and shaders. Smoke is the
+            one medium-high-confidence row; the others are high confidence.</p>
+        </article>
+        <article class="fidelity-card forbidden">
+          <small>Never traded away</small>
+          <h3>The truth of the match</h3>
+          <p>No duplicate bodies or Core, future-pose anticipation, invented
+            collision, lingering active-looking geometry, camera shake, or bright
+            fight-wide flash is allowed to improve resemblance.</p>
+        </article>
+      </div>
+      <div class="fidelity-verdict"><strong>Approval proof:</strong> each treatment
+        gets a fixed-camera real-Tapline start/action/resolve capture beside its
+        storyboard row. It must retain the shape at 25% thumbnail scale, read in an
+        8v8 overlap, seek deterministically, and pass phone/reduced-motion budgets.
+        See <a href="PRESENTATION-FRAMEWORK.md">the full effect-by-effect fidelity contract</a>.</div>
     </section>
 
     <section id="timing">
@@ -584,6 +714,32 @@
         Hardlight Block retain same-tick projectile response; Trip Node remains a
         trap. Their first active frame must show the complete mechanical
         silhouette even while cosmetic material settling continues.</div>
+    </section>
+
+    <section id="framework">
+      <div class="section-head">
+        <h2>One path from rules to spectacle.</h2>
+        <p>A new class or signature still gets explicit mechanics. The framework
+          gives every required layer one home and proves the entire chain is
+          covered before it can ship.</p>
+      </div>
+      <div class="contract-flow" aria-label="Class and signature extension flow">
+        <article class="flow-step"><small>01</small><h3>Typed handler</h3><p>Unique C# lifecycle code plus class/signature metadata and chronology tests.</p></article>
+        <article class="flow-step"><small>02</small><h3>Rules contract</h3><p>Stable ID, category, arguments, range, timing, and cooldown enter canonical rules.</p></article>
+        <article class="flow-step"><small>03</small><h3>Replay evidence</h3><p>Generic phase, positions, target, capacity, facts, and versioned presentation IDs.</p></article>
+        <article class="flow-step"><small>04</small><h3>Presentation module</h3><p>WebGL painter, Canvas truth marker, audio binding, reduced motion, and hard budget.</p></article>
+        <article class="flow-step"><small>05</small><h3>Proof</h3><p>Coverage, round-trip, seek, crowded Tapline, comfort, and concept-fidelity gates.</p></article>
+      </div>
+      <div class="framework-grid">
+        <article class="framework-card"><h3>Typed mechanics registry</h3><p>The current runtime switch is extracted into one handler per signature kind. The first pass preserves every historical byte and tick; the four approved vNext changes then land in their own handlers.</p></article>
+        <article class="framework-card"><h3>Discoverable presentation modules</h3><p>The WebGL style map and global painter branches become per-signature definitions built from a small pooled primitive kit. Unknown packages retain a generic truthful footprint fallback.</p></article>
+        <article class="framework-card"><h3>Manifest-owned class art</h3><p>Class look and projectile identity come from authored replay presentation and validated manifests. The sheet UI consumes the contract's signature ID instead of another hand-maintained class map.</p></article>
+        <article class="framework-card"><h3>Set-equality gates</h3><p>Tests enumerate launch classes and signature kinds across mechanics, catalog, replay, art, VFX, Canvas fallback, and audio. Known missing coverage fails loudly in the change that introduced it.</p></article>
+      </div>
+      <div class="note"><strong>Documentation is part of done:</strong> the
+        approved contract moves into Arena Visuals, Arc Relay, Audio Design,
+        replay documentation, and a concise end-to-end class/signature extension
+        guide. Tests enforce coverage; prose records why the boundaries exist.</div>
     </section>
 
     <section id="signatures">
@@ -702,13 +858,14 @@
           before the work is considered done.</p>
       </div>
       <div class="batch-grid">
-        <article class="batch-item"><div class="n">01</div><div><h3>Mechanics chronology</h3><p>Implement the four versioned timing changes, fingerprint Tapline vNext, and prove response, cancel, cooldown, and replay boundaries.</p></div></article>
-        <article class="batch-item"><div class="n">02</div><div><h3>Renderer primitives</h3><p>Pool low rings, brackets, pressure slabs, ribbons, panes, particles, and resolve beats. No per-frame asset churn.</p></div></article>
-        <article class="batch-item"><div class="n">03</div><div><h3>Fourteen signatures</h3><p>Replace generic rigs with the treatments above, bound to exact phases and facts with honest grammar-2 compatibility.</p></div></article>
-        <article class="batch-item"><div class="n">04</div><div><h3>Class attack heads</h3><p>Add sixteen valid SVG look folders and map every Arc class away from the shared Arc Pulse.</p></div></article>
-        <article class="batch-item"><div class="n">05</div><div><h3>Level-up beat</h3><p>Add the short brass transient around the persistent chevron, driven only by the level-up fact.</p></div></article>
-        <article class="batch-item"><div class="n">06</div><div><h3>Signature audio</h3><p>Generate six private sources only after timing stabilizes, derive restrained deliveries, and keep ordinary attacks shared.</p></div></article>
-        <article class="batch-item"><div class="n">07</div><div><h3>Tapline proof</h3><p>Mechanics exhibits, overview, phone landscape, pause/seek, reduced motion, crowd performance, and whole-pack ear-safety audit.</p></div></article>
+        <article class="batch-item"><div class="n">01</div><div><h3>Extension foundation</h3><p>Extract typed signature handlers, add presentation-package versioning, discoverable modules, and complete set-coverage gates without changing historical play.</p></div></article>
+        <article class="batch-item"><div class="n">02</div><div><h3>Mechanics chronology</h3><p>Implement the four versioned timing changes, fingerprint Tapline vNext, and prove response, cancel, cooldown, and replay boundaries.</p></div></article>
+        <article class="batch-item"><div class="n">03</div><div><h3>Renderer primitives</h3><p>Pool low rings, brackets, pressure slabs, ribbons, panes, particles, and resolve beats. No per-frame asset churn.</p></div></article>
+        <article class="batch-item"><div class="n">04</div><div><h3>Fourteen signatures</h3><p>Build the treatments above as individual modules, bound to exact phases and facts with honest historical compatibility.</p></div></article>
+        <article class="batch-item"><div class="n">05</div><div><h3>Class attack heads</h3><p>Add sixteen valid SVG look folders and snapshot every Arc form's exact projectile identity.</p></div></article>
+        <article class="batch-item"><div class="n">06</div><div><h3>Level-up beat</h3><p>Add the short brass transient around the persistent chevron, driven only by the level-up fact.</p></div></article>
+        <article class="batch-item"><div class="n">07</div><div><h3>Signature audio</h3><p>Generate six private sources only after timing stabilizes, derive restrained deliveries, and keep ordinary attacks shared.</p></div></article>
+        <article class="batch-item"><div class="n">08</div><div><h3>Proof + canonical docs</h3><p>Mechanics exhibits, storyboard capture pairs, phone, pause/seek, reduced motion, crowd performance, ear safety, and the permanent extension guide.</p></div></article>
       </div>
     </section>
 
@@ -746,19 +903,21 @@
       <div class="approval">
         <div class="eyebrow">Approval gate</div>
         <h2>Approve this direction, then the long-running implementation goal starts.</h2>
-        <p>Approval means the production corrections—not every literal generated
-          pixel—are the target. The implementation stays on <code>main</code>, commits
-          coherent checkpoints, and does not stop at “assets exist”: Tapline playback,
-          seeking, reduced motion, performance, and the strict whole-pack audio audit are
-          part of done.</p>
+        <p>Approval means the production corrections and gameplay-camera fidelity
+          contract—not every literal generated pixel—are the target. The
+          implementation stays on <code>main</code>, commits coherent checkpoints,
+          and does not stop at “assets exist”: the reusable extension framework,
+          canonical docs, Tapline playback, storyboard capture pairs, seeking,
+          reduced motion, performance, and strict whole-pack audio audit are part of done.</p>
         <div class="approval-list">
-          <div><strong>Included:</strong> four versioned timing changes, 14 signature treatments, 16 attack heads, level-up, signature SFX, tests, and review proof.</div>
+          <div><strong>Included:</strong> typed extension framework, canonical guide, four versioned timing changes, 14 signature treatments, 16 attack heads, level-up, signature SFX, tests, and review proof.</div>
           <div><strong>Provider cap:</strong> exactly six private SFX Engine generations; no automatic rerolls.</div>
           <div><strong>Held out:</strong> Trip Node and Sentinel Seed model assets and material work, owned by the 3D model agent; this batch still tests their timing compatibility.</div>
           <div><strong>Untouched:</strong> historical Tapline, map/pathing, damage, healing, Core custody, music, ambience, and frozen deployment artifacts.</div>
         </div>
         <div class="docs">
           <a href="CONCEPT-SPEC.md">Full concept spec</a>
+          <a href="PRESENTATION-FRAMEWORK.md">Framework + fidelity contract</a>
           <a href="SIGNATURE-TIMING-AUDIT.md">Timing + mechanics audit</a>
           <a href="AUDIO-CUE-PROPOSAL.md">Audio cue proposal</a>
           <a href="PROMPTS.md">Prompt provenance</a>

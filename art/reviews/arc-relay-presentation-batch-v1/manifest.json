@@ -12,6 +12,9 @@
   },
   "scope": {
     "ownedSignatureEffects": 14,
+    "typedMechanicsToPresentationFramework": true,
+    "canonicalClassAndSignatureExtensionGuide": true,
+    "endToEndCoverageGates": true,
     "classProjectileHeads": 16,
     "levelUpAnimations": 1,
     "maximumPrivateSfxEngineGenerationsAfterApproval": 6,
@@ -25,6 +28,14 @@
     "mechanicsProfile": "new-tapline-vnext-preserving-tapline-1",
     "ambientLoops": 0
   },
+  "documents": [
+    "README.md",
+    "CONCEPT-SPEC.md",
+    "PRESENTATION-FRAMEWORK.md",
+    "SIGNATURE-TIMING-AUDIT.md",
+    "AUDIO-CUE-PROPOSAL.md",
+    "PROMPTS.md"
+  ],
   "boards": [
     {
       "file": "01-high-impact-signatures.png",

@@ -9,6 +9,9 @@ Generated on 2026-08-12 from the `main` worktree at baseline `4aaf80cc`.
 
 - 14 renderer-authored signature effects, each driven only by replay-authored
   phases, positions, and facts.
+- A typed mechanics-to-presentation extension framework, exact coverage tests,
+  replay presentation versioning, and a canonical guide for adding another
+  class/signature without rediscovering every integration surface.
 - 16 class-specific regular-attack projectile heads, implemented as SVG masks
   that the WebGL renderer extrudes into compact 3D forms. No provider-made
   projectile models are required.
@@ -37,6 +40,10 @@ existing renderer integration follows the audited timing.
   never survives past its authoritative end.
 - No skeletal or part animation is assumed. Effects use pooled renderer
   geometry, material parameters, and already-authoritative whole-body poses.
+- Every current and future class/signature has one explicit mechanics,
+  replay-evidence, WebGL, Canvas fallback, audio, and asset registration path.
+  Missing coverage fails tests rather than silently falling back for a known
+  shipping class.
 - The WebGL 3D renderer is the quality target. Canvas keeps compact truthful
   parity and does not need the same ornament.
 - Regular attacks remain cosmetic projectile travel over the existing instant
@@ -61,10 +68,18 @@ corrections:
   the existing team-accent energy treatment and takes identity from silhouette
   and relief.
 
+The fidelity target is nevertheless concrete: at the normal Tapline gameplay
+camera, each owned treatment must retain the board's dominant silhouette,
+spatial hierarchy, three-beat story, matte material language, and restrained
+emission. `PRESENTATION-FRAMEWORK.md` records the effect-by-effect confidence,
+deliberate approximations, implementation seam, and capture acceptance gate.
+
 ## Files
 
 - `index.html` — mobile-friendly approval gallery.
 - `CONCEPT-SPEC.md` — exact signature, projectile, and level-up treatment.
+- `PRESENTATION-FRAMEWORK.md` — fidelity contract, typed extension architecture,
+  conformance gates, and the future class/signature checklist.
 - `AUDIO-CUE-PROPOSAL.md` — event mapping, six-call provider cap, and comfort
   gates.
 - `SIGNATURE-TIMING-AUDIT.md` — current timing reality, actionable-window
@@ -82,7 +97,7 @@ python3 scripts/serve-gallery.py 9093 --bind 127.0.0.1 \
   --directory art/reviews/arc-relay-presentation-batch-v1
 ```
 
-Approval of the whole batch authorizes the four-change Tapline vNext mechanics
-package, renderer work, and exactly six private SFX Engine generation jobs. It
-does not authorize automatic rerolls or deployment. Any seventh provider call
-requires a separate approval.
+Approval of the whole batch authorizes the framework/refactor, canonical
+documentation, four-change Tapline vNext mechanics package, renderer work, and
+exactly six private SFX Engine generation jobs. It does not authorize automatic
+rerolls or deployment. Any seventh provider call requires a separate approval.
