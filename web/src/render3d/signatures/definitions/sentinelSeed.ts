@@ -3,20 +3,25 @@ import { defineArcSignatureWebGLPainter } from '../types';
 import {
   hasConstructRemoval,
   paintPropFallback,
+  setEnergyColour,
   setEnergyOpacity,
   targetRing,
 } from '../primitives';
 
+const SEED = '#78aeb3';
+
 export default defineArcSignatureWebGLPainter({
   signatureId: 'sentinel-seed',
   paint({ rig, signature, points, time, phase, persistentPropReady, reducedMotion, phaseProgress, phaseAge }) {
-    paintPropFallback(
-      rig,
-      points,
-      time,
-      persistentPropReady,
-      new THREE.Vector3(0.38, 0.5, 0.38),
-    );
+    if (phase === 'active') {
+      paintPropFallback(
+        rig,
+        points,
+        time,
+        persistentPropReady,
+        new THREE.Vector3(0.38, 0.5, 0.38),
+      );
+    }
     const anchor = points[0];
     if (!anchor) return;
     const deploy = phase === 'tell'
@@ -27,14 +32,39 @@ export default defineArcSignatureWebGLPainter({
     targetRing(rig, anchor, 0.72 + (1 - deploy) * 0.18);
     setEnergyOpacity(rig.ring, 0.1);
     if (phase === 'tell') {
-      // The active Meshy sentry itself descends on deployment. During the public tell this
-      // small floor socket is the promise; an oversized procedural pod used to fall first
-      // and then be replaced by a second object rising from below.
+      // A small planted seed is the honest promise during wind-up. The active Meshy model
+      // then expands from this socket, which reads as transformation rather than a second
+      // unrelated object being dropped onto the tile.
       const socket = rig.rings[0]!;
       socket.visible = true;
       socket.position.copy(anchor).setY(0.052);
       socket.scale.setScalar(0.44 + phaseProgress * 0.12);
       setEnergyOpacity(socket, 0.14);
+      const seed = rig.pod;
+      seed.visible = true;
+      seed.position.copy(anchor).setY(0.12 + phaseProgress * 0.06);
+      seed.scale.set(
+        0.34 + phaseProgress * 0.08,
+        0.18 + phaseProgress * 0.08,
+        0.34 + phaseProgress * 0.08,
+      );
+      rig.solid.color.set('#4d5c60');
+      rig.solid.emissive.set(SEED);
+      rig.solid.emissiveIntensity = 0.05;
+      rig.solid.opacity = 0.9;
+      for (let index = 0; index < 3; index += 1) {
+        const mote = rig.particles[index]!;
+        const angle = index * Math.PI * 2 / 3 + phaseProgress * 0.8;
+        mote.visible = !reducedMotion;
+        mote.position.set(
+          anchor.x + Math.cos(angle) * (0.24 - phaseProgress * 0.08),
+          0.12 + phaseProgress * (0.16 + index * 0.035),
+          anchor.z + Math.sin(angle) * (0.24 - phaseProgress * 0.08),
+        );
+        mote.scale.setScalar(0.38);
+        setEnergyColour(mote, SEED);
+        setEnergyOpacity(mote, 0.1);
+      }
     }
     if (phase === 'active') {
       // The Meshy sentry is already the authored object. Three dim socket rails close
@@ -53,8 +83,22 @@ export default defineArcSignatureWebGLPainter({
         rail.scale.set(outer - inner, 1, 1.3);
         setEnergyOpacity(rail, 0.08);
       }
+      if (deploy < 1) {
+        const seedShell = rig.pod;
+        seedShell.visible = true;
+        seedShell.position.copy(anchor).setY(0.15 - deploy * 0.08);
+        seedShell.scale.set(
+          0.42 * (1 - deploy),
+          Math.max(0.035, 0.26 * (1 - deploy)),
+          0.42 * (1 - deploy),
+        );
+        rig.solid.color.set('#4d5c60');
+        rig.solid.emissive.set(SEED);
+        rig.solid.emissiveIntensity = 0.04;
+        rig.solid.opacity = 0.9 * (1 - deploy);
+      }
     }
-    const status = rig.rings[0]!;
+    const status = rig.rings[1]!;
     status.visible = true;
     status.position.copy(anchor).setY(0.055);
     status.scale.setScalar(0.62 + Math.sin(time * 0.65) * (reducedMotion ? 0 : 0.022));

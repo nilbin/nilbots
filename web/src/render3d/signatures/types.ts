@@ -103,9 +103,15 @@ export interface ArcSignatureOutcomePaintInput {
   priorSignature: ArcSignature | null;
   facts: readonly ArcSignatureOutcomeFact[];
   owner: THREE.Vector3 | undefined;
+  /** Current replay-derived pose of the affected body, when the outcome names one. */
+  target: THREE.Vector3 | undefined;
+  /** Prior operation target, retained across a one-shot launch/removal outcome. */
+  priorTarget: THREE.Vector3 | undefined;
   /** Replay-owned arena theme, identical to the one used by the static board. */
   arenaTheme: ArenaTheme;
   time: number;
+  /** Authoritative tick carrying these outcome facts. */
+  sourceTick: number;
   fraction: number;
   reducedMotion: boolean;
 }

@@ -474,6 +474,23 @@ load-failure, Canvas, and suppressed fallbacks remain procedural. The sentry's
 head may follow only an already observed authoritative shot. The other fourteen
 signatures use renderer primitives and need no skeletal or Meshy animation.
 
+WebGL treats Core custody as motion of the one authoritative sphere, never as a
+token swap. Pickup levitates the loose Core from its published position to the
+receiving hull; handoff travels between the source's before-tick and receiver's
+after-tick poses; drop descends from the source hull; bank arcs into the reactor
+and contracts into its socket. These transitions finish at the shared discrete
+state-settle boundary and are recomputed from replay facts on every frame.
+Arc Toss is the longer exception: the carried-height sphere follows its complete
+public in-flight interval and lands continuously at loose-Core height.
+
+Tractor Hook likewise preserves one causal object across its one-shot facts: the
+launch tick holds a latched cable at the published target, the following
+`body-relocated` tick attaches that cable to the target's interpolated replay
+pose, and then releases it. Its WebGL read deliberately has no circular spool or
+target ring. Sentinel Seed plants a compact procedural seed during the tell;
+when the replay says `active`, the authored sentry expands upward from floor
+contact while the seed shell contracts. Its existing recall exit is unchanged.
+
 An authoritative `leveled-up` fact also drives a bounded presentation beat: a
 thin brass floor ring, three short converging matte facets, then the persistent
 rules-owned chevron. Temporary geometry is gone by 1.8 presentation ticks; the

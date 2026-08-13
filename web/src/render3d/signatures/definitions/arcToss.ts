@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { defineArcSignatureWebGLPainter } from '../types';
 import {
+  easeInOutCubic,
   setEnergyColour,
   setEnergyOpacity,
   targetRing,
@@ -44,13 +45,15 @@ export default defineArcSignatureWebGLPainter({
       // The overlay owns and moves the one real Core. This painter adds a levitation
       // collar around that same derived flight position, never a second orb or full drawn
       // parabola. It reads even on a short toss without turning into a trajectory editor.
-      const p = coreFlight?.progress ?? 0;
+      const p = easeInOutCubic(coreFlight?.progress ?? 0);
       const flight = new THREE.Vector3().lerpVectors(source, destination, p);
-      flight.y = 0.42 + Math.sin(p * Math.PI) * 1.05;
+      // The Core leaves a carrier at carried height. Starting this collar near the floor
+      // was the small-circle prelude that visibly snapped into the later ballistic arc.
+      flight.y = 1.18 + Math.sin(p * Math.PI) * 0.94 - p * 0.78;
       const collar = rig.toruses[0]!;
       collar.visible = true;
       collar.position.copy(flight);
-      collar.scale.setScalar(0.32 + Math.sin(p * Math.PI) * 0.08);
+      collar.scale.setScalar(0.3 + Math.sin(p * Math.PI) * 0.06);
       setEnergyColour(collar, CORE_ARC);
       setEnergyOpacity(collar, 0.18);
       if (!reducedMotion) {

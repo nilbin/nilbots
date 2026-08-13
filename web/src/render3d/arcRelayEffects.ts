@@ -713,15 +713,25 @@ export function buildArcRelayEffects(
           ? 1
           : easeOutDeploy(Math.min(1, phaseAge / 0.9));
         const propScale = ARC_SIGNATURE_PROP_SCALE[signature.signatureId];
-        // Both props occupy one tile. The sentry arrives from above as requested; the mine
-        // remains a low device that settles through the floor. No extra placeholder body
-        // competes with the authored model during either deployment.
-        const fromY = signature.signatureId === 'sentinel-seed' ? 2.45 : -0.24;
+        // Trip Node settles up from below. Sentinel grows out of its planted seed/socket:
+        // the authored sentry never drops out of the sky, and its reveal expands upward
+        // from floor contact without requiring a skeletal morph.
+        const sentinel = signature.signatureId === 'sentinel-seed';
+        const fromY = sentinel ? 0 : -0.24;
         slot.group.position.copy(points[0]).setY(fromY * (1 - deploy));
-        const scaleSettle = reducedMotion
-          ? 1
-          : 1 + Math.sin(Math.PI * Math.min(1, phaseAge / 0.9)) * 0.06;
-        slot.group.scale.setScalar(propScale * scaleSettle);
+        if (sentinel) {
+          const width = 0.3 + deploy * 0.7;
+          slot.group.scale.set(
+            propScale * width,
+            propScale * Math.max(0.045, deploy),
+            propScale * width,
+          );
+        } else {
+          const scaleSettle = reducedMotion
+            ? 1
+            : 1 + Math.sin(Math.PI * Math.min(1, phaseAge / 0.9)) * 0.06;
+          slot.group.scale.setScalar(propScale * scaleSettle);
+        }
         const propYaw =
           signature.signatureId === 'sentinel-seed'
             ? latestObservedSignatureYaw(
@@ -740,12 +750,8 @@ export function buildArcRelayEffects(
           deploy,
         );
         slot.pipGroup.visible = true;
-        slot.pipGroup.position.copy(points[0]).setY(
-          signature.signatureId === 'sentinel-seed'
-            ? fromY * (1 - deploy)
-            : 0,
-        );
-        slot.pipGroup.scale.setScalar(propScale);
+        slot.pipGroup.position.copy(points[0]);
+        slot.pipGroup.scale.setScalar(propScale * (sentinel ? deploy : 1));
         const pipOwner = replay.units.find(
           (unit) => unit.teamId === signature.ownerTeamId,
         );
@@ -796,7 +802,7 @@ export function buildArcRelayEffects(
     }
 
     for (const outcome of signatureOutcomesAt(signatureOutcomes, time)) {
-      const { operationId, facts, fraction, priorSignature } = outcome;
+      const { operationId, facts, fraction, priorSignature, sourceTick } = outcome;
       const first = facts[0]!;
       const resolution = resolveArcSignaturePresentation(
         replay,
@@ -841,6 +847,12 @@ export function buildArcRelayEffects(
       const ownerPose = poses.find(
         (pose) => pose.actorKey === first.ownerActor.actorKey,
       );
+      const outcomeTargetActor = facts.find(
+        (fact) => 'targetActor' in fact,
+      )?.targetActor ?? priorSignature?.targetActor;
+      const outcomeTargetPose = outcomeTargetActor
+        ? poses.find((pose) => pose.actorKey === outcomeTargetActor.actorKey)
+        : undefined;
       painter.paintOutcome({
         rig,
         signatureId: first.signatureId,
@@ -851,8 +863,27 @@ export function buildArcRelayEffects(
           : priorSignature?.positions[0]
             ? worldPoint(priorSignature.positions[0])
             : undefined,
+        target: outcomeTargetPose
+          ? new THREE.Vector3(
+              outcomeTargetPose.x + 0.5,
+              0.08,
+              outcomeTargetPose.y + 0.5,
+            )
+          : undefined,
+        priorTarget: priorSignature?.targetActor
+          ? (() => {
+              const pose = poses.find(
+                (candidate) =>
+                  candidate.actorKey === priorSignature.targetActor!.actorKey,
+              );
+              return pose
+                ? new THREE.Vector3(pose.x + 0.5, 0.08, pose.y + 0.5)
+                : undefined;
+            })()
+          : undefined,
         arenaTheme: theme,
         time,
+        sourceTick,
         fraction,
         reducedMotion,
       });

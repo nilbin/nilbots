@@ -8,7 +8,6 @@ import {
   setEnergyOpacity,
   solidBarAt,
   solidBeamAt,
-  targetRing,
 } from '../primitives';
 
 const CABLE = '#514b45';
@@ -42,10 +41,6 @@ export default defineArcSignatureWebGLPainter({
       laneEnd.clone().setY(0.34),
       0.13,
     );
-    rig.spool.visible = true;
-    rig.spool.position.copy(owner).setY(0.46);
-    rig.spool.scale.setScalar(1.55);
-    rig.spool.rotation.z = progress * Math.PI * 2;
     const head = rig.payload;
     const at = placeTravelHead(head, owner, destination, progress, 0.22, 0.82);
     head.scale.set(1.35, 0.86, 1.35);
@@ -68,51 +63,66 @@ export default defineArcSignatureWebGLPainter({
       setEnergyColour(jaw, '#78aeb3');
       setEnergyOpacity(jaw, 0.3);
     }
-    targetRing(rig, destination, 1.42);
-    setEnergyColour(rig.ring, '#78aeb3');
-    setEnergyOpacity(rig.ring, 0.26);
-    rig.plate.visible = true;
-    rig.plate.position.copy(destination).setY(0.055);
-    rig.plate.scale.setScalar(0.88);
     rig.solid.opacity = 0.9;
   },
-  paintOutcome({ rig, facts, fraction, priorSignature, owner }) {
+  paintOutcome({
+    rig,
+    facts,
+    fraction,
+    priorSignature,
+    owner,
+    target,
+    priorTarget,
+    time,
+    sourceTick,
+  }) {
     const relocation = facts.find((fact) => fact.kind === 'body-relocated');
     const launch = facts.find(
       (fact) => fact.kind === 'signature-changed' && fact.reason === 'launched',
     );
     if ((!relocation || relocation.kind !== 'body-relocated') && !launch) return;
+    // The launch owns the one-tick latch hold and the relocation owns the one-tick
+    // winch. Retaining either as a generic 1.8-tick afterimage leaves a cable attached
+    // after the pulled body has resumed ordinary movement.
+    if (time - sourceTick >= 1) return;
     const from = relocation && relocation.kind === 'body-relocated'
       ? new THREE.Vector3(relocation.from.x + 0.5, 0.16, relocation.from.y + 0.5)
       : owner;
     const to = relocation && relocation.kind === 'body-relocated'
       ? new THREE.Vector3(relocation.to.x + 0.5, 0.16, relocation.to.y + 0.5)
-      : priorSignature?.positions[0]
+      : priorTarget
+        ? priorTarget.clone().setY(0.16)
+        : priorSignature?.positions.at(-1)
         ? new THREE.Vector3(
-            priorSignature.positions[0].x + 0.5,
+            priorSignature.positions.at(-1)!.x + 0.5,
             0.16,
-            priorSignature.positions[0].y + 0.5,
+            priorSignature.positions.at(-1)!.y + 0.5,
           )
         : undefined;
     if (!from || !to) return;
     const life = 1 - fraction;
-    const headAt = new THREE.Vector3().lerpVectors(from, to, easeInOutCubic(fraction));
+    const targetAt = relocation && relocation.kind === 'body-relocated'
+      ? target ?? new THREE.Vector3().lerpVectors(
+          from,
+          to,
+          easeInOutCubic(Math.max(0, Math.min(1, time - sourceTick))),
+        )
+      : to;
+    const winch = owner ?? to;
     const cable = rig.segments[0]!;
-    lineAt(cable, from, headAt, 0.17 + life * 0.08, 0.2);
+    lineAt(cable, winch, targetAt, 0.17 + life * 0.08, 0.2);
     setEnergyColour(cable, CABLE);
     setEnergyOpacity(cable, life * 0.12);
-    solidBarAt(rig.bars[0]!, from, headAt, 0.14 + life * 0.06, 0.13);
+    solidBarAt(rig.bars[0]!, winch, targetAt, 0.14 + life * 0.06, 0.13);
     solidBeamAt(
       rig.cable,
-      from.clone().setY(0.34),
-      headAt.clone().setY(0.34),
+      winch.clone().setY(0.34),
+      targetAt.clone().setY(0.34),
       0.13,
     );
-    rig.spool.visible = true;
-    rig.spool.position.copy(to).setY(0.46);
-    rig.spool.scale.setScalar(1.55);
     const head = rig.payload;
-    placeTravelHead(head, from, to, easeInOutCubic(fraction), 0.14, 0.82);
+    head.visible = true;
+    head.position.copy(targetAt).setY(0.22);
     head.scale.set(1.35, 0.86, 1.35);
     rig.solid.color.set('#4c4b47');
     rig.solid.emissive.set('#203439');

@@ -422,6 +422,178 @@ test('persistent props stay legible inside their tiles and sentinel yaw never lo
   );
 });
 
+test('Tractor Hook keeps a non-circular cable attached through the recorded pull', () => {
+  const replay = loadReplayJson(
+    gunzipSync(readFileSync(new URL(
+      '../../art/reviews/arc-relay-presentation-batch-v1/runtime-proof/replays/core-roster.broadcast.json.gz',
+      import.meta.url,
+    ))).toString('utf8'),
+  ).replay;
+  const ownerActor = replay.ticks[0]!.after.actors[0]!.identity;
+  const targetActor = replay.ticks[0]!.after.actors.find(
+    (actor) => actor.identity.teamId !== ownerActor.teamId,
+  )!.identity;
+  const operationId = 'test-tractor-hook-pull';
+  const owner = replay.ticks[0]!.after.actors.find(
+    (actor) => actor.actorKey === ownerActor.actorKey,
+  )!;
+  const target = replay.ticks[0]!.after.actors.find(
+    (actor) => actor.actorKey === targetActor.actorKey,
+  )!;
+  owner.position = { x: 13, y: 12 };
+  target.position = { x: 16, y: 12 };
+  for (const side of ['before', 'after'] as const) {
+    const ownerState = replay.ticks[1]![side].actors.find(
+      (actor) => actor.actorKey === ownerActor.actorKey,
+    )!;
+    const targetState = replay.ticks[1]![side].actors.find(
+      (actor) => actor.actorKey === targetActor.actorKey,
+    )!;
+    ownerState.position = { x: 13, y: 12 };
+    targetState.position = { x: 16, y: 12 };
+    const ownerPull = replay.ticks[2]![side].actors.find(
+      (actor) => actor.actorKey === ownerActor.actorKey,
+    )!;
+    const targetPull = replay.ticks[2]![side].actors.find(
+      (actor) => actor.actorKey === targetActor.actorKey,
+    )!;
+    ownerPull.position = { x: 13, y: 12 };
+    targetPull.position = side === 'before' ? { x: 16, y: 12 } : { x: 14, y: 12 };
+  }
+  replay.ticks[0]!.after.mode = replay.ticks[0]!.before.mode;
+  assert.equal(replay.ticks[0]!.after.mode?.kind, 'arc-relay');
+  if (replay.ticks[0]!.after.mode?.kind !== 'arc-relay' ||
+      !('visibleSignatures' in replay.ticks[0]!.after.mode)) return;
+  replay.ticks[0]!.after.mode.visibleSignatures = [];
+  for (const tickIndex of [1, 2]) {
+    for (const side of ['before', 'after'] as const) {
+      const mode = replay.ticks[tickIndex]![side].mode;
+      assert.equal(mode?.kind, 'arc-relay');
+      if (mode?.kind === 'arc-relay' && 'visibleSignatures' in mode)
+        mode.visibleSignatures = [];
+    }
+    replay.ticks[tickIndex]!.events = [];
+    replay.ticks[tickIndex]!.lifecycleEvents = [];
+  }
+  const launchMode = replay.ticks[1]!.before.mode;
+  assert.equal(launchMode?.kind, 'arc-relay');
+  if (launchMode?.kind !== 'arc-relay' || !('visibleSignatures' in launchMode))
+    return;
+  launchMode.visibleSignatures = [{
+    operationId,
+    signatureId: 'tractor-hook',
+    signatureKind: 'targeted',
+    ownerActor,
+    ownerTeamId: ownerActor.teamId,
+    phase: 'tell',
+    startedTick: 0,
+    completesAtTick: 1,
+    endsAtTick: null,
+    positions: [{ x: 13, y: 12 }, { x: 16, y: 12 }],
+    targetActor,
+    remainingCapacity: 0,
+    suppressed: false,
+  }];
+  replay.ticks[1]!.events = [{
+    ...replay.ticks[0]!.events[0]!,
+    eventId: 'test:tractor:launch',
+    tick: 1,
+    arcRelayFact: {
+      kind: 'signature-changed',
+      operationId,
+      signatureId: 'tractor-hook',
+      ownerActor,
+      phase: null,
+      reason: 'launched',
+    },
+  }];
+  replay.ticks[2]!.lifecycleEvents = [{
+    ...replay.ticks[0]!.events[0]!,
+    eventId: 'test:tractor:pull',
+    tick: 2,
+    arcRelayFact: {
+      kind: 'body-relocated',
+      operationId,
+      signatureId: 'tractor-hook',
+      ownerActor,
+      targetActor,
+      from: { x: 16, y: 12 },
+      to: { x: 14, y: 12 },
+    },
+  }];
+  const disposables: { dispose: () => void }[] = [];
+  const effects = buildArcRelayEffects(replay, disposables);
+  const visibleGroup = (time: number) => {
+    effects.update(time);
+    return effects.group.children.find(
+      (candidate) =>
+        candidate.visible &&
+        candidate.userData.signatureId === 'tractor-hook' &&
+        candidate.userData.phase === 'outcome',
+    );
+  };
+  try {
+    const pullStart = visibleGroup(2);
+    assert.ok(pullStart, 'the relocation takes over without a cable gap');
+    assert.equal(
+      pullStart.children.some(
+        (child) => child.visible && child.geometry?.type === 'TorusGeometry',
+      ),
+      false,
+      'the hook treatment contains no spool/target donut',
+    );
+    const startHead = pullStart.children.find(
+      (child) => child.visible && child.geometry?.type === 'CapsuleGeometry',
+    );
+    assert.ok(startHead);
+    const startX = startHead.position.x;
+    const pullMiddle = visibleGroup(2.5);
+    const middleHead = pullMiddle?.children.find(
+      (child) => child.visible && child.geometry?.type === 'CapsuleGeometry',
+    );
+    assert.ok(middleHead);
+    assert.ok(middleHead.position.x < startX, 'the latch follows the pulled body');
+    assert.equal(visibleGroup(3), undefined, 'the cable releases after the pull tick');
+  } finally {
+    for (const disposable of disposables) disposable.dispose();
+  }
+});
+
+test('Sentinel Seed transforms upward from its floor seed', () => {
+  const replay = loadReplayJson(
+    gunzipSync(readFileSync(new URL(
+      '../../art/reviews/arc-relay-presentation-batch-v1/runtime-proof/replays/remaining-roster.broadcast.json.gz',
+      import.meta.url,
+    ))).toString('utf8'),
+  ).replay;
+  const disposables: { dispose: () => void }[] = [];
+  const effects = buildArcRelayEffects(replay, disposables);
+  const propAt = (time: number) => {
+    effects.update(time);
+    return effects.group.children.find(
+      (candidate) =>
+        candidate.visible &&
+        candidate.userData.signatureId === 'sentinel-seed' &&
+        candidate.userData.phase === undefined,
+    );
+  };
+  try {
+    const opening = propAt(15);
+    assert.ok(opening);
+    assert.equal(opening.position.y, 0);
+    assert.ok(opening.scale.y < opening.scale.x * 0.2);
+    const openingHeight = opening.scale.y;
+    const openingWidth = opening.scale.x;
+    const growing = propAt(15.45);
+    assert.ok(growing);
+    assert.equal(growing.position.y, 0);
+    assert.ok(growing.scale.y > openingHeight * 4);
+    assert.ok(growing.scale.x > openingWidth);
+  } finally {
+    for (const disposable of disposables) disposable.dispose();
+  }
+});
+
 test('sentinel yaw targets the authored head split and keeps legacy fallback', () => {
   const propGroup = new THREE.Group();
   const splitModel = new THREE.Group();

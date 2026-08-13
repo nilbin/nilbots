@@ -2,6 +2,8 @@ import { arcOriginAccent } from '../replayPresentation';
 import * as THREE from 'three';
 import { SCRAP_ACCENT } from '../presentation/scrapAccent';
 import type {
+  ReplayActorIdentity,
+  ReplayArcRelayFact,
   ReplayModel,
   ReplayPosition,
   ReplayStableUnitKey,
@@ -22,7 +24,7 @@ import {
   createPresenter,
   type TickPresentation,
 } from '../replayPresentation';
-import { settledStateTick } from '../render/tickClock';
+import { STATE_SETTLES_AT, settledStateTick } from '../render/tickClock';
 import type { ViewerEntrantPresentation } from '../components/Viewer';
 import { buildArcRelayEffects } from './arcRelayEffects';
 import {
@@ -2036,6 +2038,7 @@ function buildArcRelayStory(
     replay.contract.rawContract.rules.gameMode.kind === 'arc-relay'
       ? replay.contract.rawContract.rules.gameMode
       : null;
+  const currentArcStoryAt = createPresenter(replay).at;
 
   const wellGeometry = new THREE.CylinderGeometry(
     emberForge ? 0.28 : 0.31,
@@ -2498,13 +2501,155 @@ function buildArcRelayStory(
     return cores[index]!;
   };
 
+  type CoreTransitionKind = 'pickup' | 'handoff' | 'drop' | 'bank';
+  interface CoreTransition {
+    coreKey: string;
+    kind: CoreTransitionKind;
+    sourceWellId: string;
+    sourceActor: ReplayActorIdentity | null;
+    targetActor: ReplayActorIdentity | null;
+    position: ReplayPosition;
+  }
+
+  const coreKey = (coreId: { sourceWellId: string; sourceOrdinal: number }) =>
+    `${coreId.sourceWellId}:${coreId.sourceOrdinal}`;
+  const coreTransitionsAt = (tickIndex: number): CoreTransition[] => {
+    const tick = replay.ticks[tickIndex];
+    const result: CoreTransition[] = [];
+    for (const event of [
+      ...(tick?.lifecycleEvents ?? []),
+      ...(tick?.events ?? []),
+    ]) {
+      const fact = event.arcRelayFact;
+      if (!fact) continue;
+      const transition = coreTransition(fact);
+      if (transition) result.push(transition);
+    }
+    return result;
+  };
+  const coreTransition = (fact: ReplayArcRelayFact): CoreTransition | null => {
+    switch (fact.kind) {
+      case 'core-picked-up':
+        return {
+          coreKey: coreKey(fact.coreId),
+          kind: 'pickup',
+          sourceWellId: fact.coreId.sourceWellId,
+          sourceActor: null,
+          targetActor: fact.carrierActor,
+          position: fact.position,
+        };
+      case 'core-handed-off':
+        return {
+          coreKey: coreKey(fact.coreId),
+          kind: 'handoff',
+          sourceWellId: fact.coreId.sourceWellId,
+          sourceActor: fact.sourceActor,
+          targetActor: fact.targetActor,
+          position: fact.position,
+        };
+      case 'core-dropped':
+        // Arc Toss owns its longer ballistic departure and landing. The generic custody
+        // grammar handles ordinary voluntary/destruction drops only.
+        if (fact.dropKind === 'signature-departure' ||
+            fact.dropKind === 'arc-toss-landing') return null;
+        return {
+          coreKey: coreKey(fact.coreId),
+          kind: 'drop',
+          sourceWellId: fact.coreId.sourceWellId,
+          sourceActor: fact.sourceActor,
+          targetActor: null,
+          position: fact.position,
+        };
+      case 'core-banked':
+        return {
+          coreKey: coreKey(fact.coreId),
+          kind: 'bank',
+          sourceWellId: fact.coreId.sourceWellId,
+          sourceActor: fact.carrierActor,
+          targetActor: null,
+          position: fact.position,
+        };
+      default:
+        return null;
+    }
+  };
+
+  const posePoint = (
+    actor: ReplayActorIdentity | null,
+    actorPoses: ReturnType<typeof posesAt>,
+  ): THREE.Vector3 | null => {
+    if (!actor) return null;
+    const pose = actorPoses.find((candidate) => candidate.actorKey === actor.actorKey);
+    return pose ? new THREE.Vector3(pose.x + 0.5, 1.18, pose.y + 0.5) : null;
+  };
+
+  const snapshotActorPoint = (
+    actor: ReplayActorIdentity | null,
+    tickIndex: number,
+    side: 'before' | 'after',
+  ): THREE.Vector3 | null => {
+    if (!actor) return null;
+    const state = replay.ticks[tickIndex]?.[side].actors.find(
+      (candidate) => candidate.actorKey === actor.actorKey,
+    );
+    return state
+      ? new THREE.Vector3(state.position.x + 0.5, 1.18, state.position.y + 0.5)
+      : null;
+  };
+
+  const easeCore = (value: number): number => {
+    const t = Math.max(0, Math.min(1, value));
+    return t < 0.5 ? 4 * t ** 3 : 1 - (-2 * t + 2) ** 3 / 2;
+  };
+
+  const paintCoreInMotion = (
+    rig: CoreRig,
+    sourceWellId: string,
+    position: THREE.Vector3,
+    scale: number,
+    carried: boolean,
+    pulse: number,
+    time: number,
+  ) => {
+    const accent = arcOriginAccent(sourceWellId);
+    rig.group.visible = true;
+    rig.group.position.set(position.x, 0, position.z);
+    rig.gem.position.set(0, position.y, 0);
+    rig.gem.rotation.y = time * 0.45;
+    rig.gem.scale.setScalar(scale);
+    rig.glow.position.copy(rig.gem.position);
+    rig.light.position.copy(rig.gem.position);
+    rig.glow.scale.setScalar((0.72 + pulse * 0.05) * scale);
+    if (carried) {
+      rig.gemMaterial.color.set(accent).multiplyScalar(0.5);
+      rig.gemMaterial.emissive.set(accent);
+      rig.glowMaterial.color.set(accent);
+      rig.light.color.set(accent);
+    } else {
+      rig.gemMaterial.color.set(ARC_CORE_NEUTRAL_PALETTE.body);
+      rig.gemMaterial.emissive.set(ARC_CORE_NEUTRAL_PALETTE.emissive);
+      rig.glowMaterial.color.set(ARC_CORE_NEUTRAL_PALETTE.glow);
+      rig.light.color.set(ARC_CORE_NEUTRAL_PALETTE.light);
+    }
+    rig.gemMaterial.emissiveIntensity = carried ? 0.8 : 0.7;
+    rig.glowMaterial.opacity = 0.15 + pulse * 0.07;
+    rig.light.intensity = carried ? 2.2 + pulse * 0.6 : 1.6 + pulse * 0.4;
+    rig.beam.visible = carried;
+    rig.beamMaterial.color.set(accent);
+    rig.beamMaterial.opacity = carried ? 0.055 + pulse * 0.045 : 0;
+    for (const sourceGlyph of rig.sourceGlyphs) sourceGlyph.visible = false;
+  };
+
   // The declared strike's cone plates are GONE (owner ruling 2026-08): the
   // tracking ray of #215 says the same thing without blinking a wedge of
   // tiles at the spectator, so the windup reads as one line to one body and
   // the red slash owns the landing. `buildStrikeAims` is the whole windup
   // read now; the frozen wedge stays a wire fact, not a floor decal.
 
-  const update = (presentation: TickPresentation, time: number) => {
+  const update = (
+    presentation: TickPresentation,
+    time: number,
+  ) => {
     const story = presentation.arcRelay;
     group.visible = story !== null;
     if (!story) return;
@@ -2593,6 +2738,8 @@ function buildArcRelayStory(
       rig.group.position.set(state.position.x + 0.5, 0, state.position.y + 0.5);
       rig.material.emissive.set(state.accent);
       rig.ringMaterial.color.set(state.accent);
+      // Bank flashes are sampled from the playhead, not retained renderer state.
+      rig.ringMaterial.opacity = 0.75;
       const entrant = entrants?.find((value) => value.teamId === state.teamId);
       if (entrant) {
         const material = rig.crest.material as THREE.MeshBasicMaterial;
@@ -2629,13 +2776,32 @@ function buildArcRelayStory(
       reactors[index]!.group.visible = false;
 
     const actorPoses = posesAt(replay, time);
-    for (const [index, state] of story.cores.entries()) {
-      const rig = core(index);
+    const tickIndex = Math.max(0, Math.min(Math.floor(time), replay.ticks.length - 1));
+    const tickFraction = Math.max(0, Math.min(1, time - tickIndex));
+    const custody = coreTransitionsAt(tickIndex);
+    const currentStory = currentArcStoryAt(tickIndex).arcRelay;
+    const activeFlights = currentStory?.cores.filter(
+      (candidate) => candidate.disposition === 'in-flight' &&
+        candidate.flightStartedAtTick !== null &&
+        candidate.flightCompletesAtTick !== null &&
+        time >= candidate.flightStartedAtTick &&
+        time < candidate.flightCompletesAtTick,
+    ) ?? [];
+    const suppressedCoreKeys = new Set([
+      ...activeFlights.map((flight) => flight.key),
+      ...custody.map((transition) => transition.coreKey),
+    ]);
+    let usedCoreRigs = 0;
+    for (const state of story.cores) {
+      if (suppressedCoreKeys.has(state.key)) continue;
+      const rig = core(usedCoreRigs++);
+      rig.group.userData.coreKey = state.key;
+      rig.group.userData.coreMotion = 'settled';
       const carried = state.disposition === 'carried';
       // The lane owns the sphere (owner ruling 2026-08-05): a Core reads as
       // its origin wherever it is.
       const accent = arcOriginAccent(state.sourceWellId);
-      const pulse = 0.5 + 0.5 * Math.sin(time * Math.PI * 2.1 + index * 1.7);
+      const pulse = 0.5 + 0.5 * Math.sin(time * Math.PI * 2.1 + usedCoreRigs * 1.7);
       const carrier = carried && state.carrierUnitKey !== null
         ? actorPoses.find((pose) => pose.unitKey === state.carrierUnitKey)
         : null;
@@ -2667,10 +2833,10 @@ function buildArcRelayStory(
       rig.gem.position.set(
         0,
         carried
-          ? 1.18 + Math.sin(time * 2.4 + index) * 0.035
+          ? 1.18 + Math.sin(time * 2.4 + usedCoreRigs) * 0.035
           : inFlight
             ? 0.4 + flightArc * 1.12
-          : 0.4 + Math.sin(time * 2 + index) * 0.025,
+          : 0.4 + Math.sin(time * 2 + usedCoreRigs) * 0.025,
         0,
       );
       rig.gem.rotation.y = time * 0.45;
@@ -2736,7 +2902,123 @@ function buildArcRelayStory(
         sourceGlyph.rotation.y = -time * 1.1;
       }
     }
-    for (let index = story.cores.length; index < cores.length; index++)
+    // Arc Toss changes the public Core to in-flight at tick start, while ordinary
+    // possession snapshots intentionally settle late. Paint the current in-flight state
+    // immediately so the same sphere starts at its carried height instead of appearing
+    // as a small ground marker until 85% of the launch tick.
+    for (const arcTossFlight of activeFlights) {
+      const rig = core(usedCoreRigs++);
+      rig.group.userData.coreKey = arcTossFlight.key;
+      rig.group.userData.coreMotion = 'arc-toss';
+      const source = new THREE.Vector3(
+        arcTossFlight.position.x + 0.5,
+        1.18,
+        arcTossFlight.position.y + 0.5,
+      );
+      const target = arcTossFlight.flightTarget ?? arcTossFlight.position;
+      const progress = easeCore(
+        (time - arcTossFlight.flightStartedAtTick!) /
+          Math.max(
+            1,
+            arcTossFlight.flightCompletesAtTick! -
+              arcTossFlight.flightStartedAtTick!,
+          ),
+      );
+      const position = new THREE.Vector3(
+        source.x + (target.x + 0.5 - source.x) * progress,
+        source.y + (0.4 - source.y) * progress +
+          Math.sin(progress * Math.PI) * 0.94,
+        source.z + (target.y + 0.5 - source.z) * progress,
+      );
+      paintCoreInMotion(
+        rig,
+        arcTossFlight.sourceWellId,
+        position,
+        1 + Math.sin(progress * Math.PI) * 0.22,
+        progress < 0.18,
+        0.5 + 0.5 * Math.sin(time * Math.PI * 2.1),
+        time,
+      );
+    }
+    for (const transition of custody) {
+      const rig = core(usedCoreRigs++);
+      rig.group.userData.coreKey = transition.coreKey;
+      rig.group.userData.coreMotion = transition.kind;
+      const settledProgress = easeCore(tickFraction / STATE_SETTLES_AT);
+      const beforeCore = replay.ticks[tickIndex]?.before.mode?.kind === 'arc-relay' &&
+          'visibleCores' in replay.ticks[tickIndex]!.before.mode
+        ? replay.ticks[tickIndex]!.before.mode.visibleCores.find(
+            (candidate) => coreKey(candidate.coreId) === transition.coreKey,
+          )
+        : null;
+      const ground = new THREE.Vector3(
+        transition.position.x + 0.5,
+        0.4,
+        transition.position.y + 0.5,
+      );
+      if (beforeCore && transition.kind === 'pickup') {
+        ground.set(
+          beforeCore.position.x + 0.5,
+          0.4,
+          beforeCore.position.y + 0.5,
+        );
+      }
+      const eventActorPosition = new THREE.Vector3(
+        transition.position.x + 0.5,
+        1.18,
+        transition.position.y + 0.5,
+      );
+      const source = transition.sourceActor
+        ? snapshotActorPoint(transition.sourceActor, tickIndex, 'before') ??
+          eventActorPosition
+        : transition.kind !== 'pickup' && beforeCore?.carrierActor
+          ? new THREE.Vector3(
+              beforeCore.position.x + 0.5,
+              1.18,
+              beforeCore.position.y + 0.5,
+            )
+          : ground;
+      const target = transition.kind === 'bank'
+        ? new THREE.Vector3(ground.x, 0.23, ground.z)
+        : transition.targetActor
+          ? snapshotActorPoint(transition.targetActor, tickIndex, 'after') ??
+            posePoint(transition.targetActor, actorPoses) ?? eventActorPosition
+          : ground;
+      const position = new THREE.Vector3().lerpVectors(source, target, settledProgress);
+      const levitation = transition.kind === 'bank'
+        ? Math.sin(settledProgress * Math.PI) * 0.42
+        : Math.sin(settledProgress * Math.PI) * 0.28;
+      position.y += levitation;
+      const scale = transition.kind === 'bank'
+        ? Math.max(0.08, 1 - settledProgress ** 2 * 0.92)
+        : 1 + Math.sin(settledProgress * Math.PI) * 0.12;
+      const carried = transition.kind === 'handoff' ||
+        (transition.kind === 'pickup' && settledProgress > 0.5) ||
+        (transition.kind === 'drop' && settledProgress < 0.5) ||
+        transition.kind === 'bank';
+      paintCoreInMotion(
+        rig,
+        transition.sourceWellId,
+        position,
+        scale,
+        carried,
+        0.5 + 0.5 * Math.sin(time * Math.PI * 2.1),
+        time,
+      );
+      if (transition.kind === 'bank') {
+        const reactor = reactors.find((candidate) =>
+          candidate.group.position.distanceToSquared(
+            new THREE.Vector3(target.x, 0, target.z),
+          ) < 0.01,
+        );
+        if (reactor)
+          reactor.ringMaterial.opacity = Math.max(
+            reactor.ringMaterial.opacity,
+            Math.sin(settledProgress * Math.PI) * 0.78,
+          );
+      }
+    }
+    for (let index = usedCoreRigs; index < cores.length; index++)
       cores[index]!.group.visible = false;
   };
 
