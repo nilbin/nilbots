@@ -112,7 +112,6 @@ const stagedLongshotManifest = {
     recipe: path.relative(repository, tierAuditPath),
     artifact: longshot.artifact.file,
     sourceSha256: longshot.artifact.sha256,
-    textureTier: 'longshot-objectives-review-v1-webp',
     provider: 'Meshy',
     model: 'meshy-7',
     endpoint: longshot.endpoint,

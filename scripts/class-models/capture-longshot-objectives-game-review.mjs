@@ -12,15 +12,18 @@ const { chromium } = requireFromWeb('playwright');
 const sharp = requireFromWeb('sharp');
 const baseUrl =
   process.env.REVIEW_URL ??
-  'http://127.0.0.1:9098/sandbox/longshot-objectives-meshy7-v1/game-review/interactive/' +
+  'http://127.0.0.1:9164/' +
     '?standalone&audio=off&camera=overview&proof=longshot-objectives-review&proof-camera=overview';
 const output = path.join(
   repository,
-  'art/reviews/arc-relay-longshot-objectives-meshy7-v1/gameplay-review',
+  'art/reviews/arc-relay-longshot-objectives-meshy7-v1/combined-gameplay-review',
 );
 const buildRecord = JSON.parse(
   readFileSync(
-    path.join(repository, 'sandbox/longshot-objectives-meshy7-v1/game-review/build-record.json'),
+    path.join(
+      repository,
+      'art/reviews/arc-relay-longshot-objectives-meshy7-v1/combined-gameplay-review/build-record.json',
+    ),
     'utf8',
   ),
 );
@@ -28,12 +31,13 @@ const expectedModels = new Map(
   buildRecord.emittedCandidates.map((entry) => [path.basename(entry.emitted.file), entry.id]),
 );
 const captures = [
-  { id: 'desktop-opening', replay: 'core-roster', time: 0, width: 1440, height: 900 },
-  { id: 'desktop-flare-flight', replay: 'core-roster', time: 11.7, width: 1440, height: 900 },
-  { id: 'desktop-flare-active', replay: 'core-roster', time: 14.45, width: 1440, height: 900 },
-  { id: 'desktop-reactor-state', replay: 'core-roster', time: 200.35, width: 1440, height: 900 },
-  { id: 'phone-flare-active', replay: 'core-roster', time: 14.45, width: 844, height: 390, mobile: true },
-  { id: 'phone-reactors', replay: 'remaining-roster', time: 150.35, width: 844, height: 390, mobile: true },
+  { id: 'desktop-reactor-walkover-west', replay: 'all-four-hunter-west', time: 1.35, width: 1440, height: 900 },
+  { id: 'desktop-flare-flight-west', replay: 'all-four-hunter-west', time: 10.7, width: 1440, height: 900 },
+  { id: 'desktop-well-overlap-west', replay: 'all-four-hunter-west', time: 20.35, width: 1440, height: 900 },
+  { id: 'desktop-longshot-reactor-west', replay: 'all-four-hunter-west', time: 88.35, width: 1440, height: 900 },
+  { id: 'desktop-well-overlap-east', replay: 'all-four-hunter-east', time: 20.35, width: 1440, height: 900 },
+  { id: 'phone-flare-flight-east', replay: 'all-four-hunter-east', time: 10.7, width: 844, height: 390, mobile: true },
+  { id: 'phone-longshot-reactor-east', replay: 'all-four-hunter-east', time: 90.35, width: 844, height: 390, mobile: true },
 ];
 
 mkdirSync(output, { recursive: true });
@@ -71,11 +75,11 @@ const sheets = {
 const evidence = {
   schemaVersion: 1,
   purpose:
-    'Real WebGL gameplay review of unpromoted Longshot, Survey Flare, Reactor, and Core Well candidates',
+    'Current-build real WebGL review of Longshot, Survey Flare, Team Reactor, and Core Well together',
   sourceUrl: baseUrl,
-  runtimeAssetsPromoted: false,
+  runtimeAssetsPromoted: buildRecord.runtimeAssetsPromoted,
   buildRecord:
-    'art/reviews/arc-relay-longshot-objectives-meshy7-v1/gameplay-review/build-record.json',
+    'art/reviews/arc-relay-longshot-objectives-meshy7-v1/combined-gameplay-review/build-record.json',
   expectedCandidateModels: Object.fromEntries(expectedModels),
   captures: records,
   contactSheets: sheets,
@@ -150,7 +154,7 @@ async function captureFrame(page, session, capture) {
   for (const required of ['longshot', 'team-reactor', 'core-well'])
     if (!loadedCandidates.includes(required))
       throw new Error(`${capture.id}: candidate ${required} did not load.`);
-  if (capture.time >= 10 && capture.time <= 22 && !loadedCandidates.includes('survey-flare'))
+  if (capture.id.includes('flare') && !loadedCandidates.includes('survey-flare'))
     throw new Error(`${capture.id}: Survey Flare candidate did not load in its live phase.`);
   return {
     ...capture,
@@ -169,7 +173,10 @@ async function captureFrame(page, session, capture) {
 async function selectReplay(page, id) {
   const choices = JSON.parse(
     readFileSync(
-      path.join(repository, 'sandbox/longshot-objectives-meshy7-v1/game-review/interactive/replays.json'),
+      path.join(
+        repository,
+        'sandbox/longshot-objectives-meshy7-v1/combined-review/site/replays.json',
+      ),
       'utf8',
     ),
   );

@@ -1,0 +1,226 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Current-build real WebGL review of Longshot, Survey Flare, Team Reactor, and Core Well together",
+  "sourceUrl": "http://127.0.0.1:9164/?standalone&audio=off&camera=overview&proof=longshot-objectives-review&proof-camera=overview",
+  "runtimeAssetsPromoted": {
+    "teamReactor": true,
+    "longshot": false,
+    "surveyFlare": false,
+    "coreWell": false
+  },
+  "buildRecord": "art/reviews/arc-relay-longshot-objectives-meshy7-v1/combined-gameplay-review/build-record.json",
+  "expectedCandidateModels": {
+    "model-eQKSosf7.glb": "longshot",
+    "model-CkMiK_zB.glb": "survey-flare",
+    "model-xg-VeYyf.glb": "core-well",
+    "model-CdVUlH4z.glb": "team-reactor"
+  },
+  "captures": [
+    {
+      "id": "desktop-reactor-walkover-west",
+      "replay": "all-four-hunter-west",
+      "time": 1.35,
+      "width": 1440,
+      "height": 900,
+      "mobile": false,
+      "renderer": "webgl",
+      "proofTime": 1.35,
+      "replaySeed": "9001",
+      "visibleSignatures": [],
+      "loadedCandidates": [
+        "core-well",
+        "longshot",
+        "survey-flare",
+        "team-reactor"
+      ],
+      "image": "art/reviews/arc-relay-longshot-objectives-meshy7-v1/combined-gameplay-review/desktop-reactor-walkover-west.png",
+      "imageBytes": 1227404,
+      "imageSha256": "456cddd3ee00b7a673a9ea46702c08dfda360b952626eda51b1d521c0890e403"
+    },
+    {
+      "id": "desktop-flare-flight-west",
+      "replay": "all-four-hunter-west",
+      "time": 10.7,
+      "width": 1440,
+      "height": 900,
+      "mobile": false,
+      "renderer": "webgl",
+      "proofTime": 10.7,
+      "replaySeed": "9001",
+      "visibleSignatures": [
+        {
+          "operationId": "arc-signature-0",
+          "signatureId": "survey-flare",
+          "phase": "in-flight",
+          "visibleMeshes": 4
+        }
+      ],
+      "loadedCandidates": [
+        "core-well",
+        "longshot",
+        "survey-flare",
+        "team-reactor"
+      ],
+      "image": "art/reviews/arc-relay-longshot-objectives-meshy7-v1/combined-gameplay-review/desktop-flare-flight-west.png",
+      "imageBytes": 1264415,
+      "imageSha256": "f79516364bab5d1344ff619136bba2f768de6434742b192bcd3ec1103d099b64"
+    },
+    {
+      "id": "desktop-well-overlap-west",
+      "replay": "all-four-hunter-west",
+      "time": 20.35,
+      "width": 1440,
+      "height": 900,
+      "mobile": false,
+      "renderer": "webgl",
+      "proofTime": 20.35,
+      "replaySeed": "9001",
+      "visibleSignatures": [
+        {
+          "operationId": "arc-signature-0",
+          "signatureId": "survey-flare",
+          "phase": "active",
+          "visibleMeshes": 15
+        },
+        {
+          "operationId": "arc-signature-1",
+          "signatureId": "exchange",
+          "phase": "tell",
+          "visibleMeshes": 6
+        }
+      ],
+      "loadedCandidates": [
+        "core-well",
+        "longshot",
+        "survey-flare",
+        "team-reactor"
+      ],
+      "image": "art/reviews/arc-relay-longshot-objectives-meshy7-v1/combined-gameplay-review/desktop-well-overlap-west.png",
+      "imageBytes": 1267823,
+      "imageSha256": "1f4f7be46c39b5dac91859f1499fd7f5e2b673f35f9b3aaf164b243dcd78359f"
+    },
+    {
+      "id": "desktop-longshot-reactor-west",
+      "replay": "all-four-hunter-west",
+      "time": 88.35,
+      "width": 1440,
+      "height": 900,
+      "mobile": false,
+      "renderer": "webgl",
+      "proofTime": 88.35,
+      "replaySeed": "9001",
+      "visibleSignatures": [],
+      "loadedCandidates": [
+        "core-well",
+        "longshot",
+        "survey-flare",
+        "team-reactor"
+      ],
+      "image": "art/reviews/arc-relay-longshot-objectives-meshy7-v1/combined-gameplay-review/desktop-longshot-reactor-west.png",
+      "imageBytes": 1269974,
+      "imageSha256": "9620d17e0beb98145346043cfeae76c4877008d3f0deb4b8bb605d05c809233c"
+    },
+    {
+      "id": "desktop-well-overlap-east",
+      "replay": "all-four-hunter-east",
+      "time": 20.35,
+      "width": 1440,
+      "height": 900,
+      "mobile": false,
+      "renderer": "webgl",
+      "proofTime": 20.35,
+      "replaySeed": "9001",
+      "visibleSignatures": [
+        {
+          "operationId": "arc-signature-0",
+          "signatureId": "survey-flare",
+          "phase": "active",
+          "visibleMeshes": 15
+        },
+        {
+          "operationId": "arc-signature-1",
+          "signatureId": "exchange",
+          "phase": "tell",
+          "visibleMeshes": 6
+        }
+      ],
+      "loadedCandidates": [
+        "core-well",
+        "longshot",
+        "survey-flare",
+        "team-reactor"
+      ],
+      "image": "art/reviews/arc-relay-longshot-objectives-meshy7-v1/combined-gameplay-review/desktop-well-overlap-east.png",
+      "imageBytes": 627332,
+      "imageSha256": "c09d3d3cba324a4f955982f31b8498eab677125d9fbb621190b41af0ef0871a6"
+    },
+    {
+      "id": "phone-flare-flight-east",
+      "replay": "all-four-hunter-east",
+      "time": 10.7,
+      "width": 844,
+      "height": 390,
+      "mobile": true,
+      "renderer": "webgl",
+      "proofTime": 10.7,
+      "replaySeed": "9001",
+      "visibleSignatures": [
+        {
+          "operationId": "arc-signature-0",
+          "signatureId": "survey-flare",
+          "phase": "in-flight",
+          "visibleMeshes": 4
+        }
+      ],
+      "loadedCandidates": [
+        "core-well",
+        "longshot",
+        "survey-flare",
+        "team-reactor"
+      ],
+      "image": "art/reviews/arc-relay-longshot-objectives-meshy7-v1/combined-gameplay-review/phone-flare-flight-east.png",
+      "imageBytes": 306442,
+      "imageSha256": "5854cd7dcea16ffe24ed726b4beadc2fea9fece47955d5a8d275ba32fd33c402"
+    },
+    {
+      "id": "phone-longshot-reactor-east",
+      "replay": "all-four-hunter-east",
+      "time": 90.35,
+      "width": 844,
+      "height": 390,
+      "mobile": true,
+      "renderer": "webgl",
+      "proofTime": 90.35,
+      "replaySeed": "9001",
+      "visibleSignatures": [
+        {
+          "operationId": "arc-signature-12",
+          "signatureId": "hardlight-block",
+          "phase": "outcome",
+          "visibleMeshes": 6
+        }
+      ],
+      "loadedCandidates": [
+        "core-well",
+        "longshot",
+        "survey-flare",
+        "team-reactor"
+      ],
+      "image": "art/reviews/arc-relay-longshot-objectives-meshy7-v1/combined-gameplay-review/phone-longshot-reactor-east.png",
+      "imageBytes": 302413,
+      "imageSha256": "967406194b1240d9cec832d70b7dd971090bc5e82c7e8fb51caea4c651884c63"
+    }
+  ],
+  "contactSheets": {
+    "desktop": {
+      "file": "art/reviews/arc-relay-longshot-objectives-meshy7-v1/combined-gameplay-review/desktop-gameplay-review.webp",
+      "bytes": 260500,
+      "sha256": "f4042f403e6b241d3933a64dea13f4242d81405507175fd8d7d2399c2602f25c"
+    },
+    "phone": {
+      "file": "art/reviews/arc-relay-longshot-objectives-meshy7-v1/combined-gameplay-review/phone-gameplay-review.webp",
+      "bytes": 56158,
+      "sha256": "7b57607e9a8517c61e22c5f0aad4210ad19435b6c8cbed6f339311dc8441c3bf"
+    }
+  }
+}

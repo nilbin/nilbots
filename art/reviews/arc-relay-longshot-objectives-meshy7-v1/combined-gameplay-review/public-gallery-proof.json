@@ -1,0 +1,79 @@
+{
+  "schema": "arc-relay-longshot-objectives-public-gallery-proof-v1",
+  "capturedAt": "2026-08-13T22:22:09Z",
+  "exactPublicGalleryUrl": "https://going-funny-provisions-judge.trycloudflare.com/?standalone&audio=off&camera=overview&proof=longshot-objectives-review&proof-camera=overview",
+  "galleryStatus": 200,
+  "viewport": {
+    "width": 844,
+    "height": 390,
+    "phoneSized": true
+  },
+  "rendererEvidence": "art/reviews/arc-relay-longshot-objectives-meshy7-v1/combined-gameplay-review/evidence.json",
+  "replays": [
+    {
+      "id": "all-four-hunter-west",
+      "ticks": 438,
+      "browserPlaybackTick": 9,
+      "longshotSide": "west",
+      "lanternSide": "east"
+    },
+    {
+      "id": "all-four-hunter-east",
+      "ticks": 456,
+      "browserPlaybackTick": 10,
+      "longshotSide": "east",
+      "lanternSide": "west"
+    }
+  ],
+  "replayResponses": [
+    {
+      "url": "https://going-funny-provisions-judge.trycloudflare.com/replays.json",
+      "status": 200,
+      "contentEncoding": "gzip"
+    },
+    {
+      "url": "https://going-funny-provisions-judge.trycloudflare.com/replays/all-four-hunter-west.json",
+      "status": 200,
+      "contentEncoding": "gzip"
+    },
+    {
+      "url": "https://going-funny-provisions-judge.trycloudflare.com/replays/all-four-hunter-east.json",
+      "status": 200,
+      "contentEncoding": "gzip"
+    }
+  ],
+  "compactReplaySources": [
+    {
+      "id": "all-four-hunter-west",
+      "bytes": 158458
+    },
+    {
+      "id": "all-four-hunter-east",
+      "bytes": 161079
+    }
+  ],
+  "publicCandidateModels": [
+    {
+      "id": "longshot",
+      "file": "assets/model-eQKSosf7.glb",
+      "sha256": "e02ea1d456f9e1310e7778c19b834b8ff3b3539982f48f3e1bde4cfd3a75da01"
+    },
+    {
+      "id": "survey-flare",
+      "file": "assets/model-CkMiK_zB.glb",
+      "sha256": "0df64d292faff971e0b214883d68285112850eb71f43aa9f28c5b2d10f610ff7"
+    },
+    {
+      "id": "core-well",
+      "file": "assets/model-xg-VeYyf.glb",
+      "sha256": "ebc3e229c4ccf793031ed7254b9c3744d72cdbefa434b060c673e249fdaa92ca"
+    },
+    {
+      "id": "team-reactor",
+      "file": "assets/model-CdVUlH4z.glb",
+      "sha256": "2c6c0efe97becd1671baaacdd38bd2ba65edcd62a426d164d9eabf2847724bb4"
+    }
+  ],
+  "browserConsoleErrors": [],
+  "passed": true
+}
