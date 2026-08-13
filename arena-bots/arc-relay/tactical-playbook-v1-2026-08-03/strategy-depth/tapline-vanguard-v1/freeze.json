@@ -1,0 +1,39 @@
+{
+  "schema": "arc-relay-strategy-reference-freeze-v1",
+  "strategyId": "tapline-vanguard-v1",
+  "status": "immutable-reference",
+  "source": "editor-authored-and-postgresql-persisted",
+  "sourceRevision": 22,
+  "loopProfile": "tapline-3",
+  "mapId": "arc-relay-tapline-01",
+  "assets": {
+    "orders": {
+      "path": "orders.json",
+      "sha256": "a28f20bb1d23118c883f8e4ea4c9946f37e75d8e2df178ca75ed02988c4497fe"
+    },
+    "mapPlan": {
+      "path": "map-plan.json",
+      "sha256": "75d8cad9a12b2b9addc7e9cc2a0d81858be60d7d968b9e900def43a0f898b853"
+    },
+    "atl2": {
+      "sha256": "4a454a999ae3af1e96e4326b40b16e3b9e1a05610756f24486f878d45b6b9251",
+      "bytes": 4997,
+      "reproduce": "nilbots experiment arc-relay-playbook --playbook orders.json --out <directory>"
+    }
+  },
+  "strategy": "Secure the home and centre Wells, overload the enemy-side Well with supported Towlines, send one Kestrel through a northern ingress, and relay loose Cores home through handoffs and Arc Toss.",
+  "referenceExhibits": [
+    {
+      "opponent": "hunter-tapline-v2",
+      "cells": ["w-9001", "w-9002", "e-9005", "e-9009", "w-9012", "e-9004"],
+      "record": "6-0 in these six exhibition cells; all ended reactor-destroyed",
+      "purpose": "behavioral reference, not a balance claim"
+    },
+    {
+      "opponent": "wellwright-tapline-v2",
+      "cells": ["w-9001", "w-9002", "e-9005", "e-9009", "w-9012", "e-9004"],
+      "record": "6-0 in these six exhibition cells; all ended reactor-destroyed",
+      "purpose": "behavioral reference, not a balance claim"
+    }
+  ]
+}
