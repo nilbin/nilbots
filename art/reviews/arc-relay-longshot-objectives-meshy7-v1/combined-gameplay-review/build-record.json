@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "purpose": "Current-build combined real-renderer review of Longshot, Survey Flare, Team Reactor, and Core Well",
-  "sourceCommit": "62080133d76137014975be4d424e8a7d33d86cf3",
+  "sourceCommit": "eca4e9234f4656fc3c419f97569d6a64673d18c4",
   "runtimeAssetsPromoted": {
     "teamReactor": true,
     "longshot": false,
