@@ -84,3 +84,8 @@ acceptance layer.
   FullyQualifiedName~OrdersMovementSceneTests`: 5 pass
 - `git diff --check`: pass
 
+Public review gallery (phone-smoked at 844x390, six cards, G3 playback advanced
+with no page/console/request errors):
+`https://particularly-medicare-solutions-benjamin.trycloudflare.com/`
+
+Final correction commit: `b5eba370`.
