@@ -34,6 +34,19 @@ export interface MoveOrder {
   posture?: 'front' | 'line' | 'rear';
 }
 
+export type MoveIntentKind = 'to' | 'patrol' | 'follow';
+
+/**
+ * Keep the author's selected movement intent while it is incomplete. An empty
+ * patrol/follow value is an ordinary editor state until a route/role is picked;
+ * truthiness would silently turn it back into a destination move.
+ */
+export function moveIntentKind(move: MoveOrder): MoveIntentKind {
+  if (move.patrol !== undefined) return 'patrol';
+  if (move.follow !== undefined) return 'follow';
+  return 'to';
+}
+
 export interface FightOrder {
   targets: Array<'carrier' | 'weakest' | 'nearest' | 'medic' | 'marked'>;
   style: 'advance' | 'hold' | 'kite';

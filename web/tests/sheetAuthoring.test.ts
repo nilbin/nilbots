@@ -8,6 +8,7 @@ import {
   actionOf,
   compositionOf,
   freshOrder,
+  moveIntentKind,
   parseDraft,
   pinDraft,
   renameCondition,
@@ -155,6 +156,13 @@ test('order action detection has only the five physical verbs plus branch and ex
   assert.equal(actionOf({ id: 'play', orders: [{ id: 'drop', drop: true }] }), 'branch');
   assert.equal(actionOf({ shared: 'score-a-core' }), 'shared');
   assert.equal(actionOf({ id: 'ambiguous', drop: true, move: { to: 'own-reactor' } }), 'move');
+});
+
+test('incomplete patrol and follow choices retain their authored movement intent', () => {
+  assert.equal(moveIntentKind({ to: { well: 'centre' } }), 'to');
+  assert.equal(moveIntentKind({ patrol: '' }), 'patrol');
+  assert.equal(moveIntentKind({ follow: '' }), 'follow');
+  assert.equal(moveIntentKind({}), 'to');
 });
 
 test('export emits the exact authoring pair without authored hashes or geometry bindings', async () => {

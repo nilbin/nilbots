@@ -104,6 +104,9 @@ test('map planning renders all authoritative social landmarks and opens inside m
   assert.match(map, /relationForSpawn/);
   assert.match(map, /nearestSpawnTeam/);
   assert.match(map, /Draw the ground your orders name/);
+  assert.match(orders, /Plot a route before this patrol can run/);
+  assert.match(orders, /Open map and add route/);
+  assert.doesNotMatch(orders, /value=\{value\.to!\}/);
 });
 
 test('portable JSON and ladder enrollment are secondary sheet tools', () => {

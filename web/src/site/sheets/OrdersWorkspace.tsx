@@ -11,6 +11,7 @@ import {
   conditionSubjectKind,
   freshOrder,
   identifierFromName,
+  moveIntentKind,
   moveRole,
   renameCondition,
   renameRole,
@@ -504,13 +505,15 @@ function MoveEditor({ value, role, allOrders, mapPlan, catalog, onOpenMap, onCha
   value: MoveOrder; role: RoleDefinition; allOrders: OrdersDocument; mapPlan: MapPlanDocument; catalog: TacticalSheetCatalog;
   onOpenMap: (focus?: { kind: PlotKind; id: string }) => void; onChange: (next: MoveOrder) => void;
 }) {
-  const kind = value.patrol ? 'patrol' : value.follow ? 'follow' : 'to';
+  const kind = moveIntentKind(value);
+  const routeIds = Object.keys(mapPlan.routes);
+  const followRoleIds = allOrders.roles.filter((entry) => entry.id !== role.id).map((entry) => entry.id);
   const change = (mutate: (next: MoveOrder) => void) => { const next = structuredClone(value); mutate(next); onChange(next); };
   const setKind = (nextKind: 'to' | 'patrol' | 'follow') => {
     const next: MoveOrder = { posture: value.posture ?? 'line' };
     if (nextKind === 'to') next.to = { well: 'centre' };
-    if (nextKind === 'patrol') next.patrol = Object.keys(mapPlan.routes)[0] ?? '';
-    if (nextKind === 'follow') next.follow = allOrders.roles.find((entry) => entry.id !== role.id)?.id ?? '';
+    if (nextKind === 'patrol') next.patrol = routeIds[0] ?? '';
+    if (nextKind === 'follow') next.follow = followRoleIds[0] ?? '';
     onChange(next);
   };
   const highlight = mapHighlight(value);
@@ -522,12 +525,19 @@ function MoveEditor({ value, role, allOrders, mapPlan, catalog, onOpenMap, onCha
         <b className="type-display block text-[15px]">{label}</b><span className="t-micro mt-1 block">{copy}</span>
       </button>)}
     </div>
-    {kind === 'to' && <MoveDestination value={value.to!} mapPlan={mapPlan} onChange={(to) => change((next) => { next.to = to; })} />}
-    {kind === 'patrol' && <CardPicker label="Patrol route" value={value.patrol ?? ''} values={Object.keys(mapPlan.routes)}
-      onChange={(patrol) => change((next) => { next.patrol = patrol; })} />}
-    {kind === 'follow' && <CardPicker label="Role to follow" value={value.follow ?? ''}
-      values={allOrders.roles.filter((entry) => entry.id !== role.id).map((entry) => entry.id)}
-      onChange={(follow) => change((next) => { next.follow = follow; })} />}
+    {kind === 'to' && <MoveDestination value={value.to ?? { well: 'centre' }} mapPlan={mapPlan} onChange={(to) => change((next) => { next.to = to; })} />}
+    {kind === 'patrol' && (routeIds.length > 0
+      ? <CardPicker label="Patrol route" value={value.patrol ?? ''} values={routeIds}
+        onChange={(patrol) => change((next) => { next.patrol = patrol; })} />
+      : <div className="mt-3 rounded-sm border border-arena-material/35 bg-arena-material/8 p-3">
+        <p className="type-display text-[16px]">Plot a route before this patrol can run</p>
+        <p className="t-meta mt-1">The unfinished patrol stays selected while you draw it; validation will keep the sheet from saving prematurely.</p>
+        <button type="button" className="btn btn-secondary mt-3 min-h-11 w-full" onClick={() => onOpenMap()}>Open map and add route</button>
+      </div>)}
+    {kind === 'follow' && (followRoleIds.length > 0
+      ? <CardPicker label="Role to follow" value={value.follow ?? ''} values={followRoleIds}
+        onChange={(follow) => change((next) => { next.follow = follow; })} />
+      : <p className="t-meta mt-3 rounded-sm border border-arena-edge bg-arena-panel/45 p-3">Add another role in Squad before choosing Follow.</p>)}
     {kind !== 'follow' && <CardPicker label="Optional ingress route" value={value.via ?? ''}
       values={['', ...Object.keys(mapPlan.routes)]} emptyLabel="Direct · no ingress"
       onChange={(via) => change((next) => { if (!via) delete next.via; else next.via = via; })} />}
@@ -813,9 +823,13 @@ function orderSummary(node: OrderNode, orders: OrdersDocument): string {
   if (node.shared) return orderSummary(orders.sharedOrders[node.shared] ?? {}, orders);
   if (node.orders) return `${node.orders.length} nested priorities${node.when ? ` · when ${conditionSummary(node.when)}` : ''}`;
   if (node.move) {
-    const destination = node.move.patrol ? `patrol ${humanize(node.move.patrol)}`
-      : node.move.follow ? `follow ${humanize(node.move.follow)}`
-        : `go to ${humanize(encodeMoveTarget(node.move.to!).split(':')[1])}`;
+    const destination = node.move.patrol !== undefined
+      ? node.move.patrol ? `patrol ${humanize(node.move.patrol)}` : 'choose a patrol route'
+      : node.move.follow !== undefined
+        ? node.move.follow ? `follow ${humanize(node.move.follow)}` : 'choose a role to follow'
+        : node.move.to
+          ? `go to ${humanize(encodeMoveTarget(node.move.to).split(':')[1])}`
+          : 'choose a destination';
     return `${destination}${node.when ? ` · when ${conditionSummary(node.when)}` : ''}`;
   }
   if (node.fight) return `${humanize(node.fight.style)} · ${node.fight.targets.map(humanize).join(' → ')}`;
