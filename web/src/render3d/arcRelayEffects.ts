@@ -7,6 +7,7 @@ import type {
 import { posesAt, type BotPose } from '../render/interpolate';
 import type { ArcVeterancyIndex } from '../replayArcVeterancy';
 import { unitAccent } from '../render/unitPresentation';
+import { arenaTheme } from '../render/arenaThemes';
 import {
   resolveArcSignaturePresentation,
   type ArcSignatureCanvasMarker,
@@ -106,8 +107,8 @@ interface SignaturePropSlot {
 }
 
 export const ARC_SIGNATURE_PROP_SCALE = {
-  'trip-node': 0.76,
-  'sentinel-seed': 0.9,
+  'trip-node': 0.94,
+  'sentinel-seed': 0.72,
 } as const;
 
 /** The sentry may acknowledge shots that have happened, but never pre-aim from future state. */
@@ -137,6 +138,7 @@ export function buildArcRelayEffects(
 ): { group: THREE.Group; update: (time: number) => void } {
   const group = new THREE.Group();
   group.userData.kind = 'arc-relay-signatures-and-beats';
+  const theme = arenaTheme(replay.map.presentation?.themeId ?? undefined);
   const signatureShotYaws = indexSignatureShotYaws(replay);
   const signaturePhaseStarts = indexSignaturePhaseStarts(replay);
   const signatureOutcomes = indexSignatureOutcomes(replay);
@@ -612,7 +614,14 @@ export function buildArcRelayEffects(
       rig.solid.color.copy(accent).lerp(new THREE.Color('#dbe7ea'), 0.3);
       rig.solid.emissive.copy(accent).multiplyScalar(0.16);
       rig.solid.emissiveIntensity = 0.18;
+      rig.solid.roughness = 0.92;
+      rig.solid.metalness = 0.06;
       rig.solid.opacity = suppressed ? 0.48 : 0.82;
+      rig.inset.color.set('#1d2529');
+      rig.inset.emissive.set('#070b0d');
+      rig.inset.emissiveIntensity = 0.02;
+      rig.inset.roughness = 1;
+      rig.inset.metalness = 0.02;
       rig.inset.opacity = suppressed ? 0.4 : 0.96;
       rig.smoke.color.set('#66727c');
       rig.smoke.emissive.set('#121a20');
@@ -642,6 +651,36 @@ export function buildArcRelayEffects(
         `${signature.operationId}:${phase}`,
       ) ?? signature.startedTick;
       const phaseAge = Math.max(0, time - phaseStartedTick);
+      const coreFlightState = signature.signatureId === 'arc-toss' &&
+          phase === 'in-flight'
+        ? state.visibleCores.find((core) => {
+            if (core.disposition !== 'in-flight' || !core.flightTarget)
+              return false;
+            const endpoints = signature.positions;
+            return endpoints.some(
+              (point) =>
+                point.x === core.position.x && point.y === core.position.y,
+            ) && endpoints.some(
+              (point) =>
+                point.x === core.flightTarget!.x &&
+                point.y === core.flightTarget!.y,
+            );
+          })
+        : undefined;
+      const coreFlight = coreFlightState?.flightTarget
+        ? {
+            source: worldPoint(coreFlightState.position),
+            destination: worldPoint(coreFlightState.flightTarget),
+            progress: Math.max(0, Math.min(
+              1,
+              phaseAge / Math.max(
+                1,
+                (signature.completesAtTick ?? phaseStartedTick + 1)
+                  - phaseStartedTick,
+              ),
+            )),
+          }
+        : undefined;
       let persistentPropReady = false;
       if (
         phase === 'active' &&
@@ -711,6 +750,8 @@ export function buildArcRelayEffects(
           points,
           owner,
           target,
+          coreFlight,
+          arenaTheme: theme,
           time,
           phase: phase as ArcSignatureWebGLPhase,
           persistentPropReady,
@@ -767,6 +808,13 @@ export function buildArcRelayEffects(
       rig.solid.color.copy(accent).lerp(new THREE.Color('#dbe7ea'), 0.3);
       rig.solid.emissive.copy(accent).multiplyScalar(0.16);
       rig.solid.emissiveIntensity = 0.18;
+      rig.solid.roughness = 0.92;
+      rig.solid.metalness = 0.06;
+      rig.inset.color.set('#1d2529');
+      rig.inset.emissive.set('#070b0d');
+      rig.inset.emissiveIntensity = 0.02;
+      rig.inset.roughness = 1;
+      rig.inset.metalness = 0.02;
       prepareEnergyMeshes(rig, accent, 0.72);
       rig.smoke.color.set('#66727c');
       rig.smoke.emissive.set('#121a20');
@@ -788,6 +836,7 @@ export function buildArcRelayEffects(
           : priorSignature?.positions[0]
             ? worldPoint(priorSignature.positions[0])
             : undefined,
+        arenaTheme: theme,
         time,
         fraction,
         reducedMotion,
@@ -1254,6 +1303,33 @@ function indexSignatureShotYaws(
         ? tick.after.mode
         : null;
     if (!state) continue;
+    for (const traversal of tick.projectileTraversals) {
+      if (
+        traversal.attackProfileId !== 'sentinel-bolt' ||
+        traversal.trigger !== 'attack-launch' ||
+        traversal.path.length === 0
+      ) continue;
+      const signature = state.visibleSignatures.find(
+        (candidate) =>
+          candidate.signatureId === 'sentinel-seed' &&
+          candidate.ownerActor.actorKey === traversal.ownerActor.actorKey &&
+          candidate.positions.some(
+            (anchor) =>
+              anchor.x === traversal.from.x && anchor.y === traversal.from.y,
+          ),
+      );
+      if (!signature) continue;
+      const first = traversal.path[0]!;
+      const shots = result.get(signature.operationId) ?? [];
+      shots.push({
+        tick: tickIndex,
+        yaw: -Math.atan2(
+          first.y - traversal.from.y,
+          first.x - traversal.from.x,
+        ),
+      });
+      result.set(signature.operationId, shots);
+    }
     for (const event of [...tick.lifecycleEvents, ...tick.events]) {
       const fact = event.arcRelayFact;
       if (

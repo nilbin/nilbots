@@ -186,6 +186,7 @@ test('signature whole-body acting gives the grammar distinct physical verbs', ()
   const deploy = arcSignatureBodyPose('sentinel-seed', 'tell', 0.55);
   const exchange = arcSignatureBodyPose('exchange', 'tell', 0.55);
   const kinetic = arcSignatureBodyPose('kinetic-burst', 'tell', 0.55);
+  const rail = arcSignatureBodyPose('rail-line', 'tell', 0.55);
 
   assert.ok(hook.forward < 0 && hook.pitch > 0, 'Towline leans back into cable tension');
   assert.ok(mortar.rise < 0 && mortar.pitch > 0, 'Mortar braces into recoil');
@@ -195,6 +196,10 @@ test('signature whole-body acting gives the grammar distinct physical verbs', ()
     'Switchback loads in place without pretending to push either endpoint',
   );
   assert.ok(kinetic.scale > 1.05 && kinetic.rise < 0, 'Repulsor squats and loads outward pressure');
+  assert.ok(
+    rail.rise > 0 && rail.forward > 0 && rail.pitch < 0,
+    'Longshot lifts into its laser brace instead of burying its rear silhouette',
+  );
   assert.notDeepEqual(hook, mortar, 'two casts do not share one generic pulse');
 });
 

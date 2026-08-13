@@ -61,4 +61,33 @@ public sealed class ArcRelaySignatureStageCommandTests
                 ["--signature", "giant-mystery-arrow"]));
         Assert.Contains("Unknown Arc Relay signature", error.Message);
     }
+
+    [Theory]
+    [InlineData("arc-toss")]
+    [InlineData("exchange")]
+    [InlineData("sentinel-seed")]
+    public void FocusedStageRejectsSilentOrUnreadableSignatureDemos(
+        string signatureId)
+    {
+        string output = Path.Combine(
+            Path.GetTempPath(),
+            $"nilbots-signature-stage-{signatureId}-{Guid.NewGuid():N}");
+        try
+        {
+            Assert.Equal(
+                0,
+                ArcRelaySignatureStageCommand.Run(
+                [
+                    "--signature", signatureId,
+                    "--ticks", "48",
+                    "--out", output,
+                ]));
+            Assert.True(File.Exists(Path.Combine(output, "replay.json.gz")));
+        }
+        finally
+        {
+            if (Directory.Exists(output))
+                Directory.Delete(output, recursive: true);
+        }
+    }
 }

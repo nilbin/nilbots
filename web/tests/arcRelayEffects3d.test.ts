@@ -355,8 +355,8 @@ test('pooled signature transforms are identical after direct seek and played pha
 });
 
 test('persistent props stay legible inside their tiles and sentinel yaw never looks ahead', () => {
-  assert.equal(ARC_SIGNATURE_PROP_SCALE['trip-node'], 0.76);
-  assert.equal(ARC_SIGNATURE_PROP_SCALE['sentinel-seed'], 0.9);
+  assert.equal(ARC_SIGNATURE_PROP_SCALE['trip-node'], 0.94);
+  assert.equal(ARC_SIGNATURE_PROP_SCALE['sentinel-seed'], 0.72);
 
   const shots = [
     { tick: 12, yaw: Math.PI / 2 },

@@ -3,6 +3,7 @@ import type {
   ReplayArcRelayFact,
   ReplayArcRelayModeState,
 } from '../../replayModel';
+import type { ArenaTheme } from '../../render/arenaThemes';
 
 export type ArcSignature =
   ReplayArcRelayModeState['visibleSignatures'][number];
@@ -69,6 +70,14 @@ export interface ArcSignaturePaintInput {
   points: THREE.Vector3[];
   owner: THREE.Vector3 | undefined;
   target: THREE.Vector3 | undefined;
+  /** Exact public Core flight sample for Arc Toss; absent for every other signature. */
+  coreFlight: {
+    source: THREE.Vector3;
+    destination: THREE.Vector3;
+    progress: number;
+  } | undefined;
+  /** Replay-owned arena theme; object painters may borrow its material language. */
+  arenaTheme: ArenaTheme;
   time: number;
   phase: ArcSignatureWebGLPhase;
   persistentPropReady: boolean;
@@ -94,6 +103,8 @@ export interface ArcSignatureOutcomePaintInput {
   priorSignature: ArcSignature | null;
   facts: readonly ArcSignatureOutcomeFact[];
   owner: THREE.Vector3 | undefined;
+  /** Replay-owned arena theme, identical to the one used by the static board. */
+  arenaTheme: ArenaTheme;
   time: number;
   fraction: number;
   reducedMotion: boolean;

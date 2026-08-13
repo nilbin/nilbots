@@ -100,11 +100,18 @@ export function arcSignatureBodyPose(
       pose.forward += 0.06 * commit * motion;
       break;
     case 'falling-star':
-    case 'rail-line':
       pose.scale += 0.07 * opening * motion;
       pose.rise -= 0.08 * commit * motion;
       pose.forward -= 0.11 * commit * motion;
       pose.pitch += 0.22 * commit * motion;
+      break;
+    case 'rail-line':
+      // Longshot steadies the barrel without Mortar's downward recoil squat. The old
+      // shared pose drove the long rear silhouette through the floor at full charge.
+      pose.scale += 0.035 * opening * motion;
+      pose.rise += 0.035 * commit * motion;
+      pose.forward += 0.045 * commit * motion;
+      pose.pitch -= 0.055 * commit * motion;
       break;
     case 'trip-node':
     case 'sentinel-seed':

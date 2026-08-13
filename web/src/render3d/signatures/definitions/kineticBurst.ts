@@ -1,12 +1,14 @@
 import * as THREE from 'three';
 import { defineArcSignatureWebGLPainter } from '../types';
-import { anchorOf, lineAt, setEnergyColour, setEnergyOpacity } from '../primitives';
+import { lineAt, setEnergyColour, setEnergyOpacity } from '../primitives';
 
 const PRESSURE = '#78aeb3';
 export default defineArcSignatureWebGLPainter({
   signatureId: 'kinetic-burst',
   paint({ rig, points, owner, target, phaseProgress }) {
-    const anchor = anchorOf(points, owner, target);
+    // Kinetic's published positions are the affected radius in row-major order, so
+    // points[0] is normally the north-west tile. The tell belongs to the rooted caster.
+    const anchor = owner ?? target ?? points[0];
     if (!anchor) return;
     const contraction = 1.72 - phaseProgress * 0.82;
     // Keep the tell on the floor around the real caster. An opaque shared hub in the

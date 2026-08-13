@@ -1,88 +1,110 @@
 import * as THREE from 'three';
 import { defineArcSignatureWebGLPainter } from '../types';
-import { lineAt, polyline, setEnergyColour, setEnergyOpacity, solidBarAt } from '../primitives';
+import type { ArcSignatureEffectRig } from '../types';
+import {
+  setEnergyColour,
+  setEnergyOpacity,
+  solidBeamAt,
+} from '../primitives';
 
-const PRESSURE = '#78aeb3';
+const AIM = '#547985';
+const LASER_HALO = '#3e9eaa';
+const LASER_CORE = '#d1f0eb';
+
+/** Lift a frozen tile ray to the Longshot muzzle without changing its topology. */
+function raisedPath(
+  path: readonly THREE.Vector3[],
+  height: number,
+): THREE.Vector3[] {
+  return path.map((point) => point.clone().setY(height));
+}
+
+function completeRay(
+  points: readonly THREE.Vector3[],
+  owner: THREE.Vector3 | undefined,
+  target?: THREE.Vector3,
+): THREE.Vector3[] {
+  const path = [...points];
+  if (owner && !path.some((point) => point.distanceToSquared(owner) < 0.0001))
+    path.unshift(owner);
+  if (path.length < 2 && target) path.push(target);
+  return raisedPath(path, 0.39);
+}
+
+function laserBeam(
+  rig: ArcSignatureEffectRig,
+  from: THREE.Vector3,
+  to: THREE.Vector3,
+  opacity: number,
+): void {
+  // Two restrained coaxial traces read as a laser at the strategic camera: a broad,
+  // low-alpha colour halo and a narrow pale core. Neither is a solid floor slab, and the
+  // combined luminance stays far below the old full-accent additive rail.
+  const halo = rig.segments[0]!;
+  solidBeamAt(halo, from, to, 0.105);
+  setEnergyColour(halo, LASER_HALO);
+  setEnergyOpacity(halo, opacity * 0.24);
+  const core = rig.segments[1]!;
+  solidBeamAt(core, from, to, 0.035);
+  setEnergyColour(core, LASER_CORE);
+  setEnergyOpacity(core, opacity * 0.68);
+}
 
 export default defineArcSignatureWebGLPainter({
   signatureId: 'rail-line',
   paint({ rig, points, owner, target, phaseProgress }) {
-    const path = points.length > 1 ? points : owner && target ? [owner, target] : [];
+    const path = completeRay(points, owner, target);
     if (path.length < 2) return;
-    polyline(rig, path, 0.075);
+    const from = path[0]!;
+    const to = path.at(-1)!;
+
+    // The wind-up is a thin raised sightline that converges toward the muzzle. It keeps
+    // the promised lane readable without pretending the damaging laser already fired.
     for (let index = 0; index < path.length - 1; index += 1) {
-      const segment = rig.segments[index]!;
-      setEnergyColour(segment, PRESSURE);
-      setEnergyOpacity(segment, 0.08 + phaseProgress * 0.06);
+      const sight = rig.segments[index]!;
+      solidBeamAt(sight, path[index]!, path[index + 1]!, 0.026);
+      setEnergyColour(sight, AIM);
+      setEnergyOpacity(sight, 0.055 + phaseProgress * 0.055);
     }
-    const from = path[0]!;
-    const to = path.at(-1)!;
-    // The body is the frozen pressure rail: broad, matte and low. The additive trace is
-    // only an inset seam, so a stacked volley never turns this signature into a white
-    // laser. During wind-up the rail grows out from Longshot rather than merely existing.
-    const chargedTo = new THREE.Vector3().lerpVectors(
-      from,
-      to,
-      0.16 + phaseProgress * 0.84,
+    const charge = rig.rings[0]!;
+    charge.visible = true;
+    charge.position.copy(from).setY(0.39);
+    charge.quaternion.setFromUnitVectors(
+      new THREE.Vector3(0, 1, 0),
+      new THREE.Vector3().subVectors(to, from).normalize(),
     );
-    solidBarAt(rig.bars[0]!, from, chargedTo, 0.14, 0.075);
-    rig.solid.color.set('#3e565c');
-    rig.solid.emissive.set('#10282d');
-    rig.solid.emissiveIntensity = 0.05;
-    rig.solid.opacity = 0.54;
-    // A compact travelling notch gives the charge direction; it should never become a
-    // second projectile sitting on top of the lane.
-    const pressureHead = rig.payload;
-    pressureHead.visible = true;
-    pressureHead.position.copy(chargedTo);
-    pressureHead.position.y = 0.18;
-    pressureHead.rotation.z = Math.PI / 2;
-    pressureHead.rotation.y = -Math.atan2(to.z - from.z, to.x - from.x);
-    pressureHead.scale.set(0.42, 0.3, 0.42);
-    const dx = to.x - from.x;
-    const dz = to.z - from.z;
-    const length = Math.hypot(dx, dz) || 1;
-    const normal = new THREE.Vector3(-dz / length, 0, dx / length);
-    for (const [index, progress] of [0.34, 0.68].entries()) {
-      const centre = new THREE.Vector3().lerpVectors(from, to, progress);
-      const notch = rig.segments[path.length - 1 + index]!;
-      lineAt(
-        notch,
-        centre.clone().addScaledVector(normal, -0.22),
-        centre.clone().addScaledVector(normal, 0.22),
-        0.13,
-      );
-      setEnergyColour(notch, PRESSURE);
-      setEnergyOpacity(notch, progress <= 0.16 + phaseProgress * 0.84 ? 0.2 : 0.07);
-    }
+    charge.scale.setScalar(0.19 + phaseProgress * 0.09);
+    setEnergyColour(charge, LASER_CORE);
+    setEnergyOpacity(charge, 0.08 + phaseProgress * 0.08);
   },
-  paintOutcome({ rig, priorSignature, facts, fraction }) {
-    if (!facts.some((fact) => fact.kind === 'signature-changed' && fact.reason === 'completed'))
-      return;
-    const path = priorSignature?.positions.map(
-      (point) => new THREE.Vector3(point.x + 0.5, 0.07, point.y + 0.5),
-    ) ?? [];
+  paintOutcome({ rig, priorSignature, facts, owner, fraction }) {
+    if (!facts.some(
+      (fact) => fact.kind === 'signature-changed' && fact.reason === 'completed',
+    )) return;
+    const path = completeRay(
+      priorSignature?.positions.map(
+        (point) => new THREE.Vector3(point.x + 0.5, 0, point.y + 0.5),
+      ) ?? [],
+      owner,
+    );
     if (path.length < 2) return;
-    const life = 1 - fraction;
+    const life = Math.max(0, 1 - fraction * 1.35);
     const from = path[0]!;
     const to = path.at(-1)!;
-    const sweep = Math.min(1, fraction * 1.45);
-    const pressureTo = new THREE.Vector3().lerpVectors(from, to, sweep);
-    solidBarAt(rig.bars[0]!, from, pressureTo, 0.22 * life + 0.09, 0.08);
-    rig.solid.color.set('#3e565c');
-    rig.solid.emissive.set('#10282d');
-    rig.solid.emissiveIntensity = 0.05;
-    rig.solid.opacity = life * 0.48;
-    const afterimage = rig.segments[0]!;
-    lineAt(afterimage, from, pressureTo, 0.12, 0.095);
-    setEnergyColour(afterimage, PRESSURE);
-    setEnergyOpacity(afterimage, life * 0.1);
-    const head = rig.payload;
-    head.visible = true;
-    head.position.copy(pressureTo);
-    head.position.y = 0.18;
-    head.rotation.z = Math.PI / 2;
-    head.rotation.y = -Math.atan2(to.z - from.z, to.x - from.x);
-    head.scale.set(0.58, 0.38, 0.58);
+    laserBeam(rig, from, to, life);
+
+    const impact = facts.find((fact) => fact.kind === 'signature-damage');
+    if (impact?.kind === 'signature-damage') {
+      const ring = rig.toruses[0]!;
+      ring.visible = true;
+      ring.position.set(impact.position.x + 0.5, 0.39, impact.position.y + 0.5);
+      ring.quaternion.setFromUnitVectors(
+        new THREE.Vector3(0, 1, 0),
+        new THREE.Vector3().subVectors(to, from).normalize(),
+      );
+      ring.scale.setScalar(0.2 + fraction * 0.26);
+      setEnergyColour(ring, LASER_CORE);
+      setEnergyOpacity(ring, life * 0.18);
+    }
   },
 });

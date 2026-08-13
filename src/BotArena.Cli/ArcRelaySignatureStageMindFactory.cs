@@ -12,6 +12,17 @@ internal sealed class ArcRelaySignatureStageMindFactory(
     public static readonly Position AllyStart = new(14, 12);
     public static readonly Position EnemyStart = new(16, 12);
     public static readonly Position KineticEnemyStart = new(14, 12);
+    public static readonly Position ExchangeCasterReady = new(13, 13);
+    public static readonly Position ExchangeAllyReady = new(17, 12);
+
+    private static readonly Position[] SentinelEnemyWaypoints =
+    [
+        new(16, 12),
+        new(16, 14),
+        new(14, 14),
+        new(12, 14),
+        new(12, 12),
+    ];
 
     public IGenericMindRuntime CreateRuntime() => new Runtime(spec, teamId);
 
@@ -22,6 +33,9 @@ internal sealed class ArcRelaySignatureStageMindFactory(
         private ActorMapDefinition? _map;
         private bool _repairScratchLaunched;
         private bool _tripMovingWest = true;
+        private bool _exchangeIssued;
+        private int _sentinelWaypoint;
+        private int _sentinelDwellTicks;
 
         public void StartMatch(GenericMindRuntimeStart start)
         {
@@ -38,6 +52,9 @@ internal sealed class ArcRelaySignatureStageMindFactory(
                 GenericMindCommand command = teamId switch
                 {
                     0 when body.UnitId == 0 => Caster(observation, body),
+                    0 when body.UnitId == 1
+                        && spec.SignatureId == "exchange" =>
+                        ExchangeAlly(observation, body),
                     1 when body.UnitId == 0 => Context(observation, body),
                     _ => Wait(body, "stage-idle"),
                 };
@@ -53,6 +70,25 @@ internal sealed class ArcRelaySignatureStageMindFactory(
             GenericMindRuntimeObservation observation,
             GenericMindRuntimeObservation.ObservedBodyState body)
         {
+            if (spec.SignatureId == "exchange")
+            {
+                if (_exchangeIssued)
+                    return Wait(body, "signature-caster");
+                if (body.Position != ExchangeCasterReady)
+                {
+                    return MoveToward(
+                        observation,
+                        body,
+                        ExchangeCasterReady,
+                        "signature-caster");
+                }
+                GenericMindRuntimeObservation.ObservedBodyState? ally =
+                    observation.Bodies.SingleOrDefault(value =>
+                        value.UnitId == 1);
+                if (ally?.Position != ExchangeAllyReady)
+                    return Wait(body, "signature-caster");
+            }
+
             if (spec.Context == ArcRelaySignatureStageContext.Core
                 && CarriedCore(observation, body) is null)
             {
@@ -71,14 +107,42 @@ internal sealed class ArcRelaySignatureStageMindFactory(
                 spec.SignatureId);
             if (signature is not null)
             {
-                return Command(
+                if (spec.SignatureId == "exchange")
+                {
+                    GenericActorRuntimeActionLegality.ArgumentConstraint
+                        .UnitTargetConstraint targets = signature.Constraints
+                            .OfType<GenericActorRuntimeActionLegality
+                                .ArgumentConstraint.UnitTargetConstraint>()
+                            .Single();
+                    var intended = new GenericActorRuntimeActionArgument
+                        .UnitTarget(0, 1);
+                    if (!targets.AllowedValues.Contains(intended))
+                    {
+                        return Wait(body, "stage-exchange-no-target");
+                    }
+                }
+                GenericMindCommand command = Command(
                     body,
                     signature,
                     Arguments(signature, body, observation),
                     "signature-caster");
+                if (spec.SignatureId == "exchange")
+                    _exchangeIssued = true;
+                return command;
             }
             return Wait(body, "signature-caster");
         }
+
+        private GenericMindCommand ExchangeAlly(
+            GenericMindRuntimeObservation observation,
+            GenericMindRuntimeObservation.ObservedBodyState body) =>
+            _exchangeIssued || body.Position == ExchangeAllyReady
+                ? Wait(body, "stage-exchange-ally")
+                : MoveToward(
+                    observation,
+                    body,
+                    ExchangeAllyReady,
+                    "stage-exchange-ally");
 
         private GenericMindCommand Context(
             GenericMindRuntimeObservation observation,
@@ -115,6 +179,8 @@ internal sealed class ArcRelaySignatureStageMindFactory(
                         KineticEnemyStart,
                         "stage-context");
             }
+            if (spec.SignatureId == "sentinel-seed")
+                return SentinelContext(observation, body);
             if (spec.Context == ArcRelaySignatureStageContext.TripTarget)
             {
                 if (body.Position.X <= 14) _tripMovingWest = false;
@@ -137,6 +203,32 @@ internal sealed class ArcRelaySignatureStageMindFactory(
             return Wait(body, "stage-context");
         }
 
+        private GenericMindCommand SentinelContext(
+            GenericMindRuntimeObservation observation,
+            GenericMindRuntimeObservation.ObservedBodyState body)
+        {
+            Position target = SentinelEnemyWaypoints[_sentinelWaypoint];
+            if (body.Position != target)
+            {
+                _sentinelDwellTicks = 0;
+                return MoveToward(
+                    observation,
+                    body,
+                    target,
+                    "stage-sentinel-target");
+            }
+            if (_sentinelDwellTicks++ < 2)
+                return Wait(body, "stage-sentinel-target");
+            _sentinelDwellTicks = 0;
+            _sentinelWaypoint =
+                (_sentinelWaypoint + 1) % SentinelEnemyWaypoints.Length;
+            return MoveToward(
+                observation,
+                body,
+                SentinelEnemyWaypoints[_sentinelWaypoint],
+                "stage-sentinel-target");
+        }
+
         private ImmutableArray<GenericActorRuntimeActionArgument> Arguments(
             GenericActorRuntimeActionLegality legality,
             GenericMindRuntimeObservation.ObservedBodyState body,
@@ -148,8 +240,8 @@ internal sealed class ArcRelaySignatureStageMindFactory(
                 "vector-dash" => CasterStart,
                 "survey-flare" or "hardlight-block" or "smoke-canister"
                     => new Position(15, 14),
-                "arc-toss" => new Position(17, 14),
-                "trip-node" or "sentinel-seed" => new Position(15, 12),
+                "arc-toss" => ArcTossObjective(body),
+                "trip-node" or "sentinel-seed" => new Position(14, 12),
                 _ => EnemyStart,
             };
             GenericActorRuntimeActionArgument.UnitTarget unitTarget =
@@ -163,6 +255,17 @@ internal sealed class ArcRelaySignatureStageMindFactory(
                 observation,
                 objective,
                 unitTarget);
+        }
+
+        private Position ArcTossObjective(
+            GenericMindRuntimeObservation.ObservedBodyState body)
+        {
+            int direction = body.Position.X <= _map!.Width / 2 ? 1 : -1;
+            int x = Math.Clamp(
+                body.Position.X + direction * 5,
+                1,
+                _map.Width - 2);
+            return new Position(x, body.Position.Y);
         }
 
         private static ImmutableArray<GenericActorRuntimeActionArgument>

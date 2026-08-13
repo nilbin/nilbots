@@ -58,13 +58,16 @@ public static class ArcRelaySignatureStageCommand
             ArcRelayBroadcastDocument.CreateAndRun(
                 session,
                 ArcRelayH0ReplayPresentation.Create(definition));
-        int attempts = SignatureFacts(session, spec.SignatureId)
+        ArcRelayEvent.SignatureChanged[] signatureFacts =
+            SignatureFacts(session, spec.SignatureId).ToArray();
+        int attempts = signatureFacts
             .Count(value => value.Reason == "started");
         if (attempts == 0)
         {
             throw new InvalidOperationException(
                 $"Focused stage did not cast {spec.SignatureId}; no review replay was written.");
         }
+        ValidateStageEvidence(session, spec, signatureFacts);
 
         string output = Path.GetFullPath(
             options.GetValueOrDefault("out")
@@ -255,6 +258,44 @@ public static class ArcRelaySignatureStageCommand
                 value.SignatureId,
                 signatureId,
                 StringComparison.Ordinal));
+
+    private static void ValidateStageEvidence(
+        GenericActorMatchSession session,
+        ArcRelaySignatureStageSpec spec,
+        IReadOnlyCollection<ArcRelayEvent.SignatureChanged> signatureFacts)
+    {
+        IEnumerable<ArcRelayEvent> arcFacts = session.Chronology.Ticks
+            .SelectMany(frame => frame.TickStart.Events.Concat(frame.Events))
+            .Select(value => value.Payload)
+            .OfType<GenericActorRuntimeObservation.EventPayload.ArcRelay>()
+            .Select(value => value.Fact);
+        switch (spec.SignatureId)
+        {
+            case "exchange" when !arcFacts
+                .OfType<ArcRelayEvent.BodyRelocated>()
+                .Any(value => value.SignatureId == spec.SignatureId):
+                throw new InvalidOperationException(
+                    "Focused Exchange stage completed without a real body swap.");
+            case "arc-toss" when !arcFacts
+                .OfType<ArcRelayEvent.CoreRelocated>()
+                .Any(value => value.Kind
+                    == ArcRelayEvent.CoreRelocationKind.ArcTossLanding
+                    && value.From.ChebyshevDistance(value.To) >= 3):
+                throw new InvalidOperationException(
+                    "Focused Arc Toss stage did not produce a readable long toss.");
+            case "sentinel-seed" when !session.Chronology.Ticks
+                .SelectMany(frame => frame.Traversals)
+                .Any(value => value.AttackProfileId == "sentinel-bolt"):
+                throw new InvalidOperationException(
+                    "Focused Sentinel stage deployed but never fired a real bolt.");
+        }
+        if (spec.SignatureId == "sentinel-seed"
+            && !signatureFacts.Any(value => value.Reason == "deployed"))
+        {
+            throw new InvalidOperationException(
+                "Focused Sentinel stage never reached its deployed phase.");
+        }
+    }
 
     private static GenericActorParticipantConfiguration Participant(
         int participantId,
