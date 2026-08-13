@@ -154,6 +154,18 @@ test('guided validation mirrors exact roots, class cap, condition use, shared us
   assert.ok(messages.some((message) => message.includes('unused zone')));
 });
 
+test('guided validation rejects route waypoints on walls before save', () => {
+  const wallCatalog = structuredClone(catalog);
+  wallCatalog.map.tileRows[0] = '#....';
+  const draft = parseDraft('Test', null, null, stringifyDocument(orders), stringifyDocument(mapPlan));
+  draft.mapPlan.routes['centre-loop'].waypoints[0] = [0, 0];
+
+  const issue = validateDraft(draft, wallCatalog).find((candidate) =>
+    candidate.path === 'mapPlan.routes.centre-loop.waypoints.0');
+
+  assert.match(issue?.message ?? '', /off the wall/i);
+});
+
 test('movement urgency is a three-word optional node property', () => {
   const valid = parseDraft('Test', null, null, stringifyDocument(orders), stringifyDocument(mapPlan));
   valid.orders.roles[0].orders[0].urgency = 'urgent';

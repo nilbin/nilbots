@@ -526,6 +526,8 @@ function validateGeometry(
       error(`${path}.waypoints`, 'A route needs 2–32 waypoints.');
     route.waypoints.forEach(([x, y], index) => {
       if (!inside(x, y, catalog)) error(`${path}.waypoints.${index}`, 'Plot this waypoint inside the map.');
+      else if (!traversableForBothSides(x, y, catalog))
+        error(`${path}.waypoints.${index}`, 'Move this waypoint off the wall so both team-side previews can traverse it.');
     });
     if (!usedRoutes.has(id)) error(path, 'Delete this unused route or use it in a move order.');
   }
@@ -533,8 +535,22 @@ function validateGeometry(
     const path = `mapPlan.anchors.${id}`;
     if (!validId(id)) error(path, 'Anchor id must be kebab-case.');
     if (!inside(x, y, catalog)) error(path, 'Plot this anchor inside the map.');
+    else if (!traversableForBothSides(x, y, catalog))
+      error(path, 'Move this anchor off the wall so both team-side previews can traverse it.');
     if (!usedAnchors.has(id)) error(path, 'Delete this unused anchor or target it from an order.');
   }
+}
+
+function traversableForBothSides(
+  x: number,
+  y: number,
+  catalog: TacticalSheetCatalog,
+) {
+  const west = catalog.map.tileRows[y]?.[x];
+  const east = catalog.map.tileRows[catalog.map.height - 1 - y]?.[
+    catalog.map.width - 1 - x
+  ];
+  return west !== undefined && west !== '#' && east !== undefined && east !== '#';
 }
 
 function exactKeys(
