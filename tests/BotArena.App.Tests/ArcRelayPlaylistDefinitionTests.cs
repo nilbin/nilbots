@@ -1,5 +1,6 @@
 using BotArena.App.ArcRelay;
 using BotArena.App.Competition;
+using BotArena.App.Jobs;
 using BotArena.Engine;
 using BotArena.Runtime;
 using BotArena.Runtime.Wasm;
@@ -11,7 +12,33 @@ namespace BotArena.App.Tests;
 public sealed class ArcRelayPlaylistDefinitionTests
 {
     [Fact]
-    public void Entrant_v21_promotes_Tapline3_and_EPIBT_while_v2_through_v20_remain_executable()
+    [Trait("Category", "ReleaseWasm")]
+    public void ReleaseGate_CurrentPlaylistPinsTheCurrentTacticalMirror()
+    {
+        if (!ReleaseWasmRequired())
+            return;
+
+        string root = FindRepoRoot();
+        string receiptPath = Path.Combine(
+            root,
+            "arena-bots",
+            "arc-relay",
+            "tactical-playbook-mind-v1",
+            "bot.build-receipt.json");
+        using JsonDocument receipt = JsonDocument.Parse(
+            File.ReadAllText(receiptPath));
+        JsonElement document = receipt.RootElement;
+
+        Assert.Equal(
+            ArcRelayEntrantPlaylistDefinition.OrdersTacticalArtifactHash,
+            document.GetProperty("artifactSha256").GetString());
+        Assert.Equal(
+            ArcRelayEntrantPlaylistDefinition.OrdersTacticalBuildInputHash,
+            document.GetProperty("buildInputSha256").GetString());
+    }
+
+    [Fact]
+    public void Entrant_v21_promotes_Tapline3_and_EPIBT_while_v2_through_v20_remain_resolvable_history()
     {
         ArcRelayEntrantPlaylistDefinition current =
             ArcRelayEntrantPlaylistDefinition.Create();
@@ -354,6 +381,18 @@ public sealed class ArcRelayPlaylistDefinitionTests
         Assert.Same(current, registry.Resolve(
             ArcRelayEntrantPlaylistDefinition.PlaylistKey,
             ArcRelayEntrantPlaylistDefinition.Version));
+        string currentJobType = GenericActorMatchJobType.ForPlaylist(
+            ArcRelayEntrantPlaylistDefinition.PlaylistKey,
+            ArcRelayEntrantPlaylistDefinition.Version);
+        string historicalJobType = GenericActorMatchJobType.ForPlaylist(
+            ArcRelayEntrantPlaylistDefinition.PlaylistKey,
+            ArcRelayEntrantPlaylistDefinition.OrdersV2Version);
+        Assert.True(registry.SupportsJobType(currentJobType));
+        Assert.False(registry.SupportsJobType(historicalJobType));
+        Assert.False(ArcRelayPlaylistDefinition.Create()
+            .CanExecutePendingMatches);
+        Assert.Throws<InvalidOperationException>(
+            () => registry.ResolveJobType(historicalJobType));
     }
 
     [Fact]
@@ -385,6 +424,25 @@ public sealed class ArcRelayPlaylistDefinitionTests
                 .Where(value => value.TeamId == 1)
                 .OrderBy(value => value.UnitId)
                 .Select(value => value.ClassId));
+    }
+
+    private static bool ReleaseWasmRequired() =>
+        string.Equals(
+            Environment.GetEnvironmentVariable(
+                "BOTARENA_REQUIRE_CURRENT_TACTICAL_WASM"),
+            "true",
+            StringComparison.OrdinalIgnoreCase);
+
+    private static string FindRepoRoot()
+    {
+        DirectoryInfo? directory = new(AppContext.BaseDirectory);
+        while (directory is not null)
+        {
+            if (File.Exists(Path.Combine(directory.FullName, "BotArena.sln")))
+                return directory.FullName;
+            directory = directory.Parent;
+        }
+        throw new DirectoryNotFoundException("Repository root is missing.");
     }
 
     [Fact]

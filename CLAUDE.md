@@ -99,13 +99,20 @@ explicit roles, a one-shot migration container, and Caddy.
 
 ## Architecture
 
-Execution path (the product's core invariant — local and server identical):
+Untrusted player code follows the sandboxed path:
 
 ```
 C# source → controlled build project (BotArena.Toolchain) → NativeAOT-LLVM
 → WASI p1 core module → WasmBotRuntime (wasmtime-dotnet, fuel + memory limits,
 deterministic WASI shims) → MatchEngine → canonical replay + SHA-256 hash
 ```
+
+Arc Relay **sheet entrants do not execute that WASM module**. The server
+validates their data with the shared compiler and executes the registered
+first-party `ArcRelayTacticalPlaybookMind` in-process; custom minds remain
+sandboxed WASM always. The tracked tactical `bot.wasm` is a release-checkpoint
+mirror for audit, cross-runtime parity and the future custom-mind surface, not
+the hosted sheet runtime.
 
 Project boundaries that must not be violated:
 
@@ -189,8 +196,11 @@ Project boundaries that must not be violated:
   `WrappedPerLifeMind` facade with per-life memory semantics reproduced exactly
   — so a per-life bot plays a mind match with zero source edits and a MIXED
   match is ordinary. Profile is a match-level choice, never per entrant.
-  Older workers leave unknown playlist-version work pending; retain historical
-  definitions and capabilities until their queued work drains or is migrated.
+  Older workers leave unknown playlist-version work pending. Historical Arc
+  Relay definitions remain registered for persisted identity and completed
+  replay interpretation, but their queue capabilities are deliberately absent:
+  current workers must not re-simulate old versions with today's in-process
+  tactical mind.
   It creates no season, ladder, rating, series settlement, broad matchmaking,
   FFA, or team-play product.
   The compatibility generations and dependency order are frozen in
@@ -206,7 +216,7 @@ Project boundaries that must not be violated:
   implicit owner-gallery path.
   Immutable hosted entrant playlist v21 pins `tapline-3`, Tapline-native
   Orders v2 sheets, atomic EPIBT squad movement, and the parity-proven ATL2
-  WASM artifact. v20 remains immutable Tapline-1 history. v7
+  WASM mirror. v20 remains immutable, replay-only Tapline-1 history. v7
   began the fresh Warren
   development rating era and remains immutable; v8 carried those development
   ratings because no game fact changed. Public Season 1 began on a separate,
@@ -243,8 +253,8 @@ Project boundaries that must not be violated:
   requires both orthogonal companion terrain
   tiles open, while body occupancy remains ordinary traffic.
   Neither development population
-  is presented as Season history. v6 remains the readable/executable
-  ForwardCombat on Counterflow history; never mutate it or migrate its sheet geometry. Sheets
+  is presented as Season history. v6 remains readable, replay-only
+  ForwardCombat-on-Counterflow history; never mutate it or migrate its sheet geometry. Sheets
   compile through
   `BotArena.TacticalPlaybooks`, the one shared compiler: the current seven-key
   Orders document plus six-key map plan compile directly to ATL2, with no
@@ -328,7 +338,10 @@ Web (`web/`) is one Vite/React build with two modes chosen at runtime in
   hashes differ even when every gameplay byte agrees. For cross-host gameplay
   comparison, hold participant provenance equal in the parity harness or use
   `scripts/arc-relay-state-digest.py`; never present raw diagnostic CLI hashes
-  as the cross-host comparison.
+  as the cross-host comparison. Ordinary tactical development enforces the
+  in-process deterministic engine and focused gameplay invariants; the full
+  first-party in-process/WASM match is a manual release checkpoint because
+  hosted sheets do not execute the WASM mirror.
 - Gameplay-affecting values live only in `GameRules` and are pinned by the
   rules version; the PRNG (SplitMix64) and seed derivation are pinned by
   golden-value tests — if `RandomTests.GoldenValues_PinTheAlgorithm` fails you
@@ -467,7 +480,12 @@ Web (`web/`) is one Vite/React build with two modes chosen at runtime in
   every executor action must carry a non-empty `debugMessage` reason. A review
   exhibit runs current mind sources in-process: it does not require tracked
   WASM, frozen-stock, playlist/rating-era, compatibility-version, or release
-  work. Those happen only at an explicitly requested promotion gate.
+  work, and neither does an ordinary merge to `main`. A behavior-changing
+  deployment still mints a new current playlist version. Completed historical
+  matches remain viewable from stored broadcasts; historical Arc Relay
+  playlists are replay-only rather than executable through today's tactical
+  mind. Rebuild/parity-check the first-party WASM mirror only at the explicit
+  release/deployment checkpoint or when the sandbox/ABI/toolchain itself moves.
 - **One top-level class per file**, named for it — tests included (one test
   class per file). Small records/DTOs tightly coupled to a main type may
   colocate (the `Replay.cs` pattern). Legacy grouped CLI files
@@ -520,7 +538,10 @@ Web (`web/`) is one Vite/React build with two modes chosen at runtime in
   artifact SHA-256; a test must recompute both from HEAD. Never update a
   tracked artifact without its receipt, and never amend an already pinned
   frozen playlist artifact — mint the next artifact directory and playlist
-  version.
+  version. The mutable first-party Arc Relay tactical mirror may be stale on
+  `main` between releases; its current-source receipt and full parity are
+  enforced by `BOTARENA_REQUIRE_CURRENT_TACTICAL_WASM=true` in the manual
+  release verifier, not by the ordinary development suite.
 - The NativeAOT compiler executable is Linux-only (x64 and arm64 hosts). On
   macOS, let `run-wasm-publish.sh` pick the platform-matched Docker builder;
   forcing a non-native platform via `BOTARENA_WASM_DOCKER_PLATFORM` runs the

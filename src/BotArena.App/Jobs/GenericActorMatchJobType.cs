@@ -1,9 +1,9 @@
 namespace BotArena.App.Jobs;
 
 /// <summary>
-/// Durable queue capability for one immutable hosted generic playlist
-/// version. Workers claim only the exact definitions registered in their
-/// binary, so a mixed-version fleet cannot consume work it cannot execute.
+/// Durable queue capability for one executable hosted generic playlist
+/// version. Workers claim only the exact executable definitions registered in
+/// their binary; replay-only historical definitions advertise no job type.
 /// The resulting value is persisted; changing its format requires an explicit
 /// queue migration and mixed-version rollout plan.
 /// </summary>

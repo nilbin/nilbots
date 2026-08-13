@@ -83,26 +83,29 @@ The generational reference is:
 `previous native bots + previous rules` versus
 `current native bots + candidate rules`.
 
-Freeze final WASM hashes before the holdout. Source iteration may use
-in-process execution; final evidence is all-WASM with zero faults.
+For populations of submitted custom code, freeze final WASM hashes before the
+holdout and keep final evidence sandboxed with zero faults. Arc Relay sheet
+populations are different: production executes their shared first-party
+tactical mind in-process, so freeze the source commit, playlist candidate,
+compiled sheet/layout hashes, rules/map fingerprints and seed block, then run
+the retained evidence on that same trusted in-process path.
 
 For Arc Relay population work, bulk candidate screening may use the persistent
 `nilbots experiment arc-relay-screen-batch` command. This path runs the frozen
 algorithm in-process and deliberately emits `screen.json` receipts instead of
 canonical replays. It may reject obviously unpromising candidates and choose
-which cells deserve the expensive audit path, but it is never cohort evidence:
-every retained cell still needs WASM execution, byte-identical canonical replay
+which cells deserve the retained audit path, but it is never cohort evidence:
+every retained cell still needs a complete canonical in-process replay,
 verification, and the registered felt-degeneracy scorecard before it enters a
-balance read or gallery. Keep both runtime labels in the report and prove a
-same-cell result-parity sample for every screening sweep.
+balance read or gallery.
 
-Between the screen and the WASM audit sits a third lane for doctrine
-debugging: run `nilbots experiment arc-relay` with `--runtime in-process`
+For doctrine debugging and retained Arc Relay evidence, run
+`nilbots experiment arc-relay` with `--runtime in-process`
 and WITHOUT `--screen` (same `--bot/--opponent/--sheet0/--sheet1/--seed/
 --loop-profile/--out` flags the batch uses) to get a FULL canonical replay
-in ~8 s/game, including per-tick `mindTurns` (observation, commands,
-resolutions, intents) for phase/role tracing. Its canonical hash differs
-from WASM by runtime provenance — it is analysis material, never evidence.
+including per-tick `mindTurns` (observation, commands, resolutions, intents)
+for phase/role tracing. Pin the exact managed binary/source identity in a
+retained cohort; do not mix results produced by different binaries.
 Summarize any replay or sweep cell with
 `python3 scripts/arc-relay-replay-analyze.py <replay.json[.gz] | cell-dir>`.
 
@@ -132,16 +135,21 @@ two-speed measurement loop:
    bars, and one or two deliberately chosen replay cards. Reuse the existing
    production viewer build and replace only replay payloads/cards. This loop is
    for diagnosis and selection; label every result `in-process` and provisional.
-2. **Promotion gate:** only after freezing a candidate, run the declared paired
-   sandboxed-WASM cohort, canonical verification, golden hashes, full registered
-   eligibility audit, production build/tests, browser smoke, permanent evidence,
-   and public review gallery. This is the only lane that supports a balance or
-   strategy-proof claim.
+2. **Measurement freeze:** only after freezing a candidate, run the declared
+   paired trusted-in-process cohort, canonical verification, gameplay hashes,
+   full registered eligibility audit, permanent evidence and public review
+   gallery. This is the only lane that supports an Arc Relay sheet balance or
+   strategy-proof claim. Custom-mind cohorts remain sandboxed WASM.
 
-Do not pay the promotion-gate cost for every sheet edit. Conversely, never
+Do not pay the measurement-freeze cost for every sheet edit. Conversely, never
 promote a discovery-loop result because its quick replay looked convincing.
 Record the discovery ledger so the final report discloses the search rather
 than presenting the promoted candidate as a first try.
+
+Deployment is a separate checkpoint. Before shipping a behavior-changing
+tactical worker, mint a new current playlist version, refresh the first-party
+WASM mirror, and run its release-only in-process/WASM parity gate. That ceremony
+does not retroactively make WASM the evidence runtime for sheet balance.
 
 Score Arc Relay events across both `startEvents` and `events`; post-state worlds
 alone are insufficient. In particular, reject repeated same-Core, same-life,

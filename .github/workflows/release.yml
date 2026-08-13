@@ -61,6 +61,7 @@ jobs:
       - name: Run end-to-end verification
         env:
           WASI_SDK_PATH: /opt/botarena/wasi-sdk-29.0
+          BOTARENA_REQUIRE_CURRENT_TACTICAL_WASM: "true"
         run: bash scripts/e2e.sh
 
       - name: Require cleared and auditioned soundtrack media

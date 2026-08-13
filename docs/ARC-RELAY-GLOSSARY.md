@@ -7,8 +7,8 @@ navigation, help, errors, and authoring UI use the terms below.
 - **Entrant** — the competitive identity that owns a name, crest, composition,
   revisions, match history, and rating. An entrant is either a sheet or a custom mind.
 - **Sheet** — a saved tactical playbook plus its hash-pinned layout, executed by the
-  frozen stock mind. Editing it creates a revision of the same entrant; saving a copy
-  creates a new entrant.
+  registered first-party tactical mind in the trusted in-process worker. Editing it
+  creates a revision of the same entrant; saving a copy creates a new entrant.
 - **Custom mind** — submitted C# source built through the controlled toolchain and run
   as sandboxed WASM. Its declared composition is part of every revision.
 - **Body** — one unit fielded during a match. Bodies are instances, not entrants.

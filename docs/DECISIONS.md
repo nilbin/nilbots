@@ -8094,8 +8094,10 @@ v21 pins `arc-relay-tapline-03`, the unchanged Tapline map, Orders v2 / ATL2,
 the current `wellwright-tapline-v2` stock sheet, authored movement urgency,
 body-local combat contact, complete signature grammar 3, and the atomic
 three-action EPIBT squad planner described by #301. Playlist v20 remains
-byte-frozen Tapline-1 history and is registered as an independently executable
-definition.
+byte-frozen Tapline-1 history and was initially registered as independently
+executable. Decision #303 later makes completed historical versions replay-only
+because the trusted tactical implementation is compiled into the current
+worker rather than versioned as a managed artifact.
 
 The controlled macOS Docker build produces artifact SHA-256
 `8feed1cd9a43e9a6ad8266d8ef2e6760c39386a080a974684d634082bb5cf969`
@@ -8120,3 +8122,33 @@ rating continuity would be false evidence; v20 ratings are not copied. CLI and
 package version 0.9.60 carry the promoted default. `publish-cli` owes a
 `cli-v0.9.60` tag before any deployment; this ruling does not authorize a
 release or deploy workflow.
+
+## 303. Trusted tactical iteration is in-process; historical Arc Relay playlists are replay-only
+
+Owner ruling (2026-08-13). Arc Relay sheet entrants execute the registered
+first-party tactical mind in-process in the hosted worker; only submitted
+custom minds execute through the sandboxed WASM runtime. The tracked tactical
+`bot.wasm` is therefore a release-checkpoint mirror for audit, cross-runtime
+parity and future custom-mind compatibility, not the runtime used for hosted
+sheet matches.
+
+Ordinary tactical, executor, pathing and sheet iteration—including accepted
+changes merged to `main`—uses the in-process exhibit and focused deterministic
+tests. It does not rebuild the tactical WASM mirror, mint a playlist or rating
+era, or run full cross-runtime parity. The mirror may be stale between release
+checkpoints. Its byte/receipt integrity remains continuously tested; current
+source/build-input equality and the full tactical in-process/WASM match run
+when `BOTARENA_REQUIRE_CURRENT_TACTICAL_WASM=true`, which the manual release
+workflow sets. Changes to custom-mind admission, SDK/Guest ABI, the controlled
+compiler or the WASM host enter that checkpoint immediately.
+
+The managed tactical class is compiled into the worker, so a behavior-changing
+worker deployment must mint a new current Arc Relay playlist version before it
+ships. Publishing the CLI alone changes no hosted match behavior. Completed
+historical matches remain watchable from their stored canonical broadcasts and
+are never re-simulated for viewing. Historical Arc Relay playlist definitions
+stay registered so persisted identities remain readable, but they advertise no
+durable execution job capability: a current worker must not run unfinished old
+jobs through today's tactical class and falsely label the result as historical.
+The current version alone is executable; outstanding work must be drained or
+explicitly migrated before a deployment advances it.

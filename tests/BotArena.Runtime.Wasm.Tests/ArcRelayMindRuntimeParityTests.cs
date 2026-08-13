@@ -16,8 +16,12 @@ namespace BotArena.Runtime.Wasm.Tests;
 public sealed class ArcRelayMindRuntimeParityTests
 {
     [Fact]
-    public void TacticalMindProducesByteIdenticalReplayInProcessAndInWasm()
+    [Trait("Category", "ReleaseWasm")]
+    public void ReleaseGate_TacticalMindProducesByteIdenticalReplayInProcessAndInWasm()
     {
+        if (!ReleaseWasmRequired())
+            return;
+
         string root = FindRepoRoot();
         const string firstSheet = "hunter-tapline-v2.json";
         const string secondSheet = "wellwright-tapline-v2.json";
@@ -239,4 +243,11 @@ public sealed class ArcRelayMindRuntimeParityTests
         }
         throw new DirectoryNotFoundException("Repository root is missing.");
     }
+
+    private static bool ReleaseWasmRequired() =>
+        string.Equals(
+            Environment.GetEnvironmentVariable(
+                "BOTARENA_REQUIRE_CURRENT_TACTICAL_WASM"),
+            "true",
+            StringComparison.OrdinalIgnoreCase);
 }

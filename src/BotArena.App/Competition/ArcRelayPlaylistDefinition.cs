@@ -44,6 +44,7 @@ public sealed class ArcRelayPlaylistDefinition : IHostedGenericMatchDefinition
     public string CanonicalDefinition { get; }
     public string DefinitionFingerprint { get; }
     public string Provenance { get; }
+    public bool CanExecutePendingMatches => false;
     public string AdmissionPolicyId => BotArenaVersions.GenericMindContractProfileId;
     public string ExecutionPolicyId => PlaylistExecutionPolicyIds.GenericActor;
     public string ExecutionEngineVersion => BotArenaVersions.GenericActorEngineVersion;

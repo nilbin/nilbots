@@ -6,22 +6,23 @@ document. `docs/DECISIONS.md` records where open choices were pinned.
 [`DOCUMENTATION.md`](DOCUMENTATION.md) classifies shipped contracts, active
 plans, and historical evidence.
 
-## Current product (2026-08-08)
+## Current product (2026-08-13)
 
 Arc Relay is the shipped game. Players field **entrants** of two kinds: tactical
-**sheets** executed by the frozen stock mind, and submitted C# **custom minds** built to
-WASM through the controlled toolchain. Each entrant owns a crest, ordered eight-class
-composition, revisions, match history, and rating. The current CLI default and hosted
-playlist v9 run `ambush-warren-11` on `arc-relay-ambush-warren-06`. The primary loop is
-**change → run → watch → understand → change again**.
+**sheets** executed by the registered first-party tactical mind in the trusted
+in-process worker, and submitted C# **custom minds** built to WASM through the
+controlled toolchain. Each entrant owns a crest, ordered eight-class composition,
+revisions, match history, and rating. The current CLI default and hosted playlist v21
+run `tapline-3` on `arc-relay-tapline-03` with the coordinated movement planner. The
+primary loop is **change → run → watch → understand → change again**.
 
 Legacy Duel records and code remain readable and byte-verifiable, but Duel admission and
 creation are retired from the product surface. Frontline is historical design and engine
 evidence, not a shipped game. Current vocabulary and authoring contracts live in
 [`ARC-RELAY-GLOSSARY.md`](ARC-RELAY-GLOSSARY.md) and
-[`SHEET-AUTHORING.md`](SHEET-AUTHORING.md); decisions 247–250 close the current product,
-playlist, iteration, and runtime-determinism lines. Sheets now link directly as
-bounded ATL1 role ladders; the legacy expanded playbook IR is retired.
+[`SHEET-AUTHORING.md`](SHEET-AUTHORING.md); decisions 247–250 and 301–303 close the
+current product, playlist, iteration, planner, and runtime lines. Sheets now link directly as
+bounded ATL2 order trees; the legacy expanded playbook IR is retired.
 
 ## Non-negotiable architecture
 
@@ -29,14 +30,20 @@ bounded ATL1 role ladders; the legacy expanded playbook IR is retired.
   OpenIddict + SignalR, in-process module communication, DB-backed jobs.
   No microservices/brokers/K8s. Compilation & bot execution may cross process
   boundaries for *isolation*, not as services.
-- **WASM is the canonical runtime** locally and server-side; in-process
-  execution is diagnostic only. Local play enforces official limits.
+- **Untrusted player code runs only as sandboxed WASM.** Arc Relay sheets are data
+  interpreted by the registered first-party tactical mind in-process, matching the
+  hosted worker. Its tracked WASM build is a release-checkpoint parity mirror, not the
+  per-edit or hosted sheet runtime.
 - **Server rebuilds submitted source; the server artifact is canonical.**
   Submissions are hostile; analyzers are DX, never a security boundary.
-- **Determinism is a product feature**: same versions + artifacts + map + seed
+- **Determinism is a product feature**: same versions + deployed tactical binary or
+  submitted artifact + sheet/layout + map + seed
   ⇒ identical actions, events, result, replay hash. Integer-only simulation.
 - Four version axes: SDK / runtime protocol / runtime configuration / game
   rules. Bot versions and appearances are immutable; history never changes.
+- Completed historical matches are viewed from their stored broadcasts. Old Arc Relay
+  playlist definitions remain resolvable as history but are replay-only; current
+  workers do not re-simulate unfinished old jobs with today's tactical implementation.
 - Ranked play uses mirrored deterministic match sets, not single matches.
 
 ## Historical Duel rules (0.5; retained for replay compatibility)

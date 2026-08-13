@@ -35,8 +35,9 @@ During the fast design loop:
 - do **not** build or copy `bot.wasm`, update a build receipt, mint a frozen
   stock directory, bump a playlist/rating era/CLI version, regenerate clients,
   or run a release workflow;
-- leave tracked WASM and immutable playlist definitions untouched. A branch
-  whose mind source has moved is a review candidate, not merge-ready product;
+- leave tracked WASM and immutable playlist definitions untouched. A source
+  change may merge to `main` with the first-party WASM mirror temporarily
+  stale; hosted sheets execute the registered tactical mind in-process;
 - run focused compiler/runtime tests for the mechanism under review. Do not run
   the full solution, WASM parity, PostgreSQL, production web build, or release
   gauntlet merely to refresh gameplay replays;
@@ -49,15 +50,20 @@ During the fast design loop:
   its local CLI cache when `src/` is newer; that is a local iteration build,
   not a product release. Rebuild the viewer only when viewer code/assets moved.
 
-Enter the **promotion gate** only when the owner explicitly asks to merge,
-promote, host, rank, freeze, or release the candidate, or when the task itself
-is about WASM/determinism. Then reconcile tracked artifacts through the
-controlled WASM build, prove in-process/WASM gameplay parity, mint immutable
-artifact and playlist versions as required, decide rating continuity from
-evidence, bump compatibility versions, and run the applicable full suites.
+Enter the **deployment checkpoint** only when the owner explicitly asks to
+deploy or release, or when the task itself changes the custom-mind sandbox,
+SDK/Guest ABI, controlled compiler, or WASM runtime. A behavior-changing
+tactical-mind deployment mints a new current playlist version before the new
+worker binary ships. Completed historical matches keep their stored replay;
+historical Arc Relay playlists are replay-only and are not re-simulated with
+today's in-process mind. At the checkpoint, reconcile the tracked first-party
+WASM mirror through the controlled build and run the release-only cross-runtime
+parity check. The mirror is audit/future-custom-mind evidence, not the hosted
+sheet executor.
 
-Do not infer promotion from “show me,” “try it,” “gallery,” or approval of the
-gameplay idea. Promotion approval is a separate product decision.
+Do not infer a deployment checkpoint from “show me,” “try it,” “gallery,”
+approval of the gameplay idea, merging to `main`, or calling a version the new
+default. Deployment approval is a separate product decision.
 
 ## Fast exhibit loop
 

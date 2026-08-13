@@ -6,10 +6,10 @@ using Microsoft.EntityFrameworkCore;
 namespace BotArena.App.Jobs;
 
 /// <summary>
-/// Durable-job boundary for hosted generic actor matches. Each immutable
-/// playlist version has an exact queue capability, so mixed-version workers
-/// cannot claim definitions they do not have while the legacy Duel lane
-/// remains separate.
+/// Durable-job boundary for hosted generic actor matches. Executable playlist
+/// versions have exact queue capabilities; replay-only historical definitions
+/// remain resolvable without being claimable. Mixed-version workers therefore
+/// cannot consume work through an implementation that does not belong to it.
 /// </summary>
 public sealed class GenericActorMatchExecutionJobHandler(
     AppDbContext db,

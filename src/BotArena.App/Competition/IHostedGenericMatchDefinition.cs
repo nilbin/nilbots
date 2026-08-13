@@ -18,6 +18,13 @@ public interface IHostedGenericMatchDefinition
     GenericActorReplayPresentation? ReplayPresentation { get; }
 
     /// <summary>
+    /// Whether this worker may claim unfinished matches for this definition.
+    /// Historical definitions may remain resolvable for persisted identity and
+    /// completed replays while deliberately becoming replay-only.
+    /// </summary>
+    bool CanExecutePendingMatches => true;
+
+    /// <summary>
     /// Submitted actor artifacts are always sandboxed. A trusted-stock mind is
     /// a separately registered first-party build-once algorithm whose only
     /// player input is immutable hashed data.

@@ -10,7 +10,9 @@ follow the `sheet-tuning` skill end-to-end. Its six-cell exhibit and
 Cloudflare quick tunnel are the delivery; do not deploy the exhibit to the
 stable highlights site or substitute the historical broad corpus. This review
 path runs current mind sources in-process; it does not require a tracked WASM
-rebuild, frozen artifact, playlist/version bump, or release gauntlet.
+rebuild, frozen artifact, playlist/version bump, or release gauntlet. The same
+is true for an ordinary merge to `main`; reconcile the first-party WASM mirror
+only at an explicit deployment checkpoint.
 
 For a separately requested persistent highlights publication, use the
 existing site in `.openai/hosting.json`. Reuse its stable production URL and

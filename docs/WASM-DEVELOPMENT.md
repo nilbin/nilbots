@@ -62,6 +62,21 @@ source edits are compiled by `botarena play` and need no CLI rebuild.
 
 ## Fast development loop
 
+Arc Relay sheets and the registered first-party tactical mind run in-process
+in the hosted match worker. Custom minds remain sandboxed WASM. Therefore
+ordinary sheet/executor/pathing work—including merging an accepted change to
+`main`—does not rebuild the first-party tactical `bot.wasm`, mint a playlist,
+or run cross-runtime parity.
+
+A behavior-changing deployment still mints a new current playlist version so
+new matches have an honest rules/runtime identity. Completed historical
+matches are watched from their stored broadcasts; historical Arc Relay
+playlist definitions stay resolvable but their unfinished jobs are not claimed
+by current workers. At the explicit release checkpoint, refresh the tactical
+WASM mirror and run the full in-process/WASM parity test. Changes to custom-mind
+admission, SDK/Guest ABI, the controlled compiler, or the WASM host always enter
+that checkpoint immediately.
+
 For bot strategy work, use the managed diagnostic runtime:
 
 ```bash
@@ -297,7 +312,7 @@ bash scripts/test.sh
 bash scripts/e2e.sh
 ```
 
-`test.sh` always calls the input-stamped guest build first, so WASM contract
+`test.sh` always calls the input-stamped shared guest build first, so WASM contract
 tests cannot accidentally exercise an old tracked artifact. Legacy contract
 tests compare in-process and WASM replay hashes, including active control,
 speed-two projectile observations, and the SDK/guest arc-program round trip.
@@ -307,6 +322,12 @@ selection, old-artifact eligibility, request/reply correlation, typed
 unsupported capabilities, startup/tick/end interruption, canonical static
 contract limits, variable dynamic observations, and isolated per-life
 memory.
+
+The full Arc Relay tactical-mind match and current tactical-mirror source stamp
+run only when `BOTARENA_REQUIRE_CURRENT_TACTICAL_WASM=true`. The manual release
+workflow sets it. Ordinary development tests still verify the mirror bytes
+against their checked-in receipt and preserve every immutable frozen copy, but
+allow current source to advance ahead of that unused mirror.
 
 `e2e.sh` additionally scaffolds a player bot, performs a cold build and cache
 hit, runs it in Wasmtime, verifies the replay, and builds the viewer.

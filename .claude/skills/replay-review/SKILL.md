@@ -91,7 +91,7 @@ failure rather than a capture success.
 The same boundary applies to gameplay artifacts: ordinary review runs mind
 sources in-process. Do not rebuild tracked WASM, mint a stock artifact or
 playlist, reset ratings, or bump release versions until the owner explicitly
-opens the promotion gate described by the `sheet-tuning` skill.
+opens the deployment checkpoint described by the `sheet-tuning` skill.
 
 For Arc Relay, a canonical replay is an audit input, never a runtime gallery
 payload. Project it first with `scripts/arc-relay-broadcast.py` (300 KiB gzip

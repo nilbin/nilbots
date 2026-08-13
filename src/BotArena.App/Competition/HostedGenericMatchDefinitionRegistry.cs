@@ -3,9 +3,9 @@ using BotArena.App.Jobs;
 namespace BotArena.App.Competition;
 
 /// <summary>
-/// Exact hosted generic-definition catalog. Execution resolves the immutable
-/// playlist key and version through this registry, so adding another hosted
-/// generic mode is registration rather than an executor branch.
+/// Exact hosted generic-definition catalog. All definitions remain resolvable
+/// by immutable playlist key/version; only definitions that allow pending work
+/// are indexed as queue capabilities.
 /// </summary>
 public sealed class HostedGenericMatchDefinitionRegistry
 {
@@ -57,6 +57,9 @@ public sealed class HostedGenericMatchDefinitionRegistry
                     $"Hosted generic definition '{definition.PlaylistKey}' " +
                     $"v{definition.Version} is registered more than once.");
             }
+
+            if (!definition.CanExecutePendingMatches)
+                continue;
 
             string jobType = GenericActorMatchJobType.ForPlaylist(
                 definition.PlaylistKey,

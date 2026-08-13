@@ -14,12 +14,12 @@ crest, eight-slot composition, and exact-compatible Elo rating. A sheet save or
 mind resubmission advances its revision without resetting rating. Save-as-copy
 or a new submission creates a new identity and starts at the default rating.
 
-The current hosted identity is immutable entrant playlist v19: rules and map
-`arc-relay-tapline-01` on the 31x27 Tapline, matching the default local
-`nilbots arc-relay` command. v7 began the Warren development
-rating era; v8 repaired its frozen WASM artifact. Public Season 1 began at 1200
-on a separate v8 ladder. v9 moves the stock participant to the consolidated
-direct-ladder sheet representation; v10-v12 retained that rating book for
+The current hosted identity is immutable entrant playlist v21: rules and map
+`arc-relay-tapline-03` on the 31x27 Tapline, matching the default local
+`nilbots arc-relay` command and its coordinated planner. v7 began the Warren
+development rating era; v8 repaired its frozen WASM artifact. Public Season 1
+began at 1200 on a separate v8 ladder. v9 moves the stock participant to the
+consolidated direct-ladder sheet representation; v10-v12 retained that rating book for
 semantic labels, bounded movement, and relative-Well subjects. v13 gives
 authored routes persistent terrain courses and progress-aware waypoint hints:
 arrival cannot lap a stationary body, and an unproductive point yields to a
@@ -49,9 +49,12 @@ already-loaded bodies from pickup reservations. The registered stock digest
 moves again, so v18 starts fresh rather than copying v17 Elo. v19 promotes the
 Tapline map and its native Hunter/Wellwright layouts. A different map is a
 different competitive era, so v19 starts every opted-in entrant at the default
-rating while retaining v18 as readable, executable history.
-ForwardCombat/Counterflow v6
-ratings and matches remain readable history but were not copied.
+rating while retaining v18 as readable history. v20 introduced the Orders v2
+sheet line on Tapline-1; v21 promotes Tapline-3 and starts a fresh rating book.
+Completed historical broadcasts remain readable, but old Arc Relay playlist
+jobs are replay-only rather than executable by a current worker.
+ForwardCombat/Counterflow v6 ratings and matches remain readable history but
+were not copied.
 
 ## Admission and composition
 
@@ -67,16 +70,23 @@ and anchors. The server stores the exact playbook and layout sources, validates
 every save with the same compiler as the CLI, and snapshots the compiled package
 into a match. Saving enters the sheet into the ladder by default, with an
 explicit opt-out. A trial runs the current revision against a tracked stock
-sheet and opens it in the ordinary replay viewer. v19's stock sheet is the
-Tapline-native Wellwright v1. New layouts are authored directly on the Tapline
-export; earlier-map sheets are shown as legacy and cannot enter v19 until replotted.
+sheet and opens it in the ordinary replay viewer. v21's stock sheet is the
+Tapline-native Wellwright Orders v2 sheet. New map plans are authored directly
+on the Tapline export; earlier-map sheets are shown as legacy and cannot enter
+v21 until replotted.
 The server never projects coordinates between maps.
 
 A custom mind must complete one hosted validation match without a runtime fault
 before ladder opt-in. Ladder execution never trusts submitted code in-process.
-Only the registered first-party stock artifact may use the trusted in-process
-lane. A ranked match that trips a felt-degeneracy bar suspends the entrant from
-pairing until a corrected revision is submitted and preflighted.
+Every sheet executes through the registered first-party tactical mind's trusted
+in-process lane; its pinned artifact hash is version provenance, not a loaded
+WASM module. A ranked match that trips a felt-degeneracy bar suspends the
+entrant from pairing until a corrected revision is submitted and preflighted.
+
+Completed historical matches are read from their stored broadcasts. Historical
+playlist definitions remain available to interpret their identity, but current
+workers do not claim unfinished jobs for those versions: running them through
+today's in-process tactical mind would falsely rewrite historical behavior.
 
 ## Ranked lane
 

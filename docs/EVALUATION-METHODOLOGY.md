@@ -67,7 +67,10 @@ For a substantial rules verdict:
   separately from the native-cohort gate;
 - freeze artifact hashes, maps, seed blocks, runtime, and evaluation criteria
   before the final/holdout run;
-- use canonical WASM with zero faults for the final evidence.
+- use the production runtime with zero faults for final evidence: sandboxed WASM for
+  submitted/custom code, and the frozen trusted in-process tactical binary for Arc
+  Relay sheet populations. The first-party WASM mirror is refreshed and parity-proven
+  separately at the release checkpoint.
 
 The minimum four doctrines must also be independent authoring lineages.
 Variants from one source lineage are useful ablations, not four independent
@@ -94,7 +97,8 @@ dimensions without combining them into an arbitrary “fun score.”
 
 - draw, Elimination, Domination, and MaxTicks counts remain separate;
 - distinct winning doctrines and the leading bot's share of decided games;
-- deterministic replay hashes, WASM runtime, and zero faults are mandatory.
+- deterministic replay hashes, the declared production runtime, and zero faults are
+  mandatory.
 
 ### Combat
 
@@ -122,7 +126,7 @@ No single action is inherently bad. A deliberate Wait or repeated pursuit can
 be correct. The metrics locate replays to inspect; exact loops, low entropy,
 and long inactivity together are the warning.
 
-Arc Relay additionally runs every retained WASM match through the versioned
+Arc Relay additionally runs every retained canonical match through the versioned
 felt-degeneracy registration used by `scripts/arc-relay-scorecard.py`. Treat
 those bars as cohort and gallery eligibility, not descriptive warnings. Event
 cycles must correlate both tick-start and post-decision columns: a world-only
