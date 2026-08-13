@@ -26,9 +26,7 @@ import {
   pinDraft,
   saveLocalDraft,
   sheetIssueFromCompilerError,
-  stringifyDocument,
   validateDraft,
-  type MapPlanDocument,
   type OrderNode,
   type OrdersDocument,
   type SheetDraft,
@@ -401,8 +399,7 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
     </Modal>}
     {toolsOpen && <Modal title="Sheet tools" onClose={() => setToolsOpen(false)}>
       <SheetTools draft={draft} canDelete={Boolean(draft.sheetId)} onEnterLadder={(value) => mutate((next) => { next.enterLadder = value; })}
-        onSaveCopy={() => void saveDraft(true).catch(() => undefined)} onDelete={() => void deleteDraft()}
-        onImport={(orders, mapPlan) => mutate((next) => { next.orders = orders; next.mapPlan = mapPlan; })} />
+        onSaveCopy={() => void saveDraft(true).catch(() => undefined)} onDelete={() => void deleteDraft()} />
     </Modal>}
   </div>;
 
@@ -482,30 +479,13 @@ function PracticeSetup({ catalog, stockId, setStockId, seed, setSeed, randomSeed
   </div>;
 }
 
-function SheetTools({ draft, canDelete, onEnterLadder, onSaveCopy, onDelete, onImport }: {
+function SheetTools({ draft, canDelete, onEnterLadder, onSaveCopy, onDelete }: {
   draft: SheetDraft; canDelete: boolean; onEnterLadder: (value: boolean) => void; onSaveCopy: () => void; onDelete: () => void;
-  onImport: (orders: OrdersDocument, mapPlan: MapPlanDocument) => void;
 }) {
-  const file = useRef<HTMLInputElement>(null);
-  const exportPair = () => {
-    download(`${draft.orders.sheetId || 'sheet'}.json`, stringifyDocument(draft.orders));
-    download(`${draft.mapPlan.mapPlanId || 'map-plan'}.json`, stringifyDocument(draft.mapPlan));
-  };
-  return <div className="grid gap-4 md:grid-cols-2"><section className="rounded-sm border border-arena-edge p-3">
+  return <div className="grid gap-4"><section className="rounded-sm border border-arena-edge p-3">
     <p className="lab">Season</p><label className="mt-3 flex min-h-12 items-center gap-3 rounded-sm border border-arena-edge px-3 t-body"><input type="checkbox" checked={draft.enterLadder} onChange={(event) => onEnterLadder(event.target.checked)} />Field this entrant when saved<span className="t-micro ml-auto">default on</span></label>
     {draft.sheetId && <button type="button" className="btn mt-3 min-h-11" onClick={onSaveCopy}>Save as a new entrant</button>}
-  </section><section className="rounded-sm border border-arena-edge p-3"><p className="lab">Portable source</p><p className="t-meta mt-2">JSON is an import/export utility, not the authoring surface. Derived hashes are never fields.</p>
-    <div className="mt-3 flex flex-wrap gap-2"><button type="button" className="btn min-h-11" onClick={exportPair}>Export source pair</button><button type="button" className="btn min-h-11" onClick={() => file.current?.click()}>Import source pair</button></div>
-    <input ref={file} type="file" accept="application/json,.json" multiple className="sr-only" onChange={(event) => {
-      const files = [...(event.target.files ?? [])]; if (files.length !== 2) return;
-      void Promise.all(files.map((entry) => entry.text())).then((texts) => {
-        const parsed = texts.map((text) => JSON.parse(text) as OrdersDocument | MapPlanDocument);
-        const orders = parsed.find((entry) => entry.schema === 'arc-relay-orders-v2') as OrdersDocument | undefined;
-        const mapPlan = parsed.find((entry) => entry.schema === 'arc-relay-map-plan-v2') as MapPlanDocument | undefined;
-        if (orders && mapPlan) onImport(orders, mapPlan);
-      });
-    }} />
-  </section>{canDelete && <section className="rounded-sm border border-arena-hot/30 p-3 md:col-span-2"><p className="lab text-arena-hot">Danger zone</p><button type="button" className="btn mt-3 min-h-11 text-arena-hot" onClick={onDelete}>Delete this sheet</button></section>}</div>;
+  </section>{canDelete && <section className="rounded-sm border border-arena-hot/30 p-3"><p className="lab text-arena-hot">Danger zone</p><button type="button" className="btn mt-3 min-h-11 text-arena-hot" onClick={onDelete}>Delete this sheet</button></section>}</div>;
 }
 
 function IssueSummary({ issues, onOpen }: { issues: SheetIssue[]; onOpen: (issue: SheetIssue) => void }) {
@@ -555,9 +535,4 @@ function walkOrders(orders: OrdersDocument, visit: (node: OrderNode) => void) {
   const walk = (node: OrderNode) => { visit(node); node.orders?.forEach(walk); };
   orders.roles.forEach((role) => role.orders.forEach(walk));
   Object.values(orders.sharedOrders).forEach(walk);
-}
-
-function download(name: string, content: string) {
-  const url = URL.createObjectURL(new Blob([content], { type: 'application/json' }));
-  const link = document.createElement('a'); link.href = url; link.download = name; link.click(); URL.revokeObjectURL(url);
 }

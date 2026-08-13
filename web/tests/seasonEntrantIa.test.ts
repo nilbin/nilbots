@@ -109,12 +109,11 @@ test('map planning renders all authoritative social landmarks and opens inside m
   assert.doesNotMatch(orders, /value=\{value\.to!\}/);
 });
 
-test('portable JSON and ladder enrollment are secondary sheet tools', () => {
+test('sheet tools contain player-facing entrant controls only', () => {
   assert.match(workshop, /Sheet tools/);
-  assert.match(workshop, /JSON is an import\/export utility, not the authoring surface/);
-  assert.match(workshop, /Export source pair/);
   assert.match(workshop, /Field this entrant when saved/);
-  assert.doesNotMatch(workshop, /sha256|content hash/i);
+  assert.match(workshop, /Save as a new entrant/);
+  assert.doesNotMatch(workshop, /import source|export source|portable source|type="file"|sha256|content hash/i);
 });
 
 test('custom-mind authoring stays dormant on the launch web surface', () => {
