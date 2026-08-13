@@ -632,6 +632,16 @@ internal sealed class SquadArenaPlanner : IArenaStepper
         HashSet<int> present = remaining
             .Select(intent => intent.Body.UnitId)
             .ToHashSet();
+        Dictionary<int, int> servicePredecessors =
+            ResolveServiceQueuePredecessors(remaining.Select(intent => new
+                ServiceQueueMember(
+                    intent.Body.UnitId,
+                    intent.GroupKey,
+                    intent.CanStage,
+                    intent.Goals.Count == 0
+                        ? 100_000
+                        : intent.Goals.Min(goal => GoalDistance(
+                            contract.Map, intent.Body.Position, goal)))));
         var emitted = new HashSet<int>();
         var result = new List<int>(remaining.Length);
 
@@ -641,7 +651,10 @@ internal sealed class SquadArenaPlanner : IArenaStepper
                 !emitted.Contains(intent.Body.UnitId)
                 && (intent.LeaderUnitId is not int leader
                     || !present.Contains(leader)
-                    || emitted.Contains(leader)));
+                    || emitted.Contains(leader))
+                && (!servicePredecessors.TryGetValue(
+                        intent.Body.UnitId, out int predecessor)
+                    || emitted.Contains(predecessor)));
             // A malformed/cyclic follow graph must not make planning partial.
             // Unit-id fallback is deterministic; the compiler owns rejecting
             // authored cycles, while the executor remains total on input.
@@ -654,6 +667,38 @@ internal sealed class SquadArenaPlanner : IArenaStepper
         }
         return result.ToArray();
     }
+
+    /// <summary>
+    /// Bodies approaching the same one-tile service form a deterministic
+    /// queue. The nearest body leads and an exact distance tie uses unit id.
+    /// This prevents a rear patient or Well worker from inheriting priority,
+    /// stepping into the lead body's tile, then making both reverse on the
+    /// following tick. Fight contribution ground is deliberately excluded:
+    /// it is a tactical target set, not a one-tile service queue.
+    /// </summary>
+    internal static Dictionary<int, int> ResolveServiceQueuePredecessors(
+        IEnumerable<ServiceQueueMember> source)
+    {
+        var result = new Dictionary<int, int>();
+        foreach (IGrouping<string, ServiceQueueMember> group in source
+                     .Where(member => member.CanStage
+                         && IsSingleServiceGroup(member.GroupKey))
+                     .GroupBy(member => member.GroupKey,
+                         StringComparer.Ordinal))
+        {
+            ServiceQueueMember[] ordered = group
+                .OrderBy(member => member.Distance)
+                .ThenBy(member => member.UnitId)
+                .ToArray();
+            for (int index = 1; index < ordered.Length; index++)
+                result[ordered[index].UnitId] = ordered[index - 1].UnitId;
+        }
+        return result;
+    }
+
+    private static bool IsSingleServiceGroup(string groupKey) =>
+        groupKey.StartsWith("move:to:heal:", StringComparison.Ordinal)
+        || groupKey.StartsWith("move:to:well:", StringComparison.Ordinal);
 
     private static PlannerState Apply(
         PlannerState state,
@@ -1137,6 +1182,11 @@ internal sealed class SquadArenaPlanner : IArenaStepper
     internal readonly record struct PlannerState(
         Position Position,
         Direction Facing);
+    internal readonly record struct ServiceQueueMember(
+        int UnitId,
+        string GroupKey,
+        bool CanStage,
+        int Distance);
     private sealed record Decision(
         Position? Tile,
         string Trace,

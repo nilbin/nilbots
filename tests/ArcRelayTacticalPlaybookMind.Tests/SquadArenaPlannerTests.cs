@@ -103,6 +103,40 @@ public sealed class SquadArenaPlannerTests
     }
 
     [Fact]
+    public void OneTileServiceQueueKeepsTheNearestBodyAhead()
+    {
+        Dictionary<int, int> predecessors =
+            SquadArenaPlanner.ResolveServiceQueuePredecessors(
+            [
+                new(0, "move:to:heal:21:7", CanStage: true, Distance: 4),
+                new(2, "move:to:heal:21:7", CanStage: true, Distance: 3),
+                new(4, "move:to:heal:21:7", CanStage: true, Distance: 6),
+                new(6, "fight:0:1:0", CanStage: true, Distance: 1),
+                new(7, "move:to:well:north", CanStage: false, Distance: 1),
+            ]);
+
+        Assert.Equal(2, predecessors[0]);
+        Assert.Equal(0, predecessors[4]);
+        Assert.DoesNotContain(2, predecessors.Keys);
+        Assert.DoesNotContain(6, predecessors.Keys);
+        Assert.DoesNotContain(7, predecessors.Keys);
+    }
+
+    [Fact]
+    public void OneTileServiceQueueBreaksDistanceTiesByUnitId()
+    {
+        Dictionary<int, int> predecessors =
+            SquadArenaPlanner.ResolveServiceQueuePredecessors(
+            [
+                new(5, "move:to:heal:21:7", CanStage: true, Distance: 4),
+                new(1, "move:to:heal:21:7", CanStage: true, Distance: 4),
+            ]);
+
+        Assert.Equal(1, predecessors[5]);
+        Assert.DoesNotContain(1, predecessors.Keys);
+    }
+
+    [Fact]
     public void EqualDistanceOperationPrefersEarlierProgress()
     {
         SquadArenaPlanner.MicroAction rotateEast =
