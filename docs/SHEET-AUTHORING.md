@@ -516,11 +516,10 @@ lifecycle exit, wait, and automatic micro decision carries a non-empty reason.
 In-process and WASM must produce the same gameplay-state digest for identical
 ATL2, map, rules, and seed.
 
-Hosted entrant playlist v20 remains the latest promoted Orders v2/Tapline line.
-The body-local signature refinements in working source are reviewed in-process
-and do not alter that immutable playlist, its frozen stock artifact, or its
-rating book. Promotion is a separate owner gate; only then are current source,
-WASM, stock, and a new playlist version frozen together.
+Hosted entrant playlist v21 is the promoted Orders v2/Tapline-3 line. It pins
+the coordinated EPIBT executor, body-local signature orders, the current
+controlled WASM artifact, and a fresh rating book. Playlist v20 remains
+immutable Tapline-1 history.
 
 ## 12. Executor-owned squad micro
 

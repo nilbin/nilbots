@@ -455,9 +455,11 @@ public static class ToolchainInfo
     /// remasters its runtime delivery under the stricter decoded comfort bar.
     /// 0.9.59 replaces Arc Relay's authored sheet contract and linked package
     /// with the direct Orders v2 tree, including its editor and hosted v20 lane.
+    /// 0.9.60 promotes Tapline-3, authored movement urgency, body-local combat
+    /// contact and atomic EPIBT squad movement to immutable hosted playlist v21.
     /// Keep in lockstep with BotArena.Cli.csproj's
     /// Version — PackagedCliVersionTests pins them together.</summary>
-    public const string CliVersion = "0.9.59";
+    public const string CliVersion = "0.9.60";
     // 0.2.0: BotContext.Slot + documented event semantics (DECISIONS #46).
     // 0.3.0: BotContext.Energy for the energy-shot rules candidate (DECISIONS #47).
     // 0.4.0: strafe actions + map dims + zone-control fields for the rules 0.3 slate

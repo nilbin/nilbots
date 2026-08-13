@@ -139,7 +139,7 @@ public sealed class MindToolchainSurfaceTests
     }
 
     [Fact]
-    public void OrdersV20ArtifactMatchesCurrentBuildWhileTaplineV19StaysFrozen()
+    public void Tapline3V21ArtifactMatchesCurrentBuildWhileV20StaysFrozen()
     {
         string root = FindRepoRoot();
         string projectDirectory = Path.Combine(
@@ -151,12 +151,12 @@ public sealed class MindToolchainSurfaceTests
             root,
             "arena-bots",
             "arc-relay",
-            "ambush-warren-11-stock-v12");
+            "tapline-1-stock-v1");
         string currentFrozenDirectory = Path.Combine(
             root,
             "arena-bots",
             "arc-relay",
-            "tapline-1-stock-v1");
+            "tapline-3-stock-v1");
         TrackedBuildReceipt current = ReadReceipt(Path.Combine(
             projectDirectory,
             "bot.build-receipt.json"));

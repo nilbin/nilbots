@@ -7990,6 +7990,59 @@ level-up, one Core cue, and every distinct signature pair; its worst dry,
 centered sum is -7.43 dBTP against a -6 dBTP ceiling before limiter or room
 attenuation. No ambience ships or plays, and Neon Protocol music is unchanged.
 
+## 298. Orders author movement urgency; the executor guarantees a turn
+
+Owner-directed Orders v2 refinement (2026-08-12). Source position remains the
+only tactical priority: it decides what each body does. Any branch or leaf may
+add `urgency: routine | normal | urgent`, inherited by descendants with the
+nearest explicit value winning and `normal` as the root default. Urgency is read
+only after order selection, when allied bodies compete for movement space. It
+cannot activate or reorder an order, choose a target, change a capacity, affect
+combat, or influence enemies.
+
+The old hidden carrier/fighter/free-traffic tiers are removed. Allied denial
+adds deterministic block debt; each 12 denied ticks raises effective urgency
+one tier, and strict progress pays four points down. Within the resolved tier,
+debt, first blocked tick, order activation tick, then stable unit id settle
+precedence. Pending strikes and non-movement actions remain pinned. Movement
+reasons expose authored urgency, debt, promotion and the priority yielded to.
+Focused movement tests pin vacancy, closed-cycle, route/rejoin, posture,
+starvation, intent reset, physical action legality and the real Tapline scene.
+
+## 299. Combat contact is body-local; target lists are actionable preferences
+
+Owner-directed Orders v2 correction (2026-08-12). A team-visible enemy no
+longer activates every body's ordinary fight order merely because the contact
+exists somewhere on the map. `self-nearest-visible-enemy-distance` measures
+Chebyshev distance from each body to the nearest enemy visible to its team;
+`visible-enemies-in-zone` remains team-wide for explicitly coordinated alerts.
+
+A fight target list is an ordered preference among actionable enemies. A
+preferred target that the body cannot currently shoot or reach from its
+fight-entry anchor within the authored chase limit yields to the next target.
+If none is actionable, the fight leaf yields for the tick and the next eligible
+authored order runs without resetting the active fight lifecycle or leash.
+Traces expose `target-fallback-from-*` and
+`after-*-no-actionable-target`. Hunter, Wellwright and the starter use a
+seven-tile body-local threshold for ordinary fighting; signature orders retain
+their explicit conditions.
+
+## 300. Coordinated planning is the product default; follow yields its leader's course
+
+Owner correction (2026-08-12). Untagged Orders data and the Arc Relay command
+select coordinated planning. `--mind-stepper greedy` remains only an explicit
+historical diagnostic; `--mind-stepper coordinated` is an accepted no-op
+spelling of the default. Exhibits and focused real-scene tests state the same
+default so a gallery cannot silently exercise the wrong planner again.
+
+Follower-owned `follow` resolves against the legal adjacent ring around the
+nearest live body of its named role, never the leader's occupied tile, and
+excludes the leader's committed next course tile after the leader is planned.
+`front | line | rear` posture filters the remaining ring in team-relative
+space. Heal zones keep their physical consecutive-Wait rule; the rejected
+heal-service ownership proposal does not ship and there is no hidden
+`activate` action.
+
 ## 301. Tapline-3 moves acyclic convoys atomically under EPIBT squad planning
 
 Owner-directed movement ruling (2026-08-13). A body may enter a tile another
@@ -8032,3 +8085,38 @@ This is still an in-process design-review candidate. No tracked WASM, frozen
 stock artifact, hosted playlist, rating book or release version moves until a
 separately owner-authorized promotion gate proves WASM parity and decides the
 immutable hosted version.
+
+## 302. Tapline-3 and atomic EPIBT promote as hosted playlist v21
+
+Owner-approved promotion ruling (2026-08-13). The reviewed Tapline-3 line is
+the product default locally and in hosted Arc Relay. Immutable entrant playlist
+v21 pins `arc-relay-tapline-03`, the unchanged Tapline map, Orders v2 / ATL2,
+the current `wellwright-tapline-v2` stock sheet, authored movement urgency,
+body-local combat contact, complete signature grammar 3, and the atomic
+three-action EPIBT squad planner described by #301. Playlist v20 remains
+byte-frozen Tapline-1 history and is registered as an independently executable
+definition.
+
+The controlled macOS Docker build produces artifact SHA-256
+`8feed1cd9a43e9a6ad8266d8ef2e6760c39386a080a974684d634082bb5cf969`
+from build-input SHA-256
+`cd4615c6712c87d9830b459bafc1835c9b9004563501969df308c056b66dc8eb`.
+Its append-only stock copy is `tapline-3-stock-v1`; the tracked current mind
+contains the same bytes and receipt. On Tapline-3 seed 9001, Wellwright west
+versus Hunter east completes at tick 466 in both in-process and WASM and yields
+the same gameplay-state digest
+`9e8455726089e56081ccfe892735c03fc414ece6aad7c0b551cc50b44103af05`.
+
+The first controlled candidate exhausted hosted WASM fuel at tick 26 even
+though the in-process exhibit completed. Hoisting tick-stable EPIBT candidate
+generation and replacing repeated carrier-distance floods with one reverse
+distance field makes the match complete within the fixed sandbox budget. That
+optimization is behavior-neutral: the registered in-process digest is
+byte-identical before and after it.
+
+v21 starts a fresh 1200 rating book. Tapline-3's authoritative movement rule,
+planner, stock source, and registered stock gameplay all differ from v20, so
+rating continuity would be false evidence; v20 ratings are not copied. CLI and
+package version 0.9.60 carry the promoted default. `publish-cli` owes a
+`cli-v0.9.60` tag before any deployment; this ruling does not authorize a
+release or deploy workflow.

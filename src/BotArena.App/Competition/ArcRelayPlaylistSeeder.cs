@@ -335,7 +335,7 @@ public sealed class ArcRelayPlaylistSeeder(
                 SupportedContractProfiles =
                     [BotArenaVersions.GenericMindContractProfileId],
                 GuestBotName = "Arc Relay tactical-playbook mind",
-                GameRulesVersion = ArcRelayLoopProfile.Tapline1.RulesetId,
+                GameRulesVersion = ArcRelayLoopProfile.Tapline3.RulesetId,
                 RuntimeProtocolVersion =
                     BotArenaVersions.RuntimeProtocolVersion,
                 RuntimeConfigurationVersion =
@@ -580,16 +580,29 @@ public sealed class ArcRelayPlaylistSeeder(
             ArcRelayEntrantPlaylistDefinition.TaplineStockPlaybookSourceHash,
             ArcRelayEntrantPlaylistDefinition.TaplineStockLayoutSourceHash,
             ArcRelayEntrantPlaylistDefinition.TacticalBuildInputHash,
+            ArcRelayLoopProfile.Tapline1,
+            active: false,
+            cancellationToken);
+        await SeedTaplineTacticalPlaybookMindVersionAsync(
+            "tapline-1-stock-v1",
+            ArcRelayEntrantPlaylistDefinition.OrdersV2TacticalArtifactHash,
+            "arc-relay-orders-v2",
+            ArcRelayEntrantPlaylistDefinition.OrdersStockSheetId,
+            ArcRelayEntrantPlaylistDefinition.OrdersV2StockPlaybookSourceHash,
+            ArcRelayEntrantPlaylistDefinition.OrdersStockMapPlanSourceHash,
+            ArcRelayEntrantPlaylistDefinition.OrdersV2TacticalBuildInputHash,
+            ArcRelayLoopProfile.Tapline1,
             active: false,
             cancellationToken);
         return await SeedTaplineTacticalPlaybookMindVersionAsync(
-            "tapline-1-stock-v1",
+            "tapline-3-stock-v1",
             ArcRelayEntrantPlaylistDefinition.OrdersTacticalArtifactHash,
             "arc-relay-orders-v2",
             ArcRelayEntrantPlaylistDefinition.OrdersStockSheetId,
             ArcRelayEntrantPlaylistDefinition.OrdersStockPlaybookSourceHash,
             ArcRelayEntrantPlaylistDefinition.OrdersStockMapPlanSourceHash,
             ArcRelayEntrantPlaylistDefinition.OrdersTacticalBuildInputHash,
+            ArcRelayLoopProfile.Tapline3,
             active: true,
             cancellationToken);
     }
@@ -602,6 +615,7 @@ public sealed class ArcRelayPlaylistSeeder(
         string stockPlaybookSourceHash,
         string stockMapPlanSourceHash,
         string buildInputHash,
+        ArcRelayLoopProfile loopProfile,
         bool active,
         CancellationToken cancellationToken)
     {
@@ -667,7 +681,7 @@ public sealed class ArcRelayPlaylistSeeder(
                 {
                     schemaVersion = 1,
                     kind = "frozen-first-party-tapline-stock",
-                    loopProfile = ArcRelayLoopProfile.Tapline1.Id,
+                    loopProfile = loopProfile.Id,
                     playbookSchema,
                     stockSheetId,
                     stockPlaybookSourceHash,
@@ -679,7 +693,7 @@ public sealed class ArcRelayPlaylistSeeder(
                 {
                     schemaVersion = 1,
                     kind = "frozen-first-party-tapline-stock",
-                    loopProfile = ArcRelayLoopProfile.Tapline1.Id,
+                    loopProfile = loopProfile.Id,
                     playbookSchema,
                     stockSheetId,
                     stockPlaybookSourceHash,
@@ -701,7 +715,7 @@ public sealed class ArcRelayPlaylistSeeder(
                 SupportedContractProfiles =
                     [BotArenaVersions.GenericMindContractProfileId],
                 GuestBotName = "Arc Relay Tapline Wellwright",
-                GameRulesVersion = ArcRelayLoopProfile.Tapline1.RulesetId,
+                GameRulesVersion = loopProfile.RulesetId,
                 RuntimeProtocolVersion =
                     BotArenaVersions.RuntimeProtocolVersion,
                 RuntimeConfigurationVersion =

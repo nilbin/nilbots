@@ -54,6 +54,13 @@ manifest hashes are opened to evaluation.
   and receipt. It keeps accidental-carrier drops claimable and prevents a
   loaded body from reserving a second Core while available couriers pass. The
   stock digest moves, so v18 starts fresh and v1–v11 remain historical bytes.
+- `tapline-1-stock-v1/` — immutable hosted playlist-v20 Orders v2 tactical mind
+  and receipt for historical Tapline-1 matches. Its rating book and bytes stay
+  readable after the current line advances.
+- `tapline-3-stock-v1/` — immutable hosted playlist-v21 Orders v2 tactical mind
+  and receipt. It promotes Tapline-3, authored movement urgency, body-local
+  combat contact, and atomic EPIBT squad movement. The stock digest moves, so
+  v21 starts fresh and v20 remains historical.
 - `stock-mind-v3/` — unfrozen intelligent-gambit vertical-slice mind. It keeps
   the complete v2 baseline executor and reads provisional v2 operation data;
   it is evidence for an owner decision, not a launch artifact.

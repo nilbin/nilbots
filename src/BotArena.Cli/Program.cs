@@ -293,8 +293,8 @@ static int CommandHelp(string command)
             The default is `tapline-3`: the accepted Tapline geometry,
             directional combat, declared strikes, veterancy, complete
             signature grammar 3, and atomic acyclic convoy movement. The
-            hosted v20 ladder remains immutably
-            pinned to `tapline-1` and Orders v2; v7 through v19 remain exact
+            hosted v21 ladder pins `tapline-3`, Orders v2, and the same
+            coordinated movement contract; v7 through v20 remain exact
             history, and all
             historical profiles and playlist versions stay explicitly
             selectable and byte-verifiable.

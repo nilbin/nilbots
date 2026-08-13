@@ -204,9 +204,9 @@ Project boundaries that must not be violated:
   the three-action EPIBT coordinated movement path; explicit
   `--mind-stepper greedy` is a historical diagnostic control, never the
   implicit owner-gallery path.
-  Immutable hosted entrant playlist v20 remains pinned to `tapline-1` with
-  Tapline-native Orders v2
-  sheets and the direct ATL2 WASM artifact. v7
+  Immutable hosted entrant playlist v21 pins `tapline-3`, Tapline-native
+  Orders v2 sheets, atomic EPIBT squad movement, and the parity-proven ATL2
+  WASM artifact. v20 remains immutable Tapline-1 history. v7
   began the fresh Warren
   development rating era and remains immutable; v8 carried those development
   ratings because no game fact changed. Public Season 1 began on a separate,
@@ -235,6 +235,9 @@ Project boundaries that must not be violated:
   executable authoring language, linked package, stock sheet, and registered
   stock gameplay change from ATL1 doctrines/custody to the direct Orders v2
   tree; v19 ratings are never copied into v20.
+  v21 starts fresh because Tapline-3, authored movement urgency, body-local
+  fight contact, the EPIBT planner, and registered stock gameplay change;
+  v20 ratings are never copied into v21.
   Authoritative
   generic-actor movement is corner-strict from this line: diagonal movement
   requires both orthogonal companion terrain

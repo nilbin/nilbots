@@ -16,12 +16,13 @@ advance into a pre-tick vacancy; same-target claims, swaps and closed cycles
 still block. `h0`, `tapline-1`, `tapline-2`, and every historical profile
 remain explicit immutable compatibility selections.
 
-**Hosted, entrant playlist v20 remains frozen on Tapline-1.** It pins Tapline,
-the `arc-relay-orders-v2` sheet format, and the frozen Wellwright v2 stock
-participant on the direct ATL2 executor. The executable authoring-language and
-stock-gameplay transition starts a fresh rating book; v19's Tapline/ATL1 ratings
-and matches remain readable history. Earlier playlist definitions and artifacts
-remain immutable, and geometry is never projected between maps.
+**Hosted entrant playlist v21 pins Tapline-3.** It freezes the
+`arc-relay-orders-v2` sheet format, Wellwright v2 stock participant, authored
+movement urgency, body-local fight contact, and atomic EPIBT squad planning on
+the direct ATL2 executor. The promoted map/planner/stock gameplay starts a fresh
+rating book; v20's Tapline-1 ratings and matches remain readable history.
+Earlier playlist definitions and artifacts remain immutable, and geometry is
+never projected between maps.
 
 ## Match shape
 
@@ -229,7 +230,8 @@ stock artifacts, and ratings remain immutable.
 
 This distinction is the repository extension rule, not a Tapline exception:
 grammar generations cover the complete roster, while concrete definition
-versions exist only for real mechanic or chronology changes. The end-to-end
+versions exist only for real mechanic or chronology changes. Hosted v21 now
+pins grammar 3 and Tapline-3; v20 remains immutable Tapline-1 history. The end-to-end
 class/signature checklist is in
 [`ADDING-ARC-CLASS-AND-SIGNATURE.md`](ADDING-ARC-CLASS-AND-SIGNATURE.md).
 

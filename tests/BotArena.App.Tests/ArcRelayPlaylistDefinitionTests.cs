@@ -11,7 +11,7 @@ namespace BotArena.App.Tests;
 public sealed class ArcRelayPlaylistDefinitionTests
 {
     [Fact]
-    public void Entrant_v20_promotes_Orders_v2_while_v2_through_v19_remain_executable()
+    public void Entrant_v21_promotes_Tapline3_and_EPIBT_while_v2_through_v20_remain_executable()
     {
         ArcRelayEntrantPlaylistDefinition current =
             ArcRelayEntrantPlaylistDefinition.Create();
@@ -51,11 +51,13 @@ public sealed class ArcRelayPlaylistDefinitionTests
             ArcRelayEntrantPlaylistDefinition.CreateHistoricalV18();
         ArcRelayEntrantPlaylistDefinition taplineV19 =
             ArcRelayEntrantPlaylistDefinition.CreateHistoricalV19();
+        ArcRelayEntrantPlaylistDefinition ordersV20 =
+            ArcRelayEntrantPlaylistDefinition.CreateHistoricalV20();
 
-        Assert.Equal(20, current.PlaylistVersion);
-        Assert.Equal(ArcRelayLoopProfile.Tapline1.MapId, current.Match.Map.Id);
+        Assert.Equal(21, current.PlaylistVersion);
+        Assert.Equal(ArcRelayLoopProfile.Tapline3.MapId, current.Match.Map.Id);
         Assert.Equal(
-            ArcRelayLoopProfile.Tapline1.RulesetId,
+            ArcRelayLoopProfile.Tapline3.RulesetId,
             current.Match.Rules.RulesetId);
         Assert.Contains(
             ArcRelayEntrantPlaylistDefinition.OrdersTacticalArtifactHash,
@@ -73,16 +75,32 @@ public sealed class ArcRelayPlaylistDefinitionTests
         Assert.Contains(
             ArcRelayEntrantPlaylistDefinition.OrdersStockMapPlanSourceHash,
             current.CanonicalDefinition);
-        Assert.Contains("ownerApprovedTapline1", current.Provenance);
+        Assert.Contains("ownerApprovedTapline3", current.Provenance);
         Assert.Contains("taplineNativeMapPlansOnly", current.Provenance);
         Assert.Contains("ordersV2DirectExecutor", current.Provenance);
         Assert.Contains("nestedPriorityOrders", current.Provenance);
         Assert.Contains("targetScopedCapacity", current.Provenance);
         Assert.Contains("explicitCoreActions", current.Provenance);
+        Assert.Contains("authoredMovementUrgency", current.Provenance);
+        Assert.Contains("atomicCoordinatedMovement", current.Provenance);
+        Assert.Contains("vacatedTileFollowing", current.Provenance);
         Assert.Contains("inProcessWasmGameplayParity", current.Provenance);
         Assert.Contains("\"linkedDataFormat\":\"ATL2\"", current.Provenance);
         Assert.Contains("freshRatingEra", current.Provenance);
         Assert.DoesNotContain("ratingContinuityFromVersions", current.Provenance);
+        Assert.Equal(20, ordersV20.PlaylistVersion);
+        Assert.Equal(ArcRelayLoopProfile.Tapline1.MapId, ordersV20.Match.Map.Id);
+        Assert.Equal(
+            "8a3b903fd9e6b83148b65369e8dfae2e0cfb4227dd4d688bbd17759f85486ca1",
+            ordersV20.DefinitionFingerprint);
+        Assert.Contains(
+            ArcRelayEntrantPlaylistDefinition.OrdersV2TacticalArtifactHash,
+            ordersV20.CanonicalDefinition);
+        Assert.Contains(
+            ArcRelayEntrantPlaylistDefinition.OrdersV2StockPlaybookSourceHash,
+            ordersV20.CanonicalDefinition);
+        Assert.Contains("ownerApprovedTapline1", ordersV20.Provenance);
+        Assert.DoesNotContain("atomicCoordinatedMovement", ordersV20.Provenance);
         Assert.Equal(19, taplineV19.PlaylistVersion);
         Assert.Equal(
             "b16b7d62bd0868371edd39b49fc3b6897ef49c44a033e5b91c46bd4a511463b1",
@@ -275,7 +293,7 @@ public sealed class ArcRelayPlaylistDefinitionTests
                 wasmRepairV8, directV9, semanticV10, movementV11,
                 relativeWellV12, stickyRouteV13, carrierClearanceV14,
                 trafficDetourV15, stableCarrierV16, looseCoreMemoryV17,
-                claimableCoreV18, taplineV19, current]);
+                claimableCoreV18, taplineV19, ordersV20, current]);
         Assert.Same(historicalV2, registry.Resolve(
             ArcRelayEntrantPlaylistDefinition.PlaylistKey,
             ArcRelayEntrantPlaylistDefinition.HistoricalVersion));
@@ -330,6 +348,9 @@ public sealed class ArcRelayPlaylistDefinitionTests
         Assert.Same(taplineV19, registry.Resolve(
             ArcRelayEntrantPlaylistDefinition.PlaylistKey,
             ArcRelayEntrantPlaylistDefinition.TaplineV1Version));
+        Assert.Same(ordersV20, registry.Resolve(
+            ArcRelayEntrantPlaylistDefinition.PlaylistKey,
+            ArcRelayEntrantPlaylistDefinition.OrdersV2Version));
         Assert.Same(current, registry.Resolve(
             ArcRelayEntrantPlaylistDefinition.PlaylistKey,
             ArcRelayEntrantPlaylistDefinition.Version));
@@ -509,7 +530,7 @@ public sealed class ArcRelayPlaylistDefinitionTests
     }
 
     [Fact]
-    public void Frozen_stocks_pin_v7_through_v20_and_their_sources_are_pinned()
+    public void Frozen_stocks_pin_v7_through_v21_and_their_sources_are_pinned()
     {
         string root = RepoPaths.FindUpward("BotArena.sln") is { } solution
             ? Path.GetDirectoryName(solution)!
@@ -550,8 +571,11 @@ public sealed class ArcRelayPlaylistDefinitionTests
         string claimableDropArtifact = Path.Combine(
             root, "arena-bots", "arc-relay", "ambush-warren-11-stock-v12",
             "bot.wasm");
-        string ordersArtifact = Path.Combine(
+        string ordersV2Artifact = Path.Combine(
             root, "arena-bots", "arc-relay", "tapline-1-stock-v1",
+            "bot.wasm");
+        string ordersArtifact = Path.Combine(
+            root, "arena-bots", "arc-relay", "tapline-3-stock-v1",
             "bot.wasm");
         string playbook = Path.Combine(
             root, "arena-bots", "arc-relay",
@@ -581,6 +605,9 @@ public sealed class ArcRelayPlaylistDefinitionTests
         Assert.Equal(
             ArcRelayEntrantPlaylistDefinition.OrdersTacticalArtifactHash,
             BotBuilder.Sha256File(ordersArtifact));
+        Assert.Equal(
+            ArcRelayEntrantPlaylistDefinition.OrdersV2TacticalArtifactHash,
+            BotBuilder.Sha256File(ordersV2Artifact));
         Assert.Equal(
             ArcRelayEntrantPlaylistDefinition.TacticalArtifactHash,
             BotBuilder.Sha256File(claimableDropArtifact));
