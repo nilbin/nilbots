@@ -87,6 +87,7 @@ export {
   loadReplayObject,
 } from '../../src/replayIngress';
 export {
+  BOT_BODY_RENDER_ORDER,
   buildActors,
   installMobileModel,
   signedTravelByActor,
@@ -115,13 +116,16 @@ export {
   ARC_SIGNATURE_PROP_SCALE,
   CONSTRUCT_STATUS_BIB_FALLBACK_HEIGHT,
   CONSTRUCT_STATUS_BIB_GAP,
+  PERSISTENT_CONSTRUCT_RENDER_ORDER,
   SENTINEL_YAW_SETTLE_TICKS,
   arcSignatureVisualPhase,
   buildArcRelayEffects,
   constructStatusBibHeight,
+  configurePersistentConstructRendering,
   latestObservedSignatureYaw,
   sentinelYawTarget,
 } from '../../src/render3d/arcRelayEffects';
+export { orientStatusBib } from '../../src/render3d/statusBib';
 export {
   ARC_SIGNATURE_PRESENTATION_ID,
   arcSignaturePresentationDefinitions,

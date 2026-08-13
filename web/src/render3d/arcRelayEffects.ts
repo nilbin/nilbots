@@ -107,6 +107,7 @@ interface SignaturePropSlot {
     material: THREE.MeshStandardMaterial;
     opacity: number;
     transparent: boolean;
+    color: THREE.Color;
   }[];
   /** Hull indicators hovering over the prop; visibility follows remainingCapacity. */
   pips: THREE.Mesh[];
@@ -125,6 +126,37 @@ export const ARC_SIGNATURE_PROP_SCALE = {
 /** Stable air between a construct's scaled mesh and its independently bill-boarded bib. */
 export const CONSTRUCT_STATUS_BIB_GAP = 0.11;
 export const CONSTRUCT_STATUS_BIB_FALLBACK_HEIGHT = 0.38;
+/** Persistent mine/sentry solids sit above terrain and immediately below actor solids. */
+export const PERSISTENT_CONSTRUCT_RENDER_ORDER = 1;
+
+/**
+ * Put a persistent construct in the one logical layer actors may overdraw.
+ *
+ * Terrain and walls render first and retain their depth. Constructs then read that depth
+ * without replacing it, and actor solids render next. The result is deliberately narrower
+ * than an always-on-top bot material: a bot can cover a mine/sentry silhouette, but a wall
+ * in front of either still wins normally.
+ */
+export function configurePersistentConstructRendering(
+  model: THREE.Object3D,
+): void {
+  model.traverse((node) => {
+    const mesh = node as THREE.Mesh;
+    if (!mesh.isMesh) return;
+    mesh.renderOrder = PERSISTENT_CONSTRUCT_RENDER_ORDER;
+    for (const material of Array.isArray(mesh.material)
+      ? mesh.material
+      : [mesh.material]) {
+      const changedPass = material.transparent;
+      material.depthTest = true;
+      material.depthWrite = false;
+      // Entry is already carried by physical growth/emergence. Keeping these matte props
+      // in the opaque pass makes their construct-before-actor order deterministic.
+      material.transparent = false;
+      if (changedPass) material.needsUpdate = true;
+    }
+  });
+}
 
 /** Derive status placement from the actual loaded model, including its live deploy scale. */
 export function constructStatusBibHeight(
@@ -279,6 +311,7 @@ export function buildArcRelayEffects(
       slot.model = model;
       slot.yawHead = model.getObjectByName('yaw-head') ?? null;
       slot.emissives = signaturePropEmissives(model);
+      configurePersistentConstructRendering(model);
       slot.materials = signaturePropMaterials(model);
       slot.ready = true;
       propGroup.add(model);
@@ -1530,6 +1563,7 @@ function paintSignaturePropBody(
     material: THREE.MeshStandardMaterial;
     opacity: number;
     transparent: boolean;
+    color: THREE.Color;
   }[],
   suppressed: boolean,
   time: number,
@@ -1538,10 +1572,14 @@ function paintSignaturePropBody(
   const breathing = 0.95 + Math.sin(time * Math.PI * 0.42) * 0.05;
   for (const { material, base } of emissives)
     material.emissiveIntensity = base * (suppressed ? 0.22 : breathing);
-  for (const { material, opacity, transparent } of materials) {
-    const reveal = 0.24 + deploy * 0.76;
-    material.transparent = transparent || reveal < 0.999;
-    material.opacity = opacity * reveal * (suppressed ? 0.58 : 1);
+  for (const { material, opacity, transparent, color } of materials) {
+    // Scale carries the deploy; a restrained brightness settle keeps the arrival soft
+    // without moving the prop into Three's later transparent pass. Suppression similarly
+    // dims the matte body instead of weakening the actor-over-construct depth contract.
+    const reveal = 0.7 + deploy * 0.3;
+    material.color.copy(color).multiplyScalar(reveal * (suppressed ? 0.58 : 1));
+    material.transparent = transparent;
+    material.opacity = opacity;
   }
 }
 
@@ -1551,6 +1589,7 @@ function signaturePropMaterials(
   material: THREE.MeshStandardMaterial;
   opacity: number;
   transparent: boolean;
+  color: THREE.Color;
 }[] {
   const materials = new Set<THREE.MeshStandardMaterial>();
   model.traverse((node) => {
@@ -1566,6 +1605,7 @@ function signaturePropMaterials(
     material,
     opacity: material.opacity,
     transparent: material.transparent,
+    color: material.color.clone(),
   }));
 }
 

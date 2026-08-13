@@ -7,11 +7,14 @@ import {
   ARC_SIGNATURE_WEBGL_PAINTERS,
   CONSTRUCT_STATUS_BIB_FALLBACK_HEIGHT,
   CONSTRUCT_STATUS_BIB_GAP,
+  BOT_BODY_RENDER_ORDER,
+  PERSISTENT_CONSTRUCT_RENDER_ORDER,
   arcSignatureAudioDefinitionIds,
   arcSignaturePresentationDefinitions,
   arcSignatureVisualPhase,
   buildArcRelayEffects,
   constructStatusBibHeight,
+  configurePersistentConstructRendering,
   latestObservedSignatureYaw,
   resolveArcSignaturePresentation,
   sentinelYawTarget,
@@ -768,6 +771,32 @@ test('construct bib height follows the live scaled mesh bounds', () => {
     const compressedTop = new THREE.Box3().setFromObject(model).max.y;
     assert.ok(
       Math.abs(compressedHeight - compressedTop - CONSTRUCT_STATUS_BIB_GAP) < 1e-6,
+    );
+  } finally {
+    geometry.dispose();
+    material.dispose();
+  }
+});
+
+test('persistent mine and sentry bodies yield only their depth layer to bots', () => {
+  const model = new THREE.Group();
+  const geometry = new THREE.BoxGeometry(0.8, 0.24, 0.8);
+  const material = new THREE.MeshStandardMaterial({
+    transparent: true,
+    opacity: 0.8,
+  });
+  const body = new THREE.Mesh(geometry, material);
+  model.add(body);
+  try {
+    configurePersistentConstructRendering(model);
+    assert.equal(body.renderOrder, PERSISTENT_CONSTRUCT_RENDER_ORDER);
+    assert.ok(BOT_BODY_RENDER_ORDER > body.renderOrder);
+    assert.equal(material.depthTest, true, 'walls and terrain still occlude the prop');
+    assert.equal(material.depthWrite, false, 'the prop cannot occlude a later bot body');
+    assert.equal(
+      material.transparent,
+      false,
+      'the construct stays in the ordered solid pass',
     );
   } finally {
     geometry.dispose();
