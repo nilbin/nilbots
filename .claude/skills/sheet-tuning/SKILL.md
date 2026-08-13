@@ -42,6 +42,9 @@ During the fast design loop:
   gauntlet merely to refresh gameplay replays;
 - use one or two targeted exhibit cells while diagnosing. Build the standard
   six-cell exhibit once the behavior is ready for the owner to watch;
+- never bypass the exhibit's movement-sanity or felt-eligibility gates for an
+  owner review. A diagnostic that intentionally trips one stays local and is
+  labelled diagnostic; it is not a review gallery;
 - reuse the published CLI and existing viewer. The exhibit script republishes
   its local CLI cache when `src/` is newer; that is a local iteration build,
   not a product release. Rebuild the viewer only when viewer code/assets moved.
@@ -105,6 +108,16 @@ That in-process compilation is intentional. Never replace it with a controlled
 WASM build merely to make a review gallery.
 
 Never edit inputs while the script is between `running ...` and completion.
+
+The exhibit is not publishable merely because every process exited zero. Its
+raw-replay motion gate rejects closed allied movement cycles and uncontested
+recovery with no health/geographic progress. The gallery builder then applies
+the frozen felt-degeneracy bars, including Core-level home non-progress across
+handoffs and equal-distance movement. Do not pass
+`--skip-arc-relay-eligibility` in this workflow. Finally inspect every end tick:
+multiple horizon games fail the exhibit by default and require tracing even
+when no bar trips. `EXHIBIT_ALLOW_MULTIPLE_HORIZON=1` exists only for an
+explicitly labelled horizon-focused diagnostic, never as acceptance ceremony.
 
 ## Trace before changing
 

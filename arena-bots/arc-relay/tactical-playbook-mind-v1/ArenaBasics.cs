@@ -847,13 +847,8 @@ internal static class ArenaBasics
         if (mind.Mode is GenericActorContext.ModeObservationState.ArcRelay arc)
         {
             blocked.UnionWith(arc.VisibleSignatures
-                .Where(signature => string.Equals(
-                        signature.SignatureId, "trip-node",
-                        StringComparison.Ordinal)
-                    && signature.OwnerTeamId != teamId
-                    && !signature.Suppressed
-                    && signature.Phase
-                        == GenericActorContext.ArcRelaySignaturePhase.Active)
+                .Where(signature => SignatureBlocksMovement(
+                    signature, teamId))
                 .SelectMany(signature => signature.Positions));
         }
         if (contract.ModeMapBinding
@@ -2562,13 +2557,8 @@ internal static class ArenaBasics
             arcMode)
         {
             durable.UnionWith(arcMode.VisibleSignatures
-                .Where(signature => string.Equals(
-                        signature.SignatureId, "trip-node",
-                        StringComparison.Ordinal)
-                    && signature.OwnerTeamId != moving.ActorId.TeamId
-                    && !signature.Suppressed
-                    && signature.Phase
-                        == GenericActorContext.ArcRelaySignaturePhase.Active)
+                .Where(signature => SignatureBlocksMovement(
+                    signature, moving.ActorId.TeamId))
                 .SelectMany(signature => signature.Positions));
         }
 
@@ -2627,6 +2617,22 @@ internal static class ArenaBasics
         blocked.UnionWith(durable);
         return blocked;
     }
+
+    /// <summary>Mirror ArcRelaySignatureRuntime.BlocksBody for constructs the
+    /// mind can observe. Hardlight is solid to both teams; an armed trip node
+    /// is avoided only by its opponent.</summary>
+    internal static bool SignatureBlocksMovement(
+        GenericActorContext.ArcRelaySignatureState signature,
+        int movingTeamId) => !signature.Suppressed
+            && signature.Phase
+                == GenericActorContext.ArcRelaySignaturePhase.Active
+            && (string.Equals(
+                    signature.Kind, "hardlight-block",
+                    StringComparison.Ordinal)
+                || string.Equals(
+                    signature.Kind, "trip-node",
+                    StringComparison.Ordinal)
+                    && signature.OwnerTeamId != movingTeamId);
 
     internal static ProjectileHeading? FindFirstStep(
         GenericActorMapContract map,

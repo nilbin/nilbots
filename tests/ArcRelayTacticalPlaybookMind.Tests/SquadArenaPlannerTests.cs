@@ -3,6 +3,28 @@ using BotArena.Sdk;
 public sealed class SquadArenaPlannerTests
 {
     [Fact]
+    public void PlannerObstacleModelMatchesHardlightAndTripNodeSemantics()
+    {
+        GenericActorContext.ArcRelaySignatureState Hardlight(bool suppressed) =>
+            new(
+                "hardlight-1", "hardlight-block", "hardlight-block",
+                new ActorIdentity(0, 0, 0), 0,
+                GenericActorContext.ArcRelaySignaturePhase.Active,
+                1, null, 10, [new Position(3, 3)], null, 3, suppressed);
+        GenericActorContext.ArcRelaySignatureState TripNode() => new(
+            "mine-1", "trip-node", "trip-node",
+            new ActorIdentity(0, 1, 0), 0,
+            GenericActorContext.ArcRelaySignaturePhase.Active,
+            1, null, 10, [new Position(4, 4)], null, 1, false);
+
+        Assert.True(ArenaBasics.SignatureBlocksMovement(Hardlight(false), 0));
+        Assert.True(ArenaBasics.SignatureBlocksMovement(Hardlight(false), 1));
+        Assert.False(ArenaBasics.SignatureBlocksMovement(Hardlight(true), 1));
+        Assert.False(ArenaBasics.SignatureBlocksMovement(TripNode(), 0));
+        Assert.True(ArenaBasics.SignatureBlocksMovement(TripNode(), 1));
+    }
+
+    [Fact]
     public void OperationsAllowFollowingButRejectSwap()
     {
         SquadArenaPlanner.Operation leader = Operation(
@@ -28,6 +50,40 @@ public sealed class SquadArenaPlannerTests
 
         Assert.False(SquadArenaPlanner.OperationsCollide(leader, follower));
         Assert.True(SquadArenaPlanner.OperationsCollide(leader, swapper));
+    }
+
+    [Fact]
+    public void JointOperationsAllowChainIntoVacancyButRejectThreeBodyCycle()
+    {
+        SquadArenaPlanner.Operation first = Operation(
+            new Position(1, 1), Direction.East,
+            SquadArenaPlanner.MicroAction.Move(
+                new Position(2, 1), ProjectileHeading.East),
+            SquadArenaPlanner.MicroAction.Wait,
+            SquadArenaPlanner.MicroAction.Wait);
+        SquadArenaPlanner.Operation second = Operation(
+            new Position(2, 1), Direction.South,
+            SquadArenaPlanner.MicroAction.Move(
+                new Position(2, 2), ProjectileHeading.South),
+            SquadArenaPlanner.MicroAction.Wait,
+            SquadArenaPlanner.MicroAction.Wait);
+        SquadArenaPlanner.Operation vacancy = Operation(
+            new Position(2, 2), Direction.East,
+            SquadArenaPlanner.MicroAction.Move(
+                new Position(3, 2), ProjectileHeading.East),
+            SquadArenaPlanner.MicroAction.Wait,
+            SquadArenaPlanner.MicroAction.Wait);
+        SquadArenaPlanner.Operation closesCycle = Operation(
+            new Position(2, 2), Direction.West,
+            SquadArenaPlanner.MicroAction.Move(
+                new Position(1, 1), ProjectileHeading.NorthWest),
+            SquadArenaPlanner.MicroAction.Wait,
+            SquadArenaPlanner.MicroAction.Wait);
+
+        Assert.True(SquadArenaPlanner.OperationsHaveAcyclicMovement(
+            [first, second, vacancy]));
+        Assert.False(SquadArenaPlanner.OperationsHaveAcyclicMovement(
+            [first, second, closesCycle]));
     }
 
     [Fact]
@@ -85,6 +141,17 @@ public sealed class SquadArenaPlannerTests
         Assert.Equal(25_000, swivelling);
         Assert.Equal(0, resting);
         Assert.True(yielding < 100_000);
+    }
+
+    [Fact]
+    public void EarlierArrivalBeatsMovingForTheWholeHorizon()
+    {
+        long enterAndRest = SquadArenaPlanner.GoalProgressWeight([0, 0, 0]);
+        long orbitAndEnter = SquadArenaPlanner.GoalProgressWeight([1, 1, 0]);
+        long neverArrive = SquadArenaPlanner.GoalProgressWeight([1, 1, 1]);
+
+        Assert.True(enterAndRest < orbitAndEnter);
+        Assert.True(orbitAndEnter < neverArrive);
     }
 
     private static SquadArenaPlanner.Operation Operation(

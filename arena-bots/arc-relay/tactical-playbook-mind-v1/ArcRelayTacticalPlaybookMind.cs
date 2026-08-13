@@ -312,9 +312,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                         Pinned: false,
                         PrefersHold: plan.Arrived
                             || plan.Goals.Contains(body.Position),
-                        CanStage: move.Kind == "to"
-                            && proposal.Target.Key.StartsWith(
-                                "well:", StringComparison.Ordinal),
+                        CanStage: IsSingleServiceMoveTarget(
+                            move, proposal.Target.Key),
                         LeaderUnitId: leader,
                         $"move:{proposal.Target.Key}"));
                     break;
@@ -408,6 +407,22 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         }
         return result.ToArray();
     }
+
+    /// <summary>
+    /// Wells, healers and reactors are one-tile services, not eight identical
+    /// destinations. When several bodies select one, the joint assignment
+    /// gives one body the service tile and stages the rest on distinct nearby
+    /// contribution tiles. This prevents patients from repeatedly evicting
+    /// one another before a healing tick and carriers from trading the only
+    /// banking square. The selected order and target remain unchanged.
+    /// </summary>
+    private static bool IsSingleServiceMoveTarget(
+        OrdersPackage.MoveAction move,
+        string targetKey) => move.Kind == "to"
+            && (targetKey.StartsWith("well:", StringComparison.Ordinal)
+                || targetKey.StartsWith("heal:", StringComparison.Ordinal)
+                || string.Equals(
+                    targetKey, "reactor:own", StringComparison.Ordinal));
 
     public void EndMatch(MindEnd end) => _ = end;
 

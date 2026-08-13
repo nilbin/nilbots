@@ -1,5 +1,12 @@
 # Arc Relay atomic convoy and EPIBT movement report
 
+> **REJECTED BY OWNER REVIEW (2026-08-13).** Do not use this report as
+> acceptance evidence. G3 contained Core non-progress at the reactor, a closed
+> three-body movement cycle, and a recovery orbit; four of six games reached
+> the horizon. The existing home-carrier non-progress bar would have rejected
+> G3, but `arc-relay-exhibit.sh` bypassed gallery eligibility. The follow-up
+> correction makes both raw motion sanity and frozen eligibility mandatory.
+
 Status: in-process design-review candidate, 2026-08-13. This report records an
 exhibit, not a battery or a balance verdict. No WASM artifact, frozen stock
 artifact, hosted playlist, rating book, or release version was changed.

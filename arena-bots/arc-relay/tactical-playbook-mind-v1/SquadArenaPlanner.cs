@@ -179,6 +179,17 @@ internal sealed class SquadArenaPlanner : IArenaStepper
                 if (conflicts.Length == 0)
                 {
                     selected[unit] = candidate;
+                    // The engine permits a following chain only when it ends
+                    // in a tile that is actually vacated. Pairwise vertex and
+                    // swap checks cannot see a three-body rotation, so mirror
+                    // that joint rule here before publishing the operation.
+                    if (!OperationsHaveAcyclicMovement(selected
+                            .Where(pair => visits[pair.Key] > 0)
+                            .Select(pair => pair.Value)))
+                    {
+                        selected.Remove(unit);
+                        continue;
+                    }
                     branch.Remove(unit);
                     return true;
                 }
@@ -361,7 +372,11 @@ internal sealed class SquadArenaPlanner : IArenaStepper
             }
 
             foreach (MicroAction action in ActionsFrom(
-                         contract, intent.Body, state, durable))
+                         contract,
+                         intent.Body,
+                         state,
+                         durable,
+                         respectCurrentAvailability: depth == 0))
             {
                 actions.Add(action);
                 Enumerate(Apply(state, action, contract, intent.Body),
@@ -375,43 +390,74 @@ internal sealed class SquadArenaPlanner : IArenaStepper
         GenericActorResolvedMatchContract contract,
         MindBody body,
         PlannerState state,
-        IReadOnlySet<Position> durable)
+        IReadOnlySet<Position> durable,
+        bool respectCurrentAvailability)
     {
         GenericActorRulesContract.MovementFacingCoupling coupling =
             ArenaBasics.MovementCoupling(contract, body);
+        bool movementAvailable = !respectCurrentAvailability
+            || ActionAvailableNow(
+                contract,
+                body,
+                GenericActorRulesContract.ActionKind.Movement);
+        bool rotationAvailable = !respectCurrentAvailability
+            || ActionAvailableNow(
+                contract,
+                body,
+                GenericActorRulesContract.ActionKind.Rotation);
         if (coupling
             == GenericActorRulesContract.MovementFacingCoupling.FacingLocked)
         {
             ProjectileHeading forward =
                 (ProjectileHeading)((int)state.Facing * 2);
             Position destination = ArenaBasics.Step(state.Position, forward);
-            if (ArenaBasics.CanStep(
+            if (movementAvailable
+                && ArenaBasics.CanStep(
                     contract.Map, state.Position, destination, forward)
                 && !durable.Contains(destination))
             {
                 yield return MicroAction.Move(destination, forward);
             }
-            foreach (Direction direction in Enum.GetValues<Direction>())
+            if (rotationAvailable)
             {
-                if (direction != state.Facing)
-                    yield return MicroAction.Rotate(direction);
+                foreach (Direction direction in Enum.GetValues<Direction>())
+                {
+                    if (direction != state.Facing)
+                        yield return MicroAction.Rotate(direction);
+                }
             }
             yield return MicroAction.Wait;
             yield break;
         }
 
-        foreach (ProjectileHeading heading in ArenaBasics.RouteHeadings(
-                     contract, body))
+        if (movementAvailable)
         {
-            Position destination = ArenaBasics.Step(state.Position, heading);
-            if (ArenaBasics.CanStep(
-                    contract.Map, state.Position, destination, heading)
-                && !durable.Contains(destination))
+            foreach (ProjectileHeading heading in ArenaBasics.RouteHeadings(
+                         contract, body))
             {
-                yield return MicroAction.Move(destination, heading);
+                Position destination = ArenaBasics.Step(state.Position, heading);
+                if (ArenaBasics.CanStep(
+                        contract.Map, state.Position, destination, heading)
+                    && !durable.Contains(destination))
+                {
+                    yield return MicroAction.Move(destination, heading);
+                }
             }
         }
         yield return MicroAction.Wait;
+    }
+
+    private static bool ActionAvailableNow(
+        GenericActorResolvedMatchContract contract,
+        MindBody body,
+        GenericActorRulesContract.ActionKind kind)
+    {
+        HashSet<string> actionIds = contract.Rules.Actions
+            .Where(action => action.Kind == kind)
+            .Select(action => action.Id)
+            .ToHashSet(StringComparer.Ordinal);
+        return body.ActionLegalities.Any(action =>
+            action.Available && actionIds.Contains(action.ActionId));
     }
 
     private static Operation? BuildOperation(
@@ -443,7 +489,8 @@ internal sealed class SquadArenaPlanner : IArenaStepper
         }
 
         long weight = assignment is Position goal
-            ? GoalDistance(contract.Map, state.Position, goal) * 100_000L
+            ? GoalProgressWeight(states.Select(candidate =>
+                GoalDistance(contract.Map, candidate.Position, goal)).ToArray())
             : 0;
         // EPIBT orders equal-h operations by the earliest useful action:
         // move, then rotate, then wait. This must be lexicographic rather
@@ -473,6 +520,30 @@ internal sealed class SquadArenaPlanner : IArenaStepper
             states,
             weight,
             inherited);
+    }
+
+    /// <summary>
+    /// Compare equal-horizon operations by when they make useful progress,
+    /// not by how many move glyphs they contain. The old final-position-only
+    /// score preferred FFF scenic loops over FWW when both ended on a healer;
+    /// a body one tile from recovery could therefore orbit forever. Final
+    /// distance remains the dominant term, then earliest arrival, then the
+    /// distance travelled through the horizon.
+    /// </summary>
+    internal static long GoalProgressWeight(IReadOnlyList<int> distances)
+    {
+        if (distances.Count != OperationLength)
+            throw new ArgumentException(
+                $"An operation needs {OperationLength} distance samples.",
+                nameof(distances));
+        int final = distances[^1];
+        int firstArrival = Enumerable.Range(0, distances.Count)
+            .FirstOrDefault(index => distances[index] == 0, distances.Count);
+        long path = Math.Min(
+            900_000L,
+            distances.Aggregate(0L, (sum, distance) =>
+                sum + Math.Min(distance, 90)) * 10_000L);
+        return final * 10_000_000L + firstArrival * 1_000_000L + path;
     }
 
     /// <summary>
@@ -583,6 +654,56 @@ internal sealed class SquadArenaPlanner : IArenaStepper
             secondPrior = secondNow;
         }
         return false;
+    }
+
+    /// <summary>
+    /// Mirror the engine's atomic-follow rule over every operation timestep.
+    /// A chain into a vacancy is legal; a closed rotation has no vacancy and
+    /// is rejected as a unit. Pairwise collision checks alone cannot observe
+    /// a cycle of three or more bodies.
+    /// </summary>
+    internal static bool OperationsHaveAcyclicMovement(
+        IEnumerable<Operation> source)
+    {
+        Operation[] operations = source.ToArray();
+        for (int tick = 0; tick < OperationLength; tick++)
+        {
+            Position[] before = operations.Select(operation => tick == 0
+                    ? operation.Start
+                    : operation.States[tick - 1].Position)
+                .ToArray();
+            Position[] after = operations
+                .Select(operation => operation.States[tick].Position)
+                .ToArray();
+            var occupant = new Dictionary<Position, int>();
+            for (int index = 0; index < before.Length; index++)
+            {
+                // A duplicated predicted pre-state means an earlier timestep
+                // already violated vertex occupancy. Treat it as an invalid
+                // joint operation rather than throwing from a diagnostic.
+                if (!occupant.TryAdd(before[index], index))
+                    return false;
+            }
+            var dependency = new Dictionary<int, int>();
+            for (int index = 0; index < operations.Length; index++)
+            {
+                if (after[index] != before[index]
+                    && occupant.TryGetValue(after[index], out int other))
+                    dependency[index] = other;
+            }
+            foreach (int start in dependency.Keys.Order())
+            {
+                var seen = new HashSet<int>();
+                int current = start;
+                while (dependency.TryGetValue(current, out int next))
+                {
+                    if (!seen.Add(current))
+                        return false;
+                    current = next;
+                }
+            }
+        }
+        return true;
     }
 
     private static HashSet<Position> DurableObstacles(

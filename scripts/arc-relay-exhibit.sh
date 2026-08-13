@@ -132,6 +132,29 @@ done
 for pid in "${pids[@]}"; do wait "$pid"; done
 grep -H "Result:" "$OUTDIR/$NAME"-*.log | sed "s|$OUTDIR/||"
 
+# Horizon resolution is a valid product outcome, but several in one tiny
+# stock exhibit are a stop-and-trace signal rather than something to hand to
+# the owner. An explicitly horizon-focused diagnostic can opt out; its author
+# must then explain the cells rather than silently treating them as healthy.
+horizon_count=$(grep -h "Result:.*max-ticks" \
+  "$OUTDIR/$NAME"-*.log 2>/dev/null | wc -l | tr -d ' ')
+if [ "$horizon_count" -gt 1 ] \
+    && [ "${EXHIBIT_ALLOW_MULTIPLE_HORIZON:-0}" != 1 ]; then
+  echo "refusing review gallery: $horizon_count/${#CELLS[@]} cells reached max-ticks" >&2
+  echo "trace them first, or set EXHIBIT_ALLOW_MULTIPLE_HORIZON=1 for an explicitly labelled diagnostic" >&2
+  exit 1
+fi
+
+# A review gallery is allowed to be small; it is not allowed to conceal a
+# mechanical failure. This raw-replay gate catches planner/executor seams that
+# aggregate traffic rates smooth away. Gallery eligibility below separately
+# follows Core possession across handoffs and equal-distance dancing.
+echo "checking replay-visible movement sanity..."
+for cell in "${CELLS[@]}"; do
+  python3 "$REPO/scripts/arc-relay-motion-sanity.py" \
+    "$OUTDIR/$NAME-$cell/replay.json.gz" --fail
+done
+
 echo "broadcasting..."
 BCAST=$OUTDIR/$NAME-bcast
 mkdir -p "$BCAST"
@@ -247,7 +270,6 @@ python3 "$REPO/scripts/build-review-gallery.py" \
   --sample "$OUTDIR/$NAME-sample.json" \
   --output "$OUTDIR/$NAME-site" \
   --title "${EXHIBIT_TITLE:-$NAME}" \
-  --index-cards "$CARDS" \
-  --skip-arc-relay-eligibility
+  --index-cards "$CARDS"
 rsync -a --delete "$OUTDIR/$NAME-site/" "$SITE/"
 echo "live: swapped into $SITE"

@@ -37,8 +37,6 @@ public sealed class OrdersMovementSceneTests
         var movedInitialLives = new HashSet<ActorIdentity>();
         var reasons = new List<string>();
         var banksByTeam = new Dictionary<int, int>();
-        var runs = new Dictionary<ActorIdentity, (Position Position, int Ticks)>();
-        int longestSingleTileRun = 0;
         GenericActorMatchStepResult? last = null;
 
         while (!session.IsCompleted)
@@ -64,13 +62,6 @@ public sealed class OrdersMovementSceneTests
                 {
                     movedInitialLives.Add(life.ActorId);
                 }
-                (Position Position, int Ticks) prior =
-                    runs.GetValueOrDefault(life.ActorId);
-                int ticks = prior.Position == life.Position
-                    ? prior.Ticks + 1
-                    : 0;
-                runs[life.ActorId] = (life.Position, ticks);
-                longestSingleTileRun = Math.Max(longestSingleTileRun, ticks);
             }
             foreach (GenericActorAuthoritativeEvent fact
                      in last.AuthoritativeEvents)
@@ -87,9 +78,12 @@ public sealed class OrdersMovementSceneTests
         Assert.NotNull(last);
         Assert.True(last.IsCompleted);
         Assert.Equal(initial.Count, movedInitialLives.Count);
-        Assert.True(longestSingleTileRun <= 100,
-            $"A real Tapline body stayed on one tile for "
-            + $"{longestSingleTileRun} ticks.");
+        // A body authored to farm a Well should hold that exact service tile
+        // until a Core is born; a raw single-tile ceiling therefore labels
+        // correct objective work as a deadlock (this seed legitimately holds
+        // the south Well for 145 ticks). Mechanical immobility is covered by
+        // the G3 closed-cycle/recovery-progress scene and the Core-level
+        // gallery eligibility bar, not by punishing at-target waits.
         Assert.All(new[] { 0, 1 }, team =>
             Assert.True(banksByTeam.GetValueOrDefault(team) > 0,
                 $"Team {team} never banked a Core."));
@@ -293,6 +287,165 @@ public sealed class OrdersMovementSceneTests
             "The leader never advanced under its authored route in the "
             + "opening scene.");
     }
+
+    [Fact]
+    public void G3HasNoClosedAlliedMovementCycleOrUncontestedRecoveryOrbit()
+    {
+        string root = FindRepoRoot();
+        TacticalPlaybookCompilation hunter = Compile(root, "hunter-tapline-v2.json");
+        TacticalPlaybookCompilation wellwright = Compile(
+            root, "wellwright-tapline-v2.json");
+        ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create(
+            wellwright.Composition,
+            hunter.Composition,
+            loopProfile: ArcRelayLoopProfile.Tapline3);
+
+        using var session = new GenericActorMatchSession(
+            definition,
+            [Participant(0, wellwright), Participant(1, hunter)],
+            matchSeed: 9005,
+            recordChronology: true);
+
+        int closedMovementCycles = 0;
+        var recovery = new Dictionary<ActorIdentity, RecoveryProgress>();
+        int worstUncontestedRecoveryNoProgress = 0;
+        while (!session.IsCompleted)
+        {
+            GenericActorMatchStepResult step = session.Step();
+            Dictionary<ActorIdentity, GenericActorWorldSnapshot.LifeSnapshot>
+                lives = step.PostState.ActiveLives.ToDictionary(
+                    life => life.ActorId);
+            foreach (GenericActorAuthoritativeEvent fact in
+                     step.AuthoritativeEvents)
+            {
+                if (fact.Payload is not GenericActorRuntimeObservation.EventPayload
+                    .MovementBlocked blocked)
+                    continue;
+                // The engine's event type intentionally exposes the same
+                // actor/from/to triple as the replay. The generic cycle
+                // helper below groups it after all facts for this tick.
+            }
+            closedMovementCycles += ClosedMovementCycles(
+                step.AuthoritativeEvents);
+
+            foreach (GenericMindRuntimeTurn turn in step.MindTurns)
+            {
+                HashSet<ActorIdentity> seen = [];
+                Position[] enemies = lives.Values
+                    .Where(life => life.ActorId.TeamId != turn.TeamId)
+                    .Select(life => life.Position)
+                    .ToArray();
+                foreach (GenericMindCommandResolution resolution in turn.Commands)
+                {
+                    string reason = resolution.Command.DebugMessage ?? "";
+                    Position? goal = RecoveryGoal(reason);
+                    ActorIdentity actor = new(
+                        turn.TeamId,
+                        resolution.Command.UnitId,
+                        resolution.Command.LifeId);
+                    if (goal is not Position healing
+                        || !lives.TryGetValue(actor, out var life))
+                        continue;
+                    seen.Add(actor);
+                    int distance = life.Position.ChebyshevDistance(healing);
+                    bool contested = enemies.Any(enemy =>
+                        enemy.ChebyshevDistance(healing) <= 1);
+                    bool staged = reason.Contains(
+                        ":at-contribution:heal:", StringComparison.Ordinal);
+                    if (!recovery.TryGetValue(actor, out RecoveryProgress? prior)
+                        || prior.Goal != healing
+                        || life.Health > prior.Health
+                        || distance < prior.BestDistance)
+                    {
+                        recovery[actor] = new RecoveryProgress(
+                            healing, life.Health, distance, 0);
+                    }
+                    else
+                    {
+                        RecoveryProgress next = prior with
+                        {
+                            Health = life.Health,
+                            UncontestedTicks = prior.UncontestedTicks
+                                + (contested || staged ? 0 : 1),
+                        };
+                        recovery[actor] = next;
+                        worstUncontestedRecoveryNoProgress = Math.Max(
+                            worstUncontestedRecoveryNoProgress,
+                            next.UncontestedTicks);
+                    }
+                }
+                foreach (ActorIdentity stale in recovery.Keys
+                             .Where(actor => actor.TeamId == turn.TeamId
+                                 && !seen.Contains(actor))
+                             .ToArray())
+                    recovery.Remove(stale);
+            }
+        }
+
+        Assert.Equal(0, closedMovementCycles);
+        Assert.True(worstUncontestedRecoveryNoProgress < 18,
+            $"A recovery order made no uncontested health/distance progress "
+            + $"for {worstUncontestedRecoveryNoProgress} ticks.");
+    }
+
+    private static Position? RecoveryGoal(string reason)
+    {
+        const string marker = "recover-health";
+        int recovery = reason.IndexOf(marker, StringComparison.Ordinal);
+        if (recovery < 0)
+            return null;
+        int at = reason.IndexOf("march@", recovery, StringComparison.Ordinal);
+        if (at < 0)
+            return null;
+        int comma = reason.IndexOf(',', at + 6);
+        int colon = reason.IndexOf(':', comma + 1);
+        return comma > at && colon > comma
+            && int.TryParse(reason[(at + 6)..comma], out int x)
+            && int.TryParse(reason[(comma + 1)..colon], out int y)
+                ? new Position(x, y)
+                : null;
+    }
+
+    private static int ClosedMovementCycles(
+        IEnumerable<GenericActorAuthoritativeEvent> facts)
+    {
+        var events = facts.Select(fact => fact.Payload)
+            .OfType<GenericActorRuntimeObservation.EventPayload.MovementBlocked>()
+            .GroupBy(value => value.ActorId.TeamId);
+        int result = 0;
+        foreach (var team in events)
+        {
+            Dictionary<Position, int> occupant = team.ToDictionary(
+                value => value.From,
+                value => value.ActorId.UnitId);
+            Dictionary<int, int> edges = team
+                .Where(value => occupant.ContainsKey(value.AttemptedTo))
+                .ToDictionary(value => value.ActorId.UnitId,
+                    value => occupant[value.AttemptedTo]);
+            foreach (int start in edges.Keys)
+            {
+                var seen = new HashSet<int>();
+                int current = start;
+                while (edges.TryGetValue(current, out int next))
+                {
+                    if (!seen.Add(current))
+                    {
+                        if (seen.Count >= 3)
+                            result++;
+                        break;
+                    }
+                    current = next;
+                }
+            }
+        }
+        return result;
+    }
+
+    private sealed record RecoveryProgress(
+        Position Goal,
+        int Health,
+        int BestDistance,
+        int UncontestedTicks);
 
     private static GenericActorParticipantConfiguration Participant(
         int participantId,
