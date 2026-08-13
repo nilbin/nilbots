@@ -800,10 +800,11 @@ selection into a portrait shot. The manual overview fits the three published
 Wells with half a tile of breathing room; distant home Reactors and deep aprons
 may leave the frame rather than shrinking the central theaters. Perspective
 fog darkens unseen terrain by a theme-owned amount, defaulting to 58% rather
-than blacking it out; Ember Forge currently uses 50% to keep a strong light-up
-transition at vision boundaries while retaining more form than the default. A
-theme may also lift visible terrain; Ember uses 45% because removing fog from
-its naturally dark graphite materials was not enough to read as illumination.
+than blacking it out. Ember Forge uses 50% plus a strong visible lift because
+removing fog from its naturally dark graphite materials was not enough to read
+as illumination. The optional Lumen Bastion experiment instead uses 42%
+darkness and an 8% visible lift: its naturally pale materials retain structure
+without turning unseen territory black.
 With no selected perspective, the floor and raised wall/tree materials use the
 cross-team union
 of every active unit's sight; selection replaces that with the chosen team's
@@ -846,13 +847,15 @@ production candidates, then normalized locally:
 - Overgrown Lab uses pale ceramic/composite slabs, restrained moss, and
   mask-safe reinforced lab plating. Water channels were removed from the base
   material: a future river belongs in explicit map presentation data.
-- Ember Forge, Frost Relay, Drowned Vault, Desert Array, and Void Sanctum use
-  fifteen separately generated material fields—one floor, one fortified
-  perimeter, and one interior-cover source per theme. Their exact accepted
-  prompts live in `art/themes/SOURCE-PROMPTS.md`; deterministic baking owns
-  seamless normalization and topology. Ember Forge ships on Arena and Arc
-  Relay, while Frost Relay ships on Gallery. Drowned Vault, Desert Array, and Void
-  Sanctum remain complete staged packages under `art/`; keeping them outside
+- Ember Forge, Frost Relay, Drowned Vault, Desert Array, Void Sanctum, and
+  Lumen Bastion use separately generated material fields—one floor, one
+  fortified perimeter, and one interior-cover source per theme. Their exact
+  accepted prompts live in `art/themes/SOURCE-PROMPTS.md`; deterministic baking
+  owns seamless normalization and topology. Ember Forge ships on Arena and
+  remains the default Arc Relay presentation; Lumen Bastion is an optional
+  bright experiment, while Frost Relay ships on Gallery. Drowned Vault, Desert
+  Array, and Void Sanctum remain complete staged packages under `art/`; keeping
+  them outside
   Vite avoids adding every large theme to every self-contained viewer before
   per-replay asset packaging exists.
 - Wall sources are generated as opaque material fields, never whole slabs or
@@ -907,6 +910,16 @@ home-region outline, heal tiles become raised coolant stations, and faceted
 Wells and Reactors replace generic discs.
 A Well's outer partial ring is driven by its published next-birth or rearm
 clock, so it remains exact while seeking or scrubbing.
+
+Lumen Bastion is an optional bright Arc Relay visual experiment. It keeps the
+same topology-derived bastion grammar, landmark geometry, 12° yaw, 52° pitch,
+and 28° lens, but changes the material hierarchy to warm-white ceramic
+composite, pale silver reinforcement, restrained graphite recesses, and sparse
+periwinkle-white emission. The perimeter uses a shallower 1.6-tile non-playable
+apron and omits chimney cadence; in-map geometry remains inside the same
+authoritative blocked cells. Ember Forge remains the default. Lumen was checked
+using a fresh native Tapline-3 replay with an explicit experimental theme
+binding, not a renderer-forced fallback or post-load theme swap.
 
 Woodland Grove adds one deliberately narrow organic companion rather than a
 generic prop catalog. A wall family's optional `geometry3d.treeCover` block

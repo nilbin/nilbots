@@ -1,10 +1,10 @@
 # Ember Forge
 
-Ember Forge is the active Arc Relay presentation, including the 31×27
+Ember Forge is the default crimson Arc Relay presentation, including the 31×27
 `arc-relay-ambush-warren-06` arena. Presentation changes replay identity but do
 not alter the rules fingerprint, map fingerprint, ASCII tiles, collision,
-vision, wells, reactors, or lanes. Older Woodland Grove replays remain valid
-and retain the theme ID written into their own headers.
+vision, Wells, Reactors, or lanes. Lumen Bastion remains an optional bright
+visual experiment rather than replacing this default.
 
 ## 3D living-bastion mechanism
 

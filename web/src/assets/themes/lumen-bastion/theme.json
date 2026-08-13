@@ -1,0 +1,144 @@
+{
+  "id": "lumen-bastion",
+  "label": "Lumen Bastion",
+  "environment3d": {
+    "fog": {
+      "unseenTerrainDarkness": 0.42,
+      "visibleTerrainLift": 0.08
+    },
+    "camera": {
+      "yawDegrees": 12,
+      "pitchDegrees": 52,
+      "fovDegrees": 28
+    },
+    "lighting": {
+      "keyColor": "#fffdf8",
+      "keyIntensity": 3.2,
+      "ambientColor": "#d8e0ec",
+      "ambientIntensity": 1.72,
+      "fillColor": "#c8d3e5",
+      "fillIntensity": 0.9
+    },
+    "floor": {
+      "bumpScale": 0.018,
+      "roughness": 0.92,
+      "metalness": 0.08,
+      "albedoContrast": 0.82,
+      "colorMultiplier": "#f3f3f3"
+    }
+  },
+  "textures": {
+    "floor": "floor-lumen.webp"
+  },
+  "walls": {
+    "defaults": {
+      "boundary": "perimeter",
+      "interior": "cover"
+    },
+    "atlas": {
+      "columns": 16,
+      "contentPixels": 192,
+      "gutterPixels": 32
+    },
+    "families": {
+      "perimeter": {
+        "label": "Luminous perimeter",
+        "material": "wall-perimeter-albedo.webp",
+        "edgeAtlas": "wall-perimeter-edges.webp",
+        "shadowAtlas": "wall-perimeter-shadows.webp",
+        "geometry3d": {
+          "height": 0.8,
+          "cornerRadius": 0.3,
+          "upperProfile": {
+            "height": 0.23,
+            "inset": 0.04,
+            "chamfer": 0.045
+          },
+          "details": {
+            "panelEvery": 3,
+            "ventEvery": 5,
+            "clampEvery": 6,
+            "panelColor": "#dde1e7",
+            "clampColor": "#b8c0cb",
+            "ventColor": "#d8deff"
+          },
+          "bastionCover": {
+            "shoulderEvery": 3,
+            "towerEvery": 7,
+            "hallEvery": null,
+            "chimneyEvery": null,
+            "furnaceEvery": 5,
+            "minRise": 0.08,
+            "maxRise": 0.46,
+            "boundaryDepth": 1.6,
+            "bodyColor": "#e7e9ed",
+            "trimColor": "#c6cbd3",
+            "accentColor": "#aeb7c4",
+            "heatColor": "#d9ddff"
+          }
+        },
+        "material3d": {
+          "normalMap": "pbr/wall-perimeter-normal.webp",
+          "roughnessMap": "pbr/wall-perimeter-roughness.webp",
+          "normalScale": 0.26,
+          "roughness": 0.9,
+          "metalness": 0.1,
+          "colorMultiplier": "#f1f2f4"
+        }
+      },
+      "cover": {
+        "label": "Relay service cover",
+        "material": "wall-cover-albedo.webp",
+        "edgeAtlas": "wall-cover-edges.webp",
+        "shadowAtlas": "wall-cover-shadows.webp",
+        "geometry3d": {
+          "height": 0.54,
+          "cornerRadius": 0.36,
+          "upperProfile": {
+            "height": 0.16,
+            "inset": 0.055,
+            "chamfer": 0.035
+          },
+          "details": {
+            "panelEvery": 3,
+            "ventEvery": 7,
+            "clampEvery": 8,
+            "panelColor": "#e4e7eb",
+            "clampColor": "#c2c8d0",
+            "ventColor": "#d9deff"
+          },
+          "bastionCover": {
+            "shoulderEvery": 4,
+            "towerEvery": 8,
+            "hallEvery": null,
+            "chimneyEvery": null,
+            "furnaceEvery": null,
+            "minRise": 0.06,
+            "maxRise": 0.4,
+            "boundaryDepth": 0,
+            "bodyColor": "#eceef1",
+            "trimColor": "#d1d5db",
+            "accentColor": "#bbc3ce",
+            "heatColor": "#d9ddff"
+          }
+        },
+        "material3d": {
+          "normalMap": "pbr/wall-cover-normal.webp",
+          "roughnessMap": "pbr/wall-cover-roughness.webp",
+          "normalScale": 0.22,
+          "roughness": 0.92,
+          "metalness": 0.08,
+          "colorMultiplier": "#f3f3f3"
+        }
+      }
+    }
+  },
+  "palette": {
+    "canvas": "#dfe4e9",
+    "arena": "#f5f6f7",
+    "floorTint": "rgba(154, 166, 184, 0.04)",
+    "wallTint": "rgba(145, 157, 176, 0.05)",
+    "zone": "#6256c9",
+    "frame": "#b8c0ca"
+  }
+}

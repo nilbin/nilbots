@@ -683,13 +683,15 @@ function buildSpawnPads(
     : 'frontline-spawn-pads';
   const homes = replay.map.frontline?.teamHomes ?? arcRelayHomes(replay);
   const emberForge = themeId === 'ember-forge';
-  const spawnSocketGeometry = arcRelayPad && emberForge
+  const lumenBastion = themeId === 'lumen-bastion';
+  const arcArchitecture = emberForge || lumenBastion;
+  const spawnSocketGeometry = arcRelayPad && arcArchitecture
     ? new THREE.CylinderGeometry(0.25, 0.32, 0.065, 8)
     : null;
-  const spawnSocketPlateGeometry = arcRelayPad && emberForge
+  const spawnSocketPlateGeometry = arcRelayPad && arcArchitecture
     ? new THREE.CylinderGeometry(0.19, 0.22, 0.024, 8)
     : null;
-  const spawnSocketSignalGeometry = arcRelayPad && emberForge
+  const spawnSocketSignalGeometry = arcRelayPad && arcArchitecture
     ? new THREE.BoxGeometry(0.16, 0.018, 0.035)
     : null;
   if (
@@ -752,10 +754,9 @@ function buildSpawnPads(
       if (!arcRelayPad) pad.add(hatches);
 
       // Arc Relay returns each stable slot to an authored anchor within its
-      // broader home. Ember makes those exact anchors physical: low octagonal
-      // casting sockets without outlining the broad home region. A dark
-      // octagonal lift plate and one small directional status lamp replace
-      // the previous bright ring, which read as a dropped-item tile.
+      // broader home. Hard-surface themes make those exact anchors physical:
+      // low octagonal sockets without outlining the broad home region. One
+      // small directional status lamp carries team identity.
       let socketSignalMaterial: THREE.MeshStandardMaterial | null = null;
       if (
         spawnSocketGeometry &&
@@ -766,14 +767,14 @@ function buildSpawnPads(
           home.protectedSpawnPad.map((tile) => `${tile.x}:${tile.y}`),
         );
         const socketBodyMaterial = new THREE.MeshStandardMaterial({
-          color: '#2c2c31',
+          color: lumenBastion ? '#d7dbe1' : '#2c2c31',
           roughness: 0.64,
-          metalness: 0.72,
+          metalness: lumenBastion ? 0.28 : 0.72,
         });
         const socketPlateMaterial = new THREE.MeshStandardMaterial({
-          color: '#494348',
+          color: lumenBastion ? '#f0f1f3' : '#494348',
           roughness: 0.72,
-          metalness: 0.58,
+          metalness: lumenBastion ? 0.16 : 0.58,
         });
         socketSignalMaterial = new THREE.MeshStandardMaterial({
           color: '#a63b4b',
@@ -2033,6 +2034,8 @@ function buildArcRelayStory(
   const group = new THREE.Group();
   group.userData.kind = 'arc-relay-story';
   const emberForge = themeId === 'ember-forge';
+  const lumenBastion = themeId === 'lumen-bastion';
+  const arcArchitecture = emberForge || lumenBastion;
   const arcRules =
     replay.contract.kind === 'v3-generic' &&
     replay.contract.rawContract.rules.gameMode.kind === 'arc-relay'
@@ -2041,22 +2044,22 @@ function buildArcRelayStory(
   const currentArcStoryAt = createPresenter(replay).at;
 
   const wellGeometry = new THREE.CylinderGeometry(
-    emberForge ? 0.28 : 0.31,
-    emberForge ? 0.4 : 0.38,
-    emberForge ? 0.14 : 0.09,
-    emberForge ? 12 : 24,
+    arcArchitecture ? 0.28 : 0.31,
+    arcArchitecture ? 0.4 : 0.38,
+    arcArchitecture ? 0.14 : 0.09,
+    arcArchitecture ? 12 : 24,
   );
   const wellRingGeometry = new THREE.RingGeometry(
-    emberForge ? 0.4 : 0.39,
-    emberForge ? 0.49 : 0.47,
-    emberForge ? 16 : 32,
+    arcArchitecture ? 0.4 : 0.39,
+    arcArchitecture ? 0.49 : 0.47,
+    arcArchitecture ? 16 : 32,
   );
   wellRingGeometry.rotateX(-Math.PI / 2);
   const reactorGeometry = new THREE.CylinderGeometry(
     0.38,
     0.46,
-    emberForge ? 0.22 : 0.18,
-    emberForge ? 12 : 28,
+    arcArchitecture ? 0.22 : 0.18,
+    arcArchitecture ? 12 : 28,
   );
   const reactorRingGeometry = new THREE.TorusGeometry(0.49, 0.035, 8, 36);
   reactorRingGeometry.rotateX(Math.PI / 2);
@@ -2073,7 +2076,7 @@ function buildArcRelayStory(
   sourceDiamondGeometry.rotateY(Math.PI / 4);
   const sourceCircleGeometry = new THREE.TorusGeometry(0.13, 0.028, 7, 24);
   sourceCircleGeometry.rotateX(Math.PI / 2);
-  const reactorPylonGeometry = emberForge
+  const reactorPylonGeometry = arcArchitecture
     ? new THREE.CylinderGeometry(0.055, 0.1, 0.38, 6)
     : new THREE.BoxGeometry(0.09, 0.38, 0.09);
   const forgeWellClampGeometry = new THREE.BoxGeometry(0.13, 0.15, 0.11);
@@ -2103,22 +2106,22 @@ function buildArcRelayStory(
   // so the pad only has to say "this is where that happens".
   const healPulseMaterials: THREE.Material[] = [];
   {
-    const padGeometry = emberForge
+    const padGeometry = arcArchitecture
       ? new THREE.CylinderGeometry(0.34, 0.43, 0.1, 12)
       : new THREE.CircleGeometry(0.34, 28).rotateX(-Math.PI / 2);
-    const padRingGeometry = emberForge
+    const padRingGeometry = arcArchitecture
       ? new THREE.TorusGeometry(0.3, 0.035, 6, 16).rotateX(Math.PI / 2)
       : new THREE.RingGeometry(0.36, 0.43, 28).rotateX(-Math.PI / 2);
-    const coolantGeometry = emberForge
+    const coolantGeometry = arcArchitecture
       ? new THREE.CylinderGeometry(0.235, 0.255, 0.035, 12)
       : null;
-    const healClampGeometry = emberForge
+    const healClampGeometry = arcArchitecture
       ? new THREE.BoxGeometry(0.12, 0.1, 0.13)
       : null;
     const crossBarGeometry = new THREE.BoxGeometry(
-      emberForge ? 0.25 : 0.3,
-      emberForge ? 0.035 : 0.012,
-      emberForge ? 0.075 : 0.09,
+      arcArchitecture ? 0.25 : 0.3,
+      arcArchitecture ? 0.035 : 0.012,
+      arcArchitecture ? 0.075 : 0.09,
     );
     disposables.push(padGeometry, padRingGeometry, crossBarGeometry);
     if (coolantGeometry && healClampGeometry)
@@ -2126,11 +2129,11 @@ function buildArcRelayStory(
     for (const tile of replay.map.regions
       .filter((region) => region.regionId.startsWith('heal-'))
       .flatMap((region) => region.tiles)) {
-      const padMaterial = emberForge
+      const padMaterial = arcArchitecture
         ? new THREE.MeshStandardMaterial({
-            color: '#242a2b',
+            color: lumenBastion ? '#dce4e1' : '#242a2b',
             emissive: '#123e2b',
-            emissiveIntensity: 0.34,
+            emissiveIntensity: lumenBastion ? 0.12 : 0.34,
             roughness: 0.62,
             metalness: 0.48,
             transparent: true,
@@ -2143,7 +2146,7 @@ function buildArcRelayStory(
             opacity: 0.55,
             depthWrite: false,
           });
-      const ringMaterial = emberForge
+      const ringMaterial = arcArchitecture
         ? new THREE.MeshStandardMaterial({
             color: '#4ade80',
             emissive: '#35a85e',
@@ -2161,23 +2164,23 @@ function buildArcRelayStory(
             depthWrite: false,
           });
       const crossMaterial = new THREE.MeshBasicMaterial({
-        color: new THREE.Color(emberForge ? '#b7f2c8' : '#86efac'),
+        color: new THREE.Color(arcArchitecture ? '#b7f2c8' : '#86efac'),
         transparent: true,
-        opacity: emberForge ? 0.86 : 0.8,
+        opacity: arcArchitecture ? 0.86 : 0.8,
         depthWrite: false,
       });
-      const coolantMaterial = emberForge
+      const coolantMaterial = arcArchitecture
         ? new THREE.MeshStandardMaterial({
-            color: '#173e2c',
+            color: lumenBastion ? '#b9dcc7' : '#173e2c',
             emissive: '#35a85e',
             emissiveIntensity: 0.72,
             roughness: 0.34,
             metalness: 0.32,
           })
         : null;
-      const clampMaterial = emberForge
+      const clampMaterial = arcArchitecture
         ? new THREE.MeshStandardMaterial({
-            color: '#6b2a35',
+            color: lumenBastion ? '#b6bec8' : '#6b2a35',
             roughness: 0.58,
             metalness: 0.7,
           })
@@ -2192,7 +2195,7 @@ function buildArcRelayStory(
       pad.position.set(tile.x + 0.5, 0.018, tile.y + 0.5);
       pad.add(new THREE.Mesh(padGeometry, padMaterial));
       const collar = new THREE.Mesh(padRingGeometry, ringMaterial);
-      collar.position.y = emberForge ? 0.102 : 0;
+      collar.position.y = arcArchitecture ? 0.102 : 0;
       pad.add(collar);
       if (
         coolantGeometry &&
@@ -2217,10 +2220,10 @@ function buildArcRelayStory(
         }
       }
       const alongX = new THREE.Mesh(crossBarGeometry, crossMaterial);
-      alongX.position.y = emberForge ? 0.125 : 0.012;
+      alongX.position.y = arcArchitecture ? 0.125 : 0.012;
       const alongZ = new THREE.Mesh(crossBarGeometry, crossMaterial);
       alongZ.rotation.y = Math.PI / 2;
-      alongZ.position.y = emberForge ? 0.125 : 0.012;
+      alongZ.position.y = arcArchitecture ? 0.125 : 0.012;
       pad.add(alongX);
       pad.add(alongZ);
       group.add(pad);
@@ -2245,14 +2248,14 @@ function buildArcRelayStory(
       rig.userData.kind = 'arc-relay-well';
       rig.userData.themeId = themeId;
       const bodyMaterial = new THREE.MeshStandardMaterial({
-        color: emberForge ? '#2b2629' : '#1b2732',
-        emissive: emberForge ? '#a63b2f' : '#dceaf2',
-        emissiveIntensity: emberForge ? 0.24 : 0.35,
-        roughness: emberForge ? 0.62 : 0.45,
-        metalness: emberForge ? 0.72 : 0.65,
+        color: lumenBastion ? '#e4e7eb' : emberForge ? '#2b2629' : '#1b2732',
+        emissive: lumenBastion ? '#d9ddff' : emberForge ? '#a63b2f' : '#dceaf2',
+        emissiveIntensity: arcArchitecture ? 0.24 : 0.35,
+        roughness: arcArchitecture ? 0.62 : 0.45,
+        metalness: lumenBastion ? 0.24 : emberForge ? 0.72 : 0.65,
       });
       const ringMaterial = new THREE.MeshBasicMaterial({
-        color: emberForge ? '#ff9d68' : '#e5f1f7',
+        color: lumenBastion ? '#f4f3ff' : emberForge ? '#ff9d68' : '#e5f1f7',
         transparent: true,
         opacity: 0.65,
         depthWrite: false,
@@ -2260,12 +2263,12 @@ function buildArcRelayStory(
         side: THREE.DoubleSide,
       });
       const body = new THREE.Mesh(wellGeometry, bodyMaterial);
-      body.position.y = emberForge ? 0.07 : 0.045;
+      body.position.y = arcArchitecture ? 0.07 : 0.045;
       const ring = new THREE.Mesh(wellRingGeometry, ringMaterial);
       ring.position.y = 0.025;
       const progressGeometry = captureProgressGeometry(0.51, 0.575);
       const progressMaterial = new THREE.MeshBasicMaterial({
-        color: emberForge ? '#ffb078' : '#edf5fb',
+        color: lumenBastion ? '#ffffff' : emberForge ? '#ffb078' : '#edf5fb',
         transparent: true,
         opacity: 0,
         depthWrite: false,
@@ -2288,9 +2291,9 @@ function buildArcRelayStory(
         return mesh;
       });
       rig.add(body, ring, progress);
-      if (emberForge) {
+      if (arcArchitecture) {
         const trimMaterial = new THREE.MeshStandardMaterial({
-          color: '#a63b4b',
+          color: lumenBastion ? '#b8c0cc' : '#a63b4b',
           roughness: 0.55,
           metalness: 0.68,
         });
@@ -2350,11 +2353,11 @@ function buildArcRelayStory(
       rig.userData.kind = 'arc-relay-reactor';
       rig.userData.themeId = themeId;
       const material = new THREE.MeshStandardMaterial({
-        color: emberForge ? '#2a2529' : '#101820',
-        emissive: emberForge ? '#8f3241' : '#64748b',
-        emissiveIntensity: emberForge ? 0.34 : 0.45,
-        roughness: emberForge ? 0.58 : 0.38,
-        metalness: emberForge ? 0.78 : 0.72,
+        color: lumenBastion ? '#dfe3e8' : emberForge ? '#2a2529' : '#101820',
+        emissive: lumenBastion ? '#d9ddff' : emberForge ? '#8f3241' : '#64748b',
+        emissiveIntensity: arcArchitecture ? 0.34 : 0.45,
+        roughness: arcArchitecture ? 0.58 : 0.38,
+        metalness: lumenBastion ? 0.28 : emberForge ? 0.78 : 0.72,
       });
       const ringMaterial = new THREE.MeshBasicMaterial({
         transparent: true,
@@ -2363,7 +2366,7 @@ function buildArcRelayStory(
         blending: THREE.AdditiveBlending,
       });
       const body = new THREE.Mesh(reactorGeometry, material);
-      body.position.y = emberForge ? 0.11 : 0.09;
+      body.position.y = arcArchitecture ? 0.11 : 0.09;
       const ring = new THREE.Mesh(reactorRingGeometry, ringMaterial);
       ring.position.y = 0.12;
       const crestMaterial = new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false });
@@ -2667,16 +2670,16 @@ function buildArcRelayStory(
       rig.group.position.set(state.position.x + 0.5, 0, state.position.y + 0.5);
       const pulse = 0.5 + 0.5 * Math.sin(time * Math.PI * 1.6 + index);
       const sourceAccent = arcOriginAccent(state.wellId);
-      if (emberForge)
+      if (arcArchitecture)
         rig.ringMaterial.color
           .set(sourceAccent)
-          .lerp(new THREE.Color('#ff9560'), 0.48);
+          .lerp(new THREE.Color(lumenBastion ? '#f0efff' : '#ff9560'), 0.48);
       rig.ring.rotation.y = time * 0.35 * (index % 2 === 0 ? 1 : -1);
       rig.ring.scale.setScalar(1 + pulse * 0.08);
       rig.ringMaterial.opacity = state.outstanding ? 0.28 : 0.55 + pulse * 0.28;
       rig.bodyMaterial.emissiveIntensity = state.outstanding
-        ? emberForge ? 0.12 : 0.15
-        : emberForge ? 0.42 : 0.38;
+        ? arcArchitecture ? 0.12 : 0.15
+        : arcArchitecture ? 0.42 : 0.38;
       const schedule = arcRules?.wells?.find(
         (candidate) => candidate.wellId === state.wellId,
       );
@@ -2709,10 +2712,10 @@ function buildArcRelayStory(
       rig.progressMaterial.opacity = birthProgress > 0
         ? 0.68 + pulse * 0.24
         : 0;
-      if (emberForge)
+      if (arcArchitecture)
         rig.progressMaterial.color
           .set(sourceAccent)
-          .lerp(new THREE.Color('#ffd0a5'), 0.62);
+          .lerp(new THREE.Color(lumenBastion ? '#ffffff' : '#ffd0a5'), 0.62);
       rig.progress.userData.progress = birthProgress;
       rig.progress.userData.nextBirthTick = state.nextBirthTick;
       rig.progress.userData.phase = scheduledProgress > 0

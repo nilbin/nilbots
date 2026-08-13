@@ -862,6 +862,11 @@ export function drawArena(
         if (mapTiles[y][x] === '#') usedFamilies.add(wallFamilyAt(x, y)!);
     }
 
+    // High-key themes need a pale revealed face too. The historical near-black side
+    // was authored for dark arenas and otherwise turns every white wall into charcoal
+    // in Canvas2D whenever its lifted top exposes even a small edge.
+    const brightWalls = theme.id === 'lumen-bastion';
+
     // The cast shadow stays on the floor while everything above it lifts. That gap is
     // what the eye reads as height; moving the shadow with the wall would just slide the
     // whole thing sideways and read as a misalignment.
@@ -877,7 +882,9 @@ export function drawArena(
     for (const familyId of usedFamilies) {
       ctx.save();
       ctx.clip(wallFamilyShape(familyId));
-      ctx.fillStyle = 'rgba(3, 6, 10, 0.92)';
+      ctx.fillStyle = brightWalls
+        ? 'rgba(111, 121, 135, 0.3)'
+        : 'rgba(3, 6, 10, 0.92)';
       ctx.fillRect(px(0), py(0), tile * mapWidth, tile * mapHeight);
       ctx.restore();
     }
@@ -887,7 +894,7 @@ export function drawArena(
       ctx.save();
       ctx.clip(wallFamilyShape(familyId, true));
       if (!drawTextureField(family?.materialTexture ?? null)) {
-        ctx.fillStyle = '#2e3d55';
+        ctx.fillStyle = brightWalls ? '#d7dce2' : '#2e3d55';
         ctx.fillRect(px(0), py(0), tile * mapWidth, tile * mapHeight);
       }
       ctx.fillStyle = theme.palette.wallTint;

@@ -287,6 +287,21 @@ export interface ReplayV3ArcRelayModeDefinition extends ReplayV3JsonObject {
   fieldedSlotsPerTeam: number;
   maxCopiesPerClass: number;
   respawnDelayTicks: number;
+  signatureGrammarVersion?: number;
+  wellBirthJitterTicks?: number;
+  alternatingResolutionOrder?: true;
+  threefoldSockets?: true;
+  coreBaseValue?: number;
+  ripenIntervalTicks?: number;
+  ripenMaxValue?: number;
+  ripenResumeTicks?: number;
+  rearArcDamageMultiplier?: number;
+  veterancyXpPerLevel?: number;
+  veterancyMaxLevel?: number;
+  seedPhasedResolutionOrder?: true;
+  seedPhasedWellLead?: true;
+  chiralWellBirths?: true;
+  healZoneTicksPerHp?: number;
   wells: {
     wellId: string;
     firstBirthTick: number;

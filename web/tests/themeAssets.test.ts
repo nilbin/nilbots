@@ -200,7 +200,7 @@ function assertCompletePackage(root: string, expectedId: string) {
   }
 }
 
-test('only active map themes enter the web bundle', () => {
+test('only installed map themes enter the web bundle', () => {
   const activeIds = readdirSync(activeRoot, { withFileTypes: true })
     .filter((entry) => entry.isDirectory())
     .map((entry) => entry.name)
@@ -209,6 +209,7 @@ test('only active map themes enter the web bundle', () => {
     'control-room',
     'ember-forge',
     'frost-relay',
+    'lumen-bastion',
     'overgrown-lab',
     'woodland-grove',
   ]);
@@ -326,6 +327,36 @@ test('Ember Forge carries the approved living-bastion profiles', () => {
   );
   assert.equal(
     manifest.walls.families.cover.material3d?.roughnessMap,
+    'pbr/wall-cover-roughness.webp',
+  );
+});
+
+test('Lumen Bastion carries the bright Arc Relay environment', () => {
+  const manifest = JSON.parse(
+    readFileSync(join(activeRoot, 'lumen-bastion', 'theme.json'), 'utf8'),
+  ) as ThemeManifest;
+  const perimeter = manifest.walls.families.perimeter;
+  const cover = manifest.walls.families.cover;
+  assert.equal(manifest.environment3d?.camera?.yawDegrees, 12);
+  assert.equal(manifest.environment3d?.camera?.pitchDegrees, 52);
+  assert.equal(manifest.environment3d?.camera?.fovDegrees, 28);
+  assert.equal(manifest.environment3d?.fog?.unseenTerrainDarkness, 0.42);
+  assert.equal(manifest.environment3d?.fog?.visibleTerrainLift, 0.08);
+  assert.equal(manifest.environment3d?.floor?.roughness, 0.92);
+  assert.equal(manifest.environment3d?.floor?.bumpScale, 0.018);
+  assert.equal(manifest.environment3d?.floor?.colorMultiplier, '#f3f3f3');
+  assert.equal(perimeter.geometry3d?.height, 0.8);
+  assert.equal(cover.geometry3d?.height, 0.54);
+  assert.equal(perimeter.geometry3d?.bastionCover?.boundaryDepth, 1.6);
+  assert.equal(perimeter.geometry3d?.bastionCover?.chimneyEvery, null);
+  assert.equal(perimeter.geometry3d?.bastionCover?.heatColor, '#d9ddff');
+  assert.equal(cover.geometry3d?.bastionCover?.heatColor, '#d9ddff');
+  assert.equal(
+    perimeter.material3d?.normalMap,
+    'pbr/wall-perimeter-normal.webp',
+  );
+  assert.equal(
+    cover.material3d?.roughnessMap,
     'pbr/wall-cover-roughness.webp',
   );
 });
