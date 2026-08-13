@@ -766,9 +766,12 @@ public sealed class ArcRelayEntrantProductIntegrationTests
         });
     }
 
-    [SkippableFact]
+    [SkippableTheory]
+    [InlineData(ArcRelayEntrantPlaylistDefinition.TaplineV1Version)]
+    [InlineData(ArcRelayEntrantPlaylistDefinition.OrdersV2Version)]
     [Trait("Category", PostgreSqlDatabaseFixture.Category)]
-    public async Task Tapline3_v21_starts_a_fresh_book_from_open_v20()
+    public async Task Tapline3_v21_starts_a_fresh_book_from_the_open_prior_ladder(
+        int predecessorVersion)
     {
         await using var database = await PostgreSqlDatabaseFixture.CreateAsync();
         await using (AppDbContext migration =
@@ -791,13 +794,18 @@ public sealed class ArcRelayEntrantProductIntegrationTests
         {
             Playlist playlist = await db.Playlists.SingleAsync(value =>
                 value.Key == ArcRelayEntrantPlaylistDefinition.PlaylistKey);
-            ArcRelayEntrantPlaylistDefinition predecessor =
-                ArcRelayEntrantPlaylistDefinition.CreateHistoricalV20();
+            ArcRelayEntrantPlaylistDefinition predecessor = predecessorVersion switch
+            {
+                ArcRelayEntrantPlaylistDefinition.TaplineV1Version =>
+                    ArcRelayEntrantPlaylistDefinition.CreateHistoricalV19(),
+                ArcRelayEntrantPlaylistDefinition.OrdersV2Version =>
+                    ArcRelayEntrantPlaylistDefinition.CreateHistoricalV20(),
+                _ => throw new ArgumentOutOfRangeException(nameof(predecessorVersion)),
+            };
             var version = new PlaylistVersion
             {
                 PlaylistId = playlist.Id,
-                Version = ArcRelayEntrantPlaylistDefinition
-                    .OrdersV2Version,
+                Version = predecessorVersion,
                 GameModeId = predecessor.Match.Rules.GameMode.ModeId,
                 RulesetId = predecessor.Match.Rules.RulesetId,
                 MatchFormatId = predecessor.Match.Format.FormatId,
