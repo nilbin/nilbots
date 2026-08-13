@@ -1,0 +1,36 @@
+{
+  "id": "019ffcc4-f21b-79f7-b6f4-2ecb9eed441a",
+  "type": "multi-image-to-3d",
+  "name": "",
+  "art_style": "",
+  "object_prompt": "",
+  "style_prompt": "",
+  "negative_prompt": "",
+  "texture_prompt": "Neutral matte Team Reactor floor socket only. Preserve one broad very-low octagonal aged-ivory and warm-gray ceramic rim, one dominant deep graphite central aperture and recessed bowl, exactly three large shallow rectangular unlit state bays, exactly three restrained muted-oxblood clamps, and dull nickel edge trim. High-roughness coarse environment finish with broad readable value groups, bright enough for a dark arena but never white. No tower, raised machine, bot, Core, orb, pillar, gate, gun, extra ports, extra bays, extra clamps, team tint, teal, cyan, orange, glow, emission, pips, crest, text, logo, plastic, gloss, chrome, or baked lighting.",
+  "texture_image_url": "[redacted-input]",
+  "text_style_prompt": "",
+  "image_style_url": "",
+  "status": "SUCCEEDED",
+  "created_at": 1786652196570,
+  "progress": 100,
+  "started_at": 1786652196581,
+  "finished_at": 1786652379975,
+  "expires_at": 1786911579975,
+  "task_error": null,
+  "model_url": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ffcc4-f21b-79f7-b6f4-2ecb9eed441a/output/model.glb",
+  "model_urls": {
+    "glb": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ffcc4-f21b-79f7-b6f4-2ecb9eed441a/output/model.glb"
+  },
+  "thumbnail_url": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ffcc4-f21b-79f7-b6f4-2ecb9eed441a/output/preview.png",
+  "texture_urls": [
+    {
+      "base_color": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ffcc4-f21b-79f7-b6f4-2ecb9eed441a/output/texture_0.png",
+      "metallic": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ffcc4-f21b-79f7-b6f4-2ecb9eed441a/output/texture_0_metallic.png",
+      "roughness": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ffcc4-f21b-79f7-b6f4-2ecb9eed441a/output/texture_0_roughness.png",
+      "normal": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ffcc4-f21b-79f7-b6f4-2ecb9eed441a/output/texture_0_normal.png",
+      "emission": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ffcc4-f21b-79f7-b6f4-2ecb9eed441a/output/texture_0_emission.png"
+    }
+  ],
+  "remove_lighting": true,
+  "consumed_credits": 30
+}

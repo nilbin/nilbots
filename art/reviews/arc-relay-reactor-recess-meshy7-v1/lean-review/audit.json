@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "status": "geometry-owner-review",
+  "capturedAt": "2026-08-13T20:41:05.220Z",
+  "renderer": "Three.js WebGLRenderer through Playwright Chromium",
+  "sourceViewer": "scripts/class-models/model-turntable-review.html",
+  "contract": {
+    "purpose": "Normalized provider geometry review only; no runtime promotion",
+    "up": "+Y",
+    "floorY": 0,
+    "targetPlanformSpan": 1.5,
+    "materialGate": "deterministic 0.82 roughness floor; provider base color retained"
+  },
+  "record": {
+    "id": "team-reactor-recess-v1",
+    "model": "art/class-models/runtime-tiers/arc-relay/reactor-recess-review-v1/arc-team-reactor-recess-lean.glb",
+    "modelBytes": 1635852,
+    "modelSha256": "2c6c0efe97becd1671baaacdd38bd2ba65edcd62a426d164d9eabf2847724bb4",
+    "triangles": 79318,
+    "sheet": "art/reviews/arc-relay-reactor-recess-meshy7-v1/lean-review/team-reactor-recess-v1-six-view.png",
+    "sheetSha256": "02063760b6315a4db134a612e0ead63967caeff5ca1b6e0f7ae8df9da7ae1310",
+    "captures": [
+      {
+        "view": "front-three-quarter",
+        "label": "GAMEPLAY 3/4",
+        "file": "art/reviews/arc-relay-reactor-recess-meshy7-v1/lean-review/captures/team-reactor-recess-v1-front-three-quarter.png",
+        "sha256": "e2e4115cdb6d2fd8f2fb9b111fe3bc126e3ab64b68eea94bfb55e15f97cc5176"
+      },
+      {
+        "view": "positive-x",
+        "label": "+X CAMERA",
+        "file": "art/reviews/arc-relay-reactor-recess-meshy7-v1/lean-review/captures/team-reactor-recess-v1-positive-x.png",
+        "sha256": "f6f3869f59ae1b451afb58593bf9938dabe2febe7ad32bd26aadd2f302d4ec8c"
+      },
+      {
+        "view": "negative-x",
+        "label": "-X CAMERA",
+        "file": "art/reviews/arc-relay-reactor-recess-meshy7-v1/lean-review/captures/team-reactor-recess-v1-negative-x.png",
+        "sha256": "07d1a9a292a0560cae4dc57f76419024aed37014908c6e3471b2431934973e62"
+      },
+      {
+        "view": "positive-z",
+        "label": "+Z CAMERA",
+        "file": "art/reviews/arc-relay-reactor-recess-meshy7-v1/lean-review/captures/team-reactor-recess-v1-positive-z.png",
+        "sha256": "3a56ab071f621457b89e104cd0578690daf7881b32a77ef6f6303e7c0e4b0d6b"
+      },
+      {
+        "view": "negative-z",
+        "label": "-Z CAMERA",
+        "file": "art/reviews/arc-relay-reactor-recess-meshy7-v1/lean-review/captures/team-reactor-recess-v1-negative-z.png",
+        "sha256": "ec8a4e1f63e7394542a654c281fa4a8b76399efc69b7fd169b205e7592573125"
+      },
+      {
+        "view": "top-down",
+        "label": "STRICT TOP",
+        "file": "art/reviews/arc-relay-reactor-recess-meshy7-v1/lean-review/captures/team-reactor-recess-v1-top-down.png",
+        "sha256": "d45b6ade842c60161b3d0d571ce0229450039e6da72c5fd16c417a4da6265d6d"
+      }
+    ]
+  }
+}
