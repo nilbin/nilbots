@@ -360,8 +360,6 @@ const WHITE = new THREE.Color(0xffffff);
 
 export interface ArenaActors {
   group: THREE.Group;
-  /** Hide diagnostic intent captions in cinematic/review presentation without losing cues. */
-  setIntentLabelsVisible: (visible: boolean) => void;
   /** Move everything to where it should be at this moment of the replay. */
   update: (
     time: number,
@@ -410,9 +408,6 @@ export function buildActors(replay: ReplayModel): ArenaActors {
   // A replay can be closed while a chassis is still being fetched and triangulated. Adding
   // the model to a torn-down scene would resurrect meshes nothing will ever dispose.
   let live = true;
-  let intentLabelsVisible = true;
-
-
   const bots = replay.units.map((unit) => {
     // A unit's chassis is built once, so it is resolved from the form the unit starts the
     // match in rather than per tick. That is exact rather than approximate for the class
@@ -1346,6 +1341,7 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     });
     const roleLabel = new THREE.Sprite(roleMaterial);
     roleLabel.userData.cue = 'role-tag';
+    roleLabel.userData.forUnitKey = unit.unitKey;
     roleLabel.center.set(0.5, 0);
     roleLabel.scale.set(ROLE_LABEL_SCALE, ROLE_LABEL_SCALE * 0.25, 1);
     roleLabel.position.y = 0.02;
@@ -2177,7 +2173,7 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       );
       bot.paintRole(visibleIntent);
       bot.roleLabel.visible =
-        intentLabelsVisible && bot.chassis.visible && visibleIntent !== null;
+        bot.chassis.visible && visibleIntent !== null;
       // Every rig piece here carries ABSOLUTE world coordinates, because the bots share
       // one container rather than each owning a group that moves. The caption was the
       // one piece that never got its x/z — it was built with a Y offset and nothing else
@@ -2539,11 +2535,6 @@ export function buildActors(replay: ReplayModel): ArenaActors {
 
   return {
     group,
-    setIntentLabelsVisible: (visible) => {
-      intentLabelsVisible = visible;
-      if (!visible)
-        for (const bot of bots) bot.roleLabel.visible = false;
-    },
     update,
     pick,
     dispose: () => {

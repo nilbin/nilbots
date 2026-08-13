@@ -105,6 +105,43 @@ test('the typed Arc package gives every signature an owned WebGL treatment', () 
   );
 });
 
+test('Arc Toss leaves the in-flight object entirely to the authoritative Core', () => {
+  const replay = loadReplayJson(
+    gunzipSync(readFileSync(new URL(
+      '../../art/reviews/arc-relay-presentation-batch-v1/runtime-proof/replays/core-roster.broadcast.json.gz',
+      import.meta.url,
+    ))).toString('utf8'),
+  ).replay;
+  const disposables: { dispose: () => void }[] = [];
+  const effects = buildArcRelayEffects(replay, disposables);
+  try {
+    effects.update(37.5);
+    let toss: THREE.Object3D | null = null;
+    effects.group.traverse((node) => {
+      if (
+        node.visible &&
+        node.userData.signatureId === 'arc-toss' &&
+        node.userData.phase === 'in-flight'
+      ) toss = node;
+    });
+    assert.ok(toss, 'the cast retains its destination treatment');
+    const visibleMeshes: THREE.Object3D[] = [];
+    toss.traverse((node) => {
+      if (node.visible && (node as THREE.Mesh).isMesh) visibleMeshes.push(node);
+    });
+    assert.ok(
+      visibleMeshes.every(
+        (node) => !['TorusGeometry', 'SphereGeometry'].includes(
+          (node as THREE.Mesh).geometry.type,
+        ),
+      ),
+      'the signature painter must not follow the real Core with a ball-like cluster',
+    );
+  } finally {
+    for (const disposable of disposables) disposable.dispose();
+  }
+});
+
 test('signature package resolution preserves legacy and fails future packages truthfully', () => {
   assert.deepEqual(
     resolveArcSignaturePresentation(

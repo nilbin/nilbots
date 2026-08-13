@@ -157,9 +157,6 @@ export default function ArenaCanvas3D({
 
     const arena = buildArena(replay, { shadowMapSize: renderProfile.shadowMapSize });
     const actors = buildActors(replay);
-    actors.setIntentLabelsVisible(
-      !new URLSearchParams(window.location.search).has('proof'),
-    );
     const overlays = buildOverlays(replay, entrants, arena.scene);
     // Bot and construct status bibs are authored as fixed billboards. A theme may add a
     // restrained side bias to the otherwise fixed camera, so turn every shared status

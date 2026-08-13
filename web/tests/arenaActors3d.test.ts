@@ -129,6 +129,44 @@ function statusCueOf(
   return found;
 }
 
+function intentLabelOf(
+  group: THREE.Object3D,
+  unitKey: ReplayStableUnitKey,
+): THREE.Object3D {
+  let found: THREE.Object3D | null = null;
+  group.traverse((node) => {
+    if (
+      node.userData.cue === 'role-tag' &&
+      node.userData.forUnitKey === unitKey
+    ) found = node;
+  });
+  assert.ok(found, `no intent label for unit ${unitKey}`);
+  return found;
+}
+
+test('3D activity text remains visible with every visible bot', () => {
+  const arc = loadReplayJson(
+    gunzipSync(readFileSync(new URL(
+      '../../art/reviews/arc-relay-presentation-batch-v1/runtime-proof/replays/core-roster.broadcast.json.gz',
+      import.meta.url,
+    ))).toString('utf8'),
+  ).replay;
+  const actors = buildActors(arc);
+  try {
+    actors.update(10.5, null, false);
+    for (const pose of arc.ticks[10]!.after.actors) {
+      const label = intentLabelOf(actors.group, pose.unitKey);
+      assert.equal(
+        label.visible,
+        true,
+        `activity text is visible for ${pose.unitKey}`,
+      );
+    }
+  } finally {
+    actors.dispose();
+  }
+});
+
 function assertCenteredPips(
   pips: THREE.Object3D,
   expectedCount: number,
