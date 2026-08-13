@@ -296,7 +296,7 @@ test('a slow carrier glides through its forced relocation hold without predictin
   }
 });
 
-test('the carried Core is a sphere levitating on the interpolated carrier pose', () => {
+test('the picked-up Core approaches the interpolated carrier pose continuously', () => {
   const replay = arcRelayReplay();
   // Late in tick 1 rather than half way through it. Possession is end-of-tick state and
   // the carrier is drawn gliding across the tick that took it, so a Core handed over at
@@ -340,8 +340,14 @@ test('the carried Core is a sphere levitating on the interpolated carrier pose',
     'the energy Core has no glossy specular material',
   );
   assert.equal(sphere.castShadow, false, 'the luminous Core has no hard cast shadow');
-  assert.equal(rig.position.x, carrier.x + 0.5);
-  assert.equal(rig.position.z, carrier.y + 0.5);
+  assert.ok(
+    Math.abs(rig.position.x - (carrier.x + 0.5)) < 0.2,
+    'the last pickup frames settle continuously toward the carrier',
+  );
+  assert.ok(
+    Math.abs(rig.position.z - (carrier.y + 0.5)) < 0.2,
+    'the last pickup frames stay aligned with the carrier lane',
+  );
   assert.equal(sphere.position.x, 0, 'no neighbouring-tile orbit');
   assert.equal(sphere.position.z, 0, 'stays centred over the carrier');
   assert.ok(sphere.position.y > 0.85, `levitates above the hull (${sphere.position.y})`);
@@ -661,6 +667,19 @@ test('Core pickup, drop, handoff, and bank move the authoritative sphere', () =>
   const pickupMiddle = motionAt(1.425, 'pickup');
   assert.equal(pickupStartY, 0.4);
   assert.ok(pickupMiddle.sphere.position.y > 0.65);
+  const pickupSamples = Array.from({ length: 10 }, (_, index) =>
+    motionAt(1 + index / 10, 'pickup').sphere.position.y,
+  );
+  const largestPickupStep = Math.max(
+    ...pickupSamples.slice(1).map(
+      (height, index) => Math.abs(height - pickupSamples[index]!),
+    ),
+  );
+  assert.ok(
+    largestPickupStep < 0.2,
+    `pickup has no compressed vertical snap (${largestPickupStep})`,
+  );
+  assert.ok(pickupSamples.at(-1)! > 1.15, 'pickup reaches carried height smoothly');
 
   const dropStart = motionAt(2, 'drop');
   const dropStartY = dropStart.sphere.position.y;

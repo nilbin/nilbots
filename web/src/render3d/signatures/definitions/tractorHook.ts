@@ -1,17 +1,25 @@
 import * as THREE from 'three';
 import { defineArcSignatureWebGLPainter } from '../types';
+import type { ArcSignatureEffectRig } from '../types';
 import {
   easeInOutCubic,
   lineAt,
   placeTravelHead,
-  setEnergyColour,
   setEnergyOpacity,
   solidBeamAt,
 } from '../primitives';
 
-const CABLE = '#514b45';
 const CABLE_WIDTH = 0.035;
-const CABLE_GLOW_WIDTH = 0.045;
+const CABLE_LIFT = new THREE.Color('#dbe7ea');
+
+function paintTeamCable(rig: ArcSignatureEffectRig, opacity: number): void {
+  // The pooled main material already carries the owner's exact team accent. Keep enough
+  // pale lift to read in fog without turning the cable into a dark grey wire.
+  rig.solid.color.copy(rig.main.color).lerp(CABLE_LIFT, 0.12);
+  rig.solid.emissive.copy(rig.main.color).multiplyScalar(0.2);
+  rig.solid.emissiveIntensity = 0.14;
+  rig.solid.opacity = opacity;
+}
 
 export default defineArcSignatureWebGLPainter({
   signatureId: 'tractor-hook',
@@ -24,30 +32,20 @@ export default defineArcSignatureWebGLPainter({
     const progress = phase === 'in-flight' || phase === 'active'
       ? easeInOutCubic(phaseProgress)
       : easeInOutCubic(Math.max(0, Math.min(1, phaseAge)));
-    const line = rig.segments[0]!;
-    // The declared lane visibly narrows behind the travelling head. A fully lit static
-    // line looked like an ordinary beam and hid the one animation this signature owns.
-    const laneEnd = new THREE.Vector3().lerpVectors(
-      owner,
-      destination,
-      0.18 + progress * 0.82,
-    );
-    lineAt(line, owner, laneEnd, CABLE_GLOW_WIDTH, 0.34);
-    setEnergyColour(line, phase === 'tell' ? '#78aeb3' : CABLE);
-    setEnergyOpacity(line, phase === 'tell' ? 0.14 : 0.08);
+    const head = rig.payload;
+    const travel = 0.08 + progress * 0.92;
+    const at = placeTravelHead(head, owner, destination, travel, 0.22, 0.82);
+    head.scale.set(1.35, 0.86, 1.35);
+    // One physical, team-tinted cable grows exactly to the travelling head. The generic
+    // red strike aim is suppressed by arenaOverlays while this signature owns the tell;
+    // an additive lane here would recreate the same confusing double line.
     solidBeamAt(
       rig.cable,
-      owner.clone().setY(0.34),
-      laneEnd.clone().setY(0.34),
+      owner.clone().setY(0.28),
+      at,
       CABLE_WIDTH,
     );
-    const head = rig.payload;
-    const at = placeTravelHead(head, owner, destination, progress, 0.22, 0.82);
-    head.scale.set(1.35, 0.86, 1.35);
-    rig.solid.color.set('#4c4b47');
-    rig.solid.emissive.set('#203439');
-    rig.solid.emissiveIntensity = 0.16;
-    rig.solid.opacity = 0.96;
+    paintTeamCable(rig, 0.9);
     for (const [index, side] of [-1, 1].entries()) {
       const jaw = rig.segments[index + 1]!;
       const yaw = -Math.atan2(destination.z - owner.z, destination.x - owner.x);
@@ -60,10 +58,8 @@ export default defineArcSignatureWebGLPainter({
         0.2,
         at.y,
       );
-      setEnergyColour(jaw, '#78aeb3');
       setEnergyOpacity(jaw, 0.3);
     }
-    rig.solid.opacity = 0.9;
   },
   paintOutcome({
     rig,
@@ -109,23 +105,16 @@ export default defineArcSignatureWebGLPainter({
         )
       : to;
     const winch = owner ?? to;
-    const cable = rig.segments[0]!;
-    lineAt(cable, winch, targetAt, CABLE_GLOW_WIDTH, 0.34);
-    setEnergyColour(cable, CABLE);
-    setEnergyOpacity(cable, life * 0.08);
     solidBeamAt(
       rig.cable,
-      winch.clone().setY(0.34),
-      targetAt.clone().setY(0.34),
+      winch.clone().setY(0.28),
+      targetAt.clone().setY(0.22),
       CABLE_WIDTH,
     );
     const head = rig.payload;
     head.visible = true;
     head.position.copy(targetAt).setY(0.22);
     head.scale.set(1.35, 0.86, 1.35);
-    rig.solid.color.set('#4c4b47');
-    rig.solid.emissive.set('#203439');
-    rig.solid.emissiveIntensity = 0.16;
-    rig.solid.opacity = life * 0.96;
+    paintTeamCable(rig, life * 0.9);
   },
 });

@@ -2952,7 +2952,15 @@ function buildArcRelayStory(
       const rig = core(usedCoreRigs++);
       rig.group.userData.coreKey = transition.coreKey;
       rig.group.userData.coreMotion = transition.kind;
-      const settledProgress = easeCore(tickFraction / STATE_SETTLES_AT);
+      // Pickup is a levitation gesture, not a discrete state swap. The shared 85% state
+      // cutoff plus cubic easing packed most of the ascent into two or three frames and
+      // then held it at carrier height, which read as a snap. Let this one visual bridge
+      // use its whole public tick with a gentler smoothstep; the authoritative custody
+      // still changes on exactly the same engine fact and every other transition keeps
+      // the shared settle boundary.
+      const settledProgress = transition.kind === 'pickup'
+        ? tickFraction * tickFraction * (3 - 2 * tickFraction)
+        : easeCore(tickFraction / STATE_SETTLES_AT);
       const beforeCore = replay.ticks[tickIndex]?.before.mode?.kind === 'arc-relay' &&
           'visibleCores' in replay.ticks[tickIndex]!.before.mode
         ? replay.ticks[tickIndex]!.before.mode.visibleCores.find(
@@ -3312,6 +3320,7 @@ function buildStrikeAims(
   disposables: { dispose: () => void }[],
 ): { group: THREE.Group; update: (time: number) => void } {
   const group = new THREE.Group();
+  group.userData.kind = 'strike-aims';
   const geometry = new THREE.PlaneGeometry(1, 0.07);
   geometry.rotateX(-Math.PI / 2);
   disposables.push(geometry);
@@ -3329,6 +3338,7 @@ function buildStrikeAims(
       const mesh = new THREE.Mesh(geometry, material);
       mesh.visible = false;
       mesh.position.y = 0.045;
+      mesh.userData.kind = 'strike-aim';
       group.add(mesh);
       pool.push(mesh);
       disposables.push(material);
@@ -3338,7 +3348,29 @@ function buildStrikeAims(
 
   const update = (time: number) => {
     let used = 0;
+    const tickIndex = Math.max(
+      0,
+      Math.min(Math.floor(time), replay.ticks.length - 1),
+    );
+    const mode = replay.ticks[tickIndex]?.after.mode;
+    const signatureOwnedAims = mode?.kind === 'arc-relay' &&
+        'visibleSignatures' in mode
+      ? new Set(
+          mode.visibleSignatures
+            .filter(
+              (signature) =>
+                signature.phase === 'tell' &&
+                (signature.signatureId === 'tractor-hook' ||
+                  signature.signatureId === 'rail-line'),
+            )
+            .map((signature) => signature.ownerActor.actorKey),
+        )
+      : new Set<string>();
     for (const aim of strikeAimsAt(replay, time)) {
+      // Hook and Rail already paint their complete public tell. Their underlying launch
+      // also occupies pendingStrikes, but drawing the generic coral attack ray on top
+      // creates two vertically separated lanes for one operation.
+      if (signatureOwnedAims.has(aim.shooterActorKey)) continue;
       if (!aim.target) continue;
       const fromX = aim.origin.x + 0.5;
       const fromZ = aim.origin.y + 0.5;

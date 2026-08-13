@@ -13,7 +13,9 @@ import {
   resolveArcSignaturePresentation,
   sentinelYawTarget,
   buildArcVeterancy,
+  buildOverlays,
   LEVEL_UP_BEAT_TICKS,
+  unitAccent,
 } from './.harness/harness.entry.js';
 import * as THREE from 'three';
 import { readFileSync } from 'node:fs';
@@ -549,6 +551,14 @@ test('Tractor Hook keeps a non-circular cable attached through the recorded pull
         (child as THREE.Mesh).material instanceof THREE.MeshStandardMaterial,
     ) as THREE.Mesh | undefined;
     assert.ok(cable);
+    const expectedCableColour = new THREE.Color(
+      unitAccent(replay, ownerActor.unitKey),
+    ).lerp(new THREE.Color('#dbe7ea'), 0.12);
+    assert.equal(
+      (cable.material as THREE.MeshStandardMaterial).color.getHexString(),
+      expectedCableColour.getHexString(),
+      'the one physical strand keeps the owning team colour',
+    );
     assert.ok(
       cable.scale.z < 0.7,
       `the physical hook cable stays a narrow strand (${cable.scale.z})`,
@@ -567,6 +577,55 @@ test('Tractor Hook keeps a non-circular cable attached through the recorded pull
     assert.equal(visibleGroup(3), undefined, 'the cable releases after the pull tick');
   } finally {
     for (const disposable of disposables) disposable.dispose();
+  }
+});
+
+test('signature-owned line tells do not stack the generic red attack aim', () => {
+  const replay = loadReplayJson(
+    gunzipSync(readFileSync(new URL(
+      '../../art/reviews/arc-relay-presentation-batch-v1/runtime-proof/replays/core-roster.broadcast.json.gz',
+      import.meta.url,
+    ))).toString('utf8'),
+  ).replay;
+  const time = 25.35;
+  const tick = replay.ticks[Math.floor(time)]!;
+  const mode = tick.after.mode;
+  assert.equal(mode?.kind, 'arc-relay');
+  if (mode?.kind !== 'arc-relay' || !('visibleSignatures' in mode)) return;
+  const signatureOwners = new Set(
+    mode.visibleSignatures
+      .filter(
+        (signature) =>
+          signature.phase === 'tell' &&
+          (signature.signatureId === 'tractor-hook' ||
+            signature.signatureId === 'rail-line'),
+      )
+      .map((signature) => signature.ownerActor.actorKey),
+  );
+  assert.ok(signatureOwners.size > 0, 'the pinned frame contains a line signature');
+  const expectedGenericAims = mode.pendingStrikes.filter(
+    (strike) =>
+      strike.target !== null && !signatureOwners.has(strike.shooter.actorKey),
+  ).length;
+  const overlays = buildOverlays(replay);
+  try {
+    overlays.update(time, null, false);
+    const aimGroup = overlays.group.children.find(
+      (node) => node.userData.kind === 'strike-aims',
+    );
+    assert.ok(aimGroup);
+    const visibleAims: THREE.Object3D[] = [];
+    aimGroup.traverse((node) => {
+      if (node.visible && node.userData.kind === 'strike-aim')
+        visibleAims.push(node);
+    });
+    assert.equal(
+      visibleAims.length,
+      expectedGenericAims,
+      'ordinary attacks keep their aim while Hook/Rail own exactly one tell line',
+    );
+  } finally {
+    overlays.dispose();
   }
 });
 
@@ -605,7 +664,7 @@ test('Sentinel Seed transforms upward from its floor seed', () => {
   }
 });
 
-test('Sentinel Seed tell leaves the casting Nest unobscured', () => {
+test('Sentinel Seed tell leaves the casting Nest completely unobscured', () => {
   const replay = loadReplayJson(
     gunzipSync(readFileSync(new URL(
       '../../art/reviews/arc-relay-presentation-batch-v1/runtime-proof/replays/remaining-roster.broadcast.json.gz',
@@ -622,13 +681,10 @@ test('Sentinel Seed tell leaves the casting Nest unobscured', () => {
         candidate.userData.signatureId === 'sentinel-seed' &&
         candidate.userData.phase === 'tell',
     );
-    assert.ok(tell);
     assert.equal(
-      tell.children.some(
-        (child) => child.visible && child.geometry?.type === 'CylinderGeometry',
-      ),
-      false,
-      'the procedural seed pod does not cover the casting bot',
+      tell,
+      undefined,
+      'the whole-body plant pose owns the tell without a floor ring or seed shell',
     );
   } finally {
     for (const disposable of disposables) disposable.dispose();

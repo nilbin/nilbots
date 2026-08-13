@@ -469,17 +469,21 @@ phase/footprint marker rather than becoming invisible or borrowing the current
 art by accident.
 
 Persistent Trip Node and Sentinel Seed props use their separately promoted
-Meshy assets only after the replay says the construct is active. Their tell,
-load-failure, Canvas, and suppressed fallbacks remain procedural. The sentry's
-head may follow only an already observed authoritative shot. The other fourteen
-signatures use renderer primitives and need no skeletal or Meshy animation.
+Meshy assets only after the replay says the construct is active. Trip Node's
+tell and both props' load-failure, Canvas, and suppressed fallbacks remain
+procedural; Sentinel Seed's WebGL tell is only Nest's whole-body plant pose.
+The sentry's head may follow only an already observed authoritative shot. The
+other fourteen signatures use renderer primitives and need no skeletal or
+Meshy animation.
 
 WebGL treats Core custody as motion of the one authoritative sphere, never as a
 token swap. Pickup levitates the loose Core from its published position to the
-receiving hull; handoff travels between the source's before-tick and receiver's
-after-tick poses; drop descends from the source hull; bank arcs into the reactor
-and contracts into its socket. These transitions finish at the shared discrete
-state-settle boundary and are recomputed from replay facts on every frame.
+receiving hull across the complete public tick, using a gentle continuous
+settle so the last part cannot snap upward. Handoff travels between the source's
+before-tick and receiver's after-tick poses; drop descends from the source hull;
+bank arcs into the reactor and contracts into its socket. Those three
+transitions finish at the shared discrete state-settle boundary. Every
+transition is recomputed from replay facts on every frame.
 Arc Toss is the longer exception: the carried-height sphere follows its complete
 public in-flight interval, retains the origin-lane treatment it had in the
 carrier's custody, and lands continuously at loose-Core height.
@@ -487,12 +491,13 @@ carrier's custody, and lands continuously at loose-Core height.
 Tractor Hook likewise preserves one causal object across its one-shot facts: the
 launch tick holds a latched cable at the published target, the following
 `body-relocated` tick attaches that cable to the target's interpolated replay
-pose, and then releases it. Its WebGL read deliberately has no circular spool or
-target ring; the cable is one narrow solid strand with only a restrained glow,
-not stacked floor ribbons. Sentinel Seed keeps its tell on a compact floor
-socket without covering the casting Nest; when the replay says `active`, the
-authored sentry expands upward from floor contact while the seed shell contracts.
-Its existing recall exit is unchanged.
+pose, and then releases it. Its WebGL read deliberately has no circular spool,
+target ring, generic strike ray, additive underlay, or dark-grey second wire:
+the cable is one narrow, team-tinted solid strand. Sentinel Seed's authored
+whole-body plant pose is its complete tell, with no procedural floor/socket/seed
+geometry over the casting Nest. When the replay says `active`, the one authored
+sentry expands upward from floor contact without a second seed shell. Its
+existing recall exit is unchanged.
 
 An authoritative `leveled-up` fact also drives a bounded presentation beat: a
 thin brass floor ring, three short converging matte facets, then the persistent
@@ -584,9 +589,10 @@ sprite-derived WebGL fallback:
   material convention; team ownership stays in renderer-owned cues and effects.
 - Persistent signature props use the same exception and a separate
   `kind: "signature"` manifest. Trip Node and Sentinel Seed load only in the
-  hosted WebGL signature layer; their existing procedural marker remains the
-  telegraph, load-failure, and Canvas fallback. A finished prop never appears
-  during its authoritative tell. The approved Meshy 7 props use quantized
+  hosted WebGL signature layer. Trip Node keeps its procedural telegraph;
+  Sentinel Seed's WebGL telegraph is only Nest's whole-body plant pose. Their
+  procedural markers remain the load-failure and Canvas fallback. A finished
+  prop never appears during its authoritative tell. The approved Meshy 7 props use quantized
   geometry and embedded 512 px WebP PBR maps, with exact promotion enforced by
   `scripts/class-models/promote-meshy7-signature-props-v3.mjs`. The mine keeps
   its audited floor contact and matte roughness; ownership is a restrained

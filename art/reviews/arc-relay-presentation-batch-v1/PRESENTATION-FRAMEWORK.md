@@ -29,7 +29,7 @@ deployment, capacity, suppression, trigger, and fire presentation.
 
 | Treatment | Gameplay-camera target | Deliberate runtime difference |
 | --- | --- | --- |
-| Tractor Hook | High: narrowing line, travelling head, taut dark cable, authored pull | Cable uses a bounded segmented curve; no simulated rope physics. |
+| Tractor Hook | High: one travelling grapple, team-tinted cable grown to its head, taut authored pull | One narrow solid strand replaces the generic strike ray, additive lane, and dark second wire; no simulated rope physics. |
 | Falling Star | High after correction: cardinal tell, translucent faceted descent, low five-tile impact | No opaque central mass, generated sky column, permanent crater, or floor deformation. |
 | Rail Line | High after correction: thin wind-up, narrow pressure pass, one faint afterimage | Resolve is substantially dimmer and less saturated than the board for comfort in stacked fights. |
 | Hardlight Block | High: compact one-tile frame, low rising slabs, matte settled obstacle | The collision-readable full envelope appears immediately; slab settling is cosmetic. |
@@ -44,7 +44,7 @@ deployment, capacity, suppression, trigger, and fire presentation.
 | Target Paint | High: blunt acquisition brackets and compact overhead capacity tally | No lateral scan line, thin high-frequency reticle, or bright lock-on ping. |
 | Kinetic Burst | High: contracting boundary, low torus, wakes only on relocated bodies | No opaque central machine, camera shake, or full-screen distortion. |
 | Trip Node | High: inward floor rails, one deliberately small approved mine emerging from below, low trigger pressure | The hidden trap gains no globally visible pre-placement telegraph. |
-| Sentinel Seed | High: floor socket, one deliberately small approved sentry arriving from above, observed-shot head yaw | The model is a stationary-base/yaw-head split rather than a skeletal rig. |
+| Sentinel Seed | High: unobstructed whole-body plant, one deliberately small approved sentry growing from the floor, observed-shot head yaw | No procedural tell/seed shell overlaps Nest; the model is a stationary-base/yaw-head split rather than a skeletal rig. |
 | Level Up | High after correction: brass ring, three converging facets, vertically stacked persistent chevrons above health | No side-by-side triangles, health overlap, full-height column, or white flash. |
 | Sixteen attack heads | High silhouette fidelity at 16–28 pixels | SVG-derived 3D relief retains the shapes, not the board's close-up microtexture. |
 

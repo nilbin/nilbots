@@ -11,6 +11,7 @@ export {
   boltsAt,
   posesAt,
   spentBoltsAt,
+  strikeAimsAt,
   strikeSlashesAt,
 } from '../../src/render/interpolate';
 export { frontlineCaptureVisual } from '../../src/render/frontlineCaptureVisual';

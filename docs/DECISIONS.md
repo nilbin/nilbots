@@ -8173,3 +8173,26 @@ wins, or the fight leaf yields to the next authored order with
 Wait after having claimed the body. This closes the owner-observed Tapline G2
 split in which one east-side body pursued while two bodies stood in their home
 Well under a fight label.
+
+## 305. Signature tells own their line, Sentinel Seed owns no cast-cover mesh, and pickup uses the full tick
+
+Owner 3D presentation correction (2026-08-13). A visible `tractor-hook` or
+`rail-line` tell owns the complete WebGL line read for its caster. The generic
+coral pending-strike tracking ray remains for ordinary wind-up attacks, but is
+suppressed in WebGL for that same caster while either signature tell is public.
+Tractor Hook itself paints one narrow team-tinted physical strand grown to the moving
+grapple head and retains that same strand through an observed pull; it has no
+additive underlay, dark-grey duplicate wire, spool, or target donut.
+
+Sentinel Seed uses Nest's authored whole-body plant pose as the complete tell.
+No procedural ring, socket, mote, pod, or seed shell may cover the caster; the
+one authored sentry appears only once the public phase is `active` and expands
+upward from floor contact. Its capacity, suppression, observed-shot yaw, and
+recall exit remain replay-owned and unchanged.
+
+Core pickup is the one custody transition that uses the complete public tick
+instead of the shared 85% discrete-state settle boundary. A gentle smoothstep
+levitates the one authoritative Core into the receiving hull, avoiding the
+mid-tick cubic acceleration and early hold that read as an upward snap. This is
+presentation only: custody facts, positions, ownership, mechanics, audio, drop,
+handoff, bank, and Arc Toss timing do not change.
