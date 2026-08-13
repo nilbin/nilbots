@@ -168,4 +168,38 @@ public sealed class TacticalSheetCompilerTests
 
         Assert.Contains("must be traversable", error.Message);
     }
+
+    [Fact]
+    public void Hosted_compiler_rejects_a_route_waypoint_on_a_reserved_spawn()
+    {
+        var templates = new TacticalSheetTemplateCatalog();
+        var compiler = new TacticalSheetCompiler(ArcRelayClassCatalog.Default);
+        IReadOnlySet<string> unlocked = ArcRelayClassCatalog.Default.All
+            .Select(value => value.Id).ToHashSet(StringComparer.Ordinal);
+        JsonObject orders = JsonNode.Parse(
+            templates.Template.OrdersJson)!.AsObject();
+        JsonObject mapPlan = JsonNode.Parse(
+            templates.Template.MapPlanJson)!.AsObject();
+        ActorMapDefinition map = ArcRelayH0Definition.CreateMap(
+            ArcRelayLoopProfile.Current);
+        Position spawn = map.SpawnAnchors[0].Spawn.Position;
+
+        mapPlan["routes"]!["spawn-route"] = new JsonObject
+        {
+            ["waypoints"] = new JsonArray
+            {
+                new JsonArray(spawn.X, spawn.Y),
+                new JsonArray(8, 3),
+            },
+        };
+        orders["roles"]![2]!["orders"]![3]!["move"]!["via"] =
+            "spawn-route";
+
+        InvalidDataException error = Assert.Throws<InvalidDataException>(() =>
+            compiler.Compile(
+                orders.ToJsonString(), mapPlan.ToJsonString(), unlocked,
+                "spawn-route"));
+
+        Assert.Contains("reserved body spawn", error.Message);
+    }
 }
