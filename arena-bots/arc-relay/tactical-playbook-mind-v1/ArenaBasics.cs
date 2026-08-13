@@ -2189,6 +2189,7 @@ internal static class ArenaBasics
         return body.ActionLegalities
             .Where(action =>
                 ids.Contains(action.ActionId)
+                && action.AllowedByForm
                 && (!requireAvailable || action.Available))
             .OrderBy(action => action.ActionId, StringComparer.Ordinal)
             .FirstOrDefault();
@@ -2209,6 +2210,14 @@ internal static class ArenaBasics
                 .ToDictionary(action => action.Id, StringComparer.Ordinal);
         GenericActorActionLegality[] candidates = body.ActionLegalities
             .Where(legality => actions.ContainsKey(legality.ActionId)
+                // The legality surface includes catalog actions this chassis
+                // does not own so clients can reason over one stable action
+                // vocabulary. They are never executable candidates. Without
+                // this guard a Standard carrier near contact preferred the
+                // unavailable Swift strafe, then correctly refused to submit
+                // it and silently waited forever while its trace still named
+                // the planner's valid move.
+                && legality.AllowedByForm
                 && (!requireAvailable || legality.Available)
                 && legality.Constraints
                     .OfType<GenericActorActionLegality.ArgumentConstraint

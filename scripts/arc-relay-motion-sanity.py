@@ -3,7 +3,8 @@
 
 This is deliberately not a balance score. It covers executor seams that a
 gallery must never hide behind aggregate movement rates: an own-squad closed
-movement cycle and a recovery order that makes no geographic/health progress.
+movement cycle, a recovery order that makes no geographic/health progress,
+and a planner move trace that silently degrades into an actual Wait command.
 Enemy occupancy pauses the recovery clock; contesting a scarce healer is play,
 not a planner fault. Core progress is enforced by the frozen scorecard bars.
 """
@@ -78,6 +79,7 @@ def analyze(path: Path) -> dict:
     recovery: dict[tuple[int, int, int], dict] = {}
     worst_recovery: dict[tuple[int, int, int], dict] = {}
     cycle_ticks: list[dict] = []
+    false_move_traces: list[dict] = []
 
     for tick in replay.get("ticks", []):
         cycles = movement_cycle(tick.get("events", []))
@@ -95,6 +97,21 @@ def analyze(path: Path) -> dict:
                 body_key = (command["unitId"], command["lifeId"])
                 body = bodies.get(body_key)
                 reason = command.get("debugMessage") or ""
+                # Suppression governors deliberately turn a proposed move
+                # into a Wait and name why (lease/oscillation). The broken
+                # seam this catches retained the generic move-blocked suffix:
+                # the planner chose movement, the action selector chose a
+                # chassis-forbidden verb, and submission silently fell back.
+                if command.get("actionId") == "wait" \
+                        and ":epibt-move:" in reason \
+                        and ":move-blocked:" in reason:
+                    false_move_traces.append({
+                        "tick": tick["tick"],
+                        "teamId": team,
+                        "unitId": command["unitId"],
+                        "lifeId": command["lifeId"],
+                        "reason": reason,
+                    })
                 goal_match = RECOVER_GOAL.search(reason)
                 if body is None or goal_match is None:
                     continue
@@ -150,7 +167,9 @@ def analyze(path: Path) -> dict:
             trips,
             key=lambda value: (-value["uncontestedTicks"],
                                value["teamId"], value["unitId"])),
-        "mechanicallyClean": not cycle_ticks and not trips,
+        "falseMoveTracesOnWait": false_move_traces,
+        "mechanicallyClean": not cycle_ticks and not trips
+            and not false_move_traces,
     }
 
 
@@ -170,6 +189,8 @@ def main() -> int:
             f"closed cycles {len(result['closedAlliedMovementCycles'])}; "
             f"recovery no-progress "
             f"{len(result['recoveryNoProgressTrips'])}; "
+            f"false move traces "
+            f"{len(result['falseMoveTracesOnWait'])}; "
             f"{'CLEAN' if result['mechanicallyClean'] else 'FAIL'}"
         )
         for trip in result["recoveryNoProgressTrips"]:
@@ -182,6 +203,12 @@ def main() -> int:
         for trip in result["closedAlliedMovementCycles"][:8]:
             print(f"  t{trip['tick']}: closed allied cycles "
                   f"{trip['cycles']}")
+        for trip in result["falseMoveTracesOnWait"][:8]:
+            print(
+                f"  t{trip['tick']} t{trip['teamId']} u{trip['unitId']} "
+                "planned movement but submitted wait: "
+                f"{trip['reason']}"
+            )
     return 1 if args.fail and not result["mechanicallyClean"] else 0
 
 

@@ -1397,6 +1397,19 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             body.Hold($"{movement}:at-contribution:{proposal.Target.Key}");
             return;
         }
+        // A carried Core can relocate only on its published cadence. This is
+        // an intentional rules hold, not failed pathing. Name it before the
+        // generic movement wrapper so the viewer never presents a planned
+        // route as mysteriously blocked on the intervening tick.
+        if (carrying
+            && proposal.Target.Key == "reactor:own"
+            && ArenaBasics.CarriedCore(mind, body.ActorId) is { } core
+            && mind.Tick < core.NextRelocationTick)
+        {
+            body.Hold($"{movement}:carry-relocation-cooldown-until-"
+                + core.NextRelocationTick);
+            return;
+        }
         if (_squadPlanner is null && plan.Course?.Next is Position step)
         {
             bool occupied = mind.Bodies.Any(candidate =>

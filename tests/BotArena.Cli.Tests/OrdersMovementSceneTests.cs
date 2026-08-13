@@ -487,6 +487,118 @@ public sealed class OrdersMovementSceneTests
         });
     }
 
+    [Fact]
+    public void LoadedStandardCarrierDoesNotSelectAForbiddenSwiftStrafe()
+    {
+        string root = FindRepoRoot();
+        TacticalPlaybookCompilation hunter = Compile(root, "hunter-tapline-v2.json");
+        TacticalPlaybookCompilation wellwright = Compile(
+            root, "wellwright-tapline-v2.json");
+        ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create(
+            hunter.Composition,
+            wellwright.Composition,
+            loopProfile: ArcRelayLoopProfile.Tapline3);
+
+        using var session = new GenericActorMatchSession(
+            definition,
+            [Participant(0, hunter), Participant(1, wellwright)],
+            matchSeed: 9001,
+            recordChronology: false);
+
+        int loadedReturnTicks = 0;
+        int submittedMovement = 0;
+        int falseMoveTracesOnWait = 0;
+        int explainedCadenceHolds = 0;
+        int longestStationaryReturn = 0;
+        var priorPositions = new Dictionary<ActorIdentity, Position>();
+        var stationaryReturns = new Dictionary<ActorIdentity, int>();
+        while (!session.IsCompleted)
+        {
+            GenericActorMatchStepResult step = session.Step();
+            var arc = Assert.IsType<
+                GenericActorRuntimeObservation.ModeObservationState.ArcRelay>(
+                    step.PostState.Mode);
+            HashSet<ActorIdentity> carriers = arc.VisibleCores
+                .Where(core => core.CarrierActorId is not null)
+                .Select(core => core.CarrierActorId!)
+                .ToHashSet();
+            GenericMindRuntimeTurn hunterTurn = Assert.Single(
+                step.MindTurns, turn => turn.TeamId == 0);
+            var seenReturning = new HashSet<ActorIdentity>();
+            foreach (GenericMindCommandResolution resolution in
+                     hunterTurn.Commands)
+            {
+                GenericActorWorldSnapshot.LifeSnapshot? life =
+                    step.PostState.ActiveLives.FirstOrDefault(candidate =>
+                        candidate.ActorId.TeamId == 0
+                        && candidate.ActorId.UnitId
+                            == resolution.Command.UnitId
+                        && candidate.ActorId.LifeId
+                            == resolution.Command.LifeId);
+                if (life is null || !carriers.Contains(life.ActorId))
+                    continue;
+                string reason = resolution.Command.DebugMessage ?? "";
+                if (!reason.Contains(
+                        "return-to-reactor", StringComparison.Ordinal))
+                    continue;
+                seenReturning.Add(life.ActorId);
+                loadedReturnTicks++;
+                bool moveTrace = reason.Contains(
+                    ":epibt-move:", StringComparison.Ordinal);
+                bool submitted = string.Equals(
+                    resolution.Command.ActionId,
+                    "move-eight-way",
+                    StringComparison.Ordinal);
+                if (submitted)
+                    submittedMovement++;
+                // A simultaneous collision can authoritatively block a real
+                // submitted move; that is honest. The regression is a move
+                // trace attached to a submitted Wait because an action row
+                // with AllowedByForm=false was selected and then discarded.
+                if (moveTrace && string.Equals(
+                        resolution.Command.ActionId,
+                        "wait",
+                        StringComparison.Ordinal))
+                    falseMoveTracesOnWait++;
+                if (!submitted && reason.Contains(
+                        "carry-relocation-cooldown-until-",
+                        StringComparison.Ordinal))
+                    explainedCadenceHolds++;
+                bool moved = priorPositions.TryGetValue(
+                        life.ActorId, out Position prior)
+                    && prior != life.Position;
+                int stationaryReturn = moved
+                    ? 0
+                    : stationaryReturns.GetValueOrDefault(life.ActorId) + 1;
+                stationaryReturns[life.ActorId] = stationaryReturn;
+                longestStationaryReturn = Math.Max(
+                    longestStationaryReturn, stationaryReturn);
+            }
+            foreach (ActorIdentity stale in stationaryReturns.Keys
+                         .Where(actor => !seenReturning.Contains(actor))
+                         .ToArray())
+                stationaryReturns.Remove(stale);
+            foreach (GenericActorWorldSnapshot.LifeSnapshot life in
+                     step.PostState.ActiveLives)
+                priorPositions[life.ActorId] = life.Position;
+        }
+
+        // Owner catch, G1 around t30: west u6 held the centre Core at (13,11)
+        // until destruction. EPIBT selected north-west every tick, but the
+        // action chooser preferred strafe-eight-way solely because it would
+        // preserve aim—even though Towline's legality row said
+        // AllowedByForm=false. Submission then fell back to Wait while the
+        // trace falsely retained epibt-move. A selected physical move must
+        // become a real chassis-owned movement command.
+        Assert.True(loadedReturnTicks > 0);
+        Assert.True(submittedMovement > 0);
+        Assert.Equal(0, falseMoveTracesOnWait);
+        Assert.True(explainedCadenceHolds > 0);
+        Assert.True(longestStationaryReturn < 8,
+            $"A loaded returning carrier stayed still for "
+            + $"{longestStationaryReturn} ticks.");
+    }
+
     private static Position? RecoveryGoal(string reason)
     {
         const string marker = "recover-health";
