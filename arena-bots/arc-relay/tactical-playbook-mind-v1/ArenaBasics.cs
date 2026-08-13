@@ -1572,45 +1572,6 @@ internal static class ArenaBasics
         GenericActorContext.ObservedEnemyState target) =>
         CanAimAtPosition(contract, body, target.Position);
 
-    public static int AttackRange(
-        GenericActorResolvedMatchContract contract,
-        MindBody body) => AttackRange(contract, body.FormId);
-
-    public static int AttackRange(
-        GenericActorResolvedMatchContract contract,
-        string formId) => contract.Rules.Forms
-            .FirstOrDefault(candidate => candidate.Id == formId)
-            ?.AttackProfileId is string attackId
-                ? contract.Rules.AttackProfiles.FirstOrDefault(candidate =>
-                    candidate.Id == attackId)?.Projectile.MaxTravelTiles ?? 0
-                : 0;
-
-    /// <summary>
-    /// The authored fight preference can ask for a carrier or weakest body
-    /// before nearest. This pure lower-bound check says whether that target
-    /// can possibly be brought into this body's weapon range without leaving
-    /// the current fight episode's leash. Walls may make a nominally reachable
-    /// target harder, but a target beyond this bound is definitely not a reason
-    /// to mask a later preference or park at the leash edge.
-    /// </summary>
-    public static bool FightTargetWithinEpisodeReach(
-        GenericActorResolvedMatchContract contract,
-        MindBody body,
-        Position anchor,
-        Position target,
-        int chaseLimit) => FightTargetWithinEpisodeReach(
-            contract, body.FormId, anchor, target, chaseLimit);
-
-    public static bool FightTargetWithinEpisodeReach(
-        GenericActorResolvedMatchContract contract,
-        string formId,
-        Position anchor,
-        Position target,
-        int chaseLimit) => TacticalFightEpisode.TargetIsReachable(
-            StaticDistance(contract.Map, anchor, target),
-            AttackRange(contract, formId),
-            chaseLimit);
-
     public static bool CanAimAtPosition(
         GenericActorResolvedMatchContract contract,
         MindBody body,
@@ -1640,34 +1601,123 @@ internal static class ArenaBasics
     }
 
     /// <summary>
-    /// Every legal tile inside the fight episode from which this form can
-    /// contribute a real shot. The squad planner assigns these to attackers
-    /// jointly so "fight the same enemy" does not mean "stand on the same
-    /// choke tile".
+    /// The fewest movement steps this body needs to reach a tile from which
+    /// it can attack any currently team-visible enemy. Walls, protected
+    /// regions, spawn reservations and visible movement-blocking constructs
+    /// are durable obstacles; bodies are deliberately absent because the
+    /// squad planner owns transient traffic.
     /// </summary>
-    public static Position[] FiringContributionGoals(
+    internal static int? NearestFiringApproachDistance(
         GenericActorResolvedMatchContract contract,
+        MindContext mind,
+        MindBody body)
+    {
+        if (mind.Enemies.Length == 0)
+            return null;
+        HashSet<Position> obstacles = PersistentRouteObstacles(
+            contract, mind, body.ActorId.TeamId);
+        obstacles.Remove(body.Position);
+        int[] reachable = StaticRouteDistanceField(
+            contract, body, body.Position, obstacles);
+        int reach = AttackRange(contract, body.FormId);
+        int? best = null;
+        foreach (GenericActorContext.ObservedEnemyState enemy in mind.Enemies)
+        {
+            int minimumY = Math.Max(0, enemy.Position.Y - reach);
+            int maximumY = Math.Min(
+                contract.Map.Height - 1, enemy.Position.Y + reach);
+            int minimumX = Math.Max(0, enemy.Position.X - reach);
+            int maximumX = Math.Min(
+                contract.Map.Width - 1, enemy.Position.X + reach);
+            for (int y = minimumY; y <= maximumY; y++)
+            {
+                for (int x = minimumX; x <= maximumX; x++)
+                {
+                    var tile = new Position(x, y);
+                    int? distance = DistanceFromField(
+                        contract.Map, reachable, tile);
+                    if (distance is not int steps
+                        || best is int known && steps >= known
+                        || !CanAimFrom(
+                            contract, body.FormId, tile, enemy.Position))
+                    {
+                        continue;
+                    }
+                    if (steps == 0)
+                        return 0;
+                    best = steps;
+                }
+            }
+        }
+        return best;
+    }
+
+    /// <summary>
+    /// Every reachable tile inside the fight episode from which this form can
+    /// contribute a real shot. Episode range remains anchored to the position
+    /// where the authored fight began; reachability uses the same known durable
+    /// obstacles as ordinary planning and ignores transient body occupancy.
+    /// The squad planner assigns these to attackers jointly so "fight the same
+    /// enemy" does not mean "stand on the same choke tile".
+    /// </summary>
+    internal static int[] FiringEpisodeReachability(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind,
         MindBody body,
-        Position target,
         Position episodeAnchor,
         int chaseLimit)
     {
-        var result = new List<Position>();
+        HashSet<Position> obstacles = PersistentRouteObstacles(
+            contract, mind, body.ActorId.TeamId);
+        obstacles.Remove(body.Position);
+        // The chase leash is a movement boundary, not merely a filter on the
+        // final firing tile. A course may not duck outside the episode and
+        // re-enter behind a wall while still claiming to respect the author.
         for (int y = 0; y < contract.Map.Height; y++)
         {
             for (int x = 0; x < contract.Map.Width; x++)
             {
                 var tile = new Position(x, y);
-                if (!CanEnter(contract.Map, tile)
-                    || chaseLimit == 0 && tile != episodeAnchor)
+                if (tile != body.Position
+                    && (chaseLimit == 0 && tile != episodeAnchor
+                        || chaseLimit > 0
+                        && (StaticDistance(
+                                contract.Map, episodeAnchor, tile)
+                                is not int fromAnchor
+                            || fromAnchor > chaseLimit)))
+                {
+                    obstacles.Add(tile);
+                }
+            }
+        }
+        return StaticRouteDistanceField(
+            contract, body, body.Position, obstacles);
+    }
+
+    internal static Position[] FiringContributionGoals(
+        GenericActorResolvedMatchContract contract,
+        MindBody body,
+        Position target,
+        IReadOnlyList<int> episodeReachability)
+    {
+        var result = new List<Position>();
+        int reach = AttackRange(contract, body.FormId);
+        int minimumY = Math.Max(0, target.Y - reach);
+        int maximumY = Math.Min(
+            contract.Map.Height - 1, target.Y + reach);
+        int minimumX = Math.Max(0, target.X - reach);
+        int maximumX = Math.Min(
+            contract.Map.Width - 1, target.X + reach);
+        for (int y = minimumY; y <= maximumY; y++)
+        {
+            for (int x = minimumX; x <= maximumX; x++)
+            {
+                var tile = new Position(x, y);
+                if (DistanceFromField(
+                        contract.Map, episodeReachability, tile) is null)
                 {
                     continue;
                 }
-                if (chaseLimit > 0
-                    && (StaticDistance(contract.Map, episodeAnchor, tile)
-                            is not int fromAnchor
-                        || fromAnchor > chaseLimit))
-                    continue;
                 if (!CanAimFrom(contract, body.FormId, tile, target))
                     continue;
                 result.Add(tile);
@@ -1675,6 +1725,15 @@ internal static class ArenaBasics
         }
         return result.ToArray();
     }
+
+    private static int AttackRange(
+        GenericActorResolvedMatchContract contract,
+        string formId) => contract.Rules.Forms
+            .FirstOrDefault(candidate => candidate.Id == formId)
+            ?.AttackProfileId is string attackId
+                ? contract.Rules.AttackProfiles.FirstOrDefault(candidate =>
+                    candidate.Id == attackId)?.Projectile.MaxTravelTiles ?? 0
+                : 0;
 
     public static bool TryShootAtPosition(
         GenericActorResolvedMatchContract contract,

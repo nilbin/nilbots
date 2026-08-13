@@ -264,7 +264,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
                 && comparison is < 0 or > 31)
             {
                 throw Error(at,
-                    "visible-enemy distance must be in [0, 31].");
+                    "firing-approach distance must be in [0, 31].");
             }
             if ((fact is "self-carrying" or "self-in-zone" or
                     "signature-ready")

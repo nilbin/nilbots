@@ -258,11 +258,14 @@ Known loose Cores use the team's objective ledger. A Core remains known until
 a visible pickup, handoff, bank, drop, or new position updates it; leaving
 vision alone does not erase the fact.
 
-`self-nearest-visible-enemy-distance` is Chebyshev distance from this body to
-the nearest team-visible enemy. The sighting may come from any allied sensor,
-but distance is evaluated separately for every body, so one remote contact
-does not mobilize the whole team. Use an upper-bound comparison in `0..31`,
-normally `at-most`; no visible enemy fails every such upper bound.
+`self-nearest-visible-enemy-distance` is the fewest legal movement steps this
+body needs to reach a tile from which it can attack a team-visible enemy. The
+sighting may come from any allied sensor, but approach distance is evaluated
+separately for every body. Known durable blockers (map walls, protected terrain,
+spawn reservations and visible blocking constructs) count; allied and enemy
+bodies are transient traffic and do not. Use an upper-bound comparison in
+`0..31`, normally `at-most`; no reachable firing tile fails every such upper
+bound.
 `visible-enemies-in-zone` remains the explicit non-distance team-perception
 fact for a coordinated response to contact reported anywhere in a named zone.
 
@@ -324,11 +327,12 @@ action is authored; contention for the tile remains executor movement micro.
 
 `targets` contains one to five unique values from `carrier`, `weakest`,
 `nearest`, `medic`, and `marked`. They are ordered preferences among targets
-this body can shoot or reach within the current fight episode. An unavailable
-preference does not mask a later actionable one; if none is actionable, the
-fight order yields for that tick and the body's next eligible authored order
-runs. The episode remains active, so this yield never resets or advances its
-chase anchor.
+this body can shoot or reach through known durable obstacles within the current
+fight episode. Body occupancy remains movement traffic rather than terrain. An
+unavailable preference does not mask a later actionable one; if none has a
+reachable firing tile, the fight order yields for that tick and the body's next
+eligible authored order runs. The episode remains active, so this yield never
+resets or advances its chase anchor.
 `style` is `advance`, `hold`, or `kite`.
 `chaseLimit` is `0..12` tiles from the body's position when the fight node
 entered; zero means fight in place.

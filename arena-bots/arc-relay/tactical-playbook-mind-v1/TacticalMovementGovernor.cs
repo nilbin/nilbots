@@ -8,21 +8,6 @@ public enum TacticalMovementAuthority
 }
 
 /// <summary>
-/// Pure fight-episode bounds shared by target selection and focused tests.
-/// The distance is measured from the episode's original anchor, never from
-/// the body's current tile, so yielding to another order cannot inch the
-/// leash forward over successive ticks.
-/// </summary>
-public static class TacticalFightEpisode
-{
-    public static bool TargetIsReachable(
-        int? anchorToTargetDistance,
-        int attackRange,
-        int chaseLimit) => anchorToTargetDistance is int distance
-        && distance <= attackRange + chaseLimit;
-}
-
-/// <summary>
 /// Authored importance of one selected order when allied bodies compete for
 /// movement space. It never participates in order selection: source position
 /// has already selected the order before this value reaches the movement

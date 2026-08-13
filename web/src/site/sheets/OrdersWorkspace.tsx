@@ -876,7 +876,7 @@ function useTargets(skill: string): string[] {
 }
 
 function factScope(fact: string) {
-  if (fact === 'self-nearest-visible-enemy-distance') return 'Distance from this body';
+  if (fact === 'self-nearest-visible-enemy-distance') return 'Steps for this body to join';
   if (fact.startsWith('self-') || fact === 'signature-ready') return 'This body';
   if (fact.startsWith('role-')) return 'A named role';
   if (fact.includes('-in-zone')) return 'A plotted zone';

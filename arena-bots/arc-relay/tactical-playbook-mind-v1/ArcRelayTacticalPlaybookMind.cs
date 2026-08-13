@@ -25,6 +25,9 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         new(StringComparer.Ordinal);
     private readonly Dictionary<ActorIdentity, RememberedEnemy> _rememberedEnemies = [];
     private readonly HashSet<string> _processedEvents = new(StringComparer.Ordinal);
+    private readonly Dictionary<ActorIdentity, int?> _firingApproachDistances = [];
+    private readonly Dictionary<FiringEpisodeKey, int[]> _firingEpisodeFields = [];
+    private readonly Dictionary<FiringGroundKey, Position[]> _firingGround = [];
 
     private GenericActorResolvedMatchContract? _contract;
     private OrdersPackage? _package;
@@ -97,6 +100,13 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 body.Hold("orders:unsupported-mode");
             return;
         }
+
+        // Conditions, target classification and joint-intent construction can
+        // ask the same exact path question several times in one Think. The
+        // observation is frozen for the tick, so calculate each answer once.
+        _firingApproachDistances.Clear();
+        _firingEpisodeFields.Clear();
+        _firingGround.Clear();
 
         UpdateMemory(contract, mind, arc);
         ResolvePreviousOneShots(mind);
@@ -375,11 +385,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                         result.Add(Hold($"fight-leash:{target.ActorId}"));
                         break;
                     }
-                    Position[] firing = ArenaBasics.FiringContributionGoals(
-                        contract,
-                        body,
-                        target.Position,
-                        anchor,
+                    Position[] firing = FiringContributionGoals(
+                        contract, mind, body, target.Position, anchor,
                         fight.ChaseLimit);
                     if (firing.Length == 0)
                     {
@@ -741,7 +748,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             Enemy = enemy,
             Index = index,
             Actionable = CanActOnFightTarget(
-                contract, body, leaf, fight, enemy),
+                contract, mind, body, leaf, fight, enemy),
         }).ToArray();
         if (classified.All(value => !value.Actionable))
         {
@@ -779,6 +786,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
 
     private bool CanActOnFightTarget(
         GenericActorResolvedMatchContract contract,
+        MindContext mind,
         MindBody body,
         OrderTreeRuntime.EligibleLeaf leaf,
         OrdersPackage.FightAction fight,
@@ -802,8 +810,9 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             : bodyFromAnchor is int used && used <= fight.ChaseLimit;
         if (!insideLeash)
             return false;
-        return ArenaBasics.FightTargetWithinEpisodeReach(
-            contract, body, anchor, enemy.Position, fight.ChaseLimit);
+        return FiringContributionGoals(
+            contract, mind, body, enemy.Position, anchor,
+            fight.ChaseLimit).Length > 0;
     }
 
     private ResolvedTarget[] ResolveUseTargets(
@@ -1659,14 +1668,12 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             return package.Contains(condition.Zone!, body.Position) ? 1 : 0;
         if (fact == "self-nearest-visible-enemy-distance")
         {
-            int? nearest = mind.Enemies
-                .Select(enemy => (int?)body.Position.ChebyshevDistance(
-                    enemy.Position))
-                .Min();
-            // No team-visible contact must make ordinary upper-bound
-            // engagement tests false. The compiler caps authored thresholds
-            // below this sentinel, and the value remains deterministic.
-            return nearest ?? 32;
+            // Distance means work needed to JOIN the fight: the shortest
+            // legal movement path from this body to a firing tile. Durable
+            // known blockers count; allied and hostile bodies are traffic.
+            // No reachable firing tile must fail every authored upper bound.
+            return NearestFiringApproachDistance(
+                contract, mind, body) ?? 32;
         }
         if (fact == "signature-ready")
         {
@@ -1922,6 +1929,46 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         return state.Position;
     }
 
+    private int? NearestFiringApproachDistance(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind,
+        MindBody body)
+    {
+        if (_firingApproachDistances.TryGetValue(
+                body.ActorId, out int? cached))
+            return cached;
+        int? distance = ArenaBasics.NearestFiringApproachDistance(
+            contract, mind, body);
+        _firingApproachDistances[body.ActorId] = distance;
+        return distance;
+    }
+
+    private Position[] FiringContributionGoals(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind,
+        MindBody body,
+        Position target,
+        Position anchor,
+        int chaseLimit)
+    {
+        var key = new FiringGroundKey(
+            body.ActorId, target, anchor, chaseLimit);
+        if (_firingGround.TryGetValue(key, out Position[]? cached))
+            return cached;
+        var episode = new FiringEpisodeKey(body.ActorId, anchor, chaseLimit);
+        if (!_firingEpisodeFields.TryGetValue(
+                episode, out int[]? reachable))
+        {
+            reachable = ArenaBasics.FiringEpisodeReachability(
+                contract, mind, body, anchor, chaseLimit);
+            _firingEpisodeFields[episode] = reachable;
+        }
+        Position[] goals = ArenaBasics.FiringContributionGoals(
+            contract, body, target, reachable);
+        _firingGround[key] = goals;
+        return goals;
+    }
+
     private bool TryInvest(
         GenericActorResolvedMatchContract contract,
         MindContext mind,
@@ -2113,6 +2160,15 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         ActorIdentity Actor,
         OrdersPackage.OrderNode Node,
         string ActionId);
+    private readonly record struct FiringGroundKey(
+        ActorIdentity Actor,
+        Position Target,
+        Position Anchor,
+        int ChaseLimit);
+    private readonly record struct FiringEpisodeKey(
+        ActorIdentity Actor,
+        Position Anchor,
+        int ChaseLimit);
     private sealed record FightAnchor(Position Position, int ActivatedTick);
     private sealed record KnownCore(string Key, Position Position, int SeenTick);
     private sealed record RememberedEnemy(Position Position, int Tick, bool Carrier);

@@ -346,7 +346,7 @@ export function validateDraft(
     if (!Number.isInteger(condition.value)) error(`${path}.value`, 'Comparison value must be a whole number.');
     if (condition.fact === 'self-nearest-visible-enemy-distance'
       && (condition.value < 0 || condition.value > 31))
-      error(`${path}.value`, 'Visible-enemy distance is zero to 31 tiles.');
+      error(`${path}.value`, 'Firing-approach distance is zero to 31 steps.');
     if (ROLE_FACTS.has(condition.fact) && (!condition.role || !roles.has(condition.role)))
       error(`${path}.role`, 'This fact needs a declared role.');
     if (ZONE_FACTS.has(condition.fact)) {
