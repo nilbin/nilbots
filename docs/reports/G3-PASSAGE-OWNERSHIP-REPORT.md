@@ -1,8 +1,8 @@
 # G3 passage ownership — fast design review
 
-Date: 2026-08-12  
-Branch: `codex/order-urgency`  
-Base: `main` at `4aaf80cc`  
+Date: 2026-08-12
+Branch: `codex/order-urgency`
+Base: `main` at `4aaf80cc`
 Review gallery: <https://scotland-legislature-define-except.trycloudflare.com>
 
 This is an in-process gameplay-design review, not a balance read or hosted

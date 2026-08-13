@@ -1,8 +1,8 @@
 # Orders v2 movement urgency — design-review report
 
-Date: 2026-08-12  
-Branch: `codex/order-urgency`  
-Base: `main` at `4aaf80cc`  
+Date: 2026-08-12
+Branch: `codex/order-urgency`
+Base: `main` at `4aaf80cc`
 Candidate code checkpoint: `a3252048`
 Review gallery: <https://scotland-legislature-define-except.trycloudflare.com>
 

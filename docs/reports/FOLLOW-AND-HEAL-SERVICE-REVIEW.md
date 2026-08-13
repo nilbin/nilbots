@@ -1,7 +1,7 @@
 # Coordinated-default and follower-course correction
 
-Date: 2026-08-12  
-Branch: `codex/order-urgency`  
+Date: 2026-08-12
+Branch: `codex/order-urgency`
 Status: fast in-process design review; not a hosted promotion or balance read
 
 ## Audit correction
