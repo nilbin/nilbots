@@ -23,6 +23,7 @@ export type MoveTarget =
   | 'nearest-known-loose-core'
   | { zone: string }
   | { anchor: string }
+  | { adjacentTo: string }
   | { well: 'north' | 'centre' | 'south' | 'own' | 'enemy' };
 
 export interface MoveOrder {
@@ -39,7 +40,7 @@ export interface FightOrder {
   chaseLimit: number;
 }
 
-export interface UseOrder { skill: string; target: string }
+export interface UseOrder { skill: string; target: string; at?: string }
 export interface HandoffOrder {
   target: 'nearest-ally-toward-own-reactor' | 'nearest-empty-handed-ally' | { role: string };
 }
@@ -456,6 +457,7 @@ function validateOrder(
     if (typeof move.to === 'object') {
       if ('zone' in move.to) usedZones.add(move.to.zone);
       if ('anchor' in move.to) usedAnchors.add(move.to.anchor);
+      if ('adjacentTo' in move.to) usedAnchors.add(move.to.adjacentTo);
     }
   }
   if (action === 'fight') {
@@ -464,11 +466,19 @@ function validateOrder(
       error(`${path}.fight.chaseLimit`, 'Chase limit is 0–12 tiles.');
   }
   if (action === 'use') {
+    exactKeys(node.use! as unknown as JsonObject, ['skill', 'target'],
+      `${path}.use`, error, ['at']);
     const skills = new Set(
       role.classes.map((classId) => skillForClass(catalog, classId)),
     );
     if (!skills.has(node.use!.skill))
       error(`${path}.use.skill`, 'At least one body in this role must own this signature skill.');
+    if (node.use!.at) {
+      usedAnchors.add(node.use!.at);
+      if (!['hardlight-block', 'trip-node', 'sentinel-seed']
+        .includes(node.use!.skill))
+        error(`${path}.use.at`, 'Only placeable constructs can use an exact map anchor.');
+    }
   }
   if (!node.when && !node.until && hasLaterSibling)
     warning(path, 'An unconditional order above later orders will always win when it has a target.');

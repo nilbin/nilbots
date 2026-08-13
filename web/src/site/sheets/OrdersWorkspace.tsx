@@ -370,6 +370,7 @@ function OrderCard({ node, path, role, allOrders, mapPlan, catalog, issues, dept
         {action === 'fight' && <FightEditor value={node.fight!}
           onChange={(fight) => change((next) => { next.fight = fight; })} />}
         {action === 'use' && <UseEditor node={node} role={role} catalog={catalog}
+          mapPlan={mapPlan} onOpenMap={onOpenMap}
           onChange={(use) => change((next) => { next.use = use; })} />}
         {action === 'handoff' && <HandoffEditor value={node.handoff!} roles={allOrders.roles}
           onChange={(handoff) => change((next) => { next.handoff = handoff; })} />}
@@ -536,9 +537,12 @@ function MoveDestination({ value, mapPlan, onChange }: { value: MoveTarget; mapP
     'well:north', 'well:centre', 'well:south', 'well:own', 'well:enemy',
     ...Object.keys(mapPlan.zones).map((id) => `zone:${id}`),
     ...Object.keys(mapPlan.anchors).map((id) => `anchor:${id}`),
+    ...Object.keys(mapPlan.anchors).map((id) => `adjacentTo:${id}`),
   ];
   return <CardPicker label="Destination" value={encoded} values={values}
-    labeler={(entry) => humanize(entry.split(':')[1])}
+    labeler={(entry) => entry.startsWith('adjacentTo:')
+      ? `Beside ${humanize(entry.split(':')[1])}`
+      : humanize(entry.split(':')[1])}
     onChange={(entry) => onChange(decodeMoveTarget(entry))} />;
 }
 
@@ -565,7 +569,11 @@ function FightEditor({ value, onChange }: { value: NonNullable<OrderNode['fight'
   </div>;
 }
 
-function UseEditor({ node, role, catalog, onChange }: { node: OrderNode; role: RoleDefinition; catalog: TacticalSheetCatalog; onChange: (next: NonNullable<OrderNode['use']>) => void }) {
+function UseEditor({ node, role, catalog, mapPlan, onOpenMap, onChange }: {
+  node: OrderNode; role: RoleDefinition; catalog: TacticalSheetCatalog;
+  mapPlan: MapPlanDocument; onOpenMap: (focus?: { kind: PlotKind; id: string }) => void;
+  onChange: (next: NonNullable<OrderNode['use']>) => void;
+}) {
   const skills = [...new Set(role.classes.map((classId) =>
     skillForClass(catalog, classId))
     .filter((value): value is string => Boolean(value)))];
@@ -583,7 +591,18 @@ function UseEditor({ node, role, catalog, onChange }: { node: OrderNode; role: R
         catalog.classes.find((candidate) => candidate.signatureId === entry)?.signatureName ?? humanize(entry)]))}
       onChange={(nextSkill) => onChange({ skill: nextSkill, target: useTargets(nextSkill)[0] ?? 'self' })} />}
     <CardPicker label="Skill target" value={node.use?.target ?? targets[0]} values={targets}
-      onChange={(target) => onChange({ skill, target })} />
+      onChange={(target) => onChange({ ...node.use, skill, target })} />
+    {['hardlight-block', 'trip-node', 'sentinel-seed'].includes(skill) && <div className="mt-3">
+      <CardPicker label="Exact placement · optional" value={node.use?.at ?? ''}
+        values={['', ...Object.keys(mapPlan.anchors)]} emptyLabel="Aim toward selected target"
+        descriptions={Object.fromEntries(Object.keys(mapPlan.anchors).map((id) => [id,
+          `Build exactly at ${humanize(id)}; pair with a Beside destination below this order.`]))}
+        onChange={(at) => onChange({ ...node.use, skill, target: node.use?.target ?? targets[0],
+          ...(at ? { at } : { at: undefined }) })} />
+      {node.use?.at && <button type="button" className="btn btn-secondary mt-2 min-h-11 w-full"
+        onClick={() => onOpenMap({ kind: 'anchor', id: node.use!.at! })}>Plot {humanize(node.use.at)} on map</button>}
+      <p className="t-micro mt-2">The body must be beside this point when the skill runs. Add a lower Go to → Beside order using the same anchor; no duplicate staging anchor is needed.</p>
+    </div>}
     {skills.length > 1 && <p className="t-micro mt-2">Only bodies that own this skill take this order. Other classes in the role continue down the ladder.</p>}
   </div>;
 }
@@ -769,7 +788,9 @@ function orderSummary(node: OrderNode, orders: OrdersDocument): string {
     return `${destination}${node.when ? ` · when ${conditionSummary(node.when)}` : ''}`;
   }
   if (node.fight) return `${humanize(node.fight.style)} · ${node.fight.targets.map(humanize).join(' → ')}`;
-  if (node.use) return `${humanize(node.use.skill)} on ${humanize(node.use.target)}`;
+  if (node.use) return node.use.at
+    ? `${humanize(node.use.skill)} at ${humanize(node.use.at)}`
+    : `${humanize(node.use.skill)} on ${humanize(node.use.target)}`;
   if (node.handoff) return `pass to ${humanize(typeof node.handoff.target === 'string' ? node.handoff.target : node.handoff.target.role)}`;
   if (node.drop) return 'release carried Core toward home';
   return 'Choose an action';
@@ -785,6 +806,7 @@ function encodeMoveTarget(value: MoveTarget): string {
   if (typeof value === 'string') return `dynamic:${value}`;
   if ('zone' in value) return `zone:${value.zone}`;
   if ('anchor' in value) return `anchor:${value.anchor}`;
+  if ('adjacentTo' in value) return `adjacentTo:${value.adjacentTo}`;
   return `well:${value.well}`;
 }
 
@@ -793,6 +815,7 @@ function decodeMoveTarget(value: string): MoveTarget {
   if (kind === 'dynamic') return id as MoveTarget;
   if (kind === 'zone') return { zone: id };
   if (kind === 'anchor') return { anchor: id };
+  if (kind === 'adjacentTo') return { adjacentTo: id };
   return { well: id as 'north' | 'centre' | 'south' | 'own' | 'enemy' };
 }
 
@@ -800,6 +823,7 @@ function mapHighlight(move: MoveOrder): { kind: PlotKind; id: string } | null {
   if (move.patrol) return { kind: 'route', id: move.patrol };
   if (typeof move.to === 'object' && 'zone' in move.to) return { kind: 'zone', id: move.to.zone };
   if (typeof move.to === 'object' && 'anchor' in move.to) return { kind: 'anchor', id: move.to.anchor };
+  if (typeof move.to === 'object' && 'adjacentTo' in move.to) return { kind: 'anchor', id: move.to.adjacentTo };
   return move.via ? { kind: 'route', id: move.via } : null;
 }
 

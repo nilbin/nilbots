@@ -14,5 +14,7 @@
       ]
     }
   },
-  "anchors": {}
+  "anchors": {
+    "enemy-lane-gate": [25, 13]
+  }
 }

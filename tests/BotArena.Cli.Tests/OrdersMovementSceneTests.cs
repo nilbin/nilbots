@@ -288,27 +288,35 @@ public sealed class OrdersMovementSceneTests
             + "opening scene.");
     }
 
-    [Fact]
-    public void G3HasNoClosedAlliedMovementCycleOrUncontestedRecoveryOrbit()
+    [Theory]
+    [InlineData(9005, false)]
+    [InlineData(9001, true)]
+    public void GalleryScenesHaveNoClosedAlliedMovementCycleOrRecoveryOrbit(
+        int seed,
+        bool hunterIsWest)
     {
         string root = FindRepoRoot();
         TacticalPlaybookCompilation hunter = Compile(root, "hunter-tapline-v2.json");
         TacticalPlaybookCompilation wellwright = Compile(
             root, "wellwright-tapline-v2.json");
+        GenericActorParticipantConfiguration[] participants = hunterIsWest
+            ? [Participant(0, hunter), Participant(1, wellwright)]
+            : [Participant(0, wellwright), Participant(1, hunter)];
         ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create(
-            wellwright.Composition,
-            hunter.Composition,
+            hunterIsWest ? hunter.Composition : wellwright.Composition,
+            hunterIsWest ? wellwright.Composition : hunter.Composition,
             loopProfile: ArcRelayLoopProfile.Tapline3);
-
         using var session = new GenericActorMatchSession(
             definition,
-            [Participant(0, wellwright), Participant(1, hunter)],
-            matchSeed: 9005,
+            participants,
+            matchSeed: (ulong)seed,
             recordChronology: true);
 
         int closedMovementCycles = 0;
         var recovery = new Dictionary<ActorIdentity, RecoveryProgress>();
+        var carrierCourses = new Dictionary<ArcRelayCoreId, CarrierCourse>();
         int worstUncontestedRecoveryNoProgress = 0;
+        int worstCarrierAlternation = 0;
         while (!session.IsCompleted)
         {
             GenericActorMatchStepResult step = session.Step();
@@ -327,6 +335,43 @@ public sealed class OrdersMovementSceneTests
             }
             closedMovementCycles += ClosedMovementCycles(
                 step.AuthoritativeEvents);
+
+            var arc = Assert.IsType<
+                GenericActorRuntimeObservation.ModeObservationState.ArcRelay>(
+                    step.PostState.Mode);
+            HashSet<ArcRelayCoreId> carried = [];
+            foreach (ArcRelayCoreState core in arc.VisibleCores.Where(core =>
+                         core.CarrierActorId is not null))
+            {
+                carried.Add(core.CoreId);
+                ActorIdentity carrier = core.CarrierActorId!;
+                if (!carrierCourses.TryGetValue(
+                        core.CoreId, out CarrierCourse? course)
+                    || course.Carrier != carrier)
+                {
+                    carrierCourses[core.CoreId] = new CarrierCourse(
+                        carrier, core.Position, null, 0);
+                    continue;
+                }
+                if (core.Position == course.Current)
+                    continue;
+                int alternating = course.Previous is Position previous
+                    && core.Position == previous
+                        ? course.AlternatingSteps + 1
+                        : 0;
+                carrierCourses[core.CoreId] = course with
+                {
+                    Previous = course.Current,
+                    Current = core.Position,
+                    AlternatingSteps = alternating,
+                };
+                worstCarrierAlternation = Math.Max(
+                    worstCarrierAlternation, alternating);
+            }
+            foreach (ArcRelayCoreId stale in carrierCourses.Keys
+                         .Where(coreId => !carried.Contains(coreId))
+                         .ToArray())
+                carrierCourses.Remove(stale);
 
             foreach (GenericMindRuntimeTurn turn in step.MindTurns)
             {
@@ -386,6 +431,60 @@ public sealed class OrdersMovementSceneTests
         Assert.True(worstUncontestedRecoveryNoProgress < 18,
             $"A recovery order made no uncontested health/distance progress "
             + $"for {worstUncontestedRecoveryNoProgress} ticks.");
+        Assert.True(worstCarrierAlternation < 8,
+            $"A Core carrier alternated between the same two tiles for "
+            + $"{worstCarrierAlternation} consecutive steps.");
+    }
+
+    [Fact]
+    public void HunterMasonPlacesHardlightOnlyOnAuthoredEnemyLaneGate()
+    {
+        string root = FindRepoRoot();
+        TacticalPlaybookCompilation hunter = Compile(root, "hunter-tapline-v2.json");
+        TacticalPlaybookCompilation wellwright = Compile(
+            root, "wellwright-tapline-v2.json");
+        ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create(
+            hunter.Composition,
+            wellwright.Composition,
+            loopProfile: ArcRelayLoopProfile.Tapline3);
+
+        using var session = new GenericActorMatchSession(
+            definition,
+            [Participant(0, hunter), Participant(1, wellwright)],
+            matchSeed: 9012,
+            recordChronology: false);
+
+        var operations = new HashSet<string>(StringComparer.Ordinal);
+        var placements = new List<(Position Construct, Position Builder)>();
+        while (!session.IsCompleted)
+        {
+            GenericActorMatchStepResult step = session.Step();
+            var arc = Assert.IsType<
+                GenericActorRuntimeObservation.ModeObservationState.ArcRelay>(
+                step.PostState.Mode);
+            foreach (ArcRelaySignatureState signature in arc.VisibleSignatures)
+            {
+                if (signature.Kind
+                        != ArcRelaySignatureDefinition.SignatureKind.HardlightBlock
+                    || signature.OwnerTeamId != 0
+                    || !operations.Add(signature.OperationId))
+                    continue;
+                Position builder = step.PostState.ActiveLives.Single(life =>
+                    life.ActorId == signature.OwnerActorId).Position;
+                placements.Add((Assert.Single(signature.Positions), builder));
+            }
+        }
+
+        // One semantic anchor owns both halves: movement resolves a legal
+        // adjacent stand tile, then use places on the exact enemy lane gate.
+        // No companion "staging anchor" or duplicate coordinate is authored.
+        Assert.NotEmpty(placements);
+        Assert.All(placements, placement =>
+        {
+            Assert.Equal(new Position(25, 13), placement.Construct);
+            Assert.Equal(1,
+                placement.Builder.ChebyshevDistance(placement.Construct));
+        });
     }
 
     private static Position? RecoveryGoal(string reason)
@@ -446,6 +545,12 @@ public sealed class OrdersMovementSceneTests
         int Health,
         int BestDistance,
         int UncontestedTicks);
+
+    private sealed record CarrierCourse(
+        ActorIdentity Carrier,
+        Position Current,
+        Position? Previous,
+        int AlternatingSteps);
 
     private static GenericActorParticipantConfiguration Participant(
         int participantId,

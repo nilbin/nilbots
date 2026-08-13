@@ -444,7 +444,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
                 ValidateFight(value.GetProperty("fight"), path);
                 break;
             case "use":
-                ValidateUse(value.GetProperty("use"), path, role);
+                ValidateUse(value.GetProperty("use"), path, role, consumers);
                 break;
             case "handoff":
                 ValidateHandoff(value.GetProperty("handoff"), path, roles);
@@ -606,11 +606,13 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         }
         if (value.ValueKind != JsonValueKind.Object)
             throw Error(path, "expected dynamic target or map target object.");
-        string[] keys = ["zone", "anchor", "well"];
+        string[] keys = ["zone", "anchor", "adjacentTo", "well"];
         string[] found = keys.Where(name => value.TryGetProperty(name, out _))
             .ToArray();
         if (found.Length != 1)
-            throw Error(path, "move target needs exactly one of zone/anchor/well.");
+            throw Error(path,
+                "move target needs exactly one of "
+                + "zone/anchor/adjacentTo/well.");
         Object(value, path, [found[0]]);
         string id = StringValue(value.GetProperty(found[0]), $"{path}.{found[0]}");
         if (found[0] == "well")
@@ -619,7 +621,8 @@ public static partial class ArcRelayTacticalPlaybookCompiler
                 throw Error(path, "well must be north/centre/south/own/enemy.");
             return;
         }
-        IdentifierValue(id, path, found[0]);
+        IdentifierValue(id, path,
+            found[0] == "adjacentTo" ? "anchor" : found[0]);
         if (found[0] == "zone")
             consumers.ReferenceZone(id, path);
         else
@@ -644,9 +647,10 @@ public static partial class ArcRelayTacticalPlaybookCompiler
     private static void ValidateUse(
         JsonElement value,
         string path,
-        RoleInfo role)
+        RoleInfo role,
+        ConsumerLedger consumers)
     {
-        Object(value, $"{path}.use", ["skill", "target"]);
+        Object(value, $"{path}.use", ["skill", "target"], ["at"]);
         string skill = RequiredString(value, "skill", $"{path}.use");
         string target = RequiredString(value, "target", $"{path}.use");
         if (!UseTargets.Contains(target))
@@ -678,6 +682,18 @@ public static partial class ArcRelayTacticalPlaybookCompiler
                 "enemy-carrier"))
         {
             throw Error($"{path}.use.target", "target-paint targets an enemy.");
+        }
+        if (value.TryGetProperty("at", out JsonElement at))
+        {
+            string anchor = StringValue(at, $"{path}.use.at");
+            IdentifierValue(anchor, $"{path}.use.at", "anchor");
+            consumers.ReferenceAnchor(anchor, path);
+            if (skill is not ("hardlight-block" or "trip-node"
+                    or "sentinel-seed"))
+            {
+                throw Error($"{path}.use.at",
+                    $"'{skill}' does not place a construct at an anchor.");
+            }
         }
     }
 

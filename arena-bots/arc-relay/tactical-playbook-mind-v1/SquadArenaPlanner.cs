@@ -152,7 +152,8 @@ internal sealed class SquadArenaPlanner : IArenaStepper
                 intent.Body.ActorId,
                 intent.Key,
                 assignments[intent.Body.UnitId],
-                operation);
+                operation,
+                courses[intent.Body.UnitId]);
         }
         return;
 
@@ -324,6 +325,13 @@ internal sealed class SquadArenaPlanner : IArenaStepper
         // enter it, so only this body's assigned destination overrides that
         // obstacle; reserved tiles en route remain blocked.
         durable.Remove(assignment);
+        HashSet<Position>? distanceObstacles = null;
+        if (IsCarrierReturn(intent))
+        {
+            distanceObstacles = ArenaBasics.PersistentRouteObstacles(
+                contract, mind, intent.Body.ActorId.TeamId);
+            distanceObstacles.Remove(assignment);
+        }
         var generated = new List<Operation>();
         Enumerate(
             new PlannerState(intent.Body.Position, intent.Body.Facing),
@@ -365,7 +373,8 @@ internal sealed class SquadArenaPlanner : IArenaStepper
                     course,
                     intent.Body.PreviousPosition,
                     intent.PrefersHold
-                        || intent.Body.Position == assignment);
+                        || intent.Body.Position == assignment,
+                    distanceObstacles);
                 if (operation is not null)
                     generated.Add(operation);
                 return;
@@ -469,7 +478,8 @@ internal sealed class SquadArenaPlanner : IArenaStepper
         Position? assignment = null,
         IReadOnlyList<Position>? course = null,
         Position? priorPosition = null,
-        bool prefersHold = false)
+        bool prefersHold = false,
+        IReadOnlySet<Position>? distanceObstacles = null)
     {
         var states = new PlannerState[OperationLength];
         var state = new PlannerState(body.Position, body.Facing);
@@ -490,7 +500,14 @@ internal sealed class SquadArenaPlanner : IArenaStepper
 
         long weight = assignment is Position goal
             ? GoalProgressWeight(states.Select(candidate =>
-                GoalDistance(contract.Map, candidate.Position, goal)).ToArray())
+                distanceObstacles is null
+                    ? GoalDistance(contract.Map, candidate.Position, goal)
+                    : ArenaBasics.StaticRouteDistance(
+                        contract,
+                        body,
+                        candidate.Position,
+                        goal,
+                        distanceObstacles) ?? 100_000).ToArray())
             : 0;
         // EPIBT orders equal-h operations by the earliest useful action:
         // move, then rotate, then wait. This must be lexicographic rather
@@ -752,14 +769,39 @@ internal sealed class SquadArenaPlanner : IArenaStepper
     {
         if (intent.Pinned || intent.Body.Position == assignment)
             return [intent.Body.Position];
-        Position[] course = ArenaBasics.StaticRouteCourse(
-                contract,
-                intent.Body,
-                assignment,
-                ArenaBasics.PersistentRouteObstacles(
-                    contract, mind, intent.Body.ActorId.TeamId),
-                _mirrored)
-            ?? [intent.Body.Position];
+        HashSet<Position> obstacles = ArenaBasics.PersistentRouteObstacles(
+            contract, mind, intent.Body.ActorId.TeamId);
+        Position[]? course = null;
+        if (_states.TryGetValue(
+                intent.Body.UnitId, out PersistentState? prior)
+            && prior.Actor == intent.Body.ActorId
+            && string.Equals(prior.Key, intent.Key, StringComparison.Ordinal)
+            && prior.Assignment == assignment)
+        {
+            int cursor = Array.FindIndex(
+                prior.Course, tile => tile == intent.Body.Position);
+            if (cursor >= 0)
+            {
+                Position[] suffix = prior.Course[cursor..];
+                bool stillLegal = suffix
+                    .Skip(1)
+                    .Select((tile, index) => (
+                        From: suffix[index],
+                        To: tile))
+                    .All(step => ArenaBasics.IsLegalTerrainStep(
+                            contract.Map, step.From, step.To)
+                        && (step.To == assignment
+                            || !obstacles.Contains(step.To)));
+                if (stillLegal)
+                    course = suffix;
+            }
+        }
+        course ??= ArenaBasics.StaticRouteCourse(
+            contract,
+            intent.Body,
+            assignment,
+            obstacles,
+            _mirrored) ?? [intent.Body.Position];
         if (intent.PreferredStep is Position preferred
             && ArenaBasics.IsLegalTerrainStep(
                 contract.Map, intent.Body.Position, preferred))
@@ -770,10 +812,16 @@ internal sealed class SquadArenaPlanner : IArenaStepper
         return course;
     }
 
+    private static bool IsCarrierReturn(SquadMovementIntent intent) =>
+        string.Equals(
+            intent.GroupKey, "move:to:reactor:own", StringComparison.Ordinal);
+
     private Dictionary<int, Position> AssignContributions(
         GenericActorResolvedMatchContract contract,
         IReadOnlyCollection<SquadMovementIntent> intents)
     {
+        MindContext mind = _mind
+            ?? throw new InvalidOperationException("BeginTick was not called.");
         var result = new Dictionary<int, Position>();
         foreach (IGrouping<string, SquadMovementIntent> grouping in intents
                      .GroupBy(intent => intent.GroupKey, StringComparer.Ordinal)
@@ -798,11 +846,35 @@ internal sealed class SquadArenaPlanner : IArenaStepper
                     result[member.Body.UnitId] = member.Body.Position;
                 continue;
             }
+            HashSet<int> memberIds = members
+                .Select(member => member.Body.UnitId)
+                .ToHashSet();
+            bool occupantRetainsService = grouping.Key.StartsWith(
+                    "move:to:heal:", StringComparison.Ordinal)
+                || grouping.Key.StartsWith(
+                    "move:to:well:", StringComparison.Ordinal);
+            bool serviceTileOwnedOutsideGroup = authored.Length == 1
+                && members.All(member => member.CanStage)
+                && occupantRetainsService
+                && mind.Bodies.Any(body => !memberIds.Contains(body.UnitId)
+                    && body.Position == authored[0]);
+            // A one-tile service remains owned by the body physically using
+            // it, even if that body temporarily selects a signature or fight
+            // order and therefore leaves this movement group for a tick. The
+            // waiting patient/carrier keeps its stable contribution tile
+            // instead of chasing and orbiting the occupied service square.
             bool staged = authored.Length == 1
-                && members.Length > 1
-                && members.All(member => member.CanStage);
+                && members.All(member => member.CanStage)
+                && (members.Length > 1 || serviceTileOwnedOutsideGroup);
+            HashSet<Position> persistentObstacles =
+                ArenaBasics.PersistentRouteObstacles(
+                    contract, mind, members[0].Body.ActorId.TeamId);
             Position[] candidates = staged
-                ? ContributionRing(contract.Map, authored[0], members.Length)
+                ? ContributionRing(
+                    contract.Map,
+                    authored[0],
+                    members.Length,
+                    persistentObstacles)
                 : authored;
             if (candidates.Length < members.Length)
             {
@@ -829,9 +901,15 @@ internal sealed class SquadArenaPlanner : IArenaStepper
                     long cost = distance is int steps
                         ? steps * 1_000L
                         : Impossible;
-                    if (staged && candidate == authored[0])
+                    if (staged && candidate == authored[0]
+                        && serviceTileOwnedOutsideGroup)
+                    {
+                        cost = Impossible;
+                    }
+                    else if (staged && candidate == authored[0])
                         cost -= 8_000;
-                    if (_states.TryGetValue(
+                    if (cost < Impossible
+                        && _states.TryGetValue(
                             member.Body.UnitId, out PersistentState? state)
                         && state.Actor == member.Body.ActorId
                         && string.Equals(
@@ -886,7 +964,8 @@ internal sealed class SquadArenaPlanner : IArenaStepper
     private static Position[] ContributionRing(
         GenericActorMapContract map,
         Position exact,
-        int needed)
+        int needed,
+        IReadOnlySet<Position> persistentObstacles)
     {
         var result = new List<Position> { exact };
         for (int radius = 1;
@@ -898,7 +977,14 @@ internal sealed class SquadArenaPlanner : IArenaStepper
             {
                 var tile = new Position(x, y);
                 if (tile.ChebyshevDistance(exact) == radius
-                    && ArenaBasics.CanEnter(map, tile))
+                    && ArenaBasics.CanEnter(map, tile)
+                    // The authored objective itself may deliberately be a
+                    // special tile. Its automatically-derived contribution
+                    // ring may not claim spawn reservations, constructs, or
+                    // protected terrain: removing such a staging assignment
+                    // from EPIBT's durable obstacles would make the planner
+                    // repeatedly request a step the engine must reject.
+                    && !persistentObstacles.Contains(tile))
                     result.Add(tile);
             }
         }
@@ -1045,5 +1131,6 @@ internal sealed class SquadArenaPlanner : IArenaStepper
         ActorIdentity Actor,
         string Key,
         Position Assignment,
-        Operation Operation);
+        Operation Operation,
+        Position[] Course);
 }

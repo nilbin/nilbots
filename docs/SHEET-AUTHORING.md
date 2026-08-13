@@ -283,7 +283,14 @@ fact for a coordinated response to contact reported anywhere in a named zone.
 - `own-reactor`, `nearest-heal-zone`, or `nearest-known-loose-core`;
 - `{ "zone": "id" }`;
 - `{ "anchor": "id" }`; or
+- `{ "adjacentTo": "anchor-id" }`; or
 - `{ "well": "north|centre|south|own|enemy" }`.
+
+`adjacentTo` resolves the legal eight-way ring around one authored anchor. It
+is useful for placeable skills: the anchor states where the construct belongs
+once, the `use.at` leaf targets it exactly, and a lower move leaf brings the
+body beside it. Occupancy and casting legality remain runtime facts; no
+duplicate staging zone or companion anchor is authored.
 
 `patrol` repeats a route. `follow` tracks the nearest live body of the named
 role by terrain path distance, then unit id, while standing on a legal adjacent
@@ -352,6 +359,14 @@ Geographic intent stays compositional rather than hidden inside `use`:
 same parent play gets the body into that authored zone. If the skill is not
 currently legal, the skill leaf has no target and ordinary priority falls
 through to movement.
+
+Placeable constructs (`hardlight-block`, `trip-node`, and `sentinel-seed`) may
+also pin their exact placement with `"at": "anchor-id"`. The anchor must be an
+adjacent legal placement tile when the order runs; otherwise the leaf falls
+through. `at` does not imply travel. Pair it with a lower move order targeting
+`{ "adjacentTo": "anchor-id" }` when the author wants the body to stage beside
+that exact point. Both leaves reuse one semantic anchor; no companion staging
+anchor or duplicate zone is needed.
 
 ### `handoff`
 

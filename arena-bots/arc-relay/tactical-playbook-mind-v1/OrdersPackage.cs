@@ -297,7 +297,10 @@ internal sealed class OrdersPackage
                 : value.TryGetProperty("use", out JsonElement use)
                     ? new UseAction(
                         use.GetProperty("skill").GetString()!,
-                        use.GetProperty("target").GetString()!)
+                        use.GetProperty("target").GetString()!,
+                        use.TryGetProperty("at", out JsonElement useAt)
+                            ? useAt.GetString()
+                            : null)
                     : value.TryGetProperty("handoff", out JsonElement handoff)
                         ? ParseHandoff(handoff)
                         : new DropAction();
@@ -488,7 +491,10 @@ internal sealed class OrdersPackage
         string[] Targets,
         string Style,
         int ChaseLimit) : OrderAction;
-    internal sealed record UseAction(string Skill, string Target) : OrderAction;
+    internal sealed record UseAction(
+        string Skill,
+        string Target,
+        string? AtAnchor) : OrderAction;
     internal sealed record HandoffAction(string TargetKind, string Target)
         : OrderAction;
     internal sealed record DropAction : OrderAction;

@@ -86,9 +86,9 @@
         { "shared": "score-a-core" },
         { "shared": "recover-health" },
         { "shared": "collect-loose-core" },
-        { "id": "block-visible-threat", "when": { "all": ["empty-handed", "enemy-visible", "signature-ready"] }, "use": { "skill": "hardlight-block", "target": "nearest-enemy" } },
+        { "id": "fortify-enemy-lane-gate", "when": { "all": ["empty-handed", "enemy-nearby", "signature-ready"] }, "use": { "skill": "hardlight-block", "target": "nearest-enemy", "at": "enemy-lane-gate" } },
         { "shared": "fight-visible-enemy" },
-        { "id": "hold-centre", "urgency": "routine", "move": { "to": { "well": "centre" }, "posture": "rear" } }
+        { "id": "stage-at-enemy-lane-gate", "urgency": "routine", "move": { "to": { "adjacentTo": "enemy-lane-gate" }, "posture": "front" } }
       ]
     }
   ],

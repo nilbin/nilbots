@@ -150,6 +150,71 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
     }
 
     [Fact]
+    public void PlaceableConstructMayTargetAnExactConsumedAnchor()
+    {
+        JsonObject source = Source("hunter-tapline-v2");
+        JsonObject map = MapPlan("hunter-tapline-v2");
+        JsonObject builder = source["roles"]!.AsArray().Select(value =>
+                value!.AsObject())
+            .Single(role => role["id"]!.GetValue<string>() == "builder");
+        JsonObject[] orders = builder["orders"]!.AsArray()
+            .Select(value => value!.AsObject())
+            .ToArray();
+        JsonObject use = orders.Single(order => order["id"]?.GetValue<string>()
+                == "fortify-enemy-lane-gate")["use"]!.AsObject();
+        JsonObject move = orders.Single(order => order["id"]?.GetValue<string>()
+                == "stage-at-enemy-lane-gate")["move"]!.AsObject();
+
+        Assert.Equal("enemy-lane-gate", use["at"]!.GetValue<string>());
+        Assert.Equal("enemy-lane-gate",
+            move["to"]!["adjacentTo"]!.GetValue<string>());
+        Assert.Single(map["anchors"]!.AsObject());
+        Assert.True(Compile(source, map).UsesOrderTree);
+
+        source = Source("hunter-tapline-v2");
+        map = MapPlan("hunter-tapline-v2");
+        builder = source["roles"]!.AsArray().Select(value => value!.AsObject())
+            .Single(role => role["id"]!.GetValue<string>() == "builder");
+        use = builder["orders"]!.AsArray().Select(value => value!.AsObject())
+            .Single(order => order["id"]?.GetValue<string>()
+                == "fortify-enemy-lane-gate")["use"]!.AsObject();
+        use["at"] = "missing-anchor";
+
+        InvalidDataException missing = Assert.Throws<InvalidDataException>(() =>
+            Compile(source, map));
+        Assert.Contains("unknown anchor 'missing-anchor'", missing.Message);
+
+        source = Source("hunter-tapline-v2");
+        map = MapPlan("hunter-tapline-v2");
+        builder = source["roles"]!.AsArray().Select(value => value!.AsObject())
+            .Single(role => role["id"]!.GetValue<string>() == "builder");
+        move = builder["orders"]!.AsArray().Select(value => value!.AsObject())
+            .Single(order => order["id"]?.GetValue<string>()
+                == "stage-at-enemy-lane-gate")["move"]!.AsObject();
+        move["to"]!["adjacentTo"] = "missing-anchor";
+
+        missing = Assert.Throws<InvalidDataException>(() =>
+            Compile(source, map));
+        Assert.Contains("unknown anchor 'missing-anchor'", missing.Message);
+
+        source = Source("hunter-tapline-v2");
+        map = MapPlan("hunter-tapline-v2");
+        builder = source["roles"]!.AsArray().Select(value => value!.AsObject())
+            .Single(role => role["id"]!.GetValue<string>() == "builder");
+        use = builder["orders"]!.AsArray().Select(value => value!.AsObject())
+            .Single(order => order["id"]?.GetValue<string>()
+                == "fortify-enemy-lane-gate")["use"]!.AsObject();
+        use["skill"] = "repair-beam";
+        use["target"] = "weakest-ally";
+        builder["classes"] = new JsonArray("patchbay");
+
+        InvalidDataException wrongSkill = Assert.Throws<InvalidDataException>(() =>
+            Compile(source, map));
+        Assert.Contains("does not place a construct at an anchor",
+            wrongSkill.Message);
+    }
+
+    [Fact]
     public void SelfInZoneIsAnAuthoredBodyLocalSpatialCondition()
     {
         JsonObject source = Source("starter-tapline-v2");

@@ -136,8 +136,8 @@ grep -H "Result:" "$OUTDIR/$NAME"-*.log | sed "s|$OUTDIR/||"
 # stock exhibit are a stop-and-trace signal rather than something to hand to
 # the owner. An explicitly horizon-focused diagnostic can opt out; its author
 # must then explain the cells rather than silently treating them as healthy.
-horizon_count=$(grep -h "Result:.*max-ticks" \
-  "$OUTDIR/$NAME"-*.log 2>/dev/null | wc -l | tr -d ' ')
+horizon_count=$({ grep -h "Result:.*max-ticks" \
+  "$OUTDIR/$NAME"-*.log 2>/dev/null || true; } | wc -l | tr -d ' ')
 if [ "$horizon_count" -gt 1 ] \
     && [ "${EXHIBIT_ALLOW_MULTIPLE_HORIZON:-0}" != 1 ]; then
   echo "refusing review gallery: $horizon_count/${#CELLS[@]} cells reached max-ticks" >&2

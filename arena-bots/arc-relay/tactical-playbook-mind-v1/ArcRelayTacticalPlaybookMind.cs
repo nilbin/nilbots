@@ -409,20 +409,20 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     }
 
     /// <summary>
-    /// Wells, healers and reactors are one-tile services, not eight identical
+    /// Wells and healers are one-tile services, not eight identical
     /// destinations. When several bodies select one, the joint assignment
     /// gives one body the service tile and stages the rest on distinct nearby
     /// contribution tiles. This prevents patients from repeatedly evicting
-    /// one another before a healing tick and carriers from trading the only
-    /// banking square. The selected order and target remain unchanged.
+    /// one another before a healing tick. A reactor is intentionally excluded:
+    /// a carrier cannot bank from a surrounding contribution tile, so every
+    /// loaded body must retain the exact reactor as its goal and let EPIBT
+    /// serialize the queue through normal right-of-way.
     /// </summary>
     private static bool IsSingleServiceMoveTarget(
         OrdersPackage.MoveAction move,
         string targetKey) => move.Kind == "to"
             && (targetKey.StartsWith("well:", StringComparison.Ordinal)
-                || targetKey.StartsWith("heal:", StringComparison.Ordinal)
-                || string.Equals(
-                    targetKey, "reactor:own", StringComparison.Ordinal));
+                || targetKey.StartsWith("heal:", StringComparison.Ordinal));
 
     public void EndMatch(MindEnd end) => _ = end;
 
@@ -488,7 +488,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 return ResolveEnemyTargets(
                     contract, mind, arc, body, leaf, fight, out decline);
             case OrdersPackage.UseAction use:
-                return ResolveUseTargets(contract, mind, body, use, carried);
+                return ResolveUseTargets(
+                    contract, mind, package, body, use, carried);
             case OrdersPackage.HandoffAction handoff:
                 return ResolveHandoffTargets(
                     contract, mind, body, handoff, package, carried);
@@ -598,6 +599,16 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             Position target = package.AnchorPosition(move.Target);
             return [new ResolvedTarget(
                 $"anchor:{move.Target}", target, [target], null, null)];
+        }
+        if (move.TargetKind == "adjacentTo")
+        {
+            Position target = package.AnchorPosition(move.Target);
+            Position[] goals = AdjacentStandTiles(contract.Map, target);
+            if (goals.Length == 0)
+                return [];
+            Position nearest = Nearest(contract.Map, body.Position, goals);
+            return [new ResolvedTarget(
+                $"adjacent-to:{move.Target}", nearest, goals, null, null)];
         }
         if (move.TargetKind == "well")
         {
@@ -798,6 +809,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     private ResolvedTarget[] ResolveUseTargets(
         GenericActorResolvedMatchContract contract,
         MindContext mind,
+        OrdersPackage package,
         MindBody body,
         OrdersPackage.UseAction use,
         IReadOnlyDictionary<ActorIdentity,
@@ -827,6 +839,9 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 "reactor:own", _ownReactor, [_ownReactor], null, null);
             return CanExecuteUse(contract, body, reactor, use) ? [reactor] : [];
         }
+        Position? exactPlacement = use.AtAnchor is string anchor
+            ? package.AnchorPosition(anchor)
+            : null;
         IEnumerable<(ActorIdentity Actor, Position Position, int Health)> values =
             use.Target switch
             {
@@ -885,9 +900,10 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 _ => [],
             };
         return values.Select(value => new ResolvedTarget(
-                $"body:{value.Actor}", value.Position, [value.Position],
-                value.Actor, null))
-            .Where(target => CanExecuteUse(contract, body, target, use))
+            $"body:{value.Actor}", value.Position, [value.Position],
+            value.Actor, null))
+            .Where(target => CanExecuteUse(
+                contract, body, target, use, exactPlacement))
             .ToArray();
     }
 
@@ -895,7 +911,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         GenericActorResolvedMatchContract contract,
         MindBody body,
         ResolvedTarget target,
-        OrdersPackage.UseAction use)
+        OrdersPackage.UseAction use,
+        Position? exactPlacement = null)
     {
         GenericActorRulesContract.ArcRelaySignature? signature =
             ArenaBasics.ArcRules(contract)?.Signatures.FirstOrDefault(value =>
@@ -927,6 +944,12 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 contract, body, signature.Kind);
         if (position)
         {
+            if (exactPlacement is Position placement)
+            {
+                return action.Constraints.OfType<GenericActorActionLegality
+                    .ArgumentConstraint.PositionTargetConstraint>()
+                    .Single().AllowedValues.Contains(placement);
+            }
             // Arc Toss is a pass, not a blind throw in an ally's general
             // direction. A named receiver must be an exact legal landing tile
             // so the engine can complete the catch authoritatively.
@@ -1309,7 +1332,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 ExecuteFight(contract, mind, body, proposal, fight, claims, reason);
                 return;
             case OrdersPackage.UseAction use:
-                if (ExecuteUse(contract, body, proposal.Target, use, reason))
+                if (ExecuteUse(
+                        contract, package, body, proposal.Target, use, reason))
                     RememberOneShot(body, proposal, use.Skill);
                 else
                     body.Hold($"{reason}:use-unavailable");
@@ -1511,6 +1535,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
 
     private static bool ExecuteUse(
         GenericActorResolvedMatchContract contract,
+        OrdersPackage package,
         MindBody body,
         ResolvedTarget target,
         OrdersPackage.UseAction use,
@@ -1532,7 +1557,10 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             .ArgumentConstraint.DirectionConstraint>().Any();
         bool position = action.Constraints.OfType<GenericActorActionLegality
             .ArgumentConstraint.PositionTargetConstraint>().Any();
-        string trace = $"{reason}:use:{use.Skill}:{target.Key}";
+        string resolved = use.AtAnchor is string traceAnchor
+            ? $"anchor:{traceAnchor}:trigger-{target.Key}"
+            : target.Key;
+        string trace = $"{reason}:use:{use.Skill}:{resolved}";
         if (unit && heading && target.Actor is ActorIdentity locked)
             return ArenaBasics.TryLockedLineSignature(
                 contract, body, signature.Kind, locked, target.Position, trace);
@@ -1547,10 +1575,14 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 contract, body, signature.Kind, target.Position, trace);
         if (position)
         {
-            Func<Position, bool>? exactReceiver = signature.Kind == "arc-toss"
-                && target.Actor is not null
-                ? candidate => candidate == target.Position
+            Position? anchored = use.AtAnchor is string placementAnchor
+                ? package.AnchorPosition(placementAnchor)
                 : null;
+            Func<Position, bool>? exactReceiver = anchored is Position placement
+                ? candidate => candidate == placement
+                : signature.Kind == "arc-toss" && target.Actor is not null
+                    ? candidate => candidate == target.Position
+                    : null;
             return ArenaBasics.TryPositionSignature(
                 contract, body, signature.Kind, target.Position, trace,
                 exactReceiver);
@@ -1928,6 +1960,24 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     private Position[] PostureGoals(Position[] goals, string? posture)
         => TacticalPosturePlanner.Resolve(
             goals, posture, _ownReactor, _enemyReactor);
+
+    private static Position[] AdjacentStandTiles(
+        GenericActorMapContract map,
+        Position anchor)
+    {
+        var result = new List<Position>(8);
+        for (int dy = -1; dy <= 1; dy++)
+        for (int dx = -1; dx <= 1; dx++)
+        {
+            if (dx == 0 && dy == 0)
+                continue;
+            Position candidate = anchor.Offset(dx, dy);
+            if (ArenaBasics.CanEnter(map, candidate))
+                result.Add(candidate);
+        }
+        return result.OrderBy(point => point.Y).ThenBy(point => point.X)
+            .ToArray();
+    }
 
     private static Position Nearest(
         GenericActorMapContract map,
