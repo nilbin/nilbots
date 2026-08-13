@@ -62,8 +62,10 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
         Assert.Equal(ArcRelayLoopProfile.Tapline3.MapId, catalog.Map.Id);
         Assert.Equal(31, catalog.Map.Width);
         Assert.Equal(27, catalog.Map.Height);
-        TacticalStockSheetResponse stock = Assert.Single(catalog.StockOpponents);
+        Assert.Equal(2, catalog.StockOpponents.Count);
+        TacticalStockSheetResponse stock = catalog.StockOpponents[0];
         Assert.Equal(ArcRelayEntrantPlaylistDefinition.OrdersStockSheetId, stock.Id);
+        Assert.Equal("hunter-tapline-v2", catalog.StockOpponents[1].Id);
 
         TacticalSheetResponse first = await SaveAsync(
             client,

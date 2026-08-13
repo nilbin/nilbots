@@ -17,10 +17,14 @@ public sealed class TacticalSheetCompilerTests
         IReadOnlySet<string> unlocked = ArcRelayClassCatalog.Default.All
             .Select(value => value.Id).ToHashSet(StringComparer.Ordinal);
 
-        TacticalSheetSource stock = Assert.Single(templates.Stock);
+        TacticalSheetSource stock = templates.Stock[0];
         Assert.Equal(
             ArcRelayEntrantPlaylistDefinition.OrdersStockSheetId,
             stock.Id);
+        Assert.Equal(
+            [ArcRelayEntrantPlaylistDefinition.OrdersStockSheetId,
+             "hunter-tapline-v2"],
+            templates.Stock.Select(value => value.Id));
         foreach (TacticalSheetSource source in
                  new[] { templates.Template }.Concat(templates.Stock))
         {

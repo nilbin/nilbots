@@ -52,6 +52,10 @@
       LogicalName="BotArena.Sheets.wellwright-v2.sheet.json" />
     <EmbeddedResource Include="../../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/map-plans/wellwright-tapline-v2.json"
       LogicalName="BotArena.Sheets.wellwright-v2.map-plan.json" />
+    <EmbeddedResource Include="../../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/playbooks/hunter-tapline-v2.json"
+      LogicalName="BotArena.Sheets.hunter-v2.sheet.json" />
+    <EmbeddedResource Include="../../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/map-plans/hunter-tapline-v2.json"
+      LogicalName="BotArena.Sheets.hunter-v2.map-plan.json" />
   </ItemGroup>
   <ItemGroup>
     <!-- One frozen first-party stock algorithm is compiled once into the

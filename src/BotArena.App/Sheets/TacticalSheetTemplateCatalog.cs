@@ -49,6 +49,12 @@ public sealed class TacticalSheetTemplateCatalog
                 "The Tapline stock opponent: works all three Wells and explicitly returns every carried Core.",
                 Resource("BotArena.Sheets.wellwright-v2.sheet.json"),
                 Resource("BotArena.Sheets.wellwright-v2.map-plan.json")),
+            Resolve(
+                "hunter-tapline-v2",
+                "Hunter v2",
+                "A Tapline pressure opponent: its Kestrel patrols, its medic shadows it, and the remaining bodies contest all three Wells.",
+                Resource("BotArena.Sheets.hunter-v2.sheet.json"),
+                Resource("BotArena.Sheets.hunter-v2.map-plan.json")),
         ];
         stock = opponents.ToDictionary(value => value.Id, StringComparer.Ordinal);
         Stock = opponents;
