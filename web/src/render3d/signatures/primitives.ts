@@ -230,6 +230,48 @@ export function areaBounds(points: readonly THREE.Vector3[]): {
   };
 }
 
+/**
+ * Signature positions are canonicalised by the engine, so a two-point flight no longer
+ * carries source/destination order. During Survey Flare's short flight the endpoint
+ * nearest its owner is the launch socket and the farther endpoint is the destination.
+ */
+export function surveyFlareFlightEndpoints(
+  points: readonly THREE.Vector3[],
+  owner: THREE.Vector3 | undefined,
+): { from: THREE.Vector3; to: THREE.Vector3 } | undefined {
+  const first = points[0];
+  if (!first) return undefined;
+  if (points.length === 1 || !owner) {
+    return { from: first, to: points.at(-1) ?? first };
+  }
+  let from = first;
+  let nearest = horizontalDistanceSquared(first, owner);
+  for (const point of points.slice(1)) {
+    const distance = horizontalDistanceSquared(point, owner);
+    if (distance < nearest) {
+      nearest = distance;
+      from = point;
+    }
+  }
+  let to = from;
+  let farthest = -1;
+  for (const point of points) {
+    const distance = horizontalDistanceSquared(point, from);
+    if (distance > farthest) {
+      farthest = distance;
+      to = point;
+    }
+  }
+  return { from, to };
+}
+
+function horizontalDistanceSquared(
+  point: THREE.Vector3,
+  other: THREE.Vector3,
+): number {
+  return (point.x - other.x) ** 2 + (point.z - other.z) ** 2;
+}
+
 export function fieldBase(
   rig: ArcSignatureEffectRig,
   points: readonly THREE.Vector3[],

@@ -129,6 +129,38 @@ for (const plan of plans) {
   });
 }
 
+const focusedStageId = 'lantern-survey-flare-focus';
+const focusedStageOutput = path.join(matchesRoot, focusedStageId);
+run(
+  'dotnet',
+  [
+    'run',
+    '--project',
+    cliProject,
+    '--no-build',
+    '--',
+    'experiment',
+    'arc-relay-signature-stage',
+    '--signature',
+    'survey-flare',
+    '--out',
+    path.relative(repository, focusedStageOutput),
+  ],
+  repository,
+);
+const focusedStage = JSON.parse(
+  readFileSync(path.join(focusedStageOutput, 'stage.json'), 'utf8'),
+);
+const focusedReplayPath = path.join(focusedStageOutput, focusedStage.replay);
+if (
+  focusedStage.signatureId !== 'survey-flare' ||
+  focusedStage.classId !== 'lantern' ||
+  focusedStage.attempts < 1 ||
+  !focusedStage.replayHash ||
+  readFileSync(focusedReplayPath).length > 100 * 1024
+)
+  throw new Error('Focused Lantern / Survey Flare replay is not review-ready.');
+
 writeFileSync(
   path.join(root, 'replay-generation.json'),
   `${JSON.stringify({
@@ -137,9 +169,19 @@ writeFileSync(
       'Fresh current Tapline-3 review pair for Longshot, Survey Flare, Core Wells, and both Team Reactors',
     generatedAt: new Date().toISOString(),
     matches: records,
+    focusedStages: [
+      {
+        id: focusedStageId,
+        ...focusedStage,
+        replay: path.relative(repository, focusedReplayPath),
+        replayGzipBytes: readFileSync(focusedReplayPath).length,
+      },
+    ],
   }, null, 2)}\n`,
 );
-console.log(`Generated ${records.length} current combined-review replays.`);
+console.log(
+  `Generated ${records.length} current combined-review matches and one focused Lantern stage.`,
+);
 
 function run(command, arguments_, cwd) {
   const result = spawnSync(command, arguments_, {

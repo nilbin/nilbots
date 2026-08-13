@@ -9,6 +9,7 @@ import {
   setEnergyColour,
   setEnergyOpacity,
   solidBarAt,
+  surveyFlareFlightEndpoints,
 } from '../primitives';
 
 const SURVEY = '#86bec0';
@@ -16,9 +17,11 @@ const SURVEY = '#86bec0';
 export default defineArcSignatureWebGLPainter({
   signatureId: 'survey-flare',
   paint({ rig, points, owner, target, time, phase, persistentPropReady, reducedMotion, phaseProgress, phaseAge }) {
-    if (phase === 'in-flight' && points[0] && points.at(-1)) {
-      const from = points[0]!;
-      const to = points.at(-1)!;
+    const flight = phase === 'in-flight'
+      ? surveyFlareFlightEndpoints(points, owner)
+      : undefined;
+    if (flight) {
+      const { from, to } = flight;
       const progress = easeInOutCubic(phaseProgress);
       if (!persistentPropReady) {
         placeTravelHead(rig.payload, from, to, progress, 1.15, 1.05);
@@ -107,7 +110,7 @@ export default defineArcSignatureWebGLPainter({
       setEnergyOpacity(lens, 0.11);
     }
   },
-  paintOutcome({ rig, priorSignature, facts, fraction, reducedMotion }) {
+  paintOutcome({ rig, priorSignature, facts, fraction }) {
     if (!hasConstructRemoval(facts)) return;
     const positions = priorSignature?.positions.map(
       (point) => new THREE.Vector3(point.x + 0.5, 0.065, point.y + 0.5),
@@ -115,42 +118,13 @@ export default defineArcSignatureWebGLPainter({
     const anchor = positions[0];
     if (!anchor) return;
     const life = 1 - fraction;
-    const area = fieldBase(rig, positions, anchor, 1 - fraction * 0.58);
+    fieldBase(rig, positions, anchor, 1 - fraction * 0.58);
     rig.fill.color.set('#18353a');
     rig.fill.opacity = life * 0.018;
     setEnergyColour(rig.ring, SURVEY);
     setEnergyOpacity(rig.ring, life * 0.07);
-    // Fold the survey arms back into the socket and lower the mast. The operation is
-    // already gone mechanically; this translucent after-motion only explains the exit.
-    rig.hub.visible = true;
-    rig.hub.position.copy(area.centre).setY(0.1 - fraction * 0.16);
-    rig.hub.scale.setScalar(Math.max(0.08, 1.26 * life));
-    rig.payload.visible = true;
-    rig.payload.position.copy(area.centre).setY(0.54 - fraction * 0.7);
-    rig.payload.scale.set(0.66 * life, 1.9 * Math.max(0.08, life), 0.66 * life);
-    rig.solid.color.set('#526166');
-    rig.solid.emissive.set('#1b3438');
-    rig.solid.emissiveIntensity = 0.025;
-    rig.solid.opacity = life * 0.78;
-    const arms = reducedMotion ? 2 : 3;
-    for (let index = 0; index < arms; index += 1) {
-      const angle = index * Math.PI * 2 / arms + fraction * 0.35;
-      const reach = 0.7 * life;
-      solidBarAt(
-        rig.bars[index]!,
-        area.centre.clone().add(new THREE.Vector3(
-          Math.cos(angle) * 0.16,
-          0,
-          Math.sin(angle) * 0.16,
-        )),
-        area.centre.clone().add(new THREE.Vector3(
-          Math.cos(angle) * (0.16 + reach),
-          0,
-          Math.sin(angle) * (0.16 + reach),
-        )),
-        0.13,
-        0.38 - fraction * 0.24,
-      );
-    }
+    // The authored Meshy instrument is gone with its authoritative operation. Let only
+    // the scan footprint dissipate; resurrecting the old renderer-built mast and arms for
+    // the exit made the replacement visibly turn back into the discarded placeholder.
   },
 });

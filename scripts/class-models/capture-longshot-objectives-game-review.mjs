@@ -13,7 +13,7 @@ const sharp = requireFromWeb('sharp');
 const baseUrl =
   process.env.REVIEW_URL ??
   'http://127.0.0.1:9164/' +
-    '?standalone&audio=off&camera=overview&proof=longshot-objectives-review&proof-camera=overview';
+    '?standalone&audio=off&camera=director&proof=longshot-objectives-review&proof-camera=director';
 const output = path.join(
   repository,
   'art/reviews/arc-relay-longshot-objectives-meshy7-v1/combined-gameplay-review',
@@ -30,15 +30,29 @@ const buildRecord = JSON.parse(
 const expectedModels = new Map(
   buildRecord.emittedCandidates.map((entry) => [path.basename(entry.emitted.file), entry.id]),
 );
-const captures = [
+const allCaptures = [
+  { id: 'desktop-lantern-flare-focus', replay: 'lantern-survey-flare-focus', time: 2.35, width: 1440, height: 900, requiredCandidates: ['survey-flare'], reviewOperation: 'arc-signature-0' },
   { id: 'desktop-reactor-walkover-west', replay: 'all-four-hunter-west', time: 1.35, width: 1440, height: 900 },
   { id: 'desktop-flare-flight-west', replay: 'all-four-hunter-west', time: 10.7, width: 1440, height: 900 },
   { id: 'desktop-well-overlap-west', replay: 'all-four-hunter-west', time: 20.35, width: 1440, height: 900 },
   { id: 'desktop-longshot-reactor-west', replay: 'all-four-hunter-west', time: 88.35, width: 1440, height: 900 },
   { id: 'desktop-well-overlap-east', replay: 'all-four-hunter-east', time: 20.35, width: 1440, height: 900 },
+  { id: 'phone-lantern-flare-focus', replay: 'lantern-survey-flare-focus', time: 2.35, width: 844, height: 390, mobile: true, requiredCandidates: ['survey-flare'], reviewOperation: 'arc-signature-0' },
   { id: 'phone-flare-flight-east', replay: 'all-four-hunter-east', time: 10.7, width: 844, height: 390, mobile: true },
   { id: 'phone-longshot-reactor-east', replay: 'all-four-hunter-east', time: 90.35, width: 844, height: 390, mobile: true },
 ];
+const requestedCaptureIds = new Set(
+  (process.env.REVIEW_CAPTURE_IDS ?? '')
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean),
+);
+const targeted = requestedCaptureIds.size > 0;
+const captures = targeted
+  ? allCaptures.filter((capture) => requestedCaptureIds.has(capture.id))
+  : allCaptures;
+if (captures.length === 0)
+  throw new Error('REVIEW_CAPTURE_IDS did not match a configured capture.');
 
 mkdirSync(output, { recursive: true });
 const browser = await chromium.launch({ headless: true });
@@ -66,26 +80,30 @@ try {
   await browser.close();
 }
 
-const desktop = records.filter((entry) => !entry.mobile);
-const phone = records.filter((entry) => entry.mobile);
-const sheets = {
-  desktop: await contactSheet(desktop, 720, 'desktop-gameplay-review.webp'),
-  phone: await contactSheet(phone, 720, 'phone-gameplay-review.webp'),
-};
-const evidence = {
-  schemaVersion: 1,
-  purpose:
-    'Current-build real WebGL review of Longshot, Survey Flare, Team Reactor, and Core Well together',
-  sourceUrl: baseUrl,
-  runtimeAssetsPromoted: buildRecord.runtimeAssetsPromoted,
-  buildRecord:
-    'art/reviews/arc-relay-longshot-objectives-meshy7-v1/combined-gameplay-review/build-record.json',
-  expectedCandidateModels: Object.fromEntries(expectedModels),
-  captures: records,
-  contactSheets: sheets,
-};
-writeFileSync(path.join(output, 'evidence.json'), `${JSON.stringify(evidence, null, 2)}\n`);
-console.log(`Captured ${records.length} Longshot/objectives gameplay review frames.`);
+if (targeted) {
+  console.log(`Captured ${records.length} targeted Longshot/objectives review frame(s).`);
+} else {
+  const desktop = records.filter((entry) => !entry.mobile);
+  const phone = records.filter((entry) => entry.mobile);
+  const sheets = {
+    desktop: await contactSheet(desktop, 720, 'desktop-gameplay-review.webp'),
+    phone: await contactSheet(phone, 720, 'phone-gameplay-review.webp'),
+  };
+  const evidence = {
+    schemaVersion: 1,
+    purpose:
+      'Current-build real WebGL review of Longshot, Survey Flare, Team Reactor, and Core Well together, plus a focused Lantern stage',
+    sourceUrl: baseUrl,
+    runtimeAssetsPromoted: buildRecord.runtimeAssetsPromoted,
+    buildRecord:
+      'art/reviews/arc-relay-longshot-objectives-meshy7-v1/combined-gameplay-review/build-record.json',
+    expectedCandidateModels: Object.fromEntries(expectedModels),
+    captures: records,
+    contactSheets: sheets,
+  };
+  writeFileSync(path.join(output, 'evidence.json'), `${JSON.stringify(evidence, null, 2)}\n`);
+  console.log(`Captured ${records.length} Longshot/objectives gameplay review frames.`);
+}
 
 async function preparePage(page) {
   const errors = [];
@@ -121,12 +139,6 @@ async function preparePage(page) {
     undefined,
     { timeout: 10_000 },
   );
-  const camera = page.getByRole('button', { name: /director|overview/i });
-  if (
-    await camera.count() &&
-    (await camera.textContent())?.toLowerCase().includes('director')
-  )
-    await camera.click();
   const fullscreen = page.getByRole('button', { name: 'full screen' });
   if (await fullscreen.count()) await fullscreen.click();
   if (errors.length) throw new Error(`initial renderer load: ${errors.join('\n')}`);
@@ -136,6 +148,14 @@ async function preparePage(page) {
 async function captureFrame(page, session, capture) {
   await selectReplay(page, capture.replay);
   await seekAndSettle(page, capture.time);
+  if (capture.reviewOperation) {
+    const framed = await page.evaluate(
+      (operationId) => window.__BOTARENA_RENDER_PROOF__?.frameSignature(operationId),
+      capture.reviewOperation,
+    );
+    if (!framed)
+      throw new Error(`${capture.id}: could not frame ${capture.reviewOperation}.`);
+  }
   await page.waitForTimeout(1800);
   const arena = page.getByRole('region', { name: 'Arena' });
   const canvas = arena.locator('canvas');
@@ -151,7 +171,7 @@ async function captureFrame(page, session, capture) {
   )].sort();
   if (renderer !== 'webgl') throw new Error(`${capture.id}: expected WebGL, received ${renderer}.`);
   if (session.errors.length) throw new Error(`${capture.id}: ${session.errors.join('\n')}`);
-  for (const required of ['longshot', 'team-reactor', 'core-well'])
+  for (const required of capture.requiredCandidates ?? ['longshot', 'team-reactor', 'core-well'])
     if (!loadedCandidates.includes(required))
       throw new Error(`${capture.id}: candidate ${required} did not load.`);
   if (capture.id.includes('flare') && !loadedCandidates.includes('survey-flare'))

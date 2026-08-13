@@ -128,6 +128,7 @@ export {
   configurePersistentConstructRendering,
   latestObservedSignatureYaw,
   sentinelYawTarget,
+  surveyFlareFlightEndpoints,
 } from '../../src/render3d/arcRelayEffects';
 export { orientStatusBib } from '../../src/render3d/statusBib';
 export {

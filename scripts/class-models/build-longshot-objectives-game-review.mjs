@@ -177,6 +177,13 @@ writeFileSync(
     archiveDirectory: path.relative(repository, path.join(output, 'replay-gallery-archive')),
     entries: [
       {
+        id: 'lantern-survey-flare-focus',
+        displayBots: ['Lantern · Survey Flare close review', '5 real casts · minimal context'],
+        broadcastOnly:
+          'sandbox/longshot-objectives-meshy7-v1/combined-review/matches/' +
+          'lantern-survey-flare-focus/replay.json.gz',
+      },
+      {
         id: 'all-four-hunter-west',
         displayBots: ['All four · Longshot west', 'Lantern east · live objectives'],
         broadcastOnly:
@@ -221,7 +228,7 @@ if (expected.some((entry) => !entry.emitted))
 const buildRecord = {
   schemaVersion: 1,
   purpose:
-    'Current-build combined real-renderer review of Longshot, Survey Flare, Team Reactor, and Core Well',
+    'Current-build combined real-renderer review of Longshot, Survey Flare, Team Reactor, and Core Well, with a focused Lantern stage',
   sourceCommit: git('rev-parse', 'HEAD'),
   runtimeAssetsPromoted: {
     teamReactor: true,

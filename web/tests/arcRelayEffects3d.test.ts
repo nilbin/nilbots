@@ -18,6 +18,7 @@ import {
   latestObservedSignatureYaw,
   resolveArcSignaturePresentation,
   sentinelYawTarget,
+  surveyFlareFlightEndpoints,
   buildArcVeterancy,
   buildOverlays,
   LEVEL_UP_BEAT_TICKS,
@@ -213,6 +214,16 @@ test('signature anticipation never starts early or outlives its authoritative te
     arcSignatureVisualPhase({ ...signature, phase: 'active' }, 15),
     'hidden',
   );
+});
+
+test('Survey Flare restores flight direction from its owner after canonical endpoint sorting', () => {
+  const target = new THREE.Vector3(12.5, 0.065, 10.5);
+  const launch = new THREE.Vector3(18.5, 0.065, 17.5);
+  const owner = new THREE.Vector3(18.5, 0.08, 18.5);
+  const flight = surveyFlareFlightEndpoints([target, launch], owner);
+  assert.ok(flight);
+  assert.equal(flight.from, launch);
+  assert.equal(flight.to, target);
 });
 
 test('review corrections remove beam-like guide geometry from Vector Dash and Target Paint', () => {
@@ -443,7 +454,7 @@ test('pooled signature transforms are identical after direct seek and played pha
 test('persistent props stay legible inside their tiles and sentinel yaw never looks ahead', () => {
   assert.equal(ARC_SIGNATURE_PROP_SCALE['trip-node'], 0.94);
   assert.equal(ARC_SIGNATURE_PROP_SCALE['sentinel-seed'], 0.72);
-  assert.equal(ARC_SIGNATURE_PROP_SCALE['survey-flare'], 1.35);
+  assert.equal(ARC_SIGNATURE_PROP_SCALE['survey-flare'], 2.5);
 
   const shots = [
     { tick: 12, yaw: Math.PI / 2 },

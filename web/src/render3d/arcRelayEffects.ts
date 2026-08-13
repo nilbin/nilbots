@@ -26,7 +26,13 @@ import type {
   ArcSignatureOutcomeFact,
   ArcSignatureWebGLPhase,
 } from './signatures/types';
-import { phaseProgress as signaturePhaseProgress } from './signatures/primitives';
+import {
+  areaBounds as signatureAreaBounds,
+  phaseProgress as signaturePhaseProgress,
+  surveyFlareFlightEndpoints,
+} from './signatures/primitives';
+
+export { surveyFlareFlightEndpoints } from './signatures/primitives';
 import {
   centreStatusPips,
   createStatusPipGeometry,
@@ -127,7 +133,10 @@ interface SignaturePropSlot {
 export const ARC_SIGNATURE_PROP_SCALE = {
   'trip-node': 0.94,
   'sentinel-seed': 0.72,
-  'survey-flare': 1.35,
+  // The provider source is normalized to only 0.3 tile. Standing it on end at 1.35
+  // left a roughly quarter-tile footprint that vanished at the strategic camera. This
+  // is bot-like in height but still occupies only about half a tile on the floor.
+  'survey-flare': 2.5,
 } as const;
 /** Stable air between a construct's scaled mesh and its independently bill-boarded bib. */
 export const CONSTRUCT_STATUS_BIB_GAP = 0.11;
@@ -793,8 +802,7 @@ export function buildArcRelayEffects(
         const surveyFlare = signature.signatureId === 'survey-flare';
         const fromY = sentinel || surveyFlare ? 0 : -0.24;
         if (surveyFlare && phase === 'in-flight') {
-          const from = points[0]!;
-          const to = points.at(-1) ?? from;
+          const { from, to } = surveyFlareFlightEndpoints(points, owner)!;
           const progress = easeOutDeploy(signaturePhaseProgress(signature, time));
           slot.group.position.lerpVectors(from, to, progress);
           slot.group.position.y = 0.14 + Math.sin(progress * Math.PI) * 1.15;
@@ -804,7 +812,13 @@ export function buildArcRelayEffects(
             slot.model.rotation.z = 0;
           }
         } else {
-          slot.group.position.copy(points[0]).setY(
+          // Survey's active positions are its complete reveal footprint. Park the
+          // authored instrument at that footprint's centre, not at the canonical
+          // first tile (the upper-left edge after engine sorting).
+          const propPosition = surveyFlare
+            ? signatureAreaBounds(points).centre
+            : points[0]!;
+          slot.group.position.copy(propPosition).setY(
             surveyFlare ? 0.16 : fromY * (1 - deploy),
           );
           slot.group.rotation.y = surveyFlare ? time * 0.28 : 0;
