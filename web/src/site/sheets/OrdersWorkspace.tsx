@@ -869,7 +869,10 @@ function normalizedCondition(fact: string, previous: ConditionDefinition, orders
     next.operator = 'at-most';
     next.value = previous.fact === fact ? previous.value : 7;
   }
-  if (['self-carrying', 'self-in-zone', 'signature-ready'].includes(fact)) next.value = previous.value === 0 ? 0 : 1;
+  if (['self-carrying', 'self-in-zone', 'signature-ready'].includes(fact)) {
+    next.operator = 'equals';
+    next.value = previous.fact === fact && previous.value === 0 ? 0 : 1;
+  }
   return next;
 }
 

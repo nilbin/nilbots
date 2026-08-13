@@ -63,6 +63,7 @@ test('the workshop speaks the consolidated Orders v2 language only', () => {
   assert.match(orders, /Move/);
   assert.match(orders, /Fight/);
   assert.match(orders, /Use skill/);
+  assert.match(orders, /next\.operator = 'equals'/);
   assert.match(orders, /Handoff/);
   assert.match(orders, /Drop Core/);
   assert.doesNotMatch(`${workshop}\n${orders}`, /custodyPolicies|doctrines|muster|escort|assignment order/i);
