@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "purpose": "Current-build combined real-renderer review of Longshot, Survey Flare, Team Reactor, and Core Well",
-  "sourceCommit": "eca4e9234f4656fc3c419f97569d6a64673d18c4",
+  "purpose": "Current-build combined real-renderer review of Longshot, Survey Flare, Team Reactor, and Core Well, with a focused Lantern stage",
+  "sourceCommit": "1b41ca4ea04938e82a134db1e3e3107823616f19",
   "runtimeAssetsPromoted": {
     "teamReactor": true,
     "longshot": false,

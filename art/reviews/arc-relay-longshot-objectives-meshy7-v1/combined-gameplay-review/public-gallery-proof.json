@@ -1,7 +1,7 @@
 {
   "schema": "arc-relay-longshot-objectives-public-gallery-proof-v1",
-  "capturedAt": "2026-08-13T22:22:09Z",
-  "exactPublicGalleryUrl": "https://going-funny-provisions-judge.trycloudflare.com/?standalone&audio=off&camera=overview&proof=longshot-objectives-review&proof-camera=overview",
+  "capturedAt": "2026-08-13T23:45:40Z",
+  "exactPublicGalleryUrl": "https://going-funny-provisions-judge.trycloudflare.com/?standalone&audio=off&camera=director&proof=longshot-objectives-review&proof-camera=director",
   "galleryStatus": 200,
   "viewport": {
     "width": 844,
@@ -10,6 +10,13 @@
   },
   "rendererEvidence": "art/reviews/arc-relay-longshot-objectives-meshy7-v1/combined-gameplay-review/evidence.json",
   "replays": [
+    {
+      "id": "lantern-survey-flare-focus",
+      "ticks": 72,
+      "browserPlaybackTick": 7,
+      "focus": "Lantern Survey Flare",
+      "realCasts": 5
+    },
     {
       "id": "all-four-hunter-west",
       "ticks": 438,
@@ -32,6 +39,11 @@
       "contentEncoding": "gzip"
     },
     {
+      "url": "https://going-funny-provisions-judge.trycloudflare.com/replays/lantern-survey-flare-focus.json",
+      "status": 200,
+      "contentEncoding": "gzip"
+    },
+    {
       "url": "https://going-funny-provisions-judge.trycloudflare.com/replays/all-four-hunter-west.json",
       "status": 200,
       "contentEncoding": "gzip"
@@ -44,12 +56,16 @@
   ],
   "compactReplaySources": [
     {
+      "id": "lantern-survey-flare-focus",
+      "bytes": 17782
+    },
+    {
       "id": "all-four-hunter-west",
-      "bytes": 158458
+      "bytes": 158338
     },
     {
       "id": "all-four-hunter-east",
-      "bytes": 161079
+      "bytes": 161100
     }
   ],
   "publicCandidateModels": [

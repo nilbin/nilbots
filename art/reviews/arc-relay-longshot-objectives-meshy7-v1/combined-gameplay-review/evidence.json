@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "purpose": "Current-build real WebGL review of Longshot, Survey Flare, Team Reactor, and Core Well together",
-  "sourceUrl": "http://127.0.0.1:9164/?standalone&audio=off&camera=overview&proof=longshot-objectives-review&proof-camera=overview",
+  "purpose": "Current-build real WebGL review of Longshot, Survey Flare, Team Reactor, and Core Well together, plus a focused Lantern stage",
+  "sourceUrl": "http://127.0.0.1:9164/?standalone&audio=off&camera=director&proof=longshot-objectives-review&proof-camera=director",
   "runtimeAssetsPromoted": {
     "teamReactor": true,
     "longshot": false,
@@ -16,6 +16,37 @@
     "model-CdVUlH4z.glb": "team-reactor"
   },
   "captures": [
+    {
+      "id": "desktop-lantern-flare-focus",
+      "replay": "lantern-survey-flare-focus",
+      "time": 2.35,
+      "width": 1440,
+      "height": 900,
+      "requiredCandidates": [
+        "survey-flare"
+      ],
+      "reviewOperation": "arc-signature-0",
+      "mobile": false,
+      "renderer": "webgl",
+      "proofTime": 2.35,
+      "replaySeed": "7001",
+      "visibleSignatures": [
+        {
+          "operationId": "arc-signature-0",
+          "signatureId": "survey-flare",
+          "phase": "active",
+          "visibleMeshes": 15
+        }
+      ],
+      "loadedCandidates": [
+        "core-well",
+        "survey-flare",
+        "team-reactor"
+      ],
+      "image": "art/reviews/arc-relay-longshot-objectives-meshy7-v1/combined-gameplay-review/desktop-lantern-flare-focus.png",
+      "imageBytes": 1180799,
+      "imageSha256": "770e8d8909375b09dbba55cea74175cbc49c8cae4707256d4e36d8b9741dcb21"
+    },
     {
       "id": "desktop-reactor-walkover-west",
       "replay": "all-four-hunter-west",
@@ -34,8 +65,8 @@
         "team-reactor"
       ],
       "image": "art/reviews/arc-relay-longshot-objectives-meshy7-v1/combined-gameplay-review/desktop-reactor-walkover-west.png",
-      "imageBytes": 1227404,
-      "imageSha256": "456cddd3ee00b7a673a9ea46702c08dfda360b952626eda51b1d521c0890e403"
+      "imageBytes": 550427,
+      "imageSha256": "873c9d5a476deced659ecdcd991103aef48ed60216eb3aa4f85dbddfb04972c3"
     },
     {
       "id": "desktop-flare-flight-west",
@@ -62,8 +93,8 @@
         "team-reactor"
       ],
       "image": "art/reviews/arc-relay-longshot-objectives-meshy7-v1/combined-gameplay-review/desktop-flare-flight-west.png",
-      "imageBytes": 1264415,
-      "imageSha256": "f79516364bab5d1344ff619136bba2f768de6434742b192bcd3ec1103d099b64"
+      "imageBytes": 646274,
+      "imageSha256": "1283e5aef11973f42ad5b1914111ae4c449f89542e8d8b20701fae1714de2178"
     },
     {
       "id": "desktop-well-overlap-west",
@@ -96,8 +127,8 @@
         "team-reactor"
       ],
       "image": "art/reviews/arc-relay-longshot-objectives-meshy7-v1/combined-gameplay-review/desktop-well-overlap-west.png",
-      "imageBytes": 1267823,
-      "imageSha256": "1f4f7be46c39b5dac91859f1499fd7f5e2b673f35f9b3aaf164b243dcd78359f"
+      "imageBytes": 565325,
+      "imageSha256": "d8ed864b37daa62665aea18906b3e0ead1e77d3d6660937e9a228502167474fd"
     },
     {
       "id": "desktop-longshot-reactor-west",
@@ -117,8 +148,8 @@
         "team-reactor"
       ],
       "image": "art/reviews/arc-relay-longshot-objectives-meshy7-v1/combined-gameplay-review/desktop-longshot-reactor-west.png",
-      "imageBytes": 1269974,
-      "imageSha256": "9620d17e0beb98145346043cfeae76c4877008d3f0deb4b8bb605d05c809233c"
+      "imageBytes": 527128,
+      "imageSha256": "2d06ae3ca77b614bcc898028d436375e99adfe3f6eec1d2b0379410b9c7f97ed"
     },
     {
       "id": "desktop-well-overlap-east",
@@ -151,8 +182,39 @@
         "team-reactor"
       ],
       "image": "art/reviews/arc-relay-longshot-objectives-meshy7-v1/combined-gameplay-review/desktop-well-overlap-east.png",
-      "imageBytes": 627332,
-      "imageSha256": "c09d3d3cba324a4f955982f31b8498eab677125d9fbb621190b41af0ef0871a6"
+      "imageBytes": 568124,
+      "imageSha256": "7150d33f65d72d0be8f0dc27b904cf84e7993837767e6e360ba3464fd9f69c39"
+    },
+    {
+      "id": "phone-lantern-flare-focus",
+      "replay": "lantern-survey-flare-focus",
+      "time": 2.35,
+      "width": 844,
+      "height": 390,
+      "mobile": true,
+      "requiredCandidates": [
+        "survey-flare"
+      ],
+      "reviewOperation": "arc-signature-0",
+      "renderer": "webgl",
+      "proofTime": 2.35,
+      "replaySeed": "7001",
+      "visibleSignatures": [
+        {
+          "operationId": "arc-signature-0",
+          "signatureId": "survey-flare",
+          "phase": "active",
+          "visibleMeshes": 15
+        }
+      ],
+      "loadedCandidates": [
+        "core-well",
+        "survey-flare",
+        "team-reactor"
+      ],
+      "image": "art/reviews/arc-relay-longshot-objectives-meshy7-v1/combined-gameplay-review/phone-lantern-flare-focus.png",
+      "imageBytes": 386015,
+      "imageSha256": "07b73e41bec6be73e18c5d1a44434e352c106855ce41c5a05304e7ecde392637"
     },
     {
       "id": "phone-flare-flight-east",
@@ -179,8 +241,8 @@
         "team-reactor"
       ],
       "image": "art/reviews/arc-relay-longshot-objectives-meshy7-v1/combined-gameplay-review/phone-flare-flight-east.png",
-      "imageBytes": 306442,
-      "imageSha256": "5854cd7dcea16ffe24ed726b4beadc2fea9fece47955d5a8d275ba32fd33c402"
+      "imageBytes": 398238,
+      "imageSha256": "2edb6482803e8f76b39f503955cf440d64626a7ed6e29b544b56983a07f0d4c9"
     },
     {
       "id": "phone-longshot-reactor-east",
@@ -207,20 +269,20 @@
         "team-reactor"
       ],
       "image": "art/reviews/arc-relay-longshot-objectives-meshy7-v1/combined-gameplay-review/phone-longshot-reactor-east.png",
-      "imageBytes": 302413,
-      "imageSha256": "967406194b1240d9cec832d70b7dd971090bc5e82c7e8fb51caea4c651884c63"
+      "imageBytes": 375112,
+      "imageSha256": "8098969dc56563896e15fab29c327ea052b8bf8b8cc300d621baa01296436e52"
     }
   ],
   "contactSheets": {
     "desktop": {
       "file": "art/reviews/arc-relay-longshot-objectives-meshy7-v1/combined-gameplay-review/desktop-gameplay-review.webp",
-      "bytes": 260500,
-      "sha256": "f4042f403e6b241d3933a64dea13f4242d81405507175fd8d7d2399c2602f25c"
+      "bytes": 297062,
+      "sha256": "aef637cf8d09ff57f514b9f0197d2ed3b1f8ccad3527214e5c4c185f682fc251"
     },
     "phone": {
       "file": "art/reviews/arc-relay-longshot-objectives-meshy7-v1/combined-gameplay-review/phone-gameplay-review.webp",
-      "bytes": 56158,
-      "sha256": "7b57607e9a8517c61e22c5f0aad4210ad19435b6c8cbed6f339311dc8441c3bf"
+      "bytes": 104806,
+      "sha256": "d303fee60ea9250d3243535b6a912f0db787c489c1932887f61c1b2902e7da04"
     }
   }
 }
