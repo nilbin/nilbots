@@ -114,6 +114,24 @@ test('approved Arc Relay signature props resolve independently of bot looks', ()
   }
 });
 
+test('the approved Team Reactor resolves as a neutral objective model', () => {
+  const spec = modelSpec('arc-team-reactor');
+
+  assert.equal(spec?.kind, 'objective');
+  assert.equal(spec?.part, 'whole');
+  assert.equal(spec?.facing, '+x');
+  assert.equal(spec?.up, '+y');
+  assert.equal(spec?.source?.generator, 'scripts/class-models/promote-reactor-recess-v1.mjs');
+  assert.equal(spec?.source?.provider, 'Meshy');
+  assert.equal(spec?.source?.model, 'meshy-7');
+  assert.equal(spec?.source?.endpoint, 'retexture');
+  assert.equal(spec?.source?.orientation, 'identity');
+  assert.equal(spec?.source?.facingYawDegrees, 90);
+  assert.equal(spec?.source?.textureTier, 'reactor-recess-review-v1-webp');
+  assert.ok((spec?.ledger?.bytes ?? Number.POSITIVE_INFINITY) <= 2_000_000);
+  assert.equal(lookModelSource('arc-team-reactor'), 'gltf');
+});
+
 test('a whole-body GLB cannot serve a turret sector and yields to the sprite', () => {
   // The turret is the chassis' forward section repeated around an axis. A layered SVG can
   // be cropped to that section; the Striker's `part: 'whole'` mesh cannot, and handing the

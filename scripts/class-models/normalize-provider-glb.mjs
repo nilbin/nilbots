@@ -10,9 +10,20 @@ const outputPath = resolve(process.argv[3] ?? '');
 const targetSpan = Number(process.argv[4] ?? 0.9);
 const orientation = process.argv[5] ?? 'identity';
 const stripAuthoredTangents = process.argv.includes('--strip-authored-tangents');
-if (!process.argv[2] || !process.argv[3] || !Number.isFinite(targetSpan) || targetSpan <= 0)
+const heightScaleArgument = process.argv.indexOf('--height-scale');
+const heightScale = heightScaleArgument >= 0
+  ? Number(process.argv[heightScaleArgument + 1])
+  : 1;
+if (
+  !process.argv[2] ||
+  !process.argv[3] ||
+  !Number.isFinite(targetSpan) ||
+  targetSpan <= 0 ||
+  !Number.isFinite(heightScale) ||
+  heightScale <= 0
+)
   throw new Error(
-    'Usage: node scripts/class-models/normalize-provider-glb.mjs <input.glb> <output.glb> [target-planform-span] [identity|lay-flat-x] [--strip-authored-tangents]',
+    'Usage: node scripts/class-models/normalize-provider-glb.mjs <input.glb> <output.glb> [target-planform-span] [identity|lay-flat-x] [--strip-authored-tangents] [--height-scale <positive-number>]',
   );
 if (!['identity', 'lay-flat-x'].includes(orientation))
   throw new Error('Orientation must be identity or lay-flat-x.');
@@ -47,13 +58,13 @@ const chassisIndex = document.nodes.length;
 document.nodes.push({
   name: 'chassis',
   children: sourceRoots,
-  scale: [scale, scale, scale],
+  scale: [scale, scale * heightScale, scale],
   ...(orientation === 'lay-flat-x'
     ? { rotation: [-Math.SQRT1_2, 0, 0, Math.SQRT1_2] }
     : {}),
   translation: [
     -centreX * scale,
-    -orientedBounds.min[1] * scale,
+    -orientedBounds.min[1] * scale * heightScale,
     -centreZ * scale,
   ],
   extras: {
@@ -63,6 +74,7 @@ document.nodes.push({
       floorY: 0,
       orientation,
       targetPlanformSpan: targetSpan,
+      ...(heightScale !== 1 ? { heightScale } : {}),
       sourceBounds: bounds,
     },
   },
@@ -92,6 +104,7 @@ console.log(
       sourceBounds: bounds,
       orientation,
       scale,
+      heightScale,
       targetPlanformSpan: targetSpan,
       strippedTangentAttributes,
       normalizedBounds: {
@@ -102,7 +115,7 @@ console.log(
         ],
         max: [
           (orientedBounds.max[0] - centreX) * scale,
-          (orientedBounds.max[1] - orientedBounds.min[1]) * scale,
+          (orientedBounds.max[1] - orientedBounds.min[1]) * scale * heightScale,
           (orientedBounds.max[2] - centreZ) * scale,
         ],
       },

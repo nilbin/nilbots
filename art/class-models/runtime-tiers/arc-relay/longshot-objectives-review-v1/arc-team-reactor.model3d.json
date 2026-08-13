@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "id": "arc-team-reactor",
+  "file": "model.glb",
+  "kind": "objective",
+  "part": "whole",
+  "facing": "+x",
+  "up": "+y",
+  "source": {
+    "generator": "scripts/class-models/build-longshot-objectives-review-tier.mjs",
+    "recipe": "art/class-models/runtime-tiers/arc-relay/longshot-objectives-review-v1/audit.json",
+    "artifact": "art/class-models/runtime-tiers/arc-relay/longshot-objectives-review-v1/arc-team-reactor-lean.glb",
+    "sourceSha256": "35bb24fc57778091857767ffdb8f2c56559a469f14b8f2144310475671fa7b64",
+    "provider": "Meshy",
+    "model": "meshy-7",
+    "endpoint": "multi-image-to-3d",
+    "modelType": "neutral-objective-housing",
+    "taskId": "019ffbd5-9d7f-72d9-a6d0-6d79c058801c",
+    "orientation": "identity",
+    "facingYawDegrees": 90
+  },
+  "ledger": {
+    "bytes": 1662112,
+    "sha256": "35bb24fc57778091857767ffdb8f2c56559a469f14b8f2144310475671fa7b64",
+    "triangles": 79432,
+    "materials": 1,
+    "textureCount": 4,
+    "geometrySha256": "44a93ee71427b824feee1ad6103ef51b870c97709cf81ea19b74fa2a3c26ac10",
+    "geometryGpuBytes": 1616712,
+    "textureGpuBytesCompressedTarget": 5592400,
+    "textureGpuBytesRgba8Fallback": 5592400,
+    "modelGpuBytesCompressedTarget": 7209112,
+    "modelGpuBytesRgba8Fallback": 7209112,
+    "textureTier": "longshot-objectives-review-v1-webp"
+  }
+}

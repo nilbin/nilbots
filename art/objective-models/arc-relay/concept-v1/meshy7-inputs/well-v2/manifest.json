@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "status": "rejected-provider-geometry",
+  "classId": "core-well-v2",
+  "meshyInputs": [
+    {
+      "order": 1,
+      "view": "strict-front",
+      "file": "01-front.png",
+      "sha256": "8532712c57fb931e64cbfff27b7f1898244b2c9d40ad12a4a60ad9345008a74e",
+      "width": 1536,
+      "height": 1024,
+      "primary": true
+    },
+    {
+      "order": 2,
+      "view": "strict-right",
+      "file": "02-right.png",
+      "sha256": "8acb8e5560d8c91991f856be366e3be6e5903808ead5f69660771cde795825e8",
+      "width": 1536,
+      "height": 1024,
+      "primary": false
+    },
+    {
+      "order": 3,
+      "view": "strict-top-three-anchor-authority",
+      "file": "03-top.png",
+      "sha256": "483582a83c1b162c5a0db3a0f6df610a2c129e6bae2a7697e59df4f0d5ed3bc6",
+      "width": 1536,
+      "height": 1024,
+      "primary": false
+    },
+    {
+      "order": 4,
+      "view": "front-right-three-quarter",
+      "file": "04-front-right-three-quarter.png",
+      "sha256": "0a06f6f3940d9e9e05f7d76936ed054e18345ee90f3b81d26ead7a997616c6bd",
+      "width": 1536,
+      "height": 1024,
+      "primary": false
+    }
+  ],
+  "providerRunCollection": "arc-relay-longshot-objectives-v1-corrective-geometry",
+  "meshyRequestPlan": {
+    "endpoint": "/openapi/v1/multi-image-to-3d",
+    "ai_model": "meshy-7",
+    "should_texture": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "should_remesh": false,
+    "image_enhancement": false,
+    "remove_lighting": true,
+    "pose_mode": "",
+    "texture_prompt": "Neutral matte Core Well physical housing only. Exact topology authority: one open central bowl, one low octagonal ring, and EXACTLY THREE large radial anchor clamps spaced 120 degrees apart as shown in the strict top view. There is no fourth anchor and no rear anchor. Medium-light warm-gray ceramic and stone armor, aged ivory upper collar, dull nickel seams, restrained muted burgundy anchor clamps, medium graphite bowl, high roughness and broad readable value groups. No Core, glyph, progress ring, team tint, teal/cyan, orange, glow, plastic, gloss, text, extra appendages, extra anchors or baked lighting.",
+    "target_formats": [
+      "glb"
+    ],
+    "pilotCreditCap": 30,
+    "authorized": false,
+    "authorization": "Owner approved a bounded corrective geometry pass after the first result invented a fourth anchor on 2026-08-13.",
+    "authorizationConsumed": true,
+    "autoRigging": false,
+    "completedTaskId": "019ffbd2-0fcf-7716-bba6-8f920b78fcc9",
+    "consumedCredits": 30
+  },
+  "creditCheck": {
+    "checkedAt": "2026-08-13",
+    "balance": 1160,
+    "texturedMeshy7MultiImagePerTaskCap": 30,
+    "authorizedCorrectiveBatchCredits": 60,
+    "expectedMinimumBalanceAfterBatch": 1100,
+    "autoRigging": false,
+    "pricingSource": "https://docs.meshy.ai/en/api/pricing"
+  },
+  "corrects": {
+    "manifest": "../well-v1/manifest.json",
+    "failure": "First provider result invented a fourth radial anchor; strict top replaces the less useful rear input."
+  },
+  "nextGate": "do not promote: strict top audit still shows four anchors; no further provider spend authorized",
+  "providerRun": {
+    "taskId": "019ffbd2-0fcf-7716-bba6-8f920b78fcc9",
+    "directory": "../../../../../class-models/provider-runs/meshy/arc-relay-longshot-objectives-v1-corrective-geometry/core-well-v2/019ffbd2-0fcf-7716-bba6-8f920b78fcc9",
+    "status": "SUCCEEDED",
+    "consumedCredits": 30,
+    "balanceBefore": 1160,
+    "balanceAfter": 1130,
+    "rawModelSha256": "9b52811a5e55a79bd2790a565b40ea40e463f6dcb81b3ebbef532e5009696766"
+  }
+}

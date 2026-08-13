@@ -16,7 +16,7 @@ export interface LookModelSpec {
   version: 1;
   id: string;
   file: 'model.glb';
-  kind: 'bot' | 'projectile' | 'signature';
+  kind: 'bot' | 'projectile' | 'signature' | 'objective';
   part: 'whole' | 'turret-arm';
   facing: '+x';
   up: '+y';
@@ -135,6 +135,14 @@ const signatureModelUrls = import.meta.glob<string>(
   '../assets/signature-models/*/model.glb',
   { eager: true, import: 'default', query: '?url' },
 );
+const objectiveModelSpecs = import.meta.glob<unknown>(
+  '../assets/objective-models/*/model3d.json',
+  { eager: true, import: 'default' },
+);
+const objectiveModelUrls = import.meta.glob<string>(
+  '../assets/objective-models/*/model.glb',
+  { eager: true, import: 'default', query: '?url' },
+);
 
 const models = registerModels([
   [botModelSpecs, botModelUrls, 'bot'],
@@ -142,6 +150,7 @@ const models = registerModels([
   [projectileModelSpecs, projectileModelUrls, 'projectile'],
   [classProjectileModelSpecs, classProjectileModelUrls, 'projectile'],
   [signatureModelSpecs, signatureModelUrls, 'signature'],
+  [objectiveModelSpecs, objectiveModelUrls, 'objective'],
 ]);
 const signatureModelEntries = [...models.values()]
   .filter((model) => model.spec.kind === 'signature')
@@ -271,6 +280,21 @@ export async function lookModel(
 export async function signatureModel(signatureId: string): Promise<THREE.Group | null> {
   const registered = signatureModels.get(signatureId);
   if (!registered) return null;
+  const raw = await rawModel(registered.url);
+  if (!raw) return null;
+  try {
+    const model = instantiate(raw, undefined, undefined, true);
+    markModelSource(model, 'gltf');
+    return model;
+  } catch {
+    return null;
+  }
+}
+
+/** Resolve a neutral authored objective housing; live state remains separate geometry. */
+export async function objectiveModel(id: string): Promise<THREE.Group | null> {
+  const registered = models.get(id);
+  if (!registered || registered.spec.kind !== 'objective') return null;
   const raw = await rawModel(registered.url);
   if (!raw) return null;
   try {
@@ -486,10 +510,14 @@ function validateSpec(
     throw new Error(`3D projectile '${id}' must be a whole model.`);
   if (kind === 'signature' && part !== 'whole')
     throw new Error(`3D signature '${id}' must be a whole model.`);
+  if (kind === 'objective' && part !== 'whole')
+    throw new Error(`3D objective '${id}' must be a whole model.`);
   if (kind === 'projectile' && skillHardware !== undefined)
     throw new Error(`3D projectile '${id}' cannot declare skill hardware.`);
   if (kind === 'signature' && skillHardware !== undefined)
     throw new Error(`3D signature '${id}' cannot declare skill hardware.`);
+  if (kind === 'objective' && skillHardware !== undefined)
+    throw new Error(`3D objective '${id}' cannot declare skill hardware.`);
   if (part === 'turret-arm' && skillHardware !== undefined)
     throw new Error(`3D turret arm '${id}' cannot declare skill hardware.`);
 
@@ -513,8 +541,12 @@ function validateSpec(
     throw new Error(`3D projectile '${id}' cannot declare a signature.`);
   if (kind === 'signature' && signature === undefined)
     throw new Error(`3D signature '${id}' must declare its signature ID.`);
+  if (kind === 'objective' && signature !== undefined)
+    throw new Error(`3D objective '${id}' cannot declare a signature ID.`);
   if (kind === 'signature' && (optionalNodes !== undefined || optionalMotion !== undefined))
     throw new Error(`3D signature '${id}' cannot declare bot motion nodes or tuning.`);
+  if (kind === 'objective' && (optionalNodes !== undefined || optionalMotion !== undefined))
+    throw new Error(`3D objective '${id}' cannot declare bot motion nodes or tuning.`);
 
   return {
     version,

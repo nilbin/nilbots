@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "provider": "Meshy",
+  "endpoint": "multi-image-to-3d",
+  "providerModel": "meshy-7",
+  "classId": "team-reactor-v2",
+  "taskId": "019ffbd5-9d7f-72d9-a6d0-6d79c058801c",
+  "submittedAt": "2026-08-13T15:55:07.815Z",
+  "balanceBefore": 1130,
+  "authorizedCreditCap": 30,
+  "sourceManifest": "art/objective-models/arc-relay/concept-v1/meshy7-inputs/reactor-v2/manifest.json",
+  "inputs": [
+    {
+      "order": 1,
+      "view": "strict-front",
+      "primary": true,
+      "file": "art/objective-models/arc-relay/concept-v1/meshy7-inputs/reactor-v2/01-front.png",
+      "bytes": 1303499,
+      "sha256": "d29dfd04bd48b5506d13d037587b3f4acb15eee2bc226c9c53200d1429d0f84d",
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "order": 2,
+      "view": "strict-right",
+      "primary": false,
+      "file": "art/objective-models/arc-relay/concept-v1/meshy7-inputs/reactor-v2/02-right.png",
+      "bytes": 1080706,
+      "sha256": "3652e4be7443deac560406ee1b410514c1f7af063703ff5301620b60927436d0",
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "order": 3,
+      "view": "strict-top-three-socket-authority",
+      "primary": false,
+      "file": "art/objective-models/arc-relay/concept-v1/meshy7-inputs/reactor-v2/03-top.png",
+      "bytes": 784808,
+      "sha256": "b6eed407cb47476885a010f74d959a5eecf64e3f4c9bf3d405563fdf397c95c6",
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "order": 4,
+      "view": "front-right-three-quarter",
+      "primary": false,
+      "file": "art/objective-models/arc-relay/concept-v1/meshy7-inputs/reactor-v2/04-front-right-three-quarter.png",
+      "bytes": 1410281,
+      "sha256": "ae236f3d377abf5e81e6c31d6329c5fd64ac33dc4836fab0e72401857ebe2d32",
+      "width": 1536,
+      "height": 1024
+    }
+  ],
+  "settings": {
+    "ai_model": "meshy-7",
+    "should_texture": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "should_remesh": false,
+    "image_enhancement": false,
+    "remove_lighting": true,
+    "pose_mode": "",
+    "texture_prompt": "Neutral matte Team Reactor physical housing only. Exact topology authority: one low U-shaped docking housing, one open bank deck, EXACTLY THREE circular charge sockets in a single row, and EXACTLY THREE shallow rectangular integrity bezels: one centered above the sockets and one on each side arm. No other circular holes, ports, recesses, pips or sockets anywhere. Medium-light warm-gray ceramic and stone armor, aged ivory trim, dull nickel seams, restrained muted burgundy clamps, medium graphite bank deck, high roughness and broad readable value groups. No fills, crest, team tint, teal/cyan, orange, glow, plastic, gloss, text, extra holes or baked lighting.",
+    "target_formats": [
+      "glb"
+    ]
+  },
+  "pricingSource": "https://docs.meshy.ai/en/api/pricing",
+  "licenseTerms": "https://www.meshy.ai/terms"
+}

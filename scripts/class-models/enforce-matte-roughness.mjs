@@ -36,7 +36,9 @@ const encoded = binary.subarray(
 );
 const { data, info } = await sharp(encoded).raw().toBuffer({ resolveWithObject: true });
 if (info.channels < 3) throw new Error('Metallic-roughness texture must provide RGB channels.');
-const threshold = Math.round(floor * 255);
+// A floor is a lower bound. Round upward so the 8-bit channel never lands a fraction
+// below the declared value (for example, 0.82 otherwise rounds to 209/255 = 0.8196).
+const threshold = Math.ceil(floor * 255);
 let pixelsRaised = 0;
 let minimumBefore = 255;
 let minimumAfter = 255;

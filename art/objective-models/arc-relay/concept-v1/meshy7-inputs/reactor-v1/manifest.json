@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "status": "owner-review",
+  "classId": "team-reactor",
+  "meshyInputs": [
+    {
+      "order": 1,
+      "view": "strict-front",
+      "file": "01-front.png",
+      "sha256": "d29dfd04bd48b5506d13d037587b3f4acb15eee2bc226c9c53200d1429d0f84d",
+      "width": 1536,
+      "height": 1024,
+      "primary": true
+    },
+    {
+      "order": 2,
+      "view": "strict-right",
+      "file": "02-right.png",
+      "sha256": "3652e4be7443deac560406ee1b410514c1f7af063703ff5301620b60927436d0",
+      "width": 1536,
+      "height": 1024,
+      "primary": false
+    },
+    {
+      "order": 3,
+      "view": "strict-back",
+      "file": "03-back.png",
+      "sha256": "e63c1f107112bd8a28c59c3a234f261829441501b4525fcd0b39b99a65ee2009",
+      "width": 1536,
+      "height": 1024,
+      "primary": false
+    },
+    {
+      "order": 4,
+      "view": "front-right-three-quarter",
+      "file": "04-front-right-three-quarter.png",
+      "sha256": "ae236f3d377abf5e81e6c31d6329c5fd64ac33dc4836fab0e72401857ebe2d32",
+      "width": 1536,
+      "height": 1024,
+      "primary": false
+    }
+  ],
+  "providerRunCollection": "arc-relay-longshot-objectives-v1",
+  "meshyRequestPlan": {
+    "endpoint": "/openapi/v1/multi-image-to-3d",
+    "ai_model": "meshy-7",
+    "should_texture": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "should_remesh": false,
+    "image_enhancement": false,
+    "remove_lighting": true,
+    "pose_mode": "",
+    "texture_prompt": "Neutral matte Team Reactor physical housing only. Medium-light warm-gray ceramic and stone armor, aged ivory socket and ramp trim, dull nickel seams, restrained muted burgundy clamps, medium graphite open throat, high roughness and broad readable value groups. Preserve the low U-shape, open bank deck, exactly three circular charge sockets and exactly three rectangular integrity bezels. No fills, crest, team tint, teal/cyan, orange, glow, plastic, gloss or baked lighting.",
+    "target_formats": [
+      "glb"
+    ],
+    "pilotCreditCap": 30,
+    "authorized": false,
+    "authorization": "Owner approved the corrected state-free Reactor concept and directed the approved four-asset batch to proceed on 2026-08-13.",
+    "authorizationConsumed": true,
+    "autoRigging": false,
+    "completedTaskId": "019ffbba-504b-7bdf-8a40-31517db61259",
+    "consumedCredits": 30
+  },
+  "creditCheck": {
+    "checkedAt": "2026-08-13",
+    "balance": 1300,
+    "texturedMeshy7MultiImagePerTaskCap": 30,
+    "authorizedBatchCredits": 120,
+    "expectedMinimumBalanceAfterBatch": 1180,
+    "autoRigging": false,
+    "pricingSource": "https://docs.meshy.ai/en/api/pricing"
+  },
+  "nextGate": "owner review of raw Meshy 7 first pass; no runtime promotion",
+  "providerRun": {
+    "taskId": "019ffbba-504b-7bdf-8a40-31517db61259",
+    "directory": "../../../../../class-models/provider-runs/meshy/arc-relay-longshot-objectives-v1/team-reactor/019ffbba-504b-7bdf-8a40-31517db61259",
+    "status": "SUCCEEDED",
+    "consumedCredits": 30,
+    "balanceBefore": 1210,
+    "balanceAfter": 1180,
+    "rawModelSha256": "e1726a469e9a7d7d7ab8eecf1d80165f6bf03c79454363d6dba3ecadefeee42f"
+  }
+}

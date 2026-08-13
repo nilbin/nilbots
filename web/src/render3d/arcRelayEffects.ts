@@ -26,7 +26,13 @@ import type {
   ArcSignatureOutcomeFact,
   ArcSignatureWebGLPhase,
 } from './signatures/types';
-import { phaseProgress as signaturePhaseProgress } from './signatures/primitives';
+import {
+  areaBounds as signatureAreaBounds,
+  phaseProgress as signaturePhaseProgress,
+  surveyFlareFlightEndpoints,
+} from './signatures/primitives';
+
+export { surveyFlareFlightEndpoints } from './signatures/primitives';
 import {
   centreStatusPips,
   createStatusPipGeometry,
@@ -127,6 +133,10 @@ interface SignaturePropSlot {
 export const ARC_SIGNATURE_PROP_SCALE = {
   'trip-node': 0.94,
   'sentinel-seed': 0.72,
+  // The provider source is normalized to only 0.3 tile. Standing it on end at 1.35
+  // left a roughly quarter-tile footprint that vanished at the strategic camera. This
+  // is bot-like in height but still occupies only about half a tile on the floor.
+  'survey-flare': 2.5,
 } as const;
 /** Stable air between a construct's scaled mesh and its independently bill-boarded bib. */
 export const CONSTRUCT_STATUS_BIB_GAP = 0.11;
@@ -767,10 +777,12 @@ export function buildArcRelayEffects(
         : undefined;
       let persistentPropReady = false;
       if (
-        phase === 'active' &&
+        (phase === 'active' ||
+          (signature.signatureId === 'survey-flare' && phase === 'in-flight')) &&
         resolution.kind !== 'generic' &&
         (signature.signatureId === 'trip-node' ||
-          signature.signatureId === 'sentinel-seed') &&
+          signature.signatureId === 'sentinel-seed' ||
+          signature.signatureId === 'survey-flare') &&
         points[0]
       ) {
         const poolIndex = usedPropSlots.get(signature.signatureId) ?? 0;
@@ -782,12 +794,39 @@ export function buildArcRelayEffects(
           ? 1
           : easeOutDeploy(Math.min(1, phaseAge / 0.9));
         const propScale = ARC_SIGNATURE_PROP_SCALE[signature.signatureId];
-        // Trip Node settles up from below. Sentinel grows out of its planted seed/socket:
-        // the authored sentry never drops out of the sky, and its reveal expands upward
-        // from floor contact without requiring a skeletal morph.
+        // Persistent props occupy their replay-owned point. Survey Flare uniquely reuses
+        // one rigid model in flight and upright after landing; the scan field remains a
+        // separate authoritative overlay. Sentinel instead grows upward from its planted
+        // seed/socket rather than dropping from the sky.
         const sentinel = signature.signatureId === 'sentinel-seed';
-        const fromY = sentinel ? 0 : -0.24;
-        slot.group.position.copy(points[0]).setY(fromY * (1 - deploy));
+        const surveyFlare = signature.signatureId === 'survey-flare';
+        const fromY = sentinel || surveyFlare ? 0 : -0.24;
+        if (surveyFlare && phase === 'in-flight') {
+          const { from, to } = surveyFlareFlightEndpoints(points, owner)!;
+          const progress = easeOutDeploy(signaturePhaseProgress(signature, time));
+          slot.group.position.lerpVectors(from, to, progress);
+          slot.group.position.y = 0.14 + Math.sin(progress * Math.PI) * 1.15;
+          slot.group.rotation.y = -Math.atan2(to.z - from.z, to.x - from.x);
+          if (slot.model) {
+            slot.model.rotation.x = reducedMotion ? 0 : progress * Math.PI * 4;
+            slot.model.rotation.z = 0;
+          }
+        } else {
+          // Survey's active positions are its complete reveal footprint. Park the
+          // authored instrument at that footprint's centre, not at the canonical
+          // first tile (the upper-left edge after engine sorting).
+          const propPosition = surveyFlare
+            ? signatureAreaBounds(points).centre
+            : points[0]!;
+          slot.group.position.copy(propPosition).setY(
+            surveyFlare ? 0.16 : fromY * (1 - deploy),
+          );
+          slot.group.rotation.y = surveyFlare ? time * 0.28 : 0;
+          if (slot.model) {
+            slot.model.rotation.x = 0;
+            slot.model.rotation.z = surveyFlare ? Math.PI / 2 : 0;
+          }
+        }
         if (sentinel) {
           const width = 0.3 + deploy * 0.7;
           slot.group.scale.set(
@@ -809,7 +848,8 @@ export function buildArcRelayEffects(
               ) ?? 0
             : 0;
         const yawTarget = sentinelYawTarget(slot.group, slot.model);
-        slot.group.rotation.y = yawTarget === slot.group ? propYaw : 0;
+        if (signature.signatureId !== 'survey-flare')
+          slot.group.rotation.y = yawTarget === slot.group ? propYaw : 0;
         if (slot.yawHead) slot.yawHead.rotation.y = propYaw;
         paintSignaturePropBody(
           slot.emissives,
@@ -818,7 +858,7 @@ export function buildArcRelayEffects(
           time,
           deploy,
         );
-        slot.pipGroup.visible = true;
+        slot.pipGroup.visible = !surveyFlare;
         slot.pipGroup.userData.forSignatureOperationId = signature.operationId;
         placeStatusBib(
           slot.pipGroup,

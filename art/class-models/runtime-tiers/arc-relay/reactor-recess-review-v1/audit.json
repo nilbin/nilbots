@@ -1,0 +1,237 @@
+{
+  "schemaVersion": 1,
+  "id": "reactor-recess-review-v1",
+  "status": "owner-review",
+  "generator": "scripts/class-models/build-reactor-recess-review-tiers.mjs",
+  "sources": {
+    "geometry": {
+      "taskId": "019ffcc4-f21b-79f7-b6f4-2ecb9eed441a",
+      "endpoint": "multi-image-to-3d",
+      "provider": "Meshy",
+      "providerModel": "meshy-7",
+      "file": "art/class-models/provider-runs/meshy/arc-relay-team-reactor-recess-v1/team-reactor-recess-v1/019ffcc4-f21b-79f7-b6f4-2ecb9eed441a/raw-model.glb",
+      "bytes": 63702692,
+      "sha256": "877b917bd4799d37da2dce16e95b55b129f1cf9dcff779071493dde93c9bb6df"
+    },
+    "textureDonor": {
+      "taskId": "019ffccf-7594-7de3-a30f-603697cf63a2",
+      "endpoint": "retexture",
+      "provider": "Meshy",
+      "providerModel": "meshy-7",
+      "file": "art/class-models/provider-runs/meshy/arc-relay-team-reactor-recess-v1-retexture/team-reactor-recess-v1/019ffccf-7594-7de3-a30f-603697cf63a2/raw-model.glb",
+      "bytes": 64218900,
+      "sha256": "4f44faa5d43348218d1601191a5cd389d6b5e2d71be17498fb10251850d2a6dd"
+    }
+  },
+  "providerGeometryRewrite": {
+    "sourceTriangles": 1983152,
+    "outputTriangles": 1983142,
+    "triangleDelta": -10,
+    "sourcePositionVertices": 1026897,
+    "outputPositionVertices": 1027050,
+    "dimensionScales": [
+      1.0518604639279756,
+      1.0518604249060155,
+      1.0518604792758857
+    ],
+    "dimensionScaleSpread": 5.436987016160799e-8,
+    "acceptedAsGeometrySource": false,
+    "resolution": "Retexture maps transplanted onto the exact first-pass geometry and UVs."
+  },
+  "providerSpend": {
+    "multiImageCredits": 30,
+    "retextureCredits": 10,
+    "totalCredits": 40,
+    "balanceAfter": 1060,
+    "autoRigging": false
+  },
+  "toolchain": {
+    "gltfTransform": "4.4.2",
+    "simplifier": "meshoptimizer through glTF-Transform",
+    "textureEncoding": "WebP review tier; shipping compression remains a later gate"
+  },
+  "normalization": {
+    "orientation": "identity",
+    "sourceFacing": "+z",
+    "facing": "+x",
+    "up": "+y",
+    "floorY": 0,
+    "facingYawDegrees": 90,
+    "targetPlanformSpan": 1.5
+  },
+  "contract": {
+    "purpose": "Reversible owner review only; no live Reactor replacement.",
+    "geometry": "Exact first-pass Meshy geometry and UVs are retained; only the corrected retexture PBR maps are transplanted before lossy review-tier simplification.",
+    "material": "Neutral aged ivory, graphite, and muted oxblood only; no emission or baked team color.",
+    "matte": "Metallic-roughness green is deterministically floored at 0.82.",
+    "stateOwnership": "Team color, charge, integrity, crest, banking pulse, damage, and destruction remain renderer-owned."
+  },
+  "profiles": [
+    {
+      "id": "lean",
+      "settings": {
+        "simplifyRatio": 0.04,
+        "simplifyError": 0.0025,
+        "lockBorder": false,
+        "textureSize": 512,
+        "geometryCompression": "quantize",
+        "textureEncoding": "WebP",
+        "matteRoughnessFloor": 0.82
+      },
+      "budgets": {
+        "transferBytes": 2000000,
+        "triangles": 100000
+      },
+      "artifact": {
+        "file": "art/class-models/runtime-tiers/arc-relay/reactor-recess-review-v1/arc-team-reactor-recess-lean.glb",
+        "bytes": 1635852,
+        "sha256": "2c6c0efe97becd1671baaacdd38bd2ba65edcd62a426d164d9eabf2847724bb4"
+      },
+      "triangles": 79318,
+      "positionVertices": 54469,
+      "meshes": 1,
+      "primitives": 1,
+      "materials": 1,
+      "textures": 3,
+      "geometrySha256": "d1531a3c60efaed53cb77adbb9089806818637b776e5be4dd59c631e80293305",
+      "memory": {
+        "transferBytes": 1635852,
+        "geometryGpuBytes": 1565288,
+        "textureGpuBytesCompressedTarget": 4194300,
+        "textureGpuBytesRgba8Fallback": 4194300,
+        "modelGpuBytesCompressedTarget": 5759588,
+        "modelGpuBytesRgba8Fallback": 5759588,
+        "textures": [
+          {
+            "imageIndex": 0,
+            "name": null,
+            "slots": [
+              "baseColorTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 37808,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          },
+          {
+            "imageIndex": 1,
+            "name": null,
+            "slots": [
+              "metallicRoughnessTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 22992,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          },
+          {
+            "imageIndex": 2,
+            "name": null,
+            "slots": [
+              "normalTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 6844,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          }
+        ]
+      }
+    },
+    {
+      "id": "rich",
+      "settings": {
+        "simplifyRatio": 0.08,
+        "simplifyError": 0.001,
+        "lockBorder": false,
+        "textureSize": 1024,
+        "geometryCompression": "quantize",
+        "textureEncoding": "WebP",
+        "matteRoughnessFloor": 0.82
+      },
+      "budgets": {
+        "transferBytes": 8000000,
+        "triangles": 180000
+      },
+      "artifact": {
+        "file": "art/class-models/runtime-tiers/arc-relay/reactor-recess-review-v1/arc-team-reactor-recess-rich.glb",
+        "bytes": 4148132,
+        "sha256": "c87eb8b3a4aa9ee7479bf99b1253febd96458726ed9abc5c8ef130b16a811999"
+      },
+      "triangles": 158644,
+      "positionVertices": 100209,
+      "meshes": 1,
+      "primitives": 1,
+      "materials": 1,
+      "textures": 3,
+      "geometrySha256": "ae1689d38535f967f3ad4fd424ae070d92befc21792fbd35d7feecd523adb5d0",
+      "memory": {
+        "transferBytes": 4148132,
+        "geometryGpuBytes": 3907908,
+        "textureGpuBytesCompressedTarget": 16777212,
+        "textureGpuBytesRgba8Fallback": 16777212,
+        "modelGpuBytesCompressedTarget": 20685120,
+        "modelGpuBytesRgba8Fallback": 20685120,
+        "textures": [
+          {
+            "imageIndex": 0,
+            "name": null,
+            "slots": [
+              "baseColorTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 1024,
+            "height": 1024,
+            "mipLevels": 11,
+            "transferBytes": 139356,
+            "gpuBytesCompressedTarget": 5592404,
+            "gpuBytesRgba8Fallback": 5592404
+          },
+          {
+            "imageIndex": 1,
+            "name": null,
+            "slots": [
+              "metallicRoughnessTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 1024,
+            "height": 1024,
+            "mipLevels": 11,
+            "transferBytes": 59392,
+            "gpuBytesCompressedTarget": 5592404,
+            "gpuBytesRgba8Fallback": 5592404
+          },
+          {
+            "imageIndex": 2,
+            "name": null,
+            "slots": [
+              "normalTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 1024,
+            "height": 1024,
+            "mipLevels": 11,
+            "transferBytes": 38546,
+            "gpuBytesCompressedTarget": 5592404,
+            "gpuBytesRgba8Fallback": 5592404
+          }
+        ]
+      }
+    }
+  ]
+}

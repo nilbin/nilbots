@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "status": "gameplay-review",
+  "classId": "team-reactor-v2",
+  "meshyInputs": [
+    {
+      "order": 1,
+      "view": "strict-front",
+      "file": "01-front.png",
+      "sha256": "d29dfd04bd48b5506d13d037587b3f4acb15eee2bc226c9c53200d1429d0f84d",
+      "width": 1536,
+      "height": 1024,
+      "primary": true
+    },
+    {
+      "order": 2,
+      "view": "strict-right",
+      "file": "02-right.png",
+      "sha256": "3652e4be7443deac560406ee1b410514c1f7af063703ff5301620b60927436d0",
+      "width": 1536,
+      "height": 1024,
+      "primary": false
+    },
+    {
+      "order": 3,
+      "view": "strict-top-three-socket-authority",
+      "file": "03-top.png",
+      "sha256": "b6eed407cb47476885a010f74d959a5eecf64e3f4c9bf3d405563fdf397c95c6",
+      "width": 1536,
+      "height": 1024,
+      "primary": false
+    },
+    {
+      "order": 4,
+      "view": "front-right-three-quarter",
+      "file": "04-front-right-three-quarter.png",
+      "sha256": "ae236f3d377abf5e81e6c31d6329c5fd64ac33dc4836fab0e72401857ebe2d32",
+      "width": 1536,
+      "height": 1024,
+      "primary": false
+    }
+  ],
+  "providerRunCollection": "arc-relay-longshot-objectives-v1-corrective-geometry",
+  "meshyRequestPlan": {
+    "endpoint": "/openapi/v1/multi-image-to-3d",
+    "ai_model": "meshy-7",
+    "should_texture": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "should_remesh": false,
+    "image_enhancement": false,
+    "remove_lighting": true,
+    "pose_mode": "",
+    "texture_prompt": "Neutral matte Team Reactor physical housing only. Exact topology authority: one low U-shaped docking housing, one open bank deck, EXACTLY THREE circular charge sockets in a single row, and EXACTLY THREE shallow rectangular integrity bezels: one centered above the sockets and one on each side arm. No other circular holes, ports, recesses, pips or sockets anywhere. Medium-light warm-gray ceramic and stone armor, aged ivory trim, dull nickel seams, restrained muted burgundy clamps, medium graphite bank deck, high roughness and broad readable value groups. No fills, crest, team tint, teal/cyan, orange, glow, plastic, gloss, text, extra holes or baked lighting.",
+    "target_formats": [
+      "glb"
+    ],
+    "pilotCreditCap": 30,
+    "authorized": false,
+    "authorization": "Owner approved a bounded corrective geometry pass after the first result created ambiguous extra circular recesses on 2026-08-13.",
+    "authorizationConsumed": true,
+    "autoRigging": false,
+    "completedTaskId": "019ffbd5-9d7f-72d9-a6d0-6d79c058801c",
+    "consumedCredits": 30
+  },
+  "creditCheck": {
+    "checkedAt": "2026-08-13",
+    "balance": 1160,
+    "texturedMeshy7MultiImagePerTaskCap": 30,
+    "authorizedCorrectiveBatchCredits": 60,
+    "expectedMinimumBalanceAfterBatch": 1100,
+    "autoRigging": false,
+    "pricingSource": "https://docs.meshy.ai/en/api/pricing"
+  },
+  "corrects": {
+    "manifest": "../reactor-v1/manifest.json",
+    "failure": "First provider result produced ambiguous extra circular recesses; strict top replaces the less useful rear input."
+  },
+  "nextGate": "owner review of desktop and phone gameplay evidence before runtime promotion",
+  "providerRun": {
+    "taskId": "019ffbd5-9d7f-72d9-a6d0-6d79c058801c",
+    "directory": "../../../../../class-models/provider-runs/meshy/arc-relay-longshot-objectives-v1-corrective-geometry/team-reactor-v2/019ffbd5-9d7f-72d9-a6d0-6d79c058801c",
+    "status": "SUCCEEDED",
+    "consumedCredits": 30,
+    "balanceBefore": 1130,
+    "balanceAfter": 1100,
+    "rawModelSha256": "06375e52e8756397582bbfd0979f3fa836d987b063fe32660ba767f577cbdb4b"
+  }
+}

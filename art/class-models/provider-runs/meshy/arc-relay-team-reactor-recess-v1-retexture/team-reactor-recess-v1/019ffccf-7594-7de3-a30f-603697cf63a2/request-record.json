@@ -1,0 +1,73 @@
+{
+  "version": 1,
+  "provider": "Meshy",
+  "endpoint": "retexture",
+  "providerModel": "meshy-7",
+  "classId": "team-reactor-recess-v1",
+  "taskId": "019ffccf-7594-7de3-a30f-603697cf63a2",
+  "submittedAt": "2026-08-13T20:28:01.463Z",
+  "balanceBefore": 1070,
+  "authorizedCreditCap": 10,
+  "sourceManifest": "art/objective-models/arc-relay/reactor-recess-v1/meshy7-inputs-v1/manifest.json",
+  "sourceTaskId": "019ffcc4-f21b-79f7-b6f4-2ecb9eed441a",
+  "sourceModel": {
+    "file": "art/class-models/provider-runs/meshy/arc-relay-team-reactor-recess-v1/team-reactor-recess-v1/019ffcc4-f21b-79f7-b6f4-2ecb9eed441a/raw-model.glb",
+    "bytes": 63702692,
+    "sha256": "877b917bd4799d37da2dce16e95b55b129f1cf9dcff779071493dde93c9bb6df"
+  },
+  "inputs": [
+    {
+      "order": 1,
+      "view": "strict-front",
+      "primary": true,
+      "file": "art/objective-models/arc-relay/reactor-recess-v1/meshy7-inputs-v1/01-front.png",
+      "bytes": 772141,
+      "sha256": "cf9201b77afc3cd1be0693d182cd026262a4c65771e4419fb711ba8d047d9bd1",
+      "width": 1536,
+      "height": 1536
+    },
+    {
+      "order": 2,
+      "view": "strict-right",
+      "primary": false,
+      "file": "art/objective-models/arc-relay/reactor-recess-v1/meshy7-inputs-v1/02-right.png",
+      "bytes": 753635,
+      "sha256": "01c38b0ad5be7d2ae59cebe215e7fae02b650bf7ed91f5a2ab86f792243e9a6d",
+      "width": 1536,
+      "height": 1536
+    },
+    {
+      "order": 3,
+      "view": "strict-top",
+      "primary": false,
+      "file": "art/objective-models/arc-relay/reactor-recess-v1/meshy7-inputs-v1/03-top.png",
+      "bytes": 2101874,
+      "sha256": "c1635438d1858a0a3b3bcb38e6b93fb301d83282ee77968563242362fc36b14b",
+      "width": 1536,
+      "height": 1536
+    },
+    {
+      "order": 4,
+      "view": "front-right-three-quarter",
+      "primary": false,
+      "file": "art/objective-models/arc-relay/reactor-recess-v1/meshy7-inputs-v1/04-front-right-three-quarter.png",
+      "bytes": 1704761,
+      "sha256": "74d9d302498fa9f567a44f4c3a524a094a1c477b82b5b58672a6035e36af5b84",
+      "width": 1536,
+      "height": 1536
+    }
+  ],
+  "settings": {
+    "model_url": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ffcc4-f21b-79f7-b6f4-2ecb9eed441a/output/model.glb",
+    "ai_model": "meshy-7",
+    "enable_original_uv": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "alpha_thumbnail": true,
+    "target_formats": [
+      "glb"
+    ]
+  },
+  "pricingSource": "https://docs.meshy.ai/en/api/pricing",
+  "licenseTerms": "https://www.meshy.ai/terms"
+}

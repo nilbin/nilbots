@@ -1,0 +1,39 @@
+{
+  "version": 1,
+  "id": "arc-team-reactor",
+  "file": "model.glb",
+  "kind": "objective",
+  "part": "whole",
+  "facing": "+x",
+  "up": "+y",
+  "source": {
+    "generator": "scripts/class-models/promote-reactor-recess-v1.mjs",
+    "recipe": "art/class-models/runtime-tiers/arc-relay/reactor-recess-review-v1/audit.json",
+    "artifact": "art/class-models/runtime-tiers/arc-relay/reactor-recess-review-v1/arc-team-reactor-recess-lean.glb",
+    "sourceSha256": "2c6c0efe97becd1671baaacdd38bd2ba65edcd62a426d164d9eabf2847724bb4",
+    "approvedArtifact": "art/class-models/runtime-tiers/arc-relay/reactor-recess-review-v1/arc-team-reactor-recess-lean.glb",
+    "approvedSha256": "2c6c0efe97becd1671baaacdd38bd2ba65edcd62a426d164d9eabf2847724bb4",
+    "textureTier": "reactor-recess-review-v1-webp",
+    "provider": "Meshy",
+    "model": "meshy-7",
+    "endpoint": "retexture",
+    "modelType": "original-uv-pbr-retexture",
+    "taskId": "019ffccf-7594-7de3-a30f-603697cf63a2",
+    "orientation": "identity",
+    "facingYawDegrees": 90
+  },
+  "ledger": {
+    "bytes": 1635852,
+    "sha256": "2c6c0efe97becd1671baaacdd38bd2ba65edcd62a426d164d9eabf2847724bb4",
+    "triangles": 79318,
+    "materials": 1,
+    "textureCount": 3,
+    "geometrySha256": "d1531a3c60efaed53cb77adbb9089806818637b776e5be4dd59c631e80293305",
+    "geometryGpuBytes": 1565288,
+    "textureGpuBytesCompressedTarget": 4194300,
+    "textureGpuBytesRgba8Fallback": 4194300,
+    "modelGpuBytesCompressedTarget": 5759588,
+    "modelGpuBytesRgba8Fallback": 5759588,
+    "textureTier": "reactor-recess-review-v1-webp"
+  }
+}

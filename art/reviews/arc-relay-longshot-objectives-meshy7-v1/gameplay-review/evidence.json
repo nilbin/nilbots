@@ -1,0 +1,242 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Real WebGL gameplay review of unpromoted Longshot, Survey Flare, Reactor, and Core Well candidates",
+  "sourceUrl": "http://127.0.0.1:9160/sandbox/longshot-objectives-meshy7-v1/game-review/interactive/?standalone&audio=off&camera=overview&proof=longshot-objectives-review&proof-camera=overview",
+  "runtimeAssetsPromoted": false,
+  "buildRecord": "art/reviews/arc-relay-longshot-objectives-meshy7-v1/gameplay-review/build-record.json",
+  "expectedCandidateModels": {
+    "model-eQKSosf7.glb": "longshot",
+    "model-CkMiK_zB.glb": "survey-flare",
+    "model-2Rmp20hv.glb": "team-reactor",
+    "model-CjuwrFJo.glb": "core-well"
+  },
+  "captures": [
+    {
+      "id": "desktop-opening",
+      "replay": "core-roster",
+      "time": 0,
+      "width": 1440,
+      "height": 900,
+      "mobile": false,
+      "renderer": "webgl",
+      "proofTime": 0,
+      "replaySeed": "9001",
+      "visibleSignatures": [],
+      "loadedCandidates": [
+        "core-well",
+        "longshot",
+        "survey-flare",
+        "team-reactor"
+      ],
+      "image": "art/reviews/arc-relay-longshot-objectives-meshy7-v1/gameplay-review/desktop-opening.png",
+      "imageBytes": 1200882,
+      "imageSha256": "f9df9c8119ff270a0b2bbd711186b454cbc87314990b70f21493b5b590d09708"
+    },
+    {
+      "id": "desktop-flare-flight",
+      "replay": "core-roster",
+      "time": 11.7,
+      "width": 1440,
+      "height": 900,
+      "mobile": false,
+      "renderer": "webgl",
+      "proofTime": 11.7,
+      "replaySeed": "9001",
+      "visibleSignatures": [
+        {
+          "operationId": "arc-signature-0",
+          "signatureId": "hardlight-block",
+          "phase": "active",
+          "visibleMeshes": 12
+        },
+        {
+          "operationId": "arc-signature-1",
+          "signatureId": "survey-flare",
+          "phase": "in-flight",
+          "visibleMeshes": 4
+        }
+      ],
+      "loadedCandidates": [
+        "core-well",
+        "longshot",
+        "survey-flare",
+        "team-reactor"
+      ],
+      "image": "art/reviews/arc-relay-longshot-objectives-meshy7-v1/gameplay-review/desktop-flare-flight.png",
+      "imageBytes": 1287679,
+      "imageSha256": "65a635a6338d02d851b37170463ad08c54158ccde84c224ee7c717e68d1a1b61"
+    },
+    {
+      "id": "desktop-flare-active",
+      "replay": "core-roster",
+      "time": 14.45,
+      "width": 1440,
+      "height": 900,
+      "mobile": false,
+      "renderer": "webgl",
+      "proofTime": 14.45,
+      "replaySeed": "9001",
+      "visibleSignatures": [
+        {
+          "operationId": "arc-signature-0",
+          "signatureId": "hardlight-block",
+          "phase": "active",
+          "visibleMeshes": 12
+        },
+        {
+          "operationId": "arc-signature-1",
+          "signatureId": "survey-flare",
+          "phase": "active",
+          "visibleMeshes": 15
+        }
+      ],
+      "loadedCandidates": [
+        "core-well",
+        "longshot",
+        "survey-flare",
+        "team-reactor"
+      ],
+      "image": "art/reviews/arc-relay-longshot-objectives-meshy7-v1/gameplay-review/desktop-flare-active.png",
+      "imageBytes": 1290619,
+      "imageSha256": "3f6ca37119507fd466975a0d02880e44ff70aad0b07dd9fb339b3448c3ffaf69"
+    },
+    {
+      "id": "desktop-reactor-state",
+      "replay": "core-roster",
+      "time": 200.35,
+      "width": 1440,
+      "height": 900,
+      "mobile": false,
+      "renderer": "webgl",
+      "proofTime": 200.35,
+      "replaySeed": "9001",
+      "visibleSignatures": [
+        {
+          "operationId": "arc-signature-36",
+          "signatureId": "survey-flare",
+          "phase": "active",
+          "visibleMeshes": 15
+        }
+      ],
+      "loadedCandidates": [
+        "core-well",
+        "longshot",
+        "survey-flare",
+        "team-reactor"
+      ],
+      "image": "art/reviews/arc-relay-longshot-objectives-meshy7-v1/gameplay-review/desktop-reactor-state.png",
+      "imageBytes": 1269743,
+      "imageSha256": "9a9543449c5d0bbf1c9f3e80e38b9c14526856eff041b93ce193c7c8e96e84ae"
+    },
+    {
+      "id": "phone-flare-active",
+      "replay": "core-roster",
+      "time": 14.45,
+      "width": 844,
+      "height": 390,
+      "mobile": true,
+      "renderer": "webgl",
+      "proofTime": 14.45,
+      "replaySeed": "9001",
+      "visibleSignatures": [
+        {
+          "operationId": "arc-signature-0",
+          "signatureId": "hardlight-block",
+          "phase": "active",
+          "visibleMeshes": 12
+        },
+        {
+          "operationId": "arc-signature-1",
+          "signatureId": "survey-flare",
+          "phase": "active",
+          "visibleMeshes": 15
+        }
+      ],
+      "loadedCandidates": [
+        "core-well",
+        "longshot",
+        "survey-flare",
+        "team-reactor"
+      ],
+      "image": "art/reviews/arc-relay-longshot-objectives-meshy7-v1/gameplay-review/phone-flare-active.png",
+      "imageBytes": 274350,
+      "imageSha256": "649d626cfca3af9077c0d09a021f18f49e3ae1f1b59e803f286bbe9ec96eb477"
+    },
+    {
+      "id": "phone-reactors",
+      "replay": "remaining-roster",
+      "time": 150.35,
+      "width": 844,
+      "height": 390,
+      "mobile": true,
+      "renderer": "webgl",
+      "proofTime": 150.35,
+      "replaySeed": "9003",
+      "visibleSignatures": [
+        {
+          "operationId": "arc-signature-15",
+          "signatureId": "trip-node",
+          "phase": "active",
+          "visibleMeshes": 7
+        },
+        {
+          "operationId": "arc-signature-48",
+          "signatureId": "trip-node",
+          "phase": "active",
+          "visibleMeshes": 7
+        },
+        {
+          "operationId": "arc-signature-64",
+          "signatureId": "trip-node",
+          "phase": "active",
+          "visibleMeshes": 7
+        },
+        {
+          "operationId": "arc-signature-67",
+          "signatureId": "smoke-canister",
+          "phase": "active",
+          "visibleMeshes": 2
+        },
+        {
+          "operationId": "arc-signature-69",
+          "signatureId": "sentinel-seed",
+          "phase": "active",
+          "visibleMeshes": 5
+        },
+        {
+          "operationId": "arc-signature-70",
+          "signatureId": "hardlight-block",
+          "phase": "active",
+          "visibleMeshes": 12
+        },
+        {
+          "operationId": "arc-signature-68",
+          "signatureId": "falling-star",
+          "phase": "outcome",
+          "visibleMeshes": 17
+        }
+      ],
+      "loadedCandidates": [
+        "core-well",
+        "longshot",
+        "survey-flare",
+        "team-reactor"
+      ],
+      "image": "art/reviews/arc-relay-longshot-objectives-meshy7-v1/gameplay-review/phone-reactors.png",
+      "imageBytes": 302081,
+      "imageSha256": "cdeb581c808aa87394a60f22aa2a812f6c700a0179b95165c3e39e2cf2a97c38"
+    }
+  ],
+  "contactSheets": {
+    "desktop": {
+      "file": "art/reviews/arc-relay-longshot-objectives-meshy7-v1/gameplay-review/desktop-gameplay-review.webp",
+      "bytes": 208886,
+      "sha256": "d231f4d953bc87345c0fde654a868e6a596dc4bfd0f8b378128fb47f2b40d460"
+    },
+    "phone": {
+      "file": "art/reviews/arc-relay-longshot-objectives-meshy7-v1/gameplay-review/phone-gameplay-review.webp",
+      "bytes": 63480,
+      "sha256": "e97efdf27b5a8cd30ac4c40742304635019af78d8fd3cd758a2056e1a83a66ff"
+    }
+  }
+}

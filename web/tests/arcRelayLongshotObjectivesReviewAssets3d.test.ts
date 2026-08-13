@@ -1,0 +1,109 @@
+import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
+import { existsSync, readFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
+import test from 'node:test';
+
+const repository = resolve(import.meta.dirname, '..', '..');
+const audit = JSON.parse(
+  readFileSync(
+    join(
+      repository,
+      'art/class-models/runtime-tiers/arc-relay/longshot-objectives-review-v1/audit.json',
+    ),
+    'utf8',
+  ),
+);
+
+test('Longshot and objective review tier preserves its promotion gate', () => {
+  assert.equal(audit.status, 'owner-review');
+  assert.deepEqual(
+    audit.candidates.map((candidate: { id: string }) => candidate.id),
+    ['longshot', 'survey-flare', 'team-reactor', 'core-well'],
+  );
+  assert.deepEqual(
+    audit.acceptedDeviations.map((candidate: { id: string }) => candidate.id),
+    ['core-well'],
+  );
+  assert.equal(audit.providerSpend.correctiveBatchCredits, 80);
+  assert.equal(audit.providerSpend.balanceAfter, 1100);
+  assert.equal(audit.providerSpend.autoRigging, false);
+
+  const longshot = audit.candidates.find(
+    (candidate: { id: string }) => candidate.id === 'longshot',
+  );
+  const oldTeamReactor = audit.candidates.find(
+    (candidate: { id: string }) => candidate.id === 'team-reactor',
+  );
+  assert.ok(oldTeamReactor);
+  const liveLongshot = readFileSync(
+    join(repository, 'web/src/assets/class-looks/arc-longshot/model.glb'),
+  );
+  const liveTeamReactor = readFileSync(
+    join(repository, 'web/src/assets/objective-models/arc-team-reactor/model.glb'),
+  );
+  assert.notEqual(sha256(liveLongshot), longshot.artifact.sha256);
+  assert.notEqual(
+    sha256(liveTeamReactor),
+    oldTeamReactor.artifact.sha256,
+    'the rejected raised Reactor from this older batch must not become the runtime asset',
+  );
+  assert.equal(
+    existsSync(
+      join(repository, 'web/src/assets/objective-models/arc-core-well/model.glb'),
+    ),
+    false,
+  );
+  assert.equal(
+    existsSync(
+      join(repository, 'web/src/assets/signature-models/arc-survey-flare/model.glb'),
+    ),
+    false,
+  );
+});
+
+test('review-only signature and objective staging manifests match the audited tier', () => {
+  for (const [candidateId, runtimeId, expectedKind, manifestFile] of [
+    ['survey-flare', 'arc-survey-flare', 'signature', 'arc-survey-flare.model3d.json'],
+    ['team-reactor', 'arc-team-reactor', 'objective', 'arc-team-reactor.model3d.json'],
+    ['core-well', 'arc-core-well', 'objective', 'arc-core-well.model3d.json'],
+  ] as const) {
+    const candidate = audit.candidates.find(
+      (entry: { id: string }) => entry.id === candidateId,
+    );
+    assert.ok(candidate, candidateId);
+    const reviewed = readFileSync(join(repository, candidate.artifact.file));
+    const manifest = JSON.parse(
+      readFileSync(
+        join(
+          repository,
+          'art/class-models/runtime-tiers/arc-relay/longshot-objectives-review-v1',
+          manifestFile,
+        ),
+        'utf8',
+      ),
+    );
+
+    assert.equal(reviewed.length, candidate.artifact.bytes, candidateId);
+    assert.equal(sha256(reviewed), candidate.artifact.sha256, candidateId);
+    assert.equal(manifest.id, runtimeId, candidateId);
+    assert.equal(manifest.kind, expectedKind, candidateId);
+    assert.equal(manifest.facing, '+x', candidateId);
+    assert.equal(manifest.up, '+y', candidateId);
+    assert.equal(manifest.source.sourceSha256, candidate.artifact.sha256, candidateId);
+    assert.equal(manifest.source.taskId, candidate.taskId, candidateId);
+    assert.equal(manifest.ledger.sha256, candidate.artifact.sha256, candidateId);
+    if (candidateId === 'core-well') {
+      assert.equal(candidate.normalization.targetPlanformSpan, 0.9);
+      assert.equal(candidate.normalization.heightScale, 0.5);
+      assert.equal(candidate.matteRoughness.floor, 0.82);
+      assert.equal(manifest.source.targetPlanformSpan, 0.9);
+      assert.equal(manifest.source.heightScale, 0.5);
+      assert.equal(manifest.source.matteRoughnessFloor, 0.82);
+    }
+  }
+});
+
+function sha256(bytes: Buffer): string {
+  return createHash('sha256').update(bytes).digest('hex');
+}

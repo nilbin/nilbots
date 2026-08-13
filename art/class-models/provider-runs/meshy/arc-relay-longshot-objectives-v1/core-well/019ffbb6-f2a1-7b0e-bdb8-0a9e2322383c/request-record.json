@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "provider": "Meshy",
+  "endpoint": "multi-image-to-3d",
+  "providerModel": "meshy-7",
+  "classId": "core-well",
+  "taskId": "019ffbb6-f2a1-7b0e-bdb8-0a9e2322383c",
+  "submittedAt": "2026-08-13T15:21:37.900Z",
+  "balanceBefore": 1240,
+  "authorizedCreditCap": 30,
+  "sourceManifest": "art/objective-models/arc-relay/concept-v1/meshy7-inputs/well-v1/manifest.json",
+  "inputs": [
+    {
+      "order": 1,
+      "view": "strict-front",
+      "primary": true,
+      "file": "art/objective-models/arc-relay/concept-v1/meshy7-inputs/well-v1/01-front.png",
+      "bytes": 1058697,
+      "sha256": "8532712c57fb931e64cbfff27b7f1898244b2c9d40ad12a4a60ad9345008a74e",
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "order": 2,
+      "view": "strict-right",
+      "primary": false,
+      "file": "art/objective-models/arc-relay/concept-v1/meshy7-inputs/well-v1/02-right.png",
+      "bytes": 1028287,
+      "sha256": "8acb8e5560d8c91991f856be366e3be6e5903808ead5f69660771cde795825e8",
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "order": 3,
+      "view": "strict-back",
+      "primary": false,
+      "file": "art/objective-models/arc-relay/concept-v1/meshy7-inputs/well-v1/03-back.png",
+      "bytes": 1323301,
+      "sha256": "af50fd453539b0d9b040b6dcfc7cbb34030e57b9a9ced613fa0a1001a1e25457",
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "order": 4,
+      "view": "front-right-three-quarter",
+      "primary": false,
+      "file": "art/objective-models/arc-relay/concept-v1/meshy7-inputs/well-v1/04-front-right-three-quarter.png",
+      "bytes": 1174379,
+      "sha256": "0a06f6f3940d9e9e05f7d76936ed054e18345ee90f3b81d26ead7a997616c6bd",
+      "width": 1536,
+      "height": 1024
+    }
+  ],
+  "settings": {
+    "ai_model": "meshy-7",
+    "should_texture": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "should_remesh": false,
+    "image_enhancement": false,
+    "remove_lighting": true,
+    "pose_mode": "",
+    "texture_prompt": "Neutral matte Core Well physical housing only. Medium-light warm-gray ceramic and stone armor, aged ivory upper collar, dull nickel seams, restrained muted burgundy anchor clamps, medium graphite open bowl, high roughness and broad readable value groups. Preserve the low octagonal ring, genuinely open bowl and exactly three radial anchors. No Core, glyph, progress ring, team tint, teal/cyan, orange, glow, plastic, gloss or baked lighting.",
+    "target_formats": [
+      "glb"
+    ]
+  },
+  "pricingSource": "https://docs.meshy.ai/en/api/pricing",
+  "licenseTerms": "https://www.meshy.ai/terms"
+}

@@ -1,7 +1,9 @@
 # Longshot refresh concept v1
 
-Status: **awaiting owner concept approval**. This is not approved Meshy input,
-runtime art, provider-task approval, or spend approval.
+Status: **owner-approved concept and unpromoted gameplay-review candidate** as
+of 2026-08-13. Meshy generation, corrective matte retexture, normalization,
+optimization, and desktop/phone WebGL review are complete. The approved live
+Longshot remains unchanged until a separate promotion decision.
 
 ## Why refresh the current model
 
@@ -17,7 +19,7 @@ pill/coffin and the recessed dark spine absorbs the small same-value charge
 blocks. The minimal team mask marks only the prow seam. Model-local lighting
 helps its value but cannot invent silhouette or large-scale value hierarchy.
 
-This first refresh direction keeps Longshot elongated and directional while
+The approved refresh keeps Longshot elongated and directional while
 replacing the pill perimeter with a blunt stepped prow, armored shoulders, a
 split stern, and exactly three raised high-value charge stages. The beam source
 is a wide flush prow seam, never a gun or barrel.
@@ -51,6 +53,24 @@ thumbnail-scale silhouette judgment; neither derivative is a repaint.
 - Fleet-family reference: `art/reviews/arc-relay-meshy7-fleet-retexture-v3/fixed-orientation-sheet.png`, SHA-256 `0658899b93f442cafd47730aee003ac2a9bb5153ee7377b52aa18fd3756956d0`.
 - Gameplay-scale reference: `art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/rail-line-action.webp`, SHA-256 `bd7472f68ad85a719545eb8b7e4d994c810b88fed94fba3ded7fa40e17691287`.
 - Generated source: `/Users/sebastian.lind/.codex/generated_images/019fee2d-edd3-7723-8309-6a84e5627578/exec-faaa2ff9-4853-45d7-a86b-92036a0258d8.png`.
-- Project-bound concept: `longshot-six-view.png`, `1536 x 1024` RGB PNG,
-  SHA-256 `f85c9761e1cd8e4afd48cc11805a073a0d24dba1ff090cb39fd3150173ea0084`.
+- First-pass project concept: `longshot-six-view-first-pass.png`, `1536 x 1024`
+  RGB PNG, SHA-256
+  `f85c9761e1cd8e4afd48cc11805a073a0d24dba1ff090cb39fd3150173ea0084`.
+- The owner approved the concept on 2026-08-13 conditional on a brighter
+  Longshot texture/material pass.
+- Rejected too-bright edit: `longshot-six-view-too-bright.png`, `1536 x 1024`
+  RGB PNG, SHA-256
+  `ea9b8c0cff41647be88b1b8c6be606f75d684730c617fe1fd89a47544498016b`.
+- Canonical midpoint project concept: `longshot-six-view.png`, `1536 x 1024`
+  RGB PNG, SHA-256
+  `d1be0486dfcb9db1eb08bbcf4f78327861ed01534f96b7fd2702db40c67f52e0`.
+- Canonical midpoint edit source:
+  `/Users/sebastian.lind/.codex/generated_images/019fee2d-edd3-7723-8309-6a84e5627578/exec-1c22a2a9-66f9-4464-8ccd-1f1c6b26fe5c.png`.
+- Meshy 7 corrective retexture task:
+  `019ffbca-f9c4-757e-9588-c718abfe1538` (10 credits, no rigging).
+- Lean review artifact: `1,723,372` bytes, `79,188` triangles, three embedded
+  `512 px` WebP PBR textures; SHA-256
+  `e02ea1d456f9e1310e7778c19b834b8ff3b3539982f48f3e1bde4cfd3a75da01`.
+- Gameplay evidence:
+  `art/reviews/arc-relay-longshot-objectives-meshy7-v1/gameplay-review/`.
 - Exact prompt: `PROMPT.md`.

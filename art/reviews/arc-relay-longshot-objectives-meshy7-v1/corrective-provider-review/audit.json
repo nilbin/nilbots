@@ -1,0 +1,207 @@
+{
+  "schemaVersion": 1,
+  "status": "geometry-and-material-owner-review",
+  "capturedAt": "2026-08-13T16:01:06.984Z",
+  "renderer": "Three.js WebGLRenderer through Playwright Chromium",
+  "sourceViewer": "scripts/class-models/model-turntable-review.html",
+  "contract": {
+    "purpose": "Normalized provider geometry review only; no runtime promotion",
+    "up": "+Y",
+    "floorY": 0,
+    "materialGate": "corrective pass: inspect matte finish and approved palette"
+  },
+  "records": [
+    {
+      "id": "longshot",
+      "targetPlanformSpan": 0.99,
+      "model": "art/class-models/provider-runs/meshy/arc-relay-longshot-objectives-v1-corrective-retextures/longshot/019ffbca-f9c4-757e-9588-c718abfe1538/model-normalized-identity-review.glb",
+      "modelBytes": 10355168,
+      "modelSha256": "054ce1242a559ddbdab9d51fc006d584dfed57940f277b42ffba39367b197cd2",
+      "triangles": 418331,
+      "sheet": "art/reviews/arc-relay-longshot-objectives-meshy7-v1/corrective-provider-review/longshot-six-view.png",
+      "sheetSha256": "af99d57cd820530bce1461ca69cc27efb1254c3a67b515b201e71dbf492b0b11",
+      "captures": [
+        {
+          "view": "front-three-quarter",
+          "label": "GAMEPLAY 3/4",
+          "file": "art/reviews/arc-relay-longshot-objectives-meshy7-v1/corrective-provider-review/captures/longshot-front-three-quarter.png",
+          "sha256": "8b262231d0995723db8b5e3e70677b144ac06e68f93ff2165f4869ed36e379dc"
+        },
+        {
+          "view": "positive-x",
+          "label": "+X CAMERA",
+          "file": "art/reviews/arc-relay-longshot-objectives-meshy7-v1/corrective-provider-review/captures/longshot-positive-x.png",
+          "sha256": "eb8f6942979630b44f2c5a4305503ca307f1d140925936921547b8bbd4fc8b80"
+        },
+        {
+          "view": "negative-x",
+          "label": "-X CAMERA",
+          "file": "art/reviews/arc-relay-longshot-objectives-meshy7-v1/corrective-provider-review/captures/longshot-negative-x.png",
+          "sha256": "73dbba7627ed59f78d6e4073b3745b256e59674df156d98df7f736a736dd6be0"
+        },
+        {
+          "view": "positive-z",
+          "label": "+Z CAMERA",
+          "file": "art/reviews/arc-relay-longshot-objectives-meshy7-v1/corrective-provider-review/captures/longshot-positive-z.png",
+          "sha256": "d0dd87982b1e341a88ac8bfe0f68c9c06694f1f78c264a001df395388602afef"
+        },
+        {
+          "view": "negative-z",
+          "label": "-Z CAMERA",
+          "file": "art/reviews/arc-relay-longshot-objectives-meshy7-v1/corrective-provider-review/captures/longshot-negative-z.png",
+          "sha256": "3cf08cb5dc2b7006502d075b86eb6fe71f4aa5bb822deab1c36f73d848b4f481"
+        },
+        {
+          "view": "top-down",
+          "label": "STRICT TOP",
+          "file": "art/reviews/arc-relay-longshot-objectives-meshy7-v1/corrective-provider-review/captures/longshot-top-down.png",
+          "sha256": "395e725707ba8a8d559885af48db9ae1ffbe77b77740a0e48cafdc4631cfa1c7"
+        }
+      ]
+    },
+    {
+      "id": "survey-flare",
+      "targetPlanformSpan": 0.3,
+      "model": "art/class-models/provider-runs/meshy/arc-relay-longshot-objectives-v1-corrective-retextures/survey-flare/019ffbcd-1911-75e8-a822-90a439c88415/model-normalized-identity-review.glb",
+      "modelBytes": 9910760,
+      "modelSha256": "f4cb8fea6421168724322ff17cb080b3eec263d95e8e2eeb368cf72187ed8c88",
+      "triangles": 418432,
+      "sheet": "art/reviews/arc-relay-longshot-objectives-meshy7-v1/corrective-provider-review/survey-flare-six-view.png",
+      "sheetSha256": "271c212c4db0a6c0e64feadaf1ed3342ca85a8494bd844fb8277d17d87a0caae",
+      "captures": [
+        {
+          "view": "front-three-quarter",
+          "label": "GAMEPLAY 3/4",
+          "file": "art/reviews/arc-relay-longshot-objectives-meshy7-v1/corrective-provider-review/captures/survey-flare-front-three-quarter.png",
+          "sha256": "a4a4356a5d403bde5e6db9b9b55d1fe926eff9ecf478c913acd13fcbd4baf9be"
+        },
+        {
+          "view": "positive-x",
+          "label": "+X CAMERA",
+          "file": "art/reviews/arc-relay-longshot-objectives-meshy7-v1/corrective-provider-review/captures/survey-flare-positive-x.png",
+          "sha256": "04d707b3620da4c4ef5664a93e25839062dd6df4c6690ed700e62a31718ac61a"
+        },
+        {
+          "view": "negative-x",
+          "label": "-X CAMERA",
+          "file": "art/reviews/arc-relay-longshot-objectives-meshy7-v1/corrective-provider-review/captures/survey-flare-negative-x.png",
+          "sha256": "b8d81b46d42b543706b79c9b3828b063d8a548866c921895ec2d2eaca58f682b"
+        },
+        {
+          "view": "positive-z",
+          "label": "+Z CAMERA",
+          "file": "art/reviews/arc-relay-longshot-objectives-meshy7-v1/corrective-provider-review/captures/survey-flare-positive-z.png",
+          "sha256": "12d120bb41a85aad9d4e7b14407bfeac315a3fdcad1bf1c4d5e73f0f663dc2d1"
+        },
+        {
+          "view": "negative-z",
+          "label": "-Z CAMERA",
+          "file": "art/reviews/arc-relay-longshot-objectives-meshy7-v1/corrective-provider-review/captures/survey-flare-negative-z.png",
+          "sha256": "f3b8848801029aec6f5340fc8440ff009865bc9d590d98fc66ba7fd3b1569e0a"
+        },
+        {
+          "view": "top-down",
+          "label": "STRICT TOP",
+          "file": "art/reviews/arc-relay-longshot-objectives-meshy7-v1/corrective-provider-review/captures/survey-flare-top-down.png",
+          "sha256": "42849b207a6a7e074d038d99b96029ce9cb625927e69f9df54fa82b2df495731"
+        }
+      ]
+    },
+    {
+      "id": "core-well",
+      "targetPlanformSpan": 1,
+      "model": "art/class-models/provider-runs/meshy/arc-relay-longshot-objectives-v1-corrective-geometry/core-well-v2/019ffbd2-0fcf-7716-bba6-8f920b78fcc9/model-normalized-identity-review.glb",
+      "modelBytes": 13141628,
+      "modelSha256": "060fc3b1f65c68129903b3c5fc29e192f463f285d00d8f3cdcdab569ea043b2b",
+      "triangles": 560174,
+      "sheet": "art/reviews/arc-relay-longshot-objectives-meshy7-v1/corrective-provider-review/core-well-six-view.png",
+      "sheetSha256": "9f3db2ad2935927afb214f5e3d790e16d0fbebc864b631f1668896c5dc9be97c",
+      "captures": [
+        {
+          "view": "front-three-quarter",
+          "label": "GAMEPLAY 3/4",
+          "file": "art/reviews/arc-relay-longshot-objectives-meshy7-v1/corrective-provider-review/captures/core-well-front-three-quarter.png",
+          "sha256": "afefc9ede3f2ddee2124e02069775e04ead082f1ff483fbe860c6af9e6d8fe9c"
+        },
+        {
+          "view": "positive-x",
+          "label": "+X CAMERA",
+          "file": "art/reviews/arc-relay-longshot-objectives-meshy7-v1/corrective-provider-review/captures/core-well-positive-x.png",
+          "sha256": "244924531ceaa8e40dab1dd667c0d3d5bd33364cdcfe4ad664e489afcf5bdee8"
+        },
+        {
+          "view": "negative-x",
+          "label": "-X CAMERA",
+          "file": "art/reviews/arc-relay-longshot-objectives-meshy7-v1/corrective-provider-review/captures/core-well-negative-x.png",
+          "sha256": "fb6ac3d021053c5258b93affeaf19c0968fe3d4e0c8bde2a4010baa230cd1c2e"
+        },
+        {
+          "view": "positive-z",
+          "label": "+Z CAMERA",
+          "file": "art/reviews/arc-relay-longshot-objectives-meshy7-v1/corrective-provider-review/captures/core-well-positive-z.png",
+          "sha256": "d9cf0265db05a30fa34db7883a24105ac2de8e18375cade84e9f34dffeb32bd0"
+        },
+        {
+          "view": "negative-z",
+          "label": "-Z CAMERA",
+          "file": "art/reviews/arc-relay-longshot-objectives-meshy7-v1/corrective-provider-review/captures/core-well-negative-z.png",
+          "sha256": "3d0471f42030eed2d5736a3fa629632c5c24f0785319c3448be16f23ad8e0063"
+        },
+        {
+          "view": "top-down",
+          "label": "STRICT TOP",
+          "file": "art/reviews/arc-relay-longshot-objectives-meshy7-v1/corrective-provider-review/captures/core-well-top-down.png",
+          "sha256": "786eccdc15f30f9319acfc77244ccceccb862feeb996dfb560e8753c25aa621a"
+        }
+      ]
+    },
+    {
+      "id": "team-reactor",
+      "targetPlanformSpan": 1.5,
+      "model": "art/class-models/provider-runs/meshy/arc-relay-longshot-objectives-v1-corrective-geometry/team-reactor-v2/019ffbd5-9d7f-72d9-a6d0-6d79c058801c/model-normalized-identity-review.glb",
+      "modelBytes": 11287428,
+      "modelSha256": "d654a468b2dc46331e5741d4d1edde59778500dfa26db958c7145506887a68d6",
+      "triangles": 475472,
+      "sheet": "art/reviews/arc-relay-longshot-objectives-meshy7-v1/corrective-provider-review/team-reactor-six-view.png",
+      "sheetSha256": "27c72499ba6281df7559c4a1b8b57438d7fa51ea15a4351fd9bbab26080ff1d6",
+      "captures": [
+        {
+          "view": "front-three-quarter",
+          "label": "GAMEPLAY 3/4",
+          "file": "art/reviews/arc-relay-longshot-objectives-meshy7-v1/corrective-provider-review/captures/team-reactor-front-three-quarter.png",
+          "sha256": "6260b80dc7b46258fdff0edc455fc3b1fed71565592f5db45f14fe82b0dafa7c"
+        },
+        {
+          "view": "positive-x",
+          "label": "+X CAMERA",
+          "file": "art/reviews/arc-relay-longshot-objectives-meshy7-v1/corrective-provider-review/captures/team-reactor-positive-x.png",
+          "sha256": "be1e87262bc727a24bc054fd5a3dc44b5ddc7c46ef222701985e8889b781f0ab"
+        },
+        {
+          "view": "negative-x",
+          "label": "-X CAMERA",
+          "file": "art/reviews/arc-relay-longshot-objectives-meshy7-v1/corrective-provider-review/captures/team-reactor-negative-x.png",
+          "sha256": "e6c1d2ba13c1647b968a3a6866c7c1049933c81af6a298ea21b65dc86d2265ce"
+        },
+        {
+          "view": "positive-z",
+          "label": "+Z CAMERA",
+          "file": "art/reviews/arc-relay-longshot-objectives-meshy7-v1/corrective-provider-review/captures/team-reactor-positive-z.png",
+          "sha256": "31fb637862ab098cee30a2abdf0eb2bf3c4f4dcb05b2c641fb500cbd1859991c"
+        },
+        {
+          "view": "negative-z",
+          "label": "-Z CAMERA",
+          "file": "art/reviews/arc-relay-longshot-objectives-meshy7-v1/corrective-provider-review/captures/team-reactor-negative-z.png",
+          "sha256": "2e817910f9aea2fdef2fb804d9e047f2506d29951f029509f216e53b02f72e6e"
+        },
+        {
+          "view": "top-down",
+          "label": "STRICT TOP",
+          "file": "art/reviews/arc-relay-longshot-objectives-meshy7-v1/corrective-provider-review/captures/team-reactor-top-down.png",
+          "sha256": "f5681a979ced5227d302c960d1b04b398199dfd26ad2a63b55d0eca8ec2470d9"
+        }
+      ]
+    }
+  ]
+}

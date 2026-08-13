@@ -1,0 +1,73 @@
+{
+  "version": 1,
+  "provider": "Meshy",
+  "endpoint": "retexture",
+  "providerModel": "meshy-7",
+  "classId": "survey-flare",
+  "taskId": "019ffbcd-1911-75e8-a822-90a439c88415",
+  "submittedAt": "2026-08-13T15:45:49.269Z",
+  "balanceBefore": 1170,
+  "authorizedCreditCap": 10,
+  "sourceManifest": "art/signature-models/arc-relay/survey-flare-concept-v1/meshy7-inputs-v1/manifest.json",
+  "sourceTaskId": "019ffbb2-f103-72db-9a57-b4bf849a5f4f",
+  "sourceModel": {
+    "file": "art/class-models/provider-runs/meshy/arc-relay-longshot-objectives-v1/survey-flare/019ffbb2-f103-72db-9a57-b4bf849a5f4f/raw-model.glb",
+    "bytes": 62086004,
+    "sha256": "d58d5a7b2b7e9c628b2b6f74a070e8b52a8e7c6919f4a1abe11cacbfbcaf19b4"
+  },
+  "inputs": [
+    {
+      "order": 1,
+      "view": "strict-front",
+      "primary": true,
+      "file": "art/signature-models/arc-relay/survey-flare-concept-v1/meshy7-inputs-v1/01-front.png",
+      "bytes": 1190789,
+      "sha256": "5b0f2974ae1cdcaf8e25c5a79c5a68e9b0e1ff4e55507dff0ba545ac45bc8890",
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "order": 2,
+      "view": "strict-right",
+      "primary": false,
+      "file": "art/signature-models/arc-relay/survey-flare-concept-v1/meshy7-inputs-v1/02-right.png",
+      "bytes": 1267864,
+      "sha256": "dce1dbe0dd0894747d42647543aade80ae9af73ecee28dadfde037c3bca0ed68",
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "order": 3,
+      "view": "strict-back",
+      "primary": false,
+      "file": "art/signature-models/arc-relay/survey-flare-concept-v1/meshy7-inputs-v1/03-back.png",
+      "bytes": 1168680,
+      "sha256": "15fdfd2d725dcaa9f6550d8b4845029643d44ade7b944f03cfe7aba123ec406a",
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "order": 4,
+      "view": "front-right-three-quarter",
+      "primary": false,
+      "file": "art/signature-models/arc-relay/survey-flare-concept-v1/meshy7-inputs-v1/04-front-right-three-quarter.png",
+      "bytes": 1356512,
+      "sha256": "2c7a60bbb3d313edb2380ff45f491ce80f71ba67a319bc0a5e6940df4d34357e",
+      "width": 1536,
+      "height": 1024
+    }
+  ],
+  "settings": {
+    "model_url": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ffbb2-f103-72db-9a57-b4bf849a5f4f/output/model.glb",
+    "ai_model": "meshy-7",
+    "enable_original_uv": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "alpha_thumbnail": true,
+    "target_formats": [
+      "glb"
+    ]
+  },
+  "pricingSource": "https://docs.meshy.ai/en/api/pricing",
+  "licenseTerms": "https://www.meshy.ai/terms"
+}

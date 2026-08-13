@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Current-build combined real-renderer review of Longshot, Survey Flare, Team Reactor, and Core Well, with a focused Lantern stage",
+  "sourceCommit": "1b41ca4ea04938e82a134db1e3e3107823616f19",
+  "runtimeAssetsPromoted": {
+    "teamReactor": true,
+    "longshot": false,
+    "surveyFlare": false,
+    "coreWell": false
+  },
+  "tierAudit": "art/class-models/runtime-tiers/arc-relay/longshot-objectives-review-v1/audit.json",
+  "output": "sandbox/longshot-objectives-meshy7-v1/combined-review/site",
+  "longshotRuntimeSha256Before": "9ea835fa2363843eeaacc02c69687eee1471ac44c4e1a703d05783c14e8cbe4a",
+  "longshotCandidateSha256": "e02ea1d456f9e1310e7778c19b834b8ff3b3539982f48f3e1bde4cfd3a75da01",
+  "longshotRuntimeSha256After": "9ea835fa2363843eeaacc02c69687eee1471ac44c4e1a703d05783c14e8cbe4a",
+  "approvedRuntimeRestoredExactly": true,
+  "approvedRuntimeManifestRestoredExactly": true,
+  "stagedRuntimeDirectoriesRemoved": true,
+  "emittedCandidates": [
+    {
+      "id": "longshot",
+      "sha256": "e02ea1d456f9e1310e7778c19b834b8ff3b3539982f48f3e1bde4cfd3a75da01",
+      "emitted": {
+        "file": "assets/model-eQKSosf7.glb",
+        "bytes": 1723372,
+        "sha256": "e02ea1d456f9e1310e7778c19b834b8ff3b3539982f48f3e1bde4cfd3a75da01"
+      }
+    },
+    {
+      "id": "survey-flare",
+      "sha256": "0df64d292faff971e0b214883d68285112850eb71f43aa9f28c5b2d10f610ff7",
+      "emitted": {
+        "file": "assets/model-CkMiK_zB.glb",
+        "bytes": 361444,
+        "sha256": "0df64d292faff971e0b214883d68285112850eb71f43aa9f28c5b2d10f610ff7"
+      }
+    },
+    {
+      "id": "core-well",
+      "sha256": "ebc3e229c4ccf793031ed7254b9c3744d72cdbefa434b060c673e249fdaa92ca",
+      "emitted": {
+        "file": "assets/model-xg-VeYyf.glb",
+        "bytes": 1619284,
+        "sha256": "ebc3e229c4ccf793031ed7254b9c3744d72cdbefa434b060c673e249fdaa92ca"
+      }
+    },
+    {
+      "id": "team-reactor",
+      "sha256": "2c6c0efe97becd1671baaacdd38bd2ba65edcd62a426d164d9eabf2847724bb4",
+      "emitted": {
+        "file": "assets/model-CdVUlH4z.glb",
+        "bytes": 1635852,
+        "sha256": "2c6c0efe97becd1671baaacdd38bd2ba65edcd62a426d164d9eabf2847724bb4"
+      }
+    }
+  ]
+}

@@ -1,0 +1,120 @@
+{
+  "schemaVersion": 1,
+  "status": "owner-review",
+  "classId": "team-reactor-recess-v1",
+  "identitySource": {
+    "file": "../reactor-recess-six-view.png",
+    "sha256": "5e869249f8a18c7322f6d852160c3040803c7679d02336fba8e531d56fc72844"
+  },
+  "fidelityBrief": "../FIDELITY.md",
+  "inputBuilder": "scripts/class-models/build-reactor-recess-meshy7-inputs.mjs",
+  "meshyInputs": [
+    {
+      "order": 1,
+      "view": "strict-front",
+      "file": "01-front.png",
+      "sha256": "cf9201b77afc3cd1be0693d182cd026262a4c65771e4419fb711ba8d047d9bd1",
+      "width": 1536,
+      "height": 1536,
+      "primary": true
+    },
+    {
+      "order": 2,
+      "view": "strict-right",
+      "file": "02-right.png",
+      "sha256": "01c38b0ad5be7d2ae59cebe215e7fae02b650bf7ed91f5a2ab86f792243e9a6d",
+      "width": 1536,
+      "height": 1536,
+      "primary": false
+    },
+    {
+      "order": 3,
+      "view": "strict-top",
+      "file": "03-top.png",
+      "sha256": "c1635438d1858a0a3b3bcb38e6b93fb301d83282ee77968563242362fc36b14b",
+      "width": 1536,
+      "height": 1536,
+      "primary": false
+    },
+    {
+      "order": 4,
+      "view": "front-right-three-quarter",
+      "file": "04-front-right-three-quarter.png",
+      "sha256": "74d9d302498fa9f567a44f4c3a524a094a1c477b82b5b58672a6035e36af5b84",
+      "width": 1536,
+      "height": 1536,
+      "primary": false
+    }
+  ],
+  "providerRunCollection": "arc-relay-team-reactor-recess-v1",
+  "retextureRunCollection": "arc-relay-team-reactor-recess-v1-retexture",
+  "meshyRequestPlan": {
+    "endpoint": "/openapi/v1/multi-image-to-3d",
+    "ai_model": "meshy-7",
+    "should_texture": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "should_remesh": false,
+    "image_enhancement": false,
+    "remove_lighting": true,
+    "pose_mode": "",
+    "texture_prompt": "Neutral matte Team Reactor floor socket only. Preserve one broad very-low octagonal aged-ivory and warm-gray ceramic rim, one dominant deep graphite central aperture and recessed bowl, exactly three large shallow rectangular unlit state bays, exactly three restrained muted-oxblood clamps, and dull nickel edge trim. High-roughness coarse environment finish with broad readable value groups, bright enough for a dark arena but never white. No tower, raised machine, bot, Core, orb, pillar, gate, gun, extra ports, extra bays, extra clamps, team tint, teal, cyan, orange, glow, emission, pips, crest, text, logo, plastic, gloss, chrome, or baked lighting.",
+    "target_formats": [
+      "glb"
+    ],
+    "pilotCreditCap": 30,
+    "authorized": false,
+    "authorization": "Owner approved the recessed Reactor concept and explicitly directed a proper Meshy generation on 2026-08-13.",
+    "authorizationConsumed": true,
+    "autoRigging": false,
+    "completedTaskId": "019ffcc4-f21b-79f7-b6f4-2ecb9eed441a",
+    "consumedCredits": 30
+  },
+  "creditCheck": {
+    "checkedAt": "2026-08-13",
+    "texturedMeshy7MultiImagePerTaskCap": 30,
+    "authorizedCredits": 30,
+    "autoRigging": false,
+    "pricingSource": "https://docs.meshy.ai/en/api/pricing",
+    "apiDocumentation": "https://docs.meshy.ai/en/api/multi-image-to-3d"
+  },
+  "nextGate": "owner review of corrected Meshy 7 material pass; no runtime promotion",
+  "providerRun": {
+    "taskId": "019ffcc4-f21b-79f7-b6f4-2ecb9eed441a",
+    "directory": "../../../../class-models/provider-runs/meshy/arc-relay-team-reactor-recess-v1/team-reactor-recess-v1/019ffcc4-f21b-79f7-b6f4-2ecb9eed441a",
+    "status": "SUCCEEDED",
+    "consumedCredits": 30,
+    "balanceBefore": 1100,
+    "balanceAfter": 1070,
+    "rawModelSha256": "877b917bd4799d37da2dce16e95b55b129f1cf9dcff779071493dde93c9bb6df"
+  },
+  "retexturePlan": {
+    "endpoint": "/openapi/v1/retexture",
+    "sourceTaskId": "019ffcc4-f21b-79f7-b6f4-2ecb9eed441a",
+    "sourceRawModelSha256": "877b917bd4799d37da2dce16e95b55b129f1cf9dcff779071493dde93c9bb6df",
+    "styleAuthority": "same four ordered approved Reactor-recess views; strict front first",
+    "ai_model": "meshy-7",
+    "enable_original_uv": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "alpha_thumbnail": true,
+    "target_formats": [
+      "glb"
+    ],
+    "creditCap": 10,
+    "authorized": false,
+    "authorization": "Owner explicitly approved additional Reactor texture rounds if needed on 2026-08-13; provider geometry passed and the first material pass failed for orange/amber team-color leakage and gloss.",
+    "authorizationConsumed": true,
+    "completedTaskId": "019ffccf-7594-7de3-a30f-603697cf63a2",
+    "consumedCredits": 10
+  },
+  "retextureRun": {
+    "taskId": "019ffccf-7594-7de3-a30f-603697cf63a2",
+    "directory": "../../../../class-models/provider-runs/meshy/arc-relay-team-reactor-recess-v1-retexture/team-reactor-recess-v1/019ffccf-7594-7de3-a30f-603697cf63a2",
+    "status": "SUCCEEDED",
+    "consumedCredits": 10,
+    "balanceBefore": 1070,
+    "balanceAfter": 1060,
+    "rawModelSha256": "4f44faa5d43348218d1601191a5cd389d6b5e2d71be17498fb10251850d2a6dd"
+  }
+}

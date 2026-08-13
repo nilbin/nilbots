@@ -4,6 +4,8 @@ import * as THREE from 'three';
 export const ACTOR_OCCLUSION_MASK_RENDER_ORDER = 0.5;
 /** Persistent mine/sentry solids sit above terrain and immediately below actor solids. */
 export const PERSISTENT_CONSTRUCT_RENDER_ORDER = 1;
+/** Walkable objective hardware uses the same actor-first overlap grammar. */
+export const WALKABLE_OBJECTIVE_RENDER_ORDER = 1;
 /** Ordinary actor solids finish the three-layer overlap grammar. */
 export const BOT_BODY_RENDER_ORDER = 2;
 
@@ -38,10 +40,30 @@ export function createActorOcclusionMaskMaterial(
 export function configurePersistentConstructRendering(
   model: THREE.Object3D,
 ): void {
+  configureActorOccludedRendering(model, PERSISTENT_CONSTRUCT_RENDER_ORDER);
+}
+
+/**
+ * Make a floor fixture yield to a bot silhouette without disabling ordinary depth.
+ *
+ * Wells and Reactors are intentionally walkable. Their thin physical rims still need to
+ * look solid against the floor, but never as if they pass through a hovering bot that is
+ * mechanically allowed to cross them.
+ */
+export function configureWalkableObjectiveRendering(
+  model: THREE.Object3D,
+): void {
+  configureActorOccludedRendering(model, WALKABLE_OBJECTIVE_RENDER_ORDER);
+}
+
+function configureActorOccludedRendering(
+  model: THREE.Object3D,
+  renderOrder: number,
+): void {
   model.traverse((node) => {
     const mesh = node as THREE.Mesh;
     if (!mesh.isMesh) return;
-    mesh.renderOrder = PERSISTENT_CONSTRUCT_RENDER_ORDER;
+    mesh.renderOrder = renderOrder;
     for (const material of Array.isArray(mesh.material)
       ? mesh.material
       : [mesh.material]) {

@@ -1,0 +1,12 @@
+{
+  "submittedAt": "2026-08-13T15:55:07.815Z",
+  "finishedAt": "2026-08-13T15:59:09.608Z",
+  "submitSeconds": 3.903482292,
+  "generationSeconds": 227.058072375,
+  "downloadSeconds": 10.167363125,
+  "totalSeconds": 241.787950083,
+  "status": "SUCCEEDED",
+  "consumedCredits": 30,
+  "balanceBefore": 1130,
+  "balanceAfter": 1100
+}
