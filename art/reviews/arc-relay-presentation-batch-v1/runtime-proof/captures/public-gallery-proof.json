@@ -1,0 +1,33 @@
+{
+  "schema": "arc-relay-signature-public-gallery-proof-v1",
+  "capturedAt": "2026-08-13T08:23:23.406Z",
+  "exactPublicGalleryUrl": "https://guests-silicon-aims-zope.trycloudflare.com/art/reviews/arc-relay-presentation-batch-v1/runtime-proof/",
+  "galleryStatus": 200,
+  "galleryContentEncoding": "gzip",
+  "viewport": {
+    "width": 390,
+    "height": 844,
+    "mobile": true,
+    "touch": true
+  },
+  "motionCards": 16,
+  "videos": 32,
+  "viewerUrl": "https://guests-silicon-aims-zope.trycloudflare.com/web/dist-review/?standalone",
+  "renderer": "webgl",
+  "replayResponses": [
+    {
+      "url": "https://guests-silicon-aims-zope.trycloudflare.com/web/dist-review/replays.json",
+      "status": 200,
+      "contentEncoding": "gzip"
+    },
+    {
+      "url": "https://guests-silicon-aims-zope.trycloudflare.com/web/dist-review/replays/core-roster.json",
+      "status": 200,
+      "contentEncoding": "gzip"
+    }
+  ],
+  "errors": [],
+  "screenshot": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/public-gallery-phone.webp",
+  "screenshotSha256": "92a49b30aac07e7350a321e60a3e0f1663a821ae32dd9f8ea6b14f9ab06eb741",
+  "passed": true
+}

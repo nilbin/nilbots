@@ -6,10 +6,12 @@ in `runtime-proof/`; the concept boards remain the visual contract.
 
 Generated on 2026-08-12 from the `main` worktree at baseline `4aaf80cc`.
 
-## Proposed batch
+## Implemented batch
 
-- 14 renderer-authored signature effects, each driven only by replay-authored
-  phases, positions, and facts.
+- 16 renderer-authored signature treatments, each driven only by
+  replay-authored phases, positions, and facts. Trip Node and Sentinel Seed use
+  their separately promoted Meshy props, while their deployment motion and
+  presentation grammar live in this renderer batch.
 - A typed mechanics-to-presentation extension framework, exact coverage tests,
   replay presentation versioning, and a canonical guide for adding another
   class/signature without rediscovering every integration surface.
@@ -18,25 +20,24 @@ Generated on 2026-08-12 from the `main` worktree at baseline `4aaf80cc`.
   projectile models are required.
 - One fact-driven level-up animation around the already persistent brass
   chevron.
-- A full timing audit of all 16 signatures and a fingerprinted Tapline vNext
-  mechanics package for Null Field, Target Paint, Kinetic Burst, and Smoke
-  Canister.
-- A restrained signature SFX language made from at most six private SFX Engine
-  source generations. No ambience and no changes to music.
+- A full timing audit of all 16 signatures. The audit's possible mechanics
+  changes remain recommendations only; this remediation changes presentation,
+  not gameplay truth.
+- The existing restrained SFX language remains in place. No ambience is added
+  and music is unchanged.
 - Tapline is the primary review map; the implementation remains map-agnostic.
 
-Trip Node and Sentinel Seed are deliberately outside this batch because the 3D
-model agent has taken ownership of those two props. This batch will not edit
-their source models, materials, or manifests; it still verifies that their
-existing renderer integration follows the audited timing.
+Trip Node and Sentinel Seed model source, materials, and manifests remain owned
+by the 3D-model handoff. Their real-game deployment animation, presentation
+registration, tests, and proof are part of this batch.
 
 ## Non-negotiable implementation rules
 
-- Mechanics change only through the exact reviewed Tapline vNext package in
-  `SIGNATURE-TIMING-AUDIT.md`. Historical `tapline-1` rules, fingerprints,
-  stock artifacts, ratings, and hosted playlists remain immutable.
-- Outside that package, targeting, collision, damage, healing, Core custody,
-  and replay truth do not change.
+- Targeting, collision, damage, healing, Core custody, signature timing, and
+  replay truth do not change in this presentation remediation. The possible
+  Tapline vNext package in `SIGNATURE-TIMING-AUDIT.md` is documentation, not an
+  applied rules change. Historical `tapline-1` rules, fingerprints, stock
+  artifacts, ratings, and hosted playlists remain immutable.
 - A visual tell never begins before the replay publishes it. A visual resolve
   never survives past its authoritative end.
 - No skeletal or part animation is assumed. Effects use pooled renderer
@@ -91,8 +92,8 @@ deliberate approximations, implementation seam, and capture acceptance gate.
   read as miniature bots rather than attack heads and is not presented as a
   candidate.
 - `runtime-proof/README.md` — implemented grammar coverage, WASM provenance,
-  WebGL lifecycle sheet, phone/reduced-motion/seek proof, and performance
-  results.
+  all-16 directed and strategic-overview motion, phone/reduced-motion/seek
+  proof, and performance results.
 - `runtime-proof/index.html` — mobile-friendly gallery for every retained
   post-implementation frame, plus the live replay entry point.
 
@@ -107,7 +108,6 @@ Then open
 `/art/reviews/arc-relay-presentation-batch-v1/runtime-proof/` for the retained
 frame gallery or `/web/dist-review/?standalone` for the two live replays.
 
-Approval of the whole batch authorizes the framework/refactor, canonical
-documentation, four-change Tapline vNext mechanics package, renderer work, and
-exactly six private SFX Engine generation jobs. It does not authorize automatic
-rerolls or deployment. Any seventh provider call requires a separate approval.
+The approved scope authorizes the framework, canonical documentation, renderer
+presentation work, and retained review proof. It does not authorize the timing
+audit's optional mechanics changes, automatic SFX rerolls, or deployment.

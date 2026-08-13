@@ -1,7 +1,7 @@
 {
   "version": 1,
   "id": "arc-relay-presentation-batch-v1",
-  "status": "awaiting-presentation-and-mechanics-approval",
+  "status": "implemented-awaiting-owner-runtime-review",
   "generatedAt": "2026-08-12",
   "branch": "main",
   "baselineCommit": "4aaf80cc",
@@ -11,21 +11,22 @@
     "role": "class identity, materials, scale, camera, and arena floor only"
   },
   "scope": {
-    "ownedSignatureEffects": 14,
+    "ownedSignatureEffects": 16,
     "typedMechanicsToPresentationFramework": true,
     "canonicalClassAndSignatureExtensionGuide": true,
     "endToEndCoverageGates": true,
     "classProjectileHeads": 16,
     "levelUpAnimations": 1,
-    "maximumPrivateSfxEngineGenerationsAfterApproval": 6,
-    "excludedExternalHandoffs": [
+    "maximumPrivateSfxEngineGenerationsAfterApproval": 0,
+    "protectedExternalModelAssets": [
       "trip-node",
       "sentinel-seed"
     ],
     "currentExplicitSignatureTells": 9,
     "currentImmediateActiveSignatures": 5,
     "recommendedMechanicsChanges": 4,
-    "mechanicsProfile": "new-tapline-vnext-preserving-tapline-1",
+    "appliedMechanicsChanges": 0,
+    "mechanicsProfile": "tapline-1-unchanged-presentation-only",
     "ambientLoops": 0
   },
   "documents": [

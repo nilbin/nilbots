@@ -20,9 +20,16 @@ actually rendered from real Tapline matches.
   rows, four reduced-motion cases, six direct-seek/continuous-history
   comparisons, and one real level-up transient. It reports no page, console,
   or request errors.
+- Thirty-two deterministic 1× WebM clips cover every signature twice: one
+  ordinary director shot that makes the authored action legible and one fixed
+  strategic-overview shot at the camera players actually watch. They retain
+  real surrounding combat rather than staging effects in an empty scene.
+- Lifecycle stills, overview clips, and live replays all preserve the ordinary
+  strategic camera. Director clips are a second inspection surface, not a
+  substitute for gameplay-scale proof.
 - The credible sustained phone proxy uses Playwright WebKit on the host's
-  reported **Apple GPU**: 27.92 rendered fps against the 30 fps mobile cap and
-  49.96M weighted pixels/s against the 54M budget. The Chromium/SwiftShader
+  reported **Apple GPU**: 29.83 rendered fps against the 30 fps mobile cap and
+  53.37M weighted pixels/s against the 54M budget. The Chromium/SwiftShader
   sample is retained as a software-renderer diagnostic, not a phone claim.
 - The signature audio crowd audit is recorded with the audio package; its
   worst tested mix is -7.43 dBTP against the -6 dBTP ceiling. No ambience is
@@ -41,6 +48,10 @@ actually rendered from real Tapline matches.
 - `captures/signature-lifecycle-contact-sheet.webp` — labelled real-game
   start/action/resolve rows for all sixteen signatures.
 - `captures/*-phone.webp` — phone-landscape overview frames.
+- `motion/evidence.json` — all-sixteen deterministic 1× ordinary-director
+  clips, posters, contact strips, renderer identity, and visible-mesh records.
+- `motion-overview/evidence.json` — the same sixteen windows under the fixed
+  ordinary strategic overview.
 - `performance/phone-webgl-webkit.json` — Apple-GPU sustained-render sample.
 - `performance/phone-webgl-chromium.json` — explicitly non-credible
   SwiftShader performance caveat.
@@ -68,6 +79,8 @@ cd ..
 node scripts/class-models/install-local-replay-gallery.mjs \
   art/reviews/arc-relay-presentation-batch-v1/runtime-proof/gallery-sources.json
 node scripts/capture-arc-relay-presentation-proof.mjs
+node scripts/capture-arc-relay-signature-motion-proof.mjs
+node scripts/capture-arc-relay-signature-motion-proof.mjs --camera overview
 ```
 
 The capture tool fingerprints the complete review build, verifies retained
@@ -84,7 +97,9 @@ checked-in capture tool, so future build changes must produce fresh frames.
 ## Proof boundary
 
 Automated evidence can prove identity, coverage, exact timing, visible geometry,
-seek reproducibility, renderer budgets, and absence of runtime errors. The
-contact sheet has also been visually compared with the approved concept boards
-at gameplay scale. Final taste on a physical phone and headphones remains a
-human approval step, not something a hash or headless browser can replace.
+seek reproducibility, renderer budgets, and absence of runtime errors. It
+cannot prove that a treatment reads as convincing animation. The gallery puts
+the concept crop, full-speed director clip, and full-speed gameplay-overview
+clip together so that judgment is explicit rather than inferred from mesh
+counts. Final taste on a physical phone and headphones remains a human approval
+step, not something a hash or headless browser can replace.

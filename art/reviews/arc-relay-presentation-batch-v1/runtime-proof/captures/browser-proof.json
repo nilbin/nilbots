@@ -1,8 +1,9 @@
 {
   "schema": "arc-relay-presentation-browser-proof-v1",
   "sourceRevision": "48664e0937e599d2ecbced0acbdc6eda17668788",
-  "buildSha256": "781762c841c8ad855e424ae57868689b02bd4b0e7706ca8714e05ba8f21f0f7d",
-  "url": "http://127.0.0.1:8931/web/dist-review/?standalone&audio=off",
+  "buildSha256": "19ce0c413ea321efcbdcc4be946abbcf1ad339b8a8e851de54f0e0e62b2c82ea",
+  "captureFramingVersion": 4,
+  "url": "http://127.0.0.1:9095/web/dist-review/?standalone&audio=off",
   "passed": true,
   "renderer": "webgl",
   "captures": [
@@ -33,7 +34,7 @@
         "idleFramesPerSecond": 12
       },
       "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/core-roster-desktop.webp",
-      "imageSha256": "7dd888be6bb2999594d29a879377e0b853d2c14baa64cbebabc1cd91ac7fd2d1"
+      "imageSha256": "cf72a0b1bf848bdef36a4ed2cb7483aff279542223d7b9439c1efb952329b660"
     },
     {
       "id": "remaining-roster-desktop",
@@ -62,7 +63,7 @@
         "idleFramesPerSecond": 12
       },
       "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/remaining-roster-desktop.webp",
-      "imageSha256": "bf556e6fb235d260a745b9b874263dc25819e170b3c56e349dc044bfcfa957d6"
+      "imageSha256": "76b13d69dd04280a20eaf415c1f12d4a250820b1bedae32dd547148456ffd7d6"
     },
     {
       "id": "core-roster-phone",
@@ -75,23 +76,23 @@
       "reducedMotion": false,
       "time": 14.45,
       "arenaPixels": {
-        "width": 844,
-        "height": 390
+        "width": 764,
+        "height": 478
       },
       "canvas": {
         "kind": "webgl",
-        "width": 1266,
-        "height": 585,
-        "clientWidth": 844,
-        "clientHeight": 390,
+        "width": 762,
+        "height": 476,
+        "clientWidth": 762,
+        "clientHeight": 476,
         "renderProfile": "mobile",
-        "pixelRatio": 1.5,
+        "pixelRatio": 1,
         "shadowMapSize": 1024,
         "activeFramesPerSecond": 30,
         "idleFramesPerSecond": 12
       },
       "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/core-roster-phone.webp",
-      "imageSha256": "0d25b49b7c57d58f28aed38ccaf64da586154cd58ac9124fff650e34d08b5877"
+      "imageSha256": "0e2b0ac6239a07d32686f2046b8ccea84311282a8440c3d7831e2adc31766b42"
     },
     {
       "id": "remaining-roster-phone",
@@ -104,23 +105,23 @@
       "reducedMotion": false,
       "time": 14.45,
       "arenaPixels": {
-        "width": 844,
-        "height": 390
+        "width": 764,
+        "height": 478
       },
       "canvas": {
         "kind": "webgl",
-        "width": 1266,
-        "height": 585,
-        "clientWidth": 844,
-        "clientHeight": 390,
+        "width": 762,
+        "height": 476,
+        "clientWidth": 762,
+        "clientHeight": 476,
         "renderProfile": "mobile",
-        "pixelRatio": 1.5,
+        "pixelRatio": 1,
         "shadowMapSize": 1024,
         "activeFramesPerSecond": 30,
         "idleFramesPerSecond": 12
       },
       "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/remaining-roster-phone.webp",
-      "imageSha256": "972304386a647b8f09f46559ddac5cbf8536a4ef2c3149895ace2e4c49332f8a"
+      "imageSha256": "143363d88845dee5165cefef8a4bb922cf28b083f5b84daeb9f741b761632a7f"
     }
   ],
   "lifecycle": [
@@ -133,39 +134,42 @@
           "beat": "start",
           "requestedTime": 294.35,
           "actualTime": 294.35,
+          "camera": "strategic-overview",
           "visible": [
             {
               "operationId": "arc-signature-50",
               "signatureId": "arc-toss",
               "phase": "tell",
-              "visibleMeshes": 1
+              "visibleMeshes": 2
             }
           ],
           "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/arc-toss-start.webp",
-          "imageSha256": "7ce573a982788ea23c726036a0ea2811008effc79b5d0a5e26563ed32bf3a609"
+          "imageSha256": "b971cf0148a501dbcdc6920d0c674c43c632801af3515db64ffb171214999776"
         },
         {
           "beat": "action",
           "requestedTime": 295.45,
           "actualTime": 295.45,
+          "camera": "strategic-overview",
           "visible": [
             {
               "operationId": "arc-signature-50",
               "signatureId": "arc-toss",
               "phase": "in-flight",
-              "visibleMeshes": 1
+              "visibleMeshes": 14
             }
           ],
           "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/arc-toss-action.webp",
-          "imageSha256": "d4fb392eb9aa979aedbda7c20586e2b22df2d50ce75be775d9133dac24dd6980"
+          "imageSha256": "af921a98d54b71f7fba56c6df90064ffacfd3c76d56759916dd431333b0dace4"
         },
         {
           "beat": "resolve",
           "requestedTime": 298.35,
           "actualTime": 298.35,
+          "camera": "strategic-overview",
           "visible": [],
           "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/arc-toss-resolve.webp",
-          "imageSha256": "8a33c0cea508ea5468d9da2ee8a44df383c1d87eae5846aa9a77951dd877cd2c"
+          "imageSha256": "8f05f0d11b9372614e6bd0575a3319c95a8dfeb6a0aebcb7c95eccb4498d9ee7"
         }
       ]
     },
@@ -178,39 +182,49 @@
           "beat": "start",
           "requestedTime": 99.35,
           "actualTime": 99.35,
+          "camera": "strategic-overview",
           "visible": [
             {
               "operationId": "arc-signature-18",
               "signatureId": "exchange",
               "phase": "tell",
-              "visibleMeshes": 1
+              "visibleMeshes": 36
             }
           ],
           "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/exchange-start.webp",
-          "imageSha256": "d03f7df7737489a1cc2e1c47f62ba94c257451640497a448112dad3b7a3a3fac"
+          "imageSha256": "ea0db32224f175c0e4c376bc4eea356cf491adf2ca186b32a915b7709e4a2a00"
         },
         {
           "beat": "action",
           "requestedTime": 100.35,
           "actualTime": 100.35,
+          "camera": "strategic-overview",
           "visible": [
             {
               "operationId": "arc-signature-18",
               "signatureId": "exchange",
               "phase": "outcome",
-              "visibleMeshes": 1
+              "visibleMeshes": 20
             }
           ],
           "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/exchange-action.webp",
-          "imageSha256": "528288e9df943d7a1e8be54d3a6d97344babd6b977255ba02a697fb1b611a1d2"
+          "imageSha256": "49d5c0fdce4c93c3aeecfc1f22b88357432a9a349ccaabf8228fef38c3a28969"
         },
         {
           "beat": "resolve",
           "requestedTime": 100.75,
           "actualTime": 100.75,
-          "visible": [],
+          "camera": "strategic-overview",
+          "visible": [
+            {
+              "operationId": "arc-signature-18",
+              "signatureId": "exchange",
+              "phase": "outcome",
+              "visibleMeshes": 20
+            }
+          ],
           "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/exchange-resolve.webp",
-          "imageSha256": "17651b692bb8c09901efe5e69317d4af7cb6ab0920655bb068e91ece80051971"
+          "imageSha256": "db47c047ec3a09c3341eae3d046ce8534457718df846de43cace21f0786e312d"
         }
       ]
     },
@@ -223,39 +237,49 @@
           "beat": "start",
           "requestedTime": 172.35,
           "actualTime": 172.35,
+          "camera": "strategic-overview",
           "visible": [
             {
               "operationId": "arc-signature-83",
               "signatureId": "falling-star",
               "phase": "tell",
-              "visibleMeshes": 1
+              "visibleMeshes": 17
             }
           ],
           "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/falling-star-start.webp",
-          "imageSha256": "0591cb91cabb003d3fa64fed7808da5924f7ebf5b49d8194a5b477af94f1e01b"
+          "imageSha256": "d21e14c2ba2f55d4b2e29537a5c1cbf8b4a2398d8e8e5db30fa2e980da9bb432"
         },
         {
           "beat": "action",
           "requestedTime": 173.45,
           "actualTime": 173.45,
+          "camera": "strategic-overview",
           "visible": [
             {
               "operationId": "arc-signature-83",
               "signatureId": "falling-star",
               "phase": "tell",
-              "visibleMeshes": 1
+              "visibleMeshes": 17
             }
           ],
           "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/falling-star-action.webp",
-          "imageSha256": "102c50486d1d59aef4cdec33aa8ac6049bdb03a5de739674cd6bbf2c96394162"
+          "imageSha256": "4210d61543b1ce526499206e0df3835fbdf835905825e43d0c174a18118113a4"
         },
         {
           "beat": "resolve",
           "requestedTime": 174.75,
           "actualTime": 174.75,
-          "visible": [],
+          "camera": "strategic-overview",
+          "visible": [
+            {
+              "operationId": "arc-signature-83",
+              "signatureId": "falling-star",
+              "phase": "outcome",
+              "visibleMeshes": 22
+            }
+          ],
           "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/falling-star-resolve.webp",
-          "imageSha256": "1cf8918b1c21a4773d48c879622cdf8038e9c2da42085fcbafb6542290462f1d"
+          "imageSha256": "422e4d782bf327a72dd39fbed6e3167a6d1a21ca9258d8fd1f622c77b04f06c8"
         }
       ]
     },
@@ -268,39 +292,42 @@
           "beat": "start",
           "requestedTime": 52.35,
           "actualTime": 52.35,
+          "camera": "strategic-overview",
           "visible": [
             {
               "operationId": "arc-signature-11",
               "signatureId": "hardlight-block",
               "phase": "active",
-              "visibleMeshes": 1
+              "visibleMeshes": 15
             }
           ],
           "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/hardlight-block-start.webp",
-          "imageSha256": "2d296c171d3f4439c45e0931f8ae8fc3b9b73354343b081260b81c563ba77e31"
+          "imageSha256": "94bb37fdeba3daf9d99b6708229f4a3dc69631928ed52fa71305b41bd15d8488"
         },
         {
           "beat": "action",
           "requestedTime": 63.45,
           "actualTime": 63.45,
+          "camera": "strategic-overview",
           "visible": [
             {
               "operationId": "arc-signature-11",
               "signatureId": "hardlight-block",
               "phase": "active",
-              "visibleMeshes": 1
+              "visibleMeshes": 15
             }
           ],
           "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/hardlight-block-action.webp",
-          "imageSha256": "abb067ec9ea3cce40eb2c5472a0fcbb5a8c0f4dd14b48c8d2a36587e133e7004"
+          "imageSha256": "2871ba223ea6c76e5f5dc6849f21abd84fa330ad65599cdf4e8e5eab44b16ccb"
         },
         {
           "beat": "resolve",
           "requestedTime": 64.35,
           "actualTime": 64.35,
+          "camera": "strategic-overview",
           "visible": [],
           "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/hardlight-block-resolve.webp",
-          "imageSha256": "4b0091c55dabb51b1ec1d02b1844c5690bd97b1fa1f90642ac14fd70293c8be9"
+          "imageSha256": "eb7b308f905cd9b059494f606446d7ddd71db20621eeae473da57d125a7fa3c2"
         }
       ]
     },
@@ -313,39 +340,49 @@
           "beat": "start",
           "requestedTime": 47.35,
           "actualTime": 47.35,
+          "camera": "strategic-overview",
           "visible": [
             {
               "operationId": "arc-signature-27",
               "signatureId": "kinetic-burst",
               "phase": "tell",
-              "visibleMeshes": 1
+              "visibleMeshes": 10
             }
           ],
           "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/kinetic-burst-start.webp",
-          "imageSha256": "f2bbe7143d172113e38a8afcc287eee2b76369fd14d38a3832d74ac46a1dcc3a"
+          "imageSha256": "817cf260cf2e63b9d4ecb95a502b77dbb612328bd23fe7767c819a240b644600"
         },
         {
           "beat": "action",
           "requestedTime": 48.35,
           "actualTime": 48.35,
+          "camera": "strategic-overview",
           "visible": [
             {
               "operationId": "arc-signature-27",
               "signatureId": "kinetic-burst",
               "phase": "outcome",
-              "visibleMeshes": 1
+              "visibleMeshes": 8
             }
           ],
           "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/kinetic-burst-action.webp",
-          "imageSha256": "6ba47221bf0ae1ede09e75525b4b54b0601f0edcda896afd955f476b85abc99d"
+          "imageSha256": "a5ed308c845ebe8b76af399563005f9d6f796fa87fa1c3615b9e68db52211f8f"
         },
         {
           "beat": "resolve",
           "requestedTime": 48.75,
           "actualTime": 48.75,
-          "visible": [],
+          "camera": "strategic-overview",
+          "visible": [
+            {
+              "operationId": "arc-signature-27",
+              "signatureId": "kinetic-burst",
+              "phase": "outcome",
+              "visibleMeshes": 8
+            }
+          ],
           "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/kinetic-burst-resolve.webp",
-          "imageSha256": "56f83a6a80777fe441b4ae3447d47790120d881d0253264ec535d5354395b88f"
+          "imageSha256": "793da17cd3e82df2748e2d02738f1515805abede49299df85bdcadfff42f9eb0"
         }
       ]
     },
@@ -358,39 +395,42 @@
           "beat": "start",
           "requestedTime": 0.35,
           "actualTime": 0.35,
+          "camera": "strategic-overview",
           "visible": [
             {
               "operationId": "arc-signature-0",
               "signatureId": "null-field",
               "phase": "tell",
-              "visibleMeshes": 1
+              "visibleMeshes": 14
             }
           ],
           "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/null-field-start.webp",
-          "imageSha256": "ea8b57152760c86803ff3d0e47b3e960d7578ce41f098cec939f45d551d3f44e"
+          "imageSha256": "980dfbab05b5578a4cf38b16dfabca72a12721dd465851600ca4af9a5a12d642"
         },
         {
           "beat": "action",
           "requestedTime": 1.45,
           "actualTime": 1.45,
+          "camera": "strategic-overview",
           "visible": [
             {
               "operationId": "arc-signature-0",
               "signatureId": "null-field",
               "phase": "active",
-              "visibleMeshes": 1
+              "visibleMeshes": 14
             }
           ],
           "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/null-field-action.webp",
-          "imageSha256": "d714e04df4f2e8da1a205948ef7bf3382ab7a6ea05858bb6b73b4c3d01c0e44c"
+          "imageSha256": "7fd1a3593e70dd64568f0ee81037bd393b7ee6f11b0cb7a83f71ba3a2bfd1e72"
         },
         {
           "beat": "resolve",
           "requestedTime": 6.35,
           "actualTime": 6.35,
+          "camera": "strategic-overview",
           "visible": [],
           "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/null-field-resolve.webp",
-          "imageSha256": "c6b391893aa922b67b1ee866bea9914a8bad3a8409e06c6e58e076650871938b"
+          "imageSha256": "ae32d77c4edcf74d08bdd76e8f948a2a0ab107763780f510f9f52b1bac95c63c"
         }
       ]
     },
@@ -403,39 +443,42 @@
           "beat": "start",
           "requestedTime": 14.35,
           "actualTime": 14.35,
+          "camera": "strategic-overview",
           "visible": [
             {
               "operationId": "arc-signature-3",
               "signatureId": "prism-wall",
               "phase": "active",
-              "visibleMeshes": 1
+              "visibleMeshes": 10
             }
           ],
           "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/prism-wall-start.webp",
-          "imageSha256": "b22338d2c496904923f5edf1f7c857e44f97d221cfce28dc221e11ef812c10f2"
+          "imageSha256": "b2be06df48c63d8c434aff9f88ef49b5d92c2ded68cd3a2a099c1b45153df1c0"
         },
         {
           "beat": "action",
           "requestedTime": 21.45,
           "actualTime": 21.45,
+          "camera": "strategic-overview",
           "visible": [
             {
               "operationId": "arc-signature-3",
               "signatureId": "prism-wall",
               "phase": "active",
-              "visibleMeshes": 1
+              "visibleMeshes": 10
             }
           ],
           "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/prism-wall-action.webp",
-          "imageSha256": "506608368ea08af2fffb7c9856fae1f08479e74c36f37343794b93861e6035d1"
+          "imageSha256": "eabfa68bd8d35b5bc5345994be5be96d76050603d42a9e8d9c527e112fe24201"
         },
         {
           "beat": "resolve",
           "requestedTime": 22.35,
           "actualTime": 22.35,
+          "camera": "strategic-overview",
           "visible": [],
           "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/prism-wall-resolve.webp",
-          "imageSha256": "3d5abf87998ee926d8bf5962766ee4a6981a813dceb41c6e6cae74b4ee2a33ec"
+          "imageSha256": "50d863a34aa5faa626bdd9738b6e20414b21a7969db838bfc01e9206c3b9cef2"
         }
       ]
     },
@@ -448,39 +491,49 @@
           "beat": "start",
           "requestedTime": 78.35,
           "actualTime": 78.35,
+          "camera": "strategic-overview",
           "visible": [
             {
               "operationId": "arc-signature-15",
               "signatureId": "rail-line",
               "phase": "tell",
-              "visibleMeshes": 1
+              "visibleMeshes": 7
             }
           ],
           "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/rail-line-start.webp",
-          "imageSha256": "57c84efe684a0f32099b1c176c45b3723930380982261dc7cbe0bd3fb20152dc"
+          "imageSha256": "62931d5795a8a8aac05ee2fba867fa46296a5dfbe831c181266f08d389be68d0"
         },
         {
           "beat": "action",
           "requestedTime": 79.35,
           "actualTime": 79.35,
+          "camera": "strategic-overview",
           "visible": [
             {
               "operationId": "arc-signature-15",
               "signatureId": "rail-line",
               "phase": "outcome",
-              "visibleMeshes": 1
+              "visibleMeshes": 5
             }
           ],
           "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/rail-line-action.webp",
-          "imageSha256": "28e34348e0318a4082f3bf0cf6815d662a0248dff7ecce4986b5f993dc574002"
+          "imageSha256": "bd7472f68ad85a719545eb8b7e4d994c810b88fed94fba3ded7fa40e17691287"
         },
         {
           "beat": "resolve",
           "requestedTime": 79.75,
           "actualTime": 79.75,
-          "visible": [],
+          "camera": "strategic-overview",
+          "visible": [
+            {
+              "operationId": "arc-signature-15",
+              "signatureId": "rail-line",
+              "phase": "outcome",
+              "visibleMeshes": 5
+            }
+          ],
           "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/rail-line-resolve.webp",
-          "imageSha256": "9d9faf5a8caf5e6290b086fdec1e2fd1d254cd3f79f0b8fb4a1eca3cb24a478b"
+          "imageSha256": "93a8e315ad37b37a446e461fc7e3db5fc02458292da0b1c85c43f125f3366834"
         }
       ]
     },
@@ -493,39 +546,42 @@
           "beat": "start",
           "requestedTime": 178.35,
           "actualTime": 178.35,
+          "camera": "strategic-overview",
           "visible": [
             {
               "operationId": "arc-signature-35",
               "signatureId": "repair-beam",
               "phase": "channel",
-              "visibleMeshes": 1
+              "visibleMeshes": 26
             }
           ],
           "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/repair-beam-start.webp",
-          "imageSha256": "1ab751eec4196dd5af7b3771687ba0c82cbd94af1a242a98b4175efec468c30a"
+          "imageSha256": "940a427bf951335b014bb0081e8875a815f1f44580a229c9beefb2e62ceb8e66"
         },
         {
           "beat": "action",
           "requestedTime": 180.45,
           "actualTime": 180.45,
+          "camera": "strategic-overview",
           "visible": [
             {
               "operationId": "arc-signature-35",
               "signatureId": "repair-beam",
               "phase": "channel",
-              "visibleMeshes": 1
+              "visibleMeshes": 26
             }
           ],
           "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/repair-beam-action.webp",
-          "imageSha256": "4451bc529c021b1f3037df3d286984b068280a0c4639c04a629d6e1e3a6f1c6d"
+          "imageSha256": "c372473dd2c40ec5355028a77b13b2d664878bfa0f248f85f0406dec1a95c51d"
         },
         {
           "beat": "resolve",
           "requestedTime": 181.35,
           "actualTime": 181.35,
+          "camera": "strategic-overview",
           "visible": [],
           "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/repair-beam-resolve.webp",
-          "imageSha256": "25309d5442c8f59ed1d941e1a6a6cb043a616366b657a2c489d0ab4414a26867"
+          "imageSha256": "4de9cc8865ac17ca3cb6b8258859fdbf92832051b24d669ac51d1c90fc227974"
         }
       ]
     },
@@ -538,39 +594,42 @@
           "beat": "start",
           "requestedTime": 68.35,
           "actualTime": 68.35,
+          "camera": "strategic-overview",
           "visible": [
             {
               "operationId": "arc-signature-34",
               "signatureId": "sentinel-seed",
               "phase": "tell",
-              "visibleMeshes": 1
+              "visibleMeshes": 4
             }
           ],
           "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/sentinel-seed-start.webp",
-          "imageSha256": "47b25961201a3483b88511be5477efc002acd62f98c8db1206e68407404959d1"
+          "imageSha256": "7b7aea56e8f6e04b9823f4fb25c1d37680b82d05034ac654b8e48c9d0236f88f"
         },
         {
           "beat": "action",
           "requestedTime": 69.45,
           "actualTime": 69.45,
+          "camera": "strategic-overview",
           "visible": [
             {
               "operationId": "arc-signature-34",
               "signatureId": "sentinel-seed",
               "phase": "active",
-              "visibleMeshes": 1
+              "visibleMeshes": 5
             }
           ],
           "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/sentinel-seed-action.webp",
-          "imageSha256": "a99d0b5c1bd9c915dc0f63f134a88eac3eecfb2e83aaac384f2fb21c35e0442f"
+          "imageSha256": "67500c3ff6d9f6f994f574d6ab4b9cd30749ecd968842cdd95ad735a94f12e91"
         },
         {
           "beat": "resolve",
           "requestedTime": 99.35,
           "actualTime": 99.35,
+          "camera": "strategic-overview",
           "visible": [],
           "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/sentinel-seed-resolve.webp",
-          "imageSha256": "7c4d7db56fa6bd3b0597aee8e5348deb53e66eea1aeeda0e3b7436c3364d2e6a"
+          "imageSha256": "0949a6ec8448d46b3a2d6e311707f70bcbe4aa8475b82659816552bdba41ead2"
         }
       ]
     },
@@ -583,39 +642,42 @@
           "beat": "start",
           "requestedTime": 102.35,
           "actualTime": 102.35,
+          "camera": "strategic-overview",
           "visible": [
             {
               "operationId": "arc-signature-50",
               "signatureId": "smoke-canister",
               "phase": "in-flight",
-              "visibleMeshes": 1
+              "visibleMeshes": 7
             }
           ],
           "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/smoke-canister-start.webp",
-          "imageSha256": "b58b07f5ab130f8db90f71cc854e30ef44662248c962976a4c660b79dce9c387"
+          "imageSha256": "bdefaa2b1aa511ef7efe0f3ffa336eb5afa8ce1f1ea79cec6030e8fa25143730"
         },
         {
           "beat": "action",
           "requestedTime": 104.45,
           "actualTime": 104.45,
+          "camera": "strategic-overview",
           "visible": [
             {
               "operationId": "arc-signature-50",
               "signatureId": "smoke-canister",
               "phase": "active",
-              "visibleMeshes": 1
+              "visibleMeshes": 9
             }
           ],
           "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/smoke-canister-action.webp",
-          "imageSha256": "cd082c75a7ab8898a4577c39e4028b7d84f21c71845acac589ee7555f625bd25"
+          "imageSha256": "86d74df95dd34d97ac12ade5ab20b9a47362dab875f93c44e97ed668bf1c4e17"
         },
         {
           "beat": "resolve",
           "requestedTime": 114.35,
           "actualTime": 114.35,
+          "camera": "strategic-overview",
           "visible": [],
           "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/smoke-canister-resolve.webp",
-          "imageSha256": "3ab875df795c55741ad3ae976a4e523d73ea2a2bbeb0eebb9c379d9213d31e3b"
+          "imageSha256": "a0b1d3d67c9ddacaf04e88a573425653efeae0edee9b5c8341dfc68133e85b14"
         }
       ]
     },
@@ -628,39 +690,42 @@
           "beat": "start",
           "requestedTime": 10.35,
           "actualTime": 10.35,
+          "camera": "strategic-overview",
           "visible": [
             {
               "operationId": "arc-signature-1",
               "signatureId": "survey-flare",
               "phase": "in-flight",
-              "visibleMeshes": 1
+              "visibleMeshes": 5
             }
           ],
           "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/survey-flare-start.webp",
-          "imageSha256": "ef5677122b767b1fc0407ed167c65c17b9a81cdbd1edc8f07e9ec1818e7d7dfd"
+          "imageSha256": "b0c0979b3733ad65b7a145af7f029dffe84164b559eaeb3be563febbd86ee16e"
         },
         {
           "beat": "action",
           "requestedTime": 14.45,
           "actualTime": 14.45,
+          "camera": "strategic-overview",
           "visible": [
             {
               "operationId": "arc-signature-1",
               "signatureId": "survey-flare",
               "phase": "active",
-              "visibleMeshes": 1
+              "visibleMeshes": 21
             }
           ],
           "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/survey-flare-action.webp",
-          "imageSha256": "28ae10ea89c3504d3f2df5cbfba61678c176b770afb37162922aa7ca57489663"
+          "imageSha256": "0bdc73773d78fbe62915f8f0a5dbd3f44cab08907eb78ed052f659fd1fd2b535"
         },
         {
           "beat": "resolve",
           "requestedTime": 22.35,
           "actualTime": 22.35,
+          "camera": "strategic-overview",
           "visible": [],
           "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/survey-flare-resolve.webp",
-          "imageSha256": "7d6097f9fbd2e931e04a44142690d76fdc68fb90ae24566e9dc8f959ba82d386"
+          "imageSha256": "74b8e693052984ea0808fc4e552cc7d116f61fc566e59dd059d57fc92293095b"
         }
       ]
     },
@@ -673,84 +738,97 @@
           "beat": "start",
           "requestedTime": 192.35,
           "actualTime": 192.35,
+          "camera": "strategic-overview",
           "visible": [
             {
               "operationId": "arc-signature-98",
               "signatureId": "target-paint",
               "phase": "tell",
-              "visibleMeshes": 1
+              "visibleMeshes": 11
             }
           ],
           "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/target-paint-start.webp",
-          "imageSha256": "a4ec743a9b1ff0de72c4fda466f69fe4102dffac408444456798e0ae48fc021a"
+          "imageSha256": "613e8a4cfe6636c0a6f58064108e83407a73d6929a5f29ed225a5f8bbb4634a2"
         },
         {
           "beat": "action",
           "requestedTime": 193.45,
           "actualTime": 193.45,
+          "camera": "strategic-overview",
           "visible": [
             {
               "operationId": "arc-signature-98",
               "signatureId": "target-paint",
               "phase": "active",
-              "visibleMeshes": 1
+              "visibleMeshes": 13
             }
           ],
           "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/target-paint-action.webp",
-          "imageSha256": "d4b133dfa92885449265734df9189a0bcad562cbb23e2c75b8b77c2c521109bf"
+          "imageSha256": "fa7692441dbc31cad38174d39cecea8a72f7ba06d5cc9dca35a762fdce63d46a"
         },
         {
           "beat": "resolve",
           "requestedTime": 201.35,
           "actualTime": 201.35,
+          "camera": "strategic-overview",
           "visible": [],
           "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/target-paint-resolve.webp",
-          "imageSha256": "7ff3a3f078187e5a32ef3e54665bdc8b3fa08ef7b56f730db0d264566bf3c5ba"
+          "imageSha256": "b1face3ac362aae66601aa810206a2e8455464e1c60a292793fec9aa1c3460c2"
         }
       ]
     },
     {
       "signatureId": "tractor-hook",
       "matchId": "core-roster",
-      "operationId": "arc-signature-23",
+      "operationId": "arc-signature-4",
       "phases": [
         {
           "beat": "start",
-          "requestedTime": 117.35,
-          "actualTime": 117.35,
+          "requestedTime": 25.35,
+          "actualTime": 25.35,
+          "camera": "strategic-overview",
           "visible": [
             {
-              "operationId": "arc-signature-23",
+              "operationId": "arc-signature-4",
               "signatureId": "tractor-hook",
               "phase": "tell",
-              "visibleMeshes": 1
+              "visibleMeshes": 9
             }
           ],
           "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/tractor-hook-start.webp",
-          "imageSha256": "8e4cbef2817550f8990af505f6220918b5d11cd837dc70946701b50560989dda"
+          "imageSha256": "ca3d0a5cd7c0097f53c709c70113d032d70b9e69e3731da13bfab1b53576af93"
         },
         {
           "beat": "action",
-          "requestedTime": 117.75,
-          "actualTime": 117.75,
+          "requestedTime": 25.75,
+          "actualTime": 25.75,
+          "camera": "strategic-overview",
           "visible": [
             {
-              "operationId": "arc-signature-23",
+              "operationId": "arc-signature-4",
               "signatureId": "tractor-hook",
               "phase": "tell",
-              "visibleMeshes": 1
+              "visibleMeshes": 9
             }
           ],
           "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/tractor-hook-action.webp",
-          "imageSha256": "501b92187eb5090d5e927fa0a948272cd9230842b18c107e7ea0076310f3da83"
+          "imageSha256": "99f24c6ca4fb896b8dd97cff498b168b7cc7350f7f2068af443a716d049d2085"
         },
         {
           "beat": "resolve",
-          "requestedTime": 118.35,
-          "actualTime": 118.35,
-          "visible": [],
+          "requestedTime": 26.35,
+          "actualTime": 26.35,
+          "camera": "strategic-overview",
+          "visible": [
+            {
+              "operationId": "arc-signature-4",
+              "signatureId": "tractor-hook",
+              "phase": "outcome",
+              "visibleMeshes": 5
+            }
+          ],
           "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/tractor-hook-resolve.webp",
-          "imageSha256": "462620f6851a5eaab6255d13f60f1b084049eb8543939c493ec27d5ef81ddbfd"
+          "imageSha256": "e81265f9804962c0d7778641461ddb8bdb8894030870c08a45950a441ce35c92"
         }
       ]
     },
@@ -763,39 +841,42 @@
           "beat": "start",
           "requestedTime": 89.35,
           "actualTime": 89.35,
+          "camera": "strategic-overview",
           "visible": [
             {
               "operationId": "arc-signature-42",
               "signatureId": "trip-node",
               "phase": "active",
-              "visibleMeshes": 1
+              "visibleMeshes": 9
             }
           ],
           "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/trip-node-start.webp",
-          "imageSha256": "4bf9362f5dcf0deef2d41d005dfb7b508df1ac3cfc13fd530f1560585afeb437"
+          "imageSha256": "719d61fea6df8c56f0ce064e95f6cb430eb6697a60772643b5f4b1404d5daf8d"
         },
         {
           "beat": "action",
           "requestedTime": 101.45,
           "actualTime": 101.45,
+          "camera": "strategic-overview",
           "visible": [
             {
               "operationId": "arc-signature-42",
               "signatureId": "trip-node",
               "phase": "active",
-              "visibleMeshes": 1
+              "visibleMeshes": 9
             }
           ],
           "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/trip-node-action.webp",
-          "imageSha256": "3a03957e301560f48d55420307e7541a0a7a4350d7b313231a4edf36a342a7dc"
+          "imageSha256": "34b3a7937bcd08ed37bf9ff85fff902fd0bce36c88e8123da5c63bef2b249065"
         },
         {
           "beat": "resolve",
           "requestedTime": 102.35,
           "actualTime": 102.35,
+          "camera": "strategic-overview",
           "visible": [],
           "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/trip-node-resolve.webp",
-          "imageSha256": "0d6423204b44983219b73099e4a226becd11adbd2658a992adccc75ad84a9ca4"
+          "imageSha256": "7ca195aaed3111ec878e236cbc5652b42b48307d5c46cb9d19f7f63a1800dfe0"
         }
       ]
     },
@@ -808,39 +889,49 @@
           "beat": "start",
           "requestedTime": 22.35,
           "actualTime": 22.35,
+          "camera": "strategic-overview",
           "visible": [
             {
               "operationId": "arc-signature-2",
               "signatureId": "vector-dash",
               "phase": "tell",
-              "visibleMeshes": 1
+              "visibleMeshes": 5
             }
           ],
           "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/vector-dash-start.webp",
-          "imageSha256": "7d6097f9fbd2e931e04a44142690d76fdc68fb90ae24566e9dc8f959ba82d386"
+          "imageSha256": "defa2ba888cfd421208bd569197e99038e86bf0c75852f5d1dab61389210004e"
         },
         {
           "beat": "action",
           "requestedTime": 23.35,
           "actualTime": 23.35,
+          "camera": "strategic-overview",
           "visible": [
             {
               "operationId": "arc-signature-2",
               "signatureId": "vector-dash",
               "phase": "outcome",
-              "visibleMeshes": 1
+              "visibleMeshes": 5
             }
           ],
           "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/vector-dash-action.webp",
-          "imageSha256": "e2a8a47152beef2191f07c02e580fd34781f33a8d9fa335ef0843ab62b2eed09"
+          "imageSha256": "df01f0eb18e73b7f913b0f0178191f85620cd1bc5a5903e91e894db1c779db93"
         },
         {
           "beat": "resolve",
           "requestedTime": 23.75,
           "actualTime": 23.75,
-          "visible": [],
+          "camera": "strategic-overview",
+          "visible": [
+            {
+              "operationId": "arc-signature-2",
+              "signatureId": "vector-dash",
+              "phase": "outcome",
+              "visibleMeshes": 5
+            }
+          ],
           "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/vector-dash-resolve.webp",
-          "imageSha256": "4f1aabce8b01d33da9c6573031b83883ace4daf025787a1ef85e1917bfef17af"
+          "imageSha256": "a0e29a4a0b71176d6ca5d920c7e941ea7a9afc1e480d2e7381c3200b5c57d171"
         }
       ]
     }
@@ -850,48 +941,48 @@
       "signatureId": "vector-dash",
       "matchId": "core-roster",
       "time": 23.35,
-      "directSha256": "verified-equal-on-captured-build",
-      "afterPlaybackSha256": "verified-equal-on-captured-build",
+      "directSha256": "f281fa82ecb496f95befec5f2a1dc33d24ce46cf2f8442f5bc2e67d405e81b83",
+      "afterPlaybackSha256": "f281fa82ecb496f95befec5f2a1dc33d24ce46cf2f8442f5bc2e67d405e81b83",
       "equal": true
     },
     {
       "signatureId": "repair-beam",
       "matchId": "core-roster",
       "time": 180.45,
-      "directSha256": "verified-equal-on-captured-build",
-      "afterPlaybackSha256": "verified-equal-on-captured-build",
+      "directSha256": "0a2918a873b656664935fe0570d0679a35965ad4c33432601ebafa43cc146153",
+      "afterPlaybackSha256": "0a2918a873b656664935fe0570d0679a35965ad4c33432601ebafa43cc146153",
       "equal": true
     },
     {
       "signatureId": "survey-flare",
       "matchId": "core-roster",
       "time": 14.45,
-      "directSha256": "verified-equal-on-captured-build",
-      "afterPlaybackSha256": "verified-equal-on-captured-build",
+      "directSha256": "e7bfb45def94d52cba54b5bfaadf25b7c2cf823e3efa863021adf7ac63570f89",
+      "afterPlaybackSha256": "e7bfb45def94d52cba54b5bfaadf25b7c2cf823e3efa863021adf7ac63570f89",
       "equal": true
     },
     {
       "signatureId": "null-field",
       "matchId": "remaining-roster",
       "time": 1.45,
-      "directSha256": "verified-equal-on-captured-build",
-      "afterPlaybackSha256": "verified-equal-on-captured-build",
+      "directSha256": "6da3b3c35f9bb6953c4ef9bc44efea0143f58aac902572e37510a6adc48e5798",
+      "afterPlaybackSha256": "6da3b3c35f9bb6953c4ef9bc44efea0143f58aac902572e37510a6adc48e5798",
       "equal": true
     },
     {
       "signatureId": "smoke-canister",
       "matchId": "remaining-roster",
       "time": 104.45,
-      "directSha256": "verified-equal-on-captured-build",
-      "afterPlaybackSha256": "verified-equal-on-captured-build",
+      "directSha256": "f63e1532f524b395860c2ec52e0508c158243a2478e08601540ca2ceeafec35d",
+      "afterPlaybackSha256": "f63e1532f524b395860c2ec52e0508c158243a2478e08601540ca2ceeafec35d",
       "equal": true
     },
     {
       "signatureId": "target-paint",
       "matchId": "remaining-roster",
       "time": 193.45,
-      "directSha256": "verified-equal-on-captured-build",
-      "afterPlaybackSha256": "verified-equal-on-captured-build",
+      "directSha256": "2ec58c0a26656c075eaf84d4df11209b279739d3404759f7ce0b8d79ca57c34d",
+      "afterPlaybackSha256": "2ec58c0a26656c075eaf84d4df11209b279739d3404759f7ce0b8d79ca57c34d",
       "equal": true
     }
   ],
@@ -905,11 +996,11 @@
           "operationId": "arc-signature-83",
           "signatureId": "falling-star",
           "phase": "tell",
-          "visibleMeshes": 1
+          "visibleMeshes": 17
         }
       ],
       "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/falling-star-reduced.webp",
-      "imageSha256": "c575f17fd4cb1ee0e65c08de577dcbaca106564b5980359d632a0096d082e6fe"
+      "imageSha256": "c327f66847c97aed9acd642db50b68acec38504d089bcab659fb09c3bf835d6d"
     },
     {
       "signatureId": "repair-beam",
@@ -920,11 +1011,11 @@
           "operationId": "arc-signature-35",
           "signatureId": "repair-beam",
           "phase": "channel",
-          "visibleMeshes": 1
+          "visibleMeshes": 23
         }
       ],
       "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/repair-beam-reduced.webp",
-      "imageSha256": "523d39f4dc04ac0393b5d3b89c5ee5eeac5f3540203224509c559ad2d33bd3c6"
+      "imageSha256": "5945ce2710145cca076dbe55c5bd25830ca64d8b38268f477a077b67329f71fa"
     },
     {
       "signatureId": "smoke-canister",
@@ -935,11 +1026,11 @@
           "operationId": "arc-signature-50",
           "signatureId": "smoke-canister",
           "phase": "active",
-          "visibleMeshes": 1
+          "visibleMeshes": 6
         }
       ],
       "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/smoke-canister-reduced.webp",
-      "imageSha256": "f7cd86153b9297e0258c87d0bb9a7b3e8e50ba35d1a18b83cc5c78e0f0c58f84"
+      "imageSha256": "bebff7a53a88324ef9489b40900ceb62f9f32315921dbd1168855065104955cb"
     },
     {
       "signatureId": "target-paint",
@@ -950,11 +1041,11 @@
           "operationId": "arc-signature-98",
           "signatureId": "target-paint",
           "phase": "active",
-          "visibleMeshes": 1
+          "visibleMeshes": 13
         }
       ],
       "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/target-paint-reduced.webp",
-      "imageSha256": "c7ce785ec909329d77e8eabc4b835605fb1b757d2835994aab80e6608d450947"
+      "imageSha256": "9bc126dd45eb90e45593ca9d7292cc28e24ece1d08139c9584eb43d5182d0886"
     }
   ],
   "levelUp": {
@@ -975,8 +1066,7 @@
     "time": 81.32,
     "visibleBeats": 1,
     "image": "art/reviews/arc-relay-presentation-batch-v1/runtime-proof/captures/level-up.webp",
-    "imageSha256": "d3e1c8ed81b7ce5b78b65bce50e433502fe239a1b43446af339020f9d0bec9a2"
+    "imageSha256": "82793d4d0f6c89a8729bb0d03266638781612bb5a710552e6357117944b1a75b"
   },
-  "migratedFromCapturedImages": true,
   "errors": []
 }

@@ -171,6 +171,57 @@
       grid-template-columns: repeat(2, 1fr);
       gap: 12px;
     }
+    .signature-motion-list { display: grid; gap: 18px; }
+    .signature-motion-card {
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel);
+    }
+    .signature-motion-card .lifecycle-head { background: rgba(18, 28, 37, .74); }
+    .motion-compare {
+      display: grid;
+      grid-template-columns: minmax(0, .72fr) repeat(2, minmax(0, 1fr));
+    }
+    .motion-compare figure { min-width: 0; margin: 0; }
+    .motion-compare figure + figure { border-left: 1px solid var(--line); }
+    .motion-compare video,
+    .concept-crop {
+      display: block;
+      width: 100%;
+      aspect-ratio: 16 / 10;
+      background-color: #05080b;
+    }
+    .motion-compare video { object-fit: cover; }
+    .concept-crop {
+      background-image: var(--concept-image);
+      background-position: center var(--concept-y, 50%);
+      background-repeat: no-repeat;
+      background-size: cover;
+    }
+    .concept-crop.board-row {
+      aspect-ratio: 16 / 10;
+      background-size: auto var(--concept-size);
+    }
+    .motion-compare figcaption {
+      min-height: 66px;
+      padding: 11px 13px 13px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+    .motion-compare figcaption b {
+      display: block;
+      margin-bottom: 3px;
+      color: var(--ink);
+      font-size: 12px;
+    }
+    .motion-reading {
+      padding: 12px 17px 15px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .motion-reading strong { color: var(--brass); }
     .frame-card, .lifecycle-card, .proof-card {
       overflow: hidden;
       border: 1px solid var(--line);
@@ -334,6 +385,12 @@
     @media (max-width: 900px) {
       .status { grid-template-columns: repeat(3, 1fr); }
       .motion-grid { grid-template-columns: repeat(2, 1fr); }
+      .motion-compare { grid-template-columns: 1fr 1fr; }
+      .motion-compare figure:first-child { grid-column: 1 / -1; }
+      .concept-crop { aspect-ratio: 3 / 1; }
+      .concept-crop.board-row { aspect-ratio: 3 / 1; }
+      .motion-compare figure:nth-child(2) { border-left: 0; border-top: 1px solid var(--line); }
+      .motion-compare figure:nth-child(3) { border-top: 1px solid var(--line); }
       .lifecycle-head { flex-wrap: wrap; gap: 7px 14px; }
       .lifecycle-head p { width: 100%; margin-left: 30px; }
     }
@@ -347,6 +404,10 @@
       .section-head { grid-template-columns: 1fr; gap: 11px; }
       section { padding-top: 58px; }
       .overview-grid, .proof-grid, .method { grid-template-columns: 1fr; }
+      .motion-compare { grid-template-columns: 1fr; }
+      .motion-compare figure:first-child { grid-column: auto; }
+      .motion-compare figure + figure { border-left: 0; border-top: 1px solid var(--line); }
+      .motion-compare video { aspect-ratio: 16 / 10; }
       .phase-grid { grid-template-columns: 1fr; }
       .phase-grid figure + figure { border-left: 0; border-top: 1px solid var(--line); }
       .phase-grid img { aspect-ratio: 16 / 9; }
@@ -361,9 +422,10 @@
     <div class="shell">
       <div class="brand">Nilbots / runtime proof</div>
       <nav aria-label="Gallery sections">
+        <a href="#signature-motion">Watch all 16</a>
         <a href="#overviews">Overviews</a>
-        <a href="#lifecycles">16 signatures</a>
-        <a href="#motion">Reduced motion</a>
+        <a href="#lifecycles">Lifecycle stills</a>
+        <a href="#reduced">Reduced motion</a>
         <a href="#performance">Performance</a>
         <a href="../../../../web/dist-review/?standalone">Watch replay</a>
       </nav>
@@ -371,32 +433,47 @@
   </div>
 
   <header class="shell">
-    <div class="eyebrow">Implemented · real Tapline frames</div>
-    <h1>Arc Relay, as the game actually renders it.</h1>
-    <p class="lede">The post-implementation gallery: two retained WASM matches,
-      all sixteen signature lifecycles, phone framing, reduced motion, level-up,
-      and renderer performance. Click any frame for the full capture.</p>
+    <div class="eyebrow">Implemented · real Tapline motion</div>
+    <h1>Watch every signature move.</h1>
+    <p class="lede">All sixteen effects captured at deterministic 1× speed
+      inside two real WASM matches. Each treatment is shown beside its approved
+      concept reference in both a readable director shot and the fixed gameplay
+      overview. No empty-stage renders and no mesh-count stand-ins.</p>
     <div class="actions">
       <a class="button primary" href="../../../../web/dist-review/?standalone">Watch the two live replays</a>
       <a class="button" href="../">Compare with concept boards</a>
       <a class="button" href="captures/signature-lifecycle-contact-sheet.webp">Open one-sheet overview</a>
     </div>
     <div class="status" aria-label="Proof scope">
-      <div class="metric"><b id="signature-count">16</b><span>signature lifecycle rows</span></div>
-      <div class="metric"><b id="frame-count">57</b><span>captured arena frames</span></div>
+      <div class="metric"><b id="signature-count">16</b><span>animated signature stories</span></div>
+      <div class="metric"><b id="motion-count">32</b><span>full-speed motion clips</span></div>
       <div class="metric"><b id="match-count">2</b><span>real WASM matches</span></div>
       <div class="metric"><b id="projectile-count">16</b><span>class projectile identities</span></div>
       <div class="metric"><b id="level-count">44</b><span>real level-up facts covered</span></div>
       <div class="metric"><b id="seek-count">6/6</b><span>direct-seek comparisons equal</span></div>
     </div>
     <div class="verified">
-      <strong>Browser proof passed.</strong>
-      <span>WebGL geometry was visible at every required start/action beat;
-        captured requests, console, and page errors: zero.</span>
+      <strong>Motion and browser proof passed.</strong>
+      <span>Every effect has both required camera clips on the same immutable
+        WebGL build; captured requests, console, and page errors: zero.</span>
     </div>
   </header>
 
   <main class="shell">
+    <section id="signature-motion">
+      <div class="section-head">
+        <h2>Concept → directed → gameplay</h2>
+        <p>Use the middle clip to inspect the action and the right clip as the
+          acceptance surface. A treatment only passes when its silhouette and
+          motion still read at the normal strategic camera.</p>
+      </div>
+      <div id="signature-motion-list" class="signature-motion-list"><p class="loading">Loading all-sixteen motion proof…</p></div>
+      <div class="note"><strong>Trip Node and Sentinel Seed:</strong> their
+        first column uses the approved provider model reference because those
+        two source meshes came from the separate 3D-model handoff. Their drop,
+        emergence, settle, and operation lifecycle are renderer-authored here.</div>
+    </section>
+
     <section id="overviews">
       <div class="section-head">
         <h2>Desktop and phone</h2>
@@ -411,8 +488,9 @@
       <div class="section-head">
         <h2>Sixteen complete stories</h2>
         <p>Every shipping signature follows the shared grammar-3 envelope.
-          Start is the authored tell, action is the physical or active beat,
-          and resolve proves that expired geometry clears.</p>
+          These start/action/resolve stills all use the ordinary fixed strategic
+          overview. The motion section above supplies the additional director
+          view needed to inspect the acting.</p>
       </div>
       <div id="lifecycle-list" class="lifecycle-list"><p class="loading">Loading lifecycle rows…</p></div>
       <div class="note"><strong>Reading the resolve column:</strong> an empty
@@ -420,7 +498,7 @@
         replay interval has ended—not a missing screenshot.</div>
     </section>
 
-    <section id="motion">
+    <section id="reduced">
       <div class="section-head">
         <h2>Motion floor and level-up</h2>
         <p>Reduced motion preserves public truth while suppressing ornamental
@@ -482,6 +560,48 @@
       const index = value.indexOf(marker);
       return index >= 0 ? value.slice(index + marker.length) : value;
     };
+    const conceptReferences = {
+      'tractor-hook': { image: '../01-high-impact-signatures.png', rows: 4, y: '0%' },
+      'falling-star': { image: '../01-high-impact-signatures.png', rows: 4, y: '33.333%' },
+      'rail-line': { image: '../01-high-impact-signatures.png', rows: 4, y: '66.667%' },
+      'hardlight-block': { image: '../01-high-impact-signatures.png', rows: 4, y: '100%' },
+      'repair-beam': { image: '../02-support-fields.png', rows: 4, y: '0%' },
+      'survey-flare': { image: '../02-support-fields.png', rows: 4, y: '33.333%' },
+      'null-field': { image: '../02-support-fields.png', rows: 4, y: '66.667%' },
+      'smoke-canister': { image: '../02-support-fields.png', rows: 4, y: '100%' },
+      'vector-dash': { image: '../03-motion-objective.png', rows: 3, y: '0%' },
+      'prism-wall': { image: '../03-motion-objective.png', rows: 3, y: '50%' },
+      'arc-toss': { image: '../03-motion-objective.png', rows: 3, y: '100%' },
+      'exchange': { image: '../04-control-level-up.png', rows: 4, y: '0%' },
+      'target-paint': { image: '../04-control-level-up.png', rows: 4, y: '33.333%' },
+      'kinetic-burst': { image: '../04-control-level-up.png', rows: 4, y: '66.667%' },
+      'trip-node': {
+        image: '../../../../art/class-models/provider-runs/meshy/arc-relay-meshy7-signature-props-retexture-v3/arc-trip-node-v3/019ff5eb-39a6-7432-bdb5-8efad5ef17d6/provider-preview.png',
+        rows: 1, y: '50%', model: true,
+      },
+      'sentinel-seed': {
+        image: '../../../../art/class-models/provider-runs/meshy/arc-relay-meshy7-signature-props-v3/arc-sentinel-seed-v3/019ff5c8-f17f-7083-a432-71f16c9f1c05/provider-preview.png',
+        rows: 1, y: '50%', model: true,
+      },
+    };
+    const motionReadings = {
+      'arc-toss': 'one physical Core lifts, arcs, and lands',
+      'exchange': 'paired transfer pods cross and settle',
+      'falling-star': 'cardinal tell, descending capsule, floor impact',
+      'hardlight-block': 'matte barrier rises from the occupied tile',
+      'kinetic-burst': 'mechanical iris compresses into a pressure release',
+      'null-field': 'shallow floor lens expands and suppresses',
+      'prism-wall': 'three framed rough panes rise as a wall',
+      'rail-line': 'rail grows down-lane before its pressure sweep',
+      'repair-beam': 'three braided repair strands carry visible packets',
+      'sentinel-seed': 'seed descends; the sentry emerges and acquires',
+      'smoke-canister': 'canister lands into a restrained low smoke bank',
+      'survey-flare': 'flare travels, plants, and unfolds into a survey mast',
+      'target-paint': 'acquisition pod descends, brackets sweep, tally locks',
+      'tractor-hook': 'spool pays out cable and sends a hook head to target',
+      'trip-node': 'deployment rails open and the mine rises into place',
+      'vector-dash': 'Kestrel braces, streaks, and settles at destination',
+    };
     const shortMatch = (value) => value === 'core-roster' ? 'Core roster' : 'Remaining roster';
     const frame = (image, label) => `
       <button class="frame-button" type="button" data-frame="${escapeHtml(localImage(image))}"
@@ -493,21 +613,56 @@
       proof.reducedMotion.length + (proof.levelUp ? 1 : 0);
 
     try {
-      const [proof, manifest, webkit, chromium] = await Promise.all([
+      const [proof, manifest, directorMotion, overviewMotion, webkit, chromium] = await Promise.all([
         fetchJson('captures/browser-proof.json'),
         fetchJson('proof-manifest.json'),
+        fetchJson('motion/evidence.json'),
+        fetchJson('motion-overview/evidence.json'),
         fetchJson('performance/phone-webgl-webkit.json'),
         fetchJson('performance/phone-webgl-chromium.json'),
       ]);
-      if (!proof.passed || !manifest.passed) throw new Error('Retained proof is not marked passed.');
+      if (!proof.passed || !manifest.passed || !directorMotion.passed || !overviewMotion.passed) {
+        throw new Error('Retained browser or all-signature motion proof is not marked passed.');
+      }
+      if (directorMotion.captures.length !== 16 || overviewMotion.captures.length !== 16) {
+        throw new Error('Both motion cameras must cover all 16 signatures.');
+      }
+      if (new Set([proof.buildSha256, directorMotion.buildSha256, overviewMotion.buildSha256]).size !== 1) {
+        throw new Error('Motion and browser evidence do not share one viewer build.');
+      }
 
       document.querySelector('#signature-count').textContent = proof.lifecycle.length;
-      document.querySelector('#frame-count').textContent = countFrames(proof);
+      document.querySelector('#motion-count').textContent = directorMotion.captures.length + overviewMotion.captures.length;
       document.querySelector('#match-count').textContent = manifest.matches.length;
       document.querySelector('#projectile-count').textContent = manifest.coverage.projectileLookCount;
       document.querySelector('#level-count').textContent = manifest.coverage.levelUpFactCount;
       document.querySelector('#seek-count').textContent = `${proof.seekComparisons.filter((entry) => entry.equal).length}/${proof.seekComparisons.length}`;
       document.querySelector('#build-id').textContent = `viewer ${proof.buildSha256.slice(0, 12)} · source ${proof.sourceRevision.slice(0, 8)}`;
+
+      const overviewBySignature = new Map(overviewMotion.captures.map((entry) => [entry.signatureId, entry]));
+      document.querySelector('#signature-motion-list').innerHTML = directorMotion.captures.map((directed, index) => {
+        const overview = overviewBySignature.get(directed.signatureId);
+        const concept = conceptReferences[directed.signatureId];
+        if (!overview || !concept) throw new Error(`Missing motion comparison for ${directed.signatureId}.`);
+        const name = titleCase(directed.signatureId);
+        const conceptKind = concept.model ? 'Approved Meshy model reference' : 'Approved concept-art crop';
+        return `<article class="signature-motion-card" data-motion-card="${escapeHtml(directed.signatureId)}">
+          <div class="lifecycle-head"><span class="number">${String(index + 1).padStart(2, '0')}</span>
+            <h3>${escapeHtml(name)}</h3><p>${escapeHtml(shortMatch(directed.matchId))} · 1× deterministic playback</p></div>
+          <div class="motion-compare">
+            <figure><div class="concept-crop${concept.model ? '' : ' board-row'}"
+              style="--concept-image:url('${escapeHtml(concept.image)}');--concept-y:${concept.y};--concept-size:${concept.rows * 100}%"
+              role="img" aria-label="${escapeHtml(`${name} ${conceptKind}`)}"></div>
+              <figcaption><b>Reference</b>${escapeHtml(conceptKind)}</figcaption></figure>
+            <figure><video controls muted loop playsinline preload="metadata"
+              poster="${escapeHtml(localImage(directed.poster))}" src="${escapeHtml(localImage(directed.video))}"></video>
+              <figcaption><b>Director view</b>Readable footprint · ${directed.durationSeconds.toFixed(1)}s · ${directed.frameRate} fps sample</figcaption></figure>
+            <figure><video controls muted loop playsinline preload="metadata"
+              poster="${escapeHtml(localImage(overview.poster))}" src="${escapeHtml(localImage(overview.video))}"></video>
+              <figcaption><b>Ordinary gameplay overview</b>Fixed strategic camera · real surrounding fight</figcaption></figure>
+          </div><div class="motion-reading"><strong>Motion read:</strong> ${escapeHtml(motionReadings[directed.signatureId])}</div>
+        </article>`;
+      }).join('');
 
       document.querySelector('#overview-grid').innerHTML = proof.captures.map((entry) => {
         const device = entry.mobile ? 'Phone landscape' : 'Desktop';

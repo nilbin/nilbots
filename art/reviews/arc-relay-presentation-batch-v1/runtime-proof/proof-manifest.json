@@ -625,30 +625,30 @@
         0
       ],
       "captureTimes": {
-        "action": 117.75,
-        "resolve": 118.35,
-        "start": 117.35
+        "action": 25.75,
+        "resolve": 26.35,
+        "start": 25.35
       },
       "facts": [
         {
           "kind": "signature-changed",
           "phase": "tell",
           "reason": "started",
-          "tick": 117
+          "tick": 25
         },
         {
           "kind": "signature-changed",
           "phase": null,
-          "reason": "lock-lost",
-          "tick": 118
+          "reason": "launched",
+          "tick": 26
         }
       ],
       "matchId": "core-roster",
-      "operationId": "arc-signature-23",
+      "operationId": "arc-signature-4",
       "phases": [
         {
-          "firstTick": 117,
-          "lastTick": 117,
+          "firstTick": 25,
+          "lastTick": 25,
           "phase": "tell"
         }
       ],

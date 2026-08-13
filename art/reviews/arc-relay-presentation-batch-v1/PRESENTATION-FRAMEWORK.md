@@ -1,9 +1,7 @@
-# Arc Relay class, signature, and presentation framework — approval proposal
+# Arc Relay class, signature, and presentation framework
 
-Status: proposed as part of the Arc Relay presentation batch. This document is
-the review record. After approval, its durable contracts move into the owning
-repository documentation and tests; this artifact remains the visual decision
-record.
+Status: implemented. This document is the visual decision record; the durable
+contracts also live in repository documentation and exact-set tests.
 
 ## Answer on concept fidelity
 
@@ -22,10 +20,10 @@ and short particles. It should not spend runtime or visual noise on detail that
 disappears when a tile is 40–70 pixels wide.
 
 No skeletal mesh animation is required for these boards. Their action comes
-from public body movement, whole-body settle/recoil, and renderer-owned effects
-around the existing meshes. The Trip Node and Sentinel Seed models remain the
-other 3D agent's assets; this batch owns their tell, activation, capacity, and
-fire presentation only after those models are integrated.
+from public body movement, signature-specific whole-body acting, and
+renderer-owned physical rigs around the existing meshes. Trip Node and Sentinel
+Seed keep the separately promoted model bytes while this package owns their
+deployment, capacity, suppression, trigger, and fire presentation.
 
 ### Fidelity by treatment
 
@@ -45,14 +43,17 @@ fire presentation only after those models are integrated.
 | Exchange | High: paired endpoints, folding ribbons, exact body relocations | Ribbons communicate association only; they do not imply collision or a curved path. |
 | Target Paint | High: blunt acquisition brackets and three persistent tally bars | No thin high-frequency reticle lines or bright lock-on ping. |
 | Kinetic Burst | High: contracting local ring, low torus, wakes only on relocated bodies | No camera shake or expanding full-screen distortion. |
+| Trip Node | High: inward floor rails, one approved mine emerging from below the tile, low trigger pressure | The hidden trap gains no globally visible pre-placement telegraph. |
+| Sentinel Seed | High: descending seed, one approved sentry rising into place, observed-shot head yaw | The model is a stationary-base/yaw-head split rather than a skeletal rig. |
 | Level Up | High after correction: brass ring, three converging facets, persistent chevron | No full-height column or white flash. |
 | Sixteen attack heads | High silhouette fidelity at 16–28 pixels | SVG-derived 3D relief retains the shapes, not the board's close-up microtexture. |
 
 ### Fidelity acceptance gate
 
-For every owned treatment, the implementation produces a fixed-camera
-start/action/resolve capture from a real Tapline replay beside the corresponding
-storyboard row. It passes only when all of these are true:
+For every treatment, the implementation produces deterministic motion and
+start/action/resolve evidence from a real Tapline replay. The gallery keeps the
+ordinary strategic overview beside an honestly labelled director view and the
+corresponding storyboard row. It passes only when all of these are true:
 
 1. The dominant silhouette and direction still match at 25% thumbnail scale.
 2. The same three-beat story is recognizable without reading a label.
@@ -64,7 +65,7 @@ storyboard row. It passes only when all of these are true:
 6. Desktop, phone landscape, and reduced-motion profiles keep the mechanical
    tell, active footprint, and outcome readable inside their budgets.
 
-## What exists now
+## Starting contracts retained by the implementation
 
 The repository already owns several good extension contracts:
 
@@ -79,13 +80,13 @@ The repository already owns several good extension contracts:
   putting artwork in gameplay fingerprints.
 - Chassis, projectile, and optional GLB assets are discovered from manifests.
 
-The current weakness is repeated orchestration. Adding a class or signature can
+The pre-framework weakness was repeated orchestration. Adding a class or signature could
 touch the engine runtime's type switches, the canonical writer, the App catalog,
 sheet authoring, a hard-coded WebGL style map, Canvas branches, a class fallback
 map, and a central audio switch. Some omissions fail loudly, but no one test yet
 proves the complete mechanics-to-presentation chain.
 
-## Proposed architecture
+## Implemented architecture
 
 ```text
 typed launch class + typed signature handler
@@ -134,10 +135,10 @@ chronology vocabulary:
 - react to tile entry or body destruction;
 - end/cancel and expose its public state.
 
-The extraction happens first with no gameplay change. Historical fingerprints,
-goldens, and chronology tests must remain identical. The four approved Tapline
-vNext changes are then implemented in their own handlers rather than adding more
-conditions to a central switch.
+The extraction landed first with no gameplay change. Historical fingerprints,
+goldens, and chronology tests remained identical. The four approved Tapline-2
+changes then landed in their own handlers rather than adding more conditions to
+a central switch.
 
 A registry-conformance test enumerates every `SignatureKind` and requires
 exactly one handler, one metadata record, one canonical writer/reader case, and
@@ -268,12 +269,13 @@ The long-running goal is not complete until these gates exist and pass:
   resolve, suppressed, cancelled, and expired states.
 - Sixteen-body crowded playback stays inside declared pooled-object,
   transparency, sustained-frame, and audio comfort budgets.
-- Trip Node and Sentinel Seed model hashes/materials stay outside this batch;
-  their public phase integration still passes the same presentation tests.
+- Trip Node and Sentinel Seed model hashes/materials stay outside this
+  presentation remediation; their public phase integration passes the same
+  presentation tests and motion-review gate.
 
-## Canonical documentation after approval
+## Canonical documentation
 
-Implementation will promote the decisions above into their owning documents:
+The implemented decisions are promoted into their owning documents:
 
 - `docs/ARENA-VISUALS.md` — presentation package, primitive, fidelity,
   reduced-motion, and capture gates.

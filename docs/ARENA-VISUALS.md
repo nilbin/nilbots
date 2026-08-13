@@ -476,7 +476,7 @@ signatures use renderer primitives and need no skeletal or Meshy animation.
 
 An authoritative `leveled-up` fact also drives a bounded presentation beat: a
 thin brass floor ring, three short converging matte facets, then the persistent
-rules-owned chevron. Temporary geometry is gone by 0.9 presentation ticks; the
+rules-owned chevron. Temporary geometry is gone by 1.8 presentation ticks; the
 effect has no white flash, full-height column, camera shake, or mesh mutation.
 
 The approval artifact and per-effect fidelity target live under

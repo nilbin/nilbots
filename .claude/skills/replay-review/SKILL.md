@@ -46,6 +46,14 @@ a capture directory, JSON index, README, or contact sheet by itself is not a
 review handoff. Prefer an index that reads the retained capture manifest so a
 partial retry cannot leave the gallery stale.
 
+An existence assertion is not visual evidence. A captured treatment must be
+large and isolated enough for the reviewer to identify and judge without being
+told where it is. Keep an ordinary gameplay-scale overview beside any close
+review frame, and label the close frame honestly; never present a whole-arena
+shot with one detected mesh as proof that an effect reads. If the effect still
+cannot be identified in the pinned close frame, treat that as a presentation
+failure rather than a capture success.
+
 The same boundary applies to gameplay artifacts: ordinary review runs mind
 sources in-process. Do not rebuild tracked WASM, mint a stock artifact or
 playlist, reset ratings, or bump release versions until the owner explicitly

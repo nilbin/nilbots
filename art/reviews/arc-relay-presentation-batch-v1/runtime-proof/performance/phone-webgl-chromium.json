@@ -1,9 +1,9 @@
 {
-  "url": "http://127.0.0.1:8931/web/dist-review/?standalone&audio=off&render-profile=mobile",
+  "url": "http://127.0.0.1:9093/web/dist-review/?standalone&audio=off&render-profile=mobile",
   "browser": "chromium",
   "device": "phone",
   "activity": "active",
-  "elapsedSeconds": 12.003,
+  "elapsedSeconds": 12,
   "canvas": {
     "kind": "webgl",
     "width": 1266,
@@ -21,28 +21,28 @@
     "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (LLVM 10.0.0) (0x0000C0DE)), SwiftShader driver)"
   },
   "counters": {
-    "rafCallbacks": 38,
-    "webglClearPasses": 38,
-    "webglDrawCalls": 5888,
-    "webglTriangles": 40747712,
-    "canvas2dFrames": 70,
-    "canvas2dOperations": 210
+    "rafCallbacks": 36,
+    "webglClearPasses": 36,
+    "webglDrawCalls": 5982,
+    "webglTriangles": 38799316,
+    "canvas2dFrames": 65,
+    "canvas2dOperations": 195
   },
   "rates": {
-    "renderedFramesPerSecond": 1.5829375989335999,
-    "rafCallbacksPerSecond": 3.1658751978671997,
-    "webglDrawCallsPerSecond": 490.5440306590019,
-    "webglTrianglesPerSecond": 3394793.968174623,
-    "canvas2dOperationsPerSecond": 17.49562609347663,
-    "colorPixelsPerSecond": 1172339.4151462135,
-    "shadowPixelsPerSecond": 1659830.3757393984,
-    "weightedPixelsPerSecond": 2832169.790885612
+    "renderedFramesPerSecond": 1.5,
+    "rafCallbacksPerSecond": 3,
+    "webglDrawCallsPerSecond": 498.5,
+    "webglTrianglesPerSecond": 3233276.3333333335,
+    "canvas2dOperationsPerSecond": 16.25,
+    "colorPixelsPerSecond": 1110915,
+    "shadowPixelsPerSecond": 1572864,
+    "weightedPixelsPerSecond": 2683779
   },
   "cpu": {
-    "taskSeconds": 13.996722000000002,
-    "scriptSeconds": 0.21172400000000002,
-    "layoutSeconds": 0.004704,
-    "taskUtilization": 1.1661019745063737
+    "taskSeconds": 13.592156,
+    "scriptSeconds": 0.211939,
+    "layoutSeconds": 0.004649,
+    "taskUtilization": 1.1326796666666665
   },
   "errors": []
 }
