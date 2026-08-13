@@ -784,6 +784,26 @@ internal static class ArenaBasics
         var blocked = new HashSet<Position>(persistentObstacles);
         blocked.Remove(start);
         blocked.Remove(goal);
+        int[] field = StaticRouteDistanceField(
+            contract, body, goal, blocked);
+        return DistanceFromField(contract.Map, field, start);
+    }
+
+    /// <summary>
+    /// One reverse shortest-path field for a fixed goal and durable obstacle
+    /// set. The route step relation is symmetric, so this is byte-equivalent
+    /// to flooding outward from every candidate start while avoiding the
+    /// thousands of repeated map searches a three-action planner would
+    /// otherwise perform for one loaded carrier in one tick.
+    /// </summary>
+    internal static int[] StaticRouteDistanceField(
+        GenericActorResolvedMatchContract contract,
+        MindBody body,
+        Position goal,
+        IReadOnlySet<Position> persistentObstacles)
+    {
+        var blocked = new HashSet<Position>(persistentObstacles);
+        blocked.Remove(goal);
         IReadOnlyCollection<ProjectileHeading> allowed = RouteHeadings(
             contract, body);
         int width = contract.Map.Width;
@@ -794,12 +814,11 @@ internal static class ArenaBasics
         var allowedHeadings = new bool[8];
         foreach (ProjectileHeading heading in allowed)
             allowedHeadings[(int)heading] = true;
-        int startIndex = start.Y * width + start.X;
         int goalIndex = goal.Y * width + goal.X;
         int read = 0;
         int write = 1;
-        queue[0] = startIndex;
-        distances[startIndex] = 0;
+        queue[0] = goalIndex;
+        distances[goalIndex] = 0;
         while (read < write)
         {
             int currentIndex = queue[read++];
@@ -820,13 +839,24 @@ internal static class ArenaBasics
                 int nextIndex = next.Y * width + next.X;
                 if (distances[nextIndex] >= 0)
                     continue;
-                if (nextIndex == goalIndex)
-                    return nextDistance;
                 distances[nextIndex] = nextDistance;
                 queue[write++] = nextIndex;
             }
         }
-        return null;
+        return distances;
+    }
+
+    internal static int? DistanceFromField(
+        GenericActorMapContract map,
+        IReadOnlyList<int> distances,
+        Position start)
+    {
+        int index = start.Y * map.Width + start.X;
+        return index >= 0
+            && index < distances.Count
+            && distances[index] >= 0
+                ? distances[index]
+                : null;
     }
 
     /// <summary>

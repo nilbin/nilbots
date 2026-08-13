@@ -77,6 +77,7 @@ internal sealed class SquadArenaPlanner : IArenaStepper
                 contract, mind, intent, assignments[intent.Body.UnitId]));
 
         var inherited = new Dictionary<int, Operation>();
+        var candidates = new Dictionary<int, Operation[]>();
         foreach (SquadMovementIntent intent in intents)
         {
             inherited[intent.Body.UnitId] = InheritedOperation(
@@ -84,6 +85,18 @@ internal sealed class SquadArenaPlanner : IArenaStepper
                 mind,
                 intent,
                 assignments[intent.Body.UnitId]);
+            // An EPIBT revisit changes only the collision set and inherited
+            // priority. This body's map, legality, authored goal, assignment
+            // and course are all frozen for the tick, so regenerating the
+            // same operation set inside every recursive displacement wastes
+            // sandbox fuel without changing a single candidate or tie-break.
+            candidates[intent.Body.UnitId] = GenerateOperations(
+                contract,
+                mind,
+                claims,
+                intent,
+                assignments[intent.Body.UnitId],
+                courses[intent.Body.UnitId]);
         }
         var selected = inherited.ToDictionary(pair => pair.Key, pair => pair.Value);
         var visits = intents.ToDictionary(intent => intent.Body.UnitId, _ => 0);
@@ -164,13 +177,7 @@ internal sealed class SquadArenaPlanner : IArenaStepper
             branch.Add(unit);
             selected.Remove(unit);
 
-            foreach (Operation candidate in GenerateOperations(
-                         contract,
-                         mind,
-                         claims,
-                         intent,
-                         assignments[unit],
-                         courses[unit]))
+            foreach (Operation candidate in candidates[unit])
             {
                 int[] conflicts = selected
                     .Where(pair => OperationsCollide(candidate, pair.Value))
@@ -325,12 +332,22 @@ internal sealed class SquadArenaPlanner : IArenaStepper
         // enter it, so only this body's assigned destination overrides that
         // obstacle; reserved tiles en route remain blocked.
         durable.Remove(assignment);
-        HashSet<Position>? distanceObstacles = null;
+        int[]? distanceField = null;
         if (IsCarrierReturn(intent))
         {
-            distanceObstacles = ArenaBasics.PersistentRouteObstacles(
+            HashSet<Position> distanceObstacles =
+                ArenaBasics.PersistentRouteObstacles(
                 contract, mind, intent.Body.ActorId.TeamId);
             distanceObstacles.Remove(assignment);
+            // StaticRouteDistance historically removes the query's start.
+            // Every generated state is already legal against durable, so only
+            // the body's tick-start tile needs the same explicit exemption.
+            distanceObstacles.Remove(intent.Body.Position);
+            distanceField = ArenaBasics.StaticRouteDistanceField(
+                contract,
+                intent.Body,
+                assignment,
+                distanceObstacles);
         }
         var generated = new List<Operation>();
         Enumerate(
@@ -374,7 +391,7 @@ internal sealed class SquadArenaPlanner : IArenaStepper
                     intent.Body.PreviousPosition,
                     intent.PrefersHold
                         || intent.Body.Position == assignment,
-                    distanceObstacles);
+                    distanceField);
                 if (operation is not null)
                     generated.Add(operation);
                 return;
@@ -479,7 +496,7 @@ internal sealed class SquadArenaPlanner : IArenaStepper
         IReadOnlyList<Position>? course = null,
         Position? priorPosition = null,
         bool prefersHold = false,
-        IReadOnlySet<Position>? distanceObstacles = null)
+        IReadOnlyList<int>? distanceField = null)
     {
         var states = new PlannerState[OperationLength];
         var state = new PlannerState(body.Position, body.Facing);
@@ -500,14 +517,12 @@ internal sealed class SquadArenaPlanner : IArenaStepper
 
         long weight = assignment is Position goal
             ? GoalProgressWeight(states.Select(candidate =>
-                distanceObstacles is null
+                distanceField is null
                     ? GoalDistance(contract.Map, candidate.Position, goal)
-                    : ArenaBasics.StaticRouteDistance(
-                        contract,
-                        body,
-                        candidate.Position,
-                        goal,
-                        distanceObstacles) ?? 100_000).ToArray())
+                    : ArenaBasics.DistanceFromField(
+                        contract.Map,
+                        distanceField,
+                        candidate.Position) ?? 100_000).ToArray())
             : 0;
         // EPIBT orders equal-h operations by the earliest useful action:
         // move, then rotate, then wait. This must be lexicographic rather
