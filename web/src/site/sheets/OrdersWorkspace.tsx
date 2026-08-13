@@ -708,14 +708,31 @@ function CapacitiesEditor({ orders, issues, onChange }: { orders: OrdersDocument
 function SharedOrdersEditor({ catalog, orders, mapPlan, issues, onChange, onOpenMap }: { catalog: TacticalSheetCatalog; orders: OrdersDocument; mapPlan: MapPlanDocument; issues: SheetIssue[]; onChange: (next: OrdersDocument) => void; onOpenMap: (focus?: { kind: PlotKind; id: string }) => void }) {
   const ids = Object.keys(orders.sharedOrders);
   const [selected, setSelected] = useState(ids[0] ?? '');
+  const [adding, setAdding] = useState(false);
   const definition = orders.sharedOrders[selected];
   const exampleRole = orders.roles[0];
   const commit = (change: (next: OrdersDocument) => void) => { const next = structuredClone(orders); change(next); onChange(next); };
+  const add = (definition: OrderNode) => {
+    const id = uniqueId('shared-order', ids);
+    commit((next) => { next.sharedOrders[id] = definition; });
+    setSelected(id);
+    setAdding(false);
+  };
   return <div className="grid gap-3 lg:grid-cols-[220px_minmax(0,1fr)]">
     <div><div className="flex gap-1 overflow-x-auto lg:flex-col">{ids.map((id) => <button key={id} type="button" className="choice-card min-h-12 min-w-[170px] lg:min-w-0" data-selected={id === selected} onClick={() => setSelected(id)}>{humanize(id)}</button>)}</div>
-      <button type="button" className="btn btn-secondary mt-2 min-h-11 w-full" onClick={() => {
-        const id = uniqueId('shared-order', ids); commit((next) => { const order = freshOrder('move'); delete order.id; next.sharedOrders[id] = order; }); setSelected(id);
-      }}>＋ New shared order</button></div>
+      <button type="button" className="btn btn-secondary mt-2 min-h-11 w-full" aria-expanded={adding}
+        onClick={() => setAdding((value) => !value)}>＋ New shared order</button>
+      {adding && <div className="mt-2 grid gap-1.5">
+        {ACTIONS.map((action) => <button key={action} type="button" className="choice-card min-h-[68px] text-left"
+          onClick={() => { const definition = freshOrder(action); delete definition.id; add(definition); }}>
+          <span className="flex items-center gap-2"><span className="font-mono text-[18px] text-arena-material">{ACTION_COPY[action].glyph}</span><b className="type-display text-[14px]">{ACTION_COPY[action].label}</b></span>
+          <span className="t-micro mt-1 block">{ACTION_COPY[action].description}</span>
+        </button>)}
+        <button type="button" className="choice-card min-h-[68px] text-left" onClick={() => add({ orders: [freshOrder('move', 'opening-move')] })}>
+          <b className="type-display block text-[14px]">⌘ Nested play</b><span className="t-micro mt-1 block">One lifecycle around a short local priority list.</span>
+        </button>
+      </div>}
+    </div>
     {definition && exampleRole ? <div><label className="mb-2 block"><span className="lab mb-1 block">Shared order name</span><input className="field min-h-11" value={selected}
       onChange={(event) => { const id = identifierFromName(event.target.value, selected); if (id === selected || orders.sharedOrders[id]) return; commit((next) => { next.sharedOrders[id] = next.sharedOrders[selected]; delete next.sharedOrders[selected]; rewriteShared(next, selected, id); }); setSelected(id); }} /></label>
       <OrderCard node={definition} externalId={selected} path={`orders.sharedOrders.${selected}`} role={exampleRole}

@@ -78,6 +78,13 @@ test('conditions, lifecycle and capacities are explicit game controls rather tha
   assert.doesNotMatch(orders, /advanced settings/i);
 });
 
+test('the shared-order library can author every physical action and a nested play', () => {
+  assert.match(orders, /ACTIONS\.map\(\(action\)/);
+  assert.match(orders, /add\(\{ orders: \[freshOrder\('move', 'opening-move'\)\] \}\)/);
+  for (const label of ['Move', 'Fight', 'Use skill', 'Handoff', 'Drop Core', 'Nested play'])
+    assert.match(orders, new RegExp(label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+});
+
 test('roles directly cast exact class bodies and surface signature identity', () => {
   assert.match(orders, /The eight bodies/);
   assert.match(orders, /Bodies sharing a role run the exact same ordered plan/);
