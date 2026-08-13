@@ -4,6 +4,7 @@ import {
   anchorOf,
   easeInOutCubic,
   fieldBase,
+  hasConstructRemoval,
   placeTravelHead,
   setEnergyColour,
   setEnergyOpacity,
@@ -101,5 +102,51 @@ export default defineArcSignatureWebGLPainter({
     lens.scale.setScalar(0.48 + Math.sin(time * 0.9) * 0.025);
     setEnergyColour(lens, SURVEY);
     setEnergyOpacity(lens, 0.11);
+  },
+  paintOutcome({ rig, priorSignature, facts, fraction, reducedMotion }) {
+    if (!hasConstructRemoval(facts)) return;
+    const positions = priorSignature?.positions.map(
+      (point) => new THREE.Vector3(point.x + 0.5, 0.065, point.y + 0.5),
+    ) ?? [];
+    const anchor = positions[0];
+    if (!anchor) return;
+    const life = 1 - fraction;
+    const area = fieldBase(rig, positions, anchor, 1 - fraction * 0.58);
+    rig.fill.color.set('#18353a');
+    rig.fill.opacity = life * 0.018;
+    setEnergyColour(rig.ring, SURVEY);
+    setEnergyOpacity(rig.ring, life * 0.07);
+    // Fold the survey arms back into the socket and lower the mast. The operation is
+    // already gone mechanically; this translucent after-motion only explains the exit.
+    rig.hub.visible = true;
+    rig.hub.position.copy(area.centre).setY(0.1 - fraction * 0.16);
+    rig.hub.scale.setScalar(Math.max(0.08, 1.26 * life));
+    rig.payload.visible = true;
+    rig.payload.position.copy(area.centre).setY(0.54 - fraction * 0.7);
+    rig.payload.scale.set(0.66 * life, 1.9 * Math.max(0.08, life), 0.66 * life);
+    rig.solid.color.set('#526166');
+    rig.solid.emissive.set('#1b3438');
+    rig.solid.emissiveIntensity = 0.025;
+    rig.solid.opacity = life * 0.78;
+    const arms = reducedMotion ? 2 : 3;
+    for (let index = 0; index < arms; index += 1) {
+      const angle = index * Math.PI * 2 / arms + fraction * 0.35;
+      const reach = 0.7 * life;
+      solidBarAt(
+        rig.bars[index]!,
+        area.centre.clone().add(new THREE.Vector3(
+          Math.cos(angle) * 0.16,
+          0,
+          Math.sin(angle) * 0.16,
+        )),
+        area.centre.clone().add(new THREE.Vector3(
+          Math.cos(angle) * (0.16 + reach),
+          0,
+          Math.sin(angle) * (0.16 + reach),
+        )),
+        0.13,
+        0.38 - fraction * 0.24,
+      );
+    }
   },
 });

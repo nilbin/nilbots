@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   ARC_SIGNATURE_PROP_SCALE,
+  SENTINEL_YAW_SETTLE_TICKS,
   ARC_SIGNATURE_PRESENTATION_ID,
   ARC_SIGNATURE_WEBGL_PAINTERS,
   arcSignatureAudioDefinitionIds,
@@ -273,6 +274,46 @@ test('Prism Wall and Hardlight Block deploy body-height matte silhouettes', () =
   }
 });
 
+test('persistent constructs leave a replay-derived exit instead of vanishing', () => {
+  for (const [replayName, signatureId, removalTime] of [
+    ['remaining-roster', 'prism-wall', 22.35],
+    ['core-roster', 'hardlight-block', 22.35],
+    ['core-roster', 'survey-flare', 22.35],
+    ['remaining-roster', 'sentinel-seed', 32.35],
+  ] as const) {
+    const replay = loadReplayJson(
+      gunzipSync(readFileSync(new URL(
+        `../../art/reviews/arc-relay-presentation-batch-v1/runtime-proof/replays/${replayName}.broadcast.json.gz`,
+        import.meta.url,
+      ))).toString('utf8'),
+    ).replay;
+    const disposables: { dispose: () => void }[] = [];
+    const effects = buildArcRelayEffects(replay, disposables);
+    try {
+      effects.update(removalTime);
+      const exits = effects.group.children.filter(
+        (candidate) =>
+          candidate.visible &&
+          candidate.userData.signatureId === signatureId &&
+          candidate.userData.phase === 'outcome',
+      );
+      assert.ok(exits.length > 0, `${signatureId} has a visible removal outcome`);
+      assert.ok(
+        exits.some((exit) => {
+          let meshes = 0;
+          exit.traverse((node) => {
+            if (node.visible && (node as THREE.Mesh).isMesh) meshes += 1;
+          });
+          return meshes > 0;
+        }),
+        `${signatureId} removal outcome contains authored geometry`,
+      );
+    } finally {
+      for (const disposable of disposables) disposable.dispose();
+    }
+  }
+});
+
 test('floor pressure waves stay horizontal and active fields animate from their phase boundary', () => {
   const replay = loadReplayJson(
     gunzipSync(readFileSync(new URL(
@@ -363,9 +404,22 @@ test('persistent props stay legible inside their tiles and sentinel yaw never lo
     { tick: 18, yaw: -Math.PI / 2 },
   ];
   assert.equal(latestObservedSignatureYaw(shots, 11.999), null);
-  assert.equal(latestObservedSignatureYaw(shots, 12), Math.PI / 2);
+  assert.equal(latestObservedSignatureYaw(shots, 12), 0);
+  const turning = latestObservedSignatureYaw(
+    shots,
+    12 + SENTINEL_YAW_SETTLE_TICKS / 2,
+  );
+  assert.ok(
+    turning !== null && turning > 0 && turning < Math.PI / 2,
+    'the public shot bearing rotates the head instead of snapping it',
+  );
   assert.equal(latestObservedSignatureYaw(shots, 17.999), Math.PI / 2);
-  assert.equal(latestObservedSignatureYaw(shots, 18), -Math.PI / 2);
+  assert.equal(latestObservedSignatureYaw(shots, 18), Math.PI / 2);
+  assert.equal(
+    latestObservedSignatureYaw(shots, 18 + SENTINEL_YAW_SETTLE_TICKS),
+    -Math.PI / 2,
+    'the half-turn uses one deterministic shortest direction',
+  );
 });
 
 test('sentinel yaw targets the authored head split and keeps legacy fallback', () => {

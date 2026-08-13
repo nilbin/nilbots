@@ -142,6 +142,45 @@ export function arcSignatureBodyPose(
   return pose;
 }
 
+export const ARC_SIGNATURE_BODY_RELEASE_TICKS = 0.72;
+
+/**
+ * Ease an already-observed signature pose back to rest after its public operation ends.
+ * The prior pose and removal tick come from replay state, so direct seek and playback agree.
+ */
+export function releaseArcSignatureBodyPose(
+  signatureId: string | null,
+  phase: 'tell' | 'active' | 'channel' | 'in-flight' | null,
+  phaseAgeAtRemoval: number,
+  releaseAge: number,
+  reducedMotion = false,
+): ArcSignatureBodyPose {
+  if (!signatureId || !phase || releaseAge < 0 ||
+      releaseAge >= ARC_SIGNATURE_BODY_RELEASE_TICKS) {
+    return { ...REST_SIGNATURE_POSE };
+  }
+  const from = arcSignatureBodyPose(
+    signatureId,
+    phase,
+    phaseAgeAtRemoval,
+    reducedMotion,
+  );
+  const progress = smoothstep(
+    0,
+    ARC_SIGNATURE_BODY_RELEASE_TICKS,
+    releaseAge,
+  );
+  return {
+    scale: 1 + (from.scale - 1) * (1 - progress),
+    rise: from.rise * (1 - progress),
+    forward: from.forward * (1 - progress),
+    lateral: from.lateral * (1 - progress),
+    roll: from.roll * (1 - progress),
+    pitch: from.pitch * (1 - progress),
+    yaw: from.yaw * (1 - progress),
+  };
+}
+
 export interface ArcMotionInput {
   time: number;
   fraction: number;

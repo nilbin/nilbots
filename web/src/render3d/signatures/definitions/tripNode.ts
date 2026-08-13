@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { defineArcSignatureWebGLPainter } from '../types';
 import {
+  hasConstructRemoval,
   paintPropFallback,
   risingSettle,
   setEnergyOpacity,
@@ -56,10 +57,36 @@ export default defineArcSignatureWebGLPainter({
     }
   },
   paintOutcome({ rig, priorSignature, facts, fraction }) {
-    if (!facts.some((fact) => fact.kind === 'signature-damage')) return;
     const point = priorSignature?.positions[0];
     if (!point) return;
     const anchor = new THREE.Vector3(point.x + 0.5, 0.08, point.y + 0.5);
+    if (hasConstructRemoval(facts)) {
+      const life = 1 - fraction;
+      const implosion = rig.toruses[0]!;
+      implosion.visible = true;
+      implosion.position.copy(anchor).setY(0.06);
+      implosion.scale.setScalar(0.62 * life);
+      setEnergyOpacity(implosion, life * 0.22);
+      for (const [index, angle] of [0, Math.PI * 2 / 3, Math.PI * 4 / 3].entries()) {
+        const rail = rig.segments[index]!;
+        const outside = anchor.clone().add(new THREE.Vector3(
+          Math.cos(angle) * 0.58,
+          0,
+          Math.sin(angle) * 0.58,
+        ));
+        const inside = anchor.clone().add(new THREE.Vector3(
+          Math.cos(angle) * (0.12 + fraction * 0.28),
+          0,
+          Math.sin(angle) * (0.12 + fraction * 0.28),
+        ));
+        rail.visible = true;
+        rail.position.lerpVectors(outside, inside, 0.5).setY(0.06);
+        rail.rotation.y = -angle;
+        rail.scale.set(outside.distanceTo(inside), 1, 1.1);
+        setEnergyOpacity(rail, life * 0.12);
+      }
+    }
+    if (!facts.some((fact) => fact.kind === 'signature-damage')) return;
     rig.torus.visible = true;
     rig.torus.position.copy(anchor);
     rig.torus.scale.setScalar(0.55 + fraction * 1.35);

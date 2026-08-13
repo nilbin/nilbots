@@ -88,6 +88,8 @@ interface SignatureShotYaw {
   yaw: number;
 }
 
+export const SENTINEL_YAW_SETTLE_TICKS = 0.58;
+
 interface SignaturePropSlot {
   group: THREE.Group;
   model: THREE.Group | null;
@@ -116,12 +118,25 @@ export function latestObservedSignatureYaw(
   shots: readonly SignatureShotYaw[],
   time: number,
 ): number | null {
-  let yaw: number | null = null;
+  let previousYaw: number | null = null;
   for (const shot of shots) {
-    if (shot.tick > Math.floor(time)) break;
-    yaw = shot.yaw;
+    if (shot.tick > time) break;
+    const age = time - shot.tick;
+    if (age < SENTINEL_YAW_SETTLE_TICKS) {
+      const progress = easeOutDeploy(age / SENTINEL_YAW_SETTLE_TICKS);
+      const start = previousYaw ?? 0;
+      return start + shortestYaw(start, shot.yaw) * progress;
+    }
+    previousYaw = shot.yaw;
   }
-  return yaw;
+  return previousYaw;
+}
+
+function shortestYaw(from: number, to: number): number {
+  let delta = (to - from) % (Math.PI * 2);
+  if (delta > Math.PI) delta -= Math.PI * 2;
+  if (delta < -Math.PI) delta += Math.PI * 2;
+  return delta;
 }
 
 /** Prefer the Sentinel's authored bearing split, while retaining old-asset fallback. */
@@ -1254,6 +1269,35 @@ function indexSignatureOutcomes(replay: ReplayModel): IndexedSignatureOutcome[][
       grouped.set(fact.operationId, facts);
     }
     const priorState = arcStateBefore(replay, sourceTick);
+    const afterState =
+      source.after.mode?.kind === 'arc-relay' &&
+      'visibleSignatures' in source.after.mode
+        ? source.after.mode
+        : null;
+    // Format-2 spectator broadcasts can omit expiry events while still publishing the
+    // exact before/after operation removal. Synthesize only the already-public removal
+    // fact shape needed by painters; this is presentation indexing, not replay mutation.
+    for (const prior of priorState?.visibleSignatures ?? []) {
+      if (afterState?.visibleSignatures.some(
+        (candidate) => candidate.operationId === prior.operationId,
+      )) continue;
+      const existing = grouped.get(prior.operationId);
+      if (existing?.some(
+        (fact) => fact.kind === 'signature-changed' && fact.phase === null,
+      )) continue;
+      const facts = existing ?? [];
+      facts.push({
+        kind: 'signature-changed',
+        operationId: prior.operationId,
+        signatureId: prior.signatureId,
+        ownerActor: prior.ownerActor,
+        phase: null,
+        reason: prior.endsAtTick !== null && sourceTick >= prior.endsAtTick
+          ? 'expired'
+          : 'removed',
+      });
+      grouped.set(prior.operationId, facts);
+    }
     return [...grouped].map(([operationId, facts]) => ({
       sourceTick,
       operationId,
@@ -1321,13 +1365,14 @@ function indexSignatureShotYaws(
       if (!signature) continue;
       const first = traversal.path[0]!;
       const shots = result.get(signature.operationId) ?? [];
-      shots.push({
-        tick: tickIndex,
-        yaw: -Math.atan2(
+      recordSignatureShotYaw(
+        shots,
+        tickIndex,
+        -Math.atan2(
           first.y - traversal.from.y,
           first.x - traversal.from.x,
         ),
-      });
+      );
       result.set(signature.operationId, shots);
     }
     for (const event of [...tick.lifecycleEvents, ...tick.events]) {
@@ -1346,11 +1391,23 @@ function indexSignatureShotYaws(
       const dz = fact.position.y - anchor.y;
       if (Math.hypot(dx, dz) < 0.001) continue;
       const shots = result.get(fact.operationId) ?? [];
-      shots.push({ tick: tickIndex, yaw: -Math.atan2(dz, dx) });
+      // Modern replays publish both the launch traversal and the matching damage fact.
+      // They describe one shot, so retain the launch bearing and use damage only as the
+      // compatibility fallback for older broadcasts.
+      recordSignatureShotYaw(shots, tickIndex, -Math.atan2(dz, dx));
       result.set(fact.operationId, shots);
     }
   }
   return result;
+}
+
+function recordSignatureShotYaw(
+  shots: SignatureShotYaw[],
+  tick: number,
+  yaw: number,
+): void {
+  if (shots.some((shot) => shot.tick === tick)) return;
+  shots.push({ tick, yaw });
 }
 
 function indexSignaturePhaseStarts(replay: ReplayModel): Map<string, number> {

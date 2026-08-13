@@ -10,8 +10,9 @@ import {
 const AIM = '#547985';
 const LASER_HALO = '#3e9eaa';
 const LASER_CORE = '#d1f0eb';
+const LASER_HEIGHT = 0.16;
 
-/** Lift a frozen tile ray to the Longshot muzzle without changing its topology. */
+/** Keep the frozen laser just above the board without changing its topology. */
 function raisedPath(
   path: readonly THREE.Vector3[],
   height: number,
@@ -28,7 +29,7 @@ function completeRay(
   if (owner && !path.some((point) => point.distanceToSquared(owner) < 0.0001))
     path.unshift(owner);
   if (path.length < 2 && target) path.push(target);
-  return raisedPath(path, 0.39);
+  return raisedPath(path, LASER_HEIGHT);
 }
 
 function laserBeam(
@@ -68,7 +69,7 @@ export default defineArcSignatureWebGLPainter({
     }
     const charge = rig.rings[0]!;
     charge.visible = true;
-    charge.position.copy(from).setY(0.39);
+    charge.position.copy(from).setY(LASER_HEIGHT);
     charge.quaternion.setFromUnitVectors(
       new THREE.Vector3(0, 1, 0),
       new THREE.Vector3().subVectors(to, from).normalize(),
@@ -97,7 +98,11 @@ export default defineArcSignatureWebGLPainter({
     if (impact?.kind === 'signature-damage') {
       const ring = rig.toruses[0]!;
       ring.visible = true;
-      ring.position.set(impact.position.x + 0.5, 0.39, impact.position.y + 0.5);
+      ring.position.set(
+        impact.position.x + 0.5,
+        LASER_HEIGHT,
+        impact.position.y + 0.5,
+      );
       ring.quaternion.setFromUnitVectors(
         new THREE.Vector3(0, 1, 0),
         new THREE.Vector3().subVectors(to, from).normalize(),

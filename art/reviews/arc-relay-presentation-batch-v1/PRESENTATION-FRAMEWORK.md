@@ -211,6 +211,18 @@ Every painter is a pure function of the replay and playhead time. Pools retain
 allocated objects, not narrative state, so pause, backwards seek, and direct
 seek remain deterministic.
 
+Persistent constructs also own an exit verb. When a compact broadcast omits an
+expiry event, the renderer may derive that verb only from the exact published
+before/after disappearance of the same operation ID; it may not predict the
+expiry or extend collision. Signature whole-body poses similarly ease back to
+rest after the operation disappears instead of snapping at its final frame.
+
+An authored signature projectile carrier is drawn exactly once. Multiple
+traversal records with the same projectile ID in one tick are ordered substeps
+of one flight, not additional shots. A signature painter may replace that
+generic carrier with its own topology (for example Towline's hook and cable),
+but it may not layer a synthetic projectile over the authoritative one.
+
 The WebGL renderer is the quality target. Canvas consumes the same derived
 phase/topology contract and renders compact truthful markers; it does not ship
 Three.js or duplicate the ornamental treatment.

@@ -1,6 +1,11 @@
 import * as THREE from 'three';
 import { defineArcSignatureWebGLPainter } from '../types';
-import { paintPropFallback, setEnergyOpacity, targetRing } from '../primitives';
+import {
+  hasConstructRemoval,
+  paintPropFallback,
+  setEnergyOpacity,
+  targetRing,
+} from '../primitives';
 
 export default defineArcSignatureWebGLPainter({
   signatureId: 'sentinel-seed',
@@ -56,14 +61,28 @@ export default defineArcSignatureWebGLPainter({
     setEnergyOpacity(status, signature.suppressed ? 0.035 : 0.075);
   },
   paintOutcome({ rig, priorSignature, facts, fraction }) {
-    const shot = facts.find((fact) => fact.kind === 'signature-damage');
     const origin = priorSignature?.positions[0];
-    if (!shot || shot.kind !== 'signature-damage' || !origin) return;
-    const from = new THREE.Vector3(origin.x + 0.5, 0.42, origin.y + 0.5);
-    const to = new THREE.Vector3(shot.position.x + 0.5, 0.18, shot.position.y + 0.5);
-    const projectile = rig.capsule;
-    projectile.visible = true;
-    projectile.position.lerpVectors(from, to, Math.min(1, fraction * 1.6));
-    projectile.scale.setScalar(0.8);
+    if (!hasConstructRemoval(facts) || !origin) return;
+    // The ordinary projectile renderer already owns the one real Sentinel bolt. On
+    // removal, recall the floor socket upward instead of manufacturing another shot.
+    const anchor = new THREE.Vector3(origin.x + 0.5, 0.06, origin.y + 0.5);
+    const life = 1 - fraction;
+    const socket = rig.toruses[0]!;
+    socket.visible = true;
+    socket.position.copy(anchor).setY(0.06 + fraction * 1.45);
+    socket.scale.setScalar(0.62 * (0.35 + life * 0.65));
+    setEnergyOpacity(socket, life * 0.13);
+    for (let index = 0; index < 3; index += 1) {
+      const mote = rig.particles[index]!;
+      const angle = index * Math.PI * 2 / 3 + fraction * Math.PI;
+      mote.visible = true;
+      mote.position.set(
+        anchor.x + Math.cos(angle) * (0.34 * life),
+        0.16 + fraction * (0.72 + index * 0.12),
+        anchor.z + Math.sin(angle) * (0.34 * life),
+      );
+      mote.scale.setScalar(0.46 * life);
+      setEnergyOpacity(mote, life * 0.16);
+    }
   },
 });

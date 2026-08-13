@@ -50,6 +50,7 @@ import {
 import {
   arcSignatureBodyPose,
   createArcModelMotionRig,
+  releaseArcSignatureBodyPose,
   type ArcSignatureBodyState,
 } from './arcModelMotion';
 import { CAMERA_PITCH } from './arenaScene';
@@ -1456,6 +1457,7 @@ export function buildActors(replay: ReplayModel): ArenaActors {
   const signedTravel = signedTravelByActor(replay);
   const signatureCooldowns = signatureCooldownsByActor(replay);
   const signaturePhaseStarts = signaturePhaseStartsByOperation(replay);
+  const signatureBodyReleases = signatureBodyReleasesByActor(replay);
   const reducedMotionQuery =
     typeof window !== 'undefined' && window.matchMedia
       ? window.matchMedia('(prefers-reduced-motion: reduce)')
@@ -2244,12 +2246,29 @@ export function buildActors(replay: ReplayModel): ArenaActors {
             `${activeSignature.operationId}:${activeSignature.phase}`,
           ) ?? activeSignature.startedTick
         : time;
-      const signaturePose = arcSignatureBodyPose(
-        activeSignature?.signatureId ?? null,
-        activeSignature?.phase ?? null,
-        time - signaturePhaseStartedTick,
-        reducedMotionQuery?.matches === true,
-      );
+      const bodyRelease = !activeSignature
+        ? latestSignatureBodyRelease(
+            signatureBodyReleases.get(pose.actorKey) ?? [],
+            time,
+          )
+        : null;
+      const reducedMotion = reducedMotionQuery?.matches === true;
+      const signaturePose = activeSignature
+        ? arcSignatureBodyPose(
+            activeSignature.signatureId,
+            activeSignature.phase,
+            time - signaturePhaseStartedTick,
+            reducedMotion,
+          )
+        : bodyRelease
+          ? releaseArcSignatureBodyPose(
+              bodyRelease.signatureId,
+              bodyRelease.phase,
+              bodyRelease.phaseAgeAtRemoval,
+              time - bodyRelease.removedTick,
+              reducedMotion,
+            )
+          : arcSignatureBodyPose(null, null, 0, reducedMotion);
       const vectorDashing = events.some(
         (event) =>
           event.arcRelayFact?.kind === 'body-relocated' &&
@@ -2561,6 +2580,59 @@ function signaturePhaseStartsByOperation(replay: ReplayModel): Map<string, numbe
       const key = `${signature.operationId}:${signature.phase}`;
       if (!result.has(key)) result.set(key, tickIndex);
     }
+  }
+  return result;
+}
+
+interface SignatureBodyRelease {
+  removedTick: number;
+  signatureId: string;
+  phase: 'tell' | 'active' | 'channel' | 'in-flight';
+  phaseAgeAtRemoval: number;
+}
+
+/** Public before→after signature removals, indexed for seek-stable caster follow-through. */
+function signatureBodyReleasesByActor(
+  replay: ReplayModel,
+): Map<ReplayActorLifeKey, SignatureBodyRelease[]> {
+  const starts = signaturePhaseStartsByOperation(replay);
+  const result = new Map<ReplayActorLifeKey, SignatureBodyRelease[]>();
+  for (const [tickIndex, tick] of replay.ticks.entries()) {
+    const before = tick.before.mode;
+    const after = tick.after.mode;
+    if (
+      before?.kind !== 'arc-relay' || !('visibleSignatures' in before) ||
+      after?.kind !== 'arc-relay' || !('visibleSignatures' in after)
+    ) continue;
+    const afterIds = new Set(
+      after.visibleSignatures.map((signature) => signature.operationId),
+    );
+    for (const signature of before.visibleSignatures) {
+      if (afterIds.has(signature.operationId)) continue;
+      const phaseStart = starts.get(
+        `${signature.operationId}:${signature.phase}`,
+      ) ?? signature.startedTick;
+      const releases = result.get(signature.ownerActor.actorKey) ?? [];
+      releases.push({
+        removedTick: tickIndex,
+        signatureId: signature.signatureId,
+        phase: signature.phase,
+        phaseAgeAtRemoval: Math.max(0, tickIndex - phaseStart),
+      });
+      result.set(signature.ownerActor.actorKey, releases);
+    }
+  }
+  return result;
+}
+
+function latestSignatureBodyRelease(
+  releases: readonly SignatureBodyRelease[],
+  time: number,
+): SignatureBodyRelease | null {
+  let result: SignatureBodyRelease | null = null;
+  for (const release of releases) {
+    if (release.removedTick > time) break;
+    result = release;
   }
   return result;
 }

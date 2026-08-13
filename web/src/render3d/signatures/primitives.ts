@@ -2,7 +2,27 @@ import * as THREE from 'three';
 import type {
   ArcSignature,
   ArcSignatureEffectRig,
+  ArcSignatureOutcomeFact,
 } from './types';
+
+const CONSTRUCT_REMOVAL_REASONS = new Set([
+  'expired',
+  'replaced',
+  'triggered',
+  'owner-destroyed',
+  'removed',
+]);
+
+/** Public operation removals that deserve a cosmetic construct exit. */
+export function hasConstructRemoval(
+  facts: readonly ArcSignatureOutcomeFact[],
+): boolean {
+  return facts.some(
+    (fact) => fact.kind === 'signature-changed' &&
+      fact.phase === null &&
+      CONSTRUCT_REMOVAL_REASONS.has(fact.reason),
+  );
+}
 
 export function anchorOf(
   points: readonly THREE.Vector3[],

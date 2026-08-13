@@ -2,10 +2,12 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import * as THREE from 'three';
 import {
+  ARC_SIGNATURE_BODY_RELEASE_TICKS,
   arcMotionFrame,
   arcSignatureBodyPose,
   createArcModelMotionRig,
   modelSpec,
+  releaseArcSignatureBodyPose,
 } from './.harness/harness.entry.js';
 
 function frame(
@@ -213,6 +215,38 @@ test('signature body acting is seek-stable and reduced motion keeps the pose leg
   assert.ok(Math.abs(reduced.pitch) < Math.abs(direct.pitch));
   assert.deepEqual(
     arcSignatureBodyPose(null, null, 99),
+    { scale: 1, rise: 0, forward: 0, lateral: 0, roll: 0, pitch: 0, yaw: 0 },
+  );
+});
+
+test('signature body acting eases back to rest after the public operation ends', () => {
+  const held = arcSignatureBodyPose('falling-star', 'tell', 2);
+  const opening = releaseArcSignatureBodyPose(
+    'falling-star',
+    'tell',
+    2,
+    0,
+  );
+  const returning = releaseArcSignatureBodyPose(
+    'falling-star',
+    'tell',
+    2,
+    ARC_SIGNATURE_BODY_RELEASE_TICKS / 2,
+  );
+  const settled = releaseArcSignatureBodyPose(
+    'falling-star',
+    'tell',
+    2,
+    ARC_SIGNATURE_BODY_RELEASE_TICKS,
+  );
+
+  assert.deepEqual(opening, held, 'the removal boundary preserves the last authored pose');
+  assert.ok(
+    returning.pitch > 0 && returning.pitch < opening.pitch,
+    'Mortar releases its lean continuously instead of snapping upright',
+  );
+  assert.deepEqual(
+    settled,
     { scale: 1, rise: 0, forward: 0, lateral: 0, roll: 0, pitch: 0, yaw: 0 },
   );
 });

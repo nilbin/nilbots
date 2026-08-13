@@ -419,11 +419,30 @@ export interface BoltPose {
   tilesPerAdvance: number;
   /** The authoritative locked future arc, when the shot has one. */
   programmedPath: readonly ReplayPosition[] | null;
+  /** Attack profile that owns this traversal, when the replay publishes it. */
+  attackProfileId: string | undefined;
 }
 
 export type OrdinaryAttackPresentation =
   | 'instant-slash'
   | 'projectile-traversal';
+
+/**
+ * Projectile profiles whose traversal is only the authoritative carrier for an authored
+ * signature animation in WebGL. The Canvas renderer keeps consuming the historical bolt;
+ * WebGL already draws the Towline hook head and cable from the same public operation, so
+ * layering the generic class projectile on top makes one cast look like two attacks.
+ */
+const WEBGL_AUTHORED_SIGNATURE_CARRIERS = new Set(['hook-bolt']);
+
+function hidesAuthoredSignatureCarrier(
+  attackProfileId: string | undefined,
+  ordinaryAttackPresentation: OrdinaryAttackPresentation,
+): boolean {
+  return ordinaryAttackPresentation === 'projectile-traversal' &&
+    attackProfileId !== undefined &&
+    WEBGL_AUTHORED_SIGNATURE_CARRIERS.has(attackProfileId);
+}
 
 /**
  * Interpolated projectile poses at continuous playhead `time`.
@@ -453,24 +472,42 @@ export function boltsAt(
   const moving = new Set(
     traversals.map((traversal) => traversal.projectileId),
   );
+  const traversalsByProjectile = new Map<
+    string,
+    typeof traversals
+  >();
+  for (const traversal of traversals) {
+    const sameProjectile = traversalsByProjectile.get(traversal.projectileId) ?? [];
+    sameProjectile.push(traversal);
+    traversalsByProjectile.set(traversal.projectileId, sameProjectile);
+  }
   const poses: BoltPose[] = [];
 
-  for (const traversal of traversals) {
-    if (traversal.path.length === 0) continue;
+  for (const sameProjectile of traversalsByProjectile.values()) {
+    const firstTraversal = sameProjectile[0]!;
+    const path = sameProjectile.flatMap((traversal) => traversal.path);
+    if (path.length === 0) continue;
+    if (hidesAuthoredSignatureCarrier(
+      firstTraversal.attackProfileId,
+      ordinaryAttackPresentation,
+    )) continue;
     // Canvas keeps the established slash grammar. The 3D renderer opts ordinary
     // wind-up attacks into projectile traversal; an explicitly sweeping strike
     // remains a slash in either renderer. This choice is presentation only.
     if (
-      traversal.attackProfileId !== undefined &&
-      slashProfiles.has(traversal.attackProfileId)
+      firstTraversal.attackProfileId !== undefined &&
+      slashProfiles.has(firstTraversal.attackProfileId)
     ) {
       continue;
     }
-    const points = [traversal.from, ...traversal.path];
-    const progress = fraction * traversal.path.length;
+    // Launch and advance can both happen in one authoritative tick. They are two records
+    // for one projectile ID, not two bolts: concatenate their ordered substeps and sample
+    // the one continuous route once.
+    const points = [firstTraversal.from, ...path];
+    const progress = fraction * path.length;
     const segment = Math.min(
       Math.floor(progress),
-      traversal.path.length - 1,
+      path.length - 1,
     );
     const local = Math.min(1, progress - segment);
     const from = points[segment];
@@ -479,8 +516,8 @@ export function boltsAt(
     const priorFrom = points[Math.max(0, segment - 1)];
     const priorTo = points[segment];
     poses.push({
-      id: traversal.projectileId,
-      ownerActor: traversal.ownerActor,
+      id: firstTraversal.projectileId,
+      ownerActor: firstTraversal.ownerActor,
       x: from.x + (to.x - from.x) * local,
       y: from.y + (to.y - from.y) * local,
       heading,
@@ -490,12 +527,17 @@ export function boltsAt(
       segmentProgress: local,
       imminent: false,
       tilesPerAdvance: 1,
-      programmedPath: traversal.programmedPath,
+      programmedPath: firstTraversal.programmedPath,
+      attackProfileId: firstTraversal.attackProfileId,
     });
   }
 
   for (const bolt of bolts) {
     if (moving.has(bolt.projectileId)) continue;
+    if (hidesAuthoredSignatureCarrier(
+      bolt.attackProfileId,
+      ordinaryAttackPresentation,
+    )) continue;
     const heading = bolt.heading ?? bolt.launchDirection;
     poses.push({
       id: bolt.projectileId,
@@ -508,6 +550,7 @@ export function boltsAt(
       imminent: bolt.ticksUntilAdvance === 1,
       tilesPerAdvance: bolt.tilesPerAdvance ?? 1,
       programmedPath: bolt.programmedPath,
+      attackProfileId: bolt.attackProfileId,
     });
   }
   return poses;
@@ -772,6 +815,10 @@ export function spentBoltsAt(
     }
   >();
   for (const projectile of deathTick.before.projectiles ?? []) {
+    if (hidesAuthoredSignatureCarrier(
+      projectile.attackProfileId,
+      ordinaryAttackPresentation,
+    )) continue;
     candidates.set(projectile.projectileId, {
       ownerActor: projectile.ownerActor,
       position: projectile.position,
@@ -782,6 +829,10 @@ export function spentBoltsAt(
     ordinaryAttackPresentation,
   );
   for (const traversal of deathTick.projectileTraversals) {
+    if (hidesAuthoredSignatureCarrier(
+      traversal.attackProfileId,
+      ordinaryAttackPresentation,
+    )) continue;
     // The chosen renderer grammar decides whether this traversal ends in a
     // slash or in a projectile dissipation ring.
     if (

@@ -1,8 +1,10 @@
+import * as THREE from 'three';
 import { defineArcSignatureWebGLPainter } from '../types';
 import {
   anchorOf,
   areaBounds,
   easeInOutCubic,
+  hasConstructRemoval,
   placeTravelHead,
   setEnergyColour,
   setEnergyOpacity,
@@ -58,5 +60,26 @@ export default defineArcSignatureWebGLPainter({
     targetRing(rig, area.centre, 1.2);
     setEnergyColour(rig.ring, '#83919a');
     setEnergyOpacity(rig.ring, 0.14);
+  },
+  paintOutcome({ rig, priorSignature, facts, fraction }) {
+    if (!hasConstructRemoval(facts)) return;
+    const positions = priorSignature?.positions.map(
+      (point) => ({ x: point.x + 0.5, y: 0, z: point.y + 0.5 }),
+    ) ?? [];
+    if (positions.length === 0) return;
+    const points = positions.map((point) => new THREE.Vector3(point.x, point.y, point.z));
+    const area = areaBounds(points);
+    const life = 1 - fraction;
+    rig.smoke.color.set('#68747b');
+    rig.smoke.emissive.set('#171d20');
+    rig.smoke.emissiveIntensity = 0.015;
+    rig.smoke.opacity = life * 0.14;
+    rig.cloud.visible = true;
+    rig.cloud.position.copy(area.centre).setY(0.38 + fraction * 0.28);
+    rig.cloud.scale.set(
+      area.width * (0.68 + fraction * 0.22),
+      Math.max(0.08, 0.76 * life),
+      area.depth * (0.68 + fraction * 0.22),
+    );
   },
 });

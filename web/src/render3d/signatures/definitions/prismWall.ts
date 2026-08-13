@@ -1,6 +1,12 @@
 import * as THREE from 'three';
 import { defineArcSignatureWebGLPainter } from '../types';
-import { clamp01, risingSettle, setEnergyColour, setEnergyOpacity } from '../primitives';
+import {
+  clamp01,
+  hasConstructRemoval,
+  risingSettle,
+  setEnergyColour,
+  setEnergyOpacity,
+} from '../primitives';
 
 const PRISM_GLASS = '#79aeb2';
 const PRISM_FRAME = '#566468';
@@ -57,5 +63,60 @@ export default defineArcSignatureWebGLPainter({
     rig.solid.emissive.set('#162a2d');
     rig.solid.emissiveIntensity = 0.04;
     rig.solid.opacity = 0.96;
+  },
+  paintOutcome({ rig, priorSignature, facts, fraction, reducedMotion }) {
+    if (!hasConstructRemoval(facts) || !priorSignature) return;
+    const points = priorSignature.positions.map(
+      (point) => new THREE.Vector3(point.x + 0.5, 0.065, point.y + 0.5),
+    );
+    if (points.length === 0) return;
+    const life = 1 - fraction;
+    const collapse = reducedMotion ? 1 : 1 - (1 - fraction) ** 3;
+    const direction = points.length > 1
+      ? new THREE.Vector3().subVectors(points.at(-1)!, points[0]!)
+      : new THREE.Vector3(1, 0, 0);
+    const yaw = -Math.atan2(direction.z, direction.x);
+    for (const [index, point] of points.slice(0, 3).entries()) {
+      const delay = clamp01(collapse * 1.3 - index * 0.12);
+      const height = Math.max(0.04, 1 - delay);
+      const frame = rig.frames[index]!;
+      frame.visible = true;
+      frame.position.copy(point).setY(0.05 + height * 0.37);
+      frame.rotation.set(0, yaw, 0);
+      frame.scale.set(1.2, Math.max(0.045, height * 1.82), 0.9);
+      const panel = rig.panels[index]!;
+      panel.visible = true;
+      panel.position.copy(point).setY(0.06 + height * 0.37);
+      panel.rotation.set(0, yaw, 0);
+      panel.scale.set(
+        Math.max(0.08, 1.12 * life),
+        Math.max(0.045, height * 1.68),
+        0.68,
+      );
+      setEnergyColour(panel, PRISM_GLASS);
+      setEnergyOpacity(panel, life * 0.14);
+      for (const [post, side] of [
+        [rig.posts[index * 2]!, -1],
+        [rig.posts[index * 2 + 1]!, 1],
+      ] as const) {
+        post.visible = true;
+        post.position.copy(point).add(new THREE.Vector3(
+          Math.cos(yaw) * side * 0.43,
+          0.04 + height * 0.42,
+          -Math.sin(yaw) * side * 0.43,
+        ));
+        post.scale.set(0.82, Math.max(0.045, height * 1.82), 0.82);
+      }
+      const mote = rig.particles[index]!;
+      mote.visible = !reducedMotion;
+      mote.position.copy(point).setY(0.18 + fraction * (0.54 + index * 0.1));
+      mote.scale.setScalar(0.46 * life);
+      setEnergyColour(mote, PRISM_GLASS);
+      setEnergyOpacity(mote, life * 0.12);
+    }
+    rig.solid.color.set(PRISM_FRAME);
+    rig.solid.emissive.set('#162a2d');
+    rig.solid.emissiveIntensity = 0.025;
+    rig.solid.opacity = life * 0.82;
   },
 });

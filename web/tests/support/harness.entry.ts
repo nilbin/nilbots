@@ -105,11 +105,14 @@ export {
 export {
   arcMotionFrame,
   arcSignatureBodyPose,
+  ARC_SIGNATURE_BODY_RELEASE_TICKS,
   createArcModelMotionRig,
+  releaseArcSignatureBodyPose,
 } from '../../src/render3d/arcModelMotion';
 export {
   ARC_SIGNATURE_WEBGL_PAINTERS,
   ARC_SIGNATURE_PROP_SCALE,
+  SENTINEL_YAW_SETTLE_TICKS,
   arcSignatureVisualPhase,
   buildArcRelayEffects,
   latestObservedSignatureYaw,

@@ -1,7 +1,9 @@
+import * as THREE from 'three';
 import { defineArcSignatureWebGLPainter } from '../types';
 import {
   anchorOf,
   fieldBase,
+  hasConstructRemoval,
   setEnergyColour,
   setEnergyOpacity,
   tellPulse,
@@ -53,5 +55,19 @@ export default defineArcSignatureWebGLPainter({
       setEnergyColour(marker, NULL_VIOLET);
       setEnergyOpacity(marker, phase === 'tell' ? 0.18 : 0.11);
     }
+  },
+  paintOutcome({ rig, priorSignature, facts, fraction }) {
+    if (!hasConstructRemoval(facts)) return;
+    const points = priorSignature?.positions.map(
+      (point) => new THREE.Vector3(point.x + 0.5, 0.065, point.y + 0.5),
+    ) ?? [];
+    const anchor = points[0];
+    if (!anchor) return;
+    const life = 1 - fraction;
+    fieldBase(rig, points, anchor, 1 + fraction * 0.42);
+    rig.fill.color.set(NULL_DARK);
+    rig.fill.opacity = life * 0.18;
+    setEnergyColour(rig.ring, NULL_VIOLET);
+    setEnergyOpacity(rig.ring, life * 0.07);
   },
 });

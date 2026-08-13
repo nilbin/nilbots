@@ -594,6 +594,41 @@ test('3D opts wind-up attacks into projectile presentation without changing Canv
   );
 });
 
+test('authored signature carriers and same-tick advances render as one projectile', () => {
+  const replay = structuredClone(frontline) as ReplayModel;
+  const tick = replay.ticks[10]!;
+  const launch = tick.projectileTraversals[0]!;
+  launch.projectileId = 'signature-carrier';
+  launch.attackProfileId = 'hook-bolt';
+  launch.path = [{ x: launch.from.x + 1, y: launch.from.y }];
+  tick.projectileTraversals.push({
+    ...structuredClone(launch),
+    trigger: 'scheduled-advance',
+    from: launch.path[0]!,
+    path: [{ x: launch.from.x + 2, y: launch.from.y }],
+  });
+
+  assert.equal(
+    boltsAt(replay, 10.5, 'projectile-traversal').some(
+      (bolt) => bolt.id === 'signature-carrier',
+    ),
+    false,
+    'Towline owns its hook visual instead of layering a generic class projectile',
+  );
+
+  launch.attackProfileId = 'sentinel-bolt';
+  tick.projectileTraversals.at(-1)!.attackProfileId = 'sentinel-bolt';
+  const sentinel = boltsAt(replay, 10.5, 'projectile-traversal').filter(
+    (bolt) => bolt.id === 'signature-carrier',
+  );
+  assert.equal(sentinel.length, 1, 'one projectile ID produces one visual bolt');
+  assert.equal(
+    sentinel[0]!.x,
+    launch.from.x + 1,
+    'the one bolt samples the concatenated launch and advance path',
+  );
+});
+
 test('3D overlays show the five-position Frontline and absent-unit lifecycle cues', () => {
   const fivePositionReplay = structuredClone(frontline) as ReplayModel;
   assert.ok(fivePositionReplay.map.frontline);

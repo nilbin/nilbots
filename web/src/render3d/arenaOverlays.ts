@@ -2657,6 +2657,7 @@ function buildArcRelayStory(
       const flightZ = inFlight
         ? state.position.y + (state.flightTarget!.y - state.position.y) * flightProgress
         : state.position.y;
+      const flightArc = inFlight ? Math.sin(flightProgress * Math.PI) : 0;
       rig.group.visible = true;
       rig.group.position.set(
         (carrier?.x ?? flightX) + 0.5,
@@ -2668,13 +2669,17 @@ function buildArcRelayStory(
         carried
           ? 1.18 + Math.sin(time * 2.4 + index) * 0.035
           : inFlight
-            ? 0.42 + Math.sin(flightProgress * Math.PI) * 1.05
+            ? 0.4 + flightArc * 1.12
           : 0.4 + Math.sin(time * 2 + index) * 0.025,
         0,
       );
       rig.gem.rotation.y = time * 0.45;
       rig.gem.scale.setScalar(
-        state.pulseCore ? 1.25 + pulse * 0.2 : inFlight ? 1.62 : 1,
+        state.pulseCore
+          ? 1.25 + pulse * 0.2
+          : inFlight
+            ? 1 + flightArc * 0.36
+            : 1,
       );
       rig.glow.position.copy(rig.gem.position);
       rig.light.position.copy(rig.gem.position);
@@ -2682,7 +2687,7 @@ function buildArcRelayStory(
         state.pulseCore
           ? 0.88 + pulse * 0.12
           : inFlight
-            ? 1.08 + pulse * 0.1
+            ? 0.72 + flightArc * 0.3 + pulse * 0.04
             : 0.72 + pulse * 0.07,
       );
       // Loose and in-flight Cores are neutral. Possession changes the object itself—not
