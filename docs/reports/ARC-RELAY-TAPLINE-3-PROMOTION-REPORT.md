@@ -64,6 +64,19 @@ The accepted six-cell phone exhibit was served at:
 All six exhibit cells completed between ticks 355 and 469. The exhibit is a
 visual review artifact only; it is not statistical balance evidence.
 
+## Hosted latency gate
+
+The production-shaped PostgreSQL integration test runs in Release. Its warm
+trusted-sheet worker measured `1,240.835 ms` end to end, including `1,135.8 ms`
+of simulation plus compact broadcast projection, gzip/object storage and final
+result persistence. The Release regression ceiling is `1.6 s`; Debug retains
+only a coarse `3 s` wrong-runtime/build-path guard because unoptimized Debug
+execution is not a production latency measurement. This gate exercises two
+trusted in-process sheet entrants, not the separately sandboxed custom-mind
+WASM lane. The cold first match remains reported but is not asserted: it pays
+one-time application/runtime JIT and cache warm-up, while two identical
+subsequent jobs supply the warm and steady latency samples.
+
 ## Validation
 
 The final checkpoint records the complete command results after packaging:

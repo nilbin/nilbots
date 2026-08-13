@@ -72,7 +72,7 @@ public sealed class TacticalSheetCompilerTests
             sheet.RootElement.GetProperty("roles").EnumerateArray()
                 .Select(value => value.GetProperty("id").GetString()));
 
-        Assert.Single(mapPlan.RootElement.GetProperty("zones")
+        Assert.Empty(mapPlan.RootElement.GetProperty("zones")
             .EnumerateObject());
         Assert.Empty(mapPlan.RootElement.GetProperty("routes")
             .EnumerateObject());
