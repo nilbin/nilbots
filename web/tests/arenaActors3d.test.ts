@@ -10,9 +10,12 @@ import type {
 } from '../src/replayModel.ts';
 import { loadReplayJson } from '../src/replayIngress.ts';
 import {
+  ACTOR_OCCLUSION_MASK_RENDER_ORDER,
+  BOT_BODY_RENDER_ORDER,
   boltsAt,
   buildActors,
   buildOverlays,
+  orientStatusBib,
   strikeSlashesAt,
 } from './.harness/harness.entry.js';
 
@@ -110,9 +113,11 @@ function veterancyChevronsOf(
   unitKey: ReplayStableUnitKey,
 ): THREE.Object3D[] {
   const pips = healthPipsOf(group, unitKey);
-  return pips.children.filter(
-    (child) => child.userData.cue === 'veterancy-chevron',
-  );
+  const chevrons: THREE.Object3D[] = [];
+  pips.traverse((child) => {
+    if (child.userData.cue === 'veterancy-chevron') chevrons.push(child);
+  });
+  return chevrons;
 }
 
 function statusCueOf(
@@ -171,7 +176,9 @@ function assertCenteredPips(
   pips: THREE.Object3D,
   expectedCount: number,
 ): void {
-  const visible = pips.children.filter((pip) => pip.visible);
+  const visible = pips.children.filter(
+    (pip) => pip.visible && pip.userData.cue === 'health-pip',
+  );
   assert.equal(visible.length, expectedCount);
   assert.ok(expectedCount > 0);
   const first = visible[0]!.position.x;
@@ -480,19 +487,112 @@ test('Arc veterancy chevrons stack above health instead of spreading beside it',
   const visible = chevrons.filter((chevron) => chevron.visible);
   assert.equal(visible.length, 2);
   assert.ok(visible.every((chevron) => chevron.position.x === 0));
-  // The lowest vertex is still clear of the pip circle, even before camera projection.
+  const stack = visible[0]!.parent;
+  assert.equal(stack?.userData.cue, 'veterancy-stack');
+  assert.ok(visible.every((chevron) => chevron.parent === stack));
+  // The lowest vertex is still clear of the pip circle, before camera projection.
   assert.ok(
-    visible[0]!.position.y - 0.025 > 0.06 + 0.1,
-    `first chevron clears health (${visible[0]!.position.y})`,
+    stack!.position.y + visible[0]!.position.y - 0.025 > 0.06 + 0.1,
+    `first chevron clears health (${stack!.position.y})`,
   );
-  assert.equal(visible[0]!.position.y, 0.29);
+  assert.equal(stack!.position.y, 0.29);
+  assert.equal(visible[0]!.position.y, 0);
   assert.ok(visible[1]!.position.y > visible[0]!.position.y);
+
+  // Tapline's theme has both pitch and yaw bias. Project the actual stack through that
+  // camera: sharing a billboard plane must keep every earned facet on one exact column.
+  const yaw = (12 * Math.PI) / 180;
+  const pitch = (52 * Math.PI) / 180;
+  const pips = healthPipsOf(actors.group, actor.unitKey);
+  orientStatusBib(pips, yaw, pitch);
+  pips.updateMatrixWorld(true);
+  const looking = new THREE.Vector3(pips.position.x, 0, pips.position.z);
+  const distance = 24;
+  const horizontal = Math.cos(pitch) * distance;
+  const camera = new THREE.PerspectiveCamera(28, 16 / 9, 0.1, 300);
+  camera.position.set(
+    looking.x + Math.sin(yaw) * horizontal,
+    Math.sin(pitch) * distance,
+    looking.z + Math.cos(yaw) * horizontal,
+  );
+  camera.lookAt(looking);
+  camera.updateProjectionMatrix();
+  camera.updateMatrixWorld(true);
+  const screenXs = visible.map((chevron) => {
+    const centre = new THREE.Vector3();
+    chevron.getWorldPosition(centre);
+    return centre.project(camera).x;
+  });
+  assert.ok(
+    Math.abs(screenXs[0]! - screenXs[1]!) < 1e-9,
+    `veterancy facets share one screen column (${screenXs.join(', ')})`,
+  );
   const engaged = statusCueOf(actors.group, actor.unitKey, 'engaged-mark');
   assert.ok(
-    engaged.position.y > visible.at(-1)!.position.y + 0.1,
+    engaged.position.y >
+      stack!.position.y + visible.at(-1)!.position.y + 0.1,
     'combat state moves above the veteran stack instead of overlapping it',
   );
   actors.dispose();
+});
+
+test('bot solids own the layer immediately above persistent constructs', () => {
+  const actors = buildActors(replay);
+  try {
+    const chassis = chassisOf(actors.group, 'duel:0:unit:0');
+    const body = formPart(chassis, 'mobile');
+    const solids: THREE.Mesh[] = [];
+    const masks: THREE.Mesh[] = [];
+    body.traverse((node) => {
+      const mesh = node as THREE.Mesh;
+      if (!mesh.isMesh) return;
+      if (mesh.userData.kind === 'actor-occlusion-mask') {
+        masks.push(mesh);
+        return;
+      }
+      const materials = Array.isArray(mesh.material)
+        ? mesh.material
+        : [mesh.material];
+      if (materials.some((material) => material.depthWrite)) solids.push(mesh);
+    });
+    assert.ok(solids.length > 0);
+    assert.equal(masks.length, solids.length);
+    assert.ok(
+      solids.every((mesh) => mesh.renderOrder === BOT_BODY_RENDER_ORDER),
+      'every solid body surface shares the actor layer',
+    );
+    assert.ok(
+      solids.every((mesh) => {
+        const materials = Array.isArray(mesh.material)
+          ? mesh.material
+          : [mesh.material];
+        return materials.every((material) => material.depthTest);
+      }),
+      'actor layering never disables wall/terrain depth testing',
+    );
+    assert.ok(
+      masks.every((mask) => mask.renderOrder === ACTOR_OCCLUSION_MASK_RENDER_ORDER),
+      'every solid has an earlier colourless silhouette pass',
+    );
+    assert.ok(
+      masks.every((mask) => {
+        const materials = Array.isArray(mask.material)
+          ? mask.material
+          : [mask.material];
+        return materials.every(
+          (material) =>
+            !material.colorWrite &&
+            material.depthTest &&
+            !material.depthWrite &&
+            material.stencilWrite &&
+            material.stencilZPass === THREE.ReplaceStencilOp,
+        );
+      }),
+      'the silhouette writes stencil only after passing terrain depth',
+    );
+  } finally {
+    actors.dispose();
+  }
 });
 
 test('3D attack and signature cooldowns drain in separate thin tracks below health', () => {

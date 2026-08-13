@@ -65,6 +65,13 @@ import {
   teamVisionSeesActor,
   teamVisionSeesProjectile,
 } from '../render/teamVision';
+import {
+  ACTOR_OCCLUSION_MASK_RENDER_ORDER,
+  BOT_BODY_RENDER_ORDER,
+  createActorOcclusionMaskMaterial,
+} from './occlusionLayers';
+
+export { BOT_BODY_RENDER_ORDER } from './occlusionLayers';
 
 /**
  * The things that move.
@@ -400,6 +407,26 @@ export function installMobileModel(
 export function buildActors(replay: ReplayModel): ArenaActors {
   const group = new THREE.Group();
   const disposables: { dispose: () => void }[] = [];
+  const actorMaskMaterials = new Map<THREE.Material, THREE.Material>();
+  const maskMaterial = (source: THREE.Material) => {
+    const existing = actorMaskMaterials.get(source);
+    if (existing) return existing;
+    const created = createActorOcclusionMaskMaterial(source);
+    actorMaskMaterials.set(source, created);
+    disposables.push(created);
+    return created;
+  };
+  const installActorMask = (solid: THREE.Mesh) => {
+    const material = Array.isArray(solid.material)
+      ? solid.material.map(maskMaterial)
+      : maskMaterial(solid.material);
+    const mask = new THREE.Mesh(solid.geometry, material);
+    mask.userData.kind = 'actor-occlusion-mask';
+    mask.renderOrder = ACTOR_OCCLUSION_MASK_RENDER_ORDER;
+    mask.castShadow = false;
+    mask.receiveShadow = false;
+    solid.add(mask);
+  };
   const presenter = createPresenter(replay);
   const veterancy = arcVeterancyFor(replay);
   // Rules-owned and form-extensible: this is only the allocation ceiling. Per-frame
@@ -468,10 +495,12 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       emissiveIntensity: 0.42,
     });
     const hull = new THREE.Mesh(hullGeometry, hullMaterial);
+    hull.renderOrder = BOT_BODY_RENDER_ORDER;
     hull.position.y = BOT_HEIGHT / 2;
     hull.castShadow = true;
     hull.receiveShadow = true;
     body.add(hull);
+    installActorMask(hull);
 
     const lidGeometry = new THREE.PlaneGeometry(size, size);
     lidGeometry.rotateX(-Math.PI / 2);
@@ -487,8 +516,10 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       emissiveIntensity: 0.35,
     });
     const lid = new THREE.Mesh(lidGeometry, lidMaterial);
+    lid.renderOrder = BOT_BODY_RENDER_ORDER;
     lid.position.y = BOT_HEIGHT + 0.004;
     body.add(lid);
+    installActorMask(lid);
 
     // The nose: which way this machine is pointing, said outright.
     //
@@ -515,10 +546,12 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       metalness: 0.2,
     });
     const nose = new THREE.Mesh(noseGeometry, noseMaterial);
+    nose.renderOrder = BOT_BODY_RENDER_ORDER;
     nose.userData.cue = 'facing-marker';
     nose.position.set(size * 0.46, BOT_HEIGHT + 0.02, 0);
     nose.castShadow = true;
     body.add(nose);
+    installActorMask(nose);
 
     // A turret is deliberately a different silhouette, not the mobile chassis with its
     // movement disabled: it has no privileged facing, which is what a form that sees and
@@ -724,9 +757,16 @@ export function buildActors(replay: ReplayModel): ArenaActors {
      */
     const registerModelMaterials = (solid: THREE.Object3D) => {
       const seen = new Set<THREE.Material>();
+      const solidMeshes: THREE.Mesh[] = [];
       solid.traverse((node) => {
         const mesh = node as THREE.Mesh;
         if (!mesh.isMesh) return;
+        if (mesh.userData.kind === 'actor-occlusion-mask') return;
+        // Mine/sentry bodies deliberately leave terrain depth intact and draw one layer
+        // before actors. Keeping this on the solid meshes (rather than disabling depth on
+        // the chassis) lets a bot win that one overlap without appearing through walls.
+        mesh.renderOrder = Math.max(mesh.renderOrder, BOT_BODY_RENDER_ORDER);
+        solidMeshes.push(mesh);
         const materials = Array.isArray(mesh.material)
           ? mesh.material
           : [mesh.material];
@@ -739,6 +779,7 @@ export function buildActors(replay: ReplayModel): ArenaActors {
           disposables.push(material);
         }
       });
+      for (const mesh of solidMeshes) installActorMask(mesh);
       // A model that lands mid-highlight or mid-flash has to arrive wearing it, not plain.
       repaint();
     };
@@ -785,9 +826,11 @@ export function buildActors(replay: ReplayModel): ArenaActors {
         const hinge = new THREE.Group();
         hinge.userData.fanAngle = fan;
         const barrel = new THREE.Mesh(barrelGeometry, barrelMaterial);
+        barrel.renderOrder = BOT_BODY_RENDER_ORDER;
         barrel.position.set(size * BARREL_REACH * 0.5, BOT_HEIGHT * 0.9, 0);
         barrel.castShadow = true;
         hinge.add(barrel);
+        installActorMask(barrel);
         stance.add(hinge);
         barrels.push(hinge);
       }
@@ -820,10 +863,12 @@ export function buildActors(replay: ReplayModel): ArenaActors {
         fading.push({ material: plateMaterial, base: 1 });
         tintable(plateMaterial);
         const plateMesh = new THREE.Mesh(plateGeometry, plateMaterial);
+        plateMesh.renderOrder = BOT_BODY_RENDER_ORDER;
         plateMesh.userData.cue = 'aegis-plate';
         plateMesh.position.y = (size * PLATE_HEIGHT) / 2;
         plateMesh.castShadow = true;
         stance.add(plateMesh);
+        installActorMask(plateMesh);
         plate = plateMesh;
       }
 
@@ -1138,13 +1183,22 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       depthWrite: false,
       depthTest: false,
     });
+    // Stack the facets INSIDE one camera-facing plane. Rotating every facet on its own
+    // squares its face but leaves the centres stacked along world Y; Tapline's yaw then
+    // projects that world-space line diagonally. One shared billboard keeps every centre
+    // on the same exact screen-space X coordinate.
+    const veterancyStack = new THREE.Group();
+    veterancyStack.userData.cue = 'veterancy-stack';
+    veterancyStack.userData.forUnitKey = unit.unitKey;
+    veterancyStack.position.y = VETERANCY_LIFT;
+    faceStatusElement(veterancyStack);
+    pips.add(veterancyStack);
     const levelPips: THREE.Mesh[] = [];
     for (let index = 0; index < Math.max(0, veterancy.maxLevel - 1); index++) {
       const chevron = new THREE.Mesh(chevronGeometry, chevronMaterial);
-      faceStatusElement(chevron);
       chevron.userData.cue = 'veterancy-chevron';
       chevron.visible = false;
-      pips.add(chevron);
+      veterancyStack.add(chevron);
       levelPips.push(chevron);
     }
     disposables.push(chevronGeometry, chevronMaterial);
@@ -2097,7 +2151,7 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       for (const [index, chevron] of bot.levelPips.entries()) {
         chevron.visible = bot.pips.visible && index < level - 1;
         chevron.position.x = 0;
-        chevron.position.y = VETERANCY_LIFT + index * VETERANCY_SPACING;
+        chevron.position.y = index * VETERANCY_SPACING;
         chevron.position.z = 0;
       }
       const visibleVeterancy = Math.max(0, level - 1);

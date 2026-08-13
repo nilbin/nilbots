@@ -8217,3 +8217,21 @@ observed pulled body; the generic strike ray, additive lane, dark duplicate,
 spool, target donut, and bulky front object remain absent. This is presentation
 only and does not remove or alter the authoritative grapple projectile,
 collision, pull, miss, or audio facts.
+
+## 307. Veterancy is one billboarded column; actors win construct-only overlap
+
+Owner 3D presentation ruling (2026-08-13). Earned veterancy facets share one
+camera-facing stack, with their centres placed inside that plane. They do not
+independently face the camera from world-space Y positions: a theme with both
+yaw and pitch projected that nominally vertical line into a staggered screen
+column. Health clearance and vertical spacing remain unchanged.
+
+Persistent Trip Node and Sentinel bodies occupy one renderer layer between
+terrain and actor solids. A colourless actor silhouette first writes one
+stencil bit only where it passes normal terrain/wall depth. Constructs keep
+their own depth writes and authored deploy fade, but decline those masked
+pixels; bot solids then draw normally. A bot therefore wins a screen overlap
+with a mine or sentry without becoming an always-on-top silhouette through
+walls or other bots, and double-sided constructs retain correct self-occlusion.
+This is presentation only: occupancy, collision, targeting, visibility, hull
+and signature timing do not change.

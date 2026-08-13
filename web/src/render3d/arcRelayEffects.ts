@@ -35,6 +35,12 @@ import {
   orientStatusBib,
   placeStatusBib,
 } from './statusBib';
+import { configurePersistentConstructRendering } from './occlusionLayers';
+
+export {
+  configurePersistentConstructRendering,
+  PERSISTENT_CONSTRUCT_RENDER_ORDER,
+} from './occlusionLayers';
 
 type Signature = ReplayArcRelayModeState['visibleSignatures'][number];
 const SIGNATURE_OUTCOME_LINGER_TICKS = 1.8;
@@ -280,6 +286,7 @@ export function buildArcRelayEffects(
       slot.model = model;
       slot.yawHead = model.getObjectByName('yaw-head') ?? null;
       slot.emissives = signaturePropEmissives(model);
+      configurePersistentConstructRendering(model);
       slot.materials = signaturePropMaterials(model);
       slot.ready = true;
       propGroup.add(model);
