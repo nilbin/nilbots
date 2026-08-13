@@ -137,6 +137,46 @@ public sealed class SquadArenaPlannerTests
     }
 
     [Fact]
+    public void CarrierReturnUsesEveryOwnedAutomaticReturnTile()
+    {
+        GenericActorResolvedMatchContract.LifecycleAssignment[] assignments =
+        [
+            new(0, 0, "return", 0, ["form"],
+                GenericActorResolvedMatchContract.InitialAvailability.ActiveAtTickZero,
+                null, "west-a"),
+            new(0, 1, "return", 0, ["form"],
+                GenericActorResolvedMatchContract.InitialAvailability.ActiveAtTickZero,
+                null, "west-b"),
+            new(1, 0, "return", 0, ["form"],
+                GenericActorResolvedMatchContract.InitialAvailability.ActiveAtTickZero,
+                null, "east-a"),
+            new(0, 2, "single", 0, ["form"],
+                GenericActorResolvedMatchContract.InitialAvailability.ActiveAtTickZero,
+                null, null),
+        ];
+        GenericActorMapContract.SpawnAnchor[] spawns =
+        [
+            new("west-b", new Position(3, 5), Direction.East,
+                [GenericActorMapContract.MovementLayer.Ground]),
+            new("east-a", new Position(27, 21), Direction.West,
+                [GenericActorMapContract.MovementLayer.Ground]),
+            new("west-a", new Position(1, 4), Direction.East,
+                [GenericActorMapContract.MovementLayer.Ground]),
+            new("unused", new Position(9, 9), Direction.North,
+                [GenericActorMapContract.MovementLayer.Ground]),
+        ];
+
+        Assert.Equal(
+            [new Position(1, 4), new Position(3, 5)],
+            SquadArenaPlanner.CarrierReturnSpawnTiles(
+                assignments, spawns, teamId: 0));
+        Assert.Equal(
+            [new Position(27, 21)],
+            SquadArenaPlanner.CarrierReturnSpawnTiles(
+                assignments, spawns, teamId: 1));
+    }
+
+    [Fact]
     public void EqualDistanceOperationPrefersEarlierProgress()
     {
         SquadArenaPlanner.MicroAction rotateEast =

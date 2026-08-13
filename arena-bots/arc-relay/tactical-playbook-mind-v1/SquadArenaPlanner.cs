@@ -327,17 +327,27 @@ internal sealed class SquadArenaPlanner : IArenaStepper
 
         HashSet<Position> durable = DurableObstacles(
             contract, mind, intent.Body, claims);
+        if (IsCarrierReturn(intent))
+            durable.UnionWith(CarrierReturnSpawnTiles(
+                contract.LifecycleAssignments,
+                contract.Map.SpawnAnchors,
+                intent.Body.ActorId.TeamId));
         // Reactor bank/deployment tiles are persistent route obstacles for
         // unrelated traffic. An order that explicitly names one must still
         // enter it, so only this body's assigned destination overrides that
         // obstacle; reserved tiles en route remain blocked.
         durable.Remove(assignment);
+        durable.Remove(intent.Body.Position);
         int[]? distanceField = null;
         if (IsCarrierReturn(intent))
         {
             HashSet<Position> distanceObstacles =
                 ArenaBasics.PersistentRouteObstacles(
                 contract, mind, intent.Body.ActorId.TeamId);
+            distanceObstacles.UnionWith(CarrierReturnSpawnTiles(
+                contract.LifecycleAssignments,
+                contract.Map.SpawnAnchors,
+                intent.Body.ActorId.TeamId));
             distanceObstacles.Remove(assignment);
             // StaticRouteDistance historically removes the query's start.
             // Every generated state is already legal against durable, so only
@@ -831,6 +841,11 @@ internal sealed class SquadArenaPlanner : IArenaStepper
             return [intent.Body.Position];
         HashSet<Position> obstacles = ArenaBasics.PersistentRouteObstacles(
             contract, mind, intent.Body.ActorId.TeamId);
+        if (IsCarrierReturn(intent))
+            obstacles.UnionWith(CarrierReturnSpawnTiles(
+                contract.LifecycleAssignments,
+                contract.Map.SpawnAnchors,
+                intent.Body.ActorId.TeamId));
         Position[]? course = null;
         if (_states.TryGetValue(
                 intent.Body.UnitId, out PersistentState? prior)
@@ -875,6 +890,36 @@ internal sealed class SquadArenaPlanner : IArenaStepper
     private static bool IsCarrierReturn(SquadMovementIntent intent) =>
         string.Equals(
             intent.GroupKey, "move:to:reactor:own", StringComparison.Ordinal);
+
+    /// <summary>
+    /// A loaded return avoids every automatic-return tile owned by its team,
+    /// not merely the subset reserved on this observation. A dead body's
+    /// reservation appears and disappears with lifecycle state; using that
+    /// transient subset as a shortest-path wall can make an otherwise sound
+    /// carrier alternate between two corridors on successive relocation
+    /// beats. The full deployment catalog is immutable match input, so this
+    /// route remains deterministic and leaves the spawn pad clear for every
+    /// possible return.
+    /// </summary>
+    internal static Position[] CarrierReturnSpawnTiles(
+        IEnumerable<GenericActorResolvedMatchContract.LifecycleAssignment>
+            assignments,
+        IEnumerable<GenericActorMapContract.SpawnAnchor> spawns,
+        int teamId)
+    {
+        HashSet<string> assigned = assignments
+            .Where(value => value.TeamId == teamId
+                && value.AssignedRespawnSpawnId is not null)
+            .Select(value => value.AssignedRespawnSpawnId!)
+            .ToHashSet(StringComparer.Ordinal);
+        return spawns
+            .Where(spawn => assigned.Contains(spawn.SpawnId))
+            .Select(spawn => spawn.Position)
+            .Distinct()
+            .OrderBy(position => position.Y)
+            .ThenBy(position => position.X)
+            .ToArray();
+    }
 
     private Dictionary<int, Position> AssignContributions(
         GenericActorResolvedMatchContract contract,
