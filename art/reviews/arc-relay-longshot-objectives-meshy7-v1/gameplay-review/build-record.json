@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Reversible real-renderer review of Longshot, Survey Flare, and Team Reactor",
+  "runtimeAssetsPromoted": false,
+  "tierAudit": "art/class-models/runtime-tiers/arc-relay/longshot-objectives-review-v1/audit.json",
+  "output": "sandbox/longshot-objectives-meshy7-v1/game-review/interactive",
+  "longshotRuntimeSha256Before": "9ea835fa2363843eeaacc02c69687eee1471ac44c4e1a703d05783c14e8cbe4a",
+  "longshotCandidateSha256": "e02ea1d456f9e1310e7778c19b834b8ff3b3539982f48f3e1bde4cfd3a75da01",
+  "longshotRuntimeSha256After": "9ea835fa2363843eeaacc02c69687eee1471ac44c4e1a703d05783c14e8cbe4a",
+  "approvedRuntimeRestoredExactly": true,
+  "stagedRuntimeDirectoriesRemoved": true,
+  "emittedCandidates": [
+    {
+      "id": "longshot",
+      "sha256": "e02ea1d456f9e1310e7778c19b834b8ff3b3539982f48f3e1bde4cfd3a75da01",
+      "emitted": {
+        "file": "assets/model-eQKSosf7.glb",
+        "bytes": 1723372,
+        "sha256": "e02ea1d456f9e1310e7778c19b834b8ff3b3539982f48f3e1bde4cfd3a75da01"
+      }
+    },
+    {
+      "id": "survey-flare",
+      "sha256": "0df64d292faff971e0b214883d68285112850eb71f43aa9f28c5b2d10f610ff7",
+      "emitted": {
+        "file": "assets/model-CkMiK_zB.glb",
+        "bytes": 361444,
+        "sha256": "0df64d292faff971e0b214883d68285112850eb71f43aa9f28c5b2d10f610ff7"
+      }
+    },
+    {
+      "id": "team-reactor",
+      "sha256": "35bb24fc57778091857767ffdb8f2c56559a469f14b8f2144310475671fa7b64",
+      "emitted": {
+        "file": "assets/model-2Rmp20hv.glb",
+        "bytes": 1662112,
+        "sha256": "35bb24fc57778091857767ffdb8f2c56559a469f14b8f2144310475671fa7b64"
+      }
+    }
+  ]
+}

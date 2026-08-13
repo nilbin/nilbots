@@ -1,0 +1,236 @@
+#!/usr/bin/env node
+
+import { createHash } from 'node:crypto';
+import { createRequire } from 'node:module';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const repository = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+const requireFromWeb = createRequire(path.join(repository, 'web/package.json'));
+const { chromium } = requireFromWeb('playwright');
+const sharp = requireFromWeb('sharp');
+const baseUrl =
+  process.env.REVIEW_URL ??
+  'http://127.0.0.1:9098/sandbox/longshot-objectives-meshy7-v1/game-review/interactive/' +
+    '?standalone&audio=off&camera=overview&proof=longshot-objectives-review&proof-camera=overview';
+const output = path.join(
+  repository,
+  'art/reviews/arc-relay-longshot-objectives-meshy7-v1/gameplay-review',
+);
+const buildRecord = JSON.parse(
+  readFileSync(
+    path.join(repository, 'sandbox/longshot-objectives-meshy7-v1/game-review/build-record.json'),
+    'utf8',
+  ),
+);
+const expectedModels = new Map(
+  buildRecord.emittedCandidates.map((entry) => [path.basename(entry.emitted.file), entry.id]),
+);
+const captures = [
+  { id: 'desktop-opening', replay: 'core-roster', time: 0, width: 1440, height: 900 },
+  { id: 'desktop-flare-flight', replay: 'core-roster', time: 11.7, width: 1440, height: 900 },
+  { id: 'desktop-flare-active', replay: 'core-roster', time: 14.45, width: 1440, height: 900 },
+  { id: 'desktop-reactor-state', replay: 'core-roster', time: 200.35, width: 1440, height: 900 },
+  { id: 'phone-flare-active', replay: 'core-roster', time: 14.45, width: 844, height: 390, mobile: true },
+  { id: 'phone-reactors', replay: 'remaining-roster', time: 150.35, width: 844, height: 390, mobile: true },
+];
+
+mkdirSync(output, { recursive: true });
+const browser = await chromium.launch({ headless: true });
+const records = [];
+try {
+  for (const capture of captures) records.push(await captureFrame(capture));
+} finally {
+  await browser.close();
+}
+
+const desktop = records.filter((entry) => !entry.mobile);
+const phone = records.filter((entry) => entry.mobile);
+const sheets = {
+  desktop: await contactSheet(desktop, 720, 'desktop-gameplay-review.webp'),
+  phone: await contactSheet(phone, 720, 'phone-gameplay-review.webp'),
+};
+const evidence = {
+  schemaVersion: 1,
+  purpose: 'Real WebGL gameplay review of unpromoted Longshot, Survey Flare, and Reactor candidates',
+  sourceUrl: baseUrl,
+  runtimeAssetsPromoted: false,
+  buildRecord:
+    'art/reviews/arc-relay-longshot-objectives-meshy7-v1/gameplay-review/build-record.json',
+  expectedCandidateModels: Object.fromEntries(expectedModels),
+  captures: records,
+  contactSheets: sheets,
+};
+writeFileSync(path.join(output, 'evidence.json'), `${JSON.stringify(evidence, null, 2)}\n`);
+console.log(`Captured ${records.length} Longshot/objectives gameplay review frames.`);
+
+async function captureFrame(capture) {
+  const context = await browser.newContext({
+    viewport: { width: capture.width, height: capture.height },
+    deviceScaleFactor: 1,
+    isMobile: capture.mobile ?? false,
+    hasTouch: capture.mobile ?? false,
+  });
+  const page = await context.newPage();
+  const errors = [];
+  const modelResponses = [];
+  page.on('pageerror', (error) => errors.push(`page: ${error.message}`));
+  page.on('console', (message) => {
+    if (message.type() === 'error') errors.push(`console: ${message.text()}`);
+  });
+  page.on('requestfailed', (request) =>
+    errors.push(`request: ${request.url()} ${request.failure()?.errorText ?? ''}`),
+  );
+  page.on('response', (response) => {
+    const filename = path.basename(new URL(response.url()).pathname);
+    if (filename.endsWith('.glb')) modelResponses.push({ filename, status: response.status() });
+  });
+  await page.addInitScript(() => {
+    localStorage.setItem('nilbots.soundtrack.enabled.v1', 'false');
+    try {
+      Object.defineProperty(Element.prototype, 'requestFullscreen', {
+        configurable: true,
+        value: undefined,
+      });
+    } catch {
+      // CSS immersive mode is sufficient for deterministic review capture.
+    }
+  });
+  await page.goto(baseUrl, { waitUntil: 'domcontentloaded' });
+  await page.locator('[data-play-overlay="ready"]').waitFor({ timeout: 120_000 });
+  await page.getByRole('button', { name: 'Play match' }).click();
+  await page.getByRole('button', { name: /Pause/ }).evaluate((button) => button.click());
+  await page.waitForFunction(
+    () => window.__BOTARENA_REVIEW_CONTROL__?.playing === false,
+    undefined,
+    { timeout: 10_000 },
+  );
+  await selectReplay(page, capture.replay);
+  await seekAndSettle(page, capture.time);
+  const camera = page.getByRole('button', { name: /director|overview/i });
+  if (
+    await camera.count() &&
+    (await camera.textContent())?.toLowerCase().includes('director')
+  )
+    await camera.click();
+  const fullscreen = page.getByRole('button', { name: 'full screen' });
+  if (await fullscreen.count()) await fullscreen.click();
+  await page.waitForTimeout(1800);
+  const arena = page.getByRole('region', { name: 'Arena' });
+  const canvas = arena.locator('canvas');
+  const renderer = await canvas.evaluate((node) => (node.getContext('2d') ? '2d' : 'webgl'));
+  const proof = await page.evaluate(() => window.__BOTARENA_RENDER_PROOF__?.sample());
+  const imagePath = path.join(output, `${capture.id}.png`);
+  await canvas.screenshot({ path: imagePath });
+  const image = readFileSync(imagePath);
+  const loadedCandidates = [...new Set(
+    modelResponses
+      .filter((entry) => entry.status === 200 && expectedModels.has(entry.filename))
+      .map((entry) => expectedModels.get(entry.filename)),
+  )].sort();
+  await context.close();
+  if (renderer !== 'webgl') throw new Error(`${capture.id}: expected WebGL, received ${renderer}.`);
+  if (errors.length) throw new Error(`${capture.id}: ${errors.join('\n')}`);
+  for (const required of ['longshot', 'team-reactor'])
+    if (!loadedCandidates.includes(required))
+      throw new Error(`${capture.id}: candidate ${required} did not load.`);
+  if (capture.time >= 10 && capture.time <= 22 && !loadedCandidates.includes('survey-flare'))
+    throw new Error(`${capture.id}: Survey Flare candidate did not load in its live phase.`);
+  return {
+    ...capture,
+    mobile: capture.mobile ?? false,
+    renderer,
+    proofTime: proof?.time ?? null,
+    replaySeed: proof?.replaySeed ?? null,
+    visibleSignatures: proof?.visibleSignatures ?? [],
+    loadedCandidates,
+    image: path.relative(repository, imagePath),
+    imageBytes: image.length,
+    imageSha256: sha256(image),
+  };
+}
+
+async function selectReplay(page, id) {
+  const choices = JSON.parse(
+    readFileSync(
+      path.join(repository, 'sandbox/longshot-objectives-meshy7-v1/game-review/interactive/replays.json'),
+      'utf8',
+    ),
+  );
+  const choice = choices.find((entry) => entry.id === id);
+  if (!choice) throw new Error(`Unknown review replay ${id}.`);
+  const button = page
+    .getByRole('navigation', { name: 'Choose a replay to review' })
+    .getByRole('button')
+    .filter({ has: page.locator(`span:text-is("${choice.bots.join(' v ')}")`) });
+  if ((await button.getAttribute('aria-current')) !== 'true') {
+    await button.evaluate((node) => node.click());
+  }
+  await page.waitForFunction(
+    (ticks) => {
+      const transport = window.__BOTARENA_REVIEW_CONTROL__;
+      const proof = window.__BOTARENA_RENDER_PROOF__?.sample();
+      return transport?.tickCount === ticks &&
+        proof?.tickCount === ticks &&
+        transport?.replaySeed === proof?.replaySeed;
+    },
+    choice.ticks,
+    { timeout: 60_000 },
+  );
+  const overlay = page.locator('[data-play-overlay]');
+  if (await overlay.isVisible()) {
+    await page.getByRole('button', { name: 'Play match' }).click();
+    await page.getByRole('button', { name: /Pause/ }).evaluate((button) => button.click());
+  }
+}
+
+async function seekAndSettle(page, expected) {
+  const deadline = Date.now() + 60_000;
+  while (Date.now() < deadline) {
+    await page.evaluate((time) => window.__BOTARENA_REVIEW_CONTROL__?.seek(time), expected);
+    await page.waitForTimeout(100);
+    const actual = await page.evaluate(() => window.__BOTARENA_RENDER_PROOF__?.sample().time);
+    if (Number.isFinite(actual) && Math.abs(actual - expected) < 0.025) {
+      await page.waitForTimeout(80);
+      return;
+    }
+  }
+  throw new Error(`WebGL review did not settle at ${expected}.`);
+}
+
+async function contactSheet(entries, width, filename) {
+  const labelHeight = 40;
+  const gap = 8;
+  const composites = [];
+  let top = 0;
+  for (const entry of entries) {
+    const source = readFileSync(path.join(repository, entry.image));
+    const metadata = await sharp(source).metadata();
+    const height = Math.round(width * (metadata.height ?? 1) / (metadata.width ?? 1));
+    const label = Buffer.from(
+      `<svg width="${width}" height="${labelHeight}" xmlns="http://www.w3.org/2000/svg">` +
+        '<rect width="100%" height="100%" fill="#080d12"/>' +
+        `<text x="12" y="26" fill="#dbe7ef" font-size="15" font-family="monospace">` +
+        `${entry.id.toUpperCase()} · T ${entry.time.toFixed(2)}</text></svg>`,
+    );
+    composites.push({ input: label, left: 0, top });
+    composites.push({
+      input: await sharp(source).resize(width, height).png().toBuffer(),
+      left: 0,
+      top: top + labelHeight,
+    });
+    top += labelHeight + height + gap;
+  }
+  const destination = path.join(output, filename);
+  await sharp({ create: { width, height: top - gap, channels: 4, background: '#080d12' } })
+    .composite(composites)
+    .webp({ quality: 90 })
+    .toFile(destination);
+  const bytes = readFileSync(destination);
+  return { file: path.relative(repository, destination), bytes: bytes.length, sha256: sha256(bytes) };
+}
+
+function sha256(value) {
+  return createHash('sha256').update(value).digest('hex');
+}

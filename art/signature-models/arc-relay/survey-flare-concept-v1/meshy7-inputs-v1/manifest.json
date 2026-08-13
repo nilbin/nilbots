@@ -1,0 +1,114 @@
+{
+  "schemaVersion": 1,
+  "status": "gameplay-review",
+  "classId": "survey-flare",
+  "meshyInputs": [
+    {
+      "order": 1,
+      "view": "strict-front",
+      "file": "01-front.png",
+      "sha256": "5b0f2974ae1cdcaf8e25c5a79c5a68e9b0e1ff4e55507dff0ba545ac45bc8890",
+      "width": 1536,
+      "height": 1024,
+      "primary": true
+    },
+    {
+      "order": 2,
+      "view": "strict-right",
+      "file": "02-right.png",
+      "sha256": "dce1dbe0dd0894747d42647543aade80ae9af73ecee28dadfde037c3bca0ed68",
+      "width": 1536,
+      "height": 1024,
+      "primary": false
+    },
+    {
+      "order": 3,
+      "view": "strict-back",
+      "file": "03-back.png",
+      "sha256": "15fdfd2d725dcaa9f6550d8b4845029643d44ade7b944f03cfe7aba123ec406a",
+      "width": 1536,
+      "height": 1024,
+      "primary": false
+    },
+    {
+      "order": 4,
+      "view": "front-right-three-quarter",
+      "file": "04-front-right-three-quarter.png",
+      "sha256": "2c7a60bbb3d313edb2380ff45f491ce80f71ba67a319bc0a5e6940df4d34357e",
+      "width": 1536,
+      "height": 1024,
+      "primary": false
+    }
+  ],
+  "providerRunCollection": "arc-relay-longshot-objectives-v1",
+  "retextureRunCollection": "arc-relay-longshot-objectives-v1-corrective-retextures",
+  "retexturePlan": {
+    "endpoint": "/openapi/v1/retexture",
+    "sourceTaskId": "019ffbb2-f103-72db-9a57-b4bf849a5f4f",
+    "sourceRawModelSha256": "d58d5a7b2b7e9c628b2b6f74a070e8b52a8e7c6919f4a1abe11cacbfbcaf19b4",
+    "ai_model": "meshy-7",
+    "enable_original_uv": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "alpha_thumbnail": true,
+    "target_formats": [
+      "glb"
+    ],
+    "creditCap": 10,
+    "authorized": false,
+    "authorization": "Owner approved the bounded corrective provider pass after the first-pass material gate failed on 2026-08-13.",
+    "authorizationConsumed": true,
+    "completedTaskId": "019ffbcd-1911-75e8-a822-90a439c88415",
+    "consumedCredits": 10
+  },
+  "meshyRequestPlan": {
+    "endpoint": "/openapi/v1/multi-image-to-3d",
+    "ai_model": "meshy-7",
+    "should_texture": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "should_remesh": false,
+    "image_enhancement": false,
+    "remove_lighting": true,
+    "pose_mode": "",
+    "texture_prompt": "Matte high-roughness Survey Flare. Heather and eggplant ceramic shell, aged ivory front collar, dull antiqued brass ribs and iris rings, medium charcoal rear cap, tiny pale-lilac lens center. Preserve the compact closed taper, broad circular front iris and exactly three flush stabilizer ribs. No text, logos, gun, grenade pin, mine legs, teal/cyan, orange, field, trail, glow pool, plastic, gloss or baked lighting.",
+    "target_formats": [
+      "glb"
+    ],
+    "pilotCreditCap": 30,
+    "authorized": false,
+    "authorization": "Owner approved the Survey Flare multiview and directed the approved four-asset batch to proceed on 2026-08-13.",
+    "authorizationConsumed": true,
+    "autoRigging": false,
+    "completedTaskId": "019ffbb2-f103-72db-9a57-b4bf849a5f4f",
+    "consumedCredits": 30
+  },
+  "creditCheck": {
+    "checkedAt": "2026-08-13",
+    "balance": 1300,
+    "texturedMeshy7MultiImagePerTaskCap": 30,
+    "authorizedBatchCredits": 120,
+    "expectedMinimumBalanceAfterBatch": 1180,
+    "autoRigging": false,
+    "pricingSource": "https://docs.meshy.ai/en/api/pricing"
+  },
+  "nextGate": "owner review of desktop and phone lifecycle evidence before runtime promotion",
+  "providerRun": {
+    "taskId": "019ffbb2-f103-72db-9a57-b4bf849a5f4f",
+    "directory": "../../../../class-models/provider-runs/meshy/arc-relay-longshot-objectives-v1/survey-flare/019ffbb2-f103-72db-9a57-b4bf849a5f4f",
+    "status": "SUCCEEDED",
+    "consumedCredits": 30,
+    "balanceBefore": 1270,
+    "balanceAfter": 1240,
+    "rawModelSha256": "d58d5a7b2b7e9c628b2b6f74a070e8b52a8e7c6919f4a1abe11cacbfbcaf19b4"
+  },
+  "retextureRun": {
+    "taskId": "019ffbcd-1911-75e8-a822-90a439c88415",
+    "directory": "../../../../class-models/provider-runs/meshy/arc-relay-longshot-objectives-v1-corrective-retextures/survey-flare/019ffbcd-1911-75e8-a822-90a439c88415",
+    "status": "SUCCEEDED",
+    "consumedCredits": 10,
+    "balanceBefore": 1170,
+    "balanceAfter": 1160,
+    "rawModelSha256": "92a4e968a0212e5361aac12527aff2bb5ec4bfeb35acd8840f360c05aaccfda8"
+  }
+}

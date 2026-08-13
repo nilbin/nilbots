@@ -1,7 +1,9 @@
 # Arc Relay objective concepts v1
 
-Status: **awaiting owner concept approval**. These images are not approved
-Meshy inputs, runtime assets, provider-task approval, or spend approval.
+Status: **owner-approved concepts with split provider outcomes** as of
+2026-08-13. The Team Reactor is an unpromoted normalized/optimized gameplay
+review candidate. The Core Well is rejected because both Meshy generations
+invented a fourth anchor; the existing renderer housing remains authoritative.
 
 ## Physical / renderer split
 
@@ -26,6 +28,16 @@ remain authoritative for all live objective information.
   ownership ring, bank/Pulse response, damage, and destruction.
 - Both teams share one physical model, rotated toward the arena. Team identity
   is never baked into the GLB.
+
+The Reactor review artifact is `1,662,112` bytes and `79,432` triangles with
+four embedded `512 px` WebP PBR textures. Its real-renderer review preserves
+the live ownership ring, team crest, three charge fills, and three integrity
+fills for both team orientations. Corrective task:
+`019ffbd5-9d7f-72d9-a6d0-6d79c058801c` (30 credits, no rigging).
+
+The Well corrective task `019ffbd2-0fcf-7716-bba6-8f920b78fcc9` also consumed
+30 credits but failed the strict top gate: it is fourfold, not threefold. It is
+quarantined as provider evidence and must not be promoted.
 
 The final panel of each sheet is an integration mockup. Its pale-lilac Core,
 progress/ownership ring, glyph, crest, and pip lights are demonstrations of the

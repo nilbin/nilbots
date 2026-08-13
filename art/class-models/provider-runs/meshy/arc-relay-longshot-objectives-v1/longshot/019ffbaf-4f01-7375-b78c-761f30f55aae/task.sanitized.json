@@ -1,0 +1,36 @@
+{
+  "id": "019ffbaf-4f01-7375-b78c-761f30f55aae",
+  "type": "multi-image-to-3d",
+  "name": "",
+  "art_style": "",
+  "object_prompt": "",
+  "style_prompt": "",
+  "negative_prompt": "",
+  "texture_prompt": "Matte high-roughness Longshot rail-barge. Medium-light desaturated dusty steel-blue armor, warm light-gray ceramic charge blocks, dull nickel spine, medium graphite mechanisms, tiny muted burgundy bands, restrained edge wear. Preserve exactly three dorsal charge blocks, stepped broad silhouette, split stern and flush black front aperture. No text, logos, eyes, gun, barrel, white nose, teal/cyan, orange, glow, plastic, gloss or baked lighting.",
+  "texture_image_url": "[redacted-input]",
+  "text_style_prompt": "",
+  "image_style_url": "",
+  "status": "SUCCEEDED",
+  "created_at": 1786634001212,
+  "progress": 100,
+  "started_at": 1786634001222,
+  "finished_at": 1786634207538,
+  "expires_at": 1786893407538,
+  "task_error": null,
+  "model_url": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ffbaf-4f01-7375-b78c-761f30f55aae/output/model.glb",
+  "model_urls": {
+    "glb": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ffbaf-4f01-7375-b78c-761f30f55aae/output/model.glb"
+  },
+  "thumbnail_url": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ffbaf-4f01-7375-b78c-761f30f55aae/output/preview.png",
+  "texture_urls": [
+    {
+      "base_color": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ffbaf-4f01-7375-b78c-761f30f55aae/output/texture_0.png",
+      "metallic": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ffbaf-4f01-7375-b78c-761f30f55aae/output/texture_0_metallic.png",
+      "roughness": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ffbaf-4f01-7375-b78c-761f30f55aae/output/texture_0_roughness.png",
+      "normal": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ffbaf-4f01-7375-b78c-761f30f55aae/output/texture_0_normal.png",
+      "emission": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ffbaf-4f01-7375-b78c-761f30f55aae/output/texture_0_emission.png"
+    }
+  ],
+  "remove_lighting": true,
+  "consumed_credits": 30
+}

@@ -15,3 +15,17 @@ Materials/textures: matte powder-coated mineral-blue metal, warm light-gray cera
 Constraints: one watertight connected object; +X forward is the broad flush emitter face; no legs, feet, wheels, treads, humanoid anatomy, cockpit, eyes, eye-like lights, face, antenna wire, wings, fins, floating rings, or separate pieces. No gun, barrel, cannon, muzzle, rifle stock, scope, ammunition, missile, spear, blade, railgun silhouette, white nose, exposed universal charge orb, or handheld-weapon cue. No baked beam, charge line, scan ring, trail, particles, team-color light, shadow, text, logo, decal, or UI. Preserve the exact same design across all six views. Ensure the three staged blocks are large, elevated, and clearly separate from the side armor in top and gameplay-oblique views.
 Avoid: current pill/coffin/capsule silhouette, submarine, spaceship, generic blue lozenge, long dark central trench, five tiny gray tiles, flat slab, hair-thin needle, excessive width that makes it a square tank, dense square panel grid, strong colors, dark camouflage, black body, glossy toy plastic, cute proportions, rounded friendly bevels, white prow, gun anatomy, perspective inconsistency, geometry drift, extra objects, watermark.
 ```
+
+## Approved brighter material edit
+
+```text
+Use case: precise-object-edit
+Asset type: approved Nilbots Longshot six-view hard-surface concept sheet and later multiview 3D reference
+Input image: edit target; preserve its six panels and the exact same Longshot design
+Primary request: brighten only the material values so the model remains readable in a dark game at zoomed-out mobile gameplay scale
+Composition/framing: keep all six existing views, camera angles, object scale, panel borders, spacing, and geometry unchanged
+Color palette: lift the dusty mineral denim-blue hull by about 18 percent toward a lighter desaturated slate/steel blue; lift the warm gray charge blocks and graphite underside by about 10–12 percent; retain small muted rust-red mechanical accents
+Materials/textures: unmistakably matte, high roughness, softly weathered metal/ceramic armor; restrained highlights; no glossy plastic, varnish, polished toy finish, or overly saturated paint
+Constraints: edit color and value only; preserve the exact wide chunky 2.2:1 rail-barge silhouette, stepped wedge nose, split stern, black recessed beam aperture, three raised top charge blocks, panel geometry, wear pattern placement, and all camera orientations; no text, labels, logos, guns, barrels, eyes, characters, floor, cast shadows, team teal/cyan, or team orange
+Avoid: redesign, geometry drift, added parts, removed parts, blue becoming vivid cobalt, pale toy-blue, dark navy, black crush, gloss, plastic
+```

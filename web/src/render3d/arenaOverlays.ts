@@ -33,6 +33,7 @@ import {
 import { playsAt } from '../presentation/playAwareness';
 import { ARC_CORE_NEUTRAL_PALETTE } from '../presentation/arcCorePalette';
 import { arenaTheme } from '../render/arenaThemes';
+import { objectiveModel } from './lookModel';
 
 /**
  * What the arena knows and what it is doing to itself: fog of war, the objective zone, and
@@ -46,6 +47,17 @@ import { arenaTheme } from '../render/arenaThemes';
 
 /** How far the camera is thrown by a direct kill, in tiles. */
 const SHAKE_REACH = 0.045;
+
+function disposeObjectMaterials(object: THREE.Object3D): void {
+  const materials = new Set<THREE.Material>();
+  object.traverse((node) => {
+    const mesh = node as THREE.Mesh;
+    if (!mesh.isMesh) return;
+    for (const material of Array.isArray(mesh.material) ? mesh.material : [mesh.material])
+      materials.add(material);
+  });
+  for (const material of materials) material.dispose();
+}
 
 
 export interface ArenaOverlays {
@@ -2060,6 +2072,7 @@ function buildArcRelayStory(
   const crestGeometry = new THREE.CircleGeometry(0.2, 32);
   crestGeometry.rotateX(-Math.PI / 2);
   const pipGeometry = new THREE.SphereGeometry(0.055, 10, 8);
+  const integrityGeometry = new THREE.BoxGeometry(0.16, 0.025, 0.1);
   // A shaded sphere, not a bright faceted token. The Core's fixed hover above the hull
   // makes possession legible without making it orbit through a neighbouring tile.
   const coreGeometry = new THREE.SphereGeometry(0.22, 28, 18);
@@ -2083,6 +2096,7 @@ function buildArcRelayStory(
     reactorRingGeometry,
     crestGeometry,
     pipGeometry,
+    integrityGeometry,
     coreGeometry,
     beamGeometry,
     sourceTriangleGeometry,
@@ -2346,6 +2360,7 @@ function buildArcRelayStory(
       const rig = new THREE.Group();
       rig.userData.kind = 'arc-relay-reactor';
       rig.userData.themeId = themeId;
+      let disposed = false;
       const material = new THREE.MeshStandardMaterial({
         color: emberForge ? '#2a2529' : '#101820',
         emissive: emberForge ? '#8f3241' : '#64748b',
@@ -2359,14 +2374,18 @@ function buildArcRelayStory(
         depthWrite: false,
         blending: THREE.AdditiveBlending,
       });
+      const fallback = new THREE.Group();
+      fallback.userData.kind = 'arc-relay-reactor-fallback';
       const body = new THREE.Mesh(reactorGeometry, material);
       body.position.y = emberForge ? 0.11 : 0.09;
       const ring = new THREE.Mesh(reactorRingGeometry, ringMaterial);
-      ring.position.y = 0.12;
+      ring.position.y = 0.055;
+      ring.scale.setScalar(1.7);
       const crestMaterial = new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false });
       const crest = new THREE.Mesh(crestGeometry, crestMaterial);
-      crest.position.y = 0.19;
-      rig.add(body, ring, crest);
+      crest.position.set(-0.27, 0.425, 0);
+      fallback.add(body);
+      rig.add(fallback, ring, crest);
       for (const [index, [x, z]] of [
         [-0.37, -0.37],
         [0.37, -0.37],
@@ -2376,23 +2395,41 @@ function buildArcRelayStory(
         const pylon = new THREE.Mesh(reactorPylonGeometry, material);
         pylon.position.set(x, 0.19, z);
         pylon.rotation.y = index * Math.PI / 2;
-        rig.add(pylon);
+        fallback.add(pylon);
       }
+      let authoredModel: THREE.Group | null = null;
+      void objectiveModel('arc-team-reactor').then((model) => {
+        if (!model) return;
+        if (disposed) {
+          disposeObjectMaterials(model);
+          return;
+        }
+        authoredModel = model;
+        authoredModel.userData.kind = 'arc-relay-reactor-authored-housing';
+        fallback.visible = false;
+        rig.add(authoredModel);
+      });
       const integrity: THREE.Mesh[] = [];
       const integrityMaterials: THREE.MeshBasicMaterial[] = [];
       const charge: THREE.Mesh[] = [];
       const chargeMaterials: THREE.MeshBasicMaterial[] = [];
       for (let pip = 0; pip < 3; pip++) {
         const outerMaterial = new THREE.MeshBasicMaterial();
-        const outer = new THREE.Mesh(pipGeometry, outerMaterial);
-        const angle = -Math.PI / 2 + pip * (Math.PI * 2 / 3);
-        outer.position.set(Math.cos(angle) * 0.58, 0.16, Math.sin(angle) * 0.58);
+        const outer = new THREE.Mesh(integrityGeometry, outerMaterial);
+        const integrityPositions = [
+          [0.63, 0],
+          [-0.04, -0.55],
+          [-0.04, 0.55],
+        ] as const;
+        outer.position.set(integrityPositions[pip]![0], 0.43, integrityPositions[pip]![1]);
+        outer.userData.kind = 'arc-relay-reactor-integrity';
         rig.add(outer);
         integrity.push(outer);
         integrityMaterials.push(outerMaterial);
         const innerMaterial = new THREE.MeshBasicMaterial();
         const inner = new THREE.Mesh(pipGeometry, innerMaterial);
-        inner.position.set((pip - 1) * 0.15, 0.24, 0);
+        inner.position.set(0.38, 0.44, (pip - 1) * 0.22);
+        inner.userData.kind = 'arc-relay-reactor-charge';
         rig.add(inner);
         charge.push(inner);
         chargeMaterials.push(innerMaterial);
@@ -2410,7 +2447,12 @@ function buildArcRelayStory(
         chargeMaterials,
         crest,
       });
-      disposables.push(material, ringMaterial, crestMaterial);
+      disposables.push(material, ringMaterial, crestMaterial, {
+        dispose: () => {
+          disposed = true;
+          if (authoredModel) disposeObjectMaterials(authoredModel);
+        },
+      });
     }
     return reactors[index]!;
   };
@@ -2591,6 +2633,7 @@ function buildArcRelayStory(
       const rig = reactor(index);
       rig.group.visible = true;
       rig.group.position.set(state.position.x + 0.5, 0, state.position.y + 0.5);
+      rig.group.rotation.y = state.position.x < replay.map.width / 2 ? 0 : Math.PI;
       rig.material.emissive.set(state.accent);
       rig.ringMaterial.color.set(state.accent);
       const entrant = entrants?.find((value) => value.teamId === state.teamId);

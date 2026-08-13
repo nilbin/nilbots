@@ -111,6 +111,7 @@ interface SignaturePropSlot {
 export const ARC_SIGNATURE_PROP_SCALE = {
   'trip-node': 0.94,
   'sentinel-seed': 0.72,
+  'survey-flare': 1.35,
 } as const;
 
 /** The sentry may acknowledge shots that have happened, but never pre-aim from future state. */
@@ -698,10 +699,12 @@ export function buildArcRelayEffects(
         : undefined;
       let persistentPropReady = false;
       if (
-        phase === 'active' &&
+        (phase === 'active' ||
+          (signature.signatureId === 'survey-flare' && phase === 'in-flight')) &&
         resolution.kind !== 'generic' &&
         (signature.signatureId === 'trip-node' ||
-          signature.signatureId === 'sentinel-seed') &&
+          signature.signatureId === 'sentinel-seed' ||
+          signature.signatureId === 'survey-flare') &&
         points[0]
       ) {
         const poolIndex = usedPropSlots.get(signature.signatureId) ?? 0;
@@ -713,11 +716,41 @@ export function buildArcRelayEffects(
           ? 1
           : easeOutDeploy(Math.min(1, phaseAge / 0.9));
         const propScale = ARC_SIGNATURE_PROP_SCALE[signature.signatureId];
-        // Both props occupy one tile. The sentry arrives from above as requested; the mine
-        // remains a low device that settles through the floor. No extra placeholder body
-        // competes with the authored model during either deployment.
-        const fromY = signature.signatureId === 'sentinel-seed' ? 2.45 : -0.24;
-        slot.group.position.copy(points[0]).setY(fromY * (1 - deploy));
+        // Persistent props occupy their replay-owned point. Survey Flare uniquely reuses
+        // one rigid model in flight and upright after landing; the scan field remains a
+        // separate authoritative overlay.
+        const fromY = signature.signatureId === 'sentinel-seed'
+          ? 2.45
+          : signature.signatureId === 'survey-flare'
+            ? 0
+            : -0.24;
+        if (signature.signatureId === 'survey-flare' && phase === 'in-flight') {
+          const from = points[0]!;
+          const to = points.at(-1) ?? from;
+          const progress = easeOutDeploy(signaturePhaseProgress(signature, time));
+          slot.group.position.lerpVectors(from, to, progress);
+          slot.group.position.y = 0.14 + Math.sin(progress * Math.PI) * 1.15;
+          slot.group.rotation.y = -Math.atan2(to.z - from.z, to.x - from.x);
+          if (slot.model) {
+            slot.model.rotation.x = reducedMotion ? 0 : progress * Math.PI * 4;
+            slot.model.rotation.z = 0;
+          }
+        } else {
+          slot.group.position.copy(points[0]).setY(
+            signature.signatureId === 'survey-flare'
+              ? 0.16
+              : fromY * (1 - deploy),
+          );
+          slot.group.rotation.y = signature.signatureId === 'survey-flare'
+            ? time * 0.28
+            : 0;
+          if (slot.model) {
+            slot.model.rotation.x = 0;
+            slot.model.rotation.z = signature.signatureId === 'survey-flare'
+              ? Math.PI / 2
+              : 0;
+          }
+        }
         const scaleSettle = reducedMotion
           ? 1
           : 1 + Math.sin(Math.PI * Math.min(1, phaseAge / 0.9)) * 0.06;
@@ -730,7 +763,8 @@ export function buildArcRelayEffects(
               ) ?? 0
             : 0;
         const yawTarget = sentinelYawTarget(slot.group, slot.model);
-        slot.group.rotation.y = yawTarget === slot.group ? propYaw : 0;
+        if (signature.signatureId !== 'survey-flare')
+          slot.group.rotation.y = yawTarget === slot.group ? propYaw : 0;
         if (slot.yawHead) slot.yawHead.rotation.y = propYaw;
         paintSignaturePropBody(
           slot.emissives,
@@ -739,7 +773,7 @@ export function buildArcRelayEffects(
           time,
           deploy,
         );
-        slot.pipGroup.visible = true;
+        slot.pipGroup.visible = signature.signatureId !== 'survey-flare';
         slot.pipGroup.position.copy(points[0]).setY(
           signature.signatureId === 'sentinel-seed'
             ? fromY * (1 - deploy)

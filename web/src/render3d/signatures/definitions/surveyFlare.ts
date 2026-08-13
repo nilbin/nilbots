@@ -15,17 +15,19 @@ const SURVEY = '#86bec0';
 
 export default defineArcSignatureWebGLPainter({
   signatureId: 'survey-flare',
-  paint({ rig, points, owner, target, time, phase, reducedMotion, phaseProgress, phaseAge }) {
+  paint({ rig, points, owner, target, time, phase, persistentPropReady, reducedMotion, phaseProgress, phaseAge }) {
     if (phase === 'in-flight' && points[0] && points.at(-1)) {
       const from = points[0]!;
       const to = points.at(-1)!;
       const progress = easeInOutCubic(phaseProgress);
-      placeTravelHead(rig.payload, from, to, progress, 1.15, 1.05);
-      rig.payload.scale.set(0.92, 0.72, 0.92);
-      rig.solid.color.set('#59676b');
-      rig.solid.emissive.set('#213437');
-      rig.solid.emissiveIntensity = 0.06;
-      rig.payload.rotation.x = progress * Math.PI * 4;
+      if (!persistentPropReady) {
+        placeTravelHead(rig.payload, from, to, progress, 1.15, 1.05);
+        rig.payload.scale.set(0.92, 0.72, 0.92);
+        rig.solid.color.set('#59676b');
+        rig.solid.emissive.set('#213437');
+        rig.solid.emissiveIntensity = 0.06;
+        rig.payload.rotation.x = progress * Math.PI * 4;
+      }
       if (!reducedMotion) {
         for (let index = 0; index < 4; index += 1) {
           const echo = rig.particles[index]!;
@@ -71,37 +73,39 @@ export default defineArcSignatureWebGLPainter({
     // The landed flare is a small survey instrument: socket, mast, three rotating arms
     // and a dim lens. The former tall additive beam made it look like an objective beacon
     // and still failed to show an actual deployment at the gameplay camera.
-    rig.hub.visible = true;
-    rig.hub.position.copy(area.centre).setY(-0.08 + bloom * 0.18);
-    rig.hub.scale.setScalar(0.62 + bloom * 0.64);
-    rig.payload.visible = true;
-    rig.payload.position.copy(area.centre).setY(-0.32 + bloom * 0.86);
-    rig.payload.scale.set(0.66, 1.2 + bloom * 0.7, 0.66);
-    rig.payload.rotation.y = time * 0.28;
-    rig.solid.color.set('#526166');
-    rig.solid.emissive.set('#1b3438');
-    rig.solid.emissiveIntensity = 0.06;
-    rig.solid.opacity = 0.96;
-    for (const [index, angleOffset] of [0, Math.PI * 2 / 3, Math.PI * 4 / 3].entries()) {
-      const angle = angleOffset + time * 0.24;
-      const from = area.centre.clone().add(
-        new THREE.Vector3(Math.cos(angle) * 0.18, 0, Math.sin(angle) * 0.18),
-      );
-      const to = area.centre.clone().add(
-        new THREE.Vector3(
-          Math.cos(angle) * (0.36 + bloom * 0.34),
-          0,
-          Math.sin(angle) * (0.36 + bloom * 0.34),
-        ),
-      );
-      solidBarAt(rig.bars[index]!, from, to, 0.13, 0.38 + index * 0.025);
+    if (!persistentPropReady) {
+      rig.hub.visible = true;
+      rig.hub.position.copy(area.centre).setY(-0.08 + bloom * 0.18);
+      rig.hub.scale.setScalar(0.62 + bloom * 0.64);
+      rig.payload.visible = true;
+      rig.payload.position.copy(area.centre).setY(-0.32 + bloom * 0.86);
+      rig.payload.scale.set(0.66, 1.2 + bloom * 0.7, 0.66);
+      rig.payload.rotation.y = time * 0.28;
+      rig.solid.color.set('#526166');
+      rig.solid.emissive.set('#1b3438');
+      rig.solid.emissiveIntensity = 0.06;
+      rig.solid.opacity = 0.96;
+      for (const [index, angleOffset] of [0, Math.PI * 2 / 3, Math.PI * 4 / 3].entries()) {
+        const angle = angleOffset + time * 0.24;
+        const from = area.centre.clone().add(
+          new THREE.Vector3(Math.cos(angle) * 0.18, 0, Math.sin(angle) * 0.18),
+        );
+        const to = area.centre.clone().add(
+          new THREE.Vector3(
+            Math.cos(angle) * (0.36 + bloom * 0.34),
+            0,
+            Math.sin(angle) * (0.36 + bloom * 0.34),
+          ),
+        );
+        solidBarAt(rig.bars[index]!, from, to, 0.13, 0.38 + index * 0.025);
+      }
+      const lens = rig.toruses[0]!;
+      lens.visible = true;
+      lens.position.copy(area.centre).setY(0.92);
+      lens.scale.setScalar(0.48 + Math.sin(time * 0.9) * 0.025);
+      setEnergyColour(lens, SURVEY);
+      setEnergyOpacity(lens, 0.11);
     }
-    const lens = rig.toruses[0]!;
-    lens.visible = true;
-    lens.position.copy(area.centre).setY(0.92);
-    lens.scale.setScalar(0.48 + Math.sin(time * 0.9) * 0.025);
-    setEnergyColour(lens, SURVEY);
-    setEnergyOpacity(lens, 0.11);
   },
   paintOutcome({ rig, priorSignature, facts, fraction, reducedMotion }) {
     if (!hasConstructRemoval(facts)) return;

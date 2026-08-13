@@ -1,7 +1,9 @@
 # Survey Flare concept v1
 
-Status: **awaiting owner approval**. This is an art-side concept only. It is not
-a Meshy input, provider task, runtime model, or approval to spend credits.
+Status: **owner-approved concept and unpromoted gameplay-review candidate** as
+of 2026-08-13. Meshy generation, corrective matte retexture, normalization,
+optimization, and desktop/phone WebGL lifecycle review are complete. It still
+requires a separate promotion decision.
 
 `survey-flare-six-view.png` proposes one rigid physical device for both public
 phases: the renderer carries it horizontally during `in-flight`, then rotates
@@ -23,10 +25,11 @@ suppression, timing, and expiry.
 - No baked field, beam, trail, glow pool, shadow, or gameplay state.
 - Must not read as a weapon, grenade, mine, Core, sentry, or objective beacon.
 
-After approval, generate separate camera-consistent multiview inputs rather
-than cropping this overview sheet. The provider target remains approximately
-`0.18` tile wide, `0.30` tile long, at most `2,000` triangles and `80 KB` when
-the gameplay-scale review proves that budget is attainable.
+The normalized candidate is approximately `0.18` tile wide and `0.30` tile
+long. The aspirational `2,000` triangle / `80 KB` target was not attainable
+without losing the iris and rib silhouette: the gameplay-reviewed lean tier is
+`361,444` bytes and `15,550` triangles with three embedded `256 px` WebP PBR
+textures. It remains substantially smaller than a bot model.
 
 ## Provenance
 
@@ -35,3 +38,9 @@ the gameplay-scale review proves that budget is attainable.
 - Family reference: the approved Arc Lantern V3 top-down east render.
 - Mechanics reference: Survey Flare's existing support-fields storyboard.
 - PNG SHA-256: `cac7593d3d302bdea89578a192c4a4a376b314e14a239cceacc946c7dae050b6`.
+- Meshy 7 corrective retexture task:
+  `019ffbcd-1911-75e8-a822-90a439c88415` (10 credits, no rigging).
+- Lean review artifact SHA-256:
+  `0df64d292faff971e0b214883d68285112850eb71f43aa9f28c5b2d10f610ff7`.
+- Gameplay evidence:
+  `art/reviews/arc-relay-longshot-objectives-meshy7-v1/gameplay-review/`.

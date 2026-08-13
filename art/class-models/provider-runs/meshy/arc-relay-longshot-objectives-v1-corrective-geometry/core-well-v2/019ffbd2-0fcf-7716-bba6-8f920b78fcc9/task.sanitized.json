@@ -1,0 +1,36 @@
+{
+  "id": "019ffbd2-0fcf-7716-bba6-8f920b78fcc9",
+  "type": "multi-image-to-3d",
+  "name": "",
+  "art_style": "",
+  "object_prompt": "",
+  "style_prompt": "",
+  "negative_prompt": "",
+  "texture_prompt": "Neutral matte Core Well physical housing only. Exact topology authority: one open central bowl, one low octagonal ring, and EXACTLY THREE large radial anchor clamps spaced 120 degrees apart as shown in the strict top view. There is no fourth anchor and no rear anchor. Medium-light warm-gray ceramic and stone armor, aged ivory upper collar, dull nickel seams, restrained muted burgundy anchor clamps, medium graphite bowl, high roughness and broad readable value groups. No Core, glyph, progress ring, team tint, teal/cyan, orange, glow, plastic, gloss, text, extra appendages, extra anchors or baked lighting.",
+  "texture_image_url": "[redacted-input]",
+  "text_style_prompt": "",
+  "image_style_url": "",
+  "status": "SUCCEEDED",
+  "created_at": 1786636278632,
+  "progress": 100,
+  "started_at": 1786636278635,
+  "finished_at": 1786636488440,
+  "expires_at": 1786895688440,
+  "task_error": null,
+  "model_url": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ffbd2-0fcf-7716-bba6-8f920b78fcc9/output/model.glb",
+  "model_urls": {
+    "glb": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ffbd2-0fcf-7716-bba6-8f920b78fcc9/output/model.glb"
+  },
+  "thumbnail_url": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ffbd2-0fcf-7716-bba6-8f920b78fcc9/output/preview.png",
+  "texture_urls": [
+    {
+      "base_color": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ffbd2-0fcf-7716-bba6-8f920b78fcc9/output/texture_0.png",
+      "metallic": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ffbd2-0fcf-7716-bba6-8f920b78fcc9/output/texture_0_metallic.png",
+      "roughness": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ffbd2-0fcf-7716-bba6-8f920b78fcc9/output/texture_0_roughness.png",
+      "normal": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ffbd2-0fcf-7716-bba6-8f920b78fcc9/output/texture_0_normal.png",
+      "emission": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019ffbd2-0fcf-7716-bba6-8f920b78fcc9/output/texture_0_emission.png"
+    }
+  ],
+  "remove_lighting": true,
+  "consumed_credits": 30
+}

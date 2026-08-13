@@ -12,6 +12,7 @@ const options = parseArgs(process.argv.slice(2));
 const manifestPath = resolve(repositoryRoot, options.manifest);
 const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
 const plan = manifest.retexturePlan;
+const runCollection = manifest.retextureRunCollection ?? 'arc-relay-meshy7-retexture';
 
 validateManifest(manifest, plan);
 
@@ -44,12 +45,7 @@ for (const input of [...manifest.meshyInputs].sort((left, right) => left.order -
 if (inputs[0]?.primary !== true || inputs[0]?.view !== 'strict-front')
   throw new Error('The first Meshy 7 style input must be the primary strict-front view.');
 
-const sourceDirectory = resolve(
-  repositoryRoot,
-  'art/class-models/provider-runs/meshy/arc-relay-meshy7-pilot',
-  manifest.classId,
-  plan.sourceTaskId,
-);
+const sourceDirectory = resolve(dirname(manifestPath), manifest.providerRun.directory);
 const sourceModelPath = join(sourceDirectory, 'raw-model.glb');
 const sourceModelBytes = await readFile(sourceModelPath);
 const sourceModelHash = sha256(sourceModelBytes);
@@ -113,7 +109,8 @@ if (typeof taskId !== 'string' || taskId.length === 0)
 
 const runDirectory = resolve(
   repositoryRoot,
-  'art/class-models/provider-runs/meshy/arc-relay-meshy7-retexture',
+  'art/class-models/provider-runs/meshy',
+  runCollection,
   manifest.classId,
   taskId,
 );
@@ -228,6 +225,24 @@ await writeFile(
     `Signed URLs, credentials, and input data URIs are not retained.\n`,
 );
 
+const rawModel = artifacts.find((artifact) => artifact.file === 'raw-model.glb');
+plan.authorized = false;
+plan.authorizationConsumed = true;
+plan.completedTaskId = taskId;
+plan.consumedCredits = task.consumed_credits;
+manifest.status = 'owner-review';
+manifest.retextureRun = {
+  taskId,
+  directory: relative(dirname(manifestPath), runDirectory),
+  status: task.status,
+  consumedCredits: task.consumed_credits,
+  balanceBefore,
+  balanceAfter,
+  rawModelSha256: rawModel?.sha256,
+};
+manifest.nextGate = 'owner review of corrected Meshy 7 material pass; no runtime promotion';
+await writeJson(manifestPath, manifest);
+
 console.log(`Downloaded ${artifacts.length} artifacts in ${downloadSeconds.toFixed(2)}s`);
 console.log(`Credits: ${task.consumed_credits}; balance after: ${balanceAfter}`);
 console.log(`Provider stage total: ${totalSeconds.toFixed(2)}s`);
@@ -318,8 +333,8 @@ function sanitizeUrl(value) {
 }
 
 function validateManifest(value, requestPlan) {
-  if (value?.classId !== 'kestrel')
-    throw new Error('This first vertical-slice retexture runner is pinned to Kestrel.');
+  if (!/^[a-z][a-z0-9-]*$/.test(value?.classId ?? ''))
+    throw new Error('The manifest classId is missing or unsafe.');
   if (!Array.isArray(value.meshyInputs) || value.meshyInputs.length !== 4)
     throw new Error('Exactly four Meshy style inputs are required.');
   if (!requestPlan?.authorized)
@@ -329,7 +344,7 @@ function validateManifest(value, requestPlan) {
   if (requestPlan.endpoint !== '/openapi/v1/retexture')
     throw new Error('The authorized endpoint must be Meshy retexture.');
   if (requestPlan.sourceTaskId !== value.providerRun?.taskId)
-    throw new Error('The retexture source task does not match the recorded Kestrel provider run.');
+    throw new Error('The retexture source task does not match the recorded provider run.');
   if (requestPlan.sourceRawModelSha256 !== value.providerRun?.rawModelSha256)
     throw new Error('The retexture source model hash does not match the recorded provider run.');
   if (requestPlan.ai_model !== 'meshy-7') throw new Error('ai_model must be meshy-7.');
@@ -340,7 +355,7 @@ function validateManifest(value, requestPlan) {
   if (requestPlan.alpha_thumbnail !== true)
     throw new Error('The authorized retexture requests an alpha thumbnail.');
   if (requestPlan.creditCap !== 10)
-    throw new Error('The authorized Kestrel retexture credit cap must be exactly 10.');
+    throw new Error('The authorized retexture credit cap must be exactly 10.');
   if (
     !Array.isArray(requestPlan.target_formats) ||
     requestPlan.target_formats.length !== 1 ||
