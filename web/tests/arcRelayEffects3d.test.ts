@@ -792,12 +792,16 @@ test('persistent mine and sentry bodies yield only their depth layer to bots', (
     assert.equal(body.renderOrder, PERSISTENT_CONSTRUCT_RENDER_ORDER);
     assert.ok(BOT_BODY_RENDER_ORDER > body.renderOrder);
     assert.equal(material.depthTest, true, 'walls and terrain still occlude the prop');
-    assert.equal(material.depthWrite, false, 'the prop cannot occlude a later bot body');
+    assert.equal(material.depthWrite, true, 'the prop retains its own front/back depth');
     assert.equal(
       material.transparent,
-      false,
-      'the construct stays in the ordered solid pass',
+      true,
+      'the construct keeps its authored pass and deploy fade',
     );
+    assert.equal(material.stencilWrite, true);
+    assert.equal(material.stencilWriteMask, 0);
+    assert.equal(material.stencilFunc, THREE.NotEqualStencilFunc);
+    assert.equal(material.stencilZPass, THREE.KeepStencilOp);
   } finally {
     geometry.dispose();
     material.dispose();

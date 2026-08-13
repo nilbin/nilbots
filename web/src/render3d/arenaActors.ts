@@ -65,6 +65,13 @@ import {
   teamVisionSeesActor,
   teamVisionSeesProjectile,
 } from '../render/teamVision';
+import {
+  ACTOR_OCCLUSION_MASK_RENDER_ORDER,
+  BOT_BODY_RENDER_ORDER,
+  createActorOcclusionMaskMaterial,
+} from './occlusionLayers';
+
+export { BOT_BODY_RENDER_ORDER } from './occlusionLayers';
 
 /**
  * The things that move.
@@ -185,8 +192,6 @@ const NEIGHBOURS: readonly (readonly [number, number])[] = [
 
 /** How tall a bot's hull stands. Below the walls, so cover still reads as cover. */
 const BOT_HEIGHT = 0.26;
-/** Solid actors draw after persistent mine/sentry bodies, while still testing terrain depth. */
-export const BOT_BODY_RENDER_ORDER = 2;
 /** The height bolts fly at. Exported because a bolt's dissipation has to happen there too. */
 export const PROJECTILE_HOVER = 0.2;
 
@@ -402,6 +407,26 @@ export function installMobileModel(
 export function buildActors(replay: ReplayModel): ArenaActors {
   const group = new THREE.Group();
   const disposables: { dispose: () => void }[] = [];
+  const actorMaskMaterials = new Map<THREE.Material, THREE.Material>();
+  const maskMaterial = (source: THREE.Material) => {
+    const existing = actorMaskMaterials.get(source);
+    if (existing) return existing;
+    const created = createActorOcclusionMaskMaterial(source);
+    actorMaskMaterials.set(source, created);
+    disposables.push(created);
+    return created;
+  };
+  const installActorMask = (solid: THREE.Mesh) => {
+    const material = Array.isArray(solid.material)
+      ? solid.material.map(maskMaterial)
+      : maskMaterial(solid.material);
+    const mask = new THREE.Mesh(solid.geometry, material);
+    mask.userData.kind = 'actor-occlusion-mask';
+    mask.renderOrder = ACTOR_OCCLUSION_MASK_RENDER_ORDER;
+    mask.castShadow = false;
+    mask.receiveShadow = false;
+    solid.add(mask);
+  };
   const presenter = createPresenter(replay);
   const veterancy = arcVeterancyFor(replay);
   // Rules-owned and form-extensible: this is only the allocation ceiling. Per-frame
@@ -475,6 +500,7 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     hull.castShadow = true;
     hull.receiveShadow = true;
     body.add(hull);
+    installActorMask(hull);
 
     const lidGeometry = new THREE.PlaneGeometry(size, size);
     lidGeometry.rotateX(-Math.PI / 2);
@@ -493,6 +519,7 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     lid.renderOrder = BOT_BODY_RENDER_ORDER;
     lid.position.y = BOT_HEIGHT + 0.004;
     body.add(lid);
+    installActorMask(lid);
 
     // The nose: which way this machine is pointing, said outright.
     //
@@ -524,6 +551,7 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     nose.position.set(size * 0.46, BOT_HEIGHT + 0.02, 0);
     nose.castShadow = true;
     body.add(nose);
+    installActorMask(nose);
 
     // A turret is deliberately a different silhouette, not the mobile chassis with its
     // movement disabled: it has no privileged facing, which is what a form that sees and
@@ -729,13 +757,16 @@ export function buildActors(replay: ReplayModel): ArenaActors {
      */
     const registerModelMaterials = (solid: THREE.Object3D) => {
       const seen = new Set<THREE.Material>();
+      const solidMeshes: THREE.Mesh[] = [];
       solid.traverse((node) => {
         const mesh = node as THREE.Mesh;
         if (!mesh.isMesh) return;
+        if (mesh.userData.kind === 'actor-occlusion-mask') return;
         // Mine/sentry bodies deliberately leave terrain depth intact and draw one layer
         // before actors. Keeping this on the solid meshes (rather than disabling depth on
         // the chassis) lets a bot win that one overlap without appearing through walls.
         mesh.renderOrder = Math.max(mesh.renderOrder, BOT_BODY_RENDER_ORDER);
+        solidMeshes.push(mesh);
         const materials = Array.isArray(mesh.material)
           ? mesh.material
           : [mesh.material];
@@ -748,6 +779,7 @@ export function buildActors(replay: ReplayModel): ArenaActors {
           disposables.push(material);
         }
       });
+      for (const mesh of solidMeshes) installActorMask(mesh);
       // A model that lands mid-highlight or mid-flash has to arrive wearing it, not plain.
       repaint();
     };
@@ -798,6 +830,7 @@ export function buildActors(replay: ReplayModel): ArenaActors {
         barrel.position.set(size * BARREL_REACH * 0.5, BOT_HEIGHT * 0.9, 0);
         barrel.castShadow = true;
         hinge.add(barrel);
+        installActorMask(barrel);
         stance.add(hinge);
         barrels.push(hinge);
       }
@@ -835,6 +868,7 @@ export function buildActors(replay: ReplayModel): ArenaActors {
         plateMesh.position.y = (size * PLATE_HEIGHT) / 2;
         plateMesh.castShadow = true;
         stance.add(plateMesh);
+        installActorMask(plateMesh);
         plate = plateMesh;
       }
 

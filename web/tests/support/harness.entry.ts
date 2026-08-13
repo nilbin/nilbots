@@ -87,6 +87,10 @@ export {
   loadReplayObject,
 } from '../../src/replayIngress';
 export {
+  ACTOR_OCCLUSION_MASK_RENDER_ORDER,
+  createActorOcclusionMaskMaterial,
+} from '../../src/render3d/occlusionLayers';
+export {
   BOT_BODY_RENDER_ORDER,
   buildActors,
   installMobileModel,

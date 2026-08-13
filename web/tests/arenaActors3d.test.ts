@@ -10,6 +10,7 @@ import type {
 } from '../src/replayModel.ts';
 import { loadReplayJson } from '../src/replayIngress.ts';
 import {
+  ACTOR_OCCLUSION_MASK_RENDER_ORDER,
   BOT_BODY_RENDER_ORDER,
   boltsAt,
   buildActors,
@@ -541,15 +542,21 @@ test('bot solids own the layer immediately above persistent constructs', () => {
     const chassis = chassisOf(actors.group, 'duel:0:unit:0');
     const body = formPart(chassis, 'mobile');
     const solids: THREE.Mesh[] = [];
+    const masks: THREE.Mesh[] = [];
     body.traverse((node) => {
       const mesh = node as THREE.Mesh;
       if (!mesh.isMesh) return;
+      if (mesh.userData.kind === 'actor-occlusion-mask') {
+        masks.push(mesh);
+        return;
+      }
       const materials = Array.isArray(mesh.material)
         ? mesh.material
         : [mesh.material];
       if (materials.some((material) => material.depthWrite)) solids.push(mesh);
     });
     assert.ok(solids.length > 0);
+    assert.equal(masks.length, solids.length);
     assert.ok(
       solids.every((mesh) => mesh.renderOrder === BOT_BODY_RENDER_ORDER),
       'every solid body surface shares the actor layer',
@@ -562,6 +569,26 @@ test('bot solids own the layer immediately above persistent constructs', () => {
         return materials.every((material) => material.depthTest);
       }),
       'actor layering never disables wall/terrain depth testing',
+    );
+    assert.ok(
+      masks.every((mask) => mask.renderOrder === ACTOR_OCCLUSION_MASK_RENDER_ORDER),
+      'every solid has an earlier colourless silhouette pass',
+    );
+    assert.ok(
+      masks.every((mask) => {
+        const materials = Array.isArray(mask.material)
+          ? mask.material
+          : [mask.material];
+        return materials.every(
+          (material) =>
+            !material.colorWrite &&
+            material.depthTest &&
+            !material.depthWrite &&
+            material.stencilWrite &&
+            material.stencilZPass === THREE.ReplaceStencilOp,
+        );
+      }),
+      'the silhouette writes stencil only after passing terrain depth',
     );
   } finally {
     actors.dispose();

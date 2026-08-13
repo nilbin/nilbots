@@ -8227,11 +8227,11 @@ yaw and pitch projected that nominally vertical line into a staggered screen
 column. Health clearance and vertical spacing remain unchanged.
 
 Persistent Trip Node and Sentinel bodies occupy one renderer layer between
-terrain and actor solids. They depth-test against terrain and walls but do not
-replace that depth; bot solids render immediately afterwards with normal depth
-testing. A bot therefore wins a screen overlap with a mine or sentry without
-becoming an always-on-top silhouette through walls or other bots. Construct
-entry remains physical emergence/growth with a restrained brightness settle,
-so the matte model stays in the ordered solid pass. This is presentation only:
-occupancy, collision, targeting, visibility, hull and signature timing do not
-change.
+terrain and actor solids. A colourless actor silhouette first writes one
+stencil bit only where it passes normal terrain/wall depth. Constructs keep
+their own depth writes and authored deploy fade, but decline those masked
+pixels; bot solids then draw normally. A bot therefore wins a screen overlap
+with a mine or sentry without becoming an always-on-top silhouette through
+walls or other bots, and double-sided constructs retain correct self-occlusion.
+This is presentation only: occupancy, collision, targeting, visibility, hull
+and signature timing do not change.

@@ -121,6 +121,10 @@ export default function ArenaCanvas3D({
       renderer = new THREE.WebGLRenderer({
         antialias: true,
         powerPreference: renderProfile.powerPreference,
+        // One bit isolates actor silhouettes from persistent mine/sentry bodies. It lets
+        // actors win that overlap without disabling wall depth or flattening construct
+        // self-occlusion into an always-on-top transparency trick.
+        stencil: true,
       });
     } catch {
       // WebGL can be disabled, blocked, or out of contexts. The dimensional renderer is
