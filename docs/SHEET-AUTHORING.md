@@ -507,9 +507,12 @@ and do not alter that immutable playlist, its frozen stock artifact, or its
 rating book. Promotion is a separate owner gate; only then are current source,
 WASM, stock, and a new playlist version frozen together.
 
-## 12. Deliberately deferred
+## 12. Executor-owned squad micro
 
-Orders state tactical intent, not squad micro. A separate follow-up owns choke
-negotiation, intent-aware right-of-way, combat-space reservation, and richer
-coordinated path planning. Do not smuggle those policies into author-visible
-orders or add route-defense fields to compensate for executor behavior.
+Orders state tactical intent, not squad micro. The executor jointly assigns
+distinct contribution tiles and resolves physical motion with deterministic
+EPIBT planning. Authored urgency participates only after an order is selected;
+it may settle allied right-of-way but cannot reorder the sheet. Acyclic convoy
+steps into a pre-tick vacancy are legal on Tapline-3, while swaps and closed
+cycles remain blocked. Do not smuggle pathing policy into author-visible orders
+or add route-defense fields to compensate for executor behavior.

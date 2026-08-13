@@ -1617,7 +1617,6 @@ public sealed class GenericActorMatchSession : IDisposable
                     && constructMode.Signatures.BlocksBody(target, Tick)
                 || IsForeignReservedReturnTile(life, target)
                 || IsReservedLifecycleTile(target)
-                || occupants.ContainsKey(target)
                 // Defence in depth: the legality mask already offers only the
                 // facing to a FacingLocked mover, so a non-facing direction
                 // never survives argument admission. If one ever did, it must
@@ -1684,14 +1683,11 @@ public sealed class GenericActorMatchSession : IDisposable
             }
         }
 
-        foreach (IGrouping<Position, KeyValuePair<ActorIdentity, Position>>
-                 claims in targets.GroupBy(pair => pair.Value))
-        {
-            if (claims.Count() <= 1)
-                continue;
-            foreach (KeyValuePair<ActorIdentity, Position> claim in claims)
-                blocked.Add(claim.Key);
-        }
+        blocked = ActorMovementDependencyResolver.ResolveBlocked(
+            targets,
+            occupants.ToDictionary(pair => pair.Key, pair => pair.Value.ActorId),
+            blocked,
+            _definition.Rules.Collisions.FollowingVacatedActorAllowed);
 
         foreach ((ActorIdentity actorId, Position target) in targets
                      .OrderBy(pair => pair.Key))

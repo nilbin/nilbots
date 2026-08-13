@@ -778,7 +778,8 @@ public static class ArcRelayH0Definition
                 actorsBlockActors: true,
                 sameDestinationMovesBlockAll: true,
                 swapMovesBlocked: true,
-                followingVacatedActorAllowed: false,
+                followingVacatedActorAllowed:
+                    loopProfile.FollowingVacatedActorAllowed,
                 projectilesBlockMovement: true,
                 movingOntoProjectileCausesHit: true,
                 wallsConsumeProjectiles: true,

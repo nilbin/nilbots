@@ -8,11 +8,13 @@ paragraphs as one fact each, because they are the two things that get confused.
 **Locally it is first-class.** `nilbots arc-relay` is a top-level command with
 its own help. `nilbots experiment arc-relay` remains a permanent alias, so
 every script, brief and report that already spells it that way keeps working.
-The command defaults to `--loop-profile tapline-2` (rules
-`arc-relay-tapline-02`, map `arc-relay-tapline-01`): the accepted Tapline
+The command defaults to `--loop-profile tapline-3` (rules
+`arc-relay-tapline-03`, map `arc-relay-tapline-01`): the accepted Tapline
 geometry, declared strikes, veterancy, rear-arc damage, and the complete
-signature grammar 3. `h0`, `tapline-1`, and every historical profile remain
-explicit immutable compatibility selections.
+signature grammar 3. Its joint movement step also permits an acyclic convoy to
+advance into a pre-tick vacancy; same-target claims, swaps and closed cycles
+still block. `h0`, `tapline-1`, `tapline-2`, and every historical profile
+remain explicit immutable compatibility selections.
 
 **Hosted, entrant playlist v20 remains frozen on Tapline-1.** It pins Tapline,
 the `arc-relay-orders-v2` sheet format, and the frozen Wellwright v2 stock
@@ -145,7 +147,7 @@ Run a native mind locally with:
 nilbots experiment arc-relay \
   --bot <project-or-wasm> --opponent <project-or-wasm> \
   --sheet0 <sheet.json> --sheet1 <sheet.json> \
-  --loop-profile tapline-2 --seed 42
+  --loop-profile tapline-3 --seed 42
 ```
 
 Current sheets pair an `arc-relay-orders-v2` Orders document with an
@@ -230,3 +232,14 @@ grammar generations cover the complete roster, while concrete definition
 versions exist only for real mechanic or chronology changes. The end-to-end
 class/signature checklist is in
 [`ADDING-ARC-CLASS-AND-SIGNATURE.md`](ADDING-ARC-CLASS-AND-SIGNATURE.md).
+
+## Atomic convoy movement (`arc-relay-tapline-03`, 2026-08-13)
+
+`tapline-3` keeps Tapline-2's map, cadence, combat and complete signature
+grammar. It versions one collision rule: when A moves into B's source tile and
+B moves onward toward a tile that was empty before the tick, the whole acyclic
+chain advances atomically. A contested destination, two-body swap, longer
+closed cycle, terrain block, projectile contact, or stationary head blocks the
+dependent chain. This is the engine contract required by coordinated squad
+planning; it is not permission to overlap bodies or resolve moves in command
+order.

@@ -39,6 +39,9 @@ internal interface IArenaStepper
     /// </summary>
     Position? Step(StepRequest request);
 
+    /// <summary>The stable reason for this tick's physical decision.</summary>
+    string Trace(int unitId);
+
     /// <summary>
     /// Reservation hook: the wrapper actually submitted a move onto
     /// <paramref name="destination"/>. Fired beside the tile claim, so a

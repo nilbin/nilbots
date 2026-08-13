@@ -3992,9 +3992,10 @@ public sealed record GenericActorMatchChronology
                 parameterName);
         }
 
-        var occupiedPositions = before.ActiveLives
-            .Select(life => life.Position)
-            .ToHashSet();
+        Dictionary<Position, ActorIdentity> movementOccupants =
+            before.ActiveLives.ToDictionary(
+                life => life.Position,
+                life => life.ActorId);
         var reservedLifecyclePositions = before.Slots
             .Select(slot => slot.State)
             .OfType<GenericActorRuntimeObservation.UnitSlotState
@@ -4096,8 +4097,9 @@ public sealed record GenericActorMatchChronology
                         && signature.EndsAtTick > before.NextTick
                         && !signature.Suppressed
                         && signature.Positions.Contains(target)));
-            bool blocked = definition.Map.IsWall(target)
-                || occupiedPositions.Contains(target)
+            bool blocked = !GenericActorMatchSession
+                    .IsTerrainMovementStepLegal(
+                        definition.Map, life.Position, target)
                 || reservedLifecyclePositions.Contains(target)
                 || foreignReturnReservation
                 || arcBlocked
@@ -4117,20 +4119,6 @@ public sealed record GenericActorMatchChronology
                         heading,
                         coupling),
                     blocked));
-        }
-
-        foreach (IGrouping<Position,
-                     KeyValuePair<ActorIdentity, MovementQueueCandidate>>
-                 claims in candidates.GroupBy(pair => pair.Value.Target))
-        {
-            if (claims.Count() <= 1)
-                continue;
-            foreach (KeyValuePair<ActorIdentity, MovementQueueCandidate> claim
-                     in claims)
-            {
-                candidates[claim.Key] =
-                    claim.Value with { Blocked = true };
-            }
         }
 
         Dictionary<long, GenericActorWorldSnapshot.ProjectileSnapshot>
@@ -4186,6 +4174,21 @@ public sealed record GenericActorMatchChronology
                         projectile));
                 availableProjectiles.Remove(projectile.ProjectileId);
             }
+        }
+
+        HashSet<ActorIdentity> occupancyBlocked =
+            ActorMovementDependencyResolver.ResolveBlocked(
+                candidates.ToDictionary(
+                    pair => pair.Key,
+                    pair => pair.Value.Target),
+                movementOccupants,
+                candidates.Where(pair => pair.Value.Blocked)
+                    .Select(pair => pair.Key),
+                definition.Rules.Collisions.FollowingVacatedActorAllowed);
+        foreach (ActorIdentity actorId in occupancyBlocked)
+        {
+            candidates[actorId] =
+                candidates[actorId] with { Blocked = true };
         }
 
         GenericActorProjectileTraversal[] movementContacts = traversals

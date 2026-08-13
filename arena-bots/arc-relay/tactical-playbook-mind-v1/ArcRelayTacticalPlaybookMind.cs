@@ -28,7 +28,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
 
     private GenericActorResolvedMatchContract? _contract;
     private OrdersPackage? _package;
-    private IArenaStepper _stepper = new CoordinatedArenaStepper();
+    private IArenaStepper _stepper = new SquadArenaPlanner();
+    private SquadArenaPlanner? _squadPlanner;
     private Position _ownReactor;
     private Position _enemyReactor;
     private Position[] _healTiles = [];
@@ -75,8 +76,11 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         _mirrored = _ownReactor.X > (start.Contract.Map.Width - 1) / 2;
         _package = OrdersPackage.Load(
             start.EvaluationData, start.Contract, _ownReactor);
-        _stepper = _package.StepperMode == "coordinated"
-            ? new CoordinatedArenaStepper()
+        _squadPlanner = _package.StepperMode == "coordinated"
+            ? new SquadArenaPlanner()
+            : null;
+        _stepper = _squadPlanner is not null
+            ? _squadPlanner
             : new GreedyArenaStepper();
         ValidateComposition(start.Contract, start.TeamId, _package);
     }
@@ -128,8 +132,11 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         ReconcileSelections(mind, selected);
         Dictionary<int, MovePlan> movePlans = PrepareMovePlans(
             contract, mind, package, selected);
+        // A follow rung promises that its leader owns the front of the file.
+        // Remove the leader's committed next tile from the follower's
+        // standoff choices before joint planning; EPIBT can then move the
+        // follower aside instead of treating its current wait as immutable.
         KeepFollowersBehindLeaders(contract, movePlans, selected);
-
         _traffic.Observe(
             mind.Tick,
             BuildTrafficSamples(contract, mind, selected, movePlans));
@@ -148,7 +155,18 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 claims.Root(strike.Shooter.UnitId);
         }
         RankBodies(mind, claims);
-        PublishTrafficRequests(contract, mind, movePlans, claims);
+        IReadOnlyDictionary<ActorIdentity, string> arcTossCatchers =
+            ResolveArcTossCatchReservations(contract, mind, arc, selected);
+        if (_squadPlanner is not null)
+        {
+            _squadPlanner.PlanTeam(
+                BuildSquadMovementIntents(
+                    contract, mind, package, selected, movePlans, claims,
+                    carried, arcTossCatchers),
+                claims);
+        }
+        else
+            PublishTrafficRequests(contract, mind, movePlans, claims);
 
         foreach (MindBody body in mind.Bodies
                      .OrderBy(value => claims.RankOf(value.UnitId))
@@ -157,6 +175,12 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                      .ThenBy(value => value.UnitId))
         {
             OrdersPackage.Role role = package.RolesByUnit[body.UnitId];
+            if (arcTossCatchers.TryGetValue(
+                    body.ActorId, out string? catchReason))
+            {
+                body.Hold($"orders:arc-toss-catch:{catchReason}");
+                continue;
+            }
             if (TryInvest(contract, mind, body, role, carried))
                 continue;
             string prefix = selected.TryGetValue(body.UnitId, out Proposal? proposal)
@@ -164,14 +188,18 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 : $"orders:{role.Id}";
             string movementPrefix = $"{prefix}"
                 + $":urgency-{claims.PriorityTrace(body.UnitId)}";
-            if (ArenaBasics.TryMakeWay(
+            if (_squadPlanner is null && ArenaBasics.TryMakeWay(
                     contract, mind, body, claims,
                     $"{movementPrefix}:make-way"))
                 continue;
-            if (ArenaBasics.TryEvade(contract, mind, body, claims))
+            if (ArenaBasics.TryEvade(
+                    contract, mind, body, claims,
+                    _stepper.Trace(body.UnitId)))
                 continue;
             if (proposal is null)
             {
+                if (TryRestingYield(contract, mind, body, claims, prefix))
+                    continue;
                 body.Hold($"{prefix}:no-eligible-order");
                 continue;
             }
@@ -179,6 +207,206 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 contract, mind, arc, package, body, proposal,
                 movePlans.GetValueOrDefault(body.UnitId), claims, carried);
         }
+    }
+
+    /// <summary>
+    /// Project the complete selected Orders tree into physical intents before
+    /// command one. This is the only seam between sheet policy and squad
+    /// geometry: the planner may realize these intents, never replace them.
+    /// </summary>
+    private SquadMovementIntent[] BuildSquadMovementIntents(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind,
+        OrdersPackage package,
+        IReadOnlyDictionary<int, Proposal> selected,
+        IReadOnlyDictionary<int, MovePlan> movePlans,
+        ArenaBasics.Claims claims,
+        IReadOnlyDictionary<ActorIdentity,
+            GenericActorContext.ArcRelayCoreState> carried,
+        IReadOnlyDictionary<ActorIdentity, string> arcTossCatchers)
+    {
+        var result = new List<SquadMovementIntent>(mind.Bodies.Length);
+        foreach (MindBody body in mind.Bodies.OrderBy(value => value.UnitId))
+        {
+            TacticalMovementPriority priority = _traffic.Priority(body.UnitId);
+            Proposal? proposal = selected.GetValueOrDefault(body.UnitId);
+            string key = proposal?.Leaf.Node.Path ?? "no-order";
+            SquadMovementIntent Hold(
+                string trace,
+                bool pinned = false) => new(
+                body,
+                key,
+                $"hold:u{body.UnitId}",
+                [body.Position],
+                null,
+                priority,
+                Pinned: pinned,
+                PrefersHold: true,
+                CanStage: false,
+                LeaderUnitId: null,
+                trace);
+
+            if (arcTossCatchers.TryGetValue(
+                    body.ActorId, out string? catchReason))
+            {
+                result.Add(Hold(
+                    $"arc-toss-catch:{catchReason}", pinned: true));
+                continue;
+            }
+            if (claims.IsRooted(body.UnitId))
+            {
+                result.Add(Hold("pending-strike-root", pinned: true));
+                continue;
+            }
+            OrdersPackage.Role role = package.RolesByUnit[body.UnitId];
+            if (WillInvest(contract, mind, body, role, carried))
+            {
+                result.Add(Hold("upgrade-commit", pinned: true));
+                continue;
+            }
+            Position[] evade = ArenaBasics.SafeEvasionGoals(
+                contract, mind, body);
+            if (evade.Length > 0)
+            {
+                result.Add(new SquadMovementIntent(
+                    body,
+                    $"evade:{body.ActorId}",
+                    $"evade:{body.ActorId}",
+                    evade,
+                    null,
+                    priority,
+                    Pinned: false,
+                    PrefersHold: false,
+                    CanStage: false,
+                    LeaderUnitId: null,
+                    "projectile-evasion"));
+                continue;
+            }
+            if (proposal is null)
+            {
+                result.Add(Hold("no-eligible-order"));
+                continue;
+            }
+
+            switch (proposal.Leaf.Node.Action)
+            {
+                case OrdersPackage.MoveAction move:
+                {
+                    MovePlan? plan = movePlans.GetValueOrDefault(body.UnitId);
+                    if (plan is null)
+                    {
+                        result.Add(Hold("move-at-target"));
+                        break;
+                    }
+                    int? leader = move.Kind == "follow"
+                        && proposal.Target.Actor is ActorIdentity actor
+                            ? actor.UnitId
+                            : null;
+                    result.Add(new SquadMovementIntent(
+                        body,
+                        key,
+                        $"move:{move.Kind}:{proposal.Target.Key}",
+                        plan.Goals,
+                        plan.Course?.Next,
+                        priority,
+                        Pinned: false,
+                        PrefersHold: plan.Arrived
+                            || plan.Goals.Contains(body.Position),
+                        CanStage: move.Kind == "to"
+                            && proposal.Target.Key.StartsWith(
+                                "well:", StringComparison.Ordinal),
+                        LeaderUnitId: leader,
+                        $"move:{proposal.Target.Key}"));
+                    break;
+                }
+                case OrdersPackage.FightAction fight:
+                {
+                    GenericActorContext.ObservedEnemyState? target = mind.Enemies
+                        .FirstOrDefault(value => value.ActorId
+                            == proposal.Target.Actor);
+                    if (target is null)
+                    {
+                        result.Add(Hold("fight-target-lost"));
+                        break;
+                    }
+                    Position anchor = FightEpisodeAnchor(
+                        body, proposal.Leaf);
+                    if (fight.Style == "kite"
+                        && target.Position.ChebyshevDistance(body.Position) <= 2)
+                    {
+                        Position[] away = ArenaBasics.AwayGoals(
+                            contract, body, [target.Position]);
+                        if (away.Length > 0)
+                        {
+                            result.Add(new SquadMovementIntent(
+                                body,
+                                key,
+                                $"fight-kite:{target.ActorId}",
+                                away,
+                                null,
+                                priority,
+                                Pinned: false,
+                                PrefersHold: false,
+                                CanStage: false,
+                                LeaderUnitId: null,
+                                $"kite:{target.ActorId}"));
+                            break;
+                        }
+                    }
+                    if (ArenaBasics.CommitsAttackPositionThisTick(
+                            contract, mind, body, target.Position))
+                    {
+                        result.Add(Hold(
+                            $"fight-commit:{target.ActorId}", pinned: true));
+                        break;
+                    }
+                    if (ArenaBasics.CanAimAt(contract, body, target)
+                        || fight.Style == "hold")
+                    {
+                        result.Add(Hold($"fight-position:{target.ActorId}"));
+                        break;
+                    }
+                    bool inLeash = fight.ChaseLimit == 0
+                        ? body.Position == anchor
+                        : ArenaBasics.StaticDistance(
+                            contract.Map, body.Position, anchor)
+                            <= fight.ChaseLimit;
+                    if (!inLeash || fight.Style != "advance")
+                    {
+                        result.Add(Hold($"fight-leash:{target.ActorId}"));
+                        break;
+                    }
+                    Position[] firing = ArenaBasics.FiringContributionGoals(
+                        contract,
+                        body,
+                        target.Position,
+                        anchor,
+                        fight.ChaseLimit);
+                    if (firing.Length == 0)
+                    {
+                        result.Add(Hold($"fight-no-firing-ground:{target.ActorId}"));
+                        break;
+                    }
+                    result.Add(new SquadMovementIntent(
+                        body,
+                        key,
+                        $"fight:{target.ActorId}",
+                        firing,
+                        null,
+                        priority,
+                        Pinned: false,
+                        PrefersHold: false,
+                        CanStage: true,
+                        LeaderUnitId: null,
+                        $"fight-close:{target.ActorId}"));
+                    break;
+                }
+                default:
+                    result.Add(Hold("non-movement-action", pinned: true));
+                    break;
+            }
+        }
+        return result.ToArray();
     }
 
     public void EndMatch(MindEnd end) => _ = end;
@@ -322,7 +550,16 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             {
                 if (carried.ContainsKey(body.ActorId))
                     return [];
+                HashSet<Position> reserved = mind.VisibleTiles
+                    .Where(tile => tile.SpawnReservation is not null)
+                    .Select(tile => tile.Position)
+                    .ToHashSet();
                 return _knownLooseCores.Values
+                    // A body must occupy the Core's exact tile to collect it.
+                    // A lifecycle reservation is authoritative terrain for
+                    // this purpose; standing beside it only strands every
+                    // authorized collector on a task it cannot complete.
+                    .Where(core => !reserved.Contains(core.Position))
                     .OrderBy(core => ArenaBasics.StaticDistance(
                             contract.Map, body.Position, core.Position)
                         ?? int.MaxValue)
@@ -355,6 +592,62 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 $"well:{well.WellId}", well.Position, [well.Position], null, null)];
         }
         return [];
+    }
+
+    /// <summary>
+    /// Arc Toss names an allied body but transmits a position target through
+    /// the engine. The recipient therefore owns its pre-tick tile until the
+    /// Core lands: moving it as an ordinary concurrent intent would turn a
+    /// valid pass into a loose Core. The tell reservation comes from this
+    /// tick's selected order; later flight ticks come from public Core state.
+    /// </summary>
+    private static IReadOnlyDictionary<ActorIdentity, string>
+        ResolveArcTossCatchReservations(
+            GenericActorResolvedMatchContract contract,
+            MindContext mind,
+            GenericActorContext.ModeObservationState.ArcRelay arc,
+            IReadOnlyDictionary<int, Proposal> selected)
+    {
+        var result = new Dictionary<ActorIdentity, string>();
+        GenericActorRulesContract.ArcRelayGameMode? rules =
+            ArenaBasics.ArcRules(contract);
+        foreach (Proposal proposal in selected.Values
+                     .OrderBy(value => value.Body.UnitId))
+        {
+            if (proposal.Leaf.Node.Action is not OrdersPackage.UseAction use
+                || proposal.Target.Actor is not ActorIdentity receiver)
+            {
+                continue;
+            }
+            GenericActorRulesContract.ArcRelaySignature? signature =
+                rules?.Signatures.FirstOrDefault(value =>
+                    value.SignatureId == use.Skill || value.Kind == use.Skill);
+            if (signature?.Kind == "arc-toss")
+            {
+                result[receiver] = $"tell-from-{proposal.Body.ActorId}";
+            }
+        }
+
+        foreach (GenericActorContext.ArcRelayCoreState core in arc.VisibleCores
+                     .Where(value => value.Disposition
+                            == GenericActorContext.ArcRelayCoreDisposition.InFlight
+                        && value.FlightTarget is not null)
+                     .OrderBy(value => CoreKey(value.CoreId),
+                         StringComparer.Ordinal))
+        {
+            MindBody? catcher = mind.Bodies
+                .Where(body => body.Position == core.FlightTarget!.Value)
+                .OrderBy(body => body.UnitId)
+                .FirstOrDefault();
+            if (catcher is not null)
+            {
+                result.TryAdd(
+                    catcher.ActorId,
+                    $"flight-{CoreKey(core.CoreId)}-until-"
+                        + $"{core.FlightCompletesAtTick}");
+            }
+        }
+        return result;
     }
 
     private ResolvedTarget[] ResolveEnemyTargets(
@@ -1050,13 +1343,22 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         bool carrying)
     {
         string movement = $"{reason}:march@{plan.Goal.X},{plan.Goal.Y}"
-            + $":{urgency}";
+            + $":{urgency}:{_stepper.Trace(body.UnitId)}";
         if (plan.Arrived || plan.Goals.Contains(body.Position))
         {
+            if (TryRestingYield(contract, mind, body, claims, movement))
+                return;
             body.Hold($"{movement}:at-target:{proposal.Target.Key}");
             return;
         }
-        if (plan.Course?.Next is Position step)
+        if (_squadPlanner?.IsAtContribution(body.UnitId) == true)
+        {
+            if (TryRestingYield(contract, mind, body, claims, movement))
+                return;
+            body.Hold($"{movement}:at-contribution:{proposal.Target.Key}");
+            return;
+        }
+        if (_squadPlanner is null && plan.Course?.Next is Position step)
         {
             bool occupied = mind.Bodies.Any(candidate =>
                     candidate.UnitId != body.UnitId
@@ -1117,6 +1419,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             .FirstOrDefault(value => value.ActorId == proposal.Target.Actor);
         if (target is null)
         {
+            if (TryRestingYield(contract, mind, body, claims, reason))
+                return;
             body.Hold($"{reason}:target-lost");
             return;
         }
@@ -1128,11 +1432,12 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             : ArenaBasics.StaticDistance(
                 contract.Map, body.Position, anchor) <= fight.ChaseLimit;
 
+        string physical = _stepper.Trace(body.UnitId);
         if (fight.Style == "kite"
             && target.Position.ChebyshevDistance(body.Position) <= 2
             && ArenaBasics.TryStepAway(
                 contract, mind, body, [target.Position], claims,
-                $"{reason}:kite:{target.ActorId}"))
+                $"{reason}:kite:{target.ActorId}:{physical}"))
             return;
         if (ArenaBasics.TryShootAtPosition(
                 contract,
@@ -1144,16 +1449,49 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             return;
         if (ArenaBasics.CanAimAt(contract, body, target))
         {
+            if (TryRestingYield(contract, mind, body, claims, reason))
+                return;
             body.Hold($"{reason}:cadence:{target.ActorId}");
             return;
         }
         if (fight.Style != "hold" && inLeash
             && ArenaBasics.TryMoveToward(
                 contract, mind, body, [target.Position], claims,
-                $"{reason}:close:{target.ActorId}"))
+                $"{reason}:close:{target.ActorId}:{physical}"))
             return;
-        body.Hold($"{reason}:hold:{target.ActorId}"
-            + (inLeash ? "" : ":chase-limit"));
+        if (!TryRestingYield(contract, mind, body, claims, reason))
+        {
+            body.Hold($"{reason}:hold:{target.ActorId}"
+                + (inLeash ? "" : ":chase-limit")
+                + $":{physical}");
+        }
+    }
+
+    /// <summary>
+    /// EPIBT may move, or first turn, an otherwise resting body when a
+    /// higher-priority operation needs its ground. This is physical yielding
+    /// only: the body keeps its authored rung and the next tick replans that
+    /// same intent.
+    /// Rooted actions and skill/handoff/drop commands never enter this path.
+    /// </summary>
+    private bool TryRestingYield(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind,
+        MindBody body,
+        ArenaBasics.Claims claims,
+        string reason)
+    {
+        return _squadPlanner is not null
+            && _squadPlanner.TryGetRestingYield(
+                body.UnitId, out Position destination, out string trace)
+            && ArenaBasics.TryMoveDirect(
+                contract,
+                mind,
+                body,
+                destination,
+                claims,
+                $"{reason}:{trace}",
+                TacticalMovementAuthority.Clearance);
     }
 
     private static bool ExecuteUse(
@@ -1532,10 +1870,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         IReadOnlyDictionary<ActorIdentity,
             GenericActorContext.ArcRelayCoreState> carried)
     {
-        if (_pendingInvest.GetValueOrDefault(body.UnitId) <= 0
-            || carried.ContainsKey(body.ActorId)
-            || mind.Enemies.Any(enemy =>
-                enemy.Position.ChebyshevDistance(body.Position) <= 5)
+        if (!WillInvest(contract, mind, body, role, carried)
             || body.Action("invest") is not { Available: true } invest)
             return false;
         (ActorIdentity Actor, int Spent) state = _invested.GetValueOrDefault(
@@ -1552,6 +1887,23 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         _invested[body.UnitId] = (body.ActorId, state.Spent + 1);
         _pendingInvest[body.UnitId]--;
         return true;
+    }
+
+    private bool WillInvest(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind,
+        MindBody body,
+        OrdersPackage.Role role,
+        IReadOnlyDictionary<ActorIdentity,
+            GenericActorContext.ArcRelayCoreState> carried)
+    {
+        _ = contract;
+        _ = role;
+        return _pendingInvest.GetValueOrDefault(body.UnitId) > 0
+            && !carried.ContainsKey(body.ActorId)
+            && !mind.Enemies.Any(enemy =>
+                enemy.Position.ChebyshevDistance(body.Position) <= 5)
+            && body.Action("invest") is { Available: true };
     }
 
     private int CurrentLevel(MindBody body) =>

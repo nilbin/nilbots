@@ -35,12 +35,14 @@ public sealed record ArcRelayLoopProfile
         bool rotationalSpawnAssignment = false,
         bool seedPhasedWellLead = false,
         bool chiralWellBirths = false,
-        int strikeWindupTicks = 0)
+        int strikeWindupTicks = 0,
+        bool followingVacatedActorAllowed = false)
     {
         RotationalSpawnAssignment = rotationalSpawnAssignment;
         SeedPhasedWellLead = seedPhasedWellLead;
         ChiralWellBirths = chiralWellBirths;
         StrikeWindupTicks = strikeWindupTicks;
+        FollowingVacatedActorAllowed = followingVacatedActorAllowed;
         SeedPhasedResolutionOrder = seedPhasedResolutionOrder;
         RearArcDamageMultiplier = rearArcDamageMultiplier;
         OmniProximityRange = omniProximityRange;
@@ -102,6 +104,13 @@ public sealed record ArcRelayLoopProfile
     /// discrete bolt. Zero keeps historical projectile combat.
     /// </summary>
     internal int StrikeWindupTicks { get; }
+
+    /// <summary>
+    /// Whether a joint move may advance an acyclic chain into a pre-tick
+    /// vacancy. Versioned on the loop profile because it changes canonical
+    /// rules and gameplay; historical profiles remain byte-exact.
+    /// </summary>
+    internal bool FollowingVacatedActorAllowed { get; }
 
     public static ArcRelayLoopProfile H0 { get; } = new(
         "h0",
@@ -771,11 +780,40 @@ public sealed record ArcRelayLoopProfile
         strikeWindupTicks: 1);
 
     /// <summary>
+    /// Tapline grammar 3 plus atomic acyclic convoy movement. The map,
+    /// signatures and cadence stay unchanged; only the explicit collision
+    /// profile advances. Tapline-1 and Tapline-2 remain immutable beside it.
+    /// </summary>
+    public static ArcRelayLoopProfile Tapline3 { get; } = new(
+        "tapline-3",
+        "arc-relay-tapline-03",
+        "arc-relay-tapline-01",
+        ArcRelayMapGeometry.TaplineWellLine,
+        30,
+        75,
+        25,
+        7,
+        directionalCombat: true,
+        signatureGrammarVersion: 3,
+        wellBirthJitterTicks: 6,
+        alternatingResolutionOrder: true,
+        rearArcDamageMultiplier: 2,
+        omniProximityRange: 0,
+        veterancyXpPerLevel: 2,
+        veterancyMaxLevel: 5,
+        healZoneTicksPerHp: 3,
+        seedPhasedResolutionOrder: true,
+        rotationalSpawnAssignment: true,
+        chiralWellBirths: true,
+        strikeWindupTicks: 1,
+        followingVacatedActorAllowed: true);
+
+    /// <summary>
     /// Owner-selected product line. Kept separate from H0 and every historical
     /// hosted playlist so advancing the product never rewrites old contracts or
     /// golden replays.
     /// </summary>
-    public static ArcRelayLoopProfile Current => Tapline2;
+    public static ArcRelayLoopProfile Current => Tapline3;
 
     public static ArcRelayLoopProfile Return16 { get; } = new(
         "return-16",
@@ -848,6 +886,7 @@ public sealed record ArcRelayLoopProfile
         Drawbench1,
         Tapline1,
         Tapline2,
+        Tapline3,
         Return16,
         Return24,
         Hot60,

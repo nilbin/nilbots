@@ -5,8 +5,8 @@ using BotArena.Sdk;
 /// every body chooses its own next tile, in the executor's body order,
 /// against the tiles earlier bodies have already claimed this tick. It is
 /// greedy in the exact sense that matters — nobody plans past one step and
-/// nobody plans for anyone else — and it is the default so a sheet's
-/// measured history keeps meaning what it meant.
+/// nobody plans for anyone else. It remains only as an explicit historical
+/// diagnostic; the product path uses <see cref="SquadArenaPlanner"/>.
 /// </summary>
 internal sealed class GreedyArenaStepper : IArenaStepper
 {
@@ -19,6 +19,8 @@ internal sealed class GreedyArenaStepper : IArenaStepper
     public void NoteCommitted(MindBody body, Position destination)
     {
     }
+
+    public string Trace(int unitId) => "greedy-diagnostic";
 
     public Position? Step(StepRequest request) => request.Intent switch
     {

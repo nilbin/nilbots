@@ -5,6 +5,46 @@ namespace BotArena.Engine.Tests;
 public sealed class GenericActorMatchSessionTests
 {
     [Fact]
+    public void AtomicConvoyEntersTilesVacatedInTheSameTick()
+    {
+        ActorResolvedMatchDefinition definition = AtomicConvoyDefinition();
+        Dictionary<int, GenericDeathmatchSessionTestFixture.RecordingFactory>
+            factories = GenericDeathmatchSessionTestFixture.Factories(
+                definition,
+                (start, _) => start.ParticipantId == 10
+                    ? GenericDeathmatchSessionTestFixture.Move(Direction.East)
+                    : GenericDeathmatchSessionTestFixture.Wait());
+        using var session = new GenericActorMatchSession(
+            definition,
+            GenericDeathmatchSessionTestFixture.Configurations(
+                definition, factories),
+            matchSeed: 42,
+            recordChronology: true);
+
+        GenericActorMatchStepResult step = session.Step();
+
+        Assert.Equal(
+            [new Position(2, 3), new Position(3, 3), new Position(4, 3)],
+            step.PostState.ActiveLives
+                .Where(life => life.ActorId.TeamId == 0)
+                .OrderBy(life => life.ActorId.UnitId)
+                .Select(life => life.Position));
+        Assert.Equal(
+            3,
+            step.AuthoritativeEvents.Count(item => item.Payload is
+                GenericActorRuntimeObservation.EventPayload.Movement
+                { ActorId.TeamId: 0 }));
+        Assert.DoesNotContain(
+            step.AuthoritativeEvents,
+            item => item.Payload is
+                GenericActorRuntimeObservation.EventPayload.MovementBlocked
+                { ActorId.TeamId: 0 });
+        // Recording invokes the independent replay-causality reconstruction,
+        // pinning it to the same dependency graph as live execution.
+        Assert.Single(session.Chronology.Ticks);
+    }
+
+    [Fact]
     public void AuthoritativeMovementRejectsWallCornerSqueezing()
     {
         var from = new Position(2, 3);
@@ -127,5 +167,134 @@ public sealed class GenericActorMatchSessionTests
             source.SpawnAnchors,
             source.Regions,
             source.TileTags);
+    }
+
+    private static ActorResolvedMatchDefinition AtomicConvoyDefinition()
+    {
+        ActorResolvedMatchDefinition source =
+            GenericDeathmatchSessionTestFixture.Definition(
+                "head-to-head",
+                new GenericDeathmatchSessionTestFixture.Options
+                {
+                    MaxTicks = 1,
+                });
+        ActorRulesDefinition old = source.Rules;
+        ActorCollisionDefinition collisions = old.Collisions;
+        var convoyLifecycle = new ActorLifecycleProfileDefinition(
+            "convoy-life",
+            ActorLifecycleProfileDefinition.DestructionPolicyKind
+                .ReadyForExplicitFabrication,
+            delayTicks: 0,
+            automaticReturnFormId: null);
+        var rules = new ActorRulesDefinition(
+            "atomic-convoy-session-fixture",
+            old.Limits,
+            old.SeedMechanics,
+            old.GameMode,
+            new ActorLifecycleDefinition([convoyLifecycle]),
+            old.Forms,
+            old.MovementProfiles,
+            old.VisionProfiles,
+            old.AttackProfiles,
+            old.Actions,
+            old.FabricationTransitions,
+            old.SameLifeTransitions,
+            old.ReplicationTransitions,
+            old.TeamPerception,
+            new ActorCollisionDefinition(
+                collisions.ActorsBlockWalls,
+                collisions.ActorsBlockActors,
+                collisions.SameDestinationMovesBlockAll,
+                collisions.SwapMovesBlocked,
+                followingVacatedActorAllowed: true,
+                collisions.ProjectilesBlockMovement,
+                collisions.MovingOntoProjectileCausesHit,
+                collisions.WallsConsumeProjectiles,
+                collisions.ProjectilesIgnoreFiringLife,
+                collisions.ProjectilesStopOnFirstEnemyActor,
+                collisions.ProjectilesCollideWithProjectiles,
+                collisions.AlliedProjectileContact),
+            old.TickResolution);
+
+        InitialSpawnDefinition west = source.InitialDeployment.Spawns
+            .Single(spawn => spawn.SpawnId == "west");
+        InitialSpawnDefinition east = source.InitialDeployment.Spawns
+            .Single(spawn => spawn.SpawnId == "east");
+        var middle = new InitialSpawnDefinition(
+            "convoy-middle", new Position(2, 3), Direction.East);
+        var head = new InitialSpawnDefinition(
+            "convoy-head", new Position(3, 3), Direction.East);
+        var map = new ActorMapDefinition(
+            "atomic-convoy-arena",
+            version: 1,
+            source.Map.TileRows,
+            [
+                .. source.Map.SpawnAnchors,
+                new ActorMapSpawnAnchorDefinition(
+                    middle, [ActorMovementLayer.Ground]),
+                new ActorMapSpawnAnchorDefinition(
+                    head, [ActorMovementLayer.Ground]),
+            ],
+            source.Map.Regions,
+            source.Map.TileTags);
+        var topology = new PublicMatchTopology
+        {
+            Teams = source.Topology.Teams,
+            Participants = source.Topology.Participants,
+            UnitSlots =
+            [
+                new PublicUnitSlot(0, 0, 10),
+                new PublicUnitSlot(0, 1, 10),
+                new PublicUnitSlot(0, 2, 10),
+                new PublicUnitSlot(1, 0, 20),
+            ],
+            InitialLives =
+            [
+                new PublicInitialLife(0, 0, 0, "mobile"),
+                new PublicInitialLife(0, 1, 0, "mobile"),
+                new PublicInitialLife(0, 2, 0, "mobile"),
+                new PublicInitialLife(1, 0, 0, "mobile"),
+            ],
+        };
+        var deployment = new InitialDeploymentDefinition(
+            [west, middle, head, east],
+            [
+                new InitialLifeDeployment(0, 0, 0, "mobile", "west"),
+                new InitialLifeDeployment(
+                    0, 1, 0, "mobile", "convoy-middle"),
+                new InitialLifeDeployment(
+                    0, 2, 0, "mobile", "convoy-head"),
+                new InitialLifeDeployment(1, 0, 0, "mobile", "east"),
+            ]);
+        ActorUnitSlotLifecycleAssignmentDefinition Assignment(
+            int teamId,
+            int unitId,
+            string? spawnId = null) => new(
+                teamId,
+                unitId,
+                convoyLifecycle.ProfileId,
+                initialGeneration: 0,
+                ["mobile"],
+                ActorUnitSlotLifecycleAssignmentDefinition
+                    .InitialAvailabilityKind.ActiveAtTickZero,
+                unlockTick: null,
+                assignedRespawnSpawnId: spawnId);
+        ActorUnitSlotLifecycleAssignmentDefinition[] assignments =
+        [
+            Assignment(0, 0),
+            Assignment(0, 1),
+            Assignment(0, 2),
+            Assignment(1, 0),
+        ];
+        return new ActorResolvedMatchDefinition(
+            rules,
+            map,
+            source.Format,
+            topology,
+            deployment,
+            assignments,
+            source.ParticipantRegionAssignments,
+            source.ModeMapBinding,
+            source.CapabilityVersions);
     }
 }

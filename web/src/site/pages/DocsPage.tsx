@@ -47,8 +47,10 @@ export default function DocsPage() {
         </p>
         <p className="mt-2 text-arena-dim">
           Hosted playlist v20 remains frozen on tapline-1; the local{' '}
-          <code>nilbots arc-relay</code> default runs tapline-2 on the same
-          accepted Tapline geometry with signature grammar 3. Sheets authored for earlier maps
+          <code>nilbots arc-relay</code> default runs tapline-3 on the same
+          accepted Tapline geometry with signature grammar 3 and atomic convoy
+          movement: bodies may enter a tile a teammate leaves in the same tick,
+          but swaps, closed cycles and contested destinations still block. Sheets authored for earlier maps
           remain match history but are not accepted by the current Orders v2 workshop;
           coordinates are never projected between maps. Playlist v20 opens a fresh rating
           book at 1200 because the executable sheet language and stock gameplay changed.

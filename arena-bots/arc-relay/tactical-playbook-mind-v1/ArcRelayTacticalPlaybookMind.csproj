@@ -8,4 +8,7 @@
   <ItemGroup>
     <ProjectReference Include="../../../src/BotArena.Sdk/BotArena.Sdk.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="ArcRelayTacticalPlaybookMind.Tests" />
+  </ItemGroup>
 </Project>

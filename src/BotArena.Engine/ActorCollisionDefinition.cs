@@ -30,7 +30,6 @@ public sealed record ActorCollisionDefinition
             || !actorsBlockActors
             || !sameDestinationMovesBlockAll
             || !swapMovesBlocked
-            || followingVacatedActorAllowed
             || !projectilesBlockMovement
             || !movingOntoProjectileCausesHit
             || !wallsConsumeProjectiles
@@ -73,8 +72,11 @@ public sealed record ActorCollisionDefinition
     public bool ProjectilesCollideWithProjectiles { get; }
     public AlliedProjectileContactKind AlliedProjectileContact { get; }
     public MovementResolutionKind MovementResolution =>
-        MovementResolutionKind
-            .ExclusiveGroundOccupancyBlockConnectedConflictingClaims;
+        FollowingVacatedActorAllowed
+            ? MovementResolutionKind
+                .ExclusiveGroundOccupancyAllowAcyclicFollowingChains
+            : MovementResolutionKind
+                .ExclusiveGroundOccupancyBlockConnectedConflictingClaims;
     public ProjectileTraversalResolutionKind ProjectileTraversalResolution =>
         ProjectileTraversalResolutionKind
             .CanonicalProjectileIdOrderedTileSubstepsWallsThenActors;
@@ -105,6 +107,14 @@ public sealed record ActorCollisionDefinition
         /// joint component; every conflicting claim in that component blocks.
         /// </summary>
         ExclusiveGroundOccupancyBlockConnectedConflictingClaims = 0,
+
+        /// <summary>
+        /// Ground actors still occupy one exclusive floor tile. Same-target
+        /// claims and every closed dependency cycle (including a swap) block,
+        /// while a deterministic acyclic chain of movers may advance when its
+        /// head ends on a tile that was empty at the start of the joint step.
+        /// </summary>
+        ExclusiveGroundOccupancyAllowAcyclicFollowingChains = 1,
     }
 
     public enum ProjectileTraversalResolutionKind

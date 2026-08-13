@@ -75,7 +75,7 @@ bash scripts/generate-api-clients.sh       # OpenAPI document + web/mobile/CLI c
 bash scripts/e2e.sh                        # full pipeline incl. player-bot build + cache assert
 dotnet run --project src/BotArena.Cli -- play --bot hunter --opponent coward --seed 7
 dotnet run --project src/BotArena.Cli -- arc-relay --bot <mind> --opponent <mind> \
-  --loop-profile tapline-2                             # the current local Arc Relay line
+  --loop-profile tapline-3                             # the current local Arc Relay line
 dotnet run --project src/BotArena.Cli -- doctor        # toolchain status
 ```
 
@@ -198,8 +198,14 @@ Project boundaries that must not be violated:
 - **Arc Relay is a first-class command, not an experiment** (DECISIONS #247).
   `nilbots arc-relay` is top-level; `nilbots experiment arc-relay` is a
   permanent alias, so existing scripts and briefs keep their spelling.
-  `--loop-profile` defaults to `tapline-2`; immutable hosted entrant playlist
-  v20 remains pinned to `tapline-1` with Tapline-native Orders v2
+  `--loop-profile` defaults to `tapline-3`, whose atomic occupancy contract
+  permits acyclic follow-into-vacated-tile chains while still rejecting swaps,
+  closed cycles and contested destinations. Local/review execution defaults to
+  the three-action EPIBT coordinated movement path; explicit
+  `--mind-stepper greedy` is a historical diagnostic control, never the
+  implicit owner-gallery path.
+  Immutable hosted entrant playlist v20 remains pinned to `tapline-1` with
+  Tapline-native Orders v2
   sheets and the direct ATL2 WASM artifact. v7
   began the fresh Warren
   development rating era and remains immutable; v8 carried those development

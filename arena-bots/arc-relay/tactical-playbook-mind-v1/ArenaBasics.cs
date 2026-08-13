@@ -1202,11 +1202,64 @@ internal static class ArenaBasics
             reason,
             authority);
 
+    public static bool IsThreatened(
+        MindContext mind,
+        MindBody body) => (mind.VisibleProjectiles ?? [])
+        .Where(projectile => projectile.OwnerTeamId != body.ActorId.TeamId)
+        .Any(projectile => Threatens(projectile, body.Position, advances: 2));
+
+    public static Position[] SafeEvasionGoals(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind,
+        MindBody body)
+    {
+        GenericActorContext.ObservedProjectile[] hostile =
+            mind.VisibleProjectiles?
+                .Where(projectile => projectile.OwnerTeamId != body.ActorId.TeamId)
+                .ToArray()
+            ?? [];
+        if (!hostile.Any(projectile =>
+                Threatens(projectile, body.Position, advances: 2)))
+        {
+            return [];
+        }
+        return RouteHeadings(contract, body)
+            .Select(heading => Step(body.Position, heading))
+            .Where(tile => CanEnter(contract.Map, tile)
+                && !hostile.Any(projectile => Threatens(projectile, tile, 2)))
+            .Distinct()
+            .ToArray();
+    }
+
+    public static Position[] AwayGoals(
+        GenericActorResolvedMatchContract contract,
+        MindBody body,
+        IReadOnlyCollection<Position> threats)
+    {
+        if (threats.Count == 0)
+            return [];
+        int current = threats.Min(threat =>
+            threat.ChebyshevDistance(body.Position));
+        return RouteHeadings(contract, body)
+            .Select(heading => (
+                Heading: heading,
+                Tile: Step(body.Position, heading)))
+            .Where(candidate => CanStep(
+                    contract.Map, body.Position, candidate.Tile,
+                    candidate.Heading)
+                && threats.Min(threat =>
+                    threat.ChebyshevDistance(candidate.Tile)) > current)
+            .Select(candidate => candidate.Tile)
+            .Distinct()
+            .ToArray();
+    }
+
     public static bool TryEvade(
         GenericActorResolvedMatchContract contract,
         MindContext mind,
         MindBody body,
-        Claims claims)
+        Claims claims,
+        string decisionTrace = "")
     {
         GenericActorContext.ObservedProjectile[] hostile =
             mind.VisibleProjectiles?
@@ -1236,7 +1289,8 @@ internal static class ArenaBasics
             body,
             safe,
             claims,
-            "evading carrier-lane fire",
+            "evading carrier-lane fire"
+                + (decisionTrace.Length == 0 ? "" : $":{decisionTrace}"),
             TacticalMovementAuthority.Safety);
     }
 
@@ -1424,6 +1478,69 @@ internal static class ArenaBasics
             && distance <= attack.Projectile.MaxTravelTiles;
     }
 
+    /// <summary>
+    /// Whether <see cref="TryShootAtPosition"/> will keep this body's floor
+    /// tile this tick by either firing or rotating to prepare the shot. The
+    /// squad planner needs the same answer before it plans another body into
+    /// the apparent vacancy. Cooldown holds are deliberately false: an aimed
+    /// body that cannot fire may still yield physical ground.
+    /// </summary>
+    public static bool CommitsAttackPositionThisTick(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind,
+        MindBody body,
+        Position target)
+    {
+        GenericActorActionLegality? action = AvailableAction(
+            contract, body, GenericActorRulesContract.ActionKind.Attack,
+            requireAvailable: false);
+        GenericActorActionLegality.ArgumentConstraint.ProjectileHeadingConstraint?
+            headings = action?.Constraints
+                .OfType<GenericActorActionLegality.ArgumentConstraint
+                    .ProjectileHeadingConstraint>()
+                .SingleOrDefault();
+        GenericActorRulesContract.Form? form = contract.Rules.Forms
+            .FirstOrDefault(candidate => candidate.Id == body.FormId);
+        GenericActorRulesContract.AttackProfile? attack =
+            form?.AttackProfileId is string attackId
+                ? contract.Rules.AttackProfiles.FirstOrDefault(candidate =>
+                    candidate.Id == attackId)
+                : null;
+        if (action is null || headings is null || attack is null)
+            return false;
+
+        bool aimed = TryAimSolution(
+                contract.Map, attack, body.Position, target,
+                headings.AllowedValues,
+                out _, out int aimedDistance)
+            && aimedDistance <= attack.Projectile.MaxTravelTiles;
+        if (action.Available && aimed)
+            return true;
+        if (CarriedCore(mind, body.ActorId) is not null || aimed
+            || !TryAimSolution(
+                contract.Map, attack, body.Position, target,
+                allowed: null,
+                out ProjectileHeading prepared, out int reach)
+            || reach > attack.Projectile.MaxTravelTiles)
+        {
+            return false;
+        }
+
+        Direction desired = FacingForCone(
+            body.Facing, prepared, MirroredFrame(contract, mind));
+        GenericActorActionLegality? rotate = AvailableAction(
+            contract, body, GenericActorRulesContract.ActionKind.Rotation);
+        GenericActorActionLegality.ArgumentConstraint.DirectionConstraint?
+            directions = rotate?.Constraints
+                .OfType<GenericActorActionLegality.ArgumentConstraint
+                    .DirectionConstraint>()
+                .SingleOrDefault();
+        return rotate is not null
+            && directions is not null
+            && body.Facing != desired
+            && directions.AllowedValues.Contains(desired);
+    }
+
     public static bool CanAimAt(
         GenericActorResolvedMatchContract contract,
         MindBody body,
@@ -1472,10 +1589,17 @@ internal static class ArenaBasics
     public static bool CanAimAtPosition(
         GenericActorResolvedMatchContract contract,
         MindBody body,
+        Position target) => CanAimFrom(
+            contract, body.FormId, body.Position, target);
+
+    public static bool CanAimFrom(
+        GenericActorResolvedMatchContract contract,
+        string formId,
+        Position source,
         Position target)
     {
         GenericActorRulesContract.Form? form = contract.Rules.Forms
-            .FirstOrDefault(candidate => candidate.Id == body.FormId);
+            .FirstOrDefault(candidate => candidate.Id == formId);
         GenericActorRulesContract.AttackProfile? attack =
             form?.AttackProfileId is string attackId
                 ? contract.Rules.AttackProfiles.FirstOrDefault(candidate =>
@@ -1485,9 +1609,46 @@ internal static class ArenaBasics
         // turn first. A wedge gun answers for its whole cone.
         return attack is not null
             && TryAimSolution(
-                contract.Map, attack, body.Position, target,
+                contract.Map, attack, source, target,
                 allowed: null, out _, out int distance)
             && distance <= attack.Projectile.MaxTravelTiles;
+    }
+
+    /// <summary>
+    /// Every legal tile inside the fight episode from which this form can
+    /// contribute a real shot. The squad planner assigns these to attackers
+    /// jointly so "fight the same enemy" does not mean "stand on the same
+    /// choke tile".
+    /// </summary>
+    public static Position[] FiringContributionGoals(
+        GenericActorResolvedMatchContract contract,
+        MindBody body,
+        Position target,
+        Position episodeAnchor,
+        int chaseLimit)
+    {
+        var result = new List<Position>();
+        for (int y = 0; y < contract.Map.Height; y++)
+        {
+            for (int x = 0; x < contract.Map.Width; x++)
+            {
+                var tile = new Position(x, y);
+                if (!CanEnter(contract.Map, tile)
+                    || chaseLimit == 0 && tile != episodeAnchor)
+                {
+                    continue;
+                }
+                if (chaseLimit > 0
+                    && (StaticDistance(contract.Map, episodeAnchor, tile)
+                            is not int fromAnchor
+                        || fromAnchor > chaseLimit))
+                    continue;
+                if (!CanAimFrom(contract, body.FormId, tile, target))
+                    continue;
+                result.Add(tile);
+            }
+        }
+        return result.ToArray();
     }
 
     public static bool TryShootAtPosition(
@@ -2176,6 +2337,69 @@ internal static class ArenaBasics
             ? Cardinal
             : EightWay;
     }
+
+    internal static GenericActorRulesContract.MovementFacingCoupling
+        MovementCoupling(
+            GenericActorResolvedMatchContract contract,
+            MindBody body)
+    {
+        string? profileId = contract.Rules.Forms
+            .FirstOrDefault(form => string.Equals(
+                form.Id, body.FormId, StringComparison.Ordinal))
+            ?.MovementProfileId;
+        return contract.Rules.MovementProfiles
+            .FirstOrDefault(profile => string.Equals(
+                profile.Id, profileId, StringComparison.Ordinal))
+            ?.FacingCoupling
+            ?? GenericActorRulesContract.MovementFacingCoupling.PreserveFacing;
+    }
+
+    internal static Direction FacingAfterMove(
+        Direction before,
+        ProjectileHeading heading,
+        GenericActorRulesContract.MovementFacingCoupling coupling) =>
+        coupling switch
+        {
+            GenericActorRulesContract.MovementFacingCoupling.PreserveFacing =>
+                before,
+            GenericActorRulesContract.MovementFacingCoupling.FacingLocked =>
+                before,
+            GenericActorRulesContract.MovementFacingCoupling
+                    .FaceMovementDirection =>
+                CardinalDirection(heading) ?? before,
+            GenericActorRulesContract.MovementFacingCoupling
+                    .FaceMovementHeadingProjected =>
+                ProjectedFacing(before, heading),
+            GenericActorRulesContract.MovementFacingCoupling.CombatStrafe =>
+                HeadingDistance(
+                    (ProjectileHeading)((int)before * 2), heading) >= 3
+                    ? Opposite(before)
+                    : before,
+            _ => before,
+        };
+
+    internal static Direction? CardinalDirection(ProjectileHeading heading) =>
+        heading switch
+        {
+            ProjectileHeading.North => Direction.North,
+            ProjectileHeading.East => Direction.East,
+            ProjectileHeading.South => Direction.South,
+            ProjectileHeading.West => Direction.West,
+            _ => null,
+        };
+
+    private static Direction ProjectedFacing(
+        Direction before,
+        ProjectileHeading heading)
+    {
+        if (CardinalDirection(heading) is Direction cardinal)
+            return cardinal;
+        int clockwise = ((int)heading - (int)before * 2 + 8) % 8;
+        return clockwise is 1 or 7 ? before : Opposite(before);
+    }
+
+    private static Direction Opposite(Direction direction) =>
+        (Direction)(((int)direction + 2) % 4);
 
     internal static ProjectileHeading[] PreferredHeadings(
         MindBody body,

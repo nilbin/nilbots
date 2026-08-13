@@ -14,8 +14,6 @@ namespace BotArena.Cli.Tests;
 /// </summary>
 public sealed class OrdersMovementSceneTests
 {
-    private const int StepperOptionsMagic = 0x50455453; // STEP.
-
     [Fact]
     public void TaplineExercisesUrgencyAndClearsBothReactorDeployments()
     {
@@ -26,7 +24,7 @@ public sealed class OrdersMovementSceneTests
         ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create(
             hunter.Composition,
             wellwright.Composition,
-            loopProfile: ArcRelayLoopProfile.Tapline1);
+            loopProfile: ArcRelayLoopProfile.Tapline3);
 
         using var session = new GenericActorMatchSession(
             definition,
@@ -115,7 +113,9 @@ public sealed class OrdersMovementSceneTests
         Assert.Contains(reasons, reason => reason.Contains(
             "recover-health", StringComparison.Ordinal));
         Assert.Contains(reasons, reason => reason.Contains(
-            ":make-way:", StringComparison.Ordinal));
+            "epibt-", StringComparison.Ordinal));
+        Assert.Contains(reasons, reason => reason.Contains(
+            ":op-", StringComparison.Ordinal));
         Assert.Contains(reasons, reason => reason.Contains(
             "fight-visible-enemy", StringComparison.Ordinal));
         Assert.DoesNotContain(reasons, string.IsNullOrWhiteSpace);
@@ -131,7 +131,7 @@ public sealed class OrdersMovementSceneTests
         ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create(
             hunter.Composition,
             wellwright.Composition,
-            loopProfile: ArcRelayLoopProfile.Tapline1);
+            loopProfile: ArcRelayLoopProfile.Tapline3);
 
         using var session = new GenericActorMatchSession(
             definition,
@@ -169,12 +169,12 @@ public sealed class OrdersMovementSceneTests
 
         // Owner-replay catch (Tapline seed 9002): a normal hauler trying to
         // enter the centre Well accrued 39 debt ticks behind an at-target
-        // Mason. The plane asked the Mason to clear, but the greedy chooser
-        // proposed a diagonal that a facing-locked body cannot execute and
-        // never tried a cardinal alternative. The stable product invariant is
-        // that the mover does not starve; whether this changing match scene
-        // needs a turn, a step, both, or an already-clear route is emergent.
-        // The traffic governor's exact lease mechanics have pure coverage.
+        // Mason. The old one-step chooser proposed a diagonal that a
+        // facing-locked body could not execute and never tried the cardinal
+        // turn-and-vacate operation. The stable product invariant is that the
+        // mover does not starve; whether this changing match scene needs a
+        // turn, a step, both, or an already-clear route is emergent. The
+        // planner's exact joint-operation mechanics have pure coverage.
         Assert.True(longestBlockedRun <= 6,
             $"The centre-Well mover remained blocked for "
             + $"{longestBlockedRun} consecutive ticks.");
@@ -190,7 +190,7 @@ public sealed class OrdersMovementSceneTests
         ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create(
             wellwright.Composition,
             hunter.Composition,
-            loopProfile: ArcRelayLoopProfile.Tapline1);
+            loopProfile: ArcRelayLoopProfile.Tapline3);
 
         using var session = new GenericActorMatchSession(
             definition,
@@ -245,7 +245,7 @@ public sealed class OrdersMovementSceneTests
         ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create(
             wellwright.Composition,
             hunter.Composition,
-            loopProfile: ArcRelayLoopProfile.Tapline1);
+            loopProfile: ArcRelayLoopProfile.Tapline3);
 
         using var session = new GenericActorMatchSession(
             definition,
@@ -307,23 +307,14 @@ public sealed class OrdersMovementSceneTests
         ArtifactHash = "orders-movement-scene",
         MindDataHash = Convert.ToHexStringLower(
             SHA256.HashData(playbook.LinkedData)),
-        MindEvaluationData = CoordinatedData(playbook.LinkedData),
+        // Untagged ATL2 is the product form. If this scene ever silently
+        // falls back to the historical greedy diagnostic, its EPIBT reason
+        // assertions above fail rather than blessing the wrong planner.
+        MindEvaluationData = ImmutableArray.Create(playbook.LinkedData),
         Accent = participantId == 0 ? "#22d3ee" : "#fb5360",
         LookId = "arc-relay-sheet",
         ProjectileLookId = ArcRelayH0ReplayPresentation.ProjectileLookId,
     };
-
-    private static ImmutableArray<byte> CoordinatedData(byte[] linked)
-    {
-        using var stream = new MemoryStream();
-        stream.Write(linked);
-        using var writer = new BinaryWriter(
-            stream, System.Text.Encoding.UTF8, leaveOpen: true);
-        writer.Write(StepperOptionsMagic);
-        writer.Write("coordinated");
-        writer.Flush();
-        return ImmutableArray.Create(stream.ToArray());
-    }
 
     private static TacticalPlaybookCompilation Compile(
         string root,

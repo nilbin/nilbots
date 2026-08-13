@@ -290,9 +290,10 @@ static int CommandHelp(string command)
 
             Loop profile. --loop-profile selects the ruleset/map pair; every
             registered id is listed in the error text when one is misspelled.
-            The default is `tapline-2`: the accepted Tapline geometry,
-            directional combat, declared strikes, veterancy, and the complete
-            signature grammar 3. The hosted v20 ladder remains immutably
+            The default is `tapline-3`: the accepted Tapline geometry,
+            directional combat, declared strikes, veterancy, complete
+            signature grammar 3, and atomic acyclic convoy movement. The
+            hosted v20 ladder remains immutably
             pinned to `tapline-1` and Orders v2; v7 through v19 remain exact
             history, and all
             historical profiles and playlist versions stay explicitly

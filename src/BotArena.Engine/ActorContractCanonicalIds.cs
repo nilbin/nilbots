@@ -551,6 +551,9 @@ internal static class ActorContractCanonicalIds
         ActorCollisionDefinition.MovementResolutionKind
                 .ExclusiveGroundOccupancyBlockConnectedConflictingClaims =>
             "exclusive-ground-occupancy-block-connected-conflicting-claims",
+        ActorCollisionDefinition.MovementResolutionKind
+                .ExclusiveGroundOccupancyAllowAcyclicFollowingChains =>
+            "exclusive-ground-occupancy-allow-acyclic-following-chains",
         ActorCollisionDefinition.ProjectileTraversalResolutionKind
                 .CanonicalProjectileIdOrderedTileSubstepsWallsThenActors =>
             "canonical-projectile-id-ordered-tile-substeps-walls-then-actors",

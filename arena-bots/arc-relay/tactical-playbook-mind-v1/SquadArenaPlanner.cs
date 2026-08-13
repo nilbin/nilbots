@@ -1,0 +1,928 @@
+using BotArena.Sdk;
+
+/// <summary>
+/// One already-selected physical intent. Orders owns the objective; movement
+/// planning may only realize it in shared space.
+/// </summary>
+internal sealed record SquadMovementIntent(
+    MindBody Body,
+    string Key,
+    string GroupKey,
+    IReadOnlyCollection<Position> Goals,
+    Position? PreferredStep,
+    TacticalMovementPriority Priority,
+    bool Pinned,
+    bool PrefersHold,
+    bool CanStage,
+    int? LeaderUnitId,
+    string Trace);
+
+/// <summary>
+/// Enhanced Priority Inheritance with Backtracking (EPIBT) for Arc Relay's
+/// eight-body online movement problem. This is the published length-three
+/// multi-action algorithm: inherited operations initialize every timestep,
+/// a colliding lower-priority body inherits the caller's priority, bounded
+/// revisits let already planned bodies reconsider, and failure backtracks.
+///
+/// <para>The sheet/compiler still owns orders, goals and posture. The small
+/// Hungarian pass below only gives bodies sharing one authored objective
+/// distinct contribution tiles. EPIBT alone owns physical collision planning;
+/// there is no WHCA* reservation window, sequential greedy fallback, bespoke
+/// clearance mover, or post-plan shove.</para>
+/// </summary>
+internal sealed class SquadArenaPlanner : IArenaStepper
+{
+    internal const int OperationLength = 3;
+    internal const int RevisitLimit = 10;
+    private const long Impossible = 1_000_000_000;
+
+    private readonly Dictionary<int, Decision> _decisions = [];
+    private readonly Dictionary<int, PersistentState> _states = [];
+    private GenericActorResolvedMatchContract? _contract;
+    private MindContext? _mind;
+    private bool _mirrored;
+
+    public void BeginTick(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind)
+    {
+        _contract = contract;
+        _mind = mind;
+        _mirrored = ArenaBasics.MirroredFrame(contract, mind);
+        _decisions.Clear();
+        HashSet<int> live = mind.Bodies.Select(body => body.UnitId).ToHashSet();
+        foreach (int stale in _states.Keys.Where(unit => !live.Contains(unit))
+                     .ToArray())
+            _states.Remove(stale);
+    }
+
+    public void PlanTeam(
+        IReadOnlyCollection<SquadMovementIntent> source,
+        ArenaBasics.Claims claims)
+    {
+        GenericActorResolvedMatchContract contract = _contract
+            ?? throw new InvalidOperationException("BeginTick was not called.");
+        MindContext mind = _mind
+            ?? throw new InvalidOperationException("BeginTick was not called.");
+        SquadMovementIntent[] intents = source
+            .OrderBy(intent => intent.Body.UnitId)
+            .ToArray();
+        Dictionary<int, SquadMovementIntent> byUnit = intents.ToDictionary(
+            intent => intent.Body.UnitId);
+        Dictionary<int, Position> assignments = AssignContributions(
+            contract, intents);
+        Dictionary<int, Position[]> courses = intents.ToDictionary(
+            intent => intent.Body.UnitId,
+            intent => ResolveCourse(
+                contract, mind, intent, assignments[intent.Body.UnitId]));
+
+        var inherited = new Dictionary<int, Operation>();
+        foreach (SquadMovementIntent intent in intents)
+        {
+            inherited[intent.Body.UnitId] = InheritedOperation(
+                contract,
+                mind,
+                intent,
+                assignments[intent.Body.UnitId]);
+        }
+        var selected = inherited.ToDictionary(pair => pair.Key, pair => pair.Value);
+        var visits = intents.ToDictionary(intent => intent.Body.UnitId, _ => 0);
+        var branch = new HashSet<int>();
+
+        // EPIBT calls smaller p "higher priority". The authored/debt rank is
+        // the product precedence; static distance is only a stable tie-break.
+        int[] order = PriorityOrder(contract, intents, assignments);
+        Dictionary<int, int> priority = order
+            .Select((unit, index) => (unit, index))
+            .ToDictionary(value => value.unit, value => value.index);
+
+        foreach (int unit in order)
+        {
+            if (visits[unit] != 0)
+                continue;
+            selected.Remove(unit);
+            if (!SelectOperation(unit, priority[unit]))
+                selected[unit] = inherited[unit];
+        }
+
+        foreach (SquadMovementIntent intent in intents)
+        {
+            Operation operation = selected[intent.Body.UnitId];
+            bool physicallySatisfied = intent.PrefersHold
+                || intent.Body.Position == assignments[intent.Body.UnitId];
+            MicroAction first = operation.Actions[0];
+            Position? tile = first.Kind switch
+            {
+                MicroActionKind.Move => first.Destination,
+                MicroActionKind.Rotate => RotationRequestTile(
+                    intent.Body.Position, first.Facing),
+                _ => null,
+            };
+            string action = first.Kind switch
+            {
+                MicroActionKind.Move => "move",
+                MicroActionKind.Rotate => "turn",
+                _ when physicallySatisfied => "hold",
+                _ => "wait",
+            };
+            string inheritedTrace = operation.Inherited ? ":inherited" : "";
+            string reason = $"epibt-{action}:p{priority[intent.Body.UnitId]}"
+                + $":v{visits[intent.Body.UnitId]}{inheritedTrace}"
+                + $":op-{operation.ActionSequence}"
+                + $":goal-{assignments[intent.Body.UnitId].X}"
+                + $"-{assignments[intent.Body.UnitId].Y}"
+                + (tile is Position next
+                    ? $":next-{next.X}-{next.Y}"
+                    : $":{intent.Trace}");
+            // A facing-locked resting body may need to rotate before its
+            // inherited operation vacates the tile. That preparation turn is
+            // part of yielding too; suppressing it would invalidate the
+            // operation and recreate the blocker on every tick.
+            bool yielding = physicallySatisfied
+                && first.Kind is MicroActionKind.Move
+                    or MicroActionKind.Rotate
+                && operation.Actions.Any(candidate =>
+                    candidate.Kind == MicroActionKind.Move);
+            _decisions[intent.Body.UnitId] = new Decision(
+                tile,
+                yielding ? reason + ":yield-resting-body" : reason,
+                yielding,
+                physicallySatisfied);
+            _states[intent.Body.UnitId] = new PersistentState(
+                intent.Body.ActorId,
+                intent.Key,
+                assignments[intent.Body.UnitId],
+                operation);
+        }
+        return;
+
+        bool SelectOperation(int unit, int inheritedPriority)
+        {
+            SquadMovementIntent intent = byUnit[unit];
+            visits[unit]++;
+            branch.Add(unit);
+            selected.Remove(unit);
+
+            foreach (Operation candidate in GenerateOperations(
+                         contract,
+                         mind,
+                         claims,
+                         intent,
+                         assignments[unit],
+                         courses[unit]))
+            {
+                int[] conflicts = selected
+                    .Where(pair => OperationsCollide(candidate, pair.Value))
+                    .Select(pair => pair.Key)
+                    .Order()
+                    .ToArray();
+                if (conflicts.Length == 0)
+                {
+                    selected[unit] = candidate;
+                    branch.Remove(unit);
+                    return true;
+                }
+                // Published EPIBT skips an operation that simultaneously
+                // collides with more than one agent; recursion would have no
+                // unambiguous priority-inheritance edge.
+                if (conflicts.Length > 1)
+                    continue;
+                int other = conflicts[0];
+                if (branch.Contains(other)
+                    || visits[other] >= RevisitLimit
+                    || priority[other] <= inheritedPriority)
+                {
+                    continue;
+                }
+
+                Operation displaced = selected[other];
+                selected.Remove(other);
+                selected[unit] = candidate;
+                if (SelectOperation(other, inheritedPriority))
+                {
+                    branch.Remove(unit);
+                    return true;
+                }
+                selected.Remove(unit);
+                selected[other] = displaced;
+            }
+
+            // EPIBT's failure action is always the shifted operation from the
+            // previous tick, not whichever provisional operation happened to
+            // occupy this agent when a higher-priority branch revisited it.
+            selected[unit] = inherited[unit];
+            branch.Remove(unit);
+            return false;
+        }
+    }
+
+    public Position? Step(StepRequest request) =>
+        _decisions.GetValueOrDefault(request.Body.UnitId)?.Tile;
+
+    public string Trace(int unitId) =>
+        _decisions.GetValueOrDefault(unitId)?.Trace
+        ?? "epibt-wait:no-physical-intent";
+
+    public bool TryGetRestingYield(
+        int unitId,
+        out Position destination,
+        out string trace)
+    {
+        Decision? decision = _decisions.GetValueOrDefault(unitId);
+        if (decision is { Yielding: true, Tile: Position tile })
+        {
+            destination = tile;
+            trace = decision.Trace;
+            return true;
+        }
+        destination = default;
+        trace = "epibt-hold:no-yield";
+        return false;
+    }
+
+    /// <summary>
+    /// True when the joint contribution assignment deliberately placed this
+    /// body on its current tile. This is not a blocked move: another member
+    /// of the same authored objective may own the exact destination while
+    /// this body contributes from the surrounding ring. Keep that distinction
+    /// visible to the executor and its trace.
+    /// </summary>
+    public bool IsAtContribution(int unitId) =>
+        _decisions.GetValueOrDefault(unitId)?.PhysicallySatisfied == true;
+
+    public void NoteCommitted(MindBody body, Position destination)
+    {
+        // The joint operation set is complete before command emission.
+    }
+
+    private Operation InheritedOperation(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind,
+        SquadMovementIntent intent,
+        Position assignment)
+    {
+        Operation wait = WaitOperation(intent.Body);
+        // Rooting is authoritative for this tick. A shifted operation from a
+        // prior movable tick must never survive into a strike, skill, handoff,
+        // drop or invest commitment merely because the authored rung key did
+        // not change.
+        if (intent.Pinned)
+            return wait;
+        if (!_states.TryGetValue(
+                intent.Body.UnitId, out PersistentState? prior)
+            || prior.Actor != intent.Body.ActorId
+            || !string.Equals(prior.Key, intent.Key, StringComparison.Ordinal)
+            || prior.Assignment != assignment
+            || prior.Operation.States[0] != new PlannerState(
+                intent.Body.Position, intent.Body.Facing))
+        {
+            return wait;
+        }
+
+        MicroAction[] shifted =
+        [
+            prior.Operation.Actions[1],
+            prior.Operation.Actions[2],
+            MicroAction.Wait,
+        ];
+        return BuildOperation(
+                contract,
+                intent.Body,
+                shifted,
+                DurableObstaclesExceptGoal(
+                    contract, mind, intent.Body, assignment),
+                inherited: true)
+            ?? wait;
+    }
+
+    private Operation[] GenerateOperations(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind,
+        ArenaBasics.Claims claims,
+        SquadMovementIntent intent,
+        Position assignment,
+        Position[] course)
+    {
+        if (intent.Pinned)
+            return [WaitOperation(intent.Body)];
+
+        HashSet<Position> durable = DurableObstacles(
+            contract, mind, intent.Body, claims);
+        // Reactor bank/deployment tiles are persistent route obstacles for
+        // unrelated traffic. An order that explicitly names one must still
+        // enter it, so only this body's assigned destination overrides that
+        // obstacle; reserved tiles en route remain blocked.
+        durable.Remove(assignment);
+        var generated = new List<Operation>();
+        Enumerate(
+            new PlannerState(intent.Body.Position, intent.Body.Facing),
+            [],
+            depth: 0);
+
+        // EPIBT's physical candidate set is unique occupied-cell sequences.
+        // When two action strings trace the same cells, retain the one with
+        // the better final heuristic/action tie-break.
+        return generated
+            .GroupBy(operation => operation.CellSequence,
+                StringComparer.Ordinal)
+            .Select(group => group
+                .OrderBy(operation => operation.Weight)
+                .ThenBy(operation => operation.ActionSequence,
+                    StringComparer.Ordinal)
+                .First())
+            .OrderBy(operation => operation.Weight)
+            .ThenBy(operation => operation.ActionSequence,
+                StringComparer.Ordinal)
+            .ToArray();
+
+        void Enumerate(
+            PlannerState state,
+            List<MicroAction> actions,
+            int depth)
+        {
+            if (depth == OperationLength)
+            {
+                if (actions[^1].Kind == MicroActionKind.Rotate)
+                    return;
+                Operation? operation = BuildOperation(
+                    contract,
+                    intent.Body,
+                    actions.ToArray(),
+                    durable,
+                    inherited: false,
+                    assignment,
+                    course,
+                    intent.Body.PreviousPosition,
+                    intent.PrefersHold
+                        || intent.Body.Position == assignment);
+                if (operation is not null)
+                    generated.Add(operation);
+                return;
+            }
+
+            foreach (MicroAction action in ActionsFrom(
+                         contract, intent.Body, state, durable))
+            {
+                actions.Add(action);
+                Enumerate(Apply(state, action, contract, intent.Body),
+                    actions, depth + 1);
+                actions.RemoveAt(actions.Count - 1);
+            }
+        }
+    }
+
+    private static IEnumerable<MicroAction> ActionsFrom(
+        GenericActorResolvedMatchContract contract,
+        MindBody body,
+        PlannerState state,
+        IReadOnlySet<Position> durable)
+    {
+        GenericActorRulesContract.MovementFacingCoupling coupling =
+            ArenaBasics.MovementCoupling(contract, body);
+        if (coupling
+            == GenericActorRulesContract.MovementFacingCoupling.FacingLocked)
+        {
+            ProjectileHeading forward =
+                (ProjectileHeading)((int)state.Facing * 2);
+            Position destination = ArenaBasics.Step(state.Position, forward);
+            if (ArenaBasics.CanStep(
+                    contract.Map, state.Position, destination, forward)
+                && !durable.Contains(destination))
+            {
+                yield return MicroAction.Move(destination, forward);
+            }
+            foreach (Direction direction in Enum.GetValues<Direction>())
+            {
+                if (direction != state.Facing)
+                    yield return MicroAction.Rotate(direction);
+            }
+            yield return MicroAction.Wait;
+            yield break;
+        }
+
+        foreach (ProjectileHeading heading in ArenaBasics.RouteHeadings(
+                     contract, body))
+        {
+            Position destination = ArenaBasics.Step(state.Position, heading);
+            if (ArenaBasics.CanStep(
+                    contract.Map, state.Position, destination, heading)
+                && !durable.Contains(destination))
+            {
+                yield return MicroAction.Move(destination, heading);
+            }
+        }
+        yield return MicroAction.Wait;
+    }
+
+    private static Operation? BuildOperation(
+        GenericActorResolvedMatchContract contract,
+        MindBody body,
+        IReadOnlyList<MicroAction> actions,
+        IReadOnlySet<Position> durable,
+        bool inherited,
+        Position? assignment = null,
+        IReadOnlyList<Position>? course = null,
+        Position? priorPosition = null,
+        bool prefersHold = false)
+    {
+        var states = new PlannerState[OperationLength];
+        var state = new PlannerState(body.Position, body.Facing);
+        for (int index = 0; index < OperationLength; index++)
+        {
+            MicroAction action = actions[index];
+            if (action.Kind == MicroActionKind.Move
+                && (action.Destination is not Position destination
+                    || durable.Contains(destination)
+                    || !ArenaBasics.IsLegalTerrainStep(
+                        contract.Map, state.Position, destination)))
+            {
+                return null;
+            }
+            state = Apply(state, action, contract, body);
+            states[index] = state;
+        }
+
+        long weight = assignment is Position goal
+            ? GoalDistance(contract.Map, state.Position, goal) * 100_000L
+            : 0;
+        // EPIBT orders equal-h operations by the earliest useful action:
+        // move, then rotate, then wait. This must be lexicographic rather
+        // than a sum. A summed score makes RRF look cheaper than RFW and can
+        // therefore rotate a facing-locked body away from the useful heading
+        // solely to avoid a final wait. Base four leaves room for all three
+        // action ranks without allowing beta to outweigh one h step.
+        weight += OperationActionTieBreak(actions);
+        // A body whose authored intent is already satisfied should stay put
+        // when nobody needs its ground. It still carries a complete operation
+        // set so EPIBT priority inheritance can push it out of a corridor.
+        // Both penalties are less than one distance step: once WWW collides,
+        // a legal turn/vacate remains preferable to increasing somebody
+        // else's h. Without the rotation penalty, ordinary EPIBT beta ordering
+        // makes an at-target body swivel forever because rotate beats wait.
+        if (prefersHold)
+            weight += PreferredHoldPenalty(actions);
+        if (course is { Count: > 1 }
+            && actions.Any(action => action.Destination == course[1]))
+            weight -= 20_000;
+        if (priorPosition is Position prior
+            && actions[0].Destination == prior)
+            weight += 40_000;
+
+        return new Operation(
+            actions.ToArray(),
+            states,
+            weight,
+            inherited);
+    }
+
+    /// <summary>
+    /// Equal-distance operations prefer useful work as early as possible.
+    /// Keep this visible to tests: summing action ranks once made R-R-M beat
+    /// R-M-W and trapped facing-locked carriers in a deterministic turn loop.
+    /// </summary>
+    internal static long OperationActionTieBreak(
+        IReadOnlyList<MicroAction> actions)
+    {
+        long result = 0;
+        foreach (MicroAction action in actions)
+        {
+            result = result * 4 + action.Kind switch
+            {
+                MicroActionKind.Move => 0,
+                MicroActionKind.Rotate => 1,
+                _ => 2,
+            };
+        }
+        return result;
+    }
+
+    internal static long PreferredHoldPenalty(
+        IReadOnlyList<MicroAction> actions)
+    {
+        if (actions.Any(action => action.Kind == MicroActionKind.Move))
+            return 50_000;
+        return actions.Any(action => action.Kind == MicroActionKind.Rotate)
+            ? 25_000
+            : 0;
+    }
+
+    /// <summary>
+    /// Base EPIBT priority is authored urgency/debt, distance, then unit id.
+    /// A follow edge adds one semantic constraint: the named leader must be
+    /// planned before its follower. This is a stable topological ordering,
+    /// not a new movement rule, and it prevents a follower's provisional
+    /// wait from claiming the tile its leader needs to vacate a corridor.
+    /// </summary>
+    private static int[] PriorityOrder(
+        GenericActorResolvedMatchContract contract,
+        IReadOnlyCollection<SquadMovementIntent> intents,
+        IReadOnlyDictionary<int, Position> assignments)
+    {
+        SquadMovementIntent[] remaining = intents
+            .OrderBy(intent => intent.Priority.Rank)
+            .ThenBy(intent => GoalDistance(
+                contract.Map,
+                intent.Body.Position,
+                assignments[intent.Body.UnitId]))
+            .ThenBy(intent => intent.Body.UnitId)
+            .ToArray();
+        HashSet<int> present = remaining
+            .Select(intent => intent.Body.UnitId)
+            .ToHashSet();
+        var emitted = new HashSet<int>();
+        var result = new List<int>(remaining.Length);
+
+        while (result.Count < remaining.Length)
+        {
+            SquadMovementIntent? next = remaining.FirstOrDefault(intent =>
+                !emitted.Contains(intent.Body.UnitId)
+                && (intent.LeaderUnitId is not int leader
+                    || !present.Contains(leader)
+                    || emitted.Contains(leader)));
+            // A malformed/cyclic follow graph must not make planning partial.
+            // Unit-id fallback is deterministic; the compiler owns rejecting
+            // authored cycles, while the executor remains total on input.
+            next ??= remaining
+                .Where(intent => !emitted.Contains(intent.Body.UnitId))
+                .OrderBy(intent => intent.Body.UnitId)
+                .First();
+            emitted.Add(next.Body.UnitId);
+            result.Add(next.Body.UnitId);
+        }
+        return result.ToArray();
+    }
+
+    private static PlannerState Apply(
+        PlannerState state,
+        MicroAction action,
+        GenericActorResolvedMatchContract contract,
+        MindBody body) => action.Kind switch
+        {
+            MicroActionKind.Move => new PlannerState(
+                action.Destination!.Value,
+                ArenaBasics.FacingAfterMove(
+                    state.Facing,
+                    action.Heading!.Value,
+                    ArenaBasics.MovementCoupling(contract, body))),
+            MicroActionKind.Rotate => state with { Facing = action.Facing },
+            _ => state,
+        };
+
+    internal static bool OperationsCollide(Operation first, Operation second)
+    {
+        Position firstPrior = first.Start;
+        Position secondPrior = second.Start;
+        for (int tick = 0; tick < OperationLength; tick++)
+        {
+            Position firstNow = first.States[tick].Position;
+            Position secondNow = second.States[tick].Position;
+            if (firstNow == secondNow
+                || firstPrior == secondNow && secondPrior == firstNow)
+                return true;
+            firstPrior = firstNow;
+            secondPrior = secondNow;
+        }
+        return false;
+    }
+
+    private static HashSet<Position> DurableObstacles(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind,
+        MindBody body,
+        ArenaBasics.Claims? claims = null)
+    {
+        var result = ArenaBasics.PersistentRouteObstacles(
+            contract, mind, body.ActorId.TeamId);
+        // EPIBT coordinates this participant's squad only. An enemy may move
+        // during the same authoritative tick, but assuming that cooperation
+        // would turn an uncertain hostile tile into repeated blocked commands.
+        result.UnionWith(mind.Enemies.Select(enemy => enemy.Position));
+        if (claims is not null)
+        {
+            HashSet<Position> immediate = ArenaBasics.BlockedNow(
+                contract, mind, body, claims);
+            // Allies are represented by EPIBT's operation table rather than
+            // duplicated as static occupancy walls.
+            immediate.ExceptWith(mind.Bodies.Select(ally => ally.Position));
+            result.UnionWith(immediate);
+        }
+        result.Remove(body.Position);
+        return result;
+    }
+
+    private static HashSet<Position> DurableObstaclesExceptGoal(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind,
+        MindBody body,
+        Position goal,
+        ArenaBasics.Claims? claims = null)
+    {
+        HashSet<Position> result = DurableObstacles(
+            contract, mind, body, claims);
+        result.Remove(goal);
+        return result;
+    }
+
+    private Position[] ResolveCourse(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind,
+        SquadMovementIntent intent,
+        Position assignment)
+    {
+        if (intent.Pinned || intent.Body.Position == assignment)
+            return [intent.Body.Position];
+        Position[] course = ArenaBasics.StaticRouteCourse(
+                contract,
+                intent.Body,
+                assignment,
+                ArenaBasics.PersistentRouteObstacles(
+                    contract, mind, intent.Body.ActorId.TeamId),
+                _mirrored)
+            ?? [intent.Body.Position];
+        if (intent.PreferredStep is Position preferred
+            && ArenaBasics.IsLegalTerrainStep(
+                contract.Map, intent.Body.Position, preferred))
+        {
+            return [intent.Body.Position, preferred, .. course.Skip(1)
+                .Where(tile => tile != preferred)];
+        }
+        return course;
+    }
+
+    private Dictionary<int, Position> AssignContributions(
+        GenericActorResolvedMatchContract contract,
+        IReadOnlyCollection<SquadMovementIntent> intents)
+    {
+        var result = new Dictionary<int, Position>();
+        foreach (IGrouping<string, SquadMovementIntent> grouping in intents
+                     .GroupBy(intent => intent.GroupKey, StringComparer.Ordinal)
+                     .OrderBy(group => group.Key, StringComparer.Ordinal))
+        {
+            SquadMovementIntent[] members = grouping
+                .OrderBy(intent => intent.Priority.Rank)
+                .ThenBy(intent => intent.Body.UnitId)
+                .ToArray();
+            Position[] authored = members
+                .SelectMany(intent => intent.PrefersHold
+                    ? [intent.Body.Position]
+                    : intent.Goals)
+                .Where(tile => ArenaBasics.CanEnter(contract.Map, tile))
+                .Distinct()
+                .OrderBy(tile => ArenaBasics.FrameY(tile, _mirrored))
+                .ThenBy(tile => ArenaBasics.FrameX(tile, _mirrored))
+                .ToArray();
+            if (authored.Length == 0)
+            {
+                foreach (SquadMovementIntent member in members)
+                    result[member.Body.UnitId] = member.Body.Position;
+                continue;
+            }
+            bool staged = authored.Length == 1
+                && members.Length > 1
+                && members.All(member => member.CanStage);
+            Position[] candidates = staged
+                ? ContributionRing(contract.Map, authored[0], members.Length)
+                : authored;
+            if (candidates.Length < members.Length)
+            {
+                foreach (SquadMovementIntent member in members)
+                    result[member.Body.UnitId] = NearestGoal(
+                        contract, member.Body, member.Goals);
+                continue;
+            }
+            var costs = new long[members.Length][];
+            for (int row = 0; row < members.Length; row++)
+            {
+                SquadMovementIntent member = members[row];
+                costs[row] = new long[candidates.Length];
+                for (int column = 0; column < candidates.Length; column++)
+                {
+                    Position candidate = candidates[column];
+                    bool allowed = staged || member.Goals.Contains(candidate)
+                        || member.PrefersHold
+                            && candidate == member.Body.Position;
+                    int? distance = allowed
+                        ? ArenaBasics.StaticDistance(
+                            contract.Map, member.Body.Position, candidate)
+                        : null;
+                    long cost = distance is int steps
+                        ? steps * 1_000L
+                        : Impossible;
+                    if (staged && candidate == authored[0])
+                        cost -= 8_000;
+                    if (_states.TryGetValue(
+                            member.Body.UnitId, out PersistentState? state)
+                        && state.Actor == member.Body.ActorId
+                        && string.Equals(
+                            state.Key, member.Key, StringComparison.Ordinal)
+                        && state.Assignment == candidate)
+                        cost -= 3_000;
+                    costs[row][column] = cost;
+                }
+            }
+            int[] chosen = SolveMinimumCost(costs);
+            for (int row = 0; row < members.Length; row++)
+            {
+                SquadMovementIntent member = members[row];
+                result[member.Body.UnitId] = chosen[row] >= 0
+                    && costs[row][chosen[row]] < Impossible
+                        ? candidates[chosen[row]]
+                        : NearestGoal(contract, member.Body, member.Goals);
+            }
+        }
+        return result;
+    }
+
+    private Position NearestGoal(
+        GenericActorResolvedMatchContract contract,
+        MindBody body,
+        IReadOnlyCollection<Position> goals) => goals.Count == 0
+            ? body.Position
+            : goals
+                .OrderBy(goal => GoalDistance(
+                    contract.Map, body.Position, goal))
+                .ThenBy(goal => ArenaBasics.FrameY(goal, _mirrored))
+                .ThenBy(goal => ArenaBasics.FrameX(goal, _mirrored))
+                .First();
+
+    private static int GoalDistance(
+        GenericActorMapContract map,
+        Position from,
+        Position goal) =>
+        ArenaBasics.StaticDistance(map, from, goal) ?? 100_000;
+
+    private static Position RotationRequestTile(
+        Position position,
+        Direction facing) => facing switch
+        {
+            Direction.North => position.Offset(0, -1),
+            Direction.East => position.Offset(1, 0),
+            Direction.South => position.Offset(0, 1),
+            Direction.West => position.Offset(-1, 0),
+            _ => position,
+        };
+
+    private static Position[] ContributionRing(
+        GenericActorMapContract map,
+        Position exact,
+        int needed)
+    {
+        var result = new List<Position> { exact };
+        for (int radius = 1;
+             radius <= 3 && result.Count < needed + 4;
+             radius++)
+        {
+            for (int y = exact.Y - radius; y <= exact.Y + radius; y++)
+            for (int x = exact.X - radius; x <= exact.X + radius; x++)
+            {
+                var tile = new Position(x, y);
+                if (tile.ChebyshevDistance(exact) == radius
+                    && ArenaBasics.CanEnter(map, tile))
+                    result.Add(tile);
+            }
+        }
+        return result.Distinct().ToArray();
+    }
+
+    private static Operation WaitOperation(MindBody body)
+    {
+        var state = new PlannerState(body.Position, body.Facing);
+        return new Operation(
+            [MicroAction.Wait, MicroAction.Wait, MicroAction.Wait],
+            [state, state, state],
+            0,
+            Inherited: false);
+    }
+
+    /// <summary>Deterministic rectangular Hungarian assignment.</summary>
+    internal static int[] SolveMinimumCost(IReadOnlyList<long[]> costs)
+    {
+        int rows = costs.Count;
+        if (rows == 0)
+            return [];
+        int columns = costs[0].Length;
+        if (columns < rows)
+            throw new ArgumentException(
+                "Assignment needs at least one column per row.");
+        var u = new long[rows + 1];
+        var v = new long[columns + 1];
+        var p = new int[columns + 1];
+        var way = new int[columns + 1];
+        for (int i = 1; i <= rows; i++)
+        {
+            p[0] = i;
+            int j0 = 0;
+            var min = Enumerable.Repeat(long.MaxValue, columns + 1).ToArray();
+            var used = new bool[columns + 1];
+            do
+            {
+                used[j0] = true;
+                int i0 = p[j0];
+                long delta = long.MaxValue;
+                int j1 = 0;
+                for (int j = 1; j <= columns; j++)
+                {
+                    if (used[j])
+                        continue;
+                    long current = costs[i0 - 1][j - 1] - u[i0] - v[j];
+                    if (current < min[j])
+                    {
+                        min[j] = current;
+                        way[j] = j0;
+                    }
+                    if (min[j] < delta)
+                    {
+                        delta = min[j];
+                        j1 = j;
+                    }
+                }
+                if (delta == long.MaxValue)
+                    break;
+                for (int j = 0; j <= columns; j++)
+                {
+                    if (used[j])
+                    {
+                        u[p[j]] += delta;
+                        v[j] -= delta;
+                    }
+                    else
+                        min[j] -= delta;
+                }
+                j0 = j1;
+            } while (p[j0] != 0);
+            do
+            {
+                int j1 = way[j0];
+                p[j0] = p[j1];
+                j0 = j1;
+            } while (j0 != 0);
+        }
+        var answer = Enumerable.Repeat(-1, rows).ToArray();
+        for (int column = 1; column <= columns; column++)
+        {
+            if (p[column] > 0)
+                answer[p[column] - 1] = column - 1;
+        }
+        return answer;
+    }
+
+    internal enum MicroActionKind { Wait, Rotate, Move }
+
+    internal readonly record struct MicroAction(
+        MicroActionKind Kind,
+        Position? Destination,
+        ProjectileHeading? Heading,
+        Direction Facing)
+    {
+        public static MicroAction Wait => new(
+            MicroActionKind.Wait, null, null, default);
+        public static MicroAction Rotate(Direction facing) => new(
+            MicroActionKind.Rotate, null, null, facing);
+        public static MicroAction Move(
+            Position destination,
+            ProjectileHeading heading) => new(
+            MicroActionKind.Move, destination, heading, default);
+    }
+
+    internal sealed record Operation(
+        MicroAction[] Actions,
+        PlannerState[] States,
+        long Weight,
+        bool Inherited)
+    {
+        public Position Start => Actions[0].Kind == MicroActionKind.Move
+            ? ReverseStart(States[0].Position, Actions[0].Heading!.Value)
+            : States[0].Position;
+        public string CellSequence => string.Join(";", States.Select(state =>
+            $"{state.Position.X},{state.Position.Y}"));
+        public string ActionSequence => string.Join("", Actions.Select(action =>
+            action.Kind switch
+            {
+                MicroActionKind.Move => "F",
+                MicroActionKind.Rotate => "R" + (int)action.Facing,
+                _ => "W",
+            }));
+
+        private static Position ReverseStart(
+            Position destination,
+            ProjectileHeading heading)
+        {
+            (int dx, int dy) = heading.Vector();
+            return destination.Offset(-dx, -dy);
+        }
+    }
+
+    internal readonly record struct PlannerState(
+        Position Position,
+        Direction Facing);
+    private sealed record Decision(
+        Position? Tile,
+        string Trace,
+        bool Yielding,
+        bool PhysicallySatisfied);
+    private sealed record PersistentState(
+        ActorIdentity Actor,
+        string Key,
+        Position Assignment,
+        Operation Operation);
+}

@@ -47,7 +47,7 @@ public sealed class ArcRelayGrammar3Tests
         Assert.Equal(16, mode.Signatures.Length);
         Assert.Equal(one.Map.Id, two.Map.Id);
         Assert.True(one.Map.TileRows.SequenceEqual(two.Map.TileRows));
-        Assert.Equal("tapline-2", ArcRelayLoopProfile.Current.Id);
+        Assert.Equal("tapline-3", ArcRelayLoopProfile.Current.Id);
 
         string[] versioned = mode.Signatures.Where(signature => signature is
                 ArcRelaySignatureDefinition.NullField3
@@ -73,6 +73,28 @@ public sealed class ArcRelayGrammar3Tests
         Assert.Equal(3, mode.Signatures
             .OfType<ArcRelaySignatureDefinition.SmokeCanister2>()
             .Single().TravelTilesPerTick);
+    }
+
+    [Fact]
+    public void Tapline3VersionsAtomicConvoysWithoutMovingTapline2()
+    {
+        ActorResolvedMatchDefinition two = ArcRelayH0Definition.Create(
+            loopProfile: ArcRelayLoopProfile.Tapline2);
+        ActorResolvedMatchDefinition three = ArcRelayH0Definition.Create(
+            loopProfile: ArcRelayLoopProfile.Tapline3);
+
+        Assert.False(two.Rules.Collisions.FollowingVacatedActorAllowed);
+        Assert.True(three.Rules.Collisions.FollowingVacatedActorAllowed);
+        Assert.Equal(
+            ActorCollisionDefinition.MovementResolutionKind
+                .ExclusiveGroundOccupancyAllowAcyclicFollowingChains,
+            three.Rules.Collisions.MovementResolution);
+        Assert.Equal(two.Map.Id, three.Map.Id);
+        Assert.True(two.Map.TileRows.SequenceEqual(three.Map.TileRows));
+        Assert.Equal("arc-relay-tapline-03", three.Rules.RulesetId);
+        Assert.NotEqual(
+            ActorContractFingerprint.ComputeRules(two.Rules),
+            ActorContractFingerprint.ComputeRules(three.Rules));
     }
 
     [Fact]

@@ -81,6 +81,13 @@ and atomically swaps it into `SITE_DIR`. Reuse that directory to update a live
 gallery without changing its URL. Expect roughly one minute for six cells on
 the reference machine.
 
+When reviewing the current Tapline product line, set
+`EXHIBIT_LOOP_PROFILE=tapline-3` and use the current Tapline-native sheet pair
+(`hunter-tapline-v2.json` / `wellwright-tapline-v2.json`). Tapline-3 is the
+versioned collision contract that permits an acyclic convoy to enter tiles
+vacated in the same tick. Do not silently review that engine behavior on the
+historical Tapline-1/2 contracts.
+
 Coordinated pathing is the product and exhibit default. Use
 `EXHIBIT_MATCH_ARGS="--mind-stepper greedy"` only for an explicitly labelled
 historical-control diagnostic; never use it for an owner review gallery unless
@@ -88,12 +95,11 @@ the owner asks to compare steppers. Set `EXHIBIT_CARDS=/path/to/cards.json` for
 curated explanations; otherwise the script writes honest minimal cards. The
 card schema is documented in the script header.
 
-The published CLI is cached at `$BATTERY_OUT/botarena-pub`:
-
-- after changing `src/` (engine, CLI, or compiler), remove that directory
-  before the next exhibit;
-- after changing only `arena-bots/`, keep it—the mind compiles in-process per
-  match.
+The published CLI is cached at `$BATTERY_OUT/botarena-pub`. The exhibit script
+automatically republishes when tracked source under `src/` is newer than the
+cached binary; do not manually delete the cache as normal ceremony. Changes
+only under `arena-bots/` need no republish—the mind compiles in-process per
+match.
 
 That in-process compilation is intentional. Never replace it with a controlled
 WASM build merely to make a review gallery.

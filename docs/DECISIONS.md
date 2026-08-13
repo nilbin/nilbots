@@ -7989,3 +7989,46 @@ crowded audit combines four staggered projectiles, impact, destruction,
 level-up, one Core cue, and every distinct signature pair; its worst dry,
 centered sum is -7.43 dBTP against a -6 dBTP ceiling before limiter or room
 attenuation. No ambience ships or plays, and Neon Protocol music is unchanged.
+
+## 301. Tapline-3 moves acyclic convoys atomically under EPIBT squad planning
+
+Owner-directed movement ruling (2026-08-13). A body may enter a tile another
+actor leaves during the same authoritative joint tick. This is not sequential
+movement and an occupied tile is not assumed to clear: the engine resolves the
+complete dependency graph. Acyclic chains ending in a pre-tick vacancy advance
+atomically. A contested destination, a swap, any longer closed cycle, a
+stationary head, or a head blocked by terrain, reservation, signature or
+projectile blocks every dependent mover. Execution and replay chronology call
+the same pure resolver. The new collision semantic is pinned only by
+`tapline-3` / `arc-relay-tapline-03`; Tapline-1, Tapline-2, hosted playlist v20,
+its rating book and every historical fingerprint remain immutable.
+
+The old five-tick prioritized `CoordinatedArenaStepper` is deleted rather than
+patched. The product planner is deterministic three-action Enhanced Priority
+Inheritance with Backtracking (EPIBT), selected for the online, changing-goal,
+rotation-aware eight-body problem. A Hungarian assignment first gives bodies
+sharing one authored objective distinct contribution tiles; EPIBT then carries
+the complete already-selected Orders intent set through priority inheritance,
+bounded revisits, backtracking and shifted-operation continuity. Orders still
+own each body's objective, urgency, posture and follow relation. The planner
+owns only physical realization and may not invent tactics. Leaders plan before
+followers, and a follower excludes its leader's committed next course tile. A
+body resting because its order is already satisfied prefers to hold but is not
+terrain: priority inheritance may yield it one legal tile while keeping the
+same authored rung. Pending strikes, skills, handoffs, drops and upgrades are
+real action commitments and remain pinned. Arc Toss also pins its named catcher
+through the tell and in-flight landing window, so the planner cannot vacate a
+valid catch tile and strand the Core. A fire or aim-preparation command is also
+pinned for that tick; a shooter merely waiting on cadence may yield.
+
+Equal-distance operation ordering is lexicographic by earliest useful action
+(move, rotate, wait), not a sum; the latter made an extra rotation look cheaper
+than progress and trapped facing-locked carriers in a deterministic turn loop.
+Reasons name `epibt-{move|turn|wait|hold}`, priority, revisit count, inherited
+status, the three-action operation and assigned goal. `GreedyArenaStepper`
+survives only behind the explicit historical `--mind-stepper greedy` control.
+
+This is still an in-process design-review candidate. No tracked WASM, frozen
+stock artifact, hosted playlist, rating book or release version moves until a
+separately owner-authorized promotion gate proves WASM parity and decides the
+immutable hosted version.
