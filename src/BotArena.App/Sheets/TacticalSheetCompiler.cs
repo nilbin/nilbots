@@ -127,6 +127,14 @@ public sealed class TacticalSheetCompiler(ArcRelayClassCatalog classCatalog)
         bool IsFloorForBothSides(int x, int y) =>
             IsFloor(x, y)
             && IsFloor(map.Width - 1 - x, map.Height - 1 - y);
+        HashSet<Position> reservedSpawns = map.SpawnAnchors
+            .Select(value => value.Spawn.Position)
+            .ToHashSet();
+        bool IsReservedSpawnForEitherSide(int x, int y) =>
+            reservedSpawns.Contains(new Position(x, y))
+            || reservedSpawns.Contains(new Position(
+                map.Width - 1 - x,
+                map.Height - 1 - y));
 
         foreach (JsonProperty route in root.GetProperty("routes")
                      .EnumerateObject())
@@ -137,12 +145,13 @@ public sealed class TacticalSheetCompiler(ArcRelayClassCatalog classCatalog)
             {
                 int[] point = waypoint.EnumerateArray()
                     .Select(value => value.GetInt32()).ToArray();
-                if (!IsFloorForBothSides(point[0], point[1]))
+                if (!IsFloorForBothSides(point[0], point[1])
+                    || IsReservedSpawnForEitherSide(point[0], point[1]))
                 {
                     throw new InvalidDataException(
                         $"Route '{route.Name}' waypoint {index} "
-                        + $"({point[0]},{point[1]}) must be traversable "
-                        + "for both team sides.");
+                        + $"({point[0]},{point[1]}) must be traversable and "
+                        + "not a reserved body spawn for either team side.");
                 }
                 index++;
             }
@@ -153,11 +162,13 @@ public sealed class TacticalSheetCompiler(ArcRelayClassCatalog classCatalog)
         {
             int[] point = anchor.Value.EnumerateArray()
                 .Select(value => value.GetInt32()).ToArray();
-            if (!IsFloorForBothSides(point[0], point[1]))
+            if (!IsFloorForBothSides(point[0], point[1])
+                || IsReservedSpawnForEitherSide(point[0], point[1]))
             {
                 throw new InvalidDataException(
                     $"Anchor '{anchor.Name}' ({point[0]},{point[1]}) "
-                    + "must be traversable for both team sides.");
+                    + "must be traversable and not a reserved body spawn "
+                    + "for either team side.");
             }
         }
 

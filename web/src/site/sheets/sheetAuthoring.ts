@@ -561,6 +561,8 @@ function validateGeometry(
       if (!inside(x, y, catalog)) error(`${path}.waypoints.${index}`, 'Plot this waypoint inside the map.');
       else if (!traversableForBothSides(x, y, catalog))
         error(`${path}.waypoints.${index}`, 'Move this waypoint off the wall so both team-side previews can traverse it.');
+      else if (reservedSpawnForEitherSide(x, y, catalog))
+        error(`${path}.waypoints.${index}`, 'Move this waypoint off the reserved body spawn so neither team is routed onto a permanently occupied tile.');
     });
     if (!usedRoutes.has(id)) error(path, 'Delete this unused route or use it in a move order.');
   }
@@ -570,6 +572,8 @@ function validateGeometry(
     if (!inside(x, y, catalog)) error(path, 'Plot this anchor inside the map.');
     else if (!traversableForBothSides(x, y, catalog))
       error(path, 'Move this anchor off the wall so both team-side previews can traverse it.');
+    else if (reservedSpawnForEitherSide(x, y, catalog))
+      error(path, 'Move this anchor off the reserved body spawn so neither team targets a permanently occupied tile.');
     if (!usedAnchors.has(id)) error(path, 'Delete this unused anchor or target it from an order.');
   }
 }
@@ -584,6 +588,18 @@ function traversableForBothSides(
     catalog.map.width - 1 - x
   ];
   return west !== undefined && west !== '#' && east !== undefined && east !== '#';
+}
+
+function reservedSpawnForEitherSide(
+  x: number,
+  y: number,
+  catalog: TacticalSheetCatalog,
+) {
+  const eastX = catalog.map.width - 1 - x;
+  const eastY = catalog.map.height - 1 - y;
+  return catalog.map.spawnAnchors.some(({ position }) =>
+    (position.x === x && position.y === y)
+    || (position.x === eastX && position.y === eastY));
 }
 
 function exactKeys(

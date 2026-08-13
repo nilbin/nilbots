@@ -202,6 +202,19 @@ test('guided validation rejects route waypoints on walls before save', () => {
   assert.match(issue?.message ?? '', /off the wall/i);
 });
 
+test('guided validation rejects route waypoints on permanently reserved body spawns', () => {
+  const spawnCatalog = structuredClone(catalog);
+  spawnCatalog.map.spawnAnchors = [{
+    id: 'team-0-unit-0', position: { x: 1, y: 1 }, facing: 'East',
+  }];
+  const draft = parseDraft('Test', null, null, stringifyDocument(orders), stringifyDocument(mapPlan));
+
+  const issue = validateDraft(draft, spawnCatalog).find((candidate) =>
+    candidate.path === 'mapPlan.routes.centre-loop.waypoints.0');
+
+  assert.match(issue?.message ?? '', /reserved body spawn/i);
+});
+
 test('movement urgency is a three-word optional node property', () => {
   const valid = parseDraft('Test', null, null, stringifyDocument(orders), stringifyDocument(mapPlan));
   valid.orders.roles[0].orders[0].urgency = 'urgent';
