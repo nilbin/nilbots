@@ -240,10 +240,17 @@ def operation_score(operation: dict[str, Any]) -> tuple[int, ...]:
         default=0,
     )
     unsuppressed = sum(not state["suppressed"] for state in states)
+    successful_terminal = any(
+        fact.get("kind") == "signature-changed"
+        and fact.get("phase") is None
+        and fact.get("reason") in {"completed", "landed", "launched"}
+        for fact in facts
+    )
     return (
         len(phases),
         meaningful > 0,
         len(capacity_values) > 1,
+        successful_terminal,
         terminal,
         min(len(states), 30),
         meaningful,

@@ -1,10 +1,16 @@
 import * as THREE from 'three';
 import { defineArcSignatureWebGLPainter } from '../types';
-import { paintPropFallback } from '../primitives';
+import {
+  paintPropFallback,
+  risingSettle,
+  setEnergyOpacity,
+  targetRing,
+} from '../primitives';
 
 export default defineArcSignatureWebGLPainter({
   signatureId: 'trip-node',
-  paint({ rig, points, time, persistentPropReady }) {
+  paint({ rig, signature, points, time, persistentPropReady, reducedMotion, phaseStartedTick }) {
+    const deploy = reducedMotion ? 1 : risingSettle(time, phaseStartedTick);
     paintPropFallback(
       rig,
       points,
@@ -12,6 +18,54 @@ export default defineArcSignatureWebGLPainter({
       persistentPropReady,
       new THREE.Vector3(0.75, 0.42, 0.75),
     );
-    rig.main.opacity *= 0.62;
+    const anchor = points[0];
+    if (!anchor) return;
+    rig.hub.visible = true;
+    rig.hub.position.copy(anchor).setY(-0.12 + deploy * 0.22);
+    rig.hub.scale.setScalar(0.64 + deploy * 0.72);
+    if (persistentPropReady) {
+      // The approved prop is the silhouette. Three short floor rails draw inward to its
+      // socket during deployment without covering it in generic grey geometry.
+      for (const [index, angle] of [0, Math.PI * 2 / 3, Math.PI * 4 / 3].entries()) {
+        const rail = rig.segments[index]!;
+        const outer = 1.2 - deploy * 0.36;
+        const inner = 0.5;
+        rail.visible = true;
+        rail.position.set(
+          anchor.x + Math.cos(angle) * (inner + outer) * 0.5,
+          0.06,
+          anchor.z + Math.sin(angle) * (inner + outer) * 0.5,
+        );
+        rail.rotation.y = -angle;
+        rail.scale.set(outer - inner, 1, 2.2);
+        setEnergyOpacity(rail, 0.12);
+      }
+    }
+    targetRing(rig, anchor, 1.34);
+    setEnergyOpacity(rig.ring, 0.12);
+    const spokes = reducedMotion ? 3 : 4;
+    for (let index = 0; index < spokes; index += 1) {
+      const marker = rig.markers[index]!;
+      const angle = (index / spokes) * Math.PI * 2;
+      marker.visible = true;
+      marker.position.set(
+        anchor.x + Math.cos(angle) * (1.12 - deploy * 0.34),
+        0.055,
+        anchor.z + Math.sin(angle) * (1.12 - deploy * 0.34),
+      );
+      marker.scale.set(0.34, 0.1, 0.62);
+      marker.rotation.y = -angle;
+      setEnergyOpacity(marker, signature.suppressed ? 0.05 : 0.1);
+    }
+  },
+  paintOutcome({ rig, priorSignature, facts, fraction }) {
+    if (!facts.some((fact) => fact.kind === 'signature-damage')) return;
+    const point = priorSignature?.positions[0];
+    if (!point) return;
+    const anchor = new THREE.Vector3(point.x + 0.5, 0.08, point.y + 0.5);
+    rig.torus.visible = true;
+    rig.torus.position.copy(anchor);
+    rig.torus.scale.setScalar(0.55 + fraction * 1.35);
+    setEnergyOpacity(rig.torus, (1 - fraction) * 0.7);
   },
 });

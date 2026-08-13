@@ -424,6 +424,12 @@ export interface ArcRelayCorePresentation {
   sourceWellId: string;
   position: { x: number; y: number };
   disposition: 'loose' | 'carried' | 'in-flight';
+  /** Exact public Arc Toss destination while this Core is in flight. */
+  flightTarget: { x: number; y: number } | null;
+  /** Authoritative operation boundary used to sample the one real Core's arc. */
+  flightCompletesAtTick: number | null;
+  /** First public in-flight tick, derived from the matching Arc Toss operation. */
+  flightStartedAtTick: number | null;
   carrierUnitKey: ReplayStableUnitKey | null;
   carrierTeamId: number | null;
   carrierName: string | null;
@@ -1787,12 +1793,33 @@ function arcRelayAt(
           Math.abs(reactor.position.y - core.position.y),
         )
       : null;
+    const flight = core.disposition === 'in-flight'
+      ? state.visibleSignatures.find(
+          (signature) =>
+            signature.signatureId === 'arc-toss' &&
+            signature.phase === 'in-flight' &&
+            signature.completesAtTick === core.flightCompletesAtTick &&
+            signature.positions.some(
+              (position) =>
+                position.x === core.position.x && position.y === core.position.y,
+            ) &&
+            core.flightTarget !== null &&
+            signature.positions.some(
+              (position) =>
+                position.x === core.flightTarget!.x &&
+                position.y === core.flightTarget!.y,
+            ),
+        )
+      : undefined;
     return {
       key: arcCoreKey(core.coreId),
       sourceLabel: arcSourceLabel(core.coreId.sourceWellId),
       sourceWellId: core.coreId.sourceWellId,
       position: core.position,
       disposition: core.disposition,
+      flightTarget: core.flightTarget,
+      flightCompletesAtTick: core.flightCompletesAtTick,
+      flightStartedAtTick: flight === undefined ? null : flight.startedTick + 1,
       carrierUnitKey: carrier?.unitKey ?? null,
       carrierTeamId: carrier?.teamId ?? null,
       carrierName: carrier ? arcActorName(replay, carrier) : null,

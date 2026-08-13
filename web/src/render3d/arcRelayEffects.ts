@@ -25,8 +25,10 @@ import type {
   ArcSignatureOutcomeFact,
   ArcSignatureWebGLPhase,
 } from './signatures/types';
+import { phaseProgress as signaturePhaseProgress } from './signatures/primitives';
 
 type Signature = ReplayArcRelayModeState['visibleSignatures'][number];
+const SIGNATURE_OUTCOME_LINGER_TICKS = 1.8;
 const LEGACY_WEBGL_PAINTERS: Readonly<Record<string, ArcSignatureCanvasMarker>> =
   Object.freeze({
     'vector-dash': 'arrow',
@@ -90,6 +92,11 @@ interface SignaturePropSlot {
   model: THREE.Group | null;
   yawHead: THREE.Object3D | null;
   emissives: { material: THREE.MeshStandardMaterial; base: number }[];
+  materials: {
+    material: THREE.MeshStandardMaterial;
+    opacity: number;
+    transparent: boolean;
+  }[];
   /** Hull indicators hovering over the prop; visibility follows remainingCapacity. */
   pips: THREE.Mesh[];
   /** Separate from the prop group: turret yaw must not angle the pips. */
@@ -99,8 +106,8 @@ interface SignaturePropSlot {
 }
 
 export const ARC_SIGNATURE_PROP_SCALE = {
-  'trip-node': 0.75,
-  'sentinel-seed': 0.95,
+  'trip-node': 1.5,
+  'sentinel-seed': 1.68,
 } as const;
 
 /** The sentry may acknowledge shots that have happened, but never pre-aim from future state. */
@@ -131,6 +138,8 @@ export function buildArcRelayEffects(
   const group = new THREE.Group();
   group.userData.kind = 'arc-relay-signatures-and-beats';
   const signatureShotYaws = indexSignatureShotYaws(replay);
+  const signaturePhaseStarts = indexSignaturePhaseStarts(replay);
+  const signatureOutcomes = indexSignatureOutcomes(replay);
   const veterancy = arcVeterancyFor(replay);
   const reducedMotionQuery =
     typeof window !== 'undefined' && window.matchMedia
@@ -167,6 +176,7 @@ export function buildArcRelayEffects(
       model: null,
       yawHead: null,
       emissives: [],
+      materials: [],
       pips,
       pipGroup,
       ready: false,
@@ -190,6 +200,7 @@ export function buildArcRelayEffects(
       slot.model = model;
       slot.yawHead = model.getObjectByName('yaw-head') ?? null;
       slot.emissives = signaturePropEmissives(model);
+      slot.materials = signaturePropMaterials(model);
       slot.ready = true;
       propGroup.add(model);
     });
@@ -202,28 +213,89 @@ export function buildArcRelayEffects(
   ringGeometry.rotateX(-Math.PI / 2);
   const segmentGeometry = new THREE.BoxGeometry(1, 0.018, 0.055);
   const panelGeometry = new THREE.BoxGeometry(0.78, 0.64, 0.08);
+  const panelFrameShape = new THREE.Shape();
+  panelFrameShape.moveTo(-0.43, -0.36);
+  panelFrameShape.lineTo(0.43, -0.36);
+  panelFrameShape.lineTo(0.43, 0.36);
+  panelFrameShape.lineTo(-0.43, 0.36);
+  panelFrameShape.closePath();
+  const panelFrameHole = new THREE.Path();
+  panelFrameHole.moveTo(-0.34, -0.27);
+  panelFrameHole.lineTo(-0.34, 0.27);
+  panelFrameHole.lineTo(0.34, 0.27);
+  panelFrameHole.lineTo(0.34, -0.27);
+  panelFrameHole.closePath();
+  panelFrameShape.holes.push(panelFrameHole);
+  const panelFrameGeometry = new THREE.ExtrudeGeometry(panelFrameShape, {
+    depth: 0.06,
+    bevelEnabled: false,
+  });
+  panelFrameGeometry.translate(0, 0, -0.03);
+  const slabGeometry = new THREE.BoxGeometry(0.42, 0.62, 0.42);
+  // A Hardlight block is one tile-sized obstacle, not four tiny cubes. It needs a pooled
+  // body geometry of its own so its gameplay silhouette survives the normal camera.
+  const blockGeometry = new THREE.BoxGeometry(0.88, 0.22, 0.88);
+  const postGeometry = new THREE.CylinderGeometry(0.055, 0.075, 0.78, 8);
   const particleGeometry = new THREE.SphereGeometry(0.055, 8, 5);
+  const wispGeometry = new THREE.SphereGeometry(0.16, 8, 6);
   const markerGeometry = new THREE.TetrahedronGeometry(0.15, 0);
   const beamGeometry = new THREE.CylinderGeometry(0.035, 0.09, 1, 10, 1, true);
+  // Outcome waves live on the floor. A torus is born in the XY plane; rotating -90°
+  // around X maps its normal from +Z to +Y and makes its scale axes match the rest of the
+  // floor primitives (X width, Y thickness, Z depth).
   const torusGeometry = new THREE.TorusGeometry(0.42, 0.09, 8, 40);
-  torusGeometry.rotateX(Math.PI / 2);
+  torusGeometry.rotateX(-Math.PI / 2);
   const capsuleGeometry = new THREE.CapsuleGeometry(0.08, 0.22, 4, 8);
+  const payloadGeometry = new THREE.CapsuleGeometry(0.19, 0.48, 5, 10);
+  const podGeometry = new THREE.CylinderGeometry(0.32, 0.42, 0.72, 10, 1);
+  const spoolGeometry = new THREE.TorusGeometry(0.3, 0.13, 8, 20);
+  spoolGeometry.rotateX(Math.PI / 2);
+  const hubGeometry = new THREE.CylinderGeometry(0.5, 0.58, 0.2, 12, 1);
+  const cloudGeometry = new THREE.IcosahedronGeometry(0.36, 1);
+  const finGeometry = new THREE.ConeGeometry(0.2, 0.62, 3);
+  const plateGeometry = new THREE.CylinderGeometry(0.5, 0.56, 0.07, 24);
+  const barGeometry = new THREE.BoxGeometry(1, 0.065, 1);
   disposables.push(
     discGeometry,
     ringGeometry,
     segmentGeometry,
     panelGeometry,
+    panelFrameGeometry,
+    slabGeometry,
+    blockGeometry,
+    postGeometry,
     particleGeometry,
+    wispGeometry,
     markerGeometry,
     beamGeometry,
     torusGeometry,
     capsuleGeometry,
+    payloadGeometry,
+    podGeometry,
+    spoolGeometry,
+    hubGeometry,
+    cloudGeometry,
+    finGeometry,
+    plateGeometry,
+    barGeometry,
   );
 
   const rigs: ArcSignatureEffectRig[] = [];
   const rigAt = (index: number) => {
     while (rigs.length <= index) {
       const rigGroup = new THREE.Group();
+      const energyMaterials: THREE.Material[] = [];
+      const makeEnergy = (geometry: THREE.BufferGeometry) => {
+        const material = new THREE.MeshBasicMaterial({
+          transparent: true,
+          opacity: 0,
+          depthWrite: false,
+          blending: THREE.AdditiveBlending,
+          side: THREE.DoubleSide,
+        });
+        energyMaterials.push(material);
+        return new THREE.Mesh(geometry, material);
+      };
       const main = new THREE.MeshBasicMaterial({
         transparent: true,
         opacity: 0,
@@ -258,14 +330,54 @@ export function buildArcRelayEffects(
         roughness: 0.92,
         metalness: 0.06,
       });
+      const inset = new THREE.MeshStandardMaterial({
+        color: '#1d2529',
+        emissive: '#070b0d',
+        emissiveIntensity: 0.02,
+        transparent: true,
+        opacity: 0.96,
+        depthWrite: true,
+        roughness: 1,
+        metalness: 0.02,
+      });
       const disc = new THREE.Mesh(discGeometry, fill);
-      const ring = new THREE.Mesh(ringGeometry, main);
-      const beam = new THREE.Mesh(beamGeometry, main);
-      const torus = new THREE.Mesh(torusGeometry, main);
+      const ring = makeEnergy(ringGeometry);
+      const rings = Array.from({ length: 8 }, () => {
+        const mesh = makeEnergy(ringGeometry);
+        rigGroup.add(mesh);
+        return mesh;
+      });
+      const beam = makeEnergy(beamGeometry);
+      const torus = makeEnergy(torusGeometry);
+      const toruses = Array.from({ length: 3 }, () => {
+        const mesh = makeEnergy(torusGeometry);
+        rigGroup.add(mesh);
+        return mesh;
+      });
       const capsule = new THREE.Mesh(capsuleGeometry, solid);
-      rigGroup.add(disc, ring, beam, torus, capsule);
+      const payload = new THREE.Mesh(payloadGeometry, solid);
+      const pod = new THREE.Mesh(podGeometry, solid);
+      const spool = new THREE.Mesh(spoolGeometry, solid);
+      const hub = new THREE.Mesh(hubGeometry, solid);
+      const cloud = new THREE.Mesh(cloudGeometry, smoke);
+      const plate = new THREE.Mesh(plateGeometry, solid);
+      const cable = new THREE.Mesh(segmentGeometry, solid);
+      rigGroup.add(
+        disc,
+        ring,
+        beam,
+        torus,
+        capsule,
+        payload,
+        pod,
+        spool,
+        hub,
+        cloud,
+        plate,
+        cable,
+      );
       const segments = Array.from({ length: 24 }, () => {
-        const mesh = new THREE.Mesh(segmentGeometry, main);
+        const mesh = makeEnergy(segmentGeometry);
         rigGroup.add(mesh);
         return mesh;
       });
@@ -274,13 +386,48 @@ export function buildArcRelayEffects(
         rigGroup.add(mesh);
         return mesh;
       });
+      const frames = Array.from({ length: 16 }, () => {
+        const mesh = new THREE.Mesh(panelFrameGeometry, solid);
+        rigGroup.add(mesh);
+        return mesh;
+      });
+      const slabs = Array.from({ length: 16 }, (_, index) => {
+        const mesh = new THREE.Mesh(index < 5 ? blockGeometry : slabGeometry, solid);
+        rigGroup.add(mesh);
+        return mesh;
+      });
       const particles = Array.from({ length: 18 }, () => {
-        const mesh = new THREE.Mesh(particleGeometry, main);
+        const mesh = makeEnergy(particleGeometry);
+        rigGroup.add(mesh);
+        return mesh;
+      });
+      const wisps = Array.from({ length: 18 }, () => {
+        const mesh = new THREE.Mesh(wispGeometry, smoke);
         rigGroup.add(mesh);
         return mesh;
       });
       const markers = Array.from({ length: 16 }, () => {
-        const mesh = new THREE.Mesh(markerGeometry, main);
+        const mesh = makeEnergy(markerGeometry);
+        rigGroup.add(mesh);
+        return mesh;
+      });
+      const posts = Array.from({ length: 16 }, () => {
+        const mesh = new THREE.Mesh(postGeometry, solid);
+        rigGroup.add(mesh);
+        return mesh;
+      });
+      const fins = Array.from({ length: 16 }, () => {
+        const mesh = new THREE.Mesh(finGeometry, solid);
+        rigGroup.add(mesh);
+        return mesh;
+      });
+      const bars = Array.from({ length: 16 }, () => {
+        const mesh = new THREE.Mesh(barGeometry, solid);
+        rigGroup.add(mesh);
+        return mesh;
+      });
+      const insets = Array.from({ length: 12 }, () => {
+        const mesh = new THREE.Mesh(barGeometry, inset);
         rigGroup.add(mesh);
         return mesh;
       });
@@ -291,18 +438,35 @@ export function buildArcRelayEffects(
         main,
         fill,
         solid,
+        inset,
         smoke,
         disc,
         ring,
+        rings,
         torus,
+        toruses,
         capsule,
+        payload,
+        pod,
+        spool,
+        hub,
+        cloud,
+        plate,
         beam,
         segments,
         panels,
+        frames,
+        slabs,
         particles,
+        wisps,
         markers,
+        posts,
+        fins,
+        bars,
+        insets,
+        cable,
       });
-      disposables.push(main, fill, solid, smoke);
+      disposables.push(main, fill, solid, inset, smoke, ...energyMaterials);
     }
     return rigs[index]!;
   };
@@ -348,9 +512,9 @@ export function buildArcRelayEffects(
     metalness: 0.08,
     depthWrite: false,
   });
-  const levelRingGeometry = new THREE.RingGeometry(0.26, 0.32, 40);
+  const levelRingGeometry = new THREE.RingGeometry(0.34, 0.42, 40);
   levelRingGeometry.rotateX(-Math.PI / 2);
-  const levelFacetGeometry = new THREE.ConeGeometry(0.12, 0.26, 3);
+  const levelFacetGeometry = new THREE.ConeGeometry(0.16, 0.38, 3);
   const levelBeats = Array.from({ length: 8 }, () => {
     const beat = new THREE.Group();
     beat.visible = false;
@@ -397,6 +561,7 @@ export function buildArcRelayEffects(
     if (!state) return;
     const poses = posesAt(replay, time);
     const reducedMotion = reducedMotionQuery?.matches === true;
+    const proofOperation = proofOperationAt();
     const usedPropSlots = new Map<string, number>();
     let used = 0;
     for (const signature of state.visibleSignatures) {
@@ -423,11 +588,20 @@ export function buildArcRelayEffects(
       rig.group.userData.operationId = signature.operationId;
       rig.group.userData.signatureId = signature.signatureId;
       rig.group.userData.phase = phase;
+      if (proofOperation !== null)
+        rig.group.visible = signature.operationId === proofOperation;
       const accent = new THREE.Color(
         unitAccent(replay, signature.ownerActor.unitKey),
       );
       const suppressed = signature.suppressed;
+      const pulsePhase = 0.5 + 0.5 * Math.sin(time * Math.PI * 3);
       rig.main.color.copy(suppressed ? new THREE.Color('#dce5eb') : accent);
+      prepareEnergyMeshes(
+        rig,
+        suppressed ? new THREE.Color('#dce5eb') : accent,
+        (phase === 'tell' ? 0.42 + pulsePhase * 0.2 : 0.72) *
+          (suppressed ? 0.55 : 1),
+      );
       rig.fill.color.copy(
         marker === 'dark-field'
           ? new THREE.Color('#17212a')
@@ -437,8 +611,12 @@ export function buildArcRelayEffects(
       );
       rig.solid.color.copy(accent).lerp(new THREE.Color('#dbe7ea'), 0.3);
       rig.solid.emissive.copy(accent).multiplyScalar(0.16);
+      rig.solid.emissiveIntensity = 0.18;
       rig.solid.opacity = suppressed ? 0.48 : 0.82;
-      const pulsePhase = 0.5 + 0.5 * Math.sin(time * Math.PI * 3);
+      rig.inset.opacity = suppressed ? 0.4 : 0.96;
+      rig.smoke.color.set('#66727c');
+      rig.smoke.emissive.set('#121a20');
+      rig.smoke.emissiveIntensity = 0.12;
       rig.main.opacity =
         (phase === 'tell' ? 0.42 + pulsePhase * 0.2 : 0.72) *
         (suppressed ? 0.55 : 1);
@@ -460,6 +638,10 @@ export function buildArcRelayEffects(
       const target = targetPose
         ? new THREE.Vector3(targetPose.x + 0.5, 0.08, targetPose.y + 0.5)
         : points[0] ?? owner;
+      const phaseStartedTick = signaturePhaseStarts.get(
+        `${signature.operationId}:${phase}`,
+      ) ?? signature.startedTick;
+      const phaseAge = Math.max(0, time - phaseStartedTick);
       let persistentPropReady = false;
       if (
         phase === 'active' &&
@@ -473,8 +655,18 @@ export function buildArcRelayEffects(
         const slot = propAt(signature, poolIndex);
         slot.group.visible = true;
         slot.group.userData.operationId = signature.operationId;
-        slot.group.position.copy(points[0]).setY(0);
-        slot.group.scale.setScalar(ARC_SIGNATURE_PROP_SCALE[signature.signatureId]);
+        const deploy = reducedMotion
+          ? 1
+          : easeOutDeploy(Math.min(1, phaseAge / 1.15));
+        const propScale = ARC_SIGNATURE_PROP_SCALE[signature.signatureId];
+        slot.group.position.copy(points[0]).setY(-0.72 + deploy * 0.72);
+        // Grow from a readable physical seed instead of a zero-scale apparition. The
+        // slight over-settle makes the one-piece Meshy prop visibly *arrive*, while every
+        // value remains a pure function of the replay phase age for direct seeks.
+        const scaleSettle = reducedMotion
+          ? 1
+          : deploy + Math.sin(Math.PI * Math.min(1, phaseAge / 1.15)) * 0.14;
+        slot.group.scale.setScalar(propScale * (0.22 + scaleSettle * 0.78));
         const propYaw =
           signature.signatureId === 'sentinel-seed'
             ? latestObservedSignatureYaw(
@@ -485,9 +677,16 @@ export function buildArcRelayEffects(
         const yawTarget = sentinelYawTarget(slot.group, slot.model);
         slot.group.rotation.y = yawTarget === slot.group ? propYaw : 0;
         if (slot.yawHead) slot.yawHead.rotation.y = propYaw;
-        paintSignaturePropBody(slot.emissives, signature.suppressed, time);
+        paintSignaturePropBody(
+          slot.emissives,
+          slot.materials,
+          signature.suppressed,
+          time,
+          deploy,
+        );
         slot.pipGroup.visible = true;
-        slot.pipGroup.position.copy(points[0]).setY(0);
+        slot.pipGroup.position.copy(points[0]).setY(-0.72 + deploy * 0.72);
+        slot.pipGroup.scale.setScalar(0.42 + deploy * 0.82);
         const pipOwner = replay.units.find(
           (unit) => unit.teamId === signature.ownerTeamId,
         );
@@ -500,7 +699,7 @@ export function buildArcRelayEffects(
         }
         persistentPropReady = slot.ready;
       }
-      if (authoredPainter)
+      if (authoredPainter) {
         authoredPainter.paint({
           rig,
           signature,
@@ -511,8 +710,12 @@ export function buildArcRelayEffects(
           phase: phase as ArcSignatureWebGLPhase,
           persistentPropReady,
           reducedMotion,
+          phaseProgress: signaturePhaseProgress(signature, time),
+          phaseStartedTick,
+          phaseAge,
+          tickFraction: time - Math.floor(time),
         });
-      else if (legacyPainter)
+      } else if (legacyPainter)
         paintLegacySignature(
           rig,
           legacyPainter,
@@ -527,19 +730,12 @@ export function buildArcRelayEffects(
       // Some public events share an operation ID before they carry enough
       // topology for a particular painter. Do not publish an empty effect
       // group merely because the operation is present.
-      rig.group.visible = rig.group.children.some((child) => child.visible);
+      rig.group.visible = rig.group.visible &&
+        rig.group.children.some((child) => child.visible);
     }
 
-    const priorState = arcStateBefore(replay, tickIndex);
-    const outcomeFacts = new Map<string, ArcSignatureOutcomeFact[]>();
-    for (const event of [...tick.lifecycleEvents, ...tick.events]) {
-      const fact = event.arcRelayFact;
-      if (!fact || !('operationId' in fact)) continue;
-      const facts = outcomeFacts.get(fact.operationId) ?? [];
-      facts.push(fact);
-      outcomeFacts.set(fact.operationId, facts);
-    }
-    for (const [operationId, facts] of outcomeFacts) {
+    for (const outcome of signatureOutcomesAt(signatureOutcomes, time)) {
+      const { operationId, facts, fraction, priorSignature } = outcome;
       const first = facts[0]!;
       const resolution = resolveArcSignaturePresentation(
         replay,
@@ -556,6 +752,8 @@ export function buildArcRelayEffects(
       rig.group.userData.signatureId = first.signatureId;
       rig.group.userData.operationId = operationId;
       rig.group.userData.phase = 'outcome';
+      if (proofOperation !== null)
+        rig.group.visible = operationId === proofOperation;
       const accent = new THREE.Color(
         unitAccent(replay, first.ownerActor.unitKey),
       );
@@ -563,15 +761,18 @@ export function buildArcRelayEffects(
       rig.fill.color.copy(accent);
       rig.solid.color.copy(accent).lerp(new THREE.Color('#dbe7ea'), 0.3);
       rig.solid.emissive.copy(accent).multiplyScalar(0.16);
+      rig.solid.emissiveIntensity = 0.18;
+      prepareEnergyMeshes(rig, accent, 0.72);
+      rig.smoke.color.set('#66727c');
+      rig.smoke.emissive.set('#121a20');
+      rig.smoke.emissiveIntensity = 0.12;
       rig.main.opacity = 0.72;
       rig.fill.opacity = 0.12;
       rig.solid.opacity = 0.82;
+      rig.inset.opacity = 0.96;
       const ownerPose = poses.find(
         (pose) => pose.actorKey === first.ownerActor.actorKey,
       );
-      const priorSignature = priorState?.visibleSignatures.find(
-        (signature) => signature.operationId === operationId,
-      ) ?? null;
       painter.paintOutcome({
         rig,
         signatureId: first.signatureId,
@@ -583,10 +784,11 @@ export function buildArcRelayEffects(
             ? worldPoint(priorSignature.positions[0])
             : undefined,
         time,
-        fraction: time - tickIndex,
+        fraction,
         reducedMotion,
       });
-      rig.group.visible = rig.group.children.some((child) => child.visible);
+      rig.group.visible = rig.group.visible &&
+        rig.group.children.some((child) => child.visible);
     }
 
     paintLevelUpBeats(veterancy, poses, time, levelBeats);
@@ -605,21 +807,81 @@ export function buildArcRelayEffects(
   return { group, update };
 }
 
-function resetRig(rig: ArcSignatureEffectRig): void {
-  rig.disc.visible = false;
-  rig.ring.visible = false;
-  rig.torus.visible = false;
-  rig.capsule.visible = false;
-  rig.beam.visible = false;
+function easeOutDeploy(value: number): number {
+  const clamped = Math.max(0, Math.min(1, value));
+  return 1 - (1 - clamped) ** 3;
+}
+
+/** Dynamic so one review page can retain decoded models while it records every operation. */
+function proofOperationAt(): string | null {
+  if (typeof window === 'undefined') return null;
+  const query = new URLSearchParams(window.location.search);
+  return query.has('proof') ? query.get('proof-operation') : null;
+}
+
+function prepareEnergyMeshes(
+  rig: ArcSignatureEffectRig,
+  colour: THREE.Color,
+  opacity: number,
+): void {
   for (const mesh of [
+    rig.ring,
+    ...rig.rings,
+    rig.torus,
+    ...rig.toruses,
+    rig.beam,
     ...rig.segments,
-    ...rig.panels,
     ...rig.particles,
     ...rig.markers,
-  ])
+  ]) {
+    const material = mesh.material as THREE.MeshBasicMaterial;
+    material.color.copy(colour);
+    material.opacity = opacity;
+  }
+}
+
+function resetRig(rig: ArcSignatureEffectRig): void {
+  // Rigs are pooled by draw order, not permanently owned by one signature. Reset the
+  // complete transform as well as visibility: Survey's airborne payload once left four
+  // turns of X rotation on the same mesh its landed instrument borrowed, so a direct seek
+  // and a played landing produced different frames. A pure painter must always start from
+  // the same identity transform, regardless of which phase or signature used this slot in
+  // the previous rendered frame.
+  for (const mesh of [
+    rig.disc,
+    rig.ring,
+    ...rig.rings,
+    rig.torus,
+    ...rig.toruses,
+    rig.capsule,
+    rig.payload,
+    rig.pod,
+    rig.spool,
+    rig.hub,
+    rig.cloud,
+    rig.plate,
+    rig.beam,
+    rig.cable,
+    ...rig.segments,
+    ...rig.panels,
+    ...rig.frames,
+    ...rig.slabs,
+    ...rig.particles,
+    ...rig.wisps,
+    ...rig.markers,
+    ...rig.posts,
+    ...rig.fins,
+    ...rig.bars,
+    ...rig.insets,
+  ]) {
     mesh.visible = false;
+    mesh.position.set(0, 0, 0);
+    mesh.rotation.set(0, 0, 0);
+    mesh.scale.set(1, 1, 1);
+  }
   for (const panel of rig.panels) panel.material = rig.fill;
   for (const particle of rig.particles) particle.material = rig.main;
+  for (const wisp of rig.wisps) wisp.material = rig.smoke;
   rig.smoke.opacity = 0;
 }
 
@@ -645,10 +907,10 @@ function paintLegacySignature(
     const area = areaBounds(points.length > 0 ? points : [anchor]);
     rig.disc.visible = true;
     rig.disc.position.copy(area.centre).setY(0.032);
-    rig.disc.scale.set(area.width, area.depth, 1);
+    rig.disc.scale.set(area.width, 1, area.depth);
     rig.ring.visible = true;
     rig.ring.position.copy(area.centre).setY(0.04);
-    rig.ring.scale.set(area.width * tellScale, area.depth * tellScale, 1);
+    rig.ring.scale.set(area.width * tellScale, 1, area.depth * tellScale);
     rig.ring.rotation.y = painter === 'calibration-field' ? time * 0.35 : -time * 0.12;
     if (painter === 'calibration-field') {
       rig.beam.visible = true;
@@ -915,6 +1177,67 @@ function arcStateBefore(
     : null;
 }
 
+interface IndexedSignatureOutcome {
+  sourceTick: number;
+  operationId: string;
+  facts: ArcSignatureOutcomeFact[];
+  priorSignature: Signature | null;
+}
+
+interface SignatureOutcomeSample extends IndexedSignatureOutcome {
+  /** Normalized age through the renderer-only linger; zero at the causal fact. */
+  fraction: number;
+}
+
+function indexSignatureOutcomes(replay: ReplayModel): IndexedSignatureOutcome[][] {
+  return replay.ticks.map((source, sourceTick) => {
+    const grouped = new Map<string, ArcSignatureOutcomeFact[]>();
+    for (const event of [...source.lifecycleEvents, ...source.events]) {
+      const fact = event.arcRelayFact;
+      if (!fact || !('operationId' in fact)) continue;
+      const facts = grouped.get(fact.operationId) ?? [];
+      facts.push(fact);
+      grouped.set(fact.operationId, facts);
+    }
+    const priorState = arcStateBefore(replay, sourceTick);
+    return [...grouped].map(([operationId, facts]) => ({
+      sourceTick,
+      operationId,
+      facts,
+      priorSignature: priorState?.visibleSignatures.find(
+        (signature) => signature.operationId === operationId,
+      ) ?? null,
+    }));
+  });
+}
+
+/**
+ * Retain one-shot signature outcomes long enough to read at ordinary playback speed.
+ *
+ * The authoritative fact remains on exactly one tick. This only samples that already-
+ * public fact for 1.8 visual ticks, and derives every frame from `time`, so pause, seek and
+ * continuous playback are identical. A later retained tick never reveals future state.
+ */
+function signatureOutcomesAt(
+  index: readonly (readonly IndexedSignatureOutcome[])[],
+  time: number,
+): SignatureOutcomeSample[] {
+  const tickIndex = Math.max(0, Math.min(Math.floor(time), index.length - 1));
+  const firstTick = Math.max(0, Math.ceil(time - SIGNATURE_OUTCOME_LINGER_TICKS));
+  const result: SignatureOutcomeSample[] = [];
+  for (let sourceTick = firstTick; sourceTick <= tickIndex; sourceTick += 1) {
+    const age = time - sourceTick;
+    if (age < 0 || age >= SIGNATURE_OUTCOME_LINGER_TICKS) continue;
+    for (const outcome of index[sourceTick] ?? []) {
+      result.push({
+        ...outcome,
+        fraction: age / SIGNATURE_OUTCOME_LINGER_TICKS,
+      });
+    }
+  }
+  return result;
+}
+
 function indexSignatureShotYaws(
   replay: ReplayModel,
 ): Map<string, SignatureShotYaw[]> {
@@ -949,14 +1272,62 @@ function indexSignatureShotYaws(
   return result;
 }
 
+function indexSignaturePhaseStarts(replay: ReplayModel): Map<string, number> {
+  const result = new Map<string, number>();
+  for (const [tickIndex, tick] of replay.ticks.entries()) {
+    const mode = tick.after.mode;
+    if (mode?.kind !== 'arc-relay' || !('visibleSignatures' in mode)) continue;
+    for (const signature of mode.visibleSignatures) {
+      const key = `${signature.operationId}:${signature.phase}`;
+      if (!result.has(key)) result.set(key, tickIndex);
+    }
+  }
+  return result;
+}
+
 function paintSignaturePropBody(
   emissives: readonly { material: THREE.MeshStandardMaterial; base: number }[],
+  materials: readonly {
+    material: THREE.MeshStandardMaterial;
+    opacity: number;
+    transparent: boolean;
+  }[],
   suppressed: boolean,
   time: number,
+  deploy: number,
 ): void {
   const breathing = 0.95 + Math.sin(time * Math.PI * 0.42) * 0.05;
   for (const { material, base } of emissives)
     material.emissiveIntensity = base * (suppressed ? 0.22 : breathing);
+  for (const { material, opacity, transparent } of materials) {
+    const reveal = 0.24 + deploy * 0.76;
+    material.transparent = transparent || reveal < 0.999;
+    material.opacity = opacity * reveal * (suppressed ? 0.58 : 1);
+  }
+}
+
+function signaturePropMaterials(
+  model: THREE.Group,
+): {
+  material: THREE.MeshStandardMaterial;
+  opacity: number;
+  transparent: boolean;
+}[] {
+  const materials = new Set<THREE.MeshStandardMaterial>();
+  model.traverse((node) => {
+    const mesh = node as THREE.Mesh;
+    if (!mesh.isMesh) return;
+    for (const material of Array.isArray(mesh.material)
+      ? mesh.material
+      : [mesh.material]) {
+      if (material instanceof THREE.MeshStandardMaterial) materials.add(material);
+    }
+  });
+  return [...materials].map((material) => ({
+    material,
+    opacity: material.opacity,
+    transparent: material.transparent,
+  }));
 }
 
 function signaturePropEmissives(
@@ -1017,19 +1388,19 @@ function paintLevelUpBeats(
     const rig = rigs[used++];
     if (!rig) break;
     const progress = event.age / LEVEL_UP_BEAT_TICKS;
-    const ringProgress = Math.min(1, event.age / 0.18);
-    const facetProgress = Math.max(0, Math.min(1, (event.age - 0.12) / 0.36));
-    const alpha = Math.max(0, 1 - progress);
+    const ringProgress = Math.min(1, event.age / 0.42);
+    const facetProgress = Math.max(0, Math.min(1, (event.age - 0.16) / 0.64));
+    const alpha = Math.max(0, 1 - progress ** 1.45);
     rig.group.visible = true;
     rig.group.position.set(pose.x + 0.5, 0.09, pose.y + 0.5);
-    rig.ring.scale.setScalar(0.82 + ringProgress * 1.5);
+    rig.ring.scale.setScalar(0.82 + ringProgress * 2.15);
     (rig.ring.material as THREE.MeshStandardMaterial).opacity = alpha * 0.78;
     for (const [index, facet] of rig.facets.entries()) {
       const angle = -Math.PI / 2 + (index * Math.PI * 2) / 3;
-      const radius = 0.72 - facetProgress * 0.34;
+      const radius = 0.92 - facetProgress * 0.42;
       facet.position.set(
         Math.cos(angle) * radius,
-        0.12 + facetProgress * 0.22,
+        0.18 + facetProgress * 0.78,
         Math.sin(angle) * radius,
       );
       facet.rotation.y = -angle;

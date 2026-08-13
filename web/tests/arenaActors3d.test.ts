@@ -471,9 +471,31 @@ test('projectile interpolation keeps exact owner identity and all eight-way head
   );
   assert.ok(bolt);
   assert.equal(bolt.heading, 'north-east');
+  assert.equal(bolt.previousHeading, 'north-east');
+  assert.equal(bolt.segmentProgress, 0.5);
   assert.equal(bolt.ownerActor.actorKey, traversal.ownerActor.actorKey);
   assert.equal(bolt.x, traversal.from.x + 0.5);
   assert.equal(bolt.y, traversal.from.y - 0.5);
+});
+
+test('projectile corner orientation inputs are replay-time derived and seek-stable', () => {
+  const corner = structuredClone(frontline) as ReplayModel;
+  const traversal = corner.ticks[10]!.projectileTraversals[0]!;
+  traversal.path = [
+    { x: traversal.from.x + 1, y: traversal.from.y },
+    { x: traversal.from.x + 1, y: traversal.from.y - 1 },
+  ];
+
+  const direct = boltsAt(corner, 10.75, 'projectile-traversal').find(
+    (candidate) => candidate.id === traversal.projectileId,
+  );
+  const repeated = boltsAt(corner, 10.75, 'projectile-traversal').find(
+    (candidate) => candidate.id === traversal.projectileId,
+  );
+  assert.deepEqual(direct, repeated);
+  assert.equal(direct?.previousHeading, 'east');
+  assert.equal(direct?.heading, 'north');
+  assert.equal(direct?.segmentProgress, 0.5);
 });
 
 test('3D opts wind-up attacks into projectile presentation without changing Canvas', () => {

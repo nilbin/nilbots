@@ -19,7 +19,7 @@ export default defineArcSignature({
   budget: {
     segments: 6,
     panels: 0,
-    particles: 12,
+    particles: 7,
     markers: 2,
     transparentLayers: 2,
     persistentProps: 0,

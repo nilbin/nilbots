@@ -1517,9 +1517,9 @@ function drawLevelUpBeats(input: ArcRelayVisualContext): void {
     if (!beat) continue;
     const progress = beat.age / LEVEL_UP_BEAT_TICKS;
     const point = centre(input, { x: pose.x, y: pose.y });
-    const ringProgress = Math.min(1, beat.age / 0.18);
-    const facetProgress = Math.max(0, Math.min(1, (beat.age - 0.12) / 0.36));
-    const alpha = Math.max(0, 1 - progress);
+    const ringProgress = Math.min(1, beat.age / 0.42);
+    const facetProgress = Math.max(0, Math.min(1, (beat.age - 0.16) / 0.64));
+    const alpha = Math.max(0, 1 - progress ** 1.45);
     ctx.save();
     ctx.strokeStyle = `rgba(205, 160, 74, ${alpha * 0.82})`;
     ctx.fillStyle = `rgba(205, 160, 74, ${alpha * 0.28})`;
@@ -1528,14 +1528,14 @@ function drawLevelUpBeats(input: ArcRelayVisualContext): void {
     ctx.arc(
       point.x,
       point.y,
-      tile * (0.3 + ringProgress * 0.55),
+      tile * (0.34 + ringProgress * 0.88),
       0,
       Math.PI * 2,
     );
     ctx.stroke();
     for (let index = 0; index < 3; index += 1) {
       const angle = -Math.PI / 2 + (index * Math.PI * 2) / 3;
-      const radius = tile * (0.74 - facetProgress * 0.32);
+      const radius = tile * (0.92 - facetProgress * 0.42);
       const x = point.x + Math.cos(angle) * radius;
       const y = point.y + Math.sin(angle) * radius;
       ctx.save();

@@ -16,8 +16,9 @@ import { playsAt } from '../presentation/playAwareness';
  *
  * Three properties are load-bearing and each is tested:
  *
- * - **It never cuts.** Every change is a critically damped spring toward the target, so
- *   the camera has no discontinuities even when the target does.
+ * - **Ordinary changes never cut.** Every fight-to-fight change is a critically damped
+ *   spring. The only cut is the first already-public tick of an authored signature whose
+ *   complete warning may otherwise resolve before the spring arrives.
  * - **It has a deadband.** A spawn or a step sideways does not re-aim: the committed frame
  *   is kept while it still holds the fitted box *near its middle*. Re-aiming on every frame
  *   is what turns a following camera into a zoom that hunts; never re-aiming while the box
@@ -88,6 +89,45 @@ export function directorShotHoldTicks(replay: ReplayModel): number {
     replay.contract.modeKind === 'arc-relay'
     ? 7
     : 0;
+}
+
+/**
+ * Whether a newly public authored beat may break the director's ordinary shot hold.
+ *
+ * A seven-tick hold keeps generic volleys from channel-hopping, but a one-tick signature
+ * can begin and resolve entirely inside it. The first public tick and an authoritative
+ * signature phase transition interrupt: travel→active and tell→active often move the
+ * story from a launch lane to a landed footprint. An unchanged maintained field never
+ * repeatedly steals the camera, and no future operation is consulted.
+ */
+export function directorShotInterruptsAt(
+  replay: ReplayModel,
+  time: number,
+): boolean {
+  if (
+    replay.contract.kind !== 'v3-generic' ||
+    replay.contract.modeKind !== 'arc-relay'
+  ) return false;
+  const tickIndex = Math.max(
+    0,
+    Math.min(Math.floor(time), replay.ticks.length - 1),
+  );
+  const mode = arcRelayModeState(replay, tickIndex);
+  const priorMode = tickIndex > 0 ? arcRelayModeState(replay, tickIndex - 1) : null;
+  return (
+    mode?.visibleSignatures.some(
+      (signature) =>
+        !signature.suppressed &&
+        (
+          signature.startedTick === tickIndex ||
+          priorMode?.visibleSignatures.some(
+            (prior) =>
+              prior.operationId === signature.operationId &&
+              prior.phase !== signature.phase,
+          ) === true
+        ),
+    ) ?? false
+  ) || levelUpAt(replay, tickIndex) !== null;
 }
 
 /** A framing of the arena: a centre and the span it shows, both in tiles. */
@@ -377,6 +417,30 @@ export function selectionFollowFrame(
 }
 
 /**
+ * A close, stable frame for presentation review around an authored world footprint.
+ *
+ * This is deliberately review-only camera arithmetic, not the spectator director. A
+ * lifecycle sheet is meant to make one signature judgeable; framing the complete arena
+ * merely proves that a mesh exists somewhere in it. The footprint still receives enough
+ * context to read its relationship to nearby bodies and walls, while a one-tile tell is
+ * never allowed to collapse into an extreme macro shot.
+ */
+export function reviewFocusFrame(
+  points: readonly { x: number; y: number }[],
+  framing: ArenaFraming,
+): ArenaFrame {
+  const centred = points.length > 0
+    ? points.map((point) => ({ x: point.x + 0.5, y: point.y + 0.5 }))
+    : [{ x: framing.mapWidth / 2, y: framing.mapHeight / 2 }];
+  const tightAxis = Math.min(5.5, framing.mapWidth, framing.mapHeight);
+  return focusFrame(centred, {
+    ...framing,
+    margin: 1.35,
+    minSpan: tightAxis * Math.max(1, framing.aspect),
+  });
+}
+
+/**
  * Where a selected body is standing at this instant, or `null` if it is not on the board.
  *
  * Interpolated, like everything else the camera reads, so the follow glides with the body
@@ -415,6 +479,7 @@ export function focusPointsAt(
   time: number,
   selectedUnitKey: ReplayStableUnitKey | null,
   highlightedUnitKeys: readonly ReplayStableUnitKey[] = [],
+  preferredSignatureOperationId: string | null = null,
 ): { x: number; y: number }[] {
   const active = posesAt(replay, time).filter(
     (pose) => pose.status === 'active',
@@ -430,7 +495,12 @@ export function focusPointsAt(
     play.length > 0
       ? includeNearby(active, play, 4.5)
       : teamId === null
-      ? autoDirectorPoints(replay, time, active)
+      ? autoDirectorPoints(
+          replay,
+          time,
+          active,
+          preferredSignatureOperationId,
+        )
       : active.filter((pose) => pose.teamId === teamId);
   // A tile's centre, which is where both renderers draw the body standing on it.
   return (chosen.length > 0 ? chosen : active).map((pose) => ({
@@ -446,6 +516,7 @@ export function directorFrameAt(
   selectedUnitKey: ReplayStableUnitKey | null,
   highlightedUnitKeys: readonly ReplayStableUnitKey[],
   framing: ArenaFraming,
+  preferredSignatureOperationId: string | null = null,
 ): ArenaFrame {
   return focusFrame(
     focusPointsAt(
@@ -453,6 +524,7 @@ export function directorFrameAt(
       time,
       selectedUnitKey,
       highlightedUnitKeys,
+      preferredSignatureOperationId,
     ),
     framing,
   );
@@ -464,8 +536,9 @@ type DirectorPoint = { x: number; y: number };
  * Arc Relay's causal camera director.
  *
  * It reads only facts already revealed at `time`. The ordering is the spectator grammar:
- * sustained violence, a threatened carrier, a genuinely contested loose Core, and then
- * the nearest opposing formation. An uncontested carrier jogging home is deliberately not
+ * an authored signature in its public tell/action window, sustained violence, a threatened
+ * carrier, a genuinely contested loose Core, and then the nearest opposing formation. An
+ * uncontested carrier jogging home is deliberately not
  * a shot: the score bug and Core cue carry that fact while the camera stays with play that
  * asks one team to answer the other.
  */
@@ -473,6 +546,7 @@ function autoDirectorPoints(
   replay: ReplayModel,
   time: number,
   active: readonly ReturnType<typeof posesAt>[number][],
+  preferredSignatureOperationId: string | null,
 ): DirectorPoint[] {
   if (
     replay.contract.kind !== 'v3-generic' ||
@@ -486,6 +560,111 @@ function autoDirectorPoints(
   );
   const mode = arcRelayModeState(replay, tickIndex);
   if (mode?.kind !== 'arc-relay' || !('visibleCores' in mode)) return [...active];
+
+  // A signature is an authored spectator beat, not decoration on top of an unrelated
+  // camera shot. The old director considered only generic combat and objectives here;
+  // signatures consequently happened in a corner while the camera held an older volley,
+  // which made every treatment except a body-moving dash effectively invisible. Use only
+  // the public state at this tick, include its complete footprint and the participating
+  // bodies, and keep nearby lives for context. Deterministic ordering prevents a busy tick
+  // from making the chosen theater depend on source-array order.
+  const signatures = [...mode.visibleSignatures]
+    .filter((candidate) => !candidate.suppressed)
+    .sort(
+      (left, right) =>
+        Number(right.operationId === preferredSignatureOperationId) -
+          Number(left.operationId === preferredSignatureOperationId) ||
+        Number(right.startedTick === tickIndex) -
+          Number(left.startedTick === tickIndex) ||
+        signatureDirectorPriority(right.phase) - signatureDirectorPriority(left.phase) ||
+        right.startedTick - left.startedTick ||
+        left.operationId.localeCompare(right.operationId),
+    );
+  const preferredSignature = preferredSignatureOperationId === null
+    ? null
+    : signatures.find(
+        (candidate) => candidate.operationId === preferredSignatureOperationId,
+      ) ?? null;
+  const newlyStartedSignature = signatures.find(
+    (candidate) => candidate.startedTick === tickIndex,
+  ) ?? null;
+  const promotion = levelUpAt(replay, tickIndex);
+  // A retained review operation is only a camera preference; it does not fabricate or
+  // reveal one. In production, a newly public signature owns its tell, then a promotion
+  // owns its brief authored beat. An old maintained field never hides a new level-up.
+  const signature = preferredSignature ?? newlyStartedSignature ??
+    (promotion === null ? signatures[0] : null);
+  if (signature) {
+    let anchors: DirectorPoint[] = signature.positions.map((position) => ({
+      x: position.x,
+      y: position.y,
+    }));
+    if (
+      (signature.signatureId === 'survey-flare' ||
+        signature.signatureId === 'smoke-canister') &&
+      signature.phase === 'in-flight' &&
+      anchors.length > 3
+    ) {
+      // The published flight trace may contain every traversed tile. Fitting all of it
+      // makes the projectile microscopic; endpoints are the truthful launch/destination
+      // relation and keep the moving head readable.
+      anchors = [anchors[0]!, anchors.at(-1)!];
+    }
+    if (
+      (signature.signatureId === 'survey-flare' ||
+        signature.signatureId === 'smoke-canister' ||
+        signature.signatureId === 'null-field') &&
+      signature.phase === 'active' &&
+      anchors.length > 4
+    ) {
+      // Exact footprint truth is painted in the arena. The camera only needs its bounds,
+      // not every interior tile (which caused nearby-body inclusion to fan outward).
+      const minX = Math.min(...anchors.map((point) => point.x));
+      const maxX = Math.max(...anchors.map((point) => point.x));
+      const minY = Math.min(...anchors.map((point) => point.y));
+      const maxY = Math.max(...anchors.map((point) => point.y));
+      anchors = [
+        { x: minX, y: minY },
+        { x: maxX, y: minY },
+        { x: maxX, y: maxY },
+        { x: minX, y: maxY },
+      ];
+    }
+    const owner = active.find(
+      (pose) => pose.actorKey === signature.ownerActor.actorKey,
+    );
+    const target = signature.targetActor
+      ? active.find((pose) => pose.actorKey === signature.targetActor!.actorKey)
+      : null;
+    // A placed construct must be readable where it exists. Including a distant caster
+    // turns Hardlight, Prism, Smoke and Flare back into an overview shot long after their
+    // origin has stopped explaining anything. Owner-to-effect paths and body-to-body
+    // signatures keep the caster because that relationship is their story.
+    const includeOwner = signatureNeedsOwnerInShot(signature.signatureId) &&
+      !(
+        signature.signatureId === 'target-paint' &&
+        signature.phase === 'active'
+      );
+    if (owner && includeOwner) anchors.push(owner);
+    if (target) anchors.push(target);
+    if (anchors.length > 0)
+      return includeNearby(
+        active,
+        anchors,
+        includeOwner ? 2.35 : 1.45,
+      );
+  }
+
+  if (promotion) {
+    const anchor = {
+      x: promotion.position.x,
+      y: promotion.position.y,
+    };
+    const promoted = active.find(
+      (pose) => pose.actorKey === promotion.actor.actorKey,
+    );
+    return includeNearby(active, promoted ? [anchor, promoted] : [anchor], 2.35);
+  }
 
   // A published coordinated play only takes the camera when it meets an
   // authoritative hostile/Core event. Preparation by itself stays quiet.
@@ -672,6 +851,52 @@ function autoDirectorPoints(
       )[0]
     : active[0];
   return nearest ? includeNearby(active, [nearest], 3) : anchor ? [anchor] : [];
+}
+
+function signatureNeedsOwnerInShot(signatureId: string): boolean {
+  switch (signatureId) {
+    case 'arc-toss':
+    case 'exchange':
+    case 'kinetic-burst':
+    case 'null-field':
+    case 'rail-line':
+    case 'repair-beam':
+    case 'target-paint':
+    case 'tractor-hook':
+    case 'vector-dash':
+      return true;
+    default:
+      return false;
+  }
+}
+
+function levelUpAt(
+  replay: ReplayModel,
+  tickIndex: number,
+): Extract<NonNullable<ReplayModel['ticks'][number]['events'][number]['arcRelayFact']>, {
+  kind: 'leveled-up';
+}> | null {
+  const tick = replay.ticks[tickIndex];
+  if (!tick) return null;
+  for (const event of [...tick.lifecycleEvents, ...tick.events]) {
+    if (event.arcRelayFact?.kind === 'leveled-up') return event.arcRelayFact;
+  }
+  return null;
+}
+
+function signatureDirectorPriority(
+  phase: ArcRelayModeState['visibleSignatures'][number]['phase'],
+): number {
+  switch (phase) {
+    case 'in-flight':
+      return 4;
+    case 'channel':
+      return 3;
+    case 'tell':
+      return 2;
+    case 'active':
+      return 1;
+  }
 }
 
 type ArcRelayModeState = Extract<
@@ -906,7 +1131,12 @@ export class ArenaCamera {
    * Offer a freshly fitted frame. Ignored unless the action has escaped the committed one.
    * Returns whether it was taken, which is what makes the deadband observable.
    */
-  aim(candidate: ArenaFrame, time?: number, holdTicks = 0): boolean {
+  aim(
+    candidate: ArenaFrame,
+    time?: number,
+    holdTicks = 0,
+    interruptHold = false,
+  ): boolean {
     if (this.allegiance !== 'director') return false;
     if (time !== undefined && time < this.lastAimTime) {
       // A seek or restart is a new watch from that point; a future shot lock must not leak
@@ -917,6 +1147,7 @@ export class ArenaCamera {
     if (time !== undefined) this.lastAimTime = time;
     if (
       !this.forceAim &&
+      !interruptHold &&
       time !== undefined &&
       time < this.heldUntil &&
       frameEscapes(this.target, candidate)
@@ -927,6 +1158,27 @@ export class ArenaCamera {
     this.forceAim = false;
     this.target = { ...candidate };
     if (time !== undefined) this.heldUntil = time + Math.max(0, holdTicks);
+    return true;
+  }
+
+  /**
+   * Commit a causal spectator beat immediately.
+   *
+   * The normal director always springs and never cuts. That is correct for moving between
+   * fights and wrong for a one-tick authored tell: by the time a wide camera has travelled,
+   * the only warning has resolved. This is reserved for the first public tick of a replay-
+   * authored signature, so it cannot anticipate state or turn ordinary combat into cuts.
+   */
+  cut(candidate: ArenaFrame, time?: number, holdTicks = 0): boolean {
+    if (this.allegiance !== 'director') return false;
+    this.frame = { ...candidate };
+    this.target = { ...candidate };
+    this.velocity = { x: 0, y: 0, span: 0 };
+    this.forceAim = false;
+    if (time !== undefined) {
+      this.lastAimTime = time;
+      this.heldUntil = time + Math.max(0, holdTicks);
+    }
     return true;
   }
 
@@ -1049,6 +1301,11 @@ export class ArenaCamera {
   hold(frame: ArenaFrame): void {
     this.allegiance = 'hand';
     this.settle(frame);
+  }
+
+  /** Snap to a pinned review frame without engaging the spectator director. */
+  review(frame: ArenaFrame): void {
+    this.hold(frame);
   }
 
   /**

@@ -18,11 +18,13 @@ import {
   ArenaCamera,
   arenaViewport,
   directorMinSpan,
+  directorShotInterruptsAt,
   directorShotHoldTicks,
   focusFrame,
   focusPointsAt,
   frameEscapes,
   fullArenaFrame,
+  reviewFocusFrame,
   posesAt,
   selectedUnitPointAt,
   selectionFollowFrame,
@@ -460,6 +462,240 @@ test('a quiet Arc Relay director stays with one active theater', () => {
   assert.ok(threatened.some((point) => Math.abs(point.x - 8.5) < 1e-9));
 });
 
+test('an authored Arc Relay signature owns the ordinary director shot', () => {
+  const arc = loadReplayJson(
+    readFileSync(join(here, 'fixtures', 'generic-mind-replay-v3.json'), 'utf8'),
+  ).replay;
+  assert.equal(arc.contract.kind, 'v3-generic');
+  if (arc.contract.kind !== 'v3-generic') return;
+  arc.contract.modeKind = 'arc-relay';
+  const tick = arc.ticks[0]!;
+  const owner = tick.after.actors[0]!;
+  const target = tick.after.actors.find(
+    (actor) => actor.identity.teamId !== owner.identity.teamId,
+  )!;
+  const mode = {
+    kind: 'arc-relay' as const,
+    modeId: 'arc-relay',
+    wells: [],
+    reactors: [],
+    visibleCores: [],
+    visibleSignatures: [{
+      operationId: 'review-signature',
+      signatureId: 'prism-wall',
+      signatureKind: 'persistent',
+      ownerActor: owner.identity,
+      ownerTeamId: owner.identity.teamId,
+      phase: 'tell' as const,
+      startedTick: 0,
+      completesAtTick: 2,
+      endsAtTick: 8,
+      positions: [{ x: 25, y: 4 }, { x: 25, y: 5 }, { x: 25, y: 6 }],
+      targetActor: target.identity,
+      remainingCapacity: 2,
+      suppressed: false,
+    }],
+    latestPulseTeamId: null,
+    latestPulseTick: null,
+  };
+  tick.after.mode = mode;
+  tick.before.mode = mode;
+  tick.events = [];
+  const points = focusPointsAt(arc, 0.25, null);
+  assert.equal(
+    directorShotInterruptsAt(arc, 0.25),
+    true,
+    'the first public signature tick may break an ordinary shot hold',
+  );
+  assert.ok(
+    points.some((point) => Math.abs(point.x - 25.5) < 1e-9 && Math.abs(point.y - 4.5) < 1e-9),
+    'the signature footprint is fitted even when no body occupies it',
+  );
+  assert.ok(
+    points.some((point) => Math.abs(point.x - 25.5) < 1e-9 && Math.abs(point.y - 6.5) < 1e-9),
+    'the complete authored footprint survives the fit',
+  );
+  mode.visibleSignatures[0]!.startedTick = -1;
+  assert.equal(
+    directorShotInterruptsAt(arc, 0.25),
+    false,
+    'a continuing field does not steal the camera every frame',
+  );
+});
+
+test('a newly started signature beats an older maintained construct for framing', () => {
+  const arc = loadReplayJson(
+    readFileSync(join(here, 'fixtures', 'generic-mind-replay-v3.json'), 'utf8'),
+  ).replay;
+  if (arc.contract.kind !== 'v3-generic') return;
+  arc.contract.modeKind = 'arc-relay';
+  const tick = arc.ticks[0]!;
+  const owner = tick.after.actors[0]!;
+  const mode = {
+    kind: 'arc-relay' as const,
+    modeId: 'arc-relay',
+    wells: [],
+    reactors: [],
+    visibleCores: [],
+    visibleSignatures: [
+      {
+        operationId: 'old-field', signatureId: 'null-field', signatureKind: 'persistent',
+        ownerActor: owner.identity, ownerTeamId: owner.identity.teamId, phase: 'active' as const,
+        startedTick: -4, completesAtTick: null, endsAtTick: 8,
+        positions: [{ x: 4, y: 4 }], targetActor: null, remainingCapacity: 1, suppressed: false,
+      },
+      {
+        operationId: 'new-block', signatureId: 'hardlight-block', signatureKind: 'persistent',
+        ownerActor: owner.identity, ownerTeamId: owner.identity.teamId, phase: 'active' as const,
+        startedTick: 0, completesAtTick: null, endsAtTick: 8,
+        positions: [{ x: 25, y: 18 }], targetActor: null, remainingCapacity: 3, suppressed: false,
+      },
+    ],
+    latestPulseTeamId: null,
+    latestPulseTick: null,
+  };
+  tick.before.mode = mode;
+  tick.after.mode = mode;
+  tick.events = [];
+  const points = focusPointsAt(arc, 0.2, null);
+  assert.ok(points.some((point) => point.x === 25.5 && point.y === 18.5));
+  assert.ok(!points.some((point) => point.x === 4.5 && point.y === 4.5));
+});
+
+test('a signature phase transition may reframe from travel to its landed footprint', () => {
+  const arc = loadReplayJson(
+    readFileSync(join(here, 'fixtures', 'generic-mind-replay-v3.json'), 'utf8'),
+  ).replay;
+  if (arc.contract.kind !== 'v3-generic') return;
+  arc.contract.modeKind = 'arc-relay';
+  const owner = arc.ticks[0]!.after.actors[0]!;
+  const makeMode = (phase: 'in-flight' | 'active') => ({
+    kind: 'arc-relay' as const, modeId: 'arc-relay', wells: [], reactors: [],
+    visibleCores: [], latestPulseTeamId: null, latestPulseTick: null,
+    visibleSignatures: [{
+      operationId: 'flare', signatureId: 'survey-flare', signatureKind: 'field',
+      ownerActor: owner.identity, ownerTeamId: owner.identity.teamId, phase,
+      startedTick: 0, completesAtTick: phase === 'in-flight' ? 1 : null,
+      endsAtTick: 8, positions: [{ x: 20, y: 16 }, { x: 21, y: 16 }],
+      targetActor: null, remainingCapacity: 0, suppressed: false,
+    }],
+  });
+  const prior = makeMode('in-flight');
+  arc.ticks[0]!.before.mode = prior;
+  arc.ticks[0]!.after.mode = prior;
+  const landed = makeMode('active');
+  arc.ticks[1]!.before.mode = prior;
+  arc.ticks[1]!.after.mode = landed;
+  assert.equal(directorShotInterruptsAt(arc, 1.1), true);
+  arc.ticks[1]!.before.mode = landed;
+  arc.ticks[1]!.after.mode = landed;
+  assert.equal(
+    directorShotInterruptsAt(arc, 1.1),
+    true,
+    'the preceding published tick, not before/after internals, defines the transition',
+  );
+  arc.ticks[0]!.after.mode = landed;
+  assert.equal(directorShotInterruptsAt(arc, 1.1), false);
+});
+
+test('review proof can prefer one real operation without changing public state', () => {
+  const arc = loadReplayJson(
+    readFileSync(join(here, 'fixtures', 'generic-mind-replay-v3.json'), 'utf8'),
+  ).replay;
+  if (arc.contract.kind !== 'v3-generic') return;
+  arc.contract.modeKind = 'arc-relay';
+  const tick = arc.ticks[0]!;
+  const owner = tick.after.actors[0]!;
+  const mode = {
+    kind: 'arc-relay' as const,
+    modeId: 'arc-relay',
+    wells: [], reactors: [], visibleCores: [], latestPulseTeamId: null, latestPulseTick: null,
+    visibleSignatures: [
+      {
+        operationId: 'left', signatureId: 'null-field', signatureKind: 'persistent',
+        ownerActor: owner.identity, ownerTeamId: owner.identity.teamId, phase: 'active' as const,
+        startedTick: 0, completesAtTick: null, endsAtTick: 8,
+        positions: [{ x: 4, y: 4 }], targetActor: null, remainingCapacity: 1, suppressed: false,
+      },
+      {
+        operationId: 'right', signatureId: 'prism-wall', signatureKind: 'persistent',
+        ownerActor: owner.identity, ownerTeamId: owner.identity.teamId, phase: 'active' as const,
+        startedTick: 0, completesAtTick: null, endsAtTick: 8,
+        positions: [{ x: 25, y: 18 }], targetActor: null, remainingCapacity: 3, suppressed: false,
+      },
+    ],
+  };
+  tick.before.mode = mode;
+  tick.after.mode = mode;
+  tick.events = [];
+  const points = focusPointsAt(arc, 0.2, null, [], 'right');
+  assert.ok(points.some((point) => point.x === 25.5 && point.y === 18.5));
+  assert.ok(!points.some((point) => point.x === 4.5 && point.y === 4.5));
+  assert.equal(mode.visibleSignatures.length, 2, 'the preference never filters replay truth');
+});
+
+test('a placed construct frames its tile, not a distant caster or unrelated theater', () => {
+  const arc = loadReplayJson(
+    readFileSync(join(here, 'fixtures', 'generic-mind-replay-v3.json'), 'utf8'),
+  ).replay;
+  if (arc.contract.kind !== 'v3-generic') return;
+  arc.contract.modeKind = 'arc-relay';
+  const tick = arc.ticks[0]!;
+  const owner = tick.after.actors[0]!;
+  owner.position = { x: 2, y: 2 };
+  const neighbor = tick.after.actors[1]!;
+  neighbor.position = { x: 10, y: 9 };
+  tick.before.actors = tick.after.actors.map((actor) => ({
+    ...actor,
+    identity: { ...actor.identity },
+    position: { ...actor.position },
+  }));
+  const mode = {
+    kind: 'arc-relay' as const, modeId: 'arc-relay', wells: [], reactors: [],
+    visibleCores: [], latestPulseTeamId: null, latestPulseTick: null,
+    visibleSignatures: [{
+      operationId: 'block', signatureId: 'hardlight-block', signatureKind: 'persistent',
+      ownerActor: owner.identity, ownerTeamId: owner.identity.teamId, phase: 'active' as const,
+      startedTick: 0, completesAtTick: null, endsAtTick: 8,
+      positions: [{ x: 11, y: 9 }], targetActor: null, remainingCapacity: 3, suppressed: false,
+    }],
+  };
+  tick.before.mode = mode;
+  tick.after.mode = mode;
+  tick.events = [];
+  const points = focusPointsAt(arc, 0.2, null);
+  assert.ok(points.some((point) => point.x === 11.5 && point.y === 9.5));
+  assert.ok(points.some((point) => point.x === 10.5 && point.y === 9.5));
+  assert.ok(!points.some((point) => point.x === 2.5 && point.y === 2.5));
+});
+
+test('a public level-up owns a brief causal director beat', () => {
+  const arc = loadReplayJson(
+    readFileSync(join(here, 'fixtures', 'generic-mind-replay-v3.json'), 'utf8'),
+  ).replay;
+  if (arc.contract.kind !== 'v3-generic') return;
+  arc.contract.modeKind = 'arc-relay';
+  const tick = arc.ticks[0]!;
+  const promoted = tick.after.actors[0]!;
+  tick.events = [{
+    ...tick.events[0]!,
+    arcRelayFact: {
+      kind: 'leveled-up',
+      actor: promoted.identity,
+      level: 2,
+      position: { x: 25, y: 18 },
+    },
+  }];
+  tick.before.mode = {
+    kind: 'arc-relay', modeId: 'arc-relay', wells: [], reactors: [], visibleCores: [],
+    visibleSignatures: [], latestPulseTeamId: null, latestPulseTick: null,
+  };
+  tick.after.mode = tick.before.mode;
+  const points = focusPointsAt(arc, 0.2, null);
+  assert.equal(directorShotInterruptsAt(arc, 0.2), true);
+  assert.ok(points.some((point) => point.x === 25.5 && point.y === 18.5));
+});
+
 test('the fit is close enough to watch on a phone, and still never crops a life', () => {
   // Reported from a phone: "zoom in more in the fit — margin is way excessive". The fit was
   // correct about *where* to look and far too generous about how much to show, and the
@@ -713,9 +949,29 @@ test('a director shot holds through ordinary off-screen churn, then releases', (
     'a new ordinary beat cannot channel-hop during the shot',
   );
   assert.deepEqual(camera.aimed, north);
-  assert.equal(camera.aim(south, 17, 7), true, 'the shot releases on replay time');
+  assert.equal(
+    camera.aim(south, 13, 7, true),
+    true,
+    'a newly public authored beat can interrupt the ordinary hold',
+  );
+  assert.deepEqual(camera.aimed, south);
+  assert.equal(camera.aim(north, 14, 7), false, 'the interrupted shot receives its own hold');
+  assert.equal(camera.aim(north, 20, 7), true, 'the interrupted shot releases on replay time');
 
-  assert.equal(camera.aim(north, 4, 7), true, 'a seek clears the future shot lock');
+  assert.equal(camera.aim(south, 4, 7), true, 'a seek clears the future shot lock');
+});
+
+test('a causal signature cut arrives before its one-tick tell resolves', () => {
+  const camera = new ArenaCamera(FRAMING);
+  const north = focusFrame([{ x: 8, y: 5 }], FRAMING);
+  const south = focusFrame([{ x: 32, y: 19 }], FRAMING);
+  camera.settle(north);
+  assert.equal(camera.cut(south, 13, 7), true);
+  assert.deepEqual(camera.frame, south, 'the authored beat is visible immediately');
+  assert.deepEqual(camera.aimed, south);
+  assert.equal(camera.aim(north, 14, 7), false, 'the beat keeps its ordinary shot hold');
+  camera.release();
+  assert.equal(camera.cut(north, 15, 7), false, 'a hand-held camera never gets cut');
 });
 
 test('a huge frame gap — a backgrounded tab — is stepped, not flung', () => {
@@ -1000,6 +1256,30 @@ test('a selection follow keeps context while its complete render clears 63×63 C
       `${viewport.width}×${viewport.height}: ${footprint.width.toFixed(1)}×${footprint.height.toFixed(1)} px`,
     );
   }
+});
+
+test('a signature review frame makes a local footprint judgeable without losing context', () => {
+  const framing = {
+    mapWidth: 31,
+    mapHeight: 23,
+    aspect: 16 / 10,
+    viewportWidth: 926,
+    viewportHeight: 578,
+    minSpan: 7,
+  };
+  const local = reviewFocusFrame([{ x: 15, y: 14 }], framing);
+  const lane = reviewFocusFrame([
+    { x: 3, y: 7 },
+    { x: 20, y: 7 },
+  ], framing);
+  assert.ok(local.height >= 5.5 && local.height <= 9.5);
+  assert.ok(local.width < fullArenaFrame(framing).width * 0.55);
+  assert.ok(
+    Math.abs(local.x - 15.5) < 1e-9 && Math.abs(local.y - 14.5) < 1e-9,
+    'one-tile effects stay centred on their authored tile',
+  );
+  assert.ok(lane.width > local.width, 'a long authored lane remains complete');
+  assert.ok(lane.width < fullArenaFrame(framing).width, 'but does not fall back to overview');
 });
 
 test('a followed body keeps the camera until a hand takes it', () => {

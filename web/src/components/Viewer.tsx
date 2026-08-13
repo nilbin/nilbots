@@ -127,7 +127,20 @@ export default function Viewer({
   // renderer because the two must never disagree about it — a device that loses its WebGL
   // context falls back to Canvas2D mid-replay, and the camera should not change its mind
   // about following at the same moment the arena changes how it is drawn.
-  const [autoFit, setAutoFit] = useState(false);
+  const [autoFit, setAutoFit] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return new URLSearchParams(window.location.search).get('camera') === 'director';
+  });
+  const proofOperation = typeof window === 'undefined'
+    ? null
+    : new URLSearchParams(window.location.search).get('proof-operation');
+  const proofCamera = typeof window === 'undefined'
+    ? null
+    : new URLSearchParams(window.location.search).get('proof-camera');
+  useEffect(() => {
+    if (proofOperation !== null && proofCamera !== 'overview') setAutoFit(true);
+    if (proofCamera === 'overview') setAutoFit(false);
+  }, [proofCamera, proofOperation]);
   // The 3D renderer is the viewer now, and there is no way to ask for the flat one:
   // a dimension count was never a choice a player wanted to make.
   //
@@ -165,11 +178,23 @@ export default function Viewer({
       play: playback.play,
       pause: playback.pause,
       seek: playback.seek,
+      playing: playback.playing,
+      speed: playback.speed,
+      tickCount: replay.ticks.length,
+      replaySeed: replay.seed,
     };
     return () => {
       delete window.__BOTARENA_REVIEW_CONTROL__;
     };
-  }, [playback.pause, playback.play, playback.seek]);
+  }, [
+    playback.pause,
+    playback.play,
+    playback.playing,
+    playback.seek,
+    playback.speed,
+    replay.seed,
+    replay.ticks.length,
+  ]);
 
   const soundEffectsAvailable =
     new URLSearchParams(window.location.search).get('audio') !== 'off';

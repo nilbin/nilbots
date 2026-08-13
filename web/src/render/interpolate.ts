@@ -406,6 +406,13 @@ export interface BoltPose {
   x: number;
   y: number;
   heading: ReplayProjectileHeading;
+  /**
+   * Heading of the already-revealed segment immediately before this one.
+   * Renderers may use it to bank through a corner as a pure function of replay time.
+   */
+  previousHeading: ReplayProjectileHeading;
+  /** Normalized progress through the current authoritative traversal segment. */
+  segmentProgress: number;
   /** True when the projectile advances on the next tick. */
   imminent: boolean;
   /** Substeps the projectile takes per advance, for its lane warning. */
@@ -468,12 +475,19 @@ export function boltsAt(
     const local = Math.min(1, progress - segment);
     const from = points[segment];
     const to = points[segment + 1];
+    const heading = headingBetween(from.x, from.y, to.x, to.y);
+    const priorFrom = points[Math.max(0, segment - 1)];
+    const priorTo = points[segment];
     poses.push({
       id: traversal.projectileId,
       ownerActor: traversal.ownerActor,
       x: from.x + (to.x - from.x) * local,
       y: from.y + (to.y - from.y) * local,
-      heading: headingBetween(from.x, from.y, to.x, to.y),
+      heading,
+      previousHeading: segment > 0
+        ? headingBetween(priorFrom.x, priorFrom.y, priorTo.x, priorTo.y)
+        : heading,
+      segmentProgress: local,
       imminent: false,
       tilesPerAdvance: 1,
       programmedPath: traversal.programmedPath,
@@ -482,12 +496,15 @@ export function boltsAt(
 
   for (const bolt of bolts) {
     if (moving.has(bolt.projectileId)) continue;
+    const heading = bolt.heading ?? bolt.launchDirection;
     poses.push({
       id: bolt.projectileId,
       ownerActor: bolt.ownerActor,
       x: bolt.position.x,
       y: bolt.position.y,
-      heading: bolt.heading ?? bolt.launchDirection,
+      heading,
+      previousHeading: heading,
+      segmentProgress: 1,
       imminent: bolt.ticksUntilAdvance === 1,
       tilesPerAdvance: bolt.tilesPerAdvance ?? 1,
       programmedPath: bolt.programmedPath,

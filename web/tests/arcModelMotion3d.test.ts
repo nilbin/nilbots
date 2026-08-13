@@ -3,6 +3,7 @@ import test from 'node:test';
 import * as THREE from 'three';
 import {
   arcMotionFrame,
+  arcSignatureBodyPose,
   createArcModelMotionRig,
   modelSpec,
 } from './.harness/harness.entry.js';
@@ -176,5 +177,34 @@ test('skids counter-steer only while the authoritative turn is underway', () => 
       frame('arc-patchbay', { fraction: 1, turnDelta: Math.PI / 2 })
         .counterSteer,
     ) < 1e-9,
+  );
+});
+
+test('signature whole-body acting gives the grammar distinct physical verbs', () => {
+  const hook = arcSignatureBodyPose('tractor-hook', 'tell', 0.55);
+  const mortar = arcSignatureBodyPose('falling-star', 'tell', 0.55);
+  const deploy = arcSignatureBodyPose('sentinel-seed', 'tell', 0.55);
+  const exchange = arcSignatureBodyPose('exchange', 'tell', 0.55);
+  const kinetic = arcSignatureBodyPose('kinetic-burst', 'tell', 0.55);
+
+  assert.ok(hook.forward < 0 && hook.pitch > 0, 'Towline leans back into cable tension');
+  assert.ok(mortar.rise < 0 && mortar.pitch > 0, 'Mortar braces into recoil');
+  assert.ok(deploy.forward > 0 && deploy.pitch < 0, 'Nest leans over the deployment tile');
+  assert.ok(exchange.rise > 0 && exchange.yaw > 0, 'Switchback lifts and folds');
+  assert.ok(kinetic.scale > 1.05 && kinetic.rise < 0, 'Repulsor squats and loads outward pressure');
+  assert.notDeepEqual(hook, mortar, 'two casts do not share one generic pulse');
+});
+
+test('signature body acting is seek-stable and reduced motion keeps the pose legible', () => {
+  const direct = arcSignatureBodyPose('rail-line', 'tell', 0.63);
+  const repeated = arcSignatureBodyPose('rail-line', 'tell', 0.63);
+  const reduced = arcSignatureBodyPose('rail-line', 'tell', 0.63, true);
+
+  assert.deepEqual(direct, repeated);
+  assert.ok(Math.abs(reduced.pitch) > 0, 'reduced motion preserves the authored brace');
+  assert.ok(Math.abs(reduced.pitch) < Math.abs(direct.pitch));
+  assert.deepEqual(
+    arcSignatureBodyPose(null, null, 99),
+    { scale: 1, rise: 0, forward: 0, lateral: 0, roll: 0, pitch: 0, yaw: 0 },
   );
 });

@@ -546,6 +546,57 @@ test('an airborne Core stays neutral until an authoritative pickup', () => {
   overlays.dispose();
 });
 
+test('the 3D renderer moves the one authoritative Arc Toss Core through its public arc', () => {
+  const replay = arcRelayReplay();
+  const mode = replay.ticks[0]!.after.mode;
+  assert.equal(mode?.kind, 'arc-relay');
+  assert.ok(mode && 'visibleCores' in mode);
+  const core = mode.visibleCores[0]!;
+  const source = { ...core.position };
+  const destination = { x: source.x + 4, y: source.y };
+  core.disposition = 'in-flight';
+  core.flightTarget = destination;
+  core.flightCompletesAtTick = 2;
+  mode.visibleSignatures = [{
+    operationId: 'arc-toss-test',
+    signatureId: 'arc-toss',
+    signatureKind: 'arc-toss',
+    ownerActor: replay.ticks[0]!.after.actors[0]!.identity,
+    ownerTeamId: 0,
+    phase: 'in-flight',
+    startedTick: -1,
+    completesAtTick: 2,
+    endsAtTick: null,
+    positions: [destination, source],
+    targetActor: null,
+    remainingCapacity: 0,
+    suppressed: false,
+  }];
+  replay.ticks[0]!.before.mode = mode;
+  const next = structuredClone(mode);
+  next.visibleCores[0]!.flightCompletesAtTick = 2;
+  next.visibleSignatures[0]!.startedTick = -1;
+  replay.ticks[1]!.before.mode = next;
+  replay.ticks[1]!.after.mode = next;
+
+  const story = createPresenter(replay).at(1).arcRelay;
+  assert.equal(story?.cores[0]?.flightStartedAtTick, 0);
+  const overlays = buildOverlays(replay);
+  overlays.update(1, null, false);
+  const objects: THREE.Object3D[] = [];
+  overlays.group.traverse((node) => objects.push(node));
+  const rig = objects.find((node) => node.userData.kind === 'arc-relay-core');
+  const sphere = objects.find(
+    (node) => node.userData.kind === 'arc-relay-core-sphere',
+  ) as THREE.Mesh | undefined;
+  assert.ok(rig);
+  assert.ok(sphere);
+  assert.equal(rig.position.x, source.x + 2 + 0.5);
+  assert.equal(rig.position.z, source.y + 0.5);
+  assert.ok(sphere.position.y > 1.3, 'the real Core rises through a visible ballistic apex');
+  overlays.dispose();
+});
+
 test('every Arc Relay possession beat drives its diegetic audio cue', () => {
   const replay = arcRelayReplay();
   assert.deepEqual(

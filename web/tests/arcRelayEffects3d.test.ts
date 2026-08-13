@@ -203,9 +203,126 @@ test('real exchange lifecycle never publishes an empty WebGL signature group', (
   }
 });
 
+test('Prism Wall and Hardlight Block deploy body-height matte silhouettes', () => {
+  for (const [replayName, signatureId, time] of [
+    ['remaining-roster', 'prism-wall', 14.68],
+    ['core-roster', 'hardlight-block', 52.68],
+  ] as const) {
+    const replay = loadReplayJson(
+      gunzipSync(readFileSync(new URL(
+        `../../art/reviews/arc-relay-presentation-batch-v1/runtime-proof/replays/${replayName}.broadcast.json.gz`,
+        import.meta.url,
+      ))).toString('utf8'),
+    ).replay;
+    const disposables: { dispose: () => void }[] = [];
+    const effects = buildArcRelayEffects(replay, disposables);
+    try {
+      effects.update(time);
+      effects.group.updateMatrixWorld(true);
+      const group = effects.group.children.find(
+        (candidate) =>
+          candidate.visible && candidate.userData.signatureId === signatureId,
+      );
+      assert.ok(group, `${signatureId} has a visible deployment rig`);
+      const bounds = new THREE.Box3().setFromObject(group!);
+      assert.ok(
+        bounds.max.y - bounds.min.y >= 0.55,
+        `${signatureId} rises to a body-height silhouette (${bounds.max.y - bounds.min.y})`,
+      );
+      assert.ok(
+        bounds.max.x - bounds.min.x >= 0.82 && bounds.max.z - bounds.min.z >= 0.5,
+        `${signatureId} occupies its authored ground envelope`,
+      );
+    } finally {
+      for (const disposable of disposables) disposable.dispose();
+    }
+  }
+});
+
+test('floor pressure waves stay horizontal and active fields animate from their phase boundary', () => {
+  const replay = loadReplayJson(
+    gunzipSync(readFileSync(new URL(
+      '../../art/reviews/arc-relay-presentation-batch-v1/runtime-proof/replays/remaining-roster.broadcast.json.gz',
+      import.meta.url,
+    ))).toString('utf8'),
+  ).replay;
+  const disposables: { dispose: () => void }[] = [];
+  const effects = buildArcRelayEffects(replay, disposables);
+  try {
+    const boundsAt = (signatureId: string, time: number) => {
+      effects.update(time);
+      effects.group.updateMatrixWorld(true);
+      const group = effects.group.children.find(
+        (candidate) =>
+          candidate.visible && candidate.userData.signatureId === signatureId,
+      );
+      assert.ok(group, `${signatureId} is visible at ${time}`);
+      return new THREE.Box3().setFromObject(group!);
+    };
+
+    const kinetic = boundsAt('kinetic-burst', 48.45);
+    const kineticSize = kinetic.getSize(new THREE.Vector3());
+    assert.ok(
+      kineticSize.y < Math.max(kineticSize.x, kineticSize.z) * 0.35,
+      `the Kinetic outcome is a low floor wave, not an upright blade (${kineticSize.toArray()})`,
+    );
+
+    const smokeOpening = boundsAt('smoke-canister', 104.05)
+      .getSize(new THREE.Vector3());
+    const smokeSettled = boundsAt('smoke-canister', 105.15)
+      .getSize(new THREE.Vector3());
+    assert.ok(
+      smokeSettled.x > smokeOpening.x * 1.08 ||
+        smokeSettled.z > smokeOpening.z * 1.08,
+      `Smoke blooms after landing (${smokeOpening.toArray()} -> ${smokeSettled.toArray()})`,
+    );
+  } finally {
+    for (const disposable of disposables) disposable.dispose();
+  }
+});
+
+test('pooled signature transforms are identical after direct seek and played phase history', () => {
+  const replay = loadReplayJson(
+    gunzipSync(readFileSync(new URL(
+      '../../art/reviews/arc-relay-presentation-batch-v1/runtime-proof/replays/core-roster.broadcast.json.gz',
+      import.meta.url,
+    ))).toString('utf8'),
+  ).replay;
+  const directDisposables: { dispose: () => void }[] = [];
+  const playedDisposables: { dispose: () => void }[] = [];
+  const direct = buildArcRelayEffects(replay, directDisposables);
+  const played = buildArcRelayEffects(replay, playedDisposables);
+  const snapshot = (effects: ReturnType<typeof buildArcRelayEffects>) => {
+    const signature = effects.group.children.find(
+      (candidate) =>
+        candidate.visible && candidate.userData.signatureId === 'survey-flare',
+    );
+    assert.ok(signature, 'Survey Flare has a visible active rig');
+    const transforms: number[][] = [];
+    signature.traverse((node) => {
+      if (!node.visible) return;
+      transforms.push([
+        node.position.x, node.position.y, node.position.z,
+        node.rotation.x, node.rotation.y, node.rotation.z,
+        node.scale.x, node.scale.y, node.scale.z,
+      ]);
+    });
+    return transforms;
+  };
+  try {
+    direct.update(14.45);
+    played.update(13.45);
+    played.update(14.45);
+    assert.deepEqual(snapshot(played), snapshot(direct));
+  } finally {
+    for (const disposable of [...directDisposables, ...playedDisposables])
+      disposable.dispose();
+  }
+});
+
 test('persistent props stay legible inside their tiles and sentinel yaw never looks ahead', () => {
-  assert.equal(ARC_SIGNATURE_PROP_SCALE['trip-node'], 0.75);
-  assert.equal(ARC_SIGNATURE_PROP_SCALE['sentinel-seed'], 0.95);
+  assert.equal(ARC_SIGNATURE_PROP_SCALE['trip-node'], 1.5);
+  assert.equal(ARC_SIGNATURE_PROP_SCALE['sentinel-seed'], 1.68);
 
   const shots = [
     { tick: 12, yaw: Math.PI / 2 },
@@ -229,7 +346,7 @@ test('sentinel yaw targets the authored head split and keeps legacy fallback', (
   assert.equal(sentinelYawTarget(propGroup, null), propGroup);
 });
 
-test('the level-up transient starts on its exact fact and is gone after 0.9 ticks', () => {
+test('the level-up transient starts on its exact fact and is gone after 1.8 ticks', () => {
   const replay = loadReplayJson(
     readFileSync(
       new URL('./fixtures/generic-mind-replay-v3.json', import.meta.url),
@@ -249,7 +366,7 @@ test('the level-up transient starts on its exact fact and is gone after 0.9 tick
   });
   const veterancy = buildArcVeterancy(replay);
 
-  assert.equal(LEVEL_UP_BEAT_TICKS, 0.9);
+  assert.equal(LEVEL_UP_BEAT_TICKS, 1.8);
   assert.equal(
     veterancy.levelUpAt(1.999, actor.teamId, actor.unitId, actor.lifeId),
     null,
@@ -259,10 +376,10 @@ test('the level-up transient starts on its exact fact and is gone after 0.9 tick
     { level: 2, age: 0 },
   );
   assert.ok(
-    veterancy.levelUpAt(2.899, actor.teamId, actor.unitId, actor.lifeId),
+    veterancy.levelUpAt(3.799, actor.teamId, actor.unitId, actor.lifeId),
   );
   assert.equal(
-    veterancy.levelUpAt(2.9, actor.teamId, actor.unitId, actor.lifeId),
+    veterancy.levelUpAt(3.8, actor.teamId, actor.unitId, actor.lifeId),
     null,
   );
   assert.equal(

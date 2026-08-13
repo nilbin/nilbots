@@ -22,10 +22,12 @@ export {
   directorFrameAt,
   directorMinSpan,
   directorShotHoldTicks,
+  directorShotInterruptsAt,
   focusFrame,
   focusPointsAt,
   frameEscapes,
   fullArenaFrame,
+  reviewFocusFrame,
   selectedUnitPointAt,
   selectionFollowFrame,
   strategicOverviewFrame,
@@ -102,6 +104,7 @@ export {
 } from '../../src/render3d/lookModel';
 export {
   arcMotionFrame,
+  arcSignatureBodyPose,
   createArcModelMotionRig,
 } from '../../src/render3d/arcModelMotion';
 export {

@@ -18,9 +18,9 @@ export default defineArcSignature({
     decorativeDrift: false,
   },
   budget: {
-    segments: 6,
+    segments: 18,
     panels: 0,
-    particles: 8,
+    particles: 5,
     markers: 1,
     transparentLayers: 3,
     persistentProps: 0,

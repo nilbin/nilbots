@@ -10,6 +10,7 @@ import {
   arenaViewport,
   directorFrameAt,
   directorMinSpan,
+  directorShotInterruptsAt,
   directorShotHoldTicks,
   selectedUnitPointAt,
   selectionFollowFrame,
@@ -111,6 +112,7 @@ export default function ArenaCanvas({
     let aspect = 0;
     let lastFit = stateRef.current.autoFit;
     let lastSelected = stateRef.current.selectedUnitKey;
+    let lastProofOperation: string | null = null;
     // A new replay is a new match: the camera must not open framed on the last one's fight.
     cameraRef.current = null;
 
@@ -207,6 +209,7 @@ export default function ArenaCanvas({
                 null,
                 highlighted,
                 framingRef.current,
+                proofOperationAt(),
               ),
             );
           }
@@ -246,18 +249,27 @@ export default function ArenaCanvas({
             point ? selectionFollowFrame(point, framingRef.current) : null,
           );
         }
-        if (camera.auto)
-          camera.aim(
-            directorFrameAt(
-              replay,
-              now,
-              followed,
-              highlighted,
-              framingRef.current,
-            ),
+        if (camera.auto) {
+          const proofOperation = proofOperationAt();
+          const directorFrame = directorFrameAt(
+            replay,
             now,
-            followed === null ? directorShotHoldTicks(replay) : 0,
+            followed,
+            highlighted,
+            framingRef.current,
+            proofOperation,
           );
+          const hold = followed === null ? directorShotHoldTicks(replay) : 0;
+          const proofChanged = proofOperation !== null &&
+            proofOperation !== lastProofOperation;
+          if (
+            followed === null &&
+            (directorShotInterruptsAt(replay, now) || proofChanged)
+          )
+            camera.cut(directorFrame, now, hold);
+          else camera.aim(directorFrame, now, hold);
+          lastProofOperation = proofOperation;
+        }
         // Real seconds, so the camera settles at the same rate whatever the playback speed
         // and whatever the frame rate; the spring clamps a huge step of its own accord.
         camera.advance(last === null ? 0 : (stamp - last) / 1000);
@@ -343,4 +355,10 @@ export default function ArenaCanvas({
       )}
     />
   );
+}
+
+/** Keep fallback proof framed on the same retained operation as WebGL. */
+function proofOperationAt(): string | null {
+  const query = new URLSearchParams(window.location.search);
+  return query.has('proof') ? query.get('proof-operation') : null;
 }

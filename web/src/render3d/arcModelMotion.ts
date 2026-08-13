@@ -9,6 +9,133 @@ const HULL_LAG = 0.055;
 
 export type ArcSignatureBodyState = 'ready' | 'cooldown' | 'active';
 
+export interface ArcSignatureBodyPose {
+  /** Uniform root scale. Kept deliberately small so tile occupancy stays honest. */
+  scale: number;
+  /** Vertical whole-body travel in chassis widths. */
+  rise: number;
+  /** Local forward/back travel. Positive is toward the authored nose. */
+  forward: number;
+  /** Local lateral travel. */
+  lateral: number;
+  /** Roll about the local forward axis. */
+  roll: number;
+  /** Pitch about the local lateral axis. */
+  pitch: number;
+  /** Small local yaw gesture; authoritative chassis facing remains on the parent. */
+  yaw: number;
+}
+
+const REST_SIGNATURE_POSE: Readonly<ArcSignatureBodyPose> = Object.freeze({
+  scale: 1,
+  rise: 0,
+  forward: 0,
+  lateral: 0,
+  roll: 0,
+  pitch: 0,
+  yaw: 0,
+});
+
+/**
+ * Whole-body acting for Arc signatures.
+ *
+ * The approved Meshy bodies are monolithic, so the renderer cannot pretend they have
+ * joints they do not. It can still give each public cast a recognisable physical verb:
+ * brace, recoil, lean, lift, deploy, or fold. Every channel is a pure function of the
+ * replay-authored signature ID/phase and phase age; direct seek and played motion match.
+ */
+export function arcSignatureBodyPose(
+  signatureId: string | null,
+  phase: 'tell' | 'active' | 'channel' | 'in-flight' | null,
+  phaseAge: number,
+  reducedMotion = false,
+): ArcSignatureBodyPose {
+  if (!signatureId || !phase) return { ...REST_SIGNATURE_POSE };
+  const motion = reducedMotion ? 0.34 : 1;
+  const age = Math.max(0, phaseAge);
+  const charge = smoothstep(0, phase === 'tell' ? 0.82 : 0.58, age);
+  const opening = Math.sin(Math.PI * clamp01(age / 1.15));
+  // A maintained field must not leave its caster permanently crouched or leaning for
+  // the next thirty ticks. Tells can hold their loaded pose through resolution; an
+  // already-active/in-flight construct gets one visible deploy gesture and then the body
+  // returns to its ordinary locomotion rig. Channels are the one honest exception: the
+  // caster is still doing work for as long as the replay says the channel is public.
+  const commit = phase === 'tell'
+    ? charge
+    : phase === 'channel'
+      ? 0.72 + 0.28 * opening
+      : opening;
+  const working = phase === 'channel' || phase === 'active'
+    ? 0.5 + 0.5 * Math.sin(age * Math.PI * 1.25)
+    : opening;
+
+  const pose = { ...REST_SIGNATURE_POSE };
+  switch (signatureId) {
+    case 'vector-dash':
+      pose.scale += 0.06 * opening * motion;
+      pose.rise += 0.06 * opening * motion;
+      pose.pitch -= 0.12 * commit * motion;
+      break;
+    case 'prism-wall':
+    case 'hardlight-block':
+      pose.scale += 0.08 * opening * motion;
+      pose.rise -= 0.055 * commit * motion;
+      pose.pitch += 0.15 * commit * motion;
+      break;
+    case 'tractor-hook':
+      pose.forward -= 0.14 * commit * motion;
+      pose.rise -= 0.035 * commit * motion;
+      pose.pitch += 0.2 * commit * motion;
+      break;
+    case 'repair-beam':
+      pose.forward += 0.07 * (0.5 + 0.5 * working) * motion;
+      pose.rise += 0.045 * working * motion;
+      pose.roll += 0.045 * Math.sin(age * Math.PI * 1.15) * motion;
+      break;
+    case 'survey-flare':
+    case 'smoke-canister':
+    case 'arc-toss':
+      pose.rise += 0.11 * opening * motion;
+      pose.pitch -= 0.18 * commit * motion;
+      pose.forward += 0.06 * commit * motion;
+      break;
+    case 'falling-star':
+    case 'rail-line':
+      pose.scale += 0.07 * opening * motion;
+      pose.rise -= 0.08 * commit * motion;
+      pose.forward -= 0.11 * commit * motion;
+      pose.pitch += 0.22 * commit * motion;
+      break;
+    case 'trip-node':
+    case 'sentinel-seed':
+      pose.rise -= 0.07 * commit * motion;
+      pose.forward += 0.1 * commit * motion;
+      pose.pitch -= 0.24 * commit * motion;
+      break;
+    case 'null-field':
+      pose.scale -= 0.07 * commit * motion;
+      pose.rise -= 0.045 * commit * motion;
+      pose.yaw -= 0.13 * commit * motion;
+      break;
+    case 'exchange':
+      pose.rise += 0.09 * opening * motion;
+      pose.lateral += Math.sin(age * Math.PI * 1.5) * 0.08 * motion;
+      pose.yaw += 0.24 * opening * motion;
+      break;
+    case 'target-paint':
+      pose.rise += 0.12 * commit * motion;
+      pose.scale += 0.045 * commit * motion;
+      pose.pitch -= 0.08 * commit * motion;
+      break;
+    case 'kinetic-burst':
+      pose.scale += 0.12 * opening * motion;
+      pose.rise -= 0.1 * commit * motion;
+      pose.pitch += 0.1 * commit * motion;
+      break;
+  }
+  return pose;
+}
+
 export interface ArcMotionInput {
   time: number;
   fraction: number;

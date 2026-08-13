@@ -48,6 +48,7 @@ import {
   modelSpec,
 } from './lookModel';
 import {
+  arcSignatureBodyPose,
   createArcModelMotionRig,
   type ArcSignatureBodyState,
 } from './arcModelMotion';
@@ -343,10 +344,11 @@ const WHITE = new THREE.Color(0xffffff);
  * runs on `requestAnimationFrame` in a narrow band of refresh rates, and a bolt that banks
  * marginally faster on a 120 Hz screen is not something anyone can see.
  */
-const BOLT_TURN_RATE = 0.22;
 
 export interface ArenaActors {
   group: THREE.Group;
+  /** Hide diagnostic intent captions in cinematic/review presentation without losing cues. */
+  setIntentLabelsVisible: (visible: boolean) => void;
   /** Move everything to where it should be at this moment of the replay. */
   update: (
     time: number,
@@ -395,6 +397,7 @@ export function buildActors(replay: ReplayModel): ArenaActors {
   // A replay can be closed while a chassis is still being fetched and triangulated. Adding
   // the model to a torn-down scene would resurrect meshes nothing will ever dispose.
   let live = true;
+  let intentLabelsVisible = true;
 
 
   const bots = replay.units.map((unit) => {
@@ -1448,6 +1451,11 @@ export function buildActors(replay: ReplayModel): ArenaActors {
   });
   const signedTravel = signedTravelByActor(replay);
   const signatureCooldowns = signatureCooldownsByActor(replay);
+  const signaturePhaseStarts = signaturePhaseStartsByOperation(replay);
+  const reducedMotionQuery =
+    typeof window !== 'undefined' && window.matchMedia
+      ? window.matchMedia('(prefers-reduced-motion: reduce)')
+      : null;
   /** Is this tile solid? Out of bounds counts as solid — the arena is enclosed. */
   const solid = (x: number, y: number) => {
     const row = replay.map.tileRows[y];
@@ -1667,12 +1675,6 @@ export function buildActors(replay: ReplayModel): ArenaActors {
   });
 
   type Arsenal = (typeof arsenals)[number];
-
-  // Facing carried between frames, keyed by the bolt's replay identity rather than its pool
-  // slot — a pool index is reassigned the moment another bolt despawns, which would hand one
-  // bolt's turn-in-progress to an unrelated one.
-  const heading = new Map<string, number>();
-  let lastTime = Number.NaN;
 
   // Volleys are a second kind of thing in the air, with their own pooled geometry, and
   // they live beside the bolt rigs because they are fed by the same interpolation.
@@ -2056,7 +2058,7 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       );
       bot.paintRole(visibleIntent);
       bot.roleLabel.visible =
-        bot.chassis.visible && visibleIntent !== null;
+        intentLabelsVisible && bot.chassis.visible && visibleIntent !== null;
       // Every rig piece here carries ABSOLUTE world coordinates, because the bots share
       // one container rather than each owning a group that moves. The caption was the
       // one piece that never got its x/z — it was built with a Y offset and nothing else
@@ -2219,10 +2221,11 @@ export function buildActors(replay: ReplayModel): ArenaActors {
         ? { x: previousPose.motionX, y: previousPose.motionY }
         : actorStep(previous, opening, pose.actorKey);
       const previousSpeed = Math.hypot(previousMotion.x, previousMotion.y);
-      const signatureActive =
-        arcState?.visibleSignatures.some(
+      const activeSignature =
+        arcState?.visibleSignatures.find(
           (signature) => signature.ownerActor.actorKey === pose.actorKey,
-        ) ?? false;
+        ) ?? null;
+      const signatureActive = activeSignature !== null;
       const signatureCooling =
         signatureCooldowns.get(pose.actorKey)?.some(
           (window) => time >= window.startedTick && time < window.readyTick,
@@ -2232,6 +2235,17 @@ export function buildActors(replay: ReplayModel): ArenaActors {
         : signatureCooling
           ? 'cooldown'
           : 'ready';
+      const signaturePhaseStartedTick = activeSignature
+        ? signaturePhaseStarts.get(
+            `${activeSignature.operationId}:${activeSignature.phase}`,
+          ) ?? activeSignature.startedTick
+        : time;
+      const signaturePose = arcSignatureBodyPose(
+        activeSignature?.signatureId ?? null,
+        activeSignature?.phase ?? null,
+        time - signaturePhaseStartedTick,
+        reducedMotionQuery?.matches === true,
+      );
       const travel = signedTravel.get(pose.actorKey);
       const tickPose = tickPoseByActor.get(pose.actorKey);
       const motionFrame = bot.modelMotion?.update(
@@ -2259,43 +2273,46 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       bot.chassis.position.y =
         -collapse * BOT_HEIGHT * 0.55 - (1 - emerge) * BOT_HEIGHT * 1.6;
       bot.chassis.scale.setScalar(
-        (1 - collapse * 0.16) * (0.35 + 0.65 * emerge),
+        (1 - collapse * 0.16) * (0.35 + 0.65 * emerge) *
+          signaturePose.scale,
       );
       bot.turret.scale.setScalar(
         TURRET_SCALE +
           (firing ? Math.sin(shotProgress * Math.PI) * 0.045 : 0),
       );
 
-      bot.body.position.x = -kick + (motionFrame?.hullLagForward ?? 0);
+      bot.body.position.x =
+        -kick + (motionFrame?.hullLagForward ?? 0) +
+        signaturePose.forward * bot.size;
       bot.body.position.z =
         drift * DRIFT_SLIDE +
         idle * sway * IDLE_SWAY +
-        (motionFrame?.hullLagLateral ?? 0);
+        (motionFrame?.hullLagLateral ?? 0) +
+        signaturePose.lateral * bot.size;
       bot.body.position.y =
         TURRET_LIFT * bot.size * tipping +
-        (bot.mobileLowHover ? hover : idle * rise * IDLE_RISE);
+        (bot.mobileLowHover ? hover : idle * rise * IDLE_RISE) +
+        signaturePose.rise * bot.size;
       bot.stance.position.y = bot.stanceLowHover ? hover : 0;
       bot.body.rotation.y =
         -drift * DRIFT_YAW +
         idle * sway * IDLE_YAW +
-        (motionFrame?.counterSteer ?? 0);
+        (motionFrame?.counterSteer ?? 0) +
+        signaturePose.yaw;
       bot.body.rotation.x =
         drift * DRIFT_LEAN +
         idle * rise * IDLE_ROLL +
-        (motionFrame?.bank ?? 0);
+        (motionFrame?.bank ?? 0) +
+        signaturePose.roll;
       bot.body.rotation.z =
-        (Math.PI / 2) * tipping + (motionFrame?.pitch ?? 0);
+        (Math.PI / 2) * tipping + (motionFrame?.pitch ?? 0) +
+        signaturePose.pitch;
     }
 
     // `boltsAt` is the same derivation the flat renderer uses — interpolated across the
     // authoritative substeps, so a bolt flies rather than teleporting between tiles the way
     // reading `ticks[tick].projectiles` straight made it.
     //
-    // A scrub is not motion. Dragging the playhead across half a match would otherwise have
-    // every bolt easing through the turns it "made" on the way, so a jump snaps instead.
-    const jumped = Math.abs(time - lastTime) > 1.5;
-    lastTime = time;
-
     // In FOV mode a bolt the followed team cannot see is not drawn at all, rather than
     // ghosted the way a bot is. An unseen bolt is precisely the threat it does not know
     // about, and a faint one on screen would still answer the question.
@@ -2308,7 +2325,6 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     arrows.update(time, boltHidden);
 
     const flying = arsenals.map(() => 0);
-    const alive = new Set<string>();
     for (const bolt of boltsAt(replay, time, 'projectile-traversal')) {
       if (grouped.has(bolt.id)) continue;
       if (boltHidden(bolt.id, bolt.x, bolt.y)) continue;
@@ -2321,21 +2337,14 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       rig.group.visible = true;
       rig.group.position.set(bolt.x + 0.5, 0, bolt.y + 0.5);
 
-      // Bolts turn, they do not pivot. The engine's headings are eight discrete octants, so
-      // a programmed arc changes facing by 45° between one substep and the next — correct,
-      // and it reads as the bolt blinking into a new orientation. Easing towards the
-      // authoritative heading lets it bank through the corner instead. Position is never
-      // eased, only facing: where a bolt *is* stays exactly what the replay recorded.
-      const key = `${bolt.ownerActor.actorKey}:${bolt.id}`;
-      alive.add(key);
+      // Bolts turn rather than pivot. The easing is derived from the already-revealed
+      // previous segment and the current segment fraction; frame-history smoothing made
+      // the same replay tick face differently after a scrub than after playback.
+      // Position stays on the authoritative traversal either way.
       const target = -headingAngle[bolt.heading];
-      const memory = heading.get(key);
-      const turned =
-        memory === undefined || jumped
-          ? target
-          : memory + shortestTurn(memory, target) * BOLT_TURN_RATE;
-      heading.set(key, turned);
-      rig.group.rotation.y = turned;
+      const previous = -headingAngle[bolt.previousHeading];
+      rig.group.rotation.y =
+        previous + shortestTurn(previous, target) * easeInOut(bolt.segmentProgress);
 
       // And a bolt in flight is not on rails — it drifts, up and across, and rolls as it
       // goes. Three things keep it from reading as a machine part on a cam:
@@ -2360,8 +2369,6 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       rig.head.rotation.x = Math.sin(time * 6.1 * wander + phase) * 0.35;
       rig.head.rotation.z = Math.sin(time * 4.7 + phase * 1.7) * 0.18;
     }
-    // Forget bolts that have landed, or the map grows for the length of the replay.
-    for (const key of heading.keys()) if (!alive.has(key)) heading.delete(key);
     // Everything not claimed this frame goes back in the pool rather than being destroyed.
     arsenals.forEach((arsenal, slot) => {
       for (let index = flying[slot]; index < arsenal.rigs.length; index++)
@@ -2390,6 +2397,11 @@ export function buildActors(replay: ReplayModel): ArenaActors {
 
   return {
     group,
+    setIntentLabelsVisible: (visible) => {
+      intentLabelsVisible = visible;
+      if (!visible)
+        for (const bot of bots) bot.roleLabel.visible = false;
+    },
     update,
     pick,
     dispose: () => {
@@ -2519,6 +2531,20 @@ function signatureCooldownsByActor(
         readyTick: signature.startedTick + cooldown,
       });
       result.set(signature.ownerActor.actorKey, windows);
+    }
+  }
+  return result;
+}
+
+/** First authoritative tick of every public signature phase, for seek-stable body acting. */
+function signaturePhaseStartsByOperation(replay: ReplayModel): Map<string, number> {
+  const result = new Map<string, number>();
+  for (const [tickIndex, tick] of replay.ticks.entries()) {
+    const mode = tick.after.mode;
+    if (mode?.kind !== 'arc-relay' || !('visibleSignatures' in mode)) continue;
+    for (const signature of mode.visibleSignatures) {
+      const key = `${signature.operationId}:${signature.phase}`;
+      if (!result.has(key)) result.set(key, tickIndex);
     }
   }
   return result;

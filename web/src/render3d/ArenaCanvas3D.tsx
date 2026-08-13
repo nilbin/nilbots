@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import type { ReplayModel, ReplayStableUnitKey } from '../replayModel';
+import { posesAt } from '../render/interpolate';
 import { buildArena, CAMERA_PITCH } from './arenaScene';
 import { buildActors } from './arenaActors';
 import { buildOverlays } from './arenaOverlays';
@@ -9,7 +10,9 @@ import {
   ArenaCamera,
   directorFrameAt,
   directorMinSpan,
+  directorShotInterruptsAt,
   directorShotHoldTicks,
+  reviewFocusFrame,
   selectedUnitPointAt,
   selectionFollowFrame,
   strategicOverviewFrame,
@@ -108,7 +111,6 @@ export default function ArenaCanvas3D({
     onManualCamera,
     active,
   };
-
   useEffect(() => {
     const container = host.current;
     if (!container) return;
@@ -154,6 +156,9 @@ export default function ArenaCanvas3D({
 
     const arena = buildArena(replay, { shadowMapSize: renderProfile.shadowMapSize });
     const actors = buildActors(replay);
+    actors.setIntentLabelsVisible(
+      !new URLSearchParams(window.location.search).has('proof'),
+    );
     // Health and engagement cues are authored as fixed billboards. A theme may add a
     // restrained side bias to the otherwise fixed camera, so turn their shared row by the
     // same amount rather than letting it become slightly edge-on.
@@ -205,12 +210,44 @@ export default function ArenaCanvas3D({
         });
         return {
           time: frameState.current.time,
+          tickCount: replay.ticks.length,
+          replaySeed: replay.seed,
           reducedMotion: window.matchMedia(
             '(prefers-reduced-motion: reduce)',
           ).matches,
           visibleSignatures,
           levelUpBeats,
+          cameraFrame: camera ? { ...camera.frame } : null,
         };
+      },
+      frameSignature: (operationId) => {
+        if (!new URLSearchParams(window.location.search).has('proof'))
+          return false;
+        const state = frameState.current;
+        const tickIndex = Math.max(
+          0,
+          Math.min(Math.floor(state.time), replay.ticks.length - 1),
+        );
+        const mode = replay.ticks[tickIndex]?.after.mode;
+        if (
+          !camera ||
+          mode?.kind !== 'arc-relay' ||
+          !('visibleSignatures' in mode)
+        ) return false;
+        const signature = mode.visibleSignatures.find(
+          (candidate) => candidate.operationId === operationId,
+        );
+        if (!signature) return false;
+        const points = signature.positions.length > 0
+          ? signature.positions
+          : [
+              posesAt(replay, state.time).find(
+                (pose) => pose.actorKey === signature.ownerActor.actorKey,
+              ),
+            ].flatMap((pose) => pose ? [{ x: pose.x, y: pose.y }] : []);
+        camera.review(reviewFocusFrame(points, framing));
+        look(camera.frame);
+        return true;
       },
     };
 
@@ -230,6 +267,7 @@ export default function ArenaCanvas3D({
       minSpan: directorMinSpan(replay),
     };
     let camera: ArenaCamera | null = null;
+    let lastProofOperation: string | null = null;
 
     /**
      * Point the camera at a frame, from behind and above.
@@ -311,6 +349,7 @@ export default function ArenaCanvas3D({
               null,
               state.highlightedUnitKeys,
               framing,
+              proofOperationAt(),
             ),
           );
         }
@@ -454,18 +493,27 @@ export default function ArenaCanvas3D({
           const point = selectedUnitPointAt(replay, now, followed);
           camera.track(point ? selectionFollowFrame(point, framing) : null);
         }
-        if (camera.auto)
-          camera.aim(
-            directorFrameAt(
-              replay,
-              now,
-              followed,
-              frameState.current.highlightedUnitKeys,
-              framing,
-            ),
+        if (camera.auto) {
+          const proofOperation = proofOperationAt();
+          const directorFrame = directorFrameAt(
+            replay,
             now,
-            followed === null ? directorShotHoldTicks(replay) : 0,
+            followed,
+            frameState.current.highlightedUnitKeys,
+            framing,
+            proofOperation,
           );
+          const hold = followed === null ? directorShotHoldTicks(replay) : 0;
+          const proofChanged = proofOperation !== null &&
+            proofOperation !== lastProofOperation;
+          if (
+            followed === null &&
+            (directorShotInterruptsAt(replay, now) || proofChanged)
+          )
+            camera.cut(directorFrame, now, hold);
+          else camera.aim(directorFrame, now, hold);
+          lastProofOperation = proofOperation;
+        }
         // Real seconds, so the camera settles at the same rate whatever the playback speed
         // and whatever the frame rate; the spring clamps a huge step of its own accord.
         camera.advance(last === null ? 0 : (stamp - last) / 1000);
@@ -525,4 +573,10 @@ export default function ArenaCanvas3D({
       aria-label="nilbots match playback"
     />
   );
+}
+
+/** Review-only preference; the ordinary renderer still computes and draws the shot. */
+function proofOperationAt(): string | null {
+  const query = new URLSearchParams(window.location.search);
+  return query.has('proof') ? query.get('proof-operation') : null;
 }

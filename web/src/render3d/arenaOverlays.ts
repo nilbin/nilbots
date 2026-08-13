@@ -2639,25 +2639,51 @@ function buildArcRelayStory(
       const carrier = carried && state.carrierUnitKey !== null
         ? actorPoses.find((pose) => pose.unitKey === state.carrierUnitKey)
         : null;
+      const inFlight = state.disposition === 'in-flight' &&
+        state.flightTarget !== null && state.flightCompletesAtTick !== null &&
+        state.flightStartedAtTick !== null;
+      // The snapshot keeps the launch tile until the authoritative landing. Unlike the
+      // old 3D path, move the one real Core through that public interval rather than
+      // decorating a stationary sphere with a second fake projectile.
+      const flightProgress = inFlight
+        ? Math.max(0, Math.min(1,
+            (time - state.flightStartedAtTick!) /
+              Math.max(1, state.flightCompletesAtTick! - state.flightStartedAtTick!),
+          ))
+        : 0;
+      const flightX = inFlight
+        ? state.position.x + (state.flightTarget!.x - state.position.x) * flightProgress
+        : state.position.x;
+      const flightZ = inFlight
+        ? state.position.y + (state.flightTarget!.y - state.position.y) * flightProgress
+        : state.position.y;
       rig.group.visible = true;
       rig.group.position.set(
-        (carrier?.x ?? state.position.x) + 0.5,
+        (carrier?.x ?? flightX) + 0.5,
         0,
-        (carrier?.y ?? state.position.y) + 0.5,
+        (carrier?.y ?? flightZ) + 0.5,
       );
       rig.gem.position.set(
         0,
         carried
           ? 1.18 + Math.sin(time * 2.4 + index) * 0.035
+          : inFlight
+            ? 0.42 + Math.sin(flightProgress * Math.PI) * 1.05
           : 0.4 + Math.sin(time * 2 + index) * 0.025,
         0,
       );
       rig.gem.rotation.y = time * 0.45;
-      rig.gem.scale.setScalar(state.pulseCore ? 1.25 + pulse * 0.2 : 1);
+      rig.gem.scale.setScalar(
+        state.pulseCore ? 1.25 + pulse * 0.2 : inFlight ? 1.62 : 1,
+      );
       rig.glow.position.copy(rig.gem.position);
       rig.light.position.copy(rig.gem.position);
       rig.glow.scale.setScalar(
-        state.pulseCore ? 0.88 + pulse * 0.12 : 0.72 + pulse * 0.07,
+        state.pulseCore
+          ? 0.88 + pulse * 0.12
+          : inFlight
+            ? 1.08 + pulse * 0.1
+            : 0.72 + pulse * 0.07,
       );
       // Loose and in-flight Cores are neutral. Possession changes the object itself—not
       // merely its tether—so a carrier is identifiable at the wider spectator distance.

@@ -50,6 +50,7 @@ if (!readFileSync(path.join(dist, 'index.html'), 'utf8').includes('<title>'))
 const buildSha256 = directorySha256(dist, (entryPath) =>
   !isInstalledReplayFile(relativeTo(dist, entryPath)),
 );
+const captureFramingVersion = 4;
 
 const replayChoices = JSON.parse(
   readFileSync(path.join(dist, 'replays.json'), 'utf8'),
@@ -85,6 +86,7 @@ const evidence = {
   schema: 'arc-relay-presentation-browser-proof-v1',
   sourceRevision: manifest.sourceRevision,
   buildSha256,
+  captureFramingVersion,
   url,
   passed: false,
   renderer: 'webgl',
@@ -290,10 +292,7 @@ async function ready(page) {
   );
   if (kind !== 'webgl') throw new Error(`Expected WebGL, mounted ${kind}.`);
   await page.waitForFunction(() => Boolean(window.__BOTARENA_RENDER_PROOF__));
-  const camera = page.getByRole('button', { name: /director|overview/i });
-  if ((await camera.textContent())?.toLowerCase().includes('director'))
-    await camera.click();
-  await page.getByRole('button', { name: /overview/i }).waitFor();
+  await setCamera(page, 'overview');
   if (await overlay.isVisible()) {
     await page.getByRole('button', { name: 'Play match' }).click();
     await page
@@ -302,16 +301,54 @@ async function ready(page) {
   }
 }
 
+async function setCamera(page, mode) {
+  const camera = page.getByRole('button', { name: /director|overview/i });
+  const current = (await camera.textContent())?.toLowerCase() ?? '';
+  if (mode === 'overview' && current.includes('director')) await camera.click();
+  if (mode === 'director' && current.includes('overview')) await camera.click();
+  await page
+    .getByRole('button', { name: mode === 'overview' ? /overview/i : /director/i })
+    .waitFor();
+}
+
 async function selectReplay(page, matchId) {
+  const choice = replayChoices.find((entry) => entry.id === matchId);
+  if (!choice) throw new Error(`Unknown replay ${matchId}.`);
   const button = page
     .getByRole('navigation', { name: 'Choose a replay to review' })
     .getByRole('button')
     .filter({ has: page.locator(`span:text-is("${labelFor(matchId)}")`) });
   if ((await button.getAttribute('aria-current')) !== 'true') {
     await button.click();
-    await ready(page);
   }
+  await waitForReplayIdentity(page, choice);
+  const overlay = page.locator('[data-play-overlay]');
+  if (await overlay.isVisible()) {
+    await page.getByRole('button', { name: 'Play match' }).click();
+    await page.getByRole('button', { name: 'Pause' }).evaluate((node) => node.click());
+  }
+  await setCamera(page, 'overview');
   console.log(`  ${matchId} ready.`);
+}
+
+async function waitForReplayIdentity(page, choice) {
+  const deadline = Date.now() + 60_000;
+  while (Date.now() < deadline) {
+    const identity = await page.evaluate(() => ({
+      renderer: window.__BOTARENA_RENDER_PROOF__?.sample(),
+      transport: window.__BOTARENA_REVIEW_CONTROL__ && {
+        tickCount: window.__BOTARENA_REVIEW_CONTROL__.tickCount,
+        replaySeed: window.__BOTARENA_REVIEW_CONTROL__.replaySeed,
+      },
+    }));
+    if (
+      identity.renderer?.tickCount === choice.ticks &&
+      identity.transport?.tickCount === choice.ticks &&
+      identity.renderer?.replaySeed === identity.transport?.replaySeed
+    ) return;
+    await page.waitForTimeout(100);
+  }
+  throw new Error(`Replay identity did not settle for ${choice.id}.`);
 }
 
 function labelFor(matchId) {
@@ -357,9 +394,16 @@ async function captureOverview(session, match, id) {
 
 async function captureLifecycle(session, lifecycle) {
   const phases = [];
+  await preferOperation(session.page, lifecycle.operationId);
   for (const beat of ['start', 'action', 'resolve']) {
     const time = lifecycle.captureTimes[beat];
     await seek(session.page, time);
+    if (beat !== 'resolve') {
+      // The approval surface is the default strategic view. Earlier proof zoomed into a
+      // private signature camera and therefore proved geometry the actual replay could
+      // not communicate; keep every lifecycle still on the camera the owner watches.
+      await setCamera(session.page, 'overview');
+    }
     const sample = await renderSample(session.page);
     const visible = sample.visibleSignatures.filter(
       (entry) => entry.signatureId === lifecycle.signatureId,
@@ -381,6 +425,7 @@ async function captureLifecycle(session, lifecycle) {
       beat,
       requestedTime: time,
       actualTime: sample.time,
+      camera: 'strategic-overview',
       visible,
       image: relative(file),
       imageSha256: sha256(readFileSync(file)),
@@ -394,13 +439,28 @@ async function captureLifecycle(session, lifecycle) {
   };
 }
 
+async function preferOperation(page, operationId) {
+  await page.evaluate((value) => {
+    const target = new URL(window.location.href);
+    target.searchParams.set('proof-operation', value);
+    target.searchParams.set('proof-camera', 'overview');
+    window.history.replaceState(null, '', target);
+  }, operationId);
+}
+
 async function compareDirectAndContinuousSeek(session, lifecycle) {
+  await preferOperation(session.page, lifecycle.operationId);
+  // The comparison is about replay-derived renderer state, not a camera spring that
+  // advances in wall-clock time. Pin the ordinary strategic camera explicitly before
+  // both samples, just as lifecycle and reduced-motion proof do.
+  await setCamera(session.page, 'overview');
   const target = lifecycle.captureTimes.action;
   await seek(session.page, target);
   const direct = await screenshotBuffer(session.page);
   await seek(session.page, target - 0.55);
   await playFor(session.page, 220);
   await seek(session.page, target);
+  await setCamera(session.page, 'overview');
   const afterPlayback = await screenshotBuffer(session.page);
   const directHash = sha256(direct);
   const afterPlaybackHash = sha256(afterPlayback);
@@ -417,7 +477,10 @@ async function compareDirectAndContinuousSeek(session, lifecycle) {
 }
 
 async function captureReducedMotion(session, lifecycle) {
+  await preferOperation(session.page, lifecycle.operationId);
   await seek(session.page, lifecycle.captureTimes.action);
+  await setCamera(session.page, 'overview');
+  await session.page.waitForTimeout(90);
   const sample = await renderSample(session.page);
   if (!sample.reducedMotion)
     throw new Error('Reduced-motion browser context did not reach the renderer.');
@@ -441,6 +504,7 @@ async function captureReducedMotion(session, lifecycle) {
 }
 
 async function captureLevelUp(session, match, fact) {
+  await setCamera(session.page, 'director');
   const time = fact.tick + 0.32;
   await seek(session.page, time);
   const sample = await renderSample(session.page);
@@ -450,7 +514,7 @@ async function captureLevelUp(session, match, fact) {
   await session.page
     .getByRole('region', { name: 'Arena' })
     .screenshot({ path: file, type: 'webp', quality: 90 });
-  return {
+  const record = {
     matchId: match.id,
     fact,
     time: sample.time,
@@ -458,6 +522,8 @@ async function captureLevelUp(session, match, fact) {
     image: relative(file),
     imageSha256: sha256(readFileSync(file)),
   };
+  await setCamera(session.page, 'overview');
+  return record;
 }
 
 async function seek(page, value) {
@@ -626,6 +692,7 @@ function loadPriorEvidence() {
   return prior.schema === 'arc-relay-presentation-browser-proof-v1' &&
       prior.sourceRevision === manifest.sourceRevision &&
       prior.buildSha256 === buildSha256 &&
+      prior.captureFramingVersion === captureFramingVersion &&
       prior.url === url
     ? prior
     : null;

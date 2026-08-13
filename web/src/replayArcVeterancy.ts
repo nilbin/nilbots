@@ -21,7 +21,7 @@ export interface ArcVeterancyIndex {
   /** Highest level this exact life has reached at `time`; 1 when none. */
   levelAt(time: number, teamId: number, unitId: number, lifeId: number): number;
   /**
-   * The current fact-driven promotion beat, or null outside its 0.9-tick
+   * The current fact-driven promotion beat, or null outside its 1.8-tick
    * presentation window. The returned age is deterministic under seeking.
    */
   levelUpAt(
@@ -66,7 +66,7 @@ export function arcVeterancyFor(replay: ReplayModel): ArcVeterancyIndex {
 
 /** Ticks a heal glow survives past its fact — the -05 lineage cadence. */
 const HEAL_GLOW_TICKS = 3;
-export const LEVEL_UP_BEAT_TICKS = 0.9;
+export const LEVEL_UP_BEAT_TICKS = 1.8;
 
 export function buildArcVeterancy(replay: ReplayModel): ArcVeterancyIndex {
   const levels = new Map<string, { tick: number; level: number }[]>();

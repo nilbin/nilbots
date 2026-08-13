@@ -300,6 +300,9 @@ declare global {
     __BOTARENA_RENDER_PROOF__?: {
       sample: () => {
         time: number;
+        /** Identity guard for capture tooling when a gallery swaps replays in-place. */
+        tickCount: number;
+        replaySeed: string;
         reducedMotion: boolean;
         visibleSignatures: Array<{
           operationId: string | null;
@@ -308,14 +311,29 @@ declare global {
           visibleMeshes: number;
         }>;
         levelUpBeats: number;
+        cameraFrame: {
+          x: number;
+          y: number;
+          width: number;
+          height: number;
+        } | null;
       };
+      /** Pin a close camera to one currently visible signature for review capture. */
+      frameSignature: (operationId: string) => boolean;
     };
     /** Exact transport used only by an explicit `?proof` review session. */
     __BOTARENA_REVIEW_CONTROL__?: {
       play: () => void;
       pause: () => void;
       seek: (tick: number) => void;
+      playing: boolean;
+      speed: number;
+      /** Identity guard for capture tooling when a gallery swaps replays in-place. */
+      tickCount: number;
+      replaySeed: string;
     };
+    /** Temporary MediaRecorder owned solely by an explicit motion-proof page. */
+    __NILBOTS_SIGNATURE_RECORDER__?: MediaRecorder;
     /** Injected by react-native-webview when the page is embedded in the mobile app. */
     ReactNativeWebView?: { postMessage: (message: string) => void };
   }
