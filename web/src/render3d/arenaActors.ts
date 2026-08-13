@@ -1055,12 +1055,19 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     group.add(pips);
     disposables.push(pipGeometry, litPip, lostPip);
 
-    // Veterancy, as brass chevrons in a second row under the health pips —
-    // level 1 shows nothing, each earned level adds one. Brass on purpose:
-    // the economy's purchase beat already taught that colour to mean "this
-    // machine got stronger", and level is exactly that. They live in the
-    // pips group so they follow the bot (and hide with it) for free.
-    const chevronGeometry = new THREE.CircleGeometry(0.055, 3);
+    // Veterancy is the compact brass stack from the approved board. It sits ABOVE the
+    // health row, never beside or through it; level 1 shows nothing and each earned level
+    // adds one open-V facet. A row of solid triangle circles looked like unrelated warning
+    // markers and grew sideways into the health bibs.
+    const chevronShape = new THREE.Shape();
+    chevronShape.moveTo(-0.065, -0.025);
+    chevronShape.lineTo(0, 0.045);
+    chevronShape.lineTo(0.065, -0.025);
+    chevronShape.lineTo(0.065, 0.015);
+    chevronShape.lineTo(0, 0.085);
+    chevronShape.lineTo(-0.065, 0.015);
+    chevronShape.closePath();
+    const chevronGeometry = new THREE.ShapeGeometry(chevronShape);
     const chevronMaterial = new THREE.MeshBasicMaterial({
       color: new THREE.Color('#d9a441'),
       transparent: true,
@@ -1071,10 +1078,7 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     for (let index = 0; index < Math.max(0, veterancy.maxLevel - 1); index++) {
       const chevron = new THREE.Mesh(chevronGeometry, chevronMaterial);
       chevron.rotation.x = -CAMERA_PITCH;
-      // A triangle from CircleGeometry(…, 3) points along +X; roll it a
-      // quarter turn in its own plane so it reads as an upward chevron.
-      chevron.rotation.z = Math.PI / 2;
-      chevron.position.y = -0.16;
+      chevron.userData.cue = 'veterancy-chevron';
       chevron.renderOrder = 10;
       chevron.visible = false;
       pips.add(chevron);
@@ -2009,9 +2013,8 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       }
       if (screening) bot.screenMaterial.opacity = 0.24;
 
-      // Veterancy chevrons: one per level above 1, centred like the health
-      // row. Level is a per-life fold, so a respawned body starts blank
-      // without any reset logic here.
+      // Veterancy chevrons: one compact vertical stack above health. Level is a per-life
+      // fold, so a respawned body starts blank without any reset logic here.
       const level = veterancy.levelAt(
         time,
         pose.teamId,
@@ -2020,8 +2023,9 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       );
       for (const [index, chevron] of bot.levelPips.entries()) {
         chevron.visible = bot.pips.visible && index < level - 1;
-        chevron.position.x =
-          (index - (level - 2) / 2) * PIP_SPACING;
+        chevron.position.x = 0;
+        chevron.position.y = 0.15 + index * 0.082;
+        chevron.position.z = 0.035;
       }
 
       // The heal channel glows while zone-heals are landing and fades
@@ -2246,6 +2250,16 @@ export function buildActors(replay: ReplayModel): ArenaActors {
         time - signaturePhaseStartedTick,
         reducedMotionQuery?.matches === true,
       );
+      const vectorDashing = events.some(
+        (event) =>
+          event.arcRelayFact?.kind === 'body-relocated' &&
+          event.arcRelayFact.signatureId === 'vector-dash' &&
+          event.arcRelayFact.targetActor.actorKey === pose.actorKey,
+      );
+      const dashMovementAngle = Math.atan2(pose.motionY, pose.motionX);
+      const dashFacing = vectorDashing && Math.hypot(pose.motionX, pose.motionY) > 0.001
+        ? shortestTurn(0, pose.angle - dashMovementAngle) * Math.sin(fraction * Math.PI)
+        : 0;
       const travel = signedTravel.get(pose.actorKey);
       const tickPose = tickPoseByActor.get(pose.actorKey);
       const motionFrame = bot.modelMotion?.update(
@@ -2298,7 +2312,8 @@ export function buildActors(replay: ReplayModel): ArenaActors {
         -drift * DRIFT_YAW +
         idle * sway * IDLE_YAW +
         (motionFrame?.counterSteer ?? 0) +
-        signaturePose.yaw;
+        signaturePose.yaw +
+        dashFacing;
       bot.body.rotation.x =
         drift * DRIFT_LEAN +
         idle * rise * IDLE_ROLL +

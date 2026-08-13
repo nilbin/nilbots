@@ -119,8 +119,7 @@ export function arcSignatureBodyPose(
       break;
     case 'exchange':
       pose.rise += 0.09 * opening * motion;
-      pose.lateral += Math.sin(age * Math.PI * 1.5) * 0.08 * motion;
-      pose.yaw += 0.24 * opening * motion;
+      pose.scale += 0.03 * opening * motion;
       break;
     case 'target-paint':
       pose.rise += 0.12 * commit * motion;

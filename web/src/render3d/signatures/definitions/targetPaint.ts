@@ -1,47 +1,19 @@
-import * as THREE from 'three';
 import { defineArcSignatureWebGLPainter } from '../types';
-import { lineAt, setEnergyColour, setEnergyOpacity, targetBrackets, tellPulse } from '../primitives';
+import { setEnergyColour, setEnergyOpacity, targetBrackets, tellPulse } from '../primitives';
 
 const CORAL = '#e78169';
 const BRASS = '#caa65a';
 
 export default defineArcSignatureWebGLPainter({
   signatureId: 'target-paint',
-  paint({ rig, signature, points, target, time, phase, phaseProgress, phaseAge }) {
+  paint({ rig, signature, points, target, time, phase, phaseAge }) {
     const tracked = target ?? points[0];
     if (!tracked) return;
-    rig.pod.visible = true;
-    rig.pod.position.copy(tracked).setY(1.72 + (phase === 'tell' ? (1 - phaseProgress) * 0.9 : 0));
-    rig.pod.scale.set(0.68, 0.42, 0.68);
-    rig.pod.rotation.y = phase === 'tell' ? time * 1.1 : Math.PI / 4;
-    const acquire = phase === 'tell' ? 2.7 - phaseProgress * 1.02 : 1.68;
+    const acquire = phase === 'tell' ? 1.9 : 1.58;
     targetBrackets(rig, tracked, tellPulse(time) * acquire);
     for (const segment of rig.segments.slice(0, 8)) {
       setEnergyColour(segment, CORAL);
       setEnergyOpacity(segment, 0.38);
-    }
-    // A rotating acquisition needle crossing the target reads at the fixed overview where
-    // a gently scaling ring does not. It is still only a target cue: no hitbox or ray is
-    // implied, and the two-sided sweep disappears the instant acquisition resolves.
-    if (phase === 'tell') {
-      const angle = phaseProgress * Math.PI * 1.75;
-      const axis = new THREE.Vector3(Math.cos(angle), 0, Math.sin(angle));
-      const sweep = rig.segments[8]!;
-      const counter = rig.segments[9]!;
-      const sweepLength = 2.05;
-      const head = tracked.clone().addScaledVector(axis, 0.46 - phaseProgress * 0.18);
-      const tail = tracked.clone().addScaledVector(axis, -sweepLength * 0.52);
-      const opposite = tracked.clone().addScaledVector(axis, sweepLength * 0.52);
-      const opposingTail = tracked.clone().addScaledVector(axis, -0.46 + phaseProgress * 0.18);
-      lineAt(sweep, tail, head, 0.15, 0.28);
-      lineAt(counter, opposite, opposingTail, 0.1, 0.34);
-      setEnergyColour(sweep, CORAL);
-      setEnergyColour(counter, BRASS);
-      setEnergyOpacity(sweep, 0.42);
-      setEnergyOpacity(counter, 0.3);
-      const seeker = rig.pod;
-      seeker.position.copy(head).setY(1.06 + Math.sin(phaseProgress * Math.PI) * 0.42);
-      seeker.scale.set(0.68, 0.42, 0.68);
     }
     const lock = rig.rings[0]!;
     lock.visible = phase !== 'tell';
@@ -53,14 +25,14 @@ export default defineArcSignatureWebGLPainter({
       const tally = rig.slabs[index]!;
       tally.visible = true;
       const settle = phase === 'tell' ? 0 : Math.min(1, phaseAge / 0.85);
-      tally.position.copy(tracked).add(
-        new THREE.Vector3(
-          1.08 + (1 - settle) * 0.62,
-          0.42 + (1 - settle) * 0.52,
-          (index - 1) * 0.36,
-        ),
+      // Capacity stays readable without the three long blocks that projected as one huge
+      // unexplained line to the target's right. These are a compact crown above the lock.
+      tally.position.set(
+        tracked.x + (index - 1) * 0.24,
+        0.16 + (1 - settle) * 0.32,
+        tracked.z - 0.76,
       );
-      tally.scale.set(0.42, 0.22, 0.96);
+      tally.scale.set(0.13, 0.18, 0.28);
       tally.material = rig.solid;
     }
     rig.solid.color.set(BRASS);

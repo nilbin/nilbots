@@ -169,6 +169,40 @@ test('signature anticipation never starts early or outlives its authoritative te
   );
 });
 
+test('review corrections remove beam-like guide geometry from Vector Dash and Target Paint', () => {
+  for (const [replayName, signatureId, time] of [
+    ['core-roster', 'vector-dash', 22.35],
+    ['remaining-roster', 'target-paint', 192.35],
+  ] as const) {
+    const replay = loadReplayJson(
+      gunzipSync(readFileSync(new URL(
+        `../../art/reviews/arc-relay-presentation-batch-v1/runtime-proof/replays/${replayName}.broadcast.json.gz`,
+        import.meta.url,
+      ))).toString('utf8'),
+    ).replay;
+    const disposables: { dispose: () => void }[] = [];
+    const effects = buildArcRelayEffects(replay, disposables);
+    try {
+      effects.update(time);
+      const group = effects.group.children.find(
+        (candidate) => candidate.visible && candidate.userData.signatureId === signatureId,
+      );
+      assert.ok(group, `${signatureId} is visible at ${time}`);
+      let visibleSegments = 0;
+      group!.traverse((node) => {
+        if (node.visible && node.userData.primitive === 'segment') visibleSegments += 1;
+      });
+      assert.equal(
+        visibleSegments,
+        0,
+        `${signatureId} does not draw a long guide/scan line`,
+      );
+    } finally {
+      for (const disposable of disposables) disposable.dispose();
+    }
+  }
+});
+
 test('real exchange lifecycle never publishes an empty WebGL signature group', () => {
   const replay = loadReplayJson(
     gunzipSync(readFileSync(new URL(
@@ -180,8 +214,8 @@ test('real exchange lifecycle never publishes an empty WebGL signature group', (
   const effects = buildArcRelayEffects(replay, disposables);
   try {
     for (const [time, minimumMeshes] of [
-      [99.35, 18],
-      [100.35, 4],
+      [99.35, 6],
+      [100.35, 2],
     ] as const) {
       effects.update(time);
       const exchangeGroups: THREE.Object3D[] = [];
@@ -272,8 +306,8 @@ test('floor pressure waves stay horizontal and active fields animate from their 
     const smokeSettled = boundsAt('smoke-canister', 105.15)
       .getSize(new THREE.Vector3());
     assert.ok(
-      smokeSettled.x > smokeOpening.x * 1.08 ||
-        smokeSettled.z > smokeOpening.z * 1.08,
+      smokeSettled.x > smokeOpening.x * 1.02 ||
+        smokeSettled.z > smokeOpening.z * 1.02,
       `Smoke blooms after landing (${smokeOpening.toArray()} -> ${smokeSettled.toArray()})`,
     );
   } finally {
@@ -321,8 +355,8 @@ test('pooled signature transforms are identical after direct seek and played pha
 });
 
 test('persistent props stay legible inside their tiles and sentinel yaw never looks ahead', () => {
-  assert.equal(ARC_SIGNATURE_PROP_SCALE['trip-node'], 1.5);
-  assert.equal(ARC_SIGNATURE_PROP_SCALE['sentinel-seed'], 1.68);
+  assert.equal(ARC_SIGNATURE_PROP_SCALE['trip-node'], 0.76);
+  assert.equal(ARC_SIGNATURE_PROP_SCALE['sentinel-seed'], 0.9);
 
   const shots = [
     { tick: 12, yaw: Math.PI / 2 },

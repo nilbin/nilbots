@@ -104,6 +104,16 @@ function healthPipsOf(
   return found;
 }
 
+function veterancyChevronsOf(
+  group: THREE.Object3D,
+  unitKey: ReplayStableUnitKey,
+): THREE.Object3D[] {
+  const pips = healthPipsOf(group, unitKey);
+  return pips.children.filter(
+    (child) => child.userData.cue === 'veterancy-chevron',
+  );
+}
+
 function assertCenteredPips(
   pips: THREE.Object3D,
   expectedCount: number,
@@ -391,6 +401,34 @@ test('3D health pips follow the effective form maximum and remain centred', () =
   assertCenteredPips(child, 5);
   assertCenteredPips(prime, 3);
 
+  actors.dispose();
+});
+
+test('Arc veterancy chevrons stack above health instead of spreading beside it', () => {
+  const leveled = structuredClone(replay);
+  const actor = leveled.ticks[0]!.after.actors[0]!.identity;
+  const template = leveled.ticks[0]!.events[0] ?? leveled.ticks[0]!.lifecycleEvents[0];
+  assert.ok(template);
+  for (const [tick, level] of [[1, 2], [2, 3]] as const) {
+    leveled.ticks[tick]!.events.push({
+      ...template,
+      eventId: `arc:level-up:test:${level}`,
+      arcRelayFact: {
+        kind: 'leveled-up',
+        actor,
+        level,
+        position: { ...leveled.ticks[tick]!.after.actors[0]!.position },
+      },
+    });
+  }
+  const actors = buildActors(leveled);
+  actors.update(2.25, null, false);
+  const chevrons = veterancyChevronsOf(actors.group, actor.unitKey);
+  const visible = chevrons.filter((chevron) => chevron.visible);
+  assert.equal(visible.length, 2);
+  assert.ok(visible.every((chevron) => chevron.position.x === 0));
+  assert.ok(visible[0]!.position.y > 0);
+  assert.ok(visible[1]!.position.y > visible[0]!.position.y);
   actors.dispose();
 });
 

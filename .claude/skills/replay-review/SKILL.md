@@ -27,6 +27,40 @@ and publish the permanent gallery only for a frozen promotion candidate or a
 change to viewer code/assets. Do not turn every replay refresh into a release
 gauntlet.
 
+For Arc signature presentation, the ordinary owner-review loop is even smaller:
+
+```bash
+dotnet run --project src/BotArena.Cli -- \
+  experiment arc-relay-signature-stage --signature <id> --out <dir>
+```
+
+This runs the real current Arc rules on Tapline geometry, but under a short,
+explicitly diagnostic stage contract: one caster, the minimum ally/enemy/Core
+context the named signature actually needs, and everyone else waiting. Install
+one or a few of these compact broadcasts in the existing review build and hand
+them to the owner early. It makes no audit, balance, or doctrine claim.
+
+The convenience path builds and installs a picker in one command:
+
+```bash
+node scripts/build-arc-relay-signature-stage-review.mjs \
+  vector-dash target-paint smoke-canister
+```
+
+These stage broadcasts are already compact format-2 runtime payloads and may be
+installed directly; the canonical-to-transport projection rule below is for
+large canonical diagnostic/audit replays, not this focused stage command.
+
+The two retained all-signature capture programs are **owner-request-only**:
+`scripts/capture-arc-relay-presentation-proof.mjs` and
+`scripts/capture-arc-relay-signature-motion-proof.mjs`. Never invoke either
+because renderer code, models, assets, or a normal visual iteration changed.
+They are a frozen-candidate promotion harness and require both an explicit owner
+request in the current conversation and `--owner-requested-full-proof true`.
+Absent that request, do not capture a frame matrix or clips. A focused live-page
+boot smoke may verify that a handoff URL loads; it does not pretend to judge the
+art for the owner.
+
 For repeated screenshots of one build and replay, group frames by render
 profile. Load one page per profile, wait for all models once, pause, then seek
 and capture every required tick without reloading the page. Keep baseline and

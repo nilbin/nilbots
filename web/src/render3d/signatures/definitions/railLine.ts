@@ -9,11 +9,11 @@ export default defineArcSignatureWebGLPainter({
   paint({ rig, points, owner, target, phaseProgress }) {
     const path = points.length > 1 ? points : owner && target ? [owner, target] : [];
     if (path.length < 2) return;
-    polyline(rig, path, 0.13);
+    polyline(rig, path, 0.075);
     for (let index = 0; index < path.length - 1; index += 1) {
       const segment = rig.segments[index]!;
       setEnergyColour(segment, PRESSURE);
-      setEnergyOpacity(segment, 0.13 + phaseProgress * 0.09);
+      setEnergyOpacity(segment, 0.08 + phaseProgress * 0.06);
     }
     const from = path[0]!;
     const to = path.at(-1)!;
@@ -25,20 +25,20 @@ export default defineArcSignatureWebGLPainter({
       to,
       0.16 + phaseProgress * 0.84,
     );
-    solidBarAt(rig.bars[0]!, from, chargedTo, 0.34, 0.09);
+    solidBarAt(rig.bars[0]!, from, chargedTo, 0.14, 0.075);
     rig.solid.color.set('#3e565c');
     rig.solid.emissive.set('#10282d');
     rig.solid.emissiveIntensity = 0.05;
-    rig.solid.opacity = 0.9;
-    // The travelling pressure head turns the one-tick charge into an action rather than a
-    // static white line. It is matte and broad enough to survive the director shot.
+    rig.solid.opacity = 0.54;
+    // A compact travelling notch gives the charge direction; it should never become a
+    // second projectile sitting on top of the lane.
     const pressureHead = rig.payload;
     pressureHead.visible = true;
     pressureHead.position.copy(chargedTo);
     pressureHead.position.y = 0.18;
     pressureHead.rotation.z = Math.PI / 2;
     pressureHead.rotation.y = -Math.atan2(to.z - from.z, to.x - from.x);
-    pressureHead.scale.set(0.84, 0.58, 0.84);
+    pressureHead.scale.set(0.42, 0.3, 0.42);
     const dx = to.x - from.x;
     const dz = to.z - from.z;
     const length = Math.hypot(dx, dz) || 1;
@@ -68,33 +68,21 @@ export default defineArcSignatureWebGLPainter({
     const to = path.at(-1)!;
     const sweep = Math.min(1, fraction * 1.45);
     const pressureTo = new THREE.Vector3().lerpVectors(from, to, sweep);
-    solidBarAt(rig.bars[0]!, from, pressureTo, 0.5 * life + 0.2, 0.1);
+    solidBarAt(rig.bars[0]!, from, pressureTo, 0.22 * life + 0.09, 0.08);
     rig.solid.color.set('#3e565c');
     rig.solid.emissive.set('#10282d');
     rig.solid.emissiveIntensity = 0.05;
-    rig.solid.opacity = life * 0.9;
-    for (const [index, offset] of [-0.18, 0, 0.18].entries()) {
-      const dx = to.x - from.x;
-      const dz = to.z - from.z;
-      const length = Math.hypot(dx, dz) || 1;
-      const normal = new THREE.Vector3(-dz / length, 0, dx / length);
-      const slab = rig.segments[index]!;
-      lineAt(
-        slab,
-        from.clone().addScaledVector(normal, offset),
-        pressureTo.clone().addScaledVector(normal, offset),
-        index === 1 ? 0.42 : 0.18,
-        0.12,
-      );
-      setEnergyColour(slab, PRESSURE);
-      setEnergyOpacity(slab, life * (index === 1 ? 0.13 : 0.07));
-    }
+    rig.solid.opacity = life * 0.48;
+    const afterimage = rig.segments[0]!;
+    lineAt(afterimage, from, pressureTo, 0.12, 0.095);
+    setEnergyColour(afterimage, PRESSURE);
+    setEnergyOpacity(afterimage, life * 0.1);
     const head = rig.payload;
     head.visible = true;
     head.position.copy(pressureTo);
     head.position.y = 0.18;
     head.rotation.z = Math.PI / 2;
     head.rotation.y = -Math.atan2(to.z - from.z, to.x - from.x);
-    head.scale.set(1.24, 0.8, 1.24);
+    head.scale.set(0.58, 0.38, 0.58);
   },
 });

@@ -18,11 +18,16 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import os from 'node:os';
 
 const repository = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const options = parseOptions(process.argv.slice(2));
+if (options['owner-requested-full-proof'] !== 'true')
+  throw new Error(
+    'Full signature motion proof is owner-request-only. Re-run only after an explicit ' +
+    'owner request with --owner-requested-full-proof true.',
+  );
 const requireFromWeb = createRequire(path.join(repository, 'web', 'package.json'));
 const { chromium } = requireFromWeb('playwright');
 const sharp = requireFromWeb('sharp');
 const ffmpeg = resolveFfmpeg();
-const options = parseOptions(process.argv.slice(2));
 const only = new Set(
   String(options.only ?? '')
     .split(',')

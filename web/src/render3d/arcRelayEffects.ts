@@ -106,8 +106,8 @@ interface SignaturePropSlot {
 }
 
 export const ARC_SIGNATURE_PROP_SCALE = {
-  'trip-node': 1.5,
-  'sentinel-seed': 1.68,
+  'trip-node': 0.76,
+  'sentinel-seed': 0.9,
 } as const;
 
 /** The sentry may acknowledge shots that have happened, but never pre-aim from future state. */
@@ -657,16 +657,17 @@ export function buildArcRelayEffects(
         slot.group.userData.operationId = signature.operationId;
         const deploy = reducedMotion
           ? 1
-          : easeOutDeploy(Math.min(1, phaseAge / 1.15));
+          : easeOutDeploy(Math.min(1, phaseAge / 0.9));
         const propScale = ARC_SIGNATURE_PROP_SCALE[signature.signatureId];
-        slot.group.position.copy(points[0]).setY(-0.72 + deploy * 0.72);
-        // Grow from a readable physical seed instead of a zero-scale apparition. The
-        // slight over-settle makes the one-piece Meshy prop visibly *arrive*, while every
-        // value remains a pure function of the replay phase age for direct seeks.
+        // Both props occupy one tile. The sentry arrives from above as requested; the mine
+        // remains a low device that settles through the floor. No extra placeholder body
+        // competes with the authored model during either deployment.
+        const fromY = signature.signatureId === 'sentinel-seed' ? 2.45 : -0.24;
+        slot.group.position.copy(points[0]).setY(fromY * (1 - deploy));
         const scaleSettle = reducedMotion
           ? 1
-          : deploy + Math.sin(Math.PI * Math.min(1, phaseAge / 1.15)) * 0.14;
-        slot.group.scale.setScalar(propScale * (0.22 + scaleSettle * 0.78));
+          : 1 + Math.sin(Math.PI * Math.min(1, phaseAge / 0.9)) * 0.06;
+        slot.group.scale.setScalar(propScale * scaleSettle);
         const propYaw =
           signature.signatureId === 'sentinel-seed'
             ? latestObservedSignatureYaw(
@@ -685,8 +686,12 @@ export function buildArcRelayEffects(
           deploy,
         );
         slot.pipGroup.visible = true;
-        slot.pipGroup.position.copy(points[0]).setY(-0.72 + deploy * 0.72);
-        slot.pipGroup.scale.setScalar(0.42 + deploy * 0.82);
+        slot.pipGroup.position.copy(points[0]).setY(
+          signature.signatureId === 'sentinel-seed'
+            ? fromY * (1 - deploy)
+            : 0,
+        );
+        slot.pipGroup.scale.setScalar(propScale);
         const pipOwner = replay.units.find(
           (unit) => unit.teamId === signature.ownerTeamId,
         );

@@ -16,20 +16,17 @@ export default defineArcSignatureWebGLPainter({
       points,
       time,
       persistentPropReady,
-      new THREE.Vector3(0.75, 0.42, 0.75),
+      new THREE.Vector3(0.34, 0.19, 0.34),
     );
     const anchor = points[0];
     if (!anchor) return;
-    rig.hub.visible = true;
-    rig.hub.position.copy(anchor).setY(-0.12 + deploy * 0.22);
-    rig.hub.scale.setScalar(0.64 + deploy * 0.72);
     if (persistentPropReady) {
       // The approved prop is the silhouette. Three short floor rails draw inward to its
       // socket during deployment without covering it in generic grey geometry.
       for (const [index, angle] of [0, Math.PI * 2 / 3, Math.PI * 4 / 3].entries()) {
         const rail = rig.segments[index]!;
-        const outer = 1.2 - deploy * 0.36;
-        const inner = 0.5;
+        const outer = 0.62 - deploy * 0.08;
+        const inner = 0.34;
         rail.visible = true;
         rail.position.set(
           anchor.x + Math.cos(angle) * (inner + outer) * 0.5,
@@ -37,23 +34,23 @@ export default defineArcSignatureWebGLPainter({
           anchor.z + Math.sin(angle) * (inner + outer) * 0.5,
         );
         rail.rotation.y = -angle;
-        rail.scale.set(outer - inner, 1, 2.2);
-        setEnergyOpacity(rail, 0.12);
+        rail.scale.set(outer - inner, 1, 1.25);
+        setEnergyOpacity(rail, 0.08);
       }
     }
-    targetRing(rig, anchor, 1.34);
-    setEnergyOpacity(rig.ring, 0.12);
-    const spokes = reducedMotion ? 3 : 4;
+    targetRing(rig, anchor, 0.66);
+    setEnergyOpacity(rig.ring, 0.09);
+    const spokes = reducedMotion ? 2 : 3;
     for (let index = 0; index < spokes; index += 1) {
       const marker = rig.markers[index]!;
       const angle = (index / spokes) * Math.PI * 2;
       marker.visible = true;
       marker.position.set(
-        anchor.x + Math.cos(angle) * (1.12 - deploy * 0.34),
+        anchor.x + Math.cos(angle) * (0.58 - deploy * 0.1),
         0.055,
-        anchor.z + Math.sin(angle) * (1.12 - deploy * 0.34),
+        anchor.z + Math.sin(angle) * (0.58 - deploy * 0.1),
       );
-      marker.scale.set(0.34, 0.1, 0.62);
+      marker.scale.set(0.22, 0.08, 0.34);
       marker.rotation.y = -angle;
       setEnergyOpacity(marker, signature.suppressed ? 0.05 : 0.1);
     }

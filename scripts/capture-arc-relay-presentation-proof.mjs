@@ -18,11 +18,15 @@ const repository = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   '..',
 );
+const options = parseOptions(process.argv.slice(2));
+if (options['owner-requested-full-proof'] !== 'true')
+  throw new Error(
+    'Full presentation proof is owner-request-only. Re-run only after an explicit ' +
+    'owner request with --owner-requested-full-proof true.',
+  );
 const requireFromWeb = createRequire(path.join(repository, 'web', 'package.json'));
 const { chromium } = requireFromWeb('playwright');
 const sharp = requireFromWeb('sharp');
-
-const options = parseOptions(process.argv.slice(2));
 const proofDirectory = absolute(
   options.proof ??
     'art/reviews/arc-relay-presentation-batch-v1/runtime-proof',

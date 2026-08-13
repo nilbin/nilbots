@@ -26,11 +26,11 @@ export default defineArcSignatureWebGLPainter({
       // the arena up-axis. Rotating it onto the floor made the old "wall" read as two
       // orange hoops in normal replays.
       frame.rotation.set(0, yaw, 0);
-      frame.scale.set(1.5, Math.max(0.07, delay * 2.15), 1.2);
+      frame.scale.set(1.2, Math.max(0.07, delay * 1.82), 0.9);
       panel.visible = true;
       panel.position.copy(point).setY(0.06 + delay * 0.37);
       panel.rotation.set(0, yaw, 0);
-      panel.scale.set(1.4, Math.max(0.08, delay * 2.0), 0.9);
+      panel.scale.set(1.12, Math.max(0.08, delay * 1.68), 0.68);
       setEnergyColour(panel, PRISM_GLASS);
       setEnergyOpacity(panel, 0.1 + delay * 0.08);
       const frontPost = rig.posts[index * 2]!;
@@ -44,7 +44,7 @@ export default defineArcSignatureWebGLPainter({
             -Math.sin(yaw) * side * 0.43,
           ),
         );
-        post.scale.set(1.36, Math.max(0.08, delay * 2.3), 1.36);
+        post.scale.set(0.82, Math.max(0.08, delay * 1.82), 0.82);
       }
       const capacity = rig.rings[index]!;
       capacity.visible = index < signature.remainingCapacity;

@@ -50,6 +50,8 @@ try
             FrontlineLabsExperimentCommand.Run(rest),
         ["experiment", "arc-relay-h0-smoke", .. var rest] =>
             ArcRelayH0SmokeCommand.Run(rest),
+        ["experiment", "arc-relay-signature-stage", .. var rest] =>
+            ArcRelaySignatureStageCommand.Run(rest),
         ["experiment", "arc-relay", .. var rest] =>
             ArcRelayExperimentCommand.Run(rest),
         ["experiment", "arc-relay-screen-batch", .. var rest] =>
@@ -153,6 +155,13 @@ static int Help(int exitCode = 1)
                                                   ENGINEERING SMOKE: writes
                                                   two mind-profile Arc Relay
                                                   replay files; no stock doctrine
+          nilbots experiment arc-relay-signature-stage
+                        --signature <id> [--seed 7001] [--ticks 48..180]
+                        [--out <dir>]
+                                                  PRESENTATION DIAGNOSTIC: one
+                                                  real-rules caster with only
+                                                  required ally/enemy context;
+                                                  compact replay, no balance claim
           nilbots experiment arc-relay-screen-batch
                         (--plan <screen-plan.json> |
                          --sweep-plan <sweep-plan.json> --bot <project>)

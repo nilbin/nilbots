@@ -7,12 +7,10 @@ import {
   lineAt,
   setEnergyColour,
   setEnergyOpacity,
-  solidBarAt,
   targetRing,
 } from '../primitives';
 
 const IMPACT_AMBER = '#d79a4a';
-const DESCENT_BRONZE = '#8b5b2b';
 
 export default defineArcSignatureWebGLPainter({
   signatureId: 'falling-star',
@@ -29,14 +27,6 @@ export default defineArcSignatureWebGLPainter({
       const arm = rig.segments[index]!;
       setEnergyColour(arm, IMPACT_AMBER);
       setEnergyOpacity(arm, 0.3 + charge * 0.18);
-      const solidArm = rig.bars[index]!;
-      const angle = index * Math.PI / 2;
-      solidBarAt(
-        solidArm,
-        anchor.clone().add(new THREE.Vector3(Math.cos(angle) * (0.24 + charge * 0.22), 0, Math.sin(angle) * (0.24 + charge * 0.22))),
-        anchor.clone().add(new THREE.Vector3(Math.cos(angle) * 0.98, 0, Math.sin(angle) * 0.98)),
-        0.14,
-      );
     }
     const shadow = rig.disc;
     shadow.visible = true;
@@ -52,28 +42,16 @@ export default defineArcSignatureWebGLPainter({
       setEnergyColour(halo, IMPACT_AMBER);
       setEnergyOpacity(halo, 0.16 - index * 0.025 + charge * 0.09);
     }
-    rig.pod.visible = true;
-    // This must not read as Smoke Canister's grey cloud. A warm, machined penetrator and
-    // its three vertical rails remain distinct even when Null Field shares the same fight.
-    rig.solid.color.set(DESCENT_BRONZE);
-    rig.solid.emissive.set('#6b3918');
-    rig.solid.emissiveIntensity = 0.22;
-    rig.pod.position.copy(anchor).setY(3.25 - charge * 2.62);
-    rig.pod.scale.set(1.28, 1.35, 1.28);
-    rig.pod.rotation.y = time * 0.42;
-    // Long low-opacity streaks make the vertical descent readable even when the body is
-    // projected onto a crowded tile from the strategic camera.
-    for (let index = 0; index < 3; index += 1) {
-      const streak = rig.posts[index]!;
-      streak.visible = true;
-      const angle = (index / 3) * Math.PI * 2;
-      streak.position.copy(anchor).add(
-        new THREE.Vector3(Math.cos(angle) * 0.22, 0, Math.sin(angle) * 0.22),
-      );
-      streak.position.y = 2.25 - charge * 1.18;
-      streak.scale.set(0.52, 2.9 - charge * 1.15, 0.52);
-    }
-    rig.solid.opacity = 0.92;
+    // A translucent faceted shard preserves the vertical arrival without dropping another
+    // opaque generic 3D object into the middle of the aura.
+    rig.cloud.visible = true;
+    rig.cloud.position.copy(anchor).setY(3.05 - charge * 2.5);
+    rig.cloud.scale.set(0.52, 1.48, 0.52);
+    rig.cloud.rotation.y = time * 0.42;
+    rig.smoke.color.set(IMPACT_AMBER);
+    rig.smoke.emissive.set('#6b3918');
+    rig.smoke.emissiveIntensity = 0.08;
+    rig.smoke.opacity = 0.22;
   },
   paintOutcome({ rig, priorSignature, facts, fraction, owner, reducedMotion }) {
     const completed = facts.some(
@@ -86,12 +64,13 @@ export default defineArcSignatureWebGLPainter({
     const anchor = points[0] ?? owner;
     if (!anchor) return;
     const life = 1 - fraction;
-    rig.pod.visible = fraction < 0.42;
-    rig.solid.color.set(DESCENT_BRONZE);
-    rig.solid.emissive.set('#6b3918');
-    rig.solid.emissiveIntensity = 0.22;
-    rig.pod.position.copy(anchor).setY(0.32 + Math.max(0, 1 - fraction / 0.42) * 0.6);
-    rig.pod.scale.set(1.55, 1.15, 1.55);
+    rig.cloud.visible = fraction < 0.34;
+    rig.cloud.position.copy(anchor).setY(0.28 + Math.max(0, 1 - fraction / 0.34) * 0.42);
+    rig.cloud.scale.set(0.74 + fraction * 0.32, 0.72, 0.74 + fraction * 0.32);
+    rig.smoke.color.set(IMPACT_AMBER);
+    rig.smoke.emissive.set('#6b3918');
+    rig.smoke.emissiveIntensity = 0.06;
+    rig.smoke.opacity = life * 0.18;
     const impactProgress = Math.min(1, fraction * 1.45);
     for (let index = 1; index < points.length; index += 1) {
       const ray = rig.segments[index - 1]!;
@@ -99,8 +78,6 @@ export default defineArcSignatureWebGLPainter({
       lineAt(ray, anchor, end, 0.42 * life + 0.12, 0.12);
       setEnergyColour(ray, IMPACT_AMBER);
       setEnergyOpacity(ray, life * 0.42);
-      const solidRay = rig.bars[index - 1]!;
-      solidBarAt(solidRay, anchor, end, 0.28 * life + 0.1, 0.1);
     }
     const torus = rig.torus;
     torus.visible = true;
@@ -113,11 +90,6 @@ export default defineArcSignatureWebGLPainter({
     rig.disc.scale.setScalar(0.8 + fraction * 2.3);
     rig.fill.color.set(IMPACT_AMBER);
     rig.fill.opacity = life * 0.3;
-    rig.plate.visible = true;
-    rig.plate.position.copy(anchor).setY(0.065);
-    rig.plate.scale.setScalar(0.72 + fraction * 1.55);
-    rig.solid.color.set(IMPACT_AMBER);
-    rig.solid.opacity = life * 0.72;
     const count = reducedMotion ? 4 : 10;
     for (let index = 0; index < count; index += 1) {
       const dust = rig.wisps[index]!;

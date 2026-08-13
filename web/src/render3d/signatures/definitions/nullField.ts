@@ -17,13 +17,8 @@ export default defineArcSignatureWebGLPainter({
     if (!anchor) return;
     const contraction = phase === 'tell' ? 1.28 - phaseProgress * 0.42 : 1;
     const area = fieldBase(rig, points, anchor, contraction * tellPulse(time));
-    rig.hub.visible = true;
-    rig.hub.position.copy(area.centre).setY(0.1);
-    rig.hub.scale.setScalar(1.42);
-    rig.solid.color.set('#292331');
-    rig.solid.emissive.set(NULL_DARK);
-    rig.solid.emissiveIntensity = 0.04;
-    rig.solid.opacity = 0.9;
+    // Null is an absence across an area, not an object placed in its centre. The former
+    // opaque hub hid bots and made every field look as though it contained a generic prop.
     rig.fill.color.set(NULL_DARK);
     rig.fill.opacity = phase === 'tell' ? 0.075 : 0.24;
     rig.disc.position.y = 0.038;

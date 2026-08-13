@@ -48,10 +48,14 @@ for (const entry of manifest.entries) {
     const broadcastGzip = readFileSync(broadcastPath);
     const broadcastJson = gunzipSync(broadcastGzip).toString('utf8');
     const broadcast = JSON.parse(broadcastJson);
+    const broadcastHash = broadcast.broadcastVersion === 2
+      ? broadcast.replayHash
+      : broadcast.canonicalReplayHash;
     if (
-      broadcast.broadcastVersion !== 1 ||
+      ![1, 2].includes(broadcast.broadcastVersion) ||
       broadcast.header?.contract?.rules?.gameMode?.kind !== 'arc-relay' ||
-      !/^[0-9a-f]{64}$/.test(broadcast.canonicalReplayHash ?? '') ||
+      !/^[0-9a-f]{64}$/.test(broadcastHash ?? '') ||
+      (broadcast.broadcastVersion === 2 && broadcast.partial !== false) ||
       !Array.isArray(broadcast.worlds) ||
       broadcast.worlds.length === 0 ||
       broadcast.result === null
@@ -79,7 +83,8 @@ for (const entry of manifest.entries) {
       id: entry.id,
       sourceReplay: null,
       archivedReplay: null,
-      canonicalReplayHash: broadcast.canonicalReplayHash,
+      canonicalReplayHash: broadcast.canonicalReplayHash ?? null,
+      replayHash: broadcast.replayHash ?? null,
       ticks: broadcast.worlds.length,
       map: broadcast.header.contract.map.mapId,
       seed: broadcast.header.seed,
@@ -201,7 +206,7 @@ writeFileSync(
   `${JSON.stringify({ schemaVersion: 1, installedAt: new Date().toISOString(), entries: evidence }, null, 2)}\n`,
 );
 console.log(
-  `Installed ${choices.length} canonical Arc Relay replays into ${path.relative(repository, outputDirectory)}.`,
+  `Installed ${choices.length} Arc Relay replays into ${path.relative(repository, outputDirectory)}.`,
 );
 
 function validateEntry(entry) {

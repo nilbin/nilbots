@@ -30,30 +30,31 @@ deployment, capacity, suppression, trigger, and fire presentation.
 | Treatment | Gameplay-camera target | Deliberate runtime difference |
 | --- | --- | --- |
 | Tractor Hook | High: narrowing line, travelling head, taut dark cable, authored pull | Cable uses a bounded segmented curve; no simulated rope physics. |
-| Falling Star | High after correction: cardinal tell, descending capsule, low five-tile impact | No generated sky column, permanent crater, or floor deformation. |
-| Rail Line | High after correction: notched wind-up, broad pressure slab, short afterimage | Resolve is substantially dimmer and less saturated than the board for comfort in stacked fights. |
-| Hardlight Block | High: complete one-tile frame, rising chunky slabs, matte settled obstacle | The collision-readable full envelope appears immediately; slab settling is cosmetic. |
+| Falling Star | High after correction: cardinal tell, translucent faceted descent, low five-tile impact | No opaque central mass, generated sky column, permanent crater, or floor deformation. |
+| Rail Line | High after correction: thin wind-up, narrow pressure pass, one faint afterimage | Resolve is substantially dimmer and less saturated than the board for comfort in stacked fights. |
+| Hardlight Block | High: compact one-tile frame, low rising slabs, matte settled obstacle | The collision-readable full envelope appears immediately; slab settling is cosmetic. |
 | Repair Beam | High: three braided bands, travelling packets, one seam-closing repair beat | Bands are pooled segmented ribbons, not spline geometry rebuilt every frame. |
 | Survey Flare | High: real flight, calibration ring, exact reveal footprint | Sparse floor ticks replace tiny board detail that would alias. |
-| Null Field | High after correction: contracting boundary and shallow dark floor lens | No dome, screen distortion, or full-scene post-process. |
-| Smoke Canister | Medium-high: real canister flight and low rolling matte lobes across the exact footprint | Stylized shader/mesh volumes replace true volumetric smoke; this is the largest approximation in the set. |
-| Vector Dash | High: floor promise, one real moving body, short pressure wake | No duplicate/ghost bodies and no future-pose anticipation. |
+| Null Field | High after correction: contracting boundary and shallow dark floor lens | No central hub, dome, screen distortion, or full-scene post-process. |
+| Smoke Canister | Medium-high: real canister flight and one low transparent field volume across the exact footprint | A single stylized volume replaces true volumetric smoke; this is the largest approximation in the set. |
+| Vector Dash | High: compact destination socket, one correctly oriented real moving body, short pressure wake | No guide line, duplicate/ghost bodies, or future-pose anticipation. |
 | Prism Wall | High after correction: contact posts, three rising panes, capacity loss along an edge | Panes are rough and low-specular rather than the board's glassier result. |
-| Arc Toss | High: destination tell, the one real Core in flight, honest landing state | No decorative duplicate Core or invented pickup. |
-| Exchange | High: paired endpoints, folding ribbons, exact body relocations | Ribbons communicate association only; they do not imply collision or a curved path. |
-| Target Paint | High: blunt acquisition brackets and three persistent tally bars | No thin high-frequency reticle lines or bright lock-on ping. |
-| Kinetic Burst | High: contracting local ring, low torus, wakes only on relocated bodies | No camera shake or expanding full-screen distortion. |
-| Trip Node | High: inward floor rails, one approved mine emerging from below the tile, low trigger pressure | The hidden trap gains no globally visible pre-placement telegraph. |
-| Sentinel Seed | High: descending seed, one approved sentry rising into place, observed-shot head yaw | The model is a stationary-base/yaw-head split rather than a skeletal rig. |
-| Level Up | High after correction: brass ring, three converging facets, persistent chevron | No full-height column or white flash. |
+| Arc Toss | High: destination tell, the one real Core in flight, honest landing state | No decorative trajectory ribbon, duplicate Core, or invented pickup. |
+| Exchange | High: low paired endpoints, exact body relocations, restrained association | No arrow, shuttle, fake separation, or renderer-authored curved travel. |
+| Target Paint | High: blunt acquisition brackets and compact overhead capacity tally | No lateral scan line, thin high-frequency reticle, or bright lock-on ping. |
+| Kinetic Burst | High: contracting boundary, low torus, wakes only on relocated bodies | No opaque central machine, camera shake, or full-screen distortion. |
+| Trip Node | High: inward floor rails, one deliberately small approved mine emerging from below, low trigger pressure | The hidden trap gains no globally visible pre-placement telegraph. |
+| Sentinel Seed | High: floor socket, one deliberately small approved sentry arriving from above, observed-shot head yaw | The model is a stationary-base/yaw-head split rather than a skeletal rig. |
+| Level Up | High after correction: brass ring, three converging facets, vertically stacked persistent chevrons above health | No side-by-side triangles, health overlap, full-height column, or white flash. |
 | Sixteen attack heads | High silhouette fidelity at 16–28 pixels | SVG-derived 3D relief retains the shapes, not the board's close-up microtexture. |
 
 ### Fidelity acceptance gate
 
 For every treatment, the implementation produces deterministic motion and
-start/action/resolve evidence from a real Tapline replay. The gallery keeps the
-ordinary strategic overview beside an honestly labelled director view and the
-corresponding storyboard row. It passes only when all of these are true:
+start/action/resolve evidence from a real Tapline replay. Owner iteration starts
+with a short focused replay for the named signature. A broad capture gallery is
+reserved for an owner-requested frozen-candidate review. It passes only when all
+of these are true:
 
 1. The dominant silhouette and direction still match at 25% thumbnail scale.
 2. The same three-beat story is recognizable without reading a label.
@@ -64,6 +65,27 @@ corresponding storyboard row. It passes only when all of these are true:
 5. Seeking directly to any phase produces the same frame as continuous play.
 6. Desktop, phone landscape, and reduced-motion profiles keep the mechanical
    tell, active footprint, and outcome readable inside their budgets.
+
+### Owner review loop and harness boundary
+
+The default presentation loop is intentionally short and human-led:
+
+```bash
+node scripts/build-arc-relay-signature-stage-review.mjs \
+  vector-dash target-paint smoke-canister
+cd web && npm run review -- --no-build --tunnel
+```
+
+Each entry is a compact real-rules diagnostic: one caster, only the ally,
+enemy, or Core context required by that signature, and the remaining roster
+waiting. It is presentation evidence only and makes no balance or audit claim.
+This lets the owner watch a change before more renderer work is attempted.
+
+The retained all-signature screenshot/video harness is not part of ordinary
+iteration. It may run only when the owner explicitly asks for it in the current
+conversation, and its scripts additionally require
+`--owner-requested-full-proof true`. Normal renderer edits, model changes, and
+review-picker rebuilds never trigger it implicitly.
 
 ## Starting contracts retained by the implementation
 
@@ -239,7 +261,8 @@ After the framework lands, a complete addition follows this checklist:
 5. Add one signature presentation module with replay evidence, reduced-motion,
    resource budget, audio binding/silence, and fidelity brief.
 6. Round-trip the replay presentation package and any genuinely new fact.
-7. Pass the complete coverage gate and real-replay capture review.
+7. Pass the complete coverage gate and focused real-replay owner review; run
+   the broad capture review only when the owner explicitly requests it.
 8. Update the canonical class/signature extension guide and player-facing
    rules surface in the same change.
 

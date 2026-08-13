@@ -1,25 +1,16 @@
 import * as THREE from 'three';
 import { defineArcSignatureWebGLPainter } from '../types';
-import { anchorOf, lineAt, setEnergyColour, setEnergyOpacity, solidBarAt } from '../primitives';
+import { anchorOf, lineAt, setEnergyColour, setEnergyOpacity } from '../primitives';
 
 const PRESSURE = '#78aeb3';
-const IRON = '#5e5549';
-
 export default defineArcSignatureWebGLPainter({
   signatureId: 'kinetic-burst',
   paint({ rig, points, owner, target, phaseProgress }) {
     const anchor = anchorOf(points, owner, target);
     if (!anchor) return;
     const contraction = 1.72 - phaseProgress * 0.82;
-    rig.hub.visible = true;
-    rig.hub.position.copy(anchor).setY(0.12);
-    rig.hub.scale.setScalar(1.36 + phaseProgress * 0.18);
-    rig.solid.color.set(IRON);
-    rig.solid.emissive.set('#182b2d');
-    rig.solid.emissiveIntensity = 0.05;
-    rig.solid.opacity = 0.94;
-    // The tell is a mechanical iris, not a family of additive circles. A single dim
-    // boundary locates it while four chunky petals slide into the rooted caster.
+    // Keep the tell on the floor around the real caster. An opaque shared hub in the
+    // middle turned this and Null Field into the same generic object-with-aura effect.
     const boundary = rig.rings[0]!;
     boundary.visible = true;
     boundary.position.copy(anchor).setY(0.055);
@@ -27,36 +18,23 @@ export default defineArcSignatureWebGLPainter({
     setEnergyColour(boundary, PRESSURE);
     setEnergyOpacity(boundary, 0.11);
     for (const [index, angle] of [0, Math.PI / 2, Math.PI, Math.PI * 1.5].entries()) {
-      const fin = rig.fins[index]!;
-      fin.visible = true;
-      fin.position.set(
+      const marker = rig.markers[index]!;
+      marker.visible = true;
+      marker.position.set(
         anchor.x + Math.cos(angle) * contraction,
-        0.29,
+        0.065,
         anchor.z + Math.sin(angle) * contraction,
       );
-      fin.rotation.y = -angle;
-      fin.rotation.z = Math.PI / 2;
-      fin.scale.set(1.18, 1.42, 1.18);
-      solidBarAt(
-        rig.bars[index]!,
-        anchor.clone().add(new THREE.Vector3(Math.cos(angle) * 0.5, 0, Math.sin(angle) * 0.5)),
-        anchor.clone().add(new THREE.Vector3(Math.cos(angle) * contraction, 0, Math.sin(angle) * contraction)),
-        0.2,
-        0.12,
-      );
+      marker.rotation.y = -angle;
+      marker.scale.set(0.34, 0.1, 0.58);
+      setEnergyColour(marker, PRESSURE);
+      setEnergyOpacity(marker, 0.22);
     }
   },
   paintOutcome({ rig, facts, owner, fraction }) {
     if (!facts.some((fact) => fact.kind === 'signature-changed' && fact.reason === 'completed') || !owner)
       return;
     const life = 1 - fraction;
-    rig.hub.visible = true;
-    rig.hub.position.copy(owner).setY(0.12);
-    rig.hub.scale.setScalar(1.54 - fraction * 0.28);
-    rig.solid.color.set(IRON);
-    rig.solid.emissive.set('#182b2d');
-    rig.solid.emissiveIntensity = 0.05;
-    rig.solid.opacity = 0.94 * life;
     // One low, broad pressure torus is the resolve verb. There is deliberately no solid
     // expanding disc: that was the white bloom visible in stacked fights.
     rig.torus.visible = true;
@@ -72,15 +50,8 @@ export default defineArcSignatureWebGLPainter({
       const wake = rig.segments[segment++];
       if (!wake) break;
       lineAt(wake, from, to, 0.16 * life + 0.05);
-      setEnergyOpacity(wake, life * 0.58);
-      solidBarAt(rig.bars[segment - 1]!, from, to, 0.16 * life + 0.07, 0.1);
-      const head = rig.fins[segment - 1]!;
-      head.visible = true;
-      head.position.lerpVectors(from, to, fraction).setY(0.28);
-      head.rotation.z = Math.PI / 2;
-      head.rotation.y = -Math.atan2(to.z - from.z, to.x - from.x);
-      head.scale.setScalar(1.05 * life + 0.22);
+      setEnergyColour(wake, PRESSURE);
+      setEnergyOpacity(wake, life * 0.3);
     }
-    rig.solid.opacity = life * 0.78;
   },
 });

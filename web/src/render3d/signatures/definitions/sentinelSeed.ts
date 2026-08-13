@@ -10,7 +10,7 @@ export default defineArcSignatureWebGLPainter({
       points,
       time,
       persistentPropReady,
-      new THREE.Vector3(0.82, 1.15, 0.82),
+      new THREE.Vector3(0.38, 0.5, 0.38),
     );
     const anchor = points[0];
     if (!anchor) return;
@@ -19,26 +19,25 @@ export default defineArcSignatureWebGLPainter({
       : reducedMotion
         ? 1
         : Math.min(1, phaseAge / 1.1);
-    targetRing(rig, anchor, 1.3 + (1 - deploy) * 0.48);
-    setEnergyOpacity(rig.ring, 0.12);
+    targetRing(rig, anchor, 0.72 + (1 - deploy) * 0.18);
+    setEnergyOpacity(rig.ring, 0.1);
     if (phase === 'tell') {
-      // A physical seed descends into the target socket; the full sentry replaces it only
-      // when the replay says deployment is active.
-      rig.pod.visible = true;
-      rig.pod.position.copy(anchor).setY(3.05 - phaseProgress * 2.38);
-      rig.pod.scale.set(1.1, 1.35, 1.1);
-      rig.pod.rotation.y = phaseProgress * Math.PI * 2.5;
-      rig.solid.color.set('#515955');
-      rig.solid.emissive.copy(rig.main.color).multiplyScalar(0.12);
-      rig.solid.opacity = 0.94;
+      // The active Meshy sentry itself descends on deployment. During the public tell this
+      // small floor socket is the promise; an oversized procedural pod used to fall first
+      // and then be replaced by a second object rising from below.
+      const socket = rig.rings[0]!;
+      socket.visible = true;
+      socket.position.copy(anchor).setY(0.052);
+      socket.scale.setScalar(0.44 + phaseProgress * 0.12);
+      setEnergyOpacity(socket, 0.14);
     }
     if (phase === 'active') {
       // The Meshy sentry is already the authored object. Three dim socket rails close
       // beneath it; bulky procedural posts hid the turret and read as unrelated rubble.
       for (const [index, angle] of [0, Math.PI * 2 / 3, Math.PI * 4 / 3].entries()) {
         const rail = rig.segments[index]!;
-        const outer = 1.18 - deploy * 0.34;
-        const inner = 0.52;
+        const outer = 0.66 - deploy * 0.08;
+        const inner = 0.36;
         rail.visible = true;
         rail.position.set(
           anchor.x + Math.cos(angle) * (inner + outer) * 0.5,
@@ -46,14 +45,14 @@ export default defineArcSignatureWebGLPainter({
           anchor.z + Math.sin(angle) * (inner + outer) * 0.5,
         );
         rail.rotation.y = -angle;
-        rail.scale.set(outer - inner, 1, 2.1);
-        setEnergyOpacity(rail, 0.11);
+        rail.scale.set(outer - inner, 1, 1.3);
+        setEnergyOpacity(rail, 0.08);
       }
     }
     const status = rig.rings[0]!;
     status.visible = true;
     status.position.copy(anchor).setY(0.055);
-    status.scale.setScalar(0.92 + Math.sin(time * 0.65) * (reducedMotion ? 0 : 0.035));
+    status.scale.setScalar(0.62 + Math.sin(time * 0.65) * (reducedMotion ? 0 : 0.022));
     setEnergyOpacity(status, signature.suppressed ? 0.035 : 0.075);
   },
   paintOutcome({ rig, priorSignature, facts, fraction }) {

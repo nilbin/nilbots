@@ -78,9 +78,9 @@ npm run build:review
 cd ..
 node scripts/class-models/install-local-replay-gallery.mjs \
   art/reviews/arc-relay-presentation-batch-v1/runtime-proof/gallery-sources.json
-node scripts/capture-arc-relay-presentation-proof.mjs
-node scripts/capture-arc-relay-signature-motion-proof.mjs
-node scripts/capture-arc-relay-signature-motion-proof.mjs --camera overview
+node scripts/capture-arc-relay-presentation-proof.mjs --owner-requested-full-proof true
+node scripts/capture-arc-relay-signature-motion-proof.mjs --owner-requested-full-proof true
+node scripts/capture-arc-relay-signature-motion-proof.mjs --owner-requested-full-proof true --camera overview
 ```
 
 The capture tool fingerprints the complete review build, verifies retained

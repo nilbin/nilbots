@@ -11,7 +11,7 @@ import {
 
 export default defineArcSignatureWebGLPainter({
   signatureId: 'smoke-canister',
-  paint({ rig, points, owner, target, time, phase, reducedMotion, phaseProgress, phaseAge }) {
+  paint({ rig, points, owner, target, phase, reducedMotion, phaseProgress, phaseAge }) {
     if (phase === 'in-flight' && points[0] && points.at(-1)) {
       const from = points[0]!;
       const to = points.at(-1)!;
@@ -42,36 +42,21 @@ export default defineArcSignatureWebGLPainter({
     if (!anchor) return;
     const area = areaBounds(points.length > 0 ? points : [anchor]);
     const bloom = reducedMotion ? 1 : Math.min(1, phaseAge / 1.15);
-    // A handful of overlapping low bodies reads as one rolling bank. Eighteen inflated
-    // spheres read as a giant bunch of grapes and overwhelmed nearby bots at overview.
-    const count = Math.min(reducedMotion ? 4 : 7, rig.wisps.length);
-    for (let index = 0; index < count; index += 1) {
-      const lobe = rig.wisps[index]!;
-      const angle = index * 2.399963 + Math.sin(time * 0.17 + index) * 0.12;
-      const radius = Math.sqrt((index + 0.5) / count) * 0.47 * bloom;
-      lobe.visible = true;
-      lobe.position.set(
-        area.centre.x + Math.cos(angle) * area.width * radius,
-        0.16 + (index % 4) * 0.095 + Math.sin(time * 0.55 + index) * 0.025,
-        area.centre.z + Math.sin(angle) * area.depth * radius,
-      );
-      const scale = (0.82 + (index % 3) * 0.15) * (0.34 + bloom * 0.78);
-      lobe.scale.set(scale * 2.85, scale * 1.28, scale * 2.85);
-    }
-    rig.smoke.color.set('#3b4145');
-    rig.smoke.emissive.set('#111415');
-    rig.smoke.emissiveIntensity = 0.04;
-    rig.smoke.opacity = 0.68;
-    // One broad matte mass stops the many shared lobe meshes looking like sparse sparks.
+    // One translucent, squashed volume says "vision is obscured here" without building a
+    // bunch of opaque grapes or hiding the bots the spectator is trying to follow.
+    rig.smoke.color.set('#68747b');
+    rig.smoke.emissive.set('#171d20');
+    rig.smoke.emissiveIntensity = 0.025;
+    rig.smoke.opacity = phase === 'tell' ? 0.09 : 0.16;
     rig.cloud.visible = true;
-    rig.cloud.position.copy(area.centre).setY(0.29 + bloom * 0.13);
+    rig.cloud.position.copy(area.centre).setY(0.3 + bloom * 0.08);
     rig.cloud.scale.set(
-      area.width * (0.3 + bloom * 0.32),
-      0.38 + bloom * 0.28,
-      area.depth * (0.3 + bloom * 0.32),
+      area.width * (0.25 + bloom * 0.43),
+      0.34 + bloom * 0.42,
+      area.depth * (0.25 + bloom * 0.43),
     );
     targetRing(rig, area.centre, 1.2);
     setEnergyColour(rig.ring, '#83919a');
-    setEnergyOpacity(rig.ring, 0.28);
+    setEnergyOpacity(rig.ring, 0.14);
   },
 });
