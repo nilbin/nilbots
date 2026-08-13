@@ -13,6 +13,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     private readonly TacticalTrafficGovernor _traffic = new();
     private readonly TacticalOscillationGovernor _oscillation = new();
     private readonly Dictionary<int, RouteCursor> _routeCursors = [];
+    private readonly Dictionary<int, RouteCursor> _ingressCursors = [];
+    private readonly TacticalIngressGovernor _ingress = new();
     private readonly Dictionary<int, string> _selectedPaths = [];
     private readonly Dictionary<int, int> _stationaryTicks = [];
     private readonly Dictionary<int, (ActorIdentity Actor, int Level)> _levels = [];
@@ -1106,22 +1108,34 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             MindBody body = proposal.Body;
             string routeState = proposal.Leaf.Node.Path;
             if (move.Via is string ingress
-                && !_routeCursors.GetValueOrDefault(unitId)?.CompletedIngresses
-                    .Contains($"{proposal.Leaf.Node.Path}:{ingress}") == true)
+                && _ingress.NeedsTraversal(
+                    body.ActorId,
+                    proposal.Leaf.Node.Path,
+                    proposal.Leaf.ActivatedTick,
+                    ingress))
             {
                 MovePlan ingressPlan = RoutePlan(
                     contract, mind, package, body, proposal, ingress,
-                    $"{proposal.Leaf.Node.Path}:via:{ingress}", loop: false);
+                    $"{proposal.Leaf.Node.Path}:via:{ingress}", loop: false,
+                    _ingressCursors);
+                if (ingressPlan.Course?.Disposition
+                    == TacticalRouteGovernor.CourseDisposition.NoPath)
+                {
+                    _ingressCursors.Remove(unitId);
+                    _ingress.Reset(unitId);
+                    _routes.Reset(unitId);
+                }
                 if (!ingressPlan.Arrived)
                 {
                     result.Add(unitId, ingressPlan);
                     continue;
                 }
-                RouteCursor cursor = _routeCursors.GetValueOrDefault(unitId)
-                    ?? RouteCursor.For(body.ActorId, routeState);
-                cursor.CompletedIngresses.Add(
-                    $"{proposal.Leaf.Node.Path}:{ingress}");
-                _routeCursors[unitId] = cursor;
+                _ingressCursors.Remove(unitId);
+                _ingress.Complete(
+                    body.ActorId,
+                    proposal.Leaf.Node.Path,
+                    proposal.Leaf.ActivatedTick,
+                    ingress);
             }
             if (move.Kind == "patrol")
             {
@@ -1190,10 +1204,12 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         Proposal proposal,
         string routeId,
         string stateId,
-        bool loop)
+        bool loop,
+        Dictionary<int, RouteCursor>? cursors = null)
     {
+        cursors ??= _routeCursors;
         Position[] points = package.RoutePoints(routeId);
-        RouteCursor state = _routeCursors.GetValueOrDefault(body.UnitId)
+        RouteCursor state = cursors.GetValueOrDefault(body.UnitId)
             ?? RouteCursor.For(body.ActorId, stateId);
         if (state.Actor != body.ActorId || state.StateId != stateId)
             state = RouteCursor.For(body.ActorId, stateId);
@@ -1220,7 +1236,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             }
             else
             {
-                _routeCursors[body.UnitId] = state;
+                cursors[body.UnitId] = state;
                 return new MovePlan(
                     proposal.Leaf.Node.Path, body.Position, [body.Position],
                     null, Arrived: true);
@@ -1242,7 +1258,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             tile => (tile != destination && obstacles.Contains(tile))
                 || !ArenaBasics.IsLegalTerrainStep(
                     contract.Map, body.Position, tile));
-        _routeCursors[body.UnitId] = state;
+        cursors[body.UnitId] = state;
         return new MovePlan(
             proposal.Leaf.Node.Path,
             destination,
@@ -1897,6 +1913,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         {
             _selectedPaths.Remove(stale);
             _routeCursors.Remove(stale);
+            _ingressCursors.Remove(stale);
+            _ingress.Reset(stale);
             _routes.Reset(stale);
         }
         foreach ((ActorIdentity actor, string path) in _fightAnchors.Keys
@@ -2149,9 +2167,6 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         public int Index { get; set; }
         public int Lap { get; set; }
         public bool Initialized { get; set; }
-        public HashSet<string> CompletedIngresses { get; } =
-            new(StringComparer.Ordinal);
-
         public static RouteCursor For(ActorIdentity actor, string stateId) =>
             new(actor, stateId);
     }

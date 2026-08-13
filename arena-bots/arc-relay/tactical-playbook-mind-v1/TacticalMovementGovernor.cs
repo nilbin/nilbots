@@ -21,6 +21,55 @@ public enum TacticalMovementUrgency
 }
 
 /// <summary>
+/// Owns the lifecycle of an authored one-time ingress independently of the
+/// currently selected leaf and its route course. Combat may pre-empt the move
+/// leaf without ending its order-tree episode, so neither an unfinished nor a
+/// completed ingress is forgotten merely because another leaf won this tick.
+/// A new order activation or actor life is a new episode and traverses again.
+/// </summary>
+internal sealed class TacticalIngressGovernor
+{
+    private readonly Dictionary<int, Episode> _episodes = [];
+
+    public bool NeedsTraversal(
+        ActorIdentity actor,
+        string orderPath,
+        int activatedTick,
+        string routeId)
+    {
+        Episode? episode = _episodes.GetValueOrDefault(actor.UnitId);
+        if (episode is null
+            || episode.Actor != actor
+            || !string.Equals(
+                episode.OrderPath, orderPath, StringComparison.Ordinal)
+            || episode.ActivatedTick != activatedTick
+            || !string.Equals(episode.RouteId, routeId, StringComparison.Ordinal))
+        {
+            _episodes[actor.UnitId] = new Episode(
+                actor, orderPath, activatedTick, routeId, Completed: false);
+            return true;
+        }
+        return !episode.Completed;
+    }
+
+    public void Complete(
+        ActorIdentity actor,
+        string orderPath,
+        int activatedTick,
+        string routeId) => _episodes[actor.UnitId] = new Episode(
+            actor, orderPath, activatedTick, routeId, Completed: true);
+
+    public void Reset(int unitId) => _episodes.Remove(unitId);
+
+    private sealed record Episode(
+        ActorIdentity Actor,
+        string OrderPath,
+        int ActivatedTick,
+        string RouteId,
+        bool Completed);
+}
+
+/// <summary>
 /// One body's fully resolved position on the allied movement plane. Lower
 /// <see cref="Rank"/> moves first and receives right-of-way. The remaining
 /// fields are evidence, not additional policy hidden at a call site.
