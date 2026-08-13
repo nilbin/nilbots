@@ -27,6 +27,14 @@ import type {
   ArcSignatureWebGLPhase,
 } from './signatures/types';
 import { phaseProgress as signaturePhaseProgress } from './signatures/primitives';
+import {
+  centreStatusPips,
+  createStatusPipGeometry,
+  createStatusPipMaterial,
+  faceStatusElement,
+  orientStatusBib,
+  placeStatusBib,
+} from './statusBib';
 
 type Signature = ReplayArcRelayModeState['visibleSignatures'][number];
 const SIGNATURE_OUTCOME_LINGER_TICKS = 1.8;
@@ -102,6 +110,8 @@ interface SignaturePropSlot {
   }[];
   /** Hull indicators hovering over the prop; visibility follows remainingCapacity. */
   pips: THREE.Mesh[];
+  litPip: THREE.MeshBasicMaterial;
+  lostPip: THREE.MeshBasicMaterial;
   /** Separate from the prop group: turret yaw must not angle the pips. */
   pipGroup: THREE.Group;
   ready: boolean;
@@ -112,6 +122,29 @@ export const ARC_SIGNATURE_PROP_SCALE = {
   'trip-node': 0.94,
   'sentinel-seed': 0.72,
 } as const;
+
+/** Construct hull is rules-owned; unknown future props conservatively retain one pip. */
+function signatureConstructHullById(replay: ReplayModel): Map<string, number> {
+  if (
+    replay.contract.kind !== 'v3-generic' ||
+    replay.contract.rawContract.rules.gameMode.kind !== 'arc-relay'
+  )
+    return new Map();
+  const signatures = replay.contract.rawContract.rules.gameMode.signatures;
+  // Early generation-3 broadcasts may omit the signature catalogue. Their cores and
+  // landmarks still render; they simply cannot contain a persistent signature prop.
+  if (!Array.isArray(signatures)) return new Map();
+  return new Map(
+    signatures.flatMap(
+      (signature) => {
+        const hull = signature.hull;
+        return typeof hull === 'number' && Number.isInteger(hull) && hull > 0
+          ? [[signature.signatureId, hull] as const]
+          : [];
+      },
+    ),
+  );
+}
 
 /** The sentry may acknowledge shots that have happened, but never pre-aim from future state. */
 export function latestObservedSignatureYaw(
@@ -157,6 +190,7 @@ export function buildArcRelayEffects(
   const signatureShotYaws = indexSignatureShotYaws(replay);
   const signaturePhaseStarts = indexSignaturePhaseStarts(replay);
   const signatureOutcomes = indexSignatureOutcomes(replay);
+  const constructHull = signatureConstructHullById(replay);
   const veterancy = arcVeterancyFor(replay);
   const reducedMotionQuery =
     typeof window !== 'undefined' && window.matchMedia
@@ -174,20 +208,29 @@ export function buildArcRelayEffects(
     propGroup.userData.kind = 'arc-relay-signature-prop';
     propGroup.userData.signatureId = signature.signatureId;
     group.add(propGroup);
-    const pipGeometry = new THREE.SphereGeometry(0.09, 8, 8);
+    const pipGeometry = createStatusPipGeometry();
     const pipGroup = new THREE.Group();
     pipGroup.visible = false;
+    pipGroup.userData.cue = 'health-pips';
+    pipGroup.userData.signatureId = signature.signatureId;
+    pipGroup.userData.forSignatureOperationId = signature.operationId;
+    orientStatusBib(
+      pipGroup,
+      (theme.environment3d.camera.yawDegrees * Math.PI) / 180,
+      (theme.environment3d.camera.pitchDegrees * Math.PI) / 180,
+    );
     group.add(pipGroup);
-    const pips = [0, 1].map((index) => {
-      const pip = new THREE.Mesh(
-        pipGeometry,
-        new THREE.MeshBasicMaterial({ color: '#f8fafc' }),
-      );
-      pip.position.set(index === 0 ? -0.16 : 0.16, 1.12, 0);
-      pip.visible = false;
+    const litPip = createStatusPipMaterial('#f8fafc');
+    const lostPip = createStatusPipMaterial('#64748b', true);
+    const maxHull = constructHull.get(signature.signatureId) ?? 1;
+    const pips = Array.from({ length: maxHull }, () => {
+      const pip = new THREE.Mesh(pipGeometry, litPip);
+      pip.userData.cue = 'health-pip';
+      faceStatusElement(pip);
       pipGroup.add(pip);
       return pip;
     });
+    centreStatusPips(pips, maxHull);
     const slot: SignaturePropSlot = {
       group: propGroup,
       model: null,
@@ -195,6 +238,8 @@ export function buildArcRelayEffects(
       emissives: [],
       materials: [],
       pips,
+      litPip,
+      lostPip,
       pipGroup,
       ready: false,
       disposed: false,
@@ -205,7 +250,8 @@ export function buildArcRelayEffects(
         slot.disposed = true;
         if (slot.model) disposeModelMaterials(slot.model);
         pipGeometry.dispose();
-        for (const pip of pips) (pip.material as THREE.Material).dispose();
+        litPip.dispose();
+        lostPip.dispose();
       },
     });
     void signatureModel(signature.signatureId).then((model) => {
@@ -750,18 +796,21 @@ export function buildArcRelayEffects(
           deploy,
         );
         slot.pipGroup.visible = true;
-        slot.pipGroup.position.copy(points[0]);
-        slot.pipGroup.scale.setScalar(propScale * (sentinel ? deploy : 1));
+        slot.pipGroup.userData.forSignatureOperationId = signature.operationId;
+        placeStatusBib(slot.pipGroup, points[0].x, points[0].z);
+        slot.pipGroup.scale.setScalar(1);
         const pipOwner = replay.units.find(
           (unit) => unit.teamId === signature.ownerTeamId,
         );
         const pipAccent = pipOwner
           ? unitAccent(replay, pipOwner.unitKey)
           : '#f8fafc';
-        for (const [pipIndex, pip] of slot.pips.entries()) {
-          pip.visible = pipIndex < signature.remainingCapacity;
-          (pip.material as THREE.MeshBasicMaterial).color.set(pipAccent);
-        }
+        slot.litPip.color.set(pipAccent);
+        centreStatusPips(slot.pips, slot.pips.length);
+        for (const [pipIndex, pip] of slot.pips.entries())
+          pip.material = pipIndex < signature.remainingCapacity
+            ? slot.litPip
+            : slot.lostPip;
         persistentPropReady = slot.ready;
       }
       if (authoredPainter) {

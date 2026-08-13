@@ -53,7 +53,13 @@ import {
   releaseArcSignatureBodyPose,
   type ArcSignatureBodyState,
 } from './arcModelMotion';
-import { CAMERA_PITCH } from './arenaScene';
+import {
+  centreStatusPips,
+  createStatusPipGeometry,
+  createStatusPipMaterial,
+  faceStatusElement,
+  placeStatusBib,
+} from './statusBib';
 import {
   teamVisionAt,
   teamVisionSeesActor,
@@ -182,11 +188,6 @@ const BOT_HEIGHT = 0.26;
 /** The height bolts fly at. Exported because a bolt's dissipation has to happen there too. */
 export const PROJECTILE_HOVER = 0.2;
 
-/** Where health pips hang: above the floor, and back along Z to clear the bot on screen. */
-const PIP_HEIGHT = 0.72;
-const PIP_SETBACK = 0.55;
-const PIP_SPACING = 0.17;
-
 /**
  * The engaged mark: crossed blades above the health row, for a body that has a
  * LIVE FIGHT.
@@ -211,6 +212,17 @@ const ENGAGED_MARK_LIFT = 0.23;
 const ENGAGED_MARK_REACH = 0.085;
 const ENGAGED_MARK_GAUGE = 0.028;
 const ENGAGED_MARK_COLOR = '#f87171';
+
+/** Compact status-stack layout: recharge below health, veterancy safely above it. */
+const ATTACK_COOLDOWN_LIFT = -0.13;
+const SIGNATURE_COOLDOWN_LIFT = -0.205;
+const COOLDOWN_TRACK_WIDTH = 0.52;
+const COOLDOWN_TRACK_HEIGHT = 0.026;
+const VETERANCY_LIFT = 0.23;
+const VETERANCY_SPACING = 0.105;
+const ENGAGED_ABOVE_VETERANCY_GAP = 0.19;
+const ATTACK_COOLDOWN_COLOR = '#f87171';
+const SIGNATURE_COOLDOWN_COLOR = '#78aeb3';
 
 /**
  * How far in FRONT of a body its role caption sits, in tiles.
@@ -1025,36 +1037,92 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     const pips = new THREE.Group();
     pips.userData.cue = 'health-pips';
     pips.userData.forUnitKey = unit.unitKey;
-    const pipGeometry = new THREE.CircleGeometry(0.06, 12);
-    const litPip = new THREE.MeshBasicMaterial({
-      color: accent,
-      transparent: true,
-      depthWrite: false,
-      // Health is information, not scenery: it stays legible over the bot's own hull, which
-      // is exactly where it lands from a raised camera.
-      depthTest: false,
-    });
-    const lostPip = new THREE.MeshBasicMaterial({
-      color: new THREE.Color('#64748b'),
-      transparent: true,
-      opacity: 0.35,
-      depthWrite: false,
-      depthTest: false,
-    });
+    const pipGeometry = createStatusPipGeometry();
+    const litPip = createStatusPipMaterial(accent);
+    const lostPip = createStatusPipMaterial('#64748b', true);
     const pipMeshes: THREE.Mesh[] = [];
     for (let index = 0; index < maxHealth; index++) {
       const pip = new THREE.Mesh(pipGeometry, litPip);
-      pip.position.x =
-        (index - (maxHealth - 1) / 2) * PIP_SPACING;
-      // Square to the camera. It never rolls or orbits, so its pitch is a constant and one
-      // rotation is enough — a billboard would be a per-frame lookAt for a fixed picture.
-      pip.rotation.x = -CAMERA_PITCH;
-      pip.renderOrder = 10;
+      pip.userData.cue = 'health-pip';
+      faceStatusElement(pip);
       pips.add(pip);
       pipMeshes.push(pip);
     }
+    centreStatusPips(pipMeshes, maxHealth);
     group.add(pips);
     disposables.push(pipGeometry, litPip, lostPip);
+
+    /**
+     * Two deliberately unlabeled tracks below health. Their fixed order and colour are
+     * stable vocabulary: coral attack first, cool-blue signature second. A track exists
+     * only while its clock is live, so a ready body keeps the old uncluttered health bib.
+     */
+    const cooldownTrackGeometry = new THREE.PlaneGeometry(
+      COOLDOWN_TRACK_WIDTH,
+      COOLDOWN_TRACK_HEIGHT,
+    );
+    const cooldownTrackMaterial = new THREE.MeshBasicMaterial({
+      color: '#071017',
+      transparent: true,
+      opacity: 0.62,
+      depthWrite: false,
+      depthTest: false,
+    });
+    const attackCooldownMaterial = new THREE.MeshBasicMaterial({
+      color: ATTACK_COOLDOWN_COLOR,
+      transparent: true,
+      opacity: 0.88,
+      depthWrite: false,
+      depthTest: false,
+    });
+    const signatureCooldownMaterial = new THREE.MeshBasicMaterial({
+      color: SIGNATURE_COOLDOWN_COLOR,
+      transparent: true,
+      opacity: 0.9,
+      depthWrite: false,
+      depthTest: false,
+    });
+    const cooldownTrack = (
+      cue: 'attack-cooldown' | 'signature-cooldown',
+      lift: number,
+      material: THREE.MeshBasicMaterial,
+    ) => {
+      const track = new THREE.Group();
+      track.userData.cue = cue;
+      track.userData.forUnitKey = unit.unitKey;
+      track.position.y = lift;
+      faceStatusElement(track);
+      track.visible = false;
+      const backing = new THREE.Mesh(
+        cooldownTrackGeometry,
+        cooldownTrackMaterial,
+      );
+      backing.userData.cue = `${cue}-track`;
+      backing.renderOrder = 10;
+      const fill = new THREE.Mesh(cooldownTrackGeometry, material);
+      fill.userData.cue = `${cue}-fill`;
+      fill.position.z = 0.003;
+      fill.renderOrder = 11;
+      track.add(backing, fill);
+      pips.add(track);
+      return { group: track, fill };
+    };
+    const attackCooldown = cooldownTrack(
+      'attack-cooldown',
+      ATTACK_COOLDOWN_LIFT,
+      attackCooldownMaterial,
+    );
+    const signatureCooldown = cooldownTrack(
+      'signature-cooldown',
+      SIGNATURE_COOLDOWN_LIFT,
+      signatureCooldownMaterial,
+    );
+    disposables.push(
+      cooldownTrackGeometry,
+      cooldownTrackMaterial,
+      attackCooldownMaterial,
+      signatureCooldownMaterial,
+    );
 
     // Veterancy is the compact brass stack from the approved board. It sits ABOVE the
     // health row, never beside or through it; level 1 shows nothing and each earned level
@@ -1078,9 +1146,8 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     const levelPips: THREE.Mesh[] = [];
     for (let index = 0; index < Math.max(0, veterancy.maxLevel - 1); index++) {
       const chevron = new THREE.Mesh(chevronGeometry, chevronMaterial);
-      chevron.rotation.x = -CAMERA_PITCH;
+      faceStatusElement(chevron);
       chevron.userData.cue = 'veterancy-chevron';
-      chevron.renderOrder = 10;
       chevron.visible = false;
       pips.add(chevron);
       levelPips.push(chevron);
@@ -1094,7 +1161,7 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     engagedMark.userData.cue = 'engaged-mark';
     engagedMark.userData.forUnitKey = unit.unitKey;
     engagedMark.position.y = ENGAGED_MARK_LIFT;
-    engagedMark.rotation.x = -CAMERA_PITCH;
+    faceStatusElement(engagedMark);
     engagedMark.visible = false;
     const bladeGeometry = new THREE.PlaneGeometry(
       ENGAGED_MARK_REACH * 2,
@@ -1358,6 +1425,11 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     fading.push(
       { material: litPip, base: 1, alwaysTransparent: true },
       { material: lostPip, base: 0.35, alwaysTransparent: true },
+      { material: cooldownTrackMaterial, base: 0.62, alwaysTransparent: true },
+      { material: attackCooldownMaterial, base: 0.88, alwaysTransparent: true },
+      { material: signatureCooldownMaterial, base: 0.9, alwaysTransparent: true },
+      { material: chevronMaterial, base: 1, alwaysTransparent: true },
+      { material: bladeMaterial, base: 1, alwaysTransparent: true },
     );
     /**
      * How each material was authored, before anything faded it.
@@ -1431,6 +1503,8 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       flash,
       pips,
       pipMeshes,
+      attackCooldown,
+      signatureCooldown,
       engagedMark,
       litPip,
       lostPip,
@@ -1455,6 +1529,7 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     };
   });
   const signedTravel = signedTravelByActor(replay);
+  const attackCooldownScales = attackCooldownScaleByUnit(replay);
   const signatureCooldowns = signatureCooldownsByActor(replay);
   const signaturePhaseStarts = signaturePhaseStartsByOperation(replay);
   const signatureBodyReleases = signatureBodyReleasesByActor(replay);
@@ -1842,6 +1917,12 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     for (const pose of posesAt(replay, time)) {
       const bot = botsByUnit.get(pose.unitKey);
       if (!bot) continue;
+      const openingActor = opening?.actors.find(
+        (actor) => actor.actorKey === pose.actorKey,
+      );
+      const closingActor = closing?.actors.find(
+        (actor) => actor.actorKey === pose.actorKey,
+      );
 
       const firing = events.some(
         (event) =>
@@ -1973,21 +2054,15 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       // Pips follow rather than ride, and use the effective form's maximum. A mobile
       // child must not look wounded merely because its future turret form has more HP.
       bot.pips.visible = bot.chassis.visible;
-      bot.pips.position.set(
-        glide.x + 0.5,
-        PIP_HEIGHT,
-        glide.y + 0.5 - PIP_SETBACK,
-      );
+      placeStatusBib(bot.pips, glide.x + 0.5, glide.y + 0.5);
       const effectiveMaxHealth = maxHealthForActor(replay, {
         formId: pose.formId,
         health: pose.health,
       });
       for (const [index, pip] of bot.pipMeshes.entries()) {
-        pip.visible = index < effectiveMaxHealth;
-        pip.position.x =
-          (index - (effectiveMaxHealth - 1) / 2) * PIP_SPACING;
         pip.material = index < pose.health ? bot.litPip : bot.lostPip;
       }
+      centreStatusPips(bot.pipMeshes, effectiveMaxHealth);
 
       // What this body is doing about the two mechanics the arena now carries:
       // holding the point (or guarding whoever is), and whether it is worth
@@ -2026,9 +2101,47 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       for (const [index, chevron] of bot.levelPips.entries()) {
         chevron.visible = bot.pips.visible && index < level - 1;
         chevron.position.x = 0;
-        chevron.position.y = 0.15 + index * 0.082;
-        chevron.position.z = 0.035;
+        chevron.position.y = VETERANCY_LIFT + index * VETERANCY_SPACING;
+        chevron.position.z = 0;
       }
+      const visibleVeterancy = Math.max(0, level - 1);
+      bot.engagedMark.position.y = visibleVeterancy > 0
+        ? VETERANCY_LIFT
+          + (visibleVeterancy - 1) * VETERANCY_SPACING
+          + ENGAGED_ABOVE_VETERANCY_GAP
+        : ENGAGED_MARK_LIFT;
+
+      const declaredAttackCooldown =
+        replay.forms.find((form) => form.formId === pose.formId)
+          ?.shootCooldownTicks ?? 0;
+      const attackCooldownMax = Math.max(
+        1,
+        declaredAttackCooldown,
+        attackCooldownScales.get(pose.unitKey) ?? 0,
+      );
+      const openingCooldown = openingActor?.cooldown ?? pose.cooldown;
+      const closingCooldown = closingActor?.cooldown ?? pose.cooldown;
+      // A reload begins when the ordinary attack itself leaves (the same 0.45 boundary
+      // as recoil); otherwise it drains continuously between the two authoritative
+      // snapshots instead of stepping once per visual tick.
+      const attackRemaining = closingCooldown > openingCooldown
+        ? fraction < 0.45
+          ? openingCooldown
+          : closingCooldown
+        : openingCooldown
+          + (closingCooldown - openingCooldown) * fraction;
+      paintCooldownTrack(
+        bot.attackCooldown,
+        bot.pips.visible ? attackRemaining / attackCooldownMax : 0,
+      );
+      const signatureWindow = signatureCooldownAt(
+        signatureCooldowns.get(pose.actorKey) ?? [],
+        time,
+      );
+      paintCooldownTrack(
+        bot.signatureCooldown,
+        bot.pips.visible ? signatureWindow?.remainingFraction ?? 0 : 0,
+      );
 
       // The heal channel glows while zone-heals are landing and fades
       // within a cadence of the last one, with the same slow swell the
@@ -2209,12 +2322,6 @@ export function buildActors(replay: ReplayModel): ArenaActors {
         (1 - collapse) *
         emerge;
 
-      const openingActor = opening?.actors.find(
-        (actor) => actor.actorKey === pose.actorKey,
-      );
-      const closingActor = closing?.actors.find(
-        (actor) => actor.actorKey === pose.actorKey,
-      );
       const turnDelta =
         openingActor && closingActor
           ? shortestTurn(
@@ -2233,9 +2340,10 @@ export function buildActors(replay: ReplayModel): ArenaActors {
         ) ?? null;
       const signatureActive = activeSignature !== null;
       const signatureCooling =
-        signatureCooldowns.get(pose.actorKey)?.some(
-          (window) => time >= window.startedTick && time < window.readyTick,
-        ) ?? false;
+        signatureCooldownAt(
+          signatureCooldowns.get(pose.actorKey) ?? [],
+          time,
+        ) !== null;
       const signatureState: ArcSignatureBodyState = signatureActive
         ? 'active'
         : signatureCooling
@@ -2493,6 +2601,63 @@ function signedPoseDisplacement(
   return distance * (signedAxis < 0 ? -1 : 1);
 }
 
+interface CooldownTrackRig {
+  group: THREE.Group;
+  fill: THREE.Mesh;
+}
+
+/** A draining left-anchored track. Zero is ready and therefore visually absent. */
+function paintCooldownTrack(
+  track: CooldownTrackRig,
+  remainingFraction: number,
+): void {
+  const remaining = Math.max(0, Math.min(remainingFraction, 1));
+  track.group.visible = remaining > 0.001;
+  track.fill.scale.x = Math.max(remaining, 0.001);
+  track.fill.position.x = -COOLDOWN_TRACK_WIDTH * (1 - remaining) / 2;
+  track.group.userData.remainingFraction = remaining;
+}
+
+/** Same fallback denominator as the panel: declared where available, observed otherwise. */
+function attackCooldownScaleByUnit(
+  replay: ReplayModel,
+): Map<ReplayStableUnitKey, number> {
+  const observed = new Map<ReplayStableUnitKey, number>();
+  for (const tick of replay.ticks) {
+    for (const actor of tick.after.actors) {
+      observed.set(
+        actor.unitKey,
+        Math.max(observed.get(actor.unitKey) ?? 0, actor.cooldown),
+      );
+    }
+  }
+  return observed;
+}
+
+interface SignatureCooldownWindow {
+  startedTick: number;
+  readyTick: number;
+  /** Earlier exclusive end when a public partial-cancel fact replaces the clock. */
+  visibleUntilTick: number;
+}
+
+function signatureCooldownAt(
+  windows: readonly SignatureCooldownWindow[],
+  time: number,
+): { remainingFraction: number } | null {
+  const window = windows.find(
+    (candidate) =>
+      time >= candidate.startedTick &&
+      time < candidate.readyTick &&
+      time < candidate.visibleUntilTick,
+  );
+  if (!window) return null;
+  const duration = Math.max(1, window.readyTick - window.startedTick);
+  return {
+    remainingFraction: (window.readyTick - time) / duration,
+  };
+}
+
 export function signedTravelByActor(
   replay: ReplayModel,
 ): Map<ReplayActorLifeKey, number[]> {
@@ -2528,46 +2693,199 @@ export function signedTravelByActor(
   return result;
 }
 
-/** Exact renderer-only recharge windows derived from visible authoritative activations. */
+/**
+ * Exact renderer-only recharge windows from public operation state, lifecycle facts, and
+ * the replay-owned timing contract. No private runtime state or game-rule guess is used.
+ */
 function signatureCooldownsByActor(
   replay: ReplayModel,
-): Map<ReplayActorLifeKey, { startedTick: number; readyTick: number }[]> {
-  const result = new Map<
-    ReplayActorLifeKey,
-    { startedTick: number; readyTick: number }[]
-  >();
+): Map<ReplayActorLifeKey, SignatureCooldownWindow[]> {
+  const result = new Map<ReplayActorLifeKey, SignatureCooldownWindow[]>();
   if (
     replay.contract.kind !== 'v3-generic' ||
     replay.contract.rawContract.rules.gameMode.kind !== 'arc-relay'
   )
     return result;
-  const cooldowns = new Map(
-    replay.contract.rawContract.rules.gameMode.signatures.map((signature) => [
+  const signatureDefinitions =
+    replay.contract.rawContract.rules.gameMode.signatures;
+  // Historical generation-3 broadcasts can predate the contract-owned signature
+  // catalogue. With no published timing definitions, the honest presentation is ready.
+  if (!Array.isArray(signatureDefinitions)) return result;
+  const definitions = new Map(
+    signatureDefinitions.map((signature) => [
       signature.signatureId,
-      signature.cooldownTicks,
+      signature,
     ]),
   );
-  const seen = new Set<string>();
-  for (const tick of replay.ticks) {
-    if (
-      tick.after.mode?.kind !== 'arc-relay' ||
-      !('visibleSignatures' in tick.after.mode)
-    )
-      continue;
-    for (const signature of tick.after.mode.visibleSignatures) {
-      if (seen.has(signature.operationId)) continue;
-      seen.add(signature.operationId);
-      const cooldown = cooldowns.get(signature.signatureId);
-      if (cooldown === undefined) continue;
-      const windows = result.get(signature.ownerActor.actorKey) ?? [];
-      windows.push({
-        startedTick: signature.startedTick,
-        readyTick: signature.startedTick + cooldown,
-      });
-      result.set(signature.ownerActor.actorKey, windows);
+  const operations = new Map<string, {
+    signatureId: string;
+    actorKey: ReplayActorLifeKey;
+    startedTick: number;
+    anchorTick: number | null;
+    window: SignatureCooldownWindow | null;
+  }>();
+  for (const [tickIndex, tick] of replay.ticks.entries()) {
+    const snapshots = [tick.before.mode, tick.after.mode];
+    for (const mode of snapshots) {
+      if (mode?.kind !== 'arc-relay' || !('visibleSignatures' in mode)) continue;
+      for (const signature of mode.visibleSignatures) {
+        if (operations.has(signature.operationId)) continue;
+        const definition = definitions.get(signature.signatureId);
+        if (!definition) continue;
+        const cooldownAnchor = signatureCooldownAnchor(definition);
+        const operation = {
+          signatureId: signature.signatureId,
+          actorKey: signature.ownerActor.actorKey,
+          startedTick: signature.startedTick,
+          anchorTick: cooldownAnchor === 'start'
+            ? signature.startedTick
+            : null,
+          window: null as SignatureCooldownWindow | null,
+        };
+        if (operation.anchorTick !== null)
+          operation.window = addSignatureCooldownWindow(
+            result,
+            operation.actorKey,
+            operation.anchorTick,
+            definition.cooldownTicks,
+          );
+        operations.set(signature.operationId, operation);
+      }
+    }
+    for (const event of [...tick.lifecycleEvents, ...tick.events]) {
+      const fact = event.arcRelayFact;
+      if (fact?.kind !== 'signature-changed') continue;
+      const definition = definitions.get(fact.signatureId);
+      if (!definition) continue;
+      const cooldownAnchor = signatureCooldownAnchor(definition);
+      let operation = operations.get(fact.operationId);
+      if (!operation && fact.phase !== null) {
+        operation = {
+          signatureId: fact.signatureId,
+          actorKey: fact.ownerActor.actorKey,
+          startedTick: tickIndex,
+          anchorTick: cooldownAnchor === 'start'
+            ? tickIndex
+            : null,
+          window: null,
+        };
+        if (operation.anchorTick !== null)
+          operation.window = addSignatureCooldownWindow(
+            result,
+            operation.actorKey,
+            operation.anchorTick,
+            definition.cooldownTicks,
+          );
+        operations.set(fact.operationId, operation);
+      }
+      if (!operation) continue;
+      if (fact.phase !== null) {
+        if (
+          operation.anchorTick === null &&
+          cooldownAnchor === 'launch' &&
+          fact.reason === 'launched'
+        ) {
+          operation.anchorTick = tickIndex;
+          operation.window = addSignatureCooldownWindow(
+            result,
+            operation.actorKey,
+            tickIndex,
+            definition.cooldownTicks,
+          );
+        }
+        continue;
+      }
+      const partial = definition.cancelCooldownTicks;
+      const usesPartialCancellation =
+        fact.reason === 'cancelled-damage' ||
+        fact.reason === 'abandoned-move' &&
+          (fact.signatureId === 'target-paint' ||
+            fact.signatureId === 'kinetic-burst');
+      if (
+        usesPartialCancellation &&
+        typeof partial === 'number' && partial > 0
+      ) {
+        if (operation.window)
+          operation.window.visibleUntilTick = tickIndex;
+        operation.anchorTick = tickIndex;
+        operation.window = addSignatureCooldownWindow(
+          result,
+          operation.actorKey,
+          tickIndex,
+          partial,
+        );
+        operations.delete(fact.operationId);
+        continue;
+      }
+      // A start-anchored cast that is cancelled for any other reason keeps the full
+      // reservation it already opened. A completion-anchored tell lost before resolution
+      // spends no clock unless the public contract declares the partial case above.
+      if (
+        operation.anchorTick === null &&
+        cooldownAnchor === 'completion' &&
+        fact.reason === 'abandoned-move'
+      ) {
+        operations.delete(fact.operationId);
+        continue;
+      }
+      if (operation.anchorTick === null)
+        operation.anchorTick = tickIndex;
+      if (!operation.window)
+        operation.window = addSignatureCooldownWindow(
+          result,
+          operation.actorKey,
+          operation.anchorTick,
+          definition.cooldownTicks,
+        );
+      operations.delete(fact.operationId);
     }
   }
+  // Start-anchored clocks can outlive a maintained/construct operation. They are known at
+  // creation and do not require a removal fact before the status bar becomes truthful.
+  for (const operation of operations.values()) {
+    const definition = definitions.get(operation.signatureId);
+    if (operation.anchorTick === null || !definition) continue;
+    if (!operation.window)
+      operation.window = addSignatureCooldownWindow(
+        result,
+        operation.actorKey,
+        operation.anchorTick,
+        definition.cooldownTicks,
+      );
+  }
+  for (const windows of result.values())
+    windows.sort((a, b) => a.startedTick - b.startedTick);
   return result;
+}
+
+function signatureCooldownAnchor(
+  definition: Record<string, unknown>,
+): 'start' | 'launch' | 'completion' {
+  const anchor = definition.cooldownAnchor;
+  return anchor === 'launch' || anchor === 'completion' ? anchor : 'start';
+}
+
+function addSignatureCooldownWindow(
+  result: Map<ReplayActorLifeKey, SignatureCooldownWindow[]>,
+  actorKey: ReplayActorLifeKey,
+  startedTick: number,
+  durationTicks: number,
+): SignatureCooldownWindow {
+  const windows = result.get(actorKey) ?? [];
+  const readyTick = startedTick + durationTicks;
+  const existing = windows.find(
+    (window) =>
+      window.startedTick === startedTick && window.readyTick === readyTick,
+  );
+  if (existing) return existing;
+  const window = {
+    startedTick,
+    readyTick,
+    visibleUntilTick: readyTick,
+  };
+  windows.push(window);
+  result.set(actorKey, windows);
+  return window;
 }
 
 /** First authoritative tick of every public signature phase, for seek-stable body acting. */

@@ -704,6 +704,56 @@ test('Sentinel Seed transforms upward from its floor seed', () => {
   }
 });
 
+test('mine and sentry health use the bot status-bib geometry and fixed offset', () => {
+  const replay = loadReplayJson(
+    gunzipSync(readFileSync(new URL(
+      '../../art/reviews/arc-relay-presentation-batch-v1/runtime-proof/replays/remaining-roster.broadcast.json.gz',
+      import.meta.url,
+    ))).toString('utf8'),
+  ).replay;
+  const disposables: { dispose: () => void }[] = [];
+  const effects = buildArcRelayEffects(replay, disposables);
+  const healthBib = (signatureId: 'trip-node' | 'sentinel-seed') => {
+    let found: THREE.Object3D | null = null;
+    effects.group.traverse((node) => {
+      if (
+        node.visible &&
+        node.userData.cue === 'health-pips' &&
+        node.userData.signatureId === signatureId
+      ) found = node;
+    });
+    assert.ok(found, `no ${signatureId} health bib`);
+    return found;
+  };
+  try {
+    effects.update(14);
+    const mine = healthBib('trip-node');
+    assert.equal(mine.position.y, 0.72);
+    assert.deepEqual(mine.scale.toArray(), [1, 1, 1]);
+    assert.equal(mine.children.length, 1);
+
+    effects.update(15);
+    const sentry = healthBib('sentinel-seed');
+    assert.equal(sentry.position.y, 0.72);
+    assert.deepEqual(sentry.scale.toArray(), [1, 1, 1]);
+    assert.equal(sentry.children.length, 2);
+    for (const pip of sentry.children) {
+      assert.equal(
+        (pip as THREE.Mesh).geometry.type,
+        'CircleGeometry',
+        'construct health uses the same flat circle as bot health',
+      );
+      const material = (pip as THREE.Mesh).material;
+      assert.ok(material instanceof THREE.MeshBasicMaterial);
+      assert.equal(material.depthTest, false);
+    }
+    assert.equal(sentry.children[0]!.position.x, -0.085);
+    assert.equal(sentry.children[1]!.position.x, 0.085);
+  } finally {
+    for (const disposable of disposables) disposable.dispose();
+  }
+});
+
 test('Sentinel Seed keeps its compact destination treatment without a solid tell pod', () => {
   const replay = loadReplayJson(
     gunzipSync(readFileSync(new URL(
