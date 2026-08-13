@@ -3,9 +3,6 @@ import { defineArcSignatureWebGLPainter } from '../types';
 import type { ArcSignatureEffectRig } from '../types';
 import {
   easeInOutCubic,
-  lineAt,
-  placeTravelHead,
-  setEnergyOpacity,
   solidBeamAt,
 } from '../primitives';
 
@@ -27,39 +24,25 @@ export default defineArcSignatureWebGLPainter({
     const destination = target ?? points.at(-1);
     if (!owner || !destination) return;
     // The public hook promise is a one-tick tell followed by a discrete launched fact; it
-    // has no retained in-flight state. Travel the head down the frozen line inside that
-    // tell, then let the outcome fact decide whether any cable/latch survives.
+    // has no retained in-flight state. Extend only the narrow cable inside that tell. A
+    // procedural grapple head was much heavier than Towline's authored winch at gameplay
+    // scale, so the live treatment deliberately has no separate front object for now.
     const progress = phase === 'in-flight' || phase === 'active'
       ? easeInOutCubic(phaseProgress)
       : easeInOutCubic(Math.max(0, Math.min(1, phaseAge)));
-    const head = rig.payload;
     const travel = 0.08 + progress * 0.92;
-    const at = placeTravelHead(head, owner, destination, travel, 0.22, 0.82);
-    head.scale.set(1.35, 0.86, 1.35);
-    // One physical, team-tinted cable grows exactly to the travelling head. The generic
+    const cableEnd = new THREE.Vector3().lerpVectors(owner, destination, travel);
+    cableEnd.y = 0.22;
+    // One physical, team-tinted cable grows along the declared line. The generic
     // red strike aim is suppressed by arenaOverlays while this signature owns the tell;
-    // an additive lane here would recreate the same confusing double line.
+    // an additive lane or separate hook silhouette would recreate the same visual clutter.
     solidBeamAt(
       rig.cable,
       owner.clone().setY(0.28),
-      at,
+      cableEnd,
       CABLE_WIDTH,
     );
     paintTeamCable(rig, 0.9);
-    for (const [index, side] of [-1, 1].entries()) {
-      const jaw = rig.segments[index + 1]!;
-      const yaw = -Math.atan2(destination.z - owner.z, destination.x - owner.x);
-      const forward = new THREE.Vector3(Math.cos(-yaw), 0, -Math.sin(-yaw));
-      const normal = new THREE.Vector3(-forward.z, 0, forward.x);
-      lineAt(
-        jaw,
-        at.clone().addScaledVector(normal, side * 0.05),
-        at.clone().addScaledVector(forward, 0.18).addScaledVector(normal, side * 0.14),
-        0.2,
-        at.y,
-      );
-      setEnergyOpacity(jaw, 0.3);
-    }
   },
   paintOutcome({
     rig,
@@ -111,10 +94,6 @@ export default defineArcSignatureWebGLPainter({
       targetAt.clone().setY(0.22),
       CABLE_WIDTH,
     );
-    const head = rig.payload;
-    head.visible = true;
-    head.position.copy(targetAt).setY(0.22);
-    head.scale.set(1.35, 0.86, 1.35);
     paintTeamCable(rig, life * 0.9);
   },
 });

@@ -192,7 +192,10 @@ test('signature whole-body acting gives the grammar distinct physical verbs', ()
 
   assert.ok(hook.forward < 0 && hook.pitch > 0, 'Towline leans back into cable tension');
   assert.ok(mortar.rise < 0 && mortar.pitch > 0, 'Mortar braces into recoil');
-  assert.ok(deploy.forward > 0 && deploy.pitch < 0, 'Nest leans over the deployment tile');
+  assert.ok(
+    deploy.forward > 0 && deploy.rise > 0 && deploy.pitch === 0,
+    'Nest releases the seed without pitching its long nose through the floor',
+  );
   assert.ok(
     exchange.rise > 0 && exchange.scale > 1 && exchange.lateral === 0 && exchange.yaw === 0,
     'Switchback loads in place without pretending to push either endpoint',
@@ -203,6 +206,24 @@ test('signature whole-body acting gives the grammar distinct physical verbs', ()
     'Longshot lifts into its laser brace instead of burying its rear silhouette',
   );
   assert.notDeepEqual(hook, mortar, 'two casts do not share one generic pulse');
+});
+
+test('Sentinel Seed body acting preserves floor clearance for its whole tell', () => {
+  for (let sample = 0; sample <= 20; sample += 1) {
+    const pose = arcSignatureBodyPose('sentinel-seed', 'tell', sample / 10);
+    assert.ok(pose.rise >= 0, `Nest never descends at sample ${sample}`);
+    assert.ok(pose.pitch >= 0, `Nest never pitches its nose down at sample ${sample}`);
+  }
+  for (let sample = 0; sample <= 12; sample += 1) {
+    const pose = releaseArcSignatureBodyPose(
+      'sentinel-seed',
+      'tell',
+      1,
+      ARC_SIGNATURE_BODY_RELEASE_TICKS * sample / 12,
+    );
+    assert.ok(pose.rise >= 0, `Nest release never descends at sample ${sample}`);
+    assert.ok(pose.pitch >= 0, `Nest release never pitches down at sample ${sample}`);
+  }
 });
 
 test('signature body acting is seek-stable and reduced motion keeps the pose legible', () => {

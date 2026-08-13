@@ -114,10 +114,17 @@ export function arcSignatureBodyPose(
       pose.pitch -= 0.055 * commit * motion;
       break;
     case 'trip-node':
-    case 'sentinel-seed':
       pose.rise -= 0.07 * commit * motion;
       pose.forward += 0.1 * commit * motion;
       pose.pitch -= 0.24 * commit * motion;
+      break;
+    case 'sentinel-seed':
+      // Nest's long prow reaches the floor before the rest of its chassis. Reusing the
+      // mine-planting crouch drove that nose through the tile, so Seed gets a floor-safe
+      // release: keep the familiar forward press, add a little clearance, and do not
+      // rotate the whole monolithic body downward.
+      pose.rise += 0.025 * commit * motion;
+      pose.forward += 0.1 * commit * motion;
       break;
     case 'null-field':
       pose.scale -= 0.07 * commit * motion;

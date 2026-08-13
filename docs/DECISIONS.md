@@ -8196,3 +8196,24 @@ levitates the one authoritative Core into the receiving hull, avoiding the
 mid-tick cubic acceleration and early hold that read as an upward snap. This is
 presentation only: custody facts, positions, ownership, mechanics, audio, drop,
 handoff, bank, and Arc Toss timing do not change.
+
+## 306. Sentinel keeps its seed read while Nest stays floor-safe; Hook is cable-only
+
+Owner 3D presentation correction (2026-08-13). The overlap reported during
+Sentinel Seed was Nest's monolithic body pose clipping its long nose into the
+floor, not the compact seed treatment. Restore the destination ring, socket,
+motes, and seed-to-sentry shell. Split Sentinel Seed from Trip Node's planting
+crouch: Nest keeps its forward press, gains slight upward clearance, and has no
+nose-down root pitch at any point in the public tell or its deterministic
+release. Mechanics, signature timing, and the promoted model are unchanged.
+
+This supersedes decision 305 only where it removed Sentinel's ring, socket,
+motes, and seed shell. Decision 305's generic line ownership, Hook color and
+duplicate-line removal, and full-tick Core pickup settle remain in force.
+
+Tractor Hook temporarily has no procedural grapple head or jaws. Its one
+narrow team-tinted cable extends along the locked line and stays attached to an
+observed pulled body; the generic strike ray, additive lane, dark duplicate,
+spool, target donut, and bulky front object remain absent. This is presentation
+only and does not remove or alter the authoritative grapple projectile,
+collision, pull, miss, or audio facts.

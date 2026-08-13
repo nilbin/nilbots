@@ -424,7 +424,7 @@ test('persistent props stay legible inside their tiles and sentinel yaw never lo
   );
 });
 
-test('Tractor Hook keeps a non-circular cable attached through the recorded pull', () => {
+test('Tractor Hook keeps one headless cable attached through the recorded pull', () => {
   const replay = loadReplayJson(
     gunzipSync(readFileSync(new URL(
       '../../art/reviews/arc-relay-presentation-batch-v1/runtime-proof/replays/core-roster.broadcast.json.gz',
@@ -563,17 +563,37 @@ test('Tractor Hook keeps a non-circular cable attached through the recorded pull
       cable.scale.z < 0.7,
       `the physical hook cable stays a narrow strand (${cable.scale.z})`,
     );
-    const startHead = pullStart.children.find(
-      (child) => child.visible && child.geometry?.type === 'CapsuleGeometry',
+    assert.equal(
+      pullStart.children.some(
+        (child) => child.visible && child.geometry?.type === 'CapsuleGeometry',
+      ),
+      false,
+      'the cable has no bulky procedural grapple head',
     );
-    assert.ok(startHead);
-    const startX = startHead.position.x;
+    assert.equal(
+      pullStart.children.filter(
+        (child) => child.visible && (child as THREE.Mesh).isMesh,
+      ).length,
+      1,
+      'the pull outcome contains only the cable',
+    );
+    const startCableX = cable.position.x;
     const pullMiddle = visibleGroup(2.5);
-    const middleHead = pullMiddle?.children.find(
+    const middleCable = pullMiddle?.children.find(
       (child) => child.visible && child.geometry?.type === 'CapsuleGeometry',
     );
-    assert.ok(middleHead);
-    assert.ok(middleHead.position.x < startX, 'the latch follows the pulled body');
+    assert.equal(middleCable, undefined, 'no front object appears during the pull');
+    const movingCable = pullMiddle?.children.find(
+      (child) =>
+        child.visible &&
+        child.geometry?.type === 'BoxGeometry' &&
+        (child as THREE.Mesh).material instanceof THREE.MeshStandardMaterial,
+    );
+    assert.ok(movingCable);
+    assert.ok(
+      movingCable.position.x < startCableX,
+      'the cable endpoint follows the pulled body',
+    );
     assert.equal(visibleGroup(3), undefined, 'the cable releases after the pull tick');
   } finally {
     for (const disposable of disposables) disposable.dispose();
@@ -624,6 +644,26 @@ test('signature-owned line tells do not stack the generic red attack aim', () =>
       expectedGenericAims,
       'ordinary attacks keep their aim while Hook/Rail own exactly one tell line',
     );
+    const hookTell = overlays.group.children
+      .flatMap((node) => node.children)
+      .find(
+        (node) =>
+          node.visible &&
+          node.userData.signatureId === 'tractor-hook' &&
+          node.userData.phase === 'tell',
+      );
+    assert.ok(hookTell, 'the pinned line-signature frame contains Tractor Hook');
+    const hookMeshes: THREE.Mesh[] = [];
+    hookTell.traverse((node) => {
+      if (node.visible && (node as THREE.Mesh).isMesh)
+        hookMeshes.push(node as THREE.Mesh);
+    });
+    assert.equal(hookMeshes.length, 1, 'the Hook tell is only one cable');
+    assert.equal(hookMeshes[0]!.geometry.type, 'BoxGeometry');
+    assert.ok(
+      hookMeshes[0]!.material instanceof THREE.MeshStandardMaterial,
+      'the cable remains the restrained solid team-coloured strand',
+    );
   } finally {
     overlays.dispose();
   }
@@ -664,7 +704,7 @@ test('Sentinel Seed transforms upward from its floor seed', () => {
   }
 });
 
-test('Sentinel Seed tell leaves the casting Nest completely unobscured', () => {
+test('Sentinel Seed keeps its compact destination treatment without a solid tell pod', () => {
   const replay = loadReplayJson(
     gunzipSync(readFileSync(new URL(
       '../../art/reviews/arc-relay-presentation-batch-v1/runtime-proof/replays/remaining-roster.broadcast.json.gz',
@@ -681,10 +721,13 @@ test('Sentinel Seed tell leaves the casting Nest completely unobscured', () => {
         candidate.userData.signatureId === 'sentinel-seed' &&
         candidate.userData.phase === 'tell',
     );
+    assert.ok(tell, 'the destination seed treatment remains visible');
     assert.equal(
-      tell,
-      undefined,
-      'the whole-body plant pose owns the tell without a floor ring or seed shell',
+      tell.children.some(
+        (child) => child.visible && child.geometry?.type === 'CylinderGeometry',
+      ),
+      false,
+      'the tell does not put an opaque pod over the casting body',
     );
   } finally {
     for (const disposable of disposables) disposable.dispose();

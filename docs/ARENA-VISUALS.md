@@ -471,7 +471,8 @@ art by accident.
 Persistent Trip Node and Sentinel Seed props use their separately promoted
 Meshy assets only after the replay says the construct is active. Trip Node's
 tell and both props' load-failure, Canvas, and suppressed fallbacks remain
-procedural; Sentinel Seed's WebGL tell is only Nest's whole-body plant pose.
+procedural; Sentinel Seed's WebGL tell retains its compact destination
+socket/seed treatment while Nest performs a floor-safe forward body press.
 The sentry's head may follow only an already observed authoritative shot. The
 other fourteen signatures use renderer primitives and need no skeletal or
 Meshy animation.
@@ -493,11 +494,11 @@ launch tick holds a latched cable at the published target, the following
 `body-relocated` tick attaches that cable to the target's interpolated replay
 pose, and then releases it. Its WebGL read deliberately has no circular spool,
 target ring, generic strike ray, additive underlay, or dark-grey second wire:
-the cable is one narrow, team-tinted solid strand. Sentinel Seed's authored
-whole-body plant pose is its complete tell, with no procedural floor/socket/seed
-geometry over the casting Nest. When the replay says `active`, the one authored
-sentry expands upward from floor contact without a second seed shell. Its
-existing recall exit is unchanged.
+the cable is one narrow, team-tinted solid strand, with no separate procedural
+grapple head for now. Sentinel Seed retains the compact destination socket,
+motes, and seed-to-sentry transition. Its caster pose is corrected separately:
+Nest presses forward with slight upward clearance and no nose-down pitch, so
+its long prow cannot enter the floor. Its existing recall exit is unchanged.
 
 An authoritative `leveled-up` fact also drives a bounded presentation beat: a
 thin brass floor ring, three short converging matte facets, then the persistent
@@ -590,10 +591,11 @@ sprite-derived WebGL fallback:
 - Persistent signature props use the same exception and a separate
   `kind: "signature"` manifest. Trip Node and Sentinel Seed load only in the
   hosted WebGL signature layer. Trip Node keeps its procedural telegraph;
-  Sentinel Seed's WebGL telegraph is only Nest's whole-body plant pose. Their
-  procedural markers remain the load-failure and Canvas fallback. A finished
-  prop never appears during its authoritative tell. The approved Meshy 7 props use quantized
-  geometry and embedded 512 px WebP PBR maps, with exact promotion enforced by
+  Sentinel Seed keeps its compact procedural destination telegraph plus Nest's
+  floor-safe body press. Their procedural markers remain the load-failure and
+  Canvas fallback. A finished prop never appears during its authoritative tell.
+  The approved Meshy 7 props use quantized geometry and embedded 512 px WebP PBR
+  maps, with exact promotion enforced by
   `scripts/class-models/promote-meshy7-signature-props-v3.mjs`. The mine keeps
   its audited floor contact and matte roughness; ownership is a restrained
   renderer-owned ground ring. The sentry's explicit `stationary-base` remains

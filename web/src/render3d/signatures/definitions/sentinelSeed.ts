@@ -3,42 +3,87 @@ import { defineArcSignatureWebGLPainter } from '../types';
 import {
   hasConstructRemoval,
   paintPropFallback,
+  setEnergyColour,
   setEnergyOpacity,
+  targetRing,
 } from '../primitives';
+
+const SEED = '#78aeb3';
 
 export default defineArcSignatureWebGLPainter({
   signatureId: 'sentinel-seed',
-  paint({ rig, signature, points, time, phase, persistentPropReady, reducedMotion, phaseAge }) {
-    const anchor = points[0];
-    // Nest's authored whole-body plant pose is the complete tell. The destination is
-    // adjacent in the real stage, yet even the old floor ring/socket reached back under
-    // the caster at overview scale and the pale seed shell then replaced that overlap.
-    // Publish no extra tell mesh at all: once the replay says active, the one real sentry
-    // grows from floor contact and becomes the destination read.
-    if (!anchor || phase !== 'active') return;
-    const deploy = reducedMotion ? 1 : Math.min(1, phaseAge / 1.1);
-    paintPropFallback(
-      rig,
-      points,
-      time,
-      persistentPropReady,
-      new THREE.Vector3(0.38, 0.5, 0.38),
-    );
-    // The Meshy sentry is already the authored object. Three dim socket rails close
-    // beneath it; bulky procedural posts or a second seed body hide the turret.
-    for (const [index, angle] of [0, Math.PI * 2 / 3, Math.PI * 4 / 3].entries()) {
-      const rail = rig.segments[index]!;
-      const outer = 0.66 - deploy * 0.08;
-      const inner = 0.36;
-      rail.visible = true;
-      rail.position.set(
-        anchor.x + Math.cos(angle) * (inner + outer) * 0.5,
-        0.06,
-        anchor.z + Math.sin(angle) * (inner + outer) * 0.5,
+  paint({ rig, signature, points, time, phase, persistentPropReady, reducedMotion, phaseProgress, phaseAge }) {
+    if (phase === 'active') {
+      paintPropFallback(
+        rig,
+        points,
+        time,
+        persistentPropReady,
+        new THREE.Vector3(0.38, 0.5, 0.38),
       );
-      rail.rotation.y = -angle;
-      rail.scale.set(outer - inner, 1, 1.3);
-      setEnergyOpacity(rail, 0.08);
+    }
+    const anchor = points[0];
+    if (!anchor) return;
+    const deploy = phase === 'tell'
+      ? phaseProgress
+      : reducedMotion
+        ? 1
+        : Math.min(1, phaseAge / 1.1);
+    targetRing(rig, anchor, 0.72 + (1 - deploy) * 0.18);
+    setEnergyOpacity(rig.ring, 0.1);
+    if (phase === 'tell') {
+      // Keep the compact seed read at its destination. Nest's separate floor-safe body
+      // pose now fixes the real nose clipping without deleting this approved treatment.
+      const socket = rig.rings[0]!;
+      socket.visible = true;
+      socket.position.copy(anchor).setY(0.052);
+      socket.scale.setScalar(0.44 + phaseProgress * 0.12);
+      setEnergyOpacity(socket, 0.14);
+      for (let index = 0; index < 3; index += 1) {
+        const mote = rig.particles[index]!;
+        const angle = index * Math.PI * 2 / 3 + phaseProgress * 0.8;
+        mote.visible = !reducedMotion;
+        mote.position.set(
+          anchor.x + Math.cos(angle) * (0.24 - phaseProgress * 0.08),
+          0.12 + phaseProgress * (0.16 + index * 0.035),
+          anchor.z + Math.sin(angle) * (0.24 - phaseProgress * 0.08),
+        );
+        mote.scale.setScalar(0.38);
+        setEnergyColour(mote, SEED);
+        setEnergyOpacity(mote, 0.1);
+      }
+    }
+    if (phase === 'active') {
+      // The Meshy sentry is already the authored object. Three dim socket rails close
+      // beneath it; bulky procedural posts hide the turret and read as unrelated rubble.
+      for (const [index, angle] of [0, Math.PI * 2 / 3, Math.PI * 4 / 3].entries()) {
+        const rail = rig.segments[index]!;
+        const outer = 0.66 - deploy * 0.08;
+        const inner = 0.36;
+        rail.visible = true;
+        rail.position.set(
+          anchor.x + Math.cos(angle) * (inner + outer) * 0.5,
+          0.06,
+          anchor.z + Math.sin(angle) * (inner + outer) * 0.5,
+        );
+        rail.rotation.y = -angle;
+        rail.scale.set(outer - inner, 1, 1.3);
+        setEnergyOpacity(rail, 0.08);
+      }
+      if (deploy < 1) {
+        const seedShell = rig.pod;
+        seedShell.visible = true;
+        seedShell.position.copy(anchor).setY(0.15 - deploy * 0.08);
+        seedShell.scale.set(
+          0.42 * (1 - deploy),
+          Math.max(0.035, 0.26 * (1 - deploy)),
+          0.42 * (1 - deploy),
+        );
+        rig.solid.color.set('#4d5c60');
+        rig.solid.emissive.set(SEED);
+        rig.solid.emissiveIntensity = 0.04;
+        rig.solid.opacity = 0.9 * (1 - deploy);
+      }
     }
     const status = rig.rings[1]!;
     status.visible = true;
