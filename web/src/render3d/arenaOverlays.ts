@@ -36,6 +36,8 @@ import { playsAt } from '../presentation/playAwareness';
 import { ARC_CORE_NEUTRAL_PALETTE } from '../presentation/arcCorePalette';
 import { arenaTheme } from '../render/arenaThemes';
 import { objectiveModel } from './lookModel';
+import { isolateModelFromPointLights } from './modelLighting';
+import { configureWalkableObjectiveRendering } from './occlusionLayers';
 
 /**
  * What the arena knows and what it is doing to itself: fog of war, the objective zone, and
@@ -2084,7 +2086,9 @@ function buildArcRelayStory(
   const coreGeometry = new THREE.SphereGeometry(0.22, 28, 18);
   const beamGeometry = new THREE.CylinderGeometry(0.025, 0.08, 1.05, 12);
   const coreGlowTexture = flare();
-  const reactorGlowGeometry = new THREE.PlaneGeometry(1.5, 1.5);
+  const reactorApertureGeometry = new THREE.CircleGeometry(0.46, 8);
+  reactorApertureGeometry.rotateX(-Math.PI / 2);
+  const reactorGlowGeometry = new THREE.PlaneGeometry(0.96, 0.96);
   reactorGlowGeometry.rotateX(-Math.PI / 2);
   const sourceTriangleGeometry = new THREE.ConeGeometry(0.17, 0.045, 3);
   const sourceDiamondGeometry = new THREE.BoxGeometry(0.23, 0.045, 0.23);
@@ -2107,6 +2111,7 @@ function buildArcRelayStory(
     integrityGeometry,
     coreGeometry,
     beamGeometry,
+    reactorApertureGeometry,
     reactorGlowGeometry,
     sourceTriangleGeometry,
     sourceDiamondGeometry,
@@ -2346,6 +2351,7 @@ function buildArcRelayStory(
         // A Well is a walkable objective tile, not a waist-high prop. Recess the authored
         // housing into the arena so a bot crossing the tile stays visually in front of it.
         authoredModel.position.y = -0.045;
+        configureWalkableObjectiveRendering(authoredModel);
         fallback.visible = false;
         for (const glyph of sourceGlyphs) glyph.position.y = 0.105;
         rig.add(authoredModel);
@@ -2383,9 +2389,10 @@ function buildArcRelayStory(
     group: THREE.Group;
     material: THREE.MeshStandardMaterial;
     ringMaterial: THREE.MeshBasicMaterial;
+    aperture: THREE.Mesh;
+    apertureMaterial: THREE.MeshBasicMaterial;
     underGlow: THREE.Mesh;
     underGlowMaterial: THREE.MeshBasicMaterial;
-    underLight: THREE.PointLight;
     integrity: THREE.Mesh[];
     integrityMaterials: THREE.MeshBasicMaterial[];
     charge: THREE.Mesh[];
@@ -2420,19 +2427,27 @@ function buildArcRelayStory(
         blending: THREE.AdditiveBlending,
         side: THREE.DoubleSide,
       });
+      // This opaque cap sits above actor floor pools but below the Reactor's own glow.
+      // It writes depth through the open Meshy aperture, so a nearby bot cannot turn the
+      // socket into a second team-coloured state indication.
+      const apertureMaterial = new THREE.MeshBasicMaterial({
+        color: '#05070a',
+        depthTest: true,
+        depthWrite: true,
+        side: THREE.DoubleSide,
+      });
+      const aperture = new THREE.Mesh(reactorApertureGeometry, apertureMaterial);
+      aperture.position.y = 0.014;
+      aperture.userData.kind = 'arc-relay-reactor-aperture-mask';
       const underGlow = new THREE.Mesh(reactorGlowGeometry, underGlowMaterial);
-      underGlow.position.y = 0.012;
+      underGlow.position.y = 0.018;
       underGlow.userData.kind = 'arc-relay-reactor-underglow';
-      const underLight = new THREE.PointLight('#ffffff', 0.8, 1.45, 2);
-      underLight.position.y = 0.08;
-      underLight.castShadow = false;
-      underLight.userData.kind = 'arc-relay-reactor-underlight';
       const fallback = new THREE.Group();
       fallback.userData.kind = 'arc-relay-reactor-fallback';
       const body = new THREE.Mesh(reactorGeometry, material);
       body.position.y = arcArchitecture ? 0.11 : 0.09;
       const ring = new THREE.Mesh(reactorRingGeometry, ringMaterial);
-      ring.position.y = 0.055;
+      ring.position.y = 0.035;
       ring.scale.setScalar(1.35);
       const crestMaterial = new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false });
       const crest = new THREE.Mesh(crestGeometry, crestMaterial);
@@ -2441,7 +2456,7 @@ function buildArcRelayStory(
       stateIndicators.userData.kind = 'arc-relay-reactor-state-indicators';
       fallback.add(body);
       stateIndicators.add(crest);
-      rig.add(underGlow, underLight, fallback, ring, stateIndicators);
+      rig.add(aperture, underGlow, fallback, ring, stateIndicators);
       for (const [index, [x, z]] of [
         [-0.37, -0.37],
         [0.37, -0.37],
@@ -2462,14 +2477,15 @@ function buildArcRelayStory(
         }
         authoredModel = model;
         authoredModel.userData.kind = 'arc-relay-reactor-authored-housing';
-        // The approved Meshy object is already only 0.17 tile high. Keep its floor at the
-        // authoritative ground plane so it reads as a recess, while the renderer-owned
-        // team pool shines through the open aperture from a few millimetres above it.
-        authoredModel.position.y = 0;
+        // Most of the 0.17-tile Meshy housing sits below the floor. Only its thin upper rim
+        // remains visible, so a hovering bot can truthfully skim across the walkable tile.
+        authoredModel.position.y = -0.1;
+        configureWalkableObjectiveRendering(authoredModel);
+        isolateModelFromPointLights(authoredModel);
         // The old procedural fixture was tall enough to carry its state readouts at
         // 0.43 tile. Lower the whole readout assembly once the approved floor recess is
         // available, keeping the pips immediately above its rim instead of floating.
-        stateIndicators.position.y = -0.2;
+        stateIndicators.position.y = -0.24;
         fallback.visible = false;
         rig.add(authoredModel);
       });
@@ -2505,16 +2521,17 @@ function buildArcRelayStory(
         group: rig,
         material,
         ringMaterial,
+        aperture,
+        apertureMaterial,
         underGlow,
         underGlowMaterial,
-        underLight,
         integrity,
         integrityMaterials,
         charge,
         chargeMaterials,
         crest,
       });
-      disposables.push(material, ringMaterial, underGlowMaterial, crestMaterial, {
+      disposables.push(material, ringMaterial, apertureMaterial, underGlowMaterial, crestMaterial, {
         dispose: () => {
           disposed = true;
           if (authoredModel) disposeObjectMaterials(authoredModel);
@@ -2858,12 +2875,10 @@ function buildArcRelayStory(
       rig.material.emissive.set(state.accent);
       rig.ringMaterial.color.set(state.accent);
       rig.underGlowMaterial.color.set(state.accent);
-      rig.underLight.color.set(state.accent);
       const reactorPulse = 0.5 + 0.5 * Math.sin(time * Math.PI * 0.85 + index);
       const chargeLift = state.chargePips * 0.025;
       rig.underGlowMaterial.opacity = 0.2 + reactorPulse * 0.11 + chargeLift;
       rig.underGlow.scale.setScalar(0.94 + reactorPulse * 0.04);
-      rig.underLight.intensity = 0.72 + reactorPulse * 0.28 + chargeLift * 2;
       rig.ringMaterial.opacity = 0.52 + reactorPulse * 0.14;
       const entrant = entrants?.find((value) => value.teamId === state.teamId);
       if (entrant) {

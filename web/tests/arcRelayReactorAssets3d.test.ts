@@ -36,7 +36,8 @@ test('the owner-approved Reactor recess is a deterministic runtime promotion', (
   assert.equal(ledger.provider, 'Meshy');
   assert.equal(ledger.providerModel, 'meshy-7');
   assert.equal(ledger.modelOwnedTeamGlow, false);
-  assert.match(ledger.rendererOwnedTeamGlow, /point light/);
+  assert.match(ledger.rendererOwnedTeamGlow, /self-lit additive aperture pool/);
+  assert.match(ledger.rendererOwnedTeamGlow, /excludes transient point lights/);
 });
 
 test('the runtime Reactor is the exact neutral matte lean artifact', () => {

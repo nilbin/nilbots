@@ -9,7 +9,7 @@
   "providerModel": "meshy-7",
   "meshContract": "One neutral matte 1.5-tile ring with an open aperture; charge, integrity, crest, pulse, damage, destruction, and team glow remain renderer-owned.",
   "modelOwnedTeamGlow": false,
-  "rendererOwnedTeamGlow": "low additive floor pool plus a restrained point light from the aperture",
+  "rendererOwnedTeamGlow": "low self-lit additive aperture pool; neutral housing excludes transient point lights",
   "model": {
     "id": "arc-team-reactor",
     "taskId": "019ffccf-7594-7de3-a30f-603697cf63a2",

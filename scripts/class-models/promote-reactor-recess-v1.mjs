@@ -169,7 +169,8 @@ const ledger = {
   meshContract:
     'One neutral matte 1.5-tile ring with an open aperture; charge, integrity, crest, pulse, damage, destruction, and team glow remain renderer-owned.',
   modelOwnedTeamGlow: false,
-  rendererOwnedTeamGlow: 'low additive floor pool plus a restrained point light from the aperture',
+  rendererOwnedTeamGlow:
+    'low self-lit additive aperture pool; neutral housing excludes transient point lights',
   model: {
     id: 'arc-team-reactor',
     taskId: audit.sources.textureDonor.taskId,

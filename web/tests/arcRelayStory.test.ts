@@ -523,23 +523,29 @@ test('Ember landmarks turn Arc homes, healing, and well charge into foundry mach
     const underGlow = descendants.find(
       (node) => node.userData.kind === 'arc-relay-reactor-underglow',
     ) as THREE.Mesh | undefined;
+    const aperture = descendants.find(
+      (node) => node.userData.kind === 'arc-relay-reactor-aperture-mask',
+    ) as THREE.Mesh | undefined;
     const underLight = descendants.find(
       (node) => node.userData.kind === 'arc-relay-reactor-underlight',
-    ) as THREE.PointLight | undefined;
+    );
     assert.ok(underGlow);
-    assert.ok(underLight);
+    assert.ok(aperture);
+    assert.equal(underLight, undefined, 'the neutral fixture owns no scene light');
     const glowMaterial = underGlow.material as THREE.MeshBasicMaterial;
+    const apertureMaterial = aperture.material as THREE.MeshBasicMaterial;
     const accent = new THREE.Color(state.accent).getHexString();
     assert.equal(glowMaterial.color.getHexString(), accent);
-    assert.equal(underLight.color.getHexString(), accent);
     assert.equal(glowMaterial.blending, THREE.AdditiveBlending);
     assert.equal(glowMaterial.depthWrite, false);
-    assert.ok(underGlow.position.y < 0.02, 'the team pool stays under the low housing');
+    assert.ok(
+      underGlow.position.y > aperture.position.y && underGlow.position.y < 0.03,
+      'the team pool sits just above its dark aperture cap',
+    );
     assert.ok(glowMaterial.opacity >= 0.2 && glowMaterial.opacity <= 0.4);
-    assert.equal(underLight.distance, 1.45);
-    assert.equal(underLight.decay, 2);
-    assert.equal(underLight.castShadow, false);
-    assert.ok(underLight.intensity < 1.2, 'the local team light remains restrained');
+    assert.equal(apertureMaterial.depthTest, true);
+    assert.equal(apertureMaterial.depthWrite, true);
+    assert.equal(apertureMaterial.transparent, false);
   }
   assert.ok(progress);
   assert.equal(progress.userData.progress, 0.5);

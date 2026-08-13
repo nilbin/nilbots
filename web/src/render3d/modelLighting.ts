@@ -3,6 +3,12 @@ import * as THREE from 'three';
 const OUTGOING_LIGHT =
   'vec3 outgoingLight = totalDiffuse + totalSpecular + totalEmissiveRadiance;';
 const PROFILE_KEY = 'nilbots-model-lighting-v1';
+const POINT_LIGHT_ISOLATION_KEY = 'nilbots-point-light-isolation-v1';
+const LIGHTS_FRAGMENT_INCLUDE = '#include <lights_fragment_begin>';
+const POINT_LIGHTS_START =
+  '#if ( NUM_POINT_LIGHTS > 0 ) && defined( RE_Direct )';
+const POINT_LIGHTS_END =
+  '#if ( NUM_SPOT_LIGHTS > 0 ) && defined( RE_Direct )';
 
 /**
  * A restrained, model-local fill and rim for genuine GLB actors.
@@ -62,4 +68,64 @@ export function injectModelLighting(fragmentShader: string): string {
     0.22
   ) * nilbotsModelRim;`,
   );
+}
+
+/**
+ * Keep a neutral floor fixture stable when replay-owned point lights pass over it.
+ *
+ * Cores are real point lights because they should illuminate carriers and nearby combat.
+ * A Reactor housing is different: its team read comes from a separate self-lit aperture,
+ * so letting those transient lights recolour the neutral metal makes one ally standing on
+ * it look like an extra Reactor state. Directional, ambient, shadow, authored emission,
+ * and the model-local readability profile remain intact; only the point-light loop is
+ * removed from this material's compiled shader.
+ */
+export function applyPointLightIsolation(
+  material: THREE.MeshStandardMaterial,
+): void {
+  if (material.userData.nilbotsPointLightIsolation === POINT_LIGHT_ISOLATION_KEY)
+    return;
+  const beforeCompile = material.onBeforeCompile.bind(material);
+  const beforeCacheKey = material.customProgramCacheKey.bind(material);
+
+  material.onBeforeCompile = (shader, renderer) => {
+    beforeCompile(shader, renderer);
+    shader.fragmentShader = injectPointLightIsolation(shader.fragmentShader);
+  };
+  material.customProgramCacheKey = () =>
+    `${beforeCacheKey()}|${POINT_LIGHT_ISOLATION_KEY}`;
+  material.userData.nilbotsPointLightIsolation = POINT_LIGHT_ISOLATION_KEY;
+  material.needsUpdate = true;
+}
+
+/** Apply point-light isolation once per distinct standard material in a model. */
+export function isolateModelFromPointLights(model: THREE.Object3D): void {
+  const materials = new Set<THREE.MeshStandardMaterial>();
+  model.traverse((node) => {
+    const mesh = node as THREE.Mesh;
+    if (!mesh.isMesh) return;
+    for (const material of Array.isArray(mesh.material)
+      ? mesh.material
+      : [mesh.material]) {
+      if (material instanceof THREE.MeshStandardMaterial) materials.add(material);
+    }
+  });
+  for (const material of materials) applyPointLightIsolation(material);
+}
+
+export function injectPointLightIsolation(fragmentShader: string): string {
+  const pointIsolatedChunk = removePointLightBlock(
+    THREE.ShaderChunk.lights_fragment_begin,
+  );
+  if (fragmentShader.includes(LIGHTS_FRAGMENT_INCLUDE))
+    return fragmentShader.replace(LIGHTS_FRAGMENT_INCLUDE, pointIsolatedChunk);
+  return removePointLightBlock(fragmentShader);
+}
+
+function removePointLightBlock(fragmentShader: string): string {
+  const start = fragmentShader.indexOf(POINT_LIGHTS_START);
+  const end = fragmentShader.indexOf(POINT_LIGHTS_END, start + POINT_LIGHTS_START.length);
+  if (start < 0 || end < 0)
+    throw new Error('MeshStandardMaterial shader no longer exposes the point-light block.');
+  return `${fragmentShader.slice(0, start)}// Nilbots: transient point lights disabled for this neutral fixture.\n${fragmentShader.slice(end)}`;
 }

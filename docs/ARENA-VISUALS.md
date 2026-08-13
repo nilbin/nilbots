@@ -591,9 +591,13 @@ sprite-derived WebGL fallback:
 - Arc Relay's approved Team Reactor is likewise a neutral monolithic Meshy
   housing, but is classified as an `objective` model. Its exact lean artifact is
   a 1.5-tile, 0.17-tile-high open recess with no team material. WebGL owns the
-  low additive team pool and restrained aperture light, as well as the crest,
-  charge and integrity pips, banking pulse, damage, and destruction. The Canvas
-  fallback keeps the same authoritative state read with procedural geometry.
+  low self-lit team aperture, as well as the crest, charge and integrity pips,
+  banking pulse, damage, and destruction. The neutral housing ignores transient
+  point lights, and its dark depth-writing aperture prevents nearby bot pools
+  from manufacturing a second team-state cue. Most of the housing is recessed
+  below the floor and yields to actor silhouettes because the tile remains
+  mechanically walkable. The Canvas fallback keeps the same authoritative state
+  read with procedural geometry.
 - Persistent signature props use the same exception and a separate
   `kind: "signature"` manifest. Trip Node and Sentinel Seed load only in the
   hosted WebGL signature layer. Trip Node keeps its procedural telegraph;

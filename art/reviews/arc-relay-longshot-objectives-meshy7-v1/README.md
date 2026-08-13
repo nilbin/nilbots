@@ -1,7 +1,7 @@
 # Longshot and objectives Meshy 7 review
 
-Status: **owner review** as of 2026-08-13. Nothing in this batch has been
-merged to `main`.
+Status: **combined owner review** as of 2026-08-14. Nothing in this batch has
+been merged to `main`.
 
 ## Outcome
 
@@ -10,12 +10,17 @@ merged to `main`.
 - Survey Flare: pass for owner gameplay review in both in-flight and active
   states. The model replaces only the physical device; renderer-owned scan
   state remains intact.
-- Team Reactor: pass for owner gameplay review. The renderer continues to own
-  team color, crest, charge counters, integrity counters, and state effects.
+- Team Reactor: its approved low Meshy recess is the feature branch runtime
+  model. The renderer now sinks most of the housing below the floor, masks its
+  open aperture against bot glow pools, keeps transient Core lights off the
+  neutral metal, and lets hovering actors win walkable overlap. Team color,
+  crest, charge counters, integrity counters, and state effects remain
+  renderer-owned.
 - Core Well: pass for owner gameplay review after the owner accepted the
-  four-anchor silhouette as an intentional deviation. A deterministic 0.80
-  vertical scale reduces the housing from about 0.237 to 0.190 tile high, and
+  four-anchor silhouette as an intentional deviation. A deterministic 0.50
+  vertical scale reduces the housing from about 0.237 to 0.107 tile high, and
   its metallic-roughness map is floored at 0.82 to remove the shiny finish.
+  The renderer recesses it another 0.045 tile and applies actor-first overlap.
   The renderer continues to own source identity, birth/rearm progress, the live
   Core, and all team/state color.
 
@@ -26,20 +31,15 @@ The corrective pass consumed the approved 80-credit cap and left a balance of
 
 - `corrective-provider-review/`: strict six-view provider geometry and material
   sheets for all four generated outputs.
-- `sandbox/longshot-objectives-meshy7-v1/game-review/interactive/`: interactive
-  two-replay picker for playing, pausing, scrubbing, zooming, and checking both
-  team orientations in the real WebGL game.
-- `gameplay-review/desktop-gameplay-review.webp`: Longshot, Survey Flare, Team
-  Reactor, and the flattened matte Core Well in the real desktop WebGL renderer.
-- `gameplay-review/phone-gameplay-review.webp`: retained replay evidence at the
-  mobile landscape viewport.
-- `gameplay-review/evidence.json`: exact replay seed, proof time, renderer, asset
-  load, image hash, and viewport provenance for every gameplay capture.
-- `gameplay-review/build-record.json`: exact candidate bundle hashes and proof
-  that all temporarily staged runtime assets were restored or removed.
+- `sandbox/longshot-objectives-meshy7-v1/combined-review/site/`: one interactive
+  two-replay picker containing all four subjects together on current Tapline-3,
+  with Longshot and Lantern swapped across the teal/orange sides.
+- `combined-gameplay-review/`: exact build and browser evidence for the current
+  integrated review, including emitted model hashes and phone validation.
 
-The game-review bundle stages all four candidates only while building, then
-restores the live Longshot byte-for-byte and removes the temporary Flare,
-Reactor, and Well runtime directories. The review audit and build record make
-those restoration checks explicit. None of these candidate assets is promoted
-by this review branch.
+The combined game-review bundle uses the promoted low Reactor already present
+on this feature branch. It stages the corrected Longshot, Survey Flare, and
+flattened Well only while building, then restores the live Longshot manifest
+and GLB byte-for-byte and removes the temporary Flare and Well runtime
+directories. Their permanent default promotion remains gated on this combined
+owner review.
