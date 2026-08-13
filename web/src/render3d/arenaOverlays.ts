@@ -2334,8 +2334,11 @@ function buildArcRelayStory(
         }
         authoredModel = model;
         authoredModel.userData.kind = 'arc-relay-well-authored-housing';
+        // A Well is a walkable objective tile, not a waist-high prop. Recess the authored
+        // housing into the arena so a bot crossing the tile stays visually in front of it.
+        authoredModel.position.y = -0.045;
         fallback.visible = false;
-        for (const glyph of sourceGlyphs) glyph.position.y = 0.215;
+        for (const glyph of sourceGlyphs) glyph.position.y = 0.105;
         rig.add(authoredModel);
       });
       rig.visible = false;

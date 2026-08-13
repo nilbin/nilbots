@@ -16,7 +16,7 @@
     "materials": "Neutral authored paint only; team teal/cyan and orange remain renderer-owned.",
     "retexture": "Longshot and Survey Flare use their first-pass geometry with corrected Meshy original-UV PBR maps transplanted from the approved multiview retextures.",
     "matteFinish": "Metallic-roughness green channel is deterministically floored at 0.72 for bot/reactor assets and 0.82 for the Core Well environment housing, without changing base color, metallic, or normal maps.",
-    "wellProfile": "Owner-directed deterministic 0.80 vertical scale preserves the one-tile planform and floor while reducing the Well housing from about 0.237 to 0.190 tile high.",
+    "wellProfile": "Owner-directed deterministic 0.90-tile planform and 0.50 vertical scale reduce the Well housing from about 0.237 to 0.107 tile high; the renderer then recesses it 0.045 tile below the arena surface so overlapping bots remain unobscured.",
     "stateOwnership": "Survey radius/timing, Well spawn/rearm/source/Core indications, and Reactor ownership/charge/integrity remain renderer-owned overlays."
   },
   "providerSpend": {
@@ -29,14 +29,14 @@
     {
       "id": "core-well",
       "taskId": "019ffbd2-0fcf-7716-bba6-8f920b78fcc9",
-      "ownerDecision": "Four-anchor silhouette accepted as overall fine on 2026-08-13; owner requested a flatter, less shiny local derivative before gameplay review.",
+      "ownerDecision": "Four-anchor silhouette accepted as overall fine on 2026-08-13; after gameplay exposed bot overlap, owner requested a still flatter recessed local derivative.",
       "evidence": "art/reviews/arc-relay-longshot-objectives-meshy7-v1/corrective-provider-review/core-well-six-view.png",
       "providerRetryUsed": false,
       "additionalCredits": 0
     }
   ],
   "totals": {
-    "transferBytes": 5366208,
+    "transferBytes": 5366212,
     "triangles": 252742,
     "modelGpuBytesRgba8Fallback": 21557024
   },
@@ -425,8 +425,8 @@
         "yawDegrees": 90
       },
       "normalization": {
-        "targetPlanformSpan": 1,
-        "heightScale": 0.8,
+        "targetPlanformSpan": 0.9,
+        "heightScale": 0.5,
         "up": "+y",
         "floorY": 0
       },
@@ -456,8 +456,8 @@
       },
       "artifact": {
         "file": "art/class-models/runtime-tiers/arc-relay/longshot-objectives-review-v1/arc-core-well-lean.glb",
-        "bytes": 1619280,
-        "sha256": "8185fd25556634b3f5ca1f0cb775ffbc3681e5a439e8f911aa7adff6643c524f"
+        "bytes": 1619284,
+        "sha256": "ebc3e229c4ccf793031ed7254b9c3744d72cdbefa434b060c673e249fdaa92ca"
       },
       "triangles": 78572,
       "positionVertices": 54819,
@@ -467,7 +467,7 @@
       "textures": 4,
       "geometrySha256": "ea7149b5c8b16dd23743a997ce0457404d18d918f0744040b7ca42ee4044b3a8",
       "memory": {
-        "transferBytes": 1619280,
+        "transferBytes": 1619284,
         "geometryGpuBytes": 1567812,
         "textureGpuBytesCompressedTarget": 5592400,
         "textureGpuBytesRgba8Fallback": 5592400,

@@ -88,9 +88,11 @@ test('review-only signature and objective staging manifests match the audited ti
     assert.equal(manifest.source.taskId, candidate.taskId, candidateId);
     assert.equal(manifest.ledger.sha256, candidate.artifact.sha256, candidateId);
     if (candidateId === 'core-well') {
-      assert.equal(candidate.normalization.heightScale, 0.8);
+      assert.equal(candidate.normalization.targetPlanformSpan, 0.9);
+      assert.equal(candidate.normalization.heightScale, 0.5);
       assert.equal(candidate.matteRoughness.floor, 0.82);
-      assert.equal(manifest.source.heightScale, 0.8);
+      assert.equal(manifest.source.targetPlanformSpan, 0.9);
+      assert.equal(manifest.source.heightScale, 0.5);
       assert.equal(manifest.source.matteRoughnessFloor, 0.82);
     }
   }

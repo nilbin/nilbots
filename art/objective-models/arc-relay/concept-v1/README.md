@@ -1,9 +1,10 @@
 # Arc Relay objective concepts v1
 
-Status: **owner-approved concepts with split provider outcomes** as of
-2026-08-13. The Team Reactor is an unpromoted normalized/optimized gameplay
-review candidate. The Core Well is rejected because both Meshy generations
-invented a fourth anchor; the existing renderer housing remains authoritative.
+Status: **superseded objective review** as of 2026-08-13. Gameplay review
+rejected the raised Team Reactor direction and exposed bot overlap on the Core
+Well. The replacement Reactor direction is under owner review in
+`../reactor-recess-v1/`. The Well provider geometry remains an unpromoted
+review asset with a deterministic flatter, narrower runtime derivative.
 
 ## Physical / renderer split
 
@@ -29,15 +30,20 @@ remain authoritative for all live objective information.
 - Both teams share one physical model, rotated toward the arena. Team identity
   is never baked into the GLB.
 
-The Reactor review artifact is `1,662,112` bytes and `79,432` triangles with
+The rejected Reactor review artifact is `1,662,112` bytes and `79,432` triangles with
 four embedded `512 px` WebP PBR textures. Its real-renderer review preserves
 the live ownership ring, team crest, three charge fills, and three integrity
-fills for both team orientations. Corrective task:
+fills for both team orientations, but its raised mass did not read as a team
+objective in gameplay. It remains quarantined review evidence. Corrective task:
 `019ffbd5-9d7f-72d9-a6d0-6d79c058801c` (30 credits, no rigging).
 
 The Well corrective task `019ffbd2-0fcf-7716-bba6-8f920b78fcc9` also consumed
-30 credits but failed the strict top gate: it is fourfold, not threefold. It is
-quarantined as provider evidence and must not be promoted.
+30 credits and is fourfold rather than the requested threefold silhouette. The
+owner accepted its overall physical direction, then requested a flatter form
+after gameplay overlap review. The review derivative is normalized to a
+`0.90`-tile planform, vertically scaled by `0.50` to about `0.107` tile high,
+and recessed `0.045` tile by the renderer. It remains unpromoted pending the
+focused bot-overlap replay review.
 
 The final panel of each sheet is an integration mockup. Its pale-lilac Core,
 progress/ownership ring, glyph, crest, and pip lights are demonstrations of the

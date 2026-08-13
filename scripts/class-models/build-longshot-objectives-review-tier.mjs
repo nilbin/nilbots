@@ -128,8 +128,8 @@ const candidates = [
     taskId: '019ffbd2-0fcf-7716-bba6-8f920b78fcc9',
     sourceFacing: '+z',
     yawDegrees: 90,
-    targetPlanformSpan: 1,
-    heightScale: 0.8,
+    targetPlanformSpan: 0.9,
+    heightScale: 0.5,
     expectedTextures: 4,
     source: portableSource(sources.well),
   }),
@@ -156,7 +156,7 @@ const audit = {
     matteFinish:
       'Metallic-roughness green channel is deterministically floored at 0.72 for bot/reactor assets and 0.82 for the Core Well environment housing, without changing base color, metallic, or normal maps.',
     wellProfile:
-      'Owner-directed deterministic 0.80 vertical scale preserves the one-tile planform and floor while reducing the Well housing from about 0.237 to 0.190 tile high.',
+      'Owner-directed deterministic 0.90-tile planform and 0.50 vertical scale reduce the Well housing from about 0.237 to 0.107 tile high; the renderer then recesses it 0.045 tile below the arena surface so overlapping bots remain unobscured.',
     stateOwnership:
       'Survey radius/timing, Well spawn/rearm/source/Core indications, and Reactor ownership/charge/integrity remain renderer-owned overlays.',
   },
@@ -171,7 +171,7 @@ const audit = {
       id: 'core-well',
       taskId: '019ffbd2-0fcf-7716-bba6-8f920b78fcc9',
       ownerDecision:
-        'Four-anchor silhouette accepted as overall fine on 2026-08-13; owner requested a flatter, less shiny local derivative before gameplay review.',
+        'Four-anchor silhouette accepted as overall fine on 2026-08-13; after gameplay exposed bot overlap, owner requested a still flatter recessed local derivative.',
       evidence:
         'art/reviews/arc-relay-longshot-objectives-meshy7-v1/corrective-provider-review/core-well-six-view.png',
       providerRetryUsed: false,
@@ -230,7 +230,7 @@ function build() {
     const wellNormalized = path.join(temporary, 'well-normalized.glb');
     const wellFacing = path.join(temporary, 'well-facing.glb');
     const wellMatte = path.join(temporary, 'well-matte.glb');
-    normalize(sources.well.absolute, wellNormalized, 1, 0.8);
+    normalize(sources.well.absolute, wellNormalized, 0.9, 0.5);
     correctFacing(wellNormalized, wellFacing, 90);
     enforceMatte(wellFacing, wellMatte, profiles['core-well'].matteRoughnessFloor);
     optimize(wellMatte, outputs['core-well'], profiles['core-well']);
