@@ -2972,7 +2972,15 @@ function buildArcRelayStory(
         0.4,
         transition.position.y + 0.5,
       );
-      if (beforeCore && transition.kind === 'pickup') {
+      // A loose Core may have drifted since the event position was authored, so its
+      // visible pre-pickup tile is the honest launch point. An in-flight Core is
+      // different: Arc Toss deliberately keeps its launch tile in the public snapshot
+      // until the landing fact. Reusing that stale position here made the landed sphere
+      // fly the whole route a second time before reaching its ally.
+      if (
+        beforeCore?.disposition === 'loose' &&
+        transition.kind === 'pickup'
+      ) {
         ground.set(
           beforeCore.position.x + 0.5,
           0.4,

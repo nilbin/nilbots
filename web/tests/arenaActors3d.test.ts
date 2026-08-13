@@ -485,6 +485,7 @@ test('Arc veterancy chevrons stack above health instead of spreading beside it',
     visible[0]!.position.y - 0.025 > 0.06 + 0.1,
     `first chevron clears health (${visible[0]!.position.y})`,
   );
+  assert.equal(visible[0]!.position.y, 0.29);
   assert.ok(visible[1]!.position.y > visible[0]!.position.y);
   const engaged = statusCueOf(actors.group, actor.unitKey, 'engaged-mark');
   assert.ok(

@@ -741,7 +741,7 @@ test('Sentinel Seed transforms upward from its floor seed', () => {
   }
 });
 
-test('mine and sentry health use the bot status-bib geometry and fixed offset', () => {
+test('mine and sentry health use bot bib geometry at a construct-height offset', () => {
   const replay = loadReplayJson(
     gunzipSync(readFileSync(new URL(
       '../../art/reviews/arc-relay-presentation-batch-v1/runtime-proof/replays/remaining-roster.broadcast.json.gz',
@@ -765,13 +765,13 @@ test('mine and sentry health use the bot status-bib geometry and fixed offset', 
   try {
     effects.update(14);
     const mine = healthBib('trip-node');
-    assert.equal(mine.position.y, 0.72);
+    assert.equal(mine.position.y, 0.64);
     assert.deepEqual(mine.scale.toArray(), [1, 1, 1]);
     assert.equal(mine.children.length, 1);
 
     effects.update(15);
     const sentry = healthBib('sentinel-seed');
-    assert.equal(sentry.position.y, 0.72);
+    assert.equal(sentry.position.y, 0.64);
     assert.deepEqual(sentry.scale.toArray(), [1, 1, 1]);
     assert.equal(sentry.children.length, 2);
     for (const pip of sentry.children) {

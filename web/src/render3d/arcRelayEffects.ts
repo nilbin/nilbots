@@ -29,6 +29,7 @@ import type {
 import { phaseProgress as signaturePhaseProgress } from './signatures/primitives';
 import {
   centreStatusPips,
+  CONSTRUCT_STATUS_BIB_HEIGHT,
   createStatusPipGeometry,
   createStatusPipMaterial,
   faceStatusElement,
@@ -797,7 +798,12 @@ export function buildArcRelayEffects(
         );
         slot.pipGroup.visible = true;
         slot.pipGroup.userData.forSignatureOperationId = signature.operationId;
-        placeStatusBib(slot.pipGroup, points[0].x, points[0].z);
+        placeStatusBib(
+          slot.pipGroup,
+          points[0].x,
+          points[0].z,
+          CONSTRUCT_STATUS_BIB_HEIGHT,
+        );
         slot.pipGroup.scale.setScalar(1);
         const pipOwner = replay.units.find(
           (unit) => unit.teamId === signature.ownerTeamId,
