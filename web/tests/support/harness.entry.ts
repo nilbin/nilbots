@@ -113,9 +113,12 @@ export {
 export {
   ARC_SIGNATURE_WEBGL_PAINTERS,
   ARC_SIGNATURE_PROP_SCALE,
+  CONSTRUCT_STATUS_BIB_FALLBACK_HEIGHT,
+  CONSTRUCT_STATUS_BIB_GAP,
   SENTINEL_YAW_SETTLE_TICKS,
   arcSignatureVisualPhase,
   buildArcRelayEffects,
+  constructStatusBibHeight,
   latestObservedSignatureYaw,
   sentinelYawTarget,
 } from '../../src/render3d/arcRelayEffects';

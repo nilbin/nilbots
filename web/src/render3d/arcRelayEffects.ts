@@ -29,7 +29,6 @@ import type {
 import { phaseProgress as signaturePhaseProgress } from './signatures/primitives';
 import {
   centreStatusPips,
-  CONSTRUCT_STATUS_BIB_HEIGHT,
   createStatusPipGeometry,
   createStatusPipMaterial,
   faceStatusElement,
@@ -123,6 +122,22 @@ export const ARC_SIGNATURE_PROP_SCALE = {
   'trip-node': 0.94,
   'sentinel-seed': 0.72,
 } as const;
+/** Stable air between a construct's scaled mesh and its independently bill-boarded bib. */
+export const CONSTRUCT_STATUS_BIB_GAP = 0.11;
+export const CONSTRUCT_STATUS_BIB_FALLBACK_HEIGHT = 0.38;
+
+/** Derive status placement from the actual loaded model, including its live deploy scale. */
+export function constructStatusBibHeight(
+  propGroup: THREE.Object3D,
+  model: THREE.Object3D | null,
+): number {
+  if (!model) return CONSTRUCT_STATUS_BIB_FALLBACK_HEIGHT;
+  propGroup.updateMatrixWorld(true);
+  const bounds = new THREE.Box3().setFromObject(model);
+  return Number.isFinite(bounds.max.y)
+    ? bounds.max.y + CONSTRUCT_STATUS_BIB_GAP
+    : CONSTRUCT_STATUS_BIB_FALLBACK_HEIGHT;
+}
 
 /** Construct hull is rules-owned; unknown future props conservatively retain one pip. */
 function signatureConstructHullById(replay: ReplayModel): Map<string, number> {
@@ -802,7 +817,7 @@ export function buildArcRelayEffects(
           slot.pipGroup,
           points[0].x,
           points[0].z,
-          CONSTRUCT_STATUS_BIB_HEIGHT,
+          constructStatusBibHeight(slot.group, slot.model),
         );
         slot.pipGroup.scale.setScalar(1);
         const pipOwner = replay.units.find(

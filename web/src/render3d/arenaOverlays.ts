@@ -2605,6 +2605,16 @@ function buildArcRelayStory(
     return t < 0.5 ? 4 * t ** 3 : 1 - (-2 * t + 2) ** 3 / 2;
   };
 
+  /** Small deterministic phase for Core idle motion, independent of pooled draw order. */
+  const coreMotionPhase = (key: string): number => {
+    let hash = 0;
+    for (const character of key) hash = (hash * 31 + character.charCodeAt(0)) >>> 0;
+    return (hash % 6283) / 1000;
+  };
+
+  const carriedCoreHeight = (key: string, time: number): number =>
+    1.18 + Math.sin(time * 2.4 + coreMotionPhase(key)) * 0.035;
+
   const paintCoreInMotion = (
     rig: CoreRig,
     sourceWellId: string,
@@ -2837,7 +2847,7 @@ function buildArcRelayStory(
       rig.gem.position.set(
         0,
         carried
-          ? 1.18 + Math.sin(time * 2.4 + usedCoreRigs) * 0.035
+          ? carriedCoreHeight(state.key, time)
           : inFlight
             ? 0.4 + flightArc * 1.12
           : 0.4 + Math.sin(time * 2 + usedCoreRigs) * 0.025,
@@ -3004,6 +3014,14 @@ function buildArcRelayStory(
           : ground;
       const target = transition.kind === 'bank'
         ? new THREE.Vector3(ground.x, 0.23, ground.z)
+        : transition.kind === 'pickup' && transition.targetActor
+          // The bot renderer deliberately glides across occupancy boundaries instead of
+          // snapping to the tick's `after` tile. Pickup has to meet that same rendered
+          // body, otherwise the Core finishes above the authoritative tile and jumps up
+          // to half a tile when custody becomes the ordinary carried state.
+          ? posePoint(transition.targetActor, actorPoses) ??
+            snapshotActorPoint(transition.targetActor, tickIndex, 'after') ??
+            eventActorPosition
         : transition.targetActor
           ? snapshotActorPoint(transition.targetActor, tickIndex, 'after') ??
             posePoint(transition.targetActor, actorPoses) ?? eventActorPosition
@@ -3013,6 +3031,13 @@ function buildArcRelayStory(
         ? Math.sin(settledProgress * Math.PI) * 0.42
         : Math.sin(settledProgress * Math.PI) * 0.28;
       position.y += levitation;
+      if (transition.kind === 'pickup') {
+        // Join the exact stable carried hover at the boundary. Applying the bob across
+        // the whole ascent would move the floor contact; weighting it by pickup progress
+        // keeps the start planted while making the final frame continuous.
+        position.y +=
+          (carriedCoreHeight(transition.coreKey, time) - 1.18) * settledProgress;
+      }
       const scale = transition.kind === 'bank'
         ? Math.max(0.08, 1 - settledProgress ** 2 * 0.92)
         : 1 + Math.sin(settledProgress * Math.PI) * 0.12;

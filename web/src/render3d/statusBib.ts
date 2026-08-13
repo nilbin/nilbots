@@ -10,8 +10,6 @@ import { CAMERA_PITCH } from './arenaScene';
  * matter whether the thing with health is a bot, a Trip Node, or a Sentinel.
  */
 export const STATUS_BIB_HEIGHT = 0.72;
-/** Low-profile constructs sit closer to the floor, so their bib follows them down. */
-export const CONSTRUCT_STATUS_BIB_HEIGHT = 0.64;
 export const STATUS_BIB_SETBACK = 0.55;
 export const STATUS_PIP_RADIUS = 0.06;
 export const STATUS_PIP_SPACING = 0.17;

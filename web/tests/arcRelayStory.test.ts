@@ -708,6 +708,63 @@ test('an Arc Toss landing with an immediate pickup levitates once from the landi
   }
 });
 
+test('pickup joins a moving carrier continuously at the custody boundary', () => {
+  const replay = loadReplayJson(
+    gunzipSync(readFileSync(new URL(
+      '../../art/reviews/arc-relay-presentation-batch-v1/runtime-proof/replays/core-roster.broadcast.json.gz',
+      import.meta.url,
+    ))).toString('utf8'),
+  ).replay;
+  const pickupTick = replay.ticks.findIndex((tick) => {
+    const pickup = [...tick.lifecycleEvents, ...tick.events]
+      .map((event) => event.arcRelayFact)
+      .find((fact) => fact?.kind === 'core-picked-up');
+    if (!pickup || pickup.kind !== 'core-picked-up') return false;
+    const before = tick.before.actors.find(
+      (actor) => actor.actorKey === pickup.carrierActor.actorKey,
+    );
+    const after = tick.after.actors.find(
+      (actor) => actor.actorKey === pickup.carrierActor.actorKey,
+    );
+    return before !== undefined && after !== undefined &&
+      (before.position.x !== after.position.x || before.position.y !== after.position.y);
+  });
+  assert.ok(pickupTick >= 0, 'the review replay contains a moving pickup carrier');
+  const pickup = [
+    ...replay.ticks[pickupTick]!.lifecycleEvents,
+    ...replay.ticks[pickupTick]!.events,
+  ].map((event) => event.arcRelayFact)
+    .find((fact) => fact?.kind === 'core-picked-up');
+  assert.ok(pickup && pickup.kind === 'core-picked-up');
+  const key = `${pickup.coreId.sourceWellId}:${pickup.coreId.sourceOrdinal}`;
+
+  const overlays = buildOverlays(replay);
+  const corePointAt = (time: number) => {
+    overlays.update(time, null, false);
+    let rig: THREE.Object3D | null = null;
+    overlays.group.traverse((node) => {
+      if (node.visible && node.userData.coreKey === key) rig = node;
+    });
+    assert.ok(rig, `Core ${key} is visible at ${time}`);
+    const sphere = rig.children.find(
+      (node) => node.userData.kind === 'arc-relay-core-sphere',
+    );
+    assert.ok(sphere);
+    overlays.group.updateMatrixWorld(true);
+    return new THREE.Vector3().setFromMatrixPosition(sphere.matrixWorld);
+  };
+  try {
+    const lastPickup = corePointAt(pickupTick + 0.999);
+    const firstCarried = corePointAt(pickupTick + 1);
+    assert.ok(
+      lastPickup.distanceTo(firstCarried) < 0.02,
+      `pickup meets the carried pose without an end snap (${lastPickup.distanceTo(firstCarried)})`,
+    );
+  } finally {
+    overlays.dispose();
+  }
+});
+
 test('Core pickup, drop, handoff, and bank move the authoritative sphere', () => {
   const replay = arcRelayReplay();
   const actors = replay.ticks[0]!.after.actors.map((actor) => actor.identity);

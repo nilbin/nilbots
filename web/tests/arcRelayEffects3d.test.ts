@@ -5,10 +5,13 @@ import {
   SENTINEL_YAW_SETTLE_TICKS,
   ARC_SIGNATURE_PRESENTATION_ID,
   ARC_SIGNATURE_WEBGL_PAINTERS,
+  CONSTRUCT_STATUS_BIB_FALLBACK_HEIGHT,
+  CONSTRUCT_STATUS_BIB_GAP,
   arcSignatureAudioDefinitionIds,
   arcSignaturePresentationDefinitions,
   arcSignatureVisualPhase,
   buildArcRelayEffects,
+  constructStatusBibHeight,
   latestObservedSignatureYaw,
   resolveArcSignaturePresentation,
   sentinelYawTarget,
@@ -741,7 +744,38 @@ test('Sentinel Seed transforms upward from its floor seed', () => {
   }
 });
 
-test('mine and sentry health use bot bib geometry at a construct-height offset', () => {
+test('construct bib height follows the live scaled mesh bounds', () => {
+  const prop = new THREE.Group();
+  const model = new THREE.Group();
+  const geometry = new THREE.BoxGeometry(0.8, 0.24, 0.8);
+  const material = new THREE.MeshBasicMaterial();
+  const body = new THREE.Mesh(geometry, material);
+  body.position.y = 0.12;
+  model.add(body);
+  prop.add(model);
+  try {
+    prop.scale.setScalar(0.94);
+    const fullHeight = constructStatusBibHeight(prop, model);
+    const fullTop = new THREE.Box3().setFromObject(model).max.y;
+    assert.ok(Math.abs(fullHeight - fullTop - CONSTRUCT_STATUS_BIB_GAP) < 1e-6);
+
+    prop.scale.y *= 0.5;
+    const compressedHeight = constructStatusBibHeight(prop, model);
+    assert.ok(
+      compressedHeight < fullHeight,
+      'the bib follows a shorter deployment/model instead of retaining a fixed height',
+    );
+    const compressedTop = new THREE.Box3().setFromObject(model).max.y;
+    assert.ok(
+      Math.abs(compressedHeight - compressedTop - CONSTRUCT_STATUS_BIB_GAP) < 1e-6,
+    );
+  } finally {
+    geometry.dispose();
+    material.dispose();
+  }
+});
+
+test('mine and sentry bibs use the derived low construct placement', () => {
   const replay = loadReplayJson(
     gunzipSync(readFileSync(new URL(
       '../../art/reviews/arc-relay-presentation-batch-v1/runtime-proof/replays/remaining-roster.broadcast.json.gz',
@@ -762,16 +796,46 @@ test('mine and sentry health use bot bib geometry at a construct-height offset',
     assert.ok(found, `no ${signatureId} health bib`);
     return found;
   };
+  const propModel = (signatureId: 'trip-node' | 'sentinel-seed') => {
+    let prop: THREE.Object3D | null = null;
+    effects.group.traverse((node) => {
+      if (
+        node.visible &&
+        node.userData.kind === 'arc-relay-signature-prop' &&
+        node.userData.signatureId === signatureId
+      ) prop = node;
+    });
+    assert.ok(prop, `no ${signatureId} model`);
+    return { prop, model: prop.children[0] ?? null };
+  };
   try {
     effects.update(14);
     const mine = healthBib('trip-node');
-    assert.equal(mine.position.y, 0.64);
+    const mineModel = propModel('trip-node');
+    assert.ok(mine.position.y < 0.5, 'the low mine bib is substantially below bot health');
+    assert.ok(
+      Math.abs(
+        mine.position.y -
+          constructStatusBibHeight(mineModel.prop, mineModel.model),
+      ) < 1e-6,
+    );
+    if (!mineModel.model)
+      assert.equal(mine.position.y, CONSTRUCT_STATUS_BIB_FALLBACK_HEIGHT);
     assert.deepEqual(mine.scale.toArray(), [1, 1, 1]);
     assert.equal(mine.children.length, 1);
 
     effects.update(15);
     const sentry = healthBib('sentinel-seed');
-    assert.equal(sentry.position.y, 0.64);
+    const sentryModel = propModel('sentinel-seed');
+    assert.ok(sentry.position.y < 0.5, 'the compact sentry bib is below bot health');
+    assert.ok(
+      Math.abs(
+        sentry.position.y -
+          constructStatusBibHeight(sentryModel.prop, sentryModel.model),
+      ) < 1e-6,
+    );
+    if (!sentryModel.model)
+      assert.equal(sentry.position.y, CONSTRUCT_STATUS_BIB_FALLBACK_HEIGHT);
     assert.deepEqual(sentry.scale.toArray(), [1, 1, 1]);
     assert.equal(sentry.children.length, 2);
     for (const pip of sentry.children) {
