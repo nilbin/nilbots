@@ -180,15 +180,31 @@ export function actionOf(order: OrderNode): OrderAction | null {
   return ACTIONS.find((action) => order[action] !== undefined) ?? null;
 }
 
-export function freshOrder(action: Exclude<OrderAction, 'branch' | 'shared'>, id = 'new-order'): OrderNode {
+export function freshOrder(
+  action: Exclude<OrderAction, 'branch' | 'shared'>,
+  id = 'new-order',
+  signatureSkill = 'vector-dash',
+): OrderNode {
   if (action === 'move') return { id, move: { to: { well: 'centre' }, posture: 'line' } };
   if (action === 'fight') return {
     id,
     fight: { targets: ['carrier', 'weakest', 'nearest'], style: 'advance', chaseLimit: 3 },
   };
-  if (action === 'use') return { id, use: { skill: 'vector-dash', target: 'self' } };
+  if (action === 'use') return {
+    id,
+    use: { skill: signatureSkill, target: signatureTargets(signatureSkill)[0] ?? 'self' },
+  };
   if (action === 'handoff') return { id, handoff: { target: 'nearest-ally-toward-own-reactor' } };
   return { id, drop: true };
+}
+
+export function signatureTargets(skill: string): string[] {
+  if (skill === 'null-field' || skill === 'kinetic-burst') return ['self'];
+  if (skill === 'repair-beam') return ['weakest-ally', 'nearest-ally'];
+  if (skill === 'exchange') return ['healthiest-ally', 'nearest-ally', 'weakest-ally'];
+  if (skill === 'arc-toss') return ['nearest-ally-toward-own-reactor', 'nearest-ally', 'own-reactor'];
+  if (skill === 'target-paint') return ['enemy-carrier', 'weakest-enemy', 'nearest-enemy'];
+  return ['nearest-enemy', 'weakest-enemy', 'enemy-carrier', 'nearest-ally', 'weakest-ally', 'self', 'own-reactor'];
 }
 
 export function identifierFromName(value: string, fallback = 'untitled-sheet'): string {

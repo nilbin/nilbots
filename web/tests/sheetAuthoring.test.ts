@@ -7,6 +7,7 @@ import type { TacticalSheetCatalog } from '../src/site/api';
 import {
   actionOf,
   compositionOf,
+  freshOrder,
   parseDraft,
   pinDraft,
   renameCondition,
@@ -135,6 +136,17 @@ test('condition renames preserve bare shared references while rewriting definiti
 test('signature ownership comes from the catalog contract', () => {
   assert.equal(skillForClass(catalog, 'kestrel'), 'vector-dash');
   assert.equal(skillForClass(catalog, 'unknown'), undefined);
+});
+
+test('new signature orders persist the selected role skill and its legal default target', () => {
+  assert.deepEqual(freshOrder('use', 'pass-core', 'arc-toss'), {
+    id: 'pass-core',
+    use: { skill: 'arc-toss', target: 'nearest-ally-toward-own-reactor' },
+  });
+  assert.deepEqual(freshOrder('use', 'repair', 'repair-beam'), {
+    id: 'repair',
+    use: { skill: 'repair-beam', target: 'weakest-ally' },
+  });
 });
 
 test('order action detection has only the five physical verbs plus branch and exact sharing', () => {

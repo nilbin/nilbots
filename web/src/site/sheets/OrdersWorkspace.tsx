@@ -14,6 +14,7 @@ import {
   moveRole,
   renameCondition,
   renameRole,
+  signatureTargets,
   skillForClass,
   uniqueId,
   type ConditionDefinition,
@@ -295,7 +296,7 @@ function OrderList({ orders: list, path, role, allOrders, mapPlan, catalog, issu
         onDelete={() => mutate((next) => next.splice(index, 1))}
         first={index === 0} last={index === list.length - 1} />;
     })}
-    <AddOrder depth={depth} allOrders={allOrders} onAdd={(node) => {
+    <AddOrder depth={depth} allOrders={allOrders} role={role} catalog={catalog} onAdd={(node) => {
       mutate((next) => next.push(node));
       window.setTimeout(() => setOpenPath(`${path}.${list.length}`), 0);
     }} />
@@ -397,16 +398,23 @@ function OrderCard({ node, path, role, allOrders, mapPlan, catalog, issues, dept
   </article>;
 }
 
-function AddOrder({ depth, allOrders, onAdd }: { depth: number; allOrders: OrdersDocument; onAdd: (node: OrderNode) => void }) {
+function AddOrder({ depth, allOrders, role, catalog, onAdd }: {
+  depth: number;
+  allOrders: OrdersDocument;
+  role: RoleDefinition;
+  catalog: TacticalSheetCatalog;
+  onAdd: (node: OrderNode) => void;
+}) {
   const [open, setOpen] = useState(false);
   const ids = allOrderIds(allOrders);
+  const signatureSkill = skillForClass(catalog, role.classes[0] ?? '') ?? 'vector-dash';
   return <div>
     <button type="button" className="btn btn-secondary min-h-11 w-full" onClick={() => setOpen((value) => !value)}>
       ＋ Add {depth === 0 ? 'priority order' : 'nested order'}
     </button>
     {open && <div className="mt-2 grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
       {ACTIONS.map((action) => <button key={action} type="button" className="choice-card min-h-[76px]"
-        onClick={() => { onAdd(freshOrder(action, uniqueId(action, ids))); setOpen(false); }}>
+        onClick={() => { onAdd(freshOrder(action, uniqueId(action, ids), signatureSkill)); setOpen(false); }}>
         <span className="flex items-center gap-2"><span className="font-mono text-[19px] text-arena-material">{ACTION_COPY[action].glyph}</span><b className="type-display text-[15px]">{ACTION_COPY[action].label}</b></span>
         <span className="t-micro mt-1 block">{ACTION_COPY[action].description}</span>
       </button>)}
@@ -583,14 +591,14 @@ function UseEditor({ node, role, catalog, mapPlan, onOpenMap, onChange }: {
     ? authoredSkill
     : skills[0] ?? '';
   const classInfo = catalog.classes.find((entry) => entry.signatureId === skill);
-  const targets = useTargets(skill);
+  const targets = signatureTargets(skill);
   return <div className="mt-4 rounded-sm border border-arena-material/30 bg-arena-material/5 p-3">
     <div className="flex items-center gap-3"><ClassIcon classId={classInfo?.id ?? role.classes[0]} size={46} /><div><p className="lab text-arena-material">{classInfo?.signatureName ?? humanize(skill)}</p><p className="t-meta mt-1">{classInfo?.fantasy}</p></div></div>
     {skills.length > 1 && <CardPicker label="Which class acts?" value={skill} values={skills}
       labeler={(entry) => catalog.classes.find((candidate) => candidate.signatureId === entry)?.name ?? humanize(entry)}
       descriptions={Object.fromEntries(skills.map((entry) => [entry,
         catalog.classes.find((candidate) => candidate.signatureId === entry)?.signatureName ?? humanize(entry)]))}
-      onChange={(nextSkill) => onChange({ skill: nextSkill, target: useTargets(nextSkill)[0] ?? 'self' })} />}
+      onChange={(nextSkill) => onChange({ skill: nextSkill, target: signatureTargets(nextSkill)[0] ?? 'self' })} />}
     <CardPicker label="Skill target" value={node.use?.target ?? targets[0]} values={targets}
       onChange={(target) => onChange({ ...node.use, skill, target })} />
     {['hardlight-block', 'trip-node', 'sentinel-seed'].includes(skill) && <div className="mt-3">
@@ -724,7 +732,12 @@ function SharedOrdersEditor({ catalog, orders, mapPlan, issues, onChange, onOpen
         onClick={() => setAdding((value) => !value)}>＋ New shared order</button>
       {adding && <div className="mt-2 grid gap-1.5">
         {ACTIONS.map((action) => <button key={action} type="button" className="choice-card min-h-[68px] text-left"
-          onClick={() => { const definition = freshOrder(action); delete definition.id; add(definition); }}>
+          onClick={() => {
+            const signatureSkill = skillForClass(catalog, exampleRole?.classes[0] ?? '') ?? 'vector-dash';
+            const definition = freshOrder(action, 'new-order', signatureSkill);
+            delete definition.id;
+            add(definition);
+          }}>
           <span className="flex items-center gap-2"><span className="font-mono text-[18px] text-arena-material">{ACTION_COPY[action].glyph}</span><b className="type-display text-[14px]">{ACTION_COPY[action].label}</b></span>
           <span className="t-micro mt-1 block">{ACTION_COPY[action].description}</span>
         </button>)}
@@ -872,15 +885,6 @@ function walk(orders: OrdersDocument, visit: (node: OrderNode) => void, includeS
   const descend = (node: OrderNode) => { visit(node); node.orders?.forEach(descend); };
   orders.roles.forEach((role) => role.orders.forEach(descend));
   if (includeShared) Object.values(orders.sharedOrders).forEach(descend);
-}
-
-function useTargets(skill: string): string[] {
-  if (skill === 'null-field' || skill === 'kinetic-burst') return ['self'];
-  if (skill === 'repair-beam') return ['weakest-ally', 'nearest-ally'];
-  if (skill === 'exchange') return ['healthiest-ally', 'nearest-ally', 'weakest-ally'];
-  if (skill === 'arc-toss') return ['nearest-ally-toward-own-reactor', 'nearest-ally', 'own-reactor'];
-  if (skill === 'target-paint') return ['enemy-carrier', 'weakest-enemy', 'nearest-enemy'];
-  return ['nearest-enemy', 'weakest-enemy', 'enemy-carrier', 'nearest-ally', 'weakest-ally', 'self', 'own-reactor'];
 }
 
 function factScope(fact: string) {
