@@ -33,7 +33,8 @@ const backup = mkdtempSync(path.join(tmpdir(), 'nilbots-longshot-objectives-revi
 const longshot = tier.candidates.find((entry) => entry.id === 'longshot');
 const surveyFlare = tier.candidates.find((entry) => entry.id === 'survey-flare');
 const teamReactor = tier.candidates.find((entry) => entry.id === 'team-reactor');
-if (!longshot || !surveyFlare || !teamReactor || tier.status !== 'owner-review')
+const coreWell = tier.candidates.find((entry) => entry.id === 'core-well');
+if (!longshot || !surveyFlare || !teamReactor || !coreWell || tier.status !== 'owner-review')
   throw new Error('Expected the pinned Longshot/objectives owner-review tier.');
 
 const runtimeLongshot = path.join(
@@ -66,6 +67,16 @@ const stagedDirectories = [
       repository,
       'art/class-models/runtime-tiers/arc-relay/longshot-objectives-review-v1/' +
         'arc-team-reactor.model3d.json',
+    ),
+  },
+  {
+    id: 'core-well',
+    directory: path.join(repository, 'web/src/assets/objective-models/arc-core-well'),
+    model: path.join(repository, coreWell.artifact.file),
+    manifest: path.join(
+      repository,
+      'art/class-models/runtime-tiers/arc-relay/longshot-objectives-review-v1/' +
+        'arc-core-well.model3d.json',
     ),
   },
 ];
@@ -146,8 +157,9 @@ if (expected.some((entry) => !entry.emitted))
   );
 
 const buildRecord = {
-    schemaVersion: 1,
-    purpose: 'Reversible real-renderer review of Longshot, Survey Flare, and Team Reactor',
+  schemaVersion: 1,
+  purpose:
+    'Reversible real-renderer review of Longshot, Survey Flare, Team Reactor, and Core Well',
     runtimeAssetsPromoted: false,
     tierAudit: path.relative(repository, tierAuditPath),
     output: path.relative(repository, interactive),

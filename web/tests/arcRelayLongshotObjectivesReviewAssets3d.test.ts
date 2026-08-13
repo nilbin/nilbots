@@ -19,10 +19,10 @@ test('Longshot and objective review tier preserves its promotion gate', () => {
   assert.equal(audit.status, 'owner-review');
   assert.deepEqual(
     audit.candidates.map((candidate: { id: string }) => candidate.id),
-    ['longshot', 'survey-flare', 'team-reactor'],
+    ['longshot', 'survey-flare', 'team-reactor', 'core-well'],
   );
   assert.deepEqual(
-    audit.rejected.map((candidate: { id: string }) => candidate.id),
+    audit.acceptedDeviations.map((candidate: { id: string }) => candidate.id),
     ['core-well'],
   );
   assert.equal(audit.providerSpend.correctiveBatchCredits, 80);
@@ -56,10 +56,11 @@ test('Longshot and objective review tier preserves its promotion gate', () => {
   );
 });
 
-test('review-only Survey Flare and Team Reactor staging manifests match the audited tier', () => {
+test('review-only signature and objective staging manifests match the audited tier', () => {
   for (const [candidateId, runtimeId, expectedKind, manifestFile] of [
     ['survey-flare', 'arc-survey-flare', 'signature', 'arc-survey-flare.model3d.json'],
     ['team-reactor', 'arc-team-reactor', 'objective', 'arc-team-reactor.model3d.json'],
+    ['core-well', 'arc-core-well', 'objective', 'arc-core-well.model3d.json'],
   ] as const) {
     const candidate = audit.candidates.find(
       (entry: { id: string }) => entry.id === candidateId,
@@ -86,6 +87,12 @@ test('review-only Survey Flare and Team Reactor staging manifests match the audi
     assert.equal(manifest.source.sourceSha256, candidate.artifact.sha256, candidateId);
     assert.equal(manifest.source.taskId, candidate.taskId, candidateId);
     assert.equal(manifest.ledger.sha256, candidate.artifact.sha256, candidateId);
+    if (candidateId === 'core-well') {
+      assert.equal(candidate.normalization.heightScale, 0.8);
+      assert.equal(candidate.matteRoughness.floor, 0.82);
+      assert.equal(manifest.source.heightScale, 0.8);
+      assert.equal(manifest.source.matteRoughnessFloor, 0.82);
+    }
   }
 });
 

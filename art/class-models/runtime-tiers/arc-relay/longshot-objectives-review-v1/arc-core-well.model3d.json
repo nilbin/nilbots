@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "id": "arc-core-well",
+  "file": "model.glb",
+  "kind": "objective",
+  "part": "whole",
+  "facing": "+x",
+  "up": "+y",
+  "source": {
+    "generator": "scripts/class-models/build-longshot-objectives-review-tier.mjs",
+    "recipe": "art/class-models/runtime-tiers/arc-relay/longshot-objectives-review-v1/audit.json",
+    "artifact": "art/class-models/runtime-tiers/arc-relay/longshot-objectives-review-v1/arc-core-well-lean.glb",
+    "sourceSha256": "8185fd25556634b3f5ca1f0cb775ffbc3681e5a439e8f911aa7adff6643c524f",
+    "provider": "Meshy",
+    "model": "meshy-7",
+    "endpoint": "multi-image-to-3d",
+    "modelType": "neutral-objective-housing-owner-approved-four-anchor",
+    "taskId": "019ffbd2-0fcf-7716-bba6-8f920b78fcc9",
+    "orientation": "identity",
+    "facingYawDegrees": 90,
+    "heightScale": 0.8,
+    "matteRoughnessFloor": 0.82
+  },
+  "ledger": {
+    "bytes": 1619280,
+    "sha256": "8185fd25556634b3f5ca1f0cb775ffbc3681e5a439e8f911aa7adff6643c524f",
+    "triangles": 78572,
+    "materials": 1,
+    "textureCount": 4,
+    "geometrySha256": "ea7149b5c8b16dd23743a997ce0457404d18d918f0744040b7ca42ee4044b3a8",
+    "geometryGpuBytes": 1567812,
+    "textureGpuBytesCompressedTarget": 5592400,
+    "textureGpuBytesRgba8Fallback": 5592400,
+    "modelGpuBytesCompressedTarget": 7160212,
+    "modelGpuBytesRgba8Fallback": 7160212,
+    "textureTier": "longshot-objectives-review-v1-webp"
+  }
+}

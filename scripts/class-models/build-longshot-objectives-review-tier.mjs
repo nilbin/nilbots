@@ -60,17 +60,25 @@ const sources = {
     64_400_716,
     '06375e52e8756397582bbfd0979f3fa836d987b063fe32660ba767f577cbdb4b',
   ),
+  well: source(
+    'art/class-models/provider-runs/meshy/arc-relay-longshot-objectives-v1-corrective-geometry/' +
+      'core-well-v2/019ffbd2-0fcf-7716-bba6-8f920b78fcc9/raw-model.glb',
+    63_281_464,
+    '9b52811a5e55a79bd2790a565b40ea40e463f6dcb81b3ebbef532e5009696766',
+  ),
 };
 
 const profiles = {
-  longshot: profile(0.04, 0.0025, 512, 2_000_000, 100_000),
-  'survey-flare': profile(0.008, 0.004, 256, 500_000, 20_000),
-  'team-reactor': profile(0.04, 0.0025, 512, 2_000_000, 100_000),
+  longshot: profile(0.04, 0.0025, 512, 2_000_000, 100_000, 0.72),
+  'survey-flare': profile(0.008, 0.004, 256, 500_000, 20_000, 0.72),
+  'team-reactor': profile(0.04, 0.0025, 512, 2_000_000, 100_000, 0.72),
+  'core-well': profile(0.04, 0.0025, 512, 2_000_000, 100_000, 0.82),
 };
 const outputs = {
   longshot: path.join(outputDirectory, 'arc-longshot-lean.glb'),
   'survey-flare': path.join(outputDirectory, 'arc-survey-flare-lean.glb'),
   'team-reactor': path.join(outputDirectory, 'arc-team-reactor-lean.glb'),
+  'core-well': path.join(outputDirectory, 'arc-core-well-lean.glb'),
 };
 
 for (const entry of Object.values(sources)) verifySource(entry);
@@ -114,6 +122,17 @@ const candidates = [
     expectedTextures: 4,
     source: portableSource(sources.reactor),
   }),
+  inspectCandidate({
+    id: 'core-well',
+    kind: 'objective',
+    taskId: '019ffbd2-0fcf-7716-bba6-8f920b78fcc9',
+    sourceFacing: '+z',
+    yawDegrees: 90,
+    targetPlanformSpan: 1,
+    heightScale: 0.8,
+    expectedTextures: 4,
+    source: portableSource(sources.well),
+  }),
 ];
 
 const audit = {
@@ -135,9 +154,11 @@ const audit = {
     retexture:
       'Longshot and Survey Flare use their first-pass geometry with corrected Meshy original-UV PBR maps transplanted from the approved multiview retextures.',
     matteFinish:
-      'Metallic-roughness green channel is deterministically floored at 0.72 without changing base color, metallic, or normal maps.',
+      'Metallic-roughness green channel is deterministically floored at 0.72 for bot/reactor assets and 0.82 for the Core Well environment housing, without changing base color, metallic, or normal maps.',
+    wellProfile:
+      'Owner-directed deterministic 0.80 vertical scale preserves the one-tile planform and floor while reducing the Well housing from about 0.237 to 0.190 tile high.',
     stateOwnership:
-      'Survey radius/timing and Reactor ownership/charge/integrity remain renderer-owned overlays.',
+      'Survey radius/timing, Well spawn/rearm/source/Core indications, and Reactor ownership/charge/integrity remain renderer-owned overlays.',
   },
   providerSpend: {
     initialBatchCredits: 120,
@@ -145,15 +166,16 @@ const audit = {
     balanceAfter: 1100,
     autoRigging: false,
   },
-  rejected: [
+  acceptedDeviations: [
     {
       id: 'core-well',
       taskId: '019ffbd2-0fcf-7716-bba6-8f920b78fcc9',
-      reason:
-        'Strict top audit still shows four radial anchors; the contract requires exactly three. Existing renderer housing remains authoritative.',
+      ownerDecision:
+        'Four-anchor silhouette accepted as overall fine on 2026-08-13; owner requested a flatter, less shiny local derivative before gameplay review.',
       evidence:
         'art/reviews/arc-relay-longshot-objectives-meshy7-v1/corrective-provider-review/core-well-six-view.png',
-      furtherProviderSpendAuthorized: false,
+      providerRetryUsed: false,
+      additionalCredits: 0,
     },
   ],
   totals: {
@@ -171,10 +193,10 @@ if (check) {
   const recorded = JSON.parse(readFileSync(auditPath, 'utf8'));
   if (JSON.stringify(recorded, null, 2) !== JSON.stringify(audit, null, 2))
     throw new Error('Longshot/objectives review audit drifted from current artifacts.');
-  console.log('Verified Longshot, Survey Flare, and Team Reactor review artifacts.');
+  console.log('Verified Longshot, Survey Flare, Team Reactor, and Core Well review artifacts.');
 } else {
   writeFileSync(auditPath, `${JSON.stringify(audit, null, 2)}\n`);
-  console.log('Built Longshot, Survey Flare, and Team Reactor review artifacts.');
+  console.log('Built Longshot, Survey Flare, Team Reactor, and Core Well review artifacts.');
 }
 
 function build() {
@@ -205,6 +227,14 @@ function build() {
     enforceMatte(reactorFacing, reactorMatte);
     optimize(reactorMatte, outputs['team-reactor'], profiles['team-reactor']);
 
+    const wellNormalized = path.join(temporary, 'well-normalized.glb');
+    const wellFacing = path.join(temporary, 'well-facing.glb');
+    const wellMatte = path.join(temporary, 'well-matte.glb');
+    normalize(sources.well.absolute, wellNormalized, 1, 0.8);
+    correctFacing(wellNormalized, wellFacing, 90);
+    enforceMatte(wellFacing, wellMatte, profiles['core-well'].matteRoughnessFloor);
+    optimize(wellMatte, outputs['core-well'], profiles['core-well']);
+
     function buildRetextured(geometry, donor, output, span, yaw, selectedProfile) {
       const tag = path.basename(output, '.glb');
       const materialized = path.join(temporary, `${tag}-materialized.glb`);
@@ -214,7 +244,7 @@ function build() {
       run(process.execPath, [script('transplant-meshy-retexture.mjs'), geometry, donor, materialized]);
       normalize(materialized, normalized, span);
       correctFacing(normalized, facing, yaw);
-      enforceMatte(facing, matte);
+      enforceMatte(facing, matte, selectedProfile.matteRoughnessFloor);
       optimize(matte, output, selectedProfile);
     }
   } finally {
@@ -222,23 +252,25 @@ function build() {
   }
 }
 
-function normalize(input, output, span) {
-  run(process.execPath, [
+function normalize(input, output, span, heightScale = 1) {
+  const arguments_ = [
     script('normalize-provider-glb.mjs'),
     input,
     output,
     String(span),
     'identity',
     '--strip-authored-tangents',
-  ]);
+  ];
+  if (heightScale !== 1) arguments_.push('--height-scale', String(heightScale));
+  run(process.execPath, arguments_);
 }
 
 function correctFacing(input, output, yaw) {
   run(process.execPath, [script('correct-provider-facing.mjs'), input, output, String(yaw)]);
 }
 
-function enforceMatte(input, output) {
-  run(process.execPath, [script('enforce-matte-roughness.mjs'), input, output, '0.72']);
+function enforceMatte(input, output, floor = 0.72) {
+  run(process.execPath, [script('enforce-matte-roughness.mjs'), input, output, String(floor)]);
 }
 
 function optimize(input, output, selectedProfile) {
@@ -282,6 +314,7 @@ function inspectCandidate({
   sourceFacing,
   yawDegrees,
   targetPlanformSpan,
+  heightScale = 1,
   expectedTextures,
   source: providerSource,
 }) {
@@ -312,8 +345,9 @@ function inspectCandidate({
     normalization?.orientation !== 'identity' ||
     normalization?.targetPlanformSpan !== targetPlanformSpan ||
     normalization?.facingYawDegrees !== yawDegrees ||
-    matte?.floor !== 0.72 ||
-    matte?.minimumAfter < 0.72 ||
+    (normalization?.heightScale ?? 1) !== heightScale ||
+    matte?.floor !== selectedProfile.matteRoughnessFloor ||
+    matte?.minimumAfter < selectedProfile.matteRoughnessFloor ||
     matte?.baseColorChanged !== false ||
     matte?.metallicChanged !== false ||
     matte?.normalChanged !== false ||
@@ -333,14 +367,14 @@ function inspectCandidate({
     id,
     kind,
     taskId,
-    endpoint: id === 'team-reactor' ? 'multi-image-to-3d' : 'retexture',
+    endpoint: kind === 'objective' ? 'multi-image-to-3d' : 'retexture',
     source: providerSource,
     facing: {
       sourceFacing,
       targetFacing: '+x',
       yawDegrees,
     },
-    normalization: { targetPlanformSpan, up: '+y', floorY: 0 },
+    normalization: { targetPlanformSpan, heightScale, up: '+y', floorY: 0 },
     profile: selectedProfile,
     matteRoughness: matte,
     artifact: {
@@ -363,13 +397,21 @@ function inspectCandidate({
   };
 }
 
-function profile(simplifyRatio, simplifyError, textureSize, transferBytes, triangles) {
+function profile(
+  simplifyRatio,
+  simplifyError,
+  textureSize,
+  transferBytes,
+  triangles,
+  matteRoughnessFloor,
+) {
   return {
     simplifyRatio,
     simplifyError,
     textureSize,
     geometryCompression: 'quantize',
     textureEncoding: 'WebP',
+    matteRoughnessFloor,
     budgets: { transferBytes, triangles },
   };
 }

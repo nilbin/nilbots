@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "purpose": "Reversible real-renderer review of Longshot, Survey Flare, and Team Reactor",
+  "purpose": "Reversible real-renderer review of Longshot, Survey Flare, Team Reactor, and Core Well",
   "runtimeAssetsPromoted": false,
   "tierAudit": "art/class-models/runtime-tiers/arc-relay/longshot-objectives-review-v1/audit.json",
   "output": "sandbox/longshot-objectives-meshy7-v1/game-review/interactive",
@@ -35,6 +35,15 @@
         "file": "assets/model-2Rmp20hv.glb",
         "bytes": 1662112,
         "sha256": "35bb24fc57778091857767ffdb8f2c56559a469f14b8f2144310475671fa7b64"
+      }
+    },
+    {
+      "id": "core-well",
+      "sha256": "8185fd25556634b3f5ca1f0cb775ffbc3681e5a439e8f911aa7adff6643c524f",
+      "emitted": {
+        "file": "assets/model-CjuwrFJo.glb",
+        "bytes": 1619280,
+        "sha256": "8185fd25556634b3f5ca1f0cb775ffbc3681e5a439e8f911aa7adff6643c524f"
       }
     }
   ]

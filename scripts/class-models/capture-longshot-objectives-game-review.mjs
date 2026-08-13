@@ -40,7 +40,24 @@ mkdirSync(output, { recursive: true });
 const browser = await chromium.launch({ headless: true });
 const records = [];
 try {
-  for (const capture of captures) records.push(await captureFrame(capture));
+  for (const mobile of [false, true]) {
+    const grouped = captures.filter((capture) => (capture.mobile ?? false) === mobile);
+    if (grouped.length === 0) continue;
+    const context = await browser.newContext({
+      viewport: { width: grouped[0].width, height: grouped[0].height },
+      deviceScaleFactor: 1,
+      isMobile: mobile,
+      hasTouch: mobile,
+    });
+    try {
+      const page = await context.newPage();
+      const session = await preparePage(page);
+      for (const capture of grouped)
+        records.push(await captureFrame(page, session, capture));
+    } finally {
+      await context.close();
+    }
+  }
 } finally {
   await browser.close();
 }
@@ -53,7 +70,8 @@ const sheets = {
 };
 const evidence = {
   schemaVersion: 1,
-  purpose: 'Real WebGL gameplay review of unpromoted Longshot, Survey Flare, and Reactor candidates',
+  purpose:
+    'Real WebGL gameplay review of unpromoted Longshot, Survey Flare, Reactor, and Core Well candidates',
   sourceUrl: baseUrl,
   runtimeAssetsPromoted: false,
   buildRecord:
@@ -65,14 +83,7 @@ const evidence = {
 writeFileSync(path.join(output, 'evidence.json'), `${JSON.stringify(evidence, null, 2)}\n`);
 console.log(`Captured ${records.length} Longshot/objectives gameplay review frames.`);
 
-async function captureFrame(capture) {
-  const context = await browser.newContext({
-    viewport: { width: capture.width, height: capture.height },
-    deviceScaleFactor: 1,
-    isMobile: capture.mobile ?? false,
-    hasTouch: capture.mobile ?? false,
-  });
-  const page = await context.newPage();
+async function preparePage(page) {
   const errors = [];
   const modelResponses = [];
   page.on('pageerror', (error) => errors.push(`page: ${error.message}`));
@@ -106,8 +117,6 @@ async function captureFrame(capture) {
     undefined,
     { timeout: 10_000 },
   );
-  await selectReplay(page, capture.replay);
-  await seekAndSettle(page, capture.time);
   const camera = page.getByRole('button', { name: /director|overview/i });
   if (
     await camera.count() &&
@@ -116,6 +125,13 @@ async function captureFrame(capture) {
     await camera.click();
   const fullscreen = page.getByRole('button', { name: 'full screen' });
   if (await fullscreen.count()) await fullscreen.click();
+  if (errors.length) throw new Error(`initial renderer load: ${errors.join('\n')}`);
+  return { errors, modelResponses };
+}
+
+async function captureFrame(page, session, capture) {
+  await selectReplay(page, capture.replay);
+  await seekAndSettle(page, capture.time);
   await page.waitForTimeout(1800);
   const arena = page.getByRole('region', { name: 'Arena' });
   const canvas = arena.locator('canvas');
@@ -125,14 +141,13 @@ async function captureFrame(capture) {
   await canvas.screenshot({ path: imagePath });
   const image = readFileSync(imagePath);
   const loadedCandidates = [...new Set(
-    modelResponses
+    session.modelResponses
       .filter((entry) => entry.status === 200 && expectedModels.has(entry.filename))
       .map((entry) => expectedModels.get(entry.filename)),
   )].sort();
-  await context.close();
   if (renderer !== 'webgl') throw new Error(`${capture.id}: expected WebGL, received ${renderer}.`);
-  if (errors.length) throw new Error(`${capture.id}: ${errors.join('\n')}`);
-  for (const required of ['longshot', 'team-reactor'])
+  if (session.errors.length) throw new Error(`${capture.id}: ${session.errors.join('\n')}`);
+  for (const required of ['longshot', 'team-reactor', 'core-well'])
     if (!loadedCandidates.includes(required))
       throw new Error(`${capture.id}: candidate ${required} did not load.`);
   if (capture.time >= 10 && capture.time <= 22 && !loadedCandidates.includes('survey-flare'))

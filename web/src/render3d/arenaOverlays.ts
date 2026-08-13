@@ -2272,6 +2272,9 @@ function buildArcRelayStory(
       });
       const body = new THREE.Mesh(wellGeometry, bodyMaterial);
       body.position.y = emberForge ? 0.07 : 0.045;
+      const fallback = new THREE.Group();
+      fallback.userData.kind = 'arc-relay-well-fallback';
+      fallback.add(body);
       const ring = new THREE.Mesh(wellRingGeometry, ringMaterial);
       ring.position.y = 0.025;
       const progressGeometry = captureProgressGeometry(0.51, 0.575);
@@ -2298,7 +2301,7 @@ function buildArcRelayStory(
         rig.add(mesh);
         return mesh;
       });
-      rig.add(body, ring, progress);
+      rig.add(fallback, ring, progress);
       if (emberForge) {
         const trimMaterial = new THREE.MeshStandardMaterial({
           color: '#a63b4b',
@@ -2307,7 +2310,7 @@ function buildArcRelayStory(
         });
         const rim = new THREE.Mesh(forgeWellRimGeometry, trimMaterial);
         rim.position.y = 0.145;
-        rig.add(rim);
+        fallback.add(rim);
         for (let clamp = 0; clamp < 4; clamp++) {
           const angle = clamp * Math.PI / 2;
           const mesh = new THREE.Mesh(forgeWellClampGeometry, trimMaterial);
@@ -2317,10 +2320,24 @@ function buildArcRelayStory(
             Math.sin(angle) * 0.36,
           );
           mesh.rotation.y = -angle;
-          rig.add(mesh);
+          fallback.add(mesh);
         }
         disposables.push(trimMaterial);
       }
+      let disposed = false;
+      let authoredModel: THREE.Group | null = null;
+      void objectiveModel('arc-core-well').then((model) => {
+        if (!model) return;
+        if (disposed) {
+          disposeObjectMaterials(model);
+          return;
+        }
+        authoredModel = model;
+        authoredModel.userData.kind = 'arc-relay-well-authored-housing';
+        fallback.visible = false;
+        for (const glyph of sourceGlyphs) glyph.position.y = 0.215;
+        rig.add(authoredModel);
+      });
       rig.visible = false;
       group.add(rig);
       wells.push({
@@ -2339,6 +2356,12 @@ function buildArcRelayStory(
         ringMaterial,
         progressGeometry,
         progressMaterial,
+        {
+          dispose: () => {
+            disposed = true;
+            if (authoredModel) disposeObjectMaterials(authoredModel);
+          },
+        },
       );
     }
     return wells[index]!;

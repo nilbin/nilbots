@@ -15,8 +15,9 @@
     "floorY": 0,
     "materials": "Neutral authored paint only; team teal/cyan and orange remain renderer-owned.",
     "retexture": "Longshot and Survey Flare use their first-pass geometry with corrected Meshy original-UV PBR maps transplanted from the approved multiview retextures.",
-    "matteFinish": "Metallic-roughness green channel is deterministically floored at 0.72 without changing base color, metallic, or normal maps.",
-    "stateOwnership": "Survey radius/timing and Reactor ownership/charge/integrity remain renderer-owned overlays."
+    "matteFinish": "Metallic-roughness green channel is deterministically floored at 0.72 for bot/reactor assets and 0.82 for the Core Well environment housing, without changing base color, metallic, or normal maps.",
+    "wellProfile": "Owner-directed deterministic 0.80 vertical scale preserves the one-tile planform and floor while reducing the Well housing from about 0.237 to 0.190 tile high.",
+    "stateOwnership": "Survey radius/timing, Well spawn/rearm/source/Core indications, and Reactor ownership/charge/integrity remain renderer-owned overlays."
   },
   "providerSpend": {
     "initialBatchCredits": 120,
@@ -24,19 +25,20 @@
     "balanceAfter": 1100,
     "autoRigging": false
   },
-  "rejected": [
+  "acceptedDeviations": [
     {
       "id": "core-well",
       "taskId": "019ffbd2-0fcf-7716-bba6-8f920b78fcc9",
-      "reason": "Strict top audit still shows four radial anchors; the contract requires exactly three. Existing renderer housing remains authoritative.",
+      "ownerDecision": "Four-anchor silhouette accepted as overall fine on 2026-08-13; owner requested a flatter, less shiny local derivative before gameplay review.",
       "evidence": "art/reviews/arc-relay-longshot-objectives-meshy7-v1/corrective-provider-review/core-well-six-view.png",
-      "furtherProviderSpendAuthorized": false
+      "providerRetryUsed": false,
+      "additionalCredits": 0
     }
   ],
   "totals": {
-    "transferBytes": 3746928,
-    "triangles": 174170,
-    "modelGpuBytesRgba8Fallback": 14396812
+    "transferBytes": 5366208,
+    "triangles": 252742,
+    "modelGpuBytesRgba8Fallback": 21557024
   },
   "candidates": [
     {
@@ -63,6 +65,7 @@
       },
       "normalization": {
         "targetPlanformSpan": 0.99,
+        "heightScale": 1,
         "up": "+y",
         "floorY": 0
       },
@@ -72,6 +75,7 @@
         "textureSize": 512,
         "geometryCompression": "quantize",
         "textureEncoding": "WebP",
+        "matteRoughnessFloor": 0.72,
         "budgets": {
           "transferBytes": 2000000,
           "triangles": 100000
@@ -181,6 +185,7 @@
       },
       "normalization": {
         "targetPlanformSpan": 0.3,
+        "heightScale": 1,
         "up": "+y",
         "floorY": 0
       },
@@ -190,6 +195,7 @@
         "textureSize": 256,
         "geometryCompression": "quantize",
         "textureEncoding": "WebP",
+        "matteRoughnessFloor": 0.72,
         "budgets": {
           "transferBytes": 500000,
           "triangles": 20000
@@ -292,6 +298,7 @@
       },
       "normalization": {
         "targetPlanformSpan": 1.5,
+        "heightScale": 1,
         "up": "+y",
         "floorY": 0
       },
@@ -301,6 +308,7 @@
         "textureSize": 512,
         "geometryCompression": "quantize",
         "textureEncoding": "WebP",
+        "matteRoughnessFloor": 0.72,
         "budgets": {
           "transferBytes": 2000000,
           "triangles": 100000
@@ -380,6 +388,134 @@
             "height": 512,
             "mipLevels": 10,
             "transferBytes": 4976,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          },
+          {
+            "imageIndex": 3,
+            "name": null,
+            "slots": [
+              "emissiveTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 528,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          }
+        ]
+      }
+    },
+    {
+      "id": "core-well",
+      "kind": "objective",
+      "taskId": "019ffbd2-0fcf-7716-bba6-8f920b78fcc9",
+      "endpoint": "multi-image-to-3d",
+      "source": {
+        "file": "art/class-models/provider-runs/meshy/arc-relay-longshot-objectives-v1-corrective-geometry/core-well-v2/019ffbd2-0fcf-7716-bba6-8f920b78fcc9/raw-model.glb",
+        "bytes": 63281464,
+        "sha256": "9b52811a5e55a79bd2790a565b40ea40e463f6dcb81b3ebbef532e5009696766"
+      },
+      "facing": {
+        "sourceFacing": "+z",
+        "targetFacing": "+x",
+        "yawDegrees": 90
+      },
+      "normalization": {
+        "targetPlanformSpan": 1,
+        "heightScale": 0.8,
+        "up": "+y",
+        "floorY": 0
+      },
+      "profile": {
+        "simplifyRatio": 0.04,
+        "simplifyError": 0.0025,
+        "textureSize": 512,
+        "geometryCompression": "quantize",
+        "textureEncoding": "WebP",
+        "matteRoughnessFloor": 0.82,
+        "budgets": {
+          "transferBytes": 2000000,
+          "triangles": 100000
+        }
+      },
+      "matteRoughness": {
+        "version": 1,
+        "floor": 0.82,
+        "channel": "metallicRoughnessTexture.green",
+        "pixels": 4194304,
+        "pixelsRaised": 4194304,
+        "minimumBefore": 0.24705882352941178,
+        "minimumAfter": 0.8235294117647058,
+        "baseColorChanged": false,
+        "metallicChanged": false,
+        "normalChanged": false
+      },
+      "artifact": {
+        "file": "art/class-models/runtime-tiers/arc-relay/longshot-objectives-review-v1/arc-core-well-lean.glb",
+        "bytes": 1619280,
+        "sha256": "8185fd25556634b3f5ca1f0cb775ffbc3681e5a439e8f911aa7adff6643c524f"
+      },
+      "triangles": 78572,
+      "positionVertices": 54819,
+      "meshes": 1,
+      "primitives": 1,
+      "materials": 1,
+      "textures": 4,
+      "geometrySha256": "ea7149b5c8b16dd23743a997ce0457404d18d918f0744040b7ca42ee4044b3a8",
+      "memory": {
+        "transferBytes": 1619280,
+        "geometryGpuBytes": 1567812,
+        "textureGpuBytesCompressedTarget": 5592400,
+        "textureGpuBytesRgba8Fallback": 5592400,
+        "modelGpuBytesCompressedTarget": 7160212,
+        "modelGpuBytesRgba8Fallback": 7160212,
+        "textures": [
+          {
+            "imageIndex": 0,
+            "name": null,
+            "slots": [
+              "baseColorTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 36302,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          },
+          {
+            "imageIndex": 1,
+            "name": null,
+            "slots": [
+              "metallicRoughnessTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 7274,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          },
+          {
+            "imageIndex": 2,
+            "name": null,
+            "slots": [
+              "normalTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 4360,
             "gpuBytesCompressedTarget": 1398100,
             "gpuBytesRgba8Fallback": 1398100
           },
