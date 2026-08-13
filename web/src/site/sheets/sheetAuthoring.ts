@@ -216,6 +216,23 @@ export function renameRole(orders: OrdersDocument, previous: string, next: strin
     if (condition.role === previous) condition.role = next;
 }
 
+export function renameCondition(orders: OrdersDocument, previous: string, nextId: string): void {
+  const rewrite = (expression: ConditionExpression | undefined): ConditionExpression | undefined => {
+    if (typeof expression === 'string') return expression === previous ? nextId : expression;
+    if (!expression) return expression;
+    if ('all' in expression) return { all: expression.all.map((id) => id === previous ? nextId : id) };
+    return { any: expression.any.map((id) => id === previous ? nextId : id) };
+  };
+  walkOrders(orders, (node) => {
+    const when = rewrite(node.when);
+    const until = rewrite(node.until);
+    if (when === undefined) delete node.when;
+    else node.when = when;
+    if (until === undefined) delete node.until;
+    else node.until = until;
+  });
+}
+
 export function moveRole(orders: OrdersDocument, index: number, delta: number): void {
   const target = index + delta;
   if (target < 0 || target >= orders.roles.length) return;

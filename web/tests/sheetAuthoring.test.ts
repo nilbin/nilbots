@@ -9,6 +9,7 @@ import {
   compositionOf,
   parseDraft,
   pinDraft,
+  renameCondition,
   renameRole,
   sheetIssueFromCompilerError,
   skillForClass,
@@ -106,6 +107,29 @@ test('roles are the one source of composition and role renames follow semantic r
   assert.equal(source.roles[0].orders[0].handoff?.target && typeof source.roles[0].orders[0].handoff?.target === 'object'
     ? source.roles[0].orders[0].handoff?.target.role : '', 'field-support');
   assert.equal(source.roles[0].orders[1].move?.follow, 'field-support');
+});
+
+test('condition renames preserve bare shared references while rewriting definitions', () => {
+  const source = structuredClone(orders);
+  source.conditions['needs-help'] = {
+    fact: 'self-health-percent', operator: 'at-most', value: 35,
+  };
+  source.sharedOrders['recover-health'] = {
+    when: 'needs-help',
+    move: { to: 'nearest-heal-zone', posture: 'rear' },
+  };
+  source.roles[0].orders.unshift({ shared: 'recover-health' });
+  source.roles[1].orders.unshift({ shared: 'recover-health' });
+
+  source.conditions.hurt = source.conditions['needs-help'];
+  delete source.conditions['needs-help'];
+  renameCondition(source, 'needs-help', 'hurt');
+
+  assert.deepEqual(source.roles[0].orders[0], { shared: 'recover-health' });
+  assert.deepEqual(source.roles[1].orders[0], { shared: 'recover-health' });
+  assert.equal(source.sharedOrders['recover-health'].when, 'hurt');
+  const draft = parseDraft('Test', null, null, stringifyDocument(source), stringifyDocument(mapPlan));
+  assert.deepEqual(validateDraft(draft, catalog), []);
 });
 
 test('signature ownership comes from the catalog contract', () => {

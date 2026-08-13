@@ -12,6 +12,7 @@ import {
   freshOrder,
   identifierFromName,
   moveRole,
+  renameCondition,
   renameRole,
   skillForClass,
   uniqueId,
@@ -653,7 +654,7 @@ function ConditionsEditor({ orders, mapPlan, issues, onChange }: { orders: Order
         onChange={(event) => {
           const id = identifierFromName(event.target.value, selected);
           if (id === selected || orders.conditions[id]) return;
-          commit((next) => { next.conditions[id] = next.conditions[selected]; delete next.conditions[selected]; rewriteCondition(next, selected, id); }); setSelected(id);
+          commit((next) => { next.conditions[id] = next.conditions[selected]; delete next.conditions[selected]; renameCondition(next, selected, id); }); setSelected(id);
         }} /></label>
       <p className="lab mb-2 mt-4">Observed fact</p>
       <div className="grid max-h-64 gap-1.5 overflow-auto sm:grid-cols-2 xl:grid-cols-3">{CONDITION_FACTS.map((fact) => <button key={fact} type="button"
@@ -840,16 +841,6 @@ function normalizedCondition(fact: string, previous: ConditionDefinition, orders
   }
   if (['self-carrying', 'self-in-zone', 'signature-ready'].includes(fact)) next.value = previous.value === 0 ? 0 : 1;
   return next;
-}
-
-function rewriteCondition(orders: OrdersDocument, previous: string, nextId: string) {
-  const rewrite = (expression: ConditionExpression | undefined): ConditionExpression | undefined => {
-    if (typeof expression === 'string') return expression === previous ? nextId : expression;
-    if (!expression) return expression;
-    if ('all' in expression) return { all: expression.all.map((id) => id === previous ? nextId : id) };
-    return { any: expression.any.map((id) => id === previous ? nextId : id) };
-  };
-  walk(orders, (node) => { node.when = rewrite(node.when); node.until = rewrite(node.until); });
 }
 
 function rewriteCapacity(orders: OrdersDocument, previous: string, nextId: string) {
