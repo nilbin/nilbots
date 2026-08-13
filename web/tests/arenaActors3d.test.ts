@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { gunzipSync } from 'node:zlib';
 import { join } from 'node:path';
 import test from 'node:test';
 import * as THREE from 'three';
@@ -113,6 +114,58 @@ function veterancyChevronsOf(
     (child) => child.userData.cue === 'veterancy-chevron',
   );
 }
+
+function statusCueOf(
+  group: THREE.Object3D,
+  unitKey: ReplayStableUnitKey,
+  cue: 'attack-cooldown' | 'signature-cooldown' | 'engaged-mark',
+): THREE.Object3D {
+  let found: THREE.Object3D | null = null;
+  group.traverse((node) => {
+    if (node.userData.cue === cue && node.userData.forUnitKey === unitKey)
+      found = node;
+  });
+  assert.ok(found, `no ${cue} for unit ${unitKey}`);
+  return found;
+}
+
+function intentLabelOf(
+  group: THREE.Object3D,
+  unitKey: ReplayStableUnitKey,
+): THREE.Object3D {
+  let found: THREE.Object3D | null = null;
+  group.traverse((node) => {
+    if (
+      node.userData.cue === 'role-tag' &&
+      node.userData.forUnitKey === unitKey
+    ) found = node;
+  });
+  assert.ok(found, `no intent label for unit ${unitKey}`);
+  return found;
+}
+
+test('3D activity text remains visible with every visible bot', () => {
+  const arc = loadReplayJson(
+    gunzipSync(readFileSync(new URL(
+      '../../art/reviews/arc-relay-presentation-batch-v1/runtime-proof/replays/core-roster.broadcast.json.gz',
+      import.meta.url,
+    ))).toString('utf8'),
+  ).replay;
+  const actors = buildActors(arc);
+  try {
+    actors.update(10.5, null, false);
+    for (const pose of arc.ticks[10]!.after.actors) {
+      const label = intentLabelOf(actors.group, pose.unitKey);
+      assert.equal(
+        label.visible,
+        true,
+        `activity text is visible for ${pose.unitKey}`,
+      );
+    }
+  } finally {
+    actors.dispose();
+  }
+});
 
 function assertCenteredPips(
   pips: THREE.Object3D,
@@ -427,9 +480,64 @@ test('Arc veterancy chevrons stack above health instead of spreading beside it',
   const visible = chevrons.filter((chevron) => chevron.visible);
   assert.equal(visible.length, 2);
   assert.ok(visible.every((chevron) => chevron.position.x === 0));
-  assert.ok(visible[0]!.position.y > 0);
+  // The lowest vertex is still clear of the pip circle, even before camera projection.
+  assert.ok(
+    visible[0]!.position.y - 0.025 > 0.06 + 0.1,
+    `first chevron clears health (${visible[0]!.position.y})`,
+  );
+  assert.equal(visible[0]!.position.y, 0.29);
   assert.ok(visible[1]!.position.y > visible[0]!.position.y);
+  const engaged = statusCueOf(actors.group, actor.unitKey, 'engaged-mark');
+  assert.ok(
+    engaged.position.y > visible.at(-1)!.position.y + 0.1,
+    'combat state moves above the veteran stack instead of overlapping it',
+  );
   actors.dispose();
+});
+
+test('3D attack and signature cooldowns drain in separate thin tracks below health', () => {
+  const arc = loadReplayJson(
+    gunzipSync(readFileSync(new URL(
+      '../../art/reviews/arc-relay-presentation-batch-v1/runtime-proof/replays/core-roster.broadcast.json.gz',
+      import.meta.url,
+    ))).toString('utf8'),
+  ).replay;
+  const actors = buildActors(arc);
+  const attacker = 'generic:0:unit:5' as ReplayStableUnitKey;
+  const caster = 'generic:0:unit:7' as ReplayStableUnitKey;
+  const attack = statusCueOf(actors.group, attacker, 'attack-cooldown');
+  const signature = statusCueOf(
+    actors.group,
+    caster,
+    'signature-cooldown',
+  );
+  try {
+    actors.update(10.2, null, false);
+    assert.equal(attack.visible, false, 'attack reload waits for the shot');
+    assert.equal(signature.visible, true, 'the public signature clock is live');
+    const signatureOpening = signature.userData.remainingFraction as number;
+
+    actors.update(10.7, null, false);
+    assert.equal(attack.visible, true);
+    assert.equal(attack.userData.remainingFraction, 1);
+    assert.ok(attack.position.y < 0, 'attack track sits below health');
+    assert.ok(
+      signature.position.y < attack.position.y,
+      'signature has its own lower lane',
+    );
+
+    actors.update(11.5, null, false);
+    assert.ok(
+      (attack.userData.remainingFraction as number) < 1,
+      'attack reload drains continuously',
+    );
+    assert.ok(
+      (signature.userData.remainingFraction as number) < signatureOpening,
+      'signature recharge drains from replay time',
+    );
+  } finally {
+    actors.dispose();
+  }
 });
 
 test('Anchor telegraphs pending state, then authoritatively switches to a stationary 360 body', () => {

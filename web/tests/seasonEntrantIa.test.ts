@@ -63,6 +63,7 @@ test('the workshop speaks the consolidated Orders v2 language only', () => {
   assert.match(orders, /Move/);
   assert.match(orders, /Fight/);
   assert.match(orders, /Use skill/);
+  assert.match(orders, /next\.operator = 'equals'/);
   assert.match(orders, /Handoff/);
   assert.match(orders, /Drop Core/);
   assert.doesNotMatch(`${workshop}\n${orders}`, /custodyPolicies|doctrines|muster|escort|assignment order/i);
@@ -76,6 +77,13 @@ test('conditions, lifecycle and capacities are explicit game controls rather tha
   assert.match(orders, /Bodies per resolved target/);
   assert.match(orders, /Target priorities are read left to right/);
   assert.doesNotMatch(orders, /advanced settings/i);
+});
+
+test('the shared-order library can author every physical action and a nested play', () => {
+  assert.match(orders, /ACTIONS\.map\(\(action\)/);
+  assert.match(orders, /add\(\{ orders: \[freshOrder\('move', 'opening-move'\)\] \}\)/);
+  for (const label of ['Move', 'Fight', 'Use skill', 'Handoff', 'Drop Core', 'Nested play'])
+    assert.match(orders, new RegExp(label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
 });
 
 test('roles directly cast exact class bodies and surface signature identity', () => {

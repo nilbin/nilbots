@@ -558,6 +558,8 @@ export function boltsAt(
 
 
 export interface StrikeAim {
+  /** Replay identity of the body that owns this declared strike. */
+  shooterActorKey: ReplayActorLifeKey;
   /** The strike's frozen apex (tile coordinates). */
   origin: ReplayPosition;
   /** 0..1: how close the resolve tick is. */
@@ -626,7 +628,13 @@ export function strikeAimsAt(replay: ReplayModel, time: number): StrikeAim[] {
         )
       : undefined;
     if (!anchor) {
-      aims.push({ origin, urgency, target: null, escaped: false });
+      aims.push({
+        shooterActorKey: strike.shooter.actorKey,
+        origin,
+        urgency,
+        target: null,
+        escaped: false,
+      });
       continue;
     }
     const now = current.after.actors.find(
@@ -636,6 +644,7 @@ export function strikeAimsAt(replay: ReplayModel, time: number): StrikeAim[] {
       !now || !wedge.has(`${now.position.x},${now.position.y}`);
     const pose = poses.find((value) => value.actorKey === anchor.actorKey);
     aims.push({
+      shooterActorKey: strike.shooter.actorKey,
       origin,
       urgency,
       target: pose

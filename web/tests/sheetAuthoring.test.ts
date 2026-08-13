@@ -7,8 +7,10 @@ import type { TacticalSheetCatalog } from '../src/site/api';
 import {
   actionOf,
   compositionOf,
+  freshOrder,
   parseDraft,
   pinDraft,
+  renameCondition,
   renameRole,
   sheetIssueFromCompilerError,
   skillForClass,
@@ -108,9 +110,43 @@ test('roles are the one source of composition and role renames follow semantic r
   assert.equal(source.roles[0].orders[1].move?.follow, 'field-support');
 });
 
+test('condition renames preserve bare shared references while rewriting definitions', () => {
+  const source = structuredClone(orders);
+  source.conditions['needs-help'] = {
+    fact: 'self-health-percent', operator: 'at-most', value: 35,
+  };
+  source.sharedOrders['recover-health'] = {
+    when: 'needs-help',
+    move: { to: 'nearest-heal-zone', posture: 'rear' },
+  };
+  source.roles[0].orders.unshift({ shared: 'recover-health' });
+  source.roles[1].orders.unshift({ shared: 'recover-health' });
+
+  source.conditions.hurt = source.conditions['needs-help'];
+  delete source.conditions['needs-help'];
+  renameCondition(source, 'needs-help', 'hurt');
+
+  assert.deepEqual(source.roles[0].orders[0], { shared: 'recover-health' });
+  assert.deepEqual(source.roles[1].orders[0], { shared: 'recover-health' });
+  assert.equal(source.sharedOrders['recover-health'].when, 'hurt');
+  const draft = parseDraft('Test', null, null, stringifyDocument(source), stringifyDocument(mapPlan));
+  assert.deepEqual(validateDraft(draft, catalog), []);
+});
+
 test('signature ownership comes from the catalog contract', () => {
   assert.equal(skillForClass(catalog, 'kestrel'), 'vector-dash');
   assert.equal(skillForClass(catalog, 'unknown'), undefined);
+});
+
+test('new signature orders persist the selected role skill and its legal default target', () => {
+  assert.deepEqual(freshOrder('use', 'pass-core', 'arc-toss'), {
+    id: 'pass-core',
+    use: { skill: 'arc-toss', target: 'nearest-ally-toward-own-reactor' },
+  });
+  assert.deepEqual(freshOrder('use', 'repair', 'repair-beam'), {
+    id: 'repair',
+    use: { skill: 'repair-beam', target: 'weakest-ally' },
+  });
 });
 
 test('order action detection has only the five physical verbs plus branch and exact sharing', () => {
@@ -152,6 +188,18 @@ test('guided validation mirrors exact roots, class cap, condition use, shared us
   assert.ok(messages.some((message) => message.includes('unused condition')));
   assert.ok(messages.some((message) => message.includes('at least two references')));
   assert.ok(messages.some((message) => message.includes('unused zone')));
+});
+
+test('guided validation rejects route waypoints on walls before save', () => {
+  const wallCatalog = structuredClone(catalog);
+  wallCatalog.map.tileRows[0] = '#....';
+  const draft = parseDraft('Test', null, null, stringifyDocument(orders), stringifyDocument(mapPlan));
+  draft.mapPlan.routes['centre-loop'].waypoints[0] = [0, 0];
+
+  const issue = validateDraft(draft, wallCatalog).find((candidate) =>
+    candidate.path === 'mapPlan.routes.centre-loop.waypoints.0');
+
+  assert.match(issue?.message ?? '', /off the wall/i);
 });
 
 test('movement urgency is a three-word optional node property', () => {

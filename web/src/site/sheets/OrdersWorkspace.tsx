@@ -12,7 +12,9 @@ import {
   freshOrder,
   identifierFromName,
   moveRole,
+  renameCondition,
   renameRole,
+  signatureTargets,
   skillForClass,
   uniqueId,
   type ConditionDefinition,
@@ -294,7 +296,7 @@ function OrderList({ orders: list, path, role, allOrders, mapPlan, catalog, issu
         onDelete={() => mutate((next) => next.splice(index, 1))}
         first={index === 0} last={index === list.length - 1} />;
     })}
-    <AddOrder depth={depth} allOrders={allOrders} onAdd={(node) => {
+    <AddOrder depth={depth} allOrders={allOrders} role={role} catalog={catalog} onAdd={(node) => {
       mutate((next) => next.push(node));
       window.setTimeout(() => setOpenPath(`${path}.${list.length}`), 0);
     }} />
@@ -396,16 +398,23 @@ function OrderCard({ node, path, role, allOrders, mapPlan, catalog, issues, dept
   </article>;
 }
 
-function AddOrder({ depth, allOrders, onAdd }: { depth: number; allOrders: OrdersDocument; onAdd: (node: OrderNode) => void }) {
+function AddOrder({ depth, allOrders, role, catalog, onAdd }: {
+  depth: number;
+  allOrders: OrdersDocument;
+  role: RoleDefinition;
+  catalog: TacticalSheetCatalog;
+  onAdd: (node: OrderNode) => void;
+}) {
   const [open, setOpen] = useState(false);
   const ids = allOrderIds(allOrders);
+  const signatureSkill = skillForClass(catalog, role.classes[0] ?? '') ?? 'vector-dash';
   return <div>
     <button type="button" className="btn btn-secondary min-h-11 w-full" onClick={() => setOpen((value) => !value)}>
       ＋ Add {depth === 0 ? 'priority order' : 'nested order'}
     </button>
     {open && <div className="mt-2 grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
       {ACTIONS.map((action) => <button key={action} type="button" className="choice-card min-h-[76px]"
-        onClick={() => { onAdd(freshOrder(action, uniqueId(action, ids))); setOpen(false); }}>
+        onClick={() => { onAdd(freshOrder(action, uniqueId(action, ids), signatureSkill)); setOpen(false); }}>
         <span className="flex items-center gap-2"><span className="font-mono text-[19px] text-arena-material">{ACTION_COPY[action].glyph}</span><b className="type-display text-[15px]">{ACTION_COPY[action].label}</b></span>
         <span className="t-micro mt-1 block">{ACTION_COPY[action].description}</span>
       </button>)}
@@ -582,14 +591,14 @@ function UseEditor({ node, role, catalog, mapPlan, onOpenMap, onChange }: {
     ? authoredSkill
     : skills[0] ?? '';
   const classInfo = catalog.classes.find((entry) => entry.signatureId === skill);
-  const targets = useTargets(skill);
+  const targets = signatureTargets(skill);
   return <div className="mt-4 rounded-sm border border-arena-material/30 bg-arena-material/5 p-3">
     <div className="flex items-center gap-3"><ClassIcon classId={classInfo?.id ?? role.classes[0]} size={46} /><div><p className="lab text-arena-material">{classInfo?.signatureName ?? humanize(skill)}</p><p className="t-meta mt-1">{classInfo?.fantasy}</p></div></div>
     {skills.length > 1 && <CardPicker label="Which class acts?" value={skill} values={skills}
       labeler={(entry) => catalog.classes.find((candidate) => candidate.signatureId === entry)?.name ?? humanize(entry)}
       descriptions={Object.fromEntries(skills.map((entry) => [entry,
         catalog.classes.find((candidate) => candidate.signatureId === entry)?.signatureName ?? humanize(entry)]))}
-      onChange={(nextSkill) => onChange({ skill: nextSkill, target: useTargets(nextSkill)[0] ?? 'self' })} />}
+      onChange={(nextSkill) => onChange({ skill: nextSkill, target: signatureTargets(nextSkill)[0] ?? 'self' })} />}
     <CardPicker label="Skill target" value={node.use?.target ?? targets[0]} values={targets}
       onChange={(target) => onChange({ ...node.use, skill, target })} />
     {['hardlight-block', 'trip-node', 'sentinel-seed'].includes(skill) && <div className="mt-3">
@@ -653,7 +662,7 @@ function ConditionsEditor({ orders, mapPlan, issues, onChange }: { orders: Order
         onChange={(event) => {
           const id = identifierFromName(event.target.value, selected);
           if (id === selected || orders.conditions[id]) return;
-          commit((next) => { next.conditions[id] = next.conditions[selected]; delete next.conditions[selected]; rewriteCondition(next, selected, id); }); setSelected(id);
+          commit((next) => { next.conditions[id] = next.conditions[selected]; delete next.conditions[selected]; renameCondition(next, selected, id); }); setSelected(id);
         }} /></label>
       <p className="lab mb-2 mt-4">Observed fact</p>
       <div className="grid max-h-64 gap-1.5 overflow-auto sm:grid-cols-2 xl:grid-cols-3">{CONDITION_FACTS.map((fact) => <button key={fact} type="button"
@@ -707,14 +716,36 @@ function CapacitiesEditor({ orders, issues, onChange }: { orders: OrdersDocument
 function SharedOrdersEditor({ catalog, orders, mapPlan, issues, onChange, onOpenMap }: { catalog: TacticalSheetCatalog; orders: OrdersDocument; mapPlan: MapPlanDocument; issues: SheetIssue[]; onChange: (next: OrdersDocument) => void; onOpenMap: (focus?: { kind: PlotKind; id: string }) => void }) {
   const ids = Object.keys(orders.sharedOrders);
   const [selected, setSelected] = useState(ids[0] ?? '');
+  const [adding, setAdding] = useState(false);
   const definition = orders.sharedOrders[selected];
   const exampleRole = orders.roles[0];
   const commit = (change: (next: OrdersDocument) => void) => { const next = structuredClone(orders); change(next); onChange(next); };
+  const add = (definition: OrderNode) => {
+    const id = uniqueId('shared-order', ids);
+    commit((next) => { next.sharedOrders[id] = definition; });
+    setSelected(id);
+    setAdding(false);
+  };
   return <div className="grid gap-3 lg:grid-cols-[220px_minmax(0,1fr)]">
     <div><div className="flex gap-1 overflow-x-auto lg:flex-col">{ids.map((id) => <button key={id} type="button" className="choice-card min-h-12 min-w-[170px] lg:min-w-0" data-selected={id === selected} onClick={() => setSelected(id)}>{humanize(id)}</button>)}</div>
-      <button type="button" className="btn btn-secondary mt-2 min-h-11 w-full" onClick={() => {
-        const id = uniqueId('shared-order', ids); commit((next) => { const order = freshOrder('move'); delete order.id; next.sharedOrders[id] = order; }); setSelected(id);
-      }}>＋ New shared order</button></div>
+      <button type="button" className="btn btn-secondary mt-2 min-h-11 w-full" aria-expanded={adding}
+        onClick={() => setAdding((value) => !value)}>＋ New shared order</button>
+      {adding && <div className="mt-2 grid gap-1.5">
+        {ACTIONS.map((action) => <button key={action} type="button" className="choice-card min-h-[68px] text-left"
+          onClick={() => {
+            const signatureSkill = skillForClass(catalog, exampleRole?.classes[0] ?? '') ?? 'vector-dash';
+            const definition = freshOrder(action, 'new-order', signatureSkill);
+            delete definition.id;
+            add(definition);
+          }}>
+          <span className="flex items-center gap-2"><span className="font-mono text-[18px] text-arena-material">{ACTION_COPY[action].glyph}</span><b className="type-display text-[14px]">{ACTION_COPY[action].label}</b></span>
+          <span className="t-micro mt-1 block">{ACTION_COPY[action].description}</span>
+        </button>)}
+        <button type="button" className="choice-card min-h-[68px] text-left" onClick={() => add({ orders: [freshOrder('move', 'opening-move')] })}>
+          <b className="type-display block text-[14px]">⌘ Nested play</b><span className="t-micro mt-1 block">One lifecycle around a short local priority list.</span>
+        </button>
+      </div>}
+    </div>
     {definition && exampleRole ? <div><label className="mb-2 block"><span className="lab mb-1 block">Shared order name</span><input className="field min-h-11" value={selected}
       onChange={(event) => { const id = identifierFromName(event.target.value, selected); if (id === selected || orders.sharedOrders[id]) return; commit((next) => { next.sharedOrders[id] = next.sharedOrders[selected]; delete next.sharedOrders[selected]; rewriteShared(next, selected, id); }); setSelected(id); }} /></label>
       <OrderCard node={definition} externalId={selected} path={`orders.sharedOrders.${selected}`} role={exampleRole}
@@ -838,18 +869,11 @@ function normalizedCondition(fact: string, previous: ConditionDefinition, orders
     next.operator = 'at-most';
     next.value = previous.fact === fact ? previous.value : 7;
   }
-  if (['self-carrying', 'self-in-zone', 'signature-ready'].includes(fact)) next.value = previous.value === 0 ? 0 : 1;
+  if (['self-carrying', 'self-in-zone', 'signature-ready'].includes(fact)) {
+    next.operator = 'equals';
+    next.value = previous.fact === fact && previous.value === 0 ? 0 : 1;
+  }
   return next;
-}
-
-function rewriteCondition(orders: OrdersDocument, previous: string, nextId: string) {
-  const rewrite = (expression: ConditionExpression | undefined): ConditionExpression | undefined => {
-    if (typeof expression === 'string') return expression === previous ? nextId : expression;
-    if (!expression) return expression;
-    if ('all' in expression) return { all: expression.all.map((id) => id === previous ? nextId : id) };
-    return { any: expression.any.map((id) => id === previous ? nextId : id) };
-  };
-  walk(orders, (node) => { node.when = rewrite(node.when); node.until = rewrite(node.until); });
 }
 
 function rewriteCapacity(orders: OrdersDocument, previous: string, nextId: string) {
@@ -866,17 +890,8 @@ function walk(orders: OrdersDocument, visit: (node: OrderNode) => void, includeS
   if (includeShared) Object.values(orders.sharedOrders).forEach(descend);
 }
 
-function useTargets(skill: string): string[] {
-  if (skill === 'null-field' || skill === 'kinetic-burst') return ['self'];
-  if (skill === 'repair-beam') return ['weakest-ally', 'nearest-ally'];
-  if (skill === 'exchange') return ['healthiest-ally', 'nearest-ally', 'weakest-ally'];
-  if (skill === 'arc-toss') return ['nearest-ally-toward-own-reactor', 'nearest-ally', 'own-reactor'];
-  if (skill === 'target-paint') return ['enemy-carrier', 'weakest-enemy', 'nearest-enemy'];
-  return ['nearest-enemy', 'weakest-enemy', 'enemy-carrier', 'nearest-ally', 'weakest-ally', 'self', 'own-reactor'];
-}
-
 function factScope(fact: string) {
-  if (fact === 'self-nearest-visible-enemy-distance') return 'Distance from this body';
+  if (fact === 'self-nearest-visible-enemy-distance') return 'Steps for this body to join';
   if (fact.startsWith('self-') || fact === 'signature-ready') return 'This body';
   if (fact.startsWith('role-')) return 'A named role';
   if (fact.includes('-in-zone')) return 'A plotted zone';

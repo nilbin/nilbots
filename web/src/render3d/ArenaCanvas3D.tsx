@@ -2,9 +2,10 @@ import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import type { ReplayModel, ReplayStableUnitKey } from '../replayModel';
 import { posesAt } from '../render/interpolate';
-import { buildArena, CAMERA_PITCH } from './arenaScene';
+import { buildArena } from './arenaScene';
 import { buildActors } from './arenaActors';
 import { buildOverlays } from './arenaOverlays';
+import { orientStatusBib } from './statusBib';
 import { configureModelTextureSupport } from './lookModel';
 import {
   ArenaCamera,
@@ -156,20 +157,15 @@ export default function ArenaCanvas3D({
 
     const arena = buildArena(replay, { shadowMapSize: renderProfile.shadowMapSize });
     const actors = buildActors(replay);
-    actors.setIntentLabelsVisible(
-      !new URLSearchParams(window.location.search).has('proof'),
-    );
-    // Health and engagement cues are authored as fixed billboards. A theme may add a
-    // restrained side bias to the otherwise fixed camera, so turn their shared row by the
-    // same amount rather than letting it become slightly edge-on.
-    actors.group.traverse((node) => {
-      if (node.userData.cue === 'health-pips') {
-        node.rotation.order = 'YXZ';
-        node.rotation.y = arena.cameraYaw;
-        node.rotation.x = CAMERA_PITCH - arena.cameraPitch;
-      }
-    });
     const overlays = buildOverlays(replay, entrants, arena.scene);
+    // Bot and construct status bibs are authored as fixed billboards. A theme may add a
+    // restrained side bias to the otherwise fixed camera, so turn every shared status
+    // stack by the same amount rather than letting one family become slightly edge-on.
+    for (const root of [actors.group, overlays.group])
+      root.traverse((node) => {
+        if (node.userData.cue === 'health-pips')
+          orientStatusBib(node, arena.cameraYaw, arena.cameraPitch);
+      });
     arena.scene.add(actors.group);
     arena.scene.add(overlays.group);
     window.__BOTARENA_RENDER_PROOF__ = {

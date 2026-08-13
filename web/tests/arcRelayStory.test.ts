@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { gunzipSync } from 'node:zlib';
 import test from 'node:test';
 import * as THREE from 'three';
 import {
@@ -296,7 +297,7 @@ test('a slow carrier glides through its forced relocation hold without predictin
   }
 });
 
-test('the carried Core is a sphere levitating on the interpolated carrier pose', () => {
+test('the picked-up Core approaches the interpolated carrier pose continuously', () => {
   const replay = arcRelayReplay();
   // Late in tick 1 rather than half way through it. Possession is end-of-tick state and
   // the carrier is drawn gliding across the tick that took it, so a Core handed over at
@@ -340,8 +341,14 @@ test('the carried Core is a sphere levitating on the interpolated carrier pose',
     'the energy Core has no glossy specular material',
   );
   assert.equal(sphere.castShadow, false, 'the luminous Core has no hard cast shadow');
-  assert.equal(rig.position.x, carrier.x + 0.5);
-  assert.equal(rig.position.z, carrier.y + 0.5);
+  assert.ok(
+    Math.abs(rig.position.x - (carrier.x + 0.5)) < 0.2,
+    'the last pickup frames settle continuously toward the carrier',
+  );
+  assert.ok(
+    Math.abs(rig.position.z - (carrier.y + 0.5)) < 0.2,
+    'the last pickup frames stay aligned with the carrier lane',
+  );
   assert.equal(sphere.position.x, 0, 'no neighbouring-tile orbit');
   assert.equal(sphere.position.z, 0, 'stays centred over the carrier');
   assert.ok(sphere.position.y > 0.85, `levitates above the hull (${sphere.position.y})`);
@@ -363,12 +370,16 @@ test('the carried Core is a sphere levitating on the interpolated carrier pose',
   overlays.update(1.5, null, false);
   const midGlide: THREE.Object3D[] = [];
   overlays.group.traverse((node) => midGlide.push(node));
-  const midRig = midGlide.find((node) => node.userData.kind === 'arc-relay-core');
+  const midRig = midGlide.find(
+    (node) =>
+      node.visible &&
+      node.userData.kind === 'arc-relay-core' &&
+      node.userData.coreMotion === 'pickup',
+  );
   assert.ok(midRig);
-  assert.notEqual(
-    midRig.position.x,
-    carrier.x + 0.5,
-    'possession must not transfer before the carrier has finished moving',
+  assert.ok(
+    midRig.position.x > carrier.x + 0.5 && midRig.position.x < 8.5,
+    'the sphere levitates toward the carrier rather than snapping into possession',
   );
 
   overlays.dispose();
@@ -582,18 +593,246 @@ test('the 3D renderer moves the one authoritative Arc Toss Core through its publ
   const story = createPresenter(replay).at(1).arcRelay;
   assert.equal(story?.cores[0]?.flightStartedAtTick, 0);
   const overlays = buildOverlays(replay);
-  overlays.update(1, null, false);
-  const objects: THREE.Object3D[] = [];
-  overlays.group.traverse((node) => objects.push(node));
-  const rig = objects.find((node) => node.userData.kind === 'arc-relay-core');
-  const sphere = objects.find(
-    (node) => node.userData.kind === 'arc-relay-core-sphere',
-  ) as THREE.Mesh | undefined;
+  const flightAt = (time: number) => {
+    overlays.update(time, null, false);
+    const objects: THREE.Object3D[] = [];
+    overlays.group.traverse((node) => objects.push(node));
+    const rig = objects.find(
+      (node) => node.visible && node.userData.coreMotion === 'arc-toss',
+    );
+    const sphere = rig?.children.find(
+      (node) => node.userData.kind === 'arc-relay-core-sphere',
+    ) as THREE.Mesh | undefined;
+    assert.ok(rig);
+    assert.ok(sphere);
+    return { rig, sphere };
+  };
+  const launch = flightAt(0);
+  assert.equal(launch.rig.position.x, source.x + 0.5);
+  assert.equal(launch.rig.position.z, source.y + 0.5);
+  assert.equal(launch.sphere.position.y, 1.18);
+  const originAccent = arcOriginAccent(core.coreId.sourceWellId);
+  assert.equal(
+    (launch.sphere.material as THREE.MeshLambertMaterial).emissive.getHexString(),
+    new THREE.Color(originAccent).getHexString(),
+  );
+  const { rig, sphere } = flightAt(1);
   assert.ok(rig);
   assert.ok(sphere);
   assert.equal(rig.position.x, source.x + 2 + 0.5);
   assert.equal(rig.position.z, source.y + 0.5);
   assert.ok(sphere.position.y > 1.3, 'the real Core rises through a visible ballistic apex');
+  assert.equal(
+    (sphere.material as THREE.MeshLambertMaterial).emissive.getHexString(),
+    new THREE.Color(originAccent).getHexString(),
+    'Arc Toss keeps the same origin-lane Core treatment for the complete flight',
+  );
+  overlays.dispose();
+});
+
+test('an Arc Toss landing with an immediate pickup levitates once from the landing tile', () => {
+  const replay = loadReplayJson(
+    gunzipSync(readFileSync(new URL(
+      '../../art/reviews/arc-relay-presentation-batch-v1/runtime-proof/replays/core-roster.broadcast.json.gz',
+      import.meta.url,
+    ))).toString('utf8'),
+  ).replay;
+  const landingTick = replay.ticks.findIndex((tick) => {
+    const facts = [...tick.lifecycleEvents, ...tick.events]
+      .flatMap((event) => event.arcRelayFact ? [event.arcRelayFact] : []);
+    return facts.some(
+      (fact) => fact.kind === 'core-relocated' &&
+        fact.relocationKind === 'arc-toss-landing',
+    ) && facts.some((fact) => fact.kind === 'core-picked-up');
+  });
+  assert.ok(landingTick >= 0, 'the review replay contains its Arc Toss landing/pickup beat');
+  const facts = [
+    ...replay.ticks[landingTick]!.lifecycleEvents,
+    ...replay.ticks[landingTick]!.events,
+  ].flatMap((event) => event.arcRelayFact ? [event.arcRelayFact] : []);
+  const pickup = facts.find((fact) => fact.kind === 'core-picked-up');
+  assert.ok(pickup && pickup.kind === 'core-picked-up');
+  const key = `${pickup.coreId.sourceWellId}:${pickup.coreId.sourceOrdinal}`;
+  const beforeMode = replay.ticks[landingTick]!.before.mode;
+  assert.equal(beforeMode?.kind, 'arc-relay');
+  assert.ok(beforeMode && 'visibleCores' in beforeMode);
+  assert.equal(
+    beforeMode.visibleCores.find(
+      (core) => `${core.coreId.sourceWellId}:${core.coreId.sourceOrdinal}` === key,
+    )?.disposition,
+    'in-flight',
+    'the public pre-landing snapshot still carries the launch position',
+  );
+
+  const overlays = buildOverlays(replay);
+  const pickupCoreAt = (time: number) => {
+    overlays.update(time, null, false);
+    const objects: THREE.Object3D[] = [];
+    overlays.group.traverse((node) => objects.push(node));
+    const rig = objects.find(
+      (node) => node.visible &&
+        node.userData.coreKey === key &&
+        node.userData.coreMotion === 'pickup',
+    );
+    const sphere = rig?.children.find(
+      (node) => node.userData.kind === 'arc-relay-core-sphere',
+    ) as THREE.Mesh | undefined;
+    assert.ok(rig, `pickup owns Core ${key} at ${time}`);
+    assert.ok(sphere);
+    return { rig, sphere };
+  };
+  try {
+    const start = pickupCoreAt(landingTick);
+    assert.ok(
+      Math.abs(start.rig.position.x - (pickup.position.x + 0.5)) < 1e-6 &&
+        Math.abs(start.rig.position.z - (pickup.position.y + 0.5)) < 1e-6,
+      'landing custody starts where the toss landed instead of replaying the flight',
+    );
+    assert.equal(start.sphere.position.y, 0.4);
+
+    const middle = pickupCoreAt(landingTick + 0.5);
+    assert.ok(
+      Math.abs(middle.rig.position.x - start.rig.position.x) < 1e-6 &&
+        Math.abs(middle.rig.position.z - start.rig.position.z) < 1e-6,
+      'the handoff rises vertically rather than drawing a second toss',
+    );
+    assert.ok(
+      middle.sphere.position.y > 0.8 && middle.sphere.position.y < 1.18,
+      'the landed Core visibly rises from floor height toward its ally',
+    );
+
+    const end = pickupCoreAt(landingTick + 0.99);
+    assert.ok(end.sphere.position.y > 1.15, 'the same lift settles at carried height');
+  } finally {
+    overlays.dispose();
+  }
+});
+
+test('pickup joins a moving carrier continuously at the custody boundary', () => {
+  const replay = loadReplayJson(
+    gunzipSync(readFileSync(new URL(
+      '../../art/reviews/arc-relay-presentation-batch-v1/runtime-proof/replays/core-roster.broadcast.json.gz',
+      import.meta.url,
+    ))).toString('utf8'),
+  ).replay;
+  const pickupTick = replay.ticks.findIndex((tick) => {
+    const pickup = [...tick.lifecycleEvents, ...tick.events]
+      .map((event) => event.arcRelayFact)
+      .find((fact) => fact?.kind === 'core-picked-up');
+    if (!pickup || pickup.kind !== 'core-picked-up') return false;
+    const before = tick.before.actors.find(
+      (actor) => actor.actorKey === pickup.carrierActor.actorKey,
+    );
+    const after = tick.after.actors.find(
+      (actor) => actor.actorKey === pickup.carrierActor.actorKey,
+    );
+    return before !== undefined && after !== undefined &&
+      (before.position.x !== after.position.x || before.position.y !== after.position.y);
+  });
+  assert.ok(pickupTick >= 0, 'the review replay contains a moving pickup carrier');
+  const pickup = [
+    ...replay.ticks[pickupTick]!.lifecycleEvents,
+    ...replay.ticks[pickupTick]!.events,
+  ].map((event) => event.arcRelayFact)
+    .find((fact) => fact?.kind === 'core-picked-up');
+  assert.ok(pickup && pickup.kind === 'core-picked-up');
+  const key = `${pickup.coreId.sourceWellId}:${pickup.coreId.sourceOrdinal}`;
+
+  const overlays = buildOverlays(replay);
+  const corePointAt = (time: number) => {
+    overlays.update(time, null, false);
+    let rig: THREE.Object3D | null = null;
+    overlays.group.traverse((node) => {
+      if (node.visible && node.userData.coreKey === key) rig = node;
+    });
+    assert.ok(rig, `Core ${key} is visible at ${time}`);
+    const sphere = rig.children.find(
+      (node) => node.userData.kind === 'arc-relay-core-sphere',
+    );
+    assert.ok(sphere);
+    overlays.group.updateMatrixWorld(true);
+    return new THREE.Vector3().setFromMatrixPosition(sphere.matrixWorld);
+  };
+  try {
+    const lastPickup = corePointAt(pickupTick + 0.999);
+    const firstCarried = corePointAt(pickupTick + 1);
+    assert.ok(
+      lastPickup.distanceTo(firstCarried) < 0.02,
+      `pickup meets the carried pose without an end snap (${lastPickup.distanceTo(firstCarried)})`,
+    );
+  } finally {
+    overlays.dispose();
+  }
+});
+
+test('Core pickup, drop, handoff, and bank move the authoritative sphere', () => {
+  const replay = arcRelayReplay();
+  const actors = replay.ticks[0]!.after.actors.map((actor) => actor.identity);
+  const born = replay.ticks[0]!.events[0]!.arcRelayFact;
+  assert.equal(born?.kind, 'core-born');
+  if (born?.kind !== 'core-born') return;
+  replay.ticks[3]!.events = [
+    arcEvent(3, {
+      kind: 'core-handed-off',
+      coreId: born.coreId,
+      sourceActor: actors[0]!,
+      targetActor: actors[1]!,
+      position: { x: 12, y: 7 },
+      nextRelocationTick: 6,
+    }),
+  ];
+
+  const overlays = buildOverlays(replay);
+  const motionAt = (time: number, expected: string) => {
+    overlays.update(time, null, false);
+    const objects: THREE.Object3D[] = [];
+    overlays.group.traverse((node) => objects.push(node));
+    const rig = objects.find(
+      (node) => node.visible && node.userData.coreMotion === expected,
+    );
+    const sphere = rig?.children.find(
+      (node) => node.userData.kind === 'arc-relay-core-sphere',
+    ) as THREE.Mesh | undefined;
+    assert.ok(rig, `${expected} owns a visible Core rig`);
+    assert.ok(sphere);
+    return { rig, sphere };
+  };
+
+  const pickupStart = motionAt(1, 'pickup');
+  const pickupStartY = pickupStart.sphere.position.y;
+  const pickupMiddle = motionAt(1.425, 'pickup');
+  assert.equal(pickupStartY, 0.4);
+  assert.ok(pickupMiddle.sphere.position.y > 0.65);
+  const pickupSamples = Array.from({ length: 10 }, (_, index) =>
+    motionAt(1 + index / 10, 'pickup').sphere.position.y,
+  );
+  const largestPickupStep = Math.max(
+    ...pickupSamples.slice(1).map(
+      (height, index) => Math.abs(height - pickupSamples[index]!),
+    ),
+  );
+  assert.ok(
+    largestPickupStep < 0.2,
+    `pickup has no compressed vertical snap (${largestPickupStep})`,
+  );
+  assert.ok(pickupSamples.at(-1)! > 1.15, 'pickup reaches carried height smoothly');
+
+  const dropStart = motionAt(2, 'drop');
+  const dropStartY = dropStart.sphere.position.y;
+  const dropMiddle = motionAt(2.425, 'drop');
+  assert.equal(dropStartY, 1.18);
+  assert.ok(dropMiddle.sphere.position.y > 0.65);
+
+  const handoffStart = motionAt(3, 'handoff');
+  const handoffStartX = handoffStart.rig.position.x;
+  const handoffMiddle = motionAt(3.425, 'handoff');
+  assert.notEqual(handoffMiddle.rig.position.x, handoffStartX);
+
+  const bankStart = motionAt(4, 'bank');
+  const bankStartScale = bankStart.sphere.scale.x;
+  const bankMiddle = motionAt(4.425, 'bank');
+  assert.ok(bankMiddle.sphere.scale.x < bankStartScale);
+  assert.ok(bankMiddle.sphere.position.y > 0.4);
   overlays.dispose();
 });
 

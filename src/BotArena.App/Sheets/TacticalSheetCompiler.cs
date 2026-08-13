@@ -52,6 +52,9 @@ public sealed class TacticalSheetCompiler(ArcRelayClassCatalog classCatalog)
                 + $"the native '{ArcRelayLoopProfile.Current.MapId}' "
                 + "Tapline plan; geometry from older maps is never migrated.");
         }
+        ValidateMapPlanGeometry(
+            compilation.NormalizedLayout,
+            ArcRelayH0Definition.CreateMap(ArcRelayLoopProfile.Current));
         ArcRelayCompositionCompilation composition = ArcRelayComposition.Compile(
             new ArcRelayCompositionDeclaration(compilation.Composition),
             classCatalog,
@@ -109,5 +112,76 @@ public sealed class TacticalSheetCompiler(ArcRelayClassCatalog classCatalog)
             throw new InvalidDataException("Map plan has no mapId.");
         }
         return mapId.GetString()!;
+    }
+
+    private static void ValidateMapPlanGeometry(
+        ReadOnlyMemory<byte> mapPlanJson,
+        ActorMapDefinition map)
+    {
+        using JsonDocument document = JsonDocument.Parse(mapPlanJson);
+        JsonElement root = document.RootElement;
+
+        bool IsFloor(int x, int y) =>
+            x >= 0 && y >= 0 && x < map.Width && y < map.Height
+            && !map.IsWall(x, y);
+        bool IsFloorForBothSides(int x, int y) =>
+            IsFloor(x, y)
+            && IsFloor(map.Width - 1 - x, map.Height - 1 - y);
+
+        foreach (JsonProperty route in root.GetProperty("routes")
+                     .EnumerateObject())
+        {
+            int index = 0;
+            foreach (JsonElement waypoint in route.Value
+                         .GetProperty("waypoints").EnumerateArray())
+            {
+                int[] point = waypoint.EnumerateArray()
+                    .Select(value => value.GetInt32()).ToArray();
+                if (!IsFloorForBothSides(point[0], point[1]))
+                {
+                    throw new InvalidDataException(
+                        $"Route '{route.Name}' waypoint {index} "
+                        + $"({point[0]},{point[1]}) must be traversable "
+                        + "for both team sides.");
+                }
+                index++;
+            }
+        }
+
+        foreach (JsonProperty anchor in root.GetProperty("anchors")
+                     .EnumerateObject())
+        {
+            int[] point = anchor.Value.EnumerateArray()
+                .Select(value => value.GetInt32()).ToArray();
+            if (!IsFloorForBothSides(point[0], point[1]))
+            {
+                throw new InvalidDataException(
+                    $"Anchor '{anchor.Name}' ({point[0]},{point[1]}) "
+                    + "must be traversable for both team sides.");
+            }
+        }
+
+        foreach (JsonProperty zone in root.GetProperty("zones")
+                     .EnumerateObject())
+        {
+            int[] rect = zone.Value.GetProperty("rect").EnumerateArray()
+                .Select(value => value.GetInt32()).ToArray();
+            bool westHasFloor = false;
+            bool eastHasFloor = false;
+            for (int y = rect[1]; y <= rect[3]; y++)
+            for (int x = rect[0]; x <= rect[2]; x++)
+            {
+                westHasFloor |= IsFloor(x, y);
+                eastHasFloor |= IsFloor(
+                    map.Width - 1 - x,
+                    map.Height - 1 - y);
+            }
+            if (!westHasFloor || !eastHasFloor)
+            {
+                throw new InvalidDataException(
+                    $"Zone '{zone.Name}' must contain traversable floor "
+                    + "for both team sides.");
+            }
+        }
     }
 }

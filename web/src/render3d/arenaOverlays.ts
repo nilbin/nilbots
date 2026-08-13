@@ -2,6 +2,8 @@ import { arcOriginAccent } from '../replayPresentation';
 import * as THREE from 'three';
 import { SCRAP_ACCENT } from '../presentation/scrapAccent';
 import type {
+  ReplayActorIdentity,
+  ReplayArcRelayFact,
   ReplayModel,
   ReplayPosition,
   ReplayStableUnitKey,
@@ -22,7 +24,7 @@ import {
   createPresenter,
   type TickPresentation,
 } from '../replayPresentation';
-import { settledStateTick } from '../render/tickClock';
+import { STATE_SETTLES_AT, settledStateTick } from '../render/tickClock';
 import type { ViewerEntrantPresentation } from '../components/Viewer';
 import { buildArcRelayEffects } from './arcRelayEffects';
 import {
@@ -693,13 +695,15 @@ function buildSpawnPads(
     : 'frontline-spawn-pads';
   const homes = replay.map.frontline?.teamHomes ?? arcRelayHomes(replay);
   const emberForge = themeId === 'ember-forge';
-  const spawnSocketGeometry = arcRelayPad && emberForge
+  const lumenBastion = themeId === 'lumen-bastion';
+  const arcArchitecture = emberForge || lumenBastion;
+  const spawnSocketGeometry = arcRelayPad && arcArchitecture
     ? new THREE.CylinderGeometry(0.25, 0.32, 0.065, 8)
     : null;
-  const spawnSocketPlateGeometry = arcRelayPad && emberForge
+  const spawnSocketPlateGeometry = arcRelayPad && arcArchitecture
     ? new THREE.CylinderGeometry(0.19, 0.22, 0.024, 8)
     : null;
-  const spawnSocketSignalGeometry = arcRelayPad && emberForge
+  const spawnSocketSignalGeometry = arcRelayPad && arcArchitecture
     ? new THREE.BoxGeometry(0.16, 0.018, 0.035)
     : null;
   if (
@@ -762,10 +766,9 @@ function buildSpawnPads(
       if (!arcRelayPad) pad.add(hatches);
 
       // Arc Relay returns each stable slot to an authored anchor within its
-      // broader home. Ember makes those exact anchors physical: low octagonal
-      // casting sockets without outlining the broad home region. A dark
-      // octagonal lift plate and one small directional status lamp replace
-      // the previous bright ring, which read as a dropped-item tile.
+      // broader home. Hard-surface themes make those exact anchors physical:
+      // low octagonal sockets without outlining the broad home region. One
+      // small directional status lamp carries team identity.
       let socketSignalMaterial: THREE.MeshStandardMaterial | null = null;
       if (
         spawnSocketGeometry &&
@@ -776,14 +779,14 @@ function buildSpawnPads(
           home.protectedSpawnPad.map((tile) => `${tile.x}:${tile.y}`),
         );
         const socketBodyMaterial = new THREE.MeshStandardMaterial({
-          color: '#2c2c31',
+          color: lumenBastion ? '#d7dbe1' : '#2c2c31',
           roughness: 0.64,
-          metalness: 0.72,
+          metalness: lumenBastion ? 0.28 : 0.72,
         });
         const socketPlateMaterial = new THREE.MeshStandardMaterial({
-          color: '#494348',
+          color: lumenBastion ? '#f0f1f3' : '#494348',
           roughness: 0.72,
-          metalness: 0.58,
+          metalness: lumenBastion ? 0.16 : 0.58,
         });
         socketSignalMaterial = new THREE.MeshStandardMaterial({
           color: '#a63b4b',
@@ -2043,29 +2046,32 @@ function buildArcRelayStory(
   const group = new THREE.Group();
   group.userData.kind = 'arc-relay-story';
   const emberForge = themeId === 'ember-forge';
+  const lumenBastion = themeId === 'lumen-bastion';
+  const arcArchitecture = emberForge || lumenBastion;
   const arcRules =
     replay.contract.kind === 'v3-generic' &&
     replay.contract.rawContract.rules.gameMode.kind === 'arc-relay'
       ? replay.contract.rawContract.rules.gameMode
       : null;
+  const currentArcStoryAt = createPresenter(replay).at;
 
   const wellGeometry = new THREE.CylinderGeometry(
-    emberForge ? 0.28 : 0.31,
-    emberForge ? 0.4 : 0.38,
-    emberForge ? 0.14 : 0.09,
-    emberForge ? 12 : 24,
+    arcArchitecture ? 0.28 : 0.31,
+    arcArchitecture ? 0.4 : 0.38,
+    arcArchitecture ? 0.14 : 0.09,
+    arcArchitecture ? 12 : 24,
   );
   const wellRingGeometry = new THREE.RingGeometry(
-    emberForge ? 0.4 : 0.39,
-    emberForge ? 0.49 : 0.47,
-    emberForge ? 16 : 32,
+    arcArchitecture ? 0.4 : 0.39,
+    arcArchitecture ? 0.49 : 0.47,
+    arcArchitecture ? 16 : 32,
   );
   wellRingGeometry.rotateX(-Math.PI / 2);
   const reactorGeometry = new THREE.CylinderGeometry(
     0.38,
     0.46,
-    emberForge ? 0.22 : 0.18,
-    emberForge ? 12 : 28,
+    arcArchitecture ? 0.22 : 0.18,
+    arcArchitecture ? 12 : 28,
   );
   const reactorRingGeometry = new THREE.TorusGeometry(0.49, 0.035, 8, 36);
   reactorRingGeometry.rotateX(Math.PI / 2);
@@ -2083,7 +2089,7 @@ function buildArcRelayStory(
   sourceDiamondGeometry.rotateY(Math.PI / 4);
   const sourceCircleGeometry = new THREE.TorusGeometry(0.13, 0.028, 7, 24);
   sourceCircleGeometry.rotateX(Math.PI / 2);
-  const reactorPylonGeometry = emberForge
+  const reactorPylonGeometry = arcArchitecture
     ? new THREE.CylinderGeometry(0.055, 0.1, 0.38, 6)
     : new THREE.BoxGeometry(0.09, 0.38, 0.09);
   const forgeWellClampGeometry = new THREE.BoxGeometry(0.13, 0.15, 0.11);
@@ -2114,22 +2120,22 @@ function buildArcRelayStory(
   // so the pad only has to say "this is where that happens".
   const healPulseMaterials: THREE.Material[] = [];
   {
-    const padGeometry = emberForge
+    const padGeometry = arcArchitecture
       ? new THREE.CylinderGeometry(0.34, 0.43, 0.1, 12)
       : new THREE.CircleGeometry(0.34, 28).rotateX(-Math.PI / 2);
-    const padRingGeometry = emberForge
+    const padRingGeometry = arcArchitecture
       ? new THREE.TorusGeometry(0.3, 0.035, 6, 16).rotateX(Math.PI / 2)
       : new THREE.RingGeometry(0.36, 0.43, 28).rotateX(-Math.PI / 2);
-    const coolantGeometry = emberForge
+    const coolantGeometry = arcArchitecture
       ? new THREE.CylinderGeometry(0.235, 0.255, 0.035, 12)
       : null;
-    const healClampGeometry = emberForge
+    const healClampGeometry = arcArchitecture
       ? new THREE.BoxGeometry(0.12, 0.1, 0.13)
       : null;
     const crossBarGeometry = new THREE.BoxGeometry(
-      emberForge ? 0.25 : 0.3,
-      emberForge ? 0.035 : 0.012,
-      emberForge ? 0.075 : 0.09,
+      arcArchitecture ? 0.25 : 0.3,
+      arcArchitecture ? 0.035 : 0.012,
+      arcArchitecture ? 0.075 : 0.09,
     );
     disposables.push(padGeometry, padRingGeometry, crossBarGeometry);
     if (coolantGeometry && healClampGeometry)
@@ -2137,11 +2143,11 @@ function buildArcRelayStory(
     for (const tile of replay.map.regions
       .filter((region) => region.regionId.startsWith('heal-'))
       .flatMap((region) => region.tiles)) {
-      const padMaterial = emberForge
+      const padMaterial = arcArchitecture
         ? new THREE.MeshStandardMaterial({
-            color: '#242a2b',
+            color: lumenBastion ? '#dce4e1' : '#242a2b',
             emissive: '#123e2b',
-            emissiveIntensity: 0.34,
+            emissiveIntensity: lumenBastion ? 0.12 : 0.34,
             roughness: 0.62,
             metalness: 0.48,
             transparent: true,
@@ -2154,7 +2160,7 @@ function buildArcRelayStory(
             opacity: 0.55,
             depthWrite: false,
           });
-      const ringMaterial = emberForge
+      const ringMaterial = arcArchitecture
         ? new THREE.MeshStandardMaterial({
             color: '#4ade80',
             emissive: '#35a85e',
@@ -2172,23 +2178,23 @@ function buildArcRelayStory(
             depthWrite: false,
           });
       const crossMaterial = new THREE.MeshBasicMaterial({
-        color: new THREE.Color(emberForge ? '#b7f2c8' : '#86efac'),
+        color: new THREE.Color(arcArchitecture ? '#b7f2c8' : '#86efac'),
         transparent: true,
-        opacity: emberForge ? 0.86 : 0.8,
+        opacity: arcArchitecture ? 0.86 : 0.8,
         depthWrite: false,
       });
-      const coolantMaterial = emberForge
+      const coolantMaterial = arcArchitecture
         ? new THREE.MeshStandardMaterial({
-            color: '#173e2c',
+            color: lumenBastion ? '#b9dcc7' : '#173e2c',
             emissive: '#35a85e',
             emissiveIntensity: 0.72,
             roughness: 0.34,
             metalness: 0.32,
           })
         : null;
-      const clampMaterial = emberForge
+      const clampMaterial = arcArchitecture
         ? new THREE.MeshStandardMaterial({
-            color: '#6b2a35',
+            color: lumenBastion ? '#b6bec8' : '#6b2a35',
             roughness: 0.58,
             metalness: 0.7,
           })
@@ -2203,7 +2209,7 @@ function buildArcRelayStory(
       pad.position.set(tile.x + 0.5, 0.018, tile.y + 0.5);
       pad.add(new THREE.Mesh(padGeometry, padMaterial));
       const collar = new THREE.Mesh(padRingGeometry, ringMaterial);
-      collar.position.y = emberForge ? 0.102 : 0;
+      collar.position.y = arcArchitecture ? 0.102 : 0;
       pad.add(collar);
       if (
         coolantGeometry &&
@@ -2228,10 +2234,10 @@ function buildArcRelayStory(
         }
       }
       const alongX = new THREE.Mesh(crossBarGeometry, crossMaterial);
-      alongX.position.y = emberForge ? 0.125 : 0.012;
+      alongX.position.y = arcArchitecture ? 0.125 : 0.012;
       const alongZ = new THREE.Mesh(crossBarGeometry, crossMaterial);
       alongZ.rotation.y = Math.PI / 2;
-      alongZ.position.y = emberForge ? 0.125 : 0.012;
+      alongZ.position.y = arcArchitecture ? 0.125 : 0.012;
       pad.add(alongX);
       pad.add(alongZ);
       group.add(pad);
@@ -2256,14 +2262,14 @@ function buildArcRelayStory(
       rig.userData.kind = 'arc-relay-well';
       rig.userData.themeId = themeId;
       const bodyMaterial = new THREE.MeshStandardMaterial({
-        color: emberForge ? '#2b2629' : '#1b2732',
-        emissive: emberForge ? '#a63b2f' : '#dceaf2',
-        emissiveIntensity: emberForge ? 0.24 : 0.35,
-        roughness: emberForge ? 0.62 : 0.45,
-        metalness: emberForge ? 0.72 : 0.65,
+        color: lumenBastion ? '#e4e7eb' : emberForge ? '#2b2629' : '#1b2732',
+        emissive: lumenBastion ? '#d9ddff' : emberForge ? '#a63b2f' : '#dceaf2',
+        emissiveIntensity: arcArchitecture ? 0.24 : 0.35,
+        roughness: arcArchitecture ? 0.62 : 0.45,
+        metalness: lumenBastion ? 0.24 : emberForge ? 0.72 : 0.65,
       });
       const ringMaterial = new THREE.MeshBasicMaterial({
-        color: emberForge ? '#ff9d68' : '#e5f1f7',
+        color: lumenBastion ? '#f4f3ff' : emberForge ? '#ff9d68' : '#e5f1f7',
         transparent: true,
         opacity: 0.65,
         depthWrite: false,
@@ -2271,7 +2277,7 @@ function buildArcRelayStory(
         side: THREE.DoubleSide,
       });
       const body = new THREE.Mesh(wellGeometry, bodyMaterial);
-      body.position.y = emberForge ? 0.07 : 0.045;
+      body.position.y = arcArchitecture ? 0.07 : 0.045;
       const fallback = new THREE.Group();
       fallback.userData.kind = 'arc-relay-well-fallback';
       fallback.add(body);
@@ -2279,7 +2285,7 @@ function buildArcRelayStory(
       ring.position.y = 0.025;
       const progressGeometry = captureProgressGeometry(0.51, 0.575);
       const progressMaterial = new THREE.MeshBasicMaterial({
-        color: emberForge ? '#ffb078' : '#edf5fb',
+        color: lumenBastion ? '#ffffff' : emberForge ? '#ffb078' : '#edf5fb',
         transparent: true,
         opacity: 0,
         depthWrite: false,
@@ -2302,9 +2308,9 @@ function buildArcRelayStory(
         return mesh;
       });
       rig.add(fallback, ring, progress);
-      if (emberForge) {
+      if (arcArchitecture) {
         const trimMaterial = new THREE.MeshStandardMaterial({
-          color: '#a63b4b',
+          color: lumenBastion ? '#b8c0cc' : '#a63b4b',
           roughness: 0.55,
           metalness: 0.68,
         });
@@ -2388,11 +2394,11 @@ function buildArcRelayStory(
       rig.userData.themeId = themeId;
       let disposed = false;
       const material = new THREE.MeshStandardMaterial({
-        color: emberForge ? '#2a2529' : '#101820',
-        emissive: emberForge ? '#8f3241' : '#64748b',
-        emissiveIntensity: emberForge ? 0.34 : 0.45,
-        roughness: emberForge ? 0.58 : 0.38,
-        metalness: emberForge ? 0.78 : 0.72,
+        color: lumenBastion ? '#dfe3e8' : emberForge ? '#2a2529' : '#101820',
+        emissive: lumenBastion ? '#d9ddff' : emberForge ? '#8f3241' : '#64748b',
+        emissiveIntensity: arcArchitecture ? 0.34 : 0.45,
+        roughness: arcArchitecture ? 0.58 : 0.38,
+        metalness: lumenBastion ? 0.28 : emberForge ? 0.78 : 0.72,
       });
       const ringMaterial = new THREE.MeshBasicMaterial({
         transparent: true,
@@ -2403,7 +2409,7 @@ function buildArcRelayStory(
       const fallback = new THREE.Group();
       fallback.userData.kind = 'arc-relay-reactor-fallback';
       const body = new THREE.Mesh(reactorGeometry, material);
-      body.position.y = emberForge ? 0.11 : 0.09;
+      body.position.y = arcArchitecture ? 0.11 : 0.09;
       const ring = new THREE.Mesh(reactorRingGeometry, ringMaterial);
       ring.position.y = 0.055;
       ring.scale.setScalar(1.7);
@@ -2566,13 +2572,166 @@ function buildArcRelayStory(
     return cores[index]!;
   };
 
+  type CoreTransitionKind = 'pickup' | 'handoff' | 'drop' | 'bank';
+  interface CoreTransition {
+    coreKey: string;
+    kind: CoreTransitionKind;
+    sourceWellId: string;
+    sourceActor: ReplayActorIdentity | null;
+    targetActor: ReplayActorIdentity | null;
+    position: ReplayPosition;
+  }
+
+  const coreKey = (coreId: { sourceWellId: string; sourceOrdinal: number }) =>
+    `${coreId.sourceWellId}:${coreId.sourceOrdinal}`;
+  const coreTransitionsAt = (tickIndex: number): CoreTransition[] => {
+    const tick = replay.ticks[tickIndex];
+    const result: CoreTransition[] = [];
+    for (const event of [
+      ...(tick?.lifecycleEvents ?? []),
+      ...(tick?.events ?? []),
+    ]) {
+      const fact = event.arcRelayFact;
+      if (!fact) continue;
+      const transition = coreTransition(fact);
+      if (transition) result.push(transition);
+    }
+    return result;
+  };
+  const coreTransition = (fact: ReplayArcRelayFact): CoreTransition | null => {
+    switch (fact.kind) {
+      case 'core-picked-up':
+        return {
+          coreKey: coreKey(fact.coreId),
+          kind: 'pickup',
+          sourceWellId: fact.coreId.sourceWellId,
+          sourceActor: null,
+          targetActor: fact.carrierActor,
+          position: fact.position,
+        };
+      case 'core-handed-off':
+        return {
+          coreKey: coreKey(fact.coreId),
+          kind: 'handoff',
+          sourceWellId: fact.coreId.sourceWellId,
+          sourceActor: fact.sourceActor,
+          targetActor: fact.targetActor,
+          position: fact.position,
+        };
+      case 'core-dropped':
+        // Arc Toss owns its longer ballistic departure and landing. The generic custody
+        // grammar handles ordinary voluntary/destruction drops only.
+        if (fact.dropKind === 'signature-departure' ||
+            fact.dropKind === 'arc-toss-landing') return null;
+        return {
+          coreKey: coreKey(fact.coreId),
+          kind: 'drop',
+          sourceWellId: fact.coreId.sourceWellId,
+          sourceActor: fact.sourceActor,
+          targetActor: null,
+          position: fact.position,
+        };
+      case 'core-banked':
+        return {
+          coreKey: coreKey(fact.coreId),
+          kind: 'bank',
+          sourceWellId: fact.coreId.sourceWellId,
+          sourceActor: fact.carrierActor,
+          targetActor: null,
+          position: fact.position,
+        };
+      default:
+        return null;
+    }
+  };
+
+  const posePoint = (
+    actor: ReplayActorIdentity | null,
+    actorPoses: ReturnType<typeof posesAt>,
+  ): THREE.Vector3 | null => {
+    if (!actor) return null;
+    const pose = actorPoses.find((candidate) => candidate.actorKey === actor.actorKey);
+    return pose ? new THREE.Vector3(pose.x + 0.5, 1.18, pose.y + 0.5) : null;
+  };
+
+  const snapshotActorPoint = (
+    actor: ReplayActorIdentity | null,
+    tickIndex: number,
+    side: 'before' | 'after',
+  ): THREE.Vector3 | null => {
+    if (!actor) return null;
+    const state = replay.ticks[tickIndex]?.[side].actors.find(
+      (candidate) => candidate.actorKey === actor.actorKey,
+    );
+    return state
+      ? new THREE.Vector3(state.position.x + 0.5, 1.18, state.position.y + 0.5)
+      : null;
+  };
+
+  const easeCore = (value: number): number => {
+    const t = Math.max(0, Math.min(1, value));
+    return t < 0.5 ? 4 * t ** 3 : 1 - (-2 * t + 2) ** 3 / 2;
+  };
+
+  /** Small deterministic phase for Core idle motion, independent of pooled draw order. */
+  const coreMotionPhase = (key: string): number => {
+    let hash = 0;
+    for (const character of key) hash = (hash * 31 + character.charCodeAt(0)) >>> 0;
+    return (hash % 6283) / 1000;
+  };
+
+  const carriedCoreHeight = (key: string, time: number): number =>
+    1.18 + Math.sin(time * 2.4 + coreMotionPhase(key)) * 0.035;
+
+  const paintCoreInMotion = (
+    rig: CoreRig,
+    sourceWellId: string,
+    position: THREE.Vector3,
+    scale: number,
+    carried: boolean,
+    pulse: number,
+    time: number,
+    originTinted = carried,
+  ) => {
+    const accent = arcOriginAccent(sourceWellId);
+    rig.group.visible = true;
+    rig.group.position.set(position.x, 0, position.z);
+    rig.gem.position.set(0, position.y, 0);
+    rig.gem.rotation.y = time * 0.45;
+    rig.gem.scale.setScalar(scale);
+    rig.glow.position.copy(rig.gem.position);
+    rig.light.position.copy(rig.gem.position);
+    rig.glow.scale.setScalar((0.72 + pulse * 0.05) * scale);
+    if (originTinted) {
+      rig.gemMaterial.color.set(accent).multiplyScalar(0.5);
+      rig.gemMaterial.emissive.set(accent);
+      rig.glowMaterial.color.set(accent);
+      rig.light.color.set(accent);
+    } else {
+      rig.gemMaterial.color.set(ARC_CORE_NEUTRAL_PALETTE.body);
+      rig.gemMaterial.emissive.set(ARC_CORE_NEUTRAL_PALETTE.emissive);
+      rig.glowMaterial.color.set(ARC_CORE_NEUTRAL_PALETTE.glow);
+      rig.light.color.set(ARC_CORE_NEUTRAL_PALETTE.light);
+    }
+    rig.gemMaterial.emissiveIntensity = originTinted ? 0.8 : 0.7;
+    rig.glowMaterial.opacity = 0.15 + pulse * 0.07;
+    rig.light.intensity = originTinted ? 2.2 + pulse * 0.6 : 1.6 + pulse * 0.4;
+    rig.beam.visible = carried;
+    rig.beamMaterial.color.set(accent);
+    rig.beamMaterial.opacity = carried ? 0.055 + pulse * 0.045 : 0;
+    for (const sourceGlyph of rig.sourceGlyphs) sourceGlyph.visible = false;
+  };
+
   // The declared strike's cone plates are GONE (owner ruling 2026-08): the
   // tracking ray of #215 says the same thing without blinking a wedge of
   // tiles at the spectator, so the windup reads as one line to one body and
   // the red slash owns the landing. `buildStrikeAims` is the whole windup
   // read now; the frozen wedge stays a wire fact, not a floor decal.
 
-  const update = (presentation: TickPresentation, time: number) => {
+  const update = (
+    presentation: TickPresentation,
+    time: number,
+  ) => {
     const story = presentation.arcRelay;
     group.visible = story !== null;
     if (!story) return;
@@ -2589,16 +2748,16 @@ function buildArcRelayStory(
       rig.group.position.set(state.position.x + 0.5, 0, state.position.y + 0.5);
       const pulse = 0.5 + 0.5 * Math.sin(time * Math.PI * 1.6 + index);
       const sourceAccent = arcOriginAccent(state.wellId);
-      if (emberForge)
+      if (arcArchitecture)
         rig.ringMaterial.color
           .set(sourceAccent)
-          .lerp(new THREE.Color('#ff9560'), 0.48);
+          .lerp(new THREE.Color(lumenBastion ? '#f0efff' : '#ff9560'), 0.48);
       rig.ring.rotation.y = time * 0.35 * (index % 2 === 0 ? 1 : -1);
       rig.ring.scale.setScalar(1 + pulse * 0.08);
       rig.ringMaterial.opacity = state.outstanding ? 0.28 : 0.55 + pulse * 0.28;
       rig.bodyMaterial.emissiveIntensity = state.outstanding
-        ? emberForge ? 0.12 : 0.15
-        : emberForge ? 0.42 : 0.38;
+        ? arcArchitecture ? 0.12 : 0.15
+        : arcArchitecture ? 0.42 : 0.38;
       const schedule = arcRules?.wells?.find(
         (candidate) => candidate.wellId === state.wellId,
       );
@@ -2631,10 +2790,10 @@ function buildArcRelayStory(
       rig.progressMaterial.opacity = birthProgress > 0
         ? 0.68 + pulse * 0.24
         : 0;
-      if (emberForge)
+      if (arcArchitecture)
         rig.progressMaterial.color
           .set(sourceAccent)
-          .lerp(new THREE.Color('#ffd0a5'), 0.62);
+          .lerp(new THREE.Color(lumenBastion ? '#ffffff' : '#ffd0a5'), 0.62);
       rig.progress.userData.progress = birthProgress;
       rig.progress.userData.nextBirthTick = state.nextBirthTick;
       rig.progress.userData.phase = scheduledProgress > 0
@@ -2662,6 +2821,8 @@ function buildArcRelayStory(
       rig.group.rotation.y = state.position.x < replay.map.width / 2 ? 0 : Math.PI;
       rig.material.emissive.set(state.accent);
       rig.ringMaterial.color.set(state.accent);
+      // Bank flashes are sampled from the playhead, not retained renderer state.
+      rig.ringMaterial.opacity = 0.75;
       const entrant = entrants?.find((value) => value.teamId === state.teamId);
       if (entrant) {
         const material = rig.crest.material as THREE.MeshBasicMaterial;
@@ -2698,13 +2859,32 @@ function buildArcRelayStory(
       reactors[index]!.group.visible = false;
 
     const actorPoses = posesAt(replay, time);
-    for (const [index, state] of story.cores.entries()) {
-      const rig = core(index);
+    const tickIndex = Math.max(0, Math.min(Math.floor(time), replay.ticks.length - 1));
+    const tickFraction = Math.max(0, Math.min(1, time - tickIndex));
+    const custody = coreTransitionsAt(tickIndex);
+    const currentStory = currentArcStoryAt(tickIndex).arcRelay;
+    const activeFlights = currentStory?.cores.filter(
+      (candidate) => candidate.disposition === 'in-flight' &&
+        candidate.flightStartedAtTick !== null &&
+        candidate.flightCompletesAtTick !== null &&
+        time >= candidate.flightStartedAtTick &&
+        time < candidate.flightCompletesAtTick,
+    ) ?? [];
+    const suppressedCoreKeys = new Set([
+      ...activeFlights.map((flight) => flight.key),
+      ...custody.map((transition) => transition.coreKey),
+    ]);
+    let usedCoreRigs = 0;
+    for (const state of story.cores) {
+      if (suppressedCoreKeys.has(state.key)) continue;
+      const rig = core(usedCoreRigs++);
+      rig.group.userData.coreKey = state.key;
+      rig.group.userData.coreMotion = 'settled';
       const carried = state.disposition === 'carried';
       // The lane owns the sphere (owner ruling 2026-08-05): a Core reads as
       // its origin wherever it is.
       const accent = arcOriginAccent(state.sourceWellId);
-      const pulse = 0.5 + 0.5 * Math.sin(time * Math.PI * 2.1 + index * 1.7);
+      const pulse = 0.5 + 0.5 * Math.sin(time * Math.PI * 2.1 + usedCoreRigs * 1.7);
       const carrier = carried && state.carrierUnitKey !== null
         ? actorPoses.find((pose) => pose.unitKey === state.carrierUnitKey)
         : null;
@@ -2736,10 +2916,10 @@ function buildArcRelayStory(
       rig.gem.position.set(
         0,
         carried
-          ? 1.18 + Math.sin(time * 2.4 + index) * 0.035
+          ? carriedCoreHeight(state.key, time)
           : inFlight
             ? 0.4 + flightArc * 1.12
-          : 0.4 + Math.sin(time * 2 + index) * 0.025,
+          : 0.4 + Math.sin(time * 2 + usedCoreRigs) * 0.025,
         0,
       );
       rig.gem.rotation.y = time * 0.45;
@@ -2805,7 +2985,158 @@ function buildArcRelayStory(
         sourceGlyph.rotation.y = -time * 1.1;
       }
     }
-    for (let index = story.cores.length; index < cores.length; index++)
+    // Arc Toss changes the public Core to in-flight at tick start, while ordinary
+    // possession snapshots intentionally settle late. Paint the current in-flight state
+    // immediately so the same sphere starts at its carried height instead of appearing
+    // as a small ground marker until 85% of the launch tick.
+    for (const arcTossFlight of activeFlights) {
+      const rig = core(usedCoreRigs++);
+      rig.group.userData.coreKey = arcTossFlight.key;
+      rig.group.userData.coreMotion = 'arc-toss';
+      const source = new THREE.Vector3(
+        arcTossFlight.position.x + 0.5,
+        1.18,
+        arcTossFlight.position.y + 0.5,
+      );
+      const target = arcTossFlight.flightTarget ?? arcTossFlight.position;
+      const progress = easeCore(
+        (time - arcTossFlight.flightStartedAtTick!) /
+          Math.max(
+            1,
+            arcTossFlight.flightCompletesAtTick! -
+              arcTossFlight.flightStartedAtTick!,
+          ),
+      );
+      const position = new THREE.Vector3(
+        source.x + (target.x + 0.5 - source.x) * progress,
+        source.y + (0.4 - source.y) * progress +
+          Math.sin(progress * Math.PI) * 0.94,
+        source.z + (target.y + 0.5 - source.z) * progress,
+      );
+      paintCoreInMotion(
+        rig,
+        arcTossFlight.sourceWellId,
+        position,
+        1 + Math.sin(progress * Math.PI) * 0.22,
+        false,
+        0.5 + 0.5 * Math.sin(time * Math.PI * 2.1),
+        time,
+        // Tossing relinquishes custody mechanically, but it is still the same visible
+        // Core the carrier was holding. Keep its origin-lane treatment through flight
+        // without retaining the carrier tether; loose presentation resumes on landing.
+        true,
+      );
+    }
+    for (const transition of custody) {
+      const rig = core(usedCoreRigs++);
+      rig.group.userData.coreKey = transition.coreKey;
+      rig.group.userData.coreMotion = transition.kind;
+      // Pickup is a levitation gesture, not a discrete state swap. The shared 85% state
+      // cutoff plus cubic easing packed most of the ascent into two or three frames and
+      // then held it at carrier height, which read as a snap. Let this one visual bridge
+      // use its whole public tick with a gentler smoothstep; the authoritative custody
+      // still changes on exactly the same engine fact and every other transition keeps
+      // the shared settle boundary.
+      const settledProgress = transition.kind === 'pickup'
+        ? tickFraction * tickFraction * (3 - 2 * tickFraction)
+        : easeCore(tickFraction / STATE_SETTLES_AT);
+      const beforeCore = replay.ticks[tickIndex]?.before.mode?.kind === 'arc-relay' &&
+          'visibleCores' in replay.ticks[tickIndex]!.before.mode
+        ? replay.ticks[tickIndex]!.before.mode.visibleCores.find(
+            (candidate) => coreKey(candidate.coreId) === transition.coreKey,
+          )
+        : null;
+      const ground = new THREE.Vector3(
+        transition.position.x + 0.5,
+        0.4,
+        transition.position.y + 0.5,
+      );
+      // A loose Core may have drifted since the event position was authored, so its
+      // visible pre-pickup tile is the honest launch point. An in-flight Core is
+      // different: Arc Toss deliberately keeps its launch tile in the public snapshot
+      // until the landing fact. Reusing that stale position here made the landed sphere
+      // fly the whole route a second time before reaching its ally.
+      if (
+        beforeCore?.disposition === 'loose' &&
+        transition.kind === 'pickup'
+      ) {
+        ground.set(
+          beforeCore.position.x + 0.5,
+          0.4,
+          beforeCore.position.y + 0.5,
+        );
+      }
+      const eventActorPosition = new THREE.Vector3(
+        transition.position.x + 0.5,
+        1.18,
+        transition.position.y + 0.5,
+      );
+      const source = transition.sourceActor
+        ? snapshotActorPoint(transition.sourceActor, tickIndex, 'before') ??
+          eventActorPosition
+        : transition.kind !== 'pickup' && beforeCore?.carrierActor
+          ? new THREE.Vector3(
+              beforeCore.position.x + 0.5,
+              1.18,
+              beforeCore.position.y + 0.5,
+            )
+          : ground;
+      const target = transition.kind === 'bank'
+        ? new THREE.Vector3(ground.x, 0.23, ground.z)
+        : transition.kind === 'pickup' && transition.targetActor
+          // The bot renderer deliberately glides across occupancy boundaries instead of
+          // snapping to the tick's `after` tile. Pickup has to meet that same rendered
+          // body, otherwise the Core finishes above the authoritative tile and jumps up
+          // to half a tile when custody becomes the ordinary carried state.
+          ? posePoint(transition.targetActor, actorPoses) ??
+            snapshotActorPoint(transition.targetActor, tickIndex, 'after') ??
+            eventActorPosition
+        : transition.targetActor
+          ? snapshotActorPoint(transition.targetActor, tickIndex, 'after') ??
+            posePoint(transition.targetActor, actorPoses) ?? eventActorPosition
+          : ground;
+      const position = new THREE.Vector3().lerpVectors(source, target, settledProgress);
+      const levitation = transition.kind === 'bank'
+        ? Math.sin(settledProgress * Math.PI) * 0.42
+        : Math.sin(settledProgress * Math.PI) * 0.28;
+      position.y += levitation;
+      if (transition.kind === 'pickup') {
+        // Join the exact stable carried hover at the boundary. Applying the bob across
+        // the whole ascent would move the floor contact; weighting it by pickup progress
+        // keeps the start planted while making the final frame continuous.
+        position.y +=
+          (carriedCoreHeight(transition.coreKey, time) - 1.18) * settledProgress;
+      }
+      const scale = transition.kind === 'bank'
+        ? Math.max(0.08, 1 - settledProgress ** 2 * 0.92)
+        : 1 + Math.sin(settledProgress * Math.PI) * 0.12;
+      const carried = transition.kind === 'handoff' ||
+        (transition.kind === 'pickup' && settledProgress > 0.5) ||
+        (transition.kind === 'drop' && settledProgress < 0.5) ||
+        transition.kind === 'bank';
+      paintCoreInMotion(
+        rig,
+        transition.sourceWellId,
+        position,
+        scale,
+        carried,
+        0.5 + 0.5 * Math.sin(time * Math.PI * 2.1),
+        time,
+      );
+      if (transition.kind === 'bank') {
+        const reactor = reactors.find((candidate) =>
+          candidate.group.position.distanceToSquared(
+            new THREE.Vector3(target.x, 0, target.z),
+          ) < 0.01,
+        );
+        if (reactor)
+          reactor.ringMaterial.opacity = Math.max(
+            reactor.ringMaterial.opacity,
+            Math.sin(settledProgress * Math.PI) * 0.78,
+          );
+      }
+    }
+    for (let index = usedCoreRigs; index < cores.length; index++)
       cores[index]!.group.visible = false;
   };
 
@@ -3091,6 +3422,7 @@ function buildStrikeAims(
   disposables: { dispose: () => void }[],
 ): { group: THREE.Group; update: (time: number) => void } {
   const group = new THREE.Group();
+  group.userData.kind = 'strike-aims';
   const geometry = new THREE.PlaneGeometry(1, 0.07);
   geometry.rotateX(-Math.PI / 2);
   disposables.push(geometry);
@@ -3108,6 +3440,7 @@ function buildStrikeAims(
       const mesh = new THREE.Mesh(geometry, material);
       mesh.visible = false;
       mesh.position.y = 0.045;
+      mesh.userData.kind = 'strike-aim';
       group.add(mesh);
       pool.push(mesh);
       disposables.push(material);
@@ -3117,7 +3450,29 @@ function buildStrikeAims(
 
   const update = (time: number) => {
     let used = 0;
+    const tickIndex = Math.max(
+      0,
+      Math.min(Math.floor(time), replay.ticks.length - 1),
+    );
+    const mode = replay.ticks[tickIndex]?.after.mode;
+    const signatureOwnedAims = mode?.kind === 'arc-relay' &&
+        'visibleSignatures' in mode
+      ? new Set(
+          mode.visibleSignatures
+            .filter(
+              (signature) =>
+                signature.phase === 'tell' &&
+                (signature.signatureId === 'tractor-hook' ||
+                  signature.signatureId === 'rail-line'),
+            )
+            .map((signature) => signature.ownerActor.actorKey),
+        )
+      : new Set<string>();
     for (const aim of strikeAimsAt(replay, time)) {
+      // Hook and Rail already paint their complete public tell. Their underlying launch
+      // also occupies pendingStrikes, but drawing the generic coral attack ray on top
+      // creates two vertically separated lanes for one operation.
+      if (signatureOwnedAims.has(aim.shooterActorKey)) continue;
       if (!aim.target) continue;
       const fromX = aim.origin.x + 0.5;
       const fromZ = aim.origin.y + 0.5;

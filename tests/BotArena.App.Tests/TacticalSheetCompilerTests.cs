@@ -17,10 +17,14 @@ public sealed class TacticalSheetCompilerTests
         IReadOnlySet<string> unlocked = ArcRelayClassCatalog.Default.All
             .Select(value => value.Id).ToHashSet(StringComparer.Ordinal);
 
-        TacticalSheetSource stock = Assert.Single(templates.Stock);
+        TacticalSheetSource stock = templates.Stock[0];
         Assert.Equal(
             ArcRelayEntrantPlaylistDefinition.OrdersStockSheetId,
             stock.Id);
+        Assert.Equal(
+            [ArcRelayEntrantPlaylistDefinition.OrdersStockSheetId,
+             "hunter-tapline-v2"],
+            templates.Stock.Select(value => value.Id));
         foreach (TacticalSheetSource source in
                  new[] { templates.Template }.Concat(templates.Stock))
         {
@@ -126,5 +130,42 @@ public sealed class TacticalSheetCompilerTests
             StringComparison.OrdinalIgnoreCase);
         Assert.False(TacticalSheetCompiler.IsAdmissibleToCurrentPlaylist(
             wrongMapJson));
+    }
+
+    [Fact]
+    public void Hosted_compiler_rejects_a_route_waypoint_on_a_wall()
+    {
+        var templates = new TacticalSheetTemplateCatalog();
+        var compiler = new TacticalSheetCompiler(ArcRelayClassCatalog.Default);
+        IReadOnlySet<string> unlocked = ArcRelayClassCatalog.Default.All
+            .Select(value => value.Id).ToHashSet(StringComparer.Ordinal);
+        JsonObject orders = JsonNode.Parse(
+            templates.Template.OrdersJson)!.AsObject();
+        JsonObject mapPlan = JsonNode.Parse(
+            templates.Template.MapPlanJson)!.AsObject();
+        ActorMapDefinition map = ArcRelayH0Definition.CreateMap(
+            ArcRelayLoopProfile.Current);
+        Position wall = Enumerable.Range(0, map.Height)
+            .SelectMany(y => Enumerable.Range(0, map.Width)
+                .Select(x => new Position(x, y)))
+            .First(map.IsWall);
+
+        mapPlan["routes"]!["wall-route"] = new JsonObject
+        {
+            ["waypoints"] = new JsonArray
+            {
+                new JsonArray(wall.X, wall.Y),
+                new JsonArray(1, 1),
+            },
+        };
+        orders["roles"]![2]!["orders"]![3]!["move"]!["via"] =
+            "wall-route";
+
+        InvalidDataException error = Assert.Throws<InvalidDataException>(() =>
+            compiler.Compile(
+                orders.ToJsonString(), mapPlan.ToJsonString(), unlocked,
+                "wall-route"));
+
+        Assert.Contains("must be traversable", error.Message);
     }
 }

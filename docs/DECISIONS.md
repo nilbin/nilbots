@@ -8152,3 +8152,68 @@ durable execution job capability: a current worker must not run unfinished old
 jobs through today's tactical class and falsely label the result as historical.
 The current version alone is executable; outstanding work must be drained or
 explicitly migrated before a deployment advances it.
+
+## 304. Ordinary fight distance means reachable firing approach
+
+Owner-directed Orders v2 correction (2026-08-13). The body-local fact
+`self-nearest-visible-enemy-distance` no longer measures Chebyshev separation
+to an enemy. It measures the fewest legal movement steps from that body to a
+tile from which its class can attack any currently team-visible enemy. Static
+map geometry, protected regions, visible spawn reservations and visible active
+movement-blocking constructs are durable obstacles. Allied and hostile bodies
+remain transient traffic for the squad planner and never turn reachability
+false. An unseen construct cannot affect a decision until team observation
+publishes it.
+
+Fight target selection and movement-intent construction use the same exact
+reachable firing-ground set inside the authored episode anchor and chase
+limit. A target with no such tile is non-actionable: a later target preference
+wins, or the fight leaf yields to the next authored order with
+`after-*-no-actionable-target`. It may not enter a `fight-no-firing-ground`
+Wait after having claimed the body. This closes the owner-observed Tapline G2
+split in which one east-side body pursued while two bodies stood in their home
+Well under a fight label.
+
+## 305. Signature tells own their line, Sentinel Seed owns no cast-cover mesh, and pickup uses the full tick
+
+Owner 3D presentation correction (2026-08-13). A visible `tractor-hook` or
+`rail-line` tell owns the complete WebGL line read for its caster. The generic
+coral pending-strike tracking ray remains for ordinary wind-up attacks, but is
+suppressed in WebGL for that same caster while either signature tell is public.
+Tractor Hook itself paints one narrow team-tinted physical strand grown to the moving
+grapple head and retains that same strand through an observed pull; it has no
+additive underlay, dark-grey duplicate wire, spool, or target donut.
+
+Sentinel Seed uses Nest's authored whole-body plant pose as the complete tell.
+No procedural ring, socket, mote, pod, or seed shell may cover the caster; the
+one authored sentry appears only once the public phase is `active` and expands
+upward from floor contact. Its capacity, suppression, observed-shot yaw, and
+recall exit remain replay-owned and unchanged.
+
+Core pickup is the one custody transition that uses the complete public tick
+instead of the shared 85% discrete-state settle boundary. A gentle smoothstep
+levitates the one authoritative Core into the receiving hull, avoiding the
+mid-tick cubic acceleration and early hold that read as an upward snap. This is
+presentation only: custody facts, positions, ownership, mechanics, audio, drop,
+handoff, bank, and Arc Toss timing do not change.
+
+## 306. Sentinel keeps its seed read while Nest stays floor-safe; Hook is cable-only
+
+Owner 3D presentation correction (2026-08-13). The overlap reported during
+Sentinel Seed was Nest's monolithic body pose clipping its long nose into the
+floor, not the compact seed treatment. Restore the destination ring, socket,
+motes, and seed-to-sentry shell. Split Sentinel Seed from Trip Node's planting
+crouch: Nest keeps its forward press, gains slight upward clearance, and has no
+nose-down root pitch at any point in the public tell or its deterministic
+release. Mechanics, signature timing, and the promoted model are unchanged.
+
+This supersedes decision 305 only where it removed Sentinel's ring, socket,
+motes, and seed shell. Decision 305's generic line ownership, Hook color and
+duplicate-line removal, and full-tick Core pickup settle remain in force.
+
+Tractor Hook temporarily has no procedural grapple head or jaws. Its one
+narrow team-tinted cable extends along the locked line and stays attached to an
+observed pulled body; the generic strike ray, additive lane, dark duplicate,
+spool, target donut, and bulky front object remain absent. This is presentation
+only and does not remove or alter the authoritative grapple projectile,
+collision, pull, miss, or audio facts.

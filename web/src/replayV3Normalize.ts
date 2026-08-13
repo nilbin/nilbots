@@ -456,6 +456,28 @@ function validateContract(
               // Threefold Pulse prototype: per-origin sockets, written only
               // when true.
               ...(own(mode, 'threefoldSockets') ? ['threefoldSockets'] : []),
+              ...(own(mode, 'coreBaseValue') ? ['coreBaseValue'] : []),
+              ...(own(mode, 'ripenIntervalTicks')
+                ? ['ripenIntervalTicks', 'ripenMaxValue', 'ripenResumeTicks']
+                : []),
+              ...(own(mode, 'rearArcDamageMultiplier')
+                ? ['rearArcDamageMultiplier']
+                : []),
+              ...(own(mode, 'veterancyXpPerLevel')
+                ? ['veterancyXpPerLevel', 'veterancyMaxLevel']
+                : []),
+              ...(own(mode, 'seedPhasedResolutionOrder')
+                ? ['seedPhasedResolutionOrder']
+                : []),
+              ...(own(mode, 'seedPhasedWellLead')
+                ? ['seedPhasedWellLead']
+                : []),
+              ...(own(mode, 'chiralWellBirths')
+                ? ['chiralWellBirths']
+                : []),
+              ...(own(mode, 'healZoneTicksPerHp')
+                ? ['healZoneTicksPerHp']
+                : []),
               'wells',
               'signatures',
             ]
@@ -1173,6 +1195,111 @@ function validateContract(
         fail(`${modePath}.${key}`, 'must be positive');
       }
     }
+    for (const key of [
+      'signatureGrammarVersion',
+      'wellBirthJitterTicks',
+      'coreBaseValue',
+      'ripenIntervalTicks',
+      'ripenMaxValue',
+      'ripenResumeTicks',
+      'rearArcDamageMultiplier',
+      'veterancyXpPerLevel',
+      'veterancyMaxLevel',
+      'healZoneTicksPerHp',
+    ]) {
+      if (own(mode, key)) integer(mode[key], `${modePath}.${key}`, fail);
+    }
+    for (const key of [
+      'alternatingResolutionOrder',
+      'threefoldSockets',
+      'seedPhasedResolutionOrder',
+      'seedPhasedWellLead',
+      'chiralWellBirths',
+    ]) {
+      if (!own(mode, key)) continue;
+      boolean(mode[key], `${modePath}.${key}`, fail);
+      if (mode[key] !== true)
+        fail(`${modePath}.${key}`, 'must be omitted instead of emitted inert');
+    }
+    if (
+      own(mode, 'signatureGrammarVersion') &&
+      ![2, 3].includes(mode.signatureGrammarVersion as number)
+    )
+      fail(
+        `${modePath}.signatureGrammarVersion`,
+        'must be grammar 2 or 3 when emitted',
+      );
+    if (
+      own(mode, 'wellBirthJitterTicks') &&
+      (mode.wellBirthJitterTicks as number) <= 0
+    )
+      fail(
+        `${modePath}.wellBirthJitterTicks`,
+        'must be omitted instead of emitted inert',
+      );
+    if (
+      own(mode, 'coreBaseValue') &&
+      (mode.coreBaseValue as number) <= 1
+    )
+      fail(
+        `${modePath}.coreBaseValue`,
+        'must be omitted instead of emitted inert',
+      );
+    if (
+      own(mode, 'rearArcDamageMultiplier') &&
+      ((mode.rearArcDamageMultiplier as number) < 2 ||
+        (mode.rearArcDamageMultiplier as number) > 4)
+    )
+      fail(
+        `${modePath}.rearArcDamageMultiplier`,
+        'must be between 2 and 4 when emitted',
+      );
+    const coreBaseValue = own(mode, 'coreBaseValue')
+      ? (mode.coreBaseValue as number)
+      : 1;
+    if (
+      own(mode, 'ripenIntervalTicks') &&
+      ((mode.ripenIntervalTicks as number) <= 0 ||
+        (mode.ripenMaxValue as number) < coreBaseValue ||
+        (mode.ripenResumeTicks as number) < 0 ||
+        mode.threefoldSockets === true)
+    )
+      fail(`${modePath}.ripenIntervalTicks`, 'contains invalid ripening tuning');
+    if (
+      own(mode, 'veterancyXpPerLevel') &&
+      ((mode.veterancyXpPerLevel as number) <= 0 ||
+        (mode.veterancyMaxLevel as number) < 2)
+    )
+      fail(`${modePath}.veterancyXpPerLevel`, 'contains invalid veterancy tuning');
+    if (
+      own(mode, 'healZoneTicksPerHp') &&
+      (mode.healZoneTicksPerHp as number) <= 0
+    )
+      fail(
+        `${modePath}.healZoneTicksPerHp`,
+        'must be omitted instead of emitted inert',
+      );
+    if (
+      mode.seedPhasedResolutionOrder === true &&
+      mode.alternatingResolutionOrder !== true
+    )
+      fail(
+        `${modePath}.seedPhasedResolutionOrder`,
+        'requires alternating resolution order',
+      );
+    if (mode.chiralWellBirths === true && mode.seedPhasedWellLead === true)
+      fail(
+        `${modePath}.chiralWellBirths`,
+        'cannot be combined with seed-phased Well lead',
+      );
+    if (
+      (mode.maxCopiesPerClass as number) >
+      (mode.fieldedSlotsPerTeam as number)
+    )
+      fail(
+        `${modePath}.maxCopiesPerClass`,
+        'cannot exceed fielded slots per team',
+      );
     integer(
       victory.pulsesToDestroyReactor,
       `${victoryPath}.pulsesToDestroyReactor`,
@@ -1193,6 +1320,18 @@ function validateContract(
       nonEmpty(well.wellId, `${wellPath}.wellId`, fail);
       for (const key of ['firstBirthTick', 'cadenceTicks', 'finalBirthTick'])
         integer(well[key], `${wellPath}.${key}`, fail);
+      if (
+        own(mode, 'wellBirthJitterTicks') &&
+        (2 * (mode.wellBirthJitterTicks as number) >=
+          (well.cadenceTicks as number) ||
+          (well.firstBirthTick as number) -
+            (mode.wellBirthJitterTicks as number) <
+            1)
+      )
+        fail(
+          `${modePath}.wellBirthJitterTicks`,
+          'must keep each Well birth window disjoint and after tick zero',
+        );
     });
     const signatures = array(
       mode.signatures,
@@ -7072,7 +7211,17 @@ function validateV3Relationships(
       finalWorld.mode.kind === 'arc-relay' &&
       contract.rules.gameMode.kind === 'arc-relay'
     ) {
-      if (JSON.stringify(result.mode.state) !== JSON.stringify(finalWorld.mode)) {
+      // Declared strikes are session ephemera. The engine deliberately clears a
+      // windup still pending at the final horn from the terminal result while the
+      // last post-state retains the exact public tick fact.
+      const terminalArcState = own(finalWorld.mode, 'pendingStrikes')
+        ? Object.fromEntries(
+            Object.entries(finalWorld.mode).filter(
+              ([key]) => key !== 'pendingStrikes',
+            ),
+          )
+        : finalWorld.mode;
+      if (JSON.stringify(result.mode.state) !== JSON.stringify(terminalArcState)) {
         fail(
           'replay.result.mode.state',
           'must exactly match final authoritative Arc Relay state',

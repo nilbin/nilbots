@@ -230,6 +230,53 @@ public sealed class OrdersMovementSceneTests
     }
 
     [Fact]
+    public void G2BodiesWithoutReachableFiringGroundFallThroughInsteadOfHolding()
+    {
+        string root = FindRepoRoot();
+        TacticalPlaybookCompilation hunter = Compile(root, "hunter-tapline-v2.json");
+        TacticalPlaybookCompilation wellwright = Compile(
+            root, "wellwright-tapline-v2.json");
+        ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create(
+            hunter.Composition,
+            wellwright.Composition,
+            loopProfile: ArcRelayLoopProfile.Tapline3);
+
+        using var session = new GenericActorMatchSession(
+            definition,
+            [Participant(0, hunter), Participant(1, wellwright)],
+            matchSeed: 9002,
+            recordChronology: false);
+
+        int orderFallbacks = 0;
+        int noFiringGroundHolds = 0;
+        while (!session.IsCompleted)
+        {
+            GenericActorMatchStepResult step = session.Step();
+            foreach (GenericMindCommandResolution resolution in
+                     step.MindTurns.SelectMany(turn => turn.Commands))
+            {
+                string reason = resolution.Command.DebugMessage ?? "";
+                if (reason.Contains(
+                        "after-fight-visible-enemy-no-actionable-target",
+                        StringComparison.Ordinal))
+                    orderFallbacks++;
+                if (reason.Contains(
+                        "fight-no-firing-ground", StringComparison.Ordinal))
+                    noFiringGroundHolds++;
+            }
+        }
+
+        // Owner replay catch, gallery G2 around t247: three east-side bodies
+        // accepted the ordinary fight leaf, one closed while two stood in the
+        // south Well under fight-no-firing-ground. Target selection and intent
+        // planning now share exact reachable firing geometry, so such a body
+        // runs its next authored order instead of entering a false fight.
+        Assert.True(orderFallbacks > 0,
+            "The G2 scene never exercised combat-to-order fallback.");
+        Assert.Equal(0, noFiringGroundHolds);
+    }
+
+    [Fact]
     public void G3FollowerLeavesItsLeadersCourseClear()
     {
         string root = FindRepoRoot();

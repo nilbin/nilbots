@@ -27,6 +27,14 @@ import type {
   ArcSignatureWebGLPhase,
 } from './signatures/types';
 import { phaseProgress as signaturePhaseProgress } from './signatures/primitives';
+import {
+  centreStatusPips,
+  createStatusPipGeometry,
+  createStatusPipMaterial,
+  faceStatusElement,
+  orientStatusBib,
+  placeStatusBib,
+} from './statusBib';
 
 type Signature = ReplayArcRelayModeState['visibleSignatures'][number];
 const SIGNATURE_OUTCOME_LINGER_TICKS = 1.8;
@@ -102,6 +110,8 @@ interface SignaturePropSlot {
   }[];
   /** Hull indicators hovering over the prop; visibility follows remainingCapacity. */
   pips: THREE.Mesh[];
+  litPip: THREE.MeshBasicMaterial;
+  lostPip: THREE.MeshBasicMaterial;
   /** Separate from the prop group: turret yaw must not angle the pips. */
   pipGroup: THREE.Group;
   ready: boolean;
@@ -113,6 +123,45 @@ export const ARC_SIGNATURE_PROP_SCALE = {
   'sentinel-seed': 0.72,
   'survey-flare': 1.35,
 } as const;
+/** Stable air between a construct's scaled mesh and its independently bill-boarded bib. */
+export const CONSTRUCT_STATUS_BIB_GAP = 0.11;
+export const CONSTRUCT_STATUS_BIB_FALLBACK_HEIGHT = 0.38;
+
+/** Derive status placement from the actual loaded model, including its live deploy scale. */
+export function constructStatusBibHeight(
+  propGroup: THREE.Object3D,
+  model: THREE.Object3D | null,
+): number {
+  if (!model) return CONSTRUCT_STATUS_BIB_FALLBACK_HEIGHT;
+  propGroup.updateMatrixWorld(true);
+  const bounds = new THREE.Box3().setFromObject(model);
+  return Number.isFinite(bounds.max.y)
+    ? bounds.max.y + CONSTRUCT_STATUS_BIB_GAP
+    : CONSTRUCT_STATUS_BIB_FALLBACK_HEIGHT;
+}
+
+/** Construct hull is rules-owned; unknown future props conservatively retain one pip. */
+function signatureConstructHullById(replay: ReplayModel): Map<string, number> {
+  if (
+    replay.contract.kind !== 'v3-generic' ||
+    replay.contract.rawContract.rules.gameMode.kind !== 'arc-relay'
+  )
+    return new Map();
+  const signatures = replay.contract.rawContract.rules.gameMode.signatures;
+  // Early generation-3 broadcasts may omit the signature catalogue. Their cores and
+  // landmarks still render; they simply cannot contain a persistent signature prop.
+  if (!Array.isArray(signatures)) return new Map();
+  return new Map(
+    signatures.flatMap(
+      (signature) => {
+        const hull = signature.hull;
+        return typeof hull === 'number' && Number.isInteger(hull) && hull > 0
+          ? [[signature.signatureId, hull] as const]
+          : [];
+      },
+    ),
+  );
+}
 
 /** The sentry may acknowledge shots that have happened, but never pre-aim from future state. */
 export function latestObservedSignatureYaw(
@@ -158,6 +207,7 @@ export function buildArcRelayEffects(
   const signatureShotYaws = indexSignatureShotYaws(replay);
   const signaturePhaseStarts = indexSignaturePhaseStarts(replay);
   const signatureOutcomes = indexSignatureOutcomes(replay);
+  const constructHull = signatureConstructHullById(replay);
   const veterancy = arcVeterancyFor(replay);
   const reducedMotionQuery =
     typeof window !== 'undefined' && window.matchMedia
@@ -175,20 +225,29 @@ export function buildArcRelayEffects(
     propGroup.userData.kind = 'arc-relay-signature-prop';
     propGroup.userData.signatureId = signature.signatureId;
     group.add(propGroup);
-    const pipGeometry = new THREE.SphereGeometry(0.09, 8, 8);
+    const pipGeometry = createStatusPipGeometry();
     const pipGroup = new THREE.Group();
     pipGroup.visible = false;
+    pipGroup.userData.cue = 'health-pips';
+    pipGroup.userData.signatureId = signature.signatureId;
+    pipGroup.userData.forSignatureOperationId = signature.operationId;
+    orientStatusBib(
+      pipGroup,
+      (theme.environment3d.camera.yawDegrees * Math.PI) / 180,
+      (theme.environment3d.camera.pitchDegrees * Math.PI) / 180,
+    );
     group.add(pipGroup);
-    const pips = [0, 1].map((index) => {
-      const pip = new THREE.Mesh(
-        pipGeometry,
-        new THREE.MeshBasicMaterial({ color: '#f8fafc' }),
-      );
-      pip.position.set(index === 0 ? -0.16 : 0.16, 1.12, 0);
-      pip.visible = false;
+    const litPip = createStatusPipMaterial('#f8fafc');
+    const lostPip = createStatusPipMaterial('#64748b', true);
+    const maxHull = constructHull.get(signature.signatureId) ?? 1;
+    const pips = Array.from({ length: maxHull }, () => {
+      const pip = new THREE.Mesh(pipGeometry, litPip);
+      pip.userData.cue = 'health-pip';
+      faceStatusElement(pip);
       pipGroup.add(pip);
       return pip;
     });
+    centreStatusPips(pips, maxHull);
     const slot: SignaturePropSlot = {
       group: propGroup,
       model: null,
@@ -196,6 +255,8 @@ export function buildArcRelayEffects(
       emissives: [],
       materials: [],
       pips,
+      litPip,
+      lostPip,
       pipGroup,
       ready: false,
       disposed: false,
@@ -206,7 +267,8 @@ export function buildArcRelayEffects(
         slot.disposed = true;
         if (slot.model) disposeModelMaterials(slot.model);
         pipGeometry.dispose();
-        for (const pip of pips) (pip.material as THREE.Material).dispose();
+        litPip.dispose();
+        lostPip.dispose();
       },
     });
     void signatureModel(signature.signatureId).then((model) => {
@@ -718,13 +780,12 @@ export function buildArcRelayEffects(
         const propScale = ARC_SIGNATURE_PROP_SCALE[signature.signatureId];
         // Persistent props occupy their replay-owned point. Survey Flare uniquely reuses
         // one rigid model in flight and upright after landing; the scan field remains a
-        // separate authoritative overlay.
-        const fromY = signature.signatureId === 'sentinel-seed'
-          ? 2.45
-          : signature.signatureId === 'survey-flare'
-            ? 0
-            : -0.24;
-        if (signature.signatureId === 'survey-flare' && phase === 'in-flight') {
+        // separate authoritative overlay. Sentinel instead grows upward from its planted
+        // seed/socket rather than dropping from the sky.
+        const sentinel = signature.signatureId === 'sentinel-seed';
+        const surveyFlare = signature.signatureId === 'survey-flare';
+        const fromY = sentinel || surveyFlare ? 0 : -0.24;
+        if (surveyFlare && phase === 'in-flight') {
           const from = points[0]!;
           const to = points.at(-1) ?? from;
           const progress = easeOutDeploy(signaturePhaseProgress(signature, time));
@@ -737,24 +798,27 @@ export function buildArcRelayEffects(
           }
         } else {
           slot.group.position.copy(points[0]).setY(
-            signature.signatureId === 'survey-flare'
-              ? 0.16
-              : fromY * (1 - deploy),
+            surveyFlare ? 0.16 : fromY * (1 - deploy),
           );
-          slot.group.rotation.y = signature.signatureId === 'survey-flare'
-            ? time * 0.28
-            : 0;
+          slot.group.rotation.y = surveyFlare ? time * 0.28 : 0;
           if (slot.model) {
             slot.model.rotation.x = 0;
-            slot.model.rotation.z = signature.signatureId === 'survey-flare'
-              ? Math.PI / 2
-              : 0;
+            slot.model.rotation.z = surveyFlare ? Math.PI / 2 : 0;
           }
         }
-        const scaleSettle = reducedMotion
-          ? 1
-          : 1 + Math.sin(Math.PI * Math.min(1, phaseAge / 0.9)) * 0.06;
-        slot.group.scale.setScalar(propScale * scaleSettle);
+        if (sentinel) {
+          const width = 0.3 + deploy * 0.7;
+          slot.group.scale.set(
+            propScale * width,
+            propScale * Math.max(0.045, deploy),
+            propScale * width,
+          );
+        } else {
+          const scaleSettle = reducedMotion
+            ? 1
+            : 1 + Math.sin(Math.PI * Math.min(1, phaseAge / 0.9)) * 0.06;
+          slot.group.scale.setScalar(propScale * scaleSettle);
+        }
         const propYaw =
           signature.signatureId === 'sentinel-seed'
             ? latestObservedSignatureYaw(
@@ -773,23 +837,27 @@ export function buildArcRelayEffects(
           time,
           deploy,
         );
-        slot.pipGroup.visible = signature.signatureId !== 'survey-flare';
-        slot.pipGroup.position.copy(points[0]).setY(
-          signature.signatureId === 'sentinel-seed'
-            ? fromY * (1 - deploy)
-            : 0,
+        slot.pipGroup.visible = !surveyFlare;
+        slot.pipGroup.userData.forSignatureOperationId = signature.operationId;
+        placeStatusBib(
+          slot.pipGroup,
+          points[0].x,
+          points[0].z,
+          constructStatusBibHeight(slot.group, slot.model),
         );
-        slot.pipGroup.scale.setScalar(propScale);
+        slot.pipGroup.scale.setScalar(1);
         const pipOwner = replay.units.find(
           (unit) => unit.teamId === signature.ownerTeamId,
         );
         const pipAccent = pipOwner
           ? unitAccent(replay, pipOwner.unitKey)
           : '#f8fafc';
-        for (const [pipIndex, pip] of slot.pips.entries()) {
-          pip.visible = pipIndex < signature.remainingCapacity;
-          (pip.material as THREE.MeshBasicMaterial).color.set(pipAccent);
-        }
+        slot.litPip.color.set(pipAccent);
+        centreStatusPips(slot.pips, slot.pips.length);
+        for (const [pipIndex, pip] of slot.pips.entries())
+          pip.material = pipIndex < signature.remainingCapacity
+            ? slot.litPip
+            : slot.lostPip;
         persistentPropReady = slot.ready;
       }
       if (authoredPainter) {
@@ -830,7 +898,7 @@ export function buildArcRelayEffects(
     }
 
     for (const outcome of signatureOutcomesAt(signatureOutcomes, time)) {
-      const { operationId, facts, fraction, priorSignature } = outcome;
+      const { operationId, facts, fraction, priorSignature, sourceTick } = outcome;
       const first = facts[0]!;
       const resolution = resolveArcSignaturePresentation(
         replay,
@@ -875,6 +943,12 @@ export function buildArcRelayEffects(
       const ownerPose = poses.find(
         (pose) => pose.actorKey === first.ownerActor.actorKey,
       );
+      const outcomeTargetActor = facts.find(
+        (fact) => 'targetActor' in fact,
+      )?.targetActor ?? priorSignature?.targetActor;
+      const outcomeTargetPose = outcomeTargetActor
+        ? poses.find((pose) => pose.actorKey === outcomeTargetActor.actorKey)
+        : undefined;
       painter.paintOutcome({
         rig,
         signatureId: first.signatureId,
@@ -885,8 +959,27 @@ export function buildArcRelayEffects(
           : priorSignature?.positions[0]
             ? worldPoint(priorSignature.positions[0])
             : undefined,
+        target: outcomeTargetPose
+          ? new THREE.Vector3(
+              outcomeTargetPose.x + 0.5,
+              0.08,
+              outcomeTargetPose.y + 0.5,
+            )
+          : undefined,
+        priorTarget: priorSignature?.targetActor
+          ? (() => {
+              const pose = poses.find(
+                (candidate) =>
+                  candidate.actorKey === priorSignature.targetActor!.actorKey,
+              );
+              return pose
+                ? new THREE.Vector3(pose.x + 0.5, 0.08, pose.y + 0.5)
+                : undefined;
+            })()
+          : undefined,
         arenaTheme: theme,
         time,
+        sourceTick,
         fraction,
         reducedMotion,
       });

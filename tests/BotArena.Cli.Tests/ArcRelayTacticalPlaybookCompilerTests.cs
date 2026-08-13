@@ -255,7 +255,7 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
         condition["value"] = 32;
         InvalidDataException error = Assert.Throws<InvalidDataException>(() =>
             Compile(source, MapPlan("starter-tapline-v2")));
-        Assert.Contains("visible-enemy distance must be in [0, 31]",
+        Assert.Contains("firing-approach distance must be in [0, 31]",
             error.Message);
     }
 

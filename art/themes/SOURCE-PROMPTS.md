@@ -316,3 +316,51 @@ Materials/textures: honed pale composite, satin obsidian channels, brushed alloy
 Constraints: square seamless tileable continuous material; no standalone object, outer frame, floor, runes, portal, perspective, empty background, text, logo, watermark
 Avoid: matching perimeter, repeated quadrants, radial symmetry, grid, checkerboard, identical panels, bathroom tile, dramatic shadows, bright neon, dense ornament
 ```
+
+## Lumen Bastion / floor
+
+```text
+Use case: stylized-concept
+Asset type: seamless floor source material for a deterministic top-down 2D arena theme named Lumen Bastion
+Primary request: create a premium bright futuristic arena floor material that is overwhelmingly white and very light grey, calm and readable beneath fast combat
+Scene/backdrop: one continuous opaque material fills the square edge to edge
+Style/medium: polished stylized game texture, hand-painted PBR albedo source, clean high-end science-fiction architecture
+Composition/framing: strict orthographic top-down flat material swatch; broad irregular warm-white ceramic-composite plates, shallow light-grey expansion seams, restrained brushed-silver reinforcement, sparse slim diffused periwinkle-white light inlays, asymmetrical and continuous through every boundary
+Lighting/mood: high-key neutral even illumination, bright and airy, no spotlight, no cast shadows, no vignette
+Color palette: warm white, pearl white, pale cool grey, satin silver, very sparse soft periwinkle-white illumination
+Materials/textures: matte ceramic composite, fine satin alloy, subtle micro-scuffs, shallow seams, clean translucent light strips
+Constraints: square seamless tileable texture; white and light grey must occupy at least 90 percent of the field; medium-scale detail readable at 40–70 pixels per gameplay tile; no gameplay grid, standalone props, walls, outer frame, perspective, horizon, text, logos, watermark
+Avoid: dark floor, black panels, navy, crimson, rust, grime, checkerboard, repeated quadrants, identical tiles, tiny dense greebles, deep grooves, dramatic shadows, glowing cyan or orange team colors
+```
+
+## Lumen Bastion / perimeter
+
+```text
+Use case: stylized-concept
+Asset type: seamless perimeter source material for a deterministic top-down 2D arena wall-baking pipeline, Lumen Bastion theme
+Primary request: create a fortified luminous containment MATERIAL FIELD that is overwhelmingly white and light grey, visibly heavier than the arena floor
+Scene/backdrop: one continuous opaque material fills the square edge to edge
+Style/medium: premium stylized game texture, hand-painted PBR albedo source, clean high-end science-fiction architecture
+Composition/framing: strict orthographic top-down flat material swatch; irregular thick pearl-white ceramic armor, broad pale-grey load-bearing ribs, satin-silver edge bands, layered white service plates, sparse recessed periwinkle-white light apertures; large asymmetrical features continue through every boundary
+Lighting/mood: high-key neutral flat albedo illumination, bright and airy, no cast shadows, no vignette, no standalone silhouette
+Color palette: pearl white, warm white, cloud grey, pale cool grey, satin silver, tiny soft periwinkle-white light details
+Materials/textures: matte ceramic armor, powder-coated composite, brushed alloy, translucent diffusers, subtle clean wear
+Constraints: square seamless tileable continuous material; white and light grey occupy at least 90 percent; large and medium forms readable at gameplay scale; no standalone wall, outer frame, surrounding floor, empty background, perspective, horizon, text, logos, watermark
+Avoid: black structure, navy, crimson, rust, grime, dark field, repeated quadrants, checkerboard, framed rectangles, bathroom tile, tiny uniform greebles, dramatic shadows, cyan or orange team-color lighting
+```
+
+## Lumen Bastion / cover
+
+```text
+Use case: stylized-concept
+Asset type: seamless low-cover source material for a deterministic top-down 2D arena wall-baking pipeline, Lumen Bastion theme
+Primary request: create a bright modular relay-equipment MATERIAL FIELD in white and light grey, clearly lower, lighter, and more technical than the fortified perimeter
+Scene/backdrop: one continuous opaque material fills the square edge to edge
+Style/medium: premium stylized game texture, hand-painted PBR albedo source, clean high-end science-fiction architecture
+Composition/framing: strict orthographic top-down flat material swatch; broad warm-white equipment housings, pale-grey access panels, satin-silver conduit channels, shallow white ventilation meshes, sparse slim periwinkle-white diagnostic lights; asymmetrical distribution continuing through every boundary
+Lighting/mood: high-key neutral flat albedo illumination, bright and airy, no cast shadows, no vignette, no standalone silhouette
+Color palette: warm white, pearl white, mist grey, pale cool grey, satin silver, tiny soft periwinkle-white light details
+Materials/textures: matte composite housings, ceramic access panels, brushed conduits, translucent light diffusers, restrained clean scuffs
+Constraints: square seamless tileable continuous material; white and light grey occupy at least 90 percent; broad readable shapes at gameplay scale; no standalone object, outer frame, floor, empty background, perspective, horizon, text, logos, watermark
+Avoid: matching the heavy perimeter, black housings, navy, crimson, rust, grime, repeated quadrants, checkerboard, identical panels, bathroom tile, tiny dense greebles, dramatic shadows, cyan or orange team-color lighting
+```

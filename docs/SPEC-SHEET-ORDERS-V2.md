@@ -251,6 +251,11 @@ Known loose Cores use the team objective ledger and remain known until a
 visible event proves pickup, handoff, bank, drop, or a new position. The ledger
 does not forget a Core merely because it left current vision.
 
+`self-nearest-visible-enemy-distance` is the fewest legal movement steps this
+body needs to reach a tile from which it can attack a team-visible enemy. Known
+durable blockers count; body occupancy is transient traffic and does not. No
+reachable firing tile fails every authored upper-bound comparison.
+
 ## 6. Five actions
 
 Only leaves act. Their action key is exactly one of `move`, `fight`, `use`,
@@ -304,10 +309,11 @@ are physical game rules, not hidden `move` subverbs.
 
 - `targets` is 1–5 unique values from `carrier`, `weakest`, `nearest`,
   `medic`, and `marked` in desired order. The order applies among actionable
-  targets: an enemy this body cannot shoot or reach inside the current chase
-  leash does not mask a later actionable preference. If no target is
-  actionable, the fight order yields to the body's next eligible order for
-  that tick without resetting the active fight episode or its chase anchor.
+  targets: an enemy with no reachable firing tile inside the current chase
+  leash, after known durable blockers, does not mask a later actionable
+  preference. Body occupancy remains traffic. If no target is actionable, the
+  fight order yields to the body's next eligible order for that tick without
+  resetting the active fight episode or its chase anchor.
 - `style` is `advance`, `hold`, or `kite`. It says how this body positions
   while executing the fight; the class's legal movement pattern still wins.
 - `chaseLimit` is `0..12` tiles from the position at which this fight node

@@ -180,15 +180,31 @@ export function actionOf(order: OrderNode): OrderAction | null {
   return ACTIONS.find((action) => order[action] !== undefined) ?? null;
 }
 
-export function freshOrder(action: Exclude<OrderAction, 'branch' | 'shared'>, id = 'new-order'): OrderNode {
+export function freshOrder(
+  action: Exclude<OrderAction, 'branch' | 'shared'>,
+  id = 'new-order',
+  signatureSkill = 'vector-dash',
+): OrderNode {
   if (action === 'move') return { id, move: { to: { well: 'centre' }, posture: 'line' } };
   if (action === 'fight') return {
     id,
     fight: { targets: ['carrier', 'weakest', 'nearest'], style: 'advance', chaseLimit: 3 },
   };
-  if (action === 'use') return { id, use: { skill: 'vector-dash', target: 'self' } };
+  if (action === 'use') return {
+    id,
+    use: { skill: signatureSkill, target: signatureTargets(signatureSkill)[0] ?? 'self' },
+  };
   if (action === 'handoff') return { id, handoff: { target: 'nearest-ally-toward-own-reactor' } };
   return { id, drop: true };
+}
+
+export function signatureTargets(skill: string): string[] {
+  if (skill === 'null-field' || skill === 'kinetic-burst') return ['self'];
+  if (skill === 'repair-beam') return ['weakest-ally', 'nearest-ally'];
+  if (skill === 'exchange') return ['healthiest-ally', 'nearest-ally', 'weakest-ally'];
+  if (skill === 'arc-toss') return ['nearest-ally-toward-own-reactor', 'nearest-ally', 'own-reactor'];
+  if (skill === 'target-paint') return ['enemy-carrier', 'weakest-enemy', 'nearest-enemy'];
+  return ['nearest-enemy', 'weakest-enemy', 'enemy-carrier', 'nearest-ally', 'weakest-ally', 'self', 'own-reactor'];
 }
 
 export function identifierFromName(value: string, fallback = 'untitled-sheet'): string {
@@ -214,6 +230,23 @@ export function renameRole(orders: OrdersDocument, previous: string, next: strin
   });
   for (const condition of Object.values(orders.conditions))
     if (condition.role === previous) condition.role = next;
+}
+
+export function renameCondition(orders: OrdersDocument, previous: string, nextId: string): void {
+  const rewrite = (expression: ConditionExpression | undefined): ConditionExpression | undefined => {
+    if (typeof expression === 'string') return expression === previous ? nextId : expression;
+    if (!expression) return expression;
+    if ('all' in expression) return { all: expression.all.map((id) => id === previous ? nextId : id) };
+    return { any: expression.any.map((id) => id === previous ? nextId : id) };
+  };
+  walkOrders(orders, (node) => {
+    const when = rewrite(node.when);
+    const until = rewrite(node.until);
+    if (when === undefined) delete node.when;
+    else node.when = when;
+    if (until === undefined) delete node.until;
+    else node.until = until;
+  });
 }
 
 export function moveRole(orders: OrdersDocument, index: number, delta: number): void {
@@ -346,7 +379,7 @@ export function validateDraft(
     if (!Number.isInteger(condition.value)) error(`${path}.value`, 'Comparison value must be a whole number.');
     if (condition.fact === 'self-nearest-visible-enemy-distance'
       && (condition.value < 0 || condition.value > 31))
-      error(`${path}.value`, 'Visible-enemy distance is zero to 31 tiles.');
+      error(`${path}.value`, 'Firing-approach distance is zero to 31 steps.');
     if (ROLE_FACTS.has(condition.fact) && (!condition.role || !roles.has(condition.role)))
       error(`${path}.role`, 'This fact needs a declared role.');
     if (ZONE_FACTS.has(condition.fact)) {
@@ -526,6 +559,8 @@ function validateGeometry(
       error(`${path}.waypoints`, 'A route needs 2–32 waypoints.');
     route.waypoints.forEach(([x, y], index) => {
       if (!inside(x, y, catalog)) error(`${path}.waypoints.${index}`, 'Plot this waypoint inside the map.');
+      else if (!traversableForBothSides(x, y, catalog))
+        error(`${path}.waypoints.${index}`, 'Move this waypoint off the wall so both team-side previews can traverse it.');
     });
     if (!usedRoutes.has(id)) error(path, 'Delete this unused route or use it in a move order.');
   }
@@ -533,8 +568,22 @@ function validateGeometry(
     const path = `mapPlan.anchors.${id}`;
     if (!validId(id)) error(path, 'Anchor id must be kebab-case.');
     if (!inside(x, y, catalog)) error(path, 'Plot this anchor inside the map.');
+    else if (!traversableForBothSides(x, y, catalog))
+      error(path, 'Move this anchor off the wall so both team-side previews can traverse it.');
     if (!usedAnchors.has(id)) error(path, 'Delete this unused anchor or target it from an order.');
   }
+}
+
+function traversableForBothSides(
+  x: number,
+  y: number,
+  catalog: TacticalSheetCatalog,
+) {
+  const west = catalog.map.tileRows[y]?.[x];
+  const east = catalog.map.tileRows[catalog.map.height - 1 - y]?.[
+    catalog.map.width - 1 - x
+  ];
+  return west !== undefined && west !== '#' && east !== undefined && east !== '#';
 }
 
 function exactKeys(

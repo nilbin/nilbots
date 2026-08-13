@@ -5,15 +5,20 @@ import {
   SENTINEL_YAW_SETTLE_TICKS,
   ARC_SIGNATURE_PRESENTATION_ID,
   ARC_SIGNATURE_WEBGL_PAINTERS,
+  CONSTRUCT_STATUS_BIB_FALLBACK_HEIGHT,
+  CONSTRUCT_STATUS_BIB_GAP,
   arcSignatureAudioDefinitionIds,
   arcSignaturePresentationDefinitions,
   arcSignatureVisualPhase,
   buildArcRelayEffects,
+  constructStatusBibHeight,
   latestObservedSignatureYaw,
   resolveArcSignaturePresentation,
   sentinelYawTarget,
   buildArcVeterancy,
+  buildOverlays,
   LEVEL_UP_BEAT_TICKS,
+  unitAccent,
 } from './.harness/harness.entry.js';
 import * as THREE from 'three';
 import { readFileSync } from 'node:fs';
@@ -101,6 +106,43 @@ test('the typed Arc package gives every signature an owned WebGL treatment', () 
       replacesGenericRelease: true,
     },
   );
+});
+
+test('Arc Toss leaves the in-flight object entirely to the authoritative Core', () => {
+  const replay = loadReplayJson(
+    gunzipSync(readFileSync(new URL(
+      '../../art/reviews/arc-relay-presentation-batch-v1/runtime-proof/replays/core-roster.broadcast.json.gz',
+      import.meta.url,
+    ))).toString('utf8'),
+  ).replay;
+  const disposables: { dispose: () => void }[] = [];
+  const effects = buildArcRelayEffects(replay, disposables);
+  try {
+    effects.update(37.5);
+    let toss: THREE.Object3D | null = null;
+    effects.group.traverse((node) => {
+      if (
+        node.visible &&
+        node.userData.signatureId === 'arc-toss' &&
+        node.userData.phase === 'in-flight'
+      ) toss = node;
+    });
+    assert.ok(toss, 'the cast retains its destination treatment');
+    const visibleMeshes: THREE.Object3D[] = [];
+    toss.traverse((node) => {
+      if (node.visible && (node as THREE.Mesh).isMesh) visibleMeshes.push(node);
+    });
+    assert.ok(
+      visibleMeshes.every(
+        (node) => !['TorusGeometry', 'SphereGeometry'].includes(
+          (node as THREE.Mesh).geometry.type,
+        ),
+      ),
+      'the signature painter must not follow the real Core with a ball-like cluster',
+    );
+  } finally {
+    for (const disposable of disposables) disposable.dispose();
+  }
 });
 
 test('signature package resolution preserves legacy and fails future packages truthfully', () => {
@@ -421,6 +463,427 @@ test('persistent props stay legible inside their tiles and sentinel yaw never lo
     -Math.PI / 2,
     'the half-turn uses one deterministic shortest direction',
   );
+});
+
+test('Tractor Hook keeps one headless cable attached through the recorded pull', () => {
+  const replay = loadReplayJson(
+    gunzipSync(readFileSync(new URL(
+      '../../art/reviews/arc-relay-presentation-batch-v1/runtime-proof/replays/core-roster.broadcast.json.gz',
+      import.meta.url,
+    ))).toString('utf8'),
+  ).replay;
+  const ownerActor = replay.ticks[0]!.after.actors[0]!.identity;
+  const targetActor = replay.ticks[0]!.after.actors.find(
+    (actor) => actor.identity.teamId !== ownerActor.teamId,
+  )!.identity;
+  const operationId = 'test-tractor-hook-pull';
+  const owner = replay.ticks[0]!.after.actors.find(
+    (actor) => actor.actorKey === ownerActor.actorKey,
+  )!;
+  const target = replay.ticks[0]!.after.actors.find(
+    (actor) => actor.actorKey === targetActor.actorKey,
+  )!;
+  owner.position = { x: 13, y: 12 };
+  target.position = { x: 16, y: 12 };
+  for (const side of ['before', 'after'] as const) {
+    const ownerState = replay.ticks[1]![side].actors.find(
+      (actor) => actor.actorKey === ownerActor.actorKey,
+    )!;
+    const targetState = replay.ticks[1]![side].actors.find(
+      (actor) => actor.actorKey === targetActor.actorKey,
+    )!;
+    ownerState.position = { x: 13, y: 12 };
+    targetState.position = { x: 16, y: 12 };
+    const ownerPull = replay.ticks[2]![side].actors.find(
+      (actor) => actor.actorKey === ownerActor.actorKey,
+    )!;
+    const targetPull = replay.ticks[2]![side].actors.find(
+      (actor) => actor.actorKey === targetActor.actorKey,
+    )!;
+    ownerPull.position = { x: 13, y: 12 };
+    targetPull.position = side === 'before' ? { x: 16, y: 12 } : { x: 14, y: 12 };
+  }
+  replay.ticks[0]!.after.mode = replay.ticks[0]!.before.mode;
+  assert.equal(replay.ticks[0]!.after.mode?.kind, 'arc-relay');
+  if (replay.ticks[0]!.after.mode?.kind !== 'arc-relay' ||
+      !('visibleSignatures' in replay.ticks[0]!.after.mode)) return;
+  replay.ticks[0]!.after.mode.visibleSignatures = [];
+  for (const tickIndex of [1, 2]) {
+    for (const side of ['before', 'after'] as const) {
+      const mode = replay.ticks[tickIndex]![side].mode;
+      assert.equal(mode?.kind, 'arc-relay');
+      if (mode?.kind === 'arc-relay' && 'visibleSignatures' in mode)
+        mode.visibleSignatures = [];
+    }
+    replay.ticks[tickIndex]!.events = [];
+    replay.ticks[tickIndex]!.lifecycleEvents = [];
+  }
+  const launchMode = replay.ticks[1]!.before.mode;
+  assert.equal(launchMode?.kind, 'arc-relay');
+  if (launchMode?.kind !== 'arc-relay' || !('visibleSignatures' in launchMode))
+    return;
+  launchMode.visibleSignatures = [{
+    operationId,
+    signatureId: 'tractor-hook',
+    signatureKind: 'targeted',
+    ownerActor,
+    ownerTeamId: ownerActor.teamId,
+    phase: 'tell',
+    startedTick: 0,
+    completesAtTick: 1,
+    endsAtTick: null,
+    positions: [{ x: 13, y: 12 }, { x: 16, y: 12 }],
+    targetActor,
+    remainingCapacity: 0,
+    suppressed: false,
+  }];
+  replay.ticks[1]!.events = [{
+    ...replay.ticks[0]!.events[0]!,
+    eventId: 'test:tractor:launch',
+    tick: 1,
+    arcRelayFact: {
+      kind: 'signature-changed',
+      operationId,
+      signatureId: 'tractor-hook',
+      ownerActor,
+      phase: null,
+      reason: 'launched',
+    },
+  }];
+  replay.ticks[2]!.lifecycleEvents = [{
+    ...replay.ticks[0]!.events[0]!,
+    eventId: 'test:tractor:pull',
+    tick: 2,
+    arcRelayFact: {
+      kind: 'body-relocated',
+      operationId,
+      signatureId: 'tractor-hook',
+      ownerActor,
+      targetActor,
+      from: { x: 16, y: 12 },
+      to: { x: 14, y: 12 },
+    },
+  }];
+  const disposables: { dispose: () => void }[] = [];
+  const effects = buildArcRelayEffects(replay, disposables);
+  const visibleGroup = (time: number) => {
+    effects.update(time);
+    return effects.group.children.find(
+      (candidate) =>
+        candidate.visible &&
+        candidate.userData.signatureId === 'tractor-hook' &&
+        candidate.userData.phase === 'outcome',
+    );
+  };
+  try {
+    const pullStart = visibleGroup(2);
+    assert.ok(pullStart, 'the relocation takes over without a cable gap');
+    assert.equal(
+      pullStart.children.some(
+        (child) => child.visible && child.geometry?.type === 'TorusGeometry',
+      ),
+      false,
+      'the hook treatment contains no spool/target donut',
+    );
+    const cable = pullStart.children.find(
+      (child) =>
+        child.visible &&
+        child.geometry?.type === 'BoxGeometry' &&
+        (child as THREE.Mesh).material instanceof THREE.MeshStandardMaterial,
+    ) as THREE.Mesh | undefined;
+    assert.ok(cable);
+    const expectedCableColour = new THREE.Color(
+      unitAccent(replay, ownerActor.unitKey),
+    ).lerp(new THREE.Color('#dbe7ea'), 0.12);
+    assert.equal(
+      (cable.material as THREE.MeshStandardMaterial).color.getHexString(),
+      expectedCableColour.getHexString(),
+      'the one physical strand keeps the owning team colour',
+    );
+    assert.ok(
+      cable.scale.z < 0.7,
+      `the physical hook cable stays a narrow strand (${cable.scale.z})`,
+    );
+    assert.equal(
+      pullStart.children.some(
+        (child) => child.visible && child.geometry?.type === 'CapsuleGeometry',
+      ),
+      false,
+      'the cable has no bulky procedural grapple head',
+    );
+    assert.equal(
+      pullStart.children.filter(
+        (child) => child.visible && (child as THREE.Mesh).isMesh,
+      ).length,
+      1,
+      'the pull outcome contains only the cable',
+    );
+    const startCableX = cable.position.x;
+    const pullMiddle = visibleGroup(2.5);
+    const middleCable = pullMiddle?.children.find(
+      (child) => child.visible && child.geometry?.type === 'CapsuleGeometry',
+    );
+    assert.equal(middleCable, undefined, 'no front object appears during the pull');
+    const movingCable = pullMiddle?.children.find(
+      (child) =>
+        child.visible &&
+        child.geometry?.type === 'BoxGeometry' &&
+        (child as THREE.Mesh).material instanceof THREE.MeshStandardMaterial,
+    );
+    assert.ok(movingCable);
+    assert.ok(
+      movingCable.position.x < startCableX,
+      'the cable endpoint follows the pulled body',
+    );
+    assert.equal(visibleGroup(3), undefined, 'the cable releases after the pull tick');
+  } finally {
+    for (const disposable of disposables) disposable.dispose();
+  }
+});
+
+test('signature-owned line tells do not stack the generic red attack aim', () => {
+  const replay = loadReplayJson(
+    gunzipSync(readFileSync(new URL(
+      '../../art/reviews/arc-relay-presentation-batch-v1/runtime-proof/replays/core-roster.broadcast.json.gz',
+      import.meta.url,
+    ))).toString('utf8'),
+  ).replay;
+  const time = 25.35;
+  const tick = replay.ticks[Math.floor(time)]!;
+  const mode = tick.after.mode;
+  assert.equal(mode?.kind, 'arc-relay');
+  if (mode?.kind !== 'arc-relay' || !('visibleSignatures' in mode)) return;
+  const signatureOwners = new Set(
+    mode.visibleSignatures
+      .filter(
+        (signature) =>
+          signature.phase === 'tell' &&
+          (signature.signatureId === 'tractor-hook' ||
+            signature.signatureId === 'rail-line'),
+      )
+      .map((signature) => signature.ownerActor.actorKey),
+  );
+  assert.ok(signatureOwners.size > 0, 'the pinned frame contains a line signature');
+  const expectedGenericAims = mode.pendingStrikes.filter(
+    (strike) =>
+      strike.target !== null && !signatureOwners.has(strike.shooter.actorKey),
+  ).length;
+  const overlays = buildOverlays(replay);
+  try {
+    overlays.update(time, null, false);
+    const aimGroup = overlays.group.children.find(
+      (node) => node.userData.kind === 'strike-aims',
+    );
+    assert.ok(aimGroup);
+    const visibleAims: THREE.Object3D[] = [];
+    aimGroup.traverse((node) => {
+      if (node.visible && node.userData.kind === 'strike-aim')
+        visibleAims.push(node);
+    });
+    assert.equal(
+      visibleAims.length,
+      expectedGenericAims,
+      'ordinary attacks keep their aim while Hook/Rail own exactly one tell line',
+    );
+    const hookTell = overlays.group.children
+      .flatMap((node) => node.children)
+      .find(
+        (node) =>
+          node.visible &&
+          node.userData.signatureId === 'tractor-hook' &&
+          node.userData.phase === 'tell',
+      );
+    assert.ok(hookTell, 'the pinned line-signature frame contains Tractor Hook');
+    const hookMeshes: THREE.Mesh[] = [];
+    hookTell.traverse((node) => {
+      if (node.visible && (node as THREE.Mesh).isMesh)
+        hookMeshes.push(node as THREE.Mesh);
+    });
+    assert.equal(hookMeshes.length, 1, 'the Hook tell is only one cable');
+    assert.equal(hookMeshes[0]!.geometry.type, 'BoxGeometry');
+    assert.ok(
+      hookMeshes[0]!.material instanceof THREE.MeshStandardMaterial,
+      'the cable remains the restrained solid team-coloured strand',
+    );
+  } finally {
+    overlays.dispose();
+  }
+});
+
+test('Sentinel Seed transforms upward from its floor seed', () => {
+  const replay = loadReplayJson(
+    gunzipSync(readFileSync(new URL(
+      '../../art/reviews/arc-relay-presentation-batch-v1/runtime-proof/replays/remaining-roster.broadcast.json.gz',
+      import.meta.url,
+    ))).toString('utf8'),
+  ).replay;
+  const disposables: { dispose: () => void }[] = [];
+  const effects = buildArcRelayEffects(replay, disposables);
+  const propAt = (time: number) => {
+    effects.update(time);
+    return effects.group.children.find(
+      (candidate) =>
+        candidate.visible &&
+        candidate.userData.signatureId === 'sentinel-seed' &&
+        candidate.userData.phase === undefined,
+    );
+  };
+  try {
+    const opening = propAt(15);
+    assert.ok(opening);
+    assert.equal(opening.position.y, 0);
+    assert.ok(opening.scale.y < opening.scale.x * 0.2);
+    const openingHeight = opening.scale.y;
+    const openingWidth = opening.scale.x;
+    const growing = propAt(15.45);
+    assert.ok(growing);
+    assert.equal(growing.position.y, 0);
+    assert.ok(growing.scale.y > openingHeight * 4);
+    assert.ok(growing.scale.x > openingWidth);
+  } finally {
+    for (const disposable of disposables) disposable.dispose();
+  }
+});
+
+test('construct bib height follows the live scaled mesh bounds', () => {
+  const prop = new THREE.Group();
+  const model = new THREE.Group();
+  const geometry = new THREE.BoxGeometry(0.8, 0.24, 0.8);
+  const material = new THREE.MeshBasicMaterial();
+  const body = new THREE.Mesh(geometry, material);
+  body.position.y = 0.12;
+  model.add(body);
+  prop.add(model);
+  try {
+    prop.scale.setScalar(0.94);
+    const fullHeight = constructStatusBibHeight(prop, model);
+    const fullTop = new THREE.Box3().setFromObject(model).max.y;
+    assert.ok(Math.abs(fullHeight - fullTop - CONSTRUCT_STATUS_BIB_GAP) < 1e-6);
+
+    prop.scale.y *= 0.5;
+    const compressedHeight = constructStatusBibHeight(prop, model);
+    assert.ok(
+      compressedHeight < fullHeight,
+      'the bib follows a shorter deployment/model instead of retaining a fixed height',
+    );
+    const compressedTop = new THREE.Box3().setFromObject(model).max.y;
+    assert.ok(
+      Math.abs(compressedHeight - compressedTop - CONSTRUCT_STATUS_BIB_GAP) < 1e-6,
+    );
+  } finally {
+    geometry.dispose();
+    material.dispose();
+  }
+});
+
+test('mine and sentry bibs use the derived low construct placement', () => {
+  const replay = loadReplayJson(
+    gunzipSync(readFileSync(new URL(
+      '../../art/reviews/arc-relay-presentation-batch-v1/runtime-proof/replays/remaining-roster.broadcast.json.gz',
+      import.meta.url,
+    ))).toString('utf8'),
+  ).replay;
+  const disposables: { dispose: () => void }[] = [];
+  const effects = buildArcRelayEffects(replay, disposables);
+  const healthBib = (signatureId: 'trip-node' | 'sentinel-seed') => {
+    let found: THREE.Object3D | null = null;
+    effects.group.traverse((node) => {
+      if (
+        node.visible &&
+        node.userData.cue === 'health-pips' &&
+        node.userData.signatureId === signatureId
+      ) found = node;
+    });
+    assert.ok(found, `no ${signatureId} health bib`);
+    return found;
+  };
+  const propModel = (signatureId: 'trip-node' | 'sentinel-seed') => {
+    let prop: THREE.Object3D | null = null;
+    effects.group.traverse((node) => {
+      if (
+        node.visible &&
+        node.userData.kind === 'arc-relay-signature-prop' &&
+        node.userData.signatureId === signatureId
+      ) prop = node;
+    });
+    assert.ok(prop, `no ${signatureId} model`);
+    return { prop, model: prop.children[0] ?? null };
+  };
+  try {
+    effects.update(14);
+    const mine = healthBib('trip-node');
+    const mineModel = propModel('trip-node');
+    assert.ok(mine.position.y < 0.5, 'the low mine bib is substantially below bot health');
+    assert.ok(
+      Math.abs(
+        mine.position.y -
+          constructStatusBibHeight(mineModel.prop, mineModel.model),
+      ) < 1e-6,
+    );
+    if (!mineModel.model)
+      assert.equal(mine.position.y, CONSTRUCT_STATUS_BIB_FALLBACK_HEIGHT);
+    assert.deepEqual(mine.scale.toArray(), [1, 1, 1]);
+    assert.equal(mine.children.length, 1);
+
+    effects.update(15);
+    const sentry = healthBib('sentinel-seed');
+    const sentryModel = propModel('sentinel-seed');
+    assert.ok(sentry.position.y < 0.5, 'the compact sentry bib is below bot health');
+    assert.ok(
+      Math.abs(
+        sentry.position.y -
+          constructStatusBibHeight(sentryModel.prop, sentryModel.model),
+      ) < 1e-6,
+    );
+    if (!sentryModel.model)
+      assert.equal(sentry.position.y, CONSTRUCT_STATUS_BIB_FALLBACK_HEIGHT);
+    assert.deepEqual(sentry.scale.toArray(), [1, 1, 1]);
+    assert.equal(sentry.children.length, 2);
+    for (const pip of sentry.children) {
+      assert.equal(
+        (pip as THREE.Mesh).geometry.type,
+        'CircleGeometry',
+        'construct health uses the same flat circle as bot health',
+      );
+      const material = (pip as THREE.Mesh).material;
+      assert.ok(material instanceof THREE.MeshBasicMaterial);
+      assert.equal(material.depthTest, false);
+    }
+    assert.equal(sentry.children[0]!.position.x, -0.085);
+    assert.equal(sentry.children[1]!.position.x, 0.085);
+  } finally {
+    for (const disposable of disposables) disposable.dispose();
+  }
+});
+
+test('Sentinel Seed keeps its compact destination treatment without a solid tell pod', () => {
+  const replay = loadReplayJson(
+    gunzipSync(readFileSync(new URL(
+      '../../art/reviews/arc-relay-presentation-batch-v1/runtime-proof/replays/remaining-roster.broadcast.json.gz',
+      import.meta.url,
+    ))).toString('utf8'),
+  ).replay;
+  const disposables: { dispose: () => void }[] = [];
+  const effects = buildArcRelayEffects(replay, disposables);
+  try {
+    effects.update(14.5);
+    const tell = effects.group.children.find(
+      (candidate) =>
+        candidate.visible &&
+        candidate.userData.signatureId === 'sentinel-seed' &&
+        candidate.userData.phase === 'tell',
+    );
+    assert.ok(tell, 'the destination seed treatment remains visible');
+    assert.equal(
+      tell.children.some(
+        (child) => child.visible && child.geometry?.type === 'CylinderGeometry',
+      ),
+      false,
+      'the tell does not put an opaque pod over the casting body',
+    );
+  } finally {
+    for (const disposable of disposables) disposable.dispose();
+  }
 });
 
 test('sentinel yaw targets the authored head split and keeps legacy fallback', () => {

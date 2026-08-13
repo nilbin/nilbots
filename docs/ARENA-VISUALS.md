@@ -469,10 +469,36 @@ phase/footprint marker rather than becoming invisible or borrowing the current
 art by accident.
 
 Persistent Trip Node and Sentinel Seed props use their separately promoted
-Meshy assets only after the replay says the construct is active. Their tell,
-load-failure, Canvas, and suppressed fallbacks remain procedural. The sentry's
-head may follow only an already observed authoritative shot. The other fourteen
-signatures use renderer primitives and need no skeletal or Meshy animation.
+Meshy assets only after the replay says the construct is active. Trip Node's
+tell and both props' load-failure, Canvas, and suppressed fallbacks remain
+procedural; Sentinel Seed's WebGL tell retains its compact destination
+socket/seed treatment while Nest performs a floor-safe forward body press.
+The sentry's head may follow only an already observed authoritative shot. The
+other fourteen signatures use renderer primitives and need no skeletal or
+Meshy animation.
+
+WebGL treats Core custody as motion of the one authoritative sphere, never as a
+token swap. Pickup levitates the loose Core from its published position to the
+receiving hull across the complete public tick, using a gentle continuous
+settle so the last part cannot snap upward. Handoff travels between the source's
+before-tick and receiver's after-tick poses; drop descends from the source hull;
+bank arcs into the reactor and contracts into its socket. Those three
+transitions finish at the shared discrete state-settle boundary. Every
+transition is recomputed from replay facts on every frame.
+Arc Toss is the longer exception: the carried-height sphere follows its complete
+public in-flight interval, retains the origin-lane treatment it had in the
+carrier's custody, and lands continuously at loose-Core height.
+
+Tractor Hook likewise preserves one causal object across its one-shot facts: the
+launch tick holds a latched cable at the published target, the following
+`body-relocated` tick attaches that cable to the target's interpolated replay
+pose, and then releases it. Its WebGL read deliberately has no circular spool,
+target ring, generic strike ray, additive underlay, or dark-grey second wire:
+the cable is one narrow, team-tinted solid strand, with no separate procedural
+grapple head for now. Sentinel Seed retains the compact destination socket,
+motes, and seed-to-sentry transition. Its caster pose is corrected separately:
+Nest presses forward with slight upward clearance and no nose-down pitch, so
+its long prow cannot enter the floor. Its existing recall exit is unchanged.
 
 An authoritative `leveled-up` fact also drives a bounded presentation beat: a
 thin brass floor ring, three short converging matte facets, then the persistent
@@ -564,10 +590,12 @@ sprite-derived WebGL fallback:
   material convention; team ownership stays in renderer-owned cues and effects.
 - Persistent signature props use the same exception and a separate
   `kind: "signature"` manifest. Trip Node and Sentinel Seed load only in the
-  hosted WebGL signature layer; their existing procedural marker remains the
-  telegraph, load-failure, and Canvas fallback. A finished prop never appears
-  during its authoritative tell. The approved Meshy 7 props use quantized
-  geometry and embedded 512 px WebP PBR maps, with exact promotion enforced by
+  hosted WebGL signature layer. Trip Node keeps its procedural telegraph;
+  Sentinel Seed keeps its compact procedural destination telegraph plus Nest's
+  floor-safe body press. Their procedural markers remain the load-failure and
+  Canvas fallback. A finished prop never appears during its authoritative tell.
+  The approved Meshy 7 props use quantized geometry and embedded 512 px WebP PBR
+  maps, with exact promotion enforced by
   `scripts/class-models/promote-meshy7-signature-props-v3.mjs`. The mine keeps
   its audited floor contact and matte roughness; ownership is a restrained
   renderer-owned ground ring. The sentry's explicit `stationary-base` remains
@@ -780,10 +808,11 @@ selection into a portrait shot. The manual overview fits the three published
 Wells with half a tile of breathing room; distant home Reactors and deep aprons
 may leave the frame rather than shrinking the central theaters. Perspective
 fog darkens unseen terrain by a theme-owned amount, defaulting to 58% rather
-than blacking it out; Ember Forge currently uses 50% to keep a strong light-up
-transition at vision boundaries while retaining more form than the default. A
-theme may also lift visible terrain; Ember uses 45% because removing fog from
-its naturally dark graphite materials was not enough to read as illumination.
+than blacking it out. Ember Forge uses 50% plus a strong visible lift because
+removing fog from its naturally dark graphite materials was not enough to read
+as illumination. The optional Lumen Bastion experiment instead uses 42%
+darkness and an 8% visible lift: its naturally pale materials retain structure
+without turning unseen territory black.
 With no selected perspective, the floor and raised wall/tree materials use the
 cross-team union
 of every active unit's sight; selection replaces that with the chosen team's
@@ -826,13 +855,15 @@ production candidates, then normalized locally:
 - Overgrown Lab uses pale ceramic/composite slabs, restrained moss, and
   mask-safe reinforced lab plating. Water channels were removed from the base
   material: a future river belongs in explicit map presentation data.
-- Ember Forge, Frost Relay, Drowned Vault, Desert Array, and Void Sanctum use
-  fifteen separately generated material fields—one floor, one fortified
-  perimeter, and one interior-cover source per theme. Their exact accepted
-  prompts live in `art/themes/SOURCE-PROMPTS.md`; deterministic baking owns
-  seamless normalization and topology. Ember Forge ships on Arena and Arc
-  Relay, while Frost Relay ships on Gallery. Drowned Vault, Desert Array, and Void
-  Sanctum remain complete staged packages under `art/`; keeping them outside
+- Ember Forge, Frost Relay, Drowned Vault, Desert Array, Void Sanctum, and
+  Lumen Bastion use separately generated material fields—one floor, one
+  fortified perimeter, and one interior-cover source per theme. Their exact
+  accepted prompts live in `art/themes/SOURCE-PROMPTS.md`; deterministic baking
+  owns seamless normalization and topology. Ember Forge ships on Arena and
+  remains the default Arc Relay presentation; Lumen Bastion is an optional
+  bright experiment, while Frost Relay ships on Gallery. Drowned Vault, Desert
+  Array, and Void Sanctum remain complete staged packages under `art/`; keeping
+  them outside
   Vite avoids adding every large theme to every self-contained viewer before
   per-replay asset packaging exists.
 - Wall sources are generated as opaque material fields, never whole slabs or
@@ -887,6 +918,16 @@ home-region outline, heal tiles become raised coolant stations, and faceted
 Wells and Reactors replace generic discs.
 A Well's outer partial ring is driven by its published next-birth or rearm
 clock, so it remains exact while seeking or scrubbing.
+
+Lumen Bastion is an optional bright Arc Relay visual experiment. It keeps the
+same topology-derived bastion grammar, landmark geometry, 12° yaw, 52° pitch,
+and 28° lens, but changes the material hierarchy to warm-white ceramic
+composite, pale silver reinforcement, restrained graphite recesses, and sparse
+periwinkle-white emission. The perimeter uses a shallower 1.6-tile non-playable
+apron and omits chimney cadence; in-map geometry remains inside the same
+authoritative blocked cells. Ember Forge remains the default. Lumen was checked
+using a fresh native Tapline-3 replay with an explicit experimental theme
+binding, not a renderer-forced fallback or post-load theme swap.
 
 Woodland Grove adds one deliberately narrow organic companion rather than a
 generic prop catalog. A wall family's optional `geometry3d.treeCover` block

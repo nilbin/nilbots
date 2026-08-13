@@ -326,8 +326,7 @@ public sealed class ArcRelayEntrantPlaylistSeeder(
             join version in db.PlaylistVersions
                 on ladder.PlaylistVersionId equals version.Id
             where version.PlaylistId == playlist.Id &&
-                version.Version == ArcRelayEntrantPlaylistDefinition
-                    .OrdersV2Version &&
+                version.Version < ArcRelayEntrantPlaylistDefinition.Version &&
                 ladder.SeasonId == season.Id
             select new { Ladder = ladder, version.Version })
             .ToArrayAsync(cancellationToken);
@@ -338,7 +337,7 @@ public sealed class ArcRelayEntrantPlaylistSeeder(
         {
             throw new InvalidOperationException(
                 "An open Arc Relay Season 1 can start the fresh v21 Tapline-3 " +
-                "rating book only from one open immutable v20 ladder.");
+                "rating book only from one open prior immutable ladder.");
         }
         Ladder previous = open[0].Ladder;
         if (await db.ArcRelayEntrantRatings.AnyAsync(
