@@ -588,6 +588,12 @@ sprite-derived WebGL fallback:
   paint: its textured monolithic meshes stay untouched. Do not infer semantic
   surfaces, hue-key, split, or repaint them merely to satisfy this optional
   material convention; team ownership stays in renderer-owned cues and effects.
+- Arc Relay's approved Team Reactor is likewise a neutral monolithic Meshy
+  housing, but is classified as an `objective` model. Its exact lean artifact is
+  a 1.5-tile, 0.17-tile-high open recess with no team material. WebGL owns the
+  low additive team pool and restrained aperture light, as well as the crest,
+  charge and integrity pips, banking pulse, damage, and destruction. The Canvas
+  fallback keeps the same authoritative state read with procedural geometry.
 - Persistent signature props use the same exception and a separate
   `kind: "signature"` manifest. Trip Node and Sentinel Seed load only in the
   hosted WebGL signature layer. Trip Node keeps its procedural telegraph;

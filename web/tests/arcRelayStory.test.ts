@@ -497,7 +497,7 @@ test('Ember landmarks turn Arc homes, healing, and well charge into foundry mach
   const well = objects.find(
     (node) => node.userData.kind === 'arc-relay-well',
   );
-  const reactor = objects.find(
+  const reactors = objects.filter(
     (node) => node.userData.kind === 'arc-relay-reactor',
   );
   const progress = objects.find(
@@ -510,7 +510,37 @@ test('Ember landmarks turn Arc homes, healing, and well charge into foundry mach
   assert.equal(heal?.userData.themeId, 'ember-forge');
   assert.ok(coolant, 'the Ember heal tile has a raised coolant reservoir');
   assert.equal(well?.userData.themeId, 'ember-forge');
-  assert.equal(reactor?.userData.themeId, 'ember-forge');
+  assert.equal(reactors.length, 2);
+  assert.ok(reactors.every((reactor) => reactor.userData.themeId === 'ember-forge'));
+  const reactorStates = createPresenter(replay).at(2).arcRelay?.reactors ?? [];
+  assert.equal(reactorStates.length, 2);
+  for (const reactor of reactors) {
+    const teamId = reactor.userData.teamId as number;
+    const state = reactorStates.find((candidate) => candidate.teamId === teamId);
+    assert.ok(state);
+    const descendants: THREE.Object3D[] = [];
+    reactor.traverse((node) => descendants.push(node));
+    const underGlow = descendants.find(
+      (node) => node.userData.kind === 'arc-relay-reactor-underglow',
+    ) as THREE.Mesh | undefined;
+    const underLight = descendants.find(
+      (node) => node.userData.kind === 'arc-relay-reactor-underlight',
+    ) as THREE.PointLight | undefined;
+    assert.ok(underGlow);
+    assert.ok(underLight);
+    const glowMaterial = underGlow.material as THREE.MeshBasicMaterial;
+    const accent = new THREE.Color(state.accent).getHexString();
+    assert.equal(glowMaterial.color.getHexString(), accent);
+    assert.equal(underLight.color.getHexString(), accent);
+    assert.equal(glowMaterial.blending, THREE.AdditiveBlending);
+    assert.equal(glowMaterial.depthWrite, false);
+    assert.ok(underGlow.position.y < 0.02, 'the team pool stays under the low housing');
+    assert.ok(glowMaterial.opacity >= 0.2 && glowMaterial.opacity <= 0.4);
+    assert.equal(underLight.distance, 1.45);
+    assert.equal(underLight.decay, 2);
+    assert.equal(underLight.castShadow, false);
+    assert.ok(underLight.intensity < 1.2, 'the local team light remains restrained');
+  }
   assert.ok(progress);
   assert.equal(progress.userData.progress, 0.5);
   assert.equal(progress.userData.phase, 'scheduled-birth');

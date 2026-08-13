@@ -2084,6 +2084,8 @@ function buildArcRelayStory(
   const coreGeometry = new THREE.SphereGeometry(0.22, 28, 18);
   const beamGeometry = new THREE.CylinderGeometry(0.025, 0.08, 1.05, 12);
   const coreGlowTexture = flare();
+  const reactorGlowGeometry = new THREE.PlaneGeometry(1.5, 1.5);
+  reactorGlowGeometry.rotateX(-Math.PI / 2);
   const sourceTriangleGeometry = new THREE.ConeGeometry(0.17, 0.045, 3);
   const sourceDiamondGeometry = new THREE.BoxGeometry(0.23, 0.045, 0.23);
   sourceDiamondGeometry.rotateY(Math.PI / 4);
@@ -2105,6 +2107,7 @@ function buildArcRelayStory(
     integrityGeometry,
     coreGeometry,
     beamGeometry,
+    reactorGlowGeometry,
     sourceTriangleGeometry,
     sourceDiamondGeometry,
     sourceCircleGeometry,
@@ -2380,6 +2383,9 @@ function buildArcRelayStory(
     group: THREE.Group;
     material: THREE.MeshStandardMaterial;
     ringMaterial: THREE.MeshBasicMaterial;
+    underGlow: THREE.Mesh;
+    underGlowMaterial: THREE.MeshBasicMaterial;
+    underLight: THREE.PointLight;
     integrity: THREE.Mesh[];
     integrityMaterials: THREE.MeshBasicMaterial[];
     charge: THREE.Mesh[];
@@ -2406,18 +2412,36 @@ function buildArcRelayStory(
         depthWrite: false,
         blending: THREE.AdditiveBlending,
       });
+      const underGlowMaterial = new THREE.MeshBasicMaterial({
+        map: coreGlowTexture,
+        transparent: true,
+        opacity: 0.3,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+        side: THREE.DoubleSide,
+      });
+      const underGlow = new THREE.Mesh(reactorGlowGeometry, underGlowMaterial);
+      underGlow.position.y = 0.012;
+      underGlow.userData.kind = 'arc-relay-reactor-underglow';
+      const underLight = new THREE.PointLight('#ffffff', 0.8, 1.45, 2);
+      underLight.position.y = 0.08;
+      underLight.castShadow = false;
+      underLight.userData.kind = 'arc-relay-reactor-underlight';
       const fallback = new THREE.Group();
       fallback.userData.kind = 'arc-relay-reactor-fallback';
       const body = new THREE.Mesh(reactorGeometry, material);
       body.position.y = arcArchitecture ? 0.11 : 0.09;
       const ring = new THREE.Mesh(reactorRingGeometry, ringMaterial);
       ring.position.y = 0.055;
-      ring.scale.setScalar(1.7);
+      ring.scale.setScalar(1.35);
       const crestMaterial = new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false });
       const crest = new THREE.Mesh(crestGeometry, crestMaterial);
       crest.position.set(-0.27, 0.425, 0);
+      const stateIndicators = new THREE.Group();
+      stateIndicators.userData.kind = 'arc-relay-reactor-state-indicators';
       fallback.add(body);
-      rig.add(fallback, ring, crest);
+      stateIndicators.add(crest);
+      rig.add(underGlow, underLight, fallback, ring, stateIndicators);
       for (const [index, [x, z]] of [
         [-0.37, -0.37],
         [0.37, -0.37],
@@ -2438,6 +2462,14 @@ function buildArcRelayStory(
         }
         authoredModel = model;
         authoredModel.userData.kind = 'arc-relay-reactor-authored-housing';
+        // The approved Meshy object is already only 0.17 tile high. Keep its floor at the
+        // authoritative ground plane so it reads as a recess, while the renderer-owned
+        // team pool shines through the open aperture from a few millimetres above it.
+        authoredModel.position.y = 0;
+        // The old procedural fixture was tall enough to carry its state readouts at
+        // 0.43 tile. Lower the whole readout assembly once the approved floor recess is
+        // available, keeping the pips immediately above its rim instead of floating.
+        stateIndicators.position.y = -0.2;
         fallback.visible = false;
         rig.add(authoredModel);
       });
@@ -2455,14 +2487,14 @@ function buildArcRelayStory(
         ] as const;
         outer.position.set(integrityPositions[pip]![0], 0.43, integrityPositions[pip]![1]);
         outer.userData.kind = 'arc-relay-reactor-integrity';
-        rig.add(outer);
+        stateIndicators.add(outer);
         integrity.push(outer);
         integrityMaterials.push(outerMaterial);
         const innerMaterial = new THREE.MeshBasicMaterial();
         const inner = new THREE.Mesh(pipGeometry, innerMaterial);
         inner.position.set(0.38, 0.44, (pip - 1) * 0.22);
         inner.userData.kind = 'arc-relay-reactor-charge';
-        rig.add(inner);
+        stateIndicators.add(inner);
         charge.push(inner);
         chargeMaterials.push(innerMaterial);
         disposables.push(outerMaterial, innerMaterial);
@@ -2473,13 +2505,16 @@ function buildArcRelayStory(
         group: rig,
         material,
         ringMaterial,
+        underGlow,
+        underGlowMaterial,
+        underLight,
         integrity,
         integrityMaterials,
         charge,
         chargeMaterials,
         crest,
       });
-      disposables.push(material, ringMaterial, crestMaterial, {
+      disposables.push(material, ringMaterial, underGlowMaterial, crestMaterial, {
         dispose: () => {
           disposed = true;
           if (authoredModel) disposeObjectMaterials(authoredModel);
@@ -2819,10 +2854,17 @@ function buildArcRelayStory(
       rig.group.visible = true;
       rig.group.position.set(state.position.x + 0.5, 0, state.position.y + 0.5);
       rig.group.rotation.y = state.position.x < replay.map.width / 2 ? 0 : Math.PI;
+      rig.group.userData.teamId = state.teamId;
       rig.material.emissive.set(state.accent);
       rig.ringMaterial.color.set(state.accent);
-      // Bank flashes are sampled from the playhead, not retained renderer state.
-      rig.ringMaterial.opacity = 0.75;
+      rig.underGlowMaterial.color.set(state.accent);
+      rig.underLight.color.set(state.accent);
+      const reactorPulse = 0.5 + 0.5 * Math.sin(time * Math.PI * 0.85 + index);
+      const chargeLift = state.chargePips * 0.025;
+      rig.underGlowMaterial.opacity = 0.2 + reactorPulse * 0.11 + chargeLift;
+      rig.underGlow.scale.setScalar(0.94 + reactorPulse * 0.04);
+      rig.underLight.intensity = 0.72 + reactorPulse * 0.28 + chargeLift * 2;
+      rig.ringMaterial.opacity = 0.52 + reactorPulse * 0.14;
       const entrant = entrants?.find((value) => value.teamId === state.teamId);
       if (entrant) {
         const material = rig.crest.material as THREE.MeshBasicMaterial;

@@ -1,6 +1,6 @@
 # Team Reactor recess Meshy 7 review
 
-Status: **owner review; no runtime promotion**.
+Status: **owner approved; promoted as the runtime Team Reactor**.
 
 ## Verdict
 
@@ -39,4 +39,16 @@ gameplay read.
   hashes, provenance, provider rewrite audit, memory estimates, and budgets.
 
 Team ownership, charge, integrity, crest, banking pulse, damage, and destruction
-remain renderer-owned and must be evaluated in a later gameplay-review gate.
+remain renderer-owned. The promoted housing keeps the exact lean review bytes;
+the WebGL renderer adds a low team-coloured additive pool and restrained point
+light through the aperture, and lowers the existing state readouts to the rim.
+
+## Runtime gameplay gate
+
+A fresh Tapline-3 match (seed `9001`) ran the stock Hunter v2 and Wellwright v2
+sheets for 438 ticks and ended by Reactor destruction. It contains 16 banks and
+five pulses, including both team colours at both home ends. The compact broadcast
+is 158,333 gzip bytes; the review installer recompresses its served sibling to
+158,457 bytes. Phone-landscape validation used the exact public gallery URL and
+confirmed the promoted GLB hash, WebGL canvas, gzip transport, playable overlay,
+timeline seeks, both team treatments, and an empty browser error log.

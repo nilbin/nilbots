@@ -1,0 +1,87 @@
+{
+  "version": 1,
+  "status": "owner-approved",
+  "approval": "Owner approved the low ground-recess Reactor and requested renderer-owned team glow from below.",
+  "generator": "scripts/class-models/promote-reactor-recess-v1.mjs",
+  "runtimeTier": "art/class-models/runtime-tiers/arc-relay/reactor-recess-review-v1/audit.json",
+  "textureTier": "reactor-recess-review-v1-webp",
+  "provider": "Meshy",
+  "providerModel": "meshy-7",
+  "meshContract": "One neutral matte 1.5-tile ring with an open aperture; charge, integrity, crest, pulse, damage, destruction, and team glow remain renderer-owned.",
+  "modelOwnedTeamGlow": false,
+  "rendererOwnedTeamGlow": "low additive floor pool plus a restrained point light from the aperture",
+  "model": {
+    "id": "arc-team-reactor",
+    "taskId": "019ffccf-7594-7de3-a30f-603697cf63a2",
+    "endpoint": "retexture",
+    "artifact": "art/class-models/runtime-tiers/arc-relay/reactor-recess-review-v1/arc-team-reactor-recess-lean.glb",
+    "bytes": 1635852,
+    "sha256": "2c6c0efe97becd1671baaacdd38bd2ba65edcd62a426d164d9eabf2847724bb4",
+    "triangles": 79318,
+    "materials": 1,
+    "textures": 3,
+    "geometrySha256": "d1531a3c60efaed53cb77adbb9089806818637b776e5be4dd59c631e80293305",
+    "matteRoughnessFloor": 0.82,
+    "memory": {
+      "transferBytes": 1635852,
+      "geometryGpuBytes": 1565288,
+      "textureGpuBytesCompressedTarget": 4194300,
+      "textureGpuBytesRgba8Fallback": 4194300,
+      "modelGpuBytesCompressedTarget": 5759588,
+      "modelGpuBytesRgba8Fallback": 5759588,
+      "textures": [
+        {
+          "imageIndex": 0,
+          "name": null,
+          "slots": [
+            "baseColorTexture"
+          ],
+          "mimeType": "image/webp",
+          "encoding": "RGBA8",
+          "width": 512,
+          "height": 512,
+          "mipLevels": 10,
+          "transferBytes": 37808,
+          "gpuBytesCompressedTarget": 1398100,
+          "gpuBytesRgba8Fallback": 1398100
+        },
+        {
+          "imageIndex": 1,
+          "name": null,
+          "slots": [
+            "metallicRoughnessTexture"
+          ],
+          "mimeType": "image/webp",
+          "encoding": "RGBA8",
+          "width": 512,
+          "height": 512,
+          "mipLevels": 10,
+          "transferBytes": 22992,
+          "gpuBytesCompressedTarget": 1398100,
+          "gpuBytesRgba8Fallback": 1398100
+        },
+        {
+          "imageIndex": 2,
+          "name": null,
+          "slots": [
+            "normalTexture"
+          ],
+          "mimeType": "image/webp",
+          "encoding": "RGBA8",
+          "width": 512,
+          "height": 512,
+          "mipLevels": 10,
+          "transferBytes": 6844,
+          "gpuBytesCompressedTarget": 1398100,
+          "gpuBytesRgba8Fallback": 1398100
+        }
+      ]
+    },
+    "budgets": {
+      "transferBytes": 2000000,
+      "triangles": 100000
+    },
+    "targetPlanformSpan": 1.5,
+    "floorY": 0
+  }
+}

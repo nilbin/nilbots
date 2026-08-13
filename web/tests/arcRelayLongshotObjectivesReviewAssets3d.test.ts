@@ -32,10 +32,22 @@ test('Longshot and objective review tier preserves its promotion gate', () => {
   const longshot = audit.candidates.find(
     (candidate: { id: string }) => candidate.id === 'longshot',
   );
+  const oldTeamReactor = audit.candidates.find(
+    (candidate: { id: string }) => candidate.id === 'team-reactor',
+  );
+  assert.ok(oldTeamReactor);
   const liveLongshot = readFileSync(
     join(repository, 'web/src/assets/class-looks/arc-longshot/model.glb'),
   );
+  const liveTeamReactor = readFileSync(
+    join(repository, 'web/src/assets/objective-models/arc-team-reactor/model.glb'),
+  );
   assert.notEqual(sha256(liveLongshot), longshot.artifact.sha256);
+  assert.notEqual(
+    sha256(liveTeamReactor),
+    oldTeamReactor.artifact.sha256,
+    'the rejected raised Reactor from this older batch must not become the runtime asset',
+  );
   assert.equal(
     existsSync(
       join(repository, 'web/src/assets/objective-models/arc-core-well/model.glb'),
@@ -45,12 +57,6 @@ test('Longshot and objective review tier preserves its promotion gate', () => {
   assert.equal(
     existsSync(
       join(repository, 'web/src/assets/signature-models/arc-survey-flare/model.glb'),
-    ),
-    false,
-  );
-  assert.equal(
-    existsSync(
-      join(repository, 'web/src/assets/objective-models/arc-team-reactor/model.glb'),
     ),
     false,
   );

@@ -1,9 +1,9 @@
 # Team Reactor recess concept v1
 
-Status: **Meshy 7 owner review; no runtime promotion**. The owner-approved concept
-produced a successful low open-ring geometry pass and one bounded corrective
-retexture. This replaces the rejected raised U-station direction with a very flat
-floor socket whose physical housing can be recessed below the arena surface.
+Status: **owner approved and promoted**. The owner-approved concept produced a
+successful low open-ring geometry pass and one bounded corrective retexture. It
+replaces the rejected raised U-station direction with a very flat floor socket
+whose physical housing sits on the arena surface as a shallow recess.
 
 ## Contract
 
@@ -35,6 +35,9 @@ under `meshy7-inputs-v1/`. The contact sheet itself is never submitted.
   benefit from the rich tier, so lean is the recommended in-game trial candidate.
 - Team color, charge/integrity state, crest, pulses, damage, and destruction remain
   renderer-owned and are not baked into the GLB.
+- Runtime promotion is deterministic through
+  `scripts/class-models/promote-reactor-recess-v1.mjs`; the emitted asset is
+  `web/src/assets/objective-models/arc-team-reactor/model.glb`.
 
 Review evidence:
 
