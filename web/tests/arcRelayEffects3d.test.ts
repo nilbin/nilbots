@@ -542,6 +542,17 @@ test('Tractor Hook keeps a non-circular cable attached through the recorded pull
       false,
       'the hook treatment contains no spool/target donut',
     );
+    const cable = pullStart.children.find(
+      (child) =>
+        child.visible &&
+        child.geometry?.type === 'BoxGeometry' &&
+        (child as THREE.Mesh).material instanceof THREE.MeshStandardMaterial,
+    ) as THREE.Mesh | undefined;
+    assert.ok(cable);
+    assert.ok(
+      cable.scale.z < 0.7,
+      `the physical hook cable stays a narrow strand (${cable.scale.z})`,
+    );
     const startHead = pullStart.children.find(
       (child) => child.visible && child.geometry?.type === 'CapsuleGeometry',
     );
@@ -589,6 +600,36 @@ test('Sentinel Seed transforms upward from its floor seed', () => {
     assert.equal(growing.position.y, 0);
     assert.ok(growing.scale.y > openingHeight * 4);
     assert.ok(growing.scale.x > openingWidth);
+  } finally {
+    for (const disposable of disposables) disposable.dispose();
+  }
+});
+
+test('Sentinel Seed tell leaves the casting Nest unobscured', () => {
+  const replay = loadReplayJson(
+    gunzipSync(readFileSync(new URL(
+      '../../art/reviews/arc-relay-presentation-batch-v1/runtime-proof/replays/remaining-roster.broadcast.json.gz',
+      import.meta.url,
+    ))).toString('utf8'),
+  ).replay;
+  const disposables: { dispose: () => void }[] = [];
+  const effects = buildArcRelayEffects(replay, disposables);
+  try {
+    effects.update(14.5);
+    const tell = effects.group.children.find(
+      (candidate) =>
+        candidate.visible &&
+        candidate.userData.signatureId === 'sentinel-seed' &&
+        candidate.userData.phase === 'tell',
+    );
+    assert.ok(tell);
+    assert.equal(
+      tell.children.some(
+        (child) => child.visible && child.geometry?.type === 'CylinderGeometry',
+      ),
+      false,
+      'the procedural seed pod does not cover the casting bot',
+    );
   } finally {
     for (const disposable of disposables) disposable.dispose();
   }

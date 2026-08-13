@@ -32,26 +32,14 @@ export default defineArcSignatureWebGLPainter({
     targetRing(rig, anchor, 0.72 + (1 - deploy) * 0.18);
     setEnergyOpacity(rig.ring, 0.1);
     if (phase === 'tell') {
-      // A small planted seed is the honest promise during wind-up. The active Meshy model
-      // then expands from this socket, which reads as transformation rather than a second
-      // unrelated object being dropped onto the tile.
+      // Keep the wind-up on the destination socket. The previous pod was placed on the
+      // caster when Nest plants at its own tile and covered the authored chassis in a
+      // pale procedural shell.
       const socket = rig.rings[0]!;
       socket.visible = true;
       socket.position.copy(anchor).setY(0.052);
       socket.scale.setScalar(0.44 + phaseProgress * 0.12);
       setEnergyOpacity(socket, 0.14);
-      const seed = rig.pod;
-      seed.visible = true;
-      seed.position.copy(anchor).setY(0.12 + phaseProgress * 0.06);
-      seed.scale.set(
-        0.34 + phaseProgress * 0.08,
-        0.18 + phaseProgress * 0.08,
-        0.34 + phaseProgress * 0.08,
-      );
-      rig.solid.color.set('#4d5c60');
-      rig.solid.emissive.set(SEED);
-      rig.solid.emissiveIntensity = 0.05;
-      rig.solid.opacity = 0.9;
       for (let index = 0; index < 3; index += 1) {
         const mote = rig.particles[index]!;
         const angle = index * Math.PI * 2 / 3 + phaseProgress * 0.8;

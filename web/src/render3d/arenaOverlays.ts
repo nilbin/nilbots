@@ -2610,6 +2610,7 @@ function buildArcRelayStory(
     carried: boolean,
     pulse: number,
     time: number,
+    originTinted = carried,
   ) => {
     const accent = arcOriginAccent(sourceWellId);
     rig.group.visible = true;
@@ -2620,7 +2621,7 @@ function buildArcRelayStory(
     rig.glow.position.copy(rig.gem.position);
     rig.light.position.copy(rig.gem.position);
     rig.glow.scale.setScalar((0.72 + pulse * 0.05) * scale);
-    if (carried) {
+    if (originTinted) {
       rig.gemMaterial.color.set(accent).multiplyScalar(0.5);
       rig.gemMaterial.emissive.set(accent);
       rig.glowMaterial.color.set(accent);
@@ -2631,9 +2632,9 @@ function buildArcRelayStory(
       rig.glowMaterial.color.set(ARC_CORE_NEUTRAL_PALETTE.glow);
       rig.light.color.set(ARC_CORE_NEUTRAL_PALETTE.light);
     }
-    rig.gemMaterial.emissiveIntensity = carried ? 0.8 : 0.7;
+    rig.gemMaterial.emissiveIntensity = originTinted ? 0.8 : 0.7;
     rig.glowMaterial.opacity = 0.15 + pulse * 0.07;
-    rig.light.intensity = carried ? 2.2 + pulse * 0.6 : 1.6 + pulse * 0.4;
+    rig.light.intensity = originTinted ? 2.2 + pulse * 0.6 : 1.6 + pulse * 0.4;
     rig.beam.visible = carried;
     rig.beamMaterial.color.set(accent);
     rig.beamMaterial.opacity = carried ? 0.055 + pulse * 0.045 : 0;
@@ -2935,9 +2936,13 @@ function buildArcRelayStory(
         arcTossFlight.sourceWellId,
         position,
         1 + Math.sin(progress * Math.PI) * 0.22,
-        progress < 0.18,
+        false,
         0.5 + 0.5 * Math.sin(time * Math.PI * 2.1),
         time,
+        // Tossing relinquishes custody mechanically, but it is still the same visible
+        // Core the carrier was holding. Keep its origin-lane treatment through flight
+        // without retaining the carrier tether; loose presentation resumes on landing.
+        true,
       );
     }
     for (const transition of custody) {

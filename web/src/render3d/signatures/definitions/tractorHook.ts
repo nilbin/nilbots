@@ -6,11 +6,12 @@ import {
   placeTravelHead,
   setEnergyColour,
   setEnergyOpacity,
-  solidBarAt,
   solidBeamAt,
 } from '../primitives';
 
 const CABLE = '#514b45';
+const CABLE_WIDTH = 0.035;
+const CABLE_GLOW_WIDTH = 0.045;
 
 export default defineArcSignatureWebGLPainter({
   signatureId: 'tractor-hook',
@@ -31,15 +32,14 @@ export default defineArcSignatureWebGLPainter({
       destination,
       0.18 + progress * 0.82,
     );
-    lineAt(line, owner, laneEnd, phase === 'tell' ? 0.18 : 0.12, 0.2);
+    lineAt(line, owner, laneEnd, CABLE_GLOW_WIDTH, 0.34);
     setEnergyColour(line, phase === 'tell' ? '#78aeb3' : CABLE);
-    setEnergyOpacity(line, phase === 'tell' ? 0.2 : 0.1);
-    solidBarAt(rig.bars[0]!, owner, laneEnd, phase === 'tell' ? 0.15 : 0.11, 0.13);
+    setEnergyOpacity(line, phase === 'tell' ? 0.14 : 0.08);
     solidBeamAt(
       rig.cable,
       owner.clone().setY(0.34),
       laneEnd.clone().setY(0.34),
-      0.13,
+      CABLE_WIDTH,
     );
     const head = rig.payload;
     const at = placeTravelHead(head, owner, destination, progress, 0.22, 0.82);
@@ -110,15 +110,14 @@ export default defineArcSignatureWebGLPainter({
       : to;
     const winch = owner ?? to;
     const cable = rig.segments[0]!;
-    lineAt(cable, winch, targetAt, 0.17 + life * 0.08, 0.2);
+    lineAt(cable, winch, targetAt, CABLE_GLOW_WIDTH, 0.34);
     setEnergyColour(cable, CABLE);
-    setEnergyOpacity(cable, life * 0.12);
-    solidBarAt(rig.bars[0]!, winch, targetAt, 0.14 + life * 0.06, 0.13);
+    setEnergyOpacity(cable, life * 0.08);
     solidBeamAt(
       rig.cable,
       winch.clone().setY(0.34),
       targetAt.clone().setY(0.34),
-      0.13,
+      CABLE_WIDTH,
     );
     const head = rig.payload;
     head.visible = true;

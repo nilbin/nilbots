@@ -604,12 +604,22 @@ test('the 3D renderer moves the one authoritative Arc Toss Core through its publ
   assert.equal(launch.rig.position.x, source.x + 0.5);
   assert.equal(launch.rig.position.z, source.y + 0.5);
   assert.equal(launch.sphere.position.y, 1.18);
+  const originAccent = arcOriginAccent(core.coreId.sourceWellId);
+  assert.equal(
+    (launch.sphere.material as THREE.MeshLambertMaterial).emissive.getHexString(),
+    new THREE.Color(originAccent).getHexString(),
+  );
   const { rig, sphere } = flightAt(1);
   assert.ok(rig);
   assert.ok(sphere);
   assert.equal(rig.position.x, source.x + 2 + 0.5);
   assert.equal(rig.position.z, source.y + 0.5);
   assert.ok(sphere.position.y > 1.3, 'the real Core rises through a visible ballistic apex');
+  assert.equal(
+    (sphere.material as THREE.MeshLambertMaterial).emissive.getHexString(),
+    new THREE.Color(originAccent).getHexString(),
+    'Arc Toss keeps the same origin-lane Core treatment for the complete flight',
+  );
   overlays.dispose();
 });
 
