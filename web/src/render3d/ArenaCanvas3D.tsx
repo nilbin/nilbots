@@ -167,7 +167,7 @@ export default function ArenaCanvas3D({
     // stack by the same amount rather than letting one family become slightly edge-on.
     for (const root of [actors.group, overlays.group])
       root.traverse((node) => {
-        if (node.userData.cue === 'health-pips')
+        if (node.userData.cue === 'health-bar')
           orientStatusBib(node, arena.cameraYaw, arena.cameraPitch);
       });
     arena.scene.add(actors.group);

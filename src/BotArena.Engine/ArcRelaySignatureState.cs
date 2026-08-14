@@ -76,6 +76,13 @@ public sealed record ArcRelaySignatureState
     public int RemainingCapacity { get; }
     public bool Suppressed { get; }
 
+    /// <summary>
+    /// Maximum hull/contact capacity for a deployment, or zero for other
+    /// signature operations. Additive and omitted by replay/wire writers when
+    /// zero so historical states remain byte-identical.
+    /// </summary>
+    public int MaximumCapacity { get; init; }
+
     public bool Equals(ArcRelaySignatureState? other) =>
         other is not null
         && OperationId == other.OperationId
@@ -90,6 +97,7 @@ public sealed record ArcRelaySignatureState
         && Positions.SequenceEqual(other.Positions)
         && TargetActorId == other.TargetActorId
         && RemainingCapacity == other.RemainingCapacity
+        && MaximumCapacity == other.MaximumCapacity
         && Suppressed == other.Suppressed;
 
     public override int GetHashCode()
@@ -108,6 +116,7 @@ public sealed record ArcRelaySignatureState
             hash.Add(position);
         hash.Add(TargetActorId);
         hash.Add(RemainingCapacity);
+        hash.Add(MaximumCapacity);
         hash.Add(Suppressed);
         return hash.ToHashCode();
     }

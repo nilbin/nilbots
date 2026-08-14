@@ -1,5 +1,6 @@
 import type {
   ReplayArcRelayFact,
+  ReplayArcRelayModeState,
   ReplayActorLifeKey,
   ReplayActorState,
   ReplayFormTransition,
@@ -19,6 +20,7 @@ import {
 import { headingStep } from './render/interpolate';
 import { unitAccent, unitLook } from './render/unitPresentation';
 import { replayMaxHealth } from './replayMetadata';
+import { arcVeterancyFor } from './replayArcVeterancy';
 import {
   legacySlotForUnit,
   participantForUnit,
@@ -434,6 +436,12 @@ export interface ArcRelayCorePresentation {
   carrierTeamId: number | null;
   carrierName: string | null;
   distanceToBank: number | null;
+  /** Charge this Core would award its current carrier's team. */
+  bankValue: number | null;
+  /** Pulses this bank would cause from the reactor's public remainder. */
+  pulsesOnBank: number;
+  /** Charge left after that hypothetical bank. */
+  remainderOnBank: number | null;
   pulseCore: boolean;
 }
 
@@ -455,7 +463,22 @@ export interface ArcRelayStoryPresentation {
     rearmCompletesAtTick: number | null;
     pendingCharge: boolean;
     outstanding: boolean;
+    teamValues: {
+      teamId: number;
+      value: number;
+      accent: string;
+    }[];
   }[];
+  respawnWave: {
+    nextTick: number;
+    ticksRemaining: number;
+    teams: {
+      teamId: number;
+      liveBodies: number;
+      respawnsNextWave: number;
+      accent: string;
+    }[];
+  } | null;
   reactors: {
     teamId: number;
     position: { x: number; y: number };
@@ -597,6 +620,19 @@ function presentUnit(
   const form = replay.forms.find(
     (candidate) => candidate.formId === formId,
   );
+  const vitalityMagnitude =
+    replay.contract.kind === 'v3-generic' &&
+    replay.contract.mode.kind === 'arc-relay'
+      ? (replay.contract.mode.vitalityHealthPerPoint ?? 1)
+      : 0;
+  const vitalityPoints = actor && vitalityMagnitude > 0
+    ? arcVeterancyFor(replay).vitalityPointsAt(
+        tickIndex,
+        actor.identity.teamId,
+        actor.identity.unitId,
+        actor.identity.lifeId,
+      )
+    : 0;
   const participant = participantForUnit(replay, unitKey);
   // Resolved through the same place the arena resolves it, for the effective form: a card
   // showing a different chassis or a different colour from the bot it names is worse than
@@ -685,7 +721,9 @@ function presentUnit(
       ? { ...activeActor.pendingFormTransition }
       : null,
     health: activeActor?.health ?? (status === 'active' ? (actor?.health ?? 0) : 0),
-    maxHealth: form?.maxHealth ?? Math.max(1, actor?.health ?? maxHealthFallback(replay)),
+    maxHealth:
+      (form?.maxHealth ?? Math.max(1, actor?.health ?? maxHealthFallback(replay))) +
+      vitalityPoints * vitalityMagnitude,
     cooldown: activeActor?.cooldown ?? 0,
     energy: activeActor?.energy ?? null,
     zoneTicks,
@@ -1675,6 +1713,40 @@ function arcSourceLabel(wellId: string): string {
   return label.charAt(0).toUpperCase() + label.slice(1);
 }
 
+export function arcBankValue(
+  replay: ReplayModel,
+  state: ReplayArcRelayModeState,
+  sourceWellId: string,
+  teamId: number,
+  fallback: number | undefined,
+): number {
+  if (replay.contract.kind !== 'v3-generic'
+    || replay.contract.mode.kind !== 'arc-relay'
+    || !replay.contract.mode.teamRelativeCoreCharge)
+    return fallback ?? 1;
+  const values = replay.contract.mode.teamRelativeCoreCharge;
+  if (sourceWellId.includes('centre')) return values.centreWell;
+  const source = state.wells.find((well) => well.wellId === sourceWellId);
+  const reactor = state.reactors.find((entry) => entry.teamId === teamId);
+  if (!source || !reactor) return fallback ?? 1;
+  const outerWells = state.wells
+    .filter((well) => !well.wellId.includes('centre'))
+    .sort((left, right) => {
+      const leftDistance = Math.max(
+        Math.abs(left.position.x - reactor.position.x),
+        Math.abs(left.position.y - reactor.position.y),
+      );
+      const rightDistance = Math.max(
+        Math.abs(right.position.x - reactor.position.x),
+        Math.abs(right.position.y - reactor.position.y),
+      );
+      return leftDistance - rightDistance || left.wellId.localeCompare(right.wellId);
+    });
+  return outerWells[0]?.wellId === sourceWellId
+    ? values.ownWell
+    : values.enemyWell;
+}
+
 function arcActorName(
   replay: ReplayModel,
   actor: { unitKey: ReplayStableUnitKey },
@@ -1730,14 +1802,23 @@ function arcBeat(
       };
     case 'core-banked':
       lastOwner.set(arcCoreKey(fact.coreId), fact.carrierActor);
+      {
+        const threshold = replay.contract.kind === 'v3-generic'
+          && replay.contract.mode.kind === 'arc-relay'
+          ? replay.contract.mode.coresPerPulse
+          : 3;
+        const awarded = fact.chargeAwarded ?? 1;
+        const prior = ((fact.chargePips - awarded) % threshold + threshold) % threshold;
+        const pulses = Math.floor((prior + awarded) / threshold);
       return {
         kind: 'bank',
         tick,
         headline: 'CORE BANKED',
-        detail: `${teamName(replay, fact.teamId)} reaches ${fact.chargePips}/3 charge`,
+        detail: `${teamName(replay, fact.teamId)} banks +${awarded} · ${pulses} ${pulses === 1 ? 'Pulse' : 'Pulses'} · ${fact.chargePips}/${threshold} held`,
         teamId: fact.teamId,
         accent: unitAccent(replay, fact.carrierActor.unitKey),
       };
+      }
     case 'pulse': {
       const unit = replay.units.find((candidate) =>
         candidate.teamId === fact.teamId,
@@ -1784,6 +1865,10 @@ function arcRelayAt(
   if (!tick || state?.kind !== 'arc-relay' || !('wells' in state)) return null;
 
   const reactors = new Map(state.reactors.map((reactor) => [reactor.teamId, reactor]));
+  const pulseThreshold = replay.contract.kind === 'v3-generic'
+    && replay.contract.mode.kind === 'arc-relay'
+    ? replay.contract.mode.coresPerPulse
+    : 3;
   const cores: ArcRelayCorePresentation[] = state.visibleCores.map((core) => {
     const carrier = core.carrierActor;
     const reactor = carrier ? reactors.get(carrier.teamId) : undefined;
@@ -1811,6 +1896,15 @@ function arcRelayAt(
             ),
         )
       : undefined;
+    const bankValue = carrier
+      ? arcBankValue(replay, state, core.coreId.sourceWellId, carrier.teamId, core.chargeValue)
+      : null;
+    const pulsesOnBank = bankValue !== null && reactor
+      ? Math.floor((reactor.chargePips + bankValue) / pulseThreshold)
+      : 0;
+    const remainderOnBank = bankValue !== null && reactor
+      ? (reactor.chargePips + bankValue) % pulseThreshold
+      : null;
     return {
       key: arcCoreKey(core.coreId),
       sourceLabel: arcSourceLabel(core.coreId.sourceWellId),
@@ -1824,7 +1918,10 @@ function arcRelayAt(
       carrierTeamId: carrier?.teamId ?? null,
       carrierName: carrier ? arcActorName(replay, carrier) : null,
       distanceToBank: distance,
-      pulseCore: reactor?.chargePips === 2,
+      bankValue,
+      pulsesOnBank,
+      remainderOnBank,
+      pulseCore: pulsesOnBank > 0,
     };
   });
   const carried = cores
@@ -1844,7 +1941,7 @@ function arcRelayAt(
       headline: carried.pulseCore
         ? `${teamName(replay, carried.carrierTeamId!)} HAS THE PULSE CORE`
         : `${teamName(replay, carried.carrierTeamId!)} IS CARRYING`,
-      detail: `${carried.sourceLabel} Core · ${carried.carrierName} · ${carried.distanceToBank} tiles from bank`,
+      detail: `${carried.sourceLabel} Core · +${carried.bankValue} charge → ${carried.pulsesOnBank > 0 ? `${carried.pulsesOnBank} ${carried.pulsesOnBank === 1 ? 'Pulse' : 'Pulses'} + ` : ''}${carried.remainderOnBank}/${pulseThreshold} held · ${carried.distanceToBank} tiles`,
       teamId: carried.carrierTeamId,
       accent: unit ? unitAccent(replay, unit.unitKey) : null,
     };
@@ -1898,6 +1995,14 @@ function arcRelayAt(
       rearmCompletesAtTick: well.rearmCompletesAtTick,
       pendingCharge: well.pendingCharge,
       outstanding: well.outstandingCoreId !== null,
+      teamValues: state.reactors.map((reactor) => {
+        const unit = replay.units.find((candidate) => candidate.teamId === reactor.teamId);
+        return {
+          teamId: reactor.teamId,
+          value: arcBankValue(replay, state, well.wellId, reactor.teamId, 1),
+          accent: unit ? unitAccent(replay, unit.unitKey) : '#94a3b8',
+        };
+      }),
     })),
     reactors: state.reactors.map((reactor) => {
       const unit = replay.units.find((candidate) =>
@@ -1912,6 +2017,19 @@ function arcRelayAt(
         accent: unit ? unitAccent(replay, unit.unitKey) : '#94a3b8',
       };
     }),
+    respawnWave: state.nextRespawnWaveTick === undefined
+      ? null
+      : {
+          nextTick: state.nextRespawnWaveTick,
+          ticksRemaining: Math.max(0, state.nextRespawnWaveTick - tick.tick),
+          teams: (state.respawnWaveTeams ?? []).map((team) => {
+            const unit = replay.units.find((candidate) => candidate.teamId === team.teamId);
+            return {
+              ...team,
+              accent: unit ? unitAccent(replay, unit.unitKey) : '#94a3b8',
+            };
+          }),
+        },
     beat: latest
       ? {
           ...latest,

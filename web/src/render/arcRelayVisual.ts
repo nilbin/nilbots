@@ -9,7 +9,7 @@ import type {
 } from '../replayModel';
 import type { BotPose } from './interpolate';
 import { unitLook } from './unitPresentation';
-import { arcOriginAccent } from '../replayPresentation';
+import { arcBankValue, arcOriginAccent } from '../replayPresentation';
 import { teamAccentedEffectImage } from './arenaThemes';
 import type { CrestPresentation } from '../components/EntrantCrest';
 import { ARC_CORE_NEUTRAL_PALETTE } from '../presentation/arcCorePalette';
@@ -21,6 +21,10 @@ import {
   resolveArcSignaturePresentation,
   type ArcSignatureCanvasMarker,
 } from './arcSignaturePresentation';
+import {
+  HEALTH_BAR_RELATIVE_WIDTH,
+  healthBarState,
+} from '../presentation/healthBar';
 
 export interface ArcRelayVisualContext {
   ctx: CanvasRenderingContext2D;
@@ -328,6 +332,30 @@ function drawWells(input: ArcRelayVisualContext, state: ArcState): void {
       );
       ctx.fill();
     }
+    if (rules?.teamRelativeCoreCharge) {
+      const teams = [...state.reactors].sort((left, right) => left.teamId - right.teamId);
+      ctx.font = `800 ${Math.max(8, tile * 0.22)}px ui-monospace, monospace`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      teams.forEach((reactor, index) => {
+        const x = point.x + (index === 0 ? -1 : 1) * tile * 0.2;
+        const y = point.y + tile * 0.47;
+        const accent = teamAccent(input, reactor.teamId);
+        ctx.fillStyle = 'rgba(4, 8, 13, 0.94)';
+        ctx.beginPath();
+        ctx.arc(x, y, tile * 0.14, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = withAlpha(accent, 0.95);
+        ctx.lineWidth = Math.max(1, tile * 0.035);
+        ctx.stroke();
+        ctx.fillStyle = '#f8fafc';
+        ctx.fillText(
+          String(arcBankValue(input.replay, state, well.wellId, reactor.teamId, 1)),
+          x,
+          y + 0.5,
+        );
+      });
+    }
     ctx.restore();
   }
 }
@@ -496,7 +524,10 @@ function drawLegacySignature(
     for (const point of points) {
       if (signature.signatureId === 'sentinel-seed')
         drawSentinelTurret(input, signature, point, accent);
-      else drawMine(ctx, point, tile, accent, time);
+      else {
+        drawMine(ctx, point, tile, accent, time);
+        drawConstructDurability(ctx, point, tile, signature, accent);
+      }
       if (signature.suppressed) drawSuppressionCross(ctx, point, tile);
     }
     return;
@@ -595,6 +626,7 @@ function drawAuthoredSignatureMarker(
   }
 
   if (signature.suppressed) drawSuppressionCross(ctx, anchor, tile);
+  drawConstructDurability(ctx, anchor, tile, signature, accent);
 }
 
 /** Unknown packages remain mechanically visible without borrowing current art. */
@@ -929,18 +961,64 @@ function drawSentinelTurret(
   );
   ctx.fill();
 
-  for (let pip = 0; pip < signature.remainingCapacity; pip += 1) {
-    ctx.fillStyle = withAlpha(accent, 0.95);
-    ctx.beginPath();
-    ctx.arc(
-      point.x - tile * 0.18 + pip * tile * 0.36,
-      point.y + tile * 0.82,
-      tile * 0.09,
-      0,
-      Math.PI * 2,
-    );
-    ctx.fill();
-  }
+  drawDurabilityBar(
+    ctx,
+    point.x,
+    point.y + tile * 0.82,
+    tile,
+    signature.remainingCapacity,
+    signature.maximumCapacity ?? signature.remainingCapacity,
+    accent,
+  );
+}
+
+function drawConstructDurability(
+  ctx: CanvasRenderingContext2D,
+  point: CanvasPoint,
+  tile: number,
+  signature: CanvasSignature,
+  accent: string,
+): void {
+  if (signature.maximumCapacity === undefined) return;
+  ctx.setLineDash([]);
+  drawDurabilityBar(
+    ctx,
+    point.x,
+    point.y + tile * 0.52,
+    tile,
+    signature.remainingCapacity,
+    signature.maximumCapacity,
+    accent,
+  );
+}
+
+function drawDurabilityBar(
+  ctx: CanvasRenderingContext2D,
+  centreX: number,
+  centreY: number,
+  tile: number,
+  current: number,
+  maximum: number,
+  accent: string,
+): void {
+  const health = healthBarState(current, maximum);
+  const width = tile * HEALTH_BAR_RELATIVE_WIDTH;
+  const height = Math.max(4, tile * 0.075);
+  const rim = Math.max(1, tile * 0.018);
+  const x = centreX - width / 2;
+  const y = centreY - height / 2;
+  ctx.fillStyle = withAlpha(accent, 0.95);
+  ctx.fillRect(x, y, width, height);
+  ctx.fillStyle = 'rgba(7, 16, 23, 0.92)';
+  ctx.fillRect(x + rim, y + rim, width - rim * 2, height - rim * 2);
+  if (health.fraction <= 0) return;
+  ctx.fillStyle = health.color;
+  ctx.fillRect(
+    x + rim,
+    y + rim,
+    (width - rim * 2) * health.fraction,
+    height - rim * 2,
+  );
 }
 
 function drawMine(

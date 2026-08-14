@@ -1,0 +1,25 @@
+{
+  "schema": "arc-relay-map-plan-v2",
+  "mapPlanId": "tapline-double-mason-lockbox-v1-map",
+  "mapId": "arc-relay-tapline-01",
+  "zones": {},
+  "routes": {},
+  "anchors": {
+    "own-well-lock": [
+      12,
+      6
+    ],
+    "centre-return-lock": [
+      18,
+      14
+    ],
+    "own-sentry": [
+      12,
+      7
+    ],
+    "centre-trip": [
+      17,
+      13
+    ]
+  }
+}

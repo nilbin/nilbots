@@ -1,0 +1,58 @@
+{
+  "schema": "arc-relay-map-plan-v2",
+  "mapPlanId": "tapline-turncoat-intercept-v1-map",
+  "mapId": "arc-relay-tapline-01",
+  "zones": {
+    "enemy-return-cut": {
+      "rect": [
+        18,
+        16,
+        25,
+        23
+      ]
+    }
+  },
+  "routes": {
+    "enemy-well-loop": {
+      "waypoints": [
+        [
+          19,
+          20
+        ],
+        [
+          20,
+          20
+        ],
+        [
+          20,
+          21
+        ],
+        [
+          19,
+          21
+        ],
+        [
+          18,
+          21
+        ],
+        [
+          18,
+          20
+        ],
+        [
+          18,
+          19
+        ],
+        [
+          19,
+          19
+        ],
+        [
+          19,
+          20
+        ]
+      ]
+    }
+  },
+  "anchors": {}
+}

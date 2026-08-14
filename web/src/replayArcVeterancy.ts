@@ -42,6 +42,13 @@ export interface ArcVeterancyIndex {
   hasLevels: boolean;
   /** Highest level any life reaches in this replay; 1 without veterancy. */
   maxLevel: number;
+  /** Successful vitality investments owned by this exact life at `time`. */
+  vitalityPointsAt(
+    time: number,
+    teamId: number,
+    unitId: number,
+    lifeId: number,
+  ): number;
 }
 
 const lifeKey = (teamId: number, unitId: number, lifeId: number) =>
@@ -71,7 +78,23 @@ export const LEVEL_UP_BEAT_TICKS = 1.8;
 export function buildArcVeterancy(replay: ReplayModel): ArcVeterancyIndex {
   const levels = new Map<string, { tick: number; level: number }[]>();
   const heals = new Map<string, number[]>();
+  const vitalityInvestments = new Map<string, number[]>();
   for (const [tickIndex, tick] of replay.ticks.entries()) {
+    for (const turn of tick.actorTurns) {
+      if (
+        turn.actionResolution.validatedActionId !== 'invest' ||
+        turn.actionResolution.result !== 'success' ||
+        turn.actionResolution.validatedPayload?.upgradeTrackId !== 'vitality'
+      ) continue;
+      const key = lifeKey(
+        turn.actor.teamId,
+        turn.actor.unitId,
+        turn.actor.lifeId,
+      );
+      const ticks = vitalityInvestments.get(key) ?? [];
+      ticks.push(tickIndex);
+      vitalityInvestments.set(key, ticks);
+    }
     for (const event of [...tick.lifecycleEvents, ...tick.events]) {
       const fact = event.arcRelayFact;
       if (!fact) continue;
@@ -144,6 +167,18 @@ export function buildArcVeterancy(replay: ReplayModel): ArcVeterancyIndex {
         }
       }
       return strength;
+    },
+    vitalityPointsAt(time, teamId, unitId, lifeId) {
+      const ticks = vitalityInvestments.get(
+        lifeKey(teamId, unitId, lifeId),
+      );
+      if (!ticks) return 0;
+      let points = 0;
+      for (const tick of ticks) {
+        if (tick > time) break;
+        points += 1;
+      }
+      return points;
     },
   };
 }

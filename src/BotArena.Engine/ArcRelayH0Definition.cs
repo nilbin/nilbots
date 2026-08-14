@@ -622,6 +622,7 @@ public static class ArcRelayH0Definition
     {
         ArgumentNullException.ThrowIfNull(loopProfile);
         ArcRelayGameModeDefinition mode = CreateMode(loopProfile);
+        ImmutableArray<LaunchClass> classes = ClassesFor(loopProfile);
         ActorMovementProfileDefinition[] movement =
         [
             new("swift", ActorMovementLayer.Ground,
@@ -656,13 +657,16 @@ public static class ArcRelayH0Definition
             // utility casts, not the combat model under test.
             Attack("short-fast", range: 4, nextFireInterval: 2,
                 loopProfile.DirectionalCombat,
-                loopProfile.StrikeWindupTicks),
+                loopProfile.StrikeWindupTicks,
+                damagePerHit: loopProfile.CombatMagnitudeScale),
             Attack("medium-steady", range: 6, nextFireInterval: 3,
                 loopProfile.DirectionalCombat,
-                loopProfile.StrikeWindupTicks),
+                loopProfile.StrikeWindupTicks,
+                damagePerHit: loopProfile.CombatMagnitudeScale),
             Attack("long-slow", range: 9, nextFireInterval: 5,
                 loopProfile.DirectionalCombat,
-                loopProfile.StrikeWindupTicks),
+                loopProfile.StrikeWindupTicks,
+                damagePerHit: loopProfile.CombatMagnitudeScale),
             // Grammar-2 signature bolts are contract-declared projectiles:
             // the world snapshot, validators, and viewers all know them the
             // same way they know the guns. No body selects them as its gun.
@@ -670,7 +674,8 @@ public static class ArcRelayH0Definition
                 ? new[]
                 {
                     Attack("sentinel-bolt", range: 4, nextFireInterval: 2,
-                        directionalCombat: false),
+                        directionalCombat: false,
+                        damagePerHit: loopProfile.CombatMagnitudeScale),
                     Attack("hook-bolt", range: 6, nextFireInterval: 2,
                         directionalCombat: false),
                 }
@@ -749,14 +754,14 @@ public static class ArcRelayH0Definition
                 ActorSeedMechanicsDefinition.PrivateMemoryKind
                     .IsolatedPerRuntime),
             mode,
-            new ActorLifecycleDefinition(Classes.Select(entry =>
+            new ActorLifecycleDefinition(classes.Select(entry =>
                 new ActorLifecycleProfileDefinition(
                     LifecycleProfileId(entry.ClassId),
                     ActorLifecycleProfileDefinition.DestructionPolicyKind
                         .AutomaticRespawn,
                     delayTicks: loopProfile.RespawnDelayTicks,
                     automaticReturnFormId: FormId(entry.ClassId)))),
-            Classes.Select(entry => new ActorFormDefinition(
+            classes.Select(entry => new ActorFormDefinition(
                 FormId(entry.ClassId),
                 entry.Hull,
                 entry.Handling,
@@ -870,7 +875,25 @@ public static class ArcRelayH0Definition
             seedPhasedResolutionOrder:
                 loopProfile.SeedPhasedResolutionOrder,
             seedPhasedWellLead: loopProfile.SeedPhasedWellLead,
-            chiralWellBirths: loopProfile.ChiralWellBirths);
+            chiralWellBirths: loopProfile.ChiralWellBirths,
+            ownWellCoreCharge: 1,
+            centreWellCoreCharge:
+                loopProfile.TeamRelativeCoreCharge ? 2 : 1,
+            enemyWellCoreCharge:
+                loopProfile.TeamRelativeCoreCharge ? 4 : 1,
+            veteranCommand: loopProfile.VeteranCommand,
+            respawnWavePeriodTicks: loopProfile.RespawnWavePeriodTicks,
+            respawnMinimumDeadTicks: loopProfile.RespawnMinimumDeadTicks,
+            minimumDistinctClasses: loopProfile.MinimumDistinctClasses,
+            durableDeployments: loopProfile.DurableDeployments,
+            veterancyDamagePerPoint:
+                loopProfile.CombatMagnitudeScale == 10 ? 5 : 1,
+            veterancyDamageBonusCap:
+                loopProfile.CombatMagnitudeScale == 10 ? 10 : 2,
+            veterancyBonusAfterRearArc:
+                loopProfile.CombatMagnitudeScale == 10,
+            vitalityHealthPerPoint: loopProfile.CombatMagnitudeScale,
+            healZoneHealthPerActivation: loopProfile.CombatMagnitudeScale);
 
     /// <summary>
     /// Grammar 2 swaps exactly three envelopes for their dodgeable forms;
@@ -952,62 +975,157 @@ public static class ArcRelayH0Definition
                         },
                     _ => entry,
                 })];
-        if (loopProfile.SignatureGrammarVersion < 3)
-            return grammar2;
-
-        return [.. grammar2.Select(entry => entry.Signature switch
+        ImmutableArray<LaunchClass> grammar =
+            loopProfile.SignatureGrammarVersion < 3
+                ? grammar2
+                : [.. grammar2.Select(entry => entry.Signature switch
+                {
+                    ArcRelaySignatureDefinition.NullField2 field => entry with
+                    {
+                        Signature = new ArcRelaySignatureDefinition.NullField3(
+                            field.SignatureId,
+                            field.ClassId,
+                            field.ActionId,
+                            field.Radius,
+                            field.DurationTicks,
+                            field.TellTicks,
+                            field.CooldownTicks),
+                    },
+                    ArcRelaySignatureDefinition.TargetPaint paint => entry with
+                    {
+                        Signature = new ArcRelaySignatureDefinition.TargetPaint2(
+                            paint.SignatureId,
+                            paint.ClassId,
+                            paint.ActionId,
+                            paint.Range,
+                            acquisitionTicks: 1,
+                            paint.DurationTicks,
+                            paint.EnhancedHitCount,
+                            paint.BonusDamage,
+                            cancelCooldownTicks: 8,
+                            paint.CooldownTicks),
+                    },
+                    ArcRelaySignatureDefinition.KineticBurst burst => entry with
+                    {
+                        Signature = new ArcRelaySignatureDefinition.KineticBurst2(
+                            burst.SignatureId,
+                            burst.ClassId,
+                            burst.ActionId,
+                            burst.TellTicks,
+                            burst.PushTiles,
+                            cancelCooldownTicks: 6,
+                            burst.CooldownTicks),
+                    },
+                    ArcRelaySignatureDefinition.SmokeCanister smoke => entry with
+                    {
+                        Signature = new ArcRelaySignatureDefinition.SmokeCanister2(
+                            smoke.SignatureId,
+                            smoke.ClassId,
+                            smoke.ActionId,
+                            smoke.Range,
+                            smoke.Radius,
+                            smoke.DurationTicks,
+                            travelTilesPerTick: 3,
+                            smoke.CooldownTicks),
+                    },
+                    _ => entry,
+                })];
+        ImmutableArray<LaunchClass> deployments =
+            !loopProfile.DurableDeployments
+                ? grammar
+                // Candidate-only: keep the stable signature/action IDs and
+                // every other Mason number, but lengthen the barrier enough
+                // for both teams to preserve, relocate, or dismantle it.
+                : [.. grammar.Select(entry => entry.Signature switch
+                    {
+                        ArcRelaySignatureDefinition.HardlightBlock block =>
+                            entry with
+                            {
+                                Signature = new ArcRelaySignatureDefinition
+                                    .HardlightBlock(
+                                        block.SignatureId,
+                                        block.ClassId,
+                                        block.ActionId,
+                                        block.Hull,
+                                        durationTicks: 30,
+                                        block.CooldownTicks),
+                            },
+                        _ => entry,
+                    })];
+        int scale = loopProfile.CombatMagnitudeScale;
+        if (scale == 1 && loopProfile.BodyHullBonus == 0)
+            return deployments;
+        return [.. deployments.Select(entry => entry with
         {
-            ArcRelaySignatureDefinition.NullField2 field => entry with
-            {
-                Signature = new ArcRelaySignatureDefinition.NullField3(
-                    field.SignatureId,
-                    field.ClassId,
-                    field.ActionId,
-                    field.Radius,
-                    field.DurationTicks,
-                    field.TellTicks,
-                    field.CooldownTicks),
-            },
-            ArcRelaySignatureDefinition.TargetPaint paint => entry with
-            {
-                Signature = new ArcRelaySignatureDefinition.TargetPaint2(
-                    paint.SignatureId,
-                    paint.ClassId,
-                    paint.ActionId,
-                    paint.Range,
-                    acquisitionTicks: 1,
-                    paint.DurationTicks,
-                    paint.EnhancedHitCount,
-                    paint.BonusDamage,
-                    cancelCooldownTicks: 8,
-                    paint.CooldownTicks),
-            },
-            ArcRelaySignatureDefinition.KineticBurst burst => entry with
-            {
-                Signature = new ArcRelaySignatureDefinition.KineticBurst2(
-                    burst.SignatureId,
-                    burst.ClassId,
-                    burst.ActionId,
-                    burst.TellTicks,
-                    burst.PushTiles,
-                    cancelCooldownTicks: 6,
-                    burst.CooldownTicks),
-            },
-            ArcRelaySignatureDefinition.SmokeCanister smoke => entry with
-            {
-                Signature = new ArcRelaySignatureDefinition.SmokeCanister2(
-                    smoke.SignatureId,
-                    smoke.ClassId,
-                    smoke.ActionId,
-                    smoke.Range,
-                    smoke.Radius,
-                    smoke.DurationTicks,
-                    travelTilesPerTick: 3,
-                    smoke.CooldownTicks),
-            },
-            _ => entry,
+            Hull = checked(entry.Hull * scale + loopProfile.BodyHullBonus),
+            Signature = ScaleCombatMagnitude(entry.Signature, scale),
         })];
     }
+
+    /// <summary>
+    /// Scale only quantities denominated in hull, damage, or repair. Every
+    /// range, duration, cooldown, travel rate, and contact count is copied.
+    /// </summary>
+    private static ArcRelaySignatureDefinition ScaleCombatMagnitude(
+        ArcRelaySignatureDefinition signature,
+        int scale) => signature switch
+    {
+        ArcRelaySignatureDefinition.RepairBeam repair =>
+            new ArcRelaySignatureDefinition.RepairBeam(
+                repair.SignatureId, repair.ClassId, repair.ActionId,
+                repair.Range, repair.TicksPerRepair,
+                checked(repair.HullPerRepair * scale),
+                checked(repair.MaxHullPerActivation * scale),
+                repair.CooldownTicks),
+        ArcRelaySignatureDefinition.FallingStar star =>
+            new ArcRelaySignatureDefinition.FallingStar(
+                star.SignatureId, star.ClassId, star.ActionId,
+                star.Range, star.TellTicks,
+                checked(star.Damage * scale), star.CooldownTicks),
+        ArcRelaySignatureDefinition.TripNode node =>
+            new ArcRelaySignatureDefinition.TripNode(
+                node.SignatureId, node.ClassId, node.ActionId,
+                checked(node.Hull * scale),
+                checked(node.TriggerDamage * scale),
+                node.RevealRange, node.CooldownTicks),
+        ArcRelaySignatureDefinition.RailLine rail =>
+            new ArcRelaySignatureDefinition.RailLine(
+                rail.SignatureId, rail.ClassId, rail.ActionId,
+                rail.WindupTicks, rail.Range,
+                checked(rail.Damage * scale),
+                rail.CancelCooldownTicks, rail.CooldownTicks),
+        ArcRelaySignatureDefinition.HardlightBlock block =>
+            new ArcRelaySignatureDefinition.HardlightBlock(
+                block.SignatureId, block.ClassId, block.ActionId,
+                checked(block.Hull * scale), block.DurationTicks,
+                block.CooldownTicks),
+        ArcRelaySignatureDefinition.TargetPaint paint =>
+            new ArcRelaySignatureDefinition.TargetPaint(
+                paint.SignatureId, paint.ClassId, paint.ActionId,
+                paint.Range, paint.DurationTicks, paint.EnhancedHitCount,
+                checked(paint.BonusDamage * scale), paint.CooldownTicks),
+        ArcRelaySignatureDefinition.TargetPaint2 paint =>
+            new ArcRelaySignatureDefinition.TargetPaint2(
+                paint.SignatureId, paint.ClassId, paint.ActionId,
+                paint.Range, paint.AcquisitionTicks, paint.DurationTicks,
+                paint.EnhancedHitCount,
+                checked(paint.BonusDamage * scale),
+                paint.CancelCooldownTicks, paint.CooldownTicks),
+        ArcRelaySignatureDefinition.SentinelSeed seed =>
+            new ArcRelaySignatureDefinition.SentinelSeed(
+                seed.SignatureId, seed.ClassId, seed.ActionId,
+                checked(seed.Hull * scale), seed.Range,
+                checked(seed.Damage * scale), seed.FireCooldownTicks,
+                seed.DurationTicks, seed.CooldownTicks),
+        ArcRelaySignatureDefinition.SentinelSeed2 seed =>
+            new ArcRelaySignatureDefinition.SentinelSeed2(
+                seed.SignatureId, seed.ClassId, seed.ActionId,
+                checked(seed.Hull * scale), seed.Range,
+                checked(seed.Damage * scale), seed.FireCooldownTicks,
+                seed.DurationTicks, seed.BoltTilesPerAdvance,
+                seed.CooldownTicks, seed.WindupTicks),
+        _ => signature,
+    };
 
     private static ImmutableArray<LaunchClass> CreateClasses() =>
     [
@@ -1139,14 +1257,15 @@ public static class ArcRelayH0Definition
         int range,
         int nextFireInterval,
         bool directionalCombat,
-        int strikeWindupTicks = 0) =>
+        int strikeWindupTicks = 0,
+        int damagePerHit = 1) =>
         new(
             id,
             omnidirectionalAim: !directionalCombat,
             strikeWindupTicks > 0
                 ? new ActorProjectileDefinition(
                     ActorProjectileMode.InstantRay,
-                    damagePerHit: 1,
+                    damagePerHit,
                     maxTravelTiles: range,
                     ticksPerAdvance: 0,
                     tilesPerAdvance: 1,
@@ -1157,7 +1276,7 @@ public static class ArcRelayH0Definition
                     strikeWindupTicks: strikeWindupTicks)
                 : new ActorProjectileDefinition(
                     ActorProjectileMode.Discrete,
-                    damagePerHit: 1,
+                    damagePerHit,
                     maxTravelTiles: range,
                     ticksPerAdvance: 1,
                     tilesPerAdvance: 2,

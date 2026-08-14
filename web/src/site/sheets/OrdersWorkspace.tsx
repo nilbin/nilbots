@@ -29,6 +29,7 @@ import {
   type OrdersDocument,
   type RoleDefinition,
   type SheetIssue,
+  type UseTarget,
 } from './sheetAuthoring';
 import { MapTargetPreview } from './MapPlanEditor';
 
@@ -372,7 +373,7 @@ function OrderCard({ node, path, role, allOrders, mapPlan, catalog, issues, dept
           onChange={(move) => change((next) => { next.move = move; })} />}
         {action === 'fight' && <FightEditor value={node.fight!}
           onChange={(fight) => change((next) => { next.fight = fight; })} />}
-        {action === 'use' && <UseEditor node={node} role={role} catalog={catalog}
+        {action === 'use' && <UseEditor node={node} role={role} allOrders={allOrders} catalog={catalog}
           mapPlan={mapPlan} onOpenMap={onOpenMap}
           onChange={(use) => change((next) => { next.use = use; })} />}
         {action === 'handoff' && <HandoffEditor value={node.handoff!} roles={allOrders.roles}
@@ -535,8 +536,13 @@ function MoveEditor({ value, role, allOrders, mapPlan, catalog, onOpenMap, onCha
         <button type="button" className="btn btn-secondary mt-3 min-h-11 w-full" onClick={() => onOpenMap()}>Open map and add route</button>
       </div>)}
     {kind === 'follow' && (followRoleIds.length > 0
-      ? <CardPicker label="Role to follow" value={value.follow ?? ''} values={followRoleIds}
-        onChange={(follow) => change((next) => { next.follow = follow; })} />
+      ? <CardPicker label="Body to follow" value={encodeFollowTarget(value.follow)}
+        values={[...followRoleIds.map((id) => `role:${id}`), 'selector:most-experienced-ally']}
+        labeler={(entry) => entry === 'selector:most-experienced-ally'
+          ? 'Most experienced ally'
+          : `Role · ${humanize(entry.slice(5))}`}
+        descriptions={{ 'selector:most-experienced-ally': 'Rally around the live veteran; deterministic unit id breaks level ties.' }}
+        onChange={(follow) => change((next) => { next.follow = decodeFollowTarget(follow); })} />
       : <p className="t-meta mt-3 rounded-sm border border-arena-edge bg-arena-panel/45 p-3">Add another role in Squad before choosing Follow.</p>)}
     {kind !== 'follow' && <CardPicker label="Optional ingress route" value={value.via ?? ''}
       values={['', ...Object.keys(mapPlan.routes)]} emptyLabel="Direct · no ingress"
@@ -553,6 +559,7 @@ function MoveDestination({ value, mapPlan, onChange }: { value: MoveTarget; mapP
   const encoded = encodeMoveTarget(value);
   const values = [
     'dynamic:own-reactor', 'dynamic:nearest-heal-zone', 'dynamic:nearest-known-loose-core',
+    'dynamic:highest-bank-value-known-loose-core',
     'well:north', 'well:centre', 'well:south', 'well:own', 'well:enemy',
     ...Object.keys(mapPlan.zones).map((id) => `zone:${id}`),
     ...Object.keys(mapPlan.anchors).map((id) => `anchor:${id}`),
@@ -567,7 +574,7 @@ function MoveDestination({ value, mapPlan, onChange }: { value: MoveTarget; mapP
 
 function FightEditor({ value, onChange }: { value: NonNullable<OrderNode['fight']>; onChange: (next: NonNullable<OrderNode['fight']>) => void }) {
   const change = (mutate: (next: NonNullable<OrderNode['fight']>) => void) => { const next = structuredClone(value); mutate(next); onChange(next); };
-  const candidates = ['carrier', 'weakest', 'nearest', 'medic', 'marked'] as const;
+  const candidates = ['carrier', 'veteran', 'deployment', 'weakest', 'nearest', 'medic', 'marked'] as const;
   return <div className="mt-4">
     <p className="lab">Combat intent</p>
     <p className="t-micro mt-1">Target priorities are read left to right. Tap to add; arrows reorder.</p>
@@ -588,8 +595,8 @@ function FightEditor({ value, onChange }: { value: NonNullable<OrderNode['fight'
   </div>;
 }
 
-function UseEditor({ node, role, catalog, mapPlan, onOpenMap, onChange }: {
-  node: OrderNode; role: RoleDefinition; catalog: TacticalSheetCatalog;
+function UseEditor({ node, role, allOrders, catalog, mapPlan, onOpenMap, onChange }: {
+  node: OrderNode; role: RoleDefinition; allOrders: OrdersDocument; catalog: TacticalSheetCatalog;
   mapPlan: MapPlanDocument; onOpenMap: (focus?: { kind: PlotKind; id: string }) => void;
   onChange: (next: NonNullable<OrderNode['use']>) => void;
 }) {
@@ -601,7 +608,12 @@ function UseEditor({ node, role, catalog, mapPlan, onOpenMap, onChange }: {
     ? authoredSkill
     : skills[0] ?? '';
   const classInfo = catalog.classes.find((entry) => entry.signatureId === skill);
-  const targets = signatureTargets(skill);
+  const namedTargets = signatureTargets(skill);
+  const friendlySelectors = ['repair-beam', 'exchange', 'arc-toss'].includes(skill)
+    ? ['selector:most-experienced-ally', ...allOrders.roles.map((entry) => `role:${entry.id}`)]
+    : [];
+  const targets = [...namedTargets.map((target) => `named:${target}`), ...friendlySelectors];
+  const selectedTarget = encodeUseTarget(node.use?.target ?? namedTargets[0] ?? 'self');
   return <div className="mt-4 rounded-sm border border-arena-material/30 bg-arena-material/5 p-3">
     <div className="flex items-center gap-3"><ClassIcon classId={classInfo?.id ?? role.classes[0]} size={46} /><div><p className="lab text-arena-material">{classInfo?.signatureName ?? humanize(skill)}</p><p className="t-meta mt-1">{classInfo?.fantasy}</p></div></div>
     {skills.length > 1 && <CardPicker label="Which class acts?" value={skill} values={skills}
@@ -609,14 +621,18 @@ function UseEditor({ node, role, catalog, mapPlan, onOpenMap, onChange }: {
       descriptions={Object.fromEntries(skills.map((entry) => [entry,
         catalog.classes.find((candidate) => candidate.signatureId === entry)?.signatureName ?? humanize(entry)]))}
       onChange={(nextSkill) => onChange({ skill: nextSkill, target: signatureTargets(nextSkill)[0] ?? 'self' })} />}
-    <CardPicker label="Skill target" value={node.use?.target ?? targets[0]} values={targets}
-      onChange={(target) => onChange({ ...node.use, skill, target })} />
+    <CardPicker label="Skill target" value={selectedTarget} values={targets}
+      labeler={(entry) => entry === 'selector:most-experienced-ally'
+        ? 'Most experienced ally'
+        : entry.startsWith('role:') ? `Role · ${humanize(entry.slice(5))}` : humanize(entry.slice(6))}
+      descriptions={{ 'selector:most-experienced-ally': 'Protect, repair, or relay through the live veteran.' }}
+      onChange={(target) => onChange({ ...node.use, skill, target: decodeUseTarget(target) })} />
     {['hardlight-block', 'trip-node', 'sentinel-seed'].includes(skill) && <div className="mt-3">
       <CardPicker label="Exact placement · optional" value={node.use?.at ?? ''}
         values={['', ...Object.keys(mapPlan.anchors)]} emptyLabel="Aim toward selected target"
         descriptions={Object.fromEntries(Object.keys(mapPlan.anchors).map((id) => [id,
           `Build exactly at ${humanize(id)}; pair with a Beside destination below this order.`]))}
-        onChange={(at) => onChange({ ...node.use, skill, target: node.use?.target ?? targets[0],
+        onChange={(at) => onChange({ ...node.use, skill, target: node.use?.target ?? namedTargets[0] ?? 'self',
           ...(at ? { at } : { at: undefined }) })} />
       {node.use?.at && <button type="button" className="btn btn-secondary mt-2 min-h-11 w-full"
         onClick={() => onOpenMap({ kind: 'anchor', id: node.use!.at! })}>Plot {humanize(node.use.at)} on map</button>}
@@ -826,7 +842,11 @@ function orderSummary(node: OrderNode, orders: OrdersDocument): string {
     const destination = node.move.patrol !== undefined
       ? node.move.patrol ? `patrol ${humanize(node.move.patrol)}` : 'choose a patrol route'
       : node.move.follow !== undefined
-        ? node.move.follow ? `follow ${humanize(node.move.follow)}` : 'choose a role to follow'
+        ? node.move.follow
+          ? typeof node.move.follow === 'string'
+            ? `follow ${humanize(node.move.follow)}`
+            : 'follow the most experienced ally'
+          : 'choose a role to follow'
         : node.move.to
           ? `go to ${humanize(encodeMoveTarget(node.move.to).split(':')[1])}`
           : 'choose a destination';
@@ -835,7 +855,7 @@ function orderSummary(node: OrderNode, orders: OrdersDocument): string {
   if (node.fight) return `${humanize(node.fight.style)} · ${node.fight.targets.map(humanize).join(' → ')}`;
   if (node.use) return node.use.at
     ? `${humanize(node.use.skill)} at ${humanize(node.use.at)}`
-    : `${humanize(node.use.skill)} on ${humanize(node.use.target)}`;
+    : `${humanize(node.use.skill)} on ${useTargetLabel(node.use.target)}`;
   if (node.handoff) return `pass to ${humanize(typeof node.handoff.target === 'string' ? node.handoff.target : node.handoff.target.role)}`;
   if (node.drop) return 'release carried Core toward home';
   return 'Choose an action';
@@ -862,6 +882,35 @@ function decodeMoveTarget(value: string): MoveTarget {
   if (kind === 'anchor') return { anchor: id };
   if (kind === 'adjacentTo') return { adjacentTo: id };
   return { well: id as 'north' | 'centre' | 'south' | 'own' | 'enemy' };
+}
+
+function encodeFollowTarget(value: MoveOrder['follow']): string {
+  if (!value) return '';
+  return typeof value === 'string' ? `role:${value}` : `selector:${value.selector}`;
+}
+
+function decodeFollowTarget(value: string): NonNullable<MoveOrder['follow']> {
+  return value.startsWith('role:')
+    ? value.slice(5)
+    : { selector: 'most-experienced-ally' };
+}
+
+function encodeUseTarget(value: UseTarget): string {
+  if (typeof value === 'string') return `named:${value}`;
+  return 'role' in value ? `role:${value.role}` : `selector:${value.selector}`;
+}
+
+function decodeUseTarget(value: string): UseTarget {
+  if (value.startsWith('named:')) return value.slice(6);
+  if (value.startsWith('role:')) return { role: value.slice(5) };
+  return { selector: 'most-experienced-ally' };
+}
+
+function useTargetLabel(value: UseTarget): string {
+  if (typeof value === 'string') return humanize(value);
+  return 'role' in value
+    ? `role ${humanize(value.role)}`
+    : 'most experienced ally';
 }
 
 function mapHighlight(move: MoveOrder): { kind: PlotKind; id: string } | null {

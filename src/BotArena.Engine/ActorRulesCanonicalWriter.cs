@@ -321,6 +321,55 @@ internal static class ActorRulesCanonicalWriter
             writer.WriteNumber(
                 "healZoneTicksPerHp", mode.HealZoneTicksPerHp);
         }
+        if (mode.VeterancyDamagePerPoint != 1
+            || mode.VeterancyDamageBonusCap != 2
+            || mode.VeterancyBonusAfterRearArc
+            || mode.VitalityHealthPerPoint != 1
+            || mode.HealZoneHealthPerActivation != 1)
+        {
+            writer.WriteNumber(
+                "veterancyDamagePerPoint",
+                mode.VeterancyDamagePerPoint);
+            writer.WriteNumber(
+                "veterancyDamageBonusCap",
+                mode.VeterancyDamageBonusCap);
+            writer.WriteBoolean(
+                "veterancyBonusAfterRearArc",
+                mode.VeterancyBonusAfterRearArc);
+            writer.WriteNumber(
+                "vitalityHealthPerPoint",
+                mode.VitalityHealthPerPoint);
+            writer.WriteNumber(
+                "healZoneHealthPerActivation",
+                mode.HealZoneHealthPerActivation);
+        }
+        if (mode.OwnWellCoreCharge != 1
+            || mode.CentreWellCoreCharge != 1
+            || mode.EnemyWellCoreCharge != 1)
+        {
+            writer.WritePropertyName("teamRelativeCoreCharge");
+            writer.WriteStartObject();
+            writer.WriteNumber("ownWell", mode.OwnWellCoreCharge);
+            writer.WriteNumber("centreWell", mode.CentreWellCoreCharge);
+            writer.WriteNumber("enemyWell", mode.EnemyWellCoreCharge);
+            writer.WriteEndObject();
+        }
+        if (mode.VeteranCommand)
+            writer.WriteBoolean("veteranCommand", true);
+        if (mode.RespawnWavePeriodTicks != 0)
+        {
+            writer.WriteNumber(
+                "respawnWavePeriodTicks", mode.RespawnWavePeriodTicks);
+            writer.WriteNumber(
+                "respawnMinimumDeadTicks", mode.RespawnMinimumDeadTicks);
+        }
+        if (mode.MinimumDistinctClasses != 0)
+        {
+            writer.WriteNumber(
+                "minimumDistinctClasses", mode.MinimumDistinctClasses);
+        }
+        if (mode.DurableDeployments)
+            writer.WriteBoolean("durableDeployments", true);
         writer.WritePropertyName("wells");
         writer.WriteStartArray();
         foreach (ArcRelayWellScheduleDefinition well in mode.Wells)

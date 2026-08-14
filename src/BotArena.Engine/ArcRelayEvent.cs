@@ -63,7 +63,14 @@ public abstract record ArcRelayEvent
         ActorIdentity CarrierActorId,
         int TeamId,
         Position Position,
-        int ChargePips) : ArcRelayEvent;
+        int ChargePips) : ArcRelayEvent
+    {
+        /// <summary>
+        /// Charge this bank actually awarded. One is omitted from historical
+        /// replay encodings; depth-score banks declare 1, 2, or 4.
+        /// </summary>
+        public int ChargeAwarded { get; init; } = 1;
+    }
 
     public sealed record WellChanged(
         string WellId,

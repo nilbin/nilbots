@@ -96,20 +96,20 @@ function formPart(
   return part;
 }
 
-function healthPipsOf(
+function healthBarOf(
   group: THREE.Object3D,
   unitKey: ReplayStableUnitKey,
 ): THREE.Object3D {
   let found: THREE.Object3D | null = null;
   group.traverse((node) => {
     if (
-      node.userData.cue === 'health-pips' &&
+      node.userData.cue === 'health-bar' &&
       node.userData.forUnitKey === unitKey
     ) {
       found = node;
     }
   });
-  assert.ok(found, `no health pips for unit ${unitKey}`);
+  assert.ok(found, `no health bar for unit ${unitKey}`);
   return found;
 }
 
@@ -117,7 +117,7 @@ function veterancyRankPlateOf(
   group: THREE.Object3D,
   unitKey: ReplayStableUnitKey,
 ): THREE.Object3D | null {
-  const pips = healthPipsOf(group, unitKey);
+  const pips = healthBarOf(group, unitKey);
   let found: THREE.Object3D | null = null;
   pips.traverse((child) => {
     if (child.userData.cue === 'veterancy-rank-plate') found = child;
@@ -182,21 +182,12 @@ test('3D activity text remains visible with every visible bot', () => {
   }
 });
 
-function assertCenteredPips(
-  pips: THREE.Object3D,
-  expectedCount: number,
-): void {
-  const visible = pips.children.filter(
-    (pip) => pip.visible && pip.userData.cue === 'health-pip',
+function healthTrackOf(bar: THREE.Object3D): THREE.Object3D {
+  const track = bar.children.find(
+    (child) => child.userData.cue === 'health-bar-track',
   );
-  assert.equal(visible.length, expectedCount);
-  assert.ok(expectedCount > 0);
-  const first = visible[0]!.position.x;
-  const last = visible.at(-1)!.position.x;
-  assert.ok(
-    Math.abs(first + last) < 1e-9,
-    `pip row is not centred (${first} to ${last})`,
-  );
+  assert.ok(track, 'health bar has no track');
+  return track;
 }
 
 test('a destroyed bot collapses across the tick it dies in', () => {
@@ -452,26 +443,62 @@ test('Frontline rigs follow variable stable-unit lifecycle without leaving old l
   actors.dispose();
 });
 
-test('3D health pips follow the effective form maximum and remain centred', () => {
+test('3D health bars follow the effective form maximum without changing width', () => {
   const actors = buildActors(frontline);
-  const child = healthPipsOf(
+  const child = healthBarOf(
     actors.group,
     'frontline:0:unit:1',
   );
-  const prime = healthPipsOf(
+  const prime = healthBarOf(
     actors.group,
     'frontline:0:unit:0',
   );
 
   actors.update(2.25, null, false);
-  assertCenteredPips(child, 3);
-  assertCenteredPips(prime, 3);
+  assert.equal(child.userData.maximumHealth, 3);
+  assert.equal(prime.userData.maximumHealth, 3);
+  assert.equal(healthTrackOf(child).userData.width, 0.52);
+  assert.equal(healthTrackOf(prime).userData.width, 0.52);
 
   actors.update(9.99, null, false);
-  assertCenteredPips(child, 5);
-  assertCenteredPips(prime, 3);
+  assert.equal(child.userData.maximumHealth, 5);
+  assert.equal(prime.userData.maximumHealth, 3);
+  assert.equal(healthTrackOf(child).userData.width, 0.52);
+  assert.equal(healthTrackOf(prime).userData.width, 0.52);
 
   actors.dispose();
+});
+
+test('3D health presentation is one proportional bar for scaled hulls', () => {
+  const scaled = structuredClone(replay);
+  const actor = scaled.ticks[0]!.after.actors[0]!;
+  const form = scaled.forms.find((candidate) => candidate.formId === actor.formId);
+  assert.ok(form);
+  form.maxHealth = 100;
+  actor.health = 50;
+  scaled.ticks[0]!.before.actors[0]!.health = 50;
+
+  const actors = buildActors(scaled);
+  try {
+    actors.update(0.25, null, false);
+    const bar = healthBarOf(actors.group, actor.unitKey);
+    const track = healthTrackOf(bar);
+    const fill = track.children.find(
+      (child) => child.userData.cue === 'health-bar-fill',
+    );
+    assert.ok(fill);
+    assert.equal(
+      bar.children.filter((child) => child.userData.cue === 'health-pip').length,
+      0,
+    );
+    assert.equal(bar.userData.currentHealth, 50);
+    assert.equal(bar.userData.maximumHealth, 100);
+    assert.equal(bar.userData.remainingFraction, 0.5);
+    assert.equal(fill.scale.x, 0.5);
+    assert.equal(track.userData.width, 0.52);
+  } finally {
+    actors.dispose();
+  }
 });
 
 test('Arc veterancy uses one fixed numeric plate incorporated into the health row', () => {
@@ -520,25 +547,24 @@ test('Arc veterancy uses one fixed numeric plate incorporated into the health ro
   assert.equal(plate.userData.rankValue, 5);
   assert.equal(plate.position.y, 0, 'rank plate stays in the health row');
 
-  // The complete plate + gap + pip row, not merely the pips alone, is centred over the
+  // The complete plate + gap + health row, not merely the bar alone, is centred over the
   // body. A rank change swaps the numeral without moving either edge of that row.
-  const pips = healthPipsOf(actors.group, actor.unitKey);
-  const visiblePips = pips.children.filter(
-    (child) => child.visible && child.userData.cue === 'health-pip',
-  );
+  const healthBar = healthBarOf(actors.group, actor.unitKey);
+  const healthTrack = healthTrackOf(healthBar);
   const badgeWidth = plate.userData.width as number;
   const badgeHeight = plate.userData.height as number;
   const badgeLeft = plate.position.x - badgeWidth / 2;
   const badgeRight = plate.position.x + badgeWidth / 2;
-  const pipsLeft = visiblePips[0]!.position.x - 0.06;
-  const pipsRight = visiblePips.at(-1)!.position.x + 0.06;
+  const barWidth = healthTrack.userData.width as number;
+  const barLeft = healthTrack.position.x - barWidth / 2;
+  const barRight = healthTrack.position.x + barWidth / 2;
   assert.ok(
-    Math.abs(badgeLeft + pipsRight) < 1e-9,
-    `composite rank and health row is not centred (${badgeLeft} to ${pipsRight})`,
+    Math.abs(badgeLeft + barRight) < 1e-9,
+    `composite rank and health row is not centred (${badgeLeft} to ${barRight})`,
   );
-  assert.ok(pipsLeft - badgeRight >= 0.045 - 1e-9);
+  assert.ok(barLeft - badgeRight >= 0.045 - 1e-9);
   assert.equal(
-    pips.children.some((child) => child.userData.cue === 'veterancy-stack'),
+    healthBar.children.some((child) => child.userData.cue === 'veterancy-stack'),
     false,
     'the rejected vertical chevron tower is gone',
   );

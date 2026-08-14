@@ -334,6 +334,31 @@ public sealed class GenericActorRulesContract
         public int RipenResumeTicks { get; init; }
 
         /// <summary>
+        /// Team-relative bank value by Well tier. Historical rules are
+        /// 1/1/1; the Tapline score-depth arm declares 1/2/4.
+        /// </summary>
+        public int OwnWellCoreCharge { get; init; } = 1;
+        public int CentreWellCoreCharge { get; init; } = 1;
+        public int EnemyWellCoreCharge { get; init; } = 1;
+
+        public bool VeteranCommand { get; init; }
+        public int RespawnWavePeriodTicks { get; init; }
+        public int RespawnMinimumDeadTicks { get; init; }
+        public int MinimumDistinctClasses { get; init; }
+        public bool DurableDeployments { get; init; }
+
+        /// <summary>
+        /// Resolved veterancy/recovery magnitudes. Historical contracts use
+        /// 1 damage per point capped at +2, vitality +1, heal +1, with the
+        /// veteran bonus applied before rear-arc multiplication.
+        /// </summary>
+        public int VeterancyDamagePerPoint { get; init; } = 1;
+        public int VeterancyDamageBonusCap { get; init; } = 2;
+        public bool VeterancyBonusAfterRearArc { get; init; }
+        public int VitalityHealthPerPoint { get; init; } = 1;
+        public int HealZoneHealthPerActivation { get; init; } = 1;
+
+        /// <summary>
         /// Projectile damage multiplier for shots whose heading lies inside
         /// the victim's rear quadrant (1 historically).
         /// </summary>
@@ -350,8 +375,8 @@ public sealed class GenericActorRulesContract
         public int VeterancyMaxLevel { get; init; }
 
         /// <summary>
-        /// Heal zones: Waiting on a heal-region tile recovers 1 health per
-        /// this many consecutive ticks (0 disables).
+        /// Heal zones: Waiting on a heal-region tile recovers the mode's
+        /// declared health amount per this many consecutive ticks (0 disables).
         /// </summary>
         public int HealZoneTicksPerHp { get; init; }
 

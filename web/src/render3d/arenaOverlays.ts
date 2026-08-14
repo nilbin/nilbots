@@ -2262,6 +2262,9 @@ function buildArcRelayStory(
     progressGeometry: THREE.RingGeometry;
     progressMaterial: THREE.MeshBasicMaterial;
     sourceGlyphs: THREE.Mesh[];
+    valueBadge: THREE.Sprite;
+    valueBadgeMaterial: THREE.SpriteMaterial;
+    valueBadgeKey: string;
   };
   const wells: WellRig[] = [];
   const well = (index: number): WellRig => {
@@ -2315,7 +2318,17 @@ function buildArcRelayStory(
         rig.add(mesh);
         return mesh;
       });
-      rig.add(fallback, ring, progress);
+      const valueBadgeMaterial = new THREE.SpriteMaterial({
+        transparent: true,
+        depthWrite: false,
+        depthTest: false,
+      });
+      const valueBadge = new THREE.Sprite(valueBadgeMaterial);
+      valueBadge.userData.kind = 'arc-relay-well-team-values';
+      valueBadge.position.set(0, 0.42, 0);
+      valueBadge.scale.set(0.72, 0.27, 1);
+      valueBadge.visible = false;
+      rig.add(fallback, ring, progress, valueBadge);
       if (arcArchitecture) {
         const trimMaterial = new THREE.MeshStandardMaterial({
           color: lumenBastion ? '#b8c0cc' : '#a63b4b',
@@ -2368,15 +2381,20 @@ function buildArcRelayStory(
         progressGeometry,
         progressMaterial,
         sourceGlyphs,
+        valueBadge,
+        valueBadgeMaterial,
+        valueBadgeKey: '',
       });
       disposables.push(
         bodyMaterial,
         ringMaterial,
         progressGeometry,
         progressMaterial,
+        valueBadgeMaterial,
         {
           dispose: () => {
             disposed = true;
+            valueBadgeMaterial.map?.dispose();
             if (authoredModel) disposeObjectMaterials(authoredModel);
           },
         },
@@ -2878,6 +2896,18 @@ function buildArcRelayStory(
         glyph.visible = index === glyphIndex;
         glyph.rotation.y = time * 0.18 * (glyphIndex === 1 ? -1 : 1);
       }
+      const valueKey = state.teamValues
+        .map((value) => `${value.teamId}:${value.value}:${value.accent}`)
+        .join('|');
+      rig.valueBadge.visible = Boolean(
+        arcRules?.teamRelativeCoreCharge && valueKey.length > 0,
+      );
+      if (rig.valueBadge.visible && rig.valueBadgeKey !== valueKey) {
+        rig.valueBadgeMaterial.map?.dispose();
+        rig.valueBadgeMaterial.map = wellValueTexture(state.teamValues);
+        rig.valueBadgeMaterial.needsUpdate = true;
+        rig.valueBadgeKey = valueKey;
+      }
     }
     for (let index = story.wells.length; index < wells.length; index++)
       wells[index]!.group.visible = false;
@@ -3260,6 +3290,37 @@ function crestTexture(crest: ViewerEntrantPresentation['crest']): THREE.CanvasTe
   ctx.font = '900 48px ui-monospace, monospace';
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.fillText(crest.mark.slice(0, 1).toUpperCase(), 0, 4);
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.anisotropy = 4;
+  return texture;
+}
+
+function wellValueTexture(
+  values: readonly { teamId: number; value: number; accent: string }[],
+): THREE.CanvasTexture {
+  const canvas = document.createElement('canvas');
+  canvas.width = 192;
+  canvas.height = 72;
+  const ctx = canvas.getContext('2d')!;
+  ctx.fillStyle = 'rgba(5, 10, 16, 0.9)';
+  ctx.beginPath();
+  ctx.roundRect(4, 4, 184, 64, 24);
+  ctx.fill();
+  const ordered = [...values].sort((left, right) => left.teamId - right.teamId);
+  ordered.slice(0, 2).forEach((value, index) => {
+    const x = index === 0 ? 51 : 141;
+    ctx.strokeStyle = value.accent;
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.arc(x, 36, 24, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.fillStyle = '#f8fafc';
+    ctx.font = '900 32px ui-monospace, monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(String(value.value), x, 38);
+  });
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.anisotropy = 4;

@@ -212,6 +212,54 @@ test('Arc Relay presents the carrier and every possession beat', () => {
   );
 });
 
+test('the depth-pack story explains 1/2/4 banks, double Pulses, and the next wave', () => {
+  const replay = arcRelayReplay();
+  assert.equal(replay.contract.kind, 'v3-generic');
+  if (replay.contract.kind !== 'v3-generic' || replay.contract.mode.kind !== 'arc-relay') return;
+  replay.contract.mode.teamRelativeCoreCharge = { ownWell: 1, centreWell: 2, enemyWell: 4 };
+  replay.contract.mode.respawnWavePeriodTicks = 30;
+  replay.contract.mode.respawnMinimumDeadTicks = 15;
+  const rawMode = replay.contract.rawContract.rules.gameMode;
+  assert.equal(rawMode.kind, 'arc-relay');
+  if (rawMode.kind === 'arc-relay') {
+    rawMode.teamRelativeCoreCharge = { ownWell: 1, centreWell: 2, enemyWell: 4 };
+    rawMode.respawnWavePeriodTicks = 30;
+    rawMode.respawnMinimumDeadTicks = 15;
+  }
+  for (const tick of replay.ticks) {
+    for (const snapshot of [tick.before, tick.after]) {
+      assert.equal(snapshot.mode?.kind, 'arc-relay');
+      if (snapshot.mode?.kind !== 'arc-relay' || !('wells' in snapshot.mode)) continue;
+      snapshot.mode.wells = [
+        { wellId: 'north', position: { x: 5, y: 3 }, nextScheduledBirthTick: 30, outstandingCoreId: null, pendingCharge: false, rearmCompletesAtTick: null },
+        ...snapshot.mode.wells,
+        { wellId: 'south', position: { x: 18, y: 11 }, nextScheduledBirthTick: 30, outstandingCoreId: null, pendingCharge: false, rearmCompletesAtTick: null },
+      ];
+      snapshot.mode.nextRespawnWaveTick = 30;
+      snapshot.mode.respawnWaveTeams = [
+        { teamId: 0, liveBodies: 6, respawnsNextWave: 2 },
+        { teamId: 1, liveBodies: 7, respawnsNextWave: 1 },
+      ];
+    }
+  }
+  const bank = replay.ticks[4]!.events[0]!.arcRelayFact;
+  assert.equal(bank?.kind, 'core-banked');
+  if (bank?.kind === 'core-banked') {
+    bank.chargeAwarded = 4;
+    bank.chargePips = 0;
+  }
+
+  const presenter = createPresenter(replay);
+  const carried = presenter.at(1).arcRelay;
+  assert.equal(carried?.cores[0]?.bankValue, 2);
+  assert.equal(carried?.cores[0]?.pulsesOnBank, 1);
+  assert.equal(carried?.cores[0]?.remainderOnBank, 1);
+  assert.deepEqual(carried?.wells.find((well) => well.wellId === 'north')?.teamValues.map((entry) => entry.value), [1, 4]);
+  assert.deepEqual(carried?.wells.find((well) => well.wellId === 'south')?.teamValues.map((entry) => entry.value), [4, 1]);
+  assert.equal(carried?.respawnWave?.ticksRemaining, 29);
+  assert.match(presenter.at(4).arcRelay?.beat?.detail ?? '', /\+4.*2 Pulses.*0\/3 held/);
+});
+
 test('a slow carrier glides through its forced relocation hold without predicting the next tile', () => {
   const replay = arcRelayReplay();
   assert.equal(replay.contract.kind, 'v3-generic');

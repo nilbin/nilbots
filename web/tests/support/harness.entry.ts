@@ -151,3 +151,7 @@ export {
   buildArcVeterancy,
   LEVEL_UP_BEAT_TICKS,
 } from '../../src/replayArcVeterancy';
+export {
+  healthBarState,
+  HEALTH_BAR_COLORS,
+} from '../../src/presentation/healthBar';

@@ -208,7 +208,8 @@ internal static class GenericActorSdkModelMapper
             value.ObservedBy.Select(ToSdk),
             value.ClassId,
             value.CarriedScrap,
-            value.RoleTag);
+            value.RoleTag,
+            value.VeterancyLevel);
 
     internal static Sdk.GenericActorContext.ObservedTile ToSdk(
         GenericActorRuntimeObservation.ObservedTile value) =>
@@ -455,6 +456,13 @@ internal static class GenericActorSdkModelMapper
                     mode.LatestPulseTeamId,
                     mode.LatestPulseTick)
                 {
+                    NextRespawnWaveTick = mode.NextRespawnWaveTick,
+                    RespawnWaveTeams = [.. mode.RespawnWaveTeams.Select(value =>
+                        new Sdk.GenericActorContext
+                            .ArcRelayRespawnWaveTeamState(
+                                value.TeamId,
+                                value.LiveBodies,
+                                value.RespawnsNextWave))],
                     PendingStrikes = [.. mode.PendingStrikes.Select(strike =>
                         new Sdk.GenericActorContext.ArcRelayPendingStrike(
                             ToSdk(strike.Shooter),
@@ -551,7 +559,10 @@ internal static class GenericActorSdkModelMapper
             [.. value.Positions.Select(ToSdk)],
             ToSdkOptional(value.TargetActorId),
             value.RemainingCapacity,
-            value.Suppressed);
+            value.Suppressed)
+        {
+            MaximumCapacity = value.MaximumCapacity,
+        };
 
     internal static Sdk.GenericActorContext.ArcRelayEvent ToSdk(
         ArcRelayEvent value) => value switch
@@ -631,7 +642,10 @@ internal static class GenericActorSdkModelMapper
                     ToSdk(fact.CarrierActorId),
                     fact.TeamId,
                     ToSdk(fact.Position),
-                    fact.ChargePips),
+                    fact.ChargePips)
+                {
+                    ChargeAwarded = fact.ChargeAwarded,
+                },
             ArcRelayEvent.WellChanged fact =>
                 new Sdk.GenericActorContext.ArcRelayEvent.WellChanged(
                     fact.WellId,

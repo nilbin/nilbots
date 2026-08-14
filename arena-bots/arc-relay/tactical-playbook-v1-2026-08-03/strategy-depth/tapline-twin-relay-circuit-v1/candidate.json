@@ -1,0 +1,8 @@
+{
+  "schema": "arc-relay-tapline-depth-candidate-v1",
+  "strategy": "Roster proof — Twin Relay Circuit",
+  "profile": "tapline-depth-roster-wildcard",
+  "orders": "orders.json",
+  "mapPlan": "map-plan.json",
+  "status": "experimental-exhibit-only"
+}

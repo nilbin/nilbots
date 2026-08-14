@@ -295,12 +295,7 @@ internal sealed class OrdersPackage
             : value.TryGetProperty("fight", out JsonElement fight)
                 ? ParseFight(fight)
                 : value.TryGetProperty("use", out JsonElement use)
-                    ? new UseAction(
-                        use.GetProperty("skill").GetString()!,
-                        use.GetProperty("target").GetString()!,
-                        use.TryGetProperty("at", out JsonElement useAt)
-                            ? useAt.GetString()
-                            : null)
+                    ? ParseUse(use)
                     : value.TryGetProperty("handoff", out JsonElement handoff)
                         ? ParseHandoff(handoff)
                         : new DropAction();
@@ -329,7 +324,15 @@ internal sealed class OrdersPackage
         if (value.TryGetProperty("patrol", out JsonElement patrol))
             return new MoveAction("patrol", "route", patrol.GetString()!, via, posture);
         if (value.TryGetProperty("follow", out JsonElement follow))
-            return new MoveAction("follow", "role", follow.GetString()!, null, posture);
+            return follow.ValueKind == JsonValueKind.String
+                ? new MoveAction(
+                    "follow", "role", follow.GetString()!, null, posture)
+                : new MoveAction(
+                    "follow",
+                    "selector",
+                    follow.GetProperty("selector").GetString()!,
+                    null,
+                    posture);
         JsonElement to = value.GetProperty("to");
         if (to.ValueKind == JsonValueKind.String)
             return new MoveAction("to", "dynamic", to.GetString()!, via, posture);
@@ -342,6 +345,31 @@ internal sealed class OrdersPackage
             .Select(target => target.GetString()!).ToArray(),
         value.GetProperty("style").GetString()!,
         value.GetProperty("chaseLimit").GetInt32());
+
+    private static UseAction ParseUse(JsonElement value)
+    {
+        JsonElement target = value.GetProperty("target");
+        string targetKind;
+        string targetValue;
+        if (target.ValueKind == JsonValueKind.String)
+        {
+            targetKind = "named";
+            targetValue = target.GetString()!;
+        }
+        else
+        {
+            JsonProperty property = target.EnumerateObject().Single();
+            targetKind = property.Name;
+            targetValue = property.Value.GetString()!;
+        }
+        return new UseAction(
+            value.GetProperty("skill").GetString()!,
+            targetKind,
+            targetValue,
+            value.TryGetProperty("at", out JsonElement useAt)
+                ? useAt.GetString()
+                : null);
+    }
 
     private static HandoffAction ParseHandoff(JsonElement value)
     {
@@ -493,6 +521,7 @@ internal sealed class OrdersPackage
         int ChaseLimit) : OrderAction;
     internal sealed record UseAction(
         string Skill,
+        string TargetKind,
         string Target,
         string? AtAnchor) : OrderAction;
     internal sealed record HandoffAction(string TargetKind, string Target)

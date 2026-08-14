@@ -34,6 +34,10 @@ import {
 import { maxHealthForActor } from '../replayMetadata';
 import { arcVeterancyFor } from '../replayArcVeterancy';
 import {
+  HEALTH_BAR_RELATIVE_WIDTH,
+  healthBarState,
+} from '../presentation/healthBar';
+import {
   participantForUnit,
   visualIndexForUnit,
 } from '../replayParticipants';
@@ -2280,12 +2284,15 @@ export function drawArena(
     ctx.restore();
 
     if (!destroyed && !ghosted) {
-      drawHealthPips(
+      const presentedUnit = tickPresentation?.units.find(
+        (candidate) => candidate.unitKey === pose.unitKey,
+      );
+      drawHealthBar(
         pose,
         cx,
         cy - radius - tile * 0.22,
         accent,
-        maxHealthForActor(replay, {
+        presentedUnit?.maxHealth ?? maxHealthForActor(replay, {
           formId: pose.formId,
           health: pose.health,
         }),
@@ -2572,32 +2579,35 @@ export function drawArena(
     ctx.fill();
   }
 
-  function drawHealthPips(
+  function drawHealthBar(
     pose: BotPose,
     cx: number,
     cy: number,
     accent: string,
     actorMaxHealth: number,
   ): void {
-    const basePip = Math.max(3, tile * 0.10);
-    const pip = Math.max(
-      2,
-      Math.min(
-        basePip,
-        (tile * 0.85) /
-          Math.max(1, 1 + (actorMaxHealth - 1) * 1.6),
-      ),
-    );
-    const gap = pip * 1.6;
-    const startX = cx - ((actorMaxHealth - 1) * gap) / 2;
+    const health = healthBarState(pose.health, actorMaxHealth);
+    const width = tile * HEALTH_BAR_RELATIVE_WIDTH;
+    const height = Math.max(4, tile * 0.075);
+    const rim = Math.max(1, tile * 0.018);
     const readableAccent = accentAt(accent, cx, cy);
-    for (let i = 0; i < actorMaxHealth; i++) {
-      ctx.fillStyle =
-        i < pose.health ? readableAccent : 'rgba(100,116,139,0.35)';
-      ctx.beginPath();
-      ctx.arc(startX + i * gap, cy, pip / 2, 0, Math.PI * 2);
-      ctx.fill();
+    const x = cx - width / 2;
+    const y = cy - height / 2;
+    ctx.save();
+    ctx.fillStyle = readableAccent;
+    ctx.fillRect(x, y, width, height);
+    ctx.fillStyle = 'rgba(7,16,23,0.92)';
+    ctx.fillRect(x + rim, y + rim, width - rim * 2, height - rim * 2);
+    if (health.fraction > 0) {
+      ctx.fillStyle = health.color;
+      ctx.fillRect(
+        x + rim,
+        y + rim,
+        (width - rim * 2) * health.fraction,
+        height - rim * 2,
+      );
     }
+    ctx.restore();
   }
 
   function shotProgress(): number {

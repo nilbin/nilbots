@@ -615,6 +615,8 @@ internal static class GenericActorWireEventCodec
                 writer.Field(4, ActorWireValue.Int32(fact.TeamId));
                 writer.Field(5, GenericActorWireCodecValues.EncodePosition(fact.Position));
                 writer.Field(6, ActorWireValue.Int32(fact.ChargePips));
+                if (fact.ChargeAwarded != 1)
+                    writer.Field(7, ActorWireValue.Int32(fact.ChargeAwarded));
                 break;
             case GenericActorContext.ArcRelayEvent.WellChanged fact:
                 writer.Field(1, GenericActorWireCodecValues.SemanticId("well-changed"));
@@ -744,16 +746,7 @@ internal static class GenericActorWireEventCodec
                         GenericActorWireCodecValues.Int32(reader, 5),
                         GenericActorWireCodecValues.SemanticId(
                             reader.Required(6))),
-                "core-banked" =>
-                    new GenericActorContext.ArcRelayEvent.CoreBanked(
-                        GenericActorWireObservationCodec.DecodeArcCoreId(
-                            reader.Required(2), depth + 1),
-                        GenericActorWireCodecValues.DecodeIdentity(
-                            reader.Required(3), depth + 1),
-                        GenericActorWireCodecValues.Int32(reader, 4),
-                        GenericActorWireCodecValues.DecodePosition(
-                            reader.Required(5), depth + 1),
-                        GenericActorWireCodecValues.Int32(reader, 6)),
+                "core-banked" => DecodeArcCoreBanked(reader, depth),
                 "well-changed" => DecodeArcWellChanged(reader, depth),
                 "pulse" => new GenericActorContext.ArcRelayEvent.Pulse(
                     GenericActorWireCodecValues.Int32(reader, 2),
@@ -809,6 +802,22 @@ internal static class GenericActorWireEventCodec
                 : GenericActorWireObservationCodec.DecodeArcCoreId(
                     coreId, depth + 1));
     }
+
+    private static GenericActorContext.ArcRelayEvent.CoreBanked
+        DecodeArcCoreBanked(ActorWireObjectReader reader, int depth) =>
+        new(
+            GenericActorWireObservationCodec.DecodeArcCoreId(
+                reader.Required(2), depth + 1),
+            GenericActorWireCodecValues.DecodeIdentity(
+                reader.Required(3), depth + 1),
+            GenericActorWireCodecValues.Int32(reader, 4),
+            GenericActorWireCodecValues.DecodePosition(
+                reader.Required(5), depth + 1),
+            GenericActorWireCodecValues.Int32(reader, 6))
+        {
+            ChargeAwarded =
+                GenericActorWireCodecValues.OptionalInt32(reader, 7) ?? 1,
+        };
 
     private static GenericActorContext.ArcRelayEvent.SignatureChanged
         DecodeArcSignatureChanged(ActorWireObjectReader reader, int depth)

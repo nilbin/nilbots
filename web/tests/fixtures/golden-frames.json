@@ -1,18 +1,18 @@
 {
   "darwin-arm64": {
-    "tick 0": "b4b3df1126fd9f6a",
-    "tick 40": "db2cf60b59d69e05",
-    "tick 95": "5f2e9fc094403bba",
-    "tick 96": "f62aeba94b53aad5",
-    "fog slot 0 @ 20": "47e5272002301f9b",
-    "fog slot 1 @ 60": "cc3d03034be98f19"
+    "tick 0": "63b3495e402122c9",
+    "tick 40": "a2d145b1512ff59b",
+    "tick 95": "af12a0c844661ecf",
+    "tick 96": "f38ee1a37721e5a1",
+    "fog slot 0 @ 20": "c72369bde3a14d4f",
+    "fog slot 1 @ 60": "a75d071ff650e77e"
   },
   "linux-x64": {
-    "tick 0": "2478f4223ba005a8",
-    "tick 40": "8bc34bd53b95fcfc",
-    "tick 95": "3743136ad0b5d28e",
-    "tick 96": "2290c371705ee6d4",
-    "fog slot 0 @ 20": "fbd8fcb973b872ff",
-    "fog slot 1 @ 60": "0942be5206ce23e1"
+    "tick 0": "e24b9fa3af2b9974",
+    "tick 40": "ead1e99920bf923c",
+    "tick 95": "70c4aebf1de667ac",
+    "tick 96": "839a41e87aad2a99",
+    "fog slot 0 @ 20": "3ef3e72b318e9a51",
+    "fog slot 1 @ 60": "0bad0f0962724a5a"
   }
 }

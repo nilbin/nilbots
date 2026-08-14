@@ -1142,6 +1142,8 @@ internal static class ReplayV3Serializer
         WriteNullableString(writer, "classId", value.ClassId);
         WriteCarriedScrap(writer, value.CarriedScrap);
         WriteRoleTag(writer, value.RoleTag);
+        if (value.VeterancyLevel != 1)
+            writer.WriteNumber("veterancyLevel", value.VeterancyLevel);
         writer.WriteEndObject();
     }
 
@@ -2072,6 +2074,8 @@ internal static class ReplayV3Serializer
                 writer.WritePropertyName("position");
                 WritePosition(writer, fact.Position);
                 writer.WriteNumber("chargePips", fact.ChargePips);
+                if (fact.ChargeAwarded != 1)
+                    writer.WriteNumber("chargeAwarded", fact.ChargeAwarded);
                 break;
             case ReplayV3.ArcRelayFact.WellChanged fact:
                 writer.WriteString("wellId", fact.WellId);
@@ -2606,6 +2610,16 @@ internal static class ReplayV3Serializer
                         arcRelay.PendingStrikes,
                         WriteArcPendingStrike);
                 }
+                if (arcRelay.NextRespawnWaveTick is int nextWave)
+                    writer.WriteNumber("nextRespawnWaveTick", nextWave);
+                if (!arcRelay.RespawnWaveTeams.IsEmpty)
+                {
+                    WriteArray(
+                        writer,
+                        "respawnWaveTeams",
+                        arcRelay.RespawnWaveTeams,
+                        WriteArcRespawnWaveTeam);
+                }
                 break;
             default:
                 throw new NotSupportedException(
@@ -2635,6 +2649,17 @@ internal static class ReplayV3Serializer
             WriteActorId(writer, value.Target);
         }
         WriteArray(writer, "tiles", value.Tiles, WritePosition);
+        writer.WriteEndObject();
+    }
+
+    private static void WriteArcRespawnWaveTeam(
+        Utf8JsonWriter writer,
+        ReplayV3.ArcRespawnWaveTeam value)
+    {
+        writer.WriteStartObject();
+        writer.WriteNumber("teamId", value.TeamId);
+        writer.WriteNumber("liveBodies", value.LiveBodies);
+        writer.WriteNumber("respawnsNextWave", value.RespawnsNextWave);
         writer.WriteEndObject();
     }
 
@@ -2732,6 +2757,8 @@ internal static class ReplayV3Serializer
         else WriteActorId(writer, value.TargetActorId);
         writer.WriteNumber("remainingCapacity", value.RemainingCapacity);
         writer.WriteBoolean("suppressed", value.Suppressed);
+        if (value.MaximumCapacity != 0)
+            writer.WriteNumber("maximumCapacity", value.MaximumCapacity);
         writer.WriteEndObject();
     }
 
@@ -3440,16 +3467,29 @@ internal static class ReplayV3Serializer
                     return parameter;
                 })
                 .ToImmutableArray();
-            result.Add(
-                new ContractAction(
-                    id,
-                    code,
-                    parameters,
-                    string.Equals(
-                        kind,
-                        "attack",
-                        StringComparison.Ordinal)
-                    && optionalAttackActions.Contains(id)));
+            var optionalParameters = ImmutableArray.CreateBuilder<string>();
+            // Windup attacks admit a heading-only suppressive declaration:
+            // UnitTarget is a lock, not a required aiming argument. Runtime
+            // admission and chronology already enforce that rule; replay-v3
+            // must validate the same legal partial payload instead of
+            // requiring either every argument or none.
+            if (string.Equals(kind, "attack", StringComparison.Ordinal)
+                && parameters.Contains("unit-target", StringComparer.Ordinal)
+                && parameters.Contains(
+                    "projectile-heading", StringComparer.Ordinal))
+            {
+                optionalParameters.Add("unit-target");
+            }
+            if (optionalAttackActions.Contains(id)
+                && parameters.Contains("shot-program", StringComparer.Ordinal))
+            {
+                optionalParameters.Add("shot-program");
+            }
+            result.Add(new ContractAction(
+                id,
+                code,
+                parameters,
+                optionalParameters.ToImmutable()));
         }
 
         ImmutableArray<ContractAction> actions = result.ToImmutable();
@@ -5970,7 +6010,8 @@ internal static class ReplayV3Serializer
                 || !ObservationClassMatches(
                     enemy.ActorId,
                     enemy.ClassId,
-                    contract))
+                    contract)
+                || enemy.VeterancyLevel < 1)
             {
                 throw new ArgumentException(
                     $"Replay-v3 {context} enemy facing or class is invalid.");
@@ -6516,16 +6557,26 @@ internal static class ReplayV3Serializer
                 $"Replay-v3 {context} resolved action does not match the embedded catalog.");
         }
         RequireInitialized(action.Arguments, $"{context} arguments");
-        bool exactArguments = action.Arguments
-            .Select(value => value.Kind)
-            .SequenceEqual(known.ParameterKinds);
-        bool omittedOptionalArguments =
-            action.Arguments.IsEmpty
-            && known.AllowsOmittedArguments;
-        if (!exactArguments && !omittedOptionalArguments)
+        string[] actualKinds = [.. action.Arguments.Select(value => value.Kind)];
+        HashSet<string> actualSet = actualKinds.ToHashSet(StringComparer.Ordinal);
+        bool compatibleArguments =
+            actualSet.Count == actualKinds.Length
+            && actualKinds.All(kind => known.ParameterKinds.Contains(
+                kind, StringComparer.Ordinal))
+            && known.ParameterKinds
+                .Where(kind => !known.OptionalParameterKinds.Contains(
+                    kind, StringComparer.Ordinal))
+                .All(actualSet.Contains)
+            && actualKinds.SequenceEqual(
+                known.ParameterKinds.Where(actualSet.Contains));
+        if (!compatibleArguments)
         {
             throw new ArgumentException(
-                $"Replay-v3 {context} resolved arguments must follow the embedded parameter schema.");
+                $"Replay-v3 {context} resolved action '{known.Id}' arguments "
+                + $"[{string.Join(',', actualKinds)}] "
+                + "must follow the embedded parameter schema "
+                + $"[{string.Join(',', known.ParameterKinds)}] with optional "
+                + $"[{string.Join(',', known.OptionalParameterKinds)}].");
         }
         foreach (ReplayV3.ActionArgument argument in action.Arguments)
         {
@@ -6904,7 +6955,13 @@ internal static class ReplayV3Serializer
         // (DECISIONS #212) - the same ownership split the live chronology
         // validator makes.
         if (finalState.Mode is not ReplayV3.ModeState.ArcRelay finalArc
-            || !Equals(arcRelay.State, finalArc with { PendingStrikes = [] }))
+            || !Equals(
+                arcRelay.State,
+                finalArc with
+                {
+                    PendingStrikes = [],
+                    RespawnWaveTeams = [],
+                }))
         {
             throw new ArgumentException(
                 "Replay-v3 Arc Relay terminal state must exactly equal the final mode state.");
@@ -6941,14 +6998,13 @@ internal static class ReplayV3Serializer
                 value.TeamId == teamId);
             ReplayV3.ArcReactor opposing = finalArc.Reactors.Single(value =>
                 value.TeamId != teamId);
-            long pulses = configuration.PulsesToDestroyReactor
-                - opposing.IntegritySegments;
             ReplayV3.TeamScore finalScore = finalState.Scoreboard.Teams.Single(
                 value => value.TeamId == teamId);
-            if (!ScoreEquals(
-                    finalScore,
-                    "pulses",
-                    pulses.ToString(CultureInfo.InvariantCulture))
+            long pulses = ScoreValue(finalScore, "pulses");
+            if (!ArcRelayPulseFactsAgree(
+                    configuration.PulsesToDestroyReactor,
+                    opposing.IntegritySegments,
+                    pulses)
                 || !ScoreEquals(
                     finalScore,
                     "reactor-charge",
@@ -7011,6 +7067,23 @@ internal static class ReplayV3Serializer
             throw new ArgumentException(
                 "Replay-v3 Arc Relay standings do not follow the embedded victory policy.");
         }
+    }
+
+    internal static bool ArcRelayPulseFactsAgree(
+        int pulsesToDestroyReactor,
+        int opposingIntegritySegments,
+        long scoreboardPulses)
+    {
+        long damagingPulses = pulsesToDestroyReactor
+            - opposingIntegritySegments;
+        // A terminal high-value bank may cross another threshold after the
+        // opposing reactor has already reached zero. That Pulse is still a
+        // public scored Pulse, but integrity cannot fall below zero. Before
+        // destruction the two facts remain exactly one-to-one; afterwards
+        // the scoreboard may truthfully contain terminal overkill.
+        return opposingIntegritySegments == 0
+            ? scoreboardPulses >= damagingPulses
+            : scoreboardPulses == damagingPulses;
     }
 
     private static void ValidateFrontlineResult(
@@ -7714,7 +7787,10 @@ internal static class ReplayV3Serializer
                 || value.EndsAtTick < nextTick
                 || value.Positions.IsDefaultOrEmpty
                 || value.Positions.Distinct().Count() != value.Positions.Length
-                || value.RemainingCapacity < 0))
+                || value.RemainingCapacity < 0
+                || value.MaximumCapacity < 0
+                || value.MaximumCapacity > 0
+                    && value.RemainingCapacity > value.MaximumCapacity))
         {
             throw new ArgumentException(
                 $"Replay-v3 {context} Arc Relay signature state is invalid.");
@@ -7917,7 +7993,8 @@ internal static class ReplayV3Serializer
             ReplayV3.ArcRelayFact.CoreBanked value =>
                 InvalidCoreId(value.CoreId)
                 || value.CarrierActorId.TeamId != value.TeamId
-                || value.ChargePips < 0,
+                || value.ChargePips < 0
+                || value.ChargeAwarded <= 0,
             ReplayV3.ArcRelayFact.WellChanged value =>
                 string.IsNullOrWhiteSpace(value.WellId)
                 || value.RearmCompletesAtTick < 0
@@ -8265,7 +8342,7 @@ internal static class ReplayV3Serializer
         string Id,
         int Code,
         ImmutableArray<string> ParameterKinds,
-        bool AllowsOmittedArguments);
+        ImmutableArray<string> OptionalParameterKinds);
 
     private sealed record ContractAttackProfile(
         string Id,
@@ -9179,6 +9256,10 @@ internal static class ReplayV3Serializer
                         // historical document shape.
                         bool pendingStrikes = root.TryGetProperty(
                             "pendingStrikes", out _);
+                        bool nextRespawnWave = root.TryGetProperty(
+                            "nextRespawnWaveTick", out _);
+                        bool respawnWaveTeams = root.TryGetProperty(
+                            "respawnWaveTeams", out _);
                         RequireProperties(
                             root,
                             [
@@ -9192,6 +9273,12 @@ internal static class ReplayV3Serializer
                                 "latestPulseTick",
                                 .. pendingStrikes
                                     ? new[] { "pendingStrikes" }
+                                    : System.Array.Empty<string>(),
+                                .. nextRespawnWave
+                                    ? new[] { "nextRespawnWaveTick" }
+                                    : System.Array.Empty<string>(),
+                                .. respawnWaveTeams
+                                    ? new[] { "respawnWaveTeams" }
                                     : System.Array.Empty<string>(),
                             ]);
                         return new ReplayV3.ModeState.ArcRelay(
@@ -9207,6 +9294,14 @@ internal static class ReplayV3Serializer
                             NullableInt32(root, "latestPulseTeamId"),
                             NullableInt32(root, "latestPulseTick"))
                         {
+                            NextRespawnWaveTick = nextRespawnWave
+                                ? NullableInt32(root, "nextRespawnWaveTick")
+                                : null,
+                            RespawnWaveTeams = respawnWaveTeams
+                                ? RequiredArrayValue<
+                                    ReplayV3.ArcRespawnWaveTeam>(
+                                        root, "respawnWaveTeams", options)
+                                : [],
                             PendingStrikes = pendingStrikes
                                 ? RequiredArrayValue<ReplayV3.ArcPendingStrike>(
                                     root, "pendingStrikes", options)

@@ -1,0 +1,508 @@
+{
+  "schema": "arc-relay-orders-v2",
+  "sheetId": "tapline-depth-relay-circuit-v1",
+  "mapPlan": "map-plan.json",
+  "roles": [
+    {
+      "id": "depth-raider",
+      "classes": [
+        "relay"
+      ],
+      "upgradePath": [
+        "vitality",
+        "damage",
+        "reach",
+        "vitality"
+      ],
+      "orders": [
+        {
+          "shared": "score-premium-core"
+        },
+        {
+          "shared": "collect-loose-core"
+        },
+        {
+          "shared": "recover-health"
+        },
+        {
+          "shared": "fight-visible-enemy"
+        },
+        {
+          "id": "raid-depth-well",
+          "move": {
+            "to": {
+              "well": "enemy"
+            },
+            "posture": "rear"
+          }
+        }
+      ]
+    },
+    {
+      "id": "depth-hauler",
+      "classes": [
+        "relay"
+      ],
+      "upgradePath": [
+        "reach",
+        "vitality",
+        "vision",
+        "damage"
+      ],
+      "orders": [
+        {
+          "shared": "score-premium-core"
+        },
+        {
+          "shared": "collect-loose-core"
+        },
+        {
+          "shared": "recover-health"
+        },
+        {
+          "shared": "fight-visible-enemy"
+        },
+        {
+          "id": "work-depth-centre",
+          "move": {
+            "to": {
+              "well": "centre"
+            },
+            "posture": "rear"
+          }
+        }
+      ]
+    },
+    {
+      "id": "depth-ace",
+      "classes": [
+        "kestrel"
+      ],
+      "upgradePath": [
+        "damage",
+        "damage",
+        "vitality",
+        "reach"
+      ],
+      "orders": [
+        {
+          "shared": "score-a-core"
+        },
+        {
+          "shared": "collect-loose-core"
+        },
+        {
+          "shared": "recover-health"
+        },
+        {
+          "id": "dash-depth-contact",
+          "when": {
+            "all": [
+              "empty-handed",
+              "enemy-nearby",
+              "signature-ready"
+            ]
+          },
+          "use": {
+            "skill": "vector-dash",
+            "target": "nearest-enemy"
+          }
+        },
+        {
+          "shared": "fight-visible-enemy"
+        },
+        {
+          "id": "hunt-depth-well",
+          "move": {
+            "to": {
+              "well": "enemy"
+            },
+            "posture": "front"
+          }
+        }
+      ]
+    },
+    {
+      "id": "depth-vanguard",
+      "classes": [
+        "towline",
+        "hush",
+        "lantern"
+      ],
+      "upgradePath": [
+        "damage",
+        "reach",
+        "vision",
+        "vitality"
+      ],
+      "orders": [
+        {
+          "shared": "score-a-core"
+        },
+        {
+          "shared": "collect-loose-core"
+        },
+        {
+          "shared": "recover-health"
+        },
+        {
+          "id": "reset-before-depth-wave",
+          "when": {
+            "all": [
+              "empty-handed",
+              "friendly-wave-due",
+              "wave-close"
+            ]
+          },
+          "timeout": 8,
+          "cooldown": 12,
+          "urgency": "urgent",
+          "orders": [
+            {
+              "id": "yield-before-wave",
+              "move": {
+                "to": {
+                  "well": "own"
+                },
+                "posture": "rear"
+              }
+            }
+          ]
+        },
+        {
+          "id": "hook-depth-carrier",
+          "when": {
+            "all": [
+              "empty-handed",
+              "enemy-nearby",
+              "signature-ready"
+            ]
+          },
+          "use": {
+            "skill": "tractor-hook",
+            "target": "enemy-carrier"
+          }
+        },
+        {
+          "id": "silence-depth-pack",
+          "when": {
+            "all": [
+              "empty-handed",
+              "enemy-nearby",
+              "signature-ready"
+            ]
+          },
+          "use": {
+            "skill": "null-field",
+            "target": "self"
+          }
+        },
+        {
+          "id": "reveal-depth-pack",
+          "when": {
+            "all": [
+              "empty-handed",
+              "enemy-nearby",
+              "signature-ready"
+            ]
+          },
+          "use": {
+            "skill": "survey-flare",
+            "target": "nearest-enemy"
+          }
+        },
+        {
+          "shared": "fight-visible-enemy"
+        },
+        {
+          "id": "pressure-depth-centre",
+          "move": {
+            "to": {
+              "well": "centre"
+            },
+            "posture": "front"
+          }
+        }
+      ]
+    },
+    {
+      "id": "depth-medic",
+      "classes": [
+        "patchbay"
+      ],
+      "upgradePath": [
+        "reach",
+        "vitality",
+        "vitality",
+        "damage"
+      ],
+      "orders": [
+        {
+          "shared": "score-a-core"
+        },
+        {
+          "shared": "collect-loose-core"
+        },
+        {
+          "shared": "recover-health"
+        },
+        {
+          "id": "repair-depth-ace",
+          "when": "signature-ready",
+          "use": {
+            "skill": "repair-beam",
+            "target": {
+              "role": "depth-ace"
+            }
+          }
+        },
+        {
+          "shared": "fight-visible-enemy"
+        },
+        {
+          "id": "trail-depth-ace",
+          "when": "depth-ace-online",
+          "move": {
+            "follow": "depth-ace",
+            "posture": "rear"
+          }
+        },
+        {
+          "id": "hold-depth-centre-rear",
+          "move": {
+            "to": {
+              "well": "centre"
+            },
+            "posture": "rear"
+          }
+        }
+      ]
+    },
+    {
+      "id": "depth-builder",
+      "classes": [
+        "mason"
+      ],
+      "upgradePath": [
+        "vitality",
+        "vitality",
+        "damage",
+        "vision"
+      ],
+      "orders": [
+        {
+          "shared": "score-a-core"
+        },
+        {
+          "shared": "collect-loose-core"
+        },
+        {
+          "shared": "recover-health"
+        },
+        {
+          "id": "place-depth-cover",
+          "when": {
+            "all": [
+              "signature-ready",
+              "cover-missing"
+            ]
+          },
+          "use": {
+            "skill": "hardlight-block",
+            "target": "nearest-ally",
+            "at": "depth-cover"
+          }
+        },
+        {
+          "id": "refresh-depth-cover",
+          "when": {
+            "all": [
+              "signature-ready",
+              "cover-worn"
+            ]
+          },
+          "use": {
+            "skill": "hardlight-block",
+            "target": "nearest-ally",
+            "at": "depth-cover"
+          }
+        },
+        {
+          "shared": "fight-visible-enemy"
+        },
+        {
+          "id": "hold-depth-cover",
+          "move": {
+            "to": {
+              "well": "centre"
+            },
+            "posture": "front"
+          }
+        }
+      ]
+    }
+  ],
+  "sharedOrders": {
+    "score-a-core": {
+      "when": "carrying-core",
+      "until": "empty-handed",
+      "timeout": 180,
+      "cooldown": 2,
+      "urgency": "urgent",
+      "orders": [
+        {
+          "id": "return-to-reactor",
+          "move": {
+            "to": "own-reactor"
+          }
+        }
+      ]
+    },
+    "collect-loose-core": {
+      "when": {
+        "all": [
+          "empty-handed",
+          "loose-core-known"
+        ]
+      },
+      "capacity": "two-per-core",
+      "move": {
+        "to": "highest-bank-value-known-loose-core"
+      }
+    },
+    "recover-health": {
+      "when": "hurt",
+      "until": "healthy",
+      "timeout": 16,
+      "cooldown": 18,
+      "urgency": "urgent",
+      "orders": [
+        {
+          "id": "reach-healing",
+          "move": {
+            "to": "nearest-heal-zone",
+            "posture": "rear"
+          }
+        }
+      ]
+    },
+    "fight-visible-enemy": {
+      "when": {
+        "all": [
+          "empty-handed",
+          "enemy-nearby"
+        ]
+      },
+      "fight": {
+        "targets": [
+          "veteran",
+          "carrier",
+          "deployment",
+          "weakest",
+          "nearest"
+        ],
+        "style": "advance",
+        "chaseLimit": 4
+      }
+    },
+    "score-premium-core": {
+      "when": "carrying-core",
+      "until": "empty-handed",
+      "timeout": 180,
+      "cooldown": 2,
+      "urgency": "urgent",
+      "orders": [
+        {
+          "id": "pass-premium-depth-core",
+          "when": {
+            "all": [
+              "premium-cargo",
+              "signature-ready"
+            ]
+          },
+          "use": {
+            "skill": "arc-toss",
+            "target": "nearest-ally-toward-own-reactor"
+          }
+        },
+        {
+          "id": "return-premium-core",
+          "move": {
+            "to": "own-reactor"
+          }
+        }
+      ]
+    }
+  },
+  "capacities": {
+    "two-per-core": 2
+  },
+  "conditions": {
+    "carrying-core": {
+      "fact": "self-carrying",
+      "operator": "equals",
+      "value": 1
+    },
+    "empty-handed": {
+      "fact": "self-carrying",
+      "operator": "equals",
+      "value": 0
+    },
+    "loose-core-known": {
+      "fact": "known-loose-cores",
+      "operator": "at-least",
+      "value": 1
+    },
+    "hurt": {
+      "fact": "self-health-percent",
+      "operator": "at-most",
+      "value": 35
+    },
+    "healthy": {
+      "fact": "self-health-percent",
+      "operator": "at-least",
+      "value": 75
+    },
+    "enemy-nearby": {
+      "fact": "self-nearest-visible-enemy-distance",
+      "operator": "at-most",
+      "value": 7
+    },
+    "signature-ready": {
+      "fact": "signature-ready",
+      "operator": "equals",
+      "value": 1
+    },
+    "wave-close": {
+      "fact": "ticks-until-respawn-wave",
+      "operator": "at-most",
+      "value": 8
+    },
+    "friendly-wave-due": {
+      "fact": "friendly-respawns-next-wave",
+      "operator": "at-least",
+      "value": 1
+    },
+    "premium-cargo": {
+      "fact": "self-carried-core-bank-value",
+      "operator": "at-least",
+      "value": 4
+    },
+    "depth-ace-online": {
+      "fact": "role-highest-level",
+      "role": "depth-ace",
+      "operator": "at-least",
+      "value": 2
+    },
+    "cover-missing": {
+      "fact": "deployment-active",
+      "operator": "equals",
+      "value": 0
+    },
+    "cover-worn": {
+      "fact": "deployment-durability-percent",
+      "operator": "at-most",
+      "value": 35
+    }
+  }
+}

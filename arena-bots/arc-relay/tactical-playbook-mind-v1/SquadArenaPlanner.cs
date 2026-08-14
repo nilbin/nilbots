@@ -124,6 +124,42 @@ internal sealed class SquadArenaPlanner : IArenaStepper
                 selected[unit] = inherited[unit];
         }
 
+        // Recursive selection checks cycles as each candidate lands, but a
+        // top-level failure historically restored its inherited operation
+        // after that check. Several otherwise unrelated sheets therefore
+        // published a one-tick three-body rotation that the engine correctly
+        // refused. Never emit a joint first step the engine cannot execute.
+        // Waiting the whole squad for this one tick is deliberately blunt but
+        // deterministic; it clears the inherited horizon, then the next tick
+        // plans afresh instead of preserving an impossible rotation.
+        bool jointSafetyFallback = !FirstStepIsExecutable(selected.Values);
+        if (jointSafetyFallback)
+        {
+            // Without a changed constraint the deterministic planner would
+            // derive the same impossible rotation again next tick. Deny the
+            // lowest-priority moving body's requested tile for the same short
+            // physical-memory window used after an engine rejection. This
+            // preserves every authored goal and gives EPIBT a concrete reason
+            // to choose another course on the re-plan.
+            KeyValuePair<int, Operation>? breaker = selected
+                .Where(pair => pair.Value.Actions[0].Kind
+                    == MicroActionKind.Move)
+                .OrderByDescending(pair => priority[pair.Key])
+                .ThenByDescending(pair => pair.Key)
+                .Cast<KeyValuePair<int, Operation>?>()
+                .FirstOrDefault();
+            if (breaker is { } blocked
+                && blocked.Value.Actions[0].Destination is Position tile)
+            {
+                _deniedSteps[blocked.Key] = new DeniedStep(
+                    byUnit[blocked.Key].Body.ActorId,
+                    tile,
+                    mind.Tick + DeniedStepAvoidanceTicks);
+            }
+            foreach (SquadMovementIntent intent in intents)
+                selected[intent.Body.UnitId] = WaitOperation(intent.Body);
+        }
+
         foreach (SquadMovementIntent intent in intents)
         {
             Operation operation = selected[intent.Body.UnitId];
@@ -158,6 +194,8 @@ internal sealed class SquadArenaPlanner : IArenaStepper
                 reason += $":avoid-denied-{denied.Tile.X}-{denied.Tile.Y}"
                     + $"@{denied.UntilTick}";
             }
+            if (jointSafetyFallback)
+                reason += ":joint-plan-safety-fallback";
             // A facing-locked resting body may need to rotate before its
             // inherited operation vacates the tile. That preparation turn is
             // part of yielding too; suppressing it would invalidate the
@@ -808,39 +846,61 @@ internal sealed class SquadArenaPlanner : IArenaStepper
         Operation[] operations = source.ToArray();
         for (int tick = 0; tick < OperationLength; tick++)
         {
-            Position[] before = operations.Select(operation => tick == 0
-                    ? operation.Start
-                    : operation.States[tick - 1].Position)
-                .ToArray();
-            Position[] after = operations
-                .Select(operation => operation.States[tick].Position)
-                .ToArray();
-            var occupant = new Dictionary<Position, int>();
-            for (int index = 0; index < before.Length; index++)
+            if (!StepHasAcyclicMovement(operations, tick))
+                return false;
+        }
+        return true;
+    }
+
+    internal static bool FirstStepIsExecutable(IEnumerable<Operation> source)
+    {
+        Operation[] operations = source.ToArray();
+        if (!StepHasAcyclicMovement(operations, tick: 0))
+            return false;
+        // Acyclic dependency checks reject swaps and longer rotations. A
+        // shared destination is the other way a joint first step can be
+        // impossible even when nobody depends on an occupied start tile.
+        return operations.Select(operation => operation.States[0].Position)
+            .Distinct()
+            .Count() == operations.Length;
+    }
+
+    private static bool StepHasAcyclicMovement(
+        Operation[] operations,
+        int tick)
+    {
+        Position[] before = operations.Select(operation => tick == 0
+                ? operation.Start
+                : operation.States[tick - 1].Position)
+            .ToArray();
+        Position[] after = operations
+            .Select(operation => operation.States[tick].Position)
+            .ToArray();
+        var occupant = new Dictionary<Position, int>();
+        for (int index = 0; index < before.Length; index++)
+        {
+            // A duplicated predicted pre-state means an earlier timestep
+            // already violated vertex occupancy. Treat it as an invalid
+            // joint operation rather than throwing from a diagnostic.
+            if (!occupant.TryAdd(before[index], index))
+                return false;
+        }
+        var dependency = new Dictionary<int, int>();
+        for (int index = 0; index < operations.Length; index++)
+        {
+            if (after[index] != before[index]
+                && occupant.TryGetValue(after[index], out int other))
+                dependency[index] = other;
+        }
+        foreach (int start in dependency.Keys.Order())
+        {
+            var seen = new HashSet<int>();
+            int current = start;
+            while (dependency.TryGetValue(current, out int next))
             {
-                // A duplicated predicted pre-state means an earlier timestep
-                // already violated vertex occupancy. Treat it as an invalid
-                // joint operation rather than throwing from a diagnostic.
-                if (!occupant.TryAdd(before[index], index))
+                if (!seen.Add(current))
                     return false;
-            }
-            var dependency = new Dictionary<int, int>();
-            for (int index = 0; index < operations.Length; index++)
-            {
-                if (after[index] != before[index]
-                    && occupant.TryGetValue(after[index], out int other))
-                    dependency[index] = other;
-            }
-            foreach (int start in dependency.Keys.Order())
-            {
-                var seen = new HashSet<int>();
-                int current = start;
-                while (dependency.TryGetValue(current, out int next))
-                {
-                    if (!seen.Add(current))
-                        return false;
-                    current = next;
-                }
+                current = next;
             }
         }
         return true;

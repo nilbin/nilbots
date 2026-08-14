@@ -40,6 +40,31 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
         }
     }
 
+    [Theory]
+    [InlineData("tapline-two-heists-v1")]
+    [InlineData("tapline-turncoat-intercept-v1")]
+    [InlineData("tapline-crowned-rail-v1")]
+    [InlineData("tapline-emergent-standard-v1")]
+    [InlineData("tapline-cutoff-execution-v1")]
+    [InlineData("tapline-pre-wave-evacuation-v1")]
+    [InlineData("tapline-double-mason-lockbox-v1")]
+    [InlineData("tapline-demolition-march-v1")]
+    [InlineData("tapline-tempered-standard-v1")]
+    [InlineData("tapline-iron-interval-v1")]
+    [InlineData("tapline-twin-relay-circuit-v1")]
+    [InlineData("tapline-depth-relay-circuit-v1")]
+    public void TaplineDepthCandidatesCompileAsCompactDirectOrders(
+        string name)
+    {
+        TacticalPlaybookCompilation compilation =
+            ArcRelayTacticalPlaybookCompiler.Compile(DepthCandidate(name));
+
+        Assert.True(compilation.UsesOrderTree);
+        Assert.Equal(8, compilation.Composition.Length);
+        Assert.InRange(compilation.Composition.Distinct().Count(), 7, 8);
+        Assert.InRange(compilation.LinkedData.Length, 1, 8_192);
+    }
+
     [Fact]
     public void FileAndInMemoryCompilationUseTheSamePath()
     {
@@ -241,6 +266,86 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
     }
 
     [Fact]
+    public void DepthPackFactsAndTargetsStayInsideTheOrdersGrammar()
+    {
+        JsonObject source = Source("starter-tapline-v2");
+        JsonObject map = MapPlan("starter-tapline-v2");
+        JsonObject centre = source["roles"]!.AsArray().Select(value =>
+                value!.AsObject())
+            .Single(role => role["id"]!.GetValue<string>() == "centre-team");
+        JsonArray orders = centre["orders"]!.AsArray();
+        orders.Insert(0, new JsonObject
+        {
+            ["id"] = "support-authored-ace",
+            ["when"] = "ace-exists",
+            ["use"] = new JsonObject
+            {
+                ["skill"] = "repair-beam",
+                ["target"] = new JsonObject { ["role"] = "home-team" },
+            },
+        });
+        orders.Insert(1, new JsonObject
+        {
+            ["id"] = "rally-to-emergent-ace",
+            ["move"] = new JsonObject
+            {
+                ["follow"] = new JsonObject
+                {
+                    ["selector"] = "most-experienced-ally",
+                },
+            },
+        });
+        orders.Insert(2, new JsonObject
+        {
+            ["id"] = "clear-veteran-or-deployment",
+            ["fight"] = new JsonObject
+            {
+                ["targets"] = new JsonArray("veteran", "deployment", "nearest"),
+                ["style"] = "advance",
+                ["chaseLimit"] = 7,
+            },
+        });
+        source["conditions"]!["ace-exists"] = new JsonObject
+        {
+            ["fact"] = "role-highest-level",
+            ["operator"] = "greater-than",
+            ["value"] = 1,
+            ["role"] = "home-team",
+        };
+
+        Assert.True(Compile(source, map).UsesOrderTree);
+
+        string[] bodyAndTeamFacts =
+        [
+            "self-carried-core-bank-value",
+            "enemy-reactor-charge",
+            "reactor-pulses",
+            "live-enemies",
+            "friendly-respawns-next-wave",
+            "enemy-respawns-next-wave",
+            "ticks-until-respawn-wave",
+            "deployment-active",
+            "deployment-lifetime-percent",
+            "deployment-durability-percent",
+        ];
+        foreach (string fact in bodyAndTeamFacts)
+        {
+            source = Source("starter-tapline-v2");
+            JsonObject last = source["roles"]![0]!["orders"]!
+                .AsArray().Last()!.AsObject();
+            source["conditions"]!["candidate-fact"] = new JsonObject
+            {
+                ["fact"] = fact,
+                ["operator"] = "at-least",
+                ["value"] = 0,
+            };
+            last["when"] = "candidate-fact";
+            Assert.True(Compile(source, MapPlan("starter-tapline-v2"))
+                .UsesOrderTree);
+        }
+    }
+
+    [Fact]
     public void VisibleEnemyDistanceIsBodyLocalAndBoundedToTheMapScale()
     {
         JsonObject source = Source("starter-tapline-v2");
@@ -372,6 +477,11 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
     private static string Playbook(string name) => Path.Combine(
         Root(), "arena-bots", "arc-relay",
         "tactical-playbook-v1-2026-08-03", "playbooks", $"{name}.json");
+
+    private static string DepthCandidate(string name) => Path.Combine(
+        Root(), "arena-bots", "arc-relay",
+        "tactical-playbook-v1-2026-08-03", "strategy-depth", name,
+        "orders.json");
 
     private static string Root()
     {

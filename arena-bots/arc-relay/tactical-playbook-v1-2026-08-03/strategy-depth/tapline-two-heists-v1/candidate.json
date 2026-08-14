@@ -1,0 +1,8 @@
+{
+  "schema": "arc-relay-tapline-depth-candidate-v1",
+  "strategy": "03 Two Heists and a Tip",
+  "profile": "tapline-depth-score-124",
+  "orders": "orders.json",
+  "mapPlan": "map-plan.json",
+  "status": "experimental-exhibit-only"
+}

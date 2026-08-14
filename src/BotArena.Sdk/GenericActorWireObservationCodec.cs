@@ -181,6 +181,15 @@ internal static class GenericActorWireObservationCodec
                         GenericActorWireCodecValues.OptionalInt32(payload, 5),
                         GenericActorWireCodecValues.OptionalInt32(payload, 6))
                     {
+                        NextRespawnWaveTick =
+                            GenericActorWireCodecValues.OptionalInt32(
+                                payload, 8),
+                        RespawnWaveTeams = payload.Optional(9) is { } waves
+                            ? ActorWireValue.Array(
+                                waves,
+                                item => DecodeArcRespawnWaveTeam(
+                                    item, depth + 1))
+                            : [],
                         PendingStrikes = payload.Optional(7) is { } strikes
                             ? ActorWireValue.Array(
                                 strikes,
@@ -737,6 +746,10 @@ internal static class GenericActorWireObservationCodec
                 : ActorWireValue.String(
                     value.RoleTag,
                     GenericMindContractVersions.MaxRoleTagUtf8Bytes));
+        GenericActorWireCodecValues.OptionalInt32(
+            writer,
+            11,
+            value.VeterancyLevel == 1 ? null : value.VeterancyLevel);
         return writer.ToArray();
     }
 
@@ -778,7 +791,8 @@ internal static class GenericActorWireObservationCodec
                     ? null
                     : ActorWireValue.String(
                         roleTag,
-                        GenericMindContractVersions.MaxRoleTagUtf8Bytes)),
+                        GenericMindContractVersions.MaxRoleTagUtf8Bytes),
+                GenericActorWireCodecValues.OptionalInt32(reader, 11) ?? 1),
             "enemy observation");
     }
 
@@ -1058,6 +1072,18 @@ internal static class GenericActorWireObservationCodec
                             arcRelay.PendingStrikes,
                             EncodeArcPendingStrike));
                 }
+                GenericActorWireCodecValues.OptionalInt32(
+                    writer,
+                    8,
+                    arcRelay.NextRespawnWaveTick);
+                if (!arcRelay.RespawnWaveTeams.IsEmpty)
+                {
+                    writer.Field(
+                        9,
+                        Array(
+                            arcRelay.RespawnWaveTeams,
+                            EncodeArcRespawnWaveTeam));
+                }
                 break;
             default:
                 throw new InvalidOperationException(
@@ -1075,6 +1101,26 @@ internal static class GenericActorWireObservationCodec
             GenericActorWireCodecValues.SemanticId(value.SourceWellId));
         writer.Field(2, ActorWireValue.Int32(value.SourceOrdinal));
         return writer.ToArray();
+    }
+
+    private static byte[] EncodeArcRespawnWaveTeam(
+        GenericActorContext.ArcRelayRespawnWaveTeamState value)
+    {
+        var writer = new ActorWireObjectWriter();
+        writer.Field(1, ActorWireValue.Int32(value.TeamId));
+        writer.Field(2, ActorWireValue.Int32(value.LiveBodies));
+        writer.Field(3, ActorWireValue.Int32(value.RespawnsNextWave));
+        return writer.ToArray();
+    }
+
+    private static GenericActorContext.ArcRelayRespawnWaveTeamState
+        DecodeArcRespawnWaveTeam(byte[] bytes, int depth)
+    {
+        var reader = new ActorWireObjectReader(bytes, depth);
+        return new GenericActorContext.ArcRelayRespawnWaveTeamState(
+            GenericActorWireCodecValues.Int32(reader, 1),
+            GenericActorWireCodecValues.Int32(reader, 2),
+            GenericActorWireCodecValues.Int32(reader, 3));
     }
 
     private static byte[] EncodeArcPendingStrike(
@@ -1295,6 +1341,10 @@ internal static class GenericActorWireObservationCodec
                 : null);
         writer.Field(12, ActorWireValue.Int32(value.RemainingCapacity));
         writer.Field(13, ActorWireValue.Boolean(value.Suppressed));
+        GenericActorWireCodecValues.OptionalInt32(
+            writer,
+            14,
+            value.MaximumCapacity == 0 ? null : value.MaximumCapacity);
         return writer.ToArray();
     }
 
@@ -1326,7 +1376,11 @@ internal static class GenericActorWireObservationCodec
                 : GenericActorWireCodecValues.DecodeIdentity(
                     target, depth + 1),
             GenericActorWireCodecValues.Int32(reader, 12),
-            GenericActorWireCodecValues.Boolean(reader, 13));
+            GenericActorWireCodecValues.Boolean(reader, 13))
+        {
+            MaximumCapacity =
+                GenericActorWireCodecValues.OptionalInt32(reader, 14) ?? 0,
+        };
     }
 
     private static byte[] EncodeScrapTeam(

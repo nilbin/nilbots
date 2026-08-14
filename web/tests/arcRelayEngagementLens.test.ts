@@ -94,7 +94,7 @@ function engagedUnitKeys(group: THREE.Object3D): ReplayStableUnitKey[] {
   const keys: ReplayStableUnitKey[] = [];
   group.traverse((node) => {
     if (node.userData.cue !== 'engaged-mark') return;
-    // The mark hangs inside the health-pip row, which is what hides it with the
+    // The mark hangs inside the health-bar bib, which is what hides it with the
     // body — so "shown" means the whole chain up to the scene is shown.
     let shown = node.visible;
     for (let at = node.parent; at && shown; at = at.parent) shown = at.visible;

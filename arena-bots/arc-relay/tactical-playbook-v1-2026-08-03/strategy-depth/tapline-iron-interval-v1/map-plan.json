@@ -1,0 +1,13 @@
+{
+  "schema": "arc-relay-map-plan-v2",
+  "mapPlanId": "tapline-iron-interval-v1-map",
+  "mapId": "arc-relay-tapline-01",
+  "zones": {},
+  "routes": {},
+  "anchors": {
+    "iron-cover": [
+      13,
+      12
+    ]
+  }
+}

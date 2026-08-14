@@ -5,6 +5,38 @@ namespace BotArena.Sdk.Tests;
 public sealed class GenericActorObservationCodecTests
 {
     [Fact]
+    public void VisibleVeterancyIsTrailingAdditiveAndRoundTrips()
+    {
+        var enemy = new GenericActorContext.ObservedEnemyState(
+            new ActorIdentity(1, 2, 3),
+            "mobile",
+            new Position(3, 2),
+            Direction.West,
+            health: 3,
+            pendingSameLifeTransition: null,
+            [GenericActorDynamicTestFixture.SelfActor],
+            veterancyLevel: 4);
+        GenericActorContext decoded = GenericActorWireObservationCodec.Decode(
+            GenericActorWireObservationCodec.Encode(
+                CreateMinimalContext([], [], enemies: [enemy])));
+
+        Assert.Equal(4, Assert.Single(decoded.Enemies).VeterancyLevel);
+
+        var historical = new GenericActorContext.ObservedEnemyState(
+            new ActorIdentity(1, 2, 3),
+            "mobile",
+            new Position(3, 2),
+            Direction.West,
+            health: 3,
+            pendingSameLifeTransition: null,
+            [GenericActorDynamicTestFixture.SelfActor]);
+        decoded = GenericActorWireObservationCodec.Decode(
+            GenericActorWireObservationCodec.Encode(
+                CreateMinimalContext([], [], enemies: [historical])));
+        Assert.Equal(1, Assert.Single(decoded.Enemies).VeterancyLevel);
+    }
+
+    [Fact]
     public void GenericObservationAndDecisionUseSharedProtocolFraming()
     {
         GenericActorContext context =

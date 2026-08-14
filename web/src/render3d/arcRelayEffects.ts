@@ -48,12 +48,11 @@ export {
   surveyFlareLandedYaw,
 } from './signatures/primitives';
 import {
-  centreStatusPips,
-  createStatusPipGeometry,
-  createStatusPipMaterial,
-  faceStatusElement,
+  createStatusHealthBar,
   orientStatusBib,
+  paintStatusHealthBar,
   placeStatusBib,
+  type StatusHealthBarRig,
 } from './statusBib';
 import { configurePersistentConstructRendering } from './occlusionLayers';
 
@@ -139,12 +138,6 @@ interface SignaturePropSlot {
     opacity: number;
     transparent: boolean;
   }[];
-  /** Hull indicators hovering over the prop; visibility follows remainingCapacity. */
-  pips: THREE.Mesh[];
-  litPip: THREE.MeshBasicMaterial;
-  lostPip: THREE.MeshBasicMaterial;
-  /** Separate from the prop group: turret yaw must not angle the pips. */
-  pipGroup: THREE.Group;
   ready: boolean;
   disposed: boolean;
 }
@@ -174,26 +167,21 @@ export function constructStatusBibHeight(
     : CONSTRUCT_STATUS_BIB_FALLBACK_HEIGHT;
 }
 
-/** Construct hull is rules-owned; unknown future props conservatively retain one pip. */
+/** Older broadcasts publish construct hull in the rules catalogue, not each frame. */
 function signatureConstructHullById(replay: ReplayModel): Map<string, number> {
   if (
     replay.contract.kind !== 'v3-generic' ||
     replay.contract.rawContract.rules.gameMode.kind !== 'arc-relay'
-  )
-    return new Map();
+  ) return new Map();
   const signatures = replay.contract.rawContract.rules.gameMode.signatures;
-  // Early generation-3 broadcasts may omit the signature catalogue. Their cores and
-  // landmarks still render; they simply cannot contain a persistent signature prop.
   if (!Array.isArray(signatures)) return new Map();
   return new Map(
-    signatures.flatMap(
-      (signature) => {
-        const hull = signature.hull;
-        return typeof hull === 'number' && Number.isInteger(hull) && hull > 0
-          ? [[signature.signatureId, hull] as const]
-          : [];
-      },
-    ),
+    signatures.flatMap((signature) => {
+      const hull = signature.hull;
+      return typeof hull === 'number' && Number.isInteger(hull) && hull > 0
+        ? [[signature.signatureId, hull] as const]
+        : [];
+    }),
   );
 }
 
@@ -260,39 +248,12 @@ export function buildArcRelayEffects(
     propGroup.userData.kind = 'arc-relay-signature-prop';
     propGroup.userData.signatureId = signature.signatureId;
     group.add(propGroup);
-    const pipGeometry = createStatusPipGeometry();
-    const pipGroup = new THREE.Group();
-    pipGroup.visible = false;
-    pipGroup.userData.cue = 'health-pips';
-    pipGroup.userData.signatureId = signature.signatureId;
-    pipGroup.userData.forSignatureOperationId = signature.operationId;
-    orientStatusBib(
-      pipGroup,
-      (theme.environment3d.camera.yawDegrees * Math.PI) / 180,
-      (theme.environment3d.camera.pitchDegrees * Math.PI) / 180,
-    );
-    group.add(pipGroup);
-    const litPip = createStatusPipMaterial('#f8fafc');
-    const lostPip = createStatusPipMaterial('#64748b', true);
-    const maxHull = constructHull.get(signature.signatureId) ?? 1;
-    const pips = Array.from({ length: maxHull }, () => {
-      const pip = new THREE.Mesh(pipGeometry, litPip);
-      pip.userData.cue = 'health-pip';
-      faceStatusElement(pip);
-      pipGroup.add(pip);
-      return pip;
-    });
-    centreStatusPips(pips, maxHull);
     const slot: SignaturePropSlot = {
       group: propGroup,
       model: null,
       yawHead: null,
       emissives: [],
       materials: [],
-      pips,
-      litPip,
-      lostPip,
-      pipGroup,
       ready: false,
       disposed: false,
     };
@@ -301,9 +262,6 @@ export function buildArcRelayEffects(
       dispose: () => {
         slot.disposed = true;
         if (slot.model) disposeModelMaterials(slot.model);
-        pipGeometry.dispose();
-        litPip.dispose();
-        lostPip.dispose();
       },
     });
     void signatureModel(signature.signatureId).then((model) => {
@@ -397,6 +355,10 @@ export function buildArcRelayEffects(
   );
 
   const rigs: ArcSignatureEffectRig[] = [];
+  const capacityBars: Array<{
+    bib: THREE.Group;
+    bar: StatusHealthBarRig;
+  }> = [];
   const rigAt = (index: number) => {
     while (rigs.length <= index) {
       const rigGroup = new THREE.Group();
@@ -582,6 +544,19 @@ export function buildArcRelayEffects(
         insets,
         cable,
       });
+      const capacityBib = new THREE.Group();
+      capacityBib.visible = false;
+      capacityBib.userData.cue = 'health-bar';
+      orientStatusBib(
+        capacityBib,
+        (theme.environment3d.camera.yawDegrees * Math.PI) / 180,
+        (theme.environment3d.camera.pitchDegrees * Math.PI) / 180,
+      );
+      const capacityBar = createStatusHealthBar('#f8fafc');
+      capacityBib.add(capacityBar.group);
+      group.add(capacityBib);
+      capacityBars.push({ bib: capacityBib, bar: capacityBar });
+      disposables.push(...capacityBar.disposables);
       disposables.push(main, fill, solid, inset, smoke, ...energyMaterials);
     }
     return rigs[index]!;
@@ -655,10 +630,10 @@ export function buildArcRelayEffects(
 
   const update = (time: number) => {
     for (const rig of rigs) rig.group.visible = false;
+    for (const capacity of capacityBars) capacity.bib.visible = false;
     for (const pool of propPools.values())
       for (const slot of pool) {
         slot.group.visible = false;
-        slot.pipGroup.visible = false;
       }
     pulse.visible = false;
     for (const ring of beatRings) ring.visible = false;
@@ -698,7 +673,9 @@ export function buildArcRelayEffects(
           ? legacyPainter
           : undefined;
       if (phase === 'hidden') continue;
-      const rig = rigAt(used++);
+      const rigIndex = used++;
+      const rig = rigAt(rigIndex);
+      const capacityBar = capacityBars[rigIndex]!;
       resetRig(rig);
       rig.group.visible = true;
       rig.group.userData.operationId = signature.operationId;
@@ -796,6 +773,8 @@ export function buildArcRelayEffects(
           }
         : undefined;
       let persistentPropReady = false;
+      let capacityBibHeight = 0.78;
+      let capacityMaximum = signature.maximumCapacity ?? null;
       if (
         (phase === 'active' ||
           (signature.signatureId === 'survey-flare' && phase === 'in-flight')) &&
@@ -892,27 +871,8 @@ export function buildArcRelayEffects(
           time,
           deploy,
         );
-        slot.pipGroup.visible = !surveyFlare;
-        slot.pipGroup.userData.forSignatureOperationId = signature.operationId;
-        placeStatusBib(
-          slot.pipGroup,
-          points[0].x,
-          points[0].z,
-          constructStatusBibHeight(slot.group, slot.model),
-        );
-        slot.pipGroup.scale.setScalar(1);
-        const pipOwner = replay.units.find(
-          (unit) => unit.teamId === signature.ownerTeamId,
-        );
-        const pipAccent = pipOwner
-          ? unitAccent(replay, pipOwner.unitKey)
-          : '#f8fafc';
-        slot.litPip.color.set(pipAccent);
-        centreStatusPips(slot.pips, slot.pips.length);
-        for (const [pipIndex, pip] of slot.pips.entries())
-          pip.material = pipIndex < signature.remainingCapacity
-            ? slot.litPip
-            : slot.lostPip;
+        capacityBibHeight = constructStatusBibHeight(slot.group, slot.model);
+        capacityMaximum ??= constructHull.get(signature.signatureId) ?? null;
         persistentPropReady = slot.ready;
       }
       if (authoredPainter) {
@@ -945,6 +905,27 @@ export function buildArcRelayEffects(
           persistentPropReady,
         );
       else paintGenericSignature(rig, points, owner, target, phase);
+      if (capacityMaximum !== null && points[0]) {
+        capacityBar.bib.visible = rig.group.visible;
+        capacityBar.bib.userData.signatureId = signature.signatureId;
+        capacityBar.bib.userData.forSignatureOperationId = signature.operationId;
+        capacityBar.bar.frameMaterial.color.copy(accent);
+        paintStatusHealthBar(
+          capacityBar.bar,
+          signature.remainingCapacity,
+          capacityMaximum,
+        );
+        capacityBar.bib.userData.currentHealth = signature.remainingCapacity;
+        capacityBar.bib.userData.maximumHealth = capacityMaximum;
+        capacityBar.bib.userData.remainingFraction =
+          capacityBar.bar.group.userData.remainingFraction;
+        placeStatusBib(
+          capacityBar.bib,
+          points[0].x,
+          points[0].z,
+          capacityBibHeight,
+        );
+      }
       // Some public events share an operation ID before they carry enough
       // topology for a particular painter. Do not publish an empty effect
       // group merely because the operation is present.

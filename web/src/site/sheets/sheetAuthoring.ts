@@ -21,6 +21,7 @@ export type MoveTarget =
   | 'own-reactor'
   | 'nearest-heal-zone'
   | 'nearest-known-loose-core'
+  | 'highest-bank-value-known-loose-core'
   | { zone: string }
   | { anchor: string }
   | { adjacentTo: string }
@@ -29,7 +30,7 @@ export type MoveTarget =
 export interface MoveOrder {
   to?: MoveTarget;
   patrol?: string;
-  follow?: string;
+  follow?: string | { selector: 'most-experienced-ally' };
   via?: string;
   posture?: 'front' | 'line' | 'rear';
 }
@@ -48,12 +49,13 @@ export function moveIntentKind(move: MoveOrder): MoveIntentKind {
 }
 
 export interface FightOrder {
-  targets: Array<'carrier' | 'weakest' | 'nearest' | 'medic' | 'marked'>;
+  targets: Array<'carrier' | 'weakest' | 'nearest' | 'medic' | 'marked' | 'veteran' | 'deployment'>;
   style: 'advance' | 'hold' | 'kite';
   chaseLimit: number;
 }
 
-export interface UseOrder { skill: string; target: string; at?: string }
+export type UseTarget = string | { role: string } | { selector: 'most-experienced-ally' };
+export interface UseOrder { skill: string; target: UseTarget; at?: string }
 export interface HandoffOrder {
   target: 'nearest-ally-toward-own-reactor' | 'nearest-empty-handed-ally' | { role: string };
 }
@@ -125,11 +127,16 @@ export const CONDITION_OPERATORS: readonly ConditionOperator[] =
 export const CONDITION_FACTS = [
   'self-health-percent', 'self-level', 'self-carrying', 'self-stuck-ticks',
   'self-order-ticks', 'self-in-zone', 'self-nearest-visible-enemy-distance',
-  'signature-ready', 'role-live-count',
+  'self-carried-core-bank-value', 'signature-ready', 'deployment-active',
+  'deployment-lifetime-percent', 'deployment-durability-percent',
+  'role-live-count', 'role-highest-level',
   'role-lowest-health-percent', 'role-in-zone-count', 'live-friendlies',
+  'live-enemies',
   'friendly-carriers', 'known-enemy-carriers', 'visible-enemy-carriers',
   'known-loose-cores', 'visible-loose-cores', 'secured-cores',
-  'reactor-integrity', 'reactor-charge', 'ticks-without-objective-progress',
+  'reactor-integrity', 'reactor-charge', 'reactor-pulses', 'enemy-reactor-charge',
+  'ticks-until-respawn-wave', 'friendly-respawns-next-wave', 'enemy-respawns-next-wave',
+  'ticks-without-objective-progress',
   'friendlies-in-zone', 'visible-enemies-in-zone',
   'remembered-enemies-in-zone', 'known-loose-cores-in-zone',
   'well-has-outstanding-core', 'well-ticks-until-birth', 'well-socket-filled',
@@ -139,13 +146,22 @@ export const ACTIONS: readonly Exclude<OrderAction, 'branch' | 'shared'>[] =
 export const UI_STATE_KEY = 'nilbots-sheet-map-ui-v2';
 
 const IDENTIFIER = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-const ROLE_FACTS = new Set(['role-live-count', 'role-lowest-health-percent', 'role-in-zone-count']);
+const ROLE_FACTS = new Set([
+  'role-live-count', 'role-highest-level', 'role-lowest-health-percent', 'role-in-zone-count',
+]);
 const ZONE_FACTS = new Set([
   'self-in-zone', 'role-in-zone-count', 'friendlies-in-zone', 'visible-enemies-in-zone',
   'remembered-enemies-in-zone', 'known-loose-cores-in-zone',
 ]);
 const WELL_FACTS = new Set(['well-has-outstanding-core', 'well-ticks-until-birth', 'well-socket-filled']);
 const FRESH_FACTS = new Set(['known-enemy-carriers', 'remembered-enemies-in-zone']);
+const PERCENT_FACTS = new Set([
+  'self-health-percent', 'role-lowest-health-percent',
+  'deployment-lifetime-percent', 'deployment-durability-percent',
+]);
+const BOOLEAN_FACTS = new Set([
+  'self-carrying', 'self-in-zone', 'signature-ready', 'deployment-active',
+]);
 const DRAFT_DB = 'nilbots-sheet-drafts-v2';
 const DRAFT_STORE = 'drafts';
 const ACTIVE_DRAFT_KEY = 'active';
@@ -216,7 +232,7 @@ export function signatureTargets(skill: string): string[] {
   if (skill === 'repair-beam') return ['weakest-ally', 'nearest-ally'];
   if (skill === 'exchange') return ['healthiest-ally', 'nearest-ally', 'weakest-ally'];
   if (skill === 'arc-toss') return ['nearest-ally-toward-own-reactor', 'nearest-ally', 'own-reactor'];
-  if (skill === 'target-paint') return ['enemy-carrier', 'weakest-enemy', 'nearest-enemy'];
+  if (skill === 'target-paint') return ['enemy-carrier', 'veteran', 'weakest-enemy', 'nearest-enemy'];
   return ['nearest-enemy', 'weakest-enemy', 'enemy-carrier', 'nearest-ally', 'weakest-ally', 'self', 'own-reactor'];
 }
 
@@ -237,9 +253,13 @@ export function renameRole(orders: OrdersDocument, previous: string, next: strin
   if (!role) return;
   role.id = next;
   walkOrders(orders, (node) => {
-    if (node.move?.follow === previous) node.move.follow = next;
+    if (typeof node.move?.follow === 'string' && node.move.follow === previous)
+      node.move.follow = next;
     if (typeof node.handoff?.target === 'object' && node.handoff.target.role === previous)
       node.handoff.target.role = next;
+    if (typeof node.use?.target === 'object' && 'role' in node.use.target
+      && node.use.target.role === previous)
+      node.use.target.role = next;
   });
   for (const condition of Object.values(orders.conditions))
     if (condition.role === previous) condition.role = next;
@@ -364,10 +384,13 @@ export function validateDraft(
   });
   // Role references are checked again after the complete role set is known.
   walkOrders(orders, (node) => {
-    if (node.move?.follow && !roles.has(node.move.follow))
+    if (typeof node.move?.follow === 'string' && !roles.has(node.move.follow))
       error('orders.roles', `Follow names unknown role '${node.move.follow}'.`);
     if (typeof node.handoff?.target === 'object' && !roles.has(node.handoff.target.role))
       error('orders.roles', `Handoff names unknown role '${node.handoff.target.role}'.`);
+    if (typeof node.use?.target === 'object' && 'role' in node.use.target
+      && !roles.has(node.use.target.role))
+      error('orders.roles', `Use names unknown role '${node.use.target.role}'.`);
   });
 
   for (const [id, definition] of Object.entries(orders.sharedOrders)) {
@@ -390,6 +413,16 @@ export function validateDraft(
     if (!(CONDITION_FACTS as readonly string[]).includes(condition.fact)) error(`${path}.fact`, 'Choose a published fact.');
     if (!CONDITION_OPERATORS.includes(condition.operator)) error(`${path}.operator`, 'Choose a comparison.');
     if (!Number.isInteger(condition.value)) error(`${path}.value`, 'Comparison value must be a whole number.');
+    if (PERCENT_FACTS.has(condition.fact) && (condition.value < 0 || condition.value > 100))
+      error(`${path}.value`, 'Percent facts compare from 0 to 100.');
+    if (BOOLEAN_FACTS.has(condition.fact) && condition.value !== 0 && condition.value !== 1)
+      error(`${path}.value`, 'This yes/no fact compares with 0 or 1.');
+    if (condition.fact === 'self-carried-core-bank-value'
+      && (condition.value < 0 || condition.value > 4))
+      error(`${path}.value`, 'Carried Core value is 0 to 4.');
+    if (['friendly-respawns-next-wave', 'enemy-respawns-next-wave', 'live-enemies']
+      .includes(condition.fact) && (condition.value < 0 || condition.value > 8))
+      error(`${path}.value`, 'Body counts are 0 to 8.');
     if (condition.fact === 'self-nearest-visible-enemy-distance'
       && (condition.value < 0 || condition.value > 31))
       error(`${path}.value`, 'Firing-approach distance is zero to 31 steps.');
@@ -498,7 +531,7 @@ function validateOrder(
     if (move.via) usedRoutes.add(move.via);
     // The complete role set is checked after every role has been walked. At
     // this point a valid forward reference may not have been visited yet.
-    if (move.follow === role.id)
+    if (typeof move.follow === 'string' && move.follow === role.id)
       error(`${path}.move.follow`, 'Follow another declared role.');
     if (typeof move.to === 'object') {
       if ('zone' in move.to) usedZones.add(move.to.zone);
@@ -519,6 +552,15 @@ function validateOrder(
     );
     if (!skills.has(node.use!.skill))
       error(`${path}.use.skill`, 'At least one body in this role must own this signature skill.');
+    if (typeof node.use!.target === 'object') {
+      const target = node.use!.target;
+      if ('role' in target && !roles.has(target.role))
+        error(`${path}.use.target`, 'Target an existing role.');
+      if ('selector' in target && target.selector !== 'most-experienced-ally')
+        error(`${path}.use.target`, 'Choose a published friendly selector.');
+      if (!['repair-beam', 'exchange', 'arc-toss'].includes(node.use!.skill))
+        error(`${path}.use.target`, 'Only friendly-target skills can name a role or selector.');
+    }
     if (node.use!.at) {
       usedAnchors.add(node.use!.at);
       if (!['hardlight-block', 'trip-node', 'sentinel-seed']

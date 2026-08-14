@@ -45,13 +45,20 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         new(StringComparer.Ordinal)
         {
             "self-health-percent", "self-level", "self-carrying",
+            "self-carried-core-bank-value",
             "self-stuck-ticks", "self-order-ticks", "self-in-zone",
             "self-nearest-visible-enemy-distance", "signature-ready",
+            "deployment-active", "deployment-lifetime-percent",
+            "deployment-durability-percent",
             "role-live-count", "role-lowest-health-percent",
-            "role-in-zone-count", "live-friendlies", "friendly-carriers",
+            "role-highest-level", "role-in-zone-count", "live-friendlies",
+            "friendly-carriers", "live-enemies",
+            "friendly-respawns-next-wave", "enemy-respawns-next-wave",
+            "ticks-until-respawn-wave",
             "known-enemy-carriers", "visible-enemy-carriers",
             "known-loose-cores", "visible-loose-cores", "secured-cores",
-            "reactor-integrity", "reactor-charge",
+            "reactor-integrity", "reactor-charge", "reactor-pulses",
+            "enemy-reactor-charge",
             "ticks-without-objective-progress", "friendlies-in-zone",
             "visible-enemies-in-zone", "remembered-enemies-in-zone",
             "known-loose-cores-in-zone", "well-has-outstanding-core",
@@ -62,7 +69,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         new(StringComparer.Ordinal)
         {
             "role-live-count", "role-lowest-health-percent",
-            "role-in-zone-count",
+            "role-highest-level", "role-in-zone-count",
         };
 
     private static readonly HashSet<string> ZoneFacts =
@@ -91,7 +98,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         {
             "self", "own-reactor", "nearest-enemy", "weakest-enemy",
             "enemy-carrier", "nearest-ally", "weakest-ally",
-            "healthiest-ally", "nearest-ally-toward-own-reactor",
+            "healthiest-ally", "nearest-ally-toward-own-reactor", "veteran",
         };
 
     private static SheetValidation ValidateOrdersSheet(
@@ -255,7 +262,9 @@ public static partial class ArcRelayTacticalPlaybookCompiler
                 "at-least", "at-most", "equals", "less-than", "greater-than");
             int comparison = RequiredInt(property.Value, "value", at);
             if ((fact is "self-health-percent" or
-                    "role-lowest-health-percent")
+                    "role-lowest-health-percent" or
+                    "deployment-lifetime-percent" or
+                    "deployment-durability-percent")
                 && comparison is < 0 or > 100)
             {
                 throw Error(at, "health percentages must be in [0, 100].");
@@ -267,10 +276,21 @@ public static partial class ArcRelayTacticalPlaybookCompiler
                     "firing-approach distance must be in [0, 31].");
             }
             if ((fact is "self-carrying" or "self-in-zone" or
-                    "signature-ready")
+                    "signature-ready" or "deployment-active")
                 && comparison is not (0 or 1))
             {
                 throw Error(at, $"'{fact}' compares against 0 or 1.");
+            }
+            if (fact == "self-carried-core-bank-value"
+                && comparison is < 0 or > 4)
+            {
+                throw Error(at, "carried Core bank value must be in [0, 4].");
+            }
+            if (fact is "friendly-respawns-next-wave"
+                    or "enemy-respawns-next-wave" or "live-enemies"
+                && comparison is < 0 or > 8)
+            {
+                throw Error(at, $"'{fact}' must be in [0, 8].");
             }
 
             bool hasRole = property.Value.TryGetProperty("role", out JsonElement role);
@@ -444,7 +464,8 @@ public static partial class ArcRelayTacticalPlaybookCompiler
                 ValidateFight(value.GetProperty("fight"), path);
                 break;
             case "use":
-                ValidateUse(value.GetProperty("use"), path, role, consumers);
+                ValidateUse(
+                    value.GetProperty("use"), path, role, roles, consumers);
                 break;
             case "handoff":
                 ValidateHandoff(value.GetProperty("handoff"), path, roles);
@@ -580,10 +601,27 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         }
         if (found[0] == "follow")
         {
-            string targetRole = StringValue(value.GetProperty("follow"),
-                $"{path}.move.follow");
-            if (!roles.ContainsKey(targetRole) || targetRole == role.Id)
-                throw Error($"{path}.move.follow", "follow another declared role.");
+            JsonElement follow = value.GetProperty("follow");
+            if (follow.ValueKind == JsonValueKind.String)
+            {
+                string targetRole = StringValue(
+                    follow, $"{path}.move.follow");
+                if (!roles.ContainsKey(targetRole) || targetRole == role.Id)
+                {
+                    throw Error(
+                        $"{path}.move.follow",
+                        "follow another declared role.");
+                }
+            }
+            else
+            {
+                Object(follow, $"{path}.move.follow", ["selector"]);
+                Exact(
+                    follow,
+                    "selector",
+                    "most-experienced-ally",
+                    $"{path}.move.follow");
+            }
             return;
         }
         ValidateMoveTarget(value.GetProperty("to"), $"{path}.move.to", consumers);
@@ -598,7 +636,8 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         {
             if (value.GetString() is not
                 ("own-reactor" or "nearest-heal-zone" or
-                 "nearest-known-loose-core"))
+                 "nearest-known-loose-core" or
+                 "highest-bank-value-known-loose-core"))
             {
                 throw Error(path, "unknown dynamic move target.");
             }
@@ -637,7 +676,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         foreach (string target in targets)
         {
             if (target is not ("carrier" or "weakest" or "nearest" or
-                "medic" or "marked"))
+                "medic" or "marked" or "veteran" or "deployment"))
                 throw Error($"{path}.fight.targets", $"unknown target '{target}'.");
         }
         OneOf(value, "style", $"{path}.fight", "advance", "hold", "kite");
@@ -648,13 +687,59 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         JsonElement value,
         string path,
         RoleInfo role,
+        IReadOnlyDictionary<string, RoleInfo> roles,
         ConsumerLedger consumers)
     {
         Object(value, $"{path}.use", ["skill", "target"], ["at"]);
         string skill = RequiredString(value, "skill", $"{path}.use");
-        string target = RequiredString(value, "target", $"{path}.use");
-        if (!UseTargets.Contains(target))
-            throw Error($"{path}.use.target", $"unknown target '{target}'.");
+        JsonElement targetValue = value.GetProperty("target");
+        string targetKind;
+        string target;
+        if (targetValue.ValueKind == JsonValueKind.String)
+        {
+            targetKind = "named";
+            target = StringValue(targetValue, $"{path}.use.target");
+            if (!UseTargets.Contains(target))
+            {
+                throw Error(
+                    $"{path}.use.target", $"unknown target '{target}'.");
+            }
+        }
+        else
+        {
+            if (targetValue.ValueKind != JsonValueKind.Object)
+                throw Error($"{path}.use.target", "expected target name or object.");
+            string[] kinds = ["role", "selector"];
+            string[] found = kinds.Where(name =>
+                targetValue.TryGetProperty(name, out _)).ToArray();
+            if (found.Length != 1)
+            {
+                throw Error(
+                    $"{path}.use.target",
+                    "target object needs exactly one of role/selector.");
+            }
+            Object(targetValue, $"{path}.use.target", [found[0]]);
+            targetKind = found[0];
+            target = RequiredString(
+                targetValue, found[0], $"{path}.use.target");
+            if (targetKind == "role")
+            {
+                if (!roles.ContainsKey(target))
+                    throw Error($"{path}.use.target", "target an existing role.");
+            }
+            else if (target != "most-experienced-ally")
+            {
+                throw Error(
+                    $"{path}.use.target",
+                    "unknown friendly selector; expected most-experienced-ally.");
+            }
+            if (skill is not ("repair-beam" or "exchange" or "arc-toss"))
+            {
+                throw Error(
+                    $"{path}.use.target",
+                    $"'{skill}' cannot target a friendly role or selector.");
+            }
+        }
         if (!role.Classes.Any(classId => string.Equals(
                 ClassSkills[classId], skill, StringComparison.Ordinal)))
         {
@@ -663,23 +748,26 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         }
         if (skill is "null-field" or "kinetic-burst")
         {
-            if (target != "self")
+            if (targetKind != "named" || target != "self")
                 throw Error($"{path}.use.target", $"'{skill}' targets self.");
         }
         else if (skill == "repair-beam"
+            && targetKind == "named"
             && target is not ("nearest-ally" or "weakest-ally"))
         {
             throw Error($"{path}.use.target", "repair-beam targets an ally.");
         }
         else if (skill == "exchange"
+            && targetKind == "named"
             && target is not ("nearest-ally" or "weakest-ally" or
                 "healthiest-ally"))
         {
             throw Error($"{path}.use.target", "exchange targets an ally.");
         }
         else if (skill == "target-paint"
-            && target is not ("nearest-enemy" or "weakest-enemy" or
-                "enemy-carrier"))
+            && (targetKind != "named"
+                || target is not ("nearest-enemy" or "weakest-enemy" or
+                    "enemy-carrier" or "veteran")))
         {
             throw Error($"{path}.use.target", "target-paint targets an enemy.");
         }

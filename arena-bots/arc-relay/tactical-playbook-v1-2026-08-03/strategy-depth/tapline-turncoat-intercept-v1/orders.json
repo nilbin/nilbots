@@ -1,0 +1,336 @@
+{
+  "schema": "arc-relay-orders-v2",
+  "sheetId": "tapline-turncoat-intercept-v1",
+  "mapPlan": "map-plan.json",
+  "roles": [
+    {
+      "id": "return-cut",
+      "classes": [
+        "towline",
+        "towline",
+        "sunder",
+        "longshot",
+        "hush"
+      ],
+      "upgradePath": [
+        "damage",
+        "vision",
+        "reach",
+        "vitality"
+      ],
+      "orders": [
+        {
+          "shared": "score-a-core"
+        },
+        {
+          "shared": "collect-loose-core"
+        },
+        {
+          "shared": "recover-health"
+        },
+        {
+          "id": "spring-return-cut",
+          "when": {
+            "all": [
+              "empty-handed",
+              "enemy-carrier-visible",
+              "return-lane-live"
+            ]
+          },
+          "timeout": 90,
+          "cooldown": 3,
+          "urgency": "urgent",
+          "orders": [
+            {
+              "id": "hook-cheap-carrier",
+              "when": "signature-ready",
+              "use": {
+                "skill": "tractor-hook",
+                "target": "enemy-carrier"
+              }
+            },
+            {
+              "id": "paint-cheap-carrier",
+              "when": "signature-ready",
+              "use": {
+                "skill": "target-paint",
+                "target": "enemy-carrier"
+              }
+            },
+            {
+              "id": "rail-cheap-carrier",
+              "when": "signature-ready",
+              "use": {
+                "skill": "rail-line",
+                "target": "weakest-enemy"
+              }
+            },
+            {
+              "id": "silence-carrier-escort",
+              "when": "signature-ready",
+              "use": {
+                "skill": "null-field",
+                "target": "self"
+              }
+            },
+            {
+              "id": "kill-cheap-carrier",
+              "when": "enemy-nearby",
+              "fight": {
+                "targets": [
+                  "carrier",
+                  "marked",
+                  "weakest",
+                  "nearest"
+                ],
+                "style": "advance",
+                "chaseLimit": 6
+              }
+            },
+            {
+              "id": "close-return-lane",
+              "move": {
+                "to": {
+                  "zone": "enemy-return-cut"
+                },
+                "posture": "front"
+              }
+            }
+          ]
+        },
+        {
+          "shared": "fight-visible-enemy"
+        },
+        {
+          "id": "patrol-enemy-well-screen",
+          "move": {
+            "patrol": "enemy-well-loop",
+            "posture": "front"
+          }
+        }
+      ]
+    },
+    {
+      "id": "turncoat-courier",
+      "classes": [
+        "relay",
+        "lantern",
+        "kestrel"
+      ],
+      "upgradePath": [
+        "vitality",
+        "vision",
+        "reach",
+        "damage"
+      ],
+      "orders": [
+        {
+          "shared": "score-a-core"
+        },
+        {
+          "shared": "collect-loose-core"
+        },
+        {
+          "shared": "recover-health"
+        },
+        {
+          "id": "pass-stolen-core",
+          "when": {
+            "all": [
+              "carrying-core",
+              "signature-ready"
+            ]
+          },
+          "use": {
+            "skill": "arc-toss",
+            "target": "nearest-ally-toward-own-reactor"
+          }
+        },
+        {
+          "id": "reveal-return-cut",
+          "when": {
+            "all": [
+              "empty-handed",
+              "enemy-nearby",
+              "signature-ready"
+            ]
+          },
+          "use": {
+            "skill": "survey-flare",
+            "target": "nearest-enemy"
+          }
+        },
+        {
+          "id": "dash-to-spill",
+          "when": {
+            "all": [
+              "empty-handed",
+              "enemy-nearby",
+              "signature-ready"
+            ]
+          },
+          "use": {
+            "skill": "vector-dash",
+            "target": "nearest-enemy"
+          }
+        },
+        {
+          "shared": "fight-visible-enemy"
+        },
+        {
+          "id": "shadow-return-cut",
+          "move": {
+            "to": {
+              "zone": "enemy-return-cut"
+            },
+            "posture": "rear"
+          }
+        }
+      ]
+    }
+  ],
+  "sharedOrders": {
+    "score-a-core": {
+      "when": "carrying-core",
+      "until": "empty-handed",
+      "timeout": 180,
+      "cooldown": 2,
+      "urgency": "urgent",
+      "orders": [
+        {
+          "id": "pass-stalled-core-homeward",
+          "when": "carrier-stalled",
+          "handoff": {
+            "target": "nearest-ally-toward-own-reactor"
+          }
+        },
+        {
+          "id": "drop-stalled-core-homeward",
+          "when": "carrier-stalled",
+          "drop": true
+        },
+        {
+          "id": "fight-through-carrier-pocket",
+          "when": "carrier-stalled",
+          "fight": {
+            "targets": [
+              "nearest",
+              "weakest",
+              "carrier"
+            ],
+            "style": "advance",
+            "chaseLimit": 3
+          }
+        },
+        {
+          "id": "return-to-reactor",
+          "move": {
+            "to": "own-reactor"
+          }
+        }
+      ]
+    },
+    "collect-loose-core": {
+      "when": {
+        "all": [
+          "empty-handed",
+          "loose-core-known"
+        ]
+      },
+      "capacity": "two-per-core",
+      "move": {
+        "to": "highest-bank-value-known-loose-core"
+      }
+    },
+    "recover-health": {
+      "when": "hurt",
+      "until": "healthy",
+      "timeout": 16,
+      "cooldown": 18,
+      "urgency": "urgent",
+      "orders": [
+        {
+          "id": "reach-healing",
+          "move": {
+            "to": "nearest-heal-zone",
+            "posture": "rear"
+          }
+        }
+      ]
+    },
+    "fight-visible-enemy": {
+      "when": {
+        "all": [
+          "empty-handed",
+          "enemy-nearby"
+        ]
+      },
+      "fight": {
+        "targets": [
+          "carrier",
+          "weakest",
+          "nearest"
+        ],
+        "style": "advance",
+        "chaseLimit": 4
+      }
+    }
+  },
+  "capacities": {
+    "two-per-core": 2
+  },
+  "conditions": {
+    "carrying-core": {
+      "fact": "self-carrying",
+      "operator": "equals",
+      "value": 1
+    },
+    "empty-handed": {
+      "fact": "self-carrying",
+      "operator": "equals",
+      "value": 0
+    },
+    "loose-core-known": {
+      "fact": "known-loose-cores",
+      "operator": "at-least",
+      "value": 1
+    },
+    "hurt": {
+      "fact": "self-health-percent",
+      "operator": "at-most",
+      "value": 35
+    },
+    "healthy": {
+      "fact": "self-health-percent",
+      "operator": "at-least",
+      "value": 75
+    },
+    "enemy-nearby": {
+      "fact": "self-nearest-visible-enemy-distance",
+      "operator": "at-most",
+      "value": 7
+    },
+    "signature-ready": {
+      "fact": "signature-ready",
+      "operator": "equals",
+      "value": 1
+    },
+    "carrier-stalled": {
+      "fact": "self-stuck-ticks",
+      "operator": "at-least",
+      "value": 4
+    },
+    "enemy-carrier-visible": {
+      "fact": "visible-enemy-carriers",
+      "operator": "at-least",
+      "value": 1
+    },
+    "return-lane-live": {
+      "fact": "remembered-enemies-in-zone",
+      "operator": "at-least",
+      "value": 1,
+      "zone": "enemy-return-cut",
+      "freshnessTicks": 45
+    }
+  }
+}

@@ -28,6 +28,7 @@ import {
   surveyFlareLandedYaw,
   buildArcVeterancy,
   buildOverlays,
+  createPresenter,
   LEVEL_UP_BEAT_TICKS,
   unitAccent,
 } from './.harness/harness.entry.js';
@@ -946,6 +947,7 @@ test('Sentinel Seed transforms upward from its floor seed', () => {
     return effects.group.children.find(
       (candidate) =>
         candidate.visible &&
+        candidate.userData.kind === 'arc-relay-signature-prop' &&
         candidate.userData.signatureId === 'sentinel-seed' &&
         candidate.userData.phase === undefined,
     );
@@ -1042,11 +1044,11 @@ test('mine and sentry bibs use the derived low construct placement', () => {
     effects.group.traverse((node) => {
       if (
         node.visible &&
-        node.userData.cue === 'health-pips' &&
+        node.userData.cue === 'health-bar' &&
         node.userData.signatureId === signatureId
       ) found = node;
     });
-    assert.ok(found, `no ${signatureId} health bib`);
+    assert.ok(found, `no ${signatureId} health bar`);
     return found;
   };
   const propModel = (signatureId: 'trip-node' | 'sentinel-seed') => {
@@ -1090,19 +1092,18 @@ test('mine and sentry bibs use the derived low construct placement', () => {
     if (!sentryModel.model)
       assert.equal(sentry.position.y, CONSTRUCT_STATUS_BIB_FALLBACK_HEIGHT);
     assert.deepEqual(sentry.scale.toArray(), [1, 1, 1]);
-    assert.equal(sentry.children.length, 2);
-    for (const pip of sentry.children) {
-      assert.equal(
-        (pip as THREE.Mesh).geometry.type,
-        'CircleGeometry',
-        'construct health uses the same flat circle as bot health',
-      );
-      const material = (pip as THREE.Mesh).material;
-      assert.ok(material instanceof THREE.MeshBasicMaterial);
-      assert.equal(material.depthTest, false);
-    }
-    assert.equal(sentry.children[0]!.position.x, -0.085);
-    assert.equal(sentry.children[1]!.position.x, 0.085);
+    assert.equal(sentry.children.length, 1);
+    const track = sentry.children[0]!;
+    assert.equal(track.userData.cue, 'health-bar-track');
+    assert.equal(track.userData.width, 0.52);
+    assert.equal(track.children.length, 3);
+    const fill = track.children.find(
+      (child) => child.userData.cue === 'health-bar-fill',
+    ) as THREE.Mesh | undefined;
+    assert.ok(fill);
+    assert.equal(fill.geometry.type, 'PlaneGeometry');
+    assert.ok(fill.material instanceof THREE.MeshBasicMaterial);
+    assert.equal(fill.material.depthTest, false);
   } finally {
     for (const disposable of disposables) disposable.dispose();
   }
@@ -1189,5 +1190,65 @@ test('the level-up transient starts on its exact fact and is gone after 1.8 tick
   assert.equal(
     veterancy.levelUpAt(2.2, actor.teamId, actor.unitId, actor.lifeId + 1),
     null,
+  );
+});
+
+test('a scaled vitality investment raises the inspected maximum without inventing health', () => {
+  const replay = loadReplayJson(
+    gunzipSync(readFileSync(new URL(
+      '../../art/reviews/arc-relay-presentation-batch-v1/runtime-proof/replays/core-roster.broadcast.json.gz',
+      import.meta.url,
+    ))).toString('utf8'),
+  ).replay;
+  assert.equal(replay.contract.kind, 'v3-generic');
+  assert.equal(replay.contract.mode.kind, 'arc-relay');
+  replay.contract.mode.vitalityHealthPerPoint = 10;
+  const tickIndex = replay.ticks.findIndex((tick) => tick.actorTurns.length > 0);
+  assert.ok(tickIndex >= 0);
+  const turn = replay.ticks[tickIndex]!.actorTurns[0]!;
+  turn.actionResolution.validatedActionId = 'invest';
+  turn.actionResolution.result = 'success';
+  turn.actionResolution.validatedPayload = {
+    shotProgram: null,
+    direction: null,
+    launchHeading: null,
+    unitKey: null,
+    formTargetId: null,
+    positionTarget: null,
+    upgradeTrackId: 'vitality',
+  };
+
+  const actor = turn.actor;
+  const veterancy = buildArcVeterancy(replay);
+  assert.equal(
+    veterancy.vitalityPointsAt(
+      tickIndex - 1,
+      actor.teamId,
+      actor.unitId,
+      actor.lifeId,
+    ),
+    0,
+  );
+  assert.equal(
+    veterancy.vitalityPointsAt(
+      tickIndex,
+      actor.teamId,
+      actor.unitId,
+      actor.lifeId,
+    ),
+    1,
+  );
+  const presented = createPresenter(replay).at(tickIndex).units.find(
+    (unit) => unit.unitKey === actor.unitKey,
+  );
+  assert.ok(presented);
+  const baseMaximum = replay.forms.find(
+    (form) => form.formId === presented.formId,
+  )?.maxHealth;
+  assert.ok(baseMaximum);
+  assert.equal(presented.maxHealth, baseMaximum + 10);
+  assert.ok(
+    presented.health <= baseMaximum,
+    'investing does not heal the standing body',
   );
 });

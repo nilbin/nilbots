@@ -588,6 +588,21 @@ export type ReplayGenericModeDefinition =
       coresPerPulse: number;
       pulsesToDestroyReactor: number;
       orderedWellRegionIds: string[];
+      teamRelativeCoreCharge?: {
+        ownWell: number;
+        centreWell: number;
+        enemyWell: number;
+      };
+      veteranCommand?: boolean;
+      respawnWavePeriodTicks?: number;
+      respawnMinimumDeadTicks?: number;
+      minimumDistinctClasses?: number;
+      durableDeployments?: boolean;
+      veterancyDamagePerPoint?: number;
+      veterancyDamageBonusCap?: number;
+      veterancyBonusAfterRearArc?: boolean;
+      vitalityHealthPerPoint?: number;
+      healZoneHealthPerActivation?: number;
     };
 
 export interface ReplayGenericMatchContract
@@ -978,6 +993,7 @@ export interface ReplayArcRelayModeState {
     nextRelocationTick: number;
     flightTarget: ReplayPosition | null;
     flightCompletesAtTick: number | null;
+    chargeValue?: number;
   }[];
   visibleSignatures: {
     operationId: string;
@@ -992,10 +1008,17 @@ export interface ReplayArcRelayModeState {
     positions: ReplayPosition[];
     targetActor: ReplayActorIdentity | null;
     remainingCapacity: number;
+    maximumCapacity?: number;
     suppressed: boolean;
   }[];
   latestPulseTeamId: number | null;
   latestPulseTick: number | null;
+  nextRespawnWaveTick?: number;
+  respawnWaveTeams?: {
+    teamId: number;
+    liveBodies: number;
+    respawnsNextWave: number;
+  }[];
   /**
    * Declared strikes in windup (DECISIONS #212): the shooter, the tick the
    * ray resolves, and the frozen tiles it will trace. Empty on every ruleset
@@ -1299,6 +1322,8 @@ export interface ReplayActionPayload {
   launchHeading: ReplayProjectileHeading | null;
   unitKey: ReplayStableUnitKey | null;
   formTargetId: string | null;
+  /** Exact mode-investment track for replay-v3 invest actions. */
+  upgradeTrackId?: string | null;
   /** Exact targeted map tile for position-parameter actions in replay v3. */
   positionTarget?: ReplayPosition | null;
 }
@@ -1489,6 +1514,7 @@ export type ReplayArcRelayFact =
       teamId: number;
       position: ReplayPosition;
       chargePips: number;
+      chargeAwarded?: number;
     }
   | {
       kind: 'well-changed';
