@@ -3,6 +3,9 @@
   "status": "owner-approved-runtime-icon-tier",
   "generator": "scripts/class-models/build-meshy7-fleet-web-icons.mjs",
   "sourceAudit": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v3/audit.json",
+  "sourceAuditOverrides": {
+    "longshot": "art/class-models/runtime-tiers/arc-relay/meshy7-longshot-railback-muted-blue-review-v3/audit.json"
+  },
   "contract": {
     "projection": "strict orthographic top-down",
     "facing": "+X maps to screen-right/east",
@@ -17,7 +20,7 @@
   },
   "sheet": {
     "file": "art/reviews/arc-relay-meshy7-fleet-retexture-v3/top-down-east-icons-sheet.png",
-    "sha256": "2d58eb8eddd15a12d72b5d366b828a9cfbf85990cfb0d9dd29748492af0dd6d5"
+    "sha256": "0150b39a0f610959fbbed7855a641d2fe58798e61a50bc95979cc662108d2acd"
   },
   "icons": [
     {
@@ -373,36 +376,36 @@
     {
       "classId": "longshot",
       "source": {
-        "file": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v3/arc-longshot-lean.glb",
-        "bytes": 1802772,
-        "sha256": "9ea835fa2363843eeaacc02c69687eee1471ac44c4e1a703d05783c14e8cbe4a",
-        "geometrySha256": "47fb05943f0d252a9b5d396237f8ab1498fa11976d95acfa3de41f5ee46e10f1"
+        "file": "art/class-models/runtime-tiers/arc-relay/meshy7-longshot-railback-muted-blue-review-v3/arc-longshot-railback-muted-blue-lean.glb",
+        "bytes": 1765100,
+        "sha256": "62dc3803ce7d7634196a84cb57362b633c84657af507cf82ea5ea6e1069ffa37",
+        "geometrySha256": "62d0cd134dfa2c41550eef8abdc5ced501077d52e2ed88f0107e612043c447f8"
       },
       "camera": "strict top-down; camera up -Z; +X maps screen-right/east",
       "capture": {
         "file": "art/reviews/arc-relay-meshy7-fleet-retexture-v3/top-down-east-icon-captures/longshot-512.png",
-        "sha256": "69b220220e2274bb787849513b0cbebeb75f617659b72a8e9740860f2f57d116"
+        "sha256": "28e8e89549fa663d6472c47196a4dbf02c873fed8a2fb501ac4734e72b3475f2"
       },
       "sprite": {
         "file": "web/src/assets/class-looks/arc-longshot/sprite.png",
-        "bytes": 28185,
-        "sha256": "9cdac06ab30b65102ebd7c554cddb250e8fe89dfa2e44ebc0fbe6157c38e2012",
+        "bytes": 37065,
+        "sha256": "6d76678c10fb3bb7051d58fc23cf5c968f0f8096edd90572f1fc1a11ec9ecefe",
         "width": 192,
         "height": 192,
         "alphaBounds": {
           "left": 13,
-          "top": 59,
+          "top": 35,
           "width": 166,
-          "height": 74
+          "height": 122
         },
-        "opaquePixels": 11337
+        "opaquePixels": 17779
       },
       "teamMask": {
         "file": "web/src/assets/class-looks/arc-longshot/team-mask.png",
-        "bytes": 1048,
-        "sha256": "127302d24a774375bf9440ef40fdc3a0739733994552724fad53b41f8c69046e",
+        "bytes": 986,
+        "sha256": "245b6a86438ae55187bacb5b8bdd6a4f1483987bfbf924240b282c808f7b48b2",
         "frontBandPixels": 6,
-        "accentedPixels": 444
+        "accentedPixels": 732
       }
     },
     {

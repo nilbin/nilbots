@@ -1,0 +1,89 @@
+{
+  "version": 1,
+  "status": "owner-approved",
+  "approval": "Owner approved the Meshy Survey Flare as Lantern’s default signature device.",
+  "generator": "scripts/class-models/promote-core-well-survey-flare-v1.mjs",
+  "runtimeTier": "art/class-models/runtime-tiers/arc-relay/longshot-objectives-review-v1/audit.json",
+  "textureTier": "longshot-objectives-review-v1-webp",
+  "provider": "Meshy",
+  "providerModel": "meshy-7",
+  "modelOwnedTeamGlow": false,
+  "rendererOwnedState": "flight arc, landing pose, scan radius, scan timing, and survey field",
+  "model": {
+    "id": "arc-survey-flare",
+    "signature": "survey-flare",
+    "taskId": "019ffbcd-1911-75e8-a822-90a439c88415",
+    "endpoint": "retexture",
+    "modelType": "original-uv-pbr-retexture",
+    "artifact": "art/class-models/runtime-tiers/arc-relay/longshot-objectives-review-v1/arc-survey-flare-lean.glb",
+    "bytes": 361444,
+    "sha256": "0df64d292faff971e0b214883d68285112850eb71f43aa9f28c5b2d10f610ff7",
+    "triangles": 15550,
+    "materials": 1,
+    "textures": 3,
+    "geometrySha256": "322697c9cbe04dbb8ab0dd52580acc86e499ff7d234bfcfea0fb37a44a983917",
+    "matteRoughnessFloor": 0.72,
+    "memory": {
+      "transferBytes": 361444,
+      "geometryGpuBytes": 333120,
+      "textureGpuBytesCompressedTarget": 1048572,
+      "textureGpuBytesRgba8Fallback": 1048572,
+      "modelGpuBytesCompressedTarget": 1381692,
+      "modelGpuBytesRgba8Fallback": 1381692,
+      "textures": [
+        {
+          "imageIndex": 0,
+          "name": null,
+          "slots": [
+            "baseColorTexture"
+          ],
+          "mimeType": "image/webp",
+          "encoding": "RGBA8",
+          "width": 256,
+          "height": 256,
+          "mipLevels": 9,
+          "transferBytes": 15614,
+          "gpuBytesCompressedTarget": 349524,
+          "gpuBytesRgba8Fallback": 349524
+        },
+        {
+          "imageIndex": 1,
+          "name": null,
+          "slots": [
+            "metallicRoughnessTexture"
+          ],
+          "mimeType": "image/webp",
+          "encoding": "RGBA8",
+          "width": 256,
+          "height": 256,
+          "mipLevels": 9,
+          "transferBytes": 9140,
+          "gpuBytesCompressedTarget": 349524,
+          "gpuBytesRgba8Fallback": 349524
+        },
+        {
+          "imageIndex": 2,
+          "name": null,
+          "slots": [
+            "normalTexture"
+          ],
+          "mimeType": "image/webp",
+          "encoding": "RGBA8",
+          "width": 256,
+          "height": 256,
+          "mipLevels": 9,
+          "transferBytes": 642,
+          "gpuBytesCompressedTarget": 349524,
+          "gpuBytesRgba8Fallback": 349524
+        }
+      ]
+    },
+    "budgets": {
+      "transferBytes": 500000,
+      "triangles": 20000
+    },
+    "targetPlanformSpan": 0.3,
+    "heightScale": 1,
+    "floorY": 0
+  }
+}

@@ -1,0 +1,103 @@
+{
+  "version": 1,
+  "status": "owner-approved",
+  "approval": "Owner approved the flattened, recessed Core Well as the default gameplay housing.",
+  "generator": "scripts/class-models/promote-core-well-survey-flare-v1.mjs",
+  "runtimeTier": "art/class-models/runtime-tiers/arc-relay/longshot-objectives-review-v1/audit.json",
+  "textureTier": "longshot-objectives-review-v1-webp",
+  "provider": "Meshy",
+  "providerModel": "meshy-7",
+  "modelOwnedTeamGlow": false,
+  "rendererOwnedState": "source glyph, birth/rearm progress, live Core counter, ownership, and spawn indication",
+  "model": {
+    "id": "arc-core-well",
+    "taskId": "019ffbd2-0fcf-7716-bba6-8f920b78fcc9",
+    "endpoint": "multi-image-to-3d",
+    "modelType": "neutral-objective-housing-owner-approved-four-anchor",
+    "artifact": "art/class-models/runtime-tiers/arc-relay/longshot-objectives-review-v1/arc-core-well-lean.glb",
+    "bytes": 1619284,
+    "sha256": "ebc3e229c4ccf793031ed7254b9c3744d72cdbefa434b060c673e249fdaa92ca",
+    "triangles": 78572,
+    "materials": 1,
+    "textures": 4,
+    "geometrySha256": "ea7149b5c8b16dd23743a997ce0457404d18d918f0744040b7ca42ee4044b3a8",
+    "matteRoughnessFloor": 0.82,
+    "memory": {
+      "transferBytes": 1619284,
+      "geometryGpuBytes": 1567812,
+      "textureGpuBytesCompressedTarget": 5592400,
+      "textureGpuBytesRgba8Fallback": 5592400,
+      "modelGpuBytesCompressedTarget": 7160212,
+      "modelGpuBytesRgba8Fallback": 7160212,
+      "textures": [
+        {
+          "imageIndex": 0,
+          "name": null,
+          "slots": [
+            "baseColorTexture"
+          ],
+          "mimeType": "image/webp",
+          "encoding": "RGBA8",
+          "width": 512,
+          "height": 512,
+          "mipLevels": 10,
+          "transferBytes": 36302,
+          "gpuBytesCompressedTarget": 1398100,
+          "gpuBytesRgba8Fallback": 1398100
+        },
+        {
+          "imageIndex": 1,
+          "name": null,
+          "slots": [
+            "metallicRoughnessTexture"
+          ],
+          "mimeType": "image/webp",
+          "encoding": "RGBA8",
+          "width": 512,
+          "height": 512,
+          "mipLevels": 10,
+          "transferBytes": 7274,
+          "gpuBytesCompressedTarget": 1398100,
+          "gpuBytesRgba8Fallback": 1398100
+        },
+        {
+          "imageIndex": 2,
+          "name": null,
+          "slots": [
+            "normalTexture"
+          ],
+          "mimeType": "image/webp",
+          "encoding": "RGBA8",
+          "width": 512,
+          "height": 512,
+          "mipLevels": 10,
+          "transferBytes": 4360,
+          "gpuBytesCompressedTarget": 1398100,
+          "gpuBytesRgba8Fallback": 1398100
+        },
+        {
+          "imageIndex": 3,
+          "name": null,
+          "slots": [
+            "emissiveTexture"
+          ],
+          "mimeType": "image/webp",
+          "encoding": "RGBA8",
+          "width": 512,
+          "height": 512,
+          "mipLevels": 10,
+          "transferBytes": 528,
+          "gpuBytesCompressedTarget": 1398100,
+          "gpuBytesRgba8Fallback": 1398100
+        }
+      ]
+    },
+    "budgets": {
+      "transferBytes": 2000000,
+      "triangles": 100000
+    },
+    "targetPlanformSpan": 0.9,
+    "heightScale": 0.5,
+    "floorY": 0
+  }
+}

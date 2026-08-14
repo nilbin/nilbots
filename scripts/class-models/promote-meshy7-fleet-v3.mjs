@@ -16,6 +16,11 @@ const reviewAuditPath = join(
   repository,
   'art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v3/audit.json',
 );
+const longshotOverrideAuditPath = join(
+  repository,
+  'art/class-models/runtime-tiers/arc-relay/' +
+    'meshy7-longshot-railback-muted-blue-review-v3/audit.json',
+);
 const providerPlanPath = join(
   repository,
   'art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet-retexture-v3-multiview/plan.json',
@@ -25,8 +30,47 @@ const generator = 'scripts/class-models/promote-meshy7-fleet-v3.mjs';
 const textureTier = 'meshy7-fleet-review-v3-webp';
 const check = process.argv.includes('--check');
 const audit = JSON.parse(readFileSync(reviewAuditPath, 'utf8'));
+const longshotOverrideAudit = JSON.parse(readFileSync(longshotOverrideAuditPath, 'utf8'));
 const plan = JSON.parse(readFileSync(providerPlanPath, 'utf8'));
-const classes = [...audit.classes].sort((left, right) =>
+const longshotOverrideProfile = longshotOverrideAudit.profiles?.find(
+  (entry) => entry.id === 'lean',
+);
+const baselineLongshot = audit.classes.find((entry) => entry.classId === 'longshot');
+
+if (
+  longshotOverrideAudit.id !== 'meshy7-longshot-railback-muted-blue-review-v3' ||
+  longshotOverrideAudit.status !== 'owner-review' ||
+  !longshotOverrideProfile ||
+  !baselineLongshot
+)
+  throw new Error('The Longshot override must come from the pinned owner-reviewed Railback tier.');
+
+const longshotOverride = {
+  classId: 'longshot',
+  taskId: longshotOverrideAudit.source.textureDonor.taskId,
+  endpoint: longshotOverrideAudit.source.textureDonor.endpoint,
+  artifact: longshotOverrideProfile.artifact,
+  source: longshotOverrideAudit.source,
+  facing: {
+    sourceFacing: longshotOverrideAudit.normalization.sourceFacing,
+    targetFacing: longshotOverrideAudit.normalization.facing,
+    yawDegrees: longshotOverrideAudit.normalization.facingYawDegrees,
+    evidence: longshotOverrideAudit.fidelityGates.canonicalTop,
+  },
+  triangles: longshotOverrideProfile.triangles,
+  geometrySha256: longshotOverrideProfile.geometrySha256,
+  matteRoughness: {
+    floor: longshotOverrideProfile.settings.matteRoughnessFloor,
+  },
+  memory: longshotOverrideProfile.memory,
+  budgets: longshotOverrideProfile.budgets,
+  normalization: longshotOverrideAudit.normalization,
+  recipe: relative(repository, longshotOverrideAuditPath),
+  textureTier: 'meshy7-longshot-railback-muted-blue-review-v3-webp',
+};
+const classes = audit.classes.map((entry) =>
+  entry.classId === 'longshot' ? longshotOverride : entry,
+).sort((left, right) =>
   left.classId.localeCompare(right.classId),
 );
 
@@ -67,6 +111,7 @@ for (const entry of classes) {
   const { document } = readGlb(candidate, id);
   const root = document.nodes?.[document.scenes?.[0]?.nodes?.[0]];
   const normalization = root?.extras?.nilbotsProviderNormalization;
+  const matte = document.asset?.extras?.nilbotsMatteRoughness;
   const triangles = triangleCount(document);
   const materials = document.materials?.length ?? 0;
   const textures = document.textures?.length ?? 0;
@@ -99,7 +144,8 @@ for (const entry of classes) {
     normalization?.up !== '+y' ||
     normalization?.floorY !== 0 ||
     normalization?.orientation !== 'identity' ||
-    normalization?.targetPlanformSpan !== audit.normalization.targetPlanformSpan ||
+    normalization?.targetPlanformSpan !==
+      (entry.normalization?.targetPlanformSpan ?? audit.normalization.targetPlanformSpan) ||
     (normalization?.facingYawDegrees ?? 0) !== entry.facing.yawDegrees ||
     (entry.facing.yawDegrees !== 0 && normalization?.facingCorrectionVersion !== 1)
   )
@@ -108,6 +154,15 @@ for (const entry of classes) {
     throw new Error(`${id}: triangle ledger or approved triangle budget drifted.`);
   if (geometryFingerprint(candidate, id) !== entry.geometrySha256)
     throw new Error(`${id}: audited V3 geometry fingerprint drifted.`);
+  if (
+    entry.matteRoughness &&
+    (matte?.floor !== entry.matteRoughness.floor ||
+      matte?.minimumAfter < entry.matteRoughness.floor ||
+      matte?.baseColorChanged !== false ||
+      matte?.metallicChanged !== false ||
+      matte?.normalChanged !== false)
+  )
+    throw new Error(`${id}: deterministic matte treatment drifted.`);
   if (
     memory.textures.length !== 3 ||
     memory.textures.some(
@@ -122,6 +177,7 @@ for (const entry of classes) {
     throw new Error(`${id}: embedded 512 px PBR texture slots drifted.`);
 
   const previous = JSON.parse(readFileSync(manifestPath, 'utf8'));
+  const entryTextureTier = entry.textureTier ?? textureTier;
   const manifest = {
     version: 1,
     id,
@@ -132,12 +188,12 @@ for (const entry of classes) {
     up: '+y',
     source: {
       generator,
-      recipe: relative(repository, reviewAuditPath),
+      recipe: entry.recipe ?? relative(repository, reviewAuditPath),
       artifact: entry.artifact.file,
       sourceSha256: hash,
       approvedArtifact: entry.artifact.file,
       approvedSha256: hash,
-      textureTier,
+      textureTier: entryTextureTier,
       provider: 'Meshy',
       model: 'meshy-7',
       endpoint: 'retexture',
@@ -166,7 +222,7 @@ for (const entry of classes) {
       textureGpuBytesRgba8Fallback: memory.textureGpuBytesRgba8Fallback,
       modelGpuBytesCompressedTarget: memory.modelGpuBytesCompressedTarget,
       modelGpuBytesRgba8Fallback: memory.modelGpuBytesRgba8Fallback,
-      textureTier,
+      textureTier: entryTextureTier,
     },
   };
 
@@ -204,16 +260,27 @@ for (const entry of classes) {
     budgets: entry.budgets,
     targetPlanformSpan: normalization.targetPlanformSpan,
     floorY: normalization.floorY,
+    textureTier: entryTextureTier,
   });
 }
 
 const ledger = {
-  version: 4,
+  version: 5,
   status: 'owner-approved',
-  approval: 'Owner approved the Meshy 7 V3 fleet and requested replacement of the matching top-down east-facing web icons.',
+  approval:
+    'Owner approved the Meshy 7 V3 fleet, then approved muted-blue Railback as the default Longshot with a matching top-down east-facing web icon.',
   generator,
   sourceAudit: audit.sourceAudit,
   runtimeTier: relative(repository, reviewAuditPath),
+  overrides: {
+    longshot: {
+      runtimeTier: relative(repository, longshotOverrideAuditPath),
+      artifact: longshotOverrideProfile.artifact.file,
+      sha256: longshotOverrideProfile.artifact.sha256,
+      textureTier: longshotOverride.textureTier,
+      reason: 'Owner-approved wider Railback silhouette and muted-blue arena palette.',
+    },
+  },
   textureTier,
   provider: 'Meshy',
   endpoint: 'retexture',
@@ -232,14 +299,21 @@ const ledger = {
   looks,
 };
 
+const expectedTotals = {
+  bytes:
+    audit.totals.transferBytes - baselineLongshot.artifact.bytes +
+    longshotOverrideProfile.artifact.bytes,
+  triangles:
+    audit.totals.triangles - baselineLongshot.triangles + longshotOverrideProfile.triangles,
+  modelGpuBytesRgba8Fallback:
+    audit.totals.modelGpuBytesRgba8Fallback -
+    baselineLongshot.memory.modelGpuBytesRgba8Fallback +
+    longshotOverrideProfile.memory.modelGpuBytesRgba8Fallback,
+};
 for (const [actual, expected, label] of [
-  [totals.bytes, audit.totals.transferBytes, 'transfer bytes'],
-  [totals.triangles, audit.totals.triangles, 'triangles'],
-  [
-    totals.modelGpuBytesRgba8Fallback,
-    audit.totals.modelGpuBytesRgba8Fallback,
-    'fallback model GPU bytes',
-  ],
+  [totals.bytes, expectedTotals.bytes, 'transfer bytes'],
+  [totals.triangles, expectedTotals.triangles, 'triangles'],
+  [totals.modelGpuBytesRgba8Fallback, expectedTotals.modelGpuBytesRgba8Fallback, 'fallback model GPU bytes'],
 ])
   if (actual !== expected) throw new Error(`Promoted V3 fleet ${label} drifted from audit.`);
 

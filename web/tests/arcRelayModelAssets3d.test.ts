@@ -17,6 +17,43 @@ const iconEvidencePath = join(
   'art/reviews/arc-relay-meshy7-fleet-retexture-v3/top-down-east-icons.json',
 );
 const review = JSON.parse(readFileSync(reviewAuditPath, 'utf8')) as ReviewAudit;
+const railbackReviewPath = join(
+  repository,
+  'art/class-models/runtime-tiers/arc-relay/' +
+    'meshy7-longshot-railback-muted-blue-review-v3/audit.json',
+);
+const railbackReview = JSON.parse(
+  readFileSync(railbackReviewPath, 'utf8'),
+) as RailbackReviewAudit;
+const railbackProfile = railbackReview.profiles.find((entry) => entry.id === 'lean');
+if (!railbackProfile) throw new Error('Missing approved lean Railback profile.');
+const runtimeEntries: ReviewEntry[] = review.classes.map((entry) =>
+  entry.classId === 'longshot'
+    ? {
+        classId: 'longshot',
+        taskId: railbackReview.source.textureDonor.taskId,
+        endpoint: railbackReview.source.textureDonor.endpoint,
+        artifact: railbackProfile.artifact,
+        triangles: railbackProfile.triangles,
+        geometrySha256: railbackProfile.geometrySha256,
+        matteRoughness: { floor: railbackProfile.settings.matteRoughnessFloor },
+        facing: {
+          sourceFacing: railbackReview.normalization.sourceFacing,
+          targetFacing: railbackReview.normalization.facing,
+          yawDegrees: railbackReview.normalization.facingYawDegrees,
+          evidence: railbackReview.fidelityGates.canonicalTop,
+        },
+        budgets: railbackProfile.budgets,
+        memory: railbackProfile.memory,
+        targetPlanformSpan: railbackReview.normalization.targetPlanformSpan,
+        textureTier: 'meshy7-longshot-railback-muted-blue-review-v3-webp',
+      }
+    : {
+        ...entry,
+        targetPlanformSpan: review.normalization.targetPlanformSpan,
+        textureTier: 'meshy7-fleet-review-v3-webp',
+      },
+);
 const ledger = JSON.parse(
   readFileSync(join(repository, 'art/class-models/arc-relay/ledger.json'), 'utf8'),
 ) as FleetLedger;
@@ -61,6 +98,32 @@ interface ReviewEntry {
   };
   budgets: { transferBytes: number; triangles: number };
   memory: LookMemory;
+  targetPlanformSpan?: number;
+  textureTier?: string;
+}
+
+interface RailbackReviewAudit {
+  id: string;
+  status: string;
+  source: {
+    textureDonor: { taskId: string; endpoint: string };
+  };
+  normalization: {
+    sourceFacing: string;
+    facing: string;
+    facingYawDegrees: number;
+    targetPlanformSpan: number;
+  };
+  fidelityGates: { canonicalTop: string };
+  profiles: Array<{
+    id: string;
+    artifact: ReviewEntry['artifact'];
+    triangles: number;
+    geometrySha256: string;
+    settings: { matteRoughnessFloor: number };
+    budgets: ReviewEntry['budgets'];
+    memory: LookMemory;
+  }>;
 }
 
 interface ReviewAudit {
@@ -97,6 +160,14 @@ interface FleetLedger {
   modelType: string;
   originalUV: boolean;
   modelOwnedTeamGlow: boolean;
+  overrides: {
+    longshot: {
+      runtimeTier: string;
+      artifact: string;
+      sha256: string;
+      textureTier: string;
+    };
+  };
   budgets: {
     default: ReviewAudit['profile']['budgets'];
     classOverrides: Record<string, unknown>;
@@ -129,6 +200,7 @@ interface FleetLedger {
     budgets: ReviewEntry['budgets'];
     targetPlanformSpan: number;
     floorY: number;
+    textureTier: string;
   }[];
 }
 
@@ -218,12 +290,14 @@ test('WebGL configures KTX2 support before actors request models from mixed asse
   assert.match(loaderSource, /ktx2Loader\.detectSupport\(renderer\)/);
 });
 
-test('all runtime Arc Relay GLBs are the exact approved matte WebP V3 artifacts', () => {
+test('all runtime Arc Relay GLBs are the exact approved matte WebP artifacts, including Railback', () => {
   assert.equal(review.id, 'meshy7-fleet-review-v3');
   assert.equal(review.status, 'owner-review');
   assert.equal(review.classes.length, 16);
   assert.equal(new Set(review.classes.map((entry) => entry.classId)).size, 16);
-  assert.equal(ledger.version, 4);
+  assert.equal(railbackReview.id, 'meshy7-longshot-railback-muted-blue-review-v3');
+  assert.equal(railbackReview.status, 'owner-review');
+  assert.equal(ledger.version, 5);
   assert.equal(ledger.status, 'owner-approved');
   assert.equal(ledger.runtimeTier, 'art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v3/audit.json');
   assert.equal(ledger.sourceAudit, review.sourceAudit);
@@ -234,12 +308,21 @@ test('all runtime Arc Relay GLBs are the exact approved matte WebP V3 artifacts'
   assert.equal(ledger.modelType, 'original-uv-pbr-retexture');
   assert.equal(ledger.originalUV, true);
   assert.equal(ledger.modelOwnedTeamGlow, false);
+  assert.deepEqual(ledger.overrides.longshot, {
+    runtimeTier:
+      'art/class-models/runtime-tiers/arc-relay/' +
+      'meshy7-longshot-railback-muted-blue-review-v3/audit.json',
+    artifact: railbackProfile.artifact.file,
+    sha256: railbackProfile.artifact.sha256,
+    textureTier: 'meshy7-longshot-railback-muted-blue-review-v3-webp',
+    reason: 'Owner-approved wider Railback silhouette and muted-blue arena palette.',
+  });
   assert.deepEqual(ledger.budgets, {
     default: review.profile.budgets,
     classOverrides: review.profile.classOverrides,
   });
 
-  for (const entry of review.classes) {
+  for (const entry of runtimeEntries) {
     const id = `arc-${entry.classId}`;
     const fleetEntry = ledger.looks.find((look) => look.id === id);
     assert.ok(fleetEntry, id);
@@ -294,7 +377,7 @@ test('all runtime Arc Relay GLBs are the exact approved matte WebP V3 artifacts'
     assert.equal(manifest.source.approvedArtifact, entry.artifact.file);
     assert.equal(manifest.source.sourceSha256, entry.artifact.sha256);
     assert.equal(manifest.source.approvedSha256, entry.artifact.sha256);
-    assert.equal(manifest.source.textureTier, ledger.textureTier);
+    assert.equal(manifest.source.textureTier, entry.textureTier);
     assert.equal(manifest.source.provider, 'Meshy');
     assert.equal(manifest.source.model, 'meshy-7');
     assert.equal(manifest.source.endpoint, 'retexture');
@@ -334,7 +417,7 @@ test('all runtime Arc Relay GLBs are the exact approved matte WebP V3 artifacts'
     assert.equal(normalization?.up, '+y', id);
     assert.equal(normalization?.floorY, 0, id);
     assert.equal(normalization?.orientation, 'identity', id);
-    assert.equal(normalization?.targetPlanformSpan, review.normalization.targetPlanformSpan, id);
+    assert.equal(normalization?.targetPlanformSpan, entry.targetPlanformSpan, id);
     assert.equal(normalization?.facingYawDegrees ?? 0, entry.facing.yawDegrees, id);
     if (entry.facing.yawDegrees !== 0)
       assert.equal(normalization?.facingCorrectionVersion, 1, id);
@@ -345,34 +428,38 @@ test('all runtime Arc Relay GLBs are the exact approved matte WebP V3 artifacts'
     assert.equal(manifest.ledger.materials, 1);
     assert.equal(manifest.ledger.textureCount, 3);
     assert.equal(manifest.ledger.geometrySha256, entry.geometrySha256);
-    assert.equal(manifest.ledger.textureTier, ledger.textureTier);
+    assert.equal(manifest.ledger.textureTier, entry.textureTier);
     assert.equal(fleetEntry.artifact, entry.artifact.file);
     assert.equal(fleetEntry.sha256, entry.artifact.sha256);
     assert.equal(fleetEntry.geometrySha256, entry.geometrySha256);
     assert.equal(fleetEntry.matteRoughnessFloor, entry.matteRoughness?.floor ?? null);
     assert.deepEqual(fleetEntry.memory, entry.memory);
     assert.deepEqual(fleetEntry.budgets, entry.budgets);
+    assert.equal(fleetEntry.textureTier, entry.textureTier);
   }
 
   assert.deepEqual(ledger.totals, {
-    bytes: review.totals.transferBytes,
-    triangles: review.totals.triangles,
+    bytes: runtimeEntries.reduce((sum, entry) => sum + entry.artifact.bytes, 0),
+    triangles: runtimeEntries.reduce((sum, entry) => sum + entry.triangles, 0),
     materials: 16,
     textures: 48,
-    geometryGpuBytes: review.classes.reduce((sum, entry) => sum + entry.memory.geometryGpuBytes, 0),
-    textureGpuBytesCompressedTarget: review.classes.reduce(
+    geometryGpuBytes: runtimeEntries.reduce((sum, entry) => sum + entry.memory.geometryGpuBytes, 0),
+    textureGpuBytesCompressedTarget: runtimeEntries.reduce(
       (sum, entry) => sum + entry.memory.textureGpuBytesCompressedTarget,
       0,
     ),
-    textureGpuBytesRgba8Fallback: review.classes.reduce(
+    textureGpuBytesRgba8Fallback: runtimeEntries.reduce(
       (sum, entry) => sum + entry.memory.textureGpuBytesRgba8Fallback,
       0,
     ),
-    modelGpuBytesCompressedTarget: review.classes.reduce(
+    modelGpuBytesCompressedTarget: runtimeEntries.reduce(
       (sum, entry) => sum + entry.memory.modelGpuBytesCompressedTarget,
       0,
     ),
-    modelGpuBytesRgba8Fallback: review.totals.modelGpuBytesRgba8Fallback,
+    modelGpuBytesRgba8Fallback: runtimeEntries.reduce(
+      (sum, entry) => sum + entry.memory.modelGpuBytesRgba8Fallback,
+      0,
+    ),
   });
 });
 
@@ -388,6 +475,7 @@ test('shared web icons are the exact transparent top-down east-facing V3 renders
   const evidence = JSON.parse(readFileSync(iconEvidencePath, 'utf8')) as {
     status: string;
     sourceAudit: string;
+    sourceAuditOverrides: { longshot: string };
     contract: {
       projection: string;
       facing: string;
@@ -406,6 +494,11 @@ test('shared web icons are the exact transparent top-down east-facing V3 renders
   };
   assert.equal(evidence.status, 'owner-approved-runtime-icon-tier');
   assert.equal(evidence.sourceAudit, 'art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v3/audit.json');
+  assert.equal(
+    evidence.sourceAuditOverrides.longshot,
+    'art/class-models/runtime-tiers/arc-relay/' +
+      'meshy7-longshot-railback-muted-blue-review-v3/audit.json',
+  );
   assert.equal(evidence.contract.projection, 'strict orthographic top-down');
   assert.equal(evidence.contract.facing, '+X maps to screen-right/east');
   assert.equal(evidence.contract.transparentBackground, true);
@@ -418,7 +511,7 @@ test('shared web icons are the exact transparent top-down east-facing V3 renders
   );
 
   for (const icon of evidence.icons) {
-    const entry = review.classes.find((candidate) => candidate.classId === icon.classId);
+    const entry = runtimeEntries.find((candidate) => candidate.classId === icon.classId);
     assert.ok(entry, icon.classId);
     assert.equal(icon.source.file, entry.artifact.file);
     assert.equal(icon.source.sha256, entry.artifact.sha256);

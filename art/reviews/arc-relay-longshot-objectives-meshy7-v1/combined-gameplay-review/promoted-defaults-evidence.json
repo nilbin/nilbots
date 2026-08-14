@@ -1,0 +1,128 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Fast targeted phone/desktop proof of the promoted Railback, Survey Flare, Team Reactor, and Core Well defaults",
+  "sourceUrl": "http://127.0.0.1:9194/?standalone&audio=off&camera=director&proof=longshot-objectives-review&proof-camera=director",
+  "targeted": true,
+  "capturedIds": [
+    "desktop-lantern-flare-focus",
+    "desktop-reactor-walkover-west",
+    "desktop-well-overlap-west",
+    "phone-longshot-reactor-east"
+  ],
+  "runtimeAssetsPromoted": {
+    "teamReactor": true,
+    "longshot": true,
+    "surveyFlare": true,
+    "coreWell": true
+  },
+  "buildRecord": "art/reviews/arc-relay-longshot-objectives-meshy7-v1/combined-gameplay-review/build-record.json",
+  "expectedCandidateModels": {
+    "model-BzVj0K3i.glb": "longshot",
+    "model-CkMiK_zB.glb": "survey-flare",
+    "model-CdVUlH4z.glb": "team-reactor",
+    "model-xg-VeYyf.glb": "core-well"
+  },
+  "captures": [
+    {
+      "id": "desktop-lantern-flare-focus",
+      "replay": "lantern-survey-flare-focus",
+      "time": 2.35,
+      "width": 1440,
+      "height": 900,
+      "requiredCandidates": [
+        "survey-flare"
+      ],
+      "reviewOperation": "arc-signature-0",
+      "mobile": false,
+      "renderer": "webgl",
+      "proofTime": 2.35,
+      "replaySeed": "7001",
+      "visibleSignatures": [
+        {
+          "operationId": "arc-signature-0",
+          "signatureId": "survey-flare",
+          "phase": "active",
+          "visibleMeshes": 15
+        }
+      ],
+      "loadedCandidates": [
+        "core-well",
+        "survey-flare",
+        "team-reactor"
+      ],
+      "image": "art/reviews/arc-relay-longshot-objectives-meshy7-v1/combined-gameplay-review/desktop-lantern-flare-focus.png",
+      "imageBytes": 1180799,
+      "imageSha256": "770e8d8909375b09dbba55cea74175cbc49c8cae4707256d4e36d8b9741dcb21"
+    },
+    {
+      "id": "desktop-reactor-walkover-west",
+      "replay": "all-four-hunter-west",
+      "time": 1.35,
+      "width": 1440,
+      "height": 900,
+      "mobile": false,
+      "renderer": "webgl",
+      "proofTime": 1.35,
+      "replaySeed": "9001",
+      "visibleSignatures": [],
+      "loadedCandidates": [
+        "core-well",
+        "longshot",
+        "survey-flare",
+        "team-reactor"
+      ],
+      "image": "art/reviews/arc-relay-longshot-objectives-meshy7-v1/combined-gameplay-review/desktop-reactor-walkover-west.png",
+      "imageBytes": 535838,
+      "imageSha256": "ee641249bccc9ed67a2ff22b1e7462b7f07c11de531a41dd1c4262cf587a80fa"
+    },
+    {
+      "id": "desktop-well-overlap-west",
+      "replay": "all-four-hunter-west",
+      "time": 20.35,
+      "width": 1440,
+      "height": 900,
+      "mobile": false,
+      "renderer": "webgl",
+      "proofTime": 20.35,
+      "replaySeed": "9001",
+      "visibleSignatures": [
+        {
+          "operationId": "arc-signature-0",
+          "signatureId": "survey-flare",
+          "phase": "active",
+          "visibleMeshes": 15
+        }
+      ],
+      "loadedCandidates": [
+        "core-well",
+        "longshot",
+        "survey-flare",
+        "team-reactor"
+      ],
+      "image": "art/reviews/arc-relay-longshot-objectives-meshy7-v1/combined-gameplay-review/desktop-well-overlap-west.png",
+      "imageBytes": 652097,
+      "imageSha256": "fd4239ef47502c60384183170e7a1a82f58e136234c456630a7a4048d0df90d4"
+    },
+    {
+      "id": "phone-longshot-reactor-east",
+      "replay": "all-four-hunter-east",
+      "time": 90.35,
+      "width": 844,
+      "height": 390,
+      "mobile": true,
+      "renderer": "webgl",
+      "proofTime": 90.35,
+      "replaySeed": "9001",
+      "visibleSignatures": [],
+      "loadedCandidates": [
+        "core-well",
+        "longshot",
+        "survey-flare",
+        "team-reactor"
+      ],
+      "image": "art/reviews/arc-relay-longshot-objectives-meshy7-v1/combined-gameplay-review/phone-longshot-reactor-east.png",
+      "imageBytes": 400148,
+      "imageSha256": "46cdaedf0960fb6da0e210b3df9758334eb10d4643aede22ec3d4d0bfe00d20e"
+    }
+  ]
+}

@@ -1,7 +1,8 @@
 # Arc Relay signature-object model sources
 
-These are art-side candidates for renderer-owned Arc Relay signature props.
-They do not ship, change rules, or authorize a provider result by themselves.
+These are the sources and promotion records for renderer-owned Arc Relay
+signature props. Source art does not change rules or authorize a provider
+result by itself; only the pinned promotion scripts install runtime GLBs.
 
 ## Shared contract
 
@@ -120,7 +121,7 @@ verify the byte-for-byte promotion with:
 node scripts/class-models/promote-meshy7-signature-props-v3.mjs --check
 ```
 
-The two runtime files total 3,264,816 transfer bytes: Trip Node is 1,659,704
+Those two runtime files total 3,264,816 transfer bytes: Trip Node is 1,659,704
 bytes and 79,196 triangles, while Sentinel Seed is 1,605,112 bytes and 77,573
 triangles. Both remain below the approved per-prop ceilings of 2 MB and 100,000
 triangles. They use quantized geometry and embedded 512 px WebP PBR maps—the
@@ -134,6 +135,17 @@ deterministic roughness floor of `0.72`. Team ownership remains a subtle
 renderer-owned floor ring; neither mesh owns teal or orange team paint.
 Sentinel starts in its canonical +X rest pose and turns only its approved
 `yaw-head` node toward the latest authoritative shot—never a future target.
+
+Survey Flare is the third promoted signature model. Its exact 361,444-byte,
+15,550-triangle Meshy 7 artifact uses one quantized mesh and three embedded
+256 px WebP PBR maps with a deterministic 0.72 roughness floor. It replaces
+only Lantern's rigid physical device; launch flight, landing pose, scan radius,
+timing, survey field, team state, Canvas treatment, and load-failure fallback
+remain renderer-owned. Verify it together with the flattened Core Well using:
+
+```sh
+node scripts/class-models/promote-core-well-survey-flare-v1.mjs --check
+```
 
 The previous Meshy T2/KTX2 candidates and their audit remain in this directory
 as historical provenance; they are no longer the runtime defaults.

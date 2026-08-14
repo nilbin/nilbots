@@ -471,14 +471,15 @@ legacy treatment. An unknown package or signature receives a generic public
 phase/footprint marker rather than becoming invisible or borrowing the current
 art by accident.
 
-Persistent Trip Node and Sentinel Seed props use their separately promoted
-Meshy assets only after the replay says the construct is active. Trip Node's
-tell and both props' load-failure, Canvas, and suppressed fallbacks remain
-procedural; Sentinel Seed's WebGL tell retains its compact destination
-socket/seed treatment while Nest performs a floor-safe forward body press.
-The sentry's head may follow only an already observed authoritative shot. The
-other fourteen signatures use renderer primitives and need no skeletal or
-Meshy animation.
+Trip Node, Sentinel Seed, and Survey Flare use separately promoted Meshy
+assets. Trip Node and Sentinel Seed appear only after the replay says the
+construct is active; Survey Flare uses one rigid device during its authoritative
+flight and active phases. Their tells, scan field, load-failure, Canvas, and
+suppressed fallbacks remain procedural. Sentinel Seed's WebGL tell retains its
+compact destination socket/seed treatment while Nest performs a floor-safe
+forward body press, and its head may follow only an already observed
+authoritative shot. The other thirteen signatures use renderer primitives and
+need no skeletal or Meshy animation.
 
 WebGL treats Core custody as motion of the one authoritative sphere, never as a
 token swap. Pickup levitates the loose Core from its published position to the
@@ -556,15 +557,18 @@ sprite-derived WebGL fallback:
   it. In that case the manifest keeps root-level motion tuning but omits invented
   node names; only per-node hardware/emissive animation is disabled. The Arc
   fleet's exact geometry, orientations, hashes, and counts come from its V3
-  review audit. The owner chose to defer another optimization pass, so the exact
-  approved review artifacts are promoted and checked by
+  review audit, with the later owner-approved muted-blue Railback review tier
+  overriding Longshot. The owner chose to defer another optimization pass, so
+  the exact approved review artifacts are promoted and checked by
   `scripts/class-models/promote-meshy7-fleet-v3.mjs`.
 - Arc Relay's current model texture contract is three embedded 512 px WebP maps:
-  base color, tangent normal, and metallic/roughness. The fourteen new V3
+  base color, tangent normal, and metallic/roughness. The thirteen retained V3
   retextures have a deterministic 0.65 roughness floor; Kestrel and Palisade
-  retain their separately approved material results. The promotion gate proves
-  exact geometry fingerprints, facing, topology, normalization, texture slots,
-  and hashes. Texture processing is never permission to alter those contracts.
+  retain their separately approved material results, while the Railback
+  Longshot override uses its separately approved 0.72 matte floor. The
+  promotion gate proves exact geometry fingerprints, facing, topology,
+  normalization, texture slots, and hashes. Texture processing is never
+  permission to alter those contracts.
 - Measure three costs independently: network transfer, compressed-target GPU
   residency, and RGBA8 fallback residency on devices without a supported target.
   The fleet audit pins per-class transfer and triangle budgets, including the
@@ -601,19 +605,29 @@ sprite-derived WebGL fallback:
   below the floor and yields to actor silhouettes because the tile remains
   mechanically walkable. The Canvas fallback keeps the same authoritative state
   read with procedural geometry.
+- The approved Core Well is a separate neutral `objective` model: a 0.90-tile
+  four-anchor housing vertically flattened by 0.50 and recessed another 0.045
+  tile by WebGL so actor silhouettes win mechanically valid overlap. The model
+  owns no source, team, timer, or Core state. WebGL and Canvas retain the
+  north/centre/south glyph, birth/rearm progress, outstanding Core, and state
+  color. Its exact promotion is checked together with Survey Flare by
+  `scripts/class-models/promote-core-well-survey-flare-v1.mjs`.
 - Persistent signature props use the same exception and a separate
-  `kind: "signature"` manifest. Trip Node and Sentinel Seed load only in the
-  hosted WebGL signature layer. Trip Node keeps its procedural telegraph;
-  Sentinel Seed keeps its compact procedural destination telegraph plus Nest's
-  floor-safe body press. Their procedural markers remain the load-failure and
-  Canvas fallback. A finished prop never appears during its authoritative tell.
-  The approved Meshy 7 props use quantized geometry and embedded 512 px WebP PBR
-  maps, with exact promotion enforced by
+  `kind: "signature"` manifest. Trip Node, Sentinel Seed, and Survey Flare load
+  only in the hosted WebGL signature layer. Trip Node keeps its procedural
+  telegraph; Sentinel Seed keeps its compact procedural destination telegraph
+  plus Nest's floor-safe body press; Survey Flare keeps its renderer-owned
+  flight, landing, scan radius, timing, and field. Their procedural markers
+  remain the load-failure and Canvas fallback. A finished persistent prop never
+  appears during its authoritative tell. Trip Node and Sentinel Seed use
+  quantized geometry and embedded 512 px WebP PBR maps, with exact promotion
+  enforced by
   `scripts/class-models/promote-meshy7-signature-props-v3.mjs`. The mine keeps
   its audited floor contact and matte roughness; ownership is a restrained
   renderer-owned ground ring. The sentry's explicit `stationary-base` remains
   fixed while `yaw-head` may turn only from an observed authoritative shot at
   or before the playhead—never from a future target or inferred firing arc.
+  Survey Flare is a smaller 256 px WebP tier promoted with the Core Well.
 - Broad flat colors are not a sufficient translation when the sprite depends
   on layered values, panel lines, material contrast, or surface wear. In that
   case use compact embedded base-color, normal, metallic/roughness, and

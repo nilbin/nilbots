@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "id": "arc-core-well",
+  "file": "model.glb",
+  "kind": "objective",
+  "part": "whole",
+  "facing": "+x",
+  "up": "+y",
+  "source": {
+    "generator": "scripts/class-models/promote-core-well-survey-flare-v1.mjs",
+    "recipe": "art/class-models/runtime-tiers/arc-relay/longshot-objectives-review-v1/audit.json",
+    "artifact": "art/class-models/runtime-tiers/arc-relay/longshot-objectives-review-v1/arc-core-well-lean.glb",
+    "sourceSha256": "ebc3e229c4ccf793031ed7254b9c3744d72cdbefa434b060c673e249fdaa92ca",
+    "approvedArtifact": "art/class-models/runtime-tiers/arc-relay/longshot-objectives-review-v1/arc-core-well-lean.glb",
+    "approvedSha256": "ebc3e229c4ccf793031ed7254b9c3744d72cdbefa434b060c673e249fdaa92ca",
+    "textureTier": "longshot-objectives-review-v1-webp",
+    "provider": "Meshy",
+    "model": "meshy-7",
+    "endpoint": "multi-image-to-3d",
+    "modelType": "neutral-objective-housing-owner-approved-four-anchor",
+    "taskId": "019ffbd2-0fcf-7716-bba6-8f920b78fcc9",
+    "orientation": "identity",
+    "facingYawDegrees": 90,
+    "targetPlanformSpan": 0.9,
+    "heightScale": 0.5,
+    "matteRoughnessFloor": 0.82
+  },
+  "ledger": {
+    "bytes": 1619284,
+    "sha256": "ebc3e229c4ccf793031ed7254b9c3744d72cdbefa434b060c673e249fdaa92ca",
+    "triangles": 78572,
+    "materials": 1,
+    "textureCount": 4,
+    "geometrySha256": "ea7149b5c8b16dd23743a997ce0457404d18d918f0744040b7ca42ee4044b3a8",
+    "geometryGpuBytes": 1567812,
+    "textureGpuBytesCompressedTarget": 5592400,
+    "textureGpuBytesRgba8Fallback": 5592400,
+    "modelGpuBytesCompressedTarget": 7160212,
+    "modelGpuBytesRgba8Fallback": 7160212,
+    "textureTier": "longshot-objectives-review-v1-webp"
+  }
+}

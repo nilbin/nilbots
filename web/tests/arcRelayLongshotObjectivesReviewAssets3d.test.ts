@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { existsSync, readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import test from 'node:test';
 
@@ -15,7 +15,7 @@ const audit = JSON.parse(
   ),
 );
 
-test('Longshot and objective review tier preserves its promotion gate', () => {
+test('the earlier review tier records the candidates later promoted or superseded', () => {
   assert.equal(audit.status, 'owner-review');
   assert.deepEqual(
     audit.candidates.map((candidate: { id: string }) => candidate.id),
@@ -42,24 +42,26 @@ test('Longshot and objective review tier preserves its promotion gate', () => {
   const liveTeamReactor = readFileSync(
     join(repository, 'web/src/assets/objective-models/arc-team-reactor/model.glb'),
   );
+  const liveCoreWell = readFileSync(
+    join(repository, 'web/src/assets/objective-models/arc-core-well/model.glb'),
+  );
+  const liveSurveyFlare = readFileSync(
+    join(repository, 'web/src/assets/signature-models/arc-survey-flare/model.glb'),
+  );
+  const coreWell = audit.candidates.find(
+    (candidate: { id: string }) => candidate.id === 'core-well',
+  );
+  const surveyFlare = audit.candidates.find(
+    (candidate: { id: string }) => candidate.id === 'survey-flare',
+  );
   assert.notEqual(sha256(liveLongshot), longshot.artifact.sha256);
   assert.notEqual(
     sha256(liveTeamReactor),
     oldTeamReactor.artifact.sha256,
     'the rejected raised Reactor from this older batch must not become the runtime asset',
   );
-  assert.equal(
-    existsSync(
-      join(repository, 'web/src/assets/objective-models/arc-core-well/model.glb'),
-    ),
-    false,
-  );
-  assert.equal(
-    existsSync(
-      join(repository, 'web/src/assets/signature-models/arc-survey-flare/model.glb'),
-    ),
-    false,
-  );
+  assert.equal(sha256(liveCoreWell), coreWell.artifact.sha256);
+  assert.equal(sha256(liveSurveyFlare), surveyFlare.artifact.sha256);
 });
 
 test('review-only signature and objective staging manifests match the audited tier', () => {

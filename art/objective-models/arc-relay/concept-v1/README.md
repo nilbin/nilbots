@@ -1,10 +1,9 @@
 # Arc Relay objective concepts v1
 
-Status: **superseded objective review** as of 2026-08-13. Gameplay review
-rejected the raised Team Reactor direction and exposed bot overlap on the Core
-Well. The replacement Reactor direction is under owner review in
-`../reactor-recess-v1/`. The Well provider geometry remains an unpromoted
-review asset with a deterministic flatter, narrower runtime derivative.
+Status: **superseded concept source; corrected objectives promoted** as of
+2026-08-14. Gameplay review rejected the raised Team Reactor direction and
+exposed bot overlap on the Core Well. The replacement Reactor recess and the
+flattened, recessed Well derivative now ship as the default WebGL housings.
 
 ## Physical / renderer split
 
@@ -42,8 +41,9 @@ The Well corrective task `019ffbd2-0fcf-7716-bba6-8f920b78fcc9` also consumed
 owner accepted its overall physical direction, then requested a flatter form
 after gameplay overlap review. The review derivative is normalized to a
 `0.90`-tile planform, vertically scaled by `0.50` to about `0.107` tile high,
-and recessed `0.045` tile by the renderer. It remains unpromoted pending the
-focused bot-overlap replay review.
+and recessed `0.045` tile by the renderer. That exact derivative is promoted by
+`scripts/class-models/promote-core-well-survey-flare-v1.mjs`; its glyph,
+birth/rearm progress, outstanding Core, and state color remain renderer-owned.
 
 The final panel of each sheet is an integration mockup. Its pale-lilac Core,
 progress/ownership ring, glyph, crest, and pip lights are demonstrations of the

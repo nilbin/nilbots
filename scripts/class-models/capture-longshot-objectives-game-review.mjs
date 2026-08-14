@@ -2,7 +2,7 @@
 
 import { createHash } from 'node:crypto';
 import { createRequire } from 'node:module';
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -81,6 +81,33 @@ try {
 }
 
 if (targeted) {
+  const evidencePath = path.join(output, 'promoted-defaults-evidence.json');
+  const previous = existsSync(evidencePath)
+    ? JSON.parse(readFileSync(evidencePath, 'utf8'))
+    : null;
+  const capturesById = new Map(
+    [...(previous?.captures ?? []), ...records].map((record) => [record.id, record]),
+  );
+  const mergedCaptures = allCaptures
+    .map((capture) => capturesById.get(capture.id))
+    .filter(Boolean);
+  const evidence = {
+    schemaVersion: 1,
+    purpose:
+      'Fast targeted phone/desktop proof of the promoted Railback, Survey Flare, Team Reactor, and Core Well defaults',
+    sourceUrl: baseUrl,
+    targeted: true,
+    capturedIds: mergedCaptures.map((record) => record.id),
+    runtimeAssetsPromoted: buildRecord.runtimeAssetsPromoted,
+    buildRecord:
+      'art/reviews/arc-relay-longshot-objectives-meshy7-v1/combined-gameplay-review/build-record.json',
+    expectedCandidateModels: Object.fromEntries(expectedModels),
+    captures: mergedCaptures,
+  };
+  writeFileSync(
+    evidencePath,
+    `${JSON.stringify(evidence, null, 2)}\n`,
+  );
   console.log(`Captured ${records.length} targeted Longshot/objectives review frame(s).`);
 } else {
   const desktop = records.filter((entry) => !entry.mobile);

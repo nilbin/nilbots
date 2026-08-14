@@ -1,95 +1,79 @@
 {
-  "schema": "arc-relay-longshot-objectives-public-gallery-proof-v1",
-  "capturedAt": "2026-08-13T23:45:40Z",
-  "exactPublicGalleryUrl": "https://going-funny-provisions-judge.trycloudflare.com/?standalone&audio=off&camera=director&proof=longshot-objectives-review&proof-camera=director",
+  "schema": "arc-relay-promoted-defaults-public-gallery-proof-v2",
+  "capturedAt": "2026-08-14T15:15:01Z",
+  "exactPublicGalleryUrl": "https://intimate-refuse-dividend-richard.trycloudflare.com/?standalone&audio=off&camera=director",
   "galleryStatus": 200,
+  "publicUnauthenticated": true,
   "viewport": {
     "width": 844,
     "height": 390,
     "phoneSized": true
   },
-  "rendererEvidence": "art/reviews/arc-relay-longshot-objectives-meshy7-v1/combined-gameplay-review/evidence.json",
+  "rendererEvidence": "art/reviews/arc-relay-longshot-objectives-meshy7-v1/combined-gameplay-review/promoted-defaults-evidence.json",
+  "browserChecks": {
+    "pickerVisible": true,
+    "focusedFlareReplayPlayedToTick": 6,
+    "allDefaultsWestReplaySelected": true,
+    "allDefaultsWestReplaySeekedToTick": 21,
+    "playbackControlsResponsive": true,
+    "browserConsoleErrors": []
+  },
   "replays": [
     {
       "id": "lantern-survey-flare-focus",
       "ticks": 72,
-      "browserPlaybackTick": 7,
+      "gzipBytes": 15962,
       "focus": "Lantern Survey Flare",
       "realCasts": 5
     },
     {
       "id": "all-four-hunter-west",
       "ticks": 438,
-      "browserPlaybackTick": 9,
+      "gzipBytes": 154991,
       "longshotSide": "west",
       "lanternSide": "east"
     },
     {
       "id": "all-four-hunter-east",
       "ticks": 456,
-      "browserPlaybackTick": 10,
+      "gzipBytes": 159556,
       "longshotSide": "east",
       "lanternSide": "west"
     }
   ],
-  "replayResponses": [
-    {
-      "url": "https://going-funny-provisions-judge.trycloudflare.com/replays.json",
-      "status": 200,
-      "contentEncoding": "gzip"
-    },
-    {
-      "url": "https://going-funny-provisions-judge.trycloudflare.com/replays/lantern-survey-flare-focus.json",
-      "status": 200,
-      "contentEncoding": "gzip"
-    },
-    {
-      "url": "https://going-funny-provisions-judge.trycloudflare.com/replays/all-four-hunter-west.json",
-      "status": 200,
-      "contentEncoding": "gzip"
-    },
-    {
-      "url": "https://going-funny-provisions-judge.trycloudflare.com/replays/all-four-hunter-east.json",
-      "status": 200,
-      "contentEncoding": "gzip"
-    }
-  ],
-  "compactReplaySources": [
-    {
-      "id": "lantern-survey-flare-focus",
-      "bytes": 17782
-    },
-    {
-      "id": "all-four-hunter-west",
-      "bytes": 158338
-    },
-    {
-      "id": "all-four-hunter-east",
-      "bytes": 161100
-    }
-  ],
-  "publicCandidateModels": [
+  "verifiedReplayGzip": {
+    "url": "https://intimate-refuse-dividend-richard.trycloudflare.com/replays/all-four-hunter-west.json.gz",
+    "status": 200,
+    "gzipBytes": 154991,
+    "broadcastVersion": 1,
+    "worlds": 438,
+    "canonicalReplayHash": "7e6c82537d76865a6ee13f70debb490021f432756e0c625cb6c973b25fd9562a"
+  },
+  "publicRuntimeModels": [
     {
       "id": "longshot",
-      "file": "assets/model-eQKSosf7.glb",
-      "sha256": "e02ea1d456f9e1310e7778c19b834b8ff3b3539982f48f3e1bde4cfd3a75da01"
+      "file": "assets/model-BzVj0K3i.glb",
+      "bytes": 1765100,
+      "sha256": "62dc3803ce7d7634196a84cb57362b633c84657af507cf82ea5ea6e1069ffa37"
     },
     {
       "id": "survey-flare",
       "file": "assets/model-CkMiK_zB.glb",
+      "bytes": 361444,
       "sha256": "0df64d292faff971e0b214883d68285112850eb71f43aa9f28c5b2d10f610ff7"
-    },
-    {
-      "id": "core-well",
-      "file": "assets/model-xg-VeYyf.glb",
-      "sha256": "ebc3e229c4ccf793031ed7254b9c3744d72cdbefa434b060c673e249fdaa92ca"
     },
     {
       "id": "team-reactor",
       "file": "assets/model-CdVUlH4z.glb",
+      "bytes": 1635852,
       "sha256": "2c6c0efe97becd1671baaacdd38bd2ba65edcd62a426d164d9eabf2847724bb4"
+    },
+    {
+      "id": "core-well",
+      "file": "assets/model-xg-VeYyf.glb",
+      "bytes": 1619284,
+      "sha256": "ebc3e229c4ccf793031ed7254b9c3744d72cdbefa434b060c673e249fdaa92ca"
     }
   ],
-  "browserConsoleErrors": [],
   "passed": true
 }

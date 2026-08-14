@@ -8,21 +8,21 @@
   "up": "+y",
   "source": {
     "generator": "scripts/class-models/promote-meshy7-fleet-v3.mjs",
-    "recipe": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v3/audit.json",
-    "artifact": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v3/arc-longshot-lean.glb",
-    "sourceSha256": "9ea835fa2363843eeaacc02c69687eee1471ac44c4e1a703d05783c14e8cbe4a",
-    "approvedArtifact": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v3/arc-longshot-lean.glb",
-    "approvedSha256": "9ea835fa2363843eeaacc02c69687eee1471ac44c4e1a703d05783c14e8cbe4a",
-    "textureTier": "meshy7-fleet-review-v3-webp",
+    "recipe": "art/class-models/runtime-tiers/arc-relay/meshy7-longshot-railback-muted-blue-review-v3/audit.json",
+    "artifact": "art/class-models/runtime-tiers/arc-relay/meshy7-longshot-railback-muted-blue-review-v3/arc-longshot-railback-muted-blue-lean.glb",
+    "sourceSha256": "62dc3803ce7d7634196a84cb57362b633c84657af507cf82ea5ea6e1069ffa37",
+    "approvedArtifact": "art/class-models/runtime-tiers/arc-relay/meshy7-longshot-railback-muted-blue-review-v3/arc-longshot-railback-muted-blue-lean.glb",
+    "approvedSha256": "62dc3803ce7d7634196a84cb57362b633c84657af507cf82ea5ea6e1069ffa37",
+    "textureTier": "meshy7-longshot-railback-muted-blue-review-v3-webp",
     "provider": "Meshy",
     "model": "meshy-7",
     "endpoint": "retexture",
     "modelType": "original-uv-pbr-retexture",
-    "taskId": "019ff0f5-c65e-713c-a229-c581b2f852f3",
+    "taskId": "01a0003c-d477-7f08-88da-88e79bbbf41a",
     "orientation": "identity",
     "facingYawDegrees": 180,
     "originalUV": true,
-    "matteRoughnessFloor": 0.65
+    "matteRoughnessFloor": 0.72
   },
   "motion": {
     "locomotion": "skids",
@@ -32,17 +32,17 @@
   },
   "signature": "rail-line",
   "ledger": {
-    "bytes": 1802772,
-    "sha256": "9ea835fa2363843eeaacc02c69687eee1471ac44c4e1a703d05783c14e8cbe4a",
-    "triangles": 79592,
+    "bytes": 1765100,
+    "sha256": "62dc3803ce7d7634196a84cb57362b633c84657af507cf82ea5ea6e1069ffa37",
+    "triangles": 78418,
     "materials": 1,
     "textureCount": 3,
-    "geometrySha256": "47fb05943f0d252a9b5d396237f8ab1498fa11976d95acfa3de41f5ee46e10f1",
-    "geometryGpuBytes": 1668672,
+    "geometrySha256": "62d0cd134dfa2c41550eef8abdc5ced501077d52e2ed88f0107e612043c447f8",
+    "geometryGpuBytes": 1728328,
     "textureGpuBytesCompressedTarget": 4194300,
     "textureGpuBytesRgba8Fallback": 4194300,
-    "modelGpuBytesCompressedTarget": 5862972,
-    "modelGpuBytesRgba8Fallback": 5862972,
-    "textureTier": "meshy7-fleet-review-v3-webp"
+    "modelGpuBytesCompressedTarget": 5922628,
+    "modelGpuBytesRgba8Fallback": 5922628,
+    "textureTier": "meshy7-longshot-railback-muted-blue-review-v3-webp"
   }
 }

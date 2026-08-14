@@ -1,10 +1,19 @@
 {
-  "version": 4,
+  "version": 5,
   "status": "owner-approved",
-  "approval": "Owner approved the Meshy 7 V3 fleet and requested replacement of the matching top-down east-facing web icons.",
+  "approval": "Owner approved the Meshy 7 V3 fleet, then approved muted-blue Railback as the default Longshot with a matching top-down east-facing web icon.",
   "generator": "scripts/class-models/promote-meshy7-fleet-v3.mjs",
   "sourceAudit": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet-retexture-v3-multiview/fleet-audit.json",
   "runtimeTier": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v3/audit.json",
+  "overrides": {
+    "longshot": {
+      "runtimeTier": "art/class-models/runtime-tiers/arc-relay/meshy7-longshot-railback-muted-blue-review-v3/audit.json",
+      "artifact": "art/class-models/runtime-tiers/arc-relay/meshy7-longshot-railback-muted-blue-review-v3/arc-longshot-railback-muted-blue-lean.glb",
+      "sha256": "62dc3803ce7d7634196a84cb57362b633c84657af507cf82ea5ea6e1069ffa37",
+      "textureTier": "meshy7-longshot-railback-muted-blue-review-v3-webp",
+      "reason": "Owner-approved wider Railback silhouette and muted-blue arena palette."
+    }
+  },
   "textureTier": "meshy7-fleet-review-v3-webp",
   "provider": "Meshy",
   "endpoint": "retexture",
@@ -121,15 +130,15 @@
     }
   },
   "totals": {
-    "bytes": 33861316,
-    "triangles": 1392822,
+    "bytes": 33823644,
+    "triangles": 1391648,
     "materials": 16,
     "textures": 48,
-    "geometryGpuBytes": 31824628,
+    "geometryGpuBytes": 31884284,
     "textureGpuBytesCompressedTarget": 67108800,
     "textureGpuBytesRgba8Fallback": 67108800,
-    "modelGpuBytesCompressedTarget": 98933428,
-    "modelGpuBytesRgba8Fallback": 98933428
+    "modelGpuBytesCompressedTarget": 98993084,
+    "modelGpuBytesRgba8Fallback": 98993084
   },
   "looks": [
     {
@@ -224,7 +233,8 @@
         "triangles": 100000
       },
       "targetPlanformSpan": 0.99,
-      "floorY": 0
+      "floorY": 0,
+      "textureTier": "meshy7-fleet-review-v3-webp"
     },
     {
       "id": "arc-kestrel",
@@ -310,7 +320,8 @@
         "triangles": 100000
       },
       "targetPlanformSpan": 0.99,
-      "floorY": 0
+      "floorY": 0,
+      "textureTier": "meshy7-fleet-review-v3-webp"
     },
     {
       "id": "arc-lantern",
@@ -404,51 +415,68 @@
         "triangles": 100000
       },
       "targetPlanformSpan": 0.99,
-      "floorY": 0
+      "floorY": 0,
+      "textureTier": "meshy7-fleet-review-v3-webp"
     },
     {
       "id": "arc-longshot",
       "classId": "longshot",
-      "taskId": "019ff0f5-c65e-713c-a229-c581b2f852f3",
+      "taskId": "01a0003c-d477-7f08-88da-88e79bbbf41a",
       "endpoint": "retexture",
-      "artifact": "art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v3/arc-longshot-lean.glb",
+      "artifact": "art/class-models/runtime-tiers/arc-relay/meshy7-longshot-railback-muted-blue-review-v3/arc-longshot-railback-muted-blue-lean.glb",
       "source": {
         "geometry": {
-          "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet/longshot/019ff03d-55d7-7443-985f-81962a0d1b7b/raw-model.glb",
-          "bytes": 65173408,
-          "sha256": "1443dba60ed1e827dfc96d553c9cfbaf55a73ba0872f129c992d93b598ea552e"
+          "file": "art/class-models/provider-runs/meshy/arc-relay-longshot-railback-v1/longshot/019fff75-43b1-72d8-a2c9-f9a8b8fa32f2/raw-model.glb",
+          "bytes": 64759580,
+          "sha256": "a91278f398e1fc9e2c903bb52c3f0cc60bb2a9e372a1c2f7d79e902dee851329",
+          "taskId": "019fff75-43b1-72d8-a2c9-f9a8b8fa32f2",
+          "endpoint": "multi-image-to-3d"
         },
         "textureDonor": {
-          "file": "art/class-models/provider-runs/meshy/arc-relay-meshy7-fleet-retexture-v3-multiview/longshot/019ff0f5-c65e-713c-a229-c581b2f852f3/raw-model.glb",
-          "bytes": 67138060,
-          "sha256": "09eceabdd2ebac740ca8875e84088f9c2d825e5ef56b28b3ce2faf9c346603ed",
-          "preservedOriginalUvs": true
-        }
+          "file": "art/class-models/provider-runs/meshy/arc-relay-longshot-railback-palette-retexture-v3/longshot/01a0003c-d477-7f08-88da-88e79bbbf41a/raw-model.glb",
+          "bytes": 81065456,
+          "sha256": "ab7ce8cc358ebc9e1d476bc2dfca2e3d65fd5516fe2b7ec6ca443d4e342ba14f",
+          "taskId": "01a0003c-d477-7f08-88da-88e79bbbf41a",
+          "endpoint": "retexture"
+        },
+        "provider": "Meshy",
+        "providerModel": "meshy-7",
+        "credits": {
+          "generation": 30,
+          "earlierCorrectiveRetexture": 10,
+          "paletteRetexture": 10,
+          "artifactPipelineTotal": 40,
+          "totalProjectSpend": 50,
+          "balanceAfter": 1010
+        },
+        "autoRigging": false,
+        "palettePlan": "art/class-models/provider-runs/meshy/arc-relay-longshot-railback-palette-retexture-v3/plan.json",
+        "paletteCandidateId": "railback-muted-blue-v3"
       },
       "facing": {
         "sourceFacing": "-x",
         "targetFacing": "+x",
         "yawDegrees": 180,
-        "evidence": "+X camera matches the low beam slit; -X shows the orange-outlined rear cells."
+        "evidence": "art/class-look-concepts/arc-relay/longshot-redesign-v2/railback-meshy7-v1/canonical-top-east.png"
       },
-      "bytes": 1802772,
-      "sha256": "9ea835fa2363843eeaacc02c69687eee1471ac44c4e1a703d05783c14e8cbe4a",
-      "triangles": 79592,
+      "bytes": 1765100,
+      "sha256": "62dc3803ce7d7634196a84cb57362b633c84657af507cf82ea5ea6e1069ffa37",
+      "triangles": 78418,
       "materials": 1,
       "textures": 3,
-      "geometrySha256": "47fb05943f0d252a9b5d396237f8ab1498fa11976d95acfa3de41f5ee46e10f1",
-      "matteRoughnessFloor": 0.65,
+      "geometrySha256": "62d0cd134dfa2c41550eef8abdc5ced501077d52e2ed88f0107e612043c447f8",
+      "matteRoughnessFloor": 0.72,
       "memory": {
-        "transferBytes": 1802772,
-        "geometryGpuBytes": 1668672,
+        "transferBytes": 1765100,
+        "geometryGpuBytes": 1728328,
         "textureGpuBytesCompressedTarget": 4194300,
         "textureGpuBytesRgba8Fallback": 4194300,
-        "modelGpuBytesCompressedTarget": 5862972,
-        "modelGpuBytesRgba8Fallback": 5862972,
+        "modelGpuBytesCompressedTarget": 5922628,
+        "modelGpuBytesRgba8Fallback": 5922628,
         "textures": [
           {
             "imageIndex": 0,
-            "name": null,
+            "name": "base_color",
             "slots": [
               "baseColorTexture"
             ],
@@ -457,13 +485,13 @@
             "width": 512,
             "height": 512,
             "mipLevels": 10,
-            "transferBytes": 62940,
+            "transferBytes": 27338,
             "gpuBytesCompressedTarget": 1398100,
             "gpuBytesRgba8Fallback": 1398100
           },
           {
             "imageIndex": 1,
-            "name": null,
+            "name": "metallic_roughness",
             "slots": [
               "metallicRoughnessTexture"
             ],
@@ -472,13 +500,13 @@
             "width": 512,
             "height": 512,
             "mipLevels": 10,
-            "transferBytes": 58522,
+            "transferBytes": 5148,
             "gpuBytesCompressedTarget": 1398100,
             "gpuBytesRgba8Fallback": 1398100
           },
           {
             "imageIndex": 2,
-            "name": null,
+            "name": "normal",
             "slots": [
               "normalTexture"
             ],
@@ -487,18 +515,19 @@
             "width": 512,
             "height": 512,
             "mipLevels": 10,
-            "transferBytes": 9734,
+            "transferBytes": 1304,
             "gpuBytesCompressedTarget": 1398100,
             "gpuBytesRgba8Fallback": 1398100
           }
         ]
       },
       "budgets": {
-        "transferBytes": 4000000,
+        "transferBytes": 2200000,
         "triangles": 100000
       },
       "targetPlanformSpan": 0.99,
-      "floorY": 0
+      "floorY": 0,
+      "textureTier": "meshy7-longshot-railback-muted-blue-review-v3-webp"
     },
     {
       "id": "arc-mason",
@@ -592,7 +621,8 @@
         "triangles": 100000
       },
       "targetPlanformSpan": 0.99,
-      "floorY": 0
+      "floorY": 0,
+      "textureTier": "meshy7-fleet-review-v3-webp"
     },
     {
       "id": "arc-minesmith",
@@ -686,7 +716,8 @@
         "triangles": 100000
       },
       "targetPlanformSpan": 0.99,
-      "floorY": 0
+      "floorY": 0,
+      "textureTier": "meshy7-fleet-review-v3-webp"
     },
     {
       "id": "arc-mortar",
@@ -780,7 +811,8 @@
         "triangles": 100000
       },
       "targetPlanformSpan": 0.99,
-      "floorY": 0
+      "floorY": 0,
+      "textureTier": "meshy7-fleet-review-v3-webp"
     },
     {
       "id": "arc-nest",
@@ -874,7 +906,8 @@
         "triangles": 100000
       },
       "targetPlanformSpan": 0.99,
-      "floorY": 0
+      "floorY": 0,
+      "textureTier": "meshy7-fleet-review-v3-webp"
     },
     {
       "id": "arc-palisade",
@@ -968,7 +1001,8 @@
         "triangles": 100000
       },
       "targetPlanformSpan": 0.99,
-      "floorY": 0
+      "floorY": 0,
+      "textureTier": "meshy7-fleet-review-v3-webp"
     },
     {
       "id": "arc-patchbay",
@@ -1062,7 +1096,8 @@
         "triangles": 100000
       },
       "targetPlanformSpan": 0.99,
-      "floorY": 0
+      "floorY": 0,
+      "textureTier": "meshy7-fleet-review-v3-webp"
     },
     {
       "id": "arc-relay",
@@ -1156,7 +1191,8 @@
         "triangles": 100000
       },
       "targetPlanformSpan": 0.99,
-      "floorY": 0
+      "floorY": 0,
+      "textureTier": "meshy7-fleet-review-v3-webp"
     },
     {
       "id": "arc-repulsor",
@@ -1250,7 +1286,8 @@
         "triangles": 100000
       },
       "targetPlanformSpan": 0.99,
-      "floorY": 0
+      "floorY": 0,
+      "textureTier": "meshy7-fleet-review-v3-webp"
     },
     {
       "id": "arc-sunder",
@@ -1344,7 +1381,8 @@
         "triangles": 220000
       },
       "targetPlanformSpan": 0.99,
-      "floorY": 0
+      "floorY": 0,
+      "textureTier": "meshy7-fleet-review-v3-webp"
     },
     {
       "id": "arc-switchback",
@@ -1438,7 +1476,8 @@
         "triangles": 100000
       },
       "targetPlanformSpan": 0.99,
-      "floorY": 0
+      "floorY": 0,
+      "textureTier": "meshy7-fleet-review-v3-webp"
     },
     {
       "id": "arc-towline",
@@ -1532,7 +1571,8 @@
         "triangles": 100000
       },
       "targetPlanformSpan": 0.99,
-      "floorY": 0
+      "floorY": 0,
+      "textureTier": "meshy7-fleet-review-v3-webp"
     },
     {
       "id": "arc-veil",
@@ -1626,7 +1666,8 @@
         "triangles": 100000
       },
       "targetPlanformSpan": 0.99,
-      "floorY": 0
+      "floorY": 0,
+      "textureTier": "meshy7-fleet-review-v3-webp"
     }
   ]
 }

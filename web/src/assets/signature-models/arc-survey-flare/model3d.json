@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "id": "arc-survey-flare",
+  "file": "model.glb",
+  "kind": "signature",
+  "part": "whole",
+  "facing": "+x",
+  "up": "+y",
+  "signature": "survey-flare",
+  "source": {
+    "generator": "scripts/class-models/promote-core-well-survey-flare-v1.mjs",
+    "recipe": "art/class-models/runtime-tiers/arc-relay/longshot-objectives-review-v1/audit.json",
+    "artifact": "art/class-models/runtime-tiers/arc-relay/longshot-objectives-review-v1/arc-survey-flare-lean.glb",
+    "sourceSha256": "0df64d292faff971e0b214883d68285112850eb71f43aa9f28c5b2d10f610ff7",
+    "approvedArtifact": "art/class-models/runtime-tiers/arc-relay/longshot-objectives-review-v1/arc-survey-flare-lean.glb",
+    "approvedSha256": "0df64d292faff971e0b214883d68285112850eb71f43aa9f28c5b2d10f610ff7",
+    "textureTier": "longshot-objectives-review-v1-webp",
+    "provider": "Meshy",
+    "model": "meshy-7",
+    "endpoint": "retexture",
+    "modelType": "original-uv-pbr-retexture",
+    "taskId": "019ffbcd-1911-75e8-a822-90a439c88415",
+    "orientation": "identity",
+    "facingYawDegrees": 90,
+    "originalUV": true,
+    "targetPlanformSpan": 0.3,
+    "matteRoughnessFloor": 0.72
+  },
+  "ledger": {
+    "bytes": 361444,
+    "sha256": "0df64d292faff971e0b214883d68285112850eb71f43aa9f28c5b2d10f610ff7",
+    "triangles": 15550,
+    "materials": 1,
+    "textureCount": 3,
+    "geometrySha256": "322697c9cbe04dbb8ab0dd52580acc86e499ff7d234bfcfea0fb37a44a983917",
+    "geometryGpuBytes": 333120,
+    "textureGpuBytesCompressedTarget": 1048572,
+    "textureGpuBytesRgba8Fallback": 1048572,
+    "modelGpuBytesCompressedTarget": 1381692,
+    "modelGpuBytesRgba8Fallback": 1381692,
+    "textureTier": "longshot-objectives-review-v1-webp"
+  }
+}

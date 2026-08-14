@@ -66,7 +66,12 @@ test('the approved Striker and complete Arc Relay fleet resolve to authored GLBs
     assert.equal(spec?.source?.provider, 'Meshy');
     assert.equal(spec?.source?.model, 'meshy-7');
     assert.equal(spec?.source?.endpoint, 'retexture');
-    assert.equal(spec?.source?.textureTier, 'meshy7-fleet-review-v3-webp');
+    assert.equal(
+      spec?.source?.textureTier,
+      classId === 'longshot'
+        ? 'meshy7-longshot-railback-muted-blue-review-v3-webp'
+        : 'meshy7-fleet-review-v3-webp',
+    );
     assert.ok((spec?.ledger?.bytes ?? Number.POSITIVE_INFINITY) <= 9_000_000);
     assert.equal(lookModelSource(id), 'gltf');
     assert.equal(lookModelSource(id, 'front'), 'fallback');
@@ -92,7 +97,7 @@ test('legacy looks without a genuine model remain on the SVG fallback path', () 
   assert.equal(modelSpec('not-a-look'), null);
 });
 
-test('approved Arc Relay signature props resolve independently of bot looks', () => {
+test('approved Trip Node and Sentinel Seed props resolve independently of bot looks', () => {
   for (const [id, signature, endpoint, facingYawDegrees] of [
     ['arc-trip-node', 'trip-node', 'retexture', -90],
     ['arc-sentinel-seed', 'sentinel-seed', 'multi-image-to-3d', undefined],
@@ -114,6 +119,27 @@ test('approved Arc Relay signature props resolve independently of bot looks', ()
   }
 });
 
+test('the approved Survey Flare resolves as Lantern’s authored signature device', () => {
+  const spec = modelSpec('arc-survey-flare');
+
+  assert.equal(spec?.kind, 'signature');
+  assert.equal(spec?.part, 'whole');
+  assert.equal(spec?.signature, 'survey-flare');
+  assert.equal(
+    spec?.source?.generator,
+    'scripts/class-models/promote-core-well-survey-flare-v1.mjs',
+  );
+  assert.equal(spec?.source?.provider, 'Meshy');
+  assert.equal(spec?.source?.model, 'meshy-7');
+  assert.equal(spec?.source?.endpoint, 'retexture');
+  assert.equal(spec?.source?.orientation, 'identity');
+  assert.equal(spec?.source?.facingYawDegrees, 90);
+  assert.equal(spec?.source?.textureTier, 'longshot-objectives-review-v1-webp');
+  assert.ok((spec?.ledger?.bytes ?? Number.POSITIVE_INFINITY) <= 500_000);
+  assert.equal(spec?.nodes, undefined);
+  assert.equal(spec?.motion, undefined);
+});
+
 test('the approved Team Reactor resolves as a neutral objective model', () => {
   const spec = modelSpec('arc-team-reactor');
 
@@ -130,6 +156,27 @@ test('the approved Team Reactor resolves as a neutral objective model', () => {
   assert.equal(spec?.source?.textureTier, 'reactor-recess-review-v1-webp');
   assert.ok((spec?.ledger?.bytes ?? Number.POSITIVE_INFINITY) <= 2_000_000);
   assert.equal(lookModelSource('arc-team-reactor'), 'gltf');
+});
+
+test('the approved Core Well resolves as a neutral objective housing', () => {
+  const spec = modelSpec('arc-core-well');
+
+  assert.equal(spec?.kind, 'objective');
+  assert.equal(spec?.part, 'whole');
+  assert.equal(spec?.facing, '+x');
+  assert.equal(spec?.up, '+y');
+  assert.equal(
+    spec?.source?.generator,
+    'scripts/class-models/promote-core-well-survey-flare-v1.mjs',
+  );
+  assert.equal(spec?.source?.provider, 'Meshy');
+  assert.equal(spec?.source?.model, 'meshy-7');
+  assert.equal(spec?.source?.endpoint, 'multi-image-to-3d');
+  assert.equal(spec?.source?.orientation, 'identity');
+  assert.equal(spec?.source?.facingYawDegrees, 90);
+  assert.equal(spec?.source?.textureTier, 'longshot-objectives-review-v1-webp');
+  assert.ok((spec?.ledger?.bytes ?? Number.POSITIVE_INFINITY) <= 2_000_000);
+  assert.equal(lookModelSource('arc-core-well'), 'gltf');
 });
 
 test('a whole-body GLB cannot serve a turret sector and yields to the sprite', () => {

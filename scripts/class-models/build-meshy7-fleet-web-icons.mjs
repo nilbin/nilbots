@@ -16,6 +16,15 @@ const auditPath = path.join(
   'art/class-models/runtime-tiers/arc-relay/meshy7-fleet-review-v3/audit.json',
 );
 const audit = JSON.parse(readFileSync(auditPath, 'utf8'));
+const longshotOverrideAuditPath = path.join(
+  repository,
+  'art/class-models/runtime-tiers/arc-relay/' +
+    'meshy7-longshot-railback-muted-blue-review-v3/audit.json',
+);
+const longshotOverrideAudit = JSON.parse(readFileSync(longshotOverrideAuditPath, 'utf8'));
+const longshotOverrideProfile = longshotOverrideAudit.profiles?.find(
+  (entry) => entry.id === 'lean',
+);
 const reviewDirectory = path.join(
   repository,
   'art/reviews/arc-relay-meshy7-fleet-retexture-v3',
@@ -29,6 +38,7 @@ const viewerUrl = new URL('/scripts/class-models/model-turntable-review.html', b
 const captureSize = 512;
 const runtimeSize = 192;
 const frontBandPixels = 6;
+const classFilter = option('--class', null);
 
 if (
   audit.status !== 'owner-review' ||
@@ -36,13 +46,43 @@ if (
   new Set(audit.classes.map((entry) => entry.classId)).size !== 16
 )
   throw new Error('The approved Meshy V3 icon source audit must contain sixteen classes.');
+if (
+  longshotOverrideAudit.id !== 'meshy7-longshot-railback-muted-blue-review-v3' ||
+  longshotOverrideAudit.status !== 'owner-review' ||
+  !longshotOverrideProfile
+)
+  throw new Error('The Longshot icon override must come from the approved Railback tier.');
+const longshotOverride = {
+  classId: 'longshot',
+  artifact: longshotOverrideProfile.artifact,
+  geometrySha256: longshotOverrideProfile.geometrySha256,
+};
+const classes = audit.classes.map((entry) =>
+  entry.classId === 'longshot' ? longshotOverride : entry,
+);
+if (classFilter && !classes.some((entry) => entry.classId === classFilter))
+  throw new Error(`Unknown Arc Relay icon class '${classFilter}'.`);
 mkdirSync(captureDirectory, { recursive: true });
 
-const records = [];
+let records = [];
 if (!check) {
   const browser = await chromium.launch({ headless: true });
   try {
-    for (const entry of audit.classes) records.push(await renderIcon(browser, entry));
+    if (classFilter) {
+      const recorded = JSON.parse(readFileSync(evidencePath, 'utf8'));
+      records = recorded.icons;
+      const entry = classes.find((candidate) => candidate.classId === classFilter);
+      const replacement = await renderIcon(browser, entry);
+      records = classes.map((candidate) =>
+        candidate.classId === classFilter
+          ? replacement
+          : records.find((record) => record.classId === candidate.classId),
+      );
+      if (records.some((record) => !record))
+        throw new Error('The existing icon evidence is incomplete.');
+    } else {
+      for (const entry of classes) records.push(await renderIcon(browser, entry));
+    }
   } finally {
     await browser.close();
   }
@@ -54,6 +94,9 @@ if (!check) {
       status: 'owner-approved-runtime-icon-tier',
       generator: 'scripts/class-models/build-meshy7-fleet-web-icons.mjs',
       sourceAudit: path.relative(repository, auditPath),
+      sourceAuditOverrides: {
+        longshot: path.relative(repository, longshotOverrideAuditPath),
+      },
       contract: {
         projection: 'strict orthographic top-down',
         facing: '+X maps to screen-right/east',
@@ -74,12 +117,30 @@ if (!check) {
 } else {
   const recorded = JSON.parse(readFileSync(evidencePath, 'utf8'));
   if (recorded.icons?.length !== 16) throw new Error('Icon evidence must contain sixteen classes.');
-  for (const record of recorded.icons) validateRecordedIcon(record);
+  if (
+    recorded.sourceAudit !== path.relative(repository, auditPath) ||
+    recorded.sourceAuditOverrides?.longshot !== path.relative(repository, longshotOverrideAuditPath)
+  )
+    throw new Error('Icon evidence source audits drifted.');
+  for (const record of recorded.icons) {
+    const entry = classes.find((candidate) => candidate.classId === record.classId);
+    if (
+      !entry ||
+      record.source.file !== entry.artifact.file ||
+      record.source.sha256 !== entry.artifact.sha256 ||
+      record.source.geometrySha256 !== entry.geometrySha256
+    )
+      throw new Error(`${record.classId}: icon source no longer matches the promoted fleet.`);
+    validateRecordedIcon(record);
+  }
   if (sha256(readFileSync(sheetPath)) !== recorded.sheet.sha256)
     throw new Error('Top-down icon sheet drifted.');
 }
 
-console.log(`${check ? 'Verified' : 'Built'} 16 top-down east-facing Arc Relay web icons.`);
+console.log(
+  `${check ? 'Verified' : classFilter ? `Updated ${classFilter} within` : 'Built'} ` +
+    '16 top-down east-facing Arc Relay web icons.',
+);
 
 async function renderIcon(browser, entry) {
   const sourcePath = path.join(repository, entry.artifact.file);
