@@ -46,14 +46,17 @@ All five raw candidates remain single Meshy mesh/primitive outputs and pass the
 spatial connected-component audit. Those checks establish technical integrity,
 not concept fidelity.
 
-## Corrective direction
+## Corrective directions
 
-The new `correction-v2/corrected-swept-feather-candidate.png` returns to the
-authoritative winged-crown silhouette: a long narrow face, layered stepped
-vanes, clipped tip, graphite root, and one restrained amber seam. If approved,
-one replacement GLB should be reused at two scales for the inner and outer
-pairs. The existing crown plus those four instances must pass on Kestrel before
-any other family is regenerated.
+The V2 slim feather returns to the authoritative winged-crown shape language:
+a long narrow face, layered stepped vanes, clipped tip, graphite root, and one
+restrained amber seam.
+
+The newer owner-requested V3 concept simplifies the entire system further. One
+floating diadem is shared by all sixteen bots and progresses from a broken halo
+to one, three, and finally five crown prongs. It avoids chassis-mounted
+clipping and most per-class fitting. Its air gap and level-five width still
+need owner review before any modeling.
 
 ## Remaining caveats and next gate
 
@@ -71,7 +74,7 @@ any other family is regenerated.
 
 ## Recommendation
 
-Review the authoritative references beside the corrected slim-feather 2D
-candidate. Do not make another paid call until that input is approved. Then
-generate one replacement feather and retest the crown-plus-four-feather Kestrel
-composition before revisiting the rest of the kit.
+Review `correction-v3/floating-diadem-rank-1-5-concept-v2.png`. Do not make another
+paid call until the universal direction, air gap, and maximum crown width are
+approved. Then build one shared ornament proof and test it at real gameplay
+scale across several differently shaped chassis before any broader work.

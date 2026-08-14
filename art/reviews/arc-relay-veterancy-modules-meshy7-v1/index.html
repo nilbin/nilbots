@@ -32,11 +32,11 @@
       .verdict {
         margin: 24px 0 16px;
         padding: 18px 20px;
-        border: 1px solid #70443f;
+        border: 1px solid #406653;
         border-radius: 14px;
-        background: #281614;
+        background: #102219;
       }
-      .verdict strong { color: var(--red); font-size: 21px; }
+      .verdict strong { color: var(--green); font-size: 21px; }
       .metrics {
         display: grid;
         grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -67,24 +67,33 @@
   </head>
   <body>
     <main>
-      <div class="eyebrow">Nilbots · concept-fidelity correction</div>
-      <h1>The first 3D composition missed the concept.</h1>
-      <p class="lead">The owner rejected the level-5 read on 2026-08-14. The approved art shows a compact, layered Crowned Mantle. The current review instead mounted oversized broad plates across the hull. This page now treats that composition as rejected evidence, not an accepted checkpoint.</p>
+      <div class="eyebrow">Nilbots · universal veterancy concept</div>
+      <h1>One floating halo, growing into a crown.</h1>
+      <p class="lead">A simpler replacement for five attachment families and sixteen hand-fit profiles: one shared mechanical diadem floats above every chassis and develops from a broken halo into a complete five-prong crown across levels 1–5.</p>
 
       <div class="verdict">
-        <strong>Verdict: do not promote the current batch.</strong>
-        <p>The five-petal crown is salvageable after orientation and scale correction. The swept and radial pieces are not faithful enough: their source sheets already describe broad shovel-like armor, so this is an input-design failure rather than a Meshy reconstruction failure.</p>
+        <strong>Proposal: review the universal floating diadem before more modeling.</strong>
+        <p>It removes chassis clipping, keeps one consistent read across all sixteen bots, and needs only one shared ornament system. The rejected broad-plate batch remains preserved below for comparison.</p>
       </div>
 
       <div class="metrics">
-        <div class="metric"><b>180</b><span>credits used total</span></div>
-        <div class="metric"><b>830</b><span>credits remain</span></div>
-        <div class="metric"><b>1</b><span>salvageable crown</span></div>
+        <div class="metric"><b>1</b><span>shared ornament</span></div>
+        <div class="metric"><b>16</b><span>bots covered</span></div>
+        <div class="metric"><b>0</b><span>new Meshy credits</span></div>
         <div class="metric"><b>0</b><span>runtime changes</span></div>
       </div>
 
       <section>
-        <h2>1 · The authoritative target</h2>
+        <h2>1 · Floating halo → five-prong crown</h2>
+        <p class="note">The chassis, camera, and lighting remain identical in every panel. Only the persistent veterancy ornament changes: broken halo, center prong, inner pair, outer pair, then the fully spread crown.</p>
+        <figure>
+          <a href="correction-v3/floating-diadem-rank-1-5-concept-v2.png"><img src="correction-v3/floating-diadem-rank-1-5-concept-v2.png" alt="Five-panel concept showing a floating broken halo growing into a mechanical crown" /></a>
+          <figcaption>Conceptual art only. One universal floating diadem, levels 1–5 from left to right. No provider credits or runtime changes.</figcaption>
+        </figure>
+      </section>
+
+      <section>
+        <h2>2 · The authoritative target</h2>
         <p class="note">The maximum-rank target is a crown-led silhouette with slim layered feathers and compact chassis-following mantles. The attachment rhythm must feel integrated and elite, not like four weapons bolted onto the sides.</p>
         <figure>
           <a href="correction-v2/authoritative-power-directions.png"><img src="correction-v2/authoritative-power-directions.png" alt="Authoritative veterancy power direction board" /></a>
@@ -97,7 +106,7 @@
       </section>
 
       <section>
-        <h2>2 · The rejected 3D read</h2>
+        <h2>3 · The rejected 3D read</h2>
         <p class="note">The crown was too small or presented edge-on, while the side modules were too broad, too flat, and too far from the dorsal crown cluster. They dominate the chassis as armor slabs rather than completing its crown.</p>
         <figure>
           <a href="gate-d/real-crown-and-feathers-level5.png"><img src="gate-d/real-crown-and-feathers-level5.png" alt="Rejected level-five veterancy composition" /></a>
@@ -106,7 +115,7 @@
       </section>
 
       <section>
-        <h2>3 · Corrected feather input candidate</h2>
+        <h2>4 · Reusable feather language</h2>
         <p class="note">This is the proposed replacement direction before another provider call: one narrow connected feather, layered stepped vanes, clipped tip, graphite root, and a restrained amber seam. Inner and outer pairs can reuse this object at different scales and cant angles, matching the authoritative winged-crown progression more closely.</p>
         <figure>
           <a href="correction-v2/corrected-swept-feather-candidate.png"><img src="correction-v2/corrected-swept-feather-candidate.png" alt="Four-view candidate for a corrected slim mechanical crown feather" /></a>
@@ -115,7 +124,7 @@
       </section>
 
       <section>
-        <h2>4 · What remains usable</h2>
+        <h2>5 · What remains usable</h2>
         <p class="note">The corrected five-petal crown geometry itself matches the reference family reasonably well. Its next composition test must rotate its broad face toward the gameplay camera/chassis width, enlarge it, and group the feather roots tightly around it.</p>
         <figure>
           <a href="gate-c/veterancy-crown-spine-v2/veterancy-crown-spine-v2-six-view.png"><img src="gate-c/veterancy-crown-spine-v2/veterancy-crown-spine-v2-six-view.png" alt="Six deterministic views of the salvageable crown model" /></a>
@@ -124,7 +133,7 @@
       </section>
 
       <section>
-        <h2>5 · Rejected module evidence</h2>
+        <h2>6 · Rejected module evidence</h2>
         <ul>
           <li><a href="gate-c/veterancy-swept-blade/veterancy-swept-blade-six-view.png">Over-broad swept blade</a></li>
           <li><a href="gate-c/veterancy-radial-petal/veterancy-radial-petal-six-view.png">Over-broad radial petal</a></li>
@@ -136,9 +145,9 @@
       <section>
         <h2>Next approval gate</h2>
         <ul>
-          <li>Approve or reject the corrected slim feather candidate.</li>
-          <li>After approval, generate one replacement Meshy feather and test crown + four reused feathers on Kestrel before touching the other module families.</li>
-          <li>Only a concept-matched gameplay-scale composition can reopen the all-sixteen fit and optimization work.</li>
+          <li>Approve or reject the universal floating-diadem direction.</li>
+          <li>Choose whether the air gap and maximum level-five width should be reduced before modeling.</li>
+          <li>After approval, build one shared ornament proof and test it at real gameplay scale on several differently shaped bots.</li>
         </ul>
       </section>
 

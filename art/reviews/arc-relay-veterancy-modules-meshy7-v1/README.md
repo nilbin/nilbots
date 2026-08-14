@@ -23,6 +23,12 @@ isolation after the batch-level rejection.
 brief, and a new slim-feather 2D candidate. No replacement Meshy call has been
 made or authorized.
 
+`correction-v3/` contains the newer simplified proposal requested by the
+owner: one universal floating diadem that progresses from a broken halo to a
+five-prong crown. This supersedes class-mounted replacement feathers as the
+primary review direction while retaining the V2 feather as shape-language
+reference. It is conceptual art only and consumed no Meshy credits.
+
 ## Review evidence
 
 - `gate-c/veterancy-*/` contains deterministic isolated six-view captures.
@@ -48,7 +54,8 @@ generation only and consumed no Meshy credits.
 
 The provider results remain intentionally rich (roughly 52–66 MB and
 1.52–1.99 million triangles each), but optimization is irrelevant until the
-silhouette passes. The next gate is owner approval of the corrected slim
-feather input, followed by one separately authorized replacement model and one
-Kestrel composition test. The all-sixteen fit sheet, lean derivatives, runtime
-integration, veterancy animation, and replay capture remain closed.
+silhouette passes. The next gate is owner approval of the universal floating
+diadem concept, including its air gap and maximum width. Only then should one
+shared ornament proof be built and checked at gameplay scale across
+representative chassis. Lean derivatives, runtime integration, veterancy
+animation, and replay capture remain closed.
