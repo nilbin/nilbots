@@ -56,7 +56,7 @@
       signatureName: 'Trip Node',
       signatureId: 'trip-node',
       primaryCue: 'signature-trip-deploy',
-      summary: 'A tiny mechanism at placement and a separate muted snap on trigger.',
+      summary: 'A soft levitating sensor settle at placement and a separate rounded gravity-pressure trigger.',
       events: [
         event('Deploy', 'signature-trip-deploy', 'primary'),
         event('Trigger', 'signature-trip-trigger', 'secondary'),
@@ -106,7 +106,7 @@
       signatureName: 'Hardlight Block',
       signatureId: 'hardlight-block',
       primaryCue: 'signature-mason',
-      summary: 'An earthy ceramic rise and seat, deliberately unlike Prism Wall.',
+      summary: 'Warm mineral grains condense into a ceramic slab and finish with a cushioned seat.',
       events: [event('Build', 'signature-mason', 'primary')],
     },
     {
@@ -151,7 +151,7 @@
     {
       label: 'CONSTRUCT SPLIT',
       title: 'Palisade → Mason',
-      description: 'Energy panels first, earthy ceramic slabs second.',
+      description: 'Energy panels first, warm mineral condensation and a cushioned ceramic seat second.',
       steps: [[0, 'signature-construct'], [950, 'signature-mason']],
     },
     {
@@ -169,7 +169,7 @@
     {
       label: 'TRIP NODE SENTENCE',
       title: 'Deploy → trigger',
-      description: 'A quiet placement and a more important route-tax snap.',
+      description: 'A quiet levitating placement and a more important local gravity-pressure bloom.',
       steps: [[0, 'signature-trip-deploy'], [950, 'signature-trip-trigger']],
     },
     {

@@ -77,7 +77,7 @@ const sources = {
   mason: {
     cueId: "signature-v2-source-mason",
     outputSha256:
-      "456aa5a904e82f9e24b0bddab5fa60448a65daa87a91a78b24ce9b67c64ab3be",
+      "ab091f55d2bff43a3b8674f9175175964edb21feb8793473fd8824293103ceff",
     generation: addendum,
     directory: addendumSourceDirectory,
   },
@@ -98,7 +98,14 @@ const sources = {
   tripNode: {
     cueId: "signature-v2-source-trip-node",
     outputSha256:
-      "916494457b008d8d8440545fc68c90572566a9a91a4d60cd9ed84ddccddba46f",
+      "2ff3336169d2395d4a5405f52ddabb4350c8d139c6df51a0d4828da7f637c663",
+    generation: addendum,
+    directory: addendumSourceDirectory,
+  },
+  tripTrigger: {
+    cueId: "signature-v2-source-trip-trigger",
+    outputSha256:
+      "5f1d8fe5dba67c78b9253a1e86297a7d8276d89b978f08f405693538cf144dea",
     generation: addendum,
     directory: addendumSourceDirectory,
   },
@@ -256,15 +263,15 @@ const deliveries = [
     id: "signature-mason",
     source: "mason",
     channelTransform: "mid-to-dual-mono",
-    sourceStartSeconds: 0.56,
-    playbackRate: 0.72,
-    durationSeconds: 0.68,
-    lowPassHz: 400,
+    sourceStartSeconds: 0.48,
+    playbackRate: 0.9,
+    durationSeconds: 0.44,
+    lowPassHz: 700,
     fadeInSeconds: 0.02,
-    fadeOutSeconds: 0.16,
-    targetSamplePeak: 0.2,
+    fadeOutSeconds: 0.11,
+    targetSamplePeak: 0.18,
     description:
-      "The generated ceramic rise and two low slab seats, distinct from Palisade's energy-panel lock.",
+      "The replacement mineral condensation and cushioned ceramic seat, retaining audible low-mid texture distinct from Palisade's energy-panel lock.",
   },
   {
     id: "signature-repair",
@@ -299,28 +306,28 @@ const deliveries = [
     source: "tripNode",
     channelTransform: "mid-to-dual-mono",
     sourceStartSeconds: 0,
-    playbackRate: 0.55,
+    playbackRate: 0.9,
     durationSeconds: 0.38,
-    lowPassHz: 500,
-    fadeInSeconds: 0.014,
+    lowPassHz: 650,
+    fadeInSeconds: 0.02,
     fadeOutSeconds: 0.12,
-    targetSamplePeak: 0.18,
+    targetSamplePeak: 0.17,
     description:
-      "The generated mine's compact opening mechanism, used only when a Trip Node is placed.",
+      "The replacement gravity sensor's soft levitating unfold and magnetic settle, used only when a Trip Node is placed.",
   },
   {
     id: "signature-trip-trigger",
-    source: "tripNode",
+    source: "tripTrigger",
     channelTransform: "mid-to-dual-mono",
-    sourceStartSeconds: 0.22,
-    playbackRate: 0.75,
-    durationSeconds: 0.36,
+    sourceStartSeconds: 0,
+    playbackRate: 0.9,
+    durationSeconds: 0.32,
     lowPassHz: 600,
     fadeInSeconds: 0.01,
-    fadeOutSeconds: 0.12,
-    targetSamplePeak: 0.19,
+    fadeOutSeconds: 0.11,
+    targetSamplePeak: 0.18,
     description:
-      "The generated mine's low magnetic snap, reserved for an authoritative triggered removal.",
+      "The replacement local gravity pinch and muted pressure bloom, reserved for an authoritative triggered removal.",
   },
   {
     id: "signature-arc-toss",
@@ -402,12 +409,17 @@ assert(
   "Signature generation authorization differs from the approved six-job batch.",
 );
 assert(addendum.provider === "sfx-engine", "Unexpected signature addendum provider.");
+const addendumProviderJobs = addendum.cues.reduce(
+  (total, cue) => total + 1 + (cue.attempts?.length ?? 0),
+  0,
+);
 assert(
-  addendum.batch?.maximumProviderJobs === 7 &&
+  addendum.batch?.maximumProviderJobs === 10 &&
     addendum.batch?.automaticRerolls === false &&
     addendum.batch?.ambience === false &&
-    addendum.cues?.length === 7,
-  "Signature addendum differs from the approved seven-job batch.",
+    addendum.cues?.length === 8 &&
+    addendumProviderJobs === 10,
+  "Signature addendum differs from the approved ten-job batch.",
 );
 
 const decodedSources = new Map();

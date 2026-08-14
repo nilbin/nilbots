@@ -418,6 +418,7 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
     batch: { maximumProviderJobs: number; automaticRerolls: boolean };
     cues: Array<{
       id: string;
+      attempts?: Array<{ result: { status: string; outputSha256: string } }>;
       result: { status: string; sourceSha256: string; outputSha256: string };
     }>;
     deliveries: Array<{ id: string; outputSha256: string }>;
@@ -454,10 +455,26 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
   const signatureAddendumProvenance = JSON.parse(
     signatureGenerationAddendum.toString('utf8'),
   ) as typeof signatureProvenance & { batch: typeof signatureProvenance.batch & { ambience: boolean } };
-  assert.equal(signatureAddendumProvenance.batch.maximumProviderJobs, 7);
+  assert.equal(signatureAddendumProvenance.batch.maximumProviderJobs, 10);
   assert.equal(signatureAddendumProvenance.batch.automaticRerolls, false);
   assert.equal(signatureAddendumProvenance.batch.ambience, false);
-  assert.equal(signatureAddendumProvenance.cues.length, 7);
+  assert.equal(signatureAddendumProvenance.cues.length, 8);
+  assert.equal(
+    signatureAddendumProvenance.cues.reduce(
+      (total, cue) => total + 1 + (cue.attempts?.length ?? 0),
+      0,
+    ),
+    10,
+  );
+  assert.deepEqual(
+    signatureAddendumProvenance.cues
+      .filter((cue) => (cue.attempts?.length ?? 0) > 0)
+      .map((cue) => [cue.id, cue.attempts?.length]),
+    [
+      ['signature-v2-source-mason', 1],
+      ['signature-v2-source-trip-node', 1],
+    ],
+  );
   assert.ok(
     signatureAddendumProvenance.cues.every(
       (cue) =>

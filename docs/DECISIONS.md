@@ -8275,3 +8275,33 @@ their declared gains and inventories all sixteen skills. It has no autoplay,
 music, ambience, or replay dependency. The retained replay-capture harness is
 not part of audio iteration and is not run without a separate owner request.
 Neon Protocol remains unchanged, and no ambient loop ships or plays.
+
+## 309. Mason and Trip Node receive separate low-mid owner-review replacements
+
+Owner audio correction (2026-08-14). The first `signature-mason`,
+`signature-trip-deploy`, and `signature-trip-trigger` deliveries do not clear
+the listening gate. Their authoritative events, priorities, voice limits, and
+the `arc-relay-signatures-v2` visual package remain unchanged; this is an asset
+replacement only and changes no signature timing, mechanics, replay fact, or
+gameplay fingerprint.
+
+Exactly three further private SFX Engine requests are authorized, with no
+automatic rerolls and no ambience. Mason replaces its sub-heavy first take with
+warm mineral condensation and a cushioned ceramic seat. Trip no longer derives
+placement and trigger from one compromised sequence: its placement uses a soft
+levitating sensor unfold, while its trigger uses a separate local gravity pinch
+and muted pressure bloom. The generation record retains the rejected Mason and
+combined Trip results under their attempts. The V2 addendum therefore records
+ten provider jobs: eight current sources and two archived rejected attempts;
+together with the original six-source batch, sixteen jobs still derive the
+same nineteen runtime signature deliveries.
+
+Decoded runtime centroids move from 35 Hz to 175 Hz for Mason and from 890/541
+Hz to 258/267 Hz for Trip deploy/trigger. Their energy above 4 kHz is 0.06%,
+0.01%, and 0.00%; all remain dry, dual-mono, at 0.16 gain, and inside the
+existing duration, RMS, peak, and crowd gates. The 33-cue runtime package is
+499,736 bytes and the unchanged 513-variant crowd worst case remains -7.43
+dBTP. V2 keeps its ID because this correction occurs inside its owner-review
+gate before a public gameplay deployment; a post-release audio change would
+mint another presentation identity. Music remains unchanged and no ambient
+loop ships or plays.

@@ -1293,12 +1293,18 @@ if (
 ) {
   throw new Error("The signature generation record differs from the approved batch.");
 }
+const signatureAddendumProviderJobs =
+  signatureGenerationAddendum.cues?.reduce(
+    (total, cue) => total + 1 + (cue.attempts?.length ?? 0),
+    0,
+  );
 if (
   signatureGenerationAddendum.provider !== "sfx-engine" ||
-  signatureGenerationAddendum.batch?.maximumProviderJobs !== 7 ||
+  signatureGenerationAddendum.batch?.maximumProviderJobs !== 10 ||
   signatureGenerationAddendum.batch?.automaticRerolls !== false ||
   signatureGenerationAddendum.batch?.ambience !== false ||
-  signatureGenerationAddendum.cues?.length !== 7 ||
+  signatureGenerationAddendum.cues?.length !== 8 ||
+  signatureAddendumProviderJobs !== 10 ||
   signatureGenerationAddendum.deliveries?.length !==
     addendumSignatureCueIds.length ||
   signatureGenerationAddendum.derivation?.script !==

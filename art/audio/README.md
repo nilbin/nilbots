@@ -24,7 +24,8 @@ server. V1 through V4 are deterministic: the same script revision produces the
 same signed 16-bit PCM WAV files. V1 is 44.1 kHz mono; V2 through V4 render at
 96 kHz and downsample to 48 kHz stereo. V5 keeps saved provider lineage for
 seventeen matched cues plus three optional ambient loops, an exact six-source
-private signature batch, and an exact seven-source V2 signature-audio addendum.
+private signature batch, and a V2 signature-audio addendum with eight current
+sources plus two archived owner-rejected attempts.
 The derivation scripts deterministically rebuild three current variants and all
 nineteen signature deliveries from their accepted source masters without
 contacting SFX Engine. The safety-master script then rebuilds five high-energy
@@ -128,9 +129,12 @@ sequence sums must remain at or below -1 dBTP after that fixed gain.
 The signature package records are
 `sound-lab/v5/signature-sfx-engine-generation.json` and
 `sound-lab/v5/signature-v2-sfx-engine-generation.json`. The first pins exactly
-six private provider jobs for nine deliveries; the second pins exactly seven
-private jobs for ten further deliveries. Neither batch permits rerolls or
-ambience. Run `scripts/derive-audio-v5-signatures.mjs` to reproduce all nineteen
+six private provider jobs for nine deliveries; the second pins ten private
+provider jobs for ten further deliveries: eight current sources and the
+superseded Mason and combined Trip Node attempts. The three owner-authorized
+follow-up jobs replace Mason, split Trip deployment from its trigger, and do
+not permit automatic rerolls or ambience. Run
+`scripts/derive-audio-v5-signatures.mjs` to reproduce all nineteen
 short, dry, dual-mono runtime deliveries. It verifies every source hash and
 applies only channel folding, resampling, low-pass filtering, endpoint fades,
 and peak fitting. Every signature delivery is at most 700 ms, uses 0.16 runtime
@@ -219,7 +223,7 @@ the V5 source hashes and exports 33 mapped one-shots to
 `web/src/assets/audio/effects/astral-relay/` as 48 kHz stereo AAC-LC.
 The unique fizzle, cancel, and historical special-steal takes stay review-only;
 runtime fizzle aliases the shipped projectile release. The checked-in delivery
-assets total 498,979 bytes. No ambience file, mapping, fetch, or playback
+assets total 499,736 bytes. No ambience file, mapping, fetch, or playback
 path ships. The entitlement cue remains a sound-lab master until a real
 entitlement notification owns it; it is not a match-result sound.
 
