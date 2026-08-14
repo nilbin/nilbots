@@ -1,0 +1,550 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#081012">
+  <title>Tapline strategy atlas · Nilbots</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --ink: #edf6f2;
+      --muted: #9cadaa;
+      --faint: #6f807d;
+      --ground: #081012;
+      --panel: #0e181a;
+      --panel-2: #111e20;
+      --line: #263739;
+      --line-bright: #3b5355;
+      --mint: #72e0c1;
+      --amber: #f2b866;
+      --red: #ef8476;
+      --blue: #7cb6ff;
+      --violet: #b49afb;
+      --content: 1240px;
+      font: 16px/1.5 Inter, ui-sans-serif, system-ui, -apple-system,
+        BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--ground);
+      color: var(--ink);
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-width: 280px;
+      background:
+        linear-gradient(90deg, transparent 24px, rgba(114,224,193,.035) 25px,
+          transparent 26px) 0 0 / 52px 52px,
+        linear-gradient(0deg, transparent 24px, rgba(114,224,193,.035) 25px,
+          transparent 26px) 0 0 / 52px 52px,
+        radial-gradient(circle at 72% -10%, rgba(114,224,193,.12), transparent 34rem),
+        var(--ground);
+    }
+    button, input { font: inherit; }
+    button { color: inherit; }
+    .skip {
+      position: fixed; left: 1rem; top: -5rem; z-index: 20;
+      padding: .7rem 1rem; background: var(--mint); color: #07100e;
+    }
+    .skip:focus { top: 1rem; }
+    .wrap { width: min(calc(100% - 2rem), var(--content)); margin-inline: auto; }
+    .eyebrow {
+      margin: 0 0 .75rem; color: var(--mint); font: 700 .74rem/1.2
+      ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .14em;
+      text-transform: uppercase;
+    }
+    header.hero { padding: clamp(2.75rem, 8vw, 6.5rem) 0 2rem; }
+    h1 {
+      max-width: 900px; margin: 0; font-size: clamp(2.65rem, 7.8vw, 6.8rem);
+      line-height: .9; letter-spacing: -.065em; font-weight: 760;
+    }
+    h1 span { color: var(--mint); }
+    .lede {
+      max-width: 760px; margin: 1.6rem 0 0; color: #c2d1cd;
+      font-size: clamp(1.03rem, 2vw, 1.3rem); line-height: 1.55;
+    }
+    .verdict {
+      display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(280px, .8fr);
+      gap: 1rem; margin-top: clamp(2rem, 5vw, 4rem);
+    }
+    .verdict-copy, .route-board {
+      border: 1px solid var(--line); background: rgba(14,24,26,.82);
+      min-height: 200px;
+    }
+    .verdict-copy { padding: clamp(1.25rem, 3vw, 2.2rem); }
+    .verdict-copy h2 { margin: 0 0 .65rem; font-size: clamp(1.45rem, 3vw, 2.25rem); }
+    .verdict-copy p { margin: 0; max-width: 65ch; color: var(--muted); }
+    .verdict-copy strong { color: var(--ink); }
+    .route-board { padding: 1.25rem; display: grid; align-content: space-between; }
+    .route-title { color: var(--muted); font-size: .78rem; letter-spacing: .08em; text-transform: uppercase; }
+    .route {
+      position: relative; display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: .5rem; align-items: start; margin: 1.5rem .25rem .75rem;
+    }
+    .route::before {
+      content: ""; position: absolute; height: 1px; left: 14%; right: 14%; top: 1.55rem;
+      background: linear-gradient(90deg, var(--mint), var(--amber), var(--red));
+    }
+    .well { position: relative; text-align: center; }
+    .well b {
+      position: relative; display: grid; place-items: center; width: 3.1rem;
+      height: 3.1rem; margin: 0 auto .55rem; border: 1px solid currentColor;
+      border-radius: 50%; background: var(--ground); font: 750 1.35rem/1
+      ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+    .well:nth-child(1) { color: var(--mint); }
+    .well:nth-child(2) { color: var(--amber); }
+    .well:nth-child(3) { color: var(--red); }
+    .well span { display: block; color: var(--muted); font-size: .78rem; }
+    .route-note { color: var(--faint); font-size: .78rem; }
+    .stats {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px;
+      margin: 1rem 0 0; border: 1px solid var(--line); background: var(--line);
+    }
+    .stat { padding: 1rem; background: var(--panel); }
+    .stat b { display: block; font: 720 1.55rem/1 ui-monospace, monospace; }
+    .stat span { display: block; margin-top: .35rem; color: var(--faint); font-size: .76rem; }
+    .primer { padding: 3rem 0 1rem; }
+    .primer h2, .gallery-head h2 { margin: 0; font-size: clamp(1.8rem, 4vw, 3rem); letter-spacing: -.035em; }
+    .primer-grid {
+      display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px;
+      margin-top: 1.25rem; border: 1px solid var(--line); background: var(--line);
+    }
+    .axis { min-height: 172px; padding: 1rem; background: var(--panel); }
+    .axis b { display: block; margin-bottom: .65rem; color: var(--mint); }
+    .axis p { margin: 0; color: var(--muted); font-size: .88rem; }
+    .axis code { font: inherit; color: var(--amber); }
+    .gallery-head { padding: 4rem 0 1rem; }
+    .gallery-head p { max-width: 70ch; color: var(--muted); margin: .75rem 0 0; }
+    .controls-shell {
+      position: sticky; top: 0; z-index: 10; margin-top: 1.25rem;
+      border-block: 1px solid var(--line); background: rgba(8,16,18,.94);
+      backdrop-filter: blur(14px);
+    }
+    .controls { padding: .75rem 0; display: grid; gap: .75rem; }
+    .search-row { display: flex; gap: .65rem; align-items: center; }
+    .search {
+      flex: 1; min-width: 0; color: var(--ink); background: var(--panel);
+      border: 1px solid var(--line-bright); padding: .72rem .85rem; border-radius: 0;
+    }
+    .search:focus { outline: 2px solid var(--mint); outline-offset: 2px; }
+    .utility, .filter {
+      border: 1px solid var(--line); background: var(--panel); padding: .65rem .8rem;
+      cursor: pointer;
+    }
+    .utility:hover, .filter:hover { border-color: var(--line-bright); }
+    .utility[aria-pressed="true"], .filter[aria-pressed="true"] {
+      border-color: var(--mint); color: var(--mint); background: rgba(114,224,193,.08);
+    }
+    .filters { display: flex; gap: .45rem; overflow-x: auto; padding-bottom: .12rem; }
+    .filter { white-space: nowrap; font-size: .82rem; }
+    .filter small { margin-left: .35rem; color: var(--faint); }
+    .result-line {
+      display: flex; justify-content: space-between; gap: 1rem; align-items: baseline;
+      padding-top: 1rem; color: var(--muted); font-size: .84rem;
+    }
+    .result-line strong { color: var(--ink); }
+    .cards {
+      display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1rem; padding: 1rem 0 5rem;
+    }
+    .card {
+      --accent: var(--mint); position: relative; display: flex; flex-direction: column;
+      min-width: 0; border: 1px solid var(--line); border-top: 3px solid var(--accent);
+      background: linear-gradient(155deg, color-mix(in srgb, var(--accent) 5%, var(--panel)), var(--panel) 42%);
+      scroll-margin-top: 9rem;
+    }
+    .card[data-category="charge"] { --accent: var(--amber); }
+    .card[data-category="logistics"] { --accent: var(--blue); }
+    .card[data-category="veteran"] { --accent: #f2cf68; }
+    .card[data-category="wave"] { --accent: var(--violet); }
+    .card[data-category="deployment"] { --accent: #79d5a0; }
+    .card[data-category="hybrid"] { --accent: #ed8ba8; }
+    .card.recommended::after {
+      content: "FIRST 8"; position: absolute; right: .85rem; top: .85rem;
+      color: var(--accent); font: 700 .64rem/1 ui-monospace, monospace;
+      letter-spacing: .12em;
+    }
+    .card-head { padding: 1rem 1rem 0; }
+    .card-meta { display: flex; align-items: center; gap: .55rem; color: var(--faint); }
+    .number { color: var(--accent); font: 700 .78rem/1 ui-monospace, monospace; }
+    .family { font-size: .73rem; text-transform: uppercase; letter-spacing: .08em; }
+    .card h3 { margin: .55rem 3.8rem .85rem 0; font-size: clamp(1.32rem, 2.4vw, 1.75rem); letter-spacing: -.025em; }
+    .plan { margin: 0; padding: 0 1rem 1rem; color: #c7d6d2; }
+    .roster {
+      display: flex; flex-wrap: wrap; gap: .36rem; padding: .8rem 1rem;
+      border-block: 1px solid var(--line); background: rgba(4,10,11,.3);
+    }
+    .bot {
+      padding: .24rem .45rem; color: var(--muted); border: 1px solid var(--line);
+      font: 650 .69rem/1.2 ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+    .bot.pair { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); }
+    details { border-bottom: 1px solid var(--line); }
+    summary {
+      padding: .78rem 1rem; cursor: pointer; color: var(--accent); font-size: .82rem;
+      list-style: none;
+    }
+    summary::-webkit-details-marker { display: none; }
+    summary::before { content: "+"; display: inline-block; width: 1.25rem; }
+    details[open] summary::before { content: "−"; }
+    .details { display: grid; gap: .75rem; padding: 0 1rem 1rem; }
+    .detail-label { display: block; color: var(--faint); font: 700 .66rem/1.2 ui-monospace, monospace; letter-spacing: .1em; text-transform: uppercase; }
+    .details p { margin: .22rem 0 0; color: var(--muted); font-size: .88rem; }
+    .card-actions { display: flex; gap: .5rem; margin-top: auto; padding: .8rem 1rem; }
+    .compare-add { width: 100%; border: 1px solid var(--line-bright); background: transparent; padding: .6rem; cursor: pointer; }
+    .compare-add[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); }
+    .empty {
+      grid-column: 1 / -1; padding: 4rem 1rem; border: 1px dashed var(--line);
+      color: var(--muted); text-align: center;
+    }
+    .compare-tray {
+      position: fixed; left: 50%; bottom: 1rem; z-index: 14; width: min(calc(100% - 2rem), 680px);
+      transform: translateX(-50%); display: flex; align-items: center; gap: .6rem;
+      padding: .65rem; border: 1px solid var(--line-bright); background: rgba(8,16,18,.97);
+      box-shadow: 0 18px 60px rgba(0,0,0,.4);
+    }
+    .compare-tray[hidden] { display: none; }
+    .compare-picks { display: flex; gap: .35rem; flex: 1; min-width: 0; overflow-x: auto; }
+    .pick { white-space: nowrap; color: var(--muted); font-size: .74rem; border: 1px solid var(--line); padding: .4rem; }
+    .compare-open { border: 0; background: var(--mint); color: #07100e; padding: .58rem .75rem; font-weight: 750; cursor: pointer; }
+    dialog {
+      width: min(calc(100% - 2rem), 1080px); max-height: min(88dvh, 900px);
+      padding: 0; border: 1px solid var(--line-bright); color: var(--ink);
+      background: var(--ground);
+    }
+    dialog::backdrop { background: rgba(0,0,0,.78); backdrop-filter: blur(4px); }
+    .dialog-head { position: sticky; top: 0; z-index: 2; display: flex; justify-content: space-between; gap: 1rem; padding: 1rem; border-bottom: 1px solid var(--line); background: var(--ground); }
+    .dialog-head h2 { margin: 0; font-size: 1.2rem; }
+    .dialog-close { border: 1px solid var(--line); background: var(--panel); padding: .45rem .65rem; cursor: pointer; }
+    .compare-grid { display: grid; grid-template-columns: repeat(var(--compare-count), minmax(0, 1fr)); gap: 1px; background: var(--line); }
+    .compare-column { background: var(--panel); padding: 1rem; }
+    .compare-column h3 { margin: .4rem 0 1rem; font-size: 1.35rem; }
+    .compare-column section { margin-top: 1rem; }
+    .compare-column p { color: var(--muted); margin: .3rem 0; font-size: .88rem; }
+    .first-eight { padding: 1rem 0 4rem; }
+    .first-eight-box { border: 1px solid var(--line); background: var(--panel); padding: clamp(1.2rem, 3vw, 2rem); }
+    .first-eight h2 { margin: 0; font-size: clamp(1.65rem, 3vw, 2.5rem); }
+    .first-eight p { color: var(--muted); max-width: 72ch; }
+    .quick-list { display: grid; grid-template-columns: repeat(4, 1fr); gap: .6rem; margin-top: 1.25rem; }
+    .quick {
+      display: block; min-height: 92px; padding: .75rem; border: 1px solid var(--line);
+      color: var(--ink); text-decoration: none; background: var(--panel-2);
+    }
+    .quick:hover, .quick:focus { border-color: var(--mint); }
+    .quick small { display: block; color: var(--mint); font: .65rem/1.2 ui-monospace, monospace; }
+    .quick b { display: block; margin-top: .35rem; font-size: .88rem; }
+    footer { border-top: 1px solid var(--line); padding: 2rem 0 5rem; color: var(--faint); font-size: .8rem; }
+    [hidden] { display: none !important; }
+    @media (max-width: 900px) {
+      .verdict { grid-template-columns: 1fr; }
+      .primer-grid { grid-template-columns: repeat(2, 1fr); }
+      .primer-grid .axis:last-child { grid-column: span 2; }
+      .quick-list { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 720px) {
+      .wrap { width: min(calc(100% - 1.25rem), var(--content)); }
+      header.hero { padding-top: 2.5rem; }
+      h1 { font-size: clamp(2.65rem, 16vw, 4.6rem); }
+      .stats { grid-template-columns: repeat(2, 1fr); }
+      .cards { grid-template-columns: 1fr; }
+      .controls-shell { top: 0; }
+      .search-row { align-items: stretch; }
+      .search-row .utility { padding-inline: .65rem; font-size: .78rem; }
+      .compare-grid { grid-template-columns: 1fr; }
+      .compare-column { border-bottom: 1px solid var(--line); }
+    }
+    @media (max-width: 430px) {
+      .primer-grid { grid-template-columns: 1fr; }
+      .primer-grid .axis:last-child { grid-column: auto; }
+      .quick-list { grid-template-columns: 1fr; }
+      .route-board { min-height: 220px; }
+      .compare-tray { bottom: .5rem; width: calc(100% - 1rem); }
+      .pick { max-width: 100px; overflow: hidden; text-overflow: ellipsis; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip" href="#strategy-grid">Skip to strategies</a>
+  <header class="hero wrap">
+    <p class="eyebrow">Nilbots · Arc Relay · candidate rules</p>
+    <h1>Tapline has <span>room to grow.</span></h1>
+    <p class="lede">Thirty-six genuinely different sheet concepts built from five
+      proposed changes. This is the readable atlas: what each plan commits to,
+      why it could be fun, and how an opponent can answer it.</p>
+    <div class="verdict">
+      <section class="verdict-copy" aria-labelledby="verdict-title">
+        <p class="eyebrow">Current verdict</p>
+        <h2 id="verdict-title">Promising enough to prototype. Not proven enough to ship.</h2>
+        <p>The encouraging signal is not the number 36. It is that these plans ask
+          different questions and invite different counters. The next gate is whether
+          eight maximally separated examples actually look and play differently.</p>
+      </section>
+      <section class="route-board" aria-label="Core value by Well from your perspective">
+        <div class="route-title">Core value · your perspective</div>
+        <div class="route">
+          <div class="well"><b>1</b><span>own Well</span></div>
+          <div class="well"><b>2</b><span>centre</span></div>
+          <div class="well"><b>4</b><span>enemy Well</span></div>
+        </div>
+        <div class="route-note">3 charge = 1 Pulse · 3 Pulses = win · remainder carries</div>
+      </section>
+    </div>
+    <div class="stats" aria-label="Strategy-space summary">
+      <div class="stat"><b>36</b><span>distinct concepts</span></div>
+      <div class="stat"><b>6</b><span>strategy families</span></div>
+      <div class="stat"><b>8</b><span>first prototypes</span></div>
+      <div class="stat"><b>29,376</b><span>raw macro combinations</span></div>
+    </div>
+  </header>
+
+  <main>
+    <section class="primer wrap" aria-labelledby="primer-title">
+      <p class="eyebrow">The five interacting decisions</p>
+      <h2 id="primer-title">What a sheet is choosing</h2>
+      <div class="primer-grid">
+        <article class="axis"><b>01 · Score route</b><p>Take reliable <code>1s</code>, fight for <code>2s</code>, raid for <code>4s</code>, or build an exact mixed recipe.</p></article>
+        <article class="axis"><b>02 · Veteran</b><p>Pre-select an ace, let one emerge, build a successor, use a decoy, or hunt the enemy's investment.</p></article>
+        <article class="axis"><b>03 · Wave</b><p>Commit, retreat, regroup, or arrange kills around one shared public 30-tick respawn clock.</p></article>
+        <article class="axis"><b>04 · Wildcard</b><p>Field eight different classes or spend the one duplicate pair on a defining specialization.</p></article>
+        <article class="axis"><b>05 · Deployment</b><p>Preserve, refresh, relocate, feint with, suppress, or deliberately demolish persistent map control.</p></article>
+      </div>
+    </section>
+
+    <section class="gallery-head wrap" aria-labelledby="gallery-title">
+      <p class="eyebrow">Strategy atlas</p>
+      <h2 id="gallery-title">Find the plans that interest you</h2>
+      <p>Filter by family, search a class or idea, or start with the eight marked
+        candidates. Add up to three cards to compare their commitments directly.</p>
+    </section>
+
+    <div class="controls-shell">
+      <div class="controls wrap">
+        <div class="search-row">
+          <label for="search" hidden>Search strategies</label>
+          <input class="search" id="search" type="search" placeholder="Search: Mason, raid, veteran, centre…" autocomplete="off">
+          <button class="utility" id="recommended-toggle" type="button" aria-pressed="false">First 8</button>
+          <button class="utility" id="expand-toggle" type="button" aria-pressed="false">Expand</button>
+        </div>
+        <nav class="filters" id="filters" aria-label="Strategy families"></nav>
+      </div>
+    </div>
+
+    <section class="wrap" aria-labelledby="results-title">
+      <div class="result-line"><span id="results-title"><strong id="result-count">36</strong> strategies shown</span><span>Concepts, not balance results</span></div>
+      <div class="cards" id="strategy-grid"></div>
+    </section>
+
+    <section class="first-eight wrap" aria-labelledby="first-eight-title">
+      <div class="first-eight-box">
+        <p class="eyebrow">Recommended next gate</p>
+        <h2 id="first-eight-title">Build these eight first</h2>
+        <p>They deliberately oppose one another: pure raid and interception,
+          fixed and emergent veterans, offensive and defensive wave timing,
+          durable construction and its direct demolition counter.</p>
+        <div class="quick-list" id="quick-list"></div>
+      </div>
+    </section>
+  </main>
+
+  <div class="compare-tray" id="compare-tray" hidden>
+    <div class="compare-picks" id="compare-picks" aria-live="polite"></div>
+    <button class="compare-open" id="compare-open" type="button">Compare</button>
+  </div>
+
+  <dialog id="compare-dialog" aria-labelledby="compare-title">
+    <div class="dialog-head">
+      <h2 id="compare-title">Strategy comparison</h2>
+      <button class="dialog-close" id="dialog-close" type="button">Close</button>
+    </div>
+    <div class="compare-grid" id="compare-grid"></div>
+  </dialog>
+
+  <footer>
+    <div class="wrap">Generated from ARC-RELAY-TAPLINE-SHEET-STRATEGY-CATALOG.md · candidate design surface · Tapline-3 remains unchanged.</div>
+  </footer>
+
+  <script>
+    const DATA = {"categories":[{"key":"A","title":"Charge-route doctrines","slug":"charge","short":"Charge routes","mark":"1·2·4"},{"key":"B","title":"Theft, recovery, and carrier logistics","slug":"logistics","short":"Theft & logistics","mark":"↗"},{"key":"C","title":"Veteran command doctrines","slug":"veteran","short":"Veteran command","mark":"★"},{"key":"D","title":"Respawn-wave doctrines","slug":"wave","short":"Respawn waves","mark":"30"},{"key":"E","title":"Persistent terrain and deployment doctrines","slug":"deployment","short":"Deployments","mark":"▦"},{"key":"F","title":"Hybrid, adaptive, and counter-meta doctrines","slug":"hybrid","short":"Adaptive hybrids","mark":"◇"}],"strategies":[{"id":1,"number":"01","name":"Nine Small Steps","category":"charge","categoryKey":"A","categoryTitle":"Charge routes","recommended":false,"roster":"Relay x2; Palisade, Patchbay, Mason, Hush, Lantern, Towline","thesis":"Service the own Well for nine 1-charge banks, keep both Relays alive, and turn the home approach into the safest logistics line on the map. The Mason also guards the same Core source that would be worth 4 to the enemy.","why":"It accepts the slowest possible clock in exchange for short routes and dense support. The opponent should race five centre Cores or raid this supposedly safe Well, not mirror its home posture.","counter":"Losing even one late birth can strand it below nine; a faster plan can simply make its safety irrelevant."},{"id":2,"number":"02","name":"Centre Dividend","category":"charge","categoryKey":"A","categoryTitle":"Charge routes","recommended":false,"roster":"Repulsor x2; Relay, Patchbay, Palisade, Hush, Lantern, Sunder","thesis":"Own the centre long enough to bank five 2-charge Cores. Twin Repulsors break clustered contests while the remaining cast sustains and reveals the central fight.","why":"Its resource is repeatable centre tenure rather than courier distance or a single heist. It creates a readable “move the champions off the ring” match.","counter":"Split pressure makes eight centre-oriented bodies expensive; deep raiders can win with fewer deliveries while it keeps paying for the same ground."},{"id":3,"number":"03","name":"Two Heists and a Tip","category":"charge","categoryKey":"A","categoryTitle":"Charge routes","recommended":true,"roster":"Kestrel x2; Relay, Veil, Lantern, Hush, Towline, Patchbay","thesis":"Bank two enemy-Well Cores for 4 + 4, then close with one own Core. Twin Kestrels create two raid timings; smoke, information, suppression, hook, and repair support extraction rather than a standing frontline.","why":"It tries to win in only three banks and makes each far pickup a major public event. Every death or intercepted Core matters far more than in a nine-bank plan.","counter":"A prepared home guard, body block, or lost premium Core can collapse the entire arithmetic; the opponent should force it to play for 2s and 1s with a roster built for raids."},{"id":4,"number":"04","name":"Bridge and Heist","category":"charge","categoryKey":"A","categoryTitle":"Charge routes","recommended":false,"roster":"Towline x2; Relay, Switchback, Patchbay, Palisade, Lantern, Sunder","thesis":"Secure one 4-charge raid, two centre banks, and a safe closer for 4 + 2 + 2 + 1. One Towline works the far theft while the other controls the centre bridge.","why":"Unlike the all-in heist, this is a four-bank portfolio with one premium commitment and a planned fallback. The opponent has to decide whether to over-defend the far Well or break its centre income.","counter":"It can be merely adequate everywhere and dominant nowhere; concentrated centre control can deny both its 2s after surviving the first raid."},{"id":5,"number":"05","name":"Exact Change","category":"charge","categoryKey":"A","categoryTitle":"Charge routes","recommended":false,"roster":"Switchback x2; Relay, Kestrel, Lantern, Patchbay, Hush, Towline","thesis":"Re-evaluate the cheapest available source after every bank. At 5 total charge seek 4, at 7 seek 2, and at 8 seek 1; in earlier states compare the next complete recipe with source availability rather than defaulting to the nearest Core. The two Switchbacks rescue whichever runner currently carries the needed denomination.","why":"The plan is defined by score arithmetic rather than a favored lane. Denying one denomination can force a visible route change, so the opponent can manipulate its next commitment.","counter":"Adaptation costs travel and can produce indecisive rotations; pressure two sources at once and make the “correct” value too slow to collect."},{"id":6,"number":"06","name":"Premium Lockout","category":"charge","categoryKey":"A","categoryTitle":"Charge routes","recommended":false,"roster":"Mason x2; Nest, Minesmith, Hush, Relay, Patchbay, Lantern","thesis":"Treat the own Well first as the enemy's 4-charge source and only second as this team's 1-charge source. Hold it with two durable barriers and a deployment net while the Relay works centre and opportunistic home Cores.","why":"This is value denial, not ordinary home camping: it tries to force the opponent to make nine safe banks or win repeated centre fights while protecting the single source that enables three-bank wins.","counter":"It spends many slots preventing hypothetical value. Ignore the fortress, clear the centre, and win before its low-throughput route pays back."},{"id":7,"number":"07","name":"Turncoat Intercept","category":"logistics","categoryKey":"B","categoryTitle":"Theft & logistics","recommended":true,"roster":"Towline x2; Sunder, Longshot, Relay, Lantern, Hush, Kestrel","thesis":"Let the enemy collect its nearby 1-charge Core, cut the return route with hooks and focused fire, then reverse the dropped Core across the map for 4 charge.","why":"The enemy performs the dangerous pickup and first leg of transport for you. Its timing target is a carrier leaving the Well, not control of the Well itself.","counter":"Escort the cheap Core, use another return lane, or deliberately leave it loose; the interceptors otherwise wait in the wrong place and concede centre."},{"id":8,"number":"08","name":"Loose Gold Recovery","category":"logistics","categoryKey":"B","categoryTitle":"Theft & logistics","recommended":false,"roster":"Lantern x2; Kestrel, Relay, Towline, Veil, Patchbay, Repulsor","thesis":"Maintain a mobile recovery pair whose first claim is the highest-value known loose Core, wherever an earlier fight dropped it. Twin Lanterns keep the objective ledger fresh while Kestrel reaches the recovery before a conventional runner.","why":"It treats a failed 4-charge raid as persistent strategic state rather than a discarded attempt. Battles can have a second act around the same valuable object.","counter":"Bait the recovery team with a visible premium Core, then bank elsewhere; smoke, stale information, and simultaneous loose Cores stretch its specialist slots."},{"id":9,"number":"09","name":"Double Relay Airbridge","category":"logistics","categoryKey":"B","categoryTitle":"Theft & logistics","recommended":false,"roster":"Relay x2; Palisade, Patchbay, Lantern, Hush, Mason, Kestrel","thesis":"Stage two distinct catch points and move a 4-charge Core through two bounded Arc Toss legs rather than one continuous carrier path. The Mason and Palisade protect the public catch geometry.","why":"Its weak points are receivers and landing lanes, not the carrier's entire walk. The opponent can win by breaking one scheduled catch rather than grinding through a convoy.","counter":"Occupy a landing tile, Hush either Relay, destroy the forward barrier, or force a rushed neutral drop between stages."},{"id":10,"number":"10","name":"Exchange Catch","category":"logistics","categoryKey":"B","categoryTitle":"Theft & logistics","recommended":false,"roster":"Switchback x2; Relay, Patchbay, Palisade, Towline, Lantern, Kestrel","thesis":"When a carrier is trapped, Exchange it with a waiting Switchback. The Core intentionally drops at departure; the arriving Switchback becomes the recovery body while the damaged carrier escapes.","why":"It converts Exchange's mandatory carrier drop into a designed custody change instead of treating the skill as failed transport. The public endpoint tell creates an understandable rescue puzzle.","counter":"Occupy either endpoint, damage the link, cover the departure Core, or make the low-hull Switchback win the follow-up fight."},{"id":11,"number":"11","name":"Hook and Reverse","category":"logistics","categoryKey":"B","categoryTitle":"Theft & logistics","recommended":false,"roster":"Towline x2; Sunder, Relay, Repulsor, Patchbay, Hush, Lantern","thesis":"Pull a carrier into a prepared short-range pocket, scatter its escorts, paint the carrier, and give the released Core to Relay for the counter-bank.","why":"It is not denial for denial's sake: the entire formation exists to turn a hostile possession into this team's next scoring attempt.","counter":"Prism cover can eat hook bolts, Hush can remove the combo, and a disciplined carrier can route outside the pocket and make the formation idle."},{"id":12,"number":"12","name":"Blackout Convoy","category":"logistics","categoryKey":"B","categoryTitle":"Theft & logistics","recommended":false,"roster":"Veil x2; Relay, Lantern, Palisade, Patchbay, Hush, Mason","thesis":"Escort one premium Core through overlapping smoke windows, using Lantern to preserve the team's own read and durable cover to protect the exit when smoke ends.","why":"It trades map breadth for an information asymmetry and a single protected 4-charge journey. The duel is “reveal, wait, or enter blind,” not merely focus-fire the carrier.","counter":"Twin Lantern coverage, adjacency, Hush, area damage, or attacking the conceded Wells can make two Veils an expensive luxury."},{"id":13,"number":"13","name":"Crowned Rail","category":"veteran","categoryKey":"C","categoryTitle":"Veteran command","recommended":true,"roster":"Patchbay x2; Longshot, Sunder, Mason, Lantern, Palisade, Relay","thesis":"Longshot is the authored ace. Sunder helps it secure kills, Patchbays repair its role specifically, and Mason/Palisade protect its firing lane while it invests damage, reach, and vitality.","why":"A fragile artillery body becomes a visible long-horizon asset whose growth changes how aggressively the team can cover a premium raid.","counter":"Dive or smoke the rail line, force the supports off objectives, or collect the veteran bounty before its investment repays the slots protecting it."},{"id":14,"number":"14","name":"Hook Captain","category":"veteran","categoryKey":"C","categoryTitle":"Veteran command","recommended":false,"roster":"Towline, Sunder, Patchbay, Hush, Relay, Kestrel, Mason, Repulsor","thesis":"A singleton Towline begins as a centre interceptor, farms ordinary combat XP, and at a level threshold becomes the captain of a far-route hunting group. Support follows the role, not whichever ally is currently weakest.","why":"Veterancy changes this body's job mid-match—from local control to premium-carrier hunter—so protecting or killing it changes the team's geography.","counter":"Deny early kills, bait the hook, or attack the lane it abandons after promotion."},{"id":15,"number":"15","name":"Carrier Crown","category":"veteran","categoryKey":"C","categoryTitle":"Veteran command","recommended":false,"roster":"Patchbay x2; Relay, Palisade, Mason, Lantern, Kestrel, Hush","thesis":"Relay first fights and invests to become a durable veteran, then becomes the designated 4-charge carrier with two medics and role-following escorts. It must choose quiet investment ticks before picking up because carrying still blocks investment.","why":"It makes “cash out the veteran as a courier” a deliberate transition and exposes a real tempo choice between scoring now and upgrading first.","counter":"Force an early pickup, focus the ace before the transition, or contest two Wells so the escort stack cannot follow both."},{"id":16,"number":"16","name":"Emergent Standard","category":"veteran","categoryKey":"C","categoryTitle":"Veteran command","recommended":true,"roster":"Kestrel, Palisade, Towline, Patchbay, Lantern, Hush, Relay, Sunder","thesis":"No body is pre-crowned. The Patchbay and screen use most-experienced-ally only after someone reaches level 2, making the first successful fighter the team's temporary standard-bearer.","why":"Its protagonist emerges from the match rather than the JSON. Different early kills produce different formations and replay stories without nondeterminism.","counter":"Trade evenly so no leader separates, kill the new standard immediately, or exploit the support rotation when experience changes hands."},{"id":17,"number":"17","name":"Twin Pretenders","category":"veteran","categoryKey":"C","categoryTitle":"Veteran command","recommended":false,"roster":"Longshot x2; Patchbay, Mason, Sunder, Lantern, Relay, Hush","thesis":"One Longshot works each outer corridor. Both may become ace, but the central support group rallies to the highest-level candidate; an equal veteran tie resolves by the declared distance and stable-ID rules.","why":"The wildcard becomes redundancy and an internal race rather than raw stacking. Pressure in one theater can crown the other candidate and redirect the whole team.","counter":"Keep both candidates below level 2, attack the unsupported one after the rally, or induce rapid lead changes that waste support travel."},{"id":18,"number":"18","name":"Succession Line","category":"veteran","categoryKey":"C","categoryTitle":"Veteran command","recommended":false,"roster":"Patchbay x2; Longshot, Towline, Mason, Relay, Lantern, Hush","thesis":"Longshot is the primary ace and Towline the named heir. Supports stay with the primary while its role is live, then immediately fall through to the heir's orders on death rather than searching for a new emergent leader.","why":"It pays some peak power for predictable resilience. Killing the ace wins a window but does not erase the team's command plan.","counter":"Damage the heir before killing the ace, or force the primary to retreat alive so the fallback never activates."},{"id":19,"number":"19","name":"Green-Window Diver","category":"wave","categoryKey":"D","categoryTitle":"Respawn waves","recommended":false,"roster":"Kestrel x2; Repulsor, Towline, Relay, Lantern, Hush, Patchbay","thesis":"The interceptors may make sacrificial carrier dives only while enough time remains to die, satisfy the 15-tick minimum, and return on the next wave. Near the eligibility cutoff they screen or retreat instead.","why":"Death becomes a scheduled resource. The opponent can stall a diver across the cutoff rather than merely kill it faster.","counter":"Kite the dive until it misses eligibility, then take the objective during its 44-tick absence."},{"id":20,"number":"20","name":"Cutoff Execution","category":"wave","categoryKey":"D","categoryTitle":"Respawn waves","recommended":true,"roster":"Sunder x2; Longshot, Towline, Hush, Lantern, Patchbay, Relay","thesis":"Hold or kite damaged enemies while they can still qualify for the next wave; once ticks-until-respawn-wave falls below the 16-tick eligibility window, paint and focus them so a death misses that wave and waits for the following one.","why":"The same kill has different strategic value based on when it lands. The public countdown makes the intent readable and lets the victim retreat before the execution window.","counter":"Force an early fight, disengage as the bell passes, or use the pre-bell restraint to bank uncontested."},{"id":21,"number":"21","name":"Beat-the-Bell Courier","category":"wave","categoryKey":"D","categoryTitle":"Respawn waves","recommended":false,"roster":"Relay x2; Kestrel, Switchback, Palisade, Patchbay, Lantern, Hush","thesis":"When enemy bodies are due on the next wave, the carrier and its minimum escort take urgent routes and spend transport cooldowns to bank before those slots return.","why":"It converts a temporary numbers edge into an explicit race against a visible timer rather than an indefinite deathball.","counter":"Body-block or displace the courier for a few ticks; once the wave arrives, its spent cooldowns and exposed route become liabilities."},{"id":22,"number":"22","name":"Wavefront Eight","category":"wave","categoryKey":"D","categoryTitle":"Respawn waves","recommended":false,"roster":"Palisade x2; Patchbay, Mason, Sunder, Relay, Lantern, Hush","thesis":"Survivors withdraw to a rally while several allies are due, then all eight launch from the same wave behind two projectile screens and one durable route block.","why":"It deliberately gives up short-term map tempo for a legible full-strength push. The regroup condition is public and can be punished rather than happening through hidden formation code.","counter":"Harvest two Wells during the rally, seed the exit, or split the wavefront across routes its concentrated protection cannot cover."},{"id":23,"number":"23","name":"Pre-Wave Evacuation","category":"wave","categoryKey":"D","categoryTitle":"Respawn waves","recommended":true,"roster":"Switchback x2; Kestrel, Patchbay, Veil, Relay, Palisade, Lantern","thesis":"When multiple enemies are about to respawn, preserve the live veteran and carrier: exchange weak allies out, smoke the retreat, and concede the current fight before fresh bodies arrive.","why":"It values continuity and veteran survival over one more contested tick. A wave becomes a reason to stop fighting, not only to start.","counter":"Chase the evacuation, occupy Exchange endpoints, or take the conceded premium Core without following into smoke."},{"id":24,"number":"24","name":"Open-Window Raid","category":"wave","categoryKey":"D","categoryTitle":"Respawn waves","recommended":false,"roster":"Kestrel x2; Relay, Veil, Towline, Hush, Lantern, Repulsor","thesis":"If several enemies are absent and few or none return on the next bell, the two Kestrels abandon routine coverage and attack the enemy Well; otherwise they remain elastic reserve.","why":"It spends a measured manpower window on the highest-value source rather than simply pushing the nearest fight.","counter":"Keep one durable home guard alive, leave a sentry, or trade bodies so the apparent opening ends on the next wave."},{"id":25,"number":"25","name":"Double Mason Lockbox","category":"deployment","categoryKey":"E","categoryTitle":"Deployments","recommended":true,"roster":"Mason x2; Nest, Minesmith, Hush, Relay, Patchbay, Lantern","thesis":"One Mason protects the own Well from a 4-charge theft while the other bends the centre return route. Both preserve their 30-tick barriers until damaged, expiring, or strategically obsolete.","why":"The wildcard buys simultaneous ownership of two specific tiles, but only at the cost of slow bodies and little direct pressure. Barrier state persists long enough for an opponent to plan a demolition or third-lane answer.","counter":"Hush one lock, shoot the other, lob over it, or raid the deliberately unbuilt lane."},{"id":26,"number":"26","name":"Leapfrog Wall","category":"deployment","categoryKey":"E","categoryTitle":"Deployments","recommended":false,"roster":"Relay x2; Mason, Palisade, Patchbay, Lantern, Hush, Kestrel","thesis":"A single Mason deliberately replaces its still-active barrier at successive forward anchors as a premium convoy advances. The previous safe tile is abandoned each time.","why":"deployment-active becomes a relocation choice, not an automatic “do not cast” guard. Every recast visibly trades rear security for forward tempo.","counter":"Attack from behind after replacement, force an early recast at a bad anchor, or destroy the Mason before the next leap."},{"id":27,"number":"27","name":"Rearguard Wall","category":"deployment","categoryKey":"E","categoryTitle":"Deployments","recommended":false,"roster":"Mason x2; Relay, Towline, Patchbay, Veil, Lantern, Switchback","thesis":"The Masons place behind a withdrawing carrier, alternating two barriers so the egress closes in stages while the front remains physically open to the courier.","why":"It uses the same deployment as Double Mason and Leapfrog but reverses the geometry and timing: the investment protects distance already won rather than territory ahead.","counter":"Flank the barrier chain, use Falling Star, or force the carrier to retreat through its own blocked line."},{"id":28,"number":"28","name":"Wall-Mine Fork","category":"deployment","categoryKey":"E","categoryTitle":"Deployments","recommended":false,"roster":"Minesmith x2; Mason, Mortar, Nest, Lantern, Hush, Relay","thesis":"Mason closes the clean return gate, each Minesmith watches an alternate, and Mortar punishes bodies that stop to dismantle the visible choice.","why":"It authors a route dilemma with three different counters rather than stacking damage on one tile. The opponent chooses to break, trigger, suppress, or reroute.","counter":"A coordinated Hush breach, long-range demolition, or an uncaptured third route can make the entire network miss the carrier."},{"id":29,"number":"29","name":"Sentinel Lease","category":"deployment","categoryKey":"E","categoryTitle":"Deployments","recommended":false,"roster":"Nest x2; Mason, Minesmith, Hush, Lantern, Relay, Patchbay","thesis":"Two Nests seed long-lived sentries at centre approaches, then leave most bodies free to work outer Wells while deployment-active and remaining tenure say the lease still holds.","why":"Deployments substitute bounded time for body labor. The sheet's core decision is whether to preserve remote coverage or return and renew it before the next centre birth.","counter":"Clear a sentry immediately after its owner leaves, suppress it during the scoring window, or attack the outer force while Nests travel back to renew."},{"id":30,"number":"30","name":"Demolition March","category":"deployment","categoryKey":"E","categoryTitle":"Deployments","recommended":true,"roster":"Longshot x2; Mortar, Hush, Lantern, Sunder, Relay, Kestrel","thesis":"Treat hostile deployments as the first target of a premium raid: Lantern reveals, Hush suppresses, Longshots or Mortar clear, and only then does Relay enter the defended lane.","why":"It is a counter-sheet whose specialist labor has a concrete conversion into a 4-charge attempt. A builder opponent can rotate its construct and make the demolition line chase.","counter":"Fight with base verbs, place in another theater, or attack while the fragile demolition cast is aimed at objects rather than bodies."},{"id":31,"number":"31","name":"Crown Bait","category":"hybrid","categoryKey":"F","categoryTitle":"Adaptive hybrids","recommended":false,"roster":"Relay x2; Palisade, Patchbay, Kestrel, Veil, Hush, Lantern","thesis":"Build a visible, high-vitality Palisade veteran at centre and give it just enough support to look like the strategic centerpiece. The two Relays and Kestrel use the attention to threaten a far 4-charge route.","why":"The ace is deliberately a decoy and tank, not the win condition. The opponent must decide whether the bounty is worth leaving the actual scorers.","counter":"Ignore the crown, attack the runners, and force the expensive veteran to win the objective rather than merely survive."},{"id":32,"number":"32","name":"Bounty Hounds","category":"hybrid","categoryKey":"F","categoryTitle":"Adaptive hybrids","recommended":false,"roster":"Sunder x2; Towline, Kestrel, Longshot, Lantern, Hush, Relay","thesis":"When a visible enemy reaches level 2, the hunting group elevates veteran above carrier and nearest targets, using paint, hook, and rail to erase the investment and claim its XP bounty.","why":"It attacks the opponent's long-horizon asset directly and makes veteran protection part of both sheets' strategy.","counter":"Hide or retreat the ace, present it as bait, or race safe score while the hounds abandon Wells for a non-scoring kill."},{"id":33,"number":"33","name":"Scoreboard Gearbox","category":"hybrid","categoryKey":"F","categoryTitle":"Adaptive hybrids","recommended":false,"roster":"Relay x2; Kestrel, Towline, Patchbay, Hush, Lantern, Mason","thesis":"When ahead in total public charge, preserve the own Well and collect safe 1s; when behind, release the home group and attack 4, with a centre fallback when neither side has a decisive threshold.","why":"Its risk posture changes with the game state rather than at a fixed tick. The same roster visibly shifts from protecting a lead to buying comeback variance.","counter":"Pressure during the travel-heavy gear change, or maintain a score state that keeps it oscillating between incomplete plans."},{"id":34,"number":"34","name":"Ghost Fort Rotation","category":"hybrid","categoryKey":"F","categoryTitle":"Adaptive hybrids","recommended":false,"roster":"Mason x2; Nest, Veil, Relay, Kestrel, Lantern, Hush","thesis":"Build a conspicuous durable fort on one outer route, show enough bodies to sell the commitment, then leave the constructs as a cheap threat while smoke and fast bodies rotate to centre or the opposite Well.","why":"Long deployment tenure creates a visible feint that outlasts the bodies who placed it. The opponent chooses whether the fort is an active plan or stranded capital.","counter":"Count bodies, ignore the static objects, and attack the rotation before it establishes new cover."},{"id":35,"number":"35","name":"Three-Well Auction","category":"hybrid","categoryKey":"F","categoryTitle":"Adaptive hybrids","recommended":false,"roster":"Kestrel x2; Relay, Towline, Lantern, Patchbay, Hush, Palisade","thesis":"Treat each announced birth as an auction scored by bank value, outstanding Core state, local enemy presence, and wave manpower. A two-body elastic reserve goes to the best current lot while fixed minimum crews keep the other two theaters from collapsing.","why":"It is breadth with explicit opportunity cost, not “everyone takes the nearest Core.” The opponent can overbid one Well to pull the reserve away from another.","counter":"Concentrate enough force that a two-body response is always late, or feint presence at one birth and immediately rotate."},{"id":36,"number":"36","name":"Forked Finish","category":"hybrid","categoryKey":"F","categoryTitle":"Adaptive hybrids","recommended":false,"roster":"Relay x2; Kestrel, Palisade, Patchbay, Towline, Veil, Lantern","thesis":"At 8 total charge, split into two simultaneous winning threats: one small group takes the nearby 1 while the main group threatens a far 4. At 7, pair a centre 2 threat with the far route instead.","why":"Score arithmetic creates a late-game fork rather than a single obvious final Core. The defender must allocate against two legal wins with different travel and escort requirements.","counter":"Intercept before the split, retain an elastic reserve, or force the attackers to regroup by dropping one threat's carrier."}]};
+    const state = { category: "all", query: "", recommended: false, expanded: false, compare: [] };
+    const byId = new Map(DATA.strategies.map((strategy) => [strategy.id, strategy]));
+    const grid = document.getElementById("strategy-grid");
+    const filters = document.getElementById("filters");
+    const resultCount = document.getElementById("result-count");
+    const searchInput = document.getElementById("search");
+    const recommendedToggle = document.getElementById("recommended-toggle");
+    const expandToggle = document.getElementById("expand-toggle");
+    const compareTray = document.getElementById("compare-tray");
+    const comparePicks = document.getElementById("compare-picks");
+    const compareDialog = document.getElementById("compare-dialog");
+    const compareGrid = document.getElementById("compare-grid");
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"]/g, (character) => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;"
+      })[character]);
+    }
+
+    function rosterChips(roster) {
+      return roster.split(/[;,]/).map((entry) => entry.trim()).filter(Boolean)
+        .map((entry) => `<span class="bot ${/x2$/.test(entry) ? "pair" : ""}">${escapeHtml(entry)}</span>`).join("");
+    }
+
+    function card(strategy) {
+      return `<article class="card ${strategy.recommended ? "recommended" : ""}" data-id="${strategy.id}" data-category="${strategy.category}">
+        <div class="card-head">
+          <div class="card-meta"><span class="number">${strategy.number}</span><span class="family">${escapeHtml(strategy.categoryTitle)}</span></div>
+          <h3>${escapeHtml(strategy.name)}</h3>
+        </div>
+        <p class="plan">${escapeHtml(strategy.thesis)}</p>
+        <div class="roster" aria-label="Roster">${rosterChips(strategy.roster)}</div>
+        <details>
+          <summary>Why it is distinct · how to answer it</summary>
+          <div class="details">
+            <div><span class="detail-label">Why it could be fun</span><p>${escapeHtml(strategy.why)}</p></div>
+            <div><span class="detail-label">Failure / counterplay</span><p>${escapeHtml(strategy.counter)}</p></div>
+          </div>
+        </details>
+        <div class="card-actions"><button class="compare-add" type="button" data-compare="${strategy.id}" aria-pressed="false">Add to compare</button></div>
+      </article>`;
+    }
+
+    function renderCards() {
+      grid.innerHTML = DATA.strategies.map(card).join("") + `<div class="empty" hidden>No strategy matches those filters.</div>`;
+      grid.querySelectorAll("[data-compare]").forEach((button) => {
+        button.addEventListener("click", () => toggleCompare(Number(button.dataset.compare)));
+      });
+      applyFilters();
+      syncCompare();
+    }
+
+    function renderFilters() {
+      const buttons = [{ slug: "all", short: "All", count: DATA.strategies.length }, ...DATA.categories.map((category) => ({
+        slug: category.slug,
+        short: category.short,
+        count: DATA.strategies.filter((strategy) => strategy.category === category.slug).length
+      }))];
+      filters.innerHTML = buttons.map((item) => `<button class="filter" type="button" data-filter="${item.slug}" aria-pressed="${item.slug === "all"}">${escapeHtml(item.short)} <small>${item.count}</small></button>`).join("");
+      filters.querySelectorAll("[data-filter]").forEach((button) => {
+        button.addEventListener("click", () => {
+          state.category = button.dataset.filter;
+          filters.querySelectorAll("[data-filter]").forEach((candidate) => candidate.setAttribute("aria-pressed", String(candidate === button)));
+          applyFilters();
+        });
+      });
+    }
+
+    function applyFilters() {
+      const needle = state.query.toLocaleLowerCase();
+      let shown = 0;
+      grid.querySelectorAll(".card").forEach((element) => {
+        const strategy = byId.get(Number(element.dataset.id));
+        const haystack = `${strategy.name} ${strategy.roster} ${strategy.thesis} ${strategy.why} ${strategy.counter}`.toLocaleLowerCase();
+        const visible = (state.category === "all" || strategy.category === state.category)
+          && (!state.recommended || strategy.recommended)
+          && (!needle || haystack.includes(needle));
+        element.hidden = !visible;
+        shown += visible ? 1 : 0;
+        const details = element.querySelector("details");
+        if (details) details.open = state.expanded;
+      });
+      grid.querySelector(".empty").hidden = shown !== 0;
+      resultCount.textContent = String(shown);
+    }
+
+    function toggleCompare(id) {
+      const current = state.compare.indexOf(id);
+      if (current >= 0) state.compare.splice(current, 1);
+      else if (state.compare.length < 3) state.compare.push(id);
+      else {
+        compareTray.animate([{ transform: "translateX(-50%)" }, { transform: "translateX(-51.5%)" }, { transform: "translateX(-48.5%)" }, { transform: "translateX(-50%)" }], { duration: 220 });
+      }
+      syncCompare();
+    }
+
+    function syncCompare() {
+      grid.querySelectorAll("[data-compare]").forEach((button) => {
+        const selected = state.compare.includes(Number(button.dataset.compare));
+        button.setAttribute("aria-pressed", String(selected));
+        button.textContent = selected ? "Remove from compare" : "Add to compare";
+      });
+      compareTray.hidden = state.compare.length === 0;
+      comparePicks.innerHTML = state.compare.map((id) => `<span class="pick">${String(id).padStart(2, "0")} · ${escapeHtml(byId.get(id).name)}</span>`).join("");
+      document.getElementById("compare-open").textContent = `Compare ${state.compare.length}`;
+    }
+
+    function openComparison() {
+      compareGrid.style.setProperty("--compare-count", String(Math.max(1, state.compare.length)));
+      compareGrid.innerHTML = state.compare.map((id) => {
+        const strategy = byId.get(id);
+        return `<article class="compare-column">
+          <span class="number">${strategy.number} · ${escapeHtml(strategy.categoryTitle)}</span>
+          <h3>${escapeHtml(strategy.name)}</h3>
+          <section><span class="detail-label">Plan</span><p>${escapeHtml(strategy.thesis)}</p></section>
+          <section><span class="detail-label">Roster</span><p>${escapeHtml(strategy.roster)}</p></section>
+          <section><span class="detail-label">Why distinct</span><p>${escapeHtml(strategy.why)}</p></section>
+          <section><span class="detail-label">Counterplay</span><p>${escapeHtml(strategy.counter)}</p></section>
+        </article>`;
+      }).join("");
+      compareDialog.showModal();
+    }
+
+    function renderQuickList() {
+      const quick = DATA.strategies.filter((strategy) => strategy.recommended);
+      document.getElementById("quick-list").innerHTML = quick.map((strategy) => `<a class="quick" href="#strategy-${strategy.id}" data-jump="${strategy.id}"><small>${strategy.number} · ${escapeHtml(strategy.categoryTitle)}</small><b>${escapeHtml(strategy.name)}</b></a>`).join("");
+      document.querySelectorAll("[data-jump]").forEach((link) => {
+        link.addEventListener("click", (event) => {
+          event.preventDefault();
+          state.category = "all";
+          state.recommended = false;
+          state.query = "";
+          searchInput.value = "";
+          recommendedToggle.setAttribute("aria-pressed", "false");
+          filters.querySelectorAll("[data-filter]").forEach((button) => button.setAttribute("aria-pressed", String(button.dataset.filter === "all")));
+          applyFilters();
+          const target = grid.querySelector(`[data-id="${link.dataset.jump}"]`);
+          target.id = `strategy-${link.dataset.jump}`;
+          target.scrollIntoView({ block: "start" });
+        });
+      });
+    }
+
+    function updateSearch(event) {
+      state.query = event.target.value.trim();
+      applyFilters();
+    }
+    searchInput.addEventListener("input", updateSearch);
+    searchInput.addEventListener("search", updateSearch);
+    searchInput.addEventListener("change", updateSearch);
+    recommendedToggle.addEventListener("click", () => {
+      state.recommended = !state.recommended;
+      if (state.recommended) {
+        state.category = "all";
+        state.query = "";
+        searchInput.value = "";
+        filters.querySelectorAll("[data-filter]").forEach((button) => button.setAttribute("aria-pressed", String(button.dataset.filter === "all")));
+      }
+      recommendedToggle.setAttribute("aria-pressed", String(state.recommended));
+      applyFilters();
+    });
+    expandToggle.addEventListener("click", () => {
+      state.expanded = !state.expanded;
+      expandToggle.setAttribute("aria-pressed", String(state.expanded));
+      expandToggle.textContent = state.expanded ? "Collapse" : "Expand";
+      applyFilters();
+    });
+    document.getElementById("compare-open").addEventListener("click", openComparison);
+    document.getElementById("dialog-close").addEventListener("click", () => compareDialog.close());
+    compareDialog.addEventListener("click", (event) => {
+      if (event.target === compareDialog) compareDialog.close();
+    });
+
+    renderFilters();
+    renderCards();
+    renderQuickList();
+  </script>
+</body>
+</html>
