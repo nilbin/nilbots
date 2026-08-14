@@ -8406,3 +8406,27 @@ This is a renderer-audio asset replacement only. Hardlight's authoritative
 start fact, 0.28-tick cue offset, priority, voice limit, obstacle timing, hull,
 collision, cooldown, replay facts, and gameplay fingerprint do not change.
 Music and ambience remain unchanged, with no ambient loop shipped or played.
+
+## 314. Tapline depth receives a 36-archetype sheet-space gate
+
+Owner strategy-space direction (2026-08-14). A candidate rules pack that
+cannot readily support at least 30 materially distinct sheets is not deep
+enough to justify balance tuning; the long-run ambition is hundreds or
+thousands of viable authored strategies. The initial concept catalog is
+[`ARC-RELAY-TAPLINE-SHEET-STRATEGY-CATALOG.md`](ARC-RELAY-TAPLINE-SHEET-STRATEGY-CATALOG.md)
+and records 36 candidate briefs under the five candidates from Decision #312.
+
+“Distinct” does not mean a new name, roster permutation, route color, or
+threshold. A counted sheet must change a scoring commitment, developed asset,
+concession, timing policy, or intended counter and thereby invite a different
+best reply. The catalog's combinatorial count is evidence of available design
+surface only; authored execution, replay legibility, sacrifice, and counter-web
+behavior remain required before any fun, balance, or population-scale claim.
+
+The catalog audit adds only narrow Orders facts and selectors needed to expose
+the five mechanics: carried/banked Core value, enemy charge remainder,
+highest-value known loose-Core selection, visible-veteran targeting, public
+wave/lifecycle counts, and remaining deployment tenure/durability. These are
+not a sixth gameplay mechanic or a return to named plays. The first eight
+representatives are an authorability tranche, not authorization for a balance
+sweep or promotion of Tapline-3.
