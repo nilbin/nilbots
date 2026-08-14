@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "id": "arc-relay-longshot-railback-palette-retexture-v3",
+  "status": "paid-retexture-authorized",
+  "endpoint": "/openapi/v1/retexture",
+  "ownerAuthorization": "Owner directed a Meshy retexture in a genuinely different color on 2026-08-14.",
+  "runtimeAssetsPromoted": false,
+  "balanceCheck": {
+    "pricingSource": "https://docs.meshy.ai/en/api/pricing",
+    "parameterSource": "https://docs.meshy.ai/en/api/retexture",
+    "verifiedAt": "2026-08-14",
+    "expectedCredits": 10,
+    "balanceBeforePlanning": 1020
+  },
+  "entries": [
+    {
+      "classId": "longshot",
+      "candidateId": "railback-muted-blue-v3",
+      "source": {
+        "taskId": "019fff75-43b1-72d8-a2c9-f9a8b8fa32f2",
+        "endpoint": "multi-image-to-3d",
+        "rawModel": {
+          "file": "art/class-models/provider-runs/meshy/arc-relay-longshot-railback-v1/longshot/019fff75-43b1-72d8-a2c9-f9a8b8fa32f2/raw-model.glb",
+          "bytes": 64759580,
+          "sha256": "a91278f398e1fc9e2c903bb52c3f0cc60bb2a9e372a1c2f7d79e902dee851329"
+        }
+      },
+      "request": {
+        "ai_model": "meshy-7",
+        "text_style_prompt": "Railback Longshot, matte high-roughness. Medium-light muted dusty periwinkle steel-blue powder-coated armor, clearly blue but never teal/cyan, brighter than a dark graphite arena floor. Pale warm-gray ceramic on three capacitor ribs; dull nickel conductors; charcoal shutter/recesses; tiny burgundy insulators. Dry fine grain, crisp panel separation, restrained edge wear. Preserve geometry and UVs. No white nose, white, beige, yellow, orange, teal, cyan, royal/neon blue, saturated pink/purple, glow, glossy plastic, clearcoat, chrome, wet shine, baked lighting, text, logos, eyes, gun/barrel.",
+        "enable_original_uv": true,
+        "enable_pbr": true,
+        "texture_resolution": "2k",
+        "alpha_thumbnail": true,
+        "target_formats": [
+          "glb"
+        ]
+      },
+      "creditCap": 10,
+      "authorized": true,
+      "authorizationConsumed": false,
+      "autoRigging": false
+    }
+  ]
+}
