@@ -1,22 +1,27 @@
 {
   "schemaVersion": 1,
   "id": "arc-veterancy-modules-v1",
-  "status": "five-family-static-checkpoint-awaiting-owner-review",
+  "status": "owner-rejected-concept-fidelity-correction-pending",
   "handoff": "../../../../reviews/veterancy-power-concepts-v1/MESHY-7-HANDOFF-PLAN.md",
   "ownerAuthorization": [
     "Owner asked to try the Meshy 7 veterancy handoff while AFK on 2026-08-14.",
-    "Owner rejected the blade-only/bridge-like study by asking 'What about the crown and feathers etc?!'; this authorized Gate C and one bounded corrective petaled-crown task."
+    "Owner rejected the blade-only/bridge-like study by asking 'What about the crown and feathers etc?!'; this authorized Gate C and one bounded corrective petaled-crown task.",
+    "Owner rejected the resulting level-five composition on 2026-08-14 as 'Not really looking like the conceptual art.' This closes Gate D as failed and does not authorize another paid provider call."
   ],
   "runtimePromotionAuthorized": false,
   "inputBriefs": "INPUT-BRIEFS.md",
   "provider": "Meshy",
   "providerModel": "meshy-7",
-  "acceptedModuleCount": 5,
-  "acceptedModules": [
-    "veterancy-crown-spine-v2",
+  "ownerApprovedModuleCount": 0,
+  "salvageableModules": [
+    "veterancy-crown-spine-v2"
+  ],
+  "ownerRejectedForConceptFidelity": [
     "veterancy-swept-blade",
+    "veterancy-radial-petal"
+  ],
+  "ownerUnreviewedInIsolation": [
     "veterancy-square-mantle",
-    "veterancy-radial-petal",
     "veterancy-curved-rail"
   ],
   "rejectedModels": [
@@ -27,12 +32,12 @@
     }
   ],
   "providerTasks": [
-    { "module": "veterancy-swept-blade", "taskId": "01a0019e-4531-7eaa-9841-c5f968b38979", "credits": 30, "accepted": true },
-    { "module": "veterancy-crown-spine", "taskId": "01a001c4-aa9c-7b46-bf18-db6473395f8b", "credits": 30, "accepted": false },
-    { "module": "veterancy-radial-petal", "taskId": "01a001c9-f953-7c78-955b-0027fc53e9d6", "credits": 30, "accepted": true },
-    { "module": "veterancy-square-mantle", "taskId": "01a001cd-c77a-7656-ad14-daffbca45d25", "credits": 30, "accepted": true },
-    { "module": "veterancy-curved-rail", "taskId": "01a001d2-0a49-7b75-bacd-a9f48010f025", "credits": 30, "accepted": true },
-    { "module": "veterancy-crown-spine-v2", "taskId": "01a001e6-49a2-7e18-b5d8-c6b7240d5d60", "credits": 30, "accepted": true }
+    { "module": "veterancy-swept-blade", "taskId": "01a0019e-4531-7eaa-9841-c5f968b38979", "credits": 30, "technicalReview": "passed", "ownerReview": "rejected-concept-fidelity" },
+    { "module": "veterancy-crown-spine", "taskId": "01a001c4-aa9c-7b46-bf18-db6473395f8b", "credits": 30, "technicalReview": "passed", "ownerReview": "rejected-bridge-silhouette" },
+    { "module": "veterancy-radial-petal", "taskId": "01a001c9-f953-7c78-955b-0027fc53e9d6", "credits": 30, "technicalReview": "passed", "ownerReview": "rejected-concept-fidelity" },
+    { "module": "veterancy-square-mantle", "taskId": "01a001cd-c77a-7656-ad14-daffbca45d25", "credits": 30, "technicalReview": "passed", "ownerReview": "unreviewed-in-isolation" },
+    { "module": "veterancy-curved-rail", "taskId": "01a001d2-0a49-7b75-bacd-a9f48010f025", "credits": 30, "technicalReview": "passed", "ownerReview": "unreviewed-in-isolation" },
+    { "module": "veterancy-crown-spine-v2", "taskId": "01a001e6-49a2-7e18-b5d8-c6b7240d5d60", "credits": 30, "technicalReview": "passed", "ownerReview": "salvageable-after-transform-retake" }
   ],
   "accounting": {
     "creditsConsumed": 180,
@@ -48,21 +53,23 @@
       "status": "historical-input-review-complete",
       "reviewSheet": "../../../../reviews/arc-relay-veterancy-modules-meshy7-v1/gate-a-inputs.png",
       "metrics": "../../../../reviews/arc-relay-veterancy-modules-meshy7-v1/gate-a-input-metrics.json",
-      "note": "The original crown input passed consistency checks but failed to preserve the approved crown language in 3D; the corrective V2 input is separately versioned."
+      "note": "The original crown input failed to preserve the approved crown language. The later owner review also found the swept and radial inputs intrinsically too broad to match the authoritative concept."
     },
     "gateB": {
-      "status": "passed",
+      "status": "owner-rejected-after-composition",
       "pilot": "veterancy-swept-blade",
       "recommendedLateralScale": 0.7,
       "facingYawDegrees": 180
     },
     "gateC": {
-      "status": "complete-with-one-corrective-replacement",
-      "acceptedFamilies": 5,
-      "rejectedProviderResults": 1
+      "status": "generated-results-not-owner-approved",
+      "ownerApprovedFamilies": 0,
+      "rejectedProviderResults": 3,
+      "salvageableProviderResults": 1,
+      "unreviewedProviderResults": 2
     },
     "gateD": {
-      "status": "partial-static-checkpoint-awaiting-owner-review",
+      "status": "failed-owner-concept-fidelity-review",
       "gallery": "../../../../reviews/arc-relay-veterancy-modules-meshy7-v1/index.html",
       "fiveModelSheet": "../../../../reviews/arc-relay-veterancy-modules-meshy7-v1/gate-d/five-real-modules.png",
       "levelFiveSheet": "../../../../reviews/arc-relay-veterancy-modules-meshy7-v1/gate-d/real-crown-and-feathers-level5.png",
@@ -70,9 +77,10 @@
       "gameplayScale": "../../../../reviews/arc-relay-veterancy-modules-meshy7-v1/gate-d/real-level5-gameplay-scale.png",
       "complete": false,
       "remaining": [
-        "per-class fit profiles and all-sixteen static sheet",
-        "the remaining required class rank strips",
-        "owner silhouette approval"
+        "owner approval of the corrected slim-feather 2D candidate",
+        "one replacement feather generation after separately recorded authorization",
+        "concept-aligned Kestrel crown-plus-four-feather composition",
+        "per-class fit profiles and all-sixteen static sheet only after the corrective Kestrel test passes"
       ]
     },
     "gateE": {
@@ -86,5 +94,5 @@
     "verifiedAt": "2026-08-14",
     "retentionNote": "Provider artifacts were downloaded immediately because non-Enterprise API assets may be retained for no more than three days."
   },
-  "nextGate": "Owner review of the corrected crown, real five-module sheet, level-five crown-and-feathers board, and Kestrel rank strip; no runtime promotion or lean optimization before that decision."
+  "nextGate": "Owner review of the corrected slim-feather 2D candidate under reviews/arc-relay-veterancy-modules-meshy7-v1/correction-v2; no further Meshy call, runtime promotion, or optimization before that decision."
 }

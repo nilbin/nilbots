@@ -7,20 +7,21 @@ No GLB here is a runtime asset.
 
 ## Current checkpoint
 
-Five accepted normalized rich model families now exist:
+Gate D failed owner concept-fidelity review on 2026-08-14. Five technically
+valid normalized rich families exist, but none is owner-approved for runtime.
+The owner found that the level-five composition did not resemble the approved
+concept art.
 
-1. corrected `veterancy-crown-spine-v2` — a connected five-petal command crown;
-2. `veterancy-swept-blade`;
-3. `veterancy-radial-petal` — the armored feather/petal family;
-4. `veterancy-square-mantle`;
-5. `veterancy-curved-rail`.
+The V2 crown remains salvageable: its five connected petals match the intended
+family, but the rejected composition showed it too small or edge-on. The swept
+and radial pieces are rejected for this direction because their source sheets
+already describe broad armor wedges rather than slim layered crown feathers.
+Square mantle and curved rail passed technical checks but remain unreviewed in
+isolation after the batch-level rejection.
 
-The first paid `veterancy-crown-spine` task is preserved as rejected evidence.
-It reconstructed the approved input as a low bridge and did not retain the
-petaled crown language visible in the authoritative full-roster concept. The
-owner's “What about the crown and feathers etc?!” correction authorized one
-bounded corrective call. The accepted V2 crown keeps all five petals as one
-spatially connected object.
+`correction-v2/` contains the authoritative references, a corrective fidelity
+brief, and a new slim-feather 2D candidate. No replacement Meshy call has been
+made or authorized.
 
 ## Review evidence
 
@@ -28,11 +29,10 @@ spatially connected object.
 - `gate-c/petaled-crown-input-sheet.png` and
   `gate-c/petaled-crown-provider-preview.png` preserve the corrective crown
   concept and immediate provider result.
-- `gate-d/five-real-modules.png` shows all accepted families together.
-- `gate-d/real-crown-and-feathers-level5.png` shows real level-five
-  compositions; it contains no procedural stand-ins.
-- `gate-d/kestrel-real-rank-1-5-strip.png` shows crown-only rank one through the
-  full five-element crown/blade/feather rank five.
+- `gate-d/five-real-modules.png` preserves the technically valid but
+  owner-unapproved batch.
+- `gate-d/real-crown-and-feathers-level5.png` and
+  `gate-d/kestrel-real-rank-1-5-strip.png` are rejected composition evidence.
 - `gate-d/real-level5-gameplay-scale.png` checks unsharpened 104-pixel reads.
 - `gate-d/composition-capture-record.json` records the rendered model paths,
   capture hashes, and review contract.
@@ -40,15 +40,15 @@ spatially connected object.
 
 ## Provider accounting
 
-Six successful 30-credit tasks were preserved: five accepted families plus the
-rejected bridge-like crown. Total consumed credits are 180; the recorded final
-balance is 830. The official Meshy API does not expose the web gallery's free
-retry facility, so the corrective crown is a separately recorded paid task
-rather than a hidden retry.
+Six successful 30-credit tasks were preserved. Total consumed credits are 180;
+the recorded final balance is 830. The new feather candidate used image
+generation only and consumed no Meshy credits.
 
 ## Boundary
 
-The results remain intentionally rich (roughly 52–66 MB and 1.52–1.99 million
-triangles each). They are not mobile-ready. The all-sixteen fit sheet, lean
-derivatives, runtime integration, veterancy animation, and replay capture remain
-future approval gates.
+The provider results remain intentionally rich (roughly 52–66 MB and
+1.52–1.99 million triangles each), but optimization is irrelevant until the
+silhouette passes. The next gate is owner approval of the corrected slim
+feather input, followed by one separately authorized replacement model and one
+Kestrel composition test. The all-sixteen fit sheet, lean derivatives, runtime
+integration, veterancy animation, and replay capture remain closed.

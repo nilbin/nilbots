@@ -3,7 +3,7 @@
   "id": "veterancy-swept-blade-meshy7-pilot-v1",
   "classId": "veterancy-swept-blade",
   "label": "Veterancy Swept Blade",
-  "status": "owner-review",
+  "status": "rejected-owner-concept-fidelity",
   "providerRunCollection": "arc-veterancy-modules-v1",
   "ownerApproval": "Owner asked to try the Meshy 7 veterancy-model handoff and see whether it flies while AFK on 2026-08-14.",
   "canonicalIdentity": {
@@ -89,7 +89,7 @@
     "expectedCredits": 30,
     "balanceBeforePreparation": 1010
   },
-  "nextGate": "owner review of Gate A and the swept-blade pilot before any remaining module generation; no runtime promotion",
+  "nextGate": "replace the broad wedge input with an owner-approved slim layered feather before any further provider call; no runtime promotion",
   "providerRun": {
     "taskId": "01a0019e-4531-7eaa-9841-c5f968b38979",
     "directory": "../../veterancy-swept-blade/01a0019e-4531-7eaa-9841-c5f968b38979",
@@ -100,7 +100,7 @@
     "rawModelSha256": "1ce6fb55539843f2fa105dd28f57db8e1cf40f226fa78f66688cf1ac55f3f136"
   },
   "reviewGate": {
-    "status": "passed-static-review-with-caveats",
+    "status": "rejected-after-owner-composition-review",
     "runtimePromoted": false,
     "normalizedRichArtifact": "../../veterancy-swept-blade/01a0019e-4531-7eaa-9841-c5f968b38979/model-normalized-rich-review.glb",
     "normalizedRichSha256": "dd11a11b98bd88935fbb1b213671cefa56879dc623943473744fc44a557c4825",

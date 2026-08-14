@@ -3,7 +3,7 @@
   "id": "veterancy-crown-spine-meshy7-corrective-v2",
   "classId": "veterancy-crown-spine-v2",
   "label": "Veterancy Petaled Crown Spine V2",
-  "status": "passed-static-checkpoint",
+  "status": "salvageable-transform-retake-required",
   "providerRunCollection": "arc-veterancy-modules-v1",
   "ownerApproval": "Owner explicitly rejected the blade-only/bridge-like result by asking 'What about the crown and feathers etc?!' on 2026-08-14. This authorizes one bounded corrective crown generation so the reviewed level-five composition contains the visible petaled command crown from the approved roster concept.",
   "canonicalIdentity": {
@@ -93,7 +93,7 @@
     "balanceBeforePreparation": 860,
     "freeRetryAvailableThroughApi": false
   },
-  "nextGate": "owner review of the corrected crown and real level-five composition; no runtime promotion",
+  "nextGate": "concept-aligned orientation, scale, and mounting retake with an approved replacement feather; no runtime promotion",
   "providerRun": {
     "taskId": "01a001e6-49a2-7e18-b5d8-c6b7240d5d60",
     "directory": "../../veterancy-crown-spine-v2/01a001e6-49a2-7e18-b5d8-c6b7240d5d60",
@@ -104,7 +104,7 @@
     "rawModelSha256": "e8ce74b4dcf49f904ba238ccd51b829a69be91b19978c7384e3809199111463f"
   },
   "reviewGate": {
-    "status": "passed-static-checkpoint",
+    "status": "salvageable-after-owner-composition-rejection",
     "runtimePromoted": false,
     "normalizedRichArtifact": "../../veterancy-crown-spine-v2/01a001e6-49a2-7e18-b5d8-c6b7240d5d60/model-normalized-rich-review.glb",
     "normalization": "../../veterancy-crown-spine-v2/01a001e6-49a2-7e18-b5d8-c6b7240d5d60/normalization.json",
@@ -113,6 +113,6 @@
     "rankStrip": "../../../../../../reviews/arc-relay-veterancy-modules-meshy7-v1/gate-d/kestrel-real-rank-1-5-strip.png",
     "orientation": "identity",
     "dimensions": { "x": 0.22, "y": 0.11991886005613431, "z": 0.037808471102170234 },
-    "assessment": "All five petals remain visible on one spatially connected object; this replaces the rejected bridge-like first crown."
+    "assessment": "All five petals remain visible on one spatially connected object, but the owner rejected the level-five composition because the crown was shown too small or edge-on. Geometry is salvageable; presentation is not approved."
   }
 }

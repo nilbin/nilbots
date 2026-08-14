@@ -2,12 +2,11 @@
 
 ## Verdict
 
-**The five-family modeling direction works, and the crown/feather omission is
-now corrected.** The accepted kit contains a visibly petaled crown, a swept
-blade, a radial armored feather/petal, a square mantle, and a broken curved
-rail. Every accepted model is a standalone connected attachment. The current
-level-five and rank-strip evidence uses the real normalized GLBs rather than a
-procedural crown proxy.
+**Gate D failed owner concept-fidelity review.** The technically valid kit does
+not yet reproduce the approved Crowned Mantle identity. The level-five board
+made the crown too small or edge-on and placed broad armor wedges flat across
+the chassis where the concept calls for a compact crown-led arrangement with
+slim layered feathers.
 
 This is a static art-side checkpoint, not final Gate D approval. No runtime
 asset was promoted, no game renderer or replay data was changed, and no replay
@@ -31,60 +30,48 @@ not expose the API-created task for a no-charge gallery retry, so the owner
 correction was recorded as one separate 30-credit corrective cap. Balance moved
 from 860 to 830.
 
-## Accepted module checks
+## Module disposition
 
-- `veterancy-crown-spine-v2`: five fused mechanical petals, readable amber
-  separations, shared mount base, no jewelry or weapon language;
-- `veterancy-swept-blade`: broad low armored fin, corrected to +X front and
-  recommended at `0.70×` lateral renderer scale;
-- `veterancy-radial-petal`: narrow inner stem, broad clipped armored feather
-  cap, low profile, clean radial rotation;
-- `veterancy-square-mantle`: open C-like heavy shoulder with preserved negative
-  space; provider result requires the recorded `lay-flat-x` orientation;
-- `veterancy-curved-rail`: one open capped arc, never a complete halo or
-  selection ring.
+- `veterancy-crown-spine-v2`: salvageable after an orientation, scale, and
+  mounting retake; not owner-approved yet;
+- `veterancy-swept-blade`: rejected for the Crowned Mantle direction because
+  its broad wedge silhouette was already wrong in the input;
+- `veterancy-radial-petal`: rejected for the same broad shovel-like read;
+- `veterancy-square-mantle`: technically sound but owner-unreviewed in
+  isolation after the batch rejection;
+- `veterancy-curved-rail`: technically sound but owner-unreviewed in isolation
+  after the batch rejection.
 
-All five accepted raw models are single Meshy mesh/primitive outputs and each
-passes the spatial connected-component audit. Materials remain in the approved
-aged-brass/graphite/restrained-amber family.
+All five raw candidates remain single Meshy mesh/primitive outputs and pass the
+spatial connected-component audit. Those checks establish technical integrity,
+not concept fidelity.
 
-## Level-five evidence
+## Corrective direction
 
-The Kestrel module-mix proof deliberately combines the corrected crown, swept
-inner pair, and radial outer pair so the owner's missing crown and feather
-language can be judged together on a familiar flat chassis. It is a layout
-study, not a silent rewrite of the handoff's class map. Sunder, Repulsor, and
-Longshot evidence shows additional planned combinations.
-
-The rank strip is monotonic:
-
-1. corrected crown only;
-2. crown plus inner pair;
-3. inner pair spreads and cants;
-4. outer feather/petal pair appears;
-5. crown and both pairs take their strongest size, spread, cant, and restrained
-   energy pose.
-
-The unsharpened 104-pixel sheet retains the compact crown and separates the
-outer pieces from the chassis, although per-class fit work is still required.
+The new `correction-v2/corrected-swept-feather-candidate.png` returns to the
+authoritative winged-crown silhouette: a long narrow face, layered stepped
+vanes, clipped tip, graphite root, and one restrained amber seam. If approved,
+one replacement GLB should be reused at two scales for the inner and outer
+pairs. The existing crown plus those four instances must pass on Kestrel before
+any other family is regenerated.
 
 ## Remaining caveats and next gate
 
-- The accepted models are rich proofs, not mobile candidates: each is roughly
+- The provider models are rich proofs, not mobile candidates: each is roughly
   52–66 MB and 1.52–1.99 million triangles.
-- A generic mount profile is not sufficient. Tall Sunder and the radial
-  Repulsor already prove that each chassis needs its own height, radial angle,
-  lateral spread, and signature-clearance settings.
+- The rejected board proves that layout and orientation are identity-bearing;
+  a technically valid attachment cannot be accepted from an isolated
+  turntable alone.
 - The full all-sixteen static fit sheet and the eight required rank strips are
   not yet complete.
-- Gate E lean work should begin only after the owner approves this corrected
-  crown and the crown/blade/feather level-five read.
+- Gate E lean work remains closed until a concept-matched Kestrel composition
+  passes owner review.
 - Runtime promotion, rank animation, glow ownership, replay evidence, and the
   rejected numeric plate replacement remain separate renderer work.
 
 ## Recommendation
 
-Review the corrected crown six-view, the five-module sheet, the level-five
-composition board, and the Kestrel rank strip together. If the crown and feather
-read is approved, proceed to all-sixteen static fitting before any destructive
-optimization or runtime integration.
+Review the authoritative references beside the corrected slim-feather 2D
+candidate. Do not make another paid call until that input is approved. Then
+generate one replacement feather and retest the crown-plus-four-feather Kestrel
+composition before revisiting the rest of the kit.

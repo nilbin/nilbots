@@ -3,7 +3,7 @@
   "id": "veterancy-square-mantle-meshy7-gate-c-v1",
   "classId": "veterancy-square-mantle",
   "label": "Veterancy Square Mantle",
-  "status": "passed-static-checkpoint",
+  "status": "technical-pass-owner-unreviewed",
   "providerRunCollection": "arc-veterancy-modules-v1",
   "ownerApproval": "Owner rejected the blade-only level-five study and explicitly asked 'What about the crown and feathers etc?!' on 2026-08-14; treated as Gate C approval for the remaining real module families.",
   "canonicalIdentity": {
@@ -89,7 +89,7 @@
     "expectedCredits": 30,
     "balanceBeforePreparation": 980
   },
-  "nextGate": "owner review of the five-family static compositions; no runtime promotion",
+  "nextGate": "deferred until the corrected crown-feather Kestrel composition passes; no runtime promotion",
   "providerRun": {
     "taskId": "01a001cd-c77a-7656-ad14-daffbca45d25",
     "directory": "../../veterancy-square-mantle/01a001cd-c77a-7656-ad14-daffbca45d25",
@@ -100,7 +100,7 @@
     "rawModelSha256": "93b2c811120cf7ef816a4147feec1cebc38fc3f5ea419c3237a5963e96ea2eea"
   },
   "reviewGate": {
-    "status": "passed-static-checkpoint",
+    "status": "technical-pass-owner-unreviewed",
     "runtimePromoted": false,
     "normalizedRichArtifact": "../../veterancy-square-mantle/01a001cd-c77a-7656-ad14-daffbca45d25/model-normalized-rich-review.glb",
     "normalization": "../../veterancy-square-mantle/01a001cd-c77a-7656-ad14-daffbca45d25/normalization.json",
