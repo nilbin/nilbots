@@ -426,7 +426,8 @@ public static class ArcRelayExperimentCommand
                     compilation.PlaybookPath,
                     WithMindStepper(compilation.LinkedData, stepper),
                     compilation.LayoutSha256,
-                    compilation.LayoutPath);
+                    compilation.LayoutPath,
+                    AuthoredSheetId(root));
             }
             JsonElement composition = root.TryGetProperty(
                     "composition",
@@ -450,7 +451,8 @@ public static class ArcRelayExperimentCommand
                     ? EncodeEvaluationSheet(root, sheetHash)
                     : null,
                 LayoutHash: null,
-                LayoutPath: null);
+                LayoutPath: null,
+                SheetId: AuthoredSheetId(root));
         }
 
         string[] selected = hasClasses
@@ -463,8 +465,16 @@ public static class ArcRelayExperimentCommand
             Path: null,
             Data: null,
             LayoutHash: null,
-            LayoutPath: null);
+            LayoutPath: null,
+            SheetId: null);
     }
+
+    private static string? AuthoredSheetId(JsonElement root) =>
+        root.TryGetProperty("sheetId", out JsonElement value)
+        && value.ValueKind == JsonValueKind.String
+        && !string.IsNullOrWhiteSpace(value.GetString())
+            ? value.GetString()
+            : null;
 
     private static bool HasExecutableEvaluationData(JsonElement root) =>
         (root.TryGetProperty("schema", out JsonElement schema)
@@ -1058,9 +1068,17 @@ public static class ArcRelayExperimentCommand
     private static string SheetDisplayName(
         string name,
         SheetSelection sheet) =>
-        sheet.Path is null
-            ? name
-            : Path.GetFileNameWithoutExtension(sheet.Path);
+        SheetIdentity(name, sheet.Path, sheet.SheetId);
+
+    internal static string SheetIdentity(
+        string mindName,
+        string? sheetPath,
+        string? sheetId) =>
+        !string.IsNullOrWhiteSpace(sheetId)
+            ? sheetId
+            : sheetPath is null
+                ? mindName
+                : Path.GetFileNameWithoutExtension(sheetPath);
 
     private static string SideLabel(
         string name,
@@ -1069,7 +1087,7 @@ public static class ArcRelayExperimentCommand
         sheet.Path is null
             ? $"{name} [team {teamId}]"
             : $"{name} [team {teamId}, "
-              + $"{Path.GetFileNameWithoutExtension(sheet.Path)}]";
+              + $"{SheetIdentity(name, sheet.Path, sheet.SheetId)}]";
 
     private static string Reason(GenericActorMatchResult result) =>
         result.Mode is GenericActorMatchModeResult.ArcRelay arc
@@ -1126,7 +1144,8 @@ public static class ArcRelayExperimentCommand
         string? Path,
         byte[]? Data,
         string? LayoutHash,
-        string? LayoutPath);
+        string? LayoutPath,
+        string? SheetId);
 
     private readonly record struct PerfSnapshot(
         TimeSpan Wall,

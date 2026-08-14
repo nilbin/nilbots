@@ -132,6 +132,45 @@ done
 for pid in "${pids[@]}"; do wait "$pid"; done
 grep -H "Result:" "$OUTDIR/$NAME"-*.log | sed "s|$OUTDIR/||"
 
+# The replay header, score bug and end card all use provenance participant
+# names. A package-local filename such as `orders.json` is not a sheet
+# identity and once leaked into an owner gallery with no way to tell which
+# side was under review. Pin the authored sheetId end-to-end before doing any
+# further exhibit work.
+python3 - "$SHEET_A" "$SHEET_B" "$OUTDIR" "$NAME" "$REPO" "${CELLS[@]}" <<'EOF'
+import gzip, json, os, sys
+sheet_a, sheet_b, outdir, name, repo = sys.argv[1:6]
+cells = sys.argv[6:]
+
+def absolute(path):
+    return os.path.realpath(path if os.path.isabs(path) else os.path.join(repo, path))
+
+def sheet_id(path):
+    with open(absolute(path), encoding='utf-8') as stream:
+        value = json.load(stream)
+    identity = value.get('sheetId')
+    if not isinstance(identity, str) or not identity.strip():
+        raise SystemExit(f'{path}: exhibit sheets require a non-empty sheetId')
+    return identity
+
+identity_a, identity_b = sheet_id(sheet_a), sheet_id(sheet_b)
+for cell in cells:
+    expected = ([identity_a, identity_b] if cell.startswith('w-')
+                else [identity_b, identity_a])
+    replay_path = f'{outdir}/{name}-{cell}/replay.json.gz'
+    with gzip.open(replay_path, 'rt', encoding='utf-8') as stream:
+        replay = json.load(stream)
+    participants = sorted(
+        replay['header']['provenance']['participants'],
+        key=lambda participant: participant['teamId'])
+    actual = [participant['name'] for participant in participants]
+    if actual != expected:
+        raise SystemExit(
+            f'{cell}: replay participant names {actual!r} do not match '
+            f'authored sheet identities {expected!r}')
+print(f'participant identities: {identity_a} vs {identity_b}')
+EOF
+
 # Horizon resolution is a valid product outcome, but several in one tiny
 # stock exhibit are a stop-and-trace signal rather than something to hand to
 # the owner. An explicitly horizon-focused diagnostic can opt out; its author

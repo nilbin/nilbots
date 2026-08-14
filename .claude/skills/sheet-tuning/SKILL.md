@@ -21,6 +21,14 @@ what a change does, never as a balance measurement.
   reason is a bug; follow `docs/EXECUTOR-SILENT-POLICY.md`.
 - Report the six outcomes as records only. Six cells show behavior and do not
   establish that a change is better or balanced.
+- Every gallery must identify both sides by the authored `sheetId` in its
+  index/card copy, replay header, score bug, and end card. A mind name or a
+  package filename such as `orders`, `sheet`, or `playbook` is not a sheet
+  identity. The exhibit harness rejects this leak; do not bypass the check.
+- Scope is literal. If the owner asks to review a combined candidate, every
+  cell uses that exact combined profile and sheet against the named control;
+  do not mix in isolated arms, old experiments, or historical replays. Audit
+  the generated sample manifest before handing over the URL.
 - Commit as work stabilizes. Finish with a clean tree and cite the final SHA.
 - Deliver review through a public Cloudflare URL. Localhost is not delivery.
 

@@ -30,6 +30,29 @@ public sealed class ArcRelayExperimentCommandTests
     }
 
     [Fact]
+    public void AuthoredSheetIdentityOutranksGenericPackageFilename()
+    {
+        Assert.Equal(
+            "tapline-depth-relay-circuit-v1",
+            ArcRelayExperimentCommand.SheetIdentity(
+                "ArcRelayTacticalPlaybookMindV1",
+                "/candidate/tapline-depth-relay-circuit-v1/orders.json",
+                "tapline-depth-relay-circuit-v1"));
+        Assert.Equal(
+            "starter-tapline-v2",
+            ArcRelayExperimentCommand.SheetIdentity(
+                "ArcRelayTacticalPlaybookMindV1",
+                "/playbooks/starter-tapline-v2.json",
+                sheetId: null));
+        Assert.Equal(
+            "ArcRelayTacticalPlaybookMindV1",
+            ArcRelayExperimentCommand.SheetIdentity(
+                "ArcRelayTacticalPlaybookMindV1",
+                sheetPath: null,
+                sheetId: null));
+    }
+
+    [Fact]
     public void Default_is_the_Tapline_product_line()
     {
         TextWriter stdout = Console.Out;
