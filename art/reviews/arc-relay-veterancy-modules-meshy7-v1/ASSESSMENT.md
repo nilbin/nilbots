@@ -58,6 +58,12 @@ to one, three, and finally five crown prongs. It avoids chassis-mounted
 clipping and most per-class fitting. Its air gap and level-five width still
 need owner review before any modeling.
 
+The V4 carried-Core sheet keeps that ornament fixed and reserves the same
+central spherical clearance at every rank. The open U sits behind the Core
+anchor, its prongs fan around the reserved volume, and the current detached
+objective sphere remains visually dominant at match zoom. Exact clearance and
+health-pip placement still require a runtime proof.
+
 ## Remaining caveats and next gate
 
 - The provider models are rich proofs, not mobile candidates: each is roughly
@@ -74,7 +80,9 @@ need owner review before any modeling.
 
 ## Recommendation
 
-Review `correction-v3/floating-diadem-rank-1-5-concept-v2.png`. Do not make another
-paid call until the universal direction, air gap, and maximum crown width are
-approved. Then build one shared ornament proof and test it at real gameplay
-scale across several differently shaped chassis before any broader work.
+Review `correction-v3/floating-diadem-rank-1-5-concept-v2.png` together with
+`correction-v4/core-carry-clearance-concept-v2.png`. Do not make another paid
+call until the universal direction, air gap, maximum crown width, and Core
+aperture are approved. Then build one shared ornament proof and test it at real
+gameplay scale across several differently shaped chassis before any broader
+work.

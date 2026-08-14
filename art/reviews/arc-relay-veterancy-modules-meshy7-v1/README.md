@@ -29,6 +29,12 @@ five-prong crown. This supersedes class-mounted replacement feathers as the
 primary review direction while retaining the V2 feather as shape-language
 reference. It is conceptual art only and consumed no Meshy credits.
 
+`correction-v4/` tests the level-five proposal with the existing carried-Core
+contract and at wider gameplay zoom. It introduces a permanent central
+no-geometry pocket: the rear-facing diadem frames, but never intersects or
+replaces, the detached objective sphere. It is conceptual art only and consumed
+no Meshy credits.
+
 ## Review evidence
 
 - `gate-c/veterancy-*/` contains deterministic isolated six-view captures.
@@ -55,7 +61,7 @@ generation only and consumed no Meshy credits.
 The provider results remain intentionally rich (roughly 52–66 MB and
 1.52–1.99 million triangles each), but optimization is irrelevant until the
 silhouette passes. The next gate is owner approval of the universal floating
-diadem concept, including its air gap and maximum width. Only then should one
-shared ornament proof be built and checked at gameplay scale across
-representative chassis. Lean derivatives, runtime integration, veterancy
-animation, and replay capture remain closed.
+diadem concept, including its air gap, maximum width, carried-Core aperture,
+and health-pip clearance. Only then should one shared ornament proof be built
+and checked at gameplay scale across representative chassis. Lean derivatives,
+runtime integration, veterancy animation, and replay capture remain closed.

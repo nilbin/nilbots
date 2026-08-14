@@ -7,14 +7,17 @@
     "Owner asked to try the Meshy 7 veterancy handoff while AFK on 2026-08-14.",
     "Owner rejected the blade-only/bridge-like study by asking 'What about the crown and feathers etc?!'; this authorized Gate C and one bounded corrective petaled-crown task.",
     "Owner rejected the resulting level-five composition on 2026-08-14 as 'Not really looking like the conceptual art.' This closes Gate D as failed and does not authorize another paid provider call.",
-    "Owner requested conceptual art for a simpler shared floating halo that grows into a crown across veterancy levels. This authorizes conceptual art only, not another Meshy task or runtime integration."
+    "Owner requested conceptual art for a simpler shared floating halo that grows into a crown across veterancy levels. This authorizes conceptual art only, not another Meshy task or runtime integration.",
+    "Owner requested conceptual art including the carried-Core clipping solution on 2026-08-14. This authorizes the correction-v4 compatibility sheet only; it does not authorize another Meshy task or runtime integration."
   ],
   "runtimePromotionAuthorized": false,
   "replacementDirection": {
     "id": "universal-floating-diadem-v1",
     "status": "concept-awaiting-owner-review",
     "concept": "../../../../reviews/arc-relay-veterancy-modules-meshy7-v1/correction-v3/floating-diadem-rank-1-5-concept-v2.png",
+    "coreCompatibilityConcept": "../../../../reviews/arc-relay-veterancy-modules-meshy7-v1/correction-v4/core-carry-clearance-concept-v2.png",
     "assetIntent": "one shared broken halo plus progressively revealed slim crown prongs for all sixteen bots",
+    "coreCompatibilityIntent": "one permanent spherical clearance pocket behind the detached carried-Core presentation at every rank",
     "meshyCreditsConsumed": 0
   },
   "inputBriefs": "INPUT-BRIEFS.md",
@@ -87,6 +90,7 @@
       "remaining": [
         "owner approval of the universal floating-diadem concept",
         "owner decision on air gap and maximum crown width",
+        "owner decision on the permanent carried-Core aperture and health-pip clearance",
         "one shared ornament proof after separately recorded authorization",
         "gameplay-scale review across representative chassis before all-sixteen work"
       ]
@@ -102,5 +106,5 @@
     "verifiedAt": "2026-08-14",
     "retentionNote": "Provider artifacts were downloaded immediately because non-Enterprise API assets may be retained for no more than three days."
   },
-  "nextGate": "Owner review of the universal floating-diadem rank 1–5 concept under reviews/arc-relay-veterancy-modules-meshy7-v1/correction-v3; no further Meshy call, runtime promotion, or optimization before that decision."
+  "nextGate": "Owner review of the universal floating-diadem rank 1–5 concept under correction-v3 together with the carried-Core compatibility sheet under correction-v4; no further Meshy call, runtime promotion, or optimization before that decision."
 }
