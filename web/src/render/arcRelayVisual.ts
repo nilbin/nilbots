@@ -9,7 +9,7 @@ import type {
 } from '../replayModel';
 import type { BotPose } from './interpolate';
 import { unitLook } from './unitPresentation';
-import { arcOriginAccent } from '../replayPresentation';
+import { arcBankValue, arcOriginAccent } from '../replayPresentation';
 import { teamAccentedEffectImage } from './arenaThemes';
 import type { CrestPresentation } from '../components/EntrantCrest';
 import { ARC_CORE_NEUTRAL_PALETTE } from '../presentation/arcCorePalette';
@@ -328,6 +328,30 @@ function drawWells(input: ArcRelayVisualContext, state: ArcState): void {
       );
       ctx.fill();
     }
+    if (rules?.teamRelativeCoreCharge) {
+      const teams = [...state.reactors].sort((left, right) => left.teamId - right.teamId);
+      ctx.font = `800 ${Math.max(8, tile * 0.22)}px ui-monospace, monospace`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      teams.forEach((reactor, index) => {
+        const x = point.x + (index === 0 ? -1 : 1) * tile * 0.2;
+        const y = point.y + tile * 0.47;
+        const accent = teamAccent(input, reactor.teamId);
+        ctx.fillStyle = 'rgba(4, 8, 13, 0.94)';
+        ctx.beginPath();
+        ctx.arc(x, y, tile * 0.14, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = withAlpha(accent, 0.95);
+        ctx.lineWidth = Math.max(1, tile * 0.035);
+        ctx.stroke();
+        ctx.fillStyle = '#f8fafc';
+        ctx.fillText(
+          String(arcBankValue(input.replay, state, well.wellId, reactor.teamId, 1)),
+          x,
+          y + 0.5,
+        );
+      });
+    }
     ctx.restore();
   }
 }
@@ -496,7 +520,10 @@ function drawLegacySignature(
     for (const point of points) {
       if (signature.signatureId === 'sentinel-seed')
         drawSentinelTurret(input, signature, point, accent);
-      else drawMine(ctx, point, tile, accent, time);
+      else {
+        drawMine(ctx, point, tile, accent, time);
+        drawConstructDurability(ctx, point, tile, signature, accent);
+      }
       if (signature.suppressed) drawSuppressionCross(ctx, point, tile);
     }
     return;
@@ -595,6 +622,7 @@ function drawAuthoredSignatureMarker(
   }
 
   if (signature.suppressed) drawSuppressionCross(ctx, anchor, tile);
+  drawConstructDurability(ctx, anchor, tile, signature, accent);
 }
 
 /** Unknown packages remain mechanically visible without borrowing current art. */
@@ -929,8 +957,11 @@ function drawSentinelTurret(
   );
   ctx.fill();
 
-  for (let pip = 0; pip < signature.remainingCapacity; pip += 1) {
-    ctx.fillStyle = withAlpha(accent, 0.95);
+  const durability = signature.maximumCapacity ?? signature.remainingCapacity;
+  for (let pip = 0; pip < durability; pip += 1) {
+    ctx.fillStyle = pip < signature.remainingCapacity
+      ? withAlpha(accent, 0.95)
+      : 'rgba(100, 116, 139, 0.38)';
     ctx.beginPath();
     ctx.arc(
       point.x - tile * 0.18 + pip * tile * 0.36,
@@ -940,6 +971,25 @@ function drawSentinelTurret(
       Math.PI * 2,
     );
     ctx.fill();
+  }
+}
+
+function drawConstructDurability(
+  ctx: CanvasRenderingContext2D,
+  point: CanvasPoint,
+  tile: number,
+  signature: CanvasSignature,
+  accent: string,
+): void {
+  if (signature.maximumCapacity === undefined) return;
+  ctx.setLineDash([]);
+  const maximum = Math.min(5, signature.maximumCapacity);
+  for (let index = 0; index < maximum; index += 1) {
+    const x = point.x + (index - (maximum - 1) / 2) * tile * 0.18;
+    ctx.fillStyle = index < signature.remainingCapacity
+      ? withAlpha(accent, 0.95)
+      : 'rgba(100, 116, 139, 0.4)';
+    ctx.fillRect(x - tile * 0.055, point.y + tile * 0.48, tile * 0.11, tile * 0.13);
   }
 }
 

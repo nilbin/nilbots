@@ -588,6 +588,16 @@ export type ReplayGenericModeDefinition =
       coresPerPulse: number;
       pulsesToDestroyReactor: number;
       orderedWellRegionIds: string[];
+      teamRelativeCoreCharge?: {
+        ownWell: number;
+        centreWell: number;
+        enemyWell: number;
+      };
+      veteranCommand?: boolean;
+      respawnWavePeriodTicks?: number;
+      respawnMinimumDeadTicks?: number;
+      minimumDistinctClasses?: number;
+      durableDeployments?: boolean;
     };
 
 export interface ReplayGenericMatchContract
@@ -978,6 +988,7 @@ export interface ReplayArcRelayModeState {
     nextRelocationTick: number;
     flightTarget: ReplayPosition | null;
     flightCompletesAtTick: number | null;
+    chargeValue?: number;
   }[];
   visibleSignatures: {
     operationId: string;
@@ -992,10 +1003,17 @@ export interface ReplayArcRelayModeState {
     positions: ReplayPosition[];
     targetActor: ReplayActorIdentity | null;
     remainingCapacity: number;
+    maximumCapacity?: number;
     suppressed: boolean;
   }[];
   latestPulseTeamId: number | null;
   latestPulseTick: number | null;
+  nextRespawnWaveTick?: number;
+  respawnWaveTeams?: {
+    teamId: number;
+    liveBodies: number;
+    respawnsNextWave: number;
+  }[];
   /**
    * Declared strikes in windup (DECISIONS #212): the shooter, the tick the
    * ray resolves, and the frozen tiles it will trace. Empty on every ruleset
@@ -1489,6 +1507,7 @@ export type ReplayArcRelayFact =
       teamId: number;
       position: ReplayPosition;
       chargePips: number;
+      chargeAwarded?: number;
     }
   | {
       kind: 'well-changed';

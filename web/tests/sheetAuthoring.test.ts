@@ -100,15 +100,20 @@ test('roles are the one source of composition and role renames follow semantic r
   source.roles[0].orders.unshift({
     id: 'pass-support', when: 'support-hurt', handoff: { target: { role: 'support' } },
   });
+  source.roles[0].orders.unshift({
+    id: 'repair-support', when: 'support-hurt',
+    use: { skill: 'repair-beam', target: { role: 'support' } },
+  });
 
   renameRole(source, 'support', 'field-support');
 
   assert.deepEqual(compositionOf(source), classIds);
   assert.equal(source.roles[1].id, 'field-support');
   assert.equal(source.conditions['support-hurt'].role, 'field-support');
-  assert.equal(source.roles[0].orders[0].handoff?.target && typeof source.roles[0].orders[0].handoff?.target === 'object'
-    ? source.roles[0].orders[0].handoff?.target.role : '', 'field-support');
-  assert.equal(source.roles[0].orders[1].move?.follow, 'field-support');
+  assert.deepEqual(source.roles[0].orders[0].use?.target, { role: 'field-support' });
+  assert.equal(source.roles[0].orders[1].handoff?.target && typeof source.roles[0].orders[1].handoff?.target === 'object'
+    ? source.roles[0].orders[1].handoff?.target.role : '', 'field-support');
+  assert.equal(source.roles[0].orders[2].move?.follow, 'field-support');
 });
 
 test('condition renames preserve bare shared references while rewriting definitions', () => {
@@ -148,6 +153,43 @@ test('new signature orders persist the selected role skill and its legal default
     id: 'repair',
     use: { skill: 'repair-beam', target: 'weakest-ally' },
   });
+});
+
+test('the editor understands every Tapline depth-pack tactical word', () => {
+  const draft = parseDraft('Depth pack', null, null, stringifyDocument(orders), stringifyDocument(mapPlan));
+  draft.orders.conditions['ace-live'] = {
+    fact: 'role-highest-level', operator: 'at-least', value: 2, role: 'runners',
+  };
+  draft.orders.conditions['wave-near'] = {
+    fact: 'ticks-until-respawn-wave', operator: 'at-most', value: 4,
+  };
+  draft.orders.conditions['valuable-cargo'] = {
+    fact: 'self-carried-core-bank-value', operator: 'at-least', value: 4,
+  };
+  draft.orders.conditions['barrier-hurt'] = {
+    fact: 'deployment-durability-percent', operator: 'at-most', value: 34,
+  };
+  draft.orders.roles[0].orders.unshift(
+    {
+      id: 'clear-veteran-or-deployment', when: 'barrier-hurt',
+      fight: { targets: ['veteran', 'deployment', 'nearest'], style: 'advance', chaseLimit: 5 },
+    },
+    {
+      id: 'take-high-value-core', when: 'valuable-cargo',
+      move: { to: 'highest-bank-value-known-loose-core', posture: 'front' },
+    },
+    {
+      id: 'rally-on-ace', when: 'ace-live',
+      move: { follow: { selector: 'most-experienced-ally' }, posture: 'rear' },
+    },
+  );
+  draft.orders.roles[0].orders.unshift({
+    id: 'repair-ace', when: 'wave-near',
+    use: { skill: 'repair-beam', target: { selector: 'most-experienced-ally' } },
+  });
+
+  const errors = validateDraft(draft, catalog).filter((issue) => issue.severity === 'error');
+  assert.deepEqual(errors, []);
 });
 
 test('order action detection has only the five physical verbs plus branch and exact sharing', () => {

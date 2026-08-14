@@ -639,7 +639,7 @@ export default function Viewer({
               )}
             >
               <ArcRelayScoreBug replay={replay} tick={tick} entrants={entrants}
-                reactors={arcStanding.reactors} />
+                reactors={arcStanding.reactors} respawnWave={arcStanding.respawnWave} />
             </div>
           )}
           {/* WHAT THE SELECTED BODY IS DOING, over the arena itself.
@@ -916,11 +916,15 @@ function ArcRelayMatchupHeader({ replay, entrants }: {
   });
 }
 
-function ArcRelayScoreBug({ replay, tick, entrants, reactors }: {
+function ArcRelayScoreBug({ replay, tick, entrants, reactors, respawnWave }: {
   replay: ReplayModel;
   tick: number;
   entrants?: readonly ViewerEntrantPresentation[];
   reactors: readonly { teamId: number; chargePips: number; integritySegments: number; accent: string }[];
+  respawnWave: {
+    ticksRemaining: number;
+    teams: readonly { teamId: number; liveBodies: number; respawnsNextWave: number }[];
+  } | null;
 }) {
   const seconds = Math.floor(tick / 5);
   const clock = `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
@@ -933,6 +937,7 @@ function ArcRelayScoreBug({ replay, tick, entrants, reactors }: {
       const composition = supplied?.composition ?? replay.units
         .filter((unit) => unit.teamId === teamId && unit.classId)
         .map((unit) => unit.classId!);
+      const waveTeam = respawnWave?.teams.find((value) => value.teamId === teamId);
       return <div key={teamId} className="flex min-w-0 items-center gap-2 px-2 py-1.5" style={{ order: teamId === 0 ? 0 : 2 }}>
         <EntrantCrest crest={crest} size={30} />
         <div className="min-w-0">
@@ -951,12 +956,17 @@ function ArcRelayScoreBug({ replay, tick, entrants, reactors }: {
             {composition.slice(0, 8).map((classId, index) => <ClassIcon key={`${classId}:${index}`}
               classId={classId} size={10} framed={false} decorative />)}
           </span>}
+          {waveTeam && <span className="mt-0.5 block text-[7px] uppercase tracking-[.11em] text-white/60">
+            {waveTeam.liveBodies} live · +{waveTeam.respawnsNextWave} wave
+          </span>}
         </div>
       </div>;
     })}
     <div className="order-1 flex min-w-[58px] flex-col items-center justify-center border-x border-white/10 bg-black/25 px-2">
       <span className="font-mono text-[13px] font-bold tabular-nums">{clock}</span>
-      <span className="text-[7px] uppercase tracking-[.2em] text-white/55">Arc Relay</span>
+      <span className="text-[7px] uppercase tracking-[.16em] text-white/55">
+        {respawnWave ? `wave ${respawnWave.ticksRemaining}` : 'Arc Relay'}
+      </span>
     </div>
   </div>;
 }

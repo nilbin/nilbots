@@ -874,11 +874,14 @@ export function buildArcRelayEffects(
           ? unitAccent(replay, pipOwner.unitKey)
           : '#f8fafc';
         slot.litPip.color.set(pipAccent);
-        centreStatusPips(slot.pips, slot.pips.length);
-        for (const [pipIndex, pip] of slot.pips.entries())
+        const maximumCapacity = signature.maximumCapacity ?? slot.pips.length;
+        centreStatusPips(slot.pips, Math.min(slot.pips.length, maximumCapacity));
+        for (const [pipIndex, pip] of slot.pips.entries()) {
+          pip.visible = pipIndex < maximumCapacity;
           pip.material = pipIndex < signature.remainingCapacity
             ? slot.litPip
             : slot.lostPip;
+        }
         persistentPropReady = slot.ready;
       }
       if (authoredPainter) {
@@ -911,6 +914,22 @@ export function buildArcRelayEffects(
           persistentPropReady,
         );
       else paintGenericSignature(rig, points, owner, target, phase);
+      if (signature.maximumCapacity !== undefined && points[0]) {
+        const maximum = Math.min(5, signature.maximumCapacity);
+        for (let index = 0; index < maximum; index += 1) {
+          const pip = rig.markers[rig.markers.length - 1 - index]!;
+          pip.visible = true;
+          pip.material = index < signature.remainingCapacity
+            ? rig.main
+            : rig.fill;
+          pip.position.set(
+            points[0].x + (index - (maximum - 1) / 2) * 0.18,
+            0.78,
+            points[0].z,
+          );
+          pip.scale.setScalar(0.32);
+        }
+      }
       // Some public events share an operation ID before they carry enough
       // topology for a particular painter. Do not publish an empty effect
       // group merely because the operation is present.

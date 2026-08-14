@@ -302,6 +302,16 @@ export interface ReplayV3ArcRelayModeDefinition extends ReplayV3JsonObject {
   seedPhasedWellLead?: true;
   chiralWellBirths?: true;
   healZoneTicksPerHp?: number;
+  teamRelativeCoreCharge?: {
+    ownWell: number;
+    centreWell: number;
+    enemyWell: number;
+  };
+  veteranCommand?: true;
+  respawnWavePeriodTicks?: number;
+  respawnMinimumDeadTicks?: number;
+  minimumDistinctClasses?: number;
+  durableDeployments?: true;
   wells: {
     wellId: string;
     firstBirthTick: number;
@@ -802,7 +812,14 @@ export interface ReplayV3ArcSignature {
   positions: ReplayV3Position[];
   targetActorId: ReplayV3ActorId | null;
   remainingCapacity: number;
+  maximumCapacity?: number;
   suppressed: boolean;
+}
+
+export interface ReplayV3ArcRespawnWaveTeam {
+  teamId: number;
+  liveBodies: number;
+  respawnsNextWave: number;
 }
 
 export interface ReplayV3ArcRelayModeState {
@@ -814,6 +831,8 @@ export interface ReplayV3ArcRelayModeState {
   visibleSignatures: ReplayV3ArcSignature[];
   latestPulseTeamId: number | null;
   latestPulseTick: number | null;
+  nextRespawnWaveTick?: number;
+  respawnWaveTeams?: ReplayV3ArcRespawnWaveTeam[];
   /**
    * Declared strikes in windup (DECISIONS #212). Present only on rulesets
    * with strike windups; absence is the historical document shape.
@@ -1148,7 +1167,7 @@ export type ReplayV3ArcRelayFact =
   | (ReplayV3JsonObject & { kind: 'core-relocated'; coreId: ReplayV3ArcCoreId; carrierActorId: ReplayV3ActorId | null; from: ReplayV3Position; to: ReplayV3Position; nextRelocationTick: number; relocationKind: string })
   | (ReplayV3JsonObject & { kind: 'core-handed-off'; coreId: ReplayV3ArcCoreId; sourceActorId: ReplayV3ActorId; targetActorId: ReplayV3ActorId; position: ReplayV3Position; nextRelocationTick: number })
   | (ReplayV3JsonObject & { kind: 'core-dropped'; coreId: ReplayV3ArcCoreId; sourceActorId: ReplayV3ActorId; position: ReplayV3Position; nextRelocationTick: number; dropKind: string })
-  | (ReplayV3JsonObject & { kind: 'core-banked'; coreId: ReplayV3ArcCoreId; carrierActorId: ReplayV3ActorId; teamId: number; position: ReplayV3Position; chargePips: number })
+  | (ReplayV3JsonObject & { kind: 'core-banked'; coreId: ReplayV3ArcCoreId; carrierActorId: ReplayV3ActorId; teamId: number; position: ReplayV3Position; chargePips: number; chargeAwarded?: number })
   | (ReplayV3JsonObject & { kind: 'well-changed'; wellId: string; pendingCharge: boolean; rearmCompletesAtTick: number | null; outstandingCoreId: ReplayV3ArcCoreId | null })
   | (ReplayV3JsonObject & { kind: 'pulse'; teamId: number; pulseOrdinal: number; opposingReactorIntegrity: number })
   | (ReplayV3JsonObject & { kind: 'signature-changed'; signatureId: string; operationId: string; ownerActorId: ReplayV3ActorId; phase: string | null; reason: string })

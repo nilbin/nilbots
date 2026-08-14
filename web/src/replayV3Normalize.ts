@@ -478,6 +478,19 @@ function validateContract(
               ...(own(mode, 'healZoneTicksPerHp')
                 ? ['healZoneTicksPerHp']
                 : []),
+              ...(own(mode, 'teamRelativeCoreCharge')
+                ? ['teamRelativeCoreCharge']
+                : []),
+              ...(own(mode, 'veteranCommand') ? ['veteranCommand'] : []),
+              ...(own(mode, 'respawnWavePeriodTicks')
+                ? ['respawnWavePeriodTicks', 'respawnMinimumDeadTicks']
+                : []),
+              ...(own(mode, 'minimumDistinctClasses')
+                ? ['minimumDistinctClasses']
+                : []),
+              ...(own(mode, 'durableDeployments')
+                ? ['durableDeployments']
+                : []),
               'wells',
               'signatures',
             ]
@@ -1206,6 +1219,9 @@ function validateContract(
       'veterancyXpPerLevel',
       'veterancyMaxLevel',
       'healZoneTicksPerHp',
+      'respawnWavePeriodTicks',
+      'respawnMinimumDeadTicks',
+      'minimumDistinctClasses',
     ]) {
       if (own(mode, key)) integer(mode[key], `${modePath}.${key}`, fail);
     }
@@ -1215,6 +1231,8 @@ function validateContract(
       'seedPhasedResolutionOrder',
       'seedPhasedWellLead',
       'chiralWellBirths',
+      'veteranCommand',
+      'durableDeployments',
     ]) {
       if (!own(mode, key)) continue;
       boolean(mode[key], `${modePath}.${key}`, fail);
@@ -1279,6 +1297,32 @@ function validateContract(
         `${modePath}.healZoneTicksPerHp`,
         'must be omitted instead of emitted inert',
       );
+    if (own(mode, 'teamRelativeCoreCharge')) {
+      const charge = exact(
+        mode.teamRelativeCoreCharge,
+        `${modePath}.teamRelativeCoreCharge`,
+        ['ownWell', 'centreWell', 'enemyWell'],
+        fail,
+      );
+      for (const key of ['ownWell', 'centreWell', 'enemyWell']) {
+        integer(charge[key], `${modePath}.teamRelativeCoreCharge.${key}`, fail);
+        if ((charge[key] as number) <= 0)
+          fail(`${modePath}.teamRelativeCoreCharge.${key}`, 'must be positive');
+      }
+      if (charge.ownWell === 1 && charge.centreWell === 1 && charge.enemyWell === 1)
+        fail(`${modePath}.teamRelativeCoreCharge`, 'must be omitted instead of emitted inert');
+    }
+    if (own(mode, 'respawnWavePeriodTicks')) {
+      if ((mode.respawnWavePeriodTicks as number) <= 0)
+        fail(`${modePath}.respawnWavePeriodTicks`, 'must be positive');
+      if ((mode.respawnMinimumDeadTicks as number) < 0
+        || (mode.respawnMinimumDeadTicks as number) >= (mode.respawnWavePeriodTicks as number))
+        fail(`${modePath}.respawnMinimumDeadTicks`, 'must fit inside the wave period');
+    }
+    if (own(mode, 'minimumDistinctClasses')
+      && ((mode.minimumDistinctClasses as number) <= 0
+        || (mode.minimumDistinctClasses as number) > (mode.fieldedSlotsPerTeam as number)))
+      fail(`${modePath}.minimumDistinctClasses`, 'must fit the fielded roster');
     if (
       mode.seedPhasedResolutionOrder === true &&
       mode.alternatingResolutionOrder !== true
@@ -2549,6 +2593,8 @@ function modeState(value: unknown, path: string, fail: ReplayV3Fail): void {
         // Declared strikes exist only on strike-windup rulesets
         // (DECISIONS #212); absence is the historical document shape.
         ...(own(base, 'pendingStrikes') ? ['pendingStrikes'] : []),
+        ...(own(base, 'nextRespawnWaveTick') ? ['nextRespawnWaveTick'] : []),
+        ...(own(base, 'respawnWaveTeams') ? ['respawnWaveTeams'] : []),
       ],
       fail,
     );
@@ -2614,6 +2660,30 @@ function modeState(value: unknown, path: string, fail: ReplayV3Fail): void {
           );
         },
       );
+    }
+    if (own(item, 'nextRespawnWaveTick')) {
+      integer(item.nextRespawnWaveTick, `${path}.nextRespawnWaveTick`, fail);
+      if ((item.nextRespawnWaveTick as number) < 0)
+        fail(`${path}.nextRespawnWaveTick`, 'cannot be negative');
+    }
+    if (own(item, 'respawnWaveTeams')) {
+      const waveTeams = array(item.respawnWaveTeams, `${path}.respawnWaveTeams`, fail);
+      if (!own(item, 'nextRespawnWaveTick'))
+        fail(`${path}.respawnWaveTeams`, 'requires nextRespawnWaveTick');
+      waveTeams.forEach((entry, index) => {
+        const teamPath = `${path}.respawnWaveTeams[${index}]`;
+        const team = exact(
+          entry,
+          teamPath,
+          ['teamId', 'liveBodies', 'respawnsNextWave'],
+          fail,
+        );
+        for (const key of ['teamId', 'liveBodies', 'respawnsNextWave']) {
+          integer(team[key], `${teamPath}.${key}`, fail);
+          if ((team[key] as number) < 0)
+            fail(`${teamPath}.${key}`, 'cannot be negative');
+        }
+      });
     }
     nonEmpty(item.modeId, `${path}.modeId`, fail);
     const coreId = (value: unknown, corePath: string) => {
@@ -2748,6 +2818,8 @@ function modeState(value: unknown, path: string, fail: ReplayV3Fail): void {
       fail,
     ).forEach((entry, index) => {
       const signaturePath = `${path}.visibleSignatures[${index}]`;
+      const hasMaximumCapacity =
+        typeof entry === 'object' && entry !== null && own(entry, 'maximumCapacity');
       const signature = exact(
         entry,
         signaturePath,
@@ -2764,6 +2836,7 @@ function modeState(value: unknown, path: string, fail: ReplayV3Fail): void {
           'positions',
           'targetActorId',
           'remainingCapacity',
+          ...(hasMaximumCapacity ? ['maximumCapacity'] : []),
           'suppressed',
         ],
         fail,
@@ -2802,6 +2875,12 @@ function modeState(value: unknown, path: string, fail: ReplayV3Fail): void {
         `${signaturePath}.remainingCapacity`,
         fail,
       );
+      if (hasMaximumCapacity) {
+        integer(signature.maximumCapacity, `${signaturePath}.maximumCapacity`, fail);
+        if ((signature.maximumCapacity as number) <= 0
+          || (signature.remainingCapacity as number) > (signature.maximumCapacity as number))
+          fail(`${signaturePath}.maximumCapacity`, 'must contain remaining capacity');
+      }
       boolean(signature.suppressed, `${signaturePath}.suppressed`, fail);
     });
     nullable(item.latestPulseTeamId, `${path}.latestPulseTeamId`, integer, fail);
@@ -7536,6 +7615,33 @@ function contractFromV3(
         orderedWellRegionIds: [
           ...contract.modeMapBinding.orderedWellRegionIds,
         ],
+        ...(contract.rules.gameMode.teamRelativeCoreCharge === undefined
+          ? {}
+          : {
+              teamRelativeCoreCharge: {
+                ...contract.rules.gameMode.teamRelativeCoreCharge,
+              },
+            }),
+        ...(contract.rules.gameMode.veteranCommand === undefined
+          ? {}
+          : { veteranCommand: true }),
+        ...(contract.rules.gameMode.respawnWavePeriodTicks === undefined
+          ? {}
+          : {
+              respawnWavePeriodTicks:
+                contract.rules.gameMode.respawnWavePeriodTicks,
+              respawnMinimumDeadTicks:
+                contract.rules.gameMode.respawnMinimumDeadTicks,
+            }),
+        ...(contract.rules.gameMode.minimumDistinctClasses === undefined
+          ? {}
+          : {
+              minimumDistinctClasses:
+                contract.rules.gameMode.minimumDistinctClasses,
+            }),
+        ...(contract.rules.gameMode.durableDeployments === undefined
+          ? {}
+          : { durableDeployments: true }),
       };
     }
     if (contract.modeMapBinding.kind !== 'frontline') {
@@ -7991,6 +8097,7 @@ function modeFromV3(mode: V3.ReplayV3ModeState): Model.ReplayModeState {
         ? copyPosition(core.flightTarget)
         : null,
       flightCompletesAtTick: core.flightCompletesAtTick,
+      ...(core.chargeValue === undefined ? {} : { chargeValue: core.chargeValue }),
     })),
     visibleSignatures: mode.visibleSignatures.map((signature) => ({
       operationId: signature.operationId,
@@ -8007,10 +8114,21 @@ function modeFromV3(mode: V3.ReplayV3ModeState): Model.ReplayModeState {
         ? identity(signature.targetActorId)
         : null,
       remainingCapacity: signature.remainingCapacity,
+      ...(signature.maximumCapacity === undefined
+        ? {}
+        : { maximumCapacity: signature.maximumCapacity }),
       suppressed: signature.suppressed,
     })),
     latestPulseTeamId: mode.latestPulseTeamId,
     latestPulseTick: mode.latestPulseTick,
+    ...(mode.nextRespawnWaveTick === undefined
+      ? {}
+      : { nextRespawnWaveTick: mode.nextRespawnWaveTick }),
+    ...(mode.respawnWaveTeams === undefined
+      ? {}
+      : {
+          respawnWaveTeams: mode.respawnWaveTeams.map((team) => ({ ...team })),
+        }),
     pendingStrikes: (mode.pendingStrikes ?? []).map((strike) => ({
       shooter: identity(strike.shooter),
       resolveAtTick: strike.resolveAtTick,
@@ -8838,6 +8956,7 @@ function arcRelayFactFromV3(
         teamId: fact.teamId,
         position: copyPosition(fact.position),
         chargePips: fact.chargePips,
+        chargeAwarded: fact.chargeAwarded ?? 1,
       };
     case 'well-changed':
       return {
