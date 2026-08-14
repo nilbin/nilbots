@@ -266,6 +266,26 @@ export function surveyFlareFlightEndpoints(
 }
 
 export const SURVEY_FLARE_LANDED_ROLL = Math.PI / 2;
+export const SURVEY_FLARE_FLIGHT_HEIGHT = 0.14;
+export const SURVEY_FLARE_LANDED_HEIGHT = 0.16;
+export const SURVEY_FLARE_IDLE_YAW_PER_TICK = 0.28;
+
+/** The flight arc ends at exactly the same height used by the planted prop. */
+export function surveyFlareFlightHeight(progress: number): number {
+  const clamped = clamp01(progress);
+  return SURVEY_FLARE_FLIGHT_HEIGHT +
+    (SURVEY_FLARE_LANDED_HEIGHT - SURVEY_FLARE_FLIGHT_HEIGHT) * clamped +
+    Math.sin(clamped * Math.PI) * 1.15;
+}
+
+/** Continue the planted prop's idle turn from its actual arrival bearing. */
+export function surveyFlareLandedYaw(
+  arrivalYaw: number,
+  activeAge: number,
+): number {
+  return arrivalYaw +
+    Math.max(0, activeAge) * SURVEY_FLARE_IDLE_YAW_PER_TICK;
+}
 
 /**
  * Carries the rigid Survey Flare from its horizontal throw pose into the authored
