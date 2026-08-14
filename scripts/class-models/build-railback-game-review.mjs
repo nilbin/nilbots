@@ -20,7 +20,7 @@ import { fileURLToPath } from 'node:url';
 const repository = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const tierAuditPath = path.join(
   repository,
-  'art/class-models/runtime-tiers/arc-relay/meshy7-longshot-railback-review-v1/audit.json',
+  'art/class-models/runtime-tiers/arc-relay/meshy7-longshot-railback-color-review-v2/audit.json',
 );
 const replayRecordPath = path.join(
   repository,
@@ -75,7 +75,7 @@ const stagedManifest = {
     provider: tier.source.provider,
     model: tier.source.providerModel,
     endpoint: tier.source.textureDonor.endpoint,
-    modelType: 'original-uv-pbr-retexture',
+    modelType: 'original-uv-pbr-retexture-color-lift',
     taskId: tier.source.textureDonor.taskId,
     geometryTaskId: tier.source.geometry.taskId,
     retextureTaskId: tier.source.textureDonor.taskId,
@@ -85,6 +85,7 @@ const stagedManifest = {
     heightScale: tier.normalization.heightScale,
     originalUV: true,
     matteRoughnessFloor: lean.settings.matteRoughnessFloor,
+    ...(tier.colorAdjustment ? { colorAdjustment: tier.colorAdjustment.transform } : {}),
   },
   ...(priorManifest.motion ? { motion: priorManifest.motion } : {}),
   ...(priorManifest.signature ? { signature: priorManifest.signature } : {}),
@@ -100,7 +101,7 @@ const stagedManifest = {
     textureGpuBytesRgba8Fallback: lean.memory.textureGpuBytesRgba8Fallback,
     modelGpuBytesCompressedTarget: lean.memory.modelGpuBytesCompressedTarget,
     modelGpuBytesRgba8Fallback: lean.memory.modelGpuBytesRgba8Fallback,
-    textureTier: 'meshy7-longshot-railback-review-v1-512-webp',
+    textureTier: 'meshy7-longshot-railback-color-review-v2-512-webp',
   },
 };
 
@@ -176,6 +177,7 @@ const buildRecord = {
     liveTransverseSpan: tier.normalization.liveTransverseSpan,
     liveHeight: tier.normalization.liveHeight,
   },
+  colorAdjustment: tier.colorAdjustment ?? null,
   emittedCandidate,
   runtimeSha256Before: sha256(before),
   runtimeSha256After: sha256(restored),

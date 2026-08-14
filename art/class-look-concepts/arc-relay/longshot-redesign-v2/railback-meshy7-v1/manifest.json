@@ -168,11 +168,28 @@
     "status": "ready-for-owner-review",
     "runtimePromoted": false,
     "selectedProfile": "lean",
-    "artifact": "../../../../class-models/runtime-tiers/arc-relay/meshy7-longshot-railback-review-v1/arc-longshot-railback-lean.glb",
-    "artifactSha256": "620161701f4e6efd836b9b4e068ff16a6f8ec364c6a072f0ed0ce8f43dd475d1",
-    "artifactBytes": 1828396,
+    "baseArtifact": {
+      "file": "../../../../class-models/runtime-tiers/arc-relay/meshy7-longshot-railback-review-v1/arc-longshot-railback-lean.glb",
+      "sha256": "620161701f4e6efd836b9b4e068ff16a6f8ec364c6a072f0ed0ce8f43dd475d1",
+      "bytes": 1828396
+    },
+    "artifact": "../../../../class-models/runtime-tiers/arc-relay/meshy7-longshot-railback-color-review-v2/arc-longshot-railback-color-lift.glb",
+    "artifactSha256": "6eedb608f3004d9aa06b4dc51b36b387505568d202e2dae39248ffb640b6b2d5",
+    "artifactBytes": 1895412,
     "triangles": 78418,
-    "providerReview": "../../../../reviews/arc-relay-longshot-railback-v1/provider-review/railback-lean-six-view.png",
+    "colorAdjustment": {
+      "scope": "embedded baseColorTexture RGB only",
+      "medianLuminanceBefore": 83.34,
+      "medianLuminanceAfter": 98.34,
+      "saturationChanged": false,
+      "roughnessChanged": false,
+      "normalChanged": false,
+      "geometryChanged": false,
+      "scaleChanged": false,
+      "runtimeTeamColorsChanged": false,
+      "additionalMeshyCredits": 0
+    },
+    "providerReview": "../../../../reviews/arc-relay-longshot-railback-v1/provider-review/railback-color-lift-six-view.png",
     "fidelityReview": "../../../../reviews/arc-relay-longshot-railback-v1/provider-review/railback-fidelity-board.png",
     "gameplayEvidence": "../../../../reviews/arc-relay-longshot-railback-v1/gameplay-review/evidence.json"
   }
