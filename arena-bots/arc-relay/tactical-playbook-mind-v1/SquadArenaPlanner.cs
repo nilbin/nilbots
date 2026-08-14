@@ -315,6 +315,14 @@ internal sealed class SquadArenaPlanner : IArenaStepper
             prior.Operation.Actions[2],
             MicroAction.Wait,
         ];
+        // A shifted operation was legal when its source horizon was built,
+        // but its new first action still has to be available on this tick.
+        // Movement/signature cadence can change between ticks. Publishing an
+        // inherited Move while movement is unavailable makes the executor
+        // submit Wait under an epibt-move trace, which is both false telemetry
+        // and an operation EPIBT could never physically execute.
+        if (!ActionAvailableNow(contract, intent.Body, shifted[0]))
+            return wait;
         return BuildOperation(
                 contract,
                 intent.Body,
@@ -526,6 +534,20 @@ internal sealed class SquadArenaPlanner : IArenaStepper
         return body.ActionLegalities.Any(action =>
             action.Available && actionIds.Contains(action.ActionId));
     }
+
+    private static bool ActionAvailableNow(
+        GenericActorResolvedMatchContract contract,
+        MindBody body,
+        MicroAction action) => action.Kind switch
+        {
+            MicroActionKind.Move => ActionAvailableNow(
+                contract, body,
+                GenericActorRulesContract.ActionKind.Movement),
+            MicroActionKind.Rotate => ActionAvailableNow(
+                contract, body,
+                GenericActorRulesContract.ActionKind.Rotation),
+            _ => true,
+        };
 
     private static Operation? BuildOperation(
         GenericActorResolvedMatchContract contract,

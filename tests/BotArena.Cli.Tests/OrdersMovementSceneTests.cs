@@ -739,6 +739,52 @@ public sealed class OrdersMovementSceneTests
             + $"{longestStationaryCarrier} ticks.");
     }
 
+    [Fact]
+    public void ShiftedSquadOperationNeverPublishesUnavailableFirstMove()
+    {
+        string root = FindRepoRoot();
+        TacticalPlaybookCompilation west = CompileStrategy(
+            root, "tapline-distributed-wells-v4");
+        TacticalPlaybookCompilation east = CompileStrategy(
+            root, "tapline-mid-rush-control-v3");
+        ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create(
+            west.Composition,
+            east.Composition,
+            loopProfile: ArcRelayLoopProfile.Tapline3);
+
+        using var session = new GenericActorMatchSession(
+            definition,
+            [Participant(0, west), Participant(1, east)],
+            matchSeed: 9012,
+            recordChronology: false);
+
+        var falseMoveTraces = new List<string>();
+        while (!session.IsCompleted)
+        {
+            GenericActorMatchStepResult step = session.Step();
+            foreach (GenericMindRuntimeTurn turn in step.MindTurns)
+            foreach (GenericMindCommandResolution resolution in turn.Commands)
+            {
+                string reason = resolution.Command.DebugMessage ?? "";
+                if (string.Equals(
+                        resolution.Command.ActionId,
+                        "wait",
+                        StringComparison.Ordinal)
+                    && reason.Contains(
+                        ":epibt-move:", StringComparison.Ordinal)
+                    && reason.Contains(
+                        ":move-blocked:", StringComparison.Ordinal))
+                {
+                    falseMoveTraces.Add(
+                        $"t{step.Tick}:team{turn.TeamId}:"
+                        + $"u{resolution.Command.UnitId}:{reason}");
+                }
+            }
+        }
+
+        Assert.Empty(falseMoveTraces);
+    }
+
     private static Position? RecoveryGoal(string reason)
     {
         const string marker = "recover-health";
