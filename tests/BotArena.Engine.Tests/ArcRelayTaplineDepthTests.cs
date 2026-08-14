@@ -184,6 +184,25 @@ public sealed class ArcRelayTaplineDepthTests
     }
 
     [Theory]
+    [InlineData(1, 2, true)]
+    [InlineData(1, 3, false)]
+    [InlineData(0, 3, true)]
+    [InlineData(0, 4, true)]
+    [InlineData(0, 2, false)]
+    public void ReplayValidationAllowsPulseOverkillOnlyAfterDestruction(
+        int opposingIntegrity,
+        long scoredPulses,
+        bool expected)
+    {
+        Assert.Equal(
+            expected,
+            ReplayV3Serializer.ArcRelayPulseFactsAgree(
+                pulsesToDestroyReactor: 3,
+                opposingIntegrity,
+                scoredPulses));
+    }
+
+    [Theory]
     [InlineData(13, 30)]
     [InlineData(14, 30)]
     [InlineData(15, 60)]

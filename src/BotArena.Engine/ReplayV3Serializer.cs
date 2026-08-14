@@ -6998,14 +6998,13 @@ internal static class ReplayV3Serializer
                 value.TeamId == teamId);
             ReplayV3.ArcReactor opposing = finalArc.Reactors.Single(value =>
                 value.TeamId != teamId);
-            long pulses = configuration.PulsesToDestroyReactor
-                - opposing.IntegritySegments;
             ReplayV3.TeamScore finalScore = finalState.Scoreboard.Teams.Single(
                 value => value.TeamId == teamId);
-            if (!ScoreEquals(
-                    finalScore,
-                    "pulses",
-                    pulses.ToString(CultureInfo.InvariantCulture))
+            long pulses = ScoreValue(finalScore, "pulses");
+            if (!ArcRelayPulseFactsAgree(
+                    configuration.PulsesToDestroyReactor,
+                    opposing.IntegritySegments,
+                    pulses)
                 || !ScoreEquals(
                     finalScore,
                     "reactor-charge",
@@ -7068,6 +7067,23 @@ internal static class ReplayV3Serializer
             throw new ArgumentException(
                 "Replay-v3 Arc Relay standings do not follow the embedded victory policy.");
         }
+    }
+
+    internal static bool ArcRelayPulseFactsAgree(
+        int pulsesToDestroyReactor,
+        int opposingIntegritySegments,
+        long scoreboardPulses)
+    {
+        long damagingPulses = pulsesToDestroyReactor
+            - opposingIntegritySegments;
+        // A terminal high-value bank may cross another threshold after the
+        // opposing reactor has already reached zero. That Pulse is still a
+        // public scored Pulse, but integrity cannot fall below zero. Before
+        // destruction the two facts remain exactly one-to-one; afterwards
+        // the scoreboard may truthfully contain terminal overkill.
+        return opposingIntegritySegments == 0
+            ? scoreboardPulses >= damagingPulses
+            : scoreboardPulses == damagingPulses;
     }
 
     private static void ValidateFrontlineResult(
