@@ -1,0 +1,106 @@
+{
+  "schemaVersion": 1,
+  "generator": "scripts/class-models/build-railback-meshy7-input-review.mjs",
+  "status": "owner-approved-provider-inputs",
+  "primaryView": "01-front.png",
+  "viewOrder": [
+    "01-front.png",
+    "02-right.png",
+    "03-back.png",
+    "04-front-right-three-quarter.png"
+  ],
+  "cameraContract": "strict front, strict right side, strict rear, front-right three-quarter",
+  "maximumDimensionDrift": 7.29,
+  "sources": [
+    {
+      "file": "01-front.png",
+      "label": "01 · PRIMARY STRICT FRONT",
+      "bytes": 1460504,
+      "sha256": "0df263afcf87041b504b445a645629c6504f8a28383b87ff123ca3f1221ac289",
+      "width": 1254,
+      "height": 1254,
+      "foregroundBounds": {
+        "minX": 70,
+        "minY": 265,
+        "maxX": 1177,
+        "maxY": 988,
+        "width": 1108,
+        "height": 724,
+        "pixels": 665062
+      },
+      "foregroundCoverage": 0.4229
+    },
+    {
+      "file": "02-right.png",
+      "label": "02 · STRICT RIGHT SIDE",
+      "bytes": 1393460,
+      "sha256": "2c7d4b6a35f72c472737fc0db610baeb9c125add958fa351555b259995214e4f",
+      "width": 1254,
+      "height": 1254,
+      "foregroundBounds": {
+        "minX": 34,
+        "minY": 420,
+        "maxX": 1210,
+        "maxY": 839,
+        "width": 1177,
+        "height": 420,
+        "pixels": 436169
+      },
+      "foregroundCoverage": 0.2774
+    },
+    {
+      "file": "03-back.png",
+      "label": "03 · STRICT REAR",
+      "bytes": 1831997,
+      "sha256": "d066ac8c45943c0ce78e2d7111d69aa39b67fb59af5316f465b61e6062876a6a",
+      "width": 1254,
+      "height": 1254,
+      "foregroundBounds": {
+        "minX": 39,
+        "minY": 250,
+        "maxX": 1213,
+        "maxY": 984,
+        "width": 1175,
+        "height": 735,
+        "pixels": 687532
+      },
+      "foregroundCoverage": 0.4372
+    },
+    {
+      "file": "04-front-right-three-quarter.png",
+      "label": "04 · FRONT-RIGHT 3/4",
+      "bytes": 1842784,
+      "sha256": "5412bfc7058045824122cdd51e882c86c633334dfa806090e88d283b441d6aca",
+      "width": 1254,
+      "height": 1254,
+      "foregroundBounds": {
+        "minX": 68,
+        "minY": 202,
+        "maxX": 1164,
+        "maxY": 1021,
+        "width": 1097,
+        "height": 820,
+        "pixels": 603331
+      },
+      "foregroundCoverage": 0.3837
+    },
+    {
+      "file": "canonical-top-east.png",
+      "label": "CANONICAL TOP → EAST",
+      "bytes": 1690138,
+      "sha256": "dea260a03c62d20fbf9e979eed0ed168a3ce5e58a4870dc097aa84e8399ef67e",
+      "width": 1254,
+      "height": 1254,
+      "foregroundBounds": {
+        "minX": 61,
+        "minY": 192,
+        "maxX": 1179,
+        "maxY": 1031,
+        "width": 1119,
+        "height": 840,
+        "pixels": 854517
+      },
+      "foregroundCoverage": 0.5434
+    }
+  ]
+}

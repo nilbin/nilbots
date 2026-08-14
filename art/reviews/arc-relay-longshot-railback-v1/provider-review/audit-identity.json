@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "status": "provider-geometry-review",
+  "capturedAt": "2026-08-14T08:55:05.560Z",
+  "renderer": "Three.js WebGLRenderer through Playwright Chromium",
+  "sourceViewer": "scripts/class-models/model-turntable-review.html",
+  "tag": "identity",
+  "model": "art/class-models/provider-runs/meshy/arc-relay-longshot-railback-v1/longshot/019fff75-43b1-72d8-a2c9-f9a8b8fa32f2/model-normalized-identity-review.glb",
+  "modelBytes": 64760144,
+  "modelSha256": "aee0c5a3968e1290744151cddd2254ed4c2384ae0d3f00719db254d2095ec75a",
+  "triangles": 1960490,
+  "sheet": "art/reviews/arc-relay-longshot-railback-v1/provider-review/railback-identity-six-view.png",
+  "sheetSha256": "4ccc6f104b39864008faadf2692d242004944ca6fafcd5c9a6d129d681dd9bec",
+  "contract": {
+    "purpose": "Normalized provider geometry review only; no runtime promotion",
+    "targetPlanformSpan": 0.99,
+    "targetMinimumTransverseSpan": 0.68,
+    "targetMinimumHeight": 0.26,
+    "heightScale": 1.12,
+    "up": "+Y",
+    "floorY": 0
+  },
+  "captures": [
+    {
+      "view": "front-three-quarter",
+      "label": "GAMEPLAY 3/4",
+      "file": "art/reviews/arc-relay-longshot-railback-v1/provider-review/identity/front-three-quarter.png",
+      "sha256": "21089514d6af7ff9794cc56ceae92a5887fdbd497eedf96b90a5f9868e60b968"
+    },
+    {
+      "view": "positive-x",
+      "label": "+X CAMERA",
+      "file": "art/reviews/arc-relay-longshot-railback-v1/provider-review/identity/positive-x.png",
+      "sha256": "92edf392cb57b3105e0966d2b71b7c56830e912aaab3fc6e912bb1e24d9acd4d"
+    },
+    {
+      "view": "negative-x",
+      "label": "-X CAMERA",
+      "file": "art/reviews/arc-relay-longshot-railback-v1/provider-review/identity/negative-x.png",
+      "sha256": "9b376f8231e5e04ee58082f6760a016c35eaef712f3e2f4a204fa09f7fe674f2"
+    },
+    {
+      "view": "positive-z",
+      "label": "+Z CAMERA",
+      "file": "art/reviews/arc-relay-longshot-railback-v1/provider-review/identity/positive-z.png",
+      "sha256": "01df6e489191a9c68ed62493ceaa1698d6d83f14554c1c87cb78c234c4dda74f"
+    },
+    {
+      "view": "negative-z",
+      "label": "-Z CAMERA",
+      "file": "art/reviews/arc-relay-longshot-railback-v1/provider-review/identity/negative-z.png",
+      "sha256": "9b60c895a2478858f1999ef629cf4540bf180332f4abaeb1e0209920178af641"
+    },
+    {
+      "view": "top-down",
+      "label": "STRICT TOP",
+      "file": "art/reviews/arc-relay-longshot-railback-v1/provider-review/identity/top-down.png",
+      "sha256": "d76f87f9e0298f336e071f29a487e25d581538f1bb62cd7f8f114aad807ebc38"
+    }
+  ]
+}

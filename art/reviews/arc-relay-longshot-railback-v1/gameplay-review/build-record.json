@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Reversible current-build WebGL review of Railback Longshot at normal desktop and phone gameplay scale, on both teams and during Rail Line",
+  "sourceCommit": "eae468015641bc93b55ce5bbf2e781389589fc6d",
+  "runtimeAssetsPromoted": {
+    "longshot": false
+  },
+  "tierAudit": "art/class-models/runtime-tiers/arc-relay/meshy7-longshot-railback-review-v1/audit.json",
+  "selectedProfile": "lean",
+  "output": "sandbox/longshot-railback-v1/game-review/site",
+  "replayRecord": "sandbox/longshot-railback-v1/game-review/replay-generation.json",
+  "candidate": {
+    "file": "art/class-models/runtime-tiers/arc-relay/meshy7-longshot-railback-review-v1/arc-longshot-railback-lean.glb",
+    "bytes": 1828396,
+    "sha256": "620161701f4e6efd836b9b4e068ff16a6f8ec364c6a072f0ed0ce8f43dd475d1",
+    "triangles": 78418,
+    "textureSize": 512,
+    "liveMaximumSpan": 1.089,
+    "liveTransverseSpan": 0.8021247039484917,
+    "liveHeight": 0.30114066185166577
+  },
+  "emittedCandidate": {
+    "file": "assets/model-C4uP7vtV.glb",
+    "bytes": 1828396,
+    "sha256": "620161701f4e6efd836b9b4e068ff16a6f8ec364c6a072f0ed0ce8f43dd475d1"
+  },
+  "runtimeSha256Before": "9ea835fa2363843eeaacc02c69687eee1471ac44c4e1a703d05783c14e8cbe4a",
+  "runtimeSha256After": "9ea835fa2363843eeaacc02c69687eee1471ac44c4e1a703d05783c14e8cbe4a",
+  "runtimeManifestSha256Before": "ccfe404af8eb4676c37c01f436bce2580c91aa79229c245f817daedb1eb23915",
+  "runtimeManifestSha256After": "ccfe404af8eb4676c37c01f436bce2580c91aa79229c245f817daedb1eb23915",
+  "approvedRuntimeRestoredExactly": true,
+  "approvedRuntimeManifestRestoredExactly": true
+}

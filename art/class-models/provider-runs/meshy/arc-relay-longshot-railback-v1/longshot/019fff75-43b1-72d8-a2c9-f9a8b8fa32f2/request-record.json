@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "provider": "Meshy",
+  "endpoint": "multi-image-to-3d",
+  "providerModel": "meshy-7",
+  "classId": "longshot",
+  "taskId": "019fff75-43b1-72d8-a2c9-f9a8b8fa32f2",
+  "submittedAt": "2026-08-14T08:48:22.075Z",
+  "balanceBefore": 1060,
+  "authorizedCreditCap": 30,
+  "sourceManifest": "art/class-look-concepts/arc-relay/longshot-redesign-v2/railback-meshy7-v1/manifest.json",
+  "inputs": [
+    {
+      "order": 1,
+      "view": "strict-front",
+      "primary": true,
+      "file": "art/class-look-concepts/arc-relay/longshot-redesign-v2/railback-meshy7-v1/01-front.png",
+      "bytes": 1460504,
+      "sha256": "0df263afcf87041b504b445a645629c6504f8a28383b87ff123ca3f1221ac289",
+      "width": 1254,
+      "height": 1254
+    },
+    {
+      "order": 2,
+      "view": "strict-right",
+      "primary": false,
+      "file": "art/class-look-concepts/arc-relay/longshot-redesign-v2/railback-meshy7-v1/02-right.png",
+      "bytes": 1393460,
+      "sha256": "2c7d4b6a35f72c472737fc0db610baeb9c125add958fa351555b259995214e4f",
+      "width": 1254,
+      "height": 1254
+    },
+    {
+      "order": 3,
+      "view": "strict-back",
+      "primary": false,
+      "file": "art/class-look-concepts/arc-relay/longshot-redesign-v2/railback-meshy7-v1/03-back.png",
+      "bytes": 1831997,
+      "sha256": "d066ac8c45943c0ce78e2d7111d69aa39b67fb59af5316f465b61e6062876a6a",
+      "width": 1254,
+      "height": 1254
+    },
+    {
+      "order": 4,
+      "view": "front-right-three-quarter",
+      "primary": false,
+      "file": "art/class-look-concepts/arc-relay/longshot-redesign-v2/railback-meshy7-v1/04-front-right-three-quarter.png",
+      "bytes": 1842784,
+      "sha256": "5412bfc7058045824122cdd51e882c86c633334dfa806090e88d283b441d6aca",
+      "width": 1254,
+      "height": 1254
+    }
+  ],
+  "settings": {
+    "ai_model": "meshy-7",
+    "should_texture": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "should_remesh": false,
+    "image_enhancement": false,
+    "remove_lighting": true,
+    "pose_mode": "",
+    "texture_prompt": "Matte high-roughness Railback Longshot. Medium-light desaturated dusty steel/denim-blue powder-coated armor; warm light-gray ceramic on exactly three transverse capacitor ribs; dull brushed nickel conductors; medium graphite recesses; tiny muted burgundy insulators; restrained edge wear. Preserve the broad compact chassis, full-width dark front shutter, split cooling rear, and exposed conductor bed. No text, logos, eyes, gun, barrel, white nose, teal/cyan, orange, glow, plastic, gloss, chrome, or baked lighting.",
+    "target_formats": [
+      "glb"
+    ]
+  },
+  "pricingSource": "https://docs.meshy.ai/en/api/pricing",
+  "licenseTerms": "https://www.meshy.ai/terms"
+}

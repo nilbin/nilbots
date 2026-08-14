@@ -1,0 +1,240 @@
+{
+  "schemaVersion": 1,
+  "id": "meshy7-longshot-railback-review-v1",
+  "status": "owner-review",
+  "generator": "scripts/class-models/build-railback-review-tiers.mjs",
+  "source": {
+    "geometry": {
+      "file": "art/class-models/provider-runs/meshy/arc-relay-longshot-railback-v1/longshot/019fff75-43b1-72d8-a2c9-f9a8b8fa32f2/raw-model.glb",
+      "bytes": 64759580,
+      "sha256": "a91278f398e1fc9e2c903bb52c3f0cc60bb2a9e372a1c2f7d79e902dee851329",
+      "taskId": "019fff75-43b1-72d8-a2c9-f9a8b8fa32f2",
+      "endpoint": "multi-image-to-3d"
+    },
+    "textureDonor": {
+      "file": "art/class-models/provider-runs/meshy/arc-relay-longshot-railback-v1-corrective-retexture/longshot/019fff7c-caa8-7434-a05b-4625d3d485c1/raw-model.glb",
+      "bytes": 65500712,
+      "sha256": "c47a8d65bf6a58b93fd72c86bf6dcf9bdca2eb1fa0b165ee4b86c62b74b7aaad",
+      "taskId": "019fff7c-caa8-7434-a05b-4625d3d485c1",
+      "endpoint": "retexture"
+    },
+    "provider": "Meshy",
+    "providerModel": "meshy-7",
+    "credits": {
+      "generation": 30,
+      "correctiveRetexture": 10,
+      "total": 40,
+      "balanceAfter": 1020
+    },
+    "autoRigging": false
+  },
+  "toolchain": {
+    "gltfTransform": "4.4.2",
+    "simplifier": "meshoptimizer through glTF-Transform",
+    "textureEncoding": "WebP review tiers",
+    "textureMaterialization": "original-UV retexture maps transplanted onto exact generation geometry"
+  },
+  "normalization": {
+    "orientation": "identity",
+    "sourceFacing": "-x",
+    "facing": "+x",
+    "facingYawDegrees": 180,
+    "up": "+y",
+    "floorY": 0,
+    "targetPlanformSpan": 0.99,
+    "targetTransverseSpan": 0.7292042763168105,
+    "heightScale": 1.12,
+    "correctedHeight": 0.27376423804696887,
+    "runtimeLookScale": 1.1,
+    "liveMaximumSpan": 1.089,
+    "liveTransverseSpan": 0.8021247039484917,
+    "liveHeight": 0.30114066185166577
+  },
+  "fidelityGates": {
+    "canonicalTop": "art/class-look-concepts/arc-relay/longshot-redesign-v2/railback-meshy7-v1/canonical-top-east.png",
+    "fidelityBrief": "art/class-look-concepts/arc-relay/longshot-redesign-v2/FIDELITY.md",
+    "planformAspectRatio": 1.3576442598505607,
+    "maximumAspectRatio": 1.45,
+    "minimumTransverseSpan": 0.68,
+    "minimumHeight": 0.26,
+    "exactCapacitorRibs": 3,
+    "connectedLeglessBody": true,
+    "fullWidthFrontShutter": true,
+    "splitCoolingRear": true
+  },
+  "contract": {
+    "purpose": "Reversible in-renderer comparison only; does not replace the approved runtime Longshot.",
+    "geometry": "Exact first-pass provider geometry and UVs; deterministic normalization, 180-degree facing correction, 1.12 vertical scale, and lossy review simplification.",
+    "materials": "Corrective multiview retexture maps on one fused authored material; team ownership remains renderer-owned.",
+    "matteFinish": "Metallic-roughness green channel is deterministically floored at 0.72; base color, metallic, and normal are unchanged.",
+    "tangentSpace": "Normal-mapped without authored tangents; Three.js derivative tangent-space review required."
+  },
+  "profiles": [
+    {
+      "id": "lean",
+      "settings": {
+        "simplifyRatio": 0.04,
+        "simplifyError": 0.0025,
+        "lockBorder": false,
+        "textureSize": 512,
+        "geometryCompression": "quantize",
+        "textureEncoding": "WebP",
+        "matteRoughnessFloor": 0.72
+      },
+      "budgets": {
+        "transferBytes": 2200000,
+        "triangles": 100000
+      },
+      "artifact": {
+        "file": "art/class-models/runtime-tiers/arc-relay/meshy7-longshot-railback-review-v1/arc-longshot-railback-lean.glb",
+        "bytes": 1828396,
+        "sha256": "620161701f4e6efd836b9b4e068ff16a6f8ec364c6a072f0ed0ce8f43dd475d1"
+      },
+      "triangles": 78418,
+      "positionVertices": 62891,
+      "meshes": 1,
+      "primitives": 1,
+      "materials": 1,
+      "textures": 3,
+      "geometrySha256": "62d0cd134dfa2c41550eef8abdc5ced501077d52e2ed88f0107e612043c447f8",
+      "memory": {
+        "transferBytes": 1828396,
+        "geometryGpuBytes": 1728328,
+        "textureGpuBytesCompressedTarget": 4194300,
+        "textureGpuBytesRgba8Fallback": 4194300,
+        "modelGpuBytesCompressedTarget": 5922628,
+        "modelGpuBytesRgba8Fallback": 5922628,
+        "textures": [
+          {
+            "imageIndex": 0,
+            "name": null,
+            "slots": [
+              "baseColorTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 56716,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          },
+          {
+            "imageIndex": 1,
+            "name": null,
+            "slots": [
+              "metallicRoughnessTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 32270,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          },
+          {
+            "imageIndex": 2,
+            "name": null,
+            "slots": [
+              "normalTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 512,
+            "height": 512,
+            "mipLevels": 10,
+            "transferBytes": 8168,
+            "gpuBytesCompressedTarget": 1398100,
+            "gpuBytesRgba8Fallback": 1398100
+          }
+        ]
+      }
+    },
+    {
+      "id": "rich",
+      "settings": {
+        "simplifyRatio": 0.08,
+        "simplifyError": 0.001,
+        "lockBorder": false,
+        "textureSize": 1024,
+        "geometryCompression": "quantize",
+        "textureEncoding": "WebP",
+        "matteRoughnessFloor": 0.72
+      },
+      "budgets": {
+        "transferBytes": 5000000,
+        "triangles": 180000
+      },
+      "artifact": {
+        "file": "art/class-models/runtime-tiers/arc-relay/meshy7-longshot-railback-review-v1/arc-longshot-railback-rich.glb",
+        "bytes": 4461000,
+        "sha256": "f18e24d53c7125c8612ea5d59a7a17bb72c79fa4afdb3536100eaa57bdf08b80"
+      },
+      "triangles": 156824,
+      "positionVertices": 114447,
+      "meshes": 1,
+      "primitives": 1,
+      "materials": 1,
+      "textures": 3,
+      "geometrySha256": "a718f5d3ddd2d587a3ead559e709de8d800f786f129f88e34e1efbe8f0e4db21",
+      "memory": {
+        "transferBytes": 4461000,
+        "geometryGpuBytes": 4170828,
+        "textureGpuBytesCompressedTarget": 16777212,
+        "textureGpuBytesRgba8Fallback": 16777212,
+        "modelGpuBytesCompressedTarget": 20948040,
+        "modelGpuBytesRgba8Fallback": 20948040,
+        "textures": [
+          {
+            "imageIndex": 0,
+            "name": null,
+            "slots": [
+              "baseColorTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 1024,
+            "height": 1024,
+            "mipLevels": 11,
+            "transferBytes": 155770,
+            "gpuBytesCompressedTarget": 5592404,
+            "gpuBytesRgba8Fallback": 5592404
+          },
+          {
+            "imageIndex": 1,
+            "name": null,
+            "slots": [
+              "metallicRoughnessTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 1024,
+            "height": 1024,
+            "mipLevels": 11,
+            "transferBytes": 79908,
+            "gpuBytesCompressedTarget": 5592404,
+            "gpuBytesRgba8Fallback": 5592404
+          },
+          {
+            "imageIndex": 2,
+            "name": null,
+            "slots": [
+              "normalTexture"
+            ],
+            "mimeType": "image/webp",
+            "encoding": "RGBA8",
+            "width": 1024,
+            "height": 1024,
+            "mipLevels": 11,
+            "transferBytes": 51572,
+            "gpuBytesCompressedTarget": 5592404,
+            "gpuBytesRgba8Fallback": 5592404
+          }
+        ]
+      }
+    }
+  ]
+}

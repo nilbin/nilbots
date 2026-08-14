@@ -1,0 +1,255 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Current-build real WebGL proof of Railback Longshot at normal scale, selected scale, on teal and orange teams, and during Rail Line windup",
+  "sourceUrl": "http://127.0.0.1:9192/?standalone&audio=off&camera=director&proof=railback-review&proof-camera=director",
+  "runtimeAssetsPromoted": {
+    "longshot": false
+  },
+  "buildRecord": "art/reviews/arc-relay-longshot-railback-v1/gameplay-review/build-record.json",
+  "expectedCandidateModel": {
+    "filename": "model-C4uP7vtV.glb",
+    "sha256": "620161701f4e6efd836b9b4e068ff16a6f8ec364c6a072f0ed0ce8f43dd475d1"
+  },
+  "captures": [
+    {
+      "id": "desktop-rail-line-windup",
+      "replay": "rail-line-focus",
+      "time": 0.55,
+      "width": 1440,
+      "height": 900,
+      "reviewOperation": "arc-signature-0",
+      "mobile": false,
+      "renderer": "webgl",
+      "proofTime": 0.55,
+      "replaySeed": "7001",
+      "tickCount": 72,
+      "cameraFrame": {
+        "x": 15.500000000000002,
+        "y": 12.5,
+        "width": 8.8,
+        "height": 5.5
+      },
+      "visibleSignatures": [
+        {
+          "operationId": "arc-signature-0",
+          "signatureId": "rail-line",
+          "phase": "tell",
+          "visibleMeshes": 4
+        }
+      ],
+      "candidateFilename": "model-C4uP7vtV.glb",
+      "candidateLoaded": true,
+      "selectedUnitLabel": null,
+      "image": "art/reviews/arc-relay-longshot-railback-v1/gameplay-review/desktop-rail-line-windup.png",
+      "imageBytes": 1049952,
+      "imageSha256": "0b8581f6650839af695fda10951869dbe72a297f55ff7deca79913a85fa0b862"
+    },
+    {
+      "id": "desktop-normal-match",
+      "replay": "railback-current-tapline3",
+      "time": 5,
+      "width": 1440,
+      "height": 900,
+      "mobile": false,
+      "renderer": "webgl",
+      "proofTime": 5,
+      "replaySeed": "9147",
+      "tickCount": 459,
+      "cameraFrame": {
+        "x": 9.251749659236605,
+        "y": 7.698764319941365,
+        "width": 13.914832236622068,
+        "height": 8.685500035386129
+      },
+      "visibleSignatures": [],
+      "candidateFilename": "model-C4uP7vtV.glb",
+      "candidateLoaded": true,
+      "selectedUnitLabel": null,
+      "image": "art/reviews/arc-relay-longshot-railback-v1/gameplay-review/desktop-normal-match.png",
+      "imageBytes": 539779,
+      "imageSha256": "4f6b9ad9b6cb365efead56974f1803511744b7207660899a9a2c5d95b37209e6"
+    },
+    {
+      "id": "desktop-teal-longshot",
+      "replay": "railback-current-tapline3",
+      "time": 5,
+      "width": 1440,
+      "height": 900,
+      "unitIndex": 1,
+      "teamId": 1,
+      "team": "teal",
+      "mobile": false,
+      "renderer": "webgl",
+      "proofTime": 5,
+      "replaySeed": "9147",
+      "tickCount": 459,
+      "cameraFrame": {
+        "x": 16.83914289373049,
+        "y": 15.360353948402567,
+        "width": 14.830762850721081,
+        "height": 9.257214824748148
+      },
+      "visibleSignatures": [],
+      "candidateFilename": "model-C4uP7vtV.glb",
+      "candidateLoaded": true,
+      "selectedUnitLabel": "Inspect Longshot for hunter-tapline-v2",
+      "image": "art/reviews/arc-relay-longshot-railback-v1/gameplay-review/desktop-teal-longshot.png",
+      "imageBytes": 416536,
+      "imageSha256": "90215848a586eed4b7f6dea470f01805324ba38e2dc964da4f7c2e2d2a2f0aad"
+    },
+    {
+      "id": "desktop-orange-longshot",
+      "replay": "railback-current-tapline3",
+      "time": 5,
+      "width": 1440,
+      "height": 900,
+      "unitIndex": 0,
+      "teamId": 0,
+      "team": "orange",
+      "mobile": false,
+      "renderer": "webgl",
+      "proofTime": 5,
+      "replaySeed": "9147",
+      "tickCount": 459,
+      "cameraFrame": {
+        "x": 7.570915543443556,
+        "y": 4.878882123007117,
+        "width": 15.021094312415464,
+        "height": 9.376017832155657
+      },
+      "visibleSignatures": [],
+      "candidateFilename": "model-C4uP7vtV.glb",
+      "candidateLoaded": true,
+      "selectedUnitLabel": "Inspect Longshot for hunter-tapline-v2",
+      "image": "art/reviews/arc-relay-longshot-railback-v1/gameplay-review/desktop-orange-longshot.png",
+      "imageBytes": 433966,
+      "imageSha256": "9a9c3ea9c2e7ac5665edbfaf424c0db3ea96e00011581f7989cc460a18e5aa86"
+    },
+    {
+      "id": "phone-rail-line-windup",
+      "replay": "rail-line-focus",
+      "time": 0.55,
+      "width": 844,
+      "height": 390,
+      "mobile": true,
+      "reviewOperation": "arc-signature-0",
+      "renderer": "webgl",
+      "proofTime": 0.55,
+      "replaySeed": "7001",
+      "tickCount": 72,
+      "cameraFrame": {
+        "x": 15.500000000000002,
+        "y": 12.5,
+        "width": 11.90256410256409,
+        "height": 5.499999999999995
+      },
+      "visibleSignatures": [
+        {
+          "operationId": "arc-signature-0",
+          "signatureId": "rail-line",
+          "phase": "tell",
+          "visibleMeshes": 4
+        }
+      ],
+      "candidateFilename": "model-C4uP7vtV.glb",
+      "candidateLoaded": true,
+      "selectedUnitLabel": null,
+      "image": "art/reviews/arc-relay-longshot-railback-v1/gameplay-review/phone-rail-line-windup.png",
+      "imageBytes": 327353,
+      "imageSha256": "3f237f67b2cbe1b41f6541e62788463098df20ddb645d34c44f94962aa7efdd3"
+    },
+    {
+      "id": "phone-normal-match",
+      "replay": "railback-current-tapline3",
+      "time": 5,
+      "width": 844,
+      "height": 390,
+      "mobile": true,
+      "renderer": "webgl",
+      "proofTime": 5,
+      "replaySeed": "9147",
+      "tickCount": 459,
+      "cameraFrame": {
+        "x": 9.25055337469201,
+        "y": 7.696371750852179,
+        "width": 18.633682170418517,
+        "height": 8.610350765951685
+      },
+      "visibleSignatures": [],
+      "candidateFilename": "model-C4uP7vtV.glb",
+      "candidateLoaded": true,
+      "selectedUnitLabel": null,
+      "image": "art/reviews/arc-relay-longshot-railback-v1/gameplay-review/phone-normal-match.png",
+      "imageBytes": 315830,
+      "imageSha256": "1bd5e0cecc6b0d95a8da630995a154538d62a535dc332f4966e6cdeff37a3aa6"
+    },
+    {
+      "id": "phone-teal-longshot",
+      "replay": "railback-current-tapline3",
+      "time": 5,
+      "width": 844,
+      "height": 390,
+      "mobile": true,
+      "unitIndex": 1,
+      "teamId": 1,
+      "team": "teal",
+      "renderer": "webgl",
+      "proofTime": 5,
+      "replaySeed": "9147",
+      "tickCount": 459,
+      "cameraFrame": {
+        "x": 19.162799753143883,
+        "y": 17.82923931362054,
+        "width": 15.679600843722744,
+        "height": 7.245313186080415
+      },
+      "visibleSignatures": [],
+      "candidateFilename": "model-C4uP7vtV.glb",
+      "candidateLoaded": true,
+      "selectedUnitLabel": "Inspect Longshot for hunter-tapline-v2",
+      "image": "art/reviews/arc-relay-longshot-railback-v1/gameplay-review/phone-teal-longshot.png",
+      "imageBytes": 293670,
+      "imageSha256": "92faf754b9a504ea9d7f4960ca2fa1f18d21acc2add6cf08cf607ebc2b127cfc"
+    },
+    {
+      "id": "phone-orange-longshot",
+      "replay": "railback-current-tapline3",
+      "time": 5,
+      "width": 844,
+      "height": 390,
+      "mobile": true,
+      "unitIndex": 0,
+      "teamId": 0,
+      "team": "orange",
+      "renderer": "webgl",
+      "proofTime": 5,
+      "replaySeed": "9147",
+      "tickCount": 459,
+      "cameraFrame": {
+        "x": 7.5709155435140465,
+        "y": 4.8788821231009285,
+        "width": 15.2240363678657,
+        "height": 7.034803534914246
+      },
+      "visibleSignatures": [],
+      "candidateFilename": "model-C4uP7vtV.glb",
+      "candidateLoaded": true,
+      "selectedUnitLabel": "Inspect Longshot for hunter-tapline-v2",
+      "image": "art/reviews/arc-relay-longshot-railback-v1/gameplay-review/phone-orange-longshot.png",
+      "imageBytes": 300581,
+      "imageSha256": "5aca64a4c449caa0dbee96babf02ffb9b5613355eb29fd4f9fa08eaac474ad3b"
+    }
+  ],
+  "contactSheets": {
+    "desktop": {
+      "file": "art/reviews/arc-relay-longshot-railback-v1/gameplay-review/desktop-gameplay-review.webp",
+      "bytes": 174476,
+      "sha256": "f4badc9de015e26c5443d24f85802909795adbb96095b4f22d52370edd87c8a9"
+    },
+    "phone": {
+      "file": "art/reviews/arc-relay-longshot-railback-v1/gameplay-review/phone-gameplay-review.webp",
+      "bytes": 126346,
+      "sha256": "4cb1061caac25aa07ba627c8bedb70cbe729e677bd73a45928db4e02a41de380"
+    }
+  }
+}

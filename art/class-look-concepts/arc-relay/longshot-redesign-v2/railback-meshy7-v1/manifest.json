@@ -1,0 +1,179 @@
+{
+  "schemaVersion": 1,
+  "id": "railback-meshy7-v1",
+  "classId": "longshot",
+  "label": "Longshot Railback",
+  "status": "owner-review",
+  "providerRunCollection": "arc-relay-longshot-railback-v1",
+  "retextureRunCollection": "arc-relay-longshot-railback-v1-corrective-retexture",
+  "ownerApproval": "Owner selected Railback, approved the Meshy call, and separately authorized one corrective retexture if needed on 2026-08-14.",
+  "fidelityBrief": "../FIDELITY.md",
+  "canonicalIdentity": {
+    "oblique": "../railback-oblique.png",
+    "topEast": "canonical-top-east.png",
+    "inputReview": "input-review.png",
+    "metrics": "input-review-metrics.json"
+  },
+  "meshyInputs": [
+    {
+      "order": 1,
+      "view": "strict-front",
+      "primary": true,
+      "file": "01-front.png",
+      "sha256": "0df263afcf87041b504b445a645629c6504f8a28383b87ff123ca3f1221ac289",
+      "width": 1254,
+      "height": 1254
+    },
+    {
+      "order": 2,
+      "view": "strict-right",
+      "primary": false,
+      "file": "02-right.png",
+      "sha256": "2c7d4b6a35f72c472737fc0db610baeb9c125add958fa351555b259995214e4f",
+      "width": 1254,
+      "height": 1254
+    },
+    {
+      "order": 3,
+      "view": "strict-back",
+      "primary": false,
+      "file": "03-back.png",
+      "sha256": "d066ac8c45943c0ce78e2d7111d69aa39b67fb59af5316f465b61e6062876a6a",
+      "width": 1254,
+      "height": 1254
+    },
+    {
+      "order": 4,
+      "view": "front-right-three-quarter",
+      "primary": false,
+      "file": "04-front-right-three-quarter.png",
+      "sha256": "5412bfc7058045824122cdd51e882c86c633334dfa806090e88d283b441d6aca",
+      "width": 1254,
+      "height": 1254
+    }
+  ],
+  "inputGate": {
+    "oneObjectPerTask": true,
+    "separateImages": true,
+    "plainBackground": true,
+    "diffuseLighting": true,
+    "castShadow": false,
+    "minimumShortestSide": 1254,
+    "maximumDimensionDriftPercent": 7.29,
+    "topSha256": "dea260a03c62d20fbf9e979eed0ed168a3ce5e58a4870dc097aa84e8399ef67e",
+    "exactCapacitorRibs": 3,
+    "maxPlanformAspectRatio": 1.45,
+    "targetNormalizedPlanformSpan": 0.99,
+    "minimumNormalizedTransverseSpan": 0.68,
+    "targetNormalizedTransverseSpan": 0.72,
+    "minimumNormalizedBodyHeight": 0.26
+  },
+  "meshyRequestPlan": {
+    "authorized": false,
+    "authorizationConsumed": true,
+    "authorization": "Owner said 'Let's try railback! Approved' and confirmed Meshy plus one retexture if needed on 2026-08-14.",
+    "pilotCreditCap": 30,
+    "ai_model": "meshy-7",
+    "should_texture": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "should_remesh": false,
+    "image_enhancement": false,
+    "remove_lighting": true,
+    "pose_mode": "",
+    "texture_prompt": "Matte high-roughness Railback Longshot. Medium-light desaturated dusty steel/denim-blue powder-coated armor; warm light-gray ceramic on exactly three transverse capacitor ribs; dull brushed nickel conductors; medium graphite recesses; tiny muted burgundy insulators; restrained edge wear. Preserve the broad compact chassis, full-width dark front shutter, split cooling rear, and exposed conductor bed. No text, logos, eyes, gun, barrel, white nose, teal/cyan, orange, glow, plastic, gloss, chrome, or baked lighting.",
+    "target_formats": [
+      "glb"
+    ],
+    "autoRigging": false,
+    "completedTaskId": "019fff75-43b1-72d8-a2c9-f9a8b8fa32f2",
+    "consumedCredits": 30
+  },
+  "correctiveRetextureAuthorization": {
+    "authorized": true,
+    "creditCap": 10,
+    "condition": "Only if the generated geometry passes the fidelity and size gates but its material finish or palette does not."
+  },
+  "geometryGate": {
+    "status": "passed-with-deterministic-height-correction",
+    "sourceFacing": "-x",
+    "requiredFacingCorrectionDegrees": 180,
+    "sourcePlanformAspectRatio": 1.3576442598505607,
+    "normalizedPlanformSpan": 0.99,
+    "normalizedTransverseSpan": 0.7292042763168105,
+    "normalizedRawHeight": 0.24443235539907932,
+    "heightScale": 1.12,
+    "normalizedCorrectedHeight": 0.27376423804696887,
+    "runtimeLookScale": 1.1,
+    "liveMaximumSpan": 1.089,
+    "liveTransverseSpan": 0.8021247039484917,
+    "liveCorrectedHeight": 0.30114066185166577,
+    "anchors": {
+      "connectedLeglessBody": true,
+      "exactlyThreeCapacitorRibs": true,
+      "fullWidthFrontShutter": true,
+      "splitCoolingRear": true,
+      "broadShoulders": true
+    },
+    "materialFailure": "Initial texture collapsed dusty blue and warm ceramic into pale gray-green metal and introduced orange blotches; corrective multiview retexture is warranted."
+  },
+  "retexturePlan": {
+    "authorized": false,
+    "authorizationConsumed": true,
+    "authorization": "Owner authorized one corrective retexture if needed on 2026-08-14; geometry passed and initial material separation failed.",
+    "endpoint": "/openapi/v1/retexture",
+    "sourceTaskId": "019fff75-43b1-72d8-a2c9-f9a8b8fa32f2",
+    "sourceRawModelSha256": "a91278f398e1fc9e2c903bb52c3f0cc60bb2a9e372a1c2f7d79e902dee851329",
+    "ai_model": "meshy-7",
+    "enable_original_uv": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "alpha_thumbnail": true,
+    "target_formats": [
+      "glb"
+    ],
+    "creditCap": 10,
+    "autoRigging": false,
+    "completedTaskId": "019fff7c-caa8-7434-a05b-4625d3d485c1",
+    "consumedCredits": 10
+  },
+  "creditCheck": {
+    "pricingSource": "https://docs.meshy.ai/en/api/pricing",
+    "parameterSource": "https://docs.meshy.ai/en/api/multi-image-to-3d",
+    "angleSource": "https://docs.meshy.ai/en/webapp/image-to-3d#multi-view-images-to-3d",
+    "pricingVerifiedAt": "2026-08-14",
+    "expectedCredits": 30,
+    "retryPolicy": "Meshy's plan-level free retries are not exposed through the non-Enterprise API; an API resubmission consumes credits normally."
+  },
+  "nextGate": "owner review of provider and real-gameplay evidence; no runtime promotion",
+  "providerRun": {
+    "taskId": "019fff75-43b1-72d8-a2c9-f9a8b8fa32f2",
+    "directory": "../../../../class-models/provider-runs/meshy/arc-relay-longshot-railback-v1/longshot/019fff75-43b1-72d8-a2c9-f9a8b8fa32f2",
+    "status": "SUCCEEDED",
+    "consumedCredits": 30,
+    "balanceBefore": 1060,
+    "balanceAfter": 1030,
+    "rawModelSha256": "a91278f398e1fc9e2c903bb52c3f0cc60bb2a9e372a1c2f7d79e902dee851329"
+  },
+  "retextureRun": {
+    "taskId": "019fff7c-caa8-7434-a05b-4625d3d485c1",
+    "directory": "../../../../class-models/provider-runs/meshy/arc-relay-longshot-railback-v1-corrective-retexture/longshot/019fff7c-caa8-7434-a05b-4625d3d485c1",
+    "status": "SUCCEEDED",
+    "consumedCredits": 10,
+    "balanceBefore": 1030,
+    "balanceAfter": 1020,
+    "rawModelSha256": "c47a8d65bf6a58b93fd72c86bf6dcf9bdca2eb1fa0b165ee4b86c62b74b7aaad"
+  },
+  "reviewGate": {
+    "status": "ready-for-owner-review",
+    "runtimePromoted": false,
+    "selectedProfile": "lean",
+    "artifact": "../../../../class-models/runtime-tiers/arc-relay/meshy7-longshot-railback-review-v1/arc-longshot-railback-lean.glb",
+    "artifactSha256": "620161701f4e6efd836b9b4e068ff16a6f8ec364c6a072f0ed0ce8f43dd475d1",
+    "artifactBytes": 1828396,
+    "triangles": 78418,
+    "providerReview": "../../../../reviews/arc-relay-longshot-railback-v1/provider-review/railback-lean-six-view.png",
+    "fidelityReview": "../../../../reviews/arc-relay-longshot-railback-v1/provider-review/railback-fidelity-board.png",
+    "gameplayEvidence": "../../../../reviews/arc-relay-longshot-railback-v1/gameplay-review/evidence.json"
+  }
+}

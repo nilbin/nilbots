@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Same-scale east-facing top-silhouette comparison for Railback owner review",
+  "concept": {
+    "file": "art/class-look-concepts/arc-relay/longshot-redesign-v2/railback-meshy7-v1/canonical-top-east.png",
+    "sha256": "dea260a03c62d20fbf9e979eed0ed168a3ce5e58a4870dc097aa84e8399ef67e",
+    "sourcePixels": {
+      "width": 1254,
+      "height": 1254
+    },
+    "foregroundBounds": {
+      "x": 61,
+      "y": 192,
+      "width": 1119,
+      "height": 840
+    }
+  },
+  "model": {
+    "file": "art/reviews/arc-relay-longshot-railback-v1/provider-review/lean/top-down.png",
+    "sha256": "37621240cc8bdadaa414c4c480a0cbf69d4a118e35669c88f95cb0d7f66b029b",
+    "sourcePixels": {
+      "width": 440,
+      "height": 440
+    },
+    "foregroundBounds": {
+      "x": 30,
+      "y": 80,
+      "width": 380,
+      "height": 280
+    }
+  },
+  "normalization": {
+    "facing": "+x / east / screen-right",
+    "canvasPixels": 512,
+    "maximumSpanPixels": 420,
+    "centeredIndependently": true
+  },
+  "comparison": {
+    "coveragePercent": 90.35,
+    "intersectionOverUnionPercent": 89.95,
+    "modelToConceptAreaPercent": 90.8,
+    "centerlineDriftPixels": 5.44,
+    "centerlineDriftPercent": 1.29,
+    "meanLocalWidthDriftPercent": 4.56,
+    "maximumLocalWidthDriftPercent": 31.67
+  },
+  "interpretation": {
+    "coverage": "intersection divided by canonical silhouette area",
+    "centerlineDrift": "centroid separation as percent of normalized maximum span",
+    "localWidthDrift": "mean absolute transverse-width difference across occupied longitudinal columns"
+  }
+}

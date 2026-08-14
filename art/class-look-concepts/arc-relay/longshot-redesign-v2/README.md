@@ -1,8 +1,9 @@
 # Longshot redesign v2
 
-Status: **owner-review concept candidates only** as of 2026-08-14. None of
-these images is an approved canonical identity, a Meshy input, or a runtime
-promotion. The live Longshot remains the approved Meshy 7 V3 model.
+Status: **Railback owner-approved for a Meshy 7 review candidate** as of
+2026-08-14. The generated model is not a runtime promotion. The live Longshot
+remains the approved Meshy 7 V3 model. Railback's provider and real-gameplay
+evidence is ready for review; promotion still requires separate owner approval.
 
 ## Why this pass exists
 
@@ -29,14 +30,13 @@ strict-top views on one deterministic review board and includes an approximate
 
 ## Approval and provider gate
 
-Whichever direction the owner selects must receive one targeted identity edit
-before provider work. That edit pins the canonical East-facing top silhouette,
-front/rear asymmetry, exactly three large charge stages, and the full-width
-emitter shutter. After that approval, generate separate camera-consistent
-front, right, rear, top, and gameplay-oblique images. The inferred top views in
-this folder are useful concept evidence but visibly drift in secondary details;
-they must not be uploaded to Meshy as though multiview agreement were already
-established.
+The owner selected Railback on 2026-08-14. Its targeted identity edit pins the
+canonical East-facing top silhouette, front/rear asymmetry, exactly three large
+charge stages, and the full-width emitter shutter. Meshy receives four separate
+camera-consistent images in its documented order: strict front first, then
+strict right side, strict rear, and front-right three-quarter. The canonical
+strict top remains the same-scale silhouette authority and is not substituted
+for one of those four provider views.
 
 The standard beam and Rail Line effects remain renderer-owned. A future model
 must not bake a beam, team teal/cyan, team orange, hover glow, particles, or
@@ -63,4 +63,3 @@ timing into the asset.
 | `rail-citadel-oblique.png` | `ef176c40b2d745c3621f6207ef869f83294adb5160c34545dfa9e709c454ef30` |
 | `rail-citadel-top.png` | `dc2206dd94a38ab4650b5bf959b1d4b6bcaeacbcfd4c1659cfae3ccfbcc46c15` |
 | `concept-comparison.png` | `1d08e3b0bfa71290af359c80f5cda1731a17cb8452704aa1df064170d301aa4d` |
-
