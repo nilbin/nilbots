@@ -211,7 +211,9 @@
         {
           "id": "hold-the-rail-line",
           "move": {
-            "follow": "ace",
+            "to": {
+              "well": "centre"
+            },
             "posture": "line"
           }
         }

@@ -325,7 +325,7 @@ const candidates = [
             all: ["empty-handed", "enemy-nearby", "signature-ready"],
           }),
           ref("fight-visible-enemy"),
-          { id: "hold-the-rail-line", move: { follow: "ace", posture: "line" } },
+          move("hold-the-rail-line", "centre", "line"),
         ]),
         role("spotter", ["lantern"], ["vision", "reach", "vitality"], [
           ...standardPrefix(),
