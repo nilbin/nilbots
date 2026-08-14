@@ -15,6 +15,120 @@ namespace BotArena.Cli.Tests;
 public sealed class OrdersMovementSceneTests
 {
     [Fact]
+    public void DirectMoveCourseDoesNotAlternateTurnsAtDeployment()
+    {
+        string root = FindRepoRoot();
+        TacticalPlaybookCompilation lockbox = Compile(root, "lockbox-v1.json");
+        TacticalPlaybookCompilation demolition = Compile(
+            root, "demolition-march-v1.json");
+        ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create(
+            lockbox.Composition,
+            demolition.Composition,
+            loopProfile: ArcRelayLoopProfile.Tapline4);
+
+        using var session = new GenericActorMatchSession(
+            definition,
+            [Participant(0, lockbox), Participant(1, demolition)],
+            matchSeed: 9002,
+            recordChronology: false);
+
+        const int watchedUnit = 3;
+        Position start = session.ActiveLives.Single(life =>
+            life.ActorId.TeamId == 1
+            && life.ActorId.UnitId == watchedUnit).Position;
+        var visited = new HashSet<Position>();
+        int farthest = 0;
+        while (!session.IsCompleted && session.Tick < 21)
+        {
+            GenericActorMatchStepResult step = session.Step();
+            GenericActorWorldSnapshot.LifeSnapshot? life = step.PostState
+                .ActiveLives.SingleOrDefault(candidate =>
+                    candidate.ActorId.TeamId == 1
+                    && candidate.ActorId.UnitId == watchedUnit
+                    && candidate.ActorId.LifeId == 0);
+            if (life is null)
+                continue;
+            visited.Add(life.Position);
+            farthest = Math.Max(
+                farthest, start.ChebyshevDistance(life.Position));
+        }
+
+        // Cross-sheet catch from the G1 repair gate: a direct move (no
+        // authored route) selected a valid persistent course around the
+        // deployment reservations, but Chebyshev scoring treated its lateral
+        // first step as worse than turning. The body alternated headings on
+        // its spawn tile for 100 ticks. A direct course must be just as real
+        // to EPIBT as an authored waypoint course.
+        Assert.True(visited.Count >= 10,
+            $"Demolition u{watchedUnit} visited only {visited.Count} tiles "
+            + "during its opening march.");
+        Assert.True(farthest >= 7,
+            $"Demolition u{watchedUnit} never got more than {farthest} tiles "
+            + "from its deployment anchor.");
+    }
+
+    [Fact]
+    public void CrownedRailIngressDoesNotOrbitTheEastDeploymentRow()
+    {
+        string root = FindRepoRoot();
+        TacticalPlaybookCompilation relay = Compile(root, "relay-circuit-v1.json");
+        TacticalPlaybookCompilation rail = Compile(root, "crowned-rail-v1.json");
+        ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create(
+            relay.Composition,
+            rail.Composition,
+            loopProfile: ArcRelayLoopProfile.Tapline4);
+
+        using var session = new GenericActorMatchSession(
+            definition,
+            [Participant(0, relay), Participant(1, rail)],
+            matchSeed: 9001,
+            recordChronology: false);
+
+        int[] watched = [3, 5];
+        Dictionary<int, Position> starts = session.ActiveLives
+            .Where(life => life.ActorId.TeamId == 1
+                && watched.Contains(life.ActorId.UnitId))
+            .ToDictionary(life => life.ActorId.UnitId, life => life.Position);
+        Dictionary<int, HashSet<Position>> visited = watched.ToDictionary(
+            unit => unit, _ => new HashSet<Position>());
+        Dictionary<int, int> farthest = watched.ToDictionary(unit => unit, _ => 0);
+
+        while (!session.IsCompleted && session.Tick < 31)
+        {
+            GenericActorMatchStepResult step = session.Step();
+            foreach (GenericActorWorldSnapshot.LifeSnapshot life in
+                     step.PostState.ActiveLives.Where(life =>
+                         life.ActorId.TeamId == 1
+                         && life.ActorId.LifeId == 0
+                         && watched.Contains(life.ActorId.UnitId)))
+            {
+                int unit = life.ActorId.UnitId;
+                visited[unit].Add(life.Position);
+                farthest[unit] = Math.Max(
+                    farthest[unit],
+                    starts[unit].ChebyshevDistance(life.Position));
+            }
+        }
+
+        // Owner gallery catch, Tapline-4 G1: east Mason u3 alternated two
+        // headings on its spawn tile for the whole match, while Lantern u5
+        // orbited a handful of nearby cells. The held route had correctly
+        // chosen a detour around the deployment reservations, but EPIBT's
+        // terrain-only progress score rejected that necessary first step.
+        // Both bodies must now commit real geographic progress through the
+        // same authored ingress without naming either role in the executor.
+        Assert.All(watched, unit =>
+        {
+            Assert.True(visited[unit].Count >= 10,
+                $"East u{unit} visited only {visited[unit].Count} tiles "
+                + "during its opening ingress.");
+            Assert.True(farthest[unit] >= 5,
+                $"East u{unit} never got more than {farthest[unit]} tiles "
+                + "from its deployment anchor.");
+        });
+    }
+
+    [Fact]
     public void TaplineExercisesUrgencyAndClearsBothReactorDeployments()
     {
         string root = FindRepoRoot();

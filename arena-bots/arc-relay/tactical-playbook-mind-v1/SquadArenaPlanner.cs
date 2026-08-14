@@ -407,11 +407,15 @@ internal sealed class SquadArenaPlanner : IArenaStepper
         if (activeDenied is DeniedStep denied)
             durable.Add(denied.Tile);
         int[]? distanceField = null;
+        bool courseStartsWithNecessaryDetour = course.Length > 1
+            && GoalDistance(contract.Map, course[1], assignment)
+                >= GoalDistance(
+                    contract.Map, intent.Body.Position, assignment);
         if (IsCarrierReturn(intent))
         {
             HashSet<Position> distanceObstacles =
                 ArenaBasics.PersistentRouteObstacles(
-                contract, mind, intent.Body.ActorId.TeamId);
+                    contract, mind, intent.Body.ActorId.TeamId);
             distanceObstacles.UnionWith(CarrierReturnSpawnTiles(
                 contract.LifecycleAssignments,
                 contract.Map.SpawnAnchors,
@@ -436,6 +440,16 @@ internal sealed class SquadArenaPlanner : IArenaStepper
                 assignment,
                 distanceObstacles);
         }
+        else if (courseStartsWithNecessaryDetour || activeDenied is not null)
+        {
+            // Chebyshev progress cannot recognize the first step of a real
+            // route around a persistent obstacle: sideways and briefly-away
+            // steps look no better than rotating in place. Use the route's
+            // own obstacle field only for that case. Ordinary direct progress
+            // retains its cheaper and established score.
+            distanceField = ArenaBasics.StaticRouteDistanceField(
+                contract, intent.Body, assignment, durable);
+        }
         var generated = new List<Operation>();
         Enumerate(
             new PlannerState(intent.Body.Position, intent.Body.Facing),
@@ -453,7 +467,12 @@ internal sealed class SquadArenaPlanner : IArenaStepper
                 .ThenBy(operation => operation.ActionSequence,
                     StringComparer.Ordinal)
                 .First())
-            .OrderBy(operation => operation.Weight)
+            // An authored waypoint route is player intent and its sticky next
+            // step outranks a locally prettier automatic move. Direct goals
+            // deliberately pass null and retain normal EPIBT freedom.
+            .OrderBy(operation => AuthoredCourseRank(
+                operation, intent.PreferredStep))
+            .ThenBy(operation => operation.Weight)
             .ThenBy(operation => operation.ActionSequence,
                 StringComparer.Ordinal)
             .ToArray();
@@ -497,6 +516,20 @@ internal sealed class SquadArenaPlanner : IArenaStepper
                 actions.RemoveAt(actions.Count - 1);
             }
         }
+    }
+
+    internal static int AuthoredCourseRank(
+        Operation operation,
+        Position? authoredNextStep)
+    {
+        if (authoredNextStep is null)
+            return 0;
+        MicroAction? firstMove = operation.Actions
+            .Cast<MicroAction?>()
+            .FirstOrDefault(action => action?.Kind == MicroActionKind.Move);
+        if (firstMove?.Destination == authoredNextStep)
+            return 0;
+        return firstMove is null ? 2 : 1;
     }
 
     private static IEnumerable<MicroAction> ActionsFrom(

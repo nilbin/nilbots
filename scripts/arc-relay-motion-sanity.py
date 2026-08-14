@@ -5,6 +5,8 @@ This is deliberately not a balance score. It covers executor seams that a
 gallery must never hide behind aggregate movement rates: an own-squad closed
 movement cycle, a recovery order that makes no geographic/health progress,
 and a planner move trace that silently degrades into an actual Wait command.
+It also rejects a body spending a sustained move episode orbiting a tiny patch
+without reaching the named destination; rotating in place is the one-tile case.
 Enemy occupancy pauses the recovery clock; contesting a scarce healer is play,
 not a planner fault. Core progress is enforced by the frozen scorecard bars.
 """
@@ -21,9 +23,15 @@ from pathlib import Path
 
 
 RECOVER_GOAL = re.compile(r"recover-health.*?march@(-?\d+),(-?\d+)")
+MOVE_GOAL = re.compile(r":march@(-?\d+),(-?\d+)")
 RECOVERY_NO_PROGRESS_BAR = 18
 MOVEMENT_CYCLE_BAR = 3
 RECOVERY_CONTEST_DISTANCE = 1
+# Traffic debt escalates a continuously blocked body after 12 ticks. Give that
+# bounded recovery a full window to resolve before calling the episode an
+# orbit; the owner-caught failures ran for 100+ ticks and remain far over this
+# bar.
+LOCAL_MOVE_ORBIT_BAR = 18
 
 
 def read(path: Path) -> dict:
@@ -80,6 +88,9 @@ def analyze(path: Path) -> dict:
     worst_recovery: dict[tuple[int, int, int], dict] = {}
     cycle_ticks: list[dict] = []
     false_move_traces: list[dict] = []
+    move_windows: dict[tuple[int, int, int], dict] = {}
+    local_move_orbits: list[dict] = []
+    tripped_move_episodes: set[tuple[int, int, int, tuple[int, int]]] = set()
 
     for tick in replay.get("ticks", []):
         cycles = movement_cycle(tick.get("events", []))
@@ -93,10 +104,65 @@ def analyze(path: Path) -> dict:
             enemies = [point(enemy["position"])
                        for enemy in turn["observation"].get("enemies", [])]
             seen: set[tuple[int, int, int]] = set()
+            seen_movers: set[tuple[int, int, int]] = set()
             for command in turn.get("commands", []):
                 body_key = (command["unitId"], command["lifeId"])
                 body = bodies.get(body_key)
                 reason = command.get("debugMessage") or ""
+                move_match = MOVE_GOAL.search(reason)
+                actor_key = (team, *body_key)
+                if body is not None and move_match is not None \
+                        and ":at-target:" not in reason \
+                        and ":at-contribution:" not in reason \
+                        and "return-to-reactor" not in reason \
+                        and "recover-health" not in reason:
+                    seen_movers.add(actor_key)
+                    goal = (int(move_match.group(1)), int(move_match.group(2)))
+                    position = point(body["position"])
+                    prior_move = move_windows.get(actor_key)
+                    new_episode = prior_move is None \
+                        or prior_move["goal"] != goal \
+                        or prior_move["lastTick"] + 1 != tick["tick"]
+                    if new_episode:
+                        state = {
+                            "goal": goal,
+                            "lastTick": tick["tick"],
+                            "seenPositions": {position},
+                            "repeatPositions": {position},
+                            "bestDistance": chebyshev(position, goal),
+                            "repeatTicks": 0,
+                        }
+                    else:
+                        state = prior_move
+                        distance = chebyshev(position, goal)
+                        novel = position not in state["seenPositions"]
+                        closer = distance < state["bestDistance"]
+                        state["seenPositions"].add(position)
+                        state["bestDistance"] = min(
+                            state["bestDistance"], distance)
+                        if novel or closer:
+                            state["repeatTicks"] = 0
+                            state["repeatPositions"] = {position}
+                        else:
+                            state["repeatTicks"] += 1
+                            state["repeatPositions"].add(position)
+                        state["lastTick"] = tick["tick"]
+                    move_windows[actor_key] = state
+                    episode = (*actor_key, goal)
+                    if state["repeatTicks"] >= LOCAL_MOVE_ORBIT_BAR \
+                            and episode not in tripped_move_episodes:
+                        local_move_orbits.append({
+                            "fromTick": tick["tick"]
+                                - state["repeatTicks"] + 1,
+                            "toTick": tick["tick"],
+                            "teamId": team,
+                            "unitId": command["unitId"],
+                            "lifeId": command["lifeId"],
+                            "goal": goal,
+                            "distinctTiles": len(state["repeatPositions"]),
+                            "reason": reason,
+                        })
+                        tripped_move_episodes.add(episode)
                 # Suppression governors deliberately turn a proposed move
                 # into a Wait and name why (lease/oscillation). The broken
                 # seam this catches retained the generic move-blocked suffix:
@@ -153,6 +219,9 @@ def analyze(path: Path) -> dict:
             for key in list(recovery):
                 if key[0] == team and key not in seen:
                     recovery.pop(key)
+            for key in list(move_windows):
+                if key[0] == team and key not in seen_movers:
+                    move_windows.pop(key)
 
     trips = [state for state in worst_recovery.values()
              if state["uncontestedTicks"] >= RECOVERY_NO_PROGRESS_BAR]
@@ -168,8 +237,10 @@ def analyze(path: Path) -> dict:
             key=lambda value: (-value["uncontestedTicks"],
                                value["teamId"], value["unitId"])),
         "falseMoveTracesOnWait": false_move_traces,
+        "localMoveOrbitBar": LOCAL_MOVE_ORBIT_BAR,
+        "localMoveOrbits": local_move_orbits,
         "mechanicallyClean": not cycle_ticks and not trips
-            and not false_move_traces,
+            and not false_move_traces and not local_move_orbits,
     }
 
 
@@ -191,6 +262,7 @@ def main() -> int:
             f"{len(result['recoveryNoProgressTrips'])}; "
             f"false move traces "
             f"{len(result['falseMoveTracesOnWait'])}; "
+            f"local move orbits {len(result['localMoveOrbits'])}; "
             f"{'CLEAN' if result['mechanicallyClean'] else 'FAIL'}"
         )
         for trip in result["recoveryNoProgressTrips"]:
@@ -208,6 +280,13 @@ def main() -> int:
                 f"  t{trip['tick']} t{trip['teamId']} u{trip['unitId']} "
                 "planned movement but submitted wait: "
                 f"{trip['reason']}"
+            )
+        for trip in result["localMoveOrbits"][:8]:
+            print(
+                f"  t{trip['fromTick']}-t{trip['toTick']} "
+                f"t{trip['teamId']} u{trip['unitId']} l{trip['lifeId']} "
+                f"remained in {trip['distinctTiles']} tiles while moving "
+                f"toward {tuple(trip['goal'])}: {trip['reason']}"
             )
     return 1 if args.fail and not result["mechanicallyClean"] else 0
 

@@ -8,6 +8,7 @@ using BotArena.Sdk;
 /// </summary>
 public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
 {
+    private const int RouteWaypointSlack = 1;
     private readonly OrderTreeRuntime _orders = new();
     private readonly TacticalRouteGovernor _routes = new();
     private readonly TacticalTrafficGovernor _traffic = new();
@@ -1393,15 +1394,34 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     .First()
                 : 0;
             state.Initialized = true;
+            state.BestDistance = int.MaxValue;
         }
-        if (body.Position == points[state.Index])
+        Position waypoint = points[state.Index];
+        int distance = ArenaBasics.StaticDistance(
+                contract.Map, body.Position, waypoint)
+            ?? int.MaxValue;
+        int arrivalRadius = state.Index + 1 < points.Length
+            ? TacticalRouteGovernor.EffectiveArrivalRadius(
+                RouteWaypointSlack, waypoint, points[state.Index + 1])
+            : loop
+                ? TacticalRouteGovernor.EffectiveArrivalRadius(
+                    RouteWaypointSlack, waypoint, points[0])
+                : RouteWaypointSlack;
+        bool reached = TacticalRouteGovernor.ReachedWaypoint(
+            distance, state.BestDistance, arrivalRadius);
+        state.BestDistance = Math.Min(state.BestDistance, distance);
+        if (reached)
         {
             if (state.Index + 1 < points.Length)
+            {
                 state.Index++;
+                state.BestDistance = int.MaxValue;
+            }
             else if (loop)
             {
                 state.Index = 0;
                 state.Lap++;
+                state.BestDistance = int.MaxValue;
             }
             else
             {
@@ -2437,6 +2457,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         public int Index { get; set; }
         public int Lap { get; set; }
         public bool Initialized { get; set; }
+        public int BestDistance { get; set; } = int.MaxValue;
         public static RouteCursor For(ActorIdentity actor, string stateId) =>
             new(actor, stateId);
     }

@@ -125,8 +125,10 @@ WASM build merely to make a review gallery.
 Never edit inputs while the script is between `running ...` and completion.
 
 The exhibit is not publishable merely because every process exited zero. Its
-raw-replay motion gate rejects closed allied movement cycles and uncontested
-recovery with no health/geographic progress. The gallery builder then applies
+raw-replay motion gate rejects closed allied movement cycles, uncontested
+recovery with no health/geographic progress, and a move episode that remains
+in a local orbit beyond the traffic-debt escalation window. The gallery
+builder then applies
 the frozen felt-degeneracy bars, including Core-level home non-progress across
 handoffs and equal-distance movement. Do not pass
 `--skip-arc-relay-eligibility` in this workflow. Finally inspect every end tick:

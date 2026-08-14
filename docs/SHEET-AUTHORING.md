@@ -307,7 +307,11 @@ positioning relative to the destination, not a formation or combat behavior.
 
 Routes guide intent. Reaching the destination outranks blindly visiting every
 waypoint. Route hysteresis, traffic detours, legal corners, and collision
-avoidance are deterministic executor/engine micro.
+avoidance are deterministic executor/engine micro. A `via` or patrol waypoint
+is satisfied within one traversable terrain step when the body has genuinely
+approached it; adjacent waypoints clamp that slack to zero. This keeps routes
+as corridors rather than compulsory pinholes without allowing a stationary
+body to lap a route cursor.
 
 Walking onto a legal loose Core picks it up. Walking a carried Core into the
 owner's reactor banks it. Those are physical rules, not hidden action verbs.

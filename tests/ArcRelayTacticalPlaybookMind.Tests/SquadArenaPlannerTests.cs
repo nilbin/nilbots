@@ -218,6 +218,39 @@ public sealed class SquadArenaPlannerTests
     }
 
     [Fact]
+    public void AuthoredCourseStepOutranksAutomaticMovementAndTurning()
+    {
+        Position start = new(2, 2);
+        Position held = new(2, 3);
+        SquadArenaPlanner.Operation follows = Operation(
+            start, Direction.East,
+            SquadArenaPlanner.MicroAction.Rotate(Direction.South),
+            SquadArenaPlanner.MicroAction.Move(
+                held, ProjectileHeading.South),
+            SquadArenaPlanner.MicroAction.Wait);
+        SquadArenaPlanner.Operation wanders = Operation(
+            start, Direction.East,
+            SquadArenaPlanner.MicroAction.Move(
+                new Position(3, 2), ProjectileHeading.East),
+            SquadArenaPlanner.MicroAction.Wait,
+            SquadArenaPlanner.MicroAction.Wait);
+        SquadArenaPlanner.Operation onlyTurns = Operation(
+            start, Direction.East,
+            SquadArenaPlanner.MicroAction.Rotate(Direction.North),
+            SquadArenaPlanner.MicroAction.Rotate(Direction.West),
+            SquadArenaPlanner.MicroAction.Wait);
+
+        Assert.Equal(0,
+            SquadArenaPlanner.AuthoredCourseRank(follows, held));
+        Assert.Equal(1,
+            SquadArenaPlanner.AuthoredCourseRank(wanders, held));
+        Assert.Equal(2,
+            SquadArenaPlanner.AuthoredCourseRank(onlyTurns, held));
+        Assert.Equal(0,
+            SquadArenaPlanner.AuthoredCourseRank(wanders, null));
+    }
+
+    [Fact]
     public void HoldPreferenceCannotOutweighOneStepOfGoalProgress()
     {
         long yielding = SquadArenaPlanner.PreferredHoldPenalty(
