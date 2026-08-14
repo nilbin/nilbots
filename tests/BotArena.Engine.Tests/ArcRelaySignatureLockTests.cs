@@ -202,6 +202,10 @@ public sealed class ArcRelaySignatureLockTests
         Assert.Equal(Shooter, arena.Body(matured, 0, 0).Position);
         Assert.Empty(Arena.PendingStrikes(matured));
         Assert.Equal(3, arena.Body(matured, 1, 0).Health);
+        // Materializing the chronology validates every tick boundary. A
+        // locked-line tell is driver-owned even though the viewer receives it
+        // on the declared-strike wire.
+        Assert.NotEmpty(arena.Chronology.Ticks);
     }
 
     [Fact]
@@ -403,6 +407,8 @@ public sealed class ArcRelaySignatureLockTests
         public static ImmutableArray<ArcRelaySignatureState> Signatures(
             GenericActorMatchStepResult step) =>
             Arc(step).VisibleSignatures;
+
+        public GenericActorMatchChronology Chronology => _session.Chronology;
 
         public void Dispose() => _session.Dispose();
 

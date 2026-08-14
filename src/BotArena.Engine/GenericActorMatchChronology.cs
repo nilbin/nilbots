@@ -1643,17 +1643,18 @@ public sealed record GenericActorMatchChronology
             definition,
             tickStart.Events,
             parameterName);
-        // ModeChanged evidence is DRIVER state; declared strikes are session
-        // state the driver cannot know (DECISIONS #212). The evidence match
-        // therefore compares the driver-owned portion, and strike stability
-        // across the lifecycle boundary is required separately.
+        // ModeChanged evidence is DRIVER state; ordinary declared strikes are
+        // session state the driver cannot know (DECISIONS #212). Locked line
+        // tells share that wire for the viewer, but remain driver-owned and
+        // legitimately disappear when the tell matures at tick start. Compare
+        // only the session-owned remainder across this boundary.
         bool evidencedArcModeChange =
             before.Mode is GenericActorRuntimeObservation
                 .ModeObservationState.ArcRelay strikesBefore
             && after.Mode is GenericActorRuntimeObservation
                 .ModeObservationState.ArcRelay strikesAfter
-            && strikesBefore.PendingStrikes
-                .SequenceEqual(strikesAfter.PendingStrikes)
+            && SessionOwnedPendingStrikes(strikesBefore)
+                .SequenceEqual(SessionOwnedPendingStrikes(strikesAfter))
                 && tickStart.Events.Any(value =>
                 value.UnredactedPayload is GenericActorRuntimeObservation
                     .EventPayload.ModeChanged changed
@@ -1794,6 +1795,42 @@ public sealed record GenericActorMatchChronology
             changed = true;
         }
         return changed;
+    }
+
+    private static ImmutableArray<GenericActorRuntimeObservation
+        .ArcRelayPendingStrikeState> SessionOwnedPendingStrikes(
+            GenericActorRuntimeObservation.ModeObservationState.ArcRelay state)
+    {
+        List<ArcRelaySignatureState> lineTells =
+        [
+            .. state.VisibleSignatures.Where(signature =>
+                signature.Phase
+                    == ArcRelaySignatureState.SignaturePhase.Tell
+                && signature.Kind is
+                    ArcRelaySignatureDefinition.SignatureKind.RailLine
+                    or ArcRelaySignatureDefinition.SignatureKind.TractorHook2),
+        ];
+        var sessionOwned = ImmutableArray.CreateBuilder<
+            GenericActorRuntimeObservation.ArcRelayPendingStrikeState>();
+        foreach (GenericActorRuntimeObservation.ArcRelayPendingStrikeState
+                 strike in state.PendingStrikes)
+        {
+            int matchingTell = lineTells.FindIndex(signature =>
+                signature.OwnerActorId == strike.Shooter
+                && signature.CompletesAtTick == strike.ResolveAtTick
+                && signature.TargetActorId == strike.Target
+                // The signature publishes the tracked LINE; the shared strike
+                // wire publishes its frozen CONE. The former is a subset of
+                // the latter by construction.
+                && signature.Positions.All(strike.Tiles.Contains));
+            if (matchingTell >= 0)
+            {
+                lineTells.RemoveAt(matchingTell);
+                continue;
+            }
+            sessionOwned.Add(strike);
+        }
+        return sessionOwned.ToImmutable();
     }
 
     /// <summary>
