@@ -126,6 +126,19 @@ function veterancyChevronsOf(
   return chevrons;
 }
 
+function veterancyChevronOutlinesOf(
+  group: THREE.Object3D,
+  unitKey: ReplayStableUnitKey,
+): THREE.Object3D[] {
+  const pips = healthPipsOf(group, unitKey);
+  const outlines: THREE.Object3D[] = [];
+  pips.traverse((child) => {
+    if (child.userData.cue === 'veterancy-chevron-outline')
+      outlines.push(child);
+  });
+  return outlines;
+}
+
 function planarGeometryArea(geometry: THREE.BufferGeometry): number {
   const positions = geometry.getAttribute('position');
   const indices = geometry.getIndex();
@@ -503,6 +516,7 @@ test('Arc veterancy chevrons stack above health instead of spreading beside it',
   }
   const actors = buildActors(leveled);
   const chevrons = veterancyChevronsOf(actors.group, actor.unitKey);
+  const outlines = veterancyChevronOutlinesOf(actors.group, actor.unitKey);
   const visibleAt = (time: number) => {
     actors.update(time, null, false);
     return chevrons.filter((chevron) => chevron.visible);
@@ -525,8 +539,19 @@ test('Arc veterancy chevrons stack above health instead of spreading beside it',
   const thin = visible[1] as THREE.Mesh<THREE.BufferGeometry>;
   assert.notEqual(thick.geometry, thin.geometry);
   assert.ok(
-    planarGeometryArea(thick.geometry) > planarGeometryArea(thin.geometry) * 1.35,
+    planarGeometryArea(thick.geometry) > planarGeometryArea(thin.geometry) * 1.8,
     'the compressed three-rank chevron is visibly thicker than a thin rank',
+  );
+  const visibleOutlines = outlines.filter((outline) => outline.visible);
+  assert.equal(visibleOutlines.length, visible.length);
+  assert.ok(
+    visibleOutlines.every((outline, index) =>
+      (outline as THREE.Mesh).geometry ===
+        (visible[index] as THREE.Mesh).geometry &&
+      outline.scale.x >= 1.18 &&
+      outline.scale.y >= 1.08
+    ),
+    'each brass rank has a larger matching dark keyline',
   );
   assert.ok(visible.every((chevron) => chevron.position.x === 0));
   const stack = visible[0]!.parent;

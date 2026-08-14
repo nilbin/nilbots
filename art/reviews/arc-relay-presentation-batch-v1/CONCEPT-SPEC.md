@@ -100,7 +100,10 @@ the outcome.
 The compact brass rank stack is the persistent truth. WebGL shows level 1 as
 one thin chevron, levels 2 and 3 as two and three thin chevrons, level 4 as one
 thick three-rank chevron plus one thin chevron, and level 5 as one thick plus
-two thin chevrons. At an authoritative `leveled-up` fact:
+two thin chevrons. The facets use a restrained dark keyline rather than a badge
+plate, and the thick facet is deliberately wider as well as heavier so the
+compressed read survives normal gameplay scale. At an authoritative
+`leveled-up` fact:
 
 1. A thin brass floor ring expands for 0.18 visual ticks.
 2. Three short matte facets rise around the body over 0.36 ticks.

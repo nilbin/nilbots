@@ -510,7 +510,11 @@ rules-owned rank stack. In WebGL that stack starts visibly at authoritative
 level 1: levels 1, 2, and 3 use one, two, and three thin brass chevrons. Level 4
 compresses to one thick chevron worth three ranks plus one thin chevron; level
 5 adds a second thin chevron. The thick mark stays at the bottom of the stack,
-so higher ranks remain a compact vertical read clear of the health bib. Modes
+and is materially wider and heavier than a thin mark rather than relying on a
+one-pixel weight change. Every brass facet uses a tight dark keyline instead of
+a backing plate, so the compact stack survives both bright floor panels and
+dark map voids without adding another HUD box. Higher ranks remain a compact
+vertical read clear of the health bib. Modes
 without a veterancy rule or facts receive no rank mark. Temporary level-up
 geometry is gone by 1.8 presentation ticks; the effect has no white flash,
 full-height column, camera shake, or mesh mutation.

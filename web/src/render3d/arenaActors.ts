@@ -226,7 +226,10 @@ const SIGNATURE_COOLDOWN_LIFT = -0.205;
 const COOLDOWN_TRACK_WIDTH = 0.52;
 const COOLDOWN_TRACK_HEIGHT = 0.026;
 const VETERANCY_LIFT = 0.29;
-const VETERANCY_SPACING = 0.105;
+const VETERANCY_SPACING = 0.102;
+const VETERANCY_OUTLINE_X_SCALE = 1.18;
+const VETERANCY_OUTLINE_Y_SCALE = 1.08;
+const VETERANCY_OUTLINE_Y_OFFSET = -0.003;
 const ENGAGED_ABOVE_VETERANCY_GAP = 0.19;
 const ATTACK_COOLDOWN_COLOR = '#f87171';
 const SIGNATURE_COOLDOWN_COLOR = '#78aeb3';
@@ -1203,26 +1206,33 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     // A row of solid triangle circles looked like unrelated warning markers and grew
     // sideways into the health bibs.
     const thinChevronShape = new THREE.Shape();
-    thinChevronShape.moveTo(-0.065, -0.025);
-    thinChevronShape.lineTo(0, 0.045);
-    thinChevronShape.lineTo(0.065, -0.025);
-    thinChevronShape.lineTo(0.065, 0.015);
-    thinChevronShape.lineTo(0, 0.085);
-    thinChevronShape.lineTo(-0.065, 0.015);
+    thinChevronShape.moveTo(-0.08, -0.025);
+    thinChevronShape.lineTo(0, 0.05);
+    thinChevronShape.lineTo(0.08, -0.025);
+    thinChevronShape.lineTo(0.08, 0.018);
+    thinChevronShape.lineTo(0, 0.093);
+    thinChevronShape.lineTo(-0.08, 0.018);
     thinChevronShape.closePath();
     const thinChevronGeometry = new THREE.ShapeGeometry(thinChevronShape);
     const thickChevronShape = new THREE.Shape();
-    thickChevronShape.moveTo(-0.07, -0.025);
-    thickChevronShape.lineTo(0, 0.025);
-    thickChevronShape.lineTo(0.07, -0.025);
-    thickChevronShape.lineTo(0.07, 0.025);
-    thickChevronShape.lineTo(0, 0.085);
-    thickChevronShape.lineTo(-0.07, 0.025);
+    thickChevronShape.moveTo(-0.098, -0.03);
+    thickChevronShape.lineTo(0, 0.024);
+    thickChevronShape.lineTo(0.098, -0.03);
+    thickChevronShape.lineTo(0.098, 0.036);
+    thickChevronShape.lineTo(0, 0.094);
+    thickChevronShape.lineTo(-0.098, 0.036);
     thickChevronShape.closePath();
     const thickChevronGeometry = new THREE.ShapeGeometry(thickChevronShape);
     const chevronMaterial = new THREE.MeshBasicMaterial({
-      color: new THREE.Color('#d9a441'),
+      color: new THREE.Color('#e1ad45'),
       transparent: true,
+      depthWrite: false,
+      depthTest: false,
+    });
+    const chevronOutlineMaterial = new THREE.MeshBasicMaterial({
+      color: new THREE.Color('#071017'),
+      transparent: true,
+      opacity: 0.86,
       depthWrite: false,
       depthTest: false,
     });
@@ -1237,22 +1247,42 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     faceStatusElement(veterancyStack);
     pips.add(veterancyStack);
     const levelPips: THREE.Mesh[] = [];
+    const levelPipOutlines: THREE.Mesh[] = [];
     const veterancyCapacity = veterancyEnabled
       ? veterancyChevronCount(veterancyLevelCeiling)
       : 0;
     for (let index = 0; index < veterancyCapacity; index++) {
+      // The slightly oversized dark duplicate is a keyline, not a plate. It keeps the
+      // brass readable over Ember Forge's bright concrete without adding another HUD box,
+      // while disappearing naturally into the map's dark floor.
+      const outline = new THREE.Mesh(
+        thinChevronGeometry,
+        chevronOutlineMaterial,
+      );
+      outline.userData.cue = 'veterancy-chevron-outline';
+      outline.userData.weight = 'thin';
+      outline.scale.set(
+        VETERANCY_OUTLINE_X_SCALE,
+        VETERANCY_OUTLINE_Y_SCALE,
+        1,
+      );
+      outline.renderOrder = 10;
+      outline.visible = false;
       const chevron = new THREE.Mesh(thinChevronGeometry, chevronMaterial);
       chevron.userData.cue = 'veterancy-chevron';
       chevron.userData.weight = 'thin';
       chevron.userData.rankValue = 1;
+      chevron.renderOrder = 11;
       chevron.visible = false;
-      veterancyStack.add(chevron);
+      veterancyStack.add(outline, chevron);
+      levelPipOutlines.push(outline);
       levelPips.push(chevron);
     }
     disposables.push(
       thinChevronGeometry,
       thickChevronGeometry,
       chevronMaterial,
+      chevronOutlineMaterial,
     );
 
     // Crossed blades over the health row — see ENGAGED_MARK_*. Two quads in one
@@ -1530,6 +1560,7 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       { material: cooldownTrackMaterial, base: 0.62, alwaysTransparent: true },
       { material: attackCooldownMaterial, base: 0.88, alwaysTransparent: true },
       { material: signatureCooldownMaterial, base: 0.9, alwaysTransparent: true },
+      { material: chevronOutlineMaterial, base: 0.86, alwaysTransparent: true },
       { material: chevronMaterial, base: 1, alwaysTransparent: true },
       { material: bladeMaterial, base: 1, alwaysTransparent: true },
     );
@@ -1611,6 +1642,7 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       litPip,
       lostPip,
       levelPips,
+      levelPipOutlines,
       thinChevronGeometry,
       thickChevronGeometry,
       channelRing,
@@ -2206,16 +2238,25 @@ export function buildActors(replay: ReplayModel): ArenaActors {
         ? veterancyChevronCount(level)
         : 0;
       for (const [index, chevron] of bot.levelPips.entries()) {
-        chevron.visible = bot.pips.visible && index < visibleVeterancy;
+        const visible = bot.pips.visible && index < visibleVeterancy;
+        const outline = bot.levelPipOutlines[index]!;
+        chevron.visible = visible;
+        outline.visible = visible;
         const weight = veterancyChevronWeightAt(level, index);
-        chevron.geometry = weight === 'thick'
+        const geometry = weight === 'thick'
           ? bot.thickChevronGeometry
           : bot.thinChevronGeometry;
+        chevron.geometry = geometry;
+        outline.geometry = geometry;
         chevron.userData.weight = weight;
         chevron.userData.rankValue = weight === 'thick' ? 3 : 1;
-        chevron.position.x = 0;
-        chevron.position.y = index * VETERANCY_SPACING;
-        chevron.position.z = 0;
+        outline.userData.weight = weight;
+        outline.position.set(
+          0,
+          index * VETERANCY_SPACING + VETERANCY_OUTLINE_Y_OFFSET,
+          0,
+        );
+        chevron.position.set(0, index * VETERANCY_SPACING, 0.003);
       }
       bot.engagedMark.position.y = visibleVeterancy > 0
         ? VETERANCY_LIFT
