@@ -52,6 +52,7 @@ function commonOrders({
   fightStyle = "advance",
   chaseLimit = 4,
   includeFight = true,
+  scorePrefix = [],
   extra = {},
 } = {}) {
   return {
@@ -61,7 +62,10 @@ function commonOrders({
       timeout: 180,
       cooldown: 2,
       urgency: "urgent",
-      orders: [{ id: "return-to-reactor", move: { to: "own-reactor" } }],
+      orders: [
+        ...scorePrefix,
+        { id: "return-to-reactor", move: { to: "own-reactor" } },
+      ],
     },
     "collect-loose-core": {
       when: { all: ["empty-handed", "loose-core-known"] },
@@ -246,7 +250,10 @@ const candidates = [
                 { id: "close-return-lane", move: { to: { zone: "enemy-return-cut" }, posture: "front" } },
               ],
             },
-            ...standardTail(move("wait-on-enemy-near-well", "enemy", "front")),
+            ...standardTail({
+              id: "patrol-enemy-well-screen",
+              move: { patrol: "enemy-well-loop", posture: "front" },
+            }),
           ],
         ),
         role(
@@ -268,8 +275,36 @@ const candidates = [
           ],
         ),
       ],
-      commonOrders({ looseTarget: "highest-bank-value-known-loose-core" }),
+      commonOrders({
+        looseTarget: "highest-bank-value-known-loose-core",
+        scorePrefix: [
+          {
+            id: "pass-stalled-core-homeward",
+            when: "carrier-stalled",
+            handoff: { target: "nearest-ally-toward-own-reactor" },
+          },
+          {
+            id: "drop-stalled-core-homeward",
+            when: "carrier-stalled",
+            drop: true,
+          },
+          {
+            id: "fight-through-carrier-pocket",
+            when: "carrier-stalled",
+            fight: {
+              targets: ["nearest", "weakest", "carrier"],
+              style: "advance",
+              chaseLimit: 3,
+            },
+          },
+        ],
+      }),
       commonConditions({
+        "carrier-stalled": {
+          fact: "self-stuck-ticks",
+          operator: "at-least",
+          value: 4,
+        },
         "enemy-carrier-visible": { fact: "visible-enemy-carriers", operator: "at-least", value: 1 },
         "return-lane-live": {
           fact: "remembered-enemies-in-zone",
@@ -282,6 +317,11 @@ const candidates = [
     ),
     map: mapPlan("tapline-turncoat-intercept-v1", {
       zones: { "enemy-return-cut": { rect: [18, 16, 25, 23] } },
+      routes: {
+        "enemy-well-loop": {
+          waypoints: [[19, 20], [20, 20], [20, 21], [19, 21], [18, 21], [18, 20], [18, 19], [19, 19], [19, 20]],
+        },
+      },
     }),
   },
   {
