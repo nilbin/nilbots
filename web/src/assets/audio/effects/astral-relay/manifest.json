@@ -53,11 +53,11 @@
           "channelTransform": "preserve-stereo",
           "sourceStartSeconds": 0,
           "playbackRate": 1,
-          "durationSeconds": 1,
-          "lowPassHz": 3600,
-          "fadeInSeconds": 0.02,
+          "durationSeconds": 0.8,
+          "lowPassHz": 2200,
+          "fadeInSeconds": 0.03,
           "fadeOutSeconds": 0.14,
-          "targetSamplePeak": 0.45
+          "targetSamplePeak": 0.38
         },
         "healing": {
           "channelTransform": "preserve-stereo",
@@ -394,7 +394,7 @@
         "roomSend": false
       },
       "impact": {
-        "gain": 0.32,
+        "gain": 0.28,
         "voiceLimit": 1,
         "panWidth": 0.5,
         "roomSend": false
@@ -637,7 +637,7 @@
       "signatureVoices": 2,
       "signaturePairCount": 171,
       "variantCount": 513,
-      "maximumApproximateTruePeakDbtp": -7.43,
+      "maximumApproximateTruePeakDbtp": -8.13,
       "worstVariant": {
         "coreCueId": "arc-pickup",
         "signatureCueIds": [
@@ -740,28 +740,28 @@
     },
     "impact": {
       "sourceSha256": "ab6260948b7e928038d636ff4f826c7d1c7efdd8ef75b8b6f311512f946240de",
-      "outputSha256": "1cfc6625abe9e59f82382a426790910f33be3ab4ea0b85afad092502f349bd2b",
-      "bytes": 16232,
+      "outputSha256": "9e18e32f329ce0903f0462ca42d10137ef5748a2026b654f0c89263af5e611b9",
+      "bytes": 15594,
       "bitrate": 192000,
       "deliveryMetrics": {
-        "durationSeconds": 1,
-        "samplePeakDbfs": -6.87,
-        "rmsDbfs": -22.73,
+        "durationSeconds": 0.8,
+        "samplePeakDbfs": -8.38,
+        "rmsDbfs": -23.36,
         "dominantFrequencyHz": 1720,
-        "interchannelCorrelation": -0.4057,
-        "spectralCentroidHz": 1771,
-        "energyAbove4kPercent": 2.67,
-        "energyAbove8kPercent": 0.05,
+        "interchannelCorrelation": -0.2879,
+        "spectralCentroidHz": 1560,
+        "energyAbove4kPercent": 1.03,
+        "energyAbove8kPercent": 0.01,
         "energyAbove12kPercent": 0,
-        "maximumWindowAbove4kPercent": 4.09,
+        "maximumWindowAbove4kPercent": 1.7,
         "maximumWindowAbove4kAtSeconds": 0.043,
-        "maximumWindowAbove4kRmsDbfs": -27.8,
-        "maximumHighBandWindowRmsDbfs": -41.68,
+        "maximumWindowAbove4kRmsDbfs": -29.61,
+        "maximumHighBandWindowRmsDbfs": -47.31,
         "sourceInterchannelCorrelation": -0.4754,
-        "effectiveSamplePeakDbfs": -16.77,
-        "effectiveRmsDbfs": -32.63,
-        "effectiveMaximumWindowAbove4kRmsDbfs": -37.7,
-        "effectiveMaximumHighBandWindowRmsDbfs": -51.58
+        "effectiveSamplePeakDbfs": -19.44,
+        "effectiveRmsDbfs": -34.42,
+        "effectiveMaximumWindowAbove4kRmsDbfs": -40.67,
+        "effectiveMaximumHighBandWindowRmsDbfs": -58.37
       }
     },
     "healing": {

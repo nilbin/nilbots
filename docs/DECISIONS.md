@@ -8305,3 +8305,53 @@ dBTP. V2 keeps its ID because this correction occurs inside its owner-review
 gate before a public gameplay deployment; a post-release audio change would
 mint another presentation identity. Music remains unchanged and no ambient
 loop ships or plays.
+
+## 310. Shared impact is shorter and darker; uncertain Trip stays pinned
+
+Owner audio correction (2026-08-14). The current shared armor-impact delivery
+is still too sharp in the ear during play. Keep its accepted, hash-pinned SFX
+Engine source and authoritative damage mapping, but shorten the deterministic
+runtime excerpt from 1.0 to 0.8 seconds, lower its low-pass from 3.6 to 2.2 kHz,
+lengthen the onset fade from 20 to 30 ms, lower its peak fit from 0.45 to 0.38,
+and lower runtime gain from 0.32 to 0.28. This makes no provider request and
+adds no synthesized layer.
+
+After AAC decode the revised impact has a 1,560 Hz centroid, 1.03% energy above
+4 kHz, 0.01% above 8 kHz, -19.44 dBFS effective peak, and -34.42 dBFS
+effective RMS. The 33-cue pack is 499,098 bytes. Its unchanged 513-variant
+crowd proof improves from -7.43 to -8.13 dBTP against the -6 dBTP ceiling,
+without limiter or room credit.
+
+The same listen describes Trip Node as understated and lofi, but explicitly
+leaves open that its restraint may work in a real fight. Do not spend another
+provider call or replace it from an isolated impression: keep the current
+258/267 Hz deployment/trigger pair for the next in-game listen. Runtime
+manifest v13 and `arc-relay-signatures-v2` remain in their owner-review gate;
+music, ambience, signature facts, priorities, mechanics, and visuals do not
+change.
+
+## 311. Core custody review is one eight-chassis real-rules stage
+
+Owner review workflow ruling (2026-08-14). Core pickup, carried motion,
+handoff, voluntary drop, reacquisition, and Arc Toss need one compact replay
+that exposes size-dependent animation faults without running the retained
+all-signature capture harness. `experiment arc-relay-core-stage` therefore
+fields exactly eight distinct Tapline chassis—Relay, Kestrel, Mason, Mortar,
+Nest, Palisade, Towline, and Patchbay—around the centre Well and suppresses the
+two unused Well births only inside its diagnostic contract.
+
+The ordinary authoritative rules must complete one Core birth, all eight
+distinct handlers, six adjacent ally handoffs, two voluntary drops with
+cross-team reacquisition, at least eight carried relocations, and an Arc Toss
+of at least four tiles before the command writes a replay. The current pinned
+stage records ten carried relocations and a four-tile toss. Bodies move between
+custody beats, and the initial receiver is faced into its review lane; these are
+stage deployment/choreography choices, not changes to movement, custody,
+signature, collision, pathing, or balance rules.
+
+`scripts/build-arc-relay-core-stage-review.mjs` installs only this compact
+format-2 broadcast into the existing 3D review build. The replay-review skill
+documents the path and continues to forbid both retained screenshot/capture
+harnesses unless the owner separately requests them. Its receipt labels the
+artifact a presentation diagnostic with no balance, doctrine, pathing, or
+audit claim.

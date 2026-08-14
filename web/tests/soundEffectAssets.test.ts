@@ -297,11 +297,11 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
           channelTransform: 'preserve-stereo',
           sourceStartSeconds: 0,
           playbackRate: 1,
-          durationSeconds: 1,
-          lowPassHz: 3_600,
-          fadeInSeconds: 0.02,
+          durationSeconds: 0.8,
+          lowPassHz: 2_200,
+          fadeInSeconds: 0.03,
           fadeOutSeconds: 0.14,
-          targetSamplePeak: 0.45,
+          targetSamplePeak: 0.38,
         },
         healing: {
           channelTransform: 'preserve-stereo',
@@ -590,7 +590,7 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
       ),
     ),
     {
-      impact: { gain: 0.32, voiceLimit: 1, panWidth: 0.5, roomSend: false },
+      impact: { gain: 0.28, voiceLimit: 1, panWidth: 0.5, roomSend: false },
       healing: { gain: 0.28, voiceLimit: 2, panWidth: 0.55, roomSend: true },
       destroyed: { gain: 0.3, voiceLimit: 1, panWidth: 0.4, roomSend: false },
       'level-up': { gain: 0.32, voiceLimit: 1, panWidth: 0.4, roomSend: false },
@@ -697,6 +697,12 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
       -28,
     'the newly layered common projectile cue must stay well below outcomes',
   );
+  const impactMetrics = manifest.integrity.impact!.deliveryMetrics!;
+  assert.equal(impactMetrics.durationSeconds, 0.8);
+  assert.ok(impactMetrics.spectralCentroidHz <= 1_600);
+  assert.ok(impactMetrics.energyAbove4kPercent <= 1.1);
+  assert.ok(impactMetrics.effectiveSamplePeakDbfs <= -19);
+  assert.ok(impactMetrics.effectiveRmsDbfs <= -34);
 
   for (const cue of signatureCues) {
     const mix = manifest.mix.cues[cue]!;

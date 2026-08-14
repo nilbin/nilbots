@@ -80,6 +80,9 @@ playback of the three V5 ambient alternatives. The current focused review at
 and plays the exact shipped AAC deliveries at their declared cue gains after
 `scripts/build-audio-sound-lab-site.mjs` copies the approved runtime directory.
 It contains no music, ambience, autoplay, or replay-capture dependency.
+After building the focused Core replay, pass `--include-core-stage` to publish
+that lightweight 3D custody review beside the audio lab without invoking either
+retained screenshot/capture harness.
 
 ### Arc Relay space / ambient reconcept (V4 archive)
 
@@ -254,6 +257,12 @@ failed the first listen. Mason's decoded centroid rises from a sub-dominant
 is 0.06%, 0.01%, and 0.00% respectively, and all three remain below the same
 runtime peak, RMS, crowd, and duration gates.
 
+The later owner listen found Trip Node understated and somewhat lofi, but also
+left open that the restraint may work once mines compete with a full fight.
+That uncertain taste note does not authorize another provider reroll: the
+258/267 Hz deploy/trigger pair stays pinned for the next in-game listen while
+the independently sharp shared impact is corrected locally.
+
 ### Tapline signature audio inventory
 
 `arc-relay-signatures-v2` is an audio-only successor to V1: it keeps the same
@@ -321,7 +330,7 @@ node scripts/export-runtime-sound-effects.mjs
 
 This verifies the hash-pinned V5 sources and exports Astral Relay to
 `web/src/assets/audio/effects/astral-relay/` as 48 kHz stereo AAC-LC: 33 mapped
-one-shots at 192 kbps, 499,736 bytes together. The unique fizzle,
+one-shots at 192 kbps, 499,098 bytes together. The unique fizzle,
 cancel, and historical special-steal takes remain lossless review references;
 runtime fizzle aliases the projectile release instead of shipping another
 voice. The production manifest records the SFX Engine and local derivation
@@ -372,10 +381,17 @@ pan. The four-voice hard limit bounds future formats, and even a theoretical
 phase-aligned stack remains below -15 dBFS before the shared limiter. Signature
 delivery retains at most two distinct voices on a tick.
 
+The shared impact keeps its accepted hash-pinned Engine source but now uses a
+shorter 800 ms delivery, a 2.2 kHz low-pass, gentler peak fit, and 0.28 runtime
+gain. After AAC decode it measures a 1,560 Hz centroid, 1.03% energy above
+4 kHz, 0.01% above 8 kHz, -19.44 dBFS effective peak, and -34.42 dBFS
+effective RMS. This local comfort correction makes no provider request and
+does not change which authoritative damage facts trigger impact.
+
 The strict decoded-runtime crowd audit checks 513 dry, centered variants. Every
 variant combines four projectiles at their real 16 ms staggering, impact,
 destruction, level up, one of pickup/drop/handoff, and one of all 171 distinct
-signature-cue pairs. The worst sum is -7.43 dBTP against a -6 dBTP ceiling,
+signature-cue pairs. The worst sum is -8.13 dBTP against a -6 dBTP ceiling,
 without credit for the shared limiter or room attenuation. This is automated
 headroom and spectral evidence; a normal-volume human headphone/speaker listen
 remains the final taste and comfort gate.
