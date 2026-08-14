@@ -124,7 +124,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     && core.CarrierActorId is not null)
                 .ToDictionary(core => core.CarrierActorId!, core => core);
 
-        var cursors = new Dictionary<int, ProposalCursor>();
+        var proposalsByBody = new Dictionary<int, IReadOnlyList<Proposal>>();
         foreach (MindBody body in mind.Bodies.OrderBy(value => value.UnitId))
         {
             OrdersPackage.Role role = package.RolesByUnit[body.UnitId];
@@ -138,9 +138,9 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     expression, orderTicks, carried));
             List<Proposal> proposals = BuildProposals(
                 contract, mind, arc, package, body, role, leaves, carried);
-            cursors.Add(body.UnitId, new ProposalCursor(proposals));
+            proposalsByBody.Add(body.UnitId, proposals);
         }
-        Dictionary<int, Proposal> selected = Allocate(package, cursors);
+        Dictionary<int, Proposal> selected = Allocate(proposalsByBody);
         ReconcileSelections(mind, selected);
         Dictionary<int, MovePlan> movePlans = PrepareMovePlans(
             contract, mind, package, selected);
@@ -1019,52 +1019,20 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     }
 
     private static Dictionary<int, Proposal> Allocate(
-        OrdersPackage package,
-        IReadOnlyDictionary<int, ProposalCursor> cursors)
-    {
-        var selected = new Dictionary<int, Proposal>();
-        var open = cursors.ToDictionary(value => value.Key, value => value.Value);
-        while (open.Count > 0)
-        {
-            foreach (int exhausted in open
-                         .Where(value => value.Value.Current is null)
-                         .Select(value => value.Key).ToArray())
-                open.Remove(exhausted);
-            if (open.Count == 0)
-                break;
-            Proposal[] current = open.Values.Select(value => value.Current!)
-                .ToArray();
-            foreach (Proposal proposal in current.Where(value =>
-                         value.CapacityScope is null))
-            {
-                selected[proposal.Body.UnitId] = proposal;
-                open.Remove(proposal.Body.UnitId);
-            }
-            foreach (IGrouping<(string Scope, string Target), Proposal> group in
-                     current.Where(value => value.CapacityScope is not null)
-                         .GroupBy(value => (
-                             value.CapacityScope!, value.Target.Key)))
-            {
-                int limit = group.First().CapacityLimit;
-                Proposal[] winners = group
-                    .OrderBy(value => value.Distance)
-                    .ThenBy(value => value.Body.UnitId)
-                    .Take(limit)
-                    .ToArray();
-                HashSet<int> winnerIds = winners.Select(value => value.Body.UnitId)
-                    .ToHashSet();
-                foreach (Proposal winner in winners)
-                {
-                    selected[winner.Body.UnitId] = winner;
-                    open.Remove(winner.Body.UnitId);
-                }
-                foreach (Proposal loser in group.Where(value =>
-                             !winnerIds.Contains(value.Body.UnitId)))
-                    open[loser.Body.UnitId].Advance();
-            }
-        }
-        return selected;
-    }
+        IReadOnlyDictionary<int, IReadOnlyList<Proposal>> proposalsByBody) =>
+        TacticalTargetCapacityAllocator.Allocate(
+            proposalsByBody.ToDictionary(
+                pair => pair.Key,
+                pair => (IReadOnlyList<
+                    TacticalTargetCapacityAllocator.Candidate<Proposal>>)pair.Value
+                    .Select(proposal => new
+                        TacticalTargetCapacityAllocator.Candidate<Proposal>(
+                            proposal,
+                            proposal.CapacityScope,
+                            proposal.Target.Key,
+                            proposal.CapacityLimit,
+                            proposal.Distance))
+                    .ToArray()));
 
     private Dictionary<int, MovePlan> PrepareMovePlans(
         GenericActorResolvedMatchContract contract,
@@ -2117,16 +2085,6 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
 
     private static string CoreKey(GenericActorContext.ArcRelayCoreId id) =>
         $"{id.SourceWellId}:{id.SourceOrdinal}";
-
-    private sealed class ProposalCursor
-    {
-        private readonly List<Proposal> _values;
-        private int _index;
-
-        public ProposalCursor(List<Proposal> values) => _values = values;
-        public Proposal? Current => _index < _values.Count ? _values[_index] : null;
-        public void Advance() => _index++;
-    }
 
     private sealed record Proposal(
         MindBody Body,
