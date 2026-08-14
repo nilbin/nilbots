@@ -83,6 +83,7 @@ public sealed record TacticalSheetCatalogResponse(
     TacticalSheetMapResponse Map,
     int SlotCount,
     int MaximumCopiesPerClass,
+    int MinimumDistinctClasses,
     IReadOnlyList<TacticalSheetClassResponse> Classes,
     string TemplateOrdersJson,
     string TemplateMapPlanJson,

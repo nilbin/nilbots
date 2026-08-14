@@ -44,17 +44,47 @@ public sealed class TacticalSheetTemplateCatalog
         TacticalSheetSource[] opponents =
         [
             Resolve(
-                ArcRelayEntrantPlaylistDefinition.OrdersStockSheetId,
-                "Wellwright v2",
-                "The Tapline stock opponent: works all three Wells and explicitly returns every carried Core.",
-                Resource("BotArena.Sheets.wellwright-v2.sheet.json"),
-                Resource("BotArena.Sheets.wellwright-v2.map-plan.json")),
+                ArcRelayEntrantPlaylistDefinition.Tapline4StockSheetId,
+                "Tempered Standard",
+                "A balanced eight-class line: guns contest centre, support keeps the line alive, and couriers convert loose Cores.",
+                Resource("BotArena.Sheets.tempered-standard-v1.sheet.json"),
+                Resource("BotArena.Sheets.tempered-standard-v1.map-plan.json")),
             Resolve(
-                "hunter-tapline-v2",
-                "Hunter v2",
-                "A Tapline pressure opponent: its Kestrel patrols, its medic shadows it, and the remaining bodies contest all three Wells.",
-                Resource("BotArena.Sheets.hunter-v2.sheet.json"),
-                Resource("BotArena.Sheets.hunter-v2.map-plan.json")),
+                "relay-circuit-v1",
+                "Relay Circuit",
+                "A premium-Core raid: one Relay steals deep while a second runs centre handoffs and the squad screens the return.",
+                Resource("BotArena.Sheets.relay-circuit-v1.sheet.json"),
+                Resource("BotArena.Sheets.relay-circuit-v1.map-plan.json")),
+            Resolve(
+                "crowned-rail-v1",
+                "Crowned Rail",
+                "A protected Longshot ace supported by repair, designator optics, a firing line, and a logistics reserve.",
+                Resource("BotArena.Sheets.crowned-rail-v1.sheet.json"),
+                Resource("BotArena.Sheets.crowned-rail-v1.map-plan.json")),
+            Resolve(
+                "lockbox-v1",
+                "Lockbox",
+                "Two Masons fortify the near and centre Wells while a deployment net and support unit hold the enclosure.",
+                Resource("BotArena.Sheets.lockbox-v1.sheet.json"),
+                Resource("BotArena.Sheets.lockbox-v1.map-plan.json")),
+            Resolve(
+                "demolition-march-v1",
+                "Demolition March",
+                "Longshots, Mortar, and Hush clear deployments before Relay and Kestrel turn the breach into a raid.",
+                Resource("BotArena.Sheets.demolition-march-v1.sheet.json"),
+                Resource("BotArena.Sheets.demolition-march-v1.map-plan.json")),
+            Resolve(
+                "rising-standard-v1",
+                "Rising Standard",
+                "A contact group grows an emergent veteran; support then rallies to that survivor while a reserve works objectives.",
+                Resource("BotArena.Sheets.rising-standard-v1.sheet.json"),
+                Resource("BotArena.Sheets.rising-standard-v1.map-plan.json")),
+            Resolve(
+                "wavebreak-v1",
+                "Wavebreak",
+                "A wave-aware force exchanges weak allies, screens its retreat, and evacuates before a large enemy return.",
+                Resource("BotArena.Sheets.wavebreak-v1.sheet.json"),
+                Resource("BotArena.Sheets.wavebreak-v1.map-plan.json")),
         ];
         stock = opponents.ToDictionary(value => value.Id, StringComparer.Ordinal);
         Stock = opponents;

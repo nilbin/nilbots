@@ -274,7 +274,7 @@ public sealed class ArcRelayPlaylistSeeder(
         string artifactHash = BotBuilder.Sha256File(wasmPath);
         if (!string.Equals(
                 artifactHash,
-                ArcRelayEntrantPlaylistDefinition.OrdersTacticalArtifactHash,
+                ArcRelayEntrantPlaylistDefinition.Tapline4TacticalArtifactHash,
                 StringComparison.Ordinal))
         {
             throw new InvalidOperationException(
@@ -329,13 +329,13 @@ public sealed class ArcRelayPlaylistSeeder(
                     kind = "versioned-first-party-tactical-playbook-mind",
                     playbookSchema = "arc-relay-orders-v2",
                     buildInputSha256 = ArcRelayEntrantPlaylistDefinition
-                        .OrdersTacticalBuildInputHash,
+                        .Tapline4TacticalBuildInputHash,
                     artifactSha256 = artifactHash,
                 }),
                 SupportedContractProfiles =
                     [BotArenaVersions.GenericMindContractProfileId],
                 GuestBotName = "Arc Relay tactical-playbook mind",
-                GameRulesVersion = ArcRelayLoopProfile.Tapline3.RulesetId,
+                GameRulesVersion = ArcRelayLoopProfile.Tapline4.RulesetId,
                 RuntimeProtocolVersion =
                     BotArenaVersions.RuntimeProtocolVersion,
                 RuntimeConfigurationVersion =
@@ -594,7 +594,7 @@ public sealed class ArcRelayPlaylistSeeder(
             ArcRelayLoopProfile.Tapline1,
             active: false,
             cancellationToken);
-        return await SeedTaplineTacticalPlaybookMindVersionAsync(
+        await SeedTaplineTacticalPlaybookMindVersionAsync(
             "tapline-3-stock-v1",
             ArcRelayEntrantPlaylistDefinition.OrdersTacticalArtifactHash,
             "arc-relay-orders-v2",
@@ -603,6 +603,17 @@ public sealed class ArcRelayPlaylistSeeder(
             ArcRelayEntrantPlaylistDefinition.OrdersStockMapPlanSourceHash,
             ArcRelayEntrantPlaylistDefinition.OrdersTacticalBuildInputHash,
             ArcRelayLoopProfile.Tapline3,
+            active: false,
+            cancellationToken);
+        return await SeedTaplineTacticalPlaybookMindVersionAsync(
+            "tapline-4-stock-v1",
+            ArcRelayEntrantPlaylistDefinition.Tapline4TacticalArtifactHash,
+            "arc-relay-orders-v2",
+            ArcRelayEntrantPlaylistDefinition.Tapline4StockSheetId,
+            ArcRelayEntrantPlaylistDefinition.Tapline4StockPlaybookSourceHash,
+            ArcRelayEntrantPlaylistDefinition.Tapline4StockMapPlanSourceHash,
+            ArcRelayEntrantPlaylistDefinition.Tapline4TacticalBuildInputHash,
+            ArcRelayLoopProfile.Tapline4,
             active: true,
             cancellationToken);
     }

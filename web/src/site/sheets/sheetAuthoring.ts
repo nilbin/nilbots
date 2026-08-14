@@ -359,6 +359,10 @@ export function validateDraft(
     if (count > catalog.maximumCopiesPerClass)
       error('orders.roles', `${id} exceeds the ${catalog.maximumCopiesPerClass}-copy cap.`);
   }
+  if (classCounts.size < catalog.minimumDistinctClasses) {
+    error('orders.roles',
+      `Use at least ${catalog.minimumDistinctClasses} distinct classes; currently ${classCounts.size}.`);
+  }
 
   const sharedUse = new Map<string, number>();
   const capacityUse = new Map<string, number>();

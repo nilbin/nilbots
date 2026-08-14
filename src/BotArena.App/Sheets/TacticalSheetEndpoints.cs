@@ -47,12 +47,14 @@ public static class TacticalSheetEndpoints
                 userId, cancellationToken);
             ActorMapDefinition map = ArcRelayH0Definition.CreateMap(
                 ArcRelayLoopProfile.Current);
+            var mode = AssertArcRelayMode();
             return Results.Ok(new TacticalSheetCatalogResponse(
                 ArcRelayEntrantPlaylistDefinition.PlaylistKey,
                 playlistVersionId,
                 Map(map),
                 ArcRelayComposition.SlotCount,
                 ArcRelayComposition.MaximumCopiesPerClass,
+                mode.MinimumDistinctClasses,
                 classes.All.Select(value => new TacticalSheetClassResponse(
                     value.Id,
                     value.Name,
@@ -69,6 +71,10 @@ public static class TacticalSheetEndpoints
                     value.Name,
                     value.Description,
                     value.Composition)).ToArray()));
+
+            static ArcRelayGameModeDefinition AssertArcRelayMode() =>
+                (ArcRelayGameModeDefinition)ArcRelayH0Definition.CreateRules(
+                    ArcRelayLoopProfile.Current).GameMode;
         }).Produces<TacticalSheetCatalogResponse>();
 
         group.MapGet("/", async (

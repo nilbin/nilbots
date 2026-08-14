@@ -59,6 +59,17 @@ public sealed class TacticalSheetCompiler(ArcRelayClassCatalog classCatalog)
             new ArcRelayCompositionDeclaration(compilation.Composition),
             classCatalog,
             unlockedClassIds);
+        int minimumDistinctClasses = ((ArcRelayGameModeDefinition)
+            ArcRelayH0Definition.CreateRules(
+                ArcRelayLoopProfile.Current).GameMode).MinimumDistinctClasses;
+        int distinctClasses = compilation.Composition.Distinct(
+            StringComparer.Ordinal).Count();
+        if (distinctClasses < minimumDistinctClasses)
+        {
+            throw new InvalidDataException(
+                $"Current Arc Relay requires at least {minimumDistinctClasses} "
+                + $"distinct classes; this sheet fields {distinctClasses}.");
+        }
         return new ValidatedTacticalSheet(
             compilation,
             Convert.ToHexStringLower(SHA256.HashData(compilation.LinkedData)),

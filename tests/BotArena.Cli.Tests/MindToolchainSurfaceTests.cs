@@ -159,7 +159,7 @@ public sealed class MindToolchainSurfaceTests
     }
 
     [Fact]
-    public void Tapline3V21MirrorMatchesItsFrozenCopyWhileV20StaysFrozen()
+    public void Tapline4V22MirrorMatchesItsFrozenCopyWhileV21AndV20StayFrozen()
     {
         string root = FindRepoRoot();
         string projectDirectory = Path.Combine(
@@ -172,16 +172,24 @@ public sealed class MindToolchainSurfaceTests
             "arena-bots",
             "arc-relay",
             "tapline-1-stock-v1");
-        string currentFrozenDirectory = Path.Combine(
+        string tapline3Directory = Path.Combine(
             root,
             "arena-bots",
             "arc-relay",
             "tapline-3-stock-v1");
+        string currentFrozenDirectory = Path.Combine(
+            root,
+            "arena-bots",
+            "arc-relay",
+            "tapline-4-stock-v1");
         TrackedBuildReceipt current = ReadReceipt(Path.Combine(
             projectDirectory,
             "bot.build-receipt.json"));
         TrackedBuildReceipt historical = ReadReceipt(Path.Combine(
             historicalDirectory,
+            "bot.build-receipt.json"));
+        TrackedBuildReceipt tapline3 = ReadReceipt(Path.Combine(
+            tapline3Directory,
             "bot.build-receipt.json"));
         TrackedBuildReceipt currentFrozen = ReadReceipt(Path.Combine(
             currentFrozenDirectory,
@@ -192,6 +200,10 @@ public sealed class MindToolchainSurfaceTests
             Sha256(Path.Combine(projectDirectory, "bot.wasm")),
             Sha256(Path.Combine(currentFrozenDirectory, "bot.wasm")));
         Assert.NotEqual(current.ArtifactSha256, historical.ArtifactSha256);
+        Assert.NotEqual(current.ArtifactSha256, tapline3.ArtifactSha256);
+        Assert.Equal(
+            tapline3.ArtifactSha256,
+            Sha256(Path.Combine(tapline3Directory, "bot.wasm")));
         Assert.Equal(
             historical.ArtifactSha256,
             Sha256(Path.Combine(historicalDirectory, "bot.wasm")));

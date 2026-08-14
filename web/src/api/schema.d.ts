@@ -3164,6 +3164,8 @@ export interface components {
             slotCount: number;
             /** Format: int32 */
             maximumCopiesPerClass: number;
+            /** Format: int32 */
+            minimumDistinctClasses: number;
             classes: components["schemas"]["TacticalSheetClassResponse"][];
             templateOrdersJson: string;
             templateMapPlanJson: string;

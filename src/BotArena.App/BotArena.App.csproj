@@ -48,14 +48,34 @@
       LogicalName="BotArena.Sheets.starter-v2.sheet.json" />
     <EmbeddedResource Include="../../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/map-plans/starter-tapline-v2.json"
       LogicalName="BotArena.Sheets.starter-v2.map-plan.json" />
-    <EmbeddedResource Include="../../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/playbooks/wellwright-tapline-v2.json"
-      LogicalName="BotArena.Sheets.wellwright-v2.sheet.json" />
-    <EmbeddedResource Include="../../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/map-plans/wellwright-tapline-v2.json"
-      LogicalName="BotArena.Sheets.wellwright-v2.map-plan.json" />
-    <EmbeddedResource Include="../../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/playbooks/hunter-tapline-v2.json"
-      LogicalName="BotArena.Sheets.hunter-v2.sheet.json" />
-    <EmbeddedResource Include="../../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/map-plans/hunter-tapline-v2.json"
-      LogicalName="BotArena.Sheets.hunter-v2.map-plan.json" />
+    <EmbeddedResource Include="../../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/playbooks/tempered-standard-v1.json"
+      LogicalName="BotArena.Sheets.tempered-standard-v1.sheet.json" />
+    <EmbeddedResource Include="../../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/map-plans/tempered-standard-v1.json"
+      LogicalName="BotArena.Sheets.tempered-standard-v1.map-plan.json" />
+    <EmbeddedResource Include="../../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/playbooks/relay-circuit-v1.json"
+      LogicalName="BotArena.Sheets.relay-circuit-v1.sheet.json" />
+    <EmbeddedResource Include="../../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/map-plans/relay-circuit-v1.json"
+      LogicalName="BotArena.Sheets.relay-circuit-v1.map-plan.json" />
+    <EmbeddedResource Include="../../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/playbooks/crowned-rail-v1.json"
+      LogicalName="BotArena.Sheets.crowned-rail-v1.sheet.json" />
+    <EmbeddedResource Include="../../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/map-plans/crowned-rail-v1.json"
+      LogicalName="BotArena.Sheets.crowned-rail-v1.map-plan.json" />
+    <EmbeddedResource Include="../../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/playbooks/lockbox-v1.json"
+      LogicalName="BotArena.Sheets.lockbox-v1.sheet.json" />
+    <EmbeddedResource Include="../../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/map-plans/lockbox-v1.json"
+      LogicalName="BotArena.Sheets.lockbox-v1.map-plan.json" />
+    <EmbeddedResource Include="../../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/playbooks/demolition-march-v1.json"
+      LogicalName="BotArena.Sheets.demolition-march-v1.sheet.json" />
+    <EmbeddedResource Include="../../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/map-plans/demolition-march-v1.json"
+      LogicalName="BotArena.Sheets.demolition-march-v1.map-plan.json" />
+    <EmbeddedResource Include="../../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/playbooks/rising-standard-v1.json"
+      LogicalName="BotArena.Sheets.rising-standard-v1.sheet.json" />
+    <EmbeddedResource Include="../../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/map-plans/rising-standard-v1.json"
+      LogicalName="BotArena.Sheets.rising-standard-v1.map-plan.json" />
+    <EmbeddedResource Include="../../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/playbooks/wavebreak-v1.json"
+      LogicalName="BotArena.Sheets.wavebreak-v1.sheet.json" />
+    <EmbeddedResource Include="../../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/map-plans/wavebreak-v1.json"
+      LogicalName="BotArena.Sheets.wavebreak-v1.map-plan.json" />
   </ItemGroup>
   <ItemGroup>
     <!-- One frozen first-party stock algorithm is compiled once into the

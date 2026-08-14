@@ -3186,6 +3186,9 @@ namespace BotArena.Cli.Generated
         [System.Text.Json.Serialization.JsonPropertyName("maximumCopiesPerClass")]
         public int MaximumCopiesPerClass { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("minimumDistinctClasses")]
+        public int MinimumDistinctClasses { get; set; } = default!;
+
         [System.Text.Json.Serialization.JsonPropertyName("classes")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.IReadOnlyList<TacticalSheetClassResponse> Classes { get; set; } = new System.Collections.Generic.List<TacticalSheetClassResponse>();

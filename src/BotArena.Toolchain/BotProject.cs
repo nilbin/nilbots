@@ -459,7 +459,7 @@ public static class ToolchainInfo
     /// contact and atomic EPIBT squad movement to immutable hosted playlist v21.
     /// Keep in lockstep with BotArena.Cli.csproj's
     /// Version — PackagedCliVersionTests pins them together.</summary>
-    public const string CliVersion = "0.9.60";
+    public const string CliVersion = "0.9.61";
     // 0.2.0: BotContext.Slot + documented event semantics (DECISIONS #46).
     // 0.3.0: BotContext.Energy for the energy-shot rules candidate (DECISIONS #47).
     // 0.4.0: strafe actions + map dims + zone-control fields for the rules 0.3 slate

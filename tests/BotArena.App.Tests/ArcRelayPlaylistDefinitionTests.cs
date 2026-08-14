@@ -30,15 +30,15 @@ public sealed class ArcRelayPlaylistDefinitionTests
         JsonElement document = receipt.RootElement;
 
         Assert.Equal(
-            ArcRelayEntrantPlaylistDefinition.OrdersTacticalArtifactHash,
+            ArcRelayEntrantPlaylistDefinition.Tapline4TacticalArtifactHash,
             document.GetProperty("artifactSha256").GetString());
         Assert.Equal(
-            ArcRelayEntrantPlaylistDefinition.OrdersTacticalBuildInputHash,
+            ArcRelayEntrantPlaylistDefinition.Tapline4TacticalBuildInputHash,
             document.GetProperty("buildInputSha256").GetString());
     }
 
     [Fact]
-    public void Entrant_v21_promotes_Tapline3_and_EPIBT_while_v2_through_v20_remain_resolvable_history()
+    public void Entrant_v22_promotes_Tapline4_while_v2_through_v21_remain_resolvable_history()
     {
         ArcRelayEntrantPlaylistDefinition current =
             ArcRelayEntrantPlaylistDefinition.Create();
@@ -80,29 +80,35 @@ public sealed class ArcRelayPlaylistDefinitionTests
             ArcRelayEntrantPlaylistDefinition.CreateHistoricalV19();
         ArcRelayEntrantPlaylistDefinition ordersV20 =
             ArcRelayEntrantPlaylistDefinition.CreateHistoricalV20();
+        ArcRelayEntrantPlaylistDefinition tapline3V21 =
+            ArcRelayEntrantPlaylistDefinition.CreateHistoricalV21();
 
-        Assert.Equal(21, current.PlaylistVersion);
-        Assert.Equal(ArcRelayLoopProfile.Tapline3.MapId, current.Match.Map.Id);
+        Assert.Equal(22, current.PlaylistVersion);
+        Assert.Equal(ArcRelayLoopProfile.Tapline4.MapId, current.Match.Map.Id);
         Assert.Equal(
-            ArcRelayLoopProfile.Tapline3.RulesetId,
+            ArcRelayLoopProfile.Tapline4.RulesetId,
             current.Match.Rules.RulesetId);
         Assert.Contains(
-            ArcRelayEntrantPlaylistDefinition.OrdersTacticalArtifactHash,
+            ArcRelayEntrantPlaylistDefinition.Tapline4TacticalArtifactHash,
             current.CanonicalDefinition);
         Assert.Contains("arc-relay-orders-v2", current.CanonicalDefinition);
         Assert.Contains(
-            ArcRelayEntrantPlaylistDefinition.OrdersStockSheetId,
+            ArcRelayEntrantPlaylistDefinition.Tapline4StockSheetId,
             current.CanonicalDefinition);
         Assert.Contains(
-            ArcRelayEntrantPlaylistDefinition.OrdersTacticalBuildInputHash,
+            ArcRelayEntrantPlaylistDefinition.Tapline4TacticalBuildInputHash,
             current.CanonicalDefinition);
         Assert.Contains(
-            ArcRelayEntrantPlaylistDefinition.OrdersStockPlaybookSourceHash,
+            ArcRelayEntrantPlaylistDefinition.Tapline4StockPlaybookSourceHash,
             current.CanonicalDefinition);
         Assert.Contains(
-            ArcRelayEntrantPlaylistDefinition.OrdersStockMapPlanSourceHash,
+            ArcRelayEntrantPlaylistDefinition.Tapline4StockMapPlanSourceHash,
             current.CanonicalDefinition);
-        Assert.Contains("ownerApprovedTapline3", current.Provenance);
+        Assert.Contains("ownerApprovedTapline4", current.Provenance);
+        Assert.Contains("teamRelativeCoreCharge", current.Provenance);
+        Assert.Contains("publicRespawnWaves", current.Provenance);
+        Assert.Contains("minimumSevenDistinctClasses", current.Provenance);
+        Assert.Contains("durableDeployments", current.Provenance);
         Assert.Contains("taplineNativeMapPlansOnly", current.Provenance);
         Assert.Contains("ordersV2DirectExecutor", current.Provenance);
         Assert.Contains("nestedPriorityOrders", current.Provenance);
@@ -115,6 +121,18 @@ public sealed class ArcRelayPlaylistDefinitionTests
         Assert.Contains("\"linkedDataFormat\":\"ATL2\"", current.Provenance);
         Assert.Contains("freshRatingEra", current.Provenance);
         Assert.DoesNotContain("ratingContinuityFromVersions", current.Provenance);
+        Assert.Equal(21, tapline3V21.PlaylistVersion);
+        Assert.Equal(
+            ArcRelayLoopProfile.Tapline3.RulesetId,
+            tapline3V21.Match.Rules.RulesetId);
+        Assert.Contains(
+            ArcRelayEntrantPlaylistDefinition.OrdersTacticalArtifactHash,
+            tapline3V21.CanonicalDefinition);
+        Assert.Contains(
+            ArcRelayEntrantPlaylistDefinition.OrdersStockSheetId,
+            tapline3V21.CanonicalDefinition);
+        Assert.Contains("ownerApprovedTapline3", tapline3V21.Provenance);
+        Assert.DoesNotContain("teamRelativeCoreCharge", tapline3V21.Provenance);
         Assert.Equal(20, ordersV20.PlaylistVersion);
         Assert.Equal(ArcRelayLoopProfile.Tapline1.MapId, ordersV20.Match.Map.Id);
         Assert.Equal(
@@ -320,7 +338,8 @@ public sealed class ArcRelayPlaylistDefinitionTests
                 wasmRepairV8, directV9, semanticV10, movementV11,
                 relativeWellV12, stickyRouteV13, carrierClearanceV14,
                 trafficDetourV15, stableCarrierV16, looseCoreMemoryV17,
-                claimableCoreV18, taplineV19, ordersV20, current]);
+                claimableCoreV18, taplineV19, ordersV20, tapline3V21,
+                current]);
         Assert.Same(historicalV2, registry.Resolve(
             ArcRelayEntrantPlaylistDefinition.PlaylistKey,
             ArcRelayEntrantPlaylistDefinition.HistoricalVersion));
@@ -378,6 +397,9 @@ public sealed class ArcRelayPlaylistDefinitionTests
         Assert.Same(ordersV20, registry.Resolve(
             ArcRelayEntrantPlaylistDefinition.PlaylistKey,
             ArcRelayEntrantPlaylistDefinition.OrdersV2Version));
+        Assert.Same(tapline3V21, registry.Resolve(
+            ArcRelayEntrantPlaylistDefinition.PlaylistKey,
+            ArcRelayEntrantPlaylistDefinition.Tapline3Version));
         Assert.Same(current, registry.Resolve(
             ArcRelayEntrantPlaylistDefinition.PlaylistKey,
             ArcRelayEntrantPlaylistDefinition.Version));
@@ -588,7 +610,7 @@ public sealed class ArcRelayPlaylistDefinitionTests
     }
 
     [Fact]
-    public void Frozen_stocks_pin_v7_through_v21_and_their_sources_are_pinned()
+    public void Frozen_stocks_pin_v7_through_v22_and_their_sources_are_pinned()
     {
         string root = RepoPaths.FindUpward("BotArena.sln") is { } solution
             ? Path.GetDirectoryName(solution)!
@@ -635,6 +657,9 @@ public sealed class ArcRelayPlaylistDefinitionTests
         string ordersArtifact = Path.Combine(
             root, "arena-bots", "arc-relay", "tapline-3-stock-v1",
             "bot.wasm");
+        string tapline4Artifact = Path.Combine(
+            root, "arena-bots", "arc-relay", "tapline-4-stock-v1",
+            "bot.wasm");
         string playbook = Path.Combine(
             root, "arena-bots", "arc-relay",
             "tactical-playbook-v1-2026-08-03", "playbooks",
@@ -659,7 +684,18 @@ public sealed class ArcRelayPlaylistDefinitionTests
             root, "arena-bots", "arc-relay",
             "tactical-playbook-v1-2026-08-03", "map-plans",
             "wellwright-tapline-v2.json");
+        string tapline4Playbook = Path.Combine(
+            root, "arena-bots", "arc-relay",
+            "tactical-playbook-v1-2026-08-03", "playbooks",
+            "tempered-standard-v1.json");
+        string tapline4MapPlan = Path.Combine(
+            root, "arena-bots", "arc-relay",
+            "tactical-playbook-v1-2026-08-03", "map-plans",
+            "tempered-standard-v1.json");
 
+        Assert.Equal(
+            ArcRelayEntrantPlaylistDefinition.Tapline4TacticalArtifactHash,
+            BotBuilder.Sha256File(tapline4Artifact));
         Assert.Equal(
             ArcRelayEntrantPlaylistDefinition.OrdersTacticalArtifactHash,
             BotBuilder.Sha256File(ordersArtifact));
@@ -729,6 +765,12 @@ public sealed class ArcRelayPlaylistDefinitionTests
         Assert.Equal(
             ArcRelayEntrantPlaylistDefinition.OrdersStockMapPlanSourceHash,
             BotBuilder.Sha256File(ordersMapPlan));
+        Assert.Equal(
+            ArcRelayEntrantPlaylistDefinition.Tapline4StockPlaybookSourceHash,
+            BotBuilder.Sha256File(tapline4Playbook));
+        Assert.Equal(
+            ArcRelayEntrantPlaylistDefinition.Tapline4StockMapPlanSourceHash,
+            BotBuilder.Sha256File(tapline4MapPlan));
     }
 
     private static string RunForwardParity(

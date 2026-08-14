@@ -85,6 +85,7 @@ const catalog: TacticalSheetCatalog = {
   },
   slotCount: 8,
   maximumCopiesPerClass: 2,
+  minimumDistinctClasses: 7,
   classes: classIds.map(testClass),
   templateOrdersJson: '{}', templateMapPlanJson: '{}', stockOpponents: [],
 };
@@ -155,7 +156,7 @@ test('new signature orders persist the selected role skill and its legal default
   });
 });
 
-test('the editor understands every Tapline depth-pack tactical word', () => {
+test('the editor understands every Tapline 4 tactical word', () => {
   const draft = parseDraft('Depth pack', null, null, stringifyDocument(orders), stringifyDocument(mapPlan));
   draft.orders.conditions['ace-live'] = {
     fact: 'role-highest-level', operator: 'at-least', value: 2, role: 'runners',
@@ -235,6 +236,7 @@ test('guided validation mirrors exact roots, class cap, condition use, shared us
 
   assert.ok(messages.some((message) => message.includes("Retired or unknown field 'custodyPolicies'")));
   assert.ok(messages.some((message) => message.includes('copy cap')));
+  assert.ok(messages.some((message) => message.includes('at least 7 distinct classes')));
   assert.ok(messages.some((message) => message.includes('unused condition')));
   assert.ok(messages.some((message) => message.includes('at least two references')));
   assert.ok(messages.some((message) => message.includes('unused zone')));
@@ -298,7 +300,16 @@ test('mixed-class roles may branch by owned skill and self-in-zone geography', (
 
 test('the player validator accepts every tracked Orders v2 Tapline sheet', async () => {
   const root = new URL('../../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/', import.meta.url);
-  for (const name of ['starter-tapline-v2', 'hunter-tapline-v2', 'wellwright-tapline-v2']) {
+  for (const name of [
+    'starter-tapline-v2',
+    'tempered-standard-v1',
+    'relay-circuit-v1',
+    'crowned-rail-v1',
+    'lockbox-v1',
+    'demolition-march-v1',
+    'rising-standard-v1',
+    'wavebreak-v1',
+  ]) {
     const playbookJson = readFileSync(new URL(`playbooks/${name}.json`, root), 'utf8');
     const source = JSON.parse(playbookJson) as OrdersDocument;
     const mapPlanJson = readFileSync(new URL(`map-plans/${name}.json`, root), 'utf8');

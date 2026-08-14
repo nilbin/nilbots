@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text;
 using BotArena.App.Bots;
 using BotArena.App.Competition;
 using BotArena.App.Jobs;
@@ -180,7 +182,7 @@ public sealed class ArcRelayMatchAdmissionService(
                     entrant.Id, entrant.CrestVariant),
                 bot.Id,
                 version.Id,
-                ArcRelayEntrantPlaylistDefinition.OrdersTacticalArtifactHash,
+                ArcRelayEntrantPlaylistDefinition.Tapline4TacticalArtifactHash,
                 compiled.Compilation.Composition,
                 compiled.Composition.CanonicalJson,
                 compiled.Composition.ContentHash,
@@ -240,7 +242,7 @@ public sealed class ArcRelayMatchAdmissionService(
                 "d7ed7a58-a59e-42d4-98f8-b6216711f188"),
             "breakwater-v1" => new Guid(
                 "0e8db149-77d7-47fc-8997-0b7eca82ab46"),
-            _ => new Guid("f75aca5f-10f9-40d8-b244-d333d411de83"),
+            _ => StockFixtureId(source.Id),
         };
         (Bot bot, BotVersion version) = await TacticalArtifactAsync(
             cancellationToken);
@@ -258,7 +260,7 @@ public sealed class ArcRelayMatchAdmissionService(
             ArcRelayCrestGenerator.Snapshot(fixtureId, 0),
             bot.Id,
             version.Id,
-            ArcRelayEntrantPlaylistDefinition.OrdersTacticalArtifactHash,
+            ArcRelayEntrantPlaylistDefinition.Tapline4TacticalArtifactHash,
             source.Composition,
             composition.CanonicalJson,
             composition.ContentHash,
@@ -280,9 +282,16 @@ public sealed class ArcRelayMatchAdmissionService(
             value.BotId == bot.Id
             && value.IsActive
             && value.ArtifactHash
-                == ArcRelayEntrantPlaylistDefinition.OrdersTacticalArtifactHash,
+                == ArcRelayEntrantPlaylistDefinition.Tapline4TacticalArtifactHash,
             cancellationToken);
         return (bot, version);
+    }
+
+    private static Guid StockFixtureId(string sheetId)
+    {
+        byte[] hash = SHA256.HashData(Encoding.UTF8.GetBytes(
+            $"arc-relay-stock-fixture:{sheetId}"));
+        return new Guid(hash.AsSpan(0, 16));
     }
 
     private IReadOnlySet<string> EveryClass() => classCatalog.All

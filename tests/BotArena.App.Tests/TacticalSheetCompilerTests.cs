@@ -19,11 +19,18 @@ public sealed class TacticalSheetCompilerTests
 
         TacticalSheetSource stock = templates.Stock[0];
         Assert.Equal(
-            ArcRelayEntrantPlaylistDefinition.OrdersStockSheetId,
+            ArcRelayEntrantPlaylistDefinition.Tapline4StockSheetId,
             stock.Id);
         Assert.Equal(
-            [ArcRelayEntrantPlaylistDefinition.OrdersStockSheetId,
-             "hunter-tapline-v2"],
+            [
+                "tempered-standard-v1",
+                "relay-circuit-v1",
+                "crowned-rail-v1",
+                "lockbox-v1",
+                "demolition-march-v1",
+                "rising-standard-v1",
+                "wavebreak-v1",
+            ],
             templates.Stock.Select(value => value.Id));
         foreach (TacticalSheetSource source in
                  new[] { templates.Template }.Concat(templates.Stock))
@@ -117,6 +124,18 @@ public sealed class TacticalSheetCompilerTests
                 copies.ToJsonString(), templates.Template.MapPlanJson,
                 unlocked, "copy-cap"));
         Assert.Contains("two-copy class cap", copyError.Message);
+
+        JsonObject insufficientVariety = JsonNode.Parse(
+            templates.Template.OrdersJson)!.AsObject();
+        insufficientVariety["roles"]![2]!["classes"] = new JsonArray(
+            "towline", "relay", "palisade");
+        InvalidDataException varietyError = Assert.Throws<InvalidDataException>(
+            () => compiler.Compile(
+                insufficientVariety.ToJsonString(),
+                templates.Template.MapPlanJson,
+                unlocked,
+                "roster-variety"));
+        Assert.Contains("at least 7 distinct classes", varietyError.Message);
 
         JsonObject wrongMap = JsonNode.Parse(
             templates.Template.MapPlanJson)!.AsObject();
